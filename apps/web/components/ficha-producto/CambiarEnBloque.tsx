@@ -12,6 +12,10 @@ import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, ty
 //
 // Un monto escrito y NO aplicado se avisa hacia afuera (`onPendiente`): «Revisar y guardar» no lo deja perderse en silencio
 // (revisión 2026-09-28: se escribía 79.90 para las XL, se guardaba otro cambio y las XL seguían al precio viejo).
+//
+// Cada campo tiene SU monto (revisión 2026-10-03): antes era uno solo, y un precio escrito en «Precios» sin aplicar aparecía en
+// «Costos» como «Cambiar el costo… a 79.90», a un Enter de volverse el costo de toda la prenda. Si el grupo elegido deja de
+// existir (se quitó o se corrigió ese color) con un monto escrito, no cae en silencio a «Todas»: lo dice y espera.
 
 export function CambiarEnBloque({
   filas,
@@ -38,21 +42,32 @@ export function CambiarEnBloque({
   const [campoPropio, setCampo] = useState<CampoBloque>("precio");
   const campo = campoFijo ?? campoPropio;
   const [alcance, setAlcance] = useState("todas");
-  const [monto, setMonto] = useState("");
+  const [montos, setMontos] = useState<Record<CampoBloque, string>>({ precio: "", costo: "" });
+  const monto = montos[campo];
   const [resultado, setResultado] = useState<{ texto: string; error: boolean } | null>(null);
   const alcances = alcancesDeBloque(filas, nombres);
-  // Si el alcance elegido dejó de existir (se corrigió ese color), vuelve a «Todas».
-  const alcanceVigente = alcances.some((a) => a.valor === alcance) ? alcance : "todas";
+  // Si el alcance elegido dejó de existir (se corrigió o se quitó ese color), vuelve a «Todas»; con un monto escrito, lo dice.
+  const alcanceExiste = alcances.some((a) => a.valor === alcance);
+  const alcanceVigente = alcanceExiste ? alcance : "todas";
+  const alcancePerdido = !alcanceExiste && alcance !== "todas";
 
-  function escribir(valor: string, en: CampoBloque = campo) {
-    setMonto(valor);
-    onPendiente(valor.trim() === "" ? null : en);
+  // Lo pendiente hacia afuera: el campo que se ve, si tiene monto; si no, el otro (también quedó escrito sin aplicar).
+  const otro: CampoBloque = campo === "precio" ? "costo" : "precio";
+  const pendiente: CampoBloque | null = montos[campo].trim() !== "" ? campo : montos[otro].trim() !== "" ? otro : null;
+  useEffect(() => onPendiente(pendiente), [pendiente, onPendiente]);
+
+  function escribir(valor: string) {
+    setMontos((m) => ({ ...m, [campo]: valor }));
   }
 
   // Si la barra desaparece (todas quedaron desactivadas) con un monto escrito, ya no hay nada pendiente que avisar.
   useEffect(() => () => onPendiente(null), [onPendiente]);
 
   function aplicar() {
+    if (alcancePerdido) {
+      setAlcance("todas");
+      return setResultado({ texto: "Ese grupo ya no está en la tabla: elige a cuáles poner el monto y vuelve a pulsar Aplicar.", error: true });
+    }
     const r = aplicarEnBloque(filas, campo, alcanceVigente, monto);
     if (r.error) return setResultado({ texto: r.error, error: true });
     if (r.aplicadas === 0 && r.fijas === 0) return setResultado({ texto: "No hay variantes activas en ese grupo.", error: true });
@@ -78,7 +93,6 @@ export function CambiarEnBloque({
               setCampo(c as CampoBloque);
               onCampo?.(c as CampoBloque);
               setResultado(null);
-              if (monto.trim() !== "") onPendiente(c as CampoBloque);
             }}
             opciones={[
               { clave: "precio", etiqueta: "Precio" },

@@ -9,6 +9,7 @@ import {
   clasificarCombinaciones,
   coloresParaAgregarTalla,
   ejesDeLaPrenda,
+  NACEN_EN_CERO_CARGABLES,
   NACEN_SIN_UNIDADES,
   nombreVariante,
   precioYCostoPorDefecto,
@@ -138,7 +139,7 @@ export function AgregarTallasModal({
             </section>
           )}
 
-          {nacen > 0 && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
+          {nacen > 0 && <p className="text-[12.5px] font-medium text-tinta">{ctx.ajusteStock ? NACEN_EN_CERO_CARGABLES : NACEN_SIN_UNIDADES}</p>}
           <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieModal
             onCancelar={cerrar}

@@ -147,25 +147,6 @@ export function enGrupo(f: FilaFicha): boolean {
   return f.activo || !!f.guardada?.activo;
 }
 
-export type GrupoColor = { colorCodigo: string | null; filas: FilaFicha[] };
-
-/** Las filas agrupadas por color (en el orden de las filas) y ordenadas por talla; aparte, las desactivadas de antes. */
-export function agruparPorColor(filas: readonly FilaFicha[], n: NombresFicha): { grupos: GrupoColor[]; desactivadas: FilaFicha[] } {
-  const porTalla = (a: FilaFicha, b: FilaFicha) => compararTallas(n.talla(a.tallaId), n.talla(b.tallaId));
-  const grupos: GrupoColor[] = [];
-  for (const f of filas) {
-    if (!enGrupo(f)) continue;
-    let g = grupos.find((x) => x.colorCodigo === f.colorCodigo);
-    if (!g) grupos.push((g = { colorCodigo: f.colorCodigo, filas: [] }));
-    g.filas.push(f);
-  }
-  for (const g of grupos) g.filas.sort(porTalla);
-  const desactivadas = filas.filter((f) => !enGrupo(f));
-  const ordenColor = (c: string | null) => filas.findIndex((f) => f.colorCodigo === c);
-  desactivadas.sort((a, b) => ordenColor(a.colorCodigo) - ordenColor(b.colorCodigo) || porTalla(a, b));
-  return { grupos, desactivadas };
-}
-
 function ejesDe(filas: readonly FilaFicha[], n: NombresFicha): { colores: (string | null)[]; tallas: (string | null)[] } {
   const colores: (string | null)[] = [];
   const tallas: (string | null)[] = [];
@@ -669,18 +650,6 @@ export function cambiarFila(filas: readonly FilaFicha[], clave: string, cambio: 
   return filas.map((f) => (f.clave === clave ? { ...f, ...cambio } : f));
 }
 
-/** Quita una fila NUEVA (una que ya existe no se quita: se desactiva). */
-export function quitarNueva(filas: readonly FilaFicha[], clave: string): FilaFicha[] {
-  return filas.filter((f) => f.clave !== clave || f.id !== null);
-}
-
-/** «Desactivar color»: desactiva TODAS las tallas del color de una vez. Las que ya existen se desactivan (nunca se borran: guardan
- *  stock e historia); las nuevas, que todavía no existen, simplemente se quitan. */
-export function desactivarColor(filas: readonly FilaFicha[], claves: readonly string[]): FilaFicha[] {
-  const grupo = new Set(claves);
-  return filas.filter((f) => !grupo.has(f.clave) || f.id !== null).map((f) => (grupo.has(f.clave) ? { ...f, activo: false } : f));
-}
-
 // ---------------------------------------------------------------------------
 // Precio y costo: de a una o en bloque
 // ---------------------------------------------------------------------------
@@ -886,8 +855,6 @@ export function consolidar(filas: readonly FilaFicha[], deLaBase: readonly Varia
 // Lo que va a pasar al guardar, y lo que falta
 // ---------------------------------------------------------------------------
 
-const plural = (k: number, uno: string, varios: string) => (k === 1 ? uno : varios);
-
 /**
  * Las variantes como las compara `resumenDeCambios` de `lib/producto-cambios-reglas.ts` (ADR-0257, guardar en dos
  * tiempos): la barra «Tienes N cambios sin guardar», la marca de cada fila y la hoja «Revisa y guarda los cambios» salen
@@ -1051,34 +1018,18 @@ export function leerEstadoVariantes(data: unknown): Record<string, EstadoVariant
   return salida;
 }
 
-/** «TRU 8 · AQP 2 · 1 apartada»: lo que se lee al pasar el mouse por las unidades de una fila. */
-export function textoSedes(e: EstadoVariante): string {
-  const partes = e.sedes.map((s) => `${s.nombre} ${s.cantidad}`);
-  if (e.apartado > 0) partes.push(`${e.apartado} ${plural(e.apartado, "apartada", "apartadas")}`);
-  return partes.length > 0 ? partes.join(" · ") : "Sin unidades en ninguna sede";
-}
-
-/**
- * Una fila que se desactiva con unidades lo dice en la fila (no bloquea: desactivar se permite siempre, Felipe). Dice la
- * verdad: desactivar NO saca las unidades del inventario —siguen en el stock de la ficha, en /productos y en el conteo—,
- * solo deja de venderlas (Vender ya no la encuentra). Y deja de venderlas en TODAS las sedes: `activo` es de la variante,
- * no de la sede, así que trasladarlas antes no sirve (la receta vieja decía «trasládalas»). Si las prendas están, que se
- * vendan antes o un ajuste las pase a otra variante; si no están, un ajuste las deja en 0.
- */
-export function avisoDesactivar(f: FilaFicha, estado: Readonly<Record<string, EstadoVariante>> | null): string | null {
-  if (f.activo || !f.guardada?.activo || !f.id || !estado) return null;
-  const e = estado[f.id];
-  if (!e || e.stock <= 0) return null;
-  const donde = e.sedes.length === 1 ? `en ${e.sedes[0].nombre}` : e.sedes.length > 1 ? `en ${e.sedes.length} sedes` : "";
-  return `Sus ${e.stock} u.${donde ? ` ${donde}` : ""} siguen en el inventario, pero ya no se podrán vender en ninguna sede. Si existen, no la desactives todavía: véndelas o pide un ajuste que las pase a otra variante; si no existen, pide un ajuste para dejarla en 0.`;
-}
-
 /**
  * Lo que la ficha dice de las variantes que nacen al agregar un color o una talla: nacen sin unidades, y lo que llegó se
  * registra por la puerta de recibir (su nombre en el menú, `lib/menu.ts`: «Recibir mercadería», en Compras o en
  * Inventario según quién la abra). Sin esta línea, «Agregar color» parecía registrar lo que llegó.
  */
 export const NACEN_SIN_UNIDADES = "Nacen sin unidades: lo que llegó se registra al recibirlo, en «Recibir mercadería».";
+
+/** Lo mismo, dicho en los modales «Agregar color/talla» a quien SÍ puede poner stock desde la tabla (tiene «Ajustar stock»). Antes
+ *  el modal mandaba a «Recibir mercadería» y, al cerrarlo, el cartel de la ficha decía «toca + en la tabla»: dos caminos que se
+ *  contradecían (revisión 2026-10-03). Los dos son ciertos; cada uno para su caso. */
+export const NACEN_EN_CERO_CARGABLES =
+  "Nacen en 0: si las prendas ya están en la tienda, ponlas con «+» en la tabla y entran al guardar; si llegan de un proveedor, regístralas en «Recibir mercadería».";
 
 /**
  * El único círculo de candados que el orden de ADR-0263 T8 no cierra: una venta o un traslado de VARIAS tallas de esta

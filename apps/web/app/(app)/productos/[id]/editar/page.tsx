@@ -41,7 +41,7 @@ export default async function EditarProductoPage({
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
-    supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
     getImagenesMuestra(),
@@ -57,17 +57,14 @@ export default async function EditarProductoPage({
   // nunca se retira sola de una variante que ya la tenía — eso sería
   // perder un dato sin que nadie lo pidiera.
   const hoy = new Date().toISOString().slice(0, 10);
-  // ADR-0161 P4 (20260923140000): quien edita Productos cambia aquí las etiquetas SIN descuento de la prenda, sin necesitar el
-  // módulo Etiquetas. Poner o quitar una CON descuento cambia el precio en caja y es solo del líder: a los demás no se les
-  // ofrece (la que ya tenga la prenda se conserva tal cual: el selector no la muestra y el guardado no la toca). La base lo
-  // vuelve a exigir en `actualizar_variantes_etiquetas`.
+  // Quien edita Productos cambia aquí las etiquetas de la prenda, con descuento o sin él (ADR-0293, Felipe 2026-09-30: la ficha
+  // perdió su guardia en `actualizar_variantes_etiquetas`, en producción desde ese día). Esta pantalla seguía escondiendo las de
+  // descuento a quien no es líder, con el aviso «las pone un líder», que ya no era cierto (revisión 2026-10-03).
   const esLider = persona.rol === "lider";
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
-    .filter((e) => esLider || e.descuento_pct == null)
-    .map((e) => ({ id: e.id, texto: e.nombre }));
-  const hayConDescuento = !esLider && vocabulario.some((e) => e.descuento_pct != null);
+    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral" }));
 
   if (!producto) notFound();
 
@@ -79,10 +76,11 @@ export default async function EditarProductoPage({
 
   // Ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es la ventana de Existencias
   // sobre la SEDE ACTIVA, y solo para quien tiene el módulo «Ajustar stock» (`ajustarStock`), que es lo mismo que exige la base
-  // (`ajustar_inventario`). Sin el módulo no se pide ni una consulta más. «Bajada al piso» sigue las mismas reglas que en
-  // Existencias: el rol lo ve y la sede separa piso y almacén.
+  // (`ajustar_inventario`). «Bajada al piso» sigue las mismas reglas que en Existencias: el rol lo ve y la sede separa piso y almacén.
+  // Sin el módulo, el stock de la sede se LEE igual (`lecturaStock`): antes no se pedía y la matriz y el panel mostraban 0 en cada
+  // talla, que se lee como «no hay nada» (revisión del 2026-10-03). Se ve, no se toca.
   const puedeAjustarStock = puede(persona, "ajustarStock");
-  const sububicaciones = puedeAjustarStock ? await getSububicaciones(persona.ubicacionId) : [];
+  const sububicaciones = await getSububicaciones(persona.ubicacionId);
   const separaPisoAlmacen = encontrarPorTipo(sububicaciones, "piso_venta") !== null && encontrarPorTipo(sububicaciones, "almacen_tienda") !== null;
   const ajusteStock = puedeAjustarStock
     ? {
@@ -110,12 +108,12 @@ export default async function EditarProductoPage({
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
-        avisoEtiquetas={hayConDescuento ? "Las etiquetas con descuento las pone o quita un líder." : undefined}
         marcas={marcas}
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}
         puedeCorregir={puedeCorregir}
         ajusteStock={ajusteStock}
+        lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
         producto={producto}
         volverA={volverA}
       />

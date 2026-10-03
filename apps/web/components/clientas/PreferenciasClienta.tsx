@@ -130,7 +130,7 @@ export function PreferenciasClienta({ clientaId, version, guardadas, soloLectura
           </Boton>
         </div>
       )}
-      <p className="text-xs text-tinta/55">Listas, no nota libre: no se puede filtrar y ahí se cuelan datos de salud que la Ley 29733 protege aparte.</p>
+      <p className="text-xs text-tinta/55">Solo listas, sin notas libres: así no se guardan datos de salud (Ley 29733).</p>
     </div>
   );
 }

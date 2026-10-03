@@ -157,21 +157,63 @@
     transform: none;
   }
 }
+/* «+ Agregar color» y «+ Agregar talla» (Felipe 2026-10-03: «no están muy notorios»). Antes: borde punteado en sand y texto taupe,
+   que sobre el papel de la tarjeta se leía como un hueco vacío. Ahora son botones de verdad: borde punteado en taupe, fondo hueso
+   suave, el «+» en un círculo de tinta y, debajo, qué agregan a la tabla (una fila o una columna). Al pasar el mouse el borde se
+   cierra en tinta: ningún movimiento, solo color (ADR-0136). Apilados (celular) van alineados a la izquierda, para que los dos «+»
+   queden uno sobre otro; lado a lado, centrados (`justify-start @lg:justify-center` en `ProductoForm.tsx`). */
 .taller-agregar-color {
-  margin-top: 12px;
-  border: 1.5px dashed var(--color-sand);
-  border-radius: 10px;
-  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
   width: 100%;
-  color: var(--color-taupe-profundo);
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
-  transition: border-color 160ms, color 160ms;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: 1.5px dashed color-mix(in oklab, var(--color-taupe) 65%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-hueso) 45%, var(--color-papel));
+  color: var(--color-tinta);
+  text-align: left;
+  transition:
+    border-color 160ms var(--ease-cayla),
+    background-color 160ms var(--ease-cayla);
 }
 .taller-agregar-color:hover:not(:disabled) {
-  border-color: var(--color-taupe);
-  color: var(--color-tinta);
+  border-style: solid;
+  border-color: var(--color-tinta);
+  background: var(--color-hueso);
+}
+.taller-agregar-color:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 2px;
+}
+.taller-agregar-color:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.taller-agregar-icono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.taller-agregar-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.taller-agregar-texto b {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.taller-agregar-texto small {
+  font-size: 11.5px;
+  color: var(--color-taupe);
 }
 .taller-banner-nueva {
   display: flex;
@@ -334,15 +376,24 @@
   font-weight: 700;
   color: color-mix(in oklab, var(--color-tinta) 60%, transparent);
 }
+/* Las filas comparten UNA cuadrícula (subgrid): la columna de la talla mide lo que pide la más larga del color («Estándar»,
+   «Única», «XXL», «38»), no 28 px fijos que tapaban «Estándar» con la barra (Felipe 2026-10-03). Todas las barras arrancan en el
+   mismo punto; un nombre que pase del 42 % del panel salta de línea en vez de comerse la barra. */
+.taller-tallas {
+  display: grid;
+  grid-template-columns: fit-content(42%) minmax(48px, 1fr) minmax(22px, max-content) auto;
+  align-items: center;
+  gap: 8px 9px;
+}
 .taller-barra-talla {
   display: grid;
-  grid-template-columns: 28px 1fr 22px auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 8px;
 }
-.taller-barra-talla:last-child {
-  margin-bottom: 0;
+.taller-barra-talla > b {
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 .taller-pista {
   height: 8px;
@@ -445,5 +496,55 @@
   .taller-relleno,
   .taller-swatch {
     transition: none;
+  }
+}
+
+/* ---- Etiquetas de lo que entró (ImprimirLoQueEntro.tsx, Felipe 2026-10-03) ----
+   Respuesta al guardado, una sola vez (ADR-0136): el aro y el «visto» se dibujan, y cada etiqueta sale de la ranura de la
+   impresora (baja desde detrás de la ranura y se aclara). Sin rebote ni bucle; con reduced-motion, quieto. */
+.lqe-aro {
+  stroke-dasharray: 126;
+  stroke-dashoffset: 126;
+  animation: lqe-trazo 420ms var(--ease-cayla) 180ms forwards;
+}
+.lqe-visto {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: lqe-trazo 300ms var(--ease-cayla) 520ms forwards;
+}
+@keyframes lqe-trazo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.lqe-ranura {
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+.lqe-etiqueta {
+  animation: lqe-sale 380ms var(--ease-cayla) both;
+  transform-origin: top center;
+}
+@keyframes lqe-sale {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -16px, 0) scaleY(0.92);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lqe-aro,
+  .lqe-visto {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .lqe-etiqueta {
+    animation: none;
   }
 }

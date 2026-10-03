@@ -146,64 +146,75 @@ export function PanelDelTaller({
         )}
       </div>
 
-      {colorMostrado !== null && delColor.length > 0 && (
+      {/* Una prenda «Sin color» (ninguna variante tiene color) también muestra su stock por talla: antes el panel lo escondía. */}
+      {(colorMostrado !== null || colores.length === 0) && delColor.length > 0 && (
         <div className="taller-tarjeta">
           <p className="taller-tit mb-2.5 flex justify-between">
             <span>Stock por talla</span>
             <span>{n.color(colorMostrado)}</span>
           </p>
-          {delColor.map((f) => {
-            const u = numero(f);
-            const guardada = !!(f.id && f.guardada);
-            const esperando = guardada && stock.cargando;
-            const talla = n.talla(f.tallaId) || "Única";
-            const nombre = `${n.color(colorMostrado)} · ${talla}`;
-            const puedeBajar = guardada ? stock.puedeAjustar && stock.puedeBajar(f.id!) : u > 0;
-            const conBotones = !guardada || stock.puedeAjustar;
-            return (
-              <div key={f.clave} className="taller-barra-talla">
-                <b className="text-[12px] text-taupe">{talla}</b>
-                <div className="taller-pista">
-                  <div
-                    className="taller-relleno"
-                    data-tono={tonoDeBarra(u)}
-                    role="progressbar"
-                    aria-valuenow={u}
-                    aria-valuemin={0}
-                    aria-valuemax={max}
-                    aria-label={`${nombre}: ${u} ${u === 1 ? "unidad" : "unidades"}`}
-                    style={{ width: esperando ? 0 : `${Math.round((u / max) * 100)}%` }}
-                  />
-                </div>
-                <span className="text-right text-[12px] tabular-nums text-tinta">{esperando ? "…" : u}</span>
-                {conBotones ? (
-                  <span className="taller-stepper" data-mini="true">
-                    <button
-                      type="button"
-                      aria-label={`Una menos de ${nombre}`}
-                      disabled={deshabilitado || esperando || !puedeBajar}
-                      onClick={() => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1))}
-                    >
-                      −
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Una más de ${nombre}`}
-                      disabled={deshabilitado || esperando}
-                      onClick={() => {
-                        if (!guardada) return stock.pasoNueva(f.clave, 1);
-                        if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);
-                      }}
-                    >
-                      +
-                    </button>
+          <div className="taller-tallas">
+            {delColor.map((f) => {
+              const u = numero(f);
+              const guardada = !!(f.id && f.guardada);
+              const esperando = guardada && stock.cargando;
+              const talla = n.talla(f.tallaId) || "Única";
+              const nombre = `${n.color(colorMostrado)} · ${talla}`;
+              const puedeBajar = guardada ? stock.puedeAjustar && stock.puedeBajar(f.id!) : u > 0;
+              // Lo tocado y sin guardar, en ámbar como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
+              const cambiada = !esperando && (guardada ? u !== stock.numeroGuardado(f.id!) : u > 0);
+              // Sin «Ajustar stock» no hay stepper, ni en una variante nueva (no se le podría cargar stock inicial).
+              const conBotones = stock.puedeAjustar;
+              return (
+                <div key={f.clave} className="taller-barra-talla">
+                  <b className="min-w-0 text-[12px] text-taupe">{talla}</b>
+                  <div className="taller-pista">
+                    <div
+                      className="taller-relleno"
+                      data-tono={tonoDeBarra(u)}
+                      role="progressbar"
+                      aria-valuenow={u}
+                      aria-valuemin={0}
+                      aria-valuemax={max}
+                      aria-label={`${nombre}: ${u} ${u === 1 ? "unidad" : "unidades"}`}
+                      style={{ width: esperando ? 0 : `${Math.round((u / max) * 100)}%` }}
+                    />
+                  </div>
+                  <span
+                    className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`}
+                    title={cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined}
+                  >
+                    {esperando ? "…" : u}
                   </span>
-                ) : (
-                  <span />
-                )}
-              </div>
-            );
-          })}
+                  {conBotones ? (
+                    <span className="taller-stepper" data-mini="true">
+                      <button
+                        type="button"
+                        aria-label={`Una menos de ${nombre}`}
+                        disabled={deshabilitado || esperando || !puedeBajar}
+                        onClick={() => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1))}
+                      >
+                        −
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Una más de ${nombre}`}
+                        disabled={deshabilitado || esperando}
+                        onClick={() => {
+                          if (!guardada) return stock.pasoNueva(f.clave, 1);
+                          if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);
+                        }}
+                      >
+                        +
+                      </button>
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

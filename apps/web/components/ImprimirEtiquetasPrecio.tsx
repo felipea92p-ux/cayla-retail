@@ -158,6 +158,27 @@ export function ImprimirEtiquetasPrecio({
     );
   }
 
+  // Dos columnas desde 1280 px (Felipe 2026-10-03: «ocupar todo el espacio […] al lado derecho que se muestren las etiquetas en vez
+  // de que queden al último»): a la izquierda qué se imprime y cómo; a la derecha la vista previa, pegada arriba mientras se baja.
+  // La ruta está en `SIN_TOPE_DE_ANCHO` del AppShell (sin el tope de `max-w-5xl`). Más angosta, una columna como antes, con la vista
+  // previa justo después de la tabla.
+  const vistaPrevia =
+    visibles.length > 0 ? (
+      <section aria-label="Vista previa" className="space-y-3 xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto xl:overscroll-contain xl:rounded-xl xl:border xl:border-sand xl:bg-papel xl:p-4">
+        <p className="text-sm text-taupe">Así salen, a tamaño real (una de cada prenda):</p>
+        <div className="flex flex-wrap gap-4">
+          {visibles.map((e) => (
+            <figure key={e.varianteId} className="space-y-1.5">
+              <div className="ring-1 ring-sand">
+                <EtiquetaPrecio etiqueta={e} impreso={impreso} />
+              </div>
+              <figcaption className="text-center text-xs text-taupe tabular-nums">× {numeros[e.varianteId]}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+    ) : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -165,6 +186,8 @@ export function ImprimirEtiquetasPrecio({
         <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.bajada} acciones={imprimir} />
       </div>
 
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,40%)] xl:gap-8">
+      <div className="min-w-0 space-y-6">
       {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
       {avisoMac && <AvisoAyudanteMac {...avisoMac} instalar={ayudante === "sin-ayudante"} />}
 
@@ -211,21 +234,8 @@ export function ImprimirEtiquetasPrecio({
         </p>
       </Tabla>
 
-      {visibles.length > 0 && (
-        <section aria-label="Vista previa" className="space-y-3">
-          <p className="text-sm text-taupe">Así salen, a tamaño real (una de cada prenda):</p>
-          <div className="flex flex-wrap gap-4">
-            {visibles.map((e) => (
-              <figure key={e.varianteId} className="space-y-1.5">
-                <div className="ring-1 ring-sand">
-                  <EtiquetaPrecio etiqueta={e} impreso={impreso} />
-                </div>
-                <figcaption className="text-center text-xs text-taupe tabular-nums">× {numeros[e.varianteId]}</figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Una columna: la vista previa va aquí, justo después de la tabla. Dos columnas: a la derecha. */}
+      {vistaPrevia && <div className="xl:hidden">{vistaPrevia}</div>}
 
       {/* Con el ayudante de la Mac la forma no se elige: siempre va la A, del tamaño exacto. */}
       {!porAyudante && (
@@ -255,6 +265,9 @@ export function ImprimirEtiquetasPrecio({
         reimprímelas desde la campaña con «Volver al precio normal». La vista previa dice «Impreso» con la fecha de hoy; si dice otra,
         recarga la página antes de imprimir.
       </p>
+      </div>
+      {vistaPrevia && <div className="hidden xl:block">{vistaPrevia}</div>}
+      </div>
 
       {montado &&
         createPortal(
