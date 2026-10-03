@@ -284,7 +284,7 @@ export function InventarioPanel({
   abrirVariante = null,
   apartados,
   esLider,
-  esAdmin = false,
+  editaCatalogo = false,
   puedeAjustar,
   coberturaFallo = null,
   sedeNombre,
@@ -320,8 +320,8 @@ export function InventarioPanel({
    *  una integrante puede ABRIR la cola y verla, no marcarla. */
   /** Sigue siendo del líder: resolver y liquidar prendas dañadas. */
   esLider: boolean;
-  /** Es Admin (ADR-0178): solo él ve «Eliminar el producto» en el detalle (ADR-0252; `permisosDelDetalle`). */
-  esAdmin?: boolean;
+  /** Edita el catálogo (`puede(persona, "editarCatalogo")`): ve «Eliminar el producto» en el detalle, como en Catálogo (ADR-0252; `permisosDelDetalle`). */
+  editaCatalogo?: boolean;
   /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0160). */
   puedeAjustar: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
@@ -550,7 +550,7 @@ export function InventarioPanel({
     puedeAjustar,
     veTraslados,
     esTienda,
-    esAdmin,
+    editaCatalogo,
   });
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
