@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Cake, Gift, Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ReciboTermico } from "@/components/ReciboTermico";
+import { EnviarBoleta } from "@/components/punto-de-venta/EnviarBoleta";
 import { money, type VentaOk } from "@/components/PuntoDeVenta";
 import { EMISOR, emisorCompleto, type Emisor } from "@/lib/emisor";
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
@@ -147,6 +148,9 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   </span>
                 </p>
               </div>
+
+              {/* Si el cliente dejó su celular: «Abrir WhatsApp con la boleta» (ADR-0288, act. 2026-10-03). No frena nada: la venta ya quedó. */}
+              <EnviarBoleta ventaId={ok.ventaId ?? null} celular={ok.celular ?? null} comprobante={{ tipo: r.tipo, serie: r.serie, numero: r.numero }} />
 
               <details className="group rounded-xl border border-sand text-xs">
                 <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-tinta/80">

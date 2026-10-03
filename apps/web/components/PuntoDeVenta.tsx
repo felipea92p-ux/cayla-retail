@@ -84,6 +84,9 @@ import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
 import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
+import { CampoCelular } from "@/components/clientas/club-piezas";
+import { ajustarCelular } from "@/lib/club-reglas";
+import { problemaCelularOpcional } from "@/lib/club-caja-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
 import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
@@ -233,6 +236,10 @@ export type VentaOk = {
   /** El vale de aniversario que usó esta venta (tanda 1g, G-13): «Vale de aniversario usado (−S/30.00)…». Tampoco sin
    *  conexión. */
   vale?: { monto: number } | null;
+  /** La venta guardada en el servidor: con ella «Venta registrada» busca el PDF de Lucode para mandarlo por WhatsApp. */
+  ventaId?: string | null;
+  /** El celular del cliente de la venta (el de su ficha, el más fresco), para ofrecer «Enviar por WhatsApp». Sin cliente, null. */
+  celular?: string | null;
 };
 
 const MAX_RESULTADOS = 6;
@@ -366,6 +373,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [hojaTicket, setHojaTicket] = useState(false);
   // La clienta del ticket (spike 2026-09-26): elegida, llena el documento y el nombre del comprobante.
   const [clienta, setClienta] = useState<Clienta | null>(null);
+  // El WhatsApp al que se le manda la boleta de ESTA venta (solo dígitos). Se llena solo con el celular de su ficha y se puede
+  // escribir o corregir en el paso Comprobante: es del comprobante, no de la ficha (no toca el celular del club).
+  const [celularBoleta, setCelularBoleta] = useState("");
   // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
   const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
   // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
@@ -1118,6 +1128,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p, redondeoEfectivoDisponible), 0);
   const cobroEfectivo = cobroEnEfectivo(pagos, redondeoEfectivoDisponible);
   // Sin responsable vigente no se cobra (ni se pasa a «cobrar»): su frase explica el botón apagado.
+  // Lo que está mal del comprobante: su documento (carné o pasaporte mal escrito) o el celular de la boleta a medias. Los dos bloquean
+  // el cobro y la hoja de cobro lo dice: la base rechazaría el documento, y un celular a medias no podría recibir la boleta.
+  // La nota de venta no tiene PDF que mandar: su celular no se pide ni se mira.
+  const problemaDelComprobante = tipoComprobante
+    ? (problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) ??
+      (tipoComprobante === "nota_venta" ? null : problemaCelularOpcional(celularBoleta)))
+    : null;
   const motivoBloqueo = motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
@@ -1125,7 +1142,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     total,
     pagos,
     facturaSinRuc,
-    problemaDocumento: tipoComprobante ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) : null,
+    problemaDocumento: problemaDelComprobante,
     sinComprobante: tipoComprobante === null,
     redondeoEfectivo: redondeoEfectivoDisponible,
     motivoResponsable: responsable.motivo,
@@ -1224,6 +1241,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteNumDoc("");
     setClienteDocIdentidad("dni");
     setClienteNombre("");
+    setCelularBoleta("");
     setClienta(null);
   }
 
@@ -1239,9 +1257,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteDocIdentidad(doc.tipo);
     setClienteNumDoc(doc.numero);
     setClienteNombre(c.nombre ?? "");
+    setCelularBoleta(ajustarCelular(c.celular ?? ""));
   }
   function quitarClienta() {
     if (clienta) {
+      if (celularBoleta === ajustarCelular(clienta.celular ?? "")) setCelularBoleta("");
       const doc = documentoDeClienta(clienta);
       if (clienteNumDoc === doc.numero && clienteDocIdentidad === doc.tipo) {
         setClienteNumDoc("");
@@ -1487,6 +1507,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       offline: false,
       cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
       vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+      ventaId: ventaId ?? null,
+      // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
+      celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
     });
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
@@ -1540,15 +1563,28 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               onNombre={setClienteNombre}
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
             />
+            {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
+                todo `div` con dos hijos, y esta caja va en su propia fila. */}
+            {tipoComprobante !== "nota_venta" && (
+              <div className="mt-3">
+                <CampoCelular
+                  id="comprobante-celular"
+                  etiqueta={
+                    <>
+                      Celular para enviarle la {tipoComprobante === "factura" ? "factura" : "boleta"} por WhatsApp{" "}
+                      <span className="normal-case tracking-normal">(opcional)</span>
+                    </>
+                  }
+                  valor={celularBoleta}
+                  onValor={setCelularBoleta}
+                />
+              </div>
+            )}
           </fieldset>
         )
       }
       faltaDocumento={
-        facturaSinRuc
-          ? "Falta el RUC"
-          : tipoComprobante
-            ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc)
-            : null
+        facturaSinRuc ? "Falta el RUC" : problemaDelComprobante
       }
       motivoBloqueo={motivoBloqueo}
       loading={loading}

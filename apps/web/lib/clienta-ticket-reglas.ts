@@ -5,6 +5,7 @@
  * Desde la tanda 1a del club (ADR-0288), la venta queda ligada a su ficha (`p_cliente_id`) y el documento tiene tipo. La
  * pregunta del club (tanda 1b) vive aparte, en `club-caja-reglas.ts`. Lo que NO hace todavía: «es para regalo» (tanda 1d).
  */
+import { ajustarCelular, celularValido } from "./club-reglas";
 import { documentoLegible, tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 
 /** ADR-0288 D-2: el documento con su tipo (antes, `dni`). */
@@ -52,19 +53,23 @@ export function terminoBuscable(texto: string): string | null {
   return t.length >= 3 ? t : null;
 }
 
-/** Lo que se escribe para registrarla en el ticket (ADR-0288 D-9 y tanda 1g, G-2): SOLO el documento (con DNI, el nombre
- *  llega del padrón). Sin celular, sin cumpleaños y sin permiso de WhatsApp: los escribe ella al unirse desde el cartel. */
-export type AltaEnTicket = { documentoTipo: TipoDocumentoClienta; documentoNumero: string; nombre: string };
-export const ALTA_VACIA: AltaEnTicket = { documentoTipo: "dni", documentoNumero: "", nombre: "" };
+/** Lo que se escribe para registrarla en el ticket (ADR-0288 D-9 y tanda 1g, G-2): su documento (con DNI, el nombre llega
+ *  del padrón) y, opcional, el celular para mandarle su boleta («Actualización 2026-10-03»). Sin cumpleaños y sin permiso de
+ *  WhatsApp: esos los escribe ella al unirse desde el cartel. `celular`: solo dígitos; vacío = sin celular. */
+export type AltaEnTicket = { documentoTipo: TipoDocumentoClienta; documentoNumero: string; nombre: string; celular: string };
+export const ALTA_VACIA: AltaEnTicket = { documentoTipo: "dni", documentoNumero: "", nombre: "", celular: "" };
 
 /**
- * Lo escrito en el buscador no se escribe dos veces al registrarla: 8 dígitos son un DNI y letras sin números son un nombre.
- * Un celular ya no se precarga (el alta no lo pide); lo demás (un carné, un pasaporte) no se adivina: se escribe.
+ * Lo escrito en el buscador no se escribe dos veces al registrarla: 8 dígitos son un DNI, un celular peruano (9 dígitos que
+ * empiezan en 9, con o sin +51) es el celular y letras sin números son un nombre. Lo demás (un carné, un pasaporte) no se
+ * adivina: se escribe.
  */
 export function altaDesdeBusqueda(texto: string): AltaEnTicket {
   const t = texto.trim();
   const junto = t.replace(/\s/g, "");
   if (/^[0-9]{8}$/.test(junto)) return { ...ALTA_VACIA, documentoNumero: junto };
+  const celular = ajustarCelular(junto);
+  if (/^(\+?51)?[0-9]{9}$/.test(junto) && celularValido(celular)) return { ...ALTA_VACIA, celular };
   if (/\p{L}/u.test(t) && !/[0-9]/.test(t)) return { ...ALTA_VACIA, nombre: t };
   return ALTA_VACIA;
 }

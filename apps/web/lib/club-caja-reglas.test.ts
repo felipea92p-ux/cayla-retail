@@ -153,20 +153,43 @@ describe("«Pídele que escanee el cartel del club» (tanda 1g)", () => {
   });
 });
 
-describe("la guía de foco de «Registrar cliente» (Cobrar y Nueva clienta): solo el documento (tanda 1g)", () => {
+describe("la guía de foco de «Registrar cliente» (Cobrar y Nueva clienta): el documento y, opcional, el celular para su boleta", () => {
   const lista: HojaRegistrar = {
     documentoTipo: "dni",
     documentoNumero: "45871236",
     nombre: "MARIA QUISPE",
+    celular: "",
     responsableListo: true,
     responsableMotivo: null,
   };
 
-  it("con documento, nombre y quién registra, se puede registrar: ni celular ni cumpleaños", () => {
+  it("con documento, nombre y quién registra, se puede registrar: el celular es opcional y el cumpleaños ya no se pide", () => {
     const c = camposDeRegistrar(lista);
     expect(sePuedeConfirmar(c)).toBe(true);
-    expect(c.map((x) => x.id)).toEqual(["documento", "responsable"]);
-    expect(estadosDe(c)).toMatchObject({ documento: "hecho", responsable: "hecho" });
+    expect(c.map((x) => x.id)).toEqual(["documento", "celular", "responsable"]);
+    expect(estadosDe(c)).toMatchObject({ documento: "hecho", celular: "opcional", responsable: "hecho" });
+  });
+
+  it("el celular vacío no se lista como «falta» ni apaga el botón: no es sugerido, es opcional de verdad", () => {
+    const c = camposDeRegistrar(lista);
+    const celular = c.find((x) => x.id === "celular")!;
+    expect(celular).toMatchObject({ requerido: false, hecho: false });
+    expect(celular.sugerido).toBeUndefined();
+  });
+
+  it("un celular bien escrito queda hecho, y uno a medias o mal escrito bloquea (la base lo rechazaría con la ficha entera)", () => {
+    const bien = camposDeRegistrar({ ...lista, celular: "987654321" });
+    expect(estadosDe(bien).celular).toBe("hecho");
+    expect(sePuedeConfirmar(bien)).toBe(true);
+    for (const malo of ["9876", "887654321", "98765432"]) {
+      const c = camposDeRegistrar({ ...lista, celular: malo });
+      expect(sePuedeConfirmar(c), malo).toBe(false);
+      expect(c.find((x) => x.id === "celular")!.pendiente).toMatch(/9 dígitos y empieza con 9/);
+    }
+  });
+
+  it("el celular va antes de quién registra: «Quién registra» sigue siendo el último paso", () => {
+    expect(camposDeRegistrar(lista).at(-1)!.id).toBe("responsable");
   });
 
   it("con DNI el nombre vive en el bloque del documento: sin él, lo que falta se llama «Nombre»", () => {

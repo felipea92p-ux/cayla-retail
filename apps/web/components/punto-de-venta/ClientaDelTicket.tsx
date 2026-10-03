@@ -9,6 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoCelular } from "@/components/clientas/club-piezas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Chip } from "@/components/ui/Chip";
@@ -21,6 +22,7 @@ import {
   filaDelCartel,
   lineaDeLaClientaEnCaja,
   nombreSuficiente,
+  problemaCelularOpcional,
   type CajaDelClub,
   type PublicidadEnCaja,
 } from "@/lib/club-caja-reglas";
@@ -479,7 +481,7 @@ function BuscarClientaModal({
       titulo={alta ? "Registrar cliente" : "Cliente de esta venta"}
       subtitulo={
         alta
-          ? "Solo su documento. Para ser del club, se une por su cuenta escaneando el cartel."
+          ? "Su documento y, si quiere, su celular para enviarle la boleta. Para ser del club, se une por su cuenta escaneando el cartel."
           : "Opcional. Sus datos pasan solos al comprobante y la compra queda en su ficha."
       }
       variante="hoja"
@@ -616,6 +618,7 @@ function RegistrarClientaEnTicket({
     documentoTipo: tipo,
     documentoNumero: alta.documentoNumero,
     nombre: alta.nombre,
+    celular: alta.celular,
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
   });
@@ -636,6 +639,8 @@ function RegistrarClientaEnTicket({
       const problema = problemaDocumento(tipo, alta.documentoNumero);
       if (numero === "" || problema) return void avisar.error(problema ?? "Elige el tipo y escribe el número.", { enfocar: ID_NUMERO_DOCUMENTO });
       if (!nombreSuficiente(alta.nombre)) return void avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
+      const problemaCelular = problemaCelularOpcional(alta.celular);
+      if (problemaCelular) return void avisar.error(problemaCelular, { enfocar: ID_CELULAR });
       return void avisar.error(responsable.motivo ?? "Elige quién registra.");
     }
 
@@ -645,8 +650,9 @@ function RegistrarClientaEnTicket({
         documentoTipo: tipo,
         documentoNumero: numero,
         nombre: alta.nombre,
-        // Tanda 1g (G-2): en caja solo el documento. El celular y el cumpleaños los escribe ella al unirse desde el cartel.
-        telefonoWhatsapp: "",
+        // El celular (opcional) es solo para mandarle su boleta: NO la une al club ni le da la publicidad (esos permisos son de
+        // ella, en el cartel; ADR-0288 D-4). El cumpleaños lo escribe ella al unirse (tanda 1g, G-2).
+        telefonoWhatsapp: alta.celular,
         cumpleDia: "",
         cumpleMes: "",
         cumpleAnio: "",
@@ -664,9 +670,11 @@ function RegistrarClientaEnTicket({
       nombre: alta.nombre.trim() || null,
       documentoTipo: tipo,
       documentoNumero: numero || null,
-      celular: null,
+      celular: alta.celular || null,
     };
-    avisar.exito("Cliente registrado", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Para ser del club, que escanee el cartel.` });
+    avisar.exito("Cliente registrado", {
+      detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha.${nueva.celular ? " Su boleta se le puede enviar por WhatsApp." : ""} Para ser del club, que escanee el cartel.`,
+    });
     onRegistrada(nueva);
   }
 
@@ -718,6 +726,11 @@ function RegistrarClientaEnTicket({
         </CampoGuiado>
       )}
 
+      <CampoGuiado id="celular" guia={guia} titulo="Celular" ayuda="Para enviarle su boleta por WhatsApp · opcional">
+        <CampoCelular caja id={ID_CELULAR} etiqueta="Celular" valor={alta.celular} onValor={(v) => onCambiar({ celular: v })} deshabilitado={guardando} />
+        <p className="mt-1 text-xs text-tinta/60">Solo sirve para la boleta: no la suscribe al club ni a novedades.</p>
+      </CampoGuiado>
+
       <CampoGuiado id="responsable" guia={guia}>
         <ComboResponsable control={responsable} deshabilitado={guardando} />
         {/* «Nadie de turno» y «no se pudo leer» ya los explica el combo con su recuadro; aquí, solo lo que falta elegir. */}
@@ -740,3 +753,4 @@ function RegistrarClientaEnTicket({
 }
 
 const ID_NOMBRE = "ticket-clienta-nombre";
+const ID_CELULAR = "ticket-clienta-celular";
