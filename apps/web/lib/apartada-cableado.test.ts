@@ -89,22 +89,22 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
     patron: /const motivo = motivoNoCobrable\(v\);/,
   },
   {
-    archivo: "components/PuntoDeVentaCatalogo.tsx",
+    archivo: "components/punto-de-venta/TarjetaPrenda.tsx",
     cable: "la casilla de talla apartada NO se tacha y usa el token informativo (agotada sí: `line-through`)",
     patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "border-pizarra\/50 text-pizarra" : "border-sand text-tinta\/35 line-through"/,
   },
   {
-    archivo: "components/PuntoDeVentaCatalogo.tsx",
+    archivo: "components/punto-de-venta/TarjetaPrenda.tsx",
     cable: "la talla sin piso dice su motivo en el aria-label y en el tooltip (`tooltipTallaSinPiso`)",
     patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para un cliente"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
   },
   {
-    archivo: "components/ElegirTallaModal.tsx",
+    archivo: "components/punto-de-venta/OpcionesDePrendaModal.tsx",
     cable: "la casilla de talla sabe cuándo es «apartada» (`motivo === \"apartada\"`, no un `false` fijo)",
     patron: /const apartada = motivo === "apartada"/,
   },
   {
-    archivo: "components/ElegirTallaModal.tsx",
+    archivo: "components/punto-de-venta/OpcionesDePrendaModal.tsx",
     cable: "la casilla de talla dice «Apartada para un cliente» cuando el motivo es `apartada`",
     patron: /apartada\s*\?\s*"Apartada para un cliente"/,
   },
