@@ -72,6 +72,7 @@ export function PanelRendimiento({
   personas,
   historial,
   vistaInicial,
+  onVista,
   personaCuentaId,
   esAdmin,
 }: {
@@ -84,6 +85,8 @@ export function PanelRendimiento({
   personas: PersonaMeta[];
   historial: CambioMeta[];
   vistaInicial: Vista;
+  /** Avisa cuando la persona cambia de vista, para conservarla si cambia de tienda. */
+  onVista?: (v: Vista) => void;
   personaCuentaId: string | null;
   esAdmin: boolean;
 }) {
@@ -115,6 +118,7 @@ export function PanelRendimiento({
 
   function cambiarVista(v: Vista) {
     setVista(v);
+    onVista?.(v);
     // Solo la barra de direcciones: nada de navegar (no vuelve a pedir la pantalla ni mueve el scroll).
     const url = new URL(window.location.href);
     if (v === "hoy") url.searchParams.delete("vista");

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import type { SedeDeRendimiento } from "@/lib/rendimiento";
@@ -10,7 +9,7 @@ import { avance, lecturaDeRitmo, resumenDeSede, type LecturaRitmo } from "@/lib/
 
    Con VARIAS tiendas (el Admin), arriba van tres tarjetas: cada una dice cómo va su tienda ESTE MES contra su meta, y al tocarla se abre
    su panel completo debajo. La pantalla abre en la tienda de la sesión, que va primera. Comparar tiendas es mirar las tres tarjetas;
-   entrar al detalle de una, tocarla. Son enlaces a `?sede=` (la tienda elegida vive en la URL, como el resto de los filtros).
+   entrar al detalle de una, tocarla. Son pestañas de un componente cliente (`TiendasRendimiento`): cambiar de tienda es instantáneo y la tienda elegida se anota en la URL (`?sede=`) sin navegar.
 
    Se compara el MES y no el período del panel: el período (Hoy · Semana · Mes) es estado del panel de la tienda elegida, y una
    tarjeta que cambiara con él haría que dos tiendas no se pudieran comparar entre sí si una se mira en «Hoy».
@@ -26,30 +25,32 @@ export function ComparativoTiendas({
   activaId,
   sesionId,
   hoy,
-  vista,
+  onElegir,
 }: {
   sedes: SedeDeRendimiento[];
   activaId: string | null;
   /** La tienda de la sesión de quien mira: lleva la marca «Tu sesión». */
   sesionId: string;
   hoy: string;
-  /** La vista de la URL, para conservarla al cambiar de tienda. */
-  vista: string | undefined;
+  /** Se llama al tocar una tarjeta: cambiar de tienda es estado del navegador, no una navegación (ver `TiendasRendimiento`). */
+  onElegir: (ubicacionId: string) => void;
 }) {
   return (
-    <nav aria-label="Tienda" className="grid gap-3 sm:grid-cols-3">
+    <div role="tablist" aria-label="Tienda" className="grid gap-3 sm:grid-cols-3">
       {sedes.map((s) => {
         const activa = s.ubicacionId === activaId;
         const mes = s.panelDisponible ? resumenDeSede(s.serie, "mes", hoy) : null;
         const pct = mes ? avance(mes.soles, mes.meta) : null;
         const lectura = mes && mes.meta !== null && mes.tocabaPct !== null ? lecturaDeRitmo(mes.soles, mes.meta, mes.tocabaPct / 100) : null;
-        const href = `/rendimiento?sede=${s.ubicacionId}${vista ? `&vista=${encodeURIComponent(vista)}` : ""}`;
         return (
-          <Link
+          <button
             key={s.ubicacionId}
-            href={href}
-            aria-current={activa ? "page" : undefined}
-            className={`block rounded-xl border bg-papel p-4 transition-colors hover:border-taupe ${activa ? "border-tinta shadow-[inset_0_-3px_0_var(--color-tinta)]" : "border-sand"}`}
+            type="button"
+            role="tab"
+            aria-selected={activa}
+            aria-controls="panel-tienda"
+            onClick={() => onElegir(s.ubicacionId)}
+            className={`w-full rounded-xl border bg-papel p-4 text-left transition-colors hover:border-taupe ${activa ? "border-tinta shadow-[inset_0_-3px_0_var(--color-tinta)]" : "border-sand"}`}
           >
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-semibold text-tinta">
@@ -77,9 +78,9 @@ export function ComparativoTiendas({
             ) : (
               <p className="mt-2 text-xs text-tinta/65">No se pudieron leer las metas ahora.</p>
             )}
-          </Link>
+          </button>
         );
       })}
-    </nav>
+    </div>
   );
 }

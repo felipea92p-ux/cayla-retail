@@ -269,3 +269,13 @@ repartir turnos, no para juzgar. Prueba: `pnpm pruebas:rendimiento-detalle` (6 c
 **La función NO está en producción: la pega Felipe** (un solo `create or replace function`, sin partes ni candados). Si la web sale antes, el panel sigue y dice «No se pudieron leer las ventas por hora ahora»;
 nunca dibuja 0. **Sigue abierta** la marca de ritmo del anillo del Inicio («dónde solías ir a esta hora»): ahora que hay ventas por hora de la TIENDA, se podría sacar la curva típica del día, pero es otra decisión
 (cuántos días de historia, qué hacer con una tienda nueva) y no se inventó.
+
+## Actualización 2026-10-03 (b): auditoría de Rendimiento — correcciones
+
+Auditoría local de `/rendimiento` (cuello: ninguno de velocidad; con ~54.000 ventas la lectura más pesada tarda 19 ms; el problema era de corrección). Tres correcciones, cada una en su commit:
+1. **Historial de metas falso (mío).** `leerPantallaRendimiento` pedía el historial solo de la tienda de la URL; al abrir sin `?sede=` el Admin veía «Todavía nadie cambió una meta». Ahora las tres lecturas de cada
+   tienda (serie, historial, ventas por hora) salen de `lib/rendimiento-lectura.ts` y se piden siempre; si una falla, la causa (código y mensaje de la base, ningún dato personal) queda en el log
+   y la pantalla sigue diciendo «no se pudo leer», nunca «sin datos». Probado en `rendimiento-lectura.test.ts`.
+2. **Pestañas instantáneas.** Cambiar de tienda era un enlace a `?sede=`: para la espera global una navegación es una «carga» (loader a pantalla completa y dos rondas de lecturas) para mostrar datos que ya
+   estaban en memoria. Ahora es estado del navegador (`TiendasRendimiento`), igual que Hoy · Semana · Mes, y conserva la vista elegida.
+3. **Ranking de «soles por hora» que no invierte el orden** (ver abajo, «La corrección del centro»).

@@ -1,8 +1,7 @@
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
 import { celda, Encabezado, fila, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
-import { ComparativoTiendas } from "@/components/rendimiento/ComparativoTiendas";
-import { PanelRendimiento } from "@/components/rendimiento/PanelRendimiento";
+import { TiendasRendimiento } from "@/components/rendimiento/TiendasRendimiento";
 import { exigirModulo } from "@/lib/persona-actual";
 import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimiento";
 import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
@@ -16,7 +15,7 @@ import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
 //
 // Con VARIAS tiendas (el Admin) arriba van tres tarjetas que son a la vez las pestañas (`ComparativoTiendas`: cómo va cada
 // tienda este mes, nunca un ranking mezclado) y la pantalla abre en la tienda de la sesión (Felipe, 2026-10-03; antes abría en
-// «Todas»). Tocar una tarjeta (`?sede=`) muestra su panel completo. La vista (`?vista=hoy|semana|mes`) la cambia el panel sin
+// «Todas»). Tocar una tarjeta muestra su panel completo al instante (`TiendasRendimiento`: la tienda elegida es estado del navegador y se anota en `?sede=` sin navegar; el servidor ya leyó todas). La vista (`?vista=hoy|semana|mes`) la cambia el panel sin
 // navegar; acá solo se lee para abrir en la misma.
 //
 // LO QUE FALTA (siguiente paso, no bloquea esta pantalla): ticket promedio por persona, % a precio completo,
@@ -44,9 +43,11 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
         sobretitulo="Gestión"
         titulo="Rendimiento"
         bajada={
-          elegida
-            ? `Las ventas de cada persona de ${elegida.nombre}, contra su meta. Para reconocer y acompañar — sin comisión ni bono.`
-            : `Las ventas de cada persona de ${persona.ubicacionEtiqueta}, contra su meta. Para reconocer y acompañar — sin comisión ni bono.`
+          varias
+            ? "Las ventas de cada persona de cada tienda, contra su meta. Para reconocer y acompañar — sin comisión ni bono."
+            : elegida
+              ? `Las ventas de cada persona de ${elegida.nombre}, contra su meta. Para reconocer y acompañar — sin comisión ni bono.`
+              : `Las ventas de cada persona de ${persona.ubicacionEtiqueta}, contra su meta. Para reconocer y acompañar — sin comisión ni bono.`
         }
       />
 
@@ -60,31 +61,17 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
         </div>
       )}
 
-      {varias && <ComparativoTiendas sedes={sedes} activaId={elegida?.ubicacionId ?? null} sesionId={persona.ubicacionId} hoy={hoy} vista={vista} />}
-
       {elegida && (
-        <>
-          {elegida.panelDisponible ? (
-            <PanelRendimiento
-              key={elegida.ubicacionId}
-              ubicacionId={elegida.ubicacionId}
-              nombre={elegida.nombre}
-              hoy={hoy}
-              serie={elegida.serie}
-              detalle={elegida.detalle}
-              personas={elegida.personas}
-              historial={elegida.historial}
-              vistaInicial={vistaDeUrl(vista)}
-              personaCuentaId={persona.personaId}
-              esAdmin={persona.esAdmin}
-            />
-          ) : (
-            <p className="nota-cayla">
-              No se pudieron leer las metas de cada persona ahora. Lo demás de esta pantalla —los rankings del mes— sí está al día.
-            </p>
-          )}
-          <Rankings sede={elegida} />
-        </>
+        <TiendasRendimiento
+          sedes={sedes}
+          inicialId={elegida.ubicacionId}
+          sesionId={persona.ubicacionId}
+          hoy={hoy}
+          vistaInicial={vistaDeUrl(vista)}
+          personaCuentaId={persona.personaId}
+          esAdmin={persona.esAdmin}
+          rankings={Object.fromEntries(sedes.map((s) => [s.ubicacionId, <Rankings key={s.ubicacionId} sede={s} />]))}
+        />
       )}
     </div>
   );
