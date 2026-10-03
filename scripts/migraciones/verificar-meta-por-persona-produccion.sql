@@ -1,5 +1,5 @@
 -- ============================================================================
--- VERIFICACIÓN de las migraciones 20260930040100 y 20260930050200 — SOLO LECTURA (no cambia nada).
+-- VERIFICACIÓN de las migraciones 20260930040100, 20260930050200 y 20261003180000 — SOLO LECTURA (no cambia nada).
 -- Se pega DESPUÉS de `1-pegar-esto.sql` y devuelve UNA tabla. Lo que importa: la última fila («RESUMEN») debe decir 0.
 --   · «función …»  compara el cuerpo de cada función contra el de la que se probó en local (md5). «DISTINTA» = lo pegado no es igual a lo probado.
 --   · el resto comprueba la tabla, su candado (RLS sin políticas, historial que no se edita) y quién puede ejecutar qué.
@@ -15,10 +15,11 @@ with esperado(funcion, md5_esperado) as (values
     ('fn_mi_meta', '79e84e16209fbfdbadcb99998e14c3bd'),
     ('fn_mis_ventas_del_dia', '2cac10647980ccaff8c61221ce08b047'),
     ('fn_mis_ventas_por_dia', '507a16d1e38d0d0f3251f41918a0dca3'),
+    ('fn_rendimiento_detalle', '7cbd43a8ea1278b4c97a23b5774d89c7'),
     ('fn_rendimiento_serie', '2caeff522aab15033a9c1e21b07242fe'),
     ('fn_reparto_meta', '109f6c0580b09e0349150a6fd50ba3d0')
 ),
-publicas(funcion) as (values ('fn_mis_ventas_del_dia'), ('fn_metas_equipo'), ('fn_metas_historial'), ('fn_mi_meta'), ('fn_mis_ventas_por_dia'), ('fn_rendimiento_serie'), ('fijar_meta_persona')),
+publicas(funcion) as (values ('fn_mis_ventas_del_dia'), ('fn_metas_equipo'), ('fn_metas_historial'), ('fn_mi_meta'), ('fn_mis_ventas_por_dia'), ('fn_rendimiento_serie'), ('fn_rendimiento_detalle'), ('fijar_meta_persona')),
 internas(funcion) as (values ('fn_horas_programadas'), ('fn_asistencia_por_dia'), ('fn_reparto_meta'), ('fn_metas_por_dia')),
 tru as (select id from retail.ubicaciones where tipo = 'tienda' and nombre in ('Tienda TRU', 'Tienda Trujillo') order by nombre limit 1),
 hoy as (select (now() at time zone 'America/Lima')::date as d),
