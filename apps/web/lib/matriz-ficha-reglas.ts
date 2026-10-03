@@ -282,14 +282,47 @@ export function correccionesPendientes(filas: readonly FilaFicha[], n: NombresFi
  * las nuevas, que todavía no existen, se van. «Deshacer» (`devolverColor`) la vuelve a la venta, sin lo que se le había tocado.
  */
 export function quitarColor(filas: readonly FilaFicha[], colorCodigo: string | null): FilaFicha[] {
-  const delColor = (f: FilaFicha) => f.activo && f.colorCodigo === colorCodigo;
-  return filas
-    .filter((f) => !delColor(f) || f.guardada !== null)
-    .map((f) => {
-      if (!delColor(f) || !f.guardada) return f;
-      const g = f.guardada;
-      return { ...f, activo: false, precio: g.precio, costo: f.costoFijo ? f.costo : g.costo, etiquetaIds: [...g.etiquetaIds] };
-    });
+  return quitarFilas(filas, (f) => f.colorCodigo === colorCodigo);
+}
+
+/**
+ * «Quitar talla» (el tacho de la cabecera de una talla, Felipe 2026-10-03: «ponle tacho a la talla»): lo mismo que «Quitar color»,
+ * sobre una columna. La talla deja de venderse en TODOS los colores: las variantes que existen se desactivan (nunca se borran) y
+ * sueltan lo tocado en la visita; las nuevas no se crean. «Deshacer» (`devolverTalla`) la vuelve a la venta.
+ */
+export function quitarTalla(filas: readonly FilaFicha[], tallaId: string | null): FilaFicha[] {
+  return quitarFilas(filas, (f) => f.tallaId === tallaId);
+}
+
+/** Lo común a quitar un color o una talla: `deEse` dice qué filas (activas) se quitan. */
+function quitarFilas(filas: readonly FilaFicha[], deEse: (f: FilaFicha) => boolean): FilaFicha[] {
+  const seQuita = (f: FilaFicha) => f.activo && deEse(f);
+  const quedan = filas.filter((f) => !seQuita(f) || f.guardada !== null);
+  return quedan.map((f) => {
+    if (!seQuita(f) || !f.guardada) return f;
+    const g = f.guardada;
+    // Una corrección de color o talla hecha en la visita también se suelta (revisión 2026-10-03): si no, guardar desactivaba Y
+    // corregía (código nuevo, fotos y temporada mudadas, «reimprime todo») lo que la persona quiso quitar. Solo si su lugar
+    // de antes sigue libre: si otra fila ya lo ocupa, se queda donde está (y la base no ve un choque).
+    const libre = !quedan.some((o) => o !== f && o.colorCodigo === g.colorCodigo && o.tallaId === g.tallaId);
+    const identidad = libre ? { colorCodigo: g.colorCodigo, tallaId: g.tallaId } : {};
+    return { ...f, ...identidad, activo: false, precio: g.precio, costo: f.costoFijo ? f.costo : g.costo, etiquetaIds: [...g.etiquetaIds] };
+  });
+}
+
+/** Las tallas que se quitan al guardar: se vendían (en algún color) y ya no les queda ninguna variante activa. En orden de curva. */
+export function tallasQueSeQuitan(filas: readonly FilaFicha[], n: NombresFicha): (string | null)[] {
+  const salida: (string | null)[] = [];
+  for (const f of filas) {
+    if (salida.includes(f.tallaId) || !f.guardada?.activo) continue;
+    if (!filas.some((o) => o.tallaId === f.tallaId && o.activo)) salida.push(f.tallaId);
+  }
+  return salida.sort((a, b) => compararTallas(n.talla(a), n.talla(b)));
+}
+
+/** «Deshacer» de «Quitar talla»: vuelven a la venta las variantes de esa talla que estaban activas en la base. */
+export function devolverTalla(filas: readonly FilaFicha[], tallaId: string | null): FilaFicha[] {
+  return filas.map((f) => (f.tallaId === tallaId && f.guardada?.activo && !f.activo ? { ...f, activo: true } : f));
 }
 
 /** Una línea de la hoja «Etiquetas de lo que entró»: una talla de un color, cuántas unidades entraron y con qué precio. */
@@ -333,4 +366,34 @@ export function lineasParaImprimir(subidas: readonly Subida[], filas: readonly F
     unidades: l.unidades,
     etiquetaIds: l.etiquetaIds,
   }));
+}
+
+/**
+ * Qué pasa al tocar una celda «—» de la matriz (esa combinación no se vende). Felipe 2026-10-03: un hueco no se podía llenar desde
+ * la ficha —«+ Agregar color» no ofrece un color que la prenda ya vende y «+ Agregar talla» no ofrece una talla que ya vende—, así
+ * que «Crudo 32» quedaba imposible si Crudo nació solo en 28 y 30. Ahora la celda misma la agrega:
+ * - `reactiva`: la combinación existió y está desactivada → vuelve a venderse con su historia (no se duplica).
+ * - `nueva`: nunca existió → nace en 0, como las de «+ Agregar color», y se guarda con «Revisar y guardar».
+ * - no se puede: la base rechazaría el guardado entero si nace en un color inactivo en Colores o en una talla que la categoría
+ *   ya no habilita (las mismas dos reglas de `coloresParaAgregarTalla` y `tallasParaAgregarColor`); se dice por qué.
+ */
+export type Hueco = { puede: true; queHace: "nueva" | "reactiva" } | { puede: false; motivo: string };
+
+export function comoLlenarHueco(
+  filas: readonly FilaFicha[],
+  color: string | null,
+  talla: string | null,
+  permitidos: { coloresActivos: readonly string[]; tallasHabilitadas: readonly string[] },
+  n: NombresFicha,
+): Hueco {
+  const existe = filas.find((f) => f.colorCodigo === color && f.tallaId === talla);
+  if (existe?.activo) return { puede: false, motivo: `${n.color(color)} en ${n.talla(talla) || "Única"} ya se vende.` };
+  if (existe) return { puede: true, queHace: "reactiva" };
+  if (color !== null && !permitidos.coloresActivos.includes(color)) {
+    return { puede: false, motivo: `${n.color(color)} está desactivado en Colores: no puede nacer en otra talla.` };
+  }
+  if (talla !== null && !permitidos.tallasHabilitadas.includes(talla)) {
+    return { puede: false, motivo: `La talla ${n.talla(talla)} ya no está habilitada en la categoría: no puede nacer en otro color.` };
+  }
+  return { puede: true, queHace: "nueva" };
 }
