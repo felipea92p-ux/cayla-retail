@@ -1065,11 +1065,6 @@
   "tabla": "retail.club_textos"
  },
  {
-  "conname": "club_textos_casilla_con_baja",
-  "definicion": "CHECK (((tipo <> 'casilla_publicidad'::text) OR (POSITION(('BAJA'::text) IN (texto)) > 0)))",
-  "tabla": "retail.club_textos"
- },
- {
   "conname": "club_textos_creado_por_fkey",
   "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
   "tabla": "retail.club_textos"
@@ -1290,13 +1285,23 @@
   "tabla": "retail.colores"
  },
  {
+  "conname": "colores_combina_con_maximo",
+  "definicion": "CHECK ((cardinality(combina_con) <= 8))",
+  "tabla": "retail.colores"
+ },
+ {
+  "conname": "colores_descripcion_largo",
+  "definicion": "CHECK (((descripcion IS NULL) OR ((char_length(descripcion) >= 1) AND (char_length(descripcion) <= 300))))",
+  "tabla": "retail.colores"
+ },
+ {
   "conname": "colores_estado_check",
   "definicion": "CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))",
   "tabla": "retail.colores"
  },
  {
   "conname": "colores_familia_color_check",
-  "definicion": "CHECK ((familia_color = ANY (ARRAY['neutro'::text, 'azul'::text, 'rojo'::text, 'amarillo'::text, 'verde'::text, 'morado'::text, 'tierra'::text, 'metalico'::text, 'estampado'::text])))",
+  "definicion": "CHECK ((familia_color = ANY (ARRAY['neutro'::text, 'tierra'::text, 'rosado'::text, 'rojo'::text, 'naranja'::text, 'amarillo'::text, 'verde'::text, 'azul'::text, 'morado'::text, 'metalico'::text, 'estampado'::text])))",
   "tabla": "retail.colores"
  },
  {
@@ -2300,6 +2305,11 @@
   "tabla": "retail.conteos"
  },
  {
+  "conname": "trg_actividad_conteo_nuevo",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.conteos"
+ },
+ {
   "conname": "costo_historial_cantidad_nueva_check",
   "definicion": "CHECK ((cantidad_nueva > 0))",
   "tabla": "retail.costo_historial"
@@ -3115,6 +3125,11 @@
   "tabla": "retail.historial_producto_cambios"
  },
  {
+  "conname": "trg_actividad_historial_producto",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.historial_producto_cambios"
+ },
+ {
   "conname": "huellas_llave_id_check",
   "definicion": "CHECK ((id = 1))",
   "tabla": "retail.huellas_llave"
@@ -3472,6 +3487,11 @@
  {
   "conname": "movimientos_venta_item_fkey",
   "definicion": "FOREIGN KEY (venta_item_id) REFERENCES retail.venta_items(id)",
+  "tabla": "retail.movimientos"
+ },
+ {
+  "conname": "trg_actividad_movimientos",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
   "tabla": "retail.movimientos"
  },
  {
@@ -4285,6 +4305,11 @@
   "tabla": "retail.productos"
  },
  {
+  "conname": "trg_actividad_producto_nuevo",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.productos"
+ },
+ {
   "conname": "proformas_comprobante_id_fkey",
   "definicion": "FOREIGN KEY (comprobante_id) REFERENCES retail.comprobantes(id)",
   "tabla": "retail.proformas"
@@ -4498,6 +4523,11 @@
   "conname": "proveedores_produccion_titular_cuenta_check",
   "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))",
   "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "respaldo_b002_renumeradas_20261002_pkey",
+  "definicion": "PRIMARY KEY (comprobante_id)",
+  "tabla": "retail.respaldo_b002_renumeradas_20261002"
  },
  {
   "conname": "rol_modulos_modulo_fkey",
@@ -5595,6 +5625,11 @@
   "tabla": "retail.transferencias"
  },
  {
+  "conname": "trg_actividad_traslado_nuevo",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.transferencias"
+ },
+ {
   "conname": "ubicacion_datos_fiscales_pkey",
   "definicion": "PRIMARY KEY (ubicacion_id)",
   "tabla": "retail.ubicacion_datos_fiscales"
@@ -5816,7 +5851,7 @@
  },
  {
   "conname": "venta_pagos_metodo_check",
-  "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text])))",
+  "definicion": "CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text, 'redondeo'::text])))",
   "tabla": "retail.venta_pagos"
  },
  {
@@ -5832,6 +5867,11 @@
  {
   "conname": "venta_pagos_recibido_coherente",
   "definicion": "CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))",
+  "tabla": "retail.venta_pagos"
+ },
+ {
+  "conname": "venta_pagos_redondeo_valido",
+  "definicion": "CHECK (((metodo <> 'redondeo'::text) OR (monto < 0.10)))",
   "tabla": "retail.venta_pagos"
  },
  {

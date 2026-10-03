@@ -995,6 +995,11 @@
   "tablename": "proveedores_produccion"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX respaldo_b002_renumeradas_20261002_pkey ON retail.respaldo_b002_renumeradas_20261002 USING btree (comprobante_id)",
+  "indexname": "respaldo_b002_renumeradas_20261002_pkey",
+  "tablename": "respaldo_b002_renumeradas_20261002"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX rol_modulos_pkey ON retail.rol_modulos USING btree (rol_id, modulo)",
   "indexname": "rol_modulos_pkey",
   "tablename": "rol_modulos"
@@ -1302,6 +1307,11 @@
  {
   "indexdef": "CREATE UNIQUE INDEX venta_pagos_pkey ON retail.venta_pagos USING btree (id)",
   "indexname": "venta_pagos_pkey",
+  "tablename": "venta_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX venta_pagos_un_redondeo_por_venta ON retail.venta_pagos USING btree (venta_id) WHERE (metodo = 'redondeo'::text)",
+  "indexname": "venta_pagos_un_redondeo_por_venta",
   "tablename": "venta_pagos"
  },
  {

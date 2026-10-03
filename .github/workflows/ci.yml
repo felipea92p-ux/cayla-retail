@@ -332,6 +332,18 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad
 
+      # Actividad de Existencias, Conteos y Traslados (ADR-0207, act. 2026-10-02): una línea por operación (no por
+      # prenda), lo de un producto nuevo no sale en Existencias, y si anotar falla la operación se guarda igual. ROLLBACK.
+      - name: pruebas:actividad-inventario
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad-inventario
+
+      # Actividad de Productos (ADR-0207, act. 2026-10-02): alta con su stock, ediciones con antes → después en una línea
+      # por guardado, cambios en bloque, el costo sin montos; si anotar falla, el guardado sigue. ROLLBACK.
+      - name: pruebas:actividad-productos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad-productos
+
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:aprobar-devolucion-caja
