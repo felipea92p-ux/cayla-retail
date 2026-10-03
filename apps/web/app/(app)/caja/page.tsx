@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { puede, requirePersonaActualV2, veModulo, type PersonaActualV2 } from "@/lib/persona-actual";
-import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
+import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre, getPagosDelDia, diaAnterior } from "@/lib/caja";
 import { getContextoTableroCaja } from "@/lib/caja-tablero";
 import { getCategoriasGasto, getContextoGastos, getProveedoresParaGasto } from "@/lib/gastos";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -78,7 +78,7 @@ async function CajaConDatos({
   const puedeCerrar = puede(persona, "gestionarCaja");
   const registraGastos = puede(persona, "registrarGastos");
   const hoy = hoyLima();
-  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto] = await Promise.all([
+  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer] = await Promise.all([
     getTableroCaja(caja.id),
     getMovimientosCaja(caja.id),
     getUbicaciones(),
@@ -91,6 +91,9 @@ async function CajaConDatos({
     registraGastos
       ? Promise.all([getCategoriasGasto(), getContextoGastos(), getProveedoresParaGasto()]).then(([categorias, contexto, proveedores]) => ({ categorias, ...contexto, proveedores }))
       : Promise.resolve(null),
+    // Hoy contra ayer (ADR-0319): los pagos de los dos días. Si la base no tiene la lectura, `null` y Caja se ve como antes.
+    getPagosDelDia(caja.ubicacionId, hoy),
+    getPagosDelDia(caja.ubicacionId, diaAnterior(hoy)),
   ]);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
@@ -143,6 +146,7 @@ async function CajaConDatos({
       horaCierre={horaCierre}
       cierresRecientes={historial}
       contexto={contexto}
+      comparativa={pagosHoy && pagosAyer ? { hoy: pagosHoy, ayer: pagosAyer } : null}
       accesos={{
         vender: veModulo(persona, "vender"),
         cambios: veModulo(persona, "cambios"),

@@ -12,6 +12,8 @@ import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
 import { BarraCierreCaja, BotonCerrarCaja } from "@/components/BarraCierreCaja";
 import { estadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
+import { ComparativaCaja } from "@/components/CajaComparativa";
+import type { PagoDelDia } from "@/lib/caja-comparativa-reglas";
 import { RegistrarGastoModal } from "@/components/RegistrarGastoModal";
 import {
   AccesosCajaEscritorio,
@@ -95,6 +97,7 @@ export function CajaAbiertaPanel({
   accesos,
   gasto = null,
   abrirCierre = false,
+  comparativa = null,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -127,6 +130,8 @@ export function CajaAbiertaPanel({
     esLider: boolean;
     hoy: string;
   } | null;
+  /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
+  comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
@@ -192,6 +197,7 @@ export function CajaAbiertaPanel({
     const id = window.setInterval(leer, 60_000);
     return () => window.clearInterval(id);
   }, []);
+  const ahoraMin = ahora ? minutosLima(ahora) : null;
   const alCierre =
     ahora && metaVentaDiaria !== null
       ? proyeccionAlCierre({ vendido: totalVentas, abrioMin: minutosLima(diaYHoraLima(caja.abiertaEn).hora) ?? 0, ahoraMin: minutosLima(ahora) ?? 0, cierreMin: minutosLima(horaCierre) })
@@ -284,6 +290,42 @@ export function CajaAbiertaPanel({
         {/* ---------- Turno largo: una caja que pasó la noche sin cerrarse (auditoría de /caja, #3) ---------- */}
         <AvisoTurnoLargo abiertaEn={caja.abiertaEn} esLider={personaRol === "lider"} />
 
+        {/* ---------- Hoy contra ayer (ADR-0319): titular, gráfico, medios de pago y horas. Sin metas diarias: la meta es ayer. ---------- */}
+        {comparativa && ahoraMin !== null ? (
+          <>
+            <ComparativaCaja
+              hoy={comparativa.hoy}
+              ayer={comparativa.ayer}
+              ahoraMin={ahoraMin}
+              horaCierreMin={minutosLima(horaCierre)}
+              cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
+            />
+            {puedeCerrar && fondoCierre && (
+              <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
+                <h2 className="font-display text-[22px] leading-tight text-tinta">Al cerrar</h2>
+                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
+                <dl className="mt-3 text-[13px] text-tinta">
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Debería haber en el cajón</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Deja para el próximo turno</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums">{soles0(fondoCierre.monto)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Lo demás se traslada</dt>
+                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
+                  </div>
+                </dl>
+                <p className="mt-1 text-[12.5px] text-taupe">
+                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
         {/* ---------- Lo que hay: efectivo en el cajón, cobrado y ritmo ---------- */}
         <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
@@ -346,6 +388,9 @@ export function CajaAbiertaPanel({
               </div>
             )}
           </div>
+        )}
+
+          </>
         )}
 
         {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
