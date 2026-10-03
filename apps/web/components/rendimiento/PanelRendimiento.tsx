@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
@@ -36,10 +36,7 @@ import {
   type PersonaMeta,
   type Vista,
 } from "@/lib/rendimiento-meta-reglas";
-import { guardarMedidasRendimiento } from "@/app/actions/rendimiento";
-import { medidaVisible, type ClaveMedida, type EleccionMedidas } from "@/lib/rendimiento-medidas";
 import { EditarMetaModal } from "./EditarMetaModal";
-import { QueMasMostrar } from "./QueMasMostrar";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
 
 /* ====================================================================
@@ -77,7 +74,6 @@ export function PanelRendimiento({
   vistaInicial,
   personaCuentaId,
   esAdmin,
-  medidasIniciales,
 }: {
   ubicacionId: string;
   nombre: string;
@@ -90,14 +86,10 @@ export function PanelRendimiento({
   vistaInicial: Vista;
   personaCuentaId: string | null;
   esAdmin: boolean;
-  /** Lo que la persona eligió en «Qué más mostrar» (cookie por cuenta); sin elección, todo se ve. */
-  medidasIniciales: EleccionMedidas;
 }) {
   const [vista, setVista] = useState<Vista>(vistaInicial);
   const [orden, setOrden] = useState<Orden>("nombre");
   const [editando, setEditando] = useState<PersonaMeta | null>(null);
-  const [medidas, setMedidas] = useState<EleccionMedidas>(medidasIniciales);
-  const [, guardando] = useTransition();
   // La hora de Lima solo se conoce ya en el navegador: sin esto el servidor y el navegador pintarían horas distintas (D-159, «ritmo
   // esperado»: cuánto del turno ya pasó). Antes de montarse no hay marca ni palabra; luego se actualiza cada minuto.
   const [ahoraMin, setAhoraMin] = useState<number | null>(null);
@@ -112,15 +104,6 @@ export function PanelRendimiento({
   const proyeccion = useMemo(() => proyectarMes(serie, hoy), [serie, hoy]);
   const porHora = useMemo(() => (detalle ? ventasDeLaTiendaPorHora(detalle, vista, hoy) : null), [detalle, vista, hoy]);
   const prendas = useMemo(() => (detalle ? prendasPorVenta(detalle, vista, hoy) : null), [detalle, vista, hoy]);
-
-  // «Qué más mostrar»: cambia al tocar el interruptor y se guarda en segundo plano (sin loader: es una preferencia de vista).
-  function guardarMedidas(nueva: EleccionMedidas) {
-    setMedidas(nueva);
-    guardando(() => guardarMedidasRendimiento(nueva as Record<string, boolean>));
-  }
-  const verProyeccion = medidaVisible("proyeccion", medidas) && !!proyeccion;
-  const verPrendas = medidaVisible("prendas", medidas) && !!prendas;
-  const verHoras = medidaVisible("horas", medidas) && !!porHora;
   const resMes = useMemo(() => resumenDeSede(serie, "mes", hoy), [serie, hoy]);
   const grafico = useMemo(() => serieParaGrafico(serie, hoy), [serie, hoy]);
   const filas = useMemo(() => ordenarPersonas(personas, vista, orden), [personas, vista, orden]);
@@ -220,9 +203,9 @@ export function PanelRendimiento({
       </div>
 
       {/* Las tres medidas de la propuesta final (Felipe, 2026-10-03): proyección del mes, prendas por venta y ventas por hora */}
-      {(verProyeccion || verPrendas) && (
-        <div id="medidas-extra" className="grid scroll-mt-4 gap-4 sm:grid-cols-2">
-          {verProyeccion && proyeccion && (
+      {(proyeccion || prendas) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {proyeccion && (
             <div className="card-cayla p-4 sm:p-5">
               <p className="label-cayla text-[11px] text-tinta/65">Proyección del mes</p>
               <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:text-3xl">{SOLES.format(proyeccion.proyeccion)}</p>
@@ -237,7 +220,7 @@ export function PanelRendimiento({
               </p>
             </div>
           )}
-          {verPrendas && prendas && (
+          {prendas && (
             <TarjetaCifra etiqueta="Prendas por venta" valor={prendas.porVenta !== null ? prendas.porVenta.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}>
               {prendas.porVenta !== null
                 ? `${prendas.prendas} ${plural(prendas.prendas, "prenda", "prendas")} en ${prendas.ventas} ${plural(prendas.ventas, "venta", "ventas")} ${t.enPeriodo}. Las devoluciones no restan.`
@@ -247,8 +230,8 @@ export function PanelRendimiento({
         </div>
       )}
 
-      {verHoras && porHora && (
-        <div id={verProyeccion || verPrendas ? undefined : "medidas-extra"} className="card-cayla scroll-mt-4 p-4 sm:p-5">
+      {porHora && (
+        <div className="card-cayla p-4 sm:p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Ventas por hora ({t.periodo})</p>
           {porHora.mejor ? (
             <>
@@ -418,25 +401,6 @@ export function PanelRendimiento({
       />
 
       <Historial cambios={historial} />
-
-      <QueMasMostrar
-        medidas={medidas}
-        previas={{
-          proyeccion: proyeccion
-            ? { disponible: true, texto: `A este ritmo: cerca de ${SOLES.format(proyeccion.proyeccion)}.` }
-            : { disponible: false, texto: "Todavía sin 3 días cerrados con ventas." },
-          prendas:
-            prendas && prendas.porVenta !== null
-              ? { disponible: true, texto: `${t.periodo === "hoy" ? "Hoy" : t.periodo === "el mes" ? "Este mes" : "7 días"}: ${prendas.porVenta.toLocaleString("es-PE", { maximumFractionDigits: 1 })} por venta.` }
-              : { disponible: false, texto: prendas ? "Sin ventas en este período." : "No se pudo leer ahora." },
-          horas:
-            porHora?.mejor
-              ? { disponible: true, texto: `Mejor franja: ${etiquetaDeHora(porHora.mejor.hora)}.` }
-              : { disponible: false, texto: porHora ? "Sin ventas en este período." : "No se pudo leer ahora." },
-        }}
-        onCambiar={(clave: ClaveMedida, visible) => guardarMedidas({ ...medidas, [clave]: visible })}
-        onTodo={() => guardarMedidas({})}
-      />
 
       {editando && (
         <EditarMetaModal

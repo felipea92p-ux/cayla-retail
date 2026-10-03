@@ -3,9 +3,7 @@ import { Chip } from "@/components/ui/Chip";
 import { celda, Encabezado, fila, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
 import { ComparativoTiendas } from "@/components/rendimiento/ComparativoTiendas";
 import { PanelRendimiento } from "@/components/rendimiento/PanelRendimiento";
-import { cookies } from "next/headers";
 import { exigirModulo } from "@/lib/persona-actual";
-import { cookieMedidas, leerEleccionMedidas } from "@/lib/rendimiento-medidas";
 import { leerPantallaRendimiento, type SedeDeRendimiento } from "@/lib/rendimiento";
 import { vistaDeUrl } from "@/lib/rendimiento-meta-reglas";
 
@@ -34,7 +32,6 @@ const COLUMNAS: Columna[] = [{ titulo: "Integrante" }, { titulo: "Ventas", aline
 export default async function RendimientoPage({ searchParams }: { searchParams: Promise<{ vista?: string; sede?: string }> }) {
   const persona = await exigirModulo("rendimiento");
   const { vista, sede } = await searchParams;
-  const medidas = leerEleccionMedidas((await cookies()).get(cookieMedidas(persona.personaId))?.value);
   const { hoy, sedes: todas } = await leerPantallaRendimiento(sede ?? null);
   // La tienda de la sesión va primera y es la que abre si la URL no pide otra (Felipe, 2026-10-03).
   const sedes = [...todas].sort((a, b) => Number(b.ubicacionId === persona.ubicacionId) - Number(a.ubicacionId === persona.ubicacionId));
@@ -80,7 +77,6 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
               vistaInicial={vistaDeUrl(vista)}
               personaCuentaId={persona.personaId}
               esAdmin={persona.esAdmin}
-              medidasIniciales={medidas}
             />
           ) : (
             <p className="nota-cayla">

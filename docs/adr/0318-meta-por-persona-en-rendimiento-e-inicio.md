@@ -269,14 +269,3 @@ repartir turnos, no para juzgar. Prueba: `pnpm pruebas:rendimiento-detalle` (6 c
 **La función NO está en producción: la pega Felipe** (un solo `create or replace function`, sin partes ni candados). Si la web sale antes, el panel sigue y dice «No se pudieron leer las ventas por hora ahora»;
 nunca dibuja 0. **Sigue abierta** la marca de ritmo del anillo del Inicio («dónde solías ir a esta hora»): ahora que hay ventas por hora de la TIENDA, se podría sacar la curva típica del día, pero es otra decisión
 (cuántos días de historia, qué hacer con una tienda nueva) y no se inventó.
-
-**«Qué más mostrar» (2026-10-03, Felipe, de momento debajo del panel):** un apartado con un interruptor por medida extra (proyección del mes, prendas por venta, ventas por hora). Es una
-preferencia de VISTA de quien mira: una cookie por cuenta en el aparato, como «Ajustar» del Inicio (`lib/rendimiento-medidas.ts`, `app/actions/rendimiento.ts`, `components/rendimiento/QueMasMostrar.tsx`);
-no cambia lo que ven los demás, ni qué se calcula, ni abre ningún permiso. Todo viene encendido. Cada fila muestra el número real de hoy (para que se entienda qué se enciende sin leer), se puede
-volver a encender con un toque, hay «Volver a mostrar todo», y una medida sin datos lo dice en su fila.
-DECIDÍ: la misma cookie por cuenta que el Inicio, no una columna en la base.
-DESCARTÉ: guardarla en la base para que siga a la persona de un aparato a otro: pide una migración y una política por una preferencia de tres interruptores; el Inicio ya dejó ese «paso 2» anotado y se resuelve
-para los dos a la vez cuando valga la pena.
-SE ROMPE SI: una encargada apaga «Ventas por hora» en la tablet del mostrador y espera verla apagada en su celular: la cookie es de ese aparato.
-**Qué tan útil es** (análisis con Felipe, abierto): hoy son tres medidas y todas vienen encendidas, así que el apartado ayuda poco; se justifica cuando la pantalla crezca (ticket por persona, % a precio completo,
-cuadre de caja: D-116) o cuando distintos roles pidan cosas distintas. Si nadie lo usa en un mes, se quita.
