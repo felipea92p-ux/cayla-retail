@@ -118,42 +118,56 @@ describe("dentroDeUnaEdicion: espejo de retail.fn_dentro_de_una_edicion", () => 
     expect(dentroDeUnaEdicion("a", "b")).toBe(true);
   });
 
-  it("es exactamente «distancia de Levenshtein ≤ 1»: todas las cadenas de hasta 5 letras sobre {a, b, 1}", () => {
-    const lev = (a: string, b: string) => {
-      let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
-      for (let i = 1; i <= a.length; i++) {
-        const fila = [i];
-        for (let j = 1; j <= b.length; j++) fila[j] = Math.min(previa[j] + 1, fila[j - 1] + 1, previa[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        previa = fila;
+  // Las dos pruebas exhaustivas de abajo comparan cada par de cadenas de hasta 5 letras sobre 3 símbolos (364 cadenas,
+  // 132 496 pares) contra la distancia de edición calculada con su tabla de siempre. Armar una tabla NUEVA por par era el
+  // 97 % del tiempo de «distanciaUno == …» (distanciaUno en sí cuesta 5-10 ms): con la máquina cargada por otras sesiones
+  // (carga ~100, 2026-10-02) la prueba llegaba a 1,9 s, camino del límite de 5 s que frena el pre-commit. Ahora la tabla se
+  // arma una vez y cada par la reescribe: repone la fila y la columna 0, y escribe cada celda de adentro antes de leerla.
+  // Por la misma razón juntan los pares que discrepan en UN `expect`, que los nombra uno por uno.
+  const LARGO_MAXIMO = 5;
+  const tabla = Array.from({ length: LARGO_MAXIMO + 1 }, () => new Array<number>(LARGO_MAXIMO + 1).fill(0));
+  /** Distancia de edición. Con `transponer`, dos letras contiguas intercambiadas son UNA edición (Damerau-Levenshtein, en
+   *  su forma de alineación óptima); sin él son dos (Levenshtein). Es la única diferencia entre las dos definiciones. */
+  const distancia = (a: string, b: string, transponer: boolean) => {
+    for (let j = 0; j <= b.length; j++) tabla[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      tabla[i][0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        tabla[i][j] = Math.min(tabla[i - 1][j] + 1, tabla[i][j - 1] + 1, tabla[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (transponer && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) tabla[i][j] = Math.min(tabla[i][j], tabla[i - 2][j - 2] + 1);
       }
-      return previa[b.length];
-    };
-    const todas: string[] = [""];
-    for (let largo = 1; largo <= 5; largo++) {
-      const siguientes: string[] = [];
-      for (const base of todas.filter((t) => t.length === largo - 1)) for (const l of "ab1") siguientes.push(base + l);
-      todas.push(...siguientes);
     }
-    let distintos = 0;
-    for (const a of todas) for (const b of todas) if (dentroDeUnaEdicion(a, b) !== lev(a, b) <= 1) distintos++;
-    expect(distintos).toBe(0);
+    return tabla[a.length][b.length];
+  };
+  /** Todas las cadenas de 0 a LARGO_MAXIMO letras sobre `alfabeto`. */
+  const todasLasCadenas = (alfabeto: string) => {
+    const todas: string[] = [""];
+    for (let largo = 1; largo <= LARGO_MAXIMO; largo++) for (const base of todas.filter((t) => t.length === largo - 1)) for (const l of alfabeto) todas.push(base + l);
+    return todas;
+  };
+
+  it("es exactamente «distancia de Levenshtein ≤ 1»: todas las cadenas de hasta 5 letras sobre {a, b, 1}", () => {
+    const todas = todasLasCadenas("ab1");
+    const discrepan: string[] = [];
+    for (const a of todas)
+      for (const b of todas) {
+        const dice = dentroDeUnaEdicion(a, b);
+        const lev = distancia(a, b, false);
+        if (dice !== lev <= 1) discrepan.push(`«${a}» / «${b}»: dentroDeUnaEdicion dice ${dice}, Levenshtein da ${lev}`);
+      }
+    expect(discrepan).toEqual([]);
   });
 
   it("distanciaUno == (Damerau-Levenshtein === 1): letra cambiada, de más, de menos o dos contiguas intercambiadas", () => {
-    const damerau = (a: string, b: string) => {
-      const d = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
-      for (let i = 1; i <= a.length; i++)
-        for (let j = 1; j <= b.length; j++) {
-          d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-          if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
-        }
-      return d[a.length][b.length];
-    };
-    const todas: string[] = [""];
-    for (let largo = 1; largo <= 5; largo++) for (const base of todas.filter((t) => t.length === largo - 1)) for (const l of "abc") todas.push(base + l);
-    let distintos = 0;
-    for (const a of todas) for (const b of todas) if (distanciaUno(a, b) !== (damerau(a, b) === 1)) distintos++;
-    expect(distintos).toBe(0);
+    const todas = todasLasCadenas("abc");
+    const discrepan: string[] = [];
+    for (const a of todas)
+      for (const b of todas) {
+        const dice = distanciaUno(a, b);
+        const damerau = distancia(a, b, true);
+        if (dice !== (damerau === 1)) discrepan.push(`«${a}» / «${b}»: distanciaUno dice ${dice}, Damerau-Levenshtein da ${damerau}`);
+      }
+    expect(discrepan).toEqual([]);
   });
 });
 
