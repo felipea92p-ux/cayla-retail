@@ -5,9 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-10-02 17:33:51 UTC
-> **Tablas y vistas encontradas:** 153
-> **Funciones en `retail`:** 746 (las firmas, en `funciones-produccion.txt`)
+> **Leído el:** 2026-10-03 16:01:51 UTC
+> **Tablas y vistas encontradas:** 154
+> **Funciones en `retail`:** 793 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -189,7 +189,7 @@
 
 ### `modulos`
 
-*7 columnas · ~35 filas · permisos por fila **activos***
+*8 columnas · ~36 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -200,6 +200,7 @@
 | `orden` | integer | **no** | — | — |
 | `solo_lider` | boolean | **no** | `false` | — |
 | `delegable` | boolean | **no** | `true` | — |
+| `del_admin` | boolean | **no** | `false` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -215,7 +216,7 @@
 
 ### `rol_modulos`
 
-*2 columnas · ~50 filas · permisos por fila **activos***
+*2 columnas · ~53 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -233,7 +234,7 @@
 
 ### `roles_historial`
 
-*6 columnas · ~29 filas · permisos por fila **activos***
+*6 columnas · ~31 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -298,7 +299,7 @@
 
 ### `lider_modulos_ocultos`
 
-*2 columnas · ~0 filas · permisos por fila **activos***
+*2 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -316,7 +317,7 @@
 
 ### `acciones_sin_responsable`
 
-*2 columnas · ~28 filas · permisos por fila **activos***
+*2 columnas · ~31 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -335,7 +336,7 @@
 
 ### `productos`
 
-*21 columnas · ~87 filas · permisos por fila **activos***
+*21 columnas · ~96 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -382,7 +383,7 @@
 
 ### `variantes`
 
-*10 columnas · ~581 filas · permisos por fila **activos***
+*10 columnas · ~704 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -494,7 +495,7 @@
 
 ### `historial_producto_cambios`
 
-*8 columnas · ~171 filas · permisos por fila **activos***
+*8 columnas · ~220 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -518,7 +519,7 @@
 
 ### `marcas`
 
-*4 columnas · ~85 filas · permisos por fila **activos***
+*4 columnas · ~86 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -541,7 +542,7 @@
 
 ### `marca_proveedores`
 
-*3 columnas · ~86 filas · permisos por fila **activos***
+*3 columnas · ~87 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -561,7 +562,7 @@
 
 ### `codigos_barras`
 
-*5 columnas · ~581 filas · permisos por fila **activos***
+*5 columnas · ~704 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -609,7 +610,7 @@
 
 ### `colores`
 
-*15 columnas · ~79 filas · permisos por fila **activos***
+*17 columnas · ~95 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -628,11 +629,15 @@
 | `aprobado_en` | timestamp with time zone | sí | — | — |
 | `pantone_tcx` | text | sí | — | — |
 | `sinonimos` | ARRAY | **no** | `'{}'::text[]` | — |
+| `descripcion` | text | sí | — | — |
+| `combina_con` | ARRAY | **no** | `'{}'::text[]` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `colores_combina_con_maximo` — `CHECK ((cardinality(combina_con) <= 8))`
+- `colores_descripcion_largo` — `CHECK (((descripcion IS NULL) OR ((char_length(descripcion) >= 1) AND (char_length(descripcion) <= 300))))`
 - `colores_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
-- `colores_familia_color_check` — `CHECK ((familia_color = ANY (ARRAY['neutro'::text, 'azul'::text, 'rojo'::text, 'amarillo'::text, 'verde'::text, 'morado'::text, 'tierra'::text, 'metalico'::text, 'estampado'::text])))`
+- `colores_familia_color_check` — `CHECK ((familia_color = ANY (ARRAY['neutro'::text, 'tierra'::text, 'rosado'::text, 'rojo'::text, 'naranja'::text, 'amarillo'::text, 'verde'::text, 'azul'::text, 'morado'::text, 'metalico'::text, 'estampado'::text])))`
 - `colores_hex_check` — `CHECK (((hex IS NULL) OR (hex ~ '^#[0-9A-Fa-f]{6}$'::text)))`
 - `colores_pantone_tcx_formato` — `CHECK (((pantone_tcx IS NULL) OR (pantone_tcx ~ '^[0-9]{2}-[0-9]{4} TCX$'::text)))`
 - `colores_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
@@ -739,7 +744,7 @@
 
 ### `categoria_tejidos`
 
-*3 columnas · ~172 filas · permisos por fila **activos***
+*3 columnas · ~174 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -874,7 +879,7 @@
 
 ### `variante_etiquetas`
 
-*3 columnas · ~130 filas · permisos por fila **activos***
+*3 columnas · ~229 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -983,7 +988,7 @@
 
 ### `producto_origen`
 
-*5 columnas · ~86 filas · permisos por fila **activos***
+*5 columnas · ~95 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1003,7 +1008,7 @@
 
 ### `movimientos`
 
-*22 columnas · ~587 filas · permisos por fila **activos***
+*22 columnas · ~719 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1048,7 +1053,7 @@
 
 ### `stock`
 
-*6 columnas · ~505 filas · permisos por fila **activos***
+*6 columnas · ~623 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1382,7 +1387,7 @@
 
 ### `bajadas_piso`
 
-*6 columnas · ~60 filas · permisos por fila **activos***
+*6 columnas · ~113 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1405,7 +1410,7 @@
 
 ### `bajada_piso_items`
 
-*4 columnas · ~53 filas · permisos por fila **activos***
+*4 columnas · ~106 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1448,7 +1453,7 @@
 
 ### `ajustes_inventario_intentos`
 
-*5 columnas · ~83 filas · permisos por fila **activos***
+*5 columnas · ~91 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1589,7 +1594,7 @@
 
 ### `ventas`
 
-*20 columnas · ~45 filas · permisos por fila **activos***
+*20 columnas · ~74 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1637,7 +1642,7 @@
 
 ### `venta_items`
 
-*13 columnas · ~85 filas · permisos por fila **activos***
+*13 columnas · ~149 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1680,7 +1685,7 @@
 
 ### `venta_pagos`
 
-*7 columnas · ~45 filas · permisos por fila **activos***
+*7 columnas · ~75 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1694,10 +1699,12 @@
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `venta_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text])))`
+- `venta_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'anticipo'::text, 'qr'::text, 'redondeo'::text])))`
 - `venta_pagos_monto_check` — `CHECK ((monto > (0)::numeric))`
 - `venta_pagos_recibido_coherente` — `CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))`
+- `venta_pagos_redondeo_valido` — `CHECK (((metodo <> 'redondeo'::text) OR (monto < 0.10)))`
 - `venta_pagos_referencia_valida` — `CHECK (((referencia IS NULL) OR ((referencia ~ '^[0-9A-Za-z]{1,40}$'::text) AND (metodo = ANY (ARRAY['yape'::text, 'plin'::text, 'transferencia'::text])))))`
+- `venta_pagos_un_redondeo_por_venta` *(único parcial)* — `retail.venta_pagos (venta_id) WHERE (metodo = 'redondeo'::text)`
 
 **De qué depende:** `(cuenta_dinero_id) REFERENCES retail.cuentas_dinero(id)` · `(venta_id) REFERENCES retail.ventas(id)`
 
@@ -1738,7 +1745,7 @@
 
 ### `cajas`
 
-*20 columnas · ~25 filas · permisos por fila **activos***
+*20 columnas · ~26 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1815,7 +1822,7 @@
 
 ### `clientas`
 
-*25 columnas · ~3 filas · permisos por fila **activos***
+*25 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2261,7 +2268,7 @@
 
 ### `pedidos_no_atendidos`
 
-*12 columnas · ~1 filas · permisos por fila **activos***
+*12 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2296,7 +2303,7 @@
 
 ### `caja_traslados`
 
-*8 columnas · ~2 filas · permisos por fila **activos***
+*8 columnas · ~3 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2326,7 +2333,7 @@
 
 ### `prendas_por_regularizar`
 
-*17 columnas · ~76 filas · permisos por fila **activos***
+*17 columnas · ~134 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2633,7 +2640,7 @@
 
 ### `club_textos`
 
-*5 columnas · ~13 filas · permisos por fila **activos***
+*5 columnas · ~18 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2646,7 +2653,6 @@
 **Candados** — lo que esta tabla hace imposible:
 
 - `club_textos_aviso_con_baja` — `CHECK (((tipo <> ALL (ARRAY['aviso_cumpleanos'::text, 'aviso_aniversario'::text, 'aviso_novedades'::text, 'aviso_rebaja'::text])) OR ((POSITION(('{nombre}'::text) IN (texto)) > 0) AND ("right"(texto, 50) = 'Si no quieres recibir más mensajes, responde BAJA.'::text))))`
-- `club_textos_casilla_con_baja` — `CHECK (((tipo <> 'casilla_publicidad'::text) OR (POSITION(('BAJA'::text) IN (texto)) > 0)))`
 - `club_textos_no_vacio` — `CHECK ((btrim(texto) <> ''::text))`
 - `club_textos_pagina_con_celular` — `CHECK (((tipo <> 'pagina_publicidad'::text) OR (POSITION(('{celular}'::text) IN (texto)) > 0)))`
 - `club_textos_personal_con_codigo` — `CHECK (((tipo <> 'mensaje_personal'::text) OR (POSITION(('{codigo}'::text) IN (texto)) > 0)))`
@@ -2742,7 +2748,7 @@
 
 ### `club_avisos_enviados`
 
-*11 columnas · ~0 filas · permisos por fila **activos***
+*11 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2772,7 +2778,7 @@
 
 ### `club_intentos_registro`
 
-*6 columnas · ~7 filas · permisos por fila **activos***
+*6 columnas · ~13 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2852,7 +2858,7 @@
 
 ### `comprobantes`
 
-*41 columnas · ~46 filas · permisos por fila **activos***
+*41 columnas · ~75 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2928,7 +2934,7 @@
 
 ### `series_comprobantes`
 
-*8 columnas · ~21 filas · permisos por fila **activos***
+*8 columnas · ~31 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3069,6 +3075,30 @@
 - `comprobante_anticipos_monto_check` — `CHECK ((monto > (0)::numeric))`
 
 **De qué depende:** `(anticipo_comprobante_id) REFERENCES retail.comprobantes(id)` · `(comprobante_id) REFERENCES retail.comprobantes(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `respaldo_b002_renumeradas_20261002`
+
+*14 columnas · ~32 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `comprobante_id` | uuid | **no** | — | — |
+| `serie_vieja` | text | **no** | — | — |
+| `numero_viejo` | integer | **no** | — | — |
+| `serie_nueva` | text | **no** | — | — |
+| `numero_nuevo` | integer | **no** | — | — |
+| `estado_viejo` | text | **no** | — | — |
+| `entorno_transmision_viejo` | text | sí | — | — |
+| `respuesta_sunat_vieja` | jsonb | sí | — | — |
+| `motivo_rechazo_viejo` | text | sí | — | — |
+| `enviado_at_viejo` | timestamp with time zone | sí | — | — |
+| `intentos_transmision_viejo` | integer | sí | — | — |
+| `ultimo_error_transmision_viejo` | text | sí | — | — |
+| `created_at_comprobante` | timestamp with time zone | **no** | — | — |
+| `respaldado_at` | timestamp with time zone | **no** | `now()` | — |
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -4562,7 +4592,7 @@
 
 ### `cuentas`
 
-*6 columnas · ~41 filas · permisos por fila **activos***
+*6 columnas · ~42 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4768,7 +4798,7 @@
 
 ### `actividad`
 
-*14 columnas · ~183 filas · permisos por fila **activos***
+*14 columnas · ~720 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
