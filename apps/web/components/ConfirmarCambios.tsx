@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
-import { agruparCambios, type ResumenCambios } from "@/lib/producto-cambios-reglas";
+import { agruparCambios, type GrupoCambios, type ResumenCambios } from "@/lib/producto-cambios-reglas";
 
 /**
  * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
@@ -26,6 +26,8 @@ export function ConfirmarCambios({
   onConfirmar,
   onClose,
   avisos = [],
+  notaAgregan,
+  extra,
 }: {
   nombre: string;
   resumen: ResumenCambios;
@@ -33,9 +35,18 @@ export function ConfirmarCambios({
   onClose: () => void;
   /** Lo que no impide guardar pero conviene leer justo antes de confirmar. */
   avisos?: readonly string[];
+  /** Lo que se dice de las variantes que se agregan cuando NO nacen en 0: la ficha (maqueta B) deja poner su stock con el stepper
+   *  y entra como stock inicial al guardar. Sin esto, la nota de siempre («Nacen sin unidades…»). */
+  notaAgregan?: string;
+  /** Un grupo que no sale de la comparación de la ficha: el stock tocado en la matriz («S · Blanco 4 → 6»), que se guarda con el
+   *  mismo «Confirmar y guardar» (ADR-0313, act. 2026-10-02 noche). Va al final, con su nota (motivo y lugar). */
+  extra?: { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota?: string } | null;
 }) {
   const [enCurso, setEnCurso] = useState(false);
-  const grupos = agruparCambios(resumen.cambios);
+  const grupos: (Omit<GrupoCambios, "clave"> & { clave: string })[] = [
+    ...agruparCambios(resumen.cambios),
+    ...(extra && extra.lineas.length > 0 ? [{ clave: "extra", titulo: extra.titulo, lineas: extra.lineas, cantidad: extra.lineas.length, nota: extra.nota }] : []),
+  ];
 
   return (
     <Modal
@@ -69,7 +80,9 @@ export function ConfirmarCambios({
                     </li>
                   ))}
                 </ul>
-                {g.nota && <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.nota}</p>}
+                {(g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota) && (
+                  <p className="mt-1.5 text-[12px] leading-snug text-taupe">{g.clave === "agregan" && notaAgregan ? notaAgregan : g.nota}</p>
+                )}
               </section>
             ))}
           </div>

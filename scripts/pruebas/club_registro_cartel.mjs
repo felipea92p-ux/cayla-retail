@@ -77,8 +77,13 @@ const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text
 const SIN_CODIGO = leer("supabase", "migrations", "20261002100000_descuento_sin_codigo.sql");
 const SIN_CODIGO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
 const SIN_CODIGO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_CODIGO)?.[1];
+// 20261003130000_registrar_venta_redondeo.sql (ADR-0311, Felipe 2026-10-02) volvió a cambiar la registrar_venta de 18 (acepta la fila
+// de redondeo del efectivo), partiendo del «después» de la anterior: la cadena sigue y su «después» es el md5 vivo de HOY.
+const REDONDEO = leer("supabase", "migrations", "20261003130000_registrar_venta_redondeo.sql");
+const REDONDEO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(REDONDEO)?.[1];
+const REDONDEO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(REDONDEO)?.[1];
 /** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18) o el de la PARTE 8. */
-const despuesHoy = (v) => (v.firma === RV_HOY ? SIN_CODIGO_DESPUES : v.despues) ?? "NO_EXISTE";
+const despuesHoy = (v) => (v.firma === RV_HOY ? REDONDEO_DESPUES : v.despues) ?? "NO_EXISTE";
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
@@ -612,11 +617,12 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // l. Estructura y pegado
 // =====================================================================================================================
 caso(
-  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, y la de 18 tiene el de 20261002100000, que parte del de aquí) y los «antes» son los de producción el 2026-10-01`,
+  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, y la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí) y los «antes» son los de producción el 2026-10-01`,
   VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   (s) =>
     s === VERSIONES.map(despuesHoy).join("\n") &&
     VERSIONES.find((v) => v.firma === RV_HOY)?.despues === SIN_CODIGO_ANTES &&
+    REDONDEO_ANTES === SIN_CODIGO_DESPUES && // la cadena de parches de registrar_venta no se corta
     VERSIONES.find((v) => v.firma.endsWith("text,boolean)") && v.firma.startsWith("retail.registrar_venta"))?.antes === "2b55a94a754e7708f5b133008f30469f" &&
     VERSIONES.find((v) => v.firma === "retail.resumen_clienta_caja(uuid)")?.antes === "fa690d7f1a5e1fa2412f9be78cb784a6"
 );

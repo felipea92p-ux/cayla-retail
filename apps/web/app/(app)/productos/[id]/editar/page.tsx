@@ -8,7 +8,6 @@ import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { leerEstadoVariantes } from "@/lib/variantes-ficha-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
-import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 
@@ -38,7 +37,7 @@ export default async function EditarProductoPage({
     ),
     // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
     exigir(
-      await supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos").eq("activo", true).order("orden").order("nombre"),
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
@@ -105,11 +104,9 @@ export default async function EditarProductoPage({
         </h1>
       </div>
 
-      {producto.estadoAlta === "pendiente" && <RevisarAltaBanner productoId={producto.id} />}
-
       <ProductoForm
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
-        colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }))}
+        colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", tipo: c.tipo, sinonimos: c.sinonimos ?? [] }))}
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}

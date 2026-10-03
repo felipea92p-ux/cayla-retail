@@ -128,7 +128,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, resUsos] = await Promise.all([
     supabase
       .from("colores")
-      .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
+      .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
       .order("orden")
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
@@ -174,6 +174,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     codigo: c.codigo,
     nombre: c.nombre,
     familiaColor: c.familia_color,
+    tipo: c.tipo,
     hex: c.hex,
     orden: c.orden,
     activo: c.activo,
@@ -181,6 +182,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     estado: c.estado as "pendiente" | "aprobado",
     pantoneTcx: c.pantone_tcx,
     sinonimos: c.sinonimos ?? [],
+    descripcion: c.descripcion ?? null,
+    combinaCon: c.combina_con ?? [],
   }));
   const tallas = exigir(resTallas, "las tallas del vocabulario").map((t) => ({
     id: t.id,

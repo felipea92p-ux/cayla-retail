@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editar producto · A · Ficha espejo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA A · «Ficha espejo» — Editar producto (2026-10-02)
+   Responde la pregunta 3 abierta en docs/maquetas/producto-guardar-cambios-2026-09/README.md
+   (ADR-0257): la ficha sin panel derecho quedó en 1080px; ¿se deja así o se usa el ancho?
+   Esta maqueta copia LITERAL el grid de Nuevo producto (minmax(0,1fr) 340px,
+   components/alta-producto/FichaPrevia.tsx) para que editar y crear se vean como el
+   mismo sistema. El panel derecho es SOLO lectura: identidad + «Para completar esta
+   ficha» (TiraFicha.tsx). Guardar sigue siendo UNICAMENTE la barra de abajo + hoja
+   (ADR-0257) — este panel nunca lleva un botón de guardar, para no repetir el error
+   que ese ADR corrigió.
+   Tokens = los oficiales de apps/web/app/globals.css (ADR-0169). Movimiento = el
+   sistema de ADR-0136 (cascada, --ease-cayla, nunca en bucle salvo lo opcional) y el
+   «hilo» de ADR-0284 (apps/web/app/estilos/alta-guia.css). Datos inventados.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;
+  --t75:rgba(26,26,24,.75);--t60:rgba(26,26,24,.6);--t45:rgba(26,26,24,.45);--t25:rgba(26,26,24,.25);
+  --t15:rgba(26,26,24,.15);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.tab{font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.taupe{color:var(--taupe)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+@keyframes revelar{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes hoja{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}to{opacity:1;transform:none}}
+@keyframes trazo{from{stroke-dashoffset:16}}
+@keyframes pulso{from{transform:scale(1);opacity:.6}to{transform:scale(2.2);opacity:0}}
+@keyframes subeBarra{from{opacity:0;transform:translate3d(0,16px,0)}to{opacity:1;transform:none}}
+@keyframes parpadeoSuave{0%,100%{background:var(--hueso)}30%{background:color-mix(in srgb,var(--ambar) 16%,var(--hueso))}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}
+
+/* ---------- barra del spike (no es parte de la pantalla) ---------- */
+.spike{max-width:1360px;margin:14px auto 0;padding:0 24px}
+.spike>.barra-spike{border:1px dashed var(--t25);border-radius:12px;padding:9px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;color:var(--t60);font-size:12px}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike a{color:var(--rojo);text-decoration:underline;text-underline-offset:2px}
+.spike button{border:1px solid var(--t25);border-radius:8px;padding:4px 10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.spike button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.primario{background:var(--rojo);color:#fff;border-color:var(--rojo)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+/* ---------- marco ---------- */
+.marco{max-width:1360px;margin:0 auto;padding:22px 24px 140px;transition:max-width 280ms var(--ease)}
+.marco.tablet{max-width:820px}
+.marco.celular{max-width:390px}
+.volver{font-size:12.5px;color:var(--taupe);display:inline-flex;gap:6px;margin-bottom:10px}
+.cab h1{font-size:30px;line-height:1.1}
+.cab .cod{font-size:15px;color:var(--t45);font-weight:400;margin-left:8px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start;margin-top:18px}
+.marco.tablet .grid,.marco.celular .grid{grid-template-columns:1fr}
+.marco.tablet aside,.marco.celular aside{position:static}
+
+/* ---------- tarjeta de sección (acordeón al estilo PasoAlta) ---------- */
+.sec{background:var(--papel);border:1px solid var(--sand);border-radius:16px;margin-bottom:12px;opacity:0;animation:revelar 420ms var(--ease) both}
+.sec-cab{display:flex;align-items:center;gap:12px;padding:15px 18px;width:100%;text-align:left}
+.num{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--t60);transition:background-color 220ms var(--ease),border-color 220ms var(--ease)}
+.sec.hecho .num{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.sec-tit{font-weight:600;font-size:15px}
+.sec-res{flex:1;min-width:0;color:var(--taupe);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{transition:transform 220ms var(--ease);color:var(--t45);flex:none}
+.sec.abierto .chev{transform:rotate(180deg)}
+.sec-cuerpo{overflow:hidden;max-height:0;transition:max-height 320ms var(--ease)}
+.sec.abierto .sec-cuerpo{max-height:900px}
+.sec-in{padding:0 18px 20px 56px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.marco.celular .sec-in{grid-template-columns:1fr;padding-left:18px}
+.campo{display:flex;flex-direction:column;gap:5px}
+.campo.full{grid-column:1/-1}
+.campo label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t60);display:flex;align-items:center;gap:6px}
+.caja{background:var(--hueso);border:1px solid var(--sand);border-radius:8px;padding:9px 11px;font-size:13.5px;transition:border-color 150ms,background-color 260ms var(--ease)}
+.caja:focus-within{border-color:color-mix(in srgb,var(--taupe) 55%,transparent)}
+.caja input,.caja select{width:100%;background:none;border:0;outline:0;font:inherit}
+.pie{font-size:11.5px;color:var(--t45)}
+.seg{display:flex;border:1px solid var(--sand);border-radius:8px;overflow:hidden;width:fit-content}
+.seg button{padding:7px 14px;font-size:13px;font-weight:500;color:var(--taupe);position:relative}
+.seg button.on{background:var(--tinta);color:var(--crema)}
+
+/* ---- marca hilo (ADR-0284) ---- */
+.hilo{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:999px;flex:none;position:relative}
+.hilo[data-e="hecho"]{background:var(--verde)}
+.hilo[data-e="hecho"] svg{stroke:var(--crema)}
+.hilo[data-e="ahora"]{background:var(--tinta)}
+.hilo[data-e="ahora"]::before{content:"";width:5px;height:5px;border-radius:999px;background:var(--crema)}
+.hilo[data-e="ahora"]::after{content:"";position:absolute;inset:0;border-radius:999px;border:1.5px solid var(--tinta);animation:pulso 900ms var(--ease) .12s 1 both}
+.hilo[data-e="falta"]{border:1.5px solid var(--t25)}
+.hilo svg{width:9px;height:9px}
+.hilo path{stroke-dasharray:16;animation:trazo 320ms var(--ease) .06s backwards}
+
+/* ---------- fotos ---------- */
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.swatch{width:30px;height:30px;border-radius:999px;border:2px solid var(--papel);box-shadow:0 0 0 1.5px var(--sand);cursor:pointer;transition:box-shadow 180ms var(--ease),transform 180ms var(--ease);position:relative}
+.swatch:hover{transform:translateY(-2px)}
+.swatch.activo{box-shadow:0 0 0 2px var(--tinta)}
+.swatch.sinfoto::after{content:"";position:absolute;inset:-4px;border:1.5px dashed var(--ambar);border-radius:999px;animation:gira 7s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.miniaturas{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:12px}
+.mini{aspect-ratio:3/4;border-radius:10px;background:var(--hueso);border:1px solid var(--sand);display:grid;place-items:center;font-size:11px;color:var(--t45);overflow:hidden;position:relative}
+.mini img{width:100%;height:100%;object-fit:cover}
+.mini.agregar{border-style:dashed;cursor:pointer;transition:border-color 160ms,background-color 160ms}
+.mini.agregar:hover{border-color:var(--taupe);background:color-mix(in srgb,var(--hueso) 70%,var(--papel))}
+
+/* ---------- variantes: matriz ---------- */
+.matriz{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+.matriz th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--t45);font-weight:600;padding:6px 8px;text-align:center}
+.matriz th:first-child{text-align:left}
+.matriz td{padding:5px}
+.celda{border:1px solid var(--sand);border-radius:8px;padding:7px 4px;text-align:center;background:var(--hueso);cursor:pointer;transition:background-color 180ms var(--ease),border-color 180ms var(--ease),opacity 180ms}
+.celda.off{opacity:.35;background:transparent}
+.celda b{display:block;font-size:13px}
+.celda .pr{color:var(--taupe);font-size:11px}
+.fila-color{display:flex;align-items:center;gap:8px;font-weight:600}
+.punto{width:13px;height:13px;border-radius:999px;border:1px solid var(--t25);flex:none}
+.agregar-color{margin-top:12px;border:1.5px dashed var(--sand);border-radius:10px;padding:10px;width:100%;color:var(--taupe);font-size:13px;font-weight:500;text-align:center;transition:border-color 160ms,color 160ms}
+.agregar-color:hover{border-color:var(--taupe);color:var(--tinta)}
+
+/* ---------- aside: Ficha espejo ---------- */
+aside{position:sticky;top:20px;display:flex;flex-direction:column;gap:12px;opacity:0;animation:revelar 420ms var(--ease) 80ms both}
+.tarjeta-id{background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.foto-id{height:150px;position:relative;background:var(--hueso)}
+.foto-id img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 320ms var(--ease)}
+.foto-id img.on{opacity:1}
+.foto-id .vacio{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;color:var(--taupe);text-align:center;padding:0 24px}
+.id-body{padding:13px 15px 15px}
+.id-body .cod{font-family:ui-monospace,monospace;font-size:12px;color:var(--taupe)}
+.id-body h2{font-family:'EB Garamond',serif;font-weight:600;font-size:21px;margin-top:1px}
+.id-body .meta{font-size:12.5px;color:var(--taupe);margin-top:1px}
+.dl{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--sand);border-radius:10px;overflow:hidden;margin-top:11px}
+.dl>div{padding:8px 10px}
+.dl>div+div{border-left:1px solid var(--sand)}
+.dl dt{font-size:10.5px;color:var(--taupe)}
+.dl dd{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+
+.panel-guia{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px}
+.panel-guia .tit{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t60);margin-bottom:9px}
+.lista-guia{display:flex;flex-direction:column;gap:2px}
+.item-guia{display:flex;align-items:center;gap:9px;padding:7px 6px;border-radius:8px;cursor:pointer;transition:background-color 180ms var(--ease);font-size:13px}
+.item-guia:hover{background:var(--hueso)}
+.item-guia.hecho{color:var(--t45);text-decoration:line-through;text-decoration-color:var(--t25)}
+.item-guia .ahora-tag{margin-left:auto;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--tinta);background:var(--t07);border-radius:999px;padding:1.5px 7px;animation:revelar 240ms var(--ease) both}
+.panel-guia.completo{border-color:color-mix(in srgb,var(--verde) 35%,var(--sand))}
+.ok-linea{display:flex;align-items:center;gap:8px;color:var(--verde);font-weight:500;font-size:13px}
+
+.nota-guardar{font-size:12px;color:var(--t45);text-align:center;padding:4px 6px 0;display:flex;align-items:center;justify-content:center;gap:5px}
+.nota-guardar svg{width:13px;height:13px;transition:transform 260ms var(--ease)}
+.nota-guardar.activo svg{animation:flecha 1.1s var(--ease) infinite}
+@keyframes flecha{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.espejo-cambios{border:1px solid color-mix(in srgb,var(--ambar) 45%,var(--sand));background:color-mix(in srgb,var(--ambar) 7%,var(--papel));border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;color:var(--ambar);cursor:pointer;opacity:0;max-height:0;overflow:hidden;transition:opacity 260ms var(--ease),max-height 320ms var(--ease),padding 260ms var(--ease)}
+.espejo-cambios.on{opacity:1;max-height:60px;padding:10px 12px}
+.espejo-cambios .punto-amb{width:7px;height:7px;border-radius:999px;background:var(--ambar);animation:parpadea 1.6s var(--ease) infinite}
+@keyframes parpadea{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ---------- barra de cambios (abajo, ADR-0257) ---------- */
+.barra-cambios{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;pointer-events:none}
+.barra-cambios .in{pointer-events:auto;width:100%;max-width:1360px;margin:0 24px;background:var(--papel);border:1px solid var(--sand);border-top-width:2px;border-top-color:var(--ambar);border-radius:16px 16px 0 0;box-shadow:0 -14px 34px -14px rgb(26 26 24/.22);padding:12px 20px;display:flex;align-items:center;gap:16px;transform:translateY(110%);transition:transform 320ms var(--ease)}
+.barra-cambios.on .in{transform:translateY(0)}
+.barra-cambios.flash .in{animation:parpadeoSuave 700ms var(--ease)}
+.barra-tit{font-weight:600;font-size:13.5px}
+.barra-tit b{color:var(--ambar)}
+.barra-cambios .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:9px 16px;font-size:13.5px;font-weight:500;transition:background-color 150ms,border-color 150ms}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+.btn.prim:hover{background:var(--rojo-p)}
+.btn.sec{border-color:var(--sand);color:var(--tinta)}
+.btn.sec:hover{background:var(--t04)}
+</style>
+</head>
+<body>
+
+<div class="spike">
+  <div class="barra-spike">
+    <span class="tit">Maqueta A · Ficha espejo</span>
+    <span>— responde la pregunta abierta de <a href="../producto-guardar-cambios-2026-09/README.md">ADR-0257</a></span>
+    <span class="sep"></span>
+    <a href="README.md">Ver las 3 maquetas</a>
+    <span class="sep"></span>
+    <a href="b-taller.html">B · Panel del taller →</a>
+    <a href="c-acompanante.html">C · Riel que acompaña →</a>
+    <span class="sep"></span>
+    <button data-ancho="escritorio" aria-pressed="true">Escritorio</button>
+    <button data-ancho="tablet">Tablet 820</button>
+    <button data-ancho="celular">Celular 390</button>
+    <span class="sep"></span>
+    <button id="btnSimular" class="primario">✎ Simular 2 cambios</button>
+    <button id="btnReset">↺ Reiniciar</button>
+  </div>
+</div>
+
+<div class="marco" id="marco">
+  <a class="volver" href="#">← Productos</a>
+  <div class="cab">
+    <h1 class="disp">Blusa Alba<span class="cod mono tab">CMS-0013</span></h1>
+  </div>
+
+  <div class="grid">
+    <!-- ================= COLUMNA IZQUIERDA: el formulario, en acordeón al estilo PasoAlta ================= -->
+    <div class="col-izq">
+
+      <div class="sec hecho abierto" id="secProducto" style="animation-delay:40ms">
+        <button class="sec-cab" onclick="toggleSec('secProducto')">
+          <span class="num">✓</span>
+          <span class="sec-tit">Producto</span>
+          <span class="sec-res">Camisas y Blusas · Strend · Industrias GC SAC</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo">
+          <div class="sec-in">
+            <div class="campo"><label>Referencia</label><div class="caja"><input value="Blusa Alba"></div></div>
+            <div class="campo"><label>Categoría</label><div class="caja"><input value="Camisas y Blusas"></div></div>
+            <div class="campo full"><label>Marca y proveedor</label><div class="caja" style="display:flex;justify-content:space-between;align-items:center"><span>Strend</span><span class="taupe">Industrias GC SAC</span></div></div>
+            <div class="campo full"><label>Descripción (opcional)</label><div class="caja"><input placeholder="Detalle interno, no se muestra a la clienta"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec hecho abierto" id="secTejido" style="animation-delay:90ms">
+        <button class="sec-cab" onclick="toggleSec('secTejido')">
+          <span class="num">✓</span>
+          <span class="sec-tit">Tejido, patrón y estado</span>
+          <span class="sec-res">Tela · Rayas · Activo</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo">
+          <div class="sec-in">
+            <div class="campo"><label>Tejido</label><div class="caja"><input value="Tela"></div></div>
+            <div class="campo"><label>Patrón</label><div class="caja"><input value="Rayas"></div></div>
+            <div class="campo"><label>Estado</label><div class="seg"><button class="on">Activo</button><button>Descontinuado</button></div></div>
+            <div class="campo"><label>Stock mínimo (opcional)</label><div class="caja"><input placeholder="Ej. 5"></div><span class="pie">Suma todas las sedes.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec abierto" id="secFotos" data-campo="fotos" style="animation-delay:140ms">
+        <button class="sec-cab" onclick="toggleSec('secFotos')">
+          <span class="num" id="numFotos">4</span>
+          <span class="sec-tit">Fotos</span>
+          <span class="sec-res" id="resFotos">Falta Vino</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo">
+          <div style="padding:0 18px 20px 56px">
+            <div class="swatches" id="swatchesFotos">
+              <span class="swatch activo" style="background:#f4ede1" data-color="Crudo" title="Crudo" onclick="elegirColorFoto(this,'Crudo')"></span>
+              <span class="swatch" style="background:#1a1a18" data-color="Negro" title="Negro" onclick="elegirColorFoto(this,'Negro')"></span>
+              <span class="swatch" style="background:#2f4a6b" data-color="Azul" title="Azul" onclick="elegirColorFoto(this,'Azul')"></span>
+              <span class="swatch sinfoto" style="background:#7a1f2b" data-color="Vino" title="Vino — sin foto" onclick="elegirColorFoto(this,'Vino')"></span>
+            </div>
+            <div class="miniaturas">
+              <div class="mini"><img src="https://images.unsplash.com/photo-1551803091-e20673f15770?w=200&q=60" alt=""></div>
+              <div class="mini"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=200&q=60" alt=""></div>
+              <div class="mini"><img src="https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=200&q=60" alt=""></div>
+              <div class="mini agregar" onclick="agregarFotoVino()">+ Agregar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec abierto" id="secVariantes" style="animation-delay:190ms">
+        <button class="sec-cab" onclick="toggleSec('secVariantes')">
+          <span class="num">5</span>
+          <span class="sec-tit">Variantes y precios</span>
+          <span class="sec-res">9 variantes activas · S/ 69–89</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo">
+          <div style="padding:0 18px 20px 56px;overflow-x:auto">
+            <table class="matriz">
+              <thead><tr><th></th><th>S</th><th>M</th><th>L</th><th>XL</th></tr></thead>
+              <tbody>
+                <tr><td><span class="fila-color"><span class="punto" style="background:#f4ede1"></span>Crudo</span></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>6</b><span class="pr">S/ 69</span></div></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>9</b><span class="pr">S/ 69</span></div></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>4</b><span class="pr">S/ 69</span></div></td>
+                  <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 69</span></div></td>
+                </tr>
+                <tr><td><span class="fila-color"><span class="punto" style="background:#1a1a18"></span>Negro</span></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>3</b><span class="pr">S/ 89</span></div></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>7</b><span class="pr">S/ 89</span></div></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>2</b><span class="pr">S/ 89</span></div></td>
+                  <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 89</span></div></td>
+                </tr>
+                <tr><td><span class="fila-color"><span class="punto" style="background:#2f4a6b"></span>Azul</span></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>5</b><span class="pr">S/ 79</span></div></td>
+                  <td><div class="celda" onclick="toggleCelda(this)"><b>6</b><span class="pr">S/ 79</span></div></td>
+                  <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 79</span></div></td>
+                  <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 79</span></div></td>
+                </tr>
+              </tbody>
+            </table>
+            <button class="agregar-color">+ Agregar color</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= COLUMNA DERECHA: ficha espejo — igual grid que FichaPrevia.tsx, solo lectura ================= -->
+    <aside aria-label="Resumen de la prenda">
+      <div class="tarjeta-id">
+        <div class="foto-id">
+          <img class="on" id="fotoId" src="https://images.unsplash.com/photo-1551803091-e20673f15770?w=500&q=70" alt="">
+        </div>
+        <div class="id-body">
+          <p class="cod">CMS-0013</p>
+          <h2>Blusa Alba</h2>
+          <p class="meta">Camisas y Blusas · Strend · Tela</p>
+          <div class="dl">
+            <div><dt>Variantes</dt><dd>9</dd></div>
+            <div><dt>Hoy en esta sede</dt><dd>42</dd></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-guia" id="panelGuia">
+        <p class="tit">Para completar esta ficha</p>
+        <div class="lista-guia">
+          <div class="item-guia" data-id="foto-vino" onclick="irACampo('secFotos')">
+            <span class="hilo" data-e="ahora"></span>
+            Foto de Vino
+          </div>
+        </div>
+        <p class="pie" style="margin-top:6px">No hace falta para guardar.</p>
+      </div>
+
+      <div class="espejo-cambios" id="espejoCambios" onclick="irABarra()">
+        <span class="punto-amb"></span>
+        <span id="textoEspejo">2 cambios sin guardar</span>
+      </div>
+
+      <p class="nota-guardar" id="notaGuardar">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v9m0 0l-3.5-3.5M8 12l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Guardar sigue abajo, en la barra
+      </p>
+    </aside>
+  </div>
+</div>
+
+<div class="barra-cambios" id="barra">
+  <div class="in">
+    <span class="barra-tit">Tienes <b id="numCambios">0</b> cambios sin guardar</span>
+    <span class="sp"></span>
+    <button class="btn sec">Descartar</button>
+    <button class="btn prim">Revisar y guardar</button>
+  </div>
+</div>
+
+<script>
+const fotos = {Crudo:"https://images.unsplash.com/photo-1551803091-e20673f15770?w=500&q=70",Negro:"https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=500&q=70",Azul:"https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=500&q=70",Vino:null};
+function toggleSec(id){document.getElementById(id).classList.toggle('abierto')}
+function elegirColorFoto(el,color){
+  document.querySelectorAll('#swatchesFotos .swatch').forEach(s=>s.classList.remove('activo'));
+  el.classList.add('activo');
+  const img=document.getElementById('fotoId');
+  if(fotos[color]){img.src=fotos[color];img.classList.add('on');document.querySelector('.foto-id .vacio')?.remove();}
+  else{
+    img.classList.remove('on');
+    if(!document.querySelector('.foto-id .vacio')){
+      const v=document.createElement('div');v.className='vacio';v.textContent='Sin foto en '+color+' todavía';
+      document.querySelector('.foto-id').appendChild(v);
+    }
+  }
+}
+function toggleCelda(el){el.classList.toggle('off');marcarCambio()}
+let cambios=0;
+function marcarCambio(){
+  cambios++;
+  document.getElementById('numCambios').textContent=cambios;
+  const barra=document.getElementById('barra');
+  barra.classList.add('on');
+  const espejo=document.getElementById('espejoCambios');
+  espejo.classList.add('on');
+  document.getElementById('textoEspejo').textContent=cambios+(cambios===1?' cambio sin guardar':' cambios sin guardar');
+  document.getElementById('notaGuardar').classList.add('activo');
+}
+function irABarra(){
+  const barra=document.getElementById('barra');
+  barra.classList.add('flash');
+  barra.scrollIntoView({behavior:'smooth',block:'end'});
+  setTimeout(()=>barra.classList.remove('flash'),750);
+}
+function irACampo(id){
+  const sec=document.getElementById(id);
+  sec.classList.add('abierto');
+  sec.scrollIntoView({behavior:'smooth',block:'center'});
+  sec.style.transition='background-color 260ms var(--ease)';
+  sec.style.backgroundColor='var(--hueso)';
+  setTimeout(()=>sec.style.backgroundColor='',650);
+}
+function agregarFotoVino(){
+  document.getElementById('resFotos').textContent='Completa';
+  document.getElementById('numFotos').textContent='✓';
+  document.getElementById('secFotos').classList.add('hecho');
+  const item=document.querySelector('.item-guia[data-id="foto-vino"]');
+  item.querySelector('.hilo').outerHTML='<span class="hilo" data-e="hecho"><svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span>';
+  item.classList.add('hecho');
+  setTimeout(()=>{
+    document.getElementById('panelGuia').outerHTML='<div class="panel-guia completo" id="panelGuia"><p class="ok-linea"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>Ficha completa</p></div>';
+  },420);
+  marcarCambio();
+  const sw=document.querySelector('.swatch.sinfoto');
+  sw.classList.remove('sinfoto');
+}
+document.getElementById('btnSimular').onclick=()=>{
+  if(!document.querySelector('.celda.off')) return;
+  document.querySelectorAll('.celda').forEach((c,i)=>{if(i===3){c.classList.toggle('off');marcarCambio()}});
+  agregarFotoVino();
+};
+document.getElementById('btnReset').onclick=()=>location.reload();
+document.querySelectorAll('[data-ancho]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-ancho]').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  document.getElementById('marco').className='marco '+b.dataset.ancho.replace('escritorio','');
+});
+</script>
+</body>
+</html>

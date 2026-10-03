@@ -61,7 +61,7 @@ export function faltaParaCrear(b: BorradorColor): string | null {
 }
 
 /**
- * Lo que devuelve `POST /api/productos/colores` (`{ color: { codigo, nombre, familia_color, hex, estado, sinonimos } }`)
+ * Lo que devuelve `POST /api/productos/colores` (`{ color: { codigo, nombre, familia_color, hex, estado, sinonimos, pantone_tcx } }`)
  * como lo usa el alta. `pendiente`: lo creó alguien que no es Líder; ya se puede usar, falta que un Líder lo apruebe.
  */
 export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente: boolean } | null {
@@ -73,7 +73,9 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente:
       nombre: c.nombre,
       hex: typeof c.hex === "string" ? c.hex : null,
       familiaColor: typeof c.familia_color === "string" ? c.familia_color : "",
+      tipo: typeof c.tipo === "string" ? c.tipo : undefined,
       sinonimos: Array.isArray(c.sinonimos) ? c.sinonimos.filter((s): s is string => typeof s === "string") : [],
+      pantoneTcx: typeof c.pantone_tcx === "string" ? c.pantone_tcx : null,
     },
     pendiente: c.estado === "pendiente",
   };

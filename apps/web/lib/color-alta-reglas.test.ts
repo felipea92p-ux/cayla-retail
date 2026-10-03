@@ -65,8 +65,18 @@ describe("faltaParaCrear", () => {
 describe("colorDeRespuesta", () => {
   it("lee el color y si nació pendiente", () => {
     const r = colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "pendiente", sinonimos: ["rosa viejo"] } });
-    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"] }, pendiente: true });
+    expect(r).toEqual({ color: { codigo: "PAR", nombre: "Palo de rosa", hex: "#C98B8B", familiaColor: "rojo", sinonimos: ["rosa viejo"], pantoneTcx: null }, pendiente: true });
     expect(colorDeRespuesta({ color: { codigo: "PAR", nombre: "Palo de rosa", familia_color: "rojo", hex: "#C98B8B", estado: "aprobado" } })?.pendiente).toBe(false);
+  });
+  it("trae el Pantone cuando la API lo devuelve (la referencia real de la tela)", () => {
+    const r = colorDeRespuesta({ color: { codigo: "FRA", nombre: "Frambuesa", familia_color: "rojo", hex: "#A52350", estado: "aprobado", pantone_tcx: "19-2039 TCX" } });
+    expect(r?.color.pantoneTcx).toBe("19-2039 TCX");
+  });
+  it("trae el tipo del color (una textura se pinta jaspeada) y, si la API no lo dice, lo deja ausente: liso", () => {
+    const base = { codigo: "GRM", nombre: "Gris melange", familia_color: "neutro", hex: "#A2A2A1", estado: "aprobado" };
+    expect(colorDeRespuesta({ color: { ...base, tipo: "textura" } })?.color.tipo).toBe("textura");
+    expect(colorDeRespuesta({ color: base })?.color.tipo).toBeUndefined();
+    expect(colorDeRespuesta({ color: { ...base, tipo: 3 } })?.color.tipo).toBeUndefined();
   });
   it("una respuesta sin color no se inventa", () => {
     expect(colorDeRespuesta(null)).toBeNull();

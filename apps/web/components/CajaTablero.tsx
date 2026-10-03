@@ -37,6 +37,7 @@ import {
   type PiezaCajon,
   type TarjetaCaja,
   cobradoDelTurno,
+  notaDeRedondeo,
 } from "@/lib/caja-tablero-reglas";
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
@@ -91,8 +92,9 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
 }
 
 /** «Cobrado en el turno»: lo que entró hoy por cada forma de pago, sin el adelanto de separaciones (se cobró antes). */
-export function TarjetaCobrado({ porMetodo, indice }: { porMetodo: Partial<Record<string, number>>; indice: number }) {
+export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo: Partial<Record<string, number>>; redondeo?: number; indice: number }) {
   const c = cobradoDelTurno(porMetodo);
+  const notaRedondeo = notaDeRedondeo(redondeo, soles);
   return (
     <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": indice } as CSSProperties}>
       <p className="label-cayla text-[11px] text-tinta/65">Cobrado en el turno</p>
@@ -121,6 +123,7 @@ export function TarjetaCobrado({ porMetodo, indice }: { porMetodo: Partial<Recor
           + {soles(c.anticipo)} de adelantos aplicados: se cobraron el día que se separó, no suman hoy.
         </p>
       )}
+      {notaRedondeo && <p className="mt-3 rounded-lg bg-hueso px-2.5 py-1.5 text-[11.5px] text-tinta/70">{notaRedondeo}</p>}
     </div>
   );
 }

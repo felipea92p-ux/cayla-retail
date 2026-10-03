@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { useRecordatorioEtiquetas } from "@/components/ficha-producto/RecordatorioEtiquetas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
@@ -70,6 +71,33 @@ import { firmar } from "@/lib/responsable-reglas";
 // hay; con los demás, cuánto se suma o se resta. Por eso el motivo va ANTES de las tallas: el número se escribe sabiendo
 // qué significa. Si el motivo cambia con cantidades ya escritas, cambian de forma pero no de resultado (`pasarCantidades`).
 
+/**
+ * Las tallas de una prenda con su stock en UNA sede, para ajustarlo: la única lectura de `stock` de «Ajustar» (ADR-0270, lista
+ * LEGADO de `lib/stock-una-sola-cifra.test.ts`). La usa este modal y el stepper de la ficha del producto (`useStockFicha`, maqueta B):
+ * los dos ajustan lo mismo, así que leen lo mismo. `sinLoader`: el stepper lee sin el loader de pantalla completa (ADR-0149).
+ *
+ * La talla ya no es una columna de texto de `variantes`: es `talla_id` → `tallas.valor` (20260917100500, ADR-0095), igual que en
+ * `getCatalogo`. El resultado se pasa SIN castear a propósito: así `tsc` compara este select con `FilaAjuste` y avisa si vuelve a
+ * pedir una columna que no existe (antes un `as unknown as` lo tapaba y solo fallaba en vivo). El orden por talla se hace al armar
+ * las filas (S · M · L, no alfabético); el `order("codigo")` solo fija el desempate para que la lista no baraje entre un refresco y
+ * otro. Es el `codigo`, no el `sku`: el sku es NULL en casi todas las variantes (ADR-0058) y no desempataba nada.
+ */
+export function leerVariantesParaAjuste(productoId: string, ubicacionId: string, { sinLoader = false }: { sinLoader?: boolean } = {}) {
+  const consulta = createClient()
+    .from("variantes")
+    .select(
+      `id, sku, codigo,
+       talla:tallas ( valor ),
+       color:colores ( nombre ),
+       producto:productos ( referencia ),
+       stock ( cantidad, cantidad_apartada, sububicacion_id )`
+    )
+    .eq("producto_id", productoId)
+    .eq("stock.ubicacion_id", ubicacionId)
+    .order("codigo");
+  return sinLoader ? consulta.setHeader("x-espera", "no") : consulta;
+}
+
 // Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPrendaModal`).
 const TOPE_ESPERA_MS = 20_000;
 
@@ -92,6 +120,8 @@ export function AjustarInventarioModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  // Sin Provider (Existencias: InventarioPanel.tsx, SelectorDeAjuste.tsx) `agregar` es un no-op — ver RecordatorioEtiquetas.tsx.
+  const { agregar: agregarRecordatorioEtiquetas } = useRecordatorioEtiquetas();
   const sububicacionPiso = sububicaciones.find((s) => s.tipo === "piso_venta") ?? null;
   const sububicacionAlmacen = sububicaciones.find((s) => s.tipo === "almacen_tienda") ?? null;
   const separaPisoAlmacen = !!sububicacionPiso && !!sububicacionAlmacen;
@@ -130,25 +160,7 @@ export function AjustarInventarioModal({
 
   useEffect(() => {
     let vigente = true;
-    // La talla ya no es una columna de texto de `variantes`: es `talla_id` → `tallas.valor`
-    // (20260917100500, ADR-0095), igual que en `getCatalogo`. El resultado se pasa SIN castear
-    // a propósito: así `tsc` compara este select con `FilaAjuste` y avisa si vuelve a pedir
-    // una columna que no existe (antes un `as unknown as` lo tapaba y solo fallaba en vivo).
-    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("codigo")`
-    // solo fija el desempate para que la lista no baraje entre un refresco y otro. Es el `codigo`, no
-    // el `sku`: el sku es NULL en casi todas las variantes (ADR-0058) y no desempataba nada.
-    createClient()
-      .from("variantes")
-      .select(
-        `id, sku, codigo,
-         talla:tallas ( valor ),
-         color:colores ( nombre ),
-         producto:productos ( referencia ),
-         stock ( cantidad, cantidad_apartada, sububicacion_id )`
-      )
-      .eq("producto_id", productoId)
-      .eq("stock.ubicacion_id", ubicacionId)
-      .order("codigo")
+    leerVariantesParaAjuste(productoId, ubicacionId)
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
@@ -366,6 +378,12 @@ export function AjustarInventarioModal({
     }
     const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, enlazados: hallazgos.enlaces.size, ya_registrado: false };
     avisar.exito(textoExitoAjuste(r), { detalle: referencia });
+    // Subir una cantidad es una prenda más sin etiquetar; se junta en el recordatorio del módulo (no se avisa aquí
+    // mismo, para no interrumpir con un aviso por cada ajuste — ver RecordatorioEtiquetas.tsx).
+    const subieron = lineas.filter((l) => l.delta > 0);
+    if (subieron.length > 0) {
+      agregarRecordatorioEtiquetas(subieron.map((l) => ({ varianteId: l.variante.varianteId, color: l.variante.color, talla: l.variante.talla })));
+    }
     router.refresh();
     onClose();
   }

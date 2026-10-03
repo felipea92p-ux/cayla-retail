@@ -216,10 +216,12 @@ cliente. Y **directo, sin RPC**: `app/api/taxonomia/anclar/route.ts:130` escribe
 |---|---|---|---|---|
 | `codigo` | text | no | — | La clave, tres mayúsculas: `AZM`. Es el segmento de color del código de la prenda. |
 | `nombre` | text | no | — | "Azul marino". Es lo que se copia a `variantes.color` cuando la escritura pasa por un camino que respeta el vocabulario. |
-| `familia_color` | text | no | — | Uno de nueve: `neutro`, `azul`, `rojo`, `amarillo`, `verde`, `morado`, `tierra`, `metalico`, `estampado`. Sirve para agrupar y para derivar la familia de un color importado. |
+| `familia_color` | text | no | — | Uno de **once** desde la migración `20261002180000` (en producción desde el 2026-10-02, ADR-0312), que sumó `rosado` y `naranja` a las nueve de antes (`neutro`, `azul`, `rojo`, `amarillo`, `verde`, `morado`, `tierra`, `metalico`, `estampado`) y dejó las filas en el orden del espectro: `neutro`, `tierra`, `rosado`, `rojo`, `naranja`, `amarillo`, `verde`, `azul`, `morado`, `metalico`, `estampado`. Sirve para agrupar y para derivar la familia de un color importado. La prioridad de pertenencia (acabado > rol > matiz) está escrita en `apps/web/lib/colores-familias.ts`. |
 | `hex` | text | sí | — | El chip de color de la pantalla. Para Estampado, Multicolor y Animal print no significa nada y queda null. |
 | `activo` | boolean | no | `true` | Si aparece o no en el selector (`lib/conteo.ts:253-257`). |
-| `orden` | integer | no | `100` | Orden del selector. Una centena por familia (neutro 100-190, azul 200-290, rojo 300-390, amarillo 400-490, verde 500-590, morado 600-690, tierra 700-790, metálico 800-890, estampado 900-990), de claro a oscuro dentro de cada una, de 10 en 10 para poder intercalar (`20260926210000`, 2026-09-26; antes, una decena: `20260926100000`). Los creados desde Atributos entran en 2000: al final de su familia y de cualquier lista. |
+| `orden` | integer | no | `100` | Orden del selector. **La web ya no lo usa para ordenar** (ADR-0312): la carta y Atributos ordenan por la escala del color (`apps/web/lib/color-escala.ts`: gama y claridad OKLab, calculadas del hex). Antes de `20261002180000` era una centena por familia en otro orden (neutro 100-190, azul 200-290, rojo 300-390…, de 10 en 10: `20260926210000`). Esa migración (en producción desde el 2026-10-02) lo renumeró con el orden de la carta —neutro 100, tierra 200, rosado 300, rojo 400, naranja 500, amarillo 600, verde 700, azul 800, morado 900, metálico 1000, estampado 1100— de 5 en 5, solo para que las listas planas que aún lo leen (Vender, Conteo) no contradigan a la carta. Los creados desde Atributos entran en 2000. |
+| `descripcion` | text | sí | — | Qué transmite el color y dónde funciona (1-2 frases, hasta 300 caracteres): lo que la asesora le dice a una cliente. Null = sin escribir. **En producción desde el 2026-10-02** (`20261003190000`, ADR-0316). |
+| `combina_con` | text[] | no | `'{}'` | Códigos de OTROS colores con los que se lleva bien (hasta 8). El disparador `colores_valida_combina_con` rechaza un código inexistente, repetido o el propio. **En producción desde el 2026-10-02** (`20261003190000`). |
 | `taxonomia_valor_id` | text | sí | — | De qué color del estándar universal cuelga: Arena → Beige. Null = sin anclar. |
 | `created_at` | timestamptz | no | `now()` | Cuándo entró al vocabulario. |
 
@@ -227,7 +229,7 @@ cliente. Y **directo, sin RPC**: `app/api/taxonomia/anclar/route.ts:130` escribe
 - `colores_pkey` sobre `codigo` y `colores_codigo_check` — el código es exactamente tres mayúsculas.
 - `colores_nombre_key` (UNIQUE `nombre`) — no hay dos colores con el mismo nombre exacto.
 - **`colores_clave_unica`** — índice único sobre `fn_clave_texto(nombre)`. **Este es el candado de verdad**: hace imposible que coexistan "Azul marino", "azul marino", "AZUL MARINO" y "Azul  marino". Lo rechaza la base, no un `if` que alguien olvida en la próxima pantalla.
-- `colores_familia_color_check` y `colores_hex_check` — la familia es una de nueve y el hex tiene forma de hex.
+- `colores_familia_color_check` y `colores_hex_check` — la familia es una de once (nueve hasta la migración `20261002180000`) y el hex tiene forma de hex.
 - **No hay policy de DELETE.**
 
 **`fn_clave_texto(text)`** es la pieza que sostiene ese índice: pasa a minúsculas, quita

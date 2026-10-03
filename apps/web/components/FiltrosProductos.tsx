@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
-import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
@@ -15,6 +15,8 @@ import { opcionesConConteo, textoTramo, tramoActivo, type FacetaClave, type Face
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
 import {
+  alternarColor,
+  estadoDeColor,
   listaDeUrl,
   listaParaUrl,
   marcadosDeColor,
@@ -52,7 +54,7 @@ import { SIN_EN_URL } from "@/lib/marcas";
 // (fn_productos_listado y fn_productos_facetas, ADR-0308), y cambiar un filtro vuelve a la
 // página 1 — un filtro nuevo sobre "página 7" case casi siempre en vacío.
 type Opcion = { id: string; nombre: string };
-type OpcionColor = Opcion & { hex: string | null; familia: string | null };
+type OpcionColor = Opcion & { hex: string | null; familia: string | null; /** `solido` | `textura` | `estampado`: una textura (Gris melange) se pinta jaspeada. */ tipo?: string | null };
 
 
 /** Una sola forma desde el 2026-09-28 (ADR-0254, pedido de Felipe): buscador + botón «Filtros» que despliega el panel
@@ -379,6 +381,8 @@ export function FiltrosProductos({
     : undefined;
   const tallasMarcadas = listaDeUrl(new URLSearchParams(consultaMostrada).get("talla"));
   const coloresMarcados = marcadosDeColor(consultaMostrada);
+  const opcionesColor = opcionesDeColor(colores, FAMILIAS_COLOR);
+  const estadosColor = estadoDeColor(coloresMarcados, opcionesColor);
 
   // Dos filas con nombre (Felipe, 2026-10-02): arriba lo que pide la clienta en el mostrador, abajo lo del líder (reponer,
   // completar, de quién es). El mismo panel va abierto en la página (computadora) o dentro de la hoja (celular), nunca los dos.
@@ -400,23 +404,32 @@ export function FiltrosProductos({
           opciones={contar(tallas.map((t) => ({ valor: t.id, texto: t.nombre })), "talla", tallasMarcadas)}
         />
         {/* Un solo filtro de color, agrupado por familia: «Toda la familia Azul» o un tono exacto (no un filtro aparte de
-            familia, que podría contradecir al de color). */}
+            familia, que podría contradecir al de color). Los tonos van en la MISMA escala de la carta y de Atributos (de claro a
+            oscuro, `lib/color-escala.ts`), y las casillas dicen lo que hace la base: marcar la familia incluye todos sus tonos
+            (se ven marcados), y con algunos tonos la familia queda «parcial» (Felipe, 2026-10-02: «muy confuso»). */}
         <DesplegablePildora
           icono={Palette}
           etiqueta="Color"
-          varias={{ valores: coloresMarcados, onValores: (v) => aplicar(separarColor(v)) }}
+          varias={{
+            valores: coloresMarcados,
+            onValores: (v) => aplicar(separarColor(v)),
+            alternar: (actual, valor) => alternarColor(actual, valor, opcionesColor),
+          }}
+          rotuloCantidad="Prendas · una con varios colores cuenta en cada uno"
           opciones={opcionesConConteo(
-            opcionesDeColor(colores, FAMILIAS_COLOR).map((o) =>
+            opcionesColor.map((o) =>
               o.familia
-                ? { valor: o.valor, texto: o.texto }
+                ? { valor: o.valor, texto: o.texto, grupo: true, estado: estadosColor.get(o.valor) }
                 : {
                     valor: o.valor,
                     texto: o.texto,
+                    hijo: o.de !== null,
+                    estado: estadosColor.get(o.valor),
                     icono: (
                       <span
                         aria-hidden
-                        className="ml-3 inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15 bg-hueso"
-                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia) }}
+                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-tinta/15 bg-hueso align-middle"
+                        style={{ background: fondoDeMuestra(o.color.hex, o.color.familia, o.color.tipo), borderColor: bordeDeMuestra(o.color.hex) }}
                       />
                     ),
                   },
