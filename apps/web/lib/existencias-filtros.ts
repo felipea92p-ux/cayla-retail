@@ -108,3 +108,29 @@ export function valorOfrecido(valor: string | null, opciones: readonly string[])
 export function tallasEnCurva(filas: readonly { talla: string | null }[]): string[] {
   return [...new Set(filas.map((f) => f.talla).filter((t): t is string => !!t))].sort(compararTallas);
 }
+
+/** Lo que dice cada opción de «Estado». */
+export const ROTULO_ESTADO_FILTRO: Record<EstadoFiltro, string> = { danado: "Dañado / cuarentena", por_colgar: "Por colgar" };
+
+/** Lo que de verdad filtra la lista, ya resuelto contra lo que la sede ofrece (`valorOfrecido`): lo mismo que dicen las
+ *  píldoras, para que una etiqueta nunca nombre un filtro que no está actuando. */
+export type FiltrosElegidos = Omit<FiltrosExistencias, "orden">;
+
+/** Un chip por cosa puesta, siempre «Nombre: valor» como la píldora (igual que Productos); la búsqueda, entre comillas.
+ *  `quitar` son las claves de la URL que lo apagan. */
+export function chipsDeFiltros(f: FiltrosElegidos, textoAccion: (a: TipoAccionHoy) => string): { texto: string; quitar: ClaveUrl[] }[] {
+  const chips: { texto: string; quitar: ClaveUrl[] }[] = [];
+  if (f.q.trim()) chips.push({ texto: `«${f.q.trim()}»`, quitar: ["q"] });
+  if (f.categoria) chips.push({ texto: `Categoría: ${f.categoria}`, quitar: ["cat"] });
+  if (f.talla) chips.push({ texto: `Talla: ${f.talla}`, quitar: ["talla"] });
+  if (f.color) chips.push({ texto: `Color: ${f.color}`, quitar: ["color"] });
+  if (f.accion) chips.push({ texto: `Acción: ${textoAccion(f.accion)}`, quitar: ["accion"] });
+  if (f.estado) chips.push({ texto: `Estado: ${ROTULO_ESTADO_FILTRO[f.estado]}`, quitar: ["estado"] });
+  if (f.marca) chips.push({ texto: `Marca: ${f.marca}`, quitar: ["marca"] });
+  return chips;
+}
+
+/** Cuántos filtros quitan prendas: lo dice el botón «Filtros · N». Ni la búsqueda (se ve en su caja) ni el orden (solo acomoda). */
+export function contarFiltrosActivos(f: FiltrosElegidos): number {
+  return [f.categoria, f.marca, f.talla, f.color, f.accion, f.estado].filter((v) => v !== null).length;
+}

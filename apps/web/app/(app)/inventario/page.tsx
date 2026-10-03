@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ClipboardCheck, PackageOpen, ShoppingBag } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -14,6 +15,7 @@ import { getApartadosAbiertos } from "@/lib/apartados";
 import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
+import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
@@ -144,6 +146,10 @@ export default async function InventarioPage({
   // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
+  // Si el panel de filtros entra abierto o cerrado en la computadora: lo que este equipo dejó la última vez (cookie propia de
+  // Existencias, la lee el servidor para que la primera pintura no salte).
+  const panelFiltros = leerPanelFiltros((await cookies()).get(COOKIE_PANEL_FILTROS_EXISTENCIAS)?.value);
+
   const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
 
@@ -246,6 +252,7 @@ export default async function InventarioPage({
         puedeBajarAlPiso={puedeBajarAlPiso}
         veApartados={veModulo(persona, "apartados")}
         esTienda={vende}
+        panelFiltros={panelFiltros}
       />
     </div>
   );

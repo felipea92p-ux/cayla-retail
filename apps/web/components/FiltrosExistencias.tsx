@@ -1,0 +1,337 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, Shirt, Tag } from "lucide-react";
+import { CampoTexto } from "@/components/ui/campos";
+import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { Modal } from "@/components/ui/Modal";
+import { avisar } from "@/components/ui/Avisos";
+import { useConsultaMedia } from "@/lib/useConsultaMedia";
+import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
+import { TEXTO_ACCION_HOY } from "@/lib/existencias-recomendaciones";
+import {
+  chipsDeFiltros,
+  contarFiltrosActivos,
+  ESTADOS_FILTRO,
+  OPCIONES_FILTRO_ACCION,
+  ROTULO_ESTADO_FILTRO,
+  type ClaveUrl,
+  type FiltrosElegidos,
+} from "@/lib/existencias-filtros";
+
+/* ====================================================================
+   La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
+   botón «Filtros · N», panel de píldoras en dos filas con nombre, chips de lo puesto, «Copiar enlace» y «Ordenar por» en
+   la fila del conteo, y en el celular una hoja con «Ver N productos»—, armada con las mismas piezas (`ui/FiltrosPildora`).
+   Componente propio y no `FiltrosProductos` (Felipe, 2026-10-03: «la misma estructura, no implementarlo dentro de
+   productos»): Productos filtra en la base y navega; Existencias filtra en el navegador lo que ya tiene y solo reescribe la
+   URL (`useFiltrosExistencias`). Este componente no sabe de URLs: recibe lo elegido y avisa los cambios.
+   ==================================================================== */
+
+/** El buscador, para devolverle el foco desde el estado vacío y para el atajo «/». */
+export const ID_BUSCADOR_EXISTENCIAS = "existencias-buscar";
+/** Desde aquí el panel vive en la página; debajo, en una hoja (Tailwind `md`), como en Productos. */
+const MEDIA_ESCRITORIO = "(min-width: 768px)";
+
+export type OrdenBarra = {
+  valor: string;
+  porDefecto: string;
+  opciones: readonly { valor: string; texto: string }[];
+  onValor: (v: string) => void;
+};
+
+export function FiltrosExistencias({
+  busqueda,
+  onTeclear,
+  onSoltar,
+  onEnter,
+  placeholder,
+  separa,
+  categorias,
+  tallas,
+  colores,
+  marcas,
+  elegidos,
+  onCambiar,
+  onLimpiar,
+  total,
+  detalleTotal,
+  panelInicial,
+  orden,
+  vista,
+  nota,
+}: {
+  busqueda: string;
+  onTeclear: (texto: string) => void;
+  /** Al salir del buscador: lo escrito pasa a la URL de una vez. */
+  onSoltar: () => void;
+  /** Enter en el buscador (la pistola escribe el código y manda Enter). */
+  onEnter: () => void;
+  placeholder: string;
+  /** La sede separa piso y almacén: solo ahí hay «Acción» y «Estado». */
+  separa: boolean;
+  categorias: readonly string[];
+  /** Ya en su curva (XS · S · M · L, luego la numeración). */
+  tallas: readonly string[];
+  colores: readonly string[];
+  /** `null`: la píldora Marca no se dibuja (una sola marca en la sede, o la lectura de marcas falló). */
+  marcas: readonly string[] | null;
+  /** Lo que de verdad filtra la lista (ya resuelto contra lo que la sede ofrece). */
+  elegidos: FiltrosElegidos;
+  /** Un cambio de filtros; `null` lo quita. */
+  onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
+  onLimpiar: () => void;
+  /** Cuántos productos se ven (modelos: una tarjeta cada uno). */
+  total: number;
+  /** Lo que sigue al conteo («Vista de piso y almacén»). */
+  detalleTotal: string;
+  /** Lo que este equipo dejó la última vez (cookie leída en el servidor). */
+  panelInicial: EstadoPanelFiltros;
+  /** «Ordenar por» (solo en las tarjetas: la tabla conserva su orden); `null` = no se ofrece. */
+  orden: OrdenBarra | null;
+  /** Los controles de vista de Existencias («Ver detalle», «Por prenda / Por talla»), al lado del orden. */
+  vista: ReactNode;
+  /** Una aclaración bajo la fila del conteo (la de «Por colgar»). */
+  nota?: ReactNode;
+}) {
+  const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
+  const [hojaAbierta, setHojaAbierta] = useState(false);
+  const esEscritorio = useConsultaMedia(MEDIA_ESCRITORIO);
+
+  // «/» lleva el cursor al buscador, salvo que la persona ya esté escribiendo en otra caja (el mismo atajo de Productos).
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
+      const caja = document.getElementById(ID_BUSCADOR_EXISTENCIAS) as HTMLInputElement | null;
+      if (!caja) return;
+      e.preventDefault();
+      caja.focus();
+      caja.select();
+    };
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, []);
+
+  function alTocarFiltros() {
+    if (window.matchMedia(MEDIA_ESCRITORIO).matches) {
+      const nuevo = !panelAbierto;
+      setPanelAbierto(nuevo);
+      guardarPanelFiltros(nuevo ? "abierto" : "cerrado", COOKIE_PANEL_FILTROS_EXISTENCIAS);
+    } else {
+      setHojaAbierta(true);
+    }
+  }
+
+  /** El enlace de esta misma lista: todo lo filtrado vive en la URL. */
+  async function copiarEnlace() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      // Existencias muestra el stock de la sede de quien la abre (salvo un líder mirando otra con `?ubicacion=`): se dice.
+      avisar.exito("Enlace copiado", { detalle: "Quien lo abra ve los mismos filtros sobre el stock de su sede." });
+    } catch {
+      avisar.error("No se pudo copiar el enlace", { detalle: "Cópialo desde la barra de direcciones del navegador." });
+    }
+  }
+
+  const chips = chipsDeFiltros(elegidos, (a) => TEXTO_ACCION_HOY[a]);
+  const activos = contarFiltrosActivos(elegidos);
+  const quitar = (claves: readonly ClaveUrl[]) => onCambiar(Object.fromEntries(claves.map((k) => [k, null])));
+  const opcion = (v: string) => ({ valor: v, texto: v });
+
+  // Dos filas con nombre, como Productos: arriba lo que se pregunta de la prenda (categoría, talla, color), abajo lo de quien
+  // gestiona el stock (qué hacer hoy, en qué condición está, de qué marca es). El mismo panel va en la página (computadora) o
+  // dentro de la hoja (celular), nunca los dos.
+  const hayGestion = separa || marcas !== null;
+  const panel = (
+    <PanelPildoras filas>
+      <FilaPildoras titulo="Prenda">
+        <DesplegablePildora
+          icono={Shirt}
+          etiqueta="Categoría"
+          valor={elegidos.categoria ?? TODOS}
+          onValor={(v) => onCambiar({ cat: v === TODOS ? null : v })}
+          opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map(opcion)]}
+        />
+        <DesplegablePildora
+          icono={Ruler}
+          etiqueta="Talla"
+          valor={elegidos.talla ?? TODOS}
+          onValor={(v) => onCambiar({ talla: v === TODOS ? null : v })}
+          opciones={[{ valor: TODOS, texto: "Todas" }, ...tallas.map(opcion)]}
+        />
+        <DesplegablePildora
+          icono={Palette}
+          etiqueta="Color"
+          valor={elegidos.color ?? TODOS}
+          onValor={(v) => onCambiar({ color: v === TODOS ? null : v })}
+          opciones={[{ valor: TODOS, texto: "Todos" }, ...colores.map(opcion)]}
+        />
+      </FilaPildoras>
+      {hayGestion && (
+        <FilaPildoras titulo="Gestión">
+          {/* «Acción» (qué hacer hoy con la talla) y «Estado» (en qué condición está) son dos preguntas (2026-09-25). */}
+          {separa && (
+            <DesplegablePildora
+              icono={ListChecks}
+              etiqueta="Acción"
+              valor={elegidos.accion ?? TODOS}
+              onValor={(v) => onCambiar({ accion: v === TODOS ? null : v })}
+              opciones={[{ valor: TODOS, texto: "Todas" }, ...OPCIONES_FILTRO_ACCION.map((a) => ({ valor: a as string, texto: TEXTO_ACCION_HOY[a] }))]}
+            />
+          )}
+          {separa && (
+            <DesplegablePildora
+              icono={CircleAlert}
+              etiqueta="Estado"
+              valor={elegidos.estado ?? TODOS}
+              onValor={(v) => onCambiar({ estado: v === TODOS ? null : v })}
+              opciones={[{ valor: TODOS, texto: "Todos" }, ...ESTADOS_FILTRO.map((e) => ({ valor: e as string, texto: ROTULO_ESTADO_FILTRO[e] }))]}
+            />
+          )}
+          {marcas && (
+            <DesplegablePildora
+              icono={Tag}
+              etiqueta="Marca"
+              valor={elegidos.marca ?? TODOS}
+              onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
+              opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map(opcion)]}
+            />
+          )}
+        </FilaPildoras>
+      )}
+    </PanelPildoras>
+  );
+
+  // Con el panel abierto en la computadora cada píldora ya dice su valor y su ✕: los chips repetirían lo mismo debajo. Se ven
+  // con el panel cerrado y en el celular (donde el panel vive en la hoja).
+  const bloqueChips = chips.length > 0 && (
+    <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
+      {chips.map((c) => (
+        <button
+          key={c.quitar.join("|")}
+          type="button"
+          onClick={() => quitar(c.quitar)}
+          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+          aria-label={`Quitar filtro ${c.texto}`}
+        >
+          {c.texto}
+          <span aria-hidden className="text-sm leading-none">×</span>
+        </button>
+      ))}
+      <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
+        Limpiar todo
+      </button>
+    </div>
+  );
+
+  const etiquetaBuscar = (
+    <span>
+      Buscar
+      <kbd aria-hidden className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">
+        /
+      </kbd>
+    </span>
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
+          <CampoTexto
+            etiqueta={etiquetaBuscar}
+            id={ID_BUSCADOR_EXISTENCIAS}
+            value={busqueda}
+            onChange={(e) => onTeclear(e.target.value)}
+            onBlur={onSoltar}
+            // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              onEnter();
+            }}
+            aria-keyshortcuts="/"
+            placeholder={placeholder}
+            enterKeyHint="search"
+            spellCheck={false}
+            type="search"
+          />
+        </div>
+        {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control): el botón queda a la altura de la caja. */}
+        <div className="shrink-0">
+          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
+            {" "}
+          </span>
+          <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+        </div>
+      </div>
+
+      {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
+      {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
+
+      {hojaAbierta && (
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">
+          {panel}
+          <div className="pie-hoja-fijo mt-4 flex items-center gap-2">
+            {activos > 0 && (
+              <button type="button" onClick={onLimpiar} className="btn-cayla btn-sutil">
+                Limpiar
+              </button>
+            )}
+            <button type="button" onClick={() => setHojaAbierta(false)} className="btn-cayla btn-primario flex-1">
+              Ver {total.toLocaleString("es-PE")} {total === 1 ? "producto" : "productos"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {bloqueChips}
+
+      {/* El conteo arriba y, a la derecha, «Copiar enlace», la vista y un solo «Ordenar por», fuera del panel: ordenar no quita
+          prendas, solo las acomoda. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="flex items-baseline gap-3 text-sm text-tinta/70">
+          <span aria-live="polite">
+            <strong className="font-semibold text-tinta">{total.toLocaleString("es-PE")}</strong> {total === 1 ? "producto" : "productos"}
+            <span className="text-tinta/55"> · {detalleTotal}</span>
+          </span>
+          {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
+          {panelAbierto && chips.length > 0 && (
+            <button type="button" onClick={onLimpiar} className="label-cayla hidden text-[10px] text-tinta/55 hover:text-rojo md:inline">
+              Limpiar filtros
+            </button>
+          )}
+        </p>
+        <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
+          {/* En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no caben juntos en 375 px. */}
+          <button
+            type="button"
+            onClick={copiarEnlace}
+            aria-label="Copiar enlace de esta lista"
+            className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta"
+          >
+            <Link2 aria-hidden className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Copiar enlace</span>
+          </button>
+          {vista}
+          {orden && (
+            <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
+              <DesplegablePildora
+                encoger
+                icono={ArrowUpDown}
+                etiqueta="Ordenar por"
+                valor={orden.valor}
+                valorPorDefecto={orden.porDefecto}
+                onValor={orden.onValor}
+                opciones={orden.opciones}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      {nota}
+    </div>
+  );
+}

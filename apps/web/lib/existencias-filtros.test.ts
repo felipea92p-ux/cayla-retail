@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  chipsDeFiltros,
   coincideConFiltroAccion,
   coincideConFiltroDanado,
   consultaConCambios,
   consultaSinFiltros,
+  contarFiltrosActivos,
   filtrosDeUrl,
   OPCIONES_FILTRO_ACCION,
   tallasEnCurva,
@@ -120,5 +122,27 @@ describe("tallasEnCurva", () => {
     expect(curva.indexOf("2")).toBeLessThan(curva.indexOf("4"));
     expect(curva.indexOf("4")).toBeLessThan(curva.indexOf("10"));
     expect(curva).toHaveLength(9);
+  });
+});
+
+describe("chipsDeFiltros y contarFiltrosActivos", () => {
+  const nada = { q: "", categoria: null, marca: null, talla: null, color: null, accion: null, estado: null };
+  const texto = (a: string) => (a === "reponer_a_piso" ? "Reponer a piso" : "Mantener");
+
+  it("sin nada puesto no hay chips ni cuenta", () => {
+    expect(chipsDeFiltros(nada, texto)).toEqual([]);
+    expect(contarFiltrosActivos(nada)).toBe(0);
+  });
+
+  it("cada chip dice «Nombre: valor» y sabe qué clave apaga; la búsqueda no cuenta en «Filtros · N»", () => {
+    const f = { ...nada, q: " polo ", talla: "M", accion: "reponer_a_piso" as const, estado: "por_colgar" as const, marca: "Krisstell" };
+    expect(chipsDeFiltros(f, texto)).toEqual([
+      { texto: "«polo»", quitar: ["q"] },
+      { texto: "Talla: M", quitar: ["talla"] },
+      { texto: "Acción: Reponer a piso", quitar: ["accion"] },
+      { texto: "Estado: Por colgar", quitar: ["estado"] },
+      { texto: "Marca: Krisstell", quitar: ["marca"] },
+    ]);
+    expect(contarFiltrosActivos(f)).toBe(4);
   });
 });
