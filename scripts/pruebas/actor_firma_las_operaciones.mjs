@@ -200,7 +200,9 @@ caso(
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      -- fn_mi_pantalla_principal (20260925220000): «mi» preferencia de aterrizaje, mismo patrón que fn_mi_terminal/fn_es_admin —
      -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal)\\('),
+     -- fn_mis_ventas_del_dia, fn_mi_meta y fn_mis_ventas_por_dia (ADR-0318, D-149): «lo mío» de la integrante. Preguntan por la CUENTA que
+     -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia)\\('),
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
                         -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
                         -- firma en el alta y otra en la edición, caminos excluyentes.
