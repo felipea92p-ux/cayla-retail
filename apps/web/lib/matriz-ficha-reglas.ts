@@ -6,8 +6,9 @@
 //            matriz; el número de cada celda (el stock de HOY en el lugar que se ajusta, más lo que la persona ya tocó y todavía
 //            no viaja); los totales por color, por talla y general; y el lote que se manda a `ajustar_inventario`.
 //   ASUME:   el stock llega por `VarianteAjuste` (la misma lectura que `AjustarInventarioModal`), acotado a la sede activa.
-//   NO HACE: no escribe stock. El stepper es el ajuste de siempre (ADR-0240, `ajustar_inventario`): cada toque se junta en un
-//            lote y viaja con su motivo y su responsable; `stock` sigue siendo un snapshot de `movimientos` (principio 4).
+//   NO HACE: no escribe stock. El stepper es el ajuste de siempre (ADR-0240, `ajustar_inventario`): lo tocado se junta y viaja
+//            UNA vez, al confirmar «Revisar y guardar» (ADR-0313, act. 2026-10-02 noche), con su motivo y su responsable; `stock`
+//            sigue siendo un snapshot de `movimientos` (principio 4).
 
 import { compararTallas } from "./tallas";
 import { apartadoEn, lineasDeAjuste, modoDeAjuste, stockEn, type LineaAjuste, type LugarAjuste, type MotivoAjuste, type VarianteAjuste } from "./ajuste-reglas";
@@ -56,6 +57,62 @@ export function pasoDeCelda(actual: number, pendiente: number, paso: 1 | -1, min
   const siguiente = pendiente + paso;
   if (actual + siguiente < minimo) return null;
   return siguiente;
+}
+
+/** Lo tocado para que la celda muestre `objetivo` (el número que se escribió en ella); `null` si no es un entero de 0 en
+ *  adelante o si queda debajo de su piso (lo apartado para clientas no se puede contar como que no está). */
+export function fijarCelda(actual: number, objetivo: number, minimo: number): number | null {
+  if (!Number.isInteger(objetivo) || objetivo < 0 || objetivo < minimo) return null;
+  return objetivo - actual;
+}
+
+/** Un cambio de stock de una variante guardada, como lo lee la hoja «Revisa y guarda»: de cuánto a cuánto. */
+export type CambioDeStock = { varianteId: string; color: string | null; talla: string | null; antes: number; despues: number };
+
+/** Lo tocado en las variantes guardadas, en el orden de la lectura (por talla y color). Lo que volvió a su número no cuenta. */
+export function cambiosDeStock(variantes: readonly VarianteAjuste[], pendientes: Pendientes, lugar: LugarAjuste): CambioDeStock[] {
+  return variantes.flatMap((v) => {
+    const d = pendientes[v.varianteId];
+    if (!d) return [];
+    const antes = stockEn(v, lugar);
+    return [{ varianteId: v.varianteId, color: v.color, talla: v.talla, antes, despues: antes + d }];
+  });
+}
+
+/** El grupo «Stock» de la hoja: una línea por talla («S · Blanco  4 → 6») y una nota con el motivo y el lugar. */
+export function grupoDeStockEnHoja(
+  cambios: readonly CambioDeStock[],
+  motivo: string,
+  donde: string
+): { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota: string } | null {
+  if (cambios.length === 0) return null;
+  const sube = cambios.filter((c) => c.despues > c.antes).reduce((s, c) => s + (c.despues - c.antes), 0);
+  return {
+    titulo: "Stock",
+    lineas: cambios.map((c) => ({ texto: [c.talla ?? "Única", c.color].filter(Boolean).join(" · "), antes: String(c.antes), despues: String(c.despues) })),
+    nota: `Se registra como «${motivo}» ${donde}.${sube > 0 ? ` Entran ${sube} ${sube === 1 ? "unidad" : "unidades"}: al guardar te propone imprimir sus etiquetas.` : ""}`,
+  };
+}
+
+/** Lo que subió al guardar, por variante (cuántas unidades nuevas, para imprimir justo esas etiquetas). Se suma si se repite. */
+export type Subida = { varianteId: string; color: string | null; talla: string | null; unidades: number };
+
+export function juntarSubidas(antes: readonly Subida[], nuevas: readonly Subida[]): Subida[] {
+  const salida = antes.map((s) => ({ ...s }));
+  for (const n of nuevas) {
+    if (!(n.unidades > 0)) continue;
+    const ya = salida.find((s) => s.varianteId === n.varianteId);
+    if (ya) ya.unidades += n.unidades;
+    else salida.push({ ...n });
+  }
+  return salida;
+}
+
+/** «Imprimir etiquetas» de lo que subió: una etiqueta por unidad nueva, no por todo el stock de la tienda (`?unidades=id:n`). */
+export function hrefEtiquetasDeSubidas(subidas: readonly Subida[]): string | null {
+  const con = subidas.filter((s) => s.unidades > 0);
+  if (con.length === 0) return null;
+  return `/etiquetas-de-precio?unidades=${con.map((s) => `${s.varianteId}:${s.unidades}`).join(",")}`;
 }
 
 /** Suma un paso a lo pendiente; lo que vuelve a 0 deja de estar pendiente. */
@@ -121,14 +178,4 @@ export function rangoDePrecios(precios: readonly number[]): string {
   const conCentimos = precios.some((p) => !Number.isInteger(p));
   const f = (p: number) => (conCentimos ? p.toFixed(2) : String(p));
   return min === max ? `S/ ${f(min)}` : `S/ ${f(min)}–${f(max)}`;
-}
-
-/** El aviso de un lote guardado, en voz de tienda: «+1 S · Beige (Conteo físico) — ahora 7». */
-export function textoDelLote(l: { talla: string | null; color: string | null; delta: number; resultado: number }[], motivo: string): string {
-  if (l.length === 1) {
-    const x = l[0];
-    const signo = x.delta > 0 ? `+${x.delta}` : `−${-x.delta}`;
-    return `${signo} ${[x.talla ?? "Única", x.color].filter(Boolean).join(" · ")} (${motivo}) — ahora ${x.resultado}`;
-  }
-  return `${l.length} tallas ajustadas (${motivo})`;
 }

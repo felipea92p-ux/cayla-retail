@@ -24,8 +24,9 @@ export type OrigenEtiquetas =
   | { tipo: "produccion"; id: string }
   | { tipo: "campana"; id: string; ubicacionId: string }
   | { tipo: "producto"; id: string; ubicacionId: string }
-  /** Tallas sueltas, las marcadas en Existencias (ADR-0237); una por unidad en stock, como `producto`. */
-  | { tipo: "variantes"; ids: string[]; ubicacionId: string };
+  /** Tallas sueltas, las marcadas en Existencias (ADR-0237); una por unidad en stock, como `producto`. Con `unidades` (lo que
+   *  acaba de entrar desde Editar producto), una por unidad NUEVA: las que ya estaban en la tienda ya tienen la suya. */
+  | { tipo: "variantes"; ids: string[]; ubicacionId: string; unidades?: ReadonlyMap<string, number> };
 
 export type EtiquetasDePrecio = {
   etiquetas: EtiquetaPrecio[];
@@ -64,7 +65,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
     );
     entradas = sumarEntradas(movimientos);
   } else if (origen.tipo === "variantes") {
-    entradas = origen.ids.length > 0 ? await stockEnTienda(supabase, origen.ubicacionId, origen.ids) : new Map();
+    entradas = origen.unidades ? new Map(origen.unidades) : origen.ids.length > 0 ? await stockEnTienda(supabase, origen.ubicacionId, origen.ids) : new Map();
   } else if (origen.tipo === "producto") {
     // En una `const` aparte y no inline en `exigirOpcional(await …)`: con `.maybeSingle()` el tipo sale `never` (conteos.ts).
     const resProducto = await supabase.from("productos").select("referencia").eq("id", origen.id).maybeSingle();

@@ -23,7 +23,7 @@ const CATALOGO: ProductoDeCatalogo[] = [
   p("viejo", "Camisa Vieja", "y.j.j", { estado: "descontinuado" }),
   // El producto del cargo especial: en producción NO tiene variantes activas.
   p("sin-registrar", "Prenda sin Registrar", "CAYLA", { conVariantesActivas: false }),
-  // Dada de alta al vuelo desde un Conteo y todavía sin revisar por un líder.
+  // Dada de alta al vuelo desde un Conteo: queda `pendiente` en la base, pero ya no hay revisión (Felipe, 2026-10-02).
   p("alta-al-vuelo", "Blusa Nueva", "Marca Mal Escrita", { estadoAlta: "pendiente" }),
 ];
 
@@ -61,9 +61,9 @@ describe("conMarca", () => {
 });
 
 describe("productosSinStockEnSede", () => {
-  it("son los activos del catálogo que la sede no tiene: los pantalones CAYLA y el vestido, no Top Aurora", () => {
+  it("son los activos del catálogo que la sede no tiene: la blusa de alta al vuelo, los pantalones CAYLA y el vestido, no Top Aurora", () => {
     const enTru = [{ productoId: "aurora" }, { productoId: "aurora" }];
-    expect(productosSinStockEnSede(CATALOGO, enTru).map((x) => x.referencia)).toEqual(["Pantalon Cayla", "Pantalon Sastre", "Vestido Aurora"]);
+    expect(productosSinStockEnSede(CATALOGO, enTru).map((x) => x.referencia)).toEqual(["Blusa Nueva", "Pantalon Cayla", "Pantalon Sastre", "Vestido Aurora"]);
   });
 
   it("nunca ofrece un producto de prueba ni uno descontinuado, aunque la sede no los tenga", () => {
@@ -76,8 +76,8 @@ describe("productosSinStockEnSede", () => {
     expect(productosSinStockEnSede(CATALOGO, []).map((x) => x.id)).not.toContain("sin-registrar");
   });
 
-  it("no ofrece una prenda dada de alta al vuelo mientras un líder no la apruebe: su nombre y su marca pueden estar mal escritos", () => {
-    expect(productosSinStockEnSede(CATALOGO, []).map((x) => x.id)).not.toContain("alta-al-vuelo");
+  it("ofrece una prenda dada de alta al vuelo igual que cualquier otra: ya no espera la aprobación de un líder (2026-10-02)", () => {
+    expect(productosSinStockEnSede(CATALOGO, []).map((x) => x.id)).toContain("alta-al-vuelo");
   });
 
   it("un producto con fila en la sede, aunque sea en cero, no es «sin stock»: está en la tabla", () => {

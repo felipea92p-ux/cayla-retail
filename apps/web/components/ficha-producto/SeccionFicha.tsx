@@ -42,8 +42,11 @@ export function SeccionFicha({
         <ChevronDown aria-hidden className="taller-chev h-4 w-4" />
       </button>
       <div className="taller-sec-cuerpo" id={`${id}-cuerpo`}>
-        <div>
-          <div className="px-[18px] pb-5 sm:pl-14">{children}</div>
+        {/* `@container`: lo de adentro se acomoda al ancho de ESTA tarjeta, no al de la ventana (con el menú lateral abierto, la
+            columna de la ficha es angosta aunque la ventana sea ancha). La sangría que alinea el cuerpo con el título solo va
+            cuando sobra lugar; angosta, ese ancho es de los campos. */}
+        <div className="@container">
+          <div className="px-[18px] pb-5 @lg:pl-14">{children}</div>
         </div>
       </div>
     </section>

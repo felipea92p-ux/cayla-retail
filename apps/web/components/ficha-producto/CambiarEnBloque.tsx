@@ -21,6 +21,7 @@ export function CambiarEnBloque({
   veCosto,
   deshabilitado,
   onCampo,
+  campoFijo,
 }: {
   filas: FilaFicha[];
   onFilas: (siguiente: FilaFicha[]) => void;
@@ -31,8 +32,11 @@ export function CambiarEnBloque({
   deshabilitado: boolean;
   /** Precio o Costo: la matriz de la ficha muestra en cada celda lo que aquí se está cambiando. */
   onCampo?: (campo: CampoBloque) => void;
+  /** Lo decide la pestaña de la matriz («Precios» o «Costos»): sin selector propio, la frase dice cuál se cambia. */
+  campoFijo?: CampoBloque;
 }) {
-  const [campo, setCampo] = useState<CampoBloque>("precio");
+  const [campoPropio, setCampo] = useState<CampoBloque>("precio");
+  const campo = campoFijo ?? campoPropio;
   const [alcance, setAlcance] = useState("todas");
   const [monto, setMonto] = useState("");
   const [resultado, setResultado] = useState<{ texto: string; error: boolean } | null>(null);
@@ -64,7 +68,9 @@ export function CambiarEnBloque({
     <div className="rounded-xl border border-sand bg-papel px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2 text-sm text-tinta/80">
         <span>Cambiar</span>
-        {veCosto ? (
+        {campoFijo ? (
+          <span className="font-semibold text-tinta">{campoFijo === "precio" ? "el precio" : "el costo"}</span>
+        ) : veCosto ? (
           <SegmentoDeslizante
             etiqueta="Qué cambiar"
             valor={campo}
