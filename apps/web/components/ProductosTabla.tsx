@@ -60,7 +60,7 @@ import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
  * vertical); desde ahí, filas, y las columnas menos urgentes entran de a una: colores y costo en `@4xl`, tallas y
  * marca/proveedor en `@6xl` (1.152 px). Lo que no cabe no se pierde: baja a la línea de la prenda o a la ficha.
  *
- * Misma fuente que la Grilla (`ProductoListado[]`, ya filtrada y paginada por `fn_productos`) y las mismas piezas
+ * Misma fuente que la Grilla (`ProductoListado[]`, ya filtrada y paginada por `fn_productos_listado`) y las mismas piezas
  * (`ProductoPiezas`, `productos-vista`): las dos vistas no pueden decir cosas distintas de la misma prenda.
  *
  * Descontinuar/Reactivar en bloque pasa por `cambiar_estado_productos` (20260928235000): todo o nada, y al reactivar
@@ -110,7 +110,7 @@ export function ProductosTabla({
   veExistencias: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
-  /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos` ya manda el costo vacío: aquí solo se esconden las columnas. */
+  /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos_listado` ya manda el costo vacío: aquí solo se esconden las columnas. */
   veDinero: boolean;
   mensajeVacio?: string;
 }) {
