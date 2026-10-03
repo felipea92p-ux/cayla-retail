@@ -534,28 +534,6 @@ export function textoDeSalidaDeFicha(cantidad: number, nombre: string): string {
   return `Tienes ${cuantos} en «${nombre}». Si sales ahora, se pierden.`;
 }
 
-/* ====================== para las filas de la ficha ====================== */
-
-/** Los cambios que le tocan a UNA variante de la tabla (por su posición en la lista de la pantalla). */
-export function cambiosDeVariante(resumen: ResumenCambios, indice: number): Cambio[] {
-  return resumen.cambios.filter((c) => "indice" in c && c.indice === indice);
-}
-
-/** Lo que dice la fila tocada, a la derecha: «Se desactiva al guardar · Precio: antes S/ 90». Vacío si no cambió nada. */
-export function textoPendienteDeVariante(cambios: readonly Cambio[]): string {
-  const partes: string[] = [];
-  for (const c of cambios) {
-    if (c.tipo === "desactiva") partes.push("Se desactiva al guardar");
-    else if (c.tipo === "activa") partes.push("Se activa al guardar");
-    else if (c.tipo === "nueva") partes.push("Se agrega al guardar");
-    else if (c.tipo === "identidad") partes.push(`Color y talla: antes ${c.antes}`);
-    else if (c.tipo === "precio") partes.push(`Precio: antes ${formatoPrecio(c.antes)}`);
-    else if (c.tipo === "costo") partes.push(`Costo: antes ${formatoCosto(c.antes)}`);
-    else if (c.tipo === "etiquetas") partes.push("Etiquetas cambian");
-  }
-  return partes.join(" · ");
-}
-
 /** El cambio de un dato de la prenda (nombre, stock mínimo…), si lo hay: para la línea «antes: …» bajo su campo. */
 export function cambioDeDato(resumen: ResumenCambios, campo: CampoDato): Extract<Cambio, { tipo: "dato" }> | null {
   const c = resumen.cambios.find((x): x is Extract<Cambio, { tipo: "dato" }> => x.tipo === "dato" && x.campo === campo);

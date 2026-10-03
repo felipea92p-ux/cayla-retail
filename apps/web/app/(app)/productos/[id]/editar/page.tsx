@@ -41,7 +41,7 @@ export default async function EditarProductoPage({
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
-    supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
     getImagenesMuestra(),
@@ -66,7 +66,7 @@ export default async function EditarProductoPage({
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
     .filter((e) => esLider || e.descuento_pct == null)
-    .map((e) => ({ id: e.id, texto: e.nombre }));
+    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral" }));
   const hayConDescuento = !esLider && vocabulario.some((e) => e.descuento_pct != null);
 
   if (!producto) notFound();

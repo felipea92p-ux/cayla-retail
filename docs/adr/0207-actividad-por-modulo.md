@@ -146,3 +146,29 @@ guardado cuyas variantes ya no existen no deja línea.
 
 Lo mismo que en Existencias: los disparadores de alta y de historial son diferidos. Una prueba que inserte productos o
 historial y luego altere esas tablas en la misma transacción tiene que dispararlos antes.
+
+## Actualización 2026-10-03 — Colaboradores, Roles, Configuración y Regularizar
+
+**Decide:** Felipe, 2026-10-03 («arranca con esa tanda»), sobre la recomendación hecha con datos de producción: lo más
+delicado (accesos y dinero esperado en caja) ya tenía su historial con antes y después, pero en tablas que nadie lee.
+Migración `20261003210000_actividad_colaboradores_roles_configuracion_regularizar.sql`; prueba
+`pnpm pruebas:actividad-gestion`.
+
+- **G1 — Desde los historiales que ya existen**, con un AFTER INSERT común: `colaboradores_historial`, `roles_historial`
+  y `configuracion_historial` ya guardan una fila por operación completa, así que no hace falta agrupar ni diferir (y no
+  hay eventos pendientes que choquen con un `alter table`). Regularizar cuelga del cambio de `prendas_por_regularizar.estado`.
+- **G2 — Sede de cada línea:** Colaboradores, la de la persona (al moverla, las dos); dar un rol, la de esa persona o
+  terminal; crear, renombrar, archivar o cambiar módulos de un rol, la de quien lo hizo (misma regla que Productos);
+  Configuración, la de la tienda del ajuste o, si es de la empresa, la de quien lo hizo; regularizar, la de la prenda.
+- **G3 — De qué módulo:** todo `/configuracion` es Configuración, salvo los beneficios del club (Avisos del club);
+  regularizar es de Recibir mercadería, que es donde vive esa lista.
+- **G4 — El dinero de la empresa no se escribe:** saldo de una cuenta, montos del presupuesto y umbrales de Finanzas. El
+  fondo de caja y la meta de una tienda sí, porque son de esa tienda.
+- **G5 — Frases probadas con las formas reales de producción** (2026-10-03): módulos que ya no existen (`bajada_piso`) se
+  leen sin guion; con más de cuatro módulos, los tres primeros «y N más»; cambiar solo la pantalla principal de un rol
+  también deja su línea; un impuesto que pasa de provisional a confirmado dice «confirmó», no «5500 → 5500».
+- **G6 — El módulo va escrito en cada llamada** a `fn_actividad_anotar`, nunca en una variable: `actividad-reglas.test.ts`
+  lee las migraciones para saber qué módulos anotan.
+
+**Siguientes:** Facturación (notas de crédito, reenvíos, anulaciones: validez ante SUNAT, pide su propio cuidado), y
+preparar antes de que se usen Devoluciones, Recibir mercadería / Compras, Producción y Finanzas.
