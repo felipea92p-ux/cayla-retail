@@ -14,6 +14,10 @@ documento se construyó tal cual, con una corrección estadística que se agrega
 > `reasignar_asesora`) — por eso la objeción abierta de este documento (la encargada corrigiéndose a sí misma) sigue
 > sin resolver, porque el mecanismo que la haría posible no existe todavía.
 >
+> **Actualización 2026-10-03 (auditoría; Felipe eligió la opción C).** El centro de la contracción ya no es el promedio del «resto» sin la propia persona sino el de TODA la tienda, y el ranking «vende más por hora» se ordena por una
+> cota prudente del número contraído (el número menos dos errores estándar), no por el número. Motivo, números y alternativas descartadas: [ADR-0318, «El centro de la contracción»](0318-meta-por-persona-en-rendimiento-e-inicio.md).
+> Lo que dice arriba sobre el «resto» queda como historia.
+
 > **La corrección que este documento no tenía: contracción de Efron-Morris/James-Stein en «soles por hora».** La
 > sección 3 decía «ordena por soles por hora» (el número crudo). Con 12 integrantes en TRU y 2 en AQP, el crudo de
 > alguien con pocas horas es en gran parte ruido de muestra chica —la propia D-66/D-115 ya lo reconocía con la marca

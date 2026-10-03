@@ -117,9 +117,9 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
             ))}
           </Tabla>
           <p className="nota-cayla">
-            El número no es el crudo: se corrige hacia el promedio del resto de la tienda, tanto
-            menos cuanto más horas tenga cada persona (contracción de Efron-Morris). Así un mes muy
-            corto no parece mejor que uno sostenido. «Muestra chica» es menos de 40 ventas en el mes.
+            El número no es el crudo: se corrige hacia el promedio de la tienda, tanto menos cuanto más horas tenga cada persona (contracción de
+            Efron-Morris). <b>El orden</b> no es por ese número sino por lo que podemos asegurar de él (el número menos su margen de error): quien tiene
+            poca evidencia queda más abajo que quien tiene mucha, aunque su número sea mayor. «Muestra chica» es menos de 40 ventas en el mes.
           </p>
         </div>
 

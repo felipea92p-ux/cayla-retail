@@ -91,3 +91,9 @@ integrante; construí la etapa 1 sin SQL nuevo: tarjetas comparativas que son pe
 promedio, y «Nuevo producto» en lugar de «Apartados» en los accesos. También resolví los choques con `main` (versiones de migración, Aviario, ci.yml) y renumeré el ADR a 0318.
 Por qué así: el spike costó menos que construir una pantalla que la integrante no entiende de pie; la etapa 2 espera porque pide una lectura nueva y el SQL pendiente ya es largo.
 Qué se rompería sin esto: seguir con «Todas» apilado (la tienda de la sesión quedaba abajo) y un Inicio que mostraba un gráfico que nadie pidió.
+
+## 2026-10-03 (auditoría de Rendimiento y opción C del ranking)
+Qué hice: audité `/rendimiento` en local (volumen, permisos, reglas con entradas límite). Corregí el historial de metas que salía vacío (mío), hice instantáneo el cambio de tienda y, con la decisión de Felipe (opción C), cambié el
+ranking «Vende más por hora»: el centro de la contracción es ahora el promedio de la tienda y el orden sale de una cota prudente (el número menos dos errores estándar), no del número mostrado.
+Por qué así: con el centro en «el resto», dos personas con las mismas horas y menos de 40 ventas salían en orden contrario al crudo y la veterana salía «corregida» muy por encima de lo que vende; cambiar solo el centro dejaba a la nueva con una venta grande primera.
+Qué se rompería sin esto: un reconocimiento injusto justo en «muestra chica» (AQP, TRU), que es donde hoy están todos los datos reales.

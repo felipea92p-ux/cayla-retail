@@ -278,7 +278,7 @@ Auditoría local de `/rendimiento` (cuello: ninguno de velocidad; con ~54.000 ve
    y la pantalla sigue diciendo «no se pudo leer», nunca «sin datos». Probado en `rendimiento-lectura.test.ts`.
 2. **Pestañas instantáneas.** Cambiar de tienda era un enlace a `?sede=`: para la espera global una navegación es una «carga» (loader a pantalla completa y dos rondas de lecturas) para mostrar datos que ya
    estaban en memoria. Ahora es estado del navegador (`TiendasRendimiento`), igual que Hoy · Semana · Mes, y conserva la vista elegida.
-3. **Ranking de «soles por hora»: PENDIENTE DE DECISIÓN DE FELIPE (no se tocó el código).** Ver el apartado siguiente.
+3. **Ranking de «soles por hora»: opción C, decidida por Felipe el 2026-10-03.** Ver el apartado siguiente.
 
 ### El centro de la contracción (hallazgo de la auditoría, 2026-10-03) — decide Felipe
 
@@ -290,8 +290,14 @@ Auditoría local de `/rendimiento` (cuello: ninguno de velocidad; con ~54.000 ve
 - **Pero cambiar el centro al promedio de TODA la tienda no es gratis:** conserva el orden con la misma exposición (13,29 y 10,71) y deja a B en 18,50, pero **A pasa al frente** (22,32 contra 18,50), y la prueba
   `rendimiento-reglas.test.ts:31` escribe lo contrario como expectativa de negocio («el mes sostenido termina adelante del mes corto con un golpe de suerte»).
 
-Las dos metas —(1) con la misma exposición no se invierte, (2) la veterana queda adelante de la nueva afortunada— no las cumple ningún centro simple. Opciones, para que Felipe elija:
-- **A. Dejarlo como está** (cumple 2, incumple 1 en «muestra chica»). Ganas: nada cambia. Pagas: el orden entre quienes tienen menos de 40 ventas puede ser el contrario al crudo.
-- **B. Centro = promedio de la tienda** (cumple 1, incumple 2). Ganas: orden coherente y números cercanos a la realidad. Pagas: una nueva con una venta grande sale primera.
-- **C. Ordenar por una cota prudente** (el número contraído menos su incertidumbre: «lo que podemos asegurar»), mostrando el mismo número. Ganas: cumple las dos. Pagas: es otro método, hay que explicarlo y escribir su ADR.
-Hasta que decida, `rendimiento-reglas.test.ts` lleva una prueba pendiente (`it.todo`) con la propiedad (1).
+Las dos metas —(1) con la misma exposición no se invierte, (2) la veterana queda adelante de la nueva afortunada— no las cumple ningún centro simple. Felipe eligió la **opción C** (2026-10-03):
+
+**DECIDÍ:** (a) el centro de la contracción pasa a ser el promedio de TODA la tienda (con la persona adentro) y (b) el ranking se ORDENA por una **cota prudente** —el número contraído menos `Z = 2`
+errores estándar, «lo que podemos asegurar»— mientras que el número que se MUESTRA sigue siendo el contraído. Error estándar relativo `√((1 + CV²) / N)` con `N` = ventas + 40 (las del prior) y `CV = 1` (variación del
+ticket, supuesto: no se conoce por persona). Código: `cotaPrudente`, `Z_COTA_PRUDENTE`, `CV_TICKET` en `rendimiento-reglas.ts`; la tabla de la pantalla explica el orden en su nota.
+**DESCARTÉ:** (A) dejarlo como estaba, porque invierte el orden en «muestra chica»; (B) solo cambiar el centro, porque la nueva con una venta grande pasa al frente de la veterana (22,32 contra 18,50);
+y calibrar la cota con una `Z` hecha a medida del caso de la prueba. **SE ROMPE SI:** el ticket varía mucho más que su promedio (CV > 1: la cota castiga de menos); o alguien cuestiona los dos errores estándar:
+con `Z = 1,64` la veterana y la nueva del caso empatan, y con `Z = 2` la veterana queda adelante **por poco** (cota 13,73 contra 12,91). **Verificado** con las reglas reales (`rendimiento-reglas.test.ts`, 19 pruebas): la
+propiedad «con las mismas horas y ventas, el orden del crudo se respeta» se barre en 96 combinaciones de personas, horas y ventas, y el caso que lo mostró (100 h, 30 ventas, crudo 15 y 9) sale 13,29 y 10,71.
+**Límite que no se arregla acá:** `fn_rendimiento_equipo` solo devuelve a quien vendió, así que quien trabajó horas y no vendió nada no entra al promedio de la tienda (lo infla un poco).
+**Efecto visible:** los números de «Vende más por hora» cambian (la veterana deja de salir «corregida» por encima de lo que vende) y el orden ya no sigue al número mostrado cuando hay poca evidencia.

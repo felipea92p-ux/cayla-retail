@@ -118,3 +118,12 @@
 - [x] **Etapa 2 (código):** «ventas por hora» y «prendas por venta» en Rendimiento con `fn_rendimiento_detalle` (`20261003180000`, **sin pegar en producción: Felipe**). Prueba `pnpm pruebas:rendimiento-detalle`.
 - [ ] La marca de ritmo del anillo del Inicio: pendiente de decidir de dónde sale la curva típica del día.
 - [ ] Probar las dos pantallas con 2 o 3 integrantes de TRU, sin explicarles nada.
+
+## ✅ Auditoría de Rendimiento (2026-10-03) — correcciones hechas
+- [x] Historial de metas leído para cada tienda y causa de las lecturas fallidas en el log (`lib/rendimiento-lectura.ts`).
+- [x] Cambiar de tienda es instantáneo (`TiendasRendimiento`), sin loader.
+- [x] Ranking «Vende más por hora» con cota prudente y centro en la tienda (opción C de Felipe; ADR-0318 «El centro de la contracción»).
+- [ ] **Falta verlo en el navegador con sesión** (las tres correcciones están probadas por pruebas, no vistas en pantalla).
+- [ ] La cota usa `Z = 2` y `CV = 1`: con `Z = 1,64` el caso de la prueba empata. Revisar con datos reales de TRU cuando haya más de un mes.
+- [ ] `fn_rendimiento_equipo` solo devuelve a quien vendió: quien trabajó horas sin vender no entra al promedio de la tienda.
+- [ ] `reasignar_asesora`, `venta_reasignaciones` y `fn_rendimiento_persona` NO existen (solo nombradas en la cabecera de `20260929160000`): una venta mal atribuida no tiene cómo corregirse.
