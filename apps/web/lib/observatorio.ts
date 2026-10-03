@@ -48,9 +48,7 @@ async function tolerar<T>(que: string, leer: () => Promise<T>): Promise<T | null
 export async function getDatosObservatorio(): Promise<DatosObservatorio | null> {
   return tolerar("las ventas de las tiendas", async () => {
     const supabase = await createClient();
-    // `fn_observatorio` todavía no está en los tipos generados (se regeneran al pegarla en producción).
-    const res = await supabase.rpc("fn_observatorio" as never, { p_dias: 60 } as never);
-    return parsearObservatorio(exigir(res as never, "el observatorio"));
+    return parsearObservatorio(exigir(await supabase.rpc("fn_observatorio", { p_dias: 60 }), "el observatorio"));
   });
 }
 
@@ -296,8 +294,7 @@ export async function getDatosTienda(ubicacionId: string): Promise<DatosTienda |
   const [base, agotar, traslados] = await Promise.all([
     tolerar("el panel de la tienda", async () => {
       const supabase = await createClient();
-      const res = await supabase.rpc("fn_observatorio_tienda" as never, { p_ubicacion_id: ubicacionId } as never);
-      return parsearTienda(exigir(res as never, "el panel de la tienda"));
+      return parsearTienda(exigir(await supabase.rpc("fn_observatorio_tienda", { p_ubicacion_id: ubicacionId }), "el panel de la tienda"));
     }),
     tolerar("lo que se va a agotar", async () => {
       const filas = await getFilasRecientesDeSede(ubicacionId);
