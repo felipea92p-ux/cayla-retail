@@ -16,7 +16,7 @@
 // entre uno y otro (un cian junto a un ultramar, un oliva junto a un esmeralda) y la fila no se leía como escala. Con gamas el
 // salto baja a 10–16° (medido sobre los 75 colores de producción, 2026-10-02). Cada corte está en el MEDIO del mayor hueco de matiz
 // de su familia (ADR-0316: al sumar 16 colores, «Verde hoja» —132°— y «Azur» —244°— quedaron a 2,8° y 4,2° de los cortes que había y se
-// movieron): con los 91 colores, ningún color queda a menos de 5,8° de un corte (Verde hoja 5,8°, Verde 6,5°, Celeste 7,2°, Lavanda 8,3°).
+// movieron): con los 90 colores de la carta, ningún color queda a menos de 5,8° de un corte (Verde hoja 5,8°, Verde 6,5°, Celeste 7,2°, Lavanda 8,3°).
 
 export type ColorEnEscala = { nombre: string; hex: string | null; familiaColor?: string | null };
 
@@ -79,8 +79,8 @@ export function enEscala(a: ColorEnEscala, b: ColorEnEscala): number {
 }
 
 /**
- * Parte los colores de UNA familia —ya ordenados con `enEscala`— en sus gamas, para que la pantalla deje un respiro entre una y
- * otra. Concatenar los bloques devuelve exactamente la entrada: nunca se pierde ni se repite un color.
+ * Parte los colores de UNA familia —ya ordenados con `enEscala`— en sus gamas, para que la pantalla ponga cada gama en su
+ * propia fila. Concatenar los bloques devuelve exactamente la entrada: nunca se pierde ni se repite un color.
  */
 export function partirEnGamas<C extends ColorEnEscala>(colores: readonly C[]): C[][] {
   const bloques: C[][] = [];

@@ -180,3 +180,9 @@ Suite completa de la web: 312 archivos, 154.946 pruebas.
 Los cortes de gama del punto 3 (135°, 240° y 325°) pasaron a **138°, 236° y 327°** al sumar 16 colores (ADR-0316): quedaban colores a
 menos de 5° del corte. No reasigna a ningún color existente.
 
+## Actualización 2026-10-02 (ADR-0317)
+
+- El descarte «fusionar o retirar los 4 colores creados a mano: quedan donde están» **ya no vale para uno**: Azul Intermedio se funde en Azul
+  medio (Felipe: «no debería existir dos nombres que aparenten lo mismo»). Perla y Amarillo mantequilla siguen donde estaban (ADR-0314).
+- Neutro y Tierra se reparten distinto: Beige, Arena y **Topo** son tierra; **Nude** se queda en neutro (ADR-0314, ajustado por el 0317).
+- «Arena pasa a Neutro» de este ADR lo había reemplazado ya el 0314; con el 0317 Arena queda en Tierra.
