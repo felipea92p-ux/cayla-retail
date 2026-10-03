@@ -30,3 +30,7 @@ las devoluciones no restan (D-79) · sin rojo para juzgar: «Adelante / En ritmo
 
 Qué datos hay hoy para construirlo: el Inicio entero sale de `fn_mis_ventas_por_dia` (día, total, ventas) y `fn_mi_meta` (mejor día, racha, ticket contra el mes pasado). En Rendimiento, la proyección sale de `fn_rendimiento_serie`.
 **Falta una lectura nueva** para «ventas por hora» (`ventas.created_at` existe, nadie la devuelve por hora) y para «prendas por venta» de la tienda (`fn_rendimiento_equipo` no trae prendas).
+
+### Propuesta final con notas en «!» (2026-10-03, segunda versión de `rendimiento-final.html`)
+Las notas explicativas pasan a un «!» como en Productos: uno en la cabecera («Cómo se lee Rendimiento») y uno junto a cada título de ranking. Se agregó la sección «Rankings del mes» con el orden nuevo (opción C): el
+número que se muestra es el corregido, el orden sale de lo que podemos asegurar de él. «Mostrar la cota del ranking» (solo del demo) enseña por qué Lucía, con 8 ventas y un número alto, queda al final.

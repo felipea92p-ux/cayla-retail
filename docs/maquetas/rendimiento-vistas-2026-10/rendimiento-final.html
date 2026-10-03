@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rendimiento: propuesta final · spike</title>
+<title>Rendimiento: propuesta final con notas en «!» · spike</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -166,6 +166,25 @@ h1,h2,h3{font-family:'EB Garamond',Georgia,serif;font-weight:400;line-height:1.1
 @keyframes sk{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}.bar i,.otra,.tab{transition:none}}
 
+/* «!» de ayuda (como Productos): se toca y explica; cierra al tocar afuera o con Escape */
+.ay{position:relative;display:inline-block;vertical-align:middle;margin-left:8px}
+.ay>button{width:22px;height:22px;border-radius:50%;background:var(--rojo);color:var(--crema);font-weight:700;font-size:13px;line-height:22px;text-align:center;transition:transform .2s var(--ease)}
+.ay>button:hover{transform:scale(1.08)}
+.ay .globo{display:none;position:absolute;z-index:40;top:30px;left:-8px;width:min(340px,80vw);background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px;box-shadow:0 12px 32px -12px rgba(26,26,24,.35);font-size:13.5px;line-height:1.55;color:var(--t80);text-align:left;font-weight:400;text-transform:none;letter-spacing:0}
+.ay.abierto .globo{display:block}
+.ay .globo b.t{display:block;font-family:'DM Sans';color:var(--rojo);text-transform:uppercase;letter-spacing:.13em;font-size:11px;margin-bottom:6px}
+.ay .globo .par{display:block}.ay .globo .par+.par{margin-top:8px}
+/* rankings */
+.rk{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@container (max-width:760px){.rk{grid-template-columns:1fr}}
+.rk h4{font-family:'DM Sans';font-weight:600;font-size:14px;color:var(--taupe);margin-bottom:8px}
+.rk .tab{display:block;padding:0;border:0;border-radius:12px;overflow:hidden;background:var(--papel);border:1px solid var(--sand);position:static;box-shadow:none}
+.rk .cab{display:flex;justify-content:space-between;padding:9px 16px;background:var(--hueso);font-size:12px;color:var(--t65)}
+.rk .f{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 16px;font-size:14px}
+.rk .f+.f{border-top:1px solid var(--t10)}
+.rk .cota{display:block;font-size:11px;color:var(--t50);text-align:right}
+.rk .pos{color:var(--t50);font-size:12px;width:16px;display:inline-block}
+.nota-demo{margin-top:8px;font-size:12px;color:var(--t65)}
 /* panel «por qué» (solo del demo) */
 .porque{width:100%;max-width:1180px;background:var(--papel);border:1px dashed var(--taupe);border-radius:12px;padding:16px 20px;font-size:13.5px;color:var(--t80)}
 .porque h4{font-family:'EB Garamond',serif;font-weight:400;font-size:20px;margin-bottom:6px}
@@ -183,6 +202,7 @@ h1,h2,h3{font-family:'EB Garamond',Georgia,serif;font-weight:400;line-height:1.1
   <div class="g"><span>Sesión activa en</span><div class="seg" data-k="sesion"><button data-v="TRU">TRU</button><button data-v="AQP">AQP</button><button data-v="LIM">LIM</button></div></div>
   <div class="g"><span>Período</span><div class="seg" data-k="per"><button data-v="hoy">Hoy</button><button data-v="sem">Semana</button><button data-v="mes">Mes</button></div></div>
   <div class="g"><span>Hora de hoy</span><div class="seg" data-k="hora"><button data-v="11">11:00 a. m.</button><button data-v="17">5:40 p. m.</button></div></div>
+  <div class="g"><span>Demo</span><label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chkCota"> Mostrar la cota del ranking</label></div>
   <div class="g"><span>Ancho</span><div class="seg" data-k="ancho"><button data-v="pc">Computadora</button><button data-v="cel">Celular 375</button></div></div>
 </div>
 
@@ -216,7 +236,7 @@ const DIA_MES = 23, DIAS = 30;               // «hoy» es el día 23 de 30
 const SEMANA = [290,330,350,380,420,520,440];  // TRU, últimos 7 días (hoy = último)
 const HORAS = [0,15,50,95,140,185,235,300,390,470,520,550,560]; // acumulado de 9 a 21 h; a las 17:40 lleva S/ 440
 const CURVA = [0,.03,.09,.17,.25,.33,.42,.54,.70,.84,.93,.98,1]; // cuánto de la venta del día suele estar hecho a cada hora // acumulado TRU de 9 a 20 h (hoy)
-const S = {vista:'A',rol:'admin',sesion:'TRU',per:'hoy',hora:'17',ancho:'pc',tab:'TRU',cargadas:new Set(['TRU']),abierta:'TRU',x:{proy:true,hora:true,prend:true}};
+const S = {demoCota:false,vista:'A',rol:'admin',sesion:'TRU',per:'hoy',hora:'17',ancho:'pc',tab:'TRU',cargadas:new Set(['TRU']),abierta:'TRU',x:{proy:true,hora:true,prend:true}};
 const f = n => 'S/ ' + Math.round(n).toLocaleString('es-PE');
 const frac = () => S.hora==='11' ? CURVA[2] : CURVA[8]+(CURVA[9]-CURVA[8])*.67;   // cuánto de la venta del día ya debería estar hecho
 const hoyK = () => S.hora==='11' ? HORAS[2]/440 : 1;   // cuánto de lo vendido hoy ya está a esa hora
@@ -285,10 +305,29 @@ function extras(d){
   if(S.x.prend){b.push(`<div class="card"><div class="lbl">Prendas por venta</div><div class="v num">${(d.pr/Math.max(1,d.nv)).toFixed(1)}</div><div class="d">Cuántas prendas se llevan en cada compra de la tienda. Las devoluciones no restan (D-79).</div></div>`);}
   return b.length?`<div class="ext">${b.join('')}</div>`:'';
 }
+function ayuda(titulo,html){html=html.replace(/<p>/g,'<span class="par">').replace(/<\/p>/g,'</span>');return `<span class="ay"><button type="button" aria-label="Ayuda: ${titulo}" data-ay>!</button><span class="globo" role="dialog"><b class="t">${titulo}</b>${html}</span></span>`;}
+// Mes completo de cada persona: [nombre, ventas, soles, horas]. Lucía tiene pocas ventas y un número alto (la «racha de suerte»).
+const MES_P={TRU:[['Chiara',31,2650,150],['Mateo',28,2480,150],['Lucía',8,700,30],['Renzo',22,1980,120],['Valeria',26,2260,140]],AQP:[['Camila',41,6240,150],['Diego',29,4310,140],['Sofía',33,4890,150]],LIM:[['Andrea',12,2100,120],['Joaquín',9,1650,100]]};
+const Z=2,CV=1,K=40;
+function rankingHora(id){
+  const P=MES_P[id], H=P.reduce((a,p)=>a+p[3],0), S=P.reduce((a,p)=>a+p[2],0), V=P.reduce((a,p)=>a+p[1],0), hp=K/(V/H);
+  const filas=P.map(([n,v,s,h])=>{const y=s/h; let th=y,N=v,contra=false; if(P.length>=2){const w=h/(h+hp); th=w*y+(1-w)*(S/H); N=v+K; contra=true;} const cota=th*Math.max(0,1-Z*Math.sqrt((1+CV*CV)/N)); return {n,v,y,th,cota};});
+  return filas.sort((a,b)=>b.cota-a.cota||b.th-a.th);
+}
+function rankings(id){
+  const r=rankingHora(id), porVentas=[...MES_P[id]].sort((a,b)=>b[1]-a[1]);
+  const chica=v=>v<40?`<span class="chip am"><i class="pto am"></i>Muestra chica${S.demoCota?'':''} (${v})</span>`:'';
+  const hora=r.map((x,i)=>`<div class="f"><span><span class="pos">${i+1}</span>${x.n} ${chica(x.v)}</span><span class="num" style="text-align:right">S/ ${x.th.toFixed(1)}${S.demoCota?`<span class="cota">asegurado ≥ S/ ${x.cota.toFixed(1)} · crudo ${x.y.toFixed(1)}</span>`:''}</span></div>`).join('');
+  const ven=porVentas.map((p,i)=>`<div class="f"><span><span class="pos">${i+1}</span>${p[0]} ${p[1]<40?`<span class="chip am"><i class="pto am"></i>Muestra chica</span>`:''}</span><span class="num">${p[1]}</span></div>`).join('');
+  return `<div class="sec"><span class="lbl">Rankings del mes</span><div class="rk mt">
+    <div><h4>Vende más por hora${ayuda('Vende más por hora','<p>El número no es el crudo: se corrige hacia el promedio de la tienda, tanto menos cuanto más horas tenga cada persona (contracción de Efron-Morris).</p><p><b>El orden</b> no es por ese número sino por lo que podemos asegurar de él (el número menos su margen de error): quien tiene poca evidencia queda más abajo que quien tiene mucha, aunque su número sea mayor.</p><p>«Muestra chica» es menos de 40 ventas en el mes.</p>')}</h4><div class="card tab"><div class="cab"><span>Integrante</span><span>Soles por hora</span></div>${hora}</div></div>
+    <div><h4>Cierra más ventas${ayuda('Cierra más ventas','<p>Número de ventas del mes, sin corregir: funciona igual con o sin horas registradas.</p><p>«Muestra chica» es menos de 40 ventas en el mes.</p>')}</h4><div class="card tab"><div class="cab"><span>Integrante</span><span>Ventas</span></div>${ven}</div></div>
+  </div>${S.demoCota?'<p class="nota-demo">Solo del demo: la pantalla real muestra únicamente el número corregido; aquí se agrega la cota para que se vea por qué el orden no sigue al número.</p>':''}</div>`;
+}
 function skeleton(){return `<div class="mt"><div class="skel" style="width:40%"></div><div class="skel mt" style="width:100%;height:90px"></div><div class="skel mt" style="width:80%"></div></div>`;}
 function cabecera(){
   return `<div class="sobre">Gestión</div><h1>Rendimiento</h1>
-  <p class="bajada">Las ventas de cada persona de cada tienda. Para reconocer y acompañar — sin comisión ni bono.</p>
+  <div class="bajada">Las ventas de cada persona de cada tienda, contra su meta. Para reconocer y acompañar — sin comisión ni bono.${ayuda('Cómo se lee Rendimiento','<p>Lo vendido cuenta con IGV y sin anuladas; las devoluciones y los cambios no restan. Es de quien atendió la venta.</p><p>La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni para evaluar.</p>')}</div>
   <div class="ctl"><div class="pil" role="group" aria-label="Período">${[['hoy','Hoy'],['sem','Semana'],['mes','Mes']].map(([k,l])=>`<button data-act="per" data-v="${k}" aria-pressed="${S.per===k}">${l}</button>`).join('')}</div>
   <span class="chip tx">Corregido por tamaño de muestra (Efron-Morris)</span></div>`;
 }
@@ -296,7 +335,7 @@ function panelTienda(id){
   const d=tienda(id);
   return `<div class="sec" style="margin-top:26px"><h3>${d.t.n}</h3></div>${cifras(d)}
   <div class="sec"><h3>Cómo va cada integrante</h3>${personas(d)}</div>
-  <div class="sec"><h3>Ventas contra la meta</h3>${graficoSemana(d)}</div>${extras(d)}`;
+  <div class="sec"><h3>Ventas contra la meta</h3>${graficoSemana(d)}</div>${extras(d)}${rankings(d.id)}`;
 }
 
 /* ---------- Variantes ---------- */
@@ -310,7 +349,7 @@ function vA(){
   const cargada=S.cargadas.has(S.tab);
   return `${cabecera()}<div class="tabs" role="tablist">${tabs}</div>
     <div id="cuerpoTab">${cargada?panelTienda(S.tab):skeleton()}</div>
-    <div class="nota">Solo se pide a la base la tienda que estás mirando: la de tu sesión primero y las otras al tocar su pestaña. Las tres tarjetas de arriba son un comparativo que siempre se ve.</div>`;
+`;
 }
 function vB(){
   const ids=orden(), act=ids.includes(S.tab)?S.tab:ids[0], otras=ids.filter(i=>i!==act);
@@ -362,7 +401,7 @@ B:{t:'B · Tienda activa + las otras al costado',g:['La tienda de la sesión ocu
 C:{t:'C · Tablero de la cadena',g:['Responde «¿cómo va la cadena?» en un vistazo: una fila por tienda, con la marca de «a esta hora tocaba».','El detalle de las personas se abre en el lugar, sin cambiar de pantalla.','Es la única vista que suma las tres tiendas.'],p:['Solo tiene sentido para un Admin; una líder vería una fila.','Compara tiendas con tamaños distintos (LIM es chica): hay que leerlo como avance contra su meta, no como soles.']},
 D:{t:'D · Día en vivo, hora a hora',g:['Es la vista de operación: ventas acumuladas contra el ritmo esperado y quién está en turno.','Responde «¿vamos bien AHORA?» mientras todavía se puede hacer algo.'],p:['Solo habla de hoy; Semana y Mes no cambian nada aquí (por eso es complemento, no reemplazo).','Necesita ventas con hora: ya existen, pero hay que medir cuánto cuesta leerlas por hora.']}
 };
-function porque(){ $('#porque').innerHTML=`<h4>Lo que decidió Felipe (2026-10-03)</h4><div class="dos"><div><b>Pantalla</b><ul><li>Pestañas por tienda: abre en la tienda de la sesión y las otras se piden al tocarlas.</li><li>Tres tarjetas arriba con el comparativo de las tiendas, siempre a la vista.</li><li>Una líder de una sola tienda no ve pestañas: ve su tienda.</li></ul></div><div><b>Medidas nuevas (las tres, siempre)</b><ul><li><b>Proyección del mes:</b> a este ritmo, dónde cierra.</li><li><b>Ventas por hora:</b> la mejor franja del día, para repartir turnos.</li><li><b>Prendas por venta:</b> cuántas se lleva cada compra.</li></ul></div></div>`; }
+function porque(){ $('#porque').innerHTML=`<h4>Lo que cambió respecto del spike anterior (2026-10-03)</h4><div class="dos"><div><b>Notas colapsadas en «!»</b><ul><li>La cabecera lleva una frase corta y un «!» con «Cómo se lee».</li><li>Cada ranking lleva su «!» junto al título, pegado a lo que explica.</li><li>Los avisos que piden hacer algo (sin meta, sin horarios) siguen a la vista.</li></ul></div><div><b>Ranking de «Vende más por hora» (opción C)</b><ul><li>Se muestra el número corregido; el orden sale de lo que podemos asegurar de él.</li><li>Activa «Mostrar la cota» para ver por qué Lucía (8 ventas, número alto) queda abajo.</li><li>Toca cada «!» para leer su explicación.</li></ul></div></div>`; }
 
 /* ---------- Pintar ---------- */
 function pintar(){
@@ -383,6 +422,9 @@ document.addEventListener('click',e=>{
   if(act==='abrir'){S.abierta=S.abierta===v?null:v;pintar();}
   window.scrollTo(0,y);
 });
+document.getElementById('chkCota').addEventListener('change',e=>{S.demoCota=e.target.checked;pintar();});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ay]');document.querySelectorAll('.ay.abierto').forEach(x=>{if(!b||x!==b.parentElement)x.classList.remove('abierto')});if(b){const ay=b.parentElement;ay.classList.toggle('abierto');if(ay.classList.contains('abierto')){const g=ay.querySelector('.globo');g.style.left='-8px';const r=g.getBoundingClientRect();if(r.right>innerWidth-8)g.style.left=(-8-(r.right-(innerWidth-8)))+'px';const r2=g.getBoundingClientRect();if(r2.left<8)g.style.left=(parseFloat(g.style.left)+(8-r2.left))+'px';}}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.ay.abierto').forEach(x=>x.classList.remove('abierto'));});
 document.querySelectorAll('[data-x]').forEach(c=>c.addEventListener('change',()=>{S.x[c.dataset.x]=c.checked;pintar();}));
 pintar();
 </script>
