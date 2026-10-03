@@ -33,7 +33,7 @@ import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, guardarTamanoGrilla, type Tam
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
  * misma fuente de datos (`ProductoListado[]`, ya filtrada/paginada por
- * `fn_productos`), sin pedir nada nuevo al servidor.
+ * `fn_productos_listado`, ADR-0308), sin pedir nada nuevo al servidor.
  *
  * Foto real por color cuando existe (20260917190000, `variantes[].fotoUrl`)
  * — si un color todavía no tiene foto, la tarjeta muestra un tinte derivado

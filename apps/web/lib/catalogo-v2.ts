@@ -175,8 +175,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
 // `getCatalogo()` arriba sigue existiendo tal cual — trae TODO sin filtrar,
 // y lo siguen usando flujos que de verdad necesitan el catálogo entero (el
 // escáner de Vender). Esto es aparte: filtros en la URL, resueltos en
-// Postgres (`fn_productos`/`fn_productos_resumen`,
-// `20260915160000_productos_listado_filtros.sql`), paginado por PRODUCTO
+// Postgres (nació en `fn_productos`/`fn_productos_resumen`, 20260915160000; desde el
+// 2026-10-02 `fn_productos_listado`/`fn_productos_facetas`, ADR-0308), paginado por PRODUCTO
 // (no por fila de variante) y por número de página — no cursor, decisión de
 // Felipe documentada en la migración: el catálogo no crece como un ledger.
 // ============================================================================
