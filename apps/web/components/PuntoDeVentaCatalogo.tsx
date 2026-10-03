@@ -6,10 +6,12 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
+import { motivoNoCobrable, type MotivoCaja, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
-import { IconoCategoria } from "@/components/IconoCategoria";
-import { tonoDeCategoria } from "@/components/MuestraCategoria";
+import { FotoPrenda } from "@/components/apartados/piezas";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
@@ -20,6 +22,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
  * porque acá cada tarjeta ocupa mucho más que una fila de combo.
  */
 const TANDA_GRILLA = 60;
+
+/** El tono del Chip de stock de cada fila del buscador. Agotada va «apagado» y no rojo: una lista con varias agotadas
+ *  pasaría el máximo de rojo por pantalla (la fila ya se atenúa, y el chip dice el estado con letra). */
+const TONO_STOCK: Record<MotivoCaja, TonoChip> = { cobrable: "verde", en_almacen: "ambar", apartada: "pizarra", agotada: "apagado" };
 
 type Props = {
   ubicacionEtiqueta: string;
@@ -272,35 +278,50 @@ export function PuntoDeVentaCatalogo({
                     // Con el piso en 0, «sin stock aquí» o, si está guardada en el almacén de esta sede, cuántas hay ahí
                     // (D-40): la colaboradora no le dice «no hay» a la clienta con la prenda en la trastienda.
                     const motivo = motivoNoCobrable(v);
+                    const otras = textoOtrasSedes(v.stockOtrasSedes ?? []);
+                    const apagada = motivo === "agotada" || motivo === "apartada";
                     return (
-                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo} className="anim-entra" style={{ "--i": Math.min(i, 6) } as CSSProperties}>
+                    // Estilo C del spike (`docs/maquetas/buscador-vender-2026-10/`, Felipe 2026-10-03): la prenda como en la
+                    // grilla de abajo —foto, o el ícono de su categoría sobre el COLOR de la prenda—, talla en píldora, punto
+                    // del color y el stock como Chip. Precio a la derecha; por `@container`, bajo 26rem baja bajo el nombre.
+                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo} className="anim-entra @container relative" style={{ "--i": Math.min(i, 6) } as CSSProperties}>
                       <button
                         type="button"
                         onMouseEnter={() => onActivo(i)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => onAgregar(v)}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
-                          i === activo ? "bg-sand/60" : ""
-                        } ${motivo === "agotada" || motivo === "apartada" ? "opacity-55" : ""}`}
+                        className={`flex w-full items-center gap-3.5 py-2.5 pr-3.5 pl-3 text-left text-sm transition-colors duration-200 ${i === activo ? "bg-sand/60" : ""}`}
                       >
-                        <span>
-                          <span className="block font-semibold text-tinta">{v.referencia}</span>
-                          <span className="text-xs text-tinta/60">
-                            {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
+                        {/* La barra roja de la fila activa: un solo rojo a la vez en la pantalla. */}
+                        {i === activo && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-sm bg-rojo" />}
+                        {v.fotoUrl ? (
+                          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={64} className={`w-16 ${apagada ? "opacity-55" : ""}`} />
+                        ) : (
+                          <MosaicoPrenda colorHex={v.colorHex} prefijo={v.categoriaPrefijo} familia={v.categoriaFamilia ?? null} categoria={v.categoria} forma="fila" className={`w-16 ${apagada ? "opacity-55" : ""}`} />
+                        )}
+                        <span className={`min-w-0 flex-1 ${apagada ? "opacity-80" : ""}`}>
+                          <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
+                          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-tinta/65">
+                            {v.talla && <span className="shrink-0 rounded-md border border-sand bg-crema px-1.5 py-px font-semibold text-tinta">{v.talla}</span>}
+                            {v.color && (
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/25" style={{ backgroundColor: estiloMosaicoColor(v.colorHex)?.fondo ?? "transparent" }} />
+                                <span className="truncate">{v.color}</span>
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] tracking-wide text-tinta/50">{codigoPrenda(v)}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <Chip tono={TONO_STOCK[motivo]} tachado={false}>
+                              {textoStockDeFila(v)}
+                            </Chip>
+                            {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
+                            {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
+                            {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
+                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">{money(v.precio)}</span>
                           </span>
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
-                          <span
-                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "apartada" ? "text-pizarra" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
-                          >
-                            {textoStockDeFila(v)}
-                          </span>
-                          {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
-                          {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
-                            <span className="block text-[11px] text-tinta/55">{textoOtrasSedes(v.stockOtrasSedes ?? [])}</span>
-                          )}
-                        </span>
+                        <span className="hidden shrink-0 text-right text-sm font-semibold tabular-nums text-tinta @[26rem]:block">{money(v.precio)}</span>
                       </button>
                     </li>
                     );
@@ -496,27 +517,18 @@ export function PuntoDeVentaCatalogo({
                       <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
                     </div>
                   ) : (
-                    // Sin foto: el dibujo de su categoría en el tono de su familia (el mismo de Catálogo ▸ Categorías) y
-                    // su nombre debajo, los dos centrados como un bloque. Antes eran las iniciales de la prenda, que no
-                    // decían qué era (Felipe 2026-10-02). El nombre va en el flujo y no pegado a una esquina: en una
-                    // tarjeta de 95 px (celular de 320) una esquina lo cortaba en «CAMISAS Y…»; aquí baja a dos líneas.
-                    // `pointer-events-none` por lo mismo que la foto: este div es `relative` y tapaba el botón de la tarjeta.
-                    <div
-                      aria-hidden
-                      className={`pointer-events-none relative mb-2.5 flex aspect-square flex-col items-center justify-center gap-[7%] rounded-lg p-2 ${soloEnAlmacen ? "opacity-55" : ""}`}
-                      style={{ backgroundColor: tonoDeCategoria(g.tallas[0]?.variante.categoriaFamilia ?? null).fondo, color: tonoDeCategoria(g.tallas[0]?.variante.categoriaFamilia ?? null).acento }}
-                    >
-                      <IconoCategoria
-                        prefijo={g.tallas[0]?.variante.categoriaPrefijo}
-                        familia={g.tallas[0]?.variante.categoriaFamilia ?? null}
-                        className="aspect-square h-auto w-[38%] shrink-0 transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.06]"
-                      />
-                      {g.tallas[0]?.variante.categoria && (
-                        <span className="label-cayla line-clamp-2 max-w-full text-center text-[9.5px] leading-snug text-tinta/60">
-                          {g.tallas[0].variante.categoria}
-                        </span>
-                      )}
-                    </div>
+                    // Sin foto: el ícono de su categoría sobre el COLOR de la prenda, con su categoría debajo (Felipe 2026-10-03;
+                    // antes era un tono por familia, igual para todos los colores). `MosaicoPrenda` es el mismo de la lista del
+                    // buscador. El nombre va en el flujo y no pegado a una esquina: en una tarjeta de 95 px (celular de 320)
+                    // una esquina lo cortaba en «CAMISAS Y…»; aquí baja a dos líneas. Sin color, cae al tono de su familia.
+                    <MosaicoPrenda
+                      colorHex={g.tallas[0]?.variante.colorHex}
+                      prefijo={g.tallas[0]?.variante.categoriaPrefijo}
+                      familia={g.tallas[0]?.variante.categoriaFamilia ?? null}
+                      categoria={g.tallas[0]?.variante.categoria}
+                      forma="grilla"
+                      className={`mb-2.5 ${soloEnAlmacen ? "opacity-55" : ""}`}
+                    />
                   )}
                   {/* Dos líneas: en un celular de 320 la tarjeta mide ~120 px y una sola dejaba «Pantalón…» sin decir cuál. */}
                   <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{g.referencia}</p>
@@ -526,7 +538,8 @@ export function PuntoDeVentaCatalogo({
                       tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
                       «no hay M» que «no existe M». Y una talla con el piso en 0 pero guardada en el
                       almacén de esta sede no se tacha (D-40): se ve punteada en ámbar y, al tocarla,
-                      el aviso dice cuántas hay y que la bajen — en el celular el tooltip no se ve. */}
+                      el aviso dice cuántas hay y ofrece agregarla registrando la bajada (ADR-0321) — en el
+                      celular el tooltip no se ve. */}
                   <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
                     {g.tallas.map((t) =>
                       t.stockAqui <= 0 && t.almacenAqui > 0 ? (
@@ -542,7 +555,7 @@ export function PuntoDeVentaCatalogo({
                               {t.talla}
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · que la bajen en ${DONDE_SE_BAJA}`}</TooltipContent>
+                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · si la tienes en la mano, tócala: se registra la bajada`}</TooltipContent>
                         </Tooltip>
                       ) : t.stockAqui > 0 ? (
                         <Tooltip key={t.variante.varianteId}>

@@ -105,12 +105,12 @@ export function CajonPrendaExistencias({
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
   veTraslados: boolean;
-  /** Solo un Admin en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
+  /** Quien edita el catálogo, en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
    *  base (trasplantado de `DetallePrendaExistencias.tsx`, main PR #574, al cajón nuevo). */
   puedeEliminar?: boolean;
-  /** «Reponer a piso» abre la ventana de la PRENDA entera, con todas sus tallas (`ReponerPrendaModal`). */
+  /** «Reponer prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`ReponerPrendaModal`, ADR-0317). */
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>) => void;
-  /** «Subir a almacén» abre la ventana de la PRENDA entera, con las tallas que tienen algo libre en el piso (`SubirAAlmacenModal`). */
+  /** «Subir prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`SubirAAlmacenModal`, ADR-0317). */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   onAjustar: (f: FilaExistencias) => void;
   /** Sin ella si `puedeEliminar` es false: nunca se ofrece un botón que la pantalla no sabría atender. */
@@ -271,8 +271,8 @@ export function CajonPrendaExistencias({
                 {hayOperar && (
                   <Grupo titulo="Operar esta prenda" bajada="Acciones rápidas de reposición y movimiento.">
                     <div className="grid gap-2">
-                      {puedeReponer && hayQueReponer && <Accion principal icono={IconoPercha} texto="Reponer a piso" onClick={() => onReponer(prenda)} />}
-                      {puedeReponer && hayQueSubir && <Accion icono={Warehouse} texto="Subir a almacén" onClick={() => onSubir(prenda)} />}
+                      {puedeReponer && hayQueReponer && <Accion principal icono={IconoPercha} texto="Reponer prenda" onClick={() => onReponer(prenda)} />}
+                      {puedeReponer && hayQueSubir && <Accion icono={Warehouse} texto="Subir prenda" onClick={() => onSubir(prenda)} />}
                       {hrefTrasladar && <Accion icono={ArrowLeftRight} texto="Trasladar" href={hrefTrasladar} />}
                     </div>
                   </Grupo>

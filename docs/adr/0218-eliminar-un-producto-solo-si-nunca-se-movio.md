@@ -107,3 +107,9 @@ producto de ensayo sin historia se eliminó dejando el rastro a nombre del Admin
 unidades en stock (65)»; «Prenda sin Registrar» se rechazó como pieza del sistema; la colaboradora recibió «Solo un líder puede eliminar productos.». Después
 del lote: 0 funciones, 13 productos, ningún resto ni rastro. Recién entonces `apply_migration`.
 `pnpm datos:comparar` ya no debería avisar de estas dos funciones cuando se refresque el volcado (`docs/datos/generado/COMO-REFRESCAR.md`).
+
+## Actualización 2026-10-03
+
+El permiso cambió: desde la migración `20261003232000` elimina **quien edita el catálogo** (`fn_puede_editar_catalogo()`), no
+solo el Líder. Felipe eligió la opción que esta decisión había descartado, para que la cuenta de almacén pueda deshacer
+productos registrados por error. Detalle en [ADR-0252, «Actualización 2026-10-03»](0252-eliminar-producto-con-historia-de-stock-solo-admin.md).

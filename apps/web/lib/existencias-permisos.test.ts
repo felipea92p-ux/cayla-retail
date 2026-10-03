@@ -9,7 +9,7 @@ const TODO: EntradaPermisos = {
   puedeAjustar: true,
   veTraslados: true,
   esTienda: true,
-  esAdmin: true,
+  editaCatalogo: true,
 };
 
 describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mismo que la base (ADR-0240)", () => {
@@ -59,13 +59,15 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     expect(p.pedirAOtraSede).toBe(false);
   });
 
-  it("Eliminar el producto (ADR-0252): solo un Admin, en su sede, sin importar los módulos ni el Taller", () => {
-    // Un Líder que no es Admin no: todo lo de Existencias ya tiene historia de stock y la base se lo negaría siempre.
-    expect(permisosDelDetalle({ ...TODO, esAdmin: false }).eliminar).toBe(false);
-    expect(permisosDelDetalle({ ...TODO, esAdmin: false }).ajustar).toBe(true);
-    const admin = { ...TODO, puedeBajarAlPiso: false, veApartados: false, puedeAjustar: false, veTraslados: false };
-    expect(permisosDelDetalle(admin).eliminar).toBe(true);
+  it("Eliminar el producto (ADR-0252, act. 2026-10-03): quien edita el catálogo, en su sede, sin importar los otros módulos ni el Taller", () => {
+    // La misma regla que la tarjeta de Catálogo y que la base (`fn_puede_editar_catalogo`): la cuenta de almacén lo ve.
+    expect(permisosDelDetalle({ ...TODO, editaCatalogo: false }).eliminar).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, editaCatalogo: false }).ajustar).toBe(true);
+    const soloCatalogo = { ...TODO, puedeBajarAlPiso: false, veApartados: false, puedeAjustar: false, veTraslados: false };
+    expect(permisosDelDetalle(soloCatalogo).eliminar).toBe(true);
     expect(permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false }).eliminar).toBe(true);
+    // Mirando otra sede, tampoco: borra el producto en todas, pero firma con el Responsable de la sede activa.
+    expect(permisosDelDetalle({ ...TODO, enSedeActiva: false }).eliminar).toBe(false);
   });
 
   it("cada módulo apaga solo lo suyo", () => {

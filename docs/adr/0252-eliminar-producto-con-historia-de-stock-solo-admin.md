@@ -163,3 +163,75 @@ prenda marcada dejaba la barra de marcadas en «0 prendas · 0 tallas» y escond
 se deciden por lo marcado que sigue en la lista (`filasMarcadas`), no por el conjunto crudo. Refutó uno: mirando otra sede el botón
 no aparece, por la misma regla que el resto de lo que escribe.
 
+
+## Actualización 2026-10-03: elimina quien edita el catálogo (la cuenta de almacén)
+
+**Pedido:** la cuenta de almacén registró productos que no eran y no tenía cómo deshacerlos: la tarjeta del catálogo no le
+mostraba «Eliminar». Felipe: «quiero que les des ese permiso a la cuenta de almacén para que puedan eliminar eso, al momento
+de darle a la tarjeta de catálogo». No se puede dar un permiso a un rol por su nombre desde el código (ADR-0161), así que hubo
+que traducir el pedido a una regla. Felipe eligió entre tres:
+- *Lo que tu cuenta registró* (`producto_origen`): resolvía lo de almacén sin dejar que nadie borre lo de otro, pero dejaba
+  fuera lo registrado antes del 30-sep (no tiene origen anotado).
+- **Quien edita el catálogo** ← elegida.
+- *No cambiar*: Felipe, como Admin, los borra él.
+
+**DECIDÍ:** las cuatro puertas (`fn_producto_se_puede_eliminar`, `eliminar_producto`, `fn_producto_como_eliminar` y
+`eliminar_producto_con_historia`) piden `fn_puede_editar_catalogo()` (Líder, o un rol que ve Productos o Categorías/atributos),
+y en «con historia» `puedes` ya no es `fn_es_admin()`. La web pregunta lo mismo (`puede(persona, "editarCatalogo")` en
+`productos/page.tsx`, tarjeta y tabla). Lo demás no cambia: qué se puede borrar (sin documentos), el respaldo, los candados, el
+rastro, la línea en Actividad y la firma del responsable del combo (en una terminal, alguien con su entrada marcada).
+Migración `20261003232000_eliminar_producto_quien_edita_catalogo.sql`, por reemplazo anclado: las funciones vivas tienen el
+parche de Frescura (20261001100200) y reescribirlas desde su archivo lo borraría.
+
+**DESCARTÉ:** un módulo «Eliminar productos» en Roles y accesos (ADR-0306: un módulo es una entrada del menú, no un botón);
+y marcar el rol de almacén desde el código (ADR-0161).
+
+**SE ROMPE SI:** una cuenta de tienda borra inventario real que cargó otra sede. Es el costo que ADR-0218 nombró al descartar
+esta misma regla; Felipe lo acepta. Lo mitigan la ventana (dice quién lo cargó y cuándo, en rojo), el respaldo
+(`restaurar-purga.sql`) y la línea en Actividad con el nombre de quien lo hizo. Y si alguien vuelve a pegar
+`20260926220000` o `20260928230000`, vuelve «solo Líder / solo Admin»; lo detectan las dos pruebas.
+
+**Existencias no cambió en este primer corte:** el «Eliminar el producto» del detalle de una prenda siguió solo para un Admin
+(`permisosDelDetalle`). El motivo de entonces («un Líder vería un botón que nunca funciona») ya no valía, pero el pedido era la
+tarjeta del catálogo. Felipe lo decidió el mismo día: ver «Existencias sigue la misma regla», al final.
+
+**Verificación:** `pnpm pruebas:eliminar-producto` 39/40 y `pnpm pruebas:eliminar-producto-con-historia` 60/60 en la base local,
+con la migración aplicada dentro de cada transacción y deshecha al final (el único rojo, «Blusa Emma» con 2 líneas de venta
+en vez de 1, falla igual con la versión de `main`: son datos que otra sesión dejó en la base local compartida). Sin la
+migración, los 13 casos nuevos fallan. Migración pegada dos veces seguidas sin error (idempotente). Web: `vitest` 312 archivos,
+`tsc` y `eslint` limpios. **Navegador** (base local con la migración aplicada y revertida después, md5 idéntico): la terminal
+«Almacén Trujillo» ve «Eliminar» en la tarjeta y la ventana le ofrece «Eliminar con su historia» para un producto con su
+carga inicial; el último clic espera a alguien de turno, y en local no hay marcajes de Dynamic, así que no se pudo dar. El
+borrado por una cuenta que no es Líder lo prueban las pruebas de la base (8b y 6b).
+
+**Producción (2026-10-03, con el «dale» de Felipe):** primero un ensayo en la base real, en un solo lote que terminó en
+excepción a propósito. Los cinco reemplazos encontraron su ancla una vez cada uno, y las cuatro funciones quedaban con
+`fn_puede_editar_catalogo()` y sin `fn_es_admin()` ni `fn_es_lider()`. Después del lote, producción seguía con la regla vieja.
+Recién entonces `apply_migration` (versión `20261003183002`). Verificado por efectos: una sola versión de cada función, `security definer`,
+`authenticated` sí y `anon` no, y los md5 nuevos son `e0fac050…` (`eliminar_producto_con_historia`), `c5094c1f…`
+(`eliminar_producto`), `0736b4b3…` (`fn_producto_como_eliminar`) y `0b4745df…` (`fn_producto_se_puede_eliminar`). Las tres
+terminales «Almacén Trujillo», «Almacén Lima» y «Almacén Arequipa» (rol «Terminal Almacén») ven Productos y Atributos, así
+que les aparece el botón.
+
+### Existencias sigue la misma regla (Felipe, 2026-10-03, más tarde)
+
+**Pedido:** decidir el pendiente de arriba. Felipe eligió entre tres: *quien edita el catálogo* ← elegida; *solo Admin, como
+hasta ahora* (Existencias como pantalla de operar stock, no de corregir el catálogo); *solo desde Catálogo* (Felipe perdía el
+atajo que había pedido el 28-sep).
+
+**DECIDÍ:** `permisosDelDetalle` recibe `editaCatalogo` (`puede(persona, "editarCatalogo")`, que `inventario/page.tsx` le pasa a
+`InventarioPanel`) en vez de `esAdmin`, y `eliminar` sigue exigiendo la sede activa como todo lo que escribe. Es la misma
+pregunta que hace la tarjeta de Catálogo y que hace la base desde `20261003232000`. Solo web, sin migración.
+
+**SE ROMPE SI:** quien mira Existencias de su sede borra un producto que también tiene stock en otra: la ventana lo dice
+(«Se borra todo: … su stock en todas las sedes», quién lo cargó y cuándo, en rojo). Es el mismo costo que ya se aceptó para
+Catálogo, con el mismo respaldo y la misma línea en Actividad. Una terminal que solo vende (sin Productos ni Atributos completos)
+no ve el botón.
+
+**Verificación:** `existencias-permisos.test.ts` (11/11): sin `editaCatalogo` no hay botón; con él sí, aunque no tenga ninguno de
+los otros módulos y también en el Taller; mirando otra sede, no. `tsc` y `eslint` limpios. **Navegador** (local, 1440 px): Micaela,
+integrante de Tienda Trujillo, no Admin, con Productos y Atributos completos, ve «Eliminar el producto» en el cajón de «Blazer Demo
+Franja». Con la base local en la regla vieja, la ventana dice «No se pudo comprobar»: es el síntoma de una web que llega antes
+que la base, y producción ya tiene la migración. Con `20261003232000` aplicada en local, la ventana le ofrece «Eliminar con su
+historia» (54 prendas, 22 movimientos, «Lo cargó Felipe Alvarez el 02/10/2026») y pide responsable de turno. No se confirmó. Después,
+las cuatro funciones volvieron a su versión anterior, con md5 de definición y comentario idénticos a los de antes.

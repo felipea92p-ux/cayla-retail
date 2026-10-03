@@ -88,6 +88,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   }
 
   const editaCatalogo = puede(persona, "editarCatalogo");
+  // «Eliminar» en la tarjeta y en la tabla (ADR-0252, act. 2026-10-03): quien edita el catálogo, igual que la base
+  // (`fn_puede_editar_catalogo`). Antes, solo Líder: la cuenta de almacén creaba productos y no podía deshacer un error.
   // ADR-0246 + ADR-0161: el aviso «N prendas sin temporada · Completar» lleva a Atributos ▸ Temporadas, que se abre con el
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
@@ -246,7 +248,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             veExistencias={veModulo(persona, "existencias")}
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
-            puedeEliminar={persona.rol === "lider"}
+            puedeEliminar={editaCatalogo}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             tamanoInicial={tamanoGrilla}
           />
@@ -258,7 +260,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             sede={persona.ubicacionEtiqueta}
             puedeEditar={editaCatalogo}
             veExistencias={veModulo(persona, "existencias")}
-            puedeEliminar={persona.rol === "lider"}
+            puedeEliminar={editaCatalogo}
             veDinero={puede(persona, "verDineroCompras")}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
           />

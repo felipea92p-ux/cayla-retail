@@ -11,8 +11,9 @@
  *   · el RESPALDO es real: `scripts/purga/restaurar-purga.sql` lo devuelve fila por fila, idéntico;
  *   · lo que pregunta la ventana (`fn_producto_como_eliminar`): nivel, si ESTA cuenta puede, la razón, cuántas prendas y
  *     movimientos se van, y quién lo cargó;
- *   · solo un Admin: un Líder que no es Admin ve «con historia» pero no puede; una integrante y `anon` ni preguntan;
- *     `fn_producto_historia` no se puede llamar desde la API;
+ *   · quien edita el catálogo (ADR-0252, act. 2026-10-03; antes solo un Admin): un Líder que no es Admin y una integrante con
+ *     Productos lo eliminan (rastro y Actividad a su nombre); un rol sin Productos ni Categorías/atributos y `anon` ni
+ *     preguntan; `fn_producto_historia` no se puede llamar desde la API;
  *   · DOCUMENTOS frenan hasta al Admin, sin llevarse nada: una venta (el seed), un apartado abierto, un ingreso de proveedor;
  *   · sin historia también funciona (es un superconjunto de `eliminar_producto`); la pieza «Monto manual» nunca; un
  *     producto que ya no existe lo dice;
@@ -39,6 +40,7 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin en el seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
 const CENTINELA = "11111111-1111-4111-8111-111111111111"; // el producto de «Monto manual»
+const SIN_PERMISO = "42501|-|No puedes eliminar productos: tu rol no edita el catálogo (módulo «Productos»). Pídele al líder que lo active.";
 
 function psql(sql) {
   return execFileSync(
@@ -308,25 +310,32 @@ select count(*) || '|' || max(modulo) from retail.actividad where accion = 'purg
   esperar("Actividad cuenta la restauración en el módulo Productos", r.ok && actividad === "1|productos", r);
 }
 
-// 5. Un Líder que NO es Admin: la ventana le dice que hay historia y que él no puede; la función lo frena.
+// 5. Un Líder que NO es Admin: desde el 2026-10-03 también puede (edita el catálogo). La ventana se lo dice y lo elimina.
 {
   const r = correr(`${ESCENA}
 update public.personas set rol = 'integrante' where auth_user_id = '${FELIPE}';
 select retail.fn_es_lider()::text || '|' || retail.fn_es_admin()::text;
 select pg_temp.como(:'pa');
-select pg_temp.intento(format('select retail.eliminar_producto_con_historia(%L)', :'pa'));
-select pg_temp.huella(:'pa');`);
-  const [perfil, como, intento, despues] = lineas(r);
+select retail.eliminar_producto_con_historia(:'pa');
+select pg_temp.huella(:'pa');
+select pg_temp.candados();`);
+  const [perfil, como, devuelto, despues, cand] = lineas(r);
   esperar("(preparación) la cuenta es Líder y no Admin", r.ok && perfil === "true|false", r);
-  esperar("la ventana: con historia, pero esta cuenta NO puede", r.ok && como === `con_historia|false|${HISTORIA_A}|13|7|Felipe Alvarez|true`, r);
-  esperar("eliminar con su historia: 42501, solo una cuenta Admin", r.ok && intento === "42501|-|Solo una cuenta Admin puede eliminar un producto con su historia.", r);
-  esperar("y no se llevó nada", r.ok && HUELLA_A.test(despues), r);
+  esperar("la ventana: con historia, y esta cuenta SÍ puede", r.ok && como === `con_historia|true|${HISTORIA_A}|13|7|Felipe Alvarez|true`, r);
+  esperar("lo elimina con su historia", r.ok && devuelto === "Prueba A", r);
+  esperar("no queda nada suyo", r.ok && despues === "0|0|0|0|0|0|0|0|0|0|0", r);
+  esperar("y cada candado volvió a su modo", r.ok && cand === CANDADOS, r);
 }
 
-// 6. Una integrante y anon ni preguntan; la definición de historia no se llama desde la API.
+// 6. Un rol que no ve Productos ni Categorías/atributos (no edita el catálogo) y anon ni preguntan; la definición de historia
+//    no se llama desde la API.
 {
   const r = correr(`${ESCENA}
+update retail.roles set limitado_como_hoy = false where clave = 'integrante';
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'existencias');
 ${sesion(MICAELA)}
+select retail.fn_puede_editar_catalogo()::text;
 select pg_temp.intento(format('select * from retail.fn_producto_como_eliminar(%L)', :'pa'));
 select pg_temp.intento(format('select retail.eliminar_producto_con_historia(%L)', :'pa'));
 set local role authenticated;
@@ -336,12 +345,39 @@ set local role anon;
 select pg_temp.intento(format('select retail.eliminar_producto_con_historia(%L)', :'pa'));
 reset role;
 select pg_temp.huella(:'pa');`);
-  const [como, eliminar, historia, anon, despues] = lineas(r);
-  esperar("una integrante no consulta la ventana (42501)", r.ok && como === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("ni elimina con historia (42501)", r.ok && eliminar === "42501|-|Solo una cuenta Admin puede eliminar un producto con su historia.", r);
+  const [edita, como, eliminar, historia, anon, despues] = lineas(r);
+  esperar("(preparación) una integrante que solo ve Existencias no edita el catálogo", r.ok && edita === "false", r);
+  esperar("no consulta la ventana (42501)", r.ok && como === SIN_PERMISO, r);
+  esperar("ni elimina con historia (42501)", r.ok && eliminar === SIN_PERMISO, r);
   esperar("fn_producto_historia no se puede llamar desde la API", r.ok && historia.includes("permission denied for function fn_producto_historia"), r);
   esperar("anon ni siquiera puede llamar la función", r.ok && anon.includes("permission denied for function eliminar_producto_con_historia"), r);
   esperar("y el producto sigue completo", r.ok && HUELLA_A.test(despues), r);
+}
+
+// 6b. La cuenta de almacén (2026-10-03): una integrante que ve Productos elimina con su historia lo que se registró por
+//     error. El rastro y la línea de Actividad quedan a SU nombre, y la ventana igual le dice quién lo cargó.
+{
+  const r = correr(`${ESCENA}
+update retail.roles set limitado_como_hoy = false where clave = 'integrante';
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'productos');
+select p.id as ella from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
+${sesion(MICAELA)}
+select retail.fn_puede_editar_catalogo()::text || '|' || retail.fn_es_lider()::text;
+select pg_temp.como(:'pa');
+select retail.eliminar_producto_con_historia(:'pa');
+select pg_temp.huella(:'pa');
+select pg_temp.libro_cuadra_no();
+select count(*) || '|' || (max(usuario_id::text) = :'ella')::text
+  from retail.historial_producto_cambios where entidad = 'producto' and entidad_id = :'pa' and campo = 'eliminado';
+select count(*) || '|' || (max(persona_id::text) = :'ella')::text from retail.actividad where tabla = 'productos' and registro_id = :'pa' and accion = 'producto_eliminado';`);
+  const [perfil, como, devuelto, despues, libro, rastro, actividad] = lineas(r);
+  esperar("(preparación) la integrante edita el catálogo y no es líder", r.ok && perfil === "true|false", r);
+  esperar("la ventana: con historia, puede, y dice que lo cargó Felipe Alvarez", r.ok && como === `con_historia|true|${HISTORIA_A}|13|7|Felipe Alvarez|true`, r);
+  esperar("lo elimina con su historia", r.ok && devuelto === "Prueba A" && despues === "0|0|0|0|0|0|0|0|0|0|0", r);
+  esperar("el libro sigue cuadrando", r.ok && libro === "0", r);
+  esperar("el rastro queda a nombre de ella", r.ok && rastro === "1|true", r);
+  esperar("y la línea de Actividad también", r.ok && actividad === "1|true", r);
 }
 
 // 7. Un producto con ventas (el seed): ni el Admin; se nombra el documento y no se lleva nada.
