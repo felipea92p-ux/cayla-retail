@@ -240,7 +240,7 @@ stateDiagram-v2
         D-40: si estaba en almacén,
         la caja registra el paso
         por el piso con un clic
-        (ADR-0320)
+        (ADR-0321)
     end note
 ```
 

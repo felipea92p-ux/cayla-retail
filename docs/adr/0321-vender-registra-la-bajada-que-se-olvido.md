@@ -1,4 +1,4 @@
-# ADR-0320 · Vender registra la bajada al piso que se olvidó, sin frenar la venta
+# ADR-0321 · Vender registra la bajada al piso que se olvidó, sin frenar la venta
 
 - **Fecha:** 2026-10-03 · **Estado:** construido en la rama `claude/prenda-no-registrada-piso-cbbfbf`, PR abierto. **Producción: la migración
   `20261003233000_bajar_al_piso_desde_vender.sql` está pegada desde el 2026-10-03** (con el ok de Felipe; versión `20261003194152`, ver «Aplicación en
@@ -89,6 +89,10 @@ candado de marca y `fn_actor_persona_id(true)`), `fn_bloquear_en_orden` (con sus
 (`562d05c0cc63a7a88bc96089acd09c69`), y dos llamadas sin sesión rechazan sin escribir nada (`bajada_vender_sin_token`, `bajada_vender_sin_modulo`).
 El volcado de `docs/datos/generado/` se refrescó por diferencia en el mismo PR (foto 19:50 UTC: 154 relaciones, 795 funciones; entraron esta función
 y `fn_comparativa_caja`, que otra rama pegó el mismo día).
+
+**Renumerado el mismo día:** nació como ADR-0320, pero otro PR («Reponer y subir prenda abren el modelo entero») fusionó primero
+su propio 0320. Este pasó a **0321** con todas sus referencias, y el comentario de la función en producción se actualizó para que diga
+0321 (`comment on function`, el mismo texto del archivo; el cuerpo no cambió: md5 `562d05c0…`).
 
 ## Cómo se verificó (2026-10-03)
 

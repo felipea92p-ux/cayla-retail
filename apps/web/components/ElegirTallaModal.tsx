@@ -30,7 +30,7 @@ type Props = {
  * Elegir una talla AGREGA esa variante y cierra (con la misma animación que Escape);
  * una talla agotada se queda a la vista y dice dónde sí hay. Una talla con el piso en 0
  * y prendas en el almacén de esta sede no está agotada (D-40): dice cuántas hay ahí y se
- * puede tocar — el aviso de la caja ofrece agregarla registrando la bajada (ADR-0320).
+ * puede tocar — el aviso de la caja ofrece agregarla registrando la bajada (ADR-0321).
  */
 export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie }: Props) {
   const nombre = [grupo.referencia, grupo.color].filter(Boolean).join(" ");
@@ -61,7 +61,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
               // Ya se llevó todo lo que hay: agregar otra no haría nada, y un botón que no
               // hace nada es justo lo que esta pantalla vino a quitar.
               const tope = motivo === "cobrable" && enTicket >= t.stockAqui;
-              // Lo que la frena es el almacén de esta tienda: se puede tocar y el aviso ofrece registrar la bajada (ADR-0320).
+              // Lo que la frena es el almacén de esta tienda: se puede tocar y el aviso ofrece registrar la bajada (ADR-0321).
               const bajable = enAlmacen || (tope && t.almacenAqui > 0);
               const otras = textoOtrasSedes(t.variante.stockOtrasSedes ?? []);
               return (
@@ -102,7 +102,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                             : `${t.stockAqui} aquí`}
                   </span>
                   {(agotada || apartada) && otras && <span className="mt-0.5 block text-[11px]">{otras}</span>}
-                  {/* Con la prenda en la mano lo que falta es el registro de la bajada: tocarla lo ofrece (ADR-0320). */}
+                  {/* Con la prenda en la mano lo que falta es el registro de la bajada: tocarla lo ofrece (ADR-0321). */}
                   {enAlmacen && <span className="mt-0.5 block text-[11px]">Si la tienes en la mano, tócala: se registra la bajada</span>}
                   {tope && t.almacenAqui > 0 && <span className="mt-0.5 block text-[11px]">{t.almacenAqui} más en el almacén</span>}
                   {t.variante.precio !== grupo.precioMin && <span className="mt-0.5 block text-xs font-semibold">{money(t.variante.precio)}</span>}

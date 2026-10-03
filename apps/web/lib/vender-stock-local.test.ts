@@ -211,7 +211,7 @@ describe("tooltip de una talla que no se puede cobrar ni bajar (tooltipTallaSinP
 describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () => {
   const base = { nombre: "Blusa Paracas · M", sede: "Tienda TRU" };
 
-  it("en el almacén: dice que la bajada no se registró, cuántas hay y que agregarla la registra (ADR-0320) — ya no manda a Existencias", () => {
+  it("en el almacén: dice que la bajada no se registró, cuántas hay y que agregarla la registra (ADR-0321) — ya no manda a Existencias", () => {
     const aviso = avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2 });
     expect(aviso).toEqual({
       titulo: "Blusa Paracas · M no se registró como bajada al piso",
@@ -254,7 +254,7 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
     expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: null, quedoEn: true }).detalle).toBe("En Tienda TRU quedan 2; la cantidad quedó en 2.");
   });
 
-  it("tope con más en el almacén, al escanear o tocar otra: lo dice y que agregarla registra la bajada (ADR-0320)", () => {
+  it("tope con más en el almacén, al escanear o tocar otra: lo dice y que agregarla registra la bajada (ADR-0321)", () => {
     expect(avisoTope({ ...base, stockAqui: 1, almacenAqui: 1 })).toEqual({
       titulo: "No hay más de Blusa Paracas · M en el piso",
       detalle: "La del piso ya está en el ticket. Hay 1 más en el almacén de Tienda TRU. Si tienes otra en la mano, agrégala: la bajada queda registrada.",
@@ -302,7 +302,7 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
   });
 });
 
-describe("la bajada que se olvidó, desde la caja (ADR-0320)", () => {
+describe("la bajada que se olvidó, desde la caja (ADR-0321)", () => {
   it("el botón del aviso: una prenda o varias", () => {
     expect(ACCION_BAJAR_Y_AGREGAR).toBe("Agregar y registrar la bajada");
     expect(accionBajarYAgregar(1)).toBe(ACCION_BAJAR_Y_AGREGAR);

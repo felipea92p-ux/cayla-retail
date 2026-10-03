@@ -16,7 +16,7 @@ const MIGRACION = readFileSync(
   "utf8",
 ).replace(/--[^\n]*/g, "");
 
-describe("el contrato con la base (ADR-0320)", () => {
+describe("el contrato con la base (ADR-0321)", () => {
   it("el nombre y los parámetros de la RPC son los de la migración", () => {
     const m = /create or replace function retail\.(\w+)\(([^)]*)\)/.exec(MIGRACION);
     expect(m?.[1]).toBe(RPC_BAJADA_DESDE_VENDER);

@@ -424,7 +424,7 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:retirar-del-piso
 
-      # La caja registra la bajada que se olvidó (ADR-0320): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
+      # La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
       # Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no
       # cuenta, sin almacén libre no mueve nada, firma el responsable, la misma marca no baja dos veces, y su fila del libro es
       # la de «Reponer» con la nota «Bajada registrada desde Vender». Cada caso termina en ROLLBACK.

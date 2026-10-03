@@ -98,10 +98,10 @@ export type AvisoStock = { titulo: string; detalle: string };
 /** Dónde se REGISTRA que una prenda pasó del almacén al piso: el botón «Reponer» de su fila en Existencias
  *  (`InventarioPanel`). Lo nombran los textos donde no hay una prenda en la mano (una cantidad escrita, un ticket retomado,
  *  la proforma): «que la bajen» a secas se lee como un paso físico, y lo que falta es el registro. Con la prenda en la mano
- *  (escaneada o tocada) el aviso ya no manda aquí: la bajada se registra desde la caja (ADR-0320). */
+ *  (escaneada o tocada) el aviso ya no manda aquí: la bajada se registra desde la caja (ADR-0321). */
 export const DONDE_SE_BAJA = "Inventario ▸ Existencias ▸ Reponer";
 
-// --- La bajada que se olvidó, desde la misma caja (ADR-0320) ---------------------------------------------------------
+// --- La bajada que se olvidó, desde la misma caja (ADR-0321) ---------------------------------------------------------
 // A veces cuelgan una prenda del almacén sin registrar la bajada y recién se nota al escanearla en la caja. El aviso ya no
 // manda a Existencias: ofrece un botón que la agrega al ticket y registra la bajada ahí mismo (`bajar_al_piso_desde_vender`,
 // que pide Vender). La venta no se interrumpe por un error de registro (D-40). Un solo botón (Felipe, 2026-10-03): los dos
@@ -129,7 +129,7 @@ export function avisoBajadaRegistrada({ nombre, sede, bajadas }: { nombre: strin
 
 /** El aviso cuando una prenda no entra al ticket porque en el piso no hay: dice DÓNDE está y QUÉ hacer, en palabras
  *  de una colaboradora que no conoce el sistema. Con la prenda en el almacén de esta tienda, lo que falta es el registro de
- *  la bajada: el aviso lo dice y su botón (`ACCION_BAJAR_Y_AGREGAR`) la agrega registrándola (ADR-0320). En el Taller (sin
+ *  la bajada: el aviso lo dice y su botón (`ACCION_BAJAR_Y_AGREGAR`) la agrega registrándola (ADR-0321). En el Taller (sin
  *  almacén) se queda como siempre. */
 export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui, apartadoAqui }: DatosAvisoStock): AvisoStock {
   const motivo = motivoNoCobrable({ stockAqui, almacenAqui, apartadoAqui });
@@ -164,7 +164,7 @@ export function avisoAgregada({ nombre, cantidad }: { nombre: string; cantidad: 
 
 /** El aviso cuando ya están en el ticket todas las del piso («tope»). `quedoEn`: la cantidad se escribió a mano en el
  *  ticket y se recortó a lo que hay. Si en el almacén hay más, lo dice: la clienta que quiere dos no se va con una. Al
- *  escanear o tocar una más (sin `quedoEn`), el botón del aviso la agrega registrando la bajada (ADR-0320); la cantidad
+ *  escanear o tocar una más (sin `quedoEn`), el botón del aviso la agrega registrando la bajada (ADR-0321); la cantidad
  *  escrita a mano sigue mandando a Existencias (no hay una prenda en la mano, hay un número). */
 export function avisoTope({ nombre, sede, stockAqui, almacenAqui, quedoEn = false }: DatosAvisoStock & { quedoEn?: boolean }): AvisoStock {
   const enAlmacen = almacenAqui ?? 0;
@@ -208,7 +208,7 @@ export function avisoCortas(cortas: LineaCorta[], sede: string): AvisoStock {
 
 /** Lo que la cámara no pudo meter al ticket porque, según el sistema, está en el almacén (piso en 0, o todas las del
  *  piso ya en el ticket). La cámara no pinta el aviso largo —le taparía la ✕—, así que al cerrarla sale UNO solo con lo
- *  que quedó fuera, y su botón (`accionBajarYAgregar`) las agrega registrando la bajada (ADR-0320). Sin nada, `null`. */
+ *  que quedó fuera, y su botón (`accionBajarYAgregar`) las agrega registrando la bajada (ADR-0321). Sin nada, `null`. */
 export function avisoQuedaronEnAlmacen(nombres: string[], sede: string): AvisoStock | null {
   if (nombres.length === 0) return null;
   if (nombres.length === 1) {

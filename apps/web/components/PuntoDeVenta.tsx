@@ -431,7 +431,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
-  // ADR-0320: las prendas cuya bajada al piso se va a registrar desde la caja y esperan que se elija quién atiende (la
+  // ADR-0321: las prendas cuya bajada al piso se va a registrar desde la caja y esperan que se elija quién atiende (la
   // bajada va firmada). Con el responsable ya elegido no se usa: la bajada sale directo.
   const [bajadaPorConfirmar, setBajadaPorConfirmar] = useState<string[] | null>(null);
   const [buscarPorTexto, setBuscarPorTexto] = useState(false);
@@ -792,7 +792,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (motivo !== "cobrable") {
       if (!silencioso) {
         const { titulo, detalle } = avisoSinPiso(datosAviso);
-        // ADR-0320: si el sistema la tiene en el almacén de esta tienda, lo que falta es el registro de la bajada (la
+        // ADR-0321: si el sistema la tiene en el almacén de esta tienda, lo que falta es el registro de la bajada (la
         // colgaron sin registrar): el botón la agrega y la registra ahí mismo, sin mandar a Existencias.
         avisar.aviso(titulo, { detalle, ...accionDeBajada(motivo, v) });
       }
@@ -857,7 +857,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     return tope ? "tope" : "agregada";
   }
 
-  // --- La bajada que se olvidó, desde la caja (ADR-0320) ---------------------------------------------------------------
+  // --- La bajada que se olvidó, desde la caja (ADR-0321) ---------------------------------------------------------------
   // Colgaron la prenda sin registrar la bajada y en el sistema el piso está en 0: el aviso ofrece agregarla registrando la
   // bajada (`bajar_al_piso_desde_vender`, que pide Vender y firma quien atiende). La venta no se corta por un error de
   // registro (D-40). Si todavía no se eligió quién atiende, primero se pregunta (`RegistrarBajadaModal`).
@@ -971,7 +971,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const fuera = [...quedaronEnAlmacen.current.keys()];
     const aviso = avisoQuedaronEnAlmacen([...quedaronEnAlmacen.current.values()], ubicacionEtiqueta);
     quedaronEnAlmacen.current.clear();
-    // ADR-0320: el mismo botón que en el lector, para todas las que quedaron fuera de una vez.
+    // ADR-0321: el mismo botón que en el lector, para todas las que quedaron fuera de una vez.
     if (aviso) {
       avisar.aviso(aviso.titulo, {
         detalle: aviso.detalle,

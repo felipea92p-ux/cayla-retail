@@ -526,7 +526,7 @@ export function PuntoDeVentaCatalogo({
                       tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
                       «no hay M» que «no existe M». Y una talla con el piso en 0 pero guardada en el
                       almacén de esta sede no se tacha (D-40): se ve punteada en ámbar y, al tocarla,
-                      el aviso dice cuántas hay y ofrece agregarla registrando la bajada (ADR-0320) — en el
+                      el aviso dice cuántas hay y ofrece agregarla registrando la bajada (ADR-0321) — en el
                       celular el tooltip no se ve. */}
                   <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
                     {g.tallas.map((t) =>

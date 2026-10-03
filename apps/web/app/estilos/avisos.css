@@ -62,7 +62,7 @@
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
     animation: cayla-aviso-revela 360ms var(--ease-cayla) 255ms both;
   }
-  /* El botón se ve como un enlace, pero se toca con el dedo (ADR-0320: «Agregar y registrar la bajada» en el celular de la
+  /* El botón se ve como un enlace, pero se toca con el dedo (ADR-0321: «Agregar y registrar la bajada» en el celular de la
      caja): el relleno lleva el área tocable a ~32 px y los márgenes negativos dejan el texto donde estaba. */
   .aviso-acc {
     margin-top: -0.125rem;

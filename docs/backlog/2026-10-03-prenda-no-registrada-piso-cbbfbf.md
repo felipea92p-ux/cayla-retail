@@ -1,4 +1,4 @@
-# Backlog — Vender registra la bajada que se olvidó (2026-10-03, ADR-0320)
+# Backlog — Vender registra la bajada que se olvidó (2026-10-03, ADR-0321)
 
 - ~~Pegar en producción `20261003233000_bajar_al_piso_desde_vender.sql`~~ — hecho el 2026-10-03 (versión `20261003194152`), con el volcado
   refrescado en el mismo PR. Falta **fusionar y publicar la web**.

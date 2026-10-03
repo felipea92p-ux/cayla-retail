@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261003233000_bajar_al_piso_desde_vender.sql — CAYLA V2 · ADR-0320 · la caja registra la bajada al piso que se olvidó.
+-- 20261003233000_bajar_al_piso_desde_vender.sql — CAYLA V2 · ADR-0321 · la caja registra la bajada al piso que se olvidó.
 -- Solo agrega una función: no toca tablas, políticas ni disparadores, ni `registrar_venta`.
 --
 -- EL PROBLEMA PRIMERO. En las tiendas a veces cuelgan una prenda del almacén en el piso sin registrar la bajada. Cuando la
@@ -165,7 +165,7 @@ end;
 $fn$;
 
 comment on function retail.bajar_al_piso_desde_vender(uuid, uuid, integer, uuid) is
-  'ADR-0320: desde Vender, deja el piso de la tienda con al menos p_piso_necesario unidades libres de la prenda, bajando del almacén de la misma tienda solo lo que falte (0 si ya alcanza). Pide el módulo Vender y operar la tienda; firma el responsable. Es un mover_interno almacén→piso con la nota «Bajada registrada desde Vender» (la misma fila que Reponer). p_token obligatorio: reenviarlo devuelve ya_registrada sin mover nada. Devuelve {ya_registrada, bajadas, piso, almacen, movimiento_id} con lo libre después.';
+  'ADR-0321: desde Vender, deja el piso de la tienda con al menos p_piso_necesario unidades libres de la prenda, bajando del almacén de la misma tienda solo lo que falte (0 si ya alcanza). Pide el módulo Vender y operar la tienda; firma el responsable. Es un mover_interno almacén→piso con la nota «Bajada registrada desde Vender» (la misma fila que Reponer). p_token obligatorio: reenviarlo devuelve ya_registrada sin mover nada. Devuelve {ya_registrada, bajadas, piso, almacen, movimiento_id} con lo libre después.';
 
 revoke all on function retail.bajar_al_piso_desde_vender(uuid, uuid, integer, uuid) from public, anon;
 grant execute on function retail.bajar_al_piso_desde_vender(uuid, uuid, integer, uuid) to authenticated;

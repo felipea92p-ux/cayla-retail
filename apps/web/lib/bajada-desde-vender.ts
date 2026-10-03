@@ -1,5 +1,5 @@
 /**
- * La bajada al piso que se olvidó, registrada desde Vender (ADR-0320): el contrato con la base, sin React ni supabase.
+ * La bajada al piso que se olvidó, registrada desde Vender (ADR-0321): el contrato con la base, sin React ni supabase.
  *
  * EL PROBLEMA. A veces cuelgan una prenda del almacén sin registrar la bajada. Al escanearla en la caja, el sistema dice
  * «0 en el piso» y Vender no la deja entrar al ticket. `bajar_al_piso_desde_vender`

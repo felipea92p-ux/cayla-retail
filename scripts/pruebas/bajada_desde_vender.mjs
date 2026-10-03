@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0320 — `bajar_al_piso_desde_vender` (`20261003233000_bajar_al_piso_desde_vender.sql`): la caja registra la
+ * Prueba de ADR-0321 — `bajar_al_piso_desde_vender` (`20261003233000_bajar_al_piso_desde_vender.sql`): la caja registra la
  * bajada al piso que se olvidó y la prenda entra al ticket sin ir a Existencias.
  *
  * QUÉ CUBRE

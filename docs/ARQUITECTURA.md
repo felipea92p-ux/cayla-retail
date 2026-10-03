@@ -691,7 +691,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `vendedorasDeTurno` deja solo a las presentes (o a todas las de la sede si nadie marcó hoy). Con 2 o
   más hay que tocar quién atendió para cobrar (`motivoBloqueoCobro`, `vendedoraDeLaVenta` en
   `lib/vender-reglas.ts`) y `registrar_venta` recibe `p_asesora_id`.
-  **La bajada que se olvidó (ADR-0320):** una prenda que el sistema tiene en el almacén de la tienda (piso en 0, o las del piso ya
+  **La bajada que se olvidó (ADR-0321):** una prenda que el sistema tiene en el almacén de la tienda (piso en 0, o las del piso ya
   en el ticket) no entra al ticket, pero el aviso (`avisoSinPiso`/`avisoTope`/`avisoQuedaronEnAlmacen` de `lib/vender-stock-local.ts`)
   trae el botón «Agregar y registrar la bajada» → `PuntoDeVenta.pedirBajada` (sin responsable elegido, primero la hoja
   `punto-de-venta/RegistrarBajadaModal.tsx` con el mismo combo) → RPC `bajar_al_piso_desde_vender` (pide Vender, firma el responsable;

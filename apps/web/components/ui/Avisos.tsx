@@ -203,7 +203,7 @@ export const avisar = {
   /** `accion` en un error: el siguiente paso cuando el error tiene uno claro (ADR-0193: «Recargar» cuando otra persona
    *  cambió la ficha mientras se editaba). */
   error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => abrir("error", texto, opciones),
-  /** `accion` en una advertencia: el camino para seguir sin salir de la pantalla (ADR-0320: en Vender, «Agregar y registrar
+  /** `accion` en una advertencia: el camino para seguir sin salir de la pantalla (ADR-0321: en Vender, «Agregar y registrar
    *  la bajada» de una prenda que no figura en el piso). Con un botón conviene `duracion` más larga: hay que leer y decidir. */
   aviso: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso; duracion?: number }) => abrir("aviso", texto, opciones),
   /** Devuelve una función que lo cierra; además `.progreso()`, `.exito()` y `.error()` lo transforman. */
