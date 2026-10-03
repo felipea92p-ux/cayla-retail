@@ -47,56 +47,53 @@ export function VeredictoCaja({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMi
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setLleno(true)));
     return () => cancelAnimationFrame(id);
   }, []);
-  const porEncima = v.pctAEstaHora !== null && v.pctAEstaHora >= 0;
+  // Una sola idea, en soles y hablándole a quien vende: cuánto falta para igualar ayer y cómo va a esta hora. Sin dos porcentajes
+  // distintos (el del día y el de la hora) que se lean como una contradicción.
+  const difHora = v.hoy - v.ayerAEstaHora;
   return (
     <section className="cmp-heroe anim-sube" style={{ "--i": 0 } as CSSProperties} aria-label="Cómo vas contra ayer">
       <div className="min-w-0">
-        <p className="cmp-sobre">Tu turno contra ayer · día completo · a las {horaTexto(ahoraMin)}</p>
+        <p className="cmp-sobre">Hoy contra ayer · a las {horaTexto(ahoraMin)}</p>
         <h2 className="cmp-frase">
           {v.ayerDia === 0 ? (
             <>Ayer no hubo ventas con las que compararte</>
           ) : v.superado ? (
             <>
-              Ya superaste <em>todo lo que vendió ayer</em>
+              Ya <em>superaste</em> lo que vendiste ayer
             </>
           ) : (
             <>
-              Llevas <Cuenta valor={v.pctDelDiaDeAyer} formato={(n) => `${Math.round(n)} %`} /> <em>de lo que vendió ayer</em>
+              Te faltan <em><Cuenta valor={v.falta} formato={soles} /></em> para igualar ayer
             </>
           )}
         </h2>
         {v.ayerDia > 0 && (
           <p className="cmp-det">
+            Ayer vendiste <b>{soles(v.ayerDia)}</b> en todo el día.
             {v.superado ? (
+              <> Hoy ya llevas <b>{soles(v.hoy - v.ayerDia)}</b> más.</>
+            ) : v.ayerAEstaHora > 0 ? (
               <>
-                Ya vendiste <b>{soles(v.hoy - v.ayerDia)}</b> más que todo el día de ayer ({soles(v.ayerDia)}).
+                {" "}A esta hora ya llevabas <b>{soles(v.ayerAEstaHora)}</b>: hoy vas{" "}
+                <b>{Math.abs(Math.round(difHora)) === 0 ? "igual" : `${soles(Math.abs(difHora))} ${difHora > 0 ? "por encima" : "por debajo"}`}</b>.
               </>
-            ) : (
-              <>
-                Te faltan <b><Cuenta valor={v.falta} formato={soles} /></b> para igualar los <b>{soles(v.ayerDia)}</b> de ayer.
-              </>
-            )}
-            {v.pctAEstaHora !== null && (
-              <>
-                {" "}A esta misma hora ayer llevaba <b>{soles(v.ayerAEstaHora)}</b>: vas <b>{Math.abs(Math.round(v.pctAEstaHora))} % {porEncima ? "por encima" : "por debajo"}</b>.
-              </>
-            )}
+            ) : null}
           </p>
         )}
         <p className="cmp-chips">
-          <span>Vendido <b><Cuenta valor={v.hoy} formato={soles} /></b></span>
+          <span>Vendido hoy <b><Cuenta valor={v.hoy} formato={soles} /></b></span>
           <span>Tickets <b>{v.ticketsHoy}</b></span>
           <span>Ticket promedio <b>{soles(v.ticketPromedio)}</b></span>
         </p>
       </div>
-      <div className="cmp-anillo" role="img" aria-label={`${Math.round(v.pctDelDiaDeAyer)} % de lo que vendió ayer`}>
+      <div className="cmp-anillo" role="img" aria-label={`Llevas ${soles(v.hoy)} de los ${soles(v.ayerDia)} de ayer`}>
         <svg viewBox="0 0 132 132" aria-hidden>
           <circle cx="66" cy="66" r="54" fill="none" strokeWidth="10" className="cmp-anillo-pista" />
           <circle cx="66" cy="66" r="54" fill="none" strokeWidth="10" className="cmp-anillo-arco" strokeDasharray={C} strokeDashoffset={lleno ? C * (1 - pct / 100) : C} />
         </svg>
         <div className="cmp-anillo-centro">
-          <b><Cuenta valor={v.pctDelDiaDeAyer} formato={(n) => `${Math.round(n)} %`} /></b>
-          <span>de lo que vendió ayer</span>
+          <b className="cmp-anillo-monto"><Cuenta valor={v.hoy} formato={soles} /></b>
+          <span>de {soles(v.ayerDia)}<br />de ayer</span>
         </div>
       </div>
     </section>
