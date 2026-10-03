@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
-import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, type HoyDeLaSede } from "@/lib/inicio";
+import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
 import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import type { MiMeta } from "@/lib/mi-meta-reglas";
 import {
   accesosRapidos,
   avisosInicio,
@@ -32,6 +33,8 @@ import { getInicioAlmacen } from "@/lib/inicio-almacen";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getAvisosObservatorio, getDatosObservatorio, getDatosTienda, getTallerObservatorio } from "@/lib/observatorio";
 import { Observatorio } from "@/components/observatorio/Observatorio";
+import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
+import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -86,8 +89,10 @@ export default async function InicioPage() {
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
-  const [hoy, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
+  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
+    // Su meta (ADR-0325): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
+    !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
     // Total (nunca lanza): la misma cifra del número del menú.
     ve("traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
     // Las tres colas del líder (ADR-0179, ADR-0186, PL-114): no son de quien no lo es.
@@ -118,7 +123,7 @@ export default async function InicioPage() {
   const cookie = cookieEleccion(persona.personaId);
   const eleccion = leerEleccion((await cookies()).get(cookie)?.value);
   const visibles = avisosVisibles(avisos, eleccion, esLider);
-  const accesos = accesosRapidos({ esLider, ubicacionTipo: persona.ubicacionTipo, modulos });
+  const accesos = accesosRapidos({ esLider, ubicacionTipo: persona.ubicacionTipo, modulos, permisos: persona.permisos });
 
   // A un APARATO (ADR-0162) no se lo saluda por su «primer nombre»: se lo nombra entero.
   const primerNombre = persona.nombre.trim().split(/\s+/)[0];
@@ -161,10 +166,12 @@ export default async function InicioPage() {
     );
   }
 
-  // El botón fijo del celular: vender en una tienda; recibir en el almacén. Nadie más lo necesita.
+  // El botón fijo del celular: vender en una tienda; recibir en el almacén y en la trastienda de una tienda (la terminal de
+  // almacén, un rol que no vende: Felipe, 2026-09-29). Quien vende, o no ve Recibir, no lo necesita.
+  const trastienda = persona.ubicacionTipo === "tienda" && !ve("vender");
   const fijo = vende
     ? { href: "/vender", etiqueta: "Vender", icono: "vender" as const }
-    : persona.ubicacionTipo === "almacen" && ve("recibir")
+    : (persona.ubicacionTipo === "almacen" || trastienda) && ve("recibir")
       ? { href: "/recibir", etiqueta: "Recibir mercadería", icono: "recibir" as const }
       : null;
 
@@ -185,7 +192,13 @@ export default async function InicioPage() {
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="space-y-6">
-          {hoy && <SeccionHoy hoy={hoy} esLider={esLider} />}
+          {hoy && <SeccionHoy hoy={hoy} esLider={esLider} miMeta={miMeta} />}
+          {miMeta && !esLider && (
+            <>
+              <SeccionLoQueVaBien miMeta={miMeta} />
+              <SeccionTuMes miMeta={miMeta} />
+            </>
+          )}
           <TeToca visibles={visibles} ajustar={ajustar} />
         </div>
         <div className="space-y-6">
@@ -207,12 +220,10 @@ export default async function InicioPage() {
 
 // ── Cifras del día ───────────────────────────────────────────────────────────────────────────────
 
-function Etiqueta({ children }: { children: React.ReactNode }) {
-  return <p className="label-cayla mb-2.5 text-[11px] text-tinta/65">{children}</p>;
-}
-
-function SeccionHoy({ hoy, esLider }: { hoy: HoyDeLaSede; esLider: boolean }) {
+function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boolean; miMeta: MiMeta | null }) {
   const titulo = esLider ? "Hoy" : "Tu día";
+  // Una integrante con meta (ADR-0325) ve SU meta de hoy y de su mes en vez de las cifras sueltas: lo que necesita saber es cómo va.
+  if (!esLider && miMeta) return <SeccionMiMeta miMeta={miMeta} cajaAbierta={hoy.cajaAbierta} titulo={titulo} />;
   if (hoy.totales === null) {
     return (
       <section>
@@ -279,16 +290,6 @@ function SeccionHoy({ hoy, esLider }: { hoy: HoyDeLaSede; esLider: boolean }) {
         )}
       </div>
     </section>
-  );
-}
-
-function Tarjeta({ etiqueta, valor, className = "", children }: { etiqueta: string; valor: string; className?: string; children?: React.ReactNode }) {
-  return (
-    <div className={`card-cayla p-4 sm:p-5 ${className}`}>
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:mt-2 sm:text-3xl">{valor}</p>
-      {children && <div className="mt-1 text-xs text-tinta/65">{children}</div>}
-    </div>
   );
 }
 
@@ -383,7 +384,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
           <Link
             key={a.href}
             href={a.href}
-            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
+            className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
             <Icono clave={a.icono} className="size-[22px]" />
             {a.etiqueta}
@@ -451,6 +452,7 @@ const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check", string> 
   conteo: "M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4",
   produccion: "M4 20V9l5 3V9l5 3V6l6 3v11z",
   buscar: "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5",
+  nuevoProducto: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 8v8M8 12h8",
   chevron: "M9 6l6 6-6 6",
   check: "M5 12l4 4 10-10",
 };

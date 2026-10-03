@@ -2,7 +2,7 @@
 //
 // PROMETE: todo lo que la pantalla necesita, cada bloque leído por separado. Si uno falla vuelve `null` y la pantalla dice
 // «no se pudo leer», nunca 0 (principio 9). Lo nuevo sale de `fn_observatorio` y `fn_observatorio_tienda` (migración
-// 20261004010000); los avisos, el Taller, el stock y los traslados, de las lecturas que ya usan esas pantallas.
+// 20261004020000); los avisos, el Taller, el stock y los traslados, de las lecturas que ya usan esas pantallas.
 // ASUME: quien llama ya comprobó que la cuenta es Admin (la página y las rutas de API); la base lo vuelve a preguntar.
 
 import { createClient } from "@/lib/supabase/server";

@@ -6114,6 +6114,18 @@ export type Database = {
         Args: { p_fechas: Json }
         Returns: number
       }
+      fijar_meta_persona: {
+        Args: {
+          p_detalle?: string
+          p_mes: string
+          p_meta: number
+          p_meta_esperada?: number
+          p_motivo: string
+          p_persona_id: string
+          p_ubicacion_id: string
+        }
+        Returns: number
+      }
       fn_calendario_estaciones: {
         Args: never
         Returns: {
@@ -6681,6 +6693,70 @@ export type Database = {
           ubicacion_nombre: string
           ultimo_acceso: string
         }[]
+      }
+      fn_metas_equipo: {
+        Args: { p_mes?: string }
+        Returns: {
+          base: string
+          entrada_hoy: string
+          es_encargada: boolean
+          horas_hoy: number
+          meta_ajustada_mes: number
+          meta_auto_mes: number
+          meta_hoy: number
+          meta_mes: number
+          meta_7d: number
+          nombre: string
+          persona_id: string
+          salida_hoy: string
+          ubicacion_id: string
+          vendido_7d: number
+          vendido_hoy: number
+          vendido_mes: number
+          ventas_7d: number
+          ventas_hoy: number
+          ventas_mes: number
+        }[]
+      }
+      fn_metas_historial: {
+        Args: { p_mes?: string; p_ubicacion_id: string }
+        Returns: {
+          cambiado_por: string
+          creado_en: string
+          detalle: string
+          id: number
+          meta: number
+          meta_antes: number
+          mes: string
+          motivo: string
+          persona: string
+          persona_id: string
+        }[]
+      }
+      fn_mi_meta: {
+        Args: never
+        Returns: {
+          base: string
+          fecha: string
+          meta_dia: number
+          meta_mes: number
+          mes: string
+          ubicacion_id: string
+        }[]
+      }
+      fn_mis_ventas_del_dia: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          hora: string
+          prendas: number
+          total: number
+          ubicacion_nombre: string
+          venta_id: string
+        }[]
+      }
+      fn_mis_ventas_por_dia: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: { fecha: string; total: number; ventas: number }[]
       }
       fn_movimientos: {
         Args: {
@@ -7306,6 +7382,26 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: Json
+      }
+      fn_rendimiento_detalle: {
+        Args: { p_desde: string; p_hasta: string; p_ubicacion_id: string }
+        Returns: {
+          fecha: string
+          hora: number
+          prendas: number
+          total: number
+          ventas: number
+        }[]
+      }
+      fn_rendimiento_serie: {
+        Args: { p_desde: string; p_hasta: string; p_ubicacion_id: string }
+        Returns: {
+          fecha: string
+          meta_asignada: number
+          meta_sede: number
+          total: number
+          ventas: number
+        }[]
       }
       fn_resumen_variantes: {
         Args: {

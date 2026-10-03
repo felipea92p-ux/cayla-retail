@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inicio · bloques por rol · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Inicio: los bloques nuevos por rol (2026-09-29)
+   Sale de la conversación con Felipe del 2026-09-29: los accesos ya salen
+   de lo que hace el rol, y el Inicio «se siente pobre». Esta maqueta
+   propone QUÉ bloques sumarle a cada rol. No es una implementación: no toca
+   `app/(app)/page.tsx` ni la base. TODAS las cifras y nombres son inventados.
+   Parte del spike aprobado el 2026-09-26 (../inicio-movil-roles-2026-09/):
+   mismo orden (cifras → Te toca → accesos → equipo), mismos tokens
+   (ADR-0169), «Vender» fijo en celular (ADR-0206). Lo nuevo se marca con
+   línea punteada y dice de dónde saldría su dato.
+   Gráficos: 2px de trazo, marcas ≥ 8px con anillo del color de la superficie,
+   leyenda + etiqueta directa selectiva, tooltip al pasar y vista en tabla.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);--t06:rgba(26,26,24,.06);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:6px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk .inv{margin-left:auto;align-self:center;border:1px dashed rgba(245,240,232,.5);border-radius:8px;padding:4px 10px;font-size:11.5px;color:rgba(245,240,232,.85)}
+
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:24px;align-items:start}
+@media (max-width:1100px){.escena{grid-template-columns:1fr}.marco-tel{justify-self:center}}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+.porque{margin-top:14px;background:var(--papel);border:1px dashed var(--taupe);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--t80)}
+.porque b{font-weight:600;color:var(--tinta)}
+.porque ul{margin:6px 0 0 18px}
+.porque li+li{margin-top:3px}
+.porque.solido{border-style:solid;border-color:var(--sand)}
+table.fuentes{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+table.fuentes th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--sand)}
+table.fuentes td{padding:8px;border-bottom:1px solid var(--t10);vertical-align:top}
+.est{display:inline-block;font-size:11px;font-weight:600;border-radius:99px;padding:1px 8px;white-space:nowrap}
+.est.ya{background:rgba(72,96,63,.14);color:var(--verde)}
+.est.nueva{background:rgba(116,80,26,.14);color:var(--ambar)}
+.est.dep{background:rgba(76,93,110,.14);color:var(--pizarra)}
+
+/* ── marco computadora ── */
+.pc{background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 20px 50px -20px rgba(26,26,24,.35);display:grid;grid-template-columns:220px minmax(0,1fr);height:900px}
+.pc .side{border-right:1px solid var(--t10);display:flex;flex-direction:column;padding:20px 10px;gap:4px;font-size:14px}
+.pc .logo{display:flex;align-items:center;gap:10px;padding:0 10px 18px}
+.pc .logo img{height:28px}.pc .logo span{letter-spacing:.26em;font-weight:600;font-size:13px}
+.pc .fila{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:var(--t80)}
+.pc .fila.act{background:rgba(232,224,208,.8);color:var(--tinta);font-weight:500;box-shadow:inset 2px 0 0 var(--rojo)}
+.pc .fila .ic{color:var(--t50)}
+.pc .yo{margin-top:auto;border-top:1px solid var(--t10);padding:14px 10px 0;display:flex;gap:10px;align-items:center;font-size:13px}
+.pc .yo small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pc .der{display:flex;flex-direction:column;min-width:0}
+.pc .top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:12px;padding:0 24px;flex:none}
+.pc .top .esp{flex:1}
+.busca{display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:99px;background:var(--hueso);font-size:13px;color:var(--t65)}
+.chipcab{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);font-size:11px;letter-spacing:.1em;font-weight:600;text-transform:uppercase}
+.pc .cuerpo{overflow-y:auto;padding:28px 32px 40px;flex:1}
+.pc .pag{max-width:1120px;margin:0 auto}
+.rejilla{display:grid;gap:24px;align-items:start;margin-top:22px}
+.pc .rejilla{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+.tel .rejilla{grid-template-columns:1fr;gap:0;margin-top:18px}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+.tel .col{gap:22px}.tel .col+.col{margin-top:22px}
+
+/* ── marco celular ── */
+.marco-tel{position:sticky;top:84px}
+.tel{width:375px;height:780px;border-radius:40px;border:10px solid #1a1a18;background:var(--crema);overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(26,26,24,.45)}
+.tel .top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(245,240,232,.92);position:absolute;inset:0 0 auto 0;z-index:5}
+.tel .top img{height:22px}.tel .top .esp{flex:1}
+.tel .cuerpo{position:absolute;inset:56px 0 0 0;overflow-y:auto;padding:18px 14px 110px}
+.tel .fijo{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 14px;background:linear-gradient(to top,var(--crema) 70%,rgba(245,240,232,0));z-index:6;display:flex;gap:8px}
+.btn-fijo{flex:1;height:52px;border-radius:14px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:15px}
+.btn-cuad{width:52px;height:52px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center}
+
+/* ── piezas comunes ── */
+.sobre{color:var(--rojo);text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;line-height:1.1}
+.pc h1{font-size:34px;margin-top:4px}.tel h1{font-size:26px;margin-top:2px}
+.bajada{color:var(--taupe);font-size:14px;margin-top:4px}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.btn-vender{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;background:var(--tinta);color:var(--crema);font-weight:500;font-size:14px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+.sec-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:4px 8px;flex-wrap:wrap}
+.sec-cab .lbl{white-space:nowrap}
+.ajustar{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--taupe);padding:4px 8px;border-radius:8px}
+
+.cifras{display:grid;gap:10px}
+.pc .cifras{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tel .cifras{grid-template-columns:1fr 1fr}.tel .cifras .cifra:first-child{grid-column:span 2}
+.cifra{padding:16px 18px}
+.cifra .v{font-family:'EB Garamond',serif;font-size:30px;line-height:1.1;margin-top:4px}
+.cifra .d{font-size:12.5px;color:var(--t65);margin-top:3px}
+.bar{height:6px;border-radius:9px;background:var(--t10);margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--verde);border-radius:9px}
+.up{color:var(--verde)}.down{color:var(--ambar)}
+.cifra .tagn{margin:0 0 8px;font-size:9.5px}
+.vacio{padding:14px 16px;display:flex;gap:12px;align-items:center;font-size:13.5px;color:var(--t80)}
+.vacio b{font-weight:600;color:var(--tinta)}
+.falla{padding:14px 16px;font-size:13.5px;color:var(--t80)}
+
+/* lo nuevo: solo se marca cuando el interruptor está encendido */
+.tagn{display:none;margin-left:auto;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ambar);background:rgba(116,80,26,.10);border-radius:6px;padding:2px 8px;line-height:1.35;max-width:100%}
+body[data-marca=on] .tagn{display:inline-flex}
+body[data-marca=on] .nuevo{outline:1.5px dashed var(--taupe);outline-offset:6px;border-radius:12px}
+.tag-fila{display:none;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ambar);background:rgba(116,80,26,.10);border-radius:5px;padding:0 6px}
+body[data-marca=on] .tag-fila{display:inline-block}
+
+/* avisos (Te toca) */
+.avisos{overflow:hidden}
+.avisos .av{display:flex;gap:12px;align-items:flex-start;padding:13px 16px;width:100%;text-align:left}
+.avisos .av+.av{border-top:1px solid var(--t10)}
+.nivel{flex:none;width:8px;height:8px;border-radius:50%;margin-top:7px}
+.n-urgente{background:var(--rojo)}.n-toca{background:var(--ambar)}.n-info{background:var(--pizarra)}.n-sinleer{background:var(--t30)}.n-aldia{background:var(--verde)}
+.av .t{font-size:14px;font-weight:500;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.av .d{font-size:12.5px;color:var(--t65);margin-top:1px}
+.av .cant{margin-left:auto;flex:none;font-size:12px;font-weight:600;min-width:24px;text-align:center;border-radius:99px;padding:1px 8px;align-self:center}
+.cant.urgente{background:var(--rojo);color:var(--crema)}.cant.toca{background:var(--ambar);color:var(--crema)}.cant.info{background:var(--pizarra);color:var(--crema)}.cant.sinleer{background:var(--t10);color:var(--t80)}
+.av .chev{align-self:center;color:var(--t30)}
+.tag-urg{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--rojo)}
+.aldia{display:flex;gap:10px;align-items:center;padding:11px 16px;border-top:1px solid var(--t10);font-size:12.5px;color:var(--t65)}
+.aldia .ok{color:var(--verde);font-weight:600}
+.avisos label.mas{display:block;width:100%;padding:11px 16px;border-top:1px solid var(--t10);font-size:13px;color:var(--taupe);text-align:center;cursor:pointer}
+.avisos label.mas input{position:absolute;opacity:0;pointer-events:none}
+.avisos .extra{display:flex}
+.tel .avisos .extra{display:none}
+.tel .avisos:has(input:checked) .extra{display:flex}
+.tel .avisos:has(input:checked) label.mas{display:none}
+.pc .avisos label.mas{display:none}
+
+/* accesos del rol */
+.accesos{display:grid;gap:8px}
+.pc .accesos{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tel .accesos{grid-template-columns:repeat(4,minmax(0,1fr))}
+.acc{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;font-size:12px;text-align:center}
+.acc .ic{width:22px;height:22px;color:var(--tinta)}
+
+/* equipo */
+.equipo .p{display:flex;gap:12px;align-items:flex-start;padding:12px 16px}
+.equipo .p+.p{border-top:1px solid var(--t10)}
+.avt{width:34px;height:34px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;flex:none;position:relative}
+.avt.on::after{content:"";position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--verde);border:2px solid var(--papel)}
+.equipo .nom{font-size:14px;font-weight:500}.equipo .sub{font-size:12px;color:var(--t65)}
+.equipo .monto{margin-left:auto;text-align:right;font-size:14px;flex:none}
+.equipo .ult{font-size:12px;color:var(--t80);margin-top:4px;background:var(--hueso);border-radius:8px;padding:5px 8px}
+.equipo .pie{padding:10px 16px;font-size:12px;color:var(--t65);border-top:1px solid var(--t10)}
+
+/* gráficos */
+.graf{padding:14px 16px 10px}
+.graf .cab-g{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.graf .cab-g b{font-size:14px;font-weight:600}
+.graf .sub-g{font-size:12.5px;color:var(--t65)}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--t80);margin:8px 0 2px}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{display:inline-block;width:18px;height:0;border-top:2px solid var(--tinta)}
+.leyenda i.disc{border-top:2px dashed var(--taupe)}
+.leyenda i.caja{width:10px;height:10px;border:0;background:var(--tinta);border-radius:2px 2px 0 0}
+.leyenda i.marca{border-top:2px solid var(--taupe);width:14px}
+svg.g{display:block;width:100%;height:auto;overflow:visible}
+svg.g text{font-family:'DM Sans',system-ui,sans-serif;font-size:10.5px;fill:var(--t65)}
+svg.g text.v{fill:var(--tinta);font-weight:600;font-size:11px}
+svg.g .grid{stroke:var(--sand);stroke-width:1}
+svg.g .hit{fill:transparent;cursor:crosshair}
+svg.g .cross{stroke:var(--t30);stroke-width:1;display:none}
+svg.g .pt{display:none}
+.tabla{margin-top:6px;font-size:12px}
+.tabla summary{cursor:pointer;color:var(--taupe);padding:4px 0}
+.tabla table{width:100%;border-collapse:collapse;margin-top:4px}
+.tabla th,.tabla td{padding:4px 6px;border-bottom:1px solid var(--t10);text-align:right}
+.tabla th:first-child,.tabla td:first-child{text-align:left}
+.tabla th{font-weight:600;color:var(--t65)}
+#tip{position:fixed;z-index:200;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:12px;line-height:1.4;padding:7px 10px;border-radius:8px;display:none;max-width:220px}
+#tip b{font-weight:600}
+
+/* tiendas */
+.tiendas .r{padding:12px 16px}.tiendas .r+.r{border-top:1px solid var(--t10)}
+.tiendas .f{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tiendas .n{font-size:14px;font-weight:500}
+.tiendas .n em{font-style:normal;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);margin-left:6px}
+.tiendas .m{font-size:13px}
+.tiendas .s{font-size:12px;color:var(--t65);margin-top:2px}
+
+/* trastienda y taller */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{padding:14px 16px;display:block}
+.tile .v{font-family:'EB Garamond',serif;font-size:32px;line-height:1.1;margin-top:4px}
+.tile .d{font-size:12.5px;color:var(--t65);margin-top:3px}
+.tile .go{display:flex;justify-content:space-between;align-items:center}
+.tile .go .ic{width:16px;height:16px;color:var(--t30)}
+.etapas{display:flex;gap:2px;height:14px;margin:12px 0 8px}
+.etapas i{display:block;height:100%;border-radius:0}
+.etapas i:first-child{border-radius:4px 0 0 4px}.etapas i:last-child{border-radius:0 4px 4px 0}
+.etl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;color:var(--t80)}
+.etl b{display:block;font-family:'EB Garamond',serif;font-size:24px;font-weight:400;color:var(--tinta);line-height:1.1}
+.ordenes .o{display:flex;gap:12px;align-items:flex-start;padding:11px 16px;border-top:1px solid var(--t10);font-size:13px}
+.ordenes .o b{font-weight:500}
+.ordenes .o .d{font-size:12px;color:var(--t65)}
+.ordenes .o .cuando{margin-left:auto;text-align:right;font-size:12px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;border-radius:99px;padding:1px 9px;background:var(--hueso)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.amb{color:var(--ambar);background:rgba(116,80,26,.12)}
+.nota{background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--t80)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-marca="on">
+
+<div class="spk" id="spk"></div>
+
+<div class="escena">
+  <div>
+    <p class="rot">Computadora · 1440 px</p>
+    <div class="pc" id="pc"></div>
+    <div class="porque" id="fuentes"></div>
+    <div class="porque solido" id="preguntas"></div>
+  </div>
+  <div class="marco-tel">
+    <p class="rot">Celular · 375 px</p>
+    <div class="tel" id="tel"></div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+/* ───────────── datos inventados ───────────── */
+const $=s=>document.querySelector(s);
+const S={rol:'lider',hora:'tarde',marca:true,falla:false};
+const fmt=n=>'S/ '+Math.round(n).toLocaleString('es-PE');
+const plural=(n,a,b)=>n===1?a:b;
+
+const TRAZO={
+  vender:'M6 7h12l1 14H5zM9 7a3 3 0 0 1 6 0',
+  caja:'M12 3v18M16 7c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 2.6 4 3 4 1.3 4 3-1.8 3-4 3-4-1.3-4-3',
+  apartados:'M7 3h10v18l-5-4-5 4z',
+  stock:'M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9',
+  traslados:'M5 12h14M13 6l6 6-6 6',
+  cambios:'M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3',
+  recibir:'M3 7h13v10H3zM16 10h3l2 3v4h-5M7 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M18 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3',
+  conteo:'M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4',
+  produccion:'M4 20V9l5 3V9l5 3V6l6 3v11z',
+  buscar:'M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5',
+  nuevoProducto:'M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 8v8M8 12h8',
+  chevron:'M9 6l6 6-6 6',check:'M5 12l4 4 10-10',
+  inicio:'M3 11l9-8 9 8M5 10v10h14V10',catalogo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',
+  finanzas:'M4 5h16v14H4zM4 10h16M9 5v14',clientas:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z',
+  rendimiento:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',escaner:'M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16',
+  menu:'M4 7h16M4 12h16M4 17h16',ajustar:'M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4'
+};
+const ic=(k,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${TRAZO[k]}"/></svg>`;
+
+/* Ventas de hoy, acumuladas al cierre de cada hora (10 a. m. = 0). «Hoy» llega hasta las 5:40 p. m. */
+const HORAS=[10,11,12,13,14,15,16,17,18,19,20];
+const HOY_ACUM={10:0,11:90,12:260,13:520,14:760,15:1000,16:1300,17:1620};
+const HOY_AHORA_H=17+40/60, HOY_AHORA_V=1840;
+const PAS_ACUM={10:0,11:60,12:150,13:330,14:560,15:820,16:1080,17:1400,18:1780,19:2200,20:2610};
+const interp=(o,h)=>{const a=Math.floor(h),b=Math.min(20,a+1);return o[a]+(h-a)*(o[b]-o[a]);};
+const PAS_AHORA_V=interp(PAS_ACUM,HOY_AHORA_H);
+const META_DIA=3000;
+const hlab=h=>h===12?'12 m.':h<12?h+' a. m.':(h-12)+' p. m.';
+
+/* Últimos 7 días de una colaboradora y el mismo día de la semana anterior. */
+const DIAS=['mié','jue','vie','sáb','dom','lun','hoy'];
+const SEM_ESTA=[380,450,690,1010,760,540,690];
+const SEM_PAS=[410,400,720,880,700,480,610];
+
+/* ───────────── piezas ───────────── */
+const sec=(titulo,cuerpo,o={})=>`<section class="${o.nuevo?'nuevo':''}"><div class="sec-cab"><p class="lbl">${titulo}</p>${o.extra||''}${o.nuevo?`<span class="tagn">Nuevo · ${o.fuente}</span>`:''}</div>${cuerpo}</section>`;
+const cae=(msg)=>`<div class="card falla" role="status">${msg} Lo demás de esta pantalla sí está al día.</div>`;
+const tarjeta=(et,v,d,extra='',cls='')=>`<div class="card cifra ${cls}"><p class="lbl">${et}</p><p class="v num">${v}</p><div class="d">${d}</div>${extra}</div>`;
+
+function tooltipTabla(cab,filas){return `<details class="tabla"><summary>Ver como tabla</summary><table><tr>${cab.map(c=>`<th>${c}</th>`).join('')}</tr>${filas.map(f=>`<tr>${f.map(c=>`<td class="num">${c}</td>`).join('')}</tr>`).join('')}</table></details>`;}
+
+/* Ventas hora por hora: dos líneas acumuladas, hoy contra el mismo día de la semana pasada. Una sola escala. */
+function curva(m,temprano){
+  const W=m?300:400,H=m?196:212,L=36,R=m?64:78,T=16,B=26,iw=W-L-R,ih=H-T-B;
+  const X=h=>L+(h-10)/10*iw,Y=v=>T+ih-(v/3000)*ih;
+  let s=`<svg class="g" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ventas acumuladas de hoy hora por hora, contra el martes pasado">`;
+  [0,1000,2000,3000].forEach(v=>{s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-6}" y="${Y(v)+3.5}" text-anchor="end" class="num">${v?v.toLocaleString('es-PE'):'0'}</text>`;});
+  [10,12,14,16,18,20].forEach(h=>{s+=`<text x="${X(h)}" y="${H-8}" text-anchor="middle">${hlab(h).replace(' a. m.',' a. m.')}</text>`;});
+  const pas=HORAS.map(h=>`${X(h)},${Y(PAS_ACUM[h])}`).join(' ');
+  s+=`<polyline points="${pas}" fill="none" stroke="var(--taupe)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s+=`<circle cx="${X(20)}" cy="${Y(PAS_ACUM[20])}" r="4" fill="var(--taupe)" stroke="var(--papel)" stroke-width="2"/>`;
+  s+=`<text x="${X(20)+8}" y="${Y(PAS_ACUM[20])-2}" class="v">${fmt(PAS_ACUM[20])}</text><text x="${X(20)+8}" y="${Y(PAS_ACUM[20])+11}">al cierre</text>`;
+  if(!temprano){
+    const hs=[10,11,12,13,14,15,16,17];
+    const pts=hs.map(h=>[X(h),Y(HOY_ACUM[h])]);pts.push([X(HOY_AHORA_H),Y(HOY_AHORA_V)]);
+    const linea=pts.map(p=>p.join(',')).join(' ');
+    s+=`<polygon points="${X(10)},${Y(0)} ${linea} ${pts[pts.length-1][0]},${Y(0)}" fill="var(--tinta)" opacity=".07"/>`;
+    s+=`<polyline points="${linea}" fill="none" stroke="var(--tinta)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const [ex,ey]=pts[pts.length-1];
+    s+=`<circle cx="${ex}" cy="${ey}" r="4.5" fill="var(--tinta)" stroke="var(--papel)" stroke-width="2"/>`;
+    s+=`<text x="${ex-8}" y="${ey-10}" text-anchor="end" class="v">${fmt(HOY_AHORA_V)}</text>`;
+  }else{
+    s+=`<text x="${X(10.3)}" y="${Y(2400)}" class="v" style="font-weight:500;fill:var(--t80)">Hoy: todavía sin ventas</text>`;
+  }
+  s+=`<line class="cross" y1="${T}" y2="${T+ih}"/>`;
+  s+=`<circle class="pt" r="4" fill="var(--tinta)" stroke="var(--papel)" stroke-width="2"/>`;
+  const cw=iw/10;
+  HORAS.forEach(h=>{
+    const hoyV=(!temprano&&HOY_ACUM[h]!==undefined)?HOY_ACUM[h]:null;
+    const tip=`<b>${hlab(h)}</b><br>Hoy: ${hoyV===null?'—':fmt(hoyV)}<br>Martes pasado: ${fmt(PAS_ACUM[h])}`;
+    s+=`<rect class="hit" x="${X(h)-cw/2}" y="${T}" width="${cw}" height="${ih}" data-x="${X(h)}" data-tip="${tip.replace(/"/g,'&quot;')}"/>`;
+  });
+  s+='</svg>';
+  return s;
+}
+
+function bloqueCurva(m,temprano){
+  const cuerpo=S.falla?cae('No se pudo leer la curva de ventas.'):`<div class="card graf">
+    <div class="cab-g"><b>Ventas de hoy, hora por hora</b><span class="sub-g">${temprano?'Aún sin ventas':`Hasta las 5:40 p. m. · <span class="up">▲ ${Math.round((HOY_AHORA_V/PAS_AHORA_V-1)*100)} %</span> vs. el martes pasado a esta hora`}</span></div>
+    <div class="leyenda"><span><i></i>Hoy</span><span><i class="disc"></i>Martes pasado</span></div>
+    ${curva(m,temprano)}
+    ${tooltipTabla(['Hora','Hoy','Martes pasado'],HORAS.map(h=>[hlab(h),(!temprano&&HOY_ACUM[h]!==undefined)?fmt(HOY_ACUM[h]):'—',fmt(PAS_ACUM[h])]))}
+  </div>`;
+  return sec('Ritmo del día',cuerpo,{nuevo:true,fuente:'amplía la cifra de hoy'});
+}
+
+/* Tu semana: barras de los últimos 7 días + una marca por el mismo día de la semana pasada. */
+function barras(m,temprano){
+  const W=m?300:400,H=176,L=36,T=18,B=24,iw=W-L-6,ih=H-T-B,slot=iw/7,bw=Math.min(24,slot*.56);
+  const esta=SEM_ESTA.slice();if(temprano)esta[6]=0;
+  const pas=SEM_PAS.slice();if(temprano)pas[6]=0;
+  const Y=v=>T+ih-(v/1200)*ih;
+  let s=`<svg class="g" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tus ventas de los últimos siete días contra los mismos días de la semana pasada">`;
+  [0,600,1200].forEach(v=>{s+=`<line class="grid" x1="${L}" x2="${W}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-6}" y="${Y(v)+3.5}" text-anchor="end" class="num">${v?v.toLocaleString('es-PE'):'0'}</text>`;});
+  const mejor=esta.indexOf(Math.max(...esta));
+  esta.forEach((v,i)=>{
+    const cx=L+slot*i+slot/2,x=cx-bw/2,y=Y(v),h=Math.max(0,Y(0)-y),r=Math.min(4,h);
+    if(h>0)s+=`<path d="M${x},${Y(0)} V${y+r} Q${x},${y} ${x+r},${y} H${x+bw-r} Q${x+bw},${y} ${x+bw},${y+r} V${Y(0)} Z" fill="var(--tinta)" ${i===6?'opacity=".62"':''}/>`;
+    if(pas[i]>0)s+=`<line x1="${cx-bw/2-4}" x2="${cx+bw/2+4}" y1="${Y(pas[i])}" y2="${Y(pas[i])}" stroke="var(--taupe)" stroke-width="2" stroke-linecap="round"/>`;
+    s+=`<text x="${cx}" y="${H-7}" text-anchor="middle" style="${i===6?'font-weight:700;fill:var(--tinta)':''}">${DIAS[i]}</text>`;
+    if(i===mejor&&v>0)s+=`<text x="${cx}" y="${y-6}" text-anchor="middle" class="v">${fmt(v)}</text>`;
+    if(i===6&&i!==mejor&&v>0)s+=`<text x="${cx}" y="${y-6}" text-anchor="middle" class="v">${fmt(v)}</text>`;
+    const tip=`<b>${DIAS[i]==='hoy'?'Hoy, hasta ahora':DIAS[i]}</b><br>Tú: ${fmt(v)}<br>Mismo día, semana pasada: ${fmt(pas[i])}`;
+    s+=`<rect class="hit" style="cursor:default" x="${L+slot*i}" y="${T}" width="${slot}" height="${ih}" data-tip="${tip.replace(/"/g,'&quot;')}"/>`;
+  });
+  return s+'</svg>';
+}
+function bloqueSemana(m,temprano){
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  const est=sum(SEM_ESTA)-(temprano?SEM_ESTA[6]:0),pas=sum(SEM_PAS)-(temprano?SEM_PAS[6]:0);
+  const pct=Math.round((est/pas-1)*100);
+  const cuerpo=S.falla?cae('No se pudieron leer tus ventas de la semana.'):`<div class="card graf">
+    <div class="cab-g"><b>${fmt(est)} en 7 días</b><span class="sub-g"><span class="${pct>=0?'up':'down'}">${pct>=0?'▲':'▼'} ${Math.abs(pct)} %</span> vs. tus 7 días de antes</span></div>
+    <div class="leyenda"><span><i class="caja"></i>Tus ventas</span><span><i class="marca"></i>Mismo día, semana pasada</span></div>
+    ${barras(m,temprano)}
+    <p class="sub-g" style="margin-top:4px">Tu mejor día suele ser el <b style="font-weight:600;color:var(--tinta)">sábado</b>. Solo ves lo tuyo: la tienda y tus compañeras no aparecen aquí.</p>
+    ${tooltipTabla(['Día','Tú','Sem. pasada'],DIAS.map((d,i)=>[d,fmt(i===6&&temprano?0:SEM_ESTA[i]),fmt(i===6&&temprano?0:SEM_PAS[i])]))}
+  </div>`;
+  return sec('Tu semana',cuerpo,{nuevo:true,fuente:'lectura de Rendimiento'});
+}
+
+/* Las tres tiendas hoy. */
+function bloqueTiendas(temprano){
+  const T3=[{n:'Tienda TRU',esta:true,v:1840,meta:3000,c:20},{n:'Tienda AQP',v:2410,meta:3000,c:24},{n:'Tienda LIM',v:1120,meta:2500,c:13}];
+  const fila=t=>{const v=temprano?0:t.v,p=Math.round(v/t.meta*100);return `<div class="r"><div class="f"><span class="n">${t.n}${t.esta?'<em>esta sede</em>':''}</span><span class="m num">${temprano?'—':fmt(v)}</span></div>
+    <div class="bar"><i style="width:${Math.min(100,p)}%"></i></div><p class="s num">${temprano?`Aún sin ventas · meta ${fmt(t.meta)}`:`${p} % de la meta de ${fmt(t.meta)} · ${t.c} ${plural(t.c,'venta','ventas')}`}</p></div>`;};
+  const cuerpo=S.falla?cae('No se pudieron leer las otras tiendas.'):`<div class="card tiendas">${T3.map(fila).join('')}</div>`;
+  return sec('Las 3 tiendas hoy',cuerpo,{nuevo:true,fuente:'lectura de Rendimiento'});
+}
+
+/* Hoy en la trastienda (terminal de almacén y roles que no venden). */
+function bloqueTrastienda(){
+  const T=[
+    {v:'2',et:'Por recibir',d:'Envíos de proveedores en camino. Uno llega hoy.',k:'recibir'},
+    {v:'3',et:'Traslados en tránsito',d:'1 sale hoy hacia AQP · 2 llegan de LIM.',k:'traslados'},
+    {v:'1',et:'Conteo abierto',d:'Piso de venta · 62 % contado.',k:'conteo'},
+    {v:'5',et:'Prendas dañadas',d:'En cuarentena · 2 llevan más de 7 días.',k:'stock'}];
+  const cuerpo=S.falla?cae('No se pudo leer lo que hay en la trastienda.'):`<div class="tiles">${T.map(t=>`<a class="card tile" href="#"><div class="go"><p class="lbl">${t.et}</p>${ic('chevron')}</div><p class="v num">${t.v}</p><div class="d">${t.d}</div></a>`).join('')}</div>`;
+  return sec('Hoy en la trastienda',cuerpo,{nuevo:true,fuente:'lectura nueva'});
+}
+
+/* Hoy en el taller: órdenes por etapa (Corte, Confección, Acabados). */
+function bloqueTaller(){
+  const E=[{n:'Corte',v:2,o:.35},{n:'Confección',v:3,o:.62},{n:'Acabados',v:1,o:.92}];
+  const O=[{c:'OP-026',p:'Camisa lino',e:'Confección',cu:'Entrega 27 sep',at:'Lleva 2 días de atraso'},{c:'OP-025',p:'Chaleco',e:'Acabados',cu:'Entrega 1 oct'},{c:'OP-029',p:'Pantalón sastre',e:'Confección · tercerizada',cu:'Entrega 2 oct'}];
+  const total=E.reduce((a,b)=>a+b.v,0);
+  const cuerpo=S.falla?cae('No se pudieron leer las órdenes del taller.'):`<div class="card graf" style="padding-bottom:0">
+    <div class="cab-g"><b>${total} órdenes en proceso</b><span class="sub-g"><span class="chip amb">1 atrasada</span> · 1 tercerizada</span></div>
+    <div class="etapas" role="img" aria-label="Órdenes por etapa: ${E.map(e=>e.n+' '+e.v).join(', ')}">${E.map(e=>`<i style="flex:${e.v};background:var(--tinta);opacity:${e.o}"></i>`).join('')}</div>
+    <div class="etl">${E.map(e=>`<div><b class="num">${e.v}</b>${e.n}</div>`).join('')}</div>
+    <div class="ordenes" style="margin:12px -16px 0"><p class="lbl" style="padding:10px 16px 2px;border-top:1px solid var(--t10)">Lo que se entrega primero</p>${O.map(o=>`<div class="o"><div><b>${o.c} · ${o.p}</b><p class="d">${o.e}${o.at?` · <span style="color:var(--ambar)">${o.at}</span>`:''}</p></div><span class="cuando">${o.cu}</span></div>`).join('')}</div>
+  </div>`;
+  return sec('Hoy en el taller',cuerpo,{nuevo:true,fuente:'Resumen de Producción'});
+}
+
+/* Te toca. Cada aviso: n=nivel, t=título, d=detalle, c=cantidad, nuevo=aviso todavía sin lectura en el ERP. */
+function teToca(items,alDia,m){
+  const SIN='No se pudo leer. Lo demás de esta pantalla sí está al día.';
+  const its=items.map(i=>i.nuevo&&S.falla?{...i,n:'sinleer',c:'Sin leer',d:SIN}:i);
+  const corte=3;
+  const fila=(i,k)=>`<a class="av ${m&&k>=corte?'extra':''}" href="#"><span class="nivel n-${i.n}"></span><div style="min-width:0;flex:1"><p class="t">${i.t}${i.n==='urgente'?'<span class="tag-urg">Urgente</span>':''}${i.nuevo?'<span class="tag-fila">nuevo</span>':''}</p><p class="d">${i.d}</p></div><span class="cant ${i.n}">${i.c}</span>${ic('chevron','chev')}</a>`;
+  return sec('Te toca',`<div class="card avisos">${its.map(fila).join('')}${m&&its.length>corte?`<label class="mas"><input type="checkbox">Ver ${its.length-corte} más</label>`:''}${alDia?`<p class="aldia">${ic('check','up')}<span><span class="ok">Al día:</span> ${alDia}</span></p>`:''}</div>`,{extra:`<span class="ajustar">${ic('ajustar')}Ajustar</span>`});
+}
+
+const ACC={
+  lider:[['caja','Caja'],['nuevoProducto','Nuevo producto'],['traslados','Traslados'],['cambios','Cambios']],
+  colab:[['apartados','Apartados'],['stock','Stock'],['cambios','Cambios'],['nuevoProducto','Nuevo producto']],
+  trastienda:[['recibir','Recibir'],['traslados','Traslados'],['stock','Stock'],['nuevoProducto','Nuevo producto']],
+  taller:[['produccion','Órdenes'],['recibir','Recibir'],['stock','Stock'],['buscar','Buscar']]};
+const accesos=(rol)=>sec('Accesos',`<div class="accesos">${ACC[rol].map(([k,e])=>`<a class="card acc" href="#">${ic(k)}${e}</a>`).join('')}</div>`);
+
+function equipo(conCifras,temprano){
+  const P=[{n:'Mariana T.',e:'En tienda',on:1,v:690,c:7,u:'vendió 3 prendas por S/ 429 · 4:52 p. m.'},{n:'Lucía P.',e:'En pausa',on:0,v:520,c:5,u:'vendió 1 prenda por S/ 119 · 4:31 p. m.'},{n:'Camila R.',e:'En tienda',on:1,v:410,c:5,u:'abrió la caja · 10:04 a. m.'},{n:'Andrea S.',e:'Ya salió',on:0,v:220,c:3,u:'vendió 1 prenda por S/ 89 · 1:10 p. m.'}];
+  const fila=p=>`<div class="p"><span class="avt ${p.on?'on':''}">${p.n[0]}</span><div style="min-width:0;flex:1"><p class="nom">${p.n}</p><p class="sub">${p.e}${conCifras&&!temprano?` · ${p.c} ${plural(p.c,'venta','ventas')}`:''}</p>${conCifras&&!temprano?`<p class="ult">${p.u}</p>`:''}</div>${conCifras?`<span class="monto num">${temprano?'—':fmt(p.v)}</span>`:''}</div>`;
+  return sec('Equipo de hoy',`<div class="card equipo">${P.map(fila).join('')}${conCifras?'':'<p class="pie">Ves quién está; las cifras de cada una las ve la líder.</p>'}</div>`);
+}
+
+/* ───────────── los cuatro roles ───────────── */
+const ROLES={
+  lider:{sede:'Tienda TRU',nombre:'Líder · Tienda TRU',saludo:'Hola, Felipe',bajada:'Líder · Tienda TRU',pie:['Felipe Alvarez','Líder · Tienda TRU'],vender:true,
+    menu:[['inicio','Inicio',1],['vender','Ventas'],['stock','Inventario'],['catalogo','Catálogo'],['vender','Compras'],['finanzas','Finanzas'],['clientas','Clientas'],['rendimiento','Rendimiento']],
+    izq:(m,t)=>{
+      const meta=t?0:Math.round(HOY_AHORA_V/META_DIA*100);
+      const hoy=t?`<div class="card vacio">${ic('caja')}<p><b>Aún sin ventas hoy.</b> Caja abierta · meta ${fmt(META_DIA)}.</p></div>`
+        :`<div class="cifras">${tarjeta('Ventas',fmt(HOY_AHORA_V),`<span class="up">▲ ${Math.round((HOY_AHORA_V/PAS_AHORA_V-1)*100)} % vs. el martes pasado</span>`)}${tarjeta('Valor medio',fmt(HOY_AHORA_V/20),'20 ventas')}${tarjeta('Meta del día',meta+' %',`Faltan ${fmt(META_DIA-HOY_AHORA_V)} de ${fmt(META_DIA)}`,`<div class="bar"><i style="width:${meta}%"></i></div>`)}</div>`;
+      return sec('Hoy',hoy)+bloqueCurva(m,t)+teToca([
+        {n:'urgente',t:'Apartados que vencen',d:'1 vence hoy · 1 mañana · Rosa M.',c:2},
+        {n:'toca',t:'Traslados por atender',d:'1 espera tu confirmación.',c:1},
+        {n:'toca',t:'Facturas que vencen esta semana',d:'S/ 1,250 en los próximos 7 días.',c:1},
+        {n:'toca',t:'Efectivo sin depositar',d:'S/ 2,300 en el cajón desde hace 3 días.',c:'S/ 2,300',nuevo:1},
+        {n:'info',t:'Cierre de setiembre',d:'El mes termina mañana: falta cerrar la caja de LIM.',c:1,nuevo:1},
+        {n:'info',t:'Ventas del año frente al límite del régimen',d:'Vas en el 78 %. Impuestos lo sigue mes a mes.',c:'78 %',nuevo:1}
+      ],'comprobantes sin llegar a sunat · aperturas de caja con diferencia · devoluciones por resolver · prendas por regularizar',m);
+    },
+    der:(m,t)=>accesos('lider')+bloqueTiendas(t)+equipo(true,t)},
+  colab:{sede:'Tienda TRU',nombre:'Integrante · Tienda TRU',saludo:'Hola, Mariana',bajada:'Integrante · Tienda TRU',pie:['Mariana Torres','Integrante · Tienda TRU'],vender:true,
+    menu:[['inicio','Inicio',1],['vender','Ventas'],['stock','Inventario'],['catalogo','Catálogo'],['clientas','Clientas']],
+    izq:(m,t)=>{
+      const META_P=1000,pm=Math.round(690/META_P*100);
+      const tag='<span class="tagn">Nuevo · meta por persona</span>';
+      const hoy=t?`<div class="card vacio nuevo" style="position:relative">${ic('caja')}<p><b>Aún no tienes ventas hoy.</b> Tu meta de hoy es ${fmt(META_P)}. Caja abierta.</p>${tag}</div>`
+        :`<div class="cifras">${S.falla?cae('No se pudo leer tu meta.').replace('class="card falla"','class="card falla" style="grid-column:span 2"'):`<div class="card cifra nuevo">${tag}<p class="lbl" style="display:block">Tus ventas</p><p class="v num">${fmt(690)}</p><div class="d">7 ventas · <b style="font-weight:600;color:var(--tinta)">${pm} %</b> de tu meta de ${fmt(META_P)}</div><div class="bar"><i style="width:${pm}%"></i></div></div>`}${tarjeta('Tu ticket',fmt(690/7),'7 ventas')}${tarjeta('Caja','Abierta','Puedes vender')}</div>`;
+      return sec('Tu día',hoy)+bloqueSemana(m,t)+teToca([
+        {n:'urgente',t:'Apartados que vencen',d:'1 vence hoy · Rosa M.',c:1},
+        {n:'toca',t:'Traslados por atender',d:'1 espera tu confirmación.',c:1}
+      ],'devoluciones por resolver',m);
+    },
+    der:(m,t)=>accesos('colab')+equipo(false,t)},
+  trastienda:{sede:'Tienda TRU',nombre:'Terminal · Tienda TRU',saludo:'Terminal Almacén TRU',bajada:'Terminal · Tienda TRU',pie:['Terminal Almacén TRU','Terminal'],vender:false,fijo:'Recibir mercadería',
+    menu:[['inicio','Inicio',1],['stock','Inventario'],['catalogo','Catálogo'],['recibir','Compras']],
+    izq:(m,t)=>bloqueTrastienda()+teToca([
+      {n:'toca',t:'Traslados por atender',d:'1 espera tu confirmación.',c:1},
+      {n:'info',t:'Conteo abierto',d:'Hay un conteo sin cerrar en esta sede.',c:1}
+    ],'',m),
+    der:(m,t)=>accesos('trastienda')},
+  taller:{sede:'Taller Lima',nombre:'Integrante · Taller Lima',saludo:'Hola, Rosa',bajada:'Integrante · Taller Lima',pie:['Rosa Medina','Integrante · Taller Lima'],vender:false,
+    menu:[['inicio','Inicio',1],['produccion','Producción'],['stock','Inventario'],['recibir','Compras']],
+    izq:(m,t)=>bloqueTaller()+teToca([
+      {n:'urgente',t:'Órdenes de producción atrasadas',d:'1 pasó su fecha de entrega: OP-026 · Camisa lino.',c:1,nuevo:1},
+      {n:'info',t:'Insumos bajo el mínimo',d:'2 telas por reponer antes del próximo corte.',c:2,nuevo:1},
+      {n:'toca',t:'Traslados por atender',d:'1 espera tu confirmación.',c:1}
+    ],'',m),
+    der:(m,t)=>accesos('taller')}
+};
+
+/* ───────────── armado ───────────── */
+function pagina(m){
+  const R=ROLES[S.rol],t=S.hora==='temprano',fecha='Martes, 29 de setiembre';
+  const boton=(!m&&R.vender)?`<a class="btn-vender" href="#">${ic('vender')} Vender</a>`:'';
+  return `<div class="pag"><div class="cab"><div><p class="sobre">${fecha}</p><h1>${R.saludo}</h1><p class="bajada">${R.bajada}</p></div>${boton}</div>
+    <div class="rejilla"><div class="col">${R.izq(m,t)}</div><div class="col">${R.der(m,t)}</div></div></div>`;
+}
+function pintar(){
+  const R=ROLES[S.rol];
+  $('#pc').innerHTML=`<aside class="side"><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div>${R.menu.map(([k,e,a])=>`<div class="fila ${a?'act':''}">${ic(k)}${e}</div>`).join('')}<div class="yo"><span class="avt">${R.pie[0][0]}</span><div>${R.pie[0]}<small>${R.pie[1]}</small></div></div></aside>
+    <div class="der"><div class="top"><span class="busca">${ic('buscar')}Buscar…</span><span class="esp"></span>${S.rol==='trastienda'?'':'<span class="lbl">Actividad</span>'}<span class="chipcab">${R.sede} ˅</span></div><div class="cuerpo">${pagina(false)}</div></div>`;
+  const fijo=R.vender?`<a class="btn-fijo" href="#">${ic('vender')} Vender</a><a class="btn-cuad" href="#" aria-label="Escanear">${ic('escaner')}</a>`
+    :R.fijo?`<a class="btn-fijo" href="#">${ic('recibir')} ${R.fijo}</a>`:'';
+  $('#tel').innerHTML=`<div class="top">${ic('menu')}<img src="cayla-isotipo.png" alt=""><span class="esp"></span><span class="chipcab">${R.sede} ˅</span></div><div class="cuerpo">${pagina(true)}</div>${fijo?`<div class="fijo">${fijo}</div>`:''}`;
+  document.body.dataset.marca=S.marca?'on':'off';
+  fuentes();
+}
+
+const FUENTES={
+  lider:[
+    ['Ritmo del día (curva hora por hora)','dep','Amplía la cifra de «Ventas», que ya compara contra el mismo día de la semana pasada a la misma hora (`getVentasMismaHoraSemanaAnterior`). Falta guardar el acumulado por hora.','M'],
+    ['Accesos: «Nuevo producto» en lugar de Apartados','ya','Decidido por Felipe el 2026-09-29 y hecho en esta rama. Apartados sigue en «Te toca» y en el menú.','—'],
+    ['Las 3 tiendas hoy (solo la líder)','dep','La lectura de tiendas de Rendimiento (ADR-0219, `fn_rendimiento_ubicaciones`, ya en producción). Una sola definición de «ventas por sede».','M'],
+    ['Efectivo sin depositar · Cierre de mes · Límite del régimen','nueva','Los tres están en «avisos sin lectura todavía» del ADR-0225. Cada uno pide su lectura (Cuentas y dinero, Cierre de mes, Impuestos).','S c/u']],
+  colab:[
+    ['Tu semana','dep','Lectura por persona: hoy `fn_ventas_del_dia` solo da el día. Es lo mismo que `fn_rendimiento_persona` (Rendimiento). Solo lo suyo, nunca la tienda ni sus compañeras (Felipe, 2026-09-24).','M'],
+    ['Meta del día en «Tu día» (simple: una barra y un porcentaje)','nueva','No existe. Hoy hay meta por sede (`ubicaciones.meta_venta_diaria`, `ubicacion_metas_dia`), no por persona. Reabre D-64 y D-125 («todavía no») y D-68 («las colaboradoras no ven ni sus propias cifras»). Falta decidir cómo se fija.','L'],
+    ['Corregir «Tus ventas» y «Tu ticket»','nueva','Hoy `fn_ventas_del_dia` le devuelve a una colaboradora TODAS las ventas de su tienda (verificado en producción el 2026-09-29): «Tus ventas» muestra el total de la tienda. Hay que leer por `asesora_id` antes de mostrar una meta suya.','M'],
+    ['Accesos con «Nuevo producto»','ya','Hecho en esta rama: lo ve quien puede escribir en el catálogo.','—'],
+    ['Apartados que vencen · Traslados por atender','ya','Ya existen en «Te toca».','—']],
+  trastienda:[
+    ['Hoy en la trastienda','nueva','Cuatro lecturas nuevas de solo lectura: envíos por recibir (Recibir), traslados en tránsito, conteo abierto (ya existe como aviso) y prendas dañadas en cuarentena (`prendas_danadas`).','M'],
+    ['Botón fijo «Recibir mercadería» en celular','ya','Aprobado por Felipe el 2026-09-29 y hecho en esta rama: lo tiene la terminal que no vende, como el almacén.','—'],
+    ['Sin «Equipo de hoy»','ya','Una terminal es un aparato, no una persona: hoy tampoco lo tiene.','—']],
+  taller:[
+    ['Hoy en el taller','dep','Reutiliza lo que ya calcula `lib/produccion-decisiones.ts` (Resumen de Producción, #231): la etapa actual de cada orden (`etapaActual`) y su estado de entrega. Contar por etapa es una suma. Etapas reales: Corte, Confección, Acabados.','M'],
+    ['Órdenes atrasadas · Insumos bajo el mínimo','nueva','Están en «avisos sin lectura todavía» del ADR-0225. El Resumen de Producción ya las calcula (entregas vencidas e insumos bajo el mínimo): falta sacarlas a `lib/` para que el Inicio use la misma definición. La primera se decidió urgente (2026-09-26).','S c/u']]
+};
+const EST={ya:['ya','Ya existe'],nueva:['nueva','Lectura nueva'],dep:['dep','Depende de otro módulo']};
+function fuentes(){
+  const F=FUENTES[S.rol];
+  $('#fuentes').innerHTML=`<p class="lbl" style="margin-bottom:4px">De dónde saldría cada bloque · ${{lider:'Líder',colab:'Colaborador',trastienda:'Terminal de almacén (y almacén como sede)',taller:'Taller'}[S.rol]}</p>
+  <table class="fuentes"><tr><th>Bloque</th><th>Estado</th><th>De dónde sale el dato</th><th>Esfuerzo</th></tr>${F.map(([b,e,d,x])=>`<tr><td><b>${b}</b></td><td><span class="est ${EST[e][0]}">${EST[e][1]}</span></td><td>${d.replace(/`([^`]+)`/g,'<code>$1</code>')}</td><td>${x}</td></tr>`).join('')}</table>
+  <p style="margin-top:8px;color:var(--t65);font-size:12px">Esfuerzo: S = una lectura y una tarjeta · M = lectura nueva con su prueba · L = varias piezas o una decisión de negocio.</p>`;
+}
+$('#preguntas').innerHTML=`<p class="lbl" style="margin-bottom:6px">Ya decidido por Felipe (2026-09-29)</p><ul>
+  <li><b>«Las 3 tiendas hoy»:</b> solo la líder.</li>
+  <li><b>Accesos de la líder:</b> «Nuevo producto» en lugar de Apartados (hecho).</li>
+  <li><b>Terminal de almacén:</b> lleva el botón fijo «Recibir mercadería» en el celular (hecho).</li>
+  <li><b>Integrante:</b> ve una meta individual simple en «Tu día» (esta maqueta); la líder ve las ventas de todas y más datos en Rendimiento.</li></ul>
+  <p style="margin-top:10px" class="lbl">Lo que falta decidir para construir la meta individual</p><ul>
+  <li><b>¿Quién la fija y cómo?</b> D-64 dice «mensual por tienda, el líder la reparte». ¿Partes iguales, por horas trabajadas, o la escribe la líder persona por persona?</li>
+  <li><b>¿Diaria o mensual?</b> La de la sede es diaria y suma al mes; una meta diaria por persona cambia con los turnos y los días libres.</li>
+  <li><b>Corregir antes «Tus ventas»:</b> hoy muestra el total de la tienda a cada colaboradora.</li>
+  <li><b>Rendimiento:</b> ¿qué ve la líder de la meta de cada una (cumplimiento, quién la fijó) y quién más lo ve?</li></ul>
+  <p style="margin-top:10px" class="lbl">Lo que no cambia</p><ul>
+  <li>El orden aprobado el 2026-09-26: cifras → Te toca → accesos → equipo. Los bloques nuevos entran como cifras, a la izquierda.</li>
+  <li>Cada bloque falla solo y lo dice («Lo demás de esta pantalla sí está al día»): pruébalo con «Lectura de lo nuevo · Falla».</li>
+  <li>Solo bloques de módulos que el rol ve (ADR-0161). Tokens de ADR-0169; rojo solo para lo urgente.</li></ul>`;
+
+function barra(){
+  const grupo=(t,clave,ops)=>`<div class="g"><span>${t}</span><div class="seg">${ops.map(([v,e])=>`<button aria-pressed="${String(S[clave])===String(v)}" data-c="${clave}" data-v="${v}">${e}</button>`).join('')}</div></div>`;
+  $('#spk').innerHTML=`<span class="tit">Inicio · bloques por rol</span>
+    ${grupo('Ver como','rol',[['lider','Líder'],['colab','Colaborador'],['trastienda','Terminal de almacén'],['taller','Taller']])}
+    ${grupo('Momento del día','hora',[['temprano','9:30 a. m. · sin ventas'],['tarde','5:40 p. m.']])}
+    ${grupo('Lo nuevo','marca',[[true,'Marcado'],[false,'Limpio']])}
+    ${grupo('Lectura de lo nuevo','falla',[[false,'Bien'],[true,'Falla']])}
+    <span class="inv">Cifras y nombres inventados</span>`;
+  $('#spk').querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=b.dataset.c,v=b.dataset.v;S[c]=(v==='true'?true:v==='false'?false:v);barra();pintar();});
+}
+
+/* tooltip y cruz de la curva */
+const tip=$('#tip');
+document.addEventListener('pointerover',e=>{const h=e.target.closest&&e.target.closest('[data-tip]');if(!h)return;tip.innerHTML=h.dataset.tip;tip.style.display='block';
+  const svg=h.closest('svg'),x=h.dataset.x;if(x!==undefined&&svg){const c=svg.querySelector('.cross');c.setAttribute('x1',x);c.setAttribute('x2',x);c.style.display='block';}});
+document.addEventListener('pointermove',e=>{if(tip.style.display==='block'){tip.style.left=Math.min(innerWidth-230,e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';}});
+document.addEventListener('pointerout',e=>{const h=e.target.closest&&e.target.closest('[data-tip]');if(!h)return;tip.style.display='none';const svg=h.closest('svg'),c=svg&&svg.querySelector('.cross');if(c)c.style.display='none';});
+document.addEventListener('click',e=>{if(e.target.closest('a[href="#"]'))e.preventDefault();});
+
+barra();pintar();
+</script>
+</body>
+</html>

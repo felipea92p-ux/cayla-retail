@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -88,7 +88,7 @@ export default async function EditarProductoPage({
         ubicacionId: persona.ubicacionId,
         sede: persona.ubicacionEtiqueta,
         sububicaciones,
-        puedeBajarAlPiso: veModulo(persona, "existencias") && separaPisoAlmacen,
+        puedeBajarAlPiso: separaPisoAlmacen, // la carga inicial no pide Existencias (ADR-0306 act. 2026-10-03)
       }
     : null;
 

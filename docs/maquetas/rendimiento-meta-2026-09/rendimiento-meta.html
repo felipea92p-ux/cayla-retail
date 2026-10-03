@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendimiento con meta por persona · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Rendimiento con meta por persona (2026-09-29)
+   Dibuja las 8 decisiones que Felipe aprobó el 2026-09-29 (ver README.md):
+   meta de la sede → reparto automático por horas programadas (turnos de
+   Dynamic) → la líder de la sede o el Admin la ajustan con motivo →
+   se mide con quién atendió (Caja) → Hoy · Semana · Mes. La integrante
+   ve solo lo suyo en Inicio. Extiende `../rendimiento-spike-2026-09/`.
+   NO es una implementación: no toca la web ni la base. Datos INVENTADOS
+   (ningún nombre ni cifra es real). Tokens = apps/web/app/globals.css
+   (ADR-0169); el rojo solo marca lo urgente. La barra oscura no existe
+   en el ERP.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);--t06:rgba(26,26,24,.06);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+input,select{font:inherit;color:inherit}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:6px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk .inv{margin-left:auto;align-self:center;border:1px dashed rgba(245,240,232,.5);border-radius:8px;padding:4px 10px;font-size:11.5px;color:rgba(245,240,232,.85)}
+.spk .rst{align-self:center;color:rgba(245,240,232,.75);text-decoration:underline;font-size:12px}
+
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:24px;align-items:start}
+@media (max-width:1100px){.escena{grid-template-columns:1fr}.marco-tel{justify-self:center}}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+.porque{margin-top:14px;background:var(--papel);border:1px dashed var(--taupe);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--t80)}
+.porque.solido{border-style:solid;border-color:var(--sand)}
+.porque b{font-weight:600;color:var(--tinta)}
+.porque ol{margin:8px 0 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.porque li{display:grid;grid-template-columns:22px 1fr;gap:8px}
+.porque ul{margin:6px 0 0 18px}
+
+/* ── marco computadora ── */
+.pc{background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 20px 50px -20px rgba(26,26,24,.35);display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:940px}
+.pc .side{border-right:1px solid var(--t10);display:flex;flex-direction:column;padding:20px 10px;gap:4px;font-size:14px}
+.pc .logo{display:flex;align-items:center;gap:10px;padding:0 10px 18px}
+.pc .logo img{height:28px}.pc .logo span{letter-spacing:.26em;font-weight:600;font-size:13px}
+.pc .fila{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:8px;color:var(--t80)}
+.pc .fila.act{background:rgba(232,224,208,.8);color:var(--tinta);font-weight:500;box-shadow:inset 2px 0 0 var(--rojo)}
+.pc .fila .ic{color:var(--t50)}
+.pc .yo{margin-top:auto;border-top:1px solid var(--t10);padding:14px 10px 0;display:flex;gap:10px;align-items:center;font-size:13px}
+.pc .yo small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65)}
+.pc .der{display:flex;flex-direction:column;min-width:0}
+.pc .top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:12px;padding:0 24px;flex:none}
+.pc .top .esp{flex:1}
+.busca{display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:99px;background:var(--hueso);font-size:13px;color:var(--t65)}
+.chipcab{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);font-size:11px;letter-spacing:.1em;font-weight:600;text-transform:uppercase}
+.pc .cuerpo{overflow-y:auto;padding:28px 32px 40px;flex:1}
+.pc .pag{max-width:1120px;margin:0 auto}
+
+/* ── marco celular ── */
+.marco-tel{position:sticky;top:84px}
+.tel{width:375px;height:780px;border-radius:40px;border:10px solid #1a1a18;background:var(--crema);overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(26,26,24,.45)}
+.tel .top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(245,240,232,.92);position:absolute;inset:0 0 auto 0;z-index:5}
+.tel .top img{height:22px}.tel .top .esp{flex:1}
+.tel .cuerpo{position:absolute;inset:56px 0 0 0;overflow-y:auto;padding:18px 14px 40px}
+.tel .fijo{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 14px;background:linear-gradient(to top,var(--crema) 70%,rgba(245,240,232,0));z-index:6;display:flex;gap:8px}
+.btn-fijo{flex:1;height:52px;border-radius:14px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:15px}
+
+/* ── piezas comunes ── */
+.sobre{color:var(--rojo);text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;line-height:1.1}
+.pc h1{font-size:34px;margin-top:4px}.tel h1{font-size:26px;margin-top:2px}
+.bajada{color:var(--taupe);font-size:14px;margin-top:6px;max-width:640px}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.btn-vender{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;background:var(--tinta);color:var(--crema);font-weight:500;font-size:14px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+.sec{margin-top:22px}
+.sec-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:4px 8px;flex-wrap:wrap}
+.sec-cab .lbl{white-space:nowrap}
+.mt{margin-top:14px}
+.up{color:var(--verde)}.down{color:var(--ambar)}
+
+/* controles de la pantalla: píldoras */
+.ctl{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap;margin-top:18px}
+.pil{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pil button{height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80);transition:background-color .2s var(--ease),border-color .2s var(--ease)}
+.pil button:hover{border-color:var(--taupe)}
+.pil button[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pil .et{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-right:4px}
+
+/* cifras */
+.cifras{display:grid;gap:10px;margin-top:16px}
+.pc .cifras{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tel .cifras{grid-template-columns:1fr 1fr}.tel .cifras .cifra.ancha{grid-column:span 2}
+.cifra{padding:14px 16px;position:relative}
+.cifra .v{font-family:'EB Garamond',serif;font-size:28px;line-height:1.1;margin-top:4px}
+.cifra .d{font-size:12.5px;color:var(--t65);margin-top:3px}
+.bar{height:8px;border-radius:9px;background:var(--t10);margin-top:9px;position:relative}
+.bar i{display:block;height:100%;background:var(--verde);border-radius:9px}
+.bar b.tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tinta);border-radius:2px}
+.cta{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--sand);background:var(--hueso);font-size:12.5px;font-weight:500;margin-top:8px}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;border-radius:99px;padding:0 8px;background:var(--hueso);white-space:nowrap;line-height:19px}
+.chip.pz{background:rgba(76,93,110,.14);color:var(--pizarra)}
+.chip.am{background:rgba(116,80,26,.12);color:var(--ambar)}
+.chip.vd{background:rgba(72,96,63,.14);color:var(--verde)}
+.chip.tx{background:rgba(128,92,76,.14);color:var(--taupe)}
+.pto{width:7px;height:7px;border-radius:50%;background:var(--t30);display:inline-block}
+.pto.on{background:var(--verde)}.pto.pa{background:var(--ambar)}
+
+/* tabla de personas */
+.tp{overflow:hidden}
+.tp .cab-t,.tp .fp{display:grid;grid-template-columns:minmax(0,1.7fr) 92px 112px minmax(0,1.4fr) 78px;gap:10px;align-items:center;padding:12px 16px}
+.tp .cab-t{background:var(--hueso);font-size:12px;color:var(--t65);padding-top:9px;padding-bottom:9px}
+.tp .cab-t button{text-align:left;font-size:12px;color:var(--t65)}
+.tp .cab-t button.act{color:var(--tinta);font-weight:600}
+.tp .fp+.fp{border-top:1px solid var(--t10)}
+.avt{width:34px;height:34px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;flex:none}
+.c-per{display:flex;gap:11px;align-items:center;min-width:0}
+.c-per .nom{font-size:14px;font-weight:500;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.c-per .sub{font-size:12px;color:var(--t65);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.c-ven,.c-meta{font-size:14px}
+.c-ven small,.c-meta small{display:block;font-size:11.5px;color:var(--t65)}
+.c-av .d{font-size:12px;color:var(--t65);margin-top:5px}
+.c-av .bar{margin-top:0}
+.c-ed{text-align:right}
+.bt{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:12.5px}
+.bt:hover:not(:disabled){border-color:var(--taupe)}
+.bt:disabled{opacity:.45;cursor:not-allowed}
+.tp .pie-t{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:11px 16px;border-top:1px solid var(--sand);background:var(--hueso);font-size:12.5px;color:var(--t80)}
+.tel .tp .cab-t{display:none}
+.tel .tp .fp{grid-template-columns:1fr auto;grid-template-areas:"per ed" "av av" "ven ven";gap:8px 10px;padding:13px 14px}
+.tel .tp .c-per{grid-area:per}.tel .tp .c-ed{grid-area:ed}.tel .tp .c-av{grid-area:av}
+.tel .tp .c-ven{grid-area:ven;display:flex;gap:14px;font-size:12.5px;color:var(--t80);flex-wrap:wrap}
+.tel .tp .c-ven small{display:inline}
+.tel .tp .c-meta{display:none}
+
+/* gráfico */
+.graf{padding:14px 16px 10px}
+.graf .cab-g{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.graf .cab-g b{font-size:14px;font-weight:600}
+.graf .sub-g{font-size:12.5px;color:var(--t65)}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--t80);margin:8px 0 2px}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i.caja{display:inline-block;width:10px;height:10px;background:var(--tinta);border-radius:2px 2px 0 0}
+.leyenda i.marca{display:inline-block;width:14px;border-top:2px solid var(--taupe)}
+svg.g{display:block;width:100%;height:auto;overflow:visible}
+.chartbox{width:100%}
+.pil.sm button{height:28px;padding:0 11px;font-size:12px}
+.leyenda i.linea{display:inline-block;width:18px;border-top:2px solid var(--tinta)}
+.leyenda i.disc{display:inline-block;width:18px;border-top:2px dashed var(--taupe)}
+svg.g text{font-family:'DM Sans',system-ui,sans-serif;font-size:10.5px;fill:var(--t65)}
+svg.g text.v{fill:var(--tinta);font-weight:600;font-size:11px}
+svg.g .grid{stroke:var(--sand);stroke-width:1}
+svg.g .hit{fill:transparent}
+.tabla{margin-top:6px;font-size:12px}
+.tabla summary{cursor:pointer;color:var(--taupe);padding:4px 0}
+.tabla table{width:100%;border-collapse:collapse;margin-top:4px}
+.tabla th,.tabla td{padding:4px 6px;border-bottom:1px solid var(--t10);text-align:right}
+.tabla th:first-child,.tabla td:first-child{text-align:left}
+.tabla th{font-weight:600;color:var(--t65)}
+#tip{position:fixed;z-index:300;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:12px;line-height:1.4;padding:7px 10px;border-radius:8px;display:none;max-width:240px}
+
+/* rankings */
+.rk{display:grid;gap:12px}
+.pc .rk{grid-template-columns:1fr 1fr}
+.rk h3{font-size:16px;font-weight:500;margin-bottom:8px}
+.rk .lista .r{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 16px;font-size:14px}
+.rk .lista .r+.r{border-top:1px solid var(--t10)}
+.rk .lista .r .n{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.nota-h{background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--t80);margin-top:8px;position:relative}
+.nota-h b{font-weight:600;color:var(--tinta)}
+
+/* vacío / aviso */
+.vacio{padding:16px 18px;font-size:13.5px;color:var(--t80);display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.vacio b{font-weight:600;color:var(--tinta)}
+.vacio p{flex:1;min-width:200px}
+
+/* todas las tiendas */
+.tds{display:grid;gap:12px;margin-top:16px}
+.pc .tds{grid-template-columns:repeat(3,minmax(0,1fr))}
+.td{padding:16px}
+.td h3{font-family:'EB Garamond',serif;font-size:22px;font-weight:400}
+
+/* historial */
+.hist summary{cursor:pointer;padding:12px 16px;font-size:13.5px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.hist .l{display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px;padding:10px 16px;border-top:1px solid var(--t10);font-size:12.5px}
+.hist .l .h{color:var(--t65)}
+.hist .l .x{color:var(--t65);font-size:12px}
+.tel .hist .l{grid-template-columns:1fr}
+
+/* marcadores de las decisiones (Q1–Q8): solo del demo */
+.nb{display:none;position:absolute;top:-8px;right:-8px;z-index:3;width:20px;height:20px;border-radius:50%;background:var(--ambar);color:var(--crema);font-size:11px;font-weight:700;place-items:center;cursor:help}
+body[data-notas=on] .nb{display:grid}
+.nb.in{position:static;display:none;margin-left:4px;vertical-align:middle}
+body[data-notas=on] .nb.in{display:inline-grid}
+
+/* inicio de la integrante */
+.cifras.ini{margin-top:0}
+.pc .cifras.ini{grid-template-columns:repeat(3,minmax(0,1fr))}
+.nota{background:var(--hueso);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--t80)}
+
+/* modal (movimiento de ADR-0136: velo con desenfoque → hoja que sube y crece → contenido en cascada) */
+.velo{position:fixed;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:70px 16px;animation:velo 220ms var(--ease) both}
+.velo.on{display:flex}
+.hoja{width:min(520px,100%);max-height:calc(100vh - 100px);overflow:auto;background:var(--crema);border-radius:16px;padding:22px 22px 18px;animation:sube 380ms var(--ease) both}
+.hoja>*{animation:casc 360ms var(--ease) both}
+.hoja>*:nth-child(2){animation-delay:55ms}.hoja>*:nth-child(3){animation-delay:110ms}.hoja>*:nth-child(4){animation-delay:165ms}.hoja>*:nth-child(5){animation-delay:220ms}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes casc{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:400;font-size:26px}
+.hoja .sub{font-size:13px;color:var(--t65);margin-top:2px}
+.campo{margin-top:14px}
+.campo label{display:block;font-size:12px;letter-spacing:.06em;font-weight:600;color:var(--t65);margin-bottom:5px}
+.campo input,.campo select{width:100%;height:42px;border-radius:10px;border:1px solid var(--sand);background:var(--hueso);padding:0 12px;font-size:15px}
+.campo input:focus,.campo select:focus{outline:2px solid var(--taupe);outline-offset:1px}
+.campo .ayuda{font-size:12px;color:var(--t65);margin-top:4px}
+.campo .err{font-size:12px;color:var(--rojo-p);margin-top:4px;min-height:16px}
+.vista{background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:11px 13px;margin-top:14px;font-size:13px}
+.pie-m{display:flex;justify-content:space-between;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap}
+.pie-m .der{display:flex;gap:8px}
+.btn{height:38px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:500}
+.btn.pri{background:var(--tinta);color:var(--crema)}.btn.sec{border:1px solid var(--sand);background:var(--papel)}.btn.sut{color:var(--taupe);text-decoration:underline;padding:0 4px}
+#toast{position:fixed;right:20px;top:76px;z-index:400;background:var(--papel);border:1px solid var(--sand);border-left:4px solid var(--verde);border-radius:10px;padding:12px 16px;font-size:13.5px;box-shadow:0 12px 30px -12px rgba(26,26,24,.35);display:none;max-width:320px}
+#toast.on{display:block;animation:sube 380ms var(--ease) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-notas="on">
+
+<div class="spk" id="spk"></div>
+
+<div class="escena">
+  <div>
+    <p class="rot">Computadora · 1440 px</p>
+    <div class="pc" id="pc"></div>
+    <div class="porque" id="leyenda"></div>
+  </div>
+  <div class="marco-tel">
+    <p class="rot">Celular · 375 px</p>
+    <div class="tel" id="tel"></div>
+  </div>
+</div>
+
+<div class="velo" id="velo"><div class="hoja" id="hoja" role="dialog" aria-modal="true"></div></div>
+<div id="tip"></div>
+<div id="toast" role="status"></div>
+
+<script>
+/* ───────────── utilidades ───────────── */
+const $=s=>document.querySelector(s);
+const fmt=n=>'S/ '+Math.round(n).toLocaleString('es-PE');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const plural=(n,a,b)=>n===1?a:b;
+const pct=(a,b)=>b?Math.round(a/b*100):null;
+const TR={
+  inicio:'M3 11l9-8 9 8M5 10v10h14V10',vender:'M6 7h12l1 14H5zM9 7a3 3 0 0 1 6 0',stock:'M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9',
+  catalogo:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',finanzas:'M4 5h16v14H4zM4 10h16M9 5v14',clientas:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z',
+  rendimiento:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',buscar:'M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5',menu:'M4 7h16M4 12h16M4 17h16',
+  lapiz:'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',caja:'M12 3v18M16 7c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 2.6 4 3 4 1.3 4 3-1.8 3-4 3-4-1.3-4-3',
+  candado:'M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3'
+};
+const ic=(k,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${TR[k]}"/></svg>`;
+
+/* ───────────── datos inventados ───────────── */
+const HOY_DOW=2;            // martes 29 de setiembre de 2026
+const HOY_D=29;
+const DIAS7=[{l:'mié 23',dow:3},{l:'jue 24',dow:4},{l:'vie 25',dow:5},{l:'sáb 26',dow:6},{l:'dom 27',dow:0},{l:'lun 28',dow:1},{l:'hoy',dow:2}];
+const diasMes=()=>Array.from({length:30},(_,i)=>({d:i+1,dow:new Date(2026,8,i+1).getDay()}));
+const TIENDAS={
+  TRU:{n:'Tienda TRU',c:'TRU',metas:{1:1600,2:1800,3:1800,4:2000,5:2800,6:3600,0:2400},serie:[1900,1750,2900,3300,2500,1500,1240],
+    personas:[
+      {id:'chiara',n:'Chiara F.',enc:1,hSem:40,hHoy:8,ini:10,fin:19,tarde:'presente',abre:1,hoy:210,nHoy:1,v7:3150,mes:14200,nMes:68,hMes:160},
+      {id:'mariana',n:'Mariana T.',hSem:44,hHoy:8,ini:10,fin:19,tarde:'presente',hoy:420,nHoy:2,v7:4300,mes:17100,nMes:83,hMes:176,dia7:[500,480,900,1050,620,330,420]},
+      {id:'lucia',n:'Lucía P.',hSem:30,hHoy:6,ini:10,fin:16,tarde:'salio',hoy:190,nHoy:1,v7:2500,mes:8900,nMes:39,hMes:120},
+      {id:'camila',n:'Camila R.',hSem:40,hHoy:8,ini:11,fin:20,tarde:'en_pausa',hoy:300,nHoy:2,v7:3700,mes:16000,nMes:80,hMes:160},
+      {id:'andrea',n:'Andrea S.',hSem:22,hHoy:4,ini:14,fin:18,tarde:'presente',hoy:120,nHoy:1,v7:1440,mes:8600,nMes:42,hMes:88}]},
+  AQP:{n:'Tienda AQP',c:'AQP',metas:{1:1000,2:1200,3:1200,4:1400,5:1800,6:2400,0:1600},serie:[1100,1000,1600,2100,1400,900,640],
+    personas:[
+      {id:'paola',n:'Paola V.',enc:1,hSem:null,tarde:'presente',hoy:400,nHoy:2,v7:5300,mes:14200,nMes:66,hMes:null},
+      {id:'rosa',n:'Rosa M.',hSem:null,tarde:'presente',hoy:240,nHoy:1,v7:3440,mes:9700,nMes:45,hMes:null}]},
+  LIM:{n:'Tienda LIM',c:'Lima',metas:{1:1500,2:1500,3:1500,4:1700,5:2200,6:2800,0:2000},serie:[0,0,0,0,0,0,0],personas:[]}
+};
+const ESTADO={presente:'En tienda',en_pausa:'En pausa',salio:'Ya salió',programada:'Programada'};
+const AJUSTES0={'TRU:lucia':9800};
+const HIST0=[{cuando:'28 set · 6:12 p. m.',quien:'Chiara F.',persona:'Lucía P.',antes:11520,despues:9800,motivo:'Cambia su horario a mitad de mes'}];
+const S={rol:'lider',datos:'prueba',hora:'tarde',per:'hoy',tienda:'TRU',orden:'ventas',graf:'semana',grafMes:'acum',grafI:'semana',grafMesI:'acum',notas:true,ajustes:{...AJUSTES0},hist:[...HIST0],modal:null};
+
+/* reparto por el método del mayor resto, en pasos de S/ 10, para que las partes sumen EXACTO la meta */
+function repartir(total,pesos,paso=10){
+  const suma=pesos.reduce((a,b)=>a+b,0);
+  if(!total||!suma)return pesos.map(()=>0);
+  const u=total/paso,ex=pesos.map(p=>p/suma*u),base=ex.map(Math.floor);
+  let falta=Math.round(u)-base.reduce((a,b)=>a+b,0);
+  ex.map((e,i)=>[e-base[i],i]).sort((a,b)=>b[0]-a[0]).forEach(([,i])=>{if(falta>0){base[i]++;falta--;}});
+  return base.map(b=>b*paso);
+}
+
+/* Ventas por día del mes: inventadas pero estables. Los días 23–28 son los de la serie de 7 días y el 29 es «hoy»;
+   los días 1–22 se reparten para que el mes sume EXACTO lo que dicen las personas (TRU 64,800; AQP 23,900). */
+const DN=['dom','lun','mar','mié','jue','vie','sáb'],MESD={};
+function diasDelMes(tk){
+  if(MESD[tk])return MESD[tk];
+  const T=TIENDAS[tk],dm=diasMes(),tot={TRU:64800,AQP:23900,LIM:0}[tk];
+  let a={TRU:7,AQP:11,LIM:3}[tk];const rnd=()=>{a=(a*1664525+1013904223)%4294967296;return a/4294967296;};
+  const ult6=T.serie.slice(0,6),resto=tot-ult6.reduce((x,y)=>x+y,0)-T.serie[6];
+  const base=dm.filter(d=>d.d<=22).map(d=>T.metas[d.dow]*(0.8+0.32*rnd())),sb=base.reduce((x,y)=>x+y,0);
+  const vals=base.map(b=>Math.round(b/sb*resto/10)*10);
+  if(resto>0){const im=vals.indexOf(Math.max(...vals));vals[im]+=resto-vals.reduce((x,y)=>x+y,0);}
+  return MESD[tk]=dm.map(d=>({d:d.d,dow:d.dow,v0:d.d<=22?vals[d.d-1]:d.d<=28?ult6[d.d-23]:d.d===29?T.serie[6]:null}));
+}
+
+/* El mes de UNA persona (Mariana): sus días 23–29 son los de su semana, los 1–22 se reparten para sumar EXACTO su mes, y su meta de
+   cada día se reparte para sumar EXACTO su meta del mes (hoy vale su meta de hoy). Es el dato que hoy no existe: ventas por persona. */
+function mesDePersona(v,p){
+  const base=TIENDAS.TRU.personas.find(x=>x.id===p.id),dm=diasMes(),sin=v.sin,temp=v.temp;
+  let a=19;const rnd=()=>{a=(a*1664525+1013904223)%4294967296;return a/4294967296;};
+  const d7=base.dia7,resto=base.mes-d7.reduce((x,y)=>x+y,0);
+  const w=dm.filter(d=>d.d<=22).map(d=>TIENDAS.TRU.metas[d.dow]*(0.75+0.4*rnd())),sw=w.reduce((x,y)=>x+y,0);
+  const vals=w.map(x=>Math.round(x/sw*resto/10)*10);
+  vals[vals.indexOf(Math.max(...vals))]+=resto-vals.reduce((x,y)=>x+y,0);
+  const otros=dm.filter(d=>d.d!==HOY_D),metasP=v.metas?repartir(p.metaMes-p.metaHoy,otros.map(d=>v.metas[d.dow])):null;
+  let k=0;
+  return dm.map(d=>{const fut=d.d>HOY_D;let val=d.d<=22?vals[d.d-1]:d.d<=28?d7[d.d-23]:d7[6];
+    if(sin)val=(d.d===HOY_D&&!temp)?60:0;else if(temp&&d.d===HOY_D)val=0;
+    const meta=v.metas?(d.d===HOY_D?p.metaHoy:metasP[k++]):null;
+    return{d:d.d,dow:d.dow,v:fut?null:val,meta,l:DN[d.dow]+' '+d.d,xl:(d.d===1||(d.d%5===0&&d.d<30)||d.d===HOY_D)?String(d.d):'',hoy:d.d===HOY_D};});
+}
+
+/* Todo lo que la pantalla necesita de UNA tienda, ya calculado con los interruptores del demo */
+function calc(tk){
+  const T=TIENDAS[tk],sin=S.datos==='sin',temp=S.hora==='temprano',hA=temp?9.5:17+40/60;
+  const metas=sin?null:T.metas;
+  const pers=T.personas.map(p=>{
+    const q={...p};
+    if(sin){const u=tk==='TRU'&&p.id==='mariana';q.hoy=u?60:0;q.nHoy=u?1:0;q.v7=q.hoy;q.mes=q.hoy;q.nMes=q.nHoy;}
+    if(temp){q.v7-=q.hoy;q.mes-=q.hoy;q.nMes-=q.nHoy;q.hoy=0;q.nHoy=0;}
+    q.estado=temp?(p.hSem==null||p.abre?'presente':'programada'):p.tarde;
+    q.ritmo=p.ini!=null?Math.max(0,Math.min(1,(hA-p.ini)/(p.fin-p.ini))):null;
+    return q;});
+  const conTurnos=pers.some(p=>p.hSem!=null);
+  const serie=T.serie.map((v,i)=>sin?((i===6&&tk==='TRU'&&!temp)?60:0):((i===6&&temp)?0:v));
+  const dias=DIAS7.map((d,i)=>({...d,v:serie[i],meta:metas?metas[d.dow]:null,hoy:i===6}));
+  const mesDias=diasDelMes(tk).map(x=>{const fut=x.d>HOY_D;let val=x.v0;
+    if(sin)val=(tk==='TRU'&&x.d===HOY_D&&!temp)?60:(fut?null:0);else if(temp&&x.d===HOY_D)val=0;
+    return{d:x.d,dow:x.dow,v:fut?null:val,meta:metas?metas[x.dow]:null,l:DN[x.dow]+' '+x.d,xl:(x.d===1||(x.d%5===0&&x.d<30)||x.d===HOY_D)?String(x.d):'',hoy:x.d===HOY_D};});
+  const mes=diasMes();
+  const metaHoy=metas?metas[HOY_DOW]:null,metaSem=metas?dias.reduce((a,d)=>a+d.meta,0):null,metaMes=metas?mes.reduce((a,d)=>a+metas[d.dow],0):null;
+  const fracDia=Math.max(0,Math.min(1,(hA-10)/10));
+  const tocaba=metas?mes.filter(d=>d.d<HOY_D).reduce((a,d)=>a+metas[d.dow],0)+metaHoy*fracDia:null;
+  const pH=pers.map(p=>conTurnos?(p.hHoy||0):1),pS=pers.map(p=>conTurnos?(p.hSem||0):1);
+  const aH=metas?repartir(metaHoy,pH):[],aS=metas?repartir(metaSem,pS):[],aM=metas?repartir(metaMes,pS):[];
+  pers.forEach((p,i)=>{
+    const man=metas?S.ajustes[tk+':'+p.id]:null;
+    p.autoMes=metas?aM[i]:null;p.manual=man!=null?man:null;
+    const f=p.manual!=null&&p.autoMes?p.manual/p.autoMes:1,r=x=>Math.round(x*f/10)*10;
+    p.metaHoy=metas?r(aH[i]):null;p.metaSem=metas?r(aS[i]):null;p.metaMes=metas?(p.manual!=null?p.manual:aM[i]):null;
+  });
+  const sum=k=>metas?pers.reduce((a,p)=>a+p[k],0):null;
+  const solesMes=pers.reduce((a,p)=>a+p.mes,0),nMes=pers.reduce((a,p)=>a+p.nMes,0);
+  return {T,tk,sin,temp,hA,metas,pers,conTurnos,serie,dias,mesDias,metaHoy,metaSem,metaMes,tocaba,fracDia,
+    asig:{hoy:sum('metaHoy'),semana:sum('metaSem'),mes:sum('metaMes')},solesMes,nMes,ticketMes:nMes?solesMes/nMes:null};
+}
+function resumen(v,per){
+  const p=v.pers,vend=(x)=>p.filter(q=>x(q)>0).length;
+  if(per==='hoy'){const s=v.serie[6],n=p.reduce((a,q)=>a+q.nHoy,0);return{soles:s,n,meta:v.metaHoy,vend:vend(q=>q.hoy),turno:p.filter(q=>q.estado==='presente'||q.estado==='en_pausa').length,ticket:n?s/n:null,tocaba:v.metaHoy!=null?v.metaHoy*v.fracDia:null};}
+  if(per==='semana'){const s=v.serie.reduce((a,b)=>a+b,0),t=v.ticketMes,n=t?Math.round(s/t):0;return{soles:s,n,meta:v.metaSem,vend:vend(q=>q.v7),turno:null,ticket:t,tocaba:null};}
+  return{soles:v.solesMes,n:v.nMes,meta:v.metaMes,vend:vend(q=>q.mes),turno:null,ticket:v.ticketMes,tocaba:v.tocaba};
+}
+const colP=(p,per)=>per==='hoy'?{v:p.hoy,n:p.nHoy,m:p.metaHoy}:per==='semana'?{v:p.v7,n:null,m:p.metaSem}:{v:p.mes,n:p.nMes,m:p.metaMes};
+
+/* ───────────── piezas ───────────── */
+const NB={
+ 1:'Meta de la sede primero: sin ella no hay qué repartir. La carga la líder en Configuración › Metas.',
+ 2:'La fórmula con productos y ventas queda para una fase 2: solo sugerirá la meta de la SEDE, nunca la de cada persona.',
+ 3:'Reparto por horas programadas (turnos de Dynamic). Sin turnos cargados: partes iguales entre las presentes.',
+ 4:'La meta se fija MENSUAL y se calcula cada día. Se ve Hoy · Semana · Mes.',
+ 5:'Editan la líder de la sede y el Admin, con motivo y con historial que no se borra. La líder no toca la suya: la cambia un Admin.',
+ 6:'Cuenta con IGV, sin anuladas; devoluciones y cambios no restan; un apartado cuenta el día que se entrega, a quien lo apartó.',
+ 7:'La integrante ve solo lo suyo. La meta es para acompañar: no se usa para pagar ni evaluar.',
+ 8:'Rendimiento abre en «Hoy»: meta de la sede, cómo va hoy por persona, semana en barras y rankings del mes al final.'};
+const nb=(n,inl)=>`<span class="nb ${inl?'in':''}" data-tip="<b>Decisión ${n}</b><br>${esc(NB[n])}">${n}</span>`;
+
+function barra(av,tick,extra=''){return `<div class="bar" ${extra}><i style="width:${Math.min(100,av)}%"></i>${tick!=null?`<b class="tick" style="left:${Math.min(100,tick)}%"></b>`:''}</div>`;}
+const tabla=(cab,filas)=>`<details class="tabla"><summary>Ver como tabla</summary><table><tr>${cab.map(c=>`<th>${c}</th>`).join('')}</tr>${filas.map(f=>`<tr>${f.map(c=>`<td class="num">${c}</td>`).join('')}</tr>`).join('')}</table></details>`;
+
+/* Los gráficos se dibujan con el ancho REAL de su caja y una altura fija: en una pantalla grande no crecen (las barras
+   quedan delgadas y el texto no se agranda), solo ganan aire. `grafico` deja una caja y `montar` la llena al medirla. */
+let CH=[];
+function grafico(fn,h){CH.push(fn);return `<div class="chartbox" style="min-height:${h}px" data-k="${CH.length-1}"></div>`;}
+function montar(){document.querySelectorAll('.chartbox').forEach(el=>{const f=CH[+el.dataset.k],w=Math.floor(el.clientWidth);if(f&&w>0)el.innerHTML=f(w);});}
+const nice=mx=>{const mag=Math.pow(10,Math.floor(Math.log10(mx)));return [1,1.5,2,2.5,3,4,5,6,8,10].map(k=>k*mag).find(t=>t>=mx);};
+
+/* barras por día con una marca por la meta de cada día (7 días o todo el mes) */
+function barrasGen(dias,W,H,o={}){
+  const L=42,T0=20,B=24,iw=W-L-8,ih=H-T0-B,n=dias.length,slot=iw/n,bw=Math.min(o.mes?14:28,slot*(o.mes?.62:.42));
+  const top=nice(Math.max(...dias.map(d=>Math.max(d.v||0,d.meta||0)),100)),Y=v=>T0+ih-(v/top)*ih;
+  let s=`<svg class="g" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria||'')}">`;
+  [0,top/2,top].forEach(v=>{s+=`<line class="grid" x1="${L}" x2="${W}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L-6}" y="${Y(v)+3.5}" text-anchor="end" class="num">${Math.round(v).toLocaleString('es-PE')}</text>`;});
+  const mejor=dias.reduce((b,d,i)=>(d.v||0)>(dias[b].v||0)?i:b,0);
+  dias.forEach((d,i)=>{
+    const cx=L+slot*i+slot/2,x=cx-bw/2,val=d.v||0,y=Y(val),h=Math.max(0,Y(0)-y),r=Math.min(4,h);
+    if(h>0)s+=`<path d="M${x},${Y(0)} V${y+r} Q${x},${y} ${x+r},${y} H${x+bw-r} Q${x+bw},${y} ${x+bw},${y+r} V${Y(0)} Z" fill="var(--tinta)" ${d.hoy?'opacity=".62"':''}/>`;
+    if(d.meta)s+=`<line x1="${cx-bw/2-3}" x2="${cx+bw/2+3}" y1="${Y(d.meta)}" y2="${Y(d.meta)}" stroke="var(--taupe)" stroke-width="2" stroke-linecap="round"/>`;
+    const xl=o.mes?d.xl:d.l.split(' ')[0];
+    if(xl)s+=`<text x="${cx}" y="${H-7}" text-anchor="middle" style="${d.hoy?'font-weight:700;fill:var(--tinta)':''}">${xl}</text>`;
+    if(val>0&&(i===mejor||(!o.mes&&d.hoy)))s+=`<text x="${cx}" y="${Y(Math.max(val,d.meta||0))-7}" text-anchor="middle" class="v">${fmt(val)}</text>`;
+    const tip=d.v==null?`<b>${esc(d.l)}</b><br>Día por venir<br>${d.meta?`Meta: ${fmt(d.meta)}`:'Sin meta cargada'}`:`<b>${esc(d.l)}${d.hoy?', hasta ahora':''}</b><br>${o.et||'Ventas'}: ${fmt(val)}<br>${d.meta?`Meta: ${fmt(d.meta)} (${pct(val,d.meta)} %)`:'Sin meta cargada'}`;
+    s+=`<rect class="hit" x="${L+slot*i}" y="${T0}" width="${slot}" height="${ih}" data-tip="${esc(tip)}"/>`;
+  });
+  return s+'</svg>';
+}
+
+/* el mes ACUMULADO: ventas acumuladas contra la meta acumulada (¿llego o no llego?) */
+function lineaAcum(dm,W,H){
+  const L=42,R=64,T0=20,B=24,iw=W-L-R,ih=H-T0-B,n=dm.length;
+  let a=0,am=0;const A=[],M=[];
+  dm.forEach(d=>{am+=d.meta||0;M.push(am);if(d.v!=null){a+=d.v;A.push(a);}});
+  const fin=M[n-1]||0,top=nice(Math.max(fin,A[A.length-1]||0,100)),X=i=>L+i/(n-1)*iw,Y=x=>T0+ih-(x/top)*ih;
+  let s=`<svg class="g" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ventas acumuladas del mes${fin?' contra la meta acumulada':''}">`;
+  [0,top/2,top].forEach(t=>{s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L-6}" y="${Y(t)+3.5}" text-anchor="end" class="num">${Math.round(t).toLocaleString('es-PE')}</text>`;});
+  dm.forEach((d,i)=>{if(d.xl)s+=`<text x="${X(i)}" y="${H-7}" text-anchor="middle" style="${d.hoy?'font-weight:700;fill:var(--tinta)':''}">${d.xl}</text>`;});
+  if(fin){s+=`<polyline points="${M.map((y,i)=>`${X(i)},${Y(y)}`).join(' ')}" fill="none" stroke="var(--taupe)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>`;
+    s+=`<circle cx="${X(n-1)}" cy="${Y(fin)}" r="4" fill="var(--taupe)" stroke="var(--papel)" stroke-width="2"/><text x="${X(n-1)+8}" y="${Y(fin)+3}" class="v">${fmt(fin)}</text><text x="${X(n-1)+8}" y="${Y(fin)+15}">meta</text>`;}
+  if(A.length&&A[A.length-1]>0){const pts=A.map((y,i)=>`${X(i)},${Y(y)}`).join(' '),ex=X(A.length-1),ey=Y(A[A.length-1]);
+    s+=`<polygon points="${X(0)},${Y(0)} ${pts} ${ex},${Y(0)}" fill="var(--tinta)" opacity=".07"/><polyline points="${pts}" fill="none" stroke="var(--tinta)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    s+=`<circle cx="${ex}" cy="${ey}" r="4.5" fill="var(--tinta)" stroke="var(--papel)" stroke-width="2"/><text x="${ex-8}" y="${ey-10}" text-anchor="end" class="v">${fmt(A[A.length-1])}</text>`;}
+  else s+=`<text x="${L+10}" y="${Y(top*.85)}" class="v" style="font-weight:500;fill:var(--t80)">Sin ventas todavía este mes</text>`;
+  dm.forEach((d,i)=>{const av=i<A.length?A[i]:null,tip=`<b>${esc(d.l)}${d.hoy?', hasta ahora':''}</b><br>Ventas acumuladas: ${av==null?'—':fmt(av)}<br>${fin?`Meta acumulada: ${fmt(M[i])}${av!=null?` (${pct(av,M[i])} %)`:''}`:'Sin meta cargada'}`;
+    s+=`<rect class="hit" x="${X(i)-iw/n/2}" y="${T0}" width="${iw/n}" height="${ih}" data-tip="${esc(tip)}"/>`;});
+  return s+'</svg>';
+}
+
+/* «Ventas contra la meta»: Semana | Mes (el mes, acumulado o por día). Lo usan la líder (la sede) y la integrante (solo lo suyo). */
+function panelGrafico(c,m){
+  const H=m?176:200,mes=c.modo==='mes',acum=mes&&c.sub==='acum';
+  const tabs=`<div class="pil sm">${[['semana','Semana'],['mes','Mes']].map(([k,e])=>`<button data-act="${c.actG}" data-v="${k}" aria-pressed="${c.modo===k}">${e}</button>`).join('')}${mes?`<span style="width:6px"></span>${[['acum','Acumulado'],['dia','Por día']].map(([k,e])=>`<button data-act="${c.actM}" data-v="${k}" aria-pressed="${c.sub===k}">${e}</button>`).join('')}`:''}</div>`;
+  const dias=mes?c.mesDias:c.dias,tot=mes?c.totMes:c.totSem,mt=mes?c.metaMes:c.metaSem;
+  const leyenda=acum?`<span><i class="linea"></i>${c.etVA}</span>${mt?`<span><i class="disc"></i>${c.etMA}</span>`:''}`:`<span><i class="caja"></i>${c.etV}</span>${mt?`<span><i class="marca"></i>${c.etM}</span>`:''}`;
+  const dib=acum?grafico(W=>lineaAcum(c.mesDias,W,H),H):grafico(W=>barrasGen(dias,W,H,{mes,et:c.etTip,aria:`${c.aria} ${mes?'por día del mes':'de los últimos siete días'}, contra la meta de cada día`}),H);
+  return `<section class="sec"><div class="sec-cab"><p class="lbl">${c.titulo}</p>${tabs}</div><div class="card graf">
+    <div class="cab-g"><b>${fmt(tot)} ${mes?'en el mes':'en 7 días'}</b><span class="sub-g">${mt?`${pct(tot,mt)} % de ${c.deMeta} ${fmt(mt)}`:'Sin meta cargada: solo se ven las ventas'}</span></div>
+    ${c.nota?`<p class="sub-g" style="margin-top:2px">${c.nota}</p>`:''}<div class="leyenda">${leyenda}</div>${dib}
+    ${tabla(['Día',c.etTip,'Meta'],dias.map(d=>[d.l,d.v==null?'—':fmt(d.v),d.meta?fmt(d.meta):'—']))}</div></section>`;
+}
+function bloqueGrafico(v,m){
+  return panelGrafico({titulo:'Ventas contra la meta',modo:S.graf,sub:S.grafMes,actG:'graf',actM:'grafmes',dias:v.dias,mesDias:v.mesDias,
+    totSem:v.dias.reduce((a,d)=>a+d.v,0),totMes:v.solesMes,metaSem:v.metaSem,metaMes:v.metaMes,
+    etV:'Ventas de la sede',etM:'Meta del día',etVA:'Ventas acumuladas',etMA:'Meta acumulada',etTip:'Ventas',deMeta:'la meta de',aria:'Ventas de la sede'},m);
+}
+
+/* las 4 cifras de arriba */
+function cifras(v,per,m){
+  const r=resumen(v,per),tx={hoy:'hoy',semana:'7 días',mes:'el mes'}[per];
+  let metaCard;
+  if(v.metaMes==null){
+    metaCard=`<div class="card cifra ancha">${nb(1)}<p class="lbl">Meta de la sede</p><p class="v">Sin meta</p><div class="d">Falta cargarla para ${esc(v.T.n)}. Sin ella no hay qué repartir.</div><a class="cta" href="#">Cargar en Configuración › Metas</a></div>`;
+  }else{
+    const p=pct(r.soles,r.meta),tk=r.tocaba!=null?pct(r.tocaba,r.meta):null;
+    metaCard=`<div class="card cifra ancha">${nb(1)}<p class="lbl">Meta ${{hoy:'de hoy',semana:'de los 7 días',mes:'del mes'}[per]}</p><p class="v num">${p} %</p>
+      <div class="d">${r.soles>=r.meta?`Superada por ${fmt(r.soles-r.meta)}`:`Faltan ${fmt(r.meta-r.soles)} de ${fmt(r.meta)}`}${tk?` · ${per==='hoy'?'a esta hora tocaba':'a hoy tocaba'} ${tk} %`:''}</div>${barra(p,tk)}</div>`;
+  }
+  const c4=per==='hoy'&&v.pers.length?`<p class="v num">${r.turno}</p><div class="d">de turno · ${r.vend} ${plural(r.vend,'vendió','vendieron')}</div>`:`<p class="v num">${v.pers.length?r.vend:'—'}</p><div class="d">${v.pers.length?plural(r.vend,'persona vendió','personas vendieron')+' '+tx:'Sin personal cargado'}</div>`;
+  return `<div class="cifras"><div class="card cifra"><p class="lbl">Soles ${tx}</p><p class="v num">${fmt(r.soles)}</p><div class="d">${r.soles?`${r.n} ${plural(r.n,'venta','ventas')}`:'Sin ventas todavía'}</div></div>
+    ${metaCard}
+    <div class="card cifra"><p class="lbl">${per==='hoy'?'Personas de turno':'Personas'}</p>${c4}</div>
+    <div class="card cifra"><p class="lbl">Ticket promedio</p><p class="v num">${r.ticket?fmt(r.ticket):'—'}</p><div class="d">${r.ticket?'por venta':'Sin ventas todavía'}</div></div></div>`;
+}
+
+/* la tabla por persona: cómo va (hoy), semana o mes, con la meta editable */
+function filaPersona(v,p,per,m){
+  const c=colP(p,per),av=c.m?pct(c.v,c.m):null,yo=S.rol==='lider'&&p.enc;
+  let ritmoTxt='',tick=null;
+  if(per==='hoy'&&p.ritmo!=null&&c.m){
+    tick=Math.round(p.ritmo*100);
+    if(p.estado!=='programada'&&p.ritmo>0){const d=(c.v/c.m)-p.ritmo;ritmoTxt=d>=.1?'Adelante':d<=-.1?'Por debajo':'En ritmo';}
+  }
+  if(per==='mes'&&v.tocaba!=null)tick=pct(v.tocaba,v.metaMes);
+  const turno=per==='hoy'&&p.ini!=null?`${String(p.ini).padStart(2,'0')}:00–${String(p.fin).padStart(2,'0')}:00`:(per==='hoy'&&!v.conTurnos?'Sin turno cargado':'');
+  const dot=per==='hoy'?`<span class="pto ${p.estado==='presente'?'on':p.estado==='en_pausa'?'pa':''}"></span>${ESTADO[p.estado]}`:'';
+  const chips=`${p.enc?'<span class="chip pz">Encargada</span>':''}${yo?'<span class="chip">tú</span>':''}`;
+  const metaChip=c.m==null?'':p.manual!=null?`<small><span class="chip am">Ajustada</span></small>`:`<small>${v.conTurnos?'por horas':'partes iguales'}</small>`;
+  const puede=v.metas&&(S.rol==='admin'||(S.rol==='lider'&&!p.enc));
+  const why=!v.metas?'Primero carga la meta de la sede':(S.rol==='lider'&&p.enc?'La meta de la encargada la cambia un Admin':'');
+  const ed=`<button class="bt" data-act="editar" data-id="${p.id}" ${puede?'':'disabled'} ${why?`data-tip="${esc(why)}" title="${esc(why)}"`:''}>${ic('lapiz')}<span>Meta</span></button>`;
+  const avTxt=c.m?`${av} %${ritmoTxt?` · ${ritmoTxt}`:''}`:(c.v?'Sin meta':'—');
+  return `<div class="fp"><div class="c-per"><span class="avt">${p.n[0]}</span><div style="min-width:0"><p class="nom">${p.n} ${chips}</p><p class="sub">${dot}${turno?`${dot?'· ':''}${turno}`:''}</p></div></div>
+    <div class="c-ven num">${fmt(c.v)}<small>${c.n!=null?`${c.n} ${plural(c.n,'venta','ventas')}`:'&nbsp;'}</small></div>
+    <div class="c-meta num">${c.m!=null?fmt(c.m):'—'}${metaChip}</div>
+    <div class="c-av">${c.m?barra(av,tick):'<div class="bar"></div>'}<p class="d num">${avTxt}${tick!=null&&per==='hoy'&&p.ritmo>0&&p.ritmo<1?` · ritmo ${tick} %`:''}</p></div>
+    <div class="c-ed">${ed}</div></div>`;
+}
+function bloqueTabla(v,per,m){
+  const titulo={hoy:'Cómo va hoy',semana:'Cómo va la semana',mes:'Cómo va el mes'}[per];
+  if(!v.pers.length)return `<section class="sec"><div class="sec-cab"><p class="lbl">${titulo}</p></div><div class="card vacio"><p><b>${esc(v.T.n)} todavía no tiene personal cargado en Dynamic.</b> Sin eso no hay quién atendió ni horas programadas: no hay a quién repartirle la meta.</p></div></section>`;
+  const ord=[...v.pers].sort((a,b)=>S.orden==='nombre'?a.n.localeCompare(b.n):S.orden==='avance'?((colP(b,per).m?colP(b,per).v/colP(b,per).m:-1)-(colP(a,per).m?colP(a,per).v/colP(a,per).m:-1)):colP(b,per).v-colP(a,per).v);
+  const asig=v.asig[per],meta={hoy:v.metaHoy,semana:v.metaSem,mes:v.metaMes}[per];
+  const dif=meta!=null?meta-asig:0;
+  const cab=`<div class="cab-t"><button data-act="orden" data-v="nombre" class="${S.orden==='nombre'?'act':''}">Persona</button><button data-act="orden" data-v="ventas" class="${S.orden==='ventas'?'act':''}">Ventas</button><span>Meta ${nb(3,1)}</span><button data-act="orden" data-v="avance" class="${S.orden==='avance'?'act':''}">Avance</button><span></span></div>`;
+  const pie=meta==null?`<span>Sin meta de la sede no hay qué repartir.</span>`:
+    `<span>Asignado a las ${v.pers.length}: <b class="num">${fmt(asig)}</b> de <b class="num">${fmt(meta)}</b> de la sede${dif===0?' · cuadra':dif>0?` · faltan ${fmt(dif)} por asignar`:` · se pasa por ${fmt(-dif)}`}</span>
+     <span>${v.conTurnos?'Reparto por horas programadas (turnos de Dynamic)':'Sin turnos cargados: partes iguales entre las presentes'}</span>`;
+  return `<section class="sec"><div class="sec-cab"><p class="lbl">${titulo}</p><span class="chip tx" data-tip="${esc(NB[5])}">${ic('candado')}Editan la líder de la sede y el Admin ${nb(5,1)}</span></div>
+    <div class="card tp">${cab}${ord.map(p=>filaPersona(v,p,per,m)).join('')}<div class="pie-t">${pie}</div></div></section>`;
+}
+
+/* historial de cambios de meta */
+function bloqueHist(v,m){
+  const h=S.hist.filter(x=>x.tk==null||x.tk===v.tk);
+  return `<section class="sec"><details class="card hist"><summary><span>Cambios de meta (${h.length})</span><span class="chip">no se borran</span></summary>${h.length?h.map(x=>`<div class="l"><span class="h">${x.cuando}</span><div><b style="font-weight:500">${x.persona}</b>: ${fmt(x.antes)} → ${fmt(x.despues)} al mes<div class="x">${x.quien} · ${esc(x.motivo)}</div></div></div>`).join(''):'<div class="l"><span class="h">—</span><div class="x">Todavía nadie cambió una meta.</div></div>'}</details></section>`;
+}
+
+/* rankings del mes: al final de la pantalla (decisión 8) */
+function bloqueRankings(v,m){
+  const P=v.pers.filter(p=>p.nMes>0),chica=p=>p.nMes<40?`<span class="chip am">Muestra chica${p.nMes<10?` (${p.nMes})`:''}</span>`:'';
+  const conH=P.filter(p=>p.hMes);
+  const l1=conH.length?[...conH].sort((a,b)=>b.mes/b.hMes-a.mes/a.hMes).map(p=>`<div class="r"><span class="n">${p.n} ${p.enc?'<span class="chip pz">Encargada</span>':''}${chica(p)}</span><span class="num">${fmt(p.mes/p.hMes)}/h</span></div>`).join(''):
+    `<div class="r"><span style="color:var(--t65);font-size:13px">${v.pers.length?'Sin horas registradas: por ahora solo funciona el ranking por número de ventas.':'Sin personal cargado.'}</span></div>`;
+  const l2=P.length?[...P].sort((a,b)=>b.nMes-a.nMes).map(p=>`<div class="r"><span class="n">${p.n} ${p.enc?'<span class="chip pz">Encargada</span>':''}${chica(p)}</span><span class="num">${p.nMes}</span></div>`).join(''):`<div class="r"><span style="color:var(--t65);font-size:13px">Nadie ha vendido este mes todavía.</span></div>`;
+  return `<section class="sec"><div class="sec-cab"><p class="lbl">Rankings del mes</p></div><div class="rk"><div><h3>Vende más por hora</h3><div class="card lista">${l1}</div></div><div><h3>Cierra más ventas</h3><div class="card lista">${l2}</div></div></div>
+    <div class="nota-h">${nb(6)}<b>Cómo se lee.</b> Vende cuenta con IGV, sin anuladas; las devoluciones y los cambios no restan, y un apartado cuenta el día que se entrega, a quien lo apartó. «Muestra chica» es menos de 40 ventas en el mes. La meta es para <b>reconocer y acompañar</b>: no se usa para pagar ni evaluar.</div>
+    <div class="nota-h">${nb(2)}<b>Fase 2.</b> Con 4 semanas de ventas, el sistema podrá <b>sugerirle</b> su meta a la sede a partir de cómo se vende. Nunca calcula la meta de una persona.</div></section>`;
+}
+
+/* todas las tiendas (solo Admin): un bloque por tienda, nunca un ranking mezclado */
+function bloqueTodas(per,m){
+  return `<div class="tds">${Object.keys(TIENDAS).map(k=>{const v=calc(k),r=resumen(v,per),p=r.meta?pct(r.soles,r.meta):null;
+    return `<div class="card td"><h3>${v.T.n}</h3><p class="lbl mt">Soles ${{hoy:'hoy',semana:'7 días',mes:'el mes'}[per]}</p><p class="num" style="font-family:'EB Garamond',serif;font-size:26px">${fmt(r.soles)}</p>
+      ${r.meta?`<div class="d" style="font-size:12.5px;color:var(--t65)">${p} % de ${fmt(r.meta)}</div>${barra(p,r.tocaba!=null?pct(r.tocaba,r.meta):null)}`:`<div class="d" style="font-size:12.5px;color:var(--t65)">Sin meta cargada</div>`}
+      <p class="d" style="font-size:12.5px;color:var(--t65);margin-top:8px">${v.pers.length?`${v.pers.length} personas · ${r.vend} ${plural(r.vend,'vendió','vendieron')}`:'Sin personal cargado en Dynamic'}</p>
+      <button class="bt" style="margin-top:10px" data-act="tienda" data-v="${k}">Ver ${v.T.c}</button></div>`;}).join('')}</div>`;
+}
+
+/* ───────────── pantallas ───────────── */
+const MENU={
+  lider:[['inicio','Inicio'],['vender','Ventas'],['stock','Inventario'],['catalogo','Catálogo'],['vender','Compras'],['finanzas','Finanzas'],['clientas','Clientas'],['rendimiento','Rendimiento',1]],
+  admin:[['inicio','Inicio'],['vender','Ventas'],['stock','Inventario'],['catalogo','Catálogo'],['vender','Compras'],['finanzas','Finanzas'],['clientas','Clientas'],['rendimiento','Rendimiento',1]],
+  integrante:[['inicio','Inicio',1],['vender','Ventas'],['stock','Inventario'],['catalogo','Catálogo'],['clientas','Clientas']]};
+
+function pantallaRendimiento(m){
+  const per=S.per,todas=S.rol==='admin'&&S.tienda==='TODAS',tk=S.rol==='admin'?(todas?'TRU':S.tienda):'TRU',v=calc(tk);
+  const tx={hoy:'hoy',semana:'estos 7 días',mes:'este mes'}[per];
+  const pers=`<div class="pil"><span class="et">${nb(4,1)}Período</span>${[['hoy','Hoy'],['semana','Semana'],['mes','Mes']].map(([k,e])=>`<button data-act="per" data-v="${k}" aria-pressed="${per===k}">${e}</button>`).join('')}</div>`;
+  const tds=S.rol==='admin'?`<div class="pil"><span class="et">Tienda</span>${[['TODAS','Todas'],['TRU','TRU'],['AQP','AQP'],['LIM','Lima']].map(([k,e])=>`<button data-act="tienda" data-v="${k}" aria-pressed="${S.tienda===k}">${e}</button>`).join('')}</div>`:'';
+  const cab=`<div style="position:relative"><p class="sobre">Gestión</p><h1>Rendimiento ${nb(8,1)}</h1><p class="bajada">${todas?'Las ventas de cada tienda':`Las ventas de cada persona de ${esc(v.T.n)}`}, ${tx}. Para reconocer y acompañar — sin comisión ni bono.</p></div>`;
+  let cuerpo;
+  if(todas)cuerpo=bloqueTodas(per,m);
+  else{
+    cuerpo=cifras(v,per,m)+
+      (!v.metas?`<div class="nota-h" style="margin-top:14px">Sin meta de la sede no hay qué repartir: cárgala en <b>Configuración › Metas</b> y la meta de cada persona se calcula sola, por sus horas programadas. Mientras tanto, esta pantalla muestra lo vendido.</div>`:'')+
+      (v.metas&&v.pers.length&&!v.conTurnos?`<div class="nota-h" style="margin-top:14px">${esc(v.T.n)} no tiene turnos cargados en Dynamic: la meta se reparte en <b>partes iguales</b> entre las presentes.</div>`:'')+
+      bloqueTabla(v,per,m)+
+      bloqueGrafico(v,m)+
+      bloqueHist(v,m)+bloqueRankings(v,m);
+  }
+  return `<div class="pag">${cab}<div class="ctl">${pers}${tds}</div>${cuerpo}</div>`;
+}
+
+/* Inicio de la integrante: solo lo suyo, meta del día y del mes (decisiones 4 y 7) */
+function pantallaInicio(m){
+  const v=calc('TRU'),p=v.pers.find(x=>x.id==='mariana'),sin=v.sin,temp=v.temp;
+  const mesDias=mesDePersona(v,p),dias=mesDias.slice(22,29).map((d,i)=>({...d,l:DIAS7[i].l,hoy:i===6}));
+  const tocaba=v.tocaba!=null?pct(v.tocaba,v.metaMes):null;
+  const meta=v.metas
+    ?`<div class="card cifra">${nb(7)}<p class="lbl">Tu meta de hoy</p><p class="v num">${fmt(p.hoy)}</p><div class="d">${p.hoy?`${p.nHoy} ${plural(p.nHoy,'venta','ventas')} · <b style="font-weight:600;color:var(--tinta)">${pct(p.hoy,p.metaHoy)} %</b> de ${fmt(p.metaHoy)}`:`Aún sin ventas · tu meta de hoy es ${fmt(p.metaHoy)}`}</div>${barra(pct(p.hoy,p.metaHoy)||0,p.ritmo?Math.round(p.ritmo*100):null)}</div>
+       <div class="card cifra"><p class="lbl">Tu mes</p><p class="v num">${fmt(p.mes)}</p><div class="d"><b style="font-weight:600;color:var(--tinta)">${pct(p.mes,p.metaMes)} %</b> de ${fmt(p.metaMes)}</div>${barra(pct(p.mes,p.metaMes),tocaba)}</div>`
+    :`<div class="card cifra ancha" style="grid-column:span 2">${nb(7)}<p class="lbl">Tus ventas de hoy</p><p class="v num">${fmt(p.hoy)}</p><div class="d">${p.hoy?'1 venta. ':''}Todavía no hay meta para tu tienda: tu líder la carga y aquí aparece tu parte.</div></div>`;
+  const suma=xs=>xs.reduce((t,d)=>t+(d.v||0),0);
+  const semana=panelGrafico({titulo:'Tus ventas contra tu meta',modo:S.grafI,sub:S.grafMesI,actG:'grafI',actM:'grafmesI',dias,mesDias,
+    totSem:suma(dias),totMes:suma(mesDias),metaSem:v.metas?dias.reduce((t,d)=>t+d.meta,0):null,metaMes:v.metas?p.metaMes:null,
+    etV:'Tus ventas',etM:'Tu meta del día',etVA:'Tus ventas acumuladas',etMA:'Tu meta acumulada',etTip:'Tú',deMeta:'tu meta de',aria:'Tus ventas',
+    nota:'Solo ves lo tuyo: la tienda y tus compañeras no aparecen aquí.'},m);
+  const aviso=`<div class="nota" style="margin-top:14px">La meta es para <b>acompañarte</b>: no se usa para pagar ni para evaluar. Si algo no te cuadra, díselo a tu líder de sede.</div>`;
+  const equipo='';
+  return `<div class="pag"><div><p class="sobre">Martes, 29 de setiembre</p><h1>Hola, Mariana</h1><p class="bajada">Integrante · Tienda TRU</p></div>
+    <div class="sec"><div class="sec-cab"><p class="lbl">Tu día</p></div><div class="cifras ini">${meta}<div class="card cifra"><p class="lbl">Caja</p><p class="v">Abierta</p><div class="d">Puedes vender</div></div></div></div>
+    ${semana}${aviso}${equipo}</div>`;
+}
+
+/* ───────────── armado ───────────── */
+function pintar(o={}){
+  /* Cada clic vuelve a dibujar las dos pantallas: se guarda dónde estaba cada una y en qué botón estaba el foco, y se
+     devuelven al terminar. Solo cambiar de rol (otra pantalla) empieza arriba. */
+  const sc={pc:($('#pc .cuerpo')||{}).scrollTop||0,tel:($('#tel .cuerpo')||{}).scrollTop||0},f=document.activeElement;
+  const foco=f&&f.dataset&&f.dataset.act?{marco:f.closest('#pc')?'#pc':f.closest('#tel')?'#tel':'',act:f.dataset.act,v:f.dataset.v,id:f.dataset.id}:null;
+  CH=[];
+  const rol=S.rol,menu=MENU[rol],pant=rol==='integrante'?pantallaInicio:pantallaRendimiento;
+  const yo={lider:['Chiara F.','Líder de sede · Tienda TRU'],admin:['Admin','Admin · todas las tiendas'],integrante:['Mariana T.','Integrante · Tienda TRU']}[rol];
+  $('#pc').innerHTML=`<aside class="side"><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div>${menu.map(([k,e,a])=>`<div class="fila ${a?'act':''}">${ic(k)}${e}</div>`).join('')}<div class="yo"><span class="avt">${yo[0][0]}</span><div>${yo[0]}<small>${yo[1]}</small></div></div></aside>
+    <div class="der"><div class="top"><span class="busca">${ic('buscar')}Buscar…</span><span class="esp"></span><span class="chipcab">${rol==='admin'?'CAYLA · todas':'Tienda TRU'} ˅</span></div><div class="cuerpo">${pant(false)}</div></div>`;
+  $('#tel').innerHTML=`<div class="top">${ic('menu')}<img src="cayla-isotipo.png" alt=""><span class="esp"></span><span class="chipcab">${rol==='admin'?'Todas':'Tienda TRU'} ˅</span></div><div class="cuerpo">${pant(true)}</div>${rol==='integrante'?`<div class="fijo"><a class="btn-fijo" href="#">${ic('vender')} Vender</a></div>`:''}`;
+  document.body.dataset.notas=S.notas?'on':'off';
+  montar();
+  if(!o.arriba){const a=$('#pc .cuerpo'),b=$('#tel .cuerpo');if(a)a.scrollTop=sc.pc;if(b)b.scrollTop=sc.tel;}
+  if(foco&&foco.marco){const q=`${foco.marco} [data-act="${foco.act}"]${foco.v!=null?`[data-v="${foco.v}"]`:''}${foco.id?`[data-id="${foco.id}"]`:''}`,el=document.querySelector(q);if(el&&!el.disabled)el.focus({preventScroll:true});}
+}
+function barraDemo(){
+  const g=(t,c,ops)=>`<div class="g"><span>${t}</span><div class="seg">${ops.map(([v,e])=>`<button aria-pressed="${String(S[c])===String(v)}" data-d="${c}" data-v="${v}">${e}</button>`).join('')}</div></div>`;
+  $('#spk').innerHTML=`<span class="tit">Rendimiento · meta por persona</span>
+   ${g('Ver como','rol',[['lider','Líder de sede'],['admin','Admin'],['integrante','Integrante (Inicio)']])}
+   ${g('Datos','datos',[['prueba','De prueba'],['sin','Sin datos (como hoy)']])}
+   ${g('Momento del día','hora',[['temprano','9:30 a. m.'],['tarde','5:40 p. m.']])}
+   ${g('Decisiones','notas',[[true,'Con notas'],[false,'Limpio']])}
+   <a class="rst" href="#" data-d="reset">Deshacer los cambios de meta</a><span class="inv">Cifras y nombres inventados</span>`;
+}
+function leyenda(){
+  const D=[[1,'Meta de la sede primero','La carga la líder en Configuración › Metas. Sin ella la pantalla lo dice y no inventa nada.'],[2,'Fórmula con productos y ventas','Fase 2: solo sugerirá la meta de la sede.'],[3,'Reparto por horas programadas','Turnos de Dynamic; sin turnos, partes iguales.'],[4,'Mensual','Se fija por mes, se calcula cada día; Hoy · Semana · Mes.'],[5,'Quién edita','La líder de la sede y el Admin, con motivo e historial. La líder no toca la suya.'],[6,'Qué cuenta como venta','Con IGV, sin anuladas; devoluciones no restan; el apartado el día que se entrega.'],[7,'Lo que ve la integrante','Solo lo suyo; la meta no se usa para pagar ni evaluar.'],[8,'Qué ve primero la líder','Hoy: meta de la sede, cómo va cada una, semana en barras, rankings al final.']];
+  $('#leyenda').innerHTML=`<p class="lbl" style="margin-bottom:2px">Las 8 decisiones de Felipe (2026-09-29) y dónde se ven</p><ol>${D.map(([n,t,d])=>`<li><span class="nb in" style="display:inline-grid;position:static">${n}</span><span><b>${t}.</b> ${d}</span></li>`).join('')}</ol>
+   <p style="margin-top:10px;font-size:12.5px;color:var(--t65)"><b>Cómo probarlo:</b> cambia «Datos» a «Sin datos» para ver la pantalla como está producción hoy (sin meta y con una sola venta). Como <b>Líder</b>, la meta de Chiara (la encargada) sale bloqueada; como <b>Admin</b>, todas se pueden cambiar y «Todas» agrupa por tienda. AQP no tiene turnos (partes iguales) y Lima no tiene personal. Toca «Meta» en una fila para cambiarla.</p>`;
+}
+
+/* ───────────── modal para cambiar la meta ───────────── */
+const MOTIVOS=['Cambia su horario','Está en capacitación','Cubre otra tienda','Vuelve de descanso','Otro'];
+function abrirModal(id){
+  const tk=S.rol==='admin'?S.tienda:'TRU',v=calc(tk),p=v.pers.find(x=>x.id===id);if(!p||!v.metas)return;
+  S.modal={tk,id};
+  const otras=v.asig.mes-p.metaMes;
+  $('#hoja').innerHTML=`<h2>Meta de ${esc(p.n)}</h2>
+    <p class="sub">${nb(4,1)}Meta del mes de setiembre · ${v.T.n}. Su meta de cada día se recalcula sola con esta cifra.</p>
+    <div class="campo"><label for="m-valor">Meta del mes (S/)</label><input id="m-valor" type="number" min="0" step="10" value="${p.metaMes}" inputmode="numeric"><p class="ayuda">Automática: <b>${fmt(p.autoMes)}</b> · por sus horas programadas${v.conTurnos?'':' (partes iguales: la tienda no tiene turnos)'}.</p><p class="err" id="m-err"></p></div>
+    <div class="campo" id="m-cmot"><label for="m-motivo">Motivo del cambio</label><select id="m-motivo"><option value="">Elige un motivo…</option>${MOTIVOS.map(x=>`<option>${x}</option>`).join('')}</select></div>
+    <div class="campo" id="m-cotro" style="display:none"><label for="m-otro">Cuéntalo en una línea</label><input id="m-otro" type="text" maxlength="80"></div>
+    <div class="vista" id="m-vista"></div>
+    <div class="pie-m"><button class="btn sut" data-act="auto" ${p.manual==null?'style="visibility:hidden"':''}>Volver a la automática</button><div class="der"><button class="btn sec" data-act="cerrar">Cancelar</button><button class="btn pri" data-act="guardar">Guardar</button></div></div>`;
+  $('#velo').classList.add('on');
+  const upd=()=>{
+    const val=Math.round(Number($('#m-valor').value)||0),tot=otras+val,dif=v.metaMes-tot,cambia=val!==p.autoMes;
+    $('#m-cmot').style.display=cambia?'':'none';
+    $('#m-vista').innerHTML=`Asignado a las ${v.pers.length}: <b class="num">${fmt(tot)}</b> de <b class="num">${fmt(v.metaMes)}</b> de la sede · ${dif===0?'cuadra':dif>0?`faltan ${fmt(dif)} por asignar`:`se pasa por ${fmt(-dif)}`}.<br><span style="color:var(--t65)">Queda registrado quién la cambió, cuándo, el antes y el después. No se borra.</span>`;
+  };
+  $('#m-valor').addEventListener('input',upd);
+  $('#m-motivo').addEventListener('change',()=>{$('#m-cotro').style.display=$('#m-motivo').value==='Otro'?'':'none';});
+  upd();$('#m-valor').focus();
+}
+function cerrarModal(){$('#velo').classList.remove('on');S.modal=null;}
+function guardarModal(){
+  const {tk,id}=S.modal,v=calc(tk),p=v.pers.find(x=>x.id===id),val=Math.round(Number($('#m-valor').value)||0),err=$('#m-err');
+  if(!(val>0)){err.textContent='Escribe una meta mayor que cero.';return;}
+  if(val>v.metaMes){err.textContent=`No puede pasar de la meta de la sede (${fmt(v.metaMes)}).`;return;}
+  const cambia=val!==p.autoMes,mot=$('#m-motivo').value,otro=$('#m-otro').value.trim();
+  if(cambia&&!mot){err.textContent='Elige el motivo: queda anotado en el historial.';return;}
+  if(cambia&&mot==='Otro'&&!otro){err.textContent='Cuéntalo en una línea.';return;}
+  const antes=p.metaMes;
+  if(!cambia)delete S.ajustes[tk+':'+id];else S.ajustes[tk+':'+id]=val;
+  S.hist.unshift({tk,cuando:'29 set · 5:41 p. m.',quien:S.rol==='admin'?'Admin':'Chiara F.',persona:p.n,antes,despues:val,motivo:cambia?(mot==='Otro'?otro:mot):'Volvió a la automática'});
+  cerrarModal();pintar();toast(`Meta de ${p.n} guardada. Queda en «Cambios de meta».`);
+}
+let tt;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),3200);}
+
+/* ───────────── eventos ───────────── */
+document.addEventListener('click',e=>{
+  const d=e.target.closest('[data-d]');
+  if(d){e.preventDefault();
+    if(d.dataset.d==='reset'){S.ajustes={...AJUSTES0};S.hist=[...HIST0];toast('Cambios de meta deshechos: vuelve al estado inicial de la demo.');}
+    else{const c=d.dataset.d,v=d.dataset.v;S[c]=(v==='true'?true:v==='false'?false:v);}
+    barraDemo();pintar({arriba:d.dataset.d==='rol'});return;}
+  const a=e.target.closest('[data-act]');
+  if(a){
+    const k=a.dataset.act;
+    if(k==='per'){S.per=a.dataset.v;S.graf=S.per==='mes'?'mes':'semana';pintar();}
+    else if(k==='graf'){S.graf=a.dataset.v;pintar();}
+    else if(k==='grafmes'){S.grafMes=a.dataset.v;pintar();}
+    else if(k==='grafI'){S.grafI=a.dataset.v;pintar();}
+    else if(k==='grafmesI'){S.grafMesI=a.dataset.v;pintar();}
+    else if(k==='tienda'){S.tienda=a.dataset.v;pintar();}
+    else if(k==='orden'){S.orden=a.dataset.v;pintar();}
+    else if(k==='editar'&&!a.disabled)abrirModal(a.dataset.id);
+    else if(k==='cerrar')cerrarModal();
+    else if(k==='guardar')guardarModal();
+    else if(k==='auto'){$('#m-valor').value=(calc(S.modal.tk).pers.find(x=>x.id===S.modal.id)).autoMes;$('#m-valor').dispatchEvent(new Event('input'));}
+    return;}
+  if(e.target===$('#velo'))cerrarModal();
+  if(e.target.closest('a[href="#"]'))e.preventDefault();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.modal)cerrarModal();});
+const tip=$('#tip');
+document.addEventListener('pointerover',e=>{const h=e.target.closest&&e.target.closest('[data-tip]');if(!h)return;tip.innerHTML=h.dataset.tip;tip.style.display='block';});
+document.addEventListener('pointermove',e=>{if(tip.style.display==='block'){tip.style.left=Math.min(innerWidth-250,e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';}});
+document.addEventListener('pointerout',e=>{const h=e.target.closest&&e.target.closest('[data-tip]');if(h)tip.style.display='none';});
+
+barraDemo();leyenda();pintar();
+let rz;const ro=new ResizeObserver(()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(montar);});ro.observe($('#pc'));ro.observe($('#tel'));
+</script>
+</body>
+</html>

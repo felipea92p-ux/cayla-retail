@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Observatorio, el Inicio del Admin (ADR-0322, migración 20261004010000).
+ * Observatorio, el Inicio del Admin (ADR-0322, migración 20261004020000).
  *
  * QUÉ PRUEBA, contra el Postgres local (todo termina en ROLLBACK, también la propia migración):
  *   · `fn_observatorio`: lo vendido hoy por tienda en `dias` es exactamente la suma de `hoy_ventas`; las ventas de prueba y
@@ -25,7 +25,7 @@ import path from "node:path";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE_AUTH = "22222222-2222-4222-8222-000000000001"; // líder (y Admin en Dynamic)
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const MIGRACION = readFileSync(path.join(raiz, "supabase/migrations/20261004010000_observatorio_inicio_del_admin.sql"), "utf8");
+const MIGRACION = readFileSync(path.join(raiz, "supabase/migrations/20261004020000_observatorio_inicio_del_admin.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
@@ -111,12 +111,18 @@ select
   (select coalesce(sum((e->>'s')::numeric), 0) from o, jsonb_array_elements(o.j->'equipo'->'hoy') e),
   (select (d->>'s')::numeric from o, jsonb_array_elements((select retail.fn_observatorio(60))->'dias') d, s where d->>'u' = s.tru::text and (d->>'f')::date = s.hoy),
   (select coalesce(sum((p->>'s')::numeric), 0) from o, jsonb_array_elements(o.j->'pico') p),
-  (o.j->'quietas') is not null
+  (o.j->'quietas') is not null,
+  jsonb_array_length(o.j->'productos'->'hoy')
 from o;
 `);
-const [catHoy, prodHoy, eqHoy, ventasHoy, picoSuma, conQuietas] = r2.split("\n").pop().split("|");
+const [catHoy, prodHoy, eqHoy, ventasHoy, picoSuma, conQuietas, prendasDistintas] = r2.split("\n").pop().split("|");
 revisar("categorías de hoy suman lo vendido hoy en la tienda", Number(catHoy) === Number(ventasHoy), r2);
-revisar("las prendas de hoy suman lo vendido hoy (hay menos de 12 prendas distintas)", Number(prodHoy) === Number(ventasHoy), r2);
+// La función trae las 12 prendas que más venden: con menos de 12 cuadran con lo vendido; con 12, no pueden pasarse.
+revisar(
+  "las prendas de hoy suman lo vendido hoy (o, si llegan al tope de 12, no se pasan)",
+  Number(prendasDistintas) < 12 ? Number(prodHoy) === Number(ventasHoy) : Number(prodHoy) <= Number(ventasHoy) && Number(prendasDistintas) === 12,
+  r2
+);
 revisar("el equipo de hoy suma lo vendido hoy", Number(eqHoy) === Number(ventasHoy), r2);
 revisar("las horas pico promedian 4 semanas: la venta de hace 7 días pesa S/ 10", Number(picoSuma) >= 10, r2);
 revisar("trae las prendas quietas", conQuietas === "t", r2);

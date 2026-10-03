@@ -139,9 +139,6 @@ const SOLO_PANTALLA = {
     "página lo redirige a su primera pantalla o a /sin-acceso antes de leer nada. Lo que sí lee (fn_ventas_del_dia, " +
     "fn_actividad, fn_asesoras_de_turno) son funciones compartidas que ya comprueban la sede, no el módulo — las mismas que " +
     "usan Caja e Historial.",
-  vender:
-    "registrar_venta y emitir_comprobante solo comprueban que la cuenta opere esa sede (fn_puede_operar_ubicacion); fn_es_lider() " +
-    "solo decide el tope de descuento. El módulo lo nombra únicamente fn_es_terminal, que lo usa para clasificar un aparato.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   devoluciones: "crear_devolucion solo mira la sede; devoluciones_select y devoluciones_write son «líder o su sede».",
   historial:
@@ -597,7 +594,7 @@ const WEB_PUERTA = ["zz_cobertura_guarda"];
   );
   caso(
     "CONTROL (b): una entrada sin razón hace fallar",
-    evaluar({ modulos, soloPantalla: { ...SOLO_PANTALLA, vender: "" } }).some((p) => p.includes("«vender»") && p.includes("sin razón"))
+    evaluar({ modulos, soloPantalla: { ...SOLO_PANTALLA, cambios: "" } }).some((p) => p.includes("«cambios»") && p.includes("sin razón"))
   );
 }
 {

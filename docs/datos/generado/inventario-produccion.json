@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-10-03T16:01:51.365463+00:00",
-  "funciones_en_produccion": 793,
+  "leido_en": "2026-10-03T19:50:19.800916+00:00",
+  "funciones_en_produccion": 795,
   "tablas": [
     {
       "esquema": "retail",
@@ -56,7 +56,7 @@
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 720,
+      "filas_estimadas": 755,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1093,7 +1093,7 @@
       "tabla": "bajada_piso_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 106,
+      "filas_estimadas": 118,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1189,7 +1189,7 @@
       "tabla": "bajadas_piso",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 113,
+      "filas_estimadas": 115,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -1598,7 +1598,7 @@
       "tabla": "cajas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 26,
+      "filas_estimadas": 27,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2411,7 +2411,7 @@
       "tabla": "categoria_tejidos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 174,
+      "filas_estimadas": 176,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -3763,7 +3763,7 @@
       "tabla": "club_intentos_registro",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 13,
+      "filas_estimadas": 17,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4009,7 +4009,7 @@
       "tabla": "club_permisos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 4,
+      "filas_estimadas": 7,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4339,7 +4339,7 @@
       "tabla": "codigos_barras",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 704,
+      "filas_estimadas": 720,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -7631,7 +7631,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 75,
+      "filas_estimadas": 97,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13076,7 +13076,7 @@
       "tabla": "historial_producto_cambios",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 220,
+      "filas_estimadas": 223,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -13189,7 +13189,7 @@
       "tabla": "huellas_llave",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 0,
+      "filas_estimadas": 1,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -14417,7 +14417,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 719,
+      "filas_estimadas": 758,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -16582,7 +16582,7 @@
       "tabla": "prendas_por_regularizar",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 134,
+      "filas_estimadas": 160,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -17652,7 +17652,7 @@
       "tabla": "producto_origen",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 95,
+      "filas_estimadas": 96,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -17743,7 +17743,7 @@
       "tabla": "productos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 96,
+      "filas_estimadas": 97,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19157,7 +19157,7 @@
       "tabla": "rol_modulos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 53,
+      "filas_estimadas": 50,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -19421,7 +19421,7 @@
       "tabla": "roles_historial",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 31,
+      "filas_estimadas": 34,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -21605,7 +21605,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 623,
+      "filas_estimadas": 651,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -23839,7 +23839,7 @@
       "tabla": "variantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 704,
+      "filas_estimadas": 720,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24132,7 +24132,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 149,
+      "filas_estimadas": 186,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24353,7 +24353,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 75,
+      "filas_estimadas": 100,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -24488,7 +24488,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 74,
+      "filas_estimadas": 96,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [

@@ -82,7 +82,7 @@ La maqueta tenía datos inventados; con los reales:
 
 ## Producción
 
-`supabase/migrations/20261004010000_observatorio_inicio_del_admin.sql` (**sin pegar**): solo funciones (`create or replace`), sin
+`supabase/migrations/20261004020000_observatorio_inicio_del_admin.sql` (**sin pegar**): solo funciones (`create or replace`), sin
 `alter` ni políticas, con `set lock_timeout = '3s'`; se pega en una sola parte (regla de ADR-0195) o va por `db push`. Hasta que esté,
 el Admin ve el Inicio de siempre.
 
