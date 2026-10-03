@@ -56,11 +56,12 @@ describe("la barrera de rutas y el menú dicen lo mismo", () => {
     expect(abiertas).toEqual([]);
   });
 
-  it("la ruta cuenta entera: /finanzas/gastos sí, /finanzasx no; el inicio de una sede no; elegir sede sí", () => {
+  it("la ruta cuenta entera: /finanzas/gastos sí, /finanzasx no; el Inicio sí, pero nada «cuelga» de él; elegir sede sí", () => {
     expect(rutaDeLaVistaGlobal("/finanzas/gastos")).toBe(true);
     expect(rutaDeLaVistaGlobal("/finanzas")).toBe(true);
     expect(rutaDeLaVistaGlobal("/finanzasx")).toBe(false);
-    expect(rutaDeLaVistaGlobal("/")).toBe(false);
+    // ADR-0322: el Inicio del Admin es el Observatorio, que mira toda CAYLA. Que «/» esté en la lista no abre lo demás.
+    expect(rutaDeLaVistaGlobal("/")).toBe(true);
     expect(rutaDeLaVistaGlobal("/vender")).toBe(false);
     expect(rutaDeLaVistaGlobal("/inventario")).toBe(false);
     expect(rutaDeLaVistaGlobal(RUTA_ELEGIR_SEDE)).toBe(true);
@@ -95,12 +96,12 @@ describe("lo que la cuenta usa en cada vista", () => {
     expect(enSede).toHaveLength(CLAVES_MODULO.length - 1);
   });
 
-  it("el menú en CAYLA Global empieza por «Salud del negocio» y no trae Punto de venta, Caja ni Inicio", () => {
+  it("el menú en CAYLA Global empieza por Inicio (el Observatorio, ADR-0322) y «Salud del negocio», sin Punto de venta ni Caja", () => {
     const modulos = modulosEnLaVista("global", todo).map((m) => m.clave);
     const menu = menuPara({ ubicacionTipo: "tienda", permisos: PERMISOS, modulos });
     const hrefs = JSON.stringify(menu.riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)) ?? [];
-    expect(hrefs[0]).toBe("/global");
-    for (const r of ["/", "/vender", "/caja", "/inventario/conteo", "/recibir"]) expect(hrefs).not.toContain(r);
+    expect(hrefs.slice(0, 2)).toEqual(["/", "/global"]);
+    for (const r of ["/vender", "/caja", "/inventario/conteo", "/recibir"]) expect(hrefs).not.toContain(r);
   });
 
   it("parado en una sede, el menú no trae «Salud del negocio» aunque la cuenta vea CAYLA Global", () => {
