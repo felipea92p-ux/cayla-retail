@@ -54,7 +54,8 @@ export function RegistrarBajadaModal({
                 cerrar();
               }}
             >
-              {varias ? "Agregar y registrar" : "Agregar y registrar la bajada"}
+              {/* Corto: en el celular el botón ocupa media fila y el título ya dice qué se registra. */}
+              Agregar y registrar
             </Boton>
           </div>
         </div>
