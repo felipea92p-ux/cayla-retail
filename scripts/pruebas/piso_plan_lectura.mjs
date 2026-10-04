@@ -18,7 +18,8 @@
  *       diga «al día»— una terminal apagada, una cuenta de Auth sin persona y quien no tiene sesión. La puerta se evalúa UNA vez.
  *   S   STOCK: lo libre en piso y almacén y lo en camino de cada talla es EXACTAMENTE lo de `fn_existencias_base` (ADR-0270),
  *       con su categoría, talla, color y familia; lo apartado no cuenta; la talla retirada con unidades sale marcada.
- *   E   ESCANEADAS por prenda: hoy, ayer, 14 días (el día 13 entra, el 14 no); anulada, de prueba o de otra sede no cuentan.
+ *   E   ESCANEADAS por prenda: hoy, ayer, 14 días (el día 13 entra, el 14 no) en días de LIMA (las 20:00 de ayer en Lima ya
+ *       son hoy en UTC); anulada, de prueba o de otra sede no cuentan, ni un producto de prueba vendido en una venta normal.
  *   A   ANOTADAS: la «sin registrar» pendiente suma en su categoría × talla × familia y no en ninguna talla de la sede; anulada
  *       o fuera de la ventana, no.
  *   U   UNA SOLA VEZ: al regularizarla con la función real (`regularizar_prenda`), la venta pasa de «anotada» a «escaneada» en el
@@ -397,6 +398,25 @@ caso(
    select pg_temp.vende(:'v', 5, ((retail.fn_hoy_lima() - 14) + time '23:59:59') at time zone 'America/Lima') as _ \\gset
    select pg_temp.talla(:'sede', :'v') ->> 'vendidas_14';`,
   "1"
+);
+caso(
+  "E2b el DÍA es el de Lima, no el de UTC: una venta de ayer a las 20:00 de Lima (01:00 UTC de hoy) es de AYER (revisión, caso R2)",
+  `select pg_temp.prenda('PP-E2b', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 1);
+   select pg_temp.vende(:'v', 1, ((retail.fn_hoy_lima() - 1) + time '20:00') at time zone 'America/Lima') as _ \\gset
+   select pg_temp.vende(:'v', 2, ((retail.fn_hoy_lima() - 1) + time '00:30') at time zone 'America/Lima') as _ \\gset
+   select concat_ws(',', t ->> 'vendidas_hoy', t ->> 'vendidas_ayer') from pg_temp.talla(:'sede', :'v') t;`,
+  "0,3"
+);
+caso(
+  "E3b un PRODUCTO de prueba vendido (en una venta normal) no cuenta en ninguna cifra: ni en sus tallas ni en su categoría × talla × familia",
+  `select pg_temp.prenda('PP-E3b', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 1);
+   select pg_temp.vende(:'v', 2, pg_temp.dia(1)) as _ \\gset
+   update retail.productos set es_prueba = true where id = (select producto_id from retail.variantes where id = :'v');
+   select concat_ws(',', coalesce(pg_temp.talla(:'sede', :'v')::text, 'sin fila'), pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'),
+                    pg_temp.total_ventas(:'sede'));`,
+  "sin fila,nada,0"
 );
 caso(
   "E3 una venta anulada, una de prueba y una de OTRA sede no cuentan",
