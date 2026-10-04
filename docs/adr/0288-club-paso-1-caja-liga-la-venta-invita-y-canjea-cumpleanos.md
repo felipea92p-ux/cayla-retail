@@ -1089,3 +1089,59 @@ hace falta otro. Lo que estaba mal era que cada vez dejaba otra fila «club · o
 - **Se queda:** las filas duplicadas que ya existen (la tabla es de solo agregar). Pruebas: `club_registro_cartel.mjs` (casos «m»).
 - **Descartado:** un botón «Actualizar mis datos» aparte o un código para entrar: sería otro camino con otro formulario y otras
   validaciones; el cartel ya identifica por documento. Mejorar el aviso de la página para quien ya es miembro, si hace falta, es de la web.
+
+## Actualización 2026-10-03 (o): el celular para mandarle su boleta por WhatsApp, en el paso Comprobante del cobro
+
+Felipe, 2026-10-03, en el punto de venta de Caja Trujillo: «un apartado donde pueda agregar el número del cliente para que automáticamente
+pueda enviarse su boleta». Eligió (con las opciones delante) que el envío sea **de un toque desde el WhatsApp de la tienda** y no automático,
+coherente con su decisión del 2026-09-30 de no usar bot (`docs/investigacion/2026-09-30-whatsapp-bot-y-consentimiento.md`). Sobre dónde se
+escribe el número se construyeron y probaron dos ubicaciones; **Felipe decidió B: el paso Comprobante del cobro**. «Registrar cliente» sigue
+como lo dejó la tanda 1g (G-2): solo el documento y quién registra. Después pidió la **actividad 2**: guardar ese celular en la ficha, para que la
+próxima compra ya lo traiga.
+
+DECIDÍ: en el paso Comprobante del cobro (`PuntoDeVenta` → `documento`; boleta y factura, la nota de venta no) va «Celular para enviarle la boleta
+por WhatsApp (opcional)», ya puesto con el celular de la ficha si el cliente lo tiene. Con celular, «Venta registrada» ofrece «Abrir WhatsApp con la boleta».
+- **Se guarda en la ficha SOLO si no tenía celular** (actividad 2). Si la ficha ya tenía uno —el mismo u otro—, lo escrito es solo de ESA boleta y el de la ficha
+  no cambia (cambiarlo le quita la publicidad a una socia: `registrar_clienta` y `editar_clienta`, ajuste d). Lo dice una nota bajo el campo antes de confirmar
+  («También se guarda en su ficha…» / «Solo para esta boleta…») y, al cobrar, la tarjeta de «Venta registrada» («Quedó guardado en su ficha…»).
+- **La base lo hace cumplir: `retail.agregar_celular_clienta(p_id, p_celular) → boolean`** (migración `20261004100000`). Promete: `true` = la ficha no tenía celular y
+  ahora lo tiene (normalizado a 9 dígitos); `false` = ya tenía uno y no se tocó nada (no es un error: «otra caja se adelantó»; repetirla no cambia nada). Nunca cambia ni
+  borra un celular, ni toca el club ni la publicidad; la versión de la ficha sube sola. Asume el módulo «Clientas» (`fn_exigir_modulo`, antes que el responsable), el
+  responsable del combo (`fn_actor_persona_id(true)`) y un celular válido (`22023 celular_invalido`); falla con `clienta_no_existe` o `ficha_archivada`. Toma la ficha con
+  `for update`: dos cajas a la vez se turnan. Anota la actividad sin datos personales (ADR-0249).
+- **Es una llamada APARTE de la venta, después de `registrar_venta`** (Gray: una operación sobre una fila; el cobro no la espera ni depende de ella). Si falla —red,
+  módulo, o la función aún sin pegar en producción— la venta queda bien y la tarjeta dice «No se pudo guardar en su ficha; la boleta se puede enviar igual». Una venta
+  guardada sin conexión no la llama. Solo la intenta una cuenta que ve el módulo «Clientas» (el mismo permiso que abre la búsqueda).
+- **No es consentimiento.** No une al club ni da la publicidad (ADR-0288 D-4, Ley 32323): esos permisos solo nacen de un acto de ella en el cartel. Una ficha sin celular
+  no puede ser socia (`clientas_socia_con_celular`), así que esta función nunca alcanza a una. Los avisos del club los decide la base por publicidad vigente.
+- **Un solo mensaje, sin nombre.** `lib/comprobante-whatsapp-reglas.ts` arma «Hola, gracias por tu compra en CAYLA. Aquí está tu boleta B001-000123: <enlace>». Sin
+  nombre porque el padrón trae «APELLIDO APELLIDO NOMBRE» (un «primer nombre» saludaría con el apellido) y porque menos datos personales viajan a un chat que puede ser el equivocado.
+- **El PDF es el de Lucode** (`comprobantes.respuesta_sunat.pdfUrl`). «Venta registrada» lo busca cada 2 s hasta 20 s con una lectura (`respuesta_sunat->>pdfUrl`: solo el
+  enlace, no el JSON de SUNAT; un GET a Supabase no abre el loader global). Mientras llega dice «Preparando el PDF…»; si pasan 20 s o SUNAT no la acepta, lo dice y deja el
+  envío para Comprobantes. **La venta nunca espera por esto** (principio 9).
+- **Un PDF del sandbox no se manda.** Si el comprobante se transmitió a las pruebas de Lucode (`entorno_transmision <> 'produccion'`), ese PDF no vale ante SUNAT.
+- Un celular a medias frena el cobro, como un carné mal escrito (`problemaDelComprobante` alimenta `motivoBloqueoCobro` y la hoja).
+
+DESCARTÉ: (1) el envío automático por la API de Meta, porque cuesta (≈US$0.03 por boleta, ≈US$60 al mes con 2.000), pide cuenta verificada, plantilla aprobada y proveedor,
+sale desde un número de API y no el de la tienda, contradice la decisión del 2026-09-30 y no se podía probar sin credenciales. (2) El celular dentro de «Registrar cliente»
+(variante A): se construyó, se probó y se quitó. Pedía otra vez lo que el buscador de «Agregar cliente» ya recibe, existía solo para clientes nuevos y mandaba el celular a
+la ficha del club. (3) Guardarlo con `registrar_clienta` o `editar_clienta`: la primera SOBRESCRIBE el celular y quita la publicidad de una socia; la segunda REEMPLAZA todos los
+campos y desde caja borraría el cumpleaños. (4) Un parámetro nuevo en `registrar_venta`: es la función más parchada (cola sin conexión, canje del club, redondeo) y un fallo del
+celular tumbaría el cobro.
+
+SE ROMPE SI: (1) alguien reutiliza `agregar_celular_clienta` para CAMBIAR un celular desde caja: un celular nuevo sobre una socia con publicidad le quita el permiso; la prueba
+`agregar_celular_clienta.mjs` lo vigila (una ficha con celular no cambia, y un control sin la guarda muestra el ataque). (2) La web sale antes que el SQL: cada venta a un cliente
+sin celular dice «No se pudo guardar en su ficha» hasta que se pegue (la venta no se afecta); por eso conviene **pegar el SQL antes de fusionar**. (3) La transmisión a SUNAT sigue
+en `LUCODE_ENTORNO=sandbox` y nadie lo nota: la tarjeta dirá «modo de pruebas» en cada boleta, que es la señal para cambiarlo. (4) El celular se escribió mal y la boleta llegó
+a otra persona: quien manda ve el nombre del contacto en su WhatsApp antes de enviar y el celular sale legible en la tarjeta; el envío no se guarda (no hay registro de «se mandó»:
+se agregaría con una tabla propia si hace falta auditarlo). Un número mal tipeado en una ficha SIN celular queda guardado: se corrige en «Editar» de la ficha.
+
+**Lo que no se tocó:** `registrar_venta`, `registrar_clienta`, `editar_clienta`, los permisos del club ni el flujo de «ella se une sola». **Se encontró de paso:** los botones «WhatsApp»
+de Comprobantes (`ComprobantesPanel`, `OpcionesComprobante`) escriben cada uno su propio texto (uno con el primer nombre, otro con el nombre completo en mayúsculas) y mandan el
+PDF aunque sea del sandbox: pendiente unificarlos con `mensajeDelComprobante` y la misma regla.
+**Verificado** contra una pila Supabase propia al día con `main`, en el navegador (escritorio y 375 px, sin desborde: página 375, hoja 373, tarjeta 325): el campo con el celular
+de la ficha ya puesto; celular a medias frena el cobro; cliente SIN celular → nota «También se guarda en su ficha», cobro, «Quedó guardado en su ficha», y la base con el celular, la
+versión +1, sin club ni publicidad y una línea de actividad sin datos personales; la compra siguiente ya lo trae puesto; con la función inexistente (producción sin el SQL) la venta
+sale igual y la tarjeta lo dice; tarjeta «esperando» → «sin PDF» a los 20 s (Lucode sin credenciales) y «Abrir WhatsApp con la boleta» al simular el PDF de producción en la base;
+«Registrar cliente» vuelve a pedir solo el documento. Pruebas: web 321 archivos / 155.187 verdes; SQL `pruebas:agregar-celular` 18/18 (incluye la carrera de dos cajas y un control
+que muerde), y las 7 baterías de Clientas y roles que recorren las funciones que tocan la ficha, en verde (la lista exacta de `clientas_por_modulo` ahora nombra esta función).

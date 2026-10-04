@@ -302,6 +302,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`components/ExistenciasTarjetas.tsx`: una por modelo, con sus colores adentro; la pastilla es `queHacerPrenda`); «Ver detalle»
   (junto a «Ordenar por») pasa a la tabla de siempre (`ExistenciasPorPrenda` / «Por talla»), que es donde vive el cajón de la
   prenda. Reponer y Ajustar de la tarjeta abren las mismas ventanas, con `permisosDelDetalle`. Solo web, sin RPC ni migración.
+  **Barra de filtros con la estructura de Productos (2026-10-03, ADR-0326):** `components/FiltrosExistencias.tsx` (piezas de
+  `ui/FiltrosPildora`; no es `FiltrosProductos`) lee y escribe la URL con `components/useFiltrosExistencias.ts` (`history.pushState`,
+  sin navegar ni pedir la página). El filtro completo, los chips y los números de cada opción (disyuntivos, por producto) son puros en
+  `lib/existencias-filtros.ts`; «Hoy» (Por colgar · Por reponer · Sin stock atrás · Mantener) en `lib/existencias-hoy.ts`, que también
+  leen la pastilla de la tarjeta, `ExistenciasPorPrenda`, el cajón y la columna «Hoy» de la tabla. La familia de cada color llega de
+  `lib/existencias-catalogo.ts:getColoresParaExistencias` (tolerante) + `conFamiliaDeColor`.
   **Prioridades de hoy (2026-09-29):** las cuatro tarjetas van en este orden —Resumen disponible, «Reponer a piso hoy»
   (`components/TarjetaReponerAPiso.tsx`: hasta tres prendas que piden piso, las de `ordenarPorUrgencia`; tocar una filtra la lista),
   En camino hacia acá e Incidencias—. «Resumen disponible» abre `ResumenStockOverlay.tsx` («Resumen del stock», ADR-0303, 2026-10-01: tabla de prendas por categoría en

@@ -18,7 +18,8 @@ import { textoSinStock, type ClaveFiltro, type ExplicacionVacio } from "../lib/e
    (`lib/existencias-vacio.ts`). Sin animación propia: es un aviso de estado (`role="status"`), no un modal.
    ==================================================================== */
 
-const prendas = (n: number) => (n === 1 ? "1 prenda" : `${n.toLocaleString("es-PE")} prendas`);
+// En productos, como el «N productos» de la barra: el número de cada sugerencia es lo que trae al usarla.
+const prendas = (n: number) => (n === 1 ? "1 producto" : `${n.toLocaleString("es-PE")} productos`);
 
 export function ExistenciasVacio({
   explicacion,
