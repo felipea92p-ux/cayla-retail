@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Prueba de ADR-0328 (decisión técnica 4) «Cuadre del piso, una vez por sede» — `cuadrar_piso`, `previsualizar_cuadre_piso`
- * y `fn_cuadre_piso_estado` (`20261004200000_cuadre_piso_tablas.sql`, `20261004200100_cuadre_piso_funciones.sql`) y su
- * efecto en Frescura (`20261004200050_cuadre_piso_frescura.sql`).
+ * y `fn_cuadre_piso_estado` (`20261004200000_cuadre_piso_tablas.sql`, `20261004200100_cuadre_piso_funciones.sql`), su
+ * efecto en Frescura (`20261004200050_cuadre_piso_frescura.sql`) y el orden de pegado que exige Eliminar con historia
+ * (`20261004200070_cuadre_piso_en_eliminar.sql`; Eliminar se prueba en eliminar_producto_con_historia.mjs, caso 15).
  *
  * LA CUENTA, por prenda y con unidades LIBRES (A almacén, P piso, S escaneado como guardado):
  *   pasa al piso = max(0, A − S) · sube al almacén = min(max(0, S − A), P) · no cargada = max(0, S − A − P) (no se aplica)
@@ -34,8 +35,8 @@
  *      de la misma prenda sigue contando) y lo bajado llega con la marca 6 (edad desconocida) y lo subido con la 2.
  *   C12 la migración de Frescura: desde los cuerpos de antes (los de producción) entra y deja los md5 de su guarda; pegada
  *      otra vez no cambia nada; con un parche en vivo en cualquiera de las dos aborta y no pisa nada; el paso 4 de
- *      Frescura pegado después aborta y no deshace nada. Y el orden de pegado (tablas → Frescura → funciones) lo hace
- *      cumplir la base: sin la protección de Frescura, la parte de funciones aborta sin tocar cuadrar_piso.
+ *      Frescura pegado después aborta y no deshace nada. Y el orden de pegado (tablas → Frescura → Eliminar → funciones)
+ *      lo hace cumplir la base: sin la protección de Frescura o de Eliminar, la parte de funciones aborta sin tocar nada.
  *   C13 tamaño: 550 tallas y ~800 prendas en una sede cuadran dentro del statement_timeout de 8 s de authenticated.
  *   C14 un conteo abierto en la sede frena el cuadre (cuadre_conteo_abierto, nada se escribe): su cierre corregiría otra vez
  *      lo mismo. Revisar y el estado lo avisan; cancelado el conteo, el cuadre entra.
@@ -59,6 +60,7 @@ const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migration
 const MIGRACION_TABLAS = "20261004200000_cuadre_piso_tablas.sql";
 const MIGRACION_FUNCIONES = "20261004200100_cuadre_piso_funciones.sql";
 const MIGRACION_FRESCURA = "20261004200050_cuadre_piso_frescura.sql";
+const MIGRACION_ELIMINAR = "20261004200070_cuadre_piso_en_eliminar.sql";
 const MIGRACION_P4_FRESCURA = "20260929100000_frescura_modulo_y_candado.sql";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
@@ -85,12 +87,15 @@ function correr(sql) {
 /** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
 const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 
-/** Deshace el reemplazo de la migración de Frescura (sus anclas, leídas del archivo, en orden inverso): deja los cuerpos de
+/** Deshace el reemplazo anclado de una migración (sus anclas, leídas del archivo, en orden inverso): deja los cuerpos de
  *  antes, los de producción. Para probar la migración «desde producción» dentro de un caso. */
-const DESHACER_FRESCURA = [...leerMigracion(MIGRACION_FRESCURA).matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
-  .reverse()
-  .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
-  .join("\n");
+const deshacer = (migracion) =>
+  [...leerMigracion(migracion).matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .reverse()
+    .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+    .join("\n");
+const DESHACER_FRESCURA = deshacer(MIGRACION_FRESCURA);
+const DESHACER_ELIMINAR = deshacer(MIGRACION_ELIMINAR);
 
 const PRELUDIO = `
 begin;
@@ -282,16 +287,16 @@ caso(
   // Sin los comentarios: la cabecera puede explicar la regla sin romperla.
   const sin = (m) => leerMigracion(m).replace(/--[^\n]*/g, "");
   esperar(
-    "C1 · ninguna de las tres crea políticas ni quita disparadores (ADR-0195); la de funciones y la de Frescura no alteran tablas; la de tablas solo enciende RLS en las suyas",
-    [MIGRACION_TABLAS, MIGRACION_FUNCIONES, MIGRACION_FRESCURA].every((m) => !/\bdrop\s+trigger\b|\b(create|drop)\s+policy\b/i.test(sin(m))) &&
-      [MIGRACION_FUNCIONES, MIGRACION_FRESCURA].every((m) => !/\balter\s+table\b/i.test(sin(m))) &&
+    "C1 · ninguna de las cuatro crea políticas ni quita disparadores (ADR-0195); la de funciones, la de Frescura y la de Eliminar no alteran tablas; la de tablas solo enciende RLS en las suyas",
+    [MIGRACION_TABLAS, MIGRACION_FUNCIONES, MIGRACION_FRESCURA, MIGRACION_ELIMINAR].every((m) => !/\bdrop\s+trigger\b|\b(create|drop)\s+policy\b/i.test(sin(m))) &&
+      [MIGRACION_FUNCIONES, MIGRACION_FRESCURA, MIGRACION_ELIMINAR].every((m) => !/\balter\s+table\b/i.test(sin(m))) &&
       (sin(MIGRACION_TABLAS).match(/\balter\s+table\s+([\w.]+)/gi) ?? []).every((a) => /retail\.(cuadres_piso|cuadre_piso_items)\b/.test(a))
   );
   // ADR-0288: dentro de un texto entre comillas simples, el SQL Editor toma un `select … into` por una tabla nueva.
   const comillas = (m) => [...sin(m).matchAll(/'(?:[^']|'')*'/g)].map((x) => x[0]);
   esperar(
-    "C1 · ningún texto entre comillas simples de las tres trae «select … into» (ADR-0288)",
-    [MIGRACION_TABLAS, MIGRACION_FUNCIONES, MIGRACION_FRESCURA].every((m) => comillas(m).every((t) => !/select[\s\S]*\binto\b/i.test(t)))
+    "C1 · ningún texto entre comillas simples de las cuatro trae «select … into» (ADR-0288)",
+    [MIGRACION_TABLAS, MIGRACION_FUNCIONES, MIGRACION_FRESCURA, MIGRACION_ELIMINAR].every((m) => comillas(m).every((t) => !/select[\s\S]*\binto\b/i.test(t)))
   );
 }
 caso(
@@ -738,15 +743,23 @@ select ${MD5_DOS} = :'hoy';`,
   const FUNCIONES = `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc
     where pronamespace = 'retail'::regnamespace and proname in ('cuadrar_piso', 'previsualizar_cuadre_piso', 'fn_cuadre_piso_estado'))`;
   caso(
-    "C12 · el orden de pegado: tablas → Frescura → funciones; sin la protección de Frescura, la parte de funciones aborta y no toca nada; con ella, entra",
+    "C12 · el orden de pegado: tablas → Frescura → Eliminar → funciones; sin la protección de Frescura o de Eliminar, la parte de funciones aborta y no toca nada; con las dos, entra",
     `select ${FUNCIONES} as antes \\gset
 ${DESHACER_FRESCURA}
 select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'msg' like 'Frescura todavía no conoce el cuadre del piso: pega antes ${MIGRACION_FRESCURA}%';
 select ${FUNCIONES} = :'antes';
 select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FRESCURA))}) ->> 'ok';
+${DESHACER_ELIMINAR}
+select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'msg' like 'Eliminar con historia todavía no conoce el cuadre del piso: pega antes ${MIGRACION_ELIMINAR}%';
+select ${FUNCIONES} = :'antes';
+select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_ELIMINAR))}) ->> 'ok';
 select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'ok';
 select ${FUNCIONES} = :'antes';`,
-    (l) => [MIGRACION_TABLAS, MIGRACION_FRESCURA, MIGRACION_FUNCIONES].join() === [MIGRACION_TABLAS, MIGRACION_FRESCURA, MIGRACION_FUNCIONES].sort().join() && l.slice(-5).join(",") === "t,t,true,true,t"
+    (l) => {
+      const orden = [MIGRACION_TABLAS, MIGRACION_FRESCURA, MIGRACION_ELIMINAR, MIGRACION_FUNCIONES];
+      // aborta sin Frescura, sin tocar · Frescura entra · aborta sin Eliminar, sin tocar · Eliminar entra · funciones entra, igual
+      return orden.join() === [...orden].sort().join() && l.slice(-8).join(",") === "t,t,true,t,t,true,true,t";
+    }
   );
 }
 

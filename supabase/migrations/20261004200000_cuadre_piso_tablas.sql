@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 20261004200000_cuadre_piso_tablas.sql — CAYLA V2 · ADR-0328 decisión técnica 4 «Cuadre del piso, una vez por sede»
--- PARTE 1 de 3 (las tablas). Le siguen 20261004200050 (Frescura) y 20261004200100 (las funciones), en ese orden.
+-- PARTE 1 de 4 (las tablas). Le siguen 20261004200050 (Frescura), 20261004200070 (Eliminar con historia) y
+-- 20261004200100 (las funciones), en ese orden.
 --
 -- EL PROBLEMA PRIMERO. El sistema dice que TRU tiene 138 prendas colgadas y 635 guardadas; en la tienda cuelgan 600 a 750 y
 -- hay más de 200 guardadas (Felipe, 2026-09-30). El 14-sep todo el stock de las tiendas se pasó al almacén de un golpe
@@ -17,7 +18,7 @@
 --     Su `created_at` es LA fecha del cuadre de la sede (la lee `fn_cuadre_piso_estado`).
 --   · `cuadre_piso_items`: una línea por prenda movida, con la fila del libro que la movió como llave (1 a 1 con
 --     `movimientos`) y su sentido (`al_piso` | `al_almacen`). Frescura reconoce el cuadre por ESTE vínculo con llave
---     foránea, nunca por motivo ni nota (PARTE 3).
+--     foránea, nunca por motivo ni nota (PARTE 2).
 --
 -- ESTADO QUE DEJA DE SER POSIBLE (lo niega el esquema, no una validación en la pantalla)
 --   · el mismo cuadre guardado dos veces                       → unique (token_cliente)
@@ -33,7 +34,7 @@
 --   · un cuadre editado, borrado o las tablas vaciadas          → disparadores de inmutabilidad y sin truncate
 -- Un cuadre SIN ítems sí es posible y es válido: la sede ya estaba cuadrada y solo queda la fecha.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual (trae `retail.` y su `search_path`), ANTES de las otras dos. Las llaves
+-- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual (trae `retail.` y su `search_path`), ANTES de las otras tres. Las llaves
 -- foráneas hacia movimientos, variantes, ubicaciones y public.personas toman un candado breve sobre tablas que la tienda
 -- usa: por eso va sola, SIN políticas, con `lock_timeout = 3s` (si no consigue el candado, falla sin daño y se vuelve a
 -- pegar), fuera de hora punta. Los disparadores van con `create or replace trigger` (nunca `drop trigger`: tomaría en
@@ -201,7 +202,7 @@ create or replace trigger cuadre_piso_items_sin_truncate
   before truncate on retail.cuadre_piso_items
   for each statement execute function retail.fn_historial_sin_truncate();
 
--- Nadie las lee ni escribe directo: solo las funciones `security definer` de la PARTE 2 (RLS encendido y SIN políticas).
+-- Nadie las lee ni escribe directo: solo las funciones `security definer` de la PARTE 4 (RLS encendido y SIN políticas).
 alter table retail.cuadres_piso enable row level security;
 alter table retail.cuadre_piso_items enable row level security;
 revoke all on retail.cuadres_piso, retail.cuadre_piso_items from public, anon, authenticated;

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20261004200050_cuadre_piso_frescura.sql — CAYLA V2 · ADR-0328 decisión técnica 4 + ADR-0208 «Frescura del piso»
--- PARTE 2 de 3: Frescura no lee el cuadre del piso como bajadas de hoy. Va DESPUÉS de 20261004200000 (las tablas) y ANTES
+-- PARTE 2 de 4: Frescura no lee el cuadre del piso como bajadas de hoy. Va DESPUÉS de 20261004200000 (las tablas) y ANTES
 -- de 20261004200100 (las funciones): así `cuadrar_piso` nunca existe sin esta protección. Si esta parte aborta (un cuerpo
 -- vivo distinto), la de funciones tampoco entra: su guarda exige que Frescura ya conozca el cuadre. Antes iba al final
 -- (200200) y un aborto aquí dejaba cuadrar con Frescura leyendo cada prenda bajada como una «bajada» de hoy, algo que ya

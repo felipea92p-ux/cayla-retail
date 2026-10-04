@@ -1,7 +1,8 @@
 -- ============================================================================
 -- 20261004200100_cuadre_piso_funciones.sql — CAYLA V2 · ADR-0328 decisión técnica 4 «Cuadre del piso, una vez por sede»
--- PARTE 3 de 3 (las funciones). Va AL FINAL, después de 20261004200000 (las tablas) y 20261004200050 (Frescura): su guarda
--- aborta si Frescura todavía no conoce el cuadre, así `cuadrar_piso` no existe sin esa protección.
+-- PARTE 4 de 4 (las funciones). Va AL FINAL, después de 20261004200000 (las tablas), 20261004200050 (Frescura) y
+-- 20261004200070 (Eliminar con historia): su guarda aborta si Frescura o Eliminar todavía no conocen el cuadre, así
+-- `cuadrar_piso` no existe sin esas protecciones.
 --
 -- EL PROBLEMA PRIMERO. Ver la PARTE 1: el reparto piso/almacén de TRU no es el real (sistema 138 colgadas y 635 guardadas;
 -- en la tienda, 600–750 colgadas y más de 200 guardadas). La forma de arreglarlo que eligió Felipe es escanear lo que de
@@ -59,8 +60,8 @@
 -- misma sede, mover lo apartado para un cliente, y un cuadre con un conteo abierto en la sede (los dos corregirían las
 -- mismas prendas y la sede ganaría prendas que no existen).
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y 20261004200050 (las guardas de abajo abortan
--- sin tocar nada si falta algo, también si Frescura no quedó con su protección). Solo `create or replace function` + `comment` + `revoke` + `grant`: no toma las
+-- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000, 20261004200050 y 20261004200070 (las guardas de
+-- abajo abortan sin tocar nada si falta algo, también si Frescura o Eliminar no quedaron con su protección). Solo `create or replace function` + `comment` + `revoke` + `grant`: no toma las
 -- tablas de auth/storage (ADR-0195), sin políticas, sin `drop trigger`, sin `alter`. Idempotente. VA ANTES de publicar la
 -- web que la llama (una web nueva contra una base sin esto falla con «Could not find the function»).
 -- Verificación (solo lectura):
@@ -106,6 +107,13 @@ begin
      or position('cuadre_piso_items' in coalesce((select p.prosrc from pg_proc p
         where p.oid = to_regprocedure('retail.fn_frescura_sede(uuid, integer)')), '')) = 0 then
     raise exception 'Frescura todavía no conoce el cuadre del piso: pega antes 20261004200050_cuadre_piso_frescura.sql (si abortó, su mensaje dice qué función cambió en vivo).';
+  end if;
+  -- Y «Eliminar con historia»: sin la PARTE 3, todo producto que pase por el cuadre ya no se podría eliminar ni purgar.
+  if position('cuadre_piso_items' in coalesce((select p.prosrc from pg_proc p
+        where p.oid = to_regprocedure('retail.eliminar_producto_con_historia(uuid)')), '')) = 0
+     or position('cuadre_piso_items' in coalesce((select p.prosrc from pg_proc p
+        where p.oid = to_regprocedure('retail.fn_producto_historia(uuid)')), '')) = 0 then
+    raise exception 'Eliminar con historia todavía no conoce el cuadre del piso: pega antes 20261004200070_cuadre_piso_en_eliminar.sql.';
   end if;
 end $$;
 
