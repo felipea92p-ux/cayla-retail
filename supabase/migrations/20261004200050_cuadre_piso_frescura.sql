@@ -18,16 +18,21 @@
 --     entraría a la vara de su categoría como si llevara 0 días: las DEMÁS parecerían más viejas y crecería «Por decidir».
 --     ADR-0248 descartó exactamente eso para la carga inicial.
 --
--- QUÉ HACE (dos cambios, los dos hacen falta: uno sin el otro deja la mitad sucia).
+-- QUÉ HACE (tres cambios; los dos primeros hacen falta juntos: uno sin el otro deja la mitad sucia).
 --   1. `fn_bajadas_del_piso_nucleo`: el CTE `internos` deja fuera los movimientos que son de un cuadre
 --      (`not exists … cuadre_piso_items ci where ci.movimiento_id = m.id`). El cuadre no es ni bajada ni retiro: queda
 --      fuera de la confianza, de las tardías, de «corregida» y del «piso de antes», en las tres lecturas que usan el
 --      núcleo a la vez (fn_frescura_sede, fn_confianza_registro, fn_bajadas_del_piso). El NIVEL del libro sí lo incluye:
 --      es la verdad de cuánto hay colgado.
 --   2. `fn_frescura_sede`: la bajada del cuadre lleva la marca 4 («edad desconocida»), igual que la bajada de la carga
---      inicial: `v_cuadre` (los movimiento_id de cuadre_piso_items al_piso de la sede en la ventana, armado UNA vez, como
+--      inicial: `v_cuadre` (los movimiento_id de cuadre_piso_items de la sede en la ventana, armado UNA vez, como
 --      `v_carga`) entra al CASE de las marcas. Nunca sale «Nueva», no entra a la vara y se lee «al menos N días». La
---      subida al almacén sigue llegando con 2 (es una pausa; `delta <= 0` ya da 0). La web no cambia: lee los bits igual.
+--      subida al almacén no lleva la 4 (es una pausa; `delta <= 0` ya da 0).
+--   3. `fn_frescura_sede`: TODA fila del cuadre lleva además la marca 8 (bajada: 2 + 4 + 8 = 14; subida: 2 + 8 = 10). La
+--      web (`frescura-reglas.ts`, MARCA_CUADRE) saca de ahí los instantes del cuadre de la sede y corta en ellos la ventana
+--      de cada «Ya decidí» que lo cruza (`frescura-decisiones-reglas.ts`, cortadaPor «cuadre»): una medida que mezcla el
+--      piso de antes del cuadre (subcontado) con el de después saldría «no alcanzó» por el registro, no por la venta
+--      (revisión adversarial, 2026-10-04). Quien lee las marcas con `&` no cambia: un bit desconocido no se mira.
 -- El vínculo es la llave foránea del ítem (PARTE 1), nunca el motivo ni la nota: una nota no es una marca.
 --
 -- CÓMO SE HACE: REEMPLAZO ANCLADO, CON GUARDA DE md5. Las dos funciones viven en producción y otras migraciones las
@@ -43,7 +48,7 @@
 --
 -- md5 DESPUÉS de esta migración (medidos en la base desechable; son los que tiene que dar producción):
 --   fn_bajadas_del_piso_nucleo  7d9fdf39200eea93254ec1d9100da549
---   fn_frescura_sede            8576eb204f5fb9801b7c12dbacb3ae35
+--   fn_frescura_sede            e64a3742e5f06a2e18b9d7749b720b3d
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y ANTES de 20261004200100. Solo
 -- `create or replace function`
@@ -90,7 +95,7 @@ declare
   c_nucleo_antes constant text := 'fcfd2c4b2c4f24dd2184eb2cd7a12678';
   c_nucleo_despues constant text := '7d9fdf39200eea93254ec1d9100da549';
   c_sede_antes constant text := 'a22655be615d72555032a7df98258876';
-  c_sede_despues constant text := '8576eb204f5fb9801b7c12dbacb3ae35';
+  c_sede_despues constant text := 'e64a3742e5f06a2e18b9d7749b720b3d';
   v_nucleo text;
   v_sede text;
 begin
@@ -134,12 +139,13 @@ $n$
 select pg_temp.reemplazar_anclado(
   'retail.fn_frescura_sede(uuid, integer)',
   $v$  -- UNA llamada al libro (ADR-0202) con la lista de prendas: sus puntos de PISO, con las marcas.$v$,
-  $n$  -- Lo que el cuadre del piso (ADR-0328) bajó del almacén: edad desconocida, como la bajada de la carga inicial. Por
-  -- su ítem (llave foránea al movimiento), armado una sola vez, como `v_carga`.
+  $n$  -- Lo que movió el cuadre del piso (ADR-0328), por su ítem (llave foránea al movimiento), armado una sola vez, como
+  -- `v_carga`. Lo que bajó del almacén llega con edad desconocida (4), como la bajada de la carga inicial; toda fila del
+  -- cuadre lleva además la 8, y la web corta ahí la medida de «Ya decidí» (antes y después, el piso se cuenta distinto).
   v_cuadre := (select coalesce(jsonb_object_agg(ci.movimiento_id, true), '{}'::jsonb)
                  from retail.cuadre_piso_items ci
                  join retail.cuadres_piso cp on cp.id = ci.cuadre_id
-                where cp.ubicacion_id = p_ubicacion_id and cp.created_at >= v_desde and ci.sentido = 'al_piso');
+                where cp.ubicacion_id = p_ubicacion_id and cp.created_at >= v_desde);
 
   -- UNA llamada al libro (ADR-0202) con la lista de prendas: sus puntos de PISO, con las marcas.$n$
 );
@@ -150,6 +156,17 @@ select pg_temp.reemplazar_anclado(
   $n$case when v_carga ? pt.oid::text or v_cuadre ? pt.oid::text then 4 else 0 end$n$
 );
 
+-- 3. fn_frescura_sede: toda fila del cuadre (baje o suba) lleva la marca 8. La 4 de arriba solo llega a lo que SUBE al
+--    piso (con `delta <= 0` ya da 0): lo que el cuadre sube al almacén queda en 2 + 8.
+select pg_temp.reemplazar_anclado(
+  'retail.fn_frescura_sede(uuid, integer)',
+  $v$               + (case when pt.es_interno then 2 else 0 end)
+$v$,
+  $n$               + (case when pt.es_interno then 2 else 0 end)
+               + (case when v_cuadre ? pt.oid::text then 8 else 0 end)  -- una fila del cuadre del piso (ADR-0328)
+$n$
+);
+
 -- Lo que quedó tiene que ser EXACTAMENTE lo medido: si no, se deshace todo (el SQL Editor corre el archivo en una
 -- transacción).
 do $$
@@ -158,7 +175,7 @@ declare
                      where p.oid = to_regprocedure('retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)'));
   v_sede text := (select md5(p.prosrc) from pg_proc p where p.oid = to_regprocedure('retail.fn_frescura_sede(uuid, integer)'));
 begin
-  if v_nucleo <> '7d9fdf39200eea93254ec1d9100da549' or v_sede <> '8576eb204f5fb9801b7c12dbacb3ae35' then
+  if v_nucleo <> '7d9fdf39200eea93254ec1d9100da549' or v_sede <> 'e64a3742e5f06a2e18b9d7749b720b3d' then
     raise exception 'El reemplazo no dejó los cuerpos esperados (núcleo %, fn_frescura_sede %). No se aplicó nada.', v_nucleo, v_sede;
   end if;
 end $$;

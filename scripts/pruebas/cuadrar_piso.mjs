@@ -32,7 +32,8 @@
  *      lista vacía SÍ vale (nada guardado: todo lo libre del almacén pasa al piso).
  *   C10 estado: sin cuadre, cuadrado_en nulo; con cuadre, la fecha, quién y cuántas.
  *   C11 Frescura: el cuadre no es bajada ni retiro (el núcleo no lo ve; la confianza del registro no cambia; una bajada real
- *      de la misma prenda sigue contando) y lo bajado llega con la marca 6 (edad desconocida) y lo subido con la 2.
+ *      de la misma prenda sigue contando); lo bajado llega con la marca 14 (interno, edad desconocida y cuadre) y lo subido
+ *      con la 10 (interno y cuadre): con la 8, la web corta ahí la medida de «Ya decidí».
  *   C12 la migración de Frescura: desde los cuerpos de antes (los de producción) entra y deja los md5 de su guarda; pegada
  *      otra vez no cambia nada; con un parche en vivo en cualquiera de las dos aborta y no pisa nada; el paso 4 de
  *      Frescura pegado después aborta y no deshace nada. Y el orden de pegado (tablas → Frescura → Eliminar → funciones)
@@ -684,7 +685,7 @@ select concat_ws(',', (:'r')::jsonb ->> 'ok',
   "true,5,0,normal:1,1:1"
 );
 caso(
-  "C11 · fn_frescura_sede: lo que el cuadre bajó llega con la marca 6 (interno + edad desconocida), lo que subió con la 2, y la bajada real con la 2",
+  "C11 · fn_frescura_sede: lo que el cuadre bajó llega con la marca 14 (interno + edad desconocida + cuadre), lo que subió con la 10 (interno + cuadre), y la bajada real con la 2",
   `${sesion(FELIPE)}${COMO_API}select retail.bajar_al_piso(:'cua', ${lista(["vc", 1])}, gen_random_uuid()) as b \\gset
 select ${cuadrar(ESCANEO)} as r \\gset
 select retail.fn_frescura_sede(:'cua') as j \\gset
@@ -699,9 +700,9 @@ ${COMO_POSTGRES}select string_agg(x, ' ' order by x) from (
     from jsonb_array_elements((:'j')::jsonb -> 'eventos' -> (:'vc')) e
    where (e ->> 3)::uuid in (select movimiento_id from retail.bajada_piso_items)) q;
 select string_agg(x, ' ' order by x) from (
-  select retail.fn_prenda_corta(:'va') || ':al_piso:6' as x union all select retail.fn_prenda_corta(:'vb') || ':al_almacen:2'
-  union all select retail.fn_prenda_corta(:'vc') || ':al_almacen:2'
-  union all select retail.fn_prenda_corta(:'vd') || ':al_almacen:2' union all select retail.fn_prenda_corta(:'ve') || ':al_almacen:2'
+  select retail.fn_prenda_corta(:'va') || ':al_piso:14' as x union all select retail.fn_prenda_corta(:'vb') || ':al_almacen:10'
+  union all select retail.fn_prenda_corta(:'vc') || ':al_almacen:10'
+  union all select retail.fn_prenda_corta(:'vd') || ':al_almacen:10' union all select retail.fn_prenda_corta(:'ve') || ':al_almacen:10'
   union all select 'bajada_real:2') q;`,
   (l) => l.at(-2) === l.at(-1)
 );

@@ -495,6 +495,31 @@ describe("la ventana en que se mide, y qué la acorta", () => {
     expect(ventanaDeLinea(r({ id: "a" }), r({ id: "b", creadoEn: lima("2026-10-02T09:00:00") }), sin, AHORA)).toMatchObject({ hasta: lima("2026-10-02T09:00:00"), cortadaPor: "otra_decision" });
   });
 
+  it("el cuadre del piso de la tienda la corta en ese instante (antes y después el piso se cuenta distinto), y lo dice", () => {
+    const cuadre = lima("2026-10-02T07:30:00");
+    expect(ventanaDeLinea(r({ id: "a" }), null, sin, AHORA, [cuadre])).toMatchObject({ desde: CREADA, hasta: cuadre, enCurso: false, cortadaPor: "cuadre" });
+    // Un cuadre de antes de decidir no corta nada; uno después de su fecha, tampoco.
+    expect(ventanaDeLinea(r({ id: "a" }), null, sin, AHORA, [lima("2026-09-20T10:00:00"), lima("2026-10-09T10:00:00")])).toMatchObject({
+      hasta: "2026-10-06T05:00:00.000Z",
+      cortadaPor: null,
+    });
+    // Manda lo que llegue primero: una llegada de antes del cuadre corta como llegada.
+    expect(ventanaDeLinea(r({ id: "a" }), null, { ...sin, ultimaLlegada: lima("2026-10-01T09:00:00") }, AHORA, [cuadre])?.cortadaPor).toBe("llegada");
+    // Todavía dentro de su plazo: el cuadre de ayer ya cerró la medida (la decisión sigue; su medida no).
+    expect(ventanaDeLinea(r({ id: "a" }), null, sin, lima("2026-10-03T10:00:00"), [cuadre])).toMatchObject({ hasta: cuadre, enCurso: false, cortadaPor: "cuadre" });
+    // La decisión sigue vigente: el cuadre no la termina (no vuelve a «Por decidir»).
+    expect(terminaLinea(r({ id: "a" }), null, sin, lima("2026-10-03T10:00:00"))).toBeNull();
+    // «La trasladé» se mide en el destino: el cuadre del ORIGEN no la corta.
+    const traslado = { numero: 5, destinoId: "d", destino: "Tienda Lima", estado: "completada", anulado: false, recibidoEn: lima("2026-10-01T10:00:00"), unidades: 3 };
+    expect(ventanaDeLinea(r({ id: "a", accion: "traslade", plazoDias: 14, traslado }), null, sin, AHORA, [lima("2026-10-03T10:00:00")])?.cortadaPor).toBeNull();
+  });
+
+  it("medirLinea mide con los cuadres de su contexto", () => {
+    const cuadre = lima("2026-10-02T07:30:00");
+    const c = { prendas: [prenda({ clave: "prod-1|NEG" })], exposicion: fija({ "prod-1|NEG": { u: 10, v: 1 } }), intervenciones: new Map(), cuadres: [cuadre] };
+    expect(medirLinea(r({ id: "a" }), null, { clave: "prod-1|NEG", categoriaId: "blu", ...sin }, AHORA, c)).toMatchObject({ hasta: cuadre, cortadaPor: "cuadre" });
+  });
+
   it("quitar lo anotado no se mide: una anulación no tiene ventana", () => {
     expect(ventanaDeLinea(r({ id: "b", accion: "anulacion", plazoDias: null }), null, sin, AHORA)).toBeNull();
   });
@@ -678,6 +703,34 @@ describe("«La trasladé» medida en la tienda destino (solo el líder, que las 
       AHORA,
     );
     expect(origen.prendas[0].decision?.actual.resultado).toMatchObject({ veredicto: "sirvio", enSede: "Tienda Lima", suyas: 5 });
+  });
+
+  it("el cuadre del piso de la tienda DESTINO corta su medida allá", () => {
+    const traslado = { numero: 5, destinoId: "lima", destino: "Tienda Lima", estado: "completada", anulado: false, recibidoEn: lima("2026-10-01T10:00:00"), unidades: 3 };
+    const linea = r({ id: "a", accion: "traslade", plazoDias: 14, transferenciaId: "t", traslado, creadoEn: lima("2026-09-30T10:00:00") });
+    const origen = sedeCon([prenda({ clave: "prod-1|NEG" })]);
+    const lecturaOrigen = lecturaCon([linea]);
+    const decOrigen = aplicarDecisiones(origen, lecturaOrigen, fija({}), AHORA);
+    const destino = sedeCon([prenda({ clave: "prod-1|NEG" }), prenda({ clave: "otra|NEG" })]);
+    const exposicion = fija({ "prod-1|NEG": { u: 40, v: 5 }, "otra|NEG": { u: 200, v: 2 } });
+    const decDestino = aplicarDecisiones(destino, lecturaCon([]), exposicion, AHORA);
+    const cuadreLima = lima("2026-10-03T10:00:00");
+    completarTraslados(
+      [
+        // El cuadre del ORIGEN no cuenta: la prenda se mide en Lima.
+        { id: "tru", nombre: "Tienda Trujillo", sede: origen, decisiones: decOrigen, lectura: lecturaOrigen, exposicion: fija({}), cuadres: [lima("2026-10-02T10:00:00")] },
+        { id: "lima", nombre: "Tienda Lima", sede: destino, decisiones: decDestino, lectura: lecturaCon([]), exposicion, cuadres: [cuadreLima] },
+      ],
+      AHORA,
+    );
+    expect(origen.prendas[0].decision?.actual.resultado).toMatchObject({ enSede: "Tienda Lima", hasta: cuadreLima, cortadaPor: "cuadre", enCurso: false });
+  });
+
+  it("aplicarDecisiones corta con los cuadres de la sede", () => {
+    const sede = sedeCon([prenda({ clave: "prod-1|NEG" }), prenda({ clave: "otra|NEG" })]);
+    const cuadre = lima("2026-10-02T07:30:00");
+    aplicarDecisiones(sede, lecturaCon([r({ id: "a" })]), fija({ "prod-1|NEG": { u: 10, v: 1 }, "otra|NEG": { u: 100, v: 3 } }), AHORA, [cuadre]);
+    expect(sede.prendas[0].decision?.actual.resultado).toMatchObject({ hasta: cuadre, cortadaPor: "cuadre" });
   });
 
   it("si el destino no se pudo leer, sigue diciendo que se mide allá", () => {
