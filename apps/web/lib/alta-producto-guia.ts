@@ -14,7 +14,7 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { claveReferencia, faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, TEXTO_FALTA_LUGAR, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
@@ -115,8 +115,13 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       nombre: "Unidades de hoy",
       requerido: true,
       sugerido: false,
-      hecho: e.stockInvalidas === 0 && (e.stockTotal > 0 || e.sinStock),
-      pendiente: e.stockInvalidas > 0 ? "Las cantidades son números enteros, de 0 a 9999." : "Escribe cuántas tienes hoy, o marca que todavía no tienes.",
+      hecho: e.stockInvalidas === 0 && (e.stockTotal > 0 || e.sinStock) && !faltaLugarCarga(e),
+      pendiente:
+        e.stockInvalidas > 0
+          ? "Las cantidades son números enteros, de 0 a 9999."
+          : faltaLugarCarga(e)
+            ? TEXTO_FALTA_LUGAR
+            : "Escribe cuántas tienes hoy, o marca que todavía no tienes.",
     },
     { id: "responsable", paso: 4, nombre: "Quién lo registra", requerido: true, sugerido: false, hecho: x.responsableListo, pendiente: "Elige quién lo registra." },
   ];

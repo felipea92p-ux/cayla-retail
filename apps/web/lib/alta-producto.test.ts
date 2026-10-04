@@ -21,6 +21,7 @@ import {
   siguienteDelAlta,
   textoTallas,
   textoDestinoStock,
+  TEXTO_FALTA_LUGAR,
   pasoAlcanzable,
   pasoDeProblema,
   pasoHecho,
@@ -56,6 +57,8 @@ const base: EstadoAlta = {
   stockTotal: 6,
   stockInvalidas: 0,
   sinStock: false,
+  separaPiso: true,
+  lugarCarga: "almacen",
 };
 
 describe("tituloReferencia — espejo del trigger de la base", () => {
@@ -228,6 +231,16 @@ describe("problemasAlta — qué falta, en frases de la persona", () => {
     // Con unidades escritas, la marca «todavía no» no importa: manda lo escrito.
     expect(problemasAlta({ ...base, stockTotal: 4, sinStock: true })).toEqual([]);
   });
+  it("dónde están no viene marcado: con unidades, en una tienda que separa piso y almacén, hay que decirlo (ADR-0328)", () => {
+    expect(problemasAlta({ ...base, lugarCarga: null })).toEqual([{ bloque: "stock", texto: TEXTO_FALTA_LUGAR }]);
+    expect(problemasAlta({ ...base, lugarCarga: "piso" })).toEqual([]);
+    expect(problemasAlta({ ...base, lugarCarga: "almacen" })).toEqual([]);
+    // Sin unidades no hay nada que ubicar; en una tienda sin piso y almacén (el Taller) la pregunta no sale.
+    expect(problemasAlta({ ...base, lugarCarga: null, stockTotal: 0, sinStock: true })).toEqual([]);
+    expect(problemasAlta({ ...base, lugarCarga: null, separaPiso: false })).toEqual([]);
+    // Una cantidad mal escrita se arregla primero: el aviso de dónde están espera a que las cantidades sean válidas.
+    expect(problemasAlta({ ...base, lugarCarga: null, stockInvalidas: 1 })).toEqual([{ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." }]);
+  });
   it("una celda mal escrita frena aunque haya otras bien", () => {
     expect(problemasAlta({ ...base, stockInvalidas: 1 })[0]).toEqual({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
     expect(problemasAlta({ ...base, stockInvalidas: 1, sinStock: true })).toHaveLength(1);
@@ -259,10 +272,11 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
     expect(resumenStock({ a: "x", b: "4" }, ["a", "b"])).toEqual({ total: 4, invalidas: 1, celdasConStock: 1 });
   });
   it("textoDestinoStock dice dónde quedan, como lo diría la persona", () => {
-    expect(textoDestinoStock("Tienda TRU", true, true)).toBe("piso de venta de Tienda TRU");
-    expect(textoDestinoStock("Tienda TRU", false, true)).toBe("almacén de Tienda TRU");
-    expect(textoDestinoStock("Taller", false, false)).toBe("Taller");
-    expect(textoDestinoStock("Taller", true, false)).toBe("Taller");
+    expect(textoDestinoStock("Tienda TRU", "piso", true)).toBe("piso de venta de Tienda TRU");
+    expect(textoDestinoStock("Tienda TRU", "almacen", true)).toBe("almacén de Tienda TRU");
+    expect(textoDestinoStock("Tienda TRU", null, true)).toBe("Tienda TRU · falta decir si están colgadas o guardadas");
+    expect(textoDestinoStock("Taller", "almacen", false)).toBe("Taller");
+    expect(textoDestinoStock("Taller", null, false)).toBe("Taller");
   });
 });
 
