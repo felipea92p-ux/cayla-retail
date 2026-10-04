@@ -451,6 +451,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   hace que «← Existencias» sea la vuelta (`volverDeNuevoTraslado`). **`/inventario/mover` solo redirige** aquí con todos
   sus parámetros (`urlNuevoTrasladoDesdeMover`, `lib/traslados-reglas.ts`), para los enlaces de Producción, Cambios,
   Análisis y Frescura, que no se tocaron.
+  **Tras enviar (ADR-0242 D-3, 2026-10-03):** el formulario guarda el id que devuelve `iniciar_traslado`, lee el número
+  (`transferencias.numero`, GET con tope de 2 s: si no llega, la pantalla sale sin número) y pinta `TrasladoEnviado.tsx`:
+  «Traslado N», la lista de lo que va en la caja (con cantidades: quien envía las sabe) y un mensaje para la otra sede que
+  **no dice cuántas prendas van** (`mensajeParaLaOtraSede`, `lib/traslados-reglas.ts`, solo recibe nombres). El WhatsApp de
+  la sede destino sale de `getWhatsappDeSedes` (`lib/traslados.ts`, tolerante; es `ubicaciones.whatsapp_numero`, el de las
+  tiendas, que nació para el QR del club); sin él, WhatsApp abre sin destinatario. El formulario sigue bloqueado hasta
+  que sale esta pantalla (el token ya se renovó: un clic de más duplicaría el traslado).
 - `/inventario/bajar` (**Bajar prendas al piso**, 2026-09-25, ADR-0208 bloque 1; **web publicada; en producción,
   `bajar_al_piso` pegada y el módulo `bajada_piso` sin confirmar**; sin
   pestaña ni hoja en el lateral, que no cambia: se llega solo por el botón «Bajar al piso» de la cabecera de

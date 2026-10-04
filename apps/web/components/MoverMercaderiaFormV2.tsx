@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -11,6 +10,8 @@ import { CampoSelect, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TrasladoEnviado } from "@/components/TrasladoEnviado";
+import { etiquetaDePrenda, type PrendaEnviada } from "@/lib/traslados-reglas";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
@@ -37,7 +38,8 @@ type VarianteConStock = {
   color: string | null;
   cantidad: number;
 };
-type Ubicacion = { id: string; nombre: string };
+/** `whatsapp`: el celular de WhatsApp de la sede (solo las tiendas lo tienen) para avisarle que salió una caja; null = sin chat directo. */
+type Ubicacion = { id: string; nombre: string; whatsapp?: string | null };
 // `cantidad` es texto, no número — mismo patrón que ya usa `ConteoPanel.tsx`
 // para su campo de cantidad. Un input controlado con `value={numero}` y
 // `onChange={(e) => setNumero(Number(e.target.value) || 1)}` nunca puede
@@ -57,6 +59,27 @@ const LINEA_VACIA: Linea = { varianteId: "", cantidad: "1" };
 type Errores = { destino?: string; eta?: string; lineas: Record<number, string> };
 const SIN_ERRORES: Errores = { lineas: {} };
 const idLinea = (i: number) => `mover-linea-${i}`;
+
+/** Cuánto se espera el número antes de mostrar la pantalla sin él. El formulario sigue bloqueado mientras tanto (un clic
+ *  de más crearía un traslado duplicado): sin tope, una red que se cuelga lo dejaría en «Enviando…» con el traslado ya
+ *  guardado, y la persona, creyendo que falló, lo enviaría otra vez. */
+const ESPERA_MAXIMA_DEL_NUMERO_MS = 2000;
+
+/** El número corrido del traslado recién creado («Traslado 12»). La RPC devuelve solo el id. Es una lectura que no abre el
+ *  loader global (GET a Supabase, ADR-0149). Si falla o tarda más del tope, `null`: el traslado YA está guardado, solo se
+ *  pierde el número en pantalla. */
+async function leerNumeroDelTraslado(supabase: ReturnType<typeof createClient>, id: string): Promise<number | null> {
+  const lectura = (async () => {
+    try {
+      const { data } = await supabase.from("transferencias").select("numero").eq("id", id).maybeSingle();
+      return typeof data?.numero === "number" ? data.numero : null;
+    } catch {
+      return null;
+    }
+  })();
+  const tope = new Promise<null>((resolver) => setTimeout(() => resolver(null), ESPERA_MAXIMA_DEL_NUMERO_MS));
+  return Promise.race([lectura, tope]);
+}
 
 export function MoverMercaderiaFormV2({
   origenId,
@@ -94,7 +117,8 @@ export function MoverMercaderiaFormV2({
   ]);
   const [errores, setErrores] = useState<Errores>(SIN_ERRORES);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
+  // Lo que se ve tras enviar: el traslado ya está guardado, con su número y su lista (`TrasladoEnviado`).
+  const [ok, setOk] = useState<{ id: string | null; numero: number | null; destino: string; whatsapp: string | null; prendas: PrendaEnviada[] } | null>(null);
   // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
   // una red que se cae), la base devuelve lo ya guardado en vez de descontar el stock dos veces. Se renueva solo al guardar bien.
   const token = useRef<string>(crypto.randomUUID());
@@ -200,7 +224,7 @@ export function MoverMercaderiaFormV2({
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await firmar(supabase.rpc("iniciar_traslado", {
+    const { data: trasladoId, error } = await firmar(supabase.rpc("iniciar_traslado", {
       p_ubicacion_origen_id: origenId,
       p_ubicacion_destino_id: destinoId,
       p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidadNum })),
@@ -209,51 +233,55 @@ export function MoverMercaderiaFormV2({
       p_token: token.current,
     }), responsable.firma());
 
-    setLoading(false);
     responsable.despues(error);
     if (error) {
+      setLoading(false);
       avisar.error(traducirError(error, "iniciar el traslado"));
       return;
     }
+    // El formulario sigue bloqueado (`loading`) hasta que sale la pantalla de «enviado»: entre el guardado y la lectura
+    // del número hay una espera, y con el token ya renovado un segundo clic ahí crearía un traslado duplicado.
     token.current = crypto.randomUUID();
     const unidades = validas.reduce((acc, l) => acc + l.cantidadNum, 0);
-    const destino = destinos.find((d) => d.id === destinoId)?.nombre ?? "";
+    const sedeDestino = destinos.find((d) => d.id === destinoId);
+    const destino = sedeDestino?.nombre ?? "";
+    const id = typeof trasladoId === "string" ? trasladoId : null;
+    setOk({
+      id,
+      numero: id ? await leerNumeroDelTraslado(supabase, id) : null,
+      destino,
+      whatsapp: sedeDestino?.whatsapp ?? null,
+      prendas: validas.map((l) => {
+        const v = variantes.find((x) => x.varianteId === l.varianteId);
+        return { etiqueta: v ? etiquetaDePrenda(v) : "Prenda", cantidad: l.cantidadNum };
+      }),
+    });
+    setLoading(false);
     avisar.exito(`${unidades} ${unidades === 1 ? "prenda enviada" : "prendas enviadas"} a ${destino}`, {
       detalle: "Salió de tu almacén ahora. Entra a la otra sede cuando la cuenten al recibirla.",
     });
-    setOk({ unidades, destino });
     router.refresh();
   }
 
   if (ok) {
     return (
-      <div className="card-cayla space-y-3 p-5 text-center">
-        <p className="label-cayla text-[11px] text-tinta/65">Traslado enviado</p>
-        <p className="font-display text-3xl text-tinta">
-          {ok.unidades} {ok.unidades === 1 ? "prenda" : "prendas"}
-        </p>
-        <p className="text-sm text-tinta/70">
-          De {origenEtiqueta} hacia {ok.destino}: en camino hasta que {ok.destino} las cuente al recibirlas.
-        </p>
-        <Link href="/inventario/traslados" className="text-xs text-rojo hover:underline">
-          Ver traslados en curso
-        </Link>
-        <button
-          type="button"
-          onClick={() => {
-            // El siguiente envío también empieza vacío: el destino de este no se arrastra al otro.
-            setOk(null);
-            setDestinoId("");
-            setLineas([LINEA_VACIA]);
-            setNota("");
-            setEtaLocal("");
-            setErrores(SIN_ERRORES);
-          }}
-          className={`${botonPrimario} w-full`}
-        >
-          Enviar otro traslado
-        </button>
-      </div>
+      <TrasladoEnviado
+        id={ok.id}
+        numero={ok.numero}
+        origen={origenEtiqueta}
+        destino={ok.destino}
+        whatsappDestino={ok.whatsapp}
+        prendas={ok.prendas}
+        onOtro={() => {
+          // El siguiente envío también empieza vacío: el destino de este no se arrastra al otro.
+          setOk(null);
+          setDestinoId("");
+          setLineas([LINEA_VACIA]);
+          setNota("");
+          setEtaLocal("");
+          setErrores(SIN_ERRORES);
+        }}
+      />
     );
   }
 
@@ -336,7 +364,7 @@ export function MoverMercaderiaFormV2({
                   onValor={(v) => actualizarLinea(i, { varianteId: v })}
                   opciones={variantes.map((v) => ({
                     valor: v.varianteId,
-                    texto: `${[v.referencia, v.talla, v.color].filter(Boolean).join(" · ")} — hay ${v.cantidad}${v.sku ? ` · ${v.sku}` : ""}`,
+                    texto: `${etiquetaDePrenda(v)} — hay ${v.cantidad}${v.sku ? ` · ${v.sku}` : ""}`,
                   }))}
                   marcador="Elige la prenda"
                   etiquetaAccesible={`Prenda ${i + 1}`}

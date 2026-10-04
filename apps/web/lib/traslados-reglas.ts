@@ -51,6 +51,44 @@ export function volverDeNuevoTraslado(desde: string | undefined, veExistencias: 
 }
 
 // ===========================================================================
+// Después de enviar: lo que va en la caja y el aviso a la otra sede (ADR-0242 D-3, 2026-10-03)
+//
+// Al enviar, la pantalla decía «3 prendas» y nada más: sin número de traslado, la otra sede no tenía cómo buscarlo, y
+// quien armaba la caja no tenía una lista para revisarla antes de cerrarla (hallazgo 10 del análisis del 26-sep).
+// ===========================================================================
+
+/** «Falda Renata · L · Beige»: la prenda como se lee en el combo de envío, sin el stock ni el código. */
+export function etiquetaDePrenda(p: { referencia: string; talla: string | null; color: string | null }): string {
+  return [p.referencia, p.talla, p.color].filter(Boolean).join(" · ");
+}
+
+/** Una fila de «lo que va en la caja»: quien envía SÍ ve la cantidad (la sabe, la acaba de contar). */
+export type PrendaEnviada = { etiqueta: string; cantidad: number };
+
+/** Cuántas prendas nombra el mensaje antes de cerrar con «y otras más»: un WhatsApp largo no se lee. */
+export const MAX_PRENDAS_EN_MENSAJE = 6;
+
+/**
+ * El mensaje para avisarle a la otra sede que salió una caja. Dice QUÉ buscar y dónde contarlo, NUNCA cuántas prendas
+ * van: quien recibe cuenta a ciegas (ADR-0239 D-130) y un mensaje con la cantidad le regalaría la respuesta. Por eso
+ * recibe solo nombres (`prendas: string[]`): el tipo mismo impide colar una cantidad. Y al pasar el tope no dice
+ * cuántas faltan nombrar («y otras más»): eso también sería una cifra.
+ * Sin número de traslado (la lectura falló) igual sirve: el enlace lleva al detalle.
+ */
+export function mensajeParaLaOtraSede(p: { numero: number | null; origen: string; destino: string; prendas: readonly string[]; enlace: string }): string {
+  const que = p.numero !== null ? `Salió el Traslado ${p.numero}` : "Salió un traslado";
+  const lineas = [
+    `Hola, equipo de ${p.destino}. ${que} de ${p.origen} hacia ustedes.`,
+    `Cuando llegue la caja, ábranlo aquí y cuenten lo que traiga: ${p.enlace}`,
+  ];
+  if (p.prendas.length > 0) {
+    const nombradas = p.prendas.slice(0, MAX_PRENDAS_EN_MENSAJE).join("; ");
+    lineas.push(`Lo que va: ${nombradas}${p.prendas.length > MAX_PRENDAS_EN_MENSAJE ? " y otras más" : ""}.`);
+  }
+  return lineas.join("\n");
+}
+
+// ===========================================================================
 // Lectura operativa de la pantalla Traslados (rediseño 2026-09-18; «por recibir»
 // sin reloj desde ADR-0239, 2026-09-26)
 //

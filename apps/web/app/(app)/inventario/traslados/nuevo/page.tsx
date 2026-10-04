@@ -1,5 +1,6 @@
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getWhatsappDeSedes } from "@/lib/traslados";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
@@ -29,7 +30,7 @@ export default async function MoverMercaderiaPage({
 }: {
   searchParams: Promise<{ origen?: string; destino?: string; variante?: string; cantidad?: string; lineas?: string; desde?: string }>;
 }) {
-  const [persona, params, ubicaciones] = await Promise.all([requirePersonaActualV2(), searchParams, getUbicaciones()]);
+  const [persona, params, ubicaciones, whatsapps] = await Promise.all([requirePersonaActualV2(), searchParams, getUbicaciones(), getWhatsappDeSedes()]);
 
   const origen =
     persona.rol === "lider" && params.origen && ubicaciones.some((u) => u.id === params.origen)
@@ -37,7 +38,8 @@ export default async function MoverMercaderiaPage({
       : { id: persona.ubicacionId, nombre: persona.ubicacionEtiqueta };
 
   const stockOrigen = await getStockPorUbicacion(origen.id);
-  const destinos = ubicaciones.filter((u) => u.id !== origen.id);
+  // Cada destino trae su WhatsApp (o null) para avisarle, tras enviar, que salió una caja (`TrasladoEnviado`).
+  const destinos = ubicaciones.filter((u) => u.id !== origen.id).map((u) => ({ ...u, whatsapp: whatsapps.get(u.id) ?? null }));
 
   // `transferir()` sale del almacén de tienda, nunca del piso (mandar
   // mercadería a otra sede no debe tocar lo que la clienta ve hoy) —

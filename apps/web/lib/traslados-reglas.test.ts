@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   accionDeTraslado,
   consultaDeParametros,
+  etiquetaDePrenda,
+  MAX_PRENDAS_EN_MENSAJE,
+  mensajeParaLaOtraSede,
   RUTA_NUEVO_TRASLADO,
   urlNuevoTrasladoDesdeMover,
   volverDeNuevoTraslado,
@@ -673,5 +676,54 @@ describe("«Nuevo traslado» dentro de Traslados (ADR-0242 D-4)", () => {
     for (const raro of ["https://otro.sitio", "/caja", "Existencias", "", "existencias "]) {
       expect(volverDeNuevoTraslado(raro, true)).toEqual({ href: "/inventario/traslados", a: "Traslados" });
     }
+  });
+});
+
+describe("Después de enviar: la caja y el aviso a la otra sede (ADR-0242 D-3)", () => {
+  const base = { numero: 12, origen: "Tienda Lima", destino: "Tienda Trujillo", enlace: "https://erp.example/inventario/traslados/abc" };
+
+  it("la prenda se lee como en el combo: referencia · talla · color, saltando lo que no tiene", () => {
+    expect(etiquetaDePrenda({ referencia: "Falda Renata", talla: "L", color: "Beige" })).toBe("Falda Renata · L · Beige");
+    expect(etiquetaDePrenda({ referencia: "Chalina", talla: null, color: "Topo" })).toBe("Chalina · Topo");
+    expect(etiquetaDePrenda({ referencia: "Bolso", talla: null, color: null })).toBe("Bolso");
+  });
+
+  it("el mensaje nombra el traslado, las dos sedes, el enlace y qué va", () => {
+    const m = mensajeParaLaOtraSede({ ...base, prendas: ["Falda Renata · L · Beige", "Blusa Valentina · S · Blanco"] });
+    expect(m).toContain("Traslado 12");
+    expect(m).toContain("Tienda Lima");
+    expect(m).toContain("Tienda Trujillo");
+    expect(m).toContain(base.enlace);
+    expect(m).toContain("Lo que va: Falda Renata · L · Beige; Blusa Valentina · S · Blanco.");
+  });
+
+  it("NUNCA dice cuántas prendas van: la única cifra es el número del traslado (conteo a ciegas, D-130)", () => {
+    const m = mensajeParaLaOtraSede({ ...base, prendas: ["Falda Renata · L · Beige", "Blusa Valentina · S · Blanco"] });
+    expect(m.match(/\d+/g)).toEqual(["12"]);
+    expect(m).not.toMatch(/×|\bx\d|unidades|prendas\b/i);
+  });
+
+  it("pasado el tope no nombra el resto ni dice cuántas son: «y otras más»", () => {
+    const prendas = Array.from({ length: MAX_PRENDAS_EN_MENSAJE + 3 }, (_, i) => `Prenda${String.fromCharCode(65 + i)}`);
+    const m = mensajeParaLaOtraSede({ ...base, prendas });
+    expect(m).toContain(`Lo que va: ${prendas.slice(0, MAX_PRENDAS_EN_MENSAJE).join("; ")} y otras más.`);
+    expect(m).not.toContain(prendas[MAX_PRENDAS_EN_MENSAJE]!);
+    expect(m.match(/\d+/g)).toEqual(["12"]);
+  });
+
+  it("justo en el tope nombra todas y no dice «y otras más»", () => {
+    const prendas = Array.from({ length: MAX_PRENDAS_EN_MENSAJE }, (_, i) => `Prenda${String.fromCharCode(65 + i)}`);
+    expect(mensajeParaLaOtraSede({ ...base, prendas })).not.toContain("otras más");
+  });
+
+  it("si no se pudo leer el número, igual sirve: dice «un traslado» y el enlace lleva al detalle", () => {
+    const m = mensajeParaLaOtraSede({ ...base, numero: null, prendas: ["Falda Renata · L · Beige"] });
+    expect(m).toContain("Salió un traslado de Tienda Lima");
+    expect(m).toContain(base.enlace);
+    expect(m.match(/\d+/g)).toBeNull();
+  });
+
+  it("sin prendas no inventa la línea «Lo que va»", () => {
+    expect(mensajeParaLaOtraSede({ ...base, prendas: [] })).not.toContain("Lo que va");
   });
 });

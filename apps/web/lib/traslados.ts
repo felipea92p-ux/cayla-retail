@@ -240,6 +240,26 @@ export async function getTrasladosDeLaSede(
   return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
 }
 
+/**
+ * El WhatsApp de cada sede (solo las tiendas lo tienen: `ubicaciones.whatsapp_numero`, 9 dígitos), para que, al enviar un
+ * traslado, el aviso a la sede destino abra su chat directo. Tolerante (principio 9): si la lectura falla —la columna
+ * todavía no existe en esa base, la red— devuelve vacío y el aviso se arma igual, solo que WhatsApp pregunta a quién.
+ */
+export async function getWhatsappDeSedes(): Promise<Map<string, string>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("ubicaciones").select("id, whatsapp_numero").not("whatsapp_numero", "is", null);
+    if (error || !data) {
+      console.error("WhatsApp de las sedes:", error?.message);
+      return new Map();
+    }
+    return new Map(data.flatMap((u) => (u.whatsapp_numero ? [[u.id, u.whatsapp_numero] as const] : [])));
+  } catch (e) {
+    console.error("WhatsApp de las sedes:", e);
+    return new Map();
+  }
+}
+
 type FilaContador = {
   estado: string;
   ubicacion_origen_id: string;
