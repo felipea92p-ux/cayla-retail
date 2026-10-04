@@ -3,6 +3,7 @@ import { MOTIVOS_AJUSTE } from "./ajuste-reglas";
 import {
   CATEGORIAS,
   ETIQUETA_PROCESO,
+  FRASE_PROCESO,
   FILTROS_SUBUBICACION,
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
@@ -17,6 +18,7 @@ import {
   partesOrigenDestino,
   leerCursorMovimientos,
   referenciaMovimiento,
+  referenciaSinDocumento,
   restarDias,
   serializarCursorMovimientos,
   textoDelta,
@@ -24,8 +26,10 @@ import {
   tonoCategoria,
   agruparPorOperacion,
   claveOperacion,
+  desgloseAjustes,
   desgloseCifras,
   filtroDePalabra,
+  respaldoDeAjuste,
   leerResumenTienda,
   periodoCorto,
   resumirOperacion,
@@ -35,6 +39,7 @@ import {
   resumirBajadas,
   esOperacionInterna,
   unidades,
+  ventasAnuladas,
   verboDelResponsable,
   volverAMovimientos,
   ENCABEZADOS_CSV_MOVIMIENTOS,
@@ -184,9 +189,9 @@ describe("etiquetaMovimiento", () => {
     });
   });
 
-  it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
-    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste · reposición");
-    expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  it("los ajustes sueltos llevan «Ajuste a mano ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
+    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste a mano · reposición");
+    expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste a mano · merma");
   });
 });
 
@@ -215,11 +220,32 @@ describe("etiquetaConDireccion", () => {
   });
 
   it("un ajuste que ya trae «Ajuste ·» en su nombre no lo duplica", () => {
-    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste a mano · merma");
   });
 
   it("un conteo formal (sin «Ajuste ·» de por sí) lo recibe del prefijo", () => {
     expect(etiquetaConDireccion(movimiento({ motivo: "conteo", categoria: "ajuste" }))).toBe("Ajuste · Conteo");
+  });
+});
+
+describe("un ajuste a mano dice que no tiene documento (Felipe, 2026-10-03)", () => {
+  const aMano = (parcial: Partial<Movimiento>) => movimiento({ tipo: "ajuste", categoria: "ajuste", motivo: "conteo_fisico", cantidad: -1, delta: -1, ...parcial });
+
+  it("sin nota: «Sin documento · sin nota», en vez de dejar la columna en blanco", () => {
+    expect(referenciaMovimiento(aMano({}))).toBeNull();
+    expect(referenciaSinDocumento(aMano({}))).toEqual({ texto: "Sin documento", detalle: "sin nota", href: null });
+    expect(referenciaSinDocumento(aMano({ nota: "   " }))?.detalle).toBe("sin nota");
+  });
+
+  it("con nota, la nota de quien ajustó entre comillas", () => {
+    expect(referenciaSinDocumento(aMano({ nota: "vino roto" }))?.detalle).toBe("«vino roto»");
+  });
+
+  it("un ajuste con su conteo enlazado ya dice «Conteo N»; lo que no es ajuste no pasa por acá", () => {
+    const conConteo = aMano({ motivo: "conteo", conteo: { id: "c1", numero: 4, sistema: 5, contado: 4 } });
+    expect(referenciaSinDocumento(conConteo)).toBeNull();
+    expect(referenciaMovimiento(conConteo)?.texto).toBe("Conteo 4");
+    expect(referenciaSinDocumento(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBeNull();
   });
 });
 
@@ -332,7 +358,8 @@ describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
     // Si mañana se suma un motivo al modal y no aquí, Movimientos lo mostraría como texto crudo
     // y no habría cómo filtrarlo sin escribir la URL a mano.
     for (const { valor } of MOTIVOS_AJUSTE) {
-      expect(ETIQUETA_PROCESO[valor], valor).toMatch(/^Ajuste · /);
+      // Todos se escriben a mano en «Ajustar stock», sin documento: la etiqueta lo dice (Felipe, 2026-10-03).
+      expect(ETIQUETA_PROCESO[valor], valor).toMatch(/^Ajuste a mano · /);
       expect(PROCESOS_POR_CATEGORIA.ajuste, valor).toContain(valor);
     }
   });
@@ -654,9 +681,71 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     );
   });
 
-  it("los ajustes van con su signo; lo que se movió entre piso y almacén no cambia el total", () => {
-    expect(desgloseCifras(lima.ajuste, "neto")).toBe("−1 por conteo");
+  it("«vendidas» dice cuántas se anularon después (TRU: 30 vendidas, 2 anuladas, no «30 vendidas» a secas)", () => {
+    const tru = leerResumenTienda([
+      { grupo: "salida", proceso: "venta", operaciones: "26", filas: "30", entran: "0", salen: "30", movidas: "0" },
+      { grupo: "salida", proceso: "cambio", operaciones: "1", filas: "1", entran: "0", salen: "1", movidas: "0" },
+      { grupo: "entrada", proceso: "carga_inicial", operaciones: "137", filas: "535", entran: "751", salen: "0", movidas: "0" },
+      { grupo: "entrada", proceso: "anulacion_venta", operaciones: "2", filas: "2", entran: "2", salen: "0", movidas: "0" },
+    ]);
+    expect(ventasAnuladas(tru)).toBe(2);
+    expect(desgloseCifras(tru.salida, "salen", { anuladas: ventasAnuladas(tru) })).toBe("30 vendidas (2 se anularon) · 1 por cambio");
+    expect(desgloseCifras(tru.salida, "salen", { anuladas: 1 })).toBe("30 vendidas (1 se anuló) · 1 por cambio");
+    // En «Entró» la anulación sigue siendo lo que es (ADR-0234 D1): prendas que volvieron.
+    expect(desgloseCifras(tru.entrada, "entran", { anuladas: 2 })).toBe("751 de stock inicial · 2 por venta anulada");
+    // Sin anulaciones (Lima), nada cambia.
+    expect(ventasAnuladas(lima)).toBe(0);
+    expect(desgloseCifras(lima.salida, "salen", { anuladas: ventasAnuladas(lima) })).toBe("4 vendidas · 1 por cambio");
+  });
+
+  it("todo proceso que puede sumar o restar en «Entró» o «Salió» tiene su frase, y ninguna frase sobra", () => {
+    // Sin frase, el desglose pegaba la etiqueta de la fila y su « · » lo partía: «+1 por ajuste · encontrada tras un
+    // conteo» (2026-10-03). Quedan fuera, cada uno por su razón: los ajustes (van por respaldo, `desgloseAjustes`), lo que
+    // se mueve dentro de la sede (no cambia el total: va como «movidas») y apartar (no cambia el stock).
+    const sinFrase = new Set([...PROCESOS_POR_CATEGORIA.ajuste, ...PROCESOS_POR_CATEGORIA.interno, "apartado", "liberacion_apartado"]);
+    expect(Object.keys(ETIQUETA_PROCESO).filter((p) => !sinFrase.has(p) && !(p in FRASE_PROCESO))).toEqual([]);
+    expect(Object.keys(FRASE_PROCESO).filter((p) => !(p in ETIQUETA_PROCESO) || sinFrase.has(p))).toEqual([]);
+  });
+
+  it("un motivo que la web todavía no conoce no parte el desglose con su « · »", () => {
+    const raro = leerResumenTienda([{ grupo: "entrada", proceso: "motivo_nuevo", operaciones: 1, filas: 1, entran: 2, salen: 0, movidas: 0 }]);
+    expect(desgloseCifras(raro.entrada, "entran")).toBe("2 por motivo nuevo");
+  });
+
+  it("lo que se movió entre piso y almacén no cambia el total", () => {
+    expect(desgloseAjustes(lima.ajuste)).toEqual({ faltaron: "1 en un conteo", aparecieron: null });
     expect(lima.interno.movidas).toBe(10);
+  });
+
+  // Lo que devolvió producción para Tienda TRU, 30 días, el 2026-10-03 (solo lectura). Por proceso, la base ya trae lo que
+  // sumó y lo que restó por separado: «+52» salía de restarlos en la pantalla.
+  const tru = leerResumenTienda([
+    { grupo: "ajuste", proceso: "conteo_fisico", operaciones: "33", filas: "45", entran: "37", salen: "13", movidas: "0" },
+    { grupo: "ajuste", proceso: "otro", operaciones: "14", filas: "18", entran: "20", salen: "13", movidas: "0" },
+    { grupo: "ajuste", proceso: "reposicion", operaciones: "14", filas: "17", entran: "25", salen: "0", movidas: "0" },
+    { grupo: "ajuste", proceso: "conteo", operaciones: "13", filas: "13", entran: "4", salen: "9", movidas: "0" },
+    { grupo: "ajuste", proceso: "hallazgo_conteo", operaciones: "1", filas: "1", entran: "1", salen: "0", movidas: "0" },
+  ]);
+
+  it("los ajustes van en bruto: lo que faltó no se compensa con lo que apareció (TRU: −35 y +87, no «+52»)", () => {
+    expect(tru.ajuste.salen).toBe(35);
+    expect(tru.ajuste.entran).toBe(87);
+    expect(desgloseAjustes(tru.ajuste)).toEqual({ faltaron: "26 a mano · 9 en un conteo", aparecieron: "82 a mano · 5 en un conteo" });
+  });
+
+  it("solo el conteo y lo encontrado tras un conteo tienen un documento detrás; todo otro ajuste es a mano", () => {
+    expect(respaldoDeAjuste("conteo")).toBe("en_un_conteo");
+    expect(respaldoDeAjuste("hallazgo_conteo")).toBe("en_un_conteo");
+    for (const { valor } of MOTIVOS_AJUSTE) expect(respaldoDeAjuste(valor), valor).toBe("a_mano");
+    // Un motivo que mañana escriba `registrar_movimiento` sin pasar por un conteo tampoco tiene documento.
+    expect(respaldoDeAjuste("motivo_que_no_existe")).toBe("a_mano");
+    expect(respaldoDeAjuste(null)).toBe("a_mano");
+  });
+
+  it("una cara en cero no se nombra, y sin ajustes no hay desglose", () => {
+    const soloFaltaron = leerResumenTienda([{ grupo: "ajuste", proceso: "merma", operaciones: 2, filas: 2, entran: 0, salen: 3, movidas: 0 }]);
+    expect(desgloseAjustes(soloFaltaron.ajuste)).toEqual({ faltaron: "3 a mano", aparecieron: null });
+    expect(desgloseAjustes(leerResumenTienda([]).ajuste)).toEqual({ faltaron: null, aparecieron: null });
   });
 
   it("«Todos» cuenta el cambio UNA vez, aunque esté en Entradas y en Salidas; un grupo desconocido no rompe nada", () => {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
 import { CajonMovimiento } from "@/components/CajonMovimiento";
-import { DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO } from "@/components/ui/lista-actividad";
+import { DIA_ETIQUETA, DIA_TITULO } from "@/components/ui/lista-actividad";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { construirDetalleBajadas, vistaDeOperacion, type ContextoCajon, type VistaCajon } from "@/lib/movimientos-cajon";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
@@ -156,11 +156,11 @@ export function MovimientosLista({
       <div className="px-4 pb-2 sm:px-5">
         {itemsPorDia.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
+            {/* Solo el día, sin «N movimientos» (2026-10-03): esa cifra contaba la página cargada (50 filas), no el día —
+                en TRU decía «14» con unas 90 operaciones a esa hora—. Cuánto pasó en el día lo dicen las tarjetas con
+                el período «Hoy», que sí lo cuentan en la base. */}
             <h3 className={DIA_TITULO}>
               <span className={DIA_ETIQUETA}>{etiquetaDia(dia.fecha, hoyLima)}</span>
-              <span className={DIA_CUANTOS}>
-                {dia.operaciones.length} {dia.operaciones.length === 1 ? "movimiento" : "movimientos"}
-              </span>
             </h3>
             <ul className="divide-y divide-sand">
               {dia.items.map((item) =>
