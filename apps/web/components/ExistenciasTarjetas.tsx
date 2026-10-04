@@ -17,7 +17,9 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    Una tarjeta por MODELO: foto, nombre, el riel de tallas y lo que la prenda pide hoy, del color que se está viendo. Los puntos de
    color cambian ese color en la propia tarjeta (foto, cifras y pastilla cambian con él). Es la lista de entrada; «Ver detalle»
    (en `InventarioPanel`) cambia a la tabla de siempre, donde vive el cajón de la prenda: las tarjetas no lo abren.
-   Qué junta cada tarjeta y en qué orden van lo decide `lib/existencias-tarjetas.ts`, no este componente.
+   Con un caso de «Hoy» elegido, la tarjeta es de una PRENDA (modelo + color, un solo punto): la lista es la de trabajo y la suma de
+   sus pastillas tiene que dar la cifra de «Para hoy» (`lib/existencias-tarjetas.ts`, ADR-0331 act. c). Qué junta cada tarjeta y en
+   qué orden van lo decide esa lógica, no este componente.
 
    EL RIEL (rediseño 2026-10-04): cada talla es una ETIQUETA colgada de un riel, como en el perchero de la tienda. En grande, las
    colgadas (lo que la caja cobra); debajo, «+N» las guardadas. La etiqueta toma el tono de su estado: colgada (papel), por colgar

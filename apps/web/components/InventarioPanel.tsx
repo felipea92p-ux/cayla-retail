@@ -30,7 +30,7 @@ import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
-import { agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/lib/existencias-tarjetas";
+import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -394,12 +394,15 @@ export function InventarioPanel({
     return sinTexto ? ordenarPorUrgencia(agrupadas) : agrupadas;
   }, [filtradas, sinTexto]);
   const paginaPrendas = paginar(prendas, pagina, FILAS_POR_PAGINA);
-  // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido. Sin `orden` (o con uno que
-  // esta sede no ofrece: Taller no separa piso y almacén) queda el orden de siempre.
+  // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido; con un caso de «Hoy», una
+  // por PRENDA, para que sus pastillas sumen la cifra de «Para hoy» (`tarjetasDeExistencias`, ADR-0331 act. c). Sin `orden` (o con uno
+  // que esta sede no ofrece: Taller no separa piso y almacén) queda el orden de siempre.
   const opcionesDeOrden = opcionesOrden(resumen.separaPisoAlmacen);
   const ordenEfectivo = opcionesDeOrden.some((o) => o.valor === orden) ? orden : "relevancia";
-  const modelosOrdenados = useMemo(() => ordenarModelos(agruparPorModelo(prendas), ordenEfectivo), [prendas, ordenEfectivo]);
-  const paginaTarjetas = paginar(modelosOrdenados, pagina, FILAS_POR_PAGINA);
+  const tarjetasOrdenadas = useMemo(() => ordenarModelos(tarjetasDeExistencias(prendas, elegidos.hoy), ordenEfectivo), [prendas, elegidos.hoy, ordenEfectivo]);
+  const paginaTarjetas = paginar(tarjetasOrdenadas, pagina, FILAS_POR_PAGINA);
+  // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar».
+  const conteo = conteoDeLista(tarjetasOrdenadas.length, filtradas, elegidos.hoy);
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -621,7 +624,8 @@ export function InventarioPanel({
           vocabulario: indiceBusqueda.vocabulario,
           palabras: palabrasBuscables(stock),
           // «¿Cuántas prendas se verían si esto no estuviera?»: el mismo filtro de la tabla, sin el texto o sin un filtro visual.
-          // En productos (modelos), la misma unidad del «N productos» de arriba: «Quitar Color · 2 productos» trae 2 productos.
+          // En productos (modelos): «Quitar Color · 2 productos» trae 2 productos. Con un caso de «Hoy» la lista va por prendas
+          // (`tarjetasDeExistencias`) y este número sigue en productos, con su palabra: pendiente en el backlog de ADR-0331 act. c.
           contar: (consulta, omitir) => new Set(filtrarExistencias(indiceBusqueda, { ...elegidos, q: consulta }, omitir).filas.map((f) => f.productoId)).size,
           sinStock,
           filtroMarca: filtroMarcaElegida,
@@ -701,7 +705,7 @@ export function InventarioPanel({
             conteos={conteos}
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
-            total={modelosOrdenados.length}
+            conteo={conteo}
             detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
             panelInicial={panelFiltros}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
@@ -871,7 +875,7 @@ export function InventarioPanel({
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
-                {modelosOrdenados.length} {modelosOrdenados.length === 1 ? "producto" : "productos"} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
+                {conteo.total} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaTarjetas.pagina} totalPaginas={paginaTarjetas.totalPaginas} onPagina={irAPagina} />
               <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">

@@ -134,6 +134,31 @@ siguen siendo dos números para lo mismo, y quien llega desde el aviso no puede 
 SE ROMPE SI: alguien vuelve a contar «por colgar» dentro de un componente. Lo vigila `lib/inicio-almacen-reglas.test.ts` (el mismo stock
 da la misma cifra en el aviso, el bloque, «Para hoy» y la lista filtrada, y las dos pantallas llaman a la función compartida).
 
+## Actualización 2026-10-04 (c): con «Hoy», una tarjeta por prenda
+El Inicio y «Para hoy» decían «15 tallas por colgar» (Tienda Trujillo, base de semilla) y la lista a la que llevan mostraba 5 tarjetas
+cuyas pastillas sumaban 12. No faltaba ningún dato: la lista agrupaba una tarjeta por MODELO y la tarjeta enseña un color a la vez; las
+3 tallas de Blusa Valentina Rosado quedaban detrás de un punto de color y la pastilla hablaba solo del Blanco. La opción del filtro,
+además, decía «Por colgar · 5» (modelos): tres números (15, 5, 12) para la misma lista. Felipe delegó la decisión («decide tú, con el
+máximo de efectividad»).
+DECIDÍ: con un caso de «Hoy» elegido, la lista va por PRENDA (modelo + color, la percha): cada tarjeta muestra un solo color y la suma
+de sus pastillas es la cifra de «Para hoy». Sin «Hoy», una por modelo, como antes. Una sola función decide qué es una tarjeta
+(`claveDeTarjeta`, `lib/existencias-tarjetas.ts`) y la usan la lista y el número de cada opción de la barra (`conteosDeFiltros`):
+«Por colgar · 6» trae 6 tarjetas. La línea de arriba, el pie y el botón de la hoja de filtros dicen «6 prendas · 15 tallas por
+colgar»; con «Sin stock atrás» la línea aclara «(1 ya viene en camino)», lo que «Para hoy» descuenta. `agruparPorModelo` (ahora
+`tarjetasDeExistencias`), `ordenarModelos` y `opcionesOrden` salen del componente a ese archivo, con prueba.
+DESCARTÉ: que la pastilla sume todos los colores («6 tallas por colgar»), porque el riel seguiría mostrando 3 etiquetas ámbar y el
+descuadre se mudaba dentro de la tarjeta; la tarjeta por modelo con «+3 en Rosado», porque cuadra solo leyendo una segunda línea y el
+trabajo del día (qué tallas de Rosado colgar) queda detrás de un toque; corregir solo la línea de arriba, porque lo visible seguía
+sumando 12. Lo que se paga: con «Hoy», un modelo de dos colores sale dos veces (misma foto, otro color) y la lista cambia de agrupación
+al poner o quitar «Hoy». Es la unidad que ya usaban el bloque del Inicio y la tabla «Por colgar» (ordenada y paginada por percha).
+SE ROMPE SI: otro filtro gana su propia cifra en «Para hoy» con un enlace a la lista (hoy solo «Hoy»: las dañadas y los apartados
+abren su ventana) sin pasar por `claveDeTarjeta`, o la pastilla deja de contar las tallas de su prenda (el PR #787 agrega «En pausa»).
+Lo vigilan `lib/existencias-tarjetas.test.ts` (la escena de la semilla: 6 tarjetas que suman 15; por modelo sumaban 12; todo caso de
+«Hoy» con cifra; candado de fuente sobre `InventarioPanel.tsx` y `existencias-filtros.ts`) y `lib/existencias-filtros.test.ts` (cada
+número de la barra es lo que trae la lista, en tarjetas). Mutación: agrupar siempre por modelo pone 5 pruebas en rojo.
+Verificado en local con Chrome sin ventana, en escritorio y a 375 px: «Para hoy» 15 → «Ver cuáles» → 6 tarjetas, 3+3+3+3+2+1 = 15,
+sin desborde ni errores de consola; sin «Hoy», Blusa Valentina vuelve a ser una tarjeta con dos puntos y el punto cambia el color.
+
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se
   engancha en `tareasParaHoy` cuando exista.
