@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { Package, ShoppingBag, SquarePen, Warehouse } from "lucide-react";
+import { useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
@@ -14,9 +13,17 @@ import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 /* ====================================================================
    Existencias en tarjetas (maqueta `docs/maquetas/existencias-tarjetas-2026-09/`)
 
-   Una tarjeta por MODELO: foto, nombre, «piso · almacén» por talla y lo que la prenda pide hoy, del color que se está viendo. Los
-   puntos de color cambian ese color en la propia tarjeta (foto, cifras y pastilla cambian con él). Es la lista de entrada; «Ver
-   detalle» (en `InventarioPanel`) cambia a la tabla de siempre, donde vive el cajón de la prenda: las tarjetas no lo abren.
+   Una tarjeta por MODELO: foto, nombre, el riel de tallas y lo que la prenda pide hoy, del color que se está viendo. Los puntos de
+   color cambian ese color en la propia tarjeta (foto, cifras y pastilla cambian con él). Es la lista de entrada; «Ver detalle»
+   (en `InventarioPanel`) cambia a la tabla de siempre, donde vive el cajón de la prenda: las tarjetas no lo abren.
+
+   EL RIEL (rediseño 2026-10-04): cada talla es una ETIQUETA colgada de un riel, como en el perchero de la tienda. En grande, las
+   colgadas (lo que la caja cobra); debajo, «+N» las guardadas. La etiqueta toma el tono de su estado: colgada (papel), por colgar
+   (ámbar: hay atrás y ninguna afuera) y sin nada en la sede (borde punteado: un lugar vacío, no un error). Reemplaza las cajas
+   «Piso / Almacén» (la de Piso iba siempre en rojo) y la cuadrícula con los rótulos repetidos en cada renglón.
+
+   UN botón por tarjeta (rediseño 2026-10-04): «Reponer» solo si algún color tiene algo que bajar; Subir, Ajustar y Ver detalle
+   viven en el menú «⋯». Antes eran cuatro botones y uno negro en cada tarjeta: quince negros por página.
 
    No decide nada nuevo: las cifras son las LIBRES de `PrendaAgrupada` (las mismas de la tabla) y la pastilla es el diagnóstico
    de `queHacerPrenda` (el «Qué hacer» de la tabla). Reponer y Ajustar abren las ventanas que ya existían, con el permiso que ya
@@ -97,41 +104,44 @@ function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
   const texto = textoHoyDePrenda(q.tipo, q.n);
   return (
-    <span title={AYUDA_HOY[q.tipo]} className={`flex min-h-[34px] items-center gap-2.5 rounded-[17px] px-3 py-1 text-[11px] font-medium leading-tight ${t.caja}`}>
-      <i aria-hidden className={`h-3 w-3 shrink-0 rounded-full ring-4 ${t.punto}`} />
-      <span className="min-w-0">{texto}</span>
+    <span title={AYUDA_HOY[q.tipo]} className={`inline-flex min-h-[28px] items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium leading-tight ${t.caja}`}>
+      <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ring-[3px] ${t.punto}`} />
+      {texto}
     </span>
   );
 }
 
-/** Los rótulos «Piso» y «Almacén», UNA vez por prenda y a la izquierda de sus tallas (como el encabezado de fila de una tabla): así se
- *  leen en todas las tarjetas, sea cual sea el ancho y cuántas tallas tenga la prenda, y las cifras de cada talla tienen todo su ancho. */
-function Rotulos({ separa }: { separa: boolean }) {
-  const filas = separa
-    ? [
-        { Icono: ShoppingBag, texto: "Piso", tono: "text-taupe" },
-        { Icono: Package, texto: "Almacén", tono: "text-tinta/45" },
-      ]
-    : [{ Icono: Package, texto: "Disponible", tono: "text-tinta/45" }];
-  return (
-    <div aria-hidden className="grid gap-[3px]">
-      {/* El hueco bajo el que van los nombres de talla. */}
-      <span className="h-5" />
-      <span className="grid gap-px py-1">
-        {filas.map(({ Icono, texto, tono }) => (
-          <span key={texto} className="flex h-[19px] items-center gap-[3px] whitespace-nowrap text-[10px] leading-none text-tinta/60">
-            <Icono className={`h-2.5 w-2.5 shrink-0 ${tono}`} strokeWidth={1.7} />
-            {texto}
-          </span>
-        ))}
-      </span>
-    </div>
-  );
-}
+/** Cómo se ve cada etiqueta del riel, según el estado de la talla (`estadoTalla`, que sale de «Hoy»). */
+const ETIQUETA = {
+  normal: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
+  reponer: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
+  por_colgar: { caja: "border-ambar/45 bg-ambar/[0.08]", cifra: "text-ambar-profundo", atras: "font-semibold text-ambar-profundo" },
+  sin_stock: { caja: "border-dashed border-taupe/45 bg-transparent", cifra: "text-taupe/55", atras: "text-taupe/70" },
+} as const;
 
-/** La cifra de una fila de la celda de una talla. */
-function Cifra({ valor }: { valor: number }) {
-  return <b className="flex h-[19px] items-center justify-center font-display text-[15px] font-medium leading-none tabular-nums text-tinta">{valor}</b>;
+/** Una talla colgada del riel: el gancho, la etiqueta con su ojal, el nombre de la talla, las colgadas y «+N» guardadas. */
+function EtiquetaTalla({ f, separa }: { f: FilaExistencias; separa: boolean }) {
+  const estado = estadoTalla(f);
+  const e = ETIQUETA[estado];
+  const nombre = f.talla ?? "Única";
+  const colgadas = separa ? (f.pisoDisponible ?? 0) : f.disponible;
+  const guardadas = f.almacenDisponible ?? 0;
+  const lectura = separa
+    ? `Talla ${nombre}: ${colgadas} ${colgadas === 1 ? "colgada" : "colgadas"} y ${guardadas} ${guardadas === 1 ? "guardada" : "guardadas"}${estado === "sin_stock" ? ", sin nada libre en esta sede" : estado === "por_colgar" ? ", por colgar" : ""}`
+    : `Talla ${nombre}: ${colgadas} ${colgadas === 1 ? "disponible" : "disponibles"}`;
+  return (
+    <li className="flex shrink-0 flex-col items-center" title={lectura} aria-label={lectura}>
+      {/* El gancho que la cuelga del riel. */}
+      <span aria-hidden className="h-2.5 w-px bg-tinta/30" />
+      <span className={`relative flex min-w-[3.25rem] flex-col items-center rounded-[10px] border px-2 pb-1.5 pt-3 ${e.caja}`}>
+        {/* El ojal de la etiqueta. */}
+        <span aria-hidden className="absolute left-1/2 top-1 h-1 w-1 -translate-x-1/2 rounded-full bg-crema ring-1 ring-tinta/25" />
+        <span className="text-[11px] font-semibold leading-none tracking-wide text-taupe">{nombre}</span>
+        <b className={`mt-1 font-display text-[22px] font-medium leading-none tabular-nums ${e.cifra}`}>{colgadas}</b>
+        {separa && <span className={`mt-1 text-[10.5px] leading-none tabular-nums ${e.atras}`}>{guardadas > 0 ? `+${guardadas}` : "—"}</span>}
+      </span>
+    </li>
+  );
 }
 
 export function ExistenciasTarjetas({
@@ -152,7 +162,7 @@ export function ExistenciasTarjetas({
   puedeAjustar: boolean;
   mostrarMarca: boolean;
   /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
-   *  lo dice («Solo M · L (de 4 tallas)»), porque sus cifras grandes suman solo las que se ven. */
+   *  lo dice («Solo M · L (de 4 tallas)»), porque sus cifras suman solo las que se ven. */
   tallasDePrenda?: ReadonlyMap<string, number>;
   /** «Reponer prenda» abre la ventana del MODELO entero (todos sus colores y tallas, ADR-0317); `prenda` es el color que se ve. */
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
@@ -164,202 +174,143 @@ export function ExistenciasTarjetas({
 }) {
   // El color que se ve en cada tarjeta, por modelo. Sin elegir, el primero de la lista; si el elegido ya no está (un filtro, un guardado), también.
   const [elegida, setElegida] = useState<Record<string, string>>({});
+  // La tarjeta, para devolverle el foco al cerrar una ventana abierta desde el menú «⋯» (el menú no deja un botón al que volver).
+  const tarjetas = useRef(new Map<string, HTMLElement>());
 
   return (
-    // Dos columnas donde caben (cada tarjeta pide ~32 rem para que la curva de tallas no se apriete), tres en pantallas muy anchas.
-    <TooltipProvider delayDuration={200}>
-      <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,32rem),1fr))]">
-        {modelos.map((m) => {
-          const p = m.colores.find((c) => c.clave === elegida[m.productoId]) ?? m.colores[0];
-          // «Reponer prenda» y «Subir prenda» abren el MODELO entero (todos sus colores, ADR-0317): se ofrecen si ALGÚN color tiene
-          // algo que mover, no solo el que se está viendo.
-          const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
-          // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
-          const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
-          // Hasta 4 tallas por renglón; cada renglón lleva sus propios rótulos «Piso» y «Almacén».
-          const renglones = Array.from({ length: Math.ceil(p.tallas.length / 4) }, (_, i) => p.tallas.slice(i * 4, i * 4 + 4));
-          const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
-          const recortada = textoTallasRecortadas(
-            p.tallas.map((f) => f.talla),
-            tallasDePrenda?.get(p.clave) ?? p.tallas.length
-          );
-          return (
-            <article
-              key={m.productoId}
-              aria-label={etiqueta}
-              className="card-cayla px-[15px] pb-[9px] pt-[11px] max-sm:px-3.5 max-sm:pb-3.5 max-sm:pt-3.5"
-            >
-              <div className="flex gap-2">
-                <div className="h-32 w-24 shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[110px] max-sm:w-[82px]">
-                  {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={192} height={256} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" />}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  {/* Fila 1: quién es (nombre, marca · color, los demás colores) y las dos cifras. */}
-                  <div className="flex items-start justify-between gap-2 max-sm:flex-col">
-                    <div className="min-w-0 pl-[9px] max-sm:pl-0 sm:h-[74px]">
-                      <h3 className="truncate text-[13px] font-bold leading-[18px] text-tinta" title={p.referencia}>
-                        {p.referencia}
-                      </h3>
-                      {/* El color que se está viendo, con su nombre en fuerte: la marca va tenue. */}
-                      <p className="mt-[3px] truncate text-sm leading-[18px] text-tinta/50">
-                        {mostrarMarca && p.marca && <>{p.marca} · </>}
-                        <span className="font-semibold text-tinta">{p.color ?? "Sin color"}</span>
-                      </p>
-                      <div className="mt-[5px] flex flex-wrap gap-2" role="group" aria-label={`Colores de ${p.referencia}`}>
-                        {m.colores.map((h) => {
-                          const propia = h.clave === p.clave;
-                          return (
-                            <button
-                              key={h.clave}
-                              type="button"
-                              onClick={() => setElegida((previa) => ({ ...previa, [m.productoId]: h.clave }))}
-                              title={`${h.color ?? "Sin color"}${propia ? " (el que ves)" : " · ver este color"}`}
-                              aria-label={h.color ?? "Sin color"}
-                              aria-pressed={propia}
-                              className={`h-[22px] w-[22px] cursor-pointer rounded-full border-[3px] border-papel outline transition-transform hover:scale-110 ${
-                                propia ? "outline-2 outline-tinta" : "outline-[1.5px] outline-tinta/15"
-                              }`}
-                              style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="grid shrink-0 grid-cols-[79px_76px] gap-2 max-sm:w-full max-sm:grid-cols-2">
-                      {separa ? (
-                        <>
-                          <div className="flex h-[74px] flex-col items-center justify-center rounded-[10px] bg-hueso/60 text-center leading-[1.1] text-tinta">
-                            <span className="text-[11px]">Piso</span>
-                            <b className="font-display text-[29px] font-medium leading-[1.1] tabular-nums">{p.piso ?? 0}</b>
-                            <span className="text-[11px]">uds</span>
-                          </div>
-                          <div className="flex h-[74px] flex-col items-center justify-center rounded-[10px] bg-hueso/60 text-center leading-[1.1] text-tinta">
-                            <span className="text-[11px]">Almacén</span>
-                            <b className="font-display text-[29px] font-medium leading-[1.1] tabular-nums">{p.almacen ?? 0}</b>
-                            <span className="text-[11px]">uds</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="col-span-2 flex h-[74px] flex-col items-center justify-center rounded-[10px] bg-hueso/60 text-center leading-[1.1] text-tinta">
-                          <span className="text-[11px]">Disponible</span>
-                          <b className="font-display text-[29px] font-medium leading-[1.1] tabular-nums">{p.disponible}</b>
-                          <span className="text-[11px]">uds</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Fila 2: la curva de tallas y lo que la prenda pide hoy (con lo apartado y lo dañado, que son otros ejes). */}
-                  <div className="mt-0.5 flex items-start gap-2 max-sm:mt-3 max-sm:flex-col">
-                    <div className="grid min-w-0 flex-1 gap-y-1.5 max-sm:w-full">
-                      {renglones.map((renglon, r) => (
-                        <div key={r} className="grid gap-[5px]" style={{ gridTemplateColumns: `auto repeat(${renglon.length}, minmax(0, 4.5rem))` }}>
-                          <Rotulos separa={separa} />
-                          {renglon.map((f) => {
-                            const sinStock = estadoTalla(f) === "sin_stock";
-                            const nombre = f.talla ?? "Única";
-                            return (
-                              <div
-                                key={f.varianteId}
-                                title={`${nombre}: ${separa ? `${f.pisoDisponible ?? 0} en piso, ${f.almacenDisponible ?? 0} en almacén` : `${f.disponible} disponibles`}${sinStock ? " — sin nada libre en esta sede" : ""}`}
-                                className="grid min-w-0 gap-[3px]"
-                              >
-                                <span className="block h-5 truncate rounded-lg bg-hueso px-0.5 text-center text-[11px] font-medium leading-5 text-tinta">{nombre}</span>
-                                <span className={`grid gap-px rounded-lg border px-1 py-[3px] ${sinStock ? "border-dashed border-taupe/50" : "border-sand/70 bg-papel/80"}`}>
-                                  {separa ? (
-                                    <>
-                                      <Cifra valor={f.pisoDisponible ?? 0} />
-                                      <Cifra valor={f.almacenDisponible ?? 0} />
-                                    </>
-                                  ) : (
-                                    <Cifra valor={f.disponible} />
-                                  )}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-[9px] flex w-[162px] shrink-0 flex-col gap-1.5 max-sm:mt-0 max-sm:w-full">
-                      {separa && <Pastilla prenda={p} />}
-                      {/* Bajo las cifras de Piso y Almacén: un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
-                      {recortada && (
-                        <span
-                          className="px-1 text-[11px] leading-snug text-taupe"
-                          title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla, Hoy o Condición para ver todas."
-                        >
-                          {recortada}
-                        </span>
-                      )}
-                      {(p.apartado > 0 || p.danado > 0) && (
-                        <span className="flex flex-wrap gap-1.5">
-                          {p.danado > 0 && (
-                            <Chip tono="rojo" versalitas={false} className="text-xs">
-                              {p.danado} {p.danado === 1 ? "dañada" : "dañadas"}
-                            </Chip>
-                          )}
-                          {p.apartado > 0 && <Chip tono="ambar">Apartado · {p.apartado}</Chip>}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+    // Dos columnas donde caben (cada tarjeta pide ~30 rem para que el riel muestre sus tallas), tres en pantallas muy anchas.
+    <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,30rem),1fr))]">
+      {modelos.map((m) => {
+        const p = m.colores.find((c) => c.clave === elegida[m.productoId]) ?? m.colores[0];
+        // «Reponer prenda» y «Subir prenda» abren el MODELO entero (todos sus colores, ADR-0317): se ofrecen si ALGÚN color tiene
+        // algo que mover, no solo el que se está viendo.
+        const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
+        // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
+        const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
+        const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
+        const recortada = textoTallasRecortadas(
+          p.tallas.map((f) => f.talla),
+          tallasDePrenda?.get(p.clave) ?? p.tallas.length
+        );
+        const colgadas = separa ? (p.piso ?? 0) : p.disponible;
+        const guardadas = p.almacen ?? 0;
+        const origen = () => tarjetas.current.get(m.productoId) ?? document.body;
+        const menu = [
+          ...(puedeReponer
+            ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
+            : []),
+          ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0]) }] : []),
+          { clave: "detalle", etiqueta: "Ver detalle", onSelect: () => onVerDetalle(p) },
+        ];
+        return (
+          <article
+            key={m.productoId}
+            ref={(el) => {
+              if (el) tarjetas.current.set(m.productoId, el);
+              else tarjetas.current.delete(m.productoId);
+            }}
+            tabIndex={-1}
+            aria-label={etiqueta}
+            className="card-cayla @container flex min-w-0 flex-col p-4 outline-none transition-colors hover:border-tinta/20 max-sm:p-3.5"
+          >
+            <div className="flex gap-3.5">
+              <div className="h-[100px] w-[75px] shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[88px] max-sm:w-[66px]">
+                {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={150} height={200} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" />}
               </div>
-              {/* Acciones: las mismas del cajón de la tabla, con sus mismos permisos. Bajo la foto y la columna: en el celular, a todo el ancho.
-                  Reponer prenda · Subir prenda · Ajustar, y «Ver detalle» solo con su icono (al pasar el mouse dice su nombre): así los tres
-                  botones con texto caben en la columna, y donde no caben bajan a otro renglón en vez de cortarse. */}
-              <div className="mt-3 flex flex-wrap gap-2 pl-[113px] max-sm:pl-0">
-                {puedeReponer && (
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-display text-[19px] leading-tight text-tinta" title={p.referencia}>
+                      {p.referencia}
+                    </h3>
+                    {/* El color que se está viendo, con su nombre en fuerte: la marca va tenue. */}
+                    <p className="mt-0.5 truncate text-[13px] leading-[18px] text-taupe">
+                      {mostrarMarca && p.marca && <>{p.marca} · </>}
+                      <span className="font-medium text-tinta">{p.color ?? "Sin color"}</span>
+                    </p>
+                  </div>
+                  <MenuAcciones etiqueta={`Más acciones de ${etiqueta}`} items={menu} />
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Colores de ${p.referencia}`}>
+                  {m.colores.map((h) => {
+                    const propia = h.clave === p.clave;
+                    return (
+                      <button
+                        key={h.clave}
+                        type="button"
+                        onClick={() => setElegida((previa) => ({ ...previa, [m.productoId]: h.clave }))}
+                        title={`${h.color ?? "Sin color"}${propia ? " (el que ves)" : " · ver este color"}`}
+                        aria-label={h.color ?? "Sin color"}
+                        aria-pressed={propia}
+                        className={`h-[20px] w-[20px] cursor-pointer rounded-full border-[3px] border-papel outline transition-transform hover:scale-110 ${
+                          propia ? "outline-2 outline-tinta" : "outline-[1.5px] outline-tinta/15"
+                        }`}
+                        style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
+                      />
+                    );
+                  })}
+                </div>
+                {/* Las cifras del color que se ve, en una línea: lo que cobra la caja primero. */}
+                <p className="mt-2 text-[12.5px] leading-none text-taupe tabular-nums">
+                  {separa ? (
+                    <>
+                      <b className="font-semibold text-tinta">{colgadas}</b> {colgadas === 1 ? "colgada" : "colgadas"}
+                      <span aria-hidden> · </span>
+                      <b className="font-semibold text-tinta">{guardadas}</b> {guardadas === 1 ? "guardada" : "guardadas"}
+                    </>
+                  ) : (
+                    <>
+                      <b className="font-semibold text-tinta">{colgadas}</b> {colgadas === 1 ? "disponible" : "disponibles"}
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* El riel y, a su lado cuando la tarjeta tiene ancho (`@container`, no la ventana), lo que la prenda pide y su botón; en una
+                tarjeta angosta (celular) van debajo. Con muchas tallas el riel se desliza de lado dentro de la tarjeta. */}
+            <div className="mt-3.5 flex flex-col gap-3 @min-[30rem]:flex-row @min-[30rem]:items-end">
+              <div className="relative min-w-0 flex-1">
+                <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] rounded-full bg-tinta/20" />
+                <ul aria-label={`Tallas de ${etiqueta}`} className="scroll-cayla relative flex gap-2 overflow-x-auto px-1 pb-1">
+                  {p.tallas.map((f) => (
+                    <EtiquetaTalla key={f.varianteId} f={f} separa={separa} />
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 @min-[30rem]:shrink-0 @min-[30rem]:flex-col @min-[30rem]:items-end @min-[30rem]:justify-end @min-[30rem]:pb-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 @min-[30rem]:justify-end">
+                  {separa && <Pastilla prenda={p} />}
+                  {p.danado > 0 && (
+                    <Chip tono="rojo" versalitas={false} className="text-xs">
+                      {p.danado} {p.danado === 1 ? "dañada" : "dañadas"}
+                    </Chip>
+                  )}
+                  {p.apartado > 0 && <Chip tono="ambar">Apartado · {p.apartado}</Chip>}
+                </div>
+                {hayQueBajar && (
                   <button
                     type="button"
-                    disabled={!hayQueBajar}
-                    title={hayQueBajar ? "Bajar prendas del almacén al piso, de todos los colores" : "No hay nada libre en el almacén para bajar al piso"}
-                    onClick={(e) => hayQueBajar && onReponer(p, e.currentTarget)}
-                    className="btn-cayla btn-primario min-h-[34px] min-w-[6.5rem] flex-1 px-3 py-1.5 text-[12.5px]"
+                    onClick={(e) => onReponer(p, e.currentTarget)}
+                    title="Bajar prendas del almacén al piso, de todos los colores"
+                    className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5"
                   >
-                    <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    Reponer prenda
+                    <IconoPercha aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                    Reponer
                   </button>
                 )}
-                {puedeReponer && (
-                  <button
-                    type="button"
-                    disabled={!hayEnElPiso}
-                    title={hayEnElPiso ? "Subir prendas del piso al almacén, de todos los colores" : "No hay nada libre en el piso para subir al almacén"}
-                    onClick={(e) => hayEnElPiso && onSubir(p, e.currentTarget)}
-                    className="btn-cayla btn-secundario min-h-[34px] min-w-[9.5rem] flex-[1.5] px-3 py-1.5 text-[12.5px] text-taupe"
-                  >
-                    <Warehouse aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    Subir prenda
-                  </button>
-                )}
-                {puedeAjustar && (
-                  <button type="button" onClick={() => onAjustar(p.tallas[0])} className="btn-cayla btn-secundario min-h-[34px] min-w-[6.5rem] flex-1 px-3 py-1.5 text-[12.5px] text-taupe">
-                    <SquarePen aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    Ajustar
-                  </button>
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="Ver detalle"
-                      onClick={() => onVerDetalle(p)}
-                      className="btn-cayla btn-secundario min-h-[34px] w-[34px] shrink-0 px-0 py-1.5 text-taupe"
-                    >
-                      <Package aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={6}>Ver detalle</TooltipContent>
-                </Tooltip>
               </div>
-            </article>
-          );
-        })}
-      </div>
-    </TooltipProvider>
+            </div>
+            {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
+            {recortada && (
+              <p className="mt-2 text-[11px] leading-snug text-taupe" title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla, Hoy o Condición para ver todas.">
+                {recortada}
+              </p>
+            )}
+          </article>
+        );
+      })}
+    </div>
   );
 }

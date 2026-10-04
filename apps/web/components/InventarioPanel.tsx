@@ -869,15 +869,20 @@ export function InventarioPanel({
                 Exportar CSV
               </button>
             </span>
+            {/* La leyenda del riel de las tarjetas (2026-10-04): qué dice cada etiqueta y qué significan sus dos tonos. */}
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-taupe/25 bg-hueso" />
-                  Piso · almacén de cada talla
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-tinta/15 bg-papel" />
+                  Cada etiqueta es una talla: en grande las colgadas, debajo «+N» las guardadas
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-dashed border-taupe/50" />
-                  Sin stock aquí
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.08]" />
+                  Por colgar
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
+                  Sin nada en esta sede
                 </span>
               </span>
             )}
