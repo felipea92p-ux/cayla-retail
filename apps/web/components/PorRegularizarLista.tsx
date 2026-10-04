@@ -198,8 +198,8 @@ export function PorRegularizarLista({
 
       <p className="nota-cayla text-sm">
         Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda
-        cuadrado. «Probable» es la prenda del stock de esa tienda con la misma categoría, talla y color (o uno parecido) que anotó caja: es
-        una sugerencia, la confirmas tú. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder. Las pendientes salen todas,
+        cuadrado. «Probable» es la prenda del stock de esa tienda con la misma categoría (o la que caja escribió en la descripción, si
+        nombra otra), talla y color (o uno parecido) que anotó caja: es una sugerencia, la confirmas tú. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder. Las pendientes salen todas,
         sin importar cuándo se vendieron; las ya resueltas, las de este mes y el anterior.
       </p>
 
@@ -400,9 +400,10 @@ function RegularizarModal({
         <CampoGuiado id="forma" guia={guia} titulo="¿Cómo estaba esta prenda en el sistema?">
           <div className="flex flex-wrap gap-2" role="group" aria-label="¿Cómo estaba esta prenda en el sistema?">
             {(["ya_registrada", "llego_nueva"] as const).map((op) => (
-              <button key={op} type="button" aria-pressed={forma === op} onClick={() => setForma(op)} className="pildora-cayla">
+              // Con «· sugerida» la primera no cabe en una línea del ancho de la hoja (≈ 330 px): se parte en dos, sin salirse.
+              <button key={op} type="button" aria-pressed={forma === op} onClick={() => setForma(op)} className="pildora-cayla max-w-full whitespace-normal text-left">
                 {TEXTO_FORMA[op]}
-                {formaSugerida?.forma === op && <span className="ml-1.5 text-[11px] font-semibold">· sugerida</span>}
+                {formaSugerida?.forma === op && <span className="ml-1.5 shrink-0 whitespace-nowrap text-[11px] font-semibold">· sugerida</span>}
               </button>
             ))}
           </div>
