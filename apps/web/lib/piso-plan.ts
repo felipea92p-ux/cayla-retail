@@ -140,8 +140,9 @@ export function pidePiso(accion: AccionPiso | null | undefined): boolean {
 }
 
 /**
- * Cuántas debería tener colgadas una talla hoy: 1 por color (`REQUISITO_POR_COLOR`) si es central, si ayer u hoy se vendió ESA
- * prenda, o si hoy o ayer se anotó a mano una venta «sin registrar» de su categoría, talla y color (`anotadasRecientes`); si no,
+ * Cuántas debería tener colgadas una talla hoy: 1 por color (`REQUISITO_POR_COLOR`) si es central, si ESA prenda se vendió en
+ * los últimos 14 días (una XL que se vendió hace tres días y tiene otra guardada vuelve al piso: si solo mirara hoy y ayer, al
+ * tercer día volvería a «Mantener» y se quedaría guardada aunque se vende), o si hoy o ayer se anotó a mano una venta «sin registrar» de su categoría, talla y color (`anotadasRecientes`); si no,
  * 0. Así lo que se vendió ayer se vuelve a colgar aunque sea una talla extrema (el reloj rápido), también cuando la caja lo anotó
  * a mano, y una talla central nunca queda sin ninguna. Lo vendido decide SI se cuelga, nunca CUÁNTAS: vender 3 M ayer no pide 3
  * colgadas, pide que no se acabe la M (Felipe, 2026-10-04: «me basta con 1 por color porque mi tienda es pequeña»; se repone
@@ -153,10 +154,13 @@ export function requisitoDeTalla(t: {
   vendidasHoy: number;
   vendidasAyer: number;
   anotadasRecientes?: number;
+  /** Vendidas de ESA prenda en los últimos 14 días (la ventana de la lista del día). */
+  vendidas14?: number;
   retirada: boolean;
 }): number {
   if (t.retirada) return 0;
-  const laPide = t.central || t.vendidasHoy > 0 || t.vendidasAyer > 0 || (t.anotadasRecientes ?? 0) > 0;
+  const laPide =
+    t.central || t.vendidasHoy > 0 || t.vendidasAyer > 0 || (t.vendidas14 ?? 0) > 0 || (t.anotadasRecientes ?? 0) > 0;
   return laPide ? REQUISITO_POR_COLOR : 0;
 }
 
@@ -371,7 +375,7 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
       const central = esTallaCentral(t.talla, t.categoriaId ? curvas.get(t.categoriaId) ?? [] : []);
       const claveA = claveAnotada(t.categoriaId, t.tallaId, t.colorCodigo);
       const anotadasRecientes = claveA ? anotadasPorClave.get(claveA) ?? 0 : 0;
-      const requisito = requisitoDeTalla({ central, vendidasHoy: t.vendidasHoy, vendidasAyer: t.vendidasAyer, anotadasRecientes, retirada: t.retirada });
+      const requisito = requisitoDeTalla({ central, vendidasHoy: t.vendidasHoy, vendidasAyer: t.vendidasAyer, vendidas14: t.vendidas14, anotadasRecientes, retirada: t.retirada });
       const accion = decidirTalla(t.pisoLibre, t.almacenLibre, requisito, enPausa);
       const clave = claveAtributo(t.categoriaId, t.tallaId, t.familiaColor);
       porTalla.set(t.varianteId, {

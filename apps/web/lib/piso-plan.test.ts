@@ -184,6 +184,11 @@ describe("requisitoDeTalla — cuántas debería tener colgadas", () => {
     expect(requisitoDeTalla({ central: true, vendidasHoy: 2, vendidasAyer: 2, retirada: true })).toBe(0);
     // Lo anotado a mano hoy o ayer con su categoría, talla y color pide 1 —no más: no dice qué modelo fue—.
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, anotadasRecientes: 3, retirada: false })).toBe(1);
+    // Una talla extrema que se vendió hace tres días (ni hoy ni ayer) sigue pidiendo 1 colgada mientras haya otra guardada.
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, vendidas14: 1, retirada: false })).toBe(1);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, vendidas14: 4, retirada: false })).toBe(1);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, vendidas14: 0, retirada: false })).toBe(0);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, vendidas14: 2, retirada: true })).toBe(0);
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 2, anotadasRecientes: 1, retirada: false })).toBe(1);
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, anotadasRecientes: 1, retirada: true })).toBe(0);
   });
