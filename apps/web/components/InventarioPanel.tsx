@@ -1264,6 +1264,8 @@ export function InventarioPanel({
           puedeReportarDanada={permisos.reportarDanada}
           onReportarDanada={(prenda) => {
             setAbierta(null);
+            // Como Reponer y Subir desde el cajón: el cajón se cierra, así que el foco no vuelve al «⋯» de una tarjeta vieja.
+            volverFoco.current = null;
             setReportando({ productoId: prenda.productoId, colorClave: prenda.clave });
           }}
           onEliminar={() => {

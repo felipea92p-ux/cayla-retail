@@ -292,6 +292,30 @@ export function quePasaAlArreglar(sede: string): string {
   return `Vuelve ${donde}. Para venderla, bájala al piso desde Existencias.`;
 }
 
+/** Los desenlaces de una dañada en palabras de tienda (los valores de `prendas_danadas_estado_check`). */
+const ESTADO_DANADA_EN_PALABRAS: Record<string, string> = {
+  se_arreglo: "Se arregló",
+  liquidada: "Liquidada",
+  se_boto: "Se botó",
+  donada: "Donada",
+  devuelta_proveedor: "Devuelta al proveedor",
+};
+const YA_RESUELTA_CRUDO = /^Esta prenda ya se resolvió como ([a-z_]+)$/;
+
+/**
+ * El rechazo de «Se botó», «Donada» o «Liquidada» que perdió la carrera contra otro líder: `resolver_prenda_danada` y
+ * `liquidar_prenda_danada` (de antes de esta pantalla) dicen el estado crudo («…como se_arreglo»). Se dice en palabras de tienda
+ * y `yaResuelta` avisa a la pantalla que relea la lista. Cualquier otro rechazo pasa por `traducirError`.
+ */
+export function textoErrorDeResolucion(error: ErrorEscritura, contexto: string): { mensaje: string; yaResuelta: boolean } {
+  const crudo = error?.message ? YA_RESUELTA_CRUDO.exec(error.message.trim()) : null;
+  if (crudo) {
+    const estado = ESTADO_DANADA_EN_PALABRAS[crudo[1]] ?? crudo[1];
+    return { mensaje: `Esta prenda ya se resolvió como «${estado}». La lista se actualizó.`, yaResuelta: true };
+  }
+  return { mensaje: traducirError(error, contexto), yaResuelta: false };
+}
+
 export type OrigenDanada = "reporte" | "devolucion" | "cambio";
 
 /** De dónde llegó la prenda a Dañadas. La base exige exactamente uno (`prendas_danadas_un_origen`): con motivo es un reporte,

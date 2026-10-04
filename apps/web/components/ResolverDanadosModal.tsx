@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
+import type { ErrorEscritura } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, CampoMonto, CampoSelect } from "@/components/ui/campos";
@@ -24,6 +24,7 @@ import {
   quePasaAlArreglar,
   RPC_ARREGLAR_DANADA,
   TEXTO_ARREGLO_YA_ESTABA,
+  textoErrorDeResolucion,
   textoOrigenDanada,
   tituloExitoArreglo,
 } from "@/lib/danadas-reglas";
@@ -127,7 +128,10 @@ export function ResolverDanadosModal({
     setResolviendo(null);
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "resolver esta prenda dañada"));
+      const fallo = textoErrorDeResolucion(error, "resolver esta prenda dañada");
+      avisar.error(fallo.mensaje);
+      // Otro líder la resolvió antes (p. ej. «Se arregló»): la lista se relee para que no siga ofreciendo una que ya no está.
+      if (fallo.yaResuelta) router.refresh();
       return;
     }
     avisar.exito("Prenda resuelta", { detalle: ESTADOS_SIMPLES.find((e) => e.valor === estado)?.texto });
@@ -155,7 +159,12 @@ export function ResolverDanadosModal({
     setResolviendo(null);
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, "liquidar esta prenda"));
+      const fallo = textoErrorDeResolucion(error, "liquidar esta prenda");
+      avisar.error(fallo.mensaje);
+      if (fallo.yaResuelta) {
+        setLiquidando(null);
+        router.refresh();
+      }
       return;
     }
     avisar.exito("Prenda liquidada", { detalle: `Venta registrada por S/${(precio * p.cantidad).toFixed(2)}` });
@@ -166,7 +175,8 @@ export function ResolverDanadosModal({
   function abrirArreglo(id: string) {
     setLiquidando(null);
     setArreglando(id);
-    setNotaArreglo("");
+    // Lo escrito en «Nota (opcional)» antes de tocar «Se arregló» no se pierde: suele ser justo lo que se le hizo.
+    setNotaArreglo(notas[id] ?? "");
     setErrorArreglo(null);
     setArregloEnDuda(false);
     tokenArreglo.current = crypto.randomUUID();

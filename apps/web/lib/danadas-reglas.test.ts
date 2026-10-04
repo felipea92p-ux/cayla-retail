@@ -27,6 +27,7 @@ import {
   tallaInicial,
   tallasReportables,
   textoBotonReportar,
+  textoErrorDeResolucion,
   textoOrigenDanada,
   TEXTO_RED_DANADA,
   tituloExitoArreglo,
@@ -285,6 +286,35 @@ describe("tras una respuesta incierta: la ventana no se traba", () => {
 
   it("lo que se reenvía son los argumentos guardados, con la MISMA marca", () => {
     expect(enDuda.argumentos).toEqual({ p_ubicacion_id: "tru", p_variante_id: "a", p_cantidad: 1, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca-1" });
+  });
+});
+
+describe("cuando otro líder la resolvió antes", () => {
+  it("el estado crudo de resolver/liquidar se dice en palabras de tienda y pide releer la lista", () => {
+    expect(textoErrorDeResolucion({ code: "P0001", message: "Esta prenda ya se resolvió como se_arreglo" }, "resolver esta prenda dañada")).toEqual({
+      mensaje: "Esta prenda ya se resolvió como «Se arregló». La lista se actualizó.",
+      yaResuelta: true,
+    });
+    for (const [crudo, palabras] of [["liquidada", "Liquidada"], ["se_boto", "Se botó"], ["donada", "Donada"], ["devuelta_proveedor", "Devuelta al proveedor"]]) {
+      const r = textoErrorDeResolucion({ code: "P0001", message: `Esta prenda ya se resolvió como ${crudo}` }, "x");
+      expect(r.mensaje).toContain(`«${palabras}»`);
+      expect(r.mensaje).not.toContain("_");
+    }
+  });
+
+  it("traduce TODOS los desenlaces que la base acepta (si se agrega uno, la prueba avisa)", () => {
+    const check = /prendas_danadas_estado_check\s+check \(estado in \(([^)]*)\)\)/.exec(MIGRACION);
+    expect(check).not.toBeNull();
+    const estados = check![1].split(",").map((e) => e.trim().replace(/'/g, "")).filter((e) => e !== "en_cuarentena");
+    expect(estados.length).toBe(5);
+    for (const e of estados) {
+      expect(textoErrorDeResolucion({ code: "P0001", message: `Esta prenda ya se resolvió como ${e}` }, "x").mensaje, e).not.toContain(e);
+    }
+  });
+
+  it("cualquier otro rechazo pasa como siempre, sin releer", () => {
+    expect(textoErrorDeResolucion({ code: "P0001", message: "Solo un líder de sede puede resolver" }, "x")).toEqual({ mensaje: "Solo un líder de sede puede resolver", yaResuelta: false });
+    expect(textoErrorDeResolucion({ code: "P0001", message: "Esta prenda ya se resolvió como «Se arregló». Recarga la pantalla." }, "x").yaResuelta).toBe(false);
   });
 });
 
