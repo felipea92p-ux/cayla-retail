@@ -57,6 +57,14 @@ export function motivoPropiaVenta(p: { vendidoPorId: string | null; responsableI
   return null;
 }
 
+/**
+ * Lo que dice la base (`regularizar_prenda`, hint `prenda_sin_cargar_en_sede`, 20261004204000) y la pantalla en cuanto se elige una
+ * prenda sin ningún movimiento en la sede (`fn_prenda_cargada_en_sede`): regularizarla le cerraría su carga inicial.
+ */
+export function prendaSinCargar(sede: string): string {
+  return `Esta prenda todavía no está cargada en ${sede || "esta tienda"}: primero cárgala con su stock inicial (lo que hay hoy en la tienda, sin la vendida) y vuelve a regularizarla.`;
+}
+
 /** La fila de la lista lo dice antes de abrirla: la vendió la persona de esta cuenta y la cuenta no es de líder. */
 export function vendidaPorLaCuenta(vendidoPorId: string | null, personaSesionId: string | null, esLider: boolean): boolean {
   return !esLider && vendidoPorId !== null && vendidoPorId === personaSesionId;

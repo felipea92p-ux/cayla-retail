@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +10,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { cifrasPorRegularizar, estaVencida, motivoPropiaVenta, tipoDiferencia, vendidaPorLaCuenta, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
+import { cifrasPorRegularizar, estaVencida, motivoPropiaVenta, prendaSinCargar, tipoDiferencia, vendidaPorLaCuenta, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -257,8 +257,31 @@ function RegularizarModal({
   const sugerida = candidatas[0] ?? null;
   // La respuesta que dice el libro para la prenda ELEGIDA (si es una candidata con fecha de entrada). Nunca se marca sola.
   const formaSugerida = elegida ? formaSugeridaPara(candidatas, elegida.id) : null;
-  const guia = useGuiaCampos(camposGuiaRegularizar({ prendaElegida: elegida !== null, forma, responsableListo: responsable.listo, motivoPropia }));
-  const listo = elegida !== null && forma !== null && responsable.listo && motivoPropia === null;
+
+  // Revisión R6: una prenda sin ningún movimiento en la tienda de la venta no se regulariza (le cerraría su carga inicial); se dice
+  // al elegirla, antes del botón. Una candidata tiene stock libre ahí: ya está cargada, no se pregunta. Si la lectura no vuelve o
+  // falla (la función aún no está pegada, sin red) no se frena nada: la base lo decide al guardar.
+  const esCandidata = candidatas.some((c) => c.prenda.id === elegidaId);
+  const [cargada, setCargada] = useState<{ id: string; valor: boolean | null }>({ id: "", valor: null });
+  useEffect(() => {
+    if (!elegidaId || esCandidata) return;
+    let vigente = true;
+    void createClient()
+      .rpc("fn_prenda_cargada_en_sede", { p_variante_id: elegidaId, p_ubicacion_id: f.ubicacionId })
+      .then(({ data, error }) => {
+        if (vigente) setCargada({ id: elegidaId, valor: error ? null : (data ?? null) });
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [elegidaId, esCandidata, f.ubicacionId]);
+  const sinCargar = elegida !== null && !esCandidata && cargada.id === elegidaId && cargada.valor === false;
+  const motivoPrenda = sinCargar ? prendaSinCargar(f.sede) : null;
+
+  const guia = useGuiaCampos(
+    camposGuiaRegularizar({ prendaElegida: elegida !== null, motivoPrenda, forma, responsableListo: responsable.listo, motivoPropia }),
+  );
+  const listo = elegida !== null && motivoPrenda === null && forma !== null && responsable.listo && motivoPropia === null;
 
   // Primero las candidatas (stock de esta tienda que calza, en su orden de probabilidad) y después el resto del catálogo, con las que
   // calzan con lo que anotó caja (categoría, talla y color) arriba: así almacén la encuentra sin tipear.
@@ -322,6 +345,11 @@ function RegularizarModal({
             etiquetaAccesible="¿Qué prenda es?"
             autoFocus
           />
+          {motivoPrenda && (
+            <p className="mt-2 text-xs text-ambar-profundo" role="status" data-prenda-sin-cargar>
+              {motivoPrenda}
+            </p>
+          )}
           {elegida && (
             <p className="mt-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta">
               {elegida.nombre} · {elegida.talla} · {elegida.color} · precio oficial {soles(elegida.precio)} ·{" "}

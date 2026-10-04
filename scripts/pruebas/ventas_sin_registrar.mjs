@@ -10,9 +10,15 @@
  *   D · Que contestar mal DESCUENTA DOS VECES: con la venta antes de la carga inicial, «ya estaba registrada» deja el stock una
  *       prenda por debajo de lo contado; con la venta después, «llegó nueva» deja una prenda fantasma. La respuesta que deduce la
  *       web (`lib/por-regularizar-candidatas.ts`: venta antes de la primera entrada ⇒ llegó nueva) es la que cuadra en los dos.
- *   C · Nadie regulariza su propia venta, salvo el líder (20261004204000): ni con su cuenta, ni eligiéndose en la terminal, ni
- *       nombrando a otra persona desde su propia cuenta; otra integrante sí; el líder sí, la suya; desde una terminal hay que
- *       elegir quién firma (la clave 'regularizar_prenda' ya no está en `acciones_sin_responsable`).
+ *   C · Nadie regulariza su propia venta, salvo el líder firmando él mismo (20261004204000): ni con su cuenta, ni eligiéndose en
+ *       la terminal, ni nombrando a otra persona desde su propia cuenta, ni elegida en el combo con la sesión de un líder abierta
+ *       (R1); otra integrante sí; el líder sí, la suya; desde una terminal hay que elegir quién firma (la clave
+ *       'regularizar_prenda' ya no está en `acciones_sin_responsable`).
+ *   R · Lo que encontró la revisión adversarial: «ya estaba registrada» descuenta de lo DISPONIBLE (ni Cuarentena ni apartadas,
+ *       R2/R3) y una prenda sin ningún movimiento en la sede no se regulariza: primero su carga inicial (R6).
+ *   P · La migración 20261004204000 se aplica sobre el cuerpo ORIGINAL de `regularizar_prenda` (20260923162300, lo que producción
+ *       tiene antes de pegar) y se puede volver a pegar; la sonda de solo lectura que se corre en producción antes de pegar
+ *       encuentra cada ancla UNA vez. `node scripts/pruebas/ventas_sin_registrar.mjs --sonda` imprime esa sonda.
  *
  * CÓMO. Mismo patrón que `responsable_omitido.mjs`: cada caso en su transacción con ROLLBACK, como Felipe (líder) o Micaela
  * (integrante de Tienda Trujillo) con `request.jwt.claim(s)`. Las prendas son nuevas (`ZZ VSR …`), con su historia sembrada
@@ -23,6 +29,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
@@ -32,6 +39,29 @@ const LUCIA = "44444444-4444-4444-8444-0000000000c2"; // su persona
 const T_VENTAS_AUTH = "44444444-4444-4444-8444-0000000000a1"; // la cuenta de la terminal de ventas de Trujillo
 const ROSA = "44444444-4444-4444-8444-0000000000b1"; // integrante de Trujillo sin cuenta: firma desde la terminal
 const CENTINELA = "22222222-2222-4222-8222-222222222222"; // «prenda sin registrar» en una venta
+
+// La migración que parcha `regularizar_prenda` por ancla y el cuerpo original que parcha (lo que producción tiene antes de pegar).
+const MIG_REGLAS = readFileSync(new URL("../../supabase/migrations/20261004204000_nadie_regulariza_su_propia_venta.sql", import.meta.url), "utf8");
+const MIG_ORIGINAL = readFileSync(new URL("../../supabase/migrations/20260923162300_regularizar_prenda.sql", import.meta.url), "utf8");
+/** Los textos ancla de cada `pg_temp.reemplazar_unico(…)` de la migración, tal cual (con su sangría y su salto de línea). */
+const ANCLAS = [...MIG_REGLAS.matchAll(/reemplazar_unico\(\s*'[^']+',\s*\$v\$([\s\S]*?)\$v\$/g)].map((m) => m[1]);
+/**
+ * La sonda de SOLO LECTURA para producción: cuántas veces aparece cada ancla en el cuerpo vivo. Todas tienen que dar 1; si una da
+ * 0 o más, el cuerpo vivo es otro y la migración abortaría (sin tocar nada): hay que regenerar el reemplazo desde la definición
+ * real. Ningún texto trae `select … into` (ADR-0288: el SQL Editor lo confundiría con un SELECT INTO).
+ */
+function sonda() {
+  const filas = ANCLAS.map((t, i) => `(${i + 1}, $a${i + 1}$${t}$a${i + 1}$)`).join(",\n       ");
+  return `-- Sonda de solo lectura (20261004204000): cada ancla tiene que aparecer UNA vez en el cuerpo vivo de regularizar_prenda.
+select a.n as ancla, (length(f.d) - length(replace(f.d, a.t, ''))) / length(a.t) as veces
+  from (select pg_get_functiondef('retail.regularizar_prenda(uuid, uuid, text)'::regprocedure) as d) f,
+       (values ${filas}) as a(n, t)
+ order by a.n;`;
+}
+if (process.argv.includes("--sonda")) {
+  console.log(sonda());
+  process.exit(0);
+}
 
 function psql(sql) {
   return execFileSync(
@@ -64,6 +94,17 @@ begin
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
   return v_estado || '|' || coalesce(nullif(v_hint, ''), v_msg);
+end;
+$f$;
+-- Lo mismo, pero devuelve el MENSAJE (lo que lee la persona), no el hint.
+create function pg_temp.intento_mensaje(p_sql text) returns text language plpgsql as $f$
+declare v_msg text;
+begin
+  execute p_sql;
+  return 'SIN_ERROR';
+exception when others then
+  get stacked diagnostics v_msg = message_text;
+  return v_msg;
 end;
 $f$;
 create temp table ids as
@@ -210,9 +251,11 @@ select (c.primera_entrada = now() - interval '5 days') || '/' || c.primera_entra
 );
 caso(
   "B4 · el «ingreso_regularizado» de una venta ya regularizada no cuenta como que la sede la tenía: manda la recepción",
+  // El par entrada+venta de una regularización «llegó nueva» hecha ANTES de la regla R6 (hoy una prenda sin cargar en la sede ya
+  // no se regulariza): se siembra directo en el libro, como quedó en los datos de antes.
   `select pg_temp.prenda('J-NEGRA-M', talla_m, 'NEG') as vj from ids \\gset
-select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '3 days') as pp0 from ids \\gset
-select retail.regularizar_prenda(:'pp0', :'vj', 'llego_nueva') \\g /dev/null
+select pg_temp.mov(:'vj', tru, pg_temp.sub(tru, 'piso_venta'), 'entrada', 1, 'ingreso_regularizado', now() - interval '3 days') from ids \\g /dev/null
+select pg_temp.mov(:'vj', tru, pg_temp.sub(tru, 'piso_venta'), 'salida', 1, 'venta', now() - interval '3 days') from ids \\g /dev/null
 select pg_temp.mov(:'vj', tru, pg_temp.sub(tru, 'almacen_tienda'), 'entrada', 2, 'recepcion', now() + interval '1 hour') from ids \\g /dev/null
 select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset
 select (c.primera_entrada = now() + interval '1 hour') || '/' || c.primera_entrada_motivo
@@ -409,6 +452,138 @@ caso(
   "C10 · lo de siempre sigue: la segunda regularización de la misma venta se rechaza",
   `${EQUIPO}${VENDE_MICAELA}${como(LUCIA_AUTH)}${regulariza}\n${regulariza}`,
   (s) => s.includes("prenda_ya_regularizada") || s.endsWith("ya la regularizó, o la venta se anuló"),
+);
+
+// ---------------- R · lo que encontró la revisión adversarial ----------------
+// Micaela vende; Lucía (otra integrante, con su cuenta) regulariza con la respuesta que se pida. :pp es la venta.
+// Es una EXPRESIÓN (sin `select` ni `;`): cada caso la pone en su propia sentencia, porque lo que la regularización escribe no lo
+// ve otra parte de la MISMA sentencia (y un `;` seguido de `\g` volvería a correr la consulta anterior).
+const regularizaComo = (variable, forma) =>
+  `pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'${variable}', '${forma}'))`;
+const dondeQueda = (variable) =>
+  `(select string_agg(coalesce(sb.tipo, 'sin_lugar') || '=' || s.cantidad || '/' || s.cantidad_apartada, ',' order by sb.tipo)
+     from retail.stock s left join retail.sububicaciones sb on sb.id = s.sububicacion_id
+    where s.variante_id = :'${variable}' and s.ubicacion_id = (select tru from ids))`;
+caso(
+  "R2 · candidata con 1 libre en el almacén y 1 en Cuarentena: «ya estaba registrada» descuenta del almacén, no de Cuarentena",
+  `${EQUIPO}select pg_temp.prenda('Q-CUAR-M', talla_m, 'NEG') as vq from ids \\gset
+select pg_temp.mov(:'vq', tru, pg_temp.sub(tru, 'cuarentena'), 'entrada', 1, 'cambio', now() - interval '6 days') from ids \\g /dev/null
+select pg_temp.carga(:'vq', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+${VENDE_MICAELA}
+select (select c.disponible || '/' || c.almacen_libre from retail.fn_candidatas_por_regularizar() c where c.prenda_id = :'pp' and c.variante_id = :'vq') as cand \\gset
+${como(LUCIA_AUTH)}select ${regularizaComo("vq", "ya_registrada")} as r \\gset
+select :'cand' || ' → ' || :'r' || ' → ' || ${dondeQueda("vq")};`,
+  "1/1 → SIN_ERROR → almacen_tienda=0/0,cuarentena=1/0",
+);
+caso(
+  "R3 · la del piso apartada para otro cliente y 1 libre en el almacén: descuenta del almacén y la apartada sigue apartada",
+  `${EQUIPO}select pg_temp.prenda('P-APART-M', talla_m, 'NEG') as vp from ids \\gset
+select pg_temp.carga(:'vp', tru, 2, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vp', tru, pg_temp.sub(tru, 'almacen_tienda'), 'traslado', 1, 'movimiento_interno', now() - interval '4 days', pg_temp.sub(tru, 'piso_venta')) from ids \\g /dev/null
+select pg_temp.mov(:'vp', tru, pg_temp.sub(tru, 'piso_venta'), 'apartado', 1, 'apartado', now() - interval '3 days') from ids \\g /dev/null
+${VENDE_MICAELA}
+select (select c.disponible || '/' || c.piso_libre || '/' || c.almacen_libre from retail.fn_candidatas_por_regularizar() c where c.prenda_id = :'pp' and c.variante_id = :'vp') as cand \\gset
+${como(LUCIA_AUTH)}select ${regularizaComo("vp", "ya_registrada")} as r \\gset
+select :'cand' || ' → ' || :'r' || ' → ' || ${dondeQueda("vp")};`,
+  "1/0/1 → SIN_ERROR → almacen_tienda=0/0,piso_venta=1/1",
+);
+caso(
+  "R3b · con el piso libre y el almacén libre, sigue saliendo del piso (lo de siempre)",
+  `${EQUIPO}select pg_temp.prenda('P-PISO-M', talla_m, 'NEG') as vp from ids \\gset
+select pg_temp.carga(:'vp', tru, 2, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vp', tru, pg_temp.sub(tru, 'almacen_tienda'), 'traslado', 1, 'movimiento_interno', now() - interval '4 days', pg_temp.sub(tru, 'piso_venta')) from ids \\g /dev/null
+${VENDE_MICAELA}${como(LUCIA_AUTH)}select ${regularizaComo("vp", "ya_registrada")} as r \\gset
+select :'r' || ' → ' || ${dondeQueda("vp")};`,
+  "SIN_ERROR → almacen_tienda=1/0,piso_venta=0/0",
+);
+caso(
+  "R3c · si lo único que hay está apartado o en Cuarentena, «ya estaba registrada» dice que no hay de dónde descontar",
+  `${EQUIPO}select pg_temp.prenda('P-NADA-LIBRE-M', talla_m, 'NEG') as vp from ids \\gset
+select pg_temp.carga(:'vp', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vp', tru, pg_temp.sub(tru, 'almacen_tienda'), 'apartado', 1, 'apartado', now() - interval '4 days') from ids \\g /dev/null
+${VENDE_MICAELA}${como(LUCIA_AUTH)}select ${regularizaComo("vp", "ya_registrada")};`,
+  (s) => s.startsWith("P0001|") && s.includes("no tiene stock"),
+);
+caso(
+  "R3d · si lo único que hay está en Cuarentena, tampoco: no intenta sacarla de ahí (dice que no hay unidades libres)",
+  `${EQUIPO}select pg_temp.prenda('P-SOLO-CUAR-M', talla_m, 'NEG') as vp from ids \\gset
+select pg_temp.mov(:'vp', tru, pg_temp.sub(tru, 'cuarentena'), 'entrada', 1, 'cambio', now() - interval '5 days') from ids \\g /dev/null
+${VENDE_MICAELA}${como(LUCIA_AUTH)}select pg_temp.intento_mensaje(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vp', 'ya_registrada'));`,
+  "prenda_sin_stock_para_descontar",
+);
+caso(
+  "R6 · una prenda SIN ningún movimiento en la sede no se regulariza con ninguna respuesta, y su carga inicial sigue posible",
+  `${EQUIPO}select pg_temp.prenda('N-SIN-CARGAR-M', talla_m, 'NEG') as vn from ids \\gset
+${VENDE_MICAELA}${como(LUCIA_AUTH)}
+select ${regularizaComo("vn", "llego_nueva")} as r1 \\gset
+select ${regularizaComo("vn", "ya_registrada")} as r2 \\gset
+select :'r1' || ' / ' || :'r2' || ' / ' || (select count(*) from retail.movimientos where variante_id = :'vn') || ' / ' ||
+       coalesce(retail.fn_prenda_cargada_en_sede(:'vn', (select tru from ids))::text, 'null');`,
+  "P0001|prenda_sin_cargar_en_sede / P0001|prenda_sin_cargar_en_sede / 0 / false",
+);
+caso(
+  "R6b · el mensaje nombra la sede y dice qué hacer",
+  `${EQUIPO}select pg_temp.prenda('N-SIN-CARGAR-M', talla_m, 'NEG') as vn from ids \\gset
+${VENDE_MICAELA}${como(LUCIA_AUTH)}
+select pg_temp.intento_mensaje(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vn', 'llego_nueva'));`,
+  (s) => s.startsWith("Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial"),
+);
+caso(
+  "R6c · cargada su carga inicial (sin la vendida), ya se regulariza como «llegó nueva» y el stock queda en lo contado",
+  `${EQUIPO}select pg_temp.prenda('N-SIN-CARGAR-M', talla_m, 'NEG') as vn from ids \\gset
+${VENDE_MICAELA}
+select pg_temp.carga(:'vn', tru, 2, now()) from ids \\g /dev/null
+${como(LUCIA_AUTH)}select ${regularizaComo("vn", "llego_nueva")} as r \\gset
+select :'r' || '/' || retail.fn_prenda_cargada_en_sede(:'vn', tru)::text || '/' || pg_temp.stock(:'vn', tru) from ids;`,
+  "SIN_ERROR/true/2",
+);
+caso(
+  "R6d · una prenda que solo llegó por un traslado de otra sede sí cuenta como cargada",
+  `${EQUIPO}select pg_temp.prenda('T-TRASLADO-M', talla_m, 'NEG') as vt from ids \\gset
+select pg_temp.carga(:'vt', lima, 2, now() - interval '5 days') from ids \\g /dev/null
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, ubicacion_destino_id, sububicacion_destino_id, tipo, cantidad, motivo, created_at)
+  select :'vt', lima, pg_temp.sub(lima, 'almacen_tienda'), tru, pg_temp.sub(tru, 'almacen_tienda'), 'traslado', 1, 'transferencia', now() - interval '4 days' from ids;
+select (select count(*) from retail.movimientos where variante_id = :'vt' and ubicacion_id = (select tru from ids))::text || '/' ||
+       retail.fn_prenda_cargada_en_sede(:'vt', tru)::text || '/' || retail.fn_prenda_cargada_en_sede(:'vt', lima)::text from ids;`,
+  "0/true/true",
+);
+caso(
+  "R6e · fn_prenda_cargada_en_sede no dice nada de una sede que la cuenta no opera (Micaela, de Trujillo, pregunta por Lima)",
+  `${EQUIPO}select pg_temp.prenda('T-LIMA-M', talla_m, 'NEG') as vt from ids \\gset
+select pg_temp.carga(:'vt', lima, 1, now() - interval '5 days') from ids \\g /dev/null
+${como(MICAELA)}select coalesce(retail.fn_prenda_cargada_en_sede(:'vt', (select lima from ids))::text, 'null');`,
+  "null",
+);
+
+// ---------------- P · la migración contra el cuerpo que tiene producción antes de pegar ----------------
+// Dentro de la transacción (se deshace al final): se repone `regularizar_prenda` de 20260923162300 y la clave soltada, se corre la
+// sonda, se aplica 20261004204000 DOS veces y se mira que cada regla quedó una sola vez.
+const REPONER_ORIGINAL = `${MIG_ORIGINAL}
+insert into retail.acciones_sin_responsable (clave, descripcion) values ('regularizar_prenda', 'Regularizar una prenda por regularizar')
+  on conflict (clave) do nothing;
+`;
+caso(
+  "P1 · la sonda de solo lectura encuentra cada ancla UNA vez en el cuerpo original (y hay tres anclas)",
+  `${REPONER_ORIGINAL}${sonda().replace(/;\s*$/, "")} \\g /dev/null
+select string_agg(ancla || ':' || veces, ',' order by ancla) from (${sonda().replace(/^--.*\n/, "").replace(/;\s*$/, "")}) s;`,
+  "1:1,2:1,3:1",
+);
+caso(
+  "P2 · la migración se aplica sobre el cuerpo original, se vuelve a pegar sin duplicar nada y deja las cuatro reglas",
+  `${REPONER_ORIGINAL}${MIG_REGLAS}\n${MIG_REGLAS}
+select (select count(*) from retail.acciones_sin_responsable where clave = 'regularizar_prenda') || '/' ||
+       (select string_agg(((length(prosrc) - length(replace(prosrc, m, ''))) / length(m))::text, ',' order by m)
+          from pg_proc, unnest(array['regularizar_propia_venta', 'prenda_sin_cargar_en_sede', 'cantidad - cantidad_apartada >= 1',
+                                     'fn_bloquear_en_orden(v_p.ubicacion_id']) m
+         where pg_proc.oid = 'retail.regularizar_prenda(uuid, uuid, text)'::regprocedure);`,
+  "0/1,1,1,1",
+);
+caso(
+  "P3 · si el cuerpo vivo es otro (un ancla no está), la migración aborta sin tocar nada",
+  `${REPONER_ORIGINAL}select pg_temp.intento(format('create or replace function retail.regularizar_prenda(p_id uuid, p_variante_id uuid, p_forma text) returns numeric language plpgsql as %L', 'begin return 0; end;')) \\g /dev/null
+select pg_temp.intento(${"$m$"}${MIG_REGLAS.replace(/notify pgrst, 'reload schema';\s*$/, "")}${"$m$"}) as r \\gset
+select :'r' || ' / clave=' || (select count(*) from retail.acciones_sin_responsable where clave = 'regularizar_prenda');`,
+  (s) => s.includes("cambió desde que se escribió esta migración") && s.endsWith(" / clave=1"),
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""}`);

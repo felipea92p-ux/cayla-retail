@@ -725,4 +725,20 @@ describe("regularizar la propia venta (ADR-0328)", () => {
     );
     expect(salida).toBe("Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.");
   });
+
+  // 20261004204000 (revisión R6): la base nombra la sede en el mensaje; pasa tal cual (P0001), sin caer al genérico.
+  it("una prenda todavía sin cargar en la sede: el mensaje de la base, con su sede", () => {
+    const mensaje =
+      "Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial (lo que hay hoy en la tienda, sin la vendida) y vuelve a regularizarla.";
+    expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_en_sede" }, "regularizar la prenda")).toBe(mensaje);
+  });
+
+  // R2/R3: «ya estaba registrada» ya no descuenta de Cuarentena ni de lo apartado; el mensaje lo dice.
+  it("sin unidades libres para descontar: dice que las apartadas y las de Cuarentena no cuentan", () => {
+    const salida = traducirError(
+      { code: "P0001", message: "prenda_sin_stock_para_descontar", hint: "Esa prenda no tiene stock en esta sede. Si llegó en un lote que se contó sin ella, elige «llegó nueva»." },
+      "regularizar la prenda",
+    );
+    expect(salida).toContain("las apartadas y las de Cuarentena no cuentan");
+  });
 });

@@ -229,11 +229,19 @@ rollback;`),
 
 error(
   "«ya estaba registrada» sin stock en la sede pide elegir «llegó nueva»",
+  // Una prenda que YA tuvo movimientos en la sede (entró 1 y salió 1) pero hoy está en 0. Una sin ningún movimiento ahí ya ni
+  // llega a esta pregunta: «todavía no está cargada» (20261004204000, ADR-0328; lo prueba ventas_sin_registrar.mjs, R6).
   comoPersona(FELIPE, `${fixture()}${venderLibre(50)}
 select v.id as sin_stock from retail.variantes v
   where v.id <> '${CENTINELA}' and v.id <> :'v1'
     and not exists (select 1 from retail.stock s where s.variante_id = v.id and s.ubicacion_id = :'ubic' and s.cantidad > 0)
   limit 1 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'sin_stock', :'ubic', :'sub_piso', 'entrada', 1, 'recepcion') returning id as mov_e \\gset
+select retail.fn_aplicar_movimiento(:'mov_e') as _de \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'sin_stock', :'ubic', :'sub_piso', 'salida', 1, 'venta') returning id as mov_s \\gset
+select retail.fn_aplicar_movimiento(:'mov_s') as _ds \\gset
 select retail.regularizar_prenda(p.id, :'sin_stock', 'ya_registrada') from retail.prendas_por_regularizar p where venta_item_id = :'item_id';
 rollback;`),
   "prenda_sin_stock_para_descontar"

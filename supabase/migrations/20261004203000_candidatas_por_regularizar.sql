@@ -19,6 +19,7 @@
 --   · stock DISPONIBLE en la sede de la venta (`fn_existencias_base`: sin Cuarentena, sin apartadas, sin tallas retiradas),
 -- y por cada una: si el color es exacto, cuánto hay libre en el piso y en el almacén, y la PRIMERA ENTRADA de esa prenda a esa
 -- sede (fecha y motivo: carga inicial, recepción, traslado, ajuste…). Hasta 20 por venta, las más probables primero.
+-- Y `retail.fn_prenda_cargada_en_sede(variante, sede)`: si esa prenda ya entró al sistema en esa sede (revisión R6, al final).
 --
 -- CONTRATO
 --   PROMETE: solo filas de sedes que la cuenta puede operar (`fn_puede_operar_ubicacion`, la misma puerta que la RLS de
@@ -41,10 +42,11 @@
 -- alguna). Las dos búsquedas de la primera entrada van por el índice `movimientos_variante_ubicacion_idx` (y la de traslados
 -- viejos por `movimientos_destino_fecha_idx`). En 3 años, a este ritmo, decenas de miles de movimientos: sigue siendo un índice.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: tal cual en el SQL Editor (trae `retail.` y `set search_path`), en UNA sola parte: solo crea una
--- función de lectura y su comentario; no toca tablas ni políticas (ADR-0195 no aplica). Idempotente (`create or replace`).
--- Pégala ANTES de publicar la web que la llama; si la web llega primero, Por regularizar sigue funcionando sin sugerencias
--- (`getCandidatasPorRegularizar` devuelve vacío ante el error y lo anota).
+-- CÓMO SE PEGA EN PRODUCCIÓN: tal cual en el SQL Editor (trae `retail.` y `set search_path`), en UNA sola parte: solo crea
+-- funciones de lectura y sus comentarios; no toca tablas ni políticas (ADR-0195 no aplica). Idempotente (`create or replace`).
+-- Pégala ANTES de 20261004204000 (que usa `fn_prenda_cargada_en_sede` y aborta si falta) y antes de publicar la web que las
+-- llama; si la web llega primero, Por regularizar sigue funcionando sin sugerencias (`getCandidatasPorRegularizar` devuelve
+-- vacío ante el error y lo anota) y sin el aviso de «todavía no está cargada» (la base lo dice al guardar).
 --
 -- SE ROMPE SI: alguien cambia `fn_existencias_base` y deja de excluir Cuarentena o apartadas (se sugeriría una prenda que no se
 -- puede vender); o si la venta se registra con otra hora que la real (offline): la sugerencia puede decir «ya estaba registrada»
@@ -148,5 +150,33 @@ comment on function retail.fn_candidatas_por_regularizar(uuid) is
 
 revoke all on function retail.fn_candidatas_por_regularizar(uuid) from public, anon;
 grant execute on function retail.fn_candidatas_por_regularizar(uuid) to authenticated;
+
+-- ¿Esta prenda ya entró al sistema en esta sede? (revisión adversarial, R6). UNA definición para dos lectores: la pantalla, que
+-- lo dice ANTES del botón cuando se elige una prenda que no es candidata, y `regularizar_prenda` (20261004204000), que rechaza
+-- regularizar una prenda sin historia en la sede: «llegó nueva» le cerraría su carga inicial (`fn_cargar_stock_inicial` exige
+-- que no tenga ningún movimiento ahí, `carga_con_historia`) y «ya estaba registrada» no tiene de dónde descontar.
+-- PROMETE: `true` si la prenda tiene algún movimiento en la sede (como origen, o como destino de un traslado que la trajo),
+-- `false` si ninguno, `null` si la cuenta no opera esa sede (no se dice nada de una sede ajena). NO HACE: no mira el stock de hoy
+-- (una prenda agotada sí está cargada) ni escribe nada. Costo: un `exists` por el índice `movimientos_variante_ubicacion_idx`.
+create or replace function retail.fn_prenda_cargada_en_sede(p_variante_id uuid, p_ubicacion_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select case
+    when fn_puede_operar_ubicacion(p_ubicacion_id) then
+      exists (select 1 from movimientos m
+               where m.variante_id = p_variante_id
+                 and (m.ubicacion_id = p_ubicacion_id or m.ubicacion_destino_id = p_ubicacion_id))
+  end;
+$$;
+
+comment on function retail.fn_prenda_cargada_en_sede(uuid, uuid) is
+  'ADR-0328 (actividad 5, revisión R6): true si la prenda tiene algún movimiento en la sede (origen o destino de un traslado), false si ninguno, null si la cuenta no opera la sede. La usan Por regularizar (antes del botón) y regularizar_prenda (una prenda sin cargar en la sede no se regulariza: primero su carga inicial). Solo lectura.';
+
+revoke all on function retail.fn_prenda_cargada_en_sede(uuid, uuid) from public, anon;
+grant execute on function retail.fn_prenda_cargada_en_sede(uuid, uuid) to authenticated;
 
 notify pgrst, 'reload schema';

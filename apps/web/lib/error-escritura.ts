@@ -87,8 +87,10 @@ const HUELLAS: Huella[] = [
     frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
   },
   {
+    // Desde 20261004204000 cuenta solo lo DISPONIBLE (como la candidata): las apartadas y las de Cuarentena no se descuentan.
     marca: "prenda_sin_stock_para_descontar",
-    frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
+    frase:
+      "Esa prenda no tiene unidades libres en esta tienda (las apartadas y las de Cuarentena no cuentan). Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
   },
   {
     // Toda RPC que llama la web tiene EXECUTE para `authenticated`; si Postgres dice «permission denied for

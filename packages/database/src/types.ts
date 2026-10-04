@@ -7572,6 +7572,11 @@ export type Database = {
           variante_id: string
         }[]
       }
+      // 20261004203000 (ADR-0328, act. 5, revisión R6): ¿la prenda ya entró al sistema en esa sede? null si la cuenta no la opera.
+      fn_prenda_cargada_en_sede: {
+        Args: { p_ubicacion_id: string; p_variante_id: string }
+        Returns: boolean | null
+      }
       fn_stock_por_sede: {
         Args: never
         Returns: {
