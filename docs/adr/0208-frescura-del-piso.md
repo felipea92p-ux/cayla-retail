@@ -3290,3 +3290,12 @@ En corto: un porcentaje semanal es ruido (con 30–100 unidades por semana y dis
 es normal, que compara la tienda contra su propio mes anterior solo si la diferencia supera al azar, y que ante una
 concentración en un día pregunta «¿hubo un problema?» antes de decir cualquier cosa sobre costumbre. Depende del paso 3b
 para ser completa.
+
+## Actualización 2026-10-04 — la decisión 12 queda reemplazada por ADR-0329 (aceptado)
+
+La decisión 12 («un plan de capacidad por categoría, sede y temporada, configurable, medido en ganchos y frentes, no en m²») queda **reemplazada por ADR-0329**, que Felipe
+aceptó el 2026-10-04: el plan se mide en **prendas**, el total del piso de cada sede sale de **m² × densidad** (30 prendas por m² de arranque, tomada del conteo de TRU del
+2026-09-30), el primer mix sale de la industria y lo aprueba Felipe, se mueve una vez al mes con tope de ±3 puntos, y cuando una categoría llena su parte «entra una, sale
+una» con la propuesta de retiro de Frescura. Ese ADR se escribió como 0295 el 2026-10-01 en un commit que no llegó a `main`. El bloque 6 se construye en las actividades 6 y 12
+de ADR-0328.
+
