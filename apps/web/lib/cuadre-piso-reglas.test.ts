@@ -23,6 +23,7 @@ import {
   interpretarErrorDeCuadre,
   leerBorradorCuadre,
   leerCodigoCuadre,
+  leerConteoAbierto,
   leerEstadoCuadre,
   leerRespuestaCuadre,
   leerVistaCuadre,
@@ -30,6 +31,7 @@ import {
   motivoNoConfirmar,
   motivoNoRevisar,
   noCargadasAlEscanear,
+  nombreDelConteo,
   pedirReescaneo,
   quitarLineaCuadre,
   reponerLinea,
@@ -38,6 +40,7 @@ import {
   serializarBorradorCuadre,
   sonidoDeLecturaCuadre,
   sumarLecturaCuadre,
+  textoConteoAbierto,
   textoCuadradoEn,
   textoDeBorradorCuadre,
   textoDeEnvioIncierto,
@@ -260,6 +263,8 @@ const RESPUESTA_BASE = {
   ya_registrado: false,
 };
 
+const CONTEO_BASE = { conteo_id: "d0d0d0d0-0000-4000-8000-000000000012", numero: 12, abierto_en: "2026-10-04T14:12:00Z", lugar: "almacen", por: "Ana Torres" };
+
 describe("lo que devuelve la base", () => {
   it("la respuesta del cuadre", () => {
     const r = leerRespuestaCuadre(RESPUESTA_BASE)!;
@@ -282,11 +287,27 @@ describe("lo que devuelve la base", () => {
     expect(v.ultimoCuadre).toBeNull();
     expect(leerVistaCuadre({ resumen: RESUMEN_BASE, lineas: [linea], ultimo_cuadre: RESPUESTA_BASE })?.ultimoCuadre?.cuadreId).toBe(RESPUESTA_BASE.cuadre_id);
     expect(leerVistaCuadre({ resumen: RESUMEN_BASE, lineas: [{ ...linea, motivo: "otro" }] })).toBeNull();
+    expect(v.conteoAbierto).toBeNull();
+    expect(leerVistaCuadre({ resumen: RESUMEN_BASE, lineas: [linea], conteo_abierto: CONTEO_BASE })?.conteoAbierto).toEqual({
+      conteoId: CONTEO_BASE.conteo_id,
+      numero: 12,
+      abiertoEn: CONTEO_BASE.abierto_en,
+      lugar: "almacen",
+      por: "Ana Torres",
+    });
     expect(leerVistaCuadre({ resumen: {}, lineas: [] })).toBeNull();
   });
 
   it("el estado de la sede: sin cuadre y con cuadre", () => {
-    expect(leerEstadoCuadre({ cuadrado_en: null, por: null, prendas_al_piso: 0, prendas_al_almacen: 0, cuadres: 0 })).toEqual({ cuadradoEn: null, por: null, prendasAlPiso: 0, prendasAlAlmacen: 0, cuadres: 0 });
+    expect(leerEstadoCuadre({ cuadrado_en: null, por: null, prendas_al_piso: 0, prendas_al_almacen: 0, cuadres: 0 })).toEqual({
+      cuadradoEn: null,
+      por: null,
+      prendasAlPiso: 0,
+      prendasAlAlmacen: 0,
+      cuadres: 0,
+      conteoAbierto: null,
+    });
+    expect(leerEstadoCuadre({ cuadres: 0, conteo_abierto: CONTEO_BASE })?.conteoAbierto?.numero).toBe(12);
     expect(leerEstadoCuadre({ cuadrado_en: "2026-10-04T14:33:08-05:00", por: "Ana", prendas_al_piso: 435, prendas_al_almacen: 12, cuadres: 1 })?.prendasAlPiso).toBe(435);
     expect(leerEstadoCuadre(null)).toBeNull();
   });
@@ -377,9 +398,42 @@ describe("los rechazos de la base", () => {
   });
 
   it("cada pista que levanta la migración y que la pantalla distingue existe en la migración", () => {
-    for (const hint of ["cuadre_almacen_movido", "cuadre_ya_hecho", "cuadre_token_reusado", "cuadre_solo_lider", "cuadre_tienda_sin_piso", "cuadre_escaneo_invalido", "cuadre_lista_invalida", "cuadre_sin_token"]) {
+    for (const hint of ["cuadre_almacen_movido", "cuadre_ya_hecho", "cuadre_conteo_abierto", "cuadre_token_reusado", "cuadre_solo_lider", "cuadre_tienda_sin_piso", "cuadre_escaneo_invalido", "cuadre_lista_invalida", "cuadre_sin_token"]) {
       expect(MIGRACION).toContain(`hint = '${hint}'`);
     }
+  });
+});
+
+describe("un conteo abierto en la sede (el cuadre no se confirma hasta cerrarlo)", () => {
+  it("se lee de la base; lo que no calza es null (nunca un conteo inventado)", () => {
+    expect(leerConteoAbierto(null)).toBeNull();
+    expect(leerConteoAbierto({ ...CONTEO_BASE, conteo_id: "x" })).toBeNull();
+    expect(leerConteoAbierto({ ...CONTEO_BASE, abierto_en: null })).toBeNull();
+    expect(leerConteoAbierto({ ...CONTEO_BASE, numero: null, lugar: null, por: null })).toMatchObject({ numero: null, lugar: null, por: null });
+  });
+
+  it("dice qué conteo, desde cuándo y qué hacer, en hora de Lima", () => {
+    const c = leerConteoAbierto(CONTEO_BASE)!;
+    expect(nombreDelConteo(c)).toBe("Conteo 12 del almacén");
+    expect(nombreDelConteo({ ...c, lugar: "piso" })).toBe("Conteo 12 del piso");
+    expect(nombreDelConteo({ ...c, numero: null, lugar: null })).toBe("Un conteo");
+    expect(textoConteoAbierto(c, "TRU")).toBe(
+      "En TRU hay un conteo abierto: el Conteo 12 del almacén, abierto el 04/10 a las 09:12 por Ana Torres. Ciérralo o cancélalo en Conteo antes de cuadrar: si no, el conteo y el cuadre corregirían las mismas prendas dos veces. Puedes ir escaneando mientras tanto.",
+    );
+  });
+
+  it("el rechazo de la base trae el conteo; suelta la marca (la base ya la miró) y apaga el botón con su motivo", () => {
+    const e = interpretarErrorDeCuadre({ message: "Hay un conteo abierto en esta sede", code: "P0001", hint: "cuadre_conteo_abierto", details: JSON.stringify(CONTEO_BASE) });
+    expect(e.tipo === "conteo_abierto" && e.conteo?.numero).toBe(12);
+    expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_conteo_abierto", details: "{roto" })).toMatchObject({ tipo: "conteo_abierto", conteo: null });
+    expect(respuestaResuelveLaMarcaCuadre({ message: "m", code: "P0001", hint: "cuadre_conteo_abierto" })).toBe(true);
+    const c = leerConteoAbierto(CONTEO_BASE)!;
+    expect(motivoNoConfirmar({ esLider: true, responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toBe(
+      "Hay un conteo abierto (Conteo 12 del almacén): ciérralo o cancélalo en Conteo antes de cuadrar.",
+    );
+    // Sin ser líder, lo primero es quién confirma; sin conteo, el botón vuelve a lo de siempre.
+    expect(motivoNoConfirmar({ esLider: false, responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toMatch(/^Solo un líder/);
+    expect(motivoNoConfirmar({ esLider: true, responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: null })).toBeNull();
   });
 });
 

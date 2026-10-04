@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, Info, Loader2, Minus, Plus, ScanBarcode, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -52,12 +53,14 @@ import {
   serializarBorradorCuadre,
   sonidoDeLecturaCuadre,
   sumarLecturaCuadre,
+  textoConteoAbierto,
   textoCuadradoEn,
   textoDeBorradorCuadre,
   textoDeEnvioIncierto,
   textoDeResultado,
   totalEscaneado,
   type BorradorCuadre,
+  type ConteoAbierto,
   type ErrorDeCuadre,
   type EstadoCuadre,
   type LineaCuadre,
@@ -188,6 +191,9 @@ export function CuadrarPisoForm({
   const [resultado, setResultado] = useState<{ respuesta: RespuestaCuadre | null; otraPersona: boolean } | null>(null);
   const [movidas, setMovidas] = useState<PrendaMovida[]>([]);
   const [notaExigida, setNotaExigida] = useState(false);
+  // El conteo abierto de la sede (lo último que dijo la base: al cargar, al revisar o al rechazar el cuadre). Mientras exista,
+  // confirmar está apagado: al cerrarse, el conteo corregiría otra vez lo que el cuadre corrige.
+  const [conteo, setConteo] = useState<ConteoAbierto | null>(estado.conteoAbierto);
   const [camara, setCamara] = useState(false);
   const [sinGuardado, setSinGuardado] = useState(false);
   const [edicion, setEdicion] = useState<Record<string, string>>({});
@@ -197,7 +203,7 @@ export function CuadrarPisoForm({
   const total = totalEscaneado(datos.lineas);
   const notaRequerida = estado.cuadres > 0 || notaExigida;
   const motivoRevisar = motivoNoRevisar({ lineas: datos.lineas.length, confirmoVacio: datos.confirmoVacio, pendientes: datos.pendientes.length });
-  const motivoConfirmar = motivoNoConfirmar({ esLider, responsableMotivo: responsable.motivo, notaRequerida, nota: datos.nota });
+  const motivoConfirmar = motivoNoConfirmar({ esLider, responsableMotivo: responsable.motivo, notaRequerida, nota: datos.nota, conteoAbierto: conteo });
   const guiaEscaneo = useGuiaCampos(camposGuiaEscaneo({ lineas: datos.lineas.length, confirmoVacio: datos.confirmoVacio, pendientes: datos.pendientes.length }), {
     enModal: false,
   });
@@ -444,6 +450,7 @@ export function CuadrarPisoForm({
     const { data, error: e } = await createClient().rpc(RPC_PREVISUALIZAR as never, { p_ubicacion_id: ubicacionId, p_guardado: aGuardado(datosRef.current.lineas) } as never);
     if (e) return setVista({ estado: "error", mensaje: e.message || "No se pudo revisar el cuadre." });
     const v = leerVistaCuadre(data);
+    if (v) setConteo(v.conteoAbierto);
     setVista(v ? { estado: "lista", datos: v } : { estado: "error", mensaje: "La respuesta de la base no tiene la forma esperada. Vuelve a intentarlo." });
   }
 
@@ -530,6 +537,7 @@ export function CuadrarPisoForm({
         router.refresh();
         return terminarEnvio();
       }
+      if (fallo.tipo === "conteo_abierto" && fallo.conteo) setConteo(fallo.conteo);
       if (fallo.tipo === "nota_requerida") {
         setNotaExigida(true);
         guiaConfirmar.ir("nota");
@@ -591,6 +599,18 @@ export function CuadrarPisoForm({
           El piso de {sede} ya se cuadró {textoCuadradoEn(estado.cuadradoEn, estado.por)}: {estado.prendasAlPiso.toLocaleString("es-PE")} pasaron al piso y{" "}
           {estado.prendasAlAlmacen.toLocaleString("es-PE")} subieron al almacén. Si lo vuelves a cuadrar, tendrás que decir por qué.
         </p>
+      )}
+
+      {conteo && (
+        <div
+          role="status"
+          className="anim-revelar flex flex-wrap items-start justify-between gap-x-3 gap-y-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo"
+        >
+          <p className="min-w-0 flex-1 basis-64">{textoConteoAbierto(conteo, sede)}</p>
+          <Link href={`/inventario/conteo/${conteo.conteoId}`} className="btn-cayla btn-enlace shrink-0 text-[13px]">
+            Ir al conteo
+          </Link>
+        </div>
       )}
 
       {borrador && (
@@ -881,12 +901,12 @@ export function CuadrarPisoForm({
                   placeholder={notaRequerida ? "Ej.: faltó escanear el estante del fondo" : "Ej.: cuadre de arranque, antes de abrir"} // sugerir-fijo: la nota de un cuadre no depende de una prenda ni de una categoría elegida; solo cambia si es el primero o se repite
                 />
               </CampoGuiado>
-              {!esLider && <p className="text-sm text-taupe">{motivoConfirmar}</p>}
+              {(!esLider || conteo) && <p className="text-sm text-taupe">{motivoConfirmar}</p>}
             </section>
           )}
 
           <BarraFija
-            aviso={paso === "confirmar" && esLider ? <PieGuia guia={guiaConfirmar} listo={`Listo para cuadrar el piso de ${sede}.`} /> : undefined}
+            aviso={paso === "confirmar" && esLider && !conteo ? <PieGuia guia={guiaConfirmar} listo={`Listo para cuadrar el piso de ${sede}.`} /> : undefined}
             resumen={
               vista?.estado === "lista" ? (
                 <span className="tabular-nums">

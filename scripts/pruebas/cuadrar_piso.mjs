@@ -36,6 +36,8 @@
  *      otra vez no cambia nada; con un parche en vivo en cualquiera de las dos aborta y no pisa nada; el paso 4 de
  *      Frescura pegado después aborta y no deshace nada.
  *   C13 tamaño: 550 tallas y ~800 prendas en una sede cuadran dentro del statement_timeout de 8 s de authenticated.
+ *   C14 un conteo abierto en la sede frena el cuadre (cuadre_conteo_abierto, nada se escribe): su cierre corregiría otra vez
+ *      lo mismo. Revisar y el estado lo avisan; cancelado el conteo, el cuadre entra.
  *
  * CÓMO. Igual que `retirar_del_piso.mjs`: cada caso en su transacción con ROLLBACK (nunca se commitea nada), sesión simulada
  * con `request.jwt.claim.sub` y el encabezado de PostgREST con `request.headers`. La sede es NUEVA en cada caso («ZZ Tienda
@@ -264,8 +266,8 @@ caso(
                     p.prosecdef, coalesce(p.proconfig::text like '%search_path=retail, public, extensions%', false)), ';' order by p.proname)
      from pg_proc p where p.pronamespace = 'retail'::regnamespace
       and p.proname in ('cuadrar_piso', 'previsualizar_cuadre_piso', 'fn_cuadre_piso_estado', 'fn_cuadre_piso_lista', 'fn_cuadre_piso_calculo',
-                        'fn_cuadre_piso_vista', 'fn_cuadre_piso_respuesta');`,
-  "cuadrar_piso=f,t,t,t;fn_cuadre_piso_calculo=f,f,t,t;fn_cuadre_piso_estado=f,t,t,t;fn_cuadre_piso_lista=f,f,t,t;fn_cuadre_piso_respuesta=f,f,t,t;fn_cuadre_piso_vista=f,f,t,t;previsualizar_cuadre_piso=f,t,t,t"
+                        'fn_cuadre_piso_vista', 'fn_cuadre_piso_respuesta', 'fn_cuadre_piso_conteo_abierto');`,
+  "cuadrar_piso=f,t,t,t;fn_cuadre_piso_calculo=f,f,t,t;fn_cuadre_piso_conteo_abierto=f,f,t,t;fn_cuadre_piso_estado=f,t,t,t;fn_cuadre_piso_lista=f,f,t,t;fn_cuadre_piso_respuesta=f,f,t,t;fn_cuadre_piso_vista=f,f,t,t;previsualizar_cuadre_piso=f,t,t,t"
 );
 caso(
   "C1 · las dos tablas: RLS encendido, CERO políticas y sin privilegios para authenticated (solo las tocan las funciones)",
@@ -768,6 +770,47 @@ ${COMO_POSTGRES}select concat_ws(',', :'tam', (:'r')::jsonb ->> 'ok', (:'r')::js
     console.log(`    (medido: ${tam} tallas:prendas en la sede, ${alPiso} al piso, ${alAlmacen} líneas al almacén, ${segundos} s)`);
     return ok === "true" && Number(segundos) < 8 && Number(alPiso) >= 400;
   }
+);
+
+// ===========================================================================
+// C14 · Un conteo abierto en la sede frena el cuadre (revisión adversarial, 2026-10-04)
+// ===========================================================================
+
+// El escenario de la revisión: un conteo del PISO ya contó vc (el sistema dice 0 colgadas, hay 3). Si el cuadre bajara las
+// 3 de vc del almacén y después se cerrara el conteo, su ajuste (+3) sumaría otra vez lo mismo: 6 colgadas donde hay 3.
+caso(
+  "C14 · con un conteo abierto (y ya contado) en la sede → cuadre_conteo_abierto con el conteo en el detail, y nada se escribe; Revisar y el estado lo avisan",
+  `${sesion(FELIPE)}${COMO_API}select retail.abrir_conteo(:'cua', :'piso', 'todo', null) as conteo \\gset
+select retail.conteo_contar(:'conteo', :'vc', 3, false) as _contado \\gset
+${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
+select numero as numero from retail.conteos where id = :'conteo' \\gset
+${sesion(FELIPE)}${COMO_API}select ${cuadrar("'[]'::jsonb")} as r \\gset
+select ${previa("'[]'::jsonb")} as p \\gset
+select ${estado()} as e \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'hint',
+  ((:'r')::jsonb ->> 'msg') like 'Hay un conteo abierto en esta sede (Conteo ' || :'numero' || ' del piso, abierto el %). Ciérralo o cancélalo en Conteo antes de cuadrar%No se movió nada.',
+  ((:'r')::jsonb ->> 'detail')::jsonb ->> 'conteo_id' = :'conteo',
+  ((:'r')::jsonb ->> 'detail')::jsonb ->> 'lugar',
+  (:'p')::jsonb -> 'res' -> 'conteo_abierto' ->> 'conteo_id' = :'conteo',
+  (:'p')::jsonb -> 'res' -> 'resumen' ->> 'prendas_al_piso',
+  (:'e')::jsonb -> 'res' -> 'conteo_abierto' ->> 'numero' = :'numero',
+  ${CONTADORES} = :'antes');`,
+  "cuadre_conteo_abierto,t,t,piso,t,13,t,t"
+);
+caso(
+  "C14 · cancelado el conteo, el mismo cuadre entra (y Revisar y el estado ya no lo traen); sin conteo, conteo_abierto es nulo",
+  `${sesion(FELIPE)}${COMO_API}select ${estado()} as e0 \\gset
+select retail.abrir_conteo(:'cua', :'alm', 'todo', null) as conteo \\gset
+select ${cuadrar("'[]'::jsonb")} as r1 \\gset
+select retail.anular_conteo(:'conteo') as _anulado \\gset
+select ${previa("'[]'::jsonb")} as p \\gset
+select ${cuadrar("'[]'::jsonb")} as r2 \\gset
+select ${estado()} as e \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'e0')::jsonb -> 'res' ->> 'conteo_abierto' is null, (:'r1')::jsonb ->> 'hint',
+  ((:'r1')::jsonb ->> 'msg') like '%(Conteo % del almacén, abierto el %',
+  (:'p')::jsonb -> 'res' ->> 'conteo_abierto' is null, (:'r2')::jsonb ->> 'ok', (:'r2')::jsonb -> 'res' ->> 'prendas_al_piso',
+  (:'e')::jsonb -> 'res' ->> 'conteo_abierto' is null);`,
+  "t,cuadre_conteo_abierto,t,t,true,13,t"
 );
 
 console.log(`\n${fallos === 0 ? "✓" : "✗"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);

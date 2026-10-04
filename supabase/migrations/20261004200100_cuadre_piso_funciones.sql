@@ -20,16 +20,27 @@
 --     archivadas (se listan como «archivadas: no se movieron»). La previsualización y el cuadre llaman a ESTA función:
 --     la pantalla no puede mostrar una cuenta y la base aplicar otra (lo vigila pruebas:cuadrar-piso).
 --   · `fn_cuadre_piso_vista(sede, lista)` (interna): el resumen y las líneas que se muestran Y se aplican.
+--   · `fn_cuadre_piso_conteo_abierto(sede)` (interna): el conteo abierto de la sede, o null.
 --   · `previsualizar_cuadre_piso(sede, guardado)` (lectura, la pantalla «Revisar»): quien ve Existencias en su sede.
---   · `fn_cuadre_piso_estado(sede)` (lectura): {cuadrado_en, por, prendas_al_piso, prendas_al_almacen, cuadres} del
---     último cuadre (la portada de Existencias, actividad 8).
+--     Trae `conteo_abierto` para avisarlo antes de confirmar.
+--   · `fn_cuadre_piso_estado(sede)` (lectura): {cuadrado_en, por, prendas_al_piso, prendas_al_almacen, cuadres,
+--     conteo_abierto} del último cuadre (la portada de Existencias, actividad 8).
 --   · `cuadrar_piso(sede, guardado, escaneo_desde, nota, token)`: TODO O NADA, solo un LÍDER (fn_es_lider() a la vista,
 --     hint `cuadre_solo_lider`; escanear lo puede cualquiera que vea Existencias, confirmar no). Firma el responsable
 --     (`fn_actor_persona_id(true)`). Orden: forma → marca del intento (candado + búsqueda; el reintento devuelve lo
 --     guardado aunque el piso ya cambió) → candado de la sede → responsable → stock en orden (ADR-0190) → ¿se cuadró
---     después de tu escaneo? → ¿se movió algo en el almacén después de tu escaneo? (rechaza y dice QUÉ prendas, para
---     volver a escanear solo esas) → la cuenta bajo candado → cabecera → un `mover_interno` por línea (nota fija
---     «Cuadre del piso») y su ítem.
+--     después de tu escaneo? → ¿hay un conteo abierto en la sede? → ¿se movió algo en el almacén después de tu escaneo?
+--     (rechaza y dice QUÉ prendas, para volver a escanear solo esas) → la cuenta bajo candado → cabecera → un
+--     `mover_interno` por línea (nota fija «Cuadre del piso») y su ítem.
+--
+-- POR QUÉ UN CONTEO ABIERTO FRENA EL CUADRE (revisión adversarial, 2026-10-04). Un conteo guarda «lo que debía haber» al
+-- verificar cada prenda (`conteo_contar`) y al cerrarse suma la diferencia sobre el stock de ESE momento
+-- (`cerrar_conteo`): todo lo que se movió entre medio lo trata como un movimiento físico. El cuadre no es físico, solo
+-- corrige el registro. Con un conteo abierto del piso que ya contó 5 colgadas (el sistema decía 0), un cuadre que baja
+-- esas 5 del almacén y el cierre del conteo, la sede queda con 10 en el piso cuando hay 5: los dos corrigen lo mismo.
+-- Basta mirarlo DESPUÉS de bloquear el stock: `conteo_contar` lee el stock de la prenda con `for share`, así que una
+-- verificación que llega durante el cuadre espera a que termine y cuenta contra el piso ya cuadrado; y un conteo que se
+-- abrió antes de que tomáramos el candado ya está confirmado y lo vemos. No hace falta un candado de tabla.
 --
 -- POR QUÉ `mover_interno` Y NO UN INSERT DIRECTO. Es el único productor de la fila almacén↔piso del libro (la misma que
 -- «Reponer» y «Subir a almacén»): Movimientos la muestra como movimiento interno y Actividad escribe sola sus dos líneas
@@ -44,7 +55,8 @@
 --
 -- ESTADO QUE DEJA DE SER POSIBLE: un cuadre a medias (unas prendas movidas y otras no), un cuadre que aplica una cuenta
 -- distinta de la que se mostró, un cuadre hecho con un escaneo que el almacén ya desmintió, dos cuadres simultáneos de la
--- misma sede, y mover lo apartado para un cliente.
+-- misma sede, mover lo apartado para un cliente, y un cuadre con un conteo abierto en la sede (los dos corregirían las
+-- mismas prendas y la sede ganaría prendas que no existen).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y ANTES de 20261004200200 (las guardas de abajo
 -- abortan sin tocar nada si falta algo). Solo `create or replace function` + `comment` + `revoke` + `grant`: no toma las
@@ -308,8 +320,38 @@ comment on function retail.fn_cuadre_piso_respuesta(uuid) is
   'ADR-0328: lo que devuelve cuadrar_piso de un cuadre guardado (resumen + cuadre_id, cuadrado_en, por, nota, no_cargado). Interna.';
 
 -- ---------------------------------------------------------------------------
+-- 4b. El conteo abierto de la sede (si hay): lo que frena el cuadre y lo que la pantalla avisa antes.
+--    PROMETE: {conteo_id, numero, abierto_en, lugar ('piso' | 'almacen' | null), por} del conteo abierto de la sede, o
+--             null. La base admite uno solo por sede (`conteos_un_abierto_por_ubicacion`).
+--    ASUME:   nada; lee lo confirmado. Quien escribe la llama con el stock ya bloqueado (ver «POR QUÉ UN CONTEO…»).
+-- ---------------------------------------------------------------------------
+create or replace function retail.fn_cuadre_piso_conteo_abierto(p_ubicacion_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+  select jsonb_build_object(
+           'conteo_id', c.id,
+           'numero', c.numero,
+           'abierto_en', c.created_at,
+           'lugar', case s.tipo when 'piso_venta' then 'piso' when 'almacen_tienda' then 'almacen' end,
+           'por', case when c.abierto_por is null then null else retail.fn_actividad_nombre(c.abierto_por) end)
+    from retail.conteos c
+    left join retail.sububicaciones s on s.id = c.sububicacion_id
+   where c.ubicacion_id = p_ubicacion_id and c.estado = 'abierto'
+   order by c.created_at desc
+   limit 1;
+$fn$;
+
+comment on function retail.fn_cuadre_piso_conteo_abierto(uuid) is
+  'ADR-0328: el conteo abierto de la sede ({conteo_id, numero, abierto_en, lugar, por}) o null. Un conteo abierto frena el cuadre del piso: los dos corregirían las mismas prendas. Interna.';
+
+-- ---------------------------------------------------------------------------
 -- 5. Previsualizar (la pantalla «Revisar»). Solo lectura.
---    PROMETE: la vista del cuadre con el stock de AHORA, más el último cuadre de la sede y la hora de la lectura.
+--    PROMETE: la vista del cuadre con el stock de AHORA, más el último cuadre de la sede, el conteo abierto (si hay: el
+--             cuadre no se podrá confirmar hasta cerrarlo o cancelarlo) y la hora de la lectura.
 --    ASUME:   quien la llama ve Existencias (o es líder) y opera esa sede. Escanear y revisar no es confirmar.
 -- ---------------------------------------------------------------------------
 create or replace function retail.previsualizar_cuadre_piso(p_ubicacion_id uuid, p_guardado jsonb)
@@ -337,16 +379,18 @@ begin
   return fn_cuadre_piso_vista(p_ubicacion_id, v_lista) || jsonb_build_object(
     'ubicacion_id', p_ubicacion_id,
     'revisado_en', clock_timestamp(),
-    'ultimo_cuadre', case when v_ultimo is null then null else fn_cuadre_piso_respuesta(v_ultimo) end);
+    'ultimo_cuadre', case when v_ultimo is null then null else fn_cuadre_piso_respuesta(v_ultimo) end,
+    'conteo_abierto', fn_cuadre_piso_conteo_abierto(p_ubicacion_id));
 end;
 $fn$;
 
 comment on function retail.previsualizar_cuadre_piso(uuid, jsonb) is
-  'ADR-0328: lo que haría el cuadre del piso con lo escaneado (p_guardado = [{variante_id, cantidad}]), con el stock de ahora: {resumen, lineas, ultimo_cuadre, revisado_en}. Solo lectura; quien ve Existencias en su sede.';
+  'ADR-0328: lo que haría el cuadre del piso con lo escaneado (p_guardado = [{variante_id, cantidad}]), con el stock de ahora: {resumen, lineas, ultimo_cuadre, conteo_abierto, revisado_en}. Solo lectura; quien ve Existencias en su sede.';
 
 -- ---------------------------------------------------------------------------
 -- 6. La fecha del último cuadre de una sede (la portada de Existencias, actividad 8). Solo lectura.
---    PROMETE: {cuadrado_en, por, prendas_al_piso, prendas_al_almacen, cuadres}; sin cuadre, cuadrado_en nulo y cuadres 0.
+--    PROMETE: {cuadrado_en, por, prendas_al_piso, prendas_al_almacen, cuadres, conteo_abierto}; sin cuadre, cuadrado_en
+--             nulo y cuadres 0. `conteo_abierto` (o null): la pantalla avisa ANTES de escanear que no se podrá confirmar.
 -- ---------------------------------------------------------------------------
 create or replace function retail.fn_cuadre_piso_estado(p_ubicacion_id uuid)
 returns jsonb
@@ -358,12 +402,14 @@ as $fn$
 declare
   v_ultimo cuadres_piso%rowtype;
   v_cuadres integer;
+  v_conteo jsonb;
 begin
   if not ((fn_es_lider() or fn_ve_modulo('existencias')) and fn_puede_operar_ubicacion(p_ubicacion_id)) then
     raise exception 'Para ver el cuadre del piso hace falta ver Existencias en tu rol y que sea tu sede.'
       using hint = 'cuadre_sin_permiso';
   end if;
   v_cuadres := (select count(*) from cuadres_piso c where c.ubicacion_id = p_ubicacion_id);
+  v_conteo := fn_cuadre_piso_conteo_abierto(p_ubicacion_id);
   for v_ultimo in
     select * from cuadres_piso c where c.ubicacion_id = p_ubicacion_id order by c.created_at desc, c.id limit 1
   loop
@@ -372,21 +418,23 @@ begin
       'por', fn_actividad_nombre(v_ultimo.persona_id),
       'prendas_al_piso', coalesce((v_ultimo.resumen ->> 'prendas_al_piso')::integer, 0),
       'prendas_al_almacen', coalesce((v_ultimo.resumen ->> 'prendas_al_almacen')::integer, 0),
-      'cuadres', v_cuadres);
+      'cuadres', v_cuadres,
+      'conteo_abierto', v_conteo);
   end loop;
-  return jsonb_build_object('cuadrado_en', null, 'por', null, 'prendas_al_piso', 0, 'prendas_al_almacen', 0, 'cuadres', 0);
+  return jsonb_build_object('cuadrado_en', null, 'por', null, 'prendas_al_piso', 0, 'prendas_al_almacen', 0, 'cuadres', 0,
+                            'conteo_abierto', v_conteo);
 end;
 $fn$;
 
 comment on function retail.fn_cuadre_piso_estado(uuid) is
-  'ADR-0328: el último cuadre del piso de una sede: {cuadrado_en, por, prendas_al_piso, prendas_al_almacen, cuadres}. Sin cuadre, cuadrado_en nulo. Quien ve Existencias en su sede.';
+  'ADR-0328: el último cuadre del piso de una sede: {cuadrado_en, por, prendas_al_piso, prendas_al_almacen, cuadres, conteo_abierto}. Sin cuadre, cuadrado_en nulo; sin conteo abierto, conteo_abierto nulo. Quien ve Existencias en su sede.';
 
 -- ---------------------------------------------------------------------------
 -- 7. Cuadrar el piso: todo o nada.
 --    PROMETE: o se mueven todas las líneas de la cuenta (y quedan su cabecera y sus ítems), o nada. El mismo intento
 --             reenviado devuelve el MISMO cuadre (ya_registrado) sin mover nada; con otros datos, no repite nada.
---    ASUME:   la sede separa piso y almacén; lo escaneado es lo GUARDADO del almacén de la sede desde p_escaneo_desde
---             (hora del servidor; no futura ni de hace más de 3 días); confirma un LÍDER.
+--    ASUME:   la sede separa piso y almacén y no tiene un conteo abierto; lo escaneado es lo GUARDADO del almacén de la
+--             sede desde p_escaneo_desde (hora del servidor; no futura ni de hace más de 3 días); confirma un LÍDER.
 -- ---------------------------------------------------------------------------
 create or replace function retail.cuadrar_piso(
   p_ubicacion_id uuid,
@@ -411,6 +459,7 @@ declare
   v_piso uuid;
   v_almacen uuid;
   v_otro cuadres_piso%rowtype;
+  v_conteo jsonb;
   v_movidas jsonb;
   v_vista jsonb;
   v_id uuid;
@@ -491,6 +540,19 @@ begin
             detail = fn_cuadre_piso_respuesta(v_otro.id)::text;
   end loop;
 
+  -- ¿Hay un conteo abierto en la sede? Su cierre sumaría otra vez lo que el cuadre corrige (ver «POR QUÉ UN CONTEO…» en
+  -- la cabecera). Se mira con el stock ya bloqueado: una verificación en curso espera al cuadre, y un conteo abierto
+  -- antes ya está confirmado y se ve aquí.
+  v_conteo := fn_cuadre_piso_conteo_abierto(p_ubicacion_id);
+  if v_conteo is not null then
+    raise exception 'Hay un conteo abierto en esta sede (Conteo %, abierto el %). Ciérralo o cancélalo en Conteo antes de cuadrar: si no, el conteo y el cuadre corregirían las mismas prendas dos veces. No se movió nada.',
+      concat_ws(' ', v_conteo ->> 'numero',
+                case v_conteo ->> 'lugar' when 'piso' then 'del piso' when 'almacen' then 'del almacén' end),
+      to_char((v_conteo ->> 'abierto_en')::timestamptz at time zone 'America/Lima', 'DD/MM "a las" HH24:MI')
+      using hint = 'cuadre_conteo_abierto',
+            detail = v_conteo::text;
+  end if;
+
   -- ¿Se movió algo en el ALMACÉN de la sede después de que empezaste a escanear (una reposición, una bajada desde la
   -- caja, una recepción, un apartado)? Entonces lo escaneado ya no se puede comparar con lo que el sistema tiene: se
   -- rechaza TODO y se dice qué prendas cambiaron, para volver a escanear solo esas. `revisado_hasta` es la hora desde la
@@ -554,13 +616,14 @@ end;
 $fn$;
 
 comment on function retail.cuadrar_piso(uuid, jsonb, timestamptz, text, uuid) is
-  'ADR-0328: cuadra el piso de una sede de una vez y todo o nada. p_guardado = lo escaneado como GUARDADO [{variante_id, cantidad}]; lo que el almacén tiene libre y nadie escaneó pasa al piso, lo escaneado que el sistema creía colgado sube al almacén y lo que excede lo guardado en no_cargado (no se aplica). Solo un líder (hint cuadre_solo_lider); firma el responsable. p_token obligatorio: el mismo intento devuelve el mismo cuadre (ya_registrado). Rechaza si el almacén se movió después de p_escaneo_desde (hint cuadre_almacen_movido, detail con las prendas y revisado_hasta) o si la sede se cuadró después (cuadre_ya_hecho). Desde el segundo cuadre, la nota es obligatoria.';
+  'ADR-0328: cuadra el piso de una sede de una vez y todo o nada. p_guardado = lo escaneado como GUARDADO [{variante_id, cantidad}]; lo que el almacén tiene libre y nadie escaneó pasa al piso, lo escaneado que el sistema creía colgado sube al almacén y lo que excede lo guardado en no_cargado (no se aplica). Solo un líder (hint cuadre_solo_lider); firma el responsable. p_token obligatorio: el mismo intento devuelve el mismo cuadre (ya_registrado). Rechaza si el almacén se movió después de p_escaneo_desde (hint cuadre_almacen_movido, detail con las prendas y revisado_hasta), si la sede se cuadró después (cuadre_ya_hecho) o si tiene un conteo abierto (cuadre_conteo_abierto, detail con el conteo). Desde el segundo cuadre, la nota es obligatoria.';
 
 -- Las internas: nadie de afuera. Las tres puertas: solo authenticated.
 revoke all on function retail.fn_cuadre_piso_lista(jsonb) from public, anon, authenticated;
 revoke all on function retail.fn_cuadre_piso_calculo(uuid, jsonb) from public, anon, authenticated;
 revoke all on function retail.fn_cuadre_piso_vista(uuid, jsonb) from public, anon, authenticated;
 revoke all on function retail.fn_cuadre_piso_respuesta(uuid) from public, anon, authenticated;
+revoke all on function retail.fn_cuadre_piso_conteo_abierto(uuid) from public, anon, authenticated;
 revoke all on function retail.previsualizar_cuadre_piso(uuid, jsonb) from public, anon;
 grant execute on function retail.previsualizar_cuadre_piso(uuid, jsonb) to authenticated;
 revoke all on function retail.fn_cuadre_piso_estado(uuid) from public, anon;

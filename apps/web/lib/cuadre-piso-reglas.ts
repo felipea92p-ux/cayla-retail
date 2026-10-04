@@ -278,9 +278,26 @@ export type RespuestaCuadre = ResumenCuadre & {
   yaRegistrado: boolean;
 };
 
-export type VistaCuadre = { resumen: ResumenCuadre; lineas: LineaVista[]; ultimoCuadre: RespuestaCuadre | null; revisadoEn: string | null };
+/** El conteo abierto de la sede (`fn_cuadre_piso_conteo_abierto`): mientras exista, el cuadre no se confirma — al cerrarse,
+ *  el conteo corregiría otra vez las mismas prendas. */
+export type ConteoAbierto = { conteoId: string; numero: number | null; abiertoEn: string; lugar: "piso" | "almacen" | null; por: string | null };
 
-export type EstadoCuadre = { cuadradoEn: string | null; por: string | null; prendasAlPiso: number; prendasAlAlmacen: number; cuadres: number };
+export type VistaCuadre = {
+  resumen: ResumenCuadre;
+  lineas: LineaVista[];
+  ultimoCuadre: RespuestaCuadre | null;
+  conteoAbierto: ConteoAbierto | null;
+  revisadoEn: string | null;
+};
+
+export type EstadoCuadre = {
+  cuadradoEn: string | null;
+  por: string | null;
+  prendasAlPiso: number;
+  prendasAlAlmacen: number;
+  cuadres: number;
+  conteoAbierto: ConteoAbierto | null;
+};
 
 function leerResumen(x: Record<string, unknown>): ResumenCuadre | null {
   const antes = esObjeto(x.antes) ? x.antes : null;
@@ -349,6 +366,18 @@ export function leerRespuestaCuadre(v: unknown): RespuestaCuadre | null {
   };
 }
 
+/** El conteo abierto que trae la base (en la vista, en el estado o en el detalle del rechazo). null si no hay o no calza. */
+export function leerConteoAbierto(v: unknown): ConteoAbierto | null {
+  if (!esObjeto(v) || typeof v.conteo_id !== "string" || !ES_UUID.test(v.conteo_id) || !esIso(v.abierto_en)) return null;
+  return {
+    conteoId: v.conteo_id,
+    numero: esEntero(v.numero) ? v.numero : null,
+    abiertoEn: v.abierto_en,
+    lugar: v.lugar === "piso" || v.lugar === "almacen" ? v.lugar : null,
+    por: typeof v.por === "string" && v.por.trim() ? v.por : null,
+  };
+}
+
 /** La respuesta de `previsualizar_cuadre_piso`. null si no calza con el contrato. */
 export function leerVistaCuadre(v: unknown): VistaCuadre | null {
   if (!esObjeto(v) || !esObjeto(v.resumen) || !Array.isArray(v.lineas)) return null;
@@ -364,6 +393,7 @@ export function leerVistaCuadre(v: unknown): VistaCuadre | null {
     resumen,
     lineas,
     ultimoCuadre: v.ultimo_cuadre ? leerRespuestaCuadre(v.ultimo_cuadre) : null,
+    conteoAbierto: leerConteoAbierto(v.conteo_abierto),
     revisadoEn: esIso(v.revisado_en) ? v.revisado_en : null,
   };
 }
@@ -377,6 +407,7 @@ export function leerEstadoCuadre(v: unknown): EstadoCuadre | null {
     prendasAlPiso: numero(v.prendas_al_piso),
     prendasAlAlmacen: numero(v.prendas_al_almacen),
     cuadres: numero(v.cuadres),
+    conteoAbierto: leerConteoAbierto(v.conteo_abierto),
   };
 }
 
@@ -421,6 +452,18 @@ export function textoCuadradoEn(iso: string, por: string | null): string {
   return `el ${dia} a las ${hora}${por ? ` · ${por}` : ""}`;
 }
 
+/** «Conteo 12 del almacén»: cómo se llama el conteo abierto en la tienda. */
+export function nombreDelConteo(c: ConteoAbierto): string {
+  const lugar = c.lugar === "piso" ? " del piso" : c.lugar === "almacen" ? " del almacén" : "";
+  return `${c.numero !== null ? `Conteo ${c.numero}` : "Un conteo"}${lugar}`;
+}
+
+/** El aviso de un conteo abierto: qué conteo, desde cuándo y qué hacer. Escanear se puede; confirmar, no hasta cerrarlo. */
+export function textoConteoAbierto(c: ConteoAbierto, sede: string): string {
+  const { dia, hora } = diaYHoraLima(c.abiertoEn);
+  return `En ${sede} hay un conteo abierto: el ${nombreDelConteo(c)}, abierto el ${dia} a las ${hora}${c.por ? ` por ${c.por}` : ""}. Ciérralo o cancélalo en Conteo antes de cuadrar: si no, el conteo y el cuadre corregirían las mismas prendas dos veces. Puedes ir escaneando mientras tanto.`;
+}
+
 /** Arriba de la lista congelada: se envió y no se supo si se guardó. */
 export function textoDeEnvioIncierto(enviadoEn: string): string {
   return `Enviaste el cuadre a las ${diaYHoraLima(enviadoEn).hora} y no supimos si se guardó. Pulsa «${BOTON_COMPROBAR_CUADRE}»: si ya se había guardado, no se repite.`;
@@ -445,6 +488,7 @@ export type ErrorDeCuadre =
   | { tipo: "red"; mensaje: string }
   | { tipo: "almacen_movido"; mensaje: string; prendas: PrendaMovida[]; revisadoHasta: string | null }
   | { tipo: "ya_hecho"; mensaje: string; respuesta: RespuestaCuadre | null }
+  | { tipo: "conteo_abierto"; mensaje: string; conteo: ConteoAbierto | null }
   | { tipo: "token_reusado"; mensaje: string }
   | { tipo: "nota_requerida"; mensaje: string }
   | { tipo: "solo_lider"; mensaje: string }
@@ -478,6 +522,8 @@ export function interpretarErrorDeCuadre(error: ErrorEscritura): ErrorDeCuadre {
     }
     case "cuadre_ya_hecho":
       return { tipo: "ya_hecho", mensaje, respuesta: leerRespuestaCuadre(detalleJson(error)) };
+    case "cuadre_conteo_abierto":
+      return { tipo: "conteo_abierto", mensaje, conteo: leerConteoAbierto(detalleJson(error)) };
     case "cuadre_token_reusado":
       return { tipo: "token_reusado", mensaje };
     case "cuadre_nota_requerida":
@@ -490,7 +536,8 @@ export function interpretarErrorDeCuadre(error: ErrorEscritura): ErrorDeCuadre {
 }
 
 // Los rechazos que la base levanta DESPUÉS de mirar la marca (20261004200100: forma → marca → sede → responsable → piso y
-// almacén → stock → cuadre posterior → almacén movido → nota). Prueban que esa marca no guardó nada (la transacción se deshizo).
+// almacén → stock → cuadre posterior → conteo abierto → almacén movido → nota). Prueban que esa marca no guardó nada (la
+// transacción se deshizo).
 const HINTS_DESPUES_DE_LA_MARCA = new Set([
   "cuadre_token_reusado",
   "responsable_requerido",
@@ -499,6 +546,7 @@ const HINTS_DESPUES_DE_LA_MARCA = new Set([
   "ubicacion_requerida",
   "cuadre_tienda_sin_piso",
   "cuadre_ya_hecho",
+  "cuadre_conteo_abierto",
   "cuadre_almacen_movido",
   "cuadre_nota_requerida",
   "cuadre_item_incoherente",
@@ -558,19 +606,25 @@ export function motivoNoRevisar({ lineas, confirmoVacio, pendientes }: { lineas:
   return null;
 }
 
-/** Por qué el botón «Cuadrar el piso» está apagado, o null. Sin ser líder no desaparece: se apaga y dice quién sí puede. */
+/**
+ * Por qué el botón «Cuadrar el piso» está apagado, o null. Sin ser líder no desaparece: se apaga y dice quién sí puede. Con un
+ * conteo abierto en la sede tampoco: la base lo rechazaría (`cuadre_conteo_abierto`), y no es un campo que se llene aquí.
+ */
 export function motivoNoConfirmar({
   esLider,
   responsableMotivo,
   notaRequerida,
   nota,
+  conteoAbierto = null,
 }: {
   esLider: boolean;
   responsableMotivo: string | null;
   notaRequerida: boolean;
   nota: string;
+  conteoAbierto?: ConteoAbierto | null;
 }): string | null {
   if (!esLider) return "Solo un líder confirma el cuadre. Pídele que entre con su cuenta en este mismo equipo: lo escaneado no se pierde.";
+  if (conteoAbierto) return `Hay un conteo abierto (${nombreDelConteo(conteoAbierto)}): ciérralo o cancélalo en Conteo antes de cuadrar.`;
   if (notaRequerida && !nota.trim()) return "Escribe por qué se vuelve a cuadrar el piso.";
   if (nota.trim().length > NOTA_MAXIMA_CUADRE) return `La nota admite hasta ${NOTA_MAXIMA_CUADRE} caracteres.`;
   return responsableMotivo;
