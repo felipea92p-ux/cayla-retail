@@ -37,6 +37,29 @@ describe("exactitudConteos", () => {
   it("un decimal, sin más", () => {
     expect(exactitudConteos([{ estado: "cerrado", lineas: 3, lineasConDiferencia: 1 }])?.porcentaje).toBe(66.7);
   });
+
+  // ADR-0328 (actividad 15): «Aplicar todos completos» y el conteo de arranque no son exactitud.
+  it("lo aplicado sin contar NO sube la exactitud: 12 contadas (3 con diferencia) y 40 sin contar miden 75 %, no 94 %", () => {
+    const r = exactitudConteos([{ estado: "cerrado", lineas: 52, lineasConDiferencia: 3, sinContar: 40 }]);
+    expect(r).toEqual({ porcentaje: 75, lineas: 12, correctas: 9, conteos: 1 });
+  });
+
+  it("un conteo donde TODO se aplicó sin contar no dice nada: no es un 100 %", () => {
+    expect(exactitudConteos([{ estado: "cerrado", lineas: 40, lineasConDiferencia: 0, sinContar: 40 }])).toBeNull();
+  });
+
+  it("el conteo de arranque no entra: sus diferencias son de la carga inicial, no del día a día", () => {
+    const r = exactitudConteos([
+      { estado: "cerrado", lineas: 300, lineasConDiferencia: 180, esArranque: true },
+      { estado: "cerrado", lineas: 40, lineasConDiferencia: 2 },
+    ]);
+    expect(r).toEqual({ porcentaje: 95, lineas: 40, correctas: 38, conteos: 1 });
+    expect(exactitudConteos([{ estado: "cerrado", lineas: 300, lineasConDiferencia: 180, esArranque: true }])).toBeNull();
+  });
+
+  it("sin los campos nuevos (la web antes que el SQL) la cuenta es la de siempre", () => {
+    expect(exactitudConteos([{ estado: "cerrado", lineas: 40, lineasConDiferencia: 2 }])).toEqual({ porcentaje: 95, lineas: 40, correctas: 38, conteos: 1 });
+  });
 });
 
 describe("tonoExactitud", () => {

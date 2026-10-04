@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getCatalogoConteo, getDetalleConteo } from "@/lib/conteos";
-import { bloqueoDeCierre, textoLugar, yaAjustadaSinTocar } from "@/lib/conteo-reglas";
+import { bloqueoDeCierre, notaDeArranque, textoLugar, yaAjustadaSinTocar } from "@/lib/conteo-reglas";
+import { firmaDelPaso } from "@/lib/firma-heredada";
 import { diferenciasEnOrden, unirLineasConPrendas } from "@/lib/conteo-revision";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -34,6 +35,14 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
   const aActualizar = conDiferencia.filter((f) => !yaAjustadaSinTocar(f));
   const yaAjustadas = conDiferencia.length - aActualizar.length;
 
+  // Quién firma el cierre (ADR-0328): en una terminal, quien abrió el conteo si fue hoy (lo pone la base); si no, se pregunta una vez.
+  // «Hoy» lo dice la base (`abierto_hoy`); sin ese dato (la web antes que el SQL) no se adivina: se cierra sin nombre y, si la base lo
+  // pide, la pantalla pregunta.
+  const firma = firmaDelPaso({
+    terminal: persona.terminal,
+    firma: c.abiertoHoy === null ? null : { personaId: c.abiertoPor, nombre: c.abiertoPorNombre === "—" ? null : c.abiertoPorNombre, deHoy: c.abiertoHoy },
+  });
+
   return (
     <div className="space-y-6 pb-56 sm:pb-28">
       <EncabezadoPagina
@@ -51,6 +60,8 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         pendientes={r.pendientes}
         parcial={parcial}
         puedeCerrar={puede(persona, "ajustarInventario")}
+        firma={firma}
+        notaArranque={notaDeArranque(c, parcial)}
       />
     </div>
   );

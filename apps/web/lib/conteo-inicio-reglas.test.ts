@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { conteoResumenDesdeFila, type ConteoResumen, type FilaResumenConteo } from "./conteo-reglas";
-import { TODA_LA_UBICACION, alcanceDeRespuesta, armarAlcance, categoriasPorVariantes, sufijoVariantes, textoUltimoConteo, variantesDelConteo, type FilaAlcance } from "./conteo-inicio-reglas";
+import {
+  TODA_LA_UBICACION,
+  alcanceDeRespuesta,
+  armarAlcance,
+  arranqueDeRespuesta,
+  avisoDeArranque,
+  categoriasPorVariantes,
+  sufijoVariantes,
+  textoUltimoConteo,
+  variantesDelConteo,
+  type FilaAlcance,
+} from "./conteo-inicio-reglas";
 
 const NOMBRES = new Map<string, string>();
 
@@ -164,5 +175,57 @@ describe("sufijoVariantes", () => {
     expect(sufijoVariantes([])).toBe("");
     expect(sufijoVariantes(["a"])).toBe("?variantes=a");
     expect(sufijoVariantes(["a", "b"])).toBe("?variantes=a,b");
+  });
+});
+
+// ADR-0328 (actividad 15): el conteo de arranque. Quién lo es lo decide `cerrar_conteo` (scripts/pruebas/conteo_firma_arranque.mjs);
+// esto solo lo anuncia al abrir.
+describe("arranqueDeRespuesta", () => {
+  it("por lugar: el id de la sububicación, o «toda la ubicación» si la sede no separa piso y almacén", () => {
+    const { arranque, fallo } = arranqueDeRespuesta({
+      data: [
+        { sububicacion_id: "piso", arranque_pendiente: true },
+        { sububicacion_id: "alm", arranque_pendiente: false },
+      ],
+      error: null,
+    });
+    expect(fallo).toBeNull();
+    expect(arranque).toEqual({ piso: true, alm: false });
+    expect(arranqueDeRespuesta({ data: [{ sububicacion_id: null, arranque_pendiente: true }], error: null }).arranque).toEqual({ [TODA_LA_UBICACION]: true });
+  });
+
+  it("si la función no está en la base o falla, no se dice nada (null), y abrir sigue igual", () => {
+    const r = arranqueDeRespuesta({ data: null, error: { message: "function retail.fn_conteo_arranque(uuid) does not exist" } });
+    expect(r.arranque).toBeNull();
+    expect(r.fallo).toMatch(/conteo de arranque/);
+  });
+});
+
+describe("avisoDeArranque", () => {
+  const arranque = { piso: true, alm: false };
+  const base = { arranque, lugarClave: "piso", queCuento: "todo" as const, lugarConArticulo: "el piso de venta" };
+
+  it("contando TODO un lugar que nunca se contó completo: será el de arranque, y dice qué significa y cuándo vale", () => {
+    const a = avisoDeArranque(base);
+    expect(a?.tipo).toBe("arranque");
+    expect(a?.titulo).toBe("Conteo de arranque");
+    expect(a?.texto).toMatch(/^Es el primer conteo completo del piso de venta\./);
+    expect(avisoDeArranque({ ...base, arranque: { toda: true }, lugarClave: TODA_LA_UBICACION, lugarConArticulo: "esta ubicación" })?.texto).toMatch(/^Es el primer conteo completo de esta ubicación\./);
+    expect(a?.texto).toMatch(/no cuentan como pérdida ni bajan la exactitud/);
+    expect(a?.texto).toMatch(/Vale si cuentas todo y lo cierras sin pendientes\.$/);
+  });
+
+  it("contando una categoría o unas prendas: avisa que así NO es el de arranque y sus diferencias sí son pérdida", () => {
+    const cat = avisoDeArranque({ ...base, queCuento: "categoria" });
+    expect(cat?.tipo).toBe("no_es_arranque");
+    expect(cat?.texto).toBe("El piso de venta nunca se contó completo. Contando solo una categoría, las diferencias sí cuentan como pérdida; si eliges «Todo», será el conteo de arranque.");
+    expect(avisoDeArranque({ ...base, queCuento: "prendas" })?.texto).toMatch(/Contando solo unas prendas/);
+  });
+
+  it("nada si el lugar ya tuvo su arranque, si falta elegir el lugar o si no se pudo leer", () => {
+    expect(avisoDeArranque({ ...base, lugarClave: "alm" })).toBeNull();
+    expect(avisoDeArranque({ ...base, lugarClave: "otro" })).toBeNull();
+    expect(avisoDeArranque({ ...base, lugarClave: null })).toBeNull();
+    expect(avisoDeArranque({ ...base, arranque: null })).toBeNull();
   });
 });

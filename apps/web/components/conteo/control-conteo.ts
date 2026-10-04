@@ -77,6 +77,9 @@ export type Puertos = {
 
 export type ResultadoContar = "aplicada" | "sin_cambio" | "fuera_de_alcance";
 
+/** Lo que responde la base a «Aplicar todos completos» (`conteo_aplicar_completos`): `{ aplicadas, lineas }`, o el error. No debe lanzar. */
+export type RespuestaAplicar = { data: unknown; error: ErrorGuardado | null };
+
 /** Una variante que no estaba en la foto y se acaba de encontrar: sin nada esperado en este lugar (regla D3: «foto 0»). */
 function lineaNueva(varianteId: string): LineaConteo {
   return {
@@ -92,6 +95,7 @@ function lineaNueva(varianteId: string): LineaConteo {
     ajustadoTotal: 0,
     ajustadoAntes: 0,
     hallazgos: 0,
+    aplicadaSinContar: false,
     diferencia: null,
     estado: "pendiente",
   };
@@ -108,8 +112,27 @@ function seVenIguales(a: LineaConteo, b: LineaConteo): boolean {
     a.ajustadoAntes === b.ajustadoAntes &&
     a.estado === b.estado &&
     a.confirmadaEn === b.confirmadaEn &&
-    a.diferencia === b.diferencia
+    a.diferencia === b.diferencia &&
+    a.aplicadaSinContar === b.aplicadaSinContar
   );
+}
+
+/** `{ aplicadas, lineas }` de `conteo_aplicar_completos`, o `null` si no tiene esa forma (no se pinta nada que no se pudo leer). */
+function leerAplicadas(data: unknown): { aplicadas: number; lineas: [string, LineaConteo | null][] } | null {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
+  const o = data as { aplicadas?: unknown; lineas?: unknown };
+  if (typeof o.aplicadas !== "number" || !Array.isArray(o.lineas)) return null;
+  try {
+    const lineas: [string, LineaConteo | null][] = [];
+    for (const j of o.lineas) {
+      const id = typeof j === "object" && j !== null ? (j as { variante_id?: unknown }).variante_id : undefined;
+      if (typeof id !== "string") return null;
+      lineas.push([id, lineaDesdeJson(j)]);
+    }
+    return { aplicadas: o.aplicadas, lineas };
+  } catch {
+    return null;
+  }
 }
 
 export class ControlConteo {
@@ -230,6 +253,42 @@ export class ControlConteo {
     this.fijarGuardado("guardando");
     this.agrupador.programar(varianteId, { varianteId, cantidad, confirmoFuera: this.fueraConfirmadas.has(varianteId) });
     return "aplicada";
+  }
+
+  /**
+   * «Aplicar todos completos» (ADR-0328): anota de una vez, en la base, lo que CAYLA espera en las variantes pedidas que siguen sin
+   * cifra, marcadas «sin contar». A diferencia de `contar`, NO se pinta antes de que la base responda: es una afirmación sobre muchas
+   * prendas a la vez, con su marca, y lo que se ve tiene que ser lo que la base guardó (nada optimista). Va en la MISMA fila que los
+   * guardados de cada variante, después de soltar lo que esperaba su turno: nada se cruza. Con la respuesta, cada línea queda como la
+   * dejó la base, salvo las que la persona volvió a tocar mientras tanto (de esas valen solo los hechos de la base, como en
+   * `confirmar`). Devuelve cuántas anotó, o el error (y entonces no cambió nada en pantalla).
+   */
+  async aplicarCompletos(varianteIds: readonly string[], aplicar: (ids: string[]) => Promise<RespuestaAplicar>): Promise<{ aplicadas: number } | { error: ErrorGuardado }> {
+    const ids = [...varianteIds];
+    this.agrupador.soltarTodo();
+    this.fijarGuardado("guardando");
+    let resultado: { aplicadas: number } | { error: ErrorGuardado } = { aplicadas: 0 };
+    await this.cola.agregar(async () => {
+      // Las ediciones de cada variante en el instante de enviar: lo que la persona cambie después de esto lo decide su propio guardado.
+      const enviadas = new Map(ids.map((id) => [id, this.ediciones.get(id) ?? 0]));
+      let respuesta: RespuestaAplicar;
+      try {
+        respuesta = await aplicar(ids);
+      } catch (e) {
+        respuesta = { data: null, error: { message: e instanceof Error ? e.message : "No se pudo aplicar." } };
+      }
+      const leida = respuesta.error ? null : leerAplicadas(respuesta.data);
+      if (respuesta.error || !leida) {
+        this.fallos += 1;
+        this.fijarGuardado("error");
+        resultado = { error: respuesta.error ?? { message: "La respuesta del conteo llegó mal formada." } };
+        return;
+      }
+      for (const [id, linea] of leida.lineas) this.confirmar(id, linea, enviadas.get(id) ?? this.ediciones.get(id) ?? 0);
+      resultado = { aplicadas: leida.aplicadas };
+    });
+    this.reevaluarGuardado();
+    return resultado;
   }
 
   /** Manda YA lo que espera su turno (al salir de la pantalla). No espera la respuesta. */

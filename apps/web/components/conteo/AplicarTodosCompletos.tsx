@@ -14,11 +14,11 @@ import { Modal } from "@/components/ui/Modal";
    Qué hace y qué NO hace (lo decide `ContarConteo`, aquí solo se dibuja):
    · Solo toca las variantes que SIGUEN pendientes entre las que se ven (la lista acotada por «Contar esta prenda», y lo que deja el
      buscador si hay texto). Lo que alguien ya escribió, escaneó o recontó no se pisa nunca.
-   · Entra por el mismo camino que cualquier cantidad escrita (mismo responsable, mismo guardado en fila, mismo progreso): no es un
-     atajo a la base ni una función nueva.
-   · Pregunta antes, una sola vez, con la consecuencia dicha: contar con lo que el sistema espera es afirmar «lo encontré tal cual». Quien
-     aprieta sin haber contado deja un conteo que dice «todo correcto» sin haber mirado nada; la confirmación existe para eso, no para
-     estorbar. «Seguir contando» es el primer botón y el más a mano.
+   · Dice la verdad sobre sí mismo (ADR-0328, actividad 15; Felipe, 2026-10-04): cada línea queda marcada «sin contar» en la base
+     (`conteo_aplicar_completos`, una sola llamada con el mismo responsable y el mismo candado que contar), el resultado lo dice aparte
+     («12 contadas · 40 sin contar») y lo aplicado NO sube la exactitud. Antes, el conteo decía «todo correcto» sin que nadie hubiera
+     mirado; ahora el líder ve cuánto se contó de verdad. Quitar el atajo se descartó: hace falta para terminar un conteo grande.
+   · Pregunta antes, una sola vez, con la consecuencia dicha. «Seguir contando» es el primer botón y el más a mano.
 
    El botón vive en la franja bajo el buscador, con la forma y el icono del «Completar todo» de las tarjetas: se ve, pero no compite con
    «Revisar conteo» (el botón principal, abajo) ni queda a un clic de él.
@@ -48,13 +48,16 @@ export function ConfirmarAplicarTodos({ cuantas, alConfirmar, onClose }: { cuant
   return (
     <Modal
       titulo="¿Aplicar todos completos?"
-      subtitulo={`Se anotará en las ${variantes} exactamente lo que CAYLA espera, como si ya las hubieras contado y coincidieran.`}
+      subtitulo={`Se anotará en las ${variantes} lo que CAYLA espera, y quedarán marcadas «sin contar».`}
       ancho="max-w-md"
       onClose={onClose}
     >
       {(cerrar) => (
         <div className="space-y-4">
-          <p className="text-sm text-tinta/80">Úsalo solo si ya contaste todo y coincide. Lo que ya anotaste no se toca, y cada anotación se guarda como cualquier otra.</p>
+          <p className="text-sm text-tinta/80">
+            El resultado lo dirá aparte («12 contadas · 40 sin contar») y lo que se aplica sin contar no sube la exactitud. Lo que ya anotaste no se toca; si
+            después cuentas una a mano, deja de estar «sin contar».
+          </p>
           {/* La salida segura va primero y más a mano: aplicar afirma «lo encontré tal cual». */}
           <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario h-11">

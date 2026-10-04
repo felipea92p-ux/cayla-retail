@@ -25,6 +25,7 @@ import {
   filtrarConteo,
   pendientesParaCompletar,
   sumarLectura,
+  textoAplicadas,
   type DetalleConteo,
   type PrendaConteo,
 } from "@/lib/conteo-reglas";
@@ -285,7 +286,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   );
 
   /**
-   * «Completar todo» de una tarjeta (y «Aplicar todos completos» de la pantalla): «encontré todo tal como CAYLA esperaba». Cada variante
+   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante
    * que SIGUE pendiente se cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo
    * responsable, mismo guardado agrupado y en serie, mismo estado y progreso). Las que ya tienen número no se tocan
    * (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Devuelve cuántas anotó.
@@ -318,12 +319,29 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
     }
     setPorAplicar(ids);
   }, [acotadas, coincidencias, control]);
-  const aplicarTodos = useCallback(() => {
+  // ADR-0328 (actividad 15): ya no es la ráfaga de `conteo_contar` de cada tarjeta, sino UNA llamada (`conteo_aplicar_completos`) que
+  // anota lo que hay AHORA y marca cada línea «sin contar». Nada se pinta antes de que la base responda (`aplicarCompletos`); mientras
+  // tanto el loader general cubre la pantalla (no lleva `x-espera: no`: es un guardado de muchas prendas a la vez).
+  const aplicarTodos = useCallback(async () => {
     const ids = porAplicar ?? [];
-    const n = completarTodo(ids);
-    // Después del bucle: cada anotación borra el aviso de texto anterior (`alConfirmar`), y este es el que debe quedar.
-    if (n > 0) setAviso({ tipo: "texto", texto: `Se anotaron ${n.toLocaleString("es-PE")} ${n === 1 ? "variante" : "variantes"} con lo que CAYLA esperaba. Revisa y confirma al terminar.` });
-  }, [porAplicar, completarTodo]);
+    const r = responsableRef.current;
+    if (!r.listo) {
+      setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de aplicar." });
+      return;
+    }
+    const res = await control.aplicarCompletos(ids, async (lista) => {
+      const consulta = createClient().rpc("conteo_aplicar_completos", { p_conteo_id: conteo.id, p_variantes: lista });
+      const { data, error } = await firmar(consulta, responsableRef.current.firma());
+      return { data, error };
+    });
+    if ("error" in res) {
+      // Un rechazo por el responsable (asistencia) vacía el combo y relee la lista, como al contar.
+      responsableRef.current.despues(res.error);
+      setAviso({ tipo: "texto", texto: traducirError(res.error, "aplicar los completos") });
+      return;
+    }
+    setAviso({ tipo: "texto", texto: textoAplicadas(res.aplicadas) });
+  }, [porAplicar, control, conteo.id]);
 
   const alInvalido = useCallback((t: string) => setAviso({ tipo: "texto", texto: `«${t.trim()}» no es una cantidad. Escribe un número entero: 0 o más.` }), []);
 
@@ -618,7 +636,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
       <PieContar control={control} aviso={contenidoAviso} preparando={preparando} alRevisar={() => void revisar()} alCamara={abrirCamara} />
 
-      {porAplicar && <ConfirmarAplicarTodos cuantas={porAplicar.length} alConfirmar={aplicarTodos} onClose={() => setPorAplicar(null)} />}
+      {porAplicar && <ConfirmarAplicarTodos cuantas={porAplicar.length} alConfirmar={() => void aplicarTodos()} onClose={() => setPorAplicar(null)} />}
 
       {alta && (
         <AltaAlVuelo

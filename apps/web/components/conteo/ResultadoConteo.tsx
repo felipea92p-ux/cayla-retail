@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { agruparConteo, codigosDeConteo, textoAlcance, textoLugar, textoHallazgoDeLinea, textoResultadoConteo, type DetalleConteo } from "@/lib/conteo-reglas";
+import { agruparConteo, codigosDeConteo, notaDeArranque, textoAlcance, textoLugar, textoHallazgoDeLinea, textoResultadoConteo, type DetalleConteo } from "@/lib/conteo-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -32,7 +32,10 @@ const MAX_CORREGIDAS = 60;
 export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: { detalle: DetalleConteo; sede: string; volverA: string | null; puedeEditar: boolean }) {
   const { conteo, resumen, lineas } = detalle;
   const parcial = resumen.pendientes > 0;
-  const titulo = textoResultadoConteo({ estado: conteo.estado, lineas: resumen.verificadas, lineasConDiferencia: resumen.conDiferencia, parcial });
+  const titulo = textoResultadoConteo({ estado: conteo.estado, lineas: resumen.verificadas, lineasConDiferencia: resumen.conDiferencia, parcial, sinContar: resumen.sinContar });
+  // ADR-0328: si fue el conteo de arranque, se dice qué hizo; y sus ajustes en Movimientos llevan su propio motivo.
+  const arranque = notaDeArranque(conteo, parcial);
+  const hrefMovimientos = `/inventario/movimientos?proc=${conteo.esArranque ? "conteo_arranque" : "conteo"}&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`;
 
   const corregidas = lineas.filter((l) => l.ajusteMovimientoId !== null && l.contada !== null);
   const catalogo = corregidas.length > 0 ? new Map((await getCatalogo()).map((v) => [v.varianteId, v])) : null;
@@ -73,11 +76,12 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
           {titulo}
         </h2>
         <ResumenConteo resumen={resumen} variante="resultado" parcial={parcial} />
+        {arranque && <p className="nota-cayla">{arranque.texto}</p>}
         <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
           <Link href="/inventario" className="btn-cayla btn-primario h-11">
             Ver Existencias
           </Link>
-          <Link href={`/inventario/movimientos?proc=conteo&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`} className="btn-cayla btn-secundario h-11">
+          <Link href={hrefMovimientos} className="btn-cayla btn-secundario h-11">
             Ver movimientos del conteo
           </Link>
           {/* Los conteos de antes del rediseño (sin foto) no se pueden reabrir: no traen confirmaciones. */}
@@ -129,7 +133,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
           {filas.length > visibles.length && (
             <p className="border-t border-sand px-4 py-3 text-sm text-taupe @[36rem]:px-5">
               Y {filas.length - visibles.length} {filas.length - visibles.length === 1 ? "variante más" : "variantes más"}.{" "}
-              <Link href={`/inventario/movimientos?proc=conteo&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`} className="text-tinta underline underline-offset-2 hover:text-taupe">
+              <Link href={hrefMovimientos} className="text-tinta underline underline-offset-2 hover:text-taupe">
                 Míralas todas en Movimientos →
               </Link>
             </p>

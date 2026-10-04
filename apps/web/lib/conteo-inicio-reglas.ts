@@ -92,3 +92,64 @@ export function variantesDelConteo(alcance: AlcanceConteo | null, lugar: string 
 export function sufijoVariantes(ids: readonly string[]): string {
   return ids.length === 0 ? "" : `?variantes=${ids.join(",")}`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// El conteo de ARRANQUE (ADR-0328, actividad 15)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Una fila de `fn_conteo_arranque`: si el próximo conteo de TODO ese lugar sería el de arranque (`sububicacion_id` NULL = toda la ubicación). */
+export type FilaArranque = { sububicacion_id: string | null; arranque_pendiente: boolean };
+
+/** Por lugar (id de sububicación o `TODA_LA_UBICACION`): `true` = el lugar nunca tuvo un conteo completo cerrado. */
+export type ArranqueConteo = Record<string, boolean>;
+
+/**
+ * La respuesta de `fn_conteo_arranque` ya leída, o `null` y el porqué si la base no pudo darla. Es un dato de apoyo como las cifras:
+ * sin él (la web salió antes que el SQL, o falló) la tarjeta no dice nada del arranque y abrir un conteo sigue igual. Lo que decide
+ * si un cierre es de arranque es `cerrar_conteo`, no esta lectura.
+ */
+export function arranqueDeRespuesta(respuesta: { data: readonly FilaArranque[] | null; error: { message: string } | null }): {
+  arranque: ArranqueConteo | null;
+  fallo: string | null;
+} {
+  const { datos, fallo } = tolerar(respuesta, "qué lugares no tuvieron su conteo de arranque");
+  if (!datos) return { arranque: null, fallo };
+  const arranque: ArranqueConteo = {};
+  for (const f of datos) arranque[f.sububicacion_id ?? TODA_LA_UBICACION] = f.arranque_pendiente === true;
+  return { arranque, fallo };
+}
+
+/**
+ * Lo que «Abrir un conteo» dice del arranque, solo cuando el lugar elegido nunca tuvo un conteo completo cerrado (Felipe: el primer
+ * conteo completo es de arranque, «corrige el stock sin contar como merma ni entrar en la exactitud»):
+ *   · contando TODO → que este será el de arranque, qué significa y cuándo vale (cerrarlo sin pendientes);
+ *   · contando una categoría o unas prendas → que así NO es el de arranque y sus diferencias sí cuentan como pérdida (para que nadie
+ *     pierda el arranque sin saberlo).
+ * `null` si el lugar ya tuvo su arranque, si falta elegir el lugar o si no se pudo leer.
+ */
+export function avisoDeArranque(e: {
+  arranque: ArranqueConteo | null;
+  /** La clave del lugar elegido (id o `TODA_LA_UBICACION`); `null` si falta elegirlo. */
+  lugarClave: string | null;
+  queCuento: "todo" | "categoria" | "prendas";
+  /** «el piso de venta», «el almacén de tienda», «esta ubicación». */
+  lugarConArticulo: string;
+}): { tipo: "arranque" | "no_es_arranque"; titulo: string; texto: string } | null {
+  if (!e.arranque || e.lugarClave === null || e.arranque[e.lugarClave] !== true) return null;
+  if (e.queCuento === "todo") {
+    // «de» + «el piso de venta» → «del piso de venta»; «de esta ubicación» queda igual.
+    const deLugar = e.lugarConArticulo.startsWith("el ") ? `del ${e.lugarConArticulo.slice(3)}` : `de ${e.lugarConArticulo}`;
+    return {
+      tipo: "arranque",
+      titulo: "Conteo de arranque",
+      texto: `Es el primer conteo completo ${deLugar}. Lo que encuentres corrige el stock, pero las diferencias no cuentan como pérdida ni bajan la exactitud: son de cuando se cargó el inventario. Vale si cuentas todo y lo cierras sin pendientes.`,
+    };
+  }
+  const acotado = e.queCuento === "categoria" ? "solo una categoría" : "solo unas prendas";
+  const lugar = `${e.lugarConArticulo.charAt(0).toUpperCase()}${e.lugarConArticulo.slice(1)}`;
+  return {
+    tipo: "no_es_arranque",
+    titulo: "Todavía falta el conteo de arranque",
+    texto: `${lugar} nunca se contó completo. Contando ${acotado}, las diferencias sí cuentan como pérdida; si eliges «Todo», será el conteo de arranque.`,
+  };
+}

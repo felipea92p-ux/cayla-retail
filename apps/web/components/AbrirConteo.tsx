@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Search } from "lucide-react";
+import { Flag, Package, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -11,7 +11,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo, recordarResponsableGuardar } from "@/lib/responsable-conteo";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
-import { TODA_LA_UBICACION, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
+import { TODA_LA_UBICACION, avisoDeArranque, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
 import { camposDeApertura, type AlcanceElegido } from "@/lib/conteo-inicio-guia";
 import { filtrarCombo } from "@/lib/combo-reglas";
 import { podarElegidas, prendasDelLugar, textoPrendas, type LugarDeConteo } from "@/lib/conteo-por-prenda";
@@ -51,6 +51,12 @@ import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
    LA decisión de esta tarjeta y verlas todas ahorra un paso. El filtro es el mismo del sistema (`filtrarCombo`: sin tildes ni
    mayúsculas, tolera un error de tipeo). Si se generaliza, es una decisión de ADR-0209, no de esta pantalla.
 
+   Conteo de ARRANQUE (ADR-0328, actividad 15): si el lugar elegido nunca tuvo un conteo completo cerrado, la tarjeta lo dice sola, sin
+   que nadie tenga que marcar nada: contando «Todo» será el de arranque (corrige el stock, pero sus diferencias no son pérdida ni bajan la
+   exactitud) y contando una categoría o unas prendas, no. No es una opción a propósito: quien decide si un cierre es de arranque es
+   `cerrar_conteo` (solo si se contó TODO el lugar), y un interruptor dejaría marcar «de arranque» lo que no lo es, o perderlo sin saber.
+   Las dos frases se apilan en la misma celda (ADR-0185): cambiar «Todo» por «Una categoría» no mueve lo de abajo.
+
    «Debe haber» se congela al abrir (la base toma la foto de lo que hay en el lugar): por eso elegir el lugar no es un detalle. Una
    sede con piso y almacén exige uno de los dos — la base también lo rechaza (`sububicacion_requerida`).
 
@@ -69,6 +75,7 @@ export function AbrirConteo({
   categorias,
   ultimoPorLugar,
   alcance = null,
+  arranque = null,
   trasladosPorAtender,
   variantes = [],
 }: {
@@ -79,6 +86,8 @@ export function AbrirConteo({
   ultimoPorLugar: Record<string, string>;
   /** Cuántas variantes trae un conteo de cada lugar y categoría; `null` = no se pudo leer (la tarjeta sale sin cifras). */
   alcance?: AlcanceConteo | null;
+  /** Qué lugares todavía no tuvieron su conteo de arranque (ADR-0328); `null` = no se pudo leer: la tarjeta no lo menciona. */
+  arranque?: ArranqueConteo | null;
   /** Traslados hacia esta sede por atender (el mismo número del menú); `null` = no se sabe o no ve Traslados. */
   trasladosPorAtender: number | null;
   /** «Contar esta prenda»: las variantes de `?variantes=`, para arrastrarlas al conteo que se abre. */
@@ -198,6 +207,11 @@ export function AbrirConteo({
   const textoDonde = separaPisoAlmacen ? (lugar ? textoLugar({ sububicacionTipo: lugar.tipo, sububicacionNombre: lugar.nombre }) : null) : "Toda la ubicación";
   // «el Piso de venta» / «el Almacén de tienda» / «esta ubicación»; `null` si falta elegir dónde. Para frases de ayuda.
   const textoDondeConArticulo = separaPisoAlmacen ? (textoDonde ? `el ${textoDonde.charAt(0).toLowerCase()}${textoDonde.slice(1)}` : null) : "esta ubicación";
+  // El conteo de arranque (ADR-0328): las dos frases posibles para ESTE lugar (contando todo / contando una parte), para apilarlas.
+  const avisoArranque = (que: AlcanceElegido) =>
+    textoDondeConArticulo ? avisoDeArranque({ arranque, lugarClave, queCuento: que, lugarConArticulo: textoDondeConArticulo }) : null;
+  const arranqueTodo = avisoArranque("todo");
+  const arranqueParte = avisoArranque(queCuento === "todo" ? "categoria" : queCuento);
   const textoQue =
     queCuento === "prendas"
       ? prendasElegidas.length > 0
@@ -330,6 +344,29 @@ export function AbrirConteo({
               </div>
             </div>
           </CampoGuiado>
+
+          {/* Solo si el lugar nunca tuvo un conteo completo cerrado. Las dos frases ocupan la misma celda (la invisible reserva el alto). */}
+          {arranqueTodo && arranqueParte && (
+            <div aria-live="polite" className="grid">
+              {[arranqueTodo, arranqueParte].map((a) => {
+                const visible = (a.tipo === "arranque") === (queCuento === "todo");
+                return (
+                  <div
+                    key={a.tipo}
+                    aria-hidden={visible ? undefined : true}
+                    className={`col-start-1 row-start-1 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm ${
+                      a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
+                    } ${visible ? "" : "invisible"}`}
+                  >
+                    <Flag aria-hidden strokeWidth={1.5} className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
+                    <span className="min-w-0">
+                      <b className="font-semibold">{a.titulo}.</b> {a.texto}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
             <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />

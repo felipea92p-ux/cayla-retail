@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
-import { alcanceDeRespuesta, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
+import { alcanceDeRespuesta, arranqueDeRespuesta, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { codigosDeConteo, conteoResumenDesdeFila, detalleDesdeJson, type ConteoResumen, type DetalleConteo, type PrendaConteo } from "@/lib/conteo-reglas";
 
@@ -64,6 +64,18 @@ export async function getAlcanceConteo(ubicacionId: string): Promise<AlcanceCont
   // Queda dicho en el log del servidor: una cifra que falta en producción no se descubre solo mirando la pantalla.
   if (fallo) console.warn(`fn_conteo_alcance no respondió; «Abrir un conteo» sale sin cifras. ${fallo}`);
   return alcance;
+}
+
+/**
+ * En qué lugares de la sede el próximo conteo COMPLETO sería el de arranque (ADR-0328): el primero de todo el lugar, cerrado sin
+ * pendientes, corrige el stock sin contar como pérdida. Dato de apoyo, como la cifra de arriba: si la función no está todavía en la
+ * base o falla, devuelve `null` y «Abrir un conteo» no dice nada del arranque — quien decide al cerrar es `cerrar_conteo`.
+ */
+export async function getArranqueConteo(ubicacionId: string): Promise<ArranqueConteo | null> {
+  const supabase = await createClient();
+  const { arranque, fallo } = arranqueDeRespuesta(await supabase.rpc("fn_conteo_arranque", { p_ubicacion_id: ubicacionId }));
+  if (fallo) console.warn(`fn_conteo_arranque no respondió; «Abrir un conteo» no dice nada del arranque. ${fallo}`);
+  return arranque;
 }
 
 /**

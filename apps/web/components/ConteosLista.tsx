@@ -42,6 +42,8 @@ const TONO_RESULTADO: Record<ResultadoConteo, TonoChip> = {
   con_diferencias: "neutro",
   parcial: "ambar",
   cancelado: "apagado",
+  // ADR-0328: todo se anotó con «Aplicar todos completos»; nadie contó. No es verde: no se sabe si estaba correcto.
+  sin_contar: "neutro",
 };
 
 const plural = (n: number) => `${n} ${n === 1 ? "conteo" : "conteos"}`;
