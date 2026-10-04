@@ -27,6 +27,9 @@
 --   5. Finanzas lee lo mismo (reemplazos por ancla, ver abajo): `fn_es_merma` pasa a ser el nombre viejo de
 --      `fn_es_perdida`; el diario rotula cada merma por su razón y asienta el faltante de un traslado; el Balance deja de
 --      listarlo como causa (ya no es una diferencia sin asiento); el resumen de Inventario usa la misma regla.
+--   6. La puerta suelta (`registrar_movimiento`, la RPC de Ajustar que el navegador llama con el motivo como texto) ya no
+--      escribe una salida o un ajuste que la definición deja fuera («venta», «conteo_arranque»…): esos motivos tienen su
+--      propia puerta, con su documento (hint `motivo_con_su_puerta`). Sin esto, la definición se esquivaba eligiendo el texto.
 --
 -- QUÉ CAMBIA EN FINANZAS (y qué no):
 --   · Los MESES CERRADOS no cambian: su diario está congelado (`diario_cerrado`). Si un mes cerrado tiene un movimiento que
@@ -62,6 +65,10 @@
 --     la lista de exclusiones: se contaría como pérdida «a mano» hasta que se agregue aquí (el lado que pide mirar, ADR-0327).
 --   · el cuadre del piso (actividad 3) se hace con un PAR de ajustes (−almacén, +piso) en vez de un traslado interno: se
 --     leería como una pérdida y una aparición.
+--   · una función viva (o una nueva) llama a `registrar_movimiento` con un motivo que la definición deja fuera: ahora se
+--     rechaza. La sonda de antes de pegar (`scripts/perdidas/sonda-antes-de-pegar.sql`) lista quién la llama en producción.
+--   · la actividad 13 suma una razón de tienda («Error al cobrar», «Uso interno», «Se dañó») sin decidir su clase: caería en
+--     «a mano» y en la merma de Finanzas. `perdidas.mjs` (TW) lee los motivos de Ajustar de la web y falla hasta que se decida.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -559,6 +566,33 @@ select pg_temp.reemplazar_unico(
          or (m.tipo = 'salida' and m.motivo in ('cuarentena_se_boto', 'cuarentena_donada'))$v$,
   $n$      where retail.fn_es_perdida(m.tipo, m.motivo, m.cantidad) -- perdidas-act14: la misma definición que Finanzas$n$,
   'perdidas-act14'
+);
+
+-- ---------------------------------------------------------------------------
+-- 8. La puerta suelta no esconde una pérdida
+-- ---------------------------------------------------------------------------
+-- EL PROBLEMA: `registrar_movimiento` recibe el motivo como TEXTO y se puede llamar desde el navegador. Una salida «venta» o
+-- un ajuste «conteo_arranque» escritos por ahí —sin venta ni conteo detrás— la definición los deja fuera por su motivo:
+-- salían 6 prendas y Pérdidas y Finanzas veían 1 (revisión adversarial del PR de la actividad 14).
+-- PROMETE: un movimiento suelto que resta o suma (salida o ajuste) solo se escribe si la definición lo VE
+--   (`fn_perdida_razon` no es null). Los motivos que la definición deja fuera —venta, cambio, traslado, liquidada, devuelta
+--   al proveedor, producción revertida, stock inicial, conteo de arranque— tienen su propia puerta y su documento: aquí se
+--   rechazan (hint `motivo_con_su_puerta`). La regla ES `fn_perdida_razon`: no hay otra lista que se pueda desincronizar.
+-- ASUME: ninguna función llama a `registrar_movimiento` con esos motivos (en el repo, solo `ajustar_inventario`, con merma,
+--   conteo físico, otro y reposición; la sonda de antes de pegar lo comprueba en producción). Las entradas sueltas no
+--   cambian: no restan, y la definición nunca las cuenta.
+-- Ancla en la línea del responsable: no toca las anclas que usa la rama de la carga inicial (20261004210100/210200).
+select pg_temp.reemplazar_unico(
+  'retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)',
+  $v$  v_persona := retail.fn_actor_persona_id(true);$v$,
+  $n$  -- perdidas-act14-puerta: lo que la definición de pérdida no ve no entra por la puerta suelta (ADR-0328, act. 14).
+  if p_tipo in ('salida', 'ajuste') and coalesce(p_cantidad, 0) <> 0
+     and retail.fn_perdida_razon(p_tipo, p_motivo, p_cantidad) is null then
+    raise exception 'El motivo «%» tiene su propia pantalla: las ventas y los cambios van por Vender, los traslados por Traslados, el stock inicial por Nuevo producto y el primer conteo por Conteos. Para quitar prendas a mano elige Merma, Conteo físico u Otro.', p_motivo
+      using errcode = 'P0001', hint = 'motivo_con_su_puerta';
+  end if;
+  v_persona := retail.fn_actor_persona_id(true);$n$,
+  'perdidas-act14-puerta'
 );
 
 notify pgrst, 'reload schema';

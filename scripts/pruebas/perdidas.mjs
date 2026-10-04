@@ -7,6 +7,10 @@
  *         `fn_es_merma` (el nombre que usa Finanzas) diga EXACTAMENTE lo mismo;
  *   · T — totalidad: todo motivo de salida o de ajuste que una función de la base escribe hoy tiene su clase decidida aquí
  *         (si mañana una función escribe un motivo nuevo, esta prueba falla hasta que alguien decida si es pérdida);
+ *   · TW — lo mismo para los motivos que la WEB manda a Ajustar (`MOTIVOS_AJUSTE`): una razón de tienda nueva (actividad 13:
+ *         «Error al cobrar», «Uso interno», «Se dañó») hace fallar la prueba hasta que se decida su clase;
+ *   · PU — la puerta suelta: `registrar_movimiento` rechaza todo motivo que la definición deja fuera (una salida «venta» o un
+ *         ajuste «conteo_arranque» escritos a mano ya no esconden una pérdida) y deja pasar los que sí ve;
  *   · R — la pestaña: totales, razones, categoría, talla, «más faltan», lo que apareció aparte, bordes del mes en hora de
  *         Lima, exclusiones (stock inicial, conteo de arranque, movimiento interno, venta, liquidada), traslados (lo que faltó
  *         en la sede que envió; lo que llegó de más en la que recibió), venta anulada con prenda no vendible (costo sellado),
@@ -153,6 +157,75 @@ select 'T hay motivos escritos por la base que revisar (la búsqueda funciona)',
 select 'T toda salida que escribe una función tiene su clase decidida', (select coalesce(bool_and(motivo = any (array[${DECIDIDOS.salida.map(lit).join(", ")}])), true) from escritos where tipo = 'salida');
 select 'T todo ajuste con motivo fijo que escribe una función tiene su clase decidida', (select coalesce(bool_and(motivo = any (array[${DECIDIDOS.ajuste.map(lit).join(", ")}])), true) from escritos where tipo = 'ajuste');
 select 'T de las salidas que escribe la base, solo botada y donada son pérdida', (select bool_and(retail.fn_es_perdida('salida', motivo, 1) = (motivo in ('cuarentena_se_boto', 'cuarentena_donada'))) from escritos where tipo = 'salida');
+`;
+
+// ============================================================================================================================
+// TW · Totalidad de lo que manda la WEB: los motivos de Ajustar (`MOTIVOS_AJUSTE` de `apps/web/lib/ajuste-reglas.ts`) llegan
+// a la base como texto por parámetro, así que T no los ve. Cada uno tiene aquí su clase decidida, y la base tiene que decir la
+// misma. La actividad 13 sumará razones de tienda («Error al cobrar», «Uso interno», «Se dañó»): hasta que alguien decida si
+// cada una es pérdida (y cuál), esta prueba falla — sin ella caerían solas en «a mano» y en la merma de Finanzas.
+// ============================================================================================================================
+const AJUSTE_REGLAS = readFileSync(new URL("../../apps/web/lib/ajuste-reglas.ts", import.meta.url), "utf8");
+const LISTA_AJUSTAR = AJUSTE_REGLAS.match(/MOTIVOS_AJUSTE\s*=\s*\[([\s\S]*?)\]\s*as const/);
+const MOTIVOS_WEB = LISTA_AJUSTAR ? [...LISTA_AJUSTAR[1].matchAll(/valor:\s*"([a-z_]+)"/g)].map((m) => m[1]) : [];
+/** La clase de cada motivo de Ajustar al RESTAR (la decisión; la base tiene que coincidir). */
+const CLASE_WEB = { merma: "a_mano", otro: "a_mano", reposicion: "a_mano", conteo_fisico: "conteo" };
+const MOTIVOS_WEB_SIN_CLASE = MOTIVOS_WEB.filter((m) => !Object.hasOwn(CLASE_WEB, m));
+const TOTALIDAD_WEB = `
+begin;
+${Object.entries(CLASE_WEB)
+  .map(([m, clase]) => `select 'TW «${m}» de Ajustar es «${clase}» en la base', (select retail.fn_perdida_razon('ajuste', ${lit(m)}, -1) is not distinct from ${lit(clase)});`)
+  .join("\n")}
+`;
+
+// ============================================================================================================================
+// PU · La puerta suelta. `registrar_movimiento` (RPC de Ajustar) recibe el motivo como texto: sin candado, una salida «venta»
+// escrita a mano desaparecía de Pérdidas y de Finanzas. Se prueba con TODOS los motivos que la definición deja fuera (los de
+// DECIDIDOS más los nombres viejos del traslado) y con los que sí ve. Como líder, en el almacén de Trujillo, con 10 prendas.
+//   Fuera (11): venta, cambio, traslado_salida, reversion_produccion, cuarentena_liquidada, cuarentena_devuelta_proveedor,
+//     transferencia, traslado (salidas) · conteo_arranque −1 y +1, carga_inicial −1 (ajustes).
+//   Dentro (9, todas restan 1 → 9 prendas perdidas hoy): cuarentena_se_boto, cuarentena_donada, otro, regalo (salidas) ·
+//     conteo, hallazgo_conteo, merma, conteo_fisico, otro (ajustes). Sin «reposición»: su propia regla pide nota.
+// ============================================================================================================================
+const PUERTA = [
+  ...DECIDIDOS.salida.map((m) => ["salida", m, 1]),
+  ...DECIDIDOS.ajuste.map((m) => ["ajuste", m, -1]),
+  ["salida", "transferencia", 1],
+  ["salida", "traslado", 1],
+  ["ajuste", "conteo_arranque", 1],
+  ["salida", "otro", 1],
+  ["salida", "regalo", 1],
+  ["ajuste", "merma", -1],
+  ["ajuste", "conteo_fisico", -1],
+  ["ajuste", "otro", -1],
+];
+// Una función (no una constante): usa AYUDANTES, que se declara más abajo.
+const casosPuerta = () => `
+begin;
+${AYUDANTES}
+${cambiaA(FELIPE)}
+select (select id from retail.ubicaciones where nombre = 'Tienda Trujillo') as tru \\gset
+select (select id from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'almacen_tienda' order by id limit 1) as alm \\gset
+select (select v.id from retail.variantes v where v.id <> '22222222-2222-4222-8222-222222222222' and v.activo order by v.id limit 1) as v \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, created_at)
+values (:'v', :'tru', :'alm', 'entrada', 10, 'recepcion', now() - interval '2 days') returning id as e \\gset
+select retail.fn_aplicar_movimiento(:'e');
+select now() as desde \\gset
+create temp table antes as select (retail.fn_perdidas_resumen(:'tru', retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'v') #>> '{perdido,unidades}')::int as u;
+create temp table pu as
+select x.tipo, x.motivo, x.cant, retail.fn_perdida_razon(x.tipo, x.motivo, x.cant) as razon,
+       pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, %L, %s, %L, null, %L)', :'v', :'tru', x.tipo, x.cant, x.motivo, :'alm')) as msg
+  from (values ${PUERTA.map(([t, m, c]) => `(${lit(t)}, ${lit(m)}, ${c})`).join(", ")}) x (tipo, motivo, cant);
+select 'PU1 los 11 motivos que la definición deja fuera se rechazan en la puerta suelta (venta, cambio, traslado, liquidada, devuelta, producción, stock inicial, conteo de arranque)',
+  (select count(*) = 11 and bool_and(msg <> 'SIN_ERROR') from pu where razon is null);
+select 'PU1 y dicen adónde ir (el stock inicial puede frenarlo antes su propia puerta, 20261004210100)',
+  (select bool_and(msg like '%tiene su propia pantalla%') from pu where razon is null and motivo <> 'carga_inicial');
+select 'PU2 los 9 que la definición ve sí entran (salidas otro, regalo, botada, donada; ajustes merma, conteo, conteo físico, hallazgo, otro)',
+  (select count(*) = 9 and bool_and(msg = 'SIN_ERROR') from pu where razon is not null);
+select 'PU3 nada de lo rechazado quedó escrito, y todo lo que entró está en Pérdidas: 9 prendas',
+  (select count(*) = 9 and bool_and(retail.fn_perdida_razon(tipo, motivo, cantidad) is not null)
+     from retail.movimientos where variante_id = :'v' and ubicacion_id = :'tru' and created_at >= :'desde')
+  and (select (retail.fn_perdidas_resumen(:'tru', retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'v') #>> '{perdido,unidades}')::int - antes.u = 9 from antes);
 `;
 
 // ============================================================================================================================
@@ -434,6 +507,15 @@ function dolar(sql) {
 // ---------------------------------------------------------------------------------------------------------------------------
 verificar("Clasificación", correr(CLASIFICACION), casosDe(CLASIFICACION));
 verificar("Totalidad", correr(TOTALIDAD), casosDe(TOTALIDAD));
+esperar("TW se encontraron los motivos de Ajustar en la web (MOTIVOS_AJUSTE de apps/web/lib/ajuste-reglas.ts)", MOTIVOS_WEB.length >= 4, { MOTIVOS_WEB });
+esperar(
+  "TW cada motivo que Ajustar puede mandar tiene su clase decidida (una razón de tienda nueva la pide: súmala a CLASE_WEB y a fn_perdida_razon)",
+  MOTIVOS_WEB_SIN_CLASE.length === 0,
+  { sin_clase: MOTIVOS_WEB_SIN_CLASE }
+);
+verificar("Totalidad de la web", correr(TOTALIDAD_WEB), casosDe(TOTALIDAD_WEB));
+const CASOS_PUERTA = casosPuerta();
+verificar("Puerta suelta", correr(CASOS_PUERTA), casosDe(CASOS_PUERTA));
 verificar("Pestaña Pérdidas", correr(`${ESCENA}${CASOS_RESUMEN}`), casosDe(CASOS_RESUMEN));
 verificar("Finanzas", correr(`${ESCENA}${CASOS_FINANZAS}`), casosDe(CASOS_FINANZAS));
 verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
