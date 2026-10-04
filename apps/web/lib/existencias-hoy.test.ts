@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AYUDA_HOY,
   avisoPausaDelPiso,
   contarEnPausa,
   estadoHoyDeTalla,
@@ -95,5 +96,25 @@ describe("el piso sin cuadrar se VE (revisión adversarial: antes era «N/D» y 
     expect(avisoPausaDelPiso("Tienda TRU", 0)).toBeNull();
     expect(textoTarjetaEnPausa(1)).toBe("Cuadra el piso antes de colgar: 1 talla espera");
     expect(textoHoyDePrenda("en_pausa", 2)).toBe("2 tallas en pausa");
+  });
+});
+
+describe("las leyendas de «Hoy» dicen la regla del motor del piso (revisión adversarial)", () => {
+  // Una persona sin contexto ve «Mantener» en una XL con 0 colgadas y 3 guardadas: la leyenda le tiene que decir por qué.
+  it("cada caso, en palabras de tienda", () => {
+    expect(AYUDA_HOY).toEqual({
+      por_colgar:
+        "No queda ninguna colgada y esta talla necesita una (es del centro de su curva —S, M, L; 28, 30, 32— o se vendió ayer u hoy); en el almacén hay: se cuelga hoy",
+      por_reponer: "Ayer u hoy se vendió más de lo que queda colgado, y en el almacén hay para bajar",
+      sin_stock_atras:
+        "Falta en el piso y el almacén está vacío: trasládala de otra sede. Si se repite, es señal para el Taller (el modelo no se vuelve a pedir)",
+      mantener:
+        "Ya cuelga lo que pide: 1 por color en las tallas del centro (S, M, L; 28, 30, 32) y lo que se vendió. Una talla extrema (XS, XL…) puede quedar guardada",
+      en_pausa:
+        "El piso de esta sede todavía no se cuadró: hasta cuadrarlo no se sabe si falta colgarla (podría estar colgada y el sistema creerla guardada)",
+    });
+  });
+  it("ninguna manda a pedir el modelo: el mínimo nunca genera «pedir este modelo» (ADR-0329 act. 9)", () => {
+    for (const texto of Object.values(AYUDA_HOY)) expect(texto).not.toMatch(/hay que pedir|pedirla|pídela/i);
   });
 });

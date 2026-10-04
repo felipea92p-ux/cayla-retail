@@ -9,11 +9,14 @@ import type { AccionPiso, PisoDeTalla } from "./piso-plan";
    juntaba tallas que se pueden bajar hoy con tallas cuyo almacén está vacío: la asesora filtraba para trabajar y parte de la
    lista no se podía hacer.
 
-   Ahora cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra:
-     · Por colgar      — en el piso no queda ni una para vender y en el almacén sí: la clienta no la ve, se cuelga hoy.
-     · Por reponer     — queda poco en el piso (la regla física de piso pide reponer) y hay en el almacén para bajar.
-     · Sin stock atrás — la regla pide reponer pero el almacén está vacío: no se resuelve en la tienda (pedir o trasladar).
-     · Mantener        — nada que hacer hoy con el piso.
+   Ahora cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra. Cuántas
+   debe tener colgadas cada talla lo decide el motor del piso (Felipe, 2026-10-04): 1 por color en las tallas del centro de su
+   curva (S, M, L; 28, 30, 32; la talla única), o lo que se vendió de ella ayer u hoy; una talla extrema puede quedar guardada.
+     · Por colgar      — no queda ninguna colgada, la talla necesita una (es del centro o se vendió) y en el almacén hay.
+     · Por reponer     — ayer u hoy se vendió más de lo que queda colgado, y en el almacén hay para bajar.
+     · Sin stock atrás — falta en el piso y el almacén está vacío: se trae de otra sede; si se repite es señal para el Taller
+                         (el modelo no se vuelve a pedir: ADR-0329 act. 9).
+     · Mantener        — ya cuelga lo que pide, o es una talla extrema que puede quedar guardada.
    La regla no vive aquí: cada talla trae su decisión ya tomada (`planPiso`, la de `lib/piso-plan.ts`, ADR-0328 act. 7) y este
    archivo solo la dice con las cuatro palabras. Así la tabla, el filtro, la tarjeta, el cajón y el Inicio no pueden decidir
    distinto: leen la misma decisión.
@@ -39,10 +42,13 @@ export const TEXTO_HOY: Record<EstadoHoy, string> = {
 
 /** Lo que significa cada caso, en palabras del piso (para el `title` de un chip y la leyenda de la tabla). */
 export const AYUDA_HOY: Record<EstadoHoy, string> = {
-  por_colgar: "En el piso no queda ninguna para vender y en el almacén sí: se cuelga hoy",
-  por_reponer: "Queda poco en el piso y hay en el almacén para bajar",
-  sin_stock_atras: "Falta en el piso y el almacén está vacío: hay que pedirla o trasladarla",
-  mantener: "Nada que hacer hoy con el piso de esta talla",
+  por_colgar:
+    "No queda ninguna colgada y esta talla necesita una (es del centro de su curva —S, M, L; 28, 30, 32— o se vendió ayer u hoy); en el almacén hay: se cuelga hoy",
+  por_reponer: "Ayer u hoy se vendió más de lo que queda colgado, y en el almacén hay para bajar",
+  sin_stock_atras:
+    "Falta en el piso y el almacén está vacío: trasládala de otra sede. Si se repite, es señal para el Taller (el modelo no se vuelve a pedir)",
+  mantener:
+    "Ya cuelga lo que pide: 1 por color en las tallas del centro (S, M, L; 28, 30, 32) y lo que se vendió. Una talla extrema (XS, XL…) puede quedar guardada",
   en_pausa:
     "El piso de esta sede todavía no se cuadró: hasta cuadrarlo no se sabe si falta colgarla (podría estar colgada y el sistema creerla guardada)",
 };
