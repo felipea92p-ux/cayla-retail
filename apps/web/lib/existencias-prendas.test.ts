@@ -6,7 +6,8 @@ import {
   lineasParaBajar,
   lineasParaTrasladar,
   MAX_VARIANTES_EN_URL,
-  ordenarPorUrgencia,
+  ordenarPorListaDelDia,
+  prendasParaColgarHoy,
   queHacerPrenda,
   tallasPorPrenda,
   textoTallasRecortadas,
@@ -16,10 +17,9 @@ import {
   urlBajarAlPiso,
   urlEtiquetas,
   urlTrasladar,
-  urgenciaDePrenda,
   type FilaPrenda,
 } from "./existencias-prendas";
-import type { AccionPiso, PisoDeTalla } from "./piso-plan";
+import { DIAS_VENTANA, paraColgarHoy, planDelPiso, type AccionPiso, type LecturaDelPiso, type PisoDeTalla, type TallaEnSede } from "./piso-plan";
 
 // La decisión del motor del piso (`lib/piso-plan.ts`) que trae cada fila. Por defecto la fila no pide nada, salvo que no tenga
 // ninguna colgada y sí algo atrás (así eran las filas de estas pruebas con la regla de antes); cada caso que importa la escribe.
@@ -102,8 +102,8 @@ describe("«Reponer prenda» y «Bajar al piso» no se apagan con «Mantener» n
     expect(tallaParaReponer(sinMotor)?.varianteId).toBe("s");
     expect(urlBajarAlPiso(sinMotor)).toBe("/inventario/bajar?lineas=s:1,m:1,l:1,xl:1");
   });
-  it("que se pueda bajar no la vuelve urgente: sin nada que el motor pida, la prenda queda al final", () => {
-    expect(urgenciaDePrenda(agruparPorPrenda(tallas)[0])).toBe(2);
+  it("que se pueda bajar no la vuelve urgente: sin nada en la lista del día, no entra a «Reponer a piso hoy»", () => {
+    expect(prendasParaColgarHoy(tallas, [])).toEqual([]);
   });
 });
 
@@ -130,7 +130,6 @@ describe("agruparPorPrenda", () => {
     // Las tres tienen algo libre atrás: las tres SE PUEDEN bajar; solo la XS está «Por colgar» según el motor.
     expect(beige.tallasParaBajar).toBe(3);
     expect(beige.tallasPorColgar).toBe(1);
-    expect(beige.tallasPorReponer).toBe(0);
   });
   it("donde no se separa piso y almacén, piso y almacén quedan en null (no en 0)", () => {
     const [p] = agruparPorPrenda([fila({ varianteId: "t", pisoDisponible: null, almacenDisponible: null, disponible: 4 })]);
@@ -196,33 +195,72 @@ describe("tallaPorCodigo", () => {
   });
 });
 
-describe("ordenarPorUrgencia (análisis de Existencias, tarea #5)", () => {
-  // Cuatro prendas en orden de llegada: una sin nada que hacer, una que pide reponer, una con 1 talla por colgar y una
-  // con 2 tallas por colgar.
-  const filas = [
-    fila({ varianteId: "tranquila", productoId: "tranquila" }),
-    fila({ varianteId: "reponer", productoId: "reponer", pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("por_reponer") }),
-    fila({ varianteId: "colgar-1", productoId: "colgar-1", pisoDisponible: 0, almacenDisponible: 2, planPiso: plan("por_colgar") }),
-    fila({ varianteId: "colgar-2a", productoId: "colgar-2", talla: "S", pisoDisponible: 0, almacenDisponible: 2, planPiso: plan("por_colgar") }),
-    fila({ varianteId: "colgar-2b", productoId: "colgar-2", talla: "M", pisoDisponible: 0, almacenDisponible: 1, planPiso: plan("por_colgar") }),
+describe("la lista del día ordena Existencias igual que el Inicio (revisión adversarial, caso H-B)", () => {
+  // La misma lectura de una sede, como la recibe el Inicio (TallaEnSede) y como la ve Existencias (una fila por talla con la
+  // decisión del motor). Casaca Ximena XL (talla extrema) se vendió ayer; Top Luna S·M·L no tiene ninguna colgada; Short Mía M no
+  // tiene nada atrás.
+  const t = (p: Partial<TallaEnSede> & { varianteId: string; productoId: string; referencia: string; talla: string }): TallaEnSede => ({
+    categoriaId: "cat-polos",
+    tallaId: `t-${p.talla}`,
+    colorCodigo: "NEG",
+    color: "Negro",
+    familiaColor: "neutro",
+    retirada: false,
+    fotoUrl: null,
+    pisoLibre: 0,
+    almacenLibre: 0,
+    enCamino: 0,
+    vendidasHoy: 0,
+    vendidasAyer: 0,
+    vendidas14: 0,
+    ...p,
+  });
+  const tallas = [
+    t({ varianteId: "luna-s", productoId: "luna", referencia: "Top Luna", talla: "S", almacenLibre: 2 }),
+    t({ varianteId: "luna-m", productoId: "luna", referencia: "Top Luna", talla: "M", almacenLibre: 2 }),
+    t({ varianteId: "luna-l", productoId: "luna", referencia: "Top Luna", talla: "L", almacenLibre: 2 }),
+    t({ varianteId: "mia-m", productoId: "mia", referencia: "Short Mía", talla: "M" }),
+    t({ varianteId: "xim-xl", productoId: "ximena", referencia: "Casaca Ximena", talla: "XL", almacenLibre: 1, vendidasAyer: 1, vendidas14: 1 }),
+    t({ varianteId: "xim-m", productoId: "ximena", referencia: "Casaca Ximena", talla: "M", pisoLibre: 2, almacenLibre: 1 }),
   ];
-  const prendas = agruparPorPrenda(filas);
+  const lectura: LecturaDelPiso = {
+    ubicacionId: "tru",
+    separaPiso: true,
+    cuadradoEn: "2026-10-01T15:00:00+00:00",
+    hoy: "2026-10-04",
+    dias: DIAS_VENTANA,
+    tallas,
+    ventas: [],
+    anotadasRecientes: [],
+    curvas: [{ categoriaId: "cat-polos", categoria: "Polos", tallas: ["XS", "S", "M", "L", "XL"] }],
+  };
+  const plan = planDelPiso(lectura);
+  const filas = tallas.map((x) =>
+    fila({
+      varianteId: x.varianteId,
+      productoId: x.productoId,
+      referencia: x.referencia,
+      talla: x.talla,
+      color: x.color,
+      pisoDisponible: x.pisoLibre,
+      almacenDisponible: x.almacenLibre,
+      planPiso: plan.porTalla.get(x.varianteId) ?? null,
+    })
+  );
+  const perchas = (ps: { productoId: string; tallas: { talla: string | null }[] }[]) => ps.map((p) => `${p.productoId}:${p.tallas.map((f) => f.talla).join("·")}`);
 
-  it("primero lo que la clienta no ve (por colgar, la de más tallas antes), después lo que pide reponer, al final el resto", () => {
-    expect(ordenarPorUrgencia(prendas).map((p) => p.productoId)).toEqual(["colgar-2", "colgar-1", "reponer", "tranquila"]);
+  it("la tarjeta «Reponer a piso hoy» dice EXACTAMENTE lo que el Inicio: mismas prendas, mismas tallas, mismo orden", () => {
+    const inicio = paraColgarHoy(plan, lectura).prendas;
+    expect(perchas(prendasParaColgarHoy(filas, plan.listaDelDia))).toEqual(perchas(inicio));
+    // Lo vendido ayer primero, y «Sin stock atrás» (Short Mía) no se cuelga.
+    expect(perchas(inicio)).toEqual(["ximena:XL", "luna:S·M·L"]);
   });
-  it("la urgencia de cada una", () => {
-    expect(prendas.map((p) => [p.productoId, urgenciaDePrenda(p)])).toEqual([
-      ["tranquila", 2],
-      ["reponer", 1],
-      ["colgar-1", 0],
-      ["colgar-2", 0],
-    ]);
+  it("sin búsqueda, la lista «Por prenda» va en el mismo orden y el resto después, en el orden en que llegó", () => {
+    expect(ordenarPorListaDelDia(agruparPorPrenda(filas), plan.listaDelDia).map((p) => p.productoId)).toEqual(["ximena", "luna", "mia"]);
   });
-  it("a igual urgencia respeta el orden de llegada, y no toca la lista original", () => {
-    const dos = agruparPorPrenda([fila({ varianteId: "b", productoId: "b" }), fila({ varianteId: "a", productoId: "a" })]);
-    expect(ordenarPorUrgencia(dos).map((p) => p.productoId)).toEqual(["b", "a"]);
-    expect(prendas.map((p) => p.productoId)).toEqual(["tranquila", "reponer", "colgar-1", "colgar-2"]);
+  it("sin lista (el motor no respondió o el piso está en pausa): el orden de llegada, y la tarjeta sin prendas", () => {
+    expect(ordenarPorListaDelDia(agruparPorPrenda(filas), []).map((p) => p.productoId)).toEqual(["luna", "mia", "ximena"]);
+    expect(prendasParaColgarHoy(filas, [])).toEqual([]);
   });
 });
 

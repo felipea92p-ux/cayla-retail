@@ -3,17 +3,17 @@
 import { useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, prendasParaColgarHoy, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
-import { pidePiso } from "@/lib/piso-plan";
 import { textoTarjetaEnPausa } from "@/lib/existencias-hoy";
 
 /* ====================================================================
    «Reponer a piso hoy» (Prioridades de hoy, 2026-09-29)
 
-   Solo dice con qué empezar: hasta tres prendas que piden piso (las que haya, si son menos de tres) y CUÁLES de sus tallas.
-   Nada decide algo nuevo: las prendas y su orden son los de la tabla (`agruparPorPrenda`, `ordenarPorUrgencia`) y «pide
-   piso» es la decisión del motor del piso (`pidePiso`, `lib/piso-plan.ts`).
+   Solo dice con qué empezar: las tres primeras prendas de la lista del día del motor del piso (las que haya, si son menos de
+   tres) y CUÁLES de sus tallas. Nada decide algo nuevo: las prendas, sus tallas y su orden son los de la lista del día
+   (`prendasParaColgarHoy`, ADR-0328 act. 7), los mismos que el Inicio de almacén: lo vendido ayer primero, y solo lo que se
+   puede colgar hoy («Sin stock atrás» no se cuelga: se ve en «Hoy» de la tabla).
 
    Del mismo ancho que las otras tres tarjetas: cada prenda es una fila compacta (nombre y color, y sus tallas al lado o debajo), sin foto.
    ==================================================================== */
@@ -29,9 +29,10 @@ const TONO_TALLA = {
   normal: "bg-tinta/5 text-tinta/65",
 } as const;
 
-/** Las tallas de una prenda que piden piso, cada una con su color y lo que hay en piso y almacén al pasar el mouse. */
+/** Las tallas de una prenda que hay que colgar hoy (la prenda ya trae solo esas), cada una con su color y lo que hay en piso y
+ *  almacén al pasar el mouse. */
 function TallasQuePiden({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
-  const piden = prenda.tallas.filter((f) => pidePiso(f.planPiso?.accion));
+  const piden = prenda.tallas;
   return (
     <span className="flex flex-wrap items-center gap-1">
       {piden.slice(0, MAX_TALLAS_EN_FILA).map((f) => (
@@ -50,11 +51,14 @@ function TallasQuePiden({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> })
 
 export function TarjetaReponerAPiso({
   stock,
+  listaDelDia,
   onVerPrenda,
   fallo = false,
   tallasEnPausa = 0,
 }: {
   stock: FilaExistencias[];
+  /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`). */
+  listaDelDia: readonly string[];
   /** Llevar la lista a esta prenda. */
   onVerPrenda: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** El motor del piso no respondió: no se sabe qué falta, y la tarjeta no puede decir «Nada pendiente». */
@@ -62,10 +66,7 @@ export function TarjetaReponerAPiso({
   /** Tallas que esperan el cuadre del piso (ADR-0328, decisión 5): tampoco es «Nada pendiente». */
   tallasEnPausa?: number;
 }) {
-  const prendas = useMemo(
-    () => ordenarPorUrgencia(agruparPorPrenda(stock)).filter((p) => p.tallas.some((f) => pidePiso(f.planPiso?.accion))),
-    [stock]
-  );
+  const prendas = useMemo(() => prendasParaColgarHoy(stock, listaDelDia), [stock, listaDelDia]);
   const primeras = prendas.slice(0, CUANTAS);
   const urgente = primeras.length > 0;
 

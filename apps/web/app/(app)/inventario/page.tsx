@@ -250,6 +250,9 @@ export default async function InventarioPage({
         puedeAjustar={puede(persona, "ajustarStock")}
         coberturaFallo={ritmoReciente.fallo}
         planFallo={planFallo}
+        // La lista del día del motor (lo vendido ayer primero): la tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen,
+        // igual que el Inicio de almacén. Sin plan, o con el piso en pausa, está vacía.
+        listaDelDia={plan?.listaDelDia}
         sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
         sinStock={sinStock}
         marcaFallo={catalogo.fallo}

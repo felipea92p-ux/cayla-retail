@@ -74,8 +74,6 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   tallasParaBajar: number;
   /** Cuántas tallas están «Por colgar» (`hoyDeTalla`). */
   tallasPorColgar: number;
-  /** Cuántas tallas están «Por reponer» (`hoyDeTalla`): el motor pide bajar y hay atrás. */
-  tallasPorReponer: number;
 };
 
 function sumarONull(filas: FilaPrenda[], campo: "pisoDisponible" | "almacenDisponible"): number | null {
@@ -113,7 +111,6 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       enTransito: tallas.reduce((acc, f) => acc + f.enTransito, 0),
       tallasParaBajar: tallas.filter(sePuedeBajar).length,
       tallasPorColgar: tallas.filter((f) => hoyDeTalla(f) === "por_colgar").length,
-      tallasPorReponer: tallas.filter((f) => hoyDeTalla(f) === "por_reponer").length,
     };
   });
 }
@@ -216,21 +213,30 @@ export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda | 
   return estados.includes("mantener") ? { tipo: "mantener", n: 0 } : null;
 }
 
-/** Cuán urgente es una prenda para el piso, según el motor: 0 = tiene tallas por colgar (el cliente no las ve y hay atrás),
- *  1 = pide reponer (hay atrás), 2 = nada que bajar hoy. Que se PUEDA bajar no la vuelve urgente: eso es `tallasParaBajar`. */
-export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasPorReponer">): 0 | 1 | 2 {
-  if (p.tallasPorColgar > 0) return 0;
-  if (p.tallasPorReponer > 0) return 1;
-  return 2;
+/** La posición de cada talla en la lista del día del motor (`PlanDelPiso.listaDelDia`). */
+function posiciones(listaDelDia: readonly string[]): Map<string, number> {
+  return new Map(listaDelDia.map((id, i) => [id, i]));
 }
 
-/** La lista SIN búsqueda escrita, por urgencia (análisis de Existencias, tarea #5): primero lo que falta en el piso, y
- *  dentro de cada grupo, la que más tallas tiene por colgar. Es estable: a igual urgencia, se respeta el orden de
- *  llegada (modelo y color). Con texto escrito NO se usa: manda la relevancia de la búsqueda. */
-export function ordenarPorUrgencia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[]): PrendaAgrupada<F>[] {
+/** Lo que hay que colgar hoy, por prenda: SOLO las tallas de la lista del día del motor y en SU orden —lo vendido ayer primero,
+ *  luego lo que el piso no tiene—, agrupadas como en la tabla (la prenda va donde aparece su primera talla). Es lo mismo que el
+ *  Inicio de almacén (`paraColgarHoy` de `lib/piso-plan.ts`): antes la tarjeta «Reponer a piso hoy» tenía su propio orden y
+ *  también listaba «Sin stock atrás», y el Inicio y Existencias recomendaban prendas distintas sobre la misma lectura. */
+export function prendasParaColgarHoy<F extends FilaPrenda>(filas: readonly F[], listaDelDia: readonly string[]): PrendaAgrupada<F>[] {
+  const pos = posiciones(listaDelDia);
+  const enLista = filas.filter((f) => pos.has(f.varianteId)).sort((a, b) => pos.get(a.varianteId)! - pos.get(b.varianteId)!);
+  return agruparPorPrenda(enLista);
+}
+
+/** La lista SIN búsqueda escrita (análisis de Existencias, tarea #5): primero las prendas de la lista del día, en su orden —el
+ *  mismo del Inicio y de la tarjeta: lo vendido ayer primero (ADR-0329 act. 1)—; después el resto, en el orden en que llegaron
+ *  (modelo y color). Estable. Con texto escrito NO se usa: manda la relevancia de la búsqueda. */
+export function ordenarPorListaDelDia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[], listaDelDia: readonly string[]): PrendaAgrupada<F>[] {
+  const pos = posiciones(listaDelDia);
+  const rango = (p: PrendaAgrupada<F>) => p.tallas.reduce((min, f) => Math.min(min, pos.get(f.varianteId) ?? Infinity), Infinity);
   return prendas
-    .map((p, i) => ({ p, i }))
-    .sort((a, b) => urgenciaDePrenda(a.p) - urgenciaDePrenda(b.p) || b.p.tallasPorColgar - a.p.tallasPorColgar || a.i - b.i)
+    .map((p, i) => ({ p, i, r: rango(p) }))
+    .sort((a, b) => (a.r === b.r ? a.i - b.i : a.r - b.r))
     .map(({ p }) => p);
 }
 

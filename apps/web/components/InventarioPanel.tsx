@@ -31,7 +31,7 @@ import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -51,6 +51,9 @@ import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/in
 import type { Sububicacion } from "@/lib/sububicaciones";
 
 const TODAS = "__todas__";
+
+/** Sin lista del día (el motor no respondió, o el piso está en pausa): la misma referencia en cada render, para no rehacer el orden. */
+const SIN_LISTA: readonly string[] = [];
 
 /** El punto de la leyenda de la tabla, en el tono de cada caso de «Hoy». */
 const PUNTO_HOY = { rojo: "bg-rojo", ambar: "bg-ambar", verde: "bg-verde", pizarra: "bg-pizarra" } as const;
@@ -252,6 +255,7 @@ export function InventarioPanel({
   esTienda = false,
   panelFiltros = "abierto",
   coloresCatalogo = [],
+  listaDelDia = SIN_LISTA,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -312,6 +316,9 @@ export function InventarioPanel({
   /** Los colores del catálogo con su familia, hex y tipo: la lista de Color va agrupada por familia y con su muestra, como en
    *  Productos. Vacío (la lectura falló) = lista plana. */
   coloresCatalogo?: ColorDeCatalogo[];
+  /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar o reponer hoy, en orden (lo vendido
+   *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
+  listaDelDia?: readonly string[];
 }) {
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
@@ -464,8 +471,8 @@ export function InventarioPanel({
   const sinTexto = busqueda.trim() === "";
   const prendas = useMemo(() => {
     const agrupadas = agruparPorPrenda(filtradas);
-    return sinTexto ? ordenarPorUrgencia(agrupadas) : agrupadas;
-  }, [filtradas, sinTexto]);
+    return sinTexto ? ordenarPorListaDelDia(agrupadas, listaDelDia) : agrupadas;
+  }, [filtradas, sinTexto, listaDelDia]);
   const paginaPrendas = paginar(prendas, pagina, FILAS_POR_PAGINA);
   // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido. Sin `orden` (o con uno que
   // esta sede no ofrece: Taller no separa piso y almacén) queda el orden de siempre.
@@ -728,6 +735,7 @@ export function InventarioPanel({
           {separa && (
             <TarjetaReponerAPiso
               stock={stock}
+              listaDelDia={listaDelDia}
               fallo={!!planFallo}
               tallasEnPausa={tallasEnPausa}
               onVerPrenda={(p) => {
