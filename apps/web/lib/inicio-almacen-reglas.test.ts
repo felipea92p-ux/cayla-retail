@@ -388,9 +388,10 @@ describe("accesosAlmacen", () => {
 describe("fuentesDeAlmacen", () => {
   const fotos = { activos: 10, conFoto: 3 };
   it("pasa cada cola con su cifra", () => {
-    expect(fuentesDeAlmacen({ porRecibir: { facturas: 2, primera: "F001-1 · Andina" }, existencias: { enAlmacen: 50, modelosParaReponer: 5 }, fotos, porCompletar: 2 })).toEqual({
+    const existencias = { enAlmacen: 50, prendasPorColgar: 5, tallasPorColgar: 9, enPausa: false };
+    expect(fuentesDeAlmacen({ porRecibir: { facturas: 2, primera: "F001-1 · Andina" }, existencias, fotos, porCompletar: 2 })).toEqual({
       porRecibir: { facturas: 2, primera: "F001-1 · Andina" },
-      reponer: 5,
+      reponer: { prendas: 5, tallas: 9, enPausa: false },
       fotosQueFaltan: 7,
       porCompletar: 2,
     });
@@ -399,8 +400,8 @@ describe("fuentesDeAlmacen", () => {
     expect(fuentesDeAlmacen({ fotos: null, porCompletar: null })).toEqual({ porRecibir: undefined, reponer: undefined, fotosQueFaltan: null, porCompletar: null });
     expect(fuentesDeAlmacen({ existencias: null, fotos, porCompletar: 0 }).reponer).toBeNull();
   });
-  it("una sede que no separa piso y almacén no tiene «Reponer a piso»", () => {
-    expect(fuentesDeAlmacen({ existencias: { enAlmacen: null, modelosParaReponer: 0 }, fotos, porCompletar: 0 }).reponer).toBeUndefined();
+  it("una sede que no separa piso y almacén no tiene «Por colgar»", () => {
+    expect(fuentesDeAlmacen({ existencias: { enAlmacen: null, prendasPorColgar: 0, tallasPorColgar: 0, enPausa: false }, fotos, porCompletar: 0 }).reponer).toBeUndefined();
   });
   it("las fotos que faltan nunca son negativas", () => {
     expect(fuentesDeAlmacen({ fotos: { activos: 3, conFoto: 3 }, porCompletar: 0 }).fotosQueFaltan).toBe(0);

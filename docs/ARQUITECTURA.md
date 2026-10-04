@@ -105,8 +105,9 @@ flowchart TB
 - `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
   (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
   puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
-  catálogo», pulso, en camino, reponer a piso y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
-  (`getInicioAlmacen`: productos nuevos, fotos, por completar, por recibir, existencias, movimientos de hoy, en camino), cada una tolerante.
+  catálogo», pulso, en camino, por colgar hoy y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
+  (`getInicioAlmacen`: productos nuevos, fotos, por completar, por recibir, el piso de la sede —«Por colgar hoy» y el aviso
+  «Cuelga N», con el motor del piso sobre `fn_piso_plan_lectura`, `lib/piso-plan.ts`—, movimientos de hoy, en camino), cada una tolerante.
   Reglas puras con pruebas: `lib/inicio-almacen-reglas.ts`. La sigla de la sede donde se registró cada producto sale de `fn_producto_origen` (tabla `producto_origen` + disparador en `productos`, migración `20260930170000`; `components/inicio-almacen/ChipSede.tsx`). Estilos: `app/estilos/inicio-almacen.css` (clases `ia-*`, bloque «AMBIENTE» aislado). Ocupa todo el ancho del `<main>`: el marcador `data-ancho-completo` de `InicioAlmacen` le quita el tope de 64 rem que `AppShell` pone por defecto (`has-[[data-ancho-completo]]:max-w-none`; `lib/ancho-completo.test.ts`). ADR-0292.
 - **Una cuenta Admin** (`persona.esAdmin`) tiene el **Observatorio** (ADR-0322): `components/observatorio/Observatorio.tsx` (raíz: estado, lectura cada
   30 s, teclado, «Repetir el día»), `Mapa.tsx` (zoom y transformación del contorno, cuadro a cuadro sobre el DOM), `PanelGlobal.tsx`, `PanelTienda.tsx`
@@ -272,9 +273,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
+  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migración `20261004213000`: lo libre en piso y almacén, lo vendido
+  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color, y las curvas de
+  tallas; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar ·
+  por reponer · sin stock atrás · mantener, más la pausa sin cuadre—, la lista del día y «se vendió rápido y falta»; la
+  decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
+  umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
-  `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, semáforo de 4 estados con
-  `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
+  `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, «Hoy» de cada talla con las
+  cuatro palabras de ADR-0326 en `lib/existencias-hoy.ts`, leyenda; primera columna «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer prenda» (tarjeta y cajón) abre
   `ReponerPrendaModal.tsx` (ADR-0295 y ADR-0320: el MODELO entero —una fila por color, una columna por talla, `MatrizMover.tsx`— y UNA llamada a `bajar_al_piso`, todo o nada, con
   marca) y «Subir prenda» (entre «Reponer prenda» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`

@@ -237,6 +237,7 @@ export function InventarioPanel({
   editaCatalogo = false,
   puedeAjustar,
   coberturaFallo = null,
+  planFallo = null,
   sedeNombre,
   sinStock,
   marcaFallo = null,
@@ -278,6 +279,8 @@ export function InventarioPanel({
   puedeAjustar: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
   coberturaFallo?: string | null;
+  /** El motor del piso no respondió (`fn_piso_plan_lectura`): «Hoy» queda en N/D y la pantalla lo dice, en vez de callar. */
+  planFallo?: string | null;
   /** El nombre de la sede que se mira, para decir «Tienda TRU no lo ha recibido» en el estado vacío. */
   sedeNombre: string;
   /** Los productos ACTIVOS del catálogo que esta sede no tiene (ni una fila de stock): la pantalla nace de `stock`, así que
@@ -681,8 +684,8 @@ export function InventarioPanel({
       {/* Prioridades de hoy (diseño aprobado por Felipe, 2026-09-28; orden y «Reponer a piso hoy» rediseñados el 2026-09-29): la
           cabecera y las 4 tarjetas — Resumen disponible, Reponer a piso hoy, En camino hacia acá e Incidencias. Sin enlaces utilitarios a la derecha: «Ver
           recomendaciones» y «Ver análisis de cobertura» ya no viven aquí (la cobertura es de Análisis). «Reponer a piso hoy»
-          (2026-09-25) cuenta y filtra por «Acción hoy» — MISMA fuente que la columna de la tabla (`calcularAccionHoy`), nunca
-          un semáforo aparte (sección 15). */}
+          cuenta las tallas a las que el piso les pide algo — MISMA decisión que la columna «Hoy» (el motor del piso,
+          `lib/piso-plan.ts`, ADR-0328 act. 7), nunca un semáforo aparte. */}
       <div>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>
@@ -722,6 +725,7 @@ export function InventarioPanel({
           {separa && (
             <TarjetaReponerAPiso
               stock={stock}
+              fallo={!!planFallo}
               onVerPrenda={(p) => {
                 setBusqueda(p.referencia);
                 mostrarTablaFiltrada();
@@ -863,6 +867,7 @@ export function InventarioPanel({
       )}
 
       {separa && coberturaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{coberturaFallo}</p>}
+      {separa && planFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{planFallo}</p>}
       {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
       {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
       {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}

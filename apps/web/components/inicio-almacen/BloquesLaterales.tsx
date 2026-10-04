@@ -140,14 +140,14 @@ export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) 
   );
 }
 
-// ── Reponer a piso hoy ───────────────────────────────────────────────────────────────────────────
+// ── Por colgar hoy (la lista del día del motor del piso, ADR-0328 act. 7) ───────────────────────────
 
 export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias | null | undefined }) {
   if (existencias === undefined) return null;
   if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay piso que reponer
   return (
     <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties}>
-      <Cabecera titulo="Reponer a piso hoy" />
+      <Cabecera titulo="Por colgar hoy" />
       <div className="card-cayla ia-rp">
         {existencias === null ? (
           <div className="ia-err">
@@ -155,8 +155,10 @@ export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias 
             <p>No se pudo leer el piso de venta. Lo demás sí está al día.</p>
             <ReintentarLectura />
           </div>
-        ) : existencias.modelosParaReponer === 0 ? (
-          <Vacio titulo="Piso al día" detalle="Ninguna prenda pide reposición." />
+        ) : existencias.prendasPorColgar === 0 ? (
+          <Vacio titulo="Piso al día" detalle="No hay nada que colgar hoy." />
+        ) : existencias.enPausa ? (
+          <Vacio titulo="Cuadra el piso antes de colgar" detalle="Mientras el piso de la sede no esté cuadrado, la lista espera: podría pedir colgar lo que ya cuelga." />
         ) : (
           <>
             {existencias.reponer.map((p, i) => (
@@ -177,7 +179,7 @@ export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias 
               </Link>
             ))}
             <div className="ia-pie">
-              <span>{existencias.modelosParaReponer > existencias.reponer.length ? `y ${existencias.modelosParaReponer - existencias.reponer.length} ${existencias.modelosParaReponer - existencias.reponer.length === 1 ? "modelo más" : "modelos más"}` : ""}</span>
+              <span>{existencias.prendasPorColgar > existencias.reponer.length ? `y ${existencias.prendasPorColgar - existencias.reponer.length} ${existencias.prendasPorColgar - existencias.reponer.length === 1 ? "prenda más" : "prendas más"}` : ""}</span>
               <Link href="/inventario" className="ia-enl">
                 Ver todos <Ico clave="arrow" />
               </Link>

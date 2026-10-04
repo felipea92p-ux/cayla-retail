@@ -47,10 +47,8 @@ describe("fotoPrincipal", () => {
   });
 });
 
-// `EstadoStock`/`calcularEstado`/`necesitaReponerPiso` se retiraron el 2026-09-25 (ver la nota en
-// `inventario-reglas.ts`): Existencias decide todo con el motor único de «Acción hoy»
-// (`existencias-recomendaciones.test.ts`), no con un semáforo aparte. `UMBRAL_REPOSICION_PISO`
-// SIGUE existiendo — es de Análisis (`resumen-reglas.ts`), no de Existencias.
+// Lo que el piso pide hoy lo decide UN motor (`lib/piso-plan.ts`, ADR-0328 act. 7; sus pruebas en `piso-plan.test.ts`), no un
+// semáforo aparte. `UMBRAL_REPOSICION_PISO` SIGUE existiendo — es de Análisis (`resumen-reglas.ts`), no de Existencias.
 
 describe("sumarCantidades (la regla que comparten Existencias y la caja)", () => {
   const fila = (variante_id: string, tipo: string | null, cantidad: number, cantidad_apartada = 0) => ({

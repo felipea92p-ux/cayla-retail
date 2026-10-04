@@ -23,7 +23,7 @@ export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 /** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
  *  sin ritmo medible): cuántas sugerir bajar, con un ritmo de 30 días. Existencias NO lo usa: lo que
  *  el piso pide hoy lo decide el motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7). Es deuda de
- *  Análisis (actividad 11), listada en `piso-plan-umbral.test.ts`. */
+ *  Análisis (actividad 11). */
 export const UMBRAL_REPOSICION_PISO = 7;
 
 // «Por colgar» y lo que el piso pide hoy ya no se deciden aquí: los decide UN motor, `lib/piso-plan.ts` (ADR-0328 act. 7), y

@@ -419,6 +419,45 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
   };
 }
 
+// ── La lista del día por percha (lo que leen el Inicio y, después, «Para hoy») ─────────────────────────────────
+
+/** Una percha (un modelo en un color) con las tallas que hay que colgar o reponer hoy, en su curva. */
+export type PrendaParaColgar = {
+  clave: string;
+  productoId: string;
+  referencia: string;
+  color: string | null;
+  fotoUrl: string | null;
+  tallas: { varianteId: string; talla: string; accion: AccionPiso }[];
+};
+
+/**
+ * Lo que hay que colgar hoy, agrupado por percha en el orden de la lista del día: la percha va donde aparece su primera talla
+ * (así lo vendido ayer sale primero) y sus tallas en curva. Con el piso sin cuadrar, las tallas en pausa —lo que se colgaría si
+ * el piso estuviera cuadrado— con `enPausa`, para decir cuántas esperan sin mandar a bajar ninguna.
+ */
+export function paraColgarHoy(plan: PlanDelPiso, lectura: LecturaDelPiso): { prendas: PrendaParaColgar[]; tallas: number; enPausa: boolean } {
+  const porId = new Map(lectura.tallas.map((t) => [t.varianteId, t]));
+  const ids = plan.enPausa
+    ? lectura.tallas.filter((t) => plan.porTalla.get(t.varianteId)?.accion === "pausa_sin_cuadre").map((t) => t.varianteId)
+    : plan.listaDelDia;
+  const prendas = new Map<string, PrendaParaColgar>();
+  for (const id of ids) {
+    const t = porId.get(id);
+    const d = plan.porTalla.get(id);
+    if (!t || !d) continue;
+    const clave = JSON.stringify([t.productoId, t.color]);
+    let p = prendas.get(clave);
+    if (!p) {
+      p = { clave, productoId: t.productoId, referencia: t.referencia, color: t.color, fotoUrl: t.fotoUrl, tallas: [] };
+      prendas.set(clave, p);
+    }
+    p.tallas.push({ varianteId: id, talla: t.talla ?? "Única", accion: d.accion });
+  }
+  for (const p of prendas.values()) p.tallas.sort((a, b) => compararTallas(a.talla, b.talla));
+  return { prendas: [...prendas.values()], tallas: ids.length, enPausa: plan.enPausa };
+}
+
 // ── De la respuesta de la base a la lectura (sin confiar en la forma) ──────────────────────────────────────────
 
 const texto = (x: unknown): string | null => (typeof x === "string" && x !== "" ? x : null);

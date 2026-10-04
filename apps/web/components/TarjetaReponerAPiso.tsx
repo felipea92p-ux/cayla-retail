@@ -50,10 +50,13 @@ function TallasQuePiden({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> })
 export function TarjetaReponerAPiso({
   stock,
   onVerPrenda,
+  fallo = false,
 }: {
   stock: FilaExistencias[];
   /** Llevar la lista a esta prenda. */
   onVerPrenda: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** El motor del piso no respondió: no se sabe qué falta, y la tarjeta no puede decir «Nada pendiente». */
+  fallo?: boolean;
 }) {
   const prendas = useMemo(
     () => ordenarPorUrgencia(agruparPorPrenda(stock)).filter((p) => p.tallas.some((f) => pidePiso(f.planPiso?.accion))),
@@ -75,7 +78,7 @@ export function TarjetaReponerAPiso({
       </p>
 
       {!urgente ? (
-        <p className="mt-2 text-[13.5px] leading-5 text-taupe">Nada pendiente de bajar al piso</p>
+        <p className="mt-2 text-[13.5px] leading-5 text-taupe">{fallo ? "No se pudo calcular ahora" : "Nada pendiente de bajar al piso"}</p>
       ) : (
         <div className="mt-2">
           <p className="text-[13.5px] leading-5 text-taupe">{primeras.length === 1 ? "Empieza por esta prenda" : "Empieza por estas prendas"}</p>

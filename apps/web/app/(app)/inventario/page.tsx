@@ -9,8 +9,8 @@ import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
 import { deltaDisponibleSede } from "@/lib/existencias-categorias";
-import { planPisoPorVariante } from "@/lib/existencias-recomendaciones";
-import { pidePiso } from "@/lib/piso-plan";
+import { pidePiso, type PisoDeTalla } from "@/lib/piso-plan";
+import { leerPlanDelPiso } from "@/lib/piso-plan-servidor";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
@@ -51,7 +51,7 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, plan] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -74,19 +74,21 @@ export default async function InventarioPage({
         return { filas: [] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>, fallo: true };
       }
     ),
-    // REHECHO 2026-09-25: ya NO se pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días)
-    // para Existencias — el motor nuevo de «Acción hoy» (`calcularAccionHoy`) decide con lo que
-    // Existencias ya trae en `stock` (piso, almacén, en tránsito), sin una cuarta reconstrucción
-    // del ledger. Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
+    // Existencias no pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días): «Hoy» lo decide el motor del piso con su
+    // propia lectura (abajo). Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
     // La marca de cada prenda y qué productos del catálogo esta sede no tiene (2026-09-26): para buscar y filtrar por marca y
     // para decir «existe, pero aquí no lo han recibido» en vez de callar. Dato secundario: si falla, sin marca y con aviso.
     getCatalogoParaExistencias(),
     // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
     getColoresParaExistencias(),
+    // «Hoy» de cada talla: el motor del piso (ADR-0328 act. 7) sobre UNA lectura (`fn_piso_plan_lectura`): lo libre en piso y
+    // almacén, lo vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no
+    // responde, `null`: «Hoy» dice N/D y la pantalla lo avisa; el resto sigue en pie.
+    vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
   ]);
 
-  // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
-  // gobiernan «Acción hoy» — hoy global, con override futuro por sede (`politicaDe`).
+  // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
+  // no sale de aquí: lo decide el motor del piso (`plan`).
   const politica = politicaDe(ubicacionActivaId);
 
   // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no
@@ -97,11 +99,10 @@ export default async function InventarioPage({
     ? await getRitmoRecientePorVariante(ubicacionActivaId, varianteIds, pisoPorVariante)
     : { datos: null, fallo: null };
 
-  // Motor único de «Acción hoy» (`existencias-recomendaciones.ts`, sin `planDeReposicion`): sobre
-  // `stockBase` directo — piso/almacén/en tránsito ya vienen ahí, ninguna otra reconstrucción.
-  // Regla física de piso (2026-09-25, cuarta ronda): ya NO recibe Ritmo reciente ni Cobertura
-  // piso — no le hacen falta para decidir nada (`politica.umbralStockPisoReposicion` manda solo).
-  const planPiso = vende ? planPisoPorVariante(stockBase, politica) : new Map();
+  // La decisión de cada talla (por colgar · por reponer · sin stock atrás · mantener) es la del motor del piso: la misma que lee el
+  // Inicio. Sin plan (la lectura no respondió), ninguna fila trae decisión y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
+  const planPiso: ReadonlyMap<string, PisoDeTalla> = plan?.porTalla ?? new Map();
+  const planFallo = vende && plan === null ? "«Hoy» no se pudo calcular ahora: la columna dice N/D. Lo demás de esta pantalla sí está al día." : null;
 
   // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
@@ -127,7 +128,7 @@ export default async function InventarioPage({
   // «Reponer a piso hoy» (tarjeta y filtro) cuenta por «Acción hoy» — MISMA fuente que la columna
   // de la tabla y el botón inline «Reponer»: una tarjeta que contara distinto de lo que la fila
   // muestra sería exactamente la incoherencia que Felipe pidió cerrar (sección 15/16, 2026-09-25).
-  const resumen = resumirExistencias(stock, [...planPiso.values()].filter((d) => pidePiso(d.accion)).length);
+  const resumen = resumirExistencias(stock, stock.filter((f) => pidePiso(f.planPiso?.accion)).length);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 
@@ -248,6 +249,7 @@ export default async function InventarioPage({
         editaCatalogo={puede(persona, "editarCatalogo")}
         puedeAjustar={puede(persona, "ajustarStock")}
         coberturaFallo={ritmoReciente.fallo}
+        planFallo={planFallo}
         sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
         sinStock={sinStock}
         marcaFallo={catalogo.fallo}

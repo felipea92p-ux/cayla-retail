@@ -316,13 +316,17 @@ export function accesosAlmacen(modulos: readonly ClaveModulo[]): AccesoDeAlmacen
  */
 export function fuentesDeAlmacen(d: {
   porRecibir?: { facturas: number; primera: string | null } | null;
-  existencias?: { enAlmacen: number | null; modelosParaReponer: number } | null;
+  existencias?: { enAlmacen: number | null; prendasPorColgar: number; tallasPorColgar: number; enPausa: boolean } | null;
   fotos: { activos: number; conFoto: number } | null;
   porCompletar: number | null;
 }): Pick<FuentesAvisos, "porRecibir" | "reponer" | "fotosQueFaltan" | "porCompletar"> {
   return {
     porRecibir: d.porRecibir,
-    reponer: d.existencias === undefined ? undefined : d.existencias === null ? null : d.existencias.enAlmacen === null ? undefined : d.existencias.modelosParaReponer,
+    reponer:
+      d.existencias === undefined ? undefined
+        : d.existencias === null ? null
+          : d.existencias.enAlmacen === null ? undefined
+            : { prendas: d.existencias.prendasPorColgar, tallas: d.existencias.tallasPorColgar, enPausa: d.existencias.enPausa },
     fotosQueFaltan: d.fotos === null ? null : Math.max(0, d.fotos.activos - d.fotos.conFoto),
     porCompletar: d.porCompletar,
   };

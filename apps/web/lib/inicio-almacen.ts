@@ -1,12 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { contar, tolerarLectura } from "@/lib/inicio";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
-import { getExistencias } from "@/lib/inventario-v2";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
-import { planPisoPorVariante } from "@/lib/existencias-recomendaciones";
-import { pidePiso } from "@/lib/piso-plan";
-import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia } from "@/lib/existencias-prendas";
-import { politicaDe } from "@/lib/politica-operativa-inventario";
+import { paraColgarHoy, planDelPiso } from "@/lib/piso-plan";
+import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { getResumenTienda } from "@/lib/movimientos-v2";
 import { listarPorRecibir } from "@/lib/compras";
 import { getTrasladosEnCurso } from "@/lib/traslados";
@@ -168,50 +165,53 @@ export async function getEnCamino(ubicacionId: string, ahoraMs: number = Date.no
   });
 }
 
-// ── «Reponer a piso hoy» y «Pulso del almacén» ───────────────────────────────────────────────────
+// ── «Por colgar hoy» y «Pulso del almacén» ────────────────────────────────────────────────────────────────────
 
 export type PrendaParaReponer = {
   clave: string;
   referencia: string;
   color: string | null;
   fotoUrl: string | null;
-  /** Solo las tallas que piden piso: «piso» = en el piso no queda ninguna y atrás sí (`por_colgar`). */
+  /** Solo las tallas que el piso pide hoy: «sinPiso» = en el piso no queda ninguna (`por_colgar`); si no, queda poco. */
   tallas: { talla: string; sinPiso: boolean }[];
 };
 
 export type Existencias = {
   /** Unidades libres en el almacén de la sede. */
   enAlmacen: number | null;
-  /** Cuántos modelos piden piso (cuenta por prenda: modelo en un color). */
-  modelosParaReponer: number;
-  /** Las tres más urgentes, con sus tallas. */
+  /** Cuántas prendas (modelo en un color) tienen algo que colgar o reponer hoy (la lista del día del motor del piso). */
+  prendasPorColgar: number;
+  /** Cuántas tallas, en total, de esas prendas. */
+  tallasPorColgar: number;
+  /** El piso de la sede no está cuadrado: la lista espera (ADR-0328, decisión 5) y las cifras son lo que esperaría. */
+  enPausa: boolean;
+  /** Las tres primeras de la lista del día (lo vendido ayer primero), con sus tallas. */
   reponer: PrendaParaReponer[];
 };
 
 /**
- * Lo que sale de las existencias de la sede: cuánto hay atrás y qué pide piso. La MISMA regla que la tarjeta «Reponer a
- * piso hoy» de Existencias (`calcularAccionHoy` → `agruparPorPrenda` → `ordenarPorUrgencia`), así que el Inicio y esa
- * pantalla cuentan igual. `null` si no se pudo leer; en una sede que no separa piso de almacén no hay nada que reponer.
+ * Lo que sale del piso de la sede: cuánto hay atrás y qué hay que colgar hoy. Es la MISMA decisión que «Hoy» en Existencias
+ * (el motor del piso, `lib/piso-plan.ts`, sobre `fn_piso_plan_lectura`), así que el Inicio y esa pantalla cuentan igual, y es UNA
+ * lectura (antes, la de Existencias entera: stock, red, traslados y productos de prueba). `null` si no se pudo leer; en una sede
+ * que no separa piso de almacén no hay nada que colgar.
  */
-export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<Existencias | null> {
-  return tolerarLectura("las existencias de la sede", async () => {
-    const stock = await getExistencias(ubicacionId, ubicaciones);
-    const separa = stock.some((f) => f.piso !== null);
-    if (!separa) return { enAlmacen: null, modelosParaReponer: 0, reponer: [] };
-    const plan = planPisoPorVariante(stock, politicaDe(ubicacionId));
-    const filas = stock.map((f) => ({ ...f, planPiso: plan.get(f.varianteId) ?? null }));
-    const piden = ordenarPorUrgencia(agruparPorPrenda(filas)).filter((p) => p.tallas.some((f) => pidePiso(f.planPiso?.accion)));
+export async function getExistenciasDeAlmacen(ubicacionId: string): Promise<Existencias | null> {
+  return tolerarLectura("el piso de la sede", async () => {
+    const lectura = await leerLecturaDelPiso(ubicacionId);
+    if (!lectura) throw new Error("sin lectura del piso");
+    if (!lectura.separaPiso) return { enAlmacen: null, prendasPorColgar: 0, tallasPorColgar: 0, enPausa: false, reponer: [] };
+    const hoy = paraColgarHoy(planDelPiso(lectura), lectura);
     return {
-      enAlmacen: stock.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
-      modelosParaReponer: piden.length,
-      reponer: piden.slice(0, 3).map((p) => ({
+      enAlmacen: lectura.tallas.reduce((s, t) => s + Math.max(0, t.almacenLibre), 0),
+      prendasPorColgar: hoy.prendas.length,
+      tallasPorColgar: hoy.tallas,
+      enPausa: hoy.enPausa,
+      reponer: hoy.prendas.slice(0, 3).map((p) => ({
         clave: p.clave,
         referencia: p.referencia,
         color: p.color,
         fotoUrl: p.fotoUrl,
-        tallas: p.tallas
-          .filter((f) => pidePiso(f.planPiso?.accion))
-          .map((f) => ({ talla: f.talla ?? "Única", sinPiso: estadoTalla(f) === "por_colgar" })),
+        tallas: p.tallas.map((t) => ({ talla: t.talla, sinPiso: t.accion === "por_colgar" })),
       })),
     };
   });
@@ -247,16 +247,15 @@ export type DatosInicioAlmacen = {
  */
 export async function getInicioAlmacen(cuenta: {
   ubicacionId: string;
-  ubicaciones: { id: string; nombre: string }[];
   ve: (m: ClaveModulo) => boolean;
 }): Promise<DatosInicioAlmacen> {
-  const { ubicacionId, ubicaciones, ve } = cuenta;
+  const { ubicacionId, ve } = cuenta;
   const [nuevos, fotos, porCompletar, porRecibir, existencias, hoy, enCamino] = await Promise.all([
     getNuevosDelCatalogo(ubicacionId),
     tolerarLectura("la cobertura de fotos", getCoberturaDeFotos).then((r) => r ?? null),
     getPorCompletar(),
     ve("recibir") ? getPorRecibir(ubicacionId) : undefined,
-    ve("existencias") ? getExistenciasDeAlmacen(ubicacionId, ubicaciones) : undefined,
+    ve("existencias") ? getExistenciasDeAlmacen(ubicacionId) : undefined,
     ve("movimientos") ? getEntradasYSalidasDeHoy(ubicacionId) : undefined,
     ve("traslados") ? getEnCamino(ubicacionId) : undefined,
   ]);

@@ -8,6 +8,7 @@ import {
   esParaColgar,
   esTallaCentral,
   lecturaDesdeJson,
+  paraColgarHoy,
   pidePiso,
   planDelPiso,
   quedaraPidiendoColgar,
@@ -403,6 +404,32 @@ describe("planDelPiso — el reloj lento (capacidad y mix, opcionales)", () => {
     expect(accion(plan, "lleno")).toBe("por_colgar");
     expect(plan.porTalla.get("lleno")?.entraUnaSaleUna).toBe(true);
     expect(plan.porTalla.get("jean")?.entraUnaSaleUna).toBe(false);
+  });
+});
+
+describe("paraColgarHoy — la lista del día por percha (lo que leen el Inicio y «Para hoy»)", () => {
+  const tallas = [
+    talla({ varianteId: "a-l", productoId: "pa", referencia: "Polo A", talla: "L", pisoLibre: 0, almacenLibre: 1 }),
+    talla({ varianteId: "a-s", productoId: "pa", referencia: "Polo A", talla: "S", pisoLibre: 0, almacenLibre: 1 }),
+    talla({ varianteId: "b-m", productoId: "pb", referencia: "Polo B", talla: "M", pisoLibre: 1, almacenLibre: 2, vendidasAyer: 2 }),
+    talla({ varianteId: "c-m", productoId: "pc", referencia: "Polo C", talla: "M", pisoLibre: 3, almacenLibre: 2 }),
+  ];
+  it("agrupa por percha en el orden de la lista (lo vendido ayer primero) y deja cada percha con sus tallas en curva", () => {
+    const l = lectura(tallas);
+    const hoy = paraColgarHoy(planDelPiso(l), l);
+    expect(hoy.enPausa).toBe(false);
+    expect(hoy.tallas).toBe(3);
+    expect(hoy.prendas.map((p) => [p.referencia, p.tallas.map((t) => `${t.talla}:${t.accion}`)])).toEqual([
+      ["Polo B", ["M:por_reponer"]],
+      ["Polo A", ["S:por_colgar", "L:por_colgar"]],
+    ]);
+  });
+  it("con el piso sin cuadrar no lista nada para bajar, pero dice cuántas tallas esperan", () => {
+    const l = lectura(tallas);
+    const hoy = paraColgarHoy(planDelPiso(l, { cuadre: { sabido: true, fecha: null } }), l);
+    expect(hoy.enPausa).toBe(true);
+    expect(hoy.tallas).toBe(3);
+    expect(hoy.prendas.flatMap((p) => p.tallas.map((t) => t.accion))).toEqual(["pausa_sin_cuadre", "pausa_sin_cuadre", "pausa_sin_cuadre"]);
   });
 });
 
