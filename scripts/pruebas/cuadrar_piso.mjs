@@ -567,6 +567,24 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'hint',
   "cuadre_almacen_movido,t,t,t,t"
 );
 caso(
+  // Revisión adversarial: la rama «entra al almacén» del chequeo no la vigilaba nadie (quitarla dejaba 35/35 en verde). Un
+  // «Subir a almacén» mientras se escanea es un traslado piso → almacén: su origen es el PISO y solo su destino es el
+  // almacén. El colchón del preludio se corre una hora atrás para que el escaneo «desde hace 1 s» vea solo esta subida.
+  "C7 · un «Subir a almacén» (piso → almacén) después de escaneo_desde también invalida el escaneo: cuadre_almacen_movido con esa prenda sola, y nada se mueve",
+  `${COMO_POSTGRES}set constraints all immediate;
+alter table retail.movimientos disable trigger movimientos_inmutables;
+update retail.movimientos set created_at = created_at - interval '1 hour' where ubicacion_id = :'cua' or ubicacion_destino_id = :'cua';
+alter table retail.movimientos enable trigger movimientos_inmutables;
+${sesion(FELIPE)}${COMO_API}select retail.mover_entre_piso_y_almacen(:'cua', :'ve', 1, :'piso', :'alm', null, gen_random_uuid()) as subida \\gset
+${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${cuadrar(ESCANEO, { desde: "now() - interval '1 second'" })} as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'hint',
+  (select string_agg(p ->> 'variante_id', ';') from jsonb_array_elements(((:'r')::jsonb ->> 'detail')::jsonb -> 'prendas') p) = :'ve',
+  ((:'r')::jsonb ->> 'msg') like 'Mientras escaneabas se movió 1 prenda en el almacén.%',
+  ${CONTADORES} = :'antes');`,
+  "cuadre_almacen_movido,t,t,t"
+);
+caso(
   "C7 · la hora del escaneo en el futuro o de hace más de 3 días → cuadre_escaneo_invalido",
   `${sesion(FELIPE)}${COMO_API}select ${cuadrar(ESCANEO, { desde: "now() + interval '1 hour'" })};
 select ${cuadrar(ESCANEO, { desde: "now() - interval '4 days'", tok: ":'tok2'" })};`,
