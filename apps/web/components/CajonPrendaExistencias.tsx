@@ -9,7 +9,10 @@ import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { AYUDA_HOY, textoHoyDePrenda } from "@/lib/existencias-hoy";
+import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
+
+/** El color del diagnóstico, del MISMO tono que la tarjeta y la tabla (`TONO_HOY`): ámbar lo que se hace aquí, pizarra lo que se pide afuera. */
+const TEXTO_TONO_HOY = { ambar: "text-ambar-profundo", pizarra: "text-pizarra", verde: "text-tinta/70" } as const;
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -233,7 +236,7 @@ export function CajonPrendaExistencias({
                 {diagnostico && (
                   <div
                     className={`col-span-2 flex flex-col items-center justify-center gap-2.5 border-t border-sand px-3 py-4 text-center text-[14px] leading-tight sm:col-span-1 sm:flex-auto sm:border-t-0 sm:px-4 ${
-                      diagnostico.tipo === "por_colgar" ? "text-ambar-profundo" : diagnostico.tipo === "mantener" ? "text-tinta/70" : "text-ambar-profundo"
+                      TEXTO_TONO_HOY[TONO_HOY[diagnostico.tipo]]
                     }`}
                   >
                     {diagnostico.tipo === "mantener" ? (

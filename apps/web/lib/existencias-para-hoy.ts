@@ -18,6 +18,7 @@
    ==================================================================== */
 
 import { MAX_ROJO_POR_PANTALLA } from "@cayla-retail/shared";
+import { TEXTO_HOY } from "./existencias-hoy";
 
 export type TipoTareaHoy =
   | "por_colgar"
@@ -46,10 +47,13 @@ export type EntradaParaHoy = {
   /** La sede separa piso y almacén (una tienda). En el Taller no hay «por colgar». */
   separa: boolean;
   porColgar: { tallas: number; unidades: number; prendas: readonly string[] };
+  /** Tallas «sin stock atrás» que tampoco vienen en camino (lo que viene en camino no se pide de nuevo). */
   sinStockAtras: { tallas: number };
   /** `null`: quien mira no ve Recibir (no podría resolverla) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
   sinRegistrar: { pendientes: number; vencidas: number } | "fallo" | null;
   danadas: number;
+  /** Quien mira puede decidir qué se hace con las dañadas (un líder, en su sede). Si no, la fila solo informa. */
+  resuelveDanadas: boolean;
   apartados: { vencidos: number };
   enCamino: { traslados: number; atrasados: number; proximaLlegada: string | null };
 };
@@ -121,7 +125,9 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       tipo: "danadas",
       cifra: e.danadas,
       texto: plural(e.danadas, "prenda dañada", "prendas dañadas"),
-      detalle: "Están fuera de la venta y esperan una decisión: botar, donar o liquidar.",
+      detalle: e.resuelveDanadas
+        ? "Están fuera de la venta y esperan tu decisión: botar, donar o liquidar."
+        : "Están fuera de la venta: un líder decide si se botan, se donan o se liquidan.",
       tono: "ambar",
     });
   }
@@ -158,8 +164,10 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
     tareas.push({
       tipo: "sin_stock_atras",
       cifra: e.sinStockAtras.tallas,
-      texto: plural(e.sinStockAtras.tallas, "talla sin nada atrás", "tallas sin nada atrás"),
-      detalle: "Queda poco en el piso y el almacén está vacío: pídela a otra sede o al Taller.",
+      // La misma palabra del filtro «Hoy» al que lleva «Ver cuáles» (ADR-0326). Con el mínimo de 1 por talla (umbral 0), este caso es
+      // una talla sin ninguna libre, ni colgada ni guardada: «queda poco en el piso» ya no es cierto.
+      texto: `${plural(e.sinStockAtras.tallas, "talla", "tallas")} ${TEXTO_HOY.sin_stock_atras.toLocaleLowerCase("es")}`,
+      detalle: "No queda ninguna, ni colgada ni guardada, y no viene ninguna en camino: pídela a otra sede o al Taller.",
       tono: "pizarra",
     });
   }
@@ -175,6 +183,17 @@ function conPresupuestoDeRojo(tareas: TareaHoy[]): TareaHoy[] {
     rojos += 1;
     return rojos <= MAX_ROJO_POR_PANTALLA ? t : { ...t, tono: "ambar" };
   });
+}
+
+const GRAVEDAD: Record<TonoTareaHoy, number> = { rojo: 0, ambar: 1, pizarra: 2 };
+
+/** La línea plegada del celular: la primera tarea (la que conviene hacer primero), el tono MÁS GRAVE de todas (un plazo vencido no
+ *  se esconde detrás de una tarea ámbar) y cuántas tareas en rojo quedan dentro sin ser la primera. */
+export function resumenPlegado(tareas: readonly TareaHoy[]): { primera: TareaHoy; tono: TonoTareaHoy; mas: number; vencidasDentro: number } | null {
+  const [primera, ...resto] = tareas;
+  if (!primera) return null;
+  const tono = tareas.reduce<TonoTareaHoy>((t, x) => (GRAVEDAD[x.tono] < GRAVEDAD[t] ? x.tono : t), primera.tono);
+  return { primera, tono, mas: resto.length, vencidasDentro: resto.filter((t) => t.tono === "rojo").length };
 }
 
 /** Cuántas se ven de entrada: la decisión de Felipe fue «Para hoy» con 3 frases como máximo. */

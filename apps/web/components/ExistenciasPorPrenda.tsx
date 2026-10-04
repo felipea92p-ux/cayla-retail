@@ -8,7 +8,7 @@ import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { estadoTalla, queHacerPrenda, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { AYUDA_HOY, textoHoyDePrenda } from "@/lib/existencias-hoy";
+import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /* ====================================================================
@@ -83,7 +83,7 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
       {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
       {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
       {(q?.tipo === "por_reponer" || q?.tipo === "sin_stock_atras") && (
-        <Chip tono="ambar" className="text-xs">
+        <Chip tono={TONO_HOY[q.tipo]} className="text-xs">
           <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}

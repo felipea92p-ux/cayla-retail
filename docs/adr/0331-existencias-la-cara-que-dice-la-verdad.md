@@ -80,7 +80,8 @@ tono por estado (papel, ámbar por colgar, punteado sin nada). Un solo botón cl
 Subir al almacén, Ajustar stock y Ver detalle en el menú «⋯» (`MenuAcciones`). La pastilla y el botón van al lado del riel cuando la
 tarjeta tiene ancho (`@container`): 234 px de alto en una pantalla de 1440 (antes ~290 con la primera versión del riel).
 DESCARTÉ: la tabla «Por prenda» como entrada (ya existe en «Ver detalle» y no se lee en el celular) y conservar cuatro botones.
-SE ROMPE SI: una prenda tiene 8 o más tallas (calzado): el riel se desliza de lado dentro de la tarjeta.
+SE ROMPE SI: una prenda tiene más tallas que ancho (calzado, o 6 tallas a 375 px): el riel se desliza de lado dentro de la tarjeta, con el
+borde derecho desvanecido para que se note que hay más (corrección de la revisión).
 
 **7. Filtros cerrados de fábrica en Existencias** (`lib/panel-filtros.ts`: `leerPanelFiltros(valor, deFabrica)`).
 DECIDÍ: Existencias nace con el panel cerrado (Productos sigue abierto, decisión de Felipe del 2026-10-02); lo que cada equipo guardó
@@ -96,6 +97,15 @@ la cabecera se desvanece a la derecha para avisar que se desliza; el texto de ay
 - En el navegador (local, base semilla): «Hoy ▸ Por reponer» = 0 productos tras el umbral 0; «Para hoy» 27 = filtro 27; cabecera con
   un solo oscuro; menú «⋯» con sus tres acciones y «Reponer» abre su ventana; a 1366 × 768 la primera prenda asoma sin bajar; a 375 px
   sin desplazamiento horizontal.
+
+## Revisión adversarial (2026-10-04)
+Tres revisores (lógica, persona sin contexto y reglas de la casa, celular y accesibilidad) y un escéptico por lente: 23 hallazgos, 13
+confirmados (10 distintos), ninguno de dinero ni stock. Corregidos en un commit aparte: «sin stock atrás» ya no cuenta lo que viene en
+camino ni dice «queda poco en el piso», y usa la palabra del filtro; un traslado recibido con diferencia ya no sale «en camino»;
+«Regularizar» lleva la sede y Recibir la respeta para el líder; «Decidir» solo a quien puede decidir (los demás, «Ver cuáles»); el tono de
+«sin stock atrás» es el mismo en la tarjeta, la tabla «Por prenda» y el cajón; la línea plegada del celular toma el tono más grave y dice
+«N con plazo vencido»; el riel y la fila de accesos se desvanecen solo sobre su aire; el foco vuelve a la tarjeta al cerrar «Ajustar»
+desde el «⋯»; la cifra de una talla sin nada pasa de 2,3:1 a 5,6:1 de contraste; la leyenda de la tabla muestra solo los casos que existen.
 
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se

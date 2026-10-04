@@ -148,14 +148,16 @@ export default async function InventarioPage({
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
-  const haciaAca = traslados.filter((t) => t.ubicacionDestinoId === ubicacionActivaId);
+  // Solo lo que sigue en camino: un traslado `recibido_con_diferencia` ya llegó y espera a un líder (revisión 2026-10-04: «Para hoy»
+  // decía «1 traslado en camino · el próximo llega el vie 3» de algo recibido días antes). Mismo criterio que la cifra de la cabecera.
+  const haciaAca = traslados.filter((t) => t.ubicacionDestinoId === ubicacionActivaId && t.estado === "en_transito");
   const proximaLlegada = haciaAca.map((t) => t.fechaEstimadaLlegada).filter((f): f is string => !!f).sort()[0] ?? null;
   const enCamino = {
     traslados: haciaAca.length,
     proximaLlegada,
     // Solo lo que sigue en camino y ya debió llegar: un traslado con diferencia ya llegó (lo que espera es la
     // revisión de un líder) y no está «atrasado». Mismo criterio que la pantalla Traslados.
-    atrasados: haciaAca.filter((t) => t.estado === "en_transito" && t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length,
+    atrasados: haciaAca.filter((t) => t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length,
   };
 
   // La foto es del momento en que se cargó: la app no sincroniza en segundo
@@ -212,7 +214,7 @@ export default async function InventarioPage({
         // de lado: la página nunca se corre a los costados.
         acciones={
           // El borde derecho se desvanece en el celular: sin eso, la fila cortada no decía que había más accesos a un deslizamiento.
-          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:pr-10 max-sm:[mask-image:linear-gradient(90deg,#000_78%,transparent)] max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:pr-10 max-sm:[mask-image:linear-gradient(90deg,#000_calc(100%-2.5rem),transparent)] max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-primario shrink-0 gap-2">
                 <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />

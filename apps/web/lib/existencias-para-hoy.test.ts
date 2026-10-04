@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nombresConResto, tareasParaHoy, textoLlegada, type EntradaParaHoy } from "./existencias-para-hoy";
+import { nombresConResto, resumenPlegado, tareasParaHoy, textoLlegada, type EntradaParaHoy } from "./existencias-para-hoy";
 
 const vacia: EntradaParaHoy = {
   separa: true,
@@ -7,6 +7,7 @@ const vacia: EntradaParaHoy = {
   sinStockAtras: { tallas: 0 },
   sinRegistrar: { pendientes: 0, vencidas: 0 },
   danadas: 0,
+  resuelveDanadas: true,
   apartados: { vencidos: 0 },
   enCamino: { traslados: 0, atrasados: 0, proximaLlegada: null },
 };
@@ -72,6 +73,32 @@ describe("tareasParaHoy", () => {
     });
     expect(tareas.map((t) => t.tono)).toEqual(["rojo", "rojo", "ambar"]);
     expect(tareas.filter((t) => t.tono === "rojo")).toHaveLength(2);
+  });
+});
+
+describe("lo que encontró la revisión (2026-10-04)", () => {
+  it("«sin stock atrás» dice la misma palabra que el filtro y no promete «queda poco en el piso»", () => {
+    const [t] = tareasParaHoy({ ...vacia, sinStockAtras: { tallas: 2 } });
+    expect(t.texto).toBe("tallas sin stock atrás");
+    expect(t.detalle).not.toMatch(/queda poco/i);
+  });
+  it("las dañadas solo piden «tu decisión» a quien puede decidir", () => {
+    expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: true })[0].detalle).toMatch(/tu decisión/);
+    expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: false })[0].detalle).toMatch(/un líder decide/);
+  });
+});
+
+describe("resumenPlegado (la línea del celular)", () => {
+  it("toma el tono más grave: un plazo vencido no se esconde detrás de «por colgar»", () => {
+    const tareas = tareasParaHoy({ ...vacia, porColgar: { tallas: 5, unidades: 9, prendas: [] }, apartados: { vencidos: 1 } });
+    const r = resumenPlegado(tareas)!;
+    expect(r.primera.tipo).toBe("por_colgar");
+    expect(r.tono).toBe("rojo");
+    expect(r.mas).toBe(1);
+    expect(r.vencidasDentro).toBe(1);
+  });
+  it("sin tareas no hay línea", () => {
+    expect(resumenPlegado([])).toBeNull();
   });
 });
 

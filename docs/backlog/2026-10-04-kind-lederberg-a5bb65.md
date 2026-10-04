@@ -9,6 +9,7 @@
 - [x] Filtros cerrados de fábrica en Existencias. Verificado a 1366 × 768.
 - [x] Celular: «Para hoy» plegado, accesos que se desvanecen, placeholder que cabe. Verificado a 375 × 812.
 - [x] Guía de foco: «/inventario» pasa a «no aplica» (`PENDIENTES_HOY` 69 → 68). `requierenReposicion` sin uso, borrado.
+- [x] Revisión adversarial (3 lentes + escéptico): 13 hallazgos confirmados, corregidos (ADR-0331 «Revisión adversarial»). Verificado en local.
 - [ ] **Sin probar con datos reales:** todo se vio con la base local (semilla). En TRU real, «Para hoy» va a decir ~391 por colgar hasta el cuadre del piso.
 - [ ] Fecha de cuadre por sede y «puerta de confianza» de «Para hoy» (ADR-0328 decisiones 4 y 5): de la otra sesión del rediseño; se engancha en `tareasParaHoy`.
 - [ ] «155 de 600» (colgadas de las que caben): espera la capacidad por sede en la base (ADR-0329).

@@ -112,8 +112,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
   // ------------------------------------------------------------------ Por regularizar (ADR-0179)
   if (vista === "por-regularizar") {
-    // El líder ve las de todas sus sedes (cada fila dice cuál); una colaboradora, las de la suya (RLS igual lo cuida).
-    const [filas, catalogo] = await Promise.all([getPorRegularizar(esLider ? null : persona.ubicacionId), getCatalogo()]);
+    // El líder ve las de todas sus sedes (cada fila dice cuál); una colaboradora, las de la suya (RLS igual lo cuida). Un líder que
+    // llega desde «Para hoy» de Existencias trae la sede (`?ubicacion=`, 2026-10-04): ve la cola de ESA sede, la misma que contó allá.
+    const unaSede = esLider && params.ubicacion && ubicaciones.some((u) => u.id === params.ubicacion) ? params.ubicacion : null;
+    const [filas, catalogo] = await Promise.all([getPorRegularizar(esLider ? unaSede : persona.ubicacionId), getCatalogo()]);
     // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
     const prendas = catalogo
       .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
@@ -122,7 +124,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       <div className="space-y-6">
         {encabezado}
         {pestanas}
-        <PorRegularizarLista filas={filas} prendas={prendas} ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta} variasSedes={esLider} />
+        <PorRegularizarLista
+          filas={filas}
+          prendas={prendas}
+          ubicacionEtiqueta={esLider ? (unaSede ? (ubicaciones.find((u) => u.id === unaSede)?.nombre ?? "esta sede") : "tus tiendas") : persona.ubicacionEtiqueta}
+          variasSedes={esLider && !unaSede}
+        />
       </div>
     );
   }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowRight, ChevronDown } from "lucide-react";
-import { TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, type TonoTareaHoy } from "@/lib/existencias-para-hoy";
+import { resumenPlegado, TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, type TonoTareaHoy } from "@/lib/existencias-para-hoy";
 
 /* ====================================================================
    «Para hoy» (rediseño de Existencias, 2026-10-04): lo pendiente de la sede como frases con su cifra y un solo botón, en el
@@ -64,7 +64,7 @@ export function ParaHoy({
 }) {
   const [todas, setTodas] = useState(false);
   const [abiertoMovil, setAbiertoMovil] = useState(false);
-  const primera = tareas[0];
+  const plegado = resumenPlegado(tareas);
   const visibles = todas ? tareas : tareas.slice(0, TAREAS_A_LA_VISTA);
   const ocultas = tareas.length - visibles.length;
 
@@ -78,7 +78,7 @@ export function ParaHoy({
       </div>
 
       {/* Celular: la línea plegada. En pantallas más anchas no existe y la lista va siempre abierta. */}
-      {primera && (
+      {plegado && (
         <button
           type="button"
           onClick={() => setAbiertoMovil((v) => !v)}
@@ -86,11 +86,17 @@ export function ParaHoy({
           aria-controls="para-hoy-lista"
           className="flex w-full items-center gap-3 border-t border-sand/70 px-4 py-3 text-left sm:hidden"
         >
-          <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO[primera.tono]}`} />
+          {/* El punto toma el tono más grave de TODAS las tareas: un plazo vencido no queda escondido detrás de «por colgar». */}
+          <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO[plegado.tono]}`} />
           <span className="min-w-0 flex-1 text-[15px] text-tinta">
-            {primera.cifra !== null && <span className="mr-1.5 font-display text-[22px] tabular-nums">{primera.cifra.toLocaleString("es-PE")}</span>}
-            <span className="font-medium">{primera.texto}</span>
-            {tareas.length > 1 && <span className="text-taupe"> · {tareas.length - 1} más</span>}
+            {plegado.primera.cifra !== null && (
+              <span className="mr-1.5 font-display text-[22px] tabular-nums">{plegado.primera.cifra.toLocaleString("es-PE")}</span>
+            )}
+            <span className="font-medium">{plegado.primera.texto}</span>
+            {plegado.mas > 0 && <span className="text-taupe"> · {plegado.mas} más</span>}
+            {plegado.vencidasDentro > 0 && (
+              <span className="text-rojo-profundo"> · {plegado.vencidasDentro} con plazo vencido</span>
+            )}
           </span>
           <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 text-taupe transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abiertoMovil ? "rotate-180" : ""}`} />
         </button>

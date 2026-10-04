@@ -505,13 +505,16 @@ export function InventarioPanel({
       tareasParaHoy({
         separa,
         porColgar: { ...cuentaPorColgar, prendas: ordenarPorUrgencia(agruparPorPrenda(filasPorColgar)).map((p) => p.referencia) },
-        sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras").length },
+        // Lo que ya viene en camino no se pide de nuevo (revisión 2026-10-04: una talla nueva que LIM le envía a TRU salía a la vez en
+        // «en camino» y en «pídela a otra sede»).
+        sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
         sinRegistrar,
         danadas: danadosPendientes.length,
+        resuelveDanadas: esLider && enSedeActiva,
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, filasPorColgar, stock, sinRegistrar, danadosPendientes.length, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, filasPorColgar, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
@@ -520,8 +523,10 @@ export function InventarioPanel({
   const hrefBajarPorColgar = puedeBajarAlPiso ? (urlBajarAlPiso(filasPorColgar) ?? "/inventario/bajar") : null;
   const accionesHoy: Partial<Record<TipoTareaHoy, AccionTarea>> = {
     por_colgar: hrefBajarPorColgar ? { texto: "Bajar al piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
-    sin_registrar: veRecibir ? { texto: "Regularizar", href: "/recibir?vista=por-regularizar" } : undefined,
-    danadas: { texto: "Decidir", onClick: () => setViendoDanados(true) },
+    // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas.
+    sin_registrar: veRecibir ? { texto: "Regularizar", href: `/recibir?vista=por-regularizar&ubicacion=${ubicacionId}` } : undefined,
+    // Solo un líder, en su sede, decide qué se hace con una dañada (`ResolverDanadosModal`); los demás ven la lista.
+    danadas: esLider && enSedeActiva ? { texto: "Decidir", onClick: () => setViendoDanados(true) } : { texto: "Ver cuáles", onClick: () => setViendoDanados(true) },
     apartados_vencidos: { texto: "Ver apartados", onClick: () => setViendoApartados(true) },
     traslados_atrasados: veTraslados ? { texto: "Ver traslados", href: "/inventario/traslados" } : undefined,
     en_camino: veTraslados ? { texto: "Ver traslados", href: "/inventario/traslados" } : undefined,
@@ -849,8 +854,10 @@ export function InventarioPanel({
               setAbierta(null);
               abrirSubir(prenda, origen);
             }}
-            onAjustar={(f) => {
+            onAjustar={(f, origen) => {
               setAbierta(null);
+              // Desde el menú «⋯» no queda un botón al que volver: el foco vuelve a la tarjeta al cerrar la ventana.
+              volverFoco.current = origen;
               setAjustando(f);
             }}
             // «Ver detalle» de una tarjeta: ese producto en la tabla (donde está el cajón de la prenda).
@@ -1150,7 +1157,8 @@ export function InventarioPanel({
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {TIPOS_HOY.map((t) => (
+                {/* Solo los casos que hoy existen en la sede: con el mínimo de 1 por talla, «Por reponer» ya no sale y su punto confundía. */}
+                {TIPOS_HOY.filter((t) => stock.some((f) => hoyDeTalla(f) === t)).map((t) => (
                   <span key={t} className="inline-flex items-center gap-1.5" title={AYUDA_HOY[t]}>
                     <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${PUNTO_HOY[TONO_HOY[t]]}`} />
                     <span className="text-tinta/80">{TEXTO_HOY[t]}</span>
@@ -1193,6 +1201,7 @@ export function InventarioPanel({
           sububicaciones={sububicaciones}
           puedeBajarAlPiso={puedeBajarAlPiso}
           onClose={() => setAjustando(null)}
+          alCerrarEnfocar={volverFoco}
         />
       )}
 

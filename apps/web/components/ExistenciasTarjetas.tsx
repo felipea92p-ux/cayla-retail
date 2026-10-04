@@ -116,7 +116,8 @@ const ETIQUETA = {
   normal: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
   reponer: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
   por_colgar: { caja: "border-ambar/45 bg-ambar/[0.08]", cifra: "text-ambar-profundo", atras: "font-semibold text-ambar-profundo" },
-  sin_stock: { caja: "border-dashed border-taupe/45 bg-transparent", cifra: "text-taupe/55", atras: "text-taupe/70" },
+  // El borde punteado ya dice «lugar vacío»: la cifra no se apaga (al 55 % quedaba en 2,3:1 sobre papel; taupe da 5,6:1).
+  sin_stock: { caja: "border-dashed border-taupe/45 bg-transparent", cifra: "text-taupe", atras: "text-taupe" },
 } as const;
 
 /** Una talla colgada del riel: el gancho, la etiqueta con su ojal, el nombre de la talla, las colgadas y «+N» guardadas. */
@@ -168,7 +169,7 @@ export function ExistenciasTarjetas({
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   /** «Subir prenda» abre la ventana del MODELO entero (todos sus colores y tallas). Mismo permiso que «Reponer prenda». */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
-  onAjustar: (fila: FilaExistencias) => void;
+  onAjustar: (fila: FilaExistencias, origen: HTMLElement) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
   onVerDetalle: (prenda: PrendaAgrupada<FilaExistencias>) => void;
 }) {
@@ -199,7 +200,7 @@ export function ExistenciasTarjetas({
           ...(puedeReponer
             ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
             : []),
-          ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0]) }] : []),
+          ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0], origen()) }] : []),
           { clave: "detalle", etiqueta: "Ver detalle", onSelect: () => onVerDetalle(p) },
         ];
         return (
@@ -211,7 +212,7 @@ export function ExistenciasTarjetas({
             }}
             tabIndex={-1}
             aria-label={etiqueta}
-            className="card-cayla @container flex min-w-0 flex-col p-4 outline-none transition-colors hover:border-tinta/20 max-sm:p-3.5"
+            className="card-cayla @container flex min-w-0 flex-col p-4 outline-none transition-colors hover:border-tinta/20 focus-visible:ring-2 focus-visible:ring-tinta/30 max-sm:p-3.5"
           >
             <div className="flex gap-3.5">
               <div className="h-[100px] w-[75px] shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[88px] max-sm:w-[66px]">
@@ -272,7 +273,12 @@ export function ExistenciasTarjetas({
             <div className="mt-3.5 flex flex-col gap-3 @min-[30rem]:flex-row @min-[30rem]:items-end">
               <div className="relative min-w-0 flex-1">
                 <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] rounded-full bg-tinta/20" />
-                <ul aria-label={`Tallas de ${etiqueta}`} className="scroll-cayla relative flex gap-2 overflow-x-auto px-1 pb-1">
+                {/* Con más tallas que ancho, el borde derecho se desvanece (solo sobre el aire de `pr-6`): se nota que hay más y, al
+                    llegar al final, la última se ve entera. Antes, a 375 px la sexta talla quedaba afuera sin ningún aviso. */}
+                <ul
+                  aria-label={`Tallas de ${etiqueta}`}
+                  className="scroll-cayla relative flex gap-2 overflow-x-auto pb-1 pl-1 pr-6 [mask-image:linear-gradient(90deg,#000_calc(100%-1.5rem),transparent)]"
+                >
                   {p.tallas.map((f) => (
                     <EtiquetaTalla key={f.varianteId} f={f} separa={separa} />
                   ))}
