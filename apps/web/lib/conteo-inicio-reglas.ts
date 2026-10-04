@@ -122,7 +122,8 @@ export function arranqueDeRespuesta(respuesta: { data: readonly FilaArranque[] |
 /**
  * Lo que «Abrir un conteo» dice del arranque, solo cuando el lugar elegido nunca tuvo un conteo completo cerrado (Felipe: el primer
  * conteo completo es de arranque, «corrige el stock sin contar como merma ni entrar en la exactitud»):
- *   · contando TODO → que este será el de arranque, qué significa y cuándo vale (cerrarlo sin pendientes);
+ *   · contando TODO → que este será el de arranque, qué significa y cuándo vale (contado a mano y cerrado sin pendientes: lo aplicado
+ *     sin contar no vale, `fn_conteo_vale_como_arranque`);
  *   · contando una categoría o unas prendas → que así NO es el de arranque y sus diferencias sí cuentan como pérdida (para que nadie
  *     pierda el arranque sin saberlo).
  * `null` si el lugar ya tuvo su arranque, si falta elegir el lugar o si no se pudo leer.
@@ -142,7 +143,7 @@ export function avisoDeArranque(e: {
     return {
       tipo: "arranque",
       titulo: "Conteo de arranque",
-      texto: `Es el primer conteo completo ${deLugar}. Lo que encuentres corrige el stock, pero las diferencias no cuentan como pérdida ni bajan la exactitud: son de cuando se cargó el inventario. Vale si cuentas todo y lo cierras sin pendientes.`,
+      texto: `Es el primer conteo completo ${deLugar}. Lo que encuentres corrige el stock, pero las diferencias no cuentan como pérdida ni bajan la exactitud: son de cuando se cargó el inventario. Vale si cuentas todo a mano, sin «Aplicar todos completos», y lo cierras sin pendientes.`,
     };
   }
   const acotado = e.queCuento === "categoria" ? "solo una categoría" : "solo unas prendas";

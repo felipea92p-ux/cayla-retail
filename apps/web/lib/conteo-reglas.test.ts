@@ -1285,6 +1285,19 @@ describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de 
     expect(notaDeArranque(c, true)?.texto).toMatch(/^Cerrado a medias no es el conteo de arranque del piso de venta: sus diferencias contarán como pérdida\./);
   });
 
+  it("con algo aplicado sin contar tampoco lo es (la base no lo reconoce): se avisa en ámbar, con cuántas y qué hacer", () => {
+    const c = cabecera({ arranque_posible: true });
+    expect(notaDeArranque(c, false, 40)).toEqual({
+      texto: "Con 40 variantes aplicadas sin contar, este no es el conteo de arranque del piso de venta: lo que falte en lo contado contará como pérdida. Para que lo sea, vuelve a Contar y cuéntalas a mano.",
+      tono: "aviso",
+    });
+    expect(notaDeArranque(c, false, 1)?.texto).toMatch(/^Con 1 variante aplicada sin contar, .*cuéntala a mano\.$/);
+    // El cierre a medias manda: es lo primero que hay que resolver.
+    expect(notaDeArranque(c, true, 40)?.texto).toMatch(/^Cerrado a medias/);
+    // Sin poder ser el de arranque, lo aplicado no cambia nada que decir aquí.
+    expect(notaDeArranque(cabecera(), false, 40)).toBeNull();
+  });
+
   it("aplicar sin contar en uno que todavía puede ser el de arranque: se avisa antes que deja de serlo; en otro, nada", () => {
     expect(avisoArranqueAlAplicar(cabecera({ arranque_posible: true }))).toBe(
       "Este es el conteo de arranque del piso de venta. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano."

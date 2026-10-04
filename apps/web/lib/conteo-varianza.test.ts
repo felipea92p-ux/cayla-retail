@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { exactitudConteos, tonoExactitud } from "./conteo-varianza";
+import { exactitudConteos, porQueSinExactitud, tonoExactitud } from "./conteo-varianza";
 
 // Análisis mide la exactitud del inventario con esto. Lo que no debe pasar, y no se nota nunca si pasa: que un conteo
 // que no verificó nada (o que se canceló) aparezca como «100 % exacto».
@@ -59,6 +59,29 @@ describe("exactitudConteos", () => {
 
   it("sin los campos nuevos (la web antes que el SQL) la cuenta es la de siempre", () => {
     expect(exactitudConteos([{ estado: "cerrado", lineas: 40, lineasConDiferencia: 2 }])).toEqual({ porcentaje: 95, lineas: 40, correctas: 38, conteos: 1 });
+  });
+});
+
+describe("porQueSinExactitud: hubo conteo, pero no mide (ADR-0328; nunca «Último conteo: pendiente» después de contar)", () => {
+  it("solo el de arranque: «arranque»", () => {
+    expect(porQueSinExactitud([{ estado: "cerrado", lineas: 300, lineasConDiferencia: 180, esArranque: true }])).toBe("arranque");
+  });
+  it("solo un conteo aplicado entero sin contar: «sin_contar»", () => {
+    expect(porQueSinExactitud([{ estado: "cerrado", lineas: 40, lineasConDiferencia: 0, sinContar: 40 }])).toBe("sin_contar");
+  });
+  it("el arranque manda sobre lo aplicado: es lo que de verdad pasó en la tienda", () => {
+    expect(
+      porQueSinExactitud([
+        { estado: "cerrado", lineas: 40, lineasConDiferencia: 0, sinContar: 40 },
+        { estado: "cerrado", lineas: 300, lineasConDiferencia: 180, esArranque: true },
+      ])
+    ).toBe("arranque");
+  });
+  it("con exactitud, o sin ningún conteo cerrado con algo verificado, no hay nada que explicar", () => {
+    expect(porQueSinExactitud([{ estado: "cerrado", lineas: 40, lineasConDiferencia: 2 }])).toBeNull();
+    expect(porQueSinExactitud([])).toBeNull();
+    expect(porQueSinExactitud([{ estado: "anulado", lineas: 12, lineasConDiferencia: 0, esArranque: true }])).toBeNull();
+    expect(porQueSinExactitud([{ estado: "cerrado", lineas: 0, lineasConDiferencia: 0 }])).toBeNull();
   });
 });
 

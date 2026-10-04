@@ -64,7 +64,7 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         parcial={parcial}
         puedeCerrar={puede(persona, "ajustarInventario")}
         firma={firma}
-        notaArranque={notaDeArranque(c, parcial)}
+        notaArranque={notaDeArranque(c, parcial, r.sinContar)}
       />
     </div>
   );

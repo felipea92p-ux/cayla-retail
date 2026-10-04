@@ -43,6 +43,22 @@ export function exactitudConteos(conteos: { estado: string; lineas: number; line
   return { porcentaje: Math.round((correctas / lineas) * 1000) / 10, lineas, correctas, conteos: medidas.length };
 }
 
+/**
+ * Por qué no hay exactitud AUNQUE haya conteos cerrados (ADR-0328; revisión adversarial del 2026-10-04). Sin esto, justo después de
+ * contar el piso entero con el conteo de arranque, Análisis decía «Último conteo: pendiente»: una cifra que no dice la verdad.
+ *   · `"arranque"`: lo único cerrado con algo verificado es el conteo de arranque (corrigió el stock, pero no mide la exactitud);
+ *   · `"sin_contar"`: lo cerrado se aplicó entero con «Aplicar todos completos» (nadie contó, no hay nada que medir);
+ *   · `null`: hay exactitud, o no hay ningún conteo cerrado con algo verificado (entonces sí está «pendiente»).
+ * El arranque manda sobre lo aplicado: es lo que de verdad pasó en la tienda (se contó todo).
+ */
+export function porQueSinExactitud(conteos: { estado: string; lineas: number; lineasConDiferencia: number; sinContar?: number; esArranque?: boolean }[]): "arranque" | "sin_contar" | null {
+  if (exactitudConteos(conteos) !== null) return null;
+  const cerrados = conteos.filter((c) => c.estado === "cerrado" && c.lineas > 0);
+  if (cerrados.some((c) => c.esArranque)) return "arranque";
+  if (cerrados.length > 0) return "sin_contar";
+  return null;
+}
+
 /** Con qué color se lee la exactitud (Felipe, pantalla Conteo 2026-09-16):
  *  ≥ 98 % sano, ≥ 95 % a vigilar, menos = hay que contar más seguido.
  *  Vive acá para que Conteo y Resumen pinten el mismo número igual. */

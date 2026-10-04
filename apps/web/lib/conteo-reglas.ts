@@ -609,16 +609,19 @@ export function delLugar(c: { sububicacionTipo: string | null; sububicacionNombr
 }
 
 /**
- * Lo que se dice del conteo de ARRANQUE (ADR-0328): el primer conteo de TODO un lugar, cerrado sin pendientes, corrige el stock pero sus
- * diferencias no cuentan como pérdida ni entran en la exactitud (son errores de cuando se cargó el inventario, no prendas perdidas).
+ * Lo que se dice del conteo de ARRANQUE (ADR-0328): el primer conteo de TODO un lugar, contado a mano y cerrado sin pendientes, corrige
+ * el stock pero sus diferencias no cuentan como pérdida ni entran en la exactitud (son errores de cuando se cargó el inventario, no
+ * prendas perdidas).
  *   · cerrado y de arranque → lo que hizo;
- *   · abierto y todavía puede serlo → si se cierra completo, lo será; si se cierra a medias, NO (y sus diferencias contarán como
- *     pérdida): se avisa antes de cerrar, en ámbar, porque es una consecuencia que la persona puede evitar contando lo que falta.
- * `null` en cualquier otro caso. Lo decide la base (`cerrar_conteo`); esto solo lo dice.
+ *   · abierto y todavía puede serlo → si se cierra completo y contado, lo será; si se cierra a medias, o con variantes aplicadas sin
+ *     contar (`sinContar`), NO (y sus diferencias contarán como pérdida): se avisa antes de cerrar, en ámbar, porque es una
+ *     consecuencia que la persona puede evitar contando lo que falta.
+ * `null` en cualquier otro caso. Lo decide la base (`cerrar_conteo` con `fn_conteo_vale_como_arranque`); esto solo lo dice.
  */
 export function notaDeArranque(
   c: { estado: EstadoConteo; esArranque: boolean; arranquePosible: boolean; sububicacionTipo: string | null; sububicacionNombre: string | null },
-  parcial: boolean
+  parcial: boolean,
+  sinContar = 0
 ): { texto: string; tono: "nota" | "aviso" } | null {
   if (c.estado === "cerrado" && c.esArranque) {
     return { texto: `Conteo de arranque ${delLugar(c)}: corrigió el stock, y sus diferencias no cuentan como pérdida ni bajan la exactitud.`, tono: "nota" };
@@ -627,6 +630,13 @@ export function notaDeArranque(
   if (parcial) {
     return {
       texto: `Cerrado a medias no es el conteo de arranque ${delLugar(c)}: sus diferencias contarán como pérdida. Para que lo sea, cuenta lo que falta y ciérralo completo.`,
+      tono: "aviso",
+    };
+  }
+  if (sinContar > 0) {
+    const variantes = sinContar === 1 ? "1 variante aplicada" : `${sinContar.toLocaleString("es-PE")} variantes aplicadas`;
+    return {
+      texto: `Con ${variantes} sin contar, este no es el conteo de arranque ${delLugar(c)}: lo que falte en lo contado contará como pérdida. Para que lo sea, vuelve a Contar y ${sinContar === 1 ? "cuéntala" : "cuéntalas"} a mano.`,
       tono: "aviso",
     };
   }

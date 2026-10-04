@@ -212,7 +212,7 @@ describe("avisoDeArranque", () => {
     expect(a?.texto).toMatch(/^Es el primer conteo completo del piso de venta\./);
     expect(avisoDeArranque({ ...base, arranque: { toda: true }, lugarClave: TODA_LA_UBICACION, lugarConArticulo: "esta ubicación" })?.texto).toMatch(/^Es el primer conteo completo de esta ubicación\./);
     expect(a?.texto).toMatch(/no cuentan como pérdida ni bajan la exactitud/);
-    expect(a?.texto).toMatch(/Vale si cuentas todo y lo cierras sin pendientes\.$/);
+    expect(a?.texto).toMatch(/Vale si cuentas todo a mano, sin «Aplicar todos completos», y lo cierras sin pendientes\.$/);
   });
 
   it("contando una categoría o unas prendas: avisa que así NO es el de arranque y sus diferencias sí son pérdida", () => {
