@@ -44,7 +44,8 @@
 --   · reportar lo apartado para un cliente (el motor y esta función miran lo libre, con el candado de stock tomado).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: UNA sola parte, tal cual en el SQL Editor (trae `retail.` y su `search_path`), ANTES de
--- publicar la web (la lista de Dañadas lee `motivo_reporte`: sin la columna, esa lista falla). Sin políticas ni
+-- publicar la web. Si la web sale primero, Existencias sigue en pie (`getPrendasDanadasPendientes` relee la lista de Dañadas
+-- sin `motivo_reporte` ante un 42703), pero «Reportar dañada» y «Se arregló» fallan al usarse. Sin políticas ni
 -- `drop trigger`: ADR-0195 no aplica. El `alter table prendas_danadas` toma un candado breve sobre una tabla de ~0 filas
 -- (lock_timeout 3 s: si no lo consigue, falla sin daño y se vuelve a pegar). Idempotente: pegada dos veces deja lo mismo.
 -- Sonda de solo lectura ANTES de pegar (debe devolver 0 filas; si no, la guarda de abajo aborta y dice por qué):

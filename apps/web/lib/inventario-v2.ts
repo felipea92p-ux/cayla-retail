@@ -395,22 +395,43 @@ export type PrendaDanada = {
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
   // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
-  const filas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase
-        .from("prendas_danadas")
-        .select(
-          `id, cantidad, created_at, motivo_reporte, cambio_id,
-           variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
-        )
-        .eq("ubicacion_id", ubicacionId)
-        .eq("estado", "en_cuarentena")
-        .order("created_at")
-        .order("id")
-        .range(desde, hasta)
-    ),
-    "las prendas dañadas pendientes"
+  const conMotivo = await leerTodas((desde, hasta) =>
+    supabase
+      .from("prendas_danadas")
+      .select(
+        `id, cantidad, created_at, motivo_reporte, cambio_id,
+         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+      )
+      .eq("ubicacion_id", ubicacionId)
+      .eq("estado", "en_cuarentena")
+      .order("created_at")
+      .order("id")
+      .range(desde, hasta)
   );
+  // TEMPORAL — mientras `20261005110000_danadas_reportar_y_se_arreglo.sql` no esté pegada en producción: esta lectura va en el
+  // `Promise.all` de /inventario y `exigir` lanza, así que una web publicada antes que el SQL tumbaría Existencias ENTERA, no solo
+  // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
+  // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón
+  // que `getStockPorUbicacion` con `cantidad_apartada`. Retirar el reintento cuando la migración esté aplicada.
+  const filas =
+    conMotivo.error?.code === COLUMNA_INEXISTENTE
+      ? exigir(
+          await leerTodas((desde, hasta) =>
+            supabase
+              .from("prendas_danadas")
+              .select(
+                `id, cantidad, created_at, cambio_id,
+                 variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+              )
+              .eq("ubicacion_id", ubicacionId)
+              .eq("estado", "en_cuarentena")
+              .order("created_at")
+              .order("id")
+              .range(desde, hasta)
+          ),
+          "las prendas dañadas pendientes"
+        ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
+      : exigir(conMotivo, "las prendas dañadas pendientes");
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
