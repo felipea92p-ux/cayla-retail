@@ -144,7 +144,6 @@ const SOLO_PANTALLA = {
   historial:
     "Módulo de lectura: ventas_select, comprobantes_select, cambios_select y devoluciones_select dejan leer a líder o a la sede, sin preguntar por el módulo.",
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
-  movimientos: "Módulo de lectura: movimientos_select deja leer a líder o a quien opera la sede de origen o de destino, sin preguntar por el módulo.",
   recibir: "recibir_lote, recibir_compras y recibir_insumo solo comprueban la sede (fn_puede_operar_ubicacion).",
   produccion:
     "abrir_produccion, cerrar_produccion y set_etapa_produccion solo comprueban la sede; producciones_select es «líder o su sede». " +
