@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, type TonoTareaHoy } from "@/lib/existencias-para-hoy";
 
 /* ====================================================================
@@ -14,6 +14,10 @@ import { TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, type TonoTareaHoy 
    en la serif de la casa seguida de su frase, una línea de por qué y, a la derecha, LA acción, en botón claro: el único oscuro de
    la pantalla es el de la cabecera («Bajar al piso»). Con el primero oscuro aquí también había dos botones negros que decían lo
    mismo, uno encima del otro (visto en la primera captura, 2026-10-04). Se ven tres; el resto, a un toque.
+
+   En el celular (bajo `sm`) entra PLEGADO: una línea con la primera tarea y cuántas más hay, que se abre al tocarla (la maqueta
+   aprobada en la ronda 2: «Para hoy: 24 por colgar · 2 más ›»). Abierto, cada tarea con su frase completa ocupaba más de una
+   pantalla y empujaba las prendas a la tercera.
    ==================================================================== */
 
 export type AccionTarea = { texto: string; href?: string; onClick?: () => void };
@@ -59,6 +63,8 @@ export function ParaHoy({
   extra?: ReactNode;
 }) {
   const [todas, setTodas] = useState(false);
+  const [abiertoMovil, setAbiertoMovil] = useState(false);
+  const primera = tareas[0];
   const visibles = todas ? tareas : tareas.slice(0, TAREAS_A_LA_VISTA);
   const ocultas = tareas.length - visibles.length;
 
@@ -71,6 +77,25 @@ export function ParaHoy({
         {extra && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">{extra}</div>}
       </div>
 
+      {/* Celular: la línea plegada. En pantallas más anchas no existe y la lista va siempre abierta. */}
+      {primera && (
+        <button
+          type="button"
+          onClick={() => setAbiertoMovil((v) => !v)}
+          aria-expanded={abiertoMovil}
+          aria-controls="para-hoy-lista"
+          className="flex w-full items-center gap-3 border-t border-sand/70 px-4 py-3 text-left sm:hidden"
+        >
+          <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO[primera.tono]}`} />
+          <span className="min-w-0 flex-1 text-[15px] text-tinta">
+            {primera.cifra !== null && <span className="mr-1.5 font-display text-[22px] tabular-nums">{primera.cifra.toLocaleString("es-PE")}</span>}
+            <span className="font-medium">{primera.texto}</span>
+            {tareas.length > 1 && <span className="text-taupe"> · {tareas.length - 1} más</span>}
+          </span>
+          <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 text-taupe transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abiertoMovil ? "rotate-180" : ""}`} />
+        </button>
+      )}
+
       {tareas.length === 0 ? (
         <div className="flex items-center gap-4 border-t border-sand/70 px-5 py-4 max-sm:px-4">
           <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO.verde}`} />
@@ -79,7 +104,7 @@ export function ParaHoy({
           </p>
         </div>
       ) : (
-        <ol>
+        <ol id="para-hoy-lista" className={abiertoMovil ? "" : "max-sm:hidden"}>
           {visibles.map((t) => {
             const accion = acciones[t.tipo];
             const alVer = verCuales?.[t.tipo];
@@ -118,7 +143,7 @@ export function ParaHoy({
       )}
 
       {(ocultas > 0 || (todas && tareas.length > TAREAS_A_LA_VISTA)) && (
-        <div className="border-t border-sand/70 px-5 py-2.5 max-sm:px-4">
+        <div className={`border-t border-sand/70 px-5 py-2.5 max-sm:px-4 ${abiertoMovil ? "" : "max-sm:hidden"}`}>
           <button type="button" onClick={() => setTodas((v) => !v)} aria-expanded={todas} className="text-[13px] font-medium text-taupe hover:text-tinta">
             {todas ? "Ver menos" : `Ver ${ocultas} ${ocultas === 1 ? "pendiente más" : "pendientes más"}`}
           </button>

@@ -89,7 +89,7 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       texto: plural(e.porColgar.tallas, "talla por colgar", "tallas por colgar"),
       // La segunda frase es la honestidad del número: si la prenda ya cuelga y el sistema la cree guardada (una bajada que no se
       // registró, o la carga inicial que entró al almacén), lo que toca es registrarla, no volver a colgarla.
-      detalle: `Hay ${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna en el piso${empezar ? `: empieza por ${empezar}` : ""}. Si ya están colgadas, regístralas al bajar: el sistema las cree guardadas.`,
+      detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al bajar.`,
       tono: "ambar",
     });
   }

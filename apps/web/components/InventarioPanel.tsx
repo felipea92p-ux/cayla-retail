@@ -684,7 +684,9 @@ export function InventarioPanel({
             onEnter={() => {
               if (tallaPorCodigo(stock, busqueda)) abrirPorCodigo(busqueda);
             }}
-            placeholder={mostrarMarca ? "Prenda, marca, código, color o talla…" : "Prenda, código, color o talla…"}
+            // Corto para que quepa entero a 375 px junto al botón «Filtros» (se cortaba en «…color o tall»). El color se sigue
+            // pudiendo escribir: el buscador lo entiende igual.
+            placeholder={mostrarMarca ? "Prenda, marca o código…" : "Prenda, talla o código…"}
             separa={separa}
             categorias={categorias}
             tallas={tallas}

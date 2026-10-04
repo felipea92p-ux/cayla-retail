@@ -212,7 +212,8 @@ export default async function InventarioPage({
         // Con las cifras a la derecha, la cabecera pone las acciones bajo la frase. En el celular, una sola fila que se desliza
         // de lado: la página nunca se corre a los costados.
         acciones={
-          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
+          // El borde derecho se desvanece en el celular: sin eso, la fila cortada no decía que había más accesos a un deslizamiento.
+          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:pr-10 max-sm:[mask-image:linear-gradient(90deg,#000_78%,transparent)] max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-primario shrink-0 gap-2">
                 <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
