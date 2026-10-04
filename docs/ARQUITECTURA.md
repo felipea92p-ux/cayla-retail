@@ -193,10 +193,14 @@ flowchart TB
   `actualizar_mi_foto_perfil` → `public.fn_actualizar_foto_perfil` (rechaza lo que no empiece por `perfil/`).
 
 **Catálogo / inventario**
-- `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa
-  `lib/catalogo.ts:getCatalogoConStock`) → `InventarioAgrupado.tsx` →
-  `MovimientoModal.tsx` → RPC `registrar_movimiento` (excluye venta a
-  propósito, para no romper la trazabilidad caja↔movimiento).
+- `/inventario` (Existencias; rediseño 2026-10-04, ADR-0331) → `app/(app)/inventario/page.tsx` lee `lib/inventario-v2.ts`
+  (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/por-regularizar.ts` (`contarPendientesDeSede`, tabla
+  `prendas_por_regularizar`) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
+  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx`, `ExistenciasTarjetas.tsx` (el riel de
+  tallas), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir) y
+  `ajustar_inventario` (Ajustar). La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
+  `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
   → RPC `bajar_a_piso` (mueve de `stock_almacen` a `stock` de piso). (V1; hoy: esa ruta y `bajar_a_piso` no
   existen; se baja con `mover_interno` desde «Reponer» de Existencias o con `bajar_al_piso` desde

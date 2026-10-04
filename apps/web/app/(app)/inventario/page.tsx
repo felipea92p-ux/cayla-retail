@@ -134,10 +134,9 @@ export default async function InventarioPage({
     colores
   );
   const sinStock = productosSinStockEnSede(catalogo.productos, stockBase);
-  // «Reponer a piso hoy» (tarjeta y filtro) cuenta por «Acción hoy» — MISMA fuente que la columna
-  // de la tabla y el botón inline «Reponer»: una tarjeta que contara distinto de lo que la fila
-  // muestra sería exactamente la incoherencia que Felipe pidió cerrar (sección 15/16, 2026-09-25).
-  const resumen = resumirExistencias(stock, [...accionHoy.values()].filter((a) => a.tipo === "reponer_a_piso").length);
+  // Lo que pide cada talla («Hoy») lo cuenta el panel con `hoyDeTalla`, la misma regla de la tabla, el filtro y «Para hoy»; el resumen
+  // solo suma cantidades. Hasta el 2026-10-04 también contaba las tallas que piden reponer para una tarjeta que ya no existe.
+  const resumen = resumirExistencias(stock);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 

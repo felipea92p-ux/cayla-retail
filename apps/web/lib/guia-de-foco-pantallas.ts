@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 69;
+export const PENDIENTES_HOY = 68;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -88,7 +88,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/global": PENDIENTE,
   "/global/elige-sede": PENDIENTE,
   // ---- inventario ----
-  "/inventario": PENDIENTE,
+  "/inventario": { estado: "no-aplica", motivo: "Lista de existencias con buscador y filtros: su único campo es el buscador, y lo que sigue lo dice «Para hoy» (tareas con su cifra y su botón, en orden; rediseño 2026-10-04). Lo que se llena vive en sus ventanas (Reponer, Subir, Ajustar, Dañadas), cada una con su guía en el registro de modales." },
   "/inventario/bajar": PENDIENTE,
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
