@@ -11,6 +11,7 @@ import {
   nombreCortoSububicacion,
   partesOrigenDestino,
   referenciaMovimiento,
+  referenciaSinDocumento,
   resumirBajadas,
   resumirOperacion,
   textoApartado,
@@ -82,7 +83,7 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
   const { origen, destino } = partesOrigenDestino(m);
   const etiqueta = etiquetaConDireccion(m);
   const esApartado = m.categoria === "apartado" || m.categoria === "liberacion_apartado";
-  const referencia = esApartado ? referenciaApartado(m, ctx) : referenciaMovimiento(m, { enlaceCompras: ctx.enlaceCompras });
+  const referencia = esApartado ? referenciaApartado(m, ctx) : (referenciaMovimiento(m, { enlaceCompras: ctx.enlaceCompras }) ?? referenciaSinDocumento(m));
   const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
   const variante = [m.talla, m.color].filter(Boolean).join(" · ");
   const interno = m.categoria === "interno" || esApartado;
@@ -170,7 +171,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const r = resumirOperacion(op, { enlaceCompras: ctx.enlaceCompras });
   const primera = op.filas[0];
   const esApartado = primera.categoria === "apartado" || primera.categoria === "liberacion_apartado";
-  const referencia = esApartado ? referenciaApartado(primera, ctx) : r.referencia;
+  const referencia = esApartado ? referenciaApartado(primera, ctx) : (r.referencia ?? referenciaSinDocumento(primera));
   const donde = primera.sububicacion ? nombreCortoSububicacion(primera.sububicacion) : null;
   const productos = r.productos.length <= 2 ? r.productos.join(" y ") : `${r.productos.slice(0, 2).join(", ")} y ${r.productos.length - 2} más`;
   // Hasta tres fotos, una por producto: se reconoce el envío de un vistazo.

@@ -99,14 +99,15 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   conteo: "Conteo",
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
-  // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
-  // la bajada del almacén al piso, que es otra cosa.
-  reposicion: "Ajuste · reposición",
-  merma: "Ajuste · merma",
-  conteo_fisico: "Ajuste · conteo físico",
+  // Los ajustes sueltos llevan «Ajuste a mano ·» delante: «Reposición» a secas se confundía con la bajada del almacén al
+  // piso, que es otra cosa; y «a mano» (Felipe, 2026-10-03) los separa del ajuste de un conteo, que tiene documento —
+  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos.
+  reposicion: "Ajuste a mano · reposición",
+  merma: "Ajuste a mano · merma",
+  conteo_fisico: "Ajuste a mano · conteo físico",
   // 2026-10-01 (ADR-0291): la prenda que faltó en un conteo y apareció; el ajuste queda enlazado a ese conteo.
   hallazgo_conteo: "Ajuste · encontrada tras un conteo",
-  otro: "Ajuste · otro",
+  otro: "Ajuste a mano · otro",
   // ADR-0212: lo que ya estaba en la tienda al pasarla al sistema. «Stock inicial», como lo dice Nuevo producto.
   carga_inicial: "Stock inicial",
   // La carga de sistema que repartió el stock cuando la tienda empezó a separar piso y almacén.
@@ -372,6 +373,16 @@ export function referenciaMovimiento(m: Movimiento, opciones: { enlaceCompras?: 
     }
   }
   return null;
+}
+
+/** La referencia de un ajuste hecho a mano (Felipe, 2026-10-03): no hay documento detrás, y la fila lo dice en vez de
+ *  quedar en blanco, con la nota de quien ajustó o «sin nota». Se decide por el dato y no por el motivo: un ajuste sin
+ *  conteo enlazado no tiene documento, se llame como se llame. Null si no es un ajuste o si tiene su conteo (ese ya
+ *  dice «Conteo N»). Solo para la lista: el cajón ya muestra la nota como motivo. */
+export function referenciaSinDocumento(m: Pick<Movimiento, "categoria" | "nota" | "conteo">): ReferenciaMovimiento | null {
+  if (m.categoria !== "ajuste" || m.conteo) return null;
+  const nota = m.nota?.trim();
+  return { texto: "Sin documento", detalle: nota ? `«${nota}»` : "sin nota", href: null };
 }
 
 /** «Hoy», «Ayer», o «lunes 15 de septiembre». `fecha` viene en día de Lima;

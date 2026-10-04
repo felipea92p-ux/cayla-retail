@@ -17,6 +17,7 @@ import {
   partesOrigenDestino,
   leerCursorMovimientos,
   referenciaMovimiento,
+  referenciaSinDocumento,
   restarDias,
   serializarCursorMovimientos,
   textoDelta,
@@ -186,9 +187,9 @@ describe("etiquetaMovimiento", () => {
     });
   });
 
-  it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
-    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste · reposición");
-    expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  it("los ajustes sueltos llevan «Ajuste a mano ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
+    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste a mano · reposición");
+    expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste a mano · merma");
   });
 });
 
@@ -217,11 +218,32 @@ describe("etiquetaConDireccion", () => {
   });
 
   it("un ajuste que ya trae «Ajuste ·» en su nombre no lo duplica", () => {
-    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste a mano · merma");
   });
 
   it("un conteo formal (sin «Ajuste ·» de por sí) lo recibe del prefijo", () => {
     expect(etiquetaConDireccion(movimiento({ motivo: "conteo", categoria: "ajuste" }))).toBe("Ajuste · Conteo");
+  });
+});
+
+describe("un ajuste a mano dice que no tiene documento (Felipe, 2026-10-03)", () => {
+  const aMano = (parcial: Partial<Movimiento>) => movimiento({ tipo: "ajuste", categoria: "ajuste", motivo: "conteo_fisico", cantidad: -1, delta: -1, ...parcial });
+
+  it("sin nota: «Sin documento · sin nota», en vez de dejar la columna en blanco", () => {
+    expect(referenciaMovimiento(aMano({}))).toBeNull();
+    expect(referenciaSinDocumento(aMano({}))).toEqual({ texto: "Sin documento", detalle: "sin nota", href: null });
+    expect(referenciaSinDocumento(aMano({ nota: "   " }))?.detalle).toBe("sin nota");
+  });
+
+  it("con nota, la nota de quien ajustó entre comillas", () => {
+    expect(referenciaSinDocumento(aMano({ nota: "vino roto" }))?.detalle).toBe("«vino roto»");
+  });
+
+  it("un ajuste con su conteo enlazado ya dice «Conteo N»; lo que no es ajuste no pasa por acá", () => {
+    const conConteo = aMano({ motivo: "conteo", conteo: { id: "c1", numero: 4, sistema: 5, contado: 4 } });
+    expect(referenciaSinDocumento(conConteo)).toBeNull();
+    expect(referenciaMovimiento(conConteo)?.texto).toBe("Conteo 4");
+    expect(referenciaSinDocumento(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBeNull();
   });
 });
 
@@ -334,7 +356,8 @@ describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
     // Si mañana se suma un motivo al modal y no aquí, Movimientos lo mostraría como texto crudo
     // y no habría cómo filtrarlo sin escribir la URL a mano.
     for (const { valor } of MOTIVOS_AJUSTE) {
-      expect(ETIQUETA_PROCESO[valor], valor).toMatch(/^Ajuste · /);
+      // Todos se escriben a mano en «Ajustar stock», sin documento: la etiqueta lo dice (Felipe, 2026-10-03).
+      expect(ETIQUETA_PROCESO[valor], valor).toMatch(/^Ajuste a mano · /);
       expect(PROCESOS_POR_CATEGORIA.ajuste, valor).toContain(valor);
     }
   });
