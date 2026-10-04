@@ -19,7 +19,8 @@
  *         traslado y el Balance ya no lo lista como causa; una resta «otro» ya no es «otra salida»;
  *   · P — permisos: el líder ve el costo por prenda, la integrante solo totales; sin el módulo Movimientos o en otra sede,
  *         nada; `anon` no ejecuta y las piezas internas no son de nadie;
- *   · G — la guarda: con un mes CERRADO que cambiaría, la migración aborta (se re-aplica su bloque sobre una copia).
+ *   · G — la guarda: con un mes CERRADO que cambiaría, la migración aborta (se re-aplica su bloque sobre una copia) y nombra
+ *         SOLO los meses que cambian; G3 cubre su otra mitad: un mes cerrado donde solo un traslado tuvo faltante.
  *
  * LOS NÚMEROS ESPERADOS ESTÁN CALCULADOS A MANO (comentario de la escena), no salen de las funciones.
  *
@@ -508,9 +509,31 @@ select 'G1 con marzo abierto, la guarda deja pegar', (select msg = 'SIN_ERROR' f
 insert into retail.periodos (id, mes, alcance, ubicacion_id, estado, cierre_id) values (pg_temp.k('PER'), '2031-03-01', 'ubicacion', :'t', 'cerrado', pg_temp.k('PC'));
 insert into retail.periodo_cierres (id, periodo_id, mes, alcance, ubicacion_id, version, cerrado_por, huella, lineas, total_debe, total_haber)
 select pg_temp.k('PC'), pg_temp.k('PER'), '2031-03-01', 'ubicacion', :'t', 1, (select id from public.personas where auth_user_id = '${FELIPE}'), repeat('0', 64), 0, 0, 0;
+-- Febrero de T también cerrado, pero nada de febrero cambia (su merma ya era merma): no se pide reabrirlo.
+insert into retail.periodos (id, mes, alcance, ubicacion_id, estado, cierre_id) values (pg_temp.k('PERF'), '2031-02-01', 'ubicacion', :'t', 'cerrado', pg_temp.k('PCF'));
+insert into retail.periodo_cierres (id, periodo_id, mes, alcance, ubicacion_id, version, cerrado_por, huella, lineas, total_debe, total_haber)
+select pg_temp.k('PCF'), pg_temp.k('PERF'), '2031-02-01', 'ubicacion', :'t', 1, (select id from public.personas where auth_user_id = '${FELIPE}'), repeat('0', 64), 0, 0, 0;
 create temp table guarda_cerrada as select pg_temp.intento(${dolar(GUARDA)}) as msg;
 select 'G2 con marzo de T CERRADO y movimientos que cambian de clase, la migración aborta y nombra el mes',
   (select msg like '%meses ya CERRADOS%' and msg like '%2031-03 Tienda Pérdidas T%' from guarda_cerrada);
+select 'G2 y nombra SOLO los meses que cambian: febrero de T, cerrado y sin cambios, no se pide reabrir',
+  (select msg not like '%2031-02%' from guarda_cerrada);
+`;
+
+// G3 · La otra mitad de la guarda: un mes cerrado donde NINGÚN movimiento cambia de clase, pero un traslado cerrado ahí tuvo
+// faltante. Marzo de O: TO (O → T) envió 3 v1 y llegaron 1. Los movimientos de O en marzo (la salida y la entrada de los
+// traslados) no cambian de clase; la línea de TO, sí (antes era causa del Balance, ahora merma del diario).
+const CASOS_GUARDA_TRASLADO = `
+create or replace function retail.fn_es_merma(p_tipo text, p_motivo text, p_cantidad integer) returns boolean language sql immutable as $f$
+  select (p_tipo = 'ajuste' and p_cantidad < 0 and p_motivo in ('merma', 'conteo', 'conteo_fisico'))
+      or (p_tipo = 'salida' and p_motivo in ('cuarentena_se_boto', 'cuarentena_donada'));
+$f$;
+insert into retail.periodos (id, mes, alcance, ubicacion_id, estado, cierre_id) values (pg_temp.k('PERO'), '2031-03-01', 'ubicacion', :'o', 'cerrado', pg_temp.k('PCO'));
+insert into retail.periodo_cierres (id, periodo_id, mes, alcance, ubicacion_id, version, cerrado_por, huella, lineas, total_debe, total_haber)
+select pg_temp.k('PCO'), pg_temp.k('PERO'), '2031-03-01', 'ubicacion', :'o', 1, (select id from public.personas where auth_user_id = '${FELIPE}'), repeat('0', 64), 0, 0, 0;
+create temp table guarda_traslado as select pg_temp.intento(${dolar(GUARDA)}) as msg;
+select 'G3 con marzo de O cerrado y SOLO un traslado con faltante (ningún movimiento cambia), la migración aborta y nombra ese mes',
+  (select msg like 'Hay 0 movimientos y 1 líneas de traslado%' and msg like '%2031-03 Tienda Pérdidas O%' and msg not like '%Tienda Pérdidas T%' from guarda_traslado);
 `;
 function dolar(sql) {
   return `$GUARDA$${sql}$GUARDA$`;
@@ -533,6 +556,7 @@ verificar("Finanzas", correr(`${ESCENA}${CASOS_FINANZAS}`), casosDe(CASOS_FINANZ
 verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
 verificar("Resumen de Inventario", correr(RESUMEN_INVENTARIO), casosDe(RESUMEN_INVENTARIO));
 verificar("Guarda", correr(`${ESCENA}${CASOS_GUARDA}`), casosDe(CASOS_GUARDA));
+verificar("Guarda (solo un traslado)", correr(`${ESCENA}${CASOS_GUARDA_TRASLADO}`), casosDe(CASOS_GUARDA_TRASLADO));
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);
 process.exit(fallos ? 1 : 0);

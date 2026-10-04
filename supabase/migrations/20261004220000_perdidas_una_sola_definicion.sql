@@ -411,10 +411,11 @@ grant execute on function retail.fn_perdidas_resumen(uuid, date, date, uuid, uui
 -- cambia de clase (deja de ser «otra salida» y pasa a ser merma) o tiene un traslado con faltante, el diario congelado no
 -- lo tiene y la causa desaparece: quedaría una diferencia sin explicar. Eso se hace imposible aquí: se aborta y se dice
 -- qué mes reabrir. En un re-pegado (`fn_es_merma` ya delega) no hay nada que medir.
+-- Se nombran SOLO los meses (y sedes) que cambiarían: reabrir uno que no cambia es trabajo y una huella nueva sin motivo.
 do $guarda$
 declare
-  v_movs bigint;
-  v_tras bigint;
+  v_movs bigint := 0;
+  v_tras bigint := 0;
   v_meses text;
   r record;
 begin
@@ -422,24 +423,38 @@ begin
     return;
   end if;
 
-  v_movs := (select count(*)
-               from retail.movimientos m
-               join retail.periodos p on p.alcance = 'ubicacion' and p.ubicacion_id = m.ubicacion_id and p.estado = 'cerrado'
-                                     and p.mes = date_trunc('month', m.created_at at time zone 'America/Lima')::date
-              where m.variante_id <> '22222222-2222-4222-8222-222222222222'
-                and coalesce((m.tipo = 'ajuste' and m.cantidad < 0 and m.motivo in ('merma', 'conteo', 'conteo_fisico'))
-                          or (m.tipo = 'salida' and m.motivo in ('cuarentena_se_boto', 'cuarentena_donada')), false)
-                    is distinct from retail.fn_es_perdida(m.tipo, m.motivo, m.cantidad));
-  v_tras := (select count(*)
-               from retail.fn_perdidas_de_traslados(null, '-infinity'::timestamptz, 'infinity'::timestamptz) x
-               join retail.periodos p on p.alcance = 'ubicacion' and p.ubicacion_id = x.ubicacion_id and p.estado = 'cerrado'
-                                     and p.mes = date_trunc('month', x.instante at time zone 'America/Lima')::date
-              where x.lado = 'perdida');
+  for r in
+    select to_char(c.mes, 'YYYY-MM') || ' ' || u.nombre as mes,
+           count(*) filter (where c.que = 'movimiento') as movs,
+           count(*) filter (where c.que = 'traslado') as tras
+      from (
+        -- Un movimiento de un mes cerrado que cambia de clase (la regla vieja de fn_es_merma contra la nueva).
+        select p.mes, p.ubicacion_id, 'movimiento' as que
+          from retail.movimientos m
+          join retail.periodos p on p.alcance = 'ubicacion' and p.ubicacion_id = m.ubicacion_id and p.estado = 'cerrado'
+                                and p.mes = date_trunc('month', m.created_at at time zone 'America/Lima')::date
+         where m.variante_id <> '22222222-2222-4222-8222-222222222222'
+           and coalesce((m.tipo = 'ajuste' and m.cantidad < 0 and m.motivo in ('merma', 'conteo', 'conteo_fisico'))
+                     or (m.tipo = 'salida' and m.motivo in ('cuarentena_se_boto', 'cuarentena_donada')), false)
+               is distinct from retail.fn_es_perdida(m.tipo, m.motivo, m.cantidad)
+        union all
+        -- Una línea de traslado con faltante cerrada en un mes cerrado de la sede que lo envió.
+        select p.mes, p.ubicacion_id, 'traslado'
+          from retail.fn_perdidas_de_traslados(null, '-infinity'::timestamptz, 'infinity'::timestamptz) x
+          join retail.periodos p on p.alcance = 'ubicacion' and p.ubicacion_id = x.ubicacion_id and p.estado = 'cerrado'
+                                and p.mes = date_trunc('month', x.instante at time zone 'America/Lima')::date
+         where x.lado = 'perdida'
+      ) c
+      join retail.ubicaciones u on u.id = c.ubicacion_id
+     group by c.mes, u.nombre
+     order by c.mes, u.nombre
+  loop
+    v_movs := v_movs + r.movs;
+    v_tras := v_tras + r.tras;
+    v_meses := concat_ws(', ', v_meses, r.mes);
+  end loop;
   if v_movs + v_tras > 0 then
-    v_meses := (select string_agg(distinct to_char(p.mes, 'YYYY-MM') || ' ' || u.nombre, ', ')
-                  from retail.periodos p join retail.ubicaciones u on u.id = p.ubicacion_id
-                 where p.estado = 'cerrado' and p.alcance = 'ubicacion');
-    raise exception 'Hay % movimientos y % líneas de traslado en meses ya CERRADOS que cambiarían de clase en Finanzas (meses cerrados: %). Reabre esos meses con motivo, pega esta migración y vuelve a cerrarlos.',
+    raise exception 'Hay % movimientos y % líneas de traslado en meses ya CERRADOS que cambiarían de clase en Finanzas (meses a reabrir: %). Reabre esos meses con motivo, pega esta migración y vuelve a cerrarlos.',
       v_movs, v_tras, v_meses
       using hint = 'perdidas_mes_cerrado';
   end if;
