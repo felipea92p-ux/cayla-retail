@@ -66,8 +66,10 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
               >
                 {valor === null ? "—" : <CifraAnimada valor={valor} formato={formato} />}
                 {unidad && valor !== null && <small className="ml-px text-[0.55em]">{unidad}</small>}
+                {/* La nota sí se parte en dos renglones (el número no): «de 1800 (provisional)» en una cifra de tres a 375 px pedía
+                    más ancho que el de su columna y se montaba sobre la de al lado. Una nota que cabe se ve igual que antes. */}
                 {nota && valor !== null && (
-                  <span className="ml-1 block font-sans text-[11px] font-medium text-taupe sm:inline sm:text-[13px]">{nota}</span>
+                  <span className="ml-1 block whitespace-normal font-sans text-[11px] font-medium text-taupe sm:inline sm:text-[13px]">{nota}</span>
                 )}
               </span>
               <span className={`mt-2 flex items-center gap-1.5 text-[11px] leading-tight sm:text-xs ${alerta ? "font-semibold text-ambar-profundo" : "text-tinta/70"}`}>
