@@ -357,11 +357,20 @@ export const AYUDA_ENCONTRE_PRENDAS =
 
 /** Por qué una talla no se puede guardar con este motivo, ANTES de ir a la base: «Encontré prendas» solo suma
  *  (`encontre_prendas_resta`) y, con la carga inicial de la sede cerrada, una prenda que nunca estuvo en ella entra SOLO con
- *  «Encontré prendas» (`carga_inicial_cerrada`). `null`: está bien. */
-export function textoProblemaMotivo(l: { delta: number; variante: Pick<VarianteAjuste, "sinHistoria"> }, motivo: MotivoAjuste | "", cargaAbierta: boolean): string | null {
+ *  «Encontré prendas» (`carga_inicial_cerrada`). `null`: está bien.
+ *  `enPisoCerrado`: se ajusta el PISO de una tienda que separa piso y almacén, donde «Encontré prendas» no se ofrece
+ *  (`reposicionCerrada`): la salida dicha es «en el almacén», no un motivo que aquí no está. */
+export function textoProblemaMotivo(
+  l: { delta: number; variante: Pick<VarianteAjuste, "sinHistoria"> },
+  motivo: MotivoAjuste | "",
+  cargaAbierta: boolean,
+  enPisoCerrado = false
+): string | null {
   if (motivo === "reposicion" && l.delta < 0) return "«Encontré prendas» solo suma: para quitar, elige otro motivo.";
   if (!cargaAbierta && l.variante.sinHistoria && motivo !== "" && motivo !== "reposicion") {
-    return "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, elige «Encontré prendas».";
+    return enPisoCerrado
+      ? "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, anótala en el almacén con «Encontré prendas»."
+      : "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, elige «Encontré prendas».";
   }
   return null;
 }
@@ -392,7 +401,12 @@ export function cargaInicialAlPiso(ubicado: "piso" | "almacen", separaPisoAlmace
 
 /** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial (o, con la carga cerrada, por dónde entra). */
 export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean, cargaAbierta = true): string {
-  if (!cargaAbierta) return "Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»";
+  if (!cargaAbierta) {
+    // En el piso de una tienda que separa piso y almacén «Encontré prendas» no se ofrece: la salida es el almacén.
+    return reposicionCerrada(ubicado, separaPisoAlmacen)
+      ? "Nueva en esta tienda · la carga inicial se cerró: entra por el almacén con «Encontré prendas»"
+      : "Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»";
+  }
   if (separaPisoAlmacen && ubicado === "piso" && !puedeBajarAlPiso) {
     return "Nueva en esta tienda · entra al almacén: tu rol no baja prendas al piso";
   }

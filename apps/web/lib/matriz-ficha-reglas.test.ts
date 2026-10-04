@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  avisoCargaDeLaFicha,
+  bloqueoDeSubida,
   comoLlenarHueco,
   armarMatriz,
   cambiosDeStock,
@@ -20,6 +22,7 @@ import {
   minimoDeCelda,
   pasoDeCelda,
   ponerEtiqueta,
+  problemaDelStockDeLaVisita,
   quitarColor,
   quitarTalla,
   tallasQueSeQuitan,
@@ -133,6 +136,72 @@ describe("lineasDelLote", () => {
 
   it("lo que no se tocó no viaja", () => {
     expect(lineasDelLote(vs, {}, "almacen", "conteo_fisico")).toEqual([]);
+  });
+});
+
+// ADR-0328 (actividad 4) en la ficha, tras la revisión adversarial: «Encontré prendas» se ofrece con su nota y, con la carga de
+// la sede cerrada, es la única forma de sumar una talla que nunca estuvo en la tienda. Las MISMAS reglas que la base.
+describe("«Encontré prendas» y la carga cerrada en la ficha", () => {
+  const MOTIVOS = ["reposicion", "merma", "conteo_fisico", "otro"] as const;
+  const conHistoria = variante("h", { stockAlmacen: 4, apartadoAlmacen: 1 });
+  const nueva = variante("n", { sinHistoria: true });
+
+  it("con «Encontré prendas» la celda no baja de lo que hay hoy (solo suma); con los demás, de lo apartado", () => {
+    expect(minimoDeCelda(conHistoria, "almacen", "reposicion")).toBe(4);
+    for (const m of ["merma", "conteo_fisico", "otro"] as const) expect(minimoDeCelda(conHistoria, "almacen", m)).toBe(1);
+    expect(minimoDeCelda(conHistoria, "almacen")).toBe(1);
+    expect(pasoDeCelda(4, 0, -1, minimoDeCelda(conHistoria, "almacen", "reposicion"))).toBeNull();
+    expect(pasoDeCelda(4, 0, 1, minimoDeCelda(conHistoria, "almacen", "reposicion"))).toBe(1);
+    expect(minimoDeCelda(undefined, "almacen", "reposicion")).toBe(0);
+  });
+
+  it("el «+» de una talla sin historia: abierta suma con todo; cerrada, solo con «Encontré prendas», y en el piso manda al almacén", () => {
+    for (const m of MOTIVOS) {
+      expect(bloqueoDeSubida({ sinHistoria: true, cargaAbierta: true, motivo: m, enPisoCerrado: false })).toBeNull();
+      expect(bloqueoDeSubida({ sinHistoria: false, cargaAbierta: false, motivo: m, enPisoCerrado: false })).toBeNull();
+      const cerrada = bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: m, enPisoCerrado: false });
+      if (m === "reposicion") expect(cerrada).toBeNull();
+      else expect(cerrada).toMatch(/elige «Encontré prendas»/);
+    }
+    expect(bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: "merma", enPisoCerrado: true })).toMatch(/anótala en el almacén/);
+  });
+
+  it("nada que frenar sin cambios, ni con la carga abierta y un motivo sin nota", () => {
+    const base = { nuevasConStock: 0, nota: "", cargaAbierta: true, enPisoCerrado: false };
+    for (const m of MOTIVOS) expect(problemaDelStockDeLaVisita({ ...base, lineas: [], motivo: m })).toBeNull();
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], motivo: "conteo_fisico" })).toBeNull();
+    // Abierta, lo nuevo es stock inicial: no necesita motivo ni nota.
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 2, motivo: "reposicion" })).toBeNull();
+  });
+
+  it("«Encontré prendas» pide la nota (3 letras o más) y la manda a su campo; restar se manda al motivo", () => {
+    const base = { nuevasConStock: 0, cargaAbierta: true, enPisoCerrado: false, motivo: "reposicion" as const };
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], nota: " ab " })).toEqual({
+      texto: "Con «Encontré prendas» cuenta dónde estaban o por qué aparecieron (3 letras o más).",
+      campo: "nota",
+    });
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], nota: "en una caja" })).toBeNull();
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: -1, variante: conHistoria }], nota: "en una caja" })?.campo).toBe("motivo");
+  });
+
+  it("cerrada: una talla sin historia u otra variante nueva con otro motivo frena en el motivo; con «Encontré prendas», en la nota", () => {
+    const base = { cargaAbierta: false, enPisoCerrado: false, nota: "" };
+    for (const m of ["merma", "conteo_fisico", "otro"] as const) {
+      expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 1, variante: nueva }], nuevasConStock: 0, motivo: m })?.campo).toBe("motivo");
+      expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 1, motivo: m })?.campo).toBe("motivo");
+    }
+    // Las variantes nuevas viajan como ajuste: con «Encontré prendas» piden la nota como cualquier otra.
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 1, motivo: "reposicion" })?.campo).toBe("nota");
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 1, motivo: "reposicion", nota: "en el probador" })).toBeNull();
+  });
+
+  it("la línea bajo el motivo: cerrada y con otro motivo dice qué hacer con las tallas quietas; si no, el aviso tal cual", () => {
+    const aviso = "La carga inicial de Tienda TRU se cerró el 15-oct. Lo que encuentres entra por «Encontré prendas».";
+    expect(avisoCargaDeLaFicha(null, false, "merma", false)).toBeNull();
+    expect(avisoCargaDeLaFicha(aviso, true, "merma", false)).toBe(aviso);
+    expect(avisoCargaDeLaFicha(aviso, false, "reposicion", false)).toBe(aviso);
+    expect(avisoCargaDeLaFicha(aviso, false, "merma", false)).toBe(`${aviso} Las tallas que nunca estuvieron aquí se suman eligiendo «Encontré prendas».`);
+    expect(avisoCargaDeLaFicha(aviso, false, "otro", true)).toMatch(/se suman en el almacén, con «Encontré prendas»\.$/);
   });
 });
 

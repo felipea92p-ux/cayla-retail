@@ -222,7 +222,7 @@ export function AjustarInventarioModal({
   // talla, sin códigos, y mientras haya uno no se puede confirmar.
   const problemaDe: Record<string, string> = {};
   for (const l of lineas) {
-    const texto = textoProblemaTalla(l, modo) ?? textoProblemaMotivo(l, motivo, abiertaCarga);
+    const texto = textoProblemaTalla(l, modo) ?? textoProblemaMotivo(l, motivo, abiertaCarga, reposicionCerrada(ubicado, separaPisoAlmacen));
     if (texto) problemaDe[l.variante.varianteId] = texto;
   }
   const hayProblemas = Object.keys(problemaDe).length > 0;

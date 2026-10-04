@@ -690,6 +690,24 @@ describe("«Encontré prendas» y la carga inicial cerrada (ADR-0328, actividad 
   it("la fila de una prenda nueva dice por dónde entra, abierta o cerrada", () => {
     expect(textoPrendaNueva("almacen", true, true, true)).toBe("Nueva en esta tienda · entra como stock inicial");
     expect(textoPrendaNueva("almacen", true, true, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»");
-    expect(textoPrendaNueva("piso", true, false, false)).toMatch(/«Encontré prendas»/);
+    // Revisión adversarial: en el PISO de una tienda que separa piso y almacén «Encontré prendas» no se ofrece; la salida es el almacén.
+    for (const puede of [true, false]) {
+      expect(textoPrendaNueva("piso", true, puede, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra por el almacén con «Encontré prendas»");
+    }
+    // Una tienda sin piso separado no tiene «piso cerrado»: la frase es la de siempre.
+    expect(textoPrendaNueva("piso", false, true, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»");
+  });
+
+  it("en el piso cerrado, el problema de la talla manda al almacén, no a un motivo que ahí no está", () => {
+    for (const m of ["merma", "conteo_fisico", "otro"] as const) {
+      expect(motivosAjusteDisponibles("piso", true).some((x) => x.valor === "reposicion")).toBe(false);
+      expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, m, false, true)).toBe(
+        "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, anótala en el almacén con «Encontré prendas»."
+      );
+      expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, m, false, false)).toMatch(/elige «Encontré prendas»\.$/);
+    }
+    // Abierta, o con historia, el piso no cambia nada.
+    expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, "merma", true, true)).toBeNull();
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 2 }, "merma", false, true)).toBeNull();
   });
 });
