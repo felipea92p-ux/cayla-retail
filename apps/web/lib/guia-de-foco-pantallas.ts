@@ -107,6 +107,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/traslados": PENDIENTE,
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
+  // ADR-0328 (actividad 15): «¿Quién recibe?» ya lleva su guía (CampoGuiado + PieGuia), y por eso `pnpm focus` la ve «con guía».
+  // Sigue pendiente a propósito: las casillas de lo recibido por prenda, que son el trabajo de la pantalla, todavía no dicen qué
+  // falta ni qué sigue. Pasarla a «aplicada» por un solo campo haría mentir al tablero.
   "/inventario/traslados/[id]": PENDIENTE,
   // ---- movimientos ----
   "/movimientos": PENDIENTE,

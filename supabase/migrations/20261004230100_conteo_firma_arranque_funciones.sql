@@ -247,8 +247,8 @@ select pg_temp.reemplazar(
 
 -- Las dos claves soltadas del combo siguen en la lista, pero ahora la base pone el nombre de la operación: su descripción lo dice
 -- (la web la repite en `lib/responsable-omitido.ts`; `responsable-omitido.test.ts` las compara).
-update retail.acciones_sin_responsable set descripcion = 'Cerrar el conteo y aplicar las diferencias (firma quien lo abrió hoy; si fue otro día, se pregunta una vez)' where clave = 'conteo_cerrar';
-update retail.acciones_sin_responsable set descripcion = 'Recibir, confirmar o cerrar con diferencia un traslado (firma quien firmó la recepción hoy; si no hay nadie de hoy, se pregunta una vez)' where clave = 'traslado_recibir';
+update retail.acciones_sin_responsable set descripcion = 'Cerrar el conteo y aplicar las diferencias (firma quien lo abrió hoy, si sigue de turno; si no, se pregunta una vez)' where clave = 'conteo_cerrar';
+update retail.acciones_sin_responsable set descripcion = 'Recibir, confirmar o cerrar con diferencia un traslado (firma quien firmó la recepción hoy, si sigue de turno; si no, se pregunta una vez)' where clave = 'traslado_recibir';
 
 -- La firma vigente de la recepción, para que la pantalla sepa ANTES de contar si tiene que preguntar el nombre (y a nombre de
 -- quién va lo demás). Lectura: prefijo `fn_`. NULL si quien pregunta no opera ninguna de las dos sedes del traslado.
