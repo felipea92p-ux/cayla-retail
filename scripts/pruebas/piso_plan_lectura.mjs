@@ -28,7 +28,8 @@
  *   V   TALLAS DE LA BASE = la lista que recorre `apps/web/lib/piso-plan.test.ts` (TALLAS_DE_LA_BASE): si una migración o el seed
  *       agregan una talla, esta prueba pide sumarla allí, y así la regla de talla central la clasifica antes de que llegue a
  *       una tienda.
- *   M   LA MIGRACIÓN: se puede pegar dos veces; su guarda se detiene si la puerta todavía no conoce a las terminales.
+ *   M   LA MIGRACIÓN: se puede pegar dos veces; su guarda se detiene si la puerta todavía no conoce a las terminales; y la
+ *       huella (md5) que su cabecera manda verificar en producción es la del cuerpo.
  *   N   NÚMEROS: ~800 unidades y ~150 ventas en una sede; se mide la lectura (mediana de 7) y `fn_existencias_base` se llama
  *       UNA sola vez por lectura (la CTE materializada; memoria «CTE con función cara»).
  *
@@ -571,6 +572,15 @@ caso(
           (select md5(prosrc) = :'m0' from pg_proc where oid = ${OID});`,
   "true,true"
 );
+
+{
+  const md5Cabecera = MIGRACION.match(/→ `([0-9a-f]{32})` \(el cuerpo de este archivo/)?.[1] ?? "(sin md5 en la cabecera)";
+  caso(
+    "M3 la huella que la cabecera manda verificar en producción es la del cuerpo de la función (si cambia el cuerpo, cambia la cabecera)",
+    `select md5(prosrc) from pg_proc where oid = ${OID};`,
+    md5Cabecera
+  );
+}
 
 // ===========================================================================
 // N. NÚMEROS: ~800 unidades y ~150 ventas

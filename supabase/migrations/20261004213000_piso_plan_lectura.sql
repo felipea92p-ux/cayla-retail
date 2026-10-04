@@ -54,8 +54,11 @@
 -- con su `comment` y sus permisos: sin políticas ni `alter` de tablas, así que no toma los bloqueos de `auth`/`storage`
 -- (ADR-0195) y se pega entero, en una sola parte, en el SQL Editor (ya trae `retail.`). Sin `select … into` dentro de textos
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
--- Después de pegar, solo lectura: `select jsonb_array_length(retail.fn_piso_plan_lectura('<id de TRU>') -> 'tallas');` desde
--- una sesión con acceso (en el SQL Editor no hay sesión: devuelve NULL, y eso también es la prueba de la puerta).
+-- Después de pegar, solo lectura:
+--   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
+--     → `792908a53bd63fd0118e1cc181b76629` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
+--     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
 -- SE ROMPE SI alguien cambia `regularizar_prenda` para que deje la línea de venta en la centinela (las regularizadas dejarían de
 -- contar) o para que cree una línea de venta nueva (contarían dos veces): la prueba `pnpm pruebas:piso-plan` lo vigila. También si
