@@ -19,12 +19,16 @@ import {
   avisoDeEnMano,
   BOTON_CORREGIR_Y_COLGAR,
   BOTON_EN_MANO_DE_NUEVO,
+  destinoDeLaMarca,
   interpretarErrorEnMano,
   leerRespuestaEnMano,
   MAX_NOTA_EN_MANO,
+  notaLimpia,
   pasosEnMano,
-  respuestaResuelveLaMarcaEnMano,
   RPC_EN_MANO,
+  textoMarcaEnDuda,
+  type MarcaEnDuda,
+  type MarcaParaAbrir,
   type RespuestaEnMano,
 } from "@/lib/bajada-en-mano";
 
@@ -39,11 +43,18 @@ const DE_DONDE = ["Venía en un fardo", "Estaba guardada sin registrar"] as cons
 //
 // El responsable es el MISMO de la pantalla (`control`): el nombre se pide una vez por operación (ADR-0328, decisión 7); si aún
 // no lo eligió, lo elige aquí y queda elegido también allá.
+//
+// La marca NO nace aquí: la trae la pantalla (`marca`), que la guarda por prenda en el aparato. Cerrar esta ventana tras un corte
+// (o recargar la página) y volver a abrirla reenvía con la MISMA marca: si la primera ya se había guardado, la base responde «ya
+// registrada» y no corrige dos veces. `onMarca` le avisa a la pantalla: la anota ANTES de llamar a la base y la suelta solo
+// cuando la base dijo qué pasó con ella (`destinoDeLaMarca`).
 export function BajarEnManoModal({
   prenda,
   ubicacionId,
   sede,
   responsable,
+  marca,
+  onMarca,
   yaCuentaEnPiso = 0,
   alCerrarEnfocar,
   onListo,
@@ -53,20 +64,25 @@ export function BajarEnManoModal({
   ubicacionId: string;
   sede: string;
   responsable: ControlResponsable;
+  /** La marca de esta prenda: estrenada, o la que quedó en duda (entonces la ventana abre congelada, con su nota). */
+  marca: MarcaParaAbrir;
+  /** La marca en duda (antes de llamar a la base) o `null` (la base dijo qué pasó: se suelta). */
+  onMarca: (m: MarcaEnDuda | null) => void;
   /** Si el sistema ya contaba colgadas de esta prenda y ella dijo «es otra unidad»: se le recuerda que se suma una más. */
   yaCuentaEnPiso?: number;
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onListo: (r: RespuestaEnMano) => void;
   onClose: () => void;
 }) {
-  const [nota, setNota] = useState("");
+  const [nota, setNota] = useState(marca.nota ?? "");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(marca.enviadoEn ? textoMarcaEnDuda(marca.enviadoEn) : null);
   // La marca de este intento: el mismo toque enviado otra vez (doble toque, reintento tras un corte) no corrige dos veces.
-  const token = useRef<string>(crypto.randomUUID());
-  // Tras una respuesta incierta la ventana queda fija: solo se reenvía LO MISMO con la misma marca, o se cierra.
-  const [congelado, setCongelado] = useState(false);
-  const enviadoEn = useRef<string | null>(null);
+  const token = useRef<string>(marca.token);
+  // Tras una respuesta incierta la ventana queda fija: solo se reenvía LO MISMO con la misma marca, o se cierra (y la marca
+  // sigue anotada en la pantalla). Una ventana que abre sobre una marca en duda nace así.
+  const [congelado, setCongelado] = useState(marca.enviadoEn !== null);
+  const enviadoEn = useRef<string | null>(marca.enviadoEn);
   // Contra el doble toque en el mismo instante: `loading` apaga el botón recién en el render siguiente.
   const enVuelo = useRef(false);
   const nombre = nombreDePrenda(prenda);
@@ -86,6 +102,8 @@ export function BajarEnManoModal({
     setError(null);
     const eraReenvio = enviadoEn.current !== null;
     enviadoEn.current ??= new Date().toISOString();
+    // Anotada ANTES de la llamada: si se corta la luz ahora, al volver la pantalla la ofrece para comprobar.
+    onMarca({ varianteId: prenda.varianteId, token: token.current, enviadoEn: enviadoEn.current, nota: notaLimpia(nota) });
     // Sin tope, una conexión colgada dejaría la ventana bloqueada: a los 20 s se trata como un corte (la base pudo guardar igual).
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
@@ -107,20 +125,24 @@ export function BajarEnManoModal({
     setLoading(false);
     enVuelo.current = false;
     responsable.despues(errorRpc);
+    // Una sola regla decide si la marca sigue en duda (la ventana se congela y la pantalla la guarda) o se suelta.
+    const destino = destinoDeLaMarca(errorRpc, eraReenvio);
+    if (destino === "suelta") onMarca(null);
 
     if (errorRpc) {
       const fallo = interpretarErrorEnMano(errorRpc, sede);
-      if (fallo.tipo === "red" || (eraReenvio && !respuestaResuelveLaMarcaEnMano(errorRpc))) {
+      if (destino === "en_duda") {
         // No se sabe si se guardó: todo queda fijo y solo se reenvía igual, con la misma marca.
         setCongelado(true);
         setError(fallo.mensaje);
         avisarLectura("desconocida");
         return;
       }
-      // La base miró la marca: esa transacción se deshizo entera. Si la marca era de otra cosa, se estrena una.
+      // La base miró la marca (o la rechazó en el primer envío, antes de que viajara a nada que se guardara): esa transacción se
+      // deshizo entera. Si la marca era de otra cosa, se estrena una.
       enviadoEn.current = null;
       setCongelado(false);
-      if (fallo.hint === "en_mano_token_reusado") token.current = crypto.randomUUID();
+      if (fallo.tipo === "rechazo" && fallo.hint === "en_mano_token_reusado") token.current = crypto.randomUUID();
       setError(fallo.mensaje);
       avisarLectura("desconocida");
       return;
@@ -211,8 +233,9 @@ export function BajarEnManoModal({
             <ComboResponsable control={responsable} deshabilitado={loading} />
           </CampoGuiado>
 
+          {/* En duda no es un error: es un paso pendiente (ámbar). Un rechazo de la base sí lo es. */}
           {error && (
-            <p role="alert" className="text-sm text-rojo-profundo">
+            <p role="alert" className={`text-sm ${congelado ? "text-ambar-profundo" : "text-rojo-profundo"}`}>
               {error}
             </p>
           )}
@@ -222,7 +245,7 @@ export function BajarEnManoModal({
           {/* `pie-hoja-fijo`: los botones no se van bajo el pliegue en un celular de pie frente al rack (globals.css). */}
           <div className="pie-hoja-fijo flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} disabled={loading} className="flex-1">
-              Cancelar
+              {congelado ? "Cerrar" : "Cancelar"}
             </Boton>
             <Boton
               type="submit"

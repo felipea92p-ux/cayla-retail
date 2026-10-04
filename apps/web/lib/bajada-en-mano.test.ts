@@ -1,13 +1,19 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  anotarMarca,
   argumentosEnMano,
   avisoDeEnMano,
   BOTON_EN_MANO_DE_NUEVO,
+  claveDeMarcasEnMano,
   colgadasAquiDe,
+  destinoDeLaMarca,
   hechaEnMano,
+  HORAS_DE_VIDA_DE_LA_MARCA,
   interpretarErrorEnMano,
+  leerMarcas,
   leerRespuestaEnMano,
+  marcaParaAbrir,
   MAX_NOTA_EN_MANO,
   NOTA_AUTOMATICA,
   notaLimpia,
@@ -16,11 +22,17 @@ import {
   pasosEnMano,
   respuestaResuelveLaMarcaEnMano,
   RPC_EN_MANO,
+  serializarMarcas,
+  soltarMarca,
   sumarHecha,
   textoDeHecha,
+  textoDeMarcaEnLista,
   textoDeOferta,
+  textoMarcaEnDuda,
   textoYaEstabaColgada,
   TOPE_DEL_DIA_EN_MANO,
+  type MarcaEnDuda,
+  type MarcasEnDuda,
   type RespuestaEnMano,
 } from "./bajada-en-mano";
 import { esRpcDeLectura } from "./espera-reglas";
@@ -217,5 +229,91 @@ describe("después: el aviso y la lista de lo hecho aquí", () => {
   it("cada línea dice la hora (Lima) y si corrigió el almacén", () => {
     expect(textoDeHecha(hechaEnMano(respuesta(), id(9), BLUSA))).toBe("10:32 · +1 en el almacén y al piso");
     expect(textoDeHecha(hechaEnMano(respuesta({ corregida: false, ajuste_movimiento_id: null }), id(9), BLUSA))).toBe("10:32 · al piso (el almacén ya la tenía)");
+  });
+});
+
+// La revisión adversarial de la actividad 9 lo encontró: tras un corte, la ventana congelada se podía cerrar y volver a abrir
+// con una marca NUEVA; si la primera sí se había guardado, la base corregía otra vez (+1 de más con una sola prenda en la
+// mano). Recargar la página también perdía la marca. Estas pruebas fijan que la marca de una corrección en duda vive en la
+// pantalla y en el aparato, por prenda, y que solo se suelta cuando la base dijo qué pasó con ella.
+describe("la marca de cada prenda: sobrevive a cerrar la ventana y a recargar", () => {
+  const PRENDA = id(9);
+  const OTRA_PRENDA = id(8);
+  const TOKEN_2 = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+  const ENVIADO = "2026-10-04T15:32:00.000Z";
+  const AHORA = new Date("2026-10-04T15:40:00.000Z");
+  const enDuda = (parcial: Partial<MarcaEnDuda> = {}): MarcaEnDuda => ({ varianteId: PRENDA, token: TOKEN, enviadoEn: ENVIADO, nota: null, ...parcial });
+  const CORTE = { message: "Failed to fetch" };
+
+  it("EL CASO: corte → cerrar → recargar → volver a abrir la misma prenda reusa SU marca y SU nota; solo «ya registrada» la suelta", () => {
+    let marcas: MarcasEnDuda = {};
+    // 1. Se abre la ventana: no hay nada en duda, se estrena la marca.
+    expect(marcaParaAbrir(marcas, PRENDA, () => TOKEN)).toEqual({ token: TOKEN, enviadoEn: null, nota: null });
+    // 2. Se anota ANTES de llamar a la base, y la llamada se corta: queda en duda.
+    marcas = anotarMarca(marcas, enDuda({ nota: "Venía en un fardo" }));
+    expect(destinoDeLaMarca(CORTE, false)).toBe("en_duda");
+    // 3. Se cierra la ventana y se recarga la página: lo guardado en el aparato vuelve.
+    const trasRecargar = leerMarcas(serializarMarcas(marcas), AHORA);
+    // 4. Se vuelve a abrir la MISMA prenda: la misma marca y la misma nota, y abre congelada (con su hora).
+    expect(marcaParaAbrir(trasRecargar, PRENDA, () => TOKEN_2)).toEqual({ token: TOKEN, enviadoEn: ENVIADO, nota: "Venía en un fardo" });
+    // 5. La base responde «ya registrada» (la primera sí se guardó): se suelta, y la próxima corrección estrena marca.
+    expect(destinoDeLaMarca(null, true)).toBe("suelta");
+    const sinDuda = soltarMarca(trasRecargar, PRENDA);
+    expect(marcaParaAbrir(sinDuda, PRENDA, () => TOKEN_2)).toEqual({ token: TOKEN_2, enviadoEn: null, nota: null });
+  });
+
+  it("la duda es de UNA prenda: otra prenda estrena su propia marca", () => {
+    const marcas = anotarMarca({}, enDuda());
+    expect(marcaParaAbrir(marcas, OTRA_PRENDA, () => TOKEN_2).token).toBe(TOKEN_2);
+    expect(soltarMarca(marcas, OTRA_PRENDA)).toBe(marcas);
+  });
+
+  it("destinoDeLaMarca: qué respuesta suelta la marca y cuál la deja en duda", () => {
+    // Guardó, o la base rechazó después de mirar la marca (se deshizo entero): se suelta.
+    expect(destinoDeLaMarca(null, false)).toBe("suelta");
+    expect(destinoDeLaMarca({ code: "P0001", hint: "en_mano_tope_del_dia", message: "x" }, true)).toBe("suelta");
+    expect(destinoDeLaMarca({ code: "40P01", message: "deadlock detected" }, true)).toBe("suelta");
+    // Un corte, en el primer envío o en un reenvío: en duda.
+    expect(destinoDeLaMarca(CORTE, false)).toBe("en_duda");
+    expect(destinoDeLaMarca({ message: "Gateway Timeout" }, true)).toBe("en_duda");
+    // Un REENVÍO que la base contestó sin mirar la marca (sesión vencida, módulo apagado): la duda sigue.
+    expect(destinoDeLaMarca({ code: "P0001", hint: "en_mano_sin_modulo", message: "x" }, true)).toBe("en_duda");
+    // El PRIMER envío rechazado antes de mirar la marca: nunca viajó a nada que se guardara, no hay nada que comprobar.
+    expect(destinoDeLaMarca({ code: "P0001", hint: "en_mano_sin_modulo", message: "x" }, false)).toBe("suelta");
+  });
+
+  it("leerMarcas descarta lo roto, lo de otra versión, lo que no es uuid y lo que pasó de 12 h; nunca lanza", () => {
+    expect(leerMarcas(null, AHORA)).toEqual({});
+    expect(leerMarcas("{no es json", AHORA)).toEqual({});
+    expect(leerMarcas(JSON.stringify({ v: 99, marcas: [enDuda()] }), AHORA)).toEqual({});
+    expect(leerMarcas(JSON.stringify({ v: 1, marcas: "x" }), AHORA)).toEqual({});
+    expect(leerMarcas(JSON.stringify({ v: 1, marcas: [enDuda({ token: "no-es-uuid" }), null, 3] }), AHORA)).toEqual({});
+    const vieja = new Date(AHORA.getTime() - (HORAS_DE_VIDA_DE_LA_MARCA * 3_600_000 + 1)).toISOString();
+    expect(leerMarcas(JSON.stringify({ v: 1, marcas: [enDuda({ enviadoEn: vieja })] }), AHORA)).toEqual({});
+    expect(leerMarcas(JSON.stringify({ v: 1, marcas: [enDuda({ enviadoEn: "ayer" })] }), AHORA)).toEqual({});
+    // Lo bueno pasa, con la nota limpia.
+    expect(leerMarcas(JSON.stringify({ v: 1, marcas: [enDuda({ nota: "  Venía  en un fardo " })] }), AHORA)).toEqual({
+      [PRENDA]: enDuda({ nota: "Venía en un fardo" }),
+    });
+  });
+
+  it("la clave es por tienda (como el borrador de la bajada)", () => {
+    expect(claveDeMarcasEnMano(id(50))).toBe(`cayla:bajada:${id(50)}:en-mano`);
+    expect(claveDeMarcasEnMano(id(50))).not.toBe(claveDeMarcasEnMano(id(51)));
+  });
+
+  it("con una corrección en duda, la tarjeta ofrece COMPROBAR antes que corregir o preguntar", () => {
+    expect(ofertaEnMano({ piso: 0, danado: 0 }, 0, enDuda())).toEqual({ tipo: "comprobar", enviadoEn: ENVIADO, danadas: 0 });
+    expect(ofertaEnMano({ piso: 3, danado: 1 }, 0, enDuda())).toEqual({ tipo: "comprobar", enviadoEn: ENVIADO, danadas: 1 });
+    expect(ofertaEnMano({ piso: 0, danado: 0 }, 0, null)).toEqual({ tipo: "corregir", danadas: 0 });
+  });
+
+  it("los textos de la duda dicen la hora (Lima) y que reenviar no repite", () => {
+    expect(textoDeOferta({ tipo: "comprobar", enviadoEn: ENVIADO, danadas: 0 }, BLUSA, SEDE)).toBe(
+      "Blusa lino · M · Blanco: la corrección que enviaste a las 10:32 no tuvo respuesta. Compruébala antes de corregir otra: si ya se había guardado, no se repite."
+    );
+    expect(textoMarcaEnDuda(ENVIADO)).toBe(`Enviaste esta corrección a las 10:32 y no llegó la respuesta. Pulsa «${BOTON_EN_MANO_DE_NUEVO}»: si ya se había guardado, no se repite.`);
+    expect(textoDeMarcaEnLista(enDuda())).toBe("enviada a las 10:32, sin respuesta");
+    expect(interpretarErrorEnMano(CORTE, SEDE).mensaje).toMatch(/Si cierras, queda anotada/);
   });
 });

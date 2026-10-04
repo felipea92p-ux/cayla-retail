@@ -37,6 +37,8 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // ---------------------------------------------------------------------------------------------------------------
 
 /**
+ * - `comprobar`: una corrección de ESTA prenda se envió y no se supo si se guardó (`MarcaEnDuda`). Antes de cualquier otra
+ *   cosa se reenvía con su misma marca: si ya se había guardado, la base responde «ya registrada» y no corrige dos veces.
  * - `corregir`: el sistema no cuenta esta prenda en el almacén ni en el piso (o las del piso son las que ella misma acaba de
  *   colgar aquí): la que tiene en la mano prueba que existe una más. Se ofrece corregir y colgar.
  * - `preguntar`: el sistema YA cuenta `enPiso` colgadas de esta prenda. La que tiene puede ser una de esas (la carga inicial
@@ -44,15 +46,20 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *   unidad, corregir y colgar. Solo ella sabe qué unidad tiene en la mano: la base no lo decide (20261004223100).
  * `danadas`: las de esta prenda en cuarentena; si hay, se le advierte que la suya puede ser la dañada.
  */
-export type OfertaEnMano = { tipo: "corregir"; danadas: number } | { tipo: "preguntar"; enPiso: number; danadas: number };
+export type OfertaEnMano =
+  | { tipo: "comprobar"; enviadoEn: string; danadas: number }
+  | { tipo: "corregir"; danadas: number }
+  | { tipo: "preguntar"; enPiso: number; danadas: number };
 
 /**
  * `colgadasAqui`: las que ella corrigió y colgó en esta pantalla desde que la abrió. El piso que cuenta el sistema las incluye
  * (o las incluirá cuando la pantalla se relea): si no se descontaran, la segunda blusa igual del mismo fardo le preguntaría
- * «¿ya estaba colgada?» por la que ella misma colgó hace un minuto.
+ * «¿ya estaba colgada?» por la que ella misma colgó hace un minuto. `enDuda`: la corrección de esta prenda que quedó sin
+ * respuesta, si hay; manda sobre todo lo demás.
  */
-export function ofertaEnMano(prenda: Pick<PrendaBajable, "piso" | "danado">, colgadasAqui: number): OfertaEnMano {
+export function ofertaEnMano(prenda: Pick<PrendaBajable, "piso" | "danado">, colgadasAqui: number, enDuda: MarcaEnDuda | null = null): OfertaEnMano {
   const danadas = Math.max(0, prenda.danado ?? 0);
+  if (enDuda) return { tipo: "comprobar", enviadoEn: enDuda.enviadoEn, danadas };
   const enPiso = Math.max(0, prenda.piso - Math.max(0, colgadasAqui));
   return enPiso > 0 ? { tipo: "preguntar", enPiso, danadas } : { tipo: "corregir", danadas };
 }
@@ -65,6 +72,9 @@ function plural(n: number, singular: string, varias: string): string {
 export function textoDeOferta(o: OfertaEnMano, prenda: Pick<PrendaBajable, "referencia" | "talla" | "color">, sede: string): string {
   const nombre = nombreDePrenda(prenda);
   const danadas = o.danadas > 0 ? ` Ojo: hay ${plural(o.danadas, "dañada", "dañadas")} en cuarentena; si la tuya es esa, no la cuelgues.` : "";
+  if (o.tipo === "comprobar") {
+    return `${nombre}: la corrección que enviaste a las ${diaYHoraLima(o.enviadoEn).hora} no tuvo respuesta. Compruébala antes de corregir otra: si ya se había guardado, no se repite.`;
+  }
   if (o.tipo === "preguntar") {
     return `${nombre}: el almacén de ${sede} está en 0 y el sistema ya cuenta ${plural(o.enPiso, "colgada", "colgadas")}. ¿La que tienes es una de esas?${danadas}`;
   }
@@ -143,7 +153,7 @@ export function leerRespuestaEnMano(data: unknown): RespuestaEnMano | null {
 
 // Aquí no va el «no se guardó nada» genérico: sería falso si la respuesta se perdió DESPUÉS de guardar. La misma marca hace
 // seguro volver a enviar (la base responde «ya registrada»); por eso la ventana se congela hasta saberlo.
-const TEXTO_RED_CAIDA = `Se cortó la conexión y no sabemos si se guardó. Pulsa «${BOTON_EN_MANO_DE_NUEVO}»: si ya se había guardado, no se repite.`;
+const TEXTO_RED_CAIDA = `Se cortó la conexión y no sabemos si se guardó. Pulsa «${BOTON_EN_MANO_DE_NUEVO}»: si ya se había guardado, no se repite. Si cierras, queda anotada y se comprueba al volver a abrirla.`;
 
 // Los rechazos que la base levanta DESPUÉS de mirar la marca (20261004223100: marca → responsable → candado → reglas):
 // prueban que esa marca no guardó nada (o dicen que es de otra cosa).
@@ -180,6 +190,113 @@ export function respuestaResuelveLaMarcaEnMano(error: ErrorEscritura): boolean {
   if (esRespuestaIncierta(error)) return false;
   if (error.code === "40P01") return true;
   return !!error.hint && HINTS_DESPUES_DE_LA_MARCA.has(error.hint);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// La marca de cada prenda: sobrevive a cerrar la ventana y a recargar la página
+// ---------------------------------------------------------------------------------------------------------------
+
+/*
+ * POR QUÉ VIVE FUERA DE LA VENTANA. Tras un corte, la ventana se congela («Enviar de nuevo»), pero se puede cerrar, y la página
+ * se puede recargar. Si la siguiente ventana de ESA prenda estrenara otra marca y la primera sí se había guardado, la base
+ * corregiría dos veces con una sola prenda en la mano (+1 de más). Por eso la marca de una corrección sin respuesta queda en la
+ * pantalla y en el aparato (localStorage, por tienda, como el borrador de la bajada), no en la ventana.
+ *
+ * CONTRATO
+ *   PROMETE: mientras una corrección de una prenda esté en duda, toda ventana de esa prenda reenvía con SU marca y SU nota; la
+ *            marca se suelta solo cuando la base dijo qué pasó con ella (`destinoDeLaMarca`). Una marca nueva solo nace
+ *            cuando no hay ninguna en duda para esa prenda.
+ *   ASUME:   una ventana a la vez; si el aparato no guarda (modo privado), la duda vive mientras la pantalla siga abierta.
+ *   NO HACE: no decide si se guardó: eso solo lo sabe la base, al recibir la misma marca otra vez.
+ */
+
+/** Una corrección enviada sin respuesta: la marca con la que viajó, cuándo y con qué nota (el reenvío es idéntico). */
+export type MarcaEnDuda = { varianteId: string; token: string; enviadoEn: string; nota: string | null };
+/** Las marcas en duda de una tienda, por prenda. */
+export type MarcasEnDuda = Readonly<Record<string, MarcaEnDuda>>;
+/** Con qué abre la ventana: una marca estrenada (`enviadoEn` null) o la que quedó en duda (la ventana abre congelada). */
+export type MarcaParaAbrir = { token: string; enviadoEn: string | null; nota: string | null };
+
+export const VERSION_MARCAS_EN_MANO = 1;
+/** Lo mismo que vive el borrador de la bajada: una duda de ayer ya no es de esta jornada. */
+export const HORAS_DE_VIDA_DE_LA_MARCA = 12;
+const MS_HORA = 3_600_000;
+
+export function claveDeMarcasEnMano(ubicacionId: string): string {
+  return `cayla:bajada:${ubicacionId}:en-mano`;
+}
+
+/** La marca de la ventana que se abre para esta prenda: la que quedó en duda, si hay; si no, una nueva (`nuevaMarca`). */
+export function marcaParaAbrir(marcas: MarcasEnDuda, varianteId: string, nuevaMarca: () => string): MarcaParaAbrir {
+  const enDuda = marcas[varianteId];
+  return enDuda ? { token: enDuda.token, enviadoEn: enDuda.enviadoEn, nota: enDuda.nota } : { token: nuevaMarca(), enviadoEn: null, nota: null };
+}
+
+/** Se anota ANTES de llamar a la base: si la luz se corta durante la llamada, al volver la duda sigue ahí. */
+export function anotarMarca(marcas: MarcasEnDuda, m: MarcaEnDuda): MarcasEnDuda {
+  return { ...marcas, [m.varianteId]: m };
+}
+
+export function soltarMarca(marcas: MarcasEnDuda, varianteId: string): MarcasEnDuda {
+  if (!(varianteId in marcas)) return marcas;
+  const resto = { ...marcas };
+  delete resto[varianteId];
+  return resto;
+}
+
+/**
+ * Tras la respuesta, ¿la marca queda en duda o se suelta?
+ * - `en_duda`: un corte (no se sabe si se guardó), o un REENVÍO que la base contestó sin mirar la marca (sesión vencida,
+ *   módulo apagado): la duda sigue igual.
+ * - `suelta`: la base guardó, dijo «ya registrada», o rechazó después de mirar la marca (se deshizo entero). Y un PRIMER envío
+ *   rechazado antes de mirarla: esa marca nunca viajó a una transacción que se confirmara, no hay nada que comprobar.
+ */
+export function destinoDeLaMarca(error: ErrorEscritura, eraReenvio: boolean): "en_duda" | "suelta" {
+  if (!error) return "suelta";
+  if (esRespuestaIncierta(error)) return "en_duda";
+  return eraReenvio && !respuestaResuelveLaMarcaEnMano(error) ? "en_duda" : "suelta";
+}
+
+export function serializarMarcas(marcas: MarcasEnDuda): string {
+  return JSON.stringify({
+    v: VERSION_MARCAS_EN_MANO,
+    marcas: Object.values(marcas).map((m) => ({ varianteId: m.varianteId, token: m.token, enviadoEn: m.enviadoEn, nota: m.nota })),
+  });
+}
+
+/** Lo guardado en el aparato; descarta lo ilegible, lo de otra versión y lo que pasó de 12 h. Nunca lanza. */
+export function leerMarcas(texto: string | null, ahora: Date): MarcasEnDuda {
+  if (!texto) return {};
+  let crudo: unknown;
+  try {
+    crudo = JSON.parse(texto);
+  } catch {
+    return {};
+  }
+  if (typeof crudo !== "object" || crudo === null || (crudo as { v?: unknown }).v !== VERSION_MARCAS_EN_MANO) return {};
+  const lista = (crudo as { marcas?: unknown }).marcas;
+  if (!Array.isArray(lista)) return {};
+  let marcas: MarcasEnDuda = {};
+  for (const x of lista as unknown[]) {
+    if (typeof x !== "object" || x === null) continue;
+    const { varianteId, token, enviadoEn, nota } = x as Record<string, unknown>;
+    if (typeof varianteId !== "string" || !ES_UUID.test(varianteId) || typeof token !== "string" || !ES_UUID.test(token)) continue;
+    if (typeof enviadoEn !== "string") continue;
+    const enviado = Date.parse(enviadoEn);
+    if (Number.isNaN(enviado) || ahora.getTime() - enviado > HORAS_DE_VIDA_DE_LA_MARCA * MS_HORA) continue;
+    marcas = anotarMarca(marcas, { varianteId, token, enviadoEn, nota: typeof nota === "string" ? notaLimpia(nota) : null });
+  }
+  return marcas;
+}
+
+/** La línea «En duda» de «Corregidas y colgadas aquí». */
+export function textoDeMarcaEnLista(m: Pick<MarcaEnDuda, "enviadoEn">): string {
+  return `enviada a las ${diaYHoraLima(m.enviadoEn).hora}, sin respuesta`;
+}
+
+/** Lo que dice la ventana al abrirse congelada (la corrección de esta prenda quedó en duda). */
+export function textoMarcaEnDuda(enviadoEn: string): string {
+  return `Enviaste esta corrección a las ${diaYHoraLima(enviadoEn).hora} y no llegó la respuesta. Pulsa «${BOTON_EN_MANO_DE_NUEVO}»: si ya se había guardado, no se repite.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

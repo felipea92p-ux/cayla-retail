@@ -66,14 +66,24 @@ import {
   type RespuestaBajada,
 } from "@/lib/bajada-reglas";
 import {
+  anotarMarca,
+  claveDeMarcasEnMano,
   colgadasAquiDe,
   hechaEnMano,
+  leerMarcas,
+  marcaParaAbrir,
   ofertaEnMano,
+  serializarMarcas,
+  soltarMarca,
   sumarHecha,
   textoDeHecha,
+  textoDeMarcaEnLista,
   textoDeOferta,
   textoYaEstabaColgada,
   type HechaEnMano,
+  type MarcaEnDuda,
+  type MarcaParaAbrir,
+  type MarcasEnDuda,
   type RespuestaEnMano,
 } from "@/lib/bajada-en-mano";
 
@@ -190,8 +200,13 @@ export function BajarAlPisoForm({
   // «La tengo en la mano»: la prenda que el sistema tiene en 0 en el almacén (la tarjeta bajo el campo), la ventana abierta, lo que
   // ya se corrigió y colgó aquí, y la búsqueda por nombre cuando la etiqueta no se lee.
   const [enMano, setEnMano] = useState<PrendaBajable | null>(null);
-  const [ventanaEnMano, setVentanaEnMano] = useState<{ prenda: PrendaBajable; yaCuentaEnPiso: number } | null>(null);
+  const [ventanaEnMano, setVentanaEnMano] = useState<{ prenda: PrendaBajable; yaCuentaEnPiso: number; marca: MarcaParaAbrir } | null>(null);
   const [hechas, setHechas] = useState<HechaEnMano[]>([]);
+  // Las correcciones enviadas sin respuesta, por prenda, con su marca (también en el aparato: sobreviven a cerrar la ventana y
+  // a recargar). Mientras una exista, la ventana de esa prenda reenvía con ESA marca: nunca corrige dos veces la misma prenda.
+  const claveMarcas = claveDeMarcasEnMano(ubicacionId);
+  const marcasRef = useRef<MarcasEnDuda>({});
+  const [marcas, setMarcas] = useState<MarcasEnDuda>({});
   const [sugerencias, setSugerencias] = useState<PrendaBajable[]>([]);
   const busquedaPendiente = useRef<number | null>(null);
   // La cámara en ráfaga (la de Conteo): la última prenda leída para su bandeja, y lo que la bandeja tiene que decir.
@@ -207,6 +222,19 @@ export function BajarAlPisoForm({
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p] as const)), [prendas]);
   const prendasConTope = useMemo(() => prendas.map((p) => conTopeDeLaBase(p, problemas[p.varianteId])), [prendas, problemas]);
   const porIdConTope = useMemo(() => new Map(prendasConTope.map((p) => [p.varianteId, p] as const)), [prendasConTope]);
+  // La marca de la prenda cuya ventana está abierta se anota en cada envío: detrás de la ventana no se pinta como «en duda»
+  // (aparecería y desaparecería en cada guardado); si la ventana se cierra sin respuesta, ahí sí aparece.
+  const marcasVisibles = ventanaEnMano ? soltarMarca(marcas, ventanaEnMano.prenda.varianteId) : marcas;
+  // La tarjeta «La tengo en la mano», con los topes y el piso de AHORA (tras una corrección la pantalla se relee).
+  const prendaEnMano = enMano ? (porIdConTope.get(enMano.varianteId) ?? enMano) : null;
+  const ofertaVisible = prendaEnMano
+    ? ofertaEnMano(prendaEnMano, colgadasAquiDe(hechas, prendaEnMano.varianteId), marcasVisibles[prendaEnMano.varianteId] ?? null)
+    : null;
+  // Las dudas de prendas que la tienda conoce (una prenda archivada la rechaza la base antes de mirar la marca: no se ofrece).
+  const marcasALaVista = Object.values(marcasVisibles).flatMap((marca) => {
+    const prenda = porIdConTope.get(marca.varianteId);
+    return prenda ? [{ marca, prenda }] : [];
+  });
   const resumen = resumenDeBajada(lineas, prendas);
   // Lo marcado en Existencias llega «por escanear» (en 0): no se baja hasta leerlo al colgarlo (ADR-0237, act. 2026-09-26).
   const hayEscaneadas = resumen.prendas > 0;
@@ -224,6 +252,10 @@ export function BajarAlPisoForm({
   const restaurarBorrador = useEffectEvent(() => {
     if (borradorLeido.current) return;
     borradorLeido.current = true;
+    // Las correcciones «en la mano» que quedaron en duda (un corte, una recarga): vuelven a la vista para comprobarlas.
+    const enDuda = leerMarcas(leerTexto(claveMarcas), new Date());
+    marcasRef.current = enDuda;
+    setMarcas(enDuda);
     const b = leerBorrador(leerTexto(clave), new Date(), prendas);
     if (!b) {
       // Solo se carga: el borrador se escribe con el primer cambio (escanear, fijar o quitar). Si se va sin tocarla, la
@@ -443,9 +475,25 @@ export function BajarAlPisoForm({
     volverAlEscaner();
   }
 
+  // La marca se escribe en el aparato en el mismo instante (no en un efecto): la ventana la anota justo antes de llamar a la
+  // base, y un corte de luz en esa llamada no puede encontrarla sin guardar.
+  function cambiarMarcas(siguientes: MarcasEnDuda) {
+    marcasRef.current = siguientes;
+    setMarcas(siguientes);
+    if (Object.keys(siguientes).length === 0) borrarTexto(claveMarcas);
+    else guardarTexto(claveMarcas, serializarMarcas(siguientes));
+  }
+
+  // Toda ventana «en la mano» se abre por aquí: si esa prenda tiene una corrección en duda, reusa SU marca (la ventana abre
+  // congelada, para comprobarla); si no, estrena una.
   function abrirEnMano(prenda: PrendaBajable, yaCuentaEnPiso: number) {
     setCamara(false);
-    setVentanaEnMano({ prenda, yaCuentaEnPiso });
+    const marca = marcaParaAbrir(marcasRef.current, prenda.varianteId, () => crypto.randomUUID());
+    setVentanaEnMano({ prenda, yaCuentaEnPiso: marca.enviadoEn ? 0 : yaCuentaEnPiso, marca });
+  }
+
+  function alCambiarMarca(varianteId: string, m: MarcaEnDuda | null) {
+    cambiarMarcas(m ? anotarMarca(marcasRef.current, m) : soltarMarca(marcasRef.current, varianteId));
   }
 
   // La base corrigió (o no hizo falta) y la colgó: queda en la lista de lo hecho aquí, la tarjeta se va y la pantalla se relee
@@ -484,7 +532,18 @@ export function BajarAlPisoForm({
       return leida;
     }
     if (lectura.tipo === "sin_almacen") {
-      const o = ofertaEnMano(p, colgadasAquiDe(hechas, p.varianteId));
+      const o = ofertaEnMano(p, colgadasAquiDe(hechas, p.varianteId), marcasRef.current[p.varianteId] ?? null);
+      if (o.tipo === "comprobar") {
+        setAvisoCamara(
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span className="min-w-0 flex-1 basis-40 text-sm text-tinta">La corrección de esta prenda quedó sin respuesta: compruébala antes de corregir otra.</span>
+            <button type="button" onClick={() => abrirEnMano(p, 0)} className="btn-cayla btn-primario btn-chico shrink-0">
+              Comprobar
+            </button>
+          </div>
+        );
+        return { ...leida, atencion: true };
+      }
       setAvisoCamara(
         <div className="flex w-full flex-wrap items-center gap-2">
           <span className="min-w-0 flex-1 basis-40 text-sm text-tinta">
@@ -822,46 +881,44 @@ export function BajarAlPisoForm({
             </ul>
           </div>
         )}
-        {enMano &&
-          (() => {
-            // La prenda con los topes y el piso de AHORA (tras una corrección la pantalla se relee).
-            const p = porIdConTope.get(enMano.varianteId) ?? enMano;
-            const oferta = ofertaEnMano(p, colgadasAquiDe(hechas, p.varianteId));
-            return (
-              <div role="alert" className="anim-revelar mt-3 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3 py-3 text-sm text-ambar-profundo">
-                <p className="flex items-start gap-2">
-                  <Hand aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{textoDeOferta(oferta, p, sede)}</span>
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {oferta.tipo === "preguntar" ? (
-                    <>
-                      <button type="button" className="btn-cayla btn-primario h-11" onClick={() => yaEstabaColgada(p)}>
-                        Ya estaba colgada
-                      </button>
-                      <button type="button" className="btn-cayla btn-secundario h-11" onClick={() => abrirEnMano(p, oferta.enPiso)}>
-                        Es otra: corregir y colgar
-                      </button>
-                    </>
-                  ) : (
-                    <button type="button" className="btn-cayla btn-primario h-11" onClick={() => abrirEnMano(p, 0)}>
-                      La tengo en la mano: corregir y colgar
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-cayla btn-sutil h-11"
-                    onClick={() => {
-                      setEnMano(null);
-                      volverAlEscaner();
-                    }}
-                  >
-                    Ahora no
+        {prendaEnMano && ofertaVisible && (
+          <div role="alert" className="anim-revelar mt-3 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3 py-3 text-sm text-ambar-profundo">
+            <p className="flex items-start gap-2">
+              <Hand aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{textoDeOferta(ofertaVisible, prendaEnMano, sede)}</span>
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {ofertaVisible.tipo === "comprobar" ? (
+                <button type="button" className="btn-cayla btn-primario h-11" onClick={() => abrirEnMano(prendaEnMano, 0)}>
+                  Comprobar
+                </button>
+              ) : ofertaVisible.tipo === "preguntar" ? (
+                <>
+                  <button type="button" className="btn-cayla btn-primario h-11" onClick={() => yaEstabaColgada(prendaEnMano)}>
+                    Ya estaba colgada
                   </button>
-                </div>
-              </div>
-            );
-          })()}
+                  <button type="button" className="btn-cayla btn-secundario h-11" onClick={() => abrirEnMano(prendaEnMano, ofertaVisible.enPiso)}>
+                    Es otra: corregir y colgar
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn-cayla btn-primario h-11" onClick={() => abrirEnMano(prendaEnMano, 0)}>
+                  La tengo en la mano: corregir y colgar
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-cayla btn-sutil h-11"
+                onClick={() => {
+                  setEnMano(null);
+                  volverAlEscaner();
+                }}
+              >
+                Ahora no
+              </button>
+            </div>
+          </div>
+        )}
         {aviso && !enMano && (
           <p role="alert" className="anim-revelar mt-3 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.07] px-3 py-2.5 text-sm text-ambar-profundo">
             <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
@@ -873,10 +930,25 @@ export function BajarAlPisoForm({
         </p>
       </section>
 
-      {hechas.length > 0 && (
+      {(hechas.length > 0 || marcasALaVista.length > 0) && (
         <section className="card-cayla anim-revelar p-4 sm:px-5">
           <p className="label-cayla text-[11px] text-taupe">Corregidas y colgadas aquí</p>
           <ul className="mt-2 space-y-1.5">
+            {/* Lo que quedó en duda va primero: es lo único de esta lista que pide hacer algo. */}
+            {marcasALaVista.map(({ marca, prenda }) => (
+              <li key={`duda-${marca.varianteId}`} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-sm">
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="text-tinta">{nombreDePrenda(prenda)}</span>
+                  <Chip tono="ambar">En duda</Chip>
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="text-xs tabular-nums text-taupe">{textoDeMarcaEnLista(marca)}</span>
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrirEnMano(prenda, 0)}>
+                    Comprobar
+                  </button>
+                </span>
+              </li>
+            ))}
             {hechas.map((h) => (
               <li key={h.bajadaId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm">
                 <span className="text-tinta">{h.nombre}</span>
@@ -884,7 +956,12 @@ export function BajarAlPisoForm({
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-taupe">Ya quedaron registradas, con tu nombre, en Movimientos: no hace falta confirmarlas abajo.</p>
+          {hechas.length > 0 && (
+            <p className="mt-2 text-xs text-taupe">Ya quedaron registradas, con tu nombre, en Movimientos: no hace falta confirmarlas abajo.</p>
+          )}
+          {marcasALaVista.length > 0 && (
+            <p className="mt-2 text-xs text-taupe">«En duda»: se cortó la conexión y no sabemos si se guardó. «Comprobar» la reenvía: si ya se había guardado, no se repite.</p>
+          )}
         </section>
       )}
 
@@ -1070,6 +1147,8 @@ export function BajarAlPisoForm({
           ubicacionId={ubicacionId}
           sede={sede}
           responsable={responsable}
+          marca={ventanaEnMano.marca}
+          onMarca={(m) => alCambiarMarca(ventanaEnMano.prenda.varianteId, m)}
           yaCuentaEnPiso={ventanaEnMano.yaCuentaEnPiso}
           alCerrarEnfocar={escaner}
           onListo={(r) => trasColgarEnMano(ventanaEnMano.prenda, r)}
