@@ -32,13 +32,16 @@ export type FilaPrenda = Pick<
   | "marca"
 >;
 
-/** Cómo se pinta una talla en la curva. Sale de las mismas reglas de la tabla: «Por colgar» (`porColgar`) y «Acción hoy». */
+/** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
+ *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma
+ *  tarjeta. Lo único que agrega es «sin_stock»: no hay nada libre en la sede (ni colgado ni guardado). */
 export type EstadoTalla = "por_colgar" | "reponer" | "sin_stock" | "normal";
 
 export function estadoTalla(f: FilaPrenda): EstadoTalla {
   if (f.disponible <= 0) return "sin_stock";
-  if (porColgar(f)) return "por_colgar";
-  if (f.accionHoy?.tipo === "reponer_a_piso") return "reponer";
+  const hoy = hoyDeTalla(f);
+  if (hoy === "por_colgar") return "por_colgar";
+  if (hoy === "por_reponer" || hoy === "sin_stock_atras") return "reponer";
   return "normal";
 }
 

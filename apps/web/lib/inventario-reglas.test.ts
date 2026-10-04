@@ -97,11 +97,13 @@ describe("porColgar", () => {
     expect(porColgar(cantidadesDe(fila("v1", "piso_venta", 0), fila("v1", "almacen_tienda", 0)))).toBe(false);
   });
 
-  it("con algo colgado: no es «Por colgar» — aunque sea una sola y el almacén esté lleno, eso ya es «Reponer a piso» (regla física, piso ≤ 4)", () => {
+  // El mínimo es 1 colgada por talla y color (Felipe, 2026-10-04): una sola colgada ya cumple, aunque el almacén esté lleno.
+  // Hasta ese día la regla física era «piso ≤ 4» y esta talla pedía «Reponer a piso».
+  it("con algo colgado: no es «Por colgar» ni pide reponer — una sola colgada cumple el mínimo, aunque el almacén esté lleno", () => {
     const c = cantidadesDe(fila("v1", "piso_venta", 1), fila("v1", "almacen_tienda", 20));
     expect(porColgar(c)).toBe(false);
     const accion = calcularAccionHoy({ varianteId: "v1", pisoDisponible: c.pisoDisponible, almacenDisponible: c.almacenDisponible, enTransito: 0 }, POLITICA_REF);
-    expect(accion.tipo).toBe("reponer_a_piso");
+    expect(accion.tipo).toBe("sin_accion");
   });
 
   it("piso > 0 nunca es «Por colgar», sea cual sea la cantidad — la pregunta es «¿hay algo?», no «¿cuánto?»", () => {

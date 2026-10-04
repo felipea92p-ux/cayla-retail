@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Package, ScanLine, Table2, Tag, Truck, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -22,11 +22,12 @@ import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-pe
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
-import { TarjetaReponerAPiso } from "@/components/TarjetaReponerAPiso";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
+import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
+import { tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
@@ -52,7 +53,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 const TODAS = "__todas__";
 
 /** El punto de la leyenda de la tabla, en el tono de cada caso de «Hoy». */
-const PUNTO_HOY = { rojo: "bg-rojo", ambar: "bg-ambar", verde: "bg-verde" } as const;
+const PUNTO_HOY = { ambar: "bg-ambar", verde: "bg-verde", pizarra: "bg-pizarra" } as const;
 
 /** El caso de «Hoy» de UNA talla (columna de la tabla «Por talla»): las mismas palabras y el mismo tono que el filtro, la tarjeta y
  *  el cajón. «Por colgar» dice cuántas se pueden bajar; «Sin stock atrás», si viene algo en camino. */
@@ -97,9 +98,6 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
   return filtradas === total ? `${rango} ${total} ${prendas}` : `${rango} ${filtradas} (de ${total} ${prendas})`;
 }
 
-function fechaHora(iso: string) {
-  return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
-}
 
 /** La celda de «Cobertura piso» (2026-09-25, sobre el Ritmo reciente — ledger único): cuánto dura el
  *  piso de hoy al ritmo reciente. Nunca NaN, nunca infinito: lo que no se puede estimar dice «No
@@ -120,7 +118,7 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
     );
   }
   const pideReponer = f.accionHoy?.tipo === "reponer_a_piso";
-  const etiqueta = c.tipo === "agotado" ? "bg-rojo/10 text-rojo-profundo" : c.tipo === "medida" && pideReponer ? "bg-ambar/15 text-ambar-profundo" : null;
+  const etiqueta = c.tipo === "agotado" ? "bg-ambar/15 text-ambar-profundo" : c.tipo === "medida" && pideReponer ? "bg-ambar/15 text-ambar-profundo" : null;
   const piso = f.piso ?? 0;
   const almacen = f.almacen ?? 0;
   const totalSede = piso + almacen;
@@ -144,69 +142,6 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
       {textoCoberturaPiso(c)}
     </span>
   );
-}
-
-/** Una de las 4 tarjetas de «Prioridades de hoy» (diseño aprobado, 2026-09-28). La etiqueta y el ícono en taupe; la cifra y su
- *  unidad en serif. `urgente` es el acento de la que más pide algo: la cifra en rojo profundo, el borde cálido y un fondo rosa
- *  suave. En escritorio las cuatro se reparten el ancho según lo que dicen (`xl:flex-auto`), no en columnas iguales; en
- *  el celular, de a dos y más compactas. Una flecha si es la que abre algo (clic o enlace). */
-function TarjetaPrioridad({
-  icono: Icono,
-  etiqueta,
-  valor,
-  unidad,
-  urgente = false,
-  activa = false,
-  href,
-  onClick,
-  children,
-}: {
-  icono: React.ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
-  etiqueta: string;
-  valor: number;
-  unidad: string;
-  urgente?: boolean;
-  activa?: boolean;
-  href?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}) {
-  const clickeable = Boolean(href || onClick);
-  // El fondo rosa es OPACO (rojo al 5 % sobre el papel): un `bg-rojo/…` translúcido reemplaza al papel y deja pasar el crema de atrás.
-  const clase = `card-cayla group relative flex min-w-0 flex-col items-stretch justify-start p-3.5 text-left transition-colors sm:px-6 sm:pb-[13px] sm:pt-4 xl:flex-auto ${
-    urgente ? "border-[color-mix(in_oklab,var(--color-rojo)_18%,var(--color-crema))] bg-[color-mix(in_oklab,var(--color-rojo)_3.5%,var(--color-papel))]" : ""
-  } ${clickeable ? (urgente ? "hover:bg-[color-mix(in_oklab,var(--color-rojo)_8%,var(--color-papel))]" : "hover:bg-sand/30") : ""} ${activa ? "bg-sand/40" : ""}`;
-  const contenido = (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <p className={`label-cayla flex items-center gap-3 text-[11px] font-bold ${urgente ? "text-rojo-profundo" : "text-taupe"}`}>
-          <Icono aria-hidden className={`h-[22px] w-[22px] ${urgente ? "text-rojo-profundo" : "text-taupe/80"}`} strokeWidth={1.4} />
-          {etiqueta}
-        </p>
-        {clickeable && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe/60 transition-transform group-hover:translate-x-0.5" />}
-      </div>
-      <p className="mt-2 flex items-baseline gap-2">
-        <span className={`font-display text-[26px] leading-none tabular-nums sm:text-[34px] ${urgente ? "text-rojo-profundo" : "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
-        <span className={`text-base font-medium sm:text-[18px] ${urgente ? "text-rojo-profundo" : "text-taupe"}`}>{unidad}</span>
-      </p>
-      <p className="mt-1 hidden text-[13.5px] leading-5 text-taupe sm:block">{children}</p>
-    </>
-  );
-  if (href) {
-    return (
-      <Link href={href} className={clase}>
-        {contenido}
-      </Link>
-    );
-  }
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={`${clase} w-full xl:w-auto`} aria-pressed={activa}>
-        {contenido}
-      </button>
-    );
-  }
-  return <div className={clase}>{contenido}</div>;
 }
 
 // Piso de venta / almacén de tienda (Felipe, 2026-09-14): la pantalla no
@@ -240,8 +175,6 @@ export function InventarioPanel({
   sinStock,
   marcaFallo = null,
   verProductos = false,
-  deltaSede,
-  comparacionFallo = false,
   politica,
   veTraslados = false,
   puedeBajarAlPiso = false,
@@ -249,6 +182,7 @@ export function InventarioPanel({
   esTienda = false,
   panelFiltros = "abierto",
   coloresCatalogo = [],
+  sinRegistrar = null,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -286,10 +220,6 @@ export function InventarioPanel({
   marcaFallo?: string | null;
   /** ¿Su rol ve el módulo Productos (ADR-0161)? Sin él, «Ver en Productos» llevaría a «Sin acceso»: los nombres se muestran, sin enlace. */
   verProductos?: boolean;
-  /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
-  deltaSede: { hoy: number; hace7d: number; pct: number | null };
-  /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
-  comparacionFallo?: boolean;
   /** Política operativa de Inventario (`politica-operativa-inventario.ts`): una sola fuente para
    *  los umbrales que leen el popover de Ritmo reciente y el aviso de «Subir a almacén» (`SubirAAlmacenModal`). */
   politica: PoliticaOperativaInventario;
@@ -307,6 +237,8 @@ export function InventarioPanel({
   /** Los colores del catálogo con su familia, hex y tipo: la lista de Color va agrupada por familia y con su muestra, como en
    *  Productos. Vacío (la lectura falló) = lista plana. */
   coloresCatalogo?: ColorDeCatalogo[];
+  /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
+  sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
 }) {
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
@@ -561,11 +493,45 @@ export function InventarioPanel({
   // retirado — sin overlay, sin destino. La cobertura sigue disponible en Análisis; las recomendaciones, en «Acción hoy»
   // de cada fila y en la tarjeta «Reponer a piso hoy».
 
-  // «Resumen disponible»: dónde está lo LIBRE (neto de apartadas), así piso + almacén suman exactamente la cifra de la tarjeta.
-  const libres = useMemo(
-    () => ({ piso: stock.reduce((acc, f) => acc + (f.pisoDisponible ?? 0), 0), almacen: stock.reduce((acc, f) => acc + (f.almacenDisponible ?? 0), 0) }),
-    [stock]
+
+  // «Para hoy»: las tareas de la sede y su botón. «Por colgar» y «sin nada atrás» con la regla de «Hoy» (la misma del filtro y de
+  // cada prenda); los nombres con los que empezar, por urgencia. «Bajar al piso» llega con la lista cargada si cabe en la URL.
+  const filasPorColgar = useMemo(() => stock.filter((f) => hoyDeTalla(f) === "por_colgar"), [stock]);
+  const tareasHoy = useMemo(
+    () =>
+      tareasParaHoy({
+        separa,
+        porColgar: { ...cuentaPorColgar, prendas: ordenarPorUrgencia(agruparPorPrenda(filasPorColgar)).map((p) => p.referencia) },
+        // Lo que ya viene en camino no se pide de nuevo (revisión 2026-10-04: una talla nueva que LIM le envía a TRU salía a la vez en
+        // «en camino» y en «pídela a otra sede»).
+        sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
+        sinRegistrar,
+        danadas: danadosPendientes.length,
+        resuelveDanadas: esLider && enSedeActiva,
+        apartados: { vencidos: resumenApartados.vencidos },
+        enCamino,
+      }),
+    [separa, cuentaPorColgar, filasPorColgar, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
+  function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
+    aplicar({ hoy: tipo });
+    mostrarTablaFiltrada();
+  }
+  const hrefBajarPorColgar = puedeBajarAlPiso ? (urlBajarAlPiso(filasPorColgar) ?? "/inventario/bajar") : null;
+  const accionesHoy: Partial<Record<TipoTareaHoy, AccionTarea>> = {
+    por_colgar: hrefBajarPorColgar ? { texto: "Bajar al piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
+    // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas. La lista vive en
+    // Existencias (ADR-0330), bajo el mismo módulo que esta pantalla: quien ve la fila puede resolverla.
+    sin_registrar: { texto: "Regularizar", href: `/inventario/por-regularizar?ubicacion=${ubicacionId}` },
+    // Solo un líder, en su sede, decide qué se hace con una dañada (`ResolverDanadosModal`); los demás ven la lista.
+    danadas: esLider && enSedeActiva ? { texto: "Decidir", onClick: () => setViendoDanados(true) } : { texto: "Ver cuáles", onClick: () => setViendoDanados(true) },
+    apartados_vencidos: { texto: "Ver apartados", onClick: () => setViendoApartados(true) },
+    traslados_atrasados: veTraslados ? { texto: "Ver traslados", href: "/inventario/traslados" } : undefined,
+    en_camino: veTraslados ? { texto: "Ver traslados", href: "/inventario/traslados" } : undefined,
+    sin_stock_atras: { texto: "Ver cuáles", onClick: () => verHoy("sin_stock_atras") },
+  };
+  // «Ver cuáles» junto a la frase solo donde el botón hace OTRA cosa (bajar): si el botón ya es «Ver cuáles», sobraría.
+  const verCualesHoy: Partial<Record<TipoTareaHoy, () => void>> = hrefBajarPorColgar ? { por_colgar: () => verHoy("por_colgar") } : {};
 
   // Exporta lo que la colaboradora está viendo, no todo el inventario: usa
   // `filtradas` (lo que pinta la tabla, TODAS sus páginas —no solo la de la
@@ -677,77 +643,28 @@ export function InventarioPanel({
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
     <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
-      {/* Prioridades de hoy (diseño aprobado por Felipe, 2026-09-28; orden y «Reponer a piso hoy» rediseñados el 2026-09-29): la
-          cabecera y las 4 tarjetas — Resumen disponible, Reponer a piso hoy, En camino hacia acá e Incidencias. Sin enlaces utilitarios a la derecha: «Ver
-          recomendaciones» y «Ver análisis de cobertura» ya no viven aquí (la cobertura es de Análisis). «Reponer a piso hoy»
-          (2026-09-25) cuenta y filtra por «Acción hoy» — MISMA fuente que la columna de la tabla (`calcularAccionHoy`), nunca
-          un semáforo aparte (sección 15). */}
-      <div>
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-          <div>
-            <h2 className="font-display text-[22px] leading-tight text-tinta">Prioridades de hoy</h2>
-            <p className="mt-1 hidden text-[13.5px] text-taupe sm:block">Acciones clave para mantener el piso completo y la operación al día.</p>
-          </div>
-          {/* Solo si hay apartadas: un acceso a su lista, que sin ellas no existe (el diseño aprobado no lo dibuja en su estado normal). */}
-          {resumen.apartado > 0 && (
-            <button
-              type="button"
-              onClick={() => setViendoApartados(true)}
-              className={`label-cayla text-[11px] hover:underline ${resumenApartados.vencidos > 0 ? "text-rojo-profundo" : "text-taupe hover:text-rojo"}`}
-            >
-              {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
-              {resumenApartados.vencidos > 0 && ` · ${resumenApartados.vencidos} ${resumenApartados.vencidos === 1 ? "vencido" : "vencidos"}`}
+      {/* «Para hoy» (rediseño 2026-10-04, decisión de Felipe en la ronda 2): lo pendiente de la sede como frases con su cifra y un
+          botón, en el orden en que conviene hacerlo (`tareasParaHoy`). Reemplaza las cuatro tarjetas de «Prioridades de hoy» (2026-09-28),
+          que se dibujaban aunque dijeran 0 y ocupaban la primera pantalla sin decir por dónde empezar. «Por colgar» cuenta con la
+          MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Reponer a piso hoy» contaba
+          con otra (ADR-0326 §5). */}
+      <ParaHoy
+        tareas={tareasHoy}
+        acciones={accionesHoy}
+        verCuales={verCualesHoy}
+        extra={
+          <>
+            {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
+              <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+                {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
+              </button>
+            )}
+            <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+              Resumen por categoría
             </button>
-          )}
-        </div>
-        {/* Orden (Felipe, 2026-09-29): Resumen disponible, Reponer a piso hoy, En camino hacia acá e Incidencias. «Reponer a piso hoy»
-            solo dice con qué empezar (`TarjetaReponerAPiso`): hasta tres prendas que piden piso. */}
-        {/* En pantalla grande, las tarjetas del mismo ancho (cuatro donde se separa piso y almacén, dos donde no). */}
-        <div className={`mt-3.5 grid grid-cols-2 gap-2.5 sm:gap-3.5 ${separa ? "xl:grid-cols-4" : "xl:grid-cols-2"}`}>
-          {/* En pantallas angostas el resumen ocupa el renglón entero (la tarjeta de reponer también), para que no quede un hueco al lado. */}
-          <div className={`${separa ? "max-xl:col-span-2" : ""} xl:contents`}>
-            <TarjetaPrioridad icono={Package} etiqueta="Resumen disponible" valor={resumen.disponible} unidad="uds" activa={viendoDisponible} onClick={() => setViendoDisponible(true)}>
-              {/* Donde se separa piso y almacén, dónde está lo disponible. Donde no (Taller), el cambio de 7 días. Al tocarla se abre
-                  `ResumenStockOverlay`: prendas por categoría en almacén y piso, lo vendido en el mes y lo que más sale. */}
-              {separa
-                ? `${libres.piso.toLocaleString("es-PE")} en piso · ${libres.almacen.toLocaleString("es-PE")} en almacén`
-                : comparacionFallo
-                  ? "No se pudo calcular la comparación ahora"
-                  : deltaSede.pct === null
-                    ? "Sin datos de hace 7 días para comparar"
-                    : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
-            </TarjetaPrioridad>
-          </div>
-          {separa && (
-            <TarjetaReponerAPiso
-              stock={stock}
-              onVerPrenda={(p) => {
-                setBusqueda(p.referencia);
-                mostrarTablaFiltrada();
-              }}
-            />
-          )}
-          <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
-            {enCamino.traslados === 0
-              ? "Ningún traslado en camino"
-              : `${enCamino.traslados} ${enCamino.traslados === 1 ? "traslado" : "traslados"}${
-                  enCamino.proximaLlegada ? ` · el próximo llega ${fechaHora(enCamino.proximaLlegada)}` : ""
-                }${enCamino.atrasados > 0 ? ` · ${enCamino.atrasados} ${enCamino.atrasados === 1 ? "atrasado" : "atrasados"}` : ""}`}
-          </TarjetaPrioridad>
-          {separa && (
-            <TarjetaPrioridad
-              icono={AlertTriangle}
-              etiqueta="Incidencias"
-              valor={danadosPendientes.length}
-              unidad={danadosPendientes.length === 1 ? "prenda" : "prendas"}
-              activa={viendoDanados}
-              onClick={() => setViendoDanados(true)}
-            >
-              {danadosPendientes.length === 0 ? "Ninguna prenda dañada pendiente" : "Dañado / cuarentena pendiente"}
-            </TarjetaPrioridad>
-          )}
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
@@ -770,7 +687,9 @@ export function InventarioPanel({
             onEnter={() => {
               if (tallaPorCodigo(stock, busqueda)) abrirPorCodigo(busqueda);
             }}
-            placeholder={mostrarMarca ? "Prenda, marca, código, color o talla…" : "Prenda, código, color o talla…"}
+            // Corto para que quepa entero a 375 px junto al botón «Filtros» (se cortaba en «…color o tall»). El color se sigue
+            // pudiendo escribir: el buscador lo entiende igual.
+            placeholder={mostrarMarca ? "Prenda, marca o código…" : "Prenda, talla o código…"}
             separa={separa}
             categorias={categorias}
             tallas={tallas}
@@ -933,8 +852,10 @@ export function InventarioPanel({
               setAbierta(null);
               abrirSubir(prenda, origen);
             }}
-            onAjustar={(f) => {
+            onAjustar={(f, origen) => {
               setAbierta(null);
+              // Desde el menú «⋯» no queda un botón al que volver: el foco vuelve a la tarjeta al cerrar la ventana.
+              volverFoco.current = origen;
               setAjustando(f);
             }}
             // «Ver detalle» de una tarjeta: ese producto en la tabla (donde está el cajón de la prenda).
@@ -955,15 +876,20 @@ export function InventarioPanel({
                 Exportar CSV
               </button>
             </span>
+            {/* La leyenda del riel de las tarjetas (2026-10-04): qué dice cada etiqueta y qué significan sus dos tonos. */}
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-taupe/25 bg-hueso" />
-                  Piso · almacén de cada talla
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-tinta/15 bg-papel" />
+                  Cada etiqueta es una talla: en grande las colgadas, debajo «+N» las guardadas
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-rojo/35 bg-rojo/10" />
-                  Sin stock aquí
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.08]" />
+                  Por colgar
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
+                  Sin nada en esta sede
                 </span>
               </span>
             )}
@@ -1000,7 +926,7 @@ export function InventarioPanel({
                   Piso · almacén de cada talla
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-rojo/35 bg-rojo/10" />
+                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-dashed border-taupe/50" />
                   Sin stock aquí
                 </span>
               </span>
@@ -1078,7 +1004,7 @@ export function InventarioPanel({
                   }
                 }}
                 className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors focus-visible:outline-none sm:items-center ${plantilla} ${
-                  filaAbierta ? "bg-rojo/[0.07]" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
+                  filaAbierta ? "bg-hueso/80" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
                 }`}
               >
                 {/* Celular: casilla + prenda arriba. Escritorio: `sm:contents` devuelve cada pieza a su columna, en el orden del encabezado. */}
@@ -1229,7 +1155,8 @@ export function InventarioPanel({
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {TIPOS_HOY.map((t) => (
+                {/* Solo los casos que hoy existen en la sede: con el mínimo de 1 por talla, «Por reponer» ya no sale y su punto confundía. */}
+                {TIPOS_HOY.filter((t) => stock.some((f) => hoyDeTalla(f) === t)).map((t) => (
                   <span key={t} className="inline-flex items-center gap-1.5" title={AYUDA_HOY[t]}>
                     <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${PUNTO_HOY[TONO_HOY[t]]}`} />
                     <span className="text-tinta/80">{TEXTO_HOY[t]}</span>
@@ -1272,6 +1199,7 @@ export function InventarioPanel({
           sububicaciones={sububicaciones}
           puedeBajarAlPiso={puedeBajarAlPiso}
           onClose={() => setAjustando(null)}
+          alCerrarEnfocar={volverFoco}
         />
       )}
 
