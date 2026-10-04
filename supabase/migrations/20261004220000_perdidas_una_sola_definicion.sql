@@ -44,9 +44,13 @@
 --     sobrantes (siguen sin reconocerse en Finanzas); la venta anulada con prenda no vendible (el diario ya la pasaba a
 --     merma al costo sellado en la venta); la dañada devuelta al proveedor (reclamo, no merma); la liquidada (es venta).
 --
--- ESTADO QUE DEJA DE SER POSIBLE: que Finanzas, el resumen de Inventario y la pestaña Pérdidas digan cifras distintas para
--- el mismo mes y la misma sede. Las tres leen `fn_perdida_razon` (y los traslados, `fn_perdidas_de_traslados`); una prueba
--- (`scripts/pruebas/perdidas.mjs`) exige que el total de la pestaña sea el 659 del diario, sede por sede.
+-- ESTADO QUE DEJA DE SER POSIBLE: que Finanzas y la pestaña Pérdidas digan cifras distintas para el mismo mes y la misma
+-- sede: las dos leen los mismos tres orígenes (movimientos por `fn_perdida_razon`, traslados por `fn_perdidas_de_traslados`
+-- y la venta anulada no vendible), y una prueba (`scripts/pruebas/perdidas.mjs`) exige que el total de la pestaña sea el 659
+-- del diario, sede por sede. El resumen de Inventario (`fn_resumen_variantes.mermas`, por prenda; hoy ninguna pantalla lo
+-- muestra) usa la misma regla para los MOVIMIENTOS, pero no suma traslados ni anulaciones: para una prenda con faltante en un
+-- traslado, su cifra es menor que la de la pestaña filtrada. Y tampoco es posible ya esconder una pérdida escribiendo a mano
+-- un motivo que la definición deja fuera (punto 6).
 --
 -- POR QUÉ SE REEMPLAZA POR ANCLA. `fn_asientos`, `fn_bal_causas_mercaderia` y `fn_resumen_variantes` viven en producción y
 -- pueden tener parches en vivo; reescribirlas desde un archivo los borraría. `pg_temp.reemplazar_unico` cambia un texto que
@@ -54,9 +58,10 @@
 -- Sin `select … into` dentro de un texto entre comillas (ADR-0288).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: UNA sola parte, tal cual en el SQL Editor (trae `retail.` y su `search_path`). Sin políticas,
--- sin `alter table`, sin `drop trigger`: ADR-0195 no aplica. Idempotente. ANTES de pegar, correr la consulta de solo lectura
--- del cuerpo del PR («qué cambia en Finanzas») y mostrarle a Felipe el resultado. Si aborta por un mes cerrado, el mensaje
--- dice cuál.
+-- sin `alter table`, sin `drop trigger`: ADR-0195 no aplica. Idempotente. ANTES de pegar, correr la sonda de solo lectura
+-- `scripts/perdidas/sonda-antes-de-pegar.sql` (qué pasa a merma, qué meses cerrados cambiarían, los traslados con faltante,
+-- quién llama a `registrar_movimiento` y las pérdidas que hoy se esconden) y mostrarle a Felipe el resultado: el SQL Editor
+-- puede no mostrar los NOTICE de la guarda. Si aborta por un mes cerrado, el mensaje dice cuál (solo los que cambian).
 --
 -- SE ROMPE SI:
 --   · alguien vuelve a pegar 20260925130000 / 20260925170000 / 20261003120000 (recrean `fn_es_merma`, `fn_asientos` o el
