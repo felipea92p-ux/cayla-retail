@@ -165,7 +165,7 @@ export type RecepcionCompra = {
 };
 
 // Un lote (`retail.lotes`) es la unidad real de "una recepción" — con
-// factura (ADR-0035, `/compras/recibir`) o sin ella (`/inventario/recibir`).
+// factura (`RecepcionEnvio`) o sin ella («Llegó mercadería»), las dos en `/recibir` (ADR-0330).
 // A diferencia de `RecepcionCompra` (acotado a la factura de un detalle ya
 // conocido), este tipo es para el listado cruzado — "qué se recibió
 // últimamente, venga de donde venga" — que hasta el 2026-09-17 ninguna

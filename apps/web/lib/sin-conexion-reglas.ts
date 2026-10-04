@@ -18,7 +18,6 @@ export type PantallaSinConexion = { ruta: string; nombre: string; soloDeHoy: boo
 export const PANTALLAS_SIN_CONEXION: readonly PantallaSinConexion[] = [
   { ruta: "/vender", nombre: "Vender", soloDeHoy: true },
   { ruta: "/recibir", nombre: "Recibir mercadería", soloDeHoy: false },
-  { ruta: "/inventario/recibir", nombre: "Ingreso sin comprobante", soloDeHoy: false },
   { ruta: "/productos/nuevo", nombre: "Nuevo producto", soloDeHoy: false },
 ];
 

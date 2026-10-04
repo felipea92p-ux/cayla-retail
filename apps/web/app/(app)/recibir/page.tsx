@@ -3,10 +3,9 @@ import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getUbicaciones } from "@/lib/ubicaciones";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
 import type { CompraResumen } from "@/lib/compras-reglas";
-import { getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
+import { getResumenRecepciones, listarRecepcionesCompras, listarRecepcionesSinComprobante } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante } from "@/lib/saldo-favor";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
@@ -16,12 +15,11 @@ import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto, trasladosHaciaAca }
 import { AvisoTrasladosEnCamino } from "@/components/AvisoTrasladosEnCamino";
 import { valorPorRecibirDeMiTienda } from "@/lib/reparto-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
-import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { KpisRecibir } from "@/components/KpisRecibir";
 import { RecepcionesCompraLista } from "@/components/RecepcionesCompraLista";
 import { FiltrosRecibidas } from "@/components/FiltrosRecibidas";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
-import { Pestanas } from "@/components/ui/Pestanas";
+import { Volver } from "@/components/ui/Volver";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
@@ -73,51 +71,25 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         ? "factura"
         : "llegada";
 
-  // ADR-0139: Recibir es POR TIENDA. Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo:
-  // se mira desde la tienda donde estás parado, y un líder puede mirar otra con `?ubicacion=` (el selector «Recibiendo
-  // en»). Cada tienda ve lo que le toca de cada comprobante y solo eso; lo de las otras lo recibe cada una.
-  const ubicaciones = await getUbicaciones();
-  const ubicacionMirada = esLider && params.ubicacion && ubicaciones.some((u) => u.id === params.ubicacion) ? params.ubicacion : persona.ubicacionId;
-  const nombreMirada = ubicaciones.find((u) => u.id === ubicacionMirada)?.nombre ?? persona.ubicacionEtiqueta;
+  // ADR-0139 + ADR-0330: Recibir es POR TIENDA y la tienda es la de la cabecera (el selector de sede de arriba). Una factura puede
+  // traer mercadería para varias tiendas y cada una recibe lo suyo desde su sede. Hasta el 2026-10-04 el líder tenía además
+  // «Recibiendo en» (`?ubicacion=`): dos reglas para lo mismo, y la recepción sin factura ya usaba la sede de la cuenta.
+  const ubicacionMirada = persona.ubicacionId;
+  const nombreMirada = persona.ubicacionEtiqueta;
 
+  // Sin pestañas (ADR-0330): la puerta es UNA. Recibir contra una factura y el historial se abren desde ella y vuelven a ella.
   const encabezado = (
     <div className="anim-entra">
       <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       <p className="mt-1 max-w-3xl text-sm text-tinta/65">
         {vista === "llegada"
-          ? `Escanea lo que llegó y recíbelo: entra al almacén de ${persona.ubicacionEtiqueta}. Si no tiene factura todavía, igual se recibe.`
+          ? `Escanea lo que llegó y recíbelo: entra al almacén de ${nombreMirada}. Si no tiene factura todavía, igual se recibe.`
           : vista === "factura"
-          ? `Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano. Aquí ves lo que le toca a ${nombreMirada} de cada comprobante; lo de las otras tiendas lo recibe cada una.`
-          : "Lo que ya se recibió contra un comprobante, envío por envío."}
+            ? `Marca la factura con la que vino la mercadería, cuenta lo que llegó y recibe. Solo ves lo que le toca a ${nombreMirada}; lo de otras tiendas lo recibe cada una.`
+            : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`}
       </p>
-      {esLider && vista === "factura" && (
-        <div className="mt-2 flex items-center gap-2">
-          <span className="label-cayla text-[11px] text-tinta/65">Recibiendo en</span>
-          <SelectorUbicacion ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))} ubicacionActualId={ubicacionMirada} />
-        </div>
-      )}
-      {vista !== "llegada" && (
-        <p className="mt-1 text-xs text-tinta/55">
-          ¿Llegó mercadería que todavía no tiene comprobante?{" "}
-          <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-            Recíbela sin factura
-          </Link>
-          .
-        </p>
-      )}
-    </div>
-  );
-  const pestanas = (
-    <div className="anim-entra" style={{ "--i": 2 } as CSSProperties}>
-    <Pestanas
-      etiquetaAccesible="Vistas de Recibir mercadería"
-      activa={vista === "factura" ? "llegada" : vista}
-      items={[
-        { clave: "llegada", etiqueta: "Llegó mercadería", href: "/recibir" },
-        { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
-      ]}
-    />
+      {vista !== "llegada" && <Volver href="/recibir" a="Llegó mercadería" className="mt-3" />}
     </div>
   );
 
@@ -125,11 +97,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "recibidas") {
     const filtrosRecibidas = filtrosRecibidasDesdeParams(params);
     const LIMITE_RECIBIDAS = 30;
-    const [resumen, recepciones, recientes, proveedores] = await Promise.all([
+    const [resumen, recepciones, recientes, proveedores, sinFactura, costosSinFactura] = await Promise.all([
       getResumenRecepciones(),
       listarRecepcionesCompras({ busqueda: filtrosRecibidas.busqueda, proveedorId: filtrosRecibidas.proveedorId, desde: filtrosRecibidas.desde, hasta: filtrosRecibidas.hasta, limite: LIMITE_RECIBIDAS }),
       getRecepcionesRecientes({ conFactura: true, limite: 40 }),
       getProveedoresActivos(),
+      // ADR-0330: lo que entra por «Llegó mercadería» sin factura (antes, la lista de «Ingreso sin comprobante»), de esta sede.
+      getRecepcionesRecientes({ conFactura: false, ubicacionId: persona.ubicacionId, limite: 30 }),
+      costosDeLotes(verMontos, persona.ubicacionId),
     ]);
     // A qué envío pertenece cada guía: las filas de una misma llegada de varios proveedores salen bajo una cabecera.
     const envios = await getEnviosDeLotes(recepciones.map((r) => r.loteId));
@@ -142,8 +117,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     return (
       <div className="space-y-6">
         {encabezado}
-        {pestanas}
 
+        <section className="space-y-2">
+          <h2 className="label-cayla text-[11px] text-tinta/65">Sin factura · {nombreMirada}</h2>
+          <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
+        </section>
+
+        <h2 className="label-cayla -mb-3 text-[11px] text-tinta/65">Contra factura</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
@@ -212,7 +192,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, trasladosDeLaSede, porRecibir, recientes] = await Promise.all([
+    const [catalogo, proveedores, marcas, trasladosDeLaSede, porRecibir, recientes, costos] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
@@ -232,11 +212,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         console.error("Llegó esta semana en Recibir mercadería:", e);
         return [];
       }),
+      costosDeLotes(verMontos, persona.ubicacionId),
     ]);
     return (
       <div className="space-y-6">
         {encabezado}
-        {pestanas}
         {/* Si lo que llegó es de otra sede de CAYLA, no se recibe aquí: se cuenta en Traslados (ADR-0299). */}
         <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
         <LlegoMercaderia
@@ -277,7 +257,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               Ver todo lo recibido
             </Link>
           </div>
-          <RecepcionesRecientes recepciones={recientes} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
+          <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
         </section>
       </div>
     );
@@ -325,7 +305,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       {encabezado}
-      {pestanas}
       {avisoTraslados}
 
       {compras.length === 0 && !cursor ? (
@@ -382,4 +361,20 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={{ ...params, vista: "factura" }} pathname="/recibir" />
     </div>
   );
+}
+
+/**
+ * El costo de cada llegada sin factura, solo para quien ve el dinero de Compras (ADR-0126): una prenda que entra sin costo deja el
+ * margen sin dato hasta que llegue su factura (ADR-0330, fase 2), y quien paga tiene que verlo. A los demás, ni la columna
+ * (`undefined`). Secundario: si no se puede leer, la lista sale igual, sin costos.
+ */
+async function costosDeLotes(verMontos: boolean, ubicacionId: string): Promise<Record<string, { costo: number | null; sinCosto: boolean }> | undefined> {
+  if (!verMontos) return undefined;
+  try {
+    const filas = await listarRecepcionesSinComprobante({ ubicacionId, limite: 30 });
+    return Object.fromEntries(filas.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }]));
+  } catch (e) {
+    console.error("Costos de las llegadas sin factura:", e);
+    return undefined;
+  }
 }

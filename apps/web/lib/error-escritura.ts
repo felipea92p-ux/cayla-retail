@@ -371,7 +371,7 @@ const HUELLAS: Huella[] = [
   },
   {
     // 0002_esquema.sql:58 — `check (costo >= 0)` sin nombre propio, Postgres
-    // la nombra `variantes_costo_check`. `RecepcionFormV2.tsx` ya recorta un
+    // la nombra `variantes_costo_check`. `fijarCosto` (lib/llegada-reglas.ts) ya recorta un
     // costo negativo en el campo, esto es la red de seguridad si llega igual.
     marca: "variantes_costo_check",
     frase: "El costo no puede ser negativo. Corrígelo y vuelve a intentar.",

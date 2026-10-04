@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 68;
+export const PENDIENTES_HOY = 67;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -104,7 +104,6 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     estado: "no-aplica",
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
-  "/inventario/recibir": PENDIENTE,
   "/inventario/resumen": PENDIENTE,
   "/inventario/traslados": PENDIENTE,
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
