@@ -23,6 +23,24 @@ import { debeContarLectura } from "@/lib/conteo-conectado";
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
+/** Lo que la hoja dice de la operación que se está haciendo con la cámara. */
+export type TextosEscaner = {
+  /** El título de la hoja (para el lector de pantalla y la cabecera de la ventana). */
+  titulo: string;
+  subtitulo: string;
+  /** El rótulo chico de arriba, sobre el video. */
+  rotulo: string;
+  /** Sobre la prenda de la bandeja: «Estás contando». */
+  actual: string;
+};
+
+const TEXTOS_CONTEO: TextosEscaner = {
+  titulo: "Contar con la cámara",
+  subtitulo: "Pasa las etiquetas una tras otra: cada una suma 1.",
+  rotulo: "Contar · cada lectura suma 1",
+  actual: "Estás contando",
+};
+
 export type LecturaConteo =
   // `atencion`: la prenda se reconoció pero NO se sumó (necesita una respuesta de la persona: «Agregar igual», elegir quién
   // cuenta…). El destello sale ámbar y no verde, y lo que hay que responder va en `aviso`.
@@ -38,16 +56,19 @@ export function EscanerConteo({
   onEscribir,
   aviso,
   onClose,
+  textos = TEXTOS_CONTEO,
 }: {
   /** El mismo camino del Enter de la pistola: resuelve la prenda, suma, guarda y suena. */
   onCodigo: (codigo: string) => LecturaConteo;
   /** La prenda que se está contando, con su cifra en vivo (cambia también con − / +). */
   actual: Extract<LecturaConteo, { encontrada: true }> | null;
-  avance: { contadas: number; total: number };
+  /** Lo leído hasta ahora. Sin `total`, solo la cifra: una operación sin meta (el cuadre del piso) no muestra un
+   *  denominador que la persona leería como «lo que falta». */
+  avance: { contadas: number; total?: number };
   /** − / + sobre la prenda que se está contando. */
   onPaso: (paso: number) => void;
-  /** Un código que no es de ninguna prenda: cerrar y ofrecer darla de alta con ese código. */
-  onDarDeAlta: (codigo: string) => void;
+  /** Un código que no es de ninguna prenda: cerrar y ofrecer darla de alta con ese código. Sin él, solo se avisa. */
+  onDarDeAlta?: (codigo: string) => void;
   /** Sin cámara: cerrar y dejar listo el campo para escribir. */
   onEscribir: () => void;
   /** Algo que la persona tiene que responder sin cerrar la cámara («Esta prenda no pertenece al conteo actual» con sus
@@ -55,6 +76,8 @@ export function EscanerConteo({
    *  pantalla de Contar, que es la misma que lo muestra en su barra de abajo. */
   aviso?: ReactNode;
   onClose: () => void;
+  /** Lo que la hoja dice de la operación. Por defecto, los del conteo; el cuadre del piso pasa los suyos. */
+  textos?: TextosEscaner;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
@@ -135,7 +158,7 @@ export function EscanerConteo({
   const botonPaso = "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-sand bg-papel text-tinta transition-colors active:bg-sand/60";
 
   return (
-    <Modal variante="camara" titulo="Contar con la cámara" subtitulo="Pasa las etiquetas una tras otra: cada una suma 1." onClose={onClose}>
+    <Modal variante="camara" titulo={textos.titulo} subtitulo={textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <>
           <div data-sin-cascada className="absolute inset-0">
@@ -147,9 +170,9 @@ export function EscanerConteo({
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
-            <p className="label-cayla text-[11px] text-crema/90">Contar · cada lectura suma 1</p>
+            <p className="label-cayla text-[11px] text-crema/90">{textos.rotulo}</p>
             <span className="grid h-11 min-w-11 place-items-center rounded-full bg-crema/15 px-3 text-xs tabular-nums text-crema backdrop-blur-md">
-              {avance.contadas}/{avance.total}
+              {avance.total === undefined ? avance.contadas : `${avance.contadas}/${avance.total}`}
             </span>
           </div>
 
@@ -202,14 +225,16 @@ export function EscanerConteo({
                   <span className="min-w-0 flex-1 text-sm text-tinta">
                     «<span className="font-mono text-[13px]">{desconocido}</span>» no es de ninguna prenda del catálogo.
                   </span>
-                  <button type="button" onClick={() => onDarDeAlta(desconocido)} className="btn-cayla btn-secundario btn-chico shrink-0">
-                    Dar de alta
-                  </button>
+                  {onDarDeAlta && (
+                    <button type="button" onClick={() => onDarDeAlta(desconocido)} className="btn-cayla btn-secundario btn-chico shrink-0">
+                      Dar de alta
+                    </button>
+                  )}
                 </div>
               ) : actual ? (
                 <div className="flex items-center gap-3">
                   <span className="min-w-0 flex-1">
-                    <span className="label-cayla block text-[10px] text-taupe">Estás contando</span>
+                    <span className="label-cayla block text-[10px] text-taupe">{textos.actual}</span>
                     <span className="block truncate text-[15px] text-tinta">{actual.referencia}</span>
                     <span className="block truncate text-xs text-taupe">
                       {actual.detalle}
