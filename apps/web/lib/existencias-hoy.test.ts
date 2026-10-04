@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hoyDeTalla, TEXTO_HOY, textoHoyDePrenda, TIPOS_HOY } from "./existencias-hoy";
+import { hoyDeTalla, TEXTO_HOY, textoHoyDePrenda, TIPOS_HOY, TONO_HOY } from "./existencias-hoy";
 
 // «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra.
 const REPONER = { tipo: "reponer_a_piso" as const };
@@ -40,5 +40,14 @@ describe("textoHoyDePrenda", () => {
     expect(textoHoyDePrenda("sin_stock_atras", 3)).toBe("3 tallas sin stock atrás");
     expect(textoHoyDePrenda("mantener", 0)).toBe(TEXTO_HOY.mantener);
     for (const tipo of TIPOS_HOY.filter((t) => t !== "mantener")) expect(textoHoyDePrenda(tipo, 2).endsWith(TEXTO_HOY[tipo].toLocaleLowerCase("es"))).toBe(true);
+  });
+});
+
+// El rojo es de lo que falló (una dañada, un plazo vencido), no del trabajo del día (rediseño 2026-10-04, tope de 2 rojos por pantalla).
+describe("TONO_HOY", () => {
+  it("ningún caso de «Hoy» es rojo: «por colgar» es ámbar y lo que se pide afuera, pizarra", () => {
+    for (const t of TIPOS_HOY) expect(TONO_HOY[t]).not.toBe("rojo");
+    expect(TONO_HOY.por_colgar).toBe("ambar");
+    expect(TONO_HOY.sin_stock_atras).toBe("pizarra");
   });
 });
