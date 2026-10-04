@@ -112,6 +112,20 @@ no). La deuda con el proveedor sigue saliendo de la factura (ADR-0035).
 4. Por regularizar en Existencias.
 5. Cerrar las puertas viejas: `/inventario/recibir` redirige, sin pestañas, sin «Recibiendo en», registros de las pruebas.
 
+## Construido (2026-10-04, cinco commits, uno por actividad)
+
+Todo lo de arriba, sin migración. Lo que se ajustó en el camino:
+
+- **La pregunta de la factura es «sugerida» en la guía de foco**: la luz la marca después del proveedor, pero se puede recibir sin contestarla.
+- **El historial (`?vista=recibidas`) suma «Sin factura»**: solo mostraba lo recibido contra factura, y todo lo que entra por la puerta era
+  invisible ahí. Hereda la lista que tenía «Ingreso sin comprobante».
+- **«Sin costo» se ve en la puerta y en el historial**, solo para quien ve el dinero de Compras (`recepciones_sin_comprobante`): es lo único
+  de la pantalla vieja que valía la pena conservar, porque hasta la fase 2 lo recibido sin factura queda sin costo. La cifra mensual
+  (`getResumenSinComprobante`) salió: nunca tuvo datos y nadie más la leía.
+- **La página nueva se llama «Ventas sin registrar»** (el nombre con que la nombra ADR-0328); la lista de adentro conserva sus textos.
+- **El botón de Existencias cuenta con el mismo alcance que su lista** (`contarPorRegularizar`, solo cuenta): un número que no coincide con la
+  pantalla a la que lleva es lo que le pasó al botón de Apartados.
+
 ## Cómo se verifica
 
 Cada actividad, en el navegador local con la base local: recibir 3 prendas de un proveedor en TRU sube 3 en el almacén con su
