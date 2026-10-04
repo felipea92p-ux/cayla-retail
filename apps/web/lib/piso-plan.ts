@@ -25,8 +25,9 @@
        (por_colgar · por_reponer · sin_atras · mantener · pausa_sin_cuadre), la lista del día en orden y la lista «se vendió
        rápido y falta». Misma entrada → misma salida: sin red, sin reloj (el «hoy» viene en la lectura), sin azar.
      ASUME: la lectura de `retail.fn_piso_plan_lectura` (migración 20261004213000): lo LIBRE en piso y almacén (neto de
-       apartadas, sin Cuarentena; la cifra de ADR-0270), cada venta contada una sola vez, en el día en que se cobró, y la fecha
-       del último cuadre del piso de la sede (actividad 3).
+       apartadas, sin Cuarentena; la cifra de ADR-0270), cada venta contada una sola vez, en el día en que se cobró, como lo
+       que el cliente se llevó (un cambio cuenta como la prenda nueva; lo devuelto y las liquidaciones de dañadas no cuentan), y
+       la fecha del último cuadre del piso de la sede (actividad 3).
      NO HACE: no mueve stock, no sugiere cantidades de compra, no guarda nada (ADR-0329: la sugerencia se calcula al abrir).
 
    UNA SOLA CASA PARA LAS CIFRAS DEL PISO. Toda comparación de lo colgado contra un umbral vive AQUÍ.

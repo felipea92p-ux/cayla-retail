@@ -28,10 +28,14 @@
 -- CONTRATO (qué promete y qué asume).
 --   PROMETE: una venta cuenta UNA sola vez y en el día en que se vendió. La escaneada cuenta por su línea de venta; la anotada a
 --     mano cuenta solo MIENTRAS está pendiente; al regularizarse, su línea de venta pasa a la prenda real y cuenta como escaneada
---     en la fecha de la VENTA (`ventas.created_at`), nunca en la de la regularización. Sin ventas anuladas ni de prueba, sin
---     productos de prueba. Unidades, nunca soles ni costos.
+--     en la fecha de la VENTA (`ventas.created_at`), nunca en la de la regularización. Lo que el cliente se llevó de verdad: un
+--     cambio cuenta como la prenda NUEVA (con la fecha de la venta) y lo devuelto con devolución aprobada no cuenta. Sin ventas
+--     anuladas ni de prueba, sin productos de prueba, sin liquidaciones de prendas dañadas (no son demanda). Unidades, nunca
+--     soles ni costos.
 --   ASUME: `regularizar_prenda` reescribe `venta_items.variante_id` de la centinela (2222…) a la prenda real (20260923162300);
---     anular una venta saca su prenda de la cola (`trg_prendas_por_regularizar_al_anular`). La prueba vigila las dos cosas.
+--     anular una venta saca su prenda de la cola (`trg_prendas_por_regularizar_al_anular`); `registrar_cambio` NO reescribe la
+--     línea (guarda el cambio aparte, en `cambios`); y una liquidación deja su salida con `motivo = 'cuarentena_liquidada'`.
+--     La prueba vigila las cuatro cosas.
 --   NO HACE: no escribe nada, no guarda una «sugerencia» (ADR-0329: se calcula al abrir), no lee la capacidad ni el mix (las
 --     traen las actividades 6 y 12; el motor las recibe como entradas opcionales).
 --
@@ -63,7 +67,7 @@
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
 -- Después de pegar, solo lectura:
 --   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
---     → `708d72654e7cb5574be2a9dd93144a37` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--     → `8d23e85e014b5252179c74264bdaf52f` (el cuerpo de este archivo; medido en la base con todas las migraciones).
 --   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
 --     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
@@ -150,7 +154,7 @@ begin
       select e.variante_id, e.producto_id, e.piso_libre, e.almacen_libre, e.en_camino, e.talla_retirada
       from retail.fn_existencias_base(p_ubicacion_id, null) e
     ),
-    lineas as materialized (
+    lineas_cobradas as materialized (
       -- Cada línea de venta de la sede en la ventana, con el día de Lima en que se COBRÓ. Una línea apunta a la centinela
       -- (anotada a mano) o a la prenda real (escaneada, o ya regularizada): nunca a las dos, así que nunca cuenta dos veces.
       select vi.id as venta_item_id,
@@ -163,6 +167,40 @@ begin
         and v.created_at >= v_desde_ts
         and v.estado = 'completada'
         and not v.es_prueba
+        -- Una liquidación de prenda dañada (`liquidar_prenda_danada`) es una venta real para la caja, pero no es demanda: salió
+        -- de Cuarentena una prenda rota, no una que un cliente eligió del piso. Contarla pediría colgar otra igual. Se reconoce
+        -- por su salida del libro (`motivo = 'cuarentena_liquidada'`), como la reconocen el libro único y Análisis.
+        and not exists (select 1 from retail.movimientos m
+                         where m.venta_item_id = vi.id and m.motivo = 'cuarentena_liquidada')
+    ),
+    lineas as materialized (
+      -- Lo que el cliente se LLEVÓ, en el día en que se cobró la venta:
+      --   · la línea, menos lo que se cambió por otra prenda y menos lo devuelto con la devolución APROBADA (una pendiente o
+      --     rechazada todavía no devolvió nada);
+      --   · cada cambio, como la prenda nueva. Con la fecha de la VENTA, no la del cambio: el cambio corrige QUÉ se vendió, no
+      --     CUÁNDO —igual que `regularizar_prenda`, que pasa la línea a la prenda real y la deja en su día—. Así un cliente que
+      --     compra M y a los 8 días la cambia por L deja la señal para el Taller en L, y la M no cuenta.
+      -- `registrar_cambio` no deja cambiar más de lo que tiene la línea. Límite conocido (el mismo que asume `registrar_cambio`):
+      -- si lo cambiado además se devuelve, la devolución resta de la línea original hasta 0 y el cambio sigue contando.
+      select x.venta_item_id, x.variante_id, x.cantidad, x.dia
+      from (
+        select l.venta_item_id,
+               l.variante_id,
+               greatest(l.cantidad
+                        - coalesce((select sum(c.cantidad) from retail.cambios c where c.venta_item_id = l.venta_item_id), 0)
+                        - coalesce((select sum(di.cantidad)
+                                      from retail.devolucion_items di
+                                      join retail.devoluciones d on d.id = di.devolucion_id
+                                     where di.venta_item_id = l.venta_item_id and d.estado = 'aprobada'), 0),
+                        0)::integer as cantidad,
+               l.dia
+        from lineas_cobradas l
+        union all
+        select l.venta_item_id, c.variante_nueva_id, c.cantidad, l.dia
+        from lineas_cobradas l
+        join retail.cambios c on c.venta_item_id = l.venta_item_id
+      ) x
+      where x.cantidad > 0
     ),
     escaneadas as (
       select l.variante_id,

@@ -25,6 +25,9 @@
  *   U   UNA SOLA VEZ: al regularizarla con la función real (`regularizar_prenda`), la venta pasa de «anotada» a «escaneada» en el
  *       día en que se COBRÓ (hace 5 días), no hoy: el total de la sede no cambia, `vendidas_hoy` tampoco. Y la lectura asume
  *       que `regularizar_prenda` mueve la línea de venta a la prenda real: si alguien lo cambia, el caso lo dice.
+ *   X   LO QUE EL CLIENTE SE LLEVÓ: un cambio cuenta como la prenda nueva (con la fecha de la venta), lo devuelto con devolución
+ *       aprobada no cuenta, y una liquidación de prenda dañada no es demanda; y lo que eso asume de registrar_cambio y de
+ *       liquidar_prenda_danada.
  *   C   CURVAS: las tallas de cada categoría que aparece (por stock o por ventas), y ninguna categoría de más.
  *   K   CUADRE: `cuadrado_en` es el último cuadre del piso de SU sede (actividad 3, `retail.cuadres_piso`), NULL si nunca se
  *       cuadró o la base todavía no guarda cuadres; y es la misma fecha que `fn_cuadre_piso_estado` cuando las dos existen.
@@ -546,6 +549,57 @@ caso(
    select concat_ws(',', :antes, pg_temp.total_ventas(:'sede'), pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'),
                     pg_temp.talla(:'sede', :'v') ->> 'vendidas_14');`,
   "20,20,12,8,12"
+);
+
+// ===========================================================================
+// X. LO QUE EL CLIENTE SE LLEVÓ DE VERDAD: cambios, devoluciones y liquidaciones (revisión adversarial)
+// ===========================================================================
+
+caso(
+  "X1 un CAMBIO de M por L cuenta como L, con la fecha de la VENTA (ayer), y la M deja de contar: la señal para el Taller va a L",
+  `select pg_temp.prenda('PP-X1M', :'cat', 'M', :'neutro') as m \\gset
+   select pg_temp.prenda('PP-X1L', :'cat', 'L', :'neutro') as l \\gset
+   select pg_temp.stock(:'m', 1, 1); select pg_temp.stock(:'l', 1, 1);
+   select pg_temp.vende(:'m', 1, pg_temp.dia(1)) as li \\gset
+   insert into retail.cambios (venta_item_id, ubicacion_id, variante_nueva_id, cantidad, created_at) values (:'li', :'sede', :'l', 1, now());
+   select concat_ws(';',
+     (select concat_ws(',', t ->> 'vendidas_hoy', t ->> 'vendidas_ayer', t ->> 'vendidas_14') from pg_temp.talla(:'sede', :'m') t),
+     (select concat_ws(',', t ->> 'vendidas_hoy', t ->> 'vendidas_ayer', t ->> 'vendidas_14') from pg_temp.talla(:'sede', :'l') t),
+     pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'), pg_temp.atributo(:'sede', :'cat', 'L', 'neutro'), pg_temp.total_ventas(:'sede'));`,
+  "0,0,0;0,1,1;nada;1,0;1"
+);
+caso(
+  "X2 lo DEVUELTO con devolución aprobada no cuenta; una devolución pendiente todavía no devolvió nada",
+  `select pg_temp.prenda('PP-X2', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 1);
+   select pg_temp.vende(:'v', 3, pg_temp.dia(2)) as li \\gset
+   select venta_id as vt from retail.venta_items where id = :'li' \\gset
+   insert into retail.devoluciones (venta_id, ubicacion_id, estado, motivo, aprobado_en) values (:'vt', :'sede', 'aprobada', 'prueba', now()) returning id as d1 \\gset
+   insert into retail.devolucion_items (devolucion_id, venta_item_id, cantidad, condicion) values (:'d1', :'li', 1, 'vendible');
+   insert into retail.devoluciones (venta_id, ubicacion_id, estado, motivo) values (:'vt', :'sede', 'pendiente', 'prueba') returning id as d2 \\gset
+   insert into retail.devolucion_items (devolucion_id, venta_item_id, cantidad, condicion) values (:'d2', :'li', 1, 'vendible');
+   select concat_ws(',', pg_temp.talla(:'sede', :'v') ->> 'vendidas_14', pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'));`,
+  "2,2,0"
+);
+caso(
+  "X3 una LIQUIDACIÓN de prenda dañada es venta para la caja pero no demanda: no pide colgar otra igual",
+  `select pg_temp.prenda('PP-X3', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 1);
+   select pg_temp.vende(:'v', 1, pg_temp.dia(1)) as li \\gset
+   insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id)
+     values (:'v', :'sede', (select id from retail.sububicaciones where ubicacion_id = :'sede' and tipo = 'cuarentena'), 'salida', 1,
+             'cuarentena_liquidada', :'li');
+   select pg_temp.vende(:'v', 1, pg_temp.dia(1)) as _ \\gset
+   select concat_ws(',', pg_temp.talla(:'sede', :'v') ->> 'vendidas_ayer', pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'));`,
+  "1,1,0"
+);
+caso(
+  "X4 LO QUE LA LECTURA ASUME: registrar_cambio NO reescribe la línea de venta (si lo hiciera, el cambio contaría dos veces) y liquidar_prenda_danada deja su salida como «cuarentena_liquidada»",
+  `select concat_ws(',',
+     (select bool_and(prosrc !~* 'update\\s+(retail\\.)?venta_items' and prosrc !~* 'insert\\s+into\\s+(retail\\.)?venta_items')
+        from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_cambio'),
+     (select bool_and(prosrc ~ 'cuarentena_liquidada') from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'liquidar_prenda_danada'));`,
+  "t,t"
 );
 
 // ===========================================================================
