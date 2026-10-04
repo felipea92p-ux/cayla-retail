@@ -446,7 +446,8 @@ jobs:
       # Capacidad del piso por sede (ADR-0329, actividad 6 de ADR-0328): la siembra (TRU 600 contada, AQP 1800 y LIM 180
       # provisionales, con los nombres de producción y los locales); `fn_capacidad_piso` para líder, colaboradora y terminal, 42501
       # para la cuenta de afuera; `fijar_capacidad_piso` solo del líder, con firma, historial y Actividad, «sin cambios» al
-      # reintentar y PT409 si otra persona la cambió; los candados de la tabla (capacidad calculada, rangos, solo tiendas). ROLLBACK.
+      # reintentar y PT409 si otra persona la cambió; los candados de la tabla (capacidad calculada, rangos, solo tiendas); «por
+      # cuadrar» (cuadrado_en) y la carrera de tres sesiones: el segundo guardado de una sede espera al primero, otra sede no. ROLLBACK.
       - name: pruebas:capacidad-piso
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:capacidad-piso

@@ -21,8 +21,13 @@
  * comparten varias sesiones); terminales, cuentas y sedes de prueba se crean DENTRO del caso. La sesión se simula con
  * `request.jwt.claim.sub` (lo que PostgREST hace con cada petición).
  *
- * LA CARRERA. Dos líderes guardando a la vez no se puede ver con ROLLBACK: se probó aparte con dos `psql` que confirman
- * (el segundo espera el candado y recibe PT409). Ver el cuerpo del PR.
+ * LA CARRERA (sección 6). El candado por sede es lo que impide que un guardado pise a otro en silencio: sin él, el segundo
+ * lee la versión vieja ANTES de que el primero confirme, pasa el control de versión, espera la fila y la sobrescribe (lo
+ * mostró la revisión adversarial con dos `psql` que confirman: quedó 24 m² versión 3 y un «antes» falso en el historial).
+ * Eso no se ve con ROLLBACK, pero su causa sí: tres sesiones a la vez, todas con ROLLBACK. A guarda TRU y duerme 2 s sin
+ * terminar; B guarda TRU con una versión equivocada y C guarda LIM. Con el candado, B ESPERA a que A termine antes de leer
+ * (y recién ahí recibe PT409); sin él, B leería y respondería al instante. C, de otra sede, no espera a nadie. Con
+ * `--en-seco` se salta: la migración tiene que estar confirmada para que dos sesiones la vean.
  *
  * USO
  *   pnpm pruebas:capacidad-piso                 → contra la base `postgres` del stack local (la del CI)
@@ -30,7 +35,7 @@
  *   … --en-seco                                  → carga la migración dentro de cada caso (base sin ella)
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,8 +70,9 @@ function correr(sql) {
   }
 }
 
-/** Todo lo que un caso necesita, dentro de su transacción. Deja `:tru`, `:lim`, `:taller`, `:p_felipe`. */
-const PRELUDIO = `
+/** Lo mínimo de un caso, dentro de su transacción: `pg_temp.intento` y `:tru`, `:lim`, `:taller`, `:p_felipe`. No escribe nada
+ *  (por eso lo usa también la carrera de dos sesiones: dos `insert` con la misma llave se esperarían entre sí). */
+const PRELUDIO_LIVIANO = `
 begin;
 ${EN_SECO ? MIGRACION : ""}
 set local search_path = retail, public, extensions;
@@ -85,7 +91,10 @@ select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as taller from retail.ubicaciones where tipo = 'taller' limit 1 \\gset
 select id as p_felipe from public.personas where auth_user_id = '${FELIPE}' \\gset
+`;
 
+/** Todo lo que un caso necesita, dentro de su transacción: lo liviano, una terminal de TRU y una cuenta de afuera. */
+const PRELUDIO = `${PRELUDIO_LIVIANO}
 insert into auth.users (id, aud, role, email) values
   ('${T_VENTAS_TRU}', 'authenticated', 'authenticated', 't-ventas-tru@prueba.local'),
   ('${AFUERA}', 'authenticated', 'authenticated', 'afuera@prueba.local');
@@ -391,6 +400,57 @@ caso(
       and p.proname in ('fn_capacidad_piso', 'fijar_capacidad_piso', 'fn_capacidad_piso_solo_tiendas');`,
   "fijar_capacidad_piso:false:true fn_capacidad_piso:false:true fn_capacidad_piso_solo_tiendas:false:false"
 );
+
+// ===========================================================================
+// 6. LA CARRERA (tres sesiones a la vez, todas con ROLLBACK)
+// ===========================================================================
+
+function psqlAsync(sql) {
+  const inicio = Date.now();
+  return new Promise((resolve) => {
+    const p = spawn(
+      "docker",
+      ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+      { stdio: ["pipe", "pipe", "pipe"] }
+    );
+    let stdout = "";
+    let stderr = "";
+    p.stdout.on("data", (d) => (stdout += d));
+    p.stderr.on("data", (d) => (stderr += d));
+    p.on("close", (code) => resolve({ code, salida: stdout.trim(), stderr: stderr.trim(), inicio, fin: Date.now(), ms: Date.now() - inicio }));
+    p.stdin.write(sql);
+    p.stdin.end();
+  });
+}
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+if (EN_SECO) {
+  console.log("· la carrera se salta con --en-seco: dos sesiones solo ven la migración si está confirmada en la base");
+} else {
+  // A: guarda TRU (toma el candado de TRU y la fila) y se queda 2 s con la transacción abierta.
+  const a = psqlAsync(`${PRELUDIO_LIVIANO}${como(FELIPE)}${fijarDevuelve("tru", 23, 30, "2026-09-30", 1)}\nselect pg_sleep(2);\nrollback;\n`);
+  await dormir(600);
+  // B: la misma sede con una versión que no es la vigente. Con el candado, espera a A antes de leer; sin él, PT409 al instante.
+  const b = psqlAsync(`${PRELUDIO_LIVIANO}${como(FELIPE)}${fijar("tru", 24, 30, "2026-09-30", 7)}\nrollback;\n`);
+  // C: otra sede, al mismo tiempo. El candado es por sede: no espera a nadie.
+  const c = psqlAsync(`${PRELUDIO_LIVIANO}${como(FELIPE)}${fijarDevuelve("lim", 6, 31, null, 1)}\nrollback;\n`);
+  const [ra, rb, rc] = await Promise.all([a, b, c]);
+  const detalle = (r) => `exit=${r.code} ${r.ms} ms «${r.salida.split("\n").pop()}» ${r.stderr}`;
+  registrar(
+    "DOS GUARDADOS DE LA MISMA SEDE: el segundo espera al primero ANTES de leer la versión (sin eso, la pisaría en silencio)",
+    ra.code === 0 && rb.code === 0 && rb.salida.split("\n").pop().startsWith("PT409|version_cambiada|") && rb.ms > 900
+      ? "espero"
+      : `A: ${detalle(ra)} · B: ${detalle(rb)}`,
+    "espero"
+  );
+  registrar(
+    "otra sede guarda a la vez sin esperar: el candado es de la sede, no de toda la tabla",
+    rc.code === 0 && rc.salida.split("\n").pop().startsWith('{"version": 2, "capacidad": 186') && rc.fin < ra.fin
+      ? "no_espero"
+      : `A: ${detalle(ra)} · C: ${detalle(rc)}`,
+    "no_espero"
+  );
+}
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);
 if (fallas > 0) process.exit(1);
