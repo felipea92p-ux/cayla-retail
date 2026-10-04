@@ -61,6 +61,13 @@ describe("avisosInicio", () => {
 
   it("nada que colgar es «al día»; si el motor no se pudo leer es «sin leer», nunca un cero", () => {
     expect(avisosInicio({ reponer: { prendas: 0, tallas: 0, enPausa: false } })[0]).toMatchObject({ nivel: "aldia", detalle: "El piso de venta está al día." });
+    // En pausa pero sin nada esperando (un stand sin almacén, que nunca se cuadra): «al día», sin pedir que se cuadre.
+    expect(avisosInicio({ reponer: { prendas: 0, tallas: 0, enPausa: true } })[0]).toMatchObject({
+      titulo: "Por colgar",
+      nivel: "aldia",
+      ahora: "",
+      detalle: "El piso de venta está al día.",
+    });
     expect(avisosInicio({ reponer: null })[0]).toMatchObject({ nivel: "sinleer", cantidad: null });
   });
 });

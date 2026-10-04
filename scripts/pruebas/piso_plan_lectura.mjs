@@ -645,6 +645,13 @@ caso(
 );
 caso("T1 el Taller no separa piso y almacén", `select pg_temp.lee(:'taller') ->> 'separa_piso';`, "false");
 caso(
+  "T1b un STAND con solo piso de venta separa, como lo decide Existencias (antes: «Hoy» en N/D sin aviso)",
+  `insert into retail.ubicaciones (nombre, tipo, activo) values ('Stand PP', 'tienda', true) returning id as stand \\gset
+   insert into retail.sububicaciones (ubicacion_id, nombre, tipo) values (:'stand', 'Piso de venta', 'piso_venta');
+   select pg_temp.lee(:'stand') ->> 'separa_piso';`,
+  "true"
+);
+caso(
   "T2 la sede nula es un error del que llama (22004), no un estado",
   `select pg_temp.intento($q$select retail.fn_piso_plan_lectura(null)$q$);`,
   (s) => s.startsWith("22004|")

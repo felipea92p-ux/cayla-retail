@@ -269,7 +269,9 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     avisos.push({
       clave: "reponer",
       grupo: "Inventario",
-      titulo: r?.enPausa ? "Cuadrar el piso" : "Por colgar",
+      // «Cuadrar el piso» solo si algo espera el cuadre: con 0 prendas el piso está al día (un stand sin almacén nunca se cuadra
+      // y no tiene nada que esperar), y el título no puede contradecir al detalle.
+      titulo: r?.enPausa && r.prendas > 0 ? "Cuadrar el piso" : "Por colgar",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
       ahora: !n || !r ? "" : r.enPausa ? "Cuadra el piso antes de colgar" : `Cuelga ${n} ${plural(n, "prenda", "prendas")} en el piso de venta`,

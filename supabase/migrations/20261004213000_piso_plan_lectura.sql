@@ -20,7 +20,8 @@
 --     el reloj rápido para lo que no tiene prenda (en AQP, 169 de 170 ventas). El motor sube a 1 lo colgado que piden las tallas
 --     de la sede con esa llave y las pone primero, sin nombrar un modelo (ADR-0329 act. 9).
 --   · `curvas`: las tallas que ofrece cada categoría que aparece arriba (`categoria_tallas`), para decidir las tallas centrales.
---   · `hoy`, `desde`, `dias` (14), `separa_piso` (la sede tiene piso de venta y almacén) y `ubicacion_tipo`.
+--   · `hoy`, `desde`, `dias` (14), `separa_piso` (la sede tiene piso de venta o almacén de tienda, como lo decide Existencias)
+--     y `ubicacion_tipo`.
 --   · `cuadrado_en`: cuándo se cuadró el piso de la sede por última vez (`retail.cuadres_piso`, actividad 3); NULL si nunca, o si
 --     la base todavía no guarda cuadres. Sin fecha, el motor pausa lo que manda a bajar (ADR-0328, decisión 5): no saber cuenta
 --     como no cuadrado, porque publicar «Por colgar» sobre el piso de TRU de hoy (138 colgadas en el sistema, 600–750 reales)
@@ -70,7 +71,7 @@
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
 -- Después de pegar, solo lectura:
 --   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
---     → `7d9883743dcd3c38ba57f21ac7f99f75` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--     → `b5c7f77a99bf80056f3077ba3862692a` (el cuerpo de este archivo; medido en la base con todas las migraciones).
 --   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
 --     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
@@ -283,9 +284,11 @@ begin
     select jsonb_build_object(
       'ubicacion_id', p_ubicacion_id,
       'ubicacion_tipo', (select u.tipo from retail.ubicaciones u where u.id = p_ubicacion_id),
+      -- La misma definición que Existencias (`sumarCantidades`): separa la sede que tiene piso de venta O almacén de tienda. Un
+      -- stand con solo piso también recibe su «Hoy» («Mantener» o «Sin stock atrás»), nunca una columna en N/D sin aviso.
       'separa_piso',
-        exists (select 1 from retail.sububicaciones sb where sb.ubicacion_id = p_ubicacion_id and sb.tipo = 'piso_venta')
-        and exists (select 1 from retail.sububicaciones sb where sb.ubicacion_id = p_ubicacion_id and sb.tipo = 'almacen_tienda'),
+        exists (select 1 from retail.sububicaciones sb
+                where sb.ubicacion_id = p_ubicacion_id and sb.tipo in ('piso_venta', 'almacen_tienda')),
       'cuadrado_en', v_cuadrado_en,
       'hoy', v_hoy,
       'desde', v_desde,
