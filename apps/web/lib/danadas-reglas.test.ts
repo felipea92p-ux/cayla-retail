@@ -8,6 +8,7 @@ import {
   camposGuiaReporte,
   cantidadAjustada,
   desdeInicial,
+  estadoValidado,
   interpretarErrorDeDanada,
   leerRespuestaDanada,
   libreEn,
@@ -16,6 +17,7 @@ import {
   PARAMETROS_RPC_ARREGLAR,
   PARAMETROS_RPC_REPORTAR,
   problemasReporte,
+  puedeEnviarReporte,
   quePasaAlArreglar,
   respuestaResuelveLaMarca,
   RPC_ARREGLAR_DANADA,
@@ -28,6 +30,7 @@ import {
   tituloExitoArreglo,
   tituloExitoReporte,
   type DesdeDanada,
+  type EnvioReporte,
   type EstadoReporte,
   type TallaReportable,
 } from "./danadas-reglas";
@@ -239,6 +242,47 @@ describe("los tres finales de una respuesta", () => {
     expect(respuestaResuelveLaMarca({ code: "P0001", hint: "danada_sin_tienda", message: "x" })).toBe(false);
     expect(respuestaResuelveLaMarca({ message: "Failed to fetch" })).toBe(false);
     expect(respuestaResuelveLaMarca({ code: "PGRST301", message: "JWT expired" })).toBe(false);
+  });
+});
+
+describe("tras una respuesta incierta: la ventana no se traba", () => {
+  // El caso del revisor: se reportó la ÚNICA libre del piso, la respuesta se perdió (502 sin código) y la pantalla se releyó.
+  // Con las cifras nuevas el piso dice 0: si la guía validara eso, «Confirmar de nuevo» quedaría apagado y la persona solo
+  // podría cerrar, sin saber si se guardó, y reportar «desde el almacén» una prenda sana con otra marca.
+  const enviado: EstadoReporte = { talla: talla("a", 1, 3), desde: "piso", cantidad: 1, motivo: "Mancha en la manga" };
+  const releido: EstadoReporte = { ...enviado, talla: talla("a", 0, 3) };
+  const enDuda: EnvioReporte = {
+    argumentos: argumentosDeReporte("tru", "a", "piso", 1, "Mancha en la manga", "marca-1"),
+    estado: enviado,
+    detalle: "Blusa · Rojo · a · TRU",
+  };
+
+  it("con las cifras releídas, lo elegido ya no pasaría la validación (por eso no se valida con ellas)", () => {
+    expect(problemasReporte(releido).map((p) => p.campo)).toEqual(["desde"]);
+    expect(sePuedeConfirmar(camposGuiaReporte(releido, true))).toBe(false);
+  });
+
+  it("en duda, la ventana valida lo ENVIADO: la guía queda completa y «Confirmar de nuevo» se puede tocar", () => {
+    const estado = estadoValidado(releido, enDuda);
+    expect(estado).toBe(enviado);
+    const guiaCompleta = sePuedeConfirmar(camposGuiaReporte(estado, true));
+    expect(guiaCompleta).toBe(true);
+    expect(puedeEnviarReporte(true, guiaCompleta, true)).toBe(true);
+  });
+
+  it("en duda, solo hace falta quién lo hace (como Reponer), aunque la guía dijera otra cosa", () => {
+    expect(puedeEnviarReporte(true, false, true)).toBe(true);
+    expect(puedeEnviarReporte(true, true, false)).toBe(false);
+  });
+
+  it("sin nada en duda, manda la guía (las mismas reglas que la base) y lo elegido ahora", () => {
+    expect(estadoValidado(releido, null)).toBe(releido);
+    expect(puedeEnviarReporte(false, false, true)).toBe(false);
+    expect(puedeEnviarReporte(false, true, true)).toBe(true);
+  });
+
+  it("lo que se reenvía son los argumentos guardados, con la MISMA marca", () => {
+    expect(enDuda.argumentos).toEqual({ p_ubicacion_id: "tru", p_variante_id: "a", p_cantidad: 1, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca-1" });
   });
 });
 

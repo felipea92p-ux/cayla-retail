@@ -225,6 +225,31 @@ export function respuestaResuelveLaMarca(error: ErrorEscritura): boolean {
   return !!error.hint && HINTS_DESPUES_DE_LA_MARCA.has(error.hint);
 }
 
+/**
+ * Un envío cuya respuesta quedó en duda (ADR-0208), guardado tal cual: los argumentos con su marca, lo que la ventana validó al
+ * enviarlos y el nombre de la prenda para el aviso. Mientras exista, la ventana reenvía ESTO y no lo que hoy diga la pantalla.
+ */
+export type EnvioReporte = { argumentos: ArgumentosDeReporte; estado: EstadoReporte; detalle: string };
+
+/**
+ * Lo que la ventana valida: lo elegido ahora o, si un envío quedó en duda, lo que se envió. Tras una respuesta incierta la
+ * pantalla se relee, y si el reporte SÍ se guardó, lo libre ya bajó: validar con las cifras nuevas diría «en el piso no hay
+ * ninguna libre» de algo que la persona ya no puede cambiar (está congelado) y apagaría «Confirmar de nuevo», que es lo único
+ * que dice qué pasó. Esa ventana trabada empujaba a cerrarla y reportar «desde el almacén» una prenda sana con otra marca.
+ */
+export function estadoValidado(vivo: EstadoReporte, enDuda: EnvioReporte | null): EstadoReporte {
+  return enDuda ? enDuda.estado : vivo;
+}
+
+/**
+ * ¿Se puede enviar? Sin nada en duda, cuando la guía está completa (las mismas reglas que la base). Con un envío en duda, solo
+ * falta quién lo hace: se reenvía EXACTAMENTE lo enviado, con la misma marca (como en Reponer). Si ya se había guardado, la base
+ * responde «ya estaba» sin moverla otra vez; si no, lo vuelve a intentar y dice si alcanza.
+ */
+export function puedeEnviarReporte(enDuda: boolean, guiaCompleta: boolean, responsableListo: boolean): boolean {
+  return enDuda ? responsableListo : guiaCompleta;
+}
+
 /** El botón de la ventana: dice cuántas apenas se puede, y tras un corte de red pide confirmar lo mismo de nuevo. */
 export function textoBotonReportar(cantidad: number, congelado: boolean): string {
   if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;

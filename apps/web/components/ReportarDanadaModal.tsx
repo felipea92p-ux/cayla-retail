@@ -22,10 +22,12 @@ import {
   camposGuiaReporte,
   cantidadAjustada,
   desdeInicial,
+  estadoValidado,
   interpretarErrorDeDanada,
   leerRespuestaDanada,
   libreEn,
   MAX_TEXTO_DANADA,
+  puedeEnviarReporte,
   QUE_PASA_AL_REPORTAR,
   respuestaResuelveLaMarca,
   RPC_REPORTAR_DANADA,
@@ -36,6 +38,7 @@ import {
   tieneAlgoLibre,
   tituloExitoReporte,
   type DesdeDanada,
+  type EnvioReporte,
   type TallaReportable,
 } from "@/lib/danadas-reglas";
 
@@ -87,8 +90,10 @@ export function ReportarDanadaModal({
   // La marca de este intento (ADR-0208): el mismo reporte enviado otra vez devuelve lo ya guardado sin moverla dos veces. Una por
   // ventana abierta; un rechazo de la base la deja libre (la transacción se deshizo entera).
   const token = useRef<string>(crypto.randomUUID());
-  // Tras una respuesta incierta (corte de red) lo elegido queda fijo: cambiarlo sería otro reporte con la misma marca.
-  const [congelado, setCongelado] = useState(false);
+  // Tras una respuesta incierta (corte de red) lo ENVIADO queda guardado tal cual y se reenvía igual: cambiarlo sería otro reporte
+  // con la misma marca, y validarlo contra las cifras releídas trabaría la ventana justo cuando el reporte sí se guardó.
+  const [enDuda, setEnDuda] = useState<EnvioReporte | null>(null);
+  const congelado = enDuda !== null;
   const enviadoEn = useRef<string | null>(null);
   // Candado contra el doble clic en el mismo instante: `loading` apaga el botón recién en el render siguiente.
   const enVuelo = useRef(false);
@@ -96,9 +101,10 @@ export function ReportarDanadaModal({
   const responsable = useResponsable();
 
   const cantidad = Number(cantidadTexto.trim() === "" ? Number.NaN : cantidadTexto);
-  const libre = libreEn(talla, desde);
-  const estado = { talla, desde, cantidad, motivo };
+  const estado = estadoValidado({ talla, desde, cantidad, motivo }, enDuda);
+  const libre = libreEn(estado.talla, estado.desde);
   const guia = useGuiaCampos(camposGuiaReporte(estado, responsable.listo));
+  const puedeEnviar = puedeEnviarReporte(congelado, guia.puedeConfirmar, responsable.listo);
   const bloqueado = congelado || loading;
 
   function limpiarError() {
@@ -133,7 +139,18 @@ export function ReportarDanadaModal({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (enVuelo.current || !guia.puedeConfirmar || !talla || !desde) return;
+    if (enVuelo.current || !puedeEnviar) return;
+    // Lo que viaja: lo ya enviado si está en duda (mismos datos, misma marca) o lo elegido ahora.
+    const envio: EnvioReporte | null =
+      enDuda ??
+      (talla && desde
+        ? {
+            argumentos: argumentosDeReporte(ubicacionId, talla.varianteId, desde, cantidad, motivo, token.current),
+            estado: { talla, desde, cantidad, motivo },
+            detalle: `${modelo?.referencia ?? "La prenda"}${color?.color ? ` · ${color.color}` : ""}${talla.talla ? ` · ${talla.talla}` : ""} · ${sede}`,
+          }
+        : null);
+    if (!envio) return;
     enVuelo.current = true;
     setLoading(true);
     setError(null);
@@ -147,7 +164,7 @@ export function ReportarDanadaModal({
     try {
       const respuesta = await firmar(
         createClient()
-          .rpc(RPC_REPORTAR_DANADA, argumentosDeReporte(ubicacionId, talla.varianteId, desde, cantidad, motivo, token.current))
+          .rpc(RPC_REPORTAR_DANADA, envio.argumentos)
           .abortSignal(control.signal),
         responsable.firma(),
       );
@@ -164,28 +181,28 @@ export function ReportarDanadaModal({
       enVuelo.current = false;
       const fallo = interpretarErrorDeDanada(errorRpc, "reportar la prenda dañada");
       if (fallo.tipo === "red") {
-        // Sin respuesta no se sabe si se reportó: lo elegido se congela y solo se reenvía igual, con la misma marca.
-        setCongelado(true);
+        // Sin respuesta no se sabe si se reportó: lo enviado se congela y solo se reenvía igual, con la misma marca.
+        setEnDuda(envio);
         setError(fallo.mensaje);
         if (!esFalloDeRed(errorRpc)) router.refresh();
         return;
       }
       if (eraReenvio && !respuestaResuelveLaMarca(errorRpc)) {
         // La base contestó sin mirar la marca (sesión vencida, módulo apagado): lo anterior sigue en duda.
-        setCongelado(true);
+        setEnDuda(envio);
         setError(`${fallo.mensaje} ${textoMarcaSinResolver(formatearHoraLima(marcaDeEnvio))}`);
         return;
       }
       enviadoEn.current = null;
-      setCongelado(false);
+      setEnDuda(null);
       setError(fallo.mensaje);
       // Las cifras se releen: lo que otra persona movió (o apartó) ya no engaña a esta ventana.
       if (fallo.tipo === "sin_alcance") router.refresh();
       return;
     }
 
-    const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: "", unidades: cantidad };
-    const detalle = `${modelo?.referencia ?? "La prenda"}${color?.color ? ` · ${color.color}` : ""}${talla.talla ? ` · ${talla.talla}` : ""} · ${sede}`;
+    const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: "", unidades: envio.argumentos.p_cantidad };
+    const detalle = envio.detalle;
     if (r.ya_registrada) avisar.aviso(TEXTO_REPORTE_YA_ESTABA, { detalle });
     else avisar.exito(tituloExitoReporte(r.unidades), { detalle });
     router.refresh();
@@ -308,7 +325,7 @@ export function ReportarDanadaModal({
               type="submit"
               peso="primario"
               cargando={loading}
-              disabled={!guia.puedeConfirmar}
+              disabled={!puedeEnviar}
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
