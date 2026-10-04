@@ -75,6 +75,7 @@
     "pruebas:movimientos-desde-la-tienda": "node scripts/pruebas/movimientos_desde_la_tienda.mjs",
     "pruebas:traslados-recibir-sin-perder-nada": "node scripts/pruebas/traslados_recibir_sin_perder_nada.mjs",
     "pruebas:pedir-a-otra-sede": "node scripts/pruebas/pedir_a_otra_sede.mjs",
+    "pruebas:pedidos-que-no-se-pierden": "node scripts/pruebas/pedidos_que_no_se_pierden.mjs",
     "pruebas:ajuste-no-es-primera-carga": "node scripts/pruebas/ajuste_no_es_primera_carga.mjs",
     "pruebas:productos-estado-en-bloque": "node scripts/pruebas/productos_estado_en_bloque.mjs",
     "pruebas:movimientos-saldo": "node scripts/pruebas/movimientos_saldo.mjs",

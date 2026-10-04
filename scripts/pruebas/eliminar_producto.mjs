@@ -319,6 +319,8 @@ select pg_temp.huella(:'va');`);
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
     "pedidos_no_atendidos", "separacion_pedidos", "frescura_decisiones",
+    // ADR-0328 act. 17: una prenda subida para mandarla a otra sede frena el borrado, como un pedido a otra sede.
+    "prendas_para_enviar",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
