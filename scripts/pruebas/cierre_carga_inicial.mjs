@@ -9,12 +9,16 @@
  *      sede sin fecha y el último día (hoy = la fecha), y se cierran desde el día siguiente con la frase y el hint
  *      `carga_inicial_cerrada`, sin dejar nada a medias (ni el producto del alta). Por sede: TRU cerrada no cierra Lima.
  *   2. La cuarta puerta escondida: `registrar_movimiento` no escribe el motivo `carga_inicial`; y ninguna función fuera de
- *      `fn_cargar_stock_inicial` lo escribe como texto fijo (recorre `pg_proc`).
- *   3. «Encontré prendas» (código interno `reposicion`): pide nota de 3 letras o más, solo suma, y con la carga cerrada es
- *      la entrada de una prenda que nunca estuvo en la sede; con otro motivo se rechaza; con la carga abierta todo sigue
- *      como ADR-0235 (`ajuste_sin_historia`). Actividad dice «encontré prendas».
+ *      `fn_cargar_stock_inicial` lo escribe como texto fijo (recorre `pg_proc`). Lo mismo con `reposicion`: solo
+ *      `registrar_movimiento` lo escribe, con sus reglas.
+ *   3. «Encontré prendas» (código interno `reposicion`): es un AJUSTE (ni entrada ni salida suelta), pide nota de 3 letras o
+ *      más, solo suma, y con la carga cerrada es la entrada de una prenda que nunca estuvo en la sede; con otro motivo, o
+ *      como ENTRADA suelta, se rechaza; con la carga abierta todo sigue como ADR-0235 (`ajuste_sin_historia`). Actividad dice
+ *      «encontré prendas».
  *   4. `fijar_cierre_carga_inicial`: el líder aprieta (pone fecha, adelanta); aflojar (reabrir, quitar, correr más
  *      adelante) es del Admin; nunca una fecha pasada; la misma fecha no escribe; deja historia y una línea en Actividad.
+ *      Y dos sesiones a la vez se ponen en fila: la función toma la fila de la sede ANTES de leer la fecha (carrera de dos
+ *      `psql`, ninguna confirma nada).
  *   5. El guardián: la fecha no se cambia escribiendo la fila desde la API, aunque la política deje al líder escribirla.
  *   6. La lectura `fn_carga_inicial_sedes` y los permisos; la frase exacta («15-oct»); y que las tres migraciones se pegan
  *      dos veces sin duplicar nada.
@@ -30,7 +34,7 @@
  *   pnpm pruebas:cierre-carga-inicial    → con las migraciones ya aplicadas en el Postgres local
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -115,6 +119,11 @@ select codigo as c1 from retail.colores where activo order by codigo limit 1 \\g
 select gen_random_uuid() as tok \\gset
 select gen_random_uuid() as tok2 \\gset
 
+-- Lo que ya había en el historial y en Actividad: la prueba lee SOLO lo que escribe su caso. En una base compartida alguien
+-- pudo haber guardado un cierre de verdad (Actividad no se borra), y leer «el primero de la tabla» daba rojo falso.
+select coalesce(max(id), 0) as hist0 from retail.configuracion_historial \\gset
+select coalesce(max(id), 0) as act0 from retail.actividad \\gset
+
 -- La sesión de Felipe (líder y Admin), como la arma PostgREST.
 set local request.jwt.claim.sub = '${FELIPE}';
 set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
@@ -143,6 +152,9 @@ const ajustar = ({ ajustes = "'[]'", cargas = "'[]'", motivo = "null", nota = "n
   `pg_temp.intento(format('select retail.ajustar_inventario(%L::uuid, %L::uuid, %L::jsonb, %L, %L::jsonb, false, %L, %L::uuid)::text', :'tru', :'alm', ${ajustes}, ${motivo}, ${cargas}, ${nota}, :'${token}'))`;
 const mov = (v, cant, motivo, nota = "null", sub = "alm", tipo = "ajuste") =>
   `pg_temp.intento(format('select retail.registrar_movimiento(%L::uuid, %L::uuid, %L, ${cant}, %L, %L, %L::uuid)::text', :'${v}', :'tru', '${tipo}', '${motivo}', ${nota}, :'${sub}'))`;
+/** Un movimiento suelto SIN motivo (la API lo permite: `p_motivo` es opcional). */
+const movSinMotivo = (v, cant, tipo) =>
+  `pg_temp.intento(format('select retail.registrar_movimiento(%L::uuid, %L::uuid, %L, ${cant}, null, null, %L::uuid)::text', :'${v}', :'tru', '${tipo}', :'alm'))`;
 const fijar = (sede, fecha) => `pg_temp.intento(format('select retail.fijar_cierre_carga_inicial(%L::uuid, %s)::text', :'${sede}', quote_nullable(${fecha})))`;
 const movs = (v) => `(select count(*) from retail.movimientos where variante_id = :'${v}')`;
 const stockAlm = (v) => `coalesce((select sum(cantidad) from retail.stock where variante_id = :'${v}' and ubicacion_id = :'tru' and sububicacion_id = :'alm'), 0)`;
@@ -253,14 +265,19 @@ ${K("tru", carga("tru", items(["v2", 2])))}`,
 // ---------------------------------------------------------------------------------------------------------------------
 // 2. Una sola puerta
 // ---------------------------------------------------------------------------------------------------------------------
+// Las funciones que insertan en `movimientos` y nombran un motivo como texto fijo. `registrar_movimiento` inserta el motivo
+// que recibe (`p_motivo`) y nombra los dos solo para ponerles sus reglas.
+const escritorasDe = (motivo) => `(select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'retail' and p.prosrc ~* 'insert\\s+into\\s+(retail\\.)?movimientos' and p.prosrc like '%''${motivo}''%')`;
+
 correr(
-  "2. La carga inicial tiene UNA puerta: ni registrar_movimiento ni otra función la escriben",
+  "2. El motivo «carga_inicial» lo escribe UNA función (ni registrar_movimiento ni otra), y «reposicion» solo registrar_movimiento",
   `${COMO_API}${K("entrada", mov("vh", 3, "carga_inicial", "null", "alm", "entrada"))}
 ${K("ajuste", mov("vh", 3, "carga_inicial"))}
 ${K("mayus", mov("vh", 3, " Carga_Inicial "))}
 ${COMO_POSTGRES}${K("vh", movs("vh"))}
-${K("escritoras", `(select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'retail' and p.prosrc ~* 'insert\\s+into\\s+(retail\\.)?movimientos' and p.prosrc like '%''carga_inicial''%')`)}`,
+${K("escritoras", escritorasDe("carga_inicial"))}
+${K("escritoras_encontre", escritorasDe("reposicion"))}`,
   (d) => {
     afirmar("registrar_movimiento rechaza una ENTRADA «carga_inicial» (`carga_inicial_por_su_puerta`)", hintDe(d.entrada) === "carga_inicial_por_su_puerta", d.entrada);
     afirmar("y un AJUSTE «carga_inicial»", hintDe(d.ajuste) === "carga_inicial_por_su_puerta", d.ajuste);
@@ -273,6 +290,9 @@ ${K("escritoras", `(select string_agg(p.proname, ',' order by p.proname) from pg
       d.escritoras === "fn_cargar_stock_inicial,registrar_movimiento",
       d.escritoras,
     );
+    // «Encontré prendas» es la única entrada sin papeles después del cierre: si otra función la escribe directo, se salta la nota
+    // y el «solo suma». Una función que la necesite llama a registrar_movimiento (como bajar_en_mano, ADR-0328 act. 9).
+    afirmar("solo registrar_movimiento escribe «reposicion» («Encontré prendas») en movimientos", d.escritoras_encontre === "registrar_movimiento", d.escritoras_encontre);
   },
 );
 
@@ -280,10 +300,13 @@ ${K("escritoras", `(select string_agg(p.proname, ',' order by p.proname) from pg
 // 3. «Encontré prendas»
 // ---------------------------------------------------------------------------------------------------------------------
 correr(
-  "3a. «Encontré prendas» pide dónde o por qué (3 letras o más) y solo suma",
+  "3a. «Encontré prendas» es un ajuste: pide dónde o por qué (3 letras o más) y solo suma",
   `${COMO_API}${K("sin_nota", mov("vh", 2, "reposicion"))}
 ${K("nota_corta", mov("vh", 2, "reposicion", "'  ab '"))}
 ${K("resta", mov("vh", -1, "reposicion", "'se dañó'"))}
+${K("entrada_sin_nota", mov("vh", 5, "reposicion", "null", "alm", "entrada"))}
+${K("entrada_con_nota", mov("vh", 5, "Reposición", "'en una caja'", "alm", "entrada"))}
+${K("salida", mov("vh", 1, "reposicion", "'en una caja'", "alm", "salida"))}
 ${K("con_nota", mov("vh", 2, "reposicion", "'en una caja del almacén'"))}
 ${COMO_POSTGRES}${K("alm", stockAlm("vh"))}
 ${K("libro", "(select concat_ws(':', tipo, cantidad, motivo, nota) from retail.movimientos where variante_id = :'vh' and motivo = 'reposicion')")}
@@ -294,6 +317,10 @@ ${K("actividad", "(select descripcion from retail.actividad where tabla = 'movim
     afirmar("sin nota se rechaza (`encontre_prendas_sin_nota`)", hintDe(d.sin_nota) === "encontre_prendas_sin_nota", d.sin_nota);
     afirmar("una nota de 2 letras tampoco", hintDe(d.nota_corta) === "encontre_prendas_sin_nota", d.nota_corta);
     afirmar("restar se rechaza (`encontre_prendas_resta`)", hintDe(d.resta) === "encontre_prendas_resta", d.resta);
+    // Revisión adversarial: por `p_tipo = 'entrada'` «Encontré prendas» entraba sin nota (las reglas solo miraban 'ajuste').
+    afirmar("como ENTRADA suelta sin nota no entra (`encontre_prendas_es_ajuste`)", hintDe(d.entrada_sin_nota) === "encontre_prendas_es_ajuste", d.entrada_sin_nota);
+    afirmar("ni con nota y escrito de otra forma («Reposición»)", hintDe(d.entrada_con_nota) === "encontre_prendas_es_ajuste", d.entrada_con_nota);
+    afirmar("ni como SALIDA suelta", hintDe(d.salida) === "encontre_prendas_es_ajuste", d.salida);
     afirmar("con nota entra", okDe(d.con_nota), d.con_nota);
     afirmar("el almacén pasó de 5 a 7", d.alm === "7", `alm=${d.alm}`);
     afirmar("queda como ajuste +2 con el código de siempre y la nota", d.libro === "ajuste:2:reposicion:en una caja del almacén", d.libro);
@@ -315,6 +342,8 @@ correr(
   "3c. Carga CERRADA: la prenda que nunca estuvo en la sede entra con «Encontré prendas», y con otro motivo no",
   `${fechaTru(AYER)}${COMO_API}${K("conteo", mov("v3", 2, "conteo_fisico"))}
 ${K("otro", mov("v3", 2, "otro", "'apareció'"))}
+${K("entrada_otro", mov("v3", 7, "otro", "null", "alm", "entrada"))}
+${K("entrada_sin_motivo", movSinMotivo("v3", 3, "entrada"))}
 ${K("encontre", mov("v3", 2, "reposicion", "'en una bolsa sin etiqueta'"))}
 ${COMO_POSTGRES}${K("alm", stockAlm("v3"))}
 ${K("libro", "(select string_agg(concat_ws(':', tipo, cantidad, motivo), ',') from retail.movimientos where variante_id = :'v3')")}`,
@@ -327,6 +356,9 @@ ${K("libro", "(select string_agg(concat_ws(':', tipo, cantidad, motivo), ',') fr
       c?.msg,
     );
     afirmar("«Otro» también se rechaza", hintDe(d.otro) === "carga_inicial_cerrada", d.otro);
+    // Revisión adversarial: una ENTRADA suelta metía la prenda nueva sin papeles después del cierre.
+    afirmar("una ENTRADA suelta («Otro») tampoco la mete", hintDe(d.entrada_otro) === "carga_inicial_cerrada", d.entrada_otro);
+    afirmar("ni una ENTRADA suelta sin motivo", hintDe(d.entrada_sin_motivo) === "carga_inicial_cerrada", d.entrada_sin_motivo);
     afirmar("«Encontré prendas» con nota entra al almacén", okDe(d.encontre) && d.alm === "2", `${d.encontre} alm=${d.alm}`);
     afirmar("queda un solo movimiento: ajuste +2 «reposicion» (no una carga inicial)", d.libro === "ajuste:2:reposicion", d.libro);
   },
@@ -360,7 +392,8 @@ ${COMO_POSTGRES}${K("v3", stockAlm("v3"))}`,
 // ---------------------------------------------------------------------------------------------------------------------
 // 4. Quién mueve la fecha
 // ---------------------------------------------------------------------------------------------------------------------
-const historial = "(select count(*) from retail.configuracion_historial where que = 'cierre_carga_inicial' and detalle ->> 'ubicacion_id' = :'tru')";
+// Solo lo que escribió el caso (`id > :hist0`, `id > :act0`; ver el PRELUDIO).
+const historial = "(select count(*) from retail.configuracion_historial where que = 'cierre_carga_inicial' and detalle ->> 'ubicacion_id' = :'tru' and id > :hist0)";
 const fechaActual = "(select carga_inicial_hasta from retail.ubicaciones where id = :'tru')";
 
 correr(
@@ -372,9 +405,9 @@ ${K("adelantar", fijar("tru", `${HOY} + 5`))}
 ${K("misma", fijar("tru", `${HOY} + 5`))}
 ${COMO_POSTGRES}${K("fecha", `${fechaActual} = ${HOY} + 5`)}
 ${K("historial", historial)}
-${K("firma", "(select string_agg((hecho_por = :'sandra')::text, ',') from retail.configuracion_historial where que = 'cierre_carga_inicial')")}
-${K("antes_despues", `(select (detalle ->> 'antes') is null and (detalle ->> 'despues')::date = ${HOY} + 10 from retail.configuracion_historial where que = 'cierre_carga_inicial' order by id limit 1)`)}
-${K("actividad", "(select descripcion from retail.actividad where modulo = 'configuracion' and accion = 'config_cierre_carga_inicial' order by id limit 1)")}`,
+${K("firma", "(select string_agg((hecho_por = :'sandra')::text, ',' order by id) from retail.configuracion_historial where que = 'cierre_carga_inicial' and id > :hist0)")}
+${K("antes_despues", `(select (detalle ->> 'antes') is null and (detalle ->> 'despues')::date = ${HOY} + 10 from retail.configuracion_historial where que = 'cierre_carga_inicial' and id > :hist0 order by id limit 1)`)}
+${K("actividad", "(select descripcion from retail.actividad where modulo = 'configuracion' and accion = 'config_cierre_carga_inicial' and id > :act0 order by id limit 1)")}`,
   (d) => {
     afirmar("Sandra es líder y no Admin", d.es_lider === "true", d.es_lider);
     afirmar("pone fecha donde no había", okDe(d.poner) && d.despues_poner === "true", d.poner);
@@ -419,7 +452,7 @@ ${K("carga", carga("tru", items(["v1", 1])))}
 ${K("quitar", fijar("tru", "null"))}
 ${como(MICAELA)}${K("integrante", fijar("tru", `${HOY} + 30`))}
 ${COMO_POSTGRES}${K("fecha", fechaActual)}
-${K("actividad", "(select descripcion from retail.actividad where accion = 'config_cierre_carga_inicial' order by id desc limit 1)")}`,
+${K("actividad", "(select descripcion from retail.actividad where accion = 'config_cierre_carga_inicial' and id > :act0 order by id desc limit 1)")}`,
   (d) => {
     afirmar("Felipe es Admin", d.es_admin === "true", d.es_admin);
     afirmar("reabre una sede cerrada", okDe(d.reabrir), d.reabrir);
@@ -499,6 +532,7 @@ ${MIGRACIONES.map(migracion).join("\n")}
 ${COMO_POSTGRES}${K("candado", veces(CSI, "fn_exigir_carga_inicial_abierta"))}
 ${K("puerta", veces(RM, "carga_inicial_por_su_puerta"))}
 ${K("nota", veces(RM, "encontre_prendas_sin_nota"))}
+${K("es_ajuste", veces(RM, "encontre_prendas_es_ajuste"))}
 ${K("cerrada", veces(RM, "fn_texto_carga_inicial_cerrada"))}
 ${K("sin_historia", veces(RM, "ajuste_sin_historia"))}
 ${K("adr0208", veces(RM, "ADR-0208: «Reposición» no sube"))}
@@ -509,6 +543,7 @@ ${K("disparador", "(select count(*) from pg_trigger where tgname = 'ubicaciones_
     afirmar("el candado está UNA vez en fn_cargar_stock_inicial", d.candado === "1", d.candado);
     afirmar("la puerta de registrar_movimiento, una vez (comentario + hint)", d.puerta === "2", d.puerta);
     afirmar("la nota de «Encontré prendas», una vez", d.nota === "1", d.nota);
+    afirmar("«Encontré prendas» es un ajuste, una vez (comentario + hint)", d.es_ajuste === "2", d.es_ajuste);
     afirmar("la salida con la carga cerrada, una vez", d.cerrada === "1", d.cerrada);
     afirmar("ADR-0235 sigue igual (comentario + hint)", d.sin_historia === "2", d.sin_historia);
     afirmar("el parche de ADR-0208 sigue una vez", d.adr0208 === "1", d.adr0208);
@@ -517,6 +552,78 @@ ${K("disparador", "(select count(*) from pg_trigger where tgname = 'ubicaciones_
     afirmar("un solo disparador guardián", d.disparador === "1", d.disparador);
   },
 );
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 7. Dos sesiones a la vez: `fijar_cierre_carga_inicial` toma la fila de la sede ANTES de leer su fecha
+// ---------------------------------------------------------------------------------------------------------------------
+// Sin ese candado, dos líderes a la vez leían la MISMA fecha vieja: el segundo pasaba la regla «aflojar es del Admin» contra
+// una fecha que ya no era la de la base y el historial anotaba un «antes» falso (revisión adversarial, con COMMIT: el cierre
+// terminaba UN día más tarde, puesto por un líder sin Admin). Con ROLLBACK eso no se ve, y aquí NADA se confirma (el Postgres
+// local es compartido): la sesión A toma la fila de TRU y la retiene; la B, un segundo después, fija la MISMA fecha que ya
+// tiene — el camino que no escribe nada. Con el candado, B espera la fila y su `lock_timeout` la corta (55P03); sin él, B
+// leería sin esperar y respondería «ok» al instante.
+function psqlAsync(sql) {
+  return new Promise((resolve) => {
+    const p = spawn(
+      "docker",
+      ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+      { stdio: ["pipe", "pipe", "pipe"] },
+    );
+    let stdout = "";
+    let stderr = "";
+    p.stdout.on("data", (d) => (stdout += d));
+    p.stderr.on("data", (d) => (stderr += d));
+    p.on("close", (code) => resolve({ code, stdout, stderr }));
+    p.stdin.write(sql);
+    p.stdin.end();
+  });
+}
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+console.log("\n7. Dos sesiones a la vez: la segunda espera la fila de la sede (nada se confirma)");
+{
+  const sedeTru = "select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset";
+  const sesionA = `begin;
+${sedeTru}
+select 1 from retail.ubicaciones where id = :'tru' for update;
+select pg_sleep(3);
+rollback;
+`;
+  const sesionB = `begin;
+create function pg_temp.intento(p_sql text) returns jsonb language plpgsql as $f$
+declare v_estado text; v_msg text; v_res text;
+begin
+  execute p_sql into v_res;
+  return jsonb_build_object('ok', true, 'res', v_res);
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text;
+  return jsonb_build_object('ok', false, 'estado', v_estado, 'msg', v_msg);
+end;
+$f$;
+${sedeTru}
+select coalesce(carga_inicial_hasta::text, '') as hasta from retail.ubicaciones where id = :'tru' \\gset
+set local request.jwt.claim.sub = '${FELIPE}';
+set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
+select set_config('request.headers', '{}', true) as _h \\gset
+set local lock_timeout = '1s';
+${COMO_API}select 'K|b|' || pg_temp.intento(format('select retail.fijar_cierre_carga_inicial(%L::uuid, %s)::text', :'tru', quote_nullable(nullif(:'hasta', '')::date)))::text;
+rollback;
+`;
+  const a = psqlAsync(sesionA);
+  await dormir(1000);
+  const inicioB = Date.now();
+  const b = await psqlAsync(sesionB);
+  const msB = Date.now() - inicioB;
+  const ra = await a;
+  const rb = j(parsear(b.stdout).b);
+  afirmar("la sesión A tomó la fila y la soltó sin confirmar nada", ra.code === 0, ra.stderr);
+  afirmar(
+    "la sesión B esperó la fila de la sede (lock_timeout, 55P03): fijar la toma ANTES de leer la fecha",
+    rb?.ok === false && rb.estado === "55P03",
+    `${JSON.stringify(rb)} ${b.stderr}`.trim(),
+  );
+  afirmar("y esperó de verdad (≥ 0,9 s), no falló por otra cosa", msB >= 900, `${msB} ms`);
+}
 
 console.log(`\n${fallos === 0 ? "✔" : "✘"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
 process.exit(fallos === 0 ? 0 : 1);

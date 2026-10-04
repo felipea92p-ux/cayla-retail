@@ -12,17 +12,29 @@
 -- `ajuste_sin_historia`) y le dice «cárgala como stock inicial», que ya no existe para esa sede.
 --
 -- QUÉ HACE (todo en `registrar_movimiento`, la única puerta de los ajustes sueltos; reemplazos anclados):
---   1. «Encontré prendas» (el código interno sigue siendo `reposicion`: la historia no se reescribe) solo SUMA
---      (`encontre_prendas_resta`) y exige una nota de al menos 3 letras con dónde o por qué (`encontre_prendas_sin_nota`).
---      Vale para Ajustar, la ficha y cualquier llamada directa: la regla es de la base, no de una pantalla.
---   2. Con la carga inicial de la sede CERRADA, una prenda que nunca estuvo en ella entra con «Encontré prendas»; con
---      cualquier otro motivo se rechaza con la salida dicha (`carga_inicial_cerrada`). Con la carga ABIERTA (o sin fecha)
---      todo sigue como hoy: la primera carga es stock inicial (`ajuste_sin_historia`).
+--   1. «Encontré prendas» (el código interno sigue siendo `reposicion`: la historia no se reescribe) es un AJUSTE
+--      (`encontre_prendas_es_ajuste`: ni entrada ni salida suelta), solo SUMA (`encontre_prendas_resta`) y exige una nota de
+--      al menos 3 letras con dónde o por qué (`encontre_prendas_sin_nota`). La regla mira el MOTIVO, no el tipo: vale para
+--      Ajustar, la ficha y cualquier llamada directa.
+--   2. Con la carga inicial de la sede CERRADA, una prenda que nunca estuvo en ella entra con «Encontré prendas»; un ajuste
+--      con cualquier otro motivo, o una ENTRADA suelta, se rechazan con la salida dicha (`carga_inicial_cerrada`). Con la
+--      carga ABIERTA (o sin fecha) todo sigue como hoy: la primera carga es stock inicial (`ajuste_sin_historia`).
 --   3. El mensaje de «no en el piso» (ADR-0208, `reposicion_piso_cerrada`) habla de «Encontré prendas».
 --   4. Actividad (`fn_actividad_inventario`) dice «motivo: encontré prendas». Las líneas ya anotadas no se reescriben.
 --
--- ESTADOS QUE DEJAN DE SER POSIBLES: un «Encontré prendas» que resta o que no dice nada; una sede con la carga cerrada
--- donde una prenda encontrada no tiene por dónde entrar (o entra como «Conteo físico» sin rastro de que era nueva ahí).
+-- ESTADOS QUE DEJAN DE SER POSIBLES (para lo que se escriba desde hoy): un «Encontré prendas» que resta, que no dice nada
+-- o que se escribe como entrada suelta; una prenda que nunca estuvo en una sede con la carga cerrada que entra sin
+-- «Encontré prendas» por `registrar_movimiento` (ajuste o entrada); una sede cerrada donde lo encontrado no tiene por dónde
+-- entrar.
+--
+-- LO QUE ESTO NO CIERRA, A PROPÓSITO. Un CONTEO (`cerrar_conteo`) escribe su ajuste directo, con `conteo_item_id` y firma:
+-- con la carga cerrada, el sobrante de una prenda que nunca estuvo en la sede entra como ajuste «conteo». Es una puerta
+-- DOCUMENTADA (quién contó, cuándo, qué conteo), no una entrada sin papeles; puede ser una talla cruzada (ADR-0328), así que
+-- bloquearla rompería ese caso. Si se cuenta aparte como «lo que apareció» lo decide Felipe con la actividad 3 (conteo de
+-- arranque). Y no se agrega un CHECK sobre `movimientos`: las 16 filas `reposicion` sin nota de producción son historia
+-- que se sigue leyendo, y cuatro pruebas de otros módulos (purgar_producto_de_prueba, eliminar_producto_con_historia,
+-- estado_resultados, frescura_lectura) siembran a propósito filas de ese estilo para probar cómo se leen. La guardia contra
+-- un escritor nuevo es la prueba `cierre_carga_inicial.mjs`: recorre `pg_proc` y falla si otra función escribe `reposicion`.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. DESPUÉS de la parte 2 (usa `fn_carga_inicial_abierta` y `fn_texto_carga_inicial_cerrada`) y
 -- ANTES de publicar la web (la web ya pide la nota, pero una pantalla vieja abierta sin ella recibirá el mensaje de la
@@ -31,7 +43,8 @@
 -- `pg_get_functiondef` de producción.
 --
 -- SE ROMPE SI: alguien vuelve a pegar 20260926000200 o 20260927153200 (recrean `registrar_movimiento` desde su archivo sin
--- estas reglas), o una pantalla vieja manda «Encontré prendas» sin nota (la base la rechaza con su mensaje; no se pierde
+-- estas reglas); una función nueva inserta `reposicion` en `movimientos` sin pasar por `registrar_movimiento` (la prueba la
+-- nombra en CI); o una pantalla vieja manda «Encontré prendas» sin nota (la base la rechaza con su mensaje; no se pierde
 -- nada, se vuelve a intentar con la nota).
 -- ============================================================================
 
@@ -67,12 +80,19 @@ select pg_temp.encontre_prendas_reemplazar(
   $n$raise exception '«Encontré prendas» se registra en el almacén, no en el piso: anótalas en el almacén y, si ya están colgadas, bájalas con «Reponer» en Existencias. Si al contar el piso te sobran prendas, elige «Conteo físico».'$n$
 );
 
--- 2. «Encontré prendas» solo suma y dice dónde o por qué. Va después del candado del piso y antes de elegir la sububicación.
+-- 2. «Encontré prendas» es un AJUSTE que solo suma y dice dónde o por qué. Se mira el MOTIVO, no el tipo: una «entrada» o
+--    «salida» suelta con ese motivo se rechaza (revisión adversarial: por `p_tipo = 'entrada'` entraba sin nota).
+--    Va después del candado del piso y antes de elegir la sububicación.
 select pg_temp.encontre_prendas_reemplazar(
   'retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)',
   $v$  v_sub := coalesce(p_sububicacion_id,$v$,
-  $n$  -- ADR-0328 (act. 4): «Encontré prendas» (código interno `reposicion`) solo SUMA y dice dónde o por qué aparecieron.
-  if p_tipo = 'ajuste' and lower(btrim(coalesce(p_motivo, ''))) in ('reposicion', 'reposición') then
+  $n$  -- ADR-0328 (act. 4): «Encontré prendas» (código interno `reposicion`) es un AJUSTE que solo SUMA y dice dónde o por qué
+  -- aparecieron. Se mira el motivo, no el tipo: escrito como entrada o salida suelta, no entra (encontre_prendas_es_ajuste).
+  if lower(btrim(coalesce(p_motivo, ''))) in ('reposicion', 'reposición') then
+    if p_tipo <> 'ajuste' then
+      raise exception '«Encontré prendas» se registra como ajuste (Existencias ▸ Ajustar), no como una entrada o salida suelta.'
+        using hint = 'encontre_prendas_es_ajuste';
+    end if;
     if p_cantidad <= 0 then
       raise exception '«Encontré prendas» solo suma prendas. Para quitar, elige otro motivo (Merma, Conteo físico u Otro).'
         using hint = 'encontre_prendas_resta';
@@ -86,14 +106,16 @@ select pg_temp.encontre_prendas_reemplazar(
 );
 
 -- 3. Con la carga inicial CERRADA, la prenda que nunca estuvo en la sede entra con «Encontré prendas»; con otro motivo, no.
---    Con la carga abierta sigue la regla de ADR-0235 tal cual (la primera carga es stock inicial).
+--    Cubre el ajuste Y la entrada suelta (revisión adversarial: `registrar_movimiento(…, 'entrada', …)` la metía sin papeles
+--    después del cierre). Con la carga abierta sigue la regla de ADR-0235 tal cual (la primera carga es stock inicial).
 select pg_temp.encontre_prendas_reemplazar(
   'retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)',
   $v$  -- ADR-0235: un ajuste corrige lo que ya estaba; la primera carga de una prenda es stock inicial (ajuste_sin_historia).
   if p_tipo = 'ajuste' and not exists ($v$,
   $n$  -- ADR-0328 (act. 4): con la carga inicial de la sede CERRADA, la prenda que nunca estuvo aquí ya no es stock inicial: entra
-  -- con «Encontré prendas» (pide nota y solo suma). Con otro motivo se rechaza, diciendo esa salida.
-  if p_tipo = 'ajuste' and not retail.fn_carga_inicial_abierta(p_ubicacion_id) and not exists (
+  -- con «Encontré prendas» (un ajuste que pide nota y solo suma). Un ajuste con otro motivo o una ENTRADA suelta se rechazan,
+  -- diciendo esa salida. (La salida suelta no hace falta: sobre una prenda sin stock, el motor no la deja bajar de cero.)
+  if p_tipo in ('ajuste', 'entrada') and not retail.fn_carga_inicial_abierta(p_ubicacion_id) and not exists (
     select 1 from movimientos where variante_id = p_variante_id and ubicacion_id = p_ubicacion_id
   ) then
     if lower(btrim(coalesce(p_motivo, ''))) not in ('reposicion', 'reposición') then

@@ -169,7 +169,7 @@ select pg_temp.cierre_carga_reemplazar(
 
 -- ----------------------------------------------------------------------------
 -- 4b. La cuarta puerta: `registrar_movimiento` (RPC de Ajustar) recibe el motivo como texto, así que una llamada directa
---     podía escribir una entrada «carga_inicial» sin pasar por el candado. Se cierra: la carga inicial tiene UNA puerta.
+--     podía escribir una entrada «carga_inicial» sin pasar por el candado. Se cierra: el motivo `carga_inicial` lo escribe UNA función.
 -- ----------------------------------------------------------------------------
 select pg_temp.cierre_carga_reemplazar(
   'retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)',
