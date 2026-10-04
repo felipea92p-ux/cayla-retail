@@ -180,7 +180,7 @@ export function CajonPrendaExistencias({
                     className="h-[99px] w-[85px] shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover"
                   />
                 ) : (
-                  <SinFoto tamano="h-[99px] w-[85px]" />
+                  <SinFoto tamano="h-[99px] w-[85px]" colorHex={prenda.colorHex} prefijo={prenda.categoriaPrefijo} familia={prenda.categoriaFamilia} categoria={prenda.categoria} conNombre />
                 )}
                 <div className="min-w-0">
                   <Dialog.Title asChild>

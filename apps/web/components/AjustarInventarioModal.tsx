@@ -399,7 +399,7 @@ export function AjustarInventarioModal({
       alCerrarEnfocar={alCerrarEnfocar}
       ancho="max-w-md"
       bloqueado={enviando}
-      lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} /> : undefined}
+      lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} prefijo={prenda.categoriaPrefijo} familia={prenda.categoriaFamilia} categoria={prenda.categoria} /> : undefined}
     >
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.

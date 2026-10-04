@@ -214,7 +214,7 @@ export function SubirAAlmacenModal({
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
           <div className="flex items-center gap-3">
-            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" />
+            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" prefijo={modelo.categoriaPrefijo} familia={modelo.categoriaFamilia} categoria={modelo.categoria} />
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[15px] text-tinta">
               <span className="font-semibold">{modelo.referencia}</span>
               <span className="text-taupe">{colores.length === 1 ? colores[0].nombre : `${colores.length} colores`}</span>

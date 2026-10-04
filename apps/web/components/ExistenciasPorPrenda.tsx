@@ -191,7 +191,7 @@ export function ExistenciasPorPrenda({
                 </span>
               )}
               <span className="flex min-w-0 flex-1 items-center gap-3.5">
-                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" />
+                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" prefijo={p.categoriaPrefijo} familia={p.categoriaFamilia} categoria={p.categoria} />
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta">
                     {p.referencia}
