@@ -170,8 +170,11 @@ describe("«Encontré prendas» y la carga cerrada en la ficha", () => {
     const base = { nuevasConStock: 0, nota: "", cargaAbierta: true, enPisoCerrado: false };
     for (const m of MOTIVOS) expect(problemaDelStockDeLaVisita({ ...base, lineas: [], motivo: m })).toBeNull();
     expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: conHistoria }], motivo: "conteo_fisico" })).toBeNull();
-    // Abierta, lo nuevo es stock inicial: no necesita motivo ni nota.
+    // Abierta, lo nuevo es stock inicial: no necesita motivo ni nota (ni una variante nueva, ni una talla sin historia).
     expect(problemaDelStockDeLaVisita({ ...base, lineas: [], nuevasConStock: 2, motivo: "reposicion" })).toBeNull();
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: nueva }], motivo: "reposicion" })).toBeNull();
+    // …pero si en el mismo lote hay una talla con historia, esa sí viaja como ajuste y pide la nota.
+    expect(problemaDelStockDeLaVisita({ ...base, lineas: [{ delta: 2, variante: nueva }, { delta: 1, variante: conHistoria }], motivo: "reposicion" })?.campo).toBe("nota");
   });
 
   it("«Encontré prendas» pide la nota (3 letras o más) y la manda a su campo; restar se manda al motivo", () => {

@@ -184,7 +184,10 @@ export function problemaDelStockDeLaVisita(o: {
     const texto = bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: o.motivo, enPisoCerrado: o.enPisoCerrado });
     if (texto) return { texto, campo: "motivo" };
   }
-  if ((o.lineas.length > 0 || nuevasComoAjuste) && !notaSuficiente(o.motivo, o.nota)) {
+  // La nota la pide solo lo que viaja como AJUSTE (como `repartirLineasAjuste`): con la carga abierta, una talla sin historia
+  // entra como stock inicial, sin motivo ni nota.
+  const hayAjustes = o.lineas.some((l) => !o.cargaAbierta || !l.variante.sinHistoria) || nuevasComoAjuste;
+  if (hayAjustes && !notaSuficiente(o.motivo, o.nota)) {
     return { texto: `Con «Encontré prendas» cuenta dónde estaban o por qué aparecieron (${NOTA_MINIMA_ENCONTRE} letras o más).`, campo: "nota" };
   }
   return null;
