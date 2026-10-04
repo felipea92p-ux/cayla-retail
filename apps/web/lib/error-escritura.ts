@@ -82,6 +82,11 @@ const HUELLAS: Huella[] = [
     frase: "Esta prenda ya se regularizó (o su venta se anuló). Recarga la página para ver cómo quedó.",
   },
   {
+    // ADR-0328 (20261004204000): llega con 42501 y este hint; la frase es la misma que la base y la pantalla.
+    marca: "regularizar_propia_venta",
+    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
+  },
+  {
     marca: "prenda_sin_stock_para_descontar",
     frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
   },

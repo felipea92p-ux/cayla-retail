@@ -10,6 +10,9 @@
  *   D · Que contestar mal DESCUENTA DOS VECES: con la venta antes de la carga inicial, «ya estaba registrada» deja el stock una
  *       prenda por debajo de lo contado; con la venta después, «llegó nueva» deja una prenda fantasma. La respuesta que deduce la
  *       web (`lib/por-regularizar-candidatas.ts`: venta antes de la primera entrada ⇒ llegó nueva) es la que cuadra en los dos.
+ *   C · Nadie regulariza su propia venta, salvo el líder (20261004204000): ni con su cuenta, ni eligiéndose en la terminal, ni
+ *       nombrando a otra persona desde su propia cuenta; otra integrante sí; el líder sí, la suya; desde una terminal hay que
+ *       elegir quién firma (la clave 'regularizar_prenda' ya no está en `acciones_sin_responsable`).
  *
  * CÓMO. Mismo patrón que `responsable_omitido.mjs`: cada caso en su transacción con ROLLBACK, como Felipe (líder) o Micaela
  * (integrante de Tienda Trujillo) con `request.jwt.claim(s)`. Las prendas son nuevas (`ZZ VSR …`), con su historia sembrada
@@ -24,6 +27,10 @@ import { execFileSync } from "node:child_process";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
+const LUCIA_AUTH = "44444444-4444-4444-8444-0000000000c1"; // otra integrante de Trujillo, con su cuenta (se crea en el caso)
+const LUCIA = "44444444-4444-4444-8444-0000000000c2"; // su persona
+const T_VENTAS_AUTH = "44444444-4444-4444-8444-0000000000a1"; // la cuenta de la terminal de ventas de Trujillo
+const ROSA = "44444444-4444-4444-8444-0000000000b1"; // integrante de Trujillo sin cuenta: firma desde la terminal
 const CENTINELA = "22222222-2222-4222-8222-222222222222"; // «prenda sin registrar» en una venta
 
 function psql(sql) {
@@ -278,6 +285,102 @@ caso(
   `${VENTA_DESPUES}select retail.regularizar_prenda(:'pp', :'vl', 'llego_nueva') \\g /dev/null
 select :'venta_antes' || '/' || pg_temp.stock(:'vl', tru) from ids;`,
   "false/3",
+);
+
+// ---------------- C · nadie regulariza su propia venta, salvo el líder ----------------
+// Lucía (con cuenta) y Rosa (sin cuenta) son de Trujillo; la terminal de ventas de Trujillo; Rosa, Lucía y Micaela con la
+// jornada abierta hoy (presentes para el combo «Responsable»). Una prenda de la tienda con 2 unidades para descontar.
+const EQUIPO = `
+create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
+create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
+delete from public.marcajes;
+delete from public.jornadas;
+insert into auth.users (id, aud, role, email) values ('${LUCIA_AUTH}', 'authenticated', 'authenticated', 'lucia-vsr@prueba.local'),
+  ('${T_VENTAS_AUTH}', 'authenticated', 'authenticated', 'terminal-vsr@prueba.local');
+insert into public.personas (id, nombres, apellidos, estado, sede_base_id, auth_user_id)
+  select '${LUCIA}', 'Lucía', 'Prueba', 'activo', u.sede_dynamic_id, '${LUCIA_AUTH}' from retail.ubicaciones u, ids where u.id = ids.tru;
+insert into public.personas (id, nombres, apellidos, estado, sede_base_id)
+  select '${ROSA}', 'Rosa', 'Prueba', 'activo', u.sede_dynamic_id from retail.ubicaciones u, ids where u.id = ids.tru;
+insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, rol_id)
+  select x.p, 'colaborador', ids.tru, c.rol_id from ids, retail.colaboradores c, (values ('${LUCIA}'::uuid), ('${ROSA}'::uuid)) x(p)
+   where c.persona_id = ids.micaela;
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  select tru, 'Terminal Ventas TRU (prueba)', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS_AUTH}'::uuid from ids;
+insert into public.jornadas (persona_id, sede_id, fecha, estado)
+  select x.p, u.sede_dynamic_id, (now() at time zone 'America/Lima')::date, 'abierta'
+    from ids join retail.ubicaciones u on u.id = ids.tru cross join lateral (values ('${LUCIA}'::uuid), ('${ROSA}'::uuid), (ids.micaela)) x(p);
+select pg_temp.prenda('M-NEGRA-M', talla_m, 'NEG') as vm from ids \\gset
+select pg_temp.carga(:'vm', tru, 2, now() - interval '5 days') from ids \\g /dev/null
+`;
+const conEncabezados = (obj) => `select set_config('request.headers', '${JSON.stringify(obj)}', true) \\g /dev/null\n`;
+// Micaela vende (con su cuenta) una prenda sin registrar: :pp es suya.
+const VENDE_MICAELA = `${como(MICAELA)}select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset\n`;
+const regulariza = `select pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vm', 'ya_registrada'));`;
+const firmo = `select coalesce((select regularizado_por::text from retail.prendas_por_regularizar where id = :'pp'), 'NADIE');`;
+
+caso(
+  "C1 · Micaela, con su cuenta, no regulariza la prenda que ella vendió",
+  `${EQUIPO}${VENDE_MICAELA}${regulariza}`,
+  "42501|regularizar_propia_venta",
+);
+caso(
+  "C2 · otra integrante de la tienda (Lucía, con su cuenta) sí la regulariza, y firma ella",
+  `${EQUIPO}${VENDE_MICAELA}${como(LUCIA_AUTH)}${regulariza}\n${firmo}`,
+  LUCIA,
+);
+caso(
+  "C3 · el líder sí regulariza su propia venta",
+  `${EQUIPO}select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset
+select (vendido_por = (select felipe from ids))::text as suya from retail.prendas_por_regularizar where id = :'pp' \\gset
+select :'suya' || '/' || pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vm', 'ya_registrada'));`,
+  "true/SIN_ERROR",
+);
+caso(
+  "C4 · desde la terminal, eligiéndose a sí misma en el combo, Micaela tampoco puede",
+  `${EQUIPO}${VENDE_MICAELA}${como(T_VENTAS_AUTH)}select set_config('request.headers', json_build_object('x-responsable', micaela)::text, true) from ids \\g /dev/null
+${regulariza}`,
+  "42501|regularizar_propia_venta",
+);
+caso(
+  "C5 · desde la terminal, con Rosa (presente) en el combo, se regulariza y queda firmado por Rosa",
+  `${EQUIPO}${VENDE_MICAELA}${como(T_VENTAS_AUTH)}${conEncabezados({ "x-responsable": ROSA })}${regulariza}\n${firmo}`,
+  ROSA,
+);
+caso(
+  "C6 · desde la terminal ya no se regulariza «sin responsable»: la clave dejó de estar soltada",
+  `${EQUIPO}${VENDE_MICAELA}${como(T_VENTAS_AUTH)}${conEncabezados({ "x-responsable-omitido": "regularizar_prenda" })}${regulariza}`,
+  "42501|responsable_requerido",
+);
+caso(
+  "C7 · con su propia cuenta, nombrar a Lucía en el combo no le sirve a Micaela: la venta sigue siendo suya",
+  `${EQUIPO}${VENDE_MICAELA}insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
+  on conflict (id) do update set exige_responsable = true;
+select set_config('request.headers', json_build_object('x-responsable', '${LUCIA}', 'x-ubicacion', tru)::text, true) from ids \\g /dev/null
+select (retail.fn_actor_persona_id(true) = '${LUCIA}'::uuid)::text || '/' || ${regulariza.slice(7, -1)};`,
+  "true/42501|regularizar_propia_venta",
+);
+caso(
+  "C8 · una venta sin vendedora registrada (no hay con quién comparar) la regulariza cualquiera de la tienda",
+  `${EQUIPO}${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_por = null where id = :'pp';
+${regulariza}`,
+  "SIN_ERROR",
+);
+caso(
+  "C9 · 'regularizar_prenda' ya no está entre las acciones sin responsable",
+  `select count(*) from retail.acciones_sin_responsable where clave = 'regularizar_prenda';`,
+  "0",
+);
+caso(
+  "C11 · si alguien vuelve a pegar 20260929230000 (la clave vuelve a la lista), la terminal igual tiene que elegir quién firma",
+  `${EQUIPO}${VENDE_MICAELA}insert into retail.acciones_sin_responsable (clave, descripcion) values ('regularizar_prenda', 'Regularizar una prenda por regularizar')
+  on conflict (clave) do nothing;
+${como(T_VENTAS_AUTH)}${conEncabezados({ "x-responsable-omitido": "regularizar_prenda" })}select (retail.fn_actor_persona_id() is null)::text || '/' || ${"select pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vm', 'ya_registrada'));".slice(7, -1)};`,
+  "true/42501|responsable_requerido",
+);
+caso(
+  "C10 · lo de siempre sigue: la segunda regularización de la misma venta se rechaza",
+  `${EQUIPO}${VENDE_MICAELA}${como(LUCIA_AUTH)}${regulariza}\n${regulariza}`,
+  (s) => s.includes("prenda_ya_regularizada") || s.endsWith("ya la regularizó, o la venta se anuló"),
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""}`);

@@ -22,15 +22,22 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
   for (const ins of sql.matchAll(/insert into retail\.acciones_sin_responsable \(clave, descripcion\) values([\s\S]*?);/g)) {
     for (const m of ins[1]!.matchAll(/\('([a-z0-9_]+)',\s*'([^']*)'\)/g)) DESCRIPCION_VIGENTE.set(m[1]!, m[2]!);
   }
+  // Y las que vuelven a pedir el nombre (20261004204000: regularizar una prenda, ADR-0328).
+  for (const m of sql.matchAll(/^delete from retail\.acciones_sin_responsable where clave = '([a-z0-9_]+)';/gm)) DESCRIPCION_VIGENTE.delete(m[1]!);
 }
 
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
 
-  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra y las 3 de Avisos del club", () => {
+  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, menos regularizar", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(31);
+    expect(DESCRIPCION_VIGENTE.size).toBe(30);
+  });
+
+  it("regularizar una prenda vuelve a pedir el nombre (ADR-0328: nadie regulariza su propia venta, y sin nombre no hay con quién comparar)", () => {
+    expect(Object.keys(ACCIONES_SIN_RESPONSABLE)).not.toContain("regularizar_prenda");
+    expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });
 
   it("cada clave lleva la misma descripción en la web y en la base (la siembra, con sus cambios posteriores)", () => {

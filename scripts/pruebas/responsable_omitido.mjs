@@ -166,8 +166,9 @@ caso(
 );
 
 // ---------------- La lista ----------------
-// 28 de la siembra (20260929230000) y, con todas las migraciones, 3 más de Avisos del club (20261002170000).
-const TOTAL = EN_SECO ? "28" : "31";
+// 28 de la siembra (20260929230000) y, con todas las migraciones, 3 más de Avisos del club (20261002170000) y 1 menos:
+// regularizar una prenda vuelve a pedir el nombre (20261004204000, ADR-0328).
+const TOTAL = EN_SECO ? "28" : "30";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
 caso(

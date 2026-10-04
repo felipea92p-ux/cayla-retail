@@ -714,3 +714,15 @@ describe("club de clientas: socia, publicidad y WhatsApp de la tienda (ADR-0288 
     );
   });
 });
+
+// ADR-0328 (20261004204000): `regularizar_prenda` rechaza a quien vendió la prenda (salvo el líder) con 42501 y un hint propio.
+// Sin su huella caería al genérico con «Código: …»; y no es un rechazo del combo «Responsable» (no pide volver a elegir por eso).
+describe("regularizar la propia venta (ADR-0328)", () => {
+  it("dice, en palabras de tienda, que lo haga otra persona o un líder", () => {
+    const salida = traducirError(
+      { code: "42501", message: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.", hint: "regularizar_propia_venta" },
+      "regularizar la prenda",
+    );
+    expect(salida).toBe("Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.");
+  });
+});

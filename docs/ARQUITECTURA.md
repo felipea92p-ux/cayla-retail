@@ -983,7 +983,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   primera entrada de esa prenda a esa sede; tolerante a fallo) → `lib/por-regularizar-candidatas.ts` (orden por nombre, color,
   piso y precio; descarta colores de la familia que no se confunden, ΔE2000 > 20; deduce «llegó nueva» si la venta es anterior
   a la primera entrada, «ya estaba registrada» si es posterior) → la fila dice «Probable: …» y el modal la sugiere con su
-  porqué (la persona confirma); guía de foco `lib/por-regularizar-guia.ts`. Tablas `envios` (una guía; agrupa un lote por proveedor vía
+  porqué (la persona confirma); guía de foco `lib/por-regularizar-guia.ts`. Desde 20261004204000 `regularizar_prenda` rechaza a
+  quien vendió la prenda salvo con cuenta de líder (hint `regularizar_propia_venta`; espejo `motivoPropiaVenta` en
+  `por-regularizar-reglas.ts`) y vuelve a pedir el nombre: el modal usa `useResponsable` + `ComboResponsable` de la sede de la venta. Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):
   `lib/compras.ts` le pide los comprobantes y las líneas a `listar_compras_operativo` / `lineas_compra_operativo`

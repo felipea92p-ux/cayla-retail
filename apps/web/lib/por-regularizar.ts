@@ -14,6 +14,8 @@ export type FilaPorRegularizar = {
   color: string;
   precioCobrado: number;
   vendidoPor: string;
+  /** La persona que vendió (`vendido_por`): quien la vendió no la regulariza, salvo el líder (ADR-0328). */
+  vendidoPorId: string | null;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
@@ -76,6 +78,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     color: f.color?.nombre ?? "",
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
+    vendidoPorId: f.vendido_por,
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",

@@ -124,7 +124,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       <div className="space-y-6">
         {encabezado}
         {pestanas}
-        <PorRegularizarLista filas={filas} prendas={prendas} hechos={candidatas.hechos} avisoCandidatas={candidatas.fallo} ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta} variasSedes={esLider} />
+        <PorRegularizarLista filas={filas} prendas={prendas} hechos={candidatas.hechos} avisoCandidatas={candidatas.fallo} ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta} variasSedes={esLider} esLider={esLider} />
       </div>
     );
   }

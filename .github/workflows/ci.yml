@@ -1081,7 +1081,8 @@ jobs:
         run: pnpm pruebas:prendas-por-regularizar
 
       # Limpieza de las ventas sin registrar (ADR-0328, actividad 5): las candidatas de cada venta (misma categoría, talla y color o
-      # familia, con stock libre en su sede; la primera entrada de esa sede) y que contestar mal descuenta dos veces. ROLLBACK.
+      # familia, con stock libre en su sede; la primera entrada de esa sede), que contestar mal descuenta dos veces y que nadie
+      # regulariza su propia venta salvo el líder (ni desde la terminal). ROLLBACK.
       - name: pruebas:ventas-sin-registrar
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ventas-sin-registrar

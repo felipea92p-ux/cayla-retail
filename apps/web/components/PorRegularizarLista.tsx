@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
-import { firmaOmitida } from "@/lib/responsable-omitido";
+import { useResponsable } from "@/lib/useResponsable";
+import { useSedeActiva } from "@/components/SedeActiva";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { cifrasPorRegularizar, estaVencida, tipoDiferencia, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
+import { cifrasPorRegularizar, estaVencida, motivoPropiaVenta, tipoDiferencia, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -56,6 +58,7 @@ export function PorRegularizarLista({
   avisoCandidatas,
   ubicacionEtiqueta,
   variasSedes,
+  esLider,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
@@ -67,6 +70,8 @@ export function PorRegularizarLista({
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
   variasSedes: boolean;
+  /** La CUENTA es de un líder: puede regularizar también lo que vendió (ADR-0328; la base lo decide con `fn_es_lider`). */
+  esLider: boolean;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
@@ -180,7 +185,7 @@ export function PorRegularizarLista({
       </p>
 
       {abierta && (
-        <RegularizarModal fila={abierta} prendas={prendas} candidatas={candidatasDe.get(abierta.id) ?? []} onClose={() => setAbierta(null)} />
+        <RegularizarModal fila={abierta} prendas={prendas} candidatas={candidatasDe.get(abierta.id) ?? []} esLider={esLider} onClose={() => setAbierta(null)} />
       )}
     </div>
   );
@@ -216,25 +221,37 @@ function RegularizarModal({
   fila: f,
   prendas,
   candidatas,
+  esLider,
   onClose,
 }: {
   fila: FilaPorRegularizar;
   prendas: PrendaParaRegularizar[];
   /** Las prendas del stock que pueden ser esta venta, de la más a la menos probable (vacío si ninguna calza o no se pudo leer). */
   candidatas: Candidata[];
+  esLider: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [elegidaId, setElegidaId] = useState("");
   const [forma, setForma] = useState<FormaRegularizar | null>(null);
   const [guardando, setGuardando] = useState(false);
-  // Regularizar va sin responsable (Felipe, 2026-09-29): firma la cuenta, sin combo.
+  // ADR-0328 (actividad 5): regularizar vuelve a pedir el nombre UNA vez por operación (este modal), de quien está en la tienda de
+  // la venta. Sin nombre no se puede cumplir «nadie regulariza su propia venta, salvo el líder».
+  const activa = useSedeActiva();
+  const responsable = useResponsable({ ubicacionId: f.ubicacionId, etiqueta: f.sede || "esta tienda" });
+  const motivoPropia = motivoPropiaVenta({
+    vendidoPorId: f.vendidoPorId,
+    responsableId: responsable.elegidoId,
+    personaSesionId: activa?.personaSesionId ?? null,
+    esLider,
+  });
 
   const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
   const sugerida = candidatas[0] ?? null;
   // La respuesta que dice el libro para la prenda ELEGIDA (si es una candidata con fecha de entrada). Nunca se marca sola.
   const formaSugerida = elegida ? formaSugeridaPara(candidatas, elegida.id) : null;
-  const guia = useGuiaCampos(camposGuiaRegularizar({ prendaElegida: elegida !== null, forma }));
+  const guia = useGuiaCampos(camposGuiaRegularizar({ prendaElegida: elegida !== null, forma, responsableListo: responsable.listo, motivoPropia }));
+  const listo = elegida !== null && forma !== null && responsable.listo && motivoPropia === null;
 
   // Primero las candidatas (stock de esta tienda que calza, en su orden de probabilidad) y después el resto del catálogo, con las que
   // calzan con lo que anotó caja (categoría, talla y color) arriba: así almacén la encuentra sin tipear.
@@ -255,13 +272,14 @@ function RegularizarModal({
   }, [prendas, candidatas, f.categoria, f.talla, f.color]);
 
   async function guardar() {
-    if (!elegida || !forma) return;
+    if (!elegida || !forma || !listo) return;
     setGuardando(true);
     const { data, error } = await firmar(
       createClient().rpc("regularizar_prenda", { p_id: f.id, p_variante_id: elegida.id, p_forma: forma }),
-      firmaOmitida("regularizar_prenda"),
+      responsable.firma(),
     );
     setGuardando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "regularizar la prenda"));
       return;
@@ -340,12 +358,21 @@ function RegularizarModal({
           )}
         </CampoGuiado>
 
+        <CampoGuiado id="responsable" guia={guia}>
+          <ComboResponsable control={responsable} deshabilitado={guardando} />
+          {motivoPropia && (
+            <p className="mt-2 text-xs text-ambar-profundo" role="status">
+              {motivoPropia}
+            </p>
+          )}
+        </CampoGuiado>
+
         <div>
           <PieGuia guia={guia} listo="Todo listo para regularizar." />
           <button
             type="button"
             onClick={guardar}
-            disabled={guardando || !elegida || !forma}
+            disabled={guardando || !listo}
             title={guia.frase ?? undefined}
             className={`${botonPrimario} mt-3 w-full ${guia.claseConfirmar}`}
           >
