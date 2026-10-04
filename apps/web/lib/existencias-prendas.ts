@@ -9,7 +9,6 @@ import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
 import { guionDeLaPistola } from "./escaner-guion";
 import { hoyDeTalla, type TipoHoy } from "./existencias-hoy";
-import { esParaColgar } from "./piso-plan";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
@@ -45,10 +44,13 @@ export function estadoTalla(f: FilaPrenda): EstadoTalla {
   return "normal";
 }
 
-/** ¿Esta talla se puede bajar al piso hoy? El motor pide colgar o reponer —lo que ya exige algo libre atrás: lo apartado no se
- *  mueve—. Con el piso sin cuadrar, no (ADR-0328, decisión 5). */
+/** ¿Esta talla SE PUEDE bajar al piso? Es un hecho físico, no una recomendación: la sede separa piso y almacén y en el almacén hay
+ *  algo libre (lo apartado no se mueve). Qué CONVIENE bajar primero lo dice el motor del piso (`planPiso`), nunca si se puede: con
+ *  «Mantener» —lo normal en un piso cuadrado—, con el piso en pausa o con el motor caído, «Reponer prenda» y «Bajar al piso» siguen
+ *  abiertos (ADR-0306: bajar es una función de Existencias). Atarlo a la recomendación apagaba los botones diciendo que el almacén
+ *  estaba vacío cuando no lo estaba. */
 export function sePuedeBajar(f: FilaPrenda): boolean {
-  return esParaColgar(f.planPiso?.accion) && f.pisoDisponible !== null && (f.almacenDisponible ?? 0) > 0;
+  return f.pisoDisponible !== null && f.almacenDisponible !== null && f.almacenDisponible > 0;
 }
 
 export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
@@ -68,10 +70,12 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   apartado: number;
   danado: number;
   enTransito: number;
-  /** Cuántas tallas se pueden bajar al piso hoy (`sePuedeBajar`). */
+  /** Cuántas tallas se PUEDEN bajar al piso (`sePuedeBajar`: algo libre atrás), lo pida el motor o no. */
   tallasParaBajar: number;
   /** Cuántas tallas están «Por colgar» (`hoyDeTalla`). */
   tallasPorColgar: number;
+  /** Cuántas tallas están «Por reponer» (`hoyDeTalla`): el motor pide bajar y hay atrás. */
+  tallasPorReponer: number;
 };
 
 function sumarONull(filas: FilaPrenda[], campo: "pisoDisponible" | "almacenDisponible"): number | null {
@@ -109,6 +113,7 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       enTransito: tallas.reduce((acc, f) => acc + f.enTransito, 0),
       tallasParaBajar: tallas.filter(sePuedeBajar).length,
       tallasPorColgar: tallas.filter((f) => hoyDeTalla(f) === "por_colgar").length,
+      tallasPorReponer: tallas.filter((f) => hoyDeTalla(f) === "por_reponer").length,
     };
   });
 }
@@ -127,10 +132,10 @@ export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: num
     .join(",");
 }
 
-/** Lo que va a «Bajar al piso» desde lo marcado: solo las tallas que se pueden bajar. El 1 es solo la forma del enlace
- *  (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por escanear», en 0, y cada lectura suma una
- *  (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer (ADR-0231): lo que se baja es lo que
- *  la vendedora escanea al colgar. */
+/** Lo que va a «Bajar al piso» desde lo marcado: las tallas que se pueden bajar (`sePuedeBajar`), las pida el motor o no —quien
+ *  las marcó decide—. El 1 es solo la forma del enlace (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por
+ *  escanear», en 0, y cada lectura suma una (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer
+ *  (ADR-0231): lo que se baja es lo que la asesora escanea al colgar. */
 export function lineasParaBajar(filas: readonly FilaPrenda[]): { varianteId: string; cantidad: number }[] {
   return filas.filter(sePuedeBajar).map((f) => ({ varianteId: f.varianteId, cantidad: 1 }));
 }
@@ -165,11 +170,14 @@ export function urlEtiquetas(filas: readonly FilaPrenda[]): string | null {
   return `/etiquetas-de-precio?variantes=${filas.map((f) => f.varianteId).join(",")}`;
 }
 
-/** Con qué talla se abre el detalle desde «Reponer N tallas» (tarea #7): una que SE PUEDA bajar —primero una por colgar—,
- *  para que el detalle muestre «Reponer al piso». Antes podía abrir una talla que pedía reponer sin nada en el almacén, y
- *  el botón que llevó hasta ahí no llevaba a la acción. */
+/** Con qué talla se abre «Reponer prenda» (tarea #7): una que SE PUEDA bajar, y entre ellas la que el motor pide primero —por
+ *  colgar, luego por reponer—. `null` solo si ninguna tiene algo libre atrás: el botón que dice «No hay nada libre en el almacén»
+ *  dice la verdad. Antes podía abrir una talla que pedía reponer sin nada en el almacén, y el botón no llevaba a la acción. */
 export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F | null {
-  return tallas.find((f) => estadoTalla(f) === "por_colgar" && sePuedeBajar(f)) ?? tallas.find(sePuedeBajar) ?? null;
+  const bajables = tallas.filter(sePuedeBajar);
+  return (
+    bajables.find((f) => hoyDeTalla(f) === "por_colgar") ?? bajables.find((f) => hoyDeTalla(f) === "por_reponer") ?? bajables[0] ?? null
+  );
 }
 
 /** Normaliza un código leído (pistola, cámara o tipeo) para compararlo: sin espacios, sin mayúsculas y con el guion que la
@@ -205,11 +213,11 @@ export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda {
   return { tipo: "mantener", n: 0 };
 }
 
-/** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo
- *  atrás), 1 = pide reponer y se puede bajar, 2 = nada que hacer hoy. */
-export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasParaBajar">): 0 | 1 | 2 {
+/** Cuán urgente es una prenda para el piso, según el motor: 0 = tiene tallas por colgar (el cliente no las ve y hay atrás),
+ *  1 = pide reponer (hay atrás), 2 = nada que bajar hoy. Que se PUEDA bajar no la vuelve urgente: eso es `tallasParaBajar`. */
+export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasPorReponer">): 0 | 1 | 2 {
   if (p.tallasPorColgar > 0) return 0;
-  if (p.tallasParaBajar > 0) return 1;
+  if (p.tallasPorReponer > 0) return 1;
   return 2;
 }
 

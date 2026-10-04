@@ -64,14 +64,46 @@ describe("estadoTalla", () => {
   });
 });
 
-describe("sePuedeBajar", () => {
-  it("pide reponer Y hay algo libre en el almacén", () => {
+describe("sePuedeBajar: un hecho físico, no una recomendación (revisión adversarial del motor del piso)", () => {
+  it("hay algo libre en el almacén → se puede bajar, diga lo que diga el motor", () => {
     expect(sePuedeBajar(fila({ varianteId: "a", planPiso: plan("por_reponer"), almacenDisponible: 1 }))).toBe(true);
+    // «Mantener» es lo normal en un piso cuadrado: bajar una más sigue siendo decisión de quien está en la tienda (ADR-0306).
+    expect(sePuedeBajar(fila({ varianteId: "a", planPiso: plan("mantener"), almacenDisponible: 5 }))).toBe(true);
+    // Con el piso sin cuadrar el motor no recomienda, pero bajar se puede.
+    expect(sePuedeBajar(fila({ varianteId: "a", planPiso: plan("pausa_sin_cuadre"), almacenDisponible: 2 }))).toBe(true);
+    // El motor no respondió (o su SQL no está pegado): los botones no se apagan.
+    expect(sePuedeBajar(fila({ varianteId: "a", planPiso: null, almacenDisponible: 3 }))).toBe(true);
+  });
+  it("sin nada libre atrás no se baja, aunque el motor lo pidiera", () => {
     expect(sePuedeBajar(fila({ varianteId: "a", planPiso: plan("sin_atras"), almacenDisponible: 0 }))).toBe(false);
-    expect(sePuedeBajar(fila({ varianteId: "a", planPiso: plan("mantener"), almacenDisponible: 5 }))).toBe(false);
+    expect(sePuedeBajar(fila({ varianteId: "a", planPiso: plan("por_colgar"), pisoDisponible: 0, almacenDisponible: 0 }))).toBe(false);
   });
   it("sin piso/almacén (Taller) no se baja nada", () => {
     expect(sePuedeBajar(fila({ varianteId: "a", planPiso: null, pisoDisponible: null, almacenDisponible: null, disponible: 5 }))).toBe(false);
+  });
+});
+
+describe("«Reponer prenda» y «Bajar al piso» no se apagan con «Mantener» ni con el motor caído (hallazgo H-A de la revisión)", () => {
+  // S, M y L con 1 colgada y 3 guardadas, y XL con 0 y 2: con el mínimo de 1 por talla central, el motor dice «Mantener» en las
+  // cuatro (XL es extrema). Hay 11 guardadas: el botón no puede decir que el almacén está vacío.
+  const tallas = [
+    fila({ varianteId: "s", talla: "S", pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("mantener") }),
+    fila({ varianteId: "m", talla: "M", pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("mantener") }),
+    fila({ varianteId: "l", talla: "L", pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("mantener") }),
+    fila({ varianteId: "xl", talla: "XL", pisoDisponible: 0, almacenDisponible: 2, planPiso: plan("mantener") }),
+  ];
+  it("con «Mantener» en todas: hay talla para reponer y las cuatro van a «Bajar al piso»", () => {
+    expect(tallaParaReponer(tallas)?.varianteId).toBe("s");
+    expect(lineasParaBajar(tallas).map((l) => l.varianteId)).toEqual(["s", "m", "l", "xl"]);
+    expect(agruparPorPrenda(tallas)[0].tallasParaBajar).toBe(4);
+  });
+  it("con el motor caído (planPiso null en todas): lo mismo", () => {
+    const sinMotor = tallas.map((f) => ({ ...f, planPiso: null }));
+    expect(tallaParaReponer(sinMotor)?.varianteId).toBe("s");
+    expect(urlBajarAlPiso(sinMotor)).toBe("/inventario/bajar?lineas=s:1,m:1,l:1,xl:1");
+  });
+  it("que se pueda bajar no la vuelve urgente: sin nada que el motor pida, la prenda queda al final", () => {
+    expect(urgenciaDePrenda(agruparPorPrenda(tallas)[0])).toBe(2);
   });
 });
 
@@ -95,8 +127,10 @@ describe("agruparPorPrenda", () => {
     expect(beige.piso).toBe(4);
     expect(beige.almacen).toBe(6);
     expect(beige.apartado).toBe(1);
-    expect(beige.tallasParaBajar).toBe(1);
+    // Las tres tienen algo libre atrás: las tres SE PUEDEN bajar; solo la XS está «Por colgar» según el motor.
+    expect(beige.tallasParaBajar).toBe(3);
     expect(beige.tallasPorColgar).toBe(1);
+    expect(beige.tallasPorReponer).toBe(0);
   });
   it("donde no se separa piso y almacén, piso y almacén quedan en null (no en 0)", () => {
     const [p] = agruparPorPrenda([fila({ varianteId: "t", pisoDisponible: null, almacenDisponible: null, disponible: 4 })]);
@@ -115,12 +149,15 @@ describe("enlaces con la lista cargada", () => {
   const normal = fila({ varianteId: "v2" });
   const sinAtras = fila({ varianteId: "v3", planPiso: plan("sin_atras"), pisoDisponible: 1, almacenDisponible: 0 });
 
-  it("Bajar al piso lleva solo lo que se puede bajar, de a una unidad (CAYLA no sugiere cantidades)", () => {
-    expect(lineasParaBajar([bajable, normal, sinAtras])).toEqual([{ varianteId: "v1", cantidad: 1 }]);
-    expect(urlBajarAlPiso([bajable, normal])).toBe("/inventario/bajar?lineas=v1:1");
+  it("Bajar al piso lleva lo marcado que tiene algo libre atrás, lo pida el motor o no, de a una unidad (CAYLA no sugiere cantidades)", () => {
+    expect(lineasParaBajar([bajable, normal, sinAtras])).toEqual([
+      { varianteId: "v1", cantidad: 1 },
+      { varianteId: "v2", cantidad: 1 },
+    ]);
+    expect(urlBajarAlPiso([bajable, normal])).toBe("/inventario/bajar?lineas=v1:1,v2:1");
   });
-  it("sin nada que bajar no hay enlace", () => {
-    expect(urlBajarAlPiso([normal, sinAtras])).toBeNull();
+  it("sin nada libre atrás no hay enlace", () => {
+    expect(urlBajarAlPiso([sinAtras, fila({ varianteId: "v4", almacenDisponible: 0 })])).toBeNull();
   });
   it("Trasladar lleva lo que tiene algo libre para mandar", () => {
     expect(lineasParaTrasladar([bajable, normal, sinAtras]).map((l) => l.varianteId)).toEqual(["v1", "v2"]);
@@ -197,8 +234,13 @@ describe("tallaParaReponer (tarea #7): «Reponer N tallas» abre una talla que s
   it("primero una por colgar que se pueda bajar", () => {
     expect(tallaParaReponer([sinAtras, reponer, porColgar])?.varianteId).toBe("por-colgar");
   });
-  it("si no hay por colgar, la primera que se pueda bajar — nunca una que pide reponer sin nada atrás", () => {
+  it("si no hay por colgar, la que pide reponer — nunca una sin nada atrás", () => {
     expect(tallaParaReponer([sinAtras, reponer])?.varianteId).toBe("reponer");
+  });
+  it("si el motor no pide nada, igual abre una que se pueda bajar: la primera con algo atrás", () => {
+    const mantener = fila({ varianteId: "mantener", talla: "XL", planPiso: plan("mantener"), pisoDisponible: 1, almacenDisponible: 4 });
+    expect(tallaParaReponer([sinAtras, mantener])?.varianteId).toBe("mantener");
+    expect(tallaParaReponer([mantener, reponer])?.varianteId).toBe("reponer");
   });
   it("sin ninguna que se pueda bajar, ninguna", () => {
     expect(tallaParaReponer([sinAtras])).toBeNull();
