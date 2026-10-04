@@ -290,6 +290,29 @@ select (select count(*) from retail.fn_candidatas_por_regularizar()) || ',' ||
   (s) => s.startsWith("0,42501|"),
 );
 
+// B8/B9: lo que la caja ESCRIBIÓ contra lo que ANOTÓ. La venta se anota como Pantalones (la otra categoría de la prueba) pero la
+// prenda era una camisa: con `p_categoria_de` se busca en la categoría que la web leyó en la descripción, y solo esas ventas.
+const VENTA_MAL_ANOTADA = `${SIEMBRA_B}update retail.prendas_por_regularizar set categoria_id = (select otra_cat from ids) where id = :'pp';
+select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '2 days') as pp_otra from ids \\gset
+`;
+const candidatasCon = (categoriaDe) => `(select coalesce(string_agg(replace(v.sku, 'ZZ-VSR-', ''), ',' order by v.sku), '—')
+     from retail.fn_candidatas_por_regularizar(null, ${categoriaDe}) c join retail.variantes v on v.id = c.variante_id
+    where c.prenda_id = :'pp' and v.sku like 'ZZ-VSR-%')`;
+caso(
+  "B8 · anotada como Pantalones: sin más, sus candidatas son pantalones; pidiendo la categoría escrita, las camisas que calzan",
+  `${VENTA_MAL_ANOTADA}select ${candidatasCon("null")} || ' | ' || ${candidatasCon("jsonb_build_object(:'pp', (select cat from ids))")};`,
+  "E-PANTALON-M | A-NEGRA-M,B-ANTRACITA-M,W-BLANCA-M",
+);
+caso(
+  "B9 · con p_categoria_de solo vienen las ventas pedidas (la otra pendiente no se vuelve a leer), y la puerta de la sede sigue",
+  `${VENTA_MAL_ANOTADA}select (select count(distinct prenda_id) from retail.fn_candidatas_por_regularizar(null, jsonb_build_object(:'pp', (select cat from ids)))) as n_pedidas,
+       (select count(*) from retail.fn_candidatas_por_regularizar(null, jsonb_build_object(:'pp', (select cat from ids))) where prenda_id = :'pp_otra') as n_otra,
+       (select count(*) > 0 from retail.fn_candidatas_por_regularizar() where prenda_id = :'pp_otra')::text as otra_sin \\gset
+${como(MICAELA)}select :n_pedidas || '/' || :n_otra || '/' || :'otra_sin' || '/' ||
+  (select count(*) from retail.fn_candidatas_por_regularizar((select lima from ids), jsonb_build_object(:'pp', (select cat from ids))));`,
+  "1/0/true/0",
+);
+
 // ---------------- D · contestar mal descuenta dos veces ----------------
 // La sala: la prenda K se vendió SIN etiqueta hace 3 días; ayer se hizo su carga inicial y se contaron 3 (la vendida ya no estaba).
 const VENTA_ANTES = `

@@ -8,6 +8,10 @@
 //            no llegó ni se ajustó nada (estaba contada); y SIN respuesta (`forma: null`, con el porqué y las fechas) si tenía pero
 //            después llegó o se ajustó algo: pudo ser de lo que había o de lo que llegó sin registrar. `null` si no hay datos.
 //   ASUME:   que los hechos son los de la sede de la venta y que las fechas vienen en ISO (las de la base).
+//            (3) `sugerenciaDeVenta`: la que se sugiere («Más probable») y por qué, mirando también lo que la caja ESCRIBIÓ: si
+//            la descripción nombra otra categoría que la anotada («Jean…» anotado como Pantalones), la sugerida sale de la escrita
+//            (`categoriaEscritaDistinta`, la misma regla que Vender) o no hay sugerida: nunca un pantalón como «Más probable» de
+//            un jean.
 //   NO HACE: no elige por nadie. La pantalla muestra la candidata y la respuesta como SUGERENCIA y la persona confirma: contestar mal
 //            descuenta dos veces (o deja una prenda fantasma), y la regla falla si la carga se registró días después de contarla
 //            en papel. Por eso tampoco es un candado en `regularizar_prenda`.
@@ -25,7 +29,14 @@
 //   6. el código, para que el orden sea siempre el mismo.
 import { distanciaEntreHex, esHexValido } from "./color-parecido";
 import { diaYHoraLima } from "./fechas-lima";
-import { SINONIMOS_POR_CATEGORIA, formas } from "./sugerir-categoria-sin-registrar";
+import { sugerirDescripcion } from "./prenda-sin-registrar-reglas";
+import {
+  SINONIMOS_POR_CATEGORIA,
+  formas,
+  sugerenciaParaMostrar,
+  type CategoriaParaSugerir,
+  type CategoriaSugerida,
+} from "./sugerir-categoria-sin-registrar";
 
 export type FormaRegularizar = "ya_registrada" | "llego_nueva";
 
@@ -67,6 +78,8 @@ export type Candidata = {
   /** Por qué está en este lugar, en palabras de tienda: «el nombre dice «emma» · mismo color · está en el piso». */
   razones: string[];
   forma: FormaDeducida | null;
+  /** Sale de la categoría que nombra lo que escribió la caja, no de la que anotó (ver `sugerenciaDeVenta`). */
+  porLoEscrito: boolean;
 };
 
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;
@@ -205,6 +218,7 @@ export function ordenarCandidatas(
       palabrasDelNombre: palabras,
       razones: razonesDe(venta, prenda, h, palabras),
       forma: deducirForma(h, venta.vendidoEn, venta.sede),
+      porLoEscrito: false,
     });
   }
   const distancia = (c: Candidata) => Math.abs(c.prenda.precio - venta.precioCobrado);
@@ -231,12 +245,77 @@ export function hechosPorVenta(hechos: readonly HechoCandidata[]): Map<string, H
   return out;
 }
 
-/** La frase corta de la lista: «Probable: Blusa Emma · BLU-0001-NEG-M» o, con varias, «… (1 de 3)». */
-export function textoProbable(candidatas: readonly Candidata[]): string | null {
-  const [primera] = candidatas;
-  if (!primera) return null;
-  const cuantas = candidatas.length > 1 ? ` (1 de ${candidatas.length})` : "";
-  return `Probable: ${primera.prenda.nombre} · ${primera.prenda.codigo}${cuantas}`;
+/** Lo que la venta trae para saber si lo escrito y lo anotado dicen lo mismo. */
+export type VentaConCategoria = Pick<VentaPorRegularizar, "descripcion" | "categoria" | "color" | "talla"> & { categoriaId: string };
+
+/**
+ * Si lo que ESCRIBIÓ la caja nombra otra categoría activa que la anotada («Jean azul tiro alto» anotado como Pantalones → Jeans),
+ * cuál y por qué palabra; `null` si dicen lo mismo, si lo escrito no nombra ninguna prenda o si la descripción la armó el sistema
+ * con la categoría anotada («Pantalones · Negro · Talla 28»: no es evidencia). La misma regla que sugiere en Vender
+ * (`sugerenciaParaMostrar`, ADR-0328 decisión 6): una sola lectura del texto para las ventas nuevas y para la cola.
+ */
+export function categoriaEscritaDistinta(venta: VentaConCategoria, categorias: readonly CategoriaParaSugerir[]): CategoriaSugerida | null {
+  if (venta.descripcion.trim() === sugerirDescripcion(venta.categoria, venta.color, venta.talla)) return null;
+  return sugerenciaParaMostrar(venta.descripcion, venta.categoriaId, categorias);
+}
+
+/** Las ventas PENDIENTES cuya descripción nombra otra categoría: a cuál buscarlas (la segunda lectura de candidatas). */
+export function categoriasPorLoEscrito(
+  filas: readonly (VentaConCategoria & { id: string; estado: string })[],
+  categorias: readonly CategoriaParaSugerir[],
+): Record<string, CategoriaSugerida> {
+  const out: Record<string, CategoriaSugerida> = {};
+  for (const f of filas) {
+    if (f.estado !== "pendiente") continue;
+    const escrita = categoriaEscritaDistinta(f, categorias);
+    if (escrita) out[f.id] = escrita;
+  }
+  return out;
+}
+
+/** Lo que la pantalla dice de UNA venta pendiente: todas sus candidatas, la que se sugiere y si lo escrito nombra otra categoría. */
+export type SugerenciaVenta = {
+  /** Primero las de la categoría escrita (si caja anotó otra), después las de la anotada; cada grupo en su orden. */
+  candidatas: Candidata[];
+  /** La «Más probable» (la del «Es esta»), o `null`: ninguna calza, o lo escrito nombra otra categoría y de esa no hay ninguna. */
+  probable: Candidata | null;
+  escrita: CategoriaSugerida | null;
+};
+
+/**
+ * La sugerencia de UNA venta. Sin conflicto entre lo escrito y lo anotado, la más probable de la categoría anotada. Si lo escrito
+ * nombra otra (`escrita`), la sugerida sale de ESA categoría (`hechosEscrita`, la segunda lectura) y dice por qué; las de la anotada
+ * quedan después, como «posibles», nunca como la sugerida: un pantalón no es la «Más probable» de una venta escrita «Jean…».
+ */
+export function sugerenciaDeVenta(
+  venta: VentaPorRegularizar,
+  hechosAnotada: readonly HechoCandidata[],
+  hechosEscrita: readonly HechoCandidata[],
+  catalogo: ReadonlyMap<string, PrendaParaRegularizar>,
+  escrita: CategoriaSugerida | null,
+): SugerenciaVenta {
+  const anotadas = ordenarCandidatas(venta, hechosAnotada, catalogo);
+  if (!escrita) return { candidatas: anotadas, probable: anotadas[0] ?? null, escrita: null };
+  const deLoEscrito = ordenarCandidatas({ ...venta, categoria: escrita.nombre }, hechosEscrita, catalogo).map((c) => ({
+    ...c,
+    porLoEscrito: true,
+    razones: [`caja escribió «${escrita.palabra}»`, ...c.razones],
+  }));
+  const ya = new Set(deLoEscrito.map((c) => c.prenda.id));
+  return { candidatas: [...deLoEscrito, ...anotadas.filter((c) => !ya.has(c.prenda.id))], probable: deLoEscrito[0] ?? null, escrita };
+}
+
+/**
+ * La frase corta de la lista: «Probable: Blusa Emma · BLU-0001-NEG-M» o, con varias, «… (1 de 3)»; si lo escrito nombra otra
+ * categoría y de esa no hay ninguna en stock, «Caja escribió «Jean»: búscala entre Jeans».
+ */
+export function textoProbable(s: SugerenciaVenta): string | null {
+  if (s.probable) {
+    const cuantas = s.candidatas.length > 1 ? ` (1 de ${s.candidatas.length})` : "";
+    return `Probable: ${s.probable.prenda.nombre} · ${s.probable.prenda.codigo}${cuantas}`;
+  }
+  if (s.escrita) return `Caja escribió «${s.escrita.palabra}»: búscala entre ${s.escrita.nombre}`;
+  return null;
 }
 
 /** Qué dice el libro de la prenda ELEGIDA (la respuesta, o por qué no alcanza), si la elegida es una candidata con datos. */
@@ -244,7 +323,7 @@ export function formaSugeridaPara(candidatas: readonly Candidata[], varianteEleg
   return candidatas.find((c) => c.prenda.id === varianteElegida)?.forma ?? null;
 }
 
-/** Cuántas pendientes tienen al menos una candidata (para decir cuánto de la limpieza es «confirmar» y cuánto «buscar»). */
-export function conCandidata(pendientes: readonly { id: string }[], candidatasDe: ReadonlyMap<string, readonly Candidata[]>): number {
-  return pendientes.filter((p) => (candidatasDe.get(p.id)?.length ?? 0) > 0).length;
+/** Cuántas pendientes tienen una prenda probable (para decir cuánto de la limpieza es «confirmar» y cuánto «buscar»). */
+export function conCandidata(pendientes: readonly { id: string }[], sugerenciaDe: ReadonlyMap<string, SugerenciaVenta>): number {
+  return pendientes.filter((p) => sugerenciaDe.get(p.id)?.probable).length;
 }

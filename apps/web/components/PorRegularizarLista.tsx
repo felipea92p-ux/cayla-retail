@@ -26,13 +26,14 @@ import {
   conCandidata,
   formaSugeridaPara,
   hechosPorVenta,
-  ordenarCandidatas,
+  sugerenciaDeVenta,
   textoProbable,
-  type Candidata,
   type FormaRegularizar,
   type HechoCandidata,
   type PrendaParaRegularizar,
+  type SugerenciaVenta,
 } from "@/lib/por-regularizar-candidatas";
+import type { CategoriaSugerida } from "@/lib/sugerir-categoria-sin-registrar";
 
 export type { PrendaParaRegularizar };
 
@@ -55,6 +56,8 @@ export function PorRegularizarLista({
   filas,
   prendas,
   hechos,
+  hechosPorLoEscrito,
+  escritas,
   avisoCandidatas,
   ubicacionEtiqueta,
   variasSedes,
@@ -64,6 +67,10 @@ export function PorRegularizarLista({
   prendas: PrendaParaRegularizar[];
   /** Las prendas del stock que pueden ser cada venta pendiente (`fn_candidatas_por_regularizar`); vacío si no se pudo leer. */
   hechos: HechoCandidata[];
+  /** Las mismas, para las ventas cuya descripción nombra otra categoría, buscadas en la categoría ESCRITA (segunda lectura). */
+  hechosPorLoEscrito: HechoCandidata[];
+  /** Por venta pendiente: la categoría que nombra lo que escribió la caja, si no es la anotada (`categoriasPorLoEscrito`). */
+  escritas: Record<string, CategoriaSugerida>;
   /** Si la lectura de candidatas falló: se dice y se sigue (la persona busca en el catálogo, como antes). */
   avisoCandidatas: string | null;
   /** Para el mensaje de «no hay nada»: la sede que se mira, o «tus tiendas» si es el líder. */
@@ -82,12 +89,16 @@ export function PorRegularizarLista({
   // ADR-0328 (act. 5): la prenda del stock más probable de cada venta pendiente, ordenada y explicada en `por-regularizar-candidatas`.
   const catalogo = useMemo(() => new Map(prendas.map((p) => [p.id, p])), [prendas]);
   const porVenta = useMemo(() => hechosPorVenta(hechos), [hechos]);
-  const candidatasDe = useMemo(() => {
-    const out = new Map<string, Candidata[]>();
-    for (const f of filas) if (f.estado === "pendiente") out.set(f.id, ordenarCandidatas(f, porVenta.get(f.id) ?? [], catalogo));
+  const porVentaEscrita = useMemo(() => hechosPorVenta(hechosPorLoEscrito), [hechosPorLoEscrito]);
+  const sugerenciaDe = useMemo(() => {
+    const out = new Map<string, SugerenciaVenta>();
+    for (const f of filas) {
+      if (f.estado !== "pendiente") continue;
+      out.set(f.id, sugerenciaDeVenta(f, porVenta.get(f.id) ?? [], porVentaEscrita.get(f.id) ?? [], catalogo, escritas[f.id] ?? null));
+    }
     return out;
-  }, [filas, porVenta, catalogo]);
-  const conProbable = useMemo(() => conCandidata(filas.filter((f) => f.estado === "pendiente"), candidatasDe), [filas, candidatasDe]);
+  }, [filas, porVenta, porVentaEscrita, catalogo, escritas]);
+  const conProbable = useMemo(() => conCandidata(filas.filter((f) => f.estado === "pendiente"), sugerenciaDe), [filas, sugerenciaDe]);
   const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
   const visibles = filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien));
 
@@ -134,13 +145,14 @@ export function PorRegularizarLista({
         {visibles.map((f) => {
           const { dia, hora } = diaYHoraLima(f.vendidoEn);
           const vencida = f.estado === "pendiente" && estaVencida(f.vendidoEn, ahora);
-          const probable = f.estado === "pendiente" ? textoProbable(candidatasDe.get(f.id) ?? []) : null;
+          const sugerencia = f.estado === "pendiente" ? sugerenciaDe.get(f.id) : undefined;
+          const probable = sugerencia ? textoProbable(sugerencia) : null;
           return (
             <div key={f.id} className={fila(PLANTILLA)}>
               <div className={celda()}>
                 <p className="truncate text-sm text-tinta">{f.descripcion}</p>
                 <p className="truncate text-xs text-taupe">{[f.categoria, f.talla, f.color].join(" · ")}</p>
-                {probable && <p className="truncate text-xs text-tinta/75">{probable}</p>}
+                {probable && <p className={`truncate text-xs ${sugerencia?.probable ? "text-tinta/75" : "text-ambar-profundo"}`}>{probable}</p>}
               </div>
               <div className={celda("izq", "whitespace-normal")}>
                 <p className="truncate text-sm text-tinta">{f.vendidoPor}</p>
@@ -192,7 +204,13 @@ export function PorRegularizarLista({
       </p>
 
       {abierta && (
-        <RegularizarModal fila={abierta} prendas={prendas} candidatas={candidatasDe.get(abierta.id) ?? []} esLider={esLider} onClose={() => setAbierta(null)} />
+        <RegularizarModal
+          fila={abierta}
+          prendas={prendas}
+          sugerencia={sugerenciaDe.get(abierta.id) ?? { candidatas: [], probable: null, escrita: null }}
+          esLider={esLider}
+          onClose={() => setAbierta(null)}
+        />
       )}
     </div>
   );
@@ -227,14 +245,15 @@ const SI_CONTESTA_MAL: Record<FormaRegularizar, string> = {
 function RegularizarModal({
   fila: f,
   prendas,
-  candidatas,
+  sugerencia,
   esLider,
   onClose,
 }: {
   fila: FilaPorRegularizar;
   prendas: PrendaParaRegularizar[];
-  /** Las prendas del stock que pueden ser esta venta, de la más a la menos probable (vacío si ninguna calza o no se pudo leer). */
-  candidatas: Candidata[];
+  /** Las prendas del stock que pueden ser esta venta (de la más a la menos probable), la sugerida y si lo escrito nombra otra
+   *  categoría (`sugerenciaDeVenta`). Vacía si ninguna calza o no se pudo leer. */
+  sugerencia: SugerenciaVenta;
   esLider: boolean;
   onClose: () => void;
 }) {
@@ -254,7 +273,8 @@ function RegularizarModal({
   });
 
   const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
-  const sugerida = candidatas[0] ?? null;
+  const { candidatas, escrita } = sugerencia;
+  const sugerida = sugerencia.probable;
   // La respuesta que dice el libro para la prenda ELEGIDA (si es una candidata con fecha de entrada). Nunca se marca sola.
   const formaSugerida = elegida ? formaSugeridaPara(candidatas, elegida.id) : null;
 
@@ -285,21 +305,23 @@ function RegularizarModal({
 
   // Primero las candidatas (stock de esta tienda que calza, en su orden de probabilidad) y después el resto del catálogo, con las que
   // calzan con lo que anotó caja (categoría, talla y color) arriba: así almacén la encuentra sin tipear.
+  // Si lo escrito nombra otra categoría, el resto del catálogo se ordena por ESA (la escrita): ahí está lo que la caja tenía en la mano.
+  const categoriaParaCalce = escrita?.nombre ?? f.categoria;
   const opciones = useMemo(() => {
     const deCandidatas = new Set(candidatas.map((c) => c.prenda.id));
-    const calce = (p: PrendaParaRegularizar) => Number(p.categoria === f.categoria) + Number(p.talla === f.talla) + Number(p.color === f.color);
+    const calce = (p: PrendaParaRegularizar) => Number(p.categoria === categoriaParaCalce) + Number(p.talla === f.talla) + Number(p.color === f.color);
     return [
-      ...candidatas.map((c, i) => ({
+      ...candidatas.map((c) => ({
         valor: c.prenda.id,
         texto: c.prenda.nombre,
-        detalle: `${i === 0 ? "Más probable" : "Posible"} · ${c.prenda.talla} · ${c.prenda.color} · ${c.prenda.codigo} · ${soles(c.prenda.precio)}`,
+        detalle: `${c === sugerida ? "Más probable" : "Posible"} · ${c.prenda.talla} · ${c.prenda.color} · ${c.prenda.codigo} · ${soles(c.prenda.precio)}`,
       })),
       ...[...prendas]
         .filter((p) => !deCandidatas.has(p.id))
         .sort((a, b) => calce(b) - calce(a))
         .map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.talla} · ${p.color} · ${p.codigo} · ${soles(p.precio)}` })),
     ];
-  }, [prendas, candidatas, f.categoria, f.talla, f.color]);
+  }, [prendas, candidatas, sugerida, categoriaParaCalce, f.talla, f.color]);
 
   async function guardar() {
     if (!elegida || !forma || !listo) return;
@@ -326,7 +348,11 @@ function RegularizarModal({
           {sugerida && elegidaId !== sugerida.prenda.id && (
             <div className="mb-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta" data-sugerencia-prenda>
               <p className="text-xs text-taupe">
-                {candidatas.length > 1 ? `Sugerida · la más probable de ${candidatas.length} en el stock` : "Sugerida · la única que calza en el stock"}
+                {sugerida.porLoEscrito && escrita
+                  ? `Sugerida · caja anotó ${f.categoria}, pero escribió «${escrita.palabra}»: esta es de ${escrita.nombre}`
+                  : candidatas.length > 1
+                    ? `Sugerida · la más probable de ${candidatas.length} en el stock`
+                    : "Sugerida · la única que calza en el stock"}
               </p>
               <p className="font-semibold">
                 {sugerida.prenda.nombre} · {sugerida.prenda.talla} · {sugerida.prenda.color} · {sugerida.prenda.codigo}
@@ -336,6 +362,12 @@ function RegularizarModal({
                 Es esta
               </button>
             </div>
+          )}
+          {escrita && !sugerida && (
+            <p className="mb-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta" data-sugerencia-escrita>
+              Caja anotó {f.categoria}, pero escribió «{escrita.palabra}»: búscala entre <span className="font-semibold">{escrita.nombre}</span>. En
+              {` ${f.sede || "esta tienda"}`} no hay ninguna de {escrita.nombre} en talla {f.talla} y {f.color.toLowerCase()} con stock libre.
+            </p>
           )}
           <ComboBuscable
             valor={elegidaId}

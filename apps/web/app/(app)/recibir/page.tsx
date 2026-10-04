@@ -22,7 +22,8 @@ import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { getCandidatasPorRegularizar, getPorRegularizar } from "@/lib/por-regularizar";
+import { getCandidatasPorRegularizar, getCategoriasParaSugerir, getPorRegularizar } from "@/lib/por-regularizar";
+import { categoriasPorLoEscrito } from "@/lib/por-regularizar-candidatas";
 import { PorRegularizarLista } from "@/components/PorRegularizarLista";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
@@ -115,7 +116,17 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // El líder ve las de todas sus sedes (cada fila dice cuál); una colaboradora, las de la suya (RLS igual lo cuida).
     // ADR-0328 (act. 5): con las prendas del stock que pueden ser cada venta. Si esa lectura falla, la cola sale igual, sin sugerencias.
     const sedeDeLaCola = esLider ? null : persona.ubicacionId;
-    const [filas, catalogo, candidatas] = await Promise.all([getPorRegularizar(sedeDeLaCola), getCatalogo(), getCandidatasPorRegularizar(sedeDeLaCola)]);
+    const [filas, catalogo, candidatas, categorias] = await Promise.all([
+      getPorRegularizar(sedeDeLaCola),
+      getCatalogo(),
+      getCandidatasPorRegularizar(sedeDeLaCola),
+      getCategoriasParaSugerir(),
+    ]);
+    // Las ventas cuya descripción nombra otra categoría que la anotada («Jean…» como Pantalones): sus candidatas se leen otra vez,
+    // en la categoría escrita. Va después porque depende de lo que dicen las filas; casi siempre no hay ninguna y no se pide nada.
+    const escritas = categoriasPorLoEscrito(filas, categorias);
+    const releer = Object.fromEntries(Object.entries(escritas).map(([id, s]) => [id, s.categoriaId]));
+    const porLoEscrito = Object.keys(releer).length > 0 ? await getCandidatasPorRegularizar(sedeDeLaCola, releer) : { hechos: [], fallo: null };
     // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
     const prendas = catalogo
       .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
@@ -124,7 +135,17 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       <div className="space-y-6">
         {encabezado}
         {pestanas}
-        <PorRegularizarLista filas={filas} prendas={prendas} hechos={candidatas.hechos} avisoCandidatas={candidatas.fallo} ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta} variasSedes={esLider} esLider={esLider} />
+        <PorRegularizarLista
+          filas={filas}
+          prendas={prendas}
+          hechos={candidatas.hechos}
+          hechosPorLoEscrito={porLoEscrito.hechos}
+          escritas={escritas}
+          avisoCandidatas={candidatas.fallo ?? porLoEscrito.fallo}
+          ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta}
+          variasSedes={esLider}
+          esLider={esLider}
+        />
       </div>
     );
   }

@@ -5,11 +5,14 @@ import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
 import type { HechoCandidata } from "./por-regularizar-candidatas";
+import type { CategoriaParaSugerir } from "./sugerir-categoria-sin-registrar";
 
 export type FilaPorRegularizar = {
   id: string;
   descripcion: string;
   categoria: string;
+  /** La categoría que ANOTÓ la caja (para comparar con la que nombra lo que escribió, ADR-0328). */
+  categoriaId: string;
   talla: string;
   color: string;
   precioCobrado: number;
@@ -26,7 +29,7 @@ export type FilaPorRegularizar = {
   diferencia: number | null;
 };
 
-const COLUMNAS = `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
+const COLUMNAS = `id, ubicacion_id, categoria_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
        categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
        ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) )`;
 
@@ -74,6 +77,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     id: f.id,
     descripcion: f.descripcion,
     categoria: f.categoria?.nombre ?? "",
+    categoriaId: f.categoria_id,
     talla: f.talla?.valor ?? "",
     color: f.color?.nombre ?? "",
     precioCobrado: Number(f.precio_cobrado),
@@ -103,20 +107,36 @@ export async function contarVencidas(): Promise<number | null> {
 }
 
 /**
+ * Las categorías activas, para leer lo que la caja escribió (`categoriaEscritaDistinta`). Es una ayuda: si falla, ninguna venta
+ * se marca como «escrita distinta» y la pantalla sigue con la categoría anotada.
+ */
+export async function getCategoriasParaSugerir(): Promise<CategoriaParaSugerir[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("categorias").select("id, nombre, prefijo").eq("activo", true);
+  if (error || !data) {
+    console.error("Categorías para leer lo escrito en Por regularizar:", error);
+    return [];
+  }
+  return data;
+}
+
+/**
  * Las prendas del stock que pueden ser cada venta pendiente (`retail.fn_candidatas_por_regularizar`, ADR-0328 act. 5): la base
- * trae los hechos y `lib/por-regularizar-candidatas.ts` los ordena y los explica.
+ * trae los hechos y `lib/por-regularizar-candidatas.ts` los ordena y los explica. Con `categoriaDe` ({id de la venta: id de
+ * categoría}) solo esas ventas, buscadas en la categoría que nombra lo que la caja escribió (la segunda lectura).
  *
  * Es una ayuda, no la cola: si la lectura falla (la función todavía no está pegada en producción, o la red se cae) NUNCA tumba
  * Por regularizar. Devuelve la lista vacía y el aviso para pintar, y la persona regulariza como antes, buscando en el catálogo.
  */
-export async function getCandidatasPorRegularizar(ubicacionId: string | null): Promise<{ hechos: HechoCandidata[]; fallo: string | null }> {
+export async function getCandidatasPorRegularizar(
+  ubicacionId: string | null,
+  categoriaDe?: Record<string, string>,
+): Promise<{ hechos: HechoCandidata[]; fallo: string | null }> {
   try {
     const supabase = await createClient();
+    const args = { ...(ubicacionId ? { p_ubicacion_id: ubicacionId } : {}), ...(categoriaDe ? { p_categoria_de: categoriaDe } : {}) };
     // Hasta 20 por venta: con cientos de pendientes puede pasar de las 1.000 filas que PostgREST entrega de una vez.
-    const r = await leerTodas(
-      (desde, hasta) => supabase.rpc("fn_candidatas_por_regularizar", ubicacionId ? { p_ubicacion_id: ubicacionId } : {}).range(desde, hasta),
-      { enParalelo: 1 },
-    );
+    const r = await leerTodas((desde, hasta) => supabase.rpc("fn_candidatas_por_regularizar", args).range(desde, hasta), { enParalelo: 1 });
     if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
     return {
       hechos: r.data.map((f) => ({

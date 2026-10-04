@@ -11,9 +11,10 @@
 -- memoria; el libro de movimientos sí: cuántas tenía el sistema de esa prenda en esa sede a la hora de la venta, y qué entró o se
 -- ajustó después.
 --
--- QUÉ HACE. Una lectura, `retail.fn_candidatas_por_regularizar(p_ubicacion_id)`: por cada fila PENDIENTE de
+-- QUÉ HACE. Una lectura, `retail.fn_candidatas_por_regularizar(p_ubicacion_id, p_categoria_de)`: por cada fila PENDIENTE de
 -- `prendas_por_regularizar` que la cuenta puede operar, las variantes activas con:
---   · la misma categoría (la del producto) y la misma talla que anotó la caja,
+--   · la misma categoría (la del producto) y la misma talla que anotó la caja —o, con `p_categoria_de`, la categoría que nombra
+--     lo que la caja ESCRIBIÓ, para las ventas que la web pide (ver «Lo escrito contra lo anotado»)—,
 --   · el mismo color, o uno de la misma familia (`colores.familia_color`: «Azul» anotado puede ser «Azul denim»). La familia es
 --     ancha («neutro» junta Negro y Blanco): trae el hex de los dos colores y la web descarta los que no se confunden a la vista
 --     (ΔE2000 > 20, `lib/por-regularizar-candidatas.ts`, la misma medida de la paleta, `lib/color-parecido.ts`),
@@ -23,6 +24,13 @@
 -- antes de la venta, del libro único `fn_ledger_puntos`, ADR-0202) y el CAMBIO POSTERIOR (lo primero que llegó o se ajustó de esa
 -- prenda en esa sede después de la venta). Hasta 20 por venta, las más probables primero.
 -- Y `retail.fn_prenda_cargada_en_sede(variante, sede)`: si esa prenda ya entró al sistema en esa sede (revisión R6, al final).
+--
+-- LO ESCRITO CONTRA LO ANOTADO (revisión adversarial). En AQP hay ventas descritas «Jean…» anotadas como Pantalones (ADR-0328).
+-- Buscando solo en la categoría anotada, la candidata «Más probable» de «Jean azul tiro alto» salía un pantalón palazzo: si se
+-- aceptaba, la venta pasaba a otra prenda y quedaban dos prendas descuadradas. La web lee la descripción (`sugerirCategoria`, la
+-- misma regla que Vender, ADR-0328 decisión 6) y, para esas ventas, pide una SEGUNDA lectura con `p_categoria_de`: la candidata
+-- sale de la categoría escrita y la pantalla dice por qué. La regla de lectura del texto vive en un solo lugar (la web): la base
+-- solo recibe a qué categoría mirar.
 --
 -- POR QUÉ EL SALDO Y NO SOLO LA PRIMERA ENTRADA (revisión adversarial, R7). La primera versión deducía con la primera entrada sola:
 -- venta después de ella ⇒ «ya estaba registrada». Falla cuando la prenda se agotó y volvió a llegar: carga de 1, venta escaneada (el
@@ -79,11 +87,12 @@
 set lock_timeout = '3s';
 set search_path = retail, public, extensions;
 
--- La firma de antes (sin `saldo_a_la_venta` ni `cambio_posterior`) cambia de columnas: `create or replace` no puede cambiar lo que
--- devuelve. `drop function` no toma las tablas de `auth`/`storage` (CLAUDE.md, «Políticas y deadlocks»). Si nunca se pegó, no hace nada.
+-- La firma de antes (un solo parámetro, sin `saldo_a_la_venta` ni `cambio_posterior`) cambia: `create or replace` no puede cambiar
+-- lo que devuelve ni los parámetros. `drop function` no toma las tablas de `auth`/`storage` (CLAUDE.md, «Políticas y deadlocks»).
+-- Si nunca se pegó, no hace nada.
 drop function if exists retail.fn_candidatas_por_regularizar(uuid);
 
-create or replace function retail.fn_candidatas_por_regularizar(p_ubicacion_id uuid default null)
+create or replace function retail.fn_candidatas_por_regularizar(p_ubicacion_id uuid default null, p_categoria_de jsonb default null)
 returns table (
   prenda_id uuid,
   variante_id uuid,
@@ -112,11 +121,17 @@ as $$
       and fn_puede_operar_ubicacion(u.id)
   ),
   pendientes as (
-    select p.id, p.ubicacion_id, p.vendido_en, p.categoria_id, p.talla_id, p.color_codigo, p.precio_cobrado, c.familia_color, c.hex
+    -- Con `p_categoria_de` ({"<id de la venta>": "<id de categoría>"}): solo esas ventas, cada una buscada en la categoría que se
+    -- pide y no en la que anotó la caja. La web la pide cuando lo ESCRITO nombra otra categoría («Jean azul» anotado como
+    -- Pantalones, revisión R3 de la cola): así la candidata sale de Jeans. Sin él, todas las pendientes con su categoría anotada.
+    select p.id, p.ubicacion_id, p.vendido_en,
+           coalesce((p_categoria_de ->> p.id::text)::uuid, p.categoria_id) as categoria_id,
+           p.talla_id, p.color_codigo, p.precio_cobrado, c.familia_color, c.hex
     from prendas_por_regularizar p
     join sedes s on s.id = p.ubicacion_id
     left join colores c on c.codigo = p.color_codigo
     where p.estado = 'pendiente'
+      and (p_categoria_de is null or p_categoria_de ? p.id::text)
   ),
   existencias as (
     select e.variante_id, e.ubicacion_id, e.piso_libre, e.almacen_libre, e.disponible
@@ -226,11 +241,11 @@ as $$
   order by el.prenda_id, el.orden;
 $$;
 
-comment on function retail.fn_candidatas_por_regularizar(uuid) is
-  'ADR-0328 (actividad 5): por cada venta «sin registrar» pendiente de las sedes que la cuenta opera, las variantes activas de la misma categoría y talla, del mismo color o de su familia, con stock disponible en esa sede (fn_existencias_base), hasta 20 por venta. Trae el piso y el almacén libres, la primera entrada de esa prenda a esa sede (sin el ingreso_regularizado), cuántas tenía el sistema justo antes de la venta (saldo_a_la_venta, del libro único fn_ledger_puntos) y lo primero que cambió lo contado después (cambio_posterior: una llegada o un ajuste), para que la web sugiera la prenda y deduzca «llegó nueva» (el sistema no tenía ninguna) o «ya estaba registrada» (tenía y después no llegó ni se ajustó nada); si no, no deduce. Solo lectura; sin costo.';
+comment on function retail.fn_candidatas_por_regularizar(uuid, jsonb) is
+  'ADR-0328 (actividad 5): por cada venta «sin registrar» pendiente de las sedes que la cuenta opera, las variantes activas de la misma categoría y talla, del mismo color o de su familia, con stock disponible en esa sede (fn_existencias_base), hasta 20 por venta (con p_categoria_de, solo esas ventas y en la categoría pedida: lo que la caja escribió). Trae el piso y el almacén libres, la primera entrada de esa prenda a esa sede (sin el ingreso_regularizado), cuántas tenía el sistema justo antes de la venta (saldo_a_la_venta, del libro único fn_ledger_puntos) y lo primero que cambió lo contado después (cambio_posterior: una llegada o un ajuste), para que la web sugiera la prenda y deduzca «llegó nueva» (el sistema no tenía ninguna) o «ya estaba registrada» (tenía y después no llegó ni se ajustó nada); si no, no deduce. Solo lectura; sin costo.';
 
-revoke all on function retail.fn_candidatas_por_regularizar(uuid) from public, anon;
-grant execute on function retail.fn_candidatas_por_regularizar(uuid) to authenticated;
+revoke all on function retail.fn_candidatas_por_regularizar(uuid, jsonb) from public, anon;
+grant execute on function retail.fn_candidatas_por_regularizar(uuid, jsonb) to authenticated;
 
 -- ¿Esta prenda ya entró al sistema en esta sede? (revisión adversarial, R6). UNA definición para dos lectores: la pantalla, que
 -- lo dice ANTES del botón cuando se elige una prenda que no es candidata, y `regularizar_prenda` (20261004204000), que rechaza

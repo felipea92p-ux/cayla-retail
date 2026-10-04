@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   UMBRAL_COLOR_ANOTADO,
+  categoriaEscritaDistinta,
+  categoriasPorLoEscrito,
   colorPudoSerElAnotado,
   conCandidata,
   deducirForma,
@@ -8,6 +10,7 @@ import {
   hechosPorVenta,
   ordenarCandidatas,
   palabrasEnComun,
+  sugerenciaDeVenta,
   textoProbable,
   type HechoCandidata,
   type PrendaParaRegularizar,
@@ -207,9 +210,10 @@ describe("las piezas de la lista", () => {
 
   it("la frase corta de la lista dice cuál y de cuántas", () => {
     const cat = catalogoDe(prenda("a", "Blusa Aurora"), prenda("b", "Blusa Brisa"));
-    expect(textoProbable(ordenarCandidatas(VENTA, [hecho("a")], cat))).toBe("Probable: Blusa Aurora · COD-a");
-    expect(textoProbable(ordenarCandidatas(VENTA, [hecho("a"), hecho("b", { pisoLibre: 0 })], cat))).toBe("Probable: Blusa Aurora · COD-a (1 de 2)");
-    expect(textoProbable([])).toBeNull();
+    const de = (hs: HechoCandidata[]) => textoProbable(sugerenciaDeVenta(VENTA, hs, [], cat, null));
+    expect(de([hecho("a")])).toBe("Probable: Blusa Aurora · COD-a");
+    expect(de([hecho("a"), hecho("b", { pisoLibre: 0 })])).toBe("Probable: Blusa Aurora · COD-a (1 de 2)");
+    expect(de([])).toBeNull();
   });
 
   it("la respuesta sugerida es la de la prenda ELEGIDA, y nada si la elegida no es candidata", () => {
@@ -224,10 +228,81 @@ describe("las piezas de la lista", () => {
     expect(formaSugeridaPara(cs, "otra")).toBeNull();
   });
 
-  it("cuenta cuántas pendientes tienen alguna candidata (después de descartar los colores que no se confunden)", () => {
+  it("cuenta cuántas pendientes tienen una prenda probable (después de descartar los colores que no se confunden)", () => {
     const cat = catalogoDe(prenda("a", "Blusa Aurora"), prenda("b", "Blusa Brisa", { color: "Blanco" }));
     const g = hechosPorVenta([hecho("a"), hecho("b", { prendaId: "venta-3", colorExacto: false, colorHex: BLANCO, colorHexAnotado: NEGRO })]);
-    const candidatasDe = new Map([...g].map(([id, hs]) => [id, ordenarCandidatas(VENTA, hs, cat)]));
-    expect(conCandidata([{ id: "venta-1" }, { id: "venta-2" }, { id: "venta-3" }], candidatasDe)).toBe(1);
+    const sugerenciaDe = new Map([...g].map(([id, hs]) => [id, sugerenciaDeVenta(VENTA, hs, [], cat, null)]));
+    expect(conCandidata([{ id: "venta-1" }, { id: "venta-2" }, { id: "venta-3" }], sugerenciaDe)).toBe(1);
+  });
+});
+
+// Lo escrito contra lo anotado (revisión adversarial): las ventas «Jean…» de AQP anotadas como Pantalones. Las categorías son las de
+// la base (prefijo de 20260912235500); los ids, inventados.
+const CATEGORIAS = [
+  { id: "cat-pan", nombre: "Pantalones", prefijo: "PAN" },
+  { id: "cat-jea", nombre: "Jeans", prefijo: "JEA" },
+  { id: "cat-cas", nombre: "Casacas", prefijo: "CAS" },
+  { id: "cat-cms", nombre: "Camisas y Blusas", prefijo: "CMS" },
+];
+const JEAN_COMO_PANTALON = {
+  ...VENTA,
+  descripcion: "Jean azul tiro alto",
+  categoria: "Pantalones",
+  categoriaId: "cat-pan",
+  talla: "28",
+  color: "Azul",
+};
+
+describe("categoriaEscritaDistinta — ¿lo que ESCRIBIÓ la caja nombra otra categoría que la anotada?", () => {
+  it("«Jean azul tiro alto» anotado como Pantalones → Jeans, por la palabra «Jean»", () => {
+    expect(categoriaEscritaDistinta(JEAN_COMO_PANTALON, CATEGORIAS)).toEqual({ categoriaId: "cat-jea", nombre: "Jeans", palabra: "Jean" });
+  });
+  it("si dicen lo mismo, o lo escrito no nombra ninguna prenda, no hay nada que decir", () => {
+    expect(categoriaEscritaDistinta({ ...JEAN_COMO_PANTALON, descripcion: "Pantalón palazzo azul" }, CATEGORIAS)).toBeNull();
+    expect(categoriaEscritaDistinta({ ...JEAN_COMO_PANTALON, descripcion: "azul talla 28 sin etiqueta" }, CATEGORIAS)).toBeNull();
+  });
+  it("la prenda va primero: «chaqueta jean» anotada como Pantalones es una Casaca", () => {
+    expect(categoriaEscritaDistinta({ ...JEAN_COMO_PANTALON, descripcion: "chaqueta jean" }, CATEGORIAS)?.nombre).toBe("Casacas");
+  });
+  it("la descripción que armó el sistema con la categoría anotada no es evidencia", () => {
+    expect(categoriaEscritaDistinta({ ...JEAN_COMO_PANTALON, descripcion: "Pantalones · Azul · Talla 28" }, CATEGORIAS)).toBeNull();
+  });
+  it("categoriasPorLoEscrito: solo las pendientes, cada una con su categoría escrita", () => {
+    const filas = [
+      { ...JEAN_COMO_PANTALON, id: "v1", estado: "pendiente" },
+      { ...JEAN_COMO_PANTALON, id: "v2", estado: "regularizada" },
+      { ...JEAN_COMO_PANTALON, id: "v3", estado: "pendiente", descripcion: "Pantalón palazzo" },
+    ];
+    expect(Object.keys(categoriasPorLoEscrito(filas, CATEGORIAS))).toEqual(["v1"]);
+  });
+});
+
+describe("sugerenciaDeVenta — un pantalón nunca es la «Más probable» de una venta escrita «Jean…»", () => {
+  const palazzo = prenda("palazzo", "Pantalón Palazzo", { categoria: "Pantalones", talla: "28", color: "Azul" });
+  const mom = prenda("mom", "Jean Mom", { categoria: "Jeans", talla: "28", color: "Azul" });
+  const cat = catalogoDe(palazzo, mom);
+  const escrita = categoriaEscritaDistinta(JEAN_COMO_PANTALON, CATEGORIAS);
+
+  it("sin candidatas de Jeans: no hay sugerida; la frase dice dónde buscarla, y el palazzo queda solo como «posible»", () => {
+    const s = sugerenciaDeVenta(JEAN_COMO_PANTALON, [hecho("palazzo")], [], cat, escrita);
+    expect(s.probable).toBeNull();
+    expect(s.candidatas.map((c) => c.prenda.id)).toEqual(["palazzo"]);
+    expect(textoProbable(s)).toBe("Caja escribió «Jean»: búscala entre Jeans");
+    expect(conCandidata([{ id: "venta-1" }], new Map([["venta-1", s]]))).toBe(0);
+  });
+
+  it("con candidatas de Jeans (la segunda lectura): la sugerida sale de ahí, dice por qué y va antes que el palazzo", () => {
+    const s = sugerenciaDeVenta(JEAN_COMO_PANTALON, [hecho("palazzo")], [hecho("mom")], cat, escrita);
+    expect(s.probable?.prenda.id).toBe("mom");
+    expect(s.probable?.porLoEscrito).toBe(true);
+    expect(s.probable?.razones[0]).toBe("caja escribió «Jean»");
+    expect(s.candidatas.map((c) => c.prenda.id)).toEqual(["mom", "palazzo"]);
+    expect(textoProbable(s)).toBe("Probable: Jean Mom · COD-mom (1 de 2)");
+  });
+
+  it("sin conflicto entre lo escrito y lo anotado, todo sigue como antes", () => {
+    const s = sugerenciaDeVenta(JEAN_COMO_PANTALON, [hecho("palazzo")], [], cat, null);
+    expect(s.probable?.prenda.id).toBe("palazzo");
+    expect(s.probable?.porLoEscrito).toBe(false);
   });
 });
