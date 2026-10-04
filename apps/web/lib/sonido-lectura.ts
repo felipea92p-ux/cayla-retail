@@ -1,12 +1,26 @@
 /**
- * El bip del conteo (parte 1 de Conteo conectado, 2026-09-26): con la pistola o la cámara se mira el rack, no la
- * pantalla, así que cada lectura dice con el oído y con la vibración qué pasó (`PATRON_SONIDO` en `conteo-conectado.ts`).
+ * El bip de cada lectura de la pistola o la cámara (nació en Conteo conectado, 2026-09-26; desde el cuadre del piso,
+ * ADR-0328, lo usa toda pantalla que escanea en ráfaga): con la pistola o la cámara se mira el rack, no la pantalla, así que
+ * cada lectura dice con el oído y con la vibración qué pasó. Qué sonido toca a cada lectura lo decide cada pantalla
+ * (`sonidoDeLectura` en `conteo-conectado.ts` para el conteo); aquí viven los tres sonidos y quien los toca.
  *
  * Todo es una comodidad y puede faltar: sin Web Audio (o si el navegador todavía no dejó sonar porque nadie tocó la
- * pantalla) no suena, y sin `navigator.vibrate` (iPhone) no vibra. El conteo funciona igual. Solo corre en el navegador.
+ * pantalla) no suena, y sin `navigator.vibrate` (iPhone) no vibra. La pantalla funciona igual. `avisarLectura` solo corre
+ * en el navegador.
  */
 
-import { PATRON_SONIDO, type SonidoLectura } from "./conteo-conectado";
+/** `suma`: otra unidad de algo ya leído · `nueva`: la primera unidad de algo · `desconocida`: el código no se pudo usar
+ *  (no es de ninguna prenda del catálogo, o la pantalla no la acepta). Con la pistola se mira el rack, no la pantalla: el
+ *  oído dice qué pasó. */
+export type SonidoLectura = "suma" | "nueva" | "desconocida";
+
+/** Cada sonido: tonos (hercios, milisegundos) separados por 60 ms, y su vibración. Corto y agudo = todo bien; grave y
+ *  largo = mira la pantalla. */
+export const PATRON_SONIDO: Record<SonidoLectura, { tonos: readonly (readonly [number, number])[]; vibracion: number | number[] }> = {
+  suma: { tonos: [[1760, 70]], vibracion: 35 },
+  nueva: { tonos: [[1320, 60], [1760, 70]], vibracion: [30, 50, 30] },
+  desconocida: { tonos: [[330, 260]], vibracion: [120, 60, 120] },
+};
 
 let contexto: AudioContext | null = null;
 

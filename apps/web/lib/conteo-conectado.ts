@@ -12,6 +12,8 @@
  * cada variante tiene su «Debe haber» y su estado en la propia lista (`conteo-reglas.ts`), sin listas aparte.
  */
 
+import type { SonidoLectura } from "./sonido-lectura";
+
 // --- Cámara en ráfaga -----------------------------------------------------------------------------------------------
 
 /** Lo mínimo entre dos lecturas del MISMO código, aunque la etiqueta haya salido del cuadro: el lector a ~8 cuadros por
@@ -35,20 +37,10 @@ export function debeContarLectura(
 
 // --- Sonido y vibración ---------------------------------------------------------------------------------------------
 
-/** `suma`: otra unidad de una variante ya verificada · `nueva`: la primera unidad de una variante que estaba pendiente ·
- *  `desconocida`: el código no es de ninguna prenda del catálogo. Con la pistola se mira el rack, no la pantalla: el
- *  oído dice qué pasó. */
-export type SonidoLectura = "suma" | "nueva" | "desconocida";
-
+/** Qué sonido toca a una lectura del CONTEO (los sonidos viven en `sonido-lectura.ts`, compartidos con el cuadre del piso):
+ *  `suma` = otra unidad de una variante ya verificada · `nueva` = la primera unidad de una variante que estaba pendiente ·
+ *  `desconocida` = el código no es de ninguna prenda del catálogo. */
 export function sonidoDeLectura(r: { encontrada: boolean; yaContada: boolean }): SonidoLectura {
   if (!r.encontrada) return "desconocida";
   return r.yaContada ? "suma" : "nueva";
 }
-
-/** Cada sonido: tonos (hercios, milisegundos) separados por 60 ms, y su vibración. Corto y agudo = todo bien; grave y
- *  largo = mira la pantalla. */
-export const PATRON_SONIDO: Record<SonidoLectura, { tonos: readonly (readonly [number, number])[]; vibracion: number | number[] }> = {
-  suma: { tonos: [[1760, 70]], vibracion: 35 },
-  nueva: { tonos: [[1320, 60], [1760, 70]], vibracion: [30, 50, 30] },
-  desconocida: { tonos: [[330, 260]], vibracion: [120, 60, 120] },
-};
