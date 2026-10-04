@@ -1,5 +1,13 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { explicarCapacidadPiso, leerCapacidadPiso, notaCapacidadPiso, type CapacidadPiso } from "./capacidad-piso";
+import {
+  colgadasQueNoSonRopa,
+  explicarCapacidadPiso,
+  FAMILIAS_FUERA_DEL_RIEL,
+  leerCapacidadPiso,
+  notaCapacidadPiso,
+  type CapacidadPiso,
+} from "./capacidad-piso";
 
 // Lo que devuelve `fn_capacidad_piso` por PostgREST: un arreglo de 0 o 1 filas, con los numeric como número.
 const TRU = { m2_sala: 20, densidad: 30, capacidad: 600, provisional: false, contada_el: "2026-09-30", version: 1, cuadrado_en: null };
@@ -99,5 +107,48 @@ describe("la nota de «Colgadas en el piso»", () => {
     expect(explicarCapacidadPiso(sinCuadrar(contada))).toBe(
       "Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m². Por cuadrar: el piso de esta sede todavía no se cuadró, y el sistema puede tener como guardadas prendas que ya cuelgan."
     );
+  });
+});
+
+describe("las colgadas que no son ropa (ADR-0329: la capacidad cuenta solo ropa colgada)", () => {
+  const productos = [
+    { id: "blusa", familia: "indumentaria" },
+    { id: "aretes", familia: "bisuteria" },
+    { id: "cartera", familia: "accesorios" },
+    { id: "sandalia", familia: "calzado" },
+    { id: "sin-familia", familia: null },
+    { id: "familia-nueva", familia: "lenceria" },
+  ];
+  const fila = (productoId: string, pisoDisponible: number | null) => ({ productoId, pisoDisponible });
+
+  it("suma lo libre en el piso de bisutería, accesorios y calzado; la ropa no", () => {
+    expect(colgadasQueNoSonRopa([fila("blusa", 40), fila("aretes", 12), fila("cartera", 3), fila("sandalia", 2)], productos)).toBe(17);
+  });
+
+  it("lo que no se sabe no se cuenta: sin catálogo, sin familia o con una familia que un líder creó después", () => {
+    const filas = [fila("aretes", 12), fila("sin-familia", 5), fila("familia-nueva", 4), fila("no-llego", 9)];
+    expect(colgadasQueNoSonRopa(filas, productos)).toBe(12);
+    expect(colgadasQueNoSonRopa(filas, [])).toBe(0);
+  });
+
+  it("una sede sin piso separado (null) o con un número raro no resta ni inventa", () => {
+    expect(colgadasQueNoSonRopa([fila("aretes", null), fila("aretes", -2)], productos)).toBe(0);
+  });
+
+  it("las familias de la lista existen en la base y la ropa no está en ella (una errata la dejaría vacía sin avisar)", () => {
+    const sql = readFileSync(new URL("../../../supabase/migrations/20260918010000_familias_tabla_propia.sql", import.meta.url), "utf8");
+    for (const codigo of FAMILIAS_FUERA_DEL_RIEL) expect(sql).toContain(`('${codigo}',`);
+    expect(sql).toContain("('indumentaria',");
+    expect(FAMILIAS_FUERA_DEL_RIEL.has("indumentaria")).toBe(false);
+  });
+
+  it("la explicación dice cuántas no son ropa, en singular y en plural, y calla si no hay ninguna", () => {
+    const tru: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: CUADRE };
+    expect(explicarCapacidadPiso(tru, 17)).toBe(
+      "Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m². 17 de las colgadas no son ropa (accesorios, bisutería, calzado…): las 600 cuentan solo ropa colgada."
+    );
+    expect(explicarCapacidadPiso(tru, 1)).toContain(" 1 de las colgadas no es ropa (");
+    expect(explicarCapacidadPiso(tru, 0)).toBe(explicarCapacidadPiso(tru));
+    expect(explicarCapacidadPiso(null, 17)).toBeUndefined();
   });
 });

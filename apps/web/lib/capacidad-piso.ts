@@ -51,13 +51,41 @@ export function notaCapacidadPiso(capacidad: CapacidadPiso | null): string | und
   return capacidad.cuadradoEn ? de : `${de} · por cuadrar`;
 }
 
+/**
+ * Las familias que ADR-0329 (act. 2026-10-04, punto 6) deja fuera del riel: bisutería, cinturones, gorros y lentes junto a la caja;
+ * bolsos y calzado en repisa o ganchos. Las 600 / 1800 / 180 son solo ropa colgada. Es una lista de las que SÍ se sabe que no son
+ * ropa (`familias.codigo`): una familia nueva que un líder cree sin deploy no se cuenta, porque no se afirma lo que no se sabe.
+ */
+export const FAMILIAS_FUERA_DEL_RIEL: ReadonlySet<string> = new Set(["calzado", "accesorios", "bisuteria", "belleza", "papeleria"]);
+
+/**
+ * Cuántas de las prendas libres en el piso no son ropa: el número grande de la cabecera (ADR-0331, «las que cobra la caja») las
+ * cuenta, y la capacidad no. PROMETE: la suma de `pisoDisponible` de las filas cuya familia está en `FAMILIAS_FUERA_DEL_RIEL`.
+ * ASUME: `productos` es el catálogo de Existencias; una fila cuyo producto no llegó (el catálogo no respondió) o cuya categoría no
+ * tiene familia no cuenta, así que lo peor que pasa sin catálogo es no decir nada.
+ */
+export function colgadasQueNoSonRopa(
+  filas: readonly { productoId: string; pisoDisponible?: number | null }[],
+  productos: readonly { id: string; familia: string | null }[]
+): number {
+  const fueraDelRiel = new Set(productos.filter((p) => p.familia !== null && FAMILIAS_FUERA_DEL_RIEL.has(p.familia)).map((p) => p.id));
+  return filas.reduce((n, f) => n + (fueraDelRiel.has(f.productoId) ? Math.max(0, f.pisoDisponible ?? 0) : 0), 0);
+}
+
 // Sin separador de miles, como la nota y la cifra; con punto decimal, como los precios de la tienda («12.5 m²»).
 const decimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 2, useGrouping: false });
 
-/** De dónde sale la nota, para el texto al pasar el mouse sobre la cifra. */
-export function explicarCapacidadPiso(capacidad: CapacidadPiso | null): string | undefined {
+/**
+ * De dónde sale la nota, para el texto al pasar el mouse sobre la cifra. `noSonRopa` (de `colgadasQueNoSonRopa`) dice cuántas de las
+ * colgadas no entran en la capacidad: así «583 de 600» no esconde que compara un total con accesorios contra uno solo de ropa.
+ */
+export function explicarCapacidadPiso(capacidad: CapacidadPiso | null, noSonRopa = 0): string | undefined {
   if (!capacidad) return undefined;
   const partes = [`Caben unas ${capacidad.capacidad} prendas colgadas: ${decimal(capacidad.m2Sala)} m² de sala × ${decimal(capacidad.densidad)} por m².`];
+  if (noSonRopa > 0) {
+    const cuantas = noSonRopa === 1 ? "1 de las colgadas no es ropa" : `${noSonRopa} de las colgadas no son ropa`;
+    partes.push(`${cuantas} (accesorios, bisutería, calzado…): las ${capacidad.capacidad} cuentan solo ropa colgada.`);
+  }
   if (capacidad.provisional) partes.push("Provisional: esta sede todavía no contó las prendas de su piso.");
   if (!capacidad.cuadradoEn) {
     partes.push("Por cuadrar: el piso de esta sede todavía no se cuadró, y el sistema puede tener como guardadas prendas que ya cuelgan.");

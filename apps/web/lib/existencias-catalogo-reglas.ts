@@ -15,6 +15,9 @@ export type ProductoDeCatalogo = {
   referencia: string;
   marca: string | null;
   categoria: string | null;
+  /** `categorias.familia` (`indumentaria`, `calzado`, `accesorios`…): la capacidad del piso cuenta solo ropa colgada (ADR-0329), y la
+   *  cabecera dice cuántas de las colgadas no lo son. Null si el producto no tiene categoría o su categoría no tiene familia. */
+  familia: string | null;
   /** `productos.estado`: solo un producto «activo» se ofrece como «en el catálogo, sin stock aquí». */
   estado: string;
   /** `productos.estado_alta`: una prenda dada de alta al vuelo (Conteo) queda `pendiente` en la base. Ya no se lee para filtrar:

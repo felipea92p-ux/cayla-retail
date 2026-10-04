@@ -7,6 +7,7 @@ const p = (id: string, referencia: string, marca: string | null, extra: Partial<
   referencia,
   marca,
   categoria: null,
+  familia: null,
   estado: "activo",
   estadoAlta: "aprobado",
   esPrueba: false,

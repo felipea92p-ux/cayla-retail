@@ -14,7 +14,7 @@ import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
-import { explicarCapacidadPiso, notaCapacidadPiso } from "@/lib/capacidad-piso";
+import { colgadasQueNoSonRopa, explicarCapacidadPiso, notaCapacidadPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -191,6 +191,9 @@ export default async function InventarioPage({
   // cuadrado su piso (la fecha viaja en la misma lectura). Solo en «Colgadas en el piso», que solo existe donde la sede separa piso y
   // almacén; una tienda sin m² no lleva nota.
   const capacidad = await capacidadPiso;
+  // La capacidad cuenta solo ropa colgada (ADR-0329) y «Colgadas en el piso» todo lo que cobra la caja (ADR-0331): el texto al pasar
+  // el mouse dice cuántas de las colgadas no son ropa, para que «583 de 600» no esconda que compara dos cosas distintas.
+  const noSonRopa = capacidad ? colgadasQueNoSonRopa(stock, catalogo.productos) : 0;
   const cifras: CifraResumen[] = separa
     ? [
         {
@@ -198,7 +201,7 @@ export default async function InventarioPage({
           nota: notaCapacidadPiso(capacidad),
           etiqueta: "Colgadas en el piso",
           icono: Shirt,
-          titulo: ["Prendas en el piso de venta, libres para vender: son las que cobra la caja.", explicarCapacidadPiso(capacidad)].filter(Boolean).join(" "),
+          titulo: ["Prendas en el piso de venta, libres para vender: son las que cobra la caja.", explicarCapacidadPiso(capacidad, noSonRopa)].filter(Boolean).join(" "),
         },
         { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
       ]
