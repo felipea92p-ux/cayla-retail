@@ -107,6 +107,21 @@ camino ni dice «queda poco en el piso», y usa la palabra del filtro; un trasla
 «N con plazo vencido»; el riel y la fila de accesos se desvanecen solo sobre su aire; el foco vuelve a la tarjeta al cerrar «Ajustar»
 desde el «⋯»; la cifra de una talla sin nada pasa de 2,3:1 a 5,6:1 de contraste; la leyenda de la tabla muestra solo los casos que existen.
 
+## Actualización 2026-10-04 (b): el Inicio de Almacén cuenta lo mismo que «Para hoy»
+
+La decisión 1 decía que el Inicio de la cuenta Almacén «cambia junto» con Existencias, y no era cierto: su aviso y su bloque contaban
+MODELOS con alguna talla que pedía reponer. Con el umbral en 0 eso incluía las tallas agotadas en la sede (ni colgada ni guardada), y
+el Inicio decía «Sube N modelos al piso» con un número que no era el de «Para hoy» y con prendas que no existían atrás; además «Subir»,
+en Existencias, es del piso al almacén.
+DECIDÍ: una sola función cuenta «por colgar» (`porColgarDeLaSede`, `lib/existencias-para-hoy.ts`) y la leen «Para hoy» y el Inicio
+(`existenciasDeAlmacen`, `lib/inicio-almacen-reglas.ts`). El aviso se llama «Por colgar», cuenta tallas, dice «Baja al piso N tallas por
+colgar» y lleva a `/inventario?hoy=por_colgar`; el bloque lateral lista las prendas (modelo + color) con sus tallas y su pie lleva a
+«Bajar al piso» con esas tallas cargadas. La clave del aviso sigue siendo `reponer`: es la que guarda la elección de «Ajustar» (cookie).
+DESCARTÉ: dejar que el Inicio contara modelos y solo filtrar las agotadas, porque «3 modelos» en el Inicio y «7 tallas» en Existencias
+siguen siendo dos números para lo mismo, y quien llega desde el aviso no puede comprobarlo.
+SE ROMPE SI: alguien vuelve a contar «por colgar» dentro de un componente. Lo vigila `lib/inicio-almacen-reglas.test.ts` (el mismo stock
+da la misma cifra en el aviso, el bloque, «Para hoy» y la lista filtrada, y las dos pantallas llaman a la función compartida).
+
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se
   engancha en `tareasParaHoy` cuando exista.
