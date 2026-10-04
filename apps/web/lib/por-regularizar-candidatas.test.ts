@@ -34,6 +34,7 @@ const VENTA: VentaPorRegularizar = {
 
 const prenda = (id: string, nombre: string, extra: Partial<PrendaParaRegularizar> = {}): PrendaParaRegularizar => ({
   id,
+  productoId: `prod-${id}`,
   nombre,
   codigo: `COD-${id}`,
   categoria: "Camisas y Blusas",

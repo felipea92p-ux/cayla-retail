@@ -24,6 +24,10 @@
 -- antes de la venta, del libro único `fn_ledger_puntos`, ADR-0202) y el CAMBIO POSTERIOR (lo primero que llegó o se ajustó de esa
 -- prenda en esa sede después de la venta). Hasta 20 por venta, las más probables primero.
 -- Y `retail.fn_prenda_cargada_en_sede(variante, sede)`: si esa prenda ya entró al sistema en esa sede (revisión R6, al final).
+-- Y (ajuste del 2026-10-04, al final) `retail.fn_carga_inicial_de_sede(sede)`: si la carga inicial de esa sede sigue abierta,
+-- leída del cierre por sede de la actividad 4 (PR #785) y con o sin él; y `retail.fn_por_regularizar_sin_cargar(sede)`: por
+-- cada venta pendiente, si NINGUNA prenda que pueda ser ella se cargó nunca en la sede, con la carga de esa sede. Con eso la
+-- pantalla agrupa en una línea las ventas que todavía no se pueden regularizar (AQP: casi todas, hasta que cargue).
 --
 -- LO ESCRITO CONTRA LO ANOTADO (revisión adversarial). En AQP hay ventas descritas «Jean…» anotadas como Pantalones (ADR-0328).
 -- Buscando solo en la categoría anotada, la candidata «Más probable» de «Jean azul tiro alto» salía un pantalón palazzo: si se
@@ -76,7 +80,9 @@
 -- exists` de la firma con las columnas de antes (por si se pegó una versión anterior de esta rama) y `create or replace`.
 -- Pégala ANTES de 20261004204000 (que usa `fn_prenda_cargada_en_sede` y aborta si falta) y antes de publicar la web que las
 -- llama; si la web llega primero, Por regularizar sigue funcionando sin sugerencias (`getCandidatasPorRegularizar` devuelve
--- vacío ante el error y lo anota) y sin el aviso de «todavía no está cargada» (la base lo dice al guardar).
+-- vacío ante el error y lo anota) y sin el aviso de «todavía no está cargada» ni la línea que agrupa las ventas sin cargar
+-- (la base lo dice al guardar). Se pega DESPUÉS de las tres partes del cierre de la carga inicial (#785) si van en la misma
+-- tanda; si no, igual funciona: `fn_carga_inicial_de_sede` responde «abierta, sin fecha» hasta que #785 esté.
 --
 -- SE ROMPE SI: alguien cambia `fn_existencias_base` y deja de excluir Cuarentena o apartadas (se sugeriría una prenda que no se
 -- puede vender); si alguien cambia `fn_ledger_puntos` y su cubeta 'total' deja de ser «todo menos Cuarentena» (el saldo a la
@@ -274,5 +280,97 @@ comment on function retail.fn_prenda_cargada_en_sede(uuid, uuid) is
 
 revoke all on function retail.fn_prenda_cargada_en_sede(uuid, uuid) from public, anon;
 grant execute on function retail.fn_prenda_cargada_en_sede(uuid, uuid) to authenticated;
+
+-- ¿La carga inicial de esta sede sigue abierta? (ajuste del 2026-10-04). Una prenda sin cargar en la sede se resuelve distinto
+-- según eso: abierta, se carga con su stock inicial; cerrada, entra con «Encontré prendas» (la carga inicial ya no la acepta).
+-- «Abierta» lo define UNA función, `fn_carga_inicial_abierta` (cierre por sede, ADR-0328 actividad 4, PR #785, que se pega
+-- antes que esta rama); esto solo la lee, y funciona con o sin ella: sin esa función (el CI de esta rama sola, o si #785
+-- todavía no se pegó) ninguna sede tiene cierre y la respuesta es «abierta, sin fecha», que es lo que pasaba antes. plpgsql no
+-- revisa una consulta hasta que la corre: la que lee `ubicaciones.carga_inicial_hasta` solo corre cuando la función existe. Se
+-- pregunta en cada llamada (`to_regprocedure`), así que pegar #785 después no obliga a volver a pegar esto.
+-- PROMETE: una fila: `abierta`, `hasta` (el último día abierto, o null = sin fecha) y `hasta_corta` («15-oct»: el mismo formato
+-- que la frase de `fn_texto_carga_inicial_cerrada`). NO HACE: no decide qué es «abierta» ni mira permisos (interna: la llaman
+-- funciones `security definer`).
+create or replace function retail.fn_carga_inicial_de_sede(p_ubicacion_id uuid)
+returns table (abierta boolean, hasta date, hasta_corta text)
+language plpgsql
+stable
+set search_path = retail, public, extensions
+as $$
+begin
+  if to_regprocedure('retail.fn_carga_inicial_abierta(uuid)') is null then
+    return query select true, null::date, null::text;
+    return;
+  end if;
+  return query
+    select retail.fn_carga_inicial_abierta(p_ubicacion_id),
+           u.carga_inicial_hasta,
+           to_char(u.carga_inicial_hasta, 'FMDD') || '-'
+             || (array['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'])[extract(month from u.carga_inicial_hasta)::integer]
+      from (select 1) uno
+      left join retail.ubicaciones u on u.id = p_ubicacion_id;
+end;
+$$;
+
+comment on function retail.fn_carga_inicial_de_sede(uuid) is
+  'Ajuste ADR-0328 (2026-10-04): si la carga inicial de la sede sigue abierta (fn_carga_inicial_abierta, PR #785), su último día y ese día corto («15-oct»). Sin fn_carga_inicial_abierta (aún no pegada): abierta, sin fecha. Interna.';
+
+revoke all on function retail.fn_carga_inicial_de_sede(uuid) from public, anon, authenticated;
+
+-- Por cada venta «sin registrar» pendiente: ¿su prenda está SIN CARGAR en la sede? (ajuste del 2026-10-04). En AQP casi todas
+-- las ~170 pendientes son de prendas que la sede todavía no cargó: regularizar cualquiera da «primero cárgala». Repetirlo en
+-- cada fila es ruido; la pantalla lo dice UNA vez por sede («N ventas de prendas sin cargar: carga primero el catálogo de AQP»).
+-- PROMETE: una fila por venta pendiente de las sedes que la cuenta opera (la misma puerta que las candidatas), con `sin_cargar`
+-- = ninguna prenda que pueda ser ella —la categoría y la talla que anotó la caja, del mismo color o de su familia (lo mismo
+-- que buscan las candidatas, sin pedir stock)— tiene un solo movimiento en la sede (la misma condición que
+-- `fn_prenda_cargada_en_sede`), y la carga de esa sede (`fn_carga_inicial_de_sede`). NO HACE: no mira la categoría que la caja
+-- ESCRIBIÓ (eso es de la web: si ahí hay una candidata, la venta no se agrupa) ni decide nada: `regularizar_prenda` decide con
+-- la prenda que se elija. COSTO: un `exists` por variante que calza, por el índice de (variante, sede); la carga, una vez por
+-- sede (≤ 4).
+create or replace function retail.fn_por_regularizar_sin_cargar(p_ubicacion_id uuid default null)
+returns table (prenda_id uuid, sin_cargar boolean, carga_abierta boolean, carga_hasta date, carga_hasta_corta text)
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  with sedes as materialized (
+    select u.id
+    from ubicaciones u
+    where (p_ubicacion_id is null or u.id = p_ubicacion_id)
+      and fn_puede_operar_ubicacion(u.id)
+  ),
+  cargas as materialized (
+    select s.id, c.abierta, c.hasta, c.hasta_corta
+    from sedes s
+    cross join lateral fn_carga_inicial_de_sede(s.id) c
+  )
+  select p.id,
+         not exists (
+           select 1
+           from productos pr
+           join variantes v on v.producto_id = pr.id and v.talla_id = p.talla_id and v.activo
+                           and v.id <> '22222222-2222-4222-8222-222222222222'
+           left join colores cv on cv.codigo = v.color_codigo
+           where pr.categoria_id = p.categoria_id
+             and not pr.es_prueba
+             and (v.color_codigo = p.color_codigo or (ca.familia_color is not null and cv.familia_color = ca.familia_color))
+             and exists (select 1 from movimientos m
+                          where m.variante_id = v.id
+                            and (m.ubicacion_id = p.ubicacion_id or m.ubicacion_destino_id = p.ubicacion_id))
+         ),
+         cg.abierta, cg.hasta, cg.hasta_corta
+  from prendas_por_regularizar p
+  join cargas cg on cg.id = p.ubicacion_id
+  left join colores ca on ca.codigo = p.color_codigo
+  where p.estado = 'pendiente'
+  order by p.id;
+$$;
+
+comment on function retail.fn_por_regularizar_sin_cargar(uuid) is
+  'Ajuste ADR-0328 (2026-10-04): por cada venta «sin registrar» pendiente de las sedes que la cuenta opera, si ninguna prenda que pueda ser ella (categoría y talla anotadas, color o su familia) tiene movimientos en la sede (sin_cargar), y si la carga inicial de esa sede sigue abierta (fn_carga_inicial_de_sede). La pantalla agrupa las sin cargar en una línea por sede. Solo lectura.';
+
+revoke all on function retail.fn_por_regularizar_sin_cargar(uuid) from public, anon;
+grant execute on function retail.fn_por_regularizar_sin_cargar(uuid) to authenticated;
 
 notify pgrst, 'reload schema';

@@ -67,6 +67,12 @@ describe("una prenda que todavía no está cargada en la sede (R6)", () => {
       "Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial (lo que hay hoy en la tienda, sin la vendida) y vuelve a regularizarla.",
     );
   });
+  it("con la carga de la sede cerrada, «Qué prenda es» dice la salida de «Encontré prendas» y tampoco deja regularizar", () => {
+    const motivo = prendaSinCargar("Tienda TRU", { abierta: false, hastaCorta: "15-oct" });
+    const campos = camposGuiaRegularizar({ prendaElegida: true, motivoPrenda: motivo, forma: "llego_nueva", responsableListo: true, motivoPropia: null });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(faltanDe(campos)[0]?.pendiente).toContain("regístrala con «Encontré prendas»");
+  });
   it("si todavía no se sabe (la lectura no volvió o falló), la guía no frena: decide la base", () => {
     expect(sePuedeConfirmar(camposGuiaRegularizar({ prendaElegida: true, motivoPrenda: null, forma: "llego_nueva", responsableListo: true, motivoPropia: null }))).toBe(true);
   });

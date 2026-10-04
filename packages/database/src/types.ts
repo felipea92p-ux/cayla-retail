@@ -7580,6 +7580,16 @@ export type Database = {
         Args: { p_ubicacion_id: string; p_variante_id: string }
         Returns: boolean | null
       }
+      fn_por_regularizar_sin_cargar: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          carga_abierta: boolean
+          carga_hasta: string | null
+          carga_hasta_corta: string | null
+          prenda_id: string
+          sin_cargar: boolean
+        }[]
+      }
       fn_stock_por_sede: {
         Args: never
         Returns: {

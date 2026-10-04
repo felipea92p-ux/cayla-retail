@@ -1,6 +1,6 @@
-import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getCandidatasPorRegularizar, getCategoriasParaSugerir, getPorRegularizar } from "@/lib/por-regularizar";
+import { getCandidatasPorRegularizar, getCategoriasParaSugerir, getPorRegularizar, getSinCargarPorRegularizar } from "@/lib/por-regularizar";
 import { categoriasPorLoEscrito } from "@/lib/por-regularizar-candidatas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
@@ -25,11 +25,13 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
   // ADR-0328 (act. 5): con las prendas del stock que pueden ser cada venta. Si esa lectura falla, la cola sale igual, sin sugerencias.
   const sedeDeLaCola = esLider ? (unaSede?.id ?? null) : persona.ubicacionId;
-  const [filas, catalogo, candidatas, categorias] = await Promise.all([
+  // Ajuste ADR-0328 (2026-10-04): qué ventas son de prendas que su sede nunca cargó, y si su carga sigue abierta. Si falla, {}.
+  const [filas, catalogo, candidatas, categorias, sinCargar] = await Promise.all([
     getPorRegularizar(sedeDeLaCola),
     getCatalogo(),
     getCandidatasPorRegularizar(sedeDeLaCola),
     getCategoriasParaSugerir(),
+    getSinCargarPorRegularizar(sedeDeLaCola),
   ]);
   // Las ventas cuya descripción nombra otra categoría que la anotada («Jean…» como Pantalones): sus candidatas se leen otra vez,
   // en la categoría escrita. Va después porque depende de lo que dicen las filas; casi siempre no hay ninguna y no se pide nada.
@@ -42,7 +44,10 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
   const prendas = catalogo
     .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
-    .map((v) => ({ id: v.varianteId, nombre: v.referencia, codigo: v.codigo ?? v.sku, categoria: v.categoria ?? "", talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
+    .map((v) => ({ id: v.varianteId, productoId: v.productoId, nombre: v.referencia, codigo: v.codigo ?? v.sku, categoria: v.categoria ?? "", talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
+  // La salida de una prenda sin cargar es la ficha del producto (cargar su stock o «Encontré prendas»): pide editar el catálogo
+  // (la ficha) y ajustar stock (su matriz). Sin los dos, el aviso dice qué hacer pero no ofrece un enlace que termine en «Sin acceso».
+  const puedeCargarStock = puede(persona, "editarCatalogo") && puede(persona, "ajustarStock");
 
   return (
     <div className="space-y-6">
@@ -62,6 +67,8 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
         esLider={esLider}
+        sinCargar={sinCargar}
+        puedeCargarStock={puedeCargarStock}
       />
     </div>
   );

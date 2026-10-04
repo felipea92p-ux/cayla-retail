@@ -41,7 +41,8 @@ import {
 export type FormaRegularizar = "ya_registrada" | "llego_nueva";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla (sin costo: esta pantalla la ve almacén). */
-export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
+/** Una prenda del catálogo, para elegirla al regularizar. `productoId`: su ficha, donde se carga su stock si la sede nunca la tuvo. */
+export type PrendaParaRegularizar = { id: string; productoId: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
 
 /** Una fila de `retail.fn_candidatas_por_regularizar`. */
 export type HechoCandidata = {

@@ -1009,9 +1009,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   sugerida de la categoría escrita (o ninguna: «Caja escribió «Jean»: búscala entre Jeans») → la fila dice «Probable: …» y el modal la sugiere con su
   porqué (la persona confirma); guía de foco `lib/por-regularizar-guia.ts`. Desde 20261004204000 `regularizar_prenda` rechaza a
   quien vendió la prenda salvo un líder firmando él mismo desde su cuenta (hint `regularizar_propia_venta`; espejo
-  `motivoPropiaVenta` en `por-regularizar-reglas.ts`), rechaza una prenda sin ningún movimiento en la sede (hint
-  `prenda_sin_cargar_en_sede`: primero su carga inicial; el modal lo dice al elegirla con la RPC de lectura
-  `fn_prenda_cargada_en_sede(p_variante_id, p_ubicacion_id)`, 20261004203000), descuenta «ya estaba registrada» solo de lo
+  `motivoPropiaVenta` en `por-regularizar-reglas.ts`), rechaza una prenda sin ningún movimiento en la sede
+  (`fn_exigir_prenda_cargada_en_sede`; la salida según la carga de ESA sede, `fn_carga_inicial_de_sede`, que lee el cierre por
+  sede de #785 con o sin él: abierta → hint `prenda_sin_cargar_en_sede`, «primero cárgala con su stock inicial»; cerrada → hint
+  `prenda_sin_cargar_carga_cerrada`, «regístrala con «Encontré prendas» y después regulariza»; el modal lo dice al elegirla con la
+  RPC de lectura `fn_prenda_cargada_en_sede(p_variante_id, p_ubicacion_id)`, 20261004203000, con la misma frase —`prendaSinCargar`—
+  y un enlace a la ficha del producto). `getSinCargarPorRegularizar` → RPC de lectura `fn_por_regularizar_sin_cargar(p_ubicacion_id)`
+  (por venta pendiente: si ninguna prenda que pueda ser ella se cargó en la sede, y su carga; tolerante a fallo) → la lista junta
+  esas ventas en UNA línea por sede (`gruposSinCargar`/`lineaSinCargar`: «N ventas de prendas sin cargar: carga primero el
+  catálogo de AQP») en vez de repetir el aviso en cada fila. Descuenta «ya estaba registrada» solo de lo
   disponible (ni Cuarentena ni apartadas) y vuelve a pedir el nombre: el modal usa `useResponsable` + `ComboResponsable` de la sede de la venta. Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):

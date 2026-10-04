@@ -3,7 +3,7 @@
 // Rutas relativas (como `candidatas-alta-lector.ts`): vitest no resuelve `@/`, y esta lectura se prueba con un cliente simulado.
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
-import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+import { resueltasDesde, vencidasDesde, type VentaSinCargar } from "./por-regularizar-reglas";
 import type { HechoCandidata } from "./por-regularizar-candidatas";
 import type { CategoriaParaSugerir } from "./sugerir-categoria-sin-registrar";
 
@@ -118,6 +118,28 @@ export async function getCategoriasParaSugerir(): Promise<CategoriaParaSugerir[]
     return [];
   }
   return data;
+}
+
+/**
+ * Por cada venta pendiente, si su prenda está sin cargar en la sede y cómo está la carga inicial de esa sede
+ * (`retail.fn_por_regularizar_sin_cargar`, ajuste ADR-0328 del 2026-10-04). Es una ayuda, como las candidatas: si la lectura falla
+ * (la función todavía no está pegada, o la red se cae) devuelve `{}` y la pantalla sigue sin la línea que agrupa ni la salida según
+ * la carga; al guardar, la base dice igual qué hacer.
+ */
+export async function getSinCargarPorRegularizar(ubicacionId: string | null): Promise<Record<string, VentaSinCargar>> {
+  try {
+    const supabase = await createClient();
+    const args = ubicacionId ? { p_ubicacion_id: ubicacionId } : {};
+    // Una fila por venta pendiente: cientos, no miles; igual va por páginas (PostgREST corta en 1.000 sin avisar).
+    const r = await leerTodas((desde, hasta) => supabase.rpc("fn_por_regularizar_sin_cargar", args).range(desde, hasta), { enParalelo: 1 });
+    if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
+    return Object.fromEntries(
+      r.data.map((f) => [f.prenda_id, { sinCargar: f.sin_cargar, carga: { abierta: f.carga_abierta, hastaCorta: f.carga_hasta_corta } }]),
+    );
+  } catch (e) {
+    console.error("Ventas de prendas sin cargar en Por regularizar:", e);
+    return {};
+  }
 }
 
 /**

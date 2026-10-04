@@ -17,7 +17,13 @@
  *       (R1); otra integrante sí; el líder sí, la suya; desde una terminal hay que elegir quién firma (la clave
  *       'regularizar_prenda' ya no está en `acciones_sin_responsable`).
  *   R · Lo que encontró la revisión adversarial: «ya estaba registrada» descuenta de lo DISPONIBLE (ni Cuarentena ni apartadas,
- *       R2/R3) y una prenda sin ningún movimiento en la sede no se regulariza: primero su carga inicial (R6).
+ *       R2/R3) y una prenda sin ningún movimiento en la sede no se regulariza (R6). El aviso dice la salida que sigue abierta en
+ *       ESA sede (ajuste del 2026-10-04): con la carga inicial abierta, «primero cárgala con su stock inicial»; cerrada (el cierre
+ *       por sede de #785; si la base no lo tiene, se simula dentro de la transacción del caso), «regístrala con «Encontré
+ *       prendas» y después regulariza», y después de eso la regularización pasa (R6f–R6i).
+ *   S · `retail.fn_por_regularizar_sin_cargar` (20261004203000, ajuste del 2026-10-04): por venta pendiente, si NINGUNA prenda que
+ *       pueda ser ella se cargó en la sede (con la familia de color y sin pedir stock, como `fn_prenda_cargada_en_sede`), y la
+ *       carga de esa sede; solo de las sedes que la cuenta opera. Con eso la pantalla agrupa las ventas sin cargar en una línea.
  *   P · La migración 20261004204000 se aplica sobre el cuerpo ORIGINAL de `regularizar_prenda` (20260923162300, lo que producción
  *       tiene antes de pegar) y se puede volver a pegar; la sonda de solo lectura que se corre en producción antes de pegar
  *       encuentra cada ancla UNA vez. `node scripts/pruebas/ventas_sin_registrar.mjs --sonda` imprime esa sonda.
@@ -547,11 +553,11 @@ select :'r1' || ' / ' || :'r2' || ' / ' || (select count(*) from retail.movimien
   "P0001|prenda_sin_cargar_en_sede / P0001|prenda_sin_cargar_en_sede / 0 / false",
 );
 caso(
-  "R6b · el mensaje nombra la sede y dice qué hacer",
+  "R6b · con la carga de la sede abierta y sin fecha (AQP y LIM hoy), el mensaje nombra la sede y dice «primero cárgala» (la misma frase que la web)",
   `${EQUIPO}select pg_temp.prenda('N-SIN-CARGAR-M', talla_m, 'NEG') as vn from ids \\gset
 ${VENDE_MICAELA}${como(LUCIA_AUTH)}
 select pg_temp.intento_mensaje(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vn', 'llego_nueva'));`,
-  (s) => s.startsWith("Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial"),
+  "Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial (la carga de Tienda Trujillo sigue abierta), con lo que hay hoy en la tienda sin la vendida, y vuelve a regularizarla.",
 );
 caso(
   "R6c · cargada su carga inicial (sin la vendida), ya se regulariza como «llegó nueva» y el stock queda en lo contado",
@@ -578,6 +584,123 @@ caso(
 select pg_temp.carga(:'vt', lima, 1, now() - interval '5 days') from ids \\g /dev/null
 ${como(MICAELA)}select coalesce(retail.fn_prenda_cargada_en_sede(:'vt', (select lima from ids))::text, 'null');`,
   "null",
+);
+
+// R6f–R6i (ajuste del 2026-10-04): el aviso depende de si la carga inicial de la sede sigue abierta. El cierre por sede es de
+// #785 (`ubicaciones.carga_inicial_hasta`, `fn_carga_inicial_abierta`), que se pega antes que esta rama; si esta base no lo tiene
+// (el CI de esta rama sola), se simula DENTRO de la transacción del caso con la misma regla —sin fecha, u hoy (Lima) ≤ la fecha— y
+// el ROLLBACK lo deshace. Con #785, se usa el suyo (corre como postgres: su disparador solo frena a la API).
+const CIERRE = `
+alter table retail.ubicaciones add column if not exists carga_inicial_hasta date;
+do $c$ begin
+  if to_regprocedure('retail.fn_carga_inicial_abierta(uuid)') is null then
+    create function retail.fn_carga_inicial_abierta(p_ubicacion_id uuid) returns boolean language sql stable
+      set search_path = retail, public, extensions
+      as 'select coalesce((select u.carga_inicial_hasta is null or retail.fn_hoy_lima() <= u.carga_inicial_hasta from retail.ubicaciones u where u.id = p_ubicacion_id), true)';
+  end if;
+end $c$;
+-- El día corto que la frase tiene que decir, armado aquí sin to_char (para no comparar la función consigo misma).
+create function pg_temp.dia_corto(d date) returns text language sql as $f$
+  select extract(day from d)::int || '-' || (string_to_array('ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic', ','))[extract(month from d)::int]
+$f$;
+`;
+/** El último día de carga de Tienda Trujillo, a `dias` de hoy (Lima): −1 = se cerró ayer; 0 = hoy es el último día. */
+const fijarCierre = (dias) => `update retail.ubicaciones set carga_inicial_hasta = retail.fn_hoy_lima() + ${dias} where id = (select tru from ids);\n`;
+const sinCargarN = `select pg_temp.prenda('N-SIN-CARGAR-M', talla_m, 'NEG') as vn from ids \\gset\n`;
+/** «hint § mensaje § día corto esperado § movimientos de la prenda», intentando «llegó nueva» como Lucía. */
+const intentoSinCargar = (dias) => `select pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vn', 'llego_nueva')) || ' § ' ||
+       pg_temp.intento_mensaje(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vn', 'llego_nueva')) || ' § ' ||
+       pg_temp.dia_corto(retail.fn_hoy_lima() + ${dias}) || ' § ' ||
+       (select count(*) from retail.movimientos where variante_id = :'vn');`;
+const partes = (s) => s.split(" § ");
+caso(
+  "R6f · carga abierta CON fecha (TRU hasta el 15-oct): sigue «primero cárgala» y dice hasta cuándo",
+  `${EQUIPO}${CIERRE}${fijarCierre(10)}${sinCargarN}${VENDE_MICAELA}${como(LUCIA_AUTH)}${intentoSinCargar(10)}`,
+  (s) => {
+    const [hint, mensaje, dia, movs] = partes(s);
+    return (
+      hint === "P0001|prenda_sin_cargar_en_sede" &&
+      mensaje ===
+        `Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial (la carga de Tienda Trujillo sigue abierta hasta el ${dia}), con lo que hay hoy en la tienda sin la vendida, y vuelve a regularizarla.` &&
+      movs === "0"
+    );
+  },
+);
+caso(
+  "R6g · hoy es el último día de carga: todavía está abierta («hasta el <hoy>»)",
+  `${EQUIPO}${CIERRE}${fijarCierre(0)}${sinCargarN}${VENDE_MICAELA}${como(LUCIA_AUTH)}${intentoSinCargar(0)}`,
+  (s) => {
+    const [hint, mensaje, dia] = partes(s);
+    return hint === "P0001|prenda_sin_cargar_en_sede" && mensaje.includes(`(la carga de Tienda Trujillo sigue abierta hasta el ${dia})`);
+  },
+);
+caso(
+  "R6h · carga CERRADA (TRU desde el 16-oct): otro hint, la salida es «Encontré prendas» y no se escribe nada",
+  `${EQUIPO}${CIERRE}${fijarCierre(-1)}${sinCargarN}${VENDE_MICAELA}${como(LUCIA_AUTH)}${intentoSinCargar(-1)}`,
+  (s) => {
+    const [hint, mensaje, dia, movs] = partes(s);
+    return (
+      hint === "P0001|prenda_sin_cargar_carga_cerrada" &&
+      mensaje ===
+        `La carga de Tienda Trujillo se cerró el ${dia} y esta prenda nunca se cargó ahí: regístrala con «Encontré prendas» (lo que hay hoy en la tienda, sin la vendida) y después regulariza.` &&
+      movs === "0"
+    );
+  },
+);
+caso(
+  "R6i · carga cerrada: registrada con «Encontré prendas» (2, sin la vendida), ya se regulariza como «llegó nueva» y quedan 2",
+  `${EQUIPO}${CIERRE}${fijarCierre(-1)}${sinCargarN}${VENDE_MICAELA}
+select pg_temp.mov(:'vn', tru, pg_temp.sub(tru, 'almacen_tienda'), 'ajuste', 2, 'reposicion', now()) from ids \\g /dev/null
+${como(LUCIA_AUTH)}select ${regularizaComo("vn", "llego_nueva")} as r \\gset
+select :'r' || '/' || pg_temp.stock(:'vn', tru) from ids;`,
+  "SIN_ERROR/2",
+);
+
+// ---------------- S · qué ventas pendientes son de prendas sin cargar en su sede ----------------
+// Una venta de Trujillo anotada «Camisas y Blusas · L · Azul»: en el seed, Trujillo no tiene ninguna camisa L azul.
+const VENDE_AZUL_L = `select pg_temp.vender_libre(tru, talla_l, 'AZU', now() - interval '1 day') as pp from ids \\gset\n`;
+const sinCargarDe = `(select r.sin_cargar || '/' || r.carga_abierta || '/' || coalesce(r.carga_hasta_corta, '—')
+   from retail.fn_por_regularizar_sin_cargar() r where r.prenda_id = :'pp')`;
+caso(
+  "S1 · nada que pueda ser ella se cargó en la sede (la misma, solo en Lima; o de otra categoría en Trujillo): sin cargar, carga abierta sin fecha",
+  `select pg_temp.prenda('S-AZU-L-LIMA', talla_l, 'AZU') as va from ids \\gset
+select pg_temp.carga(:'va', lima, 2, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.prenda('S-PAN-AZU-L', talla_l, 'AZU', otra_cat) as vp from ids \\gset
+select pg_temp.carga(:'vp', tru, 2, now() - interval '5 days') from ids \\g /dev/null
+${VENDE_AZUL_L}select ${sinCargarDe};`,
+  "true/true/—",
+);
+caso(
+  "S2 · una de su familia de color se cargó y se agotó (sin stock, sin candidata): ya NO está sin cargar",
+  `select pg_temp.prenda('S-AZD-L', talla_l, 'AZD') as vd from ids \\gset
+select pg_temp.carga(:'vd', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vd', tru, pg_temp.sub(tru, 'almacen_tienda'), 'salida', 1, 'venta', now() - interval '4 days') from ids \\g /dev/null
+${VENDE_AZUL_L}select ${sinCargarDe} || '/' || pg_temp.candidatas(:'pp');`,
+  "false/true/—/—",
+);
+caso(
+  "S3 · la que solo llegó por un traslado de otra sede también cuenta como cargada (como fn_prenda_cargada_en_sede)",
+  `select pg_temp.prenda('S-AZU-L-TRAS', talla_l, 'AZU') as vt from ids \\gset
+select pg_temp.carga(:'vt', lima, 2, now() - interval '5 days') from ids \\g /dev/null
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, ubicacion_destino_id, sububicacion_destino_id, tipo, cantidad, motivo, created_at)
+  select :'vt', lima, pg_temp.sub(lima, 'almacen_tienda'), tru, pg_temp.sub(tru, 'almacen_tienda'), 'traslado', 1, 'transferencia', now() - interval '4 days' from ids;
+${VENDE_AZUL_L}select ${sinCargarDe} || '/' || retail.fn_prenda_cargada_en_sede(:'vt', tru)::text from ids;`,
+  "false/true/—/true",
+);
+caso(
+  "S4 · con la carga de la sede cerrada, la fila lo dice con su día corto",
+  `${CIERRE}${fijarCierre(-1)}${VENDE_AZUL_L}select ${sinCargarDe} || ' § ' || pg_temp.dia_corto(retail.fn_hoy_lima() - 1);`,
+  (s) => {
+    const [fila, dia] = partes(s);
+    return fila === `true/false/${dia}`;
+  },
+);
+caso(
+  "S5 · solo las sedes que la cuenta opera: Micaela (Trujillo) no ve la venta de Lima; el líder sí",
+  `select pg_temp.vender_libre(lima, talla_l, 'AZU', now() - interval '1 day') as pp from ids \\gset
+select (select count(*) from retail.fn_por_regularizar_sin_cargar() where prenda_id = :'pp') as lider \\gset
+${como(MICAELA)}select :'lider' || '/' || (select count(*) from retail.fn_por_regularizar_sin_cargar() where prenda_id = :'pp');`,
+  "1/0",
 );
 
 // R7: la deducción con la primera entrada sola sugería «ya estaba registrada» de una prenda que el sistema NO tenía a la hora de
@@ -677,14 +800,14 @@ select string_agg(ancla || ':' || veces, ',' order by ancla) from (${sonda().rep
   "1:1,2:1,3:1",
 );
 caso(
-  "P2 · la migración se aplica sobre el cuerpo original, se vuelve a pegar sin duplicar nada y deja las cuatro reglas",
+  "P2 · la migración se aplica sobre el cuerpo original, se vuelve a pegar sin duplicar nada y deja las cuatro reglas (el aviso de «sin cargar», en su función)",
   `${REPONER_ORIGINAL}${MIG_REGLAS}\n${MIG_REGLAS}
 select (select count(*) from retail.acciones_sin_responsable where clave = 'regularizar_prenda') || '/' ||
        (select string_agg(((length(prosrc) - length(replace(prosrc, m, ''))) / length(m))::text, ',' order by m)
-          from pg_proc, unnest(array['regularizar_propia_venta', 'prenda_sin_cargar_en_sede', 'cantidad - cantidad_apartada >= 1',
-                                     'fn_bloquear_en_orden(v_p.ubicacion_id']) m
+          from pg_proc, unnest(array['regularizar_propia_venta', 'fn_exigir_prenda_cargada_en_sede(p_variante_id', 'cantidad - cantidad_apartada >= 1',
+                                     'fn_bloquear_en_orden(v_p.ubicacion_id', 'prenda_sin_cargar']) m
          where pg_proc.oid = 'retail.regularizar_prenda(uuid, uuid, text)'::regprocedure);`,
-  "0/1,1,1,1",
+  "0/1,1,1,0,1",
 );
 caso(
   "P3 · si el cuerpo vivo es otro (un ancla no está), la migración aborta sin tocar nada",

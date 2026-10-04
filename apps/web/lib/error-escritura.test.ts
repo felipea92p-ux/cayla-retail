@@ -733,6 +733,13 @@ describe("regularizar la propia venta (ADR-0328)", () => {
     expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_en_sede" }, "regularizar la prenda")).toBe(mensaje);
   });
 
+  // Ajuste del 2026-10-04: con la carga inicial de la sede cerrada, la salida es «Encontré prendas»; también pasa tal cual.
+  it("una prenda sin cargar en una sede con la carga cerrada: el mensaje de la base, con su fecha", () => {
+    const mensaje =
+      "La carga de Tienda TRU se cerró el 15-oct y esta prenda nunca se cargó ahí: regístrala con «Encontré prendas» (lo que hay hoy en la tienda, sin la vendida) y después regulariza.";
+    expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_carga_cerrada" }, "regularizar la prenda")).toBe(mensaje);
+  });
+
   // R2/R3: «ya estaba registrada» ya no descuenta de Cuarentena ni de lo apartado; el mensaje lo dice.
   it("sin unidades libres para descontar: dice que las apartadas y las de Cuarentena no cuentan", () => {
     const salida = traducirError(

@@ -10,7 +10,21 @@ import { useResponsable } from "@/lib/useResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { cifrasPorRegularizar, estaVencida, motivoPropiaVenta, prendaSinCargar, tipoDiferencia, vendidaPorLaCuenta, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
+import {
+  cifrasPorRegularizar,
+  esVentaSinCargar,
+  estaVencida,
+  gruposSinCargar,
+  lineaSinCargar,
+  motivoPropiaVenta,
+  prendaSinCargar,
+  salidaPrendaSinCargar,
+  tipoDiferencia,
+  vendidaPorLaCuenta,
+  DIAS_PARA_VENCER,
+  type CargaDeLaSede,
+  type VentaSinCargar,
+} from "@/lib/por-regularizar-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -62,6 +76,8 @@ export function PorRegularizarLista({
   ubicacionEtiqueta,
   variasSedes,
   esLider,
+  sinCargar,
+  puedeCargarStock,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
@@ -79,6 +95,11 @@ export function PorRegularizarLista({
   variasSedes: boolean;
   /** La CUENTA es de un líder: puede regularizar también lo que vendió (ADR-0328; la base lo decide con `fn_es_lider`). */
   esLider: boolean;
+  /** Por venta pendiente: si su prenda está sin cargar en la sede y cómo está la carga de esa sede (`fn_por_regularizar_sin_cargar`);
+   *  vacío si no se pudo leer (sin línea de «sin cargar»: la base lo dice al guardar). */
+  sinCargar: Record<string, VentaSinCargar>;
+  /** Puede abrir la ficha y ajustar su stock (editarCatalogo + ajustarStock): solo entonces se ofrece el enlace para cargarla. */
+  puedeCargarStock: boolean;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
@@ -99,6 +120,18 @@ export function PorRegularizarLista({
     return out;
   }, [filas, porVenta, porVentaEscrita, catalogo, escritas]);
   const conProbable = useMemo(() => conCandidata(filas.filter((f) => f.estado === "pendiente"), sugerenciaDe), [filas, sugerenciaDe]);
+  // Ajuste ADR-0328 (2026-10-04): las ventas de prendas que su sede nunca cargó van en UNA línea por sede (en AQP, casi todas hasta que
+  // cargue), no repetidas en cada fila. Una venta con otra pista (una candidata, o la categoría que la caja escribió) queda fuera.
+  const conPista = useMemo(() => {
+    return (id: string) => {
+      const s = sugerenciaDe.get(id);
+      return !!s && (s.candidatas.length > 0 || s.escrita !== null);
+    };
+  }, [sugerenciaDe]);
+  const grupos = useMemo(
+    () => gruposSinCargar(filas.filter((f) => f.estado === "pendiente"), sinCargar, conPista),
+    [filas, sinCargar, conPista],
+  );
   const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
   const visibles = filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien));
 
@@ -138,6 +171,23 @@ export function PorRegularizarLista({
             />
           </div>
         </div>
+        {filtro !== "regularizada" && grupos.length > 0 && (
+          <div className="space-y-1 border-t border-sand bg-hueso px-5 py-2.5" data-sin-cargar>
+            {grupos.map((g) => (
+              <p key={g.ubicacionId} className="text-sm text-tinta">
+                {lineaSinCargar(g)}
+                {puedeCargarStock && (
+                  <>
+                    {" "}
+                    <Link href="/productos" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                      Ir a Productos
+                    </Link>
+                  </>
+                )}
+              </p>
+            ))}
+          </div>
+        )}
         <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
         {visibles.length === 0 && (
           <p className={TABLA.vacio}>{filtro === "pendiente" ? `No hay prendas por regularizar en ${ubicacionEtiqueta}.` : "Nada que mostrar con estos filtros."}</p>
@@ -147,12 +197,15 @@ export function PorRegularizarLista({
           const vencida = f.estado === "pendiente" && estaVencida(f.vendidoEn, ahora);
           const sugerencia = f.estado === "pendiente" ? sugerenciaDe.get(f.id) : undefined;
           const probable = sugerencia ? textoProbable(sugerencia) : null;
+          // Va en la línea de arriba: aquí solo una marca corta para saber cuáles son.
+          const deLaLinea = f.estado === "pendiente" && esVentaSinCargar(f.id, sinCargar, conPista);
           return (
             <div key={f.id} className={fila(PLANTILLA)}>
               <div className={celda()}>
                 <p className="truncate text-sm text-tinta">{f.descripcion}</p>
                 <p className="truncate text-xs text-taupe">{[f.categoria, f.talla, f.color].join(" · ")}</p>
                 {probable && <p className={`truncate text-xs ${sugerencia?.probable ? "text-tinta/75" : "text-ambar-profundo"}`}>{probable}</p>}
+                {deLaLinea && <p className="truncate text-xs text-taupe">Prenda sin cargar en la tienda</p>}
               </div>
               <div className={celda("izq", "whitespace-normal")}>
                 <p className="truncate text-sm text-tinta">{f.vendidoPor}</p>
@@ -209,6 +262,8 @@ export function PorRegularizarLista({
           prendas={prendas}
           sugerencia={sugerenciaDe.get(abierta.id) ?? { candidatas: [], probable: null, escrita: null }}
           esLider={esLider}
+          carga={sinCargar[abierta.id]?.carga ?? null}
+          puedeCargarStock={puedeCargarStock}
           onClose={() => setAbierta(null)}
         />
       )}
@@ -247,6 +302,8 @@ function RegularizarModal({
   prendas,
   sugerencia,
   esLider,
+  carga,
+  puedeCargarStock,
   onClose,
 }: {
   fila: FilaPorRegularizar;
@@ -255,6 +312,9 @@ function RegularizarModal({
    *  categoría (`sugerenciaDeVenta`). Vacía si ninguna calza o no se pudo leer. */
   sugerencia: SugerenciaVenta;
   esLider: boolean;
+  /** La carga inicial de la sede de la venta (abierta o cerrada, y hasta cuándo); `null` si no se pudo leer. */
+  carga: CargaDeLaSede | null;
+  puedeCargarStock: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -296,7 +356,9 @@ function RegularizarModal({
     };
   }, [elegidaId, esCandidata, f.ubicacionId]);
   const sinCargar = elegida !== null && !esCandidata && cargada.id === elegidaId && cargada.valor === false;
-  const motivoPrenda = sinCargar ? prendaSinCargar(f.sede) : null;
+  const motivoPrenda = sinCargar ? prendaSinCargar(f.sede, carga) : null;
+  // La salida, como enlace a la ficha (que trabaja sobre la sede activa: si es otra, se dice antes de irse).
+  const salida = sinCargar ? salidaPrendaSinCargar({ carga, sede: f.sede, enOtraSede: !!activa && activa.ubicacionId !== f.ubicacionId }) : null;
 
   const guia = useGuiaCampos(
     camposGuiaRegularizar({ prendaElegida: elegida !== null, motivoPrenda, forma, responsableListo: responsable.listo, motivoPropia }),
@@ -378,9 +440,17 @@ function RegularizarModal({
             autoFocus
           />
           {motivoPrenda && (
-            <p className="mt-2 text-xs text-ambar-profundo" role="status" data-prenda-sin-cargar>
-              {motivoPrenda}
-            </p>
+            <div className="mt-2 text-xs" role="status" data-prenda-sin-cargar>
+              <p className="text-ambar-profundo">{motivoPrenda}</p>
+              {salida && puedeCargarStock && elegida && (
+                <p className="mt-1 text-taupe">
+                  <Link href={`/productos/${elegida.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                    {salida.texto}
+                  </Link>
+                  {salida.antes && <span> · {salida.antes}</span>}
+                </p>
+              )}
+            </div>
           )}
           {elegida && (
             <p className="mt-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta">
