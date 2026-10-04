@@ -139,7 +139,7 @@ otra sede tiene stock». Producción tiene hoy 6 terminales activas (administrat
 - **Migración:** `supabase/migrations/20261004110000_stock_por_sede_pasa_la_puerta_de_lectura.sql`: un solo `create or replace
   function` (el `exists (…)` pasa a `retail.fn_tiene_acceso_retail()`; el resto del cuerpo es el de ADR-0270 línea por línea) y un
   `comment on function`. Sin políticas ni tablas. Guardia por md5 (`19273e62…` → `b7396e8a…`) y exige que la puerta ya conozca la
-  terminal. **POR PEGAR** (necesita el OK de Felipe): `docs/backlog/2026-10-04-frosty-bartik-ad6e8f.md`.
+  terminal. **En producción** (verificada el 2026-10-04: md5 `b7396e8a…`, las 6 terminales y el líder reciben las mismas 538 filas; detalle en `docs/backlog/2026-10-04-frosty-bartik-ad6e8f.md`).
 - **Prueba:** `pnpm pruebas:terminales-red` (27 casos, en el CI). Sin el arreglo: 9 rojos (los de terminal, la vía de Vender, el
   costo, el cuerpo y el inventario); con él, 27/27; `--en-seco` sobre una base sin el arreglo, 27/27.
 - **Inventario de puertas propias (lo que cambia la regla).** El 2026-10-04, en la base con todas las migraciones y en producción

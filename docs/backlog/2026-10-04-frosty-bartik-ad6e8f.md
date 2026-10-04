@@ -1,4 +1,4 @@
-## 🚪 «Dónde más hay» para las terminales: `fn_stock_por_sede` usa la puerta única (2026-10-04, ADR-0289 segunda tanda) — migración `20261004110000` **POR PEGAR (necesita el OK de Felipe)**; rama `claude/frosty-bartik-ad6e8f`
+## 🚪 «Dónde más hay» para las terminales: `fn_stock_por_sede` usa la puerta única (2026-10-04, ADR-0289 segunda tanda) — migración `20261004110000` **EN PRODUCCIÓN (verificada 2026-10-04)**; rama `claude/frosty-bartik-ad6e8f`
 
 `fn_stock_por_sede()` tenía su propia puerta «persona con colaborador» y no usaba `fn_tiene_acceso_retail()`: una terminal recibía cero
 filas sin error y `fn_stock_por_sede_json()` devolvía `[]`, así que Vender, Cambios, Apartados y «Pedir a otra sede» veían «ninguna
@@ -12,23 +12,13 @@ otra sede tiene stock». Producción tiene 6 terminales activas (administrativa 
 - [x] **Prueba:** `pnpm pruebas:terminales-red`, 27 casos y en el CI. Sin el arreglo 9 rojos; con él 27/27; `--en-seco` sobre base sin él 27/27.
   Mutación de costo (puerta por fila): el caso falla con 96 llamadas. Vecinas en verde: `terminales-lecturas` 27/27, `catalogo_lee_la_cifra_unica` 14/14,
   `arreglos_en_vivo` 47/47, `actor_firma_las_operaciones` 30/30.
-- [ ] **POR PEGAR en producción — con el OK de Felipe.** Una sola parte, sin políticas (ADR-0195), se pega entera en el SQL Editor.
-  Verificación:
-  ```sql
-  -- ANTES (solo lectura)
-  select md5(prosrc) from pg_proc where oid = 'retail.fn_stock_por_sede()'::regprocedure;     -- 19273e623fa7554c4cf8c0b3986fbb0e
-  select md5(prosrc) from pg_proc where oid = 'retail.fn_tiene_acceso_retail()'::regprocedure; -- 709e77234c9ec6f3877fef5b30f7bf49
-  -- DESPUÉS
-  select md5(prosrc), proacl::text, prosecdef from pg_proc where oid = 'retail.fn_stock_por_sede()'::regprocedure;
-  --   b7396e8adcf99dba24dc7fb71fbd0211 | {postgres=X/postgres,authenticated=X/postgres} | t
-  -- HUMO (revertido): como una terminal de ventas, debe dar la red y no 0
-  begin;
-  set local role authenticated;
-  select set_config('request.jwt.claims', '{"sub":"<auth_user_id de una terminal de ventas>","role":"authenticated"}', true);
-  select count(*) from retail.fn_stock_por_sede();
-  rollback;
-  ```
-- [ ] **Después de pegar:** abrir Vender con la sesión real de una terminal de ventas y mirar «Dónde más hay» con una prenda que esté en otra
+- [x] **Pegada en producción el 2026-10-04.** Cuando Felipe pidió pegarla, producción ya tenía el cuerpo nuevo (la pegó alguien antes, en el
+  SQL Editor: no deja fila en `schema_migrations`), así que esta sesión NO la volvió a pegar; verificó en solo lectura: una firma,
+  md5 `b7396e8adcf99dba24dc7fb71fbd0211`, ACL `{postgres=X/postgres,authenticated=X/postgres}`, `security definer`, `stable`, `search_path`
+  fijo, comentario nuevo, sin `colaboradores` y con `retail.fn_tiene_acceso_retail()`. **Humo revertido** (rol `authenticated`, termina en
+  excepción): las 6 terminales activas y el líder reciben las mismas 538 filas (y `fn_stock_por_sede_json()` 538 elementos); una cuenta
+  de Auth ajena recibe 0.
+- [ ] **Falta:** abrir Vender con la sesión real de una terminal de ventas y mirar «Dónde más hay» con una prenda que esté en otra
   sede; y `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
 - [ ] **Pendiente de diseño (lo que no se pidió):** la puerta cierra EN SILENCIO (cero filas, sin 42501) y la web trata «lista vacía» como
   «no hay stock»: así estuvieron invisibles este bug y el del 2026-09-30. Una lectura de red que reciba una sesión autenticada pero sin
