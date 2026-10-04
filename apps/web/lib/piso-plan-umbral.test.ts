@@ -13,20 +13,36 @@ import { describe, expect, it } from "vitest";
 
    QUÉ CUENTA COMO «UMBRAL DE PISO». Se lee el código de verdad (el árbol de TypeScript, no el texto: un comentario o un texto
    de pantalla no cuentan) y se busca una comparación `<`, `<=`, `>`, `>=` donde un lado es una cifra de piso (`piso`,
-   `pisoDisponible`, `pisoLibre`, `piso_libre`, `stockPiso`, `enPiso`, `colgadas`) y el otro un número de 1 para arriba o un
-   nombre de umbral (`umbral…`, `minimo…`, `requisito…`). Comparar con 0 («¿hay algo colgado?») no es un umbral: es presencia.
+   `pisoDisponible`, `pisoLibre`, `piso_libre`, `stockPiso`, `enPiso`, `colgadas`, o los días que cubre: `pisoCubreDias`,
+   `coberturaPiso`, `diasDePiso`, o una de esas dividida por algo) y el otro un número de 1 para arriba o un nombre de umbral
+   (`umbral…`, `minimo…`, `requisito…`, `…alerta…`). Comparar con 0 («¿hay algo colgado?») no es un umbral: es presencia.
    Y el nombre retirado `umbralStockPisoReposicion` no puede volver en ningún lado.
 
-   LA DEUDA DE ANTES. Análisis tiene sus propias cifras de piso, de antes del motor; las reemplaza la actividad 11 («se vendió
-   rápido y falta»). Están listadas abajo con su cuenta EXACTA: la lista solo puede bajar. Un archivo nuevo no puede entrar.
+   LA DEUDA DE ANTES. Análisis tiene sus propias cifras de piso, de antes del motor (dos «piso ≤ 1» y los días que cubre el piso
+   contra `DIAS_PISO_ALERTA`); las reemplaza la actividad 11 («se vendió rápido y falta»). Están listadas abajo con su cuenta
+   EXACTA: la lista solo puede bajar. Un archivo nuevo no puede entrar.
    ==================================================================== */
 
 const RAIZ = join(__dirname, "..");
 const CARPETAS = ["lib", "components", "app"];
 const CASA = "lib/piso-plan.ts";
 
-const CIFRAS_DE_PISO = new Set(["piso", "pisoDisponible", "pisoLibre", "piso_libre", "stockPiso", "stock_piso", "enPiso", "colgadas"]);
-const NOMBRE_DE_UMBRAL = /umbral|minimo|requisito/i;
+// Las cifras de lo colgado, y las que salen de dividirlo por un ritmo (días que cubre el piso): `piso / ritmo < 3` es el mismo
+// umbral de piso con otra cara (revisión adversarial: Análisis decide «Bajar al piso» así y la prueba no lo veía).
+const CIFRAS_DE_PISO = new Set([
+  "piso",
+  "pisoDisponible",
+  "pisoLibre",
+  "piso_libre",
+  "stockPiso",
+  "stock_piso",
+  "enPiso",
+  "colgadas",
+  "pisoCubreDias",
+  "coberturaPiso",
+  "diasDePiso",
+]);
+const NOMBRE_DE_UMBRAL = /umbral|minimo|requisito|alerta/i;
 const COMPARACIONES = new Set([
   ts.SyntaxKind.LessThanToken,
   ts.SyntaxKind.LessThanEqualsToken,
@@ -40,6 +56,8 @@ const DEUDA_DE_ANALISIS: Record<string, number> = {
   "components/DetallePrendaAnalisis.tsx": 1,
   // «La talla que se está cortando» de la prenda top: piso ≤ 1.
   "lib/analisis-que-hacer.ts": 1,
+  // «Bajar al piso» del Resumen cuando lo colgado cubre menos de 3 días al ritmo de la talla (`DIAS_PISO_ALERTA`).
+  "lib/resumen-reglas.ts": 1,
 };
 
 /** Lo que la comparación mira de verdad: sin paréntesis, sin `!`, sin `as`, y en `a ?? b` el lado `a`. */
@@ -55,7 +73,12 @@ function nombre(e: ts.Expression): string | null {
   if (ts.isElementAccessExpression(n) && ts.isStringLiteral(n.argumentExpression)) return n.argumentExpression.text;
   return null;
 }
-const esCifraDePiso = (e: ts.Expression) => CIFRAS_DE_PISO.has(nombre(e) ?? "");
+/** Una cifra de piso, o una cifra de piso dividida por algo (`f.piso / demanda`: los días que cubre lo colgado). */
+function esCifraDePiso(e: ts.Expression): boolean {
+  const n = nucleo(e);
+  if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.SlashToken) return esCifraDePiso(n.left);
+  return CIFRAS_DE_PISO.has(nombre(n) ?? "");
+}
 function esUmbral(e: ts.Expression): boolean {
   const n = nucleo(e);
   if (ts.isNumericLiteral(n)) return Number(n.text) >= 1;
@@ -132,5 +155,10 @@ describe("una sola casa para las cifras del piso", () => {
     expect(caso("const hay = piso > 0; // piso <= 4 en un comentario no cuenta")).toBe(0);
     expect(caso('const t = "piso <= 4";')).toBe(0);
     expect(caso("const n = almacen <= 4;")).toBe(0);
+    // El piso dividido por un ritmo (los días que cubre) contra un umbral también es un umbral de piso.
+    expect(caso("if (pisoCubreDias < DIAS_PISO_ALERTA) {}")).toBe(1);
+    expect(caso("const corto = f.piso / demanda < 3;")).toBe(1);
+    expect(caso("const corto = (f.pisoDisponible ?? 0) / ritmo <= umbralDias;")).toBe(1);
+    expect(caso("const largo = f.almacen / demanda < 3;")).toBe(0);
   });
 });
