@@ -454,8 +454,9 @@ jobs:
       # «La tengo en la mano» (ADR-0328, actividad 9): `bajar_en_mano` corrige el almacén (+1 «Encontré prendas», con la nota
       # automática) y cuelga la prenda con la MISMA bajada de `bajar_al_piso`, todo o nada; corrige solo si el almacén no tiene
       # ninguna libre, no toca lo apartado ni lo que nunca entró a la tienda, topa 5 correcciones por prenda y día, firma el
-      # responsable, la misma marca no escribe dos veces, Frescura la ve como bajada real y «Eliminar con historia» no se frena.
-      # Cada caso termina en ROLLBACK.
+      # responsable, la misma marca no escribe dos veces (tampoco desde otra tienda), el tope cuenta el día de Lima, Frescura la
+      # ve como bajada real y «Eliminar con historia» no se frena. Cada caso termina en ROLLBACK (las carreras con COMMIT
+      # —`pruebas:bajar-en-mano-concurrencia`, el candado de la prenda y el de la marca— solo corren con BASE_DESECHABLE=1, no aquí).
       - name: pruebas:bajar-en-mano
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajar-en-mano

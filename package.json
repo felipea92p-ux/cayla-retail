@@ -50,6 +50,7 @@
     "pruebas:retirar-del-piso": "node scripts/pruebas/retirar_del_piso.mjs",
     "pruebas:bajada-desde-vender": "node scripts/pruebas/bajada_desde_vender.mjs",
     "pruebas:bajar-en-mano": "node scripts/pruebas/bajar_en_mano.mjs",
+    "pruebas:bajar-en-mano-concurrencia": "node scripts/pruebas/bajar_en_mano_concurrencia.mjs",
     "pruebas:editar-marca": "node scripts/pruebas/editar_marca.mjs",
     "pruebas:producto-sin-marca": "node scripts/pruebas/producto_sin_marca_ni_proveedor.mjs",
     "pruebas:categorias-candados": "node scripts/pruebas/categorias_candados.mjs",

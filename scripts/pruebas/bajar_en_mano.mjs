@@ -14,11 +14,13 @@
  *      responsable; sin responsable, 42501 y nada escrito; un reintento con la responsable ya fuera responde «ya registrada».
  *   P4 el corazón: almacén 0 → corrige +1 y cuelga (almacén sigue 0, piso +1, UNA corrección con la nota automática y UNA
  *      bajada de 1 unidad, unidas por su marca); con nota de la persona; almacén con libre → cuelga SIN corregir; solo
- *      apartadas → no; la prenda nunca entró a la tienda → no; tope de 5 correcciones por prenda, tienda y día; la que no
- *      corrigió no cuenta para el tope; la nota larga no.
+ *      apartadas → no; la prenda nunca entró a la tienda → no; tope de 5 correcciones por prenda, tienda y día; el día es el
+ *      de LIMA (con la sesión en UTC, como producción: 23:59 de ayer no cuenta, 00:10 de hoy sí); la que no corrigió no
+ *      cuenta para el tope; la respuesta trae lo LIBRE del piso (sin lo apartado); la nota larga no.
  *   P5 todo o nada: si la bajada falla después de corregir, no queda la corrección (ni la marca, ni la bajada).
- *   P6 idempotencia: la misma marca dos veces escribe UNA vez y la segunda dice «ya registrada»; la misma marca con otra prenda
- *      o la marca de una bajada escaneada se rechazan sin escribir.
+ *   P6 idempotencia: la misma marca dos veces escribe UNA vez y la segunda dice «ya registrada»; la misma marca con otra prenda,
+ *      en otra tienda, o la marca de una bajada escaneada se rechazan sin escribir. (Lo que pasa con dos conexiones a la vez
+ *      —el candado de la prenda y el de la marca— lo prueba `bajar_en_mano_concurrencia.mjs`, con COMMIT.)
  *   P7 Frescura: la bajada en la mano es una bajada real para `fn_bajadas_del_piso_nucleo` (con su bajada_id, 1 unidad, no
  *      es carga inicial) y `fn_verificar_bajadas` / `fn_verificar_bajadas_en_mano` siguen en cero.
  *   P8 la marca no se edita ni se borra a mano, pero sí se va en cascada con su movimiento (como lo borra «Eliminar con
@@ -351,6 +353,35 @@ ${COMO_POSTGRES}select concat_ws(',', :'cinco', (:'r')::jsonb ->> 'hint', positi
   ${CONTADORES} = :'antes', ${cant("va", "piso_t")});`,
   "5,en_mano_tope_del_dia,t,t,5"
 );
+// El día del tope es el de LIMA, no el de la base (UTC en producción y en el CI) ni «las últimas 24 h». Se fija la zona de la
+// sesión en UTC (como producción) y se mueve la hora de 5 correcciones a cada lado de la medianoche de Lima: la de un minuto
+// antes NO cuenta (ayer) y la de 10 minutos después SÍ (hoy). Entre las dos, a cualquier hora en que corra la prueba, cae un
+// tope por día UTC o por 24 h hacia atrás (revisión adversarial: esos mutantes sobrevivían).
+const CINCO_Y_MOVER = (desplazamiento) => `${COMO_POSTGRES}set local timezone = 'UTC';
+${sesion(FELIPE)}${COMO_API}select count(*) as _cinco from (select pg_temp.mano(:'tru', :'va', null, gen_random_uuid()) as x from generate_series(1, 5)) y \\gset
+${COMO_POSTGRES}alter table retail.bajadas_piso disable trigger bajadas_piso_inmutables;
+update retail.bajadas_piso b set created_at = (retail.fn_hoy_lima()::timestamp at time zone 'America/Lima') + interval '${desplazamiento}'
+ where b.id in (select e.bajada_id from retail.bajadas_en_mano e where e.ajuste_movimiento_id is not null);
+alter table retail.bajadas_piso enable trigger bajadas_piso_inmutables;
+${sesion(FELIPE)}${COMO_API}select ${mano("tru", "va", "null", ":'tok1'")} as r \\gset
+${COMO_POSTGRES}`;
+caso(
+  "P4 · tope por día de LIMA: 5 correcciones a las 23:59 de ayer (Lima) no cuentan — la de hoy pasa",
+  `${CINCO_Y_MOVER("-1 minute")}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${r("corregida")});`,
+  "true,true"
+);
+caso(
+  "P4 · tope por día de LIMA: 5 correcciones a las 00:10 de hoy (Lima) sí cuentan — la 6.ª se rechaza",
+  `${CINCO_Y_MOVER("10 minutes")}select (:'r')::jsonb ->> 'hint';`,
+  "en_mano_tope_del_dia"
+);
+caso(
+  "P4 · la respuesta trae lo LIBRE del piso (sin lo apartado para un cliente), no el total",
+  `${COMO_POSTGRES}select retail.apartar_stock(:'vb', :'tru', 1, 'Bea Ruiz', '999333444', retail.fn_hoy_lima() + 3, null, :'piso_t', null) as _ap_piso \\gset
+${sesion(FELIPE)}${COMO_API}select ${mano("tru", "vb", "null", ":'tok1'")} as r \\gset
+${COMO_POSTGRES}select concat_ws(',', ${r("corregida")}, ${r("piso")}, ${r("almacen")}, ${cant("vb", "piso_t")});`,
+  "true,1,0,2"
+);
 caso(
   "P4 · el tope es por prenda: con 5 correcciones de una, otra prenda de la misma tienda sigue pudiendo",
   `${sesion(FELIPE)}${COMO_API}select count(*) as _n from (select pg_temp.mano(:'tru', :'va', null, gen_random_uuid()) as x from generate_series(1, 5)) y \\gset
@@ -401,6 +432,16 @@ caso(
   `${sesion(FELIPE)}${COMO_API}select ${mano("tru", "va", "null", ":'tok1'")} as r1 \\gset
 ${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
 ${sesion(FELIPE)}${COMO_API}select ${mano("tru", "vb", "null", ":'tok1'")} as r2 \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r2')::jsonb ->> 'hint', ${CONTADORES} = :'antes');`,
+  "en_mano_token_reusado,t"
+);
+caso(
+  // La pantalla guarda la marca en el aparato y la reusa al reabrir la ventana: si se cruzara de tienda (otra pestaña, otra
+  // sede elegida), la base no puede responder «ya registrada» con lo de otra tienda.
+  "P6 · la misma marca en OTRA tienda se rechaza (en_mano_token_reusado), no responde «ya registrada» y no escribe nada",
+  `${sesion(FELIPE)}${COMO_API}select ${mano("tru", "va", "null", ":'tok1'")} as r1 \\gset
+${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${mano("lim", "va", "null", ":'tok1'")} as r2 \\gset
 ${COMO_POSTGRES}select concat_ws(',', (:'r2')::jsonb ->> 'hint', ${CONTADORES} = :'antes');`,
   "en_mano_token_reusado,t"
 );
