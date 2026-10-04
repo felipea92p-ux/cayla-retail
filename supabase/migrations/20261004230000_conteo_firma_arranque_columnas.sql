@@ -16,8 +16,9 @@
 -- QUÉ HACE (solo esquema; ninguna función cambia en esta parte):
 --   · `transferencias.recepcion_firmada_por` / `recepcion_firmada_en`: la última persona que puso su nombre en la recepción
 --     de ese traslado, y cuándo. La lee y la renueva cada paso de recibir (parte 2, `fn_firma_de_recepcion`).
---   · `conteos.es_arranque`: el conteo fue el de arranque de su lugar, el primero de TODO el lugar cerrado sin pendientes. Lo
---     escribe solo `cerrar_conteo` (parte 2).
+--   · `conteos.es_arranque`: el conteo fue el de arranque de su lugar, el primero de TODO el lugar contado entero y de verdad
+--     (sin pendientes y sin nada «aplicado sin contar»). Lo escribe solo `cerrar_conteo` (parte 2), y una vez puesta la marca
+--     el arranque del lugar queda gastado aunque el conteo se reabra o se cancele.
 --   · `conteo_items.aplicada_sin_contar`: la cifra la puso «Aplicar todos completos» (lo que CAYLA esperaba), no una persona
 --     que contó. La escribe solo `conteo_aplicar_completos` (parte 2); un disparador la apaga en cuanto la línea se vuelve a
 --     verificar o se borra su cifra.
@@ -88,8 +89,10 @@ begin
 end $$;
 
 comment on column retail.conteos.es_arranque is
-  'ADR-0328: el primer conteo de TODO el lugar (piso, almacén o toda la ubicación) cerrado sin pendientes. Corrige el stock, '
-  'pero sus ajustes llevan motivo conteo_arranque: no son merma (fn_es_merma) ni entran en la exactitud. Lo marca solo cerrar_conteo.';
+  'ADR-0328: el primer conteo de TODO el lugar (piso, almacén o toda la ubicación) contado entero y de verdad: sin pendientes y '
+  'sin nada aplicado sin contar (fn_conteo_vale_como_arranque). Corrige el stock, pero sus ajustes llevan motivo conteo_arranque: '
+  'no son merma (fn_es_merma) ni entran en la exactitud. Lo marca solo cerrar_conteo; la marca, no el estado, dice que el arranque '
+  'del lugar ya se gastó.';
 
 -- ---------------------------------------------------------------------------
 -- 3. Líneas de conteo: «aplicada sin contar»

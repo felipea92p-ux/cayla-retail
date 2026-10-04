@@ -17,9 +17,11 @@
 --      Resultado: ningún conteo cerrado ni traslado recibido desde una terminal queda sin persona. `fn_actor_persona_id` NO
 --      cambia y las claves `conteo_cerrar` y `traslado_recibir` siguen en `acciones_sin_responsable`: ahora significan «este
 --      paso no pregunta; la base pone el nombre de la operación».
---   2. CONTEO DE ARRANQUE. `fn_conteo_arranque_pendiente` dice si un lugar (piso, almacén o toda la ubicación) nunca tuvo un
---      conteo de TODO el lugar cerrado sin pendientes. `cerrar_conteo` marca `es_arranque` y escribe sus ajustes con el motivo
---      `conteo_arranque` cuando el conteo es de todo el lugar, se cierra sin pendientes y el lugar todavía no tenía uno.
+--   2. CONTEO DE ARRANQUE. `fn_conteo_vale_como_arranque` dice si un conteo se contó entero y de verdad: de TODO el lugar, con
+--      foto (del modelo nuevo), no de prueba, sin pendientes y sin nada «aplicado sin contar». `fn_conteo_arranque_pendiente` dice
+--      si un lugar (piso, almacén o toda la ubicación) todavía no tiene su arranque: ningún conteo marcado `es_arranque` (la
+--      marca manda: reabrirlo y cancelarlo no lo devuelve) y ninguno cerrado que valga como arranque. `cerrar_conteo` marca
+--      `es_arranque` y escribe sus ajustes con el motivo `conteo_arranque` cuando las dos dicen que sí.
 --      `fn_es_merma` NO lo cuenta (su lista de motivos es cerrada: merma, conteo, conteo_fisico; no hace falta tocarla) y
 --      Finanzas (`fn_asientos`) no lo asienta como 659. `fn_conteo_lineas_json` lo suma como ajuste del cierre (la nota de
 --      «Corregir conteo» sigue cuadrando) y Actividad no lo anota como «ajustó stock» (el cierre ya tiene su línea).
@@ -46,6 +48,14 @@
 --   · Decidir el arranque al ABRIR: «Por prenda» abre un conteo de todo el lugar (ADR-0282) y se cierra parcial; y un conteo de
 --     arranque cerrado a medias dejaría la puerta abierta para cerrar siempre a medias y que nada cuente como pérdida. Se decide
 --     al CERRAR, y solo vale si se contó TODO.
+--   · Que un conteo con parte «aplicada sin contar» sea el de arranque (solo para lo contado): «Aplicar todos completos» en
+--     una línea bastaría para gastarlo, y los errores de la carga que nadie miró caerían como merma en el conteo siguiente, en un
+--     libro que no se corrige. Revisión adversarial del 2026-10-04: se probó (escena A) y así pasaba. La pantalla lo avisa antes
+--     de aplicar.
+--   · Que gaste el arranque un conteo sin foto (de antes del rediseño): solo guardaba lo contado, así que uno de 3 prendas
+--     parecía completo y el conteo grande de TRU habría caído entero a la cuenta 659 (escena B).
+--   · Mirar el ESTADO del conteo para saber si el arranque se gastó: reabrir el de arranque y cancelarlo lo devolvía, y el
+--     siguiente conteo completo no contaba un faltante real como pérdida (escena G). Lo dice la marca `es_arranque`.
 --   · Reescribir `cerrar_conteo`, `fn_conteo_lineas_json`, `fn_conteo_detalle` y las de traslados desde el archivo: llevan
 --     parches vivos en producción. Se cambian por ancla (`pg_temp.reemplazar`), que aborta si el texto vivo es otro.
 --
@@ -55,6 +65,10 @@
 --   · el piso se cuenta solo por categorías y nunca completo: nunca hay arranque en ese lugar (pregunta abierta para Felipe).
 --   · un líder reabre el conteo de arranque y lo corrige antes de que se cierre otro conteo completo del lugar: esas
 --     correcciones también son de arranque (después de otro conteo completo, ya cuentan como pérdida).
+--   · un líder archiva como «de prueba» el conteo de arranque (archivar_conteo_prueba acepta uno cerrado): deja de contar y el
+--     lugar vuelve a tener el arranque pendiente, aunque sus ajustes sigan en el libro.
+--   · en el primer conteo completo alguien aplica sin contar «para terminar rápido»: no es el de arranque y lo que falte en lo
+--     contado cuenta como pérdida. La pantalla lo avisa en ámbar antes de aplicar y al cerrar; el arranque queda para el próximo.
 --   · alguien vuelve a pegar 20260930010100 (recrea `cerrar_conteo` y `fn_conteo_lineas_json` sin estos cambios) o
 --     20260927160000 (recrea las de traslados): la firma vuelve a quedar vacía. Se repara volviendo a pegar, en orden,
 --     20260930050100, 20261001120000 y esta (sin las dos primeras, esta aborta: el ancla de `fn_conteo_lineas_json` no está).
@@ -242,11 +256,54 @@ comment on function retail.fn_traslado_firma_recepcion(uuid) is
 -- 2. CONTEO DE ARRANQUE
 -- ===========================================================================
 
--- PROMETE: true si el lugar (ubicación + sububicación; NULL = toda la ubicación) nunca tuvo un conteo de TODO el lugar cerrado
---   sin pendientes y con algo verificado, sin contar `p_excepto` ni los conteos de prueba. Un conteo de toda la ubicación
---   (de antes de separar piso y almacén) cuenta para cada lugar de esa ubicación: ya fijó su punto de partida.
--- ASUME: «pendiente» es la misma regla de cerrar_conteo y fn_conteos_resumen (sin cifra y con algo esperado, o en reconteo).
---   Es la ÚNICA definición de «el lugar ya tuvo su arranque»: la usan cerrar_conteo, fn_conteo_detalle y fn_conteo_arranque.
+-- PROMETE: true si ESTE conteo, tal como está ahora, vale como conteo de arranque: es de TODO el lugar, tiene foto (`foto_en`),
+--   no es de prueba, tiene algo contado, no le queda nada pendiente y NINGUNA línea se anotó con «Aplicar todos completos».
+--   Es la ÚNICA definición de «se contó entero y de verdad»: la usan cerrar_conteo (para decidir) y fn_conteo_arranque_pendiente
+--   (para saber si un conteo cerrado ya fijó el punto de partida del lugar).
+-- ASUME: «pendiente» es la regla de cerrar_conteo y fn_conteos_resumen (sin cifra y con algo esperado, o en reconteo). No mira si
+--   el lugar ya tuvo su arranque: eso es fn_conteo_arranque_pendiente.
+-- POR QUÉ CADA CONDICIÓN (revisión adversarial del 2026-10-04):
+--   · sin líneas «aplicadas sin contar»: un arranque que nadie miró no fija ningún punto de partida. Si lo gastara, los errores de
+--     la carga inicial que nadie vio aparecerían en el conteo SIGUIENTE como merma (cuenta 659), en un libro que no se corrige.
+--   · con foto: antes del rediseño (20260930010000) solo se guardaban las líneas contadas, así que un conteo viejo de 3 prendas no
+--     tiene pendientes y parecería «completo». Sin foto no se sabe si se contó todo: no gasta el arranque de nadie (es el mismo
+--     criterio con el que reabrir_conteo distingue un conteo del modelo nuevo).
+create or replace function retail.fn_conteo_vale_como_arranque(p_conteo_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+  select exists (
+    select 1
+      from retail.conteos c
+     where c.id = p_conteo_id
+       and c.alcance = 'todo'
+       and c.foto_en is not null
+       and not c.es_prueba
+       and exists (select 1 from retail.conteo_items i where i.conteo_id = c.id and i.cantidad_contada is not null)
+       and not exists (select 1 from retail.conteo_items i
+                        where i.conteo_id = c.id
+                          and (i.aplicada_sin_contar
+                               or (i.cantidad_contada is null
+                                   and (coalesce(i.cantidad_foto, 0) > 0 or i.contada_anterior is not null))))
+  );
+$fn$;
+
+revoke all on function retail.fn_conteo_vale_como_arranque(uuid) from public, anon, authenticated;
+
+comment on function retail.fn_conteo_vale_como_arranque(uuid) is
+  'ADR-0328: el conteo es de todo el lugar, con foto, no de prueba, con algo contado, sin pendientes y sin líneas aplicadas sin '
+  'contar: se contó entero y de verdad, así que puede ser (o ya fue) el de arranque. Interna.';
+
+-- PROMETE: true si el lugar (ubicación + sububicación; NULL = toda la ubicación) todavía no tiene su conteo de arranque: ningún
+--   conteo suyo (sin contar `p_excepto` ni los de prueba) lleva la marca `es_arranque`, y ninguno cerrado vale como arranque
+--   (fn_conteo_vale_como_arranque: los cerrados antes de esta migración que se contaron enteros también fijaron el punto de
+--   partida). Un conteo de toda la ubicación (sin piso ni almacén aparte) cuenta para cada lugar de esa ubicación.
+-- ASUME: el arranque gastado lo dice la MARCA, no el estado: reabrir el de arranque y cancelarlo (anular_conteo acepta uno
+--   reabierto) no lo devuelve; sus ajustes ya están en el libro. Es la ÚNICA definición de «el lugar ya tuvo su arranque»: la
+--   usan cerrar_conteo, fn_conteo_detalle y fn_conteo_arranque.
 create or replace function retail.fn_conteo_arranque_pendiente(p_ubicacion_id uuid, p_sububicacion_id uuid, p_excepto uuid default null)
 returns boolean
 language sql
@@ -259,22 +316,18 @@ as $fn$
       from retail.conteos c
      where c.ubicacion_id = p_ubicacion_id
        and (c.sububicacion_id is null or c.sububicacion_id is not distinct from p_sububicacion_id)
-       and c.estado = 'cerrado'
-       and c.alcance = 'todo'
        and not c.es_prueba
        and c.id is distinct from p_excepto
-       and exists (select 1 from retail.conteo_items i where i.conteo_id = c.id and i.cantidad_contada is not null)
-       and not exists (select 1 from retail.conteo_items i
-                        where i.conteo_id = c.id and i.cantidad_contada is null
-                          and (coalesce(i.cantidad_foto, 0) > 0 or i.contada_anterior is not null))
+       and (c.es_arranque
+            or (c.estado = 'cerrado' and retail.fn_conteo_vale_como_arranque(c.id)))
   );
 $fn$;
 
 revoke all on function retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid) from public, anon, authenticated;
 
 comment on function retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid) is
-  'ADR-0328: el lugar nunca tuvo un conteo de todo el lugar cerrado sin pendientes (sin contar p_excepto ni los de prueba): su '
-  'próximo conteo completo es el de arranque. Interna.';
+  'ADR-0328: el lugar todavía no tiene su conteo de arranque (ninguno marcado es_arranque y ninguno cerrado que valga como '
+  'arranque; sin contar p_excepto ni los de prueba): su próximo conteo completo y contado de verdad es el de arranque. Interna.';
 
 -- Lectura para «Abrir un conteo»: cada lugar donde se cuenta en la sede (piso y almacén; o toda la ubicación si no los separa)
 -- y si su próximo conteo completo sería el de arranque. Nada si quien pregunta no opera la sede.
@@ -324,10 +377,11 @@ select pg_temp.reemplazar(
 select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$  -- ADR-0189 (conteo-orden): el stock de las prendas con diferencia,$v$,
-  $n$  -- ADR-0328 (conteo-arranque: decide) el primer conteo de TODO el lugar que se cierra sin pendientes es el de arranque:
-  -- corrige el stock, pero sus ajustes llevan el motivo `conteo_arranque` (no son merma ni entran en la exactitud). Un conteo
-  -- que ya fue el de arranque lo sigue siendo al corregirlo, mientras no se haya cerrado otro conteo completo del lugar.
-  if c.alcance = 'todo' and v_pendientes = 0
+  $n$  -- ADR-0328 (conteo-arranque: decide) el primer conteo de TODO el lugar contado entero y de verdad (sin pendientes y sin
+  -- nada aplicado sin contar: fn_conteo_vale_como_arranque) es el de arranque: corrige el stock, pero sus ajustes llevan el
+  -- motivo `conteo_arranque` (no son merma ni entran en la exactitud). Un conteo que ya fue el de arranque lo sigue siendo al
+  -- corregirlo, mientras no se haya cerrado otro conteo completo del lugar.
+  if retail.fn_conteo_vale_como_arranque(c.id)
      and retail.fn_conteo_arranque_pendiente(c.ubicacion_id, c.sububicacion_id, c.id) then
     v_motivo := 'conteo_arranque';
   end if;
@@ -399,7 +453,7 @@ select pg_temp.reemplazar(
   $n$'es_prueba', c.es_prueba,
            -- ADR-0328 (conteo-detalle)
            'es_arranque', c.es_arranque,
-           'arranque_posible', (c.estado = 'abierto' and c.alcance = 'todo'
+           'arranque_posible', (c.estado = 'abierto' and c.alcance = 'todo' and c.foto_en is not null and not c.es_prueba
                                 and retail.fn_conteo_arranque_pendiente(c.ubicacion_id, c.sububicacion_id, c.id)),
            'abierto_hoy', (c.created_at at time zone 'America/Lima')::date = retail.fn_hoy_lima())$n$,
   1, 'ADR-0328 (conteo-detalle)'

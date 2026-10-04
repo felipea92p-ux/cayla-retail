@@ -11,9 +11,10 @@
  *     Sin sesión (SQL Editor), nadie, como siempre.
  *   · CONTEO DE ARRANQUE. El primer conteo de TODO un lugar (piso, almacén) cerrado sin pendientes corrige el stock con el
  *     motivo `conteo_arranque` (no es merma: `fn_es_merma` lo deja fuera; Actividad no lo anota como «ajustó stock») y queda
- *     `es_arranque`. El segundo ya es `conteo`. Un cierre parcial, uno de una categoría o uno de prueba no lo son ni lo
- *     consumen; uno de toda la ubicación (de antes de separar piso y almacén) sí lo consume para los dos lugares. Corregir el
- *     de arranque antes de otro conteo completo sigue siendo de arranque, y la nota del ajuste previo lo cuenta.
+ *     `es_arranque`. El segundo ya es `conteo`. Un cierre parcial, uno de una categoría, uno de prueba, uno con líneas
+ *     «aplicadas sin contar» o uno de antes del rediseño (sin foto) no lo son ni lo consumen; uno de toda la ubicación (sin piso
+ *     ni almacén aparte) sí lo consume para los dos lugares. Corregir el de arranque antes de otro conteo completo sigue siendo
+ *     de arranque, y la nota del ajuste previo lo cuenta; reabrirlo y cancelarlo NO devuelve el arranque (lo dice la marca).
  *   · ATAJO HONESTO. `conteo_aplicar_completos` anota lo que hay AHORA en las pendientes pedidas (sin falsa diferencia si se
  *     vendió entre abrir y aplicar), las marca `aplicada_sin_contar`, no toca lo contado, es idempotente y `fn_conteos_resumen`
  *     las suma en `sin_contar`. Contar a mano una línea aplicada (o borrarla) le quita la marca; una línea «sin contar» con
@@ -397,9 +398,9 @@ select concat_ws(',', :'posible', ${MOTIVOS_DEL_CONTEO}, (select es_arranque fro
 );
 
 exito(
-  "arranque: uno de PRUEBA no lo consume; uno de TODA la ubicación (de antes de separar piso y almacén) lo consume para los dos lugares",
+  "arranque: uno de PRUEBA no lo consume; uno de TODA la ubicación (sin piso ni almacén aparte) lo consume para los dos lugares",
   `${TIENDA_ARRANQUE}
-insert into retail.conteos (ubicacion_id, sububicacion_id, estado, alcance, cerrado_en, es_prueba) values (:'u', null, 'cerrado', 'todo', now(), true)
+insert into retail.conteos (ubicacion_id, sububicacion_id, estado, alcance, cerrado_en, es_prueba, foto_en) values (:'u', null, 'cerrado', 'todo', now(), true, now())
   returning id as de_prueba \\gset
 insert into retail.conteo_items (conteo_id, variante_id, cantidad_foto, cantidad_sistema, cantidad_contada) values (:'de_prueba', :'v1', 5, 5, 5);
 select ${ARRANQUE_POR_LUGAR} as con_prueba \\gset
@@ -419,6 +420,47 @@ select retail.conteo_confirmar_diferencia(:'conteo', :'v1') as _c \\gset
 select * from retail.cerrar_conteo(:'conteo') \\gset
 select concat_ws(',', :'ajustado_antes_de_contar', ${MOTIVOS_DEL_CONTEO}, (select es_arranque from retail.conteos where id = :'conteo'), pg_temp.stock(:'v1', :'u', :'piso'));`,
   ["-1", "conteo_arranque:-1/conteo_arranque:1", "t", "5"],
+);
+
+// Hallazgos de la revisión adversarial (2026-10-04): tres caminos que gastaban el arranque sin que nadie contara el lugar entero.
+const TODO_APLICADO_Y_DESPUES_CONTADO = `${TIENDA_ARRANQUE}
+select retail.abrir_conteo(:'u', :'piso') as conteo \\gset
+select retail.conteo_aplicar_completos(:'conteo', array[:'v1', :'v2']::uuid[]) as _ap \\gset
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select (select es_arranque from retail.conteos where id = :'conteo') as primero \\gset
+select ${ARRANQUE_POR_LUGAR} as tras_aplicado \\gset
+${CONTEO_PISO(4, 3)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select concat_ws(',', :'primero', :'tras_aplicado', ${MOTIVOS_DEL_CONTEO}, (select es_arranque from retail.conteos where id = :'conteo'));`;
+exito(
+  "arranque: un conteo de todo el piso con todo aplicado SIN CONTAR no es el de arranque ni lo gasta; el siguiente, contado de verdad, sí (la diferencia de la carga no cae como merma)",
+  TODO_APLICADO_Y_DESPUES_CONTADO,
+  ["f", "alm=true/piso=true", "conteo_arranque:-1", "t"],
+);
+
+const CONTEO_VIEJO_DE_UNA_LINEA = `${TIENDA_ARRANQUE}
+insert into retail.conteos (ubicacion_id, sububicacion_id, estado, alcance, cerrado_en) values (:'u', :'piso', 'cerrado', 'todo', now())
+  returning id as viejo \\gset
+insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada) values (:'viejo', :'v1', 5, 5);
+select concat_ws(',', ${ARRANQUE_POR_LUGAR}, retail.fn_conteo_vale_como_arranque(:'viejo'));`;
+exito(
+  "arranque: un conteo de antes del rediseño (sin foto) con UNA línea no gasta el arranque: no se sabe si se contó todo",
+  CONTEO_VIEJO_DE_UNA_LINEA,
+  ["alm=true/piso=true", "f"],
+);
+
+const ARRANQUE_REABIERTO_Y_CANCELADO = `${TIENDA_ARRANQUE}${CONTEO_PISO(4, 3)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select retail.reabrir_conteo(:'conteo') as _r \\gset
+select retail.anular_conteo(:'conteo') as _a \\gset
+select ${ARRANQUE_POR_LUGAR} as tras_cancelar \\gset
+${CONTEO_PISO(3, 3)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select concat_ws(',', :'tras_cancelar', ${MOTIVOS_DEL_CONTEO}, (select es_arranque from retail.conteos where id = :'conteo'));`;
+exito(
+  "arranque: reabrir el de arranque y cancelarlo NO lo devuelve (lo gastado lo dice la marca): el faltante del siguiente conteo completo es merma",
+  ARRANQUE_REABIERTO_Y_CANCELADO,
+  ["alm=true/piso=false", "conteo:-1", "f"],
 );
 
 // ---------------------------------------------------------------------------
@@ -495,7 +537,7 @@ select concat_ws(',', split_part(:'ajena', '|', 3), split_part(:'anulado', '|', 
 );
 
 exito(
-  "al cerrar, lo aplicado no se ajusta (no tenía diferencia) y el historial dice cuántas se contaron y cuántas no",
+  "al cerrar, lo aplicado no se ajusta (no tenía diferencia), el historial dice cuántas se contaron y cuántas no, y con algo aplicado sin contar NO es el de arranque",
   `${TIENDA_ARRANQUE}
 select retail.abrir_conteo(:'u', :'piso') as conteo \\gset
 select retail.conteo_contar(:'conteo', :'v1', 4) as _c \\gset
@@ -503,7 +545,7 @@ select retail.conteo_confirmar_diferencia(:'conteo', :'v1') as _c \\gset
 ${APLICAR("r", ":'v2'")}
 select * from retail.cerrar_conteo(:'conteo') \\gset
 select concat_ws(',', ${MOTIVOS_DEL_CONTEO}, (select lineas || '/' || lineas_con_diferencia || '/' || sin_contar || '/' || parcial || '/' || es_arranque from retail.fn_conteos_resumen(:'u') where id = :'conteo'));`,
-  ["conteo_arranque:-1", "2/1/1/false/true"],
+  ["conteo:-1", "2/1/1/false/false"],
 );
 
 // ---------------------------------------------------------------------------
@@ -526,10 +568,31 @@ ${MISMA_PERSONA_OTRO_DIA}`,
 
 control(
   "CONTROL · si el arranque no exigiera contar TODO (sin pendientes), un cierre parcial lo sería y lo consumiría: la prueba lo detecta",
-  `${MUTAR("retail.cerrar_conteo(uuid,boolean)", "if c.alcance = 'todo' and v_pendientes = 0", "if c.alcance = 'todo'")}
+  `${MUTAR("retail.fn_conteo_vale_como_arranque(uuid)", "or (i.cantidad_contada is null", "or (false")}
 ${PARCIAL}
 select concat_ws(',', ${MOTIVOS_DEL_CONTEO}, (select es_arranque from retail.conteos where id = :'conteo'), ${ARRANQUE_POR_LUGAR});`,
   ["conteo:-1", "f", "alm=true/piso=true"],
+);
+
+control(
+  "CONTROL · si lo aplicado sin contar valiera como contado, «Aplicar todos completos» gastaría el arranque y el siguiente conteo sería merma: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_vale_como_arranque(uuid)", "i.aplicada_sin_contar", "false")}
+${TODO_APLICADO_Y_DESPUES_CONTADO}`,
+  ["f", "alm=true/piso=true", "conteo_arranque:-1", "t"],
+);
+
+control(
+  "CONTROL · si un conteo sin foto (de antes del rediseño) valiera, uno viejo de una línea ya habría gastado el arranque: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_vale_como_arranque(uuid)", "and c.foto_en is not null", "")}
+${CONTEO_VIEJO_DE_UNA_LINEA}`,
+  ["alm=true/piso=true", "f"],
+);
+
+control(
+  "CONTROL · si el arranque gastado lo dijera el estado y no la marca, reabrirlo y cancelarlo lo devolvería: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_arranque_pendiente(uuid,uuid,uuid)", "(c.es_arranque", "(false")}
+${ARRANQUE_REABIERTO_Y_CANCELADO}`,
+  ["alm=true/piso=false", "conteo:-1", "f"],
 );
 
 control(
