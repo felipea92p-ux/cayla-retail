@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { cifrasPorRegularizar, estaVencida, tipoDiferencia } from "./por-regularizar-reglas";
+import { cifrasPorRegularizar, estaVencida, resueltasDesde, tipoDiferencia } from "./por-regularizar-reglas";
 
 const ahora = new Date("2026-09-23T15:00:00-05:00");
+
+describe("resueltasDesde", () => {
+  it("el 1.º del mes anterior a las 00:00 de Lima", () => expect(resueltasDesde(new Date("2026-10-03T15:00:00-05:00"))).toBe("2026-09-01T00:00:00-05:00"));
+  it("en enero retrocede a diciembre del año anterior", () => expect(resueltasDesde(new Date("2027-01-15T10:00:00-05:00"))).toBe("2026-12-01T00:00:00-05:00"));
+  it("cuenta el mes de Lima: el 31 de octubre a las 22:00 ya es noviembre en UTC, pero en Lima sigue siendo octubre", () =>
+    expect(resueltasDesde(new Date("2026-11-01T03:00:00Z"))).toBe("2026-09-01T00:00:00-05:00"));
+  it("siempre cubre el mes completo en curso (las cifras «este mes» dependen de eso)", () => {
+    const primeroDelMes = Date.parse("2026-10-01T00:00:00-05:00");
+    expect(Date.parse(resueltasDesde(new Date("2026-10-01T00:30:00-05:00")))).toBeLessThanOrEqual(primeroDelMes);
+  });
+});
 
 describe("estaVencida", () => {
   it("un día después, todavía no", () => expect(estaVencida("2026-09-22T15:00:00-05:00", ahora)).toBe(false));
