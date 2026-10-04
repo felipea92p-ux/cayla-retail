@@ -12,9 +12,10 @@
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; una sede NUEVA por caso, así nada del seed se mezcla).
  *   F   FORMA: una sola firma, SECURITY DEFINER, STABLE, search_path fijo, devuelve jsonb; anon sin EXECUTE y authenticated con
  *       EXECUTE; las claves del contrato; `hoy` es el día de Lima y `desde` 13 días antes (14 días, hoy incluido).
- *   P   PUERTA (la de todas las lecturas, `fn_tiene_acceso_retail()`; el PR #781 enseñó que una copia dejaba afuera a las
- *       terminales): leen el líder, una integrante y una terminal de ventas ACTIVA; reciben NULL —nunca un jsonb vacío que diga
- *       «al día»— una terminal apagada, una cuenta de Auth sin persona y quien no tiene sesión. La puerta se evalúa UNA vez.
+ *   P   PUERTAS: la de todas las lecturas (`fn_tiene_acceso_retail()`; el PR #781 enseñó que una copia dejaba afuera a las
+ *       terminales) y la de la sede (`fn_puede_operar_ubicacion`, revisión adversarial): el líder lee cualquier sede; una
+ *       integrante y una terminal de ventas ACTIVA leen la suya y reciben NULL de otra; reciben NULL —nunca un jsonb vacío que
+ *       diga «al día»— una terminal apagada, una cuenta de Auth sin persona y quien no tiene sesión. La puerta se evalúa UNA vez.
  *   S   STOCK: lo libre en piso y almacén y lo en camino de cada talla es EXACTAMENTE lo de `fn_existencias_base` (ADR-0270),
  *       con su categoría, talla, color y familia; lo apartado no cuenta; la talla retirada con unidades sale marcada.
  *   E   ESCANEADAS por prenda: hoy, ayer, 14 días (el día 13 entra, el 14 no); anulada, de prueba o de otra sede no cuentan.
@@ -286,9 +287,24 @@ insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) value
 update retail.terminales set activo = false, desactivada_at = now() where auth_user_id = '${T_APAGADA}';
 `;
 const LEE_ALGO = `select (pg_temp.lee(:'sede') is not null)::text;`;
-caso("P1 el LÍDER lee", LEE_ALGO, "true");
-caso("P2 una INTEGRANTE activa lee (la red entera, como fn_existencias)", como(MICAELA) + LEE_ALGO, "true");
-caso("P3 una TERMINAL de ventas activa lee (lo que el PR #781 arregló en fn_stock_por_sede)", CON_TERMINALES + como(T_VENTAS) + LEE_ALGO, "true");
+const TRU = `(select id from retail.ubicaciones where nombre = 'Tienda Trujillo')`;
+const LEE_OTRA = `select (pg_temp.lee(:'otra') is not null)::text;`;
+caso("P1 el LÍDER lee su sede y cualquier otra (comparar sedes es suyo)", `select (pg_temp.lee(:'sede') is not null and pg_temp.lee(:'otra') is not null)::text;`, "true");
+caso("P2 una INTEGRANTE activa lee SU sede (Micaela, Tienda Trujillo)", como(MICAELA) + `select (pg_temp.lee(${TRU}) is not null)::text;`, "true");
+caso(
+  "P2b una INTEGRANTE de otra sede recibe NULL: lo vendido por prenda y por día no se salta el RLS de ventas (revisión, caso R1)",
+  `select pg_temp.prenda('PP-P2b', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 1);
+   select pg_temp.vende(:'v', 3, pg_temp.dia(1)) as _ \\gset
+` +
+    como(MICAELA) +
+    `set local role authenticated;
+     select concat_ws(',', (select count(*) from retail.ventas where ubicacion_id = :'sede'), retail.fn_puede_operar_ubicacion(:'sede'),
+                      retail.fn_piso_plan_lectura(:'sede') is null);`,
+  "0,f,t"
+);
+caso("P3 una TERMINAL de ventas activa lee su sede (lo que el PR #781 arregló en fn_stock_por_sede)", CON_TERMINALES + como(T_VENTAS) + LEE_ALGO, "true");
+caso("P3b una TERMINAL de ventas activa recibe NULL de OTRA sede", CON_TERMINALES + como(T_VENTAS) + LEE_OTRA, "false");
 caso("P4 una terminal DESACTIVADA recibe NULL", CON_TERMINALES + como(T_APAGADA) + LEE_ALGO, "false");
 caso("P5 una cuenta de Auth sin persona ni terminal recibe NULL", CON_TERMINALES + como(AFUERA) + LEE_ALGO, "false");
 caso("P6 sin sesión recibe NULL (nunca un jsonb vacío que diga «al día»)", SIN_SESION + LEE_ALGO, "false");

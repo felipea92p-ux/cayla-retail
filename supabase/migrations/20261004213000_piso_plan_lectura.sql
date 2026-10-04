@@ -39,11 +39,14 @@
 -- ESTADO QUE DEJA DE SER POSIBLE. Una venta «sin registrar» que suma dos veces (en la cola y como escaneada) o que suma en la
 -- semana en que se regularizó en vez de la semana en que se vendió: la lectura no tiene una tercera fuente donde eso pueda pasar.
 --
--- QUIÉN LA LEE. La misma puerta que todas las lecturas de retail (`fn_tiene_acceso_retail()`: persona activa con colaborador
--- activo, o terminal activa de una sede activa; ADR-0289, y el arreglo de `fn_stock_por_sede` del PR #781). Sin la puerta devuelve
--- NULL —no un jsonb vacío—: la web lo lee como «no se pudo leer» y nunca como «el piso está al día» (que es lo que hizo, en
--- silencio, la copia de la puerta que dejaba afuera a las terminales). Son unidades por sede, las mismas que ya muestra
--- Existencias a toda cuenta activa (`fn_existencias`) y que Análisis y Frescura mostrarán a todas (ADR-0328).
+-- QUIÉN LA LEE. Dos puertas: la de todas las lecturas de retail (`fn_tiene_acceso_retail()`: persona activa con colaborador
+-- activo, o terminal activa de una sede activa; ADR-0289, y el arreglo de `fn_stock_por_sede` del PR #781) Y la de la sede
+-- (`fn_puede_operar_ubicacion`: el líder lee cualquiera; una integrante o una terminal, solo la suya). La segunda la pidió la
+-- revisión adversarial: lo vendido por prenda y por día sale de `ventas`, cuyo RLS solo deja ver la sede propia, y una función
+-- security definer sin esa puerta lo saltaba (comparar sedes es del líder, 2026-09-26; ADR-0328 lo deja abierto para Análisis).
+-- Ninguna pantalla lo necesita: Existencias solo deja cambiar de sede al líder y el Inicio lee la sede de la cuenta. Sin una
+-- puerta devuelve NULL —no un jsonb vacío—: la web lo lee como «no se pudo leer» y nunca como «el piso está al día» (que es lo
+-- que hizo, en silencio, la copia de la puerta que dejaba afuera a las terminales).
 --
 -- NÚMEROS. Hoy TRU tiene ~510 tallas con stock y ~100 ventas en 14 días; en 3 años, como techo, ~2.000 tallas por sede y ~1.500
 -- líneas de venta en la ventana. La lectura recorre las ventas de UNA sede en 14 días por `ventas_ubicacion_fecha_idx` y su stock
@@ -56,7 +59,7 @@
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
 -- Después de pegar, solo lectura:
 --   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
---     → `792908a53bd63fd0118e1cc181b76629` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--     → `1dd75838ba1db60f9fc3d83d9804598c` (el cuerpo de este archivo; medido en la base con todas las migraciones).
 --   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
 --     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
@@ -77,6 +80,12 @@ begin
   if to_regprocedure('retail.fn_tiene_acceso_retail()') is null
      or (select p.prosrc from pg_proc p where p.oid = to_regprocedure('retail.fn_tiene_acceso_retail()')) !~ 'fn_terminal_actual' then
     raise exception 'La puerta retail.fn_tiene_acceso_retail() todavía no reconoce a las terminales: pega antes 20260930050000_terminales_pasan_la_puerta_de_lectura.sql.';
+  end if;
+  -- La puerta de la sede: una terminal opera la sede donde está (fn_ubicacion_actual_persona la conoce desde 20260923120100).
+  if to_regprocedure('retail.fn_puede_operar_ubicacion(uuid)') is null
+     or to_regprocedure('retail.fn_ubicacion_actual_persona()') is null
+     or (select p.prosrc from pg_proc p where p.oid = to_regprocedure('retail.fn_ubicacion_actual_persona()')) !~ 'fn_terminal_actual' then
+    raise exception 'La puerta de la sede (retail.fn_puede_operar_ubicacion) todavía no reconoce a las terminales: pega antes 20260923120100_ubicacion_de_lideres.sql.';
   end if;
   if to_regclass('retail.prendas_por_regularizar') is null then
     raise exception 'Falta retail.prendas_por_regularizar: pega antes 20260923161700_prendas_por_regularizar.sql.';
@@ -105,8 +114,12 @@ begin
   if p_ubicacion_id is null then
     raise exception 'fn_piso_plan_lectura: falta la sede' using errcode = '22004';
   end if;
-  -- La puerta de todas las lecturas de retail. Sin ella, NULL (no un jsonb vacío): «no se pudo leer», nunca «al día».
-  if not retail.fn_tiene_acceso_retail() then
+  -- Dos puertas, y sin cualquiera de ellas NULL (no un jsonb vacío): «no se pudo leer», nunca «al día».
+  --   1. La de todas las lecturas de retail (persona activa o terminal activa).
+  --   2. La de la SEDE: lo vendido por prenda y por día es de la sede (el RLS de ventas, venta_items y prendas_por_regularizar
+  --      solo deja ver la propia, o todas al líder). Esta función es security definer: sin esta puerta, una integrante o una
+  --      terminal leería las ventas de otra sede saltándose ese RLS. Comparar sedes es del líder (decidido el 2026-09-26).
+  if not retail.fn_tiene_acceso_retail() or not retail.fn_puede_operar_ubicacion(p_ubicacion_id) then
     return null;
   end if;
 
