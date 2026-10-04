@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
@@ -23,8 +24,6 @@ import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { getPorRegularizar } from "@/lib/por-regularizar";
-import { PorRegularizarLista } from "@/components/PorRegularizarLista";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getMarcasPorProveedor } from "@/lib/proveedores";
@@ -58,15 +57,17 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 // (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
 // (`FiltrosRecibidas`); el servidor los limpia con `filtrosRecibidasDesdeParams` antes de llamar a la base.
 type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string; res?: string; ubicacion?: string };
-type VistaRecibir = "llegada" | "factura" | "recibidas" | "por-regularizar";
+type VistaRecibir = "llegada" | "factura" | "recibidas";
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
   const esLider = persona.rol === "lider";
   const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
   const params = await searchParams;
+  // ADR-0330: las ventas sin registrar se mudaron a Existencias; el enlace viejo (avisos, marcadores) llega a su lugar nuevo.
+  if (params.vista === "por-regularizar") redirect("/inventario/por-regularizar");
   const vista: VistaRecibir =
-    params.vista === "recibidas" || params.vista === "por-regularizar"
+    params.vista === "recibidas"
       ? params.vista
       : params.vista === "factura" || params.compra || params.prov
         ? "factura"
@@ -88,9 +89,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           ? `Escanea lo que llegó y recíbelo: entra al almacén de ${persona.ubicacionEtiqueta}. Si no tiene factura todavía, igual se recibe.`
           : vista === "factura"
           ? `Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano. Aquí ves lo que le toca a ${nombreMirada} de cada comprobante; lo de las otras tiendas lo recibe cada una.`
-          : vista === "por-regularizar"
-            ? "Prendas que caja vendió antes de estar en el sistema. Dile al sistema qué prenda era cada una y el stock queda cuadrado."
-            : "Lo que ya se recibió contra un comprobante, envío por envío."}
+          : "Lo que ya se recibió contra un comprobante, envío por envío."}
       </p>
       {esLider && vista === "factura" && (
         <div className="mt-2 flex items-center gap-2">
@@ -117,29 +116,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       items={[
         { clave: "llegada", etiqueta: "Llegó mercadería", href: "/recibir" },
         { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
-        // ADR-0179: prendas que caja vendió antes de estar en el sistema; almacén las une con su prenda real.
-        { clave: "por-regularizar", etiqueta: "Por regularizar", href: "/recibir?vista=por-regularizar" },
       ]}
     />
     </div>
   );
-
-  // ------------------------------------------------------------------ Por regularizar (ADR-0179)
-  if (vista === "por-regularizar") {
-    // El líder ve las de todas sus sedes (cada fila dice cuál); una colaboradora, las de la suya (RLS igual lo cuida).
-    const [filas, catalogo] = await Promise.all([getPorRegularizar(esLider ? null : persona.ubicacionId), getCatalogo()]);
-    // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
-    const prendas = catalogo
-      .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
-      .map((v) => ({ id: v.varianteId, nombre: v.referencia, codigo: v.codigo ?? v.sku, categoria: v.categoria ?? "", talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
-    return (
-      <div className="space-y-6">
-        {encabezado}
-        {pestanas}
-        <PorRegularizarLista filas={filas} prendas={prendas} ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta} variasSedes={esLider} />
-      </div>
-    );
-  }
 
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {

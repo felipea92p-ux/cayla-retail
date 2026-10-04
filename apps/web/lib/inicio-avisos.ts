@@ -216,7 +216,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       detalle:
         n === null ? SIN_LEER : n === 0 ? `Ninguna lleva más de ${DIAS_PARA_VENCER} días.`
           : `${n} ${plural(n, "lleva", "llevan")} más de ${DIAS_PARA_VENCER} días sin regularizar.`,
-      href: "/recibir?vista=por-regularizar",
+      href: "/inventario/por-regularizar",
       ocultable: true,
       urgenteSi: `Cuando pasa de ${DIAS_PARA_VENCER} días`,
     });
