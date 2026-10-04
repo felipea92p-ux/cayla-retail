@@ -219,9 +219,9 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
    *  ausente o null = no se pudo calcular. */
   coberturaPiso?: CoberturaPiso | null;
-  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`) — MISMA fuente que
-   *  la tarjeta «Reponer a piso hoy», el filtro Acción y «Ver recomendaciones». Ausente o null = la sede no
-   *  vende (Taller): no se inventa una acción. No depende del Ritmo reciente. */
+  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`). De ahí sale «Hoy» (`hoyDeTalla`), que leen
+   *  la tabla, el filtro, la pastilla de cada prenda y «Para hoy». Ausente o null = la sede no vende (Taller): no se inventa una
+   *  acción. No depende del Ritmo reciente. */
   accionHoy?: AccionHoy | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
@@ -351,17 +351,14 @@ export async function getExistencias(
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
-  /** Variantes con Acción hoy = «Reponer a piso» (2026-09-25) — SIEMPRE lo calcula quien llama
-   *  (`accionHoyPorVariante`, `existencias-recomendaciones.ts`), nunca acá: una sola fuente de
-   *  verdad para la tarjeta, la tabla y el filtro (nunca un `EstadoStock` calculado aparte). */
-  requierenReposicion: number;
 };
 
-export function resumirExistencias(filas: FilaExistencias[], requierenReposicion: number): ResumenExistencias {
+/** Solo cantidades. Lo que pide cada talla no se cuenta aquí: lo cuenta `hoyDeTalla` (rediseño 2026-10-04; antes este resumen
+ *  llevaba `requierenReposicion` para una tarjeta que ya no existe, y no lo pintaba nadie). */
+export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias {
   return {
     ...resumirInventario(filas),
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
-    requierenReposicion,
   };
 }
 

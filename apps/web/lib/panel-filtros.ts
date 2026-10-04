@@ -11,9 +11,11 @@ export const COOKIE_PANEL_FILTROS = "cayla_filtros_panel";
 export const COOKIE_PANEL_FILTROS_EXISTENCIAS = "cayla_filtros_panel_existencias";
 export type EstadoPanelFiltros = "abierto" | "cerrado";
 
-/** Solo «cerrado» lo cierra: una cookie que falta o trae otra cosa deja el de fábrica, abierto. */
-export function leerPanelFiltros(valor: string | null | undefined): EstadoPanelFiltros {
-  return valor === "cerrado" ? "cerrado" : "abierto";
+/** Una cookie que falta o trae otra cosa deja el de fábrica: abierto en Productos; cerrado en Existencias desde su rediseño
+ *  (2026-10-04), donde la primera pantalla es el buscador y «Para hoy», y el panel de seis píldoras abierto empujaba las
+ *  prendas bajo el pliegue. Lo que alguien ya dejó guardado en su equipo manda sobre el de fábrica. */
+export function leerPanelFiltros(valor: string | null | undefined, deFabrica: EstadoPanelFiltros = "abierto"): EstadoPanelFiltros {
+  return valor === "cerrado" || valor === "abierto" ? valor : deFabrica;
 }
 
 /** Guarda la preferencia (solo desde el navegador). Un año; `SameSite=Lax` alcanza: el servidor solo la lee al pintar. */
