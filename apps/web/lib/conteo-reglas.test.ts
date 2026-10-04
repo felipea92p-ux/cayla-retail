@@ -1263,7 +1263,10 @@ describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de 
 
   it("lee es_arranque, arranque_posible y abierto_hoy; sin el SQL, ni lo es ni puede serlo y no se sabe si es de hoy", () => {
     expect(cabecera({ es_arranque: true, arranque_posible: false, abierto_hoy: true })).toMatchObject({ esArranque: true, arranquePosible: false, abiertoHoy: true });
-    expect(cabecera()).toMatchObject({ esArranque: false, arranquePosible: false, abiertoHoy: null });
+    expect(cabecera()).toMatchObject({ esArranque: false, arranquePosible: false, abiertoHoy: null, abiertoPorPresente: null });
+    // Si quien lo abrió ya marcó su salida, la base no hereda su firma: la pantalla lo sabe antes de cerrar.
+    expect(cabecera({ abierto_por_presente: false })).toMatchObject({ abiertoPorPresente: false });
+    expect(cabecera({ abierto_por_presente: "no" })).toMatchObject({ abiertoPorPresente: null });
   });
 
   it("«del piso de venta», «del almacén de tienda», «de toda la ubicación»", () => {

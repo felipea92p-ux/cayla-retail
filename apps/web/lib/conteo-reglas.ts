@@ -126,6 +126,8 @@ export type CabeceraConteo = {
   arranquePosible: boolean;
   /** ¿Se abrió hoy (día de Lima)? Decide si una terminal hereda la firma al cerrar (ADR-0328). `null` = la base no lo dijo. */
   abiertoHoy: boolean | null;
+  /** ¿Quien lo abrió sigue de turno en la sede? Si ya marcó su salida, la base no hereda su firma. `null` = la base no lo dijo. */
+  abiertoPorPresente: boolean | null;
 };
 
 export type DetalleConteo = { conteo: CabeceraConteo; resumen: ResumenConteo; lineas: LineaConteo[] };
@@ -1062,6 +1064,7 @@ export function detalleDesdeJson(json: unknown): DetalleConteo | null {
       esArranque: c.es_arranque === true,
       arranquePosible: c.arranque_posible === true,
       abiertoHoy: typeof c.abierto_hoy === "boolean" ? c.abierto_hoy : null,
+      abiertoPorPresente: typeof c.abierto_por_presente === "boolean" ? c.abierto_por_presente : null,
     },
     resumen: resumirLineas(lineas),
     lineas,

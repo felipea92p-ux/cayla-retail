@@ -47,7 +47,8 @@ import type { LineaTraslado, TrasladoDetalle } from "@/lib/traslados";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { firmaOmitida, type FirmaOmitida } from "@/lib/responsable-omitido";
-import { camposDeFirma, esPedidoDeNombre, hayQuePreguntar, preguntaFirma, textoFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
+import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, preguntaFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
+import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 
 type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
@@ -61,10 +62,12 @@ type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; t
 //  · D-129/D-131: confirmar hace entrar lo que coincide, en el piso de venta o el almacén (se pregunta, piso marcado).
 //  · «Cerrar con esta diferencia» (líder) y «Anular envío» (D-132, origen o líder) pasan por un modal con la
 //    consecuencia escrita.
-//  · ADR-0328 (actividad 15): el nombre se pide UNA vez por recepción. En una terminal, si nadie firmó esta recepción hoy, antes de
-//    contar se pregunta quién recibe (con su guía de foco) y la tabla espera; después, cada casilla, confirmar y cerrar con
-//    diferencia van a su nombre (la base lo hereda de la firma de hoy). Si la base igual pide el nombre (otro aparato, pasó la
-//    medianoche), el combo aparece entonces: ningún traslado recibido queda sin persona.
+//  · ADR-0328 (actividad 15): el nombre se pide UNA vez por recepción. En una terminal, si este aparato no recuerda a nadie para
+//    este traslado y nadie de turno firmó la recepción hoy, antes de contar se pregunta quién recibe (con su guía de foco) y la
+//    tabla espera; después, cada casilla, confirmar y cerrar con diferencia van a su nombre. Cuando la pantalla pone el nombre por
+//    su cuenta (recordado o heredado de hoy), deja corregirlo («¿No es Rosa? Elige quién recibe»). Si la base igual pide el nombre
+//    (otro aparato, pasó la medianoche, quien firmó marcó su salida), el combo aparece entonces: ningún traslado recibido queda sin
+//    persona.
 // Quién puede qué y cuándo entra el stock siguen en las funciones de la base; aquí solo se decide qué se ve.
 export function TrasladoDetallePanel({
   traslado: t,
@@ -94,8 +97,8 @@ export function TrasladoDetallePanel({
   catalogo: VarianteBusqueda[];
 }) {
   const router = useRouter();
-  // Recibir (contar, confirmar, cerrar con diferencia) va sin responsable (Felipe, 2026-09-29); solo anular pide
-  // Responsable (ADR-0161), en la sede de origen.
+  // Solo anular pide Responsable siempre (ADR-0161), en la sede de origen. Recibir (contar, confirmar, cerrar con diferencia) lo pide
+  // UNA vez por recepción (ADR-0328): el combo de abajo, con su propio recuerdo.
   const responsable = useResponsable();
 
   const [conteos, setConteos] = useState<Conteos>({});
@@ -123,22 +126,37 @@ export function TrasladoDetallePanel({
   // Solo la sede destino cuenta, mientras el traslado siga abierto; lo que ya entró al stock no se vuelve a contar.
   const contable = esDestino && (enTransito || conDiferencia);
 
-  // Quién recibe (ADR-0328). `preguntarNombre`: el combo a la vista; `sinNombre`: todavía nadie elegido, así que la tabla espera.
+  // Quién recibe (ADR-0328, `firmaEnPantalla`). Su propio combo, que recuerda en este aparato a quien eligieron para ESTE traslado
+  // (`recordarEn`): un guardado exitoso no lo vacía (si no, la tabla volvía a esperar después de la primera casilla) y al volver a la
+  // pantalla no se pregunta lo que el aparato ya sabe. `preguntarNombre`: el combo a la vista; `sinNombre`: todavía nadie elegido, así
+  // que la tabla espera; `conNombre`: cada paso manda el nombre del combo en vez de dejar que la base lo herede.
+  const recibe = useResponsable(undefined, { recordarEn: claveResponsableRecepcion(t.id) });
   const [laBasePidioNombre, setLaBasePidioNombre] = useState(false);
-  const preguntarNombre = contable && hayQuePreguntar(firma, laBasePidioNombre);
-  const sinNombre = preguntarNombre && !responsable.listo;
-  const guiaFirma = useGuiaCampos(camposDeFirma("recepcion_traslado", { preguntar: preguntarNombre, responsableListo: responsable.listo }), { enModal: false });
-  // Si la base pidió el nombre sin que la pantalla lo esperara, no se afirma por qué («otro día»): se dice lo que siempre es cierto.
-  const avisoFirma = contable ? textoFirma(laBasePidioNombre && firma.tipo !== "preguntar" ? { tipo: "preguntar", motivo: "nadie" } : firma, "recepcion_traslado") : null;
+  // La persona pidió elegir (tocó «¿No es…?» o el combo): desde ahí el combo se queda a la vista.
+  const [aMano, setAMano] = useState(false);
+  const nombreRecibe = recibe.listo ? (recibe.lista.elegibles.find((p) => p.personaId === recibe.elegidoId)?.nombre ?? null) : null;
+  const enPantalla = contable ? firmaEnPantalla(firma, { recordado: nombreRecibe, aMano, laBaseLoPidio: laBasePidioNombre }, "recepcion_traslado") : null;
+  const preguntarNombre = enPantalla?.modo === "elegir";
+  const conNombre = enPantalla !== null && mandaNombre(enPantalla);
+  const sinNombre = preguntarNombre && !recibe.listo;
+  const guiaFirma = useGuiaCampos(camposDeFirma("recepcion_traslado", { preguntar: preguntarNombre, responsableListo: recibe.listo }), { enModal: false });
+  // Elegir a alguien en el combo lo deja a la vista (no desaparece bajo el dedo al elegir).
+  const comboRecibe = {
+    ...recibe,
+    elegir: (personaId: string) => {
+      setAMano(true);
+      recibe.elegir(personaId);
+    },
+  };
   // Cada paso de recibir firma con lo que toque en ESE momento: los guardados salen segundos después y leen lo más reciente.
   const firmaDeRecepcion = useRef<() => Firma | FirmaOmitida | null>(() => firmaOmitida("traslado_recibir"));
   useEffect(() => {
-    firmaDeRecepcion.current = () => (preguntarNombre ? responsable.firma() : firmaOmitida("traslado_recibir"));
+    firmaDeRecepcion.current = () => (conNombre ? recibe.firma() : firmaOmitida("traslado_recibir"));
   });
   /** Tras un paso de recibir: si la base pidió el nombre, se pregunta desde ya; si se firmó con el combo, el combo se entera. */
   function despuesDeFirmar(error: { hint?: string | null; message?: string | null; code?: string | null } | null | undefined) {
     if (esPedidoDeNombre(error)) setLaBasePidioNombre(true);
-    if (preguntarNombre) responsable.despues(error);
+    if (conNombre) recibe.despues(error);
   }
 
   const lectura = useMemo(() => leerConteo(t.lineas, conteos), [t.lineas, conteos]);
@@ -474,17 +492,25 @@ export function TrasladoDetallePanel({
         </p>
       )}
 
-      {/* Quién recibe (ADR-0328): una sola vez por recepción. Si ya firmó alguien hoy, solo se dice a nombre de quién va. */}
-      {preguntarNombre ? (
+      {/* Quién recibe (ADR-0328): una sola vez por recepción. Si el aparato ya sabe quién, o firmó alguien hoy que sigue de turno, solo
+          se dice a nombre de quién va, con «¿No es…?» para corregirlo. */}
+      {enPantalla?.modo === "elegir" ? (
         <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién recibe el traslado">
-          {avisoFirma && <p className="text-sm text-tinta/80">{avisoFirma}</p>}
+          <p className="text-sm text-tinta/80">{enPantalla.texto}</p>
           <CampoGuiado id="firma" guia={guiaFirma} titulo={preguntaFirma("recepcion_traslado")}>
-            <ComboResponsable control={responsable} deshabilitado={ocupado} compacto className="w-full sm:w-80" />
+            <ComboResponsable control={comboRecibe} deshabilitado={ocupado} compacto className="w-full sm:w-80" />
           </CampoGuiado>
           <PieGuia guia={guiaFirma} listo="Listo: ya puedes contar." />
         </section>
-      ) : avisoFirma ? (
-        <p className="nota-cayla">{avisoFirma}</p>
+      ) : (enPantalla?.modo === "base" || enPantalla?.modo === "recordada") && enPantalla.texto ? (
+        <p className="nota-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span>{enPantalla.texto}</span>
+          {enPantalla.cambiar && (
+            <button type="button" onClick={() => setAMano(true)} disabled={ocupado} className="btn-cayla btn-enlace text-xs">
+              {enPantalla.cambiar}
+            </button>
+          )}
+        </p>
       ) : null}
 
       {/* Sin nombre elegido, la tabla espera (`inert`): contar sin nombre solo juntaría casillas que la base no acepta. */}

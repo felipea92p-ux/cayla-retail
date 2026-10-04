@@ -18,7 +18,8 @@ import { paginar } from "@/lib/paginacion";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmaOmitida } from "@/lib/responsable-omitido";
-import { camposDeFirma, esPedidoDeNombre, hayQuePreguntar, preguntaFirma, textoFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
+import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, preguntaFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
+import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 
 /* ====================================================================
@@ -44,10 +45,15 @@ import { useResponsable } from "@/lib/useResponsable";
    Sin permiso para cerrar (`ajustarInventario`) el botón no desaparece: se apaga y dice quién sí puede.
 
    Quién cierra (ADR-0328, actividad 15; Felipe: «si ya se colocó un nombre en el manejo de una operación no creo necesario estar
-   pidiéndolo varias veces»). En la cuenta de una persona firma ella. En una terminal, la base pone el nombre de quien abrió el
-   conteo si fue HOY, y la pantalla solo lo dice; si se abrió otro día (o nadie lo firmó), pregunta UNA vez con el combo, con su guía
-   de foco. Si la base igual pide el nombre (pasó la medianoche mientras se revisaba), el combo aparece entonces: nunca queda un
-   cierre sin persona.
+   pidiéndolo varias veces»). En la cuenta de una persona firma ella. En una terminal (`firmaEnPantalla`):
+     · si en este aparato ya eligieron a alguien para ESTE conteo (al contar o al revisar: `recordarEn`, como las otras tres
+       pantallas del conteo) y sigue de turno, firma esa persona, aunque el conteo sea de otro día: no se pregunta lo que el
+       aparato ya sabe;
+     · si no, la base pone el nombre de quien abrió el conteo si fue HOY y sigue de turno, y la pantalla solo lo dice;
+     · si se abrió otro día, quien lo abrió ya marcó su salida o nadie lo firmó, pregunta UNA vez con el combo, con su guía de foco.
+   Cuando la pantalla pone un nombre por su cuenta, deja corregirlo («¿No es Rosa? Elige quién cierra»): el cierre es la aprobación
+   del conteo y tiene que quedar a nombre de quien está frente a la terminal. Si la base igual pide el nombre (pasó la medianoche
+   mientras se revisaba), el combo aparece entonces: nunca queda un cierre sin persona.
 
    Conteo de arranque: si al cerrarlo completo será el primero del lugar, se dice qué significa; si se cierra a medias, se avisa en
    ámbar que así NO será el de arranque (sus diferencias contarán como pérdida). Lo decide `cerrar_conteo`; aquí solo se dice.
@@ -83,13 +89,24 @@ export function ConfirmarConteo({
   notaArranque?: { texto: string; tono: "nota" | "aviso" } | null;
 }) {
   const router = useRouter();
-  // El combo solo aparece si hay que preguntar (terminal y conteo de otro día), o si la base lo pidió al cerrar.
-  const responsable = useResponsable();
+  // El mismo recuerdo que Contar, Revisar y Cancelar: quien eligieron en este aparato para este conteo firma también el cierre.
+  const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteoId) });
   const [laBasePidioNombre, setLaBasePidioNombre] = useState(false);
-  const preguntar = hayQuePreguntar(firma, laBasePidioNombre);
+  // La persona pidió elegir (tocó «¿No es…?» o el combo): desde ahí el combo se queda a la vista.
+  const [aMano, setAMano] = useState(false);
+  const nombreElegido = responsable.listo ? (responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null) : null;
+  const enPantalla = firmaEnPantalla(firma, { recordado: nombreElegido, aMano, laBaseLoPidio: laBasePidioNombre }, "cierre_conteo");
+  const preguntar = enPantalla.modo === "elegir";
+  const conNombre = mandaNombre(enPantalla);
+  // El combo, con lo que toca: elegir a alguien en él lo deja a la vista (no desaparece bajo el dedo al elegir).
+  const combo = {
+    ...responsable,
+    elegir: (personaId: string) => {
+      setAMano(true);
+      responsable.elegir(personaId);
+    },
+  };
   const guia = useGuiaCampos(camposDeFirma("cierre_conteo", { preguntar, responsableListo: responsable.listo }), { enModal: false });
-  // Si la base pidió el nombre sin que la pantalla lo esperara, no se afirma por qué («otro día»): se dice lo que siempre es cierto.
-  const avisoFirma = textoFirma(laBasePidioNombre && firma.tipo !== "preguntar" ? { tipo: "preguntar", motivo: "nadie" } : firma, "cierre_conteo");
   const [cerrando, setCerrando] = useState(false);
   const [fallo, setFallo] = useState<{ texto: string; incierto: boolean } | null>(null);
   const [pagina, setPagina] = useState(1);
@@ -106,12 +123,12 @@ export function ConfirmarConteo({
     setFallo(null);
     try {
       // Cerrar no pregunta el nombre (ADR-0280) salvo que haga falta: la clave `conteo_cerrar` le dice a la base que lo herede de quien
-      // abrió el conteo hoy (ADR-0328). Si hay que preguntarlo, firma la persona elegida en el combo.
+      // abrió el conteo hoy (ADR-0328). Si el aparato ya sabe quién, o se eligió en el combo, firma esa persona.
       const { error } = await firmar(
         createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }),
-        preguntar ? responsable.firma() : firmaOmitida("conteo_cerrar")
+        conNombre ? responsable.firma() : firmaOmitida("conteo_cerrar")
       );
-      if (preguntar) responsable.despues(error);
+      if (conNombre) responsable.despues(error);
       if (error) {
         if (esPedidoDeNombre(error)) {
           // La base no tenía de quién heredar: se pregunta una vez, aquí mismo, sin perder lo revisado.
@@ -247,18 +264,26 @@ export function ConfirmarConteo({
             {notaArranque.texto}
           </p>
         ))}
-      {/* Quién cierra: a nombre de quién va (heredado de hoy), o el combo una sola vez (otro día). La persona de la sesión no ve nada. */}
-      {preguntar ? (
+      {/* Quién cierra: a nombre de quién va (lo que sabe el aparato o el heredado de hoy, con «¿No es…?»), o el combo una sola vez.
+          La persona de la sesión no ve nada. */}
+      {enPantalla.modo === "elegir" ? (
         <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién cierra el conteo">
-          {avisoFirma && <p className="text-sm text-tinta/80">{avisoFirma}</p>}
+          <p className="text-sm text-tinta/80">{enPantalla.texto}</p>
           <CampoGuiado id="firma" guia={guia} titulo={preguntaFirma("cierre_conteo")}>
-            <ComboResponsable control={responsable} deshabilitado={cerrando} compacto className="w-full sm:w-80" />
+            <ComboResponsable control={combo} deshabilitado={cerrando} compacto className="w-full sm:w-80" />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Listo para cerrar." />
         </section>
-      ) : (
-        avisoFirma && <p className="nota-cayla">{avisoFirma}</p>
-      )}
+      ) : (enPantalla.modo === "base" || enPantalla.modo === "recordada") && enPantalla.texto ? (
+        <p className="nota-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span>{enPantalla.texto}</span>
+          {enPantalla.cambiar && (
+            <button type="button" onClick={() => setAMano(true)} disabled={cerrando} className="btn-cayla btn-enlace text-xs">
+              {enPantalla.cambiar}
+            </button>
+          )}
+        </p>
+      ) : null}
       {/* Con un error la barra crece (el aviso suma hasta 4 renglones en un celular): sin este aire, taparía la última nota. */}
       {fallo && <div aria-hidden className="h-24" />}
 

@@ -7,9 +7,12 @@
 --
 -- QUÉ HACE
 --   1. FIRMA UNA VEZ POR OPERACIÓN. `fn_firma_heredada` decide quién firma un paso que llega SIN nombre desde una terminal (las
---      acciones soltadas del combo, ADR-0280): la última persona que firmó ESA operación, si lo hizo HOY (día de Lima); si fue
---      otro día o nunca hubo nombre, corta con «Elige quién hace esta operación» (hint `responsable_requerido`) y la pantalla
---      pregunta UNA vez. Con el nombre de una persona (sesión propia o combo) firma ella, como siempre.
+--      acciones soltadas del combo, ADR-0280): la última persona que firmó ESA operación, si lo hizo HOY (día de Lima) y sigue de
+--      turno en la tienda; si fue otro día, ya marcó su salida o nunca hubo nombre, corta con «Elige quién hace esta operación»
+--      (hint `responsable_requerido`) y la pantalla pregunta UNA vez. Con el nombre de una persona (sesión propia o combo) firma
+--      ella, como siempre: la pantalla manda ese nombre cuando el aparato ya sabe quién cuenta, o cuando la persona elige «otra
+--      persona» en vez de la heredada. Las lecturas (`fn_conteo_detalle.abierto_por_presente`,
+--      `fn_traslado_firma_recepcion.presente`) le dicen a la pantalla, antes de cerrar, si la base va a heredar o a preguntar.
 --        · Conteo: la firma de la operación es quien lo abrió (`abierto_por`, `created_at`): por diseño (ADR-0282 b) quien abre
 --          firma también cada cifra contada. `cerrar_conteo` la hereda.
 --        · Traslado: `fn_firma_de_recepcion` lee y renueva `transferencias.recepcion_firmada_*` en cada paso de recibir
@@ -40,8 +43,9 @@
 --     Felipe no quiere, y desde otro aparato (contar en el celular, cerrar en la computadora) el combo volvería a salir.
 --   · Recordar el nombre solo en el navegador (como Contar, ADR-0282 b): no viaja entre aparatos y la base seguiría aceptando
 --     un cierre sin persona.
---   · Pedir que quien hereda la firma siga «de turno»: la firma dice quién es responsable de la operación que abrió hoy; si ya
---     marcó su salida, el cierre igual fue suyo. Elegir a otra persona en el combo sí pasa por el candado de asistencia.
+--   · Heredar la firma aunque quien abrió ya marcó su salida (la primera versión de esta migración): el cierre, que es la
+--     aprobación del conteo, quedaba a nombre de alguien que ya no estaba, y la firma heredada se saltaba el candado de asistencia
+--     que una firma elegida sí pasa (revisión adversarial, escena C). Ahora hereda solo quien sigue de turno.
 --   · Un parámetro nuevo en `conteo_contar` para marcar «sin contar»: cambiar su firma obliga a recrearla entera (lleva marcas
 --     de ADR-0189 y parches vivos) y «Aplicar todos completos» seguiría siendo cientos de viajes en fila. Una sola función,
 --     un solo viaje, el mismo candado.
@@ -60,8 +64,11 @@
 --     parches vivos en producción. Se cambian por ancla (`pg_temp.reemplazar`), que aborta si el texto vivo es otro.
 --
 -- SE ROMPE SI
---   · un conteo lo abre una persona y lo cierra otra desde una terminal el MISMO día: firma quien lo abrió (Felipe lo acepta:
---     «quien abrió o contó»). Otro día, se pregunta.
+--   · un conteo lo abre una persona y lo cierra otra desde una terminal el MISMO día, sin elegir su nombre y con la primera
+--     todavía de turno: firma quien lo abrió (Felipe lo acepta: «quien abrió o contó»). La pantalla dice a nombre de quién va y
+--     deja elegir a otra persona; otro día, o si quien abrió ya marcó su salida, se pregunta.
+--   · una tienda no marca asistencia (sin marcas ni jornada de Dynamic): nadie está «de turno» y la terminal pregunta el nombre en
+--     cada operación sin firma de hoy, igual que el combo de cualquier otra acción (mismo candado, fn_persona_presente).
 --   · el piso se cuenta solo por categorías y nunca completo: nunca hay arranque en ese lugar (pregunta abierta para Felipe).
 --   · un líder reabre el conteo de arranque y lo corrige antes de que se cierre otro conteo completo del lugar: esas
 --     correcciones también son de arranque (después de otro conteo completo, ya cuentan como pérdida).
@@ -123,11 +130,16 @@ $f$;
 -- ===========================================================================
 
 -- PROMETE: quién firma un paso de una operación. Con persona en el paso (p_actor), ella. Sin persona desde una TERMINAL, la
---   firma vigente de la operación (p_heredable) si es de HOY en Lima; si no hay, corta con «Elige quién hace esta operación»
---   (42501, hint responsable_requerido): la pantalla muestra el combo una sola vez.
+--   firma vigente de la operación (p_heredable) si es de HOY en Lima y esa persona SIGUE de turno en la tienda de la terminal
+--   (el mismo candado que pasa quien se elige en el combo: activa en retail y presente, fn_actor_persona_id); si no, corta con
+--   «Elige quién hace esta operación» (42501, hint responsable_requerido): la pantalla muestra el combo una sola vez.
 -- ASUME: p_actor sale de fn_actor_persona_id(true) en el MISMO paso (ya validó a la persona elegida y su asistencia); quien
 --   llama ya validó permisos sobre la sede de la operación y le pasa la firma vigente de ESA operación. Sin sesión (SQL
 --   Editor, scripts con la llave de servicio) devuelve NULL, como siempre.
+-- POR QUÉ «SIGUE DE TURNO» (revisión adversarial del 2026-10-04, escena C): Rosa abre el conteo a la mañana, marca su salida y a
+--   la tarde Ana lo cierra desde la terminal. Sin este candado el cierre, que es la aprobación del conteo, quedaba a nombre de
+--   alguien que ya no estaba, y una firma heredada se saltaba la asistencia que una firma elegida sí pasa. ADR-0328 (decisión 7)
+--   pide volver a preguntar cuando lo cierra otra persona en otro turno: marcar la salida es justo eso.
 create or replace function retail.fn_firma_heredada(p_actor uuid, p_heredable uuid, p_heredable_en timestamptz)
 returns uuid
 language plpgsql
@@ -135,21 +147,34 @@ stable
 security definer
 set search_path = retail, public, extensions
 as $fn$
+declare
+  v_es_terminal boolean := false;
+  v_ubicacion uuid;
 begin
   if p_actor is not null or auth.uid() is null then
     return p_actor;
   end if;
+  for v_ubicacion in select t.ubicacion_id from retail.fn_terminal_actual() t loop
+    v_es_terminal := true;
+    exit;
+  end loop;
   -- Sesión de persona sin persona encontrada (no pasa con una cuenta activa): lo de antes, sin inventar a nadie.
-  if not exists (select 1 from retail.fn_terminal_actual()) then
+  if not v_es_terminal then
     return p_actor;
   end if;
-  if p_heredable is not null and p_heredable_en is not null
-     and (p_heredable_en at time zone 'America/Lima')::date = retail.fn_hoy_lima() then
-    return p_heredable;
+  if p_heredable is null or p_heredable_en is null then
+    raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
   end if;
-  raise exception '%', case when p_heredable is null then 'Elige quién hace esta operación'
-                            else 'Elige quién hace esta operación: se empezó otro día' end
-    using errcode = '42501', hint = 'responsable_requerido';
+  if (p_heredable_en at time zone 'America/Lima')::date <> retail.fn_hoy_lima() then
+    raise exception 'Elige quién hace esta operación: se empezó otro día' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  if not exists (select 1 from public.personas p join retail.colaboradores co on co.persona_id = p.id
+                  where p.id = p_heredable and p.estado = 'activo')
+     or not retail.fn_persona_presente(p_heredable, v_ubicacion, now()) then
+    raise exception 'Elige quién hace esta operación: quien la empezó ya no está de turno'
+      using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  return p_heredable;
 end;
 $fn$;
 
@@ -157,8 +182,8 @@ revoke all on function retail.fn_firma_heredada(uuid, uuid, timestamptz) from pu
 
 comment on function retail.fn_firma_heredada(uuid, uuid, timestamptz) is
   'ADR-0328: quién firma un paso sin nombre desde una terminal. El actor si lo hay; si no, la firma vigente de la operación si es '
-  'del mismo día (Lima); si no, responsable_requerido (la pantalla pregunta una vez). Sin sesión, NULL. Interna: la llaman '
-  'cerrar_conteo y fn_firma_de_recepcion.';
+  'del mismo día (Lima) y esa persona sigue de turno en la tienda de la terminal; si no, responsable_requerido (la pantalla '
+  'pregunta una vez). Sin sesión, NULL. Interna: la llaman cerrar_conteo y fn_firma_de_recepcion.';
 
 -- PROMETE: quién firma ESTE paso de la recepción de un traslado (registrar lo contado, confirmar, cerrar con diferencia), y
 --   deja a esa persona como la firma vigente de la recepción para que los pasos siguientes del mismo día la hereden.
@@ -238,7 +263,10 @@ as $fn$
            'persona_id', t.recepcion_firmada_por,
            'nombre', nullif(trim(coalesce(p.nombres, '') || ' ' || coalesce(p.apellidos, '')), ''),
            'firmada_en', t.recepcion_firmada_en,
-           'de_hoy', coalesce((t.recepcion_firmada_en at time zone 'America/Lima')::date = retail.fn_hoy_lima(), false))
+           'de_hoy', coalesce((t.recepcion_firmada_en at time zone 'America/Lima')::date = retail.fn_hoy_lima(), false),
+           -- Si sigue de turno en la sede que recibe: si ya marcó su salida, la base no hereda su firma (fn_firma_heredada).
+           'presente', case when t.recepcion_firmada_por is null then null
+                            else retail.fn_persona_presente(t.recepcion_firmada_por, t.ubicacion_destino_id, now()) end)
     from retail.transferencias t
     left join public.personas p on p.id = t.recepcion_firmada_por
    where t.id = p_transferencia_id
@@ -445,8 +473,9 @@ select pg_temp.reemplazar(
   1, 'ADR-0328 (sin-contar)'
 );
 
--- El detalle: si el conteo fue el de arranque, si TODAVÍA puede serlo (abierto, de todo el lugar, y el lugar sin arranque) y si
--- se abrió hoy (la pantalla de cerrar sabe sin adivinar si una terminal hereda la firma o tiene que preguntarla).
+-- El detalle: si el conteo fue el de arranque, si TODAVÍA puede serlo (abierto, de todo el lugar, con foto y el lugar sin arranque),
+-- si se abrió hoy y si quien lo abrió sigue de turno (la pantalla de cerrar sabe sin adivinar si una terminal hereda la firma o
+-- tiene que preguntarla: las mismas dos condiciones de fn_firma_heredada).
 select pg_temp.reemplazar(
   'retail.fn_conteo_detalle(uuid)',
   $v$'es_prueba', c.es_prueba)$v$,
@@ -455,7 +484,9 @@ select pg_temp.reemplazar(
            'es_arranque', c.es_arranque,
            'arranque_posible', (c.estado = 'abierto' and c.alcance = 'todo' and c.foto_en is not null and not c.es_prueba
                                 and retail.fn_conteo_arranque_pendiente(c.ubicacion_id, c.sububicacion_id, c.id)),
-           'abierto_hoy', (c.created_at at time zone 'America/Lima')::date = retail.fn_hoy_lima())$n$,
+           'abierto_hoy', (c.created_at at time zone 'America/Lima')::date = retail.fn_hoy_lima(),
+           'abierto_por_presente', case when c.abierto_por is null then null
+                                        else retail.fn_persona_presente(c.abierto_por, c.ubicacion_id, now()) end)$n$,
   1, 'ADR-0328 (conteo-detalle)'
 );
 

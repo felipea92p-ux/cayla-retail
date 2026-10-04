@@ -263,6 +263,23 @@ select concat_ws(',', :'r', ${FIRMA_CIERRE(":'micaela'::uuid")});`,
   ["SIN_ERROR", "t"],
 );
 
+// Rosa abre y cuenta a la mañana y marca su salida; a la tarde la terminal cierra sin nombre (revisión adversarial, escena C).
+const SALIDA_DE_ROSA = `insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca) values ('${ROSA}', :'sede_tru', 'salida', now() - interval '1 second');\n`;
+const CONTEO_DE_ROSA_QUE_SALIO = `${CONTEO_DE_ROSA}
+select (retail.fn_conteo_detalle(:'conteo') -> 'conteo' ->> 'abierto_por_presente') as presente_antes \\gset
+${SALIDA_DE_ROSA}
+select (retail.fn_conteo_detalle(:'conteo') -> 'conteo' ->> 'abierto_por_presente') as presente_despues \\gset
+${sinNombre("conteo_cerrar")}${CERRAR("r1")}
+select ${ESTADO_CONTEO} as estado_tras_r1 \\gset
+${conNombre(ANA)}${CERRAR("r2")}
+select concat_ws(',', :'presente_antes', :'presente_despues', split_part(:'r1', '|', 2), split_part(:'r1', '|', 3), :'estado_tras_r1', :'r2',
+  ${FIRMA_CIERRE(`'${ANA}'::uuid`)});`;
+exito(
+  "conteo de HOY cuya dueña ya marcó su salida: la lectura lo dice, la terminal sin nombre recibe responsable_requerido (nada se cierra a nombre de quien no está) y con Ana elegida cierra Ana",
+  CONTEO_DE_ROSA_QUE_SALIO,
+  ["true", "false", "responsable_requerido", "Elige quién hace esta operación: quien la empezó ya no está de turno", "abierto", "SIN_ERROR", "t"],
+);
+
 exito(
   "fn_firma_heredada sola: actor manda; terminal hereda lo de hoy y corta con lo de ayer o sin nadie; sin sesión, NULL como siempre",
   `${como(T_ALM)}
@@ -317,6 +334,31 @@ select estado as tras_confirmar from retail.transferencias where id = :'tr' \\gs
 select pg_temp.intento(format('select * from retail.cerrar_traslado_con_diferencia(%L, %L)', :'tr', 'faltó una')) as rcd \\gset
 select concat_ws(',', :'rc', :'tras_confirmar', :'rcd', (select estado || '/' || (cerrado_por = '${ROSA}')::text from retail.transferencias where id = :'tr'));`,
   ["SIN_ERROR", "recibido_con_diferencia", "SIN_ERROR", "cerrada/true"],
+);
+
+exito(
+  "traslado: si quien firmó la recepción ya marcó su salida, la lectura lo dice (presente=false) y el paso siguiente sin nombre pregunta",
+  `${TRASLADO()}${conNombre(ROSA)}${REGISTRAR("r1", "v1", 2)}
+select (retail.fn_traslado_firma_recepcion(:'tr') ->> 'presente') as antes \\gset
+${SALIDA_DE_ROSA}${sinNombre("traslado_recibir")}${REGISTRAR("r2", "v2", 1)}
+select concat_ws(',', :'r1', :'antes', retail.fn_traslado_firma_recepcion(:'tr') ->> 'presente', split_part(:'r2', '|', 2),
+  (select count(*) from retail.transferencia_recepciones where transferencia_id = :'tr'));`,
+  ["SIN_ERROR", "true", "false", "responsable_requerido", "1"],
+);
+
+// Las dos lecturas nuevas solo responden a quien opera una de las sedes: Micaela (Trujillo) no lee quién recibe un traslado de
+// Lima al Taller ni el arranque de Lima.
+const LECTURAS_AJENAS = `${como(FELIPE)}${encabezados({})}
+select id as taller from retail.ubicaciones where nombre = 'Taller' \\gset
+select retail.iniciar_traslado(:'lim', :'taller', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1)), now() + interval '1 day') as tr \\gset
+select (retail.fn_traslado_firma_recepcion(:'tr') is not null) as felipe_lee, (select count(*) > 0 from retail.fn_conteo_arranque(:'lim')) as felipe_arranque \\gset
+${como(MICAELA)}
+select concat_ws(',', :'felipe_lee', :'felipe_arranque', coalesce(retail.fn_traslado_firma_recepcion(:'tr')::text, 'NULL'),
+  (select count(*) from retail.fn_conteo_arranque(:'lim')));`;
+exito(
+  "las lecturas de la firma y del arranque solo responden a quien opera la sede (Micaela, de Trujillo, no lee las de Lima)",
+  LECTURAS_AJENAS,
+  ["t", "t", "NULL", "0"],
 );
 
 exito(
@@ -570,6 +612,27 @@ control(
 ${CONTEO_DE_AYER}
 select concat_ws(',', split_part(:'r1', '|', 1), split_part(:'r1', '|', 2), split_part(:'r1', '|', 3), :'stock_tras_r1');`,
   ["42501", "responsable_requerido", "Elige quién hace esta operación: se empezó otro día", "5"],
+);
+
+control(
+  "CONTROL · si la firma se heredara aunque su dueña ya marcó la salida, el conteo se cerraría a nombre de Rosa: la prueba lo detecta",
+  `${MUTAR("retail.fn_firma_heredada(uuid,uuid,timestamptz)", "or not retail.fn_persona_presente(p_heredable, v_ubicacion, now())", "")}
+${CONTEO_DE_ROSA_QUE_SALIO}`,
+  ["true", "false", "responsable_requerido", "Elige quién hace esta operación: quien la empezó ya no está de turno", "abierto", "SIN_ERROR", "t"],
+);
+
+control(
+  "CONTROL · sin el filtro de sedes, cualquier cuenta leería quién recibe cada traslado: la prueba lo detecta",
+  `${MUTAR("retail.fn_traslado_firma_recepcion(uuid)", "and (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) or retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id))", "")}
+${LECTURAS_AJENAS}`,
+  ["t", "t", "NULL", "0"],
+);
+
+control(
+  "CONTROL · sin el filtro de sede, cualquier cuenta leería el arranque de otra tienda: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_arranque(uuid)", "where retail.fn_puede_operar_ubicacion(p_ubicacion_id)", "")}
+${LECTURAS_AJENAS}`,
+  ["t", "t", "NULL", "0"],
 );
 
 control(

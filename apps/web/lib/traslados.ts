@@ -393,8 +393,8 @@ export type TrasladoDetalle = {
 };
 
 /**
- * La firma vigente de la recepción de un traslado (ADR-0328): quién firmó por última vez un paso de recibir y si fue hoy (lo dice la
- * base, en día de Lima). Con ella una terminal sabe ANTES de contar si tiene que preguntar quién recibe o si la base ya lo pone. Es un
+ * La firma vigente de la recepción de un traslado (ADR-0328): quién firmó por última vez un paso de recibir, si fue hoy (lo dice la
+ * base, en día de Lima) y si sigue de turno en la sede que recibe. Con ella una terminal sabe ANTES de contar si tiene que preguntar quién recibe o si la base ya lo pone. Es un
  * dato de apoyo: si la función no está todavía en la base o falla, devuelve `null` y la pantalla no adivina (se recibe sin nombre y,
  * si la base lo pide, se pregunta).
  */
@@ -407,11 +407,13 @@ export async function getFirmaRecepcion(id: string): Promise<FirmaVigente> {
   }
   const j = res.data;
   if (typeof j !== "object" || j === null || Array.isArray(j)) return null;
-  const o = j as { persona_id?: unknown; nombre?: unknown; de_hoy?: unknown };
+  const o = j as { persona_id?: unknown; nombre?: unknown; de_hoy?: unknown; presente?: unknown };
   return {
     personaId: typeof o.persona_id === "string" ? o.persona_id : null,
     nombre: typeof o.nombre === "string" ? o.nombre : null,
     deHoy: o.de_hoy === true,
+    // Si ya marcó su salida, la base no hereda su firma: la pantalla pregunta desde ya. Sin el dato, decide la base.
+    presente: typeof o.presente === "boolean" ? o.presente : null,
   };
 }
 

@@ -35,12 +35,15 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
   const aActualizar = conDiferencia.filter((f) => !yaAjustadaSinTocar(f));
   const yaAjustadas = conDiferencia.length - aActualizar.length;
 
-  // Quién firma el cierre (ADR-0328): en una terminal, quien abrió el conteo si fue hoy (lo pone la base); si no, se pregunta una vez.
-  // «Hoy» lo dice la base (`abierto_hoy`); sin ese dato (la web antes que el SQL) no se adivina: se cierra sin nombre y, si la base lo
-  // pide, la pantalla pregunta.
+  // Quién firma el cierre (ADR-0328): en una terminal, quien abrió el conteo si fue hoy y sigue de turno (lo pone la base); si no, se
+  // pregunta una vez. «Hoy» y «de turno» los dice la base (`abierto_hoy`, `abierto_por_presente`); sin esos datos (la web antes que el
+  // SQL) no se adivina: se cierra sin nombre y, si la base lo pide, la pantalla pregunta. Lo que el aparato recuerda lo suma la pantalla.
   const firma = firmaDelPaso({
     terminal: persona.terminal,
-    firma: c.abiertoHoy === null ? null : { personaId: c.abiertoPor, nombre: c.abiertoPorNombre === "—" ? null : c.abiertoPorNombre, deHoy: c.abiertoHoy },
+    firma:
+      c.abiertoHoy === null
+        ? null
+        : { personaId: c.abiertoPor, nombre: c.abiertoPorNombre === "—" ? null : c.abiertoPorNombre, deHoy: c.abiertoHoy, presente: c.abiertoPorPresente },
   });
 
   return (
