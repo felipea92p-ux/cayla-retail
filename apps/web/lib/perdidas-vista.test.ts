@@ -15,7 +15,10 @@ const INTEGRANTE = leerResumenPerdidas(FIXTURE.integrante)!;
 type Filtro = { varianteId: string | null; sububicacionId: string | null };
 const SIN_FILTRO: Filtro = { varianteId: null, sububicacionId: null };
 
-function dibujar(resumen: ResumenPerdidas | null, o: { filtro?: Filtro; repeticiones?: ReturnType<typeof perdidasQueSeRepiten> | null } = {}) {
+function dibujar(
+  resumen: ResumenPerdidas | null,
+  o: { filtro?: Filtro; repeticiones?: ReturnType<typeof perdidasQueSeRepiten> | null; modulos?: readonly string[] } = {}
+) {
   return renderToStaticMarkup(
     createElement(PerdidasVista, {
       resumen,
@@ -24,6 +27,7 @@ function dibujar(resumen: ResumenPerdidas | null, o: { filtro?: Filtro; repetici
       periodo: "mes",
       periodoTexto: "este mes (marzo)",
       filtro: o.filtro ?? SIN_FILTRO,
+      modulos: o.modulos ?? ["conteos", "traslados"],
     })
   );
 }
@@ -94,6 +98,18 @@ describe("PerdidasVista con datos reales de la base", () => {
     expect(t).toContain("El valor en soles de una sola prenda lo ve el líder.");
     expect(t).not.toContain("S/");
     expect(t).not.toContain("Costo c/u");
+  });
+
+  it("sin el módulo Traslados, «Traslado N» se lee sin enlace (no lleva a «Sin acceso»)", () => {
+    const html = dibujar(LIDER, { modulos: ["conteos"] });
+    expect(html).not.toMatch(/href="\/inventario\/traslados\//);
+    expect(texto(html)).toMatch(/Traslado \d+/);
+  });
+
+  it("si no se pudo leer lo que se repite (sin filtro), lo dice: no es «no se mide»", () => {
+    const t = texto(dibujar(LIDER, { repeticiones: null }));
+    expect(t).toContain("No se pudo leer lo que se repite");
+    expect(t).not.toContain("no se mide");
   });
 
   it("si la base no respondió, lo dice: nunca un 0", () => {

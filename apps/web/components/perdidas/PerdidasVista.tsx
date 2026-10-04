@@ -41,17 +41,21 @@ export function PerdidasVista({
   periodo,
   periodoTexto,
   filtro,
+  modulos,
   selectorPeriodo,
 }: {
   /** null = la base no respondió: se dice, no se dibuja un 0. */
   resumen: ResumenPerdidas | null;
-  /** Lo que «se repite» en los últimos 30 días (la misma regla del aviso del Inicio). null = no se pudo leer. */
+  /** Lo que «se repite» en los últimos 30 días (la misma regla del aviso del Inicio). null = no se pudo leer (sin filtro) o
+   *  no se mide (con una prenda o una zona elegida): la tarjeta dice cuál de las dos. */
   repeticiones: Repeticion[] | null;
   sede: string;
   periodo: PeriodoPerdidas;
   periodoTexto: string;
   /** La pestaña filtrada a una prenda o a una zona (desde el aviso o desde una fila). */
   filtro: { varianteId: string | null; sububicacionId: string | null };
+  /** Los módulos de la cuenta entre los de los respaldos (`MODULOS_DE_RESPALDO`): sin el módulo, el respaldo va sin enlace. */
+  modulos: readonly string[];
   /** Los períodos (enlaces de la URL): los arma la página, que es la dueña de la URL. */
   selectorPeriodo?: ReactNode;
 }) {
@@ -80,7 +84,7 @@ export function PerdidasVista({
         </p>
       ) : (
         <>
-          <Cifras resumen={resumen} repeticiones={filtrada ? null : repeticiones} sede={sede} periodoTexto={periodoTexto} />
+          <Cifras resumen={resumen} repeticiones={filtrada ? null : repeticiones} filtrada={filtrada} sede={sede} periodoTexto={periodoTexto} />
           {resumen.perdido.hechos === 0 && resumen.aparecio.hechos === 0 ? (
             <Vacio sede={sede} periodoTexto={periodoTexto} filtrada={filtrada} periodo={periodo} />
           ) : (
@@ -97,6 +101,7 @@ export function PerdidasVista({
                 hechos={resumen.hechos.filter((h) => h.lado === "perdida")}
                 veCosto={resumen.veCosto}
                 periodo={periodo}
+                modulos={modulos}
                 vacio="Nada salió sin venderse en este período."
               />
               <ListaHechos
@@ -105,6 +110,7 @@ export function PerdidasVista({
                 hechos={resumen.hechos.filter((h) => h.lado === "aparecio")}
                 veCosto={resumen.veCosto}
                 periodo={periodo}
+                modulos={modulos}
                 vacio="No apareció nada en este período."
               />
               {listaCortada(resumen) && (
@@ -141,11 +147,13 @@ function textoFiltro(r: ResumenPerdidas, filtro: { varianteId: string | null; su
 function Cifras({
   resumen,
   repeticiones,
+  filtrada,
   sede,
   periodoTexto,
 }: {
   resumen: ResumenPerdidas;
   repeticiones: Repeticion[] | null;
+  filtrada: boolean;
   sede: string;
   periodoTexto: string;
 }) {
@@ -187,9 +195,11 @@ function Cifras({
         punto={repeticiones && repeticiones.length > 0 ? "ambar" : "neutro"}
         href={repeticiones && repeticiones.length > 0 ? "#se-repite" : undefined}
       >
-        {repeticiones === null
+        {filtrada
           ? "Con una prenda o una zona elegida no se mide: mira toda la sede."
-          : repeticiones.length === 0
+          : repeticiones === null
+            ? "No se pudo leer lo que se repite. Vuelve a abrir la pestaña en un momento."
+            : repeticiones.length === 0
             ? "Ninguna prenda ni zona perdió dos veces, y no hubo restas grandes sin nota."
             : fraseRepeticion(repeticiones[0])}
       </TarjetaCifra>
@@ -314,6 +324,7 @@ function ListaHechos({
   hechos,
   veCosto,
   periodo,
+  modulos,
   vacio,
 }: {
   titulo: string;
@@ -321,6 +332,7 @@ function ListaHechos({
   hechos: HechoPerdida[];
   veCosto: boolean;
   periodo: PeriodoPerdidas;
+  modulos: readonly string[];
   vacio: string;
 }) {
   // Una plantilla para el encabezado y las filas (Tabla): si cambia una columna, cambian las dos. El costo por prenda solo
@@ -348,7 +360,7 @@ function ListaHechos({
           <>
             <Encabezado columnas={columnas} plantilla={plantilla} />
             {hechos.map((h) => {
-              const doc = hrefDocumento(h);
+              const doc = hrefDocumento(h, modulos);
               const respaldo = textoRespaldo(h);
               return (
                 <div key={`${h.fuente}-${h.id}`} role="row" className={fila(plantilla)}>

@@ -32,6 +32,7 @@ import { getResumenPerdidas } from "@/lib/perdidas";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import {
   DIAS_VENTANA_REPETICION,
+  MODULOS_DE_RESPALDO,
   PERIODOS_PERDIDAS,
   filtrosPerdidas,
   hrefPerdidas,
@@ -71,7 +72,11 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
   // ADR-0328 act. 14: «Pérdidas» es una pestaña de Movimientos, no un módulo (ADR-0306): quien ve Movimientos la ve.
-  if (params.vista === "perdidas") return <PaginaPerdidas ubicacionId={persona.ubicacionId} params={params} />;
+  if (params.vista === "perdidas") {
+    // Los respaldos («Conteo 7», «Traslado 24») enlazan solo si la cuenta ve esa pantalla (ADR-0161, como los atajos).
+    const modulos = MODULOS_DE_RESPALDO.filter((clave) => veModulo(persona, clave));
+    return <PaginaPerdidas ubicacionId={persona.ubicacionId} modulos={modulos} params={params} />;
+  }
   const esLider = persona.rol === "lider";
   // La sede la decide SOLO el selector de la cabecera (`UbicacionSwitcher`, cookie: cambia todo el
   // ERP). Hasta el 2026-09-22 había un segundo selector en el título (`?ubicacion=`) que podía decir
@@ -227,7 +232,7 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
 /** La pestaña «Pérdidas»: el período y los filtros de la URL, las dos lecturas a la vez (el período elegido y los últimos
  *  30 días de «se repite», que es lo mismo que avisa el Inicio del líder) y la vista. Sin filtros de Movimientos: es otra
  *  pregunta («¿cuánto perdimos?»), con su propio período (por defecto, este mes). */
-async function PaginaPerdidas({ ubicacionId, params }: { ubicacionId: string; params: ParamsPerdidas }) {
+async function PaginaPerdidas({ ubicacionId, modulos, params }: { ubicacionId: string; modulos: readonly string[]; params: ParamsPerdidas }) {
   const hoy = hoyEnLima();
   const rango = rangoPerdidas(params.p, hoy);
   const filtro = filtrosPerdidas(params);
@@ -258,6 +263,7 @@ async function PaginaPerdidas({ ubicacionId, params }: { ubicacionId: string; pa
         periodo={rango.periodo}
         periodoTexto={rango.texto}
         filtro={filtro}
+        modulos={modulos}
         selectorPeriodo={
           <SegmentoEnlaces
             deslizante

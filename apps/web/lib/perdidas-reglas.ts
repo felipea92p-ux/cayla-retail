@@ -344,11 +344,17 @@ export function listaCortada(r: Pick<ResumenPerdidas, "hechos" | "hechosTotal">)
   return r.hechosTotal > r.hechos.length;
 }
 
-/** Adónde lleva el documento de un hecho (el conteo o el traslado); una venta anulada no tiene pantalla propia aquí. */
-export function hrefDocumento(h: Pick<HechoPerdida, "documentoTipo" | "documentoId">): string | null {
+/** Los módulos de las pantallas a las que lleva un respaldo (ADR-0161): quien no los ve lee el respaldo sin enlace, como los
+ *  atajos de Movimientos (ADR-0241). Sin esto, «Traslado 24» llevaba a «Sin acceso». */
+export const MODULOS_DE_RESPALDO = ["conteos", "traslados"] as const;
+export type ModuloDeRespaldo = (typeof MODULOS_DE_RESPALDO)[number];
+
+/** Adónde lleva el documento de un hecho (el conteo o el traslado), si la cuenta ve el módulo de esa pantalla; una venta
+ *  anulada no tiene pantalla propia aquí. */
+export function hrefDocumento(h: Pick<HechoPerdida, "documentoTipo" | "documentoId">, modulos: readonly string[]): string | null {
   if (!h.documentoId) return null;
-  if (h.documentoTipo === "conteo") return `/inventario/conteo/${h.documentoId}`;
-  if (h.documentoTipo === "traslado") return `/inventario/traslados/${h.documentoId}`;
+  if (h.documentoTipo === "conteo") return modulos.includes("conteos") ? `/inventario/conteo/${h.documentoId}` : null;
+  if (h.documentoTipo === "traslado") return modulos.includes("traslados") ? `/inventario/traslados/${h.documentoId}` : null;
   return null;
 }
 

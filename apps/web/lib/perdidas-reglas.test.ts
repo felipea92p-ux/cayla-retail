@@ -226,9 +226,13 @@ describe("palabras de tienda", () => {
     expect(textoRespaldo({ documentoTipo: null, documentoNumero: null, nota: null, fuente: "movimiento" })).toBe("Sin nota");
   });
   it("el documento lleva a su pantalla; una venta anulada no tiene una aquí", () => {
-    expect(hrefDocumento({ documentoTipo: "conteo", documentoId: "c1" })).toBe("/inventario/conteo/c1");
-    expect(hrefDocumento({ documentoTipo: "traslado", documentoId: "t1" })).toBe("/inventario/traslados/t1");
-    expect(hrefDocumento({ documentoTipo: "venta", documentoId: "v1" })).toBeNull();
+    const todos = ["conteos", "traslados"];
+    expect(hrefDocumento({ documentoTipo: "conteo", documentoId: "c1" }, todos)).toBe("/inventario/conteo/c1");
+    expect(hrefDocumento({ documentoTipo: "traslado", documentoId: "t1" }, todos)).toBe("/inventario/traslados/t1");
+    expect(hrefDocumento({ documentoTipo: "venta", documentoId: "v1" }, todos)).toBeNull();
+    // Sin el módulo de esa pantalla, sin enlace (como los atajos de Movimientos, ADR-0241).
+    expect(hrefDocumento({ documentoTipo: "conteo", documentoId: "c1" }, ["traslados"])).toBeNull();
+    expect(hrefDocumento({ documentoTipo: "traslado", documentoId: "t1" }, ["conteos"])).toBeNull();
   });
 });
 
