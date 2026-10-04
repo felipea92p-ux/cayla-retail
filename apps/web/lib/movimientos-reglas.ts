@@ -795,16 +795,49 @@ function frase(proceso: string, cifra: number): string {
   return typeof f === "string" ? f : Math.abs(cifra) === 1 ? f[0] : f[1];
 }
 
-/** El desglose de una tarjeta: de mayor a menor, cada proceso con su cifra. `entran` para «Entró», `salen` para «Salió»,
- *  `neto` (con signo) para los ajustes. Los procesos en cero no se nombran. */
-export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen" | "neto"): string {
-  const n = (v: number) => Math.abs(v).toLocaleString("es-PE");
+/** El desglose de una tarjeta: de mayor a menor, cada proceso con su cifra. `entran` para «Entró», `salen` para «Salió».
+ *  Los procesos en cero no se nombran. Los ajustes no pasan por acá: van en bruto y por respaldo (`desgloseAjustes`). */
+export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen"): string {
   return g.procesos
-    .map((p) => ({ p, v: forma === "entran" ? p.entran : forma === "salen" ? p.salen : p.entran - p.salen }))
+    .map((p) => ({ p, v: forma === "entran" ? p.entran : p.salen }))
     .filter(({ v }) => v !== 0)
-    .sort((a, b) => Math.abs(b.v) - Math.abs(a.v))
-    .map(({ p, v }) => `${forma === "neto" ? (v > 0 ? "+" : "−") : ""}${n(v)} ${frase(p.proceso, v)}`)
+    .sort((a, b) => b.v - a.v)
+    .map(({ p, v }) => `${v.toLocaleString("es-PE")} ${frase(p.proceso, v)}`)
     .join(" · ");
+}
+
+/** Los ajustes que salen de un conteo de verdad: `conteo` lo escribe solo `cerrar_conteo`, y `hallazgo_conteo` queda
+ *  enlazado al conteo donde faltó la prenda (ADR-0291); los dos llevan `conteo_item_id`. Todo otro ajuste —reposición,
+ *  merma, conteo físico, otro, o un motivo que todavía no existe— lo escribe alguien a mano en «Ajustar stock» y no tiene
+ *  documento detrás. */
+const AJUSTES_EN_UN_CONTEO: readonly string[] = ["conteo", "hallazgo_conteo"];
+
+export type RespaldoAjuste = "a_mano" | "en_un_conteo";
+
+export function respaldoDeAjuste(proceso: string | null): RespaldoAjuste {
+  return proceso !== null && AJUSTES_EN_UN_CONTEO.includes(proceso) ? "en_un_conteo" : "a_mano";
+}
+
+/** La tarjeta de Ajustes en BRUTO (Felipe, 2026-10-03): lo que faltó y lo que apareció por separado, nunca un neto. En
+ *  TRU, +87 y −35 se mostraban como «+52», y la encargada leía que sobraba mercadería cuando 35 prendas habían faltado;
+ *  el neto además restaba dentro de cada motivo («−5 por conteo» eran +4 y −9). Cada cara se parte por RESPALDO
+ *  («26 a mano · 9 en un conteo»), no por motivo: lo que se viene a saber es si hay un documento detrás; el motivo sigue
+ *  en cada fila y en los filtros de proceso. Null = esa cara está en cero. */
+export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; aparecieron: string | null } {
+  const cara = (lado: "entran" | "salen"): string | null => {
+    const por = (respaldo: RespaldoAjuste) => g.procesos.filter((p) => respaldoDeAjuste(p.proceso) === respaldo).reduce((s, p) => s + p[lado], 0);
+    const partes: [number, string][] = [
+      [por("a_mano"), "a mano"],
+      [por("en_un_conteo"), "en un conteo"],
+    ];
+    return (
+      partes
+        .filter(([v]) => v > 0)
+        .map(([v, texto]) => `${v.toLocaleString("es-PE")} ${texto}`)
+        .join(" · ") || null
+    );
+  };
+  return { faltaron: cara("salen"), aparecieron: cara("entran") };
 }
 
 /** «unidad» o «unidades», según la cifra. */

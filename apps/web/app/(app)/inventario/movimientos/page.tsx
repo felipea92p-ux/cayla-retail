@@ -23,7 +23,8 @@ import {
   type ParamsMovimientos,
   type ResumenTienda,
 } from "@/lib/movimientos-v2";
-import { desdeDeUltimosDias } from "@/lib/movimientos-reglas";
+import { desdeDeUltimosDias, desgloseAjustes } from "@/lib/movimientos-reglas";
+import type { ReactNode } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
@@ -222,9 +223,8 @@ function Cifras({
   const entro = !grupo ? resumen.entrada : categoria === "ajuste" ? vacio : grupo;
   const salio = !grupo ? resumen.salida : categoria === "ajuste" ? vacio : grupo;
   const ajustes = !grupo || categoria === "ajuste" ? resumen.ajuste : vacio;
-  const netoAjustes = ajustes.entran - ajustes.salen;
+  const desglose = desgloseAjustes(ajustes);
   const movidas = !categoria || categoria === "interno" ? resumen.interno.movidas : 0;
-  const valorAjustes = ajustes.operaciones === 0 ? "—" : `${netoAjustes > 0 ? "+" : netoAjustes < 0 ? "−" : ""}${n(netoAjustes)}`;
   return (
     <>
       {/* En el celular, las tres cifras en UNA franja: tres tarjetas apiladas se comían la primera pantalla y el primer
@@ -236,7 +236,12 @@ function Cifras({
         <dl className="mt-1.5 grid grid-cols-3 gap-2">
           <CifraCorta etiqueta="Entró" valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} tono={entro.entran > 0 ? "text-verde" : undefined} href={hrefTipo("entrada")} activa={categoria === "entrada"} />
           <CifraCorta etiqueta="Salió" valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} href={hrefTipo("salida")} activa={categoria === "salida"} />
-          <CifraCorta etiqueta="Ajustes" valor={valorAjustes} tono={netoAjustes < 0 ? "text-rojo" : undefined} href={hrefTipo("ajuste")} activa={categoria === "ajuste"} />
+          <CifraCorta
+            etiqueta="Ajustes"
+            valor={ajustes.operaciones === 0 ? "—" : <CarasAjustes faltaron={ajustes.salen} aparecieron={ajustes.entran} corta />}
+            href={hrefTipo("ajuste")}
+            activa={categoria === "ajuste"}
+          />
         </dl>
       </div>
     <div className="hidden gap-3 sm:grid sm:grid-cols-3">
@@ -247,15 +252,22 @@ function Cifras({
       <TarjetaCifra etiqueta={`Salió de ${sede} · ${periodo}`} valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} unidad={unidades(salio.salen)} href={hrefTipo("salida")} activa={categoria === "salida"}>
         {salio.salen === 0 ? "No salió nada en el período" : desgloseCifras(salio, "salen")}
       </TarjetaCifra>
+      {/* Ajustes en bruto (Felipe, 2026-10-03): lo que faltó y lo que apareció, nunca un neto — «+52» escondía 35 prendas
+          que faltaron. El desglose dice si hay un documento detrás («a mano» o «en un conteo»), no el motivo. */}
       <TarjetaCifra
         etiqueta={`Ajustes en ${sede} · ${periodo}`}
-        valor={valorAjustes}
-        unidad={unidades(netoAjustes)}
-        tono={netoAjustes < 0 ? "text-rojo" : undefined}
+        valor={ajustes.operaciones === 0 ? "—" : <CarasAjustes faltaron={ajustes.salen} aparecieron={ajustes.entran} />}
         href={hrefTipo("ajuste")}
         activa={categoria === "ajuste"}
       >
-        {ajustes.operaciones === 0 ? "Sin ajustes en el período" : desgloseCifras(ajustes, "neto") || "Se compensaron entre sí"}
+        {ajustes.operaciones === 0 ? (
+          "Sin ajustes en el período"
+        ) : (
+          <>
+            {desglose.faltaron && <span className="block">Faltaron: {desglose.faltaron}</span>}
+            {desglose.aparecieron && <span className="block">Aparecieron: {desglose.aparecieron}</span>}
+          </>
+        )}
         {movidas > 0 && <span className="block">Además, {n(movidas)} movidas entre piso y almacén (no cambian el total).</span>}
       </TarjetaCifra>
     </div>
@@ -263,7 +275,28 @@ function Cifras({
   );
 }
 
-function CifraCorta({ etiqueta, valor, tono, href, activa }: { etiqueta: string; valor: string; tono?: string; href: string; activa: boolean }) {
+/** Las dos caras de los ajustes, cada una con su palabra: «−35 faltaron  +87 aparecieron». Lo que faltó va en rojo (hay
+ *  que mirarlo, como el punto rojo de su fila); lo que apareció, en tinta: no es alarma, pero tampoco es una entrada. Una
+ *  cara en cero se apaga y no se esconde: «0 faltaron» también es una respuesta. `corta`: la franja del celular, donde no
+ *  caben las palabras (las lee el lector de pantalla) y la segunda cifra va más chica. */
+function CarasAjustes({ faltaron, aparecieron, corta = false }: { faltaron: number; aparecieron: number; corta?: boolean }) {
+  const n = (v: number) => v.toLocaleString("es-PE");
+  const palabra = corta ? "sr-only" : "font-sans text-sm text-tinta/55";
+  return (
+    <span className={`flex flex-wrap items-baseline ${corta ? "gap-x-1.5" : "gap-x-4"}`}>
+      <span className="whitespace-nowrap">
+        <span className={faltaron > 0 ? "text-rojo" : "text-tinta/40"}>{faltaron > 0 ? `−${n(faltaron)}` : "0"}</span>
+        <span className={palabra}> faltaron</span>
+      </span>
+      <span className={`whitespace-nowrap ${corta ? "text-base" : ""}`}>
+        <span className={aparecieron > 0 ? "text-tinta" : "text-tinta/40"}>{aparecieron > 0 ? `+${n(aparecieron)}` : "0"}</span>
+        <span className={palabra}> aparecieron</span>
+      </span>
+    </span>
+  );
+}
+
+function CifraCorta({ etiqueta, valor, tono, href, activa }: { etiqueta: string; valor: ReactNode; tono?: string; href: string; activa: boolean }) {
   return (
     <div className="min-w-0">
       <Link

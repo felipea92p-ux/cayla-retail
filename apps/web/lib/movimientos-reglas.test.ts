@@ -24,8 +24,10 @@ import {
   tonoCategoria,
   agruparPorOperacion,
   claveOperacion,
+  desgloseAjustes,
   desgloseCifras,
   filtroDePalabra,
+  respaldoDeAjuste,
   leerResumenTienda,
   periodoCorto,
   resumirOperacion,
@@ -654,9 +656,40 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     );
   });
 
-  it("los ajustes van con su signo; lo que se movió entre piso y almacén no cambia el total", () => {
-    expect(desgloseCifras(lima.ajuste, "neto")).toBe("−1 por conteo");
+  it("lo que se movió entre piso y almacén no cambia el total", () => {
+    expect(desgloseAjustes(lima.ajuste)).toEqual({ faltaron: "1 en un conteo", aparecieron: null });
     expect(lima.interno.movidas).toBe(10);
+  });
+
+  // Lo que devolvió producción para Tienda TRU, 30 días, el 2026-10-03 (solo lectura). Por proceso, la base ya trae lo que
+  // sumó y lo que restó por separado: «+52» salía de restarlos en la pantalla.
+  const tru = leerResumenTienda([
+    { grupo: "ajuste", proceso: "conteo_fisico", operaciones: "33", filas: "45", entran: "37", salen: "13", movidas: "0" },
+    { grupo: "ajuste", proceso: "otro", operaciones: "14", filas: "18", entran: "20", salen: "13", movidas: "0" },
+    { grupo: "ajuste", proceso: "reposicion", operaciones: "14", filas: "17", entran: "25", salen: "0", movidas: "0" },
+    { grupo: "ajuste", proceso: "conteo", operaciones: "13", filas: "13", entran: "4", salen: "9", movidas: "0" },
+    { grupo: "ajuste", proceso: "hallazgo_conteo", operaciones: "1", filas: "1", entran: "1", salen: "0", movidas: "0" },
+  ]);
+
+  it("los ajustes van en bruto: lo que faltó no se compensa con lo que apareció (TRU: −35 y +87, no «+52»)", () => {
+    expect(tru.ajuste.salen).toBe(35);
+    expect(tru.ajuste.entran).toBe(87);
+    expect(desgloseAjustes(tru.ajuste)).toEqual({ faltaron: "26 a mano · 9 en un conteo", aparecieron: "82 a mano · 5 en un conteo" });
+  });
+
+  it("solo el conteo y lo encontrado tras un conteo tienen un documento detrás; todo otro ajuste es a mano", () => {
+    expect(respaldoDeAjuste("conteo")).toBe("en_un_conteo");
+    expect(respaldoDeAjuste("hallazgo_conteo")).toBe("en_un_conteo");
+    for (const { valor } of MOTIVOS_AJUSTE) expect(respaldoDeAjuste(valor), valor).toBe("a_mano");
+    // Un motivo que mañana escriba `registrar_movimiento` sin pasar por un conteo tampoco tiene documento.
+    expect(respaldoDeAjuste("motivo_que_no_existe")).toBe("a_mano");
+    expect(respaldoDeAjuste(null)).toBe("a_mano");
+  });
+
+  it("una cara en cero no se nombra, y sin ajustes no hay desglose", () => {
+    const soloFaltaron = leerResumenTienda([{ grupo: "ajuste", proceso: "merma", operaciones: 2, filas: 2, entran: 0, salen: 3, movidas: 0 }]);
+    expect(desgloseAjustes(soloFaltaron.ajuste)).toEqual({ faltaron: "3 a mano", aparecieron: null });
+    expect(desgloseAjustes(leerResumenTienda([]).ajuste)).toEqual({ faltaron: null, aparecieron: null });
   });
 
   it("«Todos» cuenta el cambio UNA vez, aunque esté en Entradas y en Salidas; un grupo desconocido no rompe nada", () => {
