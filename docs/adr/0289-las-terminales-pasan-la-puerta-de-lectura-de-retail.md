@@ -127,3 +127,28 @@ para refrescar el diccionario.
   responsable (ADR-0162) funcionando; ensucia los registros, no rompe nada.
 - La base local de Felipe está atrasada (llega a `20260928180000`; le faltan 28 migraciones, entre ellas la que define
   `fn_existencias`). Conviene ponerla al día antes de la próxima sesión de bases.
+
+## Actualización 2026-10-04 — segunda tanda: `fn_stock_por_sede` (la puerta que quedó escrita dos veces)
+
+Una revisión independiente de «Pedir a otra sede» desde Traslados (ADR-0242, tanda 4) encontró la misma causa en otra función:
+`fn_stock_por_sede()` (ADR-0270, `20260929020000`, sección C) conservaba SU PROPIA puerta —un `exists (…colaboradores…
+personas…)` copiado a mano— en vez de `fn_tiene_acceso_retail()`. Una terminal recibía cero filas sin error y
+`fn_stock_por_sede_json()` devolvía `[]`: Vender («Dónde más hay»), Cambios, Apartados y «Pedir a otra sede» lo leían como «ninguna
+otra sede tiene stock». Producción tiene hoy 6 terminales activas (administrativa y de ventas en AQP, LIM y TRU): las seis lo sufren.
+
+- **Migración:** `supabase/migrations/20261004110000_stock_por_sede_pasa_la_puerta_de_lectura.sql`: un solo `create or replace
+  function` (el `exists (…)` pasa a `retail.fn_tiene_acceso_retail()`; el resto del cuerpo es el de ADR-0270 línea por línea) y un
+  `comment on function`. Sin políticas ni tablas. Guardia por md5 (`19273e62…` → `b7396e8a…`) y exige que la puerta ya conozca la
+  terminal. **POR PEGAR** (necesita el OK de Felipe): `docs/backlog/2026-10-04-frosty-bartik-ad6e8f.md`.
+- **Prueba:** `pnpm pruebas:terminales-red` (27 casos, en el CI). Sin el arreglo: 9 rojos (los de terminal, la vía de Vender, el
+  costo, el cuerpo y el inventario); con él, 27/27; `--en-seco` sobre una base sin el arreglo, 27/27.
+- **Inventario de puertas propias (lo que cambia la regla).** El 2026-10-04, en la base con todas las migraciones y en producción
+  (md5 idénticos), 11 funciones de `retail` mezclan `colaboradores` con `auth_user_id = auth.uid()`: cuatro ya conocen la terminal
+  (`fn_actor_persona_id`, `fn_mi_rol_id`, `fn_persona_actual_resumen`, `fn_ubicacion_actual_persona`), una ES la puerta, y cinco
+  quedan fuera a propósito (`fn_es_lider` y `fn_es_admin`: una terminal no es líder; `fn_colaboradores`: solo quien gestiona
+  colaboradores; `fn_mi_perfil`: el perfil de una persona; `fn_compras_ubicaciones`: ya trae a la terminal por
+  `fn_ubicacion_actual_persona`). `fn_stock_por_sede` era la única LECTURA de la red con puerta propia. Esa lista de cinco quedó
+  escrita en la prueba: una función nueva que copie la puerta la pone en rojo. Cierra el pendiente «regla para lecturas nuevas» de
+  la primera tanda con un candado en vez de una frase.
+- **Lo que no se hizo:** el barrido de la primera tanda (`pruebas:terminales-lecturas`) solo veía funciones que mencionaban la
+  puerta, por eso no atrapó esta; no se tocó. La web no cambia (`lib/inventario-v2.ts` ya tolera la lista vacía).
