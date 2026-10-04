@@ -509,9 +509,9 @@ begin
              and m.variante_id <> c_centinela
              and not pr.es_prueba) q;
   if v_movidas is not null then
-    raise exception 'Mientras escaneabas se movieron % % en el almacén. No se cuadró nada: vuelve a escanear solo %.',
-      jsonb_array_length(v_movidas),
-      case when jsonb_array_length(v_movidas) = 1 then 'prenda' else 'prendas' end,
+    raise exception 'Mientras escaneabas se % en el almacén. No se cuadró nada: vuelve a escanear solo %.',
+      case when jsonb_array_length(v_movidas) = 1 then 'movió 1 prenda'
+           else 'movieron ' || jsonb_array_length(v_movidas) || ' prendas' end,
       case when jsonb_array_length(v_movidas) = 1 then 'esa' else 'esas' end
       using hint = 'cuadre_almacen_movido',
             detail = jsonb_build_object('revisado_hasta', clock_timestamp(), 'prendas', v_movidas)::text;

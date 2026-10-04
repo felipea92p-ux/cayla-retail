@@ -126,6 +126,7 @@ function borrarTexto(clave: string): void {
 }
 
 const nombreDe = (p: PrendaCuadre | undefined) => (p ? [p.referencia, p.talla, p.color].filter(Boolean).join(" · ") : "Una prenda");
+const cuantas = (n: number, una: string, varias: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? una : varias}`;
 
 export function CuadrarPisoForm({
   ubicacionId,
@@ -506,6 +507,7 @@ export function CuadrarPisoForm({
         const ids = fallo.prendas.map((p) => p.varianteId);
         cambiar((x) => ({ ...x, ...pedirReescaneo(x.lineas, x.pendientes, ids), escaneoDesde: fallo.revisadoHasta ?? escaneoDesdeAhora(Date.now(), desfase.current) }));
         setMovidas((m) => [...m.filter((p) => !ids.includes(p.varianteId)), ...fallo.prendas]);
+        setAviso(null);
         setVista(null);
         setPaso("escanear");
         setError(fallo);
@@ -622,12 +624,18 @@ export function CuadrarPisoForm({
 
       {paso === "escanear" && (
         <>
-          <ul className="nota-cayla list-disc space-y-1 pl-8 text-sm">
-            <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
-            <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
-            <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
-            <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.{!esLider && " Confirmar es solo de un líder: que entre con su cuenta en este mismo equipo."}</li>
-          </ul>
+          {/* Antes de la primera lectura, lo que hay que cuidar; ya escaneando, una línea (en el celular, el campo tiene que verse sin
+              bajar la pantalla). */}
+          {datos.lineas.length === 0 && datos.pendientes.length === 0 ? (
+            <ul className="nota-cayla list-disc space-y-1 pl-8 text-sm">
+              <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
+              <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
+              <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
+              <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.{!esLider && " Confirmar es solo de un líder: que entre con su cuenta en este mismo equipo."}</li>
+            </ul>
+          ) : (
+            <p className="text-xs text-taupe">Solo lo guardado · sin dañadas ni Apartados · termina hoy y en este equipo.</p>
+          )}
 
           {datos.pendientes.length > 0 && (
             <CampoGuiado id="reescanear" guia={guiaEscaneo} titulo="Volver a escanear" ayuda="Cambiaron en el almacén mientras escaneabas.">
@@ -661,7 +669,7 @@ export function CuadrarPisoForm({
                   spellCheck={false}
                   enterKeyHint="enter"
                   disabled={congelada}
-                  placeholder="Apunta la pistola y dispara, o escribe el código" // sugerir-fijo: dice cómo se escanea; no depende de nada elegido antes en esta pantalla
+                  placeholder="Escanea o escribe el código" // sugerir-fijo: dice cómo se escanea; no depende de nada elegido antes en esta pantalla (corto: cabe a 375 px)
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
@@ -729,7 +737,7 @@ export function CuadrarPisoForm({
                           {p?.sku && <p className="font-mono text-xs text-tinta/65">{p.sku}</p>}
                           <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-taupe">
                             <span className="tabular-nums">
-                              En el sistema: {libre[l.varianteId]?.almacen ?? 0} guardadas · {libre[l.varianteId]?.piso ?? 0} colgadas
+                              En el sistema: {cuantas(libre[l.varianteId]?.almacen ?? 0, "guardada", "guardadas")} · {cuantas(libre[l.varianteId]?.piso ?? 0, "colgada", "colgadas")}
                             </span>
                             {deMas > 0 && <Chip tono="ambar">{deMas === 1 ? "1 no cargada" : `${deMas} no cargadas`}</Chip>}
                           </p>
@@ -858,9 +866,9 @@ export function CuadrarPisoForm({
               <CampoGuiado id="responsable" guia={guiaConfirmar} titulo="Quién cuadra">
                 <ComboResponsable control={responsable} deshabilitado={enviando} />
               </CampoGuiado>
-              <CampoGuiado id="nota" guia={guiaConfirmar}>
+              <CampoGuiado id="nota" guia={guiaConfirmar} titulo={notaRequerida ? "Por qué se vuelve a cuadrar" : "Nota (opcional)"}>
                 <CampoTexto
-                  etiqueta={guiaConfirmar.etiqueta("nota", notaRequerida ? "Por qué se vuelve a cuadrar" : "Nota (opcional)")}
+                  etiqueta={notaRequerida ? "Por qué se vuelve a cuadrar" : "Nota (opcional)"}
                   value={datos.nota}
                   maxLength={NOTA_MAXIMA_CUADRE}
                   disabled={enviando || congelada}
@@ -878,11 +886,11 @@ export function CuadrarPisoForm({
             resumen={
               vista?.estado === "lista" ? (
                 <span className="tabular-nums">
-                  {vista.datos.resumen.prendasAlPiso} al piso · {vista.datos.resumen.prendasAlAlmacen} al almacén
-                  {vista.datos.resumen.prendasNoCargadas > 0 ? ` · ${vista.datos.resumen.prendasNoCargadas} no cargadas` : ""}
+                  {vista.datos.resumen.prendasAlPiso.toLocaleString("es-PE")} al piso · {vista.datos.resumen.prendasAlAlmacen.toLocaleString("es-PE")} al almacén
+                  {vista.datos.resumen.prendasNoCargadas > 0 ? ` · ${cuantas(vista.datos.resumen.prendasNoCargadas, "no cargada", "no cargadas")}` : ""}
                 </span>
               ) : (
-                <span>{total.toLocaleString("es-PE")} prendas escaneadas</span>
+                <span>{cuantas(total, "prenda escaneada", "prendas escaneadas")}</span>
               )
             }
             acciones={
@@ -923,7 +931,11 @@ export function CuadrarPisoForm({
                     ) : congelada ? (
                       BOTON_COMPROBAR_CUADRE
                     ) : (
-                      `Cuadrar el piso de ${sede}`
+                      // En el celular, sin la sede (la barra ya la dice arriba): el nombre largo de una sede no cabe junto a «Volver».
+                      <>
+                        <span className="sm:hidden">Cuadrar el piso</span>
+                        <span className="max-sm:hidden">Cuadrar el piso de {sede}</span>
+                      </>
                     )}
                   </button>
                 )}

@@ -481,8 +481,10 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${TOTAL_LIBRE} = :
      from retail.cuadre_piso_items i join retail.cuadres_piso c on c.id = i.cuadre_id where c.token_cliente = :'tok1'),
   (select bool_and((i.sentido = 'al_piso' and m.sububicacion_id = :'alm' and m.sububicacion_destino_id = :'piso')
                 or (i.sentido = 'al_almacen' and m.sububicacion_id = :'piso' and m.sububicacion_destino_id = :'alm'))
-     from retail.cuadre_piso_items i join retail.movimientos m on m.id = i.movimiento_id),
-  (select count(*) = count(distinct variante_id) from retail.cuadre_piso_items));`,
+     from retail.cuadre_piso_items i join retail.movimientos m on m.id = i.movimiento_id
+     join retail.cuadres_piso c on c.id = i.cuadre_id where c.token_cliente = :'tok1'),
+  -- Solo lo de ESTE caso: una base compartida puede traer cuadres confirmados de otras pruebas o pantallas.
+  (select count(*) = count(distinct i.variante_id) from retail.cuadre_piso_items i join retail.cuadres_piso c on c.id = i.cuadre_id where c.token_cliente = :'tok1'));`,
   "true,t,4,t,t,t,t"
 );
 caso(
@@ -663,6 +665,7 @@ select retail.fn_frescura_sede(:'cua') as j \\gset
 ${COMO_POSTGRES}select string_agg(x, ' ' order by x) from (
   select retail.fn_prenda_corta(i.variante_id) || ':' || i.sentido || ':' || (e ->> 2) as x
     from retail.cuadre_piso_items i
+    join retail.cuadres_piso c on c.id = i.cuadre_id and c.token_cliente = :'tok1'
     cross join lateral jsonb_array_elements((:'j')::jsonb -> 'eventos' -> (i.variante_id::text)) e
    where (e ->> 3)::uuid = i.movimiento_id
   union all
