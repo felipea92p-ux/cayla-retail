@@ -278,18 +278,19 @@ function Cifras({
 
 /** Las dos caras de los ajustes, cada una con su palabra: «−35 faltaron  +87 aparecieron». Lo que faltó va en rojo (hay
  *  que mirarlo, como el punto rojo de su fila); lo que apareció, en tinta: no es alarma, pero tampoco es una entrada. Una
- *  cara en cero se apaga y no se esconde: «0 faltaron» también es una respuesta. `corta`: la franja del celular, donde no
- *  caben las palabras (las lee el lector de pantalla) y la segunda cifra va más chica. */
+ *  cara en cero se apaga y no se esconde: «0 faltaron» también es una respuesta. `corta`: la columna angosta de la franja
+ *  del celular (~100 px): las dos cifras se apilan, más chicas y cada una con su palabra —sin ella, «−3 +7» no dice qué es
+ *  cada cosa—. */
 function CarasAjustes({ faltaron, aparecieron, corta = false }: { faltaron: number; aparecieron: number; corta?: boolean }) {
   const n = (v: number) => v.toLocaleString("es-PE");
-  const palabra = corta ? "sr-only" : "font-sans text-sm text-tinta/55";
+  const palabra = corta ? "font-sans text-[11px] text-taupe" : "font-sans text-sm text-tinta/55";
   return (
-    <span className={`flex flex-wrap items-baseline ${corta ? "gap-x-1.5" : "gap-x-4"}`}>
+    <span className={corta ? "flex flex-col text-lg leading-snug" : "flex flex-wrap items-baseline gap-x-4"}>
       <span className="whitespace-nowrap">
         <span className={faltaron > 0 ? "text-rojo" : "text-tinta/40"}>{faltaron > 0 ? `−${n(faltaron)}` : "0"}</span>
         <span className={palabra}> faltaron</span>
       </span>
-      <span className={`whitespace-nowrap ${corta ? "text-base" : ""}`}>
+      <span className="whitespace-nowrap">
         <span className={aparecieron > 0 ? "text-tinta" : "text-tinta/40"}>{aparecieron > 0 ? `+${n(aparecieron)}` : "0"}</span>
         <span className={palabra}> aparecieron</span>
       </span>
