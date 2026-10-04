@@ -23,7 +23,7 @@ import {
   type ParamsMovimientos,
   type ResumenTienda,
 } from "@/lib/movimientos-v2";
-import { desdeDeUltimosDias, desgloseAjustes } from "@/lib/movimientos-reglas";
+import { desdeDeUltimosDias, desgloseAjustes, ventasAnuladas } from "@/lib/movimientos-reglas";
 import type { ReactNode } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -250,7 +250,8 @@ function Cifras({
       </TarjetaCifra>
       {/* «Salió» no es alarma (una venta es lo esperado, no un problema): neutro, no coral. */}
       <TarjetaCifra etiqueta={`Salió de ${sede} · ${periodo}`} valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} unidad={unidades(salio.salen)} href={hrefTipo("salida")} activa={categoria === "salida"}>
-        {salio.salen === 0 ? "No salió nada en el período" : desgloseCifras(salio, "salen")}
+        {/* «30 vendidas (2 se anularon)»: las ventas que se anularon después se dicen junto a las vendidas, no solo en «Entró». */}
+        {salio.salen === 0 ? "No salió nada en el período" : desgloseCifras(salio, "salen", { anuladas: ventasAnuladas(resumen) })}
       </TarjetaCifra>
       {/* Ajustes en bruto (Felipe, 2026-10-03): lo que faltó y lo que apareció, nunca un neto — «+52» escondía 35 prendas
           que faltaron. El desglose dice si hay un documento detrás («a mano» o «en un conteo»), no el motivo. */}

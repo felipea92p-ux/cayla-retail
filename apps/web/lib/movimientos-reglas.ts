@@ -811,14 +811,32 @@ function frase(proceso: string, cifra: number): string {
 }
 
 /** El desglose de una tarjeta: de mayor a menor, cada proceso con su cifra. `entran` para «Entró», `salen` para «Salió».
- *  Los procesos en cero no se nombran. Los ajustes no pasan por acá: van en bruto y por respaldo (`desgloseAjustes`). */
-export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen"): string {
+ *  Los procesos en cero no se nombran. Los ajustes no pasan por acá: van en bruto y por respaldo (`desgloseAjustes`).
+ *
+ *  `anuladas` (solo en «Salió»): cuántas de las ventas se anularon después, dicho junto a «vendidas» —«30 vendidas (2 se
+ *  anularon)»—. Sin eso, «30 vendidas» afirmaba 30 ventas cuando quedaron 28, y las 2 solo aparecían en «Entró» como
+ *  «por venta anulada» (2026-10-03). La anulación sigue contando como entrada (ADR-0234 D1); cambia la palabra, no la
+ *  cifra. Se dice «de ellas» sin comprobarlo fila por fila porque `anular_venta` exige la caja de esa venta abierta: la
+ *  venta y su anulación caen en el mismo turno. */
+export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen", opciones: { anuladas?: number } = {}): string {
+  const anuladas = forma === "salen" ? (opciones.anuladas ?? 0) : 0;
   return g.procesos
     .map((p) => ({ p, v: forma === "entran" ? p.entran : p.salen }))
     .filter(({ v }) => v !== 0)
     .sort((a, b) => b.v - a.v)
-    .map(({ p, v }) => `${v.toLocaleString("es-PE")} ${frase(p.proceso, v)}`)
+    .map(({ p, v }) => {
+      const texto = `${v.toLocaleString("es-PE")} ${frase(p.proceso, v)}`;
+      if (p.proceso !== "venta" || anuladas <= 0) return texto;
+      return `${texto} (${anuladas === 1 ? "1 se anuló" : `${anuladas.toLocaleString("es-PE")} se anularon`})`;
+    })
     .join(" · ");
+}
+
+/** Cuántas prendas volvieron por una venta anulada en el período: la cara «Entró» de esas ventas, para nombrarlas junto a
+ *  «vendidas» en «Salió». Las cifras no dependen del filtro de tipo (la RPC no lo recibe), así que se leen de «entrada»
+ *  aunque se esté mirando «Salidas». */
+export function ventasAnuladas(resumen: ResumenTienda): number {
+  return resumen.entrada.procesos.filter((p) => p.proceso === "anulacion_venta").reduce((s, p) => s + p.entran, 0);
 }
 
 /** Los ajustes que salen de un conteo de verdad: `conteo` lo escribe solo `cerrar_conteo`, y `hallazgo_conteo` queda

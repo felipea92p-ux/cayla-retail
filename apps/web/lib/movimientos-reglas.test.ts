@@ -39,6 +39,7 @@ import {
   resumirBajadas,
   esOperacionInterna,
   unidades,
+  ventasAnuladas,
   verboDelResponsable,
   volverAMovimientos,
   ENCABEZADOS_CSV_MOVIMIENTOS,
@@ -678,6 +679,23 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     expect(desgloseCifras(leerResumenTienda([{ grupo: "salida", proceso: "venta", operaciones: 1, filas: 1, entran: 0, salen: 1, movidas: 0 }]).salida, "salen")).toBe(
       "1 vendida"
     );
+  });
+
+  it("«vendidas» dice cuántas se anularon después (TRU: 30 vendidas, 2 anuladas, no «30 vendidas» a secas)", () => {
+    const tru = leerResumenTienda([
+      { grupo: "salida", proceso: "venta", operaciones: "26", filas: "30", entran: "0", salen: "30", movidas: "0" },
+      { grupo: "salida", proceso: "cambio", operaciones: "1", filas: "1", entran: "0", salen: "1", movidas: "0" },
+      { grupo: "entrada", proceso: "carga_inicial", operaciones: "137", filas: "535", entran: "751", salen: "0", movidas: "0" },
+      { grupo: "entrada", proceso: "anulacion_venta", operaciones: "2", filas: "2", entran: "2", salen: "0", movidas: "0" },
+    ]);
+    expect(ventasAnuladas(tru)).toBe(2);
+    expect(desgloseCifras(tru.salida, "salen", { anuladas: ventasAnuladas(tru) })).toBe("30 vendidas (2 se anularon) · 1 por cambio");
+    expect(desgloseCifras(tru.salida, "salen", { anuladas: 1 })).toBe("30 vendidas (1 se anuló) · 1 por cambio");
+    // En «Entró» la anulación sigue siendo lo que es (ADR-0234 D1): prendas que volvieron.
+    expect(desgloseCifras(tru.entrada, "entran", { anuladas: 2 })).toBe("751 de stock inicial · 2 por venta anulada");
+    // Sin anulaciones (Lima), nada cambia.
+    expect(ventasAnuladas(lima)).toBe(0);
+    expect(desgloseCifras(lima.salida, "salen", { anuladas: ventasAnuladas(lima) })).toBe("4 vendidas · 1 por cambio");
   });
 
   it("todo proceso que puede sumar o restar en «Entró» o «Salió» tiene su frase, y ninguna frase sobra", () => {
