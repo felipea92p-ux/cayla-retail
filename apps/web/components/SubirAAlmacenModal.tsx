@@ -289,7 +289,7 @@ export function SubirAAlmacenModal({
                     setParaEnviar(e.target.checked);
                     if (!e.target.checked) setDestinoId("");
                   }}
-                  className="h-4 w-4 accent-[var(--color-tinta)]"
+                  className="h-4 w-4 accent-tinta"
                 />
                 Es para enviar a otra sede
               </label>
