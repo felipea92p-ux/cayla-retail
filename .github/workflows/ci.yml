@@ -1080,6 +1080,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
 
+      # Limpieza de las ventas sin registrar (ADR-0328, actividad 5): las candidatas de cada venta (misma categoría, talla y color o
+      # familia, con stock libre en su sede; la primera entrada de esa sede) y que contestar mal descuenta dos veces. ROLLBACK.
+      - name: pruebas:ventas-sin-registrar
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ventas-sin-registrar
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un

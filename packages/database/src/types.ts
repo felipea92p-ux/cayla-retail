@@ -7556,6 +7556,22 @@ export type Database = {
         Returns: number
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      // 20261004203000 (ADR-0328, act. 5): las prendas del stock que pueden ser cada venta «sin registrar» pendiente.
+      fn_candidatas_por_regularizar: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          almacen_libre: number
+          color_exacto: boolean
+          color_hex: string | null
+          color_hex_anotado: string | null
+          disponible: number
+          piso_libre: number
+          prenda_id: string
+          primera_entrada: string | null
+          primera_entrada_motivo: string | null
+          variante_id: string
+        }[]
+      }
       fn_stock_por_sede: {
         Args: never
         Returns: {

@@ -765,7 +765,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `registrar_venta` la exige completa y en cantidad 1, **no mueve stock** por ella y la deja en
   `prendas_por_regularizar` (estado `pendiente`). El comprobante electrónico la nombra con `descripcion_libre`
   (`itemsParaLucode`). `anular_venta` salta la línea pendiente; un trigger en `ventas` pasa la fila a `anulada`, y
-  otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
+  otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`). Si lo que la asesora
+  ESCRIBE en la descripción nombra otra categoría («Jean…» con Pantalones), el modal la sugiere y ella la confirma
+  (`lib/sugerir-categoria-sin-registrar.ts`, por prefijo; ADR-0328, act. 5).
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   caja cerrada → `punto-de-venta/CajaCerrada` (persiana y cartel «Cerrado» sobre el área de trabajo, POS `inert` detrás; su único
@@ -975,7 +977,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 (piso, si no almacén);
   `llego_nueva` = entrada `ingreso_regularizado` + salida; la salida lleva motivo `venta` y el `venta_item_id`, la
   línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. `contarVencidas` alimenta la
-  cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Tablas `envios` (una guía; agrupa un lote por proveedor vía
+  cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Limpieza de arranque (ADR-0328, act. 5):
+  `getCandidatasPorRegularizar` → RPC de lectura `fn_candidatas_por_regularizar(p_ubicacion_id)` (20261004203000: por venta
+  pendiente, las variantes de la misma categoría y talla, color exacto o de su familia, con stock libre en su sede, y la
+  primera entrada de esa prenda a esa sede; tolerante a fallo) → `lib/por-regularizar-candidatas.ts` (orden por nombre, color,
+  piso y precio; descarta colores de la familia que no se confunden, ΔE2000 > 20; deduce «llegó nueva» si la venta es anterior
+  a la primera entrada, «ya estaba registrada» si es posterior) → la fila dice «Probable: …» y el modal la sugiere con su
+  porqué (la persona confirma); guía de foco `lib/por-regularizar-guia.ts`. Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):
   `lib/compras.ts` le pide los comprobantes y las líneas a `listar_compras_operativo` / `lineas_compra_operativo`

@@ -4,6 +4,7 @@
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+import type { HechoCandidata } from "./por-regularizar-candidatas";
 
 export type FilaPorRegularizar = {
   id: string;
@@ -96,4 +97,41 @@ export async function contarVencidas(): Promise<number | null> {
     .lte("vendido_en", vencidasDesde());
   // Nunca lanza: si no se puede leer, el inicio lo dice en la tarjeta en vez de dibujar un 0.
   return error ? null : (count ?? 0);
+}
+
+/**
+ * Las prendas del stock que pueden ser cada venta pendiente (`retail.fn_candidatas_por_regularizar`, ADR-0328 act. 5): la base
+ * trae los hechos y `lib/por-regularizar-candidatas.ts` los ordena y los explica.
+ *
+ * Es una ayuda, no la cola: si la lectura falla (la función todavía no está pegada en producción, o la red se cae) NUNCA tumba
+ * Por regularizar. Devuelve la lista vacía y el aviso para pintar, y la persona regulariza como antes, buscando en el catálogo.
+ */
+export async function getCandidatasPorRegularizar(ubicacionId: string | null): Promise<{ hechos: HechoCandidata[]; fallo: string | null }> {
+  try {
+    const supabase = await createClient();
+    // Hasta 20 por venta: con cientos de pendientes puede pasar de las 1.000 filas que PostgREST entrega de una vez.
+    const r = await leerTodas(
+      (desde, hasta) => supabase.rpc("fn_candidatas_por_regularizar", ubicacionId ? { p_ubicacion_id: ubicacionId } : {}).range(desde, hasta),
+      { enParalelo: 1 },
+    );
+    if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
+    return {
+      hechos: r.data.map((f) => ({
+        prendaId: f.prenda_id,
+        varianteId: f.variante_id,
+        colorExacto: f.color_exacto,
+        colorHex: f.color_hex,
+        colorHexAnotado: f.color_hex_anotado,
+        pisoLibre: Number(f.piso_libre),
+        almacenLibre: Number(f.almacen_libre),
+        disponible: Number(f.disponible),
+        primeraEntrada: f.primera_entrada,
+        primeraEntradaMotivo: f.primera_entrada_motivo,
+      })),
+      fallo: null,
+    };
+  } catch (e) {
+    console.error("Prendas sugeridas de Por regularizar:", e);
+    return { hechos: [], fallo: "No se pudieron leer las prendas sugeridas: busca cada una en el catálogo, como siempre." };
+  }
 }
