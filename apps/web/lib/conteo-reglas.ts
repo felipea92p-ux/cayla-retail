@@ -728,19 +728,80 @@ export function acotarALista<T extends { varianteId: string }>(filas: readonly T
 }
 
 /**
- * «Completar todo» de una tarjeta y «Aplicar todos completos» de la pantalla: de las variantes dadas, las que SIGUEN pendientes (sin
- * ninguna cantidad). Solo esas se cuentan con lo que debe haber: lo que alguien ya escribió, escaneó o recontó no se toca nunca, y una
- * variante que no está en el conteo no se inventa. Una sola regla para los dos botones: si cambia, cambia en ambos.
+ * «Completar todo» de una tarjeta: de las variantes dadas, las que SIGUEN sin cantidad. Solo esas se cuentan con lo que debe haber: lo
+ * que alguien ya escribió o escaneó no se toca nunca, y una variante que no está en el conteo no se inventa. Aquí sí entra una «en
+ * reconteo»: la persona tiene la tarjeta delante y afirma que la volvió a contar y estaba todo.
  */
 export function pendientesParaCompletar(ids: readonly string[], lineaDe: (varianteId: string) => { contada: number | null } | undefined): string[] {
   return ids.filter((id) => lineaDe(id)?.contada === null);
 }
 
 /**
- * Lo que se dice después de «Aplicar todos completos» (ADR-0328): cuántas se anotaron y que quedan «sin contar» (no suben la exactitud
- * y el resultado las dirá aparte). Contarlas a mano después las vuelve contadas de verdad.
+ * «Aplicar todos completos» (ADR-0328): de las variantes dadas, las que siguen pendientes y NADIE contó todavía. Las «en reconteo»
+ * (sin cantidad pero con `anterior`) se dejan fuera y se cuentan aparte: ahí alguien ya vio una diferencia, y una diferencia se
+ * confirma o se vuelve a contar (ADR-0282); aplicarle lo esperado la borraría sin que nadie la mirara. Es la misma regla de
+ * `conteo_aplicar_completos` en la base (que tampoco las toca): esto solo permite decirlo antes de aplicar.
  */
-export function textoAplicadas(n: number): string {
+export function pendientesParaAplicar(
+  ids: readonly string[],
+  lineaDe: (varianteId: string) => { contada: number | null; anterior: number | null } | undefined
+): { ids: string[]; enReconteo: number } {
+  const elegidas: string[] = [];
+  let enReconteo = 0;
+  for (const id of ids) {
+    const l = lineaDe(id);
+    if (!l || l.contada !== null) continue;
+    if (l.anterior !== null) enReconteo++;
+    else elegidas.push(id);
+  }
+  return { ids: elegidas, enReconteo };
+}
+
+/**
+ * Lo que dice la pregunta de «Aplicar todos completos» (ADR-0328, decisión 10), con las cifras REALES de este conteo: cuántas se
+ * aplicarían, cómo se leería el resultado si se termina así («12 contadas · 40 sin contar») y, si hay, cuántas en reconteo se dejan.
+ * Nunca un ejemplo fijo: con 3 pendientes, «40 sin contar» sería falso (ADR-0290).
+ */
+export function textosAplicarTodos(e: { cuantas: number; contadas: number; sinContar: number; enReconteo: number }): {
+  subtitulo: string;
+  detalle: string;
+  reconteo: string | null;
+} {
+  const variantes = `${e.cuantas.toLocaleString("es-PE")} ${e.cuantas === 1 ? "variante pendiente" : "variantes pendientes"}`;
+  const sinContarDespues = e.sinContar + e.cuantas;
+  return {
+    subtitulo: `Se anotará en ${e.cuantas === 1 ? "la" : "las"} ${variantes} lo que CAYLA espera, y ${e.cuantas === 1 ? "quedará marcada" : "quedarán marcadas"} «sin contar».`,
+    detalle:
+      `Si terminas así, el resultado dirá «${plural(e.contadas, "contada", "contadas")} · ${sinContarDespues} sin contar», y lo que se aplica ` +
+      "sin contar no sube la exactitud. Lo que ya anotaste no se toca; si después cuentas una a mano, deja de estar «sin contar».",
+    reconteo:
+      e.enReconteo > 0
+        ? `${e.enReconteo === 1 ? "La variante en reconteo no se toca" : `Las ${e.enReconteo.toLocaleString("es-PE")} variantes en reconteo no se tocan`}: ahí alguien ya vio una diferencia, y hay que volver a contarla${e.enReconteo === 1 ? "" : "s"} a mano.`
+        : null,
+  };
+}
+
+/**
+ * Lo que se dice al aplicar sin contar en un conteo que todavía puede ser el de ARRANQUE (ADR-0328): si se aplica, deja de serlo (la
+ * base solo lo reconoce contado entero y de verdad: `fn_conteo_vale_como_arranque`), y lo que falte en lo contado contará como
+ * pérdida. `null` si el conteo no puede ser el de arranque: entonces aplicar no cambia nada de eso.
+ */
+export function avisoArranqueAlAplicar(c: { estado: EstadoConteo; arranquePosible: boolean; sububicacionTipo: string | null; sububicacionNombre: string | null }): string | null {
+  if (c.estado !== "abierto" || !c.arranquePosible) return null;
+  return `Este es el conteo de arranque ${delLugar(c)}. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano.`;
+}
+
+/**
+ * Lo que se dice después de «Aplicar todos completos» (ADR-0328): cuántas se anotaron y que quedan «sin contar» (no suben la exactitud
+ * y el resultado las dirá aparte). Contarlas a mano después las vuelve contadas de verdad. `yaAplicadas`: de las líneas que devolvió la
+ * base, cuántas vienen marcadas «sin contar». Con `n = 0` y alguna marcada es un reintento (la primera vez se guardó y la respuesta
+ * se perdió): decir «no se anotó nada» mientras las filas pasan a «Sin contar» sería contradecirse.
+ */
+export function textoAplicadas(n: number, yaAplicadas = 0): string {
+  // Un reintento después de perder la respuesta: la base ya las había anotado (aplicadas = 0 pero vuelven marcadas «sin contar»).
+  if (n <= 0 && yaAplicadas > 0) {
+    return `Ya estaban aplicadas: ${yaAplicadas.toLocaleString("es-PE")} ${yaAplicadas === 1 ? "variante" : "variantes"} sin contar. No se anotó nada nuevo.`;
+  }
   if (n <= 0) return "No quedaba ninguna variante pendiente: no se anotó nada.";
   const variantes = `${n.toLocaleString("es-PE")} ${n === 1 ? "variante" : "variantes"}`;
   return `Se anotaron ${variantes} con lo que CAYLA esperaba, marcadas «sin contar»: no suben la exactitud. Si cuentas alguna a mano, deja de estar «sin contar».`;

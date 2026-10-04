@@ -459,13 +459,17 @@ select pg_temp.reemplazar(
   1, 'ADR-0328 (conteo-detalle)'
 );
 
--- PROMETE: en un conteo abierto, anota de una vez en las variantes pedidas que SIGUEN sin cifra (pendientes o en reconteo) lo
---   que CAYLA dice que hay AHORA en el lugar del conteo, y las marca «aplicada sin contar». Todo o nada. Devuelve
---   {aplicadas, lineas}: cuántas anotó y las líneas pedidas tal como quedaron, con su estado (fn_conteo_lineas_json).
--- ASUME: la pantalla manda las variantes que ve pendientes; las que ya tienen cifra, las ignoradas y las que no son del conteo
---   no se tocan, así que repetirla no cambia nada (idempotente por su estado: no necesita marca de reintento). Mismos permisos,
---   firma y orden de candados que conteo_contar: primero el conteo (`for update`), después el stock (`for share`, en el orden
---   de fn_bloquear_en_orden). Una venta en curso termina antes de que se lea su prenda; la que llega después espera.
+-- PROMETE: en un conteo abierto, anota de una vez en las variantes pedidas que siguen PENDIENTES (sin cifra, con algo esperado
+--   y sin haberse contado antes) lo que CAYLA dice que hay AHORA en el lugar del conteo, y las marca «aplicada sin contar». Todo
+--   o nada. Devuelve {aplicadas, lineas}: cuántas anotó y las líneas pedidas tal como quedaron (fn_conteo_lineas_json).
+-- NO TOCA las que están «en reconteo» (`contada_anterior` con valor): alguien ya contó ahí y vio una diferencia, y ADR-0282 dice
+--   que una diferencia se confirma o se vuelve a contar. Aplicarle lo esperado la borraba sin que nadie la mirara y el stock no
+--   se corregía (revisión adversarial del 2026-10-04, escena E). Esas se cuentan a mano.
+-- ASUME: la pantalla manda las variantes que ve pendientes; las que ya tienen cifra, las ignoradas, las en reconteo y las que no
+--   son del conteo no se tocan, así que repetirla no cambia nada (idempotente por su estado: no necesita marca de reintento; un
+--   reintento devuelve aplicadas = 0 con las líneas ya marcadas, y la pantalla lo dice). Mismos permisos, firma y orden de
+--   candados que conteo_contar: primero el conteo (`for update`), después el stock (`for share`, en el orden de
+--   fn_bloquear_en_orden). Una venta en curso termina antes de que se lea su prenda; la que llega después espera.
 create or replace function retail.conteo_aplicar_completos(p_conteo_id uuid, p_variantes uuid[])
 returns jsonb
 language plpgsql
@@ -485,15 +489,16 @@ begin
   end if;
   perform retail.fn_actor_persona_id(true);
 
-  -- Las que siguen sin cifra y cuentan: la misma regla de «pendiente» de cerrar_conteo (sin cifra y con algo esperado, o en
-  -- reconteo). En orden de variante: el mismo de los candados.
+  -- Las pendientes que nadie contó todavía: sin cifra y con algo esperado. Las «en reconteo» (sin cifra pero con
+  -- `contada_anterior`) quedan fuera: ahí alguien ya vio una diferencia. En orden de variante: el mismo de los candados.
   v_ids := array(
     select ci.variante_id
       from retail.conteo_items ci
      where ci.conteo_id = p_conteo_id
        and ci.variante_id = any(coalesce(p_variantes, '{}'::uuid[]))
        and ci.cantidad_contada is null
-       and (coalesce(ci.cantidad_foto, 0) > 0 or ci.contada_anterior is not null)
+       and ci.contada_anterior is null
+       and coalesce(ci.cantidad_foto, 0) > 0
      order by ci.variante_id);
 
   if cardinality(v_ids) > 0 then
@@ -534,8 +539,9 @@ revoke all on function retail.conteo_aplicar_completos(uuid, uuid[]) from public
 grant execute on function retail.conteo_aplicar_completos(uuid, uuid[]) to authenticated;
 
 comment on function retail.conteo_aplicar_completos(uuid, uuid[]) is
-  'ADR-0328: «Aplicar todos completos». Anota en las variantes pedidas que siguen sin cifra lo que hay ahora (stock bajo candado) '
-  'y las marca aplicada_sin_contar (no suben la exactitud). Todo o nada; idempotente. Devuelve {aplicadas, lineas}.';
+  'ADR-0328: «Aplicar todos completos». Anota en las variantes pedidas que siguen pendientes (no las en reconteo) lo que hay ahora '
+  '(stock bajo candado) y las marca aplicada_sin_contar (no suben la exactitud ni valen para el arranque). Todo o nada; '
+  'idempotente. Devuelve {aplicadas, lineas}.';
 
 -- fn_conteos_resumen: dos columnas al final para la exactitud (cuántas líneas se aplicaron sin contar y si fue el de
 -- arranque). Cambiar las columnas obliga a eliminarla y recrearla: antes se comprueba que la viva sea la del repo

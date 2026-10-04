@@ -21,11 +21,14 @@ import { sonidoDeLectura } from "@/lib/conteo-conectado";
 import {
   acotarALista,
   agruparConteo,
+  avisoArranqueAlAplicar,
   coincidenciasPorCodigo,
   filtrarConteo,
+  pendientesParaAplicar,
   pendientesParaCompletar,
   sumarLectura,
   textoAplicadas,
+  textosAplicarTodos,
   type DetalleConteo,
   type PrendaConteo,
 } from "@/lib/conteo-reglas";
@@ -304,26 +307,35 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
     [control, alConfirmar]
   );
 
-  // «Aplicar todos completos»: las que SIGUEN pendientes entre las que se ven (la lista acotada y, si hay texto, lo que deja el buscador).
-  // La pregunta de confirmación lleva la cuenta: `porAplicar` son las variantes que se anotarían.
-  const [porAplicar, setPorAplicar] = useState<string[] | null>(null);
+  // «Aplicar todos completos»: las que SIGUEN pendientes y nadie contó, entre las que se ven (la lista acotada y, si hay texto, lo que deja
+  // el buscador). Las «en reconteo» no entran (`pendientesParaAplicar`, la misma regla de la base): ahí alguien ya vio una diferencia.
+  // La pregunta de confirmación lleva las cuentas reales: `porAplicar` son las variantes que se anotarían y las en reconteo que se dejan.
+  const [porAplicar, setPorAplicar] = useState<{ ids: string[]; enReconteo: number; contadas: number; sinContar: number } | null>(null);
   const pedirAplicarTodos = useCallback(() => {
     const visibles = coincidencias === null ? acotadas : acotadas.filter((p) => coincidencias.has(p.varianteId));
-    const ids = pendientesParaCompletar(
+    const { ids, enReconteo } = pendientesParaAplicar(
       visibles.map((p) => p.varianteId),
       control.linea
     );
     if (ids.length === 0) {
-      setAviso({ tipo: "texto", texto: "No queda ninguna variante pendiente en esta lista." });
+      setAviso({
+        tipo: "texto",
+        texto:
+          enReconteo > 0
+            ? `No queda ninguna variante por aplicar en esta lista: ${enReconteo === 1 ? "la que está en reconteo hay que volver a contarla" : `las ${enReconteo} en reconteo hay que volver a contarlas`} a mano.`
+            : "No queda ninguna variante pendiente en esta lista.",
+      });
       return;
     }
-    setPorAplicar(ids);
+    // Cómo se leería el resultado si se termina así: las de todo el conteo, no solo las de la lista a la vista.
+    const r = control.resumen();
+    setPorAplicar({ ids, enReconteo, contadas: r.verificadas - r.sinContar, sinContar: r.sinContar });
   }, [acotadas, coincidencias, control]);
   // ADR-0328 (actividad 15): ya no es la ráfaga de `conteo_contar` de cada tarjeta, sino UNA llamada (`conteo_aplicar_completos`) que
   // anota lo que hay AHORA y marca cada línea «sin contar». Nada se pinta antes de que la base responda (`aplicarCompletos`); mientras
   // tanto el loader general cubre la pantalla (no lleva `x-espera: no`: es un guardado de muchas prendas a la vez).
   const aplicarTodos = useCallback(async () => {
-    const ids = porAplicar ?? [];
+    const ids = porAplicar?.ids ?? [];
     const r = responsableRef.current;
     if (!r.listo) {
       setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de aplicar." });
@@ -340,7 +352,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
       setAviso({ tipo: "texto", texto: traducirError(res.error, "aplicar los completos") });
       return;
     }
-    setAviso({ tipo: "texto", texto: textoAplicadas(res.aplicadas) });
+    setAviso({ tipo: "texto", texto: textoAplicadas(res.aplicadas, res.sinContar) });
   }, [porAplicar, control, conteo.id]);
 
   const alInvalido = useCallback((t: string) => setAviso({ tipo: "texto", texto: `«${t.trim()}» no es una cantidad. Escribe un número entero: 0 o más.` }), []);
@@ -636,7 +648,15 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
 
       <PieContar control={control} aviso={contenidoAviso} preparando={preparando} alRevisar={() => void revisar()} alCamara={abrirCamara} />
 
-      {porAplicar && <ConfirmarAplicarTodos cuantas={porAplicar.length} alConfirmar={() => void aplicarTodos()} onClose={() => setPorAplicar(null)} />}
+      {porAplicar && (
+        <ConfirmarAplicarTodos
+          textos={textosAplicarTodos({ cuantas: porAplicar.ids.length, contadas: porAplicar.contadas, sinContar: porAplicar.sinContar, enReconteo: porAplicar.enReconteo })}
+          avisoArranque={avisoArranqueAlAplicar(conteo)}
+          cuantas={porAplicar.ids.length}
+          alConfirmar={() => void aplicarTodos()}
+          onClose={() => setPorAplicar(null)}
+        />
+      )}
 
       {alta && (
         <AltaAlVuelo

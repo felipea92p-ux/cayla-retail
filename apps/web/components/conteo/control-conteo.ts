@@ -80,6 +80,12 @@ export type ResultadoContar = "aplicada" | "sin_cambio" | "fuera_de_alcance";
 /** Lo que responde la base a «Aplicar todos completos» (`conteo_aplicar_completos`): `{ aplicadas, lineas }`, o el error. No debe lanzar. */
 export type RespuestaAplicar = { data: unknown; error: ErrorGuardado | null };
 
+/**
+ * Lo que devuelve `aplicarCompletos`: cuántas anotó la base esta vez y, de las líneas pedidas, cuántas quedaron «sin contar» (en un
+ * reintento la base anota 0 porque ya estaban: así la pantalla no dice «no se anotó nada» mientras las filas cambian). O el error.
+ */
+export type ResultadoAplicar = { aplicadas: number; sinContar: number } | { error: ErrorGuardado };
+
 /** Una variante que no estaba en la foto y se acaba de encontrar: sin nada esperado en este lugar (regla D3: «foto 0»). */
 function lineaNueva(varianteId: string): LineaConteo {
   return {
@@ -261,13 +267,14 @@ export class ControlConteo {
    * prendas a la vez, con su marca, y lo que se ve tiene que ser lo que la base guardó (nada optimista). Va en la MISMA fila que los
    * guardados de cada variante, después de soltar lo que esperaba su turno: nada se cruza. Con la respuesta, cada línea queda como la
    * dejó la base, salvo las que la persona volvió a tocar mientras tanto (de esas valen solo los hechos de la base, como en
-   * `confirmar`). Devuelve cuántas anotó, o el error (y entonces no cambió nada en pantalla).
+   * `confirmar`). Devuelve cuántas anotó y cuántas de las pedidas quedaron «sin contar», o el error (y entonces no cambió nada en
+   * pantalla).
    */
-  async aplicarCompletos(varianteIds: readonly string[], aplicar: (ids: string[]) => Promise<RespuestaAplicar>): Promise<{ aplicadas: number } | { error: ErrorGuardado }> {
+  async aplicarCompletos(varianteIds: readonly string[], aplicar: (ids: string[]) => Promise<RespuestaAplicar>): Promise<ResultadoAplicar> {
     const ids = [...varianteIds];
     this.agrupador.soltarTodo();
     this.fijarGuardado("guardando");
-    let resultado: { aplicadas: number } | { error: ErrorGuardado } = { aplicadas: 0 };
+    let resultado: ResultadoAplicar = { aplicadas: 0, sinContar: 0 };
     await this.cola.agregar(async () => {
       // Las ediciones de cada variante en el instante de enviar: lo que la persona cambie después de esto lo decide su propio guardado.
       const enviadas = new Map(ids.map((id) => [id, this.ediciones.get(id) ?? 0]));
@@ -285,7 +292,7 @@ export class ControlConteo {
         return;
       }
       for (const [id, linea] of leida.lineas) this.confirmar(id, linea, enviadas.get(id) ?? this.ediciones.get(id) ?? 0);
-      resultado = { aplicadas: leida.aplicadas };
+      resultado = { aplicadas: leida.aplicadas, sinContar: leida.lineas.filter(([, l]) => l?.aplicadaSinContar === true).length };
     });
     this.reevaluarGuardado();
     return resultado;

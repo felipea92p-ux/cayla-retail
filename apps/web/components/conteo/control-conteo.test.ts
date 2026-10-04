@@ -307,7 +307,7 @@ describe("ControlConteo · «Aplicar todos completos» (ADR-0328): nada se pinta
     expect(control.estadoGuardado()).toBe("guardando");
     // Entre abrir y aplicar se vendió una «b»: la base anota lo que hay AHORA (2), sin falsa diferencia.
     responder({ data: { aplicadas: 2, lineas: [aplicada("a", 5), aplicada("b", 2)] }, error: null });
-    expect(await resultado).toEqual({ aplicadas: 2 });
+    expect(await resultado).toEqual({ aplicadas: 2, sinContar: 2 });
     expect(control.linea("a")).toMatchObject({ contada: 5, estado: "correcta", aplicadaSinContar: true });
     expect(control.linea("b")).toMatchObject({ contada: 2, debeHaber: 2, estado: "correcta", aplicadaSinContar: true });
     expect(control.resumen()).toMatchObject({ verificadas: 2, sinContar: 2 });
@@ -326,7 +326,7 @@ describe("ControlConteo · «Aplicar todos completos» (ADR-0328): nada se pinta
     expect(envios.map((e) => e.p.varianteId)).toEqual(["a"]); // salió ya, sin esperar los 600 ms
     expect(orden).toEqual([]); // y aplicar espera a que la base conteste ese guardado
     envios[0].resolver({ data: respuesta("a", { debeHaber: 5, contada: 4 }), error: null });
-    expect(await resultado).toEqual({ aplicadas: 1 });
+    expect(await resultado).toEqual({ aplicadas: 1, sinContar: 1 });
     expect(orden).toEqual(["aplicar"]);
     expect(control.linea("a")).toMatchObject({ contada: 4, aplicadaSinContar: false });
   });
@@ -344,6 +344,13 @@ describe("ControlConteo · «Aplicar todos completos» (ADR-0328): nada se pinta
     });
     expect(r3).toEqual({ error: { message: "sin red" } });
     expect(control.linea("a")).toMatchObject({ contada: null });
+  });
+
+  it("un reintento (la primera vez se guardó y la respuesta se perdió): la base anota 0 pero devuelve las líneas marcadas, y se cuentan", async () => {
+    const { control } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    const r = await control.aplicarCompletos(["a", "b"], async () => ({ data: { aplicadas: 0, lineas: [aplicada("a", 5), aplicada("b", 3)] }, error: null }));
+    expect(r).toEqual({ aplicadas: 0, sinContar: 2 });
+    expect(control.linea("b")).toMatchObject({ contada: 3, aplicadaSinContar: true });
   });
 
   it("contar a mano una línea aplicada la vuelve contada de verdad (se pinta sin la marca)", async () => {

@@ -39,9 +39,12 @@ import {
   textoTerminado,
   type LineaConteo,
   pendientesParaCompletar,
+  pendientesParaAplicar,
   delLugar,
   notaDeArranque,
   textoAplicadas,
+  textosAplicarTodos,
+  avisoArranqueAlAplicar,
 } from "./conteo-reglas";
 
 // Las reglas del conteo rediseñado que se rompen calladas si nadie las fija:
@@ -1089,6 +1092,51 @@ describe("pendientesParaCompletar: a quién llega «Completar todo» y «Aplicar
   });
 });
 
+describe("pendientesParaAplicar: «Aplicar todos completos» no toca una «en reconteo» (revisión adversarial, ADR-0328)", () => {
+  const lineas: Record<string, { contada: number | null; anterior: number | null }> = {
+    a: { contada: null, anterior: null },
+    b: { contada: 3, anterior: null },
+    r: { contada: null, anterior: 2 },
+    d: { contada: null, anterior: null },
+  };
+  const lineaDe = (id: string) => lineas[id];
+
+  it("solo las pendientes que nadie contó, en el orden dado; las en reconteo se cuentan aparte", () => {
+    expect(pendientesParaAplicar(["d", "r", "a", "b"], lineaDe)).toEqual({ ids: ["d", "a"], enReconteo: 1 });
+  });
+  it("una variante que no está en el conteo ni se inventa ni se cuenta", () => {
+    expect(pendientesParaAplicar(["zzz", "a"], lineaDe)).toEqual({ ids: ["a"], enReconteo: 0 });
+  });
+  it("solo en reconteo: nada que aplicar, y se sabe cuántas quedan por recontar", () => {
+    expect(pendientesParaAplicar(["r"], lineaDe)).toEqual({ ids: [], enReconteo: 1 });
+  });
+  it("«Completar todo» de una tarjeta sí la toma (la persona la tiene delante): son dos reglas distintas a propósito", () => {
+    expect(pendientesParaCompletar(["r"], lineaDe)).toEqual(["r"]);
+  });
+});
+
+describe("textosAplicarTodos: la pregunta dice las cifras reales del conteo, nunca un ejemplo fijo (ADR-0290)", () => {
+  it("con 3 pendientes y 12 contadas: «12 contadas · 3 sin contar», no «40 sin contar»", () => {
+    const t = textosAplicarTodos({ cuantas: 3, contadas: 12, sinContar: 0, enReconteo: 0 });
+    expect(t.subtitulo).toBe("Se anotará en las 3 variantes pendientes lo que CAYLA espera, y quedarán marcadas «sin contar».");
+    expect(t.detalle).toMatch(/^Si terminas así, el resultado dirá «12 contadas · 3 sin contar», y lo que se aplica sin contar no sube la exactitud\./);
+    expect(t.reconteo).toBeNull();
+  });
+  it("suma lo que ya estaba aplicado y habla en singular cuando toca", () => {
+    const t = textosAplicarTodos({ cuantas: 1, contadas: 1, sinContar: 4, enReconteo: 0 });
+    expect(t.subtitulo).toBe("Se anotará en la 1 variante pendiente lo que CAYLA espera, y quedará marcada «sin contar».");
+    expect(t.detalle).toMatch(/«1 contada · 5 sin contar»/);
+  });
+  it("si hay en reconteo, dice cuántas se dejan y por qué", () => {
+    expect(textosAplicarTodos({ cuantas: 3, contadas: 0, sinContar: 0, enReconteo: 1 }).reconteo).toBe(
+      "La variante en reconteo no se toca: ahí alguien ya vio una diferencia, y hay que volver a contarla a mano."
+    );
+    expect(textosAplicarTodos({ cuantas: 3, contadas: 0, sinContar: 0, enReconteo: 2 }).reconteo).toBe(
+      "Las 2 variantes en reconteo no se tocan: ahí alguien ya vio una diferencia, y hay que volver a contarlas a mano."
+    );
+  });
+});
+
 // ---------------------------------------------------------------------------------------------------------------
 // ADR-0328 (actividad 15): «Aplicar todos completos» dice la verdad sobre sí mismo, y el conteo de arranque se anuncia
 // ---------------------------------------------------------------------------------------------------------------
@@ -1148,6 +1196,13 @@ describe("«aplicada sin contar»: se lee de la base, se resume aparte y contar 
     // El separador de miles depende de los datos de idioma del motor (es-PE: «1,200» o «1.200»); la cifra es la misma.
     expect(textoAplicadas(1200)).toMatch(/^Se anotaron 1[.,\u00a0]?200 variantes/);
     expect(textoAplicadas(0)).toBe("No quedaba ninguna variante pendiente: no se anotó nada.");
+  });
+
+  it("un reintento (la respuesta se perdió y la base ya las tenía): no dice «no se anotó nada» mientras las filas pasan a «Sin contar»", () => {
+    expect(textoAplicadas(0, 3)).toBe("Ya estaban aplicadas: 3 variantes sin contar. No se anotó nada nuevo.");
+    expect(textoAplicadas(0, 1)).toBe("Ya estaban aplicadas: 1 variante sin contar. No se anotó nada nuevo.");
+    // Si esta vez sí anotó, manda lo anotado.
+    expect(textoAplicadas(2, 2)).toMatch(/^Se anotaron 2 variantes/);
   });
 
   it("la fila dice «Sin contar» en neutro, no «Correcto» en verde: nadie la miró", () => {
@@ -1225,6 +1280,14 @@ describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de 
     });
     expect(notaDeArranque(c, true)?.tono).toBe("aviso");
     expect(notaDeArranque(c, true)?.texto).toMatch(/^Cerrado a medias no es el conteo de arranque del piso de venta: sus diferencias contarán como pérdida\./);
+  });
+
+  it("aplicar sin contar en uno que todavía puede ser el de arranque: se avisa antes que deja de serlo; en otro, nada", () => {
+    expect(avisoArranqueAlAplicar(cabecera({ arranque_posible: true }))).toBe(
+      "Este es el conteo de arranque del piso de venta. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano."
+    );
+    expect(avisoArranqueAlAplicar(cabecera())).toBeNull();
+    expect(avisoArranqueAlAplicar(cabecera({ estado: "cerrado", arranque_posible: true }))).toBeNull();
   });
 
   it("el resultado de uno que fue el de arranque dice lo que hizo; los demás no dicen nada", () => {

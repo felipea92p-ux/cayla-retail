@@ -497,19 +497,32 @@ select concat_ws(',', :'r1'::jsonb ->> 'aplicadas', :'r2'::jsonb ->> 'aplicadas'
 );
 
 exito(
-  "contar a mano una línea aplicada (aunque sea la misma cifra) le quita la marca; borrarle la cifra también; una «en reconteo» se aplica y conserva lo anterior",
+  "contar a mano una línea aplicada (aunque sea la misma cifra) le quita la marca; borrarle la cifra también",
   `${TIENDA_ARRANQUE}
 select retail.abrir_conteo(:'u', :'piso') as conteo \\gset
 ${APLICAR("r1", ":'v1', :'v2'")}
 select retail.conteo_contar(:'conteo', :'v2', 3) as _c \\gset
 select retail.conteo_contar(:'conteo', :'v1', null) as _c \\gset
-select ${ITEM("v1", "coalesce(cantidad_contada::text, 'NULL') || '/' || aplicada_sin_contar")} as v1_borrada \\gset
-select retail.conteo_contar(:'conteo', :'v1', 4) as _c \\gset
+select concat_ws(',', ${ITEM("v2", "cantidad_contada || '/' || aplicada_sin_contar")},
+  ${ITEM("v1", "coalesce(cantidad_contada::text, 'NULL') || '/' || aplicada_sin_contar")});`,
+  ["3/false", "NULL/false"],
+);
+
+// Una línea «en reconteo» es una diferencia que alguien YA vio (se contó 2 donde CAYLA esperaba 5): aplicar lo esperado la borraría
+// sin que nadie la mirara y el stock no se corregiría (ADR-0282: se confirma o se vuelve a contar). El atajo no la toca.
+const RECONTEO_Y_APLICAR = `${TIENDA_ARRANQUE}
+select retail.abrir_conteo(:'u', :'piso') as conteo \\gset
+select retail.conteo_contar(:'conteo', :'v1', 2) as _c \\gset
 select retail.conteo_recontar(:'conteo', :'v1') as _c \\gset
-${APLICAR("r2", ":'v1'")}
-select concat_ws(',', ${ITEM("v2", "cantidad_contada || '/' || aplicada_sin_contar")}, :'v1_borrada',
-  :'r2'::jsonb ->> 'aplicadas', ${ITEM("v1", "cantidad_contada || '/' || contada_anterior || '/' || aplicada_sin_contar")});`,
-  ["3/false", "NULL/false", "1", "5/4/true"],
+${APLICAR("r", ":'v1', :'v2'")}
+select concat_ws(',', :'r'::jsonb ->> 'aplicadas',
+  ${ITEM("v1", "coalesce(cantidad_contada::text, 'NULL') || '/' || contada_anterior || '/' || aplicada_sin_contar")},
+  ${ITEM("v2", "cantidad_contada || '/' || aplicada_sin_contar")},
+  (select l ->> 'estado' from jsonb_array_elements(:'r'::jsonb -> 'lineas') l where l ->> 'variante_id' = :'v1'));`;
+exito(
+  "aplicar todos completos NO toca una línea «en reconteo» (alguien ya vio una diferencia ahí): sigue sin cifra y con lo contado antes",
+  RECONTEO_Y_APLICAR,
+  ["1", "NULL/2/false", "3/true", "en_reconteo"],
 );
 
 exito(
@@ -603,6 +616,13 @@ select retail.abrir_conteo(:'u', :'piso') as conteo \\gset
 ${APLICAR("r", ":'v1', :'v2'")}
 select concat_ws(',', :'r'::jsonb ->> 'aplicadas', (select sin_contar from retail.fn_conteos_resumen(:'u') where id = :'conteo'));`,
   ["2", "2"],
+);
+
+control(
+  "CONTROL · si aplicar todos completos tomara también las «en reconteo», borraría la diferencia que alguien ya vio: la prueba lo detecta",
+  `${MUTAR("retail.conteo_aplicar_completos(uuid,uuid[])", "and ci.contada_anterior is null\n       and coalesce(ci.cantidad_foto, 0) > 0", "and (coalesce(ci.cantidad_foto, 0) > 0 or ci.contada_anterior is not null)")}
+${RECONTEO_Y_APLICAR}`,
+  ["1", "NULL/2/false", "3/true", "en_reconteo"],
 );
 
 control(
