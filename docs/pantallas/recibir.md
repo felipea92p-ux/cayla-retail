@@ -1,5 +1,11 @@
 # Pantalla — Recibir mercadería (`/recibir`)
 
+> **VENCIDO el 2026-10-04 por ADR-0330:** `/recibir` abre ahora en la puerta «Llegó mercadería» (sin pestañas ni «Recibiendo en»),
+> «Ingreso sin comprobante» se fundió en ella y «Por regularizar» se mudó a `/inventario/por-regularizar`. De las 12 tareas, la #6
+> (aterrizar donde hay trabajo), la #7 (estado vacío y la puerta sin comprobante), la #8 (una sola regla de sede, salvo la lista
+> «Contra factura» del historial) y parte de la #10 (controles fantasma de la pestaña) quedaron resueltas por el rediseño. Para la
+> pantalla de hoy, un análisis nuevo.
+
 > Modo: completo · Fecha: 2026-10-03 · Rol/sede: líder, Tienda TRU · Datos: **real** (consulta de solo lectura corrida por Felipe en producción el 2026-10-03, bloques 1 a 9)
 > SHA analizado: `b4cb05c3` (la rama iba 0/0). `main` avanzó después (`ae22874d`) y no tocó ninguno de estos archivos — si lo hace, este análisis está vencido.
 > Archivos: `app/(app)/recibir/{layout,loading,page}.tsx` · `components/RecepcionEnvio.tsx` (1.844 líneas) · `ResumenPrevioEnvio` · `EnvioRecibido` · `KpisRecibir` · `AvisoTrasladosEnCamino` · `RecepcionesCompraLista` · `RecepcionVistaRapida` · `FiltrosRecibidas` · `PorRegularizarLista` · `ui/Pestanas.tsx` · `lib/{por-regularizar,por-regularizar-reglas,envio-reglas,recepciones-reglas,recibidas-filtros-reglas,useColaRecibir,compras}.ts` · RPC `recibir_envio`, `recibir_compras`, `cerrar_linea_compra`, `recibir_lote`, `regularizar_prenda`, `listar_recepciones_compras`, `resumen_recepciones`, `listar_compras_operativo` · tablas `compras`, `compra_items`, `compra_item_cierres`, `envios`, `lotes`, `envio_extras`, `movimientos`, `stock`, `prendas_por_regularizar`

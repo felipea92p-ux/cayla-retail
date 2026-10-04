@@ -12,6 +12,7 @@ import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
+import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -20,7 +21,6 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { contarPendientesDeSede } from "@/lib/por-regularizar";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -53,9 +53,9 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  // «Para hoy» (2026-10-04) cuenta las ventas sin registrar de ESTA sede, pero solo a quien puede resolverlas: su botón lleva a
-  // Recibir ▸ Por regularizar, que exige ese módulo. A quien no lo ve, una tarea sin salida le sobraría.
-  const veRecibir = veModulo(persona, "recibir");
+  // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
+  // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
+  // Vender.
   const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
@@ -91,9 +91,9 @@ export default async function InventarioPage({
     // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
     getColoresParaExistencias(),
     // Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
-    vende && veRecibir ? contarPendientesDeSede(ubicacionActivaId).catch(() => null) : Promise.resolve(null),
+    vende ? contarPorRegularizar(ubicacionActivaId).catch(() => null) : Promise.resolve(null),
   ]);
-  const sinRegistrar = vende && veRecibir ? (colaSinRegistrar ?? "fallo") : null;
+  const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
 
   // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
   // gobiernan «Acción hoy» — hoy global, con override futuro por sede (`politicaDe`).
@@ -222,7 +222,7 @@ export default async function InventarioPage({
               </Link>
             )}
             <nav aria-label="Pantallas relacionadas" className="flex shrink-0 items-center gap-1">
-              {enSuSede && veRecibir && (
+              {enSuSede && veModulo(persona, "recibir") && (
                 <Link href="/recibir" className="btn-cayla btn-sutil btn-chico shrink-0">
                   <PackageOpen aria-hidden className="h-4 w-4" />
                   Recibir
@@ -287,7 +287,6 @@ export default async function InventarioPage({
         panelFiltros={panelFiltros}
         coloresCatalogo={colores}
         sinRegistrar={sinRegistrar}
-        veRecibir={veRecibir}
       />
     </div>
   );

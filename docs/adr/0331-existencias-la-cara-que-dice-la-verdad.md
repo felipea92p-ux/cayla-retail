@@ -102,10 +102,22 @@ la cabecera se desvanece a la derecha para avisar que se desliza; el texto de ay
 Tres revisores (lógica, persona sin contexto y reglas de la casa, celular y accesibilidad) y un escéptico por lente: 23 hallazgos, 13
 confirmados (10 distintos), ninguno de dinero ni stock. Corregidos en un commit aparte: «sin stock atrás» ya no cuenta lo que viene en
 camino ni dice «queda poco en el piso», y usa la palabra del filtro; un traslado recibido con diferencia ya no sale «en camino»;
-«Regularizar» lleva la sede y Recibir la respeta para el líder; «Decidir» solo a quien puede decidir (los demás, «Ver cuáles»); el tono de
+«Regularizar» lleva la sede y la lista la respeta para el líder; «Decidir» solo a quien puede decidir (los demás, «Ver cuáles»); el tono de
 «sin stock atrás» es el mismo en la tarjeta, la tabla «Por prenda» y el cajón; la línea plegada del celular toma el tono más grave y dice
 «N con plazo vencido»; el riel y la fila de accesos se desvanecen solo sobre su aire; el foco vuelve a la tarjeta al cerrar «Ajustar»
 desde el «⋯»; la cifra de una talla sin nada pasa de 2,3:1 a 5,6:1 de contraste; la leyenda de la tabla muestra solo los casos que existen.
+
+## Integración con ADR-0330 (2026-10-04, antes de fusionar)
+Mientras este PR esperaba, `main` recibió el #791 (ADR-0330): las ventas sin registrar se mudaron de Recibir a Existencias
+(`/inventario/por-regularizar`) con un botón propio en la cabecera y su propio contador (`contarPorRegularizar`). Juntos quedaban
+dos contadores y dos puertas para lo mismo, y «Regularizar» apuntaba a la ruta vieja (la redirección perdía la sede).
+DECIDÍ: un solo contador, `contarPorRegularizar` (`lib/por-regularizar-cuenta.ts`), que ahora devuelve pendientes y vencidas; se borra
+`contarPendientesDeSede`. Una sola puerta: la fila de «Para hoy», que lleva a `/inventario/por-regularizar?ubicacion=<sede>`; la página
+respeta esa sede para el líder (sin ella, sigue mostrando todas sus tiendas). La fila ya no depende de ver Recibir: la lista vive bajo
+el mismo módulo que Existencias.
+DESCARTÉ: conservar el botón de la cabecera, porque repetía la fila de «Para hoy» y volvía a dejar seis accesos arriba (decisión 4).
+SE ROMPE SI: un líder que mira el Taller (o cualquier sede que no vende) quiere ver las ventas sin registrar de todas sus tiendas desde
+Existencias: ya no hay botón; las ve desde el aviso del Inicio o abriendo `/inventario/por-regularizar` sin sede.
 
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se

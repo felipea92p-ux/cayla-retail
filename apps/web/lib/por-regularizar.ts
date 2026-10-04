@@ -86,24 +86,6 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
   return filas.map(aFila);
 }
 
-/** Para «Para hoy» de Existencias (2026-10-04): cuántas ventas sin registrar esperan su prenda en ESTA sede y cuántas ya pasaron el
- *  plazo. Dos conteos exactos (`head`), sin traer filas. null = no se pudo leer: la pantalla no dibuja la tarea antes que un 0 falso. */
-export async function contarPendientesDeSede(ubicacionId: string): Promise<{ pendientes: number; vencidas: number } | null> {
-  const supabase = await createClient();
-  const contar = (soloVencidas: boolean) => {
-    let consulta = supabase
-      .from("prendas_por_regularizar")
-      .select("id", { count: "exact", head: true })
-      .eq("estado", "pendiente")
-      .eq("ubicacion_id", ubicacionId);
-    if (soloVencidas) consulta = consulta.lte("vendido_en", vencidasDesde());
-    return consulta;
-  };
-  const [pendientes, vencidas] = await Promise.all([contar(false), contar(true)]);
-  if (pendientes.error || vencidas.error) return null;
-  return { pendientes: pendientes.count ?? 0, vencidas: vencidas.count ?? 0 };
-}
-
 /** Para el aviso del inicio: pendientes que ya pasaron el plazo. Solo lo pide el líder. null = no se pudo leer. */
 export async function contarVencidas(): Promise<number | null> {
   const supabase = await createClient();

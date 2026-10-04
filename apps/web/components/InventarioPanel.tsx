@@ -183,7 +183,6 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
-  veRecibir = false,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -238,10 +237,8 @@ export function InventarioPanel({
   /** Los colores del catálogo con su familia, hex y tipo: la lista de Color va agrupada por familia y con su muestra, como en
    *  Productos. Vacío (la lectura falló) = lista plana. */
   coloresCatalogo?: ColorDeCatalogo[];
-  /** Ventas sin registrar de esta sede (cola de Recibir): pendientes y vencidas. `null` = no se leyó o no se pudo. */
+  /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
-  /** ¿Su rol ve Recibir? «Regularizar» de «Para hoy» lleva allí. */
-  veRecibir?: boolean;
 }) {
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
@@ -523,8 +520,9 @@ export function InventarioPanel({
   const hrefBajarPorColgar = puedeBajarAlPiso ? (urlBajarAlPiso(filasPorColgar) ?? "/inventario/bajar") : null;
   const accionesHoy: Partial<Record<TipoTareaHoy, AccionTarea>> = {
     por_colgar: hrefBajarPorColgar ? { texto: "Bajar al piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
-    // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas.
-    sin_registrar: veRecibir ? { texto: "Regularizar", href: `/recibir?vista=por-regularizar&ubicacion=${ubicacionId}` } : undefined,
+    // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas. La lista vive en
+    // Existencias (ADR-0330), bajo el mismo módulo que esta pantalla: quien ve la fila puede resolverla.
+    sin_registrar: { texto: "Regularizar", href: `/inventario/por-regularizar?ubicacion=${ubicacionId}` },
     // Solo un líder, en su sede, decide qué se hace con una dañada (`ResolverDanadosModal`); los demás ven la lista.
     danadas: esLider && enSedeActiva ? { texto: "Decidir", onClick: () => setViendoDanados(true) } : { texto: "Ver cuáles", onClick: () => setViendoDanados(true) },
     apartados_vencidos: { texto: "Ver apartados", onClick: () => setViendoApartados(true) },
