@@ -37,11 +37,14 @@
 --   · DECIDÍ un tope de 5 correcciones por prenda, tienda y día de Lima (`en_mano_tope_del_dia`): es para la prenda en la
 --     mano, una a la vez; más de 5 de la misma talla y color en un día es una corrección grande y va por Ajustar stock, con
 --     su motivo. DESCARTÉ un parámetro de cantidad (convertiría este botón en un Ajustar sin las preguntas de Ajustar).
---   · DECIDÍ que la base NO decida «ya estaba colgada»: si el sistema ya cuenta la prenda en el piso, la pantalla le pregunta
---     a la persona («¿Es una de esas?» → «Ya estaba colgada», que no escribe nada) porque solo ella sabe qué unidad tiene en
---     la mano. DESCARTÉ rechazar aquí todo piso ≥ 1: con 3 iguales en el fardo, la segunda quedaría otra vez sin salida.
---     SE ROMPE SI alguien elige «Es otra unidad» con la prenda que el sistema ya contaba colgada: suma una de más. Lo acotan
---     el tope del día y que la corrección queda en Movimientos con su nombre y la nota; el próximo conteo del piso la ve.
+--   · DECIDÍ que la base NO decida «ya estaba colgada»: si el sistema ya cuenta la prenda en el piso (sin las que ella colgó
+--     en esa pantalla), la pantalla le pide MIRAR EL RACK («¿están colgadas las N de esta talla y color?»): si falta alguna,
+--     la suya es esa → «Ya estaba colgada», que no escribe nada; si están todas, es otra → se corrige. Ninguna respuesta va por
+--     defecto (revisión adversarial: «¿es una de esas?» no se contesta con la prenda en la mano). Solo ella ve el rack.
+--     DESCARTÉ rechazar aquí todo piso ≥ 1: con 3 iguales en el fardo, la segunda quedaría otra vez sin salida (pendiente de
+--     que Felipe lo confirme: la especificación decía «no inventes stock»).
+--     SE ROMPE SI alguien contesta «están todas» sin mirar el rack: suma una de más. Lo acotan el tope del día y que la
+--     corrección queda en Movimientos con su nombre y la nota; el próximo conteo del piso la ve.
 --   · DECIDÍ que la nota de la persona sea opcional y la automática obligatoria: frente al rack no se escribe; la nota
 --     automática ya dice por qué existe la corrección.
 --

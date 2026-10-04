@@ -20,21 +20,25 @@ import {
   ofertaEnMano,
   PARAMETROS_RPC_EN_MANO,
   pasosEnMano,
+  preguntaDelRack,
   respuestaResuelveLaMarcaEnMano,
   RPC_EN_MANO,
   serializarMarcas,
   soltarMarca,
+  sumarBajadaHecha,
   sumarHecha,
   textoDeHecha,
   textoDeMarcaEnLista,
   textoDeOferta,
   textoMarcaEnDuda,
+  textoUnaMasEnPiso,
   textoYaEstabaColgada,
   TOPE_DEL_DIA_EN_MANO,
   type MarcaEnDuda,
   type MarcasEnDuda,
   type RespuestaEnMano,
 } from "./bajada-en-mano";
+import { leerPrenda, type PrendaBajable } from "./bajada-reglas";
 import { esRpcDeLectura } from "./espera-reglas";
 
 // La asesora está frente al rack con una prenda en la mano y el sistema dice 0 en el almacén (ADR-0328, actividad 9). Estas
@@ -112,14 +116,14 @@ describe("ofertaEnMano: qué se le ofrece cuando el almacén está en 0", () => 
     expect(ofertaEnMano({ piso: 0, danado: 0 }, 0)).toEqual({ tipo: "corregir", danadas: 0 });
   });
 
-  it("el sistema ya cuenta colgadas: primero preguntar «¿es una de esas?» (no inventar stock)", () => {
-    expect(ofertaEnMano({ piso: 3, danado: 0 }, 0)).toEqual({ tipo: "preguntar", enPiso: 3, danadas: 0 });
+  it("el sistema ya cuenta colgadas: primero preguntar, mirando el rack (no inventar stock)", () => {
+    expect(ofertaEnMano({ piso: 3, danado: 0 }, 0)).toEqual({ tipo: "preguntar", enPiso: 3, colgadasAqui: 0, danadas: 0 });
   });
 
   // La segunda blusa igual del mismo fardo: la del piso es la que ella misma colgó hace un minuto.
-  it("las que ella corrigió y colgó aquí no cuentan como «ya colgadas»: la segunda igual del fardo vuelve a «corregir»", () => {
+  it("las que ella colgó aquí no cuentan como «ya colgadas»: la segunda igual del fardo vuelve a «corregir»", () => {
     expect(ofertaEnMano({ piso: 1, danado: 0 }, 1)).toEqual({ tipo: "corregir", danadas: 0 });
-    expect(ofertaEnMano({ piso: 3, danado: 0 }, 1)).toEqual({ tipo: "preguntar", enPiso: 2, danadas: 0 });
+    expect(ofertaEnMano({ piso: 3, danado: 0 }, 1)).toEqual({ tipo: "preguntar", enPiso: 2, colgadasAqui: 1, danadas: 0 });
   });
 
   it("con la pantalla aún sin releer (piso viejo menor que lo colgado aquí) no sale negativo", () => {
@@ -139,16 +143,35 @@ describe("los textos de la tarjeta y de la ventana", () => {
     expect(t).not.toMatch(/líder/i);
   });
 
-  it("preguntar, en singular y en plural", () => {
-    expect(textoDeOferta({ tipo: "preguntar", enPiso: 1, danadas: 0 }, BLUSA, SEDE)).toBe(
-      "Blusa lino · M · Blanco: el almacén de Tienda TRU está en 0 y el sistema ya cuenta 1 colgada. ¿La que tienes es una de esas?"
+  // Revisión adversarial: «¿la que tienes es una de esas?» no se contesta con la prenda en la mano. Se contesta mirando el rack.
+  it("preguntar manda a MIRAR EL RACK, en singular y en plural, y dice si descontó lo que ella colgó aquí", () => {
+    expect(textoDeOferta({ tipo: "preguntar", enPiso: 1, colgadasAqui: 0, danadas: 0 }, BLUSA, SEDE)).toBe(
+      "Blusa lino · M · Blanco: el almacén de Tienda TRU está en 0 y el sistema cuenta 1 colgada. Mira el rack: ¿está colgada 1 de esta talla y color?"
     );
-    expect(textoDeOferta({ tipo: "preguntar", enPiso: 4, danadas: 0 }, BLUSA, SEDE)).toContain("ya cuenta 4 colgadas");
+    expect(textoDeOferta({ tipo: "preguntar", enPiso: 4, colgadasAqui: 2, danadas: 0 }, BLUSA, SEDE)).toBe(
+      "Blusa lino · M · Blanco: el almacén de Tienda TRU está en 0 y el sistema cuenta 4 colgadas. Mira el rack, sin contar las que colgaste ahora: ¿están colgadas las 4 de esta talla y color?"
+    );
+    expect(textoDeOferta({ tipo: "preguntar", enPiso: 1, colgadasAqui: 0, danadas: 0 }, BLUSA, SEDE)).not.toMatch(/una de esas\?/);
+  });
+
+  it("las dos respuestas del rack: «están todas» → la mía es otra (corregir); «falta» → es esa (no se registra nada)", () => {
+    expect(preguntaDelRack({ enPiso: 1, colgadasAqui: 0 })).toEqual({
+      pregunta: "Mira el rack: ¿está colgada 1 de esta talla y color?",
+      si: "Sí, está: la mía es otra",
+      no: "No está: la mía es esa",
+    });
+    expect(preguntaDelRack({ enPiso: 3, colgadasAqui: 0 })).toEqual({
+      pregunta: "Mira el rack: ¿están colgadas las 3 de esta talla y color?",
+      si: "Sí, están las 3: la mía es otra",
+      no: "Falta alguna: la mía es una de esas",
+    });
+    expect(textoUnaMasEnPiso(1)).toBe("En el rack está la 1 colgada que cuenta el sistema: esta se suma como una más.");
+    expect(textoUnaMasEnPiso(3)).toBe("En el rack están las 3 colgadas que cuenta el sistema: esta se suma como una más.");
   });
 
   it("con dañadas en cuarentena, la advertencia va al final", () => {
     expect(textoDeOferta({ tipo: "corregir", danadas: 1 }, BLUSA, SEDE)).toMatch(/Ojo: hay 1 dañada en cuarentena; si la tuya es esa, no la cuelgues\.$/);
-    expect(textoDeOferta({ tipo: "preguntar", enPiso: 1, danadas: 2 }, BLUSA, SEDE)).toMatch(/hay 2 dañadas en cuarentena/);
+    expect(textoDeOferta({ tipo: "preguntar", enPiso: 1, colgadasAqui: 0, danadas: 2 }, BLUSA, SEDE)).toMatch(/hay 2 dañadas en cuarentena/);
   });
 
   it("«Ya estaba colgada» dice que no se registró nada", () => {
@@ -315,5 +338,61 @@ describe("la marca de cada prenda: sobrevive a cerrar la ventana y a recargar", 
     expect(textoMarcaEnDuda(ENVIADO)).toBe(`Enviaste esta corrección a las 10:32 y no llegó la respuesta. Pulsa «${BOTON_EN_MANO_DE_NUEVO}»: si ya se había guardado, no se repite.`);
     expect(textoDeMarcaEnLista(enDuda())).toBe("enviada a las 10:32, sin respuesta");
     expect(interpretarErrorEnMano(CORTE, SEDE).mensaje).toMatch(/Si cierras, queda anotada/);
+  });
+});
+
+// La revisión adversarial lo demostró: con 1 libre en el almacén y 3 blusas iguales en el fardo, la 2.ª lectura da «tope»; ella
+// confirma la bajada y la 3.ª le preguntaba «¿ya estaba colgada?» por la que ELLA acababa de colgar, con «Ya estaba colgada» como
+// botón principal: la prenda quedaba colgada sin registrar, justo el callejón que esta actividad venía a cerrar.
+describe("el fardo de prendas iguales: lo que ella colgó aquí con una bajada escaneada tampoco cuenta como «ya colgada»", () => {
+  const V = id(9);
+  const prenda = (parcial: Partial<PrendaBajable>): PrendaBajable => ({
+    varianteId: V,
+    sku: "BL-M",
+    referencia: "Blusa lino",
+    talla: "M",
+    color: "Blanco",
+    codigosBarras: [],
+    fotoUrl: null,
+    piso: 0,
+    almacen: 1,
+    almacenDisponible: 1,
+    danado: 0,
+    ...parcial,
+  });
+
+  it("EL CASO: 1 libre, 3 iguales → suma, tope, se confirma, y la 3.ª ofrece CORREGIR (no «¿ya estaba colgada?»)", () => {
+    const antes = prenda({});
+    const primera = leerPrenda(antes, []);
+    expect(primera.tipo).toBe("suma");
+    expect(leerPrenda(antes, [{ varianteId: V, cantidad: 1 }]).tipo).toBe("tope");
+    // Se confirma la bajada de 1 (marca T1) y la pantalla se relee: piso 1, almacén 0.
+    const bajadas = sumarBajadaHecha([], { token: TOKEN, lineas: [{ varianteId: V, cantidad: 1 }] });
+    const despues = prenda({ piso: 1, almacen: 0, almacenDisponible: 0 });
+    expect(leerPrenda(despues, []).tipo).toBe("sin_almacen");
+    expect(ofertaEnMano(despues, colgadasAquiDe([], V, bajadas))).toEqual({ tipo: "corregir", danadas: 0 });
+    // Sin contar la bajada escaneada (el error de antes), habría preguntado.
+    expect(ofertaEnMano(despues, colgadasAquiDe([], V)).tipo).toBe("preguntar");
+  });
+
+  it("si en el piso había otra que ella NO colgó, sí pregunta, y por esa sola", () => {
+    const bajadas = sumarBajadaHecha([], { token: TOKEN, lineas: [{ varianteId: V, cantidad: 1 }] });
+    expect(ofertaEnMano(prenda({ piso: 2, almacen: 0, almacenDisponible: 0 }), colgadasAquiDe([], V, bajadas))).toEqual({
+      tipo: "preguntar",
+      enPiso: 1,
+      colgadasAqui: 1,
+      danadas: 0,
+    });
+  });
+
+  it("una bajada repetida («ya registrada», misma marca) se cuenta una vez; lo «por escanear» (0) y otras prendas no cuentan", () => {
+    let bajadas = sumarBajadaHecha([], { token: TOKEN, lineas: [{ varianteId: V, cantidad: 2 }, { varianteId: id(8), cantidad: 5 }, { varianteId: id(7), cantidad: 0 }] });
+    bajadas = sumarBajadaHecha(bajadas, { token: TOKEN, lineas: [{ varianteId: V, cantidad: 2 }] });
+    bajadas = sumarBajadaHecha(bajadas, { token: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", lineas: [{ varianteId: V, cantidad: 1 }] });
+    expect(colgadasAquiDe([], V, bajadas)).toBe(3);
+    expect(colgadasAquiDe([], id(7), bajadas)).toBe(0);
+    expect(sumarBajadaHecha([], { token: TOKEN, lineas: [{ varianteId: V, cantidad: 0 }] })).toEqual([]);
+    // Las corregidas en la mano se suman a las escaneadas.
+    expect(colgadasAquiDe([hechaEnMano(respuesta(), V, BLUSA)], V, bajadas)).toBe(4);
   });
 });

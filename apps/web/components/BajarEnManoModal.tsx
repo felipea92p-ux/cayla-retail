@@ -27,6 +27,7 @@ import {
   pasosEnMano,
   RPC_EN_MANO,
   textoMarcaEnDuda,
+  textoUnaMasEnPiso,
   type MarcaEnDuda,
   type MarcaParaAbrir,
   type RespuestaEnMano,
@@ -68,7 +69,7 @@ export function BajarEnManoModal({
   marca: MarcaParaAbrir;
   /** La marca en duda (antes de llamar a la base) o `null` (la base dijo qué pasó: se suelta). */
   onMarca: (m: MarcaEnDuda | null) => void;
-  /** Si el sistema ya contaba colgadas de esta prenda y ella dijo «es otra unidad»: se le recuerda que se suma una más. */
+  /** Si el sistema ya contaba colgadas de esta prenda y ella vio en el rack que están todas: se le recuerda que se suma una más. */
   yaCuentaEnPiso?: number;
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onListo: (r: RespuestaEnMano) => void;
@@ -194,9 +195,7 @@ export function BajarEnManoModal({
           </ol>
 
           {yaCuentaEnPiso > 0 && (
-            <p className="text-[13px] text-ambar-profundo">
-              El sistema ya cuenta {yaCuentaEnPiso === 1 ? "1 colgada" : `${yaCuentaEnPiso} colgadas`}: esta se suma como una más. Hazlo solo si es otra unidad.
-            </p>
+            <p className="text-[13px] text-ambar-profundo">{textoUnaMasEnPiso(yaCuentaEnPiso)}</p>
           )}
           {prenda.danado > 0 && (
             <p className="text-[13px] text-ambar-profundo">

@@ -3,15 +3,16 @@
  * almacén y la prenda está en mi mano», sin React, sin DOM y sin supabase.
  *
  * CONTRATO
- *   PROMETE: decir qué se le ofrece a la asesora cuando una lectura no se puede bajar porque el almacén está en 0 (corregir y
- *            colgar, o primero preguntar si es una de las que el sistema ya cuenta colgadas); armar la llamada a
- *            `retail.bajar_en_mano` (`20261004223100`); leer su respuesta y sus rechazos; y los textos de cada paso.
+ *   PROMETE: decir qué se le ofrece a la asesora cuando una lectura no se puede bajar porque el almacén está en 0 (comprobar
+ *            la corrección que quedó en duda, corregir y colgar, o primero mirar el rack si el sistema ya la cuenta colgada);
+ *            armar la llamada a `retail.bajar_en_mano` (`20261004223100`) con una marca que sobrevive a cerrar la ventana y a
+ *            recargar; leer su respuesta y sus rechazos; y los textos de cada paso.
  *   ASUME:   la base decide lo que se puede (permiso, tope del día, lo apartado, la prenda que nunca entró) y lo dice en su
  *            mensaje; aquí no se repite ninguna regla de negocio de la base, solo se decide QUÉ PREGUNTAR antes de llamarla.
  *   NO HACE: no escribe nada ni cuenta stock: la cifra viene de la pantalla (lo que el sistema decía) y de la respuesta.
  */
 
-import { nombreDePrenda, type PrendaBajable } from "./bajada-reglas";
+import { nombreDePrenda, type LineaBajada, type PrendaBajable } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { diaYHoraLima } from "./fechas-lima";
 
@@ -41,15 +42,17 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *   cosa se reenvía con su misma marca: si ya se había guardado, la base responde «ya registrada» y no corrige dos veces.
  * - `corregir`: el sistema no cuenta esta prenda en el almacén ni en el piso (o las del piso son las que ella misma acaba de
  *   colgar aquí): la que tiene en la mano prueba que existe una más. Se ofrece corregir y colgar.
- * - `preguntar`: el sistema YA cuenta `enPiso` colgadas de esta prenda. La que tiene puede ser una de esas (la carga inicial
- *   «al piso» dejó así prendas que seguían guardadas): primero «Ya estaba colgada», que no escribe nada; y, si es otra
- *   unidad, corregir y colgar. Solo ella sabe qué unidad tiene en la mano: la base no lo decide (20261004223100).
+ * - `preguntar`: el sistema YA cuenta `enPiso` colgadas de esta prenda que ella NO colgó en esta pantalla. La que tiene puede
+ *   ser una de esas (la carga inicial «al piso» dejó así prendas que seguían guardadas). Con la prenda en la mano no se puede
+ *   contestar «¿es una de esas?»: se le pide MIRAR EL RACK (`preguntaDelRack`). Si están todas, la suya es otra → corregir y
+ *   colgar; si falta alguna, la suya es esa → «Ya estaba colgada», que no escribe nada. Ninguna de las dos va por defecto.
+ *   Solo ella ve el rack: la base no lo decide (20261004223100). `colgadasAqui` viaja para decir «sin las que colgaste ahora».
  * `danadas`: las de esta prenda en cuarentena; si hay, se le advierte que la suya puede ser la dañada.
  */
 export type OfertaEnMano =
   | { tipo: "comprobar"; enviadoEn: string; danadas: number }
   | { tipo: "corregir"; danadas: number }
-  | { tipo: "preguntar"; enPiso: number; danadas: number };
+  | { tipo: "preguntar"; enPiso: number; colgadasAqui: number; danadas: number };
 
 /**
  * `colgadasAqui`: las que ella corrigió y colgó en esta pantalla desde que la abrió. El piso que cuenta el sistema las incluye
@@ -60,8 +63,31 @@ export type OfertaEnMano =
 export function ofertaEnMano(prenda: Pick<PrendaBajable, "piso" | "danado">, colgadasAqui: number, enDuda: MarcaEnDuda | null = null): OfertaEnMano {
   const danadas = Math.max(0, prenda.danado ?? 0);
   if (enDuda) return { tipo: "comprobar", enviadoEn: enDuda.enviadoEn, danadas };
-  const enPiso = Math.max(0, prenda.piso - Math.max(0, colgadasAqui));
-  return enPiso > 0 ? { tipo: "preguntar", enPiso, danadas } : { tipo: "corregir", danadas };
+  const aqui = Math.max(0, colgadasAqui);
+  const enPiso = Math.max(0, prenda.piso - aqui);
+  return enPiso > 0 ? { tipo: "preguntar", enPiso, colgadasAqui: aqui, danadas } : { tipo: "corregir", danadas };
+}
+
+/**
+ * La pregunta que se contesta MIRANDO EL RACK, no la prenda en la mano (revisión adversarial de la actividad 9: «¿la que tienes
+ * es una de esas?» no se puede responder con la prenda en la mano, y su botón principal la dejaba colgada sin registrar).
+ * - `si`: están las N que cuenta el sistema → la suya es otra unidad: corregir y colgar.
+ * - `no`: falta alguna → la suya es la que el sistema creía colgada: «Ya estaba colgada» (no se inventa stock).
+ */
+export function preguntaDelRack(o: { enPiso: number; colgadasAqui: number }): { pregunta: string; si: string; no: string } {
+  const sinLasDeAqui = o.colgadasAqui > 0 ? ", sin contar las que colgaste ahora" : "";
+  return o.enPiso === 1
+    ? { pregunta: `Mira el rack${sinLasDeAqui}: ¿está colgada 1 de esta talla y color?`, si: "Sí, está: la mía es otra", no: "No está: la mía es esa" }
+    : {
+        pregunta: `Mira el rack${sinLasDeAqui}: ¿están colgadas las ${o.enPiso} de esta talla y color?`,
+        si: `Sí, están las ${o.enPiso}: la mía es otra`,
+        no: "Falta alguna: la mía es una de esas",
+      };
+}
+
+/** En la ventana, cuando ella dijo que en el rack están todas las que cuenta el sistema: lo que va a pasar. */
+export function textoUnaMasEnPiso(enPiso: number): string {
+  return `En el rack ${enPiso === 1 ? "está la 1 colgada" : `están las ${enPiso} colgadas`} que cuenta el sistema: esta se suma como una más.`;
 }
 
 function plural(n: number, singular: string, varias: string): string {
@@ -76,7 +102,7 @@ export function textoDeOferta(o: OfertaEnMano, prenda: Pick<PrendaBajable, "refe
     return `${nombre}: la corrección que enviaste a las ${diaYHoraLima(o.enviadoEn).hora} no tuvo respuesta. Compruébala antes de corregir otra: si ya se había guardado, no se repite.`;
   }
   if (o.tipo === "preguntar") {
-    return `${nombre}: el almacén de ${sede} está en 0 y el sistema ya cuenta ${plural(o.enPiso, "colgada", "colgadas")}. ¿La que tienes es una de esas?${danadas}`;
+    return `${nombre}: el almacén de ${sede} está en 0 y el sistema cuenta ${plural(o.enPiso, "colgada", "colgadas")}. ${preguntaDelRack(o).pregunta}${danadas}`;
   }
   return `${nombre}: el sistema no la tiene en el almacén de ${sede}. Si la tienes en la mano, corrígela y cuélgala aquí mismo.${danadas}`;
 }
@@ -320,9 +346,27 @@ export function hechaEnMano(r: RespuestaEnMano, varianteId: string, prenda: Pick
   return { varianteId, nombre: nombreDePrenda(prenda), corregida: r.corregida, hora: diaYHoraLima(r.registrada_en).hora, bajadaId: r.bajada_id };
 }
 
-/** Cuántas de esta prenda corrigió y colgó aquí (para `ofertaEnMano`). Una respuesta repetida (la misma bajada) cuenta una vez. */
-export function colgadasAquiDe(hechas: readonly HechaEnMano[], varianteId: string): number {
-  return new Set(hechas.filter((h) => h.varianteId === varianteId).map((h) => h.bajadaId)).size;
+/**
+ * Una bajada ESCANEADA que se confirmó en esta pantalla: sus líneas, por su marca (`token` de la bajada; un reintento que
+ * respondió «ya registrada» trae la misma y no se suma dos veces). Sin esto, con 1 libre en el almacén y 3 iguales en el fardo,
+ * la 2.ª lectura daba «tope», ella confirmaba, y la 3.ª le preguntaba «¿ya estaba colgada?» por la que ella misma acababa de
+ * colgar (revisión adversarial de la actividad 9).
+ */
+export type BajadaHechaAqui = { token: string; lineas: readonly LineaBajada[] };
+
+export function sumarBajadaHecha(bajadas: readonly BajadaHechaAqui[], nueva: BajadaHechaAqui): BajadaHechaAqui[] {
+  const lineas = nueva.lineas.filter((l) => l.cantidad > 0);
+  return lineas.length === 0 || bajadas.some((b) => b.token === nueva.token) ? [...bajadas] : [...bajadas, { token: nueva.token, lineas }];
+}
+
+/**
+ * Cuántas de esta prenda colgó ella en esta pantalla (para `ofertaEnMano`): las que corrigió y colgó «en la mano» (una bajada
+ * repetida cuenta una vez) más las unidades de sus bajadas escaneadas y confirmadas.
+ */
+export function colgadasAquiDe(hechas: readonly HechaEnMano[], varianteId: string, bajadas: readonly BajadaHechaAqui[] = []): number {
+  const enMano = new Set(hechas.filter((h) => h.varianteId === varianteId).map((h) => h.bajadaId)).size;
+  const escaneadas = bajadas.reduce((n, b) => n + b.lineas.reduce((m, l) => m + (l.varianteId === varianteId ? l.cantidad : 0), 0), 0);
+  return enMano + escaneadas;
 }
 
 /** Suma lo nuevo a la lista de hechas, sin repetir una bajada que ya estaba (un reintento que respondió «ya registrada»). */

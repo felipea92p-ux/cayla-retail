@@ -73,13 +73,16 @@ import {
   leerMarcas,
   marcaParaAbrir,
   ofertaEnMano,
+  preguntaDelRack,
   serializarMarcas,
   soltarMarca,
+  sumarBajadaHecha,
   sumarHecha,
   textoDeHecha,
   textoDeMarcaEnLista,
   textoDeOferta,
   textoYaEstabaColgada,
+  type BajadaHechaAqui,
   type HechaEnMano,
   type MarcaEnDuda,
   type MarcaParaAbrir,
@@ -99,7 +102,8 @@ import {
  * «La tengo en la mano» (ADR-0328, actividad 9): ninguna lectura termina en un callejón. Cada una suena (el bip de Conteo: se
  * mira el rack, no la pantalla); si la etiqueta no se lee, se elige la prenda por nombre; con el celular, la cámara en ráfaga de
  * Conteo; y si el sistema dice 0 en el almacén, la tarjeta ofrece corregir y colgar en un paso (`BajarEnManoModal`,
- * `bajar_en_mano`) o, si el sistema ya la cuenta colgada, «Ya estaba colgada», que no escribe nada.
+ * `bajar_en_mano`) o, si el sistema ya la cuenta colgada, le pide mirar el rack: si falta alguna, «Ya estaba colgada» (no escribe
+ * nada); si están todas, corregir y colgar. Una corrección que quedó sin respuesta se ofrece para COMPROBAR con su misma marca.
  */
 
 /** Las palabras de la cámara en ráfaga (la misma hoja de Conteo) cuando se usa para bajar. */
@@ -202,6 +206,8 @@ export function BajarAlPisoForm({
   const [enMano, setEnMano] = useState<PrendaBajable | null>(null);
   const [ventanaEnMano, setVentanaEnMano] = useState<{ prenda: PrendaBajable; yaCuentaEnPiso: number; marca: MarcaParaAbrir } | null>(null);
   const [hechas, setHechas] = useState<HechaEnMano[]>([]);
+  // Las bajadas escaneadas que se confirmaron aquí: lo que ella misma colgó no cuenta como «el sistema ya la cuenta colgada».
+  const [bajadasAqui, setBajadasAqui] = useState<BajadaHechaAqui[]>([]);
   // Las correcciones enviadas sin respuesta, por prenda, con su marca (también en el aparato: sobreviven a cerrar la ventana y
   // a recargar). Mientras una exista, la ventana de esa prenda reenvía con ESA marca: nunca corrige dos veces la misma prenda.
   const claveMarcas = claveDeMarcasEnMano(ubicacionId);
@@ -228,7 +234,7 @@ export function BajarAlPisoForm({
   // La tarjeta «La tengo en la mano», con los topes y el piso de AHORA (tras una corrección la pantalla se relee).
   const prendaEnMano = enMano ? (porIdConTope.get(enMano.varianteId) ?? enMano) : null;
   const ofertaVisible = prendaEnMano
-    ? ofertaEnMano(prendaEnMano, colgadasAquiDe(hechas, prendaEnMano.varianteId), marcasVisibles[prendaEnMano.varianteId] ?? null)
+    ? ofertaEnMano(prendaEnMano, colgadasAquiDe(hechas, prendaEnMano.varianteId, bajadasAqui), marcasVisibles[prendaEnMano.varianteId] ?? null)
     : null;
   // Las dudas de prendas que la tienda conoce (una prenda archivada la rechaza la base antes de mirar la marca: no se ofrece).
   const marcasALaVista = Object.values(marcasVisibles).flatMap((marca) => {
@@ -467,7 +473,7 @@ export function BajarAlPisoForm({
     []
   );
 
-  // «Ya estaba colgada»: el sistema ya la cuenta en el piso y la que tiene es una de esas. No se escribe nada.
+  // «Ya estaba colgada»: el sistema ya la cuenta en el piso y en el rack falta alguna: la que tiene es esa. No se escribe nada.
   function yaEstabaColgada(prenda: PrendaBajable) {
     setEnMano(null);
     avisarLectura("suma");
@@ -532,7 +538,7 @@ export function BajarAlPisoForm({
       return leida;
     }
     if (lectura.tipo === "sin_almacen") {
-      const o = ofertaEnMano(p, colgadasAquiDe(hechas, p.varianteId), marcasRef.current[p.varianteId] ?? null);
+      const o = ofertaEnMano(p, colgadasAquiDe(hechas, p.varianteId, bajadasAqui), marcasRef.current[p.varianteId] ?? null);
       if (o.tipo === "comprobar") {
         setAvisoCamara(
           <div className="flex w-full flex-wrap items-center gap-2">
@@ -544,12 +550,15 @@ export function BajarAlPisoForm({
         );
         return { ...leida, atencion: true };
       }
-      setAvisoCamara(
-        <div className="flex w-full flex-wrap items-center gap-2">
-          <span className="min-w-0 flex-1 basis-40 text-sm text-tinta">
-            {o.tipo === "preguntar" ? `El almacén está en 0 y ya cuenta ${o.enPiso} en el piso. ¿Es una de esas?` : "El almacén del sistema está en 0. ¿La tienes en la mano?"}
-          </span>
-          {o.tipo === "preguntar" && (
+      if (o.tipo === "preguntar") {
+        // Se contesta mirando el rack: ninguna de las dos respuestas va por defecto.
+        const rack = preguntaDelRack(o);
+        setAvisoCamara(
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span className="min-w-0 flex-1 basis-40 text-sm text-tinta">{`El almacén está en 0 y el sistema cuenta ${o.enPiso} en el piso. ${rack.pregunta}`}</span>
+            <button type="button" onClick={() => abrirEnMano(p, o.enPiso)} className="btn-cayla btn-secundario btn-chico shrink-0">
+              {rack.si}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -558,11 +567,17 @@ export function BajarAlPisoForm({
               }}
               className="btn-cayla btn-secundario btn-chico shrink-0"
             >
-              Ya estaba colgada
+              {rack.no}
             </button>
-          )}
-          <button type="button" onClick={() => abrirEnMano(p, o.tipo === "preguntar" ? o.enPiso : 0)} className="btn-cayla btn-primario btn-chico shrink-0">
-            {o.tipo === "preguntar" ? "Es otra" : "Corregir y colgar"}
+          </div>
+        );
+        return { ...leida, atencion: true };
+      }
+      setAvisoCamara(
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <span className="min-w-0 flex-1 basis-40 text-sm text-tinta">El almacén del sistema está en 0. ¿La tienes en la mano?</span>
+          <button type="button" onClick={() => abrirEnMano(p, 0)} className="btn-cayla btn-primario btn-chico shrink-0">
+            Corregir y colgar
           </button>
         </div>
       );
@@ -687,6 +702,9 @@ export function BajarAlPisoForm({
       setIncierto(null);
       if (fallo.tipo === "token_reusado" && fallo.guardadas) {
         const salida = resolverTokenReusado(lineasRef.current, fallo.guardadas, fallo.mensaje, sede);
+        // Lo guardado con esta marca lo colgó ella: cuenta como «colgadas aquí» (antes de estrenar otra marca).
+        const guardadas = { token: token.current, lineas: fallo.guardadas };
+        setBajadasAqui((b) => sumarBajadaHecha(b, guardadas));
         estrenarToken();
         cambiarLineas(salida.tipo === "faltan" ? salida.lineas : []);
         setProblemas({});
@@ -729,6 +747,9 @@ export function BajarAlPisoForm({
       registrada_en: new Date().toISOString(),
     };
     setIncierto(null);
+    // Lo que se acaba de colgar con esta marca (antes de estrenar otra): «¿ya estaba colgada?» no puede preguntar por esto.
+    const colgadaAqui = { token: token.current, lineas: enviadas };
+    setBajadasAqui((b) => sumarBajadaHecha(b, colgadaAqui));
     estrenarToken();
     cambiarLineas(loQueFalta(lineasRef.current, enviadas));
     setProblemas({});
@@ -893,12 +914,13 @@ export function BajarAlPisoForm({
                   Comprobar
                 </button>
               ) : ofertaVisible.tipo === "preguntar" ? (
+                // Se contesta mirando el rack, no la prenda: ninguna de las dos respuestas va como principal.
                 <>
-                  <button type="button" className="btn-cayla btn-primario h-11" onClick={() => yaEstabaColgada(prendaEnMano)}>
-                    Ya estaba colgada
-                  </button>
                   <button type="button" className="btn-cayla btn-secundario h-11" onClick={() => abrirEnMano(prendaEnMano, ofertaVisible.enPiso)}>
-                    Es otra: corregir y colgar
+                    {preguntaDelRack(ofertaVisible).si}
+                  </button>
+                  <button type="button" className="btn-cayla btn-secundario h-11" onClick={() => yaEstabaColgada(prendaEnMano)}>
+                    {preguntaDelRack(ofertaVisible).no}
                   </button>
                 </>
               ) : (
