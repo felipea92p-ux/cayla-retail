@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState, type ComponentType, type ReactNode } 
 import * as Dialog from "@radix-ui/react-dialog";
 import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, FileText, Layers, Trash2, X, Warehouse } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { SinFoto } from "@/components/ui/PrendaCelda";
+import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
@@ -180,7 +180,7 @@ export function CajonPrendaExistencias({
                     className="h-[99px] w-[85px] shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover"
                   />
                 ) : (
-                  <SinFoto tamano="h-[99px] w-[85px]" colorHex={prenda.colorHex} prefijo={prenda.categoriaPrefijo} familia={prenda.categoriaFamilia} categoria={prenda.categoria} conNombre />
+                  <SinFoto tamano="h-[99px] w-[85px]" colorHex={prenda.colorHex} {...categoriaDe(prenda)} conNombre />
                 )}
                 <div className="min-w-0">
                   <Dialog.Title asChild>

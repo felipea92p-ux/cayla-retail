@@ -4,7 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -233,7 +233,7 @@ export function ReponerPrendaModal({
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
           <div className="flex items-center gap-3">
-            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" prefijo={modelo.categoriaPrefijo} familia={modelo.categoriaFamilia} categoria={modelo.categoria} />
+            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" {...categoriaDe(modelo)} />
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[15px] text-tinta">
               <span className="font-semibold">{modelo.referencia}</span>
               <span className="text-taupe">{colores.length === 1 ? colores[0].nombre : `${colores.length} colores`}</span>

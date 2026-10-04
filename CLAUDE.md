@@ -209,6 +209,15 @@ pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secun
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
 
+## La prenda sin foto (regla — ADR-0332, Felipe 2026-10-04)
+
+**Una prenda sin foto se dibuja SIEMPRE igual: el ícono de su categoría sobre el color de la prenda** (`MosaicoPrenda`), nunca el
+isotipo de CAYLA, que es la marca (loader, tickets, etiquetas) y no un hueco. Se usa `<SinFoto>` / `<MiniaturaPrenda>` /
+`<FotoDePrenda>` (`components/ui/`) pasándoles `colorHex` y `{...categoriaDe(fila)}` (`lib/categoria-de-prenda.ts`); no dibujes
+otro «sin foto». Si la fila no trae la categoría, la miniatura dibuja la percha (no se cae): al cargar una prenda, pide
+`categorias ( nombre, prefijo, familia )`. `lib/sin-foto.test.ts` falla si un archivo fuera de su lista de marca dibuja
+`/cayla-isotipo.png`. Falta unificar Catálogo ▸ Productos, Apartados e Inicio de Almacén (ver el ADR).
+
 ## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
 
 **Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se

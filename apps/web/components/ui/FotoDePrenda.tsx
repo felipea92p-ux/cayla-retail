@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
-import type { CategoriaDePrenda } from "@/components/ui/PrendaCelda";
+import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 
 /** La foto de la prenda en grande, para el costado de una hoja (`<Modal lateral={…}>`): quien repone, sube o ajusta ve DE QUÉ prenda
  *  habla la ventana sin leer. Es la misma foto que la tarjeta de la prenda. Sin foto, lo mismo que `SinFoto` en las listas: el ícono

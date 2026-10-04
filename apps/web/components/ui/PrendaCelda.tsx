@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
+import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 
 /* ====================================================================
    PrendaCelda · miniatura + referencia + "SKU · color · talla"
@@ -22,9 +23,9 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
    habría movido Resumen y las demás listas que sí quieren el texto.
    ==================================================================== */
 
-/** La categoría de una prenda, como la dibuja `MosaicoPrenda`: el ícono sale del `prefijo` (o de la `familia` si es una categoría
- *  nueva sin dibujo propio) y `categoria` es el nombre visible. Todo opcional: una pantalla que aún no trae el dato dibuja la percha. */
-export type CategoriaDePrenda = { prefijo?: string | null; familia?: string | null; categoria?: string | null };
+// La categoría de una prenda (`categoriaDe`) vive en `lib/` (lógica pura, con su prueba); se re-exporta para que quien dibuja
+// la miniatura importe todo de aquí.
+export { categoriaDe, type CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 
 /** Sin foto: el ícono de la categoría de la prenda sobre su color (`MosaicoPrenda`, el mismo de Vender), no el isotipo de CAYLA.
  *  El isotipo al 30 % (rediseño de Existencias, 2026-09-22) decía «sin foto» pero era el mismo en las 25 prendas de una lista;

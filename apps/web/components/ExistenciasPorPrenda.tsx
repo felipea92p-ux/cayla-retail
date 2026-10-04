@@ -5,7 +5,7 @@ import { Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { estadoTalla, queHacerPrenda, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
@@ -191,7 +191,7 @@ export function ExistenciasPorPrenda({
                 </span>
               )}
               <span className="flex min-w-0 flex-1 items-center gap-3.5">
-                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" prefijo={p.categoriaPrefijo} familia={p.categoriaFamilia} categoria={p.categoria} />
+                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" {...categoriaDe(p)} />
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta">
                     {p.referencia}
