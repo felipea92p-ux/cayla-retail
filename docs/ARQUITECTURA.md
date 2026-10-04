@@ -215,7 +215,8 @@ flowchart TB
   (BOM: `insert`/`delete` directo en `bom_items`).
 - `/almacen` y `/almacen/recibir` → **redirects puros**, declarados en
   `redirects()` de `next.config.ts` (movidos desde página-stub el 2026-09-17,
-  ver ✨ MEJORAR de BACKLOG) a `/inventario` y `/inventario/recibir`
+  ver ✨ MEJORAR de BACKLOG) a `/inventario` y `/recibir` (desde ADR-0330, 2026-10-04; antes `/inventario/recibir`, que
+  hoy también es un redirect a `/recibir`)
   (compat de enlaces guardados tras el rediseño UX 2026-07-18; resuelven en
   el edge, sin sesión ni consulta a Supabase — no es código en `app/`).
   `/almacen` ya NO apunta a `/inventario/almacen` — esa ruta murió el
@@ -471,7 +472,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato
   secundario que degrada a «N/D» (nunca tumba la pantalla).
-- `/inventario/recibir` (sin factura) sigue viva como ruta, sin pestaña propia: se llega por «+ Nuevo».
+- `/inventario/recibir` (sin factura) **ya no existe como pantalla** (ADR-0330, 2026-10-04): se fundió en la puerta «Llegó
+  mercadería» de `/recibir` y la ruta es un redirect de `next.config.ts`.
+- **Ventas sin registrar = `/inventario/por-regularizar`** (ADR-0330, 2026-10-04; antes la pestaña `/recibir?vista=por-regularizar`,
+  que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
+  `lib/por-regularizar.ts` + `PorRegularizarLista.tsx` → RPC `regularizar_prenda` (sin cambios; detalle en «Recibir mercadería»,
+  más abajo). Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
+  con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí.
 - **«Nuevo traslado» = `/inventario/traslados/nuevo`** (ADR-0242 D-4, 2026-10-03; antes `/inventario/mover`) →
   `app/(app)/inventario/traslados/nuevo/page.tsx` → `MoverMercaderiaFormV2.tsx` → RPC `iniciar_traslado`; acepta
   prellenado por URL (`origen`, `destino`, `variante`, `cantidad`, `lineas`), validado en la página. Cuelga de la
@@ -974,7 +981,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `compra_item_cierres`, `proveedor_creditos` (libro del saldo a favor, append-only) y `compra_adjuntos.nota_credito_id`.
   **Recepción ya no registra notas** (ADR-0142): solo avisa con un chip al módulo; `recibir_envio` sigue aceptando
   `p_notas_credito` pero la pantalla lo manda vacío.
-- **Recibir mercadería por envío** (2026-09-18, ADR-0113): `/recibir` (NO bajo `/compras`, que es solo
+- **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
+  (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
+  cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),
+  las facturas que le faltan a la sede (`listarPorRecibir` con la sede: si el proveedor elegido tiene, pregunta «¿Viene con su
+  factura?» y lleva a `?vista=factura&compra=`) y lo recibido los últimos 7 días (`getRecepcionesRecientes` con `ubicacionId` y
+  `desde`: «Llegó esta semana» y el aviso de la misma caja dos veces). Sin pestañas: `?vista=factura` (también `?compra=` y
+  `?prov=`) es la recepción contra factura de abajo, y `?vista=recibidas` el historial (sin factura + contra factura); las dos
+  vuelven con «← Llegó mercadería». La sede es la de la cabecera (se quitó «Recibiendo en» / `?ubicacion=`).
+- **Recibir contra factura** (2026-09-18, ADR-0113; desde ADR-0330 es `/recibir?vista=factura`): `/recibir` (NO bajo `/compras`, que es solo
   líder; `/compras/recibir` redirige) → `lib/envio.ts` (solo `getEnviosDeLotes`) +
   `lib/envio-reglas.ts` (reglas puras: bloques por comprobante, totales, escaneo, el pedido a la RPC, y `trasladosHaciaAca`) →
   `RecepcionEnvio` + `KpisRecibir` (+ `ResumenPrevioEnvio`, `EnvioRecibido`, `RecepcionesCompraLista` con
@@ -984,7 +999,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `p_traslados` no vacío antes de escribir nada, y la pantalla solo avisa (`AvisoTrasladosEnCamino`, leyendo `getTrasladosEnCurso` de
   `lib/traslados.ts`, tolerante a fallo) que hay traslados en camino hacia la sede y lleva a `/inventario/traslados`. La tabla
   `envio_traslados` queda como historia (0 filas); nada nuevo escribe en ella.
-  **Pestaña «Por regularizar»** (`/recibir?vista=por-regularizar`, ADR-0179) → `lib/por-regularizar.ts` (lectura de
+  **«Por regularizar» / Ventas sin registrar** (ADR-0179; desde ADR-0330 en `/inventario/por-regularizar`, ver Inventario V2) → `lib/por-regularizar.ts` (lectura de
   `prendas_por_regularizar` + `fn_nombres_personas`; el líder ve todas sus sedes) + `lib/por-regularizar-reglas.ts`
   (vencida a los `DIAS_PARA_VENCER` = 2 días, tipo de diferencia, cifras del mes) → `PorRegularizarLista.tsx` → RPC
   `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 (piso, si no almacén);

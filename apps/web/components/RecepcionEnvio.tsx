@@ -607,7 +607,7 @@ export function RecepcionEnvio({
     }
     if (unidadesRecibiendo === 0 && cierres.length === 0)
       return void avisar.error(
-        "Cuenta lo que llegó: al menos una línea con cantidad. Si llegó sin comprobante, usa «Ingreso sin comprobante».",
+        "Cuenta lo que llegó: al menos una línea con cantidad. Si llegó sin factura, recíbela desde «Llegó mercadería».",
         { enfocar: panel.current },
       );
     if (sinComprobanteContado)

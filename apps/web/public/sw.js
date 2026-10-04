@@ -25,7 +25,6 @@ const CABECERA_GUARDADO = "x-cayla-guardado";
 const PANTALLAS = [
   { ruta: "/vender", soloDeHoy: true },
   { ruta: "/recibir", soloDeHoy: false },
-  { ruta: "/inventario/recibir", soloDeHoy: false },
   { ruta: "/productos/nuevo", soloDeHoy: false },
 ];
 

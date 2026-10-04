@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ClipboardCheck, PackageOpen, Scale, ShoppingBag } from "lucide-react";
+import { ClipboardCheck, PackageOpen, ReceiptText, Scale, ShoppingBag } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
@@ -12,6 +12,7 @@ import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
+import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -50,6 +51,9 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
+  // Ventas sin registrar (ADR-0330): la cifra del acceso de abajo, con el mismo alcance que su lista. Se pide en paralelo con todo
+  // lo demás y nunca tumba la pantalla (null = no se pudo leer → el acceso no se muestra).
+  const porRegularizar = contarPorRegularizar(persona.rol === "lider" ? null : persona.ubicacionId);
   const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
@@ -134,6 +138,7 @@ export default async function InventarioPage({
   // su rol ve «Bajada al piso» y si lo que se mira es SU sede activa y separa piso y almacén: esa pantalla baja siempre en
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
+  const nPorRegularizar = await porRegularizar;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
   // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar. Es una función de Existencias (ADR-0306), así que la
   // ve quien ve Existencias —la cuenta Almacén, que escanea con la pistola—, en su sede activa cuando separa piso y almacén (esa
@@ -217,6 +222,13 @@ export default async function InventarioPage({
                     Recibir mercadería
                   </Link>
                 )}
+                {nPorRegularizar ? (
+                  <Link href="/inventario/por-regularizar" className="btn-cayla btn-sutil btn-chico">
+                    <ReceiptText aria-hidden className="h-4 w-4" />
+                    Ventas sin registrar
+                    <span className="tabular-nums text-ambar-profundo">{nPorRegularizar}</span>
+                  </Link>
+                ) : null}
                 {veModulo(persona, "conteos") && (
                   <Link href="/inventario/conteo" className="btn-cayla btn-sutil btn-chico">
                     <ClipboardCheck aria-hidden className="h-4 w-4" />
