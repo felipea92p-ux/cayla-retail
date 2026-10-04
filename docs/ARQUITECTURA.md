@@ -486,6 +486,20 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   la sede destino sale de `getWhatsappDeSedes` (`lib/traslados.ts`, tolerante; es `ubicaciones.whatsapp_numero`, el de las
   tiendas, que nació para el QR del club); sin él, WhatsApp abre sin destinatario. El formulario sigue bloqueado hasta
   que sale esta pantalla (el token ya se renovó: un clic de más duplicaría el traslado).
+- `/inventario/cuadrar` (**Cuadrar el piso**, ADR-0328 decisión técnica 4 / actividad 3, 2026-10-04; **web y SQL en la rama
+  `claude/inventario-cuadrar-el-piso`, sin pegar en producción**: `20261004200000` tablas → `20261004200100` funciones →
+  `20261004200200` Frescura, antes de publicar la web). Es una función de Existencias (ADR-0306), no un módulo: se llega por
+  «Cuadrar el piso» en la segunda fila de la cabecera de Existencias, que solo ve el líder en su sede activa si separa piso y
+  almacén → `layout.tsx` y `page.tsx` con `exigirModulo("existencias")` → `lib/sububicaciones.ts` (sin piso y almacén, solo
+  una nota) → en paralelo `lib/conteos.ts:getCatalogoConteo` (el catálogo ENTERO: lo guardado que la sede no tiene es una
+  «no cargada»), `lib/inventario-v2.ts:getStockPorUbicacion` (lo libre, solo para el aviso «no cargada» al escanear) y
+  `lib/cuadre-piso.ts:getCuadrePisoEstado` = RPC `fn_cuadre_piso_estado` (la fecha del último cuadre; la usará la portada de
+  Existencias) → `components/cuadre-piso/CuadrarPisoForm.tsx` (pasos con `PasosConteo`: Escanear lo guardado → Revisar →
+  Confirmar; pistola con búfer, cámara en ráfaga con `EscanerConteo`, sonido de `lib/sonido-conteo.ts`, borrador por SEDE en
+  el aparato —escanea la cuenta Almacén y confirma un líder en el mismo navegador—, guía de foco, combo Responsable y
+  `firmar`) → RPC `previsualizar_cuadre_piso` (lectura: resumen y líneas con la cuenta de la base, `RevisarCuadre.tsx`) y RPC
+  `cuadrar_piso` (todo o nada, solo líder, marca de reintento; si el almacén se movió después del escaneo devuelve qué prendas
+  volver a escanear) → `ResultadoCuadre.tsx`. Lógica pura y probada en `lib/cuadre-piso-reglas.ts`.
 - `/inventario/bajar` (**Bajar prendas al piso**, 2026-09-25, ADR-0208 bloque 1; **web publicada; en producción,
   `bajar_al_piso` pegada y el módulo `bajada_piso` sin confirmar**; sin
   pestaña ni hoja en el lateral, que no cambia: se llega solo por el botón «Bajar al piso» de la cabecera de
@@ -501,20 +515,6 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   solo ofrece «Confirmar de nuevo», o «Comprobar» si el borrador ya se había enviado; mientras se guarda o el loader
   está a la vista, lo que manda la pistola va a un búfer, `esperaOcupada()` de `lib/espera-estado.ts`) → RPC
   `bajar_al_piso`. La base se toca una sola vez, al confirmar.
-- `/inventario/cuadrar` (**Cuadrar el piso**, ADR-0328 decisión técnica 4 / actividad 3, 2026-10-04; **web y SQL en la rama
-  `claude/inventario-cuadrar-el-piso`, sin pegar en producción**: `20261004200000` tablas → `20261004200100` funciones →
-  `20261004200200` Frescura, antes de publicar la web). Es una función de Existencias (ADR-0306), no un módulo: se llega por
-  «Cuadrar el piso» en la segunda fila de la cabecera de Existencias, que solo ve el líder en su sede activa si separa piso y
-  almacén → `layout.tsx` y `page.tsx` con `exigirModulo("existencias")` → `lib/sububicaciones.ts` (sin piso y almacén, solo
-  una nota) → en paralelo `lib/conteos.ts:getCatalogoConteo` (el catálogo ENTERO: lo guardado que la sede no tiene es una
-  «no cargada»), `lib/inventario-v2.ts:getStockPorUbicacion` (lo libre, solo para el aviso «no cargada» al escanear) y
-  `lib/cuadre-piso.ts:getCuadrePisoEstado` = RPC `fn_cuadre_piso_estado` (la fecha del último cuadre; la usará la portada de
-  Existencias) → `components/cuadre-piso/CuadrarPisoForm.tsx` (pasos con `PasosConteo`: Escanear lo guardado → Revisar →
-  Confirmar; pistola con búfer, cámara en ráfaga con `EscanerConteo`, sonido de `lib/sonido-conteo.ts`, borrador por SEDE en
-  el aparato —escanea la cuenta Almacén y confirma un líder en el mismo navegador—, guía de foco, combo Responsable y
-  `firmar`) → RPC `previsualizar_cuadre_piso` (lectura: resumen y líneas con la cuenta de la base, `RevisarCuadre.tsx`) y RPC
-  `cuadrar_piso` (todo o nada, solo líder, marca de reintento; si el almacén se movió después del escaneo devuelve qué prendas
-  volver a escanear) → `ResultadoCuadre.tsx`. Lógica pura y probada en `lib/cuadre-piso-reglas.ts`.
 - `/productos/[id]/editar` también (ADR-0281, decisión 5): `ficha-producto/AjusteDeStock.tsx` ofrece «Ajustar stock» por color y
   un lápiz por talla y abre `AjustarInventarioModal` → RPC `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
   almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
