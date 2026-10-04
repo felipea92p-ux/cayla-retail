@@ -26,11 +26,13 @@ import { getPorRegularizar } from "@/lib/por-regularizar";
 import { PorRegularizarLista } from "@/components/PorRegularizarLista";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { getMarcasPorProveedor } from "@/lib/proveedores";
+import { LlegoMercaderia } from "@/components/LlegoMercaderia";
 
-// Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta de lo que llega de PROVEEDORES: un envío puede traer
-// comprobantes de varios proveedores y prendas fuera de comprobante (de un proveedor, con su regalo). Lo que
-// llegó SIN comprobante todavía (muestras, el papel que no llega) vive en «Ingreso sin comprobante» de
-// Inventario: es una excepción, no un par de esta pantalla.
+// Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
+// mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
+// factura ya registrada (ADR-0113, `RecepcionEnvio`: un envío con comprobantes de varios proveedores, reparto, faltantes) es la
+// vista `?vista=factura` —también `?compra=` y `?prov=`, que traen los enlaces de Compras—.
 //
 // ADR-0299 (2026-10-01): lo que manda OTRA SEDE de CAYLA (un traslado) ya no se recibe acá. Se cuenta y se
 // confirma en Traslados, donde además se elige piso o almacén. Esta pantalla solo AVISA que hay traslados en camino
@@ -54,13 +56,19 @@ import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 // (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
 // (`FiltrosRecibidas`); el servidor los limpia con `filtrosRecibidasDesdeParams` antes de llamar a la base.
 type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string; res?: string; ubicacion?: string };
+type VistaRecibir = "llegada" | "factura" | "recibidas" | "por-regularizar";
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
   const esLider = persona.rol === "lider";
   const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
   const params = await searchParams;
-  const vista = params.vista === "recibidas" || params.vista === "por-regularizar" ? params.vista : "pendientes";
+  const vista: VistaRecibir =
+    params.vista === "recibidas" || params.vista === "por-regularizar"
+      ? params.vista
+      : params.vista === "factura" || params.compra || params.prov
+        ? "factura"
+        : "llegada";
 
   // ADR-0139: Recibir es POR TIENDA. Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo:
   // se mira desde la tienda donde estás parado, y un líder puede mirar otra con `?ubicacion=` (el selector «Recibiendo
@@ -73,35 +81,39 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     <div className="anim-entra">
       <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
-      <p className="mt-1 text-sm text-tinta/65">
-        {vista === "pendientes"
+      <p className="mt-1 max-w-3xl text-sm text-tinta/65">
+        {vista === "llegada"
+          ? `Escanea lo que llegó y recíbelo: entra al almacén de ${persona.ubicacionEtiqueta}. Si no tiene factura todavía, igual se recibe.`
+          : vista === "factura"
           ? `Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano. Aquí ves lo que le toca a ${nombreMirada} de cada comprobante; lo de las otras tiendas lo recibe cada una.`
           : vista === "por-regularizar"
             ? "Prendas que caja vendió antes de estar en el sistema. Dile al sistema qué prenda era cada una y el stock queda cuadrado."
             : "Lo que ya se recibió contra un comprobante, envío por envío."}
       </p>
-      {esLider && vista === "pendientes" && (
+      {esLider && vista === "factura" && (
         <div className="mt-2 flex items-center gap-2">
           <span className="label-cayla text-[11px] text-tinta/65">Recibiendo en</span>
           <SelectorUbicacion ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))} ubicacionActualId={ubicacionMirada} />
         </div>
       )}
-      <p className="mt-1 text-xs text-tinta/55">
-        ¿Llegó mercadería que todavía no tiene comprobante?{" "}
-        <Link href="/inventario/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-          Ingreso sin comprobante
-        </Link>
-        .
-      </p>
+      {vista !== "llegada" && (
+        <p className="mt-1 text-xs text-tinta/55">
+          ¿Llegó mercadería que todavía no tiene comprobante?{" "}
+          <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+            Recíbela sin factura
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
   const pestanas = (
     <div className="anim-entra" style={{ "--i": 2 } as CSSProperties}>
     <Pestanas
       etiquetaAccesible="Vistas de Recibir mercadería"
-      activa={vista}
+      activa={vista === "factura" ? "llegada" : vista}
       items={[
-        { clave: "pendientes", etiqueta: "Pendientes", href: "/recibir" },
+        { clave: "llegada", etiqueta: "Llegó mercadería", href: "/recibir" },
         { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
         // ADR-0179: prendas que caja vendió antes de estar en el sistema; almacén las une con su prenda real.
         { clave: "por-regularizar", etiqueta: "Por regularizar", href: "/recibir?vista=por-regularizar" },
@@ -214,7 +226,51 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     );
   }
 
-  // ------------------------------------------------------------------ Pendientes
+  // ------------------------------------------------------------------ Llegó mercadería (ADR-0330)
+  if (vista === "llegada") {
+    const [catalogo, proveedores, marcas, trasladosDeLaSede] = await Promise.all([
+      getCatalogo(),
+      getProveedoresActivos(),
+      // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
+      getMarcasPorProveedor(),
+      getTrasladosEnCurso(persona.ubicacionId).catch((e: unknown) => {
+        console.error("Aviso de traslados en Recibir mercadería:", e);
+        return [] as TrasladoResumen[];
+      }),
+    ]);
+    return (
+      <div className="space-y-6">
+        {encabezado}
+        {pestanas}
+        {/* Si lo que llegó es de otra sede de CAYLA, no se recibe aquí: se cuenta en Traslados (ADR-0299). */}
+        <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+        <LlegoMercaderia
+          ubicacionId={persona.ubicacionId}
+          ubicacionEtiqueta={persona.ubicacionEtiqueta}
+          verMontos={verMontos}
+          veExistencias={veModulo(persona, "existencias")}
+          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
+          prendas={catalogo
+            .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
+            .map((v) => ({
+              varianteId: v.varianteId,
+              productoId: v.productoId,
+              // El código de la etiqueta (`sku` es NULL en casi todas): es lo que lee la pistola.
+              sku: codigoDeEtiqueta(v),
+              referencia: v.referencia,
+              talla: v.talla,
+              color: v.color,
+              marca: v.marca ?? null,
+              codigosBarras: v.codigosBarras,
+              colorHex: v.colorHex,
+              fotoUrl: v.fotoUrl,
+            }))}
+        />
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------ Contra una factura ya registrada (ADR-0113)
   const { compra } = params;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -270,7 +326,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             )}
           </p>
           <p className="text-xs text-tinta/55">
-            Si llegó mercadería sin comprobante, usa <Link href="/inventario/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">Ingreso sin comprobante</Link>.
+            Si llegó mercadería sin factura, <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
           </p>
         </div>
       ) : (
@@ -310,7 +366,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         />
       )}
 
-      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={params} pathname="/recibir" />
+      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={{ ...params, vista: "factura" }} pathname="/recibir" />
     </div>
   );
 }
