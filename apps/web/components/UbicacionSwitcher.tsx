@@ -63,7 +63,10 @@ export function UbicacionSwitcher({
           setValor(elegido);
           startTransition(async () => {
             await cambiarUbicacionActiva(elegido);
-            if (elegido === VALOR_VISTA_GLOBAL) router.push("/global");
+            // Desde el Inicio se queda en el Inicio: el del Admin (el Observatorio, ADR-0322) vuelve al país entero; a quien
+            // no es Admin, la página lo manda al tablero.
+            if (elegido === VALOR_VISTA_GLOBAL && pathname !== "/") router.push("/global");
+            else if (elegido === VALOR_VISTA_GLOBAL) router.refresh();
             else if (pathname === "/global" || pathname.startsWith("/global/")) router.push("/");
             else router.refresh();
           });
