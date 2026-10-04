@@ -18,6 +18,7 @@ import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { contarPendientesDeSede } from "@/lib/por-regularizar";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -50,7 +51,10 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores] = await Promise.all([
+  // «Para hoy» (2026-10-04) cuenta las ventas sin registrar de ESTA sede, pero solo a quien puede resolverlas: su botón lleva a
+  // Recibir ▸ Por regularizar, que exige ese módulo. A quien no lo ve, una tarea sin salida le sobraría.
+  const veRecibir = veModulo(persona, "recibir");
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -82,7 +86,10 @@ export default async function InventarioPage({
     getCatalogoParaExistencias(),
     // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
     getColoresParaExistencias(),
+    // Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
+    vende && veRecibir ? contarPendientesDeSede(ubicacionActivaId).catch(() => null) : Promise.resolve(null),
   ]);
+  const sinRegistrar = vende && veRecibir ? (colaSinRegistrar ?? "fallo") : null;
 
   // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
   // gobiernan «Acción hoy» — hoy global, con override futuro por sede (`politicaDe`).
@@ -260,6 +267,8 @@ export default async function InventarioPage({
         esTienda={vende}
         panelFiltros={panelFiltros}
         coloresCatalogo={colores}
+        sinRegistrar={sinRegistrar}
+        veRecibir={veRecibir}
       />
     </div>
   );
