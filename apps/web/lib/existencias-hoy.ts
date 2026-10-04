@@ -9,23 +9,27 @@ import type { AccionPiso, PisoDeTalla } from "./piso-plan";
    juntaba tallas que se pueden bajar hoy con tallas cuyo almacén está vacío: la asesora filtraba para trabajar y parte de la
    lista no se podía hacer.
 
-   Ahora cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra. Cuántas
-   debe tener colgadas cada talla lo decide el motor del piso (Felipe, 2026-10-04): 1 por color en las tallas del centro de su
-   curva (S, M, L; 28, 30, 32; la talla única), o lo que se vendió de ella ayer u hoy; una talla extrema puede quedar guardada.
-     · Por colgar      — no queda ninguna colgada, la talla necesita una (es del centro o se vendió) y en el almacén hay.
-     · Por reponer     — ayer u hoy se vendió más de lo que queda colgado, y en el almacén hay para bajar.
+   Ahora cada talla cae en UNO de tres casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra. Cuántas
+   debe tener colgadas cada talla lo decide el motor del piso (Felipe, 2026-10-04): 1 por color, en las tallas del centro de su
+   curva (S, M, L; 28, 30, 32; la talla única) y en la que se vendió ayer u hoy; una talla extrema que no se vendió puede quedar
+   guardada. Se repone cuando se acaba lo colgado, no antes.
+     · Por colgar      — no queda ninguna colgada de esa talla y color, la talla necesita una (es del centro o se vendió) y en
+                         el almacén hay.
      · Sin stock atrás — falta en el piso y el almacén está vacío: se trae de otra sede; si se repite es señal para el Taller
                          (el modelo no se vuelve a pedir: ADR-0329 act. 9).
-     · Mantener        — ya cuelga lo que pide, o es una talla extrema que puede quedar guardada.
+     · Mantener        — ya cuelga al menos una, o es una talla extrema que puede quedar guardada.
+   Hubo un cuarto, «Por reponer» («ayer u hoy se vendió más de lo que queda colgado»). Con 1 por color (ADR-0328, «Actualización
+   2026-10-04 (tarde)»: se repone cuando se acaba) quedó igual a «Por colgar» —mismo hecho, misma tarea— y se fundió en ella: dos
+   palabras para una sola cosa que hacer era lo que este archivo vino a quitar.
    La regla no vive aquí: cada talla trae su decisión ya tomada (`planPiso`, la de `lib/piso-plan.ts`, ADR-0328 act. 7) y este
-   archivo solo la dice con las cuatro palabras. Así la tabla, el filtro, la tarjeta, el cajón y el Inicio no pueden decidir
+   archivo solo la dice con sus palabras. Así la tabla, el filtro, la tarjeta, el cajón y el Inicio no pueden decidir
    distinto: leen la misma decisión.
    ==================================================================== */
 
-export const TIPOS_HOY = ["por_colgar", "por_reponer", "sin_stock_atras", "mantener"] as const;
+export const TIPOS_HOY = ["por_colgar", "sin_stock_atras", "mantener"] as const;
 export type TipoHoy = (typeof TIPOS_HOY)[number];
 
-/** Lo que se PINTA en una talla o una prenda: los cuatro casos del filtro y, solo para mostrar, «En pausa» — el piso de la sede
+/** Lo que se PINTA en una talla o una prenda: los tres casos del filtro y, solo para mostrar, «En pausa» — el piso de la sede
  *  no está cuadrado y el motor no manda a bajar nada (ADR-0328, decisión 5). «En pausa» no es una opción del filtro «Hoy»: no es
  *  algo que hacer con esa talla sino con el piso entero (cuadrarlo), y lo dice el aviso de la pantalla. Sin esta palabra la talla
  *  decía «N/D» y la tarjeta «Nada pendiente», un vacío que se leía «al día». */
@@ -34,7 +38,6 @@ export type EstadoHoy = (typeof ESTADOS_HOY)[number];
 
 export const TEXTO_HOY: Record<EstadoHoy, string> = {
   por_colgar: "Por colgar",
-  por_reponer: "Por reponer",
   sin_stock_atras: "Sin stock atrás",
   mantener: "Mantener",
   en_pausa: "En pausa",
@@ -43,12 +46,11 @@ export const TEXTO_HOY: Record<EstadoHoy, string> = {
 /** Lo que significa cada caso, en palabras del piso (para el `title` de un chip y la leyenda de la tabla). */
 export const AYUDA_HOY: Record<EstadoHoy, string> = {
   por_colgar:
-    "No queda ninguna colgada y esta talla necesita una (es del centro de su curva —S, M, L; 28, 30, 32— o se vendió ayer u hoy); en el almacén hay: se cuelga hoy",
-  por_reponer: "Ayer u hoy se vendió más de lo que queda colgado, y en el almacén hay para bajar",
+    "No queda ninguna colgada de esta talla y color, y hace falta una (basta 1 por color): es del centro de su curva —S, M, L; 28, 30, 32— o se vendió ayer u hoy. En el almacén hay: se cuelga hoy",
   sin_stock_atras:
     "Falta en el piso y el almacén está vacío: trasládala de otra sede. Si se repite, es señal para el Taller (el modelo no se vuelve a pedir)",
   mantener:
-    "Ya cuelga lo que pide: 1 por color en las tallas del centro (S, M, L; 28, 30, 32) y lo que se vendió. Una talla extrema (XS, XL…) puede quedar guardada",
+    "Ya cuelga al menos una de esta talla y color (basta 1 por color). Una talla extrema (XS, XL…) que no se vendió ayer ni hoy puede quedar guardada",
   en_pausa:
     "El piso de esta sede todavía no se cuadró: hasta cuadrarlo no se sabe si falta colgarla (podría estar colgada y el sistema creerla guardada)",
 };
@@ -60,7 +62,6 @@ export type TallaParaHoy = { pisoDisponible: number | null; almacenDisponible: n
  *  cuyo piso no se sabe (ADR-0328, decisión 5); se pinta «En pausa» (`estadoHoyDeTalla`) y el aviso dice «cuadra el piso». */
 const HOY_DE_ACCION: Record<AccionPiso, TipoHoy | null> = {
   por_colgar: "por_colgar",
-  por_reponer: "por_reponer",
   sin_atras: "sin_stock_atras",
   mantener: "mantener",
   pausa_sin_cuadre: null,
@@ -116,14 +117,13 @@ export function textoHoyDePrenda(tipo: EstadoHoy, tallas: number): string {
   return `${tallas} ${tallas === 1 ? "talla" : "tallas"} ${TEXTO_HOY[tipo].toLocaleLowerCase("es")}`;
 }
 
-/** El tono de cada caso, el mismo en la tarjeta, la tabla y el cajón: ámbar lo que se hace aquí hoy (colgar, reponer), pizarra lo
+/** El tono de cada caso, el mismo en la tarjeta, la tabla y el cajón: ámbar lo que se hace aquí hoy (colgar), pizarra lo
  *  que se resuelve afuera (pedirlo a otra sede o al Taller) o espera el cuadre del piso (informativo, no semáforo: ADR-0169), verde
  *  lo que está bien. Ningún caso es rojo (rediseño 2026-10-04): «por colgar» es trabajo, no un error, y en rojo salía en casi todas
  *  las tarjetas de una tienda, con más de 30 rojos por pantalla contra un tope de 2 (`MAX_ROJO_POR_PANTALLA`). El rojo queda para lo
  *  que de verdad falló (una dañada, un plazo vencido). */
 export const TONO_HOY: Record<EstadoHoy, "ambar" | "verde" | "pizarra"> = {
   por_colgar: "ambar",
-  por_reponer: "ambar",
   sin_stock_atras: "pizarra",
   mantener: "verde",
   en_pausa: "pizarra",

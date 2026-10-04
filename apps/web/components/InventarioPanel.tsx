@@ -248,7 +248,7 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
-  /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar o reponer hoy, en orden (lo vendido
+  /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
    *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
   listaDelDia?: readonly string[];
 }) {
@@ -258,7 +258,7 @@ export function InventarioPanel({
   const setBusqueda = fijarBusqueda;
   const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
   const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });
-  // «Por colgar» (uno de los cuatro casos de «Hoy», `lib/existencias-hoy.ts`) se trabaja por percha: la lista va ordenada por
+  // «Por colgar» (uno de los tres casos de «Hoy», `lib/existencias-hoy.ts`) se trabaja por percha: la lista va ordenada por
   // modelo y color, y debajo de la barra se dice cuántas faltan colgar en toda la sede.
   const porColgarElegido = filtros.hoy === "por_colgar";
   const orden = (filtros.orden ?? "relevancia") as OrdenPrendas;
@@ -833,9 +833,10 @@ export function InventarioPanel({
       {stock.length === 0 ? (
         <p className={`p-5 text-sm text-taupe ${verDetalle ? "" : "card-cayla"}`}>Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
-        // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta.
+        // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta. Dice CUÁLES tallas piden
+        // piso (las del centro y lo vendido): una talla extrema guardada sin ventas no es «por colgar».
         sinNadaPorColgar || !explicacionVacio ? (
-          <p className={`p-5 text-sm text-taupe ${verDetalle ? "border-t border-sand" : "card-cayla mt-3.5"}`}>Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso.</p>
+          <p className={`p-5 text-sm text-taupe ${verDetalle ? "border-t border-sand" : "card-cayla mt-3.5"}`}>Nada por colgar: las tallas del centro y lo vendido ayer u hoy tienen al menos una para vender en el piso.</p>
         ) : (
           <div className={verDetalle ? "" : "card-cayla mt-3.5 overflow-hidden [&>div]:border-t-0"}>
           <ExistenciasVacio
@@ -1127,7 +1128,7 @@ export function InventarioPanel({
                     <span className={celda("izq", "col-start-2 row-start-1 overflow-visible whitespace-normal sm:[grid-area:auto]")}>
                       <span className="flex flex-col items-end gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-1">
                         <span className="label-cayla text-[10px] text-tinta/45 sm:hidden">Hoy</span>
-                        {/* Solo el diagnóstico, nunca un botón (diseño aprobado), con las MISMAS cuatro palabras del filtro «Hoy» y de la
+                        {/* Solo el diagnóstico, nunca un botón (diseño aprobado), con las MISMAS palabras del filtro «Hoy» y de la
                             tarjeta (`lib/existencias-hoy.ts`, Felipe 2026-10-03). En «Por colgar», lo que se puede bajar (disponible, neto
                             de apartados): la suma de estos chips es la del resumen de arriba. En «Sin stock atrás», si viene algo en camino. */}
                         <ChipHoy f={f} />

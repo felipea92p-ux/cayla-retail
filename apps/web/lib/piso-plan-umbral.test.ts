@@ -150,7 +150,7 @@ describe("una sola casa para las cifras del piso", () => {
     expect(caso("const c = (hoyDe(t)?.piso ?? Infinity) <= 1;")).toBe(1);
     expect(caso("const b = hoy && hoy.piso <= 1;")).toBe(1);
     expect(caso("if (4 >= f.pisoDisponible!) {}")).toBe(1);
-    expect(caso("const ok = t.pisoLibre < MINIMO_TALLA_CENTRAL;")).toBe(1);
+    expect(caso("const ok = t.pisoLibre < REQUISITO_POR_COLOR;")).toBe(1);
     expect(caso("if (f.pisoDisponible <= 0 && f.almacenDisponible > 0) {}")).toBe(0);
     expect(caso("const hay = piso > 0; // piso <= 4 en un comentario no cuenta")).toBe(0);
     expect(caso('const t = "piso <= 4";')).toBe(0);

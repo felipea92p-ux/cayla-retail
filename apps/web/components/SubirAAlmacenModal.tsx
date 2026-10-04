@@ -29,7 +29,7 @@ import {
 } from "@/lib/reponer-prenda-reglas";
 import {
   argumentosDeRetiro,
-  AVISO_QUEDAN_CON_POCO,
+  AVISO_QUEDA_SIN_COLGAR,
   interpretarErrorDeRetiro,
   leerRespuestaDeRetiro,
   MAX_NOTA_RETIRO,
@@ -235,7 +235,7 @@ export function SubirAAlmacenModal({
                 {t}
               </p>
             ))}
-            <p className={`[grid-area:1/1] ${textoBloque === AVISO_QUEDAN_CON_POCO ? "text-ambar" : "text-tinta/65"}`}>{textoBloque}</p>
+            <p className={`[grid-area:1/1] ${textoBloque === AVISO_QUEDA_SIN_COLGAR ? "text-ambar" : "text-tinta/65"}`}>{textoBloque}</p>
           </div>
 
           <CampoGuiado id="nota" guia={guia}>

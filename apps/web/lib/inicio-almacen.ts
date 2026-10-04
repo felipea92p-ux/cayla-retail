@@ -172,14 +172,15 @@ export type PrendaParaReponer = {
   referencia: string;
   color: string | null;
   fotoUrl: string | null;
-  /** Solo las tallas que el piso pide hoy: «sinPiso» = en el piso no queda ninguna (`por_colgar`); si no, queda poco. */
-  tallas: { talla: string; sinPiso: boolean }[];
+  /** Solo las tallas que el piso pide hoy: en ninguna queda una colgada (`por_colgar`). Hasta que «Por reponer» se fundió en
+   *  «Por colgar» (basta 1 por color) cada una decía si no quedaba ninguna o si quedaba poca; ahora siempre es lo primero. */
+  tallas: { talla: string }[];
 };
 
 export type Existencias = {
   /** Unidades libres en el almacén de la sede. */
   enAlmacen: number | null;
-  /** Cuántas prendas (modelo en un color) tienen algo que colgar o reponer hoy (la lista del día del motor del piso). */
+  /** Cuántas prendas (modelo en un color) tienen algo que colgar hoy (la lista del día del motor del piso). */
   prendasPorColgar: number;
   /** Cuántas tallas, en total, de esas prendas. */
   tallasPorColgar: number;
@@ -211,7 +212,7 @@ export async function getExistenciasDeAlmacen(ubicacionId: string): Promise<Exis
         referencia: p.referencia,
         color: p.color,
         fotoUrl: p.fotoUrl,
-        tallas: p.tallas.map((t) => ({ talla: t.talla, sinPiso: t.accion === "por_colgar" })),
+        tallas: p.tallas.map((t) => ({ talla: t.talla })),
       })),
     };
   });

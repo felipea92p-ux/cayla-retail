@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   argumentosDeRetiro,
-  AVISO_QUEDAN_CON_POCO,
+  AVISO_QUEDA_SIN_COLGAR,
   interpretarErrorDeRetiro,
   leerRespuestaDeRetiro,
   PARAMETROS_RPC_RETIRO,
@@ -147,11 +147,11 @@ describe("los textos", () => {
       { varianteId: "mucho", talla: "M", pisoDisponible: 40, almacenDisponible: 0, planPiso: { requisito: 1 } }, // subir 1 → 39: nada
       { varianteId: "extrema", talla: "XL", pisoDisponible: 2, almacenDisponible: 0, planPiso: { requisito: 0 } }, // no pide nada
     ]);
-    expect(textoDelBloqueSubir(tallas, { poco: 3 })).toBe(AVISO_QUEDAN_CON_POCO);
+    expect(textoDelBloqueSubir(tallas, { poco: 3 })).toBe(AVISO_QUEDA_SIN_COLGAR);
     expect(textoDelBloqueSubir(tallas, { mucho: 1 })).toBe(RETIRO_NO_ES_BAJA);
     expect(textoDelBloqueSubir(tallas, { extrema: 2 })).toBe(RETIRO_NO_ES_BAJA);
     expect(textoDelBloqueSubir(tallas, {})).toBe(RETIRO_NO_ES_BAJA);
     // La ventana reserva el alto del más largo: los dos textos posibles están en la lista.
-    expect(TEXTOS_BLOQUE_SUBIR).toEqual([RETIRO_NO_ES_BAJA, AVISO_QUEDAN_CON_POCO]);
+    expect(TEXTOS_BLOQUE_SUBIR).toEqual([RETIRO_NO_ES_BAJA, AVISO_QUEDA_SIN_COLGAR]);
   });
 });

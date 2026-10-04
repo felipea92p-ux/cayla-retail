@@ -10,11 +10,11 @@ import type { ClaveFiltro } from "./existencias-vacio";
    existencias-filtros · la barra de filtros de Existencias
 
    Dos preguntas distintas sobre una talla, dos filtros (separadas el 2026-09-25, renombradas el 2026-10-03):
-     · «Hoy»: qué pide la talla (Por colgar · Por reponer · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
+     · «Hoy»: qué pide la talla (Por colgar · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
        cae en UNO solo, y la tarjeta y la tabla dicen la misma palabra. Antes eran «Acción» («Reponer a piso» / «Mantener») y
        «Por colgar» escondido en «Estado»: elegir «Mantener» + «Por colgar» siempre daba vacío.
      · «Condición»: en qué condición está el inventario (Dañadas · Apartadas). No excluye a «Hoy»: una talla puede pedir
-       reponer y tener una apartada a la vez.
+       colgar y tener una apartada a la vez.
    ==================================================================== */
 
 /* ====================================================================

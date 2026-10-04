@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decidirTalla } from "./piso-plan";
+import { decidirTalla, REQUISITO_POR_COLOR } from "./piso-plan";
 import { opcionesDeColor } from "./productos-filtros";
 import { TIPOS_HOY } from "./existencias-hoy";
 import {
@@ -118,8 +118,8 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     talla,
     color,
     colorFamilia: { "Azul marino": "azul", "Azul claro": "azul", Beige: "neutro", Negro: "neutro" }[color] ?? null,
-    // La decisión del motor del piso con un requisito de 2 para toda talla: con 1 o 0 colgadas, el piso pide.
-    planPiso: { accion: decidirTalla(piso, almacen, 2, false) },
+    // La decisión del motor del piso con el requisito de una talla central (1 por color): sin ninguna colgada, el piso pide.
+    planPiso: { accion: decidirTalla(piso, almacen, REQUISITO_POR_COLOR, false) },
     danado: 0,
     apartado: 0,
     pisoDisponible: piso,
@@ -182,8 +182,9 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     const c = conteosDeFiltros(indice, nada);
     expect(c.color["Azul marino"]).toBe(2); // Polo Evaluna y Pantalón Carla
     expect(c.color["Beige"]).toBe(2); // Polo Evaluna y Blusa Emma (dos tallas, un producto)
-    // Por colgar: Evaluna S, Emma S y Carla 32 · Por reponer: Evaluna M · Sin stock atrás: Evaluna M Beige y Lucky M.
-    expect(c.hoy).toEqual({ por_colgar: 3, por_reponer: 1, sin_stock_atras: 2, mantener: 3 });
+    // Por colgar: Evaluna S, Emma S y Carla 32 · Sin stock atrás: Evaluna M Beige · Mantener: las que conservan al menos una
+    // colgada (Evaluna M azul, Lucky M y L, Emma L, Carla 30). La Evaluna M azul, con 1 colgada, ya no es «Por reponer».
+    expect(c.hoy).toEqual({ por_colgar: 3, sin_stock_atras: 1, mantener: 4 });
     expect(c.condicion).toEqual({ danadas: 2, apartadas: 1 });
     expect(c.color["familia:azul"]).toBe(3); // Evaluna y Carla (Azul marino) y Lucky (Azul claro)
   });

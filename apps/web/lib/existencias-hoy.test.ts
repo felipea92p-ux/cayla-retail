@@ -13,14 +13,14 @@ import {
 } from "./existencias-hoy";
 import { ACCIONES_PISO, type AccionPiso } from "./piso-plan";
 
-// «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma
-// palabra. Desde ADR-0328 act. 7 el caso no se calcula aquí: es la acción del motor del piso (`planPiso`) dicha en palabras.
+// «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de sus casos (tres desde el 2026-10-04), y el filtro, la tarjeta, la tabla
+// y el cajón dicen la misma palabra. Desde ADR-0328 act. 7 el caso no se calcula aquí: es la acción del motor del piso
+// (`planPiso`) dicha en palabras.
 const plan = (accion: AccionPiso) => ({ accion });
 
 describe("hoyDeTalla", () => {
   it("cada acción del motor tiene su palabra de ADR-0326", () => {
     expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("por_colgar") })).toBe("por_colgar");
-    expect(hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("por_reponer") })).toBe("por_reponer");
     expect(hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 0, planPiso: plan("sin_atras") })).toBe("sin_stock_atras");
     expect(hoyDeTalla({ pisoDisponible: 6, almacenDisponible: 3, planPiso: plan("mantener") })).toBe("mantener");
   });
@@ -39,7 +39,7 @@ describe("hoyDeTalla", () => {
     expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") })).toBeNull();
   });
 
-  it("toda acción cae en uno solo de los cuatro casos, o en ninguno si es la pausa", () => {
+  it("toda acción cae en uno solo de los tres casos, o en ninguno si es la pausa", () => {
     for (const accion of ACCIONES_PISO) {
       const caso = hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 1, planPiso: plan(accion) });
       if (accion === "pausa_sin_cuadre") expect(caso).toBeNull();
@@ -54,7 +54,7 @@ describe("resumirPorColgar — el contador del filtro «Por colgar»", () => {
       resumirPorColgar([
         { pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("por_colgar") },
         { pisoDisponible: 0, almacenDisponible: 1, planPiso: plan("por_colgar") },
-        { pisoDisponible: 1, almacenDisponible: 4, planPiso: plan("por_reponer") },
+        { pisoDisponible: 0, almacenDisponible: 0, planPiso: plan("sin_atras") },
         { pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("pausa_sin_cuadre") },
         { pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("mantener") },
         { pisoDisponible: null, almacenDisponible: null, planPiso: null },
@@ -111,17 +111,27 @@ describe("las leyendas de «Hoy» dicen la regla del motor del piso (revisión a
   it("cada caso, en palabras de tienda", () => {
     expect(AYUDA_HOY).toEqual({
       por_colgar:
-        "No queda ninguna colgada y esta talla necesita una (es del centro de su curva —S, M, L; 28, 30, 32— o se vendió ayer u hoy); en el almacén hay: se cuelga hoy",
-      por_reponer: "Ayer u hoy se vendió más de lo que queda colgado, y en el almacén hay para bajar",
+        "No queda ninguna colgada de esta talla y color, y hace falta una (basta 1 por color): es del centro de su curva —S, M, L; 28, 30, 32— o se vendió ayer u hoy. En el almacén hay: se cuelga hoy",
       sin_stock_atras:
         "Falta en el piso y el almacén está vacío: trasládala de otra sede. Si se repite, es señal para el Taller (el modelo no se vuelve a pedir)",
       mantener:
-        "Ya cuelga lo que pide: 1 por color en las tallas del centro (S, M, L; 28, 30, 32) y lo que se vendió. Una talla extrema (XS, XL…) puede quedar guardada",
+        "Ya cuelga al menos una de esta talla y color (basta 1 por color). Una talla extrema (XS, XL…) que no se vendió ayer ni hoy puede quedar guardada",
       en_pausa:
         "El piso de esta sede todavía no se cuadró: hasta cuadrarlo no se sabe si falta colgarla (podría estar colgada y el sistema creerla guardada)",
     });
   });
   it("ninguna manda a pedir el modelo: el mínimo nunca genera «pedir este modelo» (ADR-0329 act. 9)", () => {
     for (const texto of Object.values(AYUDA_HOY)) expect(texto).not.toMatch(/hay que pedir|pedirla|pídela/i);
+  });
+});
+
+// Felipe, 2026-10-04 (ADR-0328, «Actualización 2026-10-04 (tarde)»): se repone cuando se acaba lo colgado de esa talla y color,
+// y basta 1 por color. Con esa regla «Por reponer» era el mismo hecho que «Por colgar» (ninguna colgada y algo atrás) y la misma
+// tarea: dos palabras para una sola cosa que hacer, justo lo que «Hoy» vino a quitar (ADR-0326).
+describe("una sola palabra para «baja una y cuélgala»", () => {
+  it("«Hoy» tiene tres casos y ninguno es «Por reponer»", () => {
+    expect(TIPOS_HOY).toEqual(["por_colgar", "sin_stock_atras", "mantener"]);
+    expect(Object.values(TEXTO_HOY)).not.toContain("Por reponer");
+    for (const texto of Object.values(AYUDA_HOY)) expect(texto).not.toMatch(/reponer|más de lo que queda/i);
   });
 });

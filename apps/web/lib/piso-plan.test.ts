@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACCIONES_PISO,
   DIAS_VENTANA,
-  MINIMO_TALLA_CENTRAL,
+  REQUISITO_POR_COLOR,
   claveAtributo,
   decidirTalla,
   esParaColgar,
@@ -132,14 +132,17 @@ describe("decidirTalla — la tabla de decisión, una prueba por fila", () => {
     expect(decidirTalla(0, 2, 1, true)).toBe("pausa_sin_cuadre");
     expect(decidirTalla(1, 2, 2, true)).toBe("pausa_sin_cuadre");
   });
-  it("fila 4: falta, hay atrás, piso cuadrado y en el piso no queda ninguna → por_colgar", () => {
+  it("fila 4: falta, hay atrás y el piso está cuadrado → por_colgar", () => {
     expect(decidirTalla(0, 2, 1, false)).toBe("por_colgar");
     expect(decidirTalla(-1, 2, 1, false)).toBe("por_colgar"); // un dato negativo no esconde la talla
   });
-  it("fila 5: falta, hay atrás, piso cuadrado y en el piso queda alguna → por_reponer", () => {
-    expect(decidirTalla(1, 2, 2, false)).toBe("por_reponer");
+  it("ya no hay «queda poca»: lo que falta y se puede bajar es «por colgar», quede alguna o no (se fundió «por reponer»)", () => {
+    // Con 1 por color el requisito nunca pasa de 1, así que «falta» ya es «no queda ninguna». Si algún día pidiera más, la
+    // tarea sería la misma (bajar del almacén y colgar): una palabra, no dos.
+    expect(decidirTalla(1, 2, 2, false)).toBe("por_colgar");
+    expect(ACCIONES_PISO).not.toContain("por_reponer");
   });
-  it("toda combinación cae en UNA de las cinco acciones y respeta su fila", () => {
+  it("toda combinación cae en UNA de las cuatro acciones y respeta su fila", () => {
     for (let piso = -1; piso <= 4; piso++)
       for (let almacen = 0; almacen <= 3; almacen++)
         for (let requisito = 0; requisito <= 4; requisito++)
@@ -147,7 +150,7 @@ describe("decidirTalla — la tabla de decisión, una prueba por fila", () => {
             const a = decidirTalla(piso, almacen, requisito, pausa);
             expect(ACCIONES_PISO).toContain(a);
             expect(a === "mantener").toBe(piso >= requisito);
-            if (pausa) expect(a === "por_colgar" || a === "por_reponer").toBe(false);
+            if (pausa) expect(a === "por_colgar").toBe(false);
             if (esParaColgar(a)) expect(almacen).toBeGreaterThan(0);
             expect(pidePiso(a)).toBe(a !== "mantener" && a !== "pausa_sin_cuadre");
           }
@@ -155,23 +158,33 @@ describe("decidirTalla — la tabla de decisión, una prueba por fila", () => {
 });
 
 describe("requisitoDeTalla — cuántas debería tener colgadas", () => {
-  it("talla central sin ventas: el mínimo de Felipe (1)", () => {
-    expect(MINIMO_TALLA_CENTRAL).toBe(1);
+  it("talla central sin ventas: 1 por color (Felipe)", () => {
+    expect(REQUISITO_POR_COLOR).toBe(1);
     expect(requisitoDeTalla({ central: true, vendidasHoy: 0, vendidasAyer: 0, retirada: false })).toBe(1);
   });
   it("talla extrema sin ventas: nada (puede quedar en el almacén)", () => {
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, retirada: false })).toBe(0);
   });
-  it("lo vendido en un día manda si pide más: el mayor de ayer y hoy, sin sumarlos", () => {
+  it("lo vendido ayer u hoy pide 1 colgada, no tantas como se vendieron: basta 1 por color y se repone cuando se acaba", () => {
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 1, retirada: false })).toBe(1);
-    expect(requisitoDeTalla({ central: true, vendidasHoy: 1, vendidasAyer: 3, retirada: false })).toBe(3);
-    expect(requisitoDeTalla({ central: true, vendidasHoy: 2, vendidasAyer: 2, retirada: false })).toBe(2);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 5, vendidasAyer: 0, retirada: false })).toBe(1);
+    expect(requisitoDeTalla({ central: true, vendidasHoy: 1, vendidasAyer: 3, retirada: false })).toBe(1);
+    expect(requisitoDeTalla({ central: true, vendidasHoy: 2, vendidasAyer: 2, retirada: false })).toBe(1);
+  });
+  it("nunca pide más de 1, se venda lo que se venda", () => {
+    for (const central of [false, true])
+      for (let hoy = 0; hoy <= 6; hoy++)
+        for (let ayer = 0; ayer <= 6; ayer++)
+          for (let anotadas = 0; anotadas <= 3; anotadas++) {
+            const r = requisitoDeTalla({ central, vendidasHoy: hoy, vendidasAyer: ayer, anotadasRecientes: anotadas, retirada: false });
+            expect(r).toBe(central || hoy > 0 || ayer > 0 || anotadas > 0 ? REQUISITO_POR_COLOR : 0);
+          }
   });
   it("una talla retirada no pide nada, aunque se haya vendido", () => {
     expect(requisitoDeTalla({ central: true, vendidasHoy: 2, vendidasAyer: 2, retirada: true })).toBe(0);
     // Lo anotado a mano hoy o ayer con su categoría, talla y color pide 1 —no más: no dice qué modelo fue—.
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, anotadasRecientes: 3, retirada: false })).toBe(1);
-    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 2, anotadasRecientes: 1, retirada: false })).toBe(2);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 2, anotadasRecientes: 1, retirada: false })).toBe(1);
     expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, anotadasRecientes: 1, retirada: true })).toBe(0);
   });
 });
@@ -271,11 +284,18 @@ describe("planDelPiso — las escenas que motivaron el cambio", () => {
     expect(accion(planDelPiso(lectura([xl])), xl.varianteId)).toBe("por_colgar");
   });
 
-  it("Por reponer: queda en el piso menos de lo que se vendió en un día, y hay atrás", () => {
-    const m = talla({ talla: "M", pisoLibre: 1, almacenLibre: 3, vendidasAyer: 2 });
-    const plan = planDelPiso(lectura([m]));
-    expect(accion(plan, m.varianteId)).toBe("por_reponer");
-    expect(plan.porTalla.get(m.varianteId)?.requisito).toBe(2);
+  it("se repone cuando se acaba: se vendieron 2 M ayer y queda 1 colgada → Mantener; sin ninguna colgada → Por colgar", () => {
+    // Felipe, 2026-10-04: «en una tienda chica basta 1 por color». Antes, la que quedaba con 1 salía «Por reponer».
+    const queda = talla({ talla: "M", pisoLibre: 1, almacenLibre: 3, vendidasAyer: 2 });
+    const seAcabo = talla({ talla: "M", productoId: "p2", pisoLibre: 0, almacenLibre: 3, vendidasAyer: 2 });
+    const xlSeAcabo = talla({ talla: "XL", productoId: "p3", pisoLibre: 0, almacenLibre: 1, vendidasHoy: 3 });
+    const plan = planDelPiso(lectura([queda, seAcabo, xlSeAcabo]));
+    expect(plan.porTalla.get(queda.varianteId)).toMatchObject({ accion: "mantener", requisito: 1 });
+    expect(plan.porTalla.get(seAcabo.varianteId)).toMatchObject({ accion: "por_colgar", requisito: 1 });
+    // La extrema que se acabó también: lo vendido la pide, aunque el mínimo no.
+    expect(plan.porTalla.get(xlSeAcabo.varianteId)).toMatchObject({ accion: "por_colgar", requisito: 1 });
+    // Ordenadas por lo que más se vende: 3 hoy antes que 2 ayer; la que conserva una no entra.
+    expect(plan.listaDelDia).toEqual([xlSeAcabo.varianteId, seAcabo.varianteId]);
   });
 
   it("Sin stock atrás: la talla central sin nada en el piso ni atrás; es un hueco del mínimo en su categoría × talla × familia", () => {
@@ -311,20 +331,20 @@ describe("planDelPiso — las escenas que motivaron el cambio", () => {
 describe("planDelPiso — el piso sin cuadrar (ADR-0328, decisión 5)", () => {
   const tallas = () => [
     talla({ varianteId: "colgar", talla: "M", pisoLibre: 0, almacenLibre: 2 }),
-    talla({ varianteId: "reponer", talla: "S", pisoLibre: 1, almacenLibre: 2, vendidasAyer: 2 }),
+    talla({ varianteId: "vendida", talla: "S", pisoLibre: 0, almacenLibre: 2, vendidasAyer: 2 }),
     talla({ varianteId: "atras", talla: "L", pisoLibre: 0, almacenLibre: 0 }),
     talla({ varianteId: "ok", talla: "L", productoId: "p2", pisoLibre: 2, almacenLibre: 2 }),
   ];
   it("sin cuadre, lo que manda a bajar queda en pausa; «Mantener» y «Sin stock atrás» siguen (el cuadre no los cambia)", () => {
     const plan = planDelPiso(lectura(tallas(), [], { cuadradoEn: null }));
     expect(plan.enPausa).toBe(true);
-    expect(["colgar", "reponer", "atras", "ok"].map((id) => accion(plan, id))).toEqual(["pausa_sin_cuadre", "pausa_sin_cuadre", "sin_atras", "mantener"]);
+    expect(["colgar", "vendida", "atras", "ok"].map((id) => accion(plan, id))).toEqual(["pausa_sin_cuadre", "pausa_sin_cuadre", "sin_atras", "mantener"]);
     expect(plan.listaDelDia).toEqual([]);
   });
   it("con el piso cuadrado, la lista vuelve", () => {
     const plan = planDelPiso(lectura(tallas(), [], { cuadradoEn: "2026-10-03T20:10:00+00:00" }));
     expect(plan.enPausa).toBe(false);
-    expect(plan.listaDelDia).toEqual(["reponer", "colgar"]);
+    expect(plan.listaDelDia).toEqual(["vendida", "colgar"]);
   });
   it("no saber la fecha cuenta como NO cuadrado (falla cerrado): una lectura sin `cuadrado_en` pausa, no publica «Por colgar»", () => {
     // Es el caso de TRU hoy: 138 colgadas en el sistema contra 600–750 reales. Antes, sin fecha conocida no se pausaba nada y
@@ -340,12 +360,14 @@ describe("planDelPiso — el piso sin cuadrar (ADR-0328, decisión 5)", () => {
 });
 
 describe("planDelPiso — el orden de la lista del día", () => {
-  it("primero lo vendido ayer y hoy; luego lo que el piso no tiene; luego el ritmo de su categoría × talla × familia; luego modelo, color y talla", () => {
+  it("primero lo vendido ayer y hoy (de más a menos); luego lo que más se vende en su categoría × talla × familia; luego modelo, color y talla", () => {
     const tallas = [
       talla({ varianteId: "lento-colgar", referencia: "Polo B", productoId: "pb", talla: "S", familiaColor: "azul", pisoLibre: 0, almacenLibre: 1 }),
       talla({ varianteId: "rapido-colgar", referencia: "Polo C", productoId: "pc", talla: "M", pisoLibre: 0, almacenLibre: 1 }),
       talla({ varianteId: "vendida-ayer", referencia: "Polo Z", productoId: "pz", talla: "XL", pisoLibre: 0, almacenLibre: 1, vendidasAyer: 1 }),
-      talla({ varianteId: "vendida-2", referencia: "Polo Y", productoId: "py", talla: "L", pisoLibre: 1, almacenLibre: 1, vendidasHoy: 2 }),
+      talla({ varianteId: "vendida-2", referencia: "Polo Y", productoId: "py", talla: "L", pisoLibre: 0, almacenLibre: 1, vendidasHoy: 2 }),
+      // Se vendieron 3 y queda 1 colgada: no entra a la lista (basta 1 por color, se repone cuando se acaba).
+      talla({ varianteId: "queda-una", referencia: "Polo X", productoId: "px", talla: "M", pisoLibre: 1, almacenLibre: 4, vendidasHoy: 3 }),
       talla({ varianteId: "a-empate", referencia: "Polo A", productoId: "pa", talla: "L", familiaColor: "azul", pisoLibre: 0, almacenLibre: 1 }),
       talla({ varianteId: "a-empate-s", referencia: "Polo A", productoId: "pa", talla: "S", familiaColor: "verde", pisoLibre: 0, almacenLibre: 1 }),
     ];
@@ -424,7 +446,7 @@ describe("paraColgarHoy — la lista del día por percha (lo que leen el Inicio 
   const tallas = [
     talla({ varianteId: "a-l", productoId: "pa", referencia: "Polo A", talla: "L", pisoLibre: 0, almacenLibre: 1 }),
     talla({ varianteId: "a-s", productoId: "pa", referencia: "Polo A", talla: "S", pisoLibre: 0, almacenLibre: 1 }),
-    talla({ varianteId: "b-m", productoId: "pb", referencia: "Polo B", talla: "M", pisoLibre: 1, almacenLibre: 2, vendidasAyer: 2 }),
+    talla({ varianteId: "b-m", productoId: "pb", referencia: "Polo B", talla: "M", pisoLibre: 0, almacenLibre: 2, vendidasAyer: 2 }),
     talla({ varianteId: "c-m", productoId: "pc", referencia: "Polo C", talla: "M", pisoLibre: 3, almacenLibre: 2 }),
   ];
   it("agrupa por percha en el orden de la lista (lo vendido ayer primero) y deja cada percha con sus tallas en curva", () => {
@@ -433,7 +455,7 @@ describe("paraColgarHoy — la lista del día por percha (lo que leen el Inicio 
     expect(hoy.enPausa).toBe(false);
     expect(hoy.tallas).toBe(3);
     expect(hoy.prendas.map((p) => [p.referencia, p.tallas.map((t) => `${t.talla}:${t.accion}`)])).toEqual([
-      ["Polo B", ["M:por_reponer"]],
+      ["Polo B", ["M:por_colgar"]],
       ["Polo A", ["S:por_colgar", "L:por_colgar"]],
     ]);
   });

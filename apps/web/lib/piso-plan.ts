@@ -13,6 +13,11 @@
        categoría, talla y color, y las pone primero.
      · Mínimo por modelo colgado: 1 por talla y COLOR, solo en las tallas centrales (S, M, L; 28, 30, 32; «Estándar» y «Única»
        cuentan como la única talla de su modelo). La talla extrema puede quedar en el almacén.
+     · Se repone CUANDO SE ACABA lo colgado de esa talla y color, ordenado por lo que más se vende (ADR-0328, «Actualización
+       2026-10-04 (tarde)»): basta 1 por color también para lo que se vendió. Lo vendido decide SI la talla se cuelga, no
+       CUÁNTAS. Hasta ese día, «Por reponer» era «queda en el piso menos de lo que se vendió en un día»; con 1 por color,
+       reponer y colgar son el mismo hecho (no queda ninguna colgada y hay atrás) y la misma tarea, así que queda UNA palabra:
+       «Por colgar» (el verbo de lo que la asesora hace con la prenda en la mano).
      · El mínimo nunca genera «pedir este modelo» (los modelos no se repiten): lo que falta se suma por categoría × talla ×
        familia de color, y esa es la señal para el Taller.
      · Velocidad = ventas escaneadas + ventas anotadas «sin registrar» que siguen pendientes, en 14 días, por sede; cada cifra
@@ -24,7 +29,7 @@
 
    CONTRATO (Liskov: lo que promete y lo que asume).
      PROMETE: `planDelPiso` es PURA y TOTAL: para cada talla de una sede que separa piso y almacén devuelve UNA acción
-       (por_colgar · por_reponer · sin_atras · mantener · pausa_sin_cuadre), la lista del día en orden y la lista «se vendió
+       (por_colgar · sin_atras · mantener · pausa_sin_cuadre), la lista del día en orden y la lista «se vendió
        rápido y falta». Misma entrada → misma salida: sin red, sin reloj (el «hoy» viene en la lectura), sin azar.
      ASUME: la lectura de `retail.fn_piso_plan_lectura` (migración 20261004213000): lo LIBRE en piso y almacén (neto de
        apartadas, sin Cuarentena; la cifra de ADR-0270), cada venta contada una sola vez, en el día en que se cobró, como lo
@@ -44,9 +49,11 @@ import { compararTallas, tipoDeTalla } from "./tallas";
 /** Los días que mira la lista del día (Felipe, 2026-10-04): 14, hoy incluido. La lectura SQL usa la misma ventana. */
 export const DIAS_VENTANA = 14;
 
-/** Prendas colgadas que pide cada talla central de un modelo en un color (Felipe: «me basta con 1 por color porque mi tienda
- *  es pequeña»). Las tallas que no son centrales no piden nada por el mínimo. */
-export const MINIMO_TALLA_CENTRAL = 1;
+/** Prendas colgadas que pide una talla de un modelo en un color cuando la necesita en el piso (Felipe: «me basta con 1 por color
+ *  porque mi tienda es pequeña»): la talla central siempre, la extrema solo si se vendió ayer u hoy. Es también el TOPE: lo
+ *  vendido nunca pide más de una (se repone cuando se acaba, ADR-0328 «Actualización 2026-10-04 (tarde)»). El nombre lleva
+ *  «requisito» a propósito: `lib/piso-plan-umbral.test.ts` reconoce por el nombre un umbral de piso escrito fuera de aquí. */
+export const REQUISITO_POR_COLOR = 1;
 
 /** «Se vendió rápido y falta»: lo que hay en la sede no alcanza para la próxima ventana al ritmo de la última. Es la misma
  *  ventana de 14 días, no un número nuevo. */
@@ -92,18 +99,22 @@ export function esTallaCentral(talla: string | null | undefined, curvaDeCategori
 
 // ── La decisión de UNA talla (tabla de decisión: una prueba por fila en piso-plan.test.ts) ─────────────────────
 
-export const ACCIONES_PISO = ["por_colgar", "por_reponer", "sin_atras", "mantener", "pausa_sin_cuadre"] as const;
+export const ACCIONES_PISO = ["por_colgar", "sin_atras", "mantener", "pausa_sin_cuadre"] as const;
 export type AccionPiso = (typeof ACCIONES_PISO)[number];
 
 /**
  * Qué pide hoy una talla, con lo LIBRE en piso y almacén y su requisito (cuántas debería tener colgadas):
  *
- *   | piso ≥ requisito | almacén > 0 | piso sin cuadrar | piso = 0 | → acción           |
- *   |        sí        |      —      |        —         |    —     | mantener           |
- *   |        no        |     no      |        —         |    —     | sin_atras          |
- *   |        no        |     sí      |        sí        |    —     | pausa_sin_cuadre   |
- *   |        no        |     sí      |        no        |    sí    | por_colgar         |
- *   |        no        |     sí      |        no        |    no    | por_reponer        |
+ *   | piso ≥ requisito | almacén > 0 | piso sin cuadrar | → acción           |
+ *   |        sí        |      —      |        —         | mantener           |
+ *   |        no        |     no      |        —         | sin_atras          |
+ *   |        no        |     sí      |        sí        | pausa_sin_cuadre   |
+ *   |        no        |     sí      |        no        | por_colgar         |
+ *
+ * Con 1 por color (`REQUISITO_POR_COLOR`), «falta» es «no queda ninguna colgada»: no hay una fila para «queda poca», porque basta
+ * una. Hasta el 2026-10-04 la había («Por reponer»: queda alguna, pero menos de lo que se vendió en un día) y Felipe la quitó: se
+ * repone cuando se acaba. La tabla sigue siendo total para cualquier requisito: si alguna vez pidiera más de una, lo que falta y
+ * se puede bajar sigue siendo «por colgar».
  *
  * La pausa cubre EXACTAMENTE lo que el cuadre puede cambiar: el cuadre solo pasa prendas del almacén al piso (ADR-0328,
  * decisión 4), así que «Mantener» (ya hay suficiente colgado) y «Sin stock atrás» (atrás no hay nada) siguen siendo verdad sin
@@ -113,27 +124,29 @@ export function decidirTalla(piso: number, almacen: number, requisito: number, e
   if (piso >= requisito) return "mantener";
   if (almacen <= 0) return "sin_atras";
   if (enPausa) return "pausa_sin_cuadre";
-  return piso <= 0 ? "por_colgar" : "por_reponer";
+  return "por_colgar";
 }
 
 /** ¿La acción manda a alguien al almacén a bajar algo hoy? (La lista del día y el «Cuelga N» del Inicio son esto.) */
 export function esParaColgar(accion: AccionPiso | null | undefined): boolean {
-  return accion === "por_colgar" || accion === "por_reponer";
+  return accion === "por_colgar";
 }
 
 /** ¿Al piso le falta algo en esta talla, se pueda resolver en la tienda o no? La pausa NO cuenta: sin el piso cuadrado no se
  *  sabe si falta (puede estar colgada y el sistema creerla guardada), y una lista que la incluyera mandaría a bajar lo que ya
  *  cuelga — lo que ADR-0328 (decisión 5) descartó. */
 export function pidePiso(accion: AccionPiso | null | undefined): boolean {
-  return accion === "por_colgar" || accion === "por_reponer" || accion === "sin_atras";
+  return accion === "por_colgar" || accion === "sin_atras";
 }
 
 /**
- * Cuántas debería tener colgadas una talla hoy: el mínimo (1 si es central), lo que se vendió de ESA prenda en un día —ayer u
- * hoy, el mayor— o 1 si hoy o ayer se anotó a mano una venta «sin registrar» de su categoría, talla y color (`anotadasRecientes`),
- * lo que pida más. Así lo que se vendió ayer se vuelve a colgar aunque sea una talla extrema (el reloj rápido), también cuando la
- * caja lo anotó a mano, y una talla central nunca queda sin ninguna. La anotada pide 1 y no más: no dice QUÉ modelo se vendió, y
- * el mínimo nunca nombra un modelo (ADR-0329 act. 9). Una talla retirada no pide nada: no se cuelga lo que ya no se vende.
+ * Cuántas debería tener colgadas una talla hoy: 1 por color (`REQUISITO_POR_COLOR`) si es central, si ayer u hoy se vendió ESA
+ * prenda, o si hoy o ayer se anotó a mano una venta «sin registrar» de su categoría, talla y color (`anotadasRecientes`); si no,
+ * 0. Así lo que se vendió ayer se vuelve a colgar aunque sea una talla extrema (el reloj rápido), también cuando la caja lo anotó
+ * a mano, y una talla central nunca queda sin ninguna. Lo vendido decide SI se cuelga, nunca CUÁNTAS: vender 3 M ayer no pide 3
+ * colgadas, pide que no se acabe la M (Felipe, 2026-10-04: «me basta con 1 por color porque mi tienda es pequeña»; se repone
+ * cuando se acaba). La anotada tampoco nombra un modelo (ADR-0329 act. 9). Una talla retirada no pide nada: no se cuelga lo que
+ * ya no se vende.
  */
 export function requisitoDeTalla(t: {
   central: boolean;
@@ -143,7 +156,8 @@ export function requisitoDeTalla(t: {
   retirada: boolean;
 }): number {
   if (t.retirada) return 0;
-  return Math.max(t.central ? MINIMO_TALLA_CENTRAL : 0, t.vendidasHoy, t.vendidasAyer, Math.min(1, t.anotadasRecientes ?? 0));
+  const laPide = t.central || t.vendidasHoy > 0 || t.vendidasAyer > 0 || (t.anotadasRecientes ?? 0) > 0;
+  return laPide ? REQUISITO_POR_COLOR : 0;
 }
 
 /** ¿Qué pasará con la talla si se suben `n` del piso al almacén? La ventana «Subir prenda» lo pregunta ANTES de confirmar, con
@@ -269,9 +283,9 @@ export type PlanDelPiso = {
   dias: number;
   /** varianteId → decisión. Vacío donde la sede no separa piso y almacén (Taller): ahí no hay «Hoy». */
   porTalla: Map<string, PisoDeTalla>;
-  /** Las tallas para colgar o reponer hoy, en orden: lo vendido ayer y hoy primero (escaneado de esa prenda o anotado a mano con
-   *  su categoría, talla y color), luego lo que el piso no tiene, luego el ritmo de su categoría × talla × familia, y al final
-   *  modelo, color y talla (estable). */
+  /** Las tallas para colgar hoy (en el piso no queda ninguna y atrás hay), en orden: lo vendido ayer y hoy primero, de lo que
+   *  más se vendió a lo que menos (escaneado de esa prenda o anotado a mano con su categoría, talla y color), luego lo que más
+   *  se vende en su categoría × talla × familia, y al final modelo, color y talla (estable). */
   listaDelDia: string[];
   porAtributo: FilaAtributo[];
   /** Lo que se vendió y no alcanza para la próxima ventana o tiene huecos en el mínimo, de lo que más rápido se vende. */
@@ -384,7 +398,6 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
       const tb = porId.get(ib)!;
       return (
         b.vendidasRecientes + b.anotadasRecientes - (a.vendidasRecientes + a.anotadasRecientes) ||
-        Number(b.accion === "por_colgar") - Number(a.accion === "por_colgar") ||
         b.ritmoAtributo - a.ritmoAtributo ||
         ta.referencia.localeCompare(tb.referencia, "es") ||
         ta.productoId.localeCompare(tb.productoId) ||
@@ -456,7 +469,7 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
 
 // ── La lista del día por percha (lo que leen el Inicio y, después, «Para hoy») ─────────────────────────────────
 
-/** Una percha (un modelo en un color) con las tallas que hay que colgar o reponer hoy, en su curva. */
+/** Una percha (un modelo en un color) con las tallas que hay que colgar hoy, en su curva. */
 export type PrendaParaColgar = {
   clave: string;
   productoId: string;

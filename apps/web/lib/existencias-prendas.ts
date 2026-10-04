@@ -35,14 +35,15 @@ export type FilaPrenda = Pick<
 
 /** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
  *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma
- *  tarjeta. Lo único que agrega es «sin_stock»: no hay nada libre en la sede (ni colgado ni guardado). */
-export type EstadoTalla = "por_colgar" | "reponer" | "sin_stock" | "normal";
+ *  tarjeta. Lo único que agrega es «sin_stock»: no hay nada libre en la sede (ni colgado ni guardado). «sin_atras» se llamó
+ *  «reponer» mientras existió «Por reponer», que se fundió en «Por colgar» (se repone cuando se acaba, basta 1 por color). */
+export type EstadoTalla = "por_colgar" | "sin_atras" | "sin_stock" | "normal";
 
 export function estadoTalla(f: FilaPrenda): EstadoTalla {
   if (f.disponible <= 0) return "sin_stock";
   const hoy = hoyDeTalla(f);
   if (hoy === "por_colgar") return "por_colgar";
-  if (hoy === "por_reponer" || hoy === "sin_stock_atras") return "reponer";
+  if (hoy === "sin_stock_atras") return "sin_atras";
   return "normal";
 }
 
@@ -169,14 +170,12 @@ export function urlEtiquetas(filas: readonly FilaPrenda[]): string | null {
   return `/etiquetas-de-precio?variantes=${filas.map((f) => f.varianteId).join(",")}`;
 }
 
-/** Con qué talla se abre «Reponer prenda» (tarea #7): una que SE PUEDA bajar, y entre ellas la que el motor pide primero —por
- *  colgar, luego por reponer—. `null` solo si ninguna tiene algo libre atrás: el botón que dice «No hay nada libre en el almacén»
- *  dice la verdad. Antes podía abrir una talla que pedía reponer sin nada en el almacén, y el botón no llevaba a la acción. */
+/** Con qué talla se abre «Reponer prenda» (tarea #7): una que SE PUEDA bajar, y entre ellas la que el motor pide —por colgar—.
+ *  `null` solo si ninguna tiene algo libre atrás: el botón que dice «No hay nada libre en el almacén» dice la verdad. Antes podía
+ *  abrir una talla que pedía reponer sin nada en el almacén, y el botón no llevaba a la acción. */
 export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F | null {
   const bajables = tallas.filter(sePuedeBajar);
-  return (
-    bajables.find((f) => hoyDeTalla(f) === "por_colgar") ?? bajables.find((f) => hoyDeTalla(f) === "por_reponer") ?? bajables[0] ?? null
-  );
+  return bajables.find((f) => hoyDeTalla(f) === "por_colgar") ?? bajables[0] ?? null;
 }
 
 /** Normaliza un código leído (pistola, cámara o tipeo) para compararlo: sin espacios, sin mayúsculas y con el guion que la
@@ -199,8 +198,8 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
 
 /** «Qué hacer» de una prenda (un color de un modelo): SOLO el diagnóstico, nunca un botón —la acción se hace en el cajón—. Es el
  *  caso de «Hoy» (`lib/existencias-hoy.ts`) más urgente entre sus tallas y cuántas tallas están en él, con las MISMAS palabras
- *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (el cliente no la ve y se arregla hoy), luego «Por reponer» y
- *  «Sin stock atrás» (no se arregla en la tienda), luego «En pausa» (espera el cuadre del piso); si ninguna pide nada,
+ *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (el cliente no la ve y se arregla hoy), luego «Sin stock atrás»
+ *  (no se arregla en la tienda), luego «En pausa» (espera el cuadre del piso); si ninguna pide nada,
  *  «Mantener». Lo usan la tarjeta, la lista «Por prenda» y el cajón: antes decían «sin stock en piso», «Faltan tallas en piso» y
  *  «Piso al día» para lo mismo. `null` si de NINGUNA talla se sabe nada (el motor no respondió, o la sede no separa piso y
  *  almacén): un «Mantener» ahí afirmaría que el piso está al día sin saberlo. */
@@ -208,7 +207,7 @@ export type QueHacerPrenda = { tipo: EstadoHoy; n: number };
 
 export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda | null {
   const estados = tallas.map(estadoHoyDeTalla);
-  for (const tipo of ["por_colgar", "por_reponer", "sin_stock_atras", "en_pausa"] as const) {
+  for (const tipo of ["por_colgar", "sin_stock_atras", "en_pausa"] as const) {
     const n = estados.filter((e) => e === tipo).length;
     if (n > 0) return { tipo, n };
   }

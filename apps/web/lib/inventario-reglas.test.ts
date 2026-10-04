@@ -7,7 +7,7 @@ import {
   sumarCantidades,
   RETIRO_NO_ES_BAJA,
 } from "./inventario-reglas";
-import { decidirTalla, MINIMO_TALLA_CENTRAL, quedaraPidiendoColgar } from "./piso-plan";
+import { decidirTalla, quedaraPidiendoColgar, REQUISITO_POR_COLOR } from "./piso-plan";
 
 // La miniatura de una prenda: Existencias y Conteo tienen que elegir LA MISMA foto
 // para la misma prenda, así que la regla vive en un solo lugar y se prueba acá.
@@ -74,7 +74,7 @@ describe("lo disponible que llega al motor del piso (sumarCantidades → decidir
     variante_id, cantidad, cantidad_apartada, sububicacion: tipo === null ? null : { tipo },
   });
   const cantidadesDe = (...filas: ReturnType<typeof fila>[]) => sumarCantidades(filas).get("v1")!;
-  const central = (c: ReturnType<typeof cantidadesDe>) => decidirTalla(c.pisoDisponible!, c.almacenDisponible!, MINIMO_TALLA_CENTRAL, false);
+  const central = (c: ReturnType<typeof cantidadesDe>) => decidirTalla(c.pisoDisponible!, c.almacenDisponible!, REQUISITO_POR_COLOR, false);
 
   it("solo en el almacén, nada colgado: por colgar — tenga o no una fila de piso en 0", () => {
     expect(central(cantidadesDe(fila("v1", "almacen_tienda", 3)))).toBe("por_colgar");

@@ -284,13 +284,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   hoy y ayer por categoría × talla × color (el reloj rápido de lo que no tiene prenda), las curvas de
   tallas y la fecha del último cuadre del piso —`cuadres_piso`, actividad 3; sin ella, lo que manda a bajar queda «En pausa»,
   ADR-0328 decisión 5—; solo para quien opera esa sede; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro
-  `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · por reponer · sin stock atrás · mantener, más «En pausa»—, la lista del
+  `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · sin stock atrás · mantener, más «En pausa»—, la lista del
   día y «se vendió rápido y falta»; la
   decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
   umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
   `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, «Hoy» de cada talla con las
-  cuatro palabras de ADR-0326 en `lib/existencias-hoy.ts`, leyenda; primera columna «Producto / variante» =
+  palabras de ADR-0326 en `lib/existencias-hoy.ts` (tres: «Por reponer» se fundió en «Por colgar»), leyenda; primera columna
+  «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer prenda» (tarjeta y cajón) abre
   `ReponerPrendaModal.tsx` (ADR-0295 y ADR-0320: el MODELO entero —una fila por color, una columna por talla, `MatrizMover.tsx`— y UNA llamada a `bajar_al_piso`, todo o nada, con
   marca) y «Subir prenda» (entre «Reponer prenda» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
@@ -326,7 +327,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   **Barra de filtros con la estructura de Productos (2026-10-03, ADR-0326):** `components/FiltrosExistencias.tsx` (piezas de
   `ui/FiltrosPildora`; no es `FiltrosProductos`) lee y escribe la URL con `components/useFiltrosExistencias.ts` (`history.pushState`,
   sin navegar ni pedir la página). El filtro completo, los chips y los números de cada opción (disyuntivos, por producto) son puros en
-  `lib/existencias-filtros.ts`; «Hoy» (Por colgar · Por reponer · Sin stock atrás · Mantener) en `lib/existencias-hoy.ts`, que también
+  `lib/existencias-filtros.ts`; «Hoy» (Por colgar · Sin stock atrás · Mantener) en `lib/existencias-hoy.ts`, que también
   leen la pastilla de la tarjeta, `ExistenciasPorPrenda`, el cajón y la columna «Hoy» de la tabla. La familia de cada color llega de
   `lib/existencias-catalogo.ts:getColoresParaExistencias` (tolerante) + `conFamiliaDeColor`.
   **Prioridades de hoy (2026-09-29):** las cuatro tarjetas van en este orden —Resumen disponible, «Reponer a piso hoy»

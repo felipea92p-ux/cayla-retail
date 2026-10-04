@@ -110,7 +110,7 @@ export default async function InventarioPage({
     ? await getRitmoRecientePorVariante(ubicacionActivaId, varianteIds, pisoPorVariante)
     : { datos: null, fallo: null };
 
-  // La decisión de cada talla (por colgar · por reponer · sin stock atrás · mantener) es la del motor del piso: la misma que lee el
+  // La decisión de cada talla (por colgar · sin stock atrás · mantener) es la del motor del piso: la misma que lee el
   // Inicio. Sin plan (la lectura no respondió), ninguna fila trae decisión y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
   const planPiso: ReadonlyMap<string, PisoDeTalla> = plan?.porTalla ?? new Map();
   const planFallo = vende && plan === null ? "«Hoy» no se pudo calcular ahora: la columna dice N/D. Lo demás de esta pantalla sí está al día." : null;

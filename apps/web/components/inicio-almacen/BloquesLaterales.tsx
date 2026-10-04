@@ -170,7 +170,7 @@ export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias 
                 </div>
                 <span className="ia-tl">
                   {p.tallas.slice(0, 5).map((t) => (
-                    <span key={t.talla} className={t.sinPiso ? "ia-p" : ""} title={t.sinPiso ? "No queda ninguna en el piso" : "Queda poco en el piso"}>
+                    <span key={t.talla} className="ia-p" title="No queda ninguna en el piso">
                       {t.talla}
                     </span>
                   ))}
