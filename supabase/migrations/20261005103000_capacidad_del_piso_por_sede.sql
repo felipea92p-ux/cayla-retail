@@ -92,6 +92,19 @@
 --   → Tienda AQP 60 × 30 = 1800 provisional · Tienda LIM 6 × 30 = 180 provisional · Tienda TRU 20 × 30 = 600 contada.
 --   Si falta una fila, esa tienda tiene otro nombre: se agrega con un `insert` igual al de la siembra, con su `id`.
 --
+-- CUANDO AQP O LIM SE CUENTEN, antes de que exista el Plan del piso (actividad 12). NUNCA con un `update` directo a la tabla:
+-- se salta la firma, el historial y la versión. En el SQL Editor no hay sesión, así que `fijar_capacidad_piso` responde 42501
+-- «Solo el líder…»; se le da la sesión de un líder DENTRO de una transacción (probado en una base local: guarda, sube la versión
+-- y anota el historial):
+--   begin;
+--   select set_config('request.jwt.claim.sub', '<auth_user_id del líder>', true),
+--          set_config('request.jwt.claims', '{"sub":"<auth_user_id del líder>","role":"authenticated"}', true);
+--   select retail.fijar_capacidad_piso(u.id, 60, <prendas por m² contadas>, date '<día del conteo>', c.version)
+--     from retail.ubicaciones u join retail.capacidad_piso c on c.ubicacion_id = u.id where u.nombre = 'Tienda AQP';
+--   commit;
+--   (El `auth_user_id` del líder: `select p.auth_user_id, p.nombres from public.personas p join retail.colaboradores c on
+--   c.persona_id = p.id where c.rol = 'lider' and c.estado = 'activo'`. Densidad = prendas contadas ÷ m² de sala.)
+--
 -- SE ROMPE SI: AQP (60 m², más pasillo) tiene bastante menos densidad que TRU y se le deja el 30 por m² como si fuera
 -- medido (por eso sale «provisional» hasta que el líder la cuente); si una tienda pasa a tener más de 150 prendas por m²
 -- (repisas de doblado muy densas: hay que subir el tope); o si se crea una tienda nueva y nadie fija su capacidad (no se

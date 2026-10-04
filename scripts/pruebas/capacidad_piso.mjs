@@ -13,7 +13,8 @@
  *     cuadre o sin la tabla de cuadres de la actividad 3, y con cuadres trae el ÚLTIMO de ESA sede.
  *   · LA ESCRITURA. Solo el líder; firma la persona y deja el antes y el después en `configuracion_historial` (que también
  *     anota la Actividad); la versión sube; reenviar lo mismo devuelve `sin_cambios` sin escribir ni anotar; con una versión
- *     vieja y otros números, PT409 que dice cómo quedó; la primera vez se pide versión 0; valida rango, fecha y sede.
+ *     vieja y otros números, PT409 que dice cómo quedó; la primera vez se pide versión 0; valida rango, fecha (hoy en Lima sí,
+ *     mañana no) y sede (ni el Taller, ni una inexistente, ni una desactivada).
  *   · EL ESQUEMA. Ni por fuera de la función: capacidad que no es m² × densidad, m² o densidad fuera de rango, capacidad < 1,
  *     el Taller con capacidad, una versión fijada a mano.
  *
@@ -323,6 +324,24 @@ caso(
     ].join("\n")
   );
 }
+caso(
+  "una tienda DESACTIVADA no recibe capacidad (como una que no existe), y nada se escribe",
+  `insert into retail.ubicaciones (nombre, tipo, activo) values ('Sede apagada', 'tienda', false);
+   select id as apagada from retail.ubicaciones where nombre = 'Sede apagada' \\gset\n` +
+    como(FELIPE) + `select split_part(${fijar("apagada", 10, 30, null, 0).replace(/^select /, "").replace(/;$/, "")}, '|', 2);
+   select count(*) from retail.capacidad_piso where ubicacion_id = :'apagada';`,
+  "capacidad_sede_inexistente\n0"
+);
+// «No futura» es el día de Lima (`fn_hoy_lima`), no el del servidor. Este caso fija el contrato; que la función no use
+// `current_date` (UTC en Supabase) solo se distingue entre las 19:00 y las 24:00 de Lima: para cazarlo, correr con el reloj
+// falso de la receta del Postgres desechable (memoria «postgres-desechable-sin-docker»).
+caso(
+  "la fecha del conteo puede ser hoy en Lima, no mañana",
+  como(FELIPE) +
+    `select split_part(pg_temp.intento(format('select retail.fijar_capacidad_piso(%L, 20, 30, %L::date, 1)', :'tru', retail.fn_hoy_lima() + 1)), '|', 2);
+     select retail.fijar_capacidad_piso(:'tru', 20, 30, retail.fn_hoy_lima(), 1) ->> 'version';`,
+  "capacidad_fecha_conteo\n2"
+);
 caso(
   "por la vía de PostgREST (rol authenticated) el líder guarda; la tabla directo, no",
   como(FELIPE) + `set local role authenticated;\n` + fijarDevuelve("tru", 21, 30, "2026-09-30", 1) + "\n" +
