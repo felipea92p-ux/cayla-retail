@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ClipboardCheck, PackageOpen, ShoppingBag } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -11,9 +12,10 @@ import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
-import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
-import { conEstadoProducto, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
+import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
+import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
+import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
@@ -48,7 +50,7 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -78,6 +80,8 @@ export default async function InventarioPage({
     // La marca de cada prenda y qué productos del catálogo esta sede no tiene (2026-09-26): para buscar y filtrar por marca y
     // para decir «existe, pero aquí no lo han recibido» en vez de callar. Dato secundario: si falla, sin marca y con aviso.
     getCatalogoParaExistencias(),
+    // La familia de cada color, para el filtro «Color» agrupado por familia (2026-10-03). Secundario: si falla, lista plana.
+    getColoresParaExistencias(),
   ]);
 
   // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
@@ -102,17 +106,21 @@ export default async function InventarioPage({
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
   // decisión de reponer (que no depende de la RPC) sigue firme. La marca (2026-09-26) se suma
   // encima: si el catálogo no respondió, cada fila queda sin marca y el panel lo avisa.
-  const stock = conEstadoProducto(
-    conMarca(
-      stockBase.map((f) => ({
-        ...f,
-        ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
-        coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-        accionHoy: accionHoy.get(f.varianteId) ?? null,
-      })),
+  // La familia de cada color (2026-10-03) va igual: sin ella, el filtro de color queda como lista plana.
+  const stock = conFamiliaDeColor(
+    conEstadoProducto(
+      conMarca(
+        stockBase.map((f) => ({
+          ...f,
+          ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
+          coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
+          accionHoy: accionHoy.get(f.varianteId) ?? null,
+        })),
+        catalogo.productos
+      ),
       catalogo.productos
     ),
-    catalogo.productos
+    colores
   );
   const sinStock = productosSinStockEnSede(catalogo.productos, stockBase);
   // «Reponer a piso hoy» (tarjeta y filtro) cuenta por «Acción hoy» — MISMA fuente que la columna
@@ -143,6 +151,10 @@ export default async function InventarioPage({
   // La foto es del momento en que se cargó: la app no sincroniza en segundo
   // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
+
+  // Si el panel de filtros entra abierto o cerrado en la computadora: lo que este equipo dejó la última vez (cookie propia de
+  // Existencias, la lee el servidor para que la primera pintura no salte).
+  const panelFiltros = leerPanelFiltros((await cookies()).get(COOKIE_PANEL_FILTROS_EXISTENCIAS)?.value);
 
   const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
@@ -246,6 +258,8 @@ export default async function InventarioPage({
         puedeBajarAlPiso={puedeBajarAlPiso}
         veApartados={veModulo(persona, "apartados")}
         esTienda={vende}
+        panelFiltros={panelFiltros}
+        coloresCatalogo={colores}
       />
     </div>
   );

@@ -9,12 +9,13 @@ import { describe, expect, it } from "vitest";
 //
 // Contrato. PROMETE: que `AppShell` conserva esa regla; que el marcador vive en el Inicio de almacén; que ninguna otra pantalla o
 // componente lo escribe (una pantalla nueva que necesite ancho completo lo decide con Felipe y lo agrega acá a propósito); y que
-// «/» no entró a `SIN_TOPE_DE_ANCHO`. NO PROMETE: que el diseño se vea bien a cada ancho (eso se mira en el navegador: 1920, 2560,
+// «/» no entró a `SIN_TOPE_DE_ANCHO`. El Observatorio (el Inicio del Admin, ADR-0322) entró así el 2026-10-03: Felipe pidió que el
+// mapa llene la pantalla. NO PROMETE: que el diseño se vea bien a cada ancho (eso se mira en el navegador: 1920, 2560,
 // 3840, 1280, 768 y 375 px).
 
 const RAIZ = join(__dirname, "..");
 const MARCADOR = "data-ancho-completo";
-const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx"];
+const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx"];
 
 function archivos(dir: string): string[] {
   return readdirSync(dir).flatMap((nombre) => {
@@ -38,7 +39,7 @@ describe("ancho completo del Inicio de almacén", () => {
     expect(lista.split(",").map((r) => r.trim().replace(/"/g, ""))).not.toContain("/");
   });
 
-  it("solo el Inicio de almacén escribe el marcador", () => {
+  it("solo el Inicio de almacén y el Observatorio escriben el marcador", () => {
     const quienes = archivos(RAIZ)
       .filter((f) => readFileSync(f, "utf8").includes(MARCADOR))
       .map((f) => f.slice(RAIZ.length + 1).replaceAll("\\", "/"))
@@ -47,8 +48,10 @@ describe("ancho completo del Inicio de almacén", () => {
     expect(quienes.sort()).toEqual([...QUIEN_PIDE_ANCHO_COMPLETO].sort());
   });
 
-  it("el Inicio de almacén lo escribe como atributo de un elemento, no en un comentario", () => {
-    const inicio = readFileSync(join(RAIZ, QUIEN_PIDE_ANCHO_COMPLETO[0]!), "utf8");
-    expect(inicio).toMatch(/<span hidden data-ancho-completo \/>/);
+  it("cada Inicio lo escribe como atributo de un elemento, no en un comentario", () => {
+    for (const archivo of QUIEN_PIDE_ANCHO_COMPLETO) {
+      const inicio = readFileSync(join(RAIZ, archivo), "utf8");
+      expect(inicio).toMatch(/<span hidden data-ancho-completo \/>/);
+    }
   });
 });

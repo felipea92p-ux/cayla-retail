@@ -5549,6 +5549,10 @@ export type Database = {
         Args: { p_id: string; p_motivo: string; p_anonimizar?: boolean; p_version_esperada?: number }
         Returns: number
       }
+      agregar_celular_clienta: {
+        Args: { p_id: string; p_celular: string }
+        Returns: boolean
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string
@@ -6138,6 +6142,12 @@ export type Database = {
           inicio: string
         }[]
       }
+      fn_observatorio: { Args: { p_dias?: number }; Returns: Json }
+      fn_observatorio_tienda: {
+        Args: { p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_observatorio_turno: { Args: { p_ubicacion_id: string }; Returns: Json }
       fn_ocurrencia_temporada: {
         Args: { p_fecha: string; p_temporada: string }
         Returns: { desde: string; hasta: string | null }[]
