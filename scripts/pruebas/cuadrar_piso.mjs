@@ -586,10 +586,21 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'hint',
   "cuadre_almacen_movido,t,t,t"
 );
 caso(
-  "C7 · la hora del escaneo en el futuro o de hace más de 3 días → cuadre_escaneo_invalido",
+  // Un minuto en el futuro: antes la función lo dejaba pasar y el esquema lo rechazaba con un error crudo en inglés
+  // (cuadres_piso_escaneo_antes, sin pista) que la pantalla mostraba tal cual (revisión adversarial).
+  "C7 · la hora del escaneo en el futuro (aunque sea un minuto) o de hace más de 3 días → cuadre_escaneo_invalido, con su pista",
   `${sesion(FELIPE)}${COMO_API}select ${cuadrar(ESCANEO, { desde: "now() + interval '1 hour'" })};
+select ${cuadrar(ESCANEO, { desde: "now() + interval '1 minute'", tok: ":'tok3'" })};
 select ${cuadrar(ESCANEO, { desde: "now() - interval '4 days'", tok: ":'tok2'" })};`,
-  (l) => error(l.at(-2), "cuadre_escaneo_invalido") && error(l.at(-1), "cuadre_escaneo_invalido")
+  (l) => error(l.at(-3), "cuadre_escaneo_invalido") && error(l.at(-2), "cuadre_escaneo_invalido") && error(l.at(-1), "cuadre_escaneo_invalido")
+);
+caso(
+  // La cuenta se toma ANTES de mirar el libro (revisión adversarial): lo confirmado después de la cuenta lo atrapa el
+  // chequeo; al revés, una recepción de una prenda nueva para la sede entre el chequeo y la cuenta pasaba al piso.
+  "C7 · el orden: la cuenta (fn_cuadre_piso_vista) va antes del chequeo de lo que se movió en el almacén",
+  `select position('fn_cuadre_piso_vista(' in d) < position('m.created_at > p_escaneo_desde' in d)
+     from (select pg_get_functiondef('retail.cuadrar_piso(uuid, jsonb, timestamptz, text, uuid)'::regprocedure) as d) x;`,
+  "t"
 );
 caso(
   "C7 · otra persona cuadró la sede después de que empezaste a escanear → cuadre_ya_hecho, con lo que hizo la otra en el detail",

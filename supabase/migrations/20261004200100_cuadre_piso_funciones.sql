@@ -31,8 +31,8 @@
 --     hint `cuadre_solo_lider`; escanear lo puede cualquiera que vea Existencias, confirmar no). Firma el responsable
 --     (`fn_actor_persona_id(true)`). Orden: forma → marca del intento (candado + búsqueda; el reintento devuelve lo
 --     guardado aunque el piso ya cambió) → candado de la sede → responsable → stock en orden (ADR-0190) → ¿se cuadró
---     después de tu escaneo? → ¿hay un conteo abierto en la sede? → ¿se movió algo en el almacén después de tu escaneo?
---     (rechaza y dice QUÉ prendas, para volver a escanear solo esas) → la cuenta bajo candado → cabecera → un
+--     después de tu escaneo? → ¿hay un conteo abierto en la sede? → la cuenta bajo candado → ¿se movió algo en el
+--     almacén después de tu escaneo? (rechaza y dice QUÉ prendas, para volver a escanear solo esas) → cabecera → un
 --     `mover_interno` por línea (nota fija «Cuadre del piso») y su ítem.
 --
 -- POR QUÉ UN CONTEO ABIERTO FRENA EL CUADRE (revisión adversarial, 2026-10-04). Un conteo guarda «lo que debía haber» al
@@ -498,7 +498,9 @@ begin
   if not fn_puede_operar_ubicacion(p_ubicacion_id) then
     raise exception 'No tienes permiso para mover mercadería en esa sede.' using hint = 'cuadre_sin_tienda';
   end if;
-  if p_escaneo_desde is null or p_escaneo_desde > now() + interval '5 minutes' or p_escaneo_desde < now() - interval '3 days' then
+  -- No futura (el esquema exige escaneo_desde <= created_at, que es now()): la pantalla la pide en el reloj del servidor con
+  -- un minuto de margen hacia atrás, así que una hora futura no es un desfase, es un dato que no vale.
+  if p_escaneo_desde is null or p_escaneo_desde > now() or p_escaneo_desde < now() - interval '3 days' then
     raise exception 'La hora del escaneo no es válida (más de 3 días o en el futuro). Empieza el escaneo de nuevo.'
       using hint = 'cuadre_escaneo_invalido';
   end if;
@@ -572,10 +574,20 @@ begin
             detail = v_conteo::text;
   end if;
 
+  -- La cuenta, bajo candado: la MISMA que mostró «Revisar» (fn_cuadre_piso_vista), con el stock de este instante. Va
+  -- ANTES de mirar el libro (revisión adversarial): lo que se confirme después de la cuenta lo atrapa el chequeo de abajo,
+  -- y lo que se confirme después del chequeo no estaba en la cuenta, así que no se mueve. Al revés quedaba una rendija:
+  -- una recepción de una prenda SIN stock en la sede (fuera de los candados) confirmada entre el chequeo y la cuenta
+  -- pasaba al piso sin que nadie la hubiera escaneado.
+  v_vista := fn_cuadre_piso_vista(p_ubicacion_id, v_lista);
+
   -- ¿Se movió algo en el ALMACÉN de la sede después de que empezaste a escanear (una reposición, una bajada desde la
   -- caja, una recepción, un apartado)? Entonces lo escaneado ya no se puede comparar con lo que el sistema tiene: se
   -- rechaza TODO y se dice qué prendas cambiaron, para volver a escanear solo esas. `revisado_hasta` es la hora desde la
-  -- que vale el reescaneo (tomada con el stock ya bloqueado: nada anterior puede aparecer después).
+  -- que vale el reescaneo, tomada con el stock ya bloqueado. Lo que NO cubre: una operación que EMPEZÓ antes de esa hora
+  -- y quedó esperando nuestros candados se confirma después con su hora de inicio (movimientos.created_at = now()), y el
+  -- siguiente intento no la ve. Restarle un margen a revisado_hasta no sirve: volvería a encontrar las mismas prendas
+  -- que acaba de pedir reescanear y rechazaría otra vez. Queda escrito en el PR (cuadrar con la tienda cerrada lo evita).
   select jsonb_agg(jsonb_build_object('variante_id', q.variante_id,
                                       'prenda', coalesce(fn_prenda_corta(q.variante_id), 'Una prenda'))
                    order by q.variante_id)
@@ -597,9 +609,6 @@ begin
       using hint = 'cuadre_almacen_movido',
             detail = jsonb_build_object('revisado_hasta', clock_timestamp(), 'prendas', v_movidas)::text;
   end if;
-
-  -- La cuenta, bajo candado: la MISMA que mostró «Revisar» (fn_cuadre_piso_vista), con el stock de este instante.
-  v_vista := fn_cuadre_piso_vista(p_ubicacion_id, v_lista);
 
   -- La cabecera primero (los ítems la necesitan). El disparador exige la nota si la sede ya se había cuadrado.
   insert into cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, no_cargado, nota)
