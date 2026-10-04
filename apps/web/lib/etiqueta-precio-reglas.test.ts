@@ -573,3 +573,32 @@ describe("encabezadoDeEtiquetas: lo que entró desde Editar producto (?unidades=
     expect(e.bajada).toBe("Entraron 4 prendas de 1 modelo al guardar la ficha. Sale una etiqueta por cada prenda nueva.");
   });
 });
+
+describe("Etiquetas desde un traslado (?unidades= con ?traslado=, «Lo siguiente» del detalle, ADR-0242 D-6.1)", () => {
+  const n = { unidades: 3, modelos: 1 };
+  const ID = "ec84230c-0814-4669-82e9-de9d8132cc27";
+
+  it("dice «Traslados · Lo que llegó», sin hablar de «guardar la ficha» (no hay ficha) y como en Recibir", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", entraron: true, desdeTraslado: true }, n, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Traslados · Lo que llegó");
+    expect(e.bajada).toBe("Entraron 3 prendas de 1 modelo. Sale una etiqueta por prenda; si alguna ya venía etiquetada, baja su número.");
+    expect(e.bajada).not.toMatch(/ficha/i);
+    expect(e.columnaCantidad).toBe("Entraron");
+  });
+
+  it("sin traslado, lo que entró desde Editar producto sigue diciendo lo de siempre", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes", entraron: true }, n, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Productos · Lo que entró");
+    expect(e.bajada).toMatch(/al guardar la ficha/);
+  });
+
+  it("«Volver» regresa al detalle de ESE traslado, no a Existencias (que quien recibió quizá ni ve)", () => {
+    expect(volverDeEtiquetas({ tipo: "variantes" }, null, ID)).toEqual({ href: `/inventario/traslados/${ID}`, a: "Traslado" });
+    expect(volverDeEtiquetas({ tipo: "variantes" }, null, null)).toEqual({ href: "/inventario", a: "Existencias" });
+  });
+
+  it("el traslado solo manda sobre las tallas sueltas: lotes, producción y campaña vuelven a lo suyo", () => {
+    expect(volverDeEtiquetas({ tipo: "lotes" }, null, ID).href).toBe("/recibir");
+    expect(volverDeEtiquetas({ tipo: "producto" }, null, ID).href).toBe("/productos");
+  });
+});

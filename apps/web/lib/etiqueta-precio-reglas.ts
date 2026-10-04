@@ -322,8 +322,11 @@ export function etiquetasDelAlta(creado: { id: string | null; stock: { unidades:
 export function volverDeEtiquetas(
   origen: { tipo: "lotes" } | { tipo: "produccion"; id: string } | { tipo: "campana" } | { tipo: "producto" } | { tipo: "variantes" } | null,
   desde?: string | null,
+  /** El traslado de donde se salió (`?traslado=`, ya validado como id): vuelve a su detalle, no a Existencias, que quien recibió quizá ni ve. */
+  traslado?: string | null,
 ): { href: string; a: string } {
   if (!origen) return { href: "/", a: "Inicio" };
+  if (origen.tipo === "variantes" && traslado) return { href: `/inventario/traslados/${traslado}`, a: "Traslado" };
   // Producto y variantes salen de la Tabla o la Grilla de Productos: se vuelve a la misma vista, con sus filtros.
   const vuelta = desdeSeguro(desde);
   if (vuelta && (origen.tipo === "producto" || origen.tipo === "variantes")) return { href: vuelta, a: "Productos" };
@@ -372,7 +375,7 @@ export type OrigenDeTexto =
   /** Tallas sueltas. `desdeProductos`: se llegó desde la Tabla o la Grilla de Productos (misma regla que «Volver»:
    *  `desdeSeguro`), no desde Existencias. `tallas`: cuántas trae la URL — una sola es la impresora de esa talla, nadie
    *  «marcó» nada. */
-  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number; entraron?: boolean }
+  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number; entraron?: boolean; desdeTraslado?: boolean }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -412,6 +415,17 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         vacio: `En ${sede} no hay prendas de este modelo.`,
       };
     case "variantes":
+      // `?unidades=` con `?traslado=`: lo que acaba de llegar en un traslado («Lo siguiente» del detalle, ADR-0242 D-6.1). No hay ficha
+      // que guardar y esas prendas ya venían etiquetadas de la otra sede: se dice como en Recibir.
+      if (o.entraron && o.desdeTraslado) {
+        return {
+          ...base,
+          sobretitulo: "Traslados · Lo que llegó",
+          bajada: `Entraron ${prendas} de ${modelos}. Sale una etiqueta por prenda; si alguna ya venía etiquetada, baja su número.`,
+          columnaCantidad: "Entraron",
+          vacio: "Lo que llegó ya no está en tu sede: no hay nada que etiquetar.",
+        };
+      }
       // `?unidades=`: lo que acaba de entrar al guardar la ficha en Editar producto (una por unidad nueva, no todo el stock).
       if (o.entraron) {
         return {

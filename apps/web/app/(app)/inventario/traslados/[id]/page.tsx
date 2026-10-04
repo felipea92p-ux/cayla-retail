@@ -1,14 +1,17 @@
 import { Volver } from "@/components/ui/Volver";
 import { notFound } from "next/navigation";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getTrasladoDetalle } from "@/lib/traslados";
+import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { aPrendasBajables } from "@/lib/bajada-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { encontrarPorTipo, getSububicaciones, type Sububicacion } from "@/lib/sububicaciones";
 import { TrasladoDetallePanel } from "@/components/TrasladoDetallePanel";
+import { TrasladoLoSiguiente } from "@/components/TrasladoLoSiguiente";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TrasladoEstado } from "@/components/TrasladoEstado";
 import { situacionTraslado } from "@/lib/traslados-reglas";
-import type { DestinoRecepcion } from "@/lib/traslados-recepcion-reglas";
+import { loSiguienteDeLaRecepcion, type DestinoRecepcion } from "@/lib/traslados-recepcion-reglas";
 import { volverAMovimientos } from "@/lib/movimientos-reglas";
 
 /** Los lugares de la sede destino. Solo sirven para preguntar «¿piso de venta o almacén?» y decir dónde quedó lo
@@ -20,6 +23,18 @@ async function sububicacionesDe(ubicacionId: string): Promise<Sububicacion[]> {
   } catch (e) {
     console.error("Traslado: lugares de la sede destino:", e);
     return [];
+  }
+}
+
+/** Las prendas que HOY siguen en el almacén de la sede y se pueden bajar (el mismo cálculo de la pantalla de bajar). Si la lectura
+ *  falla devuelve `undefined`: «Lo siguiente» se ofrece como si todo siguiera ahí y la pantalla de bajar descarta lo que no se pueda. */
+async function prendasEnElAlmacen(ubicacionId: string): Promise<ReadonlySet<string> | undefined> {
+  try {
+    const prendas = aPrendasBajables(await getStockPorUbicacion(ubicacionId));
+    return new Set(prendas.filter((p) => p.almacenDisponible > 0).map((p) => p.varianteId));
+  } catch (e) {
+    console.error("Traslado: lo que sigue en el almacén:", e);
+    return undefined;
   }
 }
 
@@ -51,6 +66,24 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
     : [];
   const tipoRecibido = sububicaciones.find((s) => s.id === traslado.sububicacionDestinoId)?.tipo;
   const lugarRecibido: DestinoRecepcion = tipoRecibido === "piso_venta" || tipoRecibido === "almacen_tienda" ? tipoRecibido : null;
+  // Lo siguiente (ADR-0242 D-6.1): solo para quien recibió y solo con lo que de verdad entró; si lo recibido quedó en el almacén,
+  // «Bajar estas al piso» con esas prendas ya cargadas. Va bajo el título, a la vista, no al final de una tabla larga.
+  const entradaDeLoSiguiente = {
+    esDestino,
+    lugarRecibido,
+    lineas: traslado.lineas,
+    trasladoId: traslado.id,
+    ultimoIngresoIso: traslado.cerradoEn ?? traslado.confirmadoEn,
+    ahoraIso,
+    veExistencias: veModulo(persona, "existencias"),
+    sede: traslado.ubicacionDestinoNombre,
+  };
+  let loSiguiente = loSiguienteDeLaRecepcion(entradaDeLoSiguiente);
+  // «Bajar al piso» solo si algo de lo que llegó sigue en el almacén (si ya se bajó o se apartó, el botón llevaría a una lista
+  // vacía): se lee el stock únicamente cuando la tarjeta ya iba a ofrecerlo.
+  if (loSiguiente?.acciones.some((a) => a.clave === "bajar")) {
+    loSiguiente = loSiguienteDeLaRecepcion({ ...entradaDeLoSiguiente, bajables: await prendasEnElAlmacen(persona.ubicacionId) });
+  }
 
   return (
     <div className="space-y-6">
@@ -79,6 +112,7 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
           volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
         }
       />
+      {loSiguiente && <TrasladoLoSiguiente {...loSiguiente} />}
       <TrasladoDetallePanel
         traslado={traslado}
         esDestino={esDestino}

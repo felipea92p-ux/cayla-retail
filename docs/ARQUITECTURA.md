@@ -349,6 +349,19 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   «Terminé de contar» muestra lo enviado; `TrasladoConfirmarModal` → `confirmar_traslado(p_destino)` (piso o
   almacén; entra lo que coincide); `TrasladoCerrarModal` → `cerrar_traslado_con_diferencia`;
   `TrasladoAnularModal` → `anular_traslado` (origen o líder, sin conteos)).
+  **Lo siguiente (ADR-0242 D-6.1, 2026-10-03):** `traslados/[id]/page.tsx` calcula `loSiguienteDeLaRecepcion`
+  (`lib/traslados-recepcion-reglas.ts`, pura: solo quien recibió, solo con lo que de verdad entró —`ingresado`—, hasta
+  `DIAS_LO_SIGUIENTE` = 7 días desde el último ingreso, sin Taller) y lo dibuja `TrasladoLoSiguiente.tsx` bajo el título: si lo
+  recibido quedó en el **almacén**, «Bajar estas al piso» → `/inventario/bajar?lineas=` (solo dice QUÉ buscar; la cantidad la dan
+  las lecturas) si la cuenta ve Existencias, y «Imprimir etiquetas» → `/etiquetas-de-precio?unidades=…&traslado=<id>` de justo
+  esas unidades; si quedó en el **piso**, solo las etiquetas. «Bajar» solo lleva lo que HOY sigue en el almacén (la página lee el
+  stock de la sede con `getStockPorUbicacion` + `aPrendasBajables` únicamente cuando ya iba a ofrecerlo; si la lectura falla, se
+  ofrece como antes): si ya se bajó o se apartó todo, la tarjeta lo dice y solo queda lo de las etiquetas. La pantalla de Etiquetas
+  entiende `?traslado=` (`OrigenDeTexto.variantes.desdeTraslado`): «Traslados · Lo que llegó» y «Volver» al detalle de ese
+  traslado, no a Existencias. Con más de `MAX_VARIANTES_EN_URL` prendas distintas, Bajar al piso se abre sin lista y no se ofrecen
+  etiquetas. Límite conocido: si un líder cierra una diferencia días después, la ventana cuenta desde el cierre y las etiquetas
+  abarcan toda la caja (`fn_traslado_lineas` no dice cuándo entró cada línea). El modal de confirmar ya no manda a «Reponer»: dice
+  «Bajar al piso». Solo web, sin migración.
 - `/inventario/conteo` (**Conteo rediseñado**, ADR-0282, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
   **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 5 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
   categorías, `getAlcanceConteo` → RPC `fn_conteo_alcance` —dato de apoyo: cuántas variantes trae cada lugar y categoría; si no llega, la tarjeta sale sin cifras— y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y

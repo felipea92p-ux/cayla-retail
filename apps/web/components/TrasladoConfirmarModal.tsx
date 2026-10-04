@@ -12,7 +12,7 @@ import { resumenAntesDeConfirmar, type DestinoRecepcion, type LecturaConteo } fr
 
 const OPCIONES: Record<"piso_venta" | "almacen_tienda", { titulo: string; ayuda: string }> = {
   piso_venta: { titulo: "Piso de venta — listo para vender", ayuda: "Se cuelga hoy y se vende desde la caja." },
-  almacen_tienda: { titulo: "Almacén", ayuda: "Se guarda atrás; para venderlo, se baja al piso con Reponer." },
+  almacen_tienda: { titulo: "Almacén", ayuda: "Se guarda atrás; para venderlo hay que bajarlo al piso (botón «Bajar al piso» de Existencias)." },
 };
 
 export function TrasladoConfirmarModal({
