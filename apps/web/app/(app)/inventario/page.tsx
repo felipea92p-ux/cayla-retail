@@ -13,6 +13,8 @@ import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
+import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
+import { explicarCapacidadPiso, notaCapacidadPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -53,6 +55,9 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
+  // Cuántas prendas caben colgadas en el piso (ADR-0329, m² × prendas por m²): la nota «de 600» de «Colgadas en el piso». Solo una
+  // tienda tiene piso de venta. Corre en paralelo con lo de abajo y nunca lanza: si no responde, la cifra sale sin nota.
+  const capacidadPiso = vende ? getCapacidadPiso(ubicacionActivaId) : Promise.resolve(null);
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
@@ -182,9 +187,18 @@ export default async function InventarioPage({
   const guardadas = stock.reduce((n, f) => n + (f.almacenDisponible ?? 0), 0);
   const veTraslados = veModulo(persona, "traslados");
   const notaSemana = semana.fallo || deltaSede.pct === null ? undefined : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)} % en 7 días`;
+  // «583 de 600» (ADR-0328: el número grande son las colgadas contra lo que cabe). Solo en «Colgadas en el piso», que solo existe donde
+  // la sede separa piso y almacén; una tienda sin m² no lleva nota.
+  const capacidad = await capacidadPiso;
   const cifras: CifraResumen[] = separa
     ? [
-        { valor: colgadas, etiqueta: "Colgadas en el piso", icono: Shirt, titulo: "Prendas en el piso de venta, libres para vender: son las que cobra la caja" },
+        {
+          valor: colgadas,
+          nota: notaCapacidadPiso(capacidad),
+          etiqueta: "Colgadas en el piso",
+          icono: Shirt,
+          titulo: ["Prendas en el piso de venta, libres para vender: son las que cobra la caja.", explicarCapacidadPiso(capacidad)].filter(Boolean).join(" "),
+        },
         { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
       ]
     : [{ valor: resumen.disponible, nota: notaSemana, etiqueta: "Disponibles aquí", icono: Package, titulo: "Prendas libres en esta sede" }];
