@@ -11,8 +11,9 @@ import { TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, type TonoTareaHoy 
    dibujaban aunque dijeran 0.
 
    Una tarea = una fila: un punto del tono (ámbar hay que hacerlo aquí, rojo ya se pasó un plazo, pizarra informativo), la cifra
-   en la serif de la casa seguida de su frase, una línea de por qué y, a la derecha, LA acción. La primera fila lleva el botón
-   oscuro; las demás, uno claro: así hay un solo «empieza aquí» en la pantalla. Se ven tres; el resto, a un toque.
+   en la serif de la casa seguida de su frase, una línea de por qué y, a la derecha, LA acción, en botón claro: el único oscuro de
+   la pantalla es el de la cabecera («Bajar al piso»). Con el primero oscuro aquí también había dos botones negros que decían lo
+   mismo, uno encima del otro (visto en la primera captura, 2026-10-04). Se ven tres; el resto, a un toque.
    ==================================================================== */
 
 export type AccionTarea = { texto: string; href?: string; onClick?: () => void };
@@ -24,8 +25,8 @@ const PUNTO: Record<TonoTareaHoy | "verde", string> = {
   verde: "bg-verde ring-verde/20",
 };
 
-function Boton({ accion, principal }: { accion: AccionTarea; principal: boolean }) {
-  const clase = `btn-cayla ${principal ? "btn-primario" : "btn-secundario"} btn-chico shrink-0 gap-1.5 whitespace-nowrap`;
+function Boton({ accion }: { accion: AccionTarea }) {
+  const clase = "btn-cayla btn-secundario btn-chico shrink-0 gap-1.5 whitespace-nowrap";
   const contenido = (
     <>
       {accion.texto}
@@ -79,7 +80,7 @@ export function ParaHoy({
         </div>
       ) : (
         <ol>
-          {visibles.map((t, i) => {
+          {visibles.map((t) => {
             const accion = acciones[t.tipo];
             const alVer = verCuales?.[t.tipo];
             return (
@@ -107,7 +108,7 @@ export function ParaHoy({
                 </div>
                 {accion && (
                   <div className="max-sm:col-start-2">
-                    <Boton accion={accion} principal={i === 0} />
+                    <Boton accion={accion} />
                   </div>
                 )}
               </li>

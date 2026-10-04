@@ -221,11 +221,6 @@ export function InventarioPanel({
   marcaFallo?: string | null;
   /** ¿Su rol ve el módulo Productos (ADR-0161)? Sin él, «Ver en Productos» llevaría a «Sin acceso»: los nombres se muestran, sin enlace. */
   verProductos?: boolean;
-  /** El delta de disponible de TODA la sede en los últimos 7 días. Ya no lo pinta el panel (2026-10-04): se quitó con la tarjeta
-   *  «Resumen disponible». */
-  deltaSede?: { hoy: number; hace7d: number; pct: number | null };
-  /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
-  comparacionFallo?: boolean;
   /** Política operativa de Inventario (`politica-operativa-inventario.ts`): una sola fuente para
    *  los umbrales que leen el popover de Ritmo reciente y el aviso de «Subir a almacén» (`SubirAAlmacenModal`). */
   politica: PoliticaOperativaInventario;

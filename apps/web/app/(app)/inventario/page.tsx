@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ClipboardCheck, PackageOpen, ShoppingBag } from "lucide-react";
+import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Shirt, ShoppingBag, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
@@ -18,6 +18,8 @@ import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
+import { IconoPercha } from "@/components/ui/IconoPercha";
 import { contarPendientesDeSede } from "@/lib/por-regularizar";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -70,7 +72,9 @@ export default async function InventarioPage({
     // Ritmo reciente, que ahora vive en `existencias-ritmo.ts`.
     // Dato SECUNDARIO (tarea #8 del análisis): solo alimenta el «% vs. semana anterior» y el desglose de «Disponible
     // total». Si su función no responde, Existencias sigue en pie y la tarjeta lo dice; antes se caía la pantalla entera.
-    getFilasSemanaDeSede(ubicacionActivaId).then(
+    // Rediseño 2026-10-04: la cifra de 7 días solo se pinta donde no se separa piso y almacén (la cabecera del Taller); en una
+    // tienda se pedía y no se mostraba en ningún lado.
+    (vende ? Promise.resolve([] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>) : getFilasSemanaDeSede(ubicacionActivaId)).then(
       (filas) => ({ filas, fallo: false }),
       (error: unknown) => {
         console.error("Existencias: no se pudo leer la comparación de 7 días", error);
@@ -166,8 +170,27 @@ export default async function InventarioPage({
   const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
 
+  // Las cifras de la cabecera (rediseño 2026-10-04, decisión de Felipe en la ronda 2: el número grande son las colgadas, y
+  // cuando exista la capacidad de cada sede, «de las que caben»). Colgadas y guardadas LIBRES (sin apartadas ni dañadas): la
+  // caja cobra solo las colgadas, y «795 uds» sin partir hacía creer que había 795 para vender. Mismo recuadro que Ventas,
+  // Cambios y Devoluciones (`ResumenSede`): Inventario usa la cabecera de Ventas (ADR-0220).
+  const separa = resumen.separaPisoAlmacen;
+  const colgadas = stock.reduce((n, f) => n + (f.pisoDisponible ?? 0), 0);
+  const guardadas = stock.reduce((n, f) => n + (f.almacenDisponible ?? 0), 0);
+  const veTraslados = veModulo(persona, "traslados");
+  const notaSemana = semana.fallo || deltaSede.pct === null ? undefined : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)} % en 7 días`;
+  const cifras: CifraResumen[] = separa
+    ? [
+        { valor: colgadas, etiqueta: "Colgadas en el piso", icono: Shirt, titulo: "Prendas en el piso de venta, libres para vender: son las que cobra la caja" },
+        { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
+      ]
+    : [{ valor: resumen.disponible, nota: notaSemana, etiqueta: "Disponibles aquí", icono: Package, titulo: "Prendas libres en esta sede" }];
+  if (resumen.enTransito > 0) {
+    cifras.push({ valor: resumen.enTransito, etiqueta: "En camino hacia aquí", icono: Truck, href: veTraslados ? "/inventario/traslados" : undefined, titulo: "Prendas que vienen en traslados hacia esta sede" });
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Sin selector de sede propio ni interruptor de «datos de prueba» a propósito (Felipe,
           2026-09-22): el selector global de la barra superior ya cambia toda la app, y uno
           segundo acá desacomodaba el layout al abrirse; el de «datos de prueba» se quitó del
@@ -175,64 +198,58 @@ export default async function InventarioPage({
       <EncabezadoPagina
         sede={ubicacionActiva?.nombre ?? "—"}
         titulo="Existencias"
-        subtitulo="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        subtitulo={separa ? "Lo que hay colgado y guardado en la tienda, y lo que toca hacer hoy." : "Lo que hay en esta sede y lo que viene en camino."}
         // La única hora de la cabecera es la de la foto (ADR-0220): el stock de abajo es el del momento en que se
         // cargó, y un reloj vivo encima haría creer que está al minuto.
         sinHora
         detalle={`vista de las ${horaCarga}`}
-        // A la derecha, donde la cabecera tenía espacio libre (Felipe, 2026-09-26): la fila de botones bajo la frase le
-        // sumaba 54 px de alto (medido a 1440) a una pantalla que se abre para mirar la tabla. «+ Nuevo traslado» va al
-        // final y queda en el borde aunque «Bajar al piso» no se muestre.
-        //
-        // Existencias conectada (ADR-0237): debajo, en un segundo renglón chico, las pantallas que trabajan de la mano con
-        // esta (Recibir, Contar, Apartados), a un toque y sin volver al lateral. Dos renglones y no uno: cinco botones en
-        // fila no caben junto al título a 1440 y la cabecera volvía a partirse. Cada acceso solo si su rol ve esa pantalla
-        // (ADR-0161) y mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
+        // Rediseño 2026-10-04: UN botón oscuro, el trabajo de todos los días en una tienda (colgar lo guardado); a su lado,
+        // claros, los accesos a las pantallas que trabajan de la mano con esta (ADR-0237). Antes «+ Nuevo traslado» era el
+        // oscuro y competía con cuatro botones más en dos renglones. Cada acceso solo si su rol ve esa pantalla (ADR-0161);
+        // Recibir, Contar y Apartados solo mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
+        // Con las cifras a la derecha, la cabecera pone las acciones bajo la frase. En el celular, una sola fila que se desliza
+        // de lado: la página nunca se corre a los costados.
         acciones={
-          // En el celular (tarea #6 del análisis): los cinco accesos en UNA fila que se desliza de lado, en vez de tres
-          // filas apiladas que empujaban la lista una pantalla más abajo. El ancho se topa al de la pantalla menos el
-          // margen, así la página nunca se corre a los costados. En computadora, las dos filas de siempre.
-          <div className="flex flex-col items-start gap-2.5 sm:items-end max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-row max-sm:items-center max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
-            <div className="flex flex-wrap items-center gap-3 max-sm:shrink-0 max-sm:flex-nowrap max-sm:gap-2">
-              {puedeBajarAlPiso && (
-                <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
-                  Bajar al piso
-                </Link>
-              )}
-              {veModulo(persona, "traslados") && (
-                <Link href={`${RUTA_NUEVO_TRASLADO}?desde=existencias`} className="btn-cayla btn-primario">
-                  + Nuevo traslado
-                </Link>
-              )}
-            </div>
-            {enSuSede && (
-              <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end max-sm:shrink-0 max-sm:flex-nowrap">
-                {veModulo(persona, "recibir") && (
-                  <Link href="/recibir" className="btn-cayla btn-sutil btn-chico">
-                    <PackageOpen aria-hidden className="h-4 w-4" />
-                    Recibir mercadería
-                  </Link>
-                )}
-                {veModulo(persona, "conteos") && (
-                  <Link href="/inventario/conteo" className="btn-cayla btn-sutil btn-chico">
-                    <ClipboardCheck aria-hidden className="h-4 w-4" />
-                    Contar
-                  </Link>
-                )}
-                {vende && veModulo(persona, "apartados") && (
-                  <Link href="/vender/apartados" className="btn-cayla btn-sutil btn-chico">
-                    <ShoppingBag aria-hidden className="h-4 w-4" />
-                    Apartados
-                    {/* Sin número (tarea #7): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva lista
-                        separaciones (una por ticket): «3» aquí y 1 ticket al entrar. La cifra buena vive en Apartados; dentro de
-                        Existencias queda «N apartadas para clientes», que cuenta prendas y abre su lista. */}
-                  </Link>
-                )}
-              </nav>
+          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
+            {puedeBajarAlPiso && (
+              <Link href="/inventario/bajar" className="btn-cayla btn-primario shrink-0 gap-2">
+                <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                Bajar al piso
+              </Link>
             )}
+            <nav aria-label="Pantallas relacionadas" className="flex shrink-0 items-center gap-1">
+              {enSuSede && veRecibir && (
+                <Link href="/recibir" className="btn-cayla btn-sutil btn-chico shrink-0">
+                  <PackageOpen aria-hidden className="h-4 w-4" />
+                  Recibir
+                </Link>
+              )}
+              {enSuSede && veModulo(persona, "conteos") && (
+                <Link href="/inventario/conteo" className="btn-cayla btn-sutil btn-chico shrink-0">
+                  <ClipboardCheck aria-hidden className="h-4 w-4" />
+                  Contar
+                </Link>
+              )}
+              {veTraslados && (
+                <Link href={`${RUTA_NUEVO_TRASLADO}?desde=existencias`} className="btn-cayla btn-sutil btn-chico shrink-0">
+                  <ArrowLeftRight aria-hidden className="h-4 w-4" />
+                  Trasladar
+                </Link>
+              )}
+              {enSuSede && vende && veModulo(persona, "apartados") && (
+                <Link href="/vender/apartados" className="btn-cayla btn-sutil btn-chico shrink-0">
+                  <ShoppingBag aria-hidden className="h-4 w-4" />
+                  Apartados
+                  {/* Sin número (tarea #7 del 3-oct): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva
+                      lista separaciones (una por ticket). */}
+                </Link>
+              )}
+            </nav>
           </div>
         }
-      />
+      >
+        <ResumenSede sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />
+      </EncabezadoPagina>
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
@@ -258,10 +275,8 @@ export default async function InventarioPage({
         sinStock={sinStock}
         marcaFallo={catalogo.fallo}
         verProductos={veModulo(persona, "productos")}
-        deltaSede={deltaSede}
-        comparacionFallo={semana.fallo}
         politica={politica}
-        veTraslados={veModulo(persona, "traslados")}
+        veTraslados={veTraslados}
         puedeBajarAlPiso={puedeBajarAlPiso}
         veApartados={veModulo(persona, "apartados")}
         esTienda={vende}
