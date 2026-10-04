@@ -36,7 +36,7 @@
 -- estado_resultados, frescura_lectura) siembran a propósito filas de ese estilo para probar cómo se leen. La guardia contra
 -- un escritor nuevo es la prueba `cierre_carga_inicial.mjs`: recorre `pg_proc` y falla si otra función escribe `reposicion`.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. DESPUÉS de la parte 2 (usa `fn_carga_inicial_abierta` y `fn_texto_carga_inicial_cerrada`) y
+-- CÓMO SE PEGA EN PRODUCCIÓN. DESPUÉS de la parte 2 (usa `fn_carga_inicial_abierta` y `fn_texto_carga_inicial_cerrada`; la guardia de orden lo exige) y
 -- ANTES de publicar la web (la web ya pide la nota, pero una pantalla vieja abierta sin ella recibirá el mensaje de la
 -- base). Solo funciones: sin tablas en uso, políticas ni `drop trigger` (ADR-0195). Idempotente. Si dice «cambió desde
 -- que se escribió», la función viva de producción no es la del repo: NO se fuerza; se regenera el reemplazo desde
@@ -50,6 +50,20 @@
 
 set lock_timeout = '3s';
 set search_path = retail, public, extensions;
+
+-- GUARDIA DE ORDEN (integración de la ola 1, 2026-10-04). Esta parte mete en `registrar_movimiento` llamadas a dos
+-- funciones que crea la parte 2. Sin esta guardia, pegada ANTES que la parte 2 se aplicaba igual (los reemplazos solo
+-- cambian texto y plpgsql no revisa las llamadas al crear la función) y dejaba caído TODO ajuste y toda entrada que pasa
+-- por `registrar_movimiento`: `function retail.fn_carga_inicial_abierta(uuid) does not exist` (42883), hasta pegar la
+-- parte 2. Con la guardia, el pegado fuera de orden aborta limpio y no cambia nada.
+do $guardia$
+begin
+  if to_regprocedure('retail.fn_carga_inicial_abierta(uuid)') is null
+     or to_regprocedure('retail.fn_texto_carga_inicial_cerrada(uuid, text)') is null then
+    raise exception 'Falta la parte 2: pega antes 20261004210100_carga_inicial_cierre_por_sede_parte2_candado.sql (y antes de ella, la parte 1). No se aplicó nada.';
+  end if;
+end;
+$guardia$;
 
 -- Ya aplicado = el texto NUEVO está (el nuevo contiene al viejo). Si no está, el viejo tiene que aparecer UNA sola vez.
 create or replace function pg_temp.encontre_prendas_reemplazar(p_firma text, p_viejo text, p_nuevo text)
