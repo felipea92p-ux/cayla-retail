@@ -182,7 +182,8 @@ flowchart TB
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
   (`pendiente_aprobacion`/`activo`) gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
   `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen
-  `colaboradores`, no solo las tres obvias. `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
+  `colaboradores`, no solo las tres obvias. (`fn_stock_por_sede` tenía su propia puerta y dejaba a las terminales con cero
+  filas; desde `20261004110000` pasa por `fn_tiene_acceso_retail`, que sí conoce la terminal: ADR-0289, segunda tanda.) `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
   **Fotos de perfil (20260925210000): son de Dynamic y retail no las copia.** `public.personas.foto_url` guarda la RUTA en
   el bucket público `fotos-perfil` (`perfil/<persona>/<archivo>.jpg`), nunca una URL; `lib/foto-perfil.ts` (`urlFotoPerfil`,
   pura) arma la URL. `retail.fn_fotos_personas(uuid[])` devuelve la ruta de cada colaborador pedido (solo colaboradores de
