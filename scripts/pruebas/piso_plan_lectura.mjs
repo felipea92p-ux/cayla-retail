@@ -26,6 +26,8 @@
  *       día en que se COBRÓ (hace 5 días), no hoy: el total de la sede no cambia, `vendidas_hoy` tampoco. Y la lectura asume
  *       que `regularizar_prenda` mueve la línea de venta a la prenda real: si alguien lo cambia, el caso lo dice.
  *   C   CURVAS: las tallas de cada categoría que aparece (por stock o por ventas), y ninguna categoría de más.
+ *   K   CUADRE: `cuadrado_en` es el último cuadre del piso de SU sede (actividad 3, `retail.cuadres_piso`), NULL si nunca se
+ *       cuadró o la base todavía no guarda cuadres; y es la misma fecha que `fn_cuadre_piso_estado` cuando las dos existen.
  *   T   TALLER: sin piso ni almacén → `separa_piso` falso. Sede nula → error 22004.
  *   V   TALLAS DE LA BASE = la lista que recorre `apps/web/lib/piso-plan.test.ts` (TALLAS_DE_LA_BASE): si una migración o el seed
  *       agregan una talla, esta prueba pide sumarla allí, y así la regla de talla central la clasifica antes de que llegue a
@@ -258,7 +260,7 @@ caso(
      (pg_temp.lee(:'sede') ->> 'hoy')::date = retail.fn_hoy_lima(),
      (pg_temp.lee(:'sede') ->> 'desde')::date = retail.fn_hoy_lima() - 13,
      pg_temp.lee(:'sede') ->> 'dias', pg_temp.lee(:'sede') ->> 'separa_piso', pg_temp.lee(:'sede') ->> 'ubicacion_tipo');`,
-  "curvas;desde;dias;hoy;separa_piso;tallas;ubicacion_id;ubicacion_tipo;ventas,t,t,14,true,tienda"
+  "cuadrado_en;curvas;desde;dias;hoy;separa_piso;tallas;ubicacion_id;ubicacion_tipo;ventas,t,t,14,true,tienda"
 );
 caso(
   "F4 una sede sin historia: tallas, ventas y curvas son listas vacías (no NULL: NULL es «no se pudo leer»)",
@@ -563,6 +565,53 @@ caso(
   "T2 la sede nula es un error del que llama (22004), no un estado",
   `select pg_temp.intento($q$select retail.fn_piso_plan_lectura(null)$q$);`,
   (s) => s.startsWith("22004|")
+);
+
+// ===========================================================================
+// K. LA FECHA DEL CUADRE DEL PISO (actividad 3; sin ella el motor pausa «Por colgar», ADR-0328 decisión 5)
+// ===========================================================================
+
+// Los cuadres se guardan en `retail.cuadres_piso` (actividad 3). Si la base todavía no la tiene, cada caso crea, dentro de su
+// transacción, una tabla con las columnas que la lectura usa; si ya la tiene, inserta filas válidas en la real (con sus candados).
+const CON_CUADRES = `
+create table if not exists retail.cuadres_piso (id uuid primary key default gen_random_uuid(), ubicacion_id uuid not null,
+  persona_id uuid, token_cliente uuid, huella text, escaneo_desde timestamptz, resumen jsonb, nota text,
+  created_at timestamptz not null default now());
+create function pg_temp.cuadra(u uuid, cuando timestamptz) returns void language sql as $$
+  insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota, created_at)
+  values (u, (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5(random()::text),
+          cuando - interval '20 minutes', '{}'::jsonb, 'Prueba del motor del piso', cuando)
+$$;
+`;
+caso(
+  "K1 una sede que nunca se cuadró (o una base sin cuadres todavía) trae cuadrado_en NULL: para el motor, «sin cuadrar»",
+  `select coalesce(pg_temp.lee(:'sede') ->> 'cuadrado_en', 'NULL') || ',' || (pg_temp.lee(:'sede') ? 'cuadrado_en')::text;`,
+  "NULL,true"
+);
+caso(
+  "K2 con cuadres, trae el ÚLTIMO de SU sede (no el de otra sede)",
+  CON_CUADRES +
+    `select pg_temp.cuadra(:'sede', '2026-09-30 10:05-05');
+     select pg_temp.cuadra(:'sede', '2026-10-02 09:30-05');
+     select pg_temp.cuadra(:'otra', '2026-10-03 18:00-05');
+     select concat_ws(',', (pg_temp.lee(:'sede') ->> 'cuadrado_en')::timestamptz = '2026-10-02 09:30-05'::timestamptz,
+                      (pg_temp.lee(:'otra') ->> 'cuadrado_en')::timestamptz = '2026-10-03 18:00-05'::timestamptz,
+                      coalesce(pg_temp.lee(:'taller') ->> 'cuadrado_en', 'NULL'));`,
+  "t,t,NULL"
+);
+caso(
+  "K3 la fecha es la MISMA que la de fn_cuadre_piso_estado (actividad 3) en cuanto las dos viven en la misma base",
+  CON_CUADRES +
+    `create function pg_temp.k3(u uuid) returns text language plpgsql as $f$
+     declare e timestamptz;
+     begin
+       if to_regprocedure('retail.fn_cuadre_piso_estado(uuid)') is null then return 'sin actividad 3'; end if;
+       execute 'select (retail.fn_cuadre_piso_estado($1) ->> ''cuadrado_en'')::timestamptz' into e using u;
+       return (e is not distinct from (retail.fn_piso_plan_lectura(u) ->> 'cuadrado_en')::timestamptz)::text;
+     end $f$;
+     select pg_temp.cuadra(:'sede', '2026-10-02 09:30-05');
+     select pg_temp.k3(:'sede') || ',' || pg_temp.k3(:'otra');`,
+  (s) => s === "sin actividad 3,sin actividad 3" || s === "true,true"
 );
 
 // ===========================================================================

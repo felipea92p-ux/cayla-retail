@@ -288,7 +288,17 @@ describe("queHacerPrenda — el diagnóstico de la prenda, con las palabras del 
     expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: 8, almacenDisponible: 1, planPiso: plan("mantener") })])).toEqual({ tipo: "mantener", n: 0 });
   });
   it("donde no se separa piso y almacén (Taller) no hay diagnóstico de piso", () => {
-    expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: null, almacenDisponible: null, disponible: 5, planPiso: null })])).toEqual({ tipo: "mantener", n: 0 });
+    expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: null, almacenDisponible: null, disponible: 5, planPiso: null })])).toBeNull();
+  });
+  it("con el motor caído no hay diagnóstico: nunca un «Mantener» que no sabe (revisión adversarial)", () => {
+    expect(queHacerPrenda([fila({ varianteId: "a", pisoDisponible: 0, almacenDisponible: 4, planPiso: null })])).toBeNull();
+  });
+  it("con el piso sin cuadrar: «En pausa» con cuántas tallas esperan, después de lo que sí se sabe de la prenda", () => {
+    const enPausa = fila({ varianteId: "p", pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("pausa_sin_cuadre") });
+    const atras = fila({ varianteId: "s", pisoDisponible: 0, almacenDisponible: 0, planPiso: plan("sin_atras") });
+    const ok = fila({ varianteId: "m", planPiso: plan("mantener") });
+    expect(queHacerPrenda([enPausa, ok])).toEqual({ tipo: "en_pausa", n: 1 });
+    expect(queHacerPrenda([enPausa, atras, ok])).toEqual({ tipo: "sin_stock_atras", n: 1 });
   });
 });
 

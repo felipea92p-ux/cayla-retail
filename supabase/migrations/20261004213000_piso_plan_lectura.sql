@@ -18,6 +18,10 @@
 --     «sin registrar» que siguen pendientes en `prendas_por_regularizar`).
 --   · `curvas`: las tallas que ofrece cada categoría que aparece arriba (`categoria_tallas`), para decidir las tallas centrales.
 --   · `hoy`, `desde`, `dias` (14), `separa_piso` (la sede tiene piso de venta y almacén) y `ubicacion_tipo`.
+--   · `cuadrado_en`: cuándo se cuadró el piso de la sede por última vez (`retail.cuadres_piso`, actividad 3); NULL si nunca, o si
+--     la base todavía no guarda cuadres. Sin fecha, el motor pausa lo que manda a bajar (ADR-0328, decisión 5): no saber cuenta
+--     como no cuadrado, porque publicar «Por colgar» sobre el piso de TRU de hoy (138 colgadas en el sistema, 600–750 reales)
+--     mandaría a bajar lo que ya cuelga.
 -- La decisión (qué se cuelga, qué falta, en qué orden) la toma la función pura de la web, con su prueba exhaustiva. La base solo
 -- junta los hechos: así la regla vive en un solo lugar y se prueba sin red.
 --
@@ -28,8 +32,8 @@
 --     productos de prueba. Unidades, nunca soles ni costos.
 --   ASUME: `regularizar_prenda` reescribe `venta_items.variante_id` de la centinela (2222…) a la prenda real (20260923162300);
 --     anular una venta saca su prenda de la cola (`trg_prendas_por_regularizar_al_anular`). La prueba vigila las dos cosas.
---   NO HACE: no escribe nada, no guarda una «sugerencia» (ADR-0329: se calcula al abrir), no lee la capacidad ni el mix ni la
---     fecha del cuadre (las traen las actividades 3, 6 y 12; el motor las recibe como entradas opcionales).
+--   NO HACE: no escribe nada, no guarda una «sugerencia» (ADR-0329: se calcula al abrir), no lee la capacidad ni el mix (las
+--     traen las actividades 6 y 12; el motor las recibe como entradas opcionales).
 --
 -- POR QUÉ LAS VENTAS SALEN DE `ventas`/`venta_items` Y NO DE `movimientos`. La salida de una venta regularizada lleva la fecha de
 -- la regularización (`regularizar_prenda` la escribe ese día): contada desde el libro, una venta del lunes regularizada el viernes
@@ -59,13 +63,16 @@
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
 -- Después de pegar, solo lectura:
 --   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
---     → `1dd75838ba1db60f9fc3d83d9804598c` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--     → `708d72654e7cb5574be2a9dd93144a37` (el cuerpo de este archivo; medido en la base con todas las migraciones).
 --   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
 --     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
 -- SE ROMPE SI alguien cambia `regularizar_prenda` para que deje la línea de venta en la centinela (las regularizadas dejarían de
 -- contar) o para que cree una línea de venta nueva (contarían dos veces): la prueba `pnpm pruebas:piso-plan` lo vigila. También si
--- una venta se registra con una sede distinta de donde salió la prenda: la velocidad caería en la sede equivocada.
+-- una venta se registra con una sede distinta de donde salió la prenda: la velocidad caería en la sede equivocada. Y si la
+-- actividad 3 renombra `cuadres_piso` o deja de guardar la fecha en su `created_at`: la sede quedaría «sin cuadrar» para siempre
+-- (falla visible —«Cuadra el piso» después de cuadrar—, nunca un «Por colgar» falso); el caso K3 de la prueba compara esta
+-- fecha con la de `fn_cuadre_piso_estado` en cuanto las dos viven en la misma base.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -110,6 +117,7 @@ declare
   v_hoy date;
   v_desde date;
   v_desde_ts timestamptz;
+  v_cuadrado_en timestamptz;
 begin
   if p_ubicacion_id is null then
     raise exception 'fn_piso_plan_lectura: falta la sede' using errcode = '22004';
@@ -126,6 +134,15 @@ begin
   v_hoy := retail.fn_hoy_lima();
   v_desde := v_hoy - (c_dias - 1);                                   -- 14 días de Lima, hoy incluido
   v_desde_ts := (v_desde::timestamp at time zone 'America/Lima');    -- medianoche de Lima del primer día
+
+  -- La fecha del último cuadre del piso de la sede (actividad 3, ADR-0328 decisión 4): `retail.cuadres_piso`, cuyo created_at ES
+  -- la fecha del cuadre (la misma que lee fn_cuadre_piso_estado). Viaja en ESTA lectura, junto al stock que pausa, para que
+  -- ninguna pantalla pueda olvidarse de pasarla. Mientras esa tabla no exista en la base, ninguna sede se cuadró: NULL, y el motor
+  -- pausa «Por colgar» (decisión 5). Va dentro de un `if`: PL/pgSQL prepara la consulta recién al ejecutarla, así que la función
+  -- se crea y se lee igual con o sin la actividad 3, y empieza a ver los cuadres el mismo día en que su tabla llega, sin tocarla.
+  if to_regclass('retail.cuadres_piso') is not null then
+    v_cuadrado_en := (select max(c.created_at) from retail.cuadres_piso c where c.ubicacion_id = p_ubicacion_id);
+  end if;
 
   return (
     with existencias as materialized (
@@ -212,6 +229,7 @@ begin
       'separa_piso',
         exists (select 1 from retail.sububicaciones sb where sb.ubicacion_id = p_ubicacion_id and sb.tipo = 'piso_venta')
         and exists (select 1 from retail.sububicaciones sb where sb.ubicacion_id = p_ubicacion_id and sb.tipo = 'almacen_tienda'),
+      'cuadrado_en', v_cuadrado_en,
       'hoy', v_hoy,
       'desde', v_desde,
       'dias', c_dias,

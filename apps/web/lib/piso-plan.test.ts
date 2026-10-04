@@ -221,8 +221,10 @@ function talla(p: Partial<TallaEnSede> & { talla: string | null }): TallaEnSede 
     talla: p.talla,
   };
 }
+/** Una sede con el piso YA cuadrado (el 1-oct), salvo que el caso diga otra cosa: las escenas prueban la regla, no la pausa. */
+const CUADRADO_EN = "2026-10-01T15:00:00+00:00";
 function lectura(tallas: TallaEnSede[], ventas: VentaPorAtributo[] = [], extra: Partial<LecturaDelPiso> = {}): LecturaDelPiso {
-  return { ubicacionId: "tru", separaPiso: true, hoy: "2026-10-04", dias: DIAS_VENTANA, tallas, ventas, curvas: CURVAS, ...extra };
+  return { ubicacionId: "tru", separaPiso: true, cuadradoEn: CUADRADO_EN, hoy: "2026-10-04", dias: DIAS_VENTANA, tallas, ventas, curvas: CURVAS, ...extra };
 }
 const venta = (categoriaId: string | null, t: string | null, familiaColor: string | null, escaneadas: number, anotadas = 0): VentaPorAtributo => ({
   categoriaId,
@@ -310,19 +312,26 @@ describe("planDelPiso — el piso sin cuadrar (ADR-0328, decisión 5)", () => {
     talla({ varianteId: "ok", talla: "L", productoId: "p2", pisoLibre: 2, almacenLibre: 2 }),
   ];
   it("sin cuadre, lo que manda a bajar queda en pausa; «Mantener» y «Sin stock atrás» siguen (el cuadre no los cambia)", () => {
-    const plan = planDelPiso(lectura(tallas()), { cuadre: { sabido: true, fecha: null } });
+    const plan = planDelPiso(lectura(tallas(), [], { cuadradoEn: null }));
     expect(plan.enPausa).toBe(true);
     expect(["colgar", "reponer", "atras", "ok"].map((id) => accion(plan, id))).toEqual(["pausa_sin_cuadre", "pausa_sin_cuadre", "sin_atras", "mantener"]);
     expect(plan.listaDelDia).toEqual([]);
   });
   it("con el piso cuadrado, la lista vuelve", () => {
-    const plan = planDelPiso(lectura(tallas()), { cuadre: { sabido: true, fecha: "2026-10-03" } });
+    const plan = planDelPiso(lectura(tallas(), [], { cuadradoEn: "2026-10-03T20:10:00+00:00" }));
     expect(plan.enPausa).toBe(false);
     expect(plan.listaDelDia).toEqual(["reponer", "colgar"]);
   });
-  it("si todavía no se puede saber (la lectura del cuadre no existe o no respondió), no se pausa: no se esconde la lista por un dato que falta", () => {
-    expect(planDelPiso(lectura(tallas())).enPausa).toBe(false);
-    expect(planDelPiso(lectura(tallas()), { cuadre: { sabido: false } }).listaDelDia).toEqual(["reponer", "colgar"]);
+  it("no saber la fecha cuenta como NO cuadrado (falla cerrado): una lectura sin `cuadrado_en` pausa, no publica «Por colgar»", () => {
+    // Es el caso de TRU hoy: 138 colgadas en el sistema contra 600–750 reales. Antes, sin fecha conocida no se pausaba nada y
+    // salían «Por colgar» tallas que ya cuelgan (revisión adversarial, hallazgo alto; ADR-0328 decisión 5 lo había descartado).
+    const json = { ubicacion_id: "tru", separa_piso: true, hoy: "2026-10-04", dias: 14, tallas: [], ventas: [], curvas: [] };
+    expect(lecturaDesdeJson(json)?.cuadradoEn).toBeNull();
+    expect(planDelPiso(lecturaDesdeJson({ ...json, tallas: [{ variante_id: "x", talla: "M", piso_libre: 0, almacen_libre: 2 }] })!).enPausa).toBe(true);
+  });
+  it("la pausa la decide la lectura: no hay una opción para saltársela desde una pantalla", () => {
+    // @ts-expect-error — `cuadre` ya no es una opción del motor: la fecha viaja en la misma lectura que el stock que pausa.
+    expect(planDelPiso(lectura(tallas(), [], { cuadradoEn: null }), { cuadre: { sabido: false } }).enPausa).toBe(true);
   });
 });
 
@@ -426,7 +435,7 @@ describe("paraColgarHoy — la lista del día por percha (lo que leen el Inicio 
   });
   it("con el piso sin cuadrar no lista nada para bajar, pero dice cuántas tallas esperan", () => {
     const l = lectura(tallas);
-    const hoy = paraColgarHoy(planDelPiso(l, { cuadre: { sabido: true, fecha: null } }), l);
+    const hoy = paraColgarHoy(planDelPiso({ ...l, cuadradoEn: null }), { ...l, cuadradoEn: null });
     expect(hoy.enPausa).toBe(true);
     expect(hoy.tallas).toBe(3);
     expect(hoy.prendas.flatMap((p) => p.tallas.map((t) => t.accion))).toEqual(["pausa_sin_cuadre", "pausa_sin_cuadre", "pausa_sin_cuadre"]);
@@ -441,6 +450,7 @@ describe("lecturaDesdeJson — la respuesta de la base", () => {
     hoy: "2026-10-04",
     desde: "2026-09-21",
     dias: 14,
+    cuadrado_en: "2026-10-01T15:00:00+00:00",
     tallas: [
       {
         variante_id: "v1", producto_id: "p1", referencia: "Polo", categoria_id: POLOS, talla_id: "t-M", talla: "M", color_codigo: "NEG",
@@ -453,7 +463,7 @@ describe("lecturaDesdeJson — la respuesta de la base", () => {
   };
   it("traduce la forma de la base y el motor la usa tal cual", () => {
     const l = lecturaDesdeJson(json);
-    expect(l).toMatchObject({ ubicacionId: "tru", separaPiso: true, hoy: "2026-10-04", dias: 14 });
+    expect(l).toMatchObject({ ubicacionId: "tru", separaPiso: true, cuadradoEn: "2026-10-01T15:00:00+00:00", hoy: "2026-10-04", dias: 14 });
     expect(l?.tallas[0]).toMatchObject({ varianteId: "v1", talla: "M", almacenLibre: 2, vendidasAyer: 1, familiaColor: "neutro" });
     expect(l?.curvas[0].tallas).toEqual(["S", "M"]);
     expect(accion(planDelPiso(l!), "v1")).toBe("por_colgar");

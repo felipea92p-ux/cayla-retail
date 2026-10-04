@@ -233,7 +233,13 @@ export function CajonPrendaExistencias({
                 {diagnostico && (
                   <div
                     className={`col-span-2 flex flex-col items-center justify-center gap-2.5 border-t border-sand px-3 py-4 text-center text-[14px] leading-tight sm:col-span-1 sm:flex-auto sm:border-t-0 sm:px-4 ${
-                      diagnostico.tipo === "por_colgar" ? "text-rojo" : diagnostico.tipo === "mantener" ? "text-tinta/70" : "text-ambar-profundo"
+                      diagnostico.tipo === "por_colgar"
+                        ? "text-rojo"
+                        : diagnostico.tipo === "mantener"
+                          ? "text-tinta/70"
+                          : diagnostico.tipo === "en_pausa"
+                            ? "text-pizarra"
+                            : "text-ambar-profundo"
                     }`}
                   >
                     {diagnostico.tipo === "mantener" ? (

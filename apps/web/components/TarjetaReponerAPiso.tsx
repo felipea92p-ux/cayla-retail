@@ -6,6 +6,7 @@ import { IconoPercha } from "@/components/ui/IconoPercha";
 import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { pidePiso } from "@/lib/piso-plan";
+import { textoTarjetaEnPausa } from "@/lib/existencias-hoy";
 
 /* ====================================================================
    «Reponer a piso hoy» (Prioridades de hoy, 2026-09-29)
@@ -51,12 +52,15 @@ export function TarjetaReponerAPiso({
   stock,
   onVerPrenda,
   fallo = false,
+  tallasEnPausa = 0,
 }: {
   stock: FilaExistencias[];
   /** Llevar la lista a esta prenda. */
   onVerPrenda: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** El motor del piso no respondió: no se sabe qué falta, y la tarjeta no puede decir «Nada pendiente». */
   fallo?: boolean;
+  /** Tallas que esperan el cuadre del piso (ADR-0328, decisión 5): tampoco es «Nada pendiente». */
+  tallasEnPausa?: number;
 }) {
   const prendas = useMemo(
     () => ordenarPorUrgencia(agruparPorPrenda(stock)).filter((p) => p.tallas.some((f) => pidePiso(f.planPiso?.accion))),
@@ -78,7 +82,9 @@ export function TarjetaReponerAPiso({
       </p>
 
       {!urgente ? (
-        <p className="mt-2 text-[13.5px] leading-5 text-taupe">{fallo ? "No se pudo calcular ahora" : "Nada pendiente de bajar al piso"}</p>
+        <p className="mt-2 text-[13.5px] leading-5 text-taupe">
+          {fallo ? "No se pudo calcular ahora" : tallasEnPausa > 0 ? textoTarjetaEnPausa(tallasEnPausa) : "Nada pendiente de bajar al piso"}
+        </p>
       ) : (
         <div className="mt-2">
           <p className="text-[13.5px] leading-5 text-taupe">{primeras.length === 1 ? "Empieza por esta prenda" : "Empieza por estas prendas"}</p>

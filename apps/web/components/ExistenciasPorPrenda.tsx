@@ -86,6 +86,11 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
           <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
+      {q?.tipo === "en_pausa" && (
+        <Chip tono="pizarra" className="text-xs">
+          <span title={AYUDA_HOY.en_pausa}>{textoHoyDePrenda(q.tipo, q.n)}</span>
+        </Chip>
+      )}
       {q?.tipo === "mantener" && <ChipMantener titulo={AYUDA_HOY.mantener} />}
       {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
       {prenda.apartado > 0 && <Chip tono="ambar">Apartado · {prenda.apartado}</Chip>}

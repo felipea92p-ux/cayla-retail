@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { hoyDeTalla, resumirPorColgar, TEXTO_HOY, textoHoyDePrenda, TIPOS_HOY } from "./existencias-hoy";
+import {
+  avisoPausaDelPiso,
+  contarEnPausa,
+  estadoHoyDeTalla,
+  hoyDeTalla,
+  resumirPorColgar,
+  TEXTO_HOY,
+  textoHoyDePrenda,
+  textoTarjetaEnPausa,
+  TIPOS_HOY,
+  TONO_HOY,
+} from "./existencias-hoy";
 import { ACCIONES_PISO, type AccionPiso } from "./piso-plan";
 
 // «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma
@@ -24,7 +35,7 @@ describe("hoyDeTalla", () => {
     expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3 })).toBeNull();
   });
 
-  it("con el piso sin cuadrar tampoco: la pausa no tiene palabra en «Hoy» (lo dice la portada)", () => {
+  it("con el piso sin cuadrar la talla no cae en ningún caso del FILTRO «Hoy» (la pausa no es algo que hacer con la talla)", () => {
     expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") })).toBeNull();
   });
 
@@ -58,5 +69,31 @@ describe("textoHoyDePrenda", () => {
     expect(textoHoyDePrenda("sin_stock_atras", 3)).toBe("3 tallas sin stock atrás");
     expect(textoHoyDePrenda("mantener", 0)).toBe(TEXTO_HOY.mantener);
     for (const tipo of TIPOS_HOY.filter((t) => t !== "mantener")) expect(textoHoyDePrenda(tipo, 2).endsWith(TEXTO_HOY[tipo].toLocaleLowerCase("es"))).toBe(true);
+  });
+});
+
+describe("el piso sin cuadrar se VE (revisión adversarial: antes era «N/D» y «Nada pendiente», un vacío que se leía «al día»)", () => {
+  it("la talla en pausa se pinta «En pausa», en pizarra (informativo, no semáforo); las demás, su caso; sin motor, nada", () => {
+    expect(estadoHoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") })).toBe("en_pausa");
+    expect(estadoHoyDeTalla({ pisoDisponible: 6, almacenDisponible: 3, planPiso: plan("mantener") })).toBe("mantener");
+    expect(estadoHoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: null })).toBeNull();
+    expect(estadoHoyDeTalla({ pisoDisponible: null, almacenDisponible: null, planPiso: plan("pausa_sin_cuadre") })).toBeNull();
+    expect(TEXTO_HOY.en_pausa).toBe("En pausa");
+    expect(TONO_HOY.en_pausa).toBe("pizarra");
+    expect(TIPOS_HOY).not.toContain("en_pausa");
+  });
+  it("cuenta las tallas que esperan y lo dice: el aviso de la pantalla y la tarjeta", () => {
+    const filas = [
+      { pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") },
+      { pisoDisponible: 1, almacenDisponible: 2, planPiso: plan("pausa_sin_cuadre") },
+      { pisoDisponible: 0, almacenDisponible: 0, planPiso: plan("sin_atras") },
+    ];
+    expect(contarEnPausa(filas)).toBe(2);
+    expect(avisoPausaDelPiso("Tienda TRU", 2)).toBe(
+      "El piso de Tienda TRU todavía no se cuadró: 2 tallas esperan para colgarse. Hasta cuadrarlo, «Hoy» no manda a bajar nada (podría pedir colgar lo que ya cuelga); «Mantener» y «Sin stock atrás» sí valen."
+    );
+    expect(avisoPausaDelPiso("Tienda TRU", 0)).toBeNull();
+    expect(textoTarjetaEnPausa(1)).toBe("Cuadra el piso antes de colgar: 1 talla espera");
+    expect(textoHoyDePrenda("en_pausa", 2)).toBe("2 tallas en pausa");
   });
 });

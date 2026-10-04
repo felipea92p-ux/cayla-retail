@@ -87,6 +87,7 @@ const TONO_PASTILLA = {
   verde: { caja: "bg-verde/10 text-verde-profundo", punto: "bg-verde ring-verde/25" },
   ambar: { caja: "bg-ambar/[0.13] text-ambar-profundo", punto: "bg-ambar ring-ambar/25" },
   rojo: { caja: "bg-rojo/10 text-rojo-profundo", punto: "bg-rojo ring-rojo/25" },
+  pizarra: { caja: "bg-pizarra/10 text-pizarra", punto: "bg-pizarra ring-pizarra/25" },
 } as const;
 
 /** El diagnóstico de la prenda (`queHacerPrenda`) como pastilla con punto: las MISMAS palabras del filtro «Hoy» (Felipe,
@@ -94,6 +95,8 @@ const TONO_PASTILLA = {
  *  diagnóstico. */
 function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const q = queHacerPrenda(prenda.tallas);
+  // Sin nada sabido de ninguna talla (el motor no respondió), sin pastilla: el aviso de la pantalla lo dice.
+  if (!q) return null;
   const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
   const texto = textoHoyDePrenda(q.tipo, q.n);
   return (

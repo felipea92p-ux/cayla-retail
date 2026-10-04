@@ -15,14 +15,18 @@
        familia de color, y esa es la señal para el Taller.
      · Velocidad = ventas escaneadas + ventas anotadas «sin registrar» que siguen pendientes, en 14 días, por sede; cada cifra
        dice cuántas ventas la respaldan y cuántas son anotadas a mano.
-     · Sin el piso cuadrado, «Por colgar» queda en pausa (ADR-0328, decisión técnica 5).
+     · Sin el piso cuadrado, «Por colgar» queda en pausa (ADR-0328, decisión técnica 5). «Sin cuadrar» = la sede separa piso y
+       almacén y la lectura no trae fecha de cuadre (`cuadradoEn`): nunca se cuadró, o la base todavía no guarda cuadres. No
+       saber cuenta como no cuadrado: publicar «Por colgar» sobre el piso de TRU de hoy (138 colgadas en el sistema contra 600–750
+       reales) es justo lo que la decisión 5 descartó.
 
    CONTRATO (Liskov: lo que promete y lo que asume).
      PROMETE: `planDelPiso` es PURA y TOTAL: para cada talla de una sede que separa piso y almacén devuelve UNA acción
        (por_colgar · por_reponer · sin_atras · mantener · pausa_sin_cuadre), la lista del día en orden y la lista «se vendió
        rápido y falta». Misma entrada → misma salida: sin red, sin reloj (el «hoy» viene en la lectura), sin azar.
      ASUME: la lectura de `retail.fn_piso_plan_lectura` (migración 20261004213000): lo LIBRE en piso y almacén (neto de
-       apartadas, sin Cuarentena; la cifra de ADR-0270) y cada venta contada una sola vez, en el día en que se cobró.
+       apartadas, sin Cuarentena; la cifra de ADR-0270), cada venta contada una sola vez, en el día en que se cobró, y la fecha
+       del último cuadre del piso de la sede (actividad 3).
      NO HACE: no mueve stock, no sugiere cantidades de compra, no guarda nada (ADR-0329: la sugerencia se calcula al abrir).
 
    UNA SOLA CASA PARA LAS CIFRAS DEL PISO. Toda comparación de lo colgado contra un umbral vive AQUÍ.
@@ -177,6 +181,9 @@ export type CurvaDeCategoria = { categoriaId: string; categoria: string; tallas:
 export type LecturaDelPiso = {
   ubicacionId: string;
   separaPiso: boolean;
+  /** Cuándo se cuadró el piso de la sede por última vez (`retail.cuadres_piso`, actividad 3). `null` = nunca, o la base todavía
+   *  no guarda cuadres: para el motor es lo mismo, el piso del sistema no es confiable y lo que manda a bajar espera. */
+  cuadradoEn: string | null;
   /** Día de Lima de la lectura (`YYYY-MM-DD`): el motor no mira el reloj. */
   hoy: string;
   dias: number;
@@ -185,16 +192,11 @@ export type LecturaDelPiso = {
   curvas: CurvaDeCategoria[];
 };
 
-/** La fecha del cuadre del piso (actividad 3, `retail.fn_cuadre_piso_estado`). `sabido: false` = todavía no se puede saber (la
- *  función no existe o no respondió): no se pausa nada, para no esconder la lista por una lectura que falta. */
-export type Cuadre = { sabido: false } | { sabido: true; fecha: string | null };
-
 export type OpcionesPlan = {
   /** Prendas que caben colgadas en la sede (m² × densidad, actividad 6). Sin él, no hay «lleno». */
   capacidad?: number | null;
   /** La meta de cada categoría como fracción del piso (actividad 12), por `categoriaId`. Sin él, no hay meta por categoría. */
   mix?: ReadonlyMap<string, number> | null;
-  cuadre?: Cuadre;
 };
 
 // ── Lo que sale ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -289,8 +291,9 @@ function curvasPorCategoria(lectura: LecturaDelPiso): Map<string, string[]> {
  * (~500 en TRU, ~2.000 de techo en 3 años): medido en la prueba, milisegundos.
  */
 export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}): PlanDelPiso {
-  const cuadre: Cuadre = opciones.cuadre ?? { sabido: false };
-  const enPausa = lectura.separaPiso && cuadre.sabido && cuadre.fecha === null;
+  // La pausa la decide la lectura, no quien llama: así ninguna pantalla puede olvidarse de pasarla (la fecha del cuadre viaja en
+  // la misma consulta que el stock que pausa).
+  const enPausa = lectura.separaPiso && lectura.cuadradoEn === null;
   const capacidad = opciones.capacidad ?? null;
   const nombreCategoria = new Map(lectura.curvas.map((c) => [c.categoriaId, c.categoria]));
   const curvas = curvasPorCategoria(lectura);
@@ -522,5 +525,6 @@ export function lecturaDesdeJson(json: unknown): LecturaDelPiso | null {
     const tallasCurva = Array.isArray(c.tallas) ? (c.tallas as unknown[]).map((x) => texto((x as Record<string, unknown> | null)?.talla)).filter((x): x is string => !!x) : [];
     curvas.push({ categoriaId, categoria: texto(c.categoria) ?? "", tallas: tallasCurva });
   }
-  return { ubicacionId, separaPiso: j.separa_piso === true, hoy, dias, tallas, ventas, curvas };
+  // Sin `cuadrado_en` (una lectura que no lo trae) es «sin cuadre»: falla cerrado, nunca publica «Por colgar» sin saber.
+  return { ubicacionId, separaPiso: j.separa_piso === true, cuadradoEn: texto(j.cuadrado_en), hoy, dias, tallas, ventas, curvas };
 }

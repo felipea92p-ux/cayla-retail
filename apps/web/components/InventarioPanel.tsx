@@ -36,7 +36,7 @@ import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, t
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { AYUDA_HOY, hoyDeTalla, resumirPorColgar, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
+import { avisoPausaDelPiso, AYUDA_HOY, contarEnPausa, estadoHoyDeTalla, resumirPorColgar, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
 import { pidePiso } from "@/lib/piso-plan";
 import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { textoDeFamilia } from "@/lib/colores-familias";
@@ -53,12 +53,13 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 const TODAS = "__todas__";
 
 /** El punto de la leyenda de la tabla, en el tono de cada caso de «Hoy». */
-const PUNTO_HOY = { rojo: "bg-rojo", ambar: "bg-ambar", verde: "bg-verde" } as const;
+const PUNTO_HOY = { rojo: "bg-rojo", ambar: "bg-ambar", verde: "bg-verde", pizarra: "bg-pizarra" } as const;
 
 /** El caso de «Hoy» de UNA talla (columna de la tabla «Por talla»): las mismas palabras y el mismo tono que el filtro, la tarjeta y
- *  el cajón. «Por colgar» dice cuántas se pueden bajar; «Sin stock atrás», si viene algo en camino. */
+ *  el cajón. «Por colgar» dice cuántas se pueden bajar; «Sin stock atrás», si viene algo en camino; «En pausa», que espera el
+ *  cuadre del piso. «N/D» solo cuando no se sabe (el motor no respondió). */
 function ChipHoy({ f }: { f: FilaExistencias }) {
-  const h = hoyDeTalla(f);
+  const h = estadoHoyDeTalla(f);
   if (!h) return <span className="text-xs text-tinta/40">N/D</span>;
   if (h === "por_colgar") {
     const n = f.almacenDisponible ?? 0;
@@ -438,6 +439,8 @@ export function InventarioPanel({
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
   // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
   const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
+  // El piso sin cuadrar (ADR-0328, decisión 5): cuántas tallas esperan, para el aviso, la tarjeta y la leyenda.
+  const tallasEnPausa = useMemo(() => contarEnPausa(stock), [stock]);
   // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
   const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
@@ -595,7 +598,7 @@ export function InventarioPanel({
           f.almacen ?? "—",
           f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "—",
           f.ritmoReciente ? textoRitmoReciente(f.ritmoReciente) : "—",
-          ((h) => (h ? TEXTO_HOY[h] : "—"))(hoyDeTalla(f))
+          ((h) => (h ? TEXTO_HOY[h] : "—"))(estadoHoyDeTalla(f))
         );
       }
       fila.push(f.disponible, f.enTransito, resumenRed(f.enRed)?.detalle ?? "—");
@@ -726,6 +729,7 @@ export function InventarioPanel({
             <TarjetaReponerAPiso
               stock={stock}
               fallo={!!planFallo}
+              tallasEnPausa={tallasEnPausa}
               onVerPrenda={(p) => {
                 setBusqueda(p.referencia);
                 mostrarTablaFiltrada();
@@ -868,6 +872,9 @@ export function InventarioPanel({
 
       {separa && coberturaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{coberturaFallo}</p>}
       {separa && planFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{planFallo}</p>}
+      {separa && !planFallo && tallasEnPausa > 0 && stock.length > 0 && (
+        <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{avisoPausaDelPiso(sedeNombre, tallasEnPausa)}</p>
+      )}
       {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
       {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
       {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}
@@ -1235,7 +1242,7 @@ export function InventarioPanel({
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {TIPOS_HOY.map((t) => (
+                {[...TIPOS_HOY, ...(tallasEnPausa > 0 ? (["en_pausa"] as const) : [])].map((t) => (
                   <span key={t} className="inline-flex items-center gap-1.5" title={AYUDA_HOY[t]}>
                     <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${PUNTO_HOY[TONO_HOY[t]]}`} />
                     <span className="text-tinta/80">{TEXTO_HOY[t]}</span>

@@ -8,7 +8,7 @@ import { clavePercha } from "./inventario-reglas";
 import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
 import { guionDeLaPistola } from "./escaner-guion";
-import { hoyDeTalla, type TipoHoy } from "./existencias-hoy";
+import { estadoHoyDeTalla, hoyDeTalla, type EstadoHoy } from "./existencias-hoy";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
@@ -200,17 +200,20 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
 
 /** «Qué hacer» de una prenda (un color de un modelo): SOLO el diagnóstico, nunca un botón —la acción se hace en el cajón—. Es el
  *  caso de «Hoy» (`lib/existencias-hoy.ts`) más urgente entre sus tallas y cuántas tallas están en él, con las MISMAS palabras
- *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (la clienta no la ve y se arregla hoy), luego «Por reponer» y
- *  «Sin stock atrás» (no se arregla en la tienda); si ninguna pide nada, «Mantener». Lo usan la tarjeta, la lista «Por prenda»
- *  y el cajón: antes decían «sin stock en piso», «Faltan tallas en piso» y «Piso al día» para lo mismo. */
-export type QueHacerPrenda = { tipo: TipoHoy; n: number };
+ *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (el cliente no la ve y se arregla hoy), luego «Por reponer» y
+ *  «Sin stock atrás» (no se arregla en la tienda), luego «En pausa» (espera el cuadre del piso); si ninguna pide nada,
+ *  «Mantener». Lo usan la tarjeta, la lista «Por prenda» y el cajón: antes decían «sin stock en piso», «Faltan tallas en piso» y
+ *  «Piso al día» para lo mismo. `null` si de NINGUNA talla se sabe nada (el motor no respondió, o la sede no separa piso y
+ *  almacén): un «Mantener» ahí afirmaría que el piso está al día sin saberlo. */
+export type QueHacerPrenda = { tipo: EstadoHoy; n: number };
 
-export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda {
-  for (const tipo of ["por_colgar", "por_reponer", "sin_stock_atras"] as const) {
-    const n = tallas.filter((f) => hoyDeTalla(f) === tipo).length;
+export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda | null {
+  const estados = tallas.map(estadoHoyDeTalla);
+  for (const tipo of ["por_colgar", "por_reponer", "sin_stock_atras", "en_pausa"] as const) {
+    const n = estados.filter((e) => e === tipo).length;
     if (n > 0) return { tipo, n };
   }
-  return { tipo: "mantener", n: 0 };
+  return estados.includes("mantener") ? { tipo: "mantener", n: 0 } : null;
 }
 
 /** Cuán urgente es una prenda para el piso, según el motor: 0 = tiene tallas por colgar (el cliente no las ve y hay atrás),

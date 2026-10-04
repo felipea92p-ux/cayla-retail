@@ -274,9 +274,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
   + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migración `20261004213000`: lo libre en piso y almacén, lo vendido
-  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color, y las curvas de
-  tallas; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar ·
-  por reponer · sin stock atrás · mantener, más la pausa sin cuadre—, la lista del día y «se vendió rápido y falta»; la
+  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color, las curvas de
+  tallas y la fecha del último cuadre del piso —`cuadres_piso`, actividad 3; sin ella, lo que manda a bajar queda «En pausa»,
+  ADR-0328 decisión 5—; solo para quien opera esa sede; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro
+  `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · por reponer · sin stock atrás · mantener, más «En pausa»—, la lista del
+  día y «se vendió rápido y falta»; la
   decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
   umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
