@@ -69,7 +69,8 @@ revoke all on function retail.fn_para_enviar_pendiente(uuid) from public, anon, 
 -- ---------------------------------------------------------------------------
 -- PROMETE: por cada línea de traslado, descuenta de las prendas «para enviar» de esa sede, a ese destino y de esa prenda,
 -- lo más antiguo primero, hasta lo que se llevó. Nunca más de lo que falta. ASUME: el traslado ya existe (se insertó antes
--- que sus líneas, como en `iniciar_traslado`).
+-- que sus líneas, como en `iniciar_traslado`). EXCEPCIÓN: el envío de un pedido para un cliente no descuenta (lleva la
+-- prenda apartada para él; la marca `retail.salida_de_pedido_cliente` la pone y la borra la parte 2 alrededor de ese traslado).
 create or replace function retail.trg_para_enviar_al_salir()
 returns trigger
 language plpgsql
@@ -84,6 +85,11 @@ declare
   v_toma integer;
   r record;
 begin
+  -- El envío de un pedido para un cliente lleva la prenda APARTADA para él, no la que se subió «para enviar»: no descuenta
+  -- (la marca la pone y la borra `enviar_pedido_para_apartar` alrededor de su `iniciar_traslado`, parte 2).
+  if coalesce(current_setting('retail.salida_de_pedido_cliente', true), '') = 'si' then
+    return null;
+  end if;
   v_origen := (select t.ubicacion_origen_id from transferencias t where t.id = new.transferencia_id);
   v_destino := (select t.ubicacion_destino_id from transferencias t where t.id = new.transferencia_id);
   if v_origen is null or coalesce(new.cantidad, 0) <= 0 then

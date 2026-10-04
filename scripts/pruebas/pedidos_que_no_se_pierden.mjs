@@ -449,6 +449,25 @@ ${K("salidas", "(select count(*) || ':' || sum(cantidad) from retail.prendas_par
 );
 
 correr(
+  "Para enviar · el envío de un pedido para un cliente no la descuenta (lleva la apartada); el siguiente traslado sí",
+  `${COMO_API}select retail.subir_para_enviar(:'tru', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v3', 'cantidad', 2)), null, gen_random_uuid()) as r1 \\gset
+select retail.pedir_prenda_para_apartar(:'lim', :'tru', :'v3', 1, 'Ana', 'Lozano', '987111222') as ped \\gset
+select 'K|antes|' || string_agg(falta || ':' || en_almacen, ',') from retail.fn_para_enviar(:'tru');
+select retail.enviar_pedido_para_apartar(:'ped', now() + interval '1 day', gen_random_uuid()) as tr \\gset
+select 'K|tras_pedido|' || string_agg(falta || ':' || en_almacen, ',') from retail.fn_para_enviar(:'tru');
+select retail.iniciar_traslado(:'tru', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v3', 'cantidad', 1)), now() + interval '1 day', null, gen_random_uuid()) as tr2 \\gset
+select 'K|tras_otro|' || coalesce(string_agg(falta || ':' || en_almacen, ','), 'vacía') from retail.fn_para_enviar(:'tru');
+${COMO_POSTGRES}
+${K("marca", "coalesce(current_setting('retail.salida_de_pedido_cliente', true), '')")}`,
+  (d) => {
+    afirmar("subidas 2 para Lima; el pedido aparta 1 de ellas: faltan 2, libre 1", d.antes === "2:1", d.antes);
+    afirmar("el pedido sale y la lista NO se descuenta: siguen faltando 2 (y avisa que en el almacén hay 1)", d.tras_pedido === "2:1", d.tras_pedido);
+    afirmar("un traslado normal a Lima sí descuenta: falta 1", d.tras_otro === "1:0", d.tras_otro);
+    afirmar("la marca se borra apenas sale el traslado del pedido", d.marca === "", d.marca);
+  },
+);
+
+correr(
   "Para enviar · «Ya no la envío» con motivo; lo que ya salió no; Eliminar un producto la conoce",
   `select gen_random_uuid() as tok \\gset
 ${COMO_API}select retail.subir_para_enviar(:'tru', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v3', 'cantidad', 1)), null, :'tok') as r1 \\gset

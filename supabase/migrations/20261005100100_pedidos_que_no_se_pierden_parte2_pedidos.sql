@@ -14,7 +14,9 @@
 --     disponible (ADR-0190) y, al guardar el pedido, lo APARTA allá (`fn_reservar_pedido_en_origen`): almacén primero
 --     (de ahí sale un traslado), si no el piso. Todo en la misma transacción: o queda pedido Y apartado, o nada.
 --   · `enviar_pedido_para_apartar` (anclado): suelta esa reserva justo antes del traslado. Si la prenda apartada está
---     COLGADA, no la manda: «primero súbela al almacén» (Felipe: lo colgado se envía en dos pasos).
+--     COLGADA, no la manda: «primero súbela al almacén» (Felipe: lo colgado se envía en dos pasos). Alrededor de su
+--     `iniciar_traslado` pone y borra la marca `retail.salida_de_pedido_cliente` (local a la transacción): esa caja lleva la
+--     prenda apartada para el cliente y no descuenta la lista «Para enviar» (parte 3).
 --   · `subir_pedido_al_almacen` (nueva): el primer paso para un pedido colgado. Suelta la reserva del piso, sube la prenda
 --     al almacén y la vuelve a apartar allí, en una transacción. Idempotente por estado: repetirla no sube dos veces.
 --   · `cancelar_pedido_para_apartar` (anclado): «No la tengo» o «ya no la quiere» sueltan también la reserva del origen.
@@ -283,9 +285,20 @@ end;$n$
 select pg_temp.anclar(
   'retail.enviar_pedido_para_apartar(uuid, timestamptz, uuid)',
   $v$  v_tr := iniciar_traslado($v$,
-  $n$  -- ADR-0328 act. 17: la reserva del origen se suelta para que el traslado se lleve ESA prenda.
+  $n$  -- ADR-0328 act. 17: la reserva del origen se suelta para que el traslado se lleve ESA prenda. Y esa caja lleva la
+  -- prenda apartada para el cliente, no una subida «para enviar» al mismo destino: la marca le dice al disparador de esa
+  -- lista que no descuente nada (parte 3), y se borra apenas sale el traslado.
   perform fn_soltar_reserva_de_origen(pe.id, true);
+  perform set_config('retail.salida_de_pedido_cliente', 'si', true);
   v_tr := iniciar_traslado($n$
+);
+select pg_temp.anclar(
+  'retail.enviar_pedido_para_apartar(uuid, timestamptz, uuid)',
+  $v$  v_persona := fn_actor_persona_id(true);
+  update separacion_pedidos set estado = 'en_camino', transferencia_id = v_tr, enviado_por = v_persona where id = pe.id;$v$,
+  $n$  perform set_config('retail.salida_de_pedido_cliente', '', true);
+  v_persona := fn_actor_persona_id(true);
+  update separacion_pedidos set estado = 'en_camino', transferencia_id = v_tr, enviado_por = v_persona where id = pe.id;$n$
 );
 
 -- 4c. Cancelar: «No la tengo» / «ya no la quiere» sueltan también la reserva del origen.
