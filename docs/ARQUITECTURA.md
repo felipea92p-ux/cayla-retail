@@ -323,6 +323,16 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
   `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
   `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
+  **Pedir desde Traslados (ADR-0242 D-7, 2026-10-03):** `BotonPedirAOtraSede.tsx` (cabecera y estado vacío; no se dibuja si
+  `sedesParaPedir` no da ninguna tienda: el Taller no puede pedir) → `PedirAOtraSedeModal.tsx` en modo «elegir»
+  (`sedesParaElegir`; con la guía de foco) → `GET /api/traslados/prendas-de-sede?sede=` (`fn_existencias` de ESA sede, la
+  única fórmula de «cuánto hay», ADR-0270; ofrece solo lo que puede **enviar**: `almacen_libre` + `sin_lugar`, porque un
+  traslado sale del almacén y nunca del piso —`filasEnviables`—; su puerta `fn_tiene_acceso_retail` deja pasar a una
+  terminal; los nombres, por `getEtiquetasDeVariantes` en tandas de 80 ids, que falla en voz alta y no deja una lista a
+  medias) → la misma `pedir_a_otra_sede` de siempre, con el token atado al contenido del pedido (un reintento idéntico no
+  duplica; si cambian la tienda o las prendas, es otro pedido). Ojo: `pedir_a_otra_sede` y Análisis siguen mirando piso +
+  almacén (tarea de SQL pendiente de Felipe). Reglas puras: `sedesParaPedir`, `prendasPedibles`, `lineasElegidasParaPedir`
+  (`lib/pedidos-entre-sedes-reglas.ts`). Análisis sigue abriendo el modal con `origen` + `lineas` ya armadas. Sin migración.
   Lo de siempre: `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
   cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
   para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
@@ -344,6 +354,19 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   «Terminé de contar» muestra lo enviado; `TrasladoConfirmarModal` → `confirmar_traslado(p_destino)` (piso o
   almacén; entra lo que coincide); `TrasladoCerrarModal` → `cerrar_traslado_con_diferencia`;
   `TrasladoAnularModal` → `anular_traslado` (origen o líder, sin conteos)).
+  **Lo siguiente (ADR-0242 D-6.1, 2026-10-03):** `traslados/[id]/page.tsx` calcula `loSiguienteDeLaRecepcion`
+  (`lib/traslados-recepcion-reglas.ts`, pura: solo quien recibió, solo con lo que de verdad entró —`ingresado`—, hasta
+  `DIAS_LO_SIGUIENTE` = 7 días desde el último ingreso, sin Taller) y lo dibuja `TrasladoLoSiguiente.tsx` bajo el título: si lo
+  recibido quedó en el **almacén**, «Bajar estas al piso» → `/inventario/bajar?lineas=` (solo dice QUÉ buscar; la cantidad la dan
+  las lecturas) si la cuenta ve Existencias, y «Imprimir etiquetas» → `/etiquetas-de-precio?unidades=…&traslado=<id>` de justo
+  esas unidades; si quedó en el **piso**, solo las etiquetas. «Bajar» solo lleva lo que HOY sigue en el almacén (la página lee el
+  stock de la sede con `getStockPorUbicacion` + `aPrendasBajables` únicamente cuando ya iba a ofrecerlo; si la lectura falla, se
+  ofrece como antes): si ya se bajó o se apartó todo, la tarjeta lo dice y solo queda lo de las etiquetas. La pantalla de Etiquetas
+  entiende `?traslado=` (`OrigenDeTexto.variantes.desdeTraslado`): «Traslados · Lo que llegó» y «Volver» al detalle de ese
+  traslado, no a Existencias. Con más de `MAX_VARIANTES_EN_URL` prendas distintas, Bajar al piso se abre sin lista y no se ofrecen
+  etiquetas. Límite conocido: si un líder cierra una diferencia días después, la ventana cuenta desde el cierre y las etiquetas
+  abarcan toda la caja (`fn_traslado_lineas` no dice cuándo entró cada línea). El modal de confirmar ya no manda a «Reponer»: dice
+  «Bajar al piso». Solo web, sin migración.
 - `/inventario/conteo` (**Conteo rediseñado**, ADR-0282, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
   **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 5 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
   categorías, `getAlcanceConteo` → RPC `fn_conteo_alcance` —dato de apoyo: cuántas variantes trae cada lugar y categoría; si no llega, la tarjeta sale sin cifras— y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y
@@ -448,10 +471,21 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato
   secundario que degrada a «N/D» (nunca tumba la pantalla).
-- `/inventario/recibir` (sin factura) y `/inventario/mover` (`MoverMercaderiaFormV2.tsx`
-  → RPC `iniciar_traslado`; acepta prellenado por URL desde Resumen, validado en la
-  página) siguen vivas como rutas, sin pestaña propia: se llega por
-  «+ Nuevo traslado» / «+ Nuevo».
+- `/inventario/recibir` (sin factura) sigue viva como ruta, sin pestaña propia: se llega por «+ Nuevo».
+- **«Nuevo traslado» = `/inventario/traslados/nuevo`** (ADR-0242 D-4, 2026-10-03; antes `/inventario/mover`) →
+  `app/(app)/inventario/traslados/nuevo/page.tsx` → `MoverMercaderiaFormV2.tsx` → RPC `iniciar_traslado`; acepta
+  prellenado por URL (`origen`, `destino`, `variante`, `cantidad`, `lineas`), validado en la página. Cuelga de la
+  carpeta de Traslados, así que el menú lo marca bajo Traslados y su layout pone la puerta del módulo. `?desde=existencias`
+  hace que «← Existencias» sea la vuelta (`volverDeNuevoTraslado`). **`/inventario/mover` solo redirige** aquí con todos
+  sus parámetros (`urlNuevoTrasladoDesdeMover`, `lib/traslados-reglas.ts`), para los enlaces de Producción, Cambios,
+  Análisis y Frescura, que no se tocaron.
+  **Tras enviar (ADR-0242 D-3, 2026-10-03):** el formulario guarda el id que devuelve `iniciar_traslado`, lee el número
+  (`transferencias.numero`, GET con tope de 2 s: si no llega, la pantalla sale sin número) y pinta `TrasladoEnviado.tsx`:
+  «Traslado N», la lista de lo que va en la caja (con cantidades: quien envía las sabe) y un mensaje para la otra sede que
+  **no dice cuántas prendas van** (`mensajeParaLaOtraSede`, `lib/traslados-reglas.ts`, solo recibe nombres). El WhatsApp de
+  la sede destino sale de `getWhatsappDeSedes` (`lib/traslados.ts`, tolerante; es `ubicaciones.whatsapp_numero`, el de las
+  tiendas, que nació para el QR del club); sin él, WhatsApp abre sin destinatario. El formulario sigue bloqueado hasta
+  que sale esta pantalla (el token ya se renovó: un clic de más duplicaría el traslado).
 - `/inventario/bajar` (**Bajar prendas al piso**, 2026-09-25, ADR-0208 bloque 1; **web publicada; en producción,
   `bajar_al_piso` pegada y el módulo `bajada_piso` sin confirmar**; sin
   pestaña ni hoja en el lateral, que no cambia: se llega solo por el botón «Bajar al piso» de la cabecera de
@@ -645,7 +679,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `ProveedoresProduccionPanel.tsx`, `ProveedorProduccionModal.tsx` (RPC `guardar_proveedor_produccion`, `cambiar_estado_proveedor_produccion`). Tabla `proveedores_produccion`
   (RLS solo-líder, sin grants de escritura); `insumos.proveedor_id` e `insumo_lotes.proveedor_id` apuntan a ella, no a `proveedores` de Compras.
 - **Del Taller a las tiendas (F8):** `OrdenCierre.tsx` (aviso con botón) y `OrdenPanel.tsx` (orden terminada) → `lib/produccion-reglas.ts:urlLlevarATiendas` → `/inventario/mover?origen=<Taller>&lineas=…` →
-  `app/(app)/inventario/mover/page.tsx` (`parsearLineasPrellenadas`, valida contra el stock movible) → `MoverMercaderiaFormV2.tsx` (`lineasIniciales`). El traslado sigue siendo `iniciar_traslado`, en dos fases.
+  (redirige a `/inventario/traslados/nuevo`, mismos parámetros) `app/(app)/inventario/traslados/nuevo/page.tsx` (`parsearLineasPrellenadas`, valida contra el stock movible) → `MoverMercaderiaFormV2.tsx` (`lineasIniciales`). El traslado sigue siendo `iniciar_traslado`, en dos fases.
 - `/produccion/eficiencia` (solo líder; F7) → `app/(app)/produccion/eficiencia/page.tsx` junta órdenes cerradas (`getOrdenesProduccion`), la planilla del Taller (`lib/eficiencia.ts:getPlanillaDelTaller` → vista puente
   `retail.planilla_por_sede`, security_invoker sobre `public.v_planilla_pagada` de Dynamic: solo importes agregados, D-33) y los gastos del Taller (`gastos`, Finanzas ADR-0117) y calcula con `lib/eficiencia-reglas.ts`
   (puro: ventanas de período 29–28, costo por prenda, reparto del gasto) → `EficienciaTallerPanel.tsx`.

@@ -8,6 +8,7 @@ import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
 import { guionDeLaPistola } from "./escaner-guion";
 import { hoyDeTalla, type TipoHoy } from "./existencias-hoy";
+import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
 export type FilaPrenda = Pick<
@@ -149,7 +150,7 @@ export function urlBajarAlPiso(filas: readonly FilaPrenda[]): string | null {
 export function urlTrasladar(filas: readonly FilaPrenda[]): string | null {
   const lineas = lineasParaTrasladar(filas);
   if (lineas.length === 0 || lineas.length > MAX_VARIANTES_EN_URL) return null;
-  return `/inventario/mover?lineas=${lineasEnUrl(lineas)}`;
+  return `${RUTA_NUEVO_TRASLADO}?lineas=${lineasEnUrl(lineas)}&desde=existencias`;
 }
 
 /** Etiquetas de precio de EXACTAMENTE esas tallas, siempre por `?variantes=` (tarea #7 del análisis). Antes, con un solo

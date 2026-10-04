@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
 import { TrasladosAtencion } from "@/components/TrasladosAtencion";
 import { TrasladosFiltros } from "@/components/TrasladosFiltros";
 import { TrasladosLista } from "@/components/TrasladosLista";
@@ -16,6 +17,7 @@ import {
   ordenarTraslados,
   otraSedeDe,
   resumirTraslados,
+  RUTA_NUEVO_TRASLADO,
   situacionTraslado,
   type ContextoTraslados,
   type FiltroDireccion,
@@ -41,6 +43,7 @@ export function TrasladosPanel({
   horaCarga,
   cerradosAcotados,
   vacios,
+  pedir,
 }: {
   traslados: TrasladoResumen[];
   miUbicacionId: string;
@@ -50,6 +53,8 @@ export function TrasladosPanel({
   cerradosAcotados: boolean;
   /** Traslados sin prendas que no se muestran (ver `separarVacios`); 0 si quien mira no necesita saberlo. */
   vacios: number;
+  /** A quién se le puede pedir desde aquí (`sedesParaPedir`): el estado vacío ofrece pedir además de enviar. */
+  pedir?: { ubicacionId: string; sedes: { id: string; nombre: string }[] };
 }) {
   const router = useRouter();
   const [refrescando, iniciarRefresco] = useTransition();
@@ -147,9 +152,12 @@ export function TrasladosPanel({
         <p className="max-w-md text-sm leading-relaxed text-taupe">
           Cuando el Taller u otra tienda te envíe prendas, aparecerán aquí para que confirmes lo que llegó. Para mover stock, empieza con «Nuevo traslado».
         </p>
-        <Link href="/inventario/mover" className="btn-cayla btn-secundario mt-2">
-          Crear el primer traslado
-        </Link>
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          <Link href={RUTA_NUEVO_TRASLADO} className="btn-cayla btn-secundario">
+            Crear el primer traslado
+          </Link>
+          {pedir && <BotonPedirAOtraSede {...pedir} />}
+        </div>
       </div>
     );
   }

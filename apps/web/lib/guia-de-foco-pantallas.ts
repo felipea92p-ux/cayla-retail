@@ -97,11 +97,14 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
   "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
-  "/inventario/mover": PENDIENTE,
+  // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
+  "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
   "/inventario/recibir": PENDIENTE,
   "/inventario/resumen": PENDIENTE,
   "/inventario/traslados": PENDIENTE,
+  // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
+  "/inventario/traslados/nuevo": PENDIENTE,
   "/inventario/traslados/[id]": PENDIENTE,
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
@@ -155,7 +158,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 69;
+export const MODALES_PENDIENTES_HOY = 68;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -206,7 +209,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
   "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
-  "components/PedirAOtraSedeModal.tsx": PENDIENTE, // 2 controles
+  // «Falta» = lo mismo que apaga el botón «Pedir»: la tienda (si se elige), al menos una prenda y quién registra. La nota es opcional.
+  "components/PedirAOtraSedeModal.tsx": { estado: "aplicada", evidencia: ["components/PedirAOtraSedeModal.tsx"] },
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
   "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },

@@ -11,6 +11,7 @@
 // Quién puede qué y cuándo entra el stock lo deciden las funciones de la base; esto solo decide qué se dibuja y
 // con qué palabras. Las fechas humanas («hoy 12:12») se reusan de `traslados-reglas.ts`.
 
+import { MAX_VARIANTES_EN_URL, lineasEnUrl } from "./existencias-prendas";
 import { debioLlegar, diaHora, enTexto, haceTexto } from "./traslados-reglas";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -522,4 +523,94 @@ export function recorridoRecepcion(
   }
 
   return [salio, camino, recibido, cerrado];
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// 7. Lo siguiente: después de recibir (ADR-0242 D-6.1, 2026-10-03)
+// ---------------------------------------------------------------------------------------------------------------
+//
+// EL PROBLEMA. Recibir termina en «entraron 5 prendas al almacén», pero lo del almacén no se vende hasta bajarlo al piso, y
+// nadie lo recuerda: en la caja salía «está en el almacén» con la prenda en la mano (hallazgo 1 del análisis del 26-sep). El
+// modal de confirmar mandaba a «Reponer», que no es el nombre de la pantalla («Bajar al piso») y no llevaba a ningún lado.
+// Ahora, bajo el título, dice qué sigue y lleva ahí con las prendas que acaban de entrar ya cargadas.
+
+/** Cuánto dura «Lo siguiente» desde que entró lo último: pasada una semana el aviso sería ruido (Existencias ya sugiere qué colgar). */
+export const DIAS_LO_SIGUIENTE = 7;
+
+export type AccionLoSiguiente = { clave: "bajar" | "etiquetas"; texto: string; href: string; principal: boolean };
+export type LoSiguiente = { intro: string; acciones: AccionLoSiguiente[] };
+
+/**
+ * Qué sigue después de recibir, solo para la sede que recibió y solo con lo que de verdad entró:
+ *  · Si quedó en el ALMACÉN de una tienda: «Bajar estas al piso» (principal; abre Bajar al piso con las prendas que TODAVÍA están
+ *    en el almacén, por escanear: el enlace dice QUÉ buscar, no cuánto, así que la cantidad la dan las lecturas) e «Imprimir
+ *    etiquetas» de justo las unidades que entraron.
+ *  · Si quedó en el PISO: solo «Imprimir etiquetas».
+ *  · «Bajar al piso» exige el módulo Existencias (si no, el enlace llevaría a «Sin acceso»): sin él, no se ofrece.
+ * Nada para quien envió, para una sede sin piso y almacén (el Taller: no hay a dónde bajar), ni cuando no entró ninguna prenda,
+ * ni pasados `DIAS_LO_SIGUIENTE` días. Con más de `MAX_VARIANTES_EN_URL` prendas distintas el enlace se vuelve frágil: «Bajar al
+ * piso» se abre sin lista y las etiquetas no se ofrecen.
+ *
+ * `bajables` (lo que hoy sigue en el almacén, el mismo cálculo de la pantalla de bajar): si ya se bajó o se apartó todo, no se
+ * pide bajar nada —el botón llevaría a una lista vacía— y la tarjeta lo dice; si queda parte, el enlace lleva solo esa parte.
+ * Sin él (no se pudo leer), se ofrece como si todo siguiera ahí: la pantalla de bajar descarta por su cuenta lo que no se puede.
+ *
+ * LÍMITE CONOCIDO: si un líder cierra una diferencia días después, la ventana cuenta desde ese cierre y las etiquetas abarcan
+ * toda la caja, no solo lo que entró al cerrar: `fn_traslado_lineas` no dice cuándo entró cada línea. Con las prendas ya
+ * vendidas esa lista reimprime de más; se arregla el día que esa función devuelva la fecha de cada ingreso.
+ */
+export function loSiguienteDeLaRecepcion(p: {
+  esDestino: boolean;
+  lugarRecibido: DestinoRecepcion;
+  lineas: readonly Pick<LineaRecepcion, "varianteId" | "cantidadRecibida" | "ingresado">[];
+  /** El traslado: las etiquetas vuelven a su detalle, no a Existencias. */
+  trasladoId: string;
+  /** Cuándo entró lo último: el cierre del líder si lo hubo, si no la confirmación. */
+  ultimoIngresoIso: string | null;
+  ahoraIso: string;
+  veExistencias: boolean;
+  sede: string;
+  bajables?: ReadonlySet<string>;
+}): LoSiguiente | null {
+  if (!p.esDestino || p.lugarRecibido === null || p.ultimoIngresoIso === null) return null;
+  const dias = (new Date(p.ahoraIso).getTime() - new Date(p.ultimoIngresoIso).getTime()) / 86_400_000;
+  if (!(dias <= DIAS_LO_SIGUIENTE)) return null;
+  const entradas = p.lineas
+    .filter((l) => l.ingresado && (l.cantidadRecibida ?? 0) > 0)
+    .map((l) => ({ varianteId: l.varianteId, cantidad: l.cantidadRecibida as number }));
+  if (entradas.length === 0) return null;
+  const enLista = entradas.length <= MAX_VARIANTES_EN_URL;
+
+  // Lo que todavía se puede bajar: lo que entró Y sigue en el almacén (si se sabe).
+  const porBajar = p.bajables ? entradas.filter((e) => p.bajables!.has(e.varianteId)) : entradas;
+  const ofreceBajar = p.lugarRecibido === "almacen_tienda" && p.veExistencias && porBajar.length > 0;
+
+  const acciones: AccionLoSiguiente[] = [];
+  if (ofreceBajar) {
+    acciones.push(
+      porBajar.length <= MAX_VARIANTES_EN_URL
+        ? { clave: "bajar", texto: "Bajar estas al piso", href: `/inventario/bajar?lineas=${lineasEnUrl(porBajar)}`, principal: true }
+        : { clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar", principal: true },
+    );
+  }
+  if (enLista) {
+    acciones.push({
+      clave: "etiquetas",
+      texto: "Imprimir etiquetas",
+      href: `/etiquetas-de-precio?unidades=${lineasEnUrl(entradas)}&traslado=${p.trasladoId}`,
+      principal: acciones.length === 0,
+    });
+  }
+  if (acciones.length === 0) return null;
+
+  const yaSalioDelAlmacen = p.lugarRecibido === "almacen_tienda" && p.bajables !== undefined && porBajar.length === 0;
+  return {
+    intro:
+      p.lugarRecibido === "piso_venta"
+        ? `Lo que llegó ya está en el piso de ${p.sede}.`
+        : yaSalioDelAlmacen
+          ? `Lo que llegó ya salió del almacén de ${p.sede}.`
+          : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que bajarlo al piso.`,
+    acciones,
+  };
 }

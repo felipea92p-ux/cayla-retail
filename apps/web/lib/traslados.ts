@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
-import { conteoDelTraslado, contarRequierenAccion, separarVacios } from "@/lib/traslados-reglas";
+import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
@@ -238,6 +238,55 @@ export async function getTrasladosDeLaSede(
   const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos)));
   // `cerradosLeidos` cuenta también los vacíos: es lo que dice si la consulta llegó al tope de `limiteCerrados`.
   return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
+}
+
+/** Cuántos ids viajan por consulta: van en la URL (`.in("id", …)`), y con cientos de uuid de 36 letras se pasaría del largo
+ *  que aguanta el camino hasta la base. */
+const IDS_POR_CONSULTA = 80;
+
+/**
+ * El nombre de cada prenda («Blusa Emma · L · Beige»), por id, para listar lo que otra tienda puede ofrecer («Pedir a otra
+ * sede» desde Traslados). Pide los ids por tandas y en paralelo. A diferencia de las lecturas de apoyo de este archivo,
+ * FALLA en voz alta: una tanda que se pierde en silencio dejaría una lista incompleta que parece completa («esa tienda no
+ * tiene la talla M») y la persona dejaría de pedir lo que sí hay.
+ */
+export async function getEtiquetasDeVariantes(ids: readonly string[]): Promise<Map<string, string>> {
+  const unicos = [...new Set(ids)];
+  if (unicos.length === 0) return new Map();
+  const supabase = await createClient();
+  const tandas: string[][] = [];
+  for (let i = 0; i < unicos.length; i += IDS_POR_CONSULTA) tandas.push(unicos.slice(i, i + IDS_POR_CONSULTA));
+  const respuestas = await Promise.all(
+    tandas.map(async (tanda) =>
+      exigir(
+        await supabase.from("variantes").select("id, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia )").in("id", tanda),
+        "los nombres de las prendas"
+      )
+    )
+  );
+  return new Map(
+    respuestas.flat().map((v) => [v.id, etiquetaDePrenda({ referencia: v.producto?.referencia ?? "", talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null })] as const)
+  );
+}
+
+/**
+ * El WhatsApp de cada sede (solo las tiendas lo tienen: `ubicaciones.whatsapp_numero`, 9 dígitos), para que, al enviar un
+ * traslado, el aviso a la sede destino abra su chat directo. Tolerante (principio 9): si la lectura falla —la columna
+ * todavía no existe en esa base, la red— devuelve vacío y el aviso se arma igual, solo que WhatsApp pregunta a quién.
+ */
+export async function getWhatsappDeSedes(): Promise<Map<string, string>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("ubicaciones").select("id, whatsapp_numero").not("whatsapp_numero", "is", null);
+    if (error || !data) {
+      console.error("WhatsApp de las sedes:", error?.message);
+      return new Map();
+    }
+    return new Map(data.flatMap((u) => (u.whatsapp_numero ? [[u.id, u.whatsapp_numero] as const] : [])));
+  } catch (e) {
+    console.error("WhatsApp de las sedes:", e);
+    return new Map();
+  }
 }
 
 type FilaContador = {
