@@ -21,6 +21,8 @@ import { ordenTalla } from "@/lib/catalogo-grupos";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { usoDeColores, type ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
+import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
+import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -56,7 +58,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -87,6 +89,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo? (20261003140000, ADR-0311). Si la función no existe todavía o
     // dice false, la caja cobra exacto como siempre: nunca manda algo que la base rechazaría.
     supabase.rpc("fn_acepta_redondeo_efectivo"),
+    // «Pedir y apartar para este cliente» (ADR-0328 act. 17): respeta el interruptor «Pedir a otra sede» de las opciones de
+    // Apartados de esta sede. Si la lectura falla, la opción se ofrece (la base decide igual en cada pedido).
+    supabase.rpc("fn_opciones_apartados", { p_ubicacion_id: persona.ubicacionId }),
+    // Lo que esta tienda pidió para un cliente y ya llegó: la franja «Llegó para un cliente». Secundario: vacío si falla.
+    getPedidosConCliente(persona.ubicacionId),
   ]);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -233,6 +240,12 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       club={club}
       qrDisponible={resQr.data === true}
       redondeoEfectivoDisponible={resRedondeo.data === true}
+      pedirAOtraSede={
+        (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0
+          ? null
+          : { tiendas: sedesParaPedir(ubicaciones, persona.ubicacionId) }
+      }
+      pedidosConCliente={pedidosConCliente}
     />
   );
 }

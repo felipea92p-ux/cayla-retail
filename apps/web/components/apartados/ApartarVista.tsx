@@ -45,7 +45,7 @@ import {
   type PedidoApartado,
 } from "@/lib/separaciones-reglas";
 import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { PedirOtraSedeModal } from "@/components/apartados/ModalesApartado";
+import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
 
 type Linea = { varianteId: string; cantidad: number };
@@ -182,7 +182,7 @@ export function ApartarVista({
     pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : FORMULARIO_VACIO,
   );
   const conOtraSede = encendida(apagadas, "otra_sede");
-  const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string } } | null>(null);
+  const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string; cantidad: number } } | null>(null);
   const [intento, setIntento] = useState(false);
   const [tocados, setTocados] = useState<ReadonlySet<string>>(() => new Set());
   const apilado = useConsultaMedia(MQ_APILADO);
@@ -581,7 +581,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la envía por traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
+                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la aparta al instante y la envía en el próximo traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
                 </div>
               ) : (
                 <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
@@ -942,11 +942,21 @@ export function ApartarVista({
         />
       )}
 
+      {/* ADR-0328 act. 17: la misma ventana que Vender («Pedir y apartar»): allá la apartan al pedir. */}
       {pedir && (
-        <PedirOtraSedeModal
-          prenda={pedir.prenda}
-          tienda={pedir.tienda}
+        <PedirYApartarModal
           ubicacion={{ ubicacionId, etiqueta: ubicacionEtiqueta }}
+          referencia={pedir.prenda.referencia}
+          color={pedir.prenda.color ?? null}
+          candidatos={[
+            {
+              varianteId: pedir.prenda.varianteId,
+              talla: pedir.prenda.talla ?? "Única",
+              tiendas: [{ id: pedir.tienda.id, nombre: pedir.tienda.nombre, corto: pedir.tienda.nombre, cantidad: pedir.tienda.cantidad }],
+            },
+          ]}
+          cliente={f.nombres.trim() || f.celular.trim() ? { nombre: null, nombres: f.nombres, apellidos: f.apellidos, celular: f.celular } : null}
+          responsable={responsable}
           onClose={() => setPedir(null)}
         />
       )}

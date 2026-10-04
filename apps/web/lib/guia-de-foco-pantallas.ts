@@ -220,6 +220,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
   // «Falta» = lo mismo que apaga el botón «Pedir»: la tienda (si se elige), al menos una prenda y quién registra. La nota es opcional.
   "components/PedirAOtraSedeModal.tsx": { estado: "aplicada", evidencia: ["components/PedirAOtraSedeModal.tsx"] },
+  // ADR-0328 act. 17: «Pedir y apartar para el cliente» (Vender y Apartados). «Falta» = lo que apaga el botón y la base rechaza:
+  // talla y tienda (si hay más de una), nombres, apellidos, celular de 9 dígitos que empieza en 9, y quién atiende. Nota opcional.
+  "components/PedirYApartarModal.tsx": { estado: "aplicada", evidencia: ["components/PedirYApartarModal.tsx"] },
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
   "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
