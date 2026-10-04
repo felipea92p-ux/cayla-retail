@@ -99,14 +99,15 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   conteo: "Conteo",
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
-  // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
-  // la bajada del almacén al piso, que es otra cosa.
-  reposicion: "Ajuste · reposición",
-  merma: "Ajuste · merma",
-  conteo_fisico: "Ajuste · conteo físico",
+  // Los ajustes sueltos llevan «Ajuste a mano ·» delante: «Reposición» a secas se confundía con la bajada del almacén al
+  // piso, que es otra cosa; y «a mano» (Felipe, 2026-10-03) los separa del ajuste de un conteo, que tiene documento —
+  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos.
+  reposicion: "Ajuste a mano · reposición",
+  merma: "Ajuste a mano · merma",
+  conteo_fisico: "Ajuste a mano · conteo físico",
   // 2026-10-01 (ADR-0291): la prenda que faltó en un conteo y apareció; el ajuste queda enlazado a ese conteo.
   hallazgo_conteo: "Ajuste · encontrada tras un conteo",
-  otro: "Ajuste · otro",
+  otro: "Ajuste a mano · otro",
   // ADR-0212: lo que ya estaba en la tienda al pasarla al sistema. «Stock inicial», como lo dice Nuevo producto.
   carga_inicial: "Stock inicial",
   // La carga de sistema que repartió el stock cuando la tienda empezó a separar piso y almacén.
@@ -372,6 +373,16 @@ export function referenciaMovimiento(m: Movimiento, opciones: { enlaceCompras?: 
     }
   }
   return null;
+}
+
+/** La referencia de un ajuste hecho a mano (Felipe, 2026-10-03): no hay documento detrás, y la fila lo dice en vez de
+ *  quedar en blanco, con la nota de quien ajustó o «sin nota». Se decide por el dato y no por el motivo: un ajuste sin
+ *  conteo enlazado no tiene documento, se llame como se llame. Null si no es un ajuste o si tiene su conteo (ese ya
+ *  dice «Conteo N»). Solo para la lista: el cajón ya muestra la nota como motivo. */
+export function referenciaSinDocumento(m: Pick<Movimiento, "categoria" | "nota" | "conteo">): ReferenciaMovimiento | null {
+  if (m.categoria !== "ajuste" || m.conteo) return null;
+  const nota = m.nota?.trim();
+  return { texto: "Sin documento", detalle: nota ? `«${nota}»` : "sin nota", href: null };
 }
 
 /** «Hoy», «Ayer», o «lunes 15 de septiembre». `fecha` viene en día de Lima;
@@ -765,11 +776,17 @@ export function leerResumenTienda(
   return resumen;
 }
 
-/** Cómo se nombra cada proceso en el desglose de una tarjeta, detrás de la cifra: «80 por traslado», «4 vendidas». Una
- *  pareja [singular, plural] cuando la palabra concuerda con la cifra. */
-const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
+/** Cómo se nombra cada proceso en el desglose de «Entró» y «Salió», detrás de la cifra: «80 por traslado», «4 vendidas».
+ *  Una pareja [singular, plural] cuando la palabra concuerda con la cifra. Todo proceso de `ETIQUETA_PROCESO` que pueda
+ *  sumar o restar en esas tarjetas tiene la suya: lo exige una prueba, porque sin frase el respaldo pegaba la etiqueta de
+ *  la fila y su « · » partía el desglose en dos («+1 por ajuste · encontrada tras un conteo», 2026-10-03). Los ajustes no
+ *  están: van por respaldo (`desgloseAjustes`). */
+export const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
   traslado_entrada: "por traslado",
   traslado_salida: "por traslado",
+  // Una fila del modelo anterior (salía de una sede y entraba a otra): `fn_movimientos_resumen_procesos` ya la parte en
+  // recibido / enviado, pero si llega con su nombre viejo dice lo mismo.
+  transferencia: "por traslado",
   traslado_anulado: "por traslado anulado",
   recepcion: "de proveedor",
   devolucion: "por devolución",
@@ -782,29 +799,78 @@ const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
   cuarentena_liquidada: ["dañada, liquidada", "dañadas, liquidadas"],
   cuarentena_se_boto: ["dañada, botada", "dañadas, botadas"],
   cuarentena_donada: ["dañada, donada", "dañadas, donadas"],
-  conteo: "por conteo",
-  conteo_fisico: "por conteo físico",
-  merma: "por merma",
-  reposicion: "por reposición",
-  otro: "por otro motivo",
+  siembra_cargo_especial: "por cargo especial",
 };
 
+/** Un motivo que la base escribió y la web todavía no conoce (`motivo` es texto libre) no rompe la tarjeta: se nombra con
+ *  su etiqueta, sin el « · » que la partiría en dos. */
 function frase(proceso: string, cifra: number): string {
   const f = FRASE_PROCESO[proceso];
-  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase()}`;
+  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase().replaceAll(" · ", ", ")}`;
   return typeof f === "string" ? f : Math.abs(cifra) === 1 ? f[0] : f[1];
 }
 
-/** El desglose de una tarjeta: de mayor a menor, cada proceso con su cifra. `entran` para «Entró», `salen` para «Salió»,
- *  `neto` (con signo) para los ajustes. Los procesos en cero no se nombran. */
-export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen" | "neto"): string {
-  const n = (v: number) => Math.abs(v).toLocaleString("es-PE");
+/** El desglose de una tarjeta: de mayor a menor, cada proceso con su cifra. `entran` para «Entró», `salen` para «Salió».
+ *  Los procesos en cero no se nombran. Los ajustes no pasan por acá: van en bruto y por respaldo (`desgloseAjustes`).
+ *
+ *  `anuladas` (solo en «Salió»): cuántas de las ventas se anularon después, dicho junto a «vendidas» —«30 vendidas (2 se
+ *  anularon)»—. Sin eso, «30 vendidas» afirmaba 30 ventas cuando quedaron 28, y las 2 solo aparecían en «Entró» como
+ *  «por venta anulada» (2026-10-03). La anulación sigue contando como entrada (ADR-0234 D1); cambia la palabra, no la
+ *  cifra. Se dice «de ellas» sin comprobarlo fila por fila porque `anular_venta` exige la caja de esa venta abierta: la
+ *  venta y su anulación caen en el mismo turno. */
+export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen", opciones: { anuladas?: number } = {}): string {
+  const anuladas = forma === "salen" ? (opciones.anuladas ?? 0) : 0;
   return g.procesos
-    .map((p) => ({ p, v: forma === "entran" ? p.entran : forma === "salen" ? p.salen : p.entran - p.salen }))
+    .map((p) => ({ p, v: forma === "entran" ? p.entran : p.salen }))
     .filter(({ v }) => v !== 0)
-    .sort((a, b) => Math.abs(b.v) - Math.abs(a.v))
-    .map(({ p, v }) => `${forma === "neto" ? (v > 0 ? "+" : "−") : ""}${n(v)} ${frase(p.proceso, v)}`)
+    .sort((a, b) => b.v - a.v)
+    .map(({ p, v }) => {
+      const texto = `${v.toLocaleString("es-PE")} ${frase(p.proceso, v)}`;
+      if (p.proceso !== "venta" || anuladas <= 0) return texto;
+      return `${texto} (${anuladas === 1 ? "1 se anuló" : `${anuladas.toLocaleString("es-PE")} se anularon`})`;
+    })
     .join(" · ");
+}
+
+/** Cuántas prendas volvieron por una venta anulada en el período: la cara «Entró» de esas ventas, para nombrarlas junto a
+ *  «vendidas» en «Salió». Las cifras no dependen del filtro de tipo (la RPC no lo recibe), así que se leen de «entrada»
+ *  aunque se esté mirando «Salidas». */
+export function ventasAnuladas(resumen: ResumenTienda): number {
+  return resumen.entrada.procesos.filter((p) => p.proceso === "anulacion_venta").reduce((s, p) => s + p.entran, 0);
+}
+
+/** Los ajustes que salen de un conteo de verdad: `conteo` lo escribe solo `cerrar_conteo`, y `hallazgo_conteo` queda
+ *  enlazado al conteo donde faltó la prenda (ADR-0291); los dos llevan `conteo_item_id`. Todo otro ajuste —reposición,
+ *  merma, conteo físico, otro, o un motivo que todavía no existe— lo escribe alguien a mano en «Ajustar stock» y no tiene
+ *  documento detrás. */
+const AJUSTES_EN_UN_CONTEO: readonly string[] = ["conteo", "hallazgo_conteo"];
+
+export type RespaldoAjuste = "a_mano" | "en_un_conteo";
+
+export function respaldoDeAjuste(proceso: string | null): RespaldoAjuste {
+  return proceso !== null && AJUSTES_EN_UN_CONTEO.includes(proceso) ? "en_un_conteo" : "a_mano";
+}
+
+/** La tarjeta de Ajustes en BRUTO (Felipe, 2026-10-03): lo que faltó y lo que apareció por separado, nunca un neto. En
+ *  TRU, +87 y −35 se mostraban como «+52», y la encargada leía que sobraba mercadería cuando 35 prendas habían faltado;
+ *  el neto además restaba dentro de cada motivo («−5 por conteo» eran +4 y −9). Cada cara se parte por RESPALDO
+ *  («26 a mano · 9 en un conteo»), no por motivo: lo que se viene a saber es si hay un documento detrás; el motivo sigue
+ *  en cada fila y en los filtros de proceso. Null = esa cara está en cero. */
+export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; aparecieron: string | null } {
+  const cara = (lado: "entran" | "salen"): string | null => {
+    const por = (respaldo: RespaldoAjuste) => g.procesos.filter((p) => respaldoDeAjuste(p.proceso) === respaldo).reduce((s, p) => s + p[lado], 0);
+    const partes: [number, string][] = [
+      [por("a_mano"), "a mano"],
+      [por("en_un_conteo"), "en un conteo"],
+    ];
+    return (
+      partes
+        .filter(([v]) => v > 0)
+        .map(([v, texto]) => `${v.toLocaleString("es-PE")} ${texto}`)
+        .join(" · ") || null
+    );
+  };
+  return { faltaron: cara("salen"), aparecieron: cara("entran") };
 }
 
 /** «unidad» o «unidades», según la cifra. */

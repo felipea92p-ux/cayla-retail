@@ -182,7 +182,8 @@ flowchart TB
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
   (`pendiente_aprobacion`/`activo`) gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
   `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen
-  `colaboradores`, no solo las tres obvias. `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
+  `colaboradores`, no solo las tres obvias. (`fn_stock_por_sede` tenía su propia puerta y dejaba a las terminales con cero
+  filas; desde `20261004110000` pasa por `fn_tiene_acceso_retail`, que sí conoce la terminal: ADR-0289, segunda tanda.) `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
   **Fotos de perfil (20260925210000): son de Dynamic y retail no las copia.** `public.personas.foto_url` guarda la RUTA en
   el bucket público `fotos-perfil` (`perfil/<persona>/<archivo>.jpg`), nunca una URL; `lib/foto-perfil.ts` (`urlFotoPerfil`,
   pura) arma la URL. `retail.fn_fotos_personas(uuid[])` devuelve la ruta de cada colaborador pedido (solo colaboradores de
@@ -258,6 +259,10 @@ flowchart TB
   (`apartados.movimiento_id`/`movimiento_cierre_id` → `separaciones`). Bajadas del día plegadas (`plegarBajadas`,
   `FilaBajadas`); «Hoy» por defecto en el celular (`userAgent` en la página); filtros en hoja y cámara en el celular;
   Exportar en el «⋯» (`MenuMovimientos.tsx`).
+  **2026-10-03 (ADR-0327, cifras que dicen la verdad):** la tarjeta Ajustes va en bruto («−35 faltaron · +87 aparecieron») y por respaldo
+  («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
+  (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
+  «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
 quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
