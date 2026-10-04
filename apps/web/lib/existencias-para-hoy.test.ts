@@ -35,7 +35,7 @@ describe("tareasParaHoy", () => {
     expect(tareas.map((t) => t.tipo)).toEqual(["danadas"]);
   });
 
-  it("si quien mira no ve Recibir (`null`), la cola no se dibuja: no podría resolverla", () => {
+  it("donde no se vende (`null`), la cola no se dibuja", () => {
     expect(tareasParaHoy({ ...vacia, sinRegistrar: null })).toEqual([]);
   });
 
@@ -62,6 +62,8 @@ describe("tareasParaHoy", () => {
     expect(t.tipo).toBe("sin_registrar");
     expect(t.cifra).toBeNull();
     expect(t.texto).toBe("No se pudo leer las ventas sin registrar");
+    // No manda a otra pantalla: el botón de la fila ya lleva a la lista (antes decía «en Recibir», que dejó de tenerla con ADR-0330).
+    expect(t.detalle).not.toMatch(/Recibir/);
   });
 
   it("como mucho 2 filas en rojo: la tercera vencida baja a ámbar", () => {

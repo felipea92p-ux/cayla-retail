@@ -8,7 +8,7 @@
    0 no aparece. La pantalla muestra las tres primeras y deja ver el resto a un toque.
 
    No decide reglas nuevas: «por colgar» y «sin stock atrás» son los mismos casos de «Hoy» (`lib/existencias-hoy.ts`), las
-   ventas sin registrar son la cola de Recibir (`prendas_por_regularizar`, plazo de 2 días de ADR-0179) y lo demás son las colas
+   ventas sin registrar son la cola `prendas_por_regularizar` (plazo de 2 días de ADR-0179; su lista vive en Existencias, ADR-0330) y lo demás son las colas
    que Existencias ya leía (dañadas, apartados, traslados).
    Dos reglas de `/rigor` (2026-10-04):
    - el rojo es un presupuesto (`MAX_ROJO_POR_PANTALLA`, 2): solo los plazos vencidos van en rojo, y si hay más de dos, los
@@ -49,7 +49,7 @@ export type EntradaParaHoy = {
   porColgar: { tallas: number; unidades: number; prendas: readonly string[] };
   /** Tallas «sin stock atrás» que tampoco vienen en camino (lo que viene en camino no se pide de nuevo). */
   sinStockAtras: { tallas: number };
-  /** `null`: quien mira no ve Recibir (no podría resolverla) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
+  /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
   sinRegistrar: { pendientes: number; vencidas: number } | "fallo" | null;
   danadas: number;
   /** Quien mira puede decidir qué se hace con las dañadas (un líder, en su sede). Si no, la fila solo informa. */
@@ -103,7 +103,8 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       tipo: "sin_registrar",
       cifra: null,
       texto: "No se pudo leer las ventas sin registrar",
-      detalle: "Ábrelas en Recibir para ver cuántas esperan su prenda.",
+      // Sin nombrar otra pantalla: el botón de la fila ya lleva a la lista (ADR-0330, en Existencias).
+      detalle: "Ábrelas para ver cuántas esperan su prenda.",
       tono: "pizarra",
     });
   } else if (e.sinRegistrar && e.sinRegistrar.pendientes > 0) {
