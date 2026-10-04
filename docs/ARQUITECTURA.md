@@ -318,6 +318,16 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
   `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
   `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
+  **Pedir desde Traslados (ADR-0242 D-7, 2026-10-03):** `BotonPedirAOtraSede.tsx` (cabecera y estado vacío; no se dibuja si
+  `sedesParaPedir` no da ninguna tienda: el Taller no puede pedir) → `PedirAOtraSedeModal.tsx` en modo «elegir»
+  (`sedesParaElegir`; con la guía de foco) → `GET /api/traslados/prendas-de-sede?sede=` (`fn_existencias` de ESA sede, la
+  única fórmula de «cuánto hay», ADR-0270; ofrece solo lo que puede **enviar**: `almacen_libre` + `sin_lugar`, porque un
+  traslado sale del almacén y nunca del piso —`filasEnviables`—; su puerta `fn_tiene_acceso_retail` deja pasar a una
+  terminal; los nombres, por `getEtiquetasDeVariantes` en tandas de 80 ids, que falla en voz alta y no deja una lista a
+  medias) → la misma `pedir_a_otra_sede` de siempre, con el token atado al contenido del pedido (un reintento idéntico no
+  duplica; si cambian la tienda o las prendas, es otro pedido). Ojo: `pedir_a_otra_sede` y Análisis siguen mirando piso +
+  almacén (tarea de SQL pendiente de Felipe). Reglas puras: `sedesParaPedir`, `prendasPedibles`, `lineasElegidasParaPedir`
+  (`lib/pedidos-entre-sedes-reglas.ts`). Análisis sigue abriendo el modal con `origen` + `lineas` ya armadas. Sin migración.
   Lo de siempre: `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
   cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
   para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en

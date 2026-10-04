@@ -6,7 +6,9 @@ import { horaLima, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
 import { PedidosEntreSedes } from "@/components/PedidosEntreSedes";
 import { getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
-import { hayPedidosQueMostrar } from "@/lib/pedidos-entre-sedes-reglas";
+import { hayPedidosQueMostrar, sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
+import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
@@ -28,10 +30,13 @@ const LIMITE_CERRADOS = 30;
 export default async function TrasladosPage() {
   const persona = await requirePersonaActualV2();
   // «Pedir a otra sede» (ADR-0242 D-7) se lee en paralelo y es secundario: si falla, la tarjeta no aparece y la lista sigue.
-  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos] = await Promise.all([
+  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos, ubicaciones] = await Promise.all([
     getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS),
     getPedidosEntreSedes(persona.ubicacionId),
+    getUbicaciones(),
   ]);
+  // A quién se le puede pedir desde aquí (otras tiendas; si quien mira es el Taller, a nadie y el botón no se dibuja).
+  const pedir = { ubicacionId: persona.ubicacionId, sedes: sedesParaPedir(ubicaciones, persona.ubicacionId) };
   const puedeAjustar = puede(persona, "ajustarInventario");
   // Las dos lecturas corren en paralelo y son dos fotos de la base: un traslado que se cerró entre ellas
   // podría salir en ambas. Gana la de «cerrados», que es la más nueva — y así nunca hay dos filas iguales.
@@ -48,9 +53,12 @@ export default async function TrasladosPage() {
         titulo="Traslados"
         subtitulo="Lo que viene hacia tu sede y lo que sale de ella, hasta que la otra sede lo recibe."
         acciones={
-          <Link href={RUTA_NUEVO_TRASLADO} className="btn-cayla btn-primario">
-            + Nuevo traslado
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <BotonPedirAOtraSede {...pedir} />
+            <Link href={RUTA_NUEVO_TRASLADO} className="btn-cayla btn-primario">
+              + Nuevo traslado
+            </Link>
+          </div>
         }
       />
 
@@ -74,6 +82,7 @@ export default async function TrasladosPage() {
         ahoraIso={ahoraIso}
         horaCarga={horaLima(ahoraIso)}
         cerradosAcotados={cerradosLeidos >= LIMITE_CERRADOS}
+        pedir={pedir}
         // Los traslados sin prendas (cabeceras vacías de la limpieza de datos) no se muestran; se le avisa solo a
         // quien puede ajustar inventario, que es quien podría hacer algo con ellos.
         vacios={puedeAjustar ? vacios : 0}

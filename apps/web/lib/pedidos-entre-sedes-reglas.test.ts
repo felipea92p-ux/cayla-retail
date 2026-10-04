@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   accionesDePedido,
+  conPrendaElegida,
+  filasEnviables,
+  LINEA_ELEGIDA_VACIA,
+  lineasElegidasParaPedir,
+  prendasPedibles,
+  prendasYaElegidasEnOtras,
+  sedesParaPedir,
   ajustarCantidad,
   estadoVisiblePedido,
   etiquetaLinea,
@@ -171,5 +178,111 @@ describe("modal Pedir a otra sede", () => {
     expect(motivoNoSePuedePedir([{ varianteId: "a", etiqueta: "A", disponibleEnOrigen: 5, cantidad: 1 }])).toBeNull();
     const muchas = Array.from({ length: 101 }, (_, i) => ({ varianteId: `v${i}`, etiqueta: "x", disponibleEnOrigen: 1, cantidad: 1 }));
     expect(motivoNoSePuedePedir(muchas)).toMatch(/hasta 100/);
+  });
+});
+
+describe("Pedir desde Traslados: elegir la tienda y las prendas (ADR-0242 D-7)", () => {
+  const TRU = { id: "tru", nombre: "Tienda Trujillo", tipo: "tienda", activo: true };
+  const AQP = { id: "aqp", nombre: "Tienda AQP", tipo: "tienda", activo: true };
+  const LIM = { id: "lim", nombre: "Tienda Lima", tipo: "tienda", activo: true };
+  const TALLER = { id: "taller", nombre: "Taller", tipo: "taller", activo: true };
+
+  describe("sedesParaPedir", () => {
+    it("ofrece las OTRAS tiendas: ni el Taller (la base lo rechaza) ni la propia", () => {
+      expect(sedesParaPedir([TRU, AQP, LIM, TALLER], "lim")).toEqual([
+        { id: "tru", nombre: "Tienda Trujillo" },
+        { id: "aqp", nombre: "Tienda AQP" },
+      ]);
+    });
+    it("no ofrece una tienda inactiva", () => {
+      expect(sedesParaPedir([TRU, { ...AQP, activo: false }, LIM], "lim")).toEqual([{ id: "tru", nombre: "Tienda Trujillo" }]);
+    });
+    it("si quien pide es el Taller, no hay a quién (solo se pide entre tiendas)", () => {
+      expect(sedesParaPedir([TRU, LIM, TALLER], "taller")).toEqual([]);
+    });
+    it("si la propia sede no existe en la lista, tampoco inventa destinos", () => {
+      expect(sedesParaPedir([TRU, LIM], "fantasma")).toEqual([]);
+    });
+  });
+
+  describe("filasEnviables: lo que la otra tienda puede MANDAR (su almacén, no el piso)", () => {
+    const fila = (o: Partial<{ almacen_libre: number; sin_lugar: number; talla_retirada: boolean }>) => ({ variante_id: "a", ubicacion_id: "tru", almacen_libre: 0, sin_lugar: 0, talla_retirada: false, ...o });
+    it("ofrece solo el almacén: lo que está en el piso no se puede mandar", () => {
+      expect(filasEnviables([fila({ almacen_libre: 3 })])[0]!.cantidad).toBe(3);
+    });
+    it("una sede sin piso y almacén (lo que no tiene lugar asignado) cuenta completo", () => {
+      expect(filasEnviables([fila({ sin_lugar: 4 })])[0]!.cantidad).toBe(4);
+    });
+    it("una prenda solo en el piso ofrece cero: así no se pide lo que ella respondería «No la tengo»", () => {
+      const filas = filasEnviables([fila({ almacen_libre: 0 })]);
+      expect(prendasPedibles(filas, "tru", new Map([["a", "Blusa"]]))).toEqual([]);
+    });
+    it("una talla retirada no se ofrece aunque tenga stock", () => {
+      expect(filasEnviables([fila({ almacen_libre: 5, talla_retirada: true })])).toEqual([]);
+    });
+  });
+
+  describe("prendasPedibles", () => {
+    const etiquetas = new Map([["a", "Blusa Emma · L · Beige"], ["b", "Blusa Emma · M · Beige"], ["c", "Falda Renata · S · Negro"]]);
+    it("junta piso y almacén de la misma prenda y solo mira la sede pedida", () => {
+      const filas = [
+        { variante_id: "a", ubicacion_id: "tru", cantidad: 3 },
+        { variante_id: "a", ubicacion_id: "tru", cantidad: 2 }, // la misma prenda en otro lugar de la tienda
+        { variante_id: "a", ubicacion_id: "aqp", cantidad: 9 }, // otra sede: no cuenta
+      ];
+      expect(prendasPedibles(filas, "tru", etiquetas)).toEqual([{ varianteId: "a", etiqueta: "Blusa Emma · L · Beige", disponible: 5 }]);
+    });
+    it("descarta los ceros y lo que no tiene nombre (no se pide una prenda a ciegas)", () => {
+      const filas = [
+        { variante_id: "a", ubicacion_id: "tru", cantidad: 0 },
+        { variante_id: "b", ubicacion_id: "tru", cantidad: 4 },
+        { variante_id: "sin-nombre", ubicacion_id: "tru", cantidad: 7 },
+      ];
+      expect(prendasPedibles(filas, "tru", etiquetas)).toEqual([{ varianteId: "b", etiqueta: "Blusa Emma · M · Beige", disponible: 4 }]);
+    });
+    it("sale ordenada por nombre, sin importar el orden en que llegó el stock", () => {
+      const filas = [
+        { variante_id: "c", ubicacion_id: "tru", cantidad: 1 },
+        { variante_id: "b", ubicacion_id: "tru", cantidad: 1 },
+        { variante_id: "a", ubicacion_id: "tru", cantidad: 1 },
+      ];
+      expect(prendasPedibles(filas, "tru", etiquetas).map((p) => p.varianteId)).toEqual(["a", "b", "c"]);
+    });
+    it("una sede sin stock da una lista vacía, no un error", () => {
+      expect(prendasPedibles([], "tru", etiquetas)).toEqual([]);
+    });
+  });
+
+  describe("las líneas que elige la persona", () => {
+    const prendas = [
+      { varianteId: "a", etiqueta: "Blusa Emma · L · Beige", disponible: 5 },
+      { varianteId: "b", etiqueta: "Blusa Emma · M · Beige", disponible: 1 },
+    ];
+    it("una línea sin prenda no cuenta ni estorba: con solo esa, todavía no se puede pedir", () => {
+      const lineas = lineasElegidasParaPedir([LINEA_ELEGIDA_VACIA], prendas);
+      expect(lineas).toEqual([]);
+      expect(motivoNoSePuedePedir(lineas)).toBe("Elige al menos una prenda");
+    });
+    it("la cantidad se topa a lo que la otra tienda tiene libre", () => {
+      expect(lineasElegidasParaPedir([{ varianteId: "b", cantidad: 9 }], prendas)).toEqual([
+        { varianteId: "b", etiqueta: "Blusa Emma · M · Beige", disponibleEnOrigen: 1, cantidad: 1 },
+      ]);
+    });
+    it("una prenda que ya no está en la lista (la tienda la vendió y se recargó) se ignora", () => {
+      expect(lineasElegidasParaPedir([{ varianteId: "vendida", cantidad: 2 }, { varianteId: "a", cantidad: 2 }], prendas)).toHaveLength(1);
+    });
+    it("lo que sale hacia la base solo trae prendas con cantidad (0 = no la pido)", () => {
+      const lineas = lineasElegidasParaPedir([{ varianteId: "a", cantidad: 0 }, { varianteId: "b", cantidad: 1 }], prendas);
+      expect(lineasParaRpc(lineas)).toEqual([{ variante_id: "b", cantidad: 1 }]);
+    });
+    it("al elegir una prenda queda en 1, y nunca por encima de lo que tiene libre", () => {
+      expect(conPrendaElegida("a", prendas)).toEqual({ varianteId: "a", cantidad: 1 });
+      expect(conPrendaElegida("desconocida", prendas)).toEqual({ varianteId: "desconocida", cantidad: 0 });
+    });
+    it("una prenda ya elegida en otra línea no se ofrece de nuevo (pero la propia sí se conserva)", () => {
+      const elegidas = [{ varianteId: "a", cantidad: 1 }, { varianteId: "", cantidad: 1 }, { varianteId: "b", cantidad: 1 }];
+      expect([...prendasYaElegidasEnOtras(elegidas, 1)].sort()).toEqual(["a", "b"]);
+      expect([...prendasYaElegidasEnOtras(elegidas, 0)]).toEqual(["b"]);
+    });
   });
 });
