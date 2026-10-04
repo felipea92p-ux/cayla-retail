@@ -1,0 +1,426 @@
+{
+  "lider": {
+    "desde": "2031-03-01",
+    "hasta": "2031-03-31",
+    "hechos": [
+      {
+        "id": "cda17ca1-a191-4aa3-b6c0-783e722dfbff",
+        "dia": "2031-03-22",
+        "lado": "perdida",
+        "nota": "venía rota",
+        "zona": null,
+        "color": "Azul marino",
+        "razon": "danada",
+        "talla": "28",
+        "codigo": "PAN-0002-AZM-28",
+        "fuente": "anulacion",
+        "instante": "2031-03-22T12:00:00-05:00",
+        "producto": "Pantalón Mía",
+        "quedaron": null,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#2A304E",
+        "zona_tipo": null,
+        "producto_id": "bbbd34ba-8aaa-487d-af85-b8e438aa1d20",
+        "variante_id": "b8b8f5df-8c43-4061-8615-aa7deb0bdad2",
+        "documento_id": "f236129c-a293-489d-b455-b77e0d3e0c4b",
+        "con_documento": true,
+        "costo_unitario": 30,
+        "documento_tipo": "venta",
+        "sububicacion_id": null,
+        "documento_numero": null
+      },
+      {
+        "id": "2673bf9d-1b16-4740-8772-175d7439ca70",
+        "dia": "2031-03-20",
+        "lado": "aparecio",
+        "nota": null,
+        "zona": null,
+        "color": "Negro",
+        "razon": "traslado",
+        "talla": "28",
+        "codigo": "PAN-0001-NEG-28",
+        "fuente": "traslado",
+        "instante": "2031-03-20T19:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": null,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#2D2C2F",
+        "zona_tipo": null,
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "e42ec5e8-c6be-42df-9063-6f9df49bf9b7",
+        "documento_id": "8d2239c7-cc61-4680-bb15-5e2c24268841",
+        "con_documento": true,
+        "costo_unitario": 0,
+        "documento_tipo": "traslado",
+        "sububicacion_id": null,
+        "documento_numero": 119
+      },
+      {
+        "id": "5b0e3ab6-bb7f-4b58-bd9d-a53beba37a09",
+        "dia": "2031-03-20",
+        "lado": "perdida",
+        "nota": "faltó una en la caja",
+        "zona": null,
+        "color": "Azul marino",
+        "razon": "traslado",
+        "talla": "28",
+        "codigo": "PAN-0002-AZM-28",
+        "fuente": "traslado",
+        "instante": "2031-03-20T18:00:00-05:00",
+        "producto": "Pantalón Mía",
+        "quedaron": null,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#2A304E",
+        "zona_tipo": null,
+        "producto_id": "bbbd34ba-8aaa-487d-af85-b8e438aa1d20",
+        "variante_id": "b8b8f5df-8c43-4061-8615-aa7deb0bdad2",
+        "documento_id": "1b1cf456-ef12-492b-b71d-8a31d1c2ea97",
+        "con_documento": true,
+        "costo_unitario": 25,
+        "documento_tipo": "traslado",
+        "sububicacion_id": null,
+        "documento_numero": 118
+      },
+      {
+        "id": "d0da89cc-73b8-46c6-8e83-f6a278be6fdd",
+        "dia": "2031-03-16",
+        "lado": "perdida",
+        "nota": null,
+        "zona": "Cuarentena P",
+        "color": "Negro",
+        "razon": "danada",
+        "talla": "28",
+        "codigo": "PAN-0001-NEG-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-16T12:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": -1,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#2D2C2F",
+        "zona_tipo": "cuarentena",
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "e42ec5e8-c6be-42df-9063-6f9df49bf9b7",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": 0,
+        "documento_tipo": null,
+        "sububicacion_id": "0cf2e6aa-4c6e-4fcd-98fc-cf53d8fd4357",
+        "documento_numero": null
+      },
+      {
+        "id": "1f8d7b4d-354f-434b-8b05-0e91e68a5818",
+        "dia": "2031-03-15",
+        "lado": "aparecio",
+        "nota": null,
+        "zona": "Almacén P",
+        "color": "Beige",
+        "razon": "conteo",
+        "talla": "28",
+        "codigo": "PAN-0001-BEI-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-15T12:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": null,
+        "unidades": 2,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98",
+        "zona_tipo": "almacen_tienda",
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "ade4acf8-a5da-4514-8e23-7da81b105f05",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": 40,
+        "documento_tipo": null,
+        "sububicacion_id": "22534f14-0600-485c-bcfd-3b4b7dd4b6ff",
+        "documento_numero": null
+      },
+      {
+        "id": "77db91c6-8673-4aea-bf00-883813250718",
+        "dia": "2031-03-14",
+        "lado": "aparecio",
+        "nota": null,
+        "zona": "Almacén P",
+        "color": "Beige",
+        "razon": "a_mano",
+        "talla": "28",
+        "codigo": "PAN-0001-BEI-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-14T12:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": null,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98",
+        "zona_tipo": "almacen_tienda",
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "ade4acf8-a5da-4514-8e23-7da81b105f05",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": 40,
+        "documento_tipo": null,
+        "sububicacion_id": "22534f14-0600-485c-bcfd-3b4b7dd4b6ff",
+        "documento_numero": null
+      },
+      {
+        "id": "9e40cdc5-cb03-4a54-8cd4-856f7c6281d7",
+        "dia": "2031-03-12",
+        "lado": "perdida",
+        "nota": null,
+        "zona": "Almacén P",
+        "color": "Azul marino",
+        "razon": "a_mano",
+        "talla": "28",
+        "codigo": "PAN-0002-AZM-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-12T12:00:00-05:00",
+        "producto": "Pantalón Mía",
+        "quedaron": 0,
+        "unidades": 3,
+        "categoria": "Pantalones",
+        "color_hex": "#2A304E",
+        "zona_tipo": "almacen_tienda",
+        "producto_id": "bbbd34ba-8aaa-487d-af85-b8e438aa1d20",
+        "variante_id": "b8b8f5df-8c43-4061-8615-aa7deb0bdad2",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": 25,
+        "documento_tipo": null,
+        "sububicacion_id": "22534f14-0600-485c-bcfd-3b4b7dd4b6ff",
+        "documento_numero": null
+      },
+      {
+        "id": "f92163b6-f35c-4e9e-a5cd-0f1b6dd6d0d0",
+        "dia": "2031-03-10",
+        "lado": "perdida",
+        "nota": "se manchó",
+        "zona": "Piso P",
+        "color": "Beige",
+        "razon": "a_mano",
+        "talla": "28",
+        "codigo": "PAN-0001-BEI-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-10T12:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": 2,
+        "unidades": 2,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98",
+        "zona_tipo": "piso_venta",
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "ade4acf8-a5da-4514-8e23-7da81b105f05",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": 40,
+        "documento_tipo": null,
+        "sububicacion_id": "3d6bbdf5-582a-4edd-b1f6-10a04689153b",
+        "documento_numero": null
+      },
+      {
+        "id": "e92c2be1-7e46-41d4-81d4-2d9d224514d9",
+        "dia": "2031-03-03",
+        "lado": "perdida",
+        "nota": null,
+        "zona": "Piso P",
+        "color": "Beige",
+        "razon": "conteo",
+        "talla": "28",
+        "codigo": "PAN-0001-BEI-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-03T12:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": 4,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98",
+        "zona_tipo": "piso_venta",
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "ade4acf8-a5da-4514-8e23-7da81b105f05",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": 40,
+        "documento_tipo": null,
+        "sububicacion_id": "3d6bbdf5-582a-4edd-b1f6-10a04689153b",
+        "documento_numero": null
+      }
+    ],
+    "perdido": {
+      "soles": 250,
+      "hechos": 6,
+      "unidades": 9,
+      "sin_costo": 1
+    },
+    "aparecio": {
+      "soles": 120,
+      "hechos": 3,
+      "unidades": 4
+    },
+    "ve_costo": true,
+    "por_razon": [
+      {
+        "lado": "perdida",
+        "razon": "a_mano",
+        "soles": 155,
+        "unidades": 5
+      },
+      {
+        "lado": "perdida",
+        "razon": "danada",
+        "soles": 30,
+        "unidades": 2
+      },
+      {
+        "lado": "perdida",
+        "razon": "conteo",
+        "soles": 40,
+        "unidades": 1
+      },
+      {
+        "lado": "perdida",
+        "razon": "traslado",
+        "soles": 25,
+        "unidades": 1
+      },
+      {
+        "lado": "aparecio",
+        "razon": "conteo",
+        "soles": 80,
+        "unidades": 2
+      },
+      {
+        "lado": "aparecio",
+        "razon": "a_mano",
+        "soles": 40,
+        "unidades": 1
+      },
+      {
+        "lado": "aparecio",
+        "razon": "traslado",
+        "soles": 0,
+        "unidades": 1
+      }
+    ],
+    "por_talla": [
+      {
+        "soles": 250,
+        "talla": "28",
+        "unidades": 9
+      }
+    ],
+    "mas_faltan": [
+      {
+        "color": "Azul marino",
+        "talla": "28",
+        "veces": 3,
+        "unidades": 5,
+        "categoria": "Pantalones",
+        "color_hex": "#2A304E"
+      },
+      {
+        "color": "Beige",
+        "talla": "28",
+        "veces": 2,
+        "unidades": 3,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98"
+      },
+      {
+        "color": "Negro",
+        "talla": "28",
+        "veces": 1,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#2D2C2F"
+      }
+    ],
+    "hechos_total": 9,
+    "por_categoria": [
+      {
+        "soles": 250,
+        "unidades": 9,
+        "categoria": "Pantalones"
+      }
+    ]
+  },
+  "integrante": {
+    "desde": "2031-03-01",
+    "hasta": "2031-03-31",
+    "hechos": [
+      {
+        "id": "2ee38510-6c84-41eb-97fa-e2a56b8815da",
+        "dia": "2031-03-05",
+        "lado": "perdida",
+        "nota": null,
+        "zona": "Piso de venta",
+        "color": "Beige",
+        "razon": "a_mano",
+        "talla": "28",
+        "codigo": "PAN-0001-BEI-28",
+        "fuente": "movimiento",
+        "instante": "2031-03-05T12:00:00-05:00",
+        "producto": "Pantalón Carla",
+        "quedaron": -1,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98",
+        "zona_tipo": "piso_venta",
+        "producto_id": "3eb7505c-878e-41fb-b0d0-bd694c89ca47",
+        "variante_id": "ade4acf8-a5da-4514-8e23-7da81b105f05",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": null,
+        "documento_tipo": null,
+        "sububicacion_id": "d1a714e0-d788-43d1-81d7-4d253d6e3081",
+        "documento_numero": null
+      }
+    ],
+    "perdido": {
+      "soles": 40,
+      "hechos": 1,
+      "unidades": 1,
+      "sin_costo": 0
+    },
+    "aparecio": {
+      "soles": 0,
+      "hechos": 0,
+      "unidades": 0
+    },
+    "ve_costo": false,
+    "por_razon": [
+      {
+        "lado": "perdida",
+        "razon": "a_mano",
+        "soles": 40,
+        "unidades": 1
+      }
+    ],
+    "por_talla": [
+      {
+        "soles": 40,
+        "talla": "28",
+        "unidades": 1
+      }
+    ],
+    "mas_faltan": [
+      {
+        "color": "Beige",
+        "talla": "28",
+        "veces": 1,
+        "unidades": 1,
+        "categoria": "Pantalones",
+        "color_hex": "#D5BA98"
+      }
+    ],
+    "hechos_total": 1,
+    "por_categoria": [
+      {
+        "soles": 40,
+        "unidades": 1,
+        "categoria": "Pantalones"
+      }
+    ]
+  }
+}

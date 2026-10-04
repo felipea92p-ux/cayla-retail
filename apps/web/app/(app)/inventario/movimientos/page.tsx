@@ -23,9 +23,22 @@ import {
   type ParamsMovimientos,
   type ResumenTienda,
 } from "@/lib/movimientos-v2";
-import { desdeDeUltimosDias, desgloseAjustes, ventasAnuladas } from "@/lib/movimientos-reglas";
+import { desdeDeUltimosDias, desgloseAjustes, restarDias, ventasAnuladas } from "@/lib/movimientos-reglas";
 import type { ReactNode } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { PerdidasVista } from "@/components/perdidas/PerdidasVista";
+import { getResumenPerdidas } from "@/lib/perdidas";
+import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
+import {
+  DIAS_VENTANA_REPETICION,
+  PERIODOS_PERDIDAS,
+  filtrosPerdidas,
+  hrefPerdidas,
+  perdidasQueSeRepiten,
+  rangoPerdidas,
+  type ParamsPerdidas,
+} from "@/lib/perdidas-reglas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
@@ -54,9 +67,11 @@ import { PaginacionCursor } from "@/components/Paginacion";
 // 2026-09-26 (ADR-0234, decisiones de Felipe D1 y D2): se lee DESDE LA TIENDA. «Entró» es todo lo que sumó stock a la
 // sede —también el traslado que llegó— y «Salió», todo lo que lo restó; las cifras cuentan OPERACIONES (lo que se guardó
 // de una sola vez), no filas, y la lista muestra cada operación como una fila que se despliega.
-export default async function MovimientosPage({ searchParams }: { searchParams: Promise<ParamsMovimientos> }) {
+export default async function MovimientosPage({ searchParams }: { searchParams: Promise<ParamsMovimientos & ParamsPerdidas> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
+  // ADR-0328 act. 14: «Pérdidas» es una pestaña de Movimientos, no un módulo (ADR-0306): quien ve Movimientos la ve.
+  if (params.vista === "perdidas") return <PaginaPerdidas ubicacionId={persona.ubicacionId} params={params} />;
   const esLider = persona.rol === "lider";
   // La sede la decide SOLO el selector de la cabecera (`UbicacionSwitcher`, cookie: cambia todo el
   // ERP). Hasta el 2026-09-22 había un segundo selector en el título (`?ubicacion=`) que podía decir
@@ -113,6 +128,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           <MenuMovimientos hrefExportar={`/inventario/movimientos/exportar${cadenaExportar(params, periodo, porDefecto)}`} />
         }
       />
+
+      <PestanasMovimientos activa="movimientos" />
 
       {resumen ? (
         <Cifras resumen={resumen} categoria={filtros.categoria ?? null} sede={sede} periodo={periodoCorto(periodo, filtros.desde, filtros.hasta)} params={params} />
@@ -186,6 +203,72 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
       </p>
+    </div>
+  );
+}
+
+/** Las dos vistas de Movimientos (ADR-0328 act. 14): el libro entero y lo que se perdió. Enlaces, no estado: la vista vive en
+ *  la URL, se comparte y «atrás» funciona (ADR-0111). */
+function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" }) {
+  return (
+    <Pestanas
+      deslizante
+      idIndicador="movimientos-vistas"
+      etiquetaAccesible="Vistas de Movimientos"
+      activa={activa}
+      items={[
+        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos" },
+        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas() },
+      ]}
+    />
+  );
+}
+
+/** La pestaña «Pérdidas»: el período y los filtros de la URL, las dos lecturas a la vez (el período elegido y los últimos
+ *  30 días de «se repite», que es lo mismo que avisa el Inicio del líder) y la vista. Sin filtros de Movimientos: es otra
+ *  pregunta («¿cuánto perdimos?»), con su propio período (por defecto, este mes). */
+async function PaginaPerdidas({ ubicacionId, params }: { ubicacionId: string; params: ParamsPerdidas }) {
+  const hoy = hoyEnLima();
+  const rango = rangoPerdidas(params.p, hoy);
+  const filtro = filtrosPerdidas(params);
+  const filtrada = Boolean(filtro.varianteId || filtro.sububicacionId);
+  const desde30 = restarDias(hoy, DIAS_VENTANA_REPETICION - 1);
+  // «Se repite» mira siempre los últimos 30 días de toda la sede. Si el período elegido ya es ese, una sola lectura.
+  const mismo = !filtrada && rango.desde === desde30 && rango.hasta === hoy;
+  const [ubicaciones, resumen, ultimos30] = await Promise.all([
+    getUbicaciones(),
+    getResumenPerdidas(ubicacionId, rango.desde, rango.hasta, filtro),
+    filtrada || mismo ? Promise.resolve(null) : getResumenPerdidas(ubicacionId, desde30, hoy),
+  ]);
+  const sede = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "esta sede";
+  const base30 = mismo ? resumen : ultimos30;
+  const repeticiones = filtrada ? null : base30 ? perdidasQueSeRepiten(base30.hechos, hoy) : null;
+  return (
+    <div className="space-y-6">
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Movimientos"
+        subtitulo="Pérdidas: todo lo que salió sin venderse. Lo que apareció va aparte."
+      />
+      <PestanasMovimientos activa="perdidas" />
+      <PerdidasVista
+        resumen={resumen}
+        repeticiones={repeticiones}
+        sede={sede}
+        periodo={rango.periodo}
+        periodoTexto={rango.texto}
+        filtro={filtro}
+        selectorPeriodo={
+          <SegmentoEnlaces
+            deslizante
+            idIndicador="perdidas-periodo"
+            etiquetaAccesible="Período de las pérdidas"
+            activo={rango.periodo}
+            // Cambiar el período conserva la prenda o la zona elegida.
+            opciones={PERIODOS_PERDIDAS.map((o) => ({ valor: o.valor, etiqueta: o.etiqueta, href: hrefPerdidas({ periodo: o.valor, ...filtro }) }))}
+          />
+        }
+      />
     </div>
   );
 }
