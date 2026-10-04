@@ -14,6 +14,6 @@
 - [ ] Fecha de cuadre por sede y «puerta de confianza» de «Para hoy» (ADR-0328 decisiones 4 y 5): de la otra sesión del rediseño; se engancha en `tareasParaHoy`.
 - [ ] «155 de 600» (colgadas de las que caben): espera la capacidad por sede en la base (ADR-0329).
 - [ ] La edad del piso dentro de Existencias: aprobada por Felipe para DESPUÉS del cuadre (tarea #10 del análisis).
-- [ ] El Inicio de la cuenta Almacén cuenta «modelos que piden piso» con otra regla que «Para hoy» (incluye los que no tienen nada atrás): tarea aparte propuesta.
+- [x] ~~El Inicio de la cuenta Almacén cuenta «modelos que piden piso» con otra regla que «Para hoy» (incluye los que no tienen nada atrás): tarea aparte propuesta.~~ Hecho en `claude/compassionate-lumiere-1ed7d6` (2026-10-04): ver `docs/backlog/2026-10-04-compassionate-lumiere-1ed7d6.md`.
 - [ ] Un candado de rojo que mire las tarjetas (hoy solo la prueba de `TONO_HOY`); un solo verbo para bajar («Bajar al piso» / «Reponer prenda»); «Eliminar el producto» en el cajón (D4 del 3-oct, abierta).
 - [ ] Pruebas que faltan: `ordenarModelos` y `agruparPorModelo` viven en el componente (pasarlas a `lib/`), `resumirExistencias`.
