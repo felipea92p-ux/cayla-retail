@@ -295,7 +295,7 @@ export function CajonPrendaExistencias({
                   <Grupo titulo="Gestión" bajada="Acciones de administración de stock.">
                     <div className="grid gap-2">
                       {puedeAjustar && <Accion icono={Archive} texto="Ajustar stock" onClick={() => onAjustar(prenda.tallas[0])} />}
-                      {/* Una mancha o una rotura (ADR-0328 act. 10): pasa a Dañadas, la caja deja de cobrarla y el líder decide. */}
+                      {/* Una mancha o una rotura (ADR-0328 act. 10): pasa a Dañadas (deja de contar para la venta; separarla del perchero lo pide la ventana) y el líder decide. */}
                       {hayQueReportar && onReportarDanada && <Accion icono={Bandage} texto="Reportar dañada" onClick={() => onReportarDanada(prenda)} />}
                       {hrefEtiquetas && <Accion icono={Barcode} texto="Imprimir etiquetas" href={hrefEtiquetas} />}
                       {/* ADR-0252: al final y en rojo, como en `DetallePrendaExistencias.tsx` — es del PRODUCTO entero (todas sus

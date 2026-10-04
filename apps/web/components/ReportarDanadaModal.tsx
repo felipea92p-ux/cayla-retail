@@ -28,7 +28,8 @@ import {
   libreEn,
   MAX_TEXTO_DANADA,
   puedeEnviarReporte,
-  QUE_PASA_AL_REPORTAR,
+  quePasaAlReportar,
+  recordatorioAlReportar,
   respuestaResuelveLaMarca,
   RPC_REPORTAR_DANADA,
   tallaInicial,
@@ -51,7 +52,9 @@ function textoMarcaSinResolver(hora: string): string {
 
 // «Reportar dañada» (ADR-0328, actividad 10): una prenda manchada, rota o descosida que aparece en el perchero (o en el almacén) se
 // reporta desde su tarjeta en Existencias. Pasa a la cuarentena de la sede en UNA llamada a `reportar_danada` (todo o nada, con marca
-// de reintento): la caja deja de poder cobrarla y el líder decide en Dañadas si se arregló y vuelve, se liquida, se bota o se dona.
+// de reintento): deja de contarse para la venta y el líder decide en Dañadas si se arregló y vuelve, se liquida, se bota o se dona.
+// El stock se cuenta por código, no por prenda: por eso la ventana pide sacarla del perchero (si quedan otras iguales, la caja
+// sigue cobrando ese código, y la manchada colgada podría salir vendida).
 // Reportar no es perder (la prenda sigue en la tienda): perder es botarla o donarla, y eso lo decide el líder después.
 //
 // Se pregunta lo mínimo para que el líder decida bien: cuál (color y talla), dónde estaba (lo libre de cada lugar: lo apartado para un
@@ -202,7 +205,8 @@ export function ReportarDanadaModal({
     }
 
     const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: "", unidades: envio.argumentos.p_cantidad };
-    const detalle = envio.detalle;
+    // El sistema ya la movió; la percha todavía no: el aviso recuerda sacarla, también cuando «ya estaba» guardado.
+    const detalle = `${envio.detalle}. ${recordatorioAlReportar(envio.argumentos.p_desde)}`;
     if (r.ya_registrada) avisar.aviso(TEXTO_REPORTE_YA_ESTABA, { detalle });
     else avisar.exito(tituloExitoReporte(r.unidades), { detalle });
     router.refresh();
@@ -306,7 +310,7 @@ export function ReportarDanadaModal({
             <ComboResponsable control={responsable} deshabilitado={loading} />
           </CampoGuiado>
 
-          <p className="nota-cayla text-xs leading-snug">{QUE_PASA_AL_REPORTAR}</p>
+          <p className="nota-cayla text-xs leading-snug">{quePasaAlReportar(estado.desde)}</p>
 
           {error && (
             <p role="alert" className="text-sm text-rojo-profundo">

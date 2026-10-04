@@ -268,9 +268,23 @@ export function tituloExitoArreglo(unidades: number): string {
 export const TEXTO_REPORTE_YA_ESTABA = "Este reporte ya estaba guardado. No se repitió.";
 export const TEXTO_ARREGLO_YA_ESTABA = "Esta prenda ya había vuelto al almacén. No se repitió.";
 
-/** Lo que pasa al reportar, en palabras de tienda: se avisa ANTES de confirmar. */
-export const QUE_PASA_AL_REPORTAR =
-  "Pasa a Dañadas: la caja ya no la puede cobrar. El líder decide si se arregla y vuelve, se liquida, se bota o se dona.";
+const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas y el líder decide si se arregla y vuelve, se liquida, se bota o se dona.";
+
+/**
+ * Lo que pasa al reportar, en palabras de tienda: se avisa ANTES de confirmar y sigue al lugar elegido. Pide el acto físico
+ * primero porque el stock se cuenta por código, no por prenda: si quedan otras iguales en el piso, la caja sigue cobrando ese
+ * código, y si la manchada sigue colgada puede salir vendida (y la cuarentena quedaría con una que ya no está).
+ */
+export function quePasaAlReportar(desde: DesdeDanada | null): string {
+  if (desde === "piso") return `Sácala del perchero y guárdala aparte con una nota de lo que tiene: si sigue colgada, se puede vender. ${DESTINOS_DE_DANADAS}`;
+  if (desde === "almacen") return `Sácala de su lugar en el almacén y guárdala aparte con una nota de lo que tiene, para que nadie la baje al piso. ${DESTINOS_DE_DANADAS}`;
+  return `Guárdala aparte con una nota de lo que tiene. ${DESTINOS_DE_DANADAS}`;
+}
+
+/** Lo que el aviso de éxito recuerda hacer con la prenda en la mano (el sistema ya la movió; la percha todavía no). */
+export function recordatorioAlReportar(desde: DesdeDanada): string {
+  return desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se baja al piso.";
+}
 
 /** Lo que pasa con «Se arregló»: vuelve al almacén y, para venderla, se baja al piso (así Frescura cuenta su edad desde ahí). */
 export function quePasaAlArreglar(sede: string): string {

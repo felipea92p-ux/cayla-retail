@@ -209,7 +209,7 @@ export function ExistenciasTarjetas({
             ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
             : []),
           ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0], origen()) }] : []),
-          // Una mancha o una rotura que aparece en el perchero (ADR-0328 act. 10): pasa a Dañadas y la caja deja de cobrarla.
+          // Una mancha o una rotura que aparece en el perchero (ADR-0328 act. 10): pasa a Dañadas y deja de contar para la venta.
           ...(puedeReportarDanada && onReportarDanada
             ? [{ clave: "danada", etiqueta: "Reportar dañada", onSelect: () => onReportarDanada(p, origen()), motivo: hayAlgoLibre ? undefined : "No hay prendas libres para reportar" }]
             : []),

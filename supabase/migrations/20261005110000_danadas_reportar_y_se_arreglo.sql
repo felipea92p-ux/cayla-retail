@@ -22,8 +22,8 @@
 --   3. Un movimiento de entrada, una sola dañada (`prendas_danadas_movimiento_entrada_unico`): es el candado que hace
 --      imposible que un reintento cree dos dañadas para un mismo traslado a la cuarentena.
 --   4. `reportar_danada(sede, prenda, cantidad, 'piso'|'almacen', motivo, marca)`: mueve lo LIBRE (sin lo apartado para un
---      cliente) a la cuarentena de la sede y abre su fila en `prendas_danadas`, todo o nada. La caja deja de poder cobrarla
---      (sale del piso; desde la cuarentena no se vende, 20260924093700). Quien ve Existencias y opera la sede.
+--      cliente) a la cuarentena de la sede y abre su fila en `prendas_danadas`, todo o nada. Esas unidades dejan de contar
+--      para la venta (salen del piso; desde la cuarentena no se vende, 20260924093700). Quien ve Existencias y opera la sede.
 --   5. `arreglar_prenda_danada(dañada, nota, marca)`: «Se arregló»: vuelve al ALMACÉN de la sede (no al piso: pasa por
 --      «Bajar al piso» y Frescura le da reloj desde esa bajada). Solo el líder (`fn_es_lider()` a la vista).
 --
@@ -36,7 +36,8 @@
 -- `mover_interno` (`movimientos_internos_intentos`), sin tabla nueva.
 --
 -- ESTADOS QUE DEJAN DE SER POSIBLES:
---   · una prenda dañada que la caja todavía puede cobrar (se reporta = sale del piso o del almacén en la misma transacción);
+--   · una prenda reportada que sigue contando para la venta (se reporta = sale del piso o del almacén en la misma
+--     transacción). El stock se cuenta por código, no por prenda: que la manchada salga del perchero lo pide la pantalla;
 --   · una fila de `prendas_danadas` sin origen o con dos (devolución, cambio y reporte se excluyen por CHECK);
 --   · una prenda que «se arregló» sin decir qué se le hizo (CHECK);
 --   · dos dañadas abiertas por el mismo movimiento de entrada (índice único), aunque la pantalla reenvíe;

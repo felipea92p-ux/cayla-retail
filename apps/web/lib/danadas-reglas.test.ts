@@ -19,6 +19,8 @@ import {
   problemasReporte,
   puedeEnviarReporte,
   quePasaAlArreglar,
+  quePasaAlReportar,
+  recordatorioAlReportar,
   respuestaResuelveLaMarca,
   RPC_ARREGLAR_DANADA,
   RPC_REPORTAR_DANADA,
@@ -292,6 +294,24 @@ describe("los textos", () => {
     expect(textoBotonReportar(3, false)).toBe("Reportar 3 dañadas");
     expect(textoBotonReportar(0, false)).toBe("Reportar dañada");
     expect(textoBotonReportar(3, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
+  });
+
+  it("al reportar, la ventana pide separarla de verdad y no promete que la caja ya no la cobra", () => {
+    // El stock se cuenta por código: con otras iguales en el piso, la caja sigue cobrando ese código.
+    for (const desde of [null, "piso", "almacen"] as const) {
+      const t = quePasaAlReportar(desde);
+      expect(t, String(desde)).toMatch(/aparte con una nota/);
+      expect(t, String(desde)).toContain("pasa a Dañadas");
+      expect(t, String(desde)).not.toMatch(/caja ya no/i);
+    }
+    expect(quePasaAlReportar("piso")).toMatch(/^Sácala del perchero/);
+    expect(quePasaAlReportar("almacen")).toMatch(/^Sácala de su lugar en el almacén/);
+    expect(quePasaAlReportar("almacen")).not.toMatch(/perchero/);
+  });
+
+  it("el aviso de éxito recuerda el acto físico, según de dónde salió", () => {
+    expect(recordatorioAlReportar("piso")).toBe("Sácala del perchero y guárdala aparte con su nota.");
+    expect(recordatorioAlReportar("almacen")).toBe("Guárdala aparte con su nota, lejos de lo que se baja al piso.");
   });
 
   it("los avisos de éxito, en singular y plural", () => {
