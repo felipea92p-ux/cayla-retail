@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ClipboardCheck, PackageOpen, ShoppingBag } from "lucide-react";
+import { ClipboardCheck, PackageOpen, Scale, ShoppingBag } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
@@ -135,6 +135,9 @@ export default async function InventarioPage({
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar, solo para el líder (confirmar es suyo) y solo en su
+  // sede activa cuando separa piso y almacén (esa pantalla cuadra siempre la sede activa). Es una función de Existencias, no un módulo.
+  const puedeCuadrarPiso = persona.rol === "lider" && puedeBajarAlPiso;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
@@ -200,6 +203,12 @@ export default async function InventarioPage({
             </div>
             {enSuSede && (
               <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end max-sm:shrink-0 max-sm:flex-nowrap">
+                {puedeCuadrarPiso && (
+                  <Link href="/inventario/cuadrar" className="btn-cayla btn-sutil btn-chico">
+                    <Scale aria-hidden className="h-4 w-4" />
+                    Cuadrar el piso
+                  </Link>
+                )}
                 {veModulo(persona, "recibir") && (
                   <Link href="/recibir" className="btn-cayla btn-sutil btn-chico">
                     <PackageOpen aria-hidden className="h-4 w-4" />
