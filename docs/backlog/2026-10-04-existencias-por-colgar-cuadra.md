@@ -1,4 +1,4 @@
-## 🧮 Con «Hoy», la lista de Existencias suma lo mismo que «Para hoy» (2026-10-04, ADR-0331 act. c) — solo web, sin migración; rama `claude/existencias-por-colgar-cuadra` (apilada sobre `claude/compassionate-lumiere-1ed7d6`, que va sobre `claude/kind-lederberg-a5bb65`)
+## 🧮 Con «Hoy», la lista de Existencias suma lo mismo que «Para hoy» (2026-10-04, ADR-0331 act. c) — solo web, sin migración; rama `claude/existencias-por-colgar-cuadra`, [PR #794](https://github.com/felipea92p-ux/cayla-retail/pull/794) contra `main` (trae también los 2 commits de `claude/compassionate-lumiere-1ed7d6`; se reaplicaron sobre `main` porque el #790 se fusionó aplastado)
 
 - [x] Con un caso de «Hoy», una tarjeta por prenda (modelo + color); sin «Hoy», una por modelo. Una sola regla: `claveDeTarjeta` (`lib/existencias-tarjetas.ts`).
 - [x] El número de cada opción de la barra cuenta tarjetas con esa misma regla («Por colgar · 6», antes 5).
