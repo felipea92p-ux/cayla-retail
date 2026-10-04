@@ -27,7 +27,7 @@ import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
-import { tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
+import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
@@ -45,7 +45,7 @@ import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
 import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
-import { clavePercha, ordenarPorModeloColorTalla, resumirPorColgar } from "@/lib/inventario-reglas";
+import { clavePercha, ordenarPorModeloColorTalla } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -367,8 +367,9 @@ export function InventarioPanel({
   }, [indiceBusqueda, elegidos, porColgarElegido]);
 
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
-  // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
-  const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
+  // que la clienta no ve»), igual que «Para hoy». Baja sola después de cada «Reponer». Es la misma cuenta que lee el Inicio de
+  // Almacén (`porColgarDeLaSede`): los dos números no pueden discrepar.
+  const cuentaPorColgar = useMemo(() => porColgarDeLaSede(stock), [stock]);
   // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
   const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
@@ -499,12 +500,12 @@ export function InventarioPanel({
 
   // «Para hoy»: las tareas de la sede y su botón. «Por colgar» y «sin nada atrás» con la regla de «Hoy» (la misma del filtro y de
   // cada prenda); los nombres con los que empezar, por urgencia. «Bajar al piso» llega con la lista cargada si cabe en la URL.
-  const filasPorColgar = useMemo(() => stock.filter((f) => hoyDeTalla(f) === "por_colgar"), [stock]);
+  const filasPorColgar = cuentaPorColgar.filas;
   const tareasHoy = useMemo(
     () =>
       tareasParaHoy({
         separa,
-        porColgar: { ...cuentaPorColgar, prendas: ordenarPorUrgencia(agruparPorPrenda(filasPorColgar)).map((p) => p.referencia) },
+        porColgar: entradaPorColgar(cuentaPorColgar),
         // Lo que ya viene en camino no se pide de nuevo (revisión 2026-10-04: una talla nueva que LIM le envía a TRU salía a la vez en
         // «en camino» y en «pídela a otra sede»).
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
@@ -514,7 +515,7 @@ export function InventarioPanel({
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, filasPorColgar, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
