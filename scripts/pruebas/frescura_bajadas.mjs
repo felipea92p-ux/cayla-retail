@@ -158,6 +158,13 @@ const MIGRACION_RETIROS = migracion("20260928120200_bajadas_netear_retiros.sql")
 const MIGRACION_P4 = migracion("20260929100000_frescura_modulo_y_candado.sql");
 /** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
 const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
+/** El cuadre del piso (ADR-0328, 20261004200200) cambia el núcleo (y fn_frescura_sede) por reemplazo anclado. Esto lo deshace
+ *  (sus anclas, leídas del archivo, en orden inverso) para los casos que prueban el orden de pegado de las migraciones
+ *  ANTERIORES (T22, T37), que se escribieron sobre el núcleo de la 120200. El cuadre se prueba en cuadrar_piso.mjs (C11, C12). */
+const DESHACER_CUADRE = [...migracion("20261004200200_cuadre_piso_frescura.sql").matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+  .reverse()
+  .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+  .join("\n");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -963,7 +970,8 @@ const intento = (sql) => `pg_temp.intento(${comoLiteral(sql)})`;
 const abortaCon = (r, texto) => `((:'${r}')::jsonb ->> 'ok') || ',' || (position('${texto}' in (:'${r}')::jsonb ->> 'msg') > 0)`;
 correr(
   "T22 · la guarda de 20260928120100: acepta solo el cuerpo de 20260926000300; un parche en vivo la hace abortar; después de la 120200, avisa y no deshace nada",
-  `select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
+  `${DESHACER_CUADRE}
+select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
 -- 1. Pegada otra vez sobre la base de hoy (ya con la 120200): se niega con su aviso y no toca nada.
 select ${intento(MIGRACION_NUCLEO)} as r1 \\gset
 select 'TARDE|' || ${abortaCon("r1", "Ya está pegada la 20260928120200")} || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_hoy')
@@ -2256,7 +2264,8 @@ const FILAS_TEXTO = `(select coalesce(string_agg(concat_ws(':', r.movimiento_id,
   r.es_carga_inicial), ',' order by r.movimiento_id), '') from retail.fn_bajadas_del_piso(:'ubic') r)`;
 correr(
   "T37 · la guarda de 20260929100000 (paso 4): desde la 120200 entra y deja su puerta con las mismas filas para el líder; otra vez no cambia nada; con la puerta o el núcleo parchados aborta y no los pisa; la 120200 después aborta",
-  `select pg_temp.variante('ZZ-FRE-T37') as v \\gset
+  `${DESHACER_CUADRE}
+select pg_temp.variante('ZZ-FRE-T37') as v \\gset
 select pg_temp.llega(:'v', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
 select pg_temp.bajada(:'v', 3, :'t0'::timestamptz) as _2 \\gset
 select pg_temp.vende(:'v', 1, :'t0'::timestamptz + interval '3 minutes') as _3 \\gset
