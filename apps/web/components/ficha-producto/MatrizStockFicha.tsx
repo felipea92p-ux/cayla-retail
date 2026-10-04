@@ -706,6 +706,8 @@ export function MotivoDeLaVisita({ stock, deshabilitado }: { stock: StockFicha; 
       <div id="ficha-stock-responsable" className="max-w-sm">
         <ComboResponsable control={stock.responsable} compacto deshabilitado={deshabilitado} />
       </div>
+      {/* ADR-0328: hasta cuándo esta sede carga lo que ya tenía (o que ya se cerró), antes de tocar una talla nueva. */}
+      {stock.avisoCarga && <p className="text-[12px] text-taupe">{stock.avisoCarga}</p>}
     </div>
   );
 }

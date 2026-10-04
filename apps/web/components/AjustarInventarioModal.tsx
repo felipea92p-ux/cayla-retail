@@ -10,8 +10,13 @@ import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import {
+  AYUDA_ENCONTRE_PRENDAS,
   MOTIVOS_AJUSTE,
+  NOTA_MINIMA_ENCONTRE,
   NOTA_REPOSICION_CERRADA,
+  motivoPideNota,
+  notaSuficiente,
+  textoProblemaMotivo,
   argumentosDeAjuste,
   armarVariantesAjuste,
   candidatasDeHallazgo,
@@ -54,6 +59,9 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useCargaInicial } from "@/lib/useCargaInicial";
+import { avisoCargaInicial, cargaAbierta } from "@/lib/carga-inicial-reglas";
+import { sugerirNotaAjuste } from "@/lib/sugerencias-ajuste";
 
 // Guarda con `retail.ajustar_inventario` (ADR-0240): UNA llamada, todo o nada y con la marca del intento. Por dentro usa
 // las funciones de siempre (`registrar_movimiento` para cada ajuste, `cargar_stock_inicial` para lo nuevo): no existe una
@@ -70,6 +78,10 @@ import { firmar } from "@/lib/responsable-reglas";
 // Lo que se escribe en cada talla depende del motivo (`modoDeAjuste`, Felipe 2026-09-28): con «Conteo físico», cuántas
 // hay; con los demás, cuánto se suma o se resta. Por eso el motivo va ANTES de las tallas: el número se escribe sabiendo
 // qué significa. Si el motivo cambia con cantidades ya escritas, cambian de forma pero no de resultado (`pasarCantidades`).
+//
+// ADR-0328 (actividad 4): «Reposición» se llama «Encontré prendas», solo suma y pide la nota (dónde estaban). Y la carga
+// inicial se cierra POR SEDE en su fecha: antes de esa fecha el modal la avisa junto a las prendas nuevas; después, una prenda
+// que nunca estuvo en la tienda ya no entra como stock inicial sino con «Encontré prendas» (la base lo exige igual).
 
 /**
  * Las tallas de una prenda con su stock en UNA sede, para ajustarlo: la única lectura de `stock` de «Ajustar» (ADR-0270, lista
@@ -136,7 +148,7 @@ export function AjustarInventarioModal({
   // Lo escrito en cada talla, tal cual (texto): `lineasDeAjuste` decide qué es un ajuste.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   // Arranca en almacén, igual que Nuevo producto (Felipe 2026-09-28): el piso se elige a propósito. De paso ofrece
-  // «Reposición», que en el piso de una tienda que separa piso y almacén está cerrada.
+  // «Encontré prendas», que en el piso de una tienda que separa piso y almacén está cerrada.
   const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
   const [motivo, setMotivo] = useState<MotivoAjuste | "">("");
   const [nota, setNota] = useState("");
@@ -146,6 +158,9 @@ export function AjustarInventarioModal({
   // una de ellas, el modal pregunta «¿es la que faltó?»; con «sí», el ajuste queda enlazado a ese conteo.
   const [faltantes, setFaltantes] = useState<ReadonlyMap<string, FaltanteConteo>>(new Map());
   const [elecciones, setElecciones] = useState<Record<string, EleccionHallazgo | undefined>>({});
+  // La carga inicial de esta sede (lectura opcional: sin ella, el modal se porta como antes y la base decide).
+  const carga = useCargaInicial(ubicacionId);
+  const abiertaCarga = cargaAbierta(carga);
   // Un ajuste de stock guarda en la tienda: pide Responsable (ADR-0161).
   const responsable = useResponsable();
   // La marca de este intento (ADR-0240): la base la anota con el ajuste, y el mismo intento enviado otra vez (un reintento
@@ -207,12 +222,19 @@ export function AjustarInventarioModal({
   // talla, sin códigos, y mientras haya uno no se puede confirmar.
   const problemaDe: Record<string, string> = {};
   for (const l of lineas) {
-    const texto = textoProblemaTalla(l, modo);
+    const texto = textoProblemaTalla(l, modo) ?? textoProblemaMotivo(l, motivo, abiertaCarga);
     if (texto) problemaDe[l.variante.varianteId] = texto;
   }
   const hayProblemas = Object.keys(problemaDe).length > 0;
   // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
-  const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
+  const { ajustes, cargaInicial } = repartirLineasAjuste(lineas, abiertaCarga);
+  // «Encontré prendas» dice dónde estaban (la base: `encontre_prendas_sin_nota`). Solo cuenta si hay ajustes: lo nuevo en la tienda
+  // con la carga abierta entra como stock inicial, sin motivo ni nota.
+  const notaNecesaria = ajustes.length > 0 && motivoPideNota(motivo);
+  const notaLista = ajustes.length === 0 || notaSuficiente(motivo, nota);
+  const ayudaNota = sugerirNotaAjuste(motivo);
+  // El aviso de la carga inicial solo donde importa: si alguna talla todavía no estuvo nunca en esta tienda.
+  const avisoCarga = variantes.some((v) => v.sinHistoria) ? avisoCargaInicial(carga) : null;
   // Las sumas de prendas que faltaron en un conteo: a cada una se le pregunta «¿es la que faltó?».
   const candidatas = candidatasDeHallazgo(ajustes, faltantes);
   const candidataDe = new Map(candidatas.map((c) => [c.linea.variante.varianteId, c]));
@@ -237,7 +259,13 @@ export function AjustarInventarioModal({
             ? Object.values(problemaDe)[0]
             : "Responde si es la prenda que faltó en el conteo.",
     },
-    { id: "nota", nombre: "Observación", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
+    {
+      id: "nota",
+      nombre: notaNecesaria ? "Dónde estaban" : "Observación",
+      requerido: notaNecesaria,
+      hecho: notaNecesaria ? notaLista : nota.trim() !== "",
+      pendiente: `Cuenta dónde estaban o por qué aparecieron (${NOTA_MINIMA_ENCONTRE} letras o más).`,
+    },
     { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién hace el ajuste." },
   ]);
 
@@ -255,18 +283,19 @@ export function AjustarInventarioModal({
       ubicado,
       separaPisoAlmacen,
       puedeBajarAlPiso,
+      cargaAbierta: abiertaCarga,
     }),
     actual: stockEn(v, lugar),
-    minimo: minimoDeAjuste(v, lugar, modo),
+    minimo: minimoDeAjuste(v, lugar, modo, motivo),
   }));
 
-  // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
+  // «Encontré prendas» (antes «Reposición») no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400).
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
   const cerrada = reposicionCerrada(ubicado, separaPisoAlmacen);
 
   function cambiarUbicado(siguiente: "piso" | "almacen") {
     setUbicado(siguiente);
-    // Si «Reposición» estaba elegida y ya no se ofrece, no se queda escondida en el formulario.
+    // Si «Encontré prendas» estaba elegida y ya no se ofrece, no se queda escondida en el formulario.
     if (reposicionCerrada(siguiente, separaPisoAlmacen) && motivo === "reposicion") setMotivo("");
   }
 
@@ -309,6 +338,10 @@ export function AjustarInventarioModal({
     // El motivo es del ajuste: las prendas nuevas en la tienda entran como stock inicial y no lo necesitan.
     if (ajustes.length > 0 && !motivo) {
       setError("Elige un motivo para el ajuste.");
+      return;
+    }
+    if (!notaLista) {
+      setError(`Con «Encontré prendas» cuenta dónde estaban o por qué aparecieron (${NOTA_MINIMA_ENCONTRE} letras o más).`);
       return;
     }
     if (lineas.length === 0) {
@@ -432,6 +465,7 @@ export function AjustarInventarioModal({
               {/* Antes de las tallas: el motivo decide qué se escribe en ellas (contado o suma/resta). */}
               <CampoGuiado id="motivo" guia={guia}>
                 <CampoSelect etiqueta={guia.etiqueta("motivo", "¿Por qué ajustas?")} valor={motivo} onValor={cambiarMotivo} opciones={motivos} marcador="Elige un motivo" />
+                {motivo === "reposicion" && <p className="mt-1.5 text-xs text-taupe">{AYUDA_ENCONTRE_PRENDAS}</p>}
               </CampoGuiado>
 
               {/* El total del lugar va junto a la pregunta, con lo apartado aparte: lo libre es la cifra de la fila de Existencias. */}
@@ -480,7 +514,7 @@ export function AjustarInventarioModal({
                 />
               </CampoGuiado>
 
-              {/* Solo en el piso de una tienda que separa piso y almacén (ahí «Reposición» está cerrada). La hoja va anclada arriba, así que
+              {/* Solo en el piso de una tienda que separa piso y almacén (ahí «Encontré prendas» está cerrada). La hoja va anclada arriba, así que
                   que aparezca o desaparezca no mueve las pestañas «Almacén / Piso» bajo el mouse (ADR-0185). */}
               {cerrada && (
                 <p className="nota-cayla" role="status">
@@ -488,14 +522,21 @@ export function AjustarInventarioModal({
                 </p>
               )}
 
+              {/* ADR-0328: hasta cuándo esta sede carga lo que ya tenía (o que ya se cerró), junto a las prendas nuevas en ella. */}
+              {avisoCarga && (
+                <p className="nota-cayla" role="status">
+                  {avisoCarga}
+                </p>
+              )}
+
               <CampoGuiado id="nota" guia={guia}>
                 <CampoTexto
-                  etiqueta={guia.etiqueta("nota", "Observación (opcional)")}
+                  etiqueta={guia.etiqueta("nota", ayudaNota.etiqueta)}
                   value={nota}
                   disabled={congelado}
                   onChange={(e) => setNota(e.target.value)}
                   maxLength={200}
-                  placeholder="Detalle libre del ajuste"
+                  placeholder={ayudaNota.placeholder}
                 />
               </CampoGuiado>
             </>
@@ -534,6 +575,7 @@ export function AjustarInventarioModal({
                 !responsable.listo ||
                 lineas.length === 0 ||
                 (ajustes.length > 0 && !motivo) ||
+                !notaLista ||
                 hayProblemas ||
                 (!congelado && hayPregunta)
               }
