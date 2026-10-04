@@ -2,13 +2,26 @@ import { describe, expect, it } from "vitest";
 import { explicarCapacidadPiso, leerCapacidadPiso, notaCapacidadPiso, type CapacidadPiso } from "./capacidad-piso";
 
 // Lo que devuelve `fn_capacidad_piso` por PostgREST: un arreglo de 0 o 1 filas, con los numeric como número.
-const TRU = { m2_sala: 20, densidad: 30, capacidad: 600, provisional: false, contada_el: "2026-09-30", version: 1 };
-const AQP = { m2_sala: 60, densidad: 30, capacidad: 1800, provisional: true, contada_el: null, version: 1 };
+const TRU = { m2_sala: 20, densidad: 30, capacidad: 600, provisional: false, contada_el: "2026-09-30", version: 1, cuadrado_en: null };
+const AQP = { m2_sala: 60, densidad: 30, capacidad: 1800, provisional: true, contada_el: null, version: 1, cuadrado_en: null };
+const CUADRE = "2026-10-12T15:30:00.123456+00:00";
 
 describe("leer la capacidad que manda la base", () => {
-  it("una fila contada y una provisional", () => {
-    expect(leerCapacidadPiso([TRU])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false });
-    expect(leerCapacidadPiso([AQP])).toEqual({ m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true });
+  it("una fila contada y una provisional, las dos sin cuadrar (así están hoy las tres tiendas)", () => {
+    expect(leerCapacidadPiso([TRU])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: null });
+    expect(leerCapacidadPiso([AQP])).toEqual({ m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true, cuadradoEn: null });
+  });
+
+  it("con la fecha del último cuadre, la sede queda cuadrada", () => {
+    expect(leerCapacidadPiso([{ ...TRU, cuadrado_en: CUADRE }])?.cuadradoEn).toBe(CUADRE);
+  });
+
+  it("una fecha de cuadre que falta o no es fecha se lee como «por cuadrar» (del lado seguro), sin perder la capacidad", () => {
+    const sinColumna: Record<string, unknown> = { ...TRU };
+    delete sinColumna.cuadrado_en;
+    for (const fila of [sinColumna, { ...TRU, cuadrado_en: "" }, { ...TRU, cuadrado_en: "ayer" }, { ...TRU, cuadrado_en: 20261012 }]) {
+      expect(leerCapacidadPiso([fila])).toEqual({ m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: null });
+    }
   });
 
   it("los numeric que llegan como texto también se leen (12,5 m²)", () => {
@@ -17,6 +30,7 @@ describe("leer la capacidad que manda la base", () => {
       densidad: 30,
       capacidad: 375,
       provisional: false,
+      cuadradoEn: null,
     });
   });
 
@@ -38,10 +52,11 @@ describe("leer la capacidad que manda la base", () => {
 });
 
 describe("la nota de «Colgadas en el piso»", () => {
-  const contada: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false };
-  const provisional: CapacidadPiso = { m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true };
+  const contada: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: CUADRE };
+  const provisional: CapacidadPiso = { m2Sala: 60, densidad: 30, capacidad: 1800, provisional: true, cuadradoEn: CUADRE };
+  const sinCuadrar = (c: CapacidadPiso): CapacidadPiso => ({ ...c, cuadradoEn: null });
 
-  it("dice cuántas caben: «de 600» (lo que acordó la sesión de UI/UX, ADR-0331)", () => {
+  it("dice cuántas caben: «de 600» (lo que acordó la sesión de UI/UX, ADR-0331) cuando la sede ya cuadró su piso", () => {
     expect(notaCapacidadPiso(contada)).toBe("de 600");
   });
 
@@ -50,20 +65,39 @@ describe("la nota de «Colgadas en el piso»", () => {
     expect(notaCapacidadPiso({ ...contada, m2Sala: 6, capacidad: 180, provisional: true })).toBe("de 180 (provisional)");
   });
 
-  it("sin capacidad no hay nota (ni «de 0» ni «de —»)", () => {
+  it("mientras la sede no cuadró su piso, «por cuadrar» (ADR-0328: hoy TRU diría «138 de 600» sobre un piso lleno)", () => {
+    expect(notaCapacidadPiso(sinCuadrar(contada))).toBe("de 600 · por cuadrar");
+    expect(notaCapacidadPiso(sinCuadrar(provisional))).toBe("de 1800 (provisional) · por cuadrar");
+  });
+
+  it("las cuatro combinaciones: «por cuadrar» sale si y solo si no hay fecha de cuadre; «(provisional)», si y solo si no se contó", () => {
+    for (const prov of [false, true]) {
+      for (const cuadradoEn of [null, CUADRE]) {
+        const nota = notaCapacidadPiso({ ...contada, provisional: prov, cuadradoEn }) ?? "";
+        expect(nota.startsWith("de 600")).toBe(true);
+        expect(nota.includes("(provisional)")).toBe(prov);
+        expect(nota.endsWith(" · por cuadrar")).toBe(cuadradoEn === null);
+      }
+    }
+  });
+
+  it("sin capacidad no hay nota (ni «de 0» ni «de —» ni un «por cuadrar» suelto)", () => {
     expect(notaCapacidadPiso(null)).toBeUndefined();
   });
 
   it("la nota y la explicación salen de la misma lectura: si una existe, la otra también", () => {
-    for (const c of [contada, provisional, null]) {
+    for (const c of [contada, provisional, sinCuadrar(contada), null]) {
       expect(notaCapacidadPiso(c) === undefined).toBe(explicarCapacidadPiso(c) === undefined);
     }
   });
 
-  it("la explicación dice de dónde sale el número y por qué es provisional", () => {
+  it("la explicación dice de dónde sale el número, por qué es provisional y por qué está por cuadrar", () => {
     expect(explicarCapacidadPiso(contada)).toBe("Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m².");
     expect(explicarCapacidadPiso({ ...provisional, m2Sala: 12.5, capacidad: 375 })).toBe(
       "Caben unas 375 prendas colgadas: 12.5 m² de sala × 30 por m². Provisional: esta sede todavía no contó las prendas de su piso."
+    );
+    expect(explicarCapacidadPiso(sinCuadrar(contada))).toBe(
+      "Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m². Por cuadrar: el piso de esta sede todavía no se cuadró, y el sistema puede tener como guardadas prendas que ya cuelgan."
     );
   });
 });

@@ -6133,6 +6133,7 @@ export type Database = {
         Returns: {
           capacidad: number
           contada_el: string | null
+          cuadrado_en: string | null
           densidad: number
           m2_sala: number
           provisional: boolean

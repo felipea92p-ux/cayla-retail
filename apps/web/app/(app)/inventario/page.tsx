@@ -187,8 +187,9 @@ export default async function InventarioPage({
   const guardadas = stock.reduce((n, f) => n + (f.almacenDisponible ?? 0), 0);
   const veTraslados = veModulo(persona, "traslados");
   const notaSemana = semana.fallo || deltaSede.pct === null ? undefined : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)} % en 7 días`;
-  // «583 de 600» (ADR-0328: el número grande son las colgadas contra lo que cabe). Solo en «Colgadas en el piso», que solo existe donde
-  // la sede separa piso y almacén; una tienda sin m² no lleva nota.
+  // «583 de 600» (ADR-0328: el número grande son las colgadas contra lo que cabe), con «· por cuadrar» mientras la sede no haya
+  // cuadrado su piso (la fecha viaja en la misma lectura). Solo en «Colgadas en el piso», que solo existe donde la sede separa piso y
+  // almacén; una tienda sin m² no lleva nota.
   const capacidad = await capacidadPiso;
   const cifras: CifraResumen[] = separa
     ? [

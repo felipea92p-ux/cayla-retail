@@ -9,7 +9,8 @@
  *     = 180 provisional; el Taller, nada. Re-pegar la migración no pisa una capacidad que el líder ya cambió.
  *   · LA LECTURA. `fn_capacidad_piso` le da la capacidad a un líder, a una colaboradora y a una terminal (la puerta única de
  *     retail); a una cuenta de afuera le da 42501, nunca cero filas. Una sede sin capacidad (Taller) da cero filas. Por la vía
- *     de PostgREST (rol `authenticated`) funciona, y la tabla no se lee directo.
+ *     de PostgREST (rol `authenticated`) funciona, y la tabla no se lee directo. `cuadrado_en` es NULL («por cuadrar») sin
+ *     cuadre o sin la tabla de cuadres de la actividad 3, y con cuadres trae el ÚLTIMO de ESA sede.
  *   · LA ESCRITURA. Solo el líder; firma la persona y deja el antes y el después en `configuracion_historial` (que también
  *     anota la Actividad); la versión sube; reenviar lo mismo devuelve `sin_cambios` sin escribir ni anotar; con una versión
  *     vieja y otros números, PT409 que dice cómo quedó; la primera vez se pide versión 0; valida rango, fecha y sede.
@@ -185,6 +186,35 @@ caso(
   como(FELIPE) + `select version || ',' || contada_el || '|' || (select coalesce(contada_el::text, 'null') from retail.fn_capacidad_piso(:'lim')) from retail.fn_capacidad_piso(:'tru');`,
   "1,2026-09-30|null"
 );
+caso(
+  "sin cuadre del piso (o sin la tabla de cuadres de la actividad 3), `cuadrado_en` es NULL: la nota dice «por cuadrar»",
+  como(FELIPE) + `select coalesce(cuadrado_en::text, 'por_cuadrar') || ',' || coalesce((select cuadrado_en::text from retail.fn_capacidad_piso(:'lim')), 'por_cuadrar')
+     from retail.fn_capacidad_piso(:'tru');`,
+  "por_cuadrar,por_cuadrar"
+);
+{
+  // La tabla de cuadres llega con la actividad 3 (PR #792). Si esta base todavía no la tiene, el caso pone una con las mismas
+  // columnas que usa este `insert` (dentro de la transacción: el ROLLBACK la borra), así el mismo caso vale antes y después.
+  const MESA_DE_CUADRES = `
+do $$ begin
+  if to_regclass('retail.cuadres_piso') is null then
+    create table retail.cuadres_piso (id uuid primary key default gen_random_uuid(), ubicacion_id uuid not null, persona_id uuid not null,
+      token_cliente uuid not null, huella text not null, escaneo_desde timestamptz not null, resumen jsonb not null,
+      created_at timestamptz not null default now());
+  end if;
+end $$;
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, created_at) values
+  (:'tru', :'p_felipe', gen_random_uuid(), md5('a'), '2026-10-01 09:00-05', '{}', '2026-10-01 10:00-05'),
+  (:'tru', :'p_felipe', gen_random_uuid(), md5('b'), '2026-10-03 09:00-05', '{}', '2026-10-03 10:00-05');
+`;
+  caso(
+    "con la sede cuadrada, la lectura trae la fecha de su ÚLTIMO cuadre, y la otra sede sigue «por cuadrar»",
+    MESA_DE_CUADRES + como(FELIPE) +
+      `select (cuadrado_en = timestamptz '2026-10-03 10:00-05') || ',' || coalesce((select cuadrado_en::text from retail.fn_capacidad_piso(:'lim')), 'por_cuadrar')
+         from retail.fn_capacidad_piso(:'tru');`,
+    "true,por_cuadrar"
+  );
+}
 
 // ===========================================================================
 // 3. LA ESCRITURA

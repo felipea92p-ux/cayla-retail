@@ -16,15 +16,18 @@
 --   2. Siembra (ADR-0329, decisión 3 y su actualización 11): TRU 20 m² × 30 = 600, contada el 2026-09-30 (el conteo de
 --      Felipe); AQP 60 m² × 30 = 1800, provisional hasta contarla; LIM (stand) 6 m² × 30 = 180, provisional (ADR-0328 y
 --      ADR-0329 la listan en «Contar AQP y LIM»).
---   3. `fn_capacidad_piso(p_ubicacion_id)` → {m2_sala, densidad, capacidad, provisional, contada_el, version}: cero filas si
---      la sede no tiene capacidad (Taller, almacén, una tienda sin medir). Puerta: la de todas las lecturas de retail
---      (`fn_tiene_acceso_retail`, persona activa o terminal); sin ella, 42501.
+--   3. `fn_capacidad_piso(p_ubicacion_id)` → {m2_sala, densidad, capacidad, provisional, contada_el, version, cuadrado_en}:
+--      cero filas si la sede no tiene capacidad (Taller, almacén, una tienda sin medir). Puerta: la de todas las lecturas de
+--      retail (`fn_tiene_acceso_retail`, persona activa o terminal); sin ella, 42501. `cuadrado_en` es el último cuadre del
+--      piso de la sede (actividad 3): ADR-0328 pide «583 de 600» con la marca «por cuadrar» mientras la sede no haya cuadrado
+--      su piso, porque hoy TRU dice 138 colgadas con 600 a 750 reales. Sin cuadre (o sin la tabla de cuadres), NULL.
 --   4. `fijar_capacidad_piso(sede, m², densidad, contada_el, version_esperada)`: solo el líder; firma el responsable
 --      (`fn_actor_persona_id(true)`) y deja el antes y el después en `configuracion_historial` (como la hora de cierre y las
 --      metas). Sin pantalla todavía: el lugar para editarla es el Plan del piso (actividad 12).
 --
 -- CONTRATOS (lo que promete cada pieza y lo que asume).
---   · fn_capacidad_piso: PROMETE la capacidad vigente de UNA sede, o ninguna fila si no tiene. No escribe. ASUME una sesión
+--   · fn_capacidad_piso: PROMETE la capacidad vigente de UNA sede, o ninguna fila si no tiene, y junto a ella la fecha del
+--     último cuadre del piso (NULL = por cuadrar, también si la tabla de cuadres no existe). No escribe. ASUME una sesión
 --     de retail (si no, 42501, nunca una fila vacía que parezca «sin capacidad»).
 --   · fijar_capacidad_piso: PROMETE dejar la sede con esos números, o no tocar nada. Si otra persona la cambió después de
 --     que la leíste, rechaza con PT409 (ADR-0193) y dice cómo quedó. Reintentar lo mismo es inofensivo: si ya está así,
@@ -64,6 +67,18 @@
 --
 -- CAÍDA EXTERNA. No toca nada de afuera. Si esta migración no está pegada o la lectura falla, la web no pone la nota
 -- «de 600» y Existencias sigue igual (`lib/capacidad-piso-servidor.ts` nunca lanza).
+--
+-- POR QUÉ LA FECHA DEL CUADRE VIAJA EN ESTA LECTURA (revisión adversarial, 2026-10-04).
+--   DECIDÍ: `fn_capacidad_piso` devuelve `cuadrado_en` = max(created_at) de `retail.cuadres_piso` de la sede, leído solo si la
+--     tabla existe (`to_regclass`), con la MISMA expresión que el motor del piso (PR #787). La web pone «de 600 · por cuadrar»
+--     mientras sea NULL.
+--   DESCARTÉ: (a) publicar «de 600» sola: en TRU diría «138 de 600» sobre un piso lleno (Felipe contó 600 a 750), justo lo que
+--     la «puerta de confianza» de ADR-0328 (decisión 5) prohíbe; (b) que la web llame a `fn_cuadre_piso_estado` (PR #792): no
+--     existe en `main`, y su puerta es «quien ve Existencias en SU sede», así que un líder mirando otra sede leería un 42501
+--     como «por cuadrar»; además serían dos lecturas que pueden discrepar.
+--   SE ROMPE SI: la actividad 3 renombra `cuadres_piso` o deja de guardar la fecha del cuadre en su `created_at`: la nota diría
+--     «por cuadrar» para siempre (falla visible y del lado seguro, nunca un «de 600» falso). El motor del piso tiene la misma
+--     dependencia; si cambia, se cambian los dos.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. UNA sola parte, tal cual, en el SQL Editor (trae `set search_path`, prefijo `retail.` y
 -- `lock_timeout`). No altera tablas en uso, no crea políticas ni `drop trigger`: no toma las tablas de `auth`/`storage`
@@ -167,25 +182,43 @@ select u.id, s.m2_sala, 30, s.contada_el
 on conflict (ubicacion_id) do nothing;
 
 -- ---------- 3. La lectura ----------
+-- `drop … if exists` antes de crearla: la primera versión de esta rama (sin `cuadrado_en`) pudo quedar aplicada en una base de
+-- prueba, y `create or replace` no cambia las columnas que devuelve una función (42P13). En producción todavía no existe; si se
+-- re-pega, se borra y se crea igual en la misma transacción, y los permisos se vuelven a dar abajo. `drop function` no toma las
+-- tablas de `auth`/`storage` (ADR-0195).
+drop function if exists retail.fn_capacidad_piso(uuid);
 create or replace function retail.fn_capacidad_piso(p_ubicacion_id uuid)
-returns table (m2_sala numeric, densidad numeric, capacidad integer, provisional boolean, contada_el date, version integer)
+returns table (m2_sala numeric, densidad numeric, capacidad integer, provisional boolean, contada_el date, version integer,
+               cuadrado_en timestamptz)
 language plpgsql stable security definer
 set search_path = retail, public, extensions
 as $fn$
+declare
+  v_cuadrado_en timestamptz;
 begin
   -- La puerta de todas las lecturas de retail (ADR-0289): persona activa con colaborador activo, o terminal activa. Sin ella,
   -- un error y no cero filas: «no tienes acceso» no puede parecer «esta sede no tiene capacidad».
   if not retail.fn_tiene_acceso_retail() then
     raise exception 'No tienes acceso a retail.' using errcode = '42501';
   end if;
+  -- Cuándo se cuadró el piso de la sede por última vez (ADR-0328, decisión 4; la tabla es de la actividad 3, PR #792). Viaja en
+  -- ESTA lectura porque ADR-0328 ata la marca «por cuadrar» al mismo número que la capacidad («583 de 600», «por cuadrar» mientras
+  -- la sede no haya cuadrado su piso): así ninguna pantalla puede poner «de 600» sin saber si el número de al lado es confiable.
+  -- Es la misma expresión que usa el motor del piso (20261004213000_piso_plan_lectura.sql, PR #787), para que la nota y «Por
+  -- colgar» nunca discrepen. Mientras `cuadres_piso` no exista, ninguna sede se cuadró: NULL = «por cuadrar» (no saber cuenta como
+  -- no cuadrado). Va dentro de un `if`: PL/pgSQL prepara la consulta recién al ejecutarla, así que esta función se crea y se lee
+  -- igual con o sin la actividad 3, y empieza a ver los cuadres el día que su tabla llega, sin tocarla.
+  if to_regclass('retail.cuadres_piso') is not null then
+    v_cuadrado_en := (select max(q.created_at) from retail.cuadres_piso q where q.ubicacion_id = p_ubicacion_id);
+  end if;
   return query
-    select c.m2_sala, c.densidad, c.capacidad, c.contada_el is null, c.contada_el, c.version
+    select c.m2_sala, c.densidad, c.capacidad, c.contada_el is null, c.contada_el, c.version, v_cuadrado_en
       from retail.capacidad_piso c
      where c.ubicacion_id = p_ubicacion_id;
 end $fn$;
 
 comment on function retail.fn_capacidad_piso(uuid) is
-  'ADR-0329: la capacidad del piso de una sede (m² de sala × prendas por m²), si la tiene; cero filas si no (Taller, almacén, tienda sin medir). provisional = la sede no contó sus prendas (contada_el vacía). version: la que fijar_capacidad_piso pide como p_version_esperada. Para cualquier cuenta de retail (fn_tiene_acceso_retail); si no, 42501.';
+  'ADR-0329: la capacidad del piso de una sede (m² de sala × prendas por m²), si la tiene; cero filas si no (Taller, almacén, tienda sin medir). provisional = la sede no contó sus prendas (contada_el vacía). version: la que fijar_capacidad_piso pide como p_version_esperada. cuadrado_en: el último cuadre del piso de la sede (retail.cuadres_piso, ADR-0328 decisión 4); null = «por cuadrar», también mientras esa tabla no exista. Para cualquier cuenta de retail (fn_tiene_acceso_retail); si no, 42501.';
 
 -- ---------- 4. La escritura (solo el líder, con firma e historial) ----------
 create or replace function retail.fijar_capacidad_piso(
