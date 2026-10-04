@@ -13,3 +13,7 @@ Felipe se lleva: la lista de 17 actividades aprobada; lo que le toca al equipo s
 etiquetar y cargar AQP, crear bolsas/cajas/sorpresas como productos); y la ronda 4 (Análisis y Frescura) pendiente.
 Corrección: en la primera tanda le dije que las ventas sin registrar no guardaban talla ni color; sí las guardan (son obligatorias en
 `prendas_por_regularizar`). Quedó escrito en ADR-0328.
+
+Actividad 2 (PR #783, sin migración): en Nuevo producto, «¿Dónde están hoy?» ya no viene marcada en «almacén»; sin responder no se
+crea, la guía lo pide y cada opción dice lo que cambia. Verificada con 245 pruebas (incluido el recorrido de ~250.000 combinaciones
+guía ⇔ problemasAlta) y en el navegador con la base local, sin crear nada.

@@ -4,7 +4,7 @@ Las 17 actividades aprobadas por Felipe el 2026-10-04, en orden. Cada una es un 
 
 ## Tramo 1A · Urgente, antes del 15-oct
 - [x] 1. Dejar escrito lo decidido: ADR-0328, ADR-0329 (capacidad, rescatado del commit local `ffd2675d4`) e investigación del mix.
-- [ ] 2. El alta pregunta «¿colgada o guardada?» sin valor de fábrica (`NuevoProductoForm.tsx:218`).
+- [x] 2. El alta pregunta «¿colgada o guardada?» sin valor de fábrica — PR #783 (sin migración; por fusionar).
 - [ ] 3. Cuadrar el piso: escanear lo guardado, el resto pasa al piso en un movimiento, fecha de cuadre por sede. Migración: pegar con OK de Felipe.
 - [ ] 4. Cierre automático de la carga inicial por sede (TRU 15-oct; AQP y LIM con tope de Felipe); «Reposición» → «Encontré prendas» con motivo.
 - [ ] 5. Ventas sin registrar: categoría sugerida desde la descripción; nadie regulariza su propia venta salvo el líder; limpieza de arranque con candidata.

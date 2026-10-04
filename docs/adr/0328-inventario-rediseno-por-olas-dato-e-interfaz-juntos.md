@@ -133,7 +133,9 @@ sugiere desde la descripción (decisión 6).
 
 **3. El alta pregunta «¿colgada o guardada?» sin valor de fábrica.**
 DESCARTÉ: dejar «almacén» marcado (así se desordenó TRU y AQP lo repetiría) o marcar «colgada» (lo guardado entraría mal).
-SE ROMPE SI: alguien elige sin mirar para avanzar; la pregunta muestra cuál elige la mayoría en esa tienda, sin elegir por él.
+SE ROMPE SI: alguien elige sin mirar para avanzar; por eso cada opción dice lo que cambia («la caja las puede cobrar desde ya» /
+«para venderlas, primero hay que bajarlas al piso»). Se descartó mostrar «lo que elige la mayoría en esta tienda»: con el piso de TRU
+sin cuadrar, la mayoría registrada es «almacén», justo el error. Construida en el PR #783.
 
 **4. Cuadre del piso, una vez por sede:** se escanea lo que de verdad está guardado; lo que el sistema tiene en almacén y nadie
 escaneó pasa al piso en un solo movimiento, y queda la fecha del cuadre de la sede. En producción, solo con el «dale» de Felipe.
