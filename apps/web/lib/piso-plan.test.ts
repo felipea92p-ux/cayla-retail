@@ -25,42 +25,42 @@ import {
    ==================================================================== */
 
 /**
- * TODAS las tallas que deja la base (migraciones + seed), consultadas el 2026-10-04 con `select valor from retail.tallas`.
- * `scripts/pruebas/piso_plan_lectura.mjs` (caso V1) compara esta lista con la base: si una migración o el seed agregan una
- * talla, esa prueba se pone en rojo y pide sumarla aquí, con su respuesta en `CENTRAL_ESPERADA`.
+ * TODAS las tallas que deja la base (migraciones + seed, con la configuración del CI: UTF-8 de verdad), consultadas el
+ * 2026-10-04 con `select valor from retail.tallas`. `scripts/pruebas/piso_plan_lectura.mjs` (caso V1) compara esta lista con la
+ * base: si una migración o el seed agregan una talla, esa prueba se pone en rojo y pide sumarla aquí, con su respuesta en
+ * `CENTRAL_ESPERADA`. (Ojo: en un Postgres con `--locale=C`, `lower('Ú')` no baja la mayúscula, la migración 20260918175000 no
+ * renombra «Único» a «Única» y la lista sale distinta; el CI usa un locale UTF-8.)
  */
 const TALLAS_DE_LA_BASE = [
   "26", "28", "30", "32", "34", "35", "36", "37", "38", "39", "40", "41", "42",
   "6", "7", "8", "9",
-  "Estándar", "L", "M", "S", "XL", "XS", "XXL", "Único",
+  "Estándar", "L", "M", "S", "XL", "XS", "XXL", "Única",
 ];
 
 /** Las curvas de las categorías de la base (`categoria_tallas`, mismo día), una por forma distinta. */
 const CURVAS_DE_LA_BASE: Record<string, string[]> = {
-  "Blusas, Polos, Tops, Chompas, Poleras, Camisas y Blusas": ["Estándar", "L", "M", "S", "XL", "XS", "XXL"],
-  "Abrigos, Blazers, Casacas, Chalecos, Conjuntos, Enterizos, Faldas, Shorts, Vestidos": ["L", "M", "S", "XL", "XS", "XXL"],
+  "Ropa (Abrigos, Blusas, Polos, Tops, Vestidos, Faldas, Shorts…)": ["Estándar", "L", "M", "S", "XL", "XS", "XXL"],
   "Bodys, Ropa interior, Trajes de baño": ["L", "M", "S", "XL", "XS"],
   Cinturones: ["L", "M", "S", "XL"],
   "Jeans, Pantalones": ["26", "28", "30", "32", "34"],
-  "Botas, Sandalias, Zapatillas, Zapatos formales": ["34", "35", "36", "37", "38", "39", "40", "41", "42"],
+  "Calzado (Botas, Bailarinas, Sandalias, Zapatillas…)": ["34", "35", "36", "37", "38", "39", "40", "41", "42"],
   Anillos: ["6", "7", "8", "9"],
-  "Aretes, Collares, Gorros, Lentes, Pulseras, Maquillaje, papelería": ["Único"],
+  "Aretes, Collares, Bolsos, Gorros, Lentes, Maquillaje, papelería…": ["Única"],
 };
 
 /** La respuesta esperada para cada talla de la base en cada curva donde aparece. Escrita a mano, no calculada. */
 const CENTRAL_ESPERADA: Record<string, Record<string, boolean>> = {
-  "Blusas, Polos, Tops, Chompas, Poleras, Camisas y Blusas": { Estándar: true, L: true, M: true, S: true, XL: false, XS: false, XXL: false },
-  "Abrigos, Blazers, Casacas, Chalecos, Conjuntos, Enterizos, Faldas, Shorts, Vestidos": { L: true, M: true, S: true, XL: false, XS: false, XXL: false },
+  "Ropa (Abrigos, Blusas, Polos, Tops, Vestidos, Faldas, Shorts…)": { Estándar: true, L: true, M: true, S: true, XL: false, XS: false, XXL: false },
   "Bodys, Ropa interior, Trajes de baño": { L: true, M: true, S: true, XL: false, XS: false },
   Cinturones: { L: true, M: true, S: true, XL: false },
   // La tabla de Felipe: 28 · 30 · 32.
   "Jeans, Pantalones": { "26": false, "28": true, "30": true, "32": true, "34": false },
   // Sin ninguna talla de la tabla: el tercio central de 9 tallas.
-  "Botas, Sandalias, Zapatillas, Zapatos formales": { "34": false, "35": false, "36": false, "37": true, "38": true, "39": true, "40": false, "41": false, "42": false },
+  "Calzado (Botas, Bailarinas, Sandalias, Zapatillas…)": { "34": false, "35": false, "36": false, "37": true, "38": true, "39": true, "40": false, "41": false, "42": false },
   // El tercio central de 4 tallas, simétrico: las dos del medio.
   Anillos: { "6": false, "7": true, "8": true, "9": false },
   // La única talla de su modelo.
-  "Aretes, Collares, Gorros, Lentes, Pulseras, Maquillaje, papelería": { Único: true },
+  "Aretes, Collares, Bolsos, Gorros, Lentes, Maquillaje, papelería…": { Única: true },
 };
 
 describe("la regla de talla central", () => {
