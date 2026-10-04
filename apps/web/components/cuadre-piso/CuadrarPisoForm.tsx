@@ -55,6 +55,7 @@ import {
   sumarLecturaCuadre,
   textoConteoAbierto,
   textoCuadradoEn,
+  textoQuienConfirma,
   textoDeBorradorCuadre,
   textoDeEnvioIncierto,
   textoDeResultado,
@@ -203,7 +204,7 @@ export function CuadrarPisoForm({
   const total = totalEscaneado(datos.lineas);
   const notaRequerida = estado.cuadres > 0 || notaExigida;
   const motivoRevisar = motivoNoRevisar({ lineas: datos.lineas.length, confirmoVacio: datos.confirmoVacio, pendientes: datos.pendientes.length });
-  const motivoConfirmar = motivoNoConfirmar({ esLider, responsableMotivo: responsable.motivo, notaRequerida, nota: datos.nota, conteoAbierto: conteo });
+  const motivoConfirmar = motivoNoConfirmar({ esLider, sede, responsableMotivo: responsable.motivo, notaRequerida, nota: datos.nota, conteoAbierto: conteo });
   const guiaEscaneo = useGuiaCampos(camposGuiaEscaneo({ lineas: datos.lineas.length, confirmoVacio: datos.confirmoVacio, pendientes: datos.pendientes.length }), {
     enModal: false,
   });
@@ -655,7 +656,7 @@ export function CuadrarPisoForm({
               <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
               <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
               <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
-              <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.{!esLider && " Confirmar es solo de un líder: que entre con su cuenta en este mismo equipo."}</li>
+              <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.{!esLider && ` ${textoQuienConfirma(sede)}`}</li>
             </ul>
           ) : (
             <p className="text-xs text-taupe">Solo lo guardado · sin dañadas ni Apartados · termina hoy y en este equipo.</p>

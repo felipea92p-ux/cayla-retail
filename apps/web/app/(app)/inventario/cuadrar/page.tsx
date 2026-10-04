@@ -12,7 +12,8 @@ import type { PrendaCuadre, StockLibre } from "@/lib/cuadre-piso-reglas";
 // 600–750 y hay más de 200 guardadas. Se arregla una vez por sede: se escanea lo que de verdad está GUARDADO y lo que el sistema
 // tiene en el almacén y nadie escaneó pasa al piso en un solo movimiento (`cuadrar_piso`, todo o nada). La sede es siempre la
 // activa de quien entra, como en «Bajar al piso»; la lista se arma en el navegador y la base se toca para revisar y una vez para
-// confirmar. Se llega por el botón «Cuadrar el piso» de Existencias (solo el líder lo ve); el lateral no tiene entrada propia.
+// confirmar. Se llega por el botón «Cuadrar el piso» de Existencias (lo ve quien ve Existencias: escanea la cuenta Almacén y confirma
+// un líder en el mismo equipo); el lateral no tiene entrada propia.
 export default async function CuadrarPisoPage() {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("existencias");

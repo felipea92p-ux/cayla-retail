@@ -492,7 +492,7 @@ begin
   -- Confirmar el cuadre es del líder, a la vista (escanear y revisar lo puede quien ve Existencias). Se le pregunta a la
   -- CUENTA, no al responsable: en una terminal, el líder entra con su cuenta en el mismo equipo (el borrador es por sede).
   if not fn_es_lider() then
-    raise exception 'Solo un líder confirma el cuadre del piso. Escanea todo y pídele que entre con su cuenta en este mismo equipo: lo escaneado no se pierde.'
+    raise exception 'Solo un líder confirma el cuadre del piso. Escanea todo y pídele que entre con su cuenta en este mismo equipo y elija esta tienda arriba: lo escaneado no se pierde.'
       using hint = 'cuadre_solo_lider';
   end if;
   if not fn_puede_operar_ubicacion(p_ubicacion_id) then

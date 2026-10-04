@@ -428,12 +428,12 @@ describe("un conteo abierto en la sede (el cuadre no se confirma hasta cerrarlo)
     expect(interpretarErrorDeCuadre({ message: "m", code: "P0001", hint: "cuadre_conteo_abierto", details: "{roto" })).toMatchObject({ tipo: "conteo_abierto", conteo: null });
     expect(respuestaResuelveLaMarcaCuadre({ message: "m", code: "P0001", hint: "cuadre_conteo_abierto" })).toBe(true);
     const c = leerConteoAbierto(CONTEO_BASE)!;
-    expect(motivoNoConfirmar({ esLider: true, responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toBe(
+    expect(motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toBe(
       "Hay un conteo abierto (Conteo 12 del almacén): ciérralo o cancélalo en Conteo antes de cuadrar.",
     );
     // Sin ser líder, lo primero es quién confirma; sin conteo, el botón vuelve a lo de siempre.
-    expect(motivoNoConfirmar({ esLider: false, responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toMatch(/^Solo un líder/);
-    expect(motivoNoConfirmar({ esLider: true, responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: null })).toBeNull();
+    expect(motivoNoConfirmar({ esLider: false, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: c })).toMatch(/^Solo un líder/);
+    expect(motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "", conteoAbierto: null })).toBeNull();
   });
 });
 
@@ -461,13 +461,15 @@ describe("la guía de foco", () => {
       for (const notaRequerida of [false, true])
         for (const nota of ["", "faltaba el estante del fondo"]) {
           const guia = sePuedeConfirmar(camposGuiaConfirmar({ responsableListo, notaRequerida, nota }));
-          const boton = motivoNoConfirmar({ esLider: true, responsableMotivo: responsableListo ? null : "Elige quién", notaRequerida, nota }) === null;
+          const boton = motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: responsableListo ? null : "Elige quién", notaRequerida, nota }) === null;
           expect(guia).toBe(boton);
         }
   });
 
-  it("sin ser líder el botón no desaparece: se apaga y dice quién sí puede", () => {
-    expect(motivoNoConfirmar({ esLider: false, responsableMotivo: null, notaRequerida: false, nota: "" })).toMatch(/^Solo un líder confirma el cuadre/);
-    expect(motivoNoConfirmar({ esLider: true, responsableMotivo: null, notaRequerida: false, nota: "x".repeat(301) })).toMatch(/hasta 300/);
+  it("sin ser líder el botón no desaparece: se apaga y dice quién sí puede, en este equipo y con esta sede elegida arriba", () => {
+    expect(motivoNoConfirmar({ esLider: false, sede: "Tienda Trujillo", responsableMotivo: null, notaRequerida: false, nota: "" })).toBe(
+      "Solo un líder confirma el cuadre. Pídele que entre con su cuenta en este mismo equipo y elija Tienda Trujillo arriba: lo escaneado no se pierde.",
+    );
+    expect(motivoNoConfirmar({ esLider: true, sede: "TRU", responsableMotivo: null, notaRequerida: false, nota: "x".repeat(301) })).toMatch(/hasta 300/);
   });
 });

@@ -599,6 +599,14 @@ export function camposGuiaConfirmar({ responsableListo, notaRequerida, nota }: {
   ];
 }
 
+/**
+ * Quién confirma, dicho para quien escaneó sin ser líder (la cuenta Almacén). Lo escaneado se guarda en el aparato por SEDE: el
+ * líder lo ve solo si entra en ESTE equipo y tiene ESTA sede elegida arriba (si no, ve el cuadre de otra tienda, vacío).
+ */
+export function textoQuienConfirma(sede: string): string {
+  return `Solo un líder confirma el cuadre. Pídele que entre con su cuenta en este mismo equipo y elija ${sede} arriba: lo escaneado no se pierde.`;
+}
+
 /** Por qué el botón «Revisar» está apagado, o null si se puede revisar. */
 export function motivoNoRevisar({ lineas, confirmoVacio, pendientes }: { lineas: number; confirmoVacio: boolean; pendientes: number }): string | null {
   if (pendientes > 0) return `Falta volver a escanear ${plural(pendientes, "prenda que cambió", "prendas que cambiaron")} en el almacén.`;
@@ -612,18 +620,20 @@ export function motivoNoRevisar({ lineas, confirmoVacio, pendientes }: { lineas:
  */
 export function motivoNoConfirmar({
   esLider,
+  sede,
   responsableMotivo,
   notaRequerida,
   nota,
   conteoAbierto = null,
 }: {
   esLider: boolean;
+  sede: string;
   responsableMotivo: string | null;
   notaRequerida: boolean;
   nota: string;
   conteoAbierto?: ConteoAbierto | null;
 }): string | null {
-  if (!esLider) return "Solo un líder confirma el cuadre. Pídele que entre con su cuenta en este mismo equipo: lo escaneado no se pierde.";
+  if (!esLider) return textoQuienConfirma(sede);
   if (conteoAbierto) return `Hay un conteo abierto (${nombreDelConteo(conteoAbierto)}): ciérralo o cancélalo en Conteo antes de cuadrar.`;
   if (notaRequerida && !nota.trim()) return "Escribe por qué se vuelve a cuadrar el piso.";
   if (nota.trim().length > NOTA_MAXIMA_CUADRE) return `La nota admite hasta ${NOTA_MAXIMA_CUADRE} caracteres.`;

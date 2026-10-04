@@ -135,9 +135,11 @@ export default async function InventarioPage({
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
-  // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar, solo para el líder (confirmar es suyo) y solo en su
-  // sede activa cuando separa piso y almacén (esa pantalla cuadra siempre la sede activa). Es una función de Existencias, no un módulo.
-  const puedeCuadrarPiso = persona.rol === "lider" && puedeBajarAlPiso;
+  // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar. Es una función de Existencias (ADR-0306), así que la
+  // ve quien ve Existencias —la cuenta Almacén, que escanea con la pistola—, en su sede activa cuando separa piso y almacén (esa
+  // pantalla cuadra siempre la sede activa). Confirmar es solo de un líder: allí el botón se apaga y dice quién sí puede, y la base
+  // lo vuelve a preguntar (`fn_es_lider()` en cuadrar_piso).
+  const puedeCuadrarPiso = puedeBajarAlPiso;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
