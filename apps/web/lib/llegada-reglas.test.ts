@@ -11,7 +11,8 @@ import {
   pedidoRecibirLote,
   sugerirPrendas,
   sumarPrenda,
-  textoDelBuscador,
+  ayudaDelBuscador,
+  PLACEHOLDER_BUSCADOR,
   textoDelProveedor,
   totalUnidades,
   varianteDeLineaEnviada,
@@ -100,19 +101,24 @@ describe("sugerirPrendas y leerTexto", () => {
 });
 
 describe("textos que siguen al proveedor (ADR-0290)", () => {
-  it("el buscador nombra la marca única, o el proveedor si tiene varias o ninguna", () => {
-    expect(textoDelBuscador(null)).toBe("Escanea la etiqueta o escribe el nombre de la prenda");
-    expect(textoDelBuscador({ nombre: "Textil Ejemplo SAC", marcas: ["Lasak"] })).toBe("Escanea o escribe una prenda de Lasak");
-    expect(textoDelBuscador({ nombre: "Textil Ejemplo SAC", marcas: ["Lasak", "Kero"] })).toBe("Escanea o escribe una prenda de Textil Ejemplo SAC");
-    expect(textoDelBuscador({ nombre: "Gamarra 12", marcas: [] })).toBe("Escanea o escribe una prenda de Gamarra 12");
+  it("la ayuda nombra la marca única, o el proveedor si tiene varias o ninguna; sin proveedor no promete nada", () => {
+    expect(ayudaDelBuscador(null)).toBe("Cada lectura suma una prenda");
+    expect(ayudaDelBuscador({ nombre: "Textil Ejemplo SAC", marcas: ["Lasak"] })).toBe("Cada lectura suma una prenda de Lasak");
+    expect(ayudaDelBuscador({ nombre: "Textil Ejemplo SAC", marcas: ["Lasak", "Kero"] })).toBe("Cada lectura suma una prenda de Textil Ejemplo SAC");
+    expect(ayudaDelBuscador({ nombre: "Gamarra 12", marcas: [] })).toBe("Cada lectura suma una prenda de Gamarra 12");
   });
 
   it("sigue al control: proveedor A → B → A da el mismo texto que la primera vez", () => {
     const a = { nombre: "A SAC", marcas: ["Lasak"] };
     const b = { nombre: "B SAC", marcas: ["Kero"] };
-    const primero = textoDelBuscador(a);
-    expect(textoDelBuscador(b)).not.toBe(primero);
-    expect(textoDelBuscador(a)).toBe(primero);
+    const primero = ayudaDelBuscador(a);
+    expect(ayudaDelBuscador(b)).not.toBe(primero);
+    expect(ayudaDelBuscador(a)).toBe(primero);
+  });
+
+  it("la caja del buscador es corta: cabe a 375 px aunque el proveedor tenga un nombre largo", () => {
+    // ~7,5 px por letra con la letra de la caja (15 px DM Sans); a 375 px la caja deja ~250 px.
+    expect(PLACEHOLDER_BUSCADOR.length).toBeLessThanOrEqual(30);
   });
 
   it("el proveedor se lee con sus marcas, sin repetir la que se llama igual", () => {

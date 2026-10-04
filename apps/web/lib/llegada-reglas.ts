@@ -66,12 +66,19 @@ export function leerTexto<T extends PrendaLlegada>(texto: string, prendas: reado
   return sugerirPrendas(texto, prendas, marcasDelProveedor, 1)[0] ?? null;
 }
 
-/** Lo que pide el buscador, siguiendo al proveedor elegido (ADR-0290): sin proveedor, una instrucción que no promete nada. */
-export function textoDelBuscador(proveedor: { nombre: string; marcas: readonly string[] } | null): string {
-  if (!proveedor) return "Escanea la etiqueta o escribe el nombre de la prenda";
+/**
+ * La ayuda junto al título «¿Qué llegó?», siguiendo al proveedor elegido (ADR-0290): sin proveedor, una frase que no promete nada.
+ * Va en la ayuda y no en la caja: a 375 px la caja deja ~250 px y «…una prenda de Confecciones del Sur EIRL» se cortaba a media
+ * palabra; la ayuda baja de línea. La caja dice siempre lo mismo y corto (`PLACEHOLDER_BUSCADOR`).
+ */
+export function ayudaDelBuscador(proveedor: { nombre: string; marcas: readonly string[] } | null): string {
+  if (!proveedor) return "Cada lectura suma una prenda";
   const de = proveedor.marcas.length === 1 ? proveedor.marcas[0] : proveedor.nombre;
-  return `Escanea o escribe una prenda de ${de}`;
+  return `Cada lectura suma una prenda de ${de}`;
 }
+
+/** Lo que dice la caja del buscador: una instrucción corta que cabe a 375 px (186 px con la letra de la caja). */
+export const PLACEHOLDER_BUSCADOR = "Escanea o busca la prenda";
 
 /** El proveedor como se lee en su lista: la razón social y, si las tiene, las marcas con que el equipo lo conoce (ADR-0140). */
 export function textoDelProveedor(nombre: string, marcas: readonly string[]): string {

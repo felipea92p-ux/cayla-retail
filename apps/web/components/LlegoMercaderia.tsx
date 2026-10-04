@@ -24,7 +24,8 @@ import {
   pedidoRecibirLote,
   sugerirPrendas,
   sumarPrenda,
-  textoDelBuscador,
+  ayudaDelBuscador,
+  PLACEHOLDER_BUSCADOR,
   textoDelProveedor,
   totalUnidades,
   urlContraFactura,
@@ -323,11 +324,13 @@ export function LlegoMercaderia({
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     {susFacturas.slice(0, 3).map((f) => (
-                      <Link key={f.id} href={urlContraFactura(f.id)} className="btn-cayla btn-secundario btn-chico">
+                      // `whitespace-normal`: el botón de la casa no baja de línea, y a 375 px el número de factura con su detalle se salía de
+                      // la tarjeta; en el celular el detalle va en su propia línea.
+                      <Link key={f.id} href={urlContraFactura(f.id)} className="btn-cayla btn-secundario btn-chico h-auto flex-wrap justify-start whitespace-normal text-left">
                         Sí, viene con la {f.documento}
-                        <span className="font-normal text-taupe">
-                          {" "}
-                          · {f.pendientes} {f.pendientes === 1 ? "prenda" : "prendas"} · {diaMes(f.fechaEmision)}
+                        <span className="font-normal text-taupe max-sm:basis-full">
+                          <span className="max-sm:hidden"> · </span>
+                          {f.pendientes} {f.pendientes === 1 ? "prenda" : "prendas"} · {diaMes(f.fechaEmision)}
                         </span>
                       </Link>
                     ))}
@@ -344,7 +347,7 @@ export function LlegoMercaderia({
               </CampoGuiado>
             ))}
 
-          <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda="Cada lectura suma una prenda">
+          <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
             <div className="relative">
               <ScanLine aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" />
               <input
@@ -364,7 +367,7 @@ export function LlegoMercaderia({
                     setBusqueda("");
                   }
                 }}
-                placeholder={textoDelBuscador(proveedor)}
+                placeholder={PLACEHOLDER_BUSCADOR}
                 autoComplete="off"
                 aria-describedby="llegada-lectura"
                 className="caja-cayla h-11 w-full pl-9 pr-3 text-sm text-tinta"
