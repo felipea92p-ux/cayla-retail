@@ -80,6 +80,7 @@ import {
   tituloReferencia,
   type ColorAlta,
   type DestinoStock,
+  type LugarCarga,
   type ResponsableAlta,
   type EstadoAlta,
   type PasoAlta as NumeroPaso,
@@ -215,9 +216,10 @@ export function NuevoProductoForm({
   // Colgadas en el piso o guardadas en el almacén (la pregunta solo sale si la tienda los separa). NO pide Existencias: quien
   // ve Productos hace todo lo que hay en Productos, y la base deja pasar la bajada de la carga inicial (migración
   // 20261004000000, ADR-0306 act. 2026-10-03).
-  // Arranca en almacén (Felipe 2026-09-28): colgar en el piso es la decisión que se toma a propósito, no la que se
-  // hereda por no mirar la pregunta.
-  const [alPiso, setAlPiso] = useState(false);
+  // Sin respuesta de fábrica (Felipe 2026-10-04, ADR-0328, decisión técnica 3): ni piso ni almacén vienen marcados. El
+  // 2026-09-28 arrancaba en almacén para que colgar fuera «la decisión que se toma a propósito»; pero así TRU se cargó casi
+  // entera como guardada estando colgada. Que ninguna venga marcada cumple ese mismo motivo en los dos sentidos.
+  const [lugarCarga, setLugarCarga] = useState<LugarCarga | null>(null);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Quien abre el alta se identifica
   // UNA vez, arriba de los pasos (`QuienRegistra`), y esa identidad firma la prenda Y lo que se crea a mitad del formulario
@@ -241,7 +243,7 @@ export function NuevoProductoForm({
   const fotoActual = fotoFormulario({
     categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
-    overridePrecio, etiquetasElegidas, cantidades, sinStock, alPiso,
+    overridePrecio, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
   const [fotoAlAbrir] = useState(fotoActual);
   const salida = useSalidaSinGuardar(
@@ -395,7 +397,7 @@ export function NuevoProductoForm({
     cantidades,
     celdasIncluidas.map((c) => c.clave)
   );
-  const destinoTexto = textoDestinoStock(destino.etiqueta, alPiso, destino.separaPiso);
+  const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
@@ -417,6 +419,8 @@ export function NuevoProductoForm({
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
     sinStock,
+    separaPiso: destino.separaPiso,
+    lugarCarga,
   };
   const problemas = problemasAlta(estado);
   const puedeGuardar = problemas.length === 0 && !cargando;
@@ -554,7 +558,7 @@ export function NuevoProductoForm({
       p_proveedor_id: proveedorId || undefined,
       // Paso 4 (ADR-0212): la tienda y el destino solo viajan si hay stock que cargar.
       p_ubicacion_id: conStock ? destino.ubicacionId : undefined,
-      p_al_piso: conStock && destino.separaPiso && alPiso,
+      p_al_piso: conStock && destino.separaPiso && lugarCarga === "piso",
     };
     const firma = responsable.firma();
     const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_stock_inicial", params), firma);
@@ -1080,15 +1084,23 @@ export function NuevoProductoForm({
             {stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
-                  <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
+                  <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están hoy?</p>
                   <div className="flex flex-wrap gap-1.5">
-                    <ChipOpcion elegido={!alPiso} onClick={() => setAlPiso(false)}>
+                    <ChipOpcion elegido={lugarCarga === "piso"} onClick={() => setLugarCarga("piso")}>
+                      Colgadas en el piso de venta
+                    </ChipOpcion>
+                    <ChipOpcion elegido={lugarCarga === "almacen"} onClick={() => setLugarCarga("almacen")}>
                       Guardadas en el almacén
                     </ChipOpcion>
-                    <ChipOpcion elegido={alPiso} onClick={() => setAlPiso(true)}>
-                      En piso de venta
-                    </ChipOpcion>
                   </div>
+                  {/* Lo que cambia cada respuesta, en palabras de tienda: es lo que la persona necesita para no elegir a ciegas. */}
+                  <p className="text-[12px] leading-snug text-taupe">
+                    {lugarCarga === "piso"
+                      ? "La caja las puede cobrar desde ya."
+                      : lugarCarga === "almacen"
+                        ? "Para venderlas, primero hay que bajarlas al piso."
+                        : "Colgadas: la caja las cobra desde ya. Guardadas: primero hay que bajarlas al piso."}
+                  </p>
                 </div>
               )
             ) : (

@@ -202,7 +202,23 @@ export type EstadoAlta = {
   stockInvalidas: number;
   /** La persona marcó «Todavía no tengo unidades»: el producto se crea sin stock, a sabiendas. */
   sinStock: boolean;
+  /** La tienda de la carga separa piso y almacén: solo ahí se pregunta dónde están las prendas de hoy. */
+  separaPiso: boolean;
+  /** Dónde están hoy las prendas de la carga. `null` = todavía sin responder: la pregunta no trae respuesta de fábrica
+   *  (Felipe 2026-10-04, ADR-0328). Con «almacén» marcado de antemano, TRU se cargó casi entera como guardada estando colgada:
+   *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Reponer» marcaba todas las tallas. */
+  lugarCarga: LugarCarga | null;
 };
+
+export type LugarCarga = "piso" | "almacen";
+
+/** Lo que falta cuando hay unidades en una tienda que separa piso y almacén y nadie dijo dónde están. */
+export const TEXTO_FALTA_LUGAR = "Di si están colgadas en el piso o guardadas en el almacén.";
+
+/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. */
+export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga">): boolean {
+  return e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+}
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
  *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
@@ -238,6 +254,7 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
   else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." });
+  else if (faltaLugarCarga(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_LUGAR });
   return p;
 }
 
@@ -281,10 +298,11 @@ export function resumenStock(cantidades: Readonly<Record<string, string>>, clave
  *  su cuenta puede dejarlas en el piso (la base las baja con `bajar_al_piso`, que pide Existencias, ADR-0306). */
 export type DestinoStock = { ubicacionId: string; etiqueta: string; separaPiso: boolean };
 
-/** Dónde queda el stock de la carga inicial, dicho como lo diría la persona. */
-export function textoDestinoStock(etiquetaSede: string, alPiso: boolean, separaPiso: boolean): string {
+/** Dónde queda el stock de la carga inicial, dicho como lo diría la persona. Sin respuesta todavía, lo dice. */
+export function textoDestinoStock(etiquetaSede: string, lugar: LugarCarga | null, separaPiso: boolean): string {
   if (!separaPiso) return etiquetaSede;
-  return `${alPiso ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
+  if (lugar === null) return `${etiquetaSede} · falta decir si están colgadas o guardadas`;
+  return `${lugar === "piso" ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
 }
 
 export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };

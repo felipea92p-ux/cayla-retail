@@ -22,6 +22,8 @@ const completo: EstadoAlta = {
   stockTotal: 6,
   stockInvalidas: 0,
   sinStock: false,
+  separaPiso: true,
+  lugarCarga: "almacen",
 };
 const extraCompleto: ExtraGuia = { coloresElegidos: 2, descripcionEscrita: false, marcaElegida: true, responsableListo: true };
 
@@ -159,6 +161,9 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["costo negativo", { costoBase: "-1" }, {}],
     ["sin decidir stock", { stockTotal: 0 }, {}],
     ["stock inválido", { stockInvalidas: 2 }, {}],
+    ["con unidades y sin decir dónde están", { lugarCarga: null }, {}],
+    ["sin decir dónde están, en una tienda sin piso y almacén", { lugarCarga: null, separaPiso: false }, {}],
+    ["sin decir dónde están y sin unidades", { lugarCarga: null, stockTotal: 0, sinStock: true }, {}],
     ["familia sin tela y sin tejido", { exigeTejidoPatron: false, tejidoId: "", patronId: "" }, {}],
     ["sin categoría", { categoriaId: "" }, {}],
   ];
