@@ -10,6 +10,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { tonoDeCategoria } from "@/components/MuestraCategoria";
 import { camposGuiaPrenda } from "@/lib/prenda-sin-registrar-guia";
+import { sinonimosDeCategoria, sugerenciaParaMostrar } from "@/lib/sugerir-categoria-sin-registrar";
 import {
   faltaEnPrendaSinRegistrar,
   gruposDeTallas,
@@ -88,6 +89,9 @@ export function PrendaSinRegistrarModal({
 
   const sugerencia = sugerirDescripcion(categoria?.nombre ?? null, color?.texto ?? null, talla?.valor ?? null);
   const descripcion = descripcionEscrita ?? sugerencia ?? "";
+  // ADR-0328 (decisión 6): si lo que la asesora ESCRIBIÓ nombra otra prenda («Jean…» con Pantalones elegida), se le sugiere esa
+  // categoría bajo la descripción. Nunca se aplica sola: ella toca «Cambiar a …» o la deja como está.
+  const categoriaSugerida = sugerenciaParaMostrar(descripcionEscrita, categoriaId, listas.categorias);
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
@@ -103,6 +107,8 @@ export function PrendaSinRegistrarModal({
           texto: c.nombre,
           // Lo que se ve al lado de cada categoría: sus tallas de siempre, para reconocerla de un vistazo.
           detalle: hab.unica ? `Talla ${hab.unica.valor.toLowerCase()}` : hab.habituales.map((t) => t.valor).join(" · "),
+          // Las palabras de tienda también la encuentran al buscar: «correa» → Cinturones, «chompa» → Chompas, «denim» → Jeans.
+          claves: sinonimosDeCategoria(c.prefijo),
           icono: <IconoCategoria prefijo={c.prefijo} familia={c.familia} className="h-4 w-4 text-tinta/70" />,
         };
       }),
@@ -153,6 +159,38 @@ export function PrendaSinRegistrarModal({
       el.setSelectionRange(el.value.length, el.value.length);
     });
   }
+
+  // El pie de «Descripción corta»: de dónde salió el texto y, si lo escrito nombra otra prenda, la categoría sugerida.
+  const pieAutoria =
+    descripcionEscrita === null && sugerencia ? (
+      <span className="text-tinta/65">Se armó sola con lo que elegiste. Puedes agregarle detalles.</span>
+    ) : descripcionEscrita !== null && sugerencia && descripcionEscrita.trim() !== sugerencia ? (
+      <span className="flex flex-wrap items-baseline gap-x-2 text-tinta/65">
+        <span>{descripcion.trim() === "" ? "Vacía." : "Escrita por ti."}</span>
+        <button type="button" onClick={volverASugerencia} className="btn-cayla btn-enlace">
+          Usar «{sugerencia}»
+        </button>
+      </span>
+    ) : null;
+  const pieCategoria = categoriaSugerida ? (
+    <span key={categoriaSugerida.categoriaId} className="anim-revelar mt-1 flex flex-wrap items-baseline gap-x-2 text-tinta/80" data-sugerencia-categoria>
+      <span>
+        Escribiste «{categoriaSugerida.palabra}»: {categoria ? "¿no será" : "parece"}{" "}
+        <span className="font-semibold text-tinta">{categoriaSugerida.nombre}</span>
+        {categoria ? "?" : "."}
+      </span>
+      <button type="button" onClick={() => elegirCategoria(categoriaSugerida.categoriaId)} className="btn-cayla btn-enlace">
+        {categoria ? `Cambiar a ${categoriaSugerida.nombre}` : `Usar ${categoriaSugerida.nombre}`}
+      </button>
+    </span>
+  ) : null;
+  const pieDescripcion =
+    pieAutoria || pieCategoria ? (
+      <>
+        {pieAutoria}
+        {pieCategoria}
+      </>
+    ) : null;
 
   const agregar = () => onAgregar({ ...datos, descripcion: descripcion.trim() });
 
@@ -256,18 +294,7 @@ export function PrendaSinRegistrarModal({
               // sugerir-fijo: no es un ejemplo, es la instrucción mientras falta elegir; con los tres datos el campo ya trae la descripción armada
               placeholder="Se arma sola con categoría, talla y color"
               maxLength={80}
-              pie={
-                descripcionEscrita === null && sugerencia ? (
-                  <span className="text-tinta/65">Se armó sola con lo que elegiste. Puedes agregarle detalles.</span>
-                ) : descripcionEscrita !== null && sugerencia && descripcionEscrita.trim() !== sugerencia ? (
-                  <span className="flex flex-wrap items-baseline gap-x-2 text-tinta/65">
-                    <span>{descripcion.trim() === "" ? "Vacía." : "Escrita por ti."}</span>
-                    <button type="button" onClick={volverASugerencia} className="btn-cayla btn-enlace">
-                      Usar «{sugerencia}»
-                    </button>
-                  </span>
-                ) : null
-              }
+              pie={pieDescripcion}
             />
           </CampoGuiado>
 
