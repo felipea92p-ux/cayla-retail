@@ -255,7 +255,8 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       detalle:
         r === null ? SIN_LEER : r.facturas === 0 ? "No falta recibir ninguna factura."
           : `${r.primera ?? "Una factura"}${r.facturas > 1 ? ` y ${r.facturas - 1} más` : ""} ${plural(r.facturas, "espera", "esperan")} su recepción.`,
-      href: "/recibir",
+      // ADR-0330: las facturas se reciben en la vista contra factura; `/recibir` a secas es la puerta «Llegó mercadería».
+      href: "/recibir?vista=factura",
       ocultable: true,
     });
   }

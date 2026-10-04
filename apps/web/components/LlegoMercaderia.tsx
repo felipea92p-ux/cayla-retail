@@ -12,9 +12,11 @@ import { firmar } from "@/lib/responsable-reglas";
 import { nuevaOperacion } from "@/lib/cola-offline";
 import { useColaRecibir } from "@/lib/useColaRecibir";
 import { useResponsable } from "@/lib/useResponsable";
+import { diaMes } from "@/lib/fechas-lima";
 import {
   camposDeLlegada,
   despuesDeRecibir,
+  facturasDelProveedor,
   fijarCantidad,
   fijarCosto,
   leerTexto,
@@ -24,7 +26,9 @@ import {
   textoDelBuscador,
   textoDelProveedor,
   totalUnidades,
+  urlContraFactura,
   varianteDeLineaEnviada,
+  type FacturaPendiente,
   type LineaLlegada,
   type PrendaLlegada,
 } from "@/lib/llegada-reglas";
@@ -54,6 +58,7 @@ export function LlegoMercaderia({
   ubicacionEtiqueta,
   prendas,
   proveedores,
+  facturas,
   verMontos,
   veExistencias,
 }: {
@@ -61,6 +66,8 @@ export function LlegoMercaderia({
   ubicacionEtiqueta: string;
   prendas: PrendaLlegada[];
   proveedores: ProveedorLlegada[];
+  /** Las facturas ya registradas a las que les falta mercadería en esta sede: si el proveedor elegido tiene, se pregunta. */
+  facturas: FacturaPendiente[];
   /** Quien ve el dinero de Compras escribe el costo (ADR-0126); los demás reciben sin costo. */
   verMontos: boolean;
   veExistencias: boolean;
@@ -76,6 +83,8 @@ export function LlegoMercaderia({
   const [loading, setLoading] = useState(false);
   const [atipicos, setAtipicos] = useState<CostoAtipico[] | null>(null);
   const [ok, setOk] = useState<Recibido | null>(null);
+  // Los proveedores para los que ya se contestó «No, sin factura» (la pregunta no vuelve a insistir con ese proveedor).
+  const [sinFactura, setSinFactura] = useState<string[]>([]);
   const buscador = useRef<HTMLInputElement>(null);
   const formulario = useRef<HTMLFormElement>(null);
   // Doble clic (ADR-0190): un token por intento; se renueva solo al guardar bien.
@@ -95,7 +104,14 @@ export function LlegoMercaderia({
   const destino = useDestinoFlotante(buscador, listaAbierta);
   const unidades = totalUnidades(lineas);
 
-  const campos = camposDeLlegada({ proveedorId, lineas, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
+  const susFacturas = facturasDelProveedor(facturas, proveedorId);
+  const campos = camposDeLlegada({
+    proveedorId,
+    lineas,
+    responsableListo: responsable.listo,
+    responsableMotivo: responsable.motivo,
+    facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
+  });
   const guia = useGuiaCampos(campos, { enModal: false });
 
   useEffect(() => {
@@ -117,8 +133,14 @@ export function LlegoMercaderia({
   function elegirProveedor(id: string) {
     const primeraVez = proveedorId === "";
     setProveedorId(id);
-    // Con la pistola en la mano, lo que sigue es leer: el cursor va al buscador.
-    if (primeraVez) setTimeout(() => buscador.current?.focus(), 0);
+    // Con la pistola en la mano, lo que sigue es leer: el cursor va al buscador. Si ese proveedor tiene facturas pendientes,
+    // primero va la pregunta (la luz de la guía la marca) y el cursor espera.
+    if (primeraVez && facturasDelProveedor(facturas, id).length === 0) setTimeout(() => buscador.current?.focus(), 0);
+  }
+
+  function recibirSinFactura() {
+    setSinFactura((actual) => (actual.includes(proveedorId) ? actual : [...actual, proveedorId]));
+    setTimeout(() => buscador.current?.focus(), 0);
   }
 
   function sumar(p: PrendaLlegada) {
@@ -215,6 +237,7 @@ export function LlegoMercaderia({
 
   function otraLlegada() {
     setOk(null);
+    setSinFactura([]);
     setProveedorId("");
     setNumeroGuia("");
     setLineas([]);
@@ -268,6 +291,45 @@ export function LlegoMercaderia({
               <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-cayla h-10 w-full px-3 text-sm text-tinta" />
             </label>
           </div>
+
+          {susFacturas.length > 0 &&
+            (sinFactura.includes(proveedorId) ? (
+              <p className="-mt-2 text-[13px] text-taupe">
+                Se recibe sin factura.{" "}
+                <button type="button" onClick={() => setSinFactura((a) => a.filter((id) => id !== proveedorId))} className="text-tinta/80 underline underline-offset-2 hover:text-rojo">
+                  Ver sus facturas pendientes
+                </button>
+              </p>
+            ) : (
+              <CampoGuiado id="llegada-factura" guia={guia} titulo="¿Viene con su factura?" ayuda="Si no la trae, igual se recibe">
+                <div className="nota-cayla space-y-3">
+                  <p>
+                    {proveedor?.nombre} tiene {susFacturas.length === 1 ? "una factura" : `${susFacturas.length} facturas`} por recibir en {ubicacionEtiqueta}. Si
+                    viene con {susFacturas.length === 1 ? "ella" : "una"}, se cuenta contra la factura y queda claro qué faltó.
+                    {lineas.length > 0 && " Lo que ya escaneaste aquí se vuelve a contar allá."}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {susFacturas.slice(0, 3).map((f) => (
+                      <Link key={f.id} href={urlContraFactura(f.id)} className="btn-cayla btn-secundario btn-chico">
+                        Sí, viene con la {f.documento}
+                        <span className="font-normal text-taupe">
+                          {" "}
+                          · {f.pendientes} {f.pendientes === 1 ? "prenda" : "prendas"} · {diaMes(f.fechaEmision)}
+                        </span>
+                      </Link>
+                    ))}
+                    {susFacturas.length > 3 && (
+                      <Link href={`/recibir?vista=factura&prov=${proveedorId}`} className="btn-cayla btn-enlace btn-chico">
+                        Ver las {susFacturas.length}
+                      </Link>
+                    )}
+                    <button type="button" onClick={recibirSinFactura} className="btn-cayla btn-sutil btn-chico">
+                      No, recibir sin factura
+                    </button>
+                  </div>
+                </div>
+              </CampoGuiado>
+            ))}
 
           <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda="Cada lectura suma una prenda">
             <div className="relative">

@@ -4,6 +4,7 @@ import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
+import type { CompraResumen } from "@/lib/compras-reglas";
 import { getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -228,7 +229,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
   // ------------------------------------------------------------------ Llegó mercadería (ADR-0330)
   if (vista === "llegada") {
-    const [catalogo, proveedores, marcas, trasladosDeLaSede] = await Promise.all([
+    const [catalogo, proveedores, marcas, trasladosDeLaSede, porRecibir] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
@@ -236,6 +237,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       getTrasladosEnCurso(persona.ubicacionId).catch((e: unknown) => {
         console.error("Aviso de traslados en Recibir mercadería:", e);
         return [] as TrasladoResumen[];
+      }),
+      // Las facturas que le faltan a ESTA sede: si el proveedor elegido tiene, la puerta pregunta si viene con una (ADR-0330).
+      // Es secundaria: si la lectura falla, la puerta recibe igual, sin la pregunta.
+      listarPorRecibir({}, null, { sinMontos: true, ubicacionId: persona.ubicacionId }).catch((e: unknown) => {
+        console.error("Facturas pendientes en Llegó mercadería:", e);
+        return { filas: [] as CompraResumen[], siguiente: null };
       }),
     ]);
     return (
@@ -250,6 +257,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           verMontos={verMontos}
           veExistencias={veModulo(persona, "existencias")}
           proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
+          facturas={porRecibir.filas.map((c) => ({
+            id: c.id,
+            proveedorId: c.proveedorId,
+            documento: c.documento,
+            fechaEmision: c.fechaEmision,
+            // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
+            pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
+          }))}
           prendas={catalogo
             .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
             .map((v) => ({

@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   camposDeLlegada,
   despuesDeRecibir,
+  facturasDelProveedor,
+  urlContraFactura,
   fijarCantidad,
   fijarCosto,
   leerTexto,
@@ -12,6 +14,7 @@ import {
   textoDelProveedor,
   totalUnidades,
   varianteDeLineaEnviada,
+  type FacturaPendiente,
   type LineaLlegada,
   type PrendaLlegada,
 } from "./llegada-reglas";
@@ -186,5 +189,33 @@ describe("despuesDeRecibir", () => {
     expect(despuesDeRecibir({ loteId: "L1", lineas: [lineas[0]].map((l) => ({ ...l, cantidad: 1 })), veExistencias: false })[0].texto).toBe(
       "Imprimir la etiqueta de precio",
     );
+  });
+});
+
+describe("la factura como opción (ADR-0330, act. 2)", () => {
+  const facturas: FacturaPendiente[] = [
+    { id: "f2", proveedorId: "lasak", documento: "F001-20", fechaEmision: "2026-10-02", pendientes: 5 },
+    { id: "f1", proveedorId: "lasak", documento: "F001-10", fechaEmision: "2026-09-28", pendientes: 12 },
+    { id: "f3", proveedorId: "kero", documento: "F002-1", fechaEmision: "2026-09-20", pendientes: 3 },
+    { id: "f4", proveedorId: "lasak", documento: "F001-30", fechaEmision: "2026-10-03", pendientes: 0 },
+  ];
+
+  it("solo las del proveedor elegido que aún tienen algo por llegar, la más antigua primero", () => {
+    expect(facturasDelProveedor(facturas, "lasak").map((f) => f.id)).toEqual(["f1", "f2"]);
+    expect(facturasDelProveedor(facturas, "kero").map((f) => f.id)).toEqual(["f3"]);
+    expect(facturasDelProveedor(facturas, "otro")).toEqual([]);
+    expect(facturasDelProveedor(facturas, "")).toEqual([]);
+  });
+
+  it("lleva a la vista contra factura con el comprobante marcado", () => {
+    expect(urlContraFactura("f1")).toBe("/recibir?vista=factura&compra=f1");
+  });
+
+  it("la pregunta es sugerida: aparece solo si hay facturas y no bloquea recibir", () => {
+    const base = { proveedorId: "lasak", lineas: sumarPrenda([], "a"), responsableListo: true, responsableMotivo: null };
+    expect(camposDeLlegada({ ...base, facturaRespondida: null }).map((c) => c.id)).not.toContain("llegada-factura");
+    const sinResponder = camposDeLlegada({ ...base, facturaRespondida: false });
+    expect(sinResponder.map((c) => c.id)).toEqual(["llegada-proveedor", "llegada-factura", "llegada-prendas", "llegada-responsable"]);
+    expect(sePuedeConfirmar(sinResponder)).toBe(true);
   });
 });

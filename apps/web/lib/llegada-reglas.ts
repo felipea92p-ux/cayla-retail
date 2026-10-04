@@ -6,7 +6,8 @@
 //            la guía de foco qué falta (proveedor, prendas, quién recibe) y qué sigue después de recibir (etiquetas, piso).
 //   ASUME:   `recibir_lote` (sin cambios, 20260930122000) es quien valida de verdad: permiso de la sede, costo atípico, token. Aquí
 //            solo se repite lo que apaga el botón —sin proveedor, sin prendas o sin responsable no se puede recibir—.
-//   NO HACE: no conoce facturas (eso es `RecepcionEnvio`), ni guarda, ni decide la sede: la sede es la de la cabecera.
+//   NO HACE: no cuenta contra una factura (eso es `RecepcionEnvio`): solo pregunta si viene con una de las que ese proveedor
+//            tiene pendientes en esta sede. Ni guarda, ni decide la sede: la sede es la de la cabecera.
 import { clave, filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
@@ -79,10 +80,41 @@ export function textoDelProveedor(nombre: string, marcas: readonly string[]): st
   return otras.length === 0 ? nombre : `${nombre} · ${otras.join(", ")}`;
 }
 
-/** Los campos de la guía de foco: lo mismo que apaga el botón «Recibir», en el orden de la pantalla. */
-export function camposDeLlegada(p: { proveedorId: string; lineas: readonly LineaLlegada[]; responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
+/** Una factura ya registrada a la que todavía le falta mercadería en ESTA sede (`listarPorRecibir` con la sede, ADR-0139). */
+export type FacturaPendiente = { id: string; proveedorId: string; documento: string; fechaEmision: string; pendientes: number };
+
+/** Las facturas de ese proveedor que le faltan a esta sede, la más antigua primero: es la que más probablemente llegó. */
+export function facturasDelProveedor(facturas: readonly FacturaPendiente[], proveedorId: string): FacturaPendiente[] {
+  if (!proveedorId) return [];
+  return facturas
+    .filter((f) => f.proveedorId === proveedorId && f.pendientes > 0)
+    .sort((a, b) => a.fechaEmision.localeCompare(b.fechaEmision) || a.documento.localeCompare(b.documento));
+}
+
+/** Recibir contra esa factura: la vista de siempre (`RecepcionEnvio`) con el comprobante ya marcado. */
+export function urlContraFactura(compraId: string): string {
+  return `/recibir?vista=factura&compra=${compraId}`;
+}
+
+/**
+ * Los campos de la guía de foco: lo mismo que apaga el botón «Recibir», en el orden de la pantalla. La pregunta de la factura
+ * solo aparece si ese proveedor tiene facturas pendientes aquí, y es SUGERIDA: se puede recibir sin contestarla (ADR-0330).
+ */
+export function camposDeLlegada(p: {
+  proveedorId: string;
+  lineas: readonly LineaLlegada[];
+  responsableListo: boolean;
+  responsableMotivo: string | null;
+  /** `null`: el proveedor no tiene facturas pendientes aquí (no se pregunta). `true`/`false`: si ya se contestó. */
+  facturaRespondida?: boolean | null;
+}): CampoDeGuia[] {
+  const factura: CampoDeGuia[] =
+    p.facturaRespondida == null
+      ? []
+      : [{ id: "llegada-factura", nombre: "Factura", requerido: false, sugerido: true, hecho: p.facturaRespondida, pendiente: "Dime si viene con la factura." }];
   return [
     { id: "llegada-proveedor", nombre: "De quién", requerido: true, hecho: p.proveedorId !== "", pendiente: "Elige el proveedor." },
+    ...factura,
     { id: "llegada-prendas", nombre: "Qué llegó", requerido: true, hecho: totalUnidades(p.lineas) > 0, pendiente: "Escanea o busca las prendas que llegaron." },
     {
       id: "llegada-responsable",
