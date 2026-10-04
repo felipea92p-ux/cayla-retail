@@ -776,11 +776,17 @@ export function leerResumenTienda(
   return resumen;
 }
 
-/** Cómo se nombra cada proceso en el desglose de una tarjeta, detrás de la cifra: «80 por traslado», «4 vendidas». Una
- *  pareja [singular, plural] cuando la palabra concuerda con la cifra. */
-const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
+/** Cómo se nombra cada proceso en el desglose de «Entró» y «Salió», detrás de la cifra: «80 por traslado», «4 vendidas».
+ *  Una pareja [singular, plural] cuando la palabra concuerda con la cifra. Todo proceso de `ETIQUETA_PROCESO` que pueda
+ *  sumar o restar en esas tarjetas tiene la suya: lo exige una prueba, porque sin frase el respaldo pegaba la etiqueta de
+ *  la fila y su « · » partía el desglose en dos («+1 por ajuste · encontrada tras un conteo», 2026-10-03). Los ajustes no
+ *  están: van por respaldo (`desgloseAjustes`). */
+export const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
   traslado_entrada: "por traslado",
   traslado_salida: "por traslado",
+  // Una fila del modelo anterior (salía de una sede y entraba a otra): `fn_movimientos_resumen_procesos` ya la parte en
+  // recibido / enviado, pero si llega con su nombre viejo dice lo mismo.
+  transferencia: "por traslado",
   traslado_anulado: "por traslado anulado",
   recepcion: "de proveedor",
   devolucion: "por devolución",
@@ -793,16 +799,14 @@ const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
   cuarentena_liquidada: ["dañada, liquidada", "dañadas, liquidadas"],
   cuarentena_se_boto: ["dañada, botada", "dañadas, botadas"],
   cuarentena_donada: ["dañada, donada", "dañadas, donadas"],
-  conteo: "por conteo",
-  conteo_fisico: "por conteo físico",
-  merma: "por merma",
-  reposicion: "por reposición",
-  otro: "por otro motivo",
+  siembra_cargo_especial: "por cargo especial",
 };
 
+/** Un motivo que la base escribió y la web todavía no conoce (`motivo` es texto libre) no rompe la tarjeta: se nombra con
+ *  su etiqueta, sin el « · » que la partiría en dos. */
 function frase(proceso: string, cifra: number): string {
   const f = FRASE_PROCESO[proceso];
-  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase()}`;
+  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase().replaceAll(" · ", ", ")}`;
   return typeof f === "string" ? f : Math.abs(cifra) === 1 ? f[0] : f[1];
 }
 

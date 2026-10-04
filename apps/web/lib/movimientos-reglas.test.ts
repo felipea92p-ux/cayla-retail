@@ -3,6 +3,7 @@ import { MOTIVOS_AJUSTE } from "./ajuste-reglas";
 import {
   CATEGORIAS,
   ETIQUETA_PROCESO,
+  FRASE_PROCESO,
   FILTROS_SUBUBICACION,
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
@@ -677,6 +678,20 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     expect(desgloseCifras(leerResumenTienda([{ grupo: "salida", proceso: "venta", operaciones: 1, filas: 1, entran: 0, salen: 1, movidas: 0 }]).salida, "salen")).toBe(
       "1 vendida"
     );
+  });
+
+  it("todo proceso que puede sumar o restar en «Entró» o «Salió» tiene su frase, y ninguna frase sobra", () => {
+    // Sin frase, el desglose pegaba la etiqueta de la fila y su « · » lo partía: «+1 por ajuste · encontrada tras un
+    // conteo» (2026-10-03). Quedan fuera, cada uno por su razón: los ajustes (van por respaldo, `desgloseAjustes`), lo que
+    // se mueve dentro de la sede (no cambia el total: va como «movidas») y apartar (no cambia el stock).
+    const sinFrase = new Set([...PROCESOS_POR_CATEGORIA.ajuste, ...PROCESOS_POR_CATEGORIA.interno, "apartado", "liberacion_apartado"]);
+    expect(Object.keys(ETIQUETA_PROCESO).filter((p) => !sinFrase.has(p) && !(p in FRASE_PROCESO))).toEqual([]);
+    expect(Object.keys(FRASE_PROCESO).filter((p) => !(p in ETIQUETA_PROCESO) || sinFrase.has(p))).toEqual([]);
+  });
+
+  it("un motivo que la web todavía no conoce no parte el desglose con su « · »", () => {
+    const raro = leerResumenTienda([{ grupo: "entrada", proceso: "motivo_nuevo", operaciones: 1, filas: 1, entran: 2, salen: 0, movidas: 0 }]);
+    expect(desgloseCifras(raro.entrada, "entran")).toBe("2 por motivo nuevo");
   });
 
   it("lo que se movió entre piso y almacén no cambia el total", () => {
