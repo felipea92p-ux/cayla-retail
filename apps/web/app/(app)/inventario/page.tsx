@@ -165,7 +165,9 @@ export default async function InventarioPage({
 
   // Si el panel de filtros entra abierto o cerrado en la computadora: lo que este equipo dejó la última vez (cookie propia de
   // Existencias, la lee el servidor para que la primera pintura no salte).
-  const panelFiltros = leerPanelFiltros((await cookies()).get(COOKIE_PANEL_FILTROS_EXISTENCIAS)?.value);
+  // Existencias nace con el panel cerrado (rediseño 2026-10-04): la primera pantalla es el buscador y «Para hoy», y el panel de
+  // seis píldoras abierto empujaba las prendas bajo el pliegue. Lo que este equipo dejó guardado manda.
+  const panelFiltros = leerPanelFiltros((await cookies()).get(COOKIE_PANEL_FILTROS_EXISTENCIAS)?.value, "cerrado");
 
   const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
