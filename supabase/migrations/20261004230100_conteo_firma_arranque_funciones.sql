@@ -20,15 +20,22 @@
 --      Resultado: ningún conteo cerrado ni traslado recibido desde una terminal queda sin persona. `fn_actor_persona_id` NO
 --      cambia y las claves `conteo_cerrar` y `traslado_recibir` siguen en `acciones_sin_responsable`: ahora significan «este
 --      paso no pregunta; la base pone el nombre de la operación».
---   2. CONTEO DE ARRANQUE. `fn_conteo_vale_como_arranque` dice si un conteo se contó entero y de verdad: de TODO el lugar, con
---      foto (del modelo nuevo), no de prueba, sin pendientes y sin nada «aplicado sin contar». `fn_conteo_arranque_pendiente` dice
---      si un lugar (piso, almacén o toda la ubicación) todavía no tiene su arranque: ningún conteo marcado `es_arranque` (la
---      marca manda: reabrirlo y cancelarlo no lo devuelve) y ninguno cerrado que valga como arranque. `cerrar_conteo` marca
---      `es_arranque` y escribe sus ajustes con el motivo `conteo_arranque` cuando las dos dicen que sí.
+--   2. CONTEO DE ARRANQUE, POR TRAMOS (Felipe, 2026-10-04). El tramo es el lugar entero en el ALMACÉN (o en toda la ubicación) y
+--      cada CATEGORÍA en el PISO (`fn_arranque_por_categoria`, parte 1): el piso se cuenta por categorías a lo largo de la semana.
+--      Y el CUADRE DEL PISO de la sede (`cuadres_piso.created_at`, PR #792) reinicia todos sus tramos: solo cuenta lo abierto
+--      después del último cuadre (`fn_ultimo_cuadre_piso`; sin cuadre, todo).
+--      `fn_conteo_puede_ser_arranque`: con foto (del modelo nuevo), no de prueba, abierto después del último cuadre y de un alcance
+--      que puede serlo en su lugar (TODO; o una categoría, en el piso). `fn_conteo_vale_como_arranque`: eso, más contado entero y
+--      de verdad (sin pendientes y sin nada «aplicado sin contar»). `fn_conteo_arranque_pendiente(lugar, categoría)`: el tramo
+--      todavía no tuvo su arranque (ningún conteo que lo cubra marcado `es_arranque` —la marca manda: reabrirlo y cancelarlo no
+--      lo devuelve— ni cerrado que valga). `fn_conteo_variantes_de_arranque(conteo)`: las líneas de un conteo cuyo tramo está
+--      pendiente. `cerrar_conteo` marca `es_arranque` y escribe con el motivo `conteo_arranque` el ajuste de ESAS líneas, si el
+--      conteo vale: en un conteo de todo el piso, las categorías que ya tuvieron su arranque van como `conteo`.
 --      `fn_es_merma` NO lo cuenta (su lista de motivos es cerrada: merma, conteo, conteo_fisico; no hace falta tocarla) y
 --      Finanzas (`fn_asientos`) no lo asienta como 659. `fn_conteo_lineas_json` lo suma como ajuste del cierre (la nota de
 --      «Corregir conteo» sigue cuadrando) y Actividad no lo anota como «ajustó stock» (el cierre ya tiene su línea).
---      `fn_conteo_arranque(sede)` (lectura) le dice a «Abrir un conteo» en qué lugares el próximo conteo completo es el de arranque.
+--      `fn_conteo_arranque(sede)` (lectura) le dice a «Abrir un conteo» qué lugares y qué categorías del piso tienen el arranque
+--      pendiente.
 --   3. ATAJO HONESTO. `conteo_aplicar_completos` reemplaza la ráfaga de `conteo_contar` de «Aplicar todos completos»: en UNA
 --      transacción anota en las pendientes pedidas lo que CAYLA dice que hay AHORA (stock leído bajo candado, como
 --      `conteo_contar`) y las marca `aplicada_sin_contar`. `fn_conteo_lineas_json` devuelve la marca, `fn_conteo_detalle` dice
@@ -60,6 +67,15 @@
 --     parecía completo y el conteo grande de TRU habría caído entero a la cuenta 659 (escena B).
 --   · Mirar el ESTADO del conteo para saber si el arranque se gastó: reabrir el de arranque y cancelarlo lo devolvía, y el
 --     siguiente conteo completo no contaba un faltante real como pérdida (escena G). Lo dice la marca `es_arranque`.
+--   · Un arranque SOLO del piso entero (la primera versión): el piso nunca se cuenta de una vez (Felipe), así que no lo tendría
+--     nunca y cada error de la carga del piso caería como merma. Tampoco por categoría en el ALMACÉN: ahí sí se cuenta todo junto.
+--   · Que un conteo de todo el piso cerrado A MEDIAS dé el arranque a las categorías que sí quedaron enteras: haría falta guardar
+--     qué categorías gastó cada conteo (la marca es por conteo), y «Por prenda» o un cierre parcial bastarían para gastar una
+--     categoría con dos prendas contadas. Una categoría arranca contándola entera (conteo de esa categoría) o con todo el piso.
+--   · Que el cuadre se lea por su orden de pegado: `fn_ultimo_cuadre_piso` mira `to_regclass('retail.cuadres_piso')`, así que esta
+--     migración funciona antes o después de la del cuadre (#792); sin la tabla, no hay cuadre y vale la regla sin reinicio.
+--   · Reiniciar el arranque por el cierre de la carga inicial (#785) en vez de por el cuadre: el cuadre es el que corrige dónde
+--     está cada prenda de la sede de una vez; lo que el conteo encuentre después ya no es de la carga sino del día a día.
 --   · Reescribir `cerrar_conteo`, `fn_conteo_lineas_json`, `fn_conteo_detalle` y las de traslados desde el archivo: llevan
 --     parches vivos en producción. Se cambian por ancla (`pg_temp.reemplazar`), que aborta si el texto vivo es otro.
 --
@@ -69,9 +85,16 @@
 --     deja elegir a otra persona; otro día, o si quien abrió ya marcó su salida, se pregunta.
 --   · una tienda no marca asistencia (sin marcas ni jornada de Dynamic): nadie está «de turno» y la terminal pregunta el nombre en
 --     cada operación sin firma de hoy, igual que el combo de cualquier otra acción (mismo candado, fn_persona_presente).
---   · el piso se cuenta solo por categorías y nunca completo: nunca hay arranque en ese lugar (pregunta abierta para Felipe).
---   · un líder reabre el conteo de arranque y lo corrige antes de que se cierre otro conteo completo del lugar: esas
---     correcciones también son de arranque (después de otro conteo completo, ya cuentan como pérdida).
+--   · el piso se cuenta solo por lotes de «Por prenda» (o con conteos de todo el piso cerrados a medias): ninguna categoría tiene
+--     arranque así, y sus diferencias cuentan como pérdida. «Abrir un conteo» lo avisa; para que una categoría arranque, se
+--     cuenta entera (conteo de esa categoría) o se cuenta todo el piso.
+--   · una prenda cambia de categoría después de su arranque: su línea sigue al tramo de su categoría NUEVA (se lee el producto al
+--     cerrar), que puede no haber arrancado todavía.
+--   · un conteo de todo el piso es el de arranque de algunas categorías y no de otras: la exactitud de Análisis lo deja fuera
+--     entero (la marca es por conteo), aunque las categorías que ya habían arrancado sí ajustaron como pérdida.
+--   · un líder reabre el conteo de arranque y lo corrige antes de que se cierre otro conteo que cubra su tramo: esas
+--     correcciones también son de arranque (después, ya cuentan como pérdida). Si entre medio hubo un cuadre, ya no: el conteo
+--     es de antes del cuadre.
 --   · un líder archiva como «de prueba» el conteo de arranque (archivar_conteo_prueba acepta uno cerrado): deja de contar y el
 --     lugar vuelve a tener el arranque pendiente, aunque sus ajustes sigan en el libro.
 --   · en el primer conteo completo alguien aplica sin contar «para terminar rápido»: no es el de arranque y lo que falte en lo
@@ -81,8 +104,10 @@
 --     20260930050100, 20261001120000 y esta (sin las dos primeras, esta aborta: el ancla de `fn_conteo_lineas_json` no está).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: tal cual en el SQL Editor (ya trae `retail.`), DESPUÉS de la parte 1 y de 20261001120000
--- (`fn_conteo_lineas_json` con hallazgos). Solo crea/reemplaza funciones (y elimina y recrea `fn_conteos_resumen`, que cambia
--- sus columnas): sin políticas ni `drop trigger` (ADR-0195). `lock_timeout` de 3 s. Re-pegable: cada ancla lleva su marca y
+-- (`fn_conteo_lineas_json` con hallazgos). Puede ir antes o después de las del cuadre del piso (#792): lee `cuadres_piso` solo si
+-- existe. Solo crea/reemplaza funciones (y elimina y recrea `fn_conteos_resumen`, que cambia sus columnas, y `fn_conteo_arranque`
+-- y la firma de tres argumentos de `fn_conteo_arranque_pendiente`, por si una base tenía la primera versión de esta migración):
+-- sin políticas ni `drop trigger` (ADR-0195). `lock_timeout` de 3 s. Re-pegable: cada ancla lleva su marca y
 -- `fn_conteos_resumen` solo se recrea si todavía no tiene `sin_contar`. Sin `select … into` dentro de textos (ADR-0288).
 -- Si una ancla no aparece, aborta TODO con el nombre de la función: compararla con la de producción antes de seguir.
 -- WEB Y SQL: la web nueva sin este SQL no se cae (los campos nuevos valen lo de antes y «Aplicar todos completos» avisa que no
@@ -284,19 +309,44 @@ comment on function retail.fn_traslado_firma_recepcion(uuid) is
 -- 2. CONTEO DE ARRANQUE
 -- ===========================================================================
 
--- PROMETE: true si ESTE conteo, tal como está ahora, vale como conteo de arranque: es de TODO el lugar, tiene foto (`foto_en`),
---   no es de prueba, tiene algo contado, no le queda nada pendiente y NINGUNA línea se anotó con «Aplicar todos completos».
---   Es la ÚNICA definición de «se contó entero y de verdad»: la usan cerrar_conteo (para decidir) y fn_conteo_arranque_pendiente
---   (para saber si un conteo cerrado ya fijó el punto de partida del lugar).
--- ASUME: «pendiente» es la regla de cerrar_conteo y fn_conteos_resumen (sin cifra y con algo esperado, o en reconteo). No mira si
---   el lugar ya tuvo su arranque: eso es fn_conteo_arranque_pendiente.
--- POR QUÉ CADA CONDICIÓN (revisión adversarial del 2026-10-04):
---   · sin líneas «aplicadas sin contar»: un arranque que nadie miró no fija ningún punto de partida. Si lo gastara, los errores de
---     la carga inicial que nadie vio aparecerían en el conteo SIGUIENTE como merma (cuenta 659), en un libro que no se corrige.
+-- PROMETE: la hora del último cuadre del piso de la sede (`cuadres_piso.created_at`, la fecha del cuadre: ADR-0328 decisión
+--   técnica 4), o NULL si nunca se cuadró. Es la ÚNICA definición de «desde cuándo cuenta el arranque»: el cuadre corrige de una
+--   vez dónde está cada prenda de la sede, así que lo que un conteo encuentre después ya no es de la carga, salvo en su primer
+--   conteo de cada tramo, que es el nuevo arranque (Felipe, 2026-10-04).
+-- ASUME: nada del orden de pegado. `cuadres_piso` llega con el PR #792; si la tabla no existe todavía, no hubo cuadre (NULL). Es
+--   plpgsql a propósito: la consulta a la tabla se prepara solo cuando la tabla existe (una función SQL no se crearía sin ella).
+create or replace function retail.fn_ultimo_cuadre_piso(p_ubicacion_id uuid)
+returns timestamptz
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+begin
+  if to_regclass('retail.cuadres_piso') is null then
+    return null;
+  end if;
+  return (select max(cp.created_at) from retail.cuadres_piso cp where cp.ubicacion_id = p_ubicacion_id);
+end;
+$fn$;
+
+revoke all on function retail.fn_ultimo_cuadre_piso(uuid) from public, anon, authenticated;
+
+comment on function retail.fn_ultimo_cuadre_piso(uuid) is
+  'ADR-0328: cuándo fue el último cuadre del piso de la sede (NULL si nunca, o si cuadres_piso todavía no existe). El arranque '
+  'de cada tramo se reinicia ahí. Interna.';
+
+-- PROMETE: true si ESTE conteo es de los que pueden ser de arranque, sin mirar cuánto se contó: tiene foto (`foto_en`), no es de
+--   prueba, se abrió DESPUÉS del último cuadre del piso de su sede y su alcance cubre un tramo entero de su lugar (TODO el lugar;
+--   o, en el piso, donde el tramo es la categoría, también una categoría: fn_arranque_por_categoria).
+-- POR QUÉ CADA CONDICIÓN:
 --   · con foto: antes del rediseño (20260930010000) solo se guardaban las líneas contadas, así que un conteo viejo de 3 prendas no
 --     tiene pendientes y parecería «completo». Sin foto no se sabe si se contó todo: no gasta el arranque de nadie (es el mismo
---     criterio con el que reabrir_conteo distingue un conteo del modelo nuevo).
-create or replace function retail.fn_conteo_vale_como_arranque(p_conteo_id uuid)
+--     criterio con el que reabrir_conteo distingue un conteo del modelo nuevo). Revisión adversarial del 2026-10-04, escena B.
+--   · después del cuadre: uno abierto antes (y reabierto después) contó un piso y un almacén que el cuadre ya cambió.
+--   · una categoría solo en el piso: en el almacén se cuenta todo junto; un conteo de una categoría allí no fija el punto de
+--     partida del almacén, y aceptarlo dejaría arrancar el almacén categoría por categoría sin contarlo nunca entero.
+create or replace function retail.fn_conteo_puede_ser_arranque(p_conteo_id uuid)
 returns boolean
 language sql
 stable
@@ -307,32 +357,67 @@ as $fn$
     select 1
       from retail.conteos c
      where c.id = p_conteo_id
-       and c.alcance = 'todo'
+       and (c.alcance = 'todo' or retail.fn_arranque_por_categoria(c.sububicacion_id))
        and c.foto_en is not null
        and not c.es_prueba
-       and exists (select 1 from retail.conteo_items i where i.conteo_id = c.id and i.cantidad_contada is not null)
-       and not exists (select 1 from retail.conteo_items i
-                        where i.conteo_id = c.id
-                          and (i.aplicada_sin_contar
-                               or (i.cantidad_contada is null
-                                   and (coalesce(i.cantidad_foto, 0) > 0 or i.contada_anterior is not null))))
+       and c.created_at > coalesce(retail.fn_ultimo_cuadre_piso(c.ubicacion_id), '-infinity'::timestamptz)
   );
+$fn$;
+
+revoke all on function retail.fn_conteo_puede_ser_arranque(uuid) from public, anon, authenticated;
+
+comment on function retail.fn_conteo_puede_ser_arranque(uuid) is
+  'ADR-0328: el conteo puede ser de arranque por lo que es (con foto, no de prueba, abierto después del último cuadre del piso y '
+  'de todo el lugar o, en el piso, de una categoría), sin mirar cuánto se contó. Interna.';
+
+-- PROMETE: true si ESTE conteo, tal como está ahora, vale como conteo de arranque: puede serlo (fn_conteo_puede_ser_arranque),
+--   tiene algo contado, no le queda nada pendiente y NINGUNA línea se anotó con «Aplicar todos completos».
+--   Es la ÚNICA definición de «se contó entero y de verdad»: la usan cerrar_conteo (para decidir) y fn_conteo_arranque_pendiente
+--   (para saber si un conteo cerrado ya fijó el punto de partida de su tramo).
+-- ASUME: «pendiente» es la regla de cerrar_conteo y fn_conteos_resumen (sin cifra y con algo esperado, o en reconteo). No mira si
+--   el tramo ya tuvo su arranque: eso es fn_conteo_arranque_pendiente.
+-- POR QUÉ sin líneas «aplicadas sin contar» (revisión adversarial del 2026-10-04, escena A): un arranque que nadie miró no fija
+--   ningún punto de partida. Si lo gastara, los errores de la carga inicial que nadie vio aparecerían en el conteo SIGUIENTE como
+--   merma (cuenta 659), en un libro que no se corrige.
+create or replace function retail.fn_conteo_vale_como_arranque(p_conteo_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+  select retail.fn_conteo_puede_ser_arranque(p_conteo_id)
+     and exists (select 1 from retail.conteo_items i where i.conteo_id = p_conteo_id and i.cantidad_contada is not null)
+     and not exists (select 1 from retail.conteo_items i
+                      where i.conteo_id = p_conteo_id
+                        and (i.aplicada_sin_contar
+                             or (i.cantidad_contada is null
+                                 and (coalesce(i.cantidad_foto, 0) > 0 or i.contada_anterior is not null))));
 $fn$;
 
 revoke all on function retail.fn_conteo_vale_como_arranque(uuid) from public, anon, authenticated;
 
 comment on function retail.fn_conteo_vale_como_arranque(uuid) is
-  'ADR-0328: el conteo es de todo el lugar, con foto, no de prueba, con algo contado, sin pendientes y sin líneas aplicadas sin '
-  'contar: se contó entero y de verdad, así que puede ser (o ya fue) el de arranque. Interna.';
+  'ADR-0328: el conteo puede ser de arranque (fn_conteo_puede_ser_arranque) y se contó entero y de verdad: con algo contado, sin '
+  'pendientes y sin líneas aplicadas sin contar. Interna.';
 
--- PROMETE: true si el lugar (ubicación + sububicación; NULL = toda la ubicación) todavía no tiene su conteo de arranque: ningún
---   conteo suyo (sin contar `p_excepto` ni los de prueba) lleva la marca `es_arranque`, y ninguno cerrado vale como arranque
---   (fn_conteo_vale_como_arranque: los cerrados antes de esta migración que se contaron enteros también fijaron el punto de
---   partida). Un conteo de toda la ubicación (sin piso ni almacén aparte) cuenta para cada lugar de esa ubicación.
--- ASUME: el arranque gastado lo dice la MARCA, no el estado: reabrir el de arranque y cancelarlo (anular_conteo acepta uno
---   reabierto) no lo devuelve; sus ajustes ya están en el libro. Es la ÚNICA definición de «el lugar ya tuvo su arranque»: la
---   usan cerrar_conteo, fn_conteo_detalle y fn_conteo_arranque.
-create or replace function retail.fn_conteo_arranque_pendiente(p_ubicacion_id uuid, p_sububicacion_id uuid, p_excepto uuid default null)
+-- La primera versión de esta migración tenía la firma de tres argumentos (sin categoría). Si una base la tiene, se quita: con las
+-- dos, una llamada de tres argumentos sería ambigua. `drop function` no toma los candados de auth/storage (ADR-0195).
+drop function if exists retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid);
+
+-- PROMETE: true si el TRAMO (lugar + categoría) todavía no tuvo su conteo de arranque desde el último cuadre del piso de la sede.
+--   Lugar: ubicación + sububicación (NULL = toda la ubicación). Categoría: la del tramo en el piso (fn_arranque_por_categoria); NULL
+--   en el almacén o en toda la ubicación (el tramo es el lugar entero), o para una prenda sin categoría en el piso.
+--   Un conteo CUBRE el tramo si es de TODO el lugar o de esa misma categoría; lo GASTÓ si lleva la marca `es_arranque` o está
+--   cerrado y vale como arranque (fn_conteo_vale_como_arranque: los cerrados antes de esta migración que se contaron enteros
+--   también fijaron el punto de partida). Sin contar `p_excepto` ni los de prueba ni los abiertos antes del último cuadre. Un
+--   conteo de toda la ubicación (sin piso ni almacén aparte) cuenta para cada lugar de esa ubicación.
+-- ASUME: el tramo gastado lo dice la MARCA, no el estado: reabrir el de arranque y cancelarlo (anular_conteo acepta uno
+--   reabierto) no lo devuelve; sus ajustes ya están en el libro. Es la ÚNICA definición de «el tramo ya tuvo su arranque»: la
+--   usan fn_conteo_variantes_de_arranque (y por ella cerrar_conteo y fn_conteo_detalle) y fn_conteo_arranque.
+-- Un conteo de una categoría del ALMACÉN no cubre el tramo NULL (no es de todo) y tampoco puede valer: allí no gasta nada.
+create or replace function retail.fn_conteo_arranque_pendiente(
+  p_ubicacion_id uuid, p_sububicacion_id uuid, p_categoria_id uuid, p_excepto uuid default null)
 returns boolean
 language sql
 stable
@@ -346,37 +431,121 @@ as $fn$
        and (c.sububicacion_id is null or c.sububicacion_id is not distinct from p_sububicacion_id)
        and not c.es_prueba
        and c.id is distinct from p_excepto
+       and c.created_at > coalesce((select retail.fn_ultimo_cuadre_piso(p_ubicacion_id)), '-infinity'::timestamptz)
+       and (c.alcance = 'todo' or c.alcance_categoria_id = p_categoria_id)
        and (c.es_arranque
             or (c.estado = 'cerrado' and retail.fn_conteo_vale_como_arranque(c.id)))
   );
 $fn$;
 
-revoke all on function retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid) from public, anon, authenticated;
+revoke all on function retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid, uuid) from public, anon, authenticated;
 
-comment on function retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid) is
-  'ADR-0328: el lugar todavía no tiene su conteo de arranque (ninguno marcado es_arranque y ninguno cerrado que valga como '
-  'arranque; sin contar p_excepto ni los de prueba): su próximo conteo completo y contado de verdad es el de arranque. Interna.';
+comment on function retail.fn_conteo_arranque_pendiente(uuid, uuid, uuid, uuid) is
+  'ADR-0328: el tramo (lugar; y en el piso, la categoría) todavía no tuvo su conteo de arranque desde el último cuadre del piso: '
+  'ningún conteo que lo cubra (de todo el lugar o de esa categoría) marcado es_arranque ni cerrado que valga como arranque; sin '
+  'contar p_excepto ni los de prueba. Interna.';
 
--- Lectura para «Abrir un conteo»: cada lugar donde se cuenta en la sede (piso y almacén; o toda la ubicación si no los separa)
--- y si su próximo conteo completo sería el de arranque. Nada si quien pregunta no opera la sede.
-create or replace function retail.fn_conteo_arranque(p_ubicacion_id uuid)
-returns table(sububicacion_id uuid, arranque_pendiente boolean)
+-- PROMETE: las variantes del conteo cuyo ajuste de cierre sería de arranque: si el conteo puede ser de arranque
+--   (fn_conteo_puede_ser_arranque), sus líneas dentro del alcance (todas, o las de su categoría) cuyo tramo sigue pendiente sin
+--   contarlo a él mismo. En el almacén (o toda la ubicación) son todas o ninguna; en el piso, por categoría: en un conteo de
+--   todo el piso después de arrancar Blusas, las de Blusas no salen y las de las demás categorías sí.
+-- ASUME: no mira si se contó entero: cerrar_conteo la llama solo si el conteo vale (fn_conteo_vale_como_arranque), y
+--   fn_conteo_detalle la usa para decir si TODAVÍA puede serlo. Las líneas de otra categoría contadas «fuera de alcance» en un
+--   conteo de una categoría no son de arranque: esa categoría no se contó entera.
+-- POR QUÉ `materialized`: el tramo de cada categoría se averigua UNA vez (a lo sumo decenas), no una por línea (cientos); sin él,
+--   Postgres puede copiar la consulta dentro del filtro de cada línea.
+create or replace function retail.fn_conteo_variantes_de_arranque(p_conteo_id uuid)
+returns setof uuid
 language sql
 stable
 security definer
 set search_path = retail, public, extensions
 as $fn$
-  with lugares as (
-    select s.id
+  with c as materialized (
+    select c.id, c.ubicacion_id, c.sububicacion_id, c.alcance, c.alcance_categoria_id,
+           retail.fn_arranque_por_categoria(c.sububicacion_id) as por_categoria
+      from retail.conteos c
+     where c.id = p_conteo_id
+       and retail.fn_conteo_puede_ser_arranque(c.id)
+  ),
+  lineas as materialized (
+    select ci.variante_id,
+           case when c.por_categoria then p.categoria_id end as tramo
+      from c
+      join retail.conteo_items ci on ci.conteo_id = c.id
+      join retail.variantes v on v.id = ci.variante_id
+      join retail.productos p on p.id = v.producto_id
+     where c.alcance = 'todo' or p.categoria_id = c.alcance_categoria_id
+  ),
+  pendientes as materialized (
+    select t.tramo
+      from (select distinct l.tramo from lineas l) t, c
+     where retail.fn_conteo_arranque_pendiente(c.ubicacion_id, c.sububicacion_id, t.tramo, c.id)
+  )
+  select l.variante_id
+    from lineas l
+   where exists (select 1 from pendientes pe where pe.tramo is not distinct from l.tramo);
+$fn$;
+
+revoke all on function retail.fn_conteo_variantes_de_arranque(uuid) from public, anon, authenticated;
+
+comment on function retail.fn_conteo_variantes_de_arranque(uuid) is
+  'ADR-0328: las variantes del conteo cuyo ajuste de cierre sería de arranque (puede serlo, dentro del alcance y con su tramo '
+  'pendiente: en el piso, por categoría). No mira si se contó entero. Interna: la usan cerrar_conteo y fn_conteo_detalle.';
+
+-- Lectura para «Abrir un conteo»: por cada lugar donde se cuenta en la sede (piso y almacén; o toda la ubicación si no los separa),
+-- una fila con categoria_id NULL que dice si un conteo de TODO ese lugar sería de arranque (en el piso: para alguna de las
+-- categorías que tiene hoy); y, en el piso, una fila por cada categoría activa que dice si su próximo conteo sería el de arranque.
+-- Nada si quien pregunta no opera la sede. Cambió sus columnas desde la primera versión: se elimina y se vuelve a crear.
+drop function if exists retail.fn_conteo_arranque(uuid);
+
+create or replace function retail.fn_conteo_arranque(p_ubicacion_id uuid)
+returns table(sububicacion_id uuid, categoria_id uuid, arranque_pendiente boolean)
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+  with lugares as materialized (
+    select s.id, retail.fn_arranque_por_categoria(s.id) as por_categoria
       from retail.sububicaciones s
      where s.ubicacion_id = p_ubicacion_id and s.tipo in ('piso_venta', 'almacen_tienda')
     union all
-    select null::uuid
+    select null::uuid, false
      where not exists (select 1 from retail.sububicaciones s
                         where s.ubicacion_id = p_ubicacion_id and s.tipo in ('piso_venta', 'almacen_tienda'))
+  ),
+  -- Las categorías que un conteo de TODO el piso traería hoy (la misma foto que abrir_conteo: stock positivo, sin la pieza del
+  -- sistema). NULL = prendas sin categoría.
+  tramos_hoy as materialized (
+    select distinct st.sububicacion_id, p.categoria_id
+      from retail.stock st
+      join retail.variantes va on va.id = st.variante_id
+      join retail.productos p on p.id = va.producto_id
+      join lugares l on l.id = st.sububicacion_id and l.por_categoria
+     where st.ubicacion_id = p_ubicacion_id
+       and st.cantidad > 0
+       and not retail.fn_producto_es_pieza_del_sistema(p.id)
+  ),
+  por_categoria as materialized (
+    select l.id as sububicacion_id, cat.id as categoria_id,
+           retail.fn_conteo_arranque_pendiente(p_ubicacion_id, l.id, cat.id, null) as pendiente
+      from lugares l
+      join retail.categorias cat on cat.activo
+     where l.por_categoria
   )
-  select l.id, retail.fn_conteo_arranque_pendiente(p_ubicacion_id, l.id, null)
+  select l.id, null::uuid,
+         case when not l.por_categoria then retail.fn_conteo_arranque_pendiente(p_ubicacion_id, l.id, null, null)
+              else exists (select 1 from tramos_hoy t
+                            where t.sububicacion_id = l.id
+                              and coalesce((select pc.pendiente from por_categoria pc
+                                             where pc.sububicacion_id = l.id and pc.categoria_id = t.categoria_id),
+                                           retail.fn_conteo_arranque_pendiente(p_ubicacion_id, l.id, t.categoria_id, null))) end
     from lugares l
+   where retail.fn_puede_operar_ubicacion(p_ubicacion_id)
+  union all
+  select pc.sububicacion_id, pc.categoria_id, pc.pendiente
+    from por_categoria pc
    where retail.fn_puede_operar_ubicacion(p_ubicacion_id);
 $fn$;
 
@@ -384,10 +553,11 @@ revoke all on function retail.fn_conteo_arranque(uuid) from public, anon;
 grant execute on function retail.fn_conteo_arranque(uuid) to authenticated;
 
 comment on function retail.fn_conteo_arranque(uuid) is
-  'ADR-0328: por cada lugar de conteo de la sede (sububicacion_id; NULL = toda la ubicación), si su próximo conteo completo es '
-  'el de arranque. Lectura para «Abrir un conteo».';
+  'ADR-0328: por cada lugar de conteo de la sede (sububicacion_id; NULL = toda la ubicación), categoria_id NULL: si un conteo de '
+  'TODO el lugar sería de arranque (en el piso, para alguna de sus categorías de hoy); y en el piso, por cada categoría activa, si '
+  'su próximo conteo sería el de arranque. Lectura para «Abrir un conteo».';
 
--- cerrar_conteo: firma heredada, y el arranque se decide al cerrar (solo si se contó TODO el lugar).
+-- cerrar_conteo: firma heredada, y el arranque se decide al cerrar (solo si se contó entero su tramo) y LÍNEA POR LÍNEA.
 select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$v_persona := retail.fn_actor_persona_id(true);$v$,
@@ -399,44 +569,46 @@ select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$v_verificadas integer; v_pendientes integer; v_sin_confirmar integer;$v$,
   $n$v_verificadas integer; v_pendientes integer; v_sin_confirmar integer;
-  v_motivo text := 'conteo'; -- ADR-0328 (conteo-arranque: motivo)$n$,
-  1, 'ADR-0328 (conteo-arranque: motivo)'
+  v_de_arranque uuid[] := '{}'; -- ADR-0328 (arranque por tramo: líneas)$n$,
+  1, 'ADR-0328 (arranque por tramo: líneas)'
 );
 select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$  -- ADR-0189 (conteo-orden): el stock de las prendas con diferencia,$v$,
-  $n$  -- ADR-0328 (conteo-arranque: decide) el primer conteo de TODO el lugar contado entero y de verdad (sin pendientes y sin
-  -- nada aplicado sin contar: fn_conteo_vale_como_arranque) es el de arranque: corrige el stock, pero sus ajustes llevan el
-  -- motivo `conteo_arranque` (no son merma ni entran en la exactitud). Un conteo que ya fue el de arranque lo sigue siendo al
-  -- corregirlo, mientras no se haya cerrado otro conteo completo del lugar.
-  if retail.fn_conteo_vale_como_arranque(c.id)
-     and retail.fn_conteo_arranque_pendiente(c.ubicacion_id, c.sububicacion_id, c.id) then
-    v_motivo := 'conteo_arranque';
+  $n$  -- ADR-0328 (arranque por tramo: decide) si el conteo se contó entero y de verdad (fn_conteo_vale_como_arranque), sus líneas
+  -- cuyo tramo todavía no tuvo arranque desde el último cuadre del piso (el almacén entero; en el piso, cada categoría:
+  -- fn_conteo_variantes_de_arranque) corrigen el stock con el motivo `conteo_arranque` (no son merma ni entran en la exactitud).
+  -- Las demás, con `conteo`. Un conteo que ya fue el de arranque lo sigue siendo al corregirlo, mientras no se haya cerrado otro
+  -- que cubra su tramo.
+  if retail.fn_conteo_vale_como_arranque(c.id) then
+    v_de_arranque := array(select retail.fn_conteo_variantes_de_arranque(c.id));
   end if;
 
   -- ADR-0189 (conteo-orden): el stock de las prendas con diferencia,$n$,
-  1, 'ADR-0328 (conteo-arranque: decide)'
+  1, 'ADR-0328 (arranque por tramo: decide)'
 );
 select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$`tipo = 'ajuste'`, `motivo = 'conteo'` y lleva `conteo_item_id`$v$,
-  $n$`tipo = 'ajuste'`, `motivo = 'conteo'` (o `conteo_arranque`, ADR-0328 (conteo-arranque: nota)) y lleva `conteo_item_id`$n$,
-  1, 'ADR-0328 (conteo-arranque: nota)'
+  $n$`tipo = 'ajuste'`, `motivo = 'conteo'` (o `conteo_arranque`, ADR-0328 (arranque por tramo: nota)) y lleva `conteo_item_id`$n$,
+  1, 'ADR-0328 (arranque por tramo: nota)'
 );
 select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$'ajuste', v_dif, 'conteo', r.id, v_persona)$v$,
-  $n$'ajuste', v_dif, v_motivo, r.id, v_persona) -- ADR-0328 (conteo-arranque: ajuste)$n$,
-  1, 'ADR-0328 (conteo-arranque: ajuste)'
+  $n$'ajuste', v_dif,
+                case when r.variante_id = any(v_de_arranque) then 'conteo_arranque' else 'conteo' end, -- ADR-0328 (arranque por tramo: ajuste)
+                r.id, v_persona)$n$,
+  1, 'ADR-0328 (arranque por tramo: ajuste)'
 );
 select pg_temp.reemplazar(
   'retail.cerrar_conteo(uuid, boolean)',
   $v$update conteos set estado = 'cerrado', cerrado_en = now(), cerrado_por = v_persona where id = p_conteo_id;$v$,
-  $n$-- ADR-0328 (conteo-arranque: marca) un conteo que fue el de arranque lo sigue siendo.
+  $n$-- ADR-0328 (arranque por tramo: marca) el de arranque de algún tramo; uno que lo fue lo sigue siendo.
   update conteos set estado = 'cerrado', cerrado_en = now(), cerrado_por = v_persona,
-         es_arranque = es_arranque or v_motivo = 'conteo_arranque'
+         es_arranque = es_arranque or cardinality(v_de_arranque) > 0
    where id = p_conteo_id;$n$,
-  1, 'ADR-0328 (conteo-arranque: marca)'
+  1, 'ADR-0328 (arranque por tramo: marca)'
 );
 
 -- Actividad: un ajuste de cierre de arranque es del cierre del conteo (que ya tiene su línea), no un «ajustó stock» suelto.
@@ -473,21 +645,22 @@ select pg_temp.reemplazar(
   1, 'ADR-0328 (sin-contar)'
 );
 
--- El detalle: si el conteo fue el de arranque, si TODAVÍA puede serlo (abierto, de todo el lugar, con foto y el lugar sin arranque),
--- si se abrió hoy y si quien lo abrió sigue de turno (la pantalla de cerrar sabe sin adivinar si una terminal hereda la firma o
--- tiene que preguntarla: las mismas dos condiciones de fn_firma_heredada).
+-- El detalle: si el conteo fue el de arranque, si TODAVÍA puede serlo (abierto y con alguna línea cuyo tramo sigue pendiente:
+-- fn_conteo_variantes_de_arranque), si en su lugar el arranque es por categoría (el piso: la pantalla lo dice así), si se abrió
+-- hoy y si quien lo abrió sigue de turno (la pantalla de cerrar sabe sin adivinar si una terminal hereda la firma o tiene que
+-- preguntarla: las mismas dos condiciones de fn_firma_heredada).
 select pg_temp.reemplazar(
   'retail.fn_conteo_detalle(uuid)',
   $v$'es_prueba', c.es_prueba)$v$,
   $n$'es_prueba', c.es_prueba,
-           -- ADR-0328 (conteo-detalle)
+           -- ADR-0328 (conteo-detalle por tramo)
            'es_arranque', c.es_arranque,
-           'arranque_posible', (c.estado = 'abierto' and c.alcance = 'todo' and c.foto_en is not null and not c.es_prueba
-                                and retail.fn_conteo_arranque_pendiente(c.ubicacion_id, c.sububicacion_id, c.id)),
+           'arranque_posible', (c.estado = 'abierto' and exists (select 1 from retail.fn_conteo_variantes_de_arranque(c.id))),
+           'arranque_por_categoria', retail.fn_arranque_por_categoria(c.sububicacion_id),
            'abierto_hoy', (c.created_at at time zone 'America/Lima')::date = retail.fn_hoy_lima(),
            'abierto_por_presente', case when c.abierto_por is null then null
                                         else retail.fn_persona_presente(c.abierto_por, c.ubicacion_id, now()) end)$n$,
-  1, 'ADR-0328 (conteo-detalle)'
+  1, 'ADR-0328 (conteo-detalle por tramo)'
 );
 
 -- PROMETE: en un conteo abierto, anota de una vez en las variantes pedidas que siguen PENDIENTES (sin cifra, con algo esperado

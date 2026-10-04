@@ -9,12 +9,16 @@
  *     última persona que firmó la recepción (y cada paso con nombre la renueva). Otro día, o sin nadie, corta con
  *     `responsable_requerido` y no escribe nada; con el nombre elegido, firma ese. Una persona con su propia cuenta firma ella.
  *     Sin sesión (SQL Editor), nadie, como siempre.
- *   · CONTEO DE ARRANQUE. El primer conteo de TODO un lugar (piso, almacén) cerrado sin pendientes corrige el stock con el
- *     motivo `conteo_arranque` (no es merma: `fn_es_merma` lo deja fuera; Actividad no lo anota como «ajustó stock») y queda
- *     `es_arranque`. El segundo ya es `conteo`. Un cierre parcial, uno de una categoría, uno de prueba, uno con líneas
- *     «aplicadas sin contar» o uno de antes del rediseño (sin foto) no lo son ni lo consumen; uno de toda la ubicación (sin piso
- *     ni almacén aparte) sí lo consume para los dos lugares. Corregir el de arranque antes de otro conteo completo sigue siendo
- *     de arranque, y la nota del ajuste previo lo cuenta; reabrirlo y cancelarlo NO devuelve el arranque (lo dice la marca).
+ *   · CONTEO DE ARRANQUE, POR TRAMOS. El primer conteo de un tramo contado entero y de verdad corrige el stock con el motivo
+ *     `conteo_arranque` (no es merma: `fn_es_merma` lo deja fuera; Actividad no lo anota como «ajustó stock») y queda
+ *     `es_arranque`. El tramo es el ALMACÉN entero (ahí una categoría no es arranque ni lo gasta: la regla de siempre) y, en el
+ *     PISO, cada CATEGORÍA: arrancar A no arranca B, y un conteo de todo el piso después de A ajusta B como arranque y A como
+ *     pérdida, línea por línea. El CUADRE DEL PISO de la sede reinicia todos sus tramos (el de otra sede, no). El segundo ya es
+ *     `conteo`. Un cierre parcial, uno de prueba, uno con líneas «aplicadas sin contar» o uno de antes del rediseño (sin foto) no
+ *     lo son ni lo consumen; uno de toda la ubicación (sin piso ni almacén aparte) sí lo consume para los dos lugares. Corregir el
+ *     de arranque antes de otro conteo completo sigue siendo de arranque, y la nota del ajuste previo lo cuenta; reabrirlo y
+ *     cancelarlo NO devuelve el arranque (lo dice la marca). `cuadres_piso` es del PR #792: si la base no la tiene, la escena del
+ *     cuadre crea una tabla mínima dentro de su transacción (y así prueba también que la función la lee sin depender del orden).
  *   · ATAJO HONESTO. `conteo_aplicar_completos` anota lo que hay AHORA en las pendientes pedidas (sin falsa diferencia si se
  *     vendió entre abrir y aplicar), las marca `aplicada_sin_contar`, no toca lo contado, es idempotente y `fn_conteos_resumen`
  *     las suma en `sin_contar`. Contar a mano una línea aplicada (o borrarla) le quita la marca; una línea «sin contar» con
@@ -213,7 +217,46 @@ const MOTIVOS_DEL_CONTEO = `(select coalesce(string_agg(m.motivo || ':' || m.can
   join retail.conteo_items ci on ci.id = m.conteo_item_id where ci.conteo_id = :'conteo')`;
 const ARRANQUE_POR_LUGAR = `(select string_agg(x.l, '/' order by x.l) from (
   select case when a.sububicacion_id = :'piso' then 'piso' else 'alm' end || '=' || a.arranque_pendiente::text as l
-    from retail.fn_conteo_arranque(:'u') a) x)`;
+    from retail.fn_conteo_arranque(:'u') a where a.categoria_id is null) x)`;
+
+/** Dos categorías activas: A para la prenda 1 y B para la prenda 2. Deja `:cat_a` y `:cat_b`. */
+const CATEGORIAS_AB = `
+select id as cat_a from retail.categorias where activo order by nombre limit 1 \\gset
+select id as cat_b from retail.categorias where activo order by nombre offset 1 limit 1 \\gset
+update retail.productos set categoria_id = :'cat_a' where id = :'p1';
+update retail.productos set categoria_id = :'cat_b' where id = :'p2';
+`;
+/** «A=true/B=false»: si el próximo conteo de cada categoría del piso sería el de arranque (fn_conteo_arranque). */
+const ARRANQUE_CATEGORIAS = `(select string_agg(case when a.categoria_id = :'cat_a' then 'A' else 'B' end || '=' || a.arranque_pendiente::text, '/'
+    order by a.categoria_id = :'cat_b') from retail.fn_conteo_arranque(:'u') a where a.categoria_id in (:'cat_a', :'cat_b'))`;
+const ARRANQUE_TODO = `(${ARRANQUE_POR_LUGAR} || '|' || ${ARRANQUE_CATEGORIAS})`;
+/** Abre un conteo de UNA categoría (`cat`) en `lugar`, cuenta `v` = n, confirma la diferencia y deja `:conteo`. */
+const CONTEO_CAT = (lugar, cat, v, n) => `
+select retail.abrir_conteo(:'u', :'${lugar}', 'categoria', :'${cat}') as conteo \\gset
+select retail.conteo_contar(:'conteo', :'${v}', ${n}) as _c \\gset
+select count(*) as _conf from (select retail.conteo_confirmar_diferencia(:'conteo', variante_id) from retail.conteo_items
+  where conteo_id = :'conteo' and cantidad_contada is not null and cantidad_contada <> cantidad_sistema) x \\gset
+`;
+/** Abre un conteo de TODO el almacén, cuenta las prendas dadas ({v1: n, …}), confirma y deja `:conteo`. */
+const CONTEO_ALM = (cuentas) => `
+select retail.abrir_conteo(:'u', :'alm') as conteo \\gset
+${Object.entries(cuentas).map(([v, n]) => `select retail.conteo_contar(:'conteo', :'${v}', ${n}) as _c \\gset`).join("\n")}
+select count(*) as _conf from (select retail.conteo_confirmar_diferencia(:'conteo', variante_id) from retail.conteo_items
+  where conteo_id = :'conteo' and cantidad_contada is not null and cantidad_contada <> cantidad_sistema) x \\gset
+`;
+const CIERRE = `(${MOTIVOS_DEL_CONTEO} || '/' || (select es_arranque from retail.conteos where id = :'conteo'))`;
+const POSIBLE = `(retail.fn_conteo_detalle(:'conteo') -> 'conteo' ->> 'arranque_posible')`;
+/**
+ * Un cuadre del piso de la sede `ubic` a la hora `hora` (PR #792). Si la base todavía no tiene `cuadres_piso`, se crea una tabla
+ * mínima dentro de la transacción: la función la lee con `to_regclass`, así que la prueba vale antes y después de pegar el cuadre.
+ */
+const CUADRE = (ubic, hora) => `
+create table if not exists retail.cuadres_piso (id uuid primary key default gen_random_uuid(), ubicacion_id uuid not null,
+  persona_id uuid, token_cliente uuid, huella text, escaneo_desde timestamptz, resumen jsonb, nota text,
+  created_at timestamptz not null default now());
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, created_at)
+  values (:'${ubic}', :'felipe', gen_random_uuid(), md5(gen_random_uuid()::text), ${hora} - interval '1 minute', '{}'::jsonb, ${hora});
+`;
 
 /** Reescribe una función viva cambiando un texto (la «alternativa descartada»). Falla si el texto no está: una mutación que no aplica no controla nada. */
 const MUTAR = (firma, desde, hacia) => `
@@ -424,19 +467,105 @@ select concat_ws(',', ${MOTIVOS_DEL_CONTEO}, (select es_arranque from retail.con
   ["conteo:-1", "f", "alm=true/piso=true"],
 );
 
-exito(
-  "arranque: un conteo de UNA categoría no lo es (ni puede serlo) y no lo consume",
-  `${TIENDA_ARRANQUE}
-select id as cat from retail.categorias order by nombre limit 1 \\gset
-update retail.productos set categoria_id = :'cat' where id = :'p1';
-select retail.abrir_conteo(:'u', :'piso', 'categoria', :'cat') as conteo \\gset
-select (retail.fn_conteo_detalle(:'conteo') -> 'conteo' ->> 'arranque_posible') as posible \\gset
-select retail.conteo_contar(:'conteo', :'v1', 4) as _c \\gset
-select retail.conteo_confirmar_diferencia(:'conteo', :'v1') as _c \\gset
+// En el ALMACÉN el tramo es el lugar entero: la regla de siempre (Felipe, 2026-10-04). v2 suma 4 en el almacén para que el segundo
+// y el tercer conteo de todo el almacén tengan algo que ajustar.
+const ALMACEN_SIN_CUADRE = `${TIENDA_ARRANQUE}${CATEGORIAS_AB}
+select pg_temp.mover(:'v2', :'u', :'alm', 'entrada', 4) as _m \\gset
+${CONTEO_CAT("alm", "cat_a", "v1", 1)}
+select ${POSIBLE} as posible_cat \\gset
 select * from retail.cerrar_conteo(:'conteo') \\gset
-select concat_ws(',', :'posible', ${MOTIVOS_DEL_CONTEO}, (select es_arranque from retail.conteos where id = :'conteo'), ${ARRANQUE_POR_LUGAR},
-  pg_temp.intento($q$update retail.conteos set es_arranque = true where alcance = 'categoria' and ubicacion_id in (select id from retail.ubicaciones where nombre = 'ZZ Conteo arranque')$q$) like '23514|%');`,
-  ["false", "conteo:-1", "f", "alm=true/piso=true", "t"],
+select ${CIERRE} as cierre_cat, :'conteo' as conteo_cat \\gset
+select ${ARRANQUE_POR_LUGAR} as tras_cat \\gset
+${CONTEO_ALM({ v1: 1, v2: 3 })}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select ${CIERRE} as cierre_todo1 \\gset
+select ${ARRANQUE_POR_LUGAR} as tras_todo1 \\gset
+${CONTEO_ALM({ v1: 1, v2: 2 })}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select concat_ws(',', :'posible_cat', :'cierre_cat', :'tras_cat', :'cierre_todo1', :'tras_todo1', ${CIERRE},
+  pg_temp.intento(format('update retail.conteos set es_arranque = true where id = %L', :'conteo_cat')) like '23514|arranque_incoherente|%');`;
+const ESPERA_ALMACEN = ["false", "conteo:-1/false", "alm=true/piso=true", "conteo_arranque:-1/true", "alm=false/piso=true", "conteo:-1/false", "t"];
+exito(
+  "arranque en el ALMACÉN sin cuadre (la regla de siempre): una categoría no lo es ni lo gasta; el primero de todo el almacén sí; el segundo ya es merma; y la base no deja marcar de arranque una categoría del almacén",
+  ALMACEN_SIN_CUADRE,
+  ESPERA_ALMACEN,
+);
+
+// En el PISO el tramo es la CATEGORÍA: el piso se cuenta por categorías a lo largo de la semana (Felipe, 2026-10-04).
+const PISO_POR_CATEGORIA = `${TIENDA_ARRANQUE}${CATEGORIAS_AB}
+select ${ARRANQUE_TODO} as antes \\gset
+${CONTEO_CAT("piso", "cat_a", "v1", 4)}
+select ${POSIBLE} || '/' || (retail.fn_conteo_detalle(:'conteo') -> 'conteo' ->> 'arranque_por_categoria') as posible_a \\gset
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select ${CIERRE} as cierre_a \\gset
+select ${ARRANQUE_TODO} as tras_a \\gset
+${CONTEO_CAT("piso", "cat_b", "v2", 2)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select ${CIERRE} as cierre_b \\gset
+${CONTEO_CAT("piso", "cat_a", "v1", 3)}
+select ${POSIBLE} as posible_a2 \\gset
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select concat_ws(',', :'antes', :'posible_a', :'cierre_a', :'tras_a', :'cierre_b', :'posible_a2', ${CIERRE}, ${ARRANQUE_TODO});`;
+const ESPERA_PISO_POR_CATEGORIA = [
+  "alm=true/piso=true|A=true/B=true",
+  "true/true",
+  "conteo_arranque:-1/true",
+  "alm=true/piso=true|A=false/B=true",
+  "conteo_arranque:-1/true",
+  "false",
+  "conteo:-1/false",
+  "alm=true/piso=false|A=false/B=false",
+];
+exito(
+  "arranque en el PISO, por categoría: el primer conteo de A es su arranque y NO arranca B (B sigue pendiente y su primer conteo también lo es); el segundo de A ya es merma",
+  PISO_POR_CATEGORIA,
+  ESPERA_PISO_POR_CATEGORIA,
+);
+
+const TODO_EL_PISO_TRAS_A = `${TIENDA_ARRANQUE}${CATEGORIAS_AB}
+${CONTEO_CAT("piso", "cat_a", "v1", 4)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+${CONTEO_PISO(3, 2)}
+select ${POSIBLE} as posible \\gset
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select concat_ws(',', :'posible', ${CIERRE}, ${ARRANQUE_TODO});`;
+const ESPERA_TODO_EL_PISO_TRAS_A = ["true", "conteo:-1/conteo_arranque:-1/true", "alm=true/piso=false|A=false/B=false"];
+exito(
+  "arranque en el PISO: un conteo de TODO el piso después de arrancar A es el arranque de B, línea por línea: el faltante de B no es merma y el de A sí",
+  TODO_EL_PISO_TRAS_A,
+  ESPERA_TODO_EL_PISO_TRAS_A,
+);
+
+// El cuadre del piso (PR #792) reinicia TODOS los tramos de su sede: el almacén y cada categoría del piso. El de otra sede, no.
+// Dentro de una transacción `now()` no avanza: los conteos de antes se corren una hora atrás y el cuadre queda a un minuto.
+const CUADRE_REINICIA = `${TIENDA_ARRANQUE}${CATEGORIAS_AB}
+${CONTEO_ALM({ v1: 1 })}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+${CONTEO_CAT("piso", "cat_a", "v1", 4)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select ${ARRANQUE_TODO} as antes_del_cuadre \\gset
+update retail.conteos set created_at = now() - interval '1 hour' where ubicacion_id = :'u';
+${CUADRE("lim", "now() - interval '1 minute'")}
+select ${ARRANQUE_TODO} as tras_cuadre_ajeno \\gset
+${CUADRE("u", "now() - interval '1 minute'")}
+select ${ARRANQUE_TODO} as tras_cuadre \\gset
+${CONTEO_ALM({ v1: 0 })}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select ${CIERRE} as cierre_alm \\gset
+${CONTEO_CAT("piso", "cat_a", "v1", 3)}
+select * from retail.cerrar_conteo(:'conteo') \\gset
+select concat_ws(',', :'antes_del_cuadre', :'tras_cuadre_ajeno', :'tras_cuadre', :'cierre_alm', ${CIERRE});`;
+const ESPERA_CUADRE = [
+  "alm=false/piso=true|A=false/B=true",
+  "alm=false/piso=true|A=false/B=true",
+  "alm=true/piso=true|A=true/B=true",
+  "conteo_arranque:-1/true",
+  "conteo_arranque:-1/true",
+];
+exito(
+  "el CUADRE del piso reinicia el arranque de su sede: después del cuadre, el primer conteo del almacén y el primero de A vuelven a ser de arranque (un cuadre de otra sede no cambia nada)",
+  CUADRE_REINICIA,
+  ESPERA_CUADRE,
 );
 
 exito(
@@ -659,16 +788,58 @@ ${TODO_APLICADO_Y_DESPUES_CONTADO}`,
 
 control(
   "CONTROL · si un conteo sin foto (de antes del rediseño) valiera, uno viejo de una línea ya habría gastado el arranque: la prueba lo detecta",
-  `${MUTAR("retail.fn_conteo_vale_como_arranque(uuid)", "and c.foto_en is not null", "")}
+  `${MUTAR("retail.fn_conteo_puede_ser_arranque(uuid)", "and c.foto_en is not null", "")}
 ${CONTEO_VIEJO_DE_UNA_LINEA}`,
   ["alm=true/piso=true", "f"],
 );
 
 control(
   "CONTROL · si el arranque gastado lo dijera el estado y no la marca, reabrirlo y cancelarlo lo devolvería: la prueba lo detecta",
-  `${MUTAR("retail.fn_conteo_arranque_pendiente(uuid,uuid,uuid)", "(c.es_arranque", "(false")}
+  `${MUTAR("retail.fn_conteo_arranque_pendiente(uuid,uuid,uuid,uuid)", "(c.es_arranque", "(false")}
 ${ARRANQUE_REABIERTO_Y_CANCELADO}`,
   ["alm=true/piso=false", "conteo:-1", "f"],
+);
+
+control(
+  "CONTROL · si en el piso el arranque fuera solo de TODO el lugar (la primera versión), el primer conteo de A sería merma: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_puede_ser_arranque(uuid)", "or retail.fn_arranque_por_categoria(c.sububicacion_id)", "or false")}
+${PISO_POR_CATEGORIA}`,
+  ESPERA_PISO_POR_CATEGORIA,
+);
+
+control(
+  "CONTROL · si el conteo de una categoría gastara el arranque de todas, arrancar A dejaría a B sin el suyo: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_arranque_pendiente(uuid,uuid,uuid,uuid)", "c.alcance_categoria_id = p_categoria_id", "c.alcance_categoria_id is not null")}
+${PISO_POR_CATEGORIA}`,
+  ESPERA_PISO_POR_CATEGORIA,
+);
+
+control(
+  "CONTROL · si en el almacén una categoría pudiera ser de arranque, lo gastaría sin contar el almacén entero: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_puede_ser_arranque(uuid)", "or retail.fn_arranque_por_categoria(c.sububicacion_id)", "or true")}
+${ALMACEN_SIN_CUADRE}`,
+  ESPERA_ALMACEN,
+);
+
+control(
+  "CONTROL · si el motivo se decidiera por conteo y no por línea, en el de todo el piso después de A el faltante de A tampoco sería merma: la prueba lo detecta",
+  `${MUTAR("retail.cerrar_conteo(uuid,boolean)", "case when r.variante_id = any(v_de_arranque)", "case when cardinality(v_de_arranque) > 0")}
+${TODO_EL_PISO_TRAS_A}`,
+  ESPERA_TODO_EL_PISO_TRAS_A,
+);
+
+control(
+  "CONTROL · si el cuadre no reiniciara el arranque, el primer conteo del almacén después del cuadre sería merma: la prueba lo detecta",
+  `${MUTAR("retail.fn_conteo_arranque_pendiente(uuid,uuid,uuid,uuid)", "and c.created_at > coalesce((select retail.fn_ultimo_cuadre_piso(p_ubicacion_id)), '-infinity'::timestamptz)", "")}
+${CUADRE_REINICIA}`,
+  ESPERA_CUADRE,
+);
+
+control(
+  "CONTROL · si el último cuadre no se buscara por sede, el cuadre de Lima reiniciaría el arranque de otra tienda: la prueba lo detecta",
+  `${MUTAR("retail.fn_ultimo_cuadre_piso(uuid)", "where cp.ubicacion_id = p_ubicacion_id", "")}
+${CUADRE_REINICIA}`,
+  ESPERA_CUADRE,
 );
 
 control(

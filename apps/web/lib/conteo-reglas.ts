@@ -120,10 +120,12 @@ export type CabeceraConteo = {
   /** Cuándo se tomó la foto (al abrir). `null` en los conteos anteriores al rediseño. */
   fotoEn: string | null;
   esPrueba: boolean;
-  /** Fue el conteo de arranque de su lugar (ADR-0328): corrigió el stock sin contar como pérdida ni entrar en la exactitud. */
+  /** Fue el conteo de arranque de su tramo (ADR-0328): corrigió el stock sin contar como pérdida ni entrar en la exactitud. */
   esArranque: boolean;
-  /** Abierto, de TODO el lugar y el lugar todavía sin arranque: si se cierra sin pendientes, será el de arranque. */
+  /** Abierto y con algún tramo que todavía no tuvo su arranque: si se cierra entero y contado, será el de arranque (de ese tramo). */
   arranquePosible: boolean;
+  /** En su lugar el arranque es por categoría (el piso, `fn_arranque_por_categoria`); si no, del lugar entero. `false` sin el SQL. */
+  arranquePorCategoria: boolean;
   /** ¿Se abrió hoy (día de Lima)? Decide si una terminal hereda la firma al cerrar (ADR-0328). `null` = la base no lo dijo. */
   abiertoHoy: boolean | null;
   /** ¿Quien lo abrió sigue de turno en la sede? Si ya marcó su salida, la base no hereda su firma. `null` = la base no lo dijo. */
@@ -608,40 +610,76 @@ export function delLugar(c: { sububicacionTipo: string | null; sububicacionNombr
   return minuscula.startsWith("toda ") ? `de ${minuscula}` : `del ${minuscula}`;
 }
 
+/** Lo que `tramoDeArranque` necesita de un conteo: su lugar, su alcance y si en ese lugar el arranque es por categoría. */
+type TramoConteo = {
+  sububicacionTipo: string | null;
+  sububicacionNombre: string | null;
+  alcance: string;
+  alcanceCategoriaNombre: string | null;
+  arranquePorCategoria: boolean;
+};
+
 /**
- * Lo que se dice del conteo de ARRANQUE (ADR-0328): el primer conteo de TODO un lugar, contado a mano y cerrado sin pendientes, corrige
- * el stock pero sus diferencias no cuentan como pérdida ni entran en la exactitud (son errores de cuando se cargó el inventario, no
- * prendas perdidas).
+ * El tramo de un conteo de arranque dentro de una frase (ADR-0328). En el almacén (o en toda la ubicación) el arranque es del lugar
+ * entero: «del almacén de tienda». En el piso es de cada categoría (lo dice la base, `arranquePorCategoria`): «de Blusas en el piso de
+ * venta» o, contando todo el piso, «de las categorías del piso de venta que todavía no lo tenían».
+ */
+export function tramoDeArranque(c: TramoConteo): string {
+  if (!c.arranquePorCategoria) return delLugar(c);
+  if (c.alcance === "categoria") {
+    const enLugar = delLugar(c).replace(/^del /, "en el ").replace(/^de /, "en ");
+    return `de ${c.alcanceCategoriaNombre ?? "esta categoría"} ${enLugar}`;
+  }
+  return `de las categorías ${delLugar(c)} que todavía no lo tenían`;
+}
+
+/**
+ * Lo que se dice del conteo de ARRANQUE (ADR-0328): el primer conteo de un tramo (el almacén entero; en el piso, cada categoría; un
+ * cuadre del piso los reinicia), contado a mano y cerrado sin pendientes, corrige el stock pero sus diferencias no cuentan como
+ * pérdida ni entran en la exactitud (son errores de registro de antes, no prendas perdidas).
  *   · cerrado y de arranque → lo que hizo;
  *   · abierto y todavía puede serlo → si se cierra completo y contado, lo será; si se cierra a medias, o con variantes aplicadas sin
  *     contar (`sinContar`), NO (y sus diferencias contarán como pérdida): se avisa antes de cerrar, en ámbar, porque es una
  *     consecuencia que la persona puede evitar contando lo que falta.
+ *   · uno de TODO el piso lo es solo de las categorías que todavía no lo tenían: las que ya lo tuvieron ajustan como pérdida, y se dice.
  * `null` en cualquier otro caso. Lo decide la base (`cerrar_conteo` con `fn_conteo_vale_como_arranque`); esto solo lo dice.
  */
 export function notaDeArranque(
-  c: { estado: EstadoConteo; esArranque: boolean; arranquePosible: boolean; sububicacionTipo: string | null; sububicacionNombre: string | null },
+  c: TramoConteo & { estado: EstadoConteo; esArranque: boolean; arranquePosible: boolean },
   parcial: boolean,
   sinContar = 0
 ): { texto: string; tono: "nota" | "aviso" } | null {
+  const tramo = tramoDeArranque(c);
+  // Todo el piso: el arranque es de algunas categorías (las que todavía no lo tenían), no del conteo entero.
+  const deAlgunas = c.arranquePorCategoria && c.alcance !== "categoria";
   if (c.estado === "cerrado" && c.esArranque) {
-    return { texto: `Conteo de arranque ${delLugar(c)}: corrigió el stock, y sus diferencias no cuentan como pérdida ni bajan la exactitud.`, tono: "nota" };
+    return {
+      texto: `Conteo de arranque ${tramo}: corrigió el stock, y ${deAlgunas ? "en ellas las" : "sus"} diferencias no cuentan como pérdida ni bajan la exactitud.`,
+      tono: "nota",
+    };
   }
   if (c.estado !== "abierto" || !c.arranquePosible) return null;
   if (parcial) {
     return {
-      texto: `Cerrado a medias no es el conteo de arranque ${delLugar(c)}: sus diferencias contarán como pérdida. Para que lo sea, cuenta lo que falta y ciérralo completo.`,
+      texto: `Cerrado a medias no es el conteo de arranque ${tramo}: sus diferencias contarán como pérdida. Para que lo sea, cuenta lo que falta y ciérralo completo.`,
       tono: "aviso",
     };
   }
   if (sinContar > 0) {
     const variantes = sinContar === 1 ? "1 variante aplicada" : `${sinContar.toLocaleString("es-PE")} variantes aplicadas`;
     return {
-      texto: `Con ${variantes} sin contar, este no es el conteo de arranque ${delLugar(c)}: lo que falte en lo contado contará como pérdida. Para que lo sea, vuelve a Contar y ${sinContar === 1 ? "cuéntala" : "cuéntalas"} a mano.`,
+      texto: `Con ${variantes} sin contar, este no es el conteo de arranque ${tramo}: lo que falte en lo contado contará como pérdida. Para que lo sea, vuelve a Contar y ${sinContar === 1 ? "cuéntala" : "cuéntalas"} a mano.`,
       tono: "aviso",
     };
   }
+  if (deAlgunas) {
+    return {
+      texto: `Es el conteo de arranque ${tramo}: en ellas, lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud. Si alguna ya lo tuvo, sus diferencias sí cuentan.`,
+      tono: "nota",
+    };
+  }
   return {
-    texto: `Es el conteo de arranque ${delLugar(c)}, el primero completo: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.`,
+    texto: `Es el conteo de arranque ${tramo}: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.`,
     tono: "nota",
   };
 }
@@ -798,9 +836,9 @@ export function textosAplicarTodos(e: { cuantas: number; contadas: number; sinCo
  * base solo lo reconoce contado entero y de verdad: `fn_conteo_vale_como_arranque`), y lo que falte en lo contado contará como
  * pérdida. `null` si el conteo no puede ser el de arranque: entonces aplicar no cambia nada de eso.
  */
-export function avisoArranqueAlAplicar(c: { estado: EstadoConteo; arranquePosible: boolean; sububicacionTipo: string | null; sububicacionNombre: string | null }): string | null {
+export function avisoArranqueAlAplicar(c: TramoConteo & { estado: EstadoConteo; arranquePosible: boolean }): string | null {
   if (c.estado !== "abierto" || !c.arranquePosible) return null;
-  return `Este es el conteo de arranque ${delLugar(c)}. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano.`;
+  return `Este es el conteo de arranque ${tramoDeArranque(c)}. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano.`;
 }
 
 /**
@@ -1073,6 +1111,7 @@ export function detalleDesdeJson(json: unknown): DetalleConteo | null {
       // ADR-0328 (20261004230100). Sin el SQL: no es de arranque, no puede serlo y no se sabe si se abrió hoy.
       esArranque: c.es_arranque === true,
       arranquePosible: c.arranque_posible === true,
+      arranquePorCategoria: c.arranque_por_categoria === true,
       abiertoHoy: typeof c.abierto_hoy === "boolean" ? c.abierto_hoy : null,
       abiertoPorPresente: typeof c.abierto_por_presente === "boolean" ? c.abierto_por_presente : null,
     },

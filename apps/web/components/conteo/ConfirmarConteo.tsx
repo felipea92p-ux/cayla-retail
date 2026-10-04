@@ -55,7 +55,8 @@ import { useResponsable } from "@/lib/useResponsable";
    del conteo y tiene que quedar a nombre de quien está frente a la terminal. Si la base igual pide el nombre (pasó la medianoche
    mientras se revisaba), el combo aparece entonces: nunca queda un cierre sin persona.
 
-   Conteo de arranque: si al cerrarlo completo será el primero del lugar, se dice qué significa; si se cierra a medias, se avisa en
+   Conteo de arranque: si al cerrarlo completo será el primero de su tramo (el almacén entero; en el piso, cada categoría, y desde
+   el último cuadre del piso), se dice qué significa y de qué categorías; si se cierra a medias, se avisa en
    ámbar que así NO será el de arranque (sus diferencias contarán como pérdida). Lo decide `cerrar_conteo`; aquí solo se dice.
    ==================================================================== */
 

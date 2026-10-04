@@ -51,11 +51,13 @@ import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
    LA decisión de esta tarjeta y verlas todas ahorra un paso. El filtro es el mismo del sistema (`filtrarCombo`: sin tildes ni
    mayúsculas, tolera un error de tipeo). Si se generaliza, es una decisión de ADR-0209, no de esta pantalla.
 
-   Conteo de ARRANQUE (ADR-0328, actividad 15): si el lugar elegido nunca tuvo un conteo completo cerrado, la tarjeta lo dice sola, sin
-   que nadie tenga que marcar nada: contando «Todo» será el de arranque (corrige el stock, pero sus diferencias no son pérdida ni bajan la
-   exactitud) y contando una categoría o unas prendas, no. No es una opción a propósito: quien decide si un cierre es de arranque es
-   `cerrar_conteo` (solo si se contó TODO el lugar), y un interruptor dejaría marcar «de arranque» lo que no lo es, o perderlo sin saber.
-   Las dos frases se apilan en la misma celda (ADR-0185): cambiar «Todo» por «Una categoría» no mueve lo de abajo.
+   Conteo de ARRANQUE (ADR-0328, actividad 15): si el tramo elegido todavía no tuvo su arranque, la tarjeta lo dice sola, sin que nadie
+   tenga que marcar nada (corrige el stock, pero sus diferencias no son pérdida ni bajan la exactitud). El tramo lo pone la base: en el
+   almacén es el lugar entero (contando «Todo» lo será; una categoría o unas prendas, no); en el piso, cada categoría (contando esa
+   categoría, o «Todo», lo será; unas prendas, no). Un cuadre del piso los reinicia. No es una opción a propósito: quien decide si un
+   cierre es de arranque es `cerrar_conteo` (solo si se contó entero el tramo), y un interruptor dejaría marcar «de arranque» lo que no
+   lo es, o perderlo sin saber. Las dos frases («Todo» y la parte elegida) se apilan en la misma celda (ADR-0185): cambiar «Todo» por
+   «Una categoría» no mueve lo de abajo.
 
    «Debe haber» se congela al abrir (la base toma la foto de lo que hay en el lugar): por eso elegir el lugar no es un detalle. Una
    sede con piso y almacén exige uno de los dos — la base también lo rechaza (`sububicacion_requerida`).
@@ -207,11 +209,13 @@ export function AbrirConteo({
   const textoDonde = separaPisoAlmacen ? (lugar ? textoLugar({ sububicacionTipo: lugar.tipo, sububicacionNombre: lugar.nombre }) : null) : "Toda la ubicación";
   // «el Piso de venta» / «el Almacén de tienda» / «esta ubicación»; `null` si falta elegir dónde. Para frases de ayuda.
   const textoDondeConArticulo = separaPisoAlmacen ? (textoDonde ? `el ${textoDonde.charAt(0).toLowerCase()}${textoDonde.slice(1)}` : null) : "esta ubicación";
-  // El conteo de arranque (ADR-0328): las dos frases posibles para ESTE lugar (contando todo / contando una parte), para apilarlas.
+  // El conteo de arranque (ADR-0328): las dos frases posibles para ESTE lugar (contando todo / contando la parte elegida), para
+  // apilarlas. En el piso la de la categoría depende de cuál se eligió.
   const avisoArranque = (que: AlcanceElegido) =>
-    textoDondeConArticulo ? avisoDeArranque({ arranque, lugarClave, queCuento: que, lugarConArticulo: textoDondeConArticulo }) : null;
+    textoDondeConArticulo ? avisoDeArranque({ arranque, lugarClave, queCuento: que, lugarConArticulo: textoDondeConArticulo, categoria }) : null;
   const arranqueTodo = avisoArranque("todo");
   const arranqueParte = avisoArranque(queCuento === "todo" ? "categoria" : queCuento);
+  const arranqueVisible = queCuento === "todo" ? arranqueTodo : arranqueParte;
   const textoQue =
     queCuento === "prendas"
       ? prendasElegidas.length > 0
@@ -345,14 +349,16 @@ export function AbrirConteo({
             </div>
           </CampoGuiado>
 
-          {/* Solo si el lugar nunca tuvo un conteo completo cerrado. Las dos frases ocupan la misma celda (la invisible reserva el alto). */}
-          {arranqueTodo && arranqueParte && (
+          {/* Solo si hay algo que decir de lo elegido. Las dos frases ocupan la misma celda (la invisible reserva el alto); van por
+              posición (0 = «Todo», 1 = la parte elegida), no por tipo: en el piso las dos pueden ser «de arranque». */}
+          {arranqueVisible && (
             <div aria-live="polite" className="grid">
-              {[arranqueTodo, arranqueParte].map((a) => {
-                const visible = (a.tipo === "arranque") === (queCuento === "todo");
+              {[arranqueTodo, arranqueParte].map((a, posicion) => {
+                if (!a) return null;
+                const visible = posicion === (queCuento === "todo" ? 0 : 1);
                 return (
                   <div
-                    key={a.tipo}
+                    key={posicion}
                     aria-hidden={visible ? undefined : true}
                     className={`col-start-1 row-start-1 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm ${
                       a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"

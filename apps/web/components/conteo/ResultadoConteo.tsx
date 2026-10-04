@@ -33,9 +33,12 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
   const { conteo, resumen, lineas } = detalle;
   const parcial = resumen.pendientes > 0;
   const titulo = textoResultadoConteo({ estado: conteo.estado, lineas: resumen.verificadas, lineasConDiferencia: resumen.conDiferencia, parcial, sinContar: resumen.sinContar });
-  // ADR-0328: si fue el conteo de arranque, se dice qué hizo; y sus ajustes en Movimientos llevan su propio motivo.
+  // ADR-0328: si fue el conteo de arranque, se dice qué hizo; y sus ajustes en Movimientos llevan su propio motivo. En el piso el
+  // arranque es por categoría y el motivo se decide línea por línea: un conteo de arranque del piso puede tener ajustes de los dos
+  // motivos (las categorías que ya habían arrancado van como `conteo`), así que el enlace lleva a todos sus ajustes.
   const arranque = notaDeArranque(conteo, parcial);
-  const hrefMovimientos = `/inventario/movimientos?proc=${conteo.esArranque ? "conteo_arranque" : "conteo"}&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`;
+  const filtroMovimientos = !conteo.esArranque ? "proc=conteo" : conteo.arranquePorCategoria ? "cat=ajuste" : "proc=conteo_arranque";
+  const hrefMovimientos = `/inventario/movimientos?${filtroMovimientos}&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`;
 
   const corregidas = lineas.filter((l) => l.ajusteMovimientoId !== null && l.contada !== null);
   const catalogo = corregidas.length > 0 ? new Map((await getCatalogo()).map((v) => [v.varianteId, v])) : null;

@@ -45,6 +45,7 @@ import {
   textoAplicadas,
   textosAplicarTodos,
   avisoArranqueAlAplicar,
+  tramoDeArranque,
 } from "./conteo-reglas";
 
 // Las reglas del conteo rediseñado que se rompen calladas si nadie las fija:
@@ -1261,9 +1262,14 @@ describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de 
       lineas: [],
     })!.conteo;
 
-  it("lee es_arranque, arranque_posible y abierto_hoy; sin el SQL, ni lo es ni puede serlo y no se sabe si es de hoy", () => {
-    expect(cabecera({ es_arranque: true, arranque_posible: false, abierto_hoy: true })).toMatchObject({ esArranque: true, arranquePosible: false, abiertoHoy: true });
-    expect(cabecera()).toMatchObject({ esArranque: false, arranquePosible: false, abiertoHoy: null, abiertoPorPresente: null });
+  it("lee es_arranque, arranque_posible, arranque_por_categoria y abierto_hoy; sin el SQL, ni lo es ni puede serlo y no se sabe si es de hoy", () => {
+    expect(cabecera({ es_arranque: true, arranque_posible: false, arranque_por_categoria: true, abierto_hoy: true })).toMatchObject({
+      esArranque: true,
+      arranquePosible: false,
+      arranquePorCategoria: true,
+      abiertoHoy: true,
+    });
+    expect(cabecera()).toMatchObject({ esArranque: false, arranquePosible: false, arranquePorCategoria: false, abiertoHoy: null, abiertoPorPresente: null });
     // Si quien lo abrió ya marcó su salida, la base no hereda su firma: la pantalla lo sabe antes de cerrar.
     expect(cabecera({ abierto_por_presente: false })).toMatchObject({ abiertoPorPresente: false });
     expect(cabecera({ abierto_por_presente: "no" })).toMatchObject({ abiertoPorPresente: null });
@@ -1278,7 +1284,7 @@ describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de 
   it("al cerrar uno que puede ser el de arranque: completo lo será (nota); a medias NO, y se avisa antes (ámbar)", () => {
     const c = cabecera({ arranque_posible: true });
     expect(notaDeArranque(c, false)).toEqual({
-      texto: "Es el conteo de arranque del piso de venta, el primero completo: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.",
+      texto: "Es el conteo de arranque del piso de venta: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.",
       tono: "nota",
     });
     expect(notaDeArranque(c, true)?.tono).toBe("aviso");
@@ -1314,5 +1320,39 @@ describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de 
     expect(notaDeArranque(cabecera({ estado: "cerrado" }), false)).toBeNull();
     expect(notaDeArranque(cabecera(), false)).toBeNull();
     expect(notaDeArranque(cabecera({ estado: "anulado", arranque_posible: true }), false)).toBeNull();
+  });
+
+  // En el piso el arranque es por categoría (Felipe, 2026-10-04): la base lo dice (`arranque_por_categoria`) y la frase nombra el tramo.
+  it("en el piso, el de una categoría dice de cuál; el de todo el piso, que es de las categorías que todavía no lo tenían", () => {
+    const deBlusas = cabecera({ arranque_posible: true, arranque_por_categoria: true, alcance: "categoria", alcance_categoria_id: "k1", alcance_categoria_nombre: "Blusas" });
+    expect(tramoDeArranque(deBlusas)).toBe("de Blusas en el piso de venta");
+    expect(notaDeArranque(deBlusas, false)).toEqual({
+      texto: "Es el conteo de arranque de Blusas en el piso de venta: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.",
+      tono: "nota",
+    });
+    expect(avisoArranqueAlAplicar(deBlusas)).toMatch(/^Este es el conteo de arranque de Blusas en el piso de venta\. Si aplicas sin contar, deja de serlo/);
+    expect(notaDeArranque({ ...deBlusas, estado: "cerrado", esArranque: true }, false)?.texto).toBe(
+      "Conteo de arranque de Blusas en el piso de venta: corrigió el stock, y sus diferencias no cuentan como pérdida ni bajan la exactitud."
+    );
+
+    const todoElPiso = cabecera({ arranque_posible: true, arranque_por_categoria: true });
+    expect(tramoDeArranque(todoElPiso)).toBe("de las categorías del piso de venta que todavía no lo tenían");
+    expect(notaDeArranque(todoElPiso, false)).toEqual({
+      texto:
+        "Es el conteo de arranque de las categorías del piso de venta que todavía no lo tenían: en ellas, lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud. Si alguna ya lo tuvo, sus diferencias sí cuentan.",
+      tono: "nota",
+    });
+    expect(notaDeArranque({ ...todoElPiso, estado: "cerrado", esArranque: true }, false)?.texto).toBe(
+      "Conteo de arranque de las categorías del piso de venta que todavía no lo tenían: corrigió el stock, y en ellas las diferencias no cuentan como pérdida ni bajan la exactitud."
+    );
+    expect(notaDeArranque(todoElPiso, true)?.texto).toMatch(/^Cerrado a medias no es el conteo de arranque de las categorías del piso de venta/);
+  });
+
+  it("en el almacén el tramo es el lugar entero: la frase no nombra categorías", () => {
+    const alm = cabecera({ arranque_posible: true, arranque_por_categoria: false, sububicacion_tipo: "almacen_tienda", sububicacion_nombre: "Almacén de tienda" });
+    expect(tramoDeArranque(alm)).toBe("del almacén de tienda");
+    expect(notaDeArranque(alm, false)?.texto).toBe(
+      "Es el conteo de arranque del almacén de tienda: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud."
+    );
   });
 });

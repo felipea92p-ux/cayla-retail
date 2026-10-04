@@ -6523,11 +6523,13 @@ export type Database = {
           variantes: number
         }[]
       }
-      // ADR-0328 (20261004230100): por lugar de conteo, si su próximo conteo completo es el de arranque (sububicacion_id NULL = toda la ubicación).
+      // ADR-0328 (20261004230100): por lugar de conteo (sububicacion_id NULL = toda la ubicación), con categoria_id NULL si un conteo de
+      // TODO el lugar sería de arranque; en el piso, además, una fila por categoría activa (el arranque del piso es por categoría).
       fn_conteo_arranque: {
         Args: { p_ubicacion_id: string }
         Returns: {
           arranque_pendiente: boolean
+          categoria_id: string | null
           sububicacion_id: string | null
         }[]
       }

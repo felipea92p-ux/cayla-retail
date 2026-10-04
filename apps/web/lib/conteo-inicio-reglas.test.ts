@@ -179,19 +179,32 @@ describe("sufijoVariantes", () => {
 });
 
 // ADR-0328 (actividad 15): el conteo de arranque. Quién lo es lo decide `cerrar_conteo` (scripts/pruebas/conteo_firma_arranque.mjs);
-// esto solo lo anuncia al abrir.
+// esto solo lo anuncia al abrir. El tramo lo pone la base: el almacén entero; en el piso, cada categoría (filas por categoría).
 describe("arranqueDeRespuesta", () => {
-  it("por lugar: el id de la sububicación, o «toda la ubicación» si la sede no separa piso y almacén", () => {
+  it("por lugar: el id de la sububicación, o «toda la ubicación» si la sede no separa piso y almacén; el piso trae sus categorías", () => {
     const { arranque, fallo } = arranqueDeRespuesta({
       data: [
-        { sububicacion_id: "piso", arranque_pendiente: true },
-        { sububicacion_id: "alm", arranque_pendiente: false },
+        { sububicacion_id: "piso", categoria_id: null, arranque_pendiente: true },
+        { sububicacion_id: "piso", categoria_id: "blusas", arranque_pendiente: false },
+        { sububicacion_id: "piso", categoria_id: "casacas", arranque_pendiente: true },
+        { sububicacion_id: "alm", categoria_id: null, arranque_pendiente: false },
       ],
       error: null,
     });
     expect(fallo).toBeNull();
-    expect(arranque).toEqual({ piso: true, alm: false });
-    expect(arranqueDeRespuesta({ data: [{ sububicacion_id: null, arranque_pendiente: true }], error: null }).arranque).toEqual({ [TODA_LA_UBICACION]: true });
+    expect(arranque).toEqual({
+      piso: { todo: true, porCategoria: { blusas: false, casacas: true } },
+      alm: { todo: false, porCategoria: null },
+    });
+    expect(arranqueDeRespuesta({ data: [{ sububicacion_id: null, arranque_pendiente: true }], error: null }).arranque).toEqual({
+      [TODA_LA_UBICACION]: { todo: true, porCategoria: null },
+    });
+  });
+
+  it("una base con la primera versión del SQL (sin categoria_id): todo es «del lugar entero», como antes", () => {
+    expect(arranqueDeRespuesta({ data: [{ sububicacion_id: "piso", arranque_pendiente: true }], error: null }).arranque).toEqual({
+      piso: { todo: true, porCategoria: null },
+    });
   });
 
   it("si la función no está en la base o falla, no se dice nada (null), y abrir sigue igual", () => {
@@ -201,31 +214,67 @@ describe("arranqueDeRespuesta", () => {
   });
 });
 
-describe("avisoDeArranque", () => {
-  const arranque = { piso: true, alm: false };
-  const base = { arranque, lugarClave: "piso", queCuento: "todo" as const, lugarConArticulo: "el piso de venta" };
+describe("avisoDeArranque en el ALMACÉN (el arranque es del lugar entero)", () => {
+  const arranque = { alm: { todo: true, porCategoria: null }, alm2: { todo: false, porCategoria: null } };
+  const base = { arranque, lugarClave: "alm", queCuento: "todo" as const, lugarConArticulo: "el almacén de tienda" };
 
-  it("contando TODO un lugar que nunca se contó completo: será el de arranque, y dice qué significa y cuándo vale", () => {
+  it("contando TODO un almacén que todavía no tuvo su arranque: lo será, y dice qué significa y cuándo vale", () => {
     const a = avisoDeArranque(base);
     expect(a?.tipo).toBe("arranque");
     expect(a?.titulo).toBe("Conteo de arranque");
-    expect(a?.texto).toMatch(/^Es el primer conteo completo del piso de venta\./);
-    expect(avisoDeArranque({ ...base, arranque: { toda: true }, lugarClave: TODA_LA_UBICACION, lugarConArticulo: "esta ubicación" })?.texto).toMatch(/^Es el primer conteo completo de esta ubicación\./);
+    expect(a?.texto).toMatch(/^Será el conteo de arranque del almacén de tienda\./);
+    expect(
+      avisoDeArranque({ ...base, arranque: { toda: { todo: true, porCategoria: null } }, lugarClave: TODA_LA_UBICACION, lugarConArticulo: "esta ubicación" })?.texto
+    ).toMatch(/^Será el conteo de arranque de esta ubicación\./);
     expect(a?.texto).toMatch(/no cuentan como pérdida ni bajan la exactitud/);
     expect(a?.texto).toMatch(/Vale si cuentas todo a mano, sin «Aplicar todos completos», y lo cierras sin pendientes\.$/);
   });
 
   it("contando una categoría o unas prendas: avisa que así NO es el de arranque y sus diferencias sí son pérdida", () => {
-    const cat = avisoDeArranque({ ...base, queCuento: "categoria" });
+    const cat = avisoDeArranque({ ...base, queCuento: "categoria", categoria: { id: "blusas", nombre: "Blusas" } });
     expect(cat?.tipo).toBe("no_es_arranque");
-    expect(cat?.texto).toBe("El piso de venta nunca se contó completo. Contando solo una categoría, las diferencias sí cuentan como pérdida; si eliges «Todo», será el conteo de arranque.");
+    expect(cat?.texto).toBe(
+      "El almacén de tienda todavía no tuvo su conteo de arranque. Contando solo una categoría, las diferencias sí cuentan como pérdida; si eliges «Todo», será el conteo de arranque."
+    );
     expect(avisoDeArranque({ ...base, queCuento: "prendas" })?.texto).toMatch(/Contando solo unas prendas/);
   });
 
   it("nada si el lugar ya tuvo su arranque, si falta elegir el lugar o si no se pudo leer", () => {
-    expect(avisoDeArranque({ ...base, lugarClave: "alm" })).toBeNull();
+    expect(avisoDeArranque({ ...base, lugarClave: "alm2" })).toBeNull();
     expect(avisoDeArranque({ ...base, lugarClave: "otro" })).toBeNull();
     expect(avisoDeArranque({ ...base, lugarClave: null })).toBeNull();
     expect(avisoDeArranque({ ...base, arranque: null })).toBeNull();
+  });
+});
+
+describe("avisoDeArranque en el PISO (el arranque es por categoría)", () => {
+  const piso = { todo: true, porCategoria: { blusas: false, casacas: true } };
+  const base = { arranque: { piso }, lugarClave: "piso", queCuento: "categoria" as const, lugarConArticulo: "el piso de venta" };
+  const casacas = { id: "casacas", nombre: "Casacas" };
+  const blusas = { id: "blusas", nombre: "Blusas" };
+
+  it("contando una categoría que todavía no tuvo su arranque: será el suyo; Blusas ya arrancada no dice nada (arrancar una no arranca otra)", () => {
+    const a = avisoDeArranque({ ...base, categoria: casacas });
+    expect(a?.tipo).toBe("arranque");
+    expect(a?.texto).toMatch(/^Es el primer conteo de Casacas en el piso de venta\./);
+    expect(a?.texto).toMatch(/Vale si cuentas toda la categoría a mano, sin «Aplicar todos completos», y lo cierras sin pendientes\.$/);
+    expect(avisoDeArranque({ ...base, categoria: blusas })).toBeNull();
+    // Sin elegir todavía la categoría, no hay nada que decir.
+    expect(avisoDeArranque({ ...base, categoria: null })).toBeNull();
+  });
+
+  it("contando TODO el piso: será el de arranque de las categorías que todavía no lo tuvieron; si ya lo tuvieron todas, nada", () => {
+    const a = avisoDeArranque({ ...base, queCuento: "todo" });
+    expect(a?.tipo).toBe("arranque");
+    expect(a?.texto).toMatch(/^En el piso de venta el arranque es por categoría: este conteo será el de cada categoría que todavía no tuvo el suyo\./);
+    expect(avisoDeArranque({ ...base, queCuento: "todo", arranque: { piso: { todo: false, porCategoria: { blusas: false } } } })).toBeNull();
+  });
+
+  it("contando unas prendas: así ninguna categoría arranca, y se avisa (ámbar)", () => {
+    const p = avisoDeArranque({ ...base, queCuento: "prendas" });
+    expect(p?.tipo).toBe("no_es_arranque");
+    expect(p?.texto).toBe(
+      "Hay categorías del piso de venta que todavía no tuvieron su conteo de arranque. Contando solo unas prendas, las diferencias sí cuentan como pérdida; si cuentas una categoría entera o «Todo», será el de arranque."
+    );
   });
 });

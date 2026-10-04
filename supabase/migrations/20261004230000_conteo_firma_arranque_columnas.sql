@@ -16,16 +16,22 @@
 -- QUÉ HACE (solo esquema; ninguna función cambia en esta parte):
 --   · `transferencias.recepcion_firmada_por` / `recepcion_firmada_en`: la última persona que puso su nombre en la recepción
 --     de ese traslado, y cuándo. La lee y la renueva cada paso de recibir (parte 2, `fn_firma_de_recepcion`).
---   · `conteos.es_arranque`: el conteo fue el de arranque de su lugar, el primero de TODO el lugar contado entero y de verdad
---     (sin pendientes y sin nada «aplicado sin contar»). Lo escribe solo `cerrar_conteo` (parte 2), y una vez puesta la marca
---     el arranque del lugar queda gastado aunque el conteo se reabra o se cancele.
+--   · `conteos.es_arranque`: el conteo fue el de arranque de su tramo, contado entero y de verdad (sin pendientes y sin nada
+--     «aplicado sin contar»). El tramo depende del lugar (Felipe, 2026-10-04): en el ALMACÉN (y en una ubicación sin piso ni
+--     almacén aparte) es el lugar entero, así que solo un conteo de TODO puede serlo; en el PISO es cada CATEGORÍA, porque el
+--     piso se cuenta por categorías a lo largo de la semana, así que un conteo de una categoría del piso es el arranque de esa
+--     categoría. Y el cuadre del piso de la sede (`cuadres_piso`, ADR-0328 decisión técnica 4) reinicia todos los tramos de esa
+--     sede. Lo escribe solo `cerrar_conteo` (parte 2), y una vez puesta la marca el tramo queda gastado aunque el conteo se
+--     reabra o se cancele. `fn_arranque_por_categoria` (aquí abajo) es la ÚNICA definición de «en este lugar el arranque es por
+--     categoría».
 --   · `conteo_items.aplicada_sin_contar`: la cifra la puso «Aplicar todos completos» (lo que CAYLA esperaba), no una persona
 --     que contó. La escribe solo `conteo_aplicar_completos` (parte 2); un disparador la apaga en cuanto la línea se vuelve a
 --     verificar o se borra su cifra.
 --
 -- ESTADOS QUE DEJAN DE SER POSIBLES:
 --   · una firma de recepción con persona y sin hora, o con hora y sin persona;
---   · un conteo de una sola categoría marcado «de arranque» (el arranque es del lugar completo);
+--   · un conteo de una sola categoría marcado «de arranque» fuera del piso (en el almacén el arranque es del lugar completo:
+--     disparador `conteos_arranque_coherente`, que también cubre un conteo de una categoría de toda la ubicación);
 --   · una línea «aplicada sin contar» sin cifra, o con una cifra distinta de lo que CAYLA esperaba: eso sería una diferencia,
 --     y una diferencia solo la encuentra alguien que cuenta;
 --   · una línea que se volvió a contar a mano y sigue marcada «sin contar» (el disparador la apaga en la misma escritura).
@@ -36,11 +42,14 @@
 --     día» en cada paso y volvería a preguntar el nombre una y otra vez.
 --   · Un CHECK «conteo cerrado ⇒ `cerrado_por` no vacío»: hay cierres viejos sin nombre y archivarlos o purgarlos (UPDATE de
 --     filas viejas) chocaría con el candado. La garantía vive en las funciones que cierran (parte 2).
+--   · Un CHECK para «arranque de una categoría solo en el piso»: el tipo de lugar vive en `sububicaciones`, otra tabla, y un CHECK
+--     no puede mirarla. Lo hace un disparador (mismo código de error, 23514); la primera versión era un CHECK «solo de TODO el
+--     lugar», que en el piso le habría negado el arranque a cada categoría.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN: en el SQL Editor, tal cual (ya trae `retail.`), ANTES de la parte 2 y fuera del horario de
 -- tienda. Toma por un instante `transferencias`, `conteos` y `conteo_items` (columnas nuevas con valor por defecto: no reescriben
--- la tabla; cada CHECK lee las filas una vez) y, por la llave hacia `public.personas`, esa tabla un instante. Sin políticas: no
--- choca con el Asesor de seguridad (ADR-0195). Con `lock_timeout` de 3 s: si una tienda está guardando, falla sin trabar y se
+-- la tabla; cada CHECK lee las filas una vez) y, por la llave hacia `public.personas`, esa tabla un instante. Sin políticas ni
+-- `drop trigger` (los disparadores van con `create or replace trigger`): no choca con el Asesor de seguridad (ADR-0195). Con `lock_timeout` de 3 s: si una tienda está guardando, falla sin trabar y se
 -- vuelve a pegar. Idempotente. La web vieja sigue funcionando con estas columnas puestas (nadie las lee todavía).
 --
 -- SE ROMPE SI alguien escribe `aplicada_sin_contar = true` fuera de `conteo_aplicar_completos` (la tabla no se escribe desde la
@@ -79,20 +88,59 @@ comment on column retail.transferencias.recepcion_firmada_en is
 -- ---------------------------------------------------------------------------
 alter table retail.conteos add column if not exists es_arranque boolean not null default false;
 
-do $$
+-- La primera versión de esta parte ponía un CHECK «solo un conteo de TODO el lugar es de arranque». En el piso el arranque es por
+-- categoría (Felipe, 2026-10-04), así que ese candado ya no es la regla: se quita si una base lo tenía, y lo reemplaza el
+-- disparador de abajo. `drop constraint` no toma los candados de auth/storage (ADR-0195).
+alter table retail.conteos drop constraint if exists conteos_arranque_es_del_lugar_completo;
+
+-- PROMETE: true si en ese lugar de conteo el arranque es por CATEGORÍA (el piso de venta), false si es del lugar entero (el almacén
+--   de tienda, o una ubicación sin piso ni almacén aparte: sububicación NULL). Es la ÚNICA definición de esa regla: la usan el
+--   disparador de abajo, las funciones del arranque (parte 2) y la lectura del detalle.
+-- POR QUÉ (Felipe, 2026-10-04): el piso se cuenta por categorías o por lotes a lo largo de la semana; nunca de una vez entero. Si el
+--   arranque fuera solo del piso completo, el piso no tendría arranque nunca y los errores de la carga caerían como merma.
+create or replace function retail.fn_arranque_por_categoria(p_sububicacion_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+  select exists (select 1 from retail.sububicaciones s where s.id = p_sububicacion_id and s.tipo = 'piso_venta');
+$fn$;
+
+revoke all on function retail.fn_arranque_por_categoria(uuid) from public, anon, authenticated;
+
+comment on function retail.fn_arranque_por_categoria(uuid) is
+  'ADR-0328: en ese lugar de conteo, ¿el arranque es por categoría (el piso de venta) o del lugar entero (almacén, o toda la '
+  'ubicación)? Única definición de la regla. Interna.';
+
+-- Un conteo de una categoría solo puede ser el de arranque en el piso (el de esa categoría); en el almacén o en toda la ubicación,
+-- el de arranque es el de TODO el lugar. Mismo código que un CHECK (23514): el tipo de lugar vive en otra tabla.
+create or replace function retail.trg_conteos_arranque_coherente() returns trigger
+language plpgsql
+set search_path = retail, public, extensions
+as $fn$
 begin
-  if not exists (select 1 from pg_constraint where conname = 'conteos_arranque_es_del_lugar_completo'
-                   and conrelid = 'retail.conteos'::regclass) then
-    alter table retail.conteos
-      add constraint conteos_arranque_es_del_lugar_completo check (not es_arranque or alcance = 'todo');
+  if new.es_arranque and new.alcance <> 'todo' and not retail.fn_arranque_por_categoria(new.sububicacion_id) then
+    raise exception 'Un conteo de una categoría solo es de arranque en el piso; en el almacén, el de arranque es el de todo el lugar.'
+      using errcode = '23514', hint = 'arranque_incoherente';
   end if;
-end $$;
+  return new;
+end;
+$fn$;
+
+revoke all on function retail.trg_conteos_arranque_coherente() from public, anon, authenticated;
+
+create or replace trigger conteos_arranque_coherente
+  before insert or update of es_arranque, alcance, sububicacion_id on retail.conteos
+  for each row execute function retail.trg_conteos_arranque_coherente();
 
 comment on column retail.conteos.es_arranque is
-  'ADR-0328: el primer conteo de TODO el lugar (piso, almacén o toda la ubicación) contado entero y de verdad: sin pendientes y '
-  'sin nada aplicado sin contar (fn_conteo_vale_como_arranque). Corrige el stock, pero sus ajustes llevan motivo conteo_arranque: '
-  'no son merma (fn_es_merma) ni entran en la exactitud. Lo marca solo cerrar_conteo; la marca, no el estado, dice que el arranque '
-  'del lugar ya se gastó.';
+  'ADR-0328: el conteo fue el de arranque de su tramo, contado entero y de verdad: sin pendientes y sin nada aplicado sin contar '
+  '(fn_conteo_vale_como_arranque). Tramo: en el almacén (o toda la ubicación), el lugar entero (solo un conteo de todo); en el piso, '
+  'cada categoría (fn_arranque_por_categoria). El cuadre del piso de la sede reinicia los tramos. Corrige el stock, pero sus ajustes '
+  'llevan motivo conteo_arranque: no son merma (fn_es_merma) ni entran en la exactitud. Lo marca solo cerrar_conteo; la marca, no '
+  'el estado, dice que el tramo ya se gastó.';
 
 -- ---------------------------------------------------------------------------
 -- 3. Líneas de conteo: «aplicada sin contar»
