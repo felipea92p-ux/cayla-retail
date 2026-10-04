@@ -13,3 +13,14 @@ la puerta, no el motor. El aviso de la misma caja existe porque el token frena e
 Felipe se lleva: la fase 2 (unir una factura a una llegada ya recibida y recalcular el costo) es un contrato nuevo y se propone aparte; mientras
 no exista, lo que entra sin factura queda «Sin costo» (lo ve quien ve el dinero, en la lista y en el historial). Lo que más pesa no es Recibir:
 AQP tiene 14 prendas cargadas y 170 ventas sin registrar.
+
+## 2026-10-04, tarde (fase 2 decidida, aviso «Llegadas sin factura» construido)
+Qué hice: propuse cómo unir una factura a una llegada ya recibida y Felipe decidió «aviso ahora, unión después» y que una unión se pueda
+deshacer. Producción (solo lectura) mostró que «lo recibido» de una factura lo leen 36 funciones, 4 vistas y 1 disparador sumando
+`movimientos.compra_item_id`, y que las 11 que leen cierres no distinguen el motivo: por eso el diseño es un movimiento `union_factura`
+sin efecto en stock (ni tabla puente, que era mi esbozo de la mañana, ni un cierre, que pediría notas de crédito por mercadería que sí
+llegó). Quedó escrito en ADR-0330 con la fórmula del costo. Construí el aviso: Inicio y Observatorio, llegadas sin factura de 7 a 60 días.
+Por qué así: hay 0 facturas registradas en producción; construir la unión hoy repetía el error de Recibir. Sin el aviso, la unión sería un
+botón que nadie aprieta. La ventana de 60 días existe porque más del 30 % de las compras no trae factura nunca (R-07).
+Felipe se lleva: la unión se construye con la primera factura que llegue tarde; el aviso del Observatorio no se vio en pantalla en local.
+

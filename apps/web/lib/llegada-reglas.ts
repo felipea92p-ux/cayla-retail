@@ -11,7 +11,7 @@
 import { clave, filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
-import { diaYHoraLima, hoyLima } from "./fechas-lima";
+import { diaMes, diasEntreFechas, diaYHoraLima, hoyLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 
 export type PrendaLlegada = PrendaBuscableV2 & { productoId: string; colorHex?: string | null; fotoUrl?: string | null };
@@ -190,6 +190,40 @@ export function avisoMismaCaja(entradas: readonly LlegadaReciente[], proveedorNo
   }
   const unidades = entradas.reduce((a, e) => a + e.unidades, 0);
   return `Hoy ya entraron ${entradas.length} llegadas de ${proveedorNombre} (${unidades} prendas; la última a las ${hora}${quien}). Si es la misma caja, no la recibas de nuevo.`;
+}
+
+/** Desde cuántos días (de Lima) una llegada sin factura se avisa: una semana es lo que suele tardar la factura en llegar. */
+export const DIAS_SIN_FACTURA = 7;
+/**
+ * Hasta cuántos días se sigue avisando. Más del 30 % de las compras no trae factura nunca (R-07, talleres de Gamarra): un aviso que
+ * no se apaga jamás se deja de leer. Marcar «esta no tendrá factura» pide guardar algo y entra con la unión (ADR-0330, fase 2).
+ */
+export const VENTANA_SIN_FACTURA = 60;
+/** El tope de filas de `recepciones_sin_comprobante` (su `limit least(p_limite, 200)`). */
+export const TOPE_SIN_FACTURA = 200;
+
+export type LlegadaSinFactura = { fechaRecepcion: string; proveedorNombre: string | null; ubicacionNombre: string; unidades: number };
+
+/**
+ * Las llegadas sin factura que ya deberían tenerla (una semana o más, dentro de la ventana), la más antigua primero, con sus días.
+ * `filas` es lo que devolvió `recepciones_sin_comprobante`: viene de la más nueva a la más vieja y con tope, así que si llegó lleno
+ * las más antiguas —las que este aviso busca— pudieron quedar afuera, y eso se dice (`puedeHaberMas`) en vez de dar una cifra corta.
+ */
+export function llegadasSinFacturaPorAvisar<T extends LlegadaSinFactura>(
+  filas: readonly T[],
+  ahora: Date = new Date(),
+): { llegadas: (T & { dias: number })[]; unidades: number; puedeHaberMas: boolean } {
+  const hoy = hoyLima(ahora);
+  const llegadas = filas
+    .map((f) => ({ ...f, dias: diasEntreFechas(hoyLima(new Date(f.fechaRecepcion)), hoy) }))
+    .filter((f) => f.dias >= DIAS_SIN_FACTURA && f.dias <= VENTANA_SIN_FACTURA)
+    .sort((a, b) => b.dias - a.dias);
+  return { llegadas, unidades: llegadas.reduce((a, f) => a + f.unidades, 0), puedeHaberMas: filas.length >= TOPE_SIN_FACTURA };
+}
+
+/** «Textiles Andina SAC · 12 prendas · Tienda TRU, 26/09»: cómo se nombra una llegada en un aviso. */
+export function nombreDeLlegada(f: LlegadaSinFactura): string {
+  return `${f.proveedorNombre ?? "Sin proveedor"} · ${f.unidades} ${f.unidades === 1 ? "prenda" : "prendas"} · ${f.ubicacionNombre}, ${diaMes(hoyLima(new Date(f.fechaRecepcion)))}`;
 }
 
 export type AccionDespues = { clave: "etiquetas" | "bajar"; texto: string; href: string; principal: boolean };

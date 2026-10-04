@@ -11,7 +11,8 @@ import { getAperturasPorRevisar } from "@/lib/caja";
 import { getPorRegularizar } from "@/lib/por-regularizar";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getApartadosAbiertos } from "@/lib/apartados";
-import { getPorPagarTramos } from "@/lib/compras-indicadores";
+import { getPorPagarTramos, listarRecepcionesSinComprobante } from "@/lib/compras-indicadores";
+import { llegadasSinFacturaPorAvisar, TOPE_SIN_FACTURA } from "@/lib/llegada-reglas";
 import { getCoberturaDeFotos } from "@/lib/inicio-almacen";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
 import { getOrdenesProduccion, getTaller } from "@/lib/produccion";
@@ -78,7 +79,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, sinFactura] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -93,6 +94,8 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       if (error) throw new Error(error.message);
       return data ?? [];
     }),
+    // ADR-0330: lo que entró sin factura y lleva una semana o más (toda la empresa: el Admin opera todas las sedes).
+    tolerar("las llegadas sin factura", async () => llegadasSinFacturaPorAvisar(await listarRecepcionesSinComprobante({ limite: TOPE_SIN_FACTURA }), ahora)),
   ]);
 
   const contarPor = (ids: readonly string[]) => {
@@ -216,6 +219,32 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       href: "/compras/por-pagar",
       detalle: tramos && n
         ? { tipo: "tramos", vencidas: { n: tramos.vencidas.comprobantes, monto: tramos.vencidas.saldo }, semana: { n: tramos.semana.comprobantes, monto: tramos.semana.saldo } }
+        : null,
+    });
+  }
+  {
+    const filas = sinFactura?.llegadas ?? [];
+    const n = sinFactura === null ? null : filas.length;
+    avisos.push({
+      clave: "sinFactura",
+      nivel: nivelPorCuenta(n, "semana"),
+      n,
+      icono: "doc",
+      // Si la lectura llegó a su tope, las más antiguas pudieron quedar afuera: se dice, no se da una cifra corta.
+      titulo: sinFactura?.puedeHaberMas ? "Llegadas sin factura (puede haber más)" : "Llegadas sin factura",
+      corto: "sin factura",
+      porTienda: sinFactura === null ? null : contarPor(filas.map((f) => porNombre.get(f.ubicacionNombre) ?? f.ubicacionNombre)),
+      edad: filas[0]?.dias ?? null,
+      href: "/recibir?vista=recibidas",
+      detalle: filas.length
+        ? {
+            tipo: "lista",
+            filas: filas.slice(0, 6).map((f) => ({
+              titulo: f.proveedorNombre ?? "Sin proveedor",
+              detalle: `${f.unidades} ${f.unidades === 1 ? "prenda" : "prendas"} · ${siglaSede(f.ubicacionNombre)}`,
+              chip: `hace ${f.dias} días`,
+            })),
+          }
         : null,
     });
   }

@@ -11,6 +11,7 @@
 import type { ClaveModulo } from "./modulos";
 import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
+import { DIAS_SIN_FACTURA } from "./llegada-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
@@ -25,6 +26,7 @@ export type ClaveAviso =
   | "conteo"
   | "regularizar"
   | "porPagar"
+  | "sinFactura"
   | "recibir"
   | "reponer"
   | "fotos"
@@ -64,6 +66,9 @@ export type FuentesAvisos = {
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
+  /** Llegadas sin factura de una semana o más (ADR-0330): cuántas, la más antigua («Textiles Andina SAC · 12 prendas · Tienda TRU,
+   *  26/09») y si la lectura llegó a su tope (`puedeHaberMas`). Es de toda la empresa, como Por pagar. */
+  sinFactura?: { llegadas: number; primera: string | null; puedeHaberMas: boolean } | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
   /** Modelos que el piso de venta pide (la regla de «Acción hoy»: `calcularAccionHoy`). */
@@ -239,6 +244,26 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/compras/por-pagar",
       ocultable: true,
       urgenteSi: "Cuando ya venció",
+    });
+  }
+  // ADR-0330: lo que entró por «Llegó mercadería» sin factura y lleva una semana o más. Sin este aviso, nadie registra la factura:
+  // el IGV no se descuenta y el costo queda adivinado. «Por hacer», no urgente: no hay plazo legal ni plata que no cuadre hoy.
+  if (f.sinFactura !== undefined) {
+    const s = f.sinFactura;
+    const n = s === null ? null : s.llegadas;
+    avisos.push({
+      clave: "sinFactura",
+      grupo: "Compras",
+      titulo: "Llegadas sin factura",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Registra la factura de ${n}${s?.puedeHaberMas ? " o más" : ""} ${n === 1 && !s?.puedeHaberMas ? "llegada" : "llegadas"}` : "",
+      detalle:
+        s === null ? SIN_LEER
+          : s.llegadas === 0 ? `Todo lo que llegó hace ${DIAS_SIN_FACTURA} días o más ya tiene su factura.`
+            : `${s.llegadas === 1 ? "Lleva" : "La más antigua lleva"} ${DIAS_SIN_FACTURA} días o más sin factura: ${s.primera}.${s.puedeHaberMas ? " Puede haber más." : ""}`,
+      href: "/recibir?vista=recibidas",
+      ocultable: true,
     });
   }
   // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.

@@ -33,6 +33,20 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("las llegadas sin factura son «por hacer», nombran la más antigua y dicen si puede haber más (ADR-0330)", () => {
+    const [a] = avisosInicio({ sinFactura: { llegadas: 3, primera: "Textiles Andina SAC · 12 prendas · Tienda TRU, 26/09", puedeHaberMas: false } });
+    expect(a!.nivel).toBe("toca");
+    expect(a!.grupo).toBe("Compras");
+    expect(a!.ahora).toBe("Registra la factura de 3 llegadas");
+    expect(a!.detalle).toBe("La más antigua lleva 7 días o más sin factura: Textiles Andina SAC · 12 prendas · Tienda TRU, 26/09.");
+    expect(a!.href).toBe("/recibir?vista=recibidas");
+    const [tope] = avisosInicio({ sinFactura: { llegadas: 1, primera: "X", puedeHaberMas: true } });
+    expect(tope!.ahora).toBe("Registra la factura de 1 o más llegadas");
+    expect(tope!.detalle).toBe("Lleva 7 días o más sin factura: X. Puede haber más.");
+    expect(avisosInicio({ sinFactura: { llegadas: 0, primera: null, puedeHaberMas: false } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ sinFactura: null })[0]!.nivel).toBe("sinleer");
+  });
+
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");

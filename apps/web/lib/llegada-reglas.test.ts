@@ -1,21 +1,26 @@
 import { describe, it, expect } from "vitest";
 import {
-  camposDeLlegada,
   avisoMismaCaja,
+  ayudaDelBuscador,
+  camposDeLlegada,
+  DIAS_SIN_FACTURA,
   despuesDeRecibir,
   facturasDelProveedor,
-  urlContraFactura,
   fijarCantidad,
   fijarCosto,
   leerTexto,
+  llegadasSinFacturaPorAvisar,
+  nombreDeLlegada,
   pedidoRecibirLote,
+  PLACEHOLDER_BUSCADOR,
   sugerirPrendas,
   sumarPrenda,
-  ayudaDelBuscador,
-  PLACEHOLDER_BUSCADOR,
   textoDelProveedor,
+  TOPE_SIN_FACTURA,
   totalUnidades,
+  urlContraFactura,
   varianteDeLineaEnviada,
+  VENTANA_SIN_FACTURA,
   yaEntroHoy,
   type FacturaPendiente,
   type LlegadaReciente,
@@ -253,5 +258,41 @@ describe("la misma caja dos veces (ADR-0330, act. 3)", () => {
       "Hoy ya entraron 2 llegadas de Textiles Andina (12 prendas; la última a las 14:16, la recibió Ana). Si es la misma caja, no la recibas de nuevo.",
     );
     expect(avisoMismaCaja([], "Kero")).toBeNull();
+  });
+});
+
+describe("llegadas sin factura por avisar (ADR-0330, aviso de la fase 2)", () => {
+  // 2026-10-04 10:00 en Lima.
+  const ahora = new Date("2026-10-04T15:00:00Z");
+  const llegada = (fechaRecepcion: string, unidades: number, proveedorNombre: string | null = "Textiles Andina SAC") => ({
+    fechaRecepcion,
+    unidades,
+    proveedorNombre,
+    ubicacionNombre: "Tienda TRU",
+  });
+
+  it("avisa desde una semana (días de Lima) hasta la ventana, la más antigua primero", () => {
+    const filas = [
+      llegada("2026-10-03T20:00:00Z", 4), // ayer: todavía no
+      llegada("2026-09-28T04:30:00Z", 9), // 27-sep 23:30 en Lima → 7 días: ya
+      llegada("2026-09-28T15:00:00Z", 2), // 28-sep en Lima → 6 días: todavía no
+      llegada("2026-08-20T15:00:00Z", 12), // 45 días: sí
+      llegada("2026-08-01T15:00:00Z", 30), // 64 días: fuera de la ventana
+    ];
+    const r = llegadasSinFacturaPorAvisar(filas, ahora);
+    expect(r.llegadas.map((f) => f.dias)).toEqual([45, DIAS_SIN_FACTURA]);
+    expect(r.unidades).toBe(21);
+    expect(r.puedeHaberMas).toBe(false);
+    expect(VENTANA_SIN_FACTURA).toBeGreaterThan(DIAS_SIN_FACTURA);
+  });
+
+  it("si la lectura llegó al tope, dice que puede haber más (las más antiguas quedan afuera del tope)", () => {
+    const filas = Array.from({ length: TOPE_SIN_FACTURA }, () => llegada("2026-10-03T20:00:00Z", 1));
+    expect(llegadasSinFacturaPorAvisar(filas, ahora).puedeHaberMas).toBe(true);
+  });
+
+  it("nombra la llegada con proveedor, prendas, sede y día de Lima", () => {
+    expect(nombreDeLlegada(llegada("2026-09-27T04:30:00Z", 12))).toBe("Textiles Andina SAC · 12 prendas · Tienda TRU, 26/09");
+    expect(nombreDeLlegada(llegada("2026-09-27T15:00:00Z", 1, null))).toBe("Sin proveedor · 1 prenda · Tienda TRU, 27/09");
   });
 });

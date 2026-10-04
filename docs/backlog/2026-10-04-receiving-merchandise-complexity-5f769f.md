@@ -16,9 +16,16 @@ registrar a Existencias.
 - [x] **5 · Puertas viejas cerradas:** `/inventario/recibir` redirige; fuera `RecibirLotePanel`, `RecepcionFormV2`, `getResumenSinComprobante`;
   `/recibir` sin pestañas ni «Recibiendo en»; el historial suma «Sin factura» con «Sin costo» para quien ve el dinero. Contadores: guía de foco
   67, sugerencias 64. `pnpm datos:comparar`: nada de Recibir sin respaldo (el único aviso es `agregar_celular_clienta`, ajeno).
-- [ ] **Fase 2 · unir una factura a una llegada ya recibida** — contrato nuevo, se propone a Felipe antes de escribirlo. Tabla nueva llegada
-  (`lotes`) ↔ línea de factura (`compra_items`), porque `movimientos` no se edita; una factura ↔ varias llegadas de varias sedes, con el candado
-  `compras_no_sobrerecibida`; recalcula el costo de la prenda al unir; todo o nada; firma quien ve el dinero de Compras.
+- [x] **Aviso «Llegadas sin factura»** (Felipe 2026-10-04: «aviso ahora, unión después»): Inicio de quien ve «Facturas de proveedor»
+  (fuente `sinFactura` en `lib/inicio.ts`) y Observatorio del Admin. Llegadas sin factura de 7 días o más dentro de los últimos 60
+  (`llegadasSinFacturaPorAvisar`, `lib/llegada-reglas.ts`); si `recepciones_sin_comprobante` llega a su tope de 200, dice «puede haber
+  más». Visto en el Inicio con la base local (llegada de prueba corrida al 20-sep y devuelta a su fecha). El del Observatorio no se vio en
+  pantalla: en local el Observatorio no carga (le faltan funciones de ventas a la base local); pasa tipos y pruebas.
+- [ ] **Fase 2 · unir una factura a una llegada ya recibida — diseño DECIDIDO (ADR-0330), se construye cuando llegue la primera factura
+  tarde** (hoy 0 facturas en producción). Movimiento `union_factura` sin efecto en stock con `compra_item_id` + `lote_id`; RPC
+  `unir_llegada_a_factura` todo o nada con la llegada bloqueada; deshacer = unión negativa (solo la atribución, el costo no se revierte);
+  revaloración del costo sobre el stock que queda; origen nuevo en `costo_historial`; ajustar `getRecepcionesRecientes` (suma todo el
+  lote) y el balance de mercadería de Finanzas; marcar «esta no tendrá factura». SQL en 2 partes.
 - [ ] **Verificar en producción tras publicar:** `/recibir` abre en la puerta; `/inventario/por-regularizar` muestra 247 (o la cifra del día) y
   el botón de Existencias el mismo número; `/inventario/recibir` y `/recibir?vista=por-regularizar` redirigen. Recargar las tablets (la cola sin
   conexión de `/inventario/recibir` sube igual: misma RPC `recibir_lote`).

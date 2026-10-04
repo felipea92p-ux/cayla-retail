@@ -87,15 +87,56 @@ SE ROMPE SI: un líder recibe para otra tienda sin cambiar la sede de arriba: en
         el botón («Recibir en Tienda TRU»), que es lo último que se lee antes de confirmar.
 ```
 
-## Fase 2 · unir la factura a una llegada ya recibida (por proponer)
+## Fase 2 · unir la factura a una llegada ya recibida (diseño decidido el 2026-10-04, se construye después)
 
-No se construye en este ADR. Lo que tiene que cumplir, para que la fase 1 no la vuelva imposible:
+**Decisión de Felipe (2026-10-04):** primero el aviso «Llegadas sin factura» (solo web, ya construido, ver abajo); la unión se construye
+con el diseño A cuando llegue la primera factura tarde (hoy hay 0 facturas registradas en producción); y una unión **se puede deshacer**
+(solo la unión, no el costo).
 
-- **Una tabla nueva** que une llegada (`lotes`) y línea de factura (`compra_items`). No se puede rellenar
-  `movimientos.compra_item_id` después: `movimientos` solo crece y nunca se edita (ADR-0042, ADR-0055).
-- **Una factura ↔ varias llegadas, de varias sedes** (el reparto de ADR-0139), con el mismo candado de no recibir más de lo
-  facturado (`compras_no_sobrerecibida`).
-- **Recalcula el costo** de la prenda al unir, todo o nada, y la firma quien ve el dinero de Compras.
+Hoy «lo recibido» de una factura es UNA suma: los movimientos con `compra_item_id`. La leen **36 funciones, 4 vistas y 1 disparador**
+de producción (consulta de solo lectura del 2026-10-04): la foto en `compras` (`movimientos_compra_foto`), el reparto por sede
+(`compra_item_reparto_resumen`, `fn_compra_item_reparto_cuadra`), `cerrar_linea_compra`, `reasignar_reparto_compra`, la nota de
+crédito pendiente, Por pagar… El diseño tiene que dejar esa suma como única fuente.
+
+```
+DECIDÍ: un movimiento nuevo `union_factura`, sin efecto en el stock (como `apartado`/`liberacion_apartado`), con la línea de la
+        factura (`compra_item_id`), la llegada (`lote_id`), la prenda y la sede de la llegada. Lo escribe una sola función,
+        `unir_llegada_a_factura(factura, llegada, pares, token)`, todo o nada, con la llegada bloqueada (`for update`) para que dos
+        líderes no unan la misma llegada a la vez. Las 41 lecturas lo cuentan como recibido sin tocarlas. Deshacer = el mismo
+        movimiento con cantidad negativa (el CHECK de `movimientos_cantidad_valida` lo permite solo para este tipo, como al ajuste):
+        la suma sigue siendo una sola y el libro muestra las dos.
+DESCARTÉ: (a) una tabla puente llegada↔línea (el esbozo de este ADR del mismo día, equivocado): parte en dos el conjunto «lo
+        recibido» (movimientos ∪ puente) y las 41 lecturas tendrían que unirlos; la que se olvide muestra la factura pendiente y deja
+        recibirla dos veces. (b) un cierre «ya llegó» en `compra_item_cierres`: ninguna de las 11 funciones que leen cierres distingue
+        el motivo (solo `cerrar_linea_compra` lo valida al escribir), así que lo tratarían como faltante y pedirían una nota de crédito por mercadería que sí llegó.
+SE ROMPE SI: una lectura nueva suma TODOS los movimientos de un lote sin nombrar el tipo y cuenta dos veces lo unido. Hoy las lecturas
+        de stock nombran sus tipos (`tipo in ('entrada','salida','ajuste')`, verificado en `fn_bal_causas_mercaderia` y
+        `fn_frescura_sede`); la excepción conocida es `getRecepcionesRecientes` (TypeScript), que se ajusta al construir, con una
+        prueba que falla si una lectura de movimientos por lote no nombra los tipos.
+```
+
+**Rechaza:** unir más de lo que entró en la llegada sin factura (por prenda, contando las uniones anteriores: candado en la base, no
+solo en la pantalla), más de lo que le falta a la factura en esa sede, una prenda que la línea no trae (variante exacta o línea
+agrupada del mismo producto), otro proveedor, factura anulada. Quién: quien ve el dinero de Compras, firmando con el combo Responsable.
+
+**El costo.** `fn_recalcular_costo_variante` es un promedio que se acumula sobre el stock del momento. Las prendas de la llegada ya
+están DENTRO de ese stock, así que la fórmula de una compra las contaría dos veces: 10 Body Bonita a S/ 20 (2 de la llegada) y una
+factura a S/ 30 darían (10×20 + 2×30)/12 = S/ 21,67 en vez de (8×20 + 2×30)/10 = **S/ 22,00**. La unión revalora las que siguen en
+stock: `costo nuevo = costo + k·(costo de factura − costo)/stock`, con `k = mín(unidas, stock)`, en `numeric` y redondeado una sola
+vez; queda en `costo_historial` con un origen nuevo (su CHECK hoy acepta solo `compra` y `produccion`). Lo ya vendido conserva su costo
+(las ventas no se reescriben). Deshacer una unión no revierte el costo: otras entradas pueden haberlo movido después; queda anotado.
+El balance de mercadería de Finanzas tiene que nombrar esa revaloración como causa.
+
+**Producción, en 2 partes (ADR-0195):** 1) el tipo nuevo, el CHECK de cantidad y el origen de costo (`alter` sobre `movimientos`,
+tabla en uso: va sola, `lock_timeout`, sin políticas); 2) las funciones (`security definer`, sin políticas).
+
+### El aviso «Llegadas sin factura» (construido el 2026-10-04)
+
+Sin un aviso, la unión sería un botón que nadie aprieta: las facturas no se registran, el IGV no se descuenta y el costo queda
+adivinado. En el Inicio de quien ve «Facturas de proveedor»: las llegadas sin factura de **más de 7 días**, la más antigua en el
+detalle, y lleva al historial «Sin factura». Solo cuenta las de los **últimos 60 días**: más del 30 % de las compras no trae factura
+nunca (R-07, talleres de Gamarra), y un aviso que no se apaga jamás se deja de leer. Es ocultable. Marcar «esta no tendrá factura»
+pide guardar algo y entra con la unión.
 
 ## Lo que no cambia
 
