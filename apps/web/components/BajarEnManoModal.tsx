@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, type RefObject } from "react";
-import { Hand } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -185,12 +184,11 @@ export function BajarEnManoModal({
 
           <CampoGuiado id="nota" guia={guia}>
             <CampoTexto
-              etiqueta={guia.etiqueta("nota", "¿De dónde salió?")}
-              caja
+              etiqueta={guia.etiqueta("nota", "¿De dónde salió? (opcional)")}
               value={nota}
               maxLength={MAX_NOTA_EN_MANO}
               disabled={congelado || loading}
-              placeholder="Opcional: se suma a la nota automática"
+              placeholder="Escribe de dónde salió, o elige abajo"
               onChange={(e) => setNota(e.target.value)}
             />
             <div className="mt-2 flex flex-wrap gap-2">
@@ -234,7 +232,6 @@ export function BajarEnManoModal({
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
-              <Hand aria-hidden className="h-4 w-4" />
               {congelado ? BOTON_EN_MANO_DE_NUEVO : BOTON_CORREGIR_Y_COLGAR}
             </Boton>
           </div>

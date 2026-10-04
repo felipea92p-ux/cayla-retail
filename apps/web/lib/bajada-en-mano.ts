@@ -71,9 +71,9 @@ export function textoDeOferta(o: OfertaEnMano, prenda: Pick<PrendaBajable, "refe
   return `${nombre}: el sistema no la tiene en el almacén de ${sede}. Si la tienes en la mano, corrígela y cuélgala aquí mismo.${danadas}`;
 }
 
-/** Tras «Ya estaba colgada»: no se escribe nada, y se dice así. */
+/** Tras «Ya estaba colgada»: no se escribe nada, y se dice así (el detalle del aviso «Ya estaba colgada»). */
 export function textoYaEstabaColgada(prenda: Pick<PrendaBajable, "referencia" | "talla" | "color">): string {
-  return `Listo: ${nombreDePrenda(prenda)} ya cuenta en el piso. Cuélgala; no se registró nada.`;
+  return `${nombreDePrenda(prenda)} ya cuenta en el piso: cuélgala. No se registró nada.`;
 }
 
 /** Lo que va a pasar, en la ventana, antes de confirmar. */

@@ -96,7 +96,7 @@ import {
 const TEXTOS_CAMARA: Omit<TextosEscaner, "contador"> = {
   titulo: "Bajar con la cámara",
   subtitulo: "Pasa las etiquetas una tras otra: cada una suma 1.",
-  etiqueta: "Bajar al piso · cada lectura suma 1",
+  etiqueta: "Bajar · cada lectura suma 1",
   ayuda: "Pasa las etiquetas una tras otra · suena y vibra en cada una",
   enCurso: "Estás bajando",
   vacio: "Lo que escanees aparece aquí, con − / + para corregir.",
@@ -439,7 +439,7 @@ export function BajarAlPisoForm({
   function yaEstabaColgada(prenda: PrendaBajable) {
     setEnMano(null);
     avisarLectura("suma");
-    avisar.aviso(textoYaEstabaColgada(prenda), { detalle: sede });
+    avisar.exito("Ya estaba colgada", { detalle: textoYaEstabaColgada(prenda) });
     volverAlEscaner();
   }
 
@@ -765,14 +765,16 @@ export function BajarAlPisoForm({
                 e.preventDefault();
                 // Se lee el campo y no un estado: con una ráfaga de la pistola, el estado puede ir un carácter atrás.
                 const texto = e.currentTarget.value;
+                // El campo se vacía SIEMPRE (como en Vender): si quedara el texto, la próxima lectura de la pistola se escribiría
+                // encima y ninguna de las dos volvería a coincidir con una prenda.
+                e.currentTarget.value = "";
+                if (busquedaPendiente.current !== null) window.clearTimeout(busquedaPendiente.current);
                 // Un nombre (no un código) deja la lista a la vista para que ella TOQUE la prenda: nunca se elige sola.
                 const accion = congelada || bloqueada ? null : accionDelEnterBajada(texto, prendasConTope, lineasRef.current);
                 if (accion?.tipo === "elegir") {
-                  if (busquedaPendiente.current !== null) window.clearTimeout(busquedaPendiente.current);
                   setSugerencias(accion.opciones);
                   return;
                 }
-                e.currentTarget.value = "";
                 leerEscaneo(texto);
               }}
               className="h-14 w-full bg-transparent pl-11 pr-4 text-base text-tinta outline-none placeholder:text-tinta/45 disabled:cursor-not-allowed disabled:opacity-60"

@@ -140,7 +140,7 @@ describe("los textos de la tarjeta y de la ventana", () => {
   });
 
   it("«Ya estaba colgada» dice que no se registró nada", () => {
-    expect(textoYaEstabaColgada(BLUSA)).toBe("Listo: Blusa lino · M · Blanco ya cuenta en el piso. Cuélgala; no se registró nada.");
+    expect(textoYaEstabaColgada(BLUSA)).toBe("Blusa lino · M · Blanco ya cuenta en el piso: cuélgala. No se registró nada.");
   });
 
   it("los pasos nombran la sede, «Encontré prendas» y la nota automática", () => {
