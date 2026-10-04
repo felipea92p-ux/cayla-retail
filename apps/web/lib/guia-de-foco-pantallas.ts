@@ -213,6 +213,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
+  // ADR-0328 act. 17: «Para enviar» en Traslados. Su ventana «Ya no la envío»: «falta» = el porqué (la base lo exige) y quién lo hace.
+  "components/ParaEnviar.tsx": { estado: "aplicada", evidencia: ["components/ParaEnviar.tsx"] },
+  // ADR-0328 act. 17: «Subir al almacén» (el primer paso de un pedido colgado) y «Avisar al cliente» que llegó.
+  "components/PedidoClienteModales.tsx": { estado: "no-aplica", motivo: "Dos ventanas de confirmación de un solo control: elegir quién lo hace (el combo Responsable). «Subir al almacén» confirma que la prenda del pedido se guardó; «Avisar al cliente» abre WhatsApp con el mensaje listo. No hay campos que llenar ni pasos." },
   "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
   // «Falta» = lo mismo que apaga el botón «Pedir»: la tienda (si se elige), al menos una prenda y quién registra. La nota es opcional.
   "components/PedirAOtraSedeModal.tsx": { estado: "aplicada", evidencia: ["components/PedirAOtraSedeModal.tsx"] },

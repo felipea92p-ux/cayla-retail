@@ -183,6 +183,7 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
+  destinosParaEnviar = [],
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -239,6 +240,8 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
+  /** A qué sedes se puede mandar lo que se sube «para enviar» (ADR-0328 act. 17). Vacío: «Subir prenda» no ofrece enviar. */
+  destinosParaEnviar?: readonly { id: string; nombre: string }[];
 }) {
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
@@ -1186,6 +1189,7 @@ export function InventarioPanel({
           sede={sedeNombre}
           politica={politica}
           alCerrarEnfocar={volverFoco}
+          destinos={destinosParaEnviar}
           onClose={() => setSubiendo(null)}
         />
       )}

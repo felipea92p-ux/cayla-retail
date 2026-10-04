@@ -44,6 +44,7 @@ import {
   tituloDeExitoRetiro,
   type RespuestaRetiro,
 } from "@/lib/retiro-reglas";
+import { RPC_SUBIR_PARA_ENVIAR, faltaDestino } from "@/lib/para-enviar-reglas";
 
 const TOPE_ESPERA_MS = 20_000;
 
@@ -52,12 +53,16 @@ const TOPE_ESPERA_MS = 20_000;
 // nada, con marca de reintento), nunca una por talla ni por color: con varias llamadas la prenda podría quedar subida a medias. Es la
 // misma ventana que `ReponerPrendaModal` (comparten `MatrizMover`); lo que cambia es que sale del PISO, lleva una nota opcional
 // —el único rastro de por qué se guardó— y avisa si alguna talla va a quedar pidiendo reponer.
+// ADR-0328 act. 17 (Felipe: lo colgado se manda a otra sede en DOS pasos): «Es para enviar a otra sede» sube igual, con la misma
+// puerta, y además la deja en Traslados ▸ «Para enviar» hasta que sale el traslado (`subir_para_enviar`). Así el segundo paso
+// no se olvida.
 export function SubirAAlmacenModal({
   prendas,
   ubicacionId,
   sede,
   politica,
   alCerrarEnfocar,
+  destinos = [],
   onClose,
 }: {
   /** Los colores del modelo, cada uno con todas sus tallas (la prenda que se tocó va primero). */
@@ -69,6 +74,8 @@ export function SubirAAlmacenModal({
   politica: PoliticaOperativaInventario;
   /** El control que abrió la ventana (el «Subir a almacén» de la tarjeta): al cerrar, el teclado vuelve ahí. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
+  /** A qué sedes se puede mandar desde aquí (`destinosParaEnviar`). Vacío o ausente: la opción «para enviar» no aparece. */
+  destinos?: readonly { id: string; nombre: string }[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -76,6 +83,11 @@ export function SubirAAlmacenModal({
   const modelo = prendas[0];
   const [cantidades, setCantidades] = useState<Cantidades>({});
   const [nota, setNota] = useState("");
+  // ¿La subes para guardarla o para mandarla a otra sede? Sin respuesta de fábrica que cambie algo: apagado = la subida de
+  // siempre; encendido pide la sede (ADR-0328 act. 17).
+  const [paraEnviar, setParaEnviar] = useState(false);
+  const [destinoId, setDestinoId] = useState("");
+  const destino = destinos.find((d) => d.id === destinoId) ?? null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Lo que la base contestó fila por fila («Solo queda 1»): se borra apenas la persona cambia esa cifra.
@@ -106,6 +118,7 @@ export function SubirAAlmacenModal({
   const guia = useGuiaCampos([
     { id: "cantidades", nombre: "Cuántas subir", requerido: true, hecho: total > 0, pendiente: "Elige cuántas prendas subir." },
     { id: "nota", nombre: "Por qué la subes", requerido: false, hecho: nota.trim() !== "", pendiente: "" },
+    ...(paraEnviar ? [{ id: "destino", nombre: "A qué sede la envías", requerido: true, hecho: !faltaDestino(paraEnviar, destinoId), pendiente: "Elige a qué sede la vas a enviar." }] : []),
     { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién sube las prendas." },
   ]);
 
@@ -128,6 +141,10 @@ export function SubirAAlmacenModal({
       setError("Elige cuántas prendas subir.");
       return;
     }
+    if (faltaDestino(paraEnviar, destinoId)) {
+      setError("Elige a qué sede la vas a enviar.");
+      return;
+    }
     enVuelo.current = true;
     setLoading(true);
     setError(null);
@@ -141,9 +158,14 @@ export function SubirAAlmacenModal({
     let data: unknown = null;
     let errorRpc: ErrorEscritura = null;
     try {
+      // Para enviar: la MISMA subida (`subir_para_enviar` llama a `retirar_del_piso` con esta marca) más la lista.
+      const argumentos = argumentosDeRetiro(ubicacionId, lineas, nota, token.current);
       const respuesta = await firmar(
         createClient()
-          .rpc(RPC_RETIRO as never, argumentosDeRetiro(ubicacionId, lineas, nota, token.current) as never)
+          .rpc(
+            (paraEnviar ? RPC_SUBIR_PARA_ENVIAR : RPC_RETIRO) as never,
+            (paraEnviar ? { ...argumentos, p_destino_id: destinoId } : argumentos) as never,
+          )
           .abortSignal(control.signal),
         responsable.firma(),
       );
@@ -192,6 +214,10 @@ export function SubirAAlmacenModal({
     const r: RespuestaRetiro = leerRespuestaDeRetiro(data) ?? { ya_registrada: false, lineas: lineas.length, unidades: total };
     if (r.ya_registrada) {
       avisar.aviso(TEXTO_YA_ESTABA_SUBIDA, { detalle: sede });
+    } else if (paraEnviar && destino) {
+      avisar.exito(`${tituloDeExitoRetiro(r.unidades)} para enviar a ${destino.nombre}`, {
+        detalle: `${modelo.referencia} · ${detalleDeLoMovido(colores, lineas)}. Queda en Traslados ▸ Para enviar hasta que salga.`,
+      });
     } else {
       avisar.exito(tituloDeExitoRetiro(r.unidades), {
         detalle: `${modelo.referencia} · ${detalleDeLoMovido(colores, lineas)}`,
@@ -252,6 +278,36 @@ export function SubirAAlmacenModal({
             />
           </CampoGuiado>
 
+          {destinos.length > 0 && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2.5 text-sm text-tinta">
+                <input
+                  type="checkbox"
+                  checked={paraEnviar}
+                  disabled={loading || congelado}
+                  onChange={(e) => {
+                    setParaEnviar(e.target.checked);
+                    if (!e.target.checked) setDestinoId("");
+                  }}
+                  className="h-4 w-4 accent-[var(--color-tinta)]"
+                />
+                Es para enviar a otra sede
+              </label>
+              {paraEnviar && (
+                <CampoGuiado id="destino" guia={guia} titulo="¿A qué sede?">
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="A qué sede la envías">
+                    {destinos.map((d) => (
+                      <button key={d.id} type="button" className="pildora-cayla" aria-pressed={destinoId === d.id} disabled={loading || congelado} onClick={() => setDestinoId(d.id)}>
+                        {d.nombre}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-taupe">Queda en Traslados ▸ «Para enviar» hasta que salga en un traslado a esa sede.</p>
+                </CampoGuiado>
+              )}
+            </div>
+          )}
+
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={loading} />
           </CampoGuiado>
@@ -273,7 +329,7 @@ export function SubirAAlmacenModal({
               type="submit"
               peso="primario"
               cargando={loading}
-              disabled={lineas.length === 0 || !responsable.listo}
+              disabled={lineas.length === 0 || !responsable.listo || faltaDestino(paraEnviar, destinoId)}
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >

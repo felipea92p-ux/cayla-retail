@@ -5,8 +5,11 @@ import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
 import { PedidosEntreSedes } from "@/components/PedidosEntreSedes";
-import { getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
+import { getParaEnviar, getPedidosConCliente, getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
 import { hayPedidosQueMostrar, sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
+import { juntarPedidos } from "@/lib/pedidos-con-cliente-reglas";
+import { agruparPorDestino } from "@/lib/para-enviar-reglas";
+import { ParaEnviar } from "@/components/ParaEnviar";
 import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -30,11 +33,17 @@ const LIMITE_CERRADOS = 30;
 export default async function TrasladosPage() {
   const persona = await requirePersonaActualV2();
   // «Pedir a otra sede» (ADR-0242 D-7) se lee en paralelo y es secundario: si falla, la tarjeta no aparece y la lista sigue.
-  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos, ubicaciones] = await Promise.all([
+  // ADR-0328 act. 17: también los pedidos PARA UN CLIENTE (la misma tarjeta: una sola lista de pedidos) y lo subido
+  // «para enviar». Las dos lecturas son secundarias igual: si fallan, su tarjeta no aparece y lo demás sigue.
+  const [{ enCurso, cerrados, vacios, cerradosLeidos }, reposicion, conCliente, paraEnviar, ubicaciones] = await Promise.all([
     getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS),
     getPedidosEntreSedes(persona.ubicacionId),
+    getPedidosConCliente(persona.ubicacionId),
+    getParaEnviar(persona.ubicacionId),
     getUbicaciones(),
   ]);
+  const pedidos = juntarPedidos(reposicion, conCliente);
+  const gruposParaEnviar = agruparPorDestino(paraEnviar);
   // A quién se le puede pedir desde aquí (otras tiendas; si quien mira es el Taller, a nadie y el botón no se dibuja).
   const pedir = { ubicacionId: persona.ubicacionId, sedes: sedesParaPedir(ubicaciones, persona.ubicacionId) };
   const puedeAjustar = puede(persona, "ajustarInventario");
@@ -69,7 +78,13 @@ export default async function TrasladosPage() {
           key={`pedidos-${persona.ubicacionId}`}
           pedidos={pedidos}
           ubicacion={{ ubicacionId: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
+          ahoraIso={ahoraIso}
         />
+      )}
+
+      {/* Lo subido al almacén para mandarlo a otra sede (ADR-0328 act. 17, dos pasos): queda a la vista hasta que sale. */}
+      {gruposParaEnviar.length > 0 && (
+        <ParaEnviar key={`para-enviar-${persona.ubicacionId}`} grupos={gruposParaEnviar} ubicacion={{ ubicacionId: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }} />
       )}
 
       {/* `key` por sede: al cambiar de sede con el selector, los filtros y la búsqueda de la sede anterior no se
