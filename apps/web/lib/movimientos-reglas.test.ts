@@ -163,11 +163,15 @@ describe("etiquetaMovimiento", () => {
       expect(par(piso, almacen)).toBe("Retiro del piso");
     });
 
+    it("entrar a la cuarentena es reportar una dañada y salir al almacén es «se arregló» (ADR-0328 act. 10: nadie más escribe esos pares)", () => {
+      expect(par(piso, cuarentena)).toBe("Dañado · reportada en el piso");
+      expect(par(almacen, cuarentena)).toBe("Dañado · reportada en el almacén");
+      expect(par(cuarentena, almacen)).toBe("Dañado · se arregló"); // nunca vuelve al piso directo: no es una bajada
+    });
+
     it("cualquier otro par se llama «Movido dentro de la sede»: no afirma una bajada ni un retiro que no fueron", () => {
       expect(par(cuarentena, piso)).toBe("Movido dentro de la sede"); // fn_bajadas_del_piso tampoco la cuenta como bajada
-      expect(par(cuarentena, almacen)).toBe("Movido dentro de la sede"); // nunca estuvo en el piso: no es un retiro
       expect(par(null, almacen)).toBe("Movido dentro de la sede");
-      expect(par(piso, cuarentena)).toBe("Movido dentro de la sede");
       expect(par(rackA, rackB)).toBe("Movido dentro de la sede"); // el Taller no tiene piso
       expect(par(almacen, null)).toBe("Movido dentro de la sede");
     });

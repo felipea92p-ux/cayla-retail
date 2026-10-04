@@ -4,6 +4,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { AccionHoy } from "@/lib/existencias-recomendaciones";
 
@@ -385,6 +386,10 @@ export type PrendaDanada = {
    *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
    *  piso ni lo valida contra este número. */
   precioReferencia: number;
+  /** De dónde llegó (ADR-0328 act. 10): reportada en la tienda, una devolución o un cambio (`origenDeDanada`). */
+  origen: OrigenDanada;
+  /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
+  motivoReporte: string | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
@@ -395,7 +400,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       supabase
         .from("prendas_danadas")
         .select(
-          `id, cantidad, created_at,
+          `id, cantidad, created_at, motivo_reporte, cambio_id,
            variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
         )
         .eq("ubicacion_id", ubicacionId)
@@ -416,5 +421,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     cantidad: f.cantidad,
     creadoEn: f.created_at,
     precioReferencia: f.variante?.precio ?? 0,
+    origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
+    motivoReporte: f.motivo_reporte,
   }));
 }

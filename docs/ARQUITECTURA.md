@@ -197,8 +197,11 @@ flowchart TB
   (`getExistencias`, RPC `fn_stock_por_sede_json`), `lib/por-regularizar-cuenta.ts` (`contarPorRegularizar`, tabla
   `prendas_por_regularizar`; su fila de «Para hoy» lleva a `/inventario/por-regularizar?ubicacion=`) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
   `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx`, `ExistenciasTarjetas.tsx` (el riel de
-  tallas), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir) y
-  `ajustar_inventario` (Ajustar). La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  tallas), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir),
+  `ajustar_inventario` (Ajustar) y `reportar_danada` («Reportar dañada», en el «⋯» de la tarjeta y en Gestión del cajón:
+  `ReportarDanadaModal.tsx`, lógica pura en `lib/danadas-reglas.ts`; ADR-0328 act. 10). La lista de Dañadas
+  (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
+  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
   `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`

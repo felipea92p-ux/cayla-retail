@@ -163,7 +163,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 68;
+export const MODALES_PENDIENTES_HOY = 67;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -232,7 +232,11 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
   "components/ReponerPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReponerPrendaModal.tsx"] },
-  "components/ResolverDanadosModal.tsx": PENDIENTE, // 4 controles
+  // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
+  "components/ReportarDanadaModal.tsx": { estado: "aplicada", evidencia: ["components/ReportarDanadaModal.tsx"] },
+  // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
+  // quién decide. La nota de «Se botó» / «Donada» es opcional.
+  "components/ResolverDanadosModal.tsx": { estado: "aplicada", evidencia: ["components/ResolverDanadosModal.tsx"] },
   "components/ResumenPrevioEnvio.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/RolesModales.tsx": PENDIENTE, // 17 controles
   "components/RolesPanel.tsx": PENDIENTE, // 5 controles
