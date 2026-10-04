@@ -9,7 +9,7 @@ import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
-import { agruparCatalogo } from "@/lib/catalogo-grupos";
+import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
@@ -45,7 +45,7 @@ import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
-import { ElegirTallaModal } from "@/components/ElegirTallaModal";
+import { OpcionesDePrendaModal } from "@/components/punto-de-venta/OpcionesDePrendaModal";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { HojaDeCobro } from "@/components/punto-de-venta/HojaDeCobro";
 import { DocumentoDelComprobante } from "@/components/punto-de-venta/DocumentoDelComprobante";
@@ -94,6 +94,15 @@ import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
 import { documentoParaComprobante, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
+import { CampoCelular } from "@/components/clientas/club-piezas";
+import { ajustarCelular } from "@/lib/club-reglas";
+import { problemaCelularOpcional } from "@/lib/club-caja-reglas";
+import {
+  celularParaLaFicha,
+  notaDelCelularDeLaBoleta,
+  resultadoDeGuardarCelular,
+  type CelularEnFicha,
+} from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
 import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
@@ -246,6 +255,12 @@ export type VentaOk = {
   /** El vale de aniversario que usó esta venta (tanda 1g, G-13): «Vale de aniversario usado (−S/30.00)…». Tampoco sin
    *  conexión. */
   vale?: { monto: number } | null;
+  /** La venta guardada en el servidor: con ella «Venta registrada» busca el PDF de Lucode para mandarlo por WhatsApp. */
+  ventaId?: string | null;
+  /** El celular del cliente de la venta (el de su ficha, el más fresco), para ofrecer «Enviar por WhatsApp». Sin cliente, null. */
+  celular?: string | null;
+  /** Qué pasó al guardar ese celular en la ficha (`agregar_celular_clienta`, ADR-0288 act. o): `null` = no se intentó o ya tenía uno. */
+  celularEnFicha?: CelularEnFicha | null;
 };
 
 const MAX_RESULTADOS = 6;
@@ -361,10 +376,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  no hay en la tienda; la fila del filtro dice cuántas esconde. Solo afecta a `catalogo`;
    *  el escáner sigue reconociéndolas. No se recuerda entre visitas a propósito. */
   const [soloConStock, setSoloConStock] = useState(true);
-  // Tarjeta de la grilla cuyo modal de talla está abierto (su `clave`). Se guarda la clave y
-  // no el grupo: el grupo se vuelve a buscar en `grupos` en cada render, así nunca muestra
-  // un stock viejo.
-  const [tarjetaElegida, setTarjetaElegida] = useState<string | null>(null);
+  // La prenda abierta en «Todo de la prenda» (ADR-0323) y el color que se estaba viendo en su tarjeta. Se guarda la
+  // clave y no la prenda: se vuelve a buscar en `prendas` en cada render, así nunca muestra un stock viejo.
+  const [tarjetaElegida, setTarjetaElegida] = useState<{ clave: string; color?: string } | null>(null);
   const [carrito, setCarrito] = useState<ItemCarrito[]>(() => proforma?.lineas ?? repeticion?.lineas ?? []);
   // La proforma en cobro (ADR-0167): se suelta al cobrar o con «Soltar». Una vencida pide confirmar el precio.
   const [proformaActiva, setProformaActiva] = useState<ProformaEnCobro | null>(proforma);
@@ -379,6 +393,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [hojaTicket, setHojaTicket] = useState(false);
   // La clienta del ticket (spike 2026-09-26): elegida, llena el documento y el nombre del comprobante.
   const [clienta, setClienta] = useState<Clienta | null>(null);
+  // El WhatsApp al que se le manda la boleta de ESTA venta (solo dígitos). Se llena solo con el celular de su ficha y se puede
+  // escribir o corregir en el paso Comprobante: es del comprobante, no de la ficha (no toca el celular del club).
+  const [celularBoleta, setCelularBoleta] = useState("");
   // Su hoja (buscar o registrar) está abierta: cuenta como modal para el escáner y los atajos F1–F5 (ver `hayModal`).
   const [hojaClientaAbierta, setHojaClientaAbierta] = useState(false);
   // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
@@ -486,30 +503,29 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }, [variantesVisibles]);
 
   // La grilla es el plan B (cuando la etiqueta no lee): filtra por categoría y agrupa
-  // una tarjeta por prenda + color con sus tallas adentro (`lib/catalogo-grupos.ts`).
-  // «Solo con stock» esconde la tarjeta entera cuando ninguna talla tiene stock — una
-  // talla agotada dentro de una prenda con stock sigue a la vista, tachada. `resultados`
+  // una tarjeta por PRENDA, ordenadas por nombre, con sus colores y tallas adentro (ADR-0323,
+  // `lib/catalogo-grupos.ts`). «Solo con stock» esconde los colores sin piso y la prenda que se
+  // queda sin ninguno — una talla agotada de un color con stock sigue a la vista, tachada. `resultados`
   // (el escáner) NO se filtra: una prenda sin stock escaneada debe decir «sin stock en
   // esta sede», no «no encontramos».
   const catalogo = useMemo(
     () => (categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria)),
     [variantesVisibles, categoria]
   );
-  const { grupos, ocultasSinStock, ocultasEnAlmacen } = useMemo(() => {
-    const todos = agruparCatalogo(catalogo);
-    const visibles = soloConStock ? todos.filter((g) => g.stockTotal > 0) : todos;
-    // De las escondidas, las que tienen prendas en el almacén de esta sede no están agotadas (D-40): el contador lo dice.
-    const enAlmacen = soloConStock ? todos.filter((g) => g.stockTotal <= 0 && g.almacenTotal > 0).length : 0;
-    return { grupos: visibles, ocultasSinStock: todos.length - visibles.length, ocultasEnAlmacen: enAlmacen };
+  // `prendasGrilla` y no `prendas`: ese nombre ya es la cantidad de unidades del ticket.
+  const { prendasGrilla, ocultasSinStock, ocultasEnAlmacen } = useMemo(() => {
+    // De los colores escondidos, los que tienen prendas en el almacén de esta sede no están agotados (D-40): el contador lo dice.
+    const { prendas: visibles, ocultos, ocultosEnAlmacen } = filtrarConStock(agruparPorPrenda(catalogo), soloConStock);
+    return { prendasGrilla: visibles, ocultasSinStock: ocultos, ocultasEnAlmacen: ocultosEnAlmacen };
   }, [catalogo, soloConStock]);
-  const grupoElegido = tarjetaElegida ? grupos.find((g) => g.clave === tarjetaElegida) : undefined;
+  const prendaElegida = tarjetaElegida ? prendasGrilla.find((p) => p.clave === tarjetaElegida.clave) : undefined;
   // Tarjeta que se tiñe de rojo un momento cuando se pide más de lo que hay. `pulso` sube en
   // cada intento para que el resaltado vuelva a sonar aunque sea la misma tarjeta. Si la
   // prenda no está en la grilla (otra categoría), el aviso de arriba igual sale.
   const [topeTarjeta, setTopeTarjeta] = useState<{ clave: string; pulso: number } | null>(null);
   function resaltarTope(varianteId: string) {
-    const g = grupos.find((x) => x.tallas.some((t) => t.variante.varianteId === varianteId));
-    if (g) setTopeTarjeta((t) => ({ clave: g.clave, pulso: (t?.pulso ?? 0) + 1 }));
+    const p = prendasGrilla.find((x) => x.colores.some((c) => c.tallas.some((t) => t.variante.varianteId === varianteId)));
+    if (p) setTopeTarjeta((t) => ({ clave: p.clave, pulso: (t?.pulso ?? 0) + 1 }));
   }
 
   const term = q.trim();
@@ -1231,6 +1247,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p, redondeoEfectivoDisponible), 0);
   const cobroEfectivo = cobroEnEfectivo(pagos, redondeoEfectivoDisponible);
   // Sin responsable vigente no se cobra (ni se pasa a «cobrar»): su frase explica el botón apagado.
+  // Lo que está mal del comprobante: su documento (carné o pasaporte mal escrito) o el celular de la boleta a medias. Los dos bloquean
+  // el cobro y la hoja de cobro lo dice: la base rechazaría el documento, y un celular a medias no podría recibir la boleta.
+  // La nota de venta no tiene PDF que mandar: su celular no se pide ni se mira.
+  const problemaDelComprobante = tipoComprobante
+    ? (problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) ??
+      (tipoComprobante === "nota_venta" ? null : problemaCelularOpcional(celularBoleta)))
+    : null;
+  // Lo que se le avisa a quien cobra bajo el campo del celular: si también se guarda en la ficha, o que es solo de esta boleta.
+  const notaCelularBoleta = notaDelCelularDeLaBoleta({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta });
   const motivoBloqueo = motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
@@ -1238,7 +1263,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     total,
     pagos,
     facturaSinRuc,
-    problemaDocumento: tipoComprobante ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc) : null,
+    problemaDocumento: problemaDelComprobante,
     sinComprobante: tipoComprobante === null,
     redondeoEfectivo: redondeoEfectivoDisponible,
     motivoResponsable: responsable.motivo,
@@ -1303,7 +1328,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Sin arreglo de dependencias a propósito: se vuelve a enganchar en cada render para leer los
   // pagos y el total de ESTE cuadro, sin cerrar sobre valores viejos; enganchar un `keydown` es barato.
   useEffect(() => {
-    if (bloqueado || hayModal || grupoElegido) return;
+    if (bloqueado || hayModal || prendaElegida) return;
     function alAtajo(e: KeyboardEvent) {
       // Esc cierra la hoja de cobro y vuelve al ticket (un combo de adentro que use el Escape lo detiene antes).
       if (e.key === "Escape" && momento === "cobrar" && !e.defaultPrevented) {
@@ -1337,6 +1362,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteNumDoc("");
     setClienteDocIdentidad("dni");
     setClienteNombre("");
+    setCelularBoleta("");
     setClienta(null);
   }
 
@@ -1352,9 +1378,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setClienteDocIdentidad(doc.tipo);
     setClienteNumDoc(doc.numero);
     setClienteNombre(c.nombre ?? "");
+    setCelularBoleta(ajustarCelular(c.celular ?? ""));
   }
   function quitarClienta() {
     if (clienta) {
+      if (celularBoleta === ajustarCelular(clienta.celular ?? "")) setCelularBoleta("");
       const doc = documentoDeClienta(clienta);
       if (clienteNumDoc === doc.numero && clienteDocIdentidad === doc.tipo) {
         setClienteNumDoc("");
@@ -1587,6 +1615,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       }
     }
 
+    // El celular de la boleta, si el cliente no tenía uno, se guarda TAMBIÉN en su ficha (ADR-0288 act. o, actividad 2): una llamada
+    // aparte, DESPUÉS de que la venta ya quedó guardada. Si falla (red, módulo, función aún sin pegar en producción), la venta
+    // sigue bien y solo se avisa que la ficha quedó sin celular; la base nunca cambia el celular de una ficha que ya lo tiene.
+    let celularEnFicha: CelularEnFicha | null = null;
+    const celularParaFicha = ventaId && clienta ? celularParaLaFicha({ clienta, celularBoleta, tipoComprobante, puedeGuardarEnFicha: puedeBuscarClienta }) : null;
+    if (celularParaFicha && clienta) {
+      try {
+        celularEnFicha = resultadoDeGuardarCelular(
+          await firmar(supabase.rpc("agregar_celular_clienta", { p_id: clienta.id, p_celular: celularParaFicha }), responsable.firma()),
+        );
+      } catch {
+        celularEnFicha = "no_se_pudo";
+      }
+    }
+
     setLoading(false);
     token.current = crypto.randomUUID();
     responsable.despues(null);
@@ -1600,6 +1643,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       offline: false,
       cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
       vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+      ventaId: ventaId ?? null,
+      // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
+      celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
+      celularEnFicha,
     });
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
@@ -1653,15 +1700,30 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               onNombre={setClienteNombre}
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
             />
+            {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
+                todo `div` con dos hijos, y esta caja va en su propia fila. */}
+            {tipoComprobante !== "nota_venta" && (
+              <div className="mt-3">
+                <CampoCelular
+                  id="comprobante-celular"
+                  etiqueta={
+                    <>
+                      Celular para enviarle la {tipoComprobante === "factura" ? "factura" : "boleta"} por WhatsApp{" "}
+                      <span className="normal-case tracking-normal">(opcional)</span>
+                    </>
+                  }
+                  valor={celularBoleta}
+                  onValor={setCelularBoleta}
+                />
+              </div>
+            )}
+            {/* La nota va FUERA de la caja del campo a propósito: ese `div` debe seguir con un solo hijo (ver arriba). */}
+            {notaCelularBoleta && <p className="mt-1 text-xs text-tinta/60">{notaCelularBoleta}</p>}
           </fieldset>
         )
       }
       faltaDocumento={
-        facturaSinRuc
-          ? "Falta el RUC"
-          : tipoComprobante
-            ? problemaDocumentoComprobante(tipoComprobante, clienteDocIdentidad, clienteNumDoc)
-            : null
+        facturaSinRuc ? "Falta el RUC" : problemaDelComprobante
       }
       motivoBloqueo={motivoBloqueo}
       loading={loading}
@@ -1873,21 +1935,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ocultasSinStock={ocultasSinStock}
           ocultasEnAlmacen={ocultasEnAlmacen}
           topeTarjeta={topeTarjeta}
-          onElegirTalla={(clave) => {
-            // Con una sola talla vendible no hay nada que elegir: se agrega directo (Felipe,
-            // 2026-09-18). El modal es para elegir, y solo se abre con 2+ tallas con stock —
-            // o con ninguna, donde sirve para decir dónde sí hay (el almacén de esta sede u
-            // otra sede). Si esa única talla ya está
-            // al tope en el ticket, `agregar()` avisa cuántas quedan. Si OTRA talla está en el
-            // almacén, sí hay que elegir (D-40: también se vende): se abre el modal, que lo dice;
-            // si no, en el celular la S entraba sola y la clienta había pedido la M del almacén.
-            const tallas = grupos.find((g) => g.clave === clave)?.tallas ?? [];
-            const vendibles = tallas.filter((t) => t.stockAqui > 0);
-            const otraEnAlmacen = tallas.some((t) => motivoNoCobrable(t.variante) === "en_almacen");
-            if (vendibles.length === 1 && !otraEnAlmacen) agregar(vendibles[0].variante);
-            else setTarjetaElegida(clave);
-          }}
-          grupos={grupos}
+          // Tocar la prenda abre «Todo de la prenda» en el color que se estaba viendo (ADR-0323). Ya no agrega directo
+          // con una sola talla: la tarjeta trae sus propias tallas y «Agregar», y tocar la prenda es mirar todo.
+          onAbrirPrenda={(clave, color) => setTarjetaElegida({ clave, color })}
+          prendas={prendasGrilla}
           carrito={carrito}
         />
           </div>
@@ -1956,23 +2007,24 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         />
       )}
 
-      {grupoElegido && (
-        <ElegirTallaModal
-          grupo={grupoElegido}
+      {prendaElegida && (
+        <OpcionesDePrendaModal
+          prenda={prendaElegida}
+          colorClave={tarjetaElegida?.color}
           ubicacionEtiqueta={ubicacionEtiqueta}
           carrito={carrito}
           onAgregar={agregar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
-          pie={
-            // La talla que no se puede cobrar aquí (spike 2026-09-26, hallazgo 3): el modal ya dice dónde hay; si a la
-            // clienta no le sirve esperar, se anota para Compras.
-            grupoElegido.tallas.some((t) => motivoNoCobrable(t.variante) !== "cobrable") && (
+          pie={(color) =>
+            // La talla que no se puede cobrar aquí (spike 2026-09-26, hallazgo 3): la ventana ya dice dónde hay; si al
+            // cliente no le sirve esperar, se anota para Compras. Del color que se está mirando.
+            color.tallas.some((t) => motivoNoCobrable(t.variante) !== "cobrable") && (
               <AnotarNoHabia
-                key={grupoElegido.clave}
+                key={color.clave}
                 ubicacionId={ubicacionId}
-                descripcion={descripcionDePrenda(grupoElegido.referencia, grupoElegido.color)}
-                tallas={grupoElegido.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
+                descripcion={descripcionDePrenda(prendaElegida.referencia, color.color)}
+                tallas={color.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
                 clientaId={clienta?.id ?? null}
                 responsable={responsable}
               />

@@ -929,6 +929,16 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas-modulo
 
+      # Celular para la boleta (ADR-0288, «Actualización 2026-10-03 (o)», actividad 2): `agregar_celular_clienta` SOLO AGREGA. A
+      # una ficha sin celular se lo deja normalizado (versión +1, una línea de actividad sin datos personales); a una que ya
+      # tiene uno —el mismo u otro, también una socia con publicidad— no la toca y responde false (sin `revoca`); lo inválido,
+      # una ficha archivada o inexistente y una cuenta sin el módulo «Clientas» se rechazan con su hint; `anon` no la ejecuta;
+      # dos cajas a la vez se turnan (la segunda espera en `for update`); y un control sin la guarda, donde el celular SÍ se
+      # pisa. Cada caso termina en ROLLBACK.
+      - name: pruebas:agregar-celular
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:agregar-celular
+
       # Club de clientas, tanda 1a (ADR-0288 D-1, D-2 y CL-27): la venta se liga a la ficha que manda Cobrar (a la que quedó si
       # se unió; rechazo `clienta_anonimizada` o `clienta_no_existe` sin guardar nada), y sin clienta sigue igual; el documento
       # con tipo (DNI, carné, pasaporte), su formato y su único por (tipo, número); al registrar o corregir el documento se
@@ -1192,6 +1202,12 @@ jobs:
       - name: pruebas:cayla-global
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cayla-global
+
+      # El Observatorio, el Inicio del Admin (ADR-0322): lo de hoy por tienda cuadra con cada venta, sin las de prueba ni las
+      # anuladas; categorías, prendas y equipo suman lo vendido; horas pico = promedio de 4 semanas; solo Admin.
+      - name: pruebas:observatorio
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:observatorio
 
       # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
       # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;

@@ -8,6 +8,7 @@ import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { estadoTalla, queHacerPrenda, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { AYUDA_HOY, textoHoyDePrenda } from "@/lib/existencias-hoy";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /* ====================================================================
@@ -78,22 +79,14 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
   const q = separa ? queHacerPrenda(prenda.tallas) : null;
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      {q?.tipo === "sin_stock_piso" &&
-        (q.critico ? (
-          <ChipAlerta titulo="Alguna talla no tiene nada en ningún lado: no basta con colgar">
-            {q.n} {q.n === 1 ? "talla" : "tallas"} sin stock en piso
-          </ChipAlerta>
-        ) : (
-          <Chip tono="ambar" className="text-xs">
-            {q.n} {q.n === 1 ? "talla" : "tallas"} sin stock en piso
-          </Chip>
-        ))}
-      {q?.tipo === "por_reponer" && (
+      {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
+      {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
+      {(q?.tipo === "por_reponer" || q?.tipo === "sin_stock_atras") && (
         <Chip tono="ambar" className="text-xs">
-          {q.n} {q.n === 1 ? "talla" : "tallas"} por reponer
+          <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
-      {q?.tipo === "mantener" && <ChipMantener />}
+      {q?.tipo === "mantener" && <ChipMantener titulo={AYUDA_HOY.mantener} />}
       {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
       {prenda.apartado > 0 && <Chip tono="ambar">Apartado · {prenda.apartado}</Chip>}
     </span>

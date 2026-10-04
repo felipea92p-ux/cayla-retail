@@ -158,6 +158,10 @@ const DE_LA_1F = ["fn_cifras_clientas", "fn_clienta_permisos", "fn_clienta_su_se
 const DE_LA_1G = ["fn_club_aniversario"];
 const DE_AVISOS = ["fn_club_avisos_pendientes", "registrar_aviso_enviado"];
 const DEL_SERVIDOR = ["fn_club_anonimizar_inactivas", "registrarse_en_el_club"];
+// La del cobro (ADR-0288 act. 2026-10-03 (o), 20261004100000): `agregar_celular_clienta` guarda en la ficha el celular que se escribió
+// para mandarle la boleta, SOLO si no tenía uno. Con el candado del módulo, como las demás (la prueba a fondo es
+// scripts/pruebas/agregar_celular_clienta.mjs).
+const DEL_COBRO = ["agregar_celular_clienta"];
 
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -666,9 +670,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) y las 5 de la tanda 1g, y todas llevan el candado del módulo salvo las 2 de la página y las 2 del servidor (las de Avisos, el de su módulo)",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g y la 1 del cobro (agregar_celular_clienta), y todas llevan el candado del módulo salvo las 2 de la página y las 2 del servidor (las de Avisos, el de su módulo)",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR].sort().join(",")}\nninguna`
+  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",

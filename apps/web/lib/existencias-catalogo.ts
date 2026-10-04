@@ -49,3 +49,18 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
   }));
   return { productos, fallo };
 }
+
+/** Un color del catálogo, con lo que la barra de Existencias necesita para agruparlo y pintarlo como en Productos. */
+export type ColorDeCatalogo = { nombre: string; hex: string | null; familia: string | null; tipo: string | null };
+
+// La familia de cada color (`colores.familia_color`) para el filtro «Color» agrupado por familia (2026-10-03, como Productos).
+// Aparte del `select` de `stock` por la misma razón que la marca: ese lo comparten Vender, Cambios y Traslados. Se leen TODOS los
+// colores (también los apagados): una sede puede tener stock de un color que ya no se ofrece al crear prendas. Son ~95 filas.
+// Dato SECUNDARIO: si falla, el filtro de color sigue, como lista plana sin familias, y no se avisa (nada se deja de ver).
+export async function getColoresParaExistencias(): Promise<ColorDeCatalogo[]> {
+  const supabase = await createClient();
+  const respuesta = await supabase.from("colores").select("nombre, hex, familia_color, tipo");
+  if (respuesta.error) console.error("Existencias: no se pudo leer la familia de los colores:", respuesta.error);
+  const { datos } = tolerar(respuesta, "la familia de los colores");
+  return (datos ?? []).map((c) => ({ nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
+}
