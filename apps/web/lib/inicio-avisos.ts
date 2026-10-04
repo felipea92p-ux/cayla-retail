@@ -217,7 +217,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       detalle:
         n === null ? SIN_LEER : n === 0 ? `Ninguna lleva más de ${DIAS_PARA_VENCER} días.`
           : `${n} ${plural(n, "lleva", "llevan")} más de ${DIAS_PARA_VENCER} días sin regularizar.`,
-      href: "/recibir?vista=por-regularizar",
+      href: "/inventario/por-regularizar",
       ocultable: true,
       urgenteSi: `Cuando pasa de ${DIAS_PARA_VENCER} días`,
     });
@@ -256,7 +256,8 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       detalle:
         r === null ? SIN_LEER : r.facturas === 0 ? "No falta recibir ninguna factura."
           : `${r.primera ?? "Una factura"}${r.facturas > 1 ? ` y ${r.facturas - 1} más` : ""} ${plural(r.facturas, "espera", "esperan")} su recepción.`,
-      href: "/recibir",
+      // ADR-0330: las facturas se reciben en la vista contra factura; `/recibir` a secas es la puerta «Llegó mercadería».
+      href: "/recibir?vista=factura",
       ocultable: true,
     });
   }

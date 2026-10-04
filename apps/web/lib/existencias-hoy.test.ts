@@ -73,6 +73,15 @@ describe("textoHoyDePrenda", () => {
   });
 });
 
+// El rojo es de lo que falló (una dañada, un plazo vencido), no del trabajo del día (rediseño 2026-10-04, tope de 2 rojos por pantalla).
+describe("TONO_HOY", () => {
+  it("ningún caso de «Hoy» es rojo: «por colgar» es ámbar y lo que se pide afuera, pizarra", () => {
+    for (const t of TIPOS_HOY) expect(TONO_HOY[t]).not.toBe("rojo");
+    expect(TONO_HOY.por_colgar).toBe("ambar");
+    expect(TONO_HOY.sin_stock_atras).toBe("pizarra");
+  });
+});
+
 describe("el piso sin cuadrar se VE (revisión adversarial: antes era «N/D» y «Nada pendiente», un vacío que se leía «al día»)", () => {
   it("la talla en pausa se pinta «En pausa», en pizarra (informativo, no semáforo); las demás, su caso; sin motor, nada", () => {
     expect(estadoHoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") })).toBe("en_pausa");

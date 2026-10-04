@@ -351,16 +351,14 @@ export async function getExistencias(
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
-  /** Tallas a las que el piso les pide algo hoy (`pidePiso`, `lib/piso-plan.ts`) — SIEMPRE lo calcula quien llama con la
-   *  decisión del motor, nunca acá: una sola fuente para la tarjeta, la tabla y el filtro. */
-  requierenReposicion: number;
 };
 
-export function resumirExistencias(filas: FilaExistencias[], requierenReposicion: number): ResumenExistencias {
+/** Solo cantidades. Lo que pide cada talla no se cuenta aquí: lo cuenta `hoyDeTalla` (rediseño 2026-10-04; antes este resumen
+ *  llevaba `requierenReposicion` para una tarjeta que ya no existe, y no lo pintaba nadie). */
+export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias {
   return {
     ...resumirInventario(filas),
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
-    requierenReposicion,
   };
 }
 

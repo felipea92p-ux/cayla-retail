@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hoyDeTalla } from "./existencias-hoy";
 import {
   agruparPorPrenda,
   estadoTalla,
@@ -19,7 +20,7 @@ import {
   urlTrasladar,
   type FilaPrenda,
 } from "./existencias-prendas";
-import { DIAS_VENTANA, paraColgarHoy, planDelPiso, type AccionPiso, type LecturaDelPiso, type PisoDeTalla, type TallaEnSede } from "./piso-plan";
+import { ACCIONES_PISO, DIAS_VENTANA, paraColgarHoy, planDelPiso, type AccionPiso, type LecturaDelPiso, type PisoDeTalla, type TallaEnSede } from "./piso-plan";
 
 // La decisión del motor del piso (`lib/piso-plan.ts`) que trae cada fila. Por defecto la fila no pide nada, salvo que no tenga
 // ninguna colgada y sí algo atrás (así eran las filas de estas pruebas con la regla de antes); cada caso que importa la escribe.
@@ -48,6 +49,25 @@ function fila(p: Partial<FilaPrenda> & { varianteId: string }): FilaPrenda {
     ...p,
   } as FilaPrenda;
 }
+
+// Una sola clasificación por talla (rediseño 2026-10-04): la celda (`estadoTalla`) y la pastilla, el filtro y la tabla (`hoyDeTalla`)
+// no pueden decir dos cosas de la misma talla. Se recorre cada combinación de piso, almacén y decisión del motor del piso
+// (`ACCIONES_PISO`, ADR-0328 act. 7; integración de la ola 1: antes recorría `calcularAccionHoy` con umbral 0 y 4, que el motor retiró).
+describe("estadoTalla dice lo mismo que hoyDeTalla, en toda combinación", () => {
+  const EQUIVALE = { por_colgar: "por_colgar", por_reponer: "reponer", sin_stock_atras: "reponer", mantener: "normal" } as const;
+  for (const accion of ACCIONES_PISO) {
+    it(`acción del motor ${accion}`, () => {
+      for (let piso = 0; piso <= 6; piso++) {
+        for (let almacen = 0; almacen <= 6; almacen++) {
+          const f = fila({ varianteId: "v", pisoDisponible: piso, almacenDisponible: almacen, planPiso: plan(accion) });
+          const hoy = hoyDeTalla(f);
+          const esperado = piso + almacen <= 0 ? "sin_stock" : hoy ? EQUIVALE[hoy] : "normal";
+          expect(estadoTalla(f), `piso ${piso}, almacén ${almacen}`).toBe(esperado);
+        }
+      }
+    });
+  }
+});
 
 describe("estadoTalla", () => {
   it("sin nada libre es «sin stock», aunque la regla pida reponer", () => {

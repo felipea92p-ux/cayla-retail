@@ -6,10 +6,11 @@ import { diaLima, esCopiaGuardada, PANTALLAS_SIN_CONEXION, pantallaSinConexion }
 // Qué pantallas abren sin internet (ADR-0210, paso 3) y cómo se reconoce una copia guardada.
 
 describe("pantallaSinConexion", () => {
-  it("reconoce las cuatro pantallas con cola, con o sin barra final", () => {
+  it("reconoce las tres pantallas con cola, con o sin barra final", () => {
     expect(pantallaSinConexion("/vender")?.soloDeHoy).toBe(true);
     expect(pantallaSinConexion("/recibir/")?.nombre).toBe("Recibir mercadería");
-    expect(pantallaSinConexion("/inventario/recibir")).not.toBeNull();
+    // ADR-0330: «Ingreso sin comprobante» se fundió en /recibir; su ruta solo redirige.
+    expect(pantallaSinConexion("/inventario/recibir")).toBeNull();
     expect(pantallaSinConexion("/productos/nuevo")).not.toBeNull();
   });
 

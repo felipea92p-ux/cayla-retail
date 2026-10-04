@@ -33,7 +33,9 @@ export type FilaPrenda = Pick<
   | "marca"
 >;
 
-/** Cómo se pinta una talla en la curva. Sale de la misma decisión de la tabla («Hoy», `hoyDeTalla`). */
+/** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
+ *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma
+ *  tarjeta. Lo único que agrega es «sin_stock»: no hay nada libre en la sede (ni colgado ni guardado). */
 export type EstadoTalla = "por_colgar" | "reponer" | "sin_stock" | "normal";
 
 export function estadoTalla(f: FilaPrenda): EstadoTalla {
