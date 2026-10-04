@@ -86,7 +86,7 @@ export function ordenarModelos<F extends FilaExistencias>(modelos: readonly Mode
 const TONO_PASTILLA = {
   verde: { caja: "bg-verde/10 text-verde-profundo", punto: "bg-verde ring-verde/25" },
   ambar: { caja: "bg-ambar/[0.13] text-ambar-profundo", punto: "bg-ambar ring-ambar/25" },
-  rojo: { caja: "bg-rojo/10 text-rojo-profundo", punto: "bg-rojo ring-rojo/25" },
+  pizarra: { caja: "bg-pizarra/10 text-pizarra", punto: "bg-pizarra ring-pizarra/25" },
 } as const;
 
 /** El diagnóstico de la prenda (`queHacerPrenda`) como pastilla con punto: las MISMAS palabras del filtro «Hoy» (Felipe,
@@ -109,7 +109,7 @@ function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
 function Rotulos({ separa }: { separa: boolean }) {
   const filas = separa
     ? [
-        { Icono: ShoppingBag, texto: "Piso", tono: "text-rojo/60" },
+        { Icono: ShoppingBag, texto: "Piso", tono: "text-taupe" },
         { Icono: Package, texto: "Almacén", tono: "text-tinta/45" },
       ]
     : [{ Icono: Package, texto: "Disponible", tono: "text-tinta/45" }];
@@ -230,9 +230,9 @@ export function ExistenciasTarjetas({
                     <div className="grid shrink-0 grid-cols-[79px_76px] gap-2 max-sm:w-full max-sm:grid-cols-2">
                       {separa ? (
                         <>
-                          <div className="flex h-[74px] flex-col items-center justify-center rounded-[10px] bg-[color-mix(in_oklab,var(--color-rojo)_9%,var(--color-papel))] text-center leading-[1.1] text-rojo">
+                          <div className="flex h-[74px] flex-col items-center justify-center rounded-[10px] bg-hueso/60 text-center leading-[1.1] text-tinta">
                             <span className="text-[11px]">Piso</span>
-                            <b className="font-display text-[29px] font-medium leading-[1.1] tabular-nums text-rojo-profundo">{p.piso ?? 0}</b>
+                            <b className="font-display text-[29px] font-medium leading-[1.1] tabular-nums">{p.piso ?? 0}</b>
                             <span className="text-[11px]">uds</span>
                           </div>
                           <div className="flex h-[74px] flex-col items-center justify-center rounded-[10px] bg-hueso/60 text-center leading-[1.1] text-tinta">
@@ -267,7 +267,7 @@ export function ExistenciasTarjetas({
                                 className="grid min-w-0 gap-[3px]"
                               >
                                 <span className="block h-5 truncate rounded-lg bg-hueso px-0.5 text-center text-[11px] font-medium leading-5 text-tinta">{nombre}</span>
-                                <span className={`grid gap-px rounded-lg border px-1 py-[3px] ${sinStock ? "border-rojo/35 bg-rojo/10" : "border-sand/70 bg-papel/80"}`}>
+                                <span className={`grid gap-px rounded-lg border px-1 py-[3px] ${sinStock ? "border-dashed border-taupe/50" : "border-sand/70 bg-papel/80"}`}>
                                   {separa ? (
                                     <>
                                       <Cifra valor={f.pisoDisponible ?? 0} />

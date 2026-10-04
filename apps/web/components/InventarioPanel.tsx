@@ -53,7 +53,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 const TODAS = "__todas__";
 
 /** El punto de la leyenda de la tabla, en el tono de cada caso de «Hoy». */
-const PUNTO_HOY = { rojo: "bg-rojo", ambar: "bg-ambar", verde: "bg-verde" } as const;
+const PUNTO_HOY = { ambar: "bg-ambar", verde: "bg-verde", pizarra: "bg-pizarra" } as const;
 
 /** El caso de «Hoy» de UNA talla (columna de la tabla «Por talla»): las mismas palabras y el mismo tono que el filtro, la tarjeta y
  *  el cajón. «Por colgar» dice cuántas se pueden bajar; «Sin stock atrás», si viene algo en camino. */
@@ -118,7 +118,7 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
     );
   }
   const pideReponer = f.accionHoy?.tipo === "reponer_a_piso";
-  const etiqueta = c.tipo === "agotado" ? "bg-rojo/10 text-rojo-profundo" : c.tipo === "medida" && pideReponer ? "bg-ambar/15 text-ambar-profundo" : null;
+  const etiqueta = c.tipo === "agotado" ? "bg-ambar/15 text-ambar-profundo" : c.tipo === "medida" && pideReponer ? "bg-ambar/15 text-ambar-profundo" : null;
   const piso = f.piso ?? 0;
   const almacen = f.almacen ?? 0;
   const totalSede = piso + almacen;
@@ -876,7 +876,7 @@ export function InventarioPanel({
                   Piso · almacén de cada talla
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-rojo/35 bg-rojo/10" />
+                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-dashed border-taupe/50" />
                   Sin stock aquí
                 </span>
               </span>
@@ -914,7 +914,7 @@ export function InventarioPanel({
                   Piso · almacén de cada talla
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-rojo/35 bg-rojo/10" />
+                  <span aria-hidden className="inline-block h-2.5 w-3.5 rounded-sm border border-dashed border-taupe/50" />
                   Sin stock aquí
                 </span>
               </span>
@@ -992,7 +992,7 @@ export function InventarioPanel({
                   }
                 }}
                 className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors focus-visible:outline-none sm:items-center ${plantilla} ${
-                  filaAbierta ? "bg-rojo/[0.07]" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
+                  filaAbierta ? "bg-hueso/80" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
                 }`}
               >
                 {/* Celular: casilla + prenda arriba. Escritorio: `sm:contents` devuelve cada pieza a su columna, en el orden del encabezado. */}
