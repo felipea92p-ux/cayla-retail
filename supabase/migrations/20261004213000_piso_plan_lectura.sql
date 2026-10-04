@@ -50,6 +50,8 @@
 --
 -- ESTADO QUE DEJA DE SER POSIBLE. Una venta «sin registrar» que suma dos veces (en la cola y como escaneada) o que suma en la
 -- semana en que se regularizó en vez de la semana en que se vendió: la lectura no tiene una tercera fuente donde eso pueda pasar.
+-- Y un «Por colgar» sobre un piso sin cuadrar porque una pantalla olvidó preguntar la fecha del cuadre: la fecha viaja en la
+-- misma lectura que el stock que pausa, y sin ella el motor pausa.
 --
 -- QUIÉN LA LEE. Dos puertas: la de todas las lecturas de retail (`fn_tiene_acceso_retail()`: persona activa con colaborador
 -- activo, o terminal activa de una sede activa; ADR-0289, y el arreglo de `fn_stock_por_sede` del PR #781) Y la de la sede
@@ -61,9 +63,11 @@
 -- que hizo, en silencio, la copia de la puerta que dejaba afuera a las terminales).
 --
 -- NÚMEROS. Hoy TRU tiene ~510 tallas con stock y ~100 ventas en 14 días; en 3 años, como techo, ~2.000 tallas por sede y ~1.500
--- líneas de venta en la ventana. La lectura recorre las ventas de UNA sede en 14 días por `ventas_ubicacion_fecha_idx` y su stock
--- por `fn_existencias_base`: milisegundos (medido en la prueba con ~800 unidades y ~150 ventas). Sin caché ni tabla resumen, que
--- serían una copia que se puede desincronizar.
+-- líneas de venta en la ventana. La lectura recorre las ventas de UNA sede en 14 días por `ventas_ubicacion_fecha_idx`, y por cada
+-- línea mira sus cambios, devoluciones y salida de liquidación por índice (`cambios_venta_item_idx`,
+-- `devolucion_items_venta_item_idx`, `movimientos_venta_item_idx`); su stock, por `fn_existencias_base` una sola vez: milisegundos
+-- (mediana ~8 ms en la prueba con ~800 unidades y ~150 ventas). Sin caché ni tabla resumen, que serían una copia que se puede
+-- desincronizar.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe, ANTES de fusionar la web que la llama). Un solo `create or replace function`
 -- con su `comment` y sus permisos: sin políticas ni `alter` de tablas, así que no toma los bloqueos de `auth`/`storage`
