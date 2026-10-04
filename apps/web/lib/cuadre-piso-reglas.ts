@@ -18,7 +18,7 @@ import { resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { esRespuestaIncierta, type ErrorEscritura } from "./error-escritura";
 import { diaYHoraLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
-import type { SonidoLectura } from "./sonido-lectura";
+import type { SonidoLectura } from "./conteo-conectado";
 
 export const RPC_CUADRAR = "cuadrar_piso";
 export const RPC_PREVISUALIZAR = "previsualizar_cuadre_piso";

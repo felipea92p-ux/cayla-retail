@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { HUECO_MINIMO_MS, debeContarLectura, sonidoDeLectura } from "./conteo-conectado";
-import { PATRON_SONIDO } from "./sonido-lectura";
+import { HUECO_MINIMO_MS, PATRON_SONIDO, debeContarLectura, sonidoDeLectura } from "./conteo-conectado";
 
 describe("debeContarLectura (cámara en ráfaga)", () => {
   const ultima = { codigo: "CMS-0001-NEG-M", en: 1000 };

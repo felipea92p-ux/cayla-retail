@@ -20,7 +20,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
-import { avisarLectura } from "@/lib/sonido-lectura";
+import { avisarLectura } from "@/lib/sonido-conteo";
 import { BUFER_VACIO, alBufer, teclaDeLaPistola, type BuferDePistola } from "@/lib/bajada-reglas";
 import {
   BOTON_COMPROBAR_CUADRE,
@@ -94,11 +94,15 @@ const estaVacio = (d: Datos) => d.lineas.length === 0 && d.pendientes.length ===
 type Vista = { estado: "cargando" } | { estado: "lista"; datos: VistaCuadre } | { estado: "error"; mensaje: string };
 type Aviso = { texto: string; tono: "ambar" | "neutro" };
 
-const TEXTOS_CAMARA: TextosEscaner = {
+// Las palabras de la cámara en el cuadre. Sin denominador en el contador (`contador`, abajo): el cuadre no tiene meta, y «12/635»
+// se leería como «faltan 623».
+const TEXTOS_CAMARA: Omit<TextosEscaner, "contador"> = {
   titulo: "Escanear lo guardado con la cámara",
   subtitulo: "Pasa las etiquetas una tras otra: cada una suma 1.",
-  rotulo: "Cuadrar el piso · cada lectura suma 1",
-  actual: "Acabas de escanear",
+  etiqueta: "Cuadrar el piso · cada lectura suma 1",
+  ayuda: "Solo lo guardado · suena y vibra en cada una",
+  enCurso: "Acabas de escanear",
+  vacio: "Lo que escanees aparece aquí, con − / + para corregir.",
 };
 
 // El borrador nunca rompe la pantalla: modo privado, cuota llena o almacenamiento bloqueado = «no se guardó».
@@ -947,7 +951,7 @@ export function CuadrarPisoForm({
 
       {camara && (
         <EscanerConteo
-          textos={TEXTOS_CAMARA}
+          textos={{ ...TEXTOS_CAMARA, contador: total.toLocaleString("es-PE") }}
           onCodigo={leer}
           actual={
             arriba && prendaArriba
@@ -961,7 +965,7 @@ export function CuadrarPisoForm({
                 }
               : null
           }
-          avance={{ contadas: total }}
+          avance={{ contadas: total, total }}
           onPaso={(n) => (n > 0 && arriba ? cambiarCantidad(arriba.varianteId, arriba.cantidad + 1) : deshacer())}
           onEscribir={() => {
             setCamara(false);

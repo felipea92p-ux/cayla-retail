@@ -23,22 +23,29 @@ import { debeContarLectura } from "@/lib/conteo-conectado";
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
-/** Lo que la hoja dice de la operación que se está haciendo con la cámara. */
+/** Lo que la hoja dice con palabras. Por defecto, lo de Conteo; Bajar al piso pasa los suyos (la misma ráfaga, otra tarea). */
 export type TextosEscaner = {
-  /** El título de la hoja (para el lector de pantalla y la cabecera de la ventana). */
   titulo: string;
   subtitulo: string;
-  /** El rótulo chico de arriba, sobre el video. */
-  rotulo: string;
-  /** Sobre la prenda de la bandeja: «Estás contando». */
-  actual: string;
+  /** El rótulo de arriba, junto a cerrar. */
+  etiqueta: string;
+  /** La píldora bajo el visor. */
+  ayuda: string;
+  /** El rótulo sobre la prenda de la bandeja. */
+  enCurso: string;
+  /** La bandeja antes de la primera lectura. */
+  vacio: string;
+  /** El contador de arriba a la derecha; sin él, `contadas/total`. */
+  contador?: string;
 };
 
 const TEXTOS_CONTEO: TextosEscaner = {
   titulo: "Contar con la cámara",
   subtitulo: "Pasa las etiquetas una tras otra: cada una suma 1.",
-  rotulo: "Contar · cada lectura suma 1",
-  actual: "Estás contando",
+  etiqueta: "Contar · cada lectura suma 1",
+  ayuda: "Pasa las etiquetas una tras otra · suena y vibra en cada una",
+  enCurso: "Estás contando",
+  vacio: "Lo que escanees aparece aquí, con − / + para corregir.",
 };
 
 export type LecturaConteo =
@@ -55,19 +62,18 @@ export function EscanerConteo({
   onDarDeAlta,
   onEscribir,
   aviso,
+  textos: propios,
   onClose,
-  textos = TEXTOS_CONTEO,
 }: {
   /** El mismo camino del Enter de la pistola: resuelve la prenda, suma, guarda y suena. */
   onCodigo: (codigo: string) => LecturaConteo;
   /** La prenda que se está contando, con su cifra en vivo (cambia también con − / +). */
   actual: Extract<LecturaConteo, { encontrada: true }> | null;
-  /** Lo leído hasta ahora. Sin `total`, solo la cifra: una operación sin meta (el cuadre del piso) no muestra un
-   *  denominador que la persona leería como «lo que falta». */
-  avance: { contadas: number; total?: number };
+  avance: { contadas: number; total: number };
   /** − / + sobre la prenda que se está contando. */
   onPaso: (paso: number) => void;
-  /** Un código que no es de ninguna prenda: cerrar y ofrecer darla de alta con ese código. Sin él, solo se avisa. */
+  /** Un código que no es de ninguna prenda: cerrar y ofrecer darla de alta con ese código. Sin él, no se ofrece (la pantalla
+   *  que la usa dice qué hacer en `aviso`). */
   onDarDeAlta?: (codigo: string) => void;
   /** Sin cámara: cerrar y dejar listo el campo para escribir. */
   onEscribir: () => void;
@@ -75,10 +81,11 @@ export function EscanerConteo({
    *  botones, un guardado que falló). Tiene prioridad sobre la prenda que se está contando: es lo urgente. Lo arma la
    *  pantalla de Contar, que es la misma que lo muestra en su barra de abajo. */
   aviso?: ReactNode;
+  /** Las palabras de la hoja, si no es Conteo. */
+  textos?: Partial<TextosEscaner>;
   onClose: () => void;
-  /** Lo que la hoja dice de la operación. Por defecto, los del conteo; el cuadre del piso pasa los suyos. */
-  textos?: TextosEscaner;
 }) {
+  const t = { ...TEXTOS_CONTEO, ...propios };
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
   const [estado, setEstado] = useState<Estado>("abriendo");
@@ -158,7 +165,7 @@ export function EscanerConteo({
   const botonPaso = "grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-sand bg-papel text-tinta transition-colors active:bg-sand/60";
 
   return (
-    <Modal variante="camara" titulo={textos.titulo} subtitulo={textos.subtitulo} onClose={onClose}>
+    <Modal variante="camara" titulo={t.titulo} subtitulo={t.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <>
           <div data-sin-cascada className="absolute inset-0">
@@ -170,9 +177,9 @@ export function EscanerConteo({
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
-            <p className="label-cayla text-[11px] text-crema/90">{textos.rotulo}</p>
+            <p className="label-cayla text-[11px] text-crema/90">{t.etiqueta}</p>
             <span className="grid h-11 min-w-11 place-items-center rounded-full bg-crema/15 px-3 text-xs tabular-nums text-crema backdrop-blur-md">
-              {avance.total === undefined ? avance.contadas : `${avance.contadas}/${avance.total}`}
+              {t.contador ?? `${avance.contadas}/${avance.total}`}
             </span>
           </div>
 
@@ -207,7 +214,7 @@ export function EscanerConteo({
                   {estado === "abriendo" && <p className="absolute inset-0 grid place-items-center text-sm text-crema/80">Abriendo la cámara…</p>}
                 </div>
                 <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-center text-[13px] text-crema/90 backdrop-blur-md">
-                  Pasa las etiquetas una tras otra · suena y vibra en cada una
+                  {t.ayuda}
                 </p>
               </>
             )}
@@ -234,7 +241,7 @@ export function EscanerConteo({
               ) : actual ? (
                 <div className="flex items-center gap-3">
                   <span className="min-w-0 flex-1">
-                    <span className="label-cayla block text-[10px] text-taupe">{textos.actual}</span>
+                    <span className="label-cayla block text-[10px] text-taupe">{t.enCurso}</span>
                     <span className="block truncate text-[15px] text-tinta">{actual.referencia}</span>
                     <span className="block truncate text-xs text-taupe">
                       {actual.detalle}
@@ -250,7 +257,7 @@ export function EscanerConteo({
                   </button>
                 </div>
               ) : (
-                <p className="grid h-[4.75rem] place-items-center text-center text-[13px] text-tinta/55">Lo que escanees aparece aquí, con − / + para corregir.</p>
+                <p className="grid h-[4.75rem] place-items-center text-center text-[13px] text-tinta/55">{t.vacio}</p>
               )}
             </div>
             <button type="button" onClick={cerrar} className="btn-cayla btn-primario mt-3 h-12 w-full">

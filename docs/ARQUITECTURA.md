@@ -510,7 +510,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   «no cargada»), `lib/inventario-v2.ts:getStockPorUbicacion` (lo libre, solo para el aviso «no cargada» al escanear) y
   `lib/cuadre-piso.ts:getCuadrePisoEstado` = RPC `fn_cuadre_piso_estado` (la fecha del último cuadre; la usará la portada de
   Existencias) → `components/cuadre-piso/CuadrarPisoForm.tsx` (pasos con `PasosConteo`: Escanear lo guardado → Revisar →
-  Confirmar; pistola con búfer, cámara en ráfaga con `EscanerConteo`, sonido de `lib/sonido-lectura.ts`, borrador por SEDE en
+  Confirmar; pistola con búfer, cámara en ráfaga con `EscanerConteo`, sonido de `lib/sonido-conteo.ts`, borrador por SEDE en
   el aparato —escanea la cuenta Almacén y confirma un líder en el mismo navegador—, guía de foco, combo Responsable y
   `firmar`) → RPC `previsualizar_cuadre_piso` (lectura: resumen y líneas con la cuenta de la base, `RevisarCuadre.tsx`) y RPC
   `cuadrar_piso` (todo o nada, solo líder, marca de reintento; si el almacén se movió después del escaneo devuelve qué prendas

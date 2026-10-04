@@ -31,7 +31,7 @@ import {
 import { traducirError } from "@/lib/error-escritura";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { firmar } from "@/lib/responsable-reglas";
-import { avisarLectura } from "@/lib/sonido-lectura";
+import { avisarLectura } from "@/lib/sonido-conteo";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
