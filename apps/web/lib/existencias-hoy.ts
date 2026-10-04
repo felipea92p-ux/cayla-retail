@@ -84,7 +84,7 @@ export function estadoHoyDeTalla(f: TallaParaHoy): EstadoHoy | null {
   return f.planPiso?.accion === "pausa_sin_cuadre" ? "en_pausa" : null;
 }
 
-/** Cuántas tallas esperan el cuadre del piso (lo que el aviso de la pantalla y la tarjeta dicen en vez de «Nada pendiente»). */
+/** Cuántas tallas esperan el cuadre del piso (lo que el aviso de la tabla y «Para hoy» dicen en vez de «Todo al día»). */
 export function contarEnPausa(filas: readonly TallaParaHoy[]): number {
   return filas.filter((f) => estadoHoyDeTalla(f) === "en_pausa").length;
 }
@@ -107,11 +107,6 @@ export function resumirPorColgar(filas: readonly TallaParaHoy[]): { tallas: numb
 export function avisoPausaDelPiso(sede: string, tallas: number): string | null {
   if (tallas <= 0) return null;
   return `El piso de ${sede} todavía no se cuadró: ${tallas} ${tallas === 1 ? "talla espera" : "tallas esperan"} para colgarse. Hasta cuadrarlo, «Hoy» no manda a bajar nada (podría pedir colgar lo que ya cuelga); «Mantener» y «Sin stock atrás» sí valen.`;
-}
-
-/** Lo que dice la tarjeta «Reponer a piso hoy» con el piso sin cuadrar, en vez de «Nada pendiente». */
-export function textoTarjetaEnPausa(tallas: number): string {
-  return `Cuadra el piso antes de colgar: ${tallas} ${tallas === 1 ? "talla espera" : "tallas esperan"}`;
 }
 
 /** «1 talla por colgar», «3 tallas sin stock atrás», «2 tallas en pausa», «Mantener»: lo que dicen la tarjeta y la tabla de una

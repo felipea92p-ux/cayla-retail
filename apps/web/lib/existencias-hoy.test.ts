@@ -8,7 +8,6 @@ import {
   resumirPorColgar,
   TEXTO_HOY,
   textoHoyDePrenda,
-  textoTarjetaEnPausa,
   TIPOS_HOY,
   TONO_HOY,
 } from "./existencias-hoy";
@@ -92,7 +91,7 @@ describe("el piso sin cuadrar se VE (revisión adversarial: antes era «N/D» y 
     expect(TONO_HOY.en_pausa).toBe("pizarra");
     expect(TIPOS_HOY).not.toContain("en_pausa");
   });
-  it("cuenta las tallas que esperan y lo dice: el aviso de la pantalla y la tarjeta", () => {
+  it("cuenta las tallas que esperan y lo dice: el aviso de la tabla (y «Para hoy», en existencias-para-hoy.test.ts)", () => {
     const filas = [
       { pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") },
       { pisoDisponible: 1, almacenDisponible: 2, planPiso: plan("pausa_sin_cuadre") },
@@ -103,7 +102,6 @@ describe("el piso sin cuadrar se VE (revisión adversarial: antes era «N/D» y 
       "El piso de Tienda TRU todavía no se cuadró: 2 tallas esperan para colgarse. Hasta cuadrarlo, «Hoy» no manda a bajar nada (podría pedir colgar lo que ya cuelga); «Mantener» y «Sin stock atrás» sí valen."
     );
     expect(avisoPausaDelPiso("Tienda TRU", 0)).toBeNull();
-    expect(textoTarjetaEnPausa(1)).toBe("Cuadra el piso antes de colgar: 1 talla espera");
     expect(textoHoyDePrenda("en_pausa", 2)).toBe("2 tallas en pausa");
   });
 });

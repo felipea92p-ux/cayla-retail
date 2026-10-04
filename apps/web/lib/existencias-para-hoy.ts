@@ -15,6 +15,10 @@
      siguientes bajan a ámbar. Con un rojo por fila, el que importa deja de verse.
    - la cola que no responde se DICE («no se pudo leer»), no se calla: una tarea que desaparece cuando la base falla se lee
      igual que «no hay ninguna».
+   Lo mismo vale para el motor del piso (ADR-0328 act. 7, integración de la ola 1): con el piso SIN CUADRAR —como está toda tienda
+   el día que se pega el motor— no hay «por colgar» (cada talla que lo sería queda «En pausa»), y si su lectura falla tampoco.
+   Sin una fila propia, las dos cosas se leían «Todo al día. No hay nada pendiente en el piso», justo el falso «al día» que la
+   tarjeta «Reponer a piso hoy» ya había corregido antes de que el rediseño la retirara.
    ==================================================================== */
 
 import { MAX_ROJO_POR_PANTALLA } from "@cayla-retail/shared";
@@ -22,6 +26,8 @@ import { TEXTO_HOY } from "./existencias-hoy";
 
 export type TipoTareaHoy =
   | "por_colgar"
+  | "piso_en_pausa"
+  | "piso_sin_calcular"
   | "sin_registrar"
   | "danadas"
   | "apartados_vencidos"
@@ -47,6 +53,8 @@ export type EntradaParaHoy = {
   /** La sede separa piso y almacén (una tienda). En el Taller no hay «por colgar». */
   separa: boolean;
   porColgar: { tallas: number; unidades: number; prendas: readonly string[] };
+  /** El motor del piso: cuántas tallas esperan el cuadre del piso («En pausa») y si su lectura no respondió (`fallo`). */
+  piso: { enPausa: number; fallo: boolean };
   /** Tallas «sin stock atrás» que tampoco vienen en camino (lo que viene en camino no se pide de nuevo). */
   sinStockAtras: { tallas: number };
   /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
@@ -94,6 +102,26 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       // La segunda frase es la honestidad del número: si la prenda ya cuelga y el sistema la cree guardada (una bajada que no se
       // registró, o la carga inicial que entró al almacén), lo que toca es registrarla, no volver a colgarla.
       detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al bajar.`,
+      tono: "ambar",
+    });
+  }
+
+  // En el lugar de «por colgar», porque es lo que lo reemplaza: sin plan no se sabe qué colgar, y en pausa no se manda a colgar.
+  if (e.separa && e.piso.fallo) {
+    tareas.push({
+      tipo: "piso_sin_calcular",
+      cifra: null,
+      texto: "No se pudo calcular qué colgar hoy",
+      detalle: "La columna «Hoy» dice N/D hasta que responda. Si ves una talla sin nada colgado, bájala igual al piso.",
+      tono: "pizarra",
+    });
+  } else if (e.separa && e.piso.enPausa > 0) {
+    tareas.push({
+      tipo: "piso_en_pausa",
+      cifra: e.piso.enPausa,
+      texto: plural(e.piso.enPausa, "talla espera el cuadre del piso", "tallas esperan el cuadre del piso"),
+      // La misma razón del aviso de la tabla (`avisoPausaDelPiso`): sin cuadre, «colgar» podría pedir lo que ya cuelga.
+      detalle: "Hasta cuadrarlo, «Hoy» no manda a colgar nada: podría pedir colgar lo que ya cuelga. Se cuadra una vez, escaneando lo guardado.",
       tono: "ambar",
     });
   }

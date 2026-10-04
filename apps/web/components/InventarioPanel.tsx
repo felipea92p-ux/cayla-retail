@@ -516,6 +516,8 @@ export function InventarioPanel({
       tareasParaHoy({
         separa,
         porColgar: { ...cuentaPorColgar, prendas: ordenarPorListaDelDia(agruparPorPrenda(filasPorColgar), listaDelDia).map((p) => p.referencia) },
+        // Con el piso sin cuadrar, o con el motor caído, «por colgar» queda en 0: sin esto «Para hoy» decía «Todo al día».
+        piso: { enPausa: tallasEnPausa, fallo: planFallo !== null },
         // Lo que ya viene en camino no se pide de nuevo (revisión 2026-10-04: una talla nueva que LIM le envía a TRU salía a la vez en
         // «en camino» y en «pídela a otra sede»).
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
@@ -525,7 +527,7 @@ export function InventarioPanel({
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, filasPorColgar, listaDelDia, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, filasPorColgar, listaDelDia, tallasEnPausa, planFallo, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
@@ -534,6 +536,12 @@ export function InventarioPanel({
   const hrefBajarPorColgar = puedeBajarAlPiso ? (urlBajarAlPiso(filasPorColgar) ?? "/inventario/bajar") : null;
   const accionesHoy: Partial<Record<TipoTareaHoy, AccionTarea>> = {
     por_colgar: hrefBajarPorColgar ? { texto: "Bajar al piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
+    // «Cuadrar el piso» (/inventario/cuadrar, ADR-0328 act. 3) con la misma condición que su acceso en la cabecera
+    // (`puedeCuadrarPiso = puedeBajarAlPiso`): una función de Existencias (ADR-0306) en la sede activa que separa piso y almacén.
+    // Confirmar el cuadre es de un líder: esa pantalla lo dice. Sin la condición, la fila informa y no lleva botón.
+    piso_en_pausa: puedeBajarAlPiso ? { texto: "Cuadrar el piso", href: "/inventario/cuadrar" } : undefined,
+    // Sin plan, «Bajar al piso» sigue sirviendo a mano: no depende de lo que recomienda el motor.
+    piso_sin_calcular: puedeBajarAlPiso ? { texto: "Bajar al piso", href: "/inventario/bajar" } : undefined,
     // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas. La lista vive en
     // Existencias (ADR-0330), bajo el mismo módulo que esta pantalla: quien ve la fila puede resolverla.
     sin_registrar: { texto: "Regularizar", href: `/inventario/por-regularizar?ubicacion=${ubicacionId}` },

@@ -4,6 +4,7 @@ import { nombresConResto, resumenPlegado, tareasParaHoy, textoLlegada, type Entr
 const vacia: EntradaParaHoy = {
   separa: true,
   porColgar: { tallas: 0, unidades: 0, prendas: [] },
+  piso: { enPausa: 0, fallo: false },
   sinStockAtras: { tallas: 0 },
   sinRegistrar: { pendientes: 0, vencidas: 0 },
   danadas: 0,
@@ -75,6 +76,53 @@ describe("tareasParaHoy", () => {
     });
     expect(tareas.map((t) => t.tono)).toEqual(["rojo", "rojo", "ambar"]);
     expect(tareas.filter((t) => t.tono === "rojo")).toHaveLength(2);
+  });
+});
+
+describe("el motor del piso en «Para hoy» (integración de la ola 1, 2026-10-04)", () => {
+  // Así está toda tienda de producción el día que se pega el motor: ningún cuadre, 0 «por colgar» y N tallas en pausa. Antes de esta
+  // fila, «Para hoy» no tenía tareas y decía «Todo al día. No hay nada pendiente en el piso…».
+  it("con el piso sin cuadrar NO dice «al día»: pide cuadrarlo, en el lugar de «por colgar»", () => {
+    const tareas = tareasParaHoy({ ...vacia, piso: { enPausa: 24, fallo: false }, danadas: 1 });
+    expect(tareas.map((t) => t.tipo)).toEqual(["piso_en_pausa", "danadas"]);
+    const [t] = tareas;
+    expect(t.cifra).toBe(24);
+    expect(t.texto).toBe("tallas esperan el cuadre del piso");
+    expect(t.tono).toBe("ambar");
+    expect(t.detalle).toMatch(/podría pedir colgar lo que ya cuelga/);
+    expect(tareasParaHoy({ ...vacia, piso: { enPausa: 1, fallo: false } })[0].texto).toBe("talla espera el cuadre del piso");
+  });
+
+  it("si el motor no respondió, lo dice sin número (no lo calla ni inventa un «al día»)", () => {
+    const tareas = tareasParaHoy({ ...vacia, piso: { enPausa: 0, fallo: true } });
+    expect(tareas).toHaveLength(1);
+    const [t] = tareas;
+    expect(t.tipo).toBe("piso_sin_calcular");
+    expect(t.cifra).toBeNull();
+    expect(t.texto).toBe("No se pudo calcular qué colgar hoy");
+    expect(t.tono).toBe("pizarra");
+  });
+
+  it("la falla manda sobre la pausa: sin plan no se sabe qué talla espera", () => {
+    expect(tareasParaHoy({ ...vacia, piso: { enPausa: 3, fallo: true } }).map((t) => t.tipo)).toEqual(["piso_sin_calcular"]);
+  });
+
+  it("en el Taller (no separa piso y almacén) no hay piso que cuadrar ni que calcular", () => {
+    expect(tareasParaHoy({ ...vacia, separa: false, piso: { enPausa: 5, fallo: true } })).toEqual([]);
+  });
+
+  it("con el piso cuadrado, «por colgar» vuelve a ser la primera y la pausa no aparece", () => {
+    const tareas = tareasParaHoy({ ...vacia, porColgar: { tallas: 2, unidades: 4, prendas: [] }, piso: { enPausa: 0, fallo: false } });
+    expect(tareas.map((t) => t.tipo)).toEqual(["por_colgar"]);
+  });
+
+  it("ninguna combinación de pausa y falla deja «Para hoy» vacío en una tienda", () => {
+    for (const enPausa of [0, 1, 7]) {
+      for (const fallo of [false, true]) {
+        const tareas = tareasParaHoy({ ...vacia, piso: { enPausa, fallo } });
+        expect(tareas.length > 0).toBe(enPausa > 0 || fallo);
+      }
+    }
   });
 });
 
