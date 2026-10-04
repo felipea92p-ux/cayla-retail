@@ -443,6 +443,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:retirar-del-piso
 
+      # Capacidad del piso por sede (ADR-0329, actividad 6 de ADR-0328): la siembra (TRU 600 contada, AQP 1800 y LIM 180
+      # provisionales, con los nombres de producción y los locales); `fn_capacidad_piso` para líder, colaboradora y terminal, 42501
+      # para la cuenta de afuera; `fijar_capacidad_piso` solo del líder, con firma, historial y Actividad, «sin cambios» al
+      # reintentar y PT409 si otra persona la cambió; los candados de la tabla (capacidad calculada, rangos, solo tiendas). ROLLBACK.
+      - name: pruebas:capacidad-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:capacidad-piso
+
       # La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
       # Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no
       # cuenta, sin almacén libre no mueve nada, firma el responsable, la misma marca no baja dos veces, y su fila del libro es

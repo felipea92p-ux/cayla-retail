@@ -48,6 +48,7 @@
     "pruebas:concurrencia-orden-doble-clic": "node scripts/pruebas/concurrencia_orden_y_doble_clic.mjs",
     "pruebas:bajada-al-piso": "node scripts/pruebas/bajada_al_piso.mjs",
     "pruebas:retirar-del-piso": "node scripts/pruebas/retirar_del_piso.mjs",
+    "pruebas:capacidad-piso": "node scripts/pruebas/capacidad_piso.mjs",
     "pruebas:bajada-desde-vender": "node scripts/pruebas/bajada_desde_vender.mjs",
     "pruebas:editar-marca": "node scripts/pruebas/editar_marca.mjs",
     "pruebas:producto-sin-marca": "node scripts/pruebas/producto_sin_marca_ni_proveedor.mjs",
