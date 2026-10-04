@@ -22,6 +22,7 @@ export type ClaveAviso =
   | "devoluciones"
   | "pedidos"
   | "traslados"
+  | "pedidosSede"
   | "conteo"
   | "regularizar"
   | "porPagar"
@@ -59,6 +60,9 @@ export type FuentesAvisos = {
   devoluciones?: number | null;
   pedidos?: number | null;
   traslados?: number | null;
+  /** ADR-0328 act. 17: los pedidos entre sedes que llevan 48 h o más sin respuesta, de los dos lados (solo para el líder).
+   *  Ya resumidos por `pedidos-por-atender-reglas.ts`: cuántos, el detalle y la frase de «Sigue ahora». */
+  pedidosSinRespuesta?: { tePiden: number; pediste: number; detalle: string; ahora: string } | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
   prendasVencidas?: number | null;
@@ -182,9 +186,28 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       cantidad: n,
       nivel: nivelDe(n, "toca"),
       ahora: n ? `Atiende ${n} ${plural(n, "traslado", "traslados")}` : "",
-      detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} tu confirmación.`,
+      // ADR-0328 act. 17: el número suma lo que llega por recibir y lo que otras sedes te piden enviar.
+      detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} a tu sede: recibir lo que llegó o enviar lo que te piden.`,
       href: "/inventario/traslados",
       ocultable: true,
+    });
+  }
+  // ADR-0328 act. 17 (Felipe: «a las 48 h sin respuesta, aviso a los líderes de las dos tiendas»). Solo cuenta lo que ya
+  // pasó las 48 h, así que si hay alguno es urgente: un cliente espera, o la otra sede espera una respuesta.
+  if (f.pedidosSinRespuesta !== undefined) {
+    const p = f.pedidosSinRespuesta;
+    const n = p === null ? null : p.tePiden + p.pediste;
+    avisos.push({
+      clave: "pedidosSede",
+      grupo: "Inventario",
+      titulo: "Pedidos entre sedes sin respuesta",
+      cantidad: n,
+      nivel: nivelDe(n, "urgente"),
+      ahora: p?.ahora ?? "",
+      detalle: p === null ? SIN_LEER : p.detalle,
+      href: "/inventario/traslados",
+      ocultable: true,
+      urgenteSi: "Cuando un pedido lleva 48 h sin respuesta",
     });
   }
   if (f.conteoAbierto !== undefined) {

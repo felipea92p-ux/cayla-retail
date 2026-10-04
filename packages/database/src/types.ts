@@ -5415,6 +5415,83 @@ export type Database = {
           variante_id: string
         }[]
       }
+      // ADR-0328 act. 17 (20261005100100 / 20261005100200): pedidos que no se pierden y la lista «Para enviar».
+      subir_pedido_al_almacen: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
+      marcar_pedido_avisado: {
+        Args: { p_pedido_id: string }
+        Returns: string
+      }
+      fn_pedidos_por_atender: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          con_cliente: boolean
+          created_at: string
+          direccion: string
+          id: string
+          otra_sede: string
+          otra_sede_id: string
+          prendas: number
+        }[]
+      }
+      fn_pedidos_con_cliente: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          avisado_en: string | null
+          cancelado_motivo: string | null
+          cantidad: number
+          cliente_apellidos: string
+          cliente_celular: string
+          cliente_nombres: string
+          color: string | null
+          created_at: string
+          creado_por_nombre: string | null
+          direccion: string
+          estado: string
+          guardada_hasta: string | null
+          id: string
+          llego_en: string | null
+          nota: string | null
+          otra_sede: string
+          otra_sede_id: string
+          producto: string
+          reserva_en: string | null
+          sku: string | null
+          talla: string | null
+          traslado_id: string | null
+          traslado_numero: number | null
+          variante_id: string
+        }[]
+      }
+      subir_para_enviar: {
+        Args: { p_destino_id: string; p_items: Json; p_nota?: string; p_token?: string; p_ubicacion_id: string }
+        Returns: Json
+      }
+      cancelar_para_enviar: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      fn_para_enviar: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cantidad: number
+          color: string | null
+          created_at: string
+          creado_por_nombre: string | null
+          destino: string
+          destino_id: string
+          en_almacen: number
+          falta: number
+          id: string
+          nota: string | null
+          producto: string
+          sku: string | null
+          talla: string | null
+          variante_id: string
+        }[]
+      }
       abonar_separacion: {
         Args: { p_esperar?: boolean; p_pagos: Json; p_separacion_id: string; p_token?: string }
         Returns: Json

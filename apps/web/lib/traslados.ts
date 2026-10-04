@@ -4,6 +4,8 @@ import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
 import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { contarTePiden } from "@/lib/pedidos-por-atender-reglas";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -315,20 +317,29 @@ type FilaContador = {
  *
  * `transferencia_items!inner`: un traslado sin prendas (las cabeceras vacías de la limpieza de datos,
  * ver `esTrasladoVacio`) no cuenta — si no, la sede destino tendría un «por recibir» de nada.
+ *
+ * Desde ADR-0328 act. 17 (Felipe: «"Te piden" lleva número en el menú desde que llega el pedido») suma también los
+ * pedidos que OTRAS sedes le hicieron a esta y todavía no salen (`fn_pedidos_por_atender`, `contarTePiden`): un pedido
+ * para un cliente o un grupo de reposición valen 1 cada uno. Si esa lectura falla, el número sale solo con los traslados
+ * (es lo que se sabe) en vez de desaparecer.
  */
 export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("transferencias")
-      .select("estado, ubicacion_origen_id, ubicacion_destino_id, fecha_estimada_llegada, confirmado_en, transferencia_items!inner ( variante_id )")
-      .eq("ubicacion_destino_id", ubicacionId)
-      .in("estado", ["en_transito", "recibido_con_diferencia"]);
+    const [{ data, error }, pedidos] = await Promise.all([
+      supabase
+        .from("transferencias")
+        .select("estado, ubicacion_origen_id, ubicacion_destino_id, fecha_estimada_llegada, confirmado_en, transferencia_items!inner ( variante_id )")
+        .eq("ubicacion_destino_id", ubicacionId)
+        .in("estado", ["en_transito", "recibido_con_diferencia"]),
+      getPedidosPorAtender(ubicacionId),
+    ]);
     if (error || !data) {
       console.error("Contador de traslados:", error?.message);
       return null;
     }
-    return contarRequierenAccion(
+    const tePiden = pedidos ? contarTePiden(pedidos) : 0;
+    return tePiden + contarRequierenAccion(
       (data as FilaContador[]).map((f) => ({
         estado: f.estado,
         ubicacionOrigenId: f.ubicacion_origen_id,

@@ -9,6 +9,8 @@ import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import type { ClaveModulo } from "@/lib/modulos";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { ahoraSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -116,11 +118,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuestaLeidos] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -141,8 +143,17 @@ export async function getFuentesAvisos(
           return { vencidas: de("vencida").comprobantes, montoVencido: de("vencida").monto, semana: de("0_7").comprobantes, montoSemana: de("0_7").monto };
         })
       : undefined,
+    // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar).
+    cuenta.esLider
+      ? getPedidosPorAtender(ubicacionId).then((filas) => {
+          if (filas === null) return null;
+          const ahoraIso = new Date().toISOString();
+          const s = pedidosSinRespuesta(filas, ahoraIso);
+          return { tePiden: s.tePiden.length, pediste: s.pediste.length, detalle: textoSinRespuesta(s, ahoraIso), ahora: ahoraSinRespuesta(s) };
+        })
+      : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

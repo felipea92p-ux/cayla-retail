@@ -20,6 +20,8 @@ import { getFilasRecientesDeSede } from "@/lib/resumen-inventario";
 import { calcularCobertura, velocidadDeFila } from "@/lib/resumen-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { siglaSede } from "@/lib/inicio-almacen-reglas";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { sinRespuestaEnLaRed, textoEspera } from "@/lib/pedidos-por-atender-reglas";
 import {
   diasDesde,
   nivelPorCuenta,
@@ -78,7 +80,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -93,6 +95,17 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       if (error) throw new Error(error.message);
       return data ?? [];
     }),
+    // ADR-0328 act. 17: los pedidos entre sedes que esperan respuesta, tienda por tienda (si una no se lee, el aviso entero
+    // dice «no se pudo leer»: contar la mitad lo haría parecer al día).
+    tolerar("los pedidos entre sedes", async () =>
+      Promise.all(
+        tiendas.map(async (t) => {
+          const filas = await getPedidosPorAtender(t.id);
+          if (filas === null) throw new Error(`no se leyeron los pedidos de ${t.nombre}`);
+          return { tiendaId: t.id, filas };
+        })
+      )
+    ),
   ]);
 
   const contarPor = (ids: readonly string[]) => {
@@ -246,6 +259,34 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     href: "/vender/comprobantes/por-reintentar",
     detalle: null,
   });
+  {
+    // ADR-0328 act. 17 (Felipe: a las 48 h sin respuesta, aviso a los líderes de las dos tiendas): cada pedido cuenta una
+    // vez y suma a las DOS sedes en el reparto.
+    const red = pedidosEntreSedes === null ? null : sinRespuestaEnLaRed(pedidosEntreSedes, ahora.toISOString());
+    const n = red === null ? null : red.pedidos.length;
+    const siglaDe = (id: string) => tiendas.find((t) => t.id === id)?.sigla ?? "otra sede";
+    avisos.push({
+      clave: "pedidosSede",
+      nivel: nivelPorCuenta(n, "urg"),
+      n,
+      icono: "flecha",
+      titulo: "Pedidos entre sedes sin respuesta",
+      corto: n === 1 ? "pedido sin respuesta" : "pedidos sin respuesta",
+      porTienda: red === null ? null : red.porTienda,
+      edad: red && red.pedidos.length ? Math.floor(red.pedidos[0].horas / 24) : null,
+      href: "/inventario/traslados",
+      detalle: red && red.pedidos.length
+        ? {
+            tipo: "lista",
+            filas: red.pedidos.slice(0, 6).map((p) => ({
+              titulo: `${siglaDe(p.otraSedeId)} le pidió a ${siglaDe(p.origenId)}`,
+              detalle: `${p.prendas} ${p.prendas === 1 ? "prenda" : "prendas"}${p.conCliente ? " · un cliente espera" : ""}`,
+              chip: textoEspera(p.horas),
+            })),
+          }
+        : null,
+    });
+  }
   {
     const n = devoluciones === null ? null : devoluciones.length;
     avisos.push({

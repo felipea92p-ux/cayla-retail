@@ -33,6 +33,18 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("ADR-0328 act. 17: un pedido entre sedes con 48 h sin respuesta es urgente para el líder y sale aunque lo oculte", () => {
+    const [a] = avisosInicio({ pedidosSinRespuesta: { tePiden: 1, pediste: 1, detalle: "Tienda Lima te pidió hace 50 h y nadie respondió.", ahora: "Responde 1 pedido de otra sede" } });
+    expect(a).toMatchObject({ clave: "pedidosSede", cantidad: 2, nivel: "urgente", href: "/inventario/traslados", ahora: "Responde 1 pedido de otra sede" });
+    expect(avisosVisibles([a!], { pedidosSede: false }, true).activos[0]!.forzado).toBe(true);
+    expect(avisosInicio({ pedidosSinRespuesta: { tePiden: 0, pediste: 0, detalle: "Ningún pedido…", ahora: "" } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ pedidosSinRespuesta: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("el número de Traslados dice que suma lo que llega y lo que te piden", () => {
+    expect(avisosInicio({ traslados: 3 })[0]!.detalle).toBe("3 esperan a tu sede: recibir lo que llegó o enviar lo que te piden.");
+  });
+
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");
