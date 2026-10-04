@@ -169,6 +169,10 @@ describe("requisitoDeTalla — cuántas debería tener colgadas", () => {
   });
   it("una talla retirada no pide nada, aunque se haya vendido", () => {
     expect(requisitoDeTalla({ central: true, vendidasHoy: 2, vendidasAyer: 2, retirada: true })).toBe(0);
+    // Lo anotado a mano hoy o ayer con su categoría, talla y color pide 1 —no más: no dice qué modelo fue—.
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, anotadasRecientes: 3, retirada: false })).toBe(1);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 2, anotadasRecientes: 1, retirada: false })).toBe(2);
+    expect(requisitoDeTalla({ central: false, vendidasHoy: 0, vendidasAyer: 0, anotadasRecientes: 1, retirada: true })).toBe(0);
   });
 });
 
@@ -224,7 +228,7 @@ function talla(p: Partial<TallaEnSede> & { talla: string | null }): TallaEnSede 
 /** Una sede con el piso YA cuadrado (el 1-oct), salvo que el caso diga otra cosa: las escenas prueban la regla, no la pausa. */
 const CUADRADO_EN = "2026-10-01T15:00:00+00:00";
 function lectura(tallas: TallaEnSede[], ventas: VentaPorAtributo[] = [], extra: Partial<LecturaDelPiso> = {}): LecturaDelPiso {
-  return { ubicacionId: "tru", separaPiso: true, cuadradoEn: CUADRADO_EN, hoy: "2026-10-04", dias: DIAS_VENTANA, tallas, ventas, curvas: CURVAS, ...extra };
+  return { ubicacionId: "tru", separaPiso: true, cuadradoEn: CUADRADO_EN, hoy: "2026-10-04", dias: DIAS_VENTANA, tallas, ventas, anotadasRecientes: [], curvas: CURVAS, ...extra };
 }
 const venta = (categoriaId: string | null, t: string | null, familiaColor: string | null, escaneadas: number, anotadas = 0): VentaPorAtributo => ({
   categoriaId,
@@ -325,7 +329,7 @@ describe("planDelPiso — el piso sin cuadrar (ADR-0328, decisión 5)", () => {
   it("no saber la fecha cuenta como NO cuadrado (falla cerrado): una lectura sin `cuadrado_en` pausa, no publica «Por colgar»", () => {
     // Es el caso de TRU hoy: 138 colgadas en el sistema contra 600–750 reales. Antes, sin fecha conocida no se pausaba nada y
     // salían «Por colgar» tallas que ya cuelgan (revisión adversarial, hallazgo alto; ADR-0328 decisión 5 lo había descartado).
-    const json = { ubicacion_id: "tru", separa_piso: true, hoy: "2026-10-04", dias: 14, tallas: [], ventas: [], curvas: [] };
+    const json = { ubicacion_id: "tru", separa_piso: true, hoy: "2026-10-04", dias: 14, tallas: [], ventas: [], anotadas_recientes: [], curvas: [] };
     expect(lecturaDesdeJson(json)?.cuadradoEn).toBeNull();
     expect(planDelPiso(lecturaDesdeJson({ ...json, tallas: [{ variante_id: "x", talla: "M", piso_libre: 0, almacen_libre: 2 }] })!).enPausa).toBe(true);
   });
@@ -459,6 +463,7 @@ describe("lecturaDesdeJson — la respuesta de la base", () => {
       },
     ],
     ventas: [{ categoria_id: POLOS, talla_id: "t-M", talla: "M", familia_color: "neutro", escaneadas: 3, anotadas: 1 }],
+    anotadas_recientes: [{ categoria_id: POLOS, talla_id: "t-XL", color_codigo: "NEG", hoy: 0, ayer: 1 }],
     curvas: [{ categoria_id: POLOS, categoria: "Polos", tallas: [{ talla_id: "t-S", talla: "S" }, { talla_id: "t-M", talla: "M" }] }],
   };
   it("traduce la forma de la base y el motor la usa tal cual", () => {
@@ -466,13 +471,45 @@ describe("lecturaDesdeJson — la respuesta de la base", () => {
     expect(l).toMatchObject({ ubicacionId: "tru", separaPiso: true, cuadradoEn: "2026-10-01T15:00:00+00:00", hoy: "2026-10-04", dias: 14 });
     expect(l?.tallas[0]).toMatchObject({ varianteId: "v1", talla: "M", almacenLibre: 2, vendidasAyer: 1, familiaColor: "neutro" });
     expect(l?.curvas[0].tallas).toEqual(["S", "M"]);
+    expect(l?.anotadasRecientes).toEqual([{ categoriaId: POLOS, tallaId: "t-XL", colorCodigo: "NEG", hoy: 0, ayer: 1 }]);
     expect(accion(planDelPiso(l!), "v1")).toBe("por_colgar");
   });
   it("NULL (sin la puerta) o una forma que no se entiende → null: «no se pudo leer», nunca «al día»", () => {
     expect(lecturaDesdeJson(null)).toBeNull();
     expect(lecturaDesdeJson([])).toBeNull();
     expect(lecturaDesdeJson({ ...json, tallas: null })).toBeNull();
+    expect(lecturaDesdeJson({ ...json, anotadas_recientes: undefined })).toBeNull();
     expect(lecturaDesdeJson({ ...json, dias: 0 })).toBeNull();
     expect(lecturaDesdeJson({ ...json, tallas: [{ piso_libre: 1 }] })).toBeNull();
+  });
+});
+
+describe("planDelPiso — lo anotado a mano hoy y ayer prende el reloj rápido (revisión adversarial; ADR-0328 decisión 2)", () => {
+  // AQP: 169 de 170 ventas salieron anotadas «sin registrar». Una anotada no tiene prenda: el motor la cruza por categoría ×
+  // talla × color EXACTO con las tallas de la sede, les pide 1 colgada y las pone primero, sin nombrar un modelo.
+  const anotada = (talla: string, colorCodigo: string | null, ayer = 1, hoy = 0) => ({ categoriaId: POLOS, tallaId: `t-${talla}`, colorCodigo, hoy, ayer });
+  const xlNegra = talla({ varianteId: "xl-neg", productoId: "pa", talla: "XL", colorCodigo: "NEG", pisoLibre: 0, almacenLibre: 2 });
+  const xlNegraOtro = talla({ varianteId: "xl-neg-b", productoId: "pb", talla: "XL", colorCodigo: "NEG", pisoLibre: 0, almacenLibre: 1 });
+  const xlRoja = talla({ varianteId: "xl-roj", productoId: "pa", talla: "XL", colorCodigo: "ROJ", color: "Rojo", familiaColor: "rojo", pisoLibre: 0, almacenLibre: 2 });
+  const mSinVenta = talla({ varianteId: "m-neg", productoId: "pc", referencia: "Polo Aaa", talla: "M", colorCodigo: "NEG", pisoLibre: 0, almacenLibre: 2 });
+
+  it("una XL negra anotada ayer pide colgar las XL negras de la sede (extremas: sin la anotada, «Mantener»); la XL roja no", () => {
+    const sin = planDelPiso(lectura([xlNegra, xlNegraOtro, xlRoja]));
+    expect(["xl-neg", "xl-neg-b", "xl-roj"].map((id) => accion(sin, id))).toEqual(["mantener", "mantener", "mantener"]);
+    const con = planDelPiso(lectura([xlNegra, xlNegraOtro, xlRoja], [], { anotadasRecientes: [anotada("XL", "NEG")] }));
+    expect(["xl-neg", "xl-neg-b", "xl-roj"].map((id) => accion(con, id))).toEqual(["por_colgar", "por_colgar", "mantener"]);
+    expect(con.porTalla.get("xl-neg")).toMatchObject({ requisito: 1, anotadasRecientes: 1, vendidasRecientes: 0 });
+  });
+  it("pide 1 y no más, aunque se hayan anotado 3: no sabe qué modelo fue", () => {
+    const plan = planDelPiso(lectura([{ ...xlNegra, pisoLibre: 1 }], [], { anotadasRecientes: [anotada("XL", "NEG", 2, 1)] }));
+    expect(plan.porTalla.get("xl-neg")).toMatchObject({ accion: "mantener", requisito: 1, anotadasRecientes: 3 });
+  });
+  it("va PRIMERO en la lista del día, antes que una talla central por colgar sin ventas", () => {
+    const plan = planDelPiso(lectura([mSinVenta, xlNegra], [], { anotadasRecientes: [anotada("XL", "NEG")] }));
+    expect(plan.listaDelDia).toEqual(["xl-neg", "m-neg"]);
+  });
+  it("una anotada sin color (o sin talla) no se cruza con ninguna talla: no se sabe a cuál pertenece", () => {
+    const plan = planDelPiso(lectura([xlNegra], [], { anotadasRecientes: [anotada("XL", null), { ...anotada("XL", "NEG"), tallaId: null }] }));
+    expect(accion(plan, "xl-neg")).toBe("mantener");
   });
 });

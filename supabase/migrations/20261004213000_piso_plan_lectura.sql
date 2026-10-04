@@ -16,6 +16,9 @@
 --     prenda se vendieron escaneadas hoy, ayer y en los 14 días (días de Lima).
 --   · `ventas`: lo vendido en los 14 días por categoría × talla × familia de color: `escaneadas` y `anotadas` (las ventas
 --     «sin registrar» que siguen pendientes en `prendas_por_regularizar`).
+--   · `anotadas_recientes`: lo anotado a mano «sin registrar» hoy y ayer que sigue pendiente, por categoría × talla × color exacto:
+--     el reloj rápido para lo que no tiene prenda (en AQP, 169 de 170 ventas). El motor sube a 1 lo colgado que piden las tallas
+--     de la sede con esa llave y las pone primero, sin nombrar un modelo (ADR-0329 act. 9).
 --   · `curvas`: las tallas que ofrece cada categoría que aparece arriba (`categoria_tallas`), para decidir las tallas centrales.
 --   · `hoy`, `desde`, `dias` (14), `separa_piso` (la sede tiene piso de venta y almacén) y `ubicacion_tipo`.
 --   · `cuadrado_en`: cuándo se cuadró el piso de la sede por última vez (`retail.cuadres_piso`, actividad 3); NULL si nunca, o si
@@ -67,7 +70,7 @@
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
 -- Después de pegar, solo lectura:
 --   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
---     → `8d23e85e014b5252179c74264bdaf52f` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--     → `7d9883743dcd3c38ba57f21ac7f99f75` (el cuerpo de este archivo; medido en la base con todas las migraciones).
 --   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
 --     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
@@ -240,6 +243,22 @@ begin
       from por_atributo
       group by categoria_id, talla_id, familia_color
     ),
+    anotadas_recientes as (
+      -- El reloj rápido para lo anotado a mano: lo vendido «sin registrar» HOY y AYER que sigue pendiente, por categoría × talla ×
+      -- color EXACTO (lo que anotó la caja; no la familia: el motor lo cruza con las tallas de la sede de ese color). La lista del
+      -- día pone primero lo que se vendió ayer, y una anotada no tiene prenda: sin esto, en AQP (169 de 170 ventas anotadas)
+      -- «primero lo vendido ayer» no veía casi nada. Una anotada ya regularizada no está aquí: su línea pasó a la prenda real y
+      -- cuenta en `vendidas_hoy`/`vendidas_ayer` de esa prenda.
+      select p.categoria_id, p.talla_id, p.color_codigo,
+             coalesce(sum(l.cantidad) filter (where l.dia = v_hoy), 0)::integer     as hoy,
+             coalesce(sum(l.cantidad) filter (where l.dia = v_hoy - 1), 0)::integer as ayer
+      from lineas l
+      join retail.prendas_por_regularizar p on p.venta_item_id = l.venta_item_id
+      where l.variante_id = c_centinela
+        and p.estado = 'pendiente'
+        and l.dia >= v_hoy - 1
+      group by p.categoria_id, p.talla_id, p.color_codigo
+    ),
     tallas_sede as (
       select e.variante_id, e.producto_id, pr.referencia, pr.categoria_id, va.talla_id, t.valor as talla,
              va.color_codigo, co.nombre as color, co.familia_color, e.talla_retirada,
@@ -287,6 +306,11 @@ begin
                  'familia_color', v.familia_color, 'escaneadas', v.escaneadas, 'anotadas', v.anotadas)
                order by v.categoria_id, ta.valor, v.familia_color)
         from ventas_atributo v left join retail.tallas ta on ta.id = v.talla_id), '[]'::jsonb),
+      'anotadas_recientes', coalesce((
+        select jsonb_agg(jsonb_build_object(
+                 'categoria_id', a.categoria_id, 'talla_id', a.talla_id, 'color_codigo', a.color_codigo, 'hoy', a.hoy, 'ayer', a.ayer)
+               order by a.categoria_id, a.talla_id, a.color_codigo)
+        from anotadas_recientes a), '[]'::jsonb),
       'curvas', coalesce((
         select jsonb_agg(jsonb_build_object(
                  'categoria_id', c.id, 'categoria', c.nombre,

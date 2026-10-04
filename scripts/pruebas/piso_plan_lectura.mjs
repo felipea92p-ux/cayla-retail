@@ -21,7 +21,8 @@
  *   E   ESCANEADAS por prenda: hoy, ayer, 14 días (el día 13 entra, el 14 no) en días de LIMA (las 20:00 de ayer en Lima ya
  *       son hoy en UTC); anulada, de prueba o de otra sede no cuentan, ni un producto de prueba vendido en una venta normal.
  *   A   ANOTADAS: la «sin registrar» pendiente suma en su categoría × talla × familia y no en ninguna talla de la sede; anulada
- *       o fuera de la ventana, no.
+ *       o fuera de la ventana, no. Y las de hoy y ayer, por categoría × talla × color exacto (el reloj rápido de lo anotado),
+ *       hasta que se regularizan y pasan a su prenda.
  *   U   UNA SOLA VEZ: al regularizarla con la función real (`regularizar_prenda`), la venta pasa de «anotada» a «escaneada» en el
  *       día en que se COBRÓ (hace 5 días), no hoy: el total de la sede no cambia, `vendidas_hoy` tampoco. Y la lectura asume
  *       que `regularizar_prenda` mueve la línea de venta a la prenda real: si alguien lo cambia, el caso lo dice.
@@ -204,6 +205,11 @@ create function pg_temp.atributo(u uuid, p_cat uuid, p_talla text, p_familia tex
                     where x ->> 'categoria_id' = p_cat::text and x ->> 'talla' = p_talla
                       and x ->> 'familia_color' is not distinct from p_familia), 'nada')
 $$;
+create function pg_temp.reciente(u uuid, p_cat uuid, p_talla uuid, p_color text) returns text language sql as $$
+  select coalesce((select (x ->> 'hoy') || ',' || (x ->> 'ayer')
+                     from jsonb_array_elements(retail.fn_piso_plan_lectura(u) -> 'anotadas_recientes') x
+                    where x ->> 'categoria_id' = p_cat::text and x ->> 'talla_id' = p_talla::text and x ->> 'color_codigo' = p_color), 'nada')
+$$;
 create function pg_temp.total_ventas(u uuid) returns int language sql as $$
   select coalesce(sum((x ->> 'escaneadas')::int + (x ->> 'anotadas')::int), 0)::int
     from jsonb_array_elements(retail.fn_piso_plan_lectura(u) -> 'ventas') x
@@ -263,12 +269,13 @@ caso(
      (pg_temp.lee(:'sede') ->> 'hoy')::date = retail.fn_hoy_lima(),
      (pg_temp.lee(:'sede') ->> 'desde')::date = retail.fn_hoy_lima() - 13,
      pg_temp.lee(:'sede') ->> 'dias', pg_temp.lee(:'sede') ->> 'separa_piso', pg_temp.lee(:'sede') ->> 'ubicacion_tipo');`,
-  "cuadrado_en;curvas;desde;dias;hoy;separa_piso;tallas;ubicacion_id;ubicacion_tipo;ventas,t,t,14,true,tienda"
+  "anotadas_recientes;cuadrado_en;curvas;desde;dias;hoy;separa_piso;tallas;ubicacion_id;ubicacion_tipo;ventas,t,t,14,true,tienda"
 );
 caso(
-  "F4 una sede sin historia: tallas, ventas y curvas son listas vacías (no NULL: NULL es «no se pudo leer»)",
-  `select concat_ws(',', pg_temp.lee(:'sede') -> 'tallas', pg_temp.lee(:'sede') -> 'ventas', pg_temp.lee(:'sede') -> 'curvas');`,
-  "[],[],[]"
+  "F4 una sede sin historia: tallas, ventas, anotadas recientes y curvas son listas vacías (no NULL: NULL es «no se pudo leer»)",
+  `select concat_ws(',', pg_temp.lee(:'sede') -> 'tallas', pg_temp.lee(:'sede') -> 'ventas', pg_temp.lee(:'sede') -> 'anotadas_recientes',
+                    pg_temp.lee(:'sede') -> 'curvas');`,
+  "[],[],[],[]"
 );
 caso(
   "F5 cada talla trae las claves que el motor lee (y ninguna cifra en soles)",
@@ -498,6 +505,28 @@ caso(
    select string_agg(c ->> 'categoria' || ':' || (select string_agg(x ->> 'talla', '·' order by x ->> 'talla') from jsonb_array_elements(c -> 'tallas') x), ';')
      from jsonb_array_elements(pg_temp.lee(:'sede') -> 'curvas') c;`,
   "PP Faldas:M·S"
+);
+
+caso(
+  "A6 el reloj rápido de lo anotado: las anotadas pendientes de HOY y AYER, por categoría × talla × color exacto (no la de hace 2 días)",
+  `select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(0)) as _ \\gset
+   select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(1)) as _ \\gset
+   select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(1)) as _ \\gset
+   select pg_temp.anota(:'cat', :'t_s', :'neutro', pg_temp.dia(2)) as _ \\gset
+   select pg_temp.anota(:'cat', :'t_m', :'otro_color', pg_temp.dia(0)) as _ \\gset
+   select concat_ws(';', pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro'), pg_temp.reciente(:'sede', :'cat', :'t_s', :'neutro'),
+                    pg_temp.reciente(:'sede', :'cat', :'t_m', :'otro_color'), jsonb_array_length(pg_temp.lee(:'sede') -> 'anotadas_recientes'));`,
+  "1,2;nada;1,0;2"
+);
+caso(
+  "A7 una anotada de ayer ya REGULARIZADA sale de las recientes y cuenta en vendidas_ayer de su prenda (una sola vez)",
+  `select pg_temp.prenda('PP-A7', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 1);
+   select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(1)) as li \\gset
+   select pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro') as antes \\gset
+   select retail.regularizar_prenda((select id from retail.prendas_por_regularizar where venta_item_id = :'li'), :'v', 'llego_nueva') as _dif \\gset
+   select concat_ws(';', :'antes', pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro'), pg_temp.talla(:'sede', :'v') ->> 'vendidas_ayer');`,
+  "0,1;nada;1"
 );
 
 // ===========================================================================

@@ -23,7 +23,7 @@ import type { AccionPiso, PisoDeTalla } from "./piso-plan";
 
 // La decisión del motor del piso (`lib/piso-plan.ts`) que trae cada fila. Por defecto la fila no pide nada, salvo que no tenga
 // ninguna colgada y sí algo atrás (así eran las filas de estas pruebas con la regla de antes); cada caso que importa la escribe.
-const plan = (accion: AccionPiso): PisoDeTalla => ({ accion, requisito: 1, central: true, vendidasRecientes: 0, ritmoAtributo: 0, entraUnaSaleUna: false });
+const plan = (accion: AccionPiso): PisoDeTalla => ({ accion, requisito: 1, central: true, vendidasRecientes: 0, anotadasRecientes: 0, ritmoAtributo: 0, entraUnaSaleUna: false });
 
 function fila(p: Partial<FilaPrenda> & { varianteId: string }): FilaPrenda {
   const piso = p.pisoDisponible ?? 2;

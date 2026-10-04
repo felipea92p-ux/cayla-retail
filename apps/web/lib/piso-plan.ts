@@ -8,7 +8,9 @@
 
    LO QUE DECIDIÓ FELIPE (2026-10-04), y es TODO lo que este archivo sabe del negocio:
      · Dos relojes. El mix (cuánto lugar tiene cada categoría) es el reloj lento y lo arma la actividad 12; la lista del día es el
-       reloj rápido: lo que se vendió ayer se cuelga primero, desde el día 1, sin esperar al mix.
+       reloj rápido: lo que se vendió ayer se cuelga primero, desde el día 1, sin esperar al mix. También lo anotado a mano «sin
+       registrar» (en AQP, 169 de 170 ventas): como no dice qué modelo fue, pide 1 colgada en las tallas de la sede con su
+       categoría, talla y color, y las pone primero.
      · Mínimo por modelo colgado: 1 por talla y COLOR, solo en las tallas centrales (S, M, L; 28, 30, 32; «Estándar» y «Única»
        cuentan como la única talla de su modelo). La talla extrema puede quedar en el almacén.
      · El mínimo nunca genera «pedir este modelo» (los modelos no se repiten): lo que falta se suma por categoría × talla ×
@@ -127,13 +129,21 @@ export function pidePiso(accion: AccionPiso | null | undefined): boolean {
 }
 
 /**
- * Cuántas debería tener colgadas una talla hoy: el mínimo (1 si es central) o lo que se vendió de ESA prenda en un día —ayer u
- * hoy, el mayor—, lo que pida más. Así lo que se vendió ayer se vuelve a colgar aunque sea una talla extrema (el reloj rápido),
- * y una talla central nunca queda sin ninguna. Una talla retirada no pide nada: no se cuelga lo que ya no se vende.
+ * Cuántas debería tener colgadas una talla hoy: el mínimo (1 si es central), lo que se vendió de ESA prenda en un día —ayer u
+ * hoy, el mayor— o 1 si hoy o ayer se anotó a mano una venta «sin registrar» de su categoría, talla y color (`anotadasRecientes`),
+ * lo que pida más. Así lo que se vendió ayer se vuelve a colgar aunque sea una talla extrema (el reloj rápido), también cuando la
+ * caja lo anotó a mano, y una talla central nunca queda sin ninguna. La anotada pide 1 y no más: no dice QUÉ modelo se vendió, y
+ * el mínimo nunca nombra un modelo (ADR-0329 act. 9). Una talla retirada no pide nada: no se cuelga lo que ya no se vende.
  */
-export function requisitoDeTalla(t: { central: boolean; vendidasHoy: number; vendidasAyer: number; retirada: boolean }): number {
+export function requisitoDeTalla(t: {
+  central: boolean;
+  vendidasHoy: number;
+  vendidasAyer: number;
+  anotadasRecientes?: number;
+  retirada: boolean;
+}): number {
   if (t.retirada) return 0;
-  return Math.max(t.central ? MINIMO_TALLA_CENTRAL : 0, t.vendidasHoy, t.vendidasAyer);
+  return Math.max(t.central ? MINIMO_TALLA_CENTRAL : 0, t.vendidasHoy, t.vendidasAyer, Math.min(1, t.anotadasRecientes ?? 0));
 }
 
 /** ¿Qué pasará con la talla si se suben `n` del piso al almacén? La ventana «Subir prenda» lo pregunta ANTES de confirmar, con
@@ -176,6 +186,10 @@ export type VentaPorAtributo = {
   anotadas: number;
 };
 
+/** Lo anotado a mano «sin registrar» hoy y ayer (pendiente), por categoría × talla × color EXACTO: el reloj rápido de lo que no
+ *  tiene prenda. Una llave con algún vacío no se cruza con ninguna talla (no se sabe a cuál pertenece). */
+export type AnotadaReciente = { categoriaId: string | null; tallaId: string | null; colorCodigo: string | null; hoy: number; ayer: number };
+
 /** Las tallas que ofrece una categoría (`categoria_tallas`). */
 export type CurvaDeCategoria = { categoriaId: string; categoria: string; tallas: string[] };
 
@@ -190,6 +204,7 @@ export type LecturaDelPiso = {
   dias: number;
   tallas: TallaEnSede[];
   ventas: VentaPorAtributo[];
+  anotadasRecientes: AnotadaReciente[];
   curvas: CurvaDeCategoria[];
 };
 
@@ -208,8 +223,10 @@ export type PisoDeTalla = {
   /** Cuántas debería tener colgadas hoy (`requisitoDeTalla`). */
   requisito: number;
   central: boolean;
-  /** Lo vendido de ESA prenda hoy y ayer (escaneado): la primera llave del orden de la lista del día. */
+  /** Lo vendido de ESA prenda hoy y ayer (escaneado). Con `anotadasRecientes`, la primera llave del orden de la lista del día. */
   vendidasRecientes: number;
+  /** Lo anotado a mano hoy y ayer con su categoría, talla y color exacto (de la sede, sin saber qué modelo). */
+  anotadasRecientes: number;
   /** Ventas por día de su categoría × talla × familia de color en la ventana (escaneadas + anotadas). */
   ritmoAtributo: number;
   /** Su categoría ya llegó a su meta del piso: se cuelga igual, y Frescura propone qué retirar (ADR-0329 act. 10). */
@@ -252,8 +269,9 @@ export type PlanDelPiso = {
   dias: number;
   /** varianteId → decisión. Vacío donde la sede no separa piso y almacén (Taller): ahí no hay «Hoy». */
   porTalla: Map<string, PisoDeTalla>;
-  /** Las tallas para colgar o reponer hoy, en orden: lo vendido ayer y hoy primero, luego lo que el piso no tiene, luego el
-   *  ritmo de su categoría × talla × familia, y al final modelo, color y talla (estable). */
+  /** Las tallas para colgar o reponer hoy, en orden: lo vendido ayer y hoy primero (escaneado de esa prenda o anotado a mano con
+   *  su categoría, talla y color), luego lo que el piso no tiene, luego el ritmo de su categoría × talla × familia, y al final
+   *  modelo, color y talla (estable). */
   listaDelDia: string[];
   porAtributo: FilaAtributo[];
   /** Lo que se vendió y no alcanza para la próxima ventana o tiene huecos en el mínimo, de lo que más rápido se vende. */
@@ -264,6 +282,10 @@ export type PlanDelPiso = {
 };
 
 const VACIO = "∅";
+/** La llave de una anotada reciente: categoría × talla × color exacto, solo si se conocen las tres. */
+function claveAnotada(categoriaId: string | null, tallaId: string | null, colorCodigo: string | null): string | null {
+  return categoriaId && tallaId && colorCodigo ? `${categoriaId}|${tallaId}|${colorCodigo}` : null;
+}
 /** La llave de la señal para el Taller. Lo vacío es UNA llave (una prenda sin talla o sin familia no se pierde). */
 export function claveAtributo(categoriaId: string | null, tallaId: string | null, familiaColor: string | null): string {
   return `${categoriaId ?? VACIO}|${tallaId ?? VACIO}|${familiaColor ?? VACIO}`;
@@ -306,6 +328,12 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
     const prev = ventasPorClave.get(k);
     ventasPorClave.set(k, prev ? { ...prev, escaneadas: prev.escaneadas + v.escaneadas, anotadas: prev.anotadas + v.anotadas } : v);
   }
+  // Lo anotado a mano hoy y ayer, por categoría × talla × color exacto (el reloj rápido de lo que no tiene prenda).
+  const anotadasPorClave = new Map<string, number>();
+  for (const a of lectura.anotadasRecientes) {
+    const k = claveAnotada(a.categoriaId, a.tallaId, a.colorCodigo);
+    if (k) anotadasPorClave.set(k, (anotadasPorClave.get(k) ?? 0) + Math.max(0, a.hoy) + Math.max(0, a.ayer));
+  }
   const ritmo = (k: string) => {
     const v = ventasPorClave.get(k);
     return v ? (v.escaneadas + v.anotadas) / lectura.dias : 0;
@@ -327,7 +355,9 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
   if (lectura.separaPiso) {
     for (const t of lectura.tallas) {
       const central = esTallaCentral(t.talla, t.categoriaId ? curvas.get(t.categoriaId) ?? [] : []);
-      const requisito = requisitoDeTalla({ central, vendidasHoy: t.vendidasHoy, vendidasAyer: t.vendidasAyer, retirada: t.retirada });
+      const claveA = claveAnotada(t.categoriaId, t.tallaId, t.colorCodigo);
+      const anotadasRecientes = claveA ? anotadasPorClave.get(claveA) ?? 0 : 0;
+      const requisito = requisitoDeTalla({ central, vendidasHoy: t.vendidasHoy, vendidasAyer: t.vendidasAyer, anotadasRecientes, retirada: t.retirada });
       const accion = decidirTalla(t.pisoLibre, t.almacenLibre, requisito, enPausa);
       const clave = claveAtributo(t.categoriaId, t.tallaId, t.familiaColor);
       porTalla.set(t.varianteId, {
@@ -335,6 +365,7 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
         requisito,
         central,
         vendidasRecientes: t.vendidasHoy + t.vendidasAyer,
+        anotadasRecientes,
         ritmoAtributo: ritmo(clave),
         entraUnaSaleUna: esParaColgar(accion) && sobreMeta.has(t.categoriaId),
       });
@@ -352,7 +383,7 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
       const ta = porId.get(ia)!;
       const tb = porId.get(ib)!;
       return (
-        b.vendidasRecientes - a.vendidasRecientes ||
+        b.vendidasRecientes + b.anotadasRecientes - (a.vendidasRecientes + a.anotadasRecientes) ||
         Number(b.accion === "por_colgar") - Number(a.accion === "por_colgar") ||
         b.ritmoAtributo - a.ritmoAtributo ||
         ta.referencia.localeCompare(tb.referencia, "es") ||
@@ -479,7 +510,9 @@ export function lecturaDesdeJson(json: unknown): LecturaDelPiso | null {
   const j = json as Record<string, unknown>;
   const ubicacionId = texto(j.ubicacion_id);
   const hoy = texto(j.hoy);
-  if (!ubicacionId || !hoy || !Array.isArray(j.tallas) || !Array.isArray(j.ventas) || !Array.isArray(j.curvas)) return null;
+  if (!ubicacionId || !hoy || !Array.isArray(j.tallas) || !Array.isArray(j.ventas) || !Array.isArray(j.anotadas_recientes) || !Array.isArray(j.curvas)) {
+    return null;
+  }
   const dias = numero(j.dias);
   if (dias <= 0) return null;
   const tallas: TallaEnSede[] = [];
@@ -518,6 +551,10 @@ export function lecturaDesdeJson(json: unknown): LecturaDelPiso | null {
       anotadas: numero(v.anotadas),
     };
   });
+  const anotadasRecientes: AnotadaReciente[] = (j.anotadas_recientes as unknown[]).map((crudo) => {
+    const a = (crudo ?? {}) as Record<string, unknown>;
+    return { categoriaId: texto(a.categoria_id), tallaId: texto(a.talla_id), colorCodigo: texto(a.color_codigo), hoy: numero(a.hoy), ayer: numero(a.ayer) };
+  });
   const curvas: CurvaDeCategoria[] = [];
   for (const crudo of j.curvas as unknown[]) {
     const c = (crudo ?? {}) as Record<string, unknown>;
@@ -527,5 +564,5 @@ export function lecturaDesdeJson(json: unknown): LecturaDelPiso | null {
     curvas.push({ categoriaId, categoria: texto(c.categoria) ?? "", tallas: tallasCurva });
   }
   // Sin `cuadrado_en` (una lectura que no lo trae) es «sin cuadre»: falla cerrado, nunca publica «Por colgar» sin saber.
-  return { ubicacionId, separaPiso: j.separa_piso === true, cuadradoEn: texto(j.cuadrado_en), hoy, dias, tallas, ventas, curvas };
+  return { ubicacionId, separaPiso: j.separa_piso === true, cuadradoEn: texto(j.cuadrado_en), hoy, dias, tallas, ventas, anotadasRecientes, curvas };
 }
