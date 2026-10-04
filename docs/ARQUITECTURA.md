@@ -114,7 +114,8 @@ flowchart TB
   30 s, teclado, «Repetir el día»), `Mapa.tsx` (zoom y transformación del contorno, cuadro a cuadro sobre el DOM), `PanelGlobal.tsx`, `PanelTienda.tsx`
   (Ritmo, Productos, Equipo, Stock), `Abajo.tsx` (Taller y «Por revisar»), `piezas.tsx` (odómetro, cifras, anillos, trazos, control segmentado) e
   `iconos.tsx`. Lecturas: `lib/observatorio.ts` (`getDatosObservatorio` → RPC `fn_observatorio`; `getAvisosObservatorio`, sobre las lecturas de caja,
-  por regularizar, traslados, apartados, por pagar, fotos, SUNAT y devoluciones; `getTallerObservatorio`; `getDatosTienda` → RPC
+  por regularizar, traslados, apartados, por pagar, fotos, SUNAT, devoluciones y «Pérdidas que se repiten» (ADR-0328 act. 14: `fn_perdidas_resumen`
+  de los últimos 30 días de cada tienda por `perdidasQueSeRepiten`, armado en `avisoPerdidasObs`); `getTallerObservatorio`; `getDatosTienda` → RPC
   `fn_observatorio_tienda` + ritmo de Existencias + traslados). Cuentas puras: `lib/observatorio-reglas.ts`; geometría del mapa:
   `lib/observatorio-mapa.ts` y sus contornos generados `lib/observatorio-mapa-datos.ts` (INEI, MPL-2.0; `scripts/observatorio/contornos.py`).
   Estilos: `app/estilos/observatorio.css` (clases `o-*` bajo `.obs`, modo oscuro listo bajo `[data-tema="oscuro"]`). Es el único Inicio que se abre en
