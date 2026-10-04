@@ -142,7 +142,8 @@ export function PorRegularizarLista({
 
       <p className="nota-cayla text-sm">
         Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda
-        cuadrado. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder.
+        cuadrado. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder. Las pendientes salen todas, sin importar cuándo se
+        vendieron; las ya resueltas, las de este mes y el anterior.
       </p>
 
       {abierta && (

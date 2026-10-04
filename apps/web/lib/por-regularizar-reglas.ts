@@ -16,6 +16,19 @@ export function vencidasDesde(ahora: Date = new Date()): string {
   return new Date(ahora.getTime() - DIAS_PARA_VENCER * MS_POR_DIA).toISOString();
 }
 
+/**
+ * Desde cuándo se muestran las ya resueltas (regularizadas o de venta anulada): el 1.º del mes ANTERIOR, a las 00:00 de
+ * Lima. Tiene que cubrir el mes completo en curso, porque las cifras «este mes» se calculan sobre las filas que llegan
+ * (`cifrasPorRegularizar`); y con el mes anterior, el día 1 la lista de resueltas no amanece vacía. Las PENDIENTES no
+ * tienen ventana: una de hace tres meses sigue siendo trabajo, y es justo la que primero vence. Lima va cinco horas
+ * detrás de UTC todo el año, así que el corte se escribe con su desfase fijo.
+ */
+export function resueltasDesde(ahora: Date = new Date()): string {
+  const [anio, mes] = hoyLima(ahora).split("-").map(Number);
+  const [anioAnterior, mesAnterior] = mes === 1 ? [anio - 1, 12] : [anio, mes - 1];
+  return `${anioAnterior}-${String(mesAnterior).padStart(2, "0")}-01T00:00:00-05:00`;
+}
+
 /** diferencia = cobrado − oficial: negativa = descuento no planificado; positiva = sobreprecio. */
 export function tipoDiferencia(diferencia: number): "descuento" | "sobreprecio" | "exacto" {
   if (diferencia < 0) return "descuento";

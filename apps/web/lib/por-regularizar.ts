@@ -1,8 +1,9 @@
 // Lectura de la cola «Por regularizar» (ADR-0179): prendas vendidas en caja antes de estar en el
 // sistema. RLS deja ver solo las sedes que la persona puede operar; el líder, todas.
-import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
-import { vencidasDesde } from "@/lib/por-regularizar-reglas";
+// Rutas relativas (como `candidatas-alta-lector.ts`): vitest no resuelve `@/`, y esta lectura se prueba con un cliente simulado.
+import { createClient } from "./supabase/server";
+import { exigir, leerTodas } from "./resultado";
+import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
 
 export type FilaPorRegularizar = {
   id: string;
@@ -22,20 +23,42 @@ export type FilaPorRegularizar = {
   diferencia: number | null;
 };
 
-/** Pendientes primero (las más antiguas arriba), después lo ya resuelto, de lo más nuevo a lo más viejo. */
-export async function getPorRegularizar(ubicacionId: string | null): Promise<FilaPorRegularizar[]> {
-  const supabase = await createClient();
-  let consulta = supabase
-    .from("prendas_por_regularizar")
-    .select(
-      `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
+const COLUMNAS = `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
        categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
-       ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) )`,
-    )
-    .order("vendido_en", { ascending: false })
-    .limit(200);
-  if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
-  const filas = exigir(await consulta, "las prendas por regularizar");
+       ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) )`;
+
+/**
+ * La cola entera: las PENDIENTES (las más antiguas arriba, sin tope ni ventana) y, después, lo ya resuelto de este mes y el
+ * anterior (`resueltasDesde`), de lo más nuevo a lo más viejo.
+ *
+ * Antes era un solo `.limit(200)` por fecha descendente. Pasadas 200 filas lo primero que se perdía eran las pendientes más
+ * viejas —las vencidas, que son las que hay que ver— y las cuatro cifras de la cabecera (`cifrasPorRegularizar`, que cuenta
+ * lo que llega) salían de menos sin avisar, mientras el inicio (`contarVencidas`, con conteo exacto) decía otro número. Son dos
+ * lecturas porque son dos cosas: la cola de trabajo no se corta nunca; el historial sí, por fecha y no por cantidad. Cada una
+ * va por páginas (`leerTodas`): PostgREST corta en 1.000 filas sin dar error.
+ */
+export async function getPorRegularizar(ubicacionId: string | null, ahora: Date = new Date()): Promise<FilaPorRegularizar[]> {
+  const supabase = await createClient();
+  const ventana = resueltasDesde(ahora);
+  // Lo normal es que cada lectura quepa en una página: en serie, la 2.ª solo se pide si la 1.ª vino llena.
+  const leer = (resueltas: boolean) =>
+    leerTodas(
+      (desde, hasta) => {
+        let consulta = supabase.from("prendas_por_regularizar").select(COLUMNAS);
+        if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
+        consulta = resueltas ? consulta.neq("estado", "pendiente").gte("vendido_en", ventana) : consulta.eq("estado", "pendiente");
+        // `id` desempata: sin un orden único, dos páginas pueden repetir o saltarse filas.
+        return consulta.order("vendido_en", { ascending: !resueltas }).order("id").range(desde, hasta);
+      },
+      { enParalelo: 1 },
+    );
+  const [pendientes, resueltas] = await Promise.all([leer(false), leer(true)]);
+  const yaResueltas = exigir(resueltas, "las prendas ya regularizadas");
+  // Las dos lecturas no comparten foto de la base: una prenda que almacén regulariza justo entre las dos saldría en ambas y se
+  // pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
+  // hasta el siguiente refresco.)
+  const idsResueltas = new Set(yaResueltas.map((f) => f.id));
+  const filas = [...exigir(pendientes, "las prendas por regularizar").filter((f) => !idsResueltas.has(f.id)), ...yaResueltas];
 
   // `personas` vive en `public` (Dynamic): PostgREST no la embebe; se nombra con la misma función que Historial.
   const ids = [...new Set(filas.flatMap((f) => (f.vendido_por ? [f.vendido_por] : [])))];
@@ -60,9 +83,7 @@ export async function getPorRegularizar(ubicacionId: string | null): Promise<Fil
     forma: f.forma as FilaPorRegularizar["forma"],
     diferencia: f.diferencia === null ? null : Number(f.diferencia),
   });
-  const todas = filas.map(aFila);
-  const pendientes = todas.filter((f) => f.estado === "pendiente").reverse();
-  return [...pendientes, ...todas.filter((f) => f.estado !== "pendiente")];
+  return filas.map(aFila);
 }
 
 /** Para el aviso del inicio: pendientes que ya pasaron el plazo. Solo lo pide el líder. null = no se pudo leer. */
