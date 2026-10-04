@@ -1,5 +1,4 @@
-import { porColgar } from "./inventario-reglas";
-import type { TipoAccionHoy } from "./existencias-recomendaciones";
+import type { AccionPiso, PisoDeTalla } from "./piso-plan";
 
 /* ====================================================================
    «Hoy»: qué pide cada talla, en UNA sola palabra para toda Existencias (Felipe, 2026-10-03)
@@ -15,8 +14,9 @@ import type { TipoAccionHoy } from "./existencias-recomendaciones";
      · Por reponer     — queda poco en el piso (la regla física de piso pide reponer) y hay en el almacén para bajar.
      · Sin stock atrás — la regla pide reponer pero el almacén está vacío: no se resuelve en la tienda (pedir o trasladar).
      · Mantener        — nada que hacer hoy con el piso.
-   No cambia el motor de «Acción hoy» (`calcularAccionHoy`, regla del 2026-09-25): solo separa SU «Reponer a piso» según haya o
-   no algo libre atrás, con las mismas cifras que ya decide «Reponer prenda» (`sePuedeBajar`).
+   La regla no vive aquí: cada talla trae su decisión ya tomada (`planPiso`, la de `lib/piso-plan.ts`, ADR-0328 act. 7) y este
+   archivo solo la dice con las cuatro palabras. Así la tabla, el filtro, la tarjeta, el cajón y el Inicio no pueden decidir
+   distinto: leen la misma decisión.
    ==================================================================== */
 
 export const TIPOS_HOY = ["por_colgar", "por_reponer", "sin_stock_atras", "mantener"] as const;
@@ -37,16 +37,39 @@ export const AYUDA_HOY: Record<TipoHoy, string> = {
   mantener: "Nada que hacer hoy con el piso de esta talla",
 };
 
-/** Lo que la talla necesita para decidir: lo libre en piso y almacén (neto de apartados) y la «Acción hoy» del motor. */
-export type TallaParaHoy = { pisoDisponible: number | null; almacenDisponible: number | null; accionHoy?: { tipo: TipoAccionHoy } | null };
+/** Lo que la talla necesita: si la sede separa piso y almacén, y la decisión del motor del piso (`planPiso`). */
+export type TallaParaHoy = { pisoDisponible: number | null; almacenDisponible: number | null; planPiso?: Pick<PisoDeTalla, "accion"> | null };
 
-/** El caso de UNA talla. `null` donde la sede no separa piso y almacén (Taller): ahí no hay «Hoy». El orden de las preguntas
- *  hace que los cuatro casos no se pisen: una talla cae siempre en uno solo. */
+/** La palabra de cada acción del motor. La pausa (piso sin cuadrar) no tiene palabra en «Hoy»: no se afirma nada de una talla
+ *  cuyo piso no se sabe (ADR-0328, decisión 5); lo dice la portada con «Cuadra el piso». */
+const HOY_DE_ACCION: Record<AccionPiso, TipoHoy | null> = {
+  por_colgar: "por_colgar",
+  por_reponer: "por_reponer",
+  sin_atras: "sin_stock_atras",
+  mantener: "mantener",
+  pausa_sin_cuadre: null,
+};
+
+/** El caso de UNA talla. `null` donde la sede no separa piso y almacén (Taller), donde el motor no pudo decidir (su lectura no
+ *  respondió: la tabla dice «N/D», nunca un «Mantener» que no sabe) y en pausa. Una talla cae en un solo caso: es la acción del
+ *  motor, que es una sola. */
 export function hoyDeTalla(f: TallaParaHoy): TipoHoy | null {
   if (f.pisoDisponible === null || f.almacenDisponible === null) return null;
-  if (porColgar(f)) return "por_colgar";
-  if (f.accionHoy?.tipo === "reponer_a_piso") return f.almacenDisponible > 0 ? "por_reponer" : "sin_stock_atras";
-  return "mantener";
+  const accion = f.planPiso?.accion;
+  return accion ? HOY_DE_ACCION[accion] : null;
+}
+
+/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo disponible en el almacén de
+ *  esas tallas — lo mismo que el modal de Reponer deja bajar). */
+export function resumirPorColgar(filas: readonly TallaParaHoy[]): { tallas: number; unidades: number } {
+  let tallas = 0;
+  let unidades = 0;
+  for (const f of filas) {
+    if (hoyDeTalla(f) !== "por_colgar") continue;
+    tallas += 1;
+    unidades += f.almacenDisponible ?? 0;
+  }
+  return { tallas, unidades };
 }
 
 /** «1 talla por colgar», «3 tallas sin stock atrás», «Mantener»: lo que dicen la tarjeta y la tabla de una prenda. */

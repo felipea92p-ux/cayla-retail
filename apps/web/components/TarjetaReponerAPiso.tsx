@@ -5,13 +5,14 @@ import { ChevronRight } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
+import { pidePiso } from "@/lib/piso-plan";
 
 /* ====================================================================
    «Reponer a piso hoy» (Prioridades de hoy, 2026-09-29)
 
    Solo dice con qué empezar: hasta tres prendas que piden piso (las que haya, si son menos de tres) y CUÁLES de sus tallas.
    Nada decide algo nuevo: las prendas y su orden son los de la tabla (`agruparPorPrenda`, `ordenarPorUrgencia`) y «pide
-   reponer» es la regla única de Acción hoy.
+   piso» es la decisión del motor del piso (`pidePiso`, `lib/piso-plan.ts`).
 
    Del mismo ancho que las otras tres tarjetas: cada prenda es una fila compacta (nombre y color, y sus tallas al lado o debajo), sin foto.
    ==================================================================== */
@@ -29,7 +30,7 @@ const TONO_TALLA = {
 
 /** Las tallas de una prenda que piden piso, cada una con su color y lo que hay en piso y almacén al pasar el mouse. */
 function TallasQuePiden({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
-  const piden = prenda.tallas.filter((f) => f.accionHoy?.tipo === "reponer_a_piso");
+  const piden = prenda.tallas.filter((f) => pidePiso(f.planPiso?.accion));
   return (
     <span className="flex flex-wrap items-center gap-1">
       {piden.slice(0, MAX_TALLAS_EN_FILA).map((f) => (
@@ -55,7 +56,7 @@ export function TarjetaReponerAPiso({
   onVerPrenda: (prenda: PrendaAgrupada<FilaExistencias>) => void;
 }) {
   const prendas = useMemo(
-    () => ordenarPorUrgencia(agruparPorPrenda(stock)).filter((p) => p.tallas.some((f) => f.accionHoy?.tipo === "reponer_a_piso")),
+    () => ordenarPorUrgencia(agruparPorPrenda(stock)).filter((p) => p.tallas.some((f) => pidePiso(f.planPiso?.accion))),
     [stock]
   );
   const primeras = prendas.slice(0, CUANTAS);

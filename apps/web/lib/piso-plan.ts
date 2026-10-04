@@ -114,9 +114,11 @@ export function esParaColgar(accion: AccionPiso | null | undefined): boolean {
   return accion === "por_colgar" || accion === "por_reponer";
 }
 
-/** ¿Al piso le falta algo en esta talla, se pueda resolver en la tienda o no? */
+/** ¿Al piso le falta algo en esta talla, se pueda resolver en la tienda o no? La pausa NO cuenta: sin el piso cuadrado no se
+ *  sabe si falta (puede estar colgada y el sistema creerla guardada), y una lista que la incluyera mandaría a bajar lo que ya
+ *  cuelga — lo que ADR-0328 (decisión 5) descartó. */
 export function pidePiso(accion: AccionPiso | null | undefined): boolean {
-  return accion === "por_colgar" || accion === "por_reponer" || accion === "sin_atras" || accion === "pausa_sin_cuadre";
+  return accion === "por_colgar" || accion === "por_reponer" || accion === "sin_atras";
 }
 
 /**

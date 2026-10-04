@@ -17,7 +17,6 @@ import {
 } from "./retiro-reglas";
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { RETIRO_NO_ES_BAJA } from "./inventario-reglas";
-import { resolverPolitica } from "./politica-operativa-inventario";
 import { lineasDeMover, sePuedeSubirTalla, tallasParaReponer, textoFilaSinAlcance } from "./reponer-prenda-reglas";
 
 // La migración es la fuente: si cambia el nombre o los parámetros de la RPC, la pantalla se entera aquí y no en producción.
@@ -141,15 +140,17 @@ describe("los textos", () => {
     expect(tituloDeExitoRetiro(3)).toBe("3 prendas subidas al almacén");
   });
 
-  it("el bloque de abajo avisa si lo que se sube dejaría la talla pidiendo reponer, y si no, recuerda que subir no es dar de baja", () => {
-    const politica = resolverPolitica(undefined);
+  it("el bloque de abajo avisa si lo que se sube dejaría la talla pidiendo colgar, y si no, recuerda que subir no es dar de baja", () => {
+    // El requisito de cada talla lo trae la decisión del motor del piso (`planPiso`): aquí, talla central (1).
     const tallas = tallasParaReponer([
-      { varianteId: "poco", talla: "S", pisoDisponible: 3, almacenDisponible: 0 }, // subir las 3 → 0 en el piso: «Por colgar»
-      { varianteId: "mucho", talla: "M", pisoDisponible: 40, almacenDisponible: 0 }, // subir 1 → 39 en el piso: no pide nada
+      { varianteId: "poco", talla: "S", pisoDisponible: 3, almacenDisponible: 0, planPiso: { requisito: 1 } }, // subir las 3 → 0: «Por colgar»
+      { varianteId: "mucho", talla: "M", pisoDisponible: 40, almacenDisponible: 0, planPiso: { requisito: 1 } }, // subir 1 → 39: nada
+      { varianteId: "extrema", talla: "XL", pisoDisponible: 2, almacenDisponible: 0, planPiso: { requisito: 0 } }, // no pide nada
     ]);
-    expect(textoDelBloqueSubir(tallas, { poco: 3 }, politica)).toBe(AVISO_QUEDAN_CON_POCO);
-    expect(textoDelBloqueSubir(tallas, { mucho: 1 }, politica)).toBe(RETIRO_NO_ES_BAJA);
-    expect(textoDelBloqueSubir(tallas, {}, politica)).toBe(RETIRO_NO_ES_BAJA);
+    expect(textoDelBloqueSubir(tallas, { poco: 3 })).toBe(AVISO_QUEDAN_CON_POCO);
+    expect(textoDelBloqueSubir(tallas, { mucho: 1 })).toBe(RETIRO_NO_ES_BAJA);
+    expect(textoDelBloqueSubir(tallas, { extrema: 2 })).toBe(RETIRO_NO_ES_BAJA);
+    expect(textoDelBloqueSubir(tallas, {})).toBe(RETIRO_NO_ES_BAJA);
     // La ventana reserva el alto del más largo: los dos textos posibles están en la lista.
     expect(TEXTOS_BLOQUE_SUBIR).toEqual([RETIRO_NO_ES_BAJA, AVISO_QUEDAN_CON_POCO]);
   });

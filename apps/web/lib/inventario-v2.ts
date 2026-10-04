@@ -5,7 +5,7 @@ import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventari
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
-import type { AccionHoy } from "@/lib/existencias-recomendaciones";
+import type { PisoDeTalla } from "@/lib/piso-plan";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
@@ -219,10 +219,10 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
    *  ausente o null = no se pudo calcular. */
   coberturaPiso?: CoberturaPiso | null;
-  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`) — MISMA fuente que
-   *  la tarjeta «Reponer a piso hoy», el filtro Acción y «Ver recomendaciones». Ausente o null = la sede no
-   *  vende (Taller): no se inventa una acción. No depende del Ritmo reciente. */
-  accionHoy?: AccionHoy | null;
+  /** Lo que el piso pide hoy de esta talla: la decisión del motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7) — MISMA
+   *  fuente que «Hoy» en el filtro, la tabla, la tarjeta, el cajón y el Inicio. La pone la página. Ausente o null = la sede no
+   *  separa piso y almacén (Taller) o el motor no pudo leer: no se inventa una acción. */
+  planPiso?: PisoDeTalla | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
   /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la
@@ -351,9 +351,8 @@ export async function getExistencias(
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
-  /** Variantes con Acción hoy = «Reponer a piso» (2026-09-25) — SIEMPRE lo calcula quien llama
-   *  (`accionHoyPorVariante`, `existencias-recomendaciones.ts`), nunca acá: una sola fuente de
-   *  verdad para la tarjeta, la tabla y el filtro (nunca un `EstadoStock` calculado aparte). */
+  /** Tallas a las que el piso les pide algo hoy (`pidePiso`, `lib/piso-plan.ts`) — SIEMPRE lo calcula quien llama con la
+   *  decisión del motor, nunca acá: una sola fuente para la tarjeta, la tabla y el filtro. */
   requierenReposicion: number;
 };
 

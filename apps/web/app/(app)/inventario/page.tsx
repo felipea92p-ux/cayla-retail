@@ -9,7 +9,8 @@ import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
 import { deltaDisponibleSede } from "@/lib/existencias-categorias";
-import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
+import { planPisoPorVariante } from "@/lib/existencias-recomendaciones";
+import { pidePiso } from "@/lib/piso-plan";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
@@ -100,7 +101,7 @@ export default async function InventarioPage({
   // `stockBase` directo — piso/almacén/en tránsito ya vienen ahí, ninguna otra reconstrucción.
   // Regla física de piso (2026-09-25, cuarta ronda): ya NO recibe Ritmo reciente ni Cobertura
   // piso — no le hacen falta para decidir nada (`politica.umbralStockPisoReposicion` manda solo).
-  const accionHoy = vende ? accionHoyPorVariante(stockBase, politica) : new Map();
+  const planPiso = vende ? planPisoPorVariante(stockBase, politica) : new Map();
 
   // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
@@ -114,7 +115,7 @@ export default async function InventarioPage({
           ...f,
           ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
           coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-          accionHoy: accionHoy.get(f.varianteId) ?? null,
+          planPiso: planPiso.get(f.varianteId) ?? null,
         })),
         catalogo.productos
       ),
@@ -126,7 +127,7 @@ export default async function InventarioPage({
   // «Reponer a piso hoy» (tarjeta y filtro) cuenta por «Acción hoy» — MISMA fuente que la columna
   // de la tabla y el botón inline «Reponer»: una tarjeta que contara distinto de lo que la fila
   // muestra sería exactamente la incoherencia que Felipe pidió cerrar (sección 15/16, 2026-09-25).
-  const resumen = resumirExistencias(stock, [...accionHoy.values()].filter((a) => a.tipo === "reponer_a_piso").length);
+  const resumen = resumirExistencias(stock, [...planPiso.values()].filter((d) => pidePiso(d.accion)).length);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 

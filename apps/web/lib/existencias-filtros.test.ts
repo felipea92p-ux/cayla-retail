@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { decidirTalla } from "./piso-plan";
 import { opcionesDeColor } from "./productos-filtros";
 import { TIPOS_HOY } from "./existencias-hoy";
 import {
@@ -117,7 +118,8 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     talla,
     color,
     colorFamilia: { "Azul marino": "azul", "Azul claro": "azul", Beige: "neutro", Negro: "neutro" }[color] ?? null,
-    accionHoy: { tipo: piso <= 1 ? "reponer_a_piso" : "sin_accion" },
+    // La decisión del motor del piso con un requisito de 2 para toda talla: con 1 o 0 colgadas, el piso pide.
+    planPiso: { accion: decidirTalla(piso, almacen, 2, false) },
     danado: 0,
     apartado: 0,
     pisoDisponible: piso,

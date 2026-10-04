@@ -3,8 +3,6 @@
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
 import { compararTallas } from "./tallas";
-import { calcularAccionHoy } from "./existencias-recomendaciones";
-import type { PoliticaOperativaInventario } from "./politica-operativa-inventario";
 
 /** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
  *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
@@ -23,53 +21,14 @@ import type { PoliticaOperativaInventario } from "./politica-operativa-inventari
 export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 
 /** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
- *  sin ritmo medible) — ritmo de 30 días. Existencias YA NO lo usa (2026-09-25): tenía su propio
- *  semáforo (`EstadoStock`/`calcularEstado`/`necesitaReponerPiso`), retirado por redundante con
- *  el motor único de «Acción hoy» (`calcularAccionHoy`, `existencias-recomendaciones.ts`) — no
- *  hay dos motores paralelos decidiendo lo mismo con números distintos (sección 9/12 del pedido
- *  de Felipe). El umbral equivalente de Existencias vive, consciente y aparte, en
- *  `politica-operativa-inventario.ts` (`umbralStockPisoReposicion` = 4 unidades de PISO, una
- *  regla física — NO este número, y no es un umbral de días). */
+ *  sin ritmo medible): cuántas sugerir bajar, con un ritmo de 30 días. Existencias NO lo usa: lo que
+ *  el piso pide hoy lo decide el motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7). Es deuda de
+ *  Análisis (actividad 11), listada en `piso-plan-umbral.test.ts`. */
 export const UMBRAL_REPOSICION_PISO = 7;
 
-// `EstadoStock`/`calcularEstado`/`necesitaReponerPiso` (semáforo de Existencias, piso ≤ 7) se
-// retiraron el 2026-09-25 y NO se restauran al integrar main (decisión explícita de Felipe, cuarta
-// ronda del cierre): eran consumidos SOLO por Existencias — auditado de nuevo tras encontrar que
-// `porColgar`/su test suite (abajo, mergeados desde main, ADR-0208) también los mencionaban. Esa
-// mención era ilustrativa (contrastar «Por colgar» con la vieja «Reponer»), no una dependencia
-// funcional real: `porColgar` nunca llamó a `necesitaReponerPiso`. El test que sí la invocaba
-// («toda talla por colgar conserva su botón Reponer») se reescribió contra `calcularAccionHoy`
-// (`inventario-reglas.test.ts`, «toda talla por colgar tiene Acción hoy…») — misma garantía, fuente canónica nueva.
-
-/** «Por colgar» (Frescura del piso, 2026-09-25): la talla tiene unidades DISPONIBLES en el almacén de
- *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
- *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
- *
- *  No usa el umbral de «Reponer a piso» (`umbralStockPisoReposicion`) a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
- *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
- *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
- *
- *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que «Acción hoy» y el modal de
- *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
- *  y la talla está por colgar; si lo del almacén está todo apartado, no hay nada que bajar y no lo está.
- *  Donde la sede no separa piso de almacén (Taller: `null`) la pregunta no existe → nunca. */
-export function porColgar(c: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">): boolean {
-  if (c.pisoDisponible === null || c.almacenDisponible === null) return false;
-  return c.pisoDisponible <= 0 && c.almacenDisponible > 0;
-}
-
-/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo
- *  disponible en el almacén de esas tallas — lo mismo que el modal de Reponer deja bajar). */
-export function resumirPorColgar(filas: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">[]): { tallas: number; unidades: number } {
-  let tallas = 0;
-  let unidades = 0;
-  for (const f of filas) {
-    if (!porColgar(f)) continue;
-    tallas += 1;
-    unidades += f.almacenDisponible ?? 0;
-  }
-  return { tallas, unidades };
-}
+// «Por colgar» y lo que el piso pide hoy ya no se deciden aquí: los decide UN motor, `lib/piso-plan.ts` (ADR-0328 act. 7), y
+// cada talla trae su decisión (`FilaExistencias.planPiso`). Lo que sigue en este archivo es cómo se ORDENA y se AGRUPA lo
+// que ese motor pide, nunca si lo pide.
 
 /** Orden de la lista «Por colgar»: modelo, color y talla en su curva (S · M · L, 36 · 38). La encargada
  *  cuelga por percha —un modelo en un color—, no talla por talla: si la M y la L de la misma casaca
@@ -315,20 +274,3 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
 /** El recordatorio del retiro cuando la talla no va a pedir nada: «retirar» se lee fácil como «dar de baja», y no lo es. */
 // Lo del almacén no se cobra (la venta descuenta del piso): «siguen disponibles para vender» sería falso.
 export const RETIRO_NO_ES_BAJA = "Pasan al almacén de la tienda: siguen siendo stock de la tienda (no es una baja), pero la caja no las cobra hasta que vuelvan al piso.";
-
-/** ¿Existencias va a pedir bajar de nuevo la talla DESPUÉS de subir `n` del piso al almacén?
- *  «Acción hoy» solo mira cifras (`calcularAccionHoy`, `porColgar`): no sabe que la encargada guardó la talla a propósito (fin de
- *  temporada), así que al turno siguiente le pide bajarla otra vez. Hasta que exista una marca de «retirada de la venta» (decisión
- *  de Felipe, bloque 3 de ADR-0208), la ventana de «Subir a almacén» lo avisa ANTES de confirmar. `false`: la fila no va a pedir
- *  nada, o la cantidad no vale (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como la ventana y «Acción hoy».
- *
- *  Pregunta a `calcularAccionHoy` con la política de la sede, no a un umbral propio: el aviso tiene que decir lo mismo que
- *  después va a pintar la fila (hasta el 2026-09-25 lo decidía `necesitaReponerPiso`, retirado). */
-export function quedaraPidiendoReponer(disponible: { piso: number | null; almacen: number | null }, n: number, politica: PoliticaOperativaInventario): boolean {
-  if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return false;
-  const piso = disponible.piso - n;
-  const almacen = disponible.almacen + n;
-  if (piso < 0) return false;
-  if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) return true;
-  return calcularAccionHoy({ varianteId: "", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, politica).tipo === "reponer_a_piso";
-}

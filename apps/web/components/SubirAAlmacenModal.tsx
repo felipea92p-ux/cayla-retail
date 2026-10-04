@@ -15,7 +15,6 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { esFalloDeRed, type ErrorEscritura } from "@/lib/error-escritura";
 import { formatearHoraLima } from "@/lib/bajada-reglas";
-import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import {
   coloresConAlgo,
   coloresParaMover,
@@ -56,7 +55,6 @@ export function SubirAAlmacenModal({
   prendas,
   ubicacionId,
   sede,
-  politica,
   alCerrarEnfocar,
   onClose,
 }: {
@@ -65,8 +63,6 @@ export function SubirAAlmacenModal({
   ubicacionId: string;
   /** El nombre de la sede, para los textos de la base («…al almacén de Tienda TRU»). */
   sede: string;
-  /** La política de la sede (`politicaDe`): el aviso de lo que quedará pregunta lo mismo que «Acción hoy» de la fila. */
-  politica: PoliticaOperativaInventario;
   /** El control que abrió la ventana (el «Subir a almacén» de la tarjeta): al cerrar, el teclado vuelve ahí. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onClose: () => void;
@@ -96,10 +92,10 @@ export function SubirAAlmacenModal({
   const total = totalAReponer(lineas);
   const totales = totalesDeMatriz(colores, cantidades, "subir");
   const hayAlgoQueSubir = colores.some((c) => c.tallas.some(sePuedeSubirTalla));
+  // El aviso de lo que quedará pregunta lo mismo que «Hoy» de la fila: el requisito de cada talla viene del motor del piso.
   const textoBloque = textoDelBloqueSubir(
     colores.flatMap((c) => c.tallas),
     cantidades,
-    politica,
   );
 
   // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace. La nota es opcional.

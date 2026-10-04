@@ -17,6 +17,7 @@
 
 import { BOTON_CONFIRMAR_DE_NUEVO, type LineaBajada } from "./bajada-reglas";
 import type { FilaPrenda } from "./existencias-prendas";
+import type { PisoDeTalla } from "./piso-plan";
 import { compararTallas } from "./tallas";
 
 /** Un color del modelo tal como llega a la ventana: una prenda (modelo + color) con todas sus tallas. */
@@ -29,11 +30,15 @@ export type PrendaParaReponer = {
   tallas: readonly FilaDeTalla[];
 };
 
-/** Lo mínimo de cada talla que necesita la ventana; una fila de Existencias lo satisface por estructura. */
-export type FilaDeTalla = Pick<FilaPrenda, "varianteId" | "talla" | "pisoDisponible" | "almacenDisponible">;
+/** Lo mínimo de cada talla que necesita la ventana; una fila de Existencias lo satisface por estructura. `planPiso` (la decisión
+ *  del motor del piso) solo hace falta para el aviso de «Subir prenda»: cuántas debería tener colgadas la talla. */
+export type FilaDeTalla = Pick<FilaPrenda, "varianteId" | "talla" | "pisoDisponible" | "almacenDisponible"> & {
+  planPiso?: Pick<PisoDeTalla, "requisito"> | null;
+};
 
-/** Una talla tal como la lee la ventana: sin nulos, para que ninguna cuenta dependa de `?? 0` regado por el JSX. */
-export type TallaParaReponer = { varianteId: string; talla: string; piso: number; almacen: number };
+/** Una talla tal como la lee la ventana: sin nulos, para que ninguna cuenta dependa de `?? 0` regado por el JSX. `requisito`:
+ *  cuántas debería tener colgadas hoy (`lib/piso-plan.ts`); 0 si el motor no la decidió. */
+export type TallaParaReponer = { varianteId: string; talla: string; piso: number; almacen: number; requisito: number };
 
 /** Cuánto lleva cada talla en el selector, por variante. Lo que no está aquí es 0. */
 export type Cantidades = Readonly<Record<string, number>>;
@@ -49,6 +54,7 @@ export function tallasParaReponer(filas: readonly FilaDeTalla[]): TallaParaRepon
     talla: f.talla?.trim() || "Única",
     piso: Math.max(0, f.pisoDisponible ?? 0),
     almacen: Math.max(0, f.almacenDisponible ?? 0),
+    requisito: Math.max(0, f.planPiso?.requisito ?? 0),
   }));
 }
 

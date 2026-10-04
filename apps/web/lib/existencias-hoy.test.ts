@@ -1,36 +1,54 @@
 import { describe, expect, it } from "vitest";
-import { hoyDeTalla, TEXTO_HOY, textoHoyDePrenda, TIPOS_HOY } from "./existencias-hoy";
+import { hoyDeTalla, resumirPorColgar, TEXTO_HOY, textoHoyDePrenda, TIPOS_HOY } from "./existencias-hoy";
+import { ACCIONES_PISO, type AccionPiso } from "./piso-plan";
 
-// «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra.
-const REPONER = { tipo: "reponer_a_piso" as const };
-const SIN_ACCION = { tipo: "sin_accion" as const };
+// «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma
+// palabra. Desde ADR-0328 act. 7 el caso no se calcula aquí: es la acción del motor del piso (`planPiso`) dicha en palabras.
+const plan = (accion: AccionPiso) => ({ accion });
 
 describe("hoyDeTalla", () => {
-  it("los cuatro casos", () => {
-    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, accionHoy: REPONER })).toBe("por_colgar");
-    expect(hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 3, accionHoy: REPONER })).toBe("por_reponer");
-    expect(hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 0, accionHoy: REPONER })).toBe("sin_stock_atras");
-    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 0, accionHoy: REPONER })).toBe("sin_stock_atras");
-    expect(hoyDeTalla({ pisoDisponible: 6, almacenDisponible: 3, accionHoy: SIN_ACCION })).toBe("mantener");
-  });
-
-  it("«Por colgar» gana aunque el motor no pida reponer (lo apartado en el piso no se vende)", () => {
-    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 2, accionHoy: SIN_ACCION })).toBe("por_colgar");
+  it("cada acción del motor tiene su palabra de ADR-0326", () => {
+    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("por_colgar") })).toBe("por_colgar");
+    expect(hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("por_reponer") })).toBe("por_reponer");
+    expect(hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 0, planPiso: plan("sin_atras") })).toBe("sin_stock_atras");
+    expect(hoyDeTalla({ pisoDisponible: 6, almacenDisponible: 3, planPiso: plan("mantener") })).toBe("mantener");
   });
 
   it("sin piso y almacén separados (Taller) no hay «Hoy»", () => {
-    expect(hoyDeTalla({ pisoDisponible: null, almacenDisponible: null, accionHoy: null })).toBeNull();
+    expect(hoyDeTalla({ pisoDisponible: null, almacenDisponible: null, planPiso: null })).toBeNull();
+    expect(hoyDeTalla({ pisoDisponible: null, almacenDisponible: null, planPiso: plan("por_colgar") })).toBeNull();
   });
 
-  it("toda combinación cae en uno solo de los cuatro casos (nunca dos, nunca ninguno)", () => {
-    for (const piso of [0, 1, 2, 5]) {
-      for (const almacen of [0, 1, 4]) {
-        for (const accionHoy of [REPONER, SIN_ACCION, null]) {
-          const caso = hoyDeTalla({ pisoDisponible: piso, almacenDisponible: almacen, accionHoy });
-          expect(TIPOS_HOY).toContain(caso);
-        }
-      }
+  it("sin decisión del motor (su lectura no respondió) no se afirma nada: ni «Mantener» ni «Por colgar»", () => {
+    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: null })).toBeNull();
+    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3 })).toBeNull();
+  });
+
+  it("con el piso sin cuadrar tampoco: la pausa no tiene palabra en «Hoy» (lo dice la portada)", () => {
+    expect(hoyDeTalla({ pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("pausa_sin_cuadre") })).toBeNull();
+  });
+
+  it("toda acción cae en uno solo de los cuatro casos, o en ninguno si es la pausa", () => {
+    for (const accion of ACCIONES_PISO) {
+      const caso = hoyDeTalla({ pisoDisponible: 1, almacenDisponible: 1, planPiso: plan(accion) });
+      if (accion === "pausa_sin_cuadre") expect(caso).toBeNull();
+      else expect(TIPOS_HOY).toContain(caso);
     }
+  });
+});
+
+describe("resumirPorColgar — el contador del filtro «Por colgar»", () => {
+  it("cuenta las tallas por colgar y lo que se puede bajar de ellas; nada más", () => {
+    expect(
+      resumirPorColgar([
+        { pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("por_colgar") },
+        { pisoDisponible: 0, almacenDisponible: 1, planPiso: plan("por_colgar") },
+        { pisoDisponible: 1, almacenDisponible: 4, planPiso: plan("por_reponer") },
+        { pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("pausa_sin_cuadre") },
+        { pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("mantener") },
+        { pisoDisponible: null, almacenDisponible: null, planPiso: null },
+      ])
+    ).toEqual({ tallas: 2, unidades: 4 });
   });
 });
 

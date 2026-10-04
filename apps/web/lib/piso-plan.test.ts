@@ -148,7 +148,7 @@ describe("decidirTalla — la tabla de decisión, una prueba por fila", () => {
             expect(a === "mantener").toBe(piso >= requisito);
             if (pausa) expect(a === "por_colgar" || a === "por_reponer").toBe(false);
             if (esParaColgar(a)) expect(almacen).toBeGreaterThan(0);
-            expect(pidePiso(a)).toBe(a !== "mantener");
+            expect(pidePiso(a)).toBe(a !== "mantener" && a !== "pausa_sin_cuadre");
           }
   });
 });

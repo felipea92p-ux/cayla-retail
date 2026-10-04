@@ -36,7 +36,8 @@ import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, t
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { AYUDA_HOY, hoyDeTalla, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
+import { AYUDA_HOY, hoyDeTalla, resumirPorColgar, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
+import { pidePiso } from "@/lib/piso-plan";
 import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { textoDeFamilia } from "@/lib/colores-familias";
 import type { ColorDeCatalogo } from "@/lib/existencias-catalogo";
@@ -44,7 +45,7 @@ import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
 import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
-import { clavePercha, ordenarPorModeloColorTalla, resumirPorColgar } from "@/lib/inventario-reglas";
+import { clavePercha, ordenarPorModeloColorTalla } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -119,7 +120,7 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
       </span>
     );
   }
-  const pideReponer = f.accionHoy?.tipo === "reponer_a_piso";
+  const pideReponer = pidePiso(f.planPiso?.accion);
   const etiqueta = c.tipo === "agotado" ? "bg-rojo/10 text-rojo-profundo" : c.tipo === "medida" && pideReponer ? "bg-ambar/15 text-ambar-profundo" : null;
   const piso = f.piso ?? 0;
   const almacen = f.almacen ?? 0;
@@ -290,8 +291,8 @@ export function InventarioPanel({
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
   /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
   comparacionFallo?: boolean;
-  /** Política operativa de Inventario (`politica-operativa-inventario.ts`): una sola fuente para
-   *  los umbrales que leen el popover de Ritmo reciente y el aviso de «Subir a almacén» (`SubirAAlmacenModal`). */
+  /** Política operativa de Inventario (`politica-operativa-inventario.ts`): las jornadas mínimas que lee el popover de Ritmo
+   *  reciente. Lo que el piso pide hoy NO sale de aquí: lo decide el motor del piso y viene en cada fila (`planPiso`). */
   politica: PoliticaOperativaInventario;
   /** ¿Su rol ve Traslados? «Trasladar» (detalle y barra de varias) lleva a «Mover mercadería», que exige ese módulo. */
   veTraslados?: boolean;
@@ -1257,7 +1258,6 @@ export function InventarioPanel({
           prendas={prendasSubiendo}
           ubicacionId={ubicacionId}
           sede={sedeNombre}
-          politica={politica}
           alCerrarEnfocar={volverFoco}
           onClose={() => setSubiendo(null)}
         />

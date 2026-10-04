@@ -3,7 +3,8 @@ import { contar, tolerarLectura } from "@/lib/inicio";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { getExistencias } from "@/lib/inventario-v2";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
-import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
+import { planPisoPorVariante } from "@/lib/existencias-recomendaciones";
+import { pidePiso } from "@/lib/piso-plan";
 import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia } from "@/lib/existencias-prendas";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getResumenTienda } from "@/lib/movimientos-v2";
@@ -197,9 +198,9 @@ export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: 
     const stock = await getExistencias(ubicacionId, ubicaciones);
     const separa = stock.some((f) => f.piso !== null);
     if (!separa) return { enAlmacen: null, modelosParaReponer: 0, reponer: [] };
-    const accion = accionHoyPorVariante(stock, politicaDe(ubicacionId));
-    const filas = stock.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null }));
-    const piden = ordenarPorUrgencia(agruparPorPrenda(filas)).filter((p) => p.tallas.some((f) => f.accionHoy?.tipo === "reponer_a_piso"));
+    const plan = planPisoPorVariante(stock, politicaDe(ubicacionId));
+    const filas = stock.map((f) => ({ ...f, planPiso: plan.get(f.varianteId) ?? null }));
+    const piden = ordenarPorUrgencia(agruparPorPrenda(filas)).filter((p) => p.tallas.some((f) => pidePiso(f.planPiso?.accion)));
     return {
       enAlmacen: stock.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
       modelosParaReponer: piden.length,
@@ -209,7 +210,7 @@ export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: 
         color: p.color,
         fotoUrl: p.fotoUrl,
         tallas: p.tallas
-          .filter((f) => f.accionHoy?.tipo === "reponer_a_piso")
+          .filter((f) => pidePiso(f.planPiso?.accion))
           .map((f) => ({ talla: f.talla ?? "Única", sinPiso: estadoTalla(f) === "por_colgar" })),
       })),
     };

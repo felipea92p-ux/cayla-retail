@@ -1,13 +1,15 @@
 // Existencias por prenda (ADR-0237, spike docs/maquetas/existencias-conectada-2026-09/): la tabla de Existencias
 // agrupa sus filas (una por talla) en PRENDAS — un modelo en un color, la misma «percha» de «Por colgar»
 // (`clavePercha`) — y cada prenda muestra su curva de tallas en una línea. Lógica pura: la usan la lista, el detalle de
-// la prenda y la barra de «varias a la vez»; nada aquí decide qué hay que reponer (eso es `calcularAccionHoy`, ADR-0231).
+// la prenda y la barra de «varias a la vez»; nada aquí decide qué hay que reponer (eso es el motor del piso, `lib/piso-plan.ts`,
+// ADR-0328 act. 7: cada talla trae su decisión en `planPiso`).
 
-import { clavePercha, porColgar } from "./inventario-reglas";
+import { clavePercha } from "./inventario-reglas";
 import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
 import { guionDeLaPistola } from "./escaner-guion";
 import { hoyDeTalla, type TipoHoy } from "./existencias-hoy";
+import { esParaColgar } from "./piso-plan";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
@@ -28,23 +30,25 @@ export type FilaPrenda = Pick<
   | "apartado"
   | "danado"
   | "enTransito"
-  | "accionHoy"
+  | "planPiso"
   | "marca"
 >;
 
-/** Cómo se pinta una talla en la curva. Sale de las mismas reglas de la tabla: «Por colgar» (`porColgar`) y «Acción hoy». */
+/** Cómo se pinta una talla en la curva. Sale de la misma decisión de la tabla («Hoy», `hoyDeTalla`). */
 export type EstadoTalla = "por_colgar" | "reponer" | "sin_stock" | "normal";
 
 export function estadoTalla(f: FilaPrenda): EstadoTalla {
   if (f.disponible <= 0) return "sin_stock";
-  if (porColgar(f)) return "por_colgar";
-  if (f.accionHoy?.tipo === "reponer_a_piso") return "reponer";
+  const hoy = hoyDeTalla(f);
+  if (hoy === "por_colgar") return "por_colgar";
+  if (hoy === "por_reponer" || hoy === "sin_stock_atras") return "reponer";
   return "normal";
 }
 
-/** ¿Esta talla se puede bajar al piso hoy? Pide reponer (la regla única) y hay algo libre atrás: lo apartado no se mueve. */
+/** ¿Esta talla se puede bajar al piso hoy? El motor pide colgar o reponer —lo que ya exige algo libre atrás: lo apartado no se
+ *  mueve—. Con el piso sin cuadrar, no (ADR-0328, decisión 5). */
 export function sePuedeBajar(f: FilaPrenda): boolean {
-  return f.accionHoy?.tipo === "reponer_a_piso" && (f.almacenDisponible ?? 0) > 0;
+  return esParaColgar(f.planPiso?.accion) && f.pisoDisponible !== null && (f.almacenDisponible ?? 0) > 0;
 }
 
 export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
@@ -66,7 +70,7 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   enTransito: number;
   /** Cuántas tallas se pueden bajar al piso hoy (`sePuedeBajar`). */
   tallasParaBajar: number;
-  /** Cuántas tallas no tienen ni una para vender en el piso y sí atrás (`porColgar`). */
+  /** Cuántas tallas están «Por colgar» (`hoyDeTalla`). */
   tallasPorColgar: number;
 };
 
@@ -104,7 +108,7 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       danado: tallas.reduce((acc, f) => acc + (f.danado ?? 0), 0),
       enTransito: tallas.reduce((acc, f) => acc + f.enTransito, 0),
       tallasParaBajar: tallas.filter(sePuedeBajar).length,
-      tallasPorColgar: tallas.filter((f) => porColgar(f)).length,
+      tallasPorColgar: tallas.filter((f) => hoyDeTalla(f) === "por_colgar").length,
     };
   });
 }

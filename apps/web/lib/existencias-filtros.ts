@@ -1,4 +1,4 @@
-import type { TipoAccionHoy } from "./existencias-recomendaciones";
+import type { PisoDeTalla } from "./piso-plan";
 import { compararTallas } from "./tallas";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
 import { listaDeUrl } from "./productos-filtros";
@@ -153,7 +153,7 @@ export type FilaFiltrable = {
   /** La familia del color (`colores.familia_color`: azul, neutro, tierra…). La pone la página con una lectura aparte y
    *  tolerante; ausente o null = sin familia (o la lectura falló): el color se filtra solo por su nombre. */
   colorFamilia?: string | null;
-  accionHoy?: { tipo: TipoAccionHoy } | null;
+  planPiso?: Pick<PisoDeTalla, "accion"> | null;
   danado: number | null;
   /** Unidades apartadas para clientes (siguen en la tienda, no se venden ni se mueven). */
   apartado: number;
