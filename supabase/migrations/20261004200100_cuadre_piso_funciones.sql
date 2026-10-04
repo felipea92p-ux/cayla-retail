@@ -538,9 +538,10 @@ begin
     raise exception 'Esta sede todavía no separa piso y almacén: no hay piso que cuadrar.' using hint = 'cuadre_tienda_sin_piso';
   end if;
 
-  -- Candado 3 (ADR-0190): las prendas (para que una recepción de una prenda sin fila de stock no se cuele) y el stock del
-  -- piso y del almacén de la sede, en orden de prenda. Todo lo que estaba a medio escribir sobre esas filas termina
-  -- antes de que miremos el libro: lo que veamos abajo es lo último confirmado.
+  -- Candado 3 (ADR-0190): las prendas y el stock del piso y del almacén de la sede, en orden de prenda: las que ya tienen
+  -- stock en la sede y las escaneadas. Todo lo que estaba a medio escribir sobre esas filas termina antes de que miremos
+  -- el libro. Una prenda NUEVA para la sede (sin stock ni escaneo) no queda bloqueada: por eso la cuenta va antes del
+  -- chequeo del almacén (abajo), y lo que llegue de ella después no entra a la cuenta.
   perform fn_bloquear_en_orden(
     p_ubicacion_id,
     array(select st.variante_id from stock st
