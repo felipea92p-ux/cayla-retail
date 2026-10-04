@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { calcularAccionHoy } from "./existencias-recomendaciones";
+import { hoyDeTalla } from "./existencias-hoy";
 import {
   agruparPorPrenda,
   estadoTalla,
@@ -46,6 +48,26 @@ function fila(p: Partial<FilaPrenda> & { varianteId: string }): FilaPrenda {
     ...p,
   } as FilaPrenda;
 }
+
+// Una sola clasificación por talla (rediseño 2026-10-04): la celda (`estadoTalla`) y la pastilla, el filtro y la tabla (`hoyDeTalla`)
+// no pueden decir dos cosas de la misma talla. Se recorre cada combinación de piso y almacén con el umbral de hoy (0) y con el de
+// antes (4), con la «Acción hoy» que calcula el motor real.
+describe("estadoTalla dice lo mismo que hoyDeTalla, en toda combinación", () => {
+  const EQUIVALE = { por_colgar: "por_colgar", por_reponer: "reponer", sin_stock_atras: "reponer", mantener: "normal" } as const;
+  for (const umbral of [0, 4]) {
+    it(`umbral de piso ${umbral}`, () => {
+      for (let piso = 0; piso <= 6; piso++) {
+        for (let almacen = 0; almacen <= 6; almacen++) {
+          const accionHoy = calcularAccionHoy({ varianteId: "v", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, { minDiasExposicionRitmo: 3, umbralStockPisoReposicion: umbral });
+          const f = fila({ varianteId: "v", pisoDisponible: piso, almacenDisponible: almacen, accionHoy });
+          const hoy = hoyDeTalla(f);
+          const esperado = piso + almacen <= 0 ? "sin_stock" : hoy ? EQUIVALE[hoy] : "normal";
+          expect(estadoTalla(f), `piso ${piso}, almacén ${almacen}`).toBe(esperado);
+        }
+      }
+    });
+  }
+});
 
 describe("estadoTalla", () => {
   it("sin nada libre es «sin stock», aunque la regla pida reponer", () => {

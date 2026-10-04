@@ -75,7 +75,7 @@ const HUELLAS: Huella[] = [
   },
   {
     marca: "prenda_sin_regularizar",
-    frase: "Esta prenda se vendió sin registrar y almacén todavía no la regulariza. Pide que lo hagan en Recibir ▸ Por regularizar y vuelve a intentarlo.",
+    frase: "Esta prenda se vendió sin registrar y almacén todavía no la regulariza. Pide que la regularicen en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
   },
   {
     marca: "prenda_ya_regularizada",
