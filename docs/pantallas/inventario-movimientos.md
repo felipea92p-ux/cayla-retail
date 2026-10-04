@@ -209,7 +209,7 @@ stock; sí esconde un daño que ya ocurrió (objeción 1).
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · Corregir — Ajustes en bruto: lo que faltó y lo que apareció, nunca un neto
+### #1 · ✅ Corregir — Ajustes en bruto: lo que faltó y lo que apareció, nunca un neto
 - **Dónde:** `page.tsx:225-227,250-260` (tarjeta y franja del celular) · `lib/movimientos-reglas.ts:800-808` (`desgloseCifras`,
   forma `neto`) · el dato ya existe: `CifrasGrupo.entran` y `.salen` por proceso.
 - **Por qué en este puesto:** es la única cifra de la pantalla que lleva a una conclusión de negocio equivocada sobre pérdida de
@@ -219,7 +219,7 @@ stock; sí esconde un daño que ya ocurrió (objeción 1).
   con un motivo que suma y resta en el mismo período.
 - **Esfuerzo / dependencias:** S · ninguna. Va antes de la #7 (que acorta el desglose).
 
-### #2 · Corregir — Que se note qué ajuste tiene respaldo y cuál es a mano
+### #2 · ✅ Corregir — Que se note qué ajuste tiene respaldo y cuál es a mano
 - **Dónde:** `ETIQUETA_PROCESO` y `FRASE_PROCESO` (`lib/movimientos-reglas.ts:102-110,770-790`) · la fila (`FilaMovimiento.tsx`)
   · `fn_movimientos_resumen_procesos` ya distingue `conteo` (con `conteo_item_id`) de `conteo_fisico` (sin él).
 - **Por qué en este puesto:** 80 de 94 ajustes de TRU no tienen documento y 5 tienen nota; «por conteo» y «por conteo físico» se
@@ -228,7 +228,7 @@ stock; sí esconde un daño que ya ocurrió (objeción 1).
   el de Ajustar stock dice «a mano» con su motivo («a mano · conteo físico») y «sin nota» si no la tiene.
 - **Esfuerzo / dependencias:** S · después de la #1. **Las palabras exactas las decide Felipe** (son vocabulario del negocio).
 
-### #3 · Corregir — La banda del día dice un número falso
+### #3 · ✅ Corregir — La banda del día dice un número falso
 - **Dónde:** `MovimientosLista.tsx:159-164` (`dia.operaciones.length` de la página cargada).
 - **Por qué en este puesto:** el elemento más visible de la lista muestra «14» cuando el día llevaba ~90 operaciones `[producción]`.
   Un número falso en grande le quita crédito a todos los demás.
@@ -236,7 +236,7 @@ stock; sí esconde un daño que ya ocurrió (objeción 1).
   dan las tarjetas con el período «Hoy») o la cifra coincide con la de la píldora «Todos» con período «Hoy».
 - **Esfuerzo / dependencias:** S (quitarla) · M (traerla de la base por día).
 
-### #4 · Corregir — «+1 por ajuste · encontrada tras un conteo» y la prueba que lo habría atajado
+### #4 · ✅ Corregir — «+1 por ajuste · encontrada tras un conteo» y la prueba que lo habría atajado
 - **Dónde:** `FRASE_PROCESO` (`lib/movimientos-reglas.ts:770-790`): falta `hallazgo_conteo` → «encontrada tras un conteo» ·
   `movimientos-reglas.test.ts`: una prueba que recorra **todo** `ETIQUETA_PROCESO` y exija su frase (como pide ADR-0290 para las
   sugerencias: totalidad).
@@ -245,7 +245,7 @@ stock; sí esconde un daño que ya ocurrió (objeción 1).
   mapa hace fallar la prueba.
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #5 · Corregir — «30 vendidas» cuando 2 se anularon
+### #5 · ✅ Corregir — «30 vendidas» cuando 2 se anularon
 - **Dónde:** desglose de «Salió» (`page.tsx:247-248`) y de «Entró» (`:243-244`).
 - **Por qué en este puesto:** «vendidas» afirma una cifra de ventas que no es; el líder la cruza con Caja y no cuadra.
 - **Cómo lo verificas tú:** TRU, 30 días → «Salió: 30 vendidas · 2 se anularon después» y «Entró: … 2 volvieron por venta
@@ -410,3 +410,4 @@ piso), o ambas. Esta pantalla solo puede mostrarlo (#1, #2); cerrarlo es en Ajus
 | 2026-09-26 | `9f0d2f3b` | rápido + spike | — | — | Primer análisis tras ADR-0234; spike en `docs/maquetas/movimientos-conectado-2026-09/` |
 | 2026-09-26 | encima del #512 | ejecución | — | — | Felipe eligió las 4 recomendadas + los 4 atajos + apartado exacto + Conteo con lista; «Lo que hice yo» no. Construidas #1 a #10 (ADR-0241). **Corrección al análisis:** la #1 NO pedía columna nueva: `apartados.movimiento_id` ya existe. La nota «Registro transparente» se quedó (la pide ADR-0169); se quitó la frase repetida del subtítulo. |
 | 2026-10-03 | `6a6ab03a` | completo (SQL de solo lectura en producción) | 5,7 | 6,0 Soporte | Reemplaza al del 26-09 (vencido: 866 líneas cambiadas). De sus 12 tareas: **cerradas 9** (#1 apartados, #2 píldoras en cero, #4 escanear, #5 Hoy, #6 bajadas plegadas, #7 tarjetas que filtran, #8 frases repetidas, #9 celular, #10 Exportar al «⋯»); **#3 (atajos) reabierta**: se construyó y se perdió con el cajón del 28-09 (ver #12); #11 descartada por Felipe; #12 (saldo) hecha de otra forma (`fn_movimientos_saldos`, «quedan N»). |
+| 2026-10-03 | encima de `6a6ab03a` | ejecución | — | — | Felipe ordenó «#1 a la #5». **Hechas:** #1 ajustes en bruto (−35 / +87) y por respaldo; #2 «Ajuste a mano» y «Sin documento · sin nota» (palabras: «a mano» / «en un conteo», elegidas por Felipe); #3 la banda del día sin cifra; #4 frase de `hallazgo_conteo` y prueba de totalidad (falla si falta una); #5 «30 vendidas (2 se anularon)». Verificado con base propia a 1.440 y 375 px. **Ajuste al análisis:** la tarjeta del celular mostraba «−3 +7» sin palabras (error mío); ahora apiladas con su palabra. ADR-0327. |

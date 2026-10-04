@@ -258,6 +258,10 @@ flowchart TB
   (`apartados.movimiento_id`/`movimiento_cierre_id` → `separaciones`). Bajadas del día plegadas (`plegarBajadas`,
   `FilaBajadas`); «Hoy» por defecto en el celular (`userAgent` en la página); filtros en hoja y cámara en el celular;
   Exportar en el «⋯» (`MenuMovimientos.tsx`).
+  **2026-10-03 (ADR-0327, cifras que dicen la verdad):** la tarjeta Ajustes va en bruto («−35 faltaron · +87 aparecieron») y por respaldo
+  («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
+  (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
+  «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
 quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
