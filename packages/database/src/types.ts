@@ -7561,6 +7561,8 @@ export type Database = {
         Args: { p_ubicacion_id?: string }
         Returns: {
           almacen_libre: number
+          cambio_posterior: string | null
+          cambio_posterior_motivo: string | null
           color_exacto: boolean
           color_hex: string | null
           color_hex_anotado: string | null
@@ -7569,6 +7571,7 @@ export type Database = {
           prenda_id: string
           primera_entrada: string | null
           primera_entrada_motivo: string | null
+          saldo_a_la_venta: number | null
           variante_id: string
         }[]
       }

@@ -14,8 +14,9 @@ import {
   type VentaPorRegularizar,
 } from "./por-regularizar-candidatas";
 
-// Lo que se prueba: (1) la respuesta deducida del libro —venta ANTES de la primera entrada ⇒ llegó nueva; DESPUÉS ⇒ ya estaba
-// registrada— y (2) el orden de las candidatas, criterio por criterio. Que contestar mal descuenta dos veces lo prueba la base
+// Lo que se prueba: (1) la respuesta deducida del libro —el sistema no tenía ninguna a la hora de la venta ⇒ llegó nueva; tenía y
+// después no llegó ni se ajustó nada ⇒ ya estaba registrada; tenía y después llegó algo ⇒ no se sabe— y (2) el orden de las
+// candidatas, criterio por criterio. Que contestar mal descuenta dos veces lo prueba la base
 // (`scripts/pruebas/ventas_sin_registrar.mjs`): aquí solo se cuida que la sugerencia diga lo correcto.
 
 const VENTA: VentaPorRegularizar = {
@@ -49,6 +50,9 @@ const hecho = (varianteId: string, extra: Partial<HechoCandidata> = {}): HechoCa
   disponible: 1,
   primeraEntrada: "2026-10-01T15:00:00.000Z",
   primeraEntradaMotivo: "carga_inicial",
+  saldoALaVenta: 1,
+  cambioPosterior: null,
+  cambioPosteriorMotivo: null,
   ...extra,
 });
 const catalogoDe = (...ps: PrendaParaRegularizar[]) => new Map(ps.map((p) => [p.id, p]));
@@ -56,35 +60,63 @@ const orden = (hechos: HechoCandidata[], catalogo: Map<string, PrendaParaRegular
   ordenarCandidatas(venta, hechos, catalogo).map((c) => c.prenda.id);
 
 describe("deducirForma — ¿ya estaba registrada o llegó nueva?", () => {
-  it("vendida ANTES de su carga inicial en esa tienda → llegó nueva (la carga ya no la contó)", () => {
-    const d = deducirForma("2026-10-02T16:40:00.000Z", "2026-10-05T14:00:00.000Z", "carga_inicial", "Tienda Trujillo");
+  const libro = (extra: Partial<HechoCandidata> = {}) => hecho("x", extra);
+
+  it("vendida ANTES de su carga inicial en esa tienda (el sistema no tenía ninguna) → llegó nueva, y dice por qué con la carga", () => {
+    const d = deducirForma(libro({ saldoALaVenta: 0, primeraEntrada: "2026-10-05T14:00:00.000Z", cambioPosterior: "2026-10-05T14:00:00.000Z", cambioPosteriorMotivo: "carga_inicial" }), "2026-10-02T16:40:00.000Z", "Tienda Trujillo");
     expect(d?.forma).toBe("llego_nueva");
     expect(d?.porque).toBe("Se vendió el 02/10 a las 11:40, antes de su carga inicial en Tienda Trujillo (05/10 a las 09:00): ese conteo ya no la incluyó.");
   });
 
-  it("vendida DESPUÉS de su carga inicial → ya estaba registrada (estaba contada en el stock)", () => {
-    const d = deducirForma("2026-10-06T20:00:00.000Z", "2026-10-01T15:00:00.000Z", "carga_inicial", "Tienda Arequipa");
-    expect(d?.forma).toBe("ya_registrada");
-    expect(d?.porque).toContain("después de su carga inicial en Tienda Arequipa");
-    expect(d?.porque).toContain("estaba contada en el stock");
+  it("R7 · se agotó y volvió a llegar: la primera entrada es ANTERIOR, pero a esa hora el sistema tenía 0 → llegó nueva", () => {
+    // Carga de 1 el 28/09, venta escaneada el 29/09 (queda en 0), venta «sin registrar» el 30/09, recepción de 2 el 02/10.
+    const d = deducirForma(
+      libro({ saldoALaVenta: 0, primeraEntrada: "2026-09-28T15:00:00.000Z", cambioPosterior: "2026-10-02T15:00:00.000Z", cambioPosteriorMotivo: "recepcion" }),
+      "2026-09-30T20:00:00.000Z",
+      "Tienda Trujillo",
+    );
+    expect(d?.forma).toBe("llego_nueva");
+    expect(d?.porque).toBe("Cuando se vendió (30/09 a las 15:00), el sistema no tenía ninguna en Tienda Trujillo: no pudo estar contada.");
   });
 
-  it("el mismo día se ordena por la hora", () => {
-    expect(deducirForma("2026-10-02T15:00:00.000Z", "2026-10-02T16:00:00.000Z", "carga_inicial", "TRU")?.forma).toBe("llego_nueva");
-    expect(deducirForma("2026-10-02T17:00:00.000Z", "2026-10-02T16:00:00.000Z", "carga_inicial", "TRU")?.forma).toBe("ya_registrada");
+  it("tenía, y después no llegó ni se ajustó nada → ya estaba registrada (estaba contada en el stock)", () => {
+    const d = deducirForma(libro({ saldoALaVenta: 3 }), "2026-10-06T20:00:00.000Z", "Tienda Arequipa");
+    expect(d?.forma).toBe("ya_registrada");
+    expect(d?.porque).toBe("Cuando se vendió (06/10 a las 15:00), el sistema tenía 3 en Tienda Arequipa y después no llegó ni se ajustó ninguna: estaba contada en el stock.");
+  });
+
+  it("tenía, pero después llegó una recepción → no se sabe (forma null) y lo dice con la fecha, para que la persona mire", () => {
+    const d = deducirForma(libro({ saldoALaVenta: 1, cambioPosterior: "2026-10-03T15:00:00.000Z", cambioPosteriorMotivo: "recepcion" }), "2026-10-02T16:40:00.000Z", "Tienda Trujillo");
+    expect(d?.forma).toBeNull();
+    expect(d?.porque).toBe(
+      "Cuando se vendió (02/10 a las 11:40), el sistema tenía 1 en Tienda Trujillo, pero el 03/10 a las 10:00 llegó una recepción: pudo ser una de las que ya estaban contadas o una que llegó sin registrar. Mira tú si estaba contada.",
+    );
+  });
+
+  it("un conteo que ajustó después también deja la respuesta abierta (pudo haber descontado ya la vendida)", () => {
+    const d = deducirForma(libro({ saldoALaVenta: 2, cambioPosterior: "2026-10-03T15:00:00.000Z", cambioPosteriorMotivo: "conteo" }), "2026-10-02T16:40:00.000Z", "TRU");
+    expect(d?.forma).toBeNull();
+    expect(d?.porque).toContain("se ajustó en un conteo");
+    expect(deducirForma(libro({ saldoALaVenta: 2, cambioPosterior: "2026-10-03T15:00:00.000Z", cambioPosteriorMotivo: "raro" }), "2026-10-02T16:40:00.000Z", "TRU")?.porque).toContain("cambió su stock");
+  });
+
+  it("el saldo manda sobre la primera entrada: con 0 a la hora de la venta, aunque después haya llegado algo, es llegó nueva", () => {
+    expect(deducirForma(libro({ saldoALaVenta: 0, cambioPosterior: "2026-10-03T15:00:00.000Z", cambioPosteriorMotivo: "recepcion" }), "2026-10-02T16:40:00.000Z", "TRU")?.forma).toBe("llego_nueva");
+    expect(deducirForma(libro({ saldoALaVenta: -1 }), "2026-10-02T16:40:00.000Z", "TRU")?.forma).toBe("llego_nueva");
   });
 
   it("vale para cualquier primera entrada, no solo la carga inicial, y dice cuál fue", () => {
-    expect(deducirForma("2026-10-02T15:00:00.000Z", "2026-10-03T15:00:00.000Z", "traslado_entrada", "TRU")?.porque).toContain("el traslado que la trajo");
-    expect(deducirForma("2026-10-02T15:00:00.000Z", "2026-10-03T15:00:00.000Z", "recepcion", "TRU")?.porque).toContain("su recepción");
-    expect(deducirForma("2026-10-02T15:00:00.000Z", "2026-10-03T15:00:00.000Z", "motivo_raro", "TRU")?.porque).toContain("su primera entrada");
-    expect(deducirForma("2026-10-02T15:00:00.000Z", "2026-10-03T15:00:00.000Z", null, "TRU")?.porque).toContain("su primera entrada");
+    const antes = (motivo: string | null) =>
+      deducirForma(libro({ saldoALaVenta: 0, primeraEntrada: "2026-10-03T15:00:00.000Z", primeraEntradaMotivo: motivo }), "2026-10-02T15:00:00.000Z", "TRU")?.porque;
+    expect(antes("traslado_entrada")).toContain("el traslado que la trajo");
+    expect(antes("recepcion")).toContain("su recepción");
+    expect(antes("motivo_raro")).toContain("su primera entrada");
+    expect(antes(null)).toContain("su primera entrada");
   });
 
-  it("sin entrada conocida, con la misma hora exacta o con una fecha rota: no se sabe (null)", () => {
-    expect(deducirForma("2026-10-02T15:00:00.000Z", null, null, "TRU")).toBeNull();
-    expect(deducirForma("2026-10-02T15:00:00.000Z", "2026-10-02T15:00:00.000Z", "carga_inicial", "TRU")).toBeNull();
-    expect(deducirForma("no es fecha", "2026-10-02T15:00:00.000Z", "carga_inicial", "TRU")).toBeNull();
+  it("sin saldo conocido (sede apagada, o la lectura vieja) o con una fecha rota: nada que decir (null)", () => {
+    expect(deducirForma(libro({ saldoALaVenta: null }), "2026-10-02T15:00:00.000Z", "TRU")).toBeNull();
+    expect(deducirForma(libro({ saldoALaVenta: 2 }), "no es fecha", "TRU")).toBeNull();
   });
 });
 
@@ -182,7 +214,11 @@ describe("las piezas de la lista", () => {
 
   it("la respuesta sugerida es la de la prenda ELEGIDA, y nada si la elegida no es candidata", () => {
     const cat = catalogoDe(prenda("antes", "Blusa Aurora"), prenda("despues", "Blusa Brisa"));
-    const cs = ordenarCandidatas(VENTA, [hecho("antes", { primeraEntrada: "2026-10-05T15:00:00.000Z" }), hecho("despues")], cat);
+    const cs = ordenarCandidatas(
+      VENTA,
+      [hecho("antes", { saldoALaVenta: 0, primeraEntrada: "2026-10-05T15:00:00.000Z", cambioPosterior: "2026-10-05T15:00:00.000Z" }), hecho("despues")],
+      cat,
+    );
     expect(formaSugeridaPara(cs, "antes")?.forma).toBe("llego_nueva");
     expect(formaSugeridaPara(cs, "despues")?.forma).toBe("ya_registrada");
     expect(formaSugeridaPara(cs, "otra")).toBeNull();

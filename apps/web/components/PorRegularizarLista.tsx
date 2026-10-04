@@ -379,14 +379,14 @@ function RegularizarModal({
               {formaSugerida.porque}
             </p>
           )}
-          {elegida && !formaSugerida && (
+          {elegida && !formaSugerida && !motivoPrenda && (
             <p className="mt-2 text-xs text-taupe">
-              Para esta prenda el sistema no puede deducirlo (no calza con lo que anotó caja o no tiene fecha de entrada en esta tienda): mira tú
-              si estaba contada.
+              Para esta prenda el sistema no puede deducirlo (no calza con lo que anotó caja o no tiene stock libre en esta tienda): mira tú si
+              estaba contada.
             </p>
           )}
           {forma && <p className="mt-2 text-xs text-taupe">{EFECTO_FORMA[forma]}</p>}
-          {forma && formaSugerida && forma !== formaSugerida.forma && (
+          {forma && formaSugerida?.forma && forma !== formaSugerida.forma && (
             <p className="mt-1 text-xs text-ambar-profundo" role="status">
               {SI_CONTESTA_MAL[formaSugerida.forma]}
             </p>

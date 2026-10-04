@@ -9,7 +9,9 @@
  *       (la de esa sede, y sin contar el «ingreso_regularizado»); solo para quien puede operar la sede.
  *   D · Que contestar mal DESCUENTA DOS VECES: con la venta antes de la carga inicial, «ya estaba registrada» deja el stock una
  *       prenda por debajo de lo contado; con la venta después, «llegó nueva» deja una prenda fantasma. La respuesta que deduce la
- *       web (`lib/por-regularizar-candidatas.ts`: venta antes de la primera entrada ⇒ llegó nueva) es la que cuadra en los dos.
+ *       web (`lib/por-regularizar-candidatas.ts`: el sistema no tenía ninguna a la hora de la venta ⇒ llegó nueva; tenía y después
+ *       no llegó nada ⇒ ya estaba registrada) es la que cuadra en los dos. Los casos R7 prueban el saldo a la venta y el cambio
+ *       posterior que trae la lectura (una prenda que se agotó y volvió a llegar).
  *   C · Nadie regulariza su propia venta, salvo el líder firmando él mismo (20261004204000): ni con su cuenta, ni eligiéndose en
  *       la terminal, ni nombrando a otra persona desde su propia cuenta, ni elegida en el combo con la sesión de un líder abierta
  *       (R1); otra integrante sí; el líder sí, la suya; desde una terminal hay que elegir quién firma (la clave
@@ -553,6 +555,89 @@ caso(
 select pg_temp.carga(:'vt', lima, 1, now() - interval '5 days') from ids \\g /dev/null
 ${como(MICAELA)}select coalesce(retail.fn_prenda_cargada_en_sede(:'vt', (select lima from ids))::text, 'null');`,
   "null",
+);
+
+// R7: la deducción con la primera entrada sola sugería «ya estaba registrada» de una prenda que el sistema NO tenía a la hora de
+// la venta (se agotó y volvió a llegar). La lectura trae ahora cuántas tenía el sistema justo antes de la venta y qué llegó o se
+// ajustó después; la web deduce con eso (`deducirForma`).
+const hechos = (variable) =>
+  `(select c.saldo_a_la_venta || '/' || coalesce(c.cambio_posterior_motivo, '—') || '/' ||
+           coalesce((c.cambio_posterior >= p.vendido_en)::text, '—') || '/' || (c.primera_entrada < p.vendido_en)
+      from retail.fn_candidatas_por_regularizar() c join retail.prendas_por_regularizar p on p.id = c.prenda_id
+     where c.prenda_id = :'pp' and c.variante_id = :'${variable}')`;
+caso(
+  "R7 · se agotó y volvió a llegar: a la hora de la venta el sistema tenía 0 (aunque la primera entrada sea anterior), y después llegó la recepción",
+  `${EQUIPO}select pg_temp.prenda('S-SALDO0-M', talla_m, 'NEG') as vs from ids \\gset
+select pg_temp.carga(:'vs', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'salida', 1, 'venta', now() - interval '4 days') from ids \\g /dev/null
+${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_en = now() - interval '3 days' where id = :'pp';
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'entrada', 2, 'recepcion', now() - interval '1 day') from ids \\g /dev/null
+select ${hechos("vs")};`,
+  "0/recepcion/true/true",
+);
+caso(
+  "R7b · …y contestar lo que la deducción vieja sugería («ya estaba registrada») deja 1 en el sistema y 2 en la percha; «llegó nueva» deja 2",
+  `${EQUIPO}select pg_temp.prenda('S-SALDO0-M', talla_m, 'NEG') as vs from ids \\gset
+select pg_temp.carga(:'vs', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'salida', 1, 'venta', now() - interval '4 days') from ids \\g /dev/null
+${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_en = now() - interval '3 days' where id = :'pp';
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'entrada', 2, 'recepcion', now() - interval '1 day') from ids \\g /dev/null
+${como(LUCIA_AUTH)}savepoint antes;
+select ${regularizaComo("vs", "ya_registrada")} as r1 \\gset
+select pg_temp.stock(:'vs', tru) as mal from ids \\gset
+rollback to savepoint antes;
+select ${regularizaComo("vs", "llego_nueva")} as r2 \\gset
+select :'r1' || ' ' || :'mal' || ' / ' || :'r2' || ' ' || pg_temp.stock(:'vs', tru) from ids;`,
+  "SIN_ERROR 1 / SIN_ERROR 2",
+);
+caso(
+  "R7c · había 3 contadas y después no llegó ni se ajustó nada: saldo 3, sin cambio posterior (la web sugiere «ya estaba registrada»)",
+  `${EQUIPO}select pg_temp.prenda('S-CONTADA-M', talla_m, 'NEG') as vs from ids \\gset
+select pg_temp.carga(:'vs', tru, 3, now() - interval '5 days') from ids \\g /dev/null
+${VENDE_MICAELA}
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'salida', 1, 'venta', now() - interval '12 hours') from ids \\g /dev/null
+select ${hechos("vs")};`,
+  "3/—/—/true",
+);
+caso(
+  "R7d · había 1 y después llegó una recepción: saldo 1 y la recepción (la web no deduce: pudo ser de cualquiera de las dos)",
+  `${EQUIPO}select pg_temp.prenda('S-AMBIGUA-M', talla_m, 'NEG') as vs from ids \\gset
+select pg_temp.carga(:'vs', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+${VENDE_MICAELA}
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'entrada', 2, 'recepcion', now() - interval '12 hours') from ids \\g /dev/null
+select ${hechos("vs")};`,
+  "1/recepcion/true/true",
+);
+caso(
+  "R7e · un conteo que ajustó DESPUÉS de la venta también cuenta como cambio (pudo absorber la vendida); una devolución, no",
+  `${EQUIPO}select pg_temp.prenda('S-CONTEO-M', talla_m, 'NEG') as vs from ids \\gset
+select pg_temp.carga(:'vs', tru, 3, now() - interval '5 days') from ids \\g /dev/null
+${VENDE_MICAELA}
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'entrada', 1, 'devolucion', now() - interval '18 hours') from ids \\g /dev/null
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'ajuste', -1, 'conteo_fisico', now() - interval '12 hours') from ids \\g /dev/null
+select ${hechos("vs")};`,
+  "3/conteo_fisico/true/true",
+);
+caso(
+  "R7f · vendida ANTES de su carga inicial: saldo 0 y la carga como cambio posterior (la web: «llegó nueva», antes de su carga)",
+  `${EQUIPO}select pg_temp.prenda('S-ANTES-M', talla_m, 'NEG') as vs from ids \\gset
+${VENDE_MICAELA}
+select pg_temp.carga(:'vs', tru, 2, now() - interval '12 hours') from ids \\g /dev/null
+select ${hechos("vs")};`,
+  "0/carga_inicial/true/false",
+);
+
+caso(
+  "R7g · dos ventas pendientes de la misma prenda: cada una con el saldo de SU hora (el libro se lee una vez desde la más antigua)",
+  `${EQUIPO}select pg_temp.prenda('S-DOS-M', talla_m, 'NEG') as vs from ids \\gset
+select pg_temp.carga(:'vs', tru, 3, now() - interval '5 days') from ids \\g /dev/null
+${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_en = now() - interval '4 days' where id = :'pp';
+select :'pp' as pp1 \\gset
+select pg_temp.mov(:'vs', tru, pg_temp.sub(tru, 'almacen_tienda'), 'salida', 1, 'venta', now() - interval '3 days') from ids \\g /dev/null
+${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_en = now() - interval '2 days' where id = :'pp';
+select (select c.saldo_a_la_venta from retail.fn_candidatas_por_regularizar() c where c.prenda_id = :'pp1' and c.variante_id = :'vs') || ',' ||
+       (select c.saldo_a_la_venta from retail.fn_candidatas_por_regularizar() c where c.prenda_id = :'pp' and c.variante_id = :'vs');`,
+  "3,2",
 );
 
 // ---------------- P · la migración contra el cuerpo que tiene producción antes de pegar ----------------

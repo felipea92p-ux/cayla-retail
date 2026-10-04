@@ -979,10 +979,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. `contarVencidas` alimenta la
   cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Limpieza de arranque (ADR-0328, act. 5):
   `getCandidatasPorRegularizar` → RPC de lectura `fn_candidatas_por_regularizar(p_ubicacion_id)` (20261004203000: por venta
-  pendiente, las variantes de la misma categoría y talla, color exacto o de su familia, con stock libre en su sede, y la
-  primera entrada de esa prenda a esa sede; tolerante a fallo) → `lib/por-regularizar-candidatas.ts` (orden por nombre, color,
-  piso y precio; descarta colores de la familia que no se confunden, ΔE2000 > 20; deduce «llegó nueva» si la venta es anterior
-  a la primera entrada, «ya estaba registrada» si es posterior) → la fila dice «Probable: …» y el modal la sugiere con su
+  pendiente, las variantes de la misma categoría y talla, color exacto o de su familia, con stock libre en su sede, la
+  primera entrada de esa prenda a esa sede, cuántas tenía el sistema ahí justo antes de la venta —`saldo_a_la_venta`, del libro
+  único `fn_ledger_puntos`, una lectura por sede— y lo primero que llegó o se ajustó después; tolerante a fallo) →
+  `lib/por-regularizar-candidatas.ts` (orden por nombre, color, piso y precio; descarta colores de la familia que no se
+  confunden, ΔE2000 > 20; `deducirForma`: «llegó nueva» si el sistema no tenía ninguna, «ya estaba registrada» si tenía y
+  después no llegó ni se ajustó nada, y sin respuesta —con el porqué y la fecha— si después llegó algo) → la fila dice «Probable: …» y el modal la sugiere con su
   porqué (la persona confirma); guía de foco `lib/por-regularizar-guia.ts`. Desde 20261004204000 `regularizar_prenda` rechaza a
   quien vendió la prenda salvo un líder firmando él mismo desde su cuenta (hint `regularizar_propia_venta`; espejo
   `motivoPropiaVenta` en `por-regularizar-reglas.ts`), rechaza una prenda sin ningún movimiento en la sede (hint

@@ -130,6 +130,9 @@ export async function getCandidatasPorRegularizar(ubicacionId: string | null): P
         disponible: Number(f.disponible),
         primeraEntrada: f.primera_entrada,
         primeraEntradaMotivo: f.primera_entrada_motivo,
+        saldoALaVenta: f.saldo_a_la_venta === null ? null : Number(f.saldo_a_la_venta),
+        cambioPosterior: f.cambio_posterior,
+        cambioPosteriorMotivo: f.cambio_posterior_motivo,
       })),
       fallo: null,
     };

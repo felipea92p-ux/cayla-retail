@@ -3,13 +3,17 @@
 //
 // CONTRATO
 //   PROMETE: (1) `ordenarCandidatas`: las prendas del stock que pueden ser la venta, de la más a la menos probable, cada una con su
-//            porqué en palabras de tienda; (2) `deducirForma`: «llegó nueva» si la venta es ANTERIOR a la primera entrada de esa
-//            prenda a esa sede (la carga ya no la contó) y «ya estaba registrada» si es POSTERIOR (estaba contada), con su porqué;
-//            `null` si no hay cómo saberlo.
+//            porqué en palabras de tienda; (2) `deducirForma`, con lo que dice el libro de esa prenda en esa sede: «llegó nueva» si
+//            a la hora de la venta el sistema no tenía ninguna (no pudo estar contada); «ya estaba registrada» si tenía y después
+//            no llegó ni se ajustó nada (estaba contada); y SIN respuesta (`forma: null`, con el porqué y las fechas) si tenía pero
+//            después llegó o se ajustó algo: pudo ser de lo que había o de lo que llegó sin registrar. `null` si no hay datos.
 //   ASUME:   que los hechos son los de la sede de la venta y que las fechas vienen en ISO (las de la base).
 //   NO HACE: no elige por nadie. La pantalla muestra la candidata y la respuesta como SUGERENCIA y la persona confirma: contestar mal
-//            descuenta dos veces (o deja una prenda fantasma), y la regla de las fechas falla si la carga se registró días después
-//            de contarla en papel. Por eso tampoco es un candado en `regularizar_prenda`.
+//            descuenta dos veces (o deja una prenda fantasma), y la regla falla si la carga se registró días después de contarla
+//            en papel. Por eso tampoco es un candado en `regularizar_prenda`.
+//
+// POR QUÉ EL SALDO Y NO LA PRIMERA ENTRADA (revisión adversarial, R7). Con la primera entrada sola, una prenda que se agotó y volvió
+// a llegar salía «ya estaba registrada» aunque el sistema tuviera 0 a la hora de la venta: la respuesta que descuenta dos veces.
 //
 // EL ORDEN (de más a menos probable), cada criterio desempata el anterior:
 //   1. el NOMBRE del modelo aparece en lo que anotó la caja («Blusa Emma negra» → Blusa Emma): la señal más fuerte, la escribió
@@ -42,12 +46,18 @@ export type HechoCandidata = {
   /** La primera vez que esa prenda sumó a esa sede (ISO), o `null` si el libro no lo dice. */
   primeraEntrada: string | null;
   primeraEntradaMotivo: string | null;
+  /** Cuántas tenía el sistema de esa prenda en esa sede justo antes de la venta (sin Cuarentena), o `null` si no se sabe. */
+  saldoALaVenta: number | null;
+  /** Lo primero que llegó o se ajustó de esa prenda en esa sede DESPUÉS de la venta (ISO y motivo), o `null` si nada. */
+  cambioPosterior: string | null;
+  cambioPosteriorMotivo: string | null;
 };
 
 /** Lo que la candidata necesita saber de la venta. */
 export type VentaPorRegularizar = { descripcion: string; precioCobrado: number; vendidoEn: string; sede: string; categoria: string; talla: string; color: string };
 
-export type FormaDeducida = { forma: FormaRegularizar; porque: string };
+/** La respuesta que dice el libro, con su porqué. `forma: null` = el libro no alcanza para decidir (el porqué dice por qué). */
+export type FormaDeducida = { forma: FormaRegularizar | null; porque: string };
 
 export type Candidata = {
   prenda: PrendaParaRegularizar;
@@ -95,25 +105,60 @@ function cuando(iso: string): string {
   return `${dia} a las ${hora}`;
 }
 
+/** Lo que cambió lo contado después de la venta, dicho en la tienda: «llegó una recepción», «se ajustó en un conteo». */
+const QUE_CAMBIO: Readonly<Record<string, string>> = {
+  carga_inicial: "se cargó su stock inicial",
+  recepcion: "llegó una recepción",
+  traslado_entrada: "llegó un traslado",
+  transferencia: "llegó un traslado",
+  produccion: "llegó del Taller",
+  conteo: "se ajustó en un conteo",
+  conteo_fisico: "se ajustó contándola",
+  hallazgo_conteo: "apareció tras un conteo",
+  reposicion: "se ajustó a mano",
+  merma: "se ajustó a mano",
+  otro: "se ajustó a mano",
+};
+const queCambio = (motivo: string | null) => (motivo && QUE_CAMBIO[motivo]) || "cambió su stock";
+
 /**
- * «¿Ya estaba registrada o llegó nueva?», deducida del libro: si la venta fue ANTES de que esa prenda entrara a la sede, la carga (o
- * la recepción) contó lo que quedaba y no a ella → llegó nueva (entra 1 y sale 1: el stock no cambia). Si fue DESPUÉS, estaba
- * contada en el stock → ya estaba registrada (sale 1). Misma hora exacta o sin entrada conocida: no se sabe (`null`).
+ * «¿Ya estaba registrada o llegó nueva?», deducida del libro de ESA prenda en ESA sede (`fn_candidatas_por_regularizar`):
+ *   · a la hora de la venta el sistema no tenía ninguna → llegó nueva (no pudo estar contada: entra 1 y sale 1, el stock no cambia);
+ *   · tenía, y después no llegó ni se ajustó nada → ya estaba registrada (estaba contada: sale 1);
+ *   · tenía, pero después llegó o se ajustó algo → sin respuesta (`forma: null`): pudo ser de lo que había o de lo que llegó sin
+ *     registrar (o un conteo ya la descontó). El porqué lo dice con las fechas, para que la persona mire.
+ * Sin saldo conocido o con una fecha rota: `null` (nada que decir).
  */
-export function deducirForma(vendidoEn: string, primeraEntrada: string | null, motivo: string | null, sede: string): FormaDeducida | null {
-  if (!primeraEntrada) return null;
-  const venta = Date.parse(vendidoEn);
-  const entrada = Date.parse(primeraEntrada);
-  if (!Number.isFinite(venta) || !Number.isFinite(entrada) || venta === entrada) return null;
-  if (venta < entrada) {
+export function deducirForma(
+  h: Pick<HechoCandidata, "saldoALaVenta" | "primeraEntrada" | "primeraEntradaMotivo" | "cambioPosterior" | "cambioPosteriorMotivo">,
+  vendidoEn: string,
+  sede: string,
+): FormaDeducida | null {
+  const saldo = h.saldoALaVenta;
+  if (saldo === null || !Number.isFinite(saldo) || !Number.isFinite(Date.parse(vendidoEn))) return null;
+  if (saldo <= 0) {
+    const entrada = h.primeraEntrada ? Date.parse(h.primeraEntrada) : Number.NaN;
+    // La más clara de decir: se vendió antes de que esa prenda entrara por primera vez a la tienda.
+    if (h.primeraEntrada && Number.isFinite(entrada) && Date.parse(vendidoEn) < entrada) {
+      return {
+        forma: "llego_nueva",
+        porque: `Se vendió el ${cuando(vendidoEn)}, antes de ${queFue(h.primeraEntradaMotivo)} en ${sede} (${cuando(h.primeraEntrada)}): ese conteo ya no la incluyó.`,
+      };
+    }
     return {
       forma: "llego_nueva",
-      porque: `Se vendió el ${cuando(vendidoEn)}, antes de ${queFue(motivo)} en ${sede} (${cuando(primeraEntrada)}): ese conteo ya no la incluyó.`,
+      porque: `Cuando se vendió (${cuando(vendidoEn)}), el sistema no tenía ninguna en ${sede}: no pudo estar contada.`,
+    };
+  }
+  if (!h.cambioPosterior) {
+    return {
+      forma: "ya_registrada",
+      porque: `Cuando se vendió (${cuando(vendidoEn)}), el sistema tenía ${saldo} en ${sede} y después no llegó ni se ajustó ninguna: estaba contada en el stock.`,
     };
   }
   return {
-    forma: "ya_registrada",
-    porque: `Se vendió el ${cuando(vendidoEn)}, después de ${queFue(motivo)} en ${sede} (${cuando(primeraEntrada)}): estaba contada en el stock.`,
+    forma: null,
+    porque: `Cuando se vendió (${cuando(vendidoEn)}), el sistema tenía ${saldo} en ${sede}, pero el ${cuando(h.cambioPosterior)} ${queCambio(h.cambioPosteriorMotivo)}: pudo ser una de las que ya estaban contadas o una que llegó sin registrar. Mira tú si estaba contada.`,
   };
 }
 
@@ -159,7 +204,7 @@ export function ordenarCandidatas(
       hecho: h,
       palabrasDelNombre: palabras,
       razones: razonesDe(venta, prenda, h, palabras),
-      forma: deducirForma(venta.vendidoEn, h.primeraEntrada, h.primeraEntradaMotivo, venta.sede),
+      forma: deducirForma(h, venta.vendidoEn, venta.sede),
     });
   }
   const distancia = (c: Candidata) => Math.abs(c.prenda.precio - venta.precioCobrado);
@@ -194,7 +239,7 @@ export function textoProbable(candidatas: readonly Candidata[]): string | null {
   return `Probable: ${primera.prenda.nombre} · ${primera.prenda.codigo}${cuantas}`;
 }
 
-/** Qué respuesta tiene la pastilla: la deducida para la prenda ELEGIDA, si la elegida es una candidata con fecha. */
+/** Qué dice el libro de la prenda ELEGIDA (la respuesta, o por qué no alcanza), si la elegida es una candidata con datos. */
 export function formaSugeridaPara(candidatas: readonly Candidata[], varianteElegida: string): FormaDeducida | null {
   return candidatas.find((c) => c.prenda.id === varianteElegida)?.forma ?? null;
 }
