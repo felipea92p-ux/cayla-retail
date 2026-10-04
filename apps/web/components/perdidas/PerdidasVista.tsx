@@ -31,7 +31,8 @@ import {
 // faltan, por qué, se repite) → la lista → nota en hueso.
 //
 // Lo que apareció va APARTE, nunca restado de lo perdido: «−9 · +4» no es «−5» (ADR-0327). Unidades y totales en soles
-// para todos; el costo por prenda, solo el líder (la base ni siquiera lo manda a los demás).
+// para todos; el costo por prenda, solo el líder (la base ni siquiera lo manda a los demás). Filtrada a UNA prenda, quien no
+// es líder ve solo unidades: sus soles serían su costo, y la base tampoco los manda (`soles` null).
 
 export function PerdidasVista({
   resumen,
@@ -162,8 +163,10 @@ function Cifras({
           "Nada salió sin venderse."
         ) : (
           <>
-            <span className="block">{solesPerdidas(p.soles)} al costo de cada día</span>
-            {p.sinCosto > 0 && (
+            <span className="block">
+              {p.soles === null ? "El valor en soles de una sola prenda lo ve el líder." : `${solesPerdidas(p.soles)} al costo de cada día`}
+            </span>
+            {p.soles !== null && p.sinCosto > 0 && (
               <span className="block">
                 {unidadesTexto(p.sinCosto)} sin costo cargado: en soles se queda corto.
               </span>
@@ -176,7 +179,7 @@ function Cifras({
         valor={a.unidades === 0 ? "0" : `+${a.unidades.toLocaleString("es-PE")}`}
         unidad={a.unidades === 1 ? "prenda" : "prendas"}
       >
-        {a.unidades === 0 ? "No apareció nada." : `${solesPerdidas(a.soles)} · no se resta de lo perdido`}
+        {a.unidades === 0 ? "No apareció nada." : a.soles === null ? "No se resta de lo perdido" : `${solesPerdidas(a.soles)} · no se resta de lo perdido`}
       </TarjetaCifra>
       <TarjetaCifra
         etiqueta="Se repite · últimos 30 días"
@@ -246,7 +249,7 @@ function PorRazon({ resumen }: { resumen: ResumenPerdidas }) {
               </span>
               <span className="shrink-0 text-right text-sm tabular-nums text-tinta">
                 {unidadesTexto(r.unidades)}
-                <span className="block text-xs text-taupe">{solesPerdidas(r.soles)}</span>
+                {r.soles !== null && <span className="block text-xs text-taupe">{solesPerdidas(r.soles)}</span>}
               </span>
             </li>
           ))}
@@ -260,11 +263,11 @@ function PorCategoriaYTalla({ resumen }: { resumen: ResumenPerdidas }) {
   if (resumen.porCategoria.length === 0) return null;
   // Las tallas en el orden de la curva (S · M · L, 28 · 30 · 32), no por cantidad: así se ve en qué parte de la curva se pierde.
   const tallas = [...resumen.porTalla].sort((x, y) => compararTallas(x.talla, y.talla));
-  const fila2 = (etiqueta: ReactNode, unidades: number, soles: number, clave: string) => (
+  const fila2 = (etiqueta: ReactNode, unidades: number, soles: number | null, clave: string) => (
     <li key={clave} className="flex items-baseline gap-3 py-2">
       <span className="min-w-0 flex-1 truncate text-sm text-tinta">{etiqueta}</span>
       <span className="shrink-0 text-sm tabular-nums text-tinta">{unidadesTexto(unidades)}</span>
-      <span className="w-24 shrink-0 text-right text-xs tabular-nums text-taupe">{solesPerdidas(soles)}</span>
+      {soles !== null && <span className="w-24 shrink-0 text-right text-xs tabular-nums text-taupe">{solesPerdidas(soles)}</span>}
     </li>
   );
   return (

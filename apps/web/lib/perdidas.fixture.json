@@ -422,5 +422,83 @@
         "categoria": "Pantalones"
       }
     ]
+  },
+  "integrante_prenda": {
+    "desde": "2031-03-01",
+    "hasta": "2031-03-31",
+    "hechos": [
+      {
+        "id": "f3fc48ab-ca34-4063-bbc6-7fe44384b24f",
+        "dia": "2031-03-05",
+        "lado": "perdida",
+        "nota": null,
+        "zona": "Piso de venta",
+        "color": "Beige",
+        "razon": "a_mano",
+        "talla": "M",
+        "codigo": "CAS-0002-BEI-M",
+        "fuente": "movimiento",
+        "instante": "2031-03-05T12:00:00-05:00",
+        "producto": "Casaca Luciana",
+        "quedaron": 3,
+        "unidades": 1,
+        "categoria": "Casacas",
+        "color_hex": "#D5BA98",
+        "zona_tipo": "piso_venta",
+        "producto_id": "a2da7d48-5740-49d4-a534-ce6b375e19b1",
+        "variante_id": "07e36452-bacf-4ef6-b9b5-ca368b1e4313",
+        "documento_id": null,
+        "con_documento": false,
+        "costo_unitario": null,
+        "documento_tipo": null,
+        "sububicacion_id": "f3a3108a-9513-4702-8ff5-172faa9e9fc3",
+        "documento_numero": null
+      }
+    ],
+    "perdido": {
+      "soles": null,
+      "hechos": 1,
+      "unidades": 1,
+      "sin_costo": 0
+    },
+    "aparecio": {
+      "soles": null,
+      "hechos": 0,
+      "unidades": 0
+    },
+    "ve_costo": false,
+    "por_razon": [
+      {
+        "lado": "perdida",
+        "razon": "a_mano",
+        "soles": null,
+        "unidades": 1
+      }
+    ],
+    "por_talla": [
+      {
+        "soles": null,
+        "talla": "M",
+        "unidades": 1
+      }
+    ],
+    "mas_faltan": [
+      {
+        "color": "Beige",
+        "talla": "M",
+        "veces": 1,
+        "unidades": 1,
+        "categoria": "Casacas",
+        "color_hex": "#D5BA98"
+      }
+    ],
+    "hechos_total": 1,
+    "por_categoria": [
+      {
+        "soles": null,
+        "unidades": 1,
+        "categoria": "Casacas"
+      }
+    ]
   }
 }

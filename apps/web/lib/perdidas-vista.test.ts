@@ -84,6 +84,18 @@ describe("PerdidasVista con datos reales de la base", () => {
     expect(t).toContain("no se mide");
   });
 
+  it("filtrada a una prenda, la integrante ve solo prendas: ni un S/ (sus soles serían el costo de esa prenda)", () => {
+    const filtrada = leerResumenPerdidas(FIXTURE.integrante_prenda)!;
+    expect(filtrada.veCosto).toBe(false);
+    expect(filtrada.perdido).toEqual({ unidades: 1, soles: null, sinCosto: 0, hechos: 1 });
+    expect([...filtrada.porRazon, ...filtrada.porCategoria, ...filtrada.porTalla].every((x) => x.soles === null)).toBe(true);
+    const t = texto(dibujar(filtrada, { filtro: { varianteId: filtrada.hechos[0]!.varianteId, sububicacionId: null }, repeticiones: null }));
+    expect(t).toContain("−1");
+    expect(t).toContain("El valor en soles de una sola prenda lo ve el líder.");
+    expect(t).not.toContain("S/");
+    expect(t).not.toContain("Costo c/u");
+  });
+
   it("si la base no respondió, lo dice: nunca un 0", () => {
     const t = texto(dibujar(null, { repeticiones: null }));
     expect(t).toContain("no se pudieron leer");

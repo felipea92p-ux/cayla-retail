@@ -443,6 +443,9 @@ select 'F4 el Estado de resultados de T dice mermas S/ 250, con su detalle «fal
 
 const CASOS_PERMISOS = `
 select 'P1 el líder ve el costo por prenda', (select bool_and((r.j ->> 've_costo')::boolean and x -> 'costo_unitario' <> 'null'::jsonb) from r, jsonb_array_elements(r.j -> 'hechos') x);
+select 'P1 y filtrada a una prenda sigue viendo sus soles (v1 en T: 3 prendas, S/ 120)',
+  (select (j #>> '{perdido,unidades}')::int = 3 and (j #>> '{perdido,soles}')::numeric = 120
+     from (select retail.fn_perdidas_resumen(:'t', '2031-03-01', '2031-03-31', :'v1') as j) q);
 ${cambiaA(MICAELA)}
 select 'P2 una integrante no ve las pérdidas de otra sede',
   (select pg_temp.intento(format('select retail.fn_perdidas_resumen(%L, %L, %L)', :'t', '2031-03-01', '2031-03-31')) like '%permiso%');
@@ -450,6 +453,15 @@ create temp table rm as select retail.fn_perdidas_resumen(:'tru', '2031-03-01', 
 select 'P3 en su sede ve unidades y totales en soles (1 prenda, S/ 40), nunca el costo por prenda',
   (select not (j ->> 've_costo')::boolean and (j #>> '{perdido,unidades}')::int = 1 and (j #>> '{perdido,soles}')::numeric = 40 from rm)
   and (select count(*) = 1 and bool_and(x -> 'costo_unitario' = 'null'::jsonb) from rm, jsonb_array_elements(rm.j -> 'hechos') x);
+-- Filtrada a UNA prenda, «S/ total ÷ prendas» sería su costo: la base no le manda ningún soles (revisión adversarial).
+create temp table rmp as select retail.fn_perdidas_resumen(:'tru', '2031-03-01', '2031-03-31', :'v1') as j;
+select 'P3 filtrada a una prenda, la integrante ve solo unidades: ningún soles (su total sería el costo de la prenda)',
+  (select (j #>> '{perdido,unidades}')::int = 1 and j #> '{perdido,soles}' = 'null'::jsonb and j #> '{aparecio,soles}' = 'null'::jsonb from rmp)
+  and (select count(*) >= 3 and bool_and(x -> 'soles' = 'null'::jsonb)
+         from rmp, jsonb_array_elements((rmp.j -> 'por_razon') || (rmp.j -> 'por_categoria') || (rmp.j -> 'por_talla')) x);
+select 'P3 y filtrada a una zona vuelve a ver los totales en soles (una zona junta prendas distintas)',
+  (select (j #>> '{perdido,soles}')::numeric = 40
+     from (select retail.fn_perdidas_resumen(:'tru', '2031-03-01', '2031-03-31', null, :'tru_sub') as j) q);
 delete from retail.rol_modulos where modulo = 'movimientos' and rol_id = (select id from retail.roles where clave = 'integrante');
 select 'P4 sin el módulo Movimientos, nada',
   (select pg_temp.intento(format('select retail.fn_perdidas_resumen(%L, %L, %L)', :'tru', '2031-03-01', '2031-03-31')) like '%Movimientos%');

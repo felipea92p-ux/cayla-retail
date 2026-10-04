@@ -251,6 +251,8 @@ $$;
 --   y por talla (de lo perdido), «más faltan» (categoría · talla · color, las 5 con más prendas) y la lista de hechos (hasta
 --   1000, la más reciente primero; `hechos_total` dice cuántos hay). Unidades y totales en soles para todos; el costo POR
 --   PRENDA (`costo_unitario` de cada hecho) solo si quien mira es líder (Felipe, 2026-10-04): para los demás viene null.
+--   Filtrada a UNA prenda, sus soles ÷ sus prendas SON su costo: para quien no es líder, todo `soles` viene null (solo
+--   unidades). El candado vive aquí, no en la pantalla (revisión adversarial del PR de la actividad 14).
 --   `quedaron` (cuántas quedaron de esa talla en la sede después de restar) solo en las restas a mano sin documento: es lo
 --   que el aviso «resta grande sin nota» necesita para «la dejó en 0».
 -- ASUME: quien mira ve el módulo Movimientos y opera esa sede (o es líder). Solo lee: no bloquea ni escribe nada.
@@ -271,6 +273,8 @@ declare
   v_ini timestamptz;
   v_fin timestamptz;
   v_ve_costo boolean := coalesce(retail.fn_es_lider(), false);
+  -- Una sola prenda: los soles delatarían su costo. Con toda la sede o una zona, los totales mezclan prendas.
+  v_ve_soles boolean := v_ve_costo or p_variante_id is null;
   v_resultado jsonb;
 begin
   if p_ubicacion_id is null then
@@ -338,23 +342,23 @@ begin
     've_costo', v_ve_costo,
     'perdido', (select jsonb_build_object(
                   'unidades', coalesce(sum(p.unidades), 0),
-                  'soles', coalesce(sum(p.soles), 0),
+                  'soles', case when v_ve_soles then coalesce(sum(p.soles), 0) end,
                   'sin_costo', coalesce(sum(p.unidades) filter (where p.costo_unitario = 0), 0),
                   'hechos', count(*))
                   from perd p),
     'aparecio', (select jsonb_build_object(
                    'unidades', coalesce(sum(a.unidades), 0),
-                   'soles', coalesce(sum(a.soles), 0),
+                   'soles', case when v_ve_soles then coalesce(sum(a.soles), 0) end,
                    'hechos', count(*))
                    from d a where a.lado = 'aparecio'),
-    'por_razon', coalesce((select jsonb_agg(jsonb_build_object('lado', r.lado, 'razon', r.razon, 'unidades', r.u, 'soles', r.s)
+    'por_razon', coalesce((select jsonb_agg(jsonb_build_object('lado', r.lado, 'razon', r.razon, 'unidades', r.u, 'soles', case when v_ve_soles then r.s end)
                                             order by r.lado desc, r.u desc, r.razon)
                              from (select d.lado, d.razon, sum(d.unidades) as u, sum(d.soles) as s from d group by d.lado, d.razon) r), '[]'::jsonb),
-    'por_categoria', coalesce((select jsonb_agg(jsonb_build_object('categoria', c.categoria, 'unidades', c.u, 'soles', c.s)
+    'por_categoria', coalesce((select jsonb_agg(jsonb_build_object('categoria', c.categoria, 'unidades', c.u, 'soles', case when v_ve_soles then c.s end)
                                                 order by c.u desc, c.categoria)
                                  from (select coalesce(p.categoria, 'Sin categoría') as categoria, sum(p.unidades) as u, sum(p.soles) as s
                                          from perd p group by 1) c), '[]'::jsonb),
-    'por_talla', coalesce((select jsonb_agg(jsonb_build_object('talla', t.talla, 'unidades', t.u, 'soles', t.s) order by t.u desc, t.talla)
+    'por_talla', coalesce((select jsonb_agg(jsonb_build_object('talla', t.talla, 'unidades', t.u, 'soles', case when v_ve_soles then t.s end) order by t.u desc, t.talla)
                              from (select coalesce(p.talla, 'Única') as talla, sum(p.unidades) as u, sum(p.soles) as s
                                      from perd p group by 1) t), '[]'::jsonb),
     'mas_faltan', coalesce((select jsonb_agg(jsonb_build_object('categoria', f.categoria, 'talla', f.talla, 'color', f.color,

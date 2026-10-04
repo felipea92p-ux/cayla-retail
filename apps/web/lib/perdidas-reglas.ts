@@ -51,7 +51,9 @@ export type HechoPerdida = {
   quedaron: number | null;
 };
 
-export type Cifra = { unidades: number; soles: number };
+/** `soles` es `null` cuando la base no lo manda: filtrada a UNA prenda y quien mira no es líder, el total ÷ las prendas sería
+ *  el costo de esa prenda (solo del líder, Felipe 2026-10-04). Se dice «solo unidades», nunca un 0. */
+export type Cifra = { unidades: number; soles: number | null };
 
 export type ResumenPerdidas = {
   desde: string;
@@ -278,8 +280,8 @@ const num = (v: unknown): number => {
 const numONull = (v: unknown): number | null => (v === null || v === undefined ? null : num(v));
 const txt = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
 
-/** Lo que devuelve `fn_perdidas_resumen` (jsonb) en tipos de la web. Un dato que no viene se lee como 0 o vacío; un jsonb
- *  que no es un objeto, como `null` («no se pudo leer»). */
+/** Lo que devuelve `fn_perdidas_resumen` (jsonb) en tipos de la web. Un dato que no viene se lee como 0 o vacío (salvo los
+ *  soles, que la base calla a propósito: `null`); un jsonb que no es un objeto, como `null` («no se pudo leer»). */
 export function leerResumenPerdidas(crudo: unknown): ResumenPerdidas | null {
   if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return null;
   const j = crudo as Record<string, unknown>;
@@ -290,11 +292,11 @@ export function leerResumenPerdidas(crudo: unknown): ResumenPerdidas | null {
     desde: String(j.desde ?? ""),
     hasta: String(j.hasta ?? ""),
     veCosto: j.ve_costo === true,
-    perdido: { unidades: num(p?.unidades), soles: num(p?.soles), sinCosto: num(p?.sin_costo), hechos: num(p?.hechos) },
-    aparecio: { unidades: num(a?.unidades), soles: num(a?.soles), hechos: num(a?.hechos) },
-    porRazon: lista(j.por_razon).map((r) => ({ lado: r.lado === "aparecio" ? "aparecio" : "perdida", razon: String(r.razon ?? ""), unidades: num(r.unidades), soles: num(r.soles) })),
-    porCategoria: lista(j.por_categoria).map((r) => ({ categoria: String(r.categoria ?? "Sin categoría"), unidades: num(r.unidades), soles: num(r.soles) })),
-    porTalla: lista(j.por_talla).map((r) => ({ talla: String(r.talla ?? "Única"), unidades: num(r.unidades), soles: num(r.soles) })),
+    perdido: { unidades: num(p?.unidades), soles: numONull(p?.soles), sinCosto: num(p?.sin_costo), hechos: num(p?.hechos) },
+    aparecio: { unidades: num(a?.unidades), soles: numONull(a?.soles), hechos: num(a?.hechos) },
+    porRazon: lista(j.por_razon).map((r) => ({ lado: r.lado === "aparecio" ? "aparecio" : "perdida", razon: String(r.razon ?? ""), unidades: num(r.unidades), soles: numONull(r.soles) })),
+    porCategoria: lista(j.por_categoria).map((r) => ({ categoria: String(r.categoria ?? "Sin categoría"), unidades: num(r.unidades), soles: numONull(r.soles) })),
+    porTalla: lista(j.por_talla).map((r) => ({ talla: String(r.talla ?? "Única"), unidades: num(r.unidades), soles: numONull(r.soles) })),
     masFaltan: lista(j.mas_faltan).map((r) => ({
       categoria: String(r.categoria ?? "Sin categoría"),
       talla: String(r.talla ?? "Única"),
