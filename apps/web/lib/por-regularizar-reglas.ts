@@ -36,20 +36,30 @@ export function tipoDiferencia(diferencia: number): "descuento" | "sobreprecio" 
   return "exacto";
 }
 
-/** Lo que dice la base (`regularizar_prenda`, hint `regularizar_propia_venta`) y la pantalla antes de tocar el botón. */
+/** Lo que dice la base (`regularizar_prenda`, hint `regularizar_propia_venta`) y la pantalla cuando el elegido en el combo vendió. */
 export const NO_SU_PROPIA_VENTA = "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.";
+/** Lo que dice la pantalla cuando la venta es de la persona de la cuenta: elegir a otra en el combo no la vuelve ajena. */
+export const TU_PROPIA_VENTA = "Tú vendiste esta prenda: la regulariza otra persona del equipo desde su cuenta o desde la terminal, o un líder.";
 
 /**
  * ADR-0328 (actividad 5, Felipe 2026-10-04): nadie regulariza su propia venta, salvo el líder. Espejo de la regla de
  * `regularizar_prenda` (20261004204000), que es la que decide: esto solo lo dice ANTES de tocar «Regularizar».
- *   · el líder (la CUENTA, como todo permiso) puede siempre;
  *   · una venta sin vendedora registrada no tiene con quién compararse: pasa;
- *   · si no, no puede ni quien firma (el elegido en el combo) ni la persona de la cuenta (con su propia cuenta, nombrar a otra
- *     persona no vuelve ajena la venta).
+ *   · la cuenta es de quien vendió y no es de líder → no (con su propia cuenta, nombrar a otra persona no vuelve ajena la venta);
+ *   · firma quien vendió → no, salvo el líder firmando ÉL MISMO: cuenta de líder y el elegido es la persona de la cuenta. Con la
+ *     sesión de una líder abierta en caja, elegir a la asesora que vendió no le presta la excepción (revisión, R1).
  */
 export function motivoPropiaVenta(p: { vendidoPorId: string | null; responsableId: string | null; personaSesionId: string | null; esLider: boolean }): string | null {
-  if (p.esLider || !p.vendidoPorId) return null;
-  return p.vendidoPorId === p.responsableId || p.vendidoPorId === p.personaSesionId ? NO_SU_PROPIA_VENTA : null;
+  const { vendidoPorId: vendio, responsableId: firma, personaSesionId: cuenta, esLider } = p;
+  if (!vendio) return null;
+  if (vendio === cuenta && !esLider) return TU_PROPIA_VENTA;
+  if (vendio === firma && !(esLider && firma === cuenta)) return NO_SU_PROPIA_VENTA;
+  return null;
+}
+
+/** La fila de la lista lo dice antes de abrirla: la vendió la persona de esta cuenta y la cuenta no es de líder. */
+export function vendidaPorLaCuenta(vendidoPorId: string | null, personaSesionId: string | null, esLider: boolean): boolean {
+  return !esLider && vendidoPorId !== null && vendidoPorId === personaSesionId;
 }
 
 type FilaParaCifras = { estado: string; vendidoEn: string; diferencia: number | null };

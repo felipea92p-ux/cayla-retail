@@ -10,7 +10,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { cifrasPorRegularizar, estaVencida, motivoPropiaVenta, tipoDiferencia, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
+import { cifrasPorRegularizar, estaVencida, motivoPropiaVenta, tipoDiferencia, vendidaPorLaCuenta, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -76,6 +76,7 @@ export function PorRegularizarLista({
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
   const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(null);
+  const personaSesionId = useSedeActiva()?.personaSesionId ?? null;
   const ahora = useMemo(() => new Date(), []);
   const cifras = useMemo(() => cifrasPorRegularizar(filas, ahora), [filas, ahora]);
   // ADR-0328 (act. 5): la prenda del stock más probable de cada venta pendiente, ordenada y explicada en `por-regularizar-candidatas`.
@@ -162,9 +163,15 @@ export function PorRegularizarLista({
               </div>
               <div className={celda("izq", "whitespace-normal sm:text-right")}>
                 {f.estado === "pendiente" ? (
-                  <button type="button" onClick={() => setAbierta(f)} className="btn-cayla btn-secundario">
-                    Regularizar
-                  </button>
+                  <>
+                    <button type="button" onClick={() => setAbierta(f)} className="btn-cayla btn-secundario">
+                      Regularizar
+                    </button>
+                    {/* ADR-0328: quien vendió no regulariza su propia venta (salvo el líder); la fila lo dice antes de abrirla. */}
+                    {vendidaPorLaCuenta(f.vendidoPorId, personaSesionId, esLider) && (
+                      <p className="mt-1 text-xs text-taupe">Vendida por ti: la regulariza otra persona</p>
+                    )}
+                  </>
                 ) : f.estado === "regularizada" && f.diferencia !== null ? (
                   <>
                     <p className="truncate text-xs text-tinta">{f.prendaReal}</p>

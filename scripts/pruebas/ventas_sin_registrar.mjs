@@ -377,6 +377,34 @@ caso(
 ${como(T_VENTAS_AUTH)}${conEncabezados({ "x-responsable-omitido": "regularizar_prenda" })}select (retail.fn_actor_persona_id() is null)::text || '/' || ${"select pg_temp.intento(format('select retail.regularizar_prenda(%L, %L, %L)', :'pp', :'vm', 'ya_registrada'));".slice(7, -1)};`,
   "true/42501|responsable_requerido",
 );
+// R1 (revisión adversarial): la excepción del líder es el líder FIRMANDO ÉL MISMO, no la cuenta. Las líderes de equipo cobran
+// en caja con su cuenta (15-COMO-OPERA-CAYLA R-23): con esa sesión abierta, la asesora que vendió se elegía en el combo.
+const EXIGE_RESPONSABLE = `insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
+  on conflict (id) do update set exige_responsable = true;\n`;
+caso(
+  "C12 · R1 · con la cuenta de un líder abierta, Micaela (la que vendió) elegida en el combo NO regulariza su propia venta",
+  `${EQUIPO}${VENDE_MICAELA}${como(FELIPE)}${EXIGE_RESPONSABLE}select set_config('request.headers', json_build_object('x-responsable', micaela, 'x-ubicacion', tru)::text, true) from ids \\g /dev/null
+select (retail.fn_actor_persona_id(true) = (select micaela from ids))::text || '/' || ${regulariza.slice(7, -1)} || '/' ||
+       (select estado from retail.prendas_por_regularizar where id = :'pp');`,
+  "true/42501|regularizar_propia_venta/pendiente",
+);
+caso(
+  "C13 · el líder que vendió, desde su cuenta, sí puede nombrar a Lucía como responsable (y firma ella)",
+  `${EQUIPO}select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset
+${EXIGE_RESPONSABLE}select set_config('request.headers', json_build_object('x-responsable', '${LUCIA}', 'x-ubicacion', tru)::text, true) from ids \\g /dev/null
+${regulariza}
+${firmo}`,
+  LUCIA,
+);
+caso(
+  "C14 · desde la terminal, elegir el nombre del líder que vendió (presente) no presta la excepción",
+  `${EQUIPO}insert into public.jornadas (persona_id, sede_id, fecha, estado)
+  select ids.felipe, u.sede_dynamic_id, (now() at time zone 'America/Lima')::date, 'abierta' from ids join retail.ubicaciones u on u.id = ids.tru;
+select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp from ids \\gset
+${como(T_VENTAS_AUTH)}select set_config('request.headers', json_build_object('x-responsable', felipe)::text, true) from ids \\g /dev/null
+select (retail.fn_actor_persona_id(true) = (select felipe from ids))::text || '/' || ${regulariza.slice(7, -1)};`,
+  "true/42501|regularizar_propia_venta",
+);
 caso(
   "C10 · lo de siempre sigue: la segunda regularización de la misma venta se rechaza",
   `${EQUIPO}${VENDE_MICAELA}${como(LUCIA_AUTH)}${regulariza}\n${regulariza}`,

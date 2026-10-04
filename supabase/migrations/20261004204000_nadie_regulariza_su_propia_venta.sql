@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 20261004204000_nadie_regulariza_su_propia_venta.sql — CAYLA V2 · ADR-0328 (actividad 5, parte c)
--- Quien vendió una prenda «sin registrar» no la regulariza, salvo el líder; y regularizar vuelve a pedir el nombre.
+-- Quien vendió una prenda «sin registrar» no la regulariza, salvo el líder firmando él mismo; y regularizar vuelve a pedir el
+-- nombre.
 --
 -- EL PROBLEMA PRIMERO. Regularizar decide cuánto stock queda (sale 1, o entra 1 y sale 1) y a qué prenda real pasa la venta
 -- (y con ella su costo y la «diferencia» entre lo cobrado y el precio oficial). Hoy la puede hacer cualquiera que opere la sede,
@@ -8,15 +9,19 @@
 -- (2026-10-04): «Nadie regulariza su propia venta, salvo el líder» (ADR-0328, tabla «Traslados, Recibir y Conteo»).
 -- Y desde una terminal la regla no se podía ni comparar: el 2026-09-29 regularizar se soltó del combo «Responsable»
 -- (20260929230000, ADR-0280), así que desde la cuenta de una tienda se guardaba SIN persona (`regularizado_por` NULL).
+-- La revisión adversarial de esta rama (R1) encontró que la primera versión hacía la excepción de la CUENTA: con la sesión de una
+-- líder de equipo abierta en caja (lo normal: cobran con su cuenta, 15-COMO-OPERA-CAYLA R-23), la asesora que vendió se elegía
+-- en el combo y regularizaba su propia venta. «Salvo el líder» habla de la PERSONA líder.
 --
 -- QUÉ HACE (una sola parte; no toca políticas ni hace `alter` de tablas: ADR-0195 no aplica).
 --   1. `regularizar_prenda` (reemplazo ANCLADO, ver «Por qué por ancla»), justo después de comprobar que la venta sigue
 --      pendiente:
---        · sin líder en la cuenta, exige que alguien firme (`responsable_requerido`): la regla necesita a la persona;
---        · rechaza si la venta la hizo quien firma (`fn_actor_persona_id(true)`, el responsable del combo) o la persona de la
---          cuenta (`fn_actor_persona_id(false)`: con su propia cuenta, nombrar a otra persona en el combo no la vuelve otra).
---          Mensaje de tienda y `hint = 'regularizar_propia_venta'`. El líder (`fn_es_lider()`, la CUENTA, como todo permiso,
---          ADR-0161) sí puede;
+--        · exige que alguien firme (`responsable_requerido`): sin persona no hay con quién comparar;
+--        · rechaza (`hint = 'regularizar_propia_venta'`, mensaje de tienda) si firma quien vendió (`fn_actor_persona_id(true)`,
+--          el responsable del combo) —salvo el líder firmando él mismo: cuenta de líder (`fn_es_lider()`, ADR-0161) Y quien
+--          firma es la persona de esa cuenta (`fn_actor_persona_id(false)`)—, o si la cuenta es de quien vendió y no es de líder
+--          (con su propia cuenta, nombrar a otra persona en el combo no vuelve ajena la venta). Así, desde una terminal,
+--          elegir el nombre del líder tampoco presta la excepción;
 --        · toma el candado del stock de esa prenda en esa sede en el orden de siempre (`fn_bloquear_en_orden`, ADR-0190) antes
 --          de leer de dónde descontar: con las candidatas de la parte b, dos personas regularizando a la vez dos ventas
 --          parecidas eligen la MISMA prenda; la segunda espera a la primera y, si ya no queda, recibe
@@ -26,12 +31,13 @@
 --      quita 'conteo_cerrar' y 'traslado_recibir' en su propia migración).
 --
 -- CONTRATO de `regularizar_prenda` después de esto. PROMETE: lo mismo que antes (20260923162300) y, además, que una venta
--- pendiente nunca queda regularizada por quien la vendió salvo que la cuenta sea de un líder, ni sin una persona que firme.
+-- pendiente nunca queda regularizada por quien la vendió, salvo un líder firmando él mismo desde su cuenta, ni sin una persona
+-- que firme.
 -- ASUME: `prendas_por_regularizar.vendido_por` es la asesora de la venta (`registrar_venta`: la elegida o quien cobró). NO
 -- HACE: no juzga una venta sin `vendido_por` (no hay con quién comparar: pasa, como antes).
 --
--- ESTADO QUE DEJA DE SER POSIBLE: una fila `regularizada` cuyo `regularizado_por` es su `vendido_por`, hecha sin cuenta de
--- líder; y una regularización desde una terminal sin nadie que firme (`regularizado_por` NULL).
+-- ESTADO QUE DEJA DE SER POSIBLE: una fila `regularizada` cuyo `regularizado_por` es su `vendido_por` sin que sea un líder
+-- firmando por sí mismo desde su cuenta; y una regularización sin nadie que firme (`regularizado_por` NULL).
 --
 -- POR QUÉ POR ANCLA. `regularizar_prenda` vive en producción y puede tener parches en vivo que ningún archivo recoge; reescribirla
 -- desde 20260923162300 los borraría. `pg_temp.reemplazar_unico` cambia UN texto que tiene que aparecer exactamente una vez y
@@ -96,18 +102,19 @@ $v$,
     raise exception 'prenda_ya_regularizada' using hint = 'Otra persona ya la regularizó, o la venta se anuló';
   end if;
 
-  -- ADR-0328 (actividad 5, Felipe 2026-10-04): nadie regulariza su propia venta, salvo el líder (la CUENTA, como todo permiso).
-  -- Se compara con quien firma (el responsable del combo) y con la persona de la cuenta: con su propia cuenta, nombrar a otra
-  -- persona no vuelve ajena la venta. Sin nadie que firme no hay con quién comparar: se pide el nombre.
-  if not fn_es_lider() then
-    if v_persona is null then
-      raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
-    end if;
-    if v_p.vendido_por is not null
-       and (v_p.vendido_por = v_persona or v_p.vendido_por is not distinct from fn_actor_persona_id(false)) then
-      raise exception 'Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.'
-        using errcode = '42501', hint = 'regularizar_propia_venta';
-    end if;
+  -- ADR-0328 (actividad 5, Felipe 2026-10-04): nadie regulariza su propia venta, salvo el líder. Sin nadie que firme no hay con
+  -- quién comparar: se pide el nombre. «Salvo el líder» es el líder FIRMANDO ÉL MISMO: cuenta de líder (fn_es_lider, la cuenta,
+  -- como todo permiso) y quien firma es la persona de esa cuenta. Con la sesión de una líder abierta en caja, elegir en el combo
+  -- a la asesora que vendió no le presta la excepción; desde una terminal, elegir el nombre del líder tampoco. Y con su propia
+  -- cuenta (sin ser líder), nombrar a otra persona no vuelve ajena la venta.
+  if v_persona is null then
+    raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  if v_p.vendido_por is not null
+     and ((v_p.vendido_por = v_persona and not (fn_es_lider() and v_persona is not distinct from fn_actor_persona_id(false)))
+          or (v_p.vendido_por is not distinct from fn_actor_persona_id(false) and not fn_es_lider())) then
+    raise exception 'Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.'
+      using errcode = '42501', hint = 'regularizar_propia_venta';
   end if;
 
   -- ADR-0190: el stock de esa prenda en esa sede se toma en el orden de siempre ANTES de mirar de dónde descontar. Dos
@@ -117,7 +124,7 @@ $n$
 );
 
 comment on function retail.regularizar_prenda(uuid, uuid, text) is
-  'ADR-0179: une una prenda vendida sin registrar con su variante real. p_forma: ya_registrada (sale 1) o llego_nueva (entra 1 y sale 1). Devuelve la diferencia (cobrado − oficial). ADR-0328 (20261004204000): quien la vendió no la regulariza salvo con cuenta de líder (hint regularizar_propia_venta), alguien tiene que firmar (fn_actor_persona_id(true)) y el stock se bloquea en orden (fn_bloquear_en_orden).';
+  'ADR-0179: une una prenda vendida sin registrar con su variante real. p_forma: ya_registrada (sale 1) o llego_nueva (entra 1 y sale 1). Devuelve la diferencia (cobrado − oficial). ADR-0328 (20261004204000): quien la vendió no la regulariza salvo un líder firmando él mismo (hint regularizar_propia_venta), alguien tiene que firmar (fn_actor_persona_id(true)) y el stock se bloquea en orden (fn_bloquear_en_orden).';
 
 -- 2. Regularizar vuelve a pedir el nombre (una vez por operación).
 delete from retail.acciones_sin_responsable where clave = 'regularizar_prenda';
