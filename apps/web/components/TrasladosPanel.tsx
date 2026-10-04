@@ -16,6 +16,7 @@ import {
   ordenarTraslados,
   otraSedeDe,
   resumirTraslados,
+  RUTA_NUEVO_TRASLADO,
   situacionTraslado,
   type ContextoTraslados,
   type FiltroDireccion,
@@ -147,7 +148,7 @@ export function TrasladosPanel({
         <p className="max-w-md text-sm leading-relaxed text-taupe">
           Cuando el Taller u otra tienda te envíe prendas, aparecerán aquí para que confirmes lo que llegó. Para mover stock, empieza con «Nuevo traslado».
         </p>
-        <Link href="/inventario/mover" className="btn-cayla btn-secundario mt-2">
+        <Link href={RUTA_NUEVO_TRASLADO} className="btn-cayla btn-secundario mt-2">
           Crear el primer traslado
         </Link>
       </div>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Info } from "lucide-react";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
-import { horaLima } from "@/lib/traslados-reglas";
+import { horaLima, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
 import { PedidosEntreSedes } from "@/components/PedidosEntreSedes";
 import { getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
@@ -48,7 +48,7 @@ export default async function TrasladosPage() {
         titulo="Traslados"
         subtitulo="Lo que viene hacia tu sede y lo que sale de ella, hasta que la otra sede lo recibe."
         acciones={
-          <Link href="/inventario/mover" className="btn-cayla btn-primario">
+          <Link href={RUTA_NUEVO_TRASLADO} className="btn-cayla btn-primario">
             + Nuevo traslado
           </Link>
         }

@@ -97,11 +97,14 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
   "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
-  "/inventario/mover": PENDIENTE,
+  // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
+  "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
   "/inventario/recibir": PENDIENTE,
   "/inventario/resumen": PENDIENTE,
   "/inventario/traslados": PENDIENTE,
+  // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
+  "/inventario/traslados/nuevo": PENDIENTE,
   "/inventario/traslados/[id]": PENDIENTE,
   // ---- movimientos ----
   "/movimientos": PENDIENTE,

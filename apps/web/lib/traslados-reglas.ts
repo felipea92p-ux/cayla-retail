@@ -16,6 +16,41 @@ export function estaAtrasado(fechaEstimadaLlegada: string, estado: string, ahora
 }
 
 // ===========================================================================
+// «Nuevo traslado» vive dentro de Traslados (ADR-0242 D-4, 2026-10-03)
+//
+// Antes el formulario colgaba de `/inventario/mover`: el menú marcaba Existencias y la persona creía haber salido de
+// Traslados. Ahora vive en `/inventario/traslados/nuevo` y `/inventario/mover` solo redirige, con todos sus parámetros,
+// para que sigan funcionando los enlaces de Producción, Cambios, Análisis y Frescura que lo arman.
+// ===========================================================================
+
+export const RUTA_NUEVO_TRASLADO = "/inventario/traslados/nuevo";
+
+/** Lo que Next entrega como `searchParams`: un valor, una lista (`?a=1&a=2`) o nada. */
+export type ParametrosDeUrl = Record<string, string | string[] | undefined>;
+
+/** `{ lineas: "v1:2", origen: "x" }` → `?lineas=v1%3A2&origen=x`; vacío si no hay ninguno. Conserva los valores repetidos. */
+export function consultaDeParametros(params: ParametrosDeUrl): string {
+  const q = new URLSearchParams();
+  for (const [clave, valor] of Object.entries(params)) {
+    for (const v of Array.isArray(valor) ? valor : valor === undefined ? [] : [valor]) q.append(clave, v);
+  }
+  const texto = q.toString();
+  return texto ? `?${texto}` : "";
+}
+
+/** El destino de la redirección de `/inventario/mover`: la ruta nueva con los mismos parámetros. */
+export function urlNuevoTrasladoDesdeMover(params: ParametrosDeUrl): string {
+  return `${RUTA_NUEVO_TRASLADO}${consultaDeParametros(params)}`;
+}
+
+/** A dónde vuelve «Nuevo traslado»: a Existencias solo si vino de ahí (`?desde=existencias`) y quien mira ve ese módulo
+ *  (un enlace a un módulo que no ve lo dejaría en «Sin acceso»); en cualquier otro caso, a Traslados. Solo se respeta
+ *  esa palabra: cualquier otro valor de `desde` se ignora, así la URL nunca decide un destino libre. */
+export function volverDeNuevoTraslado(desde: string | undefined, veExistencias: boolean): { href: string; a: string } {
+  return desde === "existencias" && veExistencias ? { href: "/inventario", a: "Existencias" } : { href: "/inventario/traslados", a: "Traslados" };
+}
+
+// ===========================================================================
 // Lectura operativa de la pantalla Traslados (rediseño 2026-09-18; «por recibir»
 // sin reloj desde ADR-0239, 2026-09-26)
 //

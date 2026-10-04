@@ -14,7 +14,7 @@ import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
-import { estaAtrasado } from "@/lib/traslados-reglas";
+import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -193,7 +193,7 @@ export default async function InventarioPage({
                 </Link>
               )}
               {veModulo(persona, "traslados") && (
-                <Link href="/inventario/mover" className="btn-cayla btn-primario">
+                <Link href={`${RUTA_NUEVO_TRASLADO}?desde=existencias`} className="btn-cayla btn-primario">
                   + Nuevo traslado
                 </Link>
               )}
