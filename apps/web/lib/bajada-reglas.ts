@@ -536,8 +536,10 @@ export function textoDeLectura(l: Lectura, sede: string): string {
   switch (l.tipo) {
     case "vacio":
       return "";
+    // Si nunca entró a la tienda, cada causa tiene su puerta: otra sede → Traslados; el proveedor → Recibir mercadería (ADR-0299);
+    // nunca se cargó (lo más probable en una carga inicial incompleta) → Ajustar stock, que la entra como stock inicial (ADR-0235).
     case "desconocido":
-      return `No encuentro «${l.codigo}» entre las prendas de ${sede}. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista; si nunca entró a ${sede}, falta recibirla (Traslados o Recibir mercadería).`;
+      return `No encuentro «${l.codigo}» entre las prendas de ${sede}. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista. Si nunca entró a ${sede}: recíbela en Traslados (de otra sede) o en Recibir mercadería (del proveedor), o regístrala en Ajustar stock si nunca se cargó.`;
     case "suma":
       return `${nombreDePrenda(l.prenda)}, ahora ${l.cantidadAhora}`;
     case "sin_almacen": {
@@ -546,10 +548,11 @@ export function textoDeLectura(l: Lectura, sede: string): string {
       const enPiso = l.prenda.piso > 0 ? ` (cuenta ${l.prenda.piso} en el piso)` : "";
       return `${nombreDePrenda(l.prenda)}: el sistema no tiene unidades en el almacén de ${sede}${enPiso}. Si la tienes en la mano, corrígela y cuélgala aquí mismo.`;
     }
+    // La misma salida que da la base (`en_mano_apartada`): si la que tiene en la mano es otra unidad, no se queda sin camino.
     case "todo_apartado":
       return l.apartadas === 1
-        ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para un cliente y no se puede mover.`
-        : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientes y no se pueden mover.`;
+        ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para un cliente y no se puede mover. Si la que tienes es esa, déjala guardada; si es otra, corrígela en Ajustar stock.`
+        : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientes y no se pueden mover. Si la que tienes es una de esas, déjala guardada; si es otra, corrígela en Ajustar stock.`;
     // Con otra en la mano, el almacén del sistema se quedó corto: primero se confirma lo de la lista (si no, la corrección
     // pelearía con esta bajada por las mismas unidades) y la siguiente lectura ya sale «en 0», con su salida.
     case "tope":

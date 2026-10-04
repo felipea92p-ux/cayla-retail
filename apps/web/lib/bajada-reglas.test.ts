@@ -681,7 +681,7 @@ describe("textoDeLectura: el banner bajo el campo", () => {
   // Ya no pide teclear «el SKU», que nadie recuerda (docs/pantallas/inventario-bajar.md, #2): manda a elegirla por nombre.
   it("código desconocido", () => {
     expect(textoDeLectura({ tipo: "desconocido", codigo: "XYZ-999" }, SEDE)).toBe(
-      "No encuentro «XYZ-999» entre las prendas de Tienda TRU. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista; si nunca entró a Tienda TRU, falta recibirla (Traslados o Recibir mercadería)."
+      "No encuentro «XYZ-999» entre las prendas de Tienda TRU. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista. Si nunca entró a Tienda TRU: recíbela en Traslados (de otra sede) o en Recibir mercadería (del proveedor), o regístrala en Ajustar stock si nunca se cargó."
     );
     expect(textoDeLectura({ tipo: "desconocido", codigo: "XYZ-999" }, SEDE)).not.toContain("SKU");
   });
@@ -701,12 +701,14 @@ describe("textoDeLectura: el banner bajo el campo", () => {
     expect(textoDeLectura({ tipo: "sin_almacen", prenda: SOLO_PISO }, SEDE)).not.toContain("avisa al líder");
   });
 
-  it("todo apartado, en plural y en singular", () => {
+  // Revisión adversarial: con lo del almacén apartado y OTRA unidad en la mano, el texto no daba salida y la prenda se colgaba
+  // sin registrar. Ahora dice lo mismo que la base (`en_mano_apartada`).
+  it("todo apartado, en plural y en singular, con la salida si la que tiene es otra", () => {
     expect(textoDeLectura({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 3 }, SEDE)).toBe(
-      "Vestido · M · Verde: las 3 unidades del almacén están apartadas para clientes y no se pueden mover."
+      "Vestido · M · Verde: las 3 unidades del almacén están apartadas para clientes y no se pueden mover. Si la que tienes es una de esas, déjala guardada; si es otra, corrígela en Ajustar stock."
     );
     expect(textoDeLectura({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 1 }, SEDE)).toBe(
-      "Vestido · M · Verde: la única unidad del almacén está apartada para un cliente y no se puede mover."
+      "Vestido · M · Verde: la única unidad del almacén está apartada para un cliente y no se puede mover. Si la que tienes es esa, déjala guardada; si es otra, corrígela en Ajustar stock."
     );
   });
 
