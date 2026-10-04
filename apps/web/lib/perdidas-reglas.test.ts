@@ -138,6 +138,13 @@ describe("esRestaGrandeSinNota", () => {
     expect(esRestaGrandeSinNota(hecho({ ...aMano, fuente: "traslado", unidades: 9 }))).toBe(false);
     expect(esRestaGrandeSinNota(hecho({ ...aMano, lado: "aparecio", unidades: 9 }))).toBe(false);
   });
+  it("solo las restas A MANO: una dañada botada o donada (ya está en Dañadas) y un «Conteo físico» (es contar) no avisan", () => {
+    // Una dañada que el líder botó: salida sin conteo detrás (con_documento false) y la base le calcula «quedaron».
+    expect(esRestaGrandeSinNota(hecho({ ...aMano, razon: "danada", zona: "Cuarentena", zonaTipo: "cuarentena", unidades: 6 }))).toBe(false);
+    expect(esRestaGrandeSinNota(hecho({ ...aMano, razon: "danada", unidades: DEJA_EN_CERO_DESDE, quedaron: 0 }))).toBe(false);
+    // El «Conteo físico» de Ajustar: razón «conteo» sin documento. Decisión técnica, pregunta abierta a Felipe en el PR.
+    expect(esRestaGrandeSinNota(hecho({ ...aMano, razon: "conteo", unidades: 6 }))).toBe(false);
+  });
   it("una nota de puros espacios es «sin nota»", () => {
     expect(esRestaGrandeSinNota(hecho({ ...aMano, unidades: 9, nota: "   " }))).toBe(true);
   });

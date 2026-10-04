@@ -180,9 +180,12 @@ export type Repeticion =
   | { tipo: "prenda"; clave: string; varianteId: string; etiqueta: string; veces: number; unidades: number; ultimoDia: string }
   | { tipo: "zona"; clave: string; sububicacionId: string; etiqueta: string; zonaTipo: string | null; veces: number; unidades: number; ultimoDia: string };
 
-/** Una resta a mano, sin documento y sin nota, que se llevó más de 5 o dejó la talla en 0 teniendo 3 o más. */
+/** Una resta A MANO (razón `a_mano`: merma, otro, un motivo nuevo), sin documento y sin nota, que se llevó más de 5 o dejó la
+ *  talla en 0 teniendo 3 o más. Una dañada que el líder botó o donó ya tiene su registro en Dañadas, y el «Conteo físico» de
+ *  Ajustar es contar: ninguna de las dos es «quitar a mano» (la regla «Quitar mucho» de Felipe, ADR-0328). */
 export function esRestaGrandeSinNota(h: HechoPerdida): boolean {
-  if (h.lado !== "perdida" || h.fuente !== "movimiento" || h.conDocumento || (h.nota ?? "").trim() !== "") return false;
+  if (h.lado !== "perdida" || h.fuente !== "movimiento" || h.razon !== "a_mano") return false;
+  if (h.conDocumento || (h.nota ?? "").trim() !== "") return false;
   return h.unidades > RESTA_GRANDE_MAS_DE || (h.quedaron === 0 && h.unidades >= DEJA_EN_CERO_DESDE);
 }
 
