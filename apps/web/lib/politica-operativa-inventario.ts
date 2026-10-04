@@ -21,6 +21,13 @@
      existió un día y se retiró: Cobertura piso ya NO dispara reposición, solo informa cuánto
      dura aproximadamente el piso de hoy (`existencias-ritmo.ts`).
 
+   Actualización 2026-10-04 (Felipe, ronda 2 del rediseño de Inventario): el mínimo del piso es **1 colgada por talla y
+   color** («me basta con 1 por color porque mi tienda es pequeña»). El umbral pasa de 4 a 0: «reponer» solo cuando no
+   queda ninguna colgada. Con el 4, en TRU ninguna talla tenía 5 o más en el piso (producción, 4-oct): la regla marcaba
+   538 de 538 tallas y «Mantener» no existía, así que no distinguía nada. Con 0, lo que tiene al menos una colgada es
+   «Mantener»; lo que no tiene ninguna es «Por colgar» (si hay atrás) o «Sin stock atrás» (si no). La excepción de las
+   tallas extremas («solo tallas centrales») espera a las tallas clave: en TRU son 7 de 546 tallas.
+
    NO migres acá un número heredado (`UMBRAL_REPOSICION_PISO=7`, `DIAS_OBJETIVO_PISO=7`, el
    fallback de 8 unidades del motor de Análisis, etc.) sin que Felipe lo apruebe
    conscientemente PARA Existencias — esos siguen donde están, afinados para SU propia
@@ -38,7 +45,8 @@ export type PoliticaOperativaInventario = {
 
 const DEFAULT: PoliticaOperativaInventario = {
   minDiasExposicionRitmo: 3,
-  umbralStockPisoReposicion: 4,
+  // 1 colgada por talla y color (Felipe, 2026-10-04): se repone cuando no queda ninguna.
+  umbralStockPisoReposicion: 0,
 };
 
 /**

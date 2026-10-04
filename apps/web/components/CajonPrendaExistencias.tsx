@@ -9,7 +9,10 @@ import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { AYUDA_HOY, textoHoyDePrenda } from "@/lib/existencias-hoy";
+import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
+
+/** El color del diagnóstico, del MISMO tono que la tarjeta y la tabla (`TONO_HOY`): ámbar lo que se hace aquí, pizarra lo que se pide afuera. */
+const TEXTO_TONO_HOY = { ambar: "text-ambar-profundo", pizarra: "text-pizarra", verde: "text-tinta/70" } as const;
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -209,7 +212,7 @@ export function CajonPrendaExistencias({
                   cuando el cajón está angosto (Responsive Quality Gate, primera corrida, 2026-09-28). */}
               <dl className="mt-6 mb-7 grid grid-cols-2 overflow-hidden rounded-xl border border-sand sm:flex sm:items-stretch sm:divide-x sm:divide-sand">
                 <div className="flex flex-col items-center justify-center gap-2.5 border-r border-sand px-3 py-4 text-[14px] text-tinta/80 sm:flex-auto sm:border-r-0 sm:px-4">
-                  <Layers aria-hidden className="h-[22px] w-[22px] text-rojo-profundo/80" strokeWidth={1.4} />
+                  <Layers aria-hidden className="h-[22px] w-[22px] text-taupe" strokeWidth={1.4} />
                   <dt className="sr-only">Stock de la prenda</dt>
                   <dd className="whitespace-nowrap tabular-nums">
                     {separa ? (
@@ -224,7 +227,7 @@ export function CajonPrendaExistencias({
                   </dd>
                 </div>
                 <div className={`flex flex-col items-center justify-center gap-2.5 px-3 py-4 text-[14px] text-tinta/80 sm:flex-auto sm:px-4 ${diagnostico ? "border-b border-sand sm:border-b-0" : ""}`}>
-                  <IconoPercha aria-hidden className="h-[22px] w-[22px] text-rojo-profundo/80" strokeWidth={1.4} />
+                  <IconoPercha aria-hidden className="h-[22px] w-[22px] text-taupe" strokeWidth={1.4} />
                   <dt className="sr-only">Tallas</dt>
                   <dd className="whitespace-nowrap">
                     {prenda.tallas.length} {prenda.tallas.length === 1 ? "talla" : "tallas"}
@@ -233,7 +236,7 @@ export function CajonPrendaExistencias({
                 {diagnostico && (
                   <div
                     className={`col-span-2 flex flex-col items-center justify-center gap-2.5 border-t border-sand px-3 py-4 text-center text-[14px] leading-tight sm:col-span-1 sm:flex-auto sm:border-t-0 sm:px-4 ${
-                      diagnostico.tipo === "por_colgar" ? "text-rojo" : diagnostico.tipo === "mantener" ? "text-tinta/70" : "text-ambar-profundo"
+                      TEXTO_TONO_HOY[TONO_HOY[diagnostico.tipo]]
                     }`}
                   >
                     {diagnostico.tipo === "mantener" ? (
@@ -257,7 +260,7 @@ export function CajonPrendaExistencias({
                         <div
                           key={f.varianteId}
                           className={`rounded-lg border px-1 py-2.5 text-center tabular-nums ${
-                            sinStock ? "border-rojo/35 bg-rojo/10 text-rojo-profundo" : "border-taupe/25 bg-hueso text-tinta"
+                            sinStock ? "border-dashed border-taupe/50 bg-transparent text-taupe" : "border-taupe/25 bg-hueso text-tinta"
                           }`}
                         >
                           <span className={`block text-[13px] leading-tight ${sinStock ? "" : "text-tinta/75"}`}>{f.talla ?? "Única"}</span>

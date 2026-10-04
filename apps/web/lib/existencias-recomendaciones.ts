@@ -108,7 +108,9 @@ const SIN_ACCION = accion("sin_accion", null);
  *  principal: esos matices son contexto, no un tipo de Acción hoy aparte (Felipe, 2026-09-25). */
 function reponerAPiso(piso: number, almacen: number, enTransito: number, umbral: number): AccionHoy {
   if (almacen > 0) {
-    return accion("reponer_a_piso", `Piso en ${piso} — regla de piso: reponer con ${umbral} o menos, y hay ${almacen} ${almacen === 1 ? "unidad disponible" : "unidades disponibles"} en el almacén de la tienda`);
+    // Con el mínimo de 1 por talla y color (umbral 0, 2026-10-04), «reponer con 0 o menos» no se lee: se dice lo que pasa.
+    const regla = umbral === 0 ? "no queda ninguna colgada" : `regla de piso: reponer con ${umbral} o menos`;
+    return accion("reponer_a_piso", `Piso en ${piso} — ${regla}, y hay ${almacen} ${almacen === 1 ? "unidad disponible" : "unidades disponibles"} en el almacén de la tienda`);
   }
   if (enTransito > 0) {
     return accion(

@@ -1735,7 +1735,7 @@ describe("6. estados límite", () => {
 describe("6b. nombres raros", () => {
   const completo: EstadoAlta = {
     categoriaId: "c", referencia: "Blusa Camila", comprobandoNombre: false, nombreBloqueado: false, nombreSinConfirmar: false, categoriaSinTallas: false, tallasElegidas: 3, exigeTejidoPatron: false,
-    hayTejidosEnCategoria: false, hayPatronesEnCategoria: false, tejidoId: "", patronId: "", celdasIncluidas: 3, precioBase: "89.9", costoBase: "32", stockTotal: 6, stockInvalidas: 0, sinStock: false,
+    hayTejidosEnCategoria: false, hayPatronesEnCategoria: false, tejidoId: "", patronId: "", celdasIncluidas: 3, precioBase: "89.9", costoBase: "32", stockTotal: 6, stockInvalidas: 0, sinStock: false, separaPiso: true, lugarCarga: "almacen",
   };
 
   it("H6 (baja). un nombre sin ni una letra ni un número («...», «---», «¿?», «✨») lo rechaza la base DESPUÉS de los 4 pasos: `problemasAlta` debería pedir corregirlo", () => {
@@ -1833,7 +1833,7 @@ describe("8. la guía y `problemasAlta` dicen lo mismo, con la marca antes del n
   it("el orden de pantalla: la marca va antes del nombre y nunca está por hacer; sin elegirla, la guía pausa ahí antes del nombre (Felipe, 2026-10-02)", () => {
     const estado: EstadoAlta = {
       categoriaId: "c", referencia: "", comprobandoNombre: false, nombreBloqueado: false, nombreSinConfirmar: false, categoriaSinTallas: false, tallasElegidas: 3, exigeTejidoPatron: true,
-      hayTejidosEnCategoria: true, hayPatronesEnCategoria: true, tejidoId: "", patronId: "", celdasIncluidas: 3, precioBase: "", costoBase: "", stockTotal: 0, stockInvalidas: 0, sinStock: false,
+      hayTejidosEnCategoria: true, hayPatronesEnCategoria: true, tejidoId: "", patronId: "", celdasIncluidas: 3, precioBase: "", costoBase: "", stockTotal: 0, stockInvalidas: 0, sinStock: false, separaPiso: true, lugarCarga: null,
     };
     for (const marcaElegida of [false, true]) {
       const campos = camposDelAlta(estado, { coloresElegidos: 0, descripcionEscrita: false, marcaElegida, responsableListo: false });
@@ -1866,13 +1866,15 @@ describe("8. la guía y `problemasAlta` dicen lo mismo, con la marca antes del n
     for (const categoriaId of ["", "c"]) for (const referencia of ["", "Blusa"]) for (const comprobandoNombre of si) for (const nombreBloqueado of si) for (const nombreSinConfirmar of si)
       for (const categoriaSinTallas of si) for (const tallasElegidas of [0, 3]) for (const exigeTejidoPatron of si) for (const hayTejidosEnCategoria of si) for (const hayPatronesEnCategoria of si)
         for (const tejidoId of ["", "t"]) for (const patronId of ["", "p"]) for (const celdasIncluidas of [0, 3]) for (const stockTotal of [0, 6]) for (const stockInvalidas of [0, 2])
-          for (const sinStock of si) for (const precioBase of ["", "0", "89.9"]) for (const costoBase of ["", "-1", "32"]) {
+          for (const sinStock of si) for (const precioBase of ["", "0", "89.9"]) for (const costoBase of ["", "-1", "32"]) for (const lugarCarga of [null, "almacen"] as const) {
+            // dónde están solo importa con unidades que cargar (sin respuesta de fábrica, ADR-0328)
+            if (stockTotal === 0 && lugarCarga !== null) continue;
             // estados imposibles: un tejido elegido donde la categoría no ofrece ninguno (al cambiar de categoría se vacía: líneas 323 y 342 del formulario)
             if ((tejidoId && !hayTejidosEnCategoria) || (patronId && !hayPatronesEnCategoria)) continue;
             // categoría sin tallas ⇒ no hay tallas elegidas
             if (categoriaSinTallas && tallasElegidas > 0) continue;
             total++;
-            const estado: EstadoAlta = { categoriaId, referencia, comprobandoNombre, nombreBloqueado, nombreSinConfirmar, categoriaSinTallas, tallasElegidas, exigeTejidoPatron, hayTejidosEnCategoria, hayPatronesEnCategoria, tejidoId, patronId, celdasIncluidas, precioBase, costoBase, stockTotal, stockInvalidas, sinStock };
+            const estado: EstadoAlta = { categoriaId, referencia, comprobandoNombre, nombreBloqueado, nombreSinConfirmar, categoriaSinTallas, tallasElegidas, exigeTejidoPatron, hayTejidosEnCategoria, hayPatronesEnCategoria, tejidoId, patronId, celdasIncluidas, precioBase, costoBase, stockTotal, stockInvalidas, sinStock, separaPiso: true, lugarCarga };
             const campos = camposDelAlta(estado, { coloresElegidos: 0, descripcionEscrita: false, marcaElegida: false, responsableListo: true });
             const problemas = problemasAlta(estado);
             const guiaBloquea = campos.some((c) => c.requerido && !c.hecho);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
@@ -108,6 +108,7 @@ export function AjustarInventarioModal({
   sububicaciones,
   puedeBajarAlPiso,
   onClose,
+  alCerrarEnfocar,
 }: {
   productoId: string;
   /** La prenda (modelo + color) de la fila que lo abre: el modal muestra solo ese color. Sin ella, el modelo entero
@@ -118,6 +119,8 @@ export function AjustarInventarioModal({
   /** ¿El rol de la cuenta ve «Bajada al piso»? Lo decide la página, en el servidor (`veModulo`), como en Nuevo producto. */
   puedeBajarAlPiso: boolean;
   onClose: () => void;
+  /** A dónde vuelve el teclado al cerrar (la tarjeta de Existencias, cuando se abre desde su menú «⋯»). */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
 }) {
   const router = useRouter();
   // Sin Provider (Existencias: InventarioPanel.tsx, SelectorDeAjuste.tsx) `agregar` es un no-op — ver RecordatorioEtiquetas.tsx.
@@ -393,6 +396,7 @@ export function AjustarInventarioModal({
       titulo="Ajustar inventario"
       subtitulo="Corrige lo que hay de cada talla"
       onClose={onClose}
+      alCerrarEnfocar={alCerrarEnfocar}
       ancho="max-w-md"
       bloqueado={enviando}
       lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} /> : undefined}

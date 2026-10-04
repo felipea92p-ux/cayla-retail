@@ -55,11 +55,13 @@ export function textoHoyDePrenda(tipo: TipoHoy, tallas: number): string {
   return `${tallas} ${tallas === 1 ? "talla" : "tallas"} ${TEXTO_HOY[tipo].toLocaleLowerCase("es")}`;
 }
 
-/** El tono de cada caso, el mismo en la tarjeta, la tabla y el cajón: rojo lo que la clienta no ve y se arregla hoy, ámbar lo
- *  que pide atención, verde lo que está bien. */
-export const TONO_HOY: Record<TipoHoy, "rojo" | "ambar" | "verde"> = {
-  por_colgar: "rojo",
+/** El tono de cada caso, el mismo en la tarjeta, la tabla y el cajón: ámbar lo que se hace aquí hoy (colgar, reponer), pizarra lo
+ *  que se resuelve afuera (pedirlo a otra sede o al Taller), verde lo que está bien. Ningún caso es rojo (rediseño 2026-10-04):
+ *  «por colgar» es trabajo, no un error, y en rojo salía en casi todas las tarjetas de una tienda, con más de 30 rojos por pantalla
+ *  contra un tope de 2 (`MAX_ROJO_POR_PANTALLA`). El rojo queda para lo que de verdad falló (una dañada, un plazo vencido). */
+export const TONO_HOY: Record<TipoHoy, "ambar" | "verde" | "pizarra"> = {
+  por_colgar: "ambar",
   por_reponer: "ambar",
-  sin_stock_atras: "ambar",
+  sin_stock_atras: "pizarra",
   mantener: "verde",
 };

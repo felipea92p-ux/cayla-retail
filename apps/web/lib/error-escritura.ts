@@ -75,7 +75,7 @@ const HUELLAS: Huella[] = [
   },
   {
     marca: "prenda_sin_regularizar",
-    frase: "Esta prenda se vendió sin registrar y almacén todavía no la regulariza. Pide que lo hagan en Recibir ▸ Por regularizar y vuelve a intentarlo.",
+    frase: "Esta prenda se vendió sin registrar y almacén todavía no la regulariza. Pide que la regularicen en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
   },
   {
     marca: "prenda_ya_regularizada",
@@ -371,7 +371,7 @@ const HUELLAS: Huella[] = [
   },
   {
     // 0002_esquema.sql:58 — `check (costo >= 0)` sin nombre propio, Postgres
-    // la nombra `variantes_costo_check`. `RecepcionFormV2.tsx` ya recorta un
+    // la nombra `variantes_costo_check`. `fijarCosto` (lib/llegada-reglas.ts) ya recorta un
     // costo negativo en el campo, esto es la red de seguridad si llega igual.
     marca: "variantes_costo_check",
     frase: "El costo no puede ser negativo. Corrígelo y vuelve a intentar.",

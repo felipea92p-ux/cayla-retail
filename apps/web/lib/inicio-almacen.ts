@@ -167,7 +167,7 @@ export async function getEnCamino(ubicacionId: string, ahoraMs: number = Date.no
   });
 }
 
-// ── «Reponer a piso hoy» y «Pulso del almacén» ───────────────────────────────────────────────────
+// ── Lo que pide piso y «Pulso del almacén» ──────────────────────────────────────────────────────────
 
 export type PrendaParaReponer = {
   clave: string;
@@ -188,9 +188,11 @@ export type Existencias = {
 };
 
 /**
- * Lo que sale de las existencias de la sede: cuánto hay atrás y qué pide piso. La MISMA regla que la tarjeta «Reponer a
- * piso hoy» de Existencias (`calcularAccionHoy` → `agruparPorPrenda` → `ordenarPorUrgencia`), así que el Inicio y esa
- * pantalla cuentan igual. `null` si no se pudo leer; en una sede que no separa piso de almacén no hay nada que reponer.
+ * Lo que sale de las existencias de la sede: cuánto hay atrás y qué pide piso (`calcularAccionHoy` → `agruparPorPrenda` →
+ * `ordenarPorUrgencia`). OJO (2026-10-04): la tarjeta «Reponer a piso hoy» de Existencias ya no existe; su lugar lo tomó «Para
+ * hoy», que cuenta TALLAS «por colgar» con `hoyDeTalla`. Este conteo sigue siendo MODELOS con alguna talla que pide piso, e
+ * incluye las que no tienen nada atrás: los dos números no coinciden todavía (anotado en el backlog del rediseño de
+ * Existencias). `null` si no se pudo leer; en una sede que no separa piso de almacén no hay nada que reponer.
  */
 export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<Existencias | null> {
   return tolerarLectura("las existencias de la sede", async () => {
