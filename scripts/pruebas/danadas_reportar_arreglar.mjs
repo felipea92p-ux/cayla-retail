@@ -14,8 +14,8 @@
  *   D4 todo o nada y lo apartado: con 3 en el piso y 2 apartadas, reportar 2 no mueve NADA y lo dice (con el detalle en
  *      JSON); reportar 1 pasa y lo apartado sigue en el piso.
  *   D5 efecto: piso (o almacén) −n, cuarentena +n, total igual; UN traslado interno con la nota = lo que tiene; UNA fila
- *      'en_cuarentena' con `motivo_reporte`; la caja ya no la puede cobrar (sale del piso y desde la cuarentena no se vende);
- *      no es pérdida (traslado; si la actividad 14 ya está, `fn_perdida_razon` lo confirma).
+ *      'en_cuarentena' con `motivo_reporte`; lo reportado deja de contar para la venta (sale del piso y desde la cuarentena
+ *      no se vende); no es pérdida (traslado; si la actividad 14 ya está, `fn_perdida_razon` lo confirma).
  *   D6 idempotencia: misma marca y mismos datos → ya_registrada, un solo movimiento y una sola dañada, aunque la responsable
  *      ya no esté; la misma marca con otro motivo, otra cantidad u otro lugar se rechaza; la marca de un intento fallido
  *      queda libre.
@@ -23,8 +23,11 @@
  *      prenda que no existe.
  *   D8 candados del esquema: sin origen o con dos se rechaza; «se arregló» sin nota se rechaza; dos dañadas con el mismo
  *      movimiento de entrada se rechazan.
- *   A1 «Se arregló»: solo el líder (una integrante con Existencias no); exige nota; vuelve al ALMACÉN (no al piso), con un
- *      traslado interno cuarentena→almacén, firma y nota; no es pérdida.
+ *   A1 «Se arregló»: solo el líder (una integrante con Existencias no); exige nota; firma el responsable, no la cuenta;
+ *      vuelve al ALMACÉN (no al piso), con un traslado interno cuarentena→almacén, firma y nota; no es pérdida.
+ *
+ * Las carreras con COMMIT (dos líderes a la vez, el mismo reporte dos veces, dos por la última libre) no caben aquí: van en
+ * `danadas_concurrencia.mjs`, solo contra una base desechable.
  *   A2 idempotencia y estados: el reintento del mismo arreglo devuelve ya_registrada; otra marca sobre una ya resuelta,
  *      «ya se resolvió como Se arregló»; las salidas viejas (Se botó) siguen funcionando sobre una reportada.
  *
@@ -511,6 +514,16 @@ select pg_temp.arreglar(:'did', 'ok', :'tok2') as b \\gset
 select pg_temp.arreglar(:'did', 'Se cosió', null) as c \\gset
 ${COMO_POSTGRES}select concat_ws(',', (:'a')::jsonb ->> 'hint', (:'b')::jsonb ->> 'hint', (:'c')::jsonb ->> 'hint', ${CONTADORES} = :'antes');`,
   "arreglo_sin_nota,arreglo_sin_nota,arreglo_sin_token,t"
+);
+caso(
+  // Felipe es a la vez la cuenta y el responsable en el caso de abajo: este separa las dos (firmar con la cuenta en vez del
+  // responsable pasaba las demás pruebas, mutación MQ1 de la revisión).
+  "A1 · el líder operando con responsable (Rosa, de turno en Trujillo): firma Rosa, no la cuenta (resuelto_por y usuario_id del movimiento)",
+  `${REPORTE_DE_VA}${sesion(FELIPE, { resp: "rosa", ubicacion: "tru" })}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok2') as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok',
+  (select resuelto_por = :'rosa' from retail.prendas_danadas where id = :'did'),
+  (select usuario_id = :'rosa' from retail.movimientos where id = ((:'r')::jsonb -> 'res' ->> 'movimiento_id')::uuid));`,
+  "true,t,t"
 );
 caso(
   "A1 · el líder: cuarentena −2 y ALMACÉN +2 (el piso no se toca); traslado interno cuarentena→almacén con la nota; la dañada queda «se_arreglo» firmada",
