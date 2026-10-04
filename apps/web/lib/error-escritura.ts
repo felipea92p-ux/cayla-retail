@@ -163,6 +163,13 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `${prenda} está restringida a otra sede — no se puede trasladar desde acá.`,
   },
   {
+    // 20260916150000_traslados_dos_fases.sql — `unique (transferencia_id, variante_id)`: una prenda va una sola vez por
+    // traslado. «Nuevo traslado» ya no deja elegirla en dos líneas y suma las repetidas antes de enviar
+    // (`lib/traslado-lineas-reglas.ts`); esto es la red si otro camino llama a `iniciar_traslado` con la misma dos veces.
+    marca: "transferencia_items_transferencia_id_variante_id_key",
+    frase: "Esa prenda ya está en otra línea del traslado. Deja una sola línea por prenda y suma sus cantidades.",
+  },
+  {
     // 20260914220804_nota_en_ventas.sql — la nota del ticket tiene tope; la pantalla ya
     // corta en 200, esto es por si llega por otro camino.
     marca: "ventas_nota_corta",

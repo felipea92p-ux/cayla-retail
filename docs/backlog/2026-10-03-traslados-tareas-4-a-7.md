@@ -16,4 +16,4 @@
 - [ ] ADR-0242 sin construir: escáner y búsqueda con foto al enviar (D-2), destino en botones, llegada por día, resumen «La caja», tanda 2 («Hoy te toca»), guía impresa con QR (D-3), acceso en Existencias (tanda 5), «Avisar a la clienta» y «Ver en Existencias» (D-6.1).
 - [ ] Guía de foco de «Nuevo traslado» (tarea #8 del análisis): la deuda se mudó de `/inventario/mover` a `/inventario/traslados/nuevo` sin crecer.
 - [ ] Cuando se fusione el PR #777 (análisis completo de Traslados): marcar en `docs/pantallas/traslados.md` las tareas #4 a #7 como cerradas, con estos cuatro commits.
-- [ ] Ajena, ya lanzada aparte: «misma prenda en dos líneas del traslado» (error crudo de Postgres por `transferencia_items_transferencia_id_variante_id_key`).
+- [x] Ajena, ya resuelta en `main` por otra sesión (`lucid-wiles-8b2bd7`): «misma prenda en dos líneas del traslado» (el combo ya no la repite y se suman antes de enviar). Al fusionar esta rama hubo un conflicto en `MoverMercaderiaFormV2.tsx`: se conservaron los dos cambios, y la lista de «enviado» muestra lo que de verdad se guardó (una fila por prenda).

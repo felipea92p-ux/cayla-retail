@@ -12,6 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { TrasladoEnviado } from "@/components/TrasladoEnviado";
 import { etiquetaDePrenda, type PrendaEnviada } from "@/lib/traslados-reglas";
+import { juntarPorPrenda, prendasNoDisponibles } from "@/lib/traslado-lineas-reglas";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
@@ -155,6 +156,9 @@ export function MoverMercaderiaFormV2({
   // variante. Sin esto, la misma prenda con 10 unidades podía pedirse
   // 10+10 en dos líneas — `iniciar_traslado` rechaza la segunda con "Stock
   // insuficiente", pero el formulario nunca avisó por qué.
+  // Desde que el combo no deja repetir una prenda entre líneas
+  // (`prendasNoDisponibles`), esto solo actúa si dos líneas llegaran con la
+  // misma: queda como red, para que sus cantidades sumadas no pasen del stock.
   function topeDeLinea(actual: Linea[], i: number, varianteId: string): number {
     const usadoEnOtras = actual.reduce(
       (acc, otra, m) => (m !== i && otra.varianteId === varianteId ? acc + (Number(otra.cantidad) || 0) : acc),
@@ -221,13 +225,16 @@ export function MoverMercaderiaFormV2({
       return;
     }
     const validas = conCantidad;
+    // Una fila por prenda: `transferencia_items` no admite la misma `variante_id` dos veces en un traslado. El combo ya
+    // no deja repetirla; esto es la red por si dos líneas llegaran con la misma (se suman, no se rechazan).
+    const items = juntarPorPrenda(validas);
     setLoading(true);
 
     const supabase = createClient();
     const { data: trasladoId, error } = await firmar(supabase.rpc("iniciar_traslado", {
       p_ubicacion_origen_id: origenId,
       p_ubicacion_destino_id: destinoId,
-      p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidadNum })),
+      p_items: items,
       p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
       p_nota: nota || undefined,
       p_token: token.current,
@@ -251,9 +258,10 @@ export function MoverMercaderiaFormV2({
       numero: id ? await leerNumeroDelTraslado(supabase, id) : null,
       destino,
       whatsapp: sedeDestino?.whatsapp ?? null,
-      prendas: validas.map((l) => {
-        const v = variantes.find((x) => x.varianteId === l.varianteId);
-        return { etiqueta: v ? etiquetaDePrenda(v) : "Prenda", cantidad: l.cantidadNum };
+      // Lo que de verdad se guardó: una fila por prenda (`items`), no las líneas tecleadas.
+      prendas: items.map((it) => {
+        const v = variantes.find((x) => x.varianteId === it.variante_id);
+        return { etiqueta: v ? etiquetaDePrenda(v) : "Prenda", cantidad: it.cantidad };
       }),
     });
     setLoading(false);
@@ -352,6 +360,8 @@ export function MoverMercaderiaFormV2({
         {lineas.map((l, i) => {
           const tope = stockDe(l.varianteId);
           const error = errores.lineas[i];
+          // Una prenda va una sola vez por traslado: la que ya está en otra línea se ve, con su motivo, pero no se elige.
+          const yaElegidas = prendasNoDisponibles(lineas, i);
           return (
             <div key={i} className="space-y-1">
             <div className="flex flex-wrap items-end gap-2">
@@ -362,10 +372,14 @@ export function MoverMercaderiaFormV2({
                   id={idLinea(i)}
                   valor={l.varianteId}
                   onValor={(v) => actualizarLinea(i, { varianteId: v })}
-                  opciones={variantes.map((v) => ({
-                    valor: v.varianteId,
-                    texto: `${etiquetaDePrenda(v)} — hay ${v.cantidad}${v.sku ? ` · ${v.sku}` : ""}`,
-                  }))}
+                  opciones={variantes.map((v) => {
+                    const repetida = yaElegidas.has(v.varianteId);
+                    return {
+                      valor: v.varianteId,
+                      texto: `${etiquetaDePrenda(v)} — hay ${v.cantidad}${repetida ? " · ya está en otra línea" : ""}${v.sku ? ` · ${v.sku}` : ""}`,
+                      deshabilitada: repetida,
+                    };
+                  })}
                   marcador="Elige la prenda"
                   etiquetaAccesible={`Prenda ${i + 1}`}
                 />
