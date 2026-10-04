@@ -235,6 +235,20 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede trasladar desde acá.");
   });
 
+  it("la misma prenda dos veces en un traslado dice qué hacer, sin citar la restricción", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "transferencia_items_transferencia_id_variante_id_key"',
+        details: "Key (transferencia_id, variante_id)=(a, b) already exists.",
+        code: "23505",
+      },
+      "iniciar el traslado"
+    );
+    expect(salida).not.toContain("transferencia_items");
+    expect(salida).not.toContain("duplicate key");
+    expect(salida).toContain("Esa prenda ya está en otra línea del traslado");
+  });
+
   it("descuento sin motivo: nombra la prenda y pide elegir por qué", () => {
     const salida = traducirError(
       { message: "venta_descuento_requiere_motivo", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
