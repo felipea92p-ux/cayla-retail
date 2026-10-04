@@ -487,8 +487,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   tiendas, que nació para el QR del club); sin él, WhatsApp abre sin destinatario. El formulario sigue bloqueado hasta
   que sale esta pantalla (el token ya se renovó: un clic de más duplicaría el traslado).
 - `/inventario/cuadrar` (**Cuadrar el piso**, ADR-0328 decisión técnica 4 / actividad 3, 2026-10-04; **web y SQL en la rama
-  `claude/inventario-cuadrar-el-piso`, sin pegar en producción**: `20261004200000` tablas → `20261004200100` funciones →
-  `20261004200200` Frescura, antes de publicar la web). Es una función de Existencias (ADR-0306), no un módulo: se llega por
+  `claude/inventario-cuadrar-el-piso`, sin pegar en producción**: `20261004200000` tablas → `20261004200050` Frescura →
+  `20261004200100` funciones, antes de publicar la web; las funciones van al final y su guarda exige lo anterior). Es una función de Existencias (ADR-0306), no un módulo: se llega por
   «Cuadrar el piso» en la segunda fila de la cabecera de Existencias, que solo ve el líder en su sede activa si separa piso y
   almacén → `layout.tsx` y `page.tsx` con `exigirModulo("existencias")` → `lib/sububicaciones.ts` (sin piso y almacén, solo
   una nota) → en paralelo `lib/conteos.ts:getCatalogoConteo` (el catálogo ENTERO: lo guardado que la sede no tiene es una

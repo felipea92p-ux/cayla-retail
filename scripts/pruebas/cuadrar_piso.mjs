@@ -2,7 +2,7 @@
 /**
  * Prueba de ADR-0328 (decisión técnica 4) «Cuadre del piso, una vez por sede» — `cuadrar_piso`, `previsualizar_cuadre_piso`
  * y `fn_cuadre_piso_estado` (`20261004200000_cuadre_piso_tablas.sql`, `20261004200100_cuadre_piso_funciones.sql`) y su
- * efecto en Frescura (`20261004200200_cuadre_piso_frescura.sql`).
+ * efecto en Frescura (`20261004200050_cuadre_piso_frescura.sql`).
  *
  * LA CUENTA, por prenda y con unidades LIBRES (A almacén, P piso, S escaneado como guardado):
  *   pasa al piso = max(0, A − S) · sube al almacén = min(max(0, S − A), P) · no cargada = max(0, S − A − P) (no se aplica)
@@ -34,7 +34,8 @@
  *      de la misma prenda sigue contando) y lo bajado llega con la marca 6 (edad desconocida) y lo subido con la 2.
  *   C12 la migración de Frescura: desde los cuerpos de antes (los de producción) entra y deja los md5 de su guarda; pegada
  *      otra vez no cambia nada; con un parche en vivo en cualquiera de las dos aborta y no pisa nada; el paso 4 de
- *      Frescura pegado después aborta y no deshace nada.
+ *      Frescura pegado después aborta y no deshace nada. Y el orden de pegado (tablas → Frescura → funciones) lo hace
+ *      cumplir la base: sin la protección de Frescura, la parte de funciones aborta sin tocar cuadrar_piso.
  *   C13 tamaño: 550 tallas y ~800 prendas en una sede cuadran dentro del statement_timeout de 8 s de authenticated.
  *   C14 un conteo abierto en la sede frena el cuadre (cuadre_conteo_abierto, nada se escribe): su cierre corregiría otra vez
  *      lo mismo. Revisar y el estado lo avisan; cancelado el conteo, el cuadre entra.
@@ -57,7 +58,7 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
 const MIGRACION_TABLAS = "20261004200000_cuadre_piso_tablas.sql";
 const MIGRACION_FUNCIONES = "20261004200100_cuadre_piso_funciones.sql";
-const MIGRACION_FRESCURA = "20261004200200_cuadre_piso_frescura.sql";
+const MIGRACION_FRESCURA = "20261004200050_cuadre_piso_frescura.sql";
 const MIGRACION_P4_FRESCURA = "20260929100000_frescura_modulo_y_candado.sql";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
@@ -731,6 +732,21 @@ select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_P4_FRESCURA))}) ->>
 select ${MD5_DOS} = :'hoy';`,
     // aborta por el núcleo, sin tocar · aborta por fn_frescura_sede, sin tocar · entra · el paso 4 después aborta, sin tocar
     (l) => l.slice(-7).join(",") === "t,t,t,t,true,t,t"
+  );
+  // El orden de pegado lo hace cumplir la base, no una regla humana (revisión adversarial): si Frescura no quedó con su
+  // protección (su parte abortó por un cuerpo vivo distinto), la parte de funciones aborta y cuadrar_piso no se toca.
+  const FUNCIONES = `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc
+    where pronamespace = 'retail'::regnamespace and proname in ('cuadrar_piso', 'previsualizar_cuadre_piso', 'fn_cuadre_piso_estado'))`;
+  caso(
+    "C12 · el orden de pegado: tablas → Frescura → funciones; sin la protección de Frescura, la parte de funciones aborta y no toca nada; con ella, entra",
+    `select ${FUNCIONES} as antes \\gset
+${DESHACER_FRESCURA}
+select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'msg' like 'Frescura todavía no conoce el cuadre del piso: pega antes ${MIGRACION_FRESCURA}%';
+select ${FUNCIONES} = :'antes';
+select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FRESCURA))}) ->> 'ok';
+select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'ok';
+select ${FUNCIONES} = :'antes';`,
+    (l) => [MIGRACION_TABLAS, MIGRACION_FRESCURA, MIGRACION_FUNCIONES].join() === [MIGRACION_TABLAS, MIGRACION_FRESCURA, MIGRACION_FUNCIONES].sort().join() && l.slice(-5).join(",") === "t,t,true,true,t"
   );
 }
 

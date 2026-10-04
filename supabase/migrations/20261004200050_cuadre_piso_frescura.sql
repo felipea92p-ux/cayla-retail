@@ -1,6 +1,10 @@
 -- ============================================================================
--- 20261004200200_cuadre_piso_frescura.sql — CAYLA V2 · ADR-0328 decisión técnica 4 + ADR-0208 «Frescura del piso»
--- PARTE 3 de 3: Frescura no lee el cuadre del piso como bajadas de hoy. Va DESPUÉS de 20261004200100.
+-- 20261004200050_cuadre_piso_frescura.sql — CAYLA V2 · ADR-0328 decisión técnica 4 + ADR-0208 «Frescura del piso»
+-- PARTE 2 de 3: Frescura no lee el cuadre del piso como bajadas de hoy. Va DESPUÉS de 20261004200000 (las tablas) y ANTES
+-- de 20261004200100 (las funciones): así `cuadrar_piso` nunca existe sin esta protección. Si esta parte aborta (un cuerpo
+-- vivo distinto), la de funciones tampoco entra: su guarda exige que Frescura ya conozca el cuadre. Antes iba al final
+-- (200200) y un aborto aquí dejaba cuadrar con Frescura leyendo cada prenda bajada como una «bajada» de hoy, algo que ya
+-- no se arregla después porque el cuadre no se edita (revisión adversarial, 2026-10-04).
 --
 -- EL PROBLEMA PRIMERO. El cuadre escribe traslados internos de verdad (almacén → piso con `mover_interno`), y Frescura
 -- reconoce las bajadas POR ESTRUCTURA: todo traslado almacén→piso de una sede es una «bajada» y todo piso→almacén un
@@ -41,7 +45,8 @@
 --   fn_bajadas_del_piso_nucleo  7d9fdf39200eea93254ec1d9100da549
 --   fn_frescura_sede            8576eb204f5fb9801b7c12dbacb3ae35
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y 20261004200100. Solo `create or replace function`
+-- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y ANTES de 20261004200100. Solo
+-- `create or replace function`
 -- (por dentro de `execute`): no toma las tablas de auth/storage (ADR-0195), sin políticas ni `drop trigger`. Idempotente.
 -- Pegarla antes de que exista ningún cuadre no cambia ninguna cifra de Frescura (no hay ítems que excluir ni marcar).
 -- Verificación (solo lectura):

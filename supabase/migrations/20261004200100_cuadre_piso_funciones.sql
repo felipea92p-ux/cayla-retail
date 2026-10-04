@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 20261004200100_cuadre_piso_funciones.sql — CAYLA V2 · ADR-0328 decisión técnica 4 «Cuadre del piso, una vez por sede»
--- PARTE 2 de 3 (las funciones). Va DESPUÉS de 20261004200000 (las tablas) y ANTES de 20261004200200 (Frescura).
+-- PARTE 3 de 3 (las funciones). Va AL FINAL, después de 20261004200000 (las tablas) y 20261004200050 (Frescura): su guarda
+-- aborta si Frescura todavía no conoce el cuadre, así `cuadrar_piso` no existe sin esa protección.
 --
 -- EL PROBLEMA PRIMERO. Ver la PARTE 1: el reparto piso/almacén de TRU no es el real (sistema 138 colgadas y 635 guardadas;
 -- en la tienda, 600–750 colgadas y más de 200 guardadas). La forma de arreglarlo que eligió Felipe es escanear lo que de
@@ -58,8 +59,8 @@
 -- misma sede, mover lo apartado para un cliente, y un cuadre con un conteo abierto en la sede (los dos corregirían las
 -- mismas prendas y la sede ganaría prendas que no existen).
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y ANTES de 20261004200200 (las guardas de abajo
--- abortan sin tocar nada si falta algo). Solo `create or replace function` + `comment` + `revoke` + `grant`: no toma las
+-- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual, DESPUÉS de 20261004200000 y 20261004200050 (las guardas de abajo abortan
+-- sin tocar nada si falta algo, también si Frescura no quedó con su protección). Solo `create or replace function` + `comment` + `revoke` + `grant`: no toma las
 -- tablas de auth/storage (ADR-0195), sin políticas, sin `drop trigger`, sin `alter`. Idempotente. VA ANTES de publicar la
 -- web que la llama (una web nueva contra una base sin esto falla con «Could not find the function»).
 -- Verificación (solo lectura):
@@ -95,6 +96,16 @@ begin
   end if;
   if to_regprocedure('retail.fn_prenda_corta(uuid)') is null or to_regprocedure('retail.fn_actividad_nombre(uuid)') is null then
     raise exception 'Faltan fn_prenda_corta o fn_actividad_nombre: pega antes 20260926000200 y 20261002233000.';
+  end if;
+  -- Frescura tiene que conocer el cuadre ANTES de que exista cuadrar_piso: sin la PARTE 2, cada prenda que el cuadre baja
+  -- sería una «bajada» de hoy (todo «Nueva», confianza inflada, tardías y «corregidas» falsas), y eso ya no se arregla
+  -- después porque el cuadre no se edita. Se mira lo que importa (que el cuerpo vivo excluya y marque el cuadre por su
+  -- ítem), no un md5: un parche posterior legítimo de Frescura no debe impedir volver a pegar esta parte.
+  if position('cuadre_piso_items' in coalesce((select p.prosrc from pg_proc p
+        where p.oid = to_regprocedure('retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)')), '')) = 0
+     or position('cuadre_piso_items' in coalesce((select p.prosrc from pg_proc p
+        where p.oid = to_regprocedure('retail.fn_frescura_sede(uuid, integer)')), '')) = 0 then
+    raise exception 'Frescura todavía no conoce el cuadre del piso: pega antes 20261004200050_cuadre_piso_frescura.sql (si abortó, su mensaje dice qué función cambió en vivo).';
   end if;
 end $$;
 

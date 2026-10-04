@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20261004200000_cuadre_piso_tablas.sql — CAYLA V2 · ADR-0328 decisión técnica 4 «Cuadre del piso, una vez por sede»
--- PARTE 1 de 3 (las tablas). Le siguen 20261004200100 (las funciones) y 20261004200200 (Frescura).
+-- PARTE 1 de 3 (las tablas). Le siguen 20261004200050 (Frescura) y 20261004200100 (las funciones), en ese orden.
 --
 -- EL PROBLEMA PRIMERO. El sistema dice que TRU tiene 138 prendas colgadas y 635 guardadas; en la tienda cuelgan 600 a 750 y
 -- hay más de 200 guardadas (Felipe, 2026-09-30). El 14-sep todo el stock de las tiendas se pasó al almacén de un golpe
@@ -33,7 +33,7 @@
 --   · un cuadre editado, borrado o las tablas vaciadas          → disparadores de inmutabilidad y sin truncate
 -- Un cuadre SIN ítems sí es posible y es válido: la sede ya estaba cuadrada y solo queda la fecha.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual (trae `retail.` y su `search_path`), ANTES de 20261004200100. Las llaves
+-- CÓMO SE PEGA EN PRODUCCIÓN. Sola, tal cual (trae `retail.` y su `search_path`), ANTES de las otras dos. Las llaves
 -- foráneas hacia movimientos, variantes, ubicaciones y public.personas toman un candado breve sobre tablas que la tienda
 -- usa: por eso va sola, SIN políticas, con `lock_timeout = 3s` (si no consigue el candado, falla sin daño y se vuelve a
 -- pegar), fuera de hora punta. Los disparadores van con `create or replace trigger` (nunca `drop trigger`: tomaría en

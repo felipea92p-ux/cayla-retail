@@ -19,7 +19,7 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración que manda cada una (20261004200200, el cuadre del piso, para fn_frescura_sede; 20260929100000 para
+ *       de la migración que manda cada una (20261004200050, el cuadre del piso, para fn_frescura_sede; 20260929100000 para
  *       fn_confianza_registro; 20260928120310 para las otras cuatro) nombra su md5 vivo (de las seis: también
  *       fn_temporada_efectiva_nucleo, sin EXECUTE para nadie de afuera, fn_temporada_efectiva, que conserva sus
  *       permisos, y fn_es_llegada_a_cayla, immutable, sin search_path propio y sin EXECUTE para nadie de afuera);
@@ -177,7 +177,7 @@ const MIGRACION_R9 = leerMigracion("20260928120330_frescura_lectura_revision9.sq
 const MIGRACION_P4 = leerMigracion("20260929100000_frescura_modulo_y_candado.sql");
 /** El cuadre del piso (ADR-0328, 2026-10-04): reemplazo anclado en fn_frescura_sede (la bajada del cuadre lleva la marca 4) y
  *  en el núcleo de las bajadas. Manda en fn_frescura_sede; su guarda nombra el md5 de antes (el del paso 4) y el de después. */
-const MIGRACION_CUADRE = leerMigracion("20261004200200_cuadre_piso_frescura.sql");
+const MIGRACION_CUADRE = leerMigracion("20261004200050_cuadre_piso_frescura.sql");
 /** Deshace ese reemplazo (sus anclas, leídas del archivo, en orden inverso): deja fn_frescura_sede y el núcleo como los dejó
  *  el paso 4. Para los casos que prueban el orden de pegado de las migraciones ANTERIORES al cuadre (T12, T12b). */
 const DESHACER_CUADRE = [...MIGRACION_CUADRE.matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
@@ -2586,7 +2586,7 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
       `CORREGIDA_TRAS_R9=${o.CORREGIDA_TRAS_R9} R7_TRAS_R9=${o.R7_TRAS_R9} R9_TRAS_P4=${o.R9_TRAS_P4} MD5_SIGUEN=${o.MD5_SIGUEN}`,
     );
     afirmar(
-      "el cuadre del piso (20261004200200) entra encima del paso 4 y deja la base de hoy; el paso 4 pegado después aborta y no deshace nada",
+      "el cuadre del piso (20261004200050) entra encima del paso 4 y deja la base de hoy; el paso 4 pegado después aborta y no deshace nada",
       json(o.CUADRE)?.ok === true && o.CUADRE_ES_EL_DE_HOY === "true" && aborta(o.P4_TRAS_CUADRE, "fn_frescura_sede tiene otro cuerpo") && o.MD5_TRAS_CUADRE === "true",
       `CUADRE=${o.CUADRE} CUADRE_ES_EL_DE_HOY=${o.CUADRE_ES_EL_DE_HOY} P4_TRAS_CUADRE=${o.P4_TRAS_CUADRE} MD5_TRAS_CUADRE=${o.MD5_TRAS_CUADRE}`,
     );

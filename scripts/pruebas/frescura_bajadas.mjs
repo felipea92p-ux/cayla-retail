@@ -158,10 +158,10 @@ const MIGRACION_RETIROS = migracion("20260928120200_bajadas_netear_retiros.sql")
 const MIGRACION_P4 = migracion("20260929100000_frescura_modulo_y_candado.sql");
 /** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
 const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
-/** El cuadre del piso (ADR-0328, 20261004200200) cambia el núcleo (y fn_frescura_sede) por reemplazo anclado. Esto lo deshace
+/** El cuadre del piso (ADR-0328, 20261004200050) cambia el núcleo (y fn_frescura_sede) por reemplazo anclado. Esto lo deshace
  *  (sus anclas, leídas del archivo, en orden inverso) para los casos que prueban el orden de pegado de las migraciones
  *  ANTERIORES (T22, T37), que se escribieron sobre el núcleo de la 120200. El cuadre se prueba en cuadrar_piso.mjs (C11, C12). */
-const DESHACER_CUADRE = [...migracion("20261004200200_cuadre_piso_frescura.sql").matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+const DESHACER_CUADRE = [...migracion("20261004200050_cuadre_piso_frescura.sql").matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
   .reverse()
   .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
   .join("\n");
