@@ -1,0 +1,19 @@
+## 🚚 Traslados: tareas #4 a #7 del análisis (2026-10-03, ADR-0242) — solo web, sin migración; rama `claude/traslados-tareas-4-a-7`
+
+- [x] #6 «Nuevo traslado» en `/inventario/traslados/nuevo`; `/inventario/mover` redirige con todos sus parámetros; el menú marca Traslados (commit `5a37ba39`).
+- [x] #5 Al enviar: «Traslado N», lista de la caja y mensaje para la otra sede (sin cantidades; copiar / WhatsApp). El formulario sigue bloqueado hasta que sale la pantalla: sin eso, un clic de más duplicaba el traslado (`02a65125`).
+- [x] #4 «Pedir a otra sede» desde Traslados: botón en la cabecera y en el estado vacío, modal «elegir tienda y prendas» con guía de foco; ofrece lo que la otra tienda puede ENVIAR (`fn_existencias`, almacén); token atado al contenido (`3e8420d1`).
+- [x] #7 «Lo siguiente» al recibir: «Bajar estas al piso» (solo lo que sigue en el almacén) e «Imprimir etiquetas» (Etiquetas entiende `?traslado=`); el modal de confirmar ya no manda a «Reponer» (`1f25cdd1`).
+- [ ] **POR FUSIONAR:** la rama no tiene PR todavía. Verificado en Chrome contra una pila Supabase propia (mismas migraciones que `main`): 30 + 45 + 9 + 25 comprobaciones. Sin migraciones: no hay SQL que pegar.
+- [ ] **Decisión de Felipe — conteo a ciegas (ADR-0239 D-130):** solo vale dentro del detalle. Existencias de la sede destino muestra «En camino hacia acá: N unidades» (por prenda y en el CSV) y la tarjeta «Prendas en tránsito» de Traslados suma lo que viene. ¿Se ocultan las cantidades a la sede destino, o se acepta?
+- [ ] **Decisión de Felipe — WhatsApp:** el aviso al enviar usa `ubicaciones.whatsapp_numero`, el celular que nació para el QR del club. ¿Lo lee quien recibe las cajas? Si no, hace falta otro número (el Taller no tiene).
+- [ ] **Decisión de Felipe — pedir y el piso:** el modal ofrece solo el almacén de la otra tienda; `pedir_a_otra_sede` y Análisis miran piso + almacén. Para unificar hay que cambiar esas dos (migración; pide su OK).
+- [ ] **SQL (pide OK de Felipe):** `fn_stock_por_sede()` conserva su puerta propia (`colaboradores`) y no `fn_tiene_acceso_retail()` (ADR-0289): una terminal ve la red vacía, también en Vender («dónde más hay»). Mismo patrón que `20260930050000`.
+- [ ] Un pedido «Te piden» no suma al número del menú ni avisa por WhatsApp: la otra tienda lo ve al abrir Traslados (tanda 2, «Hoy te toca»; o un aviso por WhatsApp al pedir).
+- [ ] Pedir lo mismo dos veces a la misma tienda: nadie avisa lo ya pedido (los dos pedidos llegan y la otra tienda puede enviar de más).
+- [ ] La misma prenda se nombra «talla · color» en Traslados y «color · talla» en la tarjeta «Pediste» (`etiquetaLinea`): una sola forma.
+- [ ] Límite conocido de «Lo siguiente»: si un líder cierra una diferencia días después, la ventana de 7 días cuenta desde ese cierre y las etiquetas abarcan toda la caja (`fn_traslado_lineas` no dice cuándo entró cada línea).
+- [ ] ADR-0242 sin construir: escáner y búsqueda con foto al enviar (D-2), destino en botones, llegada por día, resumen «La caja», tanda 2 («Hoy te toca»), guía impresa con QR (D-3), acceso en Existencias (tanda 5), «Avisar a la clienta» y «Ver en Existencias» (D-6.1).
+- [ ] Guía de foco de «Nuevo traslado» (tarea #8 del análisis): la deuda se mudó de `/inventario/mover` a `/inventario/traslados/nuevo` sin crecer.
+- [ ] Cuando se fusione el PR #777 (análisis completo de Traslados): marcar en `docs/pantallas/traslados.md` las tareas #4 a #7 como cerradas, con estos cuatro commits.
+- [ ] Ajena, ya lanzada aparte: «misma prenda en dos líneas del traslado» (error crudo de Postgres por `transferencia_items_transferencia_id_variante_id_key`).
