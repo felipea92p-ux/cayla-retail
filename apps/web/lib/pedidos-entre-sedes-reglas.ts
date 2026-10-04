@@ -201,3 +201,86 @@ export function motivoNoSePuedePedir(lineas: LineaParaPedir[]): string | null {
   if (aPedir.length > TOPE_LINEAS_PEDIDO) return `Un pedido lleva hasta ${TOPE_LINEAS_PEDIDO} prendas distintas`;
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Pedir desde Traslados: elegir la tienda y las prendas (ADR-0242 D-7, 2026-10-03)
+//
+// Hasta ahora «Pedir a otra sede» solo se abría desde Análisis, con la tienda y las prendas ya armadas. Quien ve Traslados
+// y no Análisis solo podía EMPUJAR desde su sede, nunca pedir: el pedido seguía yendo por WhatsApp y el sistema no se
+// enteraba. Aquí la persona elige la tienda a la que le pide y las prendas de lo que esa tienda tiene libre.
+// ---------------------------------------------------------------------------
+
+/** Una prenda que la otra tienda puede ofrecer: su nombre y cuántas tiene LIBRES. */
+export type PrendaPedible = { varianteId: string; etiqueta: string; disponible: number };
+
+/** Las tiendas a las que se les puede pedir: las OTRAS tiendas activas. La base rechaza el Taller («Solo se pide entre
+ *  tiendas») y pedirse a sí misma, así que ni se ofrecen. Si quien pide no es una tienda (el Taller), no hay a quién. */
+export function sedesParaPedir(
+  ubicaciones: readonly { id: string; nombre: string; tipo: string; activo: boolean }[],
+  miSedeId: string
+): { id: string; nombre: string }[] {
+  const yo = ubicaciones.find((u) => u.id === miSedeId);
+  if (!yo || yo.tipo !== "tienda") return [];
+  return ubicaciones.filter((u) => u.tipo === "tienda" && u.activo && u.id !== miSedeId).map(({ id, nombre }) => ({ id, nombre }));
+}
+
+/** Una fila de `fn_existencias` (la única fórmula de «cuánto hay», ADR-0270): lo libre de una prenda en una sede, repartido por lugar. */
+export type FilaExistenciasDeSede = { variante_id: string; ubicacion_id: string; almacen_libre: number; sin_lugar: number; talla_retirada: boolean };
+
+/** Cuánto de una prenda puede ENVIAR una sede. */
+export type FilaStockDeSede = { variante_id: string; ubicacion_id: string; cantidad: number };
+
+/**
+ * Lo que una sede puede ENVIAR, no todo lo que tiene libre: lo libre del ALMACÉN (más lo que no tiene lugar asignado, en una
+ * sede sin piso y almacén). Un traslado sale del almacén, nunca del piso —mandar mercadería a otra sede no debe tocar lo que
+ * la clienta ve hoy—, así que ofrecer también lo del piso prometería más de lo que la otra tienda puede mandar: el pedido
+ * llegaría y ella respondería «No la tengo» (`iniciar_traslado`: «Stock insuficiente: hay 0»). Es el mismo número que topa el
+ * formulario de «Nuevo traslado» (`almacenDisponible ?? disponible`). Sin tallas retiradas.
+ */
+export function filasEnviables(filas: readonly FilaExistenciasDeSede[]): FilaStockDeSede[] {
+  return filas
+    .filter((f) => !f.talla_retirada)
+    .map((f) => ({ variante_id: f.variante_id, ubicacion_id: f.ubicacion_id, cantidad: f.almacen_libre + f.sin_lugar }));
+}
+
+/** Lo que `sedeId` puede ofrecer, prenda por prenda: junta las filas de la misma prenda, descarta los ceros
+ *  y la ordena por nombre. Una prenda sin nombre no se ofrece: no se pide una prenda a ciegas. */
+export function prendasPedibles(filas: readonly FilaStockDeSede[], sedeId: string, etiquetas: ReadonlyMap<string, string>): PrendaPedible[] {
+  const porPrenda = new Map<string, number>();
+  for (const f of filas) {
+    if (f.ubicacion_id === sedeId && f.cantidad > 0) porPrenda.set(f.variante_id, (porPrenda.get(f.variante_id) ?? 0) + f.cantidad);
+  }
+  return [...porPrenda]
+    .flatMap(([varianteId, disponible]) => {
+      const etiqueta = etiquetas.get(varianteId);
+      return etiqueta ? [{ varianteId, etiqueta, disponible }] : [];
+    })
+    .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, "es", { numeric: true }));
+}
+
+/** Una línea del pedido mientras la persona elige: la prenda (vacía hasta que la elige) y cuántas pide. */
+export type LineaElegida = { varianteId: string; cantidad: number };
+
+export const LINEA_ELEGIDA_VACIA: LineaElegida = { varianteId: "", cantidad: 1 };
+
+/** Lo elegido como líneas del pedido (las que usan `lineasParaRpc` y `motivoNoSePuedePedir`): solo las que tienen una prenda de
+ *  la lista; la cantidad se topa a lo que la otra tienda tiene libre. Una línea sin prenda no cuenta, no estorba. */
+export function lineasElegidasParaPedir(elegidas: readonly LineaElegida[], prendas: readonly PrendaPedible[]): LineaParaPedir[] {
+  const porId = new Map(prendas.map((p) => [p.varianteId, p]));
+  return elegidas.flatMap((l) => {
+    const p = porId.get(l.varianteId);
+    return p ? [{ varianteId: p.varianteId, etiqueta: p.etiqueta, disponibleEnOrigen: p.disponible, cantidad: Math.min(Math.max(0, l.cantidad), p.disponible) }] : [];
+  });
+}
+
+/** Al elegir otra prenda en una línea: queda en 1 (acaba de elegirla) y nunca por encima de lo que esa prenda tiene libre. */
+export function conPrendaElegida(varianteId: string, prendas: readonly PrendaPedible[]): LineaElegida {
+  const disponible = prendas.find((p) => p.varianteId === varianteId)?.disponible ?? 0;
+  return { varianteId, cantidad: Math.min(1, disponible) };
+}
+
+/** Las prendas que otras líneas ya eligieron: no se ofrecen otra vez en la línea `i` (dos líneas de la misma prenda
+ *  confunden; la base las sumaría, pero la persona no lo sabe). */
+export function prendasYaElegidasEnOtras(elegidas: readonly LineaElegida[], i: number): Set<string> {
+  return new Set(elegidas.flatMap((l, n) => (n !== i && l.varianteId ? [l.varianteId] : [])));
+}

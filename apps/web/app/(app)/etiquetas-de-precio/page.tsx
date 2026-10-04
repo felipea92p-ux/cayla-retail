@@ -26,6 +26,8 @@ type Params = {
   variantes?: string | string[];
   unidades?: string | string[];
   desde?: string | string[];
+  /** El traslado de donde se salió (`?unidades=` + `?traslado=`: «Lo siguiente» del detalle): cambia el texto y adónde vuelve «Volver». */
+  traslado?: string | string[];
 };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -39,6 +41,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const unidades = unidadesDeParam(params.unidades);
   const variantes = unidades.size > 0 ? [...unidades.keys()] : idsDeParam(params.variantes);
   const desde = desdeDeParams(params.desde);
+  const [traslado] = idsDeParam(params.traslado);
 
   const origen: OrigenEtiquetas | null = produccion
     ? { tipo: "produccion", id: produccion }
@@ -59,7 +62,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       : origen?.tipo === "producto"
         ? { tipo: "producto", nombre: datos.producto ?? null }
         : origen?.tipo === "variantes"
-          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0 }
+          ? { tipo: "variantes", desdeProductos: desde !== null, tallas: variantes.length, entraron: unidades.size > 0, desdeTraslado: unidades.size > 0 && traslado !== undefined }
           : origen
             ? { tipo: origen.tipo }
             : { tipo: "ninguno" };
@@ -74,7 +77,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
-      volver={volverDeEtiquetas(origen, desde)}
+      volver={volverDeEtiquetas(origen, desde, unidades.size > 0 ? (traslado ?? null) : null)}
     />
   );
 }

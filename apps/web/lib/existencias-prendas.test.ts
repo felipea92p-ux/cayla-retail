@@ -122,11 +122,11 @@ describe("enlaces con la lista cargada", () => {
   });
   it("Trasladar lleva lo que tiene algo libre para mandar", () => {
     expect(lineasParaTrasladar([bajable, normal, sinAtras]).map((l) => l.varianteId)).toEqual(["v1", "v2"]);
-    expect(urlTrasladar([bajable, normal])).toBe("/inventario/mover?lineas=v1:1,v2:1");
+    expect(urlTrasladar([bajable, normal])).toBe("/inventario/traslados/nuevo?lineas=v1:1,v2:1&desde=existencias");
   });
   it("en el Taller (sin almacén) Trasladar mira lo disponible", () => {
     const taller = fila({ varianteId: "t", pisoDisponible: null, almacenDisponible: null, disponible: 3 });
-    expect(urlTrasladar([taller])).toBe("/inventario/mover?lineas=t:1");
+    expect(urlTrasladar([taller])).toBe("/inventario/traslados/nuevo?lineas=t:1&desde=existencias");
   });
   it("Etiquetas: SIEMPRE las tallas exactas por ?variantes= — un producto por ?producto= imprimía todos sus colores (tarea #7)", () => {
     expect(urlEtiquetas([bajable, normal])).toBe("/etiquetas-de-precio?variantes=v1,v2");

@@ -130,3 +130,47 @@ podía traerlo: `iniciar_traslado` exige operar el origen. **La migración no es
   - `pnpm pruebas:pedir-a-otra-sede`: 71/71 (en CI).
   - `pruebas:separaciones`: 77/77 y `pruebas:traslados-recibir-sin-perder-nada`: 58/58, antes y después.
   - Todo se corrió en un stack Supabase aparte, sin tocar el Postgres local compartido.
+
+## Actualización 2026-10-03: lo que se construyó desde el análisis de Traslados (tareas #4 a #7, rama `claude/traslados-tareas-4-a-7`)
+
+Solo web, sin migración. Cuatro cortes verificables, cada uno con su commit y verificado en Chrome contra una pila Supabase propia.
+
+- **Tanda 1, parcial (D-4).** «Nuevo traslado» vive en `/inventario/traslados/nuevo`; `/inventario/mover` solo redirige con todos sus
+  parámetros (los enlaces de Producción, Cambios, Análisis y Frescura no se tocaron). El menú marca Traslados. «Volver» va a Existencias
+  solo si se llegó desde ahí (`?desde=existencias`). **Falta:** escáner y búsqueda con foto (D-2), destino en botones, llegada por día y el
+  resumen «La caja».
+- **D-3, parcial.** Al enviar sale «Traslado N», la lista de lo que va en la caja (con cantidades: quien envía las sabe) y un mensaje para
+  la otra sede con «Copiar» y «Abrir WhatsApp». El mensaje **no dice cuántas prendas van**: la función recibe solo nombres, así que el
+  tipo impide colar una cantidad. **Falta:** la guía impresa con QR.
+- **D-6.1, parcial.** «Lo siguiente» tras recibir: «Bajar estas al piso» (solo lo que HOY sigue en el almacén) e «Imprimir etiquetas»;
+  Etiquetas entiende `?traslado=`. **Falta:** «Avisar a la clienta» y «Ver en Existencias».
+- **Tanda 4, entrada desde Traslados (D-7).** «Pedir a otra sede» en la cabecera y en el estado vacío; el modal gana el modo «elegir» (la
+  tienda y las prendas). El modo de Análisis no cambió.
+
+### Decisiones tomadas por el camino
+
+```
+DECIDÍ:      el modal de pedir ofrece solo lo que la otra tienda puede ENVIAR (su almacén, `fn_existencias`: almacen_libre + sin_lugar).
+DESCARTÉ:    ofrecer piso + almacén (lo que hacen hoy `pedir_a_otra_sede` y Análisis), porque un traslado sale solo del almacén
+             (`iniciar_traslado`): el pedido llegaría y la otra tienda respondería «No la tengo»; en TRU ~la mitad del stock está en el piso.
+SE ROMPE SI: Felipe quiere que pedir también pueda tomar del piso: es un cambio de una línea (`filasEnviables`, almacen_libre → disponible).
+```
+
+- **Fuente de datos:** `fn_existencias` de ESA sede (una sede por llamada), no `fn_stock_por_sede_json` (la red entera, ~1,5 MB con 5
+  sedes, y su puerta propia deja a una terminal con la red vacía: ver pendientes).
+- **El token (ADR-0190) va atado al contenido del pedido:** reintentar lo mismo no duplica; si cambian la tienda o las prendas tras un
+  corte de red, es otro pedido. Con un token por apertura, la base devolvía el pedido viejo y el modal avisaba un éxito falso.
+- **El aviso dice «guardado», no «enviado»:** la otra tienda no se entera sola (el menú no cuenta los pedidos).
+- **El formulario de envío sigue bloqueado hasta que sale la pantalla de «enviado»:** el token ya se renovó y un clic durante la lectura
+  del número creaba un traslado duplicado (reproducido: la base pasó de 16 a 18; con la corrección, solo 1).
+
+### Pendientes y decisiones de Felipe
+
+1. **SQL (con su OK):** `pedir_a_otra_sede` y `fn_pedidos_entre_sedes.disponible_en_origen` todavía cuentan piso + almacén.
+2. **SQL:** `fn_stock_por_sede()` conserva su propia puerta (`colaboradores`), no `fn_tiene_acceso_retail()` (ADR-0289): una terminal ve la
+   red vacía también en Vender («dónde más hay»).
+3. **Conteo a ciegas (ADR-0239 D-130):** solo vale dentro del detalle del traslado. Existencias de la sede destino muestra «En camino hacia
+   acá: N unidades» (también por prenda y en el CSV) y la tarjeta «Prendas en tránsito» de Traslados suma lo que viene. ¿Se ocultan o se acepta?
+4. **WhatsApp:** el aviso usa `ubicaciones.whatsapp_numero`, que nació para el QR del club. ¿Lo lee quien recibe las cajas?
+5. **Avisar a quien recibe un pedido:** un pedido «Te piden» no suma al número del menú ni avisa por WhatsApp (tanda 2, «Hoy te toca»).
+6. Sin construir todavía: tanda 2 completa, tanda 5, la guía de foco del formulario de envío (tarea #8 del análisis).
