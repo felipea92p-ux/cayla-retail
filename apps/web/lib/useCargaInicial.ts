@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cargaInicialDe, leerCargaInicial, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 
@@ -9,11 +9,16 @@ import { cargaInicialDe, leerCargaInicial, type CargaInicialSede } from "@/lib/c
  * ficha del producto, que se abren desde varias pantallas y no reciben el dato de su página.
  *
  * Lectura opcional, como `fn_faltantes_de_conteo` en el mismo modal: mientras llega, o si la función no existe todavía (la web
- * salió antes que el SQL) o falla, devuelve `null` y la pantalla se porta como antes. La base igual cierra la puerta.
+ * salió antes que el SQL) o falla, `carga` es `null` y la pantalla se porta como antes. La base igual cierra la puerta.
  * `x-espera: no`: es una lectura de fondo y no debe cubrir la pantalla con el loader (ADR-0149).
+ *
+ * `releer`: cuando la base rechaza un guardado con `carga_inicial_cerrada` (`esRechazoPorCargaCerrada`), la pantalla vuelve a
+ * leer. Así una pantalla abierta desde antes de la medianoche del último día deja de mandar la prenda nueva como stock inicial
+ * y ofrece la salida (revisión adversarial: el mismo error se repetía hasta cerrar y reabrir).
  */
-export function useCargaInicial(ubicacionId: string | null | undefined): CargaInicialSede | null {
+export function useCargaInicial(ubicacionId: string | null | undefined): { carga: CargaInicialSede | null; releer: () => void } {
   const [carga, setCarga] = useState<CargaInicialSede | null>(null);
+  const [vuelta, setVuelta] = useState(0);
   useEffect(() => {
     if (!ubicacionId) return;
     let vigente = true;
@@ -26,6 +31,7 @@ export function useCargaInicial(ubicacionId: string | null | undefined): CargaIn
     return () => {
       vigente = false;
     };
-  }, [ubicacionId]);
-  return carga;
+  }, [ubicacionId, vuelta]);
+  const releer = useCallback(() => setVuelta((n) => n + 1), []);
+  return { carga, releer };
 }

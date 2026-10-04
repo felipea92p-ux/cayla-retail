@@ -60,7 +60,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useCargaInicial } from "@/lib/useCargaInicial";
-import { avisoCargaInicial, cargaAbierta } from "@/lib/carga-inicial-reglas";
+import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import { sugerirNotaAjuste } from "@/lib/sugerencias-ajuste";
 
 // Guarda con `retail.ajustar_inventario` (ADR-0240): UNA llamada, todo o nada y con la marca del intento. Por dentro usa
@@ -159,7 +159,7 @@ export function AjustarInventarioModal({
   const [faltantes, setFaltantes] = useState<ReadonlyMap<string, FaltanteConteo>>(new Map());
   const [elecciones, setElecciones] = useState<Record<string, EleccionHallazgo | undefined>>({});
   // La carga inicial de esta sede (lectura opcional: sin ella, el modal se porta como antes y la base decide).
-  const carga = useCargaInicial(ubicacionId);
+  const { carga, releer: releerCarga } = useCargaInicial(ubicacionId);
   const abiertaCarga = cargaAbierta(carga);
   // Un ajuste de stock guarda en la tienda: pide Responsable (ADR-0161).
   const responsable = useResponsable();
@@ -404,6 +404,9 @@ export function AjustarInventarioModal({
       } else {
         // La base dijo que no: la transacción se deshizo entera y la marca quedó libre. Se puede corregir y reintentar.
         setError(traducirError(errorRpc, "ajustar el inventario"));
+        // La carga de la sede se cerró mientras el modal estaba abierto (pasada la medianoche del último día): se vuelve a leer, y
+        // la prenda nueva deja de ir como stock inicial y pide «Encontré prendas» (ADR-0328).
+        if (esRechazoPorCargaCerrada(errorRpc)) releerCarga();
       }
       // Con la red caída no se refresca: un refresh sin red se vuelve navegación completa y borra el mensaje honesto.
       if (!esFalloDeRed(errorRpc)) router.refresh();

@@ -88,7 +88,7 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
-import { avisoCargaInicial, cargaAbierta, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
+import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -634,6 +634,9 @@ export function NuevoProductoForm({
         return;
       }
       avisar.error(traducirError(error, "crear el producto"));
+      // La carga de la sede se cerró con el formulario abierto (pasada la medianoche del último día): la página vuelve a leer el
+      // cierre y el paso 4 apaga «Cuántas tienes hoy»; lo escrito no se pierde y el producto se puede crear sin unidades (ADR-0328).
+      if (esRechazoPorCargaCerrada(error)) router.refresh();
       return;
     }
 

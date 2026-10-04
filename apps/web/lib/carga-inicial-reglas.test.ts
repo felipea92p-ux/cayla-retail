@@ -8,6 +8,7 @@ import {
   cargaInicialDe,
   chipCargaInicial,
   consecuenciaDelCierre,
+  esRechazoPorCargaCerrada,
   estadoCargaInicial,
   fechaCorta,
   leerCargaInicial,
@@ -125,5 +126,20 @@ describe("leer lo que devuelve la base", () => {
     expect(leerCargaInicial({ hoy: "ayer", sedes: [] })).toBeNull();
     expect(leerCargaInicial([])).toBeNull();
     expect(cargaInicialDe(null, "u-tru")).toBeNull();
+  });
+});
+
+describe("esRechazoPorCargaCerrada: cuándo la pantalla vuelve a leer el cierre", () => {
+  it("solo con el hint de la base `carga_inicial_cerrada` (el candado o un ajuste de una prenda que nunca estuvo)", () => {
+    expect(esRechazoPorCargaCerrada({ hint: "carga_inicial_cerrada" })).toBe(true);
+    for (const hint of ["carga_inicial_solo_admin", "encontre_prendas_sin_nota", "ajuste_sin_historia", "", null, undefined]) {
+      expect(esRechazoPorCargaCerrada({ hint })).toBe(false);
+    }
+    expect(esRechazoPorCargaCerrada(null)).toBe(false);
+    expect(esRechazoPorCargaCerrada(undefined)).toBe(false);
+  });
+  it("el hint es el mismo que lanza la migración (si alguien lo renombra en la base, esto avisa)", () => {
+    const sql = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261004210100_carga_inicial_cierre_por_sede_parte2_candado.sql"), "utf8");
+    expect(sql).toContain("hint = 'carga_inicial_cerrada'");
   });
 });

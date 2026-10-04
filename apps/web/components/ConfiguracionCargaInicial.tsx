@@ -102,7 +102,9 @@ export function ConfiguracionCargaInicial({ lectura, esLider, esAdmin }: { lectu
 
 function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sede: SedeCargaInicial; hoy: string; esLider: boolean; esAdmin: boolean; onClose: () => void }) {
   const router = useRouter();
-  const responsable = useResponsable({ ubicacionId: sede.ubicacionId, etiqueta: sede.nombre });
+  // Firma quien decide, de turno en la sede ACTIVA, como el resto de Configuración (revisión adversarial): con la sede que se
+  // configura, el cierre de AQP decidido por un líder de TRU lo firmaba alguien de turno en AQP, o no se podía guardar.
+  const responsable = useResponsable();
   const estadoActual = estadoCargaInicial(sede.hasta, hoy);
   // Una sede cerrada arranca sin fecha elegida: cualquier fecha nueva la reabre, y eso se elige a propósito.
   const [fecha, setFecha] = useState(estadoActual.tipo === "cerrada" ? "" : (sede.hasta ?? ""));

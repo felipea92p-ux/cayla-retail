@@ -41,7 +41,7 @@ import {
 } from "@/lib/matriz-ficha-reglas";
 import type { AjusteStockFicha, LecturaStockFicha } from "./piezas";
 import { useCargaInicial } from "@/lib/useCargaInicial";
-import { avisoCargaInicial, cargaAbierta } from "@/lib/carga-inicial-reglas";
+import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import { sugerirNotaAjuste, type NotaAjuste } from "@/lib/sugerencias-ajuste";
 
 // El stock de la matriz de Editar producto (maqueta B, Felipe 2026-10-02): cada «−»/«+» (o el número escrito en la celda) es un
@@ -174,7 +174,7 @@ export function useStockFicha({
   const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
   // La carga inicial de esta sede (lectura opcional, solo si se puede tocar el stock). Cerrada, lo que nunca estuvo en la tienda
   // suma solo con «Encontré prendas»; con otro motivo su celda queda quieta y dice por qué.
-  const carga = useCargaInicial(puedeTocar ? ubicacionId : null);
+  const { carga, releer: releerCarga } = useCargaInicial(puedeTocar ? ubicacionId : null);
   const abiertaCarga = cargaAbierta(carga);
   const enPisoCerrado = reposicionCerrada(ubicado, separaPisoAlmacen);
   const avisoCarga = avisoCargaDeLaFicha(avisoCargaInicial(carga), abiertaCarga, motivo, enPisoCerrado);
@@ -276,6 +276,8 @@ export function useStockFicha({
         avisar.error("Se cortó la conexión y no sabemos si el stock se guardó: la ficha volvió a leerlo de la base, y ese es el número de cada talla ahora.");
       } else {
         avisar.error(traducirError(error, "guardar el stock"), { detalle: "Lo que tocaste sigue en la ficha: corrígelo y vuelve a guardar." });
+        // La carga se cerró con la ficha abierta (pasada la medianoche del último día): se vuelve a leer (ADR-0328).
+        if (esRechazoPorCargaCerrada(error)) releerCarga();
       }
       return { ok: false };
     }
@@ -394,6 +396,7 @@ export function useStockFicha({
         avisar.error(traducirError(error, "cargar el stock de las variantes nuevas"), {
           detalle: "La prenda ya quedó guardada; carga sus unidades con «+» en la tabla y vuelve a guardar.",
         });
+        if (esRechazoPorCargaCerrada(error)) releerCarga();
       }
       return 0;
     }

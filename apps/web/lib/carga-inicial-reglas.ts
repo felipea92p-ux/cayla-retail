@@ -73,6 +73,12 @@ export function estadoDe(c: CargaInicialSede | null): EstadoCargaInicial | null 
   return c ? estadoCargaInicial(c.hasta, c.hoy) : null;
 }
 
+/** ¿La base rechazó el guardado porque la carga de la sede ya se cerró (`fn_exigir_carga_inicial_abierta`, o un ajuste sobre
+ *  una prenda que nunca estuvo en ella)? La pantalla vuelve a leer el cierre: lo que tenía en memoria ya no vale. */
+export function esRechazoPorCargaCerrada(error: { hint?: string | null } | null | undefined): boolean {
+  return error?.hint === "carga_inicial_cerrada";
+}
+
 /** ¿Se puede cargar stock inicial? Sin dato, sí: la pantalla no se inventa un cierre (la base igual lo exige). */
 export function cargaAbierta(c: CargaInicialSede | null): boolean {
   return estadoDe(c)?.tipo !== "cerrada";
