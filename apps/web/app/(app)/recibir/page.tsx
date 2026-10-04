@@ -7,7 +7,7 @@ import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesd
 import type { CompraResumen } from "@/lib/compras-reglas";
 import { getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante } from "@/lib/saldo-favor";
-import { hoyLima } from "@/lib/fechas-lima";
+import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
 import { getEnviosDeLotes } from "@/lib/envio";
 import { getTrasladosEnCurso, type TrasladoResumen } from "@/lib/traslados";
@@ -29,6 +29,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getMarcasPorProveedor } from "@/lib/proveedores";
 import { LlegoMercaderia } from "@/components/LlegoMercaderia";
+import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -229,7 +230,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
   // ------------------------------------------------------------------ Llegó mercadería (ADR-0330)
   if (vista === "llegada") {
-    const [catalogo, proveedores, marcas, trasladosDeLaSede, porRecibir] = await Promise.all([
+    // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
+    const haceUnaSemana = sumarDias(hoyLima(), -6);
+    const [catalogo, proveedores, marcas, trasladosDeLaSede, porRecibir, recientes] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
@@ -243,6 +246,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       listarPorRecibir({}, null, { sinMontos: true, ubicacionId: persona.ubicacionId }).catch((e: unknown) => {
         console.error("Facturas pendientes en Llegó mercadería:", e);
         return { filas: [] as CompraResumen[], siguiente: null };
+      }),
+      // Secundaria como las dos de arriba: sin ella la puerta recibe igual, sin la lista ni el aviso de la misma caja.
+      getRecepcionesRecientes({ ubicacionId: persona.ubicacionId, desde: haceUnaSemana, limite: 20 }).catch((e: unknown) => {
+        console.error("Llegó esta semana en Recibir mercadería:", e);
+        return [];
       }),
     ]);
     return (
@@ -265,6 +273,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
             pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
           }))}
+          recientes={recientes.map((r) => ({ proveedorId: r.proveedorId, fecha: r.fecha, unidades: r.unidades, recibidoPor: r.recibidoPor }))}
           prendas={catalogo
             .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
             .map((v) => ({
@@ -281,6 +290,15 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               fotoUrl: v.fotoUrl,
             }))}
         />
+        <section className="space-y-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
+            <Link href="/recibir?vista=recibidas" className="btn-cayla btn-enlace btn-chico">
+              Ver todo lo recibido
+            </Link>
+          </div>
+          <RecepcionesRecientes recepciones={recientes} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
+        </section>
       </div>
     );
   }

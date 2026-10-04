@@ -184,6 +184,8 @@ export type RecepcionReciente = {
   loteId: string;
   fecha: string;
   ubicacion: string;
+  /** De quién llegó: la puerta «Llegó mercadería» avisa si ese proveedor ya entró hoy en la sede (ADR-0330). */
+  proveedorId: string | null;
   proveedorNombre: string;
   numeroGuia: string | null;
   nota: string | null;

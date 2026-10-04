@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   camposDeLlegada,
+  avisoMismaCaja,
   despuesDeRecibir,
   facturasDelProveedor,
   urlContraFactura,
@@ -14,7 +15,9 @@ import {
   textoDelProveedor,
   totalUnidades,
   varianteDeLineaEnviada,
+  yaEntroHoy,
   type FacturaPendiente,
+  type LlegadaReciente,
   type LineaLlegada,
   type PrendaLlegada,
 } from "./llegada-reglas";
@@ -217,5 +220,32 @@ describe("la factura como opción (ADR-0330, act. 2)", () => {
     const sinResponder = camposDeLlegada({ ...base, facturaRespondida: false });
     expect(sinResponder.map((c) => c.id)).toEqual(["llegada-proveedor", "llegada-factura", "llegada-prendas", "llegada-responsable"]);
     expect(sePuedeConfirmar(sinResponder)).toBe(true);
+  });
+});
+
+describe("la misma caja dos veces (ADR-0330, act. 3)", () => {
+  // 2026-10-04 14:30 en Lima = 19:30 UTC.
+  const ahora = new Date("2026-10-04T19:30:00Z");
+  const recientes: LlegadaReciente[] = [
+    { proveedorId: "andina", fecha: "2026-10-04T19:16:30Z", unidades: 3, recibidoPor: "Ana" },
+    { proveedorId: "andina", fecha: "2026-10-04T15:00:00Z", unidades: 9, recibidoPor: null },
+    { proveedorId: "andina", fecha: "2026-10-04T04:30:00Z", unidades: 5, recibidoPor: "Luz" }, // 23:30 del 3-oct en Lima
+    { proveedorId: "kero", fecha: "2026-10-04T18:00:00Z", unidades: 2, recibidoPor: "Ana" },
+  ];
+
+  it("cuenta solo lo de ese proveedor del día de Lima, lo último primero (las 23:30 de ayer no cuentan)", () => {
+    expect(yaEntroHoy(recientes, "andina", ahora).map((r) => r.unidades)).toEqual([3, 9]);
+    expect(yaEntroHoy(recientes, "otro", ahora)).toEqual([]);
+    expect(yaEntroHoy(recientes, "", ahora)).toEqual([]);
+  });
+
+  it("una llegada: hora, prendas y quién; varias: cuántas, total y la última", () => {
+    expect(avisoMismaCaja(yaEntroHoy(recientes, "kero", ahora), "Kero")).toBe(
+      "Hoy a las 13:00 ya entraron 2 prendas de Kero, la recibió Ana. Si es la misma caja, no la recibas de nuevo.",
+    );
+    expect(avisoMismaCaja(yaEntroHoy(recientes, "andina", ahora), "Textiles Andina")).toBe(
+      "Hoy ya entraron 2 llegadas de Textiles Andina (12 prendas; la última a las 14:16, la recibió Ana). Si es la misma caja, no la recibas de nuevo.",
+    );
+    expect(avisoMismaCaja([], "Kero")).toBeNull();
   });
 });

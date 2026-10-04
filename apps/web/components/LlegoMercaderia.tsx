@@ -14,6 +14,7 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
 import { useResponsable } from "@/lib/useResponsable";
 import { diaMes } from "@/lib/fechas-lima";
 import {
+  avisoMismaCaja,
   camposDeLlegada,
   despuesDeRecibir,
   facturasDelProveedor,
@@ -28,7 +29,9 @@ import {
   totalUnidades,
   urlContraFactura,
   varianteDeLineaEnviada,
+  yaEntroHoy,
   type FacturaPendiente,
+  type LlegadaReciente,
   type LineaLlegada,
   type PrendaLlegada,
 } from "@/lib/llegada-reglas";
@@ -59,6 +62,7 @@ export function LlegoMercaderia({
   prendas,
   proveedores,
   facturas,
+  recientes,
   verMontos,
   veExistencias,
 }: {
@@ -68,6 +72,8 @@ export function LlegoMercaderia({
   proveedores: ProveedorLlegada[];
   /** Las facturas ya registradas a las que les falta mercadería en esta sede: si el proveedor elegido tiene, se pregunta. */
   facturas: FacturaPendiente[];
+  /** Lo que ya entró en esta sede estos días: si el proveedor elegido ya entró hoy, se avisa antes de recibir. */
+  recientes: LlegadaReciente[];
   /** Quien ve el dinero de Compras escribe el costo (ADR-0126); los demás reciben sin costo. */
   verMontos: boolean;
   veExistencias: boolean;
@@ -105,6 +111,7 @@ export function LlegoMercaderia({
   const unidades = totalUnidades(lineas);
 
   const susFacturas = facturasDelProveedor(facturas, proveedorId);
+  const mismaCaja = proveedor ? avisoMismaCaja(yaEntroHoy(recientes, proveedorId), proveedor.nombre) : null;
   const campos = camposDeLlegada({
     proveedorId,
     lineas,
@@ -291,6 +298,12 @@ export function LlegoMercaderia({
               <input value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} className="caja-cayla h-10 w-full px-3 text-sm text-tinta" />
             </label>
           </div>
+
+          {mismaCaja && (
+            <p role="status" className="-mt-2 rounded-lg border border-ambar/30 bg-ambar/[0.07] px-3.5 py-2.5 text-[13px] text-ambar-profundo">
+              {mismaCaja}
+            </p>
+          )}
 
           {susFacturas.length > 0 &&
             (sinFactura.includes(proveedorId) ? (

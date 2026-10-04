@@ -11,6 +11,7 @@
 import { clave, filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
+import { diaYHoraLima, hoyLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 
 export type PrendaLlegada = PrendaBuscableV2 & { productoId: string; colorHex?: string | null; fotoUrl?: string | null };
@@ -155,6 +156,33 @@ export function pedidoRecibirLote(p: {
 export function varianteDeLineaEnviada(lineas: readonly LineaLlegada[], linea: number | null): string | null {
   if (linea === null) return null;
   return lineas.filter((l) => l.cantidad > 0)[linea - 1]?.varianteId ?? null;
+}
+
+/** Una llegada ya recibida en esta sede (de `getRecepcionesRecientes` con la sede). */
+export type LlegadaReciente = { proveedorId: string | null; fecha: string; unidades: number; recibidoPor: string | null };
+
+/**
+ * Lo que ese proveedor ya metió HOY (día de Lima) en esta sede. Dos tablets, una caja: el token frena el doble clic de UNA
+ * persona, no a dos personas recibiendo lo mismo. Por eso la puerta lo dice antes de recibir, sin bloquear (pueden ser dos
+ * entregas de verdad).
+ */
+export function yaEntroHoy(recientes: readonly LlegadaReciente[], proveedorId: string, ahora: Date = new Date()): LlegadaReciente[] {
+  if (!proveedorId) return [];
+  const hoy = hoyLima(ahora);
+  return recientes.filter((r) => r.proveedorId === proveedorId && hoyLima(new Date(r.fecha)) === hoy).sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+
+/** El aviso, en una frase; null si hoy no entró nada de ese proveedor. */
+export function avisoMismaCaja(entradas: readonly LlegadaReciente[], proveedorNombre: string): string | null {
+  if (entradas.length === 0) return null;
+  const ultima = entradas[0];
+  const hora = diaYHoraLima(ultima.fecha).hora;
+  const quien = ultima.recibidoPor ? `, la recibió ${ultima.recibidoPor}` : "";
+  if (entradas.length === 1) {
+    return `Hoy a las ${hora} ya entraron ${ultima.unidades} ${ultima.unidades === 1 ? "prenda" : "prendas"} de ${proveedorNombre}${quien}. Si es la misma caja, no la recibas de nuevo.`;
+  }
+  const unidades = entradas.reduce((a, e) => a + e.unidades, 0);
+  return `Hoy ya entraron ${entradas.length} llegadas de ${proveedorNombre} (${unidades} prendas; la última a las ${hora}${quien}). Si es la misma caja, no la recibas de nuevo.`;
 }
 
 export type AccionDespues = { clave: "etiquetas" | "bajar"; texto: string; href: string; principal: boolean };
