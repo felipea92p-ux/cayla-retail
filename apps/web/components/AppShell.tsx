@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { BotonActividad } from "@/components/actividad/BotonActividad";
+import { BotonTema } from "@/components/ui/BotonTema";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
@@ -1152,6 +1153,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
+            {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
+                del aparato, no un módulo ni una pantalla. */}
+            <BotonTema />
             {persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? (
               <UbicacionSwitcher
                 ubicaciones={ubicaciones}

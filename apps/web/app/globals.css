@@ -19,6 +19,8 @@
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
 @import "./estilos/vender-grilla.css";
+/* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
+@import "./estilos/tema.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -203,7 +205,8 @@
    con el hilo de foco.
    No se define `--radius`: `rounded-sm/md/lg/xl` de Tailwind ya
    resuelven solos contra `--radius-sm/md/lg/xl` de arriba.
-   Sin modo oscuro: el brandbook es una sola paleta, no dos.
+   Modo oscuro (ADR-0336, 2026-10-05; revierte el «sin modo oscuro» de ADR-0116): estos alias apuntan a los tokens de
+   arriba, así que se oscurecen solos cuando `estilos/tema.css` redefine `crema`, `tinta`… bajo `[data-tema="oscuro"]`.
    ================================================================== */
 @theme {
   --color-background: var(--color-crema);
