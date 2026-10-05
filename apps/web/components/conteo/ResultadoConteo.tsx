@@ -4,7 +4,7 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { MuestraColor } from "@/components/ui/MuestraColor";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Volver } from "@/components/ui/Volver";
 import { EditarConteo } from "@/components/conteo/EditarConteo";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
@@ -55,6 +55,9 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
         color: v?.color ?? null,
         colorHex: v?.colorHex ?? null,
         fotoUrl: v?.fotoUrl ?? null,
+        categoria: v?.categoria ?? null,
+        categoriaPrefijo: v?.categoriaPrefijo ?? null,
+        categoriaFamilia: v?.categoriaFamilia ?? null,
         talla: v?.talla ?? null,
         sku: v ? codigosDeConteo(v).sku : "",
       };
@@ -106,7 +109,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
                 key={linea.varianteId}
                 className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 px-4 py-3 @[36rem]:grid-cols-[auto_minmax(0,1fr)_auto_9rem] @[36rem]:gap-x-4 @[36rem]:px-5"
               >
-                <MiniaturaPrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} tamano="sm" />
+                <MiniaturaPrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} tamano="sm" {...categoriaDe(prenda)} />
                 <span className="min-w-0">
                   <span className="block truncate text-sm text-tinta">{prenda.referencia}</span>
                   <span className="mt-0.5 flex items-center gap-2 text-xs text-taupe">

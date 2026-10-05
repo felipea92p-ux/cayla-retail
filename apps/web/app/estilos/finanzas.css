@@ -23,6 +23,12 @@
     }
   }
 
+  /* La vista integrada de los activos (ADR-0335): una tarjeta por sede y el total de CAYLA. Son cinco (cuatro sedes y el total):
+     con cuatro columnas fijas quedaría una huérfana, así que las columnas se acomodan solas al ancho. */
+  .fin-cifras.fin-cifras-activos {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+
   /* Pestañas de una pantalla: subrayado en tinta (el rojo de la cabecera no se gasta aquí) y el conteo en una píldora. */
   .fin-pestanas {
     display: flex;

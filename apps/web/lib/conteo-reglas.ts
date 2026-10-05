@@ -237,6 +237,10 @@ export type PrendaConteo = {
   color: string | null;
   colorHex: string | null;
   fotoUrl: string | null;
+  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, 2026-10-04). Opcional: sin ella, la percha. */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** El código de la etiqueta (ver la convención de nombres arriba). */
   sku: string;
   /** Los códigos que lee la pistola o la cámara, con el `sku` legado como opción de escaneo. */
@@ -696,6 +700,10 @@ export type PrendaAgrupable = {
   color: string | null;
   colorHex: string | null;
   fotoUrl: string | null;
+  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, 2026-10-04). Opcional: sin ella, la percha. */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   talla: string | null;
   sku: string;
 };
@@ -708,6 +716,10 @@ export type GrupoConteo<T extends PrendaAgrupable> = {
   color: string | null;
   colorHex: string | null;
   fotoUrl: string | null;
+  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, 2026-10-04). Opcional: sin ella, la percha. */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   tallas: T[];
 };
 
@@ -727,7 +739,7 @@ export function agruparConteo<T extends PrendaAgrupable>(filas: readonly T[]): G
     const k = JSON.stringify([f.productoId, f.color]);
     let g = grupos.get(k);
     if (!g) {
-      g = { clave: k, productoId: f.productoId, referencia: f.referencia, color: f.color, colorHex: f.colorHex, fotoUrl: f.fotoUrl, tallas: [] };
+      g = { clave: k, productoId: f.productoId, referencia: f.referencia, color: f.color, colorHex: f.colorHex, fotoUrl: f.fotoUrl, categoria: f.categoria ?? null, categoriaPrefijo: f.categoriaPrefijo ?? null, categoriaFamilia: f.categoriaFamilia ?? null, tallas: [] };
       grupos.set(k, g);
     }
     // Todas las tallas de un color comparten foto y muestra; se toma la primera que las tenga.

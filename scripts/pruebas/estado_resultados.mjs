@@ -225,7 +225,7 @@ insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motiv
   (:'va', :'tru', 'ajuste',  3, 'conteo',                        '2030-09-20 12:05-05'),  -- sobrante: no se reconoce
   (:'va', :'tru', 'ajuste', -1, 'conteo_fisico',                 '2030-09-21 12:00-05'),  -- faltante del modal de ajuste: 50
   (:'vb', :'tru', 'ajuste', -2, 'merma',                         '2030-09-21 12:00-05'),  -- sin costo: 0 y se AVISA (2 u.)
-  (:'va', :'tru', 'ajuste', -1, 'reposicion',                    '2030-09-21 13:00-05');  -- no es merma
+  (:'va', :'tru', 'ajuste', -1, 'reposicion',                    '2030-09-21 13:00-05');  -- resta a mano: SÍ es merma desde ADR-0328 act. 14 (50)
 
 -- Gastos. G1 TRU: factura de alquiler de 1,180 (1,000 + IGV 180) a crédito, con nota de crédito de 118 (100 + 18) el 25 y
 -- un pago de 500 por transferencia el 28. G2 «de la empresa» 300 por transferencia. G3 anulado. G4 de octubre.
@@ -267,25 +267,26 @@ insert into retail.activos_fijos (id, ubicacion_id, tipo, nombre, cuenta_codigo,
 //   TRU ventas 396.43 = S1 169.49 + S2 76.27 + S4 84.75 + S7 84.75 − S7 84.75 − S9 84.75 − D1 84.75 + cambio 25.42 + S10 200
 //       + S11 10 (Monto manual de 11.80)
 //   TRU costo 140 = 80 + 40 + 40 + 40 − 40 − 40 − 40 + 20 (cambio: 60 − 40) + 40 (S10)
-//   TRU mermas 230 = 80 (2 × 40, antes del cambio de costo) + 50 (donada) + 50 (conteo) + 50 (conteo_fisico) + 0 (sin costo)
-//   TRU margen 26.43 · gastos: alquiler 1,000 − 100 (nota de crédito) = 900; planilla 14,556.84; depreciación 16.67
-//       → 15,473.51 · resultado −15,447.08
+//   TRU mermas 280 = 80 (2 × 40, antes del cambio de costo) + 50 (donada) + 50 (conteo) + 50 (conteo_fisico) + 0 (sin costo)
+//       + 50 (la «reposición» que RESTÓ 1: desde ADR-0328 act. 14 toda resta sin venta es pérdida; antes no contaba)
+//   TRU margen −23.57 · gastos: alquiler 1,000 − 100 (nota de crédito) = 900; planilla 14,556.84; depreciación 16.67
+//       → 15,473.51 · resultado −15,497.08
 //   LIM ventas 127.12 (S3; S8 se vende y se anula en el mes) · costo 0 · mermas 90 (S8 no vendible 40 + botada 50) → 37.12
 //   Taller: alquiler 400 + planilla 5,093.69 + depreciación 100 + baja 600 = 6,193.69
 //   De la empresa: internet 300 + planilla 7,021.06 = 7,321.06
-//   CAYLA: ventas 523.55, costo 140, mermas 320, margen 63.55, gastos 28,988.26, resultado −28,924.71
+//   CAYLA: ventas 523.55, costo 140, mermas 370, margen 13.55, gastos 28,988.26, resultado −28,974.71
 const CASOS_ER = `
 select set_config('prueba.planilla', 'si', true);
 create temp table er as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
 create temp table dia as select * from retail.fn_asientos('2030-09-01', '2030-09-30');
 select 'E1 TRU ventas sin IGV = 396.43 (medianoche de Lima; anulación en el mes en que se anula; devolución por su línea)', (select ventas_netas = 396.43 from er where ubicacion_id = :'tru');
 select 'E1 TRU costo de lo vendido = 140 (costo sellado; el cambio suma la diferencia de costo)', (select costo_ventas = 140 from er where ubicacion_id = :'tru');
-select 'E1 TRU mermas = 230 (al costo de esa fecha; devuelto al proveedor y sobrantes no)', (select mermas = 230 from er where ubicacion_id = :'tru');
-select 'E1 TRU margen bruto = 26.43', (select margen_bruto = 26.43 from er where ubicacion_id = :'tru');
+select 'E1 TRU mermas = 280 (al costo de esa fecha; toda resta sin venta, también la «reposición» que restó; devuelto al proveedor y sobrantes no)', (select mermas = 280 from er where ubicacion_id = :'tru');
+select 'E1 TRU margen bruto = −23.57', (select margen_bruto = -23.57 from er where ubicacion_id = :'tru');
 select 'E1 TRU planilla = 14,556.84 (período de Dynamic que termina en septiembre; el de agosto no)', (select planilla = 14556.84 from er where ubicacion_id = :'tru');
 select 'E1 TRU depreciación = 16.67 (el estante; la laptop recién desde octubre)', (select depreciacion = 16.67 from er where ubicacion_id = :'tru');
 select 'E1 TRU gastos = 15,473.51 (el alquiler sin IGV y menos la nota de crédito: 900)', (select gastos_operacion = 15473.51 from er where ubicacion_id = :'tru');
-select 'E1 TRU resultado = −15,447.08', (select resultado = -15447.08 from er where ubicacion_id = :'tru');
+select 'E1 TRU resultado = −15,497.08', (select resultado = -15497.08 from er where ubicacion_id = :'tru');
 select 'E1 TRU alquiler (635) = 900 en el detalle', (select (x ->> 'monto')::numeric = 900 from er, jsonb_array_elements(detalle_gastos) x where ubicacion_id = :'tru' and x ->> 'cuenta' = '635');
 select 'E1 TRU IGV de ventas = 71.37 (con el del adelanto al cobrarlo, sin contarlo dos veces al entregar)', (select igv_ventas = 71.37 from er where ubicacion_id = :'tru');
 select 'E1 TRU avisa 2 prendas de merma sin costo y ninguna vendida sin costo (el Monto manual no cuenta)', (select mermas_sin_costo = 2 and unidades_sin_costo = 0 from er where ubicacion_id = :'tru');
@@ -296,8 +297,8 @@ select 'E2 LIM: el adelanto que se devolvió no deja IGV ni ventas', (select igv
 select 'E3 Taller: alquiler 400 + planilla 5,093.69 + depreciación 100 + baja 600 = 6,193.69', (select ventas_netas = 0 and planilla = 5093.69 and depreciacion = 100 and gastos_operacion = 6193.69 and resultado = -6193.69 from er where ubicacion_id = :'tal');
 select 'E3 Taller: la baja pierde lo que faltaba depreciar (655 = 600)', (select (x ->> 'monto')::numeric = 600 from er, jsonb_array_elements(detalle_gastos) x where ubicacion_id = :'tal' and x ->> 'cuenta' = '655');
 select 'E4 De la empresa: internet 300 + planilla de la central 7,021.06', (select gastos_operacion = 7321.06 and ventas_netas = 0 from er where unidad = 'empresa');
-select 'E4 consolidado: ventas 523.55, costo 140, mermas 320, margen 63.55', (select ventas_netas = 523.55 and costo_ventas = 140 and mermas = 320 and margen_bruto = 63.55 from er where unidad = 'consolidado');
-select 'E4 consolidado: gastos 28,988.26 y resultado −28,924.71', (select gastos_operacion = 28988.26 and resultado = -28924.71 from er where unidad = 'consolidado');
+select 'E4 consolidado: ventas 523.55, costo 140, mermas 370, margen 13.55', (select ventas_netas = 523.55 and costo_ventas = 140 and mermas = 370 and margen_bruto = 13.55 from er where unidad = 'consolidado');
+select 'E4 consolidado: gastos 28,988.26 y resultado −28,974.71', (select gastos_operacion = 28988.26 and resultado = -28974.71 from er where unidad = 'consolidado');
 select 'E4 el consolidado es la suma EXACTA de las filas (ventas, costo, mermas, gastos y resultado)',
   (select c.ventas_netas = s.v and c.costo_ventas = s.c and c.mermas = s.m and c.gastos_operacion = s.g and c.resultado = s.r
      from er c, (select sum(ventas_netas) v, sum(costo_ventas) c, sum(mermas) m, sum(gastos_operacion) g, sum(resultado) r from er where unidad <> 'consolidado') s
@@ -338,8 +339,8 @@ const CASOS_SIN_PLANILLA = `
 select set_config('prueba.planilla', 'no', true);
 create temp table er as select * from retail.fn_estado_resultados('2030-09-01', '2030-09-30');
 select 'P1 sin permiso en Dynamic no entra la planilla y se dice (planilla_visible = false)', (select bool_and(planilla = 0) and not bool_or(planilla_visible) from er);
-select 'P1 TRU sin planilla: gastos 916.67 y resultado −890.24', (select gastos_operacion = 916.67 and resultado = -890.24 from er where ubicacion_id = :'tru');
-select 'P1 consolidado sin planilla: resultado −2,253.12', (select resultado = -2253.12 from er where unidad = 'consolidado');
+select 'P1 TRU sin planilla: gastos 916.67 y resultado −940.24', (select gastos_operacion = 916.67 and resultado = -940.24 from er where ubicacion_id = :'tru');
+select 'P1 consolidado sin planilla: resultado −2,303.12', (select resultado = -2303.12 from er where unidad = 'consolidado');
 select 'P1 el diario no trae ninguna línea de planilla', (select count(*) = 0 from retail.fn_asientos('2030-09-01', '2030-09-30') where regla = 'planilla');
 `;
 

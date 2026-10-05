@@ -257,6 +257,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:activos-y-fijos
 
+      # Activos «ya lo teníamos» (ADR-0335): lo anterior al sistema entra sin pago, sin mover plata, con su fecha real y su
+      # depreciación; solo el líder; los estados imposibles los impide la base. ROLLBACK.
+      - name: pruebas:activos-carga-inicial
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:activos-carga-inicial
+
       # Cuentas y dinero (ADR-0195 F3): cada movimiento, que se anula y no se borra, los saldos sumados, un egreso respalda
       # una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
       - name: pruebas:cuentas-dinero
@@ -316,11 +322,25 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:balance
 
+      # Pérdidas (ADR-0328 act. 14): UNA definición —cada tipo y motivo clasificado, todo motivo que escribe la base decidido—,
+      # la pestaña (razón, categoría, talla, «más faltan», lo que apareció aparte, traslados y anulaciones), el 659 del diario
+      # igual al total de la pestaña sede por sede, permisos y la guarda de meses cerrados. ROLLBACK.
+      - name: pruebas:perdidas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:perdidas
+
       # Resumen de Finanzas (ADR-0195 F10): cada número es el de su fase (F2–F9 y Presupuesto) mirando CAYLA entera, una
       # tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
       - name: pruebas:resumen-finanzas
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:resumen-finanzas
+
+      # Finanzas cuenta desde una fecha (ADR-0332): sin corte nada cambia; con corte el diario y el Estado de resultados no
+      # miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
+      # guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.
+      - name: pruebas:finanzas-arranque
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:finanzas-arranque
 
       - name: pruebas:registrar-cambio
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
@@ -442,6 +462,15 @@ jobs:
       - name: pruebas:retirar-del-piso
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:retirar-del-piso
+
+      # «Cuadrar el piso» (ADR-0328, decisión técnica 4): `cuadrar_piso` pasa al piso, de una vez y todo o nada, lo que el almacén
+      # tiene libre y nadie escaneó como guardado (y sube lo escaneado que el sistema creía colgado). Solo un líder confirma; lo
+      # apartado, la cuarentena, lo archivado y lo de prueba no se mueven; las «no cargadas» se guardan y no se aplican; la
+      # previsualización y el cuadre usan la MISMA cuenta; un almacén movido después del escaneo lo rechaza; la misma marca no
+      # cuadra dos veces; Frescura no lo lee como bajadas (núcleo) y lo bajado llega con edad desconocida. Cada caso en ROLLBACK.
+      - name: pruebas:cuadrar-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuadrar-piso
 
       # La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
       # Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no
@@ -674,6 +703,16 @@ jobs:
       - name: pruebas:ajuste-no-es-primera-carga
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
+
+      # La carga inicial se cierra por sede (ADR-0328, actividad 4): las tres puertas de carga inicial cargan hasta la fecha de
+      # la sede (inclusive) y se cierran al día siguiente; registrar_movimiento no escribe «carga_inicial»; «Encontré prendas»
+      # pide nota, solo suma y es la entrada de lo que aparece con la carga cerrada; quién mueve la fecha (el líder aprieta,
+      # el Admin afloja) y el guardián de la columna. Fechas relativas a fn_hoy_lima(): sin bomba de calendario. Y la siembra de
+      # Felipe en las TRES tiendas (TRU, AQP y LIM al 15-oct; el Taller sin fecha) sobre producción en miniatura, con un reloj
+      # puesto a mano: abiertas el 15-oct hasta las 23:59:59 de Lima, cerradas desde el 16-oct 00:00. ROLLBACK.
+      - name: pruebas:cierre-carga-inicial
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cierre-carga-inicial
 
       # Descontinuar/reactivar en bloque desde la Tabla de Productos (ADR-0254): todo o nada, al reactivar revisa marca y
       # proveedor como «Editar» y nombra la prenda que falla; sin permiso lo dice en palabras. Cada caso en ROLLBACK.
@@ -1089,6 +1128,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
 
+      # Cierre de la cola de arranque (ADR-0334): un líder da por hechas, en bloque y dentro de su plazo, las ventas sin registrar que
+      # ya no se pueden identificar. Cubre que sea todo-o-nada y solo del líder, que cerrar no mueva stock, que una prenda cerrada no
+      # pueda cambiarse ni regularizarse por el camino de siempre, y los estados imposibles del esquema. Cada caso termina en ROLLBACK;
+      # la carrera con COMMIT real (`pruebas:cola-arranque-concurrencia`) corre solo en una base desechable, no aquí.
+      - name: pruebas:cola-arranque
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cola-arranque
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un
@@ -1183,6 +1230,18 @@ jobs:
       - name: pruebas:terminales-red
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:terminales-red
+
+      # El motor del piso (ADR-0328 act. 7): `fn_piso_plan_lectura` junta lo libre en piso y almacén (la cifra de ADR-0270), lo
+      # vendido en 14 días por prenda y por categoría × talla × familia de color con las ventas «sin registrar» pendientes, lo
+      # anotado hoy y ayer, y la fecha del último cuadre del piso. Vigila que una venta cuente UNA vez y en el día en que se cobró
+      # (al regularizarla con la función real pasa de anotada a escaneada sin moverse de fecha), que cuente lo que el cliente se
+      # llevó (cambio = la prenda nueva; sin devoluciones aprobadas ni liquidaciones de dañadas), las dos puertas (la de retail y
+      # la de la sede: otra sede, terminal apagada, de afuera o sin sesión → NULL, nunca «al día»), el día de Lima, el cuadre de
+      # SU sede, que las tallas de la base sean las que recorre `piso-plan.test.ts`, y el costo (~800 unidades y ~150 ventas,
+      # `fn_existencias_base` una sola vez). ROLLBACK siempre.
+      - name: pruebas:piso-plan
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:piso-plan
 
       # Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
       # fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

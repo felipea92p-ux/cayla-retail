@@ -5,7 +5,7 @@ import { Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { estadoTalla, queHacerPrenda, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
@@ -22,7 +22,7 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /** Cómo se pinta cada talla de la curva: beige, y con borde punteado (un lugar vacío, no un error) la que no tiene NADA en ningún
  *  lado (0·0); hasta el 2026-10-04 iba en rojo. El resto de
- *  los estados (por colgar, poco en piso) los dice el diagnóstico de la fila y las cifras, no un color por chip. */
+ *  los estados (por colgar, sin nada atrás) los dice el diagnóstico de la fila y las cifras, no un color por chip. */
 const CLASE_TALLA = {
   sin_stock: "border-dashed border-taupe/50 bg-transparent font-semibold text-taupe",
   normal: "border-taupe/25 bg-hueso text-tinta",
@@ -30,7 +30,7 @@ const CLASE_TALLA = {
 
 const AYUDA_TALLA = {
   por_colgar: "por colgar: nada para vender en el piso y sí en el almacén",
-  reponer: "poco en el piso",
+  sin_atras: "falta en el piso y no hay nada libre atrás",
   sin_stock: "sin nada libre en esta sede",
   normal: "en el piso",
 } as const;
@@ -82,9 +82,14 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
     <span className="flex flex-wrap items-center gap-1.5">
       {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
       {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
-      {(q?.tipo === "por_reponer" || q?.tipo === "sin_stock_atras") && (
+      {q?.tipo === "sin_stock_atras" && (
         <Chip tono={TONO_HOY[q.tipo]} className="text-xs">
           <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
+        </Chip>
+      )}
+      {q?.tipo === "en_pausa" && (
+        <Chip tono="pizarra" className="text-xs">
+          <span title={AYUDA_HOY.en_pausa}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
       {q?.tipo === "mantener" && <ChipMantener titulo={AYUDA_HOY.mantener} />}
@@ -191,7 +196,7 @@ export function ExistenciasPorPrenda({
                 </span>
               )}
               <span className="flex min-w-0 flex-1 items-center gap-3.5">
-                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" />
+                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" {...categoriaDe(p)} />
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta">
                     {p.referencia}

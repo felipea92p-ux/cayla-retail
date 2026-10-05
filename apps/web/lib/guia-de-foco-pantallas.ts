@@ -90,6 +90,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- inventario ----
   "/inventario": { estado: "no-aplica", motivo: "Lista de existencias con buscador y filtros: su único campo es el buscador, y lo que sigue lo dice «Para hoy» (tareas con su cifra y su botón, en orden; rediseño 2026-10-04). Lo que se llena vive en sus ventanas (Reponer, Subir, Ajustar, Dañadas), cada una con su guía en el registro de modales." },
   "/inventario/bajar": PENDIENTE,
+  // ADR-0328 (actividad 3): nace con su guía. Escanear: «Lo guardado» (o «no hay nada guardado») y lo que hay que volver a escanear;
+  // confirmar: quién cuadra y, si la sede ya se cuadró, por qué se vuelve a cuadrar (lo exige la base). Lógica en lib/cuadre-piso-reglas.ts.
+  "/inventario/cuadrar": { estado: "aplicada", evidencia: ["components/cuadre-piso/CuadrarPisoForm.tsx"] },
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
   // ADR-0328 (actividad 15): su único campo es «¿Quién cierra el conteo?», que aparece solo cuando hay que preguntarlo (terminal y conteo
@@ -178,8 +181,13 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ApartarModal.tsx": PENDIENTE, // 8 controles
   "components/BuscadorGlobal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
+  // «Falta» = lo mismo que apaga el botón «Cerrar»: la tienda (si se elige entre varias) y el motivo. La nota es opcional (ADR-0334).
+  "components/CerrarColaArranqueModal.tsx": { estado: "aplicada", evidencia: ["components/CerrarColaArranqueModal.tsx"] },
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
+  // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
+  // base la acepte: `validarCierre`) y quién hace el cambio.
+  "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja).
@@ -231,6 +239,12 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles
   "components/PuntoDeVenta.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PuntoDeVentaTicket.tsx": PENDIENTE, // 12 controles
+  // «Falta» = lo mismo que apaga el botón «Reabrir»: el motivo (único control obligatorio) (ADR-0334).
+  "components/ReabrirPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReabrirPrendaModal.tsx"] },
+  "components/SugerenciasColaModal.tsx": {
+    estado: "no-aplica",
+    motivo: "Es una revisión, no un formulario (ADR-0334): la persona marca o desmarca sugerencias ya armadas por la base; no hay campos que llenar ni pasos. El único requisito —al menos una marcada— lo dice el propio botón («Marca al menos una»).",
+  },
   "components/ReasignarReparto.tsx": PENDIENTE, // 9 controles
   "components/RecepcionEnvio.tsx": PENDIENTE, // 16 controles
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles

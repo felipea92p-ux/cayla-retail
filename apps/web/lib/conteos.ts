@@ -106,6 +106,9 @@ export async function getCatalogoConteo(): Promise<PrendaConteo[]> {
     color: v.color,
     colorHex: v.colorHex,
     fotoUrl: v.fotoUrl,
+    categoria: v.categoria ?? null,
+    categoriaPrefijo: v.categoriaPrefijo ?? null,
+    categoriaFamilia: v.categoriaFamilia ?? null,
     // `sku` es el código de la etiqueta (casi ninguna prenda tiene `sku`, ADR-0058) y `codigosBarras` conserva el sku
     // legado como opción de escaneo: lo que se teclea o se escanea sigue resolviendo la misma prenda.
     ...codigosDeConteo(v),
