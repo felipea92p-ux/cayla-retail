@@ -154,17 +154,31 @@ export function etiquetaProceso(motivo: string | null): string {
 /** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0239 suma la vuelta de un envío anulado). */
 const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
 
+/** Las dos palabras de lo que pasa entre el almacén y el piso (Felipe, 2026-10-05, ADR-0345): lo que se CUELGA en el piso y
+ *  lo que se GUARDA en el almacén. Antes eran «Bajada al piso» y «Retiro del piso». */
+export const ETIQUETA_COLGADA = "Colgada en piso";
+export const ETIQUETA_GUARDADA = "Guardada en almacén";
+
 /** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena.
  *  Entrar a la cuarentena desde el piso o el almacén lo escribe SOLO `reportar_danada`, y salir de ella al almacén SOLO
  *  `arreglar_prenda_danada` (ADR-0328 act. 10; `mover_interno` ya no se llama desde el navegador, ADR-0240): por eso esos
  *  pares se nombran como lo que son. Cuarentena → piso no lo escribe nadie y conserva el nombre genérico. */
 const INTERNO_POR_PAR: Record<string, string> = {
-  "almacen_tienda→piso_venta": "Bajada al piso",
-  "piso_venta→almacen_tienda": "Retiro del piso",
+  "almacen_tienda→piso_venta": ETIQUETA_COLGADA,
+  "piso_venta→almacen_tienda": ETIQUETA_GUARDADA,
   "piso_venta→cuarentena": "Dañado · reportada en el piso",
   "almacen_tienda→cuarentena": "Dañado · reportada en el almacén",
   "cuarentena→almacen_tienda": "Dañado · se arregló",
 };
+
+/** ¿Es una colgada en piso (almacén → piso) o una guardada en almacén (piso → almacén)? Por el par exacto de lugares, como
+ *  `INTERNO_POR_PAR`; null si la fila no es ninguna de las dos (otro par, o ni siquiera es interna). */
+export function parDeInterno(m: Pick<Movimiento, "categoria" | "sububicacion" | "sububicacionDestino">): "colgada" | "guardada" | null {
+  if (m.categoria !== "interno") return null;
+  const par = `${m.sububicacion?.tipo ?? ""}→${m.sububicacionDestino?.tipo ?? ""}`;
+  if (INTERNO_POR_PAR[par] === ETIQUETA_COLGADA) return "colgada";
+  return INTERNO_POR_PAR[par] === ETIQUETA_GUARDADA ? "guardada" : null;
+}
 
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
  *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
@@ -195,7 +209,7 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} · ${etiquetaMovimiento(m)}`;
-  // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
+  // Dentro de la tienda no entra ni sale nada: «Colgada en piso» / «Guardada en almacén» ya dicen hacia dónde (ADR-0234).
   if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
   const direccion = ETIQUETA_CATEGORIA[m.categoria];
@@ -722,7 +736,8 @@ export function plegarBajadas(operaciones: readonly OperacionMovimiento[]): Item
   return items;
 }
 
-/** Lo que dice la fila plegada: «Bajadas al piso» si todas lo fueron (lo normal), si no «Movido dentro de la sede»;
+/** Lo que dice la fila plegada: «Colgadas en piso» si todas lo fueron (lo normal), «Guardadas en almacén» si todas fueron
+ *  al revés, si no «Movido dentro de la sede»;
  *  cuántas veces, cuántas tallas, cuántas unidades y entre qué horas (las operaciones llegan de la más nueva a la más
  *  vieja). */
 export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
@@ -735,9 +750,9 @@ export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
 } {
   const filas = operaciones.flatMap((op) => op.filas);
   const etiquetas = new Set(filas.map((m) => etiquetaConDireccion(m)));
-  const soloBajadas = etiquetas.size === 1 && etiquetas.has("Bajada al piso");
+  const unica = etiquetas.size === 1 ? [...etiquetas][0] : null;
   return {
-    etiqueta: soloBajadas ? "Bajadas al piso" : "Movido dentro de la sede",
+    etiqueta: unica === ETIQUETA_COLGADA ? "Colgadas en piso" : unica === ETIQUETA_GUARDADA ? "Guardadas en almacén" : "Movido dentro de la sede",
     veces: operaciones.length,
     tallas: new Set(filas.map((m) => m.varianteId)).size,
     unidades: filas.reduce((s, m) => s + Math.abs(m.cantidad), 0),
@@ -906,7 +921,8 @@ const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly strin
   { palabras: ["cambio", "cambios"], cat: null, proc: "cambio", etiqueta: "Cambios" },
   { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "entrada", proc: "recepcion", etiqueta: "Recepciones" },
   { palabras: ["stock inicial", "carga inicial"], cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" },
-  { palabras: ["bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
+  // «bajada» y «retiro» siguen valiendo: es lo que escribía la gente antes de las palabras nuevas (ADR-0345).
+  { palabras: ["colgada", "colgadas", "guardada", "guardadas", "bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
   { palabras: ["entrada", "entradas", "llegada", "llegadas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
   { palabras: ["salida", "salidas"], cat: "salida", proc: null, etiqueta: "Salidas" },
 ];

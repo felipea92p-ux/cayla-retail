@@ -158,9 +158,9 @@ describe("etiquetaMovimiento", () => {
     const par = (sububicacion: Movimiento["sububicacion"], sububicacionDestino: Movimiento["sububicacionDestino"]) =>
       etiquetaMovimiento(movimiento({ ...interno, sububicacion, sububicacionDestino }));
 
-    it("almacén → piso es «Bajada al piso» y piso → almacén es «Retiro del piso»", () => {
-      expect(par(almacen, piso)).toBe("Bajada al piso");
-      expect(par(piso, almacen)).toBe("Retiro del piso");
+    it("almacén → piso es «Colgada en piso» y piso → almacén es «Guardada en almacén»", () => {
+      expect(par(almacen, piso)).toBe("Colgada en piso");
+      expect(par(piso, almacen)).toBe("Guardada en almacén");
     });
 
     it("entrar a la cuarentena es reportar una dañada y salir al almacén es «se arregló» (ADR-0328 act. 10: nadie más escribe esos pares)", () => {
@@ -178,8 +178,8 @@ describe("etiquetaMovimiento", () => {
 
     it("«interno» se decide por la estructura (la categoría), no por el texto del motivo (ADR-0203)", () => {
       // Una fila interna almacén → piso escrita con otro motivo es igual una bajada: la misma que ve fn_bajadas_del_piso.
-      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: "activacion_piso_almacen", sububicacion: almacen, sububicacionDestino: piso }))).toBe("Bajada al piso");
-      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: null, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Retiro del piso");
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: "activacion_piso_almacen", sububicacion: almacen, sububicacionDestino: piso }))).toBe("Colgada en piso");
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: null, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Guardada en almacén");
       // Y el motivo `movimiento_interno` fuera de la categoría interna no se vuelve bajada por su texto.
       expect(etiquetaMovimiento(movimiento({ motivo: "movimiento_interno", categoria: "ajuste", tipo: "ajuste", sububicacion: almacen, sububicacionDestino: piso }))).toBe(
         "Movido dentro de la sede"
@@ -207,7 +207,7 @@ describe("etiquetaConDireccion", () => {
     expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Salida · Traslado enviado");
   });
 
-  it("dentro de la sede no entra ni sale nada: dice «Bajada al piso» o «Retiro del piso», sin prefijo", () => {
+  it("dentro de la sede no entra ni sale nada: dice «Colgada en piso» o «Guardada en almacén», sin prefijo", () => {
     const m = movimiento({
       categoria: "interno",
       motivo: "movimiento_interno",
@@ -215,7 +215,7 @@ describe("etiquetaConDireccion", () => {
       sububicacion: { id: "s1", nombre: "Almacén de tienda", tipo: "almacen_tienda" },
       sububicacionDestino: { id: "s2", nombre: "Piso de venta", tipo: "piso_venta" },
     });
-    expect(etiquetaConDireccion(m)).toBe("Bajada al piso");
+    expect(etiquetaConDireccion(m)).toBe("Colgada en piso");
   });
 
   it("entrada y salida llevan su propio prefijo delante del proceso", () => {
@@ -908,7 +908,7 @@ describe("ADR-0241: apartados, bajadas plegadas y «Hoy»", () => {
     const plegado = items[1];
     if (plegado.tipo !== "bajadas") throw new Error("esperaba bajadas");
     expect(plegado.operaciones).toHaveLength(2);
-    expect(resumirBajadas(plegado.operaciones)).toEqual({ etiqueta: "Bajadas al piso", veces: 2, tallas: 2, unidades: 4, desde: "10:09", hasta: "15:18" });
+    expect(resumirBajadas(plegado.operaciones)).toEqual({ etiqueta: "Colgadas en piso", veces: 2, tallas: 2, unidades: 4, desde: "10:09", hasta: "15:18" });
   });
 
   it("con una sola bajada no pliega nada", () => {
