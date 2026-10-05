@@ -554,6 +554,8 @@ export type ActivoFila = {
   cajaMovimientoId: string | null;
   motivoAnulacion: string | null;
   registradoPor: string | null;
+  /** «Ya lo teníamos» (ADR-0335): lo tenía CAYLA antes del sistema; sin comprobante ni pago, y no movió plata. */
+  cargaInicial: boolean;
 };
 
 export function leerTipoActivo(t: Fila): TipoActivo {
@@ -591,6 +593,7 @@ export function leerActivo(a: Fila): ActivoFila {
     cajaMovimientoId: txt(a.caja_movimiento_id),
     motivoAnulacion: txt(a.motivo_anulacion),
     registradoPor: txt(a.registrado_por_nombre),
+    cargaInicial: !!a.carga_inicial,
   };
 }
 
@@ -619,6 +622,30 @@ export function totalesActivos(activos: readonly ActivoFila[]): { costo: number;
     valorHoy: suma((a) => a.valorHoy),
     alMes: suma((a) => (a.mesesDepreciados < a.vidaUtilMeses ? a.depreciacionMensual : 0)),
     enUso: enUso.length,
+  };
+}
+
+/** Una sede con lo que tiene en uso (ADR-0335): cuántos activos, lo que costaron, lo depreciado, lo que valen hoy y lo que se deprecia al mes. */
+export type ResumenActivosSede = { ubicacionId: string; nombre: string; activos: number; costo: number; depreciado: number; valorHoy: number; alMes: number };
+
+/**
+ * La vista integrada de los activos: una fila por sede y el total de CAYLA, solo de lo que está en uso (como el pie de la tabla).
+ *
+ * CONTRATO. Promete: `porSede` trae TODAS las sedes que se le pasan, en ese orden, aun sin un solo activo (ceros: así se ve lo que
+ *   falta cargar, como la Tienda LIM), y `total` es la suma de los activos en uso. Asume: `sedes` son las unidades que la cuenta ve y
+ *   cada activo trae el `ubicacionId` de una de ellas (la base solo devuelve activos de unidades activas que la cuenta ve).
+ */
+export function resumenActivosPorSede(
+  activos: readonly ActivoFila[],
+  sedes: readonly UbicacionGastos[]
+): { porSede: ResumenActivosSede[]; total: Omit<ResumenActivosSede, "ubicacionId" | "nombre"> } {
+  const fila = (lista: readonly ActivoFila[]) => {
+    const t = totalesActivos(lista);
+    return { activos: t.enUso, costo: t.costo, depreciado: t.depreciado, valorHoy: t.valorHoy, alMes: t.alMes };
+  };
+  return {
+    porSede: sedes.map((s) => ({ ubicacionId: s.id, nombre: s.nombre, ...fila(activos.filter((a) => a.ubicacionId === s.id)) })),
+    total: fila(activos),
   };
 }
 

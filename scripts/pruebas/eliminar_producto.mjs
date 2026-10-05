@@ -318,7 +318,7 @@ select pg_temp.huella(:'va');`);
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
-    "pedidos_no_atendidos", "separacion_pedidos", "frescura_decisiones",
+    "pedidos_no_atendidos", "separacion_pedidos", "frescura_decisiones", "cuadre_piso_items",
     // ADR-0328 act. 17: una prenda subida para mandarla a otra sede frena el borrado, como un pedido a otra sede.
     "prendas_para_enviar",
   ];

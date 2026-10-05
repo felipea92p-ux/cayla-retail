@@ -1,4 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
+import { getCargaInicial } from "@/lib/carga-inicial";
+import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
 import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -31,7 +33,7 @@ const PESTANAS = [
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
-  await exigirModulo("configuracion");
+  const persona = await exigirModulo("configuracion");
   const { tab, mes } = await searchParams;
   const pestana = PESTANAS.find((p) => p.clave === tab)?.clave ?? "tiendas";
 
@@ -44,7 +46,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
-      {pestana === "tiendas" && <SeccionTiendas />}
+      {pestana === "tiendas" && <SeccionTiendas esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
       {pestana === "cuentas" && <SeccionCuentas />}
       {pestana === "caja" && <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />}
       {pestana === "fijos" && <SeccionFijos />}
@@ -54,8 +56,16 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
   );
 }
 
-async function SeccionTiendas() {
-  return <ConfiguracionTiendas datos={await getConfiguracionTiendas()} />;
+// La carga inicial de cada sede (ADR-0328, actividad 4) va en esta pestaña: es una fecha de la sede, como su hora de cierre. Si la
+// base todavía no tiene la función (la web salió antes que el SQL), la tarjeta no aparece y nada más cambia.
+async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
+  const [datos, carga] = await Promise.all([getConfiguracionTiendas(), getCargaInicial()]);
+  return (
+    <ConfiguracionTiendas
+      datos={datos}
+      despuesDeWhatsapp={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
+    />
+  );
 }
 
 // Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base) y a qué cuenta entra cada cobro.
