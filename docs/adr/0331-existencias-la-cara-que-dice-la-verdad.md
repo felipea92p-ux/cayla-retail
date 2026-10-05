@@ -159,6 +159,28 @@ número de la barra es lo que trae la lista, en tarjetas). Mutación: agrupar si
 Verificado en local con Chrome sin ventana, en escritorio y a 375 px: «Para hoy» 15 → «Ver cuáles» → 6 tarjetas, 3+3+3+3+2+1 = 15,
 sin desborde ni errores de consola; sin «Hoy», Blusa Valentina vuelve a ser una tarjeta con dos puntos y el punto cambia el color.
 
+## Actualización 2026-10-04 (d): la cuenta única la alimenta el motor del piso (integración con el PR #787)
+El PR #787 (ADR-0328 act. 7) cambió QUÉ es «por colgar» —lo decide un motor, `lib/piso-plan.ts`: 1 por color en las tallas del centro
+y en lo vendido en 14 días, lo vendido ayer primero, «En pausa» sin piso cuadrado— y, en paralelo con (b), le dio al Inicio su propia
+cuenta por percha (`paraColgarHoy`) sobre la lectura del motor. Al juntarlos quedaban dos cuentas otra vez.
+DECIDÍ: `porColgarDeLaSede` sigue siendo la ÚNICA cuenta, y el motor la alimenta: cada fila trae la decisión del motor (`planPiso`) y la
+función recibe la lista del día (`listaDelDia`, obligatoria) para ordenar las prendas; además devuelve `enPausa` (tallas que esperan el
+cuadre), la cifra que «Para hoy» y el Inicio dicen en lugar de «por colgar» con el piso sin cuadrar. El Inicio no vuelve a leer
+Existencias entera: pasa la MISMA lectura del motor (`fn_piso_plan_lectura`, 3,2 ms en TRU) a filas (`filasDelPiso`,
+`lib/inicio-almacen-reglas.ts`) y cuenta con esa función. El aviso cuenta tallas («Baja al piso N tallas por colgar») y, con el piso sin
+cuadrar, dice «Cuadrar el piso» con las tallas que esperan. Se borran `paraColgarHoy` (motor), `prendasParaColgarHoy` (sin uso desde que
+se retiró la tarjeta «Reponer a piso hoy») y `resumirPorColgar` (`existencias-hoy.ts`): tres cuentas más de lo mismo.
+DESCARTÉ: que el Inicio leyera Existencias entera (`getExistencias`, como en (b)) para tener exactamente las mismas filas: garantiza la
+igualdad por construcción, pero vuelve a poner ~0,9 s solo de stock (más la red de sedes y los traslados) en la portada de una cuenta de
+almacén para mostrar un número y tres prendas, lo que el #787 había quitado. Y mantener `paraColgarHoy` probada «igual» a la cuenta de
+Existencias: dos funciones que una prueba obliga a coincidir son dos lugares donde cambiar la regla, y la siguiente pantalla elige una.
+SE ROMPE SI: las filas de Existencias (`getExistencias`, que todavía suma `stock` en TypeScript) y `fn_existencias_base` dejan de aplicar
+la misma regla de «libre» (ADR-0270, tarea #4 pendiente): el Inicio y «Para hoy» contarían las mismas tallas con unidades distintas. Lo
+vigilan `pnpm pruebas:piso-plan` (S4: la lectura = `fn_existencias_base`, talla por talla) y `lib/inicio-almacen-reglas.test.ts` (una
+escena pasada por los tres caminos —«Hoy», «Para hoy» y el Inicio— con el piso cuadrado y sin cuadrar, más candados de fuente;
+mutaciones: el Inicio sin la decisión del motor, sin la lista del día, con piso y almacén cruzados, la cuenta sin la pausa, el aviso
+contando unidades y el panel sin la lista: todas en rojo).
+
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se
   engancha en `tareasParaHoy` cuando exista.
