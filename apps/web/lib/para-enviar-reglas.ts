@@ -3,7 +3,7 @@
 // —por cualquier camino: la base la descuenta sola cuando sale (`para_enviar_al_salir`)— o alguien dice «Ya no la envío».
 //
 // Lógica pura, sin React ni Supabase: se prueba en `para-enviar-reglas.test.ts`. La lista la da `fn_para_enviar`
-// (migración 20261005100200); aquí se agrupa por destino, se arma el enlace a «Nuevo traslado» ya cargado y se decide qué
+// (migración 20261005130200); aquí se agrupa por destino, se arma el enlace a «Nuevo traslado» ya cargado y se decide qué
 // manda la ventana «Subir prenda».
 
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";

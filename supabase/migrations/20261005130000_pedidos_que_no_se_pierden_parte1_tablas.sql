@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005100000_pedidos_que_no_se_pierden_parte1_tablas.sql — CAYLA V2 · ADR-0328, actividad 17 (Felipe, 2026-10-04)
+-- 20261005130000_pedidos_que_no_se_pierden_parte1_tablas.sql — CAYLA V2 · ADR-0328, actividad 17 (Felipe, 2026-10-04)
 -- Traslados: pedidos que no se pierden · PARTE 1 de 3: columnas y tablas (sin funciones, sin políticas).
 --
 -- EL PROBLEMA PRIMERO. Un pedido entre sedes hoy se puede perder de tres maneras:

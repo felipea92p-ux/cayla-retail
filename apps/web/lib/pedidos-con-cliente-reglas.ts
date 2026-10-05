@@ -2,7 +2,7 @@
 // aparta la prenda de otra sede para el cliente que la espera; allá la apartan; viaja en el próximo envío; se avisa al
 // cliente al llegar»). Lógica pura, sin React ni Supabase: se prueba en `pedidos-con-cliente-reglas.test.ts`.
 //
-// La base (`fn_pedidos_con_cliente`, migración 20261005100100) da una fila por pedido. Aquí se decide:
+// La base (`fn_pedidos_con_cliente`, migración 20261005130100) da una fila por pedido. Aquí se decide:
 //   · cómo entra a la lista de Traslados (la misma tarjeta que la reposición: «una sola lista de pedidos», ADR-0242 D-7);
 //   · qué botón ve cada lado (enviar, o primero «subir al almacén» si la prenda apartada allá está colgada; avisar al cliente);
 //   · qué le ofrece Vender desde «Dónde más hay» y el mensaje de WhatsApp cuando llega;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0328 actividad 17 · «Traslados: pedidos que no se pierden» (migraciones 20261005100000/100/200) contra el
+ * Prueba de ADR-0328 actividad 17 · «Traslados: pedidos que no se pierden» (migraciones 20261005130000/130100/130200) contra el
  * Postgres LOCAL.
  *
  * EL PROBLEMA QUE PRUEBA. Un pedido entre sedes se perdía de tres maneras: la otra sede vendía la prenda mientras el pedido

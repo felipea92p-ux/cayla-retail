@@ -129,7 +129,7 @@ describe("Ya no la envío y la ventana Subir prenda", () => {
     expect(faltaDestino(true, "lim")).toBe(false);
   });
   it("la RPC y sus parámetros son los de la migración", () => {
-    const sql = readFileSync(new URL("../../../supabase/migrations/20261005100200_pedidos_que_no_se_pierden_parte3_para_enviar.sql", import.meta.url), "utf8");
+    const sql = readFileSync(new URL("../../../supabase/migrations/20261005130200_pedidos_que_no_se_pierden_parte3_para_enviar.sql", import.meta.url), "utf8");
     expect(sql).toContain(`create or replace function retail.${RPC_SUBIR_PARA_ENVIAR}(`);
     for (const p of PARAMETROS_RPC_SUBIR_PARA_ENVIAR) expect(sql).toMatch(new RegExp(`\\b${p} (uuid|jsonb|text)`));
   });

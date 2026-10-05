@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005100100_pedidos_que_no_se_pierden_parte2_pedidos.sql — CAYLA V2 · ADR-0328, actividad 17 (Felipe, 2026-10-04)
+-- 20261005130100_pedidos_que_no_se_pierden_parte2_pedidos.sql — CAYLA V2 · ADR-0328, actividad 17 (Felipe, 2026-10-04)
 -- Traslados: pedidos que no se pierden · PARTE 2 de 3: el pedido para un cliente se aparta en la sede que lo tiene.
 --
 -- EL PROBLEMA PRIMERO. Pedir una prenda a otra sede para un cliente (ADR-0233) no reservaba nada en esa sede: la caja de

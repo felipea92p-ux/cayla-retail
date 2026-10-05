@@ -21,7 +21,7 @@ export async function getPedidosEntreSedes(ubicacionId: string): Promise<PedidoE
   return (data ?? []).map((f) => pedidoEntreSedesDeFila(f as unknown as Record<string, unknown>));
 }
 
-// ADR-0328 act. 17 (20261005100100): los pedidos PARA UN CLIENTE de la sede, con dónde está apartada la prenda en el
+// ADR-0328 act. 17 (20261005130100): los pedidos PARA UN CLIENTE de la sede, con dónde está apartada la prenda en el
 // origen y si ya se le avisó. Los lee Traslados (en la misma tarjeta que la reposición), Vender (la franja de los clientes
 // por avisar) y el Inicio. `null` = no se pudo leer: el Inicio lo dice («no se pudo leer») en vez de mostrar «al día».
 export const leerPedidosConCliente = cache(async (ubicacionId: string): Promise<PedidoEntreSedes[] | null> => {
@@ -68,7 +68,7 @@ export const getPedidosPorAtender = cache(async (ubicacionId: string): Promise<F
   }
 });
 
-/** La lista «Para enviar» de la sede (20261005100200). `null` = no se pudo leer: el Inicio (que avisa lo que lleva más de 3
+/** La lista «Para enviar» de la sede (20261005130200). `null` = no se pudo leer: el Inicio (que avisa lo que lleva más de 3
  *  días, decisión del 2026-10-04) lo dice en vez de mostrar «al día». */
 export const leerParaEnviar = cache(async (ubicacionId: string): Promise<PrendaParaEnviar[] | null> => {
   try {

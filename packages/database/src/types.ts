@@ -5415,7 +5415,7 @@ export type Database = {
           variante_id: string
         }[]
       }
-      // ADR-0328 act. 17 (20261005100100 / 20261005100200): pedidos que no se pierden y la lista «Para enviar».
+      // ADR-0328 act. 17 (20261005130100 / 20261005130200): pedidos que no se pierden y la lista «Para enviar».
       subir_pedido_al_almacen: {
         Args: { p_pedido_id: string }
         Returns: Json

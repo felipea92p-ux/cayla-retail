@@ -2,7 +2,7 @@
 // menú desde que llega el pedido y, a las 48 h sin respuesta, aviso a los líderes de las dos tiendas».
 //
 // La base da una fila por pedido para un cliente y una por grupo de reposición, solo los que siguen «pedido»
-// (`fn_pedidos_por_atender`, migración 20261005100100). Aquí, sin React ni Supabase (se prueba en
+// (`fn_pedidos_por_atender`, migración 20261005130100). Aquí, sin React ni Supabase (se prueba en
 // `pedidos-por-atender-reglas.test.ts`), se decide:
 //   · cuántos le piden a la sede (el número del menú: `numeroDelMenuTraslados`, sumado a los traslados por recibir);
 //   · cuáles llevan 48 h o más sin respuesta, de los dos lados (el Inicio de los líderes de las dos sedes y el Observatorio);

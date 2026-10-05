@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005100200_pedidos_que_no_se_pierden_parte3_para_enviar.sql — CAYLA V2 · ADR-0328, actividad 17 (Felipe, 2026-10-04)
+-- 20261005130200_pedidos_que_no_se_pierden_parte3_para_enviar.sql — CAYLA V2 · ADR-0328, actividad 17 (Felipe, 2026-10-04)
 -- Traslados: pedidos que no se pierden · PARTE 3 de 3: la lista «Para enviar».
 --
 -- EL PROBLEMA PRIMERO. Felipe decidió que una prenda COLGADA no se manda a otra sede en un paso: primero se sube al
