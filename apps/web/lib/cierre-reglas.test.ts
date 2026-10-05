@@ -8,6 +8,7 @@ import {
   diaDe,
   enlaceChequeo,
   enumerar,
+  etiquetaEnlace,
   estadoConsolidado,
   estadoTarjeta,
   historiaDe,
@@ -161,6 +162,16 @@ describe("cada chequeo en palabras", () => {
     expect(textoChequeo(ch("fijos", true, { total: 3, faltan: 0 }, false), mes).detalle).toBe("Los 3 gastos fijos del mes están registrados");
     expect(textoChequeo(ch("sin_costo", false, { n: 1 }, false), mes).detalle).toBe("1 prenda vendida sin costo cargado: el margen del mes sale inflado");
   });
+  it("ventas cerradas sin prenda (ADR-0337): cuántas, cuánto vendieron y que su costo es desconocido; avisa, no bloquea", () => {
+    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 2, monto: 150 }, false), mes)).toEqual({
+      titulo: "Ventas cerradas sin prenda",
+      detalle: "2 ventas sin registrar (S/ 150) se cerraron sin prenda: su costo es desconocido y el margen de agosto sale más alto de lo real. Puedes cerrar igual",
+    });
+    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 1, monto: 80.5 }, false), mes).detalle).toMatch(/^1 venta sin registrar \(S\/ 80\.50\) se cerró sin prenda: su costo es desconocido/);
+    // El monto llega de la base como numérico con decimales («1170.80»): se lee como número.
+    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 26, monto: "1170.80" }, false), mes).detalle).toMatch(/^26 ventas sin registrar \(S\/ 1,170\.80\) se cerraron/);
+    expect(textoChequeo(ch("cerrada_sin_prenda", true, {}, false), mes).detalle).toBe("Ninguna venta se cerró sin prenda");
+  });
   it("conciliación: qué banco falta y desde cuándo", () => {
     expect(textoChequeo(unidad("De la empresa").chequeos[0]!, mes).detalle).toBe("BCP · Cta. corriente: nunca se concilió");
     expect(textoChequeo(ch("conciliacion", false, { bancos: 2, faltan: [{ nombre: "Interbank", ultima: "2026-08-29" }] }, false), mes).detalle).toBe("Interbank: la última conciliación es del 29 ago");
@@ -188,11 +199,19 @@ describe("a dónde lleva «Resolver»", () => {
   it("cada chequeo que falla, a su pantalla, con la unidad y el mes", () => {
     expect(enlaceChequeo(ch("cajas", false, {}), lim, "2026-08")).toBe("/caja");
     expect(enlaceChequeo(ch("egresos", false, {}), lim, "2026-08")).toBe(`/finanzas/gastos?tab=egresos&ver=${LIM}`);
-    expect(enlaceChequeo(ch("regularizar", false, {}), lim, "2026-08")).toBe("/recibir");
+    // La cola vive en Existencias desde ADR-0330: `/recibir` ya no la muestra.
+    expect(enlaceChequeo(ch("regularizar", false, {}), lim, "2026-08")).toBe(`/inventario/por-regularizar?ubicacion=${LIM}`);
+    expect(enlaceChequeo(ch("cerrada_sin_prenda", false, {}, false), lim, "2026-08")).toBe(`/inventario/por-regularizar?ubicacion=${LIM}`);
+    expect(enlaceChequeo(ch("cerrada_sin_prenda", true, {}, false), lim, "2026-08")).toBeNull();
     expect(enlaceChequeo(ch("fijos", false, {}), emp, "2026-08")).toBe("/finanzas/gastos?tab=fijos&mes=2026-08&ver=empresa");
     expect(enlaceChequeo(ch("conciliacion", false, {}), emp, "2026-08")).toBe("/finanzas/dinero/conciliacion");
     expect(enlaceChequeo(ch("diario", false, {}), lim, "2026-08")).toBe(`/finanzas/reportes?mes=2026-08&ver=${LIM}`);
     expect(enlaceChequeo(ch("sin_costo", false, {}), emp, "2026-08")).toBe("/finanzas/reportes?mes=2026-08");
+  });
+  it("el botón dice «Resolver», salvo en lo que ya no tiene cura: ahí solo se miran las ventas", () => {
+    expect(etiquetaEnlace(ch("cajas", false, {}))).toBe("Resolver");
+    expect(etiquetaEnlace(ch("sin_costo", false, {}, false))).toBe("Resolver");
+    expect(etiquetaEnlace(ch("cerrada_sin_prenda", false, {}, false))).toBe("Ver ventas");
   });
   it("lo que pasa o no tiene pantalla (la planilla vive en Dynamic) no lleva a ningún lado", () => {
     expect(enlaceChequeo(ch("egresos", true, {}), lim, "2026-08")).toBeNull();
@@ -216,6 +235,12 @@ describe("estados", () => {
     expect(puedeCerrar(unidad("Tienda Trujillo"))).toBe(false);
     expect(avisosPendientes(unidad("De la empresa")).map((c) => c.clave)).toEqual(["conciliacion"]);
     expect(avisosPendientes({ ...unidad("Tienda Trujillo"), chequeos: [ch("huella", false, {}, false)] })).toEqual([]);
+  });
+  it("una venta cerrada sin prenda es un AVISO, no un bloqueo: la unidad sigue lista y el aviso queda para el modal (ADR-0337)", () => {
+    const conVentas: Unidad = { ...unidad("Taller"), avisos: 1, chequeos: [ch("cerrada_sin_prenda", false, { n: 3, monto: 220 }, false), ...unidad("Taller").chequeos] };
+    expect(puedeCerrar(conVentas)).toBe(true);
+    expect(estadoTarjeta(conVentas)).toEqual({ texto: "lista para cerrar", tono: "pizarra" });
+    expect(avisosPendientes(conVentas).map((c) => c.clave)).toEqual(["cerrada_sin_prenda"]);
   });
   it("CAYLA entera: faltan N, lista cuando cerraron todas, o cerrada", () => {
     expect(estadoConsolidado(panel)).toEqual({ estado: "faltan", faltan: 3 });
