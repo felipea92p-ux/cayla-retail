@@ -352,7 +352,7 @@ export function PorPagarLista({
                   </span>
                 )}
                 <span>{b.titulo}</span>
-                <span className="opacity-70">· {contar(b.cantidad)}</span>
+                <span className="opacity-70 dark:opacity-100">· {contar(b.cantidad)}</span>
               </p>
               <p className="flex shrink-0 items-center gap-3.5 text-sm tabular-nums">
                 {b.proveedorId && (
@@ -366,7 +366,7 @@ export function PorPagarLista({
                 )}
                 <span>
                   <CifraQueCuenta valor={b.saldo} formato="soles" alMontar={llegando} />
-                  {b.parcial && <span className="ml-1 text-xs opacity-70">en esta página</span>}
+                  {b.parcial && <span className="ml-1 text-xs opacity-70 dark:opacity-85">en esta página</span>}
                 </span>
               </p>
             </div>

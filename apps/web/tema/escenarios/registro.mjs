@@ -716,6 +716,48 @@ ESCENARIOS.push(
   { id: "analisis.como-se-calcula", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · «Cómo se calcula»", preparar: clicRol("button", /cómo se calcula/i) },
 );
 
+// ---------- Compras y Producción (actividad 11) ----------
+const COMPRAS = ["admin", "admin-taller"];
+const idDeCompra = () => consultarLocal("select id from retail.compras order by created_at limit 1");
+const idDeProveedor = () => consultarLocal("select id from retail.proveedores where nombre ilike '%Textiles Andina%' limit 1");
+ESCENARIOS.push(
+  { id: "compras.filtros", ruta: "/compras", cuentas: COMPRAS, nombre: "Facturas de proveedor · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
+  { id: "compras.credito", ruta: "/compras/nueva", cuentas: COMPRAS, nombre: "Nueva compra · a crédito (con vencimiento)", preparar: clicRol("radio", /Crédito/i) },
+  { id: "compras.repartir", ruta: "/compras/nueva", cuentas: COMPRAS, nombre: "Nueva compra · «Repartir entre tiendas»", preparar: clicRol("radio", /Repartir entre tiendas/i) },
+  { id: "compras.proveedor", ruta: "/compras/nueva", cuentas: COMPRAS, abre: "[role=listbox]", nombre: "Nueva compra · la lista de proveedores", preparar: clicRol("combobox", /^Proveedor/i) },
+  { id: "compras.calendario", ruta: "/compras/nueva", cuentas: COMPRAS, abre: "[role=gridcell]", nombre: "Nueva compra · el calendario de la fecha", preparar: clicRol("button", /Abrir calendario/i) },
+  { id: "compras.producto", ruta: "/compras/nueva", cuentas: COMPRAS, abre: "[role=listbox]", nombre: "Nueva compra · la lista de productos", preparar: clicRol("combobox", /^Producto/i) },
+  { id: "porpagar.pagar", ruta: "/compras/por-pagar", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Por pagar · «Pagar» un comprobante", preparar: clicRol("button", /^Pagar$/i) },
+  {
+    id: "porpagar.juntos",
+    ruta: "/compras/por-pagar",
+    cuentas: COMPRAS,
+    nombre: "Por pagar · comprobantes marcados («Pagar juntos»)",
+    async preparar(pagina) {
+      await pagina.getByRole("checkbox", { name: /^Elegir F001/ }).first().evaluate((el) => el.click());
+      await esperar(pagina, 1200);
+    },
+  },
+  { id: "porpagar.proveedor", ruta: "/compras/por-pagar", cuentas: COMPRAS, nombre: "Por pagar · agrupado «Por proveedor»", preparar: clicRol("radio", /Por proveedor/i) },
+  { id: "porpagar.filtros", ruta: "/compras/por-pagar", cuentas: COMPRAS, nombre: "Por pagar · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
+  { id: "porpagar.vencidas", ruta: "/compras/por-pagar", cuentas: COMPRAS, ancho: "escritorio", nombre: "Por pagar · «Solo vencidas»", preparar: clicRol("button", /Solo vencidas/i) },
+  { id: "proveedores.registrar", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · «Registrar proveedor»", preparar: clicRol("button", /Registrar proveedor/i) },
+  { id: "proveedores.vista", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · la vista rápida de un proveedor", preparar: clicRol("button", /Textiles Andina SAC: abrir vista rápida/i) },
+  { id: "proveedores.sin-datos", ruta: "/compras/proveedores", cuentas: COMPRAS, nombre: "Proveedores · el filtro «Sin datos de pago»", preparar: clicRol("button", /Sin datos de pago/i) },
+  { id: "proveedores.ficha", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "h1", nombre: "Proveedores · la ficha de un proveedor", preparar: async (pagina) => irA(`/compras/proveedores/${idDeProveedor()}`)(pagina) },
+  { id: "notas.registrar", ruta: "/compras/notas-credito", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Notas de crédito · «Registrar nota»", preparar: clicRol("button", /Registrar nota/i) },
+  { id: "notas.saldos", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Saldos a favor»", preparar: clicRol("radio", /Saldos a favor/i) },
+  { id: "notas.todas", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Todas»", preparar: clicRol("radio", /^Todas/i) },
+  { id: "factura.detalle", ruta: "/compras/factura/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Factura de proveedor · el comprobante", preparar: async (pagina) => irA(`/compras/factura/${idDeCompra()}`)(pagina) },
+  { id: "parte.detalle", ruta: "/compras/parte/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Parte de recepción · el documento", preparar: async (pagina) => irA(`/compras/parte/${idDeCompra()}`)(pagina) },
+  { id: "produccion.orden-nueva", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva orden»", preparar: clicRol("button", /Nueva orden/i) },
+  { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo insumo»", preparar: clicRol("button", /Nuevo insumo/i) },
+  { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
+  { id: "produccion.factura-nueva", ruta: "/produccion/comprobantes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva factura»", preparar: clicRol("button", /Nueva factura/i) },
+  { id: "produccion.proveedor-nuevo", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo proveedor»", preparar: clicRol("button", /Nuevo proveedor/i) },
+  { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], nombre: "Producción · Eficiencia de otro mes", preparar: clicRol("radio", /Sep 2026/i) },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

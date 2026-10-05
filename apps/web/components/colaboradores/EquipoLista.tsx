@@ -231,7 +231,7 @@ export function EquipoLista({
           <div role="group" aria-label="Ver" className="flex min-w-0 flex-1 flex-wrap gap-1.5">
             {atajos.map((a) => (
               <button key={a.clave} type="button" className="pildora-cayla" aria-pressed={mismoFiltro(filtro, a.filtro)} onClick={() => onFiltro(a.filtro)}>
-                {a.etiqueta} <span className="tabular-nums opacity-70">{a.n}</span>
+                {a.etiqueta} <span className="tabular-nums opacity-70 dark:opacity-85">{a.n}</span>
               </button>
             ))}
           </div>
