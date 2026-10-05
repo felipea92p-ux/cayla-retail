@@ -55,6 +55,11 @@
   "src_table": "cambios"
  },
  {
+  "conname": "cierres_cola_arranque_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cierres_cola_arranque"
+ },
+ {
   "conname": "clientas_archivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "clientas"
@@ -265,6 +270,11 @@
   "src_table": "cotizaciones_maquila"
  },
  {
+  "conname": "cuadres_piso_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuadres_piso"
+ },
+ {
   "conname": "cuentas_asignadas_asignado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cuentas_asignadas"
@@ -435,9 +445,24 @@
   "src_table": "periodo_cierres"
  },
  {
+  "conname": "planes_compra_lineas_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_lineas"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
+ },
+ {
+  "conname": "prendas_para_enviar_cancelado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_para_enviar"
+ },
+ {
+  "conname": "prendas_para_enviar_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_para_enviar"
  },
  {
   "conname": "prendas_por_regularizar_regularizado_por_fkey",
@@ -540,6 +565,11 @@
   "src_table": "separacion_items_retirados"
  },
  {
+  "conname": "separacion_pedidos_avisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
   "conname": "separacion_pedidos_cancelado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_pedidos"
@@ -551,6 +581,11 @@
  },
  {
   "conname": "separacion_pedidos_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_sigue_en_pie_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_pedidos"
  },
@@ -656,6 +691,11 @@
  },
  {
   "conname": "transferencias_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "transferencias"
+ },
+ {
+  "conname": "transferencias_recepcion_firmada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "transferencias"
  },

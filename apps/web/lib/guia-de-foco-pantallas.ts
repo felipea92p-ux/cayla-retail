@@ -61,6 +61,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/nueva": PENDIENTE,
   "/compras/parte/[compraId]": PENDIENTE,
   "/compras/por-pagar": PENDIENTE,
+  "/compras/plan": { estado: "no-aplica", motivo: "Tabla del plan de campaña, una fila por categoría: no hay campos en la pantalla. Lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en la ventana de cada categoría, con su guía en el registro de modales (ADR-0349)." },
   "/compras/proveedores": PENDIENTE,
   "/compras/proveedores/[id]": PENDIENTE,
   // ---- configuracion ----
@@ -222,6 +223,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": PENDIENTE, // 18 controles
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  "components/plan-compra/PlanCategoriaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlanCategoriaModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
   "components/NuevaOrdenProduccionForm.tsx": PENDIENTE, // 11 controles
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
