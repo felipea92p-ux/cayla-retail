@@ -2540,8 +2540,59 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
   }
   .hoja-cobro {
+    /* Contenedor de TAMAÑO con nombre: los bloques `@container cobro (max-height…)` de abajo compactan la hoja según SU alto (el
+       del catálogo menos sus márgenes), no el de la ventana — ese alto cambia con la cabecera de la página, el zoom y el
+       navegador, y la ventana no lo sabe. Su alto sale de `inset-y-3`, nunca del contenido, así que la contención es segura. */
+    container: cobro / size;
     box-shadow: -30px 0 60px -40px color-mix(in srgb, var(--color-tinta) 35%, transparent);
     animation: hoja-cobro-entra 520ms var(--ease-cayla) both;
+  }
+
+  /* El esqueleto de la hoja (escritorio): cabecera y botón FIJOS, y entre los dos un cuerpo con los pasos que solo scrollea si
+     ni compactada cabe. Desde el 2026-10-05 la hoja entera ya no scrollea: en un laptop de ~650 px de alto «Confirmar cobro»
+     quedaba bajo el pliegue y había que bajar para cobrar. Estos tamaños viven aquí (no como utilidades en el JSX) para que
+     el bloque compacto de abajo pueda cambiarlos. */
+  .hoja-cobro-raiz { gap: 0.5rem; padding: 0.75rem 1.5rem 1rem; }
+  .hoja-cobro-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-bottom: 0.75rem; }
+  .hoja-cobro-total { font-size: 3rem; }
+  .hoja-cobro-volver { height: 2.75rem; padding-inline: 1rem; }
+  /* El cuerpo ensancha 0.75rem a cada lado para que el tinte del paso («Sigue aquí», margen negativo) no quede recortado. */
+  .hoja-cobro-cuerpo {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+  }
+  .hoja-cobro-cuerpo > .hoja-cobro-paso { flex: none; }
+  .hoja-cobro-pie { padding-top: 0.5rem; }
+  .hoja-cobro-confirmar { gap: 0.75rem; height: 3.5rem; padding-inline: 1.5rem; }
+  .hoja-cobro-confirmar-monto { font-size: 1.875rem; }
+  .hoja-cobro-confirmar-rotulo { font-size: 0.875rem; }
+
+  .hoja-cobro-cabeza-paso { margin-bottom: 0.75rem; }
+  .hoja-cobro-numero { width: 1.75rem; height: 1.75rem; font-size: 0.75rem; }
+  .hoja-cobro-pago { gap: 1rem; }
+  .hoja-cobro-medios { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.625rem; }
+  .hoja-cobro-pista { padding-top: 0.25rem; font-size: 15px; line-height: 1.625; }
+  .hoja-cobro-nota { margin-bottom: 0.625rem; padding: 0.5rem 0.75rem; font-size: 13px; line-height: 1.375; }
+  .hoja-cobro-pregunta { margin-bottom: 0.625rem; font-size: 13px; }
+  .hoja-cobro-billetes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  .hoja-cobro-vuelto { margin-top: 1rem; }
+  .hoja-cobro-vuelto-monto { font-size: 2.25rem; white-space: nowrap; }
+  .hoja-cobro-doc { margin-top: 0.75rem; }
+  /* Con sitio al lado, los medios a la izquierda y lo que el medio pide (billetes, vuelto, pista) a la derecha. */
+  @container (min-width: 32.5rem) {
+    .hoja-cobro-pago { grid-template-columns: minmax(0, 25rem) minmax(13rem, 1fr); }
+  }
+  @container (min-width: 40rem) {
+    .hoja-cobro-vuelto-monto { font-size: 3rem; }
+    /* Lo exacto lleva ✓ y el monto («✓ S/149.90», en verde): a 3 rem no cabría junto a la etiqueta en la columna de los billetes. */
+    .hoja-cobro-vuelto-monto.es-exacto { font-size: 2.25rem; }
   }
 
   /* Cada paso; el que sigue se enciende (guía de foco, ADR-0284): un tinte terracota suave y su borde. */
@@ -2586,7 +2637,13 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   .hoja-cobro-medio:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
   /* El cuadrado es su propio contenedor: el nombre cabe entero aunque la hoja sea angosta (menú lateral abierto). */
   .hoja-cobro-medio { container-type: inline-size; }
-  .hoja-cobro-nombre { font-size: min(13px, 9cqi); letter-spacing: min(0.08em, 0.6cqi); white-space: nowrap; }
+  .hoja-cobro-nombre { font-size: max(9px, min(13px, 9cqi)); letter-spacing: min(0.08em, 0.6cqi); white-space: nowrap; }
+  /* Ficha de menos de 6 rem (una tablet a 1024 px con el menú abierto: 85 px): «Transferencia» pasa a «Transf.» en vez de achicarse a 7 px. */
+  .hoja-cobro-nombre-corto { display: none; }
+  @container (max-width: 6rem) {
+    .hoja-cobro-nombre-largo { display: none; }
+    .hoja-cobro-nombre-corto { display: inline; }
+  }
   .hoja-cobro-icono { display: block; width: 52%; height: 52%; color: var(--cd); transition: color 300ms, width 350ms var(--ease-cayla), height 350ms var(--ease-cayla); }
   .hoja-cobro-icono svg { stroke-width: 1.25; }
   .hoja-cobro-medio.es-elegido { background: var(--cd); border-color: var(--cd); color: var(--color-crema); }
@@ -2686,6 +2743,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   }
   .hoja-cobro-comprobante:hover:not(:disabled) { border-style: solid; border-color: var(--color-tinta); }
   .hoja-cobro-comprobante.es-elegido { border-style: solid; border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
+  .hoja-cobro-comprobante-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
   .hoja-cobro-comprobante-icono { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 0.5rem; background: var(--color-hueso); }
   .hoja-cobro-comprobante.es-elegido > .hoja-cobro-comprobante-icono { background: color-mix(in srgb, var(--color-crema) 14%, transparent); }
 
@@ -2714,6 +2772,135 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   @container (max-width: 44rem) {
     .hoja-cobro-comprobante-icono { display: none; }
     .hoja-cobro-comprobante { justify-content: center; padding-inline: 0.5rem; }
+  }
+  /* Muy angosta (menos de 24 rem útiles: una tablet a 1024 px con el menú abierto): el nombre pasa a dos líneas en vez de cortarse
+     con «…» («Nota de venta» salía «NOTA …»), y «Confirmar cobro» pierde el ✓ y aprieta sus márgenes para que su rótulo
+     quepa entero junto al monto. */
+  @container (max-width: 24rem) {
+    .hoja-cobro-comprobante-nombre { white-space: normal; text-align: center; font-size: 11px; line-height: 1.15; letter-spacing: 0.06em; }
+  }
+
+  /* ------------------------------------------------------------------
+     La hoja se adapta sola según su ALTO (Felipe 2026-10-05: «el botón de cobrar sale recortado, tengo que hacer scroll, que
+     se ajuste a cualquier resolución»). Y, al verlo en su monitor: «quiero el diseño anterior en dos filas de 3 donde se veían más
+     grandes, simplemente quería que sea responsive». Por eso la FORMA no cambia nunca: los medios siguen en dos filas de tres
+     fichas, y en la hoja ancha los billetes siguen a su lado. Lo único que cambia con el alto es el TAMAÑO:
+       · de 52 rem de alto para arriba (~832 px): el diseño de siempre, sin tocar (fichas cuadradas de 126 px);
+       · bajo 52 rem: espacios más justos (cabecera, pasos, botón, comprobante) y las fichas valen lo que sobra, entre 4,25 rem y
+         su tamaño de siempre — con un monitor de ~820 px de alto siguen siendo del tamaño de siempre —; en la hoja ANCHA los
+         billetes pasan a 3 por fila para no alargar el paso;
+       · hoja ANGOSTA (a una columna, los billetes caen debajo): fichas bajas de 3,25 a 7 rem, los billetes en UNA línea con el
+         vuelto junto a «¿Con cuánto paga?» y el documento del cliente en 2 × 2;
+       · bajo 40 rem, sin la cabecera «Total / Volver».
+     Nunca se pasa a una fila de seis (una versión de esta misma tarde lo hizo y dejó los íconos chicos y la hoja medio vacía):
+     `lib/hoja-de-cobro-ajuste.test.ts` lo impide. Si ni así caben (pago en dos medios, o hoja angosta y baja con el documento del
+     cliente), scrollea el cuerpo y el botón sigue a la vista.
+     ------------------------------------------------------------------ */
+  @container cobro (max-height: 52rem) {
+    .hoja-cobro-raiz { padding: 0.5rem 1.25rem 0.75rem; gap: 0.25rem; }
+    .hoja-cobro-cabeza { padding-bottom: 0.4rem; }
+    .hoja-cobro-total { font-size: 2rem; }
+    .hoja-cobro-volver { height: 2.25rem; }
+    .hoja-cobro-cuerpo { gap: 0.25rem; }
+    .hoja-cobro-paso { padding-block: 0.3rem; }
+    .hoja-cobro-cabeza-paso { margin-bottom: 0.4rem; }
+    .hoja-cobro-numero { width: 1.5rem; height: 1.5rem; }
+    .hoja-cobro-pie { padding-top: 0.35rem; }
+    .hoja-cobro-confirmar { height: 3rem; padding-inline: 1.25rem; }
+    .hoja-cobro-confirmar-monto { font-size: 1.625rem; }
+    .hoja-cobro-pago { gap: 0.75rem; }
+    .hoja-cobro-medios { gap: 0.5rem; }
+    .hoja-cobro-medio::before { height: 4px; }
+    .hoja-cobro-marca { top: 0.4rem; right: 0.4rem; width: 1.2rem; height: 1.2rem; }
+    .hoja-cobro-resto { top: 0.45rem; left: 0.5rem; }
+    /* Con dos medios cada ficha lleva su monto: necesita más alto o no cabe el cuadro de texto (la altura de la ficha, abajo). */
+    .hoja-cobro-medio.con-monto { padding-top: 0.5rem; gap: 0.15rem; }
+    .hoja-cobro-medio.con-monto .hoja-cobro-icono { width: auto; height: 30%; aspect-ratio: 1 / 1; }
+    .hoja-cobro-monto { height: 1.85rem; margin-bottom: 0.3rem; }
+    .hoja-cobro-nota { margin-bottom: 0.4rem; padding: 0.3rem 0.6rem; font-size: 12px; line-height: 1.3; }
+    .hoja-cobro-pista { padding-top: 0; font-size: 13px; line-height: 1.3; }
+    .hoja-cobro-comprobante { height: 2.5rem; }
+    .hoja-cobro-comprobante-icono { width: 1.75rem; height: 1.75rem; }
+    .hoja-cobro-doc { margin-top: 0.4rem; }
+    /* HOJA ANCHA (dos columnas: medios a la izquierda, billetes a la derecha, como siempre). La ficha se estira con lo que sobra:
+       28,5 rem es lo que ocupa todo lo demás en el peor caso corriente (efectivo + comprobante + documento), así que desde ~45 rem
+       de alto la ficha vale su tamaño de siempre y solo por debajo se achica, hasta 4,25 rem (los billetes en 3 por fila no
+       alargan el paso más allá de eso). */
+    @container (min-width: 32.5rem) {
+      .hoja-cobro-medio { aspect-ratio: auto; height: clamp(4.25rem, calc((100cqh - 28.5rem) / 2), 7.9rem); }
+      .hoja-cobro-medios.con-montos .hoja-cobro-medio { height: max(5.75rem, clamp(4.25rem, calc((100cqh - 28.5rem) / 2), 7.9rem)); }
+      .hoja-cobro-billetes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+      .hoja-cobro-billete { height: 2.5rem; padding-inline: 0.25rem; font-size: 1.3rem; border-radius: 0.7rem; }
+      .hoja-cobro-pregunta { margin-bottom: 0.4rem; }
+      .hoja-cobro-vuelto { margin-top: 0.5rem; }
+      .hoja-cobro-vuelto-monto { font-size: 2rem; }
+    }
+  }
+
+  /* HOJA ANGOSTA (una columna: los medios arriba y, debajo, lo que el medio pide). A una columna, el diseño de siempre pide ~1150 px con
+     efectivo (los billetes caen debajo de las fichas en tres filas), así que aquí la disposición ajustada rige hasta 80 rem de alto
+     — casi siempre — y las fichas siguen siendo las dos filas de tres, hasta CUADRADAS (9,4 rem) cuando hay alto de sobra. */
+  @container cobro (max-height: 80rem) {
+    @container (max-width: 32.49rem) {
+      .hoja-cobro-pago { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+      .hoja-cobro-medios { gap: 0.4rem; }
+      /* 39,5 rem es lo que ocupa todo lo demás en el peor caso corriente: ahí las fichas valen su mínimo y, con más alto, se estiran. */
+      .hoja-cobro-medio { aspect-ratio: auto; height: clamp(3rem, calc((100cqh - 39.5rem) / 2), 9.4rem); gap: 0.2rem; }
+      .hoja-cobro-medios.con-montos .hoja-cobro-medio { height: max(5.75rem, clamp(3rem, calc((100cqh - 39.5rem) / 2), 9.4rem)); }
+      .hoja-cobro-comprobante { height: 2.25rem; }
+      .hoja-cobro-medio::before { height: 4px; }
+      .hoja-cobro-icono { width: auto; height: 50%; aspect-ratio: 1 / 1; }
+      .hoja-cobro-marca { top: 0.4rem; right: 0.4rem; width: 1.2rem; height: 1.2rem; }
+      .hoja-cobro-resto { top: 0.45rem; left: 0.5rem; }
+      .hoja-cobro-medio.con-monto { padding-top: 0.5rem; gap: 0.15rem; }
+      .hoja-cobro-medio.con-monto .hoja-cobro-icono { height: 30%; }
+      .hoja-cobro-monto { height: 1.85rem; margin-bottom: 0.3rem; }
+      .hoja-cobro-pista { padding-top: 0; font-size: 13px; line-height: 1.3; }
+      .hoja-cobro-pista br { display: none; }
+      .hoja-cobro-nota { margin-bottom: 0; padding: 0.3rem 0.6rem; font-size: 12px; line-height: 1.3; }
+      /* Efectivo: la pregunta y el vuelto en una línea, los billetes en la siguiente (`dense` sube el vuelto al hueco de la derecha). */
+      .hoja-cobro-efectivo {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-auto-flow: row dense;
+        align-items: end;
+        column-gap: 0.75rem;
+        row-gap: 0.3rem;
+      }
+      .hoja-cobro-efectivo > * { grid-column: 1 / -1; }
+      .hoja-cobro-efectivo > .hoja-cobro-pregunta { grid-column: 1; margin: 0; }
+      .hoja-cobro-efectivo > .hoja-cobro-vuelto { grid-column: 2; margin: 0; gap: 0.6rem; }
+      .hoja-cobro-vuelto-monto { font-size: 1.75rem; }
+      .hoja-cobro-billetes { grid-template-columns: repeat(auto-fit, minmax(4.25rem, 1fr)); gap: 0.4rem; }
+      .hoja-cobro-billete { height: 2.25rem; padding-inline: 0.25rem; font-size: 1.3rem; border-radius: 0.7rem; }
+    }
+    /* Hoja de 17,5 a 34 rem (desde 34 rem ya van en una fila, más arriba): los campos del documento en 2×2 — tipo | número,
+       nombre | celular — y no uno bajo otro (eran ~340 px). Los envoltorios (`space-y-*` de `DocumentoDelComprobante` y de
+       `ConsultaDocumento`, y la caja del celular) se «aplanan» con `display: contents` para que cada campo sea una celda de la
+       misma grilla; la tarjeta del padrón ocupa el lugar del nombre. No toca esos componentes (como la regla de 34 rem). */
+    @container (17.5rem <= width < 34rem) {
+      .hoja-cobro-doc > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 0.75rem; align-items: start; }
+      .hoja-cobro-doc > fieldset > div,
+      .hoja-cobro-doc > fieldset > .space-y-2 > .space-y-1 { display: contents; }
+      .hoja-cobro-doc > fieldset > div > *,
+      .hoja-cobro-doc > fieldset > .space-y-2 > .space-y-1 > * { margin-block: 0; }
+      .hoja-cobro-doc > fieldset > p { grid-column: 1 / -1; margin: 0; }
+    }
+  }
+
+  /* Bajo 40 rem (un laptop de ~800 px de alto de ventana o menos) la cabecera «Total / Volver» se esconde: repite el total del ticket y
+     del botón, y «Volver» ya está en «← Ticket», en Esc y en el velo. Son ~47 px que valen más para los pasos. */
+  @container cobro (max-height: 40rem) {
+    .hoja-cobro-cabeza { display: none; }
+  }
+  /* «Confirmar cobro» en una hoja muy angosta (menos de 24 rem útiles): sin el ✓ y con márgenes justos, su rótulo cabe entero
+     junto al monto. Va DESPUÉS del bloque compacto: ese también fija el padding del botón y, antes, ganaría. */
+  @container (max-width: 24rem) {
+    .hoja-cobro-confirmar { gap: 0.5rem; padding-inline: 1rem; }
+    .hoja-cobro-confirmar > svg { display: none; }
+    .hoja-cobro-confirmar-monto { font-size: 1.375rem; }
+    .hoja-cobro-confirmar-rotulo { font-size: 0.75rem; letter-spacing: 0.08em; }
+    .hoja-cobro-pregunta { font-size: 11.5px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
