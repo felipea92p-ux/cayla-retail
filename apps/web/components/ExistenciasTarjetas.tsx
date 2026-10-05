@@ -3,12 +3,12 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { IconoPercha } from "@/components/ui/IconoPercha";
-import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { AccionesTarjeta } from "@/components/existencias/AccionesTarjeta";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
-import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
+import { textoHoyDePrenda } from "@/lib/existencias-hoy";
+import { filasDeAcciones, type ClaveAccion } from "@/lib/existencias-acciones";
 import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
 
 /* ====================================================================
@@ -26,35 +26,27 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    (ámbar: hay atrás y ninguna afuera) y sin nada en la sede (borde punteado: un lugar vacío, no un error). Reemplaza las cajas
    «Piso / Almacén» (la de Piso iba siempre en rojo) y la cuadrícula con los rótulos repetidos en cada renglón.
 
-   UN botón por tarjeta (rediseño 2026-10-04): «Reponer» solo si algún color tiene algo que bajar; Subir, Ajustar, Reportar dañada
-   (ADR-0328 act. 10) y Ver detalle viven en el menú «⋯». Antes eran cuatro botones y uno negro en cada tarjeta: quince negros por página.
+   UN icono por tarjeta (2026-10-05, maqueta `existencias-tactil-2026-10`): la acción que le toca a la prenda (Reponer) y, al pasar el
+   mouse, una ventana hacia arriba con TODAS las acciones y su nombre (`AccionesTarjeta`, `lib/existencias-acciones.ts`). Reemplaza el
+   botón con texto «Reponer» y el menú «⋯» de la esquina: eran dos controles para lo mismo. Antes (2026-10-04) eran cuatro botones y
+   uno negro en cada tarjeta: quince negros por página.
+
+   SIN indicador de estado: la pastilla «3 tallas por colgar» repetía lo que ya dicen las etiquetas ámbar del riel y se quitó (Felipe,
+   2026-10-05: «está de más»). Sigue dicha para quien usa lector de pantalla (`EstadoParaLector`), y la cifra que trae a la persona
+   desde «Para hoy» sigue arriba, en la línea del conteo («6 prendas · 15 tallas por colgar»).
 
    No decide nada nuevo: las cifras son las LIBRES de `PrendaAgrupada` (las mismas de la tabla) y la pastilla es el diagnóstico
    de `queHacerPrenda` (el «Qué hacer» de la tabla). Reponer y Ajustar abren las ventanas que ya existían, con el permiso que ya
    calcula `permisosDelDetalle`: un botón que terminaría en «Sin acceso» no se dibuja.
    ==================================================================== */
 
-const TONO_PASTILLA = {
-  verde: { caja: "bg-verde/10 text-verde-profundo", punto: "bg-verde ring-verde/25" },
-  ambar: { caja: "bg-ambar/[0.13] text-ambar-profundo", punto: "bg-ambar ring-ambar/25" },
-  pizarra: { caja: "bg-pizarra/10 text-pizarra", punto: "bg-pizarra ring-pizarra/25" },
-} as const;
-
-/** El diagnóstico de la prenda (`queHacerPrenda`) como pastilla con punto: las MISMAS palabras del filtro «Hoy» (Felipe,
- *  2026-10-03): filtrar «Por colgar» muestra tarjetas que dicen «N tallas por colgar». Donde no se separa piso y almacén no hay
+/** El diagnóstico de la prenda (`queHacerPrenda`), dicho solo para el lector de pantalla: las MISMAS palabras del filtro «Hoy»
+ *  («3 tallas por colgar»). A la vista ya no se pinta: lo dicen las etiquetas del riel. Donde no se separa piso y almacén no hay
  *  diagnóstico. */
-function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
+function EstadoParaLector({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const q = queHacerPrenda(prenda.tallas);
-  // Sin nada sabido de ninguna talla (el motor no respondió), sin pastilla: el aviso de la pantalla lo dice.
   if (!q) return null;
-  const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
-  const texto = textoHoyDePrenda(q.tipo, q.n);
-  return (
-    <span title={AYUDA_HOY[q.tipo]} className={`inline-flex min-h-[28px] items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium leading-tight ${t.caja}`}>
-      <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ring-[3px] ${t.punto}`} />
-      {texto}
-    </span>
-  );
+  return <span className="sr-only">{textoHoyDePrenda(q.tipo, q.n)}</span>;
 }
 
 /** Cómo se ve cada etiqueta del riel, según el estado de la talla (`estadoTalla`, que sale de «Hoy»). */
@@ -103,6 +95,8 @@ export function ExistenciasTarjetas({
   onSubir,
   onAjustar,
   onReportarDanada,
+  puedeEnviar = false,
+  onEnviar,
   onVerDetalle,
 }: {
   modelos: ModeloPrendas<FilaExistencias>[];
@@ -122,6 +116,10 @@ export function ExistenciasTarjetas({
   onAjustar: (fila: FilaExistencias, origen: HTMLElement) => void;
   /** «Reportar dañada» abre su ventana con el color que se está viendo (`prenda`), y deja elegir otro color del modelo. */
   onReportarDanada?: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
+  /** «Enviar a otra sede»: abre Traslados con esta prenda cargada (`urlTrasladar`), solo para quien ve Traslados. `tallas` son las de TODOS
+   *  los colores del modelo, como «Reponer prenda». */
+  puedeEnviar?: boolean;
+  onEnviar?: (tallas: readonly FilaExistencias[]) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
   onVerDetalle: (prenda: PrendaAgrupada<FilaExistencias>) => void;
 }) {
@@ -150,17 +148,36 @@ export function ExistenciasTarjetas({
         const colgadas = separa ? (p.piso ?? 0) : p.disponible;
         const guardadas = p.almacen ?? 0;
         const origen = () => tarjetas.current.get(m.clave) ?? document.body;
-        const menu = [
-          ...(puedeReponer
-            ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
-            : []),
-          ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0], origen()) }] : []),
+        // Algo libre en el almacén de algún color para mandar a otra sede (el traslado sale del almacén; `lineasParaTrasladar`).
+        const tallasDelModelo = m.colores.flatMap((c) => c.tallas);
+        const hayEnAlmacen = tallasDelModelo.some((t) => (t.almacenDisponible ?? t.disponible) > 0);
+        const filas = filasDeAcciones({
+          puedeReponer,
+          puedeEnviar: puedeEnviar && !!onEnviar,
+          puedeAjustar,
           // Una mancha o una rotura que aparece en el perchero (ADR-0328 act. 10): pasa a Dañadas y deja de contar para la venta.
-          ...(puedeReportarDanada && onReportarDanada
-            ? [{ clave: "danada", etiqueta: "Reportar dañada", onSelect: () => onReportarDanada(p, origen()), motivo: hayAlgoLibre ? undefined : "No hay prendas libres para reportar" }]
-            : []),
-          { clave: "detalle", etiqueta: "Ver detalle", onSelect: () => onVerDetalle(p) },
-        ];
+          puedeReportarDanada: puedeReportarDanada && !!onReportarDanada,
+          hayQueBajar,
+          hayEnElPiso,
+          hayEnAlmacen,
+          hayAlgoLibre,
+        });
+        const alElegir = (clave: ClaveAccion) => {
+          switch (clave) {
+            case "reponer":
+              return onReponer(p, origen());
+            case "retirar":
+              return onSubir(p, origen());
+            case "enviar":
+              return onEnviar?.(tallasDelModelo);
+            case "ajustar":
+              return onAjustar(p.tallas[0], origen());
+            case "danada":
+              return onReportarDanada?.(p, origen());
+            case "detalle":
+              return onVerDetalle(p);
+          }
+        };
         return (
           <article
             key={m.clave}
@@ -188,7 +205,6 @@ export function ExistenciasTarjetas({
                       <span className="font-medium text-tinta">{p.color ?? "Sin color"}</span>
                     </p>
                   </div>
-                  <MenuAcciones etiqueta={`Más acciones de ${etiqueta}`} items={menu} />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Colores de ${p.referencia}`}>
                   {m.colores.map((h) => {
@@ -245,7 +261,7 @@ export function ExistenciasTarjetas({
 
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 @min-[30rem]:shrink-0 @min-[30rem]:flex-col @min-[30rem]:items-end @min-[30rem]:justify-end @min-[30rem]:pb-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-1.5 @min-[30rem]:justify-end">
-                  {separa && <Pastilla prenda={p} />}
+                  {separa && <EstadoParaLector prenda={p} />}
                   {p.danado > 0 && (
                     <Chip tono="rojo" versalitas={false} className="text-xs">
                       {p.danado} {p.danado === 1 ? "dañada" : "dañadas"}
@@ -253,17 +269,8 @@ export function ExistenciasTarjetas({
                   )}
                   {p.apartado > 0 && <Chip tono="ambar">Apartado · {p.apartado}</Chip>}
                 </div>
-                {hayQueBajar && (
-                  <button
-                    type="button"
-                    onClick={(e) => onReponer(p, e.currentTarget)}
-                    title="Bajar prendas del almacén al piso, de todos los colores"
-                    className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5"
-                  >
-                    <IconoPercha aria-hidden className="h-4 w-4" strokeWidth={1.6} />
-                    Reponer
-                  </button>
-                )}
+                {/* UN icono: lo que le toca a la prenda; al pasar el mouse, todas las acciones con su nombre. */}
+                <AccionesTarjeta etiqueta={etiqueta} filas={filas} alElegir={alElegir} />
               </div>
             </div>
             {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}

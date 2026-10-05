@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -490,6 +491,7 @@ export function InventarioPanel({
     editaCatalogo,
     tieneCuarentena: sububicaciones.some((s) => s.tipo === "cuarentena"),
   });
+  const router = useRouter();
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
@@ -907,6 +909,13 @@ export function InventarioPanel({
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
             puedeReportarDanada={permisos.reportarDanada}
+            // «Enviar a otra sede» desde la tarjeta: la misma entrada a Traslados que «Trasladar» de lo marcado (`urlTrasladar`), con las
+            // tallas de todos los colores del modelo que tienen algo libre atrás. Solo para quien ve Traslados.
+            puedeEnviar={veTraslados}
+            onEnviar={(tallas) => {
+              const href = urlTrasladar(tallas);
+              if (href) router.push(href);
+            }}
             onReponer={(prenda, origen) => {
               setAbierta(null);
               abrirReponer(prenda, origen);
