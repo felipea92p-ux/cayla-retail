@@ -37,6 +37,7 @@ export function MatrizMover({
   problemas,
   bloqueado,
   onCambiar,
+  faltan,
 }: {
   colores: readonly ColorParaMover[];
   rumbo: Rumbo;
@@ -46,6 +47,8 @@ export function MatrizMover({
   /** Mientras guarda o tras un corte de red (las cifras quedan fijas): los controles se apagan. */
   bloqueado: boolean;
   onCambiar: (varianteId: string, cantidad: number) => void;
+  /** Las variantes que faltan en el piso (`tallasQueFaltan`): llevan un punto ámbar mientras no tengan nada elegido. Solo al reponer. */
+  faltan?: ReadonlySet<string>;
 }) {
   const columnas = columnasDeTallas(colores);
   const totales = totalesDeMatriz(colores, cantidades, rumbo);
@@ -119,6 +122,7 @@ export function MatrizMover({
                     const n = acotarCantidad(cantidadDe(cantidades, t.varianteId), tope);
                     const etiqueta = `${color.nombre} en ${t.talla}`;
                     const conProblema = Boolean(problemas[t.varianteId]);
+                    const falta = rumbo === "bajar" && !!faltan?.has(t.varianteId) && n === 0;
                     return (
                       <td key={t.varianteId} className={`border-t border-sand p-0 ${fondoFila}`}>
                         <span className="flex h-[62px] min-w-[88px] flex-col items-center justify-center gap-0.5 px-0.5 sm:min-w-[98px]">
@@ -143,7 +147,7 @@ export function MatrizMover({
                               pattern="[0-9]*"
                               maxLength={4}
                               autoComplete="off"
-                              aria-label={`Cuántas de ${etiqueta}`}
+                              aria-label={`Cuántas de ${etiqueta}${falta ? ". Falta en el piso" : ""}`}
                               data-variante={t.varianteId}
                               value={n}
                               disabled={bloqueado}
@@ -162,7 +166,10 @@ export function MatrizMover({
                               <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
                             </button>
                           </span>
-                          <span className="text-[11px] leading-none tabular-nums text-taupe">hay {tope}</span>
+                          <span className="text-[11px] leading-none tabular-nums text-taupe">
+                            {falta && <i aria-hidden title="Falta en el piso" className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-ambar align-[1px]" />}
+                            hay {tope}
+                          </span>
                         </span>
                       </td>
                     );

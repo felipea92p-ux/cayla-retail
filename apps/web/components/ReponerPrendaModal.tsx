@@ -7,6 +7,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
+import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MatrizMover } from "@/components/MatrizMover";
@@ -33,6 +34,11 @@ import {
   detalleDeLoMovido,
   lineasDeMoverModelo,
   sePuedeBajarTalla,
+  cantidadesDeLoQueFalta,
+  cantidadesDeTodoElAlmacen,
+  casiNoHay,
+  fraseDeLoQueFalta,
+  tallasQueFaltan,
   textoBotonReponer,
   textoFilaSinAlcance,
   totalAReponer,
@@ -94,6 +100,10 @@ export function ReponerPrendaModal({
   const total = totalAReponer(lineas);
   const totales = totalesDeMatriz(colores, cantidades, "bajar");
   const hayAlgoQueBajar = colores.some((c) => c.tallas.some(sePuedeBajarTalla));
+  // Lo que falta en el piso, dicho y marcado en la tabla, y lo que casi no hay (con quién lo tiene): `reponer-prenda-reglas.ts`.
+  const faltan = tallasQueFaltan(prendas);
+  const fraseFalta = fraseDeLoQueFalta(prendas);
+  const sinStock = casiNoHay(prendas);
 
   // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace.
   const guia = useGuiaCampos([
@@ -111,6 +121,14 @@ export function ReponerPrendaModal({
       delete resto[varianteId];
       return resto;
     });
+  }
+
+  /** Los atajos llenan la tabla de un toque; la tabla sigue abriendo en 0 (ADR-0231) y cada cifra se ajusta después. */
+  function poner(nuevas: Cantidades) {
+    if (congelado) return;
+    setCantidades(nuevas);
+    setError(null);
+    setProblemas({});
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -242,15 +260,47 @@ export function ReponerPrendaModal({
             </p>
           </div>
 
-          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas bajas de cada color y talla?" retiene="fila">
+          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas llevas al piso de cada color y talla?" retiene="fila">
+            {fraseFalta && <p className="mb-2 rounded-lg bg-hueso px-3 py-2 text-[13px] leading-snug text-tinta">{fraseFalta} <span className="text-taupe">Tienen un punto en la tabla.</span></p>}
+            {/* Tres atajos que llenan la tabla de un toque (la tabla abre en 0 y cada cifra se ajusta después). */}
+            {hayAlgoQueBajar && (
+              <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Llenar la tabla">
+                {faltan.size > 0 && (
+                  <Boton type="button" onClick={() => poner(cantidadesDeLoQueFalta(prendas))} disabled={congelado || loading} className="min-h-[34px] gap-1.5 px-3 text-[13px]">
+                    <IconoPercha aria-hidden className="h-4 w-4 text-ambar-profundo" strokeWidth={1.6} />
+                    Lo que falta en el piso · {faltan.size}
+                  </Boton>
+                )}
+                <Boton type="button" onClick={() => poner(cantidadesDeTodoElAlmacen(prendas))} disabled={congelado || loading} className="min-h-[34px] px-3 text-[13px]">
+                  Todo el almacén
+                </Boton>
+                <Boton type="button" onClick={() => poner({})} disabled={congelado || loading || total === 0} className="min-h-[34px] px-3 text-[13px]">
+                  Vaciar
+                </Boton>
+              </div>
+            )}
             {/* Todos los colores del modelo: la celda sin nada en el almacén sale rayada, para que se vea por qué no se baja. */}
-            <MatrizMover colores={colores} rumbo="bajar" cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
+            <MatrizMover colores={colores} rumbo="bajar" cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} faltan={faltan} />
             {total > 0 && (
               <p className="mt-2 text-xs text-taupe">
                 {total} {total === 1 ? "prenda" : "prendas"} en {coloresConAlgo(colores, totales)} {coloresConAlgo(colores, totales) === 1 ? "color" : "colores"}.
               </p>
             )}
             {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ningún color tiene prendas libres en el almacén para bajar.</p>}
+            {/* Lo que casi no hay aquí y otra sede sí tiene: se pide desde Traslados (esta ventana solo mueve del almacén al piso). */}
+            {sinStock.length > 0 && (
+              <ul className="mt-2 space-y-1" aria-label="Lo que casi no hay en esta sede">
+                {sinStock.map((c) => (
+                  <li key={c.clave} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-lg bg-pizarra/10 px-3 py-1.5 text-[13px] text-pizarra">
+                    <span className="font-semibold">
+                      {colores.length > 1 && c.color ? `${c.color} ` : ""}
+                      {c.talla} {c.agotada ? "agotada" : "casi no hay"}: en otras sedes
+                    </span>
+                    <span className="tabular-nums text-tinta">{c.sedes}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CampoGuiado>
 
           <CampoGuiado id="responsable" guia={guia}>

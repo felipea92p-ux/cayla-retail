@@ -94,8 +94,9 @@ export function textoMarcaSinResolverDeRetiro(hora: string): string {
 /** El botón: dice cuánto sube apenas hay algo elegido, y tras un corte de red pide confirmar lo mismo de nuevo. */
 export function textoBotonSubir(total: number, congelado: boolean): string {
   if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;
-  if (total <= 0) return "Subir a almacén";
-  return total === 1 ? "Subir 1 prenda" : `Subir ${total} prendas`;
+  // «Retirar del piso» (glosario de tienda, 2026-10-05): «subir» se usaba en las dos direcciones (reponer y guardar).
+  if (total <= 0) return "Retirar del piso";
+  return total === 1 ? "Retirar 1 prenda" : `Retirar ${total} prendas`;
 }
 
 /** El aviso de éxito de la esquina. */

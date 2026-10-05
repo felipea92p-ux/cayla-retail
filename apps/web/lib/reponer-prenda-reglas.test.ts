@@ -92,9 +92,9 @@ describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
 
 describe("los textos", () => {
   it("el botón dice cuánto baja; tras un corte de red pide confirmar lo mismo de nuevo", () => {
-    expect(textoBotonReponer(0, false)).toBe("Bajar al piso");
-    expect(textoBotonReponer(1, false)).toBe("Bajar 1 prenda");
-    expect(textoBotonReponer(3, false)).toBe("Bajar 3 prendas");
+    expect(textoBotonReponer(0, false)).toBe("Reponer");
+    expect(textoBotonReponer(1, false)).toBe("Reponer 1 prenda");
+    expect(textoBotonReponer(3, false)).toBe("Reponer 3 prendas");
     expect(textoBotonReponer(3, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
   });
 
@@ -194,5 +194,71 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
     ];
     expect(detalleDeLoMovido(colores, lineas)).toBe("Azul S 2, M 3 · Blanco S 2");
     expect(detalleDeLoMovido([colores[0]], lineas)).toBe("S 2 · M 3");
+  });
+});
+
+// ── «Reponer prenda» dice qué falta, llena con un toque y avisa lo que casi no hay (2026-10-05) ───────────────────────────────────
+import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, casiNoHay, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
+
+const POR_COLGAR = { requisito: 1, accion: "por_colgar" as const };
+const MANTENER = { requisito: 1, accion: "mantener" as const };
+const talla = (id: string, t: string, piso: number, alm: number, plan: typeof POR_COLGAR | typeof MANTENER, extra: object = {}) => ({
+  varianteId: id,
+  talla: t,
+  pisoDisponible: piso,
+  almacenDisponible: alm,
+  planPiso: plan,
+  ...extra,
+});
+const MODELO: PrendaParaReponer[] = [
+  { referencia: "Adelle", color: "Azul marino", colorHex: null, tallas: [talla("a26", "26", 0, 2, POR_COLGAR), talla("a28", "28", 0, 3, POR_COLGAR), talla("a30", "30", 2, 2, MANTENER)] },
+  { referencia: "Adelle", color: "Celeste", colorHex: null, tallas: [talla("c28", "28", 0, 0, POR_COLGAR), talla("c30", "30", 1, 4, MANTENER)] },
+];
+
+describe("lo que falta en el piso", () => {
+  it("son las tallas que el motor pide y tienen algo libre atrás: no las que ya cuelgan ni las que no tienen con qué", () => {
+    expect([...tallasQueFaltan(MODELO)].sort()).toEqual(["a26", "a28"]);
+  });
+
+  it("la frase nombra el color cuando hay varios, y es null si no falta nada", () => {
+    expect(fraseDeLoQueFalta(MODELO)).toBe("Faltan en el piso: Azul marino 26, 28.");
+    expect(fraseDeLoQueFalta([MODELO[0]])).toBe("Faltan en el piso: 26, 28.");
+    expect(fraseDeLoQueFalta([MODELO[1]])).toBeNull();
+  });
+
+  it("«Lo que falta en el piso» pone UNA de cada talla que falta; «Todo el almacén» pone todo lo libre atrás", () => {
+    expect(cantidadesDeLoQueFalta(MODELO)).toEqual({ a26: 1, a28: 1 });
+    expect(cantidadesDeTodoElAlmacen(MODELO)).toEqual({ a26: 2, a28: 3, a30: 2, c30: 4 });
+  });
+
+  it("los atajos nunca pasan de lo libre: lo que arman cabe en las líneas que viajan a la base", () => {
+    const colores = coloresParaMover(MODELO);
+    for (const cantidades of [cantidadesDeLoQueFalta(MODELO), cantidadesDeTodoElAlmacen(MODELO)]) {
+      const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
+      expect(totalAReponer(lineas)).toBe(Object.values(cantidades).reduce((a, b) => a + b, 0));
+    }
+  });
+});
+
+describe("lo que casi no hay", () => {
+  it("una talla con 1 o ninguna aquí, que otra sede tiene y no viene en camino", () => {
+    const m: PrendaParaReponer[] = [
+      {
+        referencia: "Adelle",
+        color: "Celeste",
+        colorHex: null,
+        tallas: [
+          talla("c26", "26", 0, 0, POR_COLGAR, { enRed: [{ sede: "Tienda Arequipa", cantidad: 2 }, { sede: "Tienda Lima", cantidad: 1 }] }),
+          talla("c28", "28", 0, 1, POR_COLGAR, { enRed: [{ sede: "Taller", cantidad: 3 }] }),
+          talla("c30", "30", 3, 4, MANTENER, { enRed: [{ sede: "Tienda Lima", cantidad: 5 }] }), // aquí hay de sobra
+          talla("c32", "32", 0, 0, POR_COLGAR, { enRed: [] }), // en ninguna otra sede: no hay a quién pedirle
+          talla("c34", "34", 0, 0, POR_COLGAR, { enRed: [{ sede: "Taller", cantidad: 2 }], enTransito: 2 }), // ya viene en camino
+        ],
+      },
+    ];
+    expect(casiNoHay(m)).toEqual([
+      { clave: "c26", color: "Celeste", talla: "26", agotada: true, sedes: "Arequipa 2 · Lima 1" },
+      { clave: "c28", color: "Celeste", talla: "28", agotada: false, sedes: "Taller 3" },
+    ]);
   });
 });
