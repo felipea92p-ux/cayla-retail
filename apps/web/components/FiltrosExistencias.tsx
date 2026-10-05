@@ -402,6 +402,8 @@ export function FiltrosExistencias({
         </p>
         <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
           {/* En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no caben juntos en 375 px. */}
+          {/* Como la maqueta: con las tarjetas (`orden`), ni «Copiar enlace» ni un segundo «Ordenar por»; el orden es «Prioridad | A–Z». */}
+          {!orden && (
           <button
             type="button"
             onClick={copiarEnlace}
@@ -411,10 +413,11 @@ export function FiltrosExistencias({
             <Link2 aria-hidden className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Copiar enlace</span>
           </button>
+          )}
           {vista}
           {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
           <BotonSonidoConfirmar />
-          {orden && (
+          {orden && !separa && (
             <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
               <DesplegablePildora
                 encoger
