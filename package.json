@@ -80,6 +80,7 @@
     "pruebas:separaciones": "node scripts/pruebas/separaciones.mjs",
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
     "pruebas:movimientos-desde-la-tienda": "node scripts/pruebas/movimientos_desde_la_tienda.mjs",
+    "pruebas:movimientos-colgada-y-guardada": "node scripts/pruebas/movimientos_colgada_y_guardada.mjs",
     "pruebas:traslados-recibir-sin-perder-nada": "node scripts/pruebas/traslados_recibir_sin_perder_nada.mjs",
     "pruebas:pedir-a-otra-sede": "node scripts/pruebas/pedir_a_otra_sede.mjs",
     "pruebas:pedidos-que-no-se-pierden": "node scripts/pruebas/pedidos_que_no_se_pierden.mjs",

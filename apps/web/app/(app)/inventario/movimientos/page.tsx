@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { userAgent } from "next/server";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
@@ -7,7 +6,6 @@ import { getSububicaciones } from "@/lib/sububicaciones";
 import {
   agruparPorOperacion,
   cursorDesdeParams,
-  desgloseCifras,
   filtrosDesdeParams,
   getPrendasDeMovimientos,
   getApartadosDeMovimientos,
@@ -17,14 +15,10 @@ import {
   periodoCorto,
   serializarCursorMovimientos,
   hoyEnLima,
-  unidades,
-  type CategoriaMovimiento,
-  type CifrasGrupo,
+  type CategoriaFiltro,
   type ParamsMovimientos,
-  type ResumenTienda,
 } from "@/lib/movimientos-v2";
-import { desdeDeUltimosDias, desgloseAjustes, restarDias, ventasAnuladas } from "@/lib/movimientos-reglas";
-import type { ReactNode } from "react";
+import { desdeDeUltimosDias, restarDias } from "@/lib/movimientos-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { PerdidasVista } from "@/components/perdidas/PerdidasVista";
@@ -40,8 +34,8 @@ import {
   rangoPerdidas,
   type ParamsPerdidas,
 } from "@/lib/perdidas-reglas";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
+import { TiposMovimiento } from "@/components/movimientos/TiposMovimiento";
 import { MovimientosLista } from "@/components/MovimientosLista";
 import { MovimientosVacio } from "@/components/MovimientosVacio";
 import { MenuMovimientos } from "@/components/MenuMovimientos";
@@ -136,15 +130,18 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
       <PestanasMovimientos activa="movimientos" />
 
-      {resumen ? (
-        <Cifras resumen={resumen} categoria={filtros.categoria ?? null} sede={sede} periodo={periodoCorto(periodo, filtros.desde, filtros.hasta)} params={params} />
-      ) : (
-        <p className="nota-cayla text-sm">Las cifras de arriba no se pudieron leer ahora; la lista de abajo está completa.</p>
-      )}
-
       {/* Filtros y lista en UNA tarjeta (ADR-0169): lo que se filtra y lo filtrado se leen como una sola cosa, y la
           lista sube a la primera pantalla. Separadas, entre las dos iban dos huecos y una línea de ayuda, y en 1366×768
           se veía una sola fila. */}
+      {/* Lista a la izquierda, tipos a la derecha (rediseño 2026-10-05, ADR-0353, columna que pidió Felipe): los siete botones son el
+          filtro de tipo Y sus cifras —reemplazan a las píldoras de tipo y a las tres tarjetas de arriba—. Desde lg la columna
+          acompaña al bajar por la lista; debajo, la fila de botones va ARRIBA de la lista y se desliza de lado. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start">
+      <aside className="order-1 min-w-0 space-y-3 lg:sticky lg:top-[4.75rem] lg:order-2">
+        <TiposMovimiento resumen={resumenSinProceso ?? resumen} categoria={filtros.categoria ?? null} hrefTipo={(cat) => hrefConTipo(params, cat)} periodo={periodoCorto(periodo, filtros.desde, filtros.hasta)} />
+        {!resumen && <p className="nota-cayla text-sm">Las cifras no se pudieron leer ahora; la lista está completa.</p>}
+      </aside>
+      <div className="order-2 min-w-0 space-y-6 lg:order-1">
       <section aria-label="Movimientos de la sede" className="card-cayla overflow-hidden">
         <FiltrosMovimientos
           sububicaciones={sububicaciones}
@@ -199,6 +196,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         pathname="/inventario/movimientos"
         sustantivo={["movimiento", "movimientos"]}
       />
+      </div>
+      </div>
 
       {/* La ayuda de uso va en la nota del pie, como en toda pantalla (ADR-0169): lo que se toca y adónde lleva, sin
           prometer lo que no hace (ADR-0234). Las filas ya se ven tocables (flecha, referencia subrayada). */}
@@ -283,127 +282,8 @@ async function PaginaPerdidas({ ubicacionId, modulos, params }: { ubicacionId: s
  *  protege la RLS de lo que muestra. */
 const MODULOS_DE_ATAJOS = ["cambios", "devoluciones", "conteos", "existencias", "apartados"] as const;
 
-// Tres tarjetas leídas desde la tienda (ADR-0234; mismo lenguaje visual que «Prioridades de hoy» de Existencias):
-// lo que ENTRÓ a la sede (del proveedor, del Taller, de una devolución…), lo que SALIÓ y los ajustes. Cada una nombra la
-// sede —comparar dos tiendas sin darse cuenta es fácil si la sede solo está arriba, en chico— y el período. Siguen al
-// filtro de tipo, como a los demás: con «Traslados» elegido, «Entró» dice solo lo que llegó por traslado.
-// Cada una se toca (ADR-0241, Felipe eligió tarjetas tocables): «Salió» filtra las salidas, como la píldora; tocada
-// otra vez, vuelve a «Todos». Hasta el 2026-09-26 no eran clic («la misma acción en dos controles confunde»), pero en el
-// celular la franja es lo primero que el pulgar encuentra y la píldora queda dentro de la hoja de filtros.
-function Cifras({
-  resumen,
-  categoria,
-  sede,
-  periodo,
-  params,
-}: {
-  resumen: ResumenTienda;
-  categoria: CategoriaMovimiento | null;
-  sede: string;
-  periodo: string;
-  params: ParamsMovimientos;
-}) {
-  const hrefTipo = (cat: CategoriaMovimiento) => hrefConTipo(params, categoria === cat ? null : cat);
-  const n = (v: number) => Math.abs(v).toLocaleString("es-PE");
-  // Con un tipo elegido, las tres tarjetas miran lo que ese filtro muestra: con «Traslados», «Entró» es lo que llegó por
-  // traslado y «Salió», lo que salió por traslado. Los ajustes van aparte (D1): solo cuentan en su tarjeta.
-  const vacio: CifrasGrupo = { operaciones: 0, entran: 0, salen: 0, movidas: 0, procesos: [] };
-  const grupo = categoria ? resumen[categoria] : null;
-  const entro = !grupo ? resumen.entrada : categoria === "ajuste" ? vacio : grupo;
-  const salio = !grupo ? resumen.salida : categoria === "ajuste" ? vacio : grupo;
-  const ajustes = !grupo || categoria === "ajuste" ? resumen.ajuste : vacio;
-  const desglose = desgloseAjustes(ajustes);
-  const movidas = !categoria || categoria === "interno" ? resumen.interno.movidas : 0;
-  return (
-    <>
-      {/* En el celular, las tres cifras en UNA franja: tres tarjetas apiladas se comían la primera pantalla y el primer
-          movimiento quedaba a 1.000 px (revisión del 2026-09-26). El desglose queda para la pantalla ancha. */}
-      <div className="card-cayla px-4 py-3 sm:hidden" aria-label={`Cifras de ${sede} · ${periodo}`}>
-        <p className="label-cayla text-[10px] font-bold text-taupe">
-          {sede} · {periodo}
-        </p>
-        <dl className="mt-1.5 grid grid-cols-3 gap-2">
-          <CifraCorta etiqueta="Entró" valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} tono={entro.entran > 0 ? "text-verde" : undefined} href={hrefTipo("entrada")} activa={categoria === "entrada"} />
-          <CifraCorta etiqueta="Salió" valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} href={hrefTipo("salida")} activa={categoria === "salida"} />
-          <CifraCorta
-            etiqueta="Ajustes"
-            valor={ajustes.operaciones === 0 ? "—" : <CarasAjustes faltaron={ajustes.salen} aparecieron={ajustes.entran} corta />}
-            href={hrefTipo("ajuste")}
-            activa={categoria === "ajuste"}
-          />
-        </dl>
-      </div>
-    <div className="hidden gap-3 sm:grid sm:grid-cols-3">
-      <TarjetaCifra etiqueta={`Entró a ${sede} · ${periodo}`} valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} unidad={unidades(entro.entran)} tono={entro.entran > 0 ? "text-verde" : undefined} href={hrefTipo("entrada")} activa={categoria === "entrada"}>
-        {entro.entran === 0 ? "No entró nada en el período" : desgloseCifras(entro, "entran")}
-      </TarjetaCifra>
-      {/* «Salió» no es alarma (una venta es lo esperado, no un problema): neutro, no coral. */}
-      <TarjetaCifra etiqueta={`Salió de ${sede} · ${periodo}`} valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} unidad={unidades(salio.salen)} href={hrefTipo("salida")} activa={categoria === "salida"}>
-        {/* «30 vendidas (2 se anularon)»: las ventas que se anularon después se dicen junto a las vendidas, no solo en «Entró». */}
-        {salio.salen === 0 ? "No salió nada en el período" : desgloseCifras(salio, "salen", { anuladas: ventasAnuladas(resumen) })}
-      </TarjetaCifra>
-      {/* Ajustes en bruto (Felipe, 2026-10-03): lo que faltó y lo que apareció, nunca un neto — «+52» escondía 35 prendas
-          que faltaron. El desglose dice si hay un documento detrás («a mano» o «en un conteo»), no el motivo. */}
-      <TarjetaCifra
-        etiqueta={`Ajustes en ${sede} · ${periodo}`}
-        valor={ajustes.operaciones === 0 ? "—" : <CarasAjustes faltaron={ajustes.salen} aparecieron={ajustes.entran} />}
-        href={hrefTipo("ajuste")}
-        activa={categoria === "ajuste"}
-      >
-        {ajustes.operaciones === 0 ? (
-          "Sin ajustes en el período"
-        ) : (
-          <>
-            {desglose.faltaron && <span className="block">Faltaron: {desglose.faltaron}</span>}
-            {desglose.aparecieron && <span className="block">Aparecieron: {desglose.aparecieron}</span>}
-          </>
-        )}
-        {movidas > 0 && <span className="block">Además, {n(movidas)} movidas entre piso y almacén (no cambian el total).</span>}
-      </TarjetaCifra>
-    </div>
-    </>
-  );
-}
-
-/** Las dos caras de los ajustes, cada una con su palabra: «−35 faltaron  +87 aparecieron». Lo que faltó va en rojo (hay
- *  que mirarlo, como el punto rojo de su fila); lo que apareció, en tinta: no es alarma, pero tampoco es una entrada. Una
- *  cara en cero se apaga y no se esconde: «0 faltaron» también es una respuesta. `corta`: la columna angosta de la franja
- *  del celular (~100 px): las dos cifras se apilan, más chicas y cada una con su palabra —sin ella, «−3 +7» no dice qué es
- *  cada cosa—. */
-function CarasAjustes({ faltaron, aparecieron, corta = false }: { faltaron: number; aparecieron: number; corta?: boolean }) {
-  const n = (v: number) => v.toLocaleString("es-PE");
-  const palabra = corta ? "font-sans text-[11px] text-taupe" : "font-sans text-sm text-tinta/55";
-  return (
-    <span className={corta ? "flex flex-col text-lg leading-snug" : "flex flex-wrap items-baseline gap-x-4"}>
-      <span className="whitespace-nowrap">
-        <span className={faltaron > 0 ? "text-rojo" : "text-tinta/40"}>{faltaron > 0 ? `−${n(faltaron)}` : "0"}</span>
-        <span className={palabra}> faltaron</span>
-      </span>
-      <span className="whitespace-nowrap">
-        <span className={aparecieron > 0 ? "text-tinta" : "text-tinta/40"}>{aparecieron > 0 ? `+${n(aparecieron)}` : "0"}</span>
-        <span className={palabra}> aparecieron</span>
-      </span>
-    </span>
-  );
-}
-
-function CifraCorta({ etiqueta, valor, tono, href, activa }: { etiqueta: string; valor: ReactNode; tono?: string; href: string; activa: boolean }) {
-  return (
-    <div className="min-w-0">
-      <Link
-        href={href}
-        aria-current={activa ? "true" : undefined}
-        className={`-mx-1.5 block rounded-lg px-1.5 py-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${activa ? "bg-hueso" : "hover:bg-hueso/60"}`}
-      >
-        <dt className="text-[11px] text-taupe">{etiqueta}</dt>
-        <dd className={`font-display text-2xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</dd>
-      </Link>
-    </div>
-  );
-}
-
 /** La misma pantalla con otro tipo (o sin tipo): sin el proceso, la página ni el detalle abierto — como la píldora. */
-function hrefConTipo(params: ParamsMovimientos, cat: CategoriaMovimiento | null): string {
+function hrefConTipo(params: ParamsMovimientos, cat: CategoriaFiltro | null): string {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (typeof v === "string" && v && !["cat", "proc", "cursor", "mov"].includes(k)) p.set(k, v);
   if (cat) p.set("cat", cat);
