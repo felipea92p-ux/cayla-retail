@@ -1,4 +1,4 @@
-## 🪪 La prenda sin foto en un solo lenguaje (2026-10-04, ADR-0332) — solo web, sin migración; rama `claude/isotipo-visual-alignment-458ecd`
+## 🪪 La prenda sin foto en un solo lenguaje (2026-10-04, ADR-0333) — solo web, sin migración; rama `claude/isotipo-visual-alignment-458ecd`
 
 - [x] `MosaicoPrenda` gana la forma `relleno`; `SinFoto`, `MiniaturaPrenda` y `FotoDePrenda` la usan (el isotipo deja de ser relleno).
 - [x] Existencias trae `categorias.prefijo`/`familia` y los lleva a tarjeta, lista, cajón, Ajustar, Reponer, Subir y Bajar al piso.

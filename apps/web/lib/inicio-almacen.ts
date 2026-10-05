@@ -4,7 +4,6 @@ import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { getExistencias } from "@/lib/inventario-v2";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
 import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
-import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia } from "@/lib/existencias-prendas";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getResumenTienda } from "@/lib/movimientos-v2";
 import { listarPorRecibir } from "@/lib/compras";
@@ -14,8 +13,10 @@ import {
   armarNuevos,
   avanceDelTrayecto,
   etiquetaLlegada,
+  existenciasDeAlmacen,
   inicioDeAyerLima,
   siglaSede,
+  type Existencias,
   type FilaNuevoCruda,
   type NuevoProducto,
   type OrigenDeProducto,
@@ -168,63 +169,18 @@ export async function getEnCamino(ubicacionId: string, ahoraMs: number = Date.no
   });
 }
 
-// ── Lo que pide piso y «Pulso del almacén» ──────────────────────────────────────────────────────────
-
-export type PrendaParaReponer = {
-  clave: string;
-  referencia: string;
-  color: string | null;
-  colorHex?: string | null;
-  fotoUrl: string | null;
-  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, ADR-0332). */
-  categoria?: string | null;
-  categoriaPrefijo?: string | null;
-  categoriaFamilia?: string | null;
-  /** Solo las tallas que piden piso: «piso» = en el piso no queda ninguna y atrás sí (`por_colgar`). */
-  tallas: { talla: string; sinPiso: boolean }[];
-};
-
-export type Existencias = {
-  /** Unidades libres en el almacén de la sede. */
-  enAlmacen: number | null;
-  /** Cuántos modelos piden piso (cuenta por prenda: modelo en un color). */
-  modelosParaReponer: number;
-  /** Las tres más urgentes, con sus tallas. */
-  reponer: PrendaParaReponer[];
-};
+// ── «Por colgar» y «Pulso del almacén» ─────────────────────────────────────────────────────────────
 
 /**
- * Lo que sale de las existencias de la sede: cuánto hay atrás y qué pide piso (`calcularAccionHoy` → `agruparPorPrenda` →
- * `ordenarPorUrgencia`). OJO (2026-10-04): la tarjeta «Reponer a piso hoy» de Existencias ya no existe; su lugar lo tomó «Para
- * hoy», que cuenta TALLAS «por colgar» con `hoyDeTalla`. Este conteo sigue siendo MODELOS con alguna talla que pide piso, e
- * incluye las que no tienen nada atrás: los dos números no coinciden todavía (anotado en el backlog del rediseño de
- * Existencias). `null` si no se pudo leer; en una sede que no separa piso de almacén no hay nada que reponer.
+ * Lo que sale de las existencias de la sede: cuánto hay atrás y qué está por colgar (`existenciasDeAlmacen`, la misma cuenta que
+ * «Para hoy» de Existencias). La misma lectura (`getExistencias`) y la misma «Acción hoy» (`accionHoyPorVariante` con
+ * `politicaDe`) que esa pantalla. `null` si no se pudo leer.
  */
 export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<Existencias | null> {
   return tolerarLectura("las existencias de la sede", async () => {
     const stock = await getExistencias(ubicacionId, ubicaciones);
-    const separa = stock.some((f) => f.piso !== null);
-    if (!separa) return { enAlmacen: null, modelosParaReponer: 0, reponer: [] };
     const accion = accionHoyPorVariante(stock, politicaDe(ubicacionId));
-    const filas = stock.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null }));
-    const piden = ordenarPorUrgencia(agruparPorPrenda(filas)).filter((p) => p.tallas.some((f) => f.accionHoy?.tipo === "reponer_a_piso"));
-    return {
-      enAlmacen: stock.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
-      modelosParaReponer: piden.length,
-      reponer: piden.slice(0, 3).map((p) => ({
-        clave: p.clave,
-        referencia: p.referencia,
-        color: p.color,
-        colorHex: p.colorHex,
-        fotoUrl: p.fotoUrl,
-        categoria: p.categoria ?? null,
-        categoriaPrefijo: p.categoriaPrefijo ?? null,
-        categoriaFamilia: p.categoriaFamilia ?? null,
-        tallas: p.tallas
-          .filter((f) => f.accionHoy?.tipo === "reponer_a_piso")
-          .map((f) => ({ talla: f.talla ?? "Única", sinPiso: estadoTalla(f) === "por_colgar" })),
-      })),
-    };
+    return existenciasDeAlmacen(stock.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null })));
   });
 }
 

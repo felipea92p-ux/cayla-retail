@@ -1,4 +1,4 @@
-# ADR-0332 · La prenda sin foto se dice de una sola manera
+# ADR-0333 · La prenda sin foto se dice de una sola manera
 
 - **Fecha:** 2026-10-04 · **Estado:** construido en la rama `claude/isotipo-visual-alignment-458ecd`. **Solo web, sin migración.**
   Verificado en local, en Chrome sin ventana, a 1440 × 900 y 375 × 812.

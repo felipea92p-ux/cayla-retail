@@ -1,26 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { validarParametrosFinanzas, type ParametrosFinanzas } from "@/lib/configuracion-reglas";
+import { validarParametrosFinanzas, type ParametrosFinanzas, type ParametrosFinanzasConCorte } from "@/lib/configuracion-reglas";
+import { hoyLima } from "@/lib/apartados-reglas";
+import { consecuenciaCorte, corteParaBase, fechaDelCorte, opcionesCorte, SIN_CORTE } from "@/lib/finanzas-arranque-reglas";
 
 // Configuración ▸ Caja y avisos (spike `cfgCaja`, 20260925103000): el mínimo de caja que vigilan el Flujo y el Resumen, y
-// cuándo el sistema llama la atención. Cada casilla se guarda sola al salir de ella, firmada con el responsable.
+// cuándo el sistema llama la atención. Cada casilla se guarda sola al salir de ella, firmada con el responsable. Aparte,
+// «Desde cuándo cuenta Finanzas» (ADR-0332): un combo de meses con su botón, porque mover ese corte cambia lo que
+// muestran los estados y no se hace con un clic suelto.
 
 type Borrador = { minimoCaja: string; avisoGastoPct: string; avisoVenceDias: string };
 const aBorrador = (p: ParametrosFinanzas): Borrador => ({ minimoCaja: String(p.minimoCaja), avisoGastoPct: String(p.avisoGastoPct), avisoVenceDias: String(p.avisoVenceDias) });
 
-export function ConfiguracionCajaAvisos({ parametros }: { parametros: ParametrosFinanzas | null }) {
+export function ConfiguracionCajaAvisos({ parametros }: { parametros: ParametrosFinanzasConCorte | null }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
+  const corteVigente = parametros?.inicioFinanzas ?? SIN_CORTE;
+  const [corteBase, setCorteBase] = useState(corteVigente);
+  const [corte, setCorte] = useState(corteVigente);
+  const opciones = useMemo(() => opcionesCorte(hoyLima(), parametros?.inicioFinanzas ?? null), [parametros?.inicioFinanzas]);
+  if (corteVigente !== corteBase) {
+    setCorteBase(corteVigente);
+    setCorte(corteVigente);
+  }
   const inicial = parametros ? aBorrador(parametros) : { minimoCaja: "", avisoGastoPct: "", avisoVenceDias: "" };
   const [b, setB] = useState<Borrador>(inicial);
   const [base, setBase] = useState(inicial);
@@ -68,6 +80,26 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
     router.refresh();
   }
 
+  async function guardarCorte() {
+    if (corte === corteBase) return;
+    if (!responsable.listo) {
+      avisar.error(responsable.motivo ?? "Elige quién hace el cambio (Responsable).");
+      return;
+    }
+    const fecha = corteParaBase(corte);
+    setGuardando(true);
+    const { error } = await firmar(createClient().rpc("guardar_inicio_finanzas" as never, { p_fecha: fecha } as never), responsable.firma());
+    setGuardando(false);
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "guardar desde cuándo cuenta Finanzas"));
+      setCorte(corteBase);
+      return;
+    }
+    avisar.exito(fecha ? `Finanzas cuenta desde el ${fechaDelCorte(fecha)}.` : "Finanzas vuelve a contar todo lo registrado.");
+    router.refresh();
+  }
+
   const casilla = (campo: keyof Borrador, etiqueta: string, ayuda: string, pre?: string, suf?: string) => (
     <CampoFin etiqueta={etiqueta} htmlFor={`cfg-${campo}`} ayuda={ayuda}>
       <div className="fin-con-unidad">
@@ -105,6 +137,21 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
           {casilla("avisoVenceDias", "Avisar los vencimientos con", "Las facturas que vencen dentro de ese plazo suben al Resumen.", undefined, "días")}
         </Superficie>
       </section>
+      {!parametros.corteDisponible ? (
+        <p className="nota-cayla">Falta pegar en la base la migración «Finanzas cuenta desde» (20261004190000) para poder elegir desde cuándo cuenta Finanzas.</p>
+      ) : (
+      <Superficie pad className="anim-sube">
+        <CabeceraBloque titulo="Desde cuándo cuenta Finanzas" bajada="Para un sistema que empezó a usarse a mitad de camino: lo de antes no entra a los estados." />
+        <CampoFin etiqueta="Finanzas cuenta" htmlFor="cfg-corte" ayuda={consecuenciaCorte(corteParaBase(corte))}>
+          <SelectFin id="cfg-corte" valor={corte} onValor={setCorte} opciones={opciones} deshabilitado={guardando} />
+        </CampoFin>
+        <div className="fin-botones">
+          <button type="button" className="btn-cayla btn-primario" onClick={guardarCorte} disabled={guardando || corte === corteBase || !responsable.listo}>
+            {guardando ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+      </Superficie>
+      )}
     </>
   );
 }

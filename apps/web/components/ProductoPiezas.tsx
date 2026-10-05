@@ -8,7 +8,7 @@ import type { ColorDisponible } from "@/lib/productos-vista";
 /* ====================================================================
    Piezas de Productos que comparten la Grilla y la Tabla (ADR-0077,
    ADR-0254): los círculos de color y la miniatura (sin foto: la categoría
-   sobre el color, ADR-0332). Una sola pieza por idea, para que las dos vistas no se
+   sobre el color, ADR-0333). Una sola pieza por idea, para que las dos vistas no se
    separen de a poco.
    ==================================================================== */
 
@@ -96,7 +96,7 @@ export function SwatchesColor({
 }
 
 /** La foto chica de la fila: la del color que se está mirando o, si ese color no tiene foto, el ícono de su categoría sobre ese
- *  color (`MosaicoPrenda`, ADR-0332; antes un tinte con una percha). */
+ *  color (`MosaicoPrenda`, ADR-0333; antes un tinte con una percha). */
 export function MiniaturaPrenda({ color, referencia, className = "h-[50px] w-10", prefijo, familia, categoria }: { color: ColorDisponible | null; referencia: string; className?: string } & CategoriaDePrenda) {
   return (
     <span className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-md ${className}`}>

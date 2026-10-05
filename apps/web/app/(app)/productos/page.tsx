@@ -136,7 +136,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const categoriasLeidas = exigir(categorias, "las categorías");
   const categoriasOpciones = categoriasLeidas.map((c) => ({ id: c.id, nombre: c.nombre }));
   // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
-  // ícono de su miniatura cuando no tiene foto (ADR-0332). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
+  // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
   const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
   const productos = resultado.productos.map((p) => {
     const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;

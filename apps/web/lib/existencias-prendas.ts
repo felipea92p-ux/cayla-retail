@@ -21,7 +21,6 @@ export type FilaPrenda = Pick<
   | "color"
   | "colorHex"
   | "fotoUrl"
-  | "categoria"
   | "categoriaPrefijo"
   | "categoriaFamilia"
   | "codigosBarras"
@@ -33,7 +32,9 @@ export type FilaPrenda = Pick<
   | "enTransito"
   | "accionHoy"
   | "marca"
->;
+> &
+  // La categoría es opcional aquí (`FilaStock.categoria` es obligatoria, pero las pruebas arman filas mínimas): la miniatura dibuja la percha sin ella.
+  Partial<Pick<FilaExistencias, "categoria">>;
 
 /** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
  *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma

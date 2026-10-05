@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { categoriaDe } from "./categoria-de-prenda";
 
-// Candado de la regla «una prenda sin foto se dice de UNA sola manera» (ADR-0332, Felipe 2026-10-04): el ícono de su categoría sobre
+// Candado de la regla «una prenda sin foto se dice de UNA sola manera» (ADR-0333, Felipe 2026-10-04): el ícono de su categoría sobre
 // su color (`MosaicoPrenda`). El isotipo de CAYLA (`/cayla-isotipo.png`) es la MARCA —tickets, etiquetas, loader, cartel del club—;
 // puesto como relleno de una miniatura decía «sin foto» igual en 25 prendas y no distinguía una de otra. Una regla que solo vive en un
 // documento se olvida: esta prueba falla si un archivo nuevo dibuja el isotipo, así que dibujarlo ahí tiene que ser una decisión a la vista.

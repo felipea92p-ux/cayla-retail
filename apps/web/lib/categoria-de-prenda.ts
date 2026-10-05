@@ -1,5 +1,5 @@
 /**
- * La categoría de una prenda, tal como la necesita su miniatura cuando no hay foto (`SinFoto`, ADR-0332).
+ * La categoría de una prenda, tal como la necesita su miniatura cuando no hay foto (`SinFoto`, ADR-0333).
  *
  * CONTRATO. Promete: dada una fila de prenda (la de Existencias, Conteo, el catálogo…) devuelve `{ prefijo, familia, categoria }`
  * —el prefijo decide el ícono (`categorias.prefijo`, nunca el nombre visible, que se renombra), la familia decide el tono

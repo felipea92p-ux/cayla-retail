@@ -158,7 +158,7 @@ function TarjetaProducto({
           <Image src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover" unoptimized />
         ) : (
           <>
-            {/* Sin foto de ese color: el ícono de su categoría sobre el color (`MosaicoPrenda`, ADR-0332). La capa absoluta es de este
+            {/* Sin foto de ese color: el ícono de su categoría sobre el color (`MosaicoPrenda`, ADR-0333). La capa absoluta es de este
                 contenedor: el mosaico trae su propio `relative`. */}
             <div className="absolute inset-0">
               <MosaicoPrenda forma="relleno" colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />

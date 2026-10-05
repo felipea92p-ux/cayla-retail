@@ -9,6 +9,7 @@ import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { soles } from "@/lib/flujo-caja-reglas";
+import { avisoAntesDelCorte, mesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { mesNombre } from "@/lib/resultados-reglas";
 import {
   avisosParaDecidir,
@@ -128,12 +129,15 @@ export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: Resu
 
 function Cobertura({ r }: { r: ResumenFinanzas }) {
   const { barras, sinDatos } = coberturaTiendas(r);
-  const mes = mesNombre(r.mesAnterior);
+  // Si el último mes completo quedó antes del corte de Finanzas (ADR-0332), el primero que se mide es el del corte.
+  const mes = mesNombre(r.antesDelCorte ? mesDelCorte(r.antesDelCorte) : r.mesAnterior);
   return (
     <div {...entra(10)}>
       <Superficie pad>
         <CabeceraBloque titulo="¿Cada tienda cubre sus costos?" bajada={`${mayuscula(mes)}: lo que vendió contra lo que necesitaba vender (100 %).`} />
-        {r.resultadosAnterior.estado !== "ok" ? (
+        {r.antesDelCorte ? (
+          <p className="fin-nota-bloque">{avisoAntesDelCorte(r.antesDelCorte)}</p>
+        ) : r.resultadosAnterior.estado !== "ok" ? (
           <p className="fin-nota-bloque">{motivoAusencia(r.resultadosAnterior) ?? "El estado de resultados no se pudo leer."}</p>
         ) : barras.length ? (
           <GraficoSemanas

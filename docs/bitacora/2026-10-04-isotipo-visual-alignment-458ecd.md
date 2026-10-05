@@ -8,7 +8,7 @@ los tickets). Una sola pieza, y un candado (`lib/sin-foto.test.ts`) que falla si
 isotipo como relleno. Verificado en Chrome sin ventana a 1440 y 375 px, incluido el cambio de color de una tarjeta (beige → negro).
 Felipe se lleva: falta decidir si Catálogo ▸ Productos, Apartados e Inicio de Almacén (que dibujan su propio «sin foto») también se
 unifican; y Movimientos, Traslados, Cambios, Devoluciones, Compras, Resumen y Análisis muestran por ahora una percha sobre tono
-neutro (ya sin isotipo) porque sus cargadores aún no traen el prefijo de la categoría. ADR-0332.
+neutro (ya sin isotipo) porque sus cargadores aún no traen el prefijo de la categoría. ADR-0333.
 
 ## 2026-10-04 (la misma prenda sin foto en Productos, Apartados e Inicio de Almacén)
 Qué hice: Felipe pidió unificar también las tres pantallas que dibujaban su propio «sin foto». Catálogo ▸ Productos (tarjeta, vista

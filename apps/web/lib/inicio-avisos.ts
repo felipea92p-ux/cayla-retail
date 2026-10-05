@@ -66,8 +66,8 @@ export type FuentesAvisos = {
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
-  /** Modelos que el piso de venta pide (la regla de «Acción hoy»: `calcularAccionHoy`). */
-  reponer?: number | null;
+  /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`). */
+  porColgar?: { tallas: number; unidades: number } | null;
   /** Productos activos sin ninguna foto. */
   fotosQueFaltan?: number | null;
   /** Productos activos sin marca o sin proveedor (ADR-0283). */
@@ -260,18 +260,27 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ocultable: true,
     });
   }
-  // «Acción hoy» de Existencias, contada por modelos: lo que el piso de venta pide subir desde el almacén.
-  if (f.reponer !== undefined) {
-    const n = f.reponer;
+  // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`) y su misma
+  // palabra. Antes decía «Sube N modelos al piso»: otro número (modelos, con las agotadas incluidas) y el verbo al revés, porque en
+  // Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Bajar al piso». Lleva a la lista filtrada por «Hoy ▸ Por
+  // colgar», donde están las mismas tallas y el botón «Bajar al piso». El detalle repite la honestidad de «Para hoy»: mientras no se
+  // cuadre el piso, casi todo «por colgar» ya cuelga y el sistema lo cree guardado (ADR-0331); lo que toca es registrarlo al bajar.
+  // La clave sigue siendo «reponer»: es la que guarda la elección de «Ajustar» de cada persona (cookie), y cambiarla le volvería a
+  // mostrar un aviso que ya había ocultado.
+  if (f.porColgar !== undefined) {
+    const p = f.porColgar;
+    const n = p === null ? null : p.tallas;
     avisos.push({
       clave: "reponer",
       grupo: "Inventario",
-      titulo: "Reponer a piso",
+      titulo: "Por colgar",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
-      ahora: n ? `Sube ${n} ${plural(n, "modelo", "modelos")} al piso de venta` : "",
-      detalle: n === null ? SIN_LEER : n === 0 ? "El piso de venta está al día." : `${n} ${plural(n, "modelo pide", "modelos piden")} tallas en el piso.`,
-      href: "/inventario",
+      ahora: n ? `Baja al piso ${n} ${plural(n, "talla", "tallas")} por colgar` : "",
+      detalle:
+        p === null ? SIN_LEER : p.tallas === 0 ? "Cada talla guardada ya tiene una colgada."
+          : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.`,
+      href: "/inventario?hoy=por_colgar",
       ocultable: true,
     });
   }

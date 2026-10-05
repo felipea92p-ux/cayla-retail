@@ -15,7 +15,7 @@ import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from
  * Next entrega un WebP de ese ancho (y el doble en pantallas retina), no el original. Medido el 2026-09-22 en
  * producción: 31 fotos, promedio 90 KB y la mayor 199 KB; una miniatura de 44 px pesa unos 5 KB. Sin esto, la lista
  * del buscador bajaba ~0,7 MB por búsqueda. Si no hay foto o no carga (404, host no permitido), queda el ícono de su
- * categoría sobre el color de la prenda (`MosaicoPrenda`, ADR-0332; antes el ícono sobre el tono de su familia, sin color):
+ * categoría sobre el color de la prenda (`MosaicoPrenda`, ADR-0333; antes el ícono sobre el tono de su familia, sin color):
  * nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
  * rechazaría tumbando la pantalla.
  */
