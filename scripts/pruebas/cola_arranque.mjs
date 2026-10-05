@@ -470,6 +470,196 @@ rollback;`
 );
 
 // ---------------------------------------------------------------------------
+// Sugerencias: las ventas con UNA sola prenda posible se identifican de una vez, con la confirmación de un líder
+// ---------------------------------------------------------------------------
+
+/**
+ * Datos controlados para las sugerencias: el único candidato es BLU-EMMA-NEG-M (:v1) con 2 unidades en el piso. Se apartan las demás
+ * prendas del seed con la misma categoría/talla/color (su stock se pone en 0 dentro de la transacción) y se leen los atributos de
+ * :v1 en :vcat, :vtalla y :vcolor, que son los que usan las ventas de estas pruebas.
+ */
+function fixtureSug(unidades = 2) {
+  return `${fixture()}
+select pr.categoria_id as vcat, v.talla_id as vtalla, v.color_codigo as vcolor
+  from retail.variantes v join retail.productos pr on pr.id = v.producto_id where v.id = :'v1' \\gset
+update retail.stock set cantidad = 0
+  where ubicacion_id = :'ubic' and variante_id <> :'v1'
+    and variante_id in (select v.id from retail.variantes v join retail.productos pr on pr.id = v.producto_id
+                         where pr.categoria_id = :'vcat' and v.talla_id = :'vtalla' and v.color_codigo = :'vcolor');
+update retail.stock set cantidad = case when sububicacion_id = :'sub_piso' then ${unidades} else 0 end where variante_id = :'v1' and ubicacion_id = :'ubic';
+`;
+}
+
+/** Vende UNA prenda sin registrar con los atributos de :v1 (los de la única candidata). */
+function venderComoV1(n, precio = 50) {
+  return `
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', '${CENTINELA}', 'cantidad', 1, 'precio_unitario', ${precio}, 'descuento_unitario', 0,
+    'descripcion_libre', 'Blusa negra M', 'categoria_id', :'vcat', 'talla_id', :'vtalla', 'color_codigo', :'vcolor')),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', ${precio})),
+  null, gen_random_uuid()) as venta_${n} \\gset
+select id as item_${n} from retail.venta_items where venta_id = :'venta_${n}' \\gset
+select id as prenda_${n} from retail.prendas_por_regularizar where venta_item_id = :'item_${n}' \\gset
+`;
+}
+
+/** Deja en :pares el JSON de parejas (venta → :v1) de las ventas dadas. */
+const paresA = (...ns) =>
+  `select jsonb_build_array(${ns.map((n) => `jsonb_build_object('prenda_id', :'prenda_${n}', 'variante_id', :'v1')`).join(", ")}) as pares \\gset\n`;
+const sugeridas = (pares = ":'pares'", sede = ":'ubic'") => `select retail.regularizar_prendas_sugeridas(${sede}, ${pares}) as n_ident \\gset\n`;
+
+exito(
+  "una venta con UNA sola prenda posible se propone, con la cantidad que hay",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+select count(*), bool_and(prenda_id = :'prenda_a'::uuid), bool_and(variante_id = :'v1'::uuid), min(en_stock)
+  from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`
+  ),
+  ([n, laVenta, laPrenda, hay]) => n === "1" && laVenta === "t" && laPrenda === "t" && hay === "2"
+);
+
+exito(
+  "nunca se proponen más ventas que unidades: 3 ventas y 2 unidades proponen las 2 más antiguas",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug(2)}${venderComoV1("a")}${venderComoV1("b")}${venderComoV1("c")}
+update retail.prendas_por_regularizar set vendido_en = now() - interval '3 hours' where id = :'prenda_a';
+update retail.prendas_por_regularizar set vendido_en = now() - interval '2 hours' where id = :'prenda_b';
+update retail.prendas_por_regularizar set vendido_en = now() - interval '1 hour' where id = :'prenda_c';
+select count(*), bool_or(prenda_id = :'prenda_a'::uuid), bool_or(prenda_id = :'prenda_b'::uuid), bool_or(prenda_id = :'prenda_c'::uuid)
+  from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`
+  ),
+  ([n, a, b, c]) => n === "2" && a === "t" && b === "t" && c === "f"
+);
+
+exito(
+  "con DOS prendas posibles no se propone nada: elegir sería adivinar",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+insert into retail.productos (referencia, marca_id, proveedor_id, categoria_id)
+  select 'Candidata dos de prueba', marca_id, proveedor_id, :'vcat' from retail.productos order by created_at limit 1 returning id as p2 \\gset
+insert into retail.variantes (producto_id, talla_id, color_codigo, sku, precio) values (:'p2', :'vtalla', :'vcolor', 'SUG-DOS-PRUEBA', 50) returning id as v2 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v2', :'ubic', :'sub_piso', 'entrada', 3, 'prueba de sugerencias') returning id as mov2 \\gset
+select retail.fn_aplicar_movimiento(:'mov2') as _d2 \\gset
+select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`
+  ),
+  ([n]) => n === "0"
+);
+
+exito(
+  "sin ninguna prenda posible (otro color) no se propone nada",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+select codigo as otro from retail.colores where activo and codigo <> :'vcolor' order by codigo limit 1 \\gset
+update retail.prendas_por_regularizar set color_codigo = :'otro' where id = :'prenda_a';
+select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`
+  ),
+  ([n]) => n === "0"
+);
+
+exito(
+  "el stock que solo está en cuarentena no cuenta: esa prenda no se pudo haber vendido",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+select id as sub_cuar from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena' limit 1 \\gset
+update retail.stock set cantidad = 0 where variante_id = :'v1' and ubicacion_id = :'ubic';
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad) values (:'v1', :'ubic', :'sub_cuar', 5)
+  on conflict (variante_id, ubicacion_id, sububicacion_id) do update set cantidad = 5;
+select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`
+  ),
+  ([n]) => n === "0"
+);
+
+error(
+  "una colaboradora no puede pedir las sugerencias",
+  comoPersona(FELIPE, `${fixtureSug()}${venderComoV1("a")}
+set local request.jwt.claim.sub = '${MICAELA}';
+select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`),
+  "cola_solo_lider"
+);
+
+exito(
+  "confirmar las sugerencias regulariza todas: la venta pasa a su prenda real y el stock baja 1 por cada una",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug(5)}select ${STOCK_V1} as antes \\gset
+${venderComoV1("a", 50)}${venderComoV1("b", 60)}${paresA("a", "b")}${sugeridas()}
+select :'n_ident', :'antes'::int - ${STOCK_V1},
+       (select count(*) from retail.prendas_por_regularizar where id in (:'prenda_a', :'prenda_b') and estado = 'regularizada' and forma = 'ya_registrada'),
+       (select count(*) from retail.venta_items where id in (:'item_a', :'item_b') and variante_id = :'v1');
+rollback;`
+  ),
+  ([n, baja, regularizadas, lineas]) => n === "2" && baja === "2" && regularizadas === "2" && lineas === "2"
+);
+
+exito(
+  "todo o nada: si una pareja falla (más ventas que unidades) no se aplica NINGUNA",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug(1)}select ${STOCK_V1} as antes \\gset
+${venderComoV1("a", 50)}${venderComoV1("b", 60)}${paresA("a", "b")}
+select format($f$do $x$ begin perform retail.regularizar_prendas_sugeridas(%L, %L::jsonb); exception when others then null; end $x$$f$, :'ubic', :'pares') \\gexec
+select (select count(*) from retail.prendas_por_regularizar where id in (:'prenda_a', :'prenda_b') and estado = 'pendiente'), :'antes'::int - ${STOCK_V1};
+rollback;`
+  ),
+  ([pendientes, baja]) => pendientes === "2" && baja === "0"
+);
+
+error(
+  "más ventas que unidades se rechaza con el mensaje de stock, no con un error del motor",
+  comoPersona(FELIPE, `${fixtureSug(1)}${venderComoV1("a", 50)}${venderComoV1("b", 60)}${paresA("a", "b")}${sugeridas()}rollback;`),
+  "prenda_sin_stock_para_descontar"
+);
+
+error(
+  "una pareja inventada (la venta no calza con la prenda) no pasa",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+select codigo as otro from retail.colores where activo and codigo <> :'vcolor' order by codigo limit 1 \\gset
+update retail.prendas_por_regularizar set color_codigo = :'otro' where id = :'prenda_a';
+${paresA("a")}${sugeridas()}rollback;`
+  ),
+  "cola_pares_invalidos"
+);
+
+error(
+  "una pareja de OTRA tienda no pasa",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}${paresA("a")}
+select id as otra from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+${sugeridas(":'pares'", ":'otra'")}rollback;`
+  ),
+  "cola_pares_invalidos"
+);
+
+error(
+  "una lista vacía no se acepta",
+  comoPersona(FELIPE, `${fixtureSug()}${sugeridas("'[]'::jsonb")}rollback;`),
+  "cola_pares_invalidos"
+);
+
+error(
+  "una colaboradora no puede confirmar sugerencias",
+  comoPersona(FELIPE, `${fixtureSug()}${venderComoV1("a")}${paresA("a")}
+set local request.jwt.claim.sub = '${MICAELA}';
+${sugeridas()}rollback;`),
+  "cola_solo_lider"
+);
+
+// ---------------------------------------------------------------------------
 
 function main() {
   try {

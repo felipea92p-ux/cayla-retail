@@ -91,6 +91,7 @@ const HUELLAS: Huella[] = [
   { marca: "cola_sin_permiso_sede", frase: "No tienes permiso para cerrar la cola de esa tienda." },
   { marca: "cola_motivo_invalido", frase: "Elige por qué se cierran sin identificar la prenda." },
   { marca: "reabrir_motivo_invalido", frase: "Elige por qué se reabre la venta." },
+  { marca: "cola_pares_invalidos", frase: "Una de las ventas ya no calza con la prenda sugerida, o no elegiste ninguna. Cierra esta hoja, ábrela otra vez y vuelve a revisar." },
   { marca: "prenda_no_cerrada", frase: "Esa venta ya no está cerrada sin prenda (alguien la reabrió, la regularizó o se anuló). Recarga la página para ver cómo quedó." },
   { marca: "cola_corte_invalido", frase: "No se pudo fijar hasta qué venta se cierra. Recarga la página y vuelve a intentarlo." },
   { marca: "cola_sin_plazo", frase: "Esta tienda no tiene plazo abierto para cerrar su cola de ventas sin registrar." },

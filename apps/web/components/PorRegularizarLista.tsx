@@ -20,6 +20,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda, TABLA } from "@/components/ui/Tabla";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
+import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla (sin costo: esta pantalla la ve almacén). */
 export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
@@ -67,12 +68,16 @@ export function PorRegularizarLista({
   const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(null);
   const [cerrando, setCerrando] = useState(false);
   const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
+  const [sugiriendo, setSugiriendo] = useState(false);
   const ahora = useMemo(() => new Date(), []);
   const cifras = useMemo(() => cifrasPorRegularizar(filas, ahora), [filas, ahora]);
   const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
   const visibles = filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien));
   // Las tiendas que se pueden cerrar HOY: con pendientes y con plazo vigente. Sin ninguna, el botón no existe.
-  const sedesCerrables = useMemo(() => (esLider ? sedesParaCerrar(filas, plazos, ahora).filter((s) => s.puedeCerrar) : []), [esLider, filas, plazos, ahora]);
+  const sedesDelLider = useMemo(() => (esLider ? sedesParaCerrar(filas, plazos, ahora) : []), [esLider, filas, plazos, ahora]);
+  const sedesCerrables = useMemo(() => sedesDelLider.filter((s) => s.puedeCerrar), [sedesDelLider]);
+  // Las sugerencias no dependen del plazo: identificar una venta nunca está vedado, solo cerrarla sin prenda.
+  const sedesConPendientes = useMemo(() => sedesDelLider.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesDelLider]);
 
   return (
     <div className="space-y-6">
@@ -98,19 +103,26 @@ export function PorRegularizarLista({
               {f.texto}
             </button>
           ))}
-          {sedesCerrables.length > 0 && (
-            <button type="button" onClick={() => setCerrando(true)} className="btn-cayla btn-secundario ml-auto">
-              Cerrar la cola de arranque
-            </button>
-          )}
-          <div className={`${sedesCerrables.length > 0 ? "" : "ml-auto "}w-60`}>
-            <Desplegable
-              valor={quien}
-              onValor={setQuien}
-              opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
-              forma="caja"
-              etiquetaAccesible="Quién vendió"
-            />
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {sedesConPendientes.length > 0 && (
+              <button type="button" onClick={() => setSugiriendo(true)} className="btn-cayla btn-secundario">
+                Identificar con sugerencias
+              </button>
+            )}
+            {sedesCerrables.length > 0 && (
+              <button type="button" onClick={() => setCerrando(true)} className="btn-cayla btn-secundario">
+                Cerrar la cola de arranque
+              </button>
+            )}
+            <div className="w-60">
+              <Desplegable
+                valor={quien}
+                onValor={setQuien}
+                opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
+                forma="caja"
+                etiquetaAccesible="Quién vendió"
+              />
+            </div>
           </div>
         </div>
         <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
@@ -185,6 +197,7 @@ export function PorRegularizarLista({
       {abierta && (
         <RegularizarModal fila={abierta} prendas={prendas} onClose={() => setAbierta(null)} />
       )}
+      {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
       {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
       {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>

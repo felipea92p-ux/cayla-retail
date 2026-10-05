@@ -112,6 +112,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
               <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-tinta/75">
                 <li>El stock no cambia y el dinero de cada venta tampoco: solo queda sin identificar qué prenda era.</li>
                 <li>Lo que se venda desde ahora sigue pendiente.</li>
+                <li>Antes de cerrar, usa «Identificar con sugerencias»: las que tienen una sola prenda posible se pueden unir a su prenda y dejar el stock cuadrado.</li>
                 <li>Si una cliente devuelve o cambia una de estas prendas, un líder tiene que reabrirla antes.</li>
                 {sede.diasDePlazo !== null && (
                   <li>

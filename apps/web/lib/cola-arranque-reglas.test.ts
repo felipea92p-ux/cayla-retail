@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, diasDePlazo, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola } from "./cola-arranque-reglas";
+import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, armarSugerencias, diasDePlazo, paresParaConfirmar, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola, type PrendaDelCatalogo, type VentaPendiente } from "./cola-arranque-reglas";
 
 // 2026-10-04 12:00 en Lima = 17:00 UTC.
 const AHORA = new Date("2026-10-04T17:00:00Z");
@@ -120,5 +120,44 @@ describe("las listas de motivos de la web son las de la base", () => {
   it("reapertura: la función acepta exactamente los de MOTIVOS_REAPERTURA", () => {
     const funcion = lista(leer("20261005110000_cola_arranque_reabrir.sql"), /p_motivo not in \(([^)]*)\)/);
     expect(funcion.sort()).toEqual(MOTIVOS_REAPERTURA.map((m) => m.clave).sort());
+  });
+});
+
+describe("armarSugerencias / paresParaConfirmar", () => {
+  const venta = (id: string, p: Partial<VentaPendiente> = {}): VentaPendiente => ({
+    id, descripcion: "Blusa negra M", categoria: "Blusas", talla: "M", color: "Negro", precioCobrado: 50, vendidoEn: "2026-10-03T15:00:00.1+00:00", vendidoPor: "Dayana", ...p,
+  });
+  const prenda = (id: string, p: Partial<PrendaDelCatalogo> = {}): PrendaDelCatalogo => ({ id, nombre: "Blusa Emma", codigo: "BLU-1", categoria: "Blusas", talla: "M", color: "Negro", precio: 79.9, ...p });
+
+  it("une cada pareja con lo que anotó caja y con la prenda sugerida, y calcula la diferencia a céntimos", () => {
+    const [s] = armarSugerencias([{ prenda_id: "v1", variante_id: "p1", en_stock: 3 }], [venta("v1", { precioCobrado: 69.9 })], [prenda("p1")]);
+    expect(s.prenda.nombre).toBe("Blusa Emma");
+    expect(s.enStock).toBe(3);
+    expect(s.diferencia).toBe(-10);
+  });
+
+  it("ordena de la venta más antigua a la más nueva", () => {
+    const r = armarSugerencias(
+      [{ prenda_id: "v2", variante_id: "p1", en_stock: 2 }, { prenda_id: "v1", variante_id: "p1", en_stock: 2 }],
+      [venta("v1", { vendidoEn: "2026-10-01T10:00:00+00:00" }), venta("v2", { vendidoEn: "2026-10-02T10:00:00+00:00" })],
+      [prenda("p1")],
+    );
+    expect(r.map((s) => s.prendaId)).toEqual(["v1", "v2"]);
+  });
+
+  it("no muestra una pareja cuya venta ya no está pendiente o cuya prenda la pantalla no conoce", () => {
+    const parejas = [{ prenda_id: "v1", variante_id: "p1", en_stock: 1 }, { prenda_id: "v2", variante_id: "p9", en_stock: 1 }, { prenda_id: "v3", variante_id: "p1", en_stock: 1 }];
+    const r = armarSugerencias(parejas, [venta("v1"), venta("v2")], [prenda("p1")]);
+    expect(r.map((s) => s.prendaId)).toEqual(["v1"]);
+  });
+
+  it("manda solo las marcadas, en el orden en que se ven", () => {
+    const s = armarSugerencias(
+      [{ prenda_id: "v1", variante_id: "p1", en_stock: 5 }, { prenda_id: "v2", variante_id: "p1", en_stock: 5 }, { prenda_id: "v3", variante_id: "p1", en_stock: 5 }],
+      [venta("v1", { vendidoEn: "2026-10-01T10:00:00+00:00" }), venta("v2", { vendidoEn: "2026-10-02T10:00:00+00:00" }), venta("v3", { vendidoEn: "2026-10-03T10:00:00+00:00" })],
+      [prenda("p1")],
+    );
+    expect(paresParaConfirmar(s, new Set(["v3", "v1"]))).toEqual([{ prenda_id: "v1", variante_id: "p1" }, { prenda_id: "v3", variante_id: "p1" }]);
+    expect(paresParaConfirmar(s, new Set())).toEqual([]);
   });
 });

@@ -107,6 +107,62 @@ export function sedesParaCerrar(filas: readonly FilaDeCola[], plazos: Readonly<R
     }
   }
   return [...porSede.values()]
-    .map(({ _ms: _a, _msDesde: _b, ...s }) => ({ ...s, soles: Math.round(s.soles * 100) / 100 }))
+    .map((s) => ({
+      ubicacionId: s.ubicacionId,
+      sede: s.sede,
+      pendientes: s.pendientes,
+      soles: Math.round(s.soles * 100) / 100,
+      desde: s.desde,
+      corte: s.corte,
+      plazoHasta: s.plazoHasta,
+      diasDePlazo: s.diasDePlazo,
+      puedeCerrar: s.puedeCerrar,
+    }))
     .sort((a, b) => a.sede.localeCompare(b.sede, "es"));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// «Identificar con sugerencias» (20261005120000): la base propone parejas (venta sin registrar → prenda) y un líder confirma.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+/** Lo que devuelve `fn_cola_arranque_candidatas`: la pareja y cuántas unidades hay de esa prenda en la tienda. */
+export type ParejaSugerida = { prenda_id: string; variante_id: string; en_stock: number };
+
+/** Lo mínimo de una venta pendiente para mostrarla junto a su sugerencia. */
+export type VentaPendiente = { id: string; descripcion: string; categoria: string; talla: string; color: string; precioCobrado: number; vendidoEn: string; vendidoPor: string };
+
+/** Lo mínimo de una prenda del catálogo (la misma que reconoce el modal «Regularizar»). */
+export type PrendaDelCatalogo = { id: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
+
+export type Sugerencia = {
+  prendaId: string;
+  varianteId: string;
+  venta: VentaPendiente;
+  prenda: PrendaDelCatalogo;
+  enStock: number;
+  /** Cobrado − precio oficial, a céntimos: negativa = se cobró menos (descuento no planificado). */
+  diferencia: number;
+};
+
+/**
+ * Las filas de la hoja de revisión: cada pareja de la base unida con lo que anotó caja y con la prenda sugerida, de la venta más
+ * antigua a la más nueva. Una pareja cuya venta ya no está pendiente (la regularizaron mientras tanto) o cuya prenda no está en el
+ * catálogo que carga la pantalla NO se muestra: confirmar a ciegas una pareja que no se puede leer no sería confirmar.
+ */
+export function armarSugerencias(parejas: readonly ParejaSugerida[], ventas: readonly VentaPendiente[], prendas: readonly PrendaDelCatalogo[]): Sugerencia[] {
+  const venta = new Map(ventas.map((v) => [v.id, v]));
+  const prenda = new Map(prendas.map((p) => [p.id, p]));
+  const filas: Sugerencia[] = [];
+  for (const p of parejas) {
+    const v = venta.get(p.prenda_id);
+    const c = prenda.get(p.variante_id);
+    if (!v || !c) continue;
+    filas.push({ prendaId: p.prenda_id, varianteId: p.variante_id, venta: v, prenda: c, enStock: p.en_stock, diferencia: Math.round((v.precioCobrado - c.precio) * 100) / 100 });
+  }
+  return filas.sort((a, b) => a.venta.vendidoEn.localeCompare(b.venta.vendidoEn) || a.prendaId.localeCompare(b.prendaId));
+}
+
+/** El cuerpo que recibe `regularizar_prendas_sugeridas`: solo las parejas marcadas, en el orden en que se ven. */
+export function paresParaConfirmar(sugerencias: readonly Sugerencia[], marcadas: ReadonlySet<string>): { prenda_id: string; variante_id: string }[] {
+  return sugerencias.filter((s) => marcadas.has(s.prendaId)).map((s) => ({ prenda_id: s.prendaId, variante_id: s.varianteId }));
 }

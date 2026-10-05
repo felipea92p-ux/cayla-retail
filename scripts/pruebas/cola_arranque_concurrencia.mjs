@@ -12,6 +12,8 @@
  *      filas y, al despertar, no encuentra nada pendiente: `cola_vacia` (nunca un cierre vacío ni prendas cerradas dos veces).
  *   C2 un `regularizar_prenda` en marcha sobre una fila y un cierre en bloque a la vez → gana quien llegó primero a la fila: la
  *      regularizada se queda regularizada (el cierre no la pisa) y el cierre cuenta solo las demás.
+ *   C3 dos líderes confirman la MISMA sugerencia (`regularizar_prendas_sugeridas`) a la vez → se regulariza una sola vez, el stock baja
+ *      exactamente 1 y el segundo recibe `prenda_ya_regularizada` (nunca un doble descuento).
  *
  * USO
  *   BASE_DESECHABLE=1 pnpm pruebas:cola-arranque-concurrencia    → SOLO contra un Postgres desechable
@@ -66,8 +68,9 @@ set local request.jwt.claim.sub = '${FELIPE}';
 set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
 `;
 
-/** Vende `n` prendas sin registrar en Tienda Lima, COMMITEADAS, con las anteriores apartadas hacia el futuro. */
-function preparar(n) {
+/** Vende `n` prendas sin registrar en Tienda Lima, COMMITEADAS, con las anteriores apartadas hacia el futuro.
+ *  Con `comoV1`, las ventas llevan la categoría, talla y color de BLU-EMMA-NEG-M (:v1): son las que una sugerencia puede unir a ella. */
+function preparar(n, comoV1 = false) {
   const salida = psql(`
 begin;
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -88,6 +91,7 @@ select retail.fn_aplicar_movimiento(:'mov1') as _d1 \\gset
 select id as cat from retail.categorias where activo order by nombre limit 1 \\gset
 select id as talla from retail.tallas where activo and estado = 'aprobado' order by valor limit 1 \\gset
 select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
+${comoV1 ? `select pr.categoria_id as cat, v.talla_id as talla, v.color_codigo as color from retail.variantes v join retail.productos pr on pr.id = v.producto_id where v.id = :'v1' \\gset` : ""}
 ${Array.from({ length: n }, (_, i) => `
 select retail.registrar_venta(:'ubic',
   jsonb_build_array(jsonb_build_object('variante_id', '${CENTINELA}', 'cantidad', 1, 'precio_unitario', ${40 + i}, 'descuento_unitario', 0,
@@ -136,6 +140,23 @@ async function c2() {
     `s1=${s1.code} ${s1.stderr.trim()} · s2=${s2.code} ${s2.stderr.trim()} (${s2.ms} ms) · estados=${estados} (esperado ${orden}) · filas=${filas}`);
 }
 
+async function c3() {
+  const e = preparar(1, true);
+  const [r1] = e.ids;
+  const stock = () => Number(psql(`select coalesce(sum(cantidad), 0) from retail.stock where variante_id = '${e.v1}' and ubicacion_id = '${e.ubic}';`));
+  const antes = stock();
+  const confirma = `select retail.regularizar_prendas_sugeridas('${e.ubic}', '[{"prenda_id":"${r1}","variante_id":"${e.v1}"}]'::jsonb);`;
+  const p1 = psqlAsync(`${LIDER}${confirma}\nselect pg_sleep(1.5);\ncommit;\n`);
+  await dormir(400);
+  const p2 = psqlAsync(`${LIDER}${confirma}\ncommit;\n`);
+  const [s1, s2] = await Promise.all([p1, p2]);
+  const estado = psql(`select estado from retail.prendas_por_regularizar where id = '${r1}';`);
+  const baja = antes - stock();
+  const ok = s1.code === 0 && s2.code !== 0 && s2.stderr.includes("prenda_ya_regularizada") && s2.ms > 900 && estado === "regularizada" && baja === 1;
+  esperar("C3 · dos líderes confirman la MISMA sugerencia a la vez: se regulariza una vez, el stock baja exactamente 1 y la segunda recibe «prenda_ya_regularizada»", ok,
+    `s1=${s1.code} ${s1.stderr.trim()} · s2=${s2.code} ${s2.stderr.trim()} (${s2.ms} ms) · estado=${estado} · baja=${baja}`);
+}
+
 (async () => {
   try {
     execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]);
@@ -145,6 +166,7 @@ async function c2() {
   }
   await c1();
   await c2();
+  await c3();
   console.log(`\n${total - fallos}/${total} pruebas en verde.`);
   process.exit(fallos > 0 ? 1 : 0);
 })();

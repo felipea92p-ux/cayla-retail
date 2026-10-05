@@ -5263,6 +5263,7 @@ export type Database = {
       anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       reabrir_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       reabrir_prenda_cerrada: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      regularizar_prendas_sugeridas: { Args: { p_pares: Json; p_ubicacion_id: string }; Returns: number }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -5359,6 +5360,7 @@ export type Database = {
         Returns: string
       }
 
+      fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
