@@ -26,6 +26,10 @@
     --color-hueso: #31302d;
     --color-sand: #3d3c38;
 
+    /* Sombra y vidrio: dos colores que antes eran blanco y tinta escritos a mano en el CSS (ver `@theme` de globals.css). */
+    --color-sombra: #000000;
+    --color-vidrio: #31302d;
+
     /* Texto. Todos ≥ 4.5:1 sobre crema, papel y hueso (la prueba lo mide). */
     --color-tinta: #f5f0e8;
     --color-tinta-60: #b9b2a7;
@@ -63,6 +67,10 @@
     --shadow-md: 0 8px 24px -8px rgb(0 0 0 / 0.5);
     --shadow-lg: 0 18px 44px -14px rgb(0 0 0 / 0.6);
     --shadow-xl: 0 30px 64px -22px rgb(0 0 0 / 0.7);
+
+    /* Reflejos del vidrio: en oscuro son un hilo de luz, no un destello (en claro: blanco al 95 % y al 85 %). */
+    --brillo-superior: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    --luz-especular: color-mix(in srgb, var(--color-tinta) 9%, transparent);
   }
 
   /* El cambio de tema se funde en toda la página (la API de transiciones del navegador; sin ella o con movimiento reducido,
@@ -92,6 +100,8 @@
     --color-taupe: #805c4c;
     --color-papel: #fbf8f2;
     --color-hueso: #eae1d2;
+    --color-sombra: #1a1a18;
+    --color-vidrio: #ffffff;
     --color-pizarra: #4c5d6e;
     --color-tinta-60: #5b544c;
     --color-verde: #48603f;

@@ -1,6 +1,6 @@
 # ADR-0336 — Modo oscuro en todo el ERP: los mismos tokens con `tinta` y `crema` intercambiadas, preferencia del aparato
 
-**Fecha:** 2026-10-05 · **Estado:** en construcción (actividad 1 de 14 hecha) · **Sin migraciones** · **Revierte:** el «sin modo oscuro» de ADR-0116 y de ADR-0169 · **Cumple:** la reserva de `[data-tema="oscuro"]` de ADR-0169 y el «oscuro listo, apagado» de ADR-0322 · **Rama:** `claude/cayla-dark-mode-849463`
+**Fecha:** 2026-10-05 · **Estado:** en construcción (actividades 1 y 2 de 14 hechas) · **Sin migraciones** · **Revierte:** el «sin modo oscuro» de ADR-0116 y de ADR-0169 · **Cumple:** la reserva de `[data-tema="oscuro"]` de ADR-0169 y el «oscuro listo, apagado» de ADR-0322 · **Rama:** `claude/cayla-dark-mode-849463`
 
 ## Contexto
 
@@ -20,12 +20,15 @@ El ERP ya está muy tokenizado: `tinta` se usa 5.600 veces (3.917 con opacidad: 
 8. **Movimiento (ADR-0136):** el cambio se funde en ~280 ms con la API de transiciones del navegador (`startViewTransition`), con `--ease-cayla`, sin rebote y no decorativo. Sin ella, o con `prefers-reduced-motion`, es instantáneo.
 9. **Solo en pantalla (`@media screen`):** imprimir sale **siempre en claro**, como el papel. Y todo objeto que representa **papel físico** —boleta A4, proforma, ticket térmico, etiqueta de precio, código QR y de barras— lleva `.papel-fijo`, que vuelve a declarar los tokens claros **incluidos los alias del puente shadcn** (un alias ya resuelto en la raíz seguiría oscuro dentro del papel si no se declarara de nuevo; se midió).
 10. **Observatorio:** su bloque `[data-tema="oscuro"] .obs` de ADR-0322 asumía tokens sin intercambiar; con el intercambio sus variables claras (`--o-fondo: var(--color-crema)`…) ya salen oscuras, y dejarlo habría invertido dos veces. Se borró el bloque y el tooltip invertido (ya se invierte solo) y se conservó el brillo del cursor, que era un efecto aprobado. **Una diferencia visible:** los estados (urgente, ok, aviso, info) ahora usan los tonos del sistema (más vivos) en lugar de los apagados de la maqueta (mezcla con crema). Si Felipe prefiere los apagados, son 4 líneas en `observatorio.css`.
-11. **Regla para pantallas nuevas:** colores solo de tokens (`bg-papel`, `text-tinta`…), nunca un hex, un `rgb()` ni `white/black`. Eso es lo que hace que el oscuro las alcance. El candado de CI (actividad 3) y la sección de CLAUDE.md (actividad 14) lo hacen cumplir.
+11. **Sombras, vidrio y reflejos (actividad 2):** lo que era tinta o blanco escrito a mano en el CSS pasa a tokens. `--color-sombra` (tinta en claro, negro en oscuro) es el color de TODA sombra de elevación: una sombra de tinta sería un resplandor crema en oscuro. `--color-vidrio` (blanco / gris cálido) es el relleno de una tarjeta de vidrio. `--brillo-superior` y `--luz-especular` llevan alfa propia por tema (un filo blanco al 95 % es un destello fino en claro y un neón en oscuro). Los `rgb(26 26 24 / x)` de `globals.css` y `avisos.css` (trazos, líneas, rellenos de barra) pasaron a `color-mix(… var(--color-tinta) x% …)`, que se invierte solo. Los bloques de **etiqueta y recibo térmico** (`#000/#fff` en `globals.css`) se quedan: son papel físico. Una **sombra o anillo de selección** con `tinta` se deja (en oscuro es un anillo claro, que es lo que se quiere); una **sombra de elevación o un velo** con `tinta` se pasa a `sombra`.
+12. **`dark:` de Tailwind sigue a nuestro atributo.** Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO: sin `@custom-variant dark` (en `globals.css`, después de los `@import`), un Windows o un iPhone en oscuro habría activado las clases `dark:` de `badge` y `toggle` (shadcn) con la interfaz en claro. `badge` destructivo ya no usa `text-white` (en oscuro `destructive` es un coral claro: texto blanco sobre eso es ilegible) sino `text-destructive-foreground`. `lib/tema-tokens.test.ts` vigila las dos cosas.
+13. **Velo del modal:** `ui/Modal.tsx` pasa de `bg-tinta/35` a `bg-sombra/35 dark:bg-sombra/60`. Con tinta, el velo se invertía a crema y **aclaraba** la página; y un 35 % de negro sobre un fondo ya oscuro no separa la hoja, por eso 60 % en oscuro.
+14. **Regla para pantallas nuevas:** colores solo de tokens (`bg-papel`, `text-tinta`…), nunca un hex, un `rgb()` ni `white/black`. Eso es lo que hace que el oscuro las alcance. El candado de CI (actividad 3) y la sección de CLAUDE.md (actividad 14) lo hacen cumplir.
 
 ## Plan (aprobado por Felipe, 2026-10-05; una actividad, un commit)
 
 1. **Núcleo del tema** — hecha: tokens oscuros, `.papel-fijo`, script anti-parpadeo, `BotonTema`, reconciliación del Observatorio, pruebas.
-2. Piezas compartidas (`components/ui/*` y clases de `globals.css`). 3. Herramienta `pnpm tema:auditar` y candado de CI. 4. Estructura (lateral, cabecera, Ctrl K, login, error, offline). 5. Inicio y Rendimiento por cuenta. 6–7. Ventas. 8. Catálogo. 9–10. Inventario. 11. Compras y Producción. 12. Finanzas. 13. Clientes, Comercial y Administración. 14. Cierre.
+2. **Piezas compartidas** — hecha: `globals.css`, `avisos.css`, `ui/Modal`, `badge`, `campos`, tokens de sombra/vidrio/brillo, variante `dark:`. 3. Herramienta `pnpm tema:auditar` y candado de CI. 4. Estructura (lateral, cabecera, Ctrl K, login, error, offline). 5. Inicio y Rendimiento por cuenta. 6–7. Ventas. 8. Catálogo. 9–10. Inventario. 11. Compras y Producción. 12. Finanzas. 13. Clientes, Comercial y Administración. 14. Cierre.
 
 Cada actividad de módulo corre la herramienta con cada cuenta que ve esa pantalla (Líder/Admin, Integrante, Terminal de ventas, Terminal administrativa, un rol personalizado y la vista «CAYLA Global»), revisa las capturas a 1440 px y, donde la regla lo exige (Vender, Cambios, Devoluciones), a 375 px.
 
@@ -43,6 +46,10 @@ Cada actividad de módulo corre la herramienta con cada cuenta que ve esa pantal
 - Se define un alias de token (como los del puente shadcn) y no se re-declara en `.papel-fijo`: el papel hereda el oscuro por el alias.
 - Se pone un bloque oscuro fuera de `@media screen`: imprimir saldría oscuro.
 - Una pantalla vuelve a definir su propio bloque `[data-tema="oscuro"]` con los nombres sin intercambiar (como hacía el Observatorio): se invierte dos veces.
+
+## Cómo se verificó (actividad 2)
+
+Una ruta temporal (no commiteada) montó las piezas compartidas con datos de muestra (botones, chips, tabla con zebra, tarjetas, vidrio, campos, combo abierto, dona, avisos, modal, papel fijo) y se capturó en los dos temas con Playwright, con un **escáner** que mide el contraste WCAG de cada texto contra su fondo REAL (compuesto capa por capa). Resultado: 145–154 textos analizados, **2 hallazgos en oscuro** (un botón deshabilitado, que WCAG exime, y un contador `text-tinta/45` de 4.08) contra **5 en claro**: el oscuro está igual o mejor que el claro. Cero «manchas claras» (superficies que siguen claras en oscuro). El claro no cambió: las conversiones son idénticas en valor (comprobado con los valores calculados del vidrio, las sombras y el velo). Un error propio que el escáner destapó y se corrigió: `startViewTransition` rechaza sus promesas cuando el navegador aborta la transición (pestaña oculta); ya se atrapan.
 
 ## Cómo se verificó (actividad 1)
 

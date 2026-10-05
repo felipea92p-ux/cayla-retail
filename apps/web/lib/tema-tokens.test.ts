@@ -87,6 +87,32 @@ describe("tokens de color: claro, oscuro y papel fijo dicen lo mismo", () => {
   });
 });
 
+describe("tokens de brillo y variante dark", () => {
+  // Tokens que no son `--color-*` pero cambian por tema: llevan alfa propia (un filo blanco al 95 % sería un neón en oscuro).
+  const OTROS = ["brillo-superior", "luz-especular"];
+  const otros = (texto: string) => Object.fromEntries(OTROS.map((n) => [n, new RegExp(`--${n}\\s*:\\s*([^;]+);`).exec(texto)?.[1]?.trim()]));
+
+  it("cada uno existe en el claro y en el oscuro, y no son iguales", () => {
+    const l = otros(bloquesTheme(globals).join("\n"));
+    const o = otros(cuerpoDe(tema, ':root[data-tema="oscuro"]'));
+    for (const n of OTROS) {
+      expect(l[n], `claro --${n}`).toBeTruthy();
+      expect(o[n], `oscuro --${n}`).toBeTruthy();
+      expect(o[n]).not.toBe(l[n]);
+    }
+  });
+
+  it("`dark:` de Tailwind sigue al atributo del botón, no al modo del sistema operativo", () => {
+    expect(globals).toMatch(/@custom-variant dark \(&:where\(\[data-tema="oscuro"\], \[data-tema="oscuro"\] \*\)\);/);
+  });
+
+  it("el custom-variant va después de todos los @import (un @import tardío se ignora)", () => {
+    const iVariante = globals.indexOf("@custom-variant");
+    const ultimoImport = globals.lastIndexOf("@import");
+    expect(iVariante).toBeGreaterThan(ultimoImport);
+  });
+});
+
 // ---------- Contraste (WCAG 2.1) ----------
 function canal(c: number) {
   const x = c / 255;

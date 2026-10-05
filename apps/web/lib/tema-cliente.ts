@@ -31,12 +31,16 @@ export function cambiarTema(tema: Tema): void {
     guardarTema(tema);
   };
   const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-  const conTransicion = document as Document & { startViewTransition?: (cuando: () => void) => unknown };
+  type Transicion = { ready?: Promise<unknown>; finished?: Promise<unknown>; updateCallbackDone?: Promise<unknown> };
+  const conTransicion = document as Document & { startViewTransition?: (cuando: () => void) => Transicion };
   if (sinMovimiento || typeof conTransicion.startViewTransition !== "function") {
     aplicar();
     return;
   }
-  conTransicion.startViewTransition(aplicar);
+  const transicion = conTransicion.startViewTransition(aplicar);
+  // El navegador RECHAZA estas promesas cuando aborta la transición (la pestaña se oculta, otra transición empieza encima,
+  // la persona navega). El tema ya quedó puesto por `aplicar`; que se salte el fundido no es un error de nadie.
+  for (const promesa of [transicion?.ready, transicion?.finished, transicion?.updateCallbackDone]) promesa?.catch(() => {});
 }
 
 /**

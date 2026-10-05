@@ -22,6 +22,11 @@
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
+/* Modo oscuro (ADR-0336). Tailwind v4 define `dark:` por el modo del SISTEMA OPERATIVO; aquí la variante sigue al atributo que
+   pone el botón del tema. Sin esto, un Windows o un iPhone en oscuro activaría las clases `dark:` de los componentes shadcn
+   (badge, toggle) con la interfaz en claro. `:where` deja la especificidad en cero, como la variante original. */
+@custom-variant dark (&:where([data-tema="oscuro"], [data-tema="oscuro"] *));
+
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
    "Tres colores. No más, nunca más. La profundidad viene de la
@@ -46,6 +51,11 @@
                                    se había subido a #fbf6ec porque este «se leía como blanco puro»; el
                                    2026-09-22 Felipe eligió la paleta oficial completa, este incluido. */
   --color-hueso: #eae1d2;       /* Superficie HUNDIDA: inputs en caja y la zebra de las tablas. */
+  /* Modo oscuro (ADR-0336): dos colores que no eran tokens y por eso no cambiaban de tema. `sombra` es el color de TODA sombra
+     (tinta en claro, negro en oscuro: la tinta no se ve sobre la tinta); `vidrio` es el relleno de una tarjeta de vidrio
+     (blanco en claro, un gris cálido en oscuro). */
+  --color-sombra: #1a1a18;
+  --color-vidrio: #ffffff;
   --color-pizarra: #4c5d6e;     /* Estado informativo — programado, en revisión, en camino. No es semáforo. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
@@ -167,11 +177,16 @@
      exactamente el "sharp" que Felipe pidió sacar. Son sombras de tinta, no
      negras, y muy abiertas — sugieren aire, no relieve. Superficies pegadas al
      fondo (tarjetas, tablas, celdas) siguen SIN sombra. */
-  --shadow-sm: 0 1px 2px rgb(26 26 24 / 0.05);
-  --shadow: 0 2px 8px -2px rgb(26 26 24 / 0.07);
-  --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
-  --shadow-lg: 0 18px 44px -14px rgb(26 26 24 / 0.16);
-  --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--color-sombra) 5%, transparent);
+  --shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-sombra) 7%, transparent);
+  --shadow-md: 0 8px 24px -8px color-mix(in srgb, var(--color-sombra) 11%, transparent);
+  --shadow-lg: 0 18px 44px -14px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+  --shadow-xl: 0 30px 64px -22px color-mix(in srgb, var(--color-sombra) 20%, transparent);
+
+  /* Los reflejos del vidrio llevan alfa propia por tema: un filo blanco al 95 % que en claro es un destello fino, en oscuro
+     sería un tubo de neón. `estilos/tema.css` los redefine. */
+  --brillo-superior: rgb(255 255 255 / 0.95);   /* el filo claro del borde de arriba de una tarjeta de vidrio */
+  --luz-especular: rgb(255 255 255 / 0.85);     /* el resplandor que sigue al cursor sobre una tarjeta de vidrio */
 }
 
 /* Lateral plegado (2026-09-19). UNA sola fuente de verdad, la misma de `--spacing-lateral`: el
@@ -288,8 +303,8 @@ body {
     background: var(--color-papel);
     border: 1px solid color-mix(in srgb, var(--color-tinta) 22%, transparent);
     box-shadow:
-      0 20px 46px -16px rgb(26 26 24 / 0.32),
-      0 3px 8px -3px rgb(26 26 24 / 0.16);
+      0 20px 46px -16px color-mix(in srgb, var(--color-sombra) 32%, transparent),
+      0 3px 8px -3px color-mix(in srgb, var(--color-sombra) 16%, transparent);
   }
 
   /* La opción activa de una lista (con el mouse o con las flechas): un terracota muy tenue. Era arena/hueso, casi del tono del
@@ -1288,7 +1303,7 @@ html[data-buscando] [data-resultados] {
   .boton-brillo { position: relative; overflow: hidden; }
   .boton-brillo::after {
     content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+    background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--color-crema) 28%, transparent), transparent);
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
   }
   .boton-brillo:hover:not(:disabled)::after { animation: cayla-brillo 800ms var(--ease-cayla); }
@@ -1584,8 +1599,8 @@ html[data-buscando] [data-resultados] {
   }
 
   .vidrio-cayla {
-    background: rgb(255 255 255 / var(--vidrio-alfa, 0.58));
-    border: 1px solid rgb(26 26 24 / var(--vidrio-borde, 0.12));
+    background: color-mix(in srgb, var(--color-vidrio) calc(var(--vidrio-alfa, 0.58) * 100%), transparent);
+    border: 1px solid color-mix(in srgb, var(--color-tinta) calc(var(--vidrio-borde, 0.12) * 100%), transparent);
     -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px));
     backdrop-filter: blur(var(--vidrio-blur, 18px));
   }
@@ -1630,7 +1645,7 @@ html[data-buscando] [data-resultados] {
     transform: translateX(var(--pildora-x, 0px));
     border-radius: 10px;
     background: var(--color-tinta);
-    box-shadow: 0 8px 18px -10px rgb(26 26 24 / 0.75);
+    box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
     opacity: 0;
     pointer-events: none;
   }
@@ -1705,8 +1720,8 @@ html[data-buscando] [data-resultados] {
     border-radius: 16px;
     border: 1px solid var(--color-sand);
     border-left: 3px solid var(--kc);
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.72), rgb(251 248 242 / 0.42));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-vidrio) 72%, transparent), color-mix(in srgb, var(--color-papel) 42%, transparent));
+    box-shadow: inset 0 1px 0 var(--brillo-superior);
     -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
     backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
     transition: box-shadow 260ms var(--ease-cayla);
@@ -1729,7 +1744,7 @@ html[data-buscando] [data-resultados] {
     pointer-events: none;
     opacity: 0;
     transition: opacity 350ms;
-    background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.85), transparent 68%);
+    background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), var(--luz-especular), transparent 68%);
   }
   /* El contenido por encima del tinte y de la luz. Sin `z-index` la luz (`::after`, la última en el
      árbol) se pintaba ENCIMA del texto y lo lavaba justo cuando el cursor pasaba por la tarjeta. */
@@ -1747,7 +1762,7 @@ html[data-buscando] [data-resultados] {
       transform: translateY(-2px);
     }
     .kpi-vidrio-envoltura:hover .kpi-vidrio {
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), var(--shadow-md);
+      box-shadow: inset 0 1px 0 var(--brillo-superior), var(--shadow-md);
     }
     .kpi-vidrio:hover::after {
       opacity: 1;
@@ -1772,12 +1787,12 @@ html[data-buscando] [data-resultados] {
     stroke-linejoin: round;
   }
   .kpi-spark__antes {
-    stroke: rgb(26 26 24 / 0.35);
+    stroke: color-mix(in srgb, var(--color-tinta) 35%, transparent);
     stroke-width: 1.3;
     stroke-dasharray: 0.03 0.05;
   }
   .kpi-spark__hoy {
-    stroke: rgb(26 26 24 / 0.85);
+    stroke: color-mix(in srgb, var(--color-tinta) 85%, transparent);
     stroke-width: 1.8;
     stroke-dasharray: 1;
     stroke-dashoffset: 0;
@@ -1788,7 +1803,7 @@ html[data-buscando] [data-resultados] {
     height: 7px;
     border-radius: 50%;
     background: var(--color-tinta);
-    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.85);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-papel) 85%, transparent);
   }
   .kpi-eje::before {
     content: "";
@@ -1797,7 +1812,7 @@ html[data-buscando] [data-resultados] {
     right: 0;
     bottom: 12px;
     height: 1px;
-    background: rgb(26 26 24 / 0.55);
+    background: color-mix(in srgb, var(--color-tinta) 55%, transparent);
     opacity: 0.5;
   }
   .kpi-eje i {
@@ -1808,21 +1823,21 @@ html[data-buscando] [data-resultados] {
     border-radius: 50%;
     background: var(--color-tinta);
     transform: translateX(-50%);
-    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.85);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-papel) 85%, transparent);
   }
   .kpi-eje em {
     position: absolute;
     bottom: -2px;
     font: 500 11px/1 var(--font-sans);
     font-style: normal;
-    color: rgb(26 26 24 / 0.55);
+    color: color-mix(in srgb, var(--color-tinta) 55%, transparent);
   }
   .kpi-progreso {
     height: 6px;
     margin-top: 14px;
     overflow: hidden;
     border-radius: 99px;
-    background: rgb(26 26 24 / 0.1);
+    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
   }
   .kpi-progreso b {
     display: block;
@@ -1855,7 +1870,7 @@ html[data-buscando] [data-resultados] {
     gap: 2px 10px;
     margin-top: 6px;
     font-size: 11px;
-    color: rgb(26 26 24 / 0.65);
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
   .kpi-leyenda span {
     display: inline-flex;
@@ -1907,7 +1922,7 @@ html[data-buscando] [data-resultados] {
     justify-content: space-between;
     margin-top: 3px;
     font-size: 10px;
-    color: rgb(26 26 24 / 0.5);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
   }
   .kpi-puntos {
     display: flex;
@@ -1936,7 +1951,7 @@ html[data-buscando] [data-resultados] {
   .kpi-progreso__texto {
     margin-top: 6px;
     font-size: 13px;
-    color: rgb(26 26 24 / 0.65);
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
   }
   .kpi-barras {
     display: flex;
@@ -1946,7 +1961,7 @@ html[data-buscando] [data-resultados] {
   }
   .kpi-barras i {
     flex: 1;
-    background: rgb(26 26 24 / 0.78);
+    background: color-mix(in srgb, var(--color-tinta) 78%, transparent);
     border-radius: 3px 3px 0 0;
     transform-origin: bottom;
   }
@@ -1954,7 +1969,7 @@ html[data-buscando] [data-resultados] {
     position: absolute;
     left: 0;
     right: 0;
-    border-top: 1px dashed rgb(26 26 24 / 0.55);
+    border-top: 1px dashed color-mix(in srgb, var(--color-tinta) 55%, transparent);
     text-decoration: none;
   }
 
@@ -2003,7 +2018,7 @@ html[data-buscando] [data-resultados] {
     height: 14px;
     flex: none;
     border-radius: 50%;
-    border: 1.5px solid rgb(26 26 24 / 0.24);
+    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 24%, transparent);
     background: transparent;
     transition:
       background-color 450ms var(--ease-cayla),
@@ -2036,11 +2051,11 @@ html[data-buscando] [data-resultados] {
   }
   /* Aceptado en el entorno de pruebas: SUNAT no lo vio. Punteado y sin relleno, jamás verde. */
   .hilo-n--prueba {
-    border-color: rgb(26 26 24 / 0.4);
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
     border-style: dashed;
   }
   .hilo-n--apagado {
-    border-color: rgb(26 26 24 / 0.25);
+    border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent);
   }
   .hilo-n svg {
     position: absolute;
@@ -2048,7 +2063,7 @@ html[data-buscando] [data-resultados] {
     width: calc(100% - 2px);
     height: calc(100% - 2px);
     fill: none;
-    stroke: #fff;
+    stroke: var(--color-crema);
     stroke-width: 1.8;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -2071,7 +2086,7 @@ html[data-buscando] [data-resultados] {
     flex: none;
     overflow: hidden;
     border-radius: 2px;
-    background: rgb(26 26 24 / 0.24);
+    background: color-mix(in srgb, var(--color-tinta) 24%, transparent);
   }
   .hilo-l::after {
     content: "";
@@ -2089,10 +2104,10 @@ html[data-buscando] [data-resultados] {
     transform: scaleX(1);
   }
   .hilo-l--prueba {
-    background: rgb(26 26 24 / 0.4);
+    background: color-mix(in srgb, var(--color-tinta) 40%, transparent);
   }
   .hilo-l--apagado {
-    background: rgb(26 26 24 / 0.15);
+    background: color-mix(in srgb, var(--color-tinta) 15%, transparent);
   }
   /* Mientras se transmite: un destello ámbar recorre el tramo hacia SUNAT. */
   .hilo-l--trabaja::after {
@@ -2543,7 +2558,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     animation: hoja-cobro-velo 320ms var(--ease-cayla) both;
   }
   .hoja-cobro {
-    box-shadow: -30px 0 60px -40px color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    box-shadow: -30px 0 60px -40px color-mix(in srgb, var(--color-sombra) 35%, transparent);
     animation: hoja-cobro-entra 520ms var(--ease-cayla) both;
   }
 
