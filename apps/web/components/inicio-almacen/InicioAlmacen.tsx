@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { DatosInicioAlmacen } from "@/lib/inicio-almacen";
 import type { AvisosVisibles } from "@/lib/inicio-avisos";
 import { avanceDelDia, sigueAhora, TITULO_NUEVOS } from "@/lib/inicio-almacen-reglas";
-import { AccesosAlmacen, EnCaminoAlmacen, PulsoAlmacen, ReponerAPisoAlmacen, type AccesoAlmacen } from "./BloquesLaterales";
+import { AccesosAlmacen, EnCaminoAlmacen, PorColgarAlmacen, PulsoAlmacen, type AccesoAlmacen } from "./BloquesLaterales";
 import { CabinaAlmacen } from "./CabinaAlmacen";
 import { DockAlmacen } from "./DockAlmacen";
 import { EfectosInicio } from "./EfectosInicio";
@@ -12,7 +12,7 @@ import { TeTocaAlmacen } from "./TeTocaAlmacen";
 /**
  * El Inicio de una cuenta de Almacén (Felipe, 2026-09-30, ADR-0292; maqueta docs/maquetas/inicio-almacen-2026-09/, dirección A).
  * Orden único en todos los tamaños: la cabina («Nuevo producto», lo último registrado y «Sigue ahora») → «Te toca» → «Nuevo
- * en otras sedes»; y, a la derecha desde ~940 px, el pulso, lo que viene en camino, el piso que pide reposición y los accesos.
+ * en otras sedes»; y, a la derecha desde ~940 px, el pulso, lo que viene en camino, lo que está por colgar y los accesos.
  * Cada bloque falla por separado y dice que falló.
  *
  * Usa TODO el ancho de la pantalla (Felipe, 2026-09-30: «a cualquier resolución o zoom»): el marcador `data-ancho-completo` le quita el
@@ -61,7 +61,7 @@ export function InicioAlmacen({
           <div className="ia-cR">
             {(datos.existencias !== undefined || datos.hoy !== undefined) && <PulsoAlmacen existencias={datos.existencias} hoy={datos.hoy} fotos={datos.fotos} />}
             {datos.enCamino !== undefined && <EnCaminoAlmacen viajes={datos.enCamino} />}
-            <ReponerAPisoAlmacen existencias={datos.existencias} />
+            <PorColgarAlmacen existencias={datos.existencias} />
             <AccesosAlmacen accesos={accesos} />
           </div>
         </div>

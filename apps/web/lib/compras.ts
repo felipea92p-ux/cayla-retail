@@ -590,17 +590,24 @@ export async function getRecepcionesCompra(compraId: string): Promise<RecepcionC
  * "¿son todos así?" — desde ADR-0076 un lote de `recibir_compras` puede
  * traer ítems fuera de factura mezclados con ítems facturados.
  */
-export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; limite?: number } = {}): Promise<RecepcionReciente[]> {
+export async function getRecepcionesRecientes(
+  opciones: {
+    conFactura?: boolean;
+    limite?: number;
+    /** Solo las de esa sede (la puerta «Llegó mercadería», ADR-0330): el filtro va a la base, no a la memoria. */
+    ubicacionId?: string;
+    /** Solo desde ese instante (ISO): «Llegó esta semana». */
+    desde?: string;
+  } = {}
+): Promise<RecepcionReciente[]> {
   const limite = opciones.limite ?? 15;
   const supabase = await createClient();
-  const lotes = exigir(
-    await supabase
-      .from("lotes")
-      .select("id, fecha_recepcion, numero_guia, nota, recibido_por, ubicacion:ubicaciones ( nombre ), proveedor:proveedores ( nombre )")
-      .order("fecha_recepcion", { ascending: false })
-      .limit(Math.max(limite * 2, 30)),
-    "las recepciones recientes"
-  );
+  let consulta = supabase
+    .from("lotes")
+    .select("id, fecha_recepcion, numero_guia, nota, recibido_por, proveedor_id, ubicacion:ubicaciones ( nombre ), proveedor:proveedores ( nombre )");
+  if (opciones.ubicacionId) consulta = consulta.eq("ubicacion_id", opciones.ubicacionId);
+  if (opciones.desde) consulta = consulta.gte("fecha_recepcion", opciones.desde);
+  const lotes = exigir(await consulta.order("fecha_recepcion", { ascending: false }).limit(Math.max(limite * 2, 30)), "las recepciones recientes");
   if (lotes.length === 0) return [];
   const loteIds = lotes.map((l) => l.id);
 
@@ -663,6 +670,7 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
         loteId: l.id,
         fecha: l.fecha_recepcion,
         ubicacion: l.ubicacion?.nombre ?? "",
+        proveedorId: l.proveedor_id,
         proveedorNombre: l.proveedor?.nombre ?? "",
         numeroGuia: l.numero_guia,
         nota: l.nota,
