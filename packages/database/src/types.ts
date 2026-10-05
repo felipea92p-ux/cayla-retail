@@ -576,6 +576,24 @@ export type Database = {
           },
         ]
       }
+      cierres_cola_arranque: {
+        Row: {
+          cerrado_en: string
+          cerrado_por: string
+          corte: string
+          filas: number
+          id: string
+          motivo: string
+          nota: string | null
+          soles: number
+          ubicacion_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "cierres_cola_arranque_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: false; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
+        ]
+      }
       clientas: {
         Row: {
           anonimizada: boolean
@@ -974,6 +992,18 @@ export type Database = {
             referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      cola_arranque_plazo: {
+        Row: {
+          fijado_en: string
+          hasta: string
+          ubicacion_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "cola_arranque_plazo_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: true; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
         ]
       }
       colaboradores: {
@@ -3249,6 +3279,7 @@ export type Database = {
       prendas_por_regularizar: {
         Row: {
           categoria_id: string
+          cierre_id: string | null
           color_codigo: string
           descripcion: string
           diferencia: number | null
@@ -3270,6 +3301,7 @@ export type Database = {
         Update: never
         Relationships: [
           { foreignKeyName: "prendas_por_regularizar_categoria_id_fkey"; columns: ["categoria_id"]; isOneToOne: false; referencedRelation: "categorias"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_cierre_fk"; columns: ["cierre_id", "ubicacion_id"]; isOneToOne: false; referencedRelation: "cierres_cola_arranque"; referencedColumns: ["id", "ubicacion_id"] },
           { foreignKeyName: "prendas_por_regularizar_color_codigo_fkey"; columns: ["color_codigo"]; isOneToOne: false; referencedRelation: "colores"; referencedColumns: ["codigo"] },
           { foreignKeyName: "prendas_por_regularizar_talla_id_fkey"; columns: ["talla_id"]; isOneToOne: false; referencedRelation: "tallas"; referencedColumns: ["id"] },
           { foreignKeyName: "prendas_por_regularizar_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: false; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
@@ -5233,6 +5265,8 @@ export type Database = {
       }
       anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       reabrir_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
+      reabrir_prenda_cerrada: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      regularizar_prendas_sugeridas: { Args: { p_pares: Json; p_ubicacion_id: string }; Returns: number }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -5329,6 +5363,8 @@ export type Database = {
         Returns: string
       }
 
+      fn_candidatas_de_venta: { Args: { p_ubicacion_id: string }; Returns: { disponible: number; limpia: boolean; prenda_id: string; variante_id: string }[] }
+      fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
@@ -5999,6 +6035,10 @@ export type Database = {
           monto_sistema: number
           monto_trasladado: number
         }[]
+      }
+      cerrar_cola_arranque: {
+        Args: { p_hasta: string; p_motivo: string; p_nota?: string; p_ubicacion_id: string }
+        Returns: string
       }
       cerrar_conteo: {
         Args: { p_conteo_id: string; p_parcial?: boolean }
