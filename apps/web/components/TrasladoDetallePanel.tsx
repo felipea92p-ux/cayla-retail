@@ -13,6 +13,9 @@ import { TrasladoRecorrido } from "@/components/TrasladoRecorrido";
 import { TrasladoConfirmarModal } from "@/components/TrasladoConfirmarModal";
 import { TrasladoCerrarModal } from "@/components/TrasladoCerrarModal";
 import { TrasladoAnularModal } from "@/components/TrasladoAnularModal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { crearColaEnSerie } from "@/lib/conteo-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { diaHora } from "@/lib/traslados-reglas";
@@ -42,8 +45,10 @@ import {
 } from "@/lib/traslados-recepcion-reglas";
 import type { LineaTraslado, TrasladoDetalle } from "@/lib/traslados";
 import { useResponsable } from "@/lib/useResponsable";
-import { firmar } from "@/lib/responsable-reglas";
-import { firmaOmitida } from "@/lib/responsable-omitido";
+import { firmar, type Firma } from "@/lib/responsable-reglas";
+import { firmaOmitida, type FirmaOmitida } from "@/lib/responsable-omitido";
+import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, preguntaFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
+import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 
 type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
@@ -57,6 +62,12 @@ type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; t
 //  · D-129/D-131: confirmar hace entrar lo que coincide, en el piso de venta o el almacén (se pregunta, piso marcado).
 //  · «Cerrar con esta diferencia» (líder) y «Anular envío» (D-132, origen o líder) pasan por un modal con la
 //    consecuencia escrita.
+//  · ADR-0328 (actividad 15): el nombre se pide UNA vez por recepción. En una terminal, si este aparato no recuerda a nadie para
+//    este traslado y nadie de turno firmó la recepción hoy, antes de contar se pregunta quién recibe (con su guía de foco) y la
+//    tabla espera; después, cada casilla, confirmar y cerrar con diferencia van a su nombre. Cuando la pantalla pone el nombre por
+//    su cuenta (recordado o heredado de hoy), deja corregirlo («¿No es Rosa? Elige quién recibe»). Si la base igual pide el nombre
+//    (otro aparato, pasó la medianoche, quien firmó marcó su salida), el combo aparece entonces: ningún traslado recibido queda sin
+//    persona.
 // Quién puede qué y cuándo entra el stock siguen en las funciones de la base; aquí solo se decide qué se ve.
 export function TrasladoDetallePanel({
   traslado: t,
@@ -67,6 +78,7 @@ export function TrasladoDetallePanel({
   puedeCerrarDiferencia,
   opcionesDestino,
   lugarRecibido,
+  firma = { tipo: "propia" },
   catalogo,
 }: {
   traslado: TrasladoDetalle;
@@ -80,11 +92,13 @@ export function TrasladoDetallePanel({
   opcionesDestino: ("piso_venta" | "almacen_tienda")[];
   /** Dónde quedó lo recibido (`transferencias.sububicacion_destino_id`), si ya se confirmó. */
   lugarRecibido: DestinoRecepcion;
+  /** Quién firma la recepción (`firmaDelPaso`, ADR-0328): la persona de la sesión, el heredado de hoy o hay que preguntarlo. */
+  firma?: FirmaDelPaso;
   catalogo: VarianteBusqueda[];
 }) {
   const router = useRouter();
-  // Recibir (contar, confirmar, cerrar con diferencia) va sin responsable (Felipe, 2026-09-29); solo anular pide
-  // Responsable (ADR-0161), en la sede de origen.
+  // Solo anular pide Responsable siempre (ADR-0161), en la sede de origen. Recibir (contar, confirmar, cerrar con diferencia) lo pide
+  // UNA vez por recepción (ADR-0328): el combo de abajo, con su propio recuerdo.
   const responsable = useResponsable();
 
   const [conteos, setConteos] = useState<Conteos>({});
@@ -111,6 +125,39 @@ export function TrasladoDetallePanel({
   const anulada = t.estado === "anulada";
   // Solo la sede destino cuenta, mientras el traslado siga abierto; lo que ya entró al stock no se vuelve a contar.
   const contable = esDestino && (enTransito || conDiferencia);
+
+  // Quién recibe (ADR-0328, `firmaEnPantalla`). Su propio combo, que recuerda en este aparato a quien eligieron para ESTE traslado
+  // (`recordarEn`): un guardado exitoso no lo vacía (si no, la tabla volvía a esperar después de la primera casilla) y al volver a la
+  // pantalla no se pregunta lo que el aparato ya sabe. `preguntarNombre`: el combo a la vista; `sinNombre`: todavía nadie elegido, así
+  // que la tabla espera; `conNombre`: cada paso manda el nombre del combo en vez de dejar que la base lo herede.
+  const recibe = useResponsable(undefined, { recordarEn: claveResponsableRecepcion(t.id) });
+  const [laBasePidioNombre, setLaBasePidioNombre] = useState(false);
+  // La persona pidió elegir (tocó «¿No es…?» o el combo): desde ahí el combo se queda a la vista.
+  const [aMano, setAMano] = useState(false);
+  const nombreRecibe = recibe.listo ? (recibe.lista.elegibles.find((p) => p.personaId === recibe.elegidoId)?.nombre ?? null) : null;
+  const enPantalla = contable ? firmaEnPantalla(firma, { recordado: nombreRecibe, aMano, laBaseLoPidio: laBasePidioNombre }, "recepcion_traslado") : null;
+  const preguntarNombre = enPantalla?.modo === "elegir";
+  const conNombre = enPantalla !== null && mandaNombre(enPantalla);
+  const sinNombre = preguntarNombre && !recibe.listo;
+  const guiaFirma = useGuiaCampos(camposDeFirma("recepcion_traslado", { preguntar: preguntarNombre, responsableListo: recibe.listo }), { enModal: false });
+  // Elegir a alguien en el combo lo deja a la vista (no desaparece bajo el dedo al elegir).
+  const comboRecibe = {
+    ...recibe,
+    elegir: (personaId: string) => {
+      setAMano(true);
+      recibe.elegir(personaId);
+    },
+  };
+  // Cada paso de recibir firma con lo que toque en ESE momento: los guardados salen segundos después y leen lo más reciente.
+  const firmaDeRecepcion = useRef<() => Firma | FirmaOmitida | null>(() => firmaOmitida("traslado_recibir"));
+  useEffect(() => {
+    firmaDeRecepcion.current = () => (conNombre ? recibe.firma() : firmaOmitida("traslado_recibir"));
+  });
+  /** Tras un paso de recibir: si la base pidió el nombre, se pregunta desde ya; si se firmó con el combo, el combo se entera. */
+  function despuesDeFirmar(error: { hint?: string | null; message?: string | null; code?: string | null } | null | undefined) {
+    if (esPedidoDeNombre(error)) setLaBasePidioNombre(true);
+    if (conNombre) recibe.despues(error);
+  }
 
   const lectura = useMemo(() => leerConteo(t.lineas, conteos), [t.lineas, conteos]);
   const resumenGuardado = resumirGuardado(guardado);
@@ -148,7 +195,7 @@ export function TrasladoDetallePanel({
         const consulta = createClient()
           .rpc("registrar_recepcion_traslado", { p_transferencia_id: t.id, p_variante_id: varianteId, p_cantidad_recibida: valor })
           .setHeader("x-espera", "no");
-        const { error } = await firmar(consulta, firmaOmitida("traslado_recibir"));
+        const { error } = await firmar(consulta, firmaDeRecepcion.current());
         if (error) throw error;
       })
       .then(
@@ -157,6 +204,7 @@ export function TrasladoDetallePanel({
           return true;
         },
         (e: ErrorEscritura) => {
+          if (esPedidoDeNombre(e)) setLaBasePidioNombre(true);
           if (versiones.current.get(varianteId) === version) ponerEstado(varianteId, { tipo: "error", mensaje: traducirError(e, "guardar lo contado") });
           return false;
         },
@@ -276,9 +324,10 @@ export function TrasladoDetallePanel({
     setError(null);
     const { error } = await firmar(
       createClient().rpc("registrar_recepcion_traslado", { p_transferencia_id: t.id, p_variante_id: varianteId, p_cantidad_recibida: 1 }),
-      firmaOmitida("traslado_recibir"),
+      firmaDeRecepcion.current(),
     );
     setTrabajando(null);
+    despuesDeFirmar(error);
     if (error) {
       setError(traducirError(error, "anotar la prenda de más"));
       return;
@@ -308,10 +357,11 @@ export function TrasladoDetallePanel({
     }
     const { data, error } = await firmar(
       createClient().rpc("confirmar_traslado", { p_transferencia_id: t.id, p_destino: destino ?? undefined }),
-      firmaOmitida("traslado_recibir"),
+      firmaDeRecepcion.current(),
     );
     setTrabajando(null);
     cerrarModal();
+    despuesDeFirmar(error);
     if (error) {
       setError(traducirError(error, "confirmar la recepción"));
       router.refresh();
@@ -341,9 +391,10 @@ export function TrasladoDetallePanel({
       setError("Hay prendas que no se guardaron. Reintenta antes de cerrar.");
       return;
     }
-    const { data, error } = await firmar(createClient().rpc("cerrar_traslado_con_diferencia", { p_transferencia_id: t.id, p_nota: nota }), firmaOmitida("traslado_recibir"));
+    const { data, error } = await firmar(createClient().rpc("cerrar_traslado_con_diferencia", { p_transferencia_id: t.id, p_nota: nota }), firmaDeRecepcion.current());
     setTrabajando(null);
     cerrarModal();
+    despuesDeFirmar(error);
     if (error) {
       setError(traducirError(error, "cerrar el traslado"));
       return;
@@ -441,7 +492,29 @@ export function TrasladoDetallePanel({
         </p>
       )}
 
-      <section aria-label="Prendas del traslado" className="card-cayla overflow-hidden">
+      {/* Quién recibe (ADR-0328): una sola vez por recepción. Si el aparato ya sabe quién, o firmó alguien hoy que sigue de turno, solo
+          se dice a nombre de quién va, con «¿No es…?» para corregirlo. */}
+      {enPantalla?.modo === "elegir" ? (
+        <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién recibe el traslado">
+          <p className="text-sm text-tinta/80">{enPantalla.texto}</p>
+          <CampoGuiado id="firma" guia={guiaFirma} titulo={preguntaFirma("recepcion_traslado")}>
+            <ComboResponsable control={comboRecibe} deshabilitado={ocupado} compacto className="w-full sm:w-80" />
+          </CampoGuiado>
+          <PieGuia guia={guiaFirma} listo="Listo: ya puedes contar." />
+        </section>
+      ) : (enPantalla?.modo === "base" || enPantalla?.modo === "recordada") && enPantalla.texto ? (
+        <p className="nota-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span>{enPantalla.texto}</span>
+          {enPantalla.cambiar && (
+            <button type="button" onClick={() => setAMano(true)} disabled={ocupado} className="btn-cayla btn-enlace text-xs">
+              {enPantalla.cambiar}
+            </button>
+          )}
+        </p>
+      ) : null}
+
+      {/* Sin nombre elegido, la tabla espera (`inert`): contar sin nombre solo juntaría casillas que la base no acepta. */}
+      <section aria-label="Prendas del traslado" inert={sinNombre} className={`card-cayla overflow-hidden transition-opacity duration-200 ${sinNombre ? "opacity-60" : ""}`}>
         {contable && (
           <div className="space-y-2.5 border-b border-sand px-4 py-3.5">
             <p className="text-sm text-taupe">
@@ -641,7 +714,13 @@ export function TrasladoDetallePanel({
               Si ya buscaron lo que falta y no apareció, ciérralo: lo que no llegó se da por perdido y queda anotado en el Traslado {t.numero}.
             </p>
           </div>
-          <button type="button" onClick={() => setModal("cerrar")} disabled={ocupado || resumenGuardado.errores > 0} className="btn-cayla btn-primario">
+          <button
+            type="button"
+            onClick={() => setModal("cerrar")}
+            disabled={ocupado || resumenGuardado.errores > 0 || sinNombre}
+            title={sinNombre ? "Elige quién recibe antes de cerrar." : undefined}
+            className="btn-cayla btn-primario"
+          >
             Cerrar con esta diferencia…
           </button>
         </section>

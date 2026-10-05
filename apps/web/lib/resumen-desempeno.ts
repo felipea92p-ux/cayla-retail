@@ -1,5 +1,5 @@
 import { RANGOS_SELL_THROUGH_PCT, TENDENCIA_MIN_UNIDADES } from "./inventario-reglas";
-import { calcularSellThrough, calcularTendencia, evaluarExactitud, listarCategorias, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
+import { calcularSellThrough, calcularTendencia, evaluarExactitud, listarCategorias, type DatosExactitud, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
 import { aplicarAlcance, bandaSellThrough, FILAS_POR_PAGINA, leerFiltros, paginar, type AlcanceResumen, type FiltroSellThrough } from "./resumen-filtros";
 import { conNullAlFinal, metricasDePeriodo, rangoDeSellThrough, textoRangoSellThrough, variacionPct, type DatosPeriodo, type FilaComparacion, type MetricasPeriodo } from "./resumen-comparacion";
 import { esSobrestockTotal, ritmoMuestraLimitada, sellThroughExposicion, tuvoQuiebreEnPiso, type SellThroughExposicion } from "./inventario-exposicion";
@@ -442,7 +442,7 @@ export function armarDesempeno(e: {
   ubicacion: Ubicacion;
   params: ParametrosResumen;
   ahora: Date;
-  conteos: { exactitud: { porcentaje: number; lineas: number; conteos: number } | null; ultimoCerradoEn: string | null };
+  conteos: DatosExactitud;
   /** La red por variante (`fn_resumen_variantes_json`); vacía si esa lectura falló: se pierden «Pedir» y «Reponer», nada más. */
   red?: Readonly<Record<string, RedVariante>>;
 }): DesempenoParaPantalla {

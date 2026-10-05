@@ -648,6 +648,17 @@ describe("exactitud del inventario", () => {
     expect(e).toMatchObject({ estado: "vigente", diasDesde: 6, porcentaje: 98.4 });
   });
 
+  it("con el conteo de arranque (o todo aplicado sin contar) cerrado: «sin medir», con su fecha; no «pendiente» (ADR-0328)", () => {
+    const e = evaluarExactitud({ exactitud: null, ultimoCerradoEn: dias(2), sinMedida: "arranque" }, AHORA);
+    expect(e).toMatchObject({ estado: "sin_medir", sinMedida: "arranque", ultimoConteo: dias(2), diasDesde: 2, porcentaje: null });
+    expect(evaluarExactitud({ exactitud: null, ultimoCerradoEn: dias(2), sinMedida: "sin_contar" }, AHORA)).toMatchObject({ estado: "sin_medir", sinMedida: "sin_contar" });
+    // Sin el porqué (o sin conteo cerrado), sigue siendo «pendiente».
+    expect(evaluarExactitud({ exactitud: null, ultimoCerradoEn: dias(2) }, AHORA).estado).toBe("pendiente");
+    expect(evaluarExactitud({ exactitud: null, ultimoCerradoEn: null, sinMedida: "arranque" }, AHORA).estado).toBe("pendiente");
+    // Con exactitud manda la exactitud, aunque el último haya sido el de arranque.
+    expect(evaluarExactitud({ exactitud: { porcentaje: 99, lineas: 50, conteos: 1 }, ultimoCerradoEn: dias(1), sinMedida: null }, AHORA).estado).toBe("vigente");
+  });
+
   it("uno viejo o poco exacto sigue dando aviso", () => {
     expect(evaluarExactitud({ exactitud: { porcentaje: 99, lineas: 50, conteos: 1 }, ultimoCerradoEn: dias(45) }, AHORA).estado).toBe("antiguo");
     expect(evaluarExactitud({ exactitud: { porcentaje: 90, lineas: 50, conteos: 1 }, ultimoCerradoEn: dias(3) }, AHORA).estado).toBe("baja");

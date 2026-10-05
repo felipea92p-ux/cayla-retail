@@ -72,6 +72,12 @@ export type LineaConteo = {
    * se encontró. Del libro de movimientos; 0 si la base no lo trae.
    */
   hallazgos: number;
+  /**
+   * La cifra la anotó «Aplicar todos completos» con lo que CAYLA esperaba, sin que nadie contara (ADR-0328, actividad 15). Cuenta
+   * como verificada para poder cerrar, pero el resultado la dice aparte («12 contadas · 40 sin contar») y NO sube la exactitud.
+   * Contarla a mano (aunque sea la misma cifra) la vuelve una verificación de verdad: la base le quita la marca.
+   */
+  aplicadaSinContar: boolean;
   estado: EstadoLinea;
 };
 
@@ -87,6 +93,8 @@ export type ResumenConteo = {
   /** De las que tienen diferencia, las que ya se confirmaron. */
   confirmadas: number;
   enReconteo: number;
+  /** De las verificadas, las que se anotaron con «Aplicar todos completos» sin contar (ADR-0328): se dicen aparte y no son exactitud. */
+  sinContar: number;
   unidadesSobrantes: number;
   unidadesFaltantes: number;
 };
@@ -112,6 +120,16 @@ export type CabeceraConteo = {
   /** Cuándo se tomó la foto (al abrir). `null` en los conteos anteriores al rediseño. */
   fotoEn: string | null;
   esPrueba: boolean;
+  /** Fue el conteo de arranque de su tramo (ADR-0328): corrigió el stock sin contar como pérdida ni entrar en la exactitud. */
+  esArranque: boolean;
+  /** Abierto y con algún tramo que todavía no tuvo su arranque: si se cierra entero y contado, será el de arranque (de ese tramo). */
+  arranquePosible: boolean;
+  /** En su lugar el arranque es por categoría (el piso, `fn_arranque_por_categoria`); si no, del lugar entero. `false` sin el SQL. */
+  arranquePorCategoria: boolean;
+  /** ¿Se abrió hoy (día de Lima)? Decide si una terminal hereda la firma al cerrar (ADR-0328). `null` = la base no lo dijo. */
+  abiertoHoy: boolean | null;
+  /** ¿Quien lo abrió sigue de turno en la sede? Si ya marcó su salida, la base no hereda su firma. `null` = la base no lo dijo. */
+  abiertoPorPresente: boolean | null;
 };
 
 export type DetalleConteo = { conteo: CabeceraConteo; resumen: ResumenConteo; lineas: LineaConteo[] };
@@ -144,6 +162,10 @@ export type ConteoResumen = {
   parcial: boolean;
   /** `lineas + pendientes`: el total de variantes del conteo, para «X de Y variantes verificadas». */
   variantes: number;
+  /** De las `lineas`, cuántas se anotaron con «Aplicar todos completos» sin contar (ADR-0328): no suben la exactitud. */
+  sinContar: number;
+  /** Fue el conteo de arranque de su lugar (ADR-0328): no entra en la exactitud. */
+  esArranque: boolean;
 };
 
 /** Una fila de `fn_conteos_resumen`. `pendientes` y `parcial` son opcionales: los trae la versión nueva de la función. */
@@ -167,6 +189,9 @@ export type FilaResumenConteo = {
   diferencia: number;
   pendientes?: number | null;
   parcial?: boolean | null;
+  /** ADR-0328: los traen la versión de 20261004230100; sin ellas (web antes que el SQL) valen 0 y `false`. */
+  sin_contar?: number | null;
+  es_arranque?: boolean | null;
 };
 
 /**
@@ -197,6 +222,8 @@ export function conteoResumenDesdeFila(c: FilaResumenConteo, nombrePorId: Readon
     pendientes,
     parcial: c.parcial ?? false,
     variantes: c.lineas + pendientes,
+    sinContar: c.sin_contar ?? 0,
+    esArranque: c.es_arranque ?? false,
   };
 }
 
@@ -258,7 +285,10 @@ export type TonoEstado = "verde" | "rojo" | "ambar" | "neutro";
  * diferencias reales: una pendiente es neutra, NUNCA roja (nadie se equivocó, solo falta contar). `confirmada` es la
  * marca discreta «Confirmado» que va junto a una diferencia ya confirmada, no un estado aparte.
  */
-export function etiquetaDeLinea(l: { estado: EstadoLinea; diferencia: number | null }): { texto: string; tono: TonoEstado; confirmada: boolean } {
+export function etiquetaDeLinea(l: { estado: EstadoLinea; diferencia: number | null; sinContar?: boolean }): { texto: string; tono: TonoEstado; confirmada: boolean } {
+  // ADR-0328: lo anotado con «Aplicar todos completos» coincide por definición, pero nadie lo miró: no se dice «Correcto» (verde),
+  // se dice lo que es, en neutro. Solo una correcta puede venir así (la base exige cifra = lo esperado).
+  if (l.estado === "correcta" && l.sinContar) return { texto: "Sin contar", tono: "neutro", confirmada: false };
   switch (l.estado) {
     case "pendiente":
       return { texto: "Pendiente", tono: "neutro", confirmada: false };
@@ -387,12 +417,13 @@ export function notaAjuste(l: { actual: number | null; debeHaber: number; difere
 export function contarLinea(l: LineaConteo, cantidad: number | null, ahora: string): LineaConteo | null {
   let base: Omit<LineaConteo, "diferencia" | "estado">;
   if (cantidad === null) {
-    base = { ...l, contada: null, verificadoEn: null, confirmadaEn: null, debeHaber: l.foto, ajustadoAntes: 0 };
+    base = { ...l, contada: null, verificadoEn: null, confirmadaEn: null, debeHaber: l.foto, ajustadoAntes: 0, aplicadaSinContar: false };
   } else {
     const debeHaber = l.actual ?? l.debeHaber;
     const reconfirmada = l.anterior !== null && cantidad === l.anterior && cantidad !== debeHaber;
     // Al volver a verificar, lo que un cierre anterior de este conteo ya ajustó pasa a formar parte del «debe haber» (la base lo lee del stock vivo).
-    base = { ...l, contada: cantidad, debeHaber, verificadoEn: ahora, confirmadaEn: reconfirmada ? ahora : null, ajustadoAntes: l.ajustadoTotal };
+    // Una cifra escrita o escaneada es una verificación de verdad: si la línea venía «sin contar», deja de serlo (la base hace lo mismo).
+    base = { ...l, contada: cantidad, debeHaber, verificadoEn: ahora, confirmadaEn: reconfirmada ? ahora : null, ajustadoAntes: l.ajustadoTotal, aplicadaSinContar: false };
   }
   const estado = estadoDeLinea(base);
   if (estado === null) return null;
@@ -404,9 +435,11 @@ export function contarLinea(l: LineaConteo, cantidad: number | null, ahora: stri
 // ---------------------------------------------------------------------------------------------------------------
 
 /** El resumen de unas líneas. La pantalla lo recalcula tras cada lectura sin volver a la base. */
-export function resumirLineas(lineas: readonly Pick<LineaConteo, "estado" | "diferencia">[]): ResumenConteo {
-  const r: ResumenConteo = { variantes: lineas.length, verificadas: 0, pendientes: 0, correctas: 0, conDiferencia: 0, confirmadas: 0, enReconteo: 0, unidadesSobrantes: 0, unidadesFaltantes: 0 };
+export function resumirLineas(lineas: readonly (Pick<LineaConteo, "estado" | "diferencia"> & { aplicadaSinContar?: boolean })[]): ResumenConteo {
+  const r: ResumenConteo = { variantes: lineas.length, verificadas: 0, pendientes: 0, correctas: 0, conDiferencia: 0, confirmadas: 0, enReconteo: 0, sinContar: 0, unidadesSobrantes: 0, unidadesFaltantes: 0 };
   for (const l of lineas) {
+    // Solo una verificada puede venir «sin contar» (la base lo exige: tiene cifra y coincide con lo esperado).
+    if (l.aplicadaSinContar && l.estado !== "pendiente" && l.estado !== "en_reconteo") r.sinContar += 1;
     switch (l.estado) {
       case "pendiente":
         r.pendientes += 1;
@@ -466,9 +499,18 @@ export function textoProgreso(p: { verificadas: number; variantes: number }): st
   return `${p.verificadas} de ${p.variantes} ${p.variantes === 1 ? "variante verificada" : "variantes verificadas"}`;
 }
 
-/** «34 correctas · 3 con diferencia · 0 pendientes»: el desglose de la pantalla de revisar. */
-export function textoRevision(r: Pick<ResumenConteo, "correctas" | "conDiferencia" | "pendientes">): string {
-  return [plural(r.correctas, "correcta", "correctas"), `${r.conDiferencia} con diferencia`, plural(r.pendientes, "pendiente", "pendientes")].join(" · ");
+/**
+ * «34 correctas · 3 con diferencia · 0 pendientes»: el desglose de la pantalla de revisar. Lo anotado con «Aplicar todos completos»
+ * no se llama «correcta» (nadie lo miró): va aparte, «9 correctas · 40 sin contar · …» (ADR-0328).
+ */
+export function textoRevision(r: Pick<ResumenConteo, "correctas" | "conDiferencia" | "pendientes"> & { sinContar?: number }): string {
+  const sinContar = r.sinContar ?? 0;
+  return [
+    plural(r.correctas - sinContar, "correcta", "correctas"),
+    ...(sinContar > 0 ? [`${sinContar} sin contar`] : []),
+    `${r.conDiferencia} con diferencia`,
+    plural(r.pendientes, "pendiente", "pendientes"),
+  ].join(" · ");
 }
 
 /** «Faltan 2 variantes por contar.»: el aviso ámbar cuando quedan pendientes al revisar. */
@@ -491,12 +533,20 @@ export function textoQuedanSinVerificar(n: number): string {
  * verificar. Es el resultado de un conteo terminado: dice que se ENCONTRÓ una diferencia, no que se «corrigió» (Felipe,
  * 2026-09-30): corregir es lo que se hace después, con «Corregir conteo» o con un ajuste enlazado a ese conteo.
  */
-export function textoTerminado(r: Pick<ResumenConteo, "verificadas" | "correctas" | "conDiferencia" | "pendientes">, parcial: boolean): string {
-  const partes = [
-    `${r.verificadas} ${r.verificadas === 1 ? "variante verificada" : "variantes verificadas"}`,
-    `${r.correctas} ${r.correctas === 1 ? "coincidió" : "coincidieron"}`,
-    `${r.conDiferencia} con diferencia`,
-  ];
+export function textoTerminado(r: Pick<ResumenConteo, "verificadas" | "correctas" | "conDiferencia" | "pendientes"> & { sinContar?: number }, parcial: boolean): string {
+  const sinContar = r.sinContar ?? 0;
+  // ADR-0328: con «Aplicar todos completos», el resultado dice la verdad sobre sí mismo: «12 contadas · 40 sin contar». Lo aplicado
+  // coincide por definición (se anotó lo esperado), así que «coincidieron» habla solo de lo que alguien contó.
+  const contadas = r.verificadas - sinContar;
+  const coincidieron = r.correctas - sinContar;
+  const partes =
+    sinContar > 0
+      ? [`${contadas} ${contadas === 1 ? "contada" : "contadas"}`, `${sinContar} sin contar`, `${coincidieron} ${coincidieron === 1 ? "coincidió" : "coincidieron"}`, `${r.conDiferencia} con diferencia`]
+      : [
+          `${r.verificadas} ${r.verificadas === 1 ? "variante verificada" : "variantes verificadas"}`,
+          `${r.correctas} ${r.correctas === 1 ? "coincidió" : "coincidieron"}`,
+          `${r.conDiferencia} con diferencia`,
+        ];
   if (parcial && r.pendientes > 0) partes.push(`${r.pendientes} ${r.pendientes === 1 ? "quedó sin verificar" : "quedaron sin verificar"} (conteo parcial)`);
   return partes.join(" · ");
 }
@@ -505,9 +555,10 @@ export function textoTerminado(r: Pick<ResumenConteo, "verificadas" | "correctas
 // 4. El resultado de un conteo en el historial
 // ---------------------------------------------------------------------------------------------------------------
 
-export type ResultadoConteo = "en_curso" | "cancelado" | "parcial" | "todo_correcto" | "con_diferencias";
+export type ResultadoConteo = "en_curso" | "cancelado" | "parcial" | "todo_correcto" | "con_diferencias" | "sin_contar";
 
-type DatosDeResultado = { estado: string; lineas: number; lineasConDiferencia: number; parcial: boolean };
+/** `sinContar` (ADR-0328) es opcional: sin el SQL nuevo vale 0 y todo se lee como siempre. */
+type DatosDeResultado = { estado: string; lineas: number; lineasConDiferencia: number; parcial: boolean; sinContar?: number };
 
 /**
  * Cómo se lee un conteo de un vistazo. Un anulado es «cancelado»; y un cerrado SIN ninguna línea verificada (los
@@ -519,10 +570,12 @@ export function resultadoConteo(c: DatosDeResultado): ResultadoConteo {
   if (c.estado === "abierto") return "en_curso";
   if (c.estado === "anulado" || c.lineas === 0) return "cancelado";
   if (c.parcial) return "parcial";
+  // ADR-0328: si TODO lo verificado se anotó con «Aplicar todos completos», nadie contó nada: no es «Todo correcto».
+  if (c.lineasConDiferencia === 0 && (c.sinContar ?? 0) >= c.lineas) return "sin_contar";
   return c.lineasConDiferencia === 0 ? "todo_correcto" : "con_diferencias";
 }
 
-/** «Todo correcto» / «3 diferencias encontradas» / «Conteo parcial» / «Cancelado» / «En curso». Nunca «Cerrado · Vacío». */
+/** «Todo correcto» / «3 diferencias encontradas» / «Conteo parcial» / «Cancelado» / «En curso» / «Sin contar: se aplicó todo». Nunca «Cerrado · Vacío». */
 export function textoResultadoConteo(c: DatosDeResultado): string {
   switch (resultadoConteo(c)) {
     case "en_curso":
@@ -532,7 +585,10 @@ export function textoResultadoConteo(c: DatosDeResultado): string {
     case "parcial":
       return "Conteo parcial";
     case "todo_correcto":
-      return "Todo correcto";
+      // Con una parte aplicada sin contar, «todo» sería afirmar lo que nadie miró (ADR-0328).
+      return (c.sinContar ?? 0) > 0 ? "Sin diferencias en lo contado" : "Todo correcto";
+    case "sin_contar":
+      return "Sin contar: se aplicó todo";
     case "con_diferencias":
       // «Encontrada», no «corregida»: el conteo encontró la diferencia y ajustó el stock; corregirla (la prenda apareció, se contó mal) es otro paso.
       return c.lineasConDiferencia === 1 ? "1 diferencia encontrada" : `${c.lineasConDiferencia} diferencias encontradas`;
@@ -549,6 +605,87 @@ export function textoLugar(c: { sububicacionTipo: string | null; sububicacionNom
 /** Qué se contó: «Todo» o «Solo Blusas». */
 export function textoAlcance(c: { alcance: string; alcanceCategoriaNombre: string | null }): string {
   return c.alcance === "categoria" && c.alcanceCategoriaNombre ? `Solo ${c.alcanceCategoriaNombre}` : "Todo";
+}
+
+/** «del piso de venta», «del almacén de tienda», «de toda la ubicación»: el lugar dentro de una frase. */
+export function delLugar(c: { sububicacionTipo: string | null; sububicacionNombre: string | null }): string {
+  const lugar = textoLugar(c);
+  const minuscula = lugar.charAt(0).toLowerCase() + lugar.slice(1);
+  return minuscula.startsWith("toda ") ? `de ${minuscula}` : `del ${minuscula}`;
+}
+
+/** Lo que `tramoDeArranque` necesita de un conteo: su lugar, su alcance y si en ese lugar el arranque es por categoría. */
+type TramoConteo = {
+  sububicacionTipo: string | null;
+  sububicacionNombre: string | null;
+  alcance: string;
+  alcanceCategoriaNombre: string | null;
+  arranquePorCategoria: boolean;
+};
+
+/**
+ * El tramo de un conteo de arranque dentro de una frase (ADR-0328). En el almacén (o en toda la ubicación) el arranque es del lugar
+ * entero: «del almacén de tienda». En el piso es de cada categoría (lo dice la base, `arranquePorCategoria`): «de Blusas en el piso de
+ * venta» o, contando todo el piso, «de las categorías del piso de venta que todavía no lo tenían».
+ */
+export function tramoDeArranque(c: TramoConteo): string {
+  if (!c.arranquePorCategoria) return delLugar(c);
+  if (c.alcance === "categoria") {
+    const enLugar = delLugar(c).replace(/^del /, "en el ").replace(/^de /, "en ");
+    return `de ${c.alcanceCategoriaNombre ?? "esta categoría"} ${enLugar}`;
+  }
+  return `de las categorías ${delLugar(c)} que todavía no lo tenían`;
+}
+
+/**
+ * Lo que se dice del conteo de ARRANQUE (ADR-0328): el primer conteo de un tramo (el almacén entero; en el piso, cada categoría; un
+ * cuadre del piso los reinicia), contado a mano y cerrado sin pendientes, corrige el stock pero sus diferencias no cuentan como
+ * pérdida ni entran en la exactitud (son errores de registro de antes, no prendas perdidas).
+ *   · cerrado y de arranque → lo que hizo;
+ *   · abierto y todavía puede serlo → si se cierra completo y contado, lo será; si se cierra a medias, o con variantes aplicadas sin
+ *     contar (`sinContar`), NO (y sus diferencias contarán como pérdida): se avisa antes de cerrar, en ámbar, porque es una
+ *     consecuencia que la persona puede evitar contando lo que falta.
+ *   · uno de TODO el piso lo es solo de las categorías que todavía no lo tenían: las que ya lo tuvieron ajustan como pérdida, y se dice.
+ * `null` en cualquier otro caso. Lo decide la base (`cerrar_conteo` con `fn_conteo_vale_como_arranque`); esto solo lo dice.
+ */
+export function notaDeArranque(
+  c: TramoConteo & { estado: EstadoConteo; esArranque: boolean; arranquePosible: boolean },
+  parcial: boolean,
+  sinContar = 0
+): { texto: string; tono: "nota" | "aviso" } | null {
+  const tramo = tramoDeArranque(c);
+  // Todo el piso: el arranque es de algunas categorías (las que todavía no lo tenían), no del conteo entero.
+  const deAlgunas = c.arranquePorCategoria && c.alcance !== "categoria";
+  if (c.estado === "cerrado" && c.esArranque) {
+    return {
+      texto: `Conteo de arranque ${tramo}: corrigió el stock, y ${deAlgunas ? "en ellas las" : "sus"} diferencias no cuentan como pérdida ni bajan la exactitud.`,
+      tono: "nota",
+    };
+  }
+  if (c.estado !== "abierto" || !c.arranquePosible) return null;
+  if (parcial) {
+    return {
+      texto: `Cerrado a medias no es el conteo de arranque ${tramo}: sus diferencias contarán como pérdida. Para que lo sea, cuenta lo que falta y ciérralo completo.`,
+      tono: "aviso",
+    };
+  }
+  if (sinContar > 0) {
+    const variantes = sinContar === 1 ? "1 variante aplicada" : `${sinContar.toLocaleString("es-PE")} variantes aplicadas`;
+    return {
+      texto: `Con ${variantes} sin contar, este no es el conteo de arranque ${tramo}: lo que falte en lo contado contará como pérdida. Para que lo sea, vuelve a Contar y ${sinContar === 1 ? "cuéntala" : "cuéntalas"} a mano.`,
+      tono: "aviso",
+    };
+  }
+  if (deAlgunas) {
+    return {
+      texto: `Es el conteo de arranque ${tramo}: en ellas, lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud. Si alguna ya lo tuvo, sus diferencias sí cuentan.`,
+      tono: "nota",
+    };
+  }
+  return {
+    texto: `Es el conteo de arranque ${tramo}: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.`,
+    tono: "nota",
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -653,12 +790,83 @@ export function acotarALista<T extends { varianteId: string }>(filas: readonly T
 }
 
 /**
- * «Completar todo» de una tarjeta y «Aplicar todos completos» de la pantalla: de las variantes dadas, las que SIGUEN pendientes (sin
- * ninguna cantidad). Solo esas se cuentan con lo que debe haber: lo que alguien ya escribió, escaneó o recontó no se toca nunca, y una
- * variante que no está en el conteo no se inventa. Una sola regla para los dos botones: si cambia, cambia en ambos.
+ * «Completar todo» de una tarjeta: de las variantes dadas, las que SIGUEN sin cantidad. Solo esas se cuentan con lo que debe haber: lo
+ * que alguien ya escribió o escaneó no se toca nunca, y una variante que no está en el conteo no se inventa. Aquí sí entra una «en
+ * reconteo»: la persona tiene la tarjeta delante y afirma que la volvió a contar y estaba todo.
  */
 export function pendientesParaCompletar(ids: readonly string[], lineaDe: (varianteId: string) => { contada: number | null } | undefined): string[] {
   return ids.filter((id) => lineaDe(id)?.contada === null);
+}
+
+/**
+ * «Aplicar todos completos» (ADR-0328): de las variantes dadas, las que siguen pendientes y NADIE contó todavía. Las «en reconteo»
+ * (sin cantidad pero con `anterior`) se dejan fuera y se cuentan aparte: ahí alguien ya vio una diferencia, y una diferencia se
+ * confirma o se vuelve a contar (ADR-0282); aplicarle lo esperado la borraría sin que nadie la mirara. Es la misma regla de
+ * `conteo_aplicar_completos` en la base (que tampoco las toca): esto solo permite decirlo antes de aplicar.
+ */
+export function pendientesParaAplicar(
+  ids: readonly string[],
+  lineaDe: (varianteId: string) => { contada: number | null; anterior: number | null } | undefined
+): { ids: string[]; enReconteo: number } {
+  const elegidas: string[] = [];
+  let enReconteo = 0;
+  for (const id of ids) {
+    const l = lineaDe(id);
+    if (!l || l.contada !== null) continue;
+    if (l.anterior !== null) enReconteo++;
+    else elegidas.push(id);
+  }
+  return { ids: elegidas, enReconteo };
+}
+
+/**
+ * Lo que dice la pregunta de «Aplicar todos completos» (ADR-0328, decisión 10), con las cifras REALES de este conteo: cuántas se
+ * aplicarían, cómo se leería el resultado si se termina así («12 contadas · 40 sin contar») y, si hay, cuántas en reconteo se dejan.
+ * Nunca un ejemplo fijo: con 3 pendientes, «40 sin contar» sería falso (ADR-0290).
+ */
+export function textosAplicarTodos(e: { cuantas: number; contadas: number; sinContar: number; enReconteo: number }): {
+  subtitulo: string;
+  detalle: string;
+  reconteo: string | null;
+} {
+  const variantes = `${e.cuantas.toLocaleString("es-PE")} ${e.cuantas === 1 ? "variante pendiente" : "variantes pendientes"}`;
+  const sinContarDespues = e.sinContar + e.cuantas;
+  return {
+    subtitulo: `Se anotará en ${e.cuantas === 1 ? "la" : "las"} ${variantes} lo que CAYLA espera, y ${e.cuantas === 1 ? "quedará marcada" : "quedarán marcadas"} «sin contar».`,
+    detalle:
+      `Si terminas así, el resultado dirá «${plural(e.contadas, "contada", "contadas")} · ${sinContarDespues} sin contar», y lo que se aplica ` +
+      "sin contar no sube la exactitud. Lo que ya anotaste no se toca; si después cuentas una a mano, deja de estar «sin contar».",
+    reconteo:
+      e.enReconteo > 0
+        ? `${e.enReconteo === 1 ? "La variante en reconteo no se toca" : `Las ${e.enReconteo.toLocaleString("es-PE")} variantes en reconteo no se tocan`}: ahí alguien ya vio una diferencia, y hay que volver a contarla${e.enReconteo === 1 ? "" : "s"} a mano.`
+        : null,
+  };
+}
+
+/**
+ * Lo que se dice al aplicar sin contar en un conteo que todavía puede ser el de ARRANQUE (ADR-0328): si se aplica, deja de serlo (la
+ * base solo lo reconoce contado entero y de verdad: `fn_conteo_vale_como_arranque`), y lo que falte en lo contado contará como
+ * pérdida. `null` si el conteo no puede ser el de arranque: entonces aplicar no cambia nada de eso.
+ */
+export function avisoArranqueAlAplicar(c: TramoConteo & { estado: EstadoConteo; arranquePosible: boolean }): string | null {
+  if (c.estado !== "abierto" || !c.arranquePosible) return null;
+  return `Este es el conteo de arranque ${tramoDeArranque(c)}. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano.`;
+}
+
+/**
+ * Lo que se dice después de «Aplicar todos completos» (ADR-0328): cuántas se anotaron y que quedan «sin contar» (no suben la exactitud
+ * y el resultado las dirá aparte). Contarlas a mano después las vuelve contadas de verdad. `yaAplicadas`: de las líneas que devolvió la
+ * base, cuántas vienen marcadas «sin contar». Con `n = 0` y alguna marcada es un reintento (la primera vez se guardó y la respuesta
+ * se perdió): decir «no se anotó nada» mientras las filas pasan a «Sin contar» sería contradecirse.
+ */
+export function textoAplicadas(n: number, yaAplicadas = 0): string {
+  // Un reintento después de perder la respuesta: la base ya las había anotado (aplicadas = 0 pero vuelven marcadas «sin contar»).
+  if (n <= 0 && yaAplicadas > 0) {
+    return `Ya estaban aplicadas: ${yaAplicadas.toLocaleString("es-PE")} ${yaAplicadas === 1 ? "variante" : "variantes"} sin contar. No se anotó nada nuevo.`;
+  }
+  if (n <= 0) return "No quedaba ninguna variante pendiente: no se anotó nada.";
+  const variantes = `${n.toLocaleString("es-PE")} ${n === 1 ? "variante" : "variantes"}`;
+  return `Se anotaron ${variantes} con lo que CAYLA esperaba, marcadas «sin contar»: no suben la exactitud. Si cuentas alguna a mano, deja de estar «sin contar».`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -865,6 +1073,8 @@ export function lineaDesdeJson(json: unknown): LineaConteo | null {
     ajustadoTotal: enteroONulo(o, "ajustado_total") ?? 0,
     ajustadoAntes: enteroONulo(o, "ajustado_antes") ?? 0,
     hallazgos: enteroONulo(o, "hallazgos") ?? 0,
+    // Falta si la web sale antes que el SQL (`20261004230100`): sin la marca, nada se dice «sin contar».
+    aplicadaSinContar: o.aplicada_sin_contar === true,
   };
   const estado = estadoDeLinea(base);
   if (estado === null) return null;
@@ -910,6 +1120,12 @@ export function detalleDesdeJson(json: unknown): DetalleConteo | null {
       creadoEn: texto(c, "created_at"),
       fotoEn: textoONulo(c, "foto_en"),
       esPrueba: c.es_prueba === true,
+      // ADR-0328 (20261004230100). Sin el SQL: no es de arranque, no puede serlo y no se sabe si se abrió hoy.
+      esArranque: c.es_arranque === true,
+      arranquePosible: c.arranque_posible === true,
+      arranquePorCategoria: c.arranque_por_categoria === true,
+      abiertoHoy: typeof c.abierto_hoy === "boolean" ? c.abierto_hoy : null,
+      abiertoPorPresente: typeof c.abierto_por_presente === "boolean" ? c.abierto_por_presente : null,
     },
     resumen: resumirLineas(lineas),
     lineas,
