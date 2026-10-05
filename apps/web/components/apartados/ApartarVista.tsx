@@ -319,7 +319,7 @@ export function ApartarVista({
           onClick={() => agregar(v.varianteId)}
           className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-200 @[19rem]:px-4 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
         >
-          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
+          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
             <span className="block truncate text-xs text-tinta/60">
@@ -546,7 +546,7 @@ export function ApartarVista({
           // abierto o en un celular, se apilan: la foto más chica y centrada, y el encabezado y las tallas centrados con ella.
           <div className="@container">
           <article className="anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
-            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
+            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
               <div className="text-center @lg:text-left">
                 <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
@@ -615,7 +615,7 @@ export function ApartarVista({
                 const r = porId.get(id)!;
                 return (
                   <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
-                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
+                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} colorHex={r.colorHex} categoria={r.categoria} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
                     <span className="min-w-0 text-xs">
                       <b className="block truncate text-[13px] font-semibold">{r.referencia}</b>
                       <span className="text-tinta/60">{r.color ?? "—"} · {r.talla ?? "—"} · {r.stockAqui} disp.</span>

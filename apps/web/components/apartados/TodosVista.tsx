@@ -214,7 +214,7 @@ export function TodosVista({
               const prendaTexto = [pr?.referencia ?? "Prenda", pr?.color, pr?.talla].filter(Boolean).join(" · ");
               return (
                 <li key={pe.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                  <FotoPrenda fotoUrl={pr?.fotoUrl} referencia={pr?.referencia ?? "Prenda"} categoriaPrefijo={pr?.categoriaPrefijo} categoriaFamilia={pr?.categoriaFamilia} ancho={32} className="w-8" />
+                  <FotoPrenda fotoUrl={pr?.fotoUrl} referencia={pr?.referencia ?? "Prenda"} colorHex={pr?.colorHex} categoria={pr?.categoria} categoriaPrefijo={pr?.categoriaPrefijo} categoriaFamilia={pr?.categoriaFamilia} ancho={32} className="w-8" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {pr?.referencia ?? "Prenda"} <span className="font-normal text-tinta/60">{[pr?.color, pr?.talla].filter(Boolean).join(" · ")}</span>
@@ -326,7 +326,7 @@ export function TodosVista({
                     <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
-                          <FotoPrenda key={pr.varianteId} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
+                          <FotoPrenda key={pr.varianteId} fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
                         ))}
                       </span>
                       <span className="truncate text-[12.5px] text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
