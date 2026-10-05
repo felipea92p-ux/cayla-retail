@@ -257,6 +257,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:activos-y-fijos
 
+      # Activos «ya lo teníamos» (ADR-0335): lo anterior al sistema entra sin pago, sin mover plata, con su fecha real y su
+      # depreciación; solo el líder; los estados imposibles los impide la base. ROLLBACK.
+      - name: pruebas:activos-carga-inicial
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:activos-carga-inicial
+
       # Cuentas y dinero (ADR-0195 F3): cada movimiento, que se anula y no se borra, los saldos sumados, un egreso respalda
       # una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
       - name: pruebas:cuentas-dinero
