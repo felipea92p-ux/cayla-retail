@@ -601,6 +601,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   solo ofrece «Confirmar de nuevo», o «Comprobar» si el borrador ya se había enviado; mientras se guarda o el loader
   está a la vista, lo que manda la pistola va a un búfer, `esperaOcupada()` de `lib/espera-estado.ts`) → RPC
   `bajar_al_piso`. La base se toca una sola vez, al confirmar.
+  **«La tengo en la mano»** (2026-10-04, ADR-0328 actividad 9; **SQL `20261004223000` + `20261004223100` sin pegar en
+  producción**): cada lectura suena (`sonidoDeLecturaBajada` → `lib/sonido-conteo.ts:avisarLectura`, el bip de Conteo); si la
+  etiqueta no se lee, el mismo campo busca por nombre (`buscarPorNombre`/`accionDelEnterBajada`, sobre `filtrarConteo` de
+  `lib/conteo-reglas.ts`) y ella toca la prenda (`leerPrenda`); el botón «Cámara» abre la ráfaga de Conteo (`EscanerConteo.tsx`
+  con `textos` propios). Si el sistema dice 0 en el almacén, la tarjeta de `lib/bajada-en-mano.ts` (`ofertaEnMano`) ofrece «Ya
+  estaba colgada» (no escribe nada) o «Corregir y colgar» → `BajarEnManoModal.tsx` (guía de foco, mismo Responsable de la
+  pantalla) → RPC `bajar_en_mano` (+1 «Encontré prendas» en el almacén y la MISMA bajada de `bajar_al_piso`, todo o nada,
+  unidas en `retail.bajadas_en_mano`).
 - `/productos/[id]/editar` también (ADR-0281, decisión 5): `ficha-producto/AjusteDeStock.tsx` ofrece «Ajustar stock» por color y
   un lápiz por talla y abre `AjustarInventarioModal` → RPC `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
   almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
