@@ -81,7 +81,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
       <p className="mt-3.5 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-tinta/65 tabular-nums">
         {piezas.map((p, i) => (
           <span key={p.etiqueta} className="whitespace-nowrap">
-            {i > 0 && <span className="mr-2 text-tinta/40">{p.signo}</span>}
+            {i > 0 && <span className="mr-2 text-tinta/40 dark:text-tinta/55">{p.signo}</span>}
             {p.etiqueta} <b className="font-semibold text-tinta">{soles(p.monto)}</b>
           </span>
         ))}
@@ -566,7 +566,7 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
               type="button"
               aria-pressed={modo === m.clave}
               onClick={() => cambiar(m.clave)}
-              className={`rounded-md px-2 py-1 text-[11.5px] transition-colors sm:px-2.5 ${modo === m.clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
+              className={`rounded-md px-2 py-1 text-[11.5px] transition-colors sm:px-2.5 ${modo === m.clave ? "bg-papel text-tinta shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_7%,transparent)]" : "text-tinta/60 hover:text-tinta"}`}
             >
               <span className="sm:hidden">{m.corta}</span>
               <span className="hidden sm:inline">{m.etiqueta}</span>

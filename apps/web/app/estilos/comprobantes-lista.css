@@ -56,7 +56,7 @@
     width: 36%;
     opacity: 0;
     pointer-events: none;
-    background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.55), transparent);
+    background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--luz-especular) 65%, transparent), transparent);
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
   }
   .cmp-viva:hover::after { animation: cayla-brillo 900ms var(--ease-cayla); }

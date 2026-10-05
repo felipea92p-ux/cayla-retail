@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "responsive:check": "node responsive/cli.mjs"
+    "responsive:check": "node responsive/cli.mjs",
+    "tema:auditar": "node tema/cli.mjs",
+    "tema:cuentas": "node tema/cuentas-locales.mjs",
+    "tema:colores": "node tema/colores-sueltos.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

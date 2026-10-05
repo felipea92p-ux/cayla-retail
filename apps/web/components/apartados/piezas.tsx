@@ -214,7 +214,7 @@ export function BarraMovil({
       style={{ bottom: `calc(${ALTO_PESTANAS_MOVIL} + env(safe-area-inset-bottom))` }}
     >
       <div className="min-w-0">
-        <p className="label-cayla truncate text-[10px] text-crema/60">{etiqueta}</p>
+        <p className="label-cayla truncate text-[10px] text-crema/60 dark:text-crema/75">{etiqueta}</p>
         <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>
       </div>
       <button

@@ -48,3 +48,6 @@ next-env.d.ts
 # Nunca se versionan — la sesión es un secreto local y la salida se regenera en cada corrida.
 responsive/.sesion/
 responsive/.salida/
+# Auditoría del modo oscuro (ADR-0336): sesiones de las cuentas locales y capturas. Se regeneran en cada corrida.
+tema/.sesion/
+tema/.salida/

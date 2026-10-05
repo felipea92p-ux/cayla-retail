@@ -3,9 +3,10 @@
    Portado de la maqueta aprobada (docs/maquetas/inicio-admin-v3-2026-10/inicio-admin-v3.html): mismas medidas, mismos
    movimientos. Todo cuelga de `.obs` y sus clases llevan `o-` para no chocar con las del resto del ERP.
 
-   TEMA. Los colores salen SOLO de los tokens de la paleta (ADR-0169) por medio de variables propias (`--o-*`). El claro es
-   el de hoy. El oscuro ya está escrito con los mismos tokens bajo `[data-tema="oscuro"]`, el nombre que ADR-0169 reservó:
-   se encenderá cuando el ERP tenga modo oscuro, sin tocar esta pantalla.
+   TEMA. Los colores salen SOLO de los tokens de la paleta (ADR-0169) por medio de variables propias (`--o-*`). Con el modo
+   oscuro del ERP (ADR-0336) los tokens se redefinen bajo `[data-tema="oscuro"]` (`estilos/tema.css`: `crema` pasa a ser el
+   fondo oscuro y `tinta` el texto claro), así que estas variables se oscurecen SOLAS: aquí ya no hay un bloque oscuro aparte.
+   Antes lo había (ADR-0322) porque los tokens no se intercambiaban; dejarlo invertiría dos veces.
 
    MOVIMIENTO. Entradas en cascada, cifras que cuentan o ruedan, trazos que se dibujan, barras que crecen y el zoom del
    mapa: respuestas a una acción o a la llegada, con `--ease-cayla`. Lo que se repite (el latido de las tiendas abiertas, el
@@ -49,35 +50,9 @@
   gap: 22px;
 }
 
-[data-tema="oscuro"] .obs {
-  --o-fondo: var(--color-tinta);
-  --o-sup: color-mix(in oklab, var(--color-tinta) 93%, var(--color-crema));
-  --o-sup2: color-mix(in oklab, var(--color-tinta) 86%, var(--color-crema));
-  --o-borde: color-mix(in oklab, var(--color-crema) 11%, transparent);
-  --o-linea: color-mix(in oklab, var(--color-crema) 8%, transparent);
-  --o-tx: var(--color-crema);
-  --o-tx2: color-mix(in oklab, var(--color-crema) 62%, transparent);
-  --o-tx3: color-mix(in oklab, var(--color-crema) 42%, transparent);
-  --o-urg: color-mix(in oklab, var(--color-rojo) 72%, var(--color-crema));
-  --o-ok: color-mix(in oklab, var(--color-verde) 42%, var(--color-crema));
-  --o-warn: color-mix(in oklab, var(--color-ambar) 38%, var(--color-crema));
-  --o-info: color-mix(in oklab, var(--color-pizarra) 42%, var(--color-crema));
-  --o-foco: var(--color-crema);
-  --o-resto: color-mix(in oklab, var(--color-crema) 28%, transparent);
-  --o-brillo: color-mix(in oklab, var(--color-crema) 55%, transparent);
-  --o-lavado: color-mix(in oklab, var(--color-crema) 6%, transparent);
-  --o-tierra: color-mix(in oklab, var(--color-crema) 7.5%, transparent);
-  --o-tierra2: color-mix(in oklab, var(--color-crema) 2%, transparent);
-  --o-costa: color-mix(in oklab, var(--color-crema) 34%, transparent);
-  --o-ret: color-mix(in oklab, var(--color-crema) 4.5%, transparent);
-  --o-ret2: color-mix(in oklab, var(--color-crema) 3%, transparent);
-  --o-nodo: color-mix(in oklab, var(--color-tinta) 86%, var(--color-crema));
-  --o-nodo-b: color-mix(in oklab, var(--color-crema) 55%, transparent);
-  --o-halo: var(--color-crema);
-  --o-halo-op: 0.16;
-  --o-arco: color-mix(in oklab, var(--color-crema) 16%, transparent);
-  --o-mar: color-mix(in oklab, var(--color-crema) 16%, transparent);
-}
+/* Modo oscuro (ADR-0336): el tercer nivel de texto (la tinta al 50 %) queda en 4.46:1 sobre papel, 0.04 bajo el mínimo; solo en oscuro
+   sube al 56 % (5.1:1). El claro es el aprobado y no se toca. */
+[data-tema="oscuro"] .obs { --o-tx3: color-mix(in oklab, var(--color-tinta) 56%, transparent); }
 
 .obs button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: inherit; }
 .obs .o-ic { width: 17px; height: 17px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -97,7 +72,7 @@
 .o-tcab .o-lbl { color: var(--o-tx2); }
 .o-luz::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; background: radial-gradient(260px circle at var(--mx, -600px) var(--my, -600px), var(--o-brillo), transparent 70%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity 0.4s; pointer-events: none; }
 .o-luz:hover::after { opacity: 1; }
-[data-tema="oscuro"] .obs .o-luz::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(420px circle at var(--mx, -600px) var(--my, -600px), color-mix(in oklab, var(--color-crema) 5.5%, transparent), transparent 60%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+[data-tema="oscuro"] .obs .o-luz::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(420px circle at var(--mx, -600px) var(--my, -600px), color-mix(in oklab, var(--color-tinta) 5.5%, transparent), transparent 60%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
 [data-tema="oscuro"] .obs .o-luz:hover::before { opacity: 1; }
 .o-chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; background: var(--o-lavado); color: var(--o-tx2); }
 .o-chip > i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
@@ -166,8 +141,7 @@
 .obs.rapido .o-revela { transition: none; }
 
 /* tooltip */
-.o-tip { position: fixed; z-index: 70; pointer-events: none; background: var(--color-tinta); color: var(--color-crema); font-size: 12px; line-height: 1.45; padding: 8px 11px; border-radius: 9px; box-shadow: 0 12px 26px -12px rgb(26 26 24 / 0.6); opacity: 0; transform: translateY(4px); transition: opacity 0.16s, transform 0.16s var(--o-ease); max-width: 260px; }
-[data-tema="oscuro"] .o-tip { background: var(--color-crema); color: var(--color-tinta); }
+.o-tip { position: fixed; z-index: 70; pointer-events: none; background: var(--color-tinta); color: var(--color-crema); font-size: 12px; line-height: 1.45; padding: 8px 11px; border-radius: 9px; box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--color-sombra) 60%, transparent); opacity: 0; transform: translateY(4px); transition: opacity 0.16s, transform 0.16s var(--o-ease); max-width: 260px; }
 .o-tip.on { opacity: 1; transform: none; }
 .o-tip b { font-weight: 700; font-size: 13.5px; }
 .o-tip .fila { display: flex; align-items: center; gap: 8px; white-space: nowrap; }

@@ -29,7 +29,7 @@ export function CabezaClub({ tienda }: { tienda?: string }) {
  */
 export function HojaClub({ children, cabeza = true }: { children: ReactNode; cabeza?: boolean }) {
   return (
-    <main className="club-pagina">
+    <main className="club-pagina papel-fijo">
       <div className="club-hoja">
         {cabeza && <CabezaClub />}
         {children}
