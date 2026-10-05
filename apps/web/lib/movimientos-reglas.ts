@@ -721,31 +721,42 @@ export function textoApartado(unidades: number, categoria: "apartado" | "liberac
 }
 
 // ---------------------------------------------------------------------------
-// Bajadas plegadas (ADR-0241): en «Todos», las operaciones de piso ↔ almacén del día —no cambian el total— van en UNA
-// fila que se despliega. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía el stock.
+// Mazos (ADR-0241, ADR-0345): en «Todos», las colgadas en piso del día —no cambian el total— van en UN mazo que se abre en
+// abanico, y las guardadas en almacén, en otro. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía
+// el stock. Cada mazo es de UNA sola cosa: antes eran «todo lo de piso ↔ almacén» juntos y la fila no sabía decir si colgaron
+// o guardaron.
 // ---------------------------------------------------------------------------
 
 export type ItemLista =
   | { tipo: "operacion"; op: OperacionMovimiento }
   | { tipo: "bajadas"; clave: string; operaciones: OperacionMovimiento[] };
 
-/** Una operación es «de piso ↔ almacén» si todas sus filas lo son (una bajada escaneada de 12 tallas, un retiro). */
-export function esOperacionInterna(op: Pick<OperacionMovimiento, "filas">): boolean {
-  return op.filas.length > 0 && op.filas.every((m) => m.categoria === "interno");
+/** Colgada o guardada, si TODAS las filas de la operación son de ese mismo par (`parDeInterno`); null si es de otro par
+ *  (cuarentena, un rack del Taller), si mezcla pares o si ni siquiera es interna. */
+export function parDeOperacion(op: Pick<OperacionMovimiento, "filas">): "colgada" | "guardada" | null {
+  const pares = new Set(op.filas.map((m) => parDeInterno(m)));
+  const [par] = pares;
+  return pares.size === 1 && par ? par : null;
 }
 
-/** Las operaciones de UN día, con las de piso ↔ almacén juntas en un solo ítem puesto donde estaba la más reciente.
- *  Con una sola no se pliega nada: una fila que se despliega para mostrar una fila no ahorra nada. */
+/** Las operaciones de UN día, con las colgadas juntas en un mazo y las guardadas en otro, cada uno puesto donde estaba su
+ *  operación más reciente. Con una sola de un par no se pliega nada: un mazo para mostrar una fila no ahorra nada. Lo
+ *  interno de otro par (cuarentena…) no se pliega: cada una es su fila. */
 export function plegarBajadas(operaciones: readonly OperacionMovimiento[]): ItemLista[] {
-  const internas = operaciones.filter(esOperacionInterna);
-  if (internas.length < 2) return operaciones.map((op) => ({ tipo: "operacion", op }));
-  const items: ItemLista[] = [];
-  let puesto = false;
+  const porPar: Record<"colgada" | "guardada", OperacionMovimiento[]> = { colgada: [], guardada: [] };
   for (const op of operaciones) {
-    if (!esOperacionInterna(op)) items.push({ tipo: "operacion", op });
-    else if (!puesto) {
-      items.push({ tipo: "bajadas", clave: `bajadas-${op.fecha}`, operaciones: internas });
-      puesto = true;
+    const par = parDeOperacion(op);
+    if (par) porPar[par].push(op);
+  }
+  const plegables = (["colgada", "guardada"] as const).filter((par) => porPar[par].length >= 2);
+  const puestos = new Set<string>();
+  const items: ItemLista[] = [];
+  for (const op of operaciones) {
+    const par = parDeOperacion(op);
+    if (!par || !plegables.includes(par)) items.push({ tipo: "operacion", op });
+    else if (!puestos.has(par)) {
+      puestos.add(par);
+      items.push({ tipo: "bajadas", clave: `bajadas-${par}-${op.fecha}`, operaciones: porPar[par] });
     }
   }
   return items;

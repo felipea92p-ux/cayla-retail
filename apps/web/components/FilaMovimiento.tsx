@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { textoQuedan } from "@/lib/movimientos-saldo";
@@ -100,7 +101,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
   const quedan = textoQuedan(ctx.saldos?.[m.id]);
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
+    <li className="mv-fila" data-op={m.id} data-mv-tono={TIPOS_VISUALES[rotulo.tipo].tono} data-sel={ctx.abiertoId === m.id ? "" : undefined} {...props}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(m)}
@@ -171,7 +172,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const unidades = r.entran + r.salen + r.movidas + r.apartadas + r.liberadas;
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
+    <li className="mv-fila" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(primera)}
@@ -226,59 +227,67 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   );
 }
 
-/** Las colgadas (o guardadas) de un día, plegadas en una fila (ADR-0241): en «Todos» no cambian el total y ocupaban un tercio
- *  de la lista. Al tocarla abre el cajón lateral con todas. Solo existe en «Todos» sin búsqueda: con el filtro de tipo o
- *  buscando una prenda, cada una es su fila (quien viene a confirmar «¿la colgué?» la ve). `abierta`: el cajón de ESTAS
- *  está a la vista. */
-export function FilaBajadas({
-  operaciones,
-  prendas,
-  abierta,
-  onAbrir,
-}: {
-  operaciones: OperacionMovimiento[];
-  prendas: Record<string, PrendaDeMovimiento>;
-  abierta: boolean;
-  onAbrir: () => void;
-}) {
+/** El MAZO: las colgadas (o las guardadas) de un día, plegadas en una fila con sus capas apiladas (ADR-0241, ADR-0345). Al
+ *  tocarla se abre en abanico —cada operación es su fila, que a su vez abre el cajón— y al volver a tocarla se pliega. Solo existe
+ *  en «Todos» sin búsqueda: con el filtro de tipo o buscando una prenda, cada una es su fila (quien viene a confirmar «¿la
+ *  colgué?» la ve). El cajón de «todas juntas» (ADR-0241, 2026-09-28) lo reemplaza el abanico: cada operación ya tiene el suyo. */
+export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: OperacionMovimiento[]; prendas: Record<string, PrendaDeMovimiento>; ctx: ContextoFila }) {
+  const [abierto, setAbierto] = useState(false);
   const r = resumirBajadas(operaciones);
-  // El tipo de la fila plegada: el de todas si coinciden (todas colgadas), si no «movida» (y así dice su rótulo: «Movido dentro de la sede»).
+  // El tipo del mazo: el de todas si coinciden (todas colgadas), si no «movida» (y así dice su rótulo: «Movido dentro de la sede»).
   const tipos = new Set(operaciones.flatMap((op) => op.filas.map((m) => rotuloDeMovimiento(m).tipo)));
   const tipo: TipoVisual = tipos.size === 1 ? [...tipos][0] : "movida";
   const fotos = [...new Set(operaciones.flatMap((op) => op.filas.map((m) => prendas[m.varianteId]?.fotoUrl ?? null)))].slice(0, 3);
-  const horas = r.desde === r.hasta ? r.hasta : `${r.desde}–${r.hasta}`;
+  const quienes = [...new Set(operaciones.map((op) => op.filas[0].usuario).filter((u): u is string => !!u))];
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={abierta ? "" : undefined} {...props}>
-      <button type="button" onClick={onAbrir} aria-label={`Ver el detalle de ${r.etiqueta.toLowerCase()}: ${r.veces} veces, ${r.unidades} unidades`} className={BOTON_CUBRE_FILA} />
-      <SelloTipo key={vuelta} tipo={tipo} tamano={46} />
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-          <span className="mv-rotulo">{r.etiqueta}</span>
-          <span className="text-xs tabular-nums text-taupe">{horas}</span>
-        </div>
-        <div className="mt-1.5 flex min-w-0 items-center gap-2.5">
-          <span aria-hidden className="flex shrink-0 -space-x-3">
-            {fotos.map((url, i) => (
-              <span key={i} className="rounded-md ring-2 ring-papel">
-                <MiniaturaPrenda fotoUrl={url} />
-              </span>
-            ))}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[13.5px] font-semibold text-tinta">
-              {r.veces} veces · {r.tallas} {r.tallas === 1 ? "talla" : "tallas"}
+    <li className="mv-mazo" data-mazo="" data-abierto={abierto ? "" : undefined} data-mv-tono={TIPOS_VISUALES[tipo].tono}>
+      <div className="mv-fila" {...props}>
+        <button type="button" data-mazo-tapa="" onClick={() => setAbierto((v) => !v)} aria-expanded={abierto} aria-label={`${abierto ? "Plegar" : "Abrir"} ${r.etiqueta.toLowerCase()}: ${r.veces} veces, ${r.unidades} prendas`} className={BOTON_CUBRE_FILA} />
+        <SelloTipo key={vuelta} tipo={tipo} tamano={46} />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+            <span className="mv-rotulo">{r.etiqueta}</span>
+            <span className="mv-veces">{r.veces} veces</span>
+          </div>
+          <div className="mt-1.5 flex min-w-0 items-center gap-2.5">
+            <span aria-hidden className="flex shrink-0 -space-x-3">
+              {fotos.map((url, i) => (
+                <span key={i} className="rounded-md ring-2 ring-papel">
+                  <MiniaturaPrenda fotoUrl={url} />
+                </span>
+              ))}
             </span>
-            <span className="block truncate text-xs text-taupe">No cambian el total de la tienda</span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13.5px] font-semibold text-tinta">
+                {r.tallas} {r.tallas === 1 ? "prenda distinta" : "prendas distintas"}
+              </span>
+              <span className="block truncate text-xs tabular-nums text-taupe">
+                entre las {r.desde} y las {r.hasta}
+                {quienes.length > 0 ? ` · ${quienes.join(", ")}` : ""}
+              </span>
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-right">
+          <span className="flex flex-col items-end gap-0.5">
+            <span className="mv-cant">{r.unidades}</span>
+            <span className="whitespace-nowrap text-[11px] text-taupe">{palabraPrendas(r.unidades)}</span>
           </span>
+          <ChevronRight aria-hidden strokeWidth={1.5} className={`h-4 w-4 shrink-0 text-tinta/30 transition-transform ${abierto ? "rotate-90" : ""}`} />
         </div>
       </div>
-      <div className="flex items-center gap-1 text-right">
-        <span className="flex flex-col items-end gap-0.5">
-          <span className="mv-cant">{r.unidades}</span>
-          <span className="whitespace-nowrap text-[11px] text-taupe">{palabraPrendas(r.unidades)}</span>
-        </span>
-        <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+      <span aria-hidden className="mv-capas">
+        <i />
+        <i />
+      </span>
+      {/* Cerrado, lo de adentro no se toca ni se lee (`inert`): sigue en el árbol para que la franja del día lo encuentre. */}
+      <div className="mv-mazo-hijos" inert={!abierto}>
+        <ul>
+          {operaciones.map((op) =>
+            op.filas.length === 1 ? <FilaMovimiento key={op.clave} m={op.filas[0]} prenda={prendas[op.filas[0].varianteId]} ctx={ctx} /> : <FilaOperacion key={op.clave} op={op} prendas={prendas} ctx={ctx} />
+          )}
+        </ul>
       </div>
     </li>
   );

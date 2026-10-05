@@ -35,9 +35,9 @@ import {
   resumirOperacion,
   textoCantidadOperacion,
   textoApartado,
+  parDeOperacion,
   plegarBajadas,
   resumirBajadas,
-  esOperacionInterna,
   unidades,
   ventasAnuladas,
   verboDelResponsable,
@@ -911,15 +911,38 @@ describe("ADR-0241: apartados, bajadas plegadas y «Hoy»", () => {
     expect(resumirBajadas(plegado.operaciones)).toEqual({ etiqueta: "Colgadas en piso", veces: 2, tallas: 2, unidades: 4, desde: "10:09", hasta: "15:18" });
   });
 
+  it("las colgadas y las guardadas del día van en mazos SEPARADOS; lo interno de otro par no se pliega", () => {
+    const guardada = (id: string, hora: string, varianteId = "v1") => ({
+      ...interna(id, hora, varianteId),
+      sububicacion: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" },
+      sububicacionDestino: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" },
+    });
+    const danada = (id: string, hora: string, varianteId = "v1") => ({ ...interna(id, hora, varianteId), sububicacionDestino: { id: "sc", nombre: "Cuarentena", tipo: "cuarentena" } });
+    const ops = agruparPorOperacion([interna("a", "17:00"), guardada("b", "16:00"), interna("c", "15:00", "v2"), danada("d", "14:00"), guardada("e", "13:00", "v2"), danada("f", "12:00", "v2")]);
+    const items = plegarBajadas(ops);
+    expect(items.map((i) => (i.tipo === "bajadas" ? i.clave.replace(/-\d{4}-\d{2}-\d{2}$/, "") : "operacion"))).toEqual(["bajadas-colgada", "bajadas-guardada", "operacion", "operacion"]);
+    const [colgadas, guardadas] = items;
+    if (colgadas.tipo !== "bajadas" || guardadas.tipo !== "bajadas") throw new Error("esperaba dos mazos");
+    expect(colgadas.operaciones).toHaveLength(2);
+    expect(guardadas.operaciones).toHaveLength(2);
+    expect(resumirBajadas(guardadas.operaciones).etiqueta).toBe("Guardadas en almacén");
+  });
+
+  it("una colgada y una guardada, cada una sola, no se pliegan", () => {
+    const guardada = { ...interna("b", "10:00"), sububicacion: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" }, sububicacionDestino: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" } };
+    expect(plegarBajadas(agruparPorOperacion([interna("a", "11:00"), guardada])).map((i) => i.tipo)).toEqual(["operacion", "operacion"]);
+  });
+
+  it("parDeOperacion: el par de todas sus filas, o null si mezcla o no es interna", () => {
+    const [col] = agruparPorOperacion([interna("a", "11:00")]);
+    expect(parDeOperacion(col)).toBe("colgada");
+    expect(parDeOperacion({ filas: [...col.filas, venta("x", "11:00")] })).toBeNull();
+    expect(parDeOperacion({ filas: [] })).toBeNull();
+  });
+
   it("con una sola bajada no pliega nada", () => {
     const ops = agruparPorOperacion([venta("a", "16:00"), interna("b", "15:18")]);
     expect(plegarBajadas(ops).map((i) => i.tipo)).toEqual(["operacion", "operacion"]);
-  });
-
-  it("una operación con una fila que no es interna no se pliega", () => {
-    const [op] = agruparPorOperacion([interna("b", "15:18")]);
-    expect(esOperacionInterna(op)).toBe(true);
-    expect(esOperacionInterna({ filas: [...op.filas, venta("x", "15:18")] })).toBe(false);
   });
 
   it("«Hoy» por URL o por defecto en el celular; 30 días si no", () => {

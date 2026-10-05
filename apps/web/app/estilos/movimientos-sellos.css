@@ -208,8 +208,45 @@ ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
 .mv-tipo-barra i { display: block; height: 100%; background: var(--mv-c); transform-origin: left; animation: mv-barra 0.9s 0.25s var(--ease-cayla) both; }
 @keyframes mv-barra { from { transform: scaleX(0); } to { transform: none; } }
 
+/* ── El mazo: varias colgadas (o guardadas) del día en una pila que se abre en abanico ── */
+.mv-mazo { position: relative; }
+.mv-veces { border-radius: 9999px; background: color-mix(in srgb, var(--mv-c) 15%, var(--color-papel)); padding: 0 0.5625rem; font-size: 11px; font-weight: 600; color: var(--mv-c); }
+.mv-capas { position: absolute; left: 1.125rem; right: 1.125rem; bottom: -5px; height: 10px; pointer-events: none; transition: opacity 0.25s var(--ease-cayla), transform 0.4s var(--ease-cayla); }
+.mv-capas i { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; border: 1px solid color-mix(in srgb, var(--mv-c) 26%, var(--color-sand)); border-top: 0; border-radius: 0 0 12px 12px; background: color-mix(in srgb, var(--mv-c) 9%, var(--color-papel)); }
+.mv-capas i:nth-child(1) { left: 10px; right: 10px; bottom: -4px; opacity: 0.7; }
+.mv-capas i:nth-child(2) { left: 5px; right: 5px; bottom: -1px; }
+.mv-mazo[data-abierto] .mv-capas { opacity: 0; transform: translateY(-6px); }
+.mv-mazo-hijos { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.45s var(--ease-cayla); }
+.mv-mazo[data-abierto] .mv-mazo-hijos { grid-template-rows: 1fr; }
+.mv-mazo-hijos > ul { overflow: hidden; min-height: 0; background: color-mix(in srgb, var(--mv-c) 4%, var(--color-papel)); }
+.mv-mazo-hijos .mv-fila { padding-left: 2.25rem; transform: translate(-14px, -6px); opacity: 0; transition: transform 0.45s var(--ease-cayla), opacity 0.35s var(--ease-cayla), background-color var(--default-transition-duration) var(--ease-cayla); transition-delay: calc(var(--k, 0) * 70ms + 80ms), calc(var(--k, 0) * 70ms + 80ms), 0s; }
+.mv-mazo[data-abierto] .mv-mazo-hijos .mv-fila { transform: none; opacity: 1; }
+.mv-mazo-hijos .mv-fila::before { left: 1.25rem; }
+.mv-mazo-hijos > ul > li:nth-child(1) { --k: 0; }
+.mv-mazo-hijos > ul > li:nth-child(2) { --k: 1; }
+.mv-mazo-hijos > ul > li:nth-child(3) { --k: 2; }
+.mv-mazo-hijos > ul > li:nth-child(4) { --k: 3; }
+.mv-mazo-hijos > ul > li:nth-child(5) { --k: 4; }
+.mv-mazo-hijos > ul > li:nth-child(n + 6) { --k: 5; }
+
+/* ── El encabezado del día: su nombre y una franja de color por cada operación ── */
+.mv-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 1.125rem; margin: 1rem 0 0.25rem; border-radius: 12px; background: color-mix(in srgb, var(--color-hueso) 55%, var(--color-papel)); padding: 0.75rem 1rem; }
+.mv-dia-nombre { display: flex; align-items: baseline; gap: 0.5rem; white-space: nowrap; font-size: 13px; color: var(--color-taupe); }
+.mv-dia-nombre b { font-family: var(--font-serif); font-size: 1.375rem; font-weight: 500; letter-spacing: 0.02em; color: var(--color-tinta); }
+.mv-codigo { display: flex; min-width: 0; flex: 1 1 8rem; align-items: flex-end; gap: 3px; height: 12px; }
+.mv-codigo button { height: 100%; min-width: 3px; max-width: 22px; flex: 1 1 0; border-radius: 3px; background: var(--mv-c); opacity: 0.9; transform: scaleY(0); transform-origin: bottom; animation: mv-franja 0.5s var(--ease-cayla) both; animation-delay: calc(var(--k, 0) * 22ms + 200ms); transition: opacity 0.2s, height 0.2s; }
+.mv-codigo button:hover, .mv-codigo button:focus-visible { height: 150%; opacity: 1; }
+@keyframes mv-franja { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (max-width: 639px) { .mv-codigo { flex-basis: 100%; order: 3; } }
+
+/* La fila a la que lleva una franja del día: un destello suave del color de su tipo. */
+.mv-fila[data-flash] { animation: mv-destello 1.3s var(--ease-cayla); }
+@keyframes mv-destello { 0%, 100% { background: transparent; } 25% { background: color-mix(in srgb, var(--mv-c) 17%, var(--color-papel)); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .mv-sello *, .mv-ruta *, .mv-fila, .mv-fila::before, .mv-tipo, .mv-tipo-barra i { animation: none !important; transition: none !important; }
+  .mv-sello *, .mv-ruta *, .mv-fila, .mv-fila::before, .mv-tipo, .mv-tipo-barra i, .mv-capas, .mv-mazo-hijos, .mv-mazo-hijos .mv-fila, .mv-codigo button { animation: none !important; transition: none !important; }
+  .mv-codigo button { transform: none; }
+  .mv-mazo-hijos .mv-fila { transform: none; opacity: 1; }
   .mv-riel .mv-viaje { display: none; }
 }
 
