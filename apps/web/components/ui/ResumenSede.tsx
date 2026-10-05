@@ -22,6 +22,10 @@ import { CifraAnimada } from "@/components/ui/CifraAnimada";
    frases C) y una cifra que FILTRA en la misma pantalla (`alTocar` +
    `presionada`, un botón con `aria-pressed`): solo cuando `ResumenSede` se
    dibuja dentro de un componente de cliente, que es quien tiene la función.
+
+   Desde la capacidad del piso (ADR-0329, 2026-10-04), una quinta: un renglón
+   chico bajo la etiqueta con lo que la cifra deja fuera a propósito y se cuenta
+   aparte (`aparte`: «+ 17 accesorios» junto a la ropa colgada).
    ==================================================================== */
 
 export type CifraResumen = {
@@ -33,6 +37,8 @@ export type CifraResumen = {
   /** Al lado del número, en letra de texto y taupe («quizá más»): la cifra puede ser más. */
   nota?: string;
   etiqueta: string;
+  /** Bajo la etiqueta, en letra chica y taupe: lo que la cifra deja fuera a propósito y se cuenta aparte («+ 17 accesorios»). */
+  aparte?: string;
   icono: LucideIcon;
   /** La cifra se puede tocar y lleva ahí (Devoluciones: «Por aprobar» → `#por-aprobar`). */
   href?: string;
@@ -57,7 +63,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
       style={{ "--i": 1 } as CSSProperties}
     >
       <ul className="flex">
-        {cifras.map(({ valor, formato, unidad, nota, etiqueta, icono: Icono, href, alTocar, presionada, titulo, alerta }) => {
+        {cifras.map(({ valor, formato, unidad, nota, etiqueta, aparte, icono: Icono, href, alTocar, presionada, titulo, alerta }) => {
           const contenido = (
             <>
               {/* Con cuatro cifras, en el celular el número baja un punto y no se parte ("S/" arriba, el monto abajo). */}
@@ -76,6 +82,7 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
                 <Icono className={`hidden h-3.5 w-3.5 shrink-0 sm:block ${alerta ? "" : "text-taupe"}`} aria-hidden />
                 {etiqueta}
               </span>
+              {aparte && <span className="mt-1 text-[11px] leading-tight text-taupe sm:text-xs">{aparte}</span>}
             </>
           );
           return (

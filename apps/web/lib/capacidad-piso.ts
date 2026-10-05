@@ -4,7 +4,8 @@
  *
  * PROMETE: leer la fila de `fn_capacidad_piso` sin confiar en su forma (lo que no sirve es «sin capacidad», nunca un número
  * inventado) y decir la nota y la explicación de la cifra, o nada. Mientras la sede no haya cuadrado su piso, la nota lo dice
- * («por cuadrar», ADR-0328): no saber si se cuadró cuenta como no cuadrado.
+ * («por cuadrar», ADR-0328): no saber si se cuadró cuenta como no cuadrado. Y lo que se compara con la capacidad es lo mismo que ella
+ * cuenta: la ropa que va al riel, con los accesorios aparte («+ 17 accesorios», `cifraColgadasEnElPiso`).
  * ASUME: la lectura la hace el servidor (`capacidad-piso-servidor.ts`) y la página la pone solo en «Colgadas en el piso», que existe
  * solo donde la sede separa piso y almacén: el Taller y una sede sin m² no llevan nota.
  */
@@ -52,40 +53,100 @@ export function notaCapacidadPiso(capacidad: CapacidadPiso | null): string | und
 }
 
 /**
- * Las familias que ADR-0329 (act. 2026-10-04, punto 6) deja fuera del riel: bisutería, cinturones, gorros y lentes junto a la caja;
- * bolsos y calzado en repisa o ganchos. Las 600 / 1800 / 180 son solo ropa colgada. Es una lista de las que SÍ se sabe que no son
- * ropa (`familias.codigo`): una familia nueva que un líder cree sin deploy no se cuenta, porque no se afirma lo que no se sabe.
+ * De qué lado del riel va cada familia (`familias.codigo`, la que guarda `categorias.familia`), según ADR-0329 (act. 2026-10-04,
+ * punto 6): la ropa cuelga en el riel; bisutería, cinturones, gorros y lentes van junto a la caja, y bolsos y calzado en repisa o
+ * ganchos. Las 600 / 1800 / 180 son solo ropa colgada. Se decide por la familia de la categoría y nunca por su nombre visible, que se
+ * renombra («Carteras/Bolsos» pasó a «Bolsos y Carteras» sin cambiar de familia).
+ *
+ * Entre las dos listas están TODAS las familias que trae una base nueva: `capacidad-piso.test.ts` las lee de las migraciones y del
+ * seed, así que una familia nueva por migración no entra sin decidir de qué lado va. Una que un líder cree después sin deploy (o un
+ * producto sin familia) cuenta en el riel: la cifra queda como era antes de separar, y nunca se esconde ropa como si fuera accesorio.
  */
+export const FAMILIAS_DEL_RIEL: ReadonlySet<string> = new Set(["indumentaria"]);
 export const FAMILIAS_FUERA_DEL_RIEL: ReadonlySet<string> = new Set(["calzado", "accesorios", "bisuteria", "belleza", "papeleria"]);
 
+export type ColgadasDelPiso = {
+  /** Lo libre en el piso que cuelga en el riel: lo que se compara con la capacidad. */
+  delRiel: number;
+  /** Lo libre en el piso de una familia de `FAMILIAS_FUERA_DEL_RIEL`: también lo cobra la caja, pero no ocupa riel. */
+  accesorios: number;
+};
+
 /**
- * Cuántas de las prendas libres en el piso no son ropa: el número grande de la cabecera (ADR-0331, «las que cobra la caja») las
- * cuenta, y la capacidad no. PROMETE: la suma de `pisoDisponible` de las filas cuya familia está en `FAMILIAS_FUERA_DEL_RIEL`.
- * ASUME: `productos` es el catálogo de Existencias; una fila cuyo producto no llegó (el catálogo no respondió) o cuya categoría no
- * tiene familia no cuenta, así que lo peor que pasa sin catálogo es no decir nada.
+ * Parte lo libre en el piso en riel y accesorios. PROMETE: `delRiel + accesorios` es exactamente la suma de `pisoDisponible` (el
+ * número de ADR-0331, «lo que cobra la caja»): cada fila cae en uno solo de los dos, nunca en ninguno ni en ambos.
+ * ASUME: `productos` es el catálogo de Existencias; una fila cuyo producto no llegó o no tiene familia cuenta en el riel.
  */
-export function colgadasQueNoSonRopa(
+export function separarColgadas(
   filas: readonly { productoId: string; pisoDisponible?: number | null }[],
   productos: readonly { id: string; familia: string | null }[]
-): number {
+): ColgadasDelPiso {
   const fueraDelRiel = new Set(productos.filter((p) => p.familia !== null && FAMILIAS_FUERA_DEL_RIEL.has(p.familia)).map((p) => p.id));
-  return filas.reduce((n, f) => n + (fueraDelRiel.has(f.productoId) ? Math.max(0, f.pisoDisponible ?? 0) : 0), 0);
+  let delRiel = 0;
+  let accesorios = 0;
+  for (const f of filas) {
+    if (fueraDelRiel.has(f.productoId)) accesorios += f.pisoDisponible ?? 0;
+    else delRiel += f.pisoDisponible ?? 0;
+  }
+  return { delRiel, accesorios };
+}
+
+/** «+ 17 accesorios» bajo la etiqueta de la tarjeta; sin accesorios en el piso, nada (ni un «+ 0»). */
+export function notaAccesorios(accesorios: number): string | undefined {
+  if (!(accesorios > 0)) return undefined;
+  return accesorios === 1 ? "+ 1 accesorio" : `+ ${accesorios} accesorios`;
+}
+
+export type CifraColgadas = { valor: number; nota?: string; aparte?: string; titulo: string };
+
+/**
+ * La tarjeta «Colgadas en el piso» de la cabecera de Existencias: la única que se compara con la capacidad («583 de 600»). «Para hoy»
+ * e Inicio siguen contando lo que cuentan; esto cambia solo esta tarjeta.
+ *
+ * PROMETE: `valor` cuenta la ropa libre en el piso (la que va al riel), que es lo mismo que cuenta la capacidad; los accesorios salen
+ * aparte en la misma tarjeta (`aparte`, «+ 17 accesorios»), y entre los dos suman lo libre en el piso. Si el catálogo no respondió no
+ * se puede separar: `valor` es todo lo libre en el piso y no lleva la nota «de 600», porque compararía dos cosas distintas.
+ * ASUME: `filas` es el stock de Existencias de la sede (`pisoDisponible` libre: sin apartadas ni dañadas).
+ */
+export function cifraColgadasEnElPiso({
+  filas,
+  productos,
+  catalogoFallo,
+  capacidad,
+}: {
+  filas: readonly { productoId: string; pisoDisponible?: number | null }[];
+  productos: readonly { id: string; familia: string | null }[];
+  catalogoFallo: boolean;
+  capacidad: CapacidadPiso | null;
+}): CifraColgadas {
+  if (catalogoFallo) {
+    return {
+      valor: filas.reduce((n, f) => n + (f.pisoDisponible ?? 0), 0),
+      titulo:
+        "Prendas en el piso de venta, libres para vender: son las que cobra la caja. No se pudo leer la categoría de las prendas, así que esta vez no se separan los accesorios ni se compara con lo que cabe.",
+    };
+  }
+  const { delRiel, accesorios } = separarColgadas(filas, productos);
+  const partes = ["Ropa en el piso de venta, libre para vender: la que cuelga en el riel."];
+  if (accesorios > 0) {
+    partes.push(
+      accesorios === 1
+        ? "Aparte, 1 accesorio en el piso (bisutería, bolsos, calzado…): no cuelga en el riel y la caja también lo cobra."
+        : `Aparte, ${accesorios} accesorios en el piso (bisutería, bolsos, calzado…): no cuelgan en el riel y la caja también los cobra.`
+    );
+  }
+  const explicacion = explicarCapacidadPiso(capacidad);
+  if (explicacion) partes.push(explicacion);
+  return { valor: delRiel, nota: notaCapacidadPiso(capacidad), aparte: notaAccesorios(accesorios), titulo: partes.join(" ") };
 }
 
 // Sin separador de miles, como la nota y la cifra; con punto decimal, como los precios de la tienda («12.5 m²»).
 const decimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 2, useGrouping: false });
 
-/**
- * De dónde sale la nota, para el texto al pasar el mouse sobre la cifra. `noSonRopa` (de `colgadasQueNoSonRopa`) dice cuántas de las
- * colgadas no entran en la capacidad: así «583 de 600» no esconde que compara un total con accesorios contra uno solo de ropa.
- */
-export function explicarCapacidadPiso(capacidad: CapacidadPiso | null, noSonRopa = 0): string | undefined {
+/** De dónde sale la nota, para el texto al pasar el mouse sobre la cifra: de dónde sale el número, y por qué es provisional o está por cuadrar. */
+export function explicarCapacidadPiso(capacidad: CapacidadPiso | null): string | undefined {
   if (!capacidad) return undefined;
   const partes = [`Caben unas ${capacidad.capacidad} prendas colgadas: ${decimal(capacidad.m2Sala)} m² de sala × ${decimal(capacidad.densidad)} por m².`];
-  if (noSonRopa > 0) {
-    const cuantas = noSonRopa === 1 ? "1 de las colgadas no es ropa" : `${noSonRopa} de las colgadas no son ropa`;
-    partes.push(`${cuantas} (accesorios, bisutería, calzado…): las ${capacidad.capacidad} cuentan solo ropa colgada.`);
-  }
   if (capacidad.provisional) partes.push("Provisional: esta sede todavía no contó las prendas de su piso.");
   if (!capacidad.cuadradoEn) {
     partes.push("Por cuadrar: el piso de esta sede todavía no se cuadró, y el sistema puede tener como guardadas prendas que ya cuelgan.");

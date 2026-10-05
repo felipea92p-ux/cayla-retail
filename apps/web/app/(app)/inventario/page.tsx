@@ -14,7 +14,7 @@ import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
-import { colgadasQueNoSonRopa, explicarCapacidadPiso, notaCapacidadPiso } from "@/lib/capacidad-piso";
+import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -183,7 +183,6 @@ export default async function InventarioPage({
   // caja cobra solo las colgadas, y «795 uds» sin partir hacía creer que había 795 para vender. Mismo recuadro que Ventas,
   // Cambios y Devoluciones (`ResumenSede`): Inventario usa la cabecera de Ventas (ADR-0220).
   const separa = resumen.separaPisoAlmacen;
-  const colgadas = stock.reduce((n, f) => n + (f.pisoDisponible ?? 0), 0);
   const guardadas = stock.reduce((n, f) => n + (f.almacenDisponible ?? 0), 0);
   const veTraslados = veModulo(persona, "traslados");
   const notaSemana = semana.fallo || deltaSede.pct === null ? undefined : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)} % en 7 días`;
@@ -191,17 +190,15 @@ export default async function InventarioPage({
   // cuadrado su piso (la fecha viaja en la misma lectura). Solo en «Colgadas en el piso», que solo existe donde la sede separa piso y
   // almacén; una tienda sin m² no lleva nota.
   const capacidad = await capacidadPiso;
-  // La capacidad cuenta solo ropa colgada (ADR-0329) y «Colgadas en el piso» todo lo que cobra la caja (ADR-0331): el texto al pasar
-  // el mouse dice cuántas de las colgadas no son ropa, para que «583 de 600» no esconda que compara dos cosas distintas.
-  const noSonRopa = capacidad ? colgadasQueNoSonRopa(stock, catalogo.productos) : 0;
+  // La capacidad cuenta solo ropa colgada (ADR-0329, accesorios fuera del riel): esta tarjeta cuenta lo mismo, la ropa libre en el
+  // piso, y dice aparte «+ 17 accesorios», para que «583 de 600» compare lo mismo. Las dos suman lo que cobra la caja (ADR-0331).
+  // Solo esta tarjeta: «Para hoy» e Inicio siguen contando lo que contaban.
   const cifras: CifraResumen[] = separa
     ? [
         {
-          valor: colgadas,
-          nota: notaCapacidadPiso(capacidad),
+          ...cifraColgadasEnElPiso({ filas: stock, productos: catalogo.productos, catalogoFallo: catalogo.fallo !== null, capacidad }),
           etiqueta: "Colgadas en el piso",
           icono: Shirt,
-          titulo: ["Prendas en el piso de venta, libres para vender: son las que cobra la caja.", explicarCapacidadPiso(capacidad, noSonRopa)].filter(Boolean).join(" "),
         },
         { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
       ]

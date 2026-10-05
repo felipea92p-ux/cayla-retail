@@ -1,11 +1,14 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  colgadasQueNoSonRopa,
+  cifraColgadasEnElPiso,
   explicarCapacidadPiso,
+  FAMILIAS_DEL_RIEL,
   FAMILIAS_FUERA_DEL_RIEL,
   leerCapacidadPiso,
+  notaAccesorios,
   notaCapacidadPiso,
+  separarColgadas,
   type CapacidadPiso,
 } from "./capacidad-piso";
 
@@ -110,45 +113,159 @@ describe("la nota de «Colgadas en el piso»", () => {
   });
 });
 
-describe("las colgadas que no son ropa (ADR-0329: la capacidad cuenta solo ropa colgada)", () => {
+// ---------- Lo que trae una base nueva: las familias y las categorías que siembran las migraciones y el seed ----------
+// Se leen del SQL real y no de una lista copiada: así la prueba se entera sola de una familia o una categoría nueva por migración.
+const SUPABASE = new URL("../../../supabase/", import.meta.url);
+const sinComentarios = (sql: string) => sql.replace(/--[^\n]*/g, "");
+const SQL_DE_UNA_BASE_NUEVA: readonly string[] = [
+  // Solo las migraciones que corre la base (`0001_…`, `20260918010000_…`), no los scripts sueltos de la carpeta («pegar-en-…»).
+  ...readdirSync(new URL("migrations/", SUPABASE))
+    .filter((a) => /^\d+_[^/]*\.sql$/.test(a))
+    .sort()
+    .map((a) => readFileSync(new URL(`migrations/${a}`, SUPABASE), "utf8")),
+  readFileSync(new URL("seed.sql", SUPABASE), "utf8"),
+].map(sinComentarios);
+
+const FAMILIAS_SEMBRADAS: ReadonlySet<string> = new Set(
+  SQL_DE_UNA_BASE_NUEVA.flatMap((sql) =>
+    [...sql.matchAll(/insert\s+into\s+(?:retail\.)?familias\s*\(([^)]*)\)\s*values([\s\S]*?)(?:\bon\s+conflict\b|;)/gi)].flatMap((m) => {
+      // Sin `codigo` explícito, la base lo inventa desde el nombre y la prueba no podría saber de qué lado va: que falle y se fije.
+      if (m[1].split(",")[0].trim() !== "codigo") throw new Error(`Una familia sembrada sin código explícito: ${m[0].slice(0, 120)}`);
+      return [...m[2].matchAll(/\(\s*'([^']+)'/g)].map((t) => t[1]);
+    })
+  )
+);
+
+const CATEGORIAS_SEMBRADAS: readonly { nombre: string; familia: string }[] = SQL_DE_UNA_BASE_NUEVA.flatMap((sql) =>
+  [...sql.matchAll(/insert\s+into\s+(?:retail\.)?categorias\s*\(\s*nombre\s*,\s*familia\b[^)]*\)\s*values([\s\S]*?)(?:\bon\s+conflict\b|;)/gi)].flatMap((m) =>
+    [...m[1].matchAll(/\(\s*'([^']+)'\s*,\s*'([^']+)'/g)].map((t) => ({ nombre: t[1], familia: t[2] }))
+  )
+);
+
+describe("lo que se compara con la capacidad: la ropa del riel, con los accesorios aparte (ADR-0329, punto 6)", () => {
+  const fila = (productoId: string, pisoDisponible: number | null) => ({ productoId, pisoDisponible });
+
+  it("la prueba de verdad leyó las familias y las categorías de una base nueva (si el SQL cambia de forma, falla aquí y no en silencio)", () => {
+    expect([...FAMILIAS_SEMBRADAS]).toEqual(expect.arrayContaining(["accesorios", "belleza", "bisuteria", "calzado", "indumentaria", "papeleria"]));
+    expect(CATEGORIAS_SEMBRADAS.length).toBeGreaterThanOrEqual(40);
+    for (const c of CATEGORIAS_SEMBRADAS) expect(FAMILIAS_SEMBRADAS.has(c.familia), `${c.nombre} → ${c.familia}`).toBe(true);
+  });
+
+  it("cada familia de una base nueva tiene lado: o cuelga en el riel o va fuera, nunca las dos ni ninguna", () => {
+    for (const familia of FAMILIAS_SEMBRADAS) {
+      expect(FAMILIAS_DEL_RIEL.has(familia) !== FAMILIAS_FUERA_DEL_RIEL.has(familia), `«${familia}» necesita lado (o tiene dos)`).toBe(true);
+    }
+    // Y ninguna errata: cada familia de las dos listas existe en la base (una errata dejaría bolsos o aretes dentro del riel).
+    for (const familia of [...FAMILIAS_DEL_RIEL, ...FAMILIAS_FUERA_DEL_RIEL]) expect(FAMILIAS_SEMBRADAS.has(familia), familia).toBe(true);
+    expect([...FAMILIAS_DEL_RIEL]).toEqual(["indumentaria"]);
+  });
+
+  it("bisutería, bolsos y carteras, calzado, gorros, cinturones y lentes quedan fuera del riel por su familia, no por su nombre", () => {
+    const familiaDe = new Map(CATEGORIAS_SEMBRADAS.map((c) => [c.nombre, c.familia]));
+    const fuera = ["Carteras/Bolsos", "Mochilas", "Cinturones", "Gorros/Sombreros", "Lentes de sol", "Aretes", "Pulseras", "Anillos", "Collares", "Zapatillas", "Sandalias", "Botas", "Botines", "Mocasines", "Bailarinas"];
+    for (const nombre of fuera) expect(FAMILIAS_FUERA_DEL_RIEL.has(familiaDe.get(nombre) ?? "(no está)"), nombre).toBe(true);
+    for (const nombre of ["Blusas", "Vestidos", "Jeans", "Pantalones", "Faldas", "Tops", "Abrigos", "Bodys", "Conjuntos"]) {
+      expect(FAMILIAS_DEL_RIEL.has(familiaDe.get(nombre) ?? "(no está)"), nombre).toBe(true);
+    }
+  });
+
+  it("con una prenda de cada familia y de cada categoría sembrada: al riel va solo la ropa, y las dos partes suman todo lo del piso", () => {
+    const productos = [
+      ...[...FAMILIAS_SEMBRADAS].map((familia) => ({ id: `familia:${familia}`, familia })),
+      ...CATEGORIAS_SEMBRADAS.map((c) => ({ id: `categoria:${c.nombre}`, familia: c.familia })),
+    ];
+    // Cantidades distintas en cada fila: una fila que cae del lado equivocado cambia la suma.
+    const filas = productos.map((p, i) => fila(p.id, i + 1));
+    const ropa = productos.reduce((n, p, i) => n + (p.familia === "indumentaria" ? i + 1 : 0), 0);
+    const total = filas.reduce((n, f) => n + (f.pisoDisponible ?? 0), 0);
+    expect(separarColgadas(filas, productos)).toEqual({ delRiel: ropa, accesorios: total - ropa });
+    expect(ropa).toBeGreaterThan(0);
+    expect(total - ropa).toBeGreaterThan(0);
+  });
+
+  it("lo que no se sabe cuenta en el riel (la cifra queda como antes de separar): sin familia, familia que un líder creó después, producto que no llegó", () => {
+    const productos = [
+      { id: "blusa", familia: "indumentaria" },
+      { id: "aretes", familia: "bisuteria" },
+      { id: "sin-familia", familia: null },
+      { id: "familia-nueva", familia: "lenceria_fina" },
+    ];
+    const filas = [fila("blusa", 40), fila("aretes", 12), fila("sin-familia", 5), fila("familia-nueva", 4), fila("no-llego", 9)];
+    expect(separarColgadas(filas, productos)).toEqual({ delRiel: 58, accesorios: 12 });
+    expect(separarColgadas(filas, [])).toEqual({ delRiel: 70, accesorios: 0 });
+  });
+
+  it("una sede sin piso separado (null) no suma ni resta", () => {
+    expect(separarColgadas([fila("aretes", null), fila("blusa", null)], [{ id: "aretes", familia: "bisuteria" }])).toEqual({ delRiel: 0, accesorios: 0 });
+  });
+
+  it("«+ 17 accesorios», en singular y en plural, y nada si no hay ninguno", () => {
+    expect(notaAccesorios(17)).toBe("+ 17 accesorios");
+    expect(notaAccesorios(1)).toBe("+ 1 accesorio");
+    expect(notaAccesorios(0)).toBeUndefined();
+  });
+});
+
+describe("la tarjeta «Colgadas en el piso»", () => {
   const productos = [
     { id: "blusa", familia: "indumentaria" },
+    { id: "vestido", familia: "indumentaria" },
     { id: "aretes", familia: "bisuteria" },
     { id: "cartera", familia: "accesorios" },
     { id: "sandalia", familia: "calzado" },
-    { id: "sin-familia", familia: null },
-    { id: "familia-nueva", familia: "lenceria" },
   ];
-  const fila = (productoId: string, pisoDisponible: number | null) => ({ productoId, pisoDisponible });
+  const filas = [
+    { productoId: "blusa", pisoDisponible: 25 },
+    { productoId: "vestido", pisoDisponible: 15 },
+    { productoId: "aretes", pisoDisponible: 12 },
+    { productoId: "cartera", pisoDisponible: 3 },
+    { productoId: "sandalia", pisoDisponible: 2 },
+  ];
+  const tru: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: null };
 
-  it("suma lo libre en el piso de bisutería, accesorios y calzado; la ropa no", () => {
-    expect(colgadasQueNoSonRopa([fila("blusa", 40), fila("aretes", 12), fila("cartera", 3), fila("sandalia", 2)], productos)).toBe(17);
-  });
-
-  it("lo que no se sabe no se cuenta: sin catálogo, sin familia o con una familia que un líder creó después", () => {
-    const filas = [fila("aretes", 12), fila("sin-familia", 5), fila("familia-nueva", 4), fila("no-llego", 9)];
-    expect(colgadasQueNoSonRopa(filas, productos)).toBe(12);
-    expect(colgadasQueNoSonRopa(filas, [])).toBe(0);
-  });
-
-  it("una sede sin piso separado (null) o con un número raro no resta ni inventa", () => {
-    expect(colgadasQueNoSonRopa([fila("aretes", null), fila("aretes", -2)], productos)).toBe(0);
-  });
-
-  it("las familias de la lista existen en la base y la ropa no está en ella (una errata la dejaría vacía sin avisar)", () => {
-    const sql = readFileSync(new URL("../../../supabase/migrations/20260918010000_familias_tabla_propia.sql", import.meta.url), "utf8");
-    for (const codigo of FAMILIAS_FUERA_DEL_RIEL) expect(sql).toContain(`('${codigo}',`);
-    expect(sql).toContain("('indumentaria',");
-    expect(FAMILIAS_FUERA_DEL_RIEL.has("indumentaria")).toBe(false);
-  });
-
-  it("la explicación dice cuántas no son ropa, en singular y en plural, y calla si no hay ninguna", () => {
-    const tru: CapacidadPiso = { m2Sala: 20, densidad: 30, capacidad: 600, provisional: false, cuadradoEn: CUADRE };
-    expect(explicarCapacidadPiso(tru, 17)).toBe(
-      "Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m². 17 de las colgadas no son ropa (accesorios, bisutería, calzado…): las 600 cuentan solo ropa colgada."
+  it("TRU: el número es la ropa («40 de 600 · por cuadrar») y los accesorios van aparte en la misma tarjeta («+ 17 accesorios»)", () => {
+    const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: tru });
+    expect(cifra).toMatchObject({ valor: 40, nota: "de 600 · por cuadrar", aparte: "+ 17 accesorios" });
+    expect(cifra.titulo).toBe(
+      "Ropa en el piso de venta, libre para vender: la que cuelga en el riel. Aparte, 17 accesorios en el piso (bisutería, bolsos, calzado…): no cuelgan en el riel y la caja también los cobra. Caben unas 600 prendas colgadas: 20 m² de sala × 30 por m². Por cuadrar: el piso de esta sede todavía no se cuadró, y el sistema puede tener como guardadas prendas que ya cuelgan."
     );
-    expect(explicarCapacidadPiso(tru, 1)).toContain(" 1 de las colgadas no es ropa (");
-    expect(explicarCapacidadPiso(tru, 0)).toBe(explicarCapacidadPiso(tru));
-    expect(explicarCapacidadPiso(null, 17)).toBeUndefined();
+  });
+
+  it("ropa y accesorios suman lo que cobra la caja: el número de ADR-0331 sigue entero, solo que partido", () => {
+    const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: tru });
+    expect(cifra.valor + 17).toBe(filas.reduce((n, f) => n + f.pisoDisponible, 0));
+  });
+
+  it("sin accesorios en el piso, la tarjeta no dice «+ 0» ni habla de accesorios", () => {
+    const cifra = cifraColgadasEnElPiso({ filas: filas.slice(0, 2), productos, catalogoFallo: false, capacidad: tru });
+    expect(cifra.aparte).toBeUndefined();
+    expect(cifra.titulo).not.toContain("accesorio");
+  });
+
+  it("un solo accesorio, en singular", () => {
+    const cifra = cifraColgadasEnElPiso({ filas: [...filas.slice(0, 2), { productoId: "aretes", pisoDisponible: 1 }], productos, catalogoFallo: false, capacidad: tru });
+    expect(cifra.aparte).toBe("+ 1 accesorio");
+    expect(cifra.titulo).toContain("Aparte, 1 accesorio en el piso (bisutería, bolsos, calzado…): no cuelga en el riel y la caja también lo cobra.");
+  });
+
+  it("una tienda sin capacidad (o sin el SQL todavía) separa igual, sin nota: el número no cambia de sentido según responda la capacidad", () => {
+    const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: null });
+    expect(cifra).toMatchObject({ valor: 40, nota: undefined, aparte: "+ 17 accesorios" });
+    expect(cifra.titulo).not.toContain("Caben");
+  });
+
+  it("LIM sigue «(provisional)»: «de 180 (provisional) · por cuadrar»", () => {
+    const lim: CapacidadPiso = { m2Sala: 6, densidad: 30, capacidad: 180, provisional: true, cuadradoEn: null };
+    const cifra = cifraColgadasEnElPiso({ filas, productos, catalogoFallo: false, capacidad: lim });
+    expect(cifra.nota).toBe("de 180 (provisional) · por cuadrar");
+    expect(cifra.titulo).toContain("Provisional: esta sede todavía no contó las prendas de su piso.");
+  });
+
+  it("si el catálogo no respondió, no se separa ni se compara: todo lo del piso, sin «de 600» y sin «+ N accesorios», y lo dice", () => {
+    const cifra = cifraColgadasEnElPiso({ filas, productos: [], catalogoFallo: true, capacidad: tru });
+    expect(cifra.valor).toBe(57);
+    expect(cifra.nota).toBeUndefined();
+    expect(cifra.aparte).toBeUndefined();
+    expect(cifra.titulo).toContain("No se pudo leer la categoría de las prendas");
   });
 });
