@@ -17,7 +17,7 @@
 }
 *{box-sizing:border-box}
 body{background:var(--crema);color:var(--tinta);font:15px/1.5 var(--sans);margin:0}
-.envoltura{max-width:1320px;margin:0 auto;padding-inline:18px;padding-block:26px 80px}
+.envoltura{max-width:1500px;margin:0 auto;padding-inline:18px;padding-block:26px 80px}
 h1,h2,h3,h4{font-family:var(--serif);font-weight:500;margin:0;text-wrap:balance}
 p{margin:0}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -289,6 +289,21 @@ textarea.texto{min-height:76px;resize:vertical}
 .panel.arrastrando{transition:none}
 .con-cinta .aviso{top:86px}
 
+/* ---------- computadora: mouse y teclado ---------- */
+.aparato.pc{border:1px solid var(--sand);border-radius:16px}
+.kbd{display:none;font:600 10.5px/1 var(--sans);border:1px solid var(--sand);border-bottom-width:2px;border-radius:5px;padding:3px 5px;color:var(--taupe);background:var(--papel);vertical-align:2px;margin-left:4px}
+.pc .kbd{display:inline-block}
+.kbd-osc{background:transparent;color:var(--sand);border-color:rgba(232,224,208,.4)}
+.kbd-buscar{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
+.campo-buscar:focus ~ .kbd-buscar,.caja-buscar:has(.limpiar) .kbd-buscar{display:none}
+.pc .modelo{transition:border-color .2s var(--ease)}
+.pc .modelo:hover{border-color:var(--taupe)}
+.pc .talla:hover:not([aria-pressed="true"]){border-color:var(--taupe)}
+.pc .accion:hover:not(.sugerida){background:var(--crema)}
+input.cant{width:76px;text-align:center;border:0;background:transparent;font:500 34px var(--serif);font-variant-numeric:tabular-nums;color:var(--tinta);padding:0}
+input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:var(--crema)}
+.celda-r input.cant{width:52px;font-size:26px}
+
 /* ---------- documento ---------- */
 .doc{margin-top:46px;display:grid;gap:16px}
 .doc h2{font-size:30px}
@@ -318,11 +333,13 @@ table.t td:first-child{font-weight:600}
   <div class="mesa" aria-label="Controles de la maqueta">
     <span class="etq">Aparato</span>
     <div class="seg" role="group" aria-label="Tamaño del aparato">
-      <button aria-pressed="true" data-ancho="1180">Tablet horizontal</button>
+      <button aria-pressed="true" data-ancho="1440">Computadora</button>
+      <button aria-pressed="false" data-ancho="1180">Tablet horizontal</button>
       <button aria-pressed="false" data-ancho="820">Tablet vertical</button>
       <button aria-pressed="false" data-ancho="390">Celular</button>
     </div>
     <button class="interruptor" id="sim-caja" aria-pressed="true"><i></i>Caja abierta</button>
+    <button class="btn" id="sim-pistola" style="min-height:36px;font-size:13px">Simular pistola</button>
     <button class="interruptor" id="sim-sonido" aria-pressed="false"><i></i>Sonido al confirmar</button>
     <span class="etq">Movimiento</span>
     <div class="seg" role="group" aria-label="Movimiento">
@@ -332,7 +349,7 @@ table.t td:first-child{font-weight:600}
     <button class="btn sutil" id="reiniciar" style="min-height:36px;font-size:13px">Volver a empezar</button>
   </div>
 
-  <div class="aparato" id="aparato" style="max-width:1180px">
+  <div class="aparato pc" id="aparato" style="max-width:1440px">
     <div class="app">
       <div class="barra" id="barra"></div>
       <div class="lista" id="lista"></div>
@@ -376,6 +393,12 @@ table.t td:first-child{font-weight:600}
       <p><span class="k">Decidí</span>El juego está en el avance y la respuesta: un anillo de lo que toca hoy, unidades que viajan, cifras que cuentan, tallas que se encienden en verde al resolverse y una práctica guiada. Todo dura 250–650 ms, ocurre una sola vez y se apaga con «reducir movimiento».</p>
       <p><span class="k">Descarté</span>Puntos, rachas y ranking entre integrantes: Felipe decidió que la comparación es contra uno mismo y entre sedes sin ranking, y un puntaje por persona premiaría reponer rápido antes que reponer bien. También descarté confeti y rebote: ADR-0136 los prohíbe. El botón «Expresivo» los muestra solo para que compares.</p>
       <p><span class="k">Se rompe si</span>el anillo cuenta como «resuelta» una talla que se repuso en el sistema pero no en el piso de verdad: el juego premiaría el clic, no el trabajo. Mientras el piso de TRU no esté cuadrado, el anillo debería sumar solo lo que se hizo escaneando.</p>
+    </div>
+
+    <div class="decision">
+      <p><span class="k">Decidí</span>Una sola pantalla para computadora, tablet y celular; la computadora es la primera (ADR-0328: «lo demás, primero escritorio»). En la computadora se suma el teclado: <b>/</b> o <b>Ctrl+K</b> busca, <b>Enter</b> en la búsqueda abre el primer producto, <b>← →</b> cambian la talla, <b>↑ ↓</b> el color, <b>1–6</b> eligen la acción, las cantidades se escriben con el teclado, <b>Enter</b> avanza el paso y <b>Esc</b> vuelve atrás. La pistola de códigos funciona sin poner el cursor en ningún lado: lee el código y abre la talla exacta.</p>
+      <p><span class="k">Descarté</span>Dos diseños, uno táctil y otro de escritorio, porque la misma integrante usa la caja y la tablet el mismo día y tendría que aprender dos pantallas. Los atajos se ven como pequeñas teclas solo en la computadora; en la tablet no ocupan lugar.</p>
+      <p><span class="k">Se rompe si</span>la pistola escribe más lento que una persona (algunas inalámbricas con poca batería): no se distingue del tipeo y el código cae en el buscador. Igual funciona, porque Enter en el buscador también abre el código exacto.</p>
     </div>
 
     <h2 id="d2" style="margin-top:20px">Cada acción, con su regla real</h2>
@@ -583,7 +606,7 @@ table.t td:first-child{font-weight:600}
         ${anilloMision()}<button class="pendientes" data-acc="practicar" title="Una práctica guiada de 4 toques">▶ Practicar</button>
       </div>
       <div class="buscar">
-        <label class="caja-buscar">${IC.buscar}<input class="campo-buscar" id="q" type="search" autocomplete="off" placeholder="Busca por nombre, marca, color o código" value="${esc(S.q)}" aria-label="Buscar producto">${S.q ? `<button class="limpiar" data-acc="limpiar" aria-label="Borrar búsqueda">${IC.x}</button>` : ""}</label>
+        <label class="caja-buscar">${IC.buscar}<input class="campo-buscar" id="q" type="search" autocomplete="off" placeholder="Busca por nombre, marca, color o código" value="${esc(S.q)}" aria-label="Buscar producto"><kbd class="kbd kbd-buscar" title="Atajo: / o Ctrl+K">/</kbd>${S.q ? `<button class="limpiar" data-acc="limpiar" aria-label="Borrar búsqueda">${IC.x}</button>` : ""}</label>
         <button class="btn prim" data-acc="escanear" style="min-height:58px;padding:0 20px">${IC.escanear}<span>Escanear</span></button>
       </div>
       <div class="chips" role="group" aria-label="Filtro">
@@ -660,7 +683,7 @@ table.t td:first-child{font-weight:600}
             ${tallasDe(p, c).map(t => { const v = vr(p, c, t), e = estado(v); const activa = sel && sel.pid === p.id && sel.c === c && sel.t === t;
               const cumple = filtrando && enEste.some(x => x.t === t), esPrincipal = cumple && principal.c === c && principal.t === t;
               const marca = !filtrando ? "" : cumple ? " marca-f" + (esPrincipal ? " principal" : "") : " tenue";
-              return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" data-vk="${p.id}|${c}|${esc(t)}" data-est="${e}" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
+              return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" data-vk="${p.id}|${c}|${esc(t)}" data-est="${e}" title="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
           </div>
           ${filtrando ? motivo(p, c, m) : pastilla(p, c)}
         </article>`; }).join("")}</div>`
@@ -771,10 +794,10 @@ table.t td:first-child{font-weight:600}
         </div>
         ${diag}
         ${S.filtro !== "todo" && marcas.length ? `<div><p class="etq" style="margin-bottom:6px">${esc(SIMBOLO[S.filtro].txt)} en este modelo · ${marcas.length}</p><div class="otras-marcas">${marcas.map(x => `<button aria-pressed="${x.c === c && x.t === t}" data-acc="ir-var" data-c="${x.c}" data-t="${esc(x.t)}"><i style="background:${p.colores[x.c].hex}"></i>${esc(p.colores[x.c].n)} · ${esc(x.t)}${x === marcas[0] ? " · más vendida" : ""}</button>`).join("")}</div></div>` : ""}
-        <p class="ayuda">Se vendieron ${unidades(vend)} de esta talla y color en los últimos 14 días.</p>
+        <p class="ayuda">Se vendieron ${unidades(vend)} de esta talla y color en los últimos 14 días · código <span class="num" style="color:var(--tinta)">${codigoVariante(p, c, t)}</span></p>
         <div class="otras"><span class="etq" style="margin-right:4px">Otras sedes</span>${SEDES.map(s => `<span class="${v.otras[s] ? "hay" : ""}">${s} ${v.otras[s]}</span>`).join("")}${v.camino ? `<span class="hay">En camino ${v.camino}</span>` : ""}${pedido ? `<span class="hay">Pedido a ${pedido}</span>` : ""}</div>
-        <div class="acciones">${ACCIONES.map(([k, txt, ic]) => { const a = estadoAccion(k, v);
-          return `<button class="accion${a.sug ? " sugerida" : ""}" data-acc="accion" data-k="${k}" aria-disabled="${!a.ok}">${ic}<b>${txt}</b><small>${esc(a.sub)}</small></button>`; }).join("")}</div>`;
+        <div class="acciones">${ACCIONES.map(([k, txt, ic], i) => { const a = estadoAccion(k, v);
+          return `<button class="accion${a.sug ? " sugerida" : ""}" data-acc="accion" data-k="${k}" aria-disabled="${!a.ok}">${ic}<b>${txt} <kbd class="kbd">${i + 1}</kbd></b><small>${esc(a.sub)}</small></button>`; }).join("")}</div>`;
     } else if (vista === "matriz") {
       const todas = [...new Set(p.colores.flatMap((_, i) => tallasDe(p, i)))];
       cuerpo = `<p class="ayuda">Número grande: en piso. Debajo: en almacén. Toca una casilla para elegir esa talla y color.</p>
@@ -863,7 +886,7 @@ table.t td:first-child{font-weight:600}
   }
 
   function stepper(n, max, k = "n") {
-    return `<div class="stepper"><button data-acc="menos" data-k="${k}" aria-label="Una menos" ${n <= 0 ? "disabled" : ""}>−</button><output aria-live="polite">${n}</output><button data-acc="mas" data-k="${k}" data-max="${max}" aria-label="Una más" ${max !== null && n >= max ? "disabled" : ""}>+</button></div>`;
+    return `<div class="stepper"><button data-acc="menos" data-k="${k}" aria-label="Una menos" ${n <= 0 ? "disabled" : ""}>−</button><input class="cant" id="cant-${k}" data-k="${k}" data-max="${max ?? ""}" inputmode="numeric" autocomplete="off" value="${n}" aria-label="Cantidad"><button data-acc="mas" data-k="${k}" data-max="${max}" aria-label="Una más" ${max !== null && n >= max ? "disabled" : ""}>+</button></div>`;
   }
 
   function cuerpoPaso(paso, f, v, p) {
@@ -888,7 +911,7 @@ table.t td:first-child{font-weight:600}
               <div class="celdas">${Object.entries(col.tallas).map(([t, w]) => { const k = `${c}|${t}`, n = d.cant?.[k] || 0;
                 if (!w.alm) return `<div class="celda-r nada"><div class="cab"><b>${esc(t)}</b><small>${w.piso} en piso</small></div><span style="font-size:12.5px">Nada en almacén</span></div>`;
                 return `<div class="celda-r${n ? " puesta" : w.piso === 0 ? " falta-piso" : ""}"><div class="cab"><b>${esc(t)}</b><small>${w.alm} en almacén</small></div>
-                  <div class="stepper"><button data-acc="menos-c" data-key="${k}" aria-label="Una menos de ${esc(col.n)} ${esc(t)}" ${n <= 0 ? "disabled" : ""}>−</button><output>${n}</output><button data-acc="mas-c" data-key="${k}" data-max="${w.alm}" aria-label="Una más de ${esc(col.n)} ${esc(t)}" ${n >= w.alm ? "disabled" : ""}>+</button></div>
+                  <div class="stepper"><button data-acc="menos-c" data-key="${k}" aria-label="Una menos de ${esc(col.n)} ${esc(t)}" ${n <= 0 ? "disabled" : ""}>−</button><input class="cant" id="cant-${k}" data-cant="${k}" data-max="${w.alm}" inputmode="numeric" autocomplete="off" value="${n}" aria-label="Cantidad de ${esc(col.n)} ${esc(t)}"><button data-acc="mas-c" data-key="${k}" data-max="${w.alm}" aria-label="Una más de ${esc(col.n)} ${esc(t)}" ${n >= w.alm ? "disabled" : ""}>+</button></div>
                   <span class="piso-luego">${w.piso === 0 && !n ? "Nada en piso" : `En piso quedan ${w.piso + n}`}</span></div>`; }).join("")}</div>
             </section>`).join("")}</div>`);
       }
@@ -1012,7 +1035,7 @@ table.t td:first-child{font-weight:600}
         ${!completo && faltan.length ? `<p class="falta">Falta: ${faltan.map(x => `<button data-acc="ir-paso" data-p="${x}">${FALTA_TXT[x]}</button>`).join(" · ")}</p>` : ""}
         <div class="pie-botones">
           <button class="btn" data-acc="atras">${f.i === 0 ? "Cancelar" : IC.atras + " Atrás"}</button>
-          <button class="btn prim" data-acc="${ultimo ? "confirmar" : "seguir"}" ${completo ? "" : "disabled"}>${ultimo ? esc(verboFinal(f, v)) : "Continuar"}</button>
+          <button class="btn prim" data-acc="${ultimo ? "confirmar" : "seguir"}" ${completo ? "" : "disabled"}>${ultimo ? esc(verboFinal(f, v)) : "Continuar"} <kbd class="kbd kbd-osc">↵</kbd></button>
         </div>
       </div>`;
   }
@@ -1063,6 +1086,15 @@ table.t td:first-child{font-weight:600}
     if (el.id === "q") {
       const pos = el.selectionStart; S.q = el.value; renderBarra(); renderLista();
       const n = document.getElementById("q"); n.focus(); n.setSelectionRange(pos, pos); return;
+    }
+    if (S.panel?.flujo && (el.dataset.cant !== undefined || el.dataset.k === "n")) {
+      // Una cantidad tipeada: solo dígitos y nunca más de lo que hay.
+      const max = el.dataset.max === "" ? Infinity : +el.dataset.max;
+      const n = Math.min(max, parseInt(el.value.replace(/\D/g, ""), 10) || 0);
+      if (el.dataset.cant !== undefined) S.panel.flujo.d.cant[el.dataset.cant] = n; else S.panel.flujo.d.n = n;
+      const id = el.id; renderPanel(false);
+      const nn = document.getElementById(id); if (nn) { nn.focus(); const l = nn.value.length; nn.setSelectionRange(l, l); }
+      return;
     }
     if (S.panel?.flujo && el.dataset.k) {
       // La luz no se mueve mientras se escribe: solo se actualizan el pie y los pasos.
@@ -1336,10 +1368,10 @@ table.t td:first-child{font-weight:600}
 
   // ---- Práctica guiada: 4 toques para aprender a reponer, con la luz en el siguiente botón ----
   const PASOS_P = [
-    { txt:"Toca la talla L de Polo Brisa: está en ámbar porque falta en piso.", sel:() => S.panel ? null : '.modelo[data-id="brisa"] [data-acc="talla"][data-t="L"]', listo:() => S.panel?.pid === "brisa" && S.panel.t === "L" && S.panel.c === 0 },
-    { txt:"Hay 5 en almacén y ninguna en piso. Toca «Reponer».", sel:() => '[data-acc="accion"][data-k="reponer"]', listo:() => S.panel?.flujo?.tipo === "reponer" },
-    { txt:"Sube a 2 con «+» (o mantenlo presionado) y toca «Continuar».", sel:() => (S.panel?.flujo?.d.n || 0) < 2 ? '[data-acc="mas"]' : '[data-acc="seguir"]', listo:() => S.panel?.flujo?.tipo === "reponer" && S.panel.flujo.i === 1 },
-    { txt:"Elige quién lo hace y toca «Reponer 2». Mira cómo viajan al piso.", sel:() => S.panel?.flujo?.d.quien ? '[data-acc="confirmar"]' : '[data-acc="set"][data-k="quien"]', listo:() => !!S.hecho && S.hecho.startsWith("Reposición") },
+    { txt:() => `${V("Toca", "Haz clic en")} la talla L de Polo Brisa: está en ámbar porque falta en piso.`, sel:() => S.panel ? null : '.modelo[data-id="brisa"] [data-acc="talla"][data-t="L"]', listo:() => S.panel?.pid === "brisa" && S.panel.t === "L" && S.panel.c === 0 },
+    { txt:() => `Hay 5 en almacén y ninguna en piso. ${V("Toca «Reponer».", "Haz clic en «Reponer» o pulsa 1.")}`, sel:() => '[data-acc="accion"][data-k="reponer"]', listo:() => S.panel?.flujo?.tipo === "reponer" },
+    { txt:() => V("Sube a 2 con «+» (o mantenlo presionado) y toca «Continuar».", "Escribe 2 (o usa «+») y pulsa Enter."), sel:() => (S.panel?.flujo?.d.n || 0) < 2 ? '[data-acc="mas"]' : '[data-acc="seguir"]', listo:() => S.panel?.flujo?.tipo === "reponer" && S.panel.flujo.i === 1 },
+    { txt:() => `Elige quién lo hace y ${V("toca", "pulsa Enter o haz clic en")} «Reponer 2». Mira cómo viajan al piso.`, sel:() => S.panel?.flujo?.d.quien ? '[data-acc="confirmar"]' : '[data-acc="set"][data-k="quien"]', listo:() => !!S.hecho && S.hecho.startsWith("Reposición") },
   ];
   let prac = null;
   function empezarPractica() {
@@ -1362,7 +1394,7 @@ table.t td:first-child{font-weight:600}
     }
     const paso = PASOS_P[prac];
     cinta.hidden = false;
-    cinta.innerHTML = `<span class="pts">${pts}</span><span><b>Paso ${prac + 1} de ${PASOS_P.length}.</b> ${paso.txt}</span><button data-p="salir">Salir</button>`;
+    cinta.innerHTML = `<span class="pts">${pts}</span><span><b>Paso ${prac + 1} de ${PASOS_P.length}.</b> ${paso.txt()}</span><button data-p="salir">Salir</button>`;
     const sel = paso.sel(); const blanco = sel && document.querySelector(sel);
     if (blanco) blanco.classList.add("pista");
   }
@@ -1376,6 +1408,80 @@ table.t td:first-child{font-weight:600}
     document.documentElement.style.setProperty("--ease", b.dataset.mov === "expresivo" ? "cubic-bezier(.34,1.56,.64,1)" : "cubic-bezier(.22,.61,.36,1)");
   }));
   document.getElementById("reiniciar").addEventListener("click", () => { calcularObjetivos(); fraccionVista = null; prac = null; renderBarra(); renderLista(); });
+
+
+  // ================= computadora: teclado y pistola =================
+  const esPC = () => aparatoEl.classList.contains("pc");
+  const V = (tactil, pc) => esPC() ? pc : tactil;
+  function codigoVariante(p, c, t) { return `${p.codigo}-${norm(p.colores[c].n).replace(/[^a-z]/g, "").slice(0, 3).toUpperCase()}-${norm(t).toUpperCase()}`; }
+  function buscarCodigo(cod) {
+    const k = cod.trim().toUpperCase();
+    for (const p of P) for (let c = 0; c < p.colores.length; c++) for (const t of tallasDe(p, c)) if (codigoVariante(p, c, t) === k) return { p, c, t };
+    return null;
+  }
+  function abrirPorCodigo(cod) {
+    const hit = buscarCodigo(cod);
+    if (!hit) { avisar(`No hay ningún producto con el código ${cod.trim().toUpperCase()}`); tono(220, 120); return false; }
+    tono(1320, 60); vibrar(20);
+    if (S.panel) cerrarPanel();
+    S.q = ""; S.filtro = "todo"; S.color[hit.p.id] = hit.c; renderBarra(); renderLista();
+    const tarjeta = document.querySelector(`.modelo[data-id="${hit.p.id}"]`);
+    tarjeta?.scrollIntoView({ block:"nearest", behavior: quieto() ? "auto" : "smooth" }); tarjeta?.classList.add("encontrada");
+    avisar(`Código leído · ${hit.p.nombre} · ${hit.p.colores[hit.c].n} · ${hit.t}`);
+    setTimeout(() => abrirPanel(hit.p.id, hit.t), quieto() ? 0 : 280);
+    return true;
+  }
+  const escribiendo = el => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+  // La pistola «escribe» muy rápido y termina con Enter: si las teclas llegan a menos de 50 ms entre sí, es un código.
+  let lectura = "", ultTecla = 0;
+  document.addEventListener("keydown", e => {
+    if (escribiendo(document.activeElement)) return;
+    const now = performance.now();
+    if (e.key.length === 1) { lectura = now - ultTecla < 50 ? lectura + e.key : e.key; ultTecla = now; return; }
+    if (e.key === "Enter" && lectura.length >= 6 && now - ultTecla < 80) { e.preventDefault(); e.stopImmediatePropagation(); abrirPorCodigo(lectura); lectura = ""; }
+  }, true);
+
+  document.addEventListener("keydown", e => {
+    const a = document.activeElement;
+    if (!aparatoEl.contains(a) && a !== document.body) return;
+    if ((e.key === "/" && !escribiendo(a)) || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")) {
+      e.preventDefault(); if (S.panel) cerrarPanel(); document.getElementById("q")?.focus(); return;
+    }
+    if (e.key === "Enter" && a?.id === "q") {
+      e.preventDefault();
+      if (a.value.trim() && buscarCodigo(a.value)) { abrirPorCodigo(a.value); return; }
+      document.querySelector(".modelo [data-acc=abrir]")?.click(); return;
+    }
+    if (!S.panel || S.panel.pendientes) return;
+    if (S.panel.flujo) {
+      if (e.key === "Enter" && a?.tagName !== "TEXTAREA" && a?.tagName !== "BUTTON") {
+        const b = panel.querySelector('[data-acc=confirmar]:not([disabled]), [data-acc=seguir]:not([disabled])');
+        if (b) { e.preventDefault(); b.click(); }
+      }
+      return;
+    }
+    if (escribiendo(a) || S.panel.vista !== "variante") return;
+    const p = prod(S.panel.pid);
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      const ts = tallasDe(p, S.panel.c), i = ts.indexOf(S.panel.t);
+      e.preventDefault(); S.panel.t = ts[(i + (e.key === "ArrowRight" ? 1 : ts.length - 1)) % ts.length]; S.hecho = null; renderPanel(false); renderLista();
+    } else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && p.colores.length > 1) {
+      e.preventDefault(); const n = p.colores.length; S.panel.c = (S.panel.c + (e.key === "ArrowDown" ? 1 : n - 1)) % n; S.color[p.id] = S.panel.c;
+      if (!vr(p, S.panel.c, S.panel.t)) S.panel.t = tallasDe(p, S.panel.c)[0]; S.hecho = null; renderPanel(false); renderLista();
+    } else if (/^[1-6]$/.test(e.key)) {
+      panel.querySelectorAll("[data-acc=accion]")[+e.key - 1]?.click();
+      setTimeout(() => panel.querySelector("input.cant, .p-cuerpo button:not([disabled])")?.focus({ preventScroll:true }), 30);
+    }
+  });
+
+  // Simular la pistola (en la maqueta no hay una conectada): «escribe» el código de Casaca Nara · Negro · M a ritmo de máquina.
+  document.getElementById("sim-pistola").addEventListener("click", () => {
+    document.activeElement?.blur();
+    const cod = "CAS-0058-NEG-M";
+    [...cod].forEach(ch => document.dispatchEvent(new KeyboardEvent("keydown", { key: ch, bubbles: true })));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  });
+  document.querySelectorAll("[data-ancho]").forEach(b => b.addEventListener("click", () => { aparatoEl.classList.toggle("pc", b.dataset.ancho === "1440"); practica(); }));
 
   calcularObjetivos();
   renderBarra(); renderLista();
