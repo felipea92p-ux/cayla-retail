@@ -5,7 +5,9 @@
 // La base (`fn_pedidos_con_cliente`, migración 20261005100100) da una fila por pedido. Aquí se decide:
 //   · cómo entra a la lista de Traslados (la misma tarjeta que la reposición: «una sola lista de pedidos», ADR-0242 D-7);
 //   · qué botón ve cada lado (enviar, o primero «subir al almacén» si la prenda apartada allá está colgada; avisar al cliente);
-//   · qué le ofrece Vender desde «Dónde más hay» y el mensaje de WhatsApp cuando llega.
+//   · qué le ofrece Vender desde «Dónde más hay» y el mensaje de WhatsApp cuando llega;
+//   · (decisión del 2026-10-04) la reserva allá no vence sola: a los 7 días se le pregunta a la tienda que pidió si el pedido
+//     sigue en pie, y la sede que guarda la prenda no conoce al cliente (la base no le manda nombre ni celular).
 
 import { nombreCortoSede, type SedeConStock } from "./stock-por-sede";
 import { accionesDePedido, etiquetaLinea, type AccionesPedido, type PedidoEntreSedes, type TonoEstadoPedido } from "./pedidos-entre-sedes-reglas";
@@ -18,6 +20,7 @@ export type EstadoPedidoCliente = "pedido" | "en_camino" | "llego" | "apartado" 
 export type CanceladoDesde = "pidio" | "envia" | "traslado";
 
 export type ClientePedido = {
+  /** Vacíos del lado que ENVÍA (decisión del 2026-10-04, privacidad): esa sede ve «un pedido de Trujillo», no al cliente. */
   nombres: string;
   apellidos: string;
   celular: string;
@@ -30,6 +33,8 @@ export type ClientePedido = {
   avisadoEn: string | null;
   /** Solo en un pedido cancelado; null si lo canceló alguien antes de que existiera el dato. */
   canceladoDesde: CanceladoDesde | null;
+  /** El último «Sí, sigue en pie» de la tienda que pidió; null si nunca se le preguntó. */
+  sigueEnPieEn: string | null;
 };
 
 const ESTADOS_CLIENTE: readonly EstadoPedidoCliente[] = ["pedido", "en_camino", "llego", "apartado", "cancelado"];
@@ -79,6 +84,7 @@ export function pedidoConClienteDeFila(f: Record<string, unknown>): PedidoEntreS
       guardadaHasta: texto(f.guardada_hasta),
       avisadoEn: texto(f.avisado_en),
       canceladoDesde: LADOS.includes(f.cancelado_desde as CanceladoDesde) ? (f.cancelado_desde as CanceladoDesde) : null,
+      sigueEnPieEn: texto(f.sigue_en_pie_en),
     },
   };
 }
@@ -111,7 +117,65 @@ export function nombreCliente(c: Pick<ClientePedido, "nombres" | "apellidos">): 
   return `${c.nombres} ${c.apellidos}`.trim();
 }
 
+/**
+ * Para quién es el pedido, dicho desde el lado que mira: la tienda que pidió ve «para Ana Lozano»; la que tiene la prenda,
+ * «para un cliente» (decisión del 2026-10-04: no conoce al cliente; la base ni siquiera le manda el nombre).
+ */
+export function paraQuien(p: Pick<PedidoEntreSedes, "direccion"> & { cliente: Pick<ClientePedido, "nombres" | "apellidos"> }): string {
+  const nombre = p.direccion === "pedi" ? nombreCliente(p.cliente) : "";
+  return nombre ? `para ${nombre}` : "para un cliente";
+}
+
+// ---------------------------------------------------------------------------
+// «¿Sigue en pie?» (decisión del 2026-10-04): la reserva allá no vence sola
+// ---------------------------------------------------------------------------
+
+/** A los cuántos días se le pregunta a la tienda que pidió si el pedido sigue en pie (y otra vez cada tantos días tras un «Sí»). */
+export const DIAS_PARA_PREGUNTAR = 7;
+const DIA_MS = 86_400_000;
+
+/** Días enteros desde que se pidió o desde el último «Sí, sigue en pie» (nunca negativos: un reloj adelantado no da −1). */
+export function diasSinConfirmar(p: Pick<PedidoEntreSedes, "creadoEn"> & { cliente?: Pick<ClientePedido, "sigueEnPieEn"> | null }, ahoraIso: string): number {
+  const desde = Math.max(Date.parse(p.creadoEn) || 0, Date.parse(p.cliente?.sigueEnPieEn ?? "") || 0);
+  return Math.max(0, Math.floor((Date.parse(ahoraIso) - desde) / DIA_MS));
+}
+
+/** Días enteros desde que se pidió (lo que dice la pregunta: «lleva 9 días esperando»). */
+export function diasEsperando(p: Pick<PedidoEntreSedes, "creadoEn">, ahoraIso: string): number {
+  return Math.max(0, Math.floor((Date.parse(ahoraIso) - (Date.parse(p.creadoEn) || 0)) / DIA_MS));
+}
+
+/**
+ * ¿Toca preguntarle a la tienda que pidió si el pedido sigue en pie? Solo del lado que pidió, solo mientras la otra sede lo
+ * tiene apartado esperando que lo envíen, y desde los 7 días (el borde ya cuenta) contados desde el pedido o desde el
+ * último «Sí». Lo que ya salió, llegó o se canceló no se pregunta.
+ */
+export function preguntarSiSigue(p: Pick<PedidoEntreSedes, "direccion" | "creadoEn" | "cliente">, ahoraIso: string): boolean {
+  const c = p.cliente;
+  if (!c || p.direccion !== "pedi" || c.estado !== "pedido") return false;
+  return diasSinConfirmar({ creadoEn: p.creadoEn, cliente: c }, ahoraIso) >= DIAS_PARA_PREGUNTAR;
+}
+
+/** Los pedidos por los que hay que preguntar, el que más espera arriba. */
+export function porPreguntarSiSigue(pedidos: readonly PedidoEntreSedes[], ahoraIso: string): (PedidoEntreSedes & { cliente: ClientePedido })[] {
+  return pedidos
+    .filter((p): p is PedidoEntreSedes & { cliente: ClientePedido } => preguntarSiSigue(p, ahoraIso))
+    .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn));
+}
+
+/** La pregunta, en la ventana «¿Sigue en pie?»: «Lleva 9 días esperando a Lima» y lo que pasa con cada respuesta. */
+export function textoSigueEnPie(p: Pick<PedidoEntreSedes, "otraSede" | "creadoEn">, ahoraIso: string): { espera: string; explicacion: string } {
+  const d = diasEsperando(p, ahoraIso);
+  const sede = nombreCortoSede(p.otraSede);
+  return {
+    espera: `Lleva ${d} ${d === 1 ? "día" : "días"} esperando a ${sede}`,
+    explicacion: `${sede} la tiene apartada para el cliente. Pregúntale si todavía la quiere: si sigue en pie, ${sede} la sigue guardando y se te vuelve a preguntar en ${DIAS_PARA_PREGUNTAR} días; si no, se cancela y ${sede} la suelta.`,
+  };
+}
+
 export type AccionesConCliente = AccionesPedido & {
+  /** La tienda que pidió responde si el pedido sigue en pie (a los 7 días; decisión del 2026-10-04). */
+  sigueEnPie: boolean;
   /** El primer paso de dos: la prenda apartada allá está colgada; se sube al almacén antes de enviarla (Felipe). */
   subirAlAlmacen: boolean;
   /** La sede que pidió le avisa al cliente cómo terminó: que llegó o que no va a llegar (WhatsApp). */
@@ -132,16 +196,15 @@ export function envioConCliente(reservaEn: ReservaEnOrigen | null): { enviar: bo
   return { enviar: true, subirAlAlmacen: false };
 }
 
-/** Lo que dibuja la ventana «Subir al almacén» (la abren Traslados y Apartados): el pedido, la prenda, para quién, la sede
- *  que la espera y dónde quedó apartada. */
-export type PedidoParaSubir = { id: string; prenda: string; cliente: string; otraSede: string; reservaEn: ReservaEnOrigen | null };
+/** Lo que dibuja la ventana «Subir al almacén» (la abren Traslados y Apartados): el pedido, la prenda, la sede que la espera
+ *  y dónde quedó apartada. Sin el cliente: la sede que la sube no lo conoce (decisión del 2026-10-04). */
+export type PedidoParaSubir = { id: string; prenda: string; otraSede: string; reservaEn: ReservaEnOrigen | null };
 
 /** Desde la lista de Traslados (un pedido para un cliente es UNA prenda). */
 export function paraSubirDe(pedido: PedidoEntreSedes & { cliente: ClientePedido }): PedidoParaSubir {
   return {
     id: pedido.grupoId,
     prenda: pedido.lineas.map(etiquetaLinea).join(", "),
-    cliente: nombreCliente(pedido.cliente),
     otraSede: pedido.otraSede,
     reservaEn: pedido.cliente.reservaEn,
   };
@@ -155,24 +218,31 @@ export function textoSubirAlAlmacen(reservaEn: ReservaEnOrigen | null, otraSede:
   return `Está colgada en el piso y apartada para el cliente. Bájala del colgador y guárdala en el almacén: así viaja en el próximo envío a ${otraSede}.`;
 }
 
-/** Los botones de un pedido de la lista, con o sin cliente. Sin cliente, los de siempre (`accionesDePedido`). */
-export function accionesDe(p: Pick<PedidoEntreSedes, "estado" | "direccion" | "trasladoId" | "cliente">): AccionesConCliente {
+/** Los botones de un pedido de la lista, con o sin cliente. Sin cliente, los de siempre (`accionesDePedido`). Sin `ahoraIso`
+ *  no se pregunta si sigue en pie (no hay con qué contar los días). */
+export function accionesDe(p: Pick<PedidoEntreSedes, "estado" | "direccion" | "trasladoId" | "cliente" | "creadoEn">, ahoraIso?: string): AccionesConCliente {
   const base = accionesDePedido(p);
   const c = p.cliente;
-  if (!c) return { ...base, subirAlAlmacen: false, avisar: false };
+  if (!c) return { ...base, subirAlAlmacen: false, avisar: false, sigueEnPie: false };
   const envio = base.enviar ? envioConCliente(c.reservaEn) : { enviar: false, subirAlAlmacen: false };
   return {
     ...base,
     ...envio,
     avisar: avisoAlCliente(p) !== null,
+    sigueEnPie: ahoraIso ? preguntarSiSigue(p, ahoraIso) : false,
   };
 }
 
-/** Lo que dice el chip de un pedido para un cliente, según de qué lado se mira. */
-export function estadoVisibleConCliente(p: Pick<PedidoEntreSedes, "direccion" | "otraSede"> & { cliente: ClientePedido }): { texto: string; tono: TonoEstadoPedido } {
+/** Lo que dice el chip de un pedido para un cliente, según de qué lado se mira. Con `ahoraIso`, lo que lleva 7 días esperando
+ *  pregunta del lado que pidió si sigue en pie. */
+export function estadoVisibleConCliente(
+  p: Pick<PedidoEntreSedes, "direccion" | "otraSede" | "creadoEn"> & { cliente: ClientePedido },
+  ahoraIso?: string,
+): { texto: string; tono: TonoEstadoPedido } {
   const c = p.cliente;
   switch (c.estado) {
     case "pedido":
+      if (ahoraIso && preguntarSiSigue(p, ahoraIso)) return { texto: `Lleva ${diasEsperando(p, ahoraIso)} días · ¿sigue en pie?`, tono: "ambar" };
       if (p.direccion === "me_piden") {
         if (c.reservaEn === "piso") return { texto: "Colgada: súbela al almacén", tono: "ambar" };
         if (c.reservaEn === "sin_reserva") return { texto: "Por enviar · ya no está apartada", tono: "ambar" };
@@ -217,15 +287,21 @@ export function porAvisarAlCliente(pedidos: readonly PedidoEntreSedes[]): Pedido
 }
 
 /** Lo que el Inicio de la tienda que pidió dice de sus pedidos para clientes (`FuentesAvisos.pedidosCliente`). */
-export type ResumenPedidosCliente = { llegaron: number; noLlegaron: number; primero: string | null };
+export type ResumenPedidosCliente = { llegaron: number; noLlegaron: number; sigueEnPie: number; primero: string | null };
 
-/** Cuántos clientes esperan que se les avise que su prenda llegó o que no va a llegar, y el primero de la lista. */
-export function resumenParaElInicio(pedidos: readonly PedidoEntreSedes[]): ResumenPedidosCliente {
+/**
+ * Cuántos clientes esperan que se les avise que su prenda llegó o que no va a llegar, por cuántos pedidos hay que preguntar
+ * si siguen en pie, y el primer cliente (de los avisos; si no hay, de las preguntas).
+ */
+export function resumenParaElInicio(pedidos: readonly PedidoEntreSedes[], ahoraIso: string): ResumenPedidosCliente {
   const lista = porAvisarAlCliente(pedidos);
+  const preguntas = porPreguntarSiSigue(pedidos, ahoraIso);
+  const primero = lista[0]?.cliente ?? preguntas[0]?.cliente;
   return {
     llegaron: lista.filter((p) => p.aviso === "llego").length,
     noLlegaron: lista.filter((p) => p.aviso === "no_llego").length,
-    primero: lista[0] ? nombreCliente(lista[0].cliente) : null,
+    sigueEnPie: preguntas.length,
+    primero: primero ? nombreCliente(primero) : null,
   };
 }
 

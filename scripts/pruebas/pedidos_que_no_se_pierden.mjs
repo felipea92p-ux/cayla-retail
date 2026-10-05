@@ -30,6 +30,10 @@
  *      que pidió le avisa al cliente; lo que ella misma cancela es «pidio» y no pide aviso; el envío que se cierra sin la
  *      prenda es «traslado»; lo que no llegó sin avisar no se cae de la lista por viejo; los CHECK del lado y del aviso; lo que
  *      ya llegó solo lo da de baja la tienda que pidió.
+ *  14. La reserva no vence y la otra sede no conoce al cliente (decisión del 2026-10-04): se aparta sin fecha y a nombre de
+ *      «Pedido de Trujillo»; ni el libro ni el Apartados ni la lectura de la sede que la guarda llevan el nombre o el
+ *      celular; «¿sigue en pie?» lo responde la sede que pidió (con módulo), solo mientras espera; un apartado común sigue
+ *      exigiendo fecha; el CHECK del «sigue en pie» en una reposición.
  *
  * CÓMO. Mismo patrón que `pedir_a_otra_sede.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
  * compartido; jamás `db reset`), sesión simulada con `request.jwt.claim(s)`, las RPC se llaman como la API
@@ -201,10 +205,10 @@ ${sesion(MICAELA)}
 ${pedir("v1", { token: ":'tok'" })}
 ${K("pedido", "(select estado || ':' || (ubicacion_id = :'tru') || ':' || (ubicacion_origen_id = :'lim') || ':' || (creado_por = :'micaela') from retail.separacion_pedidos where id = :'ped')")}
 ${K("reserva", reserva())}
-${K("apartado", "(select a.cantidad || ':' || a.clienta_nombre || ':' || a.clienta_contacto || ':' || (a.vence_el = retail.fn_hoy_lima() + 7) || ':' || (a.creado_por = :'micaela') from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_origen_id where pe.id = :'ped')")}
+${K("apartado", "(select a.cantidad || ':' || a.clienta_nombre || ':' || a.clienta_contacto || ':' || coalesce(a.vence_el::text, 'sin vence') || ':' || (a.creado_por = :'micaela') from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_origen_id where pe.id = :'ped')")}
 ${K("lim_alm", stockEn("v1", "lim", "lim_alm"))}
 ${K("lim_piso", stockEn("v1", "lim", "lim_piso"))}
-${K("mov", "(select count(*) || ':' || bool_and(nota like 'Apartado para Ana Lozano: pedido de Tienda Trujillo%') from retail.movimientos where variante_id = :'v1' and ubicacion_id = :'lim' and tipo = 'apartado')")}
+${K("mov", "(select count(*) || ':' || bool_and(nota = 'Apartado para un pedido de Tienda Trujillo: viaja en el próximo envío') from retail.movimientos where variante_id = :'v1' and ubicacion_id = :'lim' and tipo = 'apartado')")}
 ${pedir("v1", { token: ":'tok'", como: "ped2" })}
 ${K("mismo", "(:'ped' = :'ped2')")}
 ${K("apartados", "(select count(*) from retail.apartados where variante_id = :'v1')")}
@@ -214,10 +218,10 @@ ${K("red_despues", "(select sum(cantidad) from retail.fn_stock_por_sede() where 
   (d) => {
     afirmar("Micaela (Vender, sin Apartados) pide: Trujillo ← Lima, firmado por ella", d.pedido === "pedido:true:true:true", d.pedido);
     afirmar("queda APARTADO en Lima, en el ALMACÉN (de ahí sale un traslado)", d.reserva === "abierto:alm", d.reserva);
-    afirmar("la reserva: 1, para Ana Lozano, su celular, vence en 7 días, firmada", d.apartado === "1:Ana Lozano:987111222:true:true", d.apartado);
+    afirmar("la reserva: 1, «Pedido de Tienda Trujillo» (sin el cliente), contacto la tienda, SIN vencimiento, firmada", d.apartado === "1:Pedido de Tienda Trujillo:Tienda Trujillo:sin vence:true", d.apartado);
     afirmar("el almacén de Lima tiene 1 y está apartada (1/1)", d.lim_alm === "1/1", d.lim_alm);
     afirmar("el piso de Lima no se toca (1/0)", d.lim_piso === "1/0", d.lim_piso);
-    afirmar("un movimiento «apartado» en Lima que dice para quién y de qué pedido", d.mov === "1:true", d.mov);
+    afirmar("un movimiento «apartado» en Lima que dice de qué pedido (sin el nombre del cliente)", d.mov === "1:true", d.mov);
     afirmar("el mismo token devuelve el MISMO pedido", d.mismo === "true", d.mismo);
     afirmar("…sin apartar otra vez ni crear otro pedido", d.apartados === "1" && d.pedidos === "1", `${d.apartados} ${d.pedidos}`);
     afirmar("«Dónde más hay» de Lima baja de 2 a 1 (la apartada ya no se ofrece)", d.red_antes === "2" && d.red_despues === "1", `${d.red_antes} → ${d.red_despues}`);
@@ -579,9 +583,9 @@ ${K("entrega", "(select count(*) from retail.movimientos where variante_id in (:
     afirmar("con solo Análisis no se cancela (aunque opere la sede que pidió)", j(d.cancelar_sin_modulo)?.estado === "42501" && /Traslados, Apartados ni Vender/.test(j(d.cancelar_sin_modulo)?.msg), d.cancelar_sin_modulo);
     afirmar("…y la reserva de Lima sigue en pie", d.tras_sin_modulo === "pedido:abierto:alm", d.tras_sin_modulo);
     afirmar("con su rol (Vender) sí cancela y la reserva se suelta", j(d.cancelar_con_vender)?.ok === true && d.tras_cancelar === "cancelado:liberado:alm", `${d.cancelar_con_vender} ${d.tras_cancelar}`);
-    afirmar("el libro: «se canceló el pedido de Tienda Trujillo», motivo «otro»", d.nota_cancelar === "Apartado de Ana Lozano: se canceló el pedido de Tienda Trujillo#otro", d.nota_cancelar);
-    afirmar("al enviar: «sale en traslado hacia Tienda Trujillo para el cliente», motivo «otro»", d.nota_enviar === "Apartado de Ana Lozano: sale en traslado hacia Tienda Trujillo para el cliente#otro", d.nota_enviar);
-    afirmar("al subir: «se sube al almacén para enviarla a Tienda Trujillo»", d.notas_v2 === "Apartado de Ana Lozano: sale en traslado hacia Tienda Trujillo para el cliente / Apartado de Ana Lozano: se sube al almacén para enviarla a Tienda Trujillo", d.notas_v2);
+    afirmar("el libro: «Pedido de Tienda Trujillo: se canceló el pedido», motivo «otro»", d.nota_cancelar === "Pedido de Tienda Trujillo: se canceló el pedido#otro", d.nota_cancelar);
+    afirmar("al enviar: «Pedido de Tienda Trujillo: sale en el traslado», motivo «otro»", d.nota_enviar === "Pedido de Tienda Trujillo: sale en el traslado#otro", d.nota_enviar);
+    afirmar("al subir: «se sube al almacén para enviarla»", d.notas_v2 === "Pedido de Tienda Trujillo: sale en el traslado / Pedido de Tienda Trujillo: se sube al almacén para enviarla", d.notas_v2);
     afirmar("ninguna nota dice «se entrega a la clienta»", d.entrega === "0", d.entrega);
   },
 );
@@ -717,10 +721,74 @@ ${K("lado", "(select estado || ':' || cancelado_desde from retail.separacion_ped
 );
 
 // ---------------------------------------------------------------------------
+// La reserva no vence sola y la otra sede no conoce al cliente (decisión del 2026-10-04).
+// ---------------------------------------------------------------------------
+correr(
+  "Privacidad · la sede que guarda la prenda ve «Pedido de Tienda Trujillo», sin vencimiento y sin el cliente, en su lectura, su libro y su Apartados",
+  `${pedir("v2")}
+${intento("subir", "format('select retail.subir_pedido_al_almacen(%L::uuid)::text', :'ped')")}
+${pedir("v1", { como: "ped_b" })}
+${COMO_API}select retail.cancelar_pedido_para_apartar(:'ped_b', 'No la tengo') as _c \\gset
+select 'K|lima_lee|' || coalesce(cliente_nombres, '∅') || ':' || coalesce(cliente_apellidos, '∅') || ':' || coalesce(cliente_celular, '∅') from retail.fn_pedidos_con_cliente(:'lim') where id = :'ped';
+select 'K|tru_lee|' || cliente_nombres || ':' || cliente_apellidos || ':' || cliente_celular from retail.fn_pedidos_con_cliente(:'tru') where id = :'ped';
+select 'K|apartados_lima|' || string_agg(clienta_nombre || ':' || coalesce(vence_el::text, 'sin vence'), ',') from retail.listar_apartados(:'lim') where variante_id = :'v2';
+${COMO_POSTGRES}${enviar()}
+${K("libro_lima", "(select count(*) from retail.movimientos where ubicacion_id = :'lim' and variante_id in (:'v1', :'v2') and (nota ilike '%Ana%' or nota ilike '%Lozano%' or nota like '%987111222%'))")}
+${K("apartados_con_cliente", "(select count(*) from retail.apartados where ubicacion_id = :'lim' and variante_id in (:'v1', :'v2') and (clienta_nombre ilike '%Ana%' or clienta_contacto like '%987111222%' or nota ilike '%Ana%'))")}
+${K("sin_fecha", "(select count(*) filter (where vence_el is null) || '/' || count(*) from retail.apartados where ubicacion_id = :'lim' and variante_id in (:'v1', :'v2'))")}
+${intento("comun_sin_fecha", "format('select retail.apartar_prenda(%L::uuid, %L::uuid, 1, %L, %L, null, null, %L::uuid, gen_random_uuid())::text', :'v1', :'lim', 'Rosa', '987000111', :'lim_piso')")}`,
+  (d) => {
+    afirmar("Lima no recibe el nombre, el apellido ni el celular del cliente", d.lima_lee === "∅:∅:∅", d.lima_lee);
+    afirmar("Trujillo (la que pidió) sí", d.tru_lee === "Ana:Lozano:987111222", d.tru_lee);
+    afirmar("el Apartados de Lima la muestra como «Pedido de Tienda Trujillo», sin vencimiento", d.apartados_lima === "Pedido de Tienda Trujillo:sin vence", d.apartados_lima);
+    afirmar("ningún movimiento de Lima lleva el nombre ni el celular del cliente (apartar, subir, enviar, cancelar)", d.libro_lima === "0", d.libro_lima);
+    afirmar("ninguna reserva de Lima lleva el cliente", d.apartados_con_cliente === "0", d.apartados_con_cliente);
+    afirmar("todas las reservas de pedidos nacieron sin fecha", /^(\d+)\/\1$/.test(d.sin_fecha ?? "") && d.sin_fecha !== "0/0", d.sin_fecha);
+    afirmar("un apartado común sigue exigiendo su fecha", falloCon(d.comun_sin_fecha, /fecha límite/), d.comun_sin_fecha);
+  },
+);
+
+correr(
+  "¿Sigue en pie? · lo responde la sede que pidió (con módulo), solo mientras espera; el CHECK en una reposición",
+  `${sesion(MICAELA)}
+${pedir("v1")}
+${intento("si_sigue", "format('select retail.confirmar_pedido_sigue_en_pie(%L::uuid)::text', :'ped')")}
+${K("guardado", "(select (sigue_en_pie_en is not null) || ':' || (sigue_en_pie_por = :'micaela') from retail.separacion_pedidos where id = :'ped')")}
+${COMO_API}select 'K|leida|' || (sigue_en_pie_en is not null) from retail.fn_pedidos_con_cliente(:'tru') where id = :'ped';
+${COMO_POSTGRES}
+${rolMicaela(SOLO_ANALISIS)}
+${intento("sin_modulo", "format('select retail.confirmar_pedido_sigue_en_pie(%L::uuid)::text', :'ped')")}
+${rolMicaela(":'rol_micaela'")}
+${sesion(FELIPE)}
+${pedir("v3", { como: "ped_t", desde: "lim", a: "tru" })}
+${sesion(MICAELA)}
+${intento("desde_origen", "format('select retail.confirmar_pedido_sigue_en_pie(%L::uuid)::text', :'ped_t')")}
+${sesion(FELIPE)}
+${enviar()}
+${intento("ya_salio", "format('select retail.confirmar_pedido_sigue_en_pie(%L::uuid)::text', :'ped')")}
+${COMO_API}select retail.pedir_a_otra_sede(:'tru', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v2', 'cantidad', 1))) as g \\gset
+${COMO_POSTGRES}
+select id as repo from retail.separacion_pedidos where grupo_id = :'g' \\gset
+${intento("reposicion", "format('select retail.confirmar_pedido_sigue_en_pie(%L::uuid)::text', :'repo')")}
+select pg_temp.intento(format($q$update retail.separacion_pedidos set sigue_en_pie_en = now() where id = %L returning id::text$q$, :'repo')) as _i \\gset
+select 'K|check_repo|' || :'_i';`,
+  (d) => {
+    afirmar("Micaela (Trujillo, Vender) dice que sigue en pie", j(d.si_sigue)?.ok === true, d.si_sigue);
+    afirmar("queda cuándo y quién", d.guardado === "true:true", d.guardado);
+    afirmar("la lectura lo trae (desde ahí se cuentan los 7 días)", d.leida === "true", d.leida);
+    afirmar("sin Vender, Apartados ni Traslados no", j(d.sin_modulo)?.estado === "42501", d.sin_modulo);
+    afirmar("la sede que tiene la prenda no lo responde", j(d.desde_origen)?.estado === "42501" && /sede que pidió/.test(j(d.desde_origen)?.msg), d.desde_origen);
+    afirmar("lo que ya salió no se pregunta", falloCon(d.ya_salio, /ya no espera/), d.ya_salio);
+    afirmar("una reposición no tiene cliente a quien preguntarle", falloCon(d.reposicion, /reposición/), d.reposicion);
+    afirmar("CHECK: una reposición no lleva «sigue en pie»", j(d.check_repo)?.estado === "23514", d.check_repo);
+  },
+);
+
+// ---------------------------------------------------------------------------
 correr(
   "Permisos · nada abierto a anon; las internas no las llama nadie desde la web; las tablas solo por funciones",
-  `${K("anon", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('anon', 'retail.${f}', 'execute')`).join(" or "))}
-${K("authenticated", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" and "))}
+  `${K("anon", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "confirmar_pedido_sigue_en_pie(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('anon', 'retail.${f}', 'execute')`).join(" or "))}
+${K("authenticated", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "confirmar_pedido_sigue_en_pie(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" and "))}
 ${K("internas", ["fn_reservar_pedido_en_origen(uuid, uuid)", "fn_lado_del_pedido(uuid)", "fn_cerrar_reserva_de_pedido(uuid, text, uuid)", "fn_soltar_reserva_de_origen(uuid, boolean)", "fn_pedidos_vuelven_a_esperar(uuid)", "fn_para_enviar_pendiente(uuid)", "trg_para_enviar_al_salir()"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" or "))}
 ${K("tablas", "has_table_privilege('authenticated', 'retail.prendas_para_enviar', 'select') or has_table_privilege('authenticated', 'retail.prendas_para_enviar_salidas', 'select')")}
 ${K("rls", "(select bool_and(relrowsecurity) from pg_class where oid in ('retail.prendas_para_enviar'::regclass, 'retail.prendas_para_enviar_salidas'::regclass))")}`,

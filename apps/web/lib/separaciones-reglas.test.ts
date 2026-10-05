@@ -26,6 +26,7 @@ import {
   type Apartado,
   type FormularioApartado,
   pedidoDeFila,
+  paraQuienPedido,
 } from "./separaciones-reglas";
 import { totalDeLineas } from "./vender-reglas";
 
@@ -328,5 +329,12 @@ describe("pedidoDeFila — Apartados lee los pedidos con dónde quedó la prenda
   it("una reserva que no conoce, o la fila vieja sin reserva (clienta_*), queda en null", () => {
     expect(pedidoDeFila({ ...base, cliente_nombres: "Ana", reserva_en: "otra" }).reservaEn).toBeNull();
     expect(pedidoDeFila({ ...base, clienta_nombres: "Ana", clienta_apellidos: "Lozano" })).toMatchObject({ nombres: "Ana", apellidos: "Lozano", reservaEn: null });
+  });
+  it("privacidad (decisión del 2026-10-04): la sede que tiene la prenda no recibe al cliente y lo ve como «Pedido de …»", () => {
+    const p = pedidoDeFila({ ...base, cliente_nombres: null, cliente_apellidos: null, cliente_celular: null, reserva_en: "almacen" });
+    expect(p).toMatchObject({ nombres: "", apellidos: "", celular: "" });
+    expect(paraQuienPedido(p)).toBe("Pedido de Tienda Lima para un cliente");
+    expect(paraQuienPedido({ ...p, nombres: "Ana", apellidos: "Lozano" })).toBe("Pedido de Tienda Lima para un cliente");
+    expect(paraQuienPedido({ ...p, direccion: "pedi", nombres: "Ana", apellidos: "Lozano" })).toBe("Para Ana Lozano");
   });
 });

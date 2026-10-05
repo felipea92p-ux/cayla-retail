@@ -189,9 +189,10 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     });
   }
   {
-    // Los que vencen hoy o mañana (o ya vencieron): los que piden una decisión.
+    // Los que vencen hoy o mañana (o ya vencieron): los que piden una decisión. La reserva de un pedido de otra sede no vence
+    // (decisión del 2026-10-04: la sostiene la tienda que pidió, a la que se le pregunta a los 7 días): no entra.
     const manana = sumarDias(hoy, 1);
-    const filas = (apartados ?? []).filter((a) => a.venceEl <= manana);
+    const filas = (apartados ?? []).filter((a): a is typeof a & { venceEl: string } => a.venceEl !== null && a.venceEl <= manana);
     const n = apartados === null ? null : filas.length;
     avisos.push({
       clave: "apartados",

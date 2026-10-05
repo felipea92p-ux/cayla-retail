@@ -21,6 +21,13 @@
 --     'traslado' (el envío se cerró sin ella). Con 'envia' o 'traslado' la tienda que pidió se entera en Vender y en su
 --     Inicio, con «Avisar al cliente que no llegó». Antes solo había un texto libre (`cancelado_motivo`), y un texto no dice
 --     quién tiene que avisarle al cliente.
+--   · La reserva en el origen NO VENCE SOLA (decisión del 2026-10-04): `apartados.vence_el` deja de ser obligatoria, y la
+--     reserva de un pedido nace sin fecha. Antes vencía a los 7 días y salía roja («Vencido») en el Apartados y en el
+--     Inicio de la sede que GUARDA la prenda, que no puede hacer nada: el cliente es de la otra tienda. En su lugar, a los
+--     7 días se le pregunta a la tienda que pidió «¿sigue en pie el pedido de Ana?» (Sí / Cancelar):
+--     `separacion_pedidos.sigue_en_pie_en` / `sigue_en_pie_por` guardan el último «Sí», que vuelve a contar 7 días.
+--     Y la sede que guarda la prenda ve «Pedido de Trujillo», SIN el nombre ni el celular del cliente (privacidad): esa
+--     reserva se escribe así (parte 2) y la lectura de la otra sede no los trae.
 --   · `prendas_para_enviar`: lo que se subió al almacén PARA mandarlo a otra sede. Queda listado hasta que sale en un
 --     traslado o alguien dice «ya no la envío».
 --   · `prendas_para_enviar_salidas`: qué traslado se llevó cuánto de cada una. Lo que falta enviar NO se guarda: se
@@ -32,6 +39,7 @@
 --   · un aviso al cliente de un pedido sin cliente, o de uno que ni llegó ni se cerró sin la prenda por la otra sede o el
 --     envío (lo que la tienda que pidió canceló no se le «avisa que no llegó»: fue su decisión con el cliente);
 --   · un pedido «cerrado sin la prenda» que no está cancelado, o uno que llegó y dice que la otra sede no la tenía;
+--   · un «sigue en pie» en una reposición (sin cliente no hay a quién preguntarle);
 --   · una prenda «para enviar» a su misma sede, con cantidad 0, o cancelada sin motivo (o con motivo sin cancelar);
 --   · la misma salida contada dos veces para la misma prenda (único por prenda y línea de traslado).
 --
@@ -40,7 +48,8 @@
 -- `drop trigger` (ADR-0195), así que no choca con el Asesor de seguridad. `separacion_pedidos` la leen Apartados y
 -- Traslados; el `alter` toma su candado un instante (lock_timeout de 3 s: si alguien la usa, falla limpio y se repite).
 -- Idempotente: se puede pegar dos veces. RLS encendida y SIN políticas en las dos tablas nuevas: solo se leen y escriben
--- por funciones `security definer`.
+-- por funciones `security definer`. `apartados` también recibe un `alter` (quitar el NOT NULL de `vence_el`): lo usan
+-- Vender y Existencias, y el mismo lock_timeout lo cubre.
 --
 -- SE ROMPE SI alguien libera a mano (Existencias ▸ Apartados) la reserva que el pedido hizo en el origen: la columna sigue
 -- apuntando a un apartado ya liberado. Las funciones de la parte 2 lo toleran (solo sueltan lo que sigue abierto; al
@@ -81,6 +90,20 @@ alter table retail.separacion_pedidos drop constraint if exists separacion_pedid
 alter table retail.separacion_pedidos add constraint separacion_pedidos_aviso_con_cliente_y_llegada
   check (avisado_en is null or (clienta_nombres is not null and (llego_en is not null or coalesce(cancelado_desde, '') in ('envia', 'traslado'))));
 
+-- «¿Sigue en pie?» (decisión del 2026-10-04): el último «Sí» de la tienda que pidió. Solo un pedido para un cliente.
+alter table retail.separacion_pedidos add column if not exists sigue_en_pie_en timestamptz;
+alter table retail.separacion_pedidos add column if not exists sigue_en_pie_por uuid references public.personas (id);
+alter table retail.separacion_pedidos drop constraint if exists separacion_pedidos_sigue_en_pie_con_cliente;
+alter table retail.separacion_pedidos add constraint separacion_pedidos_sigue_en_pie_con_cliente
+  check (sigue_en_pie_en is null or clienta_nombres is not null);
+
+-- La reserva de un pedido no vence sola (decisión del 2026-10-04): nace sin fecha. Un apartado común sigue exigiendo su
+-- fecha en `apartar_stock` (rechaza null), y nadie escribe en `apartados` sin pasar por una función (la tabla no se
+-- escribe desde la API, 20260920160000): la única fila sin fecha es la que aparta `fn_reservar_pedido_en_origen`.
+alter table retail.apartados alter column vence_el drop not null;
+comment on column retail.apartados.vence_el is
+  'ADR-0141: hasta cuándo se guarda la prenda (se ve «Vencido» después; no se suelta sola). Null SOLO en la reserva de un pedido de otra sede (ADR-0328 act. 17, 2026-10-04): no vence; la sostiene la tienda que pidió, a la que se le pregunta a los 7 días si sigue en pie.';
+
 create index if not exists separacion_pedidos_apartado_origen_idx
   on retail.separacion_pedidos (apartado_origen_id) where apartado_origen_id is not null;
 
@@ -88,6 +111,8 @@ comment on column retail.separacion_pedidos.apartado_origen_id is
   'ADR-0328 act. 17: la reserva (fila de apartados) en la sede que ENVÍA, hecha al pedir para un cliente («allá la apartan»). Se suelta al salir el traslado o al cancelar; al anular el traslado se vuelve a apartar.';
 comment on column retail.separacion_pedidos.avisado_en is
   'ADR-0328 act. 17: cuándo se le avisó al cliente cómo terminó su pedido (WhatsApp desde Vender): que llegó (llego_en) o que no va a llegar (cancelado_desde envia | traslado). Null = nadie le avisó todavía.';
+comment on column retail.separacion_pedidos.sigue_en_pie_en is
+  'ADR-0328 act. 17 (2026-10-04): el último «Sí, sigue en pie» de la tienda que pidió. Desde aquí (o desde created_at si nunca respondió) se cuentan los 7 días hasta volver a preguntarle.';
 comment on column retail.separacion_pedidos.cancelado_desde is
   'ADR-0328 act. 17 (2026-10-04): de qué lado se cerró sin la prenda: pidio (la tienda que pidió), envia (la sede que la tenía: «No la tengo») o traslado (el envío se cerró sin ella). Con envia o traslado, la tienda que pidió le avisa al cliente que no llegó. Null en lo cancelado antes de la columna y en la reposición cancelada por grupo.';
 

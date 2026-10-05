@@ -26,9 +26,9 @@ import {
   type OpcionLlegada,
   type PedidoEntreSedes,
 } from "@/lib/pedidos-entre-sedes-reglas";
-import { accionesDe, avisoAlCliente, estadoVisibleConCliente, nombreCliente, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
+import { accionesDe, avisoAlCliente, estadoVisibleConCliente, paraQuien, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
 import { esperaVisible } from "@/lib/pedidos-por-atender-reglas";
-import { AvisarAlClienteModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
+import { AvisarAlClienteModal, SigueEnPieModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 
 // «Pedir a otra sede» en Traslados (ADR-0242 D-7). Lugar provisional: el definitivo es la bandeja «Hoy te toca» de la
 // tanda 2, que todavía no existe. Dos listas en una tarjeta:
@@ -37,7 +37,9 @@ import { AvisarAlClienteModal, SubirPedidoAlAlmacenModal } from "@/components/Pe
 // La página solo la monta si hay algo que mostrar (`hayPedidosQueMostrar`): nunca una tarjeta vacía.
 // ADR-0328 act. 17: la misma lista lleva los pedidos PARA UN CLIENTE (una prenda, apartada en la sede que la envía): si
 // está colgada, primero «Subir al almacén» (Felipe: dos pasos); al llegar, o si no va a llegar, «Avisar al cliente». Cada fila que espera dice
-// hace cuánto, y desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes).
+// hace cuánto, y desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes). Decisión del 2026-10-04: del
+// lado que tiene la prenda, el pedido es «para un cliente» (no conoce su nombre); del lado que pidió, a los 7 días se
+// pregunta «¿sigue en pie?» (la reserva allá no vence sola).
 
 type ConCliente = PedidoEntreSedes & { cliente: ClientePedido };
 const conCliente = (p: PedidoEntreSedes | null): p is ConCliente => !!p?.cliente;
@@ -50,10 +52,19 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
   const [cancelar, setCancelar] = useState<PedidoEntreSedes | null>(null);
   const [subir, setSubir] = useState<PedidoEntreSedes | null>(null);
   const [avisarA, setAvisarA] = useState<PedidoEntreSedes | null>(null);
+  const [preguntar, setPreguntar] = useState<PedidoEntreSedes | null>(null);
   // Qué se le avisa al cliente (decisión del 2026-10-04): que llegó, o que no va a llegar.
   const avisoA = avisarA ? avisoAlCliente(avisarA) : null;
   const fila = (p: PedidoEntreSedes) => (
-    <PedidoFila pedido={p} ahoraIso={ahoraIso} onEnviar={() => setEnviar(p)} onCancelar={() => setCancelar(p)} onSubir={() => setSubir(p)} onAvisar={() => setAvisarA(p)} />
+    <PedidoFila
+      pedido={p}
+      ahoraIso={ahoraIso}
+      onEnviar={() => setEnviar(p)}
+      onCancelar={() => setCancelar(p)}
+      onSubir={() => setSubir(p)}
+      onAvisar={() => setAvisarA(p)}
+      onPreguntar={() => setPreguntar(p)}
+    />
   );
 
   return (
@@ -95,6 +106,7 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
       {cancelar && <CancelarPedidoEntreSedesModal pedido={cancelar} ubicacion={ubicacion} onClose={() => setCancelar(null)} />}
       {conCliente(subir) && <SubirPedidoAlAlmacenModal pedido={paraSubirDe(subir)} ubicacion={ubicacion} onClose={() => setSubir(null)} />}
       {conCliente(avisarA) && avisoA && <AvisarAlClienteModal pedido={avisarA} aviso={avisoA} sede={ubicacion} onClose={() => setAvisarA(null)} />}
+      {conCliente(preguntar) && <SigueEnPieModal pedido={preguntar} sede={ubicacion} ahoraIso={ahoraIso} onClose={() => setPreguntar(null)} />}
     </section>
   );
 }
@@ -106,6 +118,7 @@ function PedidoFila({
   onCancelar,
   onSubir,
   onAvisar,
+  onPreguntar,
 }: {
   pedido: PedidoEntreSedes;
   ahoraIso: string;
@@ -113,15 +126,17 @@ function PedidoFila({
   onCancelar: () => void;
   onSubir: () => void;
   onAvisar: () => void;
+  onPreguntar: () => void;
 }) {
-  const acciones = accionesDe(pedido);
-  const estado = conCliente(pedido) ? estadoVisibleConCliente(pedido) : estadoVisiblePedido(pedido);
+  const acciones = accionesDe(pedido, ahoraIso);
+  const estado = conCliente(pedido) ? estadoVisibleConCliente(pedido, ahoraIso) : estadoVisiblePedido(pedido);
   const total = totalPrendas(pedido);
-  const paraQuien = conCliente(pedido) ? ` para ${nombreCliente(pedido.cliente)}` : "";
+  // Del lado que tiene la prenda, «para un cliente» (no conoce su nombre); del lado que pidió, «para Ana Lozano».
+  const destinatario = conCliente(pedido) ? ` ${paraQuien(pedido)}` : "";
   const titulo =
     pedido.direccion === "me_piden"
-      ? `${pedido.otraSede} te pide ${textoPrendas(total)}${paraQuien}`
-      : `A ${pedido.otraSede} · ${textoPrendas(total)}${paraQuien}`;
+      ? `${pedido.otraSede} te pide ${textoPrendas(total)}${destinatario}`
+      : `A ${pedido.otraSede} · ${textoPrendas(total)}${destinatario}`;
   const quien = [pedido.creadoPorNombre, fechaCorta(pedido.creadoEn)].filter(Boolean).join(" · ");
   // Lo que sigue esperando dice hace cuánto; desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes).
   const espera = pedido.estado === "pedido" ? esperaVisible(pedido.creadoEn, ahoraIso) : null;
@@ -168,6 +183,11 @@ function PedidoFila({
         {acciones.enviar && (
           <button type="button" onClick={onEnviar} className="btn-cayla btn-primario">
             Enviar
+          </button>
+        )}
+        {acciones.sigueEnPie && (
+          <button type="button" onClick={onPreguntar} className="btn-cayla btn-primario">
+            ¿Sigue en pie?
           </button>
         )}
         {acciones.avisar && (
@@ -261,7 +281,7 @@ function EnviarPedidoEntreSedesModal({ pedido, ubicacion, onClose }: { pedido: P
           </div>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">
             {pedido.cliente
-              ? `Está apartada para ${nombreCliente(pedido.cliente)}: sale de tu almacén como un traslado más y, al llegar, ${pedido.otraSede} la tiene guardada para el cliente.`
+              ? `Está apartada para el pedido de ${pedido.otraSede}: sale de tu almacén como un traslado más y, al llegar, ${pedido.otraSede} la tiene guardada para su cliente.`
               : `Sale de tu stock como un traslado más; Traslados lo muestra en camino hasta que ${pedido.otraSede} lo reciba.`}
           </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />

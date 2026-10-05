@@ -12,6 +12,7 @@ import type { ClaveModulo } from "./modulos";
 import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
+import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -65,8 +66,9 @@ export type FuentesAvisos = {
    *  Ya resumidos por `pedidos-por-atender-reglas.ts`: cuántos, el detalle y la frase de «Sigue ahora». */
   pedidosSinRespuesta?: { tePiden: number; pediste: number; detalle: string; ahora: string } | null;
   /** ADR-0328 act. 17 (decisión del 2026-10-04): los pedidos que esta tienda hizo a otra para un cliente y que piden un paso
-   *  de quien atiende: avisarle que llegó o que no va a llegar. Ya resumidos por `resumenParaElInicio`. */
-  pedidosCliente?: { llegaron: number; noLlegaron: number; primero: string | null } | null;
+   *  de quien atiende: avisarle que llegó o que no va a llegar, o preguntarle si el pedido sigue en pie (a los 7 días). Ya
+   *  resumidos por `resumenParaElInicio`. */
+  pedidosCliente?: { llegaron: number; noLlegaron: number; sigueEnPie: number; primero: string | null } | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
   prendasVencidas?: number | null;
@@ -168,25 +170,34 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     });
   }
   // ADR-0328 act. 17 (decisión del 2026-10-04): la tienda que pidió una prenda a otra para un cliente se entera aquí (y en
-  // la franja de Vender, adonde lleva) de lo que tiene que avisarle: que llegó, o que no va a llegar porque la otra sede no
-  // la tenía o el envío se cerró sin ella.
+  // la franja de Vender, adonde lleva) de lo que le toca: avisarle al cliente que llegó, o que no va a llegar porque la otra
+  // sede no la tenía o el envío se cerró sin ella, y preguntarle si el pedido sigue en pie cuando lleva 7 días apartado allá
+  // (la reserva no vence sola: la sostiene esta tienda).
   if (f.pedidosCliente !== undefined) {
     const p = f.pedidosCliente;
-    const n = p === null ? null : p.llegaron + p.noLlegaron;
+    const avisar = p === null ? 0 : p.llegaron + p.noLlegaron;
+    const n = p === null ? null : avisar + p.sigueEnPie;
     const partes = p
-      ? [p.noLlegaron ? `${p.noLlegaron} no ${plural(p.noLlegaron, "va", "van")} a llegar` : "", p.llegaron ? `${p.llegaron} ${plural(p.llegaron, "llegó", "llegaron")}` : ""].filter(Boolean)
+      ? [
+          p.noLlegaron ? `${p.noLlegaron} no ${plural(p.noLlegaron, "va", "van")} a llegar` : "",
+          p.llegaron ? `${p.llegaron} ${plural(p.llegaron, "llegó", "llegaron")}` : "",
+          p.sigueEnPie ? `${p.sigueEnPie} ${plural(p.sigueEnPie, "lleva", "llevan")} ${DIAS_PARA_PREGUNTAR} días o más: ¿sigue en pie?` : "",
+        ].filter(Boolean)
       : [];
+    const accion = avisar > 0 ? `${plural(avisar, "avísale", "avísales")} por WhatsApp desde Vender` : "pregúntale al cliente y responde en Vender";
     avisos.push({
       clave: "pedidosCliente",
       grupo: "Ventas y posventa",
       titulo: "Pedidos para clientes",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
-      ahora: n ? `Avisa a ${n} ${plural(n, "cliente", "clientes")} cómo terminó su pedido` : "",
+      ahora: !p || !n ? ""
+        : avisar > 0 ? `Avisa a ${avisar} ${plural(avisar, "cliente", "clientes")} cómo terminó su pedido`
+          : `Confirma si ${p.sigueEnPie} ${plural(p.sigueEnPie, "pedido sigue", "pedidos siguen")} en pie`,
       detalle:
         p === null ? SIN_LEER
           : n === 0 ? "Ningún cliente espera noticias de una prenda pedida a otra sede."
-            : `${partes.join(" · ")}${p.primero ? ` · ${p.primero}` : ""}: ${plural(p.llegaron + p.noLlegaron, "avísale", "avísales")} por WhatsApp desde Vender.`,
+            : `${partes.join(" · ")}${p.primero ? ` · ${p.primero}` : ""}: ${accion}.`,
       href: "/vender",
       ocultable: true,
     });
@@ -438,13 +449,15 @@ export function cookieEleccion(personaId: string | null): string {
 // ── Apartados: de la lista a lo que el aviso necesita ────────────────────────────────────────────
 
 /** `venceEl` es una fecha `YYYY-MM-DD` de Lima; `hoy` también (`hoyLima()`). */
-export function resumirApartados(apartados: { venceEl: string; clienta: string }[], hoy: string): ResumenApartados {
+/** `venceEl` null = la reserva de un pedido de otra sede: no vence sola (decisión del 2026-10-04), así que no cuenta aquí. */
+export function resumirApartados(apartados: { venceEl: string | null; clienta: string }[], hoy: string): ResumenApartados {
   const manana = new Date(`${hoy}T12:00:00Z`);
   manana.setUTCDate(manana.getUTCDate() + 1);
   const diaManana = manana.toISOString().slice(0, 10);
   let vencidos = 0, deHoy = 0, deManana = 0;
   let primeraClienta: string | null = null;
-  for (const a of [...apartados].sort((x, y) => x.venceEl.localeCompare(y.venceEl))) {
+  const conFecha = apartados.filter((a): a is { venceEl: string; clienta: string } => a.venceEl !== null);
+  for (const a of conFecha.sort((x, y) => x.venceEl.localeCompare(y.venceEl))) {
     const dia = a.venceEl.slice(0, 10);
     if (dia < hoy) vencidos++;
     else if (dia === hoy) deHoy++;

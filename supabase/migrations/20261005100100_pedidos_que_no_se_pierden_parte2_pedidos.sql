@@ -35,13 +35,18 @@
 --     de qué lado se cerró (`cancelado_desde`, parte 1): `cancelar_pedido_para_apartar` (anclado) lo anota con
 --     `fn_lado_del_pedido` (la sede DESDE la que se opera, ADR-0292) y el disparador `trg_pedidos_al_llegar` (anclado)
 --     anota 'traslado'. Lo que la tienda que pidió canceló ('pidio') no pide aviso: fue su decisión con el cliente.
+--   · La reserva en el origen NO VENCE SOLA y la otra sede no conoce al cliente (decisión del 2026-10-04): se aparta SIN
+--     fecha, a nombre de «Pedido de Trujillo» y con la tienda que pidió como contacto; ningún movimiento del libro de esa
+--     sede lleva el nombre del cliente, y `fn_pedidos_con_cliente` no se lo da a la sede que envía. A los 7 días (desde que
+--     se pidió o desde el último «Sí») se le pregunta a la tienda que pidió «¿sigue en pie?»: `confirmar_pedido_sigue_en_pie`
+--     (nueva) guarda el «Sí»; «Cancelar» es el `cancelar_pedido_para_apartar` de siempre.
 --   · Lecturas (prefijo `fn_`: el loader las trata como lectura): `fn_pedidos_por_atender` (liviana, para el número del
 --     menú y el aviso de 48 h) y `fn_pedidos_con_cliente` (Traslados y Vender: los pedidos para un cliente con la prenda,
 --     dónde está apartada en el origen y si ya se avisó).
 --
 -- CONTRATO DE LA RESERVA. PROMETE: mientras un pedido para un cliente está «pedido», su prenda está apartada en el origen
--- (salvo que alguien la libere a mano). ASUME: el pedido es entre tiendas y de UNA prenda (ADR-0233); la reserva vence a
--- los 7 días (solo para que se vea en rojo: los apartados no se sueltan solos, ADR-0141).
+-- (salvo que alguien la libere a mano), sin fecha de vencimiento y sin el nombre del cliente. ASUME: el pedido es entre
+-- tiendas y de UNA prenda (ADR-0233); quien sostiene el pedido es la tienda que pidió (se le pregunta a los 7 días).
 --
 -- ESTADO QUE DEJA DE SER POSIBLE: un pedido para un cliente esperando mientras la otra sede vende su prenda.
 --
@@ -55,7 +60,8 @@
 -- (ADR-0195). Idempotente. Cómo se verifica después:
 --   select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname in
 --     ('fn_reservar_pedido_en_origen', 'fn_cerrar_reserva_de_pedido', 'fn_soltar_reserva_de_origen', 'subir_pedido_al_almacen',
---      'marcar_pedido_avisado', 'fn_pedidos_por_atender', 'fn_pedidos_con_cliente', 'fn_pedidos_vuelven_a_esperar');   -- 8 filas
+--      'marcar_pedido_avisado', 'fn_pedidos_por_atender', 'fn_pedidos_con_cliente', 'fn_pedidos_vuelven_a_esperar',
+--      'fn_lado_del_pedido', 'confirmar_pedido_sigue_en_pie');   -- 10 filas
 --   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'pedir_prenda_para_apartar';
 --   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'enviar_pedido_para_apartar';
 --   select position('Traslados, Apartados ni Vender' in prosrc) > 0 from pg_proc where proname = 'cancelar_pedido_para_apartar';
@@ -125,7 +131,6 @@ declare
   v_ap uuid;
   v_persona uuid;
   v_sede text;
-  v_cliente text;
   r record;
 begin
   select * into pe from separacion_pedidos where id = p_pedido_id for update;
@@ -170,19 +175,21 @@ begin
 
   v_persona := fn_actor_persona_id(true);
   v_sede := coalesce((select nombre from ubicaciones where id = pe.ubicacion_id), 'otra sede');
-  v_cliente := btrim(pe.clienta_nombres || ' ' || pe.clienta_apellidos);
 
   -- La reserva de siempre (ADR-0141): el movimiento «apartado» (que rechaza si no hay disponible) y su fila de apartados.
+  -- Decisión del 2026-10-04: la sede que GUARDA la prenda no conoce al cliente (privacidad) y la reserva no vence sola. El
+  -- apartado va a nombre de «Pedido de Trujillo», con la tienda que pidió como contacto y SIN fecha: la sostiene la tienda
+  -- que pidió, a la que se le pregunta a los 7 días si sigue en pie. Ni el libro ni el Apartados de aquí llevan el nombre.
   insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)
     values (pe.variante_id, pe.ubicacion_origen_id, v_sub, 'apartado', pe.cantidad, 'apartado', v_persona,
-            left('Apartado para ' || v_cliente || ': pedido de ' || v_sede || ', viaja en el próximo envío', 500))
+            left('Apartado para un pedido de ' || v_sede || ': viaja en el próximo envío', 500))
     returning id into v_mov;
   perform fn_aplicar_movimiento(v_mov);
 
   insert into apartados (variante_id, ubicacion_id, sububicacion_id, cantidad, clienta_nombre, clienta_contacto, nota,
                          vence_el, creado_por, movimiento_id)
-    values (pe.variante_id, pe.ubicacion_origen_id, v_sub, pe.cantidad, v_cliente, pe.clienta_celular,
-            left('Pedido de ' || v_sede || ': viaja en el próximo envío', 200), fn_hoy_lima() + 7, v_persona, v_mov)
+    values (pe.variante_id, pe.ubicacion_origen_id, v_sub, pe.cantidad, left('Pedido de ' || v_sede, 200), v_sede,
+            'Viaja en el próximo envío. No vence: lo sostiene la tienda que pidió', null, v_persona, v_mov)
     returning id into v_ap;
 
   update separacion_pedidos set apartado_origen_id = v_ap where id = pe.id;
@@ -192,13 +199,14 @@ $$;
 revoke all on function retail.fn_reservar_pedido_en_origen(uuid, uuid) from public, anon, authenticated;
 
 comment on function retail.fn_reservar_pedido_en_origen(uuid, uuid) is
-  'ADR-0328 act. 17 (interna): aparta en la sede que ENVÍA la prenda de un pedido para un cliente («allá la apartan»). Almacén primero, después el piso. Devuelve el apartado (el mismo si ya estaba abierto); null si el pedido ya no espera. Aborta (hint pedido_sin_stock_en_origen) si no alcanza.';
+  'ADR-0328 act. 17 (interna): aparta en la sede que ENVÍA la prenda de un pedido para un cliente («allá la apartan»). Almacén primero, después el piso. Sin fecha de vencimiento y a nombre de «Pedido de <sede que pidió>», sin el cliente (2026-10-04). Devuelve el apartado (el mismo si ya estaba abierto); null si el pedido ya no espera. Aborta (hint pedido_sin_stock_en_origen) si no alcanza.';
 
 -- ---------------------------------------------------------------------------
 -- 2. Cerrar y soltar la reserva del origen (internas: enviar, cancelar y subir al almacén)
 -- ---------------------------------------------------------------------------
--- PROMETE: cierra el apartado abierto de la reserva de un pedido con un movimiento «liberación» cuya nota dice qué pasó
--- (`p_nota`: sale en traslado, se canceló, se sube al almacén) y `cierre_motivo` 'otro'; devuelve el movimiento.
+-- PROMETE: cierra el apartado abierto de la reserva de un pedido con un movimiento «liberación» cuya nota dice de qué
+-- pedido era y qué pasó («Pedido de Tienda Trujillo: sale en el traslado»; nunca el nombre del cliente, 2026-10-04) y
+-- `cierre_motivo` 'otro'; devuelve el movimiento.
 -- ASUME: quien llama ya tomó el stock (fn_bloquear_en_orden) y el apartado sigue abierto; si no, aborta.
 -- Por qué no `fn_cerrar_apartado_de_separacion`: su nota es la de una separación («se entrega a la clienta»), que aquí
 -- sería falsa, y el libro de movimientos es append-only: no se corrige después.
@@ -218,7 +226,7 @@ begin
   end if;
   insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)
     values (a.variante_id, a.ubicacion_id, a.sububicacion_id, 'liberacion_apartado', a.cantidad, 'liberacion_apartado', p_persona,
-            left('Apartado de ' || a.clienta_nombre || ': ' || p_nota, 500))
+            left(a.clienta_nombre || ': ' || p_nota, 500))
     returning id into v_mov;
   perform fn_aplicar_movimiento(v_mov);
   update apartados
@@ -242,7 +250,6 @@ declare
   pe separacion_pedidos%rowtype;
   a apartados%rowtype;
   v_salida uuid;
-  v_sede text;
 begin
   select * into pe from separacion_pedidos where id = p_pedido_id;
   if not found or pe.apartado_origen_id is null then
@@ -261,11 +268,8 @@ begin
         using hint = 'pedido_en_piso';
     end if;
   end if;
-  v_sede := coalesce((select nombre from ubicaciones where id = pe.ubicacion_id), 'otra sede');
-  perform fn_cerrar_reserva_de_pedido(a.id,
-    case when p_para_enviar then 'sale en traslado hacia ' || v_sede || ' para el cliente'
-         else 'se canceló el pedido de ' || v_sede end,
-    fn_actor_persona_id(true));
+  perform fn_cerrar_reserva_de_pedido(a.id, case when p_para_enviar then 'sale en el traslado' else 'se canceló el pedido' end,
+                                      fn_actor_persona_id(true));
 end;
 $$;
 revoke all on function retail.fn_soltar_reserva_de_origen(uuid, boolean) from public, anon, authenticated;
@@ -506,10 +510,9 @@ begin
   v_persona := fn_actor_persona_id(true);
   v_sede := coalesce((select nombre from ubicaciones where id = pe.ubicacion_id), 'otra sede');
   -- Suelta la reserva del piso, sube la prenda y la vuelve a apartar en el almacén: nunca queda libre en medio.
-  perform fn_cerrar_reserva_de_pedido(a.id, 'se sube al almacén para enviarla a ' || v_sede, v_persona);
+  perform fn_cerrar_reserva_de_pedido(a.id, 'se sube al almacén para enviarla', v_persona);
   perform mover_interno(pe.ubicacion_origen_id, pe.variante_id, a.cantidad, v_piso, v_alm,
-                        left('Pedido de ' || v_sede || ' para ' || btrim(pe.clienta_nombres || ' ' || pe.clienta_apellidos)
-                             || ': se sube al almacén para enviarlo', 500));
+                        left('Pedido de ' || v_sede || ': se sube al almacén para enviarlo', 500));
   update separacion_pedidos set apartado_origen_id = null where id = pe.id;
   perform fn_reservar_pedido_en_origen(pe.id, v_alm);
   return jsonb_build_object('ya_estaba', false);
@@ -565,6 +568,47 @@ comment on function retail.marcar_pedido_avisado(uuid) is
   'ADR-0328 act. 17: la sede que pidió deja constancia de que le avisó al cliente cómo terminó su pedido (avisado_en, avisado_por): que llegó, o que no va a llegar (la otra sede no la tenía o el envío se cerró sin ella). Vender o Apartados + operar la sede que pidió.';
 
 -- ---------------------------------------------------------------------------
+-- 6b. «¿Sigue en pie?» (decisión del 2026-10-04): la tienda que pidió responde «Sí»
+-- ---------------------------------------------------------------------------
+-- PROMETE: guarda cuándo y quién dijo que el pedido sigue en pie; desde ahí se vuelven a contar 7 días hasta la próxima
+-- pregunta (la cuenta la hace la web: `preguntarSiSigue`). No toca la reserva: sigue apartada allá, sin fecha. «No» es
+-- `cancelar_pedido_para_apartar`, que la suelta. ASUME: el pedido es para un cliente y sigue esperando que lo envíen;
+-- responde quien opera la sede que pidió, con Vender, Apartados o Traslados (los módulos donde vive el pedido).
+create or replace function retail.confirmar_pedido_sigue_en_pie(p_pedido_id uuid)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  pe separacion_pedidos%rowtype;
+  v_en timestamptz := now();
+begin
+  select * into pe from separacion_pedidos where id = p_pedido_id for update;
+  if not found then
+    raise exception 'Ese pedido no existe';
+  end if;
+  if pe.clienta_nombres is null then
+    raise exception 'Ese pedido es una reposición: no hay cliente a quien preguntarle';
+  end if;
+  if not (fn_ve_modulo('vender') or fn_ve_modulo('apartados') or fn_ve_modulo('traslados')) then
+    raise exception 'Tu rol no tiene Vender, Apartados ni Traslados' using errcode = '42501';
+  end if;
+  if not fn_puede_operar_ubicacion(pe.ubicacion_id) then
+    raise exception 'Lo responde la sede que pidió la prenda' using errcode = '42501';
+  end if;
+  if pe.estado <> 'pedido' then
+    raise exception 'Ese pedido ya no espera que lo envíen (está %)', pe.estado;
+  end if;
+  update separacion_pedidos set sigue_en_pie_en = v_en, sigue_en_pie_por = fn_actor_persona_id(true) where id = pe.id;
+  return v_en;
+end;
+$$;
+
+comment on function retail.confirmar_pedido_sigue_en_pie(uuid) is
+  'ADR-0328 act. 17 (2026-10-04): la tienda que pidió una prenda a otra para un cliente dice que el pedido sigue en pie (se le pregunta a los 7 días; la reserva allá no vence sola). Guarda sigue_en_pie_en/por. Vender, Apartados o Traslados + operar la sede que pidió; solo mientras espera que lo envíen.';
+
+-- ---------------------------------------------------------------------------
 -- 7. Lecturas
 -- ---------------------------------------------------------------------------
 -- Lo que espera respuesta, liviano: una fila por pedido para un cliente y una por grupo de reposición, solo «pedido».
@@ -595,8 +639,9 @@ $$;
 comment on function retail.fn_pedidos_por_atender(uuid) is
   'ADR-0328 act. 17: lo que espera respuesta entre sedes para p_ubicacion_id (me_piden / pedi), una fila por pedido para un cliente o por grupo de reposición, con su hora. Para el número del menú y el aviso de 48 h. Exige operar la sede.';
 
--- Los pedidos para un cliente de la sede, con la prenda, dónde está apartada en el origen y si ya se avisó.
--- Su forma cambió después de escrita (cancelado_desde, 2026-10-04): se borra antes para que re-pegar esta parte no choque
+-- Los pedidos para un cliente de la sede, con la prenda, dónde está apartada en el origen y si ya se avisó. La sede que
+-- ENVÍA no recibe el nombre ni el celular del cliente (decisión del 2026-10-04, privacidad): para ella es «un pedido de
+-- Trujillo». Su forma cambió después de escrita (cancelado_desde y sigue_en_pie_en, 2026-10-04): se borra antes para que re-pegar esta parte no choque
 -- con «cannot change return type» (`drop function` no toma los candados de auth/storage, ADR-0195).
 drop function if exists retail.fn_pedidos_con_cliente(uuid);
 create or replace function retail.fn_pedidos_con_cliente(p_ubicacion_id uuid)
@@ -604,7 +649,8 @@ returns table (
   id uuid, direccion text, otra_sede text, otra_sede_id uuid, variante_id uuid, producto text, color text, talla text,
   sku text, cantidad integer, cliente_nombres text, cliente_apellidos text, cliente_celular text, nota text, estado text,
   created_at timestamptz, creado_por_nombre text, llego_en timestamptz, guardada_hasta date, avisado_en timestamptz,
-  reserva_en text, traslado_id uuid, traslado_numero integer, cancelado_motivo text, cancelado_desde text
+  reserva_en text, traslado_id uuid, traslado_numero integer, cancelado_motivo text, cancelado_desde text,
+  sigue_en_pie_en timestamptz
 )
 language sql
 stable
@@ -621,9 +667,10 @@ as $$
          ta.valor,
          coalesce(va.codigo, va.sku),
          pe.cantidad,
-         pe.clienta_nombres,
-         pe.clienta_apellidos,
-         pe.clienta_celular,
+         -- El cliente solo lo ve la tienda que pidió: la que tiene la prenda guarda «un pedido de Trujillo».
+         case when pe.ubicacion_id = p_ubicacion_id then pe.clienta_nombres end,
+         case when pe.ubicacion_id = p_ubicacion_id then pe.clienta_apellidos end,
+         case when pe.ubicacion_id = p_ubicacion_id then pe.clienta_celular end,
          pe.nota,
          pe.estado,
          pe.created_at,
@@ -641,7 +688,8 @@ as $$
          pe.transferencia_id,
          t.numero,
          pe.cancelado_motivo,
-         pe.cancelado_desde
+         pe.cancelado_desde,
+         pe.sigue_en_pie_en
     from separacion_pedidos pe
     join ubicaciones u on u.id = case when pe.ubicacion_id = p_ubicacion_id then pe.ubicacion_origen_id else pe.ubicacion_id end
     join variantes va on va.id = pe.variante_id
@@ -665,17 +713,19 @@ as $$
 $$;
 
 comment on function retail.fn_pedidos_con_cliente(uuid) is
-  'ADR-0328 act. 17: los pedidos para un cliente que la sede hizo (pedi) o le hicieron (me_piden), abiertos, lo cerrado de 7 días y lo que no llegó sin avisar al cliente, con la prenda, dónde está apartada en el origen (reserva_en: almacen | piso | sin_lugar | sin_reserva; null si ya no espera), de qué lado se cerró sin la prenda (cancelado_desde) y si ya se avisó al cliente. Exige operar la sede.';
+  'ADR-0328 act. 17: los pedidos para un cliente que la sede hizo (pedi) o le hicieron (me_piden), abiertos, lo cerrado de 7 días y lo que no llegó sin avisar al cliente, con la prenda, dónde está apartada en el origen (reserva_en: almacen | piso | sin_lugar | sin_reserva; null si ya no espera), de qué lado se cerró sin la prenda (cancelado_desde), el último «sigue en pie» y si ya se avisó al cliente. El nombre y el celular del cliente, solo a la sede que pidió (me_piden los trae null). Exige operar la sede.';
 
 -- ---------------------------------------------------------------------------
 -- 8. Permisos: nada para anon; authenticated, solo lo que llama la pantalla
 -- ---------------------------------------------------------------------------
 revoke all on function retail.subir_pedido_al_almacen(uuid) from public, anon;
 revoke all on function retail.marcar_pedido_avisado(uuid) from public, anon;
+revoke all on function retail.confirmar_pedido_sigue_en_pie(uuid) from public, anon;
 revoke all on function retail.fn_pedidos_por_atender(uuid) from public, anon;
 revoke all on function retail.fn_pedidos_con_cliente(uuid) from public, anon;
 grant execute on function retail.subir_pedido_al_almacen(uuid) to authenticated;
 grant execute on function retail.marcar_pedido_avisado(uuid) to authenticated;
+grant execute on function retail.confirmar_pedido_sigue_en_pie(uuid) to authenticated;
 grant execute on function retail.fn_pedidos_por_atender(uuid) to authenticated;
 grant execute on function retail.fn_pedidos_con_cliente(uuid) to authenticated;
 

@@ -328,6 +328,9 @@ type Props = {
   /** Lo que esta tienda pidió a otra para un cliente (`fn_pedidos_con_cliente`): los que llegaron, o no van a llegar, sin aviso al
    *  cliente salen en una franja (`PedidosParaClientes`). */
   pedidosConCliente?: PedidoEntreSedes[];
+  /** El «ahora» del servidor para lo que se cuenta en días en esa franja («¿sigue en pie?» a los 7 días): el HTML del servidor
+   *  y el del navegador dicen lo mismo. Sin él, la franja no pregunta (solo avisa lo que llegó o no llegó). */
+  ahoraIso?: string;
 };
 
 /** La proforma que se está cobrando: lo que la franja muestra y lo que `marcar_proforma_cobrada` necesita. */
@@ -348,7 +351,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [] }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -1894,7 +1897,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
 
           {/* ADR-0328 act. 17: lo que se pidió a otra tienda para un cliente y llegó (o no va a llegar), hasta que alguien le avisa. */}
-          <PedidosParaClientes pedidos={pedidosConCliente} sede={{ ubicacionId, etiqueta: ubicacionEtiqueta }} responsable={responsable} />
+          <PedidosParaClientes pedidos={pedidosConCliente} sede={{ ubicacionId, etiqueta: ubicacionEtiqueta }} responsable={responsable} ahoraIso={ahoraIso} />
 
           {/* Cobrando una proforma (ADR-0167): de quién es, y la confirmación si venció. */}
           {proformaActiva && (

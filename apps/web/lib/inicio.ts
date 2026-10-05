@@ -154,8 +154,8 @@ export async function getFuentesAvisos(
         })
       : undefined,
     // ADR-0328 act. 17 (decisión del 2026-10-04): lo que la tienda pidió para un cliente y hay que avisarle (llegó o no va a
-    // llegar). Para quien ve Vender: el aviso lleva a su franja, donde está el botón.
-    ve("vender") ? leerPedidosConCliente(ubicacionId).then((p) => (p === null ? null : resumenParaElInicio(p))) : undefined,
+    // llegar) y por qué pedidos hay que preguntar si siguen en pie (7 días). Para quien ve Vender: el aviso lleva a su franja.
+    ve("vender") ? leerPedidosConCliente(ubicacionId).then((p) => (p === null ? null : resumenParaElInicio(p, new Date().toISOString()))) : undefined,
   ]);
   return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente };
 }

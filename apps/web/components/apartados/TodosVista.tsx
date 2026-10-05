@@ -14,6 +14,7 @@ import {
   diaLima,
   estadoVisible,
   formatoCelular,
+  paraQuienPedido,
   textoDevolucion,
   textoEstadoPedido,
   type Apartado,
@@ -219,7 +220,7 @@ export function TodosVista({
                       {pr?.referencia ?? "Prenda"} <span className="font-normal text-tinta/60">{[pr?.color, pr?.talla].filter(Boolean).join(" · ")}</span>
                     </p>
                     <p className="text-xs text-tinta/60">
-                      {pe.direccion === "pedi" ? "Para" : "Para el cliente de " + pe.otraSede + ":"} {pe.nombres} {pe.apellidos}
+                      {paraQuienPedido(pe)}
                       {pe.guardadaHasta && ` · guardada hasta el ${fechaCorta(pe.guardadaHasta)}`}
                       {pe.trasladoNumero != null && ` · traslado N.º ${pe.trasladoNumero}`}
                       {pe.estado === "cancelado" && pe.canceladoMotivo && ` · ${pe.canceladoMotivo}`}
@@ -232,7 +233,7 @@ export function TodosVista({
                     {envio?.subirAlAlmacen && (
                       <button
                         type="button"
-                        onClick={() => setSubirPedido({ id: pe.id, prenda: prendaTexto, cliente: `${pe.nombres} ${pe.apellidos}`.trim(), otraSede: pe.otraSede, reservaEn: pe.reservaEn })}
+                        onClick={() => setSubirPedido({ id: pe.id, prenda: prendaTexto, otraSede: pe.otraSede, reservaEn: pe.reservaEn })}
                         className={envio.enviar ? BOTON_CHICO : BOTON_CHICO_NEGRO}
                       >
                         Subir al almacén

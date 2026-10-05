@@ -246,6 +246,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
           : { tiendas: sedesParaPedir(ubicaciones, persona.ubicacionId) }
       }
       pedidosConCliente={pedidosConCliente}
+      ahoraIso={new Date().toISOString()}
     />
   );
 }

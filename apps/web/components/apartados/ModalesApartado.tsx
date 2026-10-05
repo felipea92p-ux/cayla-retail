@@ -28,6 +28,7 @@ import {
   estadoVisible,
   formatoCelular,
   mensajeWhatsapp,
+  paraQuienPedido,
   soloDigitos,
   sumarDiasIso,
   textoDevolucion,
@@ -983,7 +984,7 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
   }
 
   return (
-    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={`Para apartar a ${pedido.nombres} ${pedido.apellidos}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md">
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-4 text-sm">
@@ -1027,7 +1028,7 @@ export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: Pe
     cerrar();
   }
   return (
-    <Modal titulo="¿Cancelar el pedido?" subtitulo={`${pedido.nombres} ${pedido.apellidos} · ${pedido.otraSede}`} onClose={onClose}>
+    <Modal titulo="¿Cancelar el pedido?" subtitulo={paraQuienPedido(pedido)} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <label className="block">

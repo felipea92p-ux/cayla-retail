@@ -86,6 +86,10 @@ describe("resumirApartados", () => {
   it("sin apartados: todo en cero", () => {
     expect(resumirApartados([], HOY)).toEqual({ abiertos: 0, unidades: 0, vencidos: 0 });
   });
+  it("la reserva de un pedido de otra sede (sin fecha) cuenta como apartada pero nunca como vencida", () => {
+    const lista = [apartado({ id: "1", cantidad: 1, venceEl: null }), apartado({ id: "2", cantidad: 1, venceEl: "2026-09-18" })];
+    expect(resumirApartados(lista, HOY)).toEqual({ abiertos: 2, unidades: 2, vencidos: 1 });
+  });
 });
 
 describe("validarApartar", () => {

@@ -490,6 +490,17 @@ export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
 }
 
 /** Lo que dice el chip de un pedido, según de qué lado se mira. */
+/**
+ * Para quién es un pedido a otra tienda, dicho desde el lado que mira. La tienda que pidió conoce al cliente («Para Ana
+ * Lozano»); la que tiene la prenda no (decisión del 2026-10-04, privacidad: la base ni le manda el nombre), así que para ella
+ * es «Pedido de Tienda Trujillo para un cliente».
+ */
+export function paraQuienPedido(p: Pick<PedidoApartado, "direccion" | "otraSede" | "nombres" | "apellidos">): string {
+  const nombre = `${p.nombres} ${p.apellidos}`.trim();
+  if (p.direccion === "pedi") return nombre ? `Para ${nombre}` : "Para un cliente";
+  return `Pedido de ${p.otraSede} para un cliente`;
+}
+
 export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion" | "otraSede">): string {
   if (p.estado === "pedido") return p.direccion === "pedi" ? `Pedido a ${p.otraSede}` : `${p.otraSede} lo pide`;
   if (p.estado === "en_camino") return p.direccion === "pedi" ? `En camino desde ${p.otraSede}` : `Enviado a ${p.otraSede}`;

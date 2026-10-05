@@ -95,7 +95,7 @@ export type Database = {
           sububicacion_id: string | null
           ubicacion_id: string
           variante_id: string
-          vence_el: string
+          vence_el: string | null
           venta_id: string | null
         }
         Insert: {
@@ -118,7 +118,7 @@ export type Database = {
           sububicacion_id?: string | null
           ubicacion_id: string
           variante_id: string
-          vence_el: string
+          vence_el?: string | null
           venta_id?: string | null
         }
         Update: {
@@ -141,7 +141,7 @@ export type Database = {
           sububicacion_id?: string | null
           ubicacion_id?: string
           variante_id?: string
-          vence_el?: string
+          vence_el?: string | null
           venta_id?: string | null
         }
         Relationships: [
@@ -5424,6 +5424,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      confirmar_pedido_sigue_en_pie: {
+        Args: { p_pedido_id: string }
+        Returns: string
+      }
       fn_pedidos_por_atender: {
         Args: { p_ubicacion_id: string }
         Returns: {
@@ -5443,9 +5447,9 @@ export type Database = {
           cancelado_desde: string | null
           cancelado_motivo: string | null
           cantidad: number
-          cliente_apellidos: string
-          cliente_celular: string
-          cliente_nombres: string
+          cliente_apellidos: string | null
+          cliente_celular: string | null
+          cliente_nombres: string | null
           color: string | null
           created_at: string
           creado_por_nombre: string | null
@@ -5459,6 +5463,7 @@ export type Database = {
           otra_sede_id: string
           producto: string
           reserva_en: string | null
+          sigue_en_pie_en: string | null
           sku: string | null
           talla: string | null
           traslado_id: string | null
@@ -7910,7 +7915,7 @@ export type Database = {
           sububicacion_id: string
           talla: string
           variante_id: string
-          vence_el: string
+          vence_el: string | null
         }[]
       }
       listar_compras: {
