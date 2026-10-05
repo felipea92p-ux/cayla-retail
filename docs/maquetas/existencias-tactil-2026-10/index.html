@@ -396,6 +396,8 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 .rapida{display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:10px;min-height:42px;padding:0 12px;font-size:14px;text-align:left;width:100%;color:var(--tinta)}
 .rapida svg{width:18px;height:18px;flex:none;color:var(--taupe)}
 .rapida:hover,.rapida:focus-visible{background:var(--hueso)}
+.rapida.sug{background:var(--t-ambar);color:var(--ambar);font-weight:600}
+.rapida.sug svg{color:var(--ambar)}
 .acciones-c:hover>.ib::after,.acciones-c:focus-within>.ib::after,.acciones-c.abierta>.ib::after{opacity:0!important}
 .ib-otros{position:absolute;right:0;bottom:100%;padding-bottom:8px;z-index:12;opacity:0;visibility:hidden;transform:translateY(6px);pointer-events:none;transition:opacity .16s var(--ease),transform .16s var(--ease),visibility .16s}
 .acciones-c:focus-within .ib-otros,.acciones-c.abierta .ib-otros{opacity:1;visibility:visible;transform:none;pointer-events:auto}
@@ -530,7 +532,7 @@ table.t td:first-child{font-weight:600}
       </tbody>
     </table></div>
     <div class="decision">
-      <p><span class="k">Decidí</span>La tarjeta no repite el estado (se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen) y muestra un solo icono: la acción que la pantalla sugiere, en ámbar. Al pasar el mouse o enfocar con el teclado se abre hacia arriba una ventana emergente con las demás, ya con su nombre (Reponer, Retirar del piso, Enviar a otra sede); en tablet la abre un botón «⋯». El icono solo lleva su nombre como ayuda y como etiqueta para el lector de pantalla. Los filtros se pueden ver de dos formas, con el interruptor de la derecha: solo iconos (con el nombre y la cifra al pasar el mouse) o iconos con texto.</p>
+      <p><span class="k">Decidí</span>La tarjeta no repite el estado (se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen) y muestra un solo icono: la acción que la pantalla sugiere, en ámbar. Al pasar el mouse o enfocar con el teclado se abre hacia arriba una ventana emergente con todas las acciones y su nombre, la del icono principal incluida y resaltada, aunque se repita (Reponer, Retirar del piso, Enviar a otra sede); en tablet la abre un botón «⋯». El icono solo lleva su nombre como ayuda y como etiqueta para el lector de pantalla. Los filtros se pueden ver de dos formas, con el interruptor de la derecha: solo iconos (con el nombre y la cifra al pasar el mouse) o iconos con texto.</p>
       <p><span class="k">Descarté</span>Mostrar los tres iconos siempre: en 8 tarjetas son 24 botones iguales y ninguno dice cuál conviene.</p>
       <p><span class="k">Se rompe si</span>una integrante nueva no distingue «Retirar del piso» de «Enviar a otra sede» solo por el icono: en tablet no hay mouse para ver el nombre. Por eso el interruptor de filtros existe y el panel conserva los nombres escritos; en las tarjetas conviene probarlo con alguien sin capacitación antes de dejar solo iconos.</p>
     </div>
@@ -800,11 +802,11 @@ const solo = S.vf === "iconos";
     const ib = (txt, icono, attrs, sug) => `<button class="ib${sug ? " sugerida" : ""}" data-tip="${esc(txt)}" aria-label="${esc(txt)}" ${attrs}>${icono}</button>`;
     const rap = k => `data-acc="rapida" data-k="${k}" data-pid="${p.id}" data-c="${c}"`;
     const sugReponer = accion?.txt === "Reponer", otraSug = accion && !sugReponer;
-    const principal = otraSug
-      ? ib(accion.txt === "Pedir" ? "Pedir a otra sede" : accion.txt, accion.txt === "Pedir" ? IC.pedir : IC.ficha, accion.attrs, true)
-      : ib("Reponer", IC.reponer, sugReponer ? accion.attrs : rap("reponer"), sugReponer);
-    const fila = (txt, icono, attrs) => `<button class="rapida" role="menuitem" ${attrs}>${icono}<span>${txt}</span></button>`;
-    const otros = [otraSug ? fila("Reponer", IC.reponer, rap("reponer")) : "", fila("Retirar del piso", IC.retirar, rap("retirar")), fila("Enviar a otra sede", IC.enviar, rap("enviar"))].join("");
+    const pr = otraSug ? [accion.txt === "Pedir" ? "Pedir a otra sede" : accion.txt, accion.txt === "Pedir" ? IC.pedir : IC.ficha, accion.attrs] : ["Reponer", IC.reponer, sugReponer ? accion.attrs : rap("reponer")];
+    const principal = ib(pr[0], pr[1], pr[2], !!accion);
+    // La ventana repite la acción del icono principal, con su nombre y primera: así quien abre la ventana ve todo en un solo lugar.
+    const fila = (txt, icono, attrs, sug) => `<button class="rapida${sug ? " sug" : ""}" role="menuitem" ${attrs}>${icono}<span>${txt}</span></button>`;
+    const otros = [fila(pr[0], pr[1], pr[2], !!accion), otraSug ? fila("Reponer", IC.reponer, rap("reponer")) : "", fila("Retirar del piso", IC.retirar, rap("retirar")), fila("Enviar a otra sede", IC.enviar, rap("enviar"))].join("");
     return `<div class="fila-estado"><span class="solo-lector">${esc(etiqueta)}</span><div class="acciones-c" role="group" aria-label="Acciones de ${esc(p.nombre)}">${principal}<button class="ib ib-mas" data-acc="ib-mas" data-tip="Más acciones" aria-label="Más acciones" aria-expanded="false">${IC.mas}</button><div class="ib-otros" role="menu" aria-label="Más acciones"><div class="ib-pop">${otros}</div></div></div></div>`;
   }
   const SVG_OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
