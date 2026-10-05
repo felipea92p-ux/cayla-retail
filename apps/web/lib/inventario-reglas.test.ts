@@ -5,7 +5,6 @@ import {
   fotoPrincipal,
   ordenarPorModeloColorTalla,
   porColgar,
-  resumirPorColgar,
   sumarCantidades,
   quedaraPidiendoReponer,
   RETIRO_NO_ES_BAJA,
@@ -97,11 +96,13 @@ describe("porColgar", () => {
     expect(porColgar(cantidadesDe(fila("v1", "piso_venta", 0), fila("v1", "almacen_tienda", 0)))).toBe(false);
   });
 
-  it("con algo colgado: no es «Por colgar» — aunque sea una sola y el almacén esté lleno, eso ya es «Reponer a piso» (regla física, piso ≤ 4)", () => {
+  // El mínimo es 1 colgada por talla y color (Felipe, 2026-10-04): una sola colgada ya cumple, aunque el almacén esté lleno.
+  // Hasta ese día la regla física era «piso ≤ 4» y esta talla pedía «Reponer a piso».
+  it("con algo colgado: no es «Por colgar» ni pide reponer — una sola colgada cumple el mínimo, aunque el almacén esté lleno", () => {
     const c = cantidadesDe(fila("v1", "piso_venta", 1), fila("v1", "almacen_tienda", 20));
     expect(porColgar(c)).toBe(false);
     const accion = calcularAccionHoy({ varianteId: "v1", pisoDisponible: c.pisoDisponible, almacenDisponible: c.almacenDisponible, enTransito: 0 }, POLITICA_REF);
-    expect(accion.tipo).toBe("reponer_a_piso");
+    expect(accion.tipo).toBe("sin_accion");
   });
 
   it("piso > 0 nunca es «Por colgar», sea cual sea la cantidad — la pregunta es «¿hay algo?», no «¿cuánto?»", () => {
@@ -138,24 +139,6 @@ describe("porColgar", () => {
       const accion = calcularAccionHoy({ varianteId: "v1", pisoDisponible: c.pisoDisponible, almacenDisponible: c.almacenDisponible, enTransito: 0 }, POLITICA_REF);
       expect(accion.tipo).toBe("reponer_a_piso");
     }
-  });
-});
-
-describe("resumirPorColgar (el contador del filtro)", () => {
-  it("cuenta tallas y suma lo que se puede bajar del almacén, neto de apartados", () => {
-    const c = sumarCantidades([
-      { variante_id: "a", cantidad: 5, cantidad_apartada: 1, sububicacion: { tipo: "almacen_tienda" } }, // por colgar: 4 que bajar
-      { variante_id: "b", cantidad: 2, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } }, // por colgar: 2
-      { variante_id: "c", cantidad: 1, cantidad_apartada: 0, sububicacion: { tipo: "piso_venta" } }, // colgada: no
-      { variante_id: "c", cantidad: 9, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } },
-      { variante_id: "d", cantidad: 0, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } }, // nada: no
-    ]);
-    expect(resumirPorColgar([...c.values()])).toEqual({ tallas: 2, unidades: 6 });
-  });
-
-  it("sin nada por colgar (o en Taller) da cero, no NaN", () => {
-    expect(resumirPorColgar([])).toEqual({ tallas: 0, unidades: 0 });
-    expect(resumirPorColgar([{ pisoDisponible: null, almacenDisponible: null }])).toEqual({ tallas: 0, unidades: 0 });
   });
 });
 

@@ -16,7 +16,7 @@ import { juntarPorPrenda, prendasNoDisponibles } from "@/lib/traslado-lineas-reg
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
-// que "+Nuevo" solo ofrecía Recepción. Mismo patrón que `RecepcionFormV2.tsx`.
+// que "+Nuevo" solo ofrecía Recepción. Mismo patrón que la puerta «Llegó mercadería» (`LlegoMercaderia.tsx`).
 //
 // Traslado en dos fases (2026-09-16, `iniciar_traslado`,
 // `20260916150000_traslados_dos_fases.sql`): este formulario ya NO deja el

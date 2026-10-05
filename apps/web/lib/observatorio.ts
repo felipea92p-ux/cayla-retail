@@ -155,7 +155,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       corto: "por regularizar",
       porTienda,
       edad: filas.length ? Math.max(...filas.map((f) => diasDesde(f.vendidoEn, ahora))) : null,
-      href: "/recibir?vista=por-regularizar",
+      href: "/inventario/por-regularizar",
       detalle: porTienda && filas.length
         ? {
             tipo: "porSede",
