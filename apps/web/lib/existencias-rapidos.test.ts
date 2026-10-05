@@ -35,6 +35,8 @@ describe("atajos de filtro de Existencias", () => {
     expect(cuentaDeAtajo("sin_stock_atras", conteos)).toBe(0);
     expect(cuentaDeAtajo("apartadas", conteos)).toBe(0);
     expect(cuentaDeAtajo("danadas", conteos)).toBe(1);
+    expect(cuentaDeAtajo("se_acaban", { hoy: {}, condicion: { se_acaban: 4 } })).toBe(4);
+    expect(cuentaDeAtajo("sin_ventas", conteos)).toBe(0);
     expect(cuentaDeAtajo("todo", conteos)).toBeNull();
     const por = ATAJOS_RAPIDOS[1];
     expect(rotuloDeAtajo(por, 13)).toBe("Por colgar · 13");
