@@ -18,7 +18,6 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { Modal } from "@/components/ui/Modal";
 import { History } from "lucide-react";
 import { AlternarTerminalModal } from "@/components/ColaboradoresModales";
 import { DarAccesoModal } from "@/components/colaboradores/DarAccesoModal";
@@ -28,7 +27,7 @@ import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones"
 import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
-import { ListaActividad } from "@/components/ColaboradoresTablas";
+import { ActividadEquipo } from "@/components/colaboradores/ActividadEquipo";
 import { accionesTerminalesServidor, type AccionesTerminales } from "@/components/colaboradores/terminales-acciones";
 import { FichaTerminal } from "@/components/colaboradores/FichaTerminal";
 import { CambiarClaveModal, NuevaTerminalModal } from "@/components/TerminalesModales";
@@ -87,6 +86,7 @@ export function ColaboradoresPanel({
   terminales,
   deTurno = [],
   ahoraIso,
+  veActividadModulo = false,
   roles = null,
   cuentas = null,
   vistaInicial = vistaDe(undefined),
@@ -114,6 +114,8 @@ export function ColaboradoresPanel({
   deTurno?: readonly string[];
   /** «Ahora» del servidor, para que «hoy 09:12» diga lo mismo al pintar en el servidor y en el navegador. */
   ahoraIso: string;
+  /** ¿La cuenta ve el módulo Actividad? Con él, «Actividad» lee `fn_actividad` (accesos y roles); sin él, el registro de accesos. */
+  veActividadModulo?: boolean;
   /** ADR-0161 B: los roles y las cuentas con su rol. `null` = no se pudieron leer (o quien mira no tiene Roles y accesos):
    *  la pantalla sigue, con el nivel (Líder / Integrante) en vez del rol y sin «Cambiar rol». */
   roles?: RolVista[] | null;
@@ -399,18 +401,8 @@ export function ColaboradoresPanel({
         </section>
       )}
 
-      {/* Actividad: un historial que se consulta, no una sección donde se trabaja. Mismo <Modal> de siempre (ADR-0136). */}
-      {verActividad && (
-        <Modal titulo="Actividad de accesos" ancho="max-w-2xl" onClose={() => setVerActividad(false)}>
-          <div className="mt-4 max-h-[65vh] overflow-y-auto pr-1">
-            {actividad.length === 0 ? (
-              <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay movimientos de acceso.</p>
-            ) : (
-              <ListaActividad eventos={actividad} />
-            )}
-          </div>
-        </Modal>
-      )}
+      {/* Actividad: un historial que se consulta, no una sección donde se trabaja (ADR-0343). */}
+      {verActividad && <ActividadEquipo veActividad={veActividadModulo} esLider={soyLider} accesos={actividad} onClose={() => setVerActividad(false)} />}
 
       {modal?.tipo === "agregar" && (
         <DarAccesoModal
