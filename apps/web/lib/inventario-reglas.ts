@@ -58,18 +58,8 @@ export function porColgar(c: Pick<Cantidades, "pisoDisponible" | "almacenDisponi
   return c.pisoDisponible <= 0 && c.almacenDisponible > 0;
 }
 
-/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo
- *  disponible en el almacén de esas tallas — lo mismo que el modal de Reponer deja bajar). */
-export function resumirPorColgar(filas: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">[]): { tallas: number; unidades: number } {
-  let tallas = 0;
-  let unidades = 0;
-  for (const f of filas) {
-    if (!porColgar(f)) continue;
-    tallas += 1;
-    unidades += f.almacenDisponible ?? 0;
-  }
-  return { tallas, unidades };
-}
+// El contador del filtro «Por colgar» (cuántas tallas y cuántas unidades) vivía aquí como `resumirPorColgar`. Desde el 2026-10-04
+// es `porColgarDeLaSede` (`existencias-para-hoy.ts`), la misma cuenta que leen «Para hoy» y el Inicio de Almacén.
 
 /** Orden de la lista «Por colgar»: modelo, color y talla en su curva (S · M · L, 36 · 38). La encargada
  *  cuelga por percha —un modelo en un color—, no talla por talla: si la M y la L de la misma casaca

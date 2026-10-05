@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nombresConResto, resumenPlegado, tareasParaHoy, textoLlegada, type EntradaParaHoy } from "./existencias-para-hoy";
+import { entradaPorColgar, nombresConResto, porColgarDeLaSede, resumenPlegado, tareasParaHoy, textoLlegada, type EntradaParaHoy } from "./existencias-para-hoy";
+import type { FilaPrenda } from "./existencias-prendas";
 
 const vacia: EntradaParaHoy = {
   separa: true,
@@ -117,5 +118,40 @@ describe("textoLlegada", () => {
   it("usa la hora de Lima", () => {
     // 15:30 UTC = 10:30 en Lima (UTC−5).
     expect(textoLlegada("2026-10-05T15:30:00Z")).toMatch(/10:30$/);
+  });
+});
+
+describe("porColgarDeLaSede (la única cuenta de «por colgar»)", () => {
+  const REPONER = { tipo: "reponer_a_piso" as const, texto: "Reponer a piso", motivo: null, contexto: null };
+  // Lo libre ya viene neto de apartados (`sumarCantidades`): aquí solo importa piso y almacén.
+  const talla = (varianteId: string, productoId: string, color: string, t: string, piso: number | null, almacen: number | null): FilaPrenda =>
+    ({
+      varianteId, productoId, referencia: `Modelo ${productoId}`, sku: varianteId, talla: t, color, colorHex: null, fotoUrl: null,
+      codigosBarras: [], pisoDisponible: piso, almacenDisponible: almacen, disponible: (piso ?? 0) + (almacen ?? 0),
+      apartado: 0, danado: 0, enTransito: 0, accionHoy: piso === 0 ? REPONER : null, marca: null,
+    }) as FilaPrenda;
+
+  it("cuenta solo las tallas sin ninguna colgada y con guardadas, y suma lo que se puede colgar", () => {
+    const r = porColgarDeLaSede([
+      talla("a", "blusa", "Azul", "S", 0, 4), // por colgar: 4
+      talla("b", "blusa", "Azul", "M", 0, 2), // por colgar: 2
+      talla("c", "blusa", "Azul", "L", 1, 9), // colgada: no
+      talla("d", "blusa", "Negro", "M", 0, 0), // agotada (sin stock atrás): no se puede colgar
+      talla("e", "polo", "Blanco", "M", 0, 1), // por colgar: 1
+    ]);
+    expect(r.tallas).toBe(3);
+    expect(r.unidades).toBe(7);
+    expect(r.filas.map((f) => f.varianteId)).toEqual(["a", "b", "e"]);
+    // Por prenda (modelo + color): la que más tallas tiene por colgar primero, y solo con sus tallas por colgar.
+    expect(r.prendas.map((p) => [p.productoId, p.color, p.tallas.map((f) => f.talla)])).toEqual([
+      ["blusa", "Azul", ["S", "M"]],
+      ["polo", "Blanco", ["M"]],
+    ]);
+    expect(entradaPorColgar(r)).toEqual({ tallas: 3, unidades: 7, prendas: ["Modelo blusa", "Modelo polo"] });
+  });
+
+  it("sin nada por colgar, o en el Taller (no separa piso y almacén), da cero y no NaN", () => {
+    expect(porColgarDeLaSede([])).toMatchObject({ tallas: 0, unidades: 0, prendas: [] });
+    expect(porColgarDeLaSede([talla("t", "blusa", "Azul", "M", null, null)])).toMatchObject({ tallas: 0, unidades: 0, prendas: [] });
   });
 });

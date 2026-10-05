@@ -13,13 +13,13 @@ import { agruparConteo, type GrupoConteo, type LineaConteo, type PrendaConteo } 
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 
 /** Una línea del conteo con lo que hace falta para dibujarla: cómo se llama la prenda y cómo se ve. */
-export type FilaConteoVista = LineaConteo & Pick<PrendaConteo, "productoId" | "referencia" | "talla" | "color" | "colorHex" | "fotoUrl" | "sku">;
+export type FilaConteoVista = LineaConteo & Pick<PrendaConteo, "productoId" | "referencia" | "talla" | "color" | "colorHex" | "fotoUrl" | "sku" | "categoria" | "categoriaPrefijo" | "categoriaFamilia">;
 
 /**
  * Cruza las líneas (que solo traen `varianteId`) con el catálogo. Una variante que el catálogo ya no conoce NO se
  * descarta —cuenta en el resumen y en el cierre—: se dibuja con un nombre honesto en vez de desaparecer de la pantalla.
  */
-export function unirLineasConPrendas(lineas: readonly LineaConteo[], prendas: readonly Pick<PrendaConteo, "varianteId" | "productoId" | "referencia" | "talla" | "color" | "colorHex" | "fotoUrl" | "sku">[]): FilaConteoVista[] {
+export function unirLineasConPrendas(lineas: readonly LineaConteo[], prendas: readonly Pick<PrendaConteo, "varianteId" | "productoId" | "referencia" | "talla" | "color" | "colorHex" | "fotoUrl" | "sku" | "categoria" | "categoriaPrefijo" | "categoriaFamilia">[]): FilaConteoVista[] {
   const porVariante = new Map(prendas.map((p) => [p.varianteId, p]));
   return lineas.map((l) => {
     const p = porVariante.get(l.varianteId);
@@ -31,6 +31,9 @@ export function unirLineasConPrendas(lineas: readonly LineaConteo[], prendas: re
       color: p?.color ?? null,
       colorHex: p?.colorHex ?? null,
       fotoUrl: p?.fotoUrl ?? null,
+      categoria: p?.categoria ?? null,
+      categoriaPrefijo: p?.categoriaPrefijo ?? null,
+      categoriaFamilia: p?.categoriaFamilia ?? null,
       sku: p?.sku ?? "",
     };
   });

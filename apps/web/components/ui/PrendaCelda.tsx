@@ -1,14 +1,16 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
+import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 
 /* ====================================================================
    PrendaCelda · miniatura + referencia + "SKU · color · talla"
    (2026-09-17, ADR-0101)
 
-   La celda de la prenda que Existencias armaba a mano y el marcador de
-   perchero que dibuja cuando la prenda no tiene foto (`SinFoto`, mismo
-   trazo que IC.inventario en AppShell). Extraída para que Resumen la
+   La celda de la prenda que Existencias armaba a mano y el marcador que
+   dibuja cuando la prenda no tiene foto (`SinFoto`: la categoría sobre el
+   color, 2026-10-04; antes el isotipo). Extraída para que Resumen la
    comparta en vez de copiarla. La segunda línea es texto (no la cápsula de
    color de Existencias): en una lista de decisiones se lee "Blanco · L", no
    se compara un swatch con otro.
@@ -21,35 +23,44 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
    habría movido Resumen y las demás listas que sí quieren el texto.
    ==================================================================== */
 
-/** Sin foto: el isotipo de CAYLA, no un ícono genérico (rediseño de Existencias, 2026-09-22) — mismo
- *  archivo que el logo del lateral (`public/cayla-isotipo.png`), apagado al 30% para que no compita con
- *  una miniatura real al lado en la misma fila. */
-export function SinFoto({ tamano = "h-9 w-9" }: { tamano?: string }) {
-  return (
-    <span aria-hidden className={`flex ${tamano} shrink-0 items-center justify-center rounded-md border border-tinta/10 bg-sand/50 p-1.5`}>
-      <Image src="/cayla-isotipo.png" alt="" width={32} height={32} unoptimized className="h-full w-full object-contain opacity-30" />
-    </span>
-  );
+// La categoría de una prenda (`categoriaDe`) vive en `lib/` (lógica pura, con su prueba); se re-exporta para que quien dibuja
+// la miniatura importe todo de aquí.
+export { categoriaDe, type CategoriaDePrenda } from "@/lib/categoria-de-prenda";
+
+/** Sin foto: el ícono de la categoría de la prenda sobre su color (`MosaicoPrenda`, el mismo de Vender), no el isotipo de CAYLA.
+ *  El isotipo al 30 % (rediseño de Existencias, 2026-09-22) decía «sin foto» pero era el mismo en las 25 prendas de una lista;
+ *  el 2026-10-04 Felipe pidió UN solo lenguaje de «sin foto» en todo el ERP. El isotipo queda para la marca (login, lateral,
+ *  tickets), no para marcar un hueco. `conNombre`: el nombre de la categoría bajo el ícono, para una caja de tarjeta o cajón
+ *  (≥ 64 px de ancho); una miniatura de tabla es solo ícono. */
+export function SinFoto({
+  tamano = "h-9 w-9",
+  colorHex,
+  prefijo,
+  familia,
+  categoria,
+  conNombre = false,
+}: { tamano?: string; colorHex?: string | null; conNombre?: boolean } & CategoriaDePrenda) {
+  return <MosaicoPrenda forma="relleno" colorHex={colorHex} prefijo={prefijo} familia={familia} categoria={categoria} conNombre={conNombre} className={tamano} />;
 }
 
-/** La miniatura sola: la foto de la prenda, o el marcador de perchero con un punto
- *  del color vendido (con borde, para que un beige o un blanco no desaparezcan sobre
- *  el papel). Cambios la usa en grande (2026-09-18): la colaboradora compara la foto
- *  con la prenda que la clienta tiene en la mano. */
-export function MiniaturaPrenda({ fotoUrl, colorHex = null, tamano = "sm" }: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "md" | "lg" | "xl" }) {
+/** La miniatura sola: la foto de la prenda, o —sin foto— su categoría sobre su color (`SinFoto`; el color ya no va en un punto
+ *  aparte: la miniatura ES de ese color, con filo para que un beige o un blanco no desaparezcan sobre el papel). Cambios la
+ *  usa en grande (2026-09-18): la colaboradora compara la foto con la prenda que la clienta tiene en la mano. */
+export function MiniaturaPrenda({
+  fotoUrl,
+  colorHex = null,
+  tamano = "sm",
+  prefijo,
+  familia,
+  categoria,
+}: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "md" | "lg" | "xl" } & CategoriaDePrenda) {
   // `md` (44 px): la miniatura de las listas de Existencias del diseño aprobado (2026-09-28).
   // `xl` (60 px): la miniatura de la tarjeta de producto de Conteo ▸ Contar (2026-09-29).
   const [clase, px] = tamano === "xl" ? ["h-[60px] w-[60px]", 60] : tamano === "lg" ? ["h-12 w-12", 48] : tamano === "md" ? ["h-11 w-11", 44] : ["h-9 w-9", 36];
   if (fotoUrl) {
     return <Image src={fotoUrl} alt="" width={px} height={px} unoptimized className={`${clase} shrink-0 rounded-md border border-tinta/10 object-cover`} />;
   }
-  if (!colorHex) return <SinFoto tamano={clase} />;
-  return (
-    <span className="relative shrink-0">
-      <SinFoto tamano={clase} />
-      <span aria-hidden className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-papel ring-1 ring-tinta/25" style={{ background: colorHex }} />
-    </span>
-  );
+  return <SinFoto tamano={clase} colorHex={colorHex} prefijo={prefijo} familia={familia} categoria={categoria} />;
 }
 
 /** La celda «Producto / variante» de Inventario: la primera columna de Existencias, para que la

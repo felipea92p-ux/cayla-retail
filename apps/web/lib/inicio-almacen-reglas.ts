@@ -2,6 +2,8 @@
 // Sin Supabase ni React: se prueban en `inicio-almacen-reglas.test.ts` y las importan la página (servidor) y los
 // componentes de `components/inicio-almacen/` (cliente).
 
+import { porColgarDeLaSede } from "./existencias-para-hoy";
+import { urlBajarAlPiso, type FilaPrenda } from "./existencias-prendas";
 import type { Aviso, AvisosVisibles, FuentesAvisos } from "./inicio-avisos";
 import { fotoPrincipal, type FotoCruda } from "./inventario-reglas";
 import type { ClaveModulo } from "./modulos";
@@ -41,6 +43,10 @@ export type NuevoProducto = {
   /** Los colores de sus variantes, sin repetir. */
   colores: { nombre: string; hex: string | null }[];
   fotoUrl: string | null;
+  /** Su categoría, para dibujar el producto sin foto con su ícono (`SinFoto`, ADR-0333). */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** Lo que se puede vender de este producto en la sede de quien mira (`fn_existencias_productos`, la misma cifra que
    *  Existencias y el Catálogo: ADR-0270). `null` = no se pudo leer: la tarjeta no dice nada en vez de decir «0». */
   enMiSede: number | null;
@@ -56,6 +62,16 @@ export type NuevoProducto = {
   propia: boolean;
 };
 
+/**
+ * El color con el que se dibuja un PRODUCTO sin foto (`SinFoto`, ADR-0333): el de su único color. Con varios no hay uno que decir: pintar
+ * el primero afirmaría que el producto es de ese color, y «Nuevo en el catálogo» sirve justo para reconocer una prenda por su diseño,
+ * así que cae al tono de su familia (mismo criterio de `TarjetaParecida`: nunca un dato que la prenda no tiene). `null` si no hay
+ * colores, o su único color no es un color (Estampado, Multicolor).
+ */
+export function colorUnico(colores: readonly { hex: string | null }[]): string | null {
+  return colores.length === 1 ? colores[0].hex : null;
+}
+
 /** Lo que dice `fn_producto_origen` de un producto: la sede desde la que se registró (`null` = se sabe que se registró, no dónde). */
 export type OrigenDeProducto = { ubicacionId: string | null; nombre: string | null };
 
@@ -66,6 +82,8 @@ export type FilaNuevoCruda = {
   referencia: string;
   created_at: string;
   propuesto_por: string | null;
+  /** Su categoría (opcional: una lectura que no la pidió dibuja la percha). */
+  categoria?: { nombre: string; prefijo: string | null; familia: string | null } | null;
   producto_fotos: FotoCruda[] | null;
   variantes:
     | {
@@ -163,6 +181,9 @@ export function armarNuevos(
         precio: precios.length ? Math.min(...precios) : null,
         colores,
         fotoUrl: fotoPrincipal(f.producto_fotos),
+        categoria: f.categoria?.nombre ?? null,
+        categoriaPrefijo: f.categoria?.prefijo ?? null,
+        categoriaFamilia: f.categoria?.familia ?? null,
         enMiSede: aqui === null ? null : (aqui.get(f.id) ?? 0),
         quien: nombreDePila(f.propuesto_por ? nombres.get(f.propuesto_por) : null),
         sede: nombreSede ? etiquetaSedeDeOrigen(nombreSede) : null,
@@ -308,6 +329,67 @@ export function accesosAlmacen(modulos: readonly ClaveModulo[]): AccesoDeAlmacen
   return ACCESOS_ALMACEN.filter((a) => a.modulo === null || modulos.includes(a.modulo)).map((a) => ({ href: a.href, etiqueta: a.etiqueta, icono: a.icono, ...(a.destacado ? { destacado: true } : {}) }));
 }
 
+// ── «Por colgar»: lo que sale de las existencias de la sede ─────────────────────────────────────
+
+export type PrendaPorColgar = {
+  clave: string;
+  referencia: string;
+  color: string | null;
+  colorHex?: string | null;
+  fotoUrl: string | null;
+  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, ADR-0333). */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
+  /** Sus tallas por colgar, en curva («Única» si el modelo no tiene talla). */
+  tallas: string[];
+};
+
+export type Existencias = {
+  /** Unidades libres en el almacén de la sede. `null` donde no se separa piso y almacén: ahí no hay nada por colgar. */
+  enAlmacen: number | null;
+  /** Lo mismo que cuenta «Para hoy» de Existencias: tallas por colgar, sus unidades guardadas y en cuántas prendas (modelo + color). */
+  porColgar: { tallas: number; unidades: number; prendas: number };
+  /** Las tres prendas que conviene colgar primero. */
+  primeras: PrendaPorColgar[];
+  /** «Bajar al piso» con esas tallas ya en la lista: el mismo enlace que el botón de «Para hoy». */
+  hrefBajar: string;
+};
+
+/**
+ * De las existencias de la sede a lo que el Inicio de Almacén dice del piso. Cuenta con `porColgarDeLaSede`, la MISMA función que
+ * arma la fila «por colgar» de «Para hoy» en Existencias (y el filtro «Hoy ▸ Por colgar»): el número del Inicio y el de la pantalla
+ * a la que lleva no pueden discrepar. Lo prueba `inicio-almacen-reglas.test.ts` contra `tareasParaHoy`.
+ *
+ * Hasta el 2026-10-04 contaba MODELOS con alguna talla que pedía reponer: con el mínimo de 1 colgada por talla (umbral 0) eso
+ * metía las tallas agotadas en la sede (piso 0 y nada atrás), y el Inicio decía «Sube N modelos al piso» con prendas que no
+ * existían atrás. Las agotadas son «sin stock atrás»: se piden a otra sede, no se cuelgan.
+ *
+ * `stock` lleva «Acción hoy» (`accionHoy`) solo para armar el enlace de «Bajar al piso» (`urlBajarAlPiso`), igual que Existencias.
+ */
+export function existenciasDeAlmacen<F extends FilaPrenda>(stock: readonly F[]): Existencias {
+  if (!stock.some((f) => f.pisoDisponible !== null)) {
+    return { enAlmacen: null, porColgar: { tallas: 0, unidades: 0, prendas: 0 }, primeras: [], hrefBajar: "/inventario/bajar" };
+  }
+  const p = porColgarDeLaSede(stock);
+  return {
+    enAlmacen: stock.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
+    porColgar: { tallas: p.tallas, unidades: p.unidades, prendas: p.prendas.length },
+    primeras: p.prendas.slice(0, 3).map((x) => ({
+      clave: x.clave,
+      referencia: x.referencia,
+      color: x.color,
+      colorHex: x.colorHex,
+      fotoUrl: x.fotoUrl,
+      categoria: x.categoria ?? null,
+      categoriaPrefijo: x.categoriaPrefijo ?? null,
+      categoriaFamilia: x.categoriaFamilia ?? null,
+      tallas: x.tallas.map((f) => f.talla ?? "Única"),
+    })),
+    hrefBajar: urlBajarAlPiso(p.filas) ?? "/inventario/bajar",
+  };
+}
+
 // ── De lo leído a las fuentes de «Te toca» ───────────────────────────────────────────────────────
 
 /**
@@ -316,13 +398,13 @@ export function accesosAlmacen(modulos: readonly ClaveModulo[]): AccesoDeAlmacen
  */
 export function fuentesDeAlmacen(d: {
   porRecibir?: { facturas: number; primera: string | null } | null;
-  existencias?: { enAlmacen: number | null; modelosParaReponer: number } | null;
+  existencias?: Pick<Existencias, "enAlmacen" | "porColgar"> | null;
   fotos: { activos: number; conFoto: number } | null;
   porCompletar: number | null;
-}): Pick<FuentesAvisos, "porRecibir" | "reponer" | "fotosQueFaltan" | "porCompletar"> {
+}): Pick<FuentesAvisos, "porRecibir" | "porColgar" | "fotosQueFaltan" | "porCompletar"> {
   return {
     porRecibir: d.porRecibir,
-    reponer: d.existencias === undefined ? undefined : d.existencias === null ? null : d.existencias.enAlmacen === null ? undefined : d.existencias.modelosParaReponer,
+    porColgar: d.existencias === undefined ? undefined : d.existencias === null ? null : d.existencias.enAlmacen === null ? undefined : d.existencias.porColgar,
     fotosQueFaltan: d.fotos === null ? null : Math.max(0, d.fotos.activos - d.fotos.conFoto),
     porCompletar: d.porCompletar,
   };

@@ -294,7 +294,7 @@ export function PuntoDeVentaCatalogo({
                         {/* La barra roja de la fila activa: un solo rojo a la vez en la pantalla. */}
                         {i === activo && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-sm bg-rojo" />}
                         {v.fotoUrl ? (
-                          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={64} className={`w-16 ${apagada ? "opacity-55" : ""}`} />
+                          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={64} className={`w-16 ${apagada ? "opacity-55" : ""}`} />
                         ) : (
                           <MosaicoPrenda colorHex={v.colorHex} prefijo={v.categoriaPrefijo} familia={v.categoriaFamilia ?? null} categoria={v.categoria} forma="fila" className={`w-16 ${apagada ? "opacity-55" : ""}`} />
                         )}
