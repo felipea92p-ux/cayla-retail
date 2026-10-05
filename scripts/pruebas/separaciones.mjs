@@ -615,7 +615,7 @@ select pe.estado, (select sum(cantidad_apartada) from retail.stock where variant
 exito("otra sede: al cerrar el traslado, la prenda queda guardada sola para la clienta en el almacén",
   `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
 select pe.estado, a.estado, a.clienta_nombre, a.sububicacion_id = retail.fn_sububicacion_por_defecto(:'ubic', 'traslado_entrada'),
-       (select count(*) from retail.fn_pedidos_para_apartar(:'ubic') f where f.id = :'ped' and f.direccion = 'pedi' and f.guardada_hasta is not null)
+       (select count(*) from retail.fn_pedidos_con_cliente(:'ubic') f where f.id = :'ped' and f.direccion = 'pedi' and f.guardada_hasta is not null)
   from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_id where pe.id = :'ped';`,
   (x) => x === "llego|abierto|Ana Lozano|t|1");
 exito("otra sede: con el adelanto se suelta la reserva, pasa al piso y queda un apartado de verdad, todo junto",
