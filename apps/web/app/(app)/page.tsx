@@ -30,7 +30,6 @@ import { AjustarInicio } from "@/components/inicio/AjustarInicio";
 import { InicioAlmacen } from "@/components/inicio-almacen/InicioAlmacen";
 import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-almacen-reglas";
 import { getInicioAlmacen } from "@/lib/inicio-almacen";
-import { getUbicaciones } from "@/lib/ubicaciones";
 import { getAvisosObservatorio, getDatosObservatorio, getDatosTienda, getTallerObservatorio } from "@/lib/observatorio";
 import { Observatorio } from "@/components/observatorio/Observatorio";
 import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
@@ -100,15 +99,9 @@ export default async function InicioPage() {
     esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
     esLider ? contarComprobantesAtascados() : Promise.resolve(undefined),
     persona.ubicacionTipo === "tienda" && !persona.terminal ? getEquipoDeHoy(persona.ubicacionId, ve("actividad")) : Promise.resolve(undefined),
-    // Lo que solo lee la cuenta de almacén. La lista de sedes es para el «dónde más hay» de Existencias: si falla, sigue sin ella.
-    esAlmacen
-      ? getUbicaciones()
-          .catch((e) => {
-            console.error("Inicio · no se pudieron leer las sedes:", e);
-            return [];
-          })
-          .then((ubicaciones) => getInicioAlmacen({ ubicacionId: persona.ubicacionId, ubicaciones, ve }))
-      : Promise.resolve(null),
+    // Lo que solo lee la cuenta de almacén. El piso de la sede sale del motor del piso (una lectura), ya no de Existencias
+    // entera: no hace falta la lista de sedes.
+    esAlmacen ? getInicioAlmacen({ ubicacionId: persona.ubicacionId, ve }) : Promise.resolve(null),
   ]);
   const fuentes = await getFuentesAvisos(
     { ubicacionId: persona.ubicacionId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },

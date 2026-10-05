@@ -11,7 +11,19 @@
 //            sigue siendo un snapshot de `movimientos` (principio 4).
 
 import { compararTallas } from "./tallas";
-import { apartadoEn, lineasDeAjuste, modoDeAjuste, stockEn, type LineaAjuste, type LugarAjuste, type MotivoAjuste, type VarianteAjuste } from "./ajuste-reglas";
+import {
+  NOTA_MINIMA_ENCONTRE,
+  apartadoEn,
+  lineasDeAjuste,
+  modoDeAjuste,
+  notaSuficiente,
+  stockEn,
+  textoProblemaMotivo,
+  type LineaAjuste,
+  type LugarAjuste,
+  type MotivoAjuste,
+  type VarianteAjuste,
+} from "./ajuste-reglas";
 import { destinoGuardado, type Destino, type FilaFicha, type NombresFicha } from "./variantes-ficha-reglas";
 
 export type MatrizFicha = {
@@ -47,9 +59,11 @@ export function cantidadDeCelda(v: VarianteAjuste | undefined, lugar: LugarAjust
   return (v ? stockEn(v, lugar) : 0) + pendiente;
 }
 
-/** El piso de una celda: no baja de cero ni de lo apartado para clientas (los dos candados de `fn_aplicar_movimiento`). */
-export function minimoDeCelda(v: VarianteAjuste | undefined, lugar: LugarAjuste): number {
-  return v ? apartadoEn(v, lugar) : 0;
+/** El piso de una celda: no baja de cero ni de lo apartado para clientas (los dos candados de `fn_aplicar_movimiento`). Con
+ *  «Encontré prendas», ni de lo que hay hoy: ese motivo solo suma (ADR-0328; la base: `encontre_prendas_resta`). */
+export function minimoDeCelda(v: VarianteAjuste | undefined, lugar: LugarAjuste, motivo?: MotivoAjuste): number {
+  if (!v) return 0;
+  return motivo === "reposicion" ? stockEn(v, lugar) : apartadoEn(v, lugar);
 }
 
 /** Lo tocado tras un «−» o un «+»; `null` si ese toque dejaría la celda debajo de su piso. */
@@ -137,6 +151,55 @@ export function lineasDelLote(variantes: readonly VarianteAjuste[], pendientes: 
     cantidades[v.varianteId] = String(modo === "contado" ? stockEn(v, lugar) + d : d);
   }
   return lineasDeAjuste(variantes, cantidades, lugar, modo);
+}
+
+// «Encontré prendas» y la carga inicial cerrada en la ficha (ADR-0328, actividad 4; revisión adversarial). La ficha ofrece
+// «Encontré prendas» como cualquier motivo de la visita, con su nota (dónde estaban), y con la carga de la sede CERRADA es la
+// única forma de sumar una talla que nunca estuvo en la tienda —también una variante recién creada—: todo viaja como ajuste
+// con ese motivo, igual que en Ajustar. Lo que la base va a rechazar se dice ANTES de «Revisar y guardar», con el campo a enfocar.
+
+/** Por qué el «+» de una celda no suma (o `null`): una talla sin historia en la tienda, con la carga cerrada y otro motivo. */
+export function bloqueoDeSubida(o: { sinHistoria: boolean; cargaAbierta: boolean; motivo: MotivoAjuste; enPisoCerrado: boolean }): string | null {
+  return textoProblemaMotivo({ delta: 1, variante: { sinHistoria: o.sinHistoria } }, o.motivo, o.cargaAbierta, o.enPisoCerrado);
+}
+
+/** Lo que frena guardar el stock de la visita (y el campo que lo arregla), o `null`. Mismas reglas que la base y el mismo orden
+ *  que en Ajustar: primero el motivo de cada talla, después la nota. Una variante NUEVA con la carga abierta entra como stock
+ *  inicial (sin motivo ni nota); con la carga cerrada, como ajuste con el motivo de la visita. */
+export function problemaDelStockDeLaVisita(o: {
+  lineas: readonly { delta: number; variante: Pick<VarianteAjuste, "sinHistoria"> }[];
+  /** Cuántas variantes nuevas (sin guardar) llevan unidades. */
+  nuevasConStock: number;
+  motivo: MotivoAjuste;
+  nota: string;
+  cargaAbierta: boolean;
+  enPisoCerrado: boolean;
+}): { texto: string; campo: "motivo" | "nota" } | null {
+  for (const l of o.lineas) {
+    const texto = textoProblemaMotivo(l, o.motivo, o.cargaAbierta, o.enPisoCerrado);
+    if (texto) return { texto, campo: "motivo" };
+  }
+  const nuevasComoAjuste = !o.cargaAbierta && o.nuevasConStock > 0;
+  if (nuevasComoAjuste) {
+    const texto = bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: o.motivo, enPisoCerrado: o.enPisoCerrado });
+    if (texto) return { texto, campo: "motivo" };
+  }
+  // La nota la pide solo lo que viaja como AJUSTE (como `repartirLineasAjuste`): con la carga abierta, una talla sin historia
+  // entra como stock inicial, sin motivo ni nota.
+  const hayAjustes = o.lineas.some((l) => !o.cargaAbierta || !l.variante.sinHistoria) || nuevasComoAjuste;
+  if (hayAjustes && !notaSuficiente(o.motivo, o.nota)) {
+    return { texto: `Con «Encontré prendas» cuenta dónde estaban o por qué aparecieron (${NOTA_MINIMA_ENCONTRE} letras o más).`, campo: "nota" };
+  }
+  return null;
+}
+
+/** La línea de la carga inicial bajo el motivo de la visita: el aviso de la sede y, cerrada y con otro motivo, qué hacer con
+ *  las tallas que nunca estuvieron en la tienda (sus celdas quedan quietas: así se sabe por qué). */
+export function avisoCargaDeLaFicha(aviso: string | null, cargaAbierta: boolean, motivo: MotivoAjuste, enPisoCerrado: boolean): string | null {
+  if (!aviso || cargaAbierta || motivo === "reposicion") return aviso;
+  return enPisoCerrado
+    ? `${aviso} Las tallas que nunca estuvieron aquí se suman en el almacén, con «Encontré prendas».`
+    : `${aviso} Las tallas que nunca estuvieron aquí se suman eligiendo «Encontré prendas».`;
 }
 
 /** Totales de la matriz con lo que cada celda muestra: por color, por talla y general. */

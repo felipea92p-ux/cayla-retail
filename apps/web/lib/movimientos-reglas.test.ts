@@ -189,8 +189,8 @@ describe("etiquetaMovimiento", () => {
     });
   });
 
-  it("los ajustes sueltos llevan «Ajuste a mano ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
-    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste a mano · reposición");
+  it("los ajustes sueltos llevan «Ajuste a mano ·»; `reposicion` se lee «encontré prendas» (ADR-0328), no se confunde con reponer el piso", () => {
+    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste a mano · encontré prendas");
     expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste a mano · merma");
   });
 });

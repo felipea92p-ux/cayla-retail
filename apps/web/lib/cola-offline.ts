@@ -1,7 +1,7 @@
 /**
  * Cola sin conexión GENÉRICA (ADR-0210) — el mecanismo de la venta sin red (ADR-0063, `lib/ventas-offline.ts`)
  * sacado de Vender para que lo use cualquier módulo que guarda con UNA llamada idempotente. Primer cliente:
- * Recibir mercadería (`recibir_envio` en `/recibir`, `recibir_lote` en `/inventario/recibir`).
+ * Recibir mercadería (`recibir_lote` en «Llegó mercadería» y `recibir_envio` contra factura, los dos en `/recibir`).
  *
  * EL PROBLEMA. Llega un envío, se cuentan 60 prendas y justo al confirmar se cae el internet de la tienda. Sin
  * esto, el conteo se pierde o se anota en papel y se vuelve a contar. La base ya sabe no duplicar un reintento

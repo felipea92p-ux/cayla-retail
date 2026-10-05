@@ -3,7 +3,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -176,7 +176,7 @@ export function BajarEnManoModal({
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
           <div className="flex items-center gap-3">
-            <MiniaturaPrenda fotoUrl={prenda.fotoUrl} tamano="lg" />
+            <MiniaturaPrenda fotoUrl={prenda.fotoUrl} tamano="lg" {...categoriaDe(prenda)} />
             <div className="min-w-0">
               <p className="text-[15px] font-semibold text-tinta">{nombre}</p>
               {prenda.sku && <p className="font-mono text-xs text-tinta/65">{prenda.sku}</p>}

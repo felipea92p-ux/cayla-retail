@@ -5,7 +5,7 @@ import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventari
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
-import type { AccionHoy } from "@/lib/existencias-recomendaciones";
+import type { PisoDeTalla } from "@/lib/piso-plan";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
@@ -33,6 +33,10 @@ export type FilaStock = {
   colorHex: string | null;
   referencia: string;
   categoria: string | null;
+  /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
+   *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   codigosBarras: string[];
   /** La foto principal del PRODUCTO (`producto_fotos.es_principal`; si
    *  ninguna está marcada, la de menor `orden`). Null si el producto no
@@ -89,7 +93,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
        variante:variantes!inner (
          sku, codigo, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
        )`
     )
@@ -120,7 +124,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
                variante:variantes!inner (
                  sku, codigo, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
-                 producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+                 producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
                )`
             )
@@ -147,6 +151,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       colorHex: f.variante?.color?.hex ?? null,
       referencia: f.variante?.producto?.referencia ?? "",
       categoria: f.variante?.producto?.categoria?.nombre ?? null,
+      categoriaPrefijo: f.variante?.producto?.categoria?.prefijo ?? null,
+      categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
     });
@@ -219,10 +225,10 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
    *  ausente o null = no se pudo calcular. */
   coberturaPiso?: CoberturaPiso | null;
-  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`) — MISMA fuente que
-   *  la tarjeta «Reponer a piso hoy», el filtro Acción y «Ver recomendaciones». Ausente o null = la sede no
-   *  vende (Taller): no se inventa una acción. No depende del Ritmo reciente. */
-  accionHoy?: AccionHoy | null;
+  /** Lo que el piso pide hoy de esta talla: la decisión del motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7) — MISMA
+   *  fuente que «Hoy» en el filtro, la tabla, la tarjeta, el cajón y el Inicio. La pone la página. Ausente o null = la sede no
+   *  separa piso y almacén (Taller) o el motor no pudo leer: no se inventa una acción. */
+  planPiso?: PisoDeTalla | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
   /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la
@@ -271,7 +277,7 @@ export async function getExistencias(
            variante:variantes (
              sku, codigo, talla:tallas ( valor ),
              color:colores ( nombre, hex ),
-             producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+             producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
              codigos_barras ( codigo )
            )`
         )
@@ -330,6 +336,8 @@ export async function getExistencias(
       colorHex: item.variante?.color?.hex ?? null,
       referencia: item.variante?.producto?.referencia ?? "",
       categoria: item.variante?.producto?.categoria?.nombre ?? null,
+      categoriaPrefijo: item.variante?.producto?.categoria?.prefijo ?? null,
+      categoriaFamilia: item.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (item.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(item.variante?.producto?.producto_fotos),
       total: 0,
@@ -351,17 +359,14 @@ export async function getExistencias(
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
-  /** Variantes con Acción hoy = «Reponer a piso» (2026-09-25) — SIEMPRE lo calcula quien llama
-   *  (`accionHoyPorVariante`, `existencias-recomendaciones.ts`), nunca acá: una sola fuente de
-   *  verdad para la tarjeta, la tabla y el filtro (nunca un `EstadoStock` calculado aparte). */
-  requierenReposicion: number;
 };
 
-export function resumirExistencias(filas: FilaExistencias[], requierenReposicion: number): ResumenExistencias {
+/** Solo cantidades. Lo que pide cada talla no se cuenta aquí: lo cuenta `hoyDeTalla` (rediseño 2026-10-04; antes este resumen
+ *  llevaba `requierenReposicion` para una tarjeta que ya no existe, y no lo pintaba nadie). */
+export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias {
   return {
     ...resumirInventario(filas),
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
-    requierenReposicion,
   };
 }
 

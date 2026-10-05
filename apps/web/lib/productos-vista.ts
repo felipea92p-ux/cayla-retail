@@ -52,19 +52,6 @@ export function rangoSoles(valores: readonly (number | null)[]): string | null {
   return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
 }
 
-/** Tinte de fondo de un color, mezclado hacia crema: el placeholder honesto de una prenda sin foto. */
-export function mezclar(hex: string, pct: number): string {
-  const n = parseInt(hex.slice(1), 16) || 0;
-  const r = (n >> 16) & 255,
-    g = (n >> 8) & 255,
-    b = n & 255;
-  const base = { r: 245, g: 240, b: 232 }; // crema
-  const mr = Math.round(r * pct + base.r * (1 - pct));
-  const mg = Math.round(g * pct + base.g * (1 - pct));
-  const mb = Math.round(b * pct + base.b * (1 - pct));
-  return `rgb(${mr}, ${mg}, ${mb})`;
-}
-
 /**
  * Bajo este margen la Tabla lo pinta en ámbar. PROVISIONAL (Felipe, 2026-09-28: «construye con 45 %»): no es un
  * número que CAYLA haya decidido por categoría. Ojo, el ERP ya tiene otros dos cortes y no dicen lo mismo:

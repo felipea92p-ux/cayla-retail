@@ -220,6 +220,11 @@ select retail.fn_aplicar_movimiento(:'m2') as _2 \\gset
 select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 6), jsonb_build_object('variante_id', :'vb', 'cantidad', 6)), gen_random_uuid()) as bajada \\gset
 -- Un movimiento interno piso → almacén con su marca de reintento (como Blusa Carlita).
 select retail.mover_entre_piso_y_almacen(:'ubic', :'va', 1, :'sub_piso', :'sub_alm', null, gen_random_uuid()) as mint \\gset
+-- Una línea del cuadre del piso (ADR-0328) sobre ese traslado interno: la purga la conoce, la respalda y la devuelve. Su
+-- cabecera (la fecha del cuadre de la sede) no cita al producto y se queda.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'ubic', :'yo', gen_random_uuid(), md5('purga'), now(), '{}'::jsonb, 'prueba de la purga') returning id as cuadre \\gset
+insert into retail.cuadre_piso_items (movimiento_id, cuadre_id, variante_id, sentido, cantidad) values (:'mint', :'cuadre', :'va', 'al_almacen', 1);
 -- Otras prendas (de otros productos) con su stock.
 select id as o1, precio as p1 from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select id as o2, precio as p2 from retail.variantes where sku <> 'BLU-EMMA-NEG-M' and producto_id <> :'prod' and precio is not null order by sku limit 1 \\gset
@@ -320,7 +325,7 @@ const RESTOS_NADA = "0,0,0,0,0,0,0,0,0";
 
 // Lo mismo para el escenario «con documentos»: producto | variantes | movimientos | stock | ventas | comprobantes |
 // separaciones | apartados | pagos de separación | compra | líneas de compra | reparto | reasignaciones | cierres | lote |
-// envío | costos | línea de conteo | bajadas | marcas de reintento | pedido no atendido | anticipos.
+// envío | costos | línea de conteo | bajadas | marcas de reintento | pedido no atendido | anticipos | líneas del cuadre del piso.
 const RESTOS_DOCS = `select concat_ws(',',
   (select count(*) from retail.productos where id = :'prod'),
   (select count(*) from retail.variantes where producto_id = :'prod'),
@@ -343,12 +348,13 @@ const RESTOS_DOCS = `select concat_ws(',',
   (select count(*) from retail.bajada_piso_items where variante_id in (:'va', :'vb')),
   (select count(*) from retail.movimientos_internos_intentos where movimiento_id in (select id from retail.movimientos where variante_id in (:'va', :'vb'))),
   (select count(*) from retail.pedidos_no_atendidos where producto_id = :'prod'),
-  (select count(*) from retail.comprobante_anticipos where comprobante_id in (select id from retail.comprobantes where venta_id = :'v3')));`;
+  (select count(*) from retail.comprobante_anticipos where comprobante_id in (select id from retail.comprobantes where venta_id = :'v3')),
+  (select count(*) from retail.cuadre_piso_items where variante_id in (:'va', :'vb')));`;
 // Antes: 1 producto, 2 variantes, 12 movimientos del producto (2 cargas, 2 bajadas, 1 interno, 1 ajuste de conteo,
 // 3 salidas por venta, 2 apartados, 1 liberación… más la recepción), sus filas de stock, 3 ventas, 5 comprobantes,
 // 2 separaciones, 2 apartados, 2 pagos de separación, la compra con su línea, 2 destinos, 1 reasignación, 1 cierre, 1 lote,
-// 1 envío, 1 costo, 1 línea de conteo, 2 bajadas, 1 marca de reintento, 1 pedido no atendido, 1 anticipo.
-const RESTOS_DOCS_NADA = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+// 1 envío, 1 costo, 1 línea de conteo, 2 bajadas, 1 marca de reintento, 1 pedido no atendido, 1 anticipo, 1 línea del cuadre.
+const RESTOS_DOCS_NADA = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
 
 const SERIE = `(select siguiente_numero from retail.series_comprobantes where tipo = 'nota_venta' and serie = :'serie_nv')`;
 const SERIE_BOL = `(select siguiente_numero from retail.series_comprobantes s where s.tipo = 'boleta' and s.serie = :'serie_bol' and s.ubicacion_id = :'ubic')`;
@@ -692,7 +698,7 @@ select count(*) from retail.historial_producto_cambios where entidad_id = :'prod
 select count(*) from retail.cajas where id = :'caja_id' and estado = 'abierta';`
     );
     const [restos, o2, libro, candados, real, conteo, serie, serieBol, actividad, historial, caja] = ultimas(r);
-    esperar("docs · definitivo: no queda NADA del producto ni de sus documentos (22 clases de filas en cero)", r.ok && restos === RESTOS_DOCS_NADA, r);
+    esperar("docs · definitivo: no queda NADA del producto ni de sus documentos (23 clases de filas en cero)", r.ok && restos === RESTOS_DOCS_NADA, r);
     esperar("docs · definitivo: la otra prenda de la venta vuelve EXACTAMENTE a su stock de antes", r.ok && o2 === "t", r);
     esperar("docs · definitivo: el libro de movimientos cuadra con el stock en toda la base", r.ok && libro === "0", r);
     esperar("docs · definitivo: los 7 candados de historial quedaron en su modo (movimientos en ALWAYS)", r.ok && candados === candadosAntes, { candados, candadosAntes });

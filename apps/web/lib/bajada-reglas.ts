@@ -41,6 +41,10 @@ export type FilaDeStock = {
   color: string | null;
   codigosBarras: string[];
   fotoUrl: string | null;
+  /** Su categoría (opcional), para dibujar la prenda sin foto con su ícono: ver `SinFoto`. */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   piso: number | null;
   almacen: number | null;
   almacenDisponible: number | null;
@@ -56,6 +60,9 @@ export type PrendaBajable = {
   color: string | null;
   codigosBarras: string[];
   fotoUrl: string | null;
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   piso: number;
   almacen: number;
   almacenDisponible: number;
@@ -136,6 +143,9 @@ export function aPrendasBajables(filas: readonly FilaDeStock[]): PrendaBajable[]
       color: f.color,
       codigosBarras: [...f.codigosBarras],
       fotoUrl: f.fotoUrl,
+      categoria: f.categoria ?? null,
+      categoriaPrefijo: f.categoriaPrefijo ?? null,
+      categoriaFamilia: f.categoriaFamilia ?? null,
       piso: f.piso,
       almacen: f.almacen,
       almacenDisponible: Math.min(Math.max(f.almacenDisponible ?? f.almacen, 0), f.almacen),

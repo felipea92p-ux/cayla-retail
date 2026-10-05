@@ -1,11 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { contar, tolerarLectura } from "@/lib/inicio";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
-import { getExistencias } from "@/lib/inventario-v2";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
-import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
-import { agruparPorPrenda, estadoTalla, ordenarPorUrgencia } from "@/lib/existencias-prendas";
-import { politicaDe } from "@/lib/politica-operativa-inventario";
+import { planDelPiso } from "@/lib/piso-plan";
+import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { getResumenTienda } from "@/lib/movimientos-v2";
 import { listarPorRecibir } from "@/lib/compras";
 import { getTrasladosEnCurso } from "@/lib/traslados";
@@ -14,8 +12,11 @@ import {
   armarNuevos,
   avanceDelTrayecto,
   etiquetaLlegada,
+  existenciasDeAlmacen,
+  filasDelPiso,
   inicioDeAyerLima,
   siglaSede,
+  type Existencias,
   type FilaNuevoCruda,
   type NuevoProducto,
   type OrigenDeProducto,
@@ -60,6 +61,7 @@ export async function getNuevosDelCatalogo(ubicacionId: string, ahoraMs: number 
     const res = await productosVigentes(
       supabase,
       `id, codigo, referencia, created_at, propuesto_por,
+       categoria:categorias ( nombre, prefijo, familia ),
        producto_fotos ( url, orden, es_principal ),
        variantes ( id, precio, activo, color:colores ( nombre, hex ) )`
     )
@@ -167,52 +169,21 @@ export async function getEnCamino(ubicacionId: string, ahoraMs: number = Date.no
   });
 }
 
-// ── «Reponer a piso hoy» y «Pulso del almacén» ───────────────────────────────────────────────────
-
-export type PrendaParaReponer = {
-  clave: string;
-  referencia: string;
-  color: string | null;
-  fotoUrl: string | null;
-  /** Solo las tallas que piden piso: «piso» = en el piso no queda ninguna y atrás sí (`por_colgar`). */
-  tallas: { talla: string; sinPiso: boolean }[];
-};
-
-export type Existencias = {
-  /** Unidades libres en el almacén de la sede. */
-  enAlmacen: number | null;
-  /** Cuántos modelos piden piso (cuenta por prenda: modelo en un color). */
-  modelosParaReponer: number;
-  /** Las tres más urgentes, con sus tallas. */
-  reponer: PrendaParaReponer[];
-};
+// ── «Por colgar» y «Pulso del almacén» ─────────────────────────────────────────────────────────────
 
 /**
- * Lo que sale de las existencias de la sede: cuánto hay atrás y qué pide piso. La MISMA regla que la tarjeta «Reponer a
- * piso hoy» de Existencias (`calcularAccionHoy` → `agruparPorPrenda` → `ordenarPorUrgencia`), así que el Inicio y esa
- * pantalla cuentan igual. `null` si no se pudo leer; en una sede que no separa piso de almacén no hay nada que reponer.
+ * Lo que sale del piso de la sede: cuánto hay atrás y qué está por colgar. Cuenta con `existenciasDeAlmacen` →
+ * `porColgarDeLaSede`, la MISMA función que «Para hoy» y el filtro «Hoy» de Existencias, alimentada por el MISMO motor del piso
+ * (`lib/piso-plan.ts` sobre `fn_piso_plan_lectura`): la decisión de cada talla y el orden de la lista del día. Es UNA lectura
+ * (antes, la de Existencias entera: stock, red, traslados y productos de prueba). `null` si no se pudo leer: el aviso dice «Sin
+ * leer», nunca un cero.
  */
-export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<Existencias | null> {
-  return tolerarLectura("las existencias de la sede", async () => {
-    const stock = await getExistencias(ubicacionId, ubicaciones);
-    const separa = stock.some((f) => f.piso !== null);
-    if (!separa) return { enAlmacen: null, modelosParaReponer: 0, reponer: [] };
-    const accion = accionHoyPorVariante(stock, politicaDe(ubicacionId));
-    const filas = stock.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null }));
-    const piden = ordenarPorUrgencia(agruparPorPrenda(filas)).filter((p) => p.tallas.some((f) => f.accionHoy?.tipo === "reponer_a_piso"));
-    return {
-      enAlmacen: stock.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
-      modelosParaReponer: piden.length,
-      reponer: piden.slice(0, 3).map((p) => ({
-        clave: p.clave,
-        referencia: p.referencia,
-        color: p.color,
-        fotoUrl: p.fotoUrl,
-        tallas: p.tallas
-          .filter((f) => f.accionHoy?.tipo === "reponer_a_piso")
-          .map((f) => ({ talla: f.talla ?? "Única", sinPiso: estadoTalla(f) === "por_colgar" })),
-      })),
-    };
+export async function getExistenciasDeAlmacen(ubicacionId: string): Promise<Existencias | null> {
+  return tolerarLectura("el piso de la sede", async () => {
+    const lectura = await leerLecturaDelPiso(ubicacionId);
+    if (!lectura) throw new Error("sin lectura del piso");
+    const plan = planDelPiso(lectura);
+    return existenciasDeAlmacen(filasDelPiso(lectura, plan), plan.listaDelDia);
   });
 }
 
@@ -246,16 +217,15 @@ export type DatosInicioAlmacen = {
  */
 export async function getInicioAlmacen(cuenta: {
   ubicacionId: string;
-  ubicaciones: { id: string; nombre: string }[];
   ve: (m: ClaveModulo) => boolean;
 }): Promise<DatosInicioAlmacen> {
-  const { ubicacionId, ubicaciones, ve } = cuenta;
+  const { ubicacionId, ve } = cuenta;
   const [nuevos, fotos, porCompletar, porRecibir, existencias, hoy, enCamino] = await Promise.all([
     getNuevosDelCatalogo(ubicacionId),
     tolerarLectura("la cobertura de fotos", getCoberturaDeFotos).then((r) => r ?? null),
     getPorCompletar(),
     ve("recibir") ? getPorRecibir(ubicacionId) : undefined,
-    ve("existencias") ? getExistenciasDeAlmacen(ubicacionId, ubicaciones) : undefined,
+    ve("existencias") ? getExistenciasDeAlmacen(ubicacionId) : undefined,
     ve("movimientos") ? getEntradasYSalidasDeHoy(ubicacionId) : undefined,
     ve("traslados") ? getEnCamino(ubicacionId) : undefined,
   ]);

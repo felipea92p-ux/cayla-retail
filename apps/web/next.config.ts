@@ -71,7 +71,9 @@ const nextConfig: NextConfig = {
     // destino correcto.
     return [
       { source: "/almacen", destination: "/inventario", permanent: false },
-      { source: "/almacen/recibir", destination: "/inventario/recibir", permanent: false },
+      { source: "/almacen/recibir", destination: "/recibir", permanent: false },
+      // ADR-0330: «Ingreso sin comprobante» se fundió en la puerta «Llegó mercadería»; los marcadores y enlaces viejos llegan ahí.
+      { source: "/inventario/recibir", destination: "/recibir", permanent: false },
       // ADR-0113: Recibir mercadería salió de Compras (solo líder) para que cuente cualquier colaborador de la sede.
       { source: "/compras/recibir", destination: "/recibir", permanent: false },
       // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/

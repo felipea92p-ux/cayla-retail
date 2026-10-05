@@ -12,6 +12,7 @@ import {
   eventosConApartados,
   excluirTardias,
   inicioDeSusUltimosDias,
+  instantesDeCuadre,
   kaplanMeier,
   leerConfianzaRegistro,
   leerFrescuraSede,
@@ -757,6 +758,21 @@ describe("leer lo que devuelve la base", () => {
     ]);
     expect(l.tardias).toEqual([{ oid: "m1", varianteId: "v1", bajadaEn: ts(1), unidadesTardias: 1 }]);
     expect(l.dudosas).toEqual(["v9"]);
+  });
+
+  it("los instantes del cuadre del piso salen de la marca 8 (ADR-0328): sin repetir, en orden; sin ella, ninguno", () => {
+    // Un cuadre baja (2 + 4 + 8) y sube (2 + 8) en el MISMO instante; una bajada real (2) o una venta (1) no son cuadre.
+    const eventos = {
+      v1: [[ts(5), 3, 14, "c1"], [ts(2), 1, 2, "b1"], [ts(9), -1, 1, null]],
+      v2: [[ts(5), -1, 10, "c2"], [ts(1), 2, 14, "c0"], ["no es fecha", 1, 8, null]],
+    };
+    expect(instantesDeCuadre(eventos)).toEqual([ts(1), ts(5)]);
+    expect(instantesDeCuadre({ v1: [[ts(2), 1, 2, "b1"]] })).toEqual([]);
+    expect(instantesDeCuadre(null)).toEqual([]);
+    const l = leerFrescuraSede({ separa_piso: true, desde: ts(0), ahora: ts(10), prendas: [], eventos });
+    expect(l && l.separaPiso ? l.cuadres : null).toEqual([ts(1), ts(5)]);
+    // La marca 8 no cambia cómo se lee el evento: la bajada del cuadre es interna y de edad desconocida, como antes.
+    expect(l && l.separaPiso ? l.eventos.v1[0] : null).toEqual({ ts: ts(5), delta: 3, esVenta: false, esMovimientoInterno: true, edadDesconocida: true, oid: "c1" });
   });
 
   it("lee el indicador de registro por sede y mes", () => {

@@ -4,7 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -15,7 +15,6 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { esFalloDeRed, type ErrorEscritura } from "@/lib/error-escritura";
 import { formatearHoraLima } from "@/lib/bajada-reglas";
-import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import {
   coloresConAlgo,
   coloresParaMover,
@@ -30,7 +29,7 @@ import {
 } from "@/lib/reponer-prenda-reglas";
 import {
   argumentosDeRetiro,
-  AVISO_QUEDAN_CON_POCO,
+  AVISO_QUEDA_SIN_COLGAR,
   interpretarErrorDeRetiro,
   leerRespuestaDeRetiro,
   MAX_NOTA_RETIRO,
@@ -56,7 +55,6 @@ export function SubirAAlmacenModal({
   prendas,
   ubicacionId,
   sede,
-  politica,
   alCerrarEnfocar,
   onClose,
 }: {
@@ -65,8 +63,6 @@ export function SubirAAlmacenModal({
   ubicacionId: string;
   /** El nombre de la sede, para los textos de la base («…al almacén de Tienda TRU»). */
   sede: string;
-  /** La política de la sede (`politicaDe`): el aviso de lo que quedará pregunta lo mismo que «Acción hoy» de la fila. */
-  politica: PoliticaOperativaInventario;
   /** El control que abrió la ventana (el «Subir a almacén» de la tarjeta): al cerrar, el teclado vuelve ahí. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onClose: () => void;
@@ -96,10 +92,10 @@ export function SubirAAlmacenModal({
   const total = totalAReponer(lineas);
   const totales = totalesDeMatriz(colores, cantidades, "subir");
   const hayAlgoQueSubir = colores.some((c) => c.tallas.some(sePuedeSubirTalla));
+  // El aviso de lo que quedará pregunta lo mismo que «Hoy» de la fila: el requisito de cada talla viene del motor del piso.
   const textoBloque = textoDelBloqueSubir(
     colores.flatMap((c) => c.tallas),
     cantidades,
-    politica,
   );
 
   // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace. La nota es opcional.
@@ -214,7 +210,7 @@ export function SubirAAlmacenModal({
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
           <div className="flex items-center gap-3">
-            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" />
+            <MiniaturaPrenda fotoUrl={modelo.fotoUrl ?? null} colorHex={modelo.colorHex} tamano="lg" {...categoriaDe(modelo)} />
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[15px] text-tinta">
               <span className="font-semibold">{modelo.referencia}</span>
               <span className="text-taupe">{colores.length === 1 ? colores[0].nombre : `${colores.length} colores`}</span>
@@ -239,7 +235,7 @@ export function SubirAAlmacenModal({
                 {t}
               </p>
             ))}
-            <p className={`[grid-area:1/1] ${textoBloque === AVISO_QUEDAN_CON_POCO ? "text-ambar" : "text-tinta/65"}`}>{textoBloque}</p>
+            <p className={`[grid-area:1/1] ${textoBloque === AVISO_QUEDA_SIN_COLGAR ? "text-ambar" : "text-tinta/65"}`}>{textoBloque}</p>
           </div>
 
           <CampoGuiado id="nota" guia={guia}>

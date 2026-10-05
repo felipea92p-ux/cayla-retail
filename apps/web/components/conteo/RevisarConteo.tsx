@@ -9,7 +9,7 @@ import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { bloqueoDeCierre, lineaDesdeJson, notaDeLinea, resumirLineas, textoFaltanPorContar } from "@/lib/conteo-reglas";
 import { diferenciasEnOrden, pendientesPorPercha, textoConfirmaPrimero, type FilaConteoVista } from "@/lib/conteo-revision";
 import { traducirError } from "@/lib/error-escritura";
@@ -222,7 +222,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                   <li key={g.clave} className="space-y-2.5 px-4 py-3 @[36rem]:flex @[36rem]:items-center @[36rem]:gap-6 @[36rem]:space-y-0 @[36rem]:px-5">
                     {/* Ancho fijo en la tarjeta ancha: las tallas quedan junto al nombre de su percha, no a un metro de él. */}
                     <div className="flex min-w-0 items-center gap-2.5 @[36rem]:w-64 @[36rem]:shrink-0">
-                      <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="sm" />
+                      <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="sm" {...categoriaDe(g)} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-tinta">{g.referencia}</p>
                         <ColorYTalla color={g.color} colorHex={g.colorHex} talla={null} />
@@ -283,7 +283,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                       Una sola fila necesita ~900 px: con menos, la prenda quedaba en «Blus…». La última columna es fija (15 rem): con `auto`, las cifras se corrían de una fila a otra según hubiera uno o dos botones. */}
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 @[56rem]:grid-cols-[minmax(0,1fr)_7rem_7rem_8.5rem_15rem] @[56rem]:gap-x-4">
                     <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 @[56rem]:col-auto @[56rem]:row-auto">
-                      <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" />
+                      <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" {...categoriaDe(f)} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-tinta">{f.referencia}</p>
                         <ColorYTalla color={f.color} colorHex={f.colorHex} talla={f.talla} conTalla />
