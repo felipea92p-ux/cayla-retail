@@ -305,7 +305,10 @@ export function FiltrosExistencias({
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-2">
-        <div className="flex-1">
+        {/* Celular (rediseño 2026-10-05): la etiqueta «Buscar» sigue ahí para los lectores de pantalla, pero no se ve ni deja su hueco:
+            el campo ya dice «Prenda, marca o código…» y esos ~25 px empujaban las prendas fuera de la primera pantalla. Tampoco deja el
+            hueco del pie (este campo nunca lleva pie): otros ~18 px. */}
+        <div className="flex-1 max-sm:[&_label]:sr-only max-sm:[&_label+div]:mt-0 max-sm:[&>div>div:last-child]:hidden">
           {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
           <CampoTexto
             etiqueta={etiquetaBuscar}
@@ -327,8 +330,8 @@ export function FiltrosExistencias({
           />
         </div>
         {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control): el botón queda a la altura de la caja. */}
-        <div className="shrink-0">
-          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
+        <div className="shrink-0 max-sm:[&>button]:mt-0">
+          <span aria-hidden className="label-cayla block text-[11px] text-transparent max-sm:hidden">
             {" "}
           </span>
           <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
@@ -360,7 +363,7 @@ export function FiltrosExistencias({
 
       {/* El conteo arriba y, a la derecha, «Copiar enlace», la vista y un solo «Ordenar por», fuera del panel: ordenar no quita
           prendas, solo las acomoda. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 max-sm:gap-x-1.5 max-sm:[&_.btn-secundario]:px-2.5">
         <p className="flex items-baseline gap-3 text-sm text-tinta/70">
           <span aria-live="polite">
             <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
@@ -374,7 +377,7 @@ export function FiltrosExistencias({
                 {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
               </span>
             ) : (
-              <span className="text-tinta/55"> · {detalleTotal}</span>
+              <span className="text-tinta/55 max-sm:hidden"> · {detalleTotal}</span>
             )}
           </span>
           {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
@@ -396,8 +399,10 @@ export function FiltrosExistencias({
             <span className="hidden sm:inline">Copiar enlace</span>
           </button>
           {vista}
+          {/* Celular: «Ordenar por» solo con el ícono y la flecha (el valor y la etiqueta siguen en el `aria-label`): con ellos, la fila del
+              conteo se partía en tres renglones y empujaba las prendas bajo el pliegue. */}
           {orden && (
-            <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
+            <div className="min-w-0 rounded-lg bg-sand/50 p-0.5 max-sm:[&_button>span]:hidden">
               <DesplegablePildora
                 encoger
                 icono={ArrowUpDown}
