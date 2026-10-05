@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vista rápida · A · Matriz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<style>
+/* ====================================================================
+   MAQUETA A · «Matriz» — la evolución directa del modal de hoy.
+   Mismo cascarón (<Modal ancho="max-w-4xl">, hoja crema con sombra), pero:
+   · las 18 filas se vuelven UNA matriz color × talla (6 filas en vez de 18): el color deja de repetirse y se ve de
+     un vistazo qué talla de qué color se acabó;
+   · el color tiene swatch en cada fila, y al pasar el mouse la foto cambia (antes la foto y la tabla no se hablaban);
+   · el precio sale UNA vez arriba cuando es igual en todas (hoy se repite 18 veces); solo se marca la excepción;
+   · las 18 impresoras idénticas desaparecen: se elige una celda / un color / una talla y el botón de abajo dice
+     exactamente qué va a imprimir. Funciona igual con el dedo (hoy la impresora «va siempre a la vista» por eso);
+   · los botones viven en un PIE FIJO (`pie-hoja-fijo`, ya existe): nunca quedan bajo el pliegue, hayan 6 o 60 variantes;
+   · la foto queda fija (sticky) mientras se baja por la matriz.
+   Todo con piezas que el ERP ya tiene: Modal, Chip, SwatchesColor, EnlaceEtiquetas, pie-hoja-fijo. Movimiento: solo
+   ADR-0136 (cascada, barras que se llenan, cifras que cuentan).
+   ==================================================================== */
+.hoja{max-width:56rem;background:var(--crema);border:1px solid var(--sand);border-radius:var(--r-2xl);box-shadow:0 30px 64px -22px rgb(26 26 24 / .2);overflow-y:auto;padding:24px;--fondo-hoja:var(--crema)}
+.hoja::-webkit-scrollbar{width:6px}.hoja::-webkit-scrollbar-thumb{background:var(--sand);border-radius:3px}
+
+.cab{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+.cab h2{font-size:26px;line-height:1.1}
+.cab .sub{display:flex;gap:6px 10px;align-items:center;margin-top:6px;flex-wrap:wrap;color:var(--taupe);font-size:13px}
+.cab .sub .cod{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--t60)}
+.cerrar{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--t55);transition:background-color 200ms var(--ease),color 200ms var(--ease)}
+.cerrar:hover{background:var(--t04);color:var(--rojo)}.cerrar svg{width:18px;height:18px}
+
+.cuerpo{display:grid;grid-template-columns:260px minmax(0,1fr);gap:26px;align-items:start}
+.lado{position:sticky;top:0}
+.foto{position:relative;aspect-ratio:4/5;border-radius:var(--r-lg);overflow:hidden;background:var(--hueso)}
+.foto .cap{position:absolute;inset:0;animation:foto-in 260ms var(--ease) both}
+@keyframes foto-in{from{opacity:0}to{opacity:1}}
+.pie-foto{display:flex;align-items:center;gap:9px;margin-top:12px;min-height:24px}
+.pie-foto .nom{font-weight:600;font-size:14px}
+.pie-foto .est{font-size:11.5px;color:var(--taupe)}
+.pista{margin-top:6px;font-size:12px;color:var(--t55);line-height:1.45}
+
+/* datos de la prenda en UNA línea bajo el título (antes: una tarjeta de 3 cifras que se comía 100 px de alto) */
+.cab .sub .dt{color:var(--t60);font-size:13px;padding-left:12px;border-left:1px solid var(--sand)}
+.cab .sub .dt b{color:var(--tinta);font-weight:600}
+.cab .sub .ex{color:var(--ambar);font-weight:600}
+
+/* la matriz */
+.mx{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);padding:14px 14px 10px}
+.mx-cab{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;margin-bottom:10px;padding:0 4px}
+.mx-cab .versal{font-size:10.5px;color:var(--t60);display:block}
+.mx-cab .sedeline{display:block;font-size:13px;color:var(--taupe);min-height:22px;line-height:22px}
+.mx-cab .sedeline b{color:var(--tinta);font-weight:600}
+.mx-cab .sedeline .cod{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--hueso);padding:2px 8px;border-radius:6px;color:var(--t75)}
+.mx-cab .sedeline .fl{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--t75)}
+.mx-cab .sedeline .lnk{color:var(--rojo-p);text-decoration:underline;text-underline-offset:2px;font-weight:600}
+.gran{display:flex;align-items:baseline;gap:8px;text-align:right}
+.gran b{font-size:40px;line-height:.9;font-weight:600}
+.gran b.cero{color:var(--t35)}
+.gran span{font-size:12px;color:var(--t60);line-height:1.2;text-align:left}
+.mx-aviso{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--hueso);border-radius:var(--r-lg);padding:7px 8px 7px 14px;margin:0 0 8px;font-size:13px;color:var(--t80)}
+.mx-aviso b{font-weight:600}
+.mx-aviso .btn{min-height:32px;padding:0 12px;font-size:10.5px}
+.mx-grid{--nt:3;display:grid;gap:5px}
+.fila{display:grid;grid-template-columns:minmax(118px,1.35fr) repeat(var(--nt),minmax(50px,1fr)) 56px;gap:6px;align-items:stretch;border-radius:12px;transition:background-color 200ms var(--ease)}
+.fila.cab-t{align-items:end}
+.fila.hover{background:color-mix(in srgb,var(--rojo) 6%,transparent)}
+.rcolor{display:flex;align-items:center;gap:10px;padding:0 8px;border-radius:10px;text-align:left;min-height:40px;transition:background-color 200ms var(--ease)}
+.rcolor:hover{background:var(--t04)}
+.rcolor .sw{width:24px;height:24px}
+.rcolor .n{font-weight:600;font-size:14px;line-height:1.2}
+.rcolor .s{display:block;font-weight:400;font-size:11px;color:var(--t55)}
+.rcolor[aria-pressed=true]{background:var(--t07)}
+.ct{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--t60);padding:4px 0;border-radius:8px;text-align:center;transition:background-color 200ms var(--ease)}
+.ct:hover{background:var(--t04)}.ct[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.ct small{display:block;font-size:10.5px;letter-spacing:0;font-weight:500;color:var(--t45);line-height:1.1}
+.ct[aria-pressed=true] small{color:rgba(245,240,232,.75)}
+.ct.tt{cursor:default;color:var(--t45);padding-right:0}.ct.tt:hover{background:none}
+.cel{position:relative;min-height:40px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--papel);border:1px solid var(--sand);transition:border-color 200ms var(--ease),background-color 200ms var(--ease),transform 200ms var(--ease)}
+.cel:hover{border-color:var(--t45)}
+.cel .v{font-size:15.5px;font-weight:600;line-height:1}
+.cel .barra{width:62%;height:3px;border-radius:2px;background:var(--sand);overflow:hidden}
+.cel .barra i{display:block;height:100%;background:var(--taupe);transform-origin:left;animation:barra 560ms var(--ease) backwards;animation-delay:calc(var(--d,0)*30ms + 350ms)}
+@keyframes barra{from{transform:scaleX(0)}}
+.cel.cero{background:transparent}.cel.cero .v{color:var(--t35)}.cel.cero .barra{visibility:hidden}
+.cel.ret{background:repeating-linear-gradient(135deg,var(--sand) 0 2px,transparent 2px 6px);border-style:dashed;cursor:not-allowed}
+.cel.ret .v{color:var(--t45);font-size:12px;font-weight:600}
+.cel .pr{font-size:9.5px;line-height:1;color:var(--ambar);font-weight:700;letter-spacing:.02em}
+.cel[aria-pressed=true]{border:1.5px solid var(--tinta);background:color-mix(in srgb,var(--rojo) 7%,var(--papel))}
+.cel .ok{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--tinta);color:var(--crema);display:none;place-items:center}
+.cel .ok svg{width:10px;height:10px}
+.cel[aria-pressed=true] .ok{display:grid;animation:ok 160ms var(--ease) backwards}
+@keyframes ok{from{transform:scale(.4);opacity:0}}
+.tot{display:grid;place-items:center;font-size:13px;color:var(--taupe);font-weight:600}
+.ayuda{margin-top:10px;min-height:34px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--t60);flex-wrap:wrap}
+.ayuda b{color:var(--tinta);font-weight:600}
+.ayuda .fl{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ayuda .cod{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--hueso);padding:2px 8px;border-radius:6px;color:var(--t75)}
+.ayuda .lnk{color:var(--rojo-p);text-decoration:underline;text-underline-offset:2px;font-weight:600}
+
+/* pie fijo (ADR: `pie-hoja-fijo`, globals.css) */
+.pie{position:sticky;bottom:-24px;z-index:3;margin:18px -24px -24px;padding:14px 24px 24px;background:var(--fondo-hoja);border-top:0}
+.pie::before{content:"";position:absolute;inset-inline:0;bottom:100%;height:16px;background:linear-gradient(to top,var(--fondo-hoja),transparent);pointer-events:none}
+.pie .fila-b{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pie .espacio{flex:1}
+.pie .motivo[hidden]{display:none}
+.pie .motivo{flex-basis:100%;font-size:12.5px;color:var(--t60);margin-bottom:2px;display:flex;gap:8px;align-items:center}
+.pie .motivo svg{width:15px;height:15px;color:var(--taupe);flex:none}
+.pie .btn{transition:background-color 220ms var(--ease),color 220ms var(--ease),opacity 220ms var(--ease)}
+.btn .cuenta{background:var(--tinta);color:var(--crema);border-radius:999px;min-width:20px;height:20px;padding:0 6px;display:inline-grid;place-items:center;font-size:11px;letter-spacing:0}
+
+/* celular: una columna, foto como cinta, pie en 2×2 */
+@container escena (max-width:640px){
+  .hoja{padding:18px 16px;max-width:none}
+  .cab h2{font-size:24px}
+  .cuerpo{grid-template-columns:1fr;gap:14px}
+  .lado{position:static;display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
+  .foto{aspect-ratio:1}
+  .pie-foto{margin-top:0}.pista{display:none}
+  .gran b{font-size:32px}
+  .fila{grid-template-columns:minmax(96px,1.2fr) repeat(var(--nt),minmax(40px,1fr))}
+  .fila .ctot{display:none}
+  .rcolor{padding:0 4px;gap:8px}.rcolor .s{display:none}
+  .pie{margin:14px -16px -18px;padding:12px 16px 18px;bottom:-18px}
+  .pie .fila-b{display:grid;grid-template-columns:1fr 1fr}.pie .espacio{display:none}
+  .pie .btn{padding:0 8px;font-size:10.5px}
+}
+</style>
+</head>
+<body>
+<div class="spike" id="spike"></div>
+<div id="marco"><div id="escena">
+  <div id="fondo"></div>
+  <div class="velo" id="velo"></div>
+  <div class="capa"><div class="hoja cascada" id="hoja" role="dialog" aria-modal="true" aria-labelledby="t" tabindex="-1"></div></div>
+</div></div>
+
+<script src="_datos.js"></script>
+<script>
+(function () {
+  const C = CAYLA;
+  let pin = null, hover = null;
+  const sel = new Set();
+  let P = null;
+
+  const modo = (p) => { const f = {}; p.variantes.filter(v => v.activo).forEach(v => f[v.precio] = (f[v.precio] || 0) + 1); return +Object.entries(f).sort((a, b) => b[1] - a[1])[0][0]; };
+
+  function celda(p, v, i, base) {
+    if (!v) return `<span class="cel ret" aria-hidden="true"></span>`;
+    if (!v.activo) return `<span class="cel ret" title="Talla retirada: no se vende" aria-label="${v.color} ${v.talla}: talla retirada"><span class="v">retirada</span></span>`;
+    const pct = Math.round(v.stock / p.maximo * 100);
+    const distinto = v.precio !== base ? `<span class="pr">${C.sol(v.precio)}</span>` : "";
+    return `<button type="button" class="cel ${v.stock === 0 ? "cero" : ""}" data-id="${v.id}" aria-pressed="false"
+      aria-label="${v.color} ${v.talla}: ${C.unidades(v.stock)} en ${p.sedeCorta}">
+      <span class="v tab">${v.stock}</span><span class="barra"><i style="width:${pct}%;--d:${i}"></i></span>${distinto}
+      <span class="ok">${C.svg("ok", "", 3)}</span></button>`;
+  }
+
+  function render(p) {
+    if (P && P.clave !== p.clave) { sel.clear(); pin = null; }
+    P = p;
+    if (!p.colores.some(c => c.nombre === pin)) pin = p.colores[0].nombre;
+    hover = null;
+    [...sel].forEach(id => { if (!p.variantes.some(v => v.id === id)) sel.delete(id); });
+    const base = modo(p), nt = p.tallas.length;
+    const sinAqui = p.total === 0;
+    const otras = p.otras.map(o => `${o.sede} ${o.n}`).join(" · ");
+    const nAct = p.variantes.filter(v => v.activo).length;
+    const filas = p.colores.map((c, ci) => `
+      <div class="fila" role="row" data-color="${c.nombre}">
+        <button type="button" class="rcolor" data-fila="${c.nombre}" aria-pressed="false" aria-label="Elegir todas las tallas de ${c.nombre}">
+          <span class="sw" style="background:${c.hex}"></span>
+          <span class="n">${c.nombre}<span class="s">${c.total === 0 ? "sin unidades" : C.unidades(c.total)}</span></span>
+        </button>
+        ${p.tallas.map((t, ti) => celda(p, p.celda(c.nombre, t.nombre), ci * nt + ti, base)).join("")}
+        <span class="tot tab ctot">${c.total}</span>
+      </div>`).join("");
+    return `
+    <header class="cab">
+      <div>
+        <h2 class="disp" id="t">${p.nombre}</h2>
+        <div class="sub"><span class="cod">${p.codigo}</span><span>·</span><span>${p.categoria}</span><span class="chip verde">Activo</span>
+          <span class="dt">${p.precioUnico ? `<b class="tab">${C.sol(p.precioMin)}</b> en las ${nAct} variantes` : `<b class="tab">${C.sol(p.precioMin)} – ${p.precioMax.toFixed(2)}</b> <span class="ex">· lo distinto está marcado</span>`}</span>
+          <span class="dt"><b>${p.colores.length}</b> ${p.colores.length === 1 ? "color" : "colores"} · <b>${p.tallas.length}</b> ${p.tallas.length === 1 ? "talla" : "tallas"}</span>
+        </div>
+      </div>
+      <button type="button" class="cerrar" data-cerrar aria-label="Cerrar">${C.svg("x")}</button>
+    </header>
+
+    <div class="cuerpo">
+      <aside class="lado">
+        <div class="foto" id="foto"></div>
+        <div>
+          <div class="pie-foto"><span class="sw" id="fsw" style="width:20px;height:20px"></span><span class="nom" id="fnom"></span><span class="est" id="fest"></span></div>
+          <p class="pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
+        </div>
+      </aside>
+
+      <div class="centro" style="min-width:0">
+        <section class="mx" aria-label="Unidades por color y talla">
+          <div class="mx-cab">
+            <div style="min-width:0"><span class="versal">Unidades por color y talla</span><span class="sedeline" id="ayuda" aria-live="polite"></span></div>
+            <div class="gran"><b class="disp tab ${sinAqui ? "cero" : ""}" id="kn">0</b><span>en ${p.sedeCorta}${!sinAqui && p.otrasTotal ? `<br>+${p.otrasTotal} en otras sedes` : ""}</span></div>
+          </div>
+          ${sinAqui && p.otrasTotal ? `<div class="mx-aviso"><span><b>Sin unidades aquí.</b> Hay en ${otras}.</span><button type="button" class="btn sec" data-aviso="Abre «Pedir a otra sede» (ya existe en la tarjeta)">Pedir a otra sede</button></div>` : ""}
+          <div class="mx-grid" role="grid" style="--nt:${nt}">
+            <div class="fila cab-t" role="row"><span class="ct tt" style="text-align:left;padding-left:8px">Color</span>
+              ${p.tallas.map(t => `<button type="button" class="ct" data-col="${t.nombre}" aria-pressed="false" aria-label="Elegir la talla ${t.nombre} de todos los colores (${C.unidades(t.total)})">${t.nombre}<small class="tab">${t.total}</small></button>`).join("")}
+              <span class="ct tt ctot">Total<small class="tab">${p.total}</small></span></div>
+            ${filas}
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <footer class="pie">
+      <div class="motivo" id="motivo" hidden>${C.svg("info")}<span></span></div>
+      <div class="fila-b">
+        ${p.puedeEditar ? `<a class="btn sec" href="#" data-aviso="Abre /productos/PAN-0014/editar">${C.svg("lapiz")}Editar</a>` : ""}
+        <a class="btn sec" href="#" id="bEtq" data-aviso="Abre Etiquetas de precio">${C.svg("imprimir")}<span id="bEtqT">Etiquetas</span></a>
+        ${p.veExistencias ? `<a class="btn pri" href="#" data-aviso="Abre Existencias, en el color que estás mirando">${C.svg("caja")}Ver en Existencias</a>` : ""}
+        <span class="espacio"></span>
+        ${p.puedeEliminar ? `<button type="button" class="btn sut" data-aviso="Abre «Eliminar»: la base dice si se puede borrar o solo descontinuar">${C.svg("papelera")}Eliminar</button>` : ""}
+      </div>
+    </footer>`;
+  }
+
+  /* ---------- comportamiento ---------- */
+  function pintarFoto() {
+    const nombre = hover || pin; const c = P.colores.find(x => x.nombre === nombre);
+    const foto = document.getElementById("foto");
+    if (foto.dataset.c !== nombre) { foto.dataset.c = nombre; foto.innerHTML = `<div class="cap">${C.visual(nombre)}</div>`; }
+    document.getElementById("fsw").style.background = c.hex;
+    document.getElementById("fnom").textContent = nombre;
+    document.getElementById("fest").textContent = hover && hover !== pin ? "vista previa" : "fijado";
+    document.querySelectorAll(".fila[data-color]").forEach(f => f.classList.toggle("hover", f.dataset.color === hover));
+  }
+  const elegidas = () => P.variantes.filter(v => sel.has(v.id));
+  function pintarSeleccion() {
+    document.querySelectorAll(".cel[data-id]").forEach(b => b.setAttribute("aria-pressed", String(sel.has(b.dataset.id))));
+    const todasDe = (pred) => { const vs = P.variantes.filter(v => v.activo && pred(v)); return vs.length > 0 && vs.every(v => sel.has(v.id)); };
+    document.querySelectorAll(".rcolor").forEach(b => b.setAttribute("aria-pressed", String(todasDe(v => v.color === b.dataset.fila))));
+    document.querySelectorAll(".ct[data-col]").forEach(b => b.setAttribute("aria-pressed", String(todasDe(v => v.talla === b.dataset.col))));
+    const e = elegidas(), u = e.reduce((t, v) => t + v.stock, 0);
+    const ay = document.getElementById("ayuda");
+    if (e.length === 0) ay.innerHTML = `Toca una celda, un color o una talla`;
+    else if (e.length === 1) { const v = e[0]; ay.innerHTML = `<span class="fl"><span class="sw" style="background:${C.PALETA[v.color]};width:18px;height:18px"></span><b>${v.color} · ${v.talla}</b><span class="cod">${v.codigo}</span><span class="tab">${C.sol(v.precio)}</span><span>${C.unidades(v.stock)} en ${P.sedeCorta}</span><button type="button" class="lnk" data-limpiar>Quitar</button></span>`; }
+    else ay.innerHTML = `<span class="fl"><b>${e.length} variantes elegidas</b><span>${C.unidades(u)} en ${P.sedeCorta}</span><button type="button" class="lnk" data-limpiar>Quitar</button></span>`;
+    // El botón de Etiquetas dice EXACTAMENTE qué va a imprimir y, si no se puede, por qué (antes: un botón rojo DESPUÉS del clic).
+    const hay = e.length ? u : P.total;
+    const t = document.getElementById("bEtqT");
+    t.innerHTML = e.length === 0 ? "Etiquetas" : e.length === 1 ? `Etiqueta · ${e[0].color} ${e[0].talla}` : `Etiquetas <span class="cuenta">${e.length}</span>`;
+    const b = document.getElementById("bEtq"), m = document.getElementById("motivo");
+    b.setAttribute("aria-disabled", String(hay === 0));
+    m.hidden = hay !== 0;
+    m.querySelector("span").textContent = e.length === 0 ? `Sin unidades en ${P.sedeCorta}: no hay nada que etiquetar aquí.` : `Lo elegido no tiene unidades en ${P.sedeCorta}: no hay nada que etiquetar.`;
+  }
+
+  function listo(hoja, p) {
+    C.contar(document.getElementById("kn"), p.total, 600);
+    pintarFoto(); pintarSeleccion();
+    const togg = (ids) => { const todos = ids.every(id => sel.has(id)); ids.forEach(id => todos ? sel.delete(id) : sel.add(id)); pintarSeleccion(); };
+    hoja.onclick = (e) => {
+      const cel = e.target.closest(".cel[data-id]");
+      if (cel) { const v = P.variantes.find(x => x.id === cel.dataset.id); pin = v.color; togg([v.id]); pintarFoto(); return; }
+      const fila = e.target.closest(".rcolor");
+      if (fila) { pin = fila.dataset.fila; togg(P.variantes.filter(v => v.activo && v.color === pin).map(v => v.id)); pintarFoto(); return; }
+      const col = e.target.closest(".ct[data-col]");
+      if (col) { togg(P.variantes.filter(v => v.activo && v.talla === col.dataset.col).map(v => v.id)); return; }
+      if (e.target.closest("[data-limpiar]")) { sel.clear(); pintarSeleccion(); return; }
+      const av = e.target.closest("[data-aviso]");
+      if (av) { e.preventDefault(); if (av.getAttribute("aria-disabled") === "true") return; toast(av.dataset.aviso + (av.id === "bEtq" ? sufijoEtq() : "")); }
+    };
+    // vista previa al pasar el mouse por la fila (y por el foco de teclado)
+    const mx = hoja.querySelector(".mx-grid");
+    mx.addEventListener("mouseover", (e) => { const f = e.target.closest(".fila[data-color]"); const n = f ? f.dataset.color : null; if (n !== hover) { hover = n; pintarFoto(); } });
+    mx.addEventListener("mouseleave", () => { hover = null; pintarFoto(); });
+    mx.addEventListener("focusin", (e) => { const f = e.target.closest(".fila[data-color]"); if (f) { hover = f.dataset.color; pintarFoto(); } });
+    mx.addEventListener("focusout", (e) => { if (!mx.contains(e.relatedTarget)) { hover = null; pintarFoto(); } });
+  }
+  const sufijoEtq = () => { const e = elegidas(); return e.length === 0 ? " · toda la prenda" : e.length === 1 ? ` · ${e[0].codigo}` : ` · ${e.length} variantes`; };
+
+  let tm;
+  function toast(t) {
+    let el = document.getElementById("toast");
+    if (!el) { el = document.createElement("div"); el.id = "toast"; el.style.cssText = "position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:70;background:var(--tinta);color:var(--crema);padding:10px 16px;border-radius:12px;font-size:13px;max-width:90%;text-align:center;transition:opacity 220ms"; document.getElementById("escena").appendChild(el); }
+    el.textContent = "(maqueta) " + t; el.style.opacity = 1; clearTimeout(tm); tm = setTimeout(() => el.style.opacity = 0, 2400);
+  }
+
+  CAYLA.arrancar({ pagina: "a-matriz.html", render, listo });
+})();
+</script>
+</body>
+</html>

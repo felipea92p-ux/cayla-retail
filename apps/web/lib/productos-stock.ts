@@ -120,7 +120,7 @@ export function leerExistenciasProductos(datos: unknown): Map<string, Existencia
 }
 
 /** «Tienda Trujillo» → «Trujillo» (el mismo criterio que «Dónde más hay», `stock-por-sede.ts`). */
-const corta = (sede: string) => sede.replace(/^tienda\s+/i, "").trim();
+export const corta = (sede: string) => sede.replace(/^tienda\s+/i, "").trim();
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Cuántas otras sedes se nombran una por una antes de agruparlas: en una tarjeta de teléfono no caben más. */

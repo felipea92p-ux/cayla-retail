@@ -172,7 +172,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 65;
+export const MODALES_PENDIENTES_HOY = 64;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -245,7 +245,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
-  "components/ProductosGrilla.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
   "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
   "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles
