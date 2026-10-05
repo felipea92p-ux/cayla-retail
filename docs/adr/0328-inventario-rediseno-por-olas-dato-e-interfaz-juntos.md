@@ -298,7 +298,7 @@ Lo eliminable con historia incluye lo que pasó por un cuadre (es historia de st
 el nombre se pide una vez y se recuerda mientras la pantalla está abierta. El líder que vendió desde la terminal regulariza su propia venta entrando con su
 cuenta. El conteo de arranque del piso es por categoría (el primero de cada una); el del almacén, el primero completo; los conteos viejos de TRU quedan como
 están (el cuadre es su reinicio). «Devolver al proveedor» es reclamo, no pérdida. Talla única: 1 por color; los accesorios se miden fuera del riel. Un
-cambio de talla cuenta como venta en la fecha de la venta. «Error al cobrar» es talla cruzada (no pérdida); «Uso interno», gasto de la tienda (no merma);
+cambio de talla cuenta como venta en la fecha de la venta. «Error al cobrar» es talla cruzada (no pérdida); «Uso interno» es **pérdida con su propio rótulo** (clase a_mano por ahora; Felipe lo respondió directo en la sesión «Rediseñar flujo de corrección de cantidad», 2026-10-04, y reemplaza la decisión técnica previa de tratarlo como gasto);
 «Se dañó» va a Dañadas. Lo que faltó en un traslado se carga a la tienda que recibe, después de que la que envía confirme si salió. «Por reponer» se activa
 cuando se acaba lo colgado de esa talla y color, ordenado por lo que más se vende. Tallas centrales de calzado 37·38·39 y de anillos 7·8. «Es otra:
 corregir y colgar», cualquier integrante con Existencias, tope de 5 por prenda al día.
@@ -321,4 +321,13 @@ Ninguno pegado ni fusionado; el orden de pegado sale de la prueba de integració
 18. **Frescura con estadística:** lo típico contraído, «va lenta» por vendidas contra esperadas, % del piso a tiempo, ventana de 28 días, edad desde la
     bajada o la llegada real (va sobre la actividad 3).
 19. **Frescura que luce:** tablero de renovación (portada, con la película de 8 semanas), perchero (encargado) y matriz (líder); «Qué renovar esta semana».
+
+### Reparto de la actividad 13 (2026-10-04, noche)
+
+La parte «razones al quitar y el motivo decide si suma o resta» la toma la sesión «Rediseñar flujo de corrección de cantidad», con
+estos códigos: `reposicion` («Encontré prendas», suma, nota obligatoria), `no_aparece` (pérdida), `error_al_cobrar`
+(reclasificación, no pérdida), `uso_interno` (pérdida con su rótulo) y `otro` (pérdida, con nota). «Se dañó» abre «Reportar
+dañada» (#796) en vez de ajustar. «Conteo físico» sigue en Ajustar como «Conté y no coincide» hasta la actividad 16 («Ajustar abre
+Por prenda»). La tabla `retail.motivos_movimiento` es decisión estructural pendiente de Felipe en esa sesión. Aquí queda solo la
+confirmación del líder cuando se quitan más de 5 de una talla o se deja en 0 una que tenía 3 o más.
 
