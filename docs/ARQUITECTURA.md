@@ -212,7 +212,10 @@ flowchart TB
   del riel, por `categorias.familia`, y dice aparte «+ N accesorios» (`cifraColgadasEnElPiso`), reglas en
   `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` todavía no tiene pantalla: será el Plan del piso, actividad 12 de
   ADR-0328) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
-  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx`, `ExistenciasTarjetas.tsx` (el riel de
+  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `existencias/ColgarPrimero.tsx` (las tres prendas que más conviene colgar, en el orden de la
+  lista del día del motor y con cuánto les alcanza: `lib/existencias-colgar-primero.ts`, ADR-0344), `FiltrosExistencias.tsx` (con los atajos
+  `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`, y el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`),
+  `ExistenciasTarjetas.tsx` (un icono por tarjeta y su ventana de acciones: `existencias/AccionesTarjeta.tsx`, `lib/existencias-acciones.ts`; el riel de
   tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir),
   `ajustar_inventario` (Ajustar) y `reportar_danada` («Reportar dañada», en el «⋯» de la tarjeta y en Gestión del cajón:
   `ReportarDanadaModal.tsx`, lógica pura en `lib/danadas-reglas.ts`; ADR-0328 act. 10). La lista de Dañadas
