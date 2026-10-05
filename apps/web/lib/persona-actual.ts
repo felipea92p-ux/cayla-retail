@@ -27,6 +27,10 @@ export type PersonaActualV2 = {
   nombre: string;
   rol: "lider" | "integrante";
   ubicacionId: string;
+  /** La sede donde TRABAJA la persona (su sede de partida, `fn_persona_actual_resumen`), aunque un líder esté mirando otra
+   *  con el selector. Decide los avisos que son «de los líderes de esa sede» (ADR-0328 act. 17, decisión del 2026-10-04: el
+   *  de 48 h sin respuesta va a los líderes de las DOS sedes del pedido, no a cualquier líder que se pare en una). */
+  sedePropiaId: string;
   ubicacionEtiqueta: string;
   /** Producción (2026-09-15): `taller` deja de aplastarse a "tienda" — es el
    *  tipo que decide si la persona ve el módulo del Taller sin ser líder. */
@@ -187,6 +191,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     nombre: data.nombre ?? "",
     rol,
     ubicacionId,
+    sedePropiaId: data.ubicacion_id,
     ubicacionEtiqueta,
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,

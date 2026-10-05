@@ -38,8 +38,9 @@ export default async function ConteoPage({ searchParams }: { searchParams: Promi
     opcional(getAlcanceConteo(persona.ubicacionId), "cuántas variantes trae cada conteo"),
     // ADR-0328: qué lugares todavía no tuvieron su conteo de arranque (dato de apoyo: sin él, la tarjeta no lo menciona).
     opcional(getArranqueConteo(persona.ubicacionId), "qué lugares no tuvieron su conteo de arranque"),
-    // El aviso «antes de contar»: el mismo número del menú (`cache`: el layout ya lo pidió, no es otra consulta). Solo a
-    // quien ve Traslados: el aviso lleva allá.
+    // El aviso «antes de contar»: lo que LLEGA por recibir (`cache`: el layout ya lo pidió, no es otra consulta). No el
+    // número del menú, que suma los pedidos que esta sede tiene que ENVIAR (ADR-0328 act. 17): esos no se «reciben
+    // primero». Solo a quien ve Traslados: el aviso lleva allá.
     veModulo(persona, "traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(null),
   ]);
 

@@ -31,8 +31,9 @@ import {
 } from "@/lib/pedidos-entre-sedes-reglas";
 
 // «Pedir a otra sede» (ADR-0242 D-7, `pedir_a_otra_sede`): la sede activa le pide prendas a otra tienda para reponer, sin
-// clienta. La otra tienda lo ve en Traslados, «Te piden», y lo envía en un solo traslado. Pedir no reserva nada en la otra
-// tienda: si mientras tanto lo vende, responde «No la tengo».
+// clienta. La otra tienda lo ve en Traslados, «Te piden» (con número en el menú, ADR-0328 act. 17), y lo envía en un solo
+// traslado. Pedir para REPONER no reserva nada en la otra tienda: si mientras tanto lo vende, responde «No la tengo» (el
+// pedido para un cliente sí se aparta allá: `PedirYApartarModal`).
 //
 // Dos maneras de abrirlo, el mismo pedido y la misma RPC:
 //   · Con `origen` y `lineas` (Análisis): lo que falta aquí y sobra allá ya viene armado; la persona ajusta cantidades.
@@ -232,8 +233,9 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
     setEnviando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "pedir las prendas", { confirmarAntesDeRepetir: true }));
-    // «Guardado», no «enviado»: la otra tienda no recibe ningún aviso solo (el menú no lo cuenta); lo ve al abrir Traslados.
-    avisar.exito(`Pedido guardado para ${origen.nombre}`, { detalle: `${textoPrendas(total)}. Avísales: lo ven en Traslados cuando abran la pantalla.` });
+    // «Guardado», no «enviado»: la otra tienda no recibe un mensaje; lo ve en el número de Traslados del menú (ADR-0328 act. 17)
+    // y, si en 48 h nadie responde, el Inicio de los líderes de las dos tiendas lo avisa.
+    avisar.exito(`Pedido guardado para ${origen.nombre}`, { detalle: `${textoPrendas(total)}. Lo ven en Traslados: el menú les marca el pedido.` });
     if (typeof data === "string") onPedido?.(data);
     router.refresh();
     cerrar();

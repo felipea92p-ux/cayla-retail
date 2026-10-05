@@ -4,6 +4,8 @@ import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
 import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
 import type { FirmaVigente } from "@/lib/firma-heredada";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
@@ -316,6 +318,9 @@ type FilaContador = {
  *
  * `transferencia_items!inner`: un traslado sin prendas (las cabeceras vacías de la limpieza de datos,
  * ver `esTrasladoVacio`) no cuenta — si no, la sede destino tendría un «por recibir» de nada.
+ *
+ * Es lo que LLEGA: Conteo («recíbelos primero») y Caja («traslados por recibir») lo usan solo. El número del menú le suma
+ * los pedidos de otras sedes: `getNumeroDelMenuTraslados`.
  */
 export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
@@ -343,6 +348,19 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
     console.error("Contador de traslados:", e);
     return null;
   }
+});
+
+/**
+ * El número junto a «Traslados» en el menú y en el aviso «Traslados» del Inicio (ADR-0328 act. 17, Felipe: «"Te piden"
+ * lleva número en el menú desde que llega el pedido»): lo que llega por recibir (`getTrasladosPorAtender`) más lo que
+ * otras sedes le pidieron a esta y todavía no sale (`fn_pedidos_por_atender`). La suma es `numeroDelMenuTraslados`.
+ * «Para enviar» NO suma aquí (decisión del 2026-10-04): es un paso que la sede se debe a sí misma, y lo que lleva más de
+ * 3 días se avisa en su Inicio (`paraEnviarAtrasadas`).
+ * Total como su vecina: nunca lanza. `cache()`: el layout y el Inicio lo piden en el mismo request.
+ */
+export const getNumeroDelMenuTraslados = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
+  const [porRecibir, pedidos] = await Promise.all([getTrasladosPorAtender(ubicacionId, puedeCerrarDiferencia), getPedidosPorAtender(ubicacionId)]);
+  return numeroDelMenuTraslados(porRecibir, pedidos);
 });
 
 export type LineaTraslado = {

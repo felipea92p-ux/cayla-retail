@@ -20,8 +20,9 @@ export type Apartado = {
   clienta: string;
   contacto: string;
   nota: string | null;
-  /** `aaaa-mm-dd`, día de Lima. */
-  venceEl: string;
+  /** `aaaa-mm-dd`, día de Lima. Null SOLO en la reserva de un pedido de otra sede (ADR-0328 act. 17, decisión del
+   *  2026-10-04): no vence sola, la sostiene la tienda que pidió; aquí se ve como «Pedido de Tienda Trujillo», sin el cliente. */
+  venceEl: string | null;
   creadoEn: string;
   /** Nombre de quien apartó (`personas.nombres`); null si esa persona ya no existe. */
   apartoNombre: string | null;
@@ -80,7 +81,7 @@ export function resumirApartados(apartados: Apartado[], hoy: string): { abiertos
   return {
     abiertos: apartados.length,
     unidades: apartados.reduce((acc, a) => acc + a.cantidad, 0),
-    vencidos: apartados.filter((a) => estadoVencimiento(a.venceEl, hoy) === "vencido").length,
+    vencidos: apartados.filter((a) => a.venceEl !== null && estadoVencimiento(a.venceEl, hoy) === "vencido").length,
   };
 }
 

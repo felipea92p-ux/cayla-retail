@@ -2,6 +2,9 @@
 // La base guarda una fila por prenda con un `grupo_id` común; `fn_pedidos_entre_sedes` ya los devuelve agrupados.
 // Aquí se decide lo que la pantalla muestra: qué va en «Te piden» y en «Pediste», qué dice cada estado, qué botones ve
 // cada lado y cómo se arma lo que se manda a la base. Sin React ni Supabase: se prueba en `pedidos-entre-sedes-reglas.test.ts`.
+// Desde ADR-0328 act. 17 la misma lista lleva también los pedidos PARA UN CLIENTE (`cliente`, ver `pedidos-con-cliente-reglas.ts`).
+
+import type { ClientePedido } from "./pedidos-con-cliente-reglas";
 
 export type EstadoPedidoEntreSedes = "pedido" | "en_camino" | "recibido" | "cancelado";
 export type DireccionPedido = "pedi" | "me_piden";
@@ -34,6 +37,9 @@ export type PedidoEntreSedes = {
   trasladoNumero: number | null;
   canceladoMotivo: string | null;
   lineas: LineaPedidoEntreSedes[];
+  /** ADR-0328 act. 17: el pedido es para un cliente que espera (una prenda, apartada en la sede que la envía). Sin cliente =
+   *  reposición. `grupoId` es entonces el id del pedido. */
+  cliente?: ClientePedido | null;
 };
 
 const ESTADOS: readonly EstadoPedidoEntreSedes[] = ["pedido", "en_camino", "recibido", "cancelado"];
