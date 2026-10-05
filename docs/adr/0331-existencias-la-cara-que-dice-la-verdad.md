@@ -119,6 +119,46 @@ DESCARTÉ: conservar el botón de la cabecera, porque repetía la fila de «Para
 SE ROMPE SI: un líder que mira el Taller (o cualquier sede que no vende) quiere ver las ventas sin registrar de todas sus tiendas desde
 Existencias: ya no hay botón; las ve desde el aviso del Inicio o abriendo `/inventario/por-regularizar` sin sede.
 
+## Actualización 2026-10-04 (b): el Inicio de Almacén cuenta lo mismo que «Para hoy»
+
+La decisión 1 decía que el Inicio de la cuenta Almacén «cambia junto» con Existencias, y no era cierto: su aviso y su bloque contaban
+MODELOS con alguna talla que pedía reponer. Con el umbral en 0 eso incluía las tallas agotadas en la sede (ni colgada ni guardada), y
+el Inicio decía «Sube N modelos al piso» con un número que no era el de «Para hoy» y con prendas que no existían atrás; además «Subir»,
+en Existencias, es del piso al almacén.
+DECIDÍ: una sola función cuenta «por colgar» (`porColgarDeLaSede`, `lib/existencias-para-hoy.ts`) y la leen «Para hoy» y el Inicio
+(`existenciasDeAlmacen`, `lib/inicio-almacen-reglas.ts`). El aviso se llama «Por colgar», cuenta tallas, dice «Baja al piso N tallas por
+colgar» y lleva a `/inventario?hoy=por_colgar`; el bloque lateral lista las prendas (modelo + color) con sus tallas y su pie lleva a
+«Bajar al piso» con esas tallas cargadas. La clave del aviso sigue siendo `reponer`: es la que guarda la elección de «Ajustar» (cookie).
+DESCARTÉ: dejar que el Inicio contara modelos y solo filtrar las agotadas, porque «3 modelos» en el Inicio y «7 tallas» en Existencias
+siguen siendo dos números para lo mismo, y quien llega desde el aviso no puede comprobarlo.
+SE ROMPE SI: alguien vuelve a contar «por colgar» dentro de un componente. Lo vigila `lib/inicio-almacen-reglas.test.ts` (el mismo stock
+da la misma cifra en el aviso, el bloque, «Para hoy» y la lista filtrada, y las dos pantallas llaman a la función compartida).
+
+## Actualización 2026-10-04 (c): con «Hoy», una tarjeta por prenda
+El Inicio y «Para hoy» decían «15 tallas por colgar» (Tienda Trujillo, base de semilla) y la lista a la que llevan mostraba 5 tarjetas
+cuyas pastillas sumaban 12. No faltaba ningún dato: la lista agrupaba una tarjeta por MODELO y la tarjeta enseña un color a la vez; las
+3 tallas de Blusa Valentina Rosado quedaban detrás de un punto de color y la pastilla hablaba solo del Blanco. La opción del filtro,
+además, decía «Por colgar · 5» (modelos): tres números (15, 5, 12) para la misma lista. Felipe delegó la decisión («decide tú, con el
+máximo de efectividad»).
+DECIDÍ: con un caso de «Hoy» elegido, la lista va por PRENDA (modelo + color, la percha): cada tarjeta muestra un solo color y la suma
+de sus pastillas es la cifra de «Para hoy». Sin «Hoy», una por modelo, como antes. Una sola función decide qué es una tarjeta
+(`claveDeTarjeta`, `lib/existencias-tarjetas.ts`) y la usan la lista y el número de cada opción de la barra (`conteosDeFiltros`):
+«Por colgar · 6» trae 6 tarjetas. La línea de arriba, el pie y el botón de la hoja de filtros dicen «6 prendas · 15 tallas por
+colgar»; con «Sin stock atrás» la línea aclara «(1 ya viene en camino)», lo que «Para hoy» descuenta. `agruparPorModelo` (ahora
+`tarjetasDeExistencias`), `ordenarModelos` y `opcionesOrden` salen del componente a ese archivo, con prueba.
+DESCARTÉ: que la pastilla sume todos los colores («6 tallas por colgar»), porque el riel seguiría mostrando 3 etiquetas ámbar y el
+descuadre se mudaba dentro de la tarjeta; la tarjeta por modelo con «+3 en Rosado», porque cuadra solo leyendo una segunda línea y el
+trabajo del día (qué tallas de Rosado colgar) queda detrás de un toque; corregir solo la línea de arriba, porque lo visible seguía
+sumando 12. Lo que se paga: con «Hoy», un modelo de dos colores sale dos veces (misma foto, otro color) y la lista cambia de agrupación
+al poner o quitar «Hoy». Es la unidad que ya usaban el bloque del Inicio y la tabla «Por colgar» (ordenada y paginada por percha).
+SE ROMPE SI: otro filtro gana su propia cifra en «Para hoy» con un enlace a la lista (hoy solo «Hoy»: las dañadas y los apartados
+abren su ventana) sin pasar por `claveDeTarjeta`, o la pastilla deja de contar las tallas de su prenda (el PR #787 agrega «En pausa»).
+Lo vigilan `lib/existencias-tarjetas.test.ts` (la escena de la semilla: 6 tarjetas que suman 15; por modelo sumaban 12; todo caso de
+«Hoy» con cifra; candado de fuente sobre `InventarioPanel.tsx` y `existencias-filtros.ts`) y `lib/existencias-filtros.test.ts` (cada
+número de la barra es lo que trae la lista, en tarjetas). Mutación: agrupar siempre por modelo pone 5 pruebas en rojo.
+Verificado en local con Chrome sin ventana, en escritorio y a 375 px: «Para hoy» 15 → «Ver cuáles» → 6 tarjetas, 3+3+3+3+2+1 = 15,
+sin desborde ni errores de consola; sin «Hoy», Blusa Valentina vuelve a ser una tarjeta con dos puntos y el punto cambia el color.
+
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se
   engancha en `tareasParaHoy` cuando exista.
@@ -126,3 +166,15 @@ Existencias: ya no hay botón; las ve desde el aviso del Inicio o abriendo `/inv
 - La edad del piso dentro de Existencias: Felipe la aprobó para **después** del cuadre.
 - «Eliminar el producto» sigue en el cajón (D4 del 3-oct, abierta) y el verbo de bajar sigue con tres nombres («Bajar al piso»,
   «Reponer prenda», «Subir prenda»): no entraron en las 8 actividades.
+
+## Actualización 2026-10-04 (noche) — la regla del piso la define el motor (ADR-0328, actividad 7)
+
+Este ADR dejó el umbral de reponer en 0 (mínimo de 1 colgada por talla y color) dentro de `politicaDe`. Con el motor del piso
+(`lib/piso-plan.ts`, PR #787) la regla vive en un solo lugar y es la que Felipe decidió en las rondas del 2026-10-04
+(ADR-0328 y ADR-0329, «Actualización 2026-10-04»): **1 colgada por color en las tallas centrales y en toda talla que se
+vendió en los últimos 14 días** (las extremas que no se venden pueden quedar guardadas); lo vendido decide si una talla se
+cuelga, nunca cuántas. Con 1 por color, «Por reponer» y «Por colgar» decían lo mismo: **queda una sola palabra, «Por colgar»**,
+y «Hoy» tiene tres casos (Por colgar · Sin stock atrás · Mantener), más «En pausa» mientras la sede no cuadra su piso
+(ADR-0328, decisión 5), que «Para hoy» explica con la tarea «Cuadra el piso». La cara (cabecera, «Para hoy», riel de tallas,
+TONO_HOY sin rojo) sigue siendo la de este ADR. Lo que aquí dice «por reponer en ámbar» queda como historia.
+

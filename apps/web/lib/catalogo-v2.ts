@@ -279,6 +279,10 @@ export type ProductoListado = {
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
+  /** `categorias.prefijo` y `familia`, pegados por la página desde la lista de categorías que ya lee (no vienen de la RPC):
+   *  dibujan la prenda sin foto con el ícono de su categoría (`SinFoto`, ADR-0333). Sin ellos, la percha. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** De quién es y quién lo trae (20260918231000). `null` = todavía sin registrar (ADR-0283). */
   marca: string | null;
   proveedor: string | null;
