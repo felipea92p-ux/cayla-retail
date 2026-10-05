@@ -342,5 +342,5 @@ faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pe
 Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
 venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
 velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican). Construido en
-`20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql` (2026-10-05, sin pegar al escribirse; ADR-0334, «Actualización 2026-10-05»): hasta
-que esté en producción, ninguna tienda cierra su cola de arranque.
+`20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql` (ADR-0334, «Actualización 2026-10-05»), pegado en producción el 2026-10-05 antes del
+primer cierre de cola.

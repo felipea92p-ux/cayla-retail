@@ -185,3 +185,5 @@ migración nueva: **`20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql`** 
 - **La regla de orden sigue en pie hasta que Felipe la pegue:** ninguna tienda —AQP sobre todo— cierra su cola desde
   `/inventario/por-regularizar` mientras producción tenga `faff73d2…`. Producción el 2026-10-04 (solo lectura): 0 cierres, AQP con 170 anotadas
   pendientes y TRU con 97. Y `20261004213000` no se vuelve a pegar nunca después de esta: devolvería el filtro viejo sin error.
+- **Pegada en producción por Felipe el 2026-10-05, antes del primer cierre** (verificada en solo lectura: huella `33dfc4b1…`, los dos filtros, el
+  comentario y los permisos; 0 cierres). La regla de orden queda levantada: cualquier tienda ya puede cerrar su cola.
