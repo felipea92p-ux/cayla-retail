@@ -36,7 +36,7 @@ import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
 import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
 import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
-import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
+import { PanelTalla } from "@/components/existencias/PanelTalla";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
@@ -1355,18 +1355,19 @@ export function InventarioPanel({
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
       {prendaAbierta && (
-        <CajonPrendaExistencias
-          prenda={prendaAbierta}
+        <PanelTalla
+          colores={coloresDelModelo(stock, prendaAbierta.productoId)}
+          claveInicial={prendaAbierta.clave}
+          varianteInicial={abierta?.varianteId}
           separa={separa}
           puedeReponer={puedeReponer}
-          enSedeActiva={permisos.etiquetasEHistorial}
+          puedeEnviar={veTraslados}
           puedeAjustar={puedeAjustarAqui}
-          veTraslados={permisos.trasladar}
+          enSedeActiva={permisos.etiquetasEHistorial}
           puedeEliminar={permisos.eliminar}
           puedeReportarDanada={permisos.reportarDanada}
           onReportarDanada={(prenda) => {
             setAbierta(null);
-            // Como Reponer y Subir desde el cajón: el cajón se cierra, así que el foco no vuelve al «⋯» de una tarjeta vieja.
             volverFoco.current = null;
             setReportando({ productoId: prenda.productoId, colorClave: prenda.clave });
           }}
@@ -1386,7 +1387,6 @@ export function InventarioPanel({
             setAbierta(null);
             setAjustando(f);
           }}
-          // Solo si hay algo suyo que mostrar: una cifra que abriría una ventana vacía no es un botón (cajón, `DesgloseStockPrenda`).
           onVerApartadas={
             deLaPrenda(apartados, prendaAbierta).length > 0
               ? () => {
