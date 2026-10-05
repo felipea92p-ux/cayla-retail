@@ -234,6 +234,20 @@ textarea.texto{min-height:76px;resize:vertical}
 .celda-r .piso-luego{font-size:11.5px;color:var(--taupe)}
 .atajo{border:1px dashed var(--taupe);background:transparent;border-radius:12px;min-height:44px;padding:0 14px;font-size:14px;color:var(--tinta)}
 .pastilla-btn{border:0;cursor:pointer}
+/* Con un filtro puesto: lo que cumple lleva el color del filtro + su símbolo; lo demás, tenue (sigue tocable). */
+.talla{position:relative}
+.talla.tenue{opacity:.38}
+.talla.principal{box-shadow:0 0 0 2px var(--tinta)}
+.insignia{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--papel);display:grid;place-items:center;box-shadow:0 0 0 1.5px currentColor}
+.insignia svg{display:block}
+.muestra .punto-m{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;border:2px solid var(--papel)}
+.motivo{display:grid;gap:8px;border-radius:12px;padding:9px 11px;font-size:13.5px}
+.motivo p{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.motivo .btn{min-height:44px;justify-self:start;padding:0 14px;font-size:14px}
+.otras-marcas{display:flex;gap:6px;flex-wrap:wrap}
+.otras-marcas button{border:1px solid var(--sand);background:var(--papel);border-radius:999px;min-height:40px;padding:0 12px 0 8px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.otras-marcas button[aria-pressed="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.otras-marcas i{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1px var(--sand)}
 .pie-botones{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
 .aviso{position:absolute;left:50%;top:14px;transform:translate(-50%,-16px);background:var(--tinta);color:var(--papel);border-radius:12px;padding:11px 16px;font-size:14px;z-index:40;opacity:0;transition:opacity .25s var(--ease),transform .25s var(--ease);pointer-events:none;max-width:calc(100% - 32px)}
 .aviso.ver{opacity:1;transform:translate(-50%,0)}
@@ -346,6 +360,16 @@ table.t td:first-child{font-weight:600}
       <p><span class="k">Se rompe si</span>un producto tiene más de 8 tallas (calzado del 35 al 42) en una tablet vertical: las tallas pasan a dos filas y el panel se alarga. Se resuelve con la pestaña «Todas» (la matriz), no achicando los botones.</p>
     </div>
     <div class="decision">
+      <p><span class="k">Decidí</span>Con un filtro puesto, cada tarjeta dice por qué salió: abre en el color de su talla más importante (la que más se vendió en 14 días; si empatan, la talla central), esa talla lleva un anillo oscuro, todas las que cumplen llevan el color del filtro y su símbolo (↑ por reponer, ⊘ sin stock aquí, bolsa apartado, ⚠ dañado), las demás quedan tenues, y los otros colores que también cumplen llevan un punto en su círculo. Una línea lo dice en palabras: «Sin stock aquí: talla M · la que más se vende · también S · y 1 en Celeste», con su botón. El número del filtro cuenta tallas.</p>
+      <p><span class="k">Descarté</span>Un círculo rojo, porque «Sin stock aquí» puede marcar 26 tallas y el rojo tiene un tope de 2 por pantalla: dejaría de llamar la atención y se confundiría con un plazo vencido. También descarté una tarjeta por color, porque repite el mismo modelo varias veces.</p>
+      <p><span class="k">Se rompe si</span>dos tallas empatan en ventas y ninguna es central (calzado 38 y 39 con 0 ventas): gana la primera del orden de tallas, que puede no ser la que la encargada esperaba. Y mientras el piso no esté cuadrado, «Por reponer» marca tallas que quizá ya cuelgan.</p>
+    </div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>Al tocar − / +, cambiar un color o una talla, la vista se queda donde estaba y el foco vuelve al mismo botón; solo un paso nuevo del flujo empieza arriba.</p>
+      <p><span class="k">Descarté</span>Redibujar sin cuidar el desplazamiento, porque en «Reponer varias» cada toque mandaba la vista arriba y había que volver a bajar hasta la talla.</p>
+      <p><span class="k">Se rompe si</span>un cambio agrega o quita bloques arriba de donde está la persona (por ejemplo, aparece el aviso «Hecho»): el contenido se corre esa altura. En el ERP esto lo cubre que React no rehace el panel en cada toque, y <code>&lt;PaginaEstable /&gt;</code> (ADR-0185) para la página.</p>
+    </div>
+    <div class="decision">
       <p><span class="k">Decidí</span>«Reponer varias» vive en el mismo panel, con tres puertas: la pastilla ámbar de la tarjeta («3 tallas por reponer · Reponer →»), la pestaña «Todas» y un enlace dentro de «Reponer» de una talla. Las cantidades van por color, en tarjetas de talla con su − / + de 48 px.</p>
       <p><span class="k">Descarté</span>La tabla de la ventana actual (colores en filas, tallas en columnas): a 390 px no caben 4 tallas con su − / + sin achicar los botones por debajo del tamaño de un dedo, y las tarjetas por color se acomodan solas de 2 a 6 por fila. También descarté llenar las cantidades al abrir: ADR-0231 pide que empiecen en 0.</p>
       <p><span class="k">Se rompe si</span>un modelo tiene 6 colores y 8 tallas: son 48 casillas y el paso se alarga. El atajo «Poner 1 en las tallas sin nada en piso» cubre el caso común (el mínimo de 1 por talla y color que decidió Felipe) con un toque, solo cuando la persona lo pide.</p>
@@ -451,6 +475,30 @@ table.t td:first-child{font-weight:600}
   };
 
   // ================= barra =================
+  // ---- Filtro por talla y color: qué cumple, cuál importa más y cómo se marca ----
+  const FILTRO_V = { reponer: v => estado(v) === "reponer", sin: v => estado(v) === "sin", apart: v => v.apart > 0, dan: v => v.dan > 0 };
+  const SIMBOLO = {
+    reponer: { col:"var(--ambar)", fondo:"p-ambar", txt:"Por reponer", svg:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 19V5M6 11l6-6 6 6"/></svg>' },
+    sin: { col:"var(--pizarra)", fondo:"p-pizarra", txt:"Sin stock aquí", svg:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/></svg>' },
+    apart: { col:"var(--tinta)", fondo:"p-pizarra", txt:"Apartado", svg:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>' },
+    dan: { col:"var(--ambar)", fondo:"p-ambar", txt:"Dañado", svg:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>' },
+  };
+  // Ventas de 14 días por talla y color (de ejemplo; en el ERP sale de la misma lectura del motor del piso).
+  const vendidas = (p, c, t) => { let h = 7; for (const ch of p.id + c + t) h = (h * 31 + ch.charCodeAt(0)) % 997; return h % 7; };
+  // Desempate: talla central primero (el mínimo de Felipe es 1 por talla central).
+  const CENTRAL = ["M", "S", "L", "28", "30", "26", "XL", "32", "XS"];
+  const rango = t => { const i = CENTRAL.indexOf(t); return i < 0 ? 50 : i; };
+  // Todas las tallas y colores del modelo que cumplen el filtro, la más importante primero: la más vendida.
+  function coincidencias(p, f = S.filtro) {
+    const fn = FILTRO_V[f]; if (!fn) return [];
+    const out = [];
+    p.colores.forEach((col, c) => Object.entries(col.tallas).forEach(([t, v]) => { if (fn(v)) out.push({ c, t, v, vend: vendidas(p, c, t) }); }));
+    return out.sort((a, b) => b.vend - a.vend || rango(a.t) - rango(b.t) || a.c - b.c);
+  }
+  const insignia = f => `<span class="insignia" style="color:${SIMBOLO[f].col}" aria-hidden="true">${SIMBOLO[f].svg}</span>`;
+  // Al elegir un filtro, cada tarjeta abre en el color de su talla más importante (el color elegido a mano manda después).
+  function colorSegunFiltro() { if (S.filtro === "todo") return; P.forEach(p => { const m = coincidencias(p); if (m.length) S.color[p.id] = m[0].c; }); }
+
   const FILTROS = [
     ["todo", "Todo", () => true, null],
     ["reponer", "Por reponer", p => algunColor(p, c => cuenta(p, c, "reponer") > 0), "var(--ambar)"],
@@ -478,7 +526,7 @@ table.t td:first-child{font-weight:600}
         <button class="btn prim" data-acc="escanear" style="min-height:58px;padding:0 20px">${IC.escanear}<span>Escanear</span></button>
       </div>
       <div class="chips" role="group" aria-label="Filtro">
-        ${FILTROS.map(([k, txt, fn, col]) => `<button class="chip-f" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}">${col ? `<i style="background:${col}"></i>` : ""}${txt} <b>${enBusqueda.filter(fn).length}</b></button>`).join("")}
+        ${FILTROS.map(([k, txt, fn, col]) => `<button class="chip-f" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}">${col ? `<i style="background:${col}"></i>` : ""}${txt} <b>${k === "todo" ? enBusqueda.length : enBusqueda.reduce((n, p) => n + coincidencias(p, k).length, 0)}</b></button>`).join("")}
       </div>`;
   }
 
@@ -492,15 +540,35 @@ table.t td:first-child{font-weight:600}
     if (s) return `<span class="pastilla p-pizarra"><i></i>${s} sin stock aquí</span>`;
     return `<span class="pastilla p-verde"><i></i>Todas en piso</span>`;
   }
+  // La línea que explica por qué la tarjeta salió en el filtro: la talla más importante, las otras de este color y las de otros colores.
+  function motivo(p, c, m) {
+    const f = S.filtro, sb = SIMBOLO[f], principal = m[0];
+    const enEste = m.filter(x => x.c === c), otros = m.filter(x => x.c !== c);
+    const otrosColores = [...new Set(otros.map(x => x.c))];
+    const deOtros = otrosColores.map(oc => `${otros.filter(x => x.c === oc).length} en ${esc(p.colores[oc].n)}`).join(" · ");
+    const accion = f === "reponer" ? ["reponer-varias", "Reponer →"] : f === "sin" ? ["abrir-principal", "Pedir a otra sede →"] : ["abrir-principal", "Ver →"];
+    if (!enEste.length) return `<div class="motivo ${sb.fondo}"><p><span style="color:${sb.col}">${sb.svg}</span>Este color está bien · ${deOtros}</p><button class="btn" data-acc="color" data-pid="${p.id}" data-c="${principal.c}">Ver ${esc(p.colores[principal.c].n)}</button></div>`;
+    const top = principal.c === c ? principal : enEste[0];
+    const resto = enEste.filter(x => x !== top).map(x => esc(x.t));
+    const todoElColor = enEste.length === Object.keys(p.colores[c].tallas).length && enEste.length > 1;
+    return `<div class="motivo ${sb.fondo}"><p><span style="color:${sb.col}">${sb.svg}</span><b>${sb.txt}:</b>${todoElColor ? ` todo el color ${esc(p.colores[c].n)} ·` : ""} talla <b>${esc(top.t)}</b>${top.vend ? ` · la que más se vende (${top.vend} en 14 días)` : ""}${resto.length ? ` · también ${resto.join(", ")}` : ""}${deOtros ? ` · y ${deOtros}` : ""}</p>
+      <button class="btn" data-acc="${accion[0]}" data-pid="${p.id}" data-c="${top.c}" data-t="${esc(top.t)}">${accion[1]}</button></div>`;
+  }
   function renderLista() {
+    const lista0 = document.getElementById("lista"), y = lista0.scrollTop, firma = firmaFoco(lista0);
+    dibujarLista();
+    lista0.scrollTop = y; devolverFoco(firma);
+  }
+  function dibujarLista() {
     const fn = FILTROS.find(f => f[0] === S.filtro)[2];
     const lista = P.filter(p => coincide(p) && fn(p));
     const el = document.getElementById("lista");
     const sel = S.panel;
     el.innerHTML = `
-      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""} · toca un color para cambiarlo, una talla para ver dónde hay</p>
+      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : " · toca un color para cambiarlo, una talla para ver dónde hay"}</p>
       ${lista.length ? `<div class="grilla">${lista.map(p => {
-        const c = ci(p);
+        const c = ci(p), m = coincidencias(p), filtrando = S.filtro !== "todo";
+        const principal = m[0], enEste = m.filter(x => x.c === c);
         return `<article class="modelo${sel && sel.pid === p.id ? " activo" : ""}">
           <button class="cab-modelo" data-acc="abrir" data-pid="${p.id}" aria-label="Abrir ${esc(p.nombre)}">
             ${mosaico(p, c)}
@@ -508,14 +576,17 @@ table.t td:first-child{font-weight:600}
             <span class="precio">${sol(p.precio)}</span>
           </button>
           <div class="muestras" role="radiogroup" aria-label="Color de ${esc(p.nombre)}">
-            ${p.colores.map((col, i) => `<button class="muestra${col.claro ? " claro" : ""}" role="radio" aria-checked="${i === c}" aria-label="${esc(col.n)}" style="background:${col.hex}" data-acc="color" data-pid="${p.id}" data-c="${i}"></button>`).join("")}
+            ${p.colores.map((col, i) => { const n = m.filter(x => x.c === i).length;
+              return `<button class="muestra${col.claro ? " claro" : ""}" role="radio" aria-checked="${i === c}" aria-label="${esc(col.n)}${n ? `: ${n} ${n === 1 ? "talla" : "tallas"} ${esc(SIMBOLO[S.filtro].txt.toLowerCase())}` : ""}" style="background:${col.hex}" data-acc="color" data-pid="${p.id}" data-c="${i}">${n ? `<span class="punto-m" style="background:${SIMBOLO[S.filtro].col}"></span>` : ""}</button>`; }).join("")}
             <span class="nombre-color">${esc(p.colores[c].n)}</span>
           </div>
           <div class="tallas" role="group" aria-label="Tallas">
             ${tallasDe(p, c).map(t => { const v = vr(p, c, t), e = estado(v); const activa = sel && sel.pid === p.id && sel.c === c && sel.t === t;
-              return `<button class="talla ${e === "ok" ? "" : e}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small></button>`; }).join("")}
+              const cumple = filtrando && enEste.some(x => x.t === t), esPrincipal = cumple && principal.c === c && principal.t === t;
+              const marca = !filtrando ? "" : cumple ? " marca-f" + (esPrincipal ? " principal" : "") : " tenue";
+              return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
           </div>
-          ${pastilla(p, c)}
+          ${filtrando ? motivo(p, c, m) : pastilla(p, c)}
         </article>`; }).join("")}</div>`
       : `<div class="vacio">${S.q ? `No hay productos con «${esc(S.q)}» en Tienda TRU. Revisa cómo está escrito, o busca por la marca o el código.` : "Nada con este filtro. Toca «Todo» para ver todos."}</div>`}`;
   }
@@ -527,7 +598,8 @@ table.t td:first-child{font-weight:600}
     const p = prod(pid), c = ci(p);
     const yaAbierto = !!S.panel;
     if (!yaAbierto) foco = document.activeElement;
-    S.panel = { pid, c, t: t ?? tallasDe(p, c).find(x => estado(vr(p, c, x)) !== "ok") ?? tallasDe(p, c)[0], vista, flujo:null };
+    const pr = coincidencias(p).find(x => x.c === c);
+    S.panel = { pid, c, t: t ?? pr?.t ?? tallasDe(p, c).find(x => estado(vr(p, c, x)) !== "ok") ?? tallasDe(p, c)[0], vista, flujo:null };
     S.hecho = null;
     renderPanel(true); renderLista();
     panel.classList.add("abierto"); panel.setAttribute("aria-hidden", "false"); velo.classList.add("abierto");
@@ -569,7 +641,29 @@ table.t td:first-child{font-weight:600}
       </div>`;
   }
 
+  // Cada toque redibuja el panel. Antes de redibujar se guarda dónde estaba el desplazamiento y qué botón tenía el foco; después
+  // se devuelven igual. Solo un paso NUEVO (cascada) arranca arriba: lo demás se queda donde la persona lo dejó.
+  function firmaFoco(dentro) {
+    const a = document.activeElement; if (!a || !dentro.contains(a) || a === dentro) return null;
+    if (a.id) return "#" + CSS.escape(a.id);
+    const attrs = ["acc", "key", "k", "v", "t", "c", "pid", "p"].filter(k => a.dataset[k] !== undefined);
+    return attrs.length ? attrs.map(k => `[data-${k}="${CSS.escape(a.dataset[k])}"]`).join("") : null;
+  }
+  function devolverFoco(firma) {
+    if (!firma) return;
+    let el = document.querySelector(firma);
+    // Si el botón quedó apagado (llegó al tope), el foco pasa a su pareja del mismo − / +.
+    if (el?.disabled) el = document.querySelector(firma.replace(/data-acc="(mas|menos)(-c)?"/, (_, x, y) => `data-acc="${x === "mas" ? "menos" : "mas"}${y || ""}"`));
+    if (el && !el.disabled) el.focus({ preventScroll:true });
+  }
   function renderPanel(cascada) {
+    const cuerpo = panel.querySelector(".p-cuerpo"), y = cuerpo ? cuerpo.scrollTop : 0, firma = firmaFoco(panel);
+    dibujarPanel(cascada);
+    const nuevo = panel.querySelector(".p-cuerpo");
+    if (nuevo) nuevo.scrollTop = cascada ? 0 : y;
+    if (!cascada) devolverFoco(firma);
+  }
+  function dibujarPanel(cascada) {
     const { pid, c, t, vista, flujo } = S.panel; const p = prod(pid);
     if (flujo) return renderFlujo(cascada);
     const v = vr(p, c, t), e = estado(v);
@@ -589,6 +683,8 @@ table.t td:first-child{font-weight:600}
         : e === "sin" ? `<p class="diag p-pizarra">Sin stock aquí${otrasSum(v) ? ` · ${SEDES.filter(s => v.otras[s]).map(s => `${v.otras[s]} en ${s}`).join(" · ")}` : " ni en otra sede"}.</p>`
         : `<p class="diag p-verde">Disponible: ${unidades(v.piso + v.alm)} (${v.piso} en piso, ${v.alm} en almacén).</p>`;
       const pedido = S.pedidos[`${pid}|${c}|${t}`];
+      const marcas = coincidencias(p);
+      const vend = vendidas(p, c, t);
       cuerpo = `
         ${S.hecho ? `<div class="hecho">${IC.check}<span>${esc(S.hecho)}</span></div>` : ""}
         <div class="donde">
@@ -598,6 +694,8 @@ table.t td:first-child{font-weight:600}
           <div class="${v.dan ? "" : "cero"}"><b>${v.dan}</b><small>Dañado</small></div>
         </div>
         ${diag}
+        ${S.filtro !== "todo" && marcas.length ? `<div><p class="etq" style="margin-bottom:6px">${esc(SIMBOLO[S.filtro].txt)} en este modelo · ${marcas.length}</p><div class="otras-marcas">${marcas.map(x => `<button aria-pressed="${x.c === c && x.t === t}" data-acc="ir-var" data-c="${x.c}" data-t="${esc(x.t)}"><i style="background:${p.colores[x.c].hex}"></i>${esc(p.colores[x.c].n)} · ${esc(x.t)}${x === marcas[0] ? " · más vendida" : ""}</button>`).join("")}</div></div>` : ""}
+        <p class="ayuda">Se vendieron ${unidades(vend)} de esta talla y color en los últimos 14 días.</p>
         <div class="otras"><span class="etq" style="margin-right:4px">Otras sedes</span>${SEDES.map(s => `<span class="${v.otras[s] ? "hay" : ""}">${s} ${v.otras[s]}</span>`).join("")}${v.camino ? `<span class="hay">En camino ${v.camino}</span>` : ""}${pedido ? `<span class="hay">Pedido a ${pedido}</span>` : ""}</div>
         <div class="acciones">${ACCIONES.map(([k, txt, ic]) => { const a = estadoAccion(k, v);
           return `<button class="accion${a.sug ? " sugerida" : ""}" data-acc="accion" data-k="${k}" aria-disabled="${!a.ok}">${ic}<b>${txt}</b><small>${esc(a.sub)}</small></button>`; }).join("")}</div>`;
@@ -906,7 +1004,9 @@ table.t td:first-child{font-weight:600}
     const d = el.dataset, f = S.panel?.flujo;
     switch (d.acc) {
       case "limpiar": S.q = ""; renderBarra(); renderLista(); document.getElementById("q").focus(); break;
-      case "filtro": S.filtro = d.k; renderBarra(); renderLista(); break;
+      case "filtro": S.filtro = d.k; colorSegunFiltro(); renderBarra(); renderLista(); document.getElementById("lista").scrollTop = 0; break;
+      case "abrir-principal": S.color[d.pid] = +d.c; abrirPanel(d.pid, d.t); { const p = prod(d.pid), v = vr(p, +d.c, d.t); if (S.filtro === "sin" && otrasSum(v)) { S.panel.flujo = { tipo:"pedir", i:0, d:{} }; renderPanel(true); } } break;
+      case "ir-var": S.panel.c = +d.c; S.color[S.panel.pid] = +d.c; S.panel.t = d.t; S.hecho = null; renderPanel(false); renderLista(); break;
       case "escanear": S.q = ""; S.color.brisa = 2; renderBarra(); renderLista(); avisar("Etiqueta leída · Polo Brisa · Rosado · M"); abrirPanel("brisa", "M"); break;
       case "color": S.color[d.pid] = +d.c; if (S.panel?.pid === d.pid && !S.panel.flujo) { S.panel.c = +d.c; const p = prod(d.pid); if (!vr(p, +d.c, S.panel.t)) S.panel.t = tallasDe(p, +d.c)[0]; renderPanel(false); } renderLista(); break;
       case "talla": { const p = prod(d.pid); if (S.panel && S.panel.pid === d.pid && !S.panel.flujo) { S.panel.t = d.t; S.panel.c = ci(p); S.panel.vista = "variante"; S.hecho = null; renderPanel(false); renderLista(); } else abrirPanel(d.pid, d.t); break; }
