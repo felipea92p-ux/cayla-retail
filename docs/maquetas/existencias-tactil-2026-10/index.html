@@ -443,6 +443,7 @@ table.t td:first-child{font-weight:600}
   <header style="display:grid;gap:8px">
     <p class="ceja">Inventario ▸ Existencias · maqueta táctil · 5 oct 2026</p>
     <h1 style="font-size:clamp(32px,5vw,46px);line-height:1.05">Existencias táctil</h1>
+    <p class="nota-nombre" style="margin:10px 0 0;padding:10px 14px;border-radius:10px;background:var(--hueso);font-size:13.5px;max-width:78ch"><b>Nombre vigente en el ERP:</b> «Colgar en el piso» (ADR-0339) y «Subir a almacén». Esta maqueta conserva los nombres del glosario («Reponer», «Retirar del piso») porque se dibujó antes de esa decisión. Construido: <code>docs/adr/0344-existencias-un-icono-por-tarjeta-atajos-sonido-y-colgar-primero.md</code>.</p>
     <p class="bajada">Busca o escanea, toca un color para cambiarlo en la propia tarjeta y toca una talla para ver dónde hay. Cada acción corre en el mismo panel, guiada paso a paso, sin salir de la pantalla. Las palabras son las ✓ del glosario «Lenguaje de tienda CAYLA», y las reglas son las del código de <code>main</code> (16837a35). Los productos y los nombres del equipo son de ejemplo.</p>
   </header>
 
@@ -457,11 +458,6 @@ table.t td:first-child{font-weight:600}
     <button class="interruptor" id="sim-caja" aria-pressed="true"><i></i>Caja abierta</button>
     <button class="btn" id="sim-pistola" style="min-height:36px;font-size:13px">Simular pistola</button>
     <button class="interruptor" id="sim-sonido" aria-pressed="false"><i></i>Sonido al confirmar</button>
-    <span class="etq">Movimiento</span>
-    <div class="seg" role="group" aria-label="Movimiento">
-      <button aria-pressed="true" data-mov="cayla" title="ADR-0136: sin rebote">CAYLA</button>
-      <button aria-pressed="false" data-mov="expresivo" title="Con rebote, como Material 3 Expressive: fuera de ADR-0136, solo para comparar">Expresivo</button>
-    </div>
     <button class="btn sutil" id="reiniciar" style="min-height:36px;font-size:13px">Volver a empezar</button>
   </div>
 
@@ -776,7 +772,7 @@ const solo = S.vf === "iconos";
       <div class="fila-top">
         <div class="titulo-app"><h1>Existencias</h1><small>Tienda TRU · vista de las 09:28</small></div>
         <div class="cifras"><span><b class="num" data-cuenta="tot-piso">${t.piso}</b>en piso de 600 · <em>por cuadrar</em></span><span><b class="num" data-cuenta="tot-alm">${t.alm}</b>en almacén</span></div>
-        ${anilloMision()}<button class="pendientes" data-acc="practicar" title="Una práctica guiada de 4 toques">${IC.play}<span>Practicar</span></button>
+        ${anilloMision()}
       </div>
       <div class="herr">
         <div class="buscador">
@@ -1596,7 +1592,6 @@ const solo = S.vf === "iconos";
       aparatoEl.appendChild(capa);
       setTimeout(() => { tono(1320, 60); vibrar(20); capa.remove(); abrir(); }, 680);
     }
-    if (el.dataset.acc === "practicar") { e.stopPropagation(); empezarPractica(); }
   }, true);
 
   // ---- Mantener «+» o «−» presionado suma o resta solo ----
@@ -1668,10 +1663,6 @@ const solo = S.vf === "iconos";
   // ---- Controles de la maqueta: sonido y movimiento ----
   const simSonido = document.getElementById("sim-sonido");
   simSonido.addEventListener("click", () => { sonido = !sonido; simSonido.setAttribute("aria-pressed", String(sonido)); if (sonido) tono(880, 70); });
-  document.querySelectorAll("[data-mov]").forEach(b => b.addEventListener("click", () => {
-    document.querySelectorAll("[data-mov]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-    document.documentElement.style.setProperty("--ease", b.dataset.mov === "expresivo" ? "cubic-bezier(.34,1.56,.64,1)" : "cubic-bezier(.22,.61,.36,1)");
-  }));
   document.getElementById("reiniciar").addEventListener("click", () => { calcularObjetivos(); fraccionVista = null; prac = null; renderBarra(); renderLista(); });
 
 
