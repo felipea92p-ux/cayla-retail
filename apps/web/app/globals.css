@@ -18,6 +18,7 @@
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/vista-rapida.css";
 @import "./estilos/vender-grilla.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
