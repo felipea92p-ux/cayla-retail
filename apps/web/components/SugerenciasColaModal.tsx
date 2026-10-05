@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { armarSugerencias, paresParaConfirmar, type ParejaSugerida, type PrendaDelCatalogo, type VentaPendiente } from "@/lib/cola-arranque-reglas";
+import { armarSugerencias, errorDeSugerencias, paresParaConfirmar, type ParejaSugerida, type PrendaDelCatalogo, type VentaPendiente } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -25,8 +25,10 @@ type Respuesta = { clave: string; parejas: ParejaSugerida[] | null };
  * fila: una sola candidata no es certeza (si la prenda vendida nunca se cargó, la candidata es OTRA prenda que sigue colgada y
  * quedaría con 1 de menos). Las que no se marcan siguen pendientes para identificarlas a mano o cerrarlas.
  *
- * Es una REVISIÓN, no un formulario: no hay campos que llenar, solo marcar o desmarcar sugerencias ya armadas; por eso no lleva guía
- * de foco (ver su registro). Todo o nada: si una pareja falla (alguien vendió la última unidad mientras se revisaba), no se aplica ninguna.
+ * Es una REVISIÓN, no un formulario: no hay campos que llenar, solo marcar las sugerencias que se reconocen; por eso no lleva guía
+ * de foco (ver su registro). Las casillas NACEN SIN MARCAR: confirmar sin mirar no puede ser un clic (revisión independiente, 2026-10-04;
+ * «Marcar todas» es un gesto deliberado). Todo o nada: si una pareja falla (alguien vendió la última unidad mientras se revisaba), no se aplica
+ * ninguna, se explica qué pasó y se vuelven a buscar las sugerencias.
  */
 export function SugerenciasColaModal({
   filas,
@@ -46,9 +48,9 @@ export function SugerenciasColaModal({
   const [ubicacionId, setUbicacionId] = useState(sedes.length === 1 ? sedes[0].ubicacionId : (sedes.find((s) => s.ubicacionId === inicial)?.ubicacionId ?? ""));
   const [reintento, setReintento] = useState(0);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
-  // Lo que el líder DESMARCÓ: todas vienen marcadas y lo que se hace es quitar la que no se reconoce. Así «marcadas» se deriva
-  // (no se copia en un efecto) y una sugerencia nueva entra marcada sin que nadie tenga que acordarse de marcarla.
-  const [desmarcadas, setDesmarcadas] = useState<ReadonlySet<string>>(new Set());
+  // Lo que el líder ELIGIÓ: nada viene marcado de fábrica. «marcadas» se deriva de esto y de lo que hay ahora (una sugerencia que ya no
+  // está, porque se recargó la lista, no cuenta aunque su id siga aquí).
+  const [elegidas, setElegidas] = useState<ReadonlySet<string>>(new Set());
   const [guardando, setGuardando] = useState(false);
 
   // Las parejas de la tienda elegida. Lectura (`fn_…`): no abre el cargador de pantalla completa; la hoja dice «Buscando…».
@@ -74,7 +76,7 @@ export function SugerenciasColaModal({
     [filas, ubicacionId],
   );
   const sugerencias = useMemo(() => (parejas ? armarSugerencias(parejas, ventas, prendas) : []), [parejas, ventas, prendas]);
-  const marcadas = useMemo(() => new Set(sugerencias.filter((s) => !desmarcadas.has(s.prendaId)).map((s) => s.prendaId)), [sugerencias, desmarcadas]);
+  const marcadas = useMemo(() => new Set(sugerencias.filter((s) => elegidas.has(s.prendaId)).map((s) => s.prendaId)), [sugerencias, elegidas]);
 
   const pares = paresParaConfirmar(sugerencias, marcadas);
 
@@ -87,6 +89,16 @@ export function SugerenciasColaModal({
     );
     setGuardando(false);
     if (error) {
+      // Algo cambió mientras se revisaba (stock, una venta ya regularizada): se explica en ESTA hoja, no con el mensaje de «Llegó nueva», y se
+      // vuelven a buscar las sugerencias para no repetir el mismo intento con datos viejos.
+      const cambio = errorDeSugerencias(error);
+      if (cambio) {
+        avisar.error(cambio.texto);
+        setElegidas(new Set());
+        setReintento((n) => n + 1);
+        router.refresh();
+        return;
+      }
       avisar.error(traducirError(error, "identificar las ventas con sugerencias"));
       return;
     }
@@ -100,7 +112,7 @@ export function SugerenciasColaModal({
   return (
     <Modal
       titulo="Identificar con sugerencias"
-      subtitulo="Ventas sin registrar que tienen una sola prenda posible en el sistema. Revisa y desmarca las que no te convenzan."
+      subtitulo="Ventas sin registrar que tienen una sola prenda posible en el sistema. Marca las que reconozcas."
       onClose={onClose}
       variante="hoja"
       ancho="max-w-3xl"
@@ -147,7 +159,7 @@ export function SugerenciasColaModal({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setDesmarcadas(pares.length === sugerencias.length ? new Set(sugerencias.map((s) => s.prendaId)) : new Set())}
+                  onClick={() => setElegidas(pares.length === sugerencias.length ? new Set() : new Set(sugerencias.map((s) => s.prendaId)))}
                   className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo"
                 >
                   {pares.length === sugerencias.length ? "Desmarcar todas" : "Marcar todas"}
@@ -164,10 +176,10 @@ export function SugerenciasColaModal({
                           type="checkbox"
                           checked={marcada}
                           onChange={(e) =>
-                            setDesmarcadas((actual) => {
+                            setElegidas((actual) => {
                               const nuevo = new Set(actual);
-                              if (e.target.checked) nuevo.delete(s.prendaId);
-                              else nuevo.add(s.prendaId);
+                              if (e.target.checked) nuevo.add(s.prendaId);
+                              else nuevo.delete(s.prendaId);
                               return nuevo;
                             })
                           }

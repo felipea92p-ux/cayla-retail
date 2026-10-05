@@ -11,6 +11,9 @@ Producción el 2026-10-04 (solo lectura): TRU 97 pendientes (20 vencidas), AQP 1
 
 ### Para pegar en producción — estado: 1, 2 y 3 pegadas y verificadas; faltan 4 y 5 (lo hace Felipe; ninguna migración usa `drop trigger` ni `select … into` dentro de texto entre comillas)
 
+**`20261005120000` fue REESCRITO el 2026-10-04 tras la revisión independiente** (ver ADR-0334): trae la base común `fn_candidatas_de_venta`, propone solo prendas «limpias»,
+toma los candados en el orden de ADR-0190 y nombra la venta que falla. `110000` cambió solo un texto (lenguaje neutro). **Pega las versiones del repo de HOY, no copias anteriores.**
+
 **Orden** (cada archivo en su PROPIA transacción del SQL Editor; todos llevan `retail.` y `set lock_timeout = '3s'`; se pueden pegar dos veces):
 
 1. `supabase/migrations/20261005100000_cola_arranque_parte1_tablas.sql` — `alter table` de una tabla en uso: pegar fuera de la hora punta.
@@ -38,14 +41,14 @@ select estado, count(*) from retail.prendas_por_regularizar group by 1 order by 
 select count(*) from retail.cola_arranque_plazo;   -- 3
 select count(*) from pg_policies where schemaname = 'retail' and tablename in ('cierres_cola_arranque', 'cola_arranque_plazo');   -- 2
 select count(*) from pg_proc where pronamespace = 'retail'::regnamespace
-  and proname in ('cerrar_cola_arranque', 'reabrir_prenda_cerrada', 'fn_cola_arranque_candidatas', 'regularizar_prendas_sugeridas');   -- 4, una firma cada una
+  and proname in ('cerrar_cola_arranque', 'reabrir_prenda_cerrada', 'fn_candidatas_de_venta', 'fn_cola_arranque_candidatas', 'regularizar_prendas_sugeridas');   -- 5, una firma cada una
 select clave from retail.acciones_sin_responsable where clave like 'cola_arranque_%' order by 1;   -- cerrar, identificar, reabrir
 select conname from pg_constraint where conrelid = 'retail.prendas_por_regularizar'::regclass
   and conname in ('prendas_por_regularizar_estado_check', 'prendas_por_regularizar_cierre_fk', 'prendas_por_regularizar_cierre_coherente');   -- 3
 select estado, count(*) from retail.prendas_por_regularizar group by 1 order by 1;   -- las mismas cifras de la sonda: pegar no cierra nada
 ```
 
-Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar` (entran al diccionario las dos tablas y las cuatro funciones).
+Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar` (entran al diccionario las dos tablas y las cinco funciones).
 
 - [ ] **Verificar en producción tras publicar (con cuenta de líder):** `/inventario/por-regularizar` muestra los tres botones; la hoja de «Identificar con
   sugerencias» en TRU propone unas 23; con una cuenta de colaboradora no sale ninguno. **No cerrar TRU todavía:** primero cuadrar su piso (ADR-0328,

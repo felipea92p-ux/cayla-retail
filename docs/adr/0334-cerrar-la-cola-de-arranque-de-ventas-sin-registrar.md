@@ -36,7 +36,7 @@ La pantalla trataba los tres igual, y por eso nadie regularizaba: **236 pendient
 
 Un líder **cierra la cola de UNA tienda, en bloque, dentro de un plazo, con un motivo**. Las filas pasan a `cerrada_sin_prenda`: sin
 prenda, sin movimiento de stock, con el dinero de la venta intacto. Antes de cerrar puede **identificar con sugerencias** las que sí
-tienen una sola prenda posible. Si una cliente devuelve una prenda cerrada, un líder la **reabre**.
+tienen una sola prenda posible. Si quien la compró devuelve una prenda cerrada, un líder la **reabre**.
 
 **1. Un estado nuevo, no una bandera.**
 DECIDÍ: `prendas_por_regularizar.estado = 'cerrada_sin_prenda'` más `cierre_id`, con candados de esquema: cerrada ⇒ trae su cierre y NO trae
@@ -60,6 +60,12 @@ cierra `vendido_en <= corte`. Lo que se venda después sigue pendiente. Las fila
 DESCARTÉ: cerrar «todo lo pendiente ahora», porque una venta que entra mientras el líder lee la hoja quedaría cerrada sin que nadie la viera;
 y pasar el corte por `Date` de JavaScript, que corta a milisegundos y habría dejado la venta más nueva fuera.
 SE ROMPE SI: un reloj adelantado manda un `corte` en el futuro: la función lo rechaza (`cola_corte_invalido`).
+LIMITACIÓN CONOCIDA (revisión independiente, 2026-10-04): «solo lo que el líder vio» es «solo lo vendido hasta el corte». Una fila REABIERTA conserva su
+`vendido_en` antiguo, así que si otro líder la reabre justo entre que esta hoja se cargó y se confirmó, el cierre la vuelve a tomar (y la persona que
+quería devolverla vuelve a chocar con «prenda_cerrada_sin_prenda»). No es un estado inválido ni mueve stock o dinero, el registro del cierre y
+Actividad dicen la cifra verdadera (el aviso de éxito también: lee la cifra que cerró la base) y se deshace reabriéndola otra vez. La solución estricta
+—que la hoja mande cuántas filas vio y la base rechace si cambió (`p_filas_esperadas`)— obliga a reemplazar `cerrar_cola_arranque`, que ya está en
+producción, por una función de otra firma; se dejó fuera por un caso que exige dos líderes en la misma ventana de segundos.
 
 **4. La salida de emergencia nace cerrada y expira.**
 DECIDÍ: `cola_arranque_plazo` (una fila por tienda, último día inclusivo en hora de Lima). Sin fila no hay botón. Las tres tiendas arrancan
@@ -81,18 +87,27 @@ DESCARTÉ: (i) dejar la cerrada definitiva, porque unas 13 a 25 clientes podría
 sin salida; (ii) que el botón «Regularizar» funcione sobre una fila cerrada, porque si un conteo ya corrigió el stock de esa prenda, regularizar
 después la descontaría otra vez.
 SE ROMPE SI: se reabre una prenda cuyo stock ya corrigió un conteo y se regulariza como «ya estaba registrada»: doble descuento. La hoja de
-reabrir lo avisa; la base no puede saberlo (el conteo no recuerda de qué venta salió la diferencia).
+reabrir lo avisa; la base no puede saberlo (el conteo no recuerda de qué venta salió la diferencia). También: se reabre una venta cerrada
+porque «la prenda aún no estaba cargada» para una devolución: regularizarla crea historial de esa prenda en la tienda y la carga inicial rechaza
+luego una prenda con historia (`carga_con_historia`). Es inevitable (una devolución mete la prenda a la tienda), así que la hoja de reabrir lo
+dice cuando el motivo del cierre fue ese, y si la prenda ya se cargó después, lo correcto es «Llegó nueva». Las ventas cerradas se leen SIN ventana
+de fechas (son pocas y no crecen): con la ventana del historial, una venta cerrada de hace más de un mes dejaba de tener botón para reabrirla.
 
 **6. Identificar con sugerencias: la base propone, el líder confirma.**
-DECIDÍ: `fn_cola_arranque_candidatas` (solo lectura, solo líder) propone la pareja (venta, prenda) solo cuando hay **exactamente una** prenda
-posible: activa, misma categoría, talla y color, con al menos 1 unidad disponible en la tienda fuera de cuarentena y sin lo apartado. Nunca
-propone más ventas por prenda que unidades. `regularizar_prendas_sugeridas` aplica las parejas que el líder dejó marcadas, **todas o ninguna**,
-y cada una pasa por `regularizar_prenda` («ya estaba registrada»). Rechaza una pareja que no calce o sea de otra tienda.
+DECIDÍ: UNA sola definición de «candidata» (acordada con la sesión del rediseño de Inventario, ADR-0328). `fn_candidatas_de_venta(tienda)` es la base,
+de lectura para quien opera la tienda: todas las parejas (venta pendiente, prenda) con misma categoría, talla y color y al menos 1 unidad disponible fuera
+de cuarentena y sin lo apartado; dice además si la prenda es «limpia» (toda unidad que tiene en la tienda es libre). `fn_cola_arranque_candidatas`
+(solo líder) queda encima: solo las ventas con **exactamente una** prenda posible, esa prenda «limpia», sin proponer más ventas que unidades.
+`regularizar_prendas_sugeridas` aplica las parejas que el líder marcó, **todas o ninguna**, cada una por `regularizar_prenda` («ya estaba registrada»),
+toma los candados en el orden de ADR-0190 (cola → prendas → stock) antes de su bucle y, si una pareja falla, nombra la venta. Las casillas nacen
+sin marcar. Rechaza una pareja que no calce o sea de otra tienda.
 DESCARTÉ: aplicar las sugerencias sin que alguien las mire: una sola candidata no es certeza. Si la prenda vendida nunca se cargó, la candidata
-es OTRA prenda que sigue colgada y quedaría con 1 de menos (ADR-0328, decisión 9: «por eso confirma una persona»). Y proponer también las de 2 o 3
-candidatas: elegir sería adivinar.
-SE ROMPE SI: alguien vendió la última unidad de esa prenda mientras se revisaba. La pareja falla con `prenda_sin_stock_para_descontar` y no se
-aplica ninguna.
+es OTRA prenda que sigue colgada y quedaría con 1 de menos (ADR-0328, decisión 9: «por eso confirma una persona»). Proponer también las de 2 o 3
+candidatas en bloque: elegir sería adivinar (el modal de una venta suelta SÍ puede mostrarlas todas para que la persona elija, leyendo la base común).
+Corregir `regularizar_prenda` para que descuente solo de filas libres: es de otra sesión (ADR-0328, #788 lo parcha por ancla); por eso la propuesta
+en bloque se limita a prendas «limpias» y no depende de cuál fila elija esa función.
+SE ROMPE SI: alguien vendió la última unidad de esa prenda mientras se revisaba. La pareja falla, no se aplica ninguna, la hoja lo explica
+y vuelve a buscar. Y si #788 cambia cómo `regularizar_prenda` elige la fila: la propuesta «limpia» sigue siendo válida (es más estricta).
 
 **7. No se inventa un costo.**
 DESCARTÉ: ponerle a las cerradas un costo promedio por categoría. Esas ventas quedan con costo 0 (la línea sigue en la variante «Cargo especial»):
@@ -120,6 +135,26 @@ antes de que el motor del piso cuente las cerradas**: si el motor solo contara p
 - Vitest: reglas puras (`lib/cola-arranque-reglas.test.ts`, que además compara las listas de motivos con las de la migración) y la suite entera.
 - En el navegador (base local propia, Chrome sin ventana): el líder ve los tres botones, elige tienda y motivo, cierra, ve las filas «Cerradas»,
   reabre una y desmarca una sugerencia; **una colaboradora no ve ningún botón** y sí ve las cerradas con su motivo.
+
+## Revisión independiente (2026-10-04, antes de pegar `110000` y `120000`)
+
+Cinco lentes (seguridad, integridad y concurrencia, pegado en producción, web, negocio) y un escéptico por hallazgo, solo lectura y con bases desechables:
+21 agentes, 13 hallazgos confirmados y 3 descartados. **Seguridad: ninguno.** Los que importaron, y qué se hizo:
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| Lo que se propone no siempre se puede aplicar (prenda con unidad apartada o en cuarentena: `regularizar_prenda` puede elegir esa fila y el lote entero falla) | `120000`: la propuesta en bloque solo toma prendas «limpias»; el error del lote nombra la venta; 6 casos de prueba |
+| El lote no tomaba los candados en el orden de ADR-0190 (deadlock posible contra una venta de caja) | `120000`: cola → prendas → stock antes del bucle; verificado con la definición de la función |
+| El aviso de error de las sugerencias mandaba a «Llegó nueva» (opción que esa hoja no tiene) y no volvía a buscar | Texto propio, y vuelve a buscar las sugerencias |
+| El aviso de éxito del cierre decía la cifra que vio la hoja, no la que cerró la base | Lee la cifra del registro del cierre |
+| El plazo nunca se le decía a la persona (el botón desaparecía) | Línea con el plazo de cada tienda sobre la tabla |
+| Reabrir una venta cerrada por «aún no cargada» lleva a crear historial de esa prenda | La hoja lo avisa; ver decisión 5 |
+| Las ventas cerradas de hace más de un mes no se podían reabrir (ventana del historial) | Las cerradas se leen sin ventana |
+| «una cliente»: texto con género | Lenguaje neutro (web y migración `110000`) |
+| Una fila reabierta puede volver a entrar a un cierre abierto en otra pestaña | Limitación documentada en la decisión 3 (arreglo estricto cambia la firma de una función ya en producción) |
+
+Quedaron fuera por no ser defectos: Enter en la nota (el botón dice el conteo y exige motivo), «Reintentar» sin las migraciones 4 y 5, y el cuerpo del PR
+(el revisor leyó una versión anterior).
 
 ## Lo que queda abierto
 

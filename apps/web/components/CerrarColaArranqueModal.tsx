@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { MOTIVOS_CIERRE, type MotivoCierre, type SedeParaCerrar } from "@/lib/cola-arranque-reglas";
+import { MOTIVOS_CIERRE, textoCierreHecho, type MotivoCierre, type SedeParaCerrar } from "@/lib/cola-arranque-reglas";
 import { sePuedeConfirmar, type CampoDeGuia } from "@/lib/guia-campos";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -55,7 +55,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
   async function cerrarCola() {
     if (!sede || !motivo || !sePuedeConfirmar(campos)) return;
     setGuardando(true);
-    const { error } = await firmar(
+    const { data: cierreId, error } = await firmar(
       createClient().rpc("cerrar_cola_arranque", {
         p_ubicacion_id: sede.ubicacionId,
         p_hasta: sede.corte,
@@ -69,9 +69,10 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
       avisar.error(traducirError(error, "cerrar la cola de arranque"));
       return;
     }
-    avisar.exito("Cola cerrada", {
-      detalle: `${sede.pendientes} ${sede.pendientes === 1 ? "prenda" : "prendas"} de ${sede.sede} quedaron cerradas sin prenda.`,
-    });
+    // La cifra del aviso es la que cerró la BASE (la del registro del cierre), no la que mostraba la hoja: si otra persona regularizó
+    // algunas mientras el líder leía, la base cerró menos y el aviso no debe afirmar lo contrario. Si no se puede leer, no se inventa.
+    const { data: cierre } = typeof cierreId === "string" ? await createClient().from("cierres_cola_arranque").select("filas").eq("id", cierreId).maybeSingle() : { data: null };
+    avisar.exito("Cola cerrada", { detalle: textoCierreHecho(sede.sede, cierre?.filas ?? null) });
     onClose();
     router.refresh();
   }
@@ -113,7 +114,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
                 <li>El stock no cambia y el dinero de cada venta tampoco: solo queda sin identificar qué prenda era.</li>
                 <li>Lo que se venda desde ahora sigue pendiente.</li>
                 <li>Antes de cerrar, usa «Identificar con sugerencias»: las que tienen una sola prenda posible se pueden unir a su prenda y dejar el stock cuadrado.</li>
-                <li>Si una cliente devuelve o cambia una de estas prendas, un líder tiene que reabrirla antes.</li>
+                <li>Si quien compró una de estas prendas la devuelve o la cambia, un líder tiene que reabrirla antes.</li>
                 {sede.diasDePlazo !== null && (
                   <li>
                     Esta opción está abierta {sede.diasDePlazo === 0 ? "solo hoy" : `${sede.diasDePlazo} ${sede.diasDePlazo === 1 ? "día más" : "días más"}`} para esta tienda.

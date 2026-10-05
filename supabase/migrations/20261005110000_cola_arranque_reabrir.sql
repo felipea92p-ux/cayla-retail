@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20261005110000_cola_arranque_reabrir.sql — CAYLA V2 (ADR-0334, Felipe 2026-10-04)
--- «Reabrir una venta cerrada sin prenda»: la salida cuando una cliente la devuelve o la quiere cambiar.
+-- «Reabrir una venta cerrada sin prenda»: la salida cuando quien la compró la devuelve o la quiere cambiar.
 --
 -- EL PROBLEMA. Cerrar la cola de arranque (20261005100100) deja la prenda sin identificar, y una venta cerrada sigue bloqueada para
 -- cambios y devoluciones: el sistema no sabe a qué stock volvería. Con ~267 ventas cerradas y una ventana de devolución, alguna
@@ -67,7 +67,7 @@ begin
       'existencias', 'prenda_reabierta',
       'reabrió la venta sin registrar «' || btrim(v_p.descripcion) || '» (' || fn_actividad_soles(v_p.precio_cobrado) || ') que estaba cerrada sin prenda — '
         || case p_motivo
-             when 'devolucion_o_cambio' then 'una cliente la quiere devolver o cambiar'
+             when 'devolucion_o_cambio' then 'quien la compró la quiere devolver o cambiar'
              when 'ya_se_sabe' then 'ya se sabe qué prenda era'
              else 'se cerró por error'
            end,

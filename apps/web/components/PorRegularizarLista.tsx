@@ -9,7 +9,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { cifrasPorRegularizar, estaVencida, tipoDiferencia, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
-import { motivoLegible, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
+import { avisosDePlazo, motivoLegible, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -78,6 +78,8 @@ export function PorRegularizarLista({
   const sedesCerrables = useMemo(() => sedesDelLider.filter((s) => s.puedeCerrar), [sedesDelLider]);
   // Las sugerencias no dependen del plazo: identificar una venta nunca está vedado, solo cerrarla sin prenda.
   const sedesConPendientes = useMemo(() => sedesDelLider.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesDelLider]);
+  // Qué dice el plazo de cada tienda: sin esto, vencido el plazo el botón desaparecía sin explicación.
+  const avisosPlazo = useMemo(() => avisosDePlazo(sedesDelLider), [sedesDelLider]);
 
   return (
     <div className="space-y-6">
@@ -125,6 +127,13 @@ export function PorRegularizarLista({
             </div>
           </div>
         </div>
+        {avisosPlazo.length > 0 && (
+          <ul className="space-y-0.5 px-5 pb-3 text-xs text-taupe">
+            {avisosPlazo.map((aviso) => (
+              <li key={aviso}>{aviso}</li>
+            ))}
+          </ul>
+        )}
         <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
         {visibles.length === 0 && (
           <p className={TABLA.vacio}>{filtro === "pendiente" ? `No hay prendas por regularizar en ${ubicacionEtiqueta}.` : "Nada que mostrar con estos filtros."}</p>
@@ -168,7 +177,7 @@ export function PorRegularizarLista({
                   <>
                     <p className="truncate text-xs text-tinta">{motivoLegible(f.cierre.motivo)}</p>
                     <p className="text-xs text-taupe">Cerrada el {diaYHoraLima(f.cierre.cerradoEn).dia} · sin identificar la prenda</p>
-                    {/* Solo un líder reabre (la base lo exige): para una cliente que la devuelve o la quiere cambiar. */}
+                    {/* Solo un líder reabre (la base lo exige): para quien la devuelve o la quiere cambiar. */}
                     {esLider && (
                       <button type="button" onClick={() => setReabriendo(f)} className="btn-cayla btn-secundario mt-1.5">
                         Reabrir

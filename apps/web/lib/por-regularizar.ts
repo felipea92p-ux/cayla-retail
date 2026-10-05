@@ -37,29 +37,36 @@ const COLUMNAS = `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, ve
  *
  * Antes era un solo `.limit(200)` por fecha descendente. Pasadas 200 filas lo primero que se perdía eran las pendientes más
  * viejas —las vencidas, que son las que hay que ver— y las cuatro cifras de la cabecera (`cifrasPorRegularizar`, que cuenta
- * lo que llega) salían de menos sin avisar, mientras el inicio (`contarVencidas`, con conteo exacto) decía otro número. Son dos
- * lecturas porque son dos cosas: la cola de trabajo no se corta nunca; el historial sí, por fecha y no por cantidad. Cada una
+ * lo que llega) salían de menos sin avisar, mientras el inicio (`contarVencidas`, con conteo exacto) decía otro número. Son tres
+ * lecturas porque son tres cosas: la cola de trabajo no se corta nunca; el historial sí, por fecha y no por cantidad; y las cerradas sin prenda tampoco. Cada una
  * va por páginas (`leerTodas`): PostgREST corta en 1.000 filas sin dar error.
  */
 export async function getPorRegularizar(ubicacionId: string | null, ahora: Date = new Date()): Promise<FilaPorRegularizar[]> {
   const supabase = await createClient();
   const ventana = resueltasDesde(ahora);
   // Lo normal es que cada lectura quepa en una página: en serie, la 2.ª solo se pide si la 1.ª vino llena.
-  const leer = (resueltas: boolean) =>
+  // Tres lecturas, porque son tres cosas: la COLA de trabajo (pendientes, sin ventana, la más vieja arriba), el HISTORIAL resuelto (por
+  // fecha) y las CERRADAS sin prenda (ADR-0334), que van SIN ventana: son pocas, no crecen y el botón «Reabrir» solo existe en esta lista;
+  // con la ventana del historial, una venta cerrada de hace más de un mes dejaría de poder reabrirse aunque la base lo permita.
+  const leer = (cual: "pendientes" | "resueltas" | "cerradas") =>
     leerTodas(
       (desde, hasta) => {
         let consulta = supabase.from("prendas_por_regularizar").select(COLUMNAS);
         if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
-        consulta = resueltas ? consulta.neq("estado", "pendiente").gte("vendido_en", ventana) : consulta.eq("estado", "pendiente");
+        if (cual === "pendientes") consulta = consulta.eq("estado", "pendiente");
+        else if (cual === "cerradas") consulta = consulta.eq("estado", "cerrada_sin_prenda");
+        else consulta = consulta.neq("estado", "pendiente").neq("estado", "cerrada_sin_prenda").gte("vendido_en", ventana);
         // `id` desempata: sin un orden único, dos páginas pueden repetir o saltarse filas.
-        return consulta.order("vendido_en", { ascending: !resueltas }).order("id").range(desde, hasta);
+        return consulta.order("vendido_en", { ascending: cual === "pendientes" }).order("id").range(desde, hasta);
       },
       { enParalelo: 1 },
     );
-  const [pendientes, resueltas] = await Promise.all([leer(false), leer(true)]);
-  const yaResueltas = exigir(resueltas, "las prendas ya regularizadas");
-  // Las dos lecturas no comparten foto de la base: una prenda que almacén regulariza justo entre las dos saldría en ambas y se
-  // pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
+  const [pendientes, resueltas, cerradas] = await Promise.all([leer("pendientes"), leer("resueltas"), leer("cerradas")]);
+  const yaResueltas = [...exigir(resueltas, "las prendas ya regularizadas"), ...exigir(cerradas, "las ventas cerradas sin prenda")].sort(
+    (a, b) => Date.parse(b.vendido_en) - Date.parse(a.vendido_en) || a.id.localeCompare(b.id),
+  );
+  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o un líder cierra) justo entre las lecturas saldría en
+  // dos y se pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
   // hasta el siguiente refresco.)
   const idsResueltas = new Set(yaResueltas.map((f) => f.id));
   const filas = [...exigir(pendientes, "las prendas por regularizar").filter((f) => !idsResueltas.has(f.id)), ...yaResueltas];

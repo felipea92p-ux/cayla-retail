@@ -367,7 +367,7 @@ rollback;`
 );
 
 // ---------------------------------------------------------------------------
-// Reabrir: la salida cuando una cliente devuelve una prenda cuya venta se cerró sin prenda
+// Reabrir: la salida cuando quien compró devuelve una prenda cuya venta se cerró sin prenda
 // ---------------------------------------------------------------------------
 
 const reabrir = (item, motivo = "devolucion_o_cambio") =>
@@ -482,8 +482,8 @@ rollback;`
  * prendas del seed con la misma categoría/talla/color (su stock se pone en 0 dentro de la transacción) y se leen los atributos de
  * :v1 en :vcat, :vtalla y :vcolor, que son los que usan las ventas de estas pruebas.
  */
-function fixtureSug(unidades = 2) {
-  return `${fixture()}
+function fixtureSug(unidades = 2, sede = "Tienda Lima") {
+  return `${fixture(sede)}
 select pr.categoria_id as vcat, v.talla_id as vtalla, v.color_codigo as vcolor
   from retail.variantes v join retail.productos pr on pr.id = v.producto_id where v.id = :'v1' \\gset
 update retail.stock set cantidad = 0
@@ -661,6 +661,132 @@ error(
 set local request.jwt.claim.sub = '${MICAELA}';
 ${sugeridas()}rollback;`),
   "cola_solo_lider"
+);
+
+// ---------------------------------------------------------------------------
+// Lo que se propone tiene que poder aplicarse, y hay UNA sola definición de «candidata» (revisión independiente, 2026-10-04)
+// ---------------------------------------------------------------------------
+
+/** Deja a :v1 con una unidad en el piso APARTADA para alguien y una unidad LIBRE en el almacén de la tienda. */
+const STOCK_APARTADO_Y_LIBRE = `
+select id as sub_alm from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda' limit 1 \\gset
+update retail.stock set cantidad = 1, cantidad_apartada = 1 where variante_id = :'v1' and ubicacion_id = :'ubic' and sububicacion_id = :'sub_piso';
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad) values (:'v1', :'ubic', :'sub_alm', 1)
+  on conflict (variante_id, ubicacion_id, sububicacion_id) do update set cantidad = 1;
+`;
+/** Deja a :v1 con una unidad en CUARENTENA y una unidad LIBRE en el almacén de la tienda (el piso en 0). */
+const STOCK_CUARENTENA_Y_LIBRE = `
+select id as sub_alm from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda' limit 1 \\gset
+select id as sub_cuar from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena' limit 1 \\gset
+update retail.stock set cantidad = 0 where variante_id = :'v1' and ubicacion_id = :'ubic';
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad) values (:'v1', :'ubic', :'sub_cuar', 1)
+  on conflict (variante_id, ubicacion_id, sububicacion_id) do update set cantidad = 1;
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad) values (:'v1', :'ubic', :'sub_alm', 1)
+  on conflict (variante_id, ubicacion_id, sububicacion_id) do update set cantidad = 1;
+`;
+
+exito(
+  "una prenda con una unidad APARTADA no se propone en bloque (regularizar podría elegir la fila apartada), pero la base común la muestra como no limpia",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}${STOCK_APARTADO_Y_LIBRE}
+select (select count(*) from retail.fn_cola_arranque_candidatas(:'ubic')),
+       (select count(*) from retail.fn_candidatas_de_venta(:'ubic') where prenda_id = :'prenda_a'::uuid and not limpia and disponible = 1);
+rollback;`
+  ),
+  ([enBloque, enLaBase]) => enBloque === "0" && enLaBase === "1"
+);
+
+exito(
+  "una prenda con una unidad en CUARENTENA no se propone en bloque, pero la base común la muestra como no limpia",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}${STOCK_CUARENTENA_Y_LIBRE}
+select (select count(*) from retail.fn_cola_arranque_candidatas(:'ubic')),
+       (select count(*) from retail.fn_candidatas_de_venta(:'ubic') where prenda_id = :'prenda_a'::uuid and not limpia and disponible = 1);
+rollback;`
+  ),
+  ([enBloque, enLaBase]) => enBloque === "0" && enLaBase === "1"
+);
+
+exito(
+  "con la prenda limpia, lo que se propone se aplica de verdad: la base común la marca limpia y el lote la regulariza",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+select (select count(*) from retail.fn_candidatas_de_venta(:'ubic') where prenda_id = :'prenda_a'::uuid and limpia and disponible = 2);
+${paresA("a")}${sugeridas()}
+select :'n_ident';
+rollback;`
+  ),
+  ([n]) => n === "1"
+);
+
+exito(
+  "UNA sola definición de candidata: con DOS prendas posibles la base común devuelve las dos y la de bloque ninguna",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug()}${venderComoV1("a")}
+insert into retail.productos (referencia, marca_id, proveedor_id, categoria_id)
+  select 'Candidata dos de prueba', marca_id, proveedor_id, :'vcat' from retail.productos order by created_at limit 1 returning id as p2 \\gset
+insert into retail.variantes (producto_id, talla_id, color_codigo, sku, precio) values (:'p2', :'vtalla', :'vcolor', 'SUG-DOS-BASE', 50) returning id as v2 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v2', :'ubic', :'sub_piso', 'entrada', 3, 'prueba de sugerencias') returning id as mov2 \\gset
+select retail.fn_aplicar_movimiento(:'mov2') as _d2 \\gset
+select (select count(*) from retail.fn_candidatas_de_venta(:'ubic') where prenda_id = :'prenda_a'::uuid),
+       (select count(*) from retail.fn_cola_arranque_candidatas(:'ubic'));
+rollback;`
+  ),
+  ([enLaBase, enBloque]) => enLaBase === "2" && enBloque === "0"
+);
+
+exito(
+  "quien opera la tienda (colaboradora) puede ver las prendas posibles de SU tienda, pero no las de bloque ni las de otra tienda",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}
+set local request.jwt.claim.sub = '${MICAELA}';
+select (select count(*) from retail.fn_candidatas_de_venta(:'ubic') where prenda_id = :'prenda_a'::uuid),
+       (select retail.fn_es_lider()),
+       (select count(*) from retail.ubicaciones where nombre = 'Tienda Lima' and not retail.fn_puede_operar_ubicacion(id));
+rollback;`
+  ),
+  ([propias, lider, ajena]) => propias === "1" && lider === "f" && ajena === "1"
+);
+
+error(
+  "una colaboradora no puede pedir las de bloque aunque opere la tienda",
+  comoPersona(FELIPE, `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}
+set local request.jwt.claim.sub = '${MICAELA}';
+select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
+rollback;`),
+  "cola_solo_lider"
+);
+
+error(
+  "una colaboradora no puede ver las prendas posibles de OTRA tienda",
+  comoPersona(FELIPE, `${fixtureSug()}${venderComoV1("a")}
+set local request.jwt.claim.sub = '${MICAELA}';
+select count(*) from retail.fn_candidatas_de_venta(:'ubic');
+rollback;`),
+  "cola_sin_permiso_sede"
+);
+
+error(
+  "si una pareja falla, el error NOMBRA la venta y conserva el código de la base",
+  comoPersona(FELIPE, `${fixtureSug(1)}${venderComoV1("a", 50)}${venderComoV1("b", 60)}${paresA("a", "b")}${sugeridas()}rollback;`),
+  "Venta «Blusa negra M»"
+);
+
+exito(
+  "el lote toma los candados en el orden de ADR-0190 (cola → prendas → stock) antes de su bucle",
+  comoPersona(
+    FELIPE,
+    `select pg_get_functiondef('retail.regularizar_prendas_sugeridas(uuid, jsonb)'::regprocedure) like '%fn_bloquear_en_orden%'
+       and pg_get_functiondef('retail.regularizar_prendas_sugeridas(uuid, jsonb)'::regprocedure) like '%order by id for update%';
+rollback;`
+  ),
+  ([ok]) => ok === "t"
 );
 
 // ---------------------------------------------------------------------------

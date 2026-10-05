@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, armarSugerencias, diasDePlazo, paresParaConfirmar, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola, type PrendaDelCatalogo, type VentaPendiente } from "./cola-arranque-reglas";
+import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, armarSugerencias, avisoAlReabrir, avisosDePlazo, diasDePlazo, errorDeSugerencias, paresParaConfirmar, textoCierreHecho, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola, type PrendaDelCatalogo, type VentaPendiente } from "./cola-arranque-reglas";
 
 // 2026-10-04 12:00 en Lima = 17:00 UTC.
 const AHORA = new Date("2026-10-04T17:00:00Z");
@@ -159,5 +159,62 @@ describe("armarSugerencias / paresParaConfirmar", () => {
     );
     expect(paresParaConfirmar(s, new Set(["v3", "v1"]))).toEqual([{ prenda_id: "v1", variante_id: "p1" }, { prenda_id: "v3", variante_id: "p1" }]);
     expect(paresParaConfirmar(s, new Set())).toEqual([]);
+  });
+});
+
+describe("avisosDePlazo", () => {
+  const sede = (p: Partial<import("./cola-arranque-reglas").SedeParaCerrar>) => ({
+    ubicacionId: "x", sede: "Tienda AQP", pendientes: 3, soles: 10, desde: "2026-10-01T00:00:00+00:00", corte: "2026-10-02T00:00:00+00:00",
+    plazoHasta: "2026-10-15", diasDePlazo: 11, puedeCerrar: true, ...p,
+  });
+  it("con plazo vigente dice hasta cuándo y cuántos días quedan", () => {
+    expect(avisosDePlazo([sede({})])).toEqual(["Tienda AQP: puedes cerrar su cola de arranque hasta el 15/10 (11 días más)."]);
+    expect(avisosDePlazo([sede({ diasDePlazo: 1 })])[0]).toContain("(1 día más)");
+    expect(avisosDePlazo([sede({ diasDePlazo: 0 })])).toEqual(["Tienda AQP: hoy es el último día para cerrar su cola de arranque."]);
+  });
+  it("vencido o sin plazo lo dice, en vez de dejar un botón que desaparece sin explicación", () => {
+    expect(avisosDePlazo([sede({ puedeCerrar: false, diasDePlazo: null })])[0]).toContain("venció el 15/10");
+    expect(avisosDePlazo([sede({ plazoHasta: null, puedeCerrar: false, diasDePlazo: null })])).toEqual(["Tienda AQP: no tiene plazo abierto para cerrar su cola de arranque."]);
+  });
+  it("una línea por tienda, en el orden recibido", () => {
+    expect(avisosDePlazo([sede({ sede: "Tienda AQP" }), sede({ sede: "Tienda TRU" })])).toHaveLength(2);
+  });
+});
+
+describe("textoCierreHecho", () => {
+  it("dice la cifra que cerró la base, no la que vio el líder", () => {
+    expect(textoCierreHecho("Tienda TRU", 92)).toBe("92 prendas de Tienda TRU quedaron cerradas sin prenda.");
+    expect(textoCierreHecho("Tienda TRU", 1)).toBe("1 prenda de Tienda TRU quedó cerrada sin prenda.");
+  });
+  it("si no se pudo leer la cifra, no inventa una", () => {
+    expect(textoCierreHecho("Tienda TRU", null)).toBe("Las ventas sin registrar de Tienda TRU quedaron cerradas sin prenda.");
+  });
+});
+
+describe("errorDeSugerencias", () => {
+  it("un cambio de stock o una venta ya regularizada se explica en esta hoja y pide volver a buscar (no manda a «Llegó nueva»)", () => {
+    for (const message of ["prenda_sin_stock_para_descontar", "prenda_ya_regularizada", "cola_pares_invalidos"]) {
+      const r = errorDeSugerencias({ message, hint: null });
+      expect(r?.recargar).toBe(true);
+      expect(r?.texto).toContain("No se aplicó ninguna");
+      expect(r?.texto).not.toContain("Llegó nueva");
+    }
+  });
+  it("nombra la venta que falló cuando la base la trae", () => {
+    const r = errorDeSugerencias({ message: "prenda_sin_stock_para_descontar", hint: "Venta «Blusa negra M»: no se aplicó ninguna de las que marcaste. Esa prenda no tiene stock" });
+    expect(r?.texto).toContain("«Blusa negra M»");
+  });
+  it("otro error no se toca: lo traduce traducirError", () => {
+    expect(errorDeSugerencias({ message: "cola_solo_lider" })).toBeNull();
+    expect(errorDeSugerencias(null)).toBeNull();
+  });
+});
+
+describe("avisoAlReabrir", () => {
+  it("solo avisa cuando la venta se cerró por «aún no cargada»", () => {
+    expect(avisoAlReabrir("aun_no_cargada")).toContain("carga inicial");
+    expect(avisoAlReabrir("no_se_sabe")).toBeNull();
+    expect(avisoAlReabrir("ultima_unidad")).toBeNull();
+    expect(avisoAlReabrir(null)).toBeNull();
   });
 });

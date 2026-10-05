@@ -27,7 +27,7 @@ export type MotivoReapertura = "devolucion_o_cambio" | "ya_se_sabe" | "cierre_po
 
 /** Por qué un líder reabre una venta cerrada (`reabrir_prenda_cerrada`, 20261005110000): la lista cerrada de la base, en palabras del negocio. */
 export const MOTIVOS_REAPERTURA: readonly { clave: MotivoReapertura; titulo: string; ayuda: string }[] = [
-  { clave: "devolucion_o_cambio", titulo: "Una cliente la quiere devolver o cambiar", ayuda: "Reabierta, se regulariza con su prenda real y recién entonces se puede devolver." },
+  { clave: "devolucion_o_cambio", titulo: "Quien la compró la quiere devolver o cambiar", ayuda: "Reabierta, se regulariza con su prenda real y recién entonces se puede devolver." },
   { clave: "ya_se_sabe", titulo: "Ya se sabe qué prenda era", ayuda: "Se identifica ahora y el stock de esa prenda queda cuadrado." },
   { clave: "cierre_por_error", titulo: "Se cerró por error", ayuda: "Vuelve a pendientes, como si no se hubiera cerrado." },
 ];
@@ -165,4 +165,61 @@ export function armarSugerencias(parejas: readonly ParejaSugerida[], ventas: rea
 /** El cuerpo que recibe `regularizar_prendas_sugeridas`: solo las parejas marcadas, en el orden en que se ven. */
 export function paresParaConfirmar(sugerencias: readonly Sugerencia[], marcadas: ReadonlySet<string>): { prenda_id: string; variante_id: string }[] {
   return sugerencias.filter((s) => marcadas.has(s.prendaId)).map((s) => ({ prenda_id: s.prendaId, variante_id: s.varianteId }));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Textos que dependen de lo que pasó (revisión independiente del 2026-10-04): se escriben aquí para probarlos, no dentro del JSX.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+const diaMes = (fecha: string) => {
+  const [, mes, dia] = fecha.split("-");
+  return `${dia}/${mes}`;
+};
+
+/**
+ * Lo que la pantalla le dice a un líder sobre el plazo de cada tienda con ventas pendientes. Sin esto, vencido el plazo el botón
+ * desaparecía sin explicación: quien lo buscaba no sabía si era un permiso, un error o una fecha.
+ */
+export function avisosDePlazo(sedes: readonly SedeParaCerrar[]): string[] {
+  return sedes.map((s) => {
+    if (s.plazoHasta === null) return `${s.sede}: no tiene plazo abierto para cerrar su cola de arranque.`;
+    if (!s.puedeCerrar) return `${s.sede}: el plazo para cerrar su cola de arranque venció el ${diaMes(s.plazoHasta)}. Si hace falta más tiempo, avisa a quien administra el sistema.`;
+    if (s.diasDePlazo === 0) return `${s.sede}: hoy es el último día para cerrar su cola de arranque.`;
+    const dias = s.diasDePlazo ?? 0;
+    return `${s.sede}: puedes cerrar su cola de arranque hasta el ${diaMes(s.plazoHasta)} (${dias} ${dias === 1 ? "día" : "días"} más).`;
+  });
+}
+
+/** El aviso de éxito del cierre: con la cifra que cerró la BASE (puede ser menor que la que vio el líder si otra persona regularizó mientras tanto). */
+export function textoCierreHecho(sede: string, cerradas: number | null): string {
+  if (cerradas === null) return `Las ventas sin registrar de ${sede} quedaron cerradas sin prenda.`;
+  return cerradas === 1 ? `1 prenda de ${sede} quedó cerrada sin prenda.` : `${cerradas} prendas de ${sede} quedaron cerradas sin prenda.`;
+}
+
+/** Lo mínimo de un error de la base para clasificarlo (`message` trae el código; `hint`, el detalle y, desde 120000, la venta). */
+export type ErrorDeLaBase = { message?: string | null; hint?: string | null } | null | undefined;
+
+const CAMBIO_MIENTRAS_SE_REVISABA = ["prenda_sin_stock_para_descontar", "prenda_ya_regularizada", "cola_pares_invalidos"];
+
+/**
+ * Cuando «Identificar con sugerencias» falla porque algo cambió mientras el líder revisaba (alguien vendió la última unidad, alguien ya
+ * regularizó una de las ventas, una pareja ya no calza): un texto propio de ESTA hoja y la orden de volver a buscar. El mensaje genérico de
+ * `regularizar_prenda` manda a «Llegó nueva», una opción que esta hoja no tiene. null = otro error: que lo traduzca `traducirError`.
+ */
+export function errorDeSugerencias(error: ErrorDeLaBase): { texto: string; recargar: true } | null {
+  const crudo = `${error?.message ?? ""} ${error?.hint ?? ""}`;
+  if (!CAMBIO_MIENTRAS_SE_REVISABA.some((codigo) => crudo.includes(codigo)) && !crudo.includes("Una de las ventas ya no calza")) return null;
+  const venta = /Venta «([^»]+)»/.exec(crudo)?.[1];
+  const que = venta ? `No se pudo identificar «${venta}»: el stock cambió o alguien ya la regularizó mientras revisabas.` : "El stock cambió o alguien ya regularizó una venta mientras revisabas.";
+  return { texto: `${que} No se aplicó ninguna. Volvimos a buscar las sugerencias.`, recargar: true };
+}
+
+/**
+ * Lo que hay que saber al reabrir una venta que se cerró porque «la prenda aún no estaba cargada»: reabrirla para una devolución lleva a
+ * regularizarla, y eso crea historial de esa prenda en la tienda; la carga inicial rechaza después una prenda con historia
+ * (`carga_con_historia`). null = no hace falta decir nada.
+ */
+export function avisoAlReabrir(motivoDelCierre: string | null | undefined): string | null {
+  if (motivoDelCierre !== "aun_no_cargada") return null;
+  return "Esta venta se cerró porque la prenda aún no estaba cargada. Si ya se cargó, regulariza como «Llegó nueva». Si sigue sin cargarse, registrarla ahora crea su historial y la carga inicial de esa prenda se rechazará: avisa a quien carga el stock.";
 }
