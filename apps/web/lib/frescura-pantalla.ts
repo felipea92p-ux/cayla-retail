@@ -61,10 +61,12 @@ export const FRASE_SIN_ELLA =
  * hoy. El título sigue siendo el nombre del menú (ADR-0220); la pregunta va en la frase. Una sola vez: «N prendas esperan tu
  * decisión» no se repite en una cifra aparte. Con negritas (`TextoRico`).
  */
-export function fraseEncabezado(porDecidir: number | null): TextoRico {
+export function fraseEncabezado(porDecidir: number | null, conPocasVentas = false): TextoRico {
   const pregunta = "¿Qué lleva mucho tiempo colgado?";
   if (porDecidir === null) return pregunta;
-  if (porDecidir === 0) return `${pregunta} **Nada por decidir: todo en orden.**`;
+  // «Todo en orden» es una afirmación: con pocas ventas nada puede salir «por decidir» todavía (no hay con qué juzgar), así que
+  // solo se dice «por ahora». Lo vio la pantalla real de Tienda Lima, que decía «todo en orden» junto a «hay pocas ventas».
+  if (porDecidir === 0) return `${pregunta} **${conPocasVentas ? "Nada por decidir por ahora." : "Nada por decidir: todo en orden."}**`;
   return `${pregunta} **${porDecidir} ${porDecidir === 1 ? "prenda espera" : "prendas esperan"} tu decisión.**`;
 }
 
