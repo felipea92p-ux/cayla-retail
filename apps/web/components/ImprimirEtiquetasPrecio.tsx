@@ -262,7 +262,7 @@ export function ImprimirEtiquetasPrecio({
                 value={cantidades[e.varianteId] ?? ""}
                 onChange={(ev) => setCantidades((c) => ({ ...c, [e.varianteId]: ev.target.value }))}
                 aria-label={`Etiquetas de ${e.prenda}${e.color ? ` ${e.color}` : ""}${e.talla ? ` talla ${e.talla}` : ""}`}
-                className="caja-cayla h-9 w-20 px-2 text-right tabular-nums text-tinta outline-none"
+                className="caja-cayla h-9 w-20 px-2 text-right tabular-nums text-tinta"
               />
             </span>
           </div>

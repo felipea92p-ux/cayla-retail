@@ -187,7 +187,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={alTecladoLista}
               placeholder="Pantalla o persona del equipo…"
-              className="caja-cayla w-full py-2.5 pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-tinta/40 dark:placeholder:text-tinta/55 focus:border-taupe/40"
+              className="caja-cayla w-full py-2.5 pl-9 pr-3 text-sm text-tinta placeholder:text-tinta/40 dark:placeholder:text-tinta/55 focus:border-taupe/40"
             />
           </div>
 
