@@ -53,7 +53,17 @@ export const QUIZA_MAS = "quizá más";
 export const FRASE_SIN_ELLA =
   "Cada prenda se compara con las demás de su categoría, nunca consigo misma: así la que no se vende no hace parecer normal su propia lentitud.";
 
-export const FRASE_ENCABEZADO = "Cuánto lleva colgada cada prenda y qué tan rápido se vende, contra las demás de su categoría.";
+/**
+ * La frase bajo el título (Formidable, ADR-0350, leyes 1 y 2): la PREGUNTA que resuelve la pantalla y, enseguida, su respuesta de
+ * hoy. El título sigue siendo el nombre del menú (ADR-0220); la pregunta va en la frase. Una sola vez: «N prendas esperan tu
+ * decisión» no se repite en una cifra aparte. Con negritas (`TextoRico`).
+ */
+export function fraseEncabezado(porDecidir: number | null): TextoRico {
+  const pregunta = "¿Qué lleva mucho tiempo colgado?";
+  if (porDecidir === null) return pregunta;
+  if (porDecidir === 0) return `${pregunta} **Nada por decidir: todo en orden.**`;
+  return `${pregunta} **${porDecidir} ${porDecidir === 1 ? "prenda espera" : "prendas esperan"} tu decisión.**`;
+}
 
 /** Qué pueden abrir los botones del detalle: cada uno solo si el rol ve esa pantalla (ADR-0161; ningún botón termina en «Sin acceso»). */
 export type AccesoFrescura = { existencias: boolean; historial: boolean; traslados: boolean; conteos: boolean; atributos: boolean };
@@ -468,8 +478,9 @@ const ES_FILTRO_ESTADO = new Set<string>(FILTROS_ESTADO.map((f) => f.valor));
 
 export const TODAS_LAS_CATEGORIAS = "todas";
 
-export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; decididas: boolean; q: string };
-export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, decididas: false, q: "" };
+/** `todas`: la persona pidió ver todas las prendas aunque haya algo por decidir (sin eso, lo por decidir va primero). No es un filtro. */
+export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; decididas: boolean; q: string; todas: boolean };
+export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, decididas: false, q: "", todas: false };
 
 /**
  * Los filtros de la URL (`?cat=`, `?estado=`, `?pordecidir=1`, `?q=`). Lo que no se entiende se ignora. `cat=` vacío es
@@ -484,6 +495,7 @@ export function filtrosDeUrl(leer: (clave: string) => string | null | undefined)
     porDecidir: leer("pordecidir") === "1",
     decididas: leer("decididas") === "1",
     q: (leer("q") ?? "").slice(0, 80),
+    todas: leer("todas") === "1",
   };
 }
 
@@ -495,11 +507,22 @@ export function consultaDe(f: Filtros, prenda: string | null): string {
   if (f.porDecidir) q.set("pordecidir", "1");
   if (f.decididas) q.set("decididas", "1");
   if (f.q.trim()) q.set("q", f.q.trim());
+  if (f.todas) q.set("todas", "1");
   if (prenda) q.set("prenda", prenda);
   return q.toString();
 }
 
 export const hayFiltros = (f: Filtros) => f.cat !== TODAS_LAS_CATEGORIAS || f.estado !== "todos" || f.porDecidir || f.decididas || f.q.trim() !== "";
+
+/**
+ * La vista con que se abre la pantalla (Formidable, ley 2): si hay algo por decidir y la persona no pidió otra cosa, **primero
+ * lo que le toca**, y el resto queda a un toque en «Ver todas». Con cualquier filtro puesto (o con `todas`) se ve lo que pidió.
+ * Nada se esconde para siempre: es el mismo «Por decidir», puesto de entrada.
+ */
+export function vistaDeEntrada(f: Filtros, porDecidir: number): { primeroLoDecidible: boolean; efectivos: Filtros } {
+  const primeroLoDecidible = porDecidir > 0 && !f.todas && !hayFiltros(f);
+  return { primeroLoDecidible, efectivos: primeroLoDecidible ? { ...f, porDecidir: true } : f };
+}
 
 /** ¿La prenda entra en este estado del filtro? «Temporada» se cruza con los de arriba (una prenda puede estar en los dos). */
 export function pasaEstado(p: FrescuraPrenda, estado: FiltroEstado): boolean {

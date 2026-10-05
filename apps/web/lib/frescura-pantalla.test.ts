@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FILTROS_ESTADO,
-  FRASE_ENCABEZADO,
   FRASE_SIN_ELLA,
   NOMBRE_TRAMO,
   llevaTexto,
@@ -19,6 +18,7 @@ import {
   fechaCorta,
   filaVista,
   filtrosDeUrl,
+  fraseEncabezado,
   grupoVista,
   hayFiltros,
   muchasSinTemporada,
@@ -36,6 +36,7 @@ import {
   textoRegistro,
   textoSugerencia,
   trozosRicos,
+  vistaDeEntrada,
   type AccesoFrescura,
   type ContextoFrescura,
   type NombresDeTemporadas,
@@ -159,7 +160,7 @@ const CTX_LIDER = { ...CTX_REAL, cayla: new Map(SEDE.categorias.map((c) => [c.ca
 
 /** Todo lo que la pantalla puede escribir de la sede real: filas, cabeceras y hojas de detalle. */
 function todoElTexto(c: ContextoFrescura): string {
-  const partes: string[] = [FRASE_ENCABEZADO, FRASE_SIN_ELLA];
+  const partes: string[] = [fraseEncabezado(null), fraseEncabezado(0), fraseEncabezado(1), fraseEncabezado(5), FRASE_SIN_ELLA];
   for (const p of SEDE.prendas) {
     partes.push(JSON.stringify(filaVista(p, c)), JSON.stringify(detalleVista(p, c)));
   }
@@ -367,9 +368,9 @@ describe("los filtros viven en la URL", () => {
     };
     expect(leer("")).toEqual(SIN_FILTROS);
     expect(leer("estado=inventado&pordecidir=si")).toEqual(SIN_FILTROS);
-    expect(leer("cat=blu&estado=critica&pordecidir=1&q=wayra")).toEqual({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: "wayra" });
+    expect(leer("cat=blu&estado=critica&pordecidir=1&q=wayra")).toEqual({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: "wayra", todas: false });
     expect(consultaDe(SIN_FILTROS, null)).toBe("");
-    expect(consultaDe({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: " wayra " }, "prod-1|NEG")).toBe("cat=blu&estado=critica&pordecidir=1&q=wayra&prenda=prod-1%7CNEG");
+    expect(consultaDe({ cat: "blu", estado: "critica", porDecidir: true, decididas: false, q: " wayra ", todas: false }, "prod-1|NEG")).toBe("cat=blu&estado=critica&pordecidir=1&q=wayra&prenda=prod-1%7CNEG");
     expect(hayFiltros(SIN_FILTROS)).toBe(false);
     expect(hayFiltros({ ...SIN_FILTROS, q: "x" })).toBe(true);
   });
@@ -753,8 +754,8 @@ describe("corrección del paso 4 · filtros", () => {
     expect(panel.match(/filtrosDeUrl\(/g)).toHaveLength(1);
     // Y la categoría que no está en la tabla se normaliza a «todas» contra las opciones del combo.
     expect(panel).toMatch(/opcionesCategoria\.some\(\(o\) => o\.valor === pedidos\.cat\)/);
-    // El ámbar de «por decidir» solo con algo por decidir (el contrato de ResumenSede).
-    expect(panel).toMatch(/alerta: cifras\.porDecidir > 0/);
+    // «Por decidir» NO es una cifra aparte de la cabecera: lo dice la frase de arriba y lo filtra la píldora (una sola vez, ADR-0350).
+    expect(panel).not.toMatch(/etiqueta: "por decidir"/);
   });
 });
 
@@ -783,5 +784,35 @@ describe("Formidable (ADR-0350) · una fila, una prenda, una frase", () => {
     expect(filaVista(prenda({ estado: sem("vigente") }), ctx()).nada).toBe("Déjala así");
     expect(filaVista(prenda({ pisoHoy: 0, apartadasHoy: 2, apartadasPisoHoy: 2, estado: sem("vigente") }), ctx()).nada).toBe("Nada: tiene dueño");
     expect(filaVista(prenda({ estado: { ...ESTADO_BASE, tipo: "dudosa" } }), ctx()).nada).toBe("Revisa su stock primero");
+  });
+});
+
+describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", () => {
+  it("la frase bajo el título es la PREGUNTA y su respuesta de hoy, con el número una sola vez", () => {
+    expect(fraseEncabezado(null)).toBe("¿Qué lleva mucho tiempo colgado?");
+    expect(fraseEncabezado(0)).toBe("¿Qué lleva mucho tiempo colgado? **Nada por decidir: todo en orden.**");
+    expect(fraseEncabezado(1)).toBe("¿Qué lleva mucho tiempo colgado? **1 prenda espera tu decisión.**");
+    expect(fraseEncabezado(5)).toBe("¿Qué lleva mucho tiempo colgado? **5 prendas esperan tu decisión.**");
+  });
+
+  it("de entrada, lo por decidir va PRIMERO; cualquier filtro o «Ver todas» suelta el resto", () => {
+    const entrada = vistaDeEntrada(SIN_FILTROS, 5);
+    expect(entrada.primeroLoDecidible).toBe(true);
+    expect(entrada.efectivos).toEqual({ ...SIN_FILTROS, porDecidir: true });
+    // Sin nada por decidir se ve todo: no hay nada que poner primero.
+    expect(vistaDeEntrada(SIN_FILTROS, 0)).toEqual({ primeroLoDecidible: false, efectivos: SIN_FILTROS });
+    // La persona pidió todas, buscó, filtró por categoría o por estado: se respeta lo que pidió.
+    for (const pedido of [{ todas: true }, { q: "blusa" }, { cat: "blu" }, { estado: "critica" as const }, { decididas: true }]) {
+      const f = { ...SIN_FILTROS, ...pedido };
+      expect(vistaDeEntrada(f, 5), JSON.stringify(pedido)).toEqual({ primeroLoDecidible: false, efectivos: f });
+    }
+  });
+
+  it("«todas» viaja en la URL: un enlace abre lo mismo, y «todas» solo no cuenta como filtro", () => {
+    const f = filtrosDeUrl((k) => (k === "todas" ? "1" : null));
+    expect(f).toEqual({ ...SIN_FILTROS, todas: true });
+    expect(consultaDe(f, null)).toBe("todas=1");
+    expect(hayFiltros(f)).toBe(false);
+    expect(filtrosDeUrl(() => null).todas).toBe(false);
   });
 });
