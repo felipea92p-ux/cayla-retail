@@ -88,7 +88,7 @@ real guardada de la base (17 prendas, 2 por decidir; borrada al terminar) a 1440
 - **[Medido]** el medidor, al volver a pasar, **encontró un defecto que yo había introducido** (los botones nuevos medían 16 px) y quedó corregido. Contraste del texto: 0 fallas; huecos fuera de escala: 0.
 - **Lo que NO se puede afirmar:** las notas de las leyes **no se recalificaron**. Hacerlo exige repetir los cuatro agentes con datos que permitan la tarea y, sobre todo, 3 a 5 colaboradoras reales.
   El oficio visual medido ahora (6 de 8 fallan, sin el menú lateral ni el buscador) **no es comparable** con el de antes (7 de 8, con el chrome global de la app real): la página de ensayo no los trae.
-- **Pendiente de la lista aparte:** texto bajo 12 px (chips y leyendas), el foco visible débil de todo el ERP y las cifras sin uso de `cifrasVista` (hay una tarea creada para cada uno).
+- **Pendiente de la lista aparte:** texto bajo 12 px (chips y leyendas) y el foco visible débil de todo el ERP (hay una tarea creada para cada uno). Las cifras de promedio y «% Nueva» **no son código muerto**: «Las N tiendas» (`FrescuraTiendas.tsx:55-56`) las sigue usando.
 
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
