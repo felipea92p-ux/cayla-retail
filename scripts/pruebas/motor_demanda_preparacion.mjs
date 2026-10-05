@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pruebas de la lectura del motor de demanda, etapa 0 (ADR-0346) — `retail.fn_motor_demanda_preparacion(p_ubicacion_id)`,
- * migración `20261005210000_motor_demanda_preparacion.sql`. CAYLA V2.
+ * migraciones `20261005210000_motor_demanda_preparacion.sql` y `20261005223000_motor_demanda_preparacion_sin_sede.sql` (la vigente). CAYLA V2.
  *
  * LO QUE VIGILA. La lectura dice, por tienda, cuántas unidades se vendieron cada día de Lima y cuántas apuntan a una prenda real
  * (no a la centinela de «venta sin registrar»), más la fecha del último cuadre del piso y si el almacén ya tuvo su conteo de
@@ -11,8 +11,8 @@
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; una sede NUEVA por caso, así nada del seed se mezcla).
  *   F  FORMA: una firma, SECURITY DEFINER, STABLE, search_path fijo; anon sin EXECUTE, authenticated con EXECUTE.
- *   P  PUERTAS: sin sede, solo quien ve `cayla_global` (Felipe sí, Micaela 42501); con sede, también quien la opera (Micaela
- *     con Tienda Trujillo sí, con la sede de prueba 42501).
+ *   P  PUERTAS: sin sede, quien ve `cayla_global` recibe todas las tiendas (Felipe) y los demás solo las que operan (Micaela: su
+ *     tienda), sin error; con sede, quien la opera (Micaela con Tienda Trujillo sí, con la sede de prueba 42501).
  *   D  DÍAS: identificadas y total por día de LIMA (las 23:30 de ayer en Lima son ayer, aunque en UTC ya sea hoy); la venta
  *     anulada, la de prueba, la de otra sede y la de hace 50 días no cuentan; la liquidación de una dañada tampoco.
  *   R  REGULARIZADA: al pasar la línea de la centinela a la prenda real, cuenta como identificada en el día en que se cobró.
@@ -35,7 +35,8 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261005210000_motor_demanda_preparacion.sql"), "utf8");
+// La versión vigente: 20261005223000 reemplazó a 20261005210000 (sin sede, cada cuenta recibe las tiendas que opera, sin error).
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261005223000_motor_demanda_preparacion_sin_sede.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -167,9 +168,9 @@ caso(
   "1,true"
 );
 caso(
-  "P2 sin sede: Micaela (sin CAYLA Global) recibe 42501, nunca filas vacías",
-  `${como(MICAELA)}select split_part(pg_temp.intento('select * from retail.fn_motor_demanda_preparacion()'), '|', 1);`,
-  "42501"
+  "P2 sin sede: Micaela (sin CAYLA Global) recibe solo la tienda que opera, sin error (el barrido de terminales lo exige)",
+  `${como(MICAELA)}select string_agg(nombre, ',' order by nombre) from retail.fn_motor_demanda_preparacion();`,
+  "Tienda Trujillo"
 );
 caso(
   "P3 con sede: Micaela lee la suya (Tienda Trujillo) y no la de prueba",

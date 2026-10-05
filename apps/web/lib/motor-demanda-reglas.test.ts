@@ -40,7 +40,7 @@ describe("las decisiones de Felipe (2026-10-05)", () => {
   });
   it("la ventana que se lee es la de la migración", () => {
     const sql = readFileSync(
-      join(__dirname, "..", "..", "..", "supabase", "migrations", "20261005210000_motor_demanda_preparacion.sql"),
+      join(__dirname, "..", "..", "..", "supabase", "migrations", "20261005223000_motor_demanda_preparacion_sin_sede.sql"),
       "utf8"
     );
     expect(sql).toMatch(new RegExp(`c_dias constant integer := ${DIAS_LEIDOS};`));

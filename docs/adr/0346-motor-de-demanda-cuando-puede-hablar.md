@@ -76,3 +76,18 @@ invisibles para el sistema, y Zara cambió a RFID antes de optimizar.
   con su prenda).
 - En el navegador, en local: CAYLA Global muestra una tarjeta por tienda con su veredicto, las tres condiciones y la racha en
   14 marcas.
+
+## Actualización 2026-10-05 (b): sin sede, cada cuenta recibe las tiendas que opera
+
+En el PR #823 falló el barrido de `pruebas:terminales-lecturas`, que comprueba que lo que lee el líder lo lee la terminal.
+
+- **El problema:** sin sede, `fn_motor_demanda_preparacion()` exigía CAYLA Global y lanzaba 42501 a quien no lo tenía.
+- **El cambio** (migración `20261005223000_motor_demanda_preparacion_sin_sede.sql`):
+  - Quien ve CAYLA Global recibe todas las tiendas.
+  - Los demás reciben las que operan.
+  - Quien no opera ninguna recibe cero filas, sin error.
+  - Es el mismo patrón que `fn_confianza_registro`.
+- **Lo que no cambia:**
+  - Con sede, sigue el 42501 para quien no la opera.
+  - El cálculo es el mismo.
+  - CAYLA Global (el Admin) recibe lo mismo que antes.
