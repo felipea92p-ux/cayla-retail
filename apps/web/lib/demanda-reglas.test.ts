@@ -93,7 +93,7 @@ describe("gruposDeDemanda", () => {
   it("las «sin registrar» suman en su grupo y el ritmo por día usa los días con alguna prenda colgada", () => {
     const l = lectura(
       [prenda({ varianteId: "a", vendidas: 2, diasExpuesta: 10, pisoHoy: 1, almacenHoy: 2 })],
-      [{ categoriaId: "polos", tallaId: "M", familiaColor: "tierra", anotadas: 3, diasAlgunaExpuesta: 10 }]
+      [{ categoriaId: "polos", tallaId: "M", familiaColor: "tierra", anotadas: 3, perdidas: 0, diasAlgunaExpuesta: 10 }]
     );
     const g = gruposDeDemanda(l).get(claveGrupo("polos", "M", "tierra"))!;
     expect(g.ventas).toBe(5);
@@ -103,11 +103,22 @@ describe("gruposDeDemanda", () => {
     expect(g.exposicionEstimada).toBe(false);
   });
   it("AQP: vendió «sin registrar» sin stock cargado → ritmo sobre la ventana entera, marcado como estimado", () => {
-    const l = lectura([], [{ categoriaId: "polos", tallaId: "M", familiaColor: "tierra", anotadas: 14, diasAlgunaExpuesta: 0 }]);
+    const l = lectura([], [{ categoriaId: "polos", tallaId: "M", familiaColor: "tierra", anotadas: 14, perdidas: 0, diasAlgunaExpuesta: 0 }]);
     const g = gruposDeDemanda(l).get(claveGrupo("polos", "M", "tierra"))!;
     expect(g.ritmoDia).toBeCloseTo(0.5);
     expect(g.exposicionEstimada).toBe(true);
     expect(g.ritmoPorPrenda).toBeNull();
+  });
+  it("lo que se pidió y no había suma a la demanda del grupo (ADR-0348)", () => {
+    const l = lectura(
+      [prenda({ varianteId: "a", vendidas: 2, diasExpuesta: 10 })],
+      [{ categoriaId: "polos", tallaId: "M", familiaColor: "tierra", anotadas: 0, perdidas: 3, diasAlgunaExpuesta: 10 }]
+    );
+    const g = gruposDeDemanda(l).get(claveGrupo("polos", "M", "tierra"))!;
+    expect(g.ventas).toBe(5);
+    expect(g.perdidas).toBe(3);
+    // Y la prenda hereda esa demanda por su grupo: (2 + 14 × 0,5) ÷ 24 = 0,375; sin lo perdido sería (2 + 14 × 0,2) ÷ 24 = 0,2.
+    expect(ritmoDePrenda(l.variantes[0], g).ritmoDia).toBeCloseTo(9 / 24);
   });
   it("las prendas de otro color o talla no se mezclan", () => {
     const l = lectura([prenda({ varianteId: "a", vendidas: 2, diasExpuesta: 10 }), prenda({ varianteId: "b", tallaId: "L", talla: "L", vendidas: 9, diasExpuesta: 10 })]);
@@ -176,11 +187,12 @@ describe("leerDemanda", () => {
     const l = leerDemanda({
       hoy: "2026-11-01", desde: "2026-10-04", hasta: "2026-10-31", dias: 28, cuadrado_en: null,
       variantes: [{ variante_id: "a", producto_id: "p", categoria_id: "c", talla_id: "t", talla: "M", color_codigo: "X", familia_color: "tierra", vendidas: 3, dias_expuesta: 10, piso_hoy: 1, almacen_hoy: 0 }],
-      grupos: [{ categoria_id: "c", talla_id: "t", familia_color: "tierra", anotadas: 2, dias_alguna_expuesta: 10 }],
+      grupos: [{ categoria_id: "c", talla_id: "t", familia_color: "tierra", anotadas: 2, perdidas: 1, dias_alguna_expuesta: 10 }],
     })!;
     expect(l.dias).toBe(28);
     expect(l.variantes[0]).toMatchObject({ varianteId: "a", vendidas: 3, diasExpuesta: 10, talla: "M" });
-    expect(ritmosDePrendas(l).get("a")?.ritmoDia).toBeCloseTo((3 + 14 * 0.5) / 24);
+    expect(l.grupos[0].perdidas).toBe(1);
+    expect(ritmosDePrendas(l).get("a")?.ritmoDia).toBeCloseTo((3 + 14 * 0.6) / 24);
   });
   it("NULL de la base (no opera la sede) o forma rara → null; filas sin id se descartan", () => {
     expect(leerDemanda(null)).toBeNull();

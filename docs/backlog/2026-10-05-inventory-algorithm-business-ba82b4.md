@@ -15,3 +15,6 @@ Diseño: `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`. Cada etapa 
 - [ ] **Etapa 4 — Compras por campaña:** presupuesto por categoría y cantidad por cuantil crítico. Espera una temporada completa (no hay historia fuera del ERP).
 - [ ] **Diciembre 2026:** hoja de supuestos por categoría para la compra, y comparación con lo real en enero.
 - [ ] **Etapa 5 — Rebajas por grupo:** una elasticidad por categoría, después de una liquidación registrada.
+- [x] **Venta perdida con la prenda exacta (ADR-0348):** `pedidos_no_atendidos.variante_id` + `registrar_pedido_no_atendido` con `p_variante_id` (migración `20261005212000`, **sin pegar**, va ANTES de `20261005215000`); Vender y Cambios mandan la variante; `fn_demanda_sede` suma «buscó y no había» con prenda a su grupo. Probado: SQL L1/L2, pedidos-no-atendidos 20/20, club-se-probo 22/22 (ajustada a la firma de 8), vitest, 375 px.
+- [ ] **Avisarle a Dany (Felipe):** ADR-0348, sección «Para Dany». Antes de pegar `20261005212000` en producción.
+- [ ] **Orden de pegado en producción (con el OK de Felipe):** `20261005210000` → `20261005212000` → `20261005215000`, y después publicar la web.

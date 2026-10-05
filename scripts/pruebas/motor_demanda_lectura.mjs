@@ -16,6 +16,9 @@
  *   V  VENDIDAS: lo de hoy, lo anulado, lo de prueba y la centinela no cuentan; y el total de los días cerrados es EL MISMO que
  *      `fn_piso_plan_lectura` cuenta como escaneado en esos días (la definición copiada).
  *   A  ANOTADAS: pendientes y cerradas sin prenda suman en su grupo; anuladas no; el grupo trae sus jornadas con alguna colgada.
+ *   L  VENTA PERDIDA (ADR-0348, 20261005212000): «buscó y no había» con su prenda exacta suma en su grupo; «se la probó» y el texto
+ *      libre no. `registrar_pedido_no_atendido` con variante llena el producto y la talla desde ella, rechaza una variante de otro
+ *      modelo o inexistente, y sin variante hace lo de siempre.
  *
  * USO
  *   pnpm pruebas:motor-demanda-lectura              → contra la base `postgres` del stack local
@@ -33,6 +36,8 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261005215000_motor_demanda_lectura.sql"), "utf8");
+// La venta perdida con la prenda exacta (ADR-0348) va antes: `fn_demanda_sede` lee `pedidos_no_atendidos.variante_id`.
+const VENTA_PERDIDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261005212000_venta_perdida_con_prenda.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -58,6 +63,7 @@ const SIN_SESION = `set local request.jwt.claim.sub = '';\nset local request.jwt
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
+${VENTA_PERDIDA.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "")}
 ${MIGRACION.replace(/^set lock_timeout.*$/m, "")}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
@@ -269,6 +275,38 @@ caso(
      from jsonb_array_elements(pg_temp.lee() -> 'grupos') g
     where g ->> 'categoria_id' = current_setting('dl.cat');`,
   "2,3"
+);
+
+// L. VENTA PERDIDA (ADR-0348) ------------------------------------------------------------------------------------------
+caso(
+  "L1 con variante: el producto y la talla salen de ella; de otro modelo o inexistente, error; sin variante, lo de siempre",
+  `select pg_temp.prenda('DL-8') as v \\gset
+   select retail.registrar_pedido_no_atendido(p_ubicacion_id => :'sede', p_descripcion_libre => 'Polo DL', p_variante_id => :'v') as id \\gset
+   select (select concat_ws(',', producto_id = (select producto_id from retail.variantes where id = :'v'), talla, variante_id = :'v')
+             from retail.pedidos_no_atendidos where id = :'id') as hecho \\gset
+   select pg_temp.prenda('DL-9') as otra \\gset
+   select :'hecho' || ',' ||
+     split_part(pg_temp.intento(format('select retail.registrar_pedido_no_atendido(p_ubicacion_id => %L, p_producto_id => (select producto_id from retail.variantes where id = %L), p_variante_id => %L)', :'sede', :'otra', :'v')), '|', 2) || ',' ||
+     split_part(pg_temp.intento(format('select retail.registrar_pedido_no_atendido(p_ubicacion_id => %L, p_variante_id => gen_random_uuid())', :'sede')), '|', 2) as errores \\gset
+   select retail.registrar_pedido_no_atendido(p_ubicacion_id => :'sede', p_descripcion_libre => 'Texto libre', p_talla => 'M') as libre \\gset
+   select :'errores' || ',' || (select (variante_id is null and producto_id is null)::text from retail.pedidos_no_atendidos where id = :'libre');`,
+  "t,M,t,La talla elegida no es de ese modelo,Esa prenda no existe en el catálogo,true"
+);
+caso(
+  "L2 «buscó y no había» con su prenda suma en su grupo; «se la probó» y el texto libre no; hoy no cuenta",
+  `select pg_temp.prenda('DL-10') as v \\gset
+   insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id, variante_id, talla, atendido_por, motivo, created_at)
+   select :'sede', va.producto_id, va.id, 'M', (select id from public.personas limit 1), m, c
+     from retail.variantes va,
+          (values ('no_habia_talla', pg_temp.a(2, '12:00')), ('no_habia_talla', pg_temp.a(3, '12:00')),
+                  ('se_probo_no_llevo', pg_temp.a(2, '12:00')), ('no_habia_talla', pg_temp.a(0, '09:00'))) x(m, c)
+    where va.id = :'v';
+   insert into retail.pedidos_no_atendidos (ubicacion_id, descripcion_libre, talla, atendido_por, motivo, created_at)
+     values (:'sede', 'Polo sin prenda', 'M', (select id from public.personas limit 1), 'no_habia_talla', pg_temp.a(2, '12:00'));
+   select g ->> 'perdidas'
+     from jsonb_array_elements(pg_temp.lee() -> 'grupos') g
+    where g ->> 'categoria_id' = current_setting('dl.cat');`,
+  "2"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien.`);

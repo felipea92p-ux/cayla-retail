@@ -48,6 +48,8 @@ export type GrupoLeido = {
   tallaId: string | null;
   familiaColor: string | null;
   anotadas: number;
+  /** Lo que se pidió y no había, con su prenda exacta (ADR-0348). */
+  perdidas: number;
   diasAlgunaExpuesta: number;
 };
 
@@ -100,6 +102,7 @@ export function leerDemanda(v: unknown): LecturaDemanda | null {
       tallaId: texto(g.talla_id),
       familiaColor: texto(g.familia_color),
       anotadas: entero(g.anotadas),
+      perdidas: entero(g.perdidas),
       diasAlgunaExpuesta: entero(g.dias_alguna_expuesta),
     })
   );
@@ -128,9 +131,10 @@ export type GrupoDemanda = {
   tallaId: string | null;
   talla: string | null;
   familiaColor: string | null;
-  /** Lo vendido con su prenda más lo anotado «sin registrar». */
+  /** La demanda del grupo: lo vendido con su prenda, lo anotado «sin registrar» y lo que se pidió y no había (ADR-0348). */
   ventas: number;
   anotadas: number;
+  perdidas: number;
   /** Suma de los días que estuvo colgada cada prenda del grupo. */
   diasPrenda: number;
   /** Días en que hubo al menos una prenda del grupo colgada. */
@@ -151,7 +155,7 @@ export function gruposDeDemanda(l: LecturaDemanda): Map<string, GrupoDemanda> {
     const clave = claveGrupo(categoriaId, tallaId, familiaColor);
     let g = mapa.get(clave);
     if (!g) {
-      g = { clave, categoriaId, tallaId, talla: null, familiaColor, ventas: 0, anotadas: 0, diasPrenda: 0, diasAlguna: 0, ritmoPorPrenda: null, ritmoDia: null, exposicionEstimada: false, disponible: 0 };
+      g = { clave, categoriaId, tallaId, talla: null, familiaColor, ventas: 0, anotadas: 0, perdidas: 0, diasPrenda: 0, diasAlguna: 0, ritmoPorPrenda: null, ritmoDia: null, exposicionEstimada: false, disponible: 0 };
       mapa.set(clave, g);
     }
     return g;
@@ -165,8 +169,11 @@ export function gruposDeDemanda(l: LecturaDemanda): Map<string, GrupoDemanda> {
   }
   for (const r of l.grupos) {
     const g = tomar(r.categoriaId, r.tallaId, r.familiaColor);
-    g.ventas += r.anotadas;
+    // Lo que se pidió y no había es demanda que no se pudo atender: cuenta como una venta (ADR-0348). Sin esto, lo que se agota
+    // «deja de venderse» justo cuando más se pide.
+    g.ventas += r.anotadas + r.perdidas;
     g.anotadas += r.anotadas;
+    g.perdidas += r.perdidas;
     g.diasAlguna = r.diasAlgunaExpuesta;
   }
   for (const g of mapa.values()) {

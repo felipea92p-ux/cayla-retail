@@ -11,7 +11,8 @@
 --   · por prenda (variante): lo que el cliente se llevó (`vendidas`), cuántos días estuvo colgada (`dias_expuesta`) y lo libre hoy en
 --     piso y almacén, con su categoría, talla y familia de color;
 --   · por grupo (categoría × talla × familia de color): las ventas «sin registrar» que siguen sin prenda (`anotadas`: pendientes o
---     cerradas sin prenda, el contrato de ADR-0334 y de 20261005160000) y en cuántos días hubo AL MENOS UNA prenda del grupo colgada.
+--     cerradas sin prenda, el contrato de ADR-0334 y de 20261005160000), lo que se pidió y no había con su prenda exacta (`perdidas`,
+--     ADR-0348; necesita 20261005212000) y en cuántos días hubo AL MENOS UNA prenda del grupo colgada.
 -- La cuenta (ritmo de cada prenda apoyado en su grupo, n/(n+k)) la hace `apps/web/lib/demanda-reglas.ts`, con su prueba.
 --
 -- LAS DEFINICIONES, Y POR QUÉ.
@@ -203,6 +204,20 @@ begin
          and v.created_at >= v_desde_ts and v.created_at < v_hasta_ts
        group by p.categoria_id, p.talla_id, co.familia_color
     ),
+    perdidas as (
+      -- Lo que se pidió y no había (ADR-0348): solo «buscó y no había» con su prenda exacta. Es demanda que no se pudo atender: suma
+      -- a su grupo igual que una venta. Lo anotado como texto libre (antes de ADR-0348) no se puede ubicar en un grupo y no cuenta.
+      select pr.categoria_id, va.talla_id, co.familia_color, count(*)::integer as perdidas
+        from retail.pedidos_no_atendidos pn
+        join retail.variantes va on va.id = pn.variante_id
+        join retail.productos pr on pr.id = va.producto_id
+        left join retail.colores co on co.codigo = va.color_codigo
+       where pn.ubicacion_id = p_ubicacion_id
+         and pn.motivo = 'no_habia_talla'
+         and pn.created_at >= v_desde_ts and pn.created_at < v_hasta_ts
+         and not pr.es_prueba
+       group by pr.categoria_id, va.talla_id, co.familia_color
+    ),
     grupo_dias as (
       -- En cuántas jornadas hubo al menos UNA prenda del grupo colgada.
       select pr.categoria_id, pr.talla_id, pr.familia_color, count(distinct e.dia)::integer as dias_alguna_expuesta
@@ -215,10 +230,17 @@ begin
       -- se junta la lista de llaves y se cuelgan las dos cifras con LEFT JOIN.)
       select k.categoria_id, k.talla_id, k.familia_color,
              coalesce(a.anotadas, 0) as anotadas,
+             coalesce(pe.perdidas, 0) as perdidas,
              coalesce(g.dias_alguna_expuesta, 0) as dias_alguna_expuesta
         from (select categoria_id, talla_id, familia_color from anotadas
               union
+              select categoria_id, talla_id, familia_color from perdidas
+              union
               select categoria_id, talla_id, familia_color from grupo_dias) k
+        left join perdidas pe
+          on pe.categoria_id is not distinct from k.categoria_id
+         and pe.talla_id is not distinct from k.talla_id
+         and pe.familia_color is not distinct from k.familia_color
         left join anotadas a
           on a.categoria_id is not distinct from k.categoria_id
          and a.talla_id is not distinct from k.talla_id
@@ -241,7 +263,7 @@ begin
           order by p.variante_id) from prendas p), '[]'::jsonb),
       'grupos', coalesce((select jsonb_agg(jsonb_build_object(
           'categoria_id', g.categoria_id, 'talla_id', g.talla_id, 'familia_color', g.familia_color,
-          'anotadas', g.anotadas, 'dias_alguna_expuesta', g.dias_alguna_expuesta)
+          'anotadas', g.anotadas, 'perdidas', g.perdidas, 'dias_alguna_expuesta', g.dias_alguna_expuesta)
           order by g.categoria_id, g.talla_id, g.familia_color) from grupos g), '[]'::jsonb)
     )
   );
