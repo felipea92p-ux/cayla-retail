@@ -15,7 +15,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import type { Firma } from "@/lib/responsable-reglas";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { Ubicacion } from "@/lib/ubicaciones";
-import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo, type Modulo } from "@/lib/modulos";
+import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo } from "@/lib/modulos";
 import { accionesRolesSupabase, type AccionesRoles, type ResultadoRol } from "@/lib/roles-acciones";
 import {
   alternarGrupo,
@@ -52,7 +52,7 @@ import {
 
 // «Roles y accesos» (ADR-0161 B). Rediseño del spike `docs/maquetas/colaboradores-ux-spike-2026-09/` (Felipe, 2026-09-22):
 // lista de roles agrupada y con avisos, grupos de módulos plegables con buscador, borrador con barra de guardado, vista previa
-// del menú que marca lo que se suma y se quita, y «Comparar roles» (matriz). Cada rol decide SOLO qué módulos ve; quien ve un
+// del menú que marca lo que se suma y se quita, sin la matriz «Comparar roles» desde el 2026-10-05 (Felipe: no le veía uso). Cada rol decide SOLO qué módulos ve; quien ve un
 // módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder». El Líder también se edita (ADR-0253):
 // sus módulos los mueve solo un Admin, se le puede quitar cualquiera menos Roles y accesos, y lo que nazca después le
 // aparece solo. Todo lo que se escribe pasa por RPC (del líder o de quien ve Roles y accesos, 20260923131000), que anota
@@ -133,7 +133,7 @@ export function RolesPanel({
 }) {
   const router = useRouter();
   // ADR-0193: lo que esta pantalla guardó (con la versión que devolvió la base) manda hasta que `router.refresh()` traiga
-  // los roles nuevos: así dos clics seguidos en la matriz no chocan consigo mismos ni se pisan entre sí.
+  // los roles nuevos: así dos guardados seguidos no chocan consigo mismos ni se pisan entre sí.
   const [guardados, setGuardados] = useState<Record<string, GuardadoLocal>>({});
   const roles = conGuardadosLocales(rolesServidor, guardados);
   const vigentes = roles.filter((r) => !r.archivado);
@@ -147,11 +147,9 @@ export function RolesPanel({
   const [modal, setModal] = useState<Modal | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [verArchivados, setVerArchivados] = useState(false);
-  const [vista, setVista] = useState<"rol" | "matriz">("rol");
   const [busqueda, setBusqueda] = useState("");
   const [plegados, setPlegados] = useState<ReadonlySet<string>>(new Set());
   const [ubicacionPrevia, setUbicacionPrevia] = useState<"tienda" | "taller">("tienda");
-  const [matrizOcupada, setMatrizOcupada] = useState<string | null>(null);
 
   const borrador = rol ? (borradores[rol.id] ?? rol.modulos) : [];
   // Se autocorrige contra el borrador de módulos: si se apaga el módulo elegido, vuelve solo a «sin preferencia»
@@ -204,36 +202,6 @@ export function RolesPanel({
       setBorradores((b) => sinBorrador(b, rol.id));
       setPantallaPrincipalBorradores((b) => sinBorrador(b, rol.id));
     }
-  }
-
-  /** Matriz: cada clic guarda al instante (es la vista para comparar y retocar, no para armar un rol desde cero). */
-  async function alternarEnMatriz(r: RolVista, m: Modulo) {
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
-    const clave = `${r.id}:${m.clave}`;
-    setMatrizOcupada(clave);
-    const nuevos = alternarModulo(r.modulos, m.clave, r.fijo);
-    // ADR-0161 P6: Colaboradores y Roles y accesos no se encienden en un rol que tienen terminales (la base también lo
-    // rechaza; aquí se avisa antes, con los nombres de las terminales).
-    const motivo = motivoPorLoMio(r, r.modulos, nuevos, quien) ?? motivoParaNoGuardar(r.modulos, nuevos, cuentasDe(r.id));
-    if (motivo) {
-      avisar.error(motivo);
-      setMatrizOcupada(null);
-      return;
-    }
-    const encendido = nuevos.includes(m.clave);
-    // Si se apaga justo el módulo elegido como pantalla principal, vuelve a «sin preferencia» — nunca se manda una
-    // elección que ya no es válida.
-    const pantallaPrincipal = pantallaPrincipalValida(r.pantallaPrincipal, nuevos);
-    const hecho = await ejecutar(
-      "guardar los módulos del rol",
-      (f) => acciones.guardarModulos(r.id, nuevos, r.version, pantallaPrincipal, f),
-      `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`,
-    );
-    if (hecho) recordarGuardado(r.id, hecho.version, nuevos, pantallaPrincipal);
-    setMatrizOcupada(null);
   }
 
   function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[], pantallaPrincipal: ClaveModulo | null) {
@@ -298,27 +266,15 @@ export function RolesPanel({
         ))}
       </ol>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SegmentoDeslizante
-          etiqueta="Cómo ver los roles"
-          valor={vista}
-          onCambio={(k) => setVista(k as "rol" | "matriz")}
-          opciones={[
-            { clave: "rol", etiqueta: "Editar por rol" },
-            { clave: "matriz", etiqueta: "Comparar roles" },
-          ]}
-        />
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="w-full max-w-xs space-y-1">
-          {/* UN combo para toda la sección (regla 10 de CLAUDE.md): las casillas de la matriz guardan al instante y no
-              caben un combo por casilla. El mismo control se ve en cada modal y apaga «Guardar cambios» si falta. */}
-          <ComboResponsable control={responsable} deshabilitado={guardando || matrizOcupada !== null} />
+          {/* UN combo para toda la sección (regla 10 de CLAUDE.md). El mismo control se ve en cada modal y apaga
+              «Guardar cambios» si falta. */}
+          <ComboResponsable control={responsable} deshabilitado={guardando} />
           <p className="text-[12px] text-tinta/60">Lo cambia un líder de equipo o quien tenga Roles y accesos en su rol.</p>
         </div>
       </div>
 
-      {vista === "matriz" ? (
-        <Matriz roles={vigentes} cuentasDe={(id) => cuentasDe(id).length} ocupada={matrizOcupada} onAlternar={alternarEnMatriz} onElegir={(id) => { elegir(id); setVista("rol"); }} quien={quien} />
-      ) : (
       <div className="grid gap-5 @[640px]:grid-cols-[240px_minmax(0,1fr)] @[1060px]:grid-cols-[250px_minmax(0,1fr)_300px]">
         <nav aria-label="Roles" className="card-cayla self-start p-2 @[640px]:sticky @[640px]:top-20">
           <div className="flex items-center justify-between px-2 pb-1 pt-1.5">
@@ -621,10 +577,9 @@ export function RolesPanel({
           </details>
         </aside>
       </div>
-      )}
 
       <BarraFija
-        visible={vista === "rol" && conCambios}
+        visible={conCambios}
         resumen={
           <>
             <strong className="font-semibold text-tinta">{nCambios === 1 ? "1 cambio" : `${nCambios} cambios`}</strong> en «{rol.nombre}»
@@ -816,113 +771,6 @@ function VistaPreviaMenu({
         />
       </div>
     </section>
-  );
-}
-
-/** «Comparar roles»: todos los roles contra todos los módulos. Un clic enciende o apaga y guarda al instante. */
-function Matriz({
-  roles,
-  cuentasDe,
-  ocupada,
-  onAlternar,
-  onElegir,
-  quien,
-}: {
-  roles: RolVista[];
-  cuentasDe: (id: string) => number;
-  ocupada: string | null;
-  onAlternar: (r: RolVista, m: Modulo) => void;
-  onElegir: (id: string) => void;
-  quien: QuienEdita;
-}) {
-  const grupos = modulosFiltrados("");
-  return (
-    <div className="card-cayla overflow-x-auto">
-      <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
-        <thead>
-          <tr>
-            <th className="sticky left-0 z-10 bg-crema px-4 py-3 text-left text-xs font-semibold text-tinta">Módulo</th>
-            {roles.map((r) => (
-              <th key={r.id} className="bg-crema px-3 py-3 text-center text-xs font-semibold text-tinta">
-                <button type="button" onClick={() => onElegir(r.id)} className="underline decoration-tinta/20 underline-offset-2 hover:decoration-tinta/60">
-                  {r.nombre}
-                </button>
-                <span className="block text-[11px] font-normal text-tinta/55">{cuentasDe(r.id)} cuentas</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {grupos.map(({ grupo, modulos }) => (
-            <MatrizGrupo key={grupo} grupo={grupo} modulos={modulos} roles={roles} ocupada={ocupada} onAlternar={onAlternar} quien={quien} />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function MatrizGrupo({
-  grupo,
-  modulos,
-  roles,
-  ocupada,
-  onAlternar,
-  quien,
-}: {
-  grupo: string;
-  modulos: Modulo[];
-  roles: RolVista[];
-  ocupada: string | null;
-  onAlternar: (r: RolVista, m: Modulo) => void;
-  quien: QuienEdita;
-}) {
-  return (
-    <>
-      <tr>
-        <td colSpan={roles.length + 1} className="label-cayla sticky left-0 bg-tinta/[0.03] px-4 py-2 text-[11px] text-taupe-profundo">
-          {grupo}
-        </td>
-      </tr>
-      {modulos.map((m) => (
-        <tr key={m.clave}>
-          <td className="sticky left-0 z-10 border-t border-tinta/5 bg-papel px-4 py-2 text-tinta">
-            <span className="inline-flex items-center gap-1.5">
-              {m.nombre}
-              {!esDelegable(m) && <Lock aria-label="Solo líder" className="h-3 w-3 text-tinta/45" />}
-            </span>
-          </td>
-          {roles.map((r) => {
-            const on = veModulo(r, m.clave);
-            const control = controlDe(r, m, quien, on);
-            return (
-              <td key={r.id} className="border-t border-tinta/5 px-3 py-2 text-center">
-                {r.fijo && control.tipo === "candado" ? (
-                  // Roles y accesos en el Líder: lo ve siempre, no se le quita (ADR-0253).
-                  <span aria-label={control.texto} title={control.texto} className="inline-grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-taupe text-[11px] text-white">✓</span>
-                ) : control.tipo === "candado" ? (
-                  <span aria-label={control.texto} className="text-tinta/35">—</span>
-                ) : (
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={on}
-                    aria-label={`${r.nombre} ve ${m.nombre}`}
-                    disabled={ocupada !== null || !control.editable}
-                    onClick={() => onAlternar(r, m)}
-                    className={`inline-grid h-[18px] w-[18px] place-items-center rounded-[5px] border text-[11px] transition-colors duration-200 ease-cayla disabled:opacity-50 ${
-                      on ? "border-tinta bg-tinta text-crema" : "border-tinta/25 hover:border-tinta"
-                    } ${ocupada === `${r.id}:${m.clave}` ? "animate-pulse" : ""}`}
-                  >
-                    {on ? "✓" : ""}
-                  </button>
-                )}
-              </td>
-            );
-          })}
-        </tr>
-      ))}
-    </>
   );
 }
 
