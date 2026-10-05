@@ -6,7 +6,7 @@
  * QUÉ CUBRE
  *   · Con las funciones de las pantallas: suspender, reactivar y mover de sede a una colaboradora (la línea va en su sede;
  *     al moverla, en las dos), encender módulos en un rol, dar un rol, cambiar el fondo de caja y el WhatsApp de una
- *     tienda, y regularizar una prenda vendida sin registrar (en Recibir mercadería);
+ *     tienda, y regularizar una prenda vendida sin registrar (en Existencias, ADR-0330);
  *   · con las FORMAS que hay en producción (2026-10-03): cada fila de los tres historiales da una frase sin vacíos —
  *     módulos que ya no existen, apagar 14 de golpe, cambiar solo la pantalla principal, un impuesto que pasa de
  *     provisional a confirmado;
@@ -159,7 +159,9 @@ ${VARS}`);
   );
 }
 
-// 6. Regularizar una prenda vendida sin registrar: una línea en Recibir mercadería, en la sede de la prenda.
+// 6. Regularizar una prenda vendida sin registrar: una línea en Existencias (ahí vive la lista desde ADR-0330; antes era
+//    Recibir mercadería), en la sede de la prenda. Se filtra por acción y no por módulo: el colchón de stock que arma la
+//    prueba también anota líneas en Existencias, y lo que se comprueba es justo en QUÉ módulo cae esta.
 {
   const r = correr(`
 select :'lim' as ubic \\gset
@@ -184,15 +186,24 @@ select retail.registrar_venta(:'ubic',
   null, gen_random_uuid()) as venta_id \\gset
 select id as item_id from retail.venta_items where venta_id = :'venta_id' \\gset
 select retail.regularizar_prenda(p.id, :'v1', 'ya_registrada') as _dif from retail.prendas_por_regularizar p where venta_item_id = :'item_id' \\gset
-${LINEAS("recibir")}
+select count(*) from retail.actividad where id > :antes and modulo = 'recibir';
+select coalesce(string_agg(modulo || '¦' || descripcion || '¦' || coalesce(ubicacion_id::text, '-') || '¦' || coalesce(ubicacion_destino_id::text, '-') || '¦' || coalesce(persona_id::text, '-'), ' // ' order by id), '-')
+  from retail.actividad where id > :antes and accion = 'prenda_regularizada';
 ${VARS}`);
   const { filas, lim } = leer(r);
+  const enRecibir = Number(lineas(r).at(-3));
+  // filas[i][0] es el MÓDULO de la línea (aquí se filtra por acción, no por módulo).
   esperar(
     "regularizar: «regularizó la prenda vendida sin registrar «Blusa lino beige»: era «…» · precio oficial S/ … , se cobró S/ 50.00», en su sede",
-    filas.length === 1 && filas[0][0] === "prenda_regularizada" &&
+    filas.length === 1 &&
       /^regularizó la prenda vendida sin registrar «Blusa lino beige»: era «.+» · precio oficial S\/.\S+, se cobró S\/.50\.00$/.test(filas[0][1]) &&
       filas[0][2] === lim,
     r,
+  );
+  esperar(
+    "regularizar anota en el módulo Existencias, no en Recibir (ADR-0330: Recibir es solo de proveedores)",
+    filas.length === 1 && filas[0][0] === "existencias" && enRecibir === 0,
+    { modulo: filas[0]?.[0], lineas_en_recibir: enRecibir, ...r },
   );
 }
 
