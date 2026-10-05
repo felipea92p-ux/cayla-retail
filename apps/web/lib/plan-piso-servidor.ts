@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
+import { leerFotos, type FotoEspacio } from "@/lib/espacio-piso";
 import { armarPropuesta, type PropuestaMix } from "@/lib/mix-piso";
 import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { leerCategorias, leerGrupos, type CategoriaMix, type GrupoMix } from "@/lib/plan-piso-grupos";
@@ -64,5 +65,34 @@ export async function getPropuestaDelMix(args: { ubicacionId: string; nombreSede
   } catch (e) {
     console.error("Plan del piso: no se pudo armar la propuesta del mix", e);
     return { ok: false, motivo: "No se pudo armar la propuesta." };
+  }
+}
+
+export type LecturaFotos = { ok: true; fotos: FotoEspacio[] } | { ok: false; motivo: string };
+
+/**
+ * Las fotos del espacio del piso de UNA sede (`fn_espacio_piso`, ADR-0329): lo que el cron fue guardando cada lunes.
+ *
+ * PROMETE: las fotos, o «no se pudo leer» con su motivo; una sede sin fotos todavía es `ok` con la lista vacía (no un error). NUNCA lanza:
+ * es la pestaña «Historia» y, si falla, las demás siguen en pie.
+ * ASUME: la llama el servidor con la sesión de quien mira (la función pide la puerta de retail y la de la sede).
+ */
+export async function getFotosDelEspacio(ubicacionId: string): Promise<LecturaFotos> {
+  try {
+    const supabase = await createClient();
+    const res = await supabase.rpc("fn_espacio_piso" as never, { p_ubicacion_id: ubicacionId } as never);
+    if (res.error) {
+      console.error("Plan del piso: no se pudo leer la historia del espacio", res.error.message);
+      return { ok: false, motivo: "La base no respondió." };
+    }
+    const fotos = leerFotos(res.data);
+    if (!fotos) {
+      console.error("Plan del piso: la historia del espacio llegó con una forma inesperada");
+      return { ok: false, motivo: "Los datos llegaron incompletos." };
+    }
+    return { ok: true, fotos };
+  } catch (e) {
+    console.error("Plan del piso: no se pudo leer la historia del espacio", e);
+    return { ok: false, motivo: "La base no respondió." };
   }
 }

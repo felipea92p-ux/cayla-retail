@@ -53,6 +53,7 @@
     "pruebas:retirar-del-piso": "node scripts/pruebas/retirar_del_piso.mjs",
     "pruebas:capacidad-piso": "node scripts/pruebas/capacidad_piso.mjs",
     "pruebas:plan-piso-grupos": "node scripts/pruebas/plan_piso_grupos.mjs",
+    "pruebas:plan-piso-foto": "node scripts/pruebas/plan_piso_foto_espacio.mjs",
     "pruebas:cuadrar-piso": "node scripts/pruebas/cuadrar_piso.mjs",
     "pruebas:bajada-desde-vender": "node scripts/pruebas/bajada_desde_vender.mjs",
     "pruebas:bajar-en-mano": "node scripts/pruebas/bajar_en_mano.mjs",

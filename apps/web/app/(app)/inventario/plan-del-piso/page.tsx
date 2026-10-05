@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getGruposDelMix, getPropuestaDelMix } from "@/lib/plan-piso-servidor";
+import { armarHistoria } from "@/lib/espacio-piso";
+import { hoyLima } from "@/lib/fechas-lima";
+import { getFotosDelEspacio, getGruposDelMix, getPropuestaDelMix } from "@/lib/plan-piso-servidor";
 import { resumir } from "@/lib/plan-piso-grupos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { GruposDelMix } from "@/components/plan-piso/GruposDelMix";
+import { HistoriaDelEspacio } from "@/components/plan-piso/HistoriaDelEspacio";
 import { PlanDelPisoPestanas } from "@/components/plan-piso/PlanDelPisoPestanas";
 import { PropuestaDelMix } from "@/components/plan-piso/PropuestaDelMix";
 
@@ -18,9 +21,13 @@ export default async function PlanDelPisoPage() {
   // La repite aquí además del layout: un layout no vuelve a correr al navegar entre sus hijas (lo mismo que exigirLider).
   const persona = await exigirModulo("plan_piso");
   const lectura = await getGruposDelMix();
-  const propuesta = lectura.ok
-    ? await getPropuestaDelMix({ ubicacionId: persona.ubicacionId, nombreSede: persona.ubicacionEtiqueta, grupos: lectura.grupos, categorias: lectura.categorias })
-    : null;
+  // La propuesta y las fotos son lecturas independientes: se piden juntas, y si una falla solo se apaga su pestaña.
+  const [propuesta, fotos] = lectura.ok
+    ? await Promise.all([
+        getPropuestaDelMix({ ubicacionId: persona.ubicacionId, nombreSede: persona.ubicacionEtiqueta, grupos: lectura.grupos, categorias: lectura.categorias }),
+        getFotosDelEspacio(persona.ubicacionId),
+      ])
+    : [null, null];
   const resumen = lectura.ok ? resumir(lectura.categorias) : null;
   const porRevisar = resumen ? resumen.porRevisar + resumen.sinGrupo : 0;
 
@@ -31,7 +38,7 @@ export default async function PlanDelPisoPage() {
         titulo="Plan del piso"
         subtitulo="Cuánto lugar tiene cada grupo de prendas en el riel, y a qué grupo pertenece cada categoría."
       />
-      {lectura.ok && propuesta ? (
+      {lectura.ok && propuesta && fotos ? (
         <PlanDelPisoPestanas
           porRevisar={porRevisar}
           propuesta={
@@ -51,6 +58,20 @@ export default async function PlanDelPisoPage() {
             )
           }
           grupos={<GruposDelMix grupos={lectura.grupos} categorias={lectura.categorias} esLider={persona.rol === "lider"} />}
+          historia={
+            fotos.ok ? (
+              <HistoriaDelEspacio historia={armarHistoria(fotos.fotos, lectura.categorias, lectura.grupos, hoyLima())} grupos={lectura.grupos} />
+            ) : (
+              // Se degrada así: la pestaña dice que no pudo leer y las demás siguen en pie; las fotos ya tomadas no se pierden.
+              <div className="card-cayla p-5" role="alert">
+                <p className="text-sm font-semibold text-tinta">No se pudo leer la historia del espacio.</p>
+                <p className="mt-1 text-[13px] text-tinta/70">{fotos.motivo} Las fotos ya tomadas siguen guardadas. Vuelve a intentarlo en un momento.</p>
+                <Link href="/inventario/plan-del-piso" className="btn-cayla btn-secundario mt-4 inline-flex">
+                  Reintentar
+                </Link>
+              </div>
+            )
+          }
         />
       ) : (
         // Se degrada así: la pantalla dice que no pudo leer y no se pierde nada (no hay nada a medias que guardar).
