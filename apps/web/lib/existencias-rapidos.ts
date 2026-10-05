@@ -1,7 +1,7 @@
 /* ====================================================================
    Los atajos de filtro de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`)
 
-   Una fila de cinco botones justo bajo el buscador —Todo · Por colgar · Sin stock atrás · Apartadas · Dañadas— para lo que más se
+   Una fila de botones justo bajo el buscador —Todo · Por colgar · Sin stock atrás · Apartadas · Dañadas y, aparte, los «Recomendados» Se acaban · Sin ventas— para lo que más se
    pregunta en el piso, sin abrir el panel «Filtros». NO es un filtro nuevo: cada botón escribe en la URL los mismos filtros que el
    panel («Hoy» y «Condición»), así que el panel, la píldora, el chip de lo puesto, el enlace copiado y el conteo dicen siempre lo
    mismo. Los nombres son los de esas píldoras (`TEXTO_HOY`), no unos propios: un botón que dice «Por reponer» junto a una píldora
@@ -15,7 +15,7 @@
 import { TEXTO_HOY } from "./existencias-hoy";
 import type { ClaveUrl, ConteosFiltros, FiltrosElegidos } from "./existencias-filtros";
 
-export const CLAVES_RAPIDAS = ["todo", "por_colgar", "sin_stock_atras", "apartadas", "danadas"] as const;
+export const CLAVES_RAPIDAS = ["todo", "por_colgar", "sin_stock_atras", "apartadas", "danadas", "se_acaban", "sin_ventas"] as const;
 export type ClaveRapida = (typeof CLAVES_RAPIDAS)[number];
 
 export type AtajoRapido = {
@@ -33,7 +33,13 @@ export const ATAJOS_RAPIDOS: readonly AtajoRapido[] = [
   { clave: "sin_stock_atras", texto: TEXTO_HOY.sin_stock_atras, ayuda: "Falta en el piso y el almacén está vacío", cambios: { hoy: "sin_stock_atras", condicion: null } },
   { clave: "apartadas", texto: "Apartadas", ayuda: "Separadas para un cliente", cambios: { hoy: null, condicion: "apartadas" } },
   { clave: "danadas", texto: "Dañadas", ayuda: "En cuarentena: no se pueden vender", cambios: { hoy: null, condicion: "danadas" } },
+  // Los dos «Recomendados» de la maqueta: salen del Ritmo reciente (`existencias-ritmo.ts`), solo en tiendas con ritmo medido.
+  { clave: "se_acaban", texto: "Se acaban", ayuda: "Lo que hay colgado dura una semana o menos al ritmo de ventas", cambios: { hoy: null, condicion: "se_acaban" } },
+  { clave: "sin_ventas", texto: "Sin ventas", ayuda: "Colgadas y sin ninguna venta esta semana", cambios: { hoy: null, condicion: "sin_ventas" } },
 ];
+
+/** Los que van aparte, bajo el rótulo «Recomendados» (la maqueta): salen del ritmo y no de lo que hay que hacer con la talla. */
+export const CLAVES_RECOMENDADAS: readonly ClaveRapida[] = ["se_acaban", "sin_ventas"];
 
 /** Qué botón está encendido, o `null` si lo puesto no es exactamente uno de ellos. */
 export function atajoElegido(e: Pick<FiltrosElegidos, "hoy" | "condicion">): ClaveRapida | null {
@@ -42,6 +48,8 @@ export function atajoElegido(e: Pick<FiltrosElegidos, "hoy" | "condicion">): Cla
   if (e.hoy === "sin_stock_atras" && !e.condicion) return "sin_stock_atras";
   if (!e.hoy && e.condicion === "apartadas") return "apartadas";
   if (!e.hoy && e.condicion === "danadas") return "danadas";
+  if (!e.hoy && e.condicion === "se_acaban") return "se_acaban";
+  if (!e.hoy && e.condicion === "sin_ventas") return "sin_ventas";
   return null;
 }
 
@@ -58,6 +66,10 @@ export function cuentaDeAtajo(clave: ClaveRapida, conteos: Pick<ConteosFiltros, 
       return conteos.condicion.apartadas ?? 0;
     case "danadas":
       return conteos.condicion.danadas ?? 0;
+    case "se_acaban":
+      return conteos.condicion.se_acaban ?? 0;
+    case "sin_ventas":
+      return conteos.condicion.sin_ventas ?? 0;
   }
 }
 
