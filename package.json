@@ -31,6 +31,7 @@
     "pruebas:configuracion-caja": "node scripts/pruebas/configuracion_caja_campanas.mjs",
     "pruebas:gastos": "node scripts/pruebas/gastos.mjs",
     "pruebas:activos-y-fijos": "node scripts/pruebas/activos_y_gastos_fijos.mjs",
+    "pruebas:activos-carga-inicial": "node scripts/pruebas/activos_carga_inicial.mjs",
     "pruebas:cuentas-dinero": "node scripts/pruebas/cuentas_dinero.mjs",
     "pruebas:editar-cuentas": "node scripts/pruebas/editar_cuentas.mjs",
     "pruebas:cuenta-sellada": "node scripts/pruebas/cuenta_sellada.mjs",
