@@ -165,3 +165,23 @@ Quedaron fuera por no ser defectos: Enter en la nota (el botón dice el conteo y
 - **El modal «Regularizar prenda»** (el de siempre) sigue sin guía de foco (`pendiente` en el registro desde antes). Lo toca la otra sesión de ADR-0328.
 - «Nadie regulariza su propia venta salvo el líder» y la categoría sugerida desde la descripción (el resto de la actividad 5 de ADR-0328) siguen
   con esa sesión. Aquí solo el líder confirma sugerencias y cierra.
+
+## Actualización 2026-10-05 — el contrato con el motor del piso, construido (SQL sin pegar)
+
+El PR #787 (motor del piso) se fusionó **después** de este, pero su migración `20261004213000` ya estaba pegada en producción con el filtro
+viejo (`p.estado = 'pendiente'`, dos veces), y una migración pegada no se edita. Como pide el contrato de arriba, el cambio va en una
+migración nueva: **`20261005160000_piso_plan_cuenta_cerradas_sin_prenda.sql`** (rama `claude/piso-plan-cuenta-cerradas`), un
+`create or replace` de `fn_piso_plan_lectura` idéntico al de `20261004213000` salvo los dos filtros, que pasan a
+`p.estado in ('pendiente', 'cerrada_sin_prenda')` (en `por_atributo` y en `anotadas_recientes`), sus comentarios y el `comment on function`:
+**la anotada cuenta mientras no tenga prenda**. Huella: `faff73d2…` (la viva el 2026-10-04) → `33dfc4b19e7ab14410a14b2cb7bc50c5`.
+
+- **Lo prueba** `pnpm pruebas:piso-plan` con las funciones reales (`cerrar_cola_arranque`, `reabrir_prenda_cerrada`, `regularizar_prenda`):
+  A8 (una cerrada suma como anotada en su categoría × talla × familia, una vez; su línea sigue en la centinela y el libro no se movió), A9 (una
+  cerrada de ayer prende el reloj rápido igual que una pendiente), A10 (cerrar, reabrir y regularizar: la cifra no cambia hasta que pasa a
+  escaneada, sin duplicar) y A11, el control: con el cuerpo de `20261004213000` la misma cerrada desaparece de la cuenta y del reloj.
+  Mutación (los dos filtros de vuelta a `'pendiente'`): A8, A9 y A10 en rojo.
+- **La guarda nueva** (M4): la migración se detiene sin tocar nada si el cuerpo vivo no es el de `20261004213000` ni el suyo. Un cambio hecho a
+  mano en la función viva se perdería en silencio con el `create or replace` (memoria «parches vivos se pierden al recrear», PR 397).
+- **La regla de orden sigue en pie hasta que Felipe la pegue:** ninguna tienda —AQP sobre todo— cierra su cola desde
+  `/inventario/por-regularizar` mientras producción tenga `faff73d2…`. Producción el 2026-10-04 (solo lectura): 0 cierres, AQP con 170 anotadas
+  pendientes y TRU con 97. Y `20261004213000` no se vuelve a pegar nunca después de esta: devolvería el filtro viejo sin error.
