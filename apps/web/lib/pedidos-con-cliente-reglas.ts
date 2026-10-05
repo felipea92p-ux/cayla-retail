@@ -10,7 +10,7 @@
 //     sigue en pie, y la sede que guarda la prenda no conoce al cliente (la base no le manda nombre ni celular).
 
 import { nombreCortoSede, type SedeConStock } from "./stock-por-sede";
-import { accionesDePedido, etiquetaLinea, type AccionesPedido, type PedidoEntreSedes, type TonoEstadoPedido } from "./pedidos-entre-sedes-reglas";
+import { accionesDePedido, etiquetaLinea, hayPedidosQueMostrar, type AccionesPedido, type PedidoEntreSedes, type TonoEstadoPedido } from "./pedidos-entre-sedes-reglas";
 
 /** Dónde está apartada la prenda en la sede que la envía (null si el pedido ya no espera). */
 export type ReservaEnOrigen = "almacen" | "piso" | "sin_lugar" | "sin_reserva";
@@ -458,6 +458,14 @@ export function huellaDelPedido(d: DatosPedirYApartar & { nota: string }): strin
 // ---------------------------------------------------------------------------
 // Traslados: una sola lista de pedidos (ADR-0242 D-7)
 // ---------------------------------------------------------------------------
+
+/**
+ * ¿Hay algo que mostrar en la tarjeta de Traslados? Pedidos (reposición y para un cliente) o «Para enviar»: los dos van en
+ * UNA sola lista (decisión del 2026-10-04). Nunca una tarjeta vacía.
+ */
+export function hayAlgoEnLaLista(pedidos: PedidoEntreSedes[], gruposParaEnviar: readonly { prendas: readonly unknown[] }[]): boolean {
+  return hayPedidosQueMostrar(pedidos) || gruposParaEnviar.some((g) => g.prendas.length > 0);
+}
 
 /**
  * Junta la reposición y los pedidos para un cliente en UNA lista: primero lo que sigue esperando que salga, del más

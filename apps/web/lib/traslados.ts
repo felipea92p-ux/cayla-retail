@@ -353,6 +353,8 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
  * El número junto a «Traslados» en el menú y en el aviso «Traslados» del Inicio (ADR-0328 act. 17, Felipe: «"Te piden"
  * lleva número en el menú desde que llega el pedido»): lo que llega por recibir (`getTrasladosPorAtender`) más lo que
  * otras sedes le pidieron a esta y todavía no sale (`fn_pedidos_por_atender`). La suma es `numeroDelMenuTraslados`.
+ * «Para enviar» NO suma aquí (decisión del 2026-10-04): es un paso que la sede se debe a sí misma, y lo que lleva más de
+ * 3 días se avisa en su Inicio (`paraEnviarAtrasadas`).
  * Total como su vecina: nunca lanza. `cache()`: el layout y el Inicio lo piden en el mismo request.
  */
 export const getNumeroDelMenuTraslados = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {

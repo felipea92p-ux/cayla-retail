@@ -64,6 +64,15 @@ describe("avisosInicio", () => {
     expect(resumirApartados([{ venceEl: null, clienta: "Pedido de Tienda Trujillo" }], "2026-10-05")).toEqual({ vencidos: 0, hoy: 0, manana: 0, primeraClienta: null });
   });
 
+  it("decisión del 2026-10-04: lo que lleva más de 3 días «para enviar» se avisa en el Inicio de la sede", () => {
+    const [a] = avisosInicio({ paraEnviar: { prendas: 3, destinos: ["Tienda Arequipa", "Tienda Lima"], dias: 6 } });
+    expect(a).toMatchObject({ clave: "paraEnviar", grupo: "Inventario", cantidad: 3, nivel: "toca", href: "/inventario/traslados", ahora: "Envía 3 prendas que esperan en el almacén" });
+    expect(a!.detalle).toBe("3 prendas subidas para Tienda Arequipa y Tienda Lima llevan hasta 6 días en tu almacén: arma el envío.");
+    expect(avisosInicio({ paraEnviar: { prendas: 1, destinos: ["Tienda Lima"], dias: 3 } })[0]!.detalle).toBe("1 prenda subida para Tienda Lima lleva más de 3 días en tu almacén: arma el envío.");
+    expect(avisosInicio({ paraEnviar: { prendas: 0, destinos: [], dias: 0 } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ paraEnviar: null })[0]!.nivel).toBe("sinleer");
+  });
+
   it("el número de Traslados dice que suma lo que llega y lo que te piden", () => {
     expect(avisosInicio({ traslados: 3 })[0]!.detalle).toBe("3 esperan a tu sede: recibir lo que llegó o enviar lo que te piden.");
   });

@@ -13,6 +13,7 @@ import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
+import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -25,6 +26,7 @@ export type ClaveAviso =
   | "traslados"
   | "pedidosSede"
   | "pedidosCliente"
+  | "paraEnviar"
   | "conteo"
   | "regularizar"
   | "porPagar"
@@ -69,6 +71,9 @@ export type FuentesAvisos = {
    *  de quien atiende: avisarle que llegó o que no va a llegar, o preguntarle si el pedido sigue en pie (a los 7 días). Ya
    *  resumidos por `resumenParaElInicio`. */
   pedidosCliente?: { llegaron: number; noLlegaron: number; sigueEnPie: number; primero: string | null } | null;
+  /** ADR-0328 act. 17 (decisión del 2026-10-04): lo subido al almacén «para enviar» a otra sede que lleva más de 3 días sin
+   *  salir. Se avisa aquí y no en el número del menú. Ya resumido por `paraEnviarAtrasadas`. */
+  paraEnviar?: { prendas: number; destinos: string[]; dias: number } | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
   prendasVencidas?: number | null;
@@ -247,6 +252,28 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/inventario/traslados",
       ocultable: true,
       urgenteSi: "Cuando un pedido lleva 48 h sin respuesta",
+    });
+  }
+  // ADR-0328 act. 17 (decisión del 2026-10-04): lo colgado se manda en dos pasos (subir, después el traslado) y el segundo
+  // se olvida. Lo que lleva más de 3 días «para enviar» se avisa en el Inicio de ESA sede; no suma al número del menú, que
+  // es lo que otros esperan de ella.
+  if (f.paraEnviar !== undefined) {
+    const p = f.paraEnviar;
+    const n = p === null ? null : p.prendas;
+    const destinos = p ? (p.destinos.length <= 2 ? p.destinos.join(" y ") : `${p.destinos.slice(0, -1).join(", ")} y ${p.destinos.at(-1)}`) : "";
+    avisos.push({
+      clave: "paraEnviar",
+      grupo: "Inventario",
+      titulo: "Para enviar",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Envía ${n} ${plural(n, "prenda que espera", "prendas que esperan")} en el almacén` : "",
+      detalle:
+        p === null ? SIN_LEER
+          : !n ? `Nada lleva más de ${DIAS_PARA_ENVIAR} días esperando salir.`
+            : `${n} ${plural(n, "prenda subida", "prendas subidas")} para ${destinos} ${plural(n, "lleva", "llevan")} ${p.dias === DIAS_PARA_ENVIAR ? "más de" : "hasta"} ${p.dias} días en tu almacén: arma el envío.`,
+      href: "/inventario/traslados",
+      ocultable: true,
     });
   }
   if (f.conteoAbierto !== undefined) {

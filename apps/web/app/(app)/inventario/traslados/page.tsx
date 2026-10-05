@@ -6,10 +6,9 @@ import { horaLima, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
 import { PedidosEntreSedes } from "@/components/PedidosEntreSedes";
 import { getParaEnviar, getPedidosConCliente, getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
-import { hayPedidosQueMostrar, sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
-import { juntarPedidos } from "@/lib/pedidos-con-cliente-reglas";
+import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
+import { hayAlgoEnLaLista, juntarPedidos } from "@/lib/pedidos-con-cliente-reglas";
 import { agruparPorDestino } from "@/lib/para-enviar-reglas";
-import { ParaEnviar } from "@/components/ParaEnviar";
 import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -71,20 +70,17 @@ export default async function TrasladosPage() {
         }
       />
 
-      {/* Pedidos de reposición entre tiendas (ADR-0242 D-7), de la sede activa. Solo si hay algo: nunca una tarjeta vacía.
-          Lugar provisional hasta la bandeja «Hoy te toca» (tanda 2). */}
-      {hayPedidosQueMostrar(pedidos) && (
+      {/* Pedidos entre tiendas (ADR-0242 D-7) y lo subido «para enviar» (ADR-0328 act. 17, dos pasos), de la sede activa, en
+          UNA sola lista (decisión del 2026-10-04). Solo si hay algo: nunca una tarjeta vacía. Lugar provisional hasta la
+          bandeja «Hoy te toca» (tanda 2). */}
+      {hayAlgoEnLaLista(pedidos, gruposParaEnviar) && (
         <PedidosEntreSedes
           key={`pedidos-${persona.ubicacionId}`}
           pedidos={pedidos}
+          paraEnviar={gruposParaEnviar}
           ubicacion={{ ubicacionId: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
           ahoraIso={ahoraIso}
         />
-      )}
-
-      {/* Lo subido al almacén para mandarlo a otra sede (ADR-0328 act. 17, dos pasos): queda a la vista hasta que sale. */}
-      {gruposParaEnviar.length > 0 && (
-        <ParaEnviar key={`para-enviar-${persona.ubicacionId}`} grupos={gruposParaEnviar} ubicacion={{ ubicacionId: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }} />
       )}
 
       {/* `key` por sede: al cambiar de sede con el selector, los filtros y la búsqueda de la sede anterior no se

@@ -352,10 +352,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `fn_pedidos_con_cliente` no le manda nombre ni celular: `paraQuien`, `paraQuienPedido`): a los 7 días la tienda que pidió
   responde «¿Sigue en pie?» (`SigueEnPieModal` → RPC `confirmar_pedido_sigue_en_pie`, o cancelar; `preguntarSiSigue`), en
   Traslados, en la franja de Vender y en el aviso del Inicio.
-  Debajo, `ParaEnviar.tsx` (`getParaEnviar` = RPC `fn_para_enviar`; `lib/para-enviar-reglas.ts`): lo subido al almacén
-  «para enviar», por destino, con «Armar el envío» (Nuevo traslado con `?destino=&lineas=`) y «Ya no la envío» (RPC
-  `cancelar_para_enviar`). Sale de la lista sola cuando sale un traslado a ese destino (disparador `para_enviar_al_salir`
-  sobre `transferencia_items`). El número del menú y del aviso «Traslados» del Inicio (`getNumeroDelMenuTraslados`) suma
+  En la MISMA tarjeta (una sola lista, decisión del 2026-10-04; `hayAlgoEnLaLista`), entre «Te piden» y «Pediste», la sección
+  `SeccionParaEnviar` (`ParaEnviar.tsx`; `getParaEnviar` = RPC `fn_para_enviar`; `lib/para-enviar-reglas.ts`): lo subido al
+  almacén «para enviar», por destino, con «Armar el envío» (Nuevo traslado con `?destino=&lineas=`) y «Ya no la envío» (RPC
+  `cancelar_para_enviar`); cada prenda dice hace cuánto se subió (`esperaParaEnviar`, en ámbar pasados 3 días). Sale de la
+  lista sola cuando sale un traslado a ese destino (disparador `para_enviar_al_salir` sobre `transferencia_items`). Lo que
+  lleva más de 3 días se avisa en el Inicio de esa sede (`leerParaEnviar` + `paraEnviarAtrasadas`, aviso «Para enviar»),
+  NO en el número del menú. El número del menú y del aviso «Traslados» del Inicio (`getNumeroDelMenuTraslados`) suma
   lo que me piden (RPC `fn_pedidos_por_atender`, `numeroDelMenuTraslados` en `lib/pedidos-por-atender-reglas.ts`) a lo que
   llega (`getTrasladosPorAtender`); Conteo y Caja usan solo lo que llega.
   Lo de siempre: `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30

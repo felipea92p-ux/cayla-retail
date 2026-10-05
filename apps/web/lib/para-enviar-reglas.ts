@@ -116,6 +116,42 @@ export function urlArmarEnvio(g: Pick<GrupoParaEnviar, "destinoId" | "prendas">)
   return `${RUTA_NUEVO_TRASLADO}?destino=${encodeURIComponent(g.destinoId)}&lineas=${encodeURIComponent(lineas)}`;
 }
 
+// ---------------------------------------------------------------------------
+// Lo que espera demasiado (decisión del 2026-10-04): una sola lista en Traslados y el aviso del Inicio a los 3 días
+// ---------------------------------------------------------------------------
+
+/** Después de cuántos días en «Para enviar» se avisa en el Inicio de la sede (no en el número del menú: no es un pedido de
+ *  nadie, es un segundo paso que esta sede se debe a sí misma). */
+export const DIAS_PARA_ENVIAR = 3;
+const HORA_MS = 3_600_000;
+
+/** ¿Lleva MÁS de 3 días subida y sin salir? (Las 72 h justas todavía no: «más de 3 días».) Lo ya enviado no cuenta. */
+export function esperaDemasiado(p: Pick<PrendaParaEnviar, "creadoEn" | "falta">, ahoraIso: string): boolean {
+  if (p.falta <= 0) return false;
+  return Date.parse(ahoraIso) - Date.parse(p.creadoEn) > DIAS_PARA_ENVIAR * 24 * HORA_MS;
+}
+
+/** Lo que dice cada prenda de la lista: «Subida hace 2 días» y, pasado el plazo, en ámbar. */
+export function esperaParaEnviar(creadoEn: string, ahoraIso: string): { texto: string; tarde: boolean } {
+  const horas = Math.max(0, Math.floor((Date.parse(ahoraIso) - Date.parse(creadoEn)) / HORA_MS));
+  const dias = Math.floor(horas / 24);
+  const hace = horas < 24 ? "hoy" : dias === 1 ? "hace 1 día" : `hace ${dias} días`;
+  return { texto: `Subida ${hace}`, tarde: horas > DIAS_PARA_ENVIAR * 24 };
+}
+
+/** El aviso del Inicio de la sede: cuántas prendas llevan más de 3 días esperando salir, a qué sedes y la más antigua. */
+export type ParaEnviarAtrasadas = { prendas: number; destinos: string[]; dias: number };
+
+export function paraEnviarAtrasadas(filas: readonly PrendaParaEnviar[], ahoraIso: string): ParaEnviarAtrasadas {
+  const tarde = filas.filter((p) => esperaDemasiado(p, ahoraIso));
+  const masAntigua = tarde.reduce((min, p) => Math.min(min, Date.parse(p.creadoEn)), Number.POSITIVE_INFINITY);
+  return {
+    prendas: tarde.reduce((n, p) => n + p.falta, 0),
+    destinos: [...new Set(tarde.map((p) => p.destino))].sort((a, b) => a.localeCompare(b, "es")),
+    dias: tarde.length ? Math.floor((Date.parse(ahoraIso) - masAntigua) / (24 * HORA_MS)) : 0,
+  };
+}
+
 export const MAX_MOTIVO_YA_NO = 200;
 
 /** «Ya no la envío» necesita un porqué (la base lo exige igual): es lo único que dice qué pasó con la prenda. */

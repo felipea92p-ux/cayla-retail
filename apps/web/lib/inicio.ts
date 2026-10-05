@@ -9,7 +9,8 @@ import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import type { ClaveModulo } from "@/lib/modulos";
-import { getPedidosPorAtender, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
+import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
+import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
 import { ahoraSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
 import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 
@@ -119,11 +120,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta" | "pedidosCliente">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuestaLeidos, pedidosCliente] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -156,8 +157,11 @@ export async function getFuentesAvisos(
     // ADR-0328 act. 17 (decisión del 2026-10-04): lo que la tienda pidió para un cliente y hay que avisarle (llegó o no va a
     // llegar) y por qué pedidos hay que preguntar si siguen en pie (7 días). Para quien ve Vender: el aviso lleva a su franja.
     ve("vender") ? leerPedidosConCliente(ubicacionId).then((p) => (p === null ? null : resumenParaElInicio(p, new Date().toISOString()))) : undefined,
+    // ADR-0328 act. 17 (decisión del 2026-10-04): lo subido «para enviar» que lleva más de 3 días, en el Inicio de esa sede
+    // (para quien ve Traslados, donde está la lista y «Armar el envío»). No suma al número del menú.
+    ve("traslados") ? leerParaEnviar(ubicacionId).then((f) => (f === null ? null : paraEnviarAtrasadas(f, new Date().toISOString()))) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

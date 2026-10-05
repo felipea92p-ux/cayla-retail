@@ -17,6 +17,7 @@ import { textoPrendas } from "@/lib/pedidos-entre-sedes-reglas";
 import {
   MAX_MOTIVO_YA_NO,
   avisoNoEstaCompleta,
+  esperaParaEnviar,
   etiquetaParaEnviar,
   motivoYaNoValido,
   noEstaCompleta,
@@ -28,24 +29,23 @@ import {
 // «Para enviar» en Traslados (ADR-0328 act. 17; Felipe: lo colgado se manda en DOS pasos). Lo que la sede subió al almacén
 // para mandarlo a otra queda aquí, por sede de destino, hasta que sale en un traslado —la base lo descuenta sola, salga como
 // salga— o alguien dice «Ya no la envío» con su motivo. «Armar el envío» abre Nuevo traslado con el destino y las prendas
-// ya cargadas. La página solo la monta si hay algo que enviar: nunca una tarjeta vacía.
+// ya cargadas. Decisión del 2026-10-04: no es una tarjeta aparte, es una sección de la MISMA lista que los pedidos entre
+// sedes (`PedidosEntreSedes`), y lo que lleva más de 3 días dice cuánto (en ámbar) y se avisa en el Inicio de la sede.
 
 type Ubicacion = { ubicacionId: string; etiqueta: string };
 
-export function ParaEnviar({ grupos, ubicacion }: { grupos: GrupoParaEnviar[]; ubicacion: Ubicacion }) {
+/** La sección «Para enviar» dentro de la tarjeta de pedidos de Traslados. `conBorde`: si va debajo de otra sección. */
+export function SeccionParaEnviar({ grupos, ubicacion, ahoraIso, conBorde }: { grupos: GrupoParaEnviar[]; ubicacion: Ubicacion; ahoraIso: string; conBorde: boolean }) {
   const [yaNo, setYaNo] = useState<PrendaParaEnviar | null>(null);
+  const total = grupos.reduce((n, g) => n + g.total, 0);
   return (
-    <section className="card-cayla overflow-hidden" aria-labelledby="para-enviar">
-      <header className="px-4 pt-4 sm:px-5">
-        <h2 id="para-enviar" className="font-display text-[22px] leading-tight text-tinta">
-          Para enviar
-        </h2>
-        <p className="mt-0.5 text-sm text-taupe">Lo que subiste al almacén para mandarlo a otra sede. Sale de esta lista cuando sale el traslado.</p>
-      </header>
+    <div className={conBorde ? "border-t border-sand pt-3" : "mt-3"}>
+      <p className="label-cayla px-4 text-[11px] text-taupe sm:px-5">Para enviar · {textoPrendas(total)}</p>
+      <p className="px-4 text-xs text-taupe sm:px-5">Lo que subiste al almacén para mandarlo a otra sede. Sale de aquí cuando sale el traslado.</p>
       {grupos.map((g) => {
         const url = urlArmarEnvio(g);
         return (
-          <div key={g.destinoId} className="mt-3 border-t border-sand">
+          <div key={g.destinoId} className="mt-2 border-t border-sand">
             <div className="flex flex-col gap-2 px-4 pt-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <p className="font-semibold text-tinta">
                 A {g.destino} · {textoPrendas(g.total)}
@@ -60,7 +60,9 @@ export function ParaEnviar({ grupos, ubicacion }: { grupos: GrupoParaEnviar[]; u
               )}
             </div>
             <ul className="mt-2 divide-y divide-sand">
-              {g.prendas.map((p) => (
+              {g.prendas.map((p) => {
+                const espera = esperaParaEnviar(p.creadoEn, ahoraIso);
+                return (
                 <li key={p.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="flex flex-wrap items-baseline gap-x-2 text-tinta">
@@ -68,8 +70,9 @@ export function ParaEnviar({ grupos, ubicacion }: { grupos: GrupoParaEnviar[]; u
                       <span className="min-w-0 break-words">{etiquetaParaEnviar(p)}</span>
                       {p.sku && <span className="text-xs text-taupe">{p.sku}</span>}
                     </p>
-                    <p className="mt-0.5 text-xs text-taupe">
-                      Subida {[p.creadoPorNombre ? `por ${p.creadoPorNombre}` : null, fechaCorta(p.creadoEn)].filter(Boolean).join(" · ")}
+                    {/* Pasados 3 días, en ámbar: es lo mismo que avisa el Inicio de la sede (decisión del 2026-10-04). */}
+                    <p className={`mt-0.5 text-xs ${espera.tarde ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
+                      {[espera.texto, p.creadoPorNombre ? `por ${p.creadoPorNombre}` : null, fechaCorta(p.creadoEn)].filter(Boolean).join(" · ")}
                       {p.nota ? ` · ${p.nota}` : ""}
                     </p>
                     {noEstaCompleta(p) && (
@@ -83,13 +86,14 @@ export function ParaEnviar({ grupos, ubicacion }: { grupos: GrupoParaEnviar[]; u
                     Ya no la envío
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
         );
       })}
       {yaNo && <YaNoLaEnvioModal prenda={yaNo} ubicacion={ubicacion} onClose={() => setYaNo(null)} />}
-    </section>
+    </div>
   );
 }
 

@@ -29,6 +29,8 @@ import {
 import { accionesDe, avisoAlCliente, estadoVisibleConCliente, paraQuien, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
 import { esperaVisible } from "@/lib/pedidos-por-atender-reglas";
 import { AvisarAlClienteModal, SigueEnPieModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
+import { SeccionParaEnviar } from "@/components/ParaEnviar";
+import type { GrupoParaEnviar } from "@/lib/para-enviar-reglas";
 
 // «Pedir a otra sede» en Traslados (ADR-0242 D-7). Lugar provisional: el definitivo es la bandeja «Hoy te toca» de la
 // tanda 2, que todavía no existe. Dos listas en una tarjeta:
@@ -39,14 +41,25 @@ import { AvisarAlClienteModal, SigueEnPieModal, SubirPedidoAlAlmacenModal } from
 // está colgada, primero «Subir al almacén» (Felipe: dos pasos); al llegar, o si no va a llegar, «Avisar al cliente». Cada fila que espera dice
 // hace cuánto, y desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes). Decisión del 2026-10-04: del
 // lado que tiene la prenda, el pedido es «para un cliente» (no conoce su nombre); del lado que pidió, a los 7 días se
-// pregunta «¿sigue en pie?» (la reserva allá no vence sola).
+// pregunta «¿sigue en pie?» (la reserva allá no vence sola). Y es UNA sola lista con «Para enviar» (lo subido al almacén
+// para mandarlo a otra sede), entre «Te piden» y «Pediste»: todo lo que esta sede tiene que mandar, junto.
 
 type ConCliente = PedidoEntreSedes & { cliente: ClientePedido };
 const conCliente = (p: PedidoEntreSedes | null): p is ConCliente => !!p?.cliente;
 
 type Ubicacion = { ubicacionId: string; etiqueta: string };
 
-export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: PedidoEntreSedes[]; ubicacion: Ubicacion; ahoraIso: string }) {
+export function PedidosEntreSedes({
+  pedidos,
+  paraEnviar,
+  ubicacion,
+  ahoraIso,
+}: {
+  pedidos: PedidoEntreSedes[];
+  paraEnviar: GrupoParaEnviar[];
+  ubicacion: Ubicacion;
+  ahoraIso: string;
+}) {
   const { tePiden, pediste } = separarPedidos(pedidos);
   const [enviar, setEnviar] = useState<PedidoEntreSedes | null>(null);
   const [cancelar, setCancelar] = useState<PedidoEntreSedes | null>(null);
@@ -71,9 +84,9 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
     <section className="card-cayla overflow-hidden" aria-labelledby="pedidos-entre-sedes">
       <header className="px-4 pt-4 sm:px-5">
         <h2 id="pedidos-entre-sedes" className="font-display text-[22px] leading-tight text-tinta">
-          Pedidos entre sedes
+          Pedidos y envíos entre sedes
         </h2>
-        <p className="mt-0.5 text-sm text-taupe">Lo que otras tiendas te piden enviar y lo que tú pediste, para reponer o para un cliente que espera.</p>
+        <p className="mt-0.5 text-sm text-taupe">Lo que otras tiendas te piden, lo que subiste para enviar y lo que tú pediste, para reponer o para un cliente que espera.</p>
       </header>
 
       {tePiden.length > 0 && (
@@ -89,8 +102,10 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
         </div>
       )}
 
+      {paraEnviar.length > 0 && <SeccionParaEnviar grupos={paraEnviar} ubicacion={ubicacion} ahoraIso={ahoraIso} conBorde={tePiden.length > 0} />}
+
       {pediste.length > 0 && (
-        <div className={tePiden.length > 0 ? "border-t border-sand pt-3" : "mt-3"}>
+        <div className={tePiden.length > 0 || paraEnviar.length > 0 ? "border-t border-sand pt-3" : "mt-3"}>
           <p className="label-cayla px-4 text-[11px] text-taupe sm:px-5">Pediste · {pediste.length}</p>
           <ul className="mt-1 divide-y divide-sand border-t border-sand">
             {pediste.map((p) => (

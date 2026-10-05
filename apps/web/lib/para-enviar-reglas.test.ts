@@ -7,6 +7,9 @@ import {
   avisoNoEstaCompleta,
   destinosParaEnviar,
   enviableHoy,
+  esperaDemasiado,
+  esperaParaEnviar,
+  paraEnviarAtrasadas,
   etiquetaParaEnviar,
   faltaDestino,
   motivoYaNoValido,
@@ -129,5 +132,35 @@ describe("Ya no la envío y la ventana Subir prenda", () => {
     const sql = readFileSync(new URL("../../../supabase/migrations/20261005100200_pedidos_que_no_se_pierden_parte3_para_enviar.sql", import.meta.url), "utf8");
     expect(sql).toContain(`create or replace function retail.${RPC_SUBIR_PARA_ENVIAR}(`);
     for (const p of PARAMETROS_RPC_SUBIR_PARA_ENVIAR) expect(sql).toMatch(new RegExp(`\\b${p} (uuid|jsonb|text)`));
+  });
+});
+
+describe("lo que espera demasiado (decisión del 2026-10-04) — se avisa en el Inicio de la sede, no en el menú", () => {
+  const HORA = 3_600_000;
+  const mas = (iso: string, ms: number) => new Date(Date.parse(iso) + ms).toISOString();
+  const subida = "2026-10-05T10:00:00Z";
+  it("«más de 3 días»: las 72 h justas todavía no; un instante después, sí", () => {
+    expect(esperaDemasiado(prenda({ id: "a", creadoEn: subida }), mas(subida, 72 * HORA))).toBe(false);
+    expect(esperaDemasiado(prenda({ id: "a", creadoEn: subida }), mas(subida, 72 * HORA + 1))).toBe(true);
+  });
+  it("lo que ya salió entero no espera nada", () => {
+    expect(esperaDemasiado(prenda({ id: "a", creadoEn: subida, falta: 0 }), mas(subida, 200 * HORA))).toBe(false);
+  });
+  it("cada prenda dice hace cuánto se subió, en ámbar pasado el plazo", () => {
+    expect(esperaParaEnviar(subida, mas(subida, 5 * HORA))).toEqual({ texto: "Subida hoy", tarde: false });
+    expect(esperaParaEnviar(subida, mas(subida, 30 * HORA))).toEqual({ texto: "Subida hace 1 día", tarde: false });
+    expect(esperaParaEnviar(subida, mas(subida, 73 * HORA))).toEqual({ texto: "Subida hace 3 días", tarde: true });
+    expect(esperaParaEnviar(subida, mas(subida, -5 * HORA))).toEqual({ texto: "Subida hoy", tarde: false });
+  });
+  it("el resumen del Inicio: prendas que faltan, a qué sedes (sin repetir) y los días de la más antigua", () => {
+    const ahora = "2026-10-10T12:00:00Z";
+    const filas = [
+      prenda({ id: "a", destino: "Tienda Lima", creadoEn: "2026-10-04T10:00:00Z", falta: 2 }),
+      prenda({ id: "b", destino: "Tienda Arequipa", creadoEn: "2026-10-06T10:00:00Z", falta: 1 }),
+      prenda({ id: "c", destino: "Tienda Lima", creadoEn: "2026-10-09T10:00:00Z", falta: 5 }),
+      prenda({ id: "d", destino: "Tienda Lima", creadoEn: "2026-10-01T10:00:00Z", falta: 0 }),
+    ];
+    expect(paraEnviarAtrasadas(filas, ahora)).toEqual({ prendas: 3, destinos: ["Tienda Arequipa", "Tienda Lima"], dias: 6 });
+    expect(paraEnviarAtrasadas([], ahora)).toEqual({ prendas: 0, destinos: [], dias: 0 });
   });
 });
