@@ -193,3 +193,5 @@ Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no
 
 - `cierres_cola_arranque`
 - `cola_arranque_plazo`
+- `cuadre_piso_items`
+- `cuadres_piso`

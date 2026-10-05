@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Shirt, ShoppingBag, Truck } from "lucide-react";
+import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Scale, Shirt, ShoppingBag, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
@@ -145,6 +145,11 @@ export default async function InventarioPage({
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar. Es una función de Existencias (ADR-0306), así que la
+  // ve quien ve Existencias —la cuenta Almacén, que escanea con la pistola—, en su sede activa cuando separa piso y almacén (esa
+  // pantalla cuadra siempre la sede activa). Confirmar es solo de un líder: allí el botón se apaga y dice quién sí puede, y la base
+  // lo vuelve a preguntar (`fn_es_lider()` en cuadrar_piso).
+  const puedeCuadrarPiso = puedeBajarAlPiso;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
@@ -222,6 +227,12 @@ export default async function InventarioPage({
               </Link>
             )}
             <nav aria-label="Pantallas relacionadas" className="flex shrink-0 items-center gap-1">
+              {puedeCuadrarPiso && (
+                <Link href="/inventario/cuadrar" className="btn-cayla btn-sutil btn-chico shrink-0">
+                  <Scale aria-hidden className="h-4 w-4" />
+                  Cuadrar el piso
+                </Link>
+              )}
               {enSuSede && veModulo(persona, "recibir") && (
                 <Link href="/recibir" className="btn-cayla btn-sutil btn-chico shrink-0">
                   <PackageOpen aria-hidden className="h-4 w-4" />
