@@ -58,7 +58,6 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/ColoresLista.tsx": { cuenta: 2, deuda: "actividad 8", motivo: "Color de reserva de una muestra (#e8e0d0 = sand) y el valor inicial del selector." },
   "components/alta-producto/MatrizVariantes.tsx": { cuenta: 1, deuda: "actividad 8", motivo: "Rayado de «fuera de la matriz» con el rgb de la tinta escrito a mano." },
   "app/estilos/ficha-taller.css": { cuenta: 1, deuda: "actividad 8", motivo: "Sombra interior de negro escrita a mano." },
-  "components/RolesPanel.tsx": { cuenta: 1, deuda: "actividad 13", motivo: "Un ✓ con `text-white` sobre `bg-taupe` (en oscuro el taupe es claro)." },
 };
 
 /** La deuda que queda por pagar: la suma de `cuenta` de las entradas con `deuda`. Solo baja. */
