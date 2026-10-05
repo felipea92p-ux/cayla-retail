@@ -639,6 +639,55 @@ ESCENARIOS.push(
   { id: "familias.editar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Editar» una familia", preparar: clicRol("button", /^Editar/i) },
 );
 
+// ---------- Inventario I: Existencias, Movimientos, Traslados y Recibir (actividad 9) ----------
+const INVENTARIO = ["admin", "integrante", "terminal-administrativa"];
+const clicTexto = (texto) => async (pagina) => {
+  await pagina.getByText(texto).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
+const verDetalle = (nombre) => async (pagina) => {
+  await pagina.getByRole("button", { name: nombre }).first().evaluate((el) => el.click());
+  await esperar(pagina, 1500);
+};
+ESCENARIOS.push(
+  { id: "existencias.filtros", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
+  { id: "existencias.detalle", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Ver detalle» (cada talla con su piso y su almacén)", preparar: clicRol("button", /Ver detalle/i) },
+  { id: "existencias.danadas", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el filtro «Dañadas»", preparar: clicRol("button", /^Dañadas/i) },
+  { id: "existencias.ordenar", ruta: "/inventario", cuentas: ["admin"], abre: "text=Nombre (A–Z)", nombre: "Existencias · «Ordenar por»", preparar: clicRol("button", /^Ordenar por/i) },
+  { id: "existencias.acciones", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Existencias · «Colgar en el piso» (reponer una prenda: cuántas de cada color y talla)", preparar: clicRol("button", /más acciones de/i) },
+  { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], nombre: "Existencias · «Resumen por categoría»", preparar: clicRol("button", /Resumen por categoría/i) },
+  { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: clicRol("button", /^Decidir/i) },
+  { id: "existencias.texto", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Iconos con texto»", preparar: clicRol("button", /Iconos con texto/i) },
+  { id: "movimientos.detalle", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento", preparar: verDetalle(/^Ver el detalle: Salida/) },
+  { id: "movimientos.grupo", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento con varias prendas", preparar: verDetalle(/^Ver el detalle: las 3 prendas/) },
+  { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", nombre: "Movimientos · el filtro «Ajustes»", preparar: clicRol("button", /^Ajustes/i) },
+  { id: "movimientos.calendario", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=gridcell]", nombre: "Movimientos · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
+  { id: "traslados.pedir", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Traslados · «Pedir a otra sede»", preparar: clicRol("button", /Pedir a otra sede/i) },
+  { id: "traslados.cerrados", ruta: "/inventario/traslados", cuentas: INVENTARIO, nombre: "Traslados · la pestaña «Cerrados»", preparar: clicRol("button", /^Cerrados/i) },
+  { id: "traslados.filtros", ruta: "/inventario/traslados", cuentas: ["admin"], nombre: "Traslados · «Más filtros»", preparar: clicRol("button", /Más filtros/i) },
+  { id: "traslados.sede", ruta: "/inventario/traslados/nuevo", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Nuevo traslado · la lista «Hacia»", preparar: clicRol("combobox", /Hacia|Elige a qué sede/i) },
+  { id: "traslados.prenda", ruta: "/inventario/traslados/nuevo", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Nuevo traslado · la lista de prendas", preparar: clicRol("combobox", /Elige la prenda|Prenda/i) },
+  {
+    id: "traslados.detalle",
+    ruta: "/inventario/traslados/[id]",
+    cuentas: ["admin"],
+    abre: "h1",
+    nombre: "Traslados · el detalle de un traslado",
+    preparar: async (pagina) => irA(`/inventario/traslados/${consultarLocal("select id from retail.transferencias order by 1 limit 1")}`)(pagina),
+  },
+  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor/i) },
+  {
+    id: "recibir.prenda",
+    ruta: "/recibir",
+    cuentas: INVENTARIO,
+    nombre: "Recibir · una prenda buscada",
+    async preparar(pagina) {
+      await pagina.getByPlaceholder(/Escanea o busca la prenda/i).first().fill("Vestido");
+      await esperar(pagina, 1800);
+    },
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(
