@@ -26,8 +26,8 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    (ámbar: hay atrás y ninguna afuera) y sin nada en la sede (borde punteado: un lugar vacío, no un error). Reemplaza las cajas
    «Piso / Almacén» (la de Piso iba siempre en rojo) y la cuadrícula con los rótulos repetidos en cada renglón.
 
-   UN botón por tarjeta (rediseño 2026-10-04): «Reponer» solo si algún color tiene algo que bajar; Subir, Ajustar y Ver detalle
-   viven en el menú «⋯». Antes eran cuatro botones y uno negro en cada tarjeta: quince negros por página.
+   UN botón por tarjeta (rediseño 2026-10-04): «Reponer» solo si algún color tiene algo que bajar; Subir, Ajustar, Reportar dañada
+   (ADR-0328 act. 10) y Ver detalle viven en el menú «⋯». Antes eran cuatro botones y uno negro en cada tarjeta: quince negros por página.
 
    No decide nada nuevo: las cifras son las LIBRES de `PrendaAgrupada` (las mismas de la tabla) y la pastilla es el diagnóstico
    de `queHacerPrenda` (el «Qué hacer» de la tabla). Reponer y Ajustar abren las ventanas que ya existían, con el permiso que ya
@@ -96,17 +96,21 @@ export function ExistenciasTarjetas({
   separa,
   puedeReponer,
   puedeAjustar,
+  puedeReportarDanada = false,
   mostrarMarca,
   tallasDePrenda,
   onReponer,
   onSubir,
   onAjustar,
+  onReportarDanada,
   onVerDetalle,
 }: {
   modelos: ModeloPrendas<FilaExistencias>[];
   separa: boolean;
   puedeReponer: boolean;
   puedeAjustar: boolean;
+  /** «Reportar dañada» (ADR-0328 act. 10, `permisosDelDetalle`): quien ve Existencias, en su sede, con piso, almacén y cuarentena. */
+  puedeReportarDanada?: boolean;
   mostrarMarca: boolean;
   /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
    *  lo dice («Solo M · L (de 4 tallas)»), porque sus cifras suman solo las que se ven. */
@@ -116,6 +120,8 @@ export function ExistenciasTarjetas({
   /** «Subir prenda» abre la ventana del MODELO entero (todos sus colores y tallas). Mismo permiso que «Reponer prenda». */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   onAjustar: (fila: FilaExistencias, origen: HTMLElement) => void;
+  /** «Reportar dañada» abre su ventana con el color que se está viendo (`prenda`), y deja elegir otro color del modelo. */
+  onReportarDanada?: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
   onVerDetalle: (prenda: PrendaAgrupada<FilaExistencias>) => void;
 }) {
@@ -134,6 +140,8 @@ export function ExistenciasTarjetas({
         const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
         // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
         const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
+        // Reportar dañada: algo LIBRE en el piso o en el almacén de algún color (lo apartado para un cliente no se mueve).
+        const hayAlgoLibre = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) + (t.almacenDisponible ?? 0) > 0));
         const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
         const recortada = textoTallasRecortadas(
           p.tallas.map((f) => f.talla),
@@ -147,6 +155,10 @@ export function ExistenciasTarjetas({
             ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
             : []),
           ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0], origen()) }] : []),
+          // Una mancha o una rotura que aparece en el perchero (ADR-0328 act. 10): pasa a Dañadas y deja de contar para la venta.
+          ...(puedeReportarDanada && onReportarDanada
+            ? [{ clave: "danada", etiqueta: "Reportar dañada", onSelect: () => onReportarDanada(p, origen()), motivo: hayAlgoLibre ? undefined : "No hay prendas libres para reportar" }]
+            : []),
           { clave: "detalle", etiqueta: "Ver detalle", onSelect: () => onVerDetalle(p) },
         ];
         return (
