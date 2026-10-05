@@ -463,6 +463,15 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:retirar-del-piso
 
+      # Capacidad del piso por sede (ADR-0329, actividad 6 de ADR-0328): la siembra (TRU 600 contada, AQP 1800 y LIM 180
+      # provisionales, con los nombres de producción y los locales); `fn_capacidad_piso` para líder, colaboradora y terminal, 42501
+      # para la cuenta de afuera; `fijar_capacidad_piso` solo del líder, con firma, historial y Actividad, «sin cambios» al
+      # reintentar y PT409 si otra persona la cambió; los candados de la tabla (capacidad calculada, rangos, solo tiendas); «por
+      # cuadrar» (cuadrado_en) y la carrera de tres sesiones: el segundo guardado de una sede espera al primero, otra sede no. ROLLBACK.
+      - name: pruebas:capacidad-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:capacidad-piso
+
       # «Cuadrar el piso» (ADR-0328, decisión técnica 4): `cuadrar_piso` pasa al piso, de una vez y todo o nada, lo que el almacén
       # tiene libre y nadie escaneó como guardado (y sube lo escaneado que el sistema creía colgado). Solo un líder confirma; lo
       # apartado, la cuarentena, lo archivado y lo de prueba no se mueven; las «no cargadas» se guardan y no se aplican; la

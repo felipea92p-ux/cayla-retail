@@ -6257,9 +6257,31 @@ export type Database = {
         Args: { p_items: Json; p_solo_sin_temporada?: boolean }
         Returns: number
       }
+      fijar_capacidad_piso: {
+        Args: {
+          p_contada_el: string | null
+          p_densidad: number
+          p_m2_sala: number
+          p_ubicacion_id: string
+          p_version_esperada: number
+        }
+        Returns: Json
+      }
       fijar_fechas_temporada: {
         Args: { p_fechas: Json }
         Returns: number
+      }
+      fn_capacidad_piso: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          capacidad: number
+          contada_el: string | null
+          cuadrado_en: string | null
+          densidad: number
+          m2_sala: number
+          provisional: boolean
+          version: number
+        }[]
       }
       // 20261004210100 (ADR-0328, actividad 4): la carga inicial se cierra por sede.
       fijar_cierre_carga_inicial: {
