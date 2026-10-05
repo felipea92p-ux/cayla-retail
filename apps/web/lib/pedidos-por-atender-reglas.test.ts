@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   HORAS_SIN_RESPUESTA,
@@ -6,6 +7,7 @@ import {
   esperaVisible,
   filaPorAtenderDeFila,
   horasEsperando,
+  numeroDelMenuTraslados,
   pedidosSinRespuesta,
   sinRespuestaEnLaRed,
   textoEspera,
@@ -47,6 +49,46 @@ describe("contarTePiden — el número del menú", () => {
   });
   it("sin pedidos, 0", () => {
     expect(contarTePiden([])).toBe(0);
+  });
+});
+
+describe("numeroDelMenuTraslados — el menú suma lo que llega y lo que te piden", () => {
+  const filas = [fila({ id: "a" }), fila({ id: "b", conCliente: true }), fila({ id: "c", direccion: "pedi" })];
+  it("lo que llega + lo que otras sedes le piden a esta (lo que esta pidió no suma)", () => {
+    expect(numeroDelMenuTraslados(3, filas)).toBe(5);
+    expect(numeroDelMenuTraslados(0, [fila({ id: "c", direccion: "pedi" })])).toBe(0);
+  });
+  it("si no se pudo leer lo que llega, no hay número (nunca uno inventado)", () => {
+    expect(numeroDelMenuTraslados(null, filas)).toBeNull();
+  });
+  it("si falla la lectura de pedidos, sale solo con lo que llega", () => {
+    expect(numeroDelMenuTraslados(2, null)).toBe(2);
+  });
+});
+
+// Revisión adversarial (ADR-0328 act. 17): sumar «Te piden» DENTRO de `getTrasladosPorAtender` hacía que Conteo dijera
+// «hay 1 traslado hacia esta sede, recíbelo primero» y Caja «1 traslado por recibir» por un pedido que había que ENVIAR.
+// Este candado deja a cada pantalla con su número: el menú y el Inicio suman los pedidos; Conteo y Caja, solo lo que llega.
+describe("cada pantalla lee su número de traslados", () => {
+  const leer = (ruta: string) => readFileSync(new URL(`../${ruta}`, import.meta.url), "utf8");
+  it("el menú (layout) y el aviso del Inicio usan el número que suma los pedidos", () => {
+    for (const ruta of ["app/(app)/layout.tsx", "app/(app)/page.tsx"]) {
+      const fuente = leer(ruta);
+      expect(fuente, ruta).toContain("getNumeroDelMenuTraslados(");
+      expect(fuente, ruta).not.toContain("getTrasladosPorAtender(");
+    }
+  });
+  it("Conteo y Caja cuentan solo lo que llega (un pedido por enviar no es un traslado por recibir)", () => {
+    for (const ruta of ["app/(app)/inventario/conteo/page.tsx", "lib/caja-tablero.ts"]) {
+      const fuente = leer(ruta);
+      expect(fuente, ruta).toContain("getTrasladosPorAtender(");
+      expect(fuente, ruta).not.toContain("getNumeroDelMenuTraslados(");
+    }
+  });
+  it("getTrasladosPorAtender no lee pedidos: solo lo que llega a la sede", () => {
+    const fuente = leer("lib/traslados.ts");
+    const cuerpo = fuente.slice(fuente.indexOf("export const getTrasladosPorAtender"), fuente.indexOf("export const getNumeroDelMenuTraslados"));
+    expect(cuerpo).not.toMatch(/getPedidosPorAtender|contarTePiden|numeroDelMenuTraslados\(/);
   });
 });
 

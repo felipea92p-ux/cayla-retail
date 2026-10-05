@@ -36,8 +36,9 @@ export default async function ConteoPage({ searchParams }: { searchParams: Promi
     getSububicaciones(persona.ubicacionId),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     opcional(getAlcanceConteo(persona.ubicacionId), "cuántas variantes trae cada conteo"),
-    // El aviso «antes de contar»: el mismo número del menú (`cache`: el layout ya lo pidió, no es otra consulta). Solo a
-    // quien ve Traslados: el aviso lleva allá.
+    // El aviso «antes de contar»: lo que LLEGA por recibir (`cache`: el layout ya lo pidió, no es otra consulta). No el
+    // número del menú, que suma los pedidos que esta sede tiene que ENVIAR (ADR-0328 act. 17): esos no se «reciben
+    // primero». Solo a quien ve Traslados: el aviso lleva allá.
     veModulo(persona, "traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(null),
   ]);
 

@@ -4,7 +4,7 @@
 // La base da una fila por pedido para un cliente y una por grupo de reposición, solo los que siguen «pedido»
 // (`fn_pedidos_por_atender`, migración 20261005100100). Aquí, sin React ni Supabase (se prueba en
 // `pedidos-por-atender-reglas.test.ts`), se decide:
-//   · cuántos le piden a la sede (el número del menú, sumado a los traslados por recibir: `getTrasladosPorAtender`);
+//   · cuántos le piden a la sede (el número del menú: `numeroDelMenuTraslados`, sumado a los traslados por recibir);
 //   · cuáles llevan 48 h o más sin respuesta, de los dos lados (el Inicio del líder y el Observatorio).
 // «Sin respuesta» = la sede a la que le pidieron todavía no lo envió ni dijo «No la tengo»: mientras sigue «pedido».
 
@@ -47,6 +47,18 @@ export function filaPorAtenderDeFila(f: Record<string, unknown>): FilaPorAtender
 /** El número de «Te piden» en el menú: lo que OTRAS sedes le pidieron a esta y todavía no sale. */
 export function contarTePiden(filas: readonly FilaPorAtender[]): number {
   return filas.filter((f) => f.direccion === "me_piden").length;
+}
+
+/**
+ * El número junto a «Traslados» en el menú y en el aviso «Traslados» del Inicio: lo que llega por recibir más lo que otras
+ * sedes le piden a esta («Te piden»: un pedido para un cliente o un grupo de reposición valen 1 cada uno).
+ * PROMETE: `null` solo si no se pudo leer lo que llega (sin eso no hay número honesto); si falla la lectura de los pedidos,
+ * sale solo con lo que llega. ASUME: `porRecibir` es `getTrasladosPorAtender` (solo el destino). Conteo («recíbelos
+ * primero») y Caja («traslados por recibir») usan ese número SOLO: un pedido que hay que ENVIAR no se «recibe primero».
+ */
+export function numeroDelMenuTraslados(porRecibir: number | null, pedidos: readonly FilaPorAtender[] | null): number | null {
+  if (porRecibir === null) return null;
+  return porRecibir + (pedidos ? contarTePiden(pedidos) : 0);
 }
 
 /** Horas enteras desde que se pidió (nunca negativas: un reloj adelantado no da «hace −1 h»). */

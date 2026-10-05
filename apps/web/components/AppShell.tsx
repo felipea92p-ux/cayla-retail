@@ -114,7 +114,7 @@ type Props = {
    *  el selector, así que no hace falta traerle la lista completa. */
   ubicaciones: { id: string; nombre: string }[];
   /** Traslados que esperan una acción de quien mira y pedidos de otras sedes que esperan a esta («Te piden», ADR-0328
-   *  act. 17): `getTrasladosPorAtender`. `null` = no se pudo calcular: el menú sale igual, sin número. */
+   *  act. 17): `getNumeroDelMenuTraslados`. `null` = no se pudo calcular: el menú sale igual, sin número. */
   trasladosPorAtender?: number | null;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;

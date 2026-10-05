@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { pedidoEntreSedesDeFila, type PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
 import { pedidoConClienteDeFila } from "@/lib/pedidos-con-cliente-reglas";
@@ -36,9 +37,10 @@ export async function getPedidosConCliente(ubicacionId: string): Promise<PedidoE
 /**
  * Lo que espera respuesta entre sedes (ADR-0328 act. 17): el número de «Te piden» del menú y el aviso de las 48 h.
  * `null` = no se pudo leer (nunca se dibuja como «nada pendiente»). Sin la migración (PGRST202) también es `null`: no hay
- * cómo saberlo, y un número inventado en el menú es peor que ninguno.
+ * cómo saberlo, y un número inventado en el menú es peor que ninguno. `cache()`: el menú y el aviso de 48 h del Inicio la
+ * piden en el mismo request.
  */
-export async function getPedidosPorAtender(ubicacionId: string): Promise<FilaPorAtender[] | null> {
+export const getPedidosPorAtender = cache(async (ubicacionId: string): Promise<FilaPorAtender[] | null> => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("fn_pedidos_por_atender", { p_ubicacion_id: ubicacionId });
@@ -54,7 +56,7 @@ export async function getPedidosPorAtender(ubicacionId: string): Promise<FilaPor
     console.error("No se pudieron leer los pedidos por atender:", e);
     return null;
   }
-}
+});
 
 /** La lista «Para enviar» de la sede (20261005100200). Secundaria: sin la migración o si falla, vacía. */
 export async function getParaEnviar(ubicacionId: string): Promise<PrendaParaEnviar[]> {
