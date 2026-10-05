@@ -148,7 +148,7 @@ export default async function InventarioPage({
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
 
-  // «Hacer…» (el botón fijo del celular, rediseño 2026-10-05): los mismos accesos de la fila de la cabecera, con las mismas condiciones, en una
+  // «Hacer…» (el botón fijo del celular, rediseño 2026-10-04): los mismos accesos de la fila de la cabecera, con las mismas condiciones, en una
   // hoja. La lista y su prueba viven en `lib/existencias-hacer.ts`; la prueba comprueba que cada ruta esté también en la fila de abajo.
   const hacer = accionesHacer({
     puedeColgar: puedeBajarAlPiso,
@@ -226,7 +226,7 @@ export default async function InventarioPage({
         // oscuro y competía con cuatro botones más en dos renglones. Cada acceso solo si su rol ve esa pantalla (ADR-0161);
         // Recibir, Contar y Apartados solo mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
         // Con las cifras a la derecha, la cabecera pone las acciones bajo la frase. En el celular la fila no se dibuja: esos mismos
-        // accesos están en «Hacer…», el botón fijo de abajo (rediseño 2026-10-05; antes era una fila que se deslizaba de lado y dejaba
+        // accesos están en «Hacer…», el botón fijo de abajo (rediseño 2026-10-04; antes era una fila que se deslizaba de lado y dejaba
         // cuatro de los cinco fuera de la vista).
         acciones={
           <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
@@ -267,7 +267,7 @@ export default async function InventarioPage({
           </div>
         }
       >
-        {/* Celular (rediseño 2026-10-05): las mismas cifras, en una línea (`CifrasEnLinea`). En pantallas anchas el contenedor desaparece
+        {/* Celular (rediseño 2026-10-04): las mismas cifras, en una línea (`CifrasEnLinea`). En pantallas anchas el contenedor desaparece
             (`contents`) y el recuadro queda como siempre. */}
         <div className="contents max-sm:hidden">
           <ResumenSede sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />

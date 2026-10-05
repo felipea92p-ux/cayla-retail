@@ -36,7 +36,7 @@ export function EncabezadoPagina({
   /** Bajo la frase, a la izquierda: la vuelta a la pantalla de arriba («← Traslados») o un estado que no es
    *  una acción (el resultado de un conteo). */
   pie?: ReactNode;
-  /** Celular, más compacto (Existencias, 2026-10-05): el día se omite (queda la sede y, si hay, el detalle), el título baja a 28 px y
+  /** Celular, más compacto (Existencias, 2026-10-04): el día se omite (queda la sede y, si hay, el detalle), el título baja a 28 px y
    *  la frase no se dibuja. Pantallas anchas sin cambio. */
   compactoMovil?: boolean;
   /** A la derecha: las cifras de la sede (`ResumenSede`) o el reloj de Caja. */

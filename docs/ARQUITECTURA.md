@@ -199,7 +199,10 @@ flowchart TB
   `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx`, `ExistenciasTarjetas.tsx` (el riel de
   tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir) y
   `ajustar_inventario` (Ajustar). La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
-  `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
+  `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. **Celular (2026-10-04):** «Para hoy» es una línea dentro de
+  la tarjeta del buscador (ranura `bajoBuscador` de `FiltrosExistencias`, variante `incrustado` de `ParaHoy`), las cifras van en
+  `existencias/CifrasEnLinea.tsx` (`EncabezadoPagina compactoMovil`) y el botón fijo es `existencias/DockExistencias.tsx` con la hoja
+  «Hacer…» (`lib/existencias-hacer.ts`, los mismos accesos de la fila de la cabecera). (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
   → RPC `bajar_a_piso` (mueve de `stock_almacen` a `stock` de piso). (V1; hoy: esa ruta y `bajar_a_piso` no

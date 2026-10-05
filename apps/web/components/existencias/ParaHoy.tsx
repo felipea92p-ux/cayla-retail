@@ -19,7 +19,7 @@ import { resumenPlegado, TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, ty
    aprobada en la ronda 2: «Para hoy: 24 por colgar · 2 más ›»). Abierto, cada tarea con su frase completa ocupaba más de una
    pantalla y empujaba las prendas a la tercera.
 
-   Rediseño del celular (2026-10-05): la línea es TODO lo que ocupa «Para hoy» antes de abrirse. La fila del título desaparece (su
+   Rediseño del celular (2026-10-04): la línea es TODO lo que ocupa «Para hoy» antes de abrirse. La fila del título desaparece (su
    «Para hoy» pasa a ser el inicio de la línea) y los dos enlaces que iban junto a él («N apartadas», «Resumen por categoría») bajan
    al pie de lo desplegado. Así el buscador, esta línea y la primera prenda entran juntos en la primera pantalla.
    ==================================================================== */

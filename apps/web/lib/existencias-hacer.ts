@@ -1,7 +1,7 @@
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /* ====================================================================
-   «Hacer…» de Existencias en el celular (rediseño 2026-10-05, aprobado por Felipe).
+   «Hacer…» de Existencias en el celular (rediseño 2026-10-04, aprobado por Felipe).
 
    En pantallas anchas, la cabecera de Existencias trae una fila de accesos: colgar lo guardado, recibir, contar, trasladar y
    apartados. En el celular esa fila se deslizaba de lado sin avisar (cuatro de los cinco quedaban fuera de la vista) y empujaba las

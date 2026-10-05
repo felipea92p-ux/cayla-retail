@@ -8,7 +8,7 @@ import { IconoPercha } from "@/components/ui/IconoPercha";
 import type { AccionHacer, ClaveAccionHacer } from "@/lib/existencias-hacer";
 
 /* ====================================================================
-   El botón fijo de abajo de Existencias en el celular (rediseño 2026-10-05): «Escanear prenda» y «Hacer…».
+   El botón fijo de abajo de Existencias en el celular (rediseño 2026-10-04): «Escanear prenda» y «Hacer…».
 
    «Escanear prenda» es la consulta más frecuente del piso («¿hay en M?»); «Hacer…» abre una hoja con lo que en pantallas anchas es la
    fila de accesos de la cabecera (`lib/existencias-hacer.ts`: colgar, recibir, contar, trasladar, apartados), cada uno solo si su rol

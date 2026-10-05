@@ -108,7 +108,7 @@ export function FiltrosExistencias({
   vista: ReactNode;
   /** Una aclaración bajo la fila del conteo (la de «Por colgar»). */
   nota?: ReactNode;
-  /** Solo en el celular, justo bajo el buscador: ahí va «Para hoy» (rediseño 2026-10-05: buscador, la línea de lo pendiente y la
+  /** Solo en el celular, justo bajo el buscador: ahí va «Para hoy» (rediseño 2026-10-04: buscador, la línea de lo pendiente y la
    *  primera prenda entran juntos en la primera pantalla). En pantallas anchas no se dibuja: «Para hoy» sigue arriba de la tarjeta. */
   bajoBuscador?: ReactNode;
 }) {
@@ -305,7 +305,7 @@ export function FiltrosExistencias({
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-2">
-        {/* Celular (rediseño 2026-10-05): la etiqueta «Buscar» sigue ahí para los lectores de pantalla, pero no se ve ni deja su hueco:
+        {/* Celular (rediseño 2026-10-04): la etiqueta «Buscar» sigue ahí para los lectores de pantalla, pero no se ve ni deja su hueco:
             el campo ya dice «Prenda, marca o código…» y esos ~25 px empujaban las prendas fuera de la primera pantalla. Tampoco deja el
             hueco del pie (este campo nunca lleva pie): otros ~18 px. */}
         <div className="flex-1 max-sm:[&_label]:sr-only max-sm:[&_label+div]:mt-0 max-sm:[&>div>div:last-child]:hidden">

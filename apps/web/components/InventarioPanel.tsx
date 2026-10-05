@@ -652,7 +652,7 @@ export function InventarioPanel({
   const hrefEtiquetasMarcadas = urlEtiquetas(filasMarcadas);
   const prendasMarcadas = new Set(filasMarcadas.map((f) => clavePercha(f))).size;
 
-  // «Para hoy» se dibuja en dos sitios, uno por tamaño (rediseño 2026-10-05): en pantallas anchas arriba, como tarjeta; en el celular
+  // «Para hoy» se dibuja en dos sitios, uno por tamaño (rediseño 2026-10-04): en pantallas anchas arriba, como tarjeta; en el celular
   // dentro de la tarjeta del buscador, justo debajo del campo, para que buscador, lo pendiente y la primera prenda entren juntos.
   const paraHoy = (incrustado: boolean) => (
     <ParaHoy
@@ -1351,7 +1351,7 @@ export function InventarioPanel({
       )}
 
       {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios — y, al lado,
-          «Hacer…» con los accesos que en pantallas anchas son la fila de la cabecera (rediseño 2026-10-05). Es una acción de esta
+          «Hacer…» con los accesos que en pantallas anchas son la fila de la cabecera (rediseño 2026-10-04). Es una acción de esta
           pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
       {stock.length > 0 && filasMarcadas.length === 0 && !camara && <DockExistencias acciones={accionesHacer} onEscanear={() => setCamara(true)} />}
     </div>

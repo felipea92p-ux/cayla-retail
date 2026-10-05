@@ -3,7 +3,7 @@ import type { CifraResumen } from "@/components/ui/ResumenSede";
 import { formatoSoles } from "@/lib/resumen-formato";
 
 /* ====================================================================
-   CifrasEnLinea · las cifras de la sede como una línea, solo en el celular (rediseño de Existencias, 2026-10-05)
+   CifrasEnLinea · las cifras de la sede como una línea, solo en el celular (rediseño de Existencias, 2026-10-04)
 
    El recuadro de tres cifras grandes (`ResumenSede`) ocupa ~90 px y en el celular empuja las prendas fuera de la primera pantalla.
    Aquí las MISMAS cifras (la misma lista que arma la página, con sus notas y enlaces) van seguidas en una línea que se parte sola
