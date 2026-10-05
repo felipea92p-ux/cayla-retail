@@ -957,11 +957,8 @@ export function InventarioPanel({
               setVerDetalle(true);
               setPagina(1);
             }}
-            // Tocar una talla abre el cajón de ESA talla: la tabla de detalle con la prenda abierta (como al escanear su código).
-            onAbrirTalla={(prenda, fila) => {
-              setVerDetalle(true);
-              abrirPrenda(prenda, fila.varianteId);
-            }}
+            // Tocar una talla abre el cajón de ESA talla sin salir de las tarjetas: el cajón no depende de la tabla.
+            onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
