@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -208,7 +209,10 @@ export function ReportarDanadaModal({
     // El sistema ya la movió; la percha todavía no: el aviso recuerda sacarla, también cuando «ya estaba» guardado.
     const detalle = `${envio.detalle}. ${recordatorioAlReportar(envio.argumentos.p_desde)}`;
     if (r.ya_registrada) avisar.aviso(TEXTO_REPORTE_YA_ESTABA, { detalle });
-    else avisar.exito(tituloExitoReporte(r.unidades), { detalle });
+    else {
+      sonarConfirmacion();
+      avisar.exito(tituloExitoReporte(r.unidades), { detalle });
+    }
     router.refresh();
     onClose();
   }
