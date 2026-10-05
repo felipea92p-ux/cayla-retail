@@ -1,11 +1,11 @@
 "use client";
 
 import { useSyncExternalStore, type ComponentType } from "react";
-import { LayoutGrid, PackageX, ShoppingBag, TriangleAlert, Type } from "lucide-react";
+import { Clock, LayoutGrid, Moon, PackageX, ShoppingBag, TriangleAlert, Type } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { preferenciaLocal } from "@/lib/preferencia-local";
-import { ATAJOS_RAPIDOS, atajoElegido, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
+import { ATAJOS_RAPIDOS, atajoElegido, CLAVES_RECOMENDADAS, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
 import type { ClaveUrl, ConteosFiltros, FiltrosElegidos } from "@/lib/existencias-filtros";
 
 /* ====================================================================
@@ -27,6 +27,8 @@ const ICONO: Record<ClaveRapida, Icono> = {
   sin_stock_atras: PackageX,
   apartadas: ShoppingBag,
   danadas: TriangleAlert,
+  se_acaban: Clock,
+  sin_ventas: Moon,
 };
 
 /** El tono de cada botón encendido: ámbar lo que hay que hacer, pizarra lo informativo (el rojo se reserva a lo vencido, ADR-0169). */
@@ -36,6 +38,8 @@ const TONO_ENCENDIDO: Record<ClaveRapida, string> = {
   sin_stock_atras: "border-pizarra/40 bg-pizarra/10 text-pizarra",
   apartadas: "border-pizarra/40 bg-pizarra/10 text-pizarra",
   danadas: "border-ambar/45 bg-ambar/[0.13] text-ambar-profundo",
+  se_acaban: "border-ambar/45 bg-ambar/[0.13] text-ambar-profundo",
+  sin_ventas: "border-pizarra/40 bg-pizarra/10 text-pizarra",
 };
 
 export function FiltrosRapidos({
@@ -57,6 +61,8 @@ export function FiltrosRapidos({
         <div role="group" aria-label="Atajos de filtro" className="scroll-cayla flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
           {ATAJOS_RAPIDOS.map((a) => {
             const Icono = ICONO[a.clave];
+            // Los «Recomendados» van tras una línea y, con texto, su rótulo: salen del ritmo y no de lo que hay que hacer con la talla.
+            const primeraRecomendada = a.clave === CLAVES_RECOMENDADAS[0];
             const cuenta = cuentaDeAtajo(a.clave, conteos);
             const puesto = encendido === a.clave;
             const rotulo = rotuloDeAtajo(a, cuenta);
@@ -78,16 +84,26 @@ export function FiltrosRapidos({
               </button>
             );
             // Con texto el botón ya se explica solo; solo iconos, el nombre y su frase salen al pasar el mouse o enfocar.
+            const separador = primeraRecomendada && (
+              <span key={`sep-${a.clave}`} className="flex shrink-0 items-center gap-2" aria-hidden>
+                <span className="mx-1 h-5 w-px bg-tinta/15" />
+                {!soloIconos && <span className="label-cayla text-[10px] text-taupe">Recomendados</span>}
+              </span>
+            );
             return soloIconos ? (
-              <Tooltip key={a.clave}>
+              <span key={a.clave} className="contents">
+                {separador}
+              <Tooltip>
                 <TooltipTrigger asChild>{boton}</TooltipTrigger>
                 <TooltipContent side="bottom">
                   <b className="font-semibold">{rotulo}</b>
                   <span className="block opacity-80">{a.ayuda}</span>
                 </TooltipContent>
               </Tooltip>
+              </span>
             ) : (
               <span key={a.clave} className="contents">
+                {separador}
                 {boton}
               </span>
             );
