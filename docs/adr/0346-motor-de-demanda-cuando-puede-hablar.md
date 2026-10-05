@@ -91,3 +91,4 @@ En el PR #823 falló el barrido de `pruebas:terminales-lecturas`, que comprueba 
   - Con sede, sigue el 42501 para quien no la opera.
   - El cálculo es el mismo.
   - CAYLA Global (el Admin) recibe lo mismo que antes.
+- **En producción:** el 2026-10-05, con el OK de Felipe, como versión `20261005230253`. La huella es idéntica a la de local.
