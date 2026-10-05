@@ -49,6 +49,8 @@ import {
   type SugerenciaVenta,
 } from "@/lib/por-regularizar-candidatas";
 import type { CategoriaSugerida } from "@/lib/sugerir-categoria-sin-registrar";
+import { opcionesDeLaSede, opcionesDelCatalogo, textoSinCandidatas, type ModoBuscador } from "@/lib/por-regularizar-buscador";
+import { marcadorBuscador } from "@/lib/sugerencias-regularizar";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
 import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
@@ -78,6 +80,7 @@ export function PorRegularizarLista({
   hechosPorLoEscrito,
   escritas,
   avisoCandidatas,
+  sinLecturaDeLaTienda,
   ubicacionEtiqueta,
   variasSedes,
   esLider,
@@ -88,7 +91,8 @@ export function PorRegularizarLista({
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
-  /** Las prendas del stock que pueden ser cada venta pendiente (`fn_candidatas_por_regularizar`); vacío si no se pudo leer. */
+  /** Las prendas del stock que pueden ser cada venta pendiente: el tramo exacto es `fn_candidatas_de_venta` y el resto (hechos y
+   *  colores parecidos) `fn_candidatas_por_regularizar` (`hechosConExactas`); vacío si no se pudo leer la tienda. */
   hechos: HechoCandidata[];
   /** Las mismas, para las ventas cuya descripción nombra otra categoría, buscadas en la categoría ESCRITA (segunda lectura). */
   hechosPorLoEscrito: HechoCandidata[];
@@ -96,6 +100,8 @@ export function PorRegularizarLista({
   escritas: Record<string, CategoriaSugerida>;
   /** Si la lectura de candidatas falló: se dice y se sigue (la persona busca en el catálogo, como antes). */
   avisoCandidatas: string | null;
+  /** No se pudo leer lo que calza exacto en la tienda (`fn_candidatas_de_venta`): el buscador del modal abre en todo el catálogo. */
+  sinLecturaDeLaTienda: boolean;
   /** Para el mensaje de «no hay nada»: la sede que se mira, o «tus tiendas» si es el líder. */
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
@@ -320,6 +326,7 @@ export function PorRegularizarLista({
           esLider={esLider}
           carga={sinCargar[abierta.id]?.carga ?? null}
           puedeCargarStock={puedeCargarStock}
+          sinLecturaDeLaTienda={sinLecturaDeLaTienda}
           onClose={() => setAbierta(null)}
         />
       )}
@@ -363,6 +370,7 @@ function RegularizarModal({
   esLider,
   carga,
   puedeCargarStock,
+  sinLecturaDeLaTienda,
   onClose,
 }: {
   fila: FilaPorRegularizar;
@@ -374,10 +382,15 @@ function RegularizarModal({
   /** La carga inicial de la sede de la venta (abierta o cerrada, y hasta cuándo); `null` si no se pudo leer. */
   carga: CargaDeLaSede | null;
   puedeCargarStock: boolean;
+  /** No se pudieron leer las prendas de la tienda que calzan (`avisoCandidatas`): el buscador abre en todo el catálogo. */
+  sinLecturaDeLaTienda: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [elegidaId, setElegidaId] = useState("");
+  // D2 (2026-10-05): el buscador mira, por defecto, SOLO la tienda de la venta (lo que calza con lo anotado); «Buscar en todo el
+  // catálogo» es una salida a la vista, para la prenda que la tienda nunca cargó. Si no se pudo leer la tienda, abre en el catálogo.
+  const [modo, setModo] = useState<ModoBuscador>(sinLecturaDeLaTienda ? "catalogo" : "sede");
   const [forma, setForma] = useState<FormaRegularizar | null>(null);
   const [guardando, setGuardando] = useState(false);
   // ADR-0328 (actividad 5): regularizar vuelve a pedir el nombre UNA vez por operación (este modal), de quien está en la tienda de
@@ -424,25 +437,17 @@ function RegularizarModal({
   );
   const listo = elegida !== null && motivoPrenda === null && forma !== null && responsable.listo && motivoPropia === null;
 
-  // Primero las candidatas (stock de esta tienda que calza, en su orden de probabilidad) y después el resto del catálogo, con las que
-  // calzan con lo que anotó caja (categoría, talla y color) arriba: así almacén la encuentra sin tipear.
-  // Si lo escrito nombra otra categoría, el resto del catálogo se ordena por ESA (la escrita): ahí está lo que la caja tenía en la mano.
-  const categoriaParaCalce = escrita?.nombre ?? f.categoria;
-  const opciones = useMemo(() => {
-    const deCandidatas = new Set(candidatas.map((c) => c.prenda.id));
-    const calce = (p: PrendaParaRegularizar) => Number(p.categoria === categoriaParaCalce) + Number(p.talla === f.talla) + Number(p.color === f.color);
-    return [
-      ...candidatas.map((c) => ({
-        valor: c.prenda.id,
-        texto: c.prenda.nombre,
-        detalle: `${c === sugerida ? "Más probable" : "Posible"} · ${c.prenda.talla} · ${c.prenda.color} · ${c.prenda.codigo} · ${soles(c.prenda.precio)}`,
-      })),
-      ...[...prendas]
-        .filter((p) => !deCandidatas.has(p.id))
-        .sort((a, b) => calce(b) - calce(a))
-        .map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.talla} · ${p.color} · ${p.codigo} · ${soles(p.precio)}` })),
-    ];
-  }, [prendas, candidatas, sugerida, categoriaParaCalce, f.talla, f.color]);
+  // D2: por defecto, solo lo de la tienda de la venta que calza, en tramos rotulados (lo que escribió caja · igual a lo anotado · color
+  // parecido; `lib/por-regularizar-buscador.ts`); con «Buscar en todo el catálogo», esas mismas arriba y después el resto.
+  const deLaSede = useMemo(() => opcionesDeLaSede(sugerencia), [sugerencia]);
+  const delCatalogo = useMemo(() => opcionesDelCatalogo(prendas, sugerencia, f), [prendas, sugerencia, f]);
+  const opciones = modo === "sede" ? deLaSede : delCatalogo;
+  const marcador = marcadorBuscador({ modo, categoria: f.categoria, color: f.color, talla: f.talla, sede: f.sede, escrita: escrita?.nombre });
+  function cambiarModo(nuevo: ModoBuscador) {
+    // De vuelta a la tienda, una prenda elegida en el catálogo que no es de aquí se suelta: el combo no la mostraría.
+    if (nuevo === "sede" && elegidaId && !deLaSede.some((o) => o.valor === elegidaId)) setElegidaId("");
+    setModo(nuevo);
+  }
 
   async function guardar() {
     if (!elegida || !forma || !listo) return;
@@ -490,14 +495,50 @@ function RegularizarModal({
               {` ${f.sede || "esta tienda"}`} no hay ninguna de {escrita.nombre} en talla {f.talla} y {f.color.toLowerCase()} con stock libre.
             </p>
           )}
-          <ComboBuscable
-            valor={elegidaId}
-            onValor={setElegidaId}
-            opciones={opciones}
-            marcador="Busca por nombre, código, talla o color"
-            etiquetaAccesible="¿Qué prenda es?"
-            autoFocus
-          />
+          {modo === "sede" && deLaSede.length === 0 ? (
+            // Nada que calce en la tienda: se dice en palabras de tienda y la salida está en el mismo lugar.
+            <div className="rounded-md bg-hueso px-3 py-2 text-sm text-tinta" data-buscador-vacio>
+              <p>{textoSinCandidatas(f, sugerencia)}</p>
+              <button type="button" onClick={() => cambiarModo("catalogo")} className="btn-cayla btn-enlace mt-1">
+                Buscar en todo el catálogo
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* `key`: al cambiar de modo el combo vuelve a nacer con el foco puesto, listo para escribir. */}
+              <ComboBuscable
+                key={modo}
+                valor={elegidaId}
+                onValor={setElegidaId}
+                opciones={opciones}
+                marcador={marcador}
+                etiquetaAccesible="¿Qué prenda es?"
+                autoFocus
+              />
+              <p className="mt-1.5 text-xs text-taupe" data-buscador-modo={modo}>
+                {modo === "sede" ? (
+                  <>
+                    Solo las de {f.sede || "esta tienda"} que calzan con lo que anotó caja. ¿No está?{" "}
+                    <button type="button" onClick={() => cambiarModo("catalogo")} className="btn-cayla btn-enlace">
+                      Buscar en todo el catálogo
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Buscando en todo el catálogo.
+                    {!sinLecturaDeLaTienda && (
+                      <>
+                        {" "}
+                        <button type="button" onClick={() => cambiarModo("sede")} className="btn-cayla btn-enlace">
+                          Ver solo las de {f.sede || "esta tienda"}
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+              </p>
+            </>
+          )}
           {motivoPrenda && (
             <div className="mt-2 text-xs" role="status" data-prenda-sin-cargar>
               <p className="text-ambar-profundo">{motivoPrenda}</p>
@@ -517,13 +558,15 @@ function RegularizarModal({
               <span className="text-taupe">{textoDiferencia(Math.round((f.precioCobrado - elegida.precio) * 100) / 100)}</span>
             </p>
           )}
-          <p className="mt-2 text-xs text-taupe">
-            ¿No está en el catálogo?{" "}
-            <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-              Dala de alta
-            </Link>{" "}
-            con su precio oficial y vuelve aquí a buscarla.
-          </p>
+          {modo === "catalogo" && (
+            <p className="mt-2 text-xs text-taupe">
+              ¿No está en el catálogo?{" "}
+              <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                Dala de alta
+              </Link>{" "}
+              con su precio oficial y vuelve aquí a buscarla.
+            </p>
+          )}
         </CampoGuiado>
 
         <CampoGuiado id="forma" guia={guia} titulo="¿Cómo estaba esta prenda en el sistema?">
@@ -543,8 +586,9 @@ function RegularizarModal({
           )}
           {elegida && !formaSugerida && !motivoPrenda && (
             <p className="mt-2 text-xs text-taupe">
-              Para esta prenda el sistema no puede deducirlo (no calza con lo que anotó caja o no tiene stock libre en esta tienda): mira tú si
-              estaba contada.
+              {esCandidata
+                ? "Para esta prenda el sistema no tiene su historia en esta tienda para deducirlo: mira tú si estaba contada."
+                : "Para esta prenda el sistema no puede deducirlo (no calza con lo que anotó caja o no tiene stock libre en esta tienda): mira tú si estaba contada."}
             </p>
           )}
           {forma && <p className="mt-2 text-xs text-taupe">{EFECTO_FORMA[forma]}</p>}

@@ -1,7 +1,14 @@
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getCandidatasPorRegularizar, getCategoriasParaSugerir, getPlazosColaArranque, getPorRegularizar, getSinCargarPorRegularizar } from "@/lib/por-regularizar";
-import { categoriasPorLoEscrito } from "@/lib/por-regularizar-candidatas";
+import {
+  getCandidatasExactas,
+  getCandidatasPorRegularizar,
+  getCategoriasParaSugerir,
+  getPlazosColaArranque,
+  getPorRegularizar,
+  getSinCargarPorRegularizar,
+} from "@/lib/por-regularizar";
+import { categoriasPorLoEscrito, hechosConExactas } from "@/lib/por-regularizar-candidatas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -39,7 +46,13 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // en la categoría escrita. Va después porque depende de lo que dicen las filas; casi siempre no hay ninguna y no se pide nada.
   const escritas = categoriasPorLoEscrito(filas, categorias);
   const releer = Object.fromEntries(Object.entries(escritas).map(([id, s]) => [id, s.categoriaId]));
-  const porLoEscrito = Object.keys(releer).length > 0 ? await getCandidatasPorRegularizar(sedeDeLaCola, releer) : { hechos: [], fallo: null };
+  // D1 (2026-10-05): lo que calza EXACTO con cada venta lo define UNA función, `fn_candidatas_de_venta` (la del lote del líder, ADR-0334),
+  // y es por tienda: una lectura por cada tienda con pendientes. Las de arriba solo aportan los hechos y los tramos aparte.
+  const sedesConPendientes = [...new Set(filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId))];
+  const [porLoEscrito, exactas] = await Promise.all([
+    Object.keys(releer).length > 0 ? getCandidatasPorRegularizar(sedeDeLaCola, releer) : Promise.resolve({ hechos: [], fallo: null }),
+    getCandidatasExactas(sedesConPendientes),
+  ]);
   const etiqueta = esLider ? (unaSede?.nombre ?? "tus tiendas") : persona.ubicacionEtiqueta;
   // De vuelta a Existencias en la misma sede que se miraba (la de la cabecera no necesita el parámetro).
   const volverA = unaSede && unaSede.id !== persona.ubicacionId ? `/inventario?ubicacion=${unaSede.id}` : "/inventario";
@@ -62,10 +75,11 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
       <PorRegularizarLista
         filas={filas}
         prendas={prendas}
-        hechos={candidatas.hechos}
+        hechos={hechosConExactas(exactas.exactas, candidatas.hechos)}
         hechosPorLoEscrito={porLoEscrito.hechos}
         escritas={escritas}
-        avisoCandidatas={candidatas.fallo ?? porLoEscrito.fallo}
+        avisoCandidatas={exactas.fallo ?? candidatas.fallo ?? porLoEscrito.fallo}
+        sinLecturaDeLaTienda={exactas.exactas === null}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
         esLider={esLider}

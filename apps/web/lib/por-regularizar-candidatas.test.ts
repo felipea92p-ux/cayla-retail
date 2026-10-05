@@ -7,11 +7,14 @@ import {
   conCandidata,
   deducirForma,
   formaSugeridaPara,
+  hechosConExactas,
   hechosPorVenta,
   ordenarCandidatas,
   palabrasEnComun,
   sugerenciaDeVenta,
   textoProbable,
+  tramoDe,
+  type ExactaDeVenta,
   type HechoCandidata,
   type PrendaParaRegularizar,
   type VentaPorRegularizar,
@@ -305,5 +308,73 @@ describe("sugerenciaDeVenta — un pantalón nunca es la «Más probable» de un
     const s = sugerenciaDeVenta(JEAN_COMO_PANTALON, [hecho("palazzo")], [], cat, null);
     expect(s.probable?.prenda.id).toBe("palazzo");
     expect(s.probable?.porLoEscrito).toBe(false);
+  });
+});
+
+describe("hechosConExactas — D1: «igual a lo que anotó caja» es EXACTAMENTE fn_candidatas_de_venta (la del lote del líder)", () => {
+  // `fn_candidatas_de_venta` (ADR-0334) y `fn_candidatas_por_regularizar` (este PR) no definen igual «calza exacto»: la segunda deja
+  // fuera las prendas de prueba y corta en 20 por venta; la primera no. Lo que la pantalla llama exacto sale SOLO de la primera.
+  const exacta = (prendaId: string, varianteId: string, disponible = 1): ExactaDeVenta => ({ prendaId, varianteId, disponible });
+  const claves = (hs: readonly HechoCandidata[]) => hs.map((h) => `${h.prendaId}|${h.varianteId}`).sort();
+  const exactosDe = (hs: readonly HechoCandidata[]) => hs.filter((h) => h.colorExacto);
+
+  it("el tramo exacto tiene las MISMAS parejas que fn_candidatas_de_venta: ni una más, ni una menos", () => {
+    const exactas = [exacta("v1", "a"), exacta("v1", "prueba"), exacta("v2", "b")];
+    const hechos = [
+      hecho("a", { prendaId: "v1" }),
+      hecho("b", { prendaId: "v2" }),
+      // Una exacta que la base común no reconoce (p. ej. con lo único apartado dentro de Cuarentena): se cae.
+      hecho("fantasma", { prendaId: "v1" }),
+      // Un color parecido: tramo aparte, pasa tal cual.
+      hecho("gris", { prendaId: "v1", colorExacto: false }),
+    ];
+    const r = hechosConExactas(exactas, hechos);
+    expect(claves(exactosDe(r))).toEqual(claves(exactas.map((e) => hecho(e.varianteId, { prendaId: e.prendaId }))));
+    expect(r.filter((h) => !h.colorExacto).map((h) => h.varianteId)).toEqual(["gris"]);
+  });
+
+  it("una exacta sin hechos (la base común sí, la de hechos no: una prenda de prueba, o pasada de las 20) entra sin respuesta deducida y sin decir dónde está", () => {
+    const [h] = hechosConExactas([exacta("v1", "prueba", 2)], []);
+    expect(h).toMatchObject({ varianteId: "prueba", colorExacto: true, disponible: 2, pisoLibre: null, saldoALaVenta: null });
+    const [c] = ordenarCandidatas(VENTA, [h!], catalogoDe(prenda("prueba", "Blusa Prueba")));
+    expect(c?.forma).toBeNull();
+    expect(c?.razones).toEqual(["mismo color", "mismo precio"]);
+  });
+
+  it("con hechos, conserva los hechos y toma el disponible de la base común", () => {
+    const [h] = hechosConExactas([exacta("v1", "a", 3)], [hecho("a", { prendaId: "v1", disponible: 2, saldoALaVenta: 4 })]);
+    expect(h).toMatchObject({ disponible: 3, saldoALaVenta: 4, pisoLibre: 1 });
+  });
+
+  it("sin la lectura de la base común (null) no hay tramo exacto ni parecidas: una parecida no pasa por la más probable", () => {
+    expect(hechosConExactas(null, [hecho("a"), hecho("gris", { colorExacto: false })])).toEqual([]);
+  });
+
+  it("de punta a punta: el tramo exacto que arma la sugerencia es el de la base común, también con los hechos cortados o caídos", () => {
+    const cat = catalogoDe(
+      prenda("a", "Blusa A"),
+      prenda("b", "Blusa B"),
+      prenda("c", "Blusa C"),
+      prenda("gris", "Blusa Gris", { color: "Gris antracita" }),
+      // Está en el catálogo de la pantalla: si se colara, el tramo la mostraría.
+      prenda("otra-exacta-de-mas", "Blusa De Más"),
+    );
+    const exactas = [exacta("venta-1", "a"), exacta("venta-1", "b"), exacta("venta-1", "c")];
+    for (const hechos of [
+      [hecho("a"), hecho("b"), hecho("c")],
+      [hecho("a")], // la lectura de hechos cortó (o no trajo dos)
+      [], // la lectura de hechos falló entera
+      [hecho("a"), hecho("gris", { colorExacto: false }), hecho("otra-exacta-de-mas")],
+    ]) {
+      const s = sugerenciaDeVenta(VENTA, hechosConExactas(exactas, hechos), [], cat, null);
+      const exactasDelTramo = s.candidatas.filter((c) => tramoDe(c) === "exacta").map((c) => c.prenda.id).sort();
+      expect(exactasDelTramo).toEqual(["a", "b", "c"]);
+    }
+  });
+
+  it("tramoDe: lo escrito, igual a lo anotado o color parecido", () => {
+    expect(tramoDe({ porLoEscrito: true, hecho: hecho("a") })).toBe("escrita");
+    expect(tramoDe({ porLoEscrito: false, hecho: hecho("a") })).toBe("exacta");
+    expect(tramoDe({ porLoEscrito: false, hecho: hecho("a", { colorExacto: false }) })).toBe("parecida");
   });
 });

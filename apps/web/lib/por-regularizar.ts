@@ -4,7 +4,7 @@
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde, type VentaSinCargar } from "./por-regularizar-reglas";
-import type { HechoCandidata } from "./por-regularizar-candidatas";
+import type { ExactaDeVenta, HechoCandidata } from "./por-regularizar-candidatas";
 import type { CategoriaParaSugerir } from "./sugerir-categoria-sin-registrar";
 
 export type FilaPorRegularizar = {
@@ -193,6 +193,35 @@ export async function getCandidatasPorRegularizar(
   } catch (e) {
     console.error("Prendas sugeridas de Por regularizar:", e);
     return { hechos: [], fallo: "No se pudieron leer las prendas sugeridas: busca cada una en el catálogo, como siempre." };
+  }
+}
+
+/**
+ * Las prendas que calzan EXACTO con cada venta pendiente (`retail.fn_candidatas_de_venta`, ADR-0334): la definición única de «igual a
+ * lo que anotó caja», la misma que usa el lote «Identificar con sugerencias» del líder (D1, 2026-10-05). La función es por tienda: una
+ * llamada por cada tienda con pendientes (≤ 4), en paralelo.
+ *
+ * Es una ayuda, como las candidatas: si la lectura falla (red, o una tienda que la cuenta no opera) NUNCA tumba Por regularizar.
+ * Devuelve `exactas: null` y el aviso: sin el tramo exacto la pantalla no sugiere nada (una parecida no debe pasar por la más
+ * probable con una exacta escondida) y la persona busca en todo el catálogo, como antes.
+ */
+export async function getCandidatasExactas(sedes: readonly string[]): Promise<{ exactas: ExactaDeVenta[] | null; fallo: string | null }> {
+  try {
+    const supabase = await createClient();
+    const porSede = await Promise.all(
+      [...new Set(sedes)].map(async (sede) => {
+        // Varias por venta y cientos de ventas: puede pasar de las 1.000 filas que PostgREST entrega de una vez.
+        const r = await leerTodas((desde, hasta) => supabase.rpc("fn_candidatas_de_venta", { p_ubicacion_id: sede }).range(desde, hasta), {
+          enParalelo: 1,
+        });
+        if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
+        return r.data.map((f) => ({ prendaId: f.prenda_id, varianteId: f.variante_id, disponible: Number(f.disponible) }));
+      }),
+    );
+    return { exactas: porSede.flat(), fallo: null };
+  } catch (e) {
+    console.error("Prendas que calzan con cada venta en Por regularizar:", e);
+    return { exactas: null, fallo: "No se pudieron leer las prendas de la tienda que calzan con cada venta: busca cada una en todo el catálogo." };
   }
 }
 

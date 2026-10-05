@@ -1,5 +1,13 @@
 // La prenda candidata y la respuesta deducida de una venta «sin registrar» (ADR-0328, actividad 5 parte b; decisión técnica 8).
-// Lógica pura: los hechos los trae `retail.fn_candidatas_por_regularizar` (la base) y esto los ordena y los explica.
+// Lógica pura: los hechos los trae la base y esto los ordena y los explica.
+//
+// UNA SOLA DEFINICIÓN DE «CALZA EXACTO» (2026-10-05, tras #800 / ADR-0334). La prenda que calza con lo que anotó la caja (misma
+// categoría, talla y color, activa, con al menos 1 disponible fuera de Cuarentena y sin lo apartado) la define UNA función de la base,
+// `retail.fn_candidatas_de_venta`, la misma que usa el lote «Identificar con sugerencias» del líder. `hechosConExactas` arma el tramo
+// exacto SOLO con ella; `retail.fn_candidatas_por_regularizar` aporta los hechos (saldo a la venta, entradas, piso y almacén) y lo que
+// este PR agrega ENCIMA, en tramos APARTE y rotulados (`tramoDe`): el color de la misma familia que a la vista se confunde, y la
+// categoría que ESCRIBIÓ la caja cuando no es la anotada. Así lo que el modal llama «igual a lo que anotó caja» es exactamente lo que
+// el lote del líder propone, y una prenda que una pantalla ofrece y la otra no deja de ser posible.
 //
 // CONTRATO
 //   PROMETE: (1) `ordenarCandidatas`: las prendas del stock que pueden ser la venta, de la más a la menos probable, cada una con su
@@ -44,7 +52,7 @@ export type FormaRegularizar = "ya_registrada" | "llego_nueva";
 /** Una prenda del catálogo, para elegirla al regularizar. `productoId`: su ficha, donde se carga su stock si la sede nunca la tuvo. */
 export type PrendaParaRegularizar = { id: string; productoId: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
 
-/** Una fila de `retail.fn_candidatas_por_regularizar`. */
+/** Una fila de `retail.fn_candidatas_por_regularizar` (o, sin ella, una exacta de `fn_candidatas_de_venta` sin hechos). */
 export type HechoCandidata = {
   prendaId: string;
   varianteId: string;
@@ -52,8 +60,9 @@ export type HechoCandidata = {
   /** El hex del color de la prenda y el del color que anotó la caja (para medir si se confunden); `null` si no tiene (estampado). */
   colorHex: string | null;
   colorHexAnotado: string | null;
-  pisoLibre: number;
-  almacenLibre: number;
+  /** Libres en el piso y en el almacén; `null` = la lectura de hechos no la trajo (no se dice dónde está). */
+  pisoLibre: number | null;
+  almacenLibre: number | null;
   disponible: number;
   /** La primera vez que esa prenda sumó a esa sede (ISO), o `null` si el libro no lo dice. */
   primeraEntrada: string | null;
@@ -193,7 +202,7 @@ function razonesDe(venta: VentaPorRegularizar, prenda: PrendaParaRegularizar, h:
   const razones: string[] = [];
   if (palabras.length > 0) razones.push(`el nombre dice «${palabras.join(" ")}»`);
   razones.push(h.colorExacto ? "mismo color" : `color parecido (${prenda.color})`);
-  razones.push(h.pisoLibre > 0 ? "está en el piso" : "solo en el almacén");
+  if (h.pisoLibre !== null) razones.push(h.pisoLibre > 0 ? "está en el piso" : "solo en el almacén");
   const dif = Math.round((prenda.precio - venta.precioCobrado) * 100) / 100;
   razones.push(dif === 0 ? "mismo precio" : `precio ${soles(prenda.precio)}`);
   return razones;
@@ -227,12 +236,64 @@ export function ordenarCandidatas(
     (a, b) =>
       b.palabrasDelNombre.length - a.palabrasDelNombre.length ||
       Number(b.hecho.colorExacto) - Number(a.hecho.colorExacto) ||
-      Number(b.hecho.pisoLibre > 0) - Number(a.hecho.pisoLibre > 0) ||
+      Number((b.hecho.pisoLibre ?? 0) > 0) - Number((a.hecho.pisoLibre ?? 0) > 0) ||
       distancia(a) - distancia(b) ||
       b.hecho.disponible - a.hecho.disponible ||
       `${a.prenda.codigo}`.localeCompare(`${b.prenda.codigo}`) ||
       a.prenda.id.localeCompare(b.prenda.id),
   );
+}
+
+/**
+ * Una fila de `retail.fn_candidatas_de_venta` (ADR-0334, 20261005120000): LA definición de «calza exacto» con una venta pendiente
+ * —misma categoría, talla y color, prenda activa y distinta de la centinela, con al menos 1 unidad disponible en la tienda de la venta
+ * (fuera de Cuarentena y sin lo apartado)—. `limpia` no se usa aquí: es del lote del líder.
+ */
+export type ExactaDeVenta = { prendaId: string; varianteId: string; disponible: number };
+
+/** La exacta que la base común reconoce y la lectura de hechos no trae (una prenda de prueba, o pasada de las 20 por venta): sin hechos. */
+function exactaSinHechos(e: ExactaDeVenta): HechoCandidata {
+  return {
+    prendaId: e.prendaId,
+    varianteId: e.varianteId,
+    colorExacto: true,
+    colorHex: null,
+    colorHexAnotado: null,
+    pisoLibre: null,
+    almacenLibre: null,
+    disponible: e.disponible,
+    primeraEntrada: null,
+    primeraEntradaMotivo: null,
+    saldoALaVenta: null,
+    cambioPosterior: null,
+    cambioPosteriorMotivo: null,
+  };
+}
+
+/**
+ * Los hechos de la categoría ANOTADA con los que la pantalla trabaja (D1, 2026-10-05).
+ * PROMETE: el tramo exacto (`colorExacto`) es EXACTAMENTE `exactas` (`fn_candidatas_de_venta`): ni una más —una exacta de los hechos
+ *   que la base común no reconoce se cae— ni una menos —una que los hechos no traen entra sin hechos, sin respuesta deducida—; de cada
+ *   una, sus hechos si los hay y el disponible de la base común. Los colores de la familia (`colorExacto: false`) pasan tal cual: son
+ *   el tramo aparte «color parecido» (el filtro ΔE lo hace `ordenarCandidatas`).
+ * ASUME: las dos lecturas son de las mismas sedes. Si `exactas` es `null` (no se pudo leer), no hay tramo exacto que mostrar y
+ *   tampoco se muestran las parecidas: sin la base común, una parecida pasaría por la más probable con una exacta escondida.
+ */
+export function hechosConExactas(exactas: readonly ExactaDeVenta[] | null, hechos: readonly HechoCandidata[]): HechoCandidata[] {
+  if (exactas === null) return [];
+  const conHechos = new Map(hechos.filter((h) => h.colorExacto).map((h) => [`${h.prendaId}|${h.varianteId}`, h]));
+  const exactos = exactas.map((e) => {
+    const h = conHechos.get(`${e.prendaId}|${e.varianteId}`);
+    return h ? { ...h, disponible: e.disponible } : exactaSinHechos(e);
+  });
+  return [...exactos, ...hechos.filter((h) => !h.colorExacto)];
+}
+
+/** En qué tramo va una candidata: la categoría que escribió la caja, igual a lo anotado, o un color parecido de lo anotado. */
+export type Tramo = "escrita" | "exacta" | "parecida";
+export function tramoDe(c: Pick<Candidata, "porLoEscrito" | "hecho">): Tramo {
+  if (c.porLoEscrito) return "escrita";
+  return c.hecho.colorExacto ? "exacta" : "parecida";
 }
 
 /** Los hechos de la base agrupados por venta pendiente. */
