@@ -332,9 +332,9 @@ comprobado con `datos:comparar` y las firmas vivas de las 28 funciones nuevas. L
 Lo que sigue abierto: **#788** (5, ventas sin registrar) se rehízo sobre #800 —una sola definición de candidata exacta,
 `fn_candidatas_de_venta`, y el buscador de «Regularizar prenda» por la tienda DE LA VENTA, que Felipe reportó mostrando todo el
 catálogo— y su parte 2 (`20261004204000`) está sin pegar. **El contrato con ADR-0334** (el motor cuenta `pendiente` y
-`cerrada_sin_prenda`) no se cumplió porque #800 entró antes que #787: lo cierra una migración nueva en otra sesión («Motor del
-piso: contar las ventas cerradas sin prenda»). **Hasta que se pegue, ninguna sede debe cerrar su cola de arranque**, o su
-velocidad cae ese mismo día.
+`cerrada_sin_prenda`) no se cumplió porque #800 entró antes que #787. Lo cerró otra sesión («Motor del piso: contar las ventas
+cerradas sin prenda», PR #806): su SQL ya está en producción (`fn_piso_plan_lectura` cuenta `cerrada_sin_prenda`, verificado en
+vivo el 5-oct), y ese mismo día se cerraron las colas de arranque de AQP (170) y TRU (99); en TRU quedan 2 pendientes.
 
 ### Actividades nuevas
 
