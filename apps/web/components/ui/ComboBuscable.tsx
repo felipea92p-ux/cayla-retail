@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-reglas";
+import { coincidenciaCombo, filtrarCombo, mismoNombreCombo, tramosPorGrupo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    ComboBuscable · elegir una opción entre muchas, tipeando (2026-09-14)
@@ -43,7 +43,18 @@ import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-r
 /** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
 /** `claves`: otras palabras que también encuentran la opción (sinónimos: «plomo» → Gris). No se muestran, salvo cuando
  *  la opción aparece solo por una de ellas: entonces la lista dice cuál. */
-export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode; claves?: readonly string[] };
+/** `seccion` (2026-10-05, ADR-0328): el título del tramo al que pertenece, como el `grupo` de `Desplegable` (`tramosPorGrupo`): las
+ *  opciones seguidas de la misma sección van bajo un título que no se elige. El orden lo decide quien arma las opciones; las flechas
+ *  siguen contando la lista plana. Sin `seccion`, la lista se dibuja como siempre. (No se llama `grupo` porque `OpcionPildora`, que
+ *  extiende este tipo, ya usa `grupo` para otra cosa.) */
+export type OpcionCombo<T extends string> = {
+  valor: T;
+  texto: string;
+  detalle?: string;
+  icono?: ReactNode;
+  claves?: readonly string[];
+  seccion?: string;
+};
 
 export function ComboBuscable<T extends string>({
   valor,
@@ -224,6 +235,31 @@ export function ComboBuscable<T extends string>({
     </li>
   ) : null;
 
+  // Una opción de la lista, con su índice de fila (el de las flechas: `i` ya incluye la fila de crear arriba, si la hay).
+  const fila = (o: OpcionCombo<T>, i: number) => (
+    <li
+      key={o.valor}
+      id={`${id}-op-${i}`}
+      data-i={i}
+      role="option"
+      aria-selected={o.valor === valor}
+      onMouseEnter={() => setActivo(i)}
+      // mousedown y no click: el blur del input cerraría la lista
+      // antes de que el click llegara.
+      onMouseDown={(e) => {
+        e.preventDefault();
+        elegir(o);
+      }}
+      // Con la fila de crear fija arriba, `scroll-mt` deja que la opción resaltada con flechas no quede tapada por ella.
+      className={`cursor-pointer px-3 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "opcion-activa text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
+    >
+      {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
+      <span className="align-middle">{o.texto}</span>
+      {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
+      {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
+    </li>
+  );
+
   return (
     <div className={`relative ${className}`}>
       <input
@@ -281,32 +317,21 @@ export function ComboBuscable<T extends string>({
           {mostradas.length === 0 && (hayCrear || pistaVisible) && texto.trim() === "" ? null : mostradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
           ) : (
-            mostradas.map((o, j) => {
-              const i = j + base;
-              return (
-              <li
-                key={o.valor}
-                id={`${id}-op-${i}`}
-                data-i={i}
-                role="option"
-                aria-selected={o.valor === valor}
-                onMouseEnter={() => setActivo(i)}
-                // mousedown y no click: el blur del input cerraría la lista
-                // antes de que el click llegara.
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  elegir(o);
-                }}
-                // Con la fila de crear fija arriba, `scroll-mt` deja que la opción resaltada con flechas no quede tapada por ella.
-                className={`cursor-pointer px-3 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "opcion-activa text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
-              >
-                {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
-                <span className="align-middle">{o.texto}</span>
-                {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
-                {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
-              </li>
-              );
-            })
+            // Los grupos (como `Desplegable`): un título y sus opciones en un `role="group"`; sin grupo, las filas sueltas de siempre.
+            tramosPorGrupo(mostradas.map((o) => ({ o, grupo: o.seccion }))).map((t, k) =>
+              t.grupo === undefined ? (
+                <Fragment key={`t${k}`}>{t.items.map(({ o, i }) => fila(o.o, i + base))}</Fragment>
+              ) : (
+                <li key={`t${k}`} role="presentation">
+                  <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-3 pb-1 pt-2.5 text-[10px] text-tinta/55">
+                    {t.grupo}
+                  </p>
+                  <ul role="group" aria-labelledby={`${id}-g${k}`}>
+                    {t.items.map(({ o, i }) => fila(o.o, i + base))}
+                  </ul>
+                </li>
+              )
+            )
           )}
           {limite != null && filtradas.length > mostradas.length && (
             <li className="px-3 py-2 text-xs text-tinta/55">+{filtradas.length - mostradas.length} más: sigue escribiendo</li>
