@@ -22,7 +22,11 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { siglaSede } from "@/lib/inicio-almacen-reglas";
 import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
 import { sinRespuestaEnLaRed, textoEspera } from "@/lib/pedidos-por-atender-reglas";
+import { getResumenPerdidas } from "@/lib/perdidas";
+import { DIAS_VENTANA_REPETICION, perdidasQueSeRepiten } from "@/lib/perdidas-reglas";
+import { restarDias } from "@/lib/movimientos-reglas";
 import {
+  avisoPerdidasObs,
   diasDesde,
   nivelPorCuenta,
   parsearObservatorio,
@@ -80,7 +84,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -103,6 +107,17 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
           const filas = await getPedidosPorAtender(t.id);
           if (filas === null) throw new Error(`no se leyeron los pedidos de ${t.nombre}`);
           return { tiendaId: t.id, filas };
+        })
+      )
+    ),
+    // ADR-0328 act. 14: lo que se repite en los últimos 30 días de cada tienda (la regla del Inicio del líder). Si una tienda
+    // no se pudo leer, el aviso entero dice «no se pudo leer» (`tolerar` → null), nunca «al día».
+    tolerar("las pérdidas que se repiten", () =>
+      Promise.all(
+        tiendas.map(async (t) => {
+          const resumen = await getResumenPerdidas(t.id, restarDias(hoy, DIAS_VENTANA_REPETICION - 1), hoy);
+          if (!resumen) throw new Error(`no se pudieron leer las pérdidas de ${t.nombre}`);
+          return { tienda: t, repeticiones: perdidasQueSeRepiten(resumen.hechos, hoy) };
         })
       )
     ),
@@ -303,6 +318,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       detalle: null,
     });
   }
+  avisos.push(avisoPerdidasObs(perdidas, hoy));
   return avisos;
 }
 

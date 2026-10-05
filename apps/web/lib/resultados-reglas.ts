@@ -346,9 +346,11 @@ export const TEXTO_REGLA: Record<string, string> = {
   anulacion: "Ventas anuladas",
   devolucion: "Devoluciones",
   cambio: "Cambios",
-  merma_merma: "Mermas registradas a mano",
+  // Las cuatro razones de pérdida de `fn_perdida_razon` (ADR-0328 act. 14); la regla del diario conserva su nombre.
+  merma_merma: "Quitadas a mano, sin contar",
   merma_cuarentena: "Prendas dañadas botadas o donadas",
   merma_conteo: "Faltantes de conteo",
+  merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",
   gasto: "Gastos",
@@ -380,7 +382,10 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "costo") return ["venta_items.costo_unitario", "el costo sellado el día de cada venta, no el de hoy"];
   if (clave === "fletes") return ["Todavía no hay dónde registrar el flete de una compra"];
   if (clave === "mermas")
-    return ["movimientos (mermas, cuarentena botada o donada, faltantes de conteo)", "al costo que tenía la prenda ese día"];
+    return [
+      "todo lo que salió sin venderse (fn_perdida_razon, la misma cuenta que la pestaña Pérdidas): faltantes de conteo, restas a mano, dañadas botadas o donadas, lo que faltó en un traslado y la venta anulada cuya prenda no volvió",
+      "al costo que tenía la prenda ese día (la venta anulada, al costo sellado en la venta)",
+    ];
   if (clave === "g62") return ["planilla_por_sede (Dynamic)", "lo pagado + las provisiones de la sede, del período que termina en el mes"];
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];

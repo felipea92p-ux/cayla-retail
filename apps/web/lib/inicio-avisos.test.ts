@@ -77,6 +77,18 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ traslados: 3 })[0]!.detalle).toBe("3 esperan a tu sede: recibir lo que llegó o enviar lo que te piden.");
   });
 
+  it("pérdidas que se repiten (ADR-0328 act. 14): por hacer, ocultable, con la frase y el enlace de la regla; sin leer no es «al día»", () => {
+    const href = "/inventario/movimientos?vista=perdidas&p=30&variante=x";
+    const [a] = avisosInicio({ perdidas: { cantidad: 1, detalle: "Polo Básico · M · Negro perdió 2 prendas en 2 días distintos.", href } });
+    expect(a).toMatchObject({ clave: "perdidas", grupo: "Inventario", nivel: "toca", ocultable: true, cantidad: 1, href });
+    expect(a!.ahora).toBe("Revisa 1 pérdida que se repite");
+    expect(a!.detalle).toContain("2 días distintos");
+    expect(avisosInicio({ perdidas: { cantidad: 0, detalle: "", href } })[0]!.nivel).toBe("aldia");
+    const sinLeer = avisosInicio({ perdidas: null })[0]!;
+    expect(sinLeer.nivel).toBe("sinleer");
+    expect(sinLeer.href).toBe("/inventario/movimientos?vista=perdidas&p=30");
+  });
+
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");

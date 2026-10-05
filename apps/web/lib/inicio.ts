@@ -8,6 +8,7 @@ import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo }
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
+import { getAvisoPerdidas } from "@/lib/perdidas";
 import type { ClaveModulo } from "@/lib/modulos";
 import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
@@ -120,11 +121,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -145,6 +146,8 @@ export async function getFuentesAvisos(
           return { vencidas: de("vencida").comprobantes, montoVencido: de("vencida").monto, semana: de("0_7").comprobantes, montoSemana: de("0_7").monto };
         })
       : undefined,
+    // ADR-0328 act. 14: «se repite», solo del líder y con el módulo de la pestaña a la que lleva (Movimientos).
+    cuenta.esLider && ve("movimientos") ? tolerarLectura("las pérdidas que se repiten", () => getAvisoPerdidas(ubicacionId)) : undefined,
     // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar),
     // cada uno en el Inicio de SU sede (decisión del 2026-10-04: «los que tienen esa sede»; un líder parado en otra no lo
     // recibe por ella). El Admin los ve todos en el Observatorio.
@@ -163,7 +166,7 @@ export async function getFuentesAvisos(
     // (para quien ve Traslados, donde está la lista y «Armar el envío»). No suma al número del menú.
     ve("traslados") ? leerParaEnviar(ubicacionId).then((f) => (f === null ? null : paraEnviarAtrasadas(f, new Date().toISOString()))) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */
