@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeftRight, KeyRound, MapPin, PauseCircle, PlayCircle, X } from "lucide-react";
+import { ArrowLeftRight, KeyRound, MapPin, PauseCircle, PlayCircle } from "lucide-react";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import type { ClaveModulo } from "@/lib/modulos";
 import { MODULOS } from "@/lib/modulos";
@@ -16,18 +16,15 @@ import {
   type FilaMenuConCambios,
   type RolVista,
 } from "@/lib/roles-reglas";
-import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { CaraPersona, EstadoPersona, PildoraRol } from "@/components/colaboradores/EquipoLista";
+import { CajonFicha } from "@/components/colaboradores/CajonFicha";
 
 // La ficha de una persona del equipo (propuesta del 2026-10-05): lo que hoy estaba en un menú «⋯» pasa a botones a la
 // vista, y cada uno abre su panel aquí mismo, sin otra ventana encima. Abajo, su menú tal como lo ve. Lo reversible
 // (suspender, reactivar, cambiar rol o sede) se hace al confirmar y el aviso trae «Deshacer»; solo «Quitar acceso» pregunta.
 // Las decisiones de permisos son las de siempre: llegan ya resueltas en `persona.acciones` y en `rolesAsignables`.
-
-/** Debe coincidir con `.anim-cajon-salida` en globals.css. */
-const MS_SALIDA = 240;
 
 type Panel = "rol" | "sede" | "suspender" | "quitar" | null;
 
@@ -112,16 +109,6 @@ export function FichaColaborador({
   onVerRol?: () => void;
   onCerrar: () => void;
 }) {
-  const [cerrando, setCerrando] = useState(false);
-  const pedirCierre = useCallback(() => setCerrando(true), []);
-  useEffect(() => {
-    if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
-    return () => clearTimeout(t);
-  }, [cerrando, onCerrar]);
-  const alEscape = useEscapeLibre(pedirCierre);
-
   const [panel, setPanel] = useState<Panel>(null);
   const [rolElegido, setRolElegido] = useState<string | null>(null);
   const [sedeDelLider, setSedeDelLider] = useState<string | null>(null);
@@ -155,26 +142,7 @@ export function FichaColaborador({
   const frase = fraseFicha(persona, ahoraIso);
 
   return (
-    <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
-      <Dialog.Portal>
-        <Dialog.Content
-          onEscapeKeyDown={alEscape}
-          // Sin velo y sin cerrar al tocar afuera: la lista sigue viva y tocar a otra persona le cambia la ficha.
-          onInteractOutside={(e) => e.preventDefault()}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[27rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
-        >
-          <div key={persona.id} className="anim-asentar flex min-h-0 flex-1 flex-col">
-            <button
-              type="button"
-              onClick={pedirCierre}
-              aria-label="Cerrar"
-              className="absolute right-5 top-5 z-10 rounded-full p-1.5 text-tinta transition-colors hover:bg-tinta/[0.05] hover:text-rojo"
-            >
-              <X aria-hidden className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-
-            <div className="scroll-cayla min-h-0 flex-1 space-y-5 overflow-y-auto px-6 pb-8 pt-7">
+    <CajonFicha clave={persona.id} onCerrar={onCerrar}>
               <div className="flex items-center gap-4 pr-9">
                 <CaraPersona p={persona} grande />
                 <div className="min-w-0">
@@ -375,10 +343,6 @@ export function FichaColaborador({
                   )}
                 </div>
               )}
-            </div>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    </CajonFicha>
   );
 }

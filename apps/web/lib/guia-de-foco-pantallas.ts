@@ -196,8 +196,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja).
   "components/ClientaFichaModal.tsx": { estado: "aplicada", evidencia: ["components/ClientaFichaModal.tsx"] },
-  // Desde ADR-0341 solo queda aquí confirmar desactivar o reactivar un aparato («Dar acceso» se mudó a colaboradores/DarAccesoModal).
-  "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar un aparato: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
+  // Desde ADR-0341 solo queda aquí confirmar desactivar o reactivar una terminal («Dar acceso» se mudó a colaboradores/DarAccesoModal).
+  "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar una terminal: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
   "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },
   "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
   "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
@@ -285,9 +285,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
-  // 2026-10-05: la ficha de una persona del equipo. Cada acción abre su panel y pide UNA cosa (el rol nuevo, la sede o el motivo
-  // opcional de la suspensión) con su botón; solo al bajar a un líder sin sede se suma elegir la sede, en el mismo panel.
-  "components/colaboradores/FichaColaborador.tsx": { estado: "no-aplica", motivo: "Ficha de una persona del equipo: cada acción se abre sola y pide una sola cosa (el rol nuevo, la sede o el motivo opcional de la suspensión) con su botón. El combo de quién firma es el mismo de toda la pantalla." },
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
   "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío." },

@@ -29,7 +29,9 @@ import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaC
 import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
 import { ListaActividad } from "@/components/ColaboradoresTablas";
-import { TerminalesPanel, type AccionesTerminales } from "@/components/TerminalesPanel";
+import { accionesTerminalesServidor, type AccionesTerminales } from "@/components/colaboradores/terminales-acciones";
+import { FichaTerminal } from "@/components/colaboradores/FichaTerminal";
+import { CambiarClaveModal, NuevaTerminalModal } from "@/components/TerminalesModales";
 import { EquipoLista } from "@/components/colaboradores/EquipoLista";
 import { FichaColaborador } from "@/components/colaboradores/FichaColaborador";
 import { useResponsable } from "@/lib/useResponsable";
@@ -60,11 +62,16 @@ function BotonSeccion({ activa, onClick, titulo, children }: { activa: boolean; 
   );
 }
 
-type ModalPanel = { tipo: "agregar" } | { tipo: "terminal"; terminal: Terminal } | { tipo: "rol_terminal"; cuenta: CuentaConRol };
+type ModalPanel =
+  | { tipo: "agregar" }
+  | { tipo: "terminal"; terminal: Terminal }
+  | { tipo: "rol_terminal"; cuenta: CuentaConRol }
+  | { tipo: "nueva_terminal" }
+  | { tipo: "clave"; terminal: Terminal };
 
 /** Con qué atajo abre Equipo según el `?pestana=` de antes: los enlaces viejos siguen llevando a lo mismo. */
 function filtroInicial(v: VistaColaboradores): FiltroEquipo {
-  if (v.tipo === "terminales") return "aparatos";
+  if (v.tipo === "terminales") return "terminales";
   if (v.estado === "suspendidas" || v.estado === "inactivas") return "suspendidas";
   return "todas";
 }
@@ -91,7 +98,7 @@ export function ColaboradoresPanel({
   misModulos = null,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
-  accionesTerminales,
+  accionesTerminales = accionesTerminalesServidor,
   alActualizar,
 }: {
   colaboradores: Colaborador[];
@@ -137,6 +144,10 @@ export function ColaboradoresPanel({
   const [verActividad, setVerActividad] = useState(vistaInicial.actividad);
   const [rolElegidoId, setRolElegidoId] = useState<string | null>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
+  const [terminalId, setTerminalId] = useState<string | null>(null);
+  // Tras crear una terminal o cambiarle la clave, la lista se refresca al CERRAR el paso de la clave: así no salta detrás de la
+  // clave que se está leyendo (se muestra una sola vez).
+  const [refrescarAlCerrar, setRefrescarAlCerrar] = useState(false);
   const [modal, setModal] = useState<ModalPanel | null>(null);
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
   // Quién hace cada cambio (ADR-0161/0162; Felipe 2026-09-23: el combo va en TODA acción que guarda, también aquí).
@@ -170,6 +181,22 @@ export function ColaboradoresPanel({
   );
   // La ficha se arma de los datos de hoy: tras guardar y recargar, muestra a la persona ya cambiada (o se cierra si se fue).
   const enFicha = miembros.find((m): m is PersonaEquipo => m.tipo === "persona" && m.id === fichaId) ?? null;
+  const enFichaTerminal = terminales?.find((t) => t.id === terminalId) ?? null;
+  const abrirPersona = (id: string) => {
+    setTerminalId(null);
+    setFichaId(id);
+  };
+  const abrirTerminal = (id: string) => {
+    setFichaId(null);
+    setTerminalId(id);
+  };
+  function cerrarModalDeClave() {
+    setModal(null);
+    if (refrescarAlCerrar) {
+      setRefrescarAlCerrar(false);
+      (alActualizar ?? (() => router.refresh()))();
+    }
+  }
 
   /** Guarda con el responsable de la pantalla. Con `deshacer`, el aviso trae el botón para volver atrás (7 s). */
   async function ejecutar(
@@ -275,7 +302,7 @@ export function ColaboradoresPanel({
       {ve("cuentas") && ve("roles") && (
         <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl">
           <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Equipo">
-            {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "aparato", "aparatos")}
+            {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
             {pendientes.length > 0 && <strong className="font-semibold text-ambar-profundo"> · {pendientes.length} por aprobar</strong>}
           </BotonSeccion>
           <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos">
@@ -295,30 +322,21 @@ export function ColaboradoresPanel({
           ubicaciones={ubicaciones}
           pendientes={pendientes}
           ocupadoId={ocupadoId}
-          elegidoId={fichaId}
+          elegidoId={fichaId ?? terminalId}
           ahoraIso={ahoraIso}
           responsable={responsable}
           filtro={filtro}
           onFiltro={setFiltro}
-          onAbrir={setFichaId}
+          onAbrir={abrirPersona}
           onAprobar={(c) =>
             ejecutar(c.persona_id, "aprobar el alta", (f) => acciones.aprobar(c.persona_id, f), `${c.nombre} ya puede entrar a retail`)
           }
           onRechazar={(c) =>
             ejecutar(c.persona_id, "rechazar el alta", (f) => acciones.quitar(c.persona_id, f), "Alta rechazada", { detalle: "La propuesta de alta se descartó." })
           }
-          aparatos={
-            <TerminalesPanel
-              terminales={terminales}
-              ubicaciones={ubicaciones}
-              roles={roles ? roles.filter((r) => fueraDeLoMio(r.modulos, misModulos).length === 0) : roles}
-              ocupadoId={ocupadoId}
-              onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })}
-              onCambiarRol={roles && cuentas ? abrirCambioDeRolTerminal : undefined}
-              acciones={accionesTerminales}
-              alActualizar={alActualizar}
-            />
-          }
+          conTerminales={terminales !== null}
+          onAbrirTerminal={abrirTerminal}
+          onNuevaTerminal={terminales !== null ? () => setModal({ tipo: "nueva_terminal" }) : undefined}
         />
       )}
 
@@ -344,6 +362,17 @@ export function ColaboradoresPanel({
               : undefined
           }
           onCerrar={() => setFichaId(null)}
+        />
+      )}
+
+      {seccion === "cuentas" && enFichaTerminal && (
+        <FichaTerminal
+          terminal={enFichaTerminal}
+          ahoraIso={ahoraIso}
+          onClave={() => setModal({ tipo: "clave", terminal: enFichaTerminal })}
+          onCambiarRol={roles && cuentas ? () => abrirCambioDeRolTerminal(enFichaTerminal) : undefined}
+          onAlternar={() => setModal({ tipo: "terminal", terminal: enFichaTerminal })}
+          onCerrar={() => setTerminalId(null)}
         />
       )}
 
@@ -417,6 +446,31 @@ export function ColaboradoresPanel({
               avisoTerminal(modal.terminal.nombre, modal.terminal.activo),
             )
           }
+        />
+      )}
+      {modal?.tipo === "nueva_terminal" && (
+        <NuevaTerminalModal
+          ubicaciones={ubicaciones}
+          roles={roles ? roles.filter((r) => fueraDeLoMio(r.modulos, misModulos).length === 0) : roles}
+          terminales={terminales ?? []}
+          crear={accionesTerminales.crear}
+          onCreada={(nombre) => {
+            setRefrescarAlCerrar(true);
+            avisar.exito("Terminal creada", { detalle: `${nombre} ya puede iniciar sesión.` });
+          }}
+          onClose={cerrarModalDeClave}
+        />
+      )}
+      {modal?.tipo === "clave" && (
+        <CambiarClaveModal
+          terminal={modal.terminal}
+          cambiar={accionesTerminales.cambiarClave}
+          onCambiada={(nombre, aviso) => {
+            setRefrescarAlCerrar(true);
+            avisar.exito("Clave cambiada", { detalle: `La clave anterior de ${nombre} ya no sirve.` });
+            if (aviso) avisar.aviso("No quedó anotado quién", { detalle: aviso });
+          }}
+          onClose={cerrarModalDeClave}
         />
       )}
       {modal?.tipo === "rol_terminal" && roles && (
