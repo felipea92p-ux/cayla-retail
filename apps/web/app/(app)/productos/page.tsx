@@ -98,7 +98,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
-    supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
@@ -133,7 +133,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     ),
   ]);
 
-  const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
+  const categoriasLeidas = exigir(categorias, "las categorías");
+  const categoriasOpciones = categoriasLeidas.map((c) => ({ id: c.id, nombre: c.nombre }));
+  // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
+  // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
+  const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
+  const productos = resultado.productos.map((p) => {
+    const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;
+    return c ? { ...p, categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : p;
+  });
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
   // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
   const tallasOpciones = exigir(resTallas, "las tallas")
@@ -243,7 +251,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       <div data-resultados className="space-y-6">
         {vista === "grilla" ? (
           <ProductosGrilla
-            productos={resultado.productos}
+            productos={productos}
             existencias={existencias}
             veExistencias={veModulo(persona, "existencias")}
             ubicacionId={persona.ubicacionId}
@@ -254,7 +262,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           />
         ) : (
           <ProductosTabla
-            productos={resultado.productos}
+            productos={productos}
             existencias={existencias}
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}

@@ -21,6 +21,8 @@ export type FilaPrenda = Pick<
   | "color"
   | "colorHex"
   | "fotoUrl"
+  | "categoriaPrefijo"
+  | "categoriaFamilia"
   | "codigosBarras"
   | "pisoDisponible"
   | "almacenDisponible"
@@ -30,7 +32,9 @@ export type FilaPrenda = Pick<
   | "enTransito"
   | "accionHoy"
   | "marca"
->;
+> &
+  // La categoría es opcional aquí (`FilaStock.categoria` es obligatoria, pero las pruebas arman filas mínimas): la miniatura dibuja la percha sin ella.
+  Partial<Pick<FilaExistencias, "categoria">>;
 
 /** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
  *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma
@@ -58,6 +62,10 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   color: string | null;
   colorHex: string | null;
   fotoUrl: string | null;
+  /** La categoría de la prenda, para dibujarla cuando no hay foto (`SinFoto`): nombre visible, prefijo (el ícono) y familia (el tono). */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** Sus tallas en curva (XS, S, M… y luego la numeración), no en el orden en que llegaron. */
   tallas: F[];
   /** Sumas de lo LIBRE (neto de apartados), las mismas cifras que la tabla por talla. `null` donde no se separa piso y almacén. */
@@ -99,6 +107,9 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       color: primera.color,
       colorHex: primera.colorHex,
       fotoUrl: primera.fotoUrl,
+      categoria: primera.categoria ?? null,
+      categoriaPrefijo: primera.categoriaPrefijo ?? null,
+      categoriaFamilia: primera.categoriaFamilia ?? null,
       tallas,
       piso: sumarONull(tallas, "pisoDisponible"),
       almacen: sumarONull(tallas, "almacenDisponible"),

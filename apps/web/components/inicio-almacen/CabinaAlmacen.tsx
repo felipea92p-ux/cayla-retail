@@ -1,12 +1,13 @@
 import Image from "next/image";
+import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Aviso, NivelAviso } from "@/lib/inicio-avisos";
-import { hrefFichaProducto, type NuevoProducto } from "@/lib/inicio-almacen-reglas";
+import { hrefFichaProducto, type NuevoProducto, colorUnico } from "@/lib/inicio-almacen-reglas";
 import { ChipSede } from "./ChipSede";
 import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
-import { Ico, PrendaSinFoto } from "./iconos";
+import { Ico } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
 
 // La cabina del Inicio de Almacén (Felipe, 2026-09-30, maqueta docs/maquetas/inicio-almacen-2026-09/): «Nuevo producto» con
@@ -83,7 +84,7 @@ export function CabinaAlmacen({
 function FilaReciente({ p }: { p: NuevoProducto }) {
   return (
     <Link href={hrefFichaProducto(p.id)} className="ia-rs">
-      <span className="ia-th">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="44px" unoptimized /> : <PrendaSinFoto />}</span>
+      <span className="ia-th">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="44px" unoptimized /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />}</span>
       <div className="ia-mtx">
         <p className="ia-nm">{p.referencia}</p>
         <p className="ia-mt">

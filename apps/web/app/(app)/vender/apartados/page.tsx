@@ -79,6 +79,8 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       referencia: v.referencia,
       talla: v.talla,
       color: v.color,
+      // El color de la prenda: es el fondo de su miniatura cuando no tiene foto (`FotoPrenda`, ADR-0333). Vender ya lo traía.
+      colorHex: v.colorHex ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
