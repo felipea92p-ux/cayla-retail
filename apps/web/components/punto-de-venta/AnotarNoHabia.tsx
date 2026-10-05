@@ -31,19 +31,22 @@ export function AnotarNoHabia({
   ubicacionId: string;
   /** Qué pidió, en palabras del catálogo: «Blusa Carlita · Blanco». */
   descripcion: string;
-  /** Las tallas de la prenda que no se pueden cobrar aquí. Con más de una, se toca la que pidió. */
-  tallas: string[];
+  /** Las tallas de la prenda que no se pueden cobrar aquí, con su variante si se conoce. Con más de una, se toca la que pidió. */
+  tallas: { talla: string; varianteId: string | null }[];
   clientaId: string | null;
   responsable: ControlResponsable;
 }) {
   const [estado, setEstado] = useState<"listo" | "guardando" | "anotado">("listo");
-  const [talla, setTalla] = useState<string | null>(tallas.length === 1 ? tallas[0] : null);
+  const [talla, setTalla] = useState<string | null>(tallas.length === 1 ? tallas[0].talla : null);
+  // ADR-0348: la prenda exacta (producto, talla y color) viaja con lo anotado, para que el motor de demanda sume lo que se pidió y
+  // no había en su grupo. Si no se conoce, queda como antes: el texto y la talla.
+  const varianteId = tallas.find((t) => t.talla === talla)?.varianteId ?? null;
 
   async function anotar() {
     if (!responsable.listo || (tallas.length > 1 && !talla)) return;
     setEstado("guardando");
     const { error } = await registrarPedidoNoAtendido(
-      { ubicacionId, motivo: "no_habia_talla", descripcion, talla, clientaId },
+      { ubicacionId, motivo: "no_habia_talla", descripcion, talla, clientaId, varianteId },
       responsable.firma(),
     );
     if (error) {
@@ -77,7 +80,7 @@ export function AnotarNoHabia({
       {estado === "listo" && tallas.length > 1 && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Talla que pidió">
           <span className="text-[11px] text-tinta/60">¿Qué talla pidió?</span>
-          {tallas.map((t) => (
+          {tallas.map(({ talla: t }) => (
             <button
               key={t}
               type="button"

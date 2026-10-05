@@ -34,6 +34,11 @@
   "relkind": "r",
   "rls": true
  },
+ "bajadas_en_mano": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "bajadas_piso": {
   "forzado": false,
   "relkind": "r",
@@ -64,6 +69,11 @@
   "relkind": "r",
   "rls": true
  },
+ "capacidad_piso": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "catalogo_version": {
   "forzado": false,
   "relkind": "r",
@@ -90,6 +100,11 @@
   "rls": true
  },
  "categorias_gasto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cierres_cola_arranque": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -155,6 +170,11 @@
   "rls": true
  },
  "codigos_descuento": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cola_arranque_plazo": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -310,6 +330,16 @@
   "rls": true
  },
  "cotizaciones_maquila": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cuadre_piso_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cuadres_piso": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -514,12 +544,32 @@
   "relkind": "r",
   "rls": true
  },
+ "planes_compra": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planes_compra_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "planilla_por_sede": {
   "forzado": false,
   "relkind": "v",
   "rls": false
  },
  "prendas_danadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_para_enviar": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_para_enviar_salidas": {
   "forzado": false,
   "relkind": "r",
   "rls": true

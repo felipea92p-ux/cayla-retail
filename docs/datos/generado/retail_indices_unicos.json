@@ -60,6 +60,16 @@
   "tablename": "bajada_piso_items"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX bajadas_en_mano_ajuste_unico ON retail.bajadas_en_mano USING btree (ajuste_movimiento_id)",
+  "indexname": "bajadas_en_mano_ajuste_unico",
+  "tablename": "bajadas_en_mano"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX bajadas_en_mano_pkey ON retail.bajadas_en_mano USING btree (bajada_id)",
+  "indexname": "bajadas_en_mano_pkey",
+  "tablename": "bajadas_en_mano"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX bajadas_piso_pkey ON retail.bajadas_piso USING btree (id)",
   "indexname": "bajadas_piso_pkey",
   "tablename": "bajadas_piso"
@@ -110,6 +120,11 @@
   "tablename": "campana_efecto_caja"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX capacidad_piso_pkey ON retail.capacidad_piso USING btree (ubicacion_id)",
+  "indexname": "capacidad_piso_pkey",
+  "tablename": "capacidad_piso"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX catalogo_version_pkey ON retail.catalogo_version USING btree (id)",
   "indexname": "catalogo_version_pkey",
   "tablename": "catalogo_version"
@@ -148,6 +163,16 @@
   "indexdef": "CREATE UNIQUE INDEX categorias_gasto_pkey ON retail.categorias_gasto USING btree (codigo)",
   "indexname": "categorias_gasto_pkey",
   "tablename": "categorias_gasto"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cierres_cola_arranque_id_sede_key ON retail.cierres_cola_arranque USING btree (id, ubicacion_id)",
+  "indexname": "cierres_cola_arranque_id_sede_key",
+  "tablename": "cierres_cola_arranque"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cierres_cola_arranque_pkey ON retail.cierres_cola_arranque USING btree (id)",
+  "indexname": "cierres_cola_arranque_pkey",
+  "tablename": "cierres_cola_arranque"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX clientas_codigo_club_unico ON retail.clientas USING btree (codigo_club)",
@@ -253,6 +278,11 @@
   "indexdef": "CREATE UNIQUE INDEX codigos_descuento_pkey ON retail.codigos_descuento USING btree (codigo)",
   "indexname": "codigos_descuento_pkey",
   "tablename": "codigos_descuento"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cola_arranque_plazo_pkey ON retail.cola_arranque_plazo USING btree (ubicacion_id)",
+  "indexname": "cola_arranque_plazo_pkey",
+  "tablename": "cola_arranque_plazo"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX colaboradores_pkey ON retail.colaboradores USING btree (persona_id)",
@@ -493,6 +523,26 @@
   "indexdef": "CREATE UNIQUE INDEX cotizaciones_maquila_pkey ON retail.cotizaciones_maquila USING btree (id)",
   "indexname": "cotizaciones_maquila_pkey",
   "tablename": "cotizaciones_maquila"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cuadre_piso_items_pkey ON retail.cuadre_piso_items USING btree (movimiento_id)",
+  "indexname": "cuadre_piso_items_pkey",
+  "tablename": "cuadre_piso_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cuadre_piso_items_una_por_prenda ON retail.cuadre_piso_items USING btree (cuadre_id, variante_id)",
+  "indexname": "cuadre_piso_items_una_por_prenda",
+  "tablename": "cuadre_piso_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cuadres_piso_pkey ON retail.cuadres_piso USING btree (id)",
+  "indexname": "cuadres_piso_pkey",
+  "tablename": "cuadres_piso"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cuadres_piso_token_key ON retail.cuadres_piso USING btree (token_cliente)",
+  "indexname": "cuadres_piso_token_key",
+  "tablename": "cuadres_piso"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX cuentas_pkey ON retail.cuentas USING btree (codigo)",
@@ -850,6 +900,26 @@
   "tablename": "periodos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX planes_compra_nombre_key ON retail.planes_compra USING btree (nombre)",
+  "indexname": "planes_compra_nombre_key",
+  "tablename": "planes_compra"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX planes_compra_pkey ON retail.planes_compra USING btree (id)",
+  "indexname": "planes_compra_pkey",
+  "tablename": "planes_compra"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX planes_compra_lineas_pkey ON retail.planes_compra_lineas USING btree (id)",
+  "indexname": "planes_compra_lineas_pkey",
+  "tablename": "planes_compra_lineas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX planes_compra_lineas_una_por_categoria ON retail.planes_compra_lineas USING btree (plan_id, categoria_id)",
+  "indexname": "planes_compra_lineas_una_por_categoria",
+  "tablename": "planes_compra_lineas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)",
   "indexname": "prendas_danadas_cambio_id_key",
   "tablename": "prendas_danadas"
@@ -860,9 +930,34 @@
   "tablename": "prendas_danadas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX prendas_danadas_movimiento_entrada_unico ON retail.prendas_danadas USING btree (movimiento_entrada_id)",
+  "indexname": "prendas_danadas_movimiento_entrada_unico",
+  "tablename": "prendas_danadas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_pkey ON retail.prendas_danadas USING btree (id)",
   "indexname": "prendas_danadas_pkey",
   "tablename": "prendas_danadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_para_enviar_pkey ON retail.prendas_para_enviar USING btree (id)",
+  "indexname": "prendas_para_enviar_pkey",
+  "tablename": "prendas_para_enviar"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_para_enviar_token_cliente_key ON retail.prendas_para_enviar USING btree (token_cliente)",
+  "indexname": "prendas_para_enviar_token_cliente_key",
+  "tablename": "prendas_para_enviar"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_para_enviar_salidas_pkey ON retail.prendas_para_enviar_salidas USING btree (id)",
+  "indexname": "prendas_para_enviar_salidas_pkey",
+  "tablename": "prendas_para_enviar_salidas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_para_enviar_salidas_una_vez ON retail.prendas_para_enviar_salidas USING btree (prenda_para_enviar_id, transferencia_item_id)",
+  "indexname": "prendas_para_enviar_salidas_una_vez",
+  "tablename": "prendas_para_enviar_salidas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_pkey ON retail.prendas_por_regularizar USING btree (id)",
