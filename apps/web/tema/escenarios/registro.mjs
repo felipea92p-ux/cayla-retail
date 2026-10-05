@@ -460,6 +460,106 @@ ESCENARIOS.push(
   },
 );
 
+// ---------- Ventas II: Cambios, Devoluciones, Historial y Comprobantes (actividad 7) ----------
+// Cambios y Devoluciones NO son modales: son un flujo de 4 pasos dentro de la página (FlujoGuiado). Los escenarios avanzan paso a paso
+// hasta la confirmación, sin confirmar: «Confirmar cambio» o «Registrar devolución» escribirían en la base.
+const POSVENTA = ["admin", "integrante", "terminal-ventas"];
+const clicRol = (rol, nombre, opts = {}) => async (pagina) => {
+  await pagina.getByRole(rol, { name: nombre, ...opts }).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
+const secuencia = (...pasos) => async (pagina) => { for (const paso of pasos) await paso(pagina); };
+const iniciarCambio = clicRol("button", /Iniciar cambio/i);
+const iniciarDevolucion = clicRol("button", /^Devolver/);
+const elegirPrenda = async (pagina) => { await pagina.getByRole("radio").first().click({ timeout: 8000 }); await esperar(pagina, 600); };
+const marcarPrenda = async (pagina) => { await pagina.getByRole("checkbox").first().click({ timeout: 8000 }); await esperar(pagina, 600); };
+const continuar = clicRol("button", /Continuar/i);
+// Un paso que no todas las ventas tienen (una prenda sin colores no pide elegir color): si no está, se sigue.
+const opcional = (paso) => async (pagina) => { await paso(pagina).catch(() => {}); };
+ESCENARIOS.push(
+  { id: "cambios.prenda", ruta: "/cambios", cuentas: POSVENTA, abre: "text=¿Qué prenda cambia?", nombre: "Cambios · paso 2: ¿qué prenda cambia?", preparar: iniciarCambio },
+  {
+    id: "cambios.reemplazo",
+    ruta: "/cambios",
+    cuentas: POSVENTA,
+    abre: "text=¿Por cuál la cambia?",
+    nombre: "Cambios · paso 3: el motivo y la prenda que se lleva",
+    preparar: secuencia(iniciarCambio, elegirPrenda, continuar),
+  },
+  {
+    id: "cambios.confirmacion",
+    ruta: "/cambios",
+    cuentas: POSVENTA,
+    abre: "text=Revisa y confirma",
+    nombre: "Cambios · paso 4: revisa y confirma (sin confirmar)",
+    preparar: secuencia(iniciarCambio, elegirPrenda, continuar, clicRol("button", /Tiene un defecto/i), clicRol("button", /^Talla [A-Z0-9]+, compró esta/i), opcional(clicRol("button", /^Color .+, compró|^Color [^,]+$/i)), clicRol("button", /Con defecto o uso/i), clicRol("button", /Revisar el cambio/i)),
+  },
+  { id: "cambios.donde-buscar", ruta: "/cambios", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Cambios · la lista «Dónde buscar la venta»", preparar: clicRol("combobox", /Dónde buscar la venta/i) },
+  { id: "devoluciones.prendas", ruta: "/devoluciones", cuentas: POSVENTA, abre: "text=Prendas, paso actual", nombre: "Devoluciones · paso 2: qué prendas vuelven", preparar: iniciarDevolucion },
+  {
+    id: "devoluciones.detalle",
+    ruta: "/devoluciones",
+    cuentas: POSVENTA,
+    abre: "text=¿En qué estado vuelve cada prenda?",
+    nombre: "Devoluciones · paso 3: motivo y estado",
+    preparar: secuencia(iniciarDevolucion, marcarPrenda, continuar),
+  },
+  {
+    id: "devoluciones.defecto",
+    ruta: "/devoluciones",
+    cuentas: POSVENTA,
+    abre: "text=Donar",
+    nombre: "Devoluciones · paso 3 con «Con defecto o uso» (qué se hace con la prenda)",
+    preparar: secuencia(iniciarDevolucion, marcarPrenda, continuar, clicRol("button", /Con defecto o uso/i)),
+  },
+  {
+    id: "devoluciones.confirmacion",
+    ruta: "/devoluciones",
+    cuentas: POSVENTA,
+    abre: "button:has-text('Registrar devolución')",
+    nombre: "Devoluciones · paso 4: revisa y confirma (sin registrar)",
+    preparar: secuencia(iniciarDevolucion, marcarPrenda, continuar, clicRol("button", /No era su talla/i), clicRol("button", /Revisar la devolución/i)),
+  },
+  { id: "devoluciones.por-aprobar", ruta: "/devoluciones", cuentas: POSVENTA, nombre: "Devoluciones · pestaña «Por aprobar»", preparar: clicRol("tab", /Por aprobar/i) },
+  { id: "devoluciones.resueltas", ruta: "/devoluciones", cuentas: POSVENTA, nombre: "Devoluciones · pestaña «Resueltas»", preparar: clicRol("tab", /Resueltas/i) },
+  // Historial de ventas
+  { id: "historial.filtros", ruta: "/vender/historial", cuentas: POSVENTA, nombre: "Historial · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
+  { id: "historial.pago", ruta: "/vender/historial", cuentas: POSVENTA, abre: "[role=listbox]", nombre: "Historial · la lista del filtro «Pago»", preparar: secuencia(clicRol("button", /^Filtros/i), clicRol("button", /^Pago/i)) },
+  { id: "historial.calendario", ruta: "/vender/historial", cuentas: POSVENTA, abre: "[role=gridcell]", nombre: "Historial · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
+  {
+    id: "historial.venta",
+    ruta: "/vender/historial",
+    cuentas: POSVENTA,
+    abre: "[role=dialog]",
+    nombre: "Historial · el detalle de una venta (con «Qué hacer con esta venta»)",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver el detalle de la venta/ }).first().evaluate((el) => el.click());
+      await esperar(pagina, 1600);
+    },
+  },
+  // Comprobantes
+  { id: "comprobantes.opciones", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Opciones» de un comprobante", preparar: clicRol("button", /Opciones de/i) },
+  { id: "comprobantes.reintentar", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Reintentar» (transmitir a SUNAT)", preparar: clicRol("button", /^Reintentar/i) },
+  { id: "comprobantes.tipo", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=listbox],[role=menu]", nombre: "Comprobantes · la lista del filtro «Tipo»", preparar: clicRol("button", /^Tipo/i) },
+  { id: "comprobantes.ayuda", ruta: "/vender/comprobantes/proformas", cuentas: ["admin", "terminal-ventas"], nombre: "Comprobantes · la ayuda «Qué es Proforma»", preparar: clicRol("button", /Qué es Proforma/i) },
+  { id: "comprobantes.nueva-proforma", ruta: "/vender/comprobantes/proformas", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Nueva proforma»", preparar: clicRol("button", /Nueva proforma/i) },
+  {
+    id: "comprobantes.proforma-prenda",
+    ruta: "/vender/comprobantes/proformas",
+    cuentas: ["admin", "terminal-ventas"],
+    abre: "[role=dialog]",
+    nombre: "Comprobantes · «Nueva proforma» con una prenda buscada (la muestra y el resultado)",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Nueva proforma/i }).first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.getByPlaceholder(/Busca la prenda/i).first().fill("Vestido");
+      await esperar(pagina, 1800);
+    },
+  },
+  { id: "comprobantes.nueva-serie", ruta: "/vender/comprobantes/series", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Nueva serie»", preparar: clicRol("button", /Nueva serie/i) },
+  { id: "comprobantes.registrar-serie", ruta: "/vender/comprobantes/series", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Registrar» la serie de notas de crédito", preparar: clicRol("button", /^Registrar$/i) },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

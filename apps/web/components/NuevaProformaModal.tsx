@@ -26,7 +26,7 @@ type Fila = { prenda: PrendaParaProforma; cantidad: number; pct: number; motivo:
 
 const PCT_MAX = Math.round(TOPE_DESCUENTO_PROFORMA * 100);
 const descuentoDe = (f: Fila) => descuentoUnitarioPorPorcentaje(f.prenda.precio, f.pct);
-const CONTROL = "rounded-md border border-tinta/15 bg-white/60 px-1.5 py-1 text-xs outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60";
+const CONTROL = "rounded-md border border-tinta/15 bg-vidrio/60 px-1.5 py-1 text-xs outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60";
 
 // «Nueva proforma» (spec 2026-09-22): prendas del catálogo con cantidad y descuento (hasta 20 %, con motivo),
 // clienta, validez y nota. La cuenta que se ve es `totalesDeLineas`, la misma que hace `crear_proforma`; la base
@@ -320,5 +320,5 @@ export function Foto({ prenda }: { prenda: { fotoUrl: string | null; colorHex: s
       </span>
     );
   }
-  return <span aria-hidden className="h-12 w-10 shrink-0 rounded-[4px] border border-tinta/10" style={{ background: prenda.colorHex ?? "#e9e2d6" }} />;
+  return <span aria-hidden className="h-12 w-10 shrink-0 rounded-[4px] border border-tinta/10" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />;
 }
