@@ -260,6 +260,35 @@ textarea.texto{min-height:76px;resize:vertical}
 .aviso{position:absolute;left:50%;top:14px;transform:translate(-50%,-16px);background:var(--tinta);color:var(--papel);border-radius:12px;padding:11px 16px;font-size:14px;z-index:40;opacity:0;transition:opacity .25s var(--ease),transform .25s var(--ease);pointer-events:none;max-width:calc(100% - 32px)}
 .aviso.ver{opacity:1;transform:translate(-50%,0)}
 
+/* ---------- dinamismo (ADR-0136: respuestas a una acción, 200–500 ms, una sola vez) ---------- */
+.mision{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--crema);border-radius:999px;padding:3px 14px 3px 3px;min-height:44px;font-size:13px;text-align:left}
+.mision svg{display:block}
+.mision b{font:600 15px var(--sans);font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+.mision small{color:var(--taupe);font-size:11.5px}
+.anillo-fondo{stroke:var(--sand)} .anillo-avance{stroke:var(--verde);transition:stroke-dashoffset .5s var(--ease)}
+.late{animation:late .5s var(--ease) 1}
+@keyframes late{0%{color:var(--verde)}100%{color:inherit}}
+.talla.resuelta{animation:resuelta .65s var(--ease) 1}
+@keyframes resuelta{0%{background:var(--t-verde);box-shadow:0 0 0 4px color-mix(in srgb,var(--verde) 40%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+.unidad-viaja{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--ambar);box-shadow:0 0 0 3px var(--papel);z-index:45;pointer-events:none}
+.mas-uno{position:absolute;left:0;top:0;z-index:46;pointer-events:none;background:var(--verde);color:var(--papel);border-radius:999px;padding:4px 10px;font:600 14px var(--sans)}
+.modelo.encontrada{animation:encontrada .9s var(--ease) 1}
+@keyframes encontrada{0%{box-shadow:0 0 0 6px color-mix(in srgb,var(--tinta) 30%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+.escaneo{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:rgba(26,26,24,.35);backdrop-filter:blur(2px)}
+.escaneo .marco{width:min(280px,70%);aspect-ratio:3/2;border-radius:18px;border:2px solid var(--papel);position:relative;overflow:hidden;background:rgba(251,248,242,.08)}
+.escaneo .linea{position:absolute;left:8%;right:8%;height:2px;background:var(--papel);top:10%;animation:barre .6s var(--ease) 1 forwards}
+.escaneo p{position:absolute;bottom:-34px;left:0;right:0;text-align:center;color:var(--papel);font-size:14px}
+@keyframes barre{to{top:88%}}
+.cinta{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:35;background:var(--tinta);color:var(--papel);border-radius:16px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;width:min(560px,calc(100% - 24px));font-size:14px;box-shadow:0 10px 30px rgba(26,26,24,.25)}
+.cinta .pts{display:flex;gap:4px;flex:none}
+.cinta .pts i{width:8px;height:8px;border-radius:50%;background:rgba(251,248,242,.3)}
+.cinta .pts i.si{background:var(--papel)}
+.cinta button{border:0;background:rgba(251,248,242,.14);color:var(--papel);border-radius:10px;min-height:36px;padding:0 12px;font-size:13px;margin-left:auto;flex:none}
+.pista{box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 45%,transparent)!important;animation:pista .9s var(--ease) 1;position:relative;z-index:1}
+@keyframes pista{0%{box-shadow:0 0 0 12px color-mix(in srgb,var(--ambar) 0%,transparent)}100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 45%,transparent)}}
+.panel.arrastrando{transition:none}
+.con-cinta .aviso{top:86px}
+
 /* ---------- documento ---------- */
 .doc{margin-top:46px;display:grid;gap:16px}
 .doc h2{font-size:30px}
@@ -294,6 +323,12 @@ table.t td:first-child{font-weight:600}
       <button aria-pressed="false" data-ancho="390">Celular</button>
     </div>
     <button class="interruptor" id="sim-caja" aria-pressed="true"><i></i>Caja abierta</button>
+    <button class="interruptor" id="sim-sonido" aria-pressed="false"><i></i>Sonido al confirmar</button>
+    <span class="etq">Movimiento</span>
+    <div class="seg" role="group" aria-label="Movimiento">
+      <button aria-pressed="true" data-mov="cayla" title="ADR-0136: sin rebote">CAYLA</button>
+      <button aria-pressed="false" data-mov="expresivo" title="Con rebote, como Material 3 Expressive: fuera de ADR-0136, solo para comparar">Expresivo</button>
+    </div>
     <button class="btn sutil" id="reiniciar" style="min-height:36px;font-size:13px">Volver a empezar</button>
   </div>
 
@@ -305,6 +340,7 @@ table.t td:first-child{font-weight:600}
     <div class="velo" id="velo"></div>
     <aside class="panel" id="panel" aria-hidden="true" aria-label="Producto"></aside>
     <div class="aviso" id="aviso" role="status"></div>
+    <div class="cinta" id="cinta" role="status" hidden></div>
     <span class="ejemplo">Datos de ejemplo</span>
   </div>
 
@@ -324,6 +360,23 @@ table.t td:first-child{font-weight:600}
         <tr><td>Escanear como botón grande, no como menú</td><td>Shopify POS, Square, terminales de cadenas de moda</td><td>«Escanear» al lado del buscador abre la variante exacta (simulado aquí con Polo Brisa · Rosado · M).</td></tr>
       </tbody>
     </table></div>
+
+    <h2 id="d1b" style="margin-top:20px">Cómo se mueve: lo que se tomó de quienes lo hacen mejor</h2>
+    <p class="bajada" style="margin-top:0">Cada efecto responde a algo que la persona hizo y le dice qué pasó. Ninguno es adorno.</p>
+    <div class="tabla-scroll"><table class="t">
+      <thead><tr><th>De dónde</th><th>Qué hacen</th><th>Cómo quedó aquí</th></tr></thead>
+      <tbody>
+        <tr><td>Duolingo</td><td>Avance visible a cada paso; aprender haciendo, no leyendo; respuesta inmediata al acierto.</td><td>El anillo «Hoy» se llena con cada talla resuelta y un «+1» vuela hacia él. «▶ Practicar» enseña a reponer en 4 toques, iluminando el siguiente botón.</td></tr>
+        <tr><td>Apple (guías de interfaz)</td><td>Manipulación directa: la hoja sigue al dedo; movimientos cortos (250–400 ms) que se pueden interrumpir.</td><td>La hoja se baja arrastrándola con el dedo y vuelve si no llegaste al umbral. Mantener «+» presionado suma solo.</td></tr>
+        <tr><td>Material Design 3</td><td>El movimiento conecta el antes y el después: lo que se mueve en pantalla es lo que se movió de verdad.</td><td>Al reponer, las unidades viajan de «En almacén» a «En piso» y las cifras cuentan hasta su valor nuevo. Al filtrar, las tarjetas se deslizan a su lugar en vez de saltar.</td></tr>
+        <tr><td>Shopify POS (pedidos de su comunidad)</td><td>Quien escanea pide una señal clara de que la lectura entró: aviso, sonido y vibración.</td><td>«Escanear» muestra el barrido, suena (si el sonido está activo), vibra en el celular y la tarjeta encontrada se marca antes de abrirse.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>El juego está en el avance y la respuesta: un anillo de lo que toca hoy, unidades que viajan, cifras que cuentan, tallas que se encienden en verde al resolverse y una práctica guiada. Todo dura 250–650 ms, ocurre una sola vez y se apaga con «reducir movimiento».</p>
+      <p><span class="k">Descarté</span>Puntos, rachas y ranking entre integrantes: Felipe decidió que la comparación es contra uno mismo y entre sedes sin ranking, y un puntaje por persona premiaría reponer rápido antes que reponer bien. También descarté confeti y rebote: ADR-0136 los prohíbe. El botón «Expresivo» los muestra solo para que compares.</p>
+      <p><span class="k">Se rompe si</span>el anillo cuenta como «resuelta» una talla que se repuso en el sistema pero no en el piso de verdad: el juego premiaría el clic, no el trabajo. Mientras el piso de TRU no esté cuadrado, el anillo debería sumar solo lo que se hizo escaneando.</p>
+    </div>
 
     <h2 id="d2" style="margin-top:20px">Cada acción, con su regla real</h2>
     <p class="bajada" style="margin-top:0">Lo que pide cada flujo de la maqueta sale de la función que ya existe en la base. La última columna dice qué falta para que funcione así desde Existencias.</p>
@@ -526,8 +579,8 @@ table.t td:first-child{font-weight:600}
     document.getElementById("barra").innerHTML = `
       <div class="fila-top">
         <div class="titulo-app"><h1>Existencias</h1><small>Tienda TRU · vista de las 09:28</small></div>
-        <div class="cifras"><span><b class="num">${t.piso}</b>en piso de 600 · <em>por cuadrar</em></span><span><b class="num">${t.alm}</b>en almacén</span></div>
-        <button class="pendientes" data-acc="pendientes"><span class="pt"></span>3 pendientes</button>
+        <div class="cifras"><span><b class="num" data-cuenta="tot-piso">${t.piso}</b>en piso de 600 · <em>por cuadrar</em></span><span><b class="num" data-cuenta="tot-alm">${t.alm}</b>en almacén</span></div>
+        ${anilloMision()}<button class="pendientes" data-acc="practicar" title="Una práctica guiada de 4 toques">▶ Practicar</button>
       </div>
       <div class="buscar">
         <label class="caja-buscar">${IC.buscar}<input class="campo-buscar" id="q" type="search" autocomplete="off" placeholder="Busca por nombre, marca, color o código" value="${esc(S.q)}" aria-label="Buscar producto">${S.q ? `<button class="limpiar" data-acc="limpiar" aria-label="Borrar búsqueda">${IC.x}</button>` : ""}</label>
@@ -592,7 +645,7 @@ table.t td:first-child{font-weight:600}
       ${lista.length ? `<div class="grilla">${lista.map(p => {
         const c = ci(p), m = coincidencias(p), filtrando = S.filtro !== "todo";
         const principal = m[0], enEste = m.filter(x => x.c === c);
-        return `<article class="modelo${sel && sel.pid === p.id ? " activo" : ""}">
+        return `<article class="modelo${sel && sel.pid === p.id ? " activo" : ""}" data-id="${p.id}">
           <button class="cab-modelo" data-acc="abrir" data-pid="${p.id}" aria-label="Abrir ${esc(p.nombre)}">
             ${mosaico(p, c)}
             <span style="min-width:0"><h3>${esc(p.nombre)}</h3><small>${esc(p.marca)} · ${esc(p.cat)}</small></span>
@@ -607,7 +660,7 @@ table.t td:first-child{font-weight:600}
             ${tallasDe(p, c).map(t => { const v = vr(p, c, t), e = estado(v); const activa = sel && sel.pid === p.id && sel.c === c && sel.t === t;
               const cumple = filtrando && enEste.some(x => x.t === t), esPrincipal = cumple && principal.c === c && principal.t === t;
               const marca = !filtrando ? "" : cumple ? " marca-f" + (esPrincipal ? " principal" : "") : " tenue";
-              return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
+              return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" data-vk="${p.id}|${c}|${esc(t)}" data-est="${e}" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
           </div>
           ${filtrando ? motivo(p, c, m) : pastilla(p, c)}
         </article>`; }).join("")}</div>`
@@ -698,7 +751,7 @@ table.t td:first-child{font-weight:600}
         </div>
         ${vista === "variante" ? `
         <div class="muestras" role="radiogroup" aria-label="Color">${p.colores.map((col, i) => `<button class="muestra${col.claro ? " claro" : ""}" role="radio" aria-checked="${i === c}" aria-label="${esc(col.n)}" style="background:${col.hex};width:44px;height:44px" data-acc="p-color" data-c="${i}"></button>`).join("")}<span class="nombre-color">${esc(p.colores[c].n)}</span></div>
-        <div class="tallas" role="group" aria-label="Talla">${tallasDe(p, c).map(x => { const w = vr(p, c, x), ee = estado(w); return `<button class="talla ${ee === "ok" ? "" : ee}" aria-pressed="${x === t}" data-acc="p-talla" data-t="${esc(x)}"><b>${esc(x)}</b><small>${ee === "sin" ? "—" : w.piso + " piso"}</small></button>`; }).join("")}</div>` : ""}
+        <div class="tallas" role="group" aria-label="Talla">${tallasDe(p, c).map(x => { const w = vr(p, c, x), ee = estado(w); return `<button class="talla ${ee === "ok" ? "" : ee}" aria-pressed="${x === t}" data-acc="p-talla" data-t="${esc(x)}" data-vk="${pid}|${c}|${esc(x)}" data-est="${ee}"><b>${esc(x)}</b><small>${ee === "sin" ? "—" : w.piso + " piso"}</small></button>`; }).join("")}</div>` : ""}
       </div>`;
     let cuerpo = "";
     if (vista === "variante") {
@@ -711,10 +764,10 @@ table.t td:first-child{font-weight:600}
       cuerpo = `
         ${S.hecho ? `<div class="hecho">${IC.check}<span>${esc(S.hecho)}</span></div>` : ""}
         <div class="donde">
-          <div class="${v.piso ? "" : "cero"}"><b>${v.piso}</b><small>En piso</small></div>
-          <div class="${v.alm ? "" : "cero"}"><b>${v.alm}</b><small>En almacén</small></div>
-          <div class="${v.apart ? "" : "cero"}"><b>${v.apart}</b><small>Apartado</small></div>
-          <div class="${v.dan ? "" : "cero"}"><b>${v.dan}</b><small>Dañado</small></div>
+          <div class="${v.piso ? "" : "cero"}"><b data-cuenta="${pid}|${c}|${t}|piso">${v.piso}</b><small>En piso</small></div>
+          <div class="${v.alm ? "" : "cero"}"><b data-cuenta="${pid}|${c}|${t}|alm">${v.alm}</b><small>En almacén</small></div>
+          <div class="${v.apart ? "" : "cero"}"><b data-cuenta="${pid}|${c}|${t}|apart">${v.apart}</b><small>Apartado</small></div>
+          <div class="${v.dan ? "" : "cero"}"><b data-cuenta="${pid}|${c}|${t}|dan">${v.dan}</b><small>Dañado</small></div>
         </div>
         ${diag}
         ${S.filtro !== "todo" && marcas.length ? `<div><p class="etq" style="margin-bottom:6px">${esc(SIMBOLO[S.filtro].txt)} en este modelo · ${marcas.length}</p><div class="otras-marcas">${marcas.map(x => `<button aria-pressed="${x.c === c && x.t === t}" data-acc="ir-var" data-c="${x.c}" data-t="${esc(x.t)}"><i style="background:${p.colores[x.c].hex}"></i>${esc(p.colores[x.c].n)} · ${esc(x.t)}${x === marcas[0] ? " · más vendida" : ""}</button>`).join("")}</div></div>` : ""}
@@ -1092,6 +1145,239 @@ table.t td:first-child{font-weight:600}
   simCaja.addEventListener("click", () => { S.caja = !S.caja; syncCaja(); if (S.panel && !S.panel.pendientes) renderPanel(false); });
   document.getElementById("reiniciar").addEventListener("click", () => { inicial(); syncCaja(); panel.classList.remove("abierto"); velo.classList.remove("abierto"); renderBarra(); renderLista(); avisar("Datos de ejemplo restaurados"); });
 
+
+  // ================= dinamismo =================
+  // Todo efecto responde a una acción y dura 250–650 ms, una sola vez (ADR-0136). Con «reducir movimiento», nada se mueve.
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const quieto = () => reduce.matches;
+  const aparatoEl = document.getElementById("aparato");
+  const EASE = () => getComputedStyle(document.documentElement).getPropertyValue("--ease").trim() || "ease-out";
+  let sonido = false;
+  let ac = null;
+  function tono(f = 880, ms = 70, vol = .05) {
+    if (!sonido) return;
+    try { ac ||= new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.value = f; g.gain.value = vol; o.connect(g).connect(ac.destination); const t = ac.currentTime;
+      o.start(t); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.stop(t + ms / 1000 + .02); } catch {}
+  }
+  const vibrar = (ms = 12) => { try { navigator.vibrate?.(ms); } catch {} };
+  const enAparato = el => { const ra = aparatoEl.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left - ra.left - aparatoEl.clientLeft + r.width / 2, y: r.top - ra.top - aparatoEl.clientTop + r.height / 2 }; };
+
+  // Cifras que cuentan hasta su valor nuevo (en vez de cambiar de golpe).
+  const valores = new Map();
+  function contar(raizEl) {
+    raizEl.querySelectorAll("[data-cuenta]").forEach(el => {
+      const k = el.dataset.cuenta, nuevo = +el.textContent, viejo = valores.get(k);
+      valores.set(k, nuevo);
+      if (viejo === undefined || viejo === nuevo || quieto()) return;
+      const t0 = performance.now(), dur = 450;
+      el.textContent = viejo; el.classList.add("late");
+      const paso = now => { const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(viejo + (nuevo - viejo) * e); if (p < 1) requestAnimationFrame(paso); };
+      requestAnimationFrame(paso);
+    });
+  }
+  // Una talla que pasa a estar en piso se enciende un instante en verde.
+  const estadosVistos = new Map();
+  function marcarCambios(raizEl) {
+    raizEl.querySelectorAll("[data-vk]").forEach(el => {
+      const k = el.dataset.vk + (raizEl === panel ? "|p" : "|l"), e = el.dataset.est, antes = estadosVistos.get(k);
+      estadosVistos.set(k, e);
+      if (antes && antes !== e && e === "ok" && !quieto()) el.classList.add("resuelta");
+    });
+  }
+
+  // El anillo «Hoy»: las tallas por reponer y las sin stock que otra sede tiene, al abrir la pantalla. Avanza con cada una resuelta.
+  let objetivos = [];
+  function calcularObjetivos() {
+    objetivos = [];
+    P.forEach(p => p.colores.forEach((col, c) => Object.entries(col.tallas).forEach(([t, v]) => {
+      const e = estado(v); if (e === "reponer" || (e === "sin" && otrasSum(v))) objetivos.push({ pid:p.id, c, t, e });
+    })));
+  }
+  function avance() {
+    let h = 0, rep = 0, repH = 0, ped = 0, pedH = 0;
+    objetivos.forEach(o => { const v = vr(prod(o.pid), o.c, o.t);
+      if (o.e === "reponer") { rep++; if (estado(v) !== "reponer") { repH++; h++; } }
+      else { ped++; if (S.pedidos[`${o.pid}|${o.c}|${o.t}`] || estado(v) !== "sin") { pedH++; h++; } } });
+    return { h, n: objetivos.length, rep, repH, ped, pedH };
+  }
+  const C_ANILLO = 2 * Math.PI * 17;
+  let fraccionVista = null;
+  function anilloMision() {
+    const { h, n } = avance(), f = n ? h / n : 0;
+    return `<button class="mision" data-acc="pendientes" id="mision" aria-label="Hoy: ${h} de ${n} tallas resueltas">
+      <svg width="40" height="40" viewBox="0 0 40 40"><circle class="anillo-fondo" cx="20" cy="20" r="17" fill="none" stroke-width="4"/>
+      <circle class="anillo-avance" cx="20" cy="20" r="17" fill="none" stroke-width="4" stroke-linecap="round" transform="rotate(-90 20 20)" stroke-dasharray="${C_ANILLO}" stroke-dashoffset="${C_ANILLO * (1 - (fraccionVista ?? f))}" data-f="${f}"/></svg>
+      <span><b>${h} de ${n}</b><small>hoy</small></span></button>`;
+  }
+  function moverAnillo() {
+    const c = document.querySelector(".anillo-avance"); if (!c) return;
+    const f = +c.dataset.f;
+    requestAnimationFrame(() => { c.setAttribute("stroke-dashoffset", C_ANILLO * (1 - f)); });
+    fraccionVista = f;
+  }
+  function volarAlAnillo(n, desdeEl) {
+    const m = document.getElementById("mision"); if (!m || quieto()) return;
+    const a = enAparato(desdeEl || panel), b = enAparato(m);
+    const chip = document.createElement("span"); chip.className = "mas-uno"; chip.textContent = "+" + n; aparatoEl.appendChild(chip);
+    chip.animate([{ transform:`translate(${a.x - 18}px,${a.y - 14}px) scale(.8)`, opacity:0 }, { transform:`translate(${(a.x + b.x) / 2 - 18}px,${Math.min(a.y, b.y) - 30}px) scale(1.1)`, opacity:1, offset:.45 },
+      { transform:`translate(${b.x - 18}px,${b.y - 14}px) scale(.6)`, opacity:0 }], { duration:650, easing:EASE() }).onfinish = () => chip.remove();
+  }
+  // Unidades que viajan de una casilla a otra: lo que se mueve en pantalla es lo que se movió en la tienda.
+  function viajar(desde, hasta, n) {
+    if (quieto() || !desde || !hasta) return;
+    const a = enAparato(desde), b = enAparato(hasta);
+    for (let i = 0; i < Math.min(Math.max(n, 1), 6); i++) {
+      const d = document.createElement("span"); d.className = "unidad-viaja"; aparatoEl.appendChild(d);
+      d.animate([{ transform:`translate(${a.x}px,${a.y}px) scale(.5)`, opacity:0 }, { transform:`translate(${(a.x + b.x) / 2}px,${Math.min(a.y, b.y) - 44}px) scale(1)`, opacity:1, offset:.5 },
+        { transform:`translate(${b.x}px,${b.y}px) scale(.6)`, opacity:0 }], { duration:520, delay:i * 70, easing:EASE(), fill:"backwards" }).onfinish = () => d.remove();
+    }
+  }
+
+  // ---- envolver los dibujos: después de cada uno, contar, marcar cambios y mover la lista ----
+  const renderListaBase = renderLista;
+  renderLista = function () {
+    const antes = new Map([...document.querySelectorAll(".modelo[data-id]")].map(el => [el.dataset.id, el.getBoundingClientRect()]));
+    renderListaBase();
+    const lista = document.getElementById("lista");
+    marcarCambios(lista);
+    if (!quieto()) lista.querySelectorAll(".modelo[data-id]").forEach((el, i) => {
+      const r0 = antes.get(el.dataset.id), r1 = el.getBoundingClientRect();
+      if (!r0) { el.animate([{ opacity:0, transform:"translateY(12px)" }, { opacity:1, transform:"none" }], { duration:300, delay:Math.min(i, 8) * 40, easing:EASE(), fill:"backwards" }); return; }
+      const dx = r0.left - r1.left, dy = r0.top - r1.top;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) el.animate([{ transform:`translate(${dx}px,${dy}px)` }, { transform:"none" }], { duration:380, easing:EASE() });
+    });
+    practica();
+  };
+  const renderPanelBase = renderPanel;
+  renderPanel = function (cascada) { renderPanelBase(cascada); contar(panel); marcarCambios(panel); practica(); };
+  const renderBarraBase = renderBarra;
+  renderBarra = function () { renderBarraBase(); contar(document.getElementById("barra")); moverAnillo(); };
+
+  const confirmarBase = confirmar;
+  confirmar = function () {
+    const f = S.panel.flujo, tipo = f.tipo, d = { ...f.d }, av0 = avance().h;
+    confirmarBase();
+    vibrar(); tono(988, 90);
+    requestAnimationFrame(() => {
+      const cajas = panel.querySelectorAll(".donde > div");
+      const n = tipo === "reponerVarias" ? totalVarias(d) : (d.n || 1);
+      const ruta = { reponer:[1, 0], reponerVarias:[1, 0], retirar:[0, 1], apartar:[0, 2], danado:[d.lugar === "almacen" ? 1 : 0, 3] }[tipo];
+      if (ruta) viajar(cajas[ruta[0]], cajas[ruta[1]], n);
+      const av1 = avance().h;
+      if (av1 > av0) setTimeout(() => volarAlAnillo(av1 - av0, panel.querySelector(".hecho")), 250);
+    });
+  };
+
+  // Pendientes: arriba, el avance de hoy en barras.
+  const abrirPendientesBase = abrirPendientes;
+  abrirPendientes = function () {
+    abrirPendientesBase();
+    const a = avance(), cuerpo = panel.querySelector(".p-cuerpo");
+    const barra = (h, n, txt) => `<div class="opcion" style="cursor:default"><b>${txt}: ${h} de ${n}</b><div style="height:8px;border-radius:99px;background:var(--hueso);overflow:hidden;margin-top:6px"><span class="llena" data-p="${n ? h / n : 0}" style="display:block;height:100%;width:0;background:var(--verde);border-radius:99px;transition:width .5s var(--ease)"></span></div></div>`;
+    cuerpo.insertAdjacentHTML("afterbegin", `<p class="etq">Hoy, en este aparato</p>${barra(a.repH, a.rep, "Tallas repuestas")}${barra(a.pedH, a.ped, "Tallas pedidas a otra sede")}<p class="etq" style="margin-top:6px">Lo que espera en la sede</p>`);
+    requestAnimationFrame(() => requestAnimationFrame(() => cuerpo.querySelectorAll(".llena").forEach(x => { x.style.width = (+x.dataset.p * 100) + "%"; })));
+  };
+
+  // ---- Escanear: barrido, señal y la tarjeta encontrada ----
+  raiz.addEventListener("click", e => {
+    const el = e.target.closest("[data-acc]"); if (!el) return;
+    if (el.dataset.acc === "escanear") {
+      e.stopPropagation();
+      const abrir = () => {
+        S.q = ""; S.filtro = "todo"; S.color.brisa = 2; renderBarra(); renderLista();
+        const tarjeta = document.querySelector('.modelo[data-id="brisa"]');
+        tarjeta?.scrollIntoView({ block:"nearest", behavior: quieto() ? "auto" : "smooth" });
+        tarjeta?.classList.add("encontrada");
+        setTimeout(() => { avisar("Etiqueta leída · Polo Brisa · Rosado · M"); abrirPanel("brisa", "M"); }, quieto() ? 0 : 320);
+      };
+      if (quieto()) { abrir(); return; }
+      const capa = document.createElement("div"); capa.className = "escaneo";
+      capa.innerHTML = '<div class="marco"><span class="linea"></span><p>Apunta a la etiqueta</p></div>';
+      aparatoEl.appendChild(capa);
+      setTimeout(() => { tono(1320, 60); vibrar(20); capa.remove(); abrir(); }, 680);
+    }
+    if (el.dataset.acc === "practicar") { e.stopPropagation(); empezarPractica(); }
+  }, true);
+
+  // ---- Mantener «+» o «−» presionado suma o resta solo ----
+  let repetir = null;
+  const pararRepetir = () => { if (repetir) { clearTimeout(repetir.t); clearInterval(repetir.i); repetir = null; } };
+  raiz.addEventListener("pointerdown", e => {
+    const b = e.target.closest('[data-acc="mas"],[data-acc="menos"],[data-acc="mas-c"],[data-acc="menos-c"]'); if (!b) return;
+    pararRepetir();
+    const sel = `[data-acc="${b.dataset.acc}"]` + (b.dataset.key ? `[data-key="${b.dataset.key}"]` : "");
+    repetir = { t: setTimeout(() => { repetir.i = setInterval(() => { const x = document.querySelector(sel); if (!x || x.disabled) { pararRepetir(); return; } x.click(); tono(660, 25, .02); }, 110); }, 420) };
+  });
+  ["pointerup", "pointercancel"].forEach(ev => document.addEventListener(ev, pararRepetir));
+  raiz.addEventListener("click", e => { const b = e.target.closest('[data-acc="mas"],[data-acc="menos"],[data-acc="mas-c"],[data-acc="menos-c"]'); if (b) { tono(660, 25, .02); vibrar(6); } });
+
+  // ---- La hoja se baja con el dedo (solo cuando es hoja, no cajón) ----
+  let arrastre = null;
+  panel.addEventListener("pointerdown", e => {
+    if (aparatoEl.clientWidth >= 960 || !e.target.closest(".asa, .p-cab") || e.target.closest("button")) return;
+    arrastre = { y0:e.clientY, dy:0, t0:performance.now() }; panel.classList.add("arrastrando"); panel.setPointerCapture(e.pointerId);
+  });
+  panel.addEventListener("pointermove", e => {
+    if (!arrastre) return;
+    arrastre.dy = Math.max(0, e.clientY - arrastre.y0);
+    panel.style.transform = `translateY(${arrastre.dy}px)`; velo.style.opacity = String(Math.max(.2, 1 - arrastre.dy / 420));
+  });
+  const soltar = () => {
+    if (!arrastre) return;
+    const { dy, t0 } = arrastre, vel = dy / Math.max(1, performance.now() - t0); arrastre = null;
+    panel.classList.remove("arrastrando"); velo.style.opacity = "";
+    if (dy > 120 || vel > .7) cerrarPanel();
+    panel.style.transform = "";
+  };
+  panel.addEventListener("pointerup", soltar); panel.addEventListener("pointercancel", soltar);
+
+  // ---- Práctica guiada: 4 toques para aprender a reponer, con la luz en el siguiente botón ----
+  const PASOS_P = [
+    { txt:"Toca la talla L de Polo Brisa: está en ámbar porque falta en piso.", sel:() => S.panel ? null : '.modelo[data-id="brisa"] [data-acc="talla"][data-t="L"]', listo:() => S.panel?.pid === "brisa" && S.panel.t === "L" && S.panel.c === 0 },
+    { txt:"Hay 5 en almacén y ninguna en piso. Toca «Reponer».", sel:() => '[data-acc="accion"][data-k="reponer"]', listo:() => S.panel?.flujo?.tipo === "reponer" },
+    { txt:"Sube a 2 con «+» (o mantenlo presionado) y toca «Continuar».", sel:() => (S.panel?.flujo?.d.n || 0) < 2 ? '[data-acc="mas"]' : '[data-acc="seguir"]', listo:() => S.panel?.flujo?.tipo === "reponer" && S.panel.flujo.i === 1 },
+    { txt:"Elige quién lo hace y toca «Reponer 2». Mira cómo viajan al piso.", sel:() => S.panel?.flujo?.d.quien ? '[data-acc="confirmar"]' : '[data-acc="set"][data-k="quien"]', listo:() => !!S.hecho && S.hecho.startsWith("Reposición") },
+  ];
+  let prac = null;
+  function empezarPractica() {
+    if (S.panel) cerrarPanel();
+    S.q = ""; S.filtro = "todo"; S.color.brisa = 0;
+    prac = 0; renderBarra(); renderLista();
+    document.querySelector('.modelo[data-id="brisa"]')?.scrollIntoView({ block:"center", behavior: quieto() ? "auto" : "smooth" });
+  }
+  function practica() {
+    document.querySelectorAll(".pista").forEach(x => x.classList.remove("pista"));
+    const cinta = document.getElementById("cinta");
+    if (prac === null) { cinta.hidden = true; aparatoEl.classList.remove("con-cinta"); return; }
+    aparatoEl.classList.add("con-cinta");
+    while (prac < PASOS_P.length && PASOS_P[prac].listo()) prac++;
+    const pts = PASOS_P.map((_, i) => `<i class="${i < prac ? "si" : ""}"></i>`).join("");
+    if (prac >= PASOS_P.length) {
+      cinta.hidden = false;
+      cinta.innerHTML = `<span class="pts">${pts}</span><span><b>Listo.</b> Así se repone: talla → Reponer → cuántas → quién.</span><button data-p="fin">Cerrar</button>`;
+      prac = null; return;
+    }
+    const paso = PASOS_P[prac];
+    cinta.hidden = false;
+    cinta.innerHTML = `<span class="pts">${pts}</span><span><b>Paso ${prac + 1} de ${PASOS_P.length}.</b> ${paso.txt}</span><button data-p="salir">Salir</button>`;
+    const sel = paso.sel(); const blanco = sel && document.querySelector(sel);
+    if (blanco) blanco.classList.add("pista");
+  }
+  document.getElementById("cinta").addEventListener("click", e => { if (e.target.closest("[data-p]")) { prac = null; practica(); } });
+
+  // ---- Controles de la maqueta: sonido y movimiento ----
+  const simSonido = document.getElementById("sim-sonido");
+  simSonido.addEventListener("click", () => { sonido = !sonido; simSonido.setAttribute("aria-pressed", String(sonido)); if (sonido) tono(880, 70); });
+  document.querySelectorAll("[data-mov]").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("[data-mov]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    document.documentElement.style.setProperty("--ease", b.dataset.mov === "expresivo" ? "cubic-bezier(.34,1.56,.64,1)" : "cubic-bezier(.22,.61,.36,1)");
+  }));
+  document.getElementById("reiniciar").addEventListener("click", () => { calcularObjetivos(); fraccionVista = null; prac = null; renderBarra(); renderLista(); });
+
+  calcularObjetivos();
   renderBarra(); renderLista();
 })();
 </script>
