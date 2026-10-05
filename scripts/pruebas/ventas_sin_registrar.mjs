@@ -24,6 +24,14 @@
  *   S · `retail.fn_por_regularizar_sin_cargar` (20261004203000, ajuste del 2026-10-04): por venta pendiente, si NINGUNA prenda que
  *       pueda ser ella se cargó en la sede (con la familia de color y sin pedir stock, como `fn_prenda_cargada_en_sede`), y la
  *       carga de esa sede; solo de las sedes que la cuenta opera. Con eso la pantalla agrupa las ventas sin cargar en una línea.
+ *   X · Una sola definición de «calza exacto» (D1, 2026-10-05): el modal arma el tramo «Igual a lo que anotó caja» SOLO con
+ *       `fn_candidatas_de_venta` (#800, la del lote del líder) y le pega los hechos de `fn_candidatas_por_regularizar`. Para toda
+ *       venta pendiente, las exactas de la segunda están en la primera, y lo que solo trae la primera es una prenda de prueba o una
+ *       venta con más de 20 posibles (el tope de la segunda).
+ *   L · El lote «Identificar con sugerencias» (#800, `regularizar_prendas_sugeridas`) encima de la regla de C (D3, 2026-10-05): con
+ *       el interruptor encendido, la cuenta de un líder sin admin y el encabezado `x-responsable-omitido: cola_arranque_identificar`
+ *       (el que manda la web), cada `regularizar_prenda` anidada firma con el líder, también su propia venta; sin ese encabezado, con
+ *       una clave inventada o con la vieja 'regularizar_prenda', pide el combo y no aplica ninguna.
  *   P · La migración 20261004204000 se aplica sobre el cuerpo ORIGINAL de `regularizar_prenda` (20260923162300, lo que producción
  *       tiene antes de pegar) y se puede volver a pegar; la sonda de solo lectura que se corre en producción antes de pegar
  *       encuentra cada ancla UNA vez. `node scripts/pruebas/ventas_sin_registrar.mjs --sonda` imprime esa sonda.
@@ -784,6 +792,129 @@ ${VENDE_MICAELA}update retail.prendas_por_regularizar set vendido_en = now() - i
 select (select c.saldo_a_la_venta from retail.fn_candidatas_por_regularizar() c where c.prenda_id = :'pp1' and c.variante_id = :'vs') || ',' ||
        (select c.saldo_a_la_venta from retail.fn_candidatas_por_regularizar() c where c.prenda_id = :'pp' and c.variante_id = :'vs');`,
   "3,2",
+);
+
+// ---------------- X · una sola definición de «calza exacto» (D1, 2026-10-05) ----------------
+// El modal arma el tramo «Igual a lo que anotó caja» SOLO con `fn_candidatas_de_venta` (#800, ADR-0334: la misma que usa el lote del
+// líder) y le pega los hechos de `fn_candidatas_por_regularizar` cuando los hay (`hechosConExactas`, lib/por-regularizar-candidatas.ts).
+// Para que eso no esconda nada, las dos lecturas tienen que contar lo mismo: ninguna exacta de la lectura de hechos puede faltar en la
+// base común (la web la botaría sin decirlo), y lo que solo trae la base común tiene que tener su porqué escrito: una prenda de prueba
+// (`es_prueba`, que la lectura de hechos deja fuera) o una venta con más de 20 posibles (su tope). Cuarentena, apartadas, otra sede,
+// otra talla, la centinela y las desactivadas quedan fuera de LAS DOS.
+const SIEMBRA_X = `${SIEMBRA_B}
+-- Dos exactas que las dos lecturas tienen que ver igual: una con una unidad apartada y otra libre; otra con una en Cuarentena y otra libre.
+select pg_temp.prenda('Q-MITAD-APARTADA-M', talla_m, 'NEG') as vq from ids \\gset
+select pg_temp.carga(:'vq', tru, 2, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vq', tru, pg_temp.sub(tru, 'almacen_tienda'), 'apartado', 1, 'apartado', now() - interval '4 days') from ids \\g /dev/null
+select pg_temp.prenda('R-CUAR-Y-LIBRE-M', talla_m, 'NEG') as vr from ids \\gset
+select pg_temp.carga(:'vr', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+select pg_temp.mov(:'vr', tru, pg_temp.sub(tru, 'cuarentena'), 'entrada', 1, 'cambio', now() - interval '5 days') from ids \\g /dev/null
+-- Una exacta de un producto de PRUEBA con stock libre: la base común la trae y la lectura de hechos no.
+select pg_temp.prenda('P-PRUEBA-M', talla_m, 'NEG') as vp from ids \\gset
+update retail.productos set es_prueba = true where id = (select producto_id from retail.variantes where id = :'vp');
+select pg_temp.carga(:'vp', tru, 1, now() - interval '5 days') from ids \\g /dev/null
+-- Otra venta pendiente de TRU (talla L) y una de Lima: cada una con lo suyo.
+select pg_temp.vender_libre(tru, talla_l, 'NEG', now() - interval '2 days') as pp_l from ids \\gset
+select pg_temp.vender_libre(lima, talla_m, 'NEG', now() - interval '1 day') as pp_lima from ids \\gset
+-- Las dos lecturas, de TODAS las ventas pendientes de las tiendas que la cuenta opera (las de la prueba y las que ya hubiera).
+create temp table x_dv on commit drop as
+  select d.prenda_id, d.variante_id
+    from (select distinct ubicacion_id from retail.prendas_por_regularizar where estado = 'pendiente' and retail.fn_puede_operar_ubicacion(ubicacion_id)) s,
+         lateral retail.fn_candidatas_de_venta(s.ubicacion_id) d;
+create temp table x_todas on commit drop as select c.prenda_id, c.variante_id, c.color_exacto from retail.fn_candidatas_por_regularizar() c;
+create temp table x_pr on commit drop as select prenda_id, variante_id from x_todas where color_exacto;
+-- Lo de la prueba, en una línea: «A-NEGRA-M,P-PRUEBA-M» (solo las prendas ZZ-VSR de esa venta).
+create function pg_temp.zz(p_tabla regclass, p_pp uuid) returns text language plpgsql as $f$
+declare r text;
+begin
+  execute format('select coalesce(string_agg(replace(v.sku, ''ZZ-VSR-'', ''''), '','' order by v.sku), ''—'')
+                    from %s t join retail.variantes v on v.id = t.variante_id where t.prenda_id = $1 and v.sku like ''ZZ-VSR-%%''', p_tabla)
+    into r using p_pp;
+  return r;
+end $f$;
+`;
+caso(
+  "X1 · para TODA venta pendiente, el tramo exacto de la base común (el del modal y el del lote) contiene a las exactas de la lectura de hechos, y lo que solo trae ella es una prenda de prueba",
+  `${SIEMBRA_X}create temp table x_solo_dv on commit drop as select * from x_dv except select * from x_pr;
+select (select count(*) from (select * from x_pr except select * from x_dv) a) || '/' ||
+       (select count(*) from x_solo_dv s join retail.variantes v on v.id = s.variante_id join retail.productos p on p.id = v.producto_id
+         where not p.es_prueba and (select count(*) from x_todas t where t.prenda_id = s.prenda_id) < 20) || '/' ||
+       pg_temp.zz('x_solo_dv', :'pp');`,
+  "0/0/P-PRUEBA-M",
+);
+caso(
+  "X2 · lo que el modal llama «Igual a lo que anotó caja» en cada venta: la misma categoría, talla y color con stock LIBRE en SU tienda (ni Cuarentena, ni apartadas enteras, ni Lima, ni otra talla, ni familia de color)",
+  `${SIEMBRA_X}select pg_temp.zz('x_dv', :'pp') || ' | ' || pg_temp.zz('x_dv', :'pp_l') || ' | ' || pg_temp.zz('x_dv', :'pp_lima') || ' | ' || pg_temp.zz('x_pr', :'pp');`,
+  "A-NEGRA-M,P-PRUEBA-M,Q-MITAD-APARTADA-M,R-CUAR-Y-LIBRE-M | C-NEGRA-L | G-EN-LIMA-M | A-NEGRA-M,Q-MITAD-APARTADA-M,R-CUAR-Y-LIBRE-M",
+);
+caso(
+  "X3 · una venta con 22 prendas iguales: la lectura de hechos corta en 20 y la base común trae las 22 (el modal muestra las 22; las que pasan del tope, sin respuesta deducida)",
+  `select pg_temp.carga(pg_temp.prenda('X' || lpad(g::text, 2, '0') || '-L', ids.talla_l, ids.otro_color), ids.tru, 1, now() - interval '5 days')
+   from ids, generate_series(1, 22) g \\g /dev/null
+select pg_temp.vender_libre(tru, talla_l, otro_color, now() - interval '1 day') as pp_x from ids \\gset
+select (select count(*) from retail.fn_candidatas_de_venta((select tru from ids)) d join retail.variantes v on v.id = d.variante_id
+         where d.prenda_id = :'pp_x' and v.sku like 'ZZ-VSR-X%') || '/' ||
+       (select count(*) from retail.fn_candidatas_por_regularizar((select tru from ids)) where prenda_id = :'pp_x') || '/' ||
+       (select count(*) from (select variante_id from retail.fn_candidatas_por_regularizar((select tru from ids)) where prenda_id = :'pp_x' and color_exacto
+                               except select variante_id from retail.fn_candidatas_de_venta((select tru from ids)) where prenda_id = :'pp_x') a);`,
+  "22/20/0",
+);
+
+// ---------------- L · el lote del líder (#800) encima de la regla «nadie regulariza su propia venta» (D3, 2026-10-05) ----------------
+// `regularizar_prendas_sugeridas` (20261005120000) llama a `regularizar_prenda` por dentro, una vez por pareja, con la cuenta del líder
+// y sin combo. La firma la decide `fn_actor_persona_id(true)` leyendo los encabezados de la PETICIÓN (uno para toda la cadena): la web
+// del lote manda `x-responsable-omitido: cola_arranque_identificar` (SugerenciasColaModal → `firmaOmitida`), esa clave está en
+// `acciones_sin_responsable`, y cada `regularizar_prenda` anidada firma con la persona de la cuenta del líder. Que 20261004204000 saque
+// 'regularizar_prenda' de la lista no toca ese camino. Se prueba el camino EXACTO: interruptor encendido (producción), cuenta de líder
+// SIN admin (un Admin firma sin combo por otra puerta, ADR-0178) y el encabezado como lo pone PostgREST.
+// (La lista no ata clave → función: cualquier clave válida suelta el combo en cualquier función. Por eso aquí no se prueba «otra clave
+// válida no sirve»: no es una promesa de la base.)
+const LIDER_SIN_ADMIN = `update public.personas set rol = 'integrante' where auth_user_id = '${FELIPE}';\n`;
+const DEL_LOTE = { "x-responsable-omitido": "cola_arranque_identificar" };
+const loteDe = (...pps) => `retail.regularizar_prendas_sugeridas((select tru from ids), jsonb_build_array(${pps
+  .map((pp) => `jsonb_build_object('prenda_id', :'${pp}', 'variante_id', :'vm')`)
+  .join(", ")}))`;
+// El mismo lote, pero atrapando el error (código|hint) para mirar después que no se aplicó nada.
+const intentoLote = (...pps) =>
+  `pg_temp.intento(format('select retail.regularizar_prendas_sugeridas(%L, %L::jsonb)', (select tru from ids),
+    jsonb_build_array(${pps.map((pp) => `jsonb_build_object('prenda_id', :'${pp}', 'variante_id', :'vm')`).join(", ")})::text))`;
+const comoLiderDelLote = (encabezados) =>
+  `${como(FELIPE)}${EXIGE_RESPONSABLE}${LIDER_SIN_ADMIN}${encabezados ? conEncabezados(encabezados) : ""}`;
+const estadoYFirma = (pp) =>
+  `(select estado || ':' || coalesce((regularizado_por = (select felipe from ids))::text, 'nadie') from retail.prendas_por_regularizar where id = :'${pp}')`;
+caso(
+  "L1 · el lote de un líder (sin admin, interruptor encendido) con la clave del lote regulariza la venta de Micaela y firma el líder",
+  `${EQUIPO}${VENDE_MICAELA}${comoLiderDelLote(DEL_LOTE)}select (retail.fn_es_lider() and not retail.fn_es_admin() and retail.fn_exige_responsable())::text as cuenta \\gset
+select ${loteDe("pp")} as n \\gset
+select :'cuenta' || '/' || :'n' || '/' || ${estadoYFirma("pp")};`,
+  "true/1/regularizada:true",
+);
+caso(
+  "L2 · …y si el lote trae también una venta del PROPIO líder, pasa: es el líder firmando él mismo (la regla de 20261004204000)",
+  `${EQUIPO}${como(FELIPE)}select pg_temp.vender_libre(tru, talla_m, 'NEG', now() - interval '1 day') as pp_f from ids \\gset
+${VENDE_MICAELA}${comoLiderDelLote(DEL_LOTE)}select (vendido_por = (select felipe from ids))::text as suya from retail.prendas_por_regularizar where id = :'pp_f' \\gset
+select ${loteDe("pp", "pp_f")} as n \\gset
+select :'suya' || '/' || :'n' || '/' || ${estadoYFirma("pp")} || ',' || ${estadoYFirma("pp_f")};`,
+  "true/2/regularizada:true,regularizada:true",
+);
+const pideElCombo = (s) => {
+  const [r, estado] = s.split(" / ");
+  return r.startsWith("42501|") && r.includes("responsable_requerido") && r.includes("no se aplicó ninguna") && estado === "pendiente";
+};
+caso(
+  "L3 · sin el encabezado del lote, el mismo líder tiene que elegir quién firma: no se aplica ninguna",
+  `${EQUIPO}${VENDE_MICAELA}${comoLiderDelLote(null)}select ${intentoLote("pp")} || ' / ' || (select estado from retail.prendas_por_regularizar where id = :'pp');`,
+  pideElCombo,
+);
+caso(
+  "L4 · con una clave inventada, igual: un encabezado que no está en la lista no abre nada",
+  `${EQUIPO}${VENDE_MICAELA}${comoLiderDelLote({ "x-responsable-omitido": "clave_inventada" })}select ${intentoLote("pp")} || ' / ' || (select estado from retail.prendas_por_regularizar where id = :'pp');`,
+  pideElCombo,
+);
+caso(
+  "L5 · con la clave vieja 'regularizar_prenda' (la que 20261004204000 sacó de la lista), igual: el lote solo se suelta con la suya",
+  `${EQUIPO}${VENDE_MICAELA}${comoLiderDelLote({ "x-responsable-omitido": "regularizar_prenda" })}select ${intentoLote("pp")} || ' / ' || (select estado from retail.prendas_por_regularizar where id = :'pp');`,
+  pideElCombo,
 );
 
 // ---------------- P · la migración contra el cuerpo que tiene producción antes de pegar ----------------

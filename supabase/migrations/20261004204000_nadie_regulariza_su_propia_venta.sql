@@ -49,6 +49,14 @@
 --      operación (la web: `useResponsable` + `ComboResponsable` en el modal). Las otras claves no se tocan (otra actividad
 --      quita 'conteo_cerrar' y 'traslado_recibir' en su propia migración).
 --
+-- EL LOTE DEL LÍDER (#800, 20261005120000; revisado el 2026-10-05). «Identificar con sugerencias» (`regularizar_prendas_sugeridas`)
+-- llama a esta función por dentro, una vez por pareja, con la cuenta del líder y sin combo. Sigue funcionando sin tocarlo: la firma la
+-- decide `fn_actor_persona_id(true)` leyendo los encabezados de la PETICIÓN (uno solo para toda la cadena), la web del lote manda
+-- `x-responsable-omitido: cola_arranque_identificar` y esa clave sigue en la lista (sacar 'regularizar_prenda' no la toca). Firma
+-- entonces la persona de la cuenta del líder, y la regla del punto 1 la deja pasar también en una venta del propio líder: es el
+-- líder firmando él mismo. Sin ese encabezado, con una clave inventada o con la vieja 'regularizar_prenda', el lote pide el nombre
+-- y no aplica ninguna (es todo o nada). Lo prueban los casos L1–L5 de `pnpm pruebas:ventas-sin-registrar`.
+--
 -- CONTRATO de `regularizar_prenda` después de esto. PROMETE: lo mismo que antes (20260923162300) y, además: (a) una venta
 -- pendiente nunca queda regularizada por quien la vendió, salvo un líder firmando él mismo desde su cuenta, ni sin una persona
 -- que firme; (b) nunca se regulariza una prenda que no tiene historia en la sede, y el rechazo dice la salida que sigue abierta
@@ -84,7 +92,8 @@
 -- firmar» está en la función y no solo en la lista). Y SE ROMPE SI alguien cambia «Encontré prendas» (#785) para que ya no
 -- escriba un movimiento de esa prenda en la sede: con la carga cerrada, la venta quedaría sin salida. (El cierre de la carga
 -- inicial, que antes rompía este punto, ya está cubierto: el aviso cambia de salida con `fn_carga_inicial_de_sede`.)
--- Pruebas: `pnpm pruebas:ventas-sin-registrar` (casos C, R —R6 a R6i—, S y P).
+-- Pruebas: `pnpm pruebas:ventas-sin-registrar` (casos C, R —R6 a R6i—, S, L —el lote del líder— y P), y las de #800 encima
+-- (`pnpm pruebas:cola-arranque`).
 -- ============================================================================
 
 set lock_timeout = '3s';
