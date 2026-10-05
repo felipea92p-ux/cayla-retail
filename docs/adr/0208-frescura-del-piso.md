@@ -3299,3 +3299,29 @@ aceptó el 2026-10-04: el plan se mide en **prendas**, el total del piso de cada
 una» con la propuesta de retiro de Frescura. Ese ADR se escribió como 0295 el 2026-10-01 en un commit que no llegó a `main`. El bloque 6 se construye en las actividades 6 y 12
 de ADR-0328.
 
+## Actualización 2026-10-05 — Formidable cambia lo que se VE de la pantalla (ADR-0350; Felipe aprobó los 3 cambios)
+
+Sin migración y sin tocar ninguna regla de negocio (los cortes, las claves `nueva`/`vigente`/`envejecida`/`critica`, la lectura y
+«Ya decidí» son los mismos). Cambia **cómo se dice y qué se ve primero**, y **deja sin efecto dos decisiones de pantalla del
+2026-09-28** (colores A se mantienen; las «frases C» y los nombres de estado, no):
+
+| Antes (maqueta 2026-09-28) | Ahora |
+|---|---|
+| Estados *Nueva · Vigente · Envejecida · Crítica* | *Recién llegada · En su tiempo · Se está quedando · Hay que moverla* (`NOMBRE_TRAMO`, una sola lista: fila, filtro, regla dibujada, hoja y frases) |
+| «quizá más» bajo el estado | «Lleva 6 días o más» (`llevaTexto`); «quizá más» sigue en la hoja, donde se explica |
+| «con pocos datos» en la categoría, el estado y la rapidez de cada fila | «aproximado», y **una sola vez** arriba cuando es la regla (`avisoPocasVentas`: más de la mitad de la tabla); en la fila solo si es la excepción |
+| Siete columnas (prenda, tallas, en el piso, estado, rapidez, vendió, qué hacer) | Cuatro: prenda con su miniatura (ADR-0333), estado con los días, qué hacer (UNA frase; el resto, «y 1 más en el detalle») y una flecha. Tallas, rapidez y lo vendido viven en la hoja |
+| Cuatro cifras en la cabecera, «por decidir» incluida | Dos datos neutros (prendas y unidades); «por decidir» se dice una vez en la frase y se filtra con la píldora |
+| Frase bajo el título: «Cuánto lleva colgada cada prenda y qué tan rápido se vende…» | La pregunta y su respuesta: «¿Qué lleva mucho tiempo colgado? 5 prendas esperan tu decisión.» El título sigue siendo el nombre del menú (ADR-0220) |
+| Todas las prendas por categoría | De entrada, **primero lo por decidir** y «Ver todas las prendas (N)» a un toque (`vistaDeEntrada`; `?todas=1` en la URL); cualquier filtro o búsqueda se respeta |
+| Comparación, escala, referencia de CAYLA, registro al colgar y nota de 5 párrafos siempre abiertos; «Ventas a pedido: sin datos todavía» | Todo en «¿Cómo se lee esto?» (`FrescuraComoSeLee`), a un toque; «Ventas a pedido» sale (no tenía dato) |
+
+**DECIDÍ:** pedir el color, la foto y la categoría de la miniatura aparte (`getAparienciaVariantes` y `categorias`, tolerante) en vez de
+sumarlos a `fn_frescura_sede`. **DESCARTÉ:** tocar la función SQL, porque cambia producción y la miniatura es decorativa: si la lectura
+falla, la pantalla sigue entera con la percha. **SE ROMPE SI:** una pantalla con cientos de prendas pide el color de cada una en una
+sola consulta de ids (`getAparienciaVariantes` está pensada para decenas) — con TRU y 242 unidades no pasa, pero conviene medirlo antes
+de abrir la sede de mayor volumen.
+
+**Queda abierto (decide Felipe):** qué se decide exactamente en «Por decidir» y si el semáforo se muestra con menos de 10 ventas
+(`docs/formidable/inventario-frescura.md`, «Decide Felipe»). El aviso único dice la verdad, pero no cambia qué afirma el estado.
+

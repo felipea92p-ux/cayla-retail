@@ -478,7 +478,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   → `analizarSede` (`lib/frescura-reglas.ts`, puro) → `components/frescura/FrescuraPanel.tsx` (cliente): lo que se DICE
   (colores A y frases C, elegidos por Felipe en `docs/maquetas/frescura-3c-2026-09/`), los filtros, el pie y la hoja de
   detalle salen de `lib/frescura-pantalla.ts` (puro, `frescura-pantalla.test.ts`). Filtros y prenda abierta en la URL
-  (`?cat=&estado=&pordecidir=1&q=&prenda=`) con `history.replaceState`: cambiar un filtro no vuelve al servidor. Piezas:
+  (`?cat=&estado=&pordecidir=1&todas=1&q=&prenda=`) con `history.replaceState`: cambiar un filtro no vuelve al servidor.
+  **Desde el 2026-10-05 (Formidable, ADR-0350 y la «Actualización 2026-10-05» de ADR-0208)** la pantalla se abre con lo por
+  decidir primero (`vistaDeEntrada`), `getFrescuraPantalla` suma la miniatura de cada prenda con `getAparienciaVariantes` y la
+  tabla `categorias` (tolerante, sin SQL nuevo) y la metodología vive en `FrescuraComoSeLee`. Piezas:
   `FrescuraFila` (fila en la computadora, tarjeta en el celular), `FrescuraDetalle` (`<Modal variante="hoja">` con la
   regla de la categoría), `FrescuraTiendas` («Las N tiendas», solo líder), `piezas.tsx`. Desde el paso 4b (2026-09-29,
   ADR-0208, migraciones `20261001100000`–`…200`, **sin pegar**) sí escribe, y solo una cosa: «Ya decidí» →
