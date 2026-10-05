@@ -28,7 +28,13 @@
 --     movimientos no se corrige después.
 --   · `anular_traslado` (anclado): el pedido que viajaba vuelve a esperar Y se vuelve a apartar en el origen (la prenda
 --     regresó a su almacén con la anulación). Si no se pudiera apartar, el pedido vuelve igual y la pantalla lo dice.
---   · `marcar_pedido_avisado` (nueva): la sede que pidió deja constancia de que le avisó al cliente que llegó.
+--   · `marcar_pedido_avisado` (nueva): la sede que pidió deja constancia de que le avisó al cliente cómo terminó: que
+--     llegó o, desde el 2026-10-04, que no va a llegar.
+--   · «No llegó» (decisión del 2026-10-04): cuando la otra sede dice «No la tengo» o el envío se cierra sin la prenda, la
+--     tienda que pidió se entera en Vender y en su Inicio, con «Avisar al cliente que no llegó». Para eso el pedido guarda
+--     de qué lado se cerró (`cancelado_desde`, parte 1): `cancelar_pedido_para_apartar` (anclado) lo anota con
+--     `fn_lado_del_pedido` (la sede DESDE la que se opera, ADR-0292) y el disparador `trg_pedidos_al_llegar` (anclado)
+--     anota 'traslado'. Lo que la tienda que pidió canceló ('pidio') no pide aviso: fue su decisión con el cliente.
 --   · Lecturas (prefijo `fn_`: el loader las trata como lectura): `fn_pedidos_por_atender` (liviana, para el número del
 --     menú y el aviso de 48 h) y `fn_pedidos_con_cliente` (Traslados y Vender: los pedidos para un cliente con la prenda,
 --     dónde está apartada en el origen y si ya se avisó).
@@ -53,14 +59,29 @@
 --   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'pedir_prenda_para_apartar';
 --   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'enviar_pedido_para_apartar';
 --   select position('Traslados, Apartados ni Vender' in prosrc) > 0 from pg_proc where proname = 'cancelar_pedido_para_apartar';
+--   select position('fn_lado_del_pedido' in prosrc) > 0 from pg_proc where proname = 'cancelar_pedido_para_apartar';
+--   select position('cancelado_desde = ''traslado''' in prosrc) > 0 from pg_proc where proname = 'trg_pedidos_al_llegar';
 --
--- SE ROMPE SI alguien vuelve a pegar 20260927140000 o 20260927210000 (recrean pedir/enviar/cancelar desde el archivo y
--- borran las anclas: el pedido dejaría de apartar en el origen sin avisar), o si el CHECK de `apartados.cierre_motivo`
--- deja de aceptar 'otro' (la reserva de un pedido se cierra con ese motivo y su nota).
+-- SE ROMPE SI alguien vuelve a pegar 20260927140000, 20260927160000 o 20260927210000 (recrean pedir/enviar/cancelar y el
+-- disparador de llegada desde el archivo y borran las anclas: el pedido dejaría de apartar en el origen, y un «No la tengo»
+-- dejaría de avisarse a la tienda que pidió), o si el CHECK de `apartados.cierre_motivo` deja de aceptar 'otro' (la
+-- reserva de un pedido se cierra con ese motivo y su nota). Y un líder que cancela un pedido parado en una TERCERA sede
+-- (solo por la API: la web lo muestra solo en las dos sedes del pedido) queda anotado como 'envia': la tienda que pidió
+-- recibe un aviso de más, que es mejor que un cliente al que nadie le avisa.
 -- ============================================================================
 
 set lock_timeout = '3s';
 set search_path = retail, public, extensions;
+
+-- Guarda: «de qué lado se cerró» lee la sede desde la que se opera (ADR-0292, 20260930170000). Sin ella, cancelar fallaría
+-- recién en la tienda, al primer «No la tengo». Mejor no pegar nada.
+do $g$
+begin
+  if to_regprocedure('retail.fn_ubicacion_de_la_operacion()') is null then
+    raise exception 'Falta retail.fn_ubicacion_de_la_operacion() (20260930170000, ADR-0292): pégala antes que esta parte';
+  end if;
+end
+$g$;
 
 -- Reemplazo anclado: si el texto nuevo ya está, no hace nada; si el viejo no aparece EXACTAMENTE una vez, aborta.
 create or replace function pg_temp.anclar(p_firma text, p_viejo text, p_nuevo text)
@@ -287,6 +308,35 @@ $$;
 revoke all on function retail.fn_pedidos_vuelven_a_esperar(uuid) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- 3b. De qué lado está quien cierra un pedido (interna: la usa cancelar; decisión del 2026-10-04)
+-- ---------------------------------------------------------------------------
+-- PROMETE: 'envia' si quien opera está en la sede que tiene la prenda, 'pidio' si está en la que la pidió. Lo que ya llegó
+-- solo lo suelta la tienda que pidió ('pidio'). «Dónde está» es la sede DESDE la que se opera (`fn_ubicacion_de_la_operacion`,
+-- ADR-0292: la de la terminal; la de `x-ubicacion` si la cuenta la puede operar; si no, la de partida): la misma que firma
+-- la operación. ASUME: el pedido existe. Si la sede de la operación no es ninguna de las dos (un líder parado en una tercera,
+-- solo por la API), decide por lo que la cuenta puede operar; si puede las dos, 'envia': a la tienda que pidió le llega un
+-- aviso de más, que es mejor que un cliente al que nadie le avisa.
+create or replace function retail.fn_lado_del_pedido(p_pedido_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select case
+           when pe.estado = 'llego' then 'pidio'
+           when op.sede = pe.ubicacion_origen_id then 'envia'
+           when op.sede = pe.ubicacion_id then 'pidio'
+           when fn_puede_operar_ubicacion(pe.ubicacion_id) and not fn_puede_operar_ubicacion(pe.ubicacion_origen_id) then 'pidio'
+           else 'envia'
+         end
+    from separacion_pedidos pe
+   cross join (select fn_ubicacion_de_la_operacion() as sede) op
+   where pe.id = p_pedido_id;
+$$;
+revoke all on function retail.fn_lado_del_pedido(uuid) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- 4. Las anclas sobre las funciones vivas
 -- ---------------------------------------------------------------------------
 -- 4a. Pedir: también desde Vender (la asesora que atiende), con el candado del origen y la reserva allá.
@@ -365,6 +415,18 @@ select pg_temp.anclar(
   perform fn_soltar_reserva_de_origen(pe.id, false);
   if pe.apartado_id is not null and exists (select 1 from apartados where id = pe.apartado_id and estado = 'abierto') then$n$
 );
+-- …y anota de qué lado se cerró (decisión del 2026-10-04): si fue la sede que la tenía («No la tengo»), la tienda que
+-- pidió le avisa al cliente que no llegó.
+select pg_temp.anclar(
+  'retail.cancelar_pedido_para_apartar(uuid, text)',
+  $v$  update separacion_pedidos
+     set estado = 'cancelado', cancelado_por = v_persona, cancelado_motivo = nullif(btrim(coalesce(p_motivo, '')), '')
+   where id = pe.id;$v$,
+  $n$  update separacion_pedidos
+     set estado = 'cancelado', cancelado_por = v_persona, cancelado_motivo = nullif(btrim(coalesce(p_motivo, '')), ''),
+         cancelado_desde = fn_lado_del_pedido(pe.id)   -- ADR-0328 act. 17: «envia» = la tienda que pidió le avisa al cliente
+   where id = pe.id;$n$
+);
 
 -- 4d. Anular el traslado: el pedido vuelve a esperar y se vuelve a apartar.
 select pg_temp.anclar(
@@ -373,6 +435,15 @@ select pg_temp.anclar(
      set estado = 'pedido', transferencia_id = null, enviado_por = null
    where transferencia_id = p_transferencia_id and estado = 'en_camino';$v$,
   $n$  perform fn_pedidos_vuelven_a_esperar(p_transferencia_id);   -- ADR-0328 act. 17: vuelve a esperar y se vuelve a apartar$n$
+);
+
+-- 4e. El envío se cerró sin la prenda (decisión del 2026-10-04): el pedido queda cancelado DESDE EL TRASLADO, y la tienda
+--     que pidió le avisa al cliente que no llegó. Una reposición cancelada así también lo anota (nadie le avisa a nadie:
+--     no tiene cliente).
+select pg_temp.anclar(
+  'retail.trg_pedidos_al_llegar()',
+  $v$     set estado = 'cancelado', cancelado_motivo = 'La prenda no llegó en el traslado'$v$,
+  $n$     set estado = 'cancelado', cancelado_motivo = 'La prenda no llegó en el traslado', cancelado_desde = 'traslado'$n$
 );
 
 -- ---------------------------------------------------------------------------
@@ -449,11 +520,12 @@ comment on function retail.subir_pedido_al_almacen(uuid) is
   'ADR-0328 act. 17: primer paso para enviar un pedido cuya prenda está colgada en el origen. Suelta la reserva del piso, sube la prenda al almacén y la vuelve a apartar ahí, todo o nada. Traslados, Apartados o Existencias + operar el origen. Sin reserva (la liberaron a mano), la vuelve a apartar primero. Idempotente por estado (ya_estaba).';
 
 -- ---------------------------------------------------------------------------
--- 6. Avisar al cliente que llegó
+-- 6. Avisar al cliente cómo terminó su pedido: que llegó, o que no va a llegar
 -- ---------------------------------------------------------------------------
 -- PROMETE: deja la hora y quién le avisó al cliente; repetirla («Avisar otra vez») pisa la hora y quién: guarda el ÚLTIMO
 -- aviso, no la historia (si Felipe la quiere, va en filas como `separacion_avisos`, ADR-0227). ASUME: el pedido ya llegó
--- y quien avisa opera la sede que pidió, con Vender o Apartados.
+-- o se cerró sin la prenda por la otra sede o el envío (decisión del 2026-10-04: también se le avisa que no llegó), y
+-- quien avisa opera la sede que pidió, con Vender o Apartados.
 create or replace function retail.marcar_pedido_avisado(p_pedido_id uuid)
 returns timestamptz
 language plpgsql
@@ -477,7 +549,11 @@ begin
   if not fn_puede_operar_ubicacion(pe.ubicacion_id) then
     raise exception 'Le avisa la sede que pidió la prenda' using errcode = '42501';
   end if;
-  if pe.llego_en is null then
+  -- El mismo par que el CHECK separacion_pedidos_aviso_con_cliente_y_llegada, dicho en palabras de la tienda.
+  if pe.llego_en is null and not (pe.estado = 'cancelado' and pe.cancelado_desde in ('envia', 'traslado')) then
+    if pe.estado = 'cancelado' then
+      raise exception 'Ese pedido lo dieron de baja aquí: no hay que avisarle al cliente que no llegó';
+    end if;
     raise exception 'La prenda todavía no llegó';
   end if;
   update separacion_pedidos set avisado_en = v_en, avisado_por = fn_actor_persona_id(true) where id = pe.id;
@@ -486,7 +562,7 @@ end;
 $$;
 
 comment on function retail.marcar_pedido_avisado(uuid) is
-  'ADR-0328 act. 17: la sede que pidió deja constancia de que le avisó al cliente que su prenda llegó (avisado_en, avisado_por). Vender o Apartados + operar la sede que pidió.';
+  'ADR-0328 act. 17: la sede que pidió deja constancia de que le avisó al cliente cómo terminó su pedido (avisado_en, avisado_por): que llegó, o que no va a llegar (la otra sede no la tenía o el envío se cerró sin ella). Vender o Apartados + operar la sede que pidió.';
 
 -- ---------------------------------------------------------------------------
 -- 7. Lecturas
@@ -520,12 +596,15 @@ comment on function retail.fn_pedidos_por_atender(uuid) is
   'ADR-0328 act. 17: lo que espera respuesta entre sedes para p_ubicacion_id (me_piden / pedi), una fila por pedido para un cliente o por grupo de reposición, con su hora. Para el número del menú y el aviso de 48 h. Exige operar la sede.';
 
 -- Los pedidos para un cliente de la sede, con la prenda, dónde está apartada en el origen y si ya se avisó.
+-- Su forma cambió después de escrita (cancelado_desde, 2026-10-04): se borra antes para que re-pegar esta parte no choque
+-- con «cannot change return type» (`drop function` no toma los candados de auth/storage, ADR-0195).
+drop function if exists retail.fn_pedidos_con_cliente(uuid);
 create or replace function retail.fn_pedidos_con_cliente(p_ubicacion_id uuid)
 returns table (
   id uuid, direccion text, otra_sede text, otra_sede_id uuid, variante_id uuid, producto text, color text, talla text,
   sku text, cantidad integer, cliente_nombres text, cliente_apellidos text, cliente_celular text, nota text, estado text,
   created_at timestamptz, creado_por_nombre text, llego_en timestamptz, guardada_hasta date, avisado_en timestamptz,
-  reserva_en text, traslado_id uuid, traslado_numero integer, cancelado_motivo text
+  reserva_en text, traslado_id uuid, traslado_numero integer, cancelado_motivo text, cancelado_desde text
 )
 language sql
 stable
@@ -561,7 +640,8 @@ as $$
          end,
          pe.transferencia_id,
          t.numero,
-         pe.cancelado_motivo
+         pe.cancelado_motivo,
+         pe.cancelado_desde
     from separacion_pedidos pe
     join ubicaciones u on u.id = case when pe.ubicacion_id = p_ubicacion_id then pe.ubicacion_origen_id else pe.ubicacion_id end
     join variantes va on va.id = pe.variante_id
@@ -576,13 +656,16 @@ as $$
    where pe.clienta_nombres is not null
      and (pe.ubicacion_id = p_ubicacion_id or pe.ubicacion_origen_id = p_ubicacion_id)
      and fn_puede_operar_ubicacion(p_ubicacion_id)
-     and (pe.estado in ('pedido', 'en_camino', 'llego') or pe.created_at > now() - interval '7 days')
+     and (pe.estado in ('pedido', 'en_camino', 'llego') or pe.created_at > now() - interval '7 days'
+          -- «No llegó» sin avisar no se cae de la lista por viejo: un pedido que esperó 10 días y recién ahí recibió un
+          -- «No la tengo» sigue pidiendo que alguien le avise al cliente (decisión del 2026-10-04).
+          or (pe.estado = 'cancelado' and pe.cancelado_desde in ('envia', 'traslado') and pe.avisado_en is null))
    order by case pe.estado when 'llego' then 0 when 'pedido' then 1 when 'en_camino' then 2 else 3 end, pe.created_at desc
    limit 100;
 $$;
 
 comment on function retail.fn_pedidos_con_cliente(uuid) is
-  'ADR-0328 act. 17: los pedidos para un cliente que la sede hizo (pedi) o le hicieron (me_piden), abiertos y lo cerrado de 7 días, con la prenda, dónde está apartada en el origen (reserva_en: almacen | piso | sin_lugar | sin_reserva; null si ya no espera) y si ya se avisó al cliente. Exige operar la sede.';
+  'ADR-0328 act. 17: los pedidos para un cliente que la sede hizo (pedi) o le hicieron (me_piden), abiertos, lo cerrado de 7 días y lo que no llegó sin avisar al cliente, con la prenda, dónde está apartada en el origen (reserva_en: almacen | piso | sin_lugar | sin_reserva; null si ya no espera), de qué lado se cerró sin la prenda (cancelado_desde) y si ya se avisó al cliente. Exige operar la sede.';
 
 -- ---------------------------------------------------------------------------
 -- 8. Permisos: nada para anon; authenticated, solo lo que llama la pantalla

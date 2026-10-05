@@ -9,8 +9,9 @@ import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import type { ClaveModulo } from "@/lib/modulos";
-import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { getPedidosPorAtender, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { ahoraSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
+import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -118,11 +119,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta" | "pedidosCliente">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuestaLeidos] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuestaLeidos, pedidosCliente] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -152,8 +153,11 @@ export async function getFuentesAvisos(
           return { tePiden: s.tePiden.length, pediste: s.pediste.length, detalle: textoSinRespuesta(s, ahoraIso), ahora: ahoraSinRespuesta(s) };
         })
       : undefined,
+    // ADR-0328 act. 17 (decisión del 2026-10-04): lo que la tienda pidió para un cliente y hay que avisarle (llegó o no va a
+    // llegar). Para quien ve Vender: el aviso lleva a su franja, donde está el botón.
+    ve("vender") ? leerPedidosConCliente(ubicacionId).then((p) => (p === null ? null : resumenParaElInicio(p))) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

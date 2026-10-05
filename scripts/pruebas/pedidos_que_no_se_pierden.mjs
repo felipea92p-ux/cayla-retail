@@ -26,6 +26,10 @@
  *      almacén», no «Stock insuficiente»); cancelar exige un módulo del pedido; el libro dice qué pasó con la reserva
  *      (nunca «se entrega a la clienta»); Apartados también sube; los candados de sede de las lecturas, del aviso y de
  *      subir; un traslado de OTRA sede al mismo destino no descuenta la lista «Para enviar».
+ *  13. «No llegó» (decisión del 2026-10-04): «No la tengo» desde la sede que la tiene queda anotado «envia» y la tienda
+ *      que pidió le avisa al cliente; lo que ella misma cancela es «pidio» y no pide aviso; el envío que se cierra sin la
+ *      prenda es «traslado»; lo que no llegó sin avisar no se cae de la lista por viejo; los CHECK del lado y del aviso; lo que
+ *      ya llegó solo lo da de baja la tienda que pidió.
  *
  * CÓMO. Mismo patrón que `pedir_a_otra_sede.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
  * compartido; jamás `db reset`), sesión simulada con `request.jwt.claim(s)`, las RPC se llaman como la API
@@ -59,6 +63,8 @@ select set_config('request.headers', '{}', true) as _h \\gset
 `;
 const COMO_API = "set local role authenticated;\n";
 const COMO_POSTGRES = "reset role;\n";
+/** La sede desde la que opera la pantalla (encabezado x-ubicacion, como lo manda `firmar`): decide de qué lado se cancela. */
+const enSede = (u) => `${COMO_POSTGRES}select set_config('request.headers', json_build_object('x-ubicacion', :'${u}')::text, true) as _h \\gset\n`;
 
 const PRELUDIO = `
 begin;
@@ -642,11 +648,80 @@ ${COMO_POSTGRES}`,
 );
 
 // ---------------------------------------------------------------------------
+// «No llegó» (decisión del 2026-10-04): la tienda que pidió se entera y le avisa al cliente.
+// ---------------------------------------------------------------------------
+correr(
+  "No llegó · «No la tengo» desde la sede que la tiene queda «envia» y la que pidió avisa; lo que ella cancela es «pidio»; el envío sin la prenda, «traslado»",
+  `${pedir("v1")}
+${enSede("lim")}${COMO_API}select retail.cancelar_pedido_para_apartar(:'ped', 'No la tengo') as _c \\gset
+${COMO_POSTGRES}
+${K("desde_lima", "(select cancelado_desde from retail.separacion_pedidos where id = :'ped')")}
+${sesion(MICAELA)}
+${COMO_API}select 'K|leida_tru|' || estado || ':' || coalesce(cancelado_desde, '∅') || ':' || (avisado_en is null) from retail.fn_pedidos_con_cliente(:'tru') where id = :'ped';
+${COMO_POSTGRES}
+${intento("avisar_no_llego", "format('select retail.marcar_pedido_avisado(%L::uuid)::text', :'ped')")}
+${K("avisado", "(select (avisado_en is not null) || ':' || (avisado_por = :'micaela') from retail.separacion_pedidos where id = :'ped')")}
+${pedir("v1", { como: "ped_b" })}
+${COMO_API}select retail.cancelar_pedido_para_apartar(:'ped_b', 'El cliente ya no la quiere') as _c2 \\gset
+${COMO_POSTGRES}
+${K("desde_tru", "(select cancelado_desde from retail.separacion_pedidos where id = :'ped_b')")}
+${intento("avisar_pidio", "format('select retail.marcar_pedido_avisado(%L::uuid)::text', :'ped_b')")}
+${sesion(FELIPE)}
+${pedir("v1", { como: "ped_c" })}
+${enSede("tru")}${COMO_API}select retail.cancelar_pedido_para_apartar(:'ped_c', 'x') as _c3 \\gset
+${COMO_POSTGRES}
+${K("lider_en_tru", "(select cancelado_desde from retail.separacion_pedidos where id = :'ped_c')")}
+${sesion(FELIPE)}
+${pedir("v1", { como: "ped_d" })}${enviar("ped_d", "tr_d")}
+${contar("v1", 0, "tr_d")}${confirmar("tr_d")}
+${COMO_API}select retail.cerrar_traslado_con_diferencia(:'tr_d', 'no vino') as _x \\gset
+${COMO_POSTGRES}
+${K("traslado", "(select estado || ':' || cancelado_desde || ':' || cancelado_motivo from retail.separacion_pedidos where id = :'ped_d')")}
+${pedir("v2", { como: "ped_e" })}
+update retail.separacion_pedidos set created_at = now() - interval '10 days' where id = :'ped_e';
+${enSede("lim")}${COMO_API}select retail.cancelar_pedido_para_apartar(:'ped_e', 'No la tengo') as _c4 \\gset
+select 'K|viejo_sin_avisar|' || count(*) from retail.fn_pedidos_con_cliente(:'tru') where id = :'ped_e';
+${COMO_POSTGRES}
+${pedir("v1", { como: "ped_f" })}
+select pg_temp.intento(format($q$update retail.separacion_pedidos set cancelado_desde = 'envia' where id = %L returning id::text$q$, :'ped_f')) as _i \\gset
+select 'K|check_sin_cancelar|' || :'_i';
+select pg_temp.intento(format($q$update retail.separacion_pedidos set avisado_en = now() where id = %L returning id::text$q$, :'ped_b')) as _i \\gset
+select 'K|check_aviso_pidio|' || :'_i';
+select pg_temp.intento(format($q$update retail.separacion_pedidos set estado = 'cancelado', cancelado_desde = 'envia', llego_en = now() where id = %L returning id::text$q$, :'ped_f')) as _i \\gset
+select 'K|check_llego_y_no|' || :'_i';`,
+  (d) => {
+    afirmar("un líder parado en Lima (la que la tiene) cancela: «envia»", d.desde_lima === "envia", d.desde_lima);
+    afirmar("Trujillo lo lee: cancelado desde «envia», sin avisar", d.leida_tru === "cancelado:envia:true", d.leida_tru);
+    afirmar("Micaela (Vender) le avisa al cliente que no llegó", j(d.avisar_no_llego)?.ok === true && d.avisado === "true:true", `${d.avisar_no_llego} ${d.avisado}`);
+    afirmar("lo que cancela la tienda que pidió queda «pidio»", d.desde_tru === "pidio", d.desde_tru);
+    afirmar("…y no se le «avisa que no llegó»", falloCon(d.avisar_pidio, /dieron de baja aquí/), d.avisar_pidio);
+    afirmar("un líder parado en Trujillo (la que pidió) cancela: «pidio»", d.lider_en_tru === "pidio", d.lider_en_tru);
+    afirmar("el envío se cierra sin la prenda: «traslado», con su motivo", d.traslado === "cancelado:traslado:La prenda no llegó en el traslado", d.traslado);
+    afirmar("lo que no llegó sin avisar sigue en la lista aunque tenga 10 días", d.viejo_sin_avisar === "1", d.viejo_sin_avisar);
+    afirmar("CHECK: un pedido que no está cancelado no tiene lado", j(d.check_sin_cancelar)?.estado === "23514", d.check_sin_cancelar);
+    afirmar("CHECK: lo cancelado por la tienda que pidió no lleva aviso", j(d.check_aviso_pidio)?.estado === "23514", d.check_aviso_pidio);
+    afirmar("CHECK: lo que llegó no puede decir «envia»", j(d.check_llego_y_no)?.estado === "23514", d.check_llego_y_no);
+  },
+);
+
+correr(
+  "No llegó · lo que ya llegó solo lo da de baja la tienda que pidió, aunque lo cancele un líder parado en la otra sede",
+  `${pedir("v1")}${enviar()}
+${contar("v1", 1)}${confirmar()}
+${enSede("lim")}${intento("cancelar_llego", "format('select retail.cancelar_pedido_para_apartar(%L::uuid, %L)::text', :'ped', 'El cliente no vino')")}
+${K("lado", "(select estado || ':' || cancelado_desde from retail.separacion_pedidos where id = :'ped')")}`,
+  (d) => {
+    afirmar("se cancela sin chocar con el CHECK", j(d.cancelar_llego)?.ok === true, d.cancelar_llego);
+    afirmar("…y queda «pidio»: no hay «no llegó» que avisar", d.lado === "cancelado:pidio", d.lado);
+  },
+);
+
+// ---------------------------------------------------------------------------
 correr(
   "Permisos · nada abierto a anon; las internas no las llama nadie desde la web; las tablas solo por funciones",
   `${K("anon", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('anon', 'retail.${f}', 'execute')`).join(" or "))}
 ${K("authenticated", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" and "))}
-${K("internas", ["fn_reservar_pedido_en_origen(uuid, uuid)", "fn_cerrar_reserva_de_pedido(uuid, text, uuid)", "fn_soltar_reserva_de_origen(uuid, boolean)", "fn_pedidos_vuelven_a_esperar(uuid)", "fn_para_enviar_pendiente(uuid)", "trg_para_enviar_al_salir()"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" or "))}
+${K("internas", ["fn_reservar_pedido_en_origen(uuid, uuid)", "fn_lado_del_pedido(uuid)", "fn_cerrar_reserva_de_pedido(uuid, text, uuid)", "fn_soltar_reserva_de_origen(uuid, boolean)", "fn_pedidos_vuelven_a_esperar(uuid)", "fn_para_enviar_pendiente(uuid)", "trg_para_enviar_al_salir()"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" or "))}
 ${K("tablas", "has_table_privilege('authenticated', 'retail.prendas_para_enviar', 'select') or has_table_privilege('authenticated', 'retail.prendas_para_enviar_salidas', 'select')")}
 ${K("rls", "(select bool_and(relrowsecurity) from pg_class where oid in ('retail.prendas_para_enviar'::regclass, 'retail.prendas_para_enviar_salidas'::regclass))")}`,
   (d) => {

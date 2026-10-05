@@ -14,7 +14,13 @@
 --   · `separacion_pedidos.apartado_origen_id`: la prenda queda APARTADA EN LA SEDE QUE LA TIENE desde que se pide
 --     (Felipe: «allá la apartan»). Es una fila de `apartados` (ADR-0141), la misma reserva de siempre: la caja de AQP ya
 --     no la puede cobrar y «Dónde más hay» deja de ofrecerla a otra sede (`fn_stock_por_sede` cuenta lo disponible).
---   · `separacion_pedidos.avisado_en` / `avisado_por`: cuándo y quién le avisó al cliente que su prenda llegó.
+--   · `separacion_pedidos.avisado_en` / `avisado_por`: cuándo y quién le avisó al cliente cómo terminó su pedido: que su
+--     prenda llegó o, si la otra sede dijo «No la tengo» o el envío se cerró sin ella, que no va a llegar.
+--   · `separacion_pedidos.cancelado_desde` (decisión del 2026-10-04): de qué lado se cerró sin la prenda: 'pidio' (la
+--     tienda que pidió lo dio de baja: el cliente ya no la quiere), 'envia' (la sede que la tenía dijo «No la tengo») o
+--     'traslado' (el envío se cerró sin ella). Con 'envia' o 'traslado' la tienda que pidió se entera en Vender y en su
+--     Inicio, con «Avisar al cliente que no llegó». Antes solo había un texto libre (`cancelado_motivo`), y un texto no dice
+--     quién tiene que avisarle al cliente.
 --   · `prendas_para_enviar`: lo que se subió al almacén PARA mandarlo a otra sede. Queda listado hasta que sale en un
 --     traslado o alguien dice «ya no la envío».
 --   · `prendas_para_enviar_salidas`: qué traslado se llevó cuánto de cada una. Lo que falta enviar NO se guarda: se
@@ -23,7 +29,9 @@
 --
 -- ESTADOS QUE DEJAN DE SER POSIBLES (los niega el esquema, no la pantalla):
 --   · una reposición (sin cliente) con una reserva en el origen: el apartado es del cliente que espera;
---   · un aviso de llegada a un pedido sin cliente o que todavía no llegó;
+--   · un aviso al cliente de un pedido sin cliente, o de uno que ni llegó ni se cerró sin la prenda por la otra sede o el
+--     envío (lo que la tienda que pidió canceló no se le «avisa que no llegó»: fue su decisión con el cliente);
+--   · un pedido «cerrado sin la prenda» que no está cancelado, o uno que llegó y dice que la otra sede no la tenía;
 --   · una prenda «para enviar» a su misma sede, con cantidad 0, o cancelada sin motivo (o con motivo sin cancelar);
 --   · la misma salida contada dos veces para la misma prenda (único por prenda y línea de traslado).
 --
@@ -55,10 +63,23 @@ alter table retail.separacion_pedidos drop constraint if exists separacion_pedid
 alter table retail.separacion_pedidos add constraint separacion_pedidos_reserva_origen_solo_con_cliente
   check (apartado_origen_id is null or clienta_nombres is not null);
 
--- Se le avisa a un cliente que su prenda llegó: tiene que haber cliente y tiene que haber llegado.
+-- De qué lado se cerró sin la prenda (decisión del 2026-10-04): solo un pedido cancelado lo tiene, con uno de tres valores.
+-- Las filas canceladas antes de esta columna quedan sin él (null = no se sabe): a esas no se les pide avisar a nadie.
+alter table retail.separacion_pedidos add column if not exists cancelado_desde text;
+alter table retail.separacion_pedidos drop constraint if exists separacion_pedidos_cancelado_desde_valido;
+alter table retail.separacion_pedidos add constraint separacion_pedidos_cancelado_desde_valido
+  check (cancelado_desde is null or (estado = 'cancelado' and cancelado_desde in ('pidio', 'envia', 'traslado')));
+-- Lo que llegó solo lo puede dar de baja la tienda que pidió: nunca «la otra sede no la tenía» ni «el envío no la trajo».
+alter table retail.separacion_pedidos drop constraint if exists separacion_pedidos_no_llego_si_llego;
+alter table retail.separacion_pedidos add constraint separacion_pedidos_no_llego_si_llego
+  check (cancelado_desde is null or cancelado_desde = 'pidio' or llego_en is null);
+
+-- Se le avisa a un cliente cómo terminó su pedido: tiene que haber cliente y, o llegó, o se cerró sin la prenda por la
+-- otra sede o por el envío. Lo que la tienda que pidió canceló (el cliente ya no la quería) no tiene aviso que dar.
+-- El `coalesce` no es adorno: con `cancelado_desde` nulo, `null in (…)` da NULL y un CHECK que da NULL DEJA PASAR la fila.
 alter table retail.separacion_pedidos drop constraint if exists separacion_pedidos_aviso_con_cliente_y_llegada;
 alter table retail.separacion_pedidos add constraint separacion_pedidos_aviso_con_cliente_y_llegada
-  check (avisado_en is null or (clienta_nombres is not null and llego_en is not null));
+  check (avisado_en is null or (clienta_nombres is not null and (llego_en is not null or coalesce(cancelado_desde, '') in ('envia', 'traslado'))));
 
 create index if not exists separacion_pedidos_apartado_origen_idx
   on retail.separacion_pedidos (apartado_origen_id) where apartado_origen_id is not null;
@@ -66,7 +87,9 @@ create index if not exists separacion_pedidos_apartado_origen_idx
 comment on column retail.separacion_pedidos.apartado_origen_id is
   'ADR-0328 act. 17: la reserva (fila de apartados) en la sede que ENVÍA, hecha al pedir para un cliente («allá la apartan»). Se suelta al salir el traslado o al cancelar; al anular el traslado se vuelve a apartar.';
 comment on column retail.separacion_pedidos.avisado_en is
-  'ADR-0328 act. 17: cuándo se le avisó al cliente que su prenda llegó (WhatsApp desde Vender). Null = nadie le avisó todavía.';
+  'ADR-0328 act. 17: cuándo se le avisó al cliente cómo terminó su pedido (WhatsApp desde Vender): que llegó (llego_en) o que no va a llegar (cancelado_desde envia | traslado). Null = nadie le avisó todavía.';
+comment on column retail.separacion_pedidos.cancelado_desde is
+  'ADR-0328 act. 17 (2026-10-04): de qué lado se cerró sin la prenda: pidio (la tienda que pidió), envia (la sede que la tenía: «No la tengo») o traslado (el envío se cerró sin ella). Con envia o traslado, la tienda que pidió le avisa al cliente que no llegó. Null en lo cancelado antes de la columna y en la reposición cancelada por grupo.';
 
 -- ---------------------------------------------------------------------------
 -- 2. prendas_para_enviar: lo subido al almacén para mandarlo a otra sede

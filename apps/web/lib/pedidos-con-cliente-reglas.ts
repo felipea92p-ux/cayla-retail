@@ -13,6 +13,9 @@ import { accionesDePedido, etiquetaLinea, type AccionesPedido, type PedidoEntreS
 /** Dónde está apartada la prenda en la sede que la envía (null si el pedido ya no espera). */
 export type ReservaEnOrigen = "almacen" | "piso" | "sin_lugar" | "sin_reserva";
 export type EstadoPedidoCliente = "pedido" | "en_camino" | "llego" | "apartado" | "cancelado";
+/** De qué lado se cerró sin la prenda (`separacion_pedidos.cancelado_desde`, decisión del 2026-10-04): la tienda que pidió,
+ *  la sede que la tenía («No la tengo») o el envío que se cerró sin ella. */
+export type CanceladoDesde = "pidio" | "envia" | "traslado";
 
 export type ClientePedido = {
   nombres: string;
@@ -23,11 +26,15 @@ export type ClientePedido = {
   llegoEn: string | null;
   /** Hasta cuándo la guarda la sede que pidió (el apartado de llegada). */
   guardadaHasta: string | null;
+  /** Cuándo se le avisó al cliente cómo terminó: que llegó o que no va a llegar. */
   avisadoEn: string | null;
+  /** Solo en un pedido cancelado; null si lo canceló alguien antes de que existiera el dato. */
+  canceladoDesde: CanceladoDesde | null;
 };
 
 const ESTADOS_CLIENTE: readonly EstadoPedidoCliente[] = ["pedido", "en_camino", "llego", "apartado", "cancelado"];
 const RESERVAS: readonly ReservaEnOrigen[] = ["almacen", "piso", "sin_lugar", "sin_reserva"];
+const LADOS: readonly CanceladoDesde[] = ["pidio", "envia", "traslado"];
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 
 /** Una fila de `fn_pedidos_con_cliente` → un pedido de la lista de Traslados (con su cliente). Un pedido es UNA prenda. */
@@ -71,8 +78,32 @@ export function pedidoConClienteDeFila(f: Record<string, unknown>): PedidoEntreS
       llegoEn: texto(f.llego_en),
       guardadaHasta: texto(f.guardada_hasta),
       avisadoEn: texto(f.avisado_en),
+      canceladoDesde: LADOS.includes(f.cancelado_desde as CanceladoDesde) ? (f.cancelado_desde as CanceladoDesde) : null,
     },
   };
+}
+
+/**
+ * ¿La prenda no va a llegar por algo que la tienda que pidió no decidió? La otra sede dijo «No la tengo» o el envío se
+ * cerró sin ella. Lo que la tienda que pidió dio de baja (el cliente ya no la quería) no cuenta: no hay nada que avisarle.
+ */
+export function noLlego(c: Pick<ClientePedido, "estado" | "canceladoDesde">): boolean {
+  return c.estado === "cancelado" && (c.canceladoDesde === "envia" || c.canceladoDesde === "traslado");
+}
+
+/** Lo que la tienda que pidió le tiene que decir al cliente: que llegó, que no va a llegar, o nada (null). */
+export type AvisoAlCliente = "llego" | "no_llego";
+
+/**
+ * De qué se le avisa al cliente de un pedido (aunque ya se le haya avisado: «Avisar otra vez» usa el mismo mensaje). Solo
+ * del lado que pidió: la sede que tiene la prenda no conoce al cliente (decisión del 2026-10-04, privacidad).
+ */
+export function avisoAlCliente(p: Pick<PedidoEntreSedes, "direccion" | "cliente">): AvisoAlCliente | null {
+  const c = p.cliente;
+  if (!c || p.direccion !== "pedi") return null;
+  if (c.estado === "llego") return "llego";
+  if (noLlego(c)) return "no_llego";
+  return null;
 }
 
 /** «Ana Lozano». */
@@ -83,7 +114,7 @@ export function nombreCliente(c: Pick<ClientePedido, "nombres" | "apellidos">): 
 export type AccionesConCliente = AccionesPedido & {
   /** El primer paso de dos: la prenda apartada allá está colgada; se sube al almacén antes de enviarla (Felipe). */
   subirAlAlmacen: boolean;
-  /** La sede que pidió le avisa al cliente que llegó (WhatsApp). */
+  /** La sede que pidió le avisa al cliente cómo terminó: que llegó o que no va a llegar (WhatsApp). */
   avisar: boolean;
 };
 
@@ -133,7 +164,7 @@ export function accionesDe(p: Pick<PedidoEntreSedes, "estado" | "direccion" | "t
   return {
     ...base,
     ...envio,
-    avisar: p.direccion === "pedi" && c.estado === "llego",
+    avisar: avisoAlCliente(p) !== null,
   };
 }
 
@@ -156,15 +187,46 @@ export function estadoVisibleConCliente(p: Pick<PedidoEntreSedes, "direccion" | 
     case "apartado":
       return { texto: "Apartado con adelanto", tono: "verde" };
     case "cancelado":
+      // Decisión del 2026-10-04: lo que no llegó (la otra sede no la tenía o el envío se cerró sin ella) pide avisarle al
+      // cliente, del lado que pidió; hasta entonces no es un «Cancelado» más.
+      if (p.direccion === "pedi" && noLlego(c)) {
+        return c.avisadoEn ? { texto: "No llegó · cliente avisado", tono: "apagado" } : { texto: "No llegó · avísale al cliente", tono: "ambar" };
+      }
       return { texto: "Cancelado", tono: "apagado" };
   }
 }
 
-/** Los que llegaron y nadie le avisó todavía al cliente (la franja de Vender), el que llegó primero arriba. */
-export function porAvisarAlCliente(pedidos: readonly PedidoEntreSedes[]): (PedidoEntreSedes & { cliente: ClientePedido })[] {
+export type PedidoPorAvisar = PedidoEntreSedes & { cliente: ClientePedido; aviso: AvisoAlCliente };
+
+/**
+ * Lo que la tienda que pidió todavía no le avisó al cliente (la franja de Vender y el Inicio): lo que llegó y lo que no va a
+ * llegar. Primero lo que no llegó (el cliente sigue esperando algo que no viene), después lo que llegó; dentro, lo más
+ * antiguo arriba.
+ */
+export function porAvisarAlCliente(pedidos: readonly PedidoEntreSedes[]): PedidoPorAvisar[] {
   return pedidos
-    .filter((p): p is PedidoEntreSedes & { cliente: ClientePedido } => p.direccion === "pedi" && p.cliente?.estado === "llego" && !p.cliente.avisadoEn)
-    .sort((a, b) => (a.cliente.llegoEn ?? "").localeCompare(b.cliente.llegoEn ?? ""));
+    .flatMap((p) => {
+      const aviso = avisoAlCliente(p);
+      return aviso && p.cliente && !p.cliente.avisadoEn ? [{ ...p, cliente: p.cliente, aviso }] : [];
+    })
+    .sort(
+      (a, b) =>
+        Number(a.aviso === "llego") - Number(b.aviso === "llego") ||
+        (a.cliente.llegoEn ?? a.creadoEn).localeCompare(b.cliente.llegoEn ?? b.creadoEn),
+    );
+}
+
+/** Lo que el Inicio de la tienda que pidió dice de sus pedidos para clientes (`FuentesAvisos.pedidosCliente`). */
+export type ResumenPedidosCliente = { llegaron: number; noLlegaron: number; primero: string | null };
+
+/** Cuántos clientes esperan que se les avise que su prenda llegó o que no va a llegar, y el primero de la lista. */
+export function resumenParaElInicio(pedidos: readonly PedidoEntreSedes[]): ResumenPedidosCliente {
+  const lista = porAvisarAlCliente(pedidos);
+  return {
+    llegaron: lista.filter((p) => p.aviso === "llego").length,
+    noLlegaron: lista.filter((p) => p.aviso === "no_llego").length,
+    primero: lista[0] ? nombreCliente(lista[0].cliente) : null,
+  };
 }
 
 const fechaLarga = (iso: string) =>
@@ -197,6 +259,47 @@ export function mensajeLlegoTuPrenda({
   const prenda = detalle ? `${producto} (${detalle})` : producto;
   const plazo = guardadaHasta ? ` Te la guardamos hasta el ${fechaLarga(guardadaHasta)}.` : "";
   return `${saludo}, te escribimos de CAYLA ${nombreCortoSede(sede)}: ya llegó tu ${prenda}.${plazo} ¡Te esperamos!`;
+}
+
+/**
+ * El WhatsApp cuando la prenda NO va a llegar (decisión del 2026-10-04: la otra sede no la tenía o el envío se cerró sin
+ * ella). Dice lo que pasó sin culpar a nadie ni dar detalles de la otra tienda, y abre una puerta. Habla igual a cualquier
+ * cliente (ADR-0288 act. k). Ej.: «Hola Ana, te escribimos de CAYLA Trujillo: lo sentimos, tu Blusa Carlita (Blanco, M)
+ * no va a poder llegar. Si quieres, te ayudamos a encontrar otra opción en tienda.».
+ */
+export function mensajeNoLlegoTuPrenda({
+  nombres,
+  producto,
+  color,
+  talla,
+  sede,
+}: {
+  nombres: string;
+  producto: string;
+  color: string | null;
+  talla: string | null;
+  /** La sede que pidió, con su nombre de la base («Tienda Trujillo»). */
+  sede: string;
+}): string {
+  const detalle = [color, talla].filter((x): x is string => !!x && x.trim() !== "").join(", ");
+  const primerNombre = nombres.trim().split(/\s+/)[0] ?? "";
+  const saludo = primerNombre ? `Hola ${primerNombre}` : "Hola";
+  const prenda = detalle ? `${producto} (${detalle})` : producto;
+  return `${saludo}, te escribimos de CAYLA ${nombreCortoSede(sede)}: lo sentimos, tu ${prenda} no va a poder llegar. Si quieres, te ayudamos a encontrar otra opción en tienda.`;
+}
+
+/** Lo que dice la ventana «Avisar al cliente», según cómo terminó el pedido: título, bajada y el mensaje de WhatsApp. */
+export function avisoParaLaVentana(
+  aviso: AvisoAlCliente,
+  pedido: Pick<PedidoEntreSedes, "lineas"> & { cliente: Pick<ClientePedido, "nombres" | "apellidos" | "guardadaHasta"> },
+  sede: string,
+): { titulo: string; subtitulo: string; mensaje: string } {
+  const l = pedido.lineas[0];
+  const datos = { nombres: pedido.cliente.nombres, producto: l?.producto ?? "prenda", color: l?.color ?? null, talla: l?.talla ?? null, sede };
+  const titulo = `Avisar a ${nombreCliente(pedido.cliente)}`;
+  return aviso === "llego"
+    ? { titulo, subtitulo: "Llegó su prenda y está guardada", mensaje: mensajeLlegoTuPrenda({ ...datos, guardadaHasta: pedido.cliente.guardadaHasta }) }
+    : { titulo, subtitulo: "Su prenda no va a llegar", mensaje: mensajeNoLlegoTuPrenda(datos) };
 }
 
 // ---------------------------------------------------------------------------

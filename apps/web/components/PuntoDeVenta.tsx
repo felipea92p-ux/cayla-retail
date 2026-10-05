@@ -121,7 +121,7 @@ import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
-import { PedidosQueLlegaron } from "@/components/punto-de-venta/PedidosQueLlegaron";
+import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
 import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { candidatosParaPedir, type CandidatoPedir, type TiendaParaPedir } from "@/lib/pedidos-con-cliente-reglas";
 import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
@@ -325,7 +325,8 @@ type Props = {
   /** «Pedir y apartar para este cliente» desde «Dónde más hay» (ADR-0328 act. 17): las otras tiendas a las que se les puede
    *  pedir. `null`: la opción no aparece (no es una tienda, o la sede apagó «Pedir a otra sede» en sus opciones de Apartados). */
   pedirAOtraSede?: { tiendas: TiendaParaPedir[] } | null;
-  /** Lo que esta tienda pidió a otra para un cliente (`fn_pedidos_con_cliente`): los que llegaron sin aviso salen en una franja. */
+  /** Lo que esta tienda pidió a otra para un cliente (`fn_pedidos_con_cliente`): los que llegaron, o no van a llegar, sin aviso al
+   *  cliente salen en una franja (`PedidosParaClientes`). */
   pedidosConCliente?: PedidoEntreSedes[];
 };
 
@@ -1892,8 +1893,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               subir, se tiene que ver tanto si la caja sigue abierta como si ya cerró. */}
           <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
 
-          {/* ADR-0328 act. 17: lo que se pidió a otra tienda para un cliente y ya llegó, hasta que alguien le avisa. */}
-          <PedidosQueLlegaron pedidos={pedidosConCliente} sede={{ ubicacionId, etiqueta: ubicacionEtiqueta }} responsable={responsable} />
+          {/* ADR-0328 act. 17: lo que se pidió a otra tienda para un cliente y llegó (o no va a llegar), hasta que alguien le avisa. */}
+          <PedidosParaClientes pedidos={pedidosConCliente} sede={{ ubicacionId, etiqueta: ubicacionEtiqueta }} responsable={responsable} />
 
           {/* Cobrando una proforma (ADR-0167): de quién es, y la confirmación si venció. */}
           {proformaActiva && (

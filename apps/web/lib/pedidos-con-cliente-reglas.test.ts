@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   accionesDe,
+  avisoAlCliente,
+  avisoParaLaVentana,
   candidatosParaPedir,
   envioConCliente,
   textoSubirAlAlmacen,
@@ -10,10 +12,12 @@ import {
   huellaDelPedido,
   juntarPedidos,
   mensajeLlegoTuPrenda,
+  mensajeNoLlegoTuPrenda,
   nombreCliente,
   partirNombre,
   pedidoConClienteDeFila,
   porAvisarAlCliente,
+  resumenParaElInicio,
   textoSugerenciaPedir,
   type ClientePedido,
 } from "./pedidos-con-cliente-reglas";
@@ -44,6 +48,7 @@ const fila = (extra: Record<string, unknown> = {}) => ({
   traslado_id: null,
   traslado_numero: null,
   cancelado_motivo: null,
+  cancelado_desde: null,
   ...extra,
 });
 const cliente = (extra: Partial<ClientePedido> = {}): ClientePedido => ({
@@ -55,6 +60,7 @@ const cliente = (extra: Partial<ClientePedido> = {}): ClientePedido => ({
   llegoEn: null,
   guardadaHasta: null,
   avisadoEn: null,
+  canceladoDesde: null,
   ...extra,
 });
 
@@ -161,6 +167,65 @@ describe("porAvisarAlCliente — la franja de Vender", () => {
       pedidoConClienteDeFila(fila({ id: "e", direccion: "pedi", estado: "en_camino" })),
     ];
     expect(porAvisarAlCliente(lista).map((p) => p.grupoId)).toEqual(["b", "a"]);
+  });
+});
+
+describe("no llegó (decisión del 2026-10-04) — la tienda que pidió le avisa al cliente", () => {
+  const pedi = (extra: Record<string, unknown>) => pedidoConClienteDeFila(fila({ direccion: "pedi", ...extra }));
+  it("lee de qué lado se cerró; un valor desconocido no inventa nada", () => {
+    expect(pedi({ estado: "cancelado", cancelado_desde: "envia" }).cliente?.canceladoDesde).toBe("envia");
+    expect(pedi({ estado: "cancelado", cancelado_desde: "raro" }).cliente?.canceladoDesde).toBeNull();
+  });
+  it("qué se le avisa: llegó, no llegó (la otra sede o el envío), o nada si lo canceló la tienda que pidió", () => {
+    expect(avisoAlCliente(pedi({ estado: "llego" }))).toBe("llego");
+    expect(avisoAlCliente(pedi({ estado: "cancelado", cancelado_desde: "envia" }))).toBe("no_llego");
+    expect(avisoAlCliente(pedi({ estado: "cancelado", cancelado_desde: "traslado" }))).toBe("no_llego");
+    expect(avisoAlCliente(pedi({ estado: "cancelado", cancelado_desde: "pidio" }))).toBeNull();
+    expect(avisoAlCliente(pedi({ estado: "cancelado", cancelado_desde: null }))).toBeNull();
+    expect(avisoAlCliente(pedi({ estado: "pedido" }))).toBeNull();
+  });
+  it("la sede que tenía la prenda no le avisa a nadie: no conoce al cliente", () => {
+    expect(avisoAlCliente(pedidoConClienteDeFila(fila({ estado: "cancelado", cancelado_desde: "envia" })))).toBeNull();
+    expect(avisoAlCliente(pedidoConClienteDeFila(fila({ estado: "llego" })))).toBeNull();
+  });
+  it("Traslados ofrece «Avisar» también cuando no llegó", () => {
+    expect(accionesDe(pedi({ estado: "cancelado", cancelado_desde: "envia" })).avisar).toBe(true);
+    expect(accionesDe(pedi({ estado: "cancelado", cancelado_desde: "pidio" })).avisar).toBe(false);
+  });
+  it("el chip: «No llegó · avísale al cliente» hasta que alguien avisa; lo cancelado aquí es solo «Cancelado»", () => {
+    const de = (c: ClientePedido, direccion: "pedi" | "me_piden" = "pedi") => estadoVisibleConCliente({ direccion, otraSede: "Tienda Lima", cliente: c });
+    expect(de(cliente({ estado: "cancelado", canceladoDesde: "envia" }))).toEqual({ texto: "No llegó · avísale al cliente", tono: "ambar" });
+    expect(de(cliente({ estado: "cancelado", canceladoDesde: "traslado", avisadoEn: "x" }))).toEqual({ texto: "No llegó · cliente avisado", tono: "apagado" });
+    expect(de(cliente({ estado: "cancelado", canceladoDesde: "pidio" }))).toEqual({ texto: "Cancelado", tono: "apagado" });
+    expect(de(cliente({ estado: "cancelado", canceladoDesde: "envia" }), "me_piden")).toEqual({ texto: "Cancelado", tono: "apagado" });
+  });
+  it("la franja: primero lo que no llegó, después lo que llegó; nada de lo ya avisado ni de lo cancelado aquí", () => {
+    const lista = [
+      pedi({ id: "llego", estado: "llego", llego_en: "2026-10-05T09:00:00Z" }),
+      pedi({ id: "no-envia", estado: "cancelado", cancelado_desde: "envia", created_at: "2026-10-04T10:00:00Z" }),
+      pedi({ id: "no-traslado", estado: "cancelado", cancelado_desde: "traslado", created_at: "2026-10-02T10:00:00Z" }),
+      pedi({ id: "no-avisado", estado: "cancelado", cancelado_desde: "envia", avisado_en: "2026-10-05T10:00:00Z" }),
+      pedi({ id: "aqui", estado: "cancelado", cancelado_desde: "pidio" }),
+    ];
+    const por = porAvisarAlCliente(lista);
+    expect(por.map((p) => `${p.grupoId}:${p.aviso}`)).toEqual(["no-traslado:no_llego", "no-envia:no_llego", "llego:llego"]);
+    expect(resumenParaElInicio(lista)).toEqual({ llegaron: 1, noLlegaron: 2, primero: "Ana Lozano" });
+    expect(resumenParaElInicio([])).toEqual({ llegaron: 0, noLlegaron: 0, primero: null });
+  });
+  it("el WhatsApp de «no llegó»: dice lo que pasó, sin culpar a la otra tienda, y ofrece ayuda", () => {
+    expect(mensajeNoLlegoTuPrenda({ nombres: "Ana María", producto: "Blusa Carlita", color: "Blanco", talla: "M", sede: "Tienda Trujillo" })).toBe(
+      "Hola Ana, te escribimos de CAYLA Trujillo: lo sentimos, tu Blusa Carlita (Blanco, M) no va a poder llegar. Si quieres, te ayudamos a encontrar otra opción en tienda.",
+    );
+    expect(mensajeNoLlegoTuPrenda({ nombres: "", producto: "Correa", color: null, talla: null, sede: "Tienda Lima" })).not.toMatch(/Lima.*Lima|\(\)/);
+  });
+  it("la ventana cambia título, bajada y mensaje según cómo terminó", () => {
+    const p = pedi({ estado: "cancelado", cancelado_desde: "envia" });
+    const no = avisoParaLaVentana("no_llego", { ...p, cliente: p.cliente! }, "Tienda Trujillo");
+    expect(no).toMatchObject({ titulo: "Avisar a Ana Lozano", subtitulo: "Su prenda no va a llegar" });
+    expect(no.mensaje).toMatch(/no va a poder llegar/);
+    const si = avisoParaLaVentana("llego", { ...p, cliente: p.cliente! }, "Tienda Trujillo");
+    expect(si.subtitulo).toBe("Llegó su prenda y está guardada");
+    expect(si.mensaje).toMatch(/ya llegó tu Blusa Carlita/);
   });
 });
 

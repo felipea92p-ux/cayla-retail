@@ -41,6 +41,15 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ pedidosSinRespuesta: null })[0]!.nivel).toBe("sinleer");
   });
 
+  it("decisión del 2026-10-04: la tienda que pidió para un cliente se entera de lo que llegó y de lo que no va a llegar, y va a Vender", () => {
+    const [a] = avisosInicio({ pedidosCliente: { llegaron: 1, noLlegaron: 2, primero: "Ana Lozano" } });
+    expect(a).toMatchObject({ clave: "pedidosCliente", cantidad: 3, nivel: "toca", href: "/vender", ahora: "Avisa a 3 clientes cómo terminó su pedido" });
+    expect(a!.detalle).toBe("2 no van a llegar · 1 llegó · Ana Lozano: avísales por WhatsApp desde Vender.");
+    expect(avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 1, primero: "Ana Lozano" } })[0]!.detalle).toBe("1 no va a llegar · Ana Lozano: avísale por WhatsApp desde Vender.");
+    expect(avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, primero: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ pedidosCliente: null })[0]!.nivel).toBe("sinleer");
+  });
+
   it("el número de Traslados dice que suma lo que llega y lo que te piden", () => {
     expect(avisosInicio({ traslados: 3 })[0]!.detalle).toBe("3 esperan a tu sede: recibir lo que llegó o enviar lo que te piden.");
   });

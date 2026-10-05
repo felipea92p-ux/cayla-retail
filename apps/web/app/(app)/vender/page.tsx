@@ -92,7 +92,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // «Pedir y apartar para este cliente» (ADR-0328 act. 17): respeta el interruptor «Pedir a otra sede» de las opciones de
     // Apartados de esta sede. Si la lectura falla, la opción se ofrece (la base decide igual en cada pedido).
     supabase.rpc("fn_opciones_apartados", { p_ubicacion_id: persona.ubicacionId }),
-    // Lo que esta tienda pidió para un cliente y ya llegó: la franja «Llegó para un cliente». Secundario: vacío si falla.
+    // Lo que esta tienda pidió para un cliente y llegó o no va a llegar: la franja de los clientes por avisar. Secundario: vacío si falla.
     getPedidosConCliente(persona.ubicacionId),
   ]);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";

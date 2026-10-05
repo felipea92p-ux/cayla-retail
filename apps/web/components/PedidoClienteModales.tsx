@@ -12,14 +12,15 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { enlaceWhatsAppA } from "@/lib/facturacion-comprobantes-reglas";
 import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
-import { mensajeLlegoTuPrenda, nombreCliente, textoSubirAlAlmacen, type ClientePedido, type PedidoParaSubir } from "@/lib/pedidos-con-cliente-reglas";
+import { avisoParaLaVentana, nombreCliente, textoSubirAlAlmacen, type AvisoAlCliente, type ClientePedido, type PedidoParaSubir } from "@/lib/pedidos-con-cliente-reglas";
 
 // Dos ventanas cortas de los pedidos PARA UN CLIENTE (ADR-0328 act. 17). Cada una tiene un solo control (quién lo hace):
 // no llevan la guía de foco por campos (se declaran «no-aplica» en `lib/guia-de-foco-pantallas.ts`).
 //   · «Subir al almacén»: el primer paso de dos (Felipe) cuando la prenda apartada para el cliente está colgada (o cuando
 //     alguien liberó la reserva y no se sabe dónde quedó). La abren Traslados y Apartados con la misma regla
 //     (`envioConCliente`): por eso recibe solo lo que dibuja, no la fila de una de las dos listas.
-//   · «Avisar al cliente»: abre WhatsApp con el mensaje listo y deja constancia (`marcar_pedido_avisado`).
+//   · «Avisar al cliente»: abre WhatsApp con el mensaje listo y deja constancia (`marcar_pedido_avisado`). Sirve para los
+//     dos finales (decisión del 2026-10-04): «llegó tu prenda» y «no va a poder llegar».
 
 type Sede = { ubicacionId: string; etiqueta: string };
 type PedidoConCliente = PedidoEntreSedes & { cliente: ClientePedido };
@@ -68,18 +69,20 @@ export function SubirPedidoAlAlmacenModal({ pedido, ubicacion, onClose }: { pedi
 }
 
 /**
- * La sede que pidió le avisa al cliente que su prenda llegó. El enlace abre WhatsApp con el mensaje listo (es un toque de la
- * persona: el sistema no manda mensajes solo) y, al tocarlo, se deja constancia de quién avisó. Si la constancia falla, el
- * WhatsApp ya se abrió: se dice, sin repetir el mensaje. `responsable`: el combo que ya está en pantalla (Vender); sin él,
- * la ventana usa el suyo.
+ * La sede que pidió le avisa al cliente cómo terminó su pedido: que llegó, o que no va a llegar (`aviso`). El enlace abre
+ * WhatsApp con el mensaje listo (es un toque de la persona: el sistema no manda mensajes solo) y, al tocarlo, se deja
+ * constancia de quién avisó. Si la constancia falla, el WhatsApp ya se abrió: se dice, sin repetir el mensaje.
+ * `responsable`: el combo que ya está en pantalla (Vender); sin él, la ventana usa el suyo.
  */
-export function AvisarLlegadaModal({
+export function AvisarAlClienteModal({
   pedido,
+  aviso,
   sede,
   responsable: externo,
   onClose,
 }: {
   pedido: PedidoConCliente;
+  aviso: AvisoAlCliente;
   sede: Sede;
   responsable?: ControlResponsable;
   onClose: () => void;
@@ -89,15 +92,7 @@ export function AvisarLlegadaModal({
   const propio = useResponsable(sede);
   const responsable = externo ?? propio;
   const [estado, setEstado] = useState<"listo" | "guardando" | "hecho">("listo");
-  const linea = pedido.lineas[0];
-  const mensaje = mensajeLlegoTuPrenda({
-    nombres: pedido.cliente.nombres,
-    producto: linea?.producto ?? "prenda",
-    color: linea?.color ?? null,
-    talla: linea?.talla ?? null,
-    sede: sede.etiqueta,
-    guardadaHasta: pedido.cliente.guardadaHasta,
-  });
+  const { titulo, subtitulo, mensaje } = avisoParaLaVentana(aviso, pedido, sede.etiqueta);
   const enlace = enlaceWhatsAppA(pedido.cliente.celular, mensaje);
 
   async function marcar() {
@@ -116,7 +111,7 @@ export function AvisarLlegadaModal({
   }
 
   return (
-    <Modal titulo={`Avisar a ${nombreCliente(pedido.cliente)}`} subtitulo="Llegó su prenda y está guardada" onClose={onClose} ancho="max-w-md">
+    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} ancho="max-w-md">
       {(cerrar) => (
         <div className="space-y-4">
           <p className="rounded-xl bg-hueso px-3.5 py-3 text-sm text-tinta/85">{mensaje}</p>

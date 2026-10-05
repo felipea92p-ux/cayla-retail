@@ -23,6 +23,7 @@ export type ClaveAviso =
   | "pedidos"
   | "traslados"
   | "pedidosSede"
+  | "pedidosCliente"
   | "conteo"
   | "regularizar"
   | "porPagar"
@@ -63,6 +64,9 @@ export type FuentesAvisos = {
   /** ADR-0328 act. 17: los pedidos entre sedes que llevan 48 h o más sin respuesta, de los dos lados (solo para el líder).
    *  Ya resumidos por `pedidos-por-atender-reglas.ts`: cuántos, el detalle y la frase de «Sigue ahora». */
   pedidosSinRespuesta?: { tePiden: number; pediste: number; detalle: string; ahora: string } | null;
+  /** ADR-0328 act. 17 (decisión del 2026-10-04): los pedidos que esta tienda hizo a otra para un cliente y que piden un paso
+   *  de quien atiende: avisarle que llegó o que no va a llegar. Ya resumidos por `resumenParaElInicio`. */
+  pedidosCliente?: { llegaron: number; noLlegaron: number; primero: string | null } | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
   prendasVencidas?: number | null;
@@ -160,6 +164,30 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ahora: n ? `Resuelve ${n} ${plural(n, "devolución", "devoluciones")}` : "",
       detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna espera respuesta." : `${n} ${plural(n, "espera", "esperan")} que se aprueben o rechacen.`,
       href: "/devoluciones",
+      ocultable: true,
+    });
+  }
+  // ADR-0328 act. 17 (decisión del 2026-10-04): la tienda que pidió una prenda a otra para un cliente se entera aquí (y en
+  // la franja de Vender, adonde lleva) de lo que tiene que avisarle: que llegó, o que no va a llegar porque la otra sede no
+  // la tenía o el envío se cerró sin ella.
+  if (f.pedidosCliente !== undefined) {
+    const p = f.pedidosCliente;
+    const n = p === null ? null : p.llegaron + p.noLlegaron;
+    const partes = p
+      ? [p.noLlegaron ? `${p.noLlegaron} no ${plural(p.noLlegaron, "va", "van")} a llegar` : "", p.llegaron ? `${p.llegaron} ${plural(p.llegaron, "llegó", "llegaron")}` : ""].filter(Boolean)
+      : [];
+    avisos.push({
+      clave: "pedidosCliente",
+      grupo: "Ventas y posventa",
+      titulo: "Pedidos para clientes",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Avisa a ${n} ${plural(n, "cliente", "clientes")} cómo terminó su pedido` : "",
+      detalle:
+        p === null ? SIN_LEER
+          : n === 0 ? "Ningún cliente espera noticias de una prenda pedida a otra sede."
+            : `${partes.join(" · ")}${p.primero ? ` · ${p.primero}` : ""}: ${plural(p.llegaron + p.noLlegaron, "avísale", "avísales")} por WhatsApp desde Vender.`,
+      href: "/vender",
       ocultable: true,
     });
   }

@@ -22,16 +22,26 @@ export async function getPedidosEntreSedes(ubicacionId: string): Promise<PedidoE
 }
 
 // ADR-0328 act. 17 (20261005100100): los pedidos PARA UN CLIENTE de la sede, con dónde está apartada la prenda en el
-// origen y si ya se le avisó. Los lee Traslados (en la misma tarjeta que la reposición) y Vender (la franja «Llegó para un
-// cliente»). Secundaria como la de arriba: sin la migración o si falla, lista vacía y lo demás sigue.
-export async function getPedidosConCliente(ubicacionId: string): Promise<PedidoEntreSedes[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_pedidos_con_cliente", { p_ubicacion_id: ubicacionId });
-  if (error) {
-    if (error.code !== "PGRST202") console.error("No se pudieron leer los pedidos para clientes:", error.message);
-    return [];
+// origen y si ya se le avisó. Los lee Traslados (en la misma tarjeta que la reposición), Vender (la franja de los clientes
+// por avisar) y el Inicio. `null` = no se pudo leer: el Inicio lo dice («no se pudo leer») en vez de mostrar «al día».
+export const leerPedidosConCliente = cache(async (ubicacionId: string): Promise<PedidoEntreSedes[] | null> => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("fn_pedidos_con_cliente", { p_ubicacion_id: ubicacionId });
+    if (error) {
+      if (error.code !== "PGRST202") console.error("No se pudieron leer los pedidos para clientes:", error.message);
+      return null;
+    }
+    return (data ?? []).map((f) => pedidoConClienteDeFila(f as unknown as Record<string, unknown>));
+  } catch (e) {
+    console.error("No se pudieron leer los pedidos para clientes:", e);
+    return null;
   }
-  return (data ?? []).map((f) => pedidoConClienteDeFila(f as unknown as Record<string, unknown>));
+});
+
+/** Lo mismo para una pantalla, donde es secundaria: sin la migración o si falla, lista vacía y lo demás sigue. */
+export async function getPedidosConCliente(ubicacionId: string): Promise<PedidoEntreSedes[]> {
+  return (await leerPedidosConCliente(ubicacionId)) ?? [];
 }
 
 /**

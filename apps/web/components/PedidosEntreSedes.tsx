@@ -26,9 +26,9 @@ import {
   type OpcionLlegada,
   type PedidoEntreSedes,
 } from "@/lib/pedidos-entre-sedes-reglas";
-import { accionesDe, estadoVisibleConCliente, nombreCliente, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
+import { accionesDe, avisoAlCliente, estadoVisibleConCliente, nombreCliente, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
 import { esperaVisible } from "@/lib/pedidos-por-atender-reglas";
-import { AvisarLlegadaModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
+import { AvisarAlClienteModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 
 // «Pedir a otra sede» en Traslados (ADR-0242 D-7). Lugar provisional: el definitivo es la bandeja «Hoy te toca» de la
 // tanda 2, que todavía no existe. Dos listas en una tarjeta:
@@ -36,7 +36,7 @@ import { AvisarLlegadaModal, SubirPedidoAlAlmacenModal } from "@/components/Pedi
 //   · «Pediste»: lo que yo pedí → su estado, «Ya no la necesito» mientras no salga, o el enlace al traslado.
 // La página solo la monta si hay algo que mostrar (`hayPedidosQueMostrar`): nunca una tarjeta vacía.
 // ADR-0328 act. 17: la misma lista lleva los pedidos PARA UN CLIENTE (una prenda, apartada en la sede que la envía): si
-// está colgada, primero «Subir al almacén» (Felipe: dos pasos); al llegar, «Avisar al cliente». Cada fila que espera dice
+// está colgada, primero «Subir al almacén» (Felipe: dos pasos); al llegar, o si no va a llegar, «Avisar al cliente». Cada fila que espera dice
 // hace cuánto, y desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes).
 
 type ConCliente = PedidoEntreSedes & { cliente: ClientePedido };
@@ -50,6 +50,8 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
   const [cancelar, setCancelar] = useState<PedidoEntreSedes | null>(null);
   const [subir, setSubir] = useState<PedidoEntreSedes | null>(null);
   const [avisarA, setAvisarA] = useState<PedidoEntreSedes | null>(null);
+  // Qué se le avisa al cliente (decisión del 2026-10-04): que llegó, o que no va a llegar.
+  const avisoA = avisarA ? avisoAlCliente(avisarA) : null;
   const fila = (p: PedidoEntreSedes) => (
     <PedidoFila pedido={p} ahoraIso={ahoraIso} onEnviar={() => setEnviar(p)} onCancelar={() => setCancelar(p)} onSubir={() => setSubir(p)} onAvisar={() => setAvisarA(p)} />
   );
@@ -92,7 +94,7 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
       {enviar && <EnviarPedidoEntreSedesModal pedido={enviar} ubicacion={ubicacion} onClose={() => setEnviar(null)} />}
       {cancelar && <CancelarPedidoEntreSedesModal pedido={cancelar} ubicacion={ubicacion} onClose={() => setCancelar(null)} />}
       {conCliente(subir) && <SubirPedidoAlAlmacenModal pedido={paraSubirDe(subir)} ubicacion={ubicacion} onClose={() => setSubir(null)} />}
-      {conCliente(avisarA) && <AvisarLlegadaModal pedido={avisarA} sede={ubicacion} onClose={() => setAvisarA(null)} />}
+      {conCliente(avisarA) && avisoA && <AvisarAlClienteModal pedido={avisarA} aviso={avisoA} sede={ubicacion} onClose={() => setAvisarA(null)} />}
     </section>
   );
 }
@@ -170,7 +172,7 @@ function PedidoFila({
         )}
         {acciones.avisar && (
           <button type="button" onClick={onAvisar} className={`btn-cayla ${pedido.cliente?.avisadoEn ? "btn-sutil" : "btn-primario"}`}>
-            {pedido.cliente?.avisadoEn ? "Avisar otra vez" : "Avisar al cliente"}
+            {pedido.cliente?.avisadoEn ? "Avisar otra vez" : avisoAlCliente(pedido) === "no_llego" ? "Avisar que no llegó" : "Avisar al cliente"}
           </button>
         )}
         {acciones.noLaTengo && (

@@ -5440,6 +5440,7 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: {
           avisado_en: string | null
+          cancelado_desde: string | null
           cancelado_motivo: string | null
           cantidad: number
           cliente_apellidos: string
