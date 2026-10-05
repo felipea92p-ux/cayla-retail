@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   armarPropuesta,
   EFECTO_DE_DISENO,
+  lecturaDeGrupo,
   pesoDeLaVenta,
   PESO_DE_LA_INDUSTRIA,
   PESO_MAXIMO_DE_LA_VENTA,
   rangoDeWilson,
   repartirEnPrendas,
+  TOLERANCIA_DE_PUNTOS,
   type EntradaMix,
 } from "./mix-piso";
 import { codigoDeSede, META_DE_VENTA_FUERA_DEL_RIEL, PARTIDA_DEL_RIEL } from "./mix-piso-partida";
@@ -276,5 +278,72 @@ describe("las otras sedes y lo que se degrada", () => {
     expect(acc.meta).toEqual({ desde: 9, hasta: 11 });
     // Para la propuesta del riel solo cuentan las ventas del riel: 80 de 80.
     expect(p.ventasConfirmadasDelRiel).toBe(80);
+  });
+});
+
+describe("la lectura de cada grupo, en palabras", () => {
+  const polos = (p: ReturnType<typeof armarPropuesta>) => p.enRiel.find((f) => f.grupo.clave === "polos_tops_blusas")!;
+  const abrigo = (p: ReturnType<typeof armarPropuesta>) => p.enRiel.find((f) => f.grupo.clave === "abrigo_y_capas")!;
+
+  it("sin cuadrar el piso no dice qué falta: «por cuadrar» (lo que el sistema cree colgado puede ser una fracción de lo real)", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 100]], [], { cuadradoEn: null })));
+    expect(lecturaDeGrupo(polos(p), p)).toEqual({ tono: "pizarra", texto: "Por cuadrar: sin saber lo que cuelga de verdad no se dice qué falta." });
+  });
+
+  it("si faltan prendas dice cuántas y que se cuelgue más; en ámbar", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 200], ["jea", 50], ["aba", 50]], [])));
+    expect(lecturaDeGrupo(polos(p), p)).toEqual({ tono: "ambar", texto: "Faltan 88: cuelga más de este grupo." });
+  });
+
+  it("si sobran, dice que no se cuelgue más hasta llegar a su parte y que NO se retira nada (ADR-0329: nada se saca a la fuerza)", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 100], ["aba", 50]], [])));
+    expect(abrigo(p).diferencia).toBe(30 - 50);
+    expect(lecturaDeGrupo(abrigo(p), p)).toEqual({ tono: "ambar", texto: "Sobran 20: no cuelgues más hasta llegar a su parte; no se retira nada." });
+  });
+
+  it("un destino que sobra no baja sin el OK del líder (ADR-0329, decisión 4)", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 400], ["jea", 10]], [])));
+    expect(polos(p).diferencia).toBeLessThan(0);
+    expect(lecturaDeGrupo(polos(p), p)?.texto).toBe(`Sobran ${Math.abs(polos(p).diferencia as number)}: es destino, no baja sin el OK del líder.`);
+  });
+
+  it("a menos de ±3 puntos de la capacidad de su meta está «dentro de lo esperado», en verde (±18 prendas con 600)", () => {
+    // La meta de polos en TRU son 288: con 285 colgadas faltan 3, y 3 prendas son medio punto de las 600.
+    const p = armarPropuesta(entrada(lectura([["pol", 285]], [])));
+    expect(polos(p).diferencia).toBe(3);
+    expect(lecturaDeGrupo(polos(p), p)).toEqual({ tono: "verde", texto: "Dentro de lo esperado." });
+    // En el borde: 18 prendas = 3 puntos de 600 todavía es «dentro»; 19, ya no.
+    const borde = ((p.capacidad as number) * TOLERANCIA_DE_PUNTOS) / 100;
+    expect(borde).toBe(18);
+    expect(lecturaDeGrupo({ ...polos(p), diferencia: borde }, p)?.tono).toBe("verde");
+    expect(lecturaDeGrupo({ ...polos(p), diferencia: borde + 1 }, p)?.tono).toBe("ambar");
+    expect(lecturaDeGrupo({ ...polos(p), diferencia: -borde }, p)?.tono).toBe("verde");
+    expect(lecturaDeGrupo({ ...polos(p), diferencia: -borde - 1 }, p)?.tono).toBe("ambar");
+  });
+
+  it("con el riel a medias, el signo sigue a la META en prendas y no al porcentaje de lo que cuelga (no se contradice)", () => {
+    // 200 de las 300 prendas colgadas son polos (66,7 % de lo que cuelga, más que su 48 %), pero la meta son 288 y faltan 88: dice «faltan», no «sobran».
+    const p = armarPropuesta(entrada(lectura([["pol", 200], ["jea", 50], ["aba", 50]], [])));
+    expect(polos(p).hoyPct as number).toBeGreaterThan(polos(p).propuestaPct as number);
+    expect(lecturaDeGrupo(polos(p), p)?.texto).toBe("Faltan 88: cuelga más de este grupo.");
+  });
+
+  it("un grupo que la sede no lleva (LIM: vestidos) dice «no entra en esta sede»", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 50]], []), { codigoSede: "lim", capacidad: 180 }));
+    const vestidos = p.enRiel.find((f) => f.grupo.clave === "vestidos_conjuntos")!;
+    expect(lecturaDeGrupo(vestidos, p)?.texto).toBe("No entra en esta sede: va por pedido o desde otra sede.");
+    const conAlgo = armarPropuesta(entrada(lectura([["pol", 50], ["ves", 8]], []), { codigoSede: "lim", capacidad: 180 }));
+    expect(lecturaDeGrupo(conAlgo.enRiel.find((f) => f.grupo.clave === "vestidos_conjuntos")!, conAlgo)?.texto).toBe("No entra en esta sede: no se cuelga más de este grupo.");
+  });
+
+  it("sin propuesta (sede sin punto de partida, el Taller) no hay lectura: no se inventa", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 80]], []), { codigoSede: "ten" }));
+    expect(p.enRiel.every((f) => lecturaDeGrupo(f, p) === null)).toBe(true);
+  });
+
+  it("sin capacidad conocida dice el sentido sin inventar una cantidad de prendas", () => {
+    const p = armarPropuesta(entrada(lectura([["pol", 20], ["aba", 80]], []), { capacidad: null }));
+    expect(lecturaDeGrupo(polos(p), p)?.texto).toBe("Falta: cuelga más de este grupo.");
+    expect(lecturaDeGrupo(abrigo(p), p)?.texto).toBe("Sobra: no cuelgues más hasta llegar a su parte; no se retira nada.");
   });
 });

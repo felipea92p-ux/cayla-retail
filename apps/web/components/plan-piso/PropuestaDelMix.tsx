@@ -1,8 +1,10 @@
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, celda, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { PESO_DE_LA_INDUSTRIA, PESO_MAXIMO_DE_LA_VENTA, type FilaDelRiel, type FilaFueraDelRiel, type PropuestaMix } from "@/lib/mix-piso";
+import { lecturaDeGrupo, PESO_DE_LA_INDUSTRIA, PESO_MAXIMO_DE_LA_VENTA, type FilaDelRiel, type FilaFueraDelRiel, type PropuestaMix } from "@/lib/mix-piso";
 import { ROL_AYUDA, ROL_ETIQUETA } from "@/lib/plan-piso-grupos";
+import { Mancuerna } from "@/components/plan-piso/Mancuerna";
+import { RielAEscala } from "@/components/plan-piso/RielAEscala";
 
 // Plan del piso ▸ Propuesta (ADR-0329 + ADR-0328, actividad 12, primera entrega: solo lectura). Cuánto lugar le toca a cada grupo de
 // prendas en el riel de la sede, frente a lo que cuelga hoy y a lo que dice la venta propia. Es una PROPUESTA: nada se guarda aquí
@@ -37,15 +39,27 @@ function Dato({ etiqueta, children, apagado = false }: { etiqueta: string; child
   );
 }
 
-function FilaGrupo({ f, cuadrado }: { f: FilaDelRiel; cuadrado: boolean }) {
+/** El punto de color de la lectura: los mismos estados que `Chip` (verde = al día, ámbar = hay algo por hacer, pizarra = informativo), sin rojo. */
+const PUNTO_LECTURA = { verde: "bg-verde", ambar: "bg-ambar", pizarra: "bg-pizarra" } as const;
+
+function FilaGrupo({ f, cuadrado, capacidad }: { f: FilaDelRiel; cuadrado: boolean; capacidad: number | null }) {
   const sinPropuesta = f.propuestaPct === null;
+  const lectura = lecturaDeGrupo(f, { cuadrado, capacidad });
   return (
     <div className={fila(PLANTILLA, "sm:items-center")}>
-      <div className={celda("izq", "flex flex-wrap items-center gap-x-2 gap-y-1")}>
-        <span className="text-sm text-tinta">{f.grupo.nombre}</span>
-        <span title={ROL_AYUDA[f.grupo.rol]}>
-          <Chip tono="pizarra">{ROL_ETIQUETA[f.grupo.rol]}</Chip>
-        </span>
+      <div className={celda("izq", "!whitespace-normal")}>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-sm text-tinta">{f.grupo.nombre}</span>
+          <span title={ROL_AYUDA[f.grupo.rol]}>
+            <Chip tono="pizarra">{ROL_ETIQUETA[f.grupo.rol]}</Chip>
+          </span>
+        </div>
+        {lectura && (
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-tinta/75">
+            <span aria-hidden className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO_LECTURA[lectura.tono]}`} />
+            <span>{lectura.texto}</span>
+          </p>
+        )}
       </div>
       <Dato etiqueta="Hoy" apagado={!cuadrado}>
         <span title={cuadrado ? undefined : "Por cuadrar: lo que cuelga de verdad puede ser muy distinto de lo que dice el sistema."}>
@@ -119,6 +133,19 @@ function FilaFuera({ f }: { f: FilaFueraDelRiel }) {
   );
 }
 
+/** El riel a escala de la propuesta: dos rieles con la misma capacidad (hoy y propuesta). Es una ayuda visual; las mismas cifras están en la tabla. */
+function RielDeLaPropuesta({ p }: { p: PropuestaMix }) {
+  if (p.motivoSinPropuesta || p.capacidad === null) return null;
+  const grupos = p.enRiel.map((f) => ({ clave: f.grupo.clave, nombre: f.grupo.nombre, hoy: f.colgadas, propuesta: f.propuestaPrendas ?? 0 }));
+  return (
+    <section className="card-cayla anim-sube p-5" style={{ "--i": 2 } as React.CSSProperties} aria-label="El riel, hoy y como quedaría">
+      <h2 className="font-display text-xl text-tinta">El riel, hoy y como quedaría</h2>
+      <p className="mt-0.5 mb-4 max-w-2xl text-[13px] text-tinta/70">Cada gancho es una prenda y los dos rieles tienen la misma capacidad. Pasa el cursor por un grupo para ver dónde cuelga.</p>
+      <RielAEscala grupos={grupos} capacidad={p.capacidad} cuadrado={p.cuadrado} />
+    </section>
+  );
+}
+
 export function PropuestaDelMix({ propuesta: p, capacidadProvisional, categoriasPorRevisar }: { propuesta: PropuestaMix; capacidadProvisional: boolean; categoriasPorRevisar: number }) {
   const hayVentas = p.ventasConfirmadasDelRiel > 0;
   const pesoPct = Math.round(p.pesoDeLaVenta * 100);
@@ -146,6 +173,11 @@ export function PropuestaDelMix({ propuesta: p, capacidadProvisional, categorias
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Peso de la venta" valor={`${pesoPct} %`} className="anim-sube" style={{ "--i": 3 } as React.CSSProperties}>
           {hayVentas ? "de la propuesta viene de lo que se vendió" : "todavía sin ventas confirmadas"}
+          <span aria-hidden className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-sand">
+            <span className="block bg-taupe/45" style={{ width: `${100 - pesoPct}%` }} />
+            <span className="block bg-tinta" style={{ width: `${pesoPct}%` }} />
+          </span>
+          <span className="mt-1 block text-[11px] text-taupe">industria {100 - pesoPct} % · venta propia {pesoPct} %</span>
         </TarjetaCifra>
       </div>
 
@@ -154,6 +186,9 @@ export function PropuestaDelMix({ propuesta: p, capacidadProvisional, categorias
           Esta propuesta usa los grupos tal como están: {categoriasPorRevisar === 1 ? "1 categoría sigue" : `${categoriasPorRevisar} categorías siguen`} «por revisar» en la pestaña Grupos.
         </p>
       )}
+
+      <RielDeLaPropuesta p={p} />
+      <Mancuerna propuesta={p} />
 
       <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Propuesta del mix en el riel">
         <div className="border-b border-sand px-5 py-4">
@@ -165,7 +200,7 @@ export function PropuestaDelMix({ propuesta: p, capacidadProvisional, categorias
         <div className="divide-y divide-sand">
           <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
           {p.enRiel.map((f) => (
-            <FilaGrupo key={f.grupo.clave} f={f} cuadrado={p.cuadrado} />
+            <FilaGrupo key={f.grupo.clave} f={f} cuadrado={p.cuadrado} capacidad={p.capacidad} />
           ))}
           {sinGrupo && (
             <div className={fila(PLANTILLA, "sm:items-center bg-hueso/60")}>

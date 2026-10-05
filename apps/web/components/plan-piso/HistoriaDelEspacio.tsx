@@ -1,4 +1,5 @@
 import { Chip } from "@/components/ui/Chip";
+import { BarraApilada } from "@/components/plan-piso/BarraApilada";
 import { TABLA, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import type { HistoriaDelEspacio as Historia } from "@/lib/espacio-piso";
@@ -27,11 +28,12 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
   // Las columnas son anchas a propósito y la tabla se desplaza dentro de su tarjeta: en el celular no se apila (una fila de 10 cifras apilada
   // no se compara con la de arriba). La plantilla va en un `style` y no en una clase de Tailwind porque lleva el número de grupos: Tailwind solo
   // genera las clases que están escritas completas en el código, y una armada con `${n}` no existiría.
-  const plantilla = { gridTemplateColumns: `7.5rem repeat(${delRiel.length}, minmax(4.75rem, 1fr)) 5.5rem 5.5rem 6.5rem` };
+  const plantilla = { gridTemplateColumns: `7.5rem repeat(${delRiel.length}, minmax(4.75rem, 1fr)) 5.5rem 11rem 5.5rem 6.5rem` };
   const titulos = [
     { texto: "Foto", der: false },
     ...delRiel.map((g) => ({ texto: CORTO[g.clave] ?? g.nombre, der: true })),
     { texto: "Total del riel", der: true },
+    { texto: "Mezcla del riel", der: false },
     { texto: "Fuera del riel", der: true },
     { texto: "Piso", der: true },
   ];
@@ -66,7 +68,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[62rem] divide-y divide-sand">
+            <div className="min-w-[72rem] divide-y divide-sand">
               <div className="encabezado-tabla-cayla grid items-end gap-x-4 px-5 py-2" style={plantilla} role="row">
                 {titulos.map((t) => (
                   <span key={t.texto} role="columnheader" className={`${TABLA.titulo} block min-w-0 ${t.der ? "text-right" : "text-left"}`}>
@@ -83,6 +85,13 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
                     </div>
                   ))}
                   <div className={celda("der", `font-medium ${f.cuadrada ? "" : "text-taupe"}`)}>{n(f.totalRiel)}</div>
+                  <div className="min-w-0">
+                    <BarraApilada
+                      titulo={`Mezcla del riel el ${dia(f.fecha)}`}
+                      apagada={!f.cuadrada}
+                      partes={delRiel.map((g, i) => ({ clave: g.clave, nombre: g.nombre, valor: f.porGrupo[g.clave] ?? 0, indice: i }))}
+                    />
+                  </div>
                   <div className={celda("der", "text-taupe")}>{n(f.fueraDelRiel)}</div>
                   <div className={celda("der")}>{f.cuadrada ? <Chip tono="verde">Cuadrado</Chip> : <Chip tono="ambar">Por cuadrar</Chip>}</div>
                 </div>

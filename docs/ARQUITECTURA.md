@@ -477,7 +477,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`lib/mix-piso.ts`, puro; punto de partida de la industria por sede en `lib/mix-piso-partida.ts`) y `getFotosDelEspacio` = RPC `fn_espacio_piso` →
   `armarHistoria` (`lib/espacio-piso.ts`, puro). Tres pestañas en estado (`PlanDelPisoPestanas.tsx`, cliente; las tres quedan montadas): **Propuesta**
   (`PropuestaDelMix.tsx`, servidor, solo lectura: lo que cuelga, la industria, la venta propia con su rango de Wilson y la propuesta en prendas que suma la
-  capacidad), **Grupos** (`GruposDelMix.tsx`, cliente: el líder prepara cambios en las filas y los guarda juntos con «Revisar y guardar» →
+  capacidad; el riel a escala `RielAEscala.tsx` —canvas, cliente—, la mancuerna `Mancuerna.tsx` y la lectura en palabras `lecturaDeGrupo` de `lib/mix-piso.ts`; colores y ganchos en `lib/mix-piso-visual.ts`, puro), **Grupos** (`GruposDelMix.tsx`, cliente: el líder prepara cambios en las filas y los guarda juntos con «Revisar y guardar» →
   RPC `fijar_grupos_de_categorias`, todo o nada, con el combo Responsable y PT409; un cambio preparado caduca si otra persona cambió la categoría) e
   **Historia** (`HistoriaDelEspacio.tsx`, servidor). Se degrada por pestaña: sin la lectura del piso o de las fotos se apaga solo esa pestaña.
 - `/inventario/frescura` (**Frescura del piso**, ADR-0208 paso 4, 2026-09-28; módulo `frescura`, que nace sin rol y

@@ -51,6 +51,19 @@ Una categoría en dos grupos; un rol inventado; un vestido en un grupo de fuera 
 
 Guardar y aprobar el mix con motivo e historial; el ajuste del encargado; **el tope de ±3 puntos al mes con zona muerta** (hoy no hay un mix aprobado contra el que acotar: la investigación mostró que el tope solo es del tamaño del ruido de un mes de ventas, ±3,2 puntos al 95 %, así que por sí solo deja pasar el ruido); la cobertura de Little; «entra una, sale una»; la prueba de 4 semanas de Jeans; el mínimo por talla en el motor; la reserva de prueba por rol.
 
+## Actualización 2026-10-05 (tarde) — la propuesta se ve y se lee mejor
+
+Tras revisar el informe interactivo «Mix del Piso» (artefacto del 5-oct), se aplicó lo que sirve a la pantalla, con los colores de la guía:
+- **El riel a escala** (`RielAEscala.tsx`): dos rieles de ganchos, Hoy y Propuesta, con la MISMA capacidad. Muestra lo que una tabla no dice: TRU está al 10 % (61 de 600). Una barra al 100 % de lo colgado escondía el volumen.
+- **La mancuerna** (`Mancuerna.tsx`): hoy, industria, venta propia (con su rango de Wilson) y propuesta de cada grupo en una línea, para ver cuál empuja hacia dónde.
+- **La lectura en palabras** (`lecturaDeGrupo`): «Faltan 88: cuelga más», «Dentro de lo esperado», «Sobran 20: no cuelgues más hasta llegar a su parte; no se retira nada», «es destino, no baja sin el OK del líder».
+- La barra del peso de la venta en su tarjeta y la mezcla por fila en la Historia.
+
+DECIDÍ: el signo de la lectura sale de la META EN PRENDAS (`capacidad × %`, la misma que usa el motor del piso), con tolerancia de ±3 puntos de la capacidad; solo sin capacidad conocida se compara el porcentaje.
+DESCARTÉ: comparar el % de lo que cuelga con el % propuesto: con el riel a medias (300 de 600) polos tenía 66 % de lo colgado (más que su 48 %) y aun así le faltaban 88 prendas, y el texto se contradecía. Lo cazó la prueba antes de verlo en pantalla.
+DESCARTÉ también el rojo para colorear un grupo (la guía lo reserva: «acento sagrado, máx. 2 por pantalla»): los seis grupos usan tinta, pizarra, verde, ámbar, taupe y sand.
+SE ROMPE SI: se agregan más de seis grupos en el riel (los colores se reutilizan y dos grupos se confundirían) o el riel pasa de unos 2.000 ganchos (el canvas se pone ilegible).
+
 ## Para producción
 
 1. Pegar `20261006100000_plan_del_piso_grupos_del_mix.sql` y después `20261006110000_plan_del_piso_foto_del_espacio.sql`, cada una sola en el SQL Editor, **antes de publicar la web**. Ninguna crea políticas ni toca tablas en uso. La verificación de cada una está en su encabezado.

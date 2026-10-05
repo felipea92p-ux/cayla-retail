@@ -243,3 +243,51 @@ export function armarPropuesta(e: EntradaMix): PropuestaMix {
     sinGrupo: { colgadas: colgadasSinGrupo, ventasConfirmadas: confirmadasSinGrupo, categorias: categoriasSinGrupo },
   };
 }
+
+// ── La lectura de cada grupo, en palabras ─────────────────────────────────────────────────────────────────────────────────────
+
+/** Hasta cuántos puntos del RIEL (de su capacidad) puede apartarse lo que cuelga de la meta de un grupo y seguir «dentro de lo esperado». Es el mismo
+ *  ±3 con el que ADR-0329 acota cada movimiento mensual del mix: apartarse menos que lo que se puede mover en un mes no pide hacer nada. Criterio, no dato. */
+export const TOLERANCIA_DE_PUNTOS = 3;
+
+export type LecturaDeGrupo = {
+  /** El estado en una palabra de color: verde = al día, ámbar = hay algo por hacer, pizarra = informativo (no se puede decir todavía). */
+  tono: "verde" | "ambar" | "pizarra";
+  texto: string;
+};
+
+/**
+ * Qué dice la propuesta de UN grupo del riel, en palabras de la tienda y no solo en cifras: «Faltan 88: cuelga más de este grupo», «Dentro de lo
+ * esperado», «Sobran 20: no cuelgues más hasta llegar a su parte». La persona que cuelga no tiene por qué restar prendas ni comparar porcentajes
+ * (Norman: el error es del diseño). `null` si no hay propuesta (sede sin punto de partida, sin piso de venta).
+ *
+ * EL SIGNO SALE DE LAS PRENDAS, NO DE LOS PORCENTAJES. La meta de un grupo es `capacidad × %` (la misma que usa el motor del piso: «pasó su meta» =
+ * colgadas ≥ meta). Con el riel a medias (300 de 600 colgadas), un grupo puede tener más de su PARTE de lo que cuelga y aun así estar lejos de su meta:
+ * comparar porcentajes diría «sobra» y la diferencia en prendas «faltan 88». Se sigue la diferencia en prendas; solo sin capacidad conocida se
+ * compara el porcentaje.
+ *
+ * LAS REGLAS (todas salen de lo ya decidido en ADR-0329; no agregan negocio):
+ *   · Sin cuadrar el piso, no se dice qué falta: lo que el sistema cree colgado puede ser una fracción de lo real (TRU: 138 contra 600–750).
+ *   · Un grupo que la sede no lleva (0 %) dice «no entra en esta sede».
+ *   · A menos de ±`TOLERANCIA_DE_PUNTOS` de la capacidad de su meta está «dentro de lo esperado».
+ *   · Si faltan, se cuelga más; si sobran, se deja de colgar nuevo: **nada se saca a la fuerza** (ADR-0329, act. 2026-10-04, punto 10) y un destino
+ *     no baja sin el OK del líder (punto 4).
+ */
+export function lecturaDeGrupo(f: FilaDelRiel, p: { cuadrado: boolean; capacidad: number | null }): LecturaDeGrupo | null {
+  if (f.propuestaPct === null) return null;
+  if (!p.cuadrado) return { tono: "pizarra", texto: "Por cuadrar: sin saber lo que cuelga de verdad no se dice qué falta." };
+  if (f.propuestaPct === 0) {
+    return { tono: "pizarra", texto: f.colgadas > 0 ? "No entra en esta sede: no se cuelga más de este grupo." : "No entra en esta sede: va por pedido o desde otra sede." };
+  }
+  // El sentido y la tolerancia: en prendas si se conoce la capacidad (lo normal); si no, en puntos del porcentaje de lo que cuelga.
+  const n = f.diferencia;
+  const dentro = n !== null && p.capacidad !== null ? Math.abs(n) <= (p.capacidad * TOLERANCIA_DE_PUNTOS) / 100 : Math.abs(f.propuestaPct - (f.hoyPct ?? 0)) <= TOLERANCIA_DE_PUNTOS;
+  if (dentro) return { tono: "verde", texto: "Dentro de lo esperado." };
+  const faltan = n !== null ? n > 0 : f.propuestaPct > (f.hoyPct ?? 0);
+  if (faltan) return { tono: "ambar", texto: n !== null ? `Faltan ${n}: cuelga más de este grupo.` : "Falta: cuelga más de este grupo." };
+  const sobran = n !== null ? `Sobran ${Math.abs(n)}` : "Sobra";
+  return {
+    tono: "ambar",
+    texto: f.grupo.rol === "destino" ? `${sobran}: es destino, no baja sin el OK del líder.` : `${sobran}: no cuelgues más hasta llegar a su parte; no se retira nada.`,
+  };
+}
