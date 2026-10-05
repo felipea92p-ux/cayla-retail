@@ -75,7 +75,7 @@ export function AccionesVenta({ fila, contexto }: { fila: FilaHistorial; context
             >
               <Icono className="h-4 w-4" aria-hidden />
               {a.etiqueta}
-              <span className={`text-[11.5px] font-normal leading-tight ${a.destacada ? "text-crema/65" : "text-tinta/55"}`}>{a.detalle}</span>
+              <span className={`text-[11.5px] font-normal leading-tight ${a.destacada ? "text-crema/65 dark:text-crema/75" : "text-tinta/55"}`}>{a.detalle}</span>
             </Link>
           );
         })}

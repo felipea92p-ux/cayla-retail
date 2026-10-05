@@ -108,7 +108,7 @@ export function BuscadorVentas({
       {/* Una sola píldora: la búsqueda y su botón. Al enfocarla se despega un poco y toma el
           hilo (taupe) como borde. */}
       <div
-        className={`flex h-16 items-center gap-3 rounded-xl bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_rgba(80,50,20,0.5)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_rgba(80,50,20,0.6)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
+        className={`flex h-16 items-center gap-3 rounded-xl bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
           escaneando ? "ring-2 ring-taupe" : "ring-tinta/[0.09]"
         }`}
       >

@@ -51,10 +51,10 @@ export function FiltroConteosRecientes({
         Todos
       </Link>
       <Link href={hrefRecientes(hoy, variantes)} scroll={false} className="pildora-cayla" aria-current={dia === hoy ? "true" : undefined} data-activa={dia === hoy}>
-        Hoy <span className="font-normal opacity-70">{deHoy}</span>
+        Hoy <span className="font-normal opacity-70 dark:opacity-85">{deHoy}</span>
       </Link>
       <Link href={hrefRecientes(ayer, variantes)} scroll={false} className="pildora-cayla" aria-current={dia === ayer ? "true" : undefined} data-activa={dia === ayer}>
-        Ayer <span className="font-normal opacity-70">{deAyer}</span>
+        Ayer <span className="font-normal opacity-70 dark:opacity-85">{deAyer}</span>
       </Link>
       <div className="flex items-center gap-2 sm:pl-1.5">
         <span aria-hidden className="text-[13px] text-taupe">
