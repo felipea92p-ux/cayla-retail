@@ -210,12 +210,14 @@ do $$ begin
   if to_regclass('retail.cuadres_piso') is null then
     create table retail.cuadres_piso (id uuid primary key default gen_random_uuid(), ubicacion_id uuid not null, persona_id uuid not null,
       token_cliente uuid not null, huella text not null, escaneo_desde timestamptz not null, resumen jsonb not null,
-      created_at timestamptz not null default now());
+      nota text, created_at timestamptz not null default now());
   end if;
 end $$;
-insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, created_at) values
-  (:'tru', :'p_felipe', gen_random_uuid(), md5('a'), '2026-10-01 09:00-05', '{}', '2026-10-01 10:00-05'),
-  (:'tru', :'p_felipe', gen_random_uuid(), md5('b'), '2026-10-03 09:00-05', '{}', '2026-10-03 10:00-05');
+-- Desde el segundo cuadre de una sede la base exige la nota de por qué se vuelve a cuadrar (#792,
+-- \`fn_cuadre_piso_nota_al_repetir\`): el primero va sin nota y el segundo la lleva.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota, created_at) values
+  (:'tru', :'p_felipe', gen_random_uuid(), md5('a'), '2026-10-01 09:00-05', '{}', null, '2026-10-01 10:00-05'),
+  (:'tru', :'p_felipe', gen_random_uuid(), md5('b'), '2026-10-03 09:00-05', '{}', 'Se volvió a cuadrar tras mover el riel', '2026-10-03 10:00-05');
 `;
   caso(
     "con la sede cuadrada, la lectura trae la fecha de su ÚLTIMO cuadre, y la otra sede sigue «por cuadrar»",
