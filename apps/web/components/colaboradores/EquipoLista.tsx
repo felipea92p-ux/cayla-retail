@@ -23,10 +23,15 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 // («el equipo de Trujillo»). El estado (suspendido, baja en Dynamic) es una marca sobre la persona, no una pestaña. Arriba,
 // «Esperan tu ok» solo si hay altas por aprobar. Tocar una persona abre su ficha; tocar una terminal, la suya (`FichaTerminal`). Con el atajo «Terminales» la lista es la misma, solo con ellas.
 
-/** El rol: el único rótulo de acceso. El Líder, en tinta. */
+/** El rol: el único rótulo de acceso. El Líder, en tinta. Un nombre largo («Prueba del tema: ventas y stock») no se sale de su
+ *  columna: se corta con «…» y el nombre completo queda en el `title`. Es `inline-block` y no `inline-flex` porque el texto
+ *  solo se corta con puntos suspensivos dentro de un bloque. */
 export function PildoraRol({ nombre, lider }: { nombre: string; lider: boolean }) {
   return (
-    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${lider ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}>
+    <span
+      title={nombre}
+      className={`inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-xs font-semibold ${lider ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}
+    >
       {nombre}
     </span>
   );
@@ -108,7 +113,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
           </span>
           <span className="mt-0.5 block truncate text-[12px] text-tinta/55">{m.tipo === "persona" ? m.correo : "Terminal de tienda"}</span>
         </span>
-        <span className={`justify-self-start ${apagado ? "opacity-70" : ""}`}>
+        <span className={`flex min-w-0 ${apagado ? "opacity-70" : ""}`}>
           <PildoraRol nombre={m.rolNombre} lider={m.tipo === "persona" && m.nivel === "lider"} />
         </span>
         <span className="hidden text-[12.5px] tabular-nums text-tinta/60 sm:block lg:text-left">

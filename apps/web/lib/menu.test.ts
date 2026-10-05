@@ -399,9 +399,10 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los cinco módulos ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los seis módulos ve las seis pantallas desde una tienda o un almacén, en el orden plan → proveedor → factura → recepción → pago → notas de crédito", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
+        "compras.plan",
         "compras.proveedores",
         "compras.comprobantes",
         "compras.recibir",

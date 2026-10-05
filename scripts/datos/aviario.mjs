@@ -69,14 +69,21 @@ export const AVIARIO = [
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
       "transferencias", "transferencia_items", "transferencia_recepciones",
+      // Lo que una sede deja listo para enviar a otra y de qué traslado salió (pedidos entre sedes, ADR-0242). Es parte del
+      // traslado: mismo pájaro. Asignadas en el refresco del 2026-10-05.
+      "prendas_para_enviar", "prendas_para_enviar_salidas",
       // ADR-0113: el envío es el padre de los lotes (`lotes.envio_id`); sus extras son movimientos y sus
       // traslados, transferencias — el mismo pájaro que las tablas que agrupa, no el de Compras.
       "envios", "envio_extras", "envio_traslados",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
+      // La prenda que se bajó al piso en la mano, con el ajuste que la cuadró (ADR-0328). Es parte de la bajada. Refresco del 2026-10-05.
+      "bajadas_en_mano",
       // ADR-0328 (actividad 3): el cuadre del piso de una sede y sus líneas; cada línea es un movimiento piso↔almacén. Nace con
       // dueño (20261004195000); hasta que se pegue y se refresque el volcado, el aviario lo avisa como «no en el volcado».
       "cuadres_piso", "cuadre_piso_items",
+      // Cuántas prendas caben en el piso de cada sede (ADR-0329, 20261005103000). Es del piso, como el cuadre. Refresco del 2026-10-05.
+      "capacidad_piso",
       // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
       // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
       "movimientos_internos_intentos",
@@ -137,6 +144,8 @@ export const AVIARIO = [
       "respaldo_b002_renumeradas_20261002"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
+      // ADR-0349 (Plan de campaña): cuánto comprar por categoría para una campaña. Nace con dueño; refresco del 2026-10-05.
+      "planes_compra", "planes_compra_lineas",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
       // Asignadas en el refresco del volcado del 2026-09-23.
       "compra_parte_por_tienda", "compradores_de_tienda",
