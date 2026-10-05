@@ -24,6 +24,7 @@ import {
   enlaceChequeo,
   estadoConsolidado,
   estadoTarjeta,
+  etiquetaEnlace,
   historiaDe,
   huellaCorta,
   nombreMes,
@@ -226,7 +227,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
               </div>
               {href ? (
                 <Link href={href} className="btn-cayla btn-sutil btn-chico">
-                  Resolver
+                  {etiquetaEnlace(c)}
                 </Link>
               ) : (
                 <span />
