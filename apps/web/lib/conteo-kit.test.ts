@@ -188,6 +188,19 @@ describe("PasosConteo", () => {
     expect(LIMPIO(de("contar"))).toContain("Paso 1 de 3");
     expect(LIMPIO(de("confirmar"))).toContain("Paso 3 de 3");
   });
+
+  it("otra operación (el cuadre del piso) pasa sus pasos y su nombre, y se lee igual", () => {
+    const pasos = [
+      { clave: "escanear", nombre: "Escanear lo guardado" },
+      { clave: "revisar", nombre: "Revisar" },
+      { clave: "confirmar", nombre: "Confirmar" },
+    ];
+    const html = renderToStaticMarkup(createElement(PasosConteo, { actual: "revisar", pasos, etiqueta: "Pasos del cuadre del piso" }));
+    expect(html).toContain('aria-label="Pasos del cuadre del piso"');
+    expect(LIMPIO(html)).toMatch(/Escanear lo guardado Hecho\./);
+    expect(LIMPIO(html)).toContain("Paso 2 de 3");
+    expect((html.match(/aria-current="step"/g) ?? []).length).toBe(1);
+  });
 });
 
 describe("las tres piezas, por dentro", () => {

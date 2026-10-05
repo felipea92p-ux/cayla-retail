@@ -1,13 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { accionHoyPorVariante } from "./existencias-recomendaciones";
 import { filtrarExistencias, filtrosDeUrl, indiceDeExistencias } from "./existencias-filtros";
 import { TIPOS_HOY, type TipoHoy } from "./existencias-hoy";
 import { porColgarDeLaSede } from "./existencias-para-hoy";
 import { agruparPorPrenda, queHacerPrenda, type FilaPrenda, type PrendaAgrupada } from "./existencias-prendas";
 import { claveDeTarjeta, conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type ModeloPrendas } from "./existencias-tarjetas";
-import { politicaDe } from "./politica-operativa-inventario";
+import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
 type Fila = FilaPrenda & { categoria: string | null };
@@ -28,16 +27,10 @@ const talla = (referencia: string, color: string, t: string | null, piso: number
   apartado: 0,
   danado: 0,
   enTransito: 0,
-  accionHoy: null,
+  planPiso: null,
   marca: null,
   ...extra,
 });
-
-/** «Acción hoy» con la política de la sede, como hacen la página de Existencias y el Inicio. */
-const conAccion = (crudo: Fila[]): Fila[] => {
-  const accion = accionHoyPorVariante(crudo, politicaDe("sede-de-prueba"));
-  return crudo.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null }));
-};
 
 /** Lo que hace la pantalla con un enlace: filtra como la URL, agrupa en prendas y arma las tarjetas. */
 const tarjetasDe = (stock: Fila[], consulta: string) => {
@@ -53,7 +46,9 @@ const pastillaVisible = (t: ModeloPrendas<Fila>) => queHacerPrenda(t.colores[0].
 // «Hoy ▸ Por colgar» mostraba 5 tarjetas que sumaban 3+3+3+2+1 = 12. Las 3 que faltaban eran de Blusa Valentina Rosado, detrás de un
 // punto de color de la tarjeta de Blusa Valentina (que enseñaba el Blanco).
 describe("con «Hoy», la suma de las pastillas visibles es la cifra de «Para hoy»", () => {
-  const stock = conAccion([
+  // La decisión del motor del piso (con el piso cuadrado), como hace la página de Existencias. Todas las tallas de la escena son
+  // centrales (S · M · L; 28 · 30 · 32): el motor pide 1 colgada de cada una.
+  const { filas: stock, plan } = conMotor([
     talla("Blusa Valentina", "Blanco", "S", 0, 5),
     talla("Blusa Valentina", "Blanco", "M", 0, 5),
     talla("Blusa Valentina", "Blanco", "L", 0, 5),
@@ -71,11 +66,11 @@ describe("con «Hoy», la suma de las pastillas visibles es la cifra de «Para h
     talla("Casaca Luciana", "Beige", "M", 1, 0), // colgada: nada que colgar
     talla("Casaca Luciana", "Beige", "L", 0, 5),
   ]);
-  const paraHoy = porColgarDeLaSede(stock).tallas;
+  const paraHoy = porColgarDeLaSede(stock, plan.listaDelDia).tallas;
 
   it("el escenario es el de la semilla: 15 tallas por colgar en 6 prendas de 5 modelos", () => {
     expect(paraHoy).toBe(15);
-    expect(porColgarDeLaSede(stock).prendas).toHaveLength(6);
+    expect(porColgarDeLaSede(stock, plan.listaDelDia).prendas).toHaveLength(6);
     expect(new Set(stock.map((f) => f.productoId)).size).toBe(5);
   });
 
@@ -84,7 +79,7 @@ describe("con «Hoy», la suma de las pastillas visibles es la cifra de «Para h
     expect(tarjetas).toHaveLength(6);
     expect(tarjetas.every((t) => t.colores.length === 1)).toBe(true);
     const leidas = tarjetas.map((t) => [t.colores[0].referencia, t.colores[0].color, pastillaVisible(t)?.n] as const);
-    // El orden lo pone la pantalla (por urgencia, por percha); aquí importa qué dice cada tarjeta.
+    // El orden lo pone la pantalla (la lista del día del motor, por percha); aquí importa qué dice cada tarjeta.
     expect([...leidas].sort((a, b) => `${a[0]} ${a[1]}`.localeCompare(`${b[0]} ${b[1]}`, "es"))).toEqual([
       ["Blusa Valentina", "Blanco", 3],
       ["Blusa Valentina", "Rosado", 3],
@@ -114,9 +109,9 @@ describe("con «Hoy», la suma de las pastillas visibles es la cifra de «Para h
   });
 
   it("vale para todo caso de «Hoy» con cifra: la suma de las pastillas es el número de tallas de la lista", () => {
-    const variado = conAccion([
+    const { filas: variado } = conMotor([
       ...stock,
-      talla("Top Luna", "Negro", "S", 1, 2), // queda poco en el piso y hay atrás
+      talla("Top Luna", "Negro", "S", 1, 2), // ya cuelga una y hay atrás: «Mantener» (basta 1 por color)
       talla("Top Luna", "Blanco", "S", 1, 3),
       talla("Short Mía", "Negro", "M", 0, 0), // nada en la sede
       talla("Short Mía", "Beige", "M", 0, 0, { enTransito: 1 }),
@@ -191,7 +186,7 @@ describe("conteoDeLista", () => {
   });
 
   it("singular y «Mantener» (que en la pastilla no lleva cifra)", () => {
-    expect(conteoDeLista(1, [{ enTransito: 0 }], "por_reponer").tallas).toEqual({ cifra: 1, texto: "talla por reponer" });
+    expect(conteoDeLista(1, [{ enTransito: 0 }], "por_colgar").tallas).toEqual({ cifra: 1, texto: "talla por colgar" });
     expect(conteoDeLista(2, [{ enTransito: 0 }, { enTransito: 0 }], "mantener").tallas).toEqual({ cifra: 2, texto: "tallas en «Mantener»" });
   });
 

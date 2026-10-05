@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Shirt, ShoppingBag, Truck } from "lucide-react";
+import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Scale, Shirt, ShoppingBag, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
@@ -9,7 +9,8 @@ import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
 import { deltaDisponibleSede } from "@/lib/existencias-categorias";
-import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
+import type { PisoDeTalla } from "@/lib/piso-plan";
+import { leerPlanDelPiso } from "@/lib/piso-plan-servidor";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
@@ -58,7 +59,7 @@ export default async function InventarioPage({
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -83,10 +84,8 @@ export default async function InventarioPage({
         return { filas: [] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>, fallo: true };
       }
     ),
-    // REHECHO 2026-09-25: ya NO se pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días)
-    // para Existencias — el motor nuevo de «Acción hoy» (`calcularAccionHoy`) decide con lo que
-    // Existencias ya trae en `stock` (piso, almacén, en tránsito), sin una cuarta reconstrucción
-    // del ledger. Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
+    // Existencias no pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días): «Hoy» lo decide el motor del piso con su
+    // propia lectura (abajo). Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
     // La marca de cada prenda y qué productos del catálogo esta sede no tiene (2026-09-26): para buscar y filtrar por marca y
     // para decir «existe, pero aquí no lo han recibido» en vez de callar. Dato secundario: si falla, sin marca y con aviso.
     getCatalogoParaExistencias(),
@@ -94,11 +93,15 @@ export default async function InventarioPage({
     getColoresParaExistencias(),
     // Secundario: `null` si la cola no respondió. «Para hoy» lo dice («no se pudo leer») en vez de callar o dibujar un 0.
     vende ? contarPorRegularizar(ubicacionActivaId).catch(() => null) : Promise.resolve(null),
+    // «Hoy» de cada talla: el motor del piso (ADR-0328 act. 7) sobre UNA lectura (`fn_piso_plan_lectura`): lo libre en piso y
+    // almacén, lo vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no
+    // responde, `null`: «Hoy» dice N/D y la pantalla lo avisa; el resto sigue en pie.
+    vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
 
-  // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
-  // gobiernan «Acción hoy» — hoy global, con override futuro por sede (`politicaDe`).
+  // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
+  // no sale de aquí: lo decide el motor del piso (`plan`).
   const politica = politicaDe(ubicacionActivaId);
 
   // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no
@@ -109,11 +112,10 @@ export default async function InventarioPage({
     ? await getRitmoRecientePorVariante(ubicacionActivaId, varianteIds, pisoPorVariante)
     : { datos: null, fallo: null };
 
-  // Motor único de «Acción hoy» (`existencias-recomendaciones.ts`, sin `planDeReposicion`): sobre
-  // `stockBase` directo — piso/almacén/en tránsito ya vienen ahí, ninguna otra reconstrucción.
-  // Regla física de piso (2026-09-25, cuarta ronda): ya NO recibe Ritmo reciente ni Cobertura
-  // piso — no le hacen falta para decidir nada (`politica.umbralStockPisoReposicion` manda solo).
-  const accionHoy = vende ? accionHoyPorVariante(stockBase, politica) : new Map();
+  // La decisión de cada talla (por colgar · sin stock atrás · mantener) es la del motor del piso: la misma que lee el
+  // Inicio. Sin plan (la lectura no respondió), ninguna fila trae decisión y «Hoy» dice N/D: nunca un «Mantener» que no sabe.
+  const planPiso: ReadonlyMap<string, PisoDeTalla> = plan?.porTalla ?? new Map();
+  const planFallo = vende && plan === null ? "«Hoy» no se pudo calcular ahora: la columna dice N/D. Lo demás de esta pantalla sí está al día." : null;
 
   // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
@@ -127,7 +129,7 @@ export default async function InventarioPage({
           ...f,
           ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
           coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-          accionHoy: accionHoy.get(f.varianteId) ?? null,
+          planPiso: planPiso.get(f.varianteId) ?? null,
         })),
         catalogo.productos
       ),
@@ -147,6 +149,11 @@ export default async function InventarioPage({
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  // «Cuadrar el piso» (ADR-0328, actividad 3): la entrada a /inventario/cuadrar. Es una función de Existencias (ADR-0306), así que la
+  // ve quien ve Existencias —la cuenta Almacén, que escanea con la pistola—, en su sede activa cuando separa piso y almacén (esa
+  // pantalla cuadra siempre la sede activa). Confirmar es solo de un líder: allí el botón se apaga y dice quién sí puede, y la base
+  // lo vuelve a preguntar (`fn_es_lider()` en cuadrar_piso).
+  const puedeCuadrarPiso = puedeBajarAlPiso;
 
   // «Hacer…» (el botón fijo del celular, rediseño 2026-10-04): los mismos accesos de la fila de la cabecera, con las mismas condiciones, en una
   // hoja. La lista y su prueba viven en `lib/existencias-hacer.ts`; la prueba comprueba que cada ruta esté también en la fila de abajo.
@@ -237,6 +244,12 @@ export default async function InventarioPage({
               </Link>
             )}
             <nav aria-label="Pantallas relacionadas" className="flex shrink-0 items-center gap-1">
+              {puedeCuadrarPiso && (
+                <Link href="/inventario/cuadrar" className="btn-cayla btn-sutil btn-chico shrink-0">
+                  <Scale aria-hidden className="h-4 w-4" />
+                  Cuadrar el piso
+                </Link>
+              )}
               {enSuSede && veModulo(persona, "recibir") && (
                 <Link href="/recibir" className="btn-cayla btn-sutil btn-chico shrink-0">
                   <PackageOpen aria-hidden className="h-4 w-4" />
@@ -295,6 +308,10 @@ export default async function InventarioPage({
         editaCatalogo={puede(persona, "editarCatalogo")}
         puedeAjustar={puede(persona, "ajustarStock")}
         coberturaFallo={ritmoReciente.fallo}
+        planFallo={planFallo}
+        // La lista del día del motor (lo vendido ayer primero): la tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen,
+        // igual que el Inicio de almacén. Sin plan, o con el piso en pausa, está vacía.
+        listaDelDia={plan?.listaDelDia}
         sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
         sinStock={sinStock}
         marcaFallo={catalogo.fallo}

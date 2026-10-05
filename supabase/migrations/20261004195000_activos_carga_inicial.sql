@@ -1,5 +1,8 @@
 -- ============================================================================
--- 20261004200000 — Activos: lo que CAYLA ya tenía antes del sistema entra como CARGA INICIAL (ADR-0335)
+-- 20261004195000 — Activos: lo que CAYLA ya tenía antes del sistema entra como CARGA INICIAL (ADR-0335)
+-- RENOMBRADA el 2026-10-04 desde `20261004200000_activos_carga_inicial.sql`: chocaba en versión con
+-- `20261004200000_cuadre_piso_tablas.sql` (ADR-0328). Las dos ya estaban pegadas en producción y ninguna figura en
+-- `supabase_migrations.schema_migrations`; el SQL no cambió, solo el nombre.
 --
 -- EL PROBLEMA PRIMERO
 --   Un activo nacía de una compra: `registrar_activo` exige el comprobante o cómo se pagó (el candado
