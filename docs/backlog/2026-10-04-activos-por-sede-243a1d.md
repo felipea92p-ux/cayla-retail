@@ -1,4 +1,4 @@
-## 🧱 Activos por sede: carga inicial «Ya lo teníamos» (2026-10-04, ADR-0335) — migración `20261004200000`; rama `claude/activos-por-sede-243a1d`
+## 🧱 Activos por sede: carga inicial «Ya lo teníamos» (2026-10-04, ADR-0335) — migración `20261004195000`; rama `claude/activos-por-sede-243a1d`
 
 - [x] Migración (columna `carga_inicial` + `CHECK` de dos ramas, disparador de fecha/marca, `cargar_activo_inicial`, `fn_activos_lista` con la marca) probada en local: `pnpm pruebas:activos-carga-inicial` (27 casos, en `ci.yml`), mutaciones detectadas, y regresión de las 8 pruebas que tocan activos (560 casos, 0 fallas). Web: `leerActivo`, chip «Ya lo teníamos» y rótulo «Costo (lo que se pagó)» (33 casos vitest, `tsc` limpio).
 - [x] Ensayada en producción con ROLLBACK (2026-10-04): 16 activos del Taller por S/ 21,780.67, 0 líneas al libro de dinero, propuesta de arranque con 333 = S/ 15,327.10 y 391 = S/ 2,673.53.

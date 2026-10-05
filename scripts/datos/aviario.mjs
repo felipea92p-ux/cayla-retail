@@ -75,7 +75,7 @@ export const AVIARIO = [
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
       // ADR-0328 (actividad 3): el cuadre del piso de una sede y sus líneas; cada línea es un movimiento piso↔almacén. Nace con
-      // dueño (20261004200000); hasta que se pegue y se refresque el volcado, el aviario lo avisa como «no en el volcado».
+      // dueño (20261004195000); hasta que se pegue y se refresque el volcado, el aviario lo avisa como «no en el volcado».
       "cuadres_piso", "cuadre_piso_items",
       // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
       // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
