@@ -52,7 +52,7 @@ export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: strin
 
   const IconoPrincipal = principal ? ICONO[principal.clave] : Ellipsis;
   const clasesIcono =
-    "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-tinta/30";
+    "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors";
 
   return (
     <div ref={caja} className="group/acciones relative inline-flex shrink-0 items-center gap-1.5">
