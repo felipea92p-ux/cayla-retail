@@ -110,8 +110,9 @@ export type Resultado = {
   desde: string;
   hasta: string;
   enCurso: boolean;
-  /** Qué acortó la ventana antes de su fecha (una llegada de mercadería, el fin de su temporada, otra decisión…). */
-  cortadaPor: "llegada" | "temporada" | "otra_decision" | "traslado_anulado" | null;
+  /** Qué acortó la ventana antes de su fecha (una llegada de mercadería, el fin de su temporada, otra decisión, el cuadre
+   *  del piso de la tienda…). */
+  cortadaPor: "llegada" | "temporada" | "otra_decision" | "traslado_anulado" | "cuadre" | null;
   /** Lo que vendió ella en la ventana (lo apartado cuenta como vendido). */
   suyas: number;
   /** Lo que habría vendido al ritmo de las demás de su categoría, con sus mismos días colgada. */
@@ -438,7 +439,19 @@ export function intervenciones(libretas: ReadonlyMap<string, Libreta>, ahora: st
 /** La ventana en que se mide una línea: de cuándo a cuándo, y qué la acortó. Null si no hay nada que medir todavía. */
 export type Ventana = { desde: string; hasta: string; nominal: string; enCurso: boolean; cortadaPor: Resultado["cortadaPor"] };
 
-export function ventanaDeLinea(linea: RenglonCrudo, siguiente: RenglonCrudo | null, prenda: PrendaParaVigencia, ahora: string): Ventana | null {
+/**
+ * `cuadres`: los instantes en que se cuadró el piso de la tienda donde se mide (ADR-0328; `instantesDeCuadre`). Antes del
+ * cuadre, el piso de la tienda estaba subcontado y después no: una ventana que lo cruza compara dos niveles distintos y
+ * saldría «no alcanzó» por el registro, no por la venta. Se corta ahí, como en una llegada (la decisión no termina: solo su
+ * medida).
+ */
+export function ventanaDeLinea(
+  linea: RenglonCrudo,
+  siguiente: RenglonCrudo | null,
+  prenda: PrendaParaVigencia,
+  ahora: string,
+  cuadres: readonly string[] = [],
+): Ventana | null {
   if (linea.accion === "anulacion") return null;
   // «La trasladé» se mide en la tienda de destino, desde que el traslado entró a su stock; los demás, desde que se decidió.
   const desde = linea.accion === "traslade" ? linea.traslado?.recibidoEn ?? null : linea.creadoEn;
@@ -451,6 +464,7 @@ export function ventanaDeLinea(linea: RenglonCrudo, siguiente: RenglonCrudo | nu
   if (linea.accion !== "traslade") {
     if (prenda.ultimaLlegada !== null && ms(prenda.ultimaLlegada) > ms(desde)) cortes.push({ el: prenda.ultimaLlegada, por: "llegada" });
     if (prenda.finEstacion !== null && ms(prenda.finEstacion) > ms(desde)) cortes.push({ el: prenda.finEstacion, por: "temporada" });
+    for (const c of cuadres) if (ms(c) > ms(desde)) cortes.push({ el: c, por: "cuadre" });
   } else if (linea.traslado?.anulado) cortes.push({ el: ahora, por: "traslado_anulado" });
   let hasta = nominal;
   let cortadaPor: Resultado["cortadaPor"] = null;
@@ -470,6 +484,8 @@ export type ContextoDeMedicion = {
   prendas: readonly Pick<FrescuraPrenda, "clave" | "categoriaId" | "esClasico" | "primeraExhibicion" | "estado">[];
   exposicion: ExposicionDe;
   intervenciones: ReadonlyMap<string, Intervalo[]>;
+  /** Los instantes del cuadre del piso de esa tienda (ver `ventanaDeLinea`). Sin la clave, ninguno. */
+  cuadres?: readonly string[];
 };
 
 const solapa = (a: Intervalo, b: Intervalo) => a.desde < b.hasta && b.desde < a.hasta;
@@ -544,7 +560,7 @@ export function medirLinea(
     if (linea.traslado?.recibidoEn == null) return { ...vacio, veredicto: "aun_no_llega", desde: linea.creadoEn, hasta: ahora, enCurso: true };
     return { ...vacio, veredicto: "se_mide_en_destino", desde: linea.traslado.recibidoEn, hasta: ahora, enCurso: false, enSede: linea.traslado.destino };
   }
-  const v = ventanaDeLinea(linea, siguiente, prenda, ahora);
+  const v = ventanaDeLinea(linea, siguiente, prenda, ahora, c.cuadres);
   if (v === null) return null;
   const m = medirVentana(prenda, v, c);
   return {
@@ -571,6 +587,13 @@ export function medirTrasladoEnDestino(linea: RenglonCrudo, siguiente: RenglonCr
   if (siguiente && ms(siguiente.creadoEn) > ms(t.recibidoEn) && ms(siguiente.creadoEn) < ms(hasta)) {
     hasta = siguiente.creadoEn;
     cortadaPor = "otra_decision";
+  }
+  // El cuadre del piso de la tienda DESTINO (es donde se mide) corta igual que en `ventanaDeLinea`.
+  for (const c of destino.cuadres ?? []) {
+    if (ms(c) > ms(t.recibidoEn) && ms(c) < ms(hasta)) {
+      hasta = c;
+      cortadaPor = "cuadre";
+    }
   }
   const enCurso = ms(ahora) < ms(hasta);
   if (enCurso) hasta = ahora;
@@ -643,9 +666,16 @@ const SIN_LECTURA = "No se pudo leer lo ya decidido: «Por decidir» puede inclu
  *   · `estado.sugerencias`, con la historia;
  *   · las cifras de la sede (`porDecidir`, `decididas`) y la suma por acción del mes.
  * Con `lectura = null` (la lectura falló): `porDecidir = quieta` —más prendas de las debidas, nunca menos— y la sede lo dice.
- * `exposicion`: lo que `analizarSede` sabe medir; `ahora`: el de la lectura, para que todo use el mismo reloj.
+ * `exposicion`: lo que `analizarSede` sabe medir; `ahora`: el de la lectura, para que todo use el mismo reloj; `cuadres`: los
+ * instantes del cuadre del piso de la sede (`instantesDeCuadre`), donde se corta la medida de cada decisión que los cruza.
  */
-export function aplicarDecisiones(sede: FrescuraSede, lectura: LecturaDecisiones | null, exposicion: ExposicionDe, ahora: string): DecisionesDeSede {
+export function aplicarDecisiones(
+  sede: FrescuraSede,
+  lectura: LecturaDecisiones | null,
+  exposicion: ExposicionDe,
+  ahora: string,
+  cuadres: readonly string[] = [],
+): DecisionesDeSede {
   if (lectura === null) {
     for (const p of sede.prendas) {
       p.porDecidir = p.estado.quieta;
@@ -656,7 +686,7 @@ export function aplicarDecisiones(sede: FrescuraSede, lectura: LecturaDecisiones
     return { estado: "sin_lectura", aviso: SIN_LECTURA };
   }
   const libretas = armarLibretas(lectura.renglones);
-  const contexto: ContextoDeMedicion = { prendas: sede.prendas, exposicion, intervenciones: intervenciones(libretas, ahora) };
+  const contexto: ContextoDeMedicion = { prendas: sede.prendas, exposicion, intervenciones: intervenciones(libretas, ahora), cuadres };
   const resumen = resumenVacio();
   const desdeResumen = ms(ahora) - DIAS_DEL_RESUMEN * MS_DIA;
   let decididas = 0;
@@ -708,7 +738,16 @@ export function aplicarDecisiones(sede: FrescuraSede, lectura: LecturaDecisiones
  * decisiones de la sede de origen y suma al resumen del origen.
  */
 export function completarTraslados(
-  sedes: readonly { id: string; nombre: string; sede: FrescuraSede; decisiones: DecisionesDeSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe }[],
+  sedes: readonly {
+    id: string;
+    nombre: string;
+    sede: FrescuraSede;
+    decisiones: DecisionesDeSede;
+    lectura: LecturaDecisiones | null;
+    exposicion: ExposicionDe;
+    /** Los instantes del cuadre del piso de esa tienda: cortan la medida de «La trasladé» en el destino. */
+    cuadres?: readonly string[];
+  }[],
   ahora: string,
 ): void {
   const porId = new Map(sedes.map((s) => [s.id, s]));
@@ -730,6 +769,7 @@ export function completarTraslados(
           prendas: dest.sede.prendas,
           exposicion: dest.exposicion,
           intervenciones: intervenciones(dest.lectura ? armarLibretas(dest.lectura.renglones) : new Map(), ahora),
+          cuadres: dest.cuadres,
         };
         const r = medirTrasladoEnDestino(l, lib.lineas[i + 1] ?? null, { clave: p.clave, categoriaId: p.categoriaId }, ahora, { nombre: dest.nombre, ...contexto });
         if (r === null) return;

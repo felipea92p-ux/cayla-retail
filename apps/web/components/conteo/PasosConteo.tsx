@@ -20,7 +20,12 @@ import { Check } from "lucide-react";
 
 export type PasoConteo = "contar" | "revisar" | "confirmar";
 
-const PASOS: readonly { clave: PasoConteo; nombre: string }[] = [
+/** Un paso de una operación en tres (o más) pantallas: su clave y cómo se llama en la tienda. */
+export type PasoOperacion = { clave: string; nombre: string };
+
+// Los del conteo, los de siempre. Otra operación con el mismo orden de «hacer → revisar → confirmar» (el cuadre del piso,
+// ADR-0328) pasa los suyos y su nombre por props: el indicador es el mismo, para que se lea igual en todo Inventario.
+const PASOS: readonly PasoOperacion[] = [
   { clave: "contar", nombre: "Contar" },
   { clave: "revisar", nombre: "Revisar" },
   { clave: "confirmar", nombre: "Confirmar" },
@@ -43,12 +48,25 @@ const NOMBRE: Record<EstadoPaso, string> = {
 // Lo que un lector de pantalla dice de cada paso: el relleno y el borde no le llegan.
 const LEIDO: Record<EstadoPaso, string> = { hecho: "Hecho.", actual: "Paso actual.", falta: "Falta." };
 
-export function PasosConteo({ actual, className = "" }: { actual: PasoConteo; className?: string }) {
-  const indice = PASOS.findIndex((p) => p.clave === actual);
+export function PasosConteo({
+  actual,
+  pasos = PASOS,
+  etiqueta = "Pasos del conteo",
+  className = "",
+}: {
+  /** La clave del paso de hoy (en el conteo, un `PasoConteo`). */
+  actual: string;
+  /** Los pasos, en orden. Por defecto, los del conteo. */
+  pasos?: readonly PasoOperacion[];
+  /** El nombre del indicador para el lector de pantalla. */
+  etiqueta?: string;
+  className?: string;
+}) {
+  const indice = pasos.findIndex((p) => p.clave === actual);
   return (
-    <nav aria-label="Pasos del conteo" className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 ${className}`}>
+    <nav aria-label={etiqueta} className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 ${className}`}>
       <ol className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        {PASOS.map((p, i) => {
+        {pasos.map((p, i) => {
           const estado: EstadoPaso = i < indice ? "hecho" : i === indice ? "actual" : "falta";
           return (
             <li key={p.clave} aria-current={estado === "actual" ? "step" : undefined} className="flex items-center gap-2">
@@ -64,7 +82,7 @@ export function PasosConteo({ actual, className = "" }: { actual: PasoConteo; cl
         })}
       </ol>
       <p className="whitespace-nowrap text-xs tabular-nums text-taupe max-sm:sr-only">
-        Paso {indice + 1} de {PASOS.length}
+        Paso {indice + 1} de {pasos.length}
       </p>
     </nav>
   );

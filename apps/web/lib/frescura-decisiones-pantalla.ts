@@ -141,6 +141,8 @@ const NOTA_CORTE: Record<NonNullable<Resultado["cortadaPor"]>, (r: Resultado) =>
   temporada: (r) => ` Se midió hasta el ${fechaCorta(r.hasta)}, cuando terminó su temporada.`,
   otra_decision: () => "",
   traslado_anulado: () => " El traslado se anuló.",
+  // ADR-0328: desde el cuadre, el sistema cuenta las prendas colgadas que antes no veía; comparar antes y después engañaría.
+  cuadre: (r) => ` Se midió hasta el ${fechaCorta(r.hasta)}, cuando se cuadró el piso de la tienda: desde ahí el sistema cuenta otras prendas colgadas.`,
 };
 
 /** El desglose de «La rebajé»: una campaña no es una liquidación. */
