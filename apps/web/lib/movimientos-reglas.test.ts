@@ -761,7 +761,7 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     // El cambio está en los dos filtros (es lo que se ve al tocar cada uno): 4 + 2 = 6, pero son 5 operaciones distintas.
     expect(lima.entrada.operaciones).toBe(4);
     expect(lima.salida.operaciones).toBe(2);
-    expect(Object.keys(lima).sort()).toEqual(["ajuste", "entrada", "interno", "salida", "todos", "transferencia"]);
+    expect(Object.keys(lima).sort()).toEqual(["ajuste", "colgada", "entrada", "guardada", "interno", "salida", "todos", "transferencia"]);
   });
 
   it("singular y plural de la unidad", () => {

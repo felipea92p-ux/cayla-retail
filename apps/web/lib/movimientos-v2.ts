@@ -179,16 +179,23 @@ export async function listarMovimientos(
 ): Promise<PaginaMovimientos> {
   const supabase = await createClient();
   const limite = opciones.limite ?? TAMANO_PAGINA;
-  const pedir = async (cursor: CursorMovimientos | null, cuantas: number): Promise<Movimiento[]> =>
-    exigir(
-      await supabase.rpc("fn_movimientos", {
-        ...paramsRpc(ubicacionId, filtros),
-        ...(filtros.categoria ? { p_categoria: filtros.categoria } : {}),
-        ...(cursor ? { p_cursor_creado_en: cursor.creadoEn, p_cursor_id: cursor.id } : {}),
-        p_limite: cuantas,
-      }),
-      "los movimientos"
-    ).map((f) => aMovimiento(f as FilaRpc));
+  const llamar = (categoria: string | undefined, cursor: CursorMovimientos | null, cuantas: number) =>
+    supabase.rpc("fn_movimientos", {
+      ...paramsRpc(ubicacionId, filtros),
+      ...(categoria ? { p_categoria: categoria } : {}),
+      ...(cursor ? { p_cursor_creado_en: cursor.creadoEn, p_cursor_id: cursor.id } : {}),
+      p_limite: cuantas,
+    });
+  const pedir = async (cursor: CursorMovimientos | null, cuantas: number): Promise<Movimiento[]> => {
+    let respuesta = await llamar(filtros.categoria, cursor, cuantas);
+    // ADR-0345: «colgada» y «guardada» las entiende la migración 20261005160000. Si la web sale antes que ella, la base
+    // dice «Categoría de movimiento desconocida»: en vez de romper la pantalla, se piden las dos juntas (`interno`) y
+    // cada fila se lee igual por su par. Se pierde el filtro fino, no la lista (principio 9).
+    if ((filtros.categoria === "colgada" || filtros.categoria === "guardada") && respuesta.error?.message?.includes("Categoría de movimiento desconocida")) {
+      respuesta = await llamar("interno", cursor, cuantas);
+    }
+    return exigir(respuesta, "los movimientos").map((f) => aMovimiento(f as FilaRpc));
+  };
 
   // La función devuelve limite+1 filas a propósito: la de más solo dice "hay otra página".
   const filas = await pedir(opciones.cursor ?? null, limite);

@@ -18,6 +18,7 @@ import {
   serializarCursorMovimientos,
   hoyEnLima,
   unidades,
+  type CategoriaFiltro,
   type CategoriaMovimiento,
   type CifrasGrupo,
   type ParamsMovimientos,
@@ -298,7 +299,7 @@ function Cifras({
   params,
 }: {
   resumen: ResumenTienda;
-  categoria: CategoriaMovimiento | null;
+  categoria: CategoriaFiltro | null;
   sede: string;
   periodo: string;
   params: ParamsMovimientos;
@@ -403,7 +404,7 @@ function CifraCorta({ etiqueta, valor, tono, href, activa }: { etiqueta: string;
 }
 
 /** La misma pantalla con otro tipo (o sin tipo): sin el proceso, la página ni el detalle abierto — como la píldora. */
-function hrefConTipo(params: ParamsMovimientos, cat: CategoriaMovimiento | null): string {
+function hrefConTipo(params: ParamsMovimientos, cat: CategoriaFiltro | null): string {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (typeof v === "string" && v && !["cat", "proc", "cursor", "mov"].includes(k)) p.set(k, v);
   if (cat) p.set("cat", cat);

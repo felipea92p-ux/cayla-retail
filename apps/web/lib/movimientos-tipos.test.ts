@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtroDePalabra, type Movimiento } from "./movimientos-reglas";
+import { CATEGORIAS_FILTRO, GRUPOS_RESUMEN, filtroDePalabra, filtrosDesdeParams, leerResumenTienda, type Movimiento } from "./movimientos-reglas";
 import { GRUPOS_TIPO, TIPOS_VISUALES, grupoDeTipo, grupoPorId, kindDeLugar, rotuloDeMovimiento, tipoDeOperacion, tipoVisual, type TipoVisual } from "./movimientos-tipos";
 
 type Fila = Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">;
@@ -125,10 +125,9 @@ describe("los siete grupos del filtro de la derecha", () => {
 });
 
 describe("el buscador entiende las palabras nuevas y las de antes", () => {
-  it("«colgadas» y «guardadas» filtran lo que pasa entre piso y almacén; «bajadas» y «retiros» siguen valiendo", () => {
-    for (const palabra of ["colgada", "Colgadas", "guardadas", "bajadas", "retiros"]) {
-      expect(filtroDePalabra(palabra), palabra).toMatchObject({ cat: "interno", proc: null });
-    }
+  it("«colgadas» y «bajadas» filtran las colgadas en piso; «guardadas» y «retiros», las guardadas en almacén", () => {
+    for (const palabra of ["colgada", "Colgadas", "bajadas"]) expect(filtroDePalabra(palabra), palabra).toEqual({ cat: "colgada", proc: null, etiqueta: "Colgadas en piso" });
+    for (const palabra of ["guardada", "guardadas", "retiros"]) expect(filtroDePalabra(palabra), palabra).toEqual({ cat: "guardada", proc: null, etiqueta: "Guardadas en almacén" });
   });
 });
 
@@ -163,5 +162,30 @@ describe("kindDeLugar: el ícono de cada punto del trayecto", () => {
     expect(kindDeLugar("Producción", "origen", "produccion", "llegada")).toBe("fuera");
     expect(kindDeLugar("Tienda Lima", "origen", "traslado_entrada", "llegada")).toBe("sede");
     expect(kindDeLugar("Tienda Lima", "destino", "traslado_salida", "traslado")).toBe("sede");
+  });
+});
+
+describe("«colgada» y «guardada» como tipo del filtro y como grupo de las cifras (migración 20261005160000)", () => {
+  it("la URL acepta ?cat=colgada y ?cat=guardada; una categoría inventada se ignora", () => {
+    expect(filtrosDesdeParams({ cat: "colgada" }).categoria).toBe("colgada");
+    expect(filtrosDesdeParams({ cat: "guardada" }).categoria).toBe("guardada");
+    expect(filtrosDesdeParams({ cat: "interno" }).categoria).toBe("interno");
+    expect(filtrosDesdeParams({ cat: "basura" }).categoria).toBeUndefined();
+  });
+
+  it("las dos van después de las cinco de siempre y los grupos de las cifras las traen", () => {
+    expect(CATEGORIAS_FILTRO).toEqual(["entrada", "salida", "interno", "ajuste", "transferencia", "colgada", "guardada"]);
+    expect(GRUPOS_RESUMEN).toContain("colgada");
+    expect(GRUPOS_RESUMEN).toContain("guardada");
+  });
+
+  it("las cifras leen los dos grupos nuevos; con una base que todavía no los manda, salen en cero sin romper", () => {
+    const fila = (grupo: string, movidas: number) => ({ grupo, proceso: "movimiento_interno", operaciones: 1, filas: 2, entran: 0, salen: 0, movidas });
+    const con = leerResumenTienda([fila("interno", 7), fila("colgada", 3), fila("guardada", 4)]);
+    expect(con.colgada).toMatchObject({ operaciones: 1, movidas: 3 });
+    expect(con.guardada).toMatchObject({ operaciones: 1, movidas: 4 });
+    const sin = leerResumenTienda([fila("interno", 7)]);
+    expect(sin.colgada).toEqual({ operaciones: 0, entran: 0, salen: 0, movidas: 0, procesos: [] });
+    expect(sin.guardada.operaciones).toBe(0);
   });
 });

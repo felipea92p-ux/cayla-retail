@@ -24,6 +24,12 @@ export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apart
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
+/** Lo que se puede PEDIR en el filtro de tipo: las cinco categorías y, desde el rediseño (ADR-0345, migración
+ *  20261005160000), dos subconjuntos de «interno»: la colgada en piso (almacén → piso) y la guardada en almacén (piso →
+ *  almacén). Una FILA nunca trae estas dos como categoría: sigue siendo «interno» (`tipoVisual` la distingue por su par). */
+export type CategoriaFiltro = CategoriaMovimiento | "colgada" | "guardada";
+export const CATEGORIAS_FILTRO: CategoriaFiltro[] = [...CATEGORIAS, "colgada", "guardada"];
+
 // Vocabulario de tienda (ADR-0234): «Traslado» como en el menú —nunca «Transferencia», que en el Perú suena a Yape o al
 // banco— y «Dentro de la sede» en vez de «Interno», que no dice nada a quien no conoce el sistema.
 export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
@@ -473,7 +479,7 @@ export type FiltrosMovimientos = {
   /** `aaaa-mm-dd` inclusivos, en día de Lima. */
   desde?: string;
   hasta?: string;
-  categoria?: CategoriaMovimiento;
+  categoria?: CategoriaFiltro;
   motivo?: string;
   sububicacionId?: string;
 };
@@ -560,7 +566,7 @@ export function filtrosDesdeParams(
     busqueda: p.q?.trim() || undefined,
     desde,
     hasta,
-    categoria: CATEGORIAS.find((c) => c === p.cat),
+    categoria: CATEGORIAS_FILTRO.find((c) => c === p.cat),
     motivo: esMotivo(p.proc) ? p.proc : undefined,
     sububicacionId: sububicacion?.id,
     periodo,
@@ -766,8 +772,8 @@ export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
 // ---------------------------------------------------------------------------
 
 /** Un grupo por cada filtro de tipo, más «todos». Una fila cuenta en todos los grupos donde la pantalla la muestra. */
-export type GrupoResumen = "todos" | CategoriaMovimiento;
-export const GRUPOS_RESUMEN: readonly GrupoResumen[] = ["todos", ...CATEGORIAS];
+export type GrupoResumen = "todos" | CategoriaFiltro;
+export const GRUPOS_RESUMEN: readonly GrupoResumen[] = ["todos", ...CATEGORIAS_FILTRO];
 
 export type ProcesoResumen = { proceso: string; operaciones: number; filas: number; entran: number; salen: number; movidas: number };
 export type CifrasGrupo = { operaciones: number; entran: number; salen: number; movidas: number; procesos: ProcesoResumen[] };
@@ -908,7 +914,7 @@ export function unidades(cifra: number): string {
 // inicial») que nombra un proceso se vuelve el filtro de ese tipo; con un número detrás sigue siendo una referencia.
 // ---------------------------------------------------------------------------
 
-type FiltroDePalabra = { cat: CategoriaMovimiento | null; proc: string | null; etiqueta: string };
+type FiltroDePalabra = { cat: CategoriaFiltro | null; proc: string | null; etiqueta: string };
 
 const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly string[] })[] = [
   { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "salida", proc: "venta", etiqueta: "Ventas" },
@@ -921,8 +927,10 @@ const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly strin
   { palabras: ["cambio", "cambios"], cat: null, proc: "cambio", etiqueta: "Cambios" },
   { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "entrada", proc: "recepcion", etiqueta: "Recepciones" },
   { palabras: ["stock inicial", "carga inicial"], cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" },
-  // «bajada» y «retiro» siguen valiendo: es lo que escribía la gente antes de las palabras nuevas (ADR-0345).
-  { palabras: ["colgada", "colgadas", "guardada", "guardadas", "bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
+  // «bajada» y «retiro» siguen valiendo, con el tipo que ahora se llama «colgada» y «guardada»: es lo que escribía la gente
+  // antes de las palabras nuevas (ADR-0345).
+  { palabras: ["colgada", "colgadas", "bajada", "bajadas"], cat: "colgada", proc: null, etiqueta: "Colgadas en piso" },
+  { palabras: ["guardada", "guardadas", "retiro", "retiros"], cat: "guardada", proc: null, etiqueta: "Guardadas en almacén" },
   { palabras: ["entrada", "entradas", "llegada", "llegadas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
   { palabras: ["salida", "salidas"], cat: "salida", proc: null, etiqueta: "Salidas" },
 ];
