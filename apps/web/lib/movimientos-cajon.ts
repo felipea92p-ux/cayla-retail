@@ -343,7 +343,7 @@ export function vistaDeOperacion(op: OperacionMovimiento, ctx: ContextoCajon): V
 }
 
 // ---------------------------------------------------------------------------
-// El cajón de «Bajadas al piso» del día: la fila plegada de la lista (`plegarBajadas`) ya no se despliega hacia abajo,
+// El cajón de «Colgadas en el piso» del día: la fila plegada de la lista (`plegarBajadas`) ya no se despliega hacia abajo,
 // abre este cajón. También es el de UN movimiento interno suelto (una bajada o un retiro). Es de CONSULTA como los
 // demás y se lee de corrido, sin saber de stock: qué pasó (una frase), cuándo, quién, y la lista de prendas.
 // ---------------------------------------------------------------------------
@@ -364,7 +364,7 @@ export type FilaBajada = {
 
 export type DetalleBajadas = {
   clave: string;
-  titulo: string; // «Bajadas al piso» · «Bajada al piso» · «Retiro del piso» · «Movido dentro de la sede»: el nombre de la fila
+  titulo: string; // «Colgadas en el piso» · «Colgada en el piso» · «Retiro del piso» · «Movido dentro de la sede»: el nombre de la fila
   /** «Hoy, de 10:04 a 11:29» · «Ayer, a las 18:35». */
   cuando: string;
   /** El número grande y la frase que lo sigue: «10» + «prendas pasaron del almacén al piso de venta». */
@@ -386,14 +386,14 @@ export function construirDetalleBajadas(clave: string, operaciones: readonly Ope
   const filas = operaciones.flatMap((op) => op.filas.map((m) => ({ op, m })));
   const etiquetas = new Set(filas.map(({ m }) => etiquetaConDireccion(m)));
   const sentido = etiquetas.size === 1 ? [...etiquetas][0] : null;
-  const bajada = sentido === "Bajada al piso";
+  const bajada = sentido === "Colgada en el piso";
   const retiro = sentido === "Retiro del piso";
   const dia = etiquetaDia(operaciones[0].fecha, ctx.hoyLima);
   const horas = new Set(operaciones.map((op) => op.hora));
   const una = r.unidades === 1;
   return {
     clave,
-    // Una sola operación se llama por su nombre en singular («Bajada al piso»); varias, como la fila plegada.
+    // Una sola operación se llama por su nombre en singular («Colgada en el piso»); varias, como la fila plegada.
     titulo: operaciones.length === 1 ? etiquetaMovimiento(operaciones[0].filas[0]) : r.etiqueta,
     cuando: r.desde === r.hasta ? `${dia}, a las ${r.hasta}` : `${dia}, de ${r.desde} a ${r.hasta}`,
     cifra: `${r.unidades}`,

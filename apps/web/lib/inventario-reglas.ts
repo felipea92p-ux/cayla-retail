@@ -22,13 +22,13 @@ import type { PoliticaOperativaInventario } from "./politica-operativa-inventari
  *  distintas, dos números. */
 export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 
-/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
+/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «colgar en el piso»
  *  sin ritmo medible) — ritmo de 30 días. Existencias YA NO lo usa (2026-09-25): tenía su propio
  *  semáforo (`EstadoStock`/`calcularEstado`/`necesitaReponerPiso`), retirado por redundante con
  *  el motor único de «Acción hoy» (`calcularAccionHoy`, `existencias-recomendaciones.ts`) — no
  *  hay dos motores paralelos decidiendo lo mismo con números distintos (sección 9/12 del pedido
  *  de Felipe). El umbral equivalente de Existencias vive, consciente y aparte, en
- *  `politica-operativa-inventario.ts` (`umbralStockPisoReposicion` = 4 unidades de PISO, una
+ *  `politica-operativa-inventario.ts` (`umbralStockPisoBajada` = 4 unidades de PISO, una
  *  regla física — NO este número, y no es un umbral de días). */
 export const UMBRAL_REPOSICION_PISO = 7;
 
@@ -36,7 +36,7 @@ export const UMBRAL_REPOSICION_PISO = 7;
 // retiraron el 2026-09-25 y NO se restauran al integrar main (decisión explícita de Felipe, cuarta
 // ronda del cierre): eran consumidos SOLO por Existencias — auditado de nuevo tras encontrar que
 // `porColgar`/su test suite (abajo, mergeados desde main, ADR-0208) también los mencionaban. Esa
-// mención era ilustrativa (contrastar «Por colgar» con la vieja «Reponer»), no una dependencia
+// mención era ilustrativa (contrastar «Por colgar» con la vieja «Colgar en el piso»), no una dependencia
 // funcional real: `porColgar` nunca llamó a `necesitaReponerPiso`. El test que sí la invocaba
 // («toda talla por colgar conserva su botón Reponer») se reescribió contra `calcularAccionHoy`
 // (`inventario-reglas.test.ts`, «toda talla por colgar tiene Acción hoy…») — misma garantía, fuente canónica nueva.
@@ -45,9 +45,9 @@ export const UMBRAL_REPOSICION_PISO = 7;
  *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
  *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
  *
- *  No usa el umbral de «Reponer a piso» (`umbralStockPisoReposicion`) a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
+ *  No usa el umbral de «Colgar en el piso» (`umbralStockPisoBajada`) a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
  *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
- *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
+ *  talla por colgar también ofrece «Colgar en el piso» (piso 0 está bajo cualquier umbral), pero no al revés.
  *
  *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que «Acción hoy» y el modal de
  *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
@@ -154,7 +154,7 @@ export const DIAS_RESERVA_SEGURIDAD = 3;
 /** El piso debe alcanzar para esta cantidad de días de venta al bajar mercadería. */
 export const DIAS_OBJETIVO_PISO = 7;
 
-/** Si el piso cubre menos que esto (con stock atrás) se sugiere bajar al piso. */
+/** Si el piso cubre menos que esto (con stock atrás) se sugiere colgar en el piso. */
 export const DIAS_PISO_ALERTA = 3;
 
 /** Días de venta propia que una sede conserva al ceder mercadería: lo que ella
@@ -314,11 +314,11 @@ export const RETIRO_NO_ES_BAJA = "Pasan al almacén de la tienda: siguen siendo 
  *
  *  Pregunta a `calcularAccionHoy` con la política de la sede, no a un umbral propio: el aviso tiene que decir lo mismo que
  *  después va a pintar la fila (hasta el 2026-09-25 lo decidía `necesitaReponerPiso`, retirado). */
-export function quedaraPidiendoReponer(disponible: { piso: number | null; almacen: number | null }, n: number, politica: PoliticaOperativaInventario): boolean {
+export function quedaraPidiendoBajada(disponible: { piso: number | null; almacen: number | null }, n: number, politica: PoliticaOperativaInventario): boolean {
   if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return false;
   const piso = disponible.piso - n;
   const almacen = disponible.almacen + n;
   if (piso < 0) return false;
   if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) return true;
-  return calcularAccionHoy({ varianteId: "", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, politica).tipo === "reponer_a_piso";
+  return calcularAccionHoy({ varianteId: "", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, politica).tipo === "bajar_al_piso";
 }

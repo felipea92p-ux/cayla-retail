@@ -18,7 +18,7 @@ const MS_SALIDA = 240;
    Reemplaza dos cosas a la vez: el modal centrado `MovimientoDetalle` (una prenda) y la expansión vertical de
    `FilaOperacion` (muchas prendas guardadas juntas, que antes abrían una lista larga debajo de la fila). Un solo
    cajón lateral, no bloqueante —la página sigue viva detrás—. Solo CONSULTA: ningún botón de acá ejecuta un
-   movimiento (sección 14 del pedido) — eso sigue viviendo en Cambios, Devoluciones, Bajar al piso, Ajustar, cada uno
+   movimiento (sección 14 del pedido) — eso sigue viviendo en Cambios, Devoluciones, Colgar en el piso, Ajustar, cada uno
    en su propia pantalla.
 
    Todos se leen igual, sin saber de stock (pedido de Felipe, 2026-10-01, tras leerlos como alguien sin contexto):

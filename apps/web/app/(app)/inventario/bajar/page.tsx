@@ -7,10 +7,10 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BajarAlPisoForm } from "@/components/BajarAlPisoForm";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 
-// «Bajar prendas al piso» (ADR-0208, paso 1): Frescura del piso solo mide algo si la bajada se registra al colgar la
+// «Colgar en el piso» (ADR-0208, paso 1): Frescura del piso solo mide algo si la bajada se registra al colgar la
 // prenda, no al cobrarla. La tienda es siempre la sede activa (quien baja está parada ahí); la lista se arma en el
 // navegador y la base se toca una sola vez, al confirmar (`bajar_al_piso`, todo o nada).
-// Se llega por el botón «Bajar al piso» de Existencias (Felipe, 2026-09-25): el lateral no tiene entrada propia.
+// Se llega por el botón «Colgar en el piso» de Existencias (Felipe, 2026-09-25): el lateral no tiene entrada propia.
 // `?lineas=<variante>:<cantidad>,…` (ADR-0237): lo marcado en Existencias llega ya en la lista, con el mismo formato que
 // «Mover mercadería». Solo entra lo que esta tienda puede bajar, y llega «por escanear» (en 0): se baja lo que se lea al
 // colgarlo, no lo que se marcó (ADR-0237, actualización 2026-09-26).
@@ -27,7 +27,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
     <div className="space-y-6">
       <EncabezadoPagina
         sede={sede}
-        titulo="Bajar prendas al piso"
+        titulo="Colgar en el piso"
         subtitulo="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
         // La vuelta común (`Volver`), un botón de la cabecera como «← Traslados» y «← Conteo» en sus detalles. Solo si puede entrar a
         // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
@@ -46,7 +46,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
           iniciales={lineasIniciales(parsearLineasPrellenadas(params.lineas), prendas)}
         />
       ) : (
-        <p className="nota-cayla">{sede} todavía no separa piso y almacén, así que aquí no hay nada que bajar.</p>
+        <p className="nota-cayla">{sede} todavía no separa piso y almacén, así que aquí no hay nada que colgar.</p>
       )}
     </div>
   );

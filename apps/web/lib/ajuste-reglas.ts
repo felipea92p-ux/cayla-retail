@@ -310,7 +310,7 @@ export function textoApartadoTalla(apartado: number, modo: ModoAjuste): string {
 }
 
 // Motivos del ajuste. «Reposición» no se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
-// almacén se baja (Bajar al piso / Reponer, en Existencias) para que salga del almacén y el reloj de piso de Frescura tenga
+// almacén se baja (Colgar en el piso / Reponer, en Existencias) para que salga del almacén y el reloj de piso de Frescura tenga
 // hora de colgado. La base lo rechaza igual (20260926000400, hint reposicion_piso_cerrada); aquí solo se evita el viaje.
 export const MOTIVOS_AJUSTE = [
   { valor: "reposicion", texto: "Reposición" },
@@ -335,7 +335,7 @@ export function motivosAjusteDisponibles(
 // Nombra los dos caminos: sin ellos, quien sube o guarda prendas lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
 // «Subir a almacén» es el botón de la tarjeta de Existencias (ADR-0300); antes decía «⋯ ▸ Retirar del piso», un menú que ya no existe.
 export const NOTA_REPOSICION_CERRADA =
-  "Subir al piso: «Reponer». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
+  "Prendas al piso: «Colgar en el piso». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
 
 /** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
  *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad
@@ -358,7 +358,7 @@ export function cargaInicialAlPiso(ubicado: "piso" | "almacen", separaPisoAlmace
 /** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial. */
 export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): string {
   if (separaPisoAlmacen && ubicado === "piso" && !puedeBajarAlPiso) {
-    return "Nueva en esta tienda · entra al almacén: tu rol no baja prendas al piso";
+    return "Nueva en esta tienda · entra al almacén: tu rol no puede colgar prendas en el piso";
   }
   return "Nueva en esta tienda · entra como stock inicial";
 }

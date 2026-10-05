@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { hoyDeTalla, TEXTO_HOY, textoHoyDePrenda, TIPOS_HOY, TONO_HOY } from "./existencias-hoy";
 
 // «Hoy» (Felipe, 2026-10-03): cada talla cae en UNO de cuatro casos, y el filtro, la tarjeta, la tabla y el cajón dicen la misma palabra.
-const REPONER = { tipo: "reponer_a_piso" as const };
+const REPONER = { tipo: "bajar_al_piso" as const };
 const SIN_ACCION = { tipo: "sin_accion" as const };
 
 describe("hoyDeTalla", () => {

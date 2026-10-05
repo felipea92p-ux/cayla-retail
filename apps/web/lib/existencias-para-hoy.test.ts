@@ -55,7 +55,7 @@ describe("tareasParaHoy", () => {
     const [t] = tareasParaHoy({ ...vacia, porColgar: { tallas: 1, unidades: 1, prendas: ["Casaca Ximena"] } });
     expect(t.tono).toBe("ambar");
     expect(t.texto).toBe("talla por colgar");
-    expect(t.detalle).toBe("1 guardada y ninguna colgada: empieza por Casaca Ximena. ¿Ya cuelgan? Regístralas al bajar.");
+    expect(t.detalle).toBe("1 guardada y ninguna colgada: empieza por Casaca Ximena. ¿Ya cuelgan? Regístralas al colgarlas.");
   });
 
   it("si la cola de ventas sin registrar falló, lo dice sin número (no la calla ni inventa un 0)", () => {
@@ -122,7 +122,7 @@ describe("textoLlegada", () => {
 });
 
 describe("porColgarDeLaSede (la única cuenta de «por colgar»)", () => {
-  const REPONER = { tipo: "reponer_a_piso" as const, texto: "Reponer a piso", motivo: null, contexto: null };
+  const REPONER = { tipo: "bajar_al_piso" as const, texto: "Colgar en el piso", motivo: null, contexto: null };
   // Lo libre ya viene neto de apartados (`sumarCantidades`): aquí solo importa piso y almacén.
   const talla = (varianteId: string, productoId: string, color: string, t: string, piso: number | null, almacen: number | null): FilaPrenda =>
     ({

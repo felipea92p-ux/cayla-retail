@@ -68,7 +68,7 @@ export function avisoFaltanDeProforma({ numero, faltan, faltanEnAlmacen = false 
   return {
     titulo: `No todo lo de ${numero} entró al ticket`,
     detalle: `${faltan.join("; ")}.${
-      faltanEnAlmacen ? ` Lo del almacén se puede cobrar: que lo bajen en ${DONDE_SE_BAJA} y súmalo al ticket; entra al precio de la proforma.` : ""
+      faltanEnAlmacen ? ` Lo del almacén se puede cobrar: que lo cuelguen en ${DONDE_SE_BAJA} y súmalo al ticket; entra al precio de la proforma.` : ""
     }`,
   };
 }

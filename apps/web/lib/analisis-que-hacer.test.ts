@@ -166,7 +166,7 @@ describe("accionPrincipal: el botón que conviene y que se puede usar", () => {
   const prendaAgotada = (almacen: number) =>
     agruparPrendas([talla(fila({ id: "m", hoy: { piso: 0, almacen } }), "agotada"), talla(fila({ id: "l", talla: "L", hoy: { piso: 0, almacen: 0 } }), "agotada")], M30)[0]!;
 
-  it("se agotó con almacén → Bajar al piso, solo las tallas con almacén, una unidad cada una", () => {
+  it("se agotó con almacén → Colgar en el piso, solo las tallas con almacén, una unidad cada una", () => {
     const a = accionPrincipal(prendaAgotada(2), "agotada", red, TODO);
     expect(a).toMatchObject({ clave: "bajar", href: "/inventario/bajar?lineas=m:1" });
   });

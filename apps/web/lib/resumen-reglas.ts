@@ -540,7 +540,7 @@ export function planDeReposicion(c: ContextoPlan): PlanReposicion {
     return { pasos, principal: pasos[0], urgencia: "media", reserva, objetivo: null, faltante: null, explicacion: [pasos[0].motivo] };
   }
 
-  // 1. Almacén de la misma tienda → bajar al piso. El POS vende SOLO del piso: lo
+  // 1. Almacén de la misma tienda → colgar en el piso. El POS vende SOLO del piso: lo
   //    que está atrás no se vende hasta que alguien lo baje, y bajarlo no cuesta nada.
   if (f.separaPisoAlmacen && f.almacen > 0) {
     if (demanda !== null) {
@@ -551,7 +551,7 @@ export function planDeReposicion(c: ContextoPlan): PlanReposicion {
         pasos.push({
           tipo: "bajar_al_piso",
           cantidad,
-          texto: `Bajar ${cantidad} al piso`,
+          texto: `Colgar ${cantidad} en el piso`,
           motivo: `El piso (${f.piso}) alcanza para ${formatoCoberturaConUnidad(pisoCubreDias)} al ritmo de ${formatoVelocidad(demanda)}/día; el almacén de la tienda tiene ${f.almacen}`,
           accionable: true,
         });
@@ -561,8 +561,8 @@ export function planDeReposicion(c: ContextoPlan): PlanReposicion {
       pasos.push({
         tipo: "bajar_al_piso",
         cantidad,
-        texto: `Bajar ${cantidad} al piso`,
-        motivo: `No hay nada en el piso y sí ${f.almacen} en el almacén de la tienda: sin bajarlo no se puede vender`,
+        texto: `Colgar ${cantidad} en el piso`,
+        motivo: `No hay nada en el piso y sí ${f.almacen} en el almacén de la tienda: sin colgarlo no se puede vender`,
         accionable: true,
       });
     }
@@ -920,7 +920,7 @@ function ayudaChip(e: EstadoResumen, v: Velocidad, c: Cobertura): string {
     case "curva_rota":
       return "Falta una talla de la curva mientras quedan otras con stock";
     case "sin_piso":
-      return "No hay nada en el piso y sí en el almacén: sin bajarlo no se puede vender";
+      return "No hay nada en el piso y sí en el almacén: sin colgarlo no se puede vender";
     case "cobertura_baja":
       return `Cobertura de ${UMBRAL_COBERTURA_RIESGO_DIAS} días o menos: bajo el punto de reposición`;
     case "alta_demanda":

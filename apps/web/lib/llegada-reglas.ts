@@ -196,7 +196,7 @@ export type AccionDespues = { clave: "etiquetas" | "bajar"; texto: string; href:
 
 /**
  * Qué sigue después de recibir. Lo que llega de un proveedor viene sin la etiqueta de CAYLA: primero se etiqueta (principal) y
- * después se baja al piso (entró al almacén, ADR-0328). Sin el id del lote (quedó en la cola sin conexión) no hay etiquetas por lote.
+ * después se cuelga en el piso (entró al almacén, ADR-0328). Sin el id del lote (quedó en la cola sin conexión) no hay etiquetas por lote.
  */
 export function despuesDeRecibir(p: { loteId: string | null; lineas: readonly LineaLlegada[]; veExistencias: boolean }): AccionDespues[] {
   const unidades = totalUnidades(p.lineas);
@@ -212,7 +212,7 @@ export function despuesDeRecibir(p: { loteId: string | null; lineas: readonly Li
   if (p.veExistencias && p.lineas.length > 0) {
     acciones.push({
       clave: "bajar",
-      texto: "Bajar al piso",
+      texto: "Colgar en el piso",
       href: p.lineas.length <= MAX_VARIANTES_EN_URL ? `/inventario/bajar?lineas=${lineasEnUrl(p.lineas)}` : "/inventario/bajar",
       principal: acciones.length === 0,
     });

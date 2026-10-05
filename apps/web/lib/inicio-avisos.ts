@@ -262,8 +262,8 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
   }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`) y su misma
   // palabra. Antes decía «Sube N modelos al piso»: otro número (modelos, con las agotadas incluidas) y el verbo al revés, porque en
-  // Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Bajar al piso». Lleva a la lista filtrada por «Hoy ▸ Por
-  // colgar», donde están las mismas tallas y el botón «Bajar al piso». El detalle repite la honestidad de «Para hoy»: mientras no se
+  // Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Colgar en el piso». Lleva a la lista filtrada por «Hoy ▸ Por
+  // colgar», donde están las mismas tallas y el botón «Colgar en el piso». El detalle repite la honestidad de «Para hoy»: mientras no se
   // cuadre el piso, casi todo «por colgar» ya cuelga y el sistema lo cree guardado (ADR-0331); lo que toca es registrarlo al bajar.
   // La clave sigue siendo «reponer»: es la que guarda la elección de «Ajustar» de cada persona (cookie), y cambiarla le volvería a
   // mostrar un aviso que ya había ocultado.
@@ -276,10 +276,10 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Por colgar",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
-      ahora: n ? `Baja al piso ${n} ${plural(n, "talla", "tallas")} por colgar` : "",
+      ahora: n ? `Cuelga en el piso ${n} ${plural(n, "talla", "tallas")} por colgar` : "",
       detalle:
         p === null ? SIN_LEER : p.tallas === 0 ? "Cada talla guardada ya tiene una colgada."
-          : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.`,
+          : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.`,
       href: "/inventario?hoy=por_colgar",
       ocultable: true,
     });

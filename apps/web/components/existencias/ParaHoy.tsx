@@ -12,7 +12,7 @@ import { resumenPlegado, TAREAS_A_LA_VISTA, type TareaHoy, type TipoTareaHoy, ty
 
    Una tarea = una fila: un punto del tono (ámbar hay que hacerlo aquí, rojo ya se pasó un plazo, pizarra informativo), la cifra
    en la serif de la casa seguida de su frase, una línea de por qué y, a la derecha, LA acción, en botón claro: el único oscuro de
-   la pantalla es el de la cabecera («Bajar al piso»). Con el primero oscuro aquí también había dos botones negros que decían lo
+   la pantalla es el de la cabecera («Colgar en el piso»). Con el primero oscuro aquí también había dos botones negros que decían lo
    mismo, uno encima del otro (visto en la primera captura, 2026-10-04). Se ven tres; el resto, a un toque.
 
    En el celular (bajo `sm`) entra PLEGADO: una línea con la primera tarea y cuántas más hay, que se abre al tocarla (la maqueta

@@ -3,7 +3,7 @@ import type { Movimiento } from "./movimientos-reglas";
 
 // Atajos de Movimientos (ADR-0241): desde lo que pasó, a la pantalla que ya hace lo siguiente — con la prenda cargada.
 // Movimientos sigue siendo un historial que no escribe nada: cada atajo LLEVA a otra pantalla (Cambios, Devoluciones,
-// Bajar al piso, Etiquetas, Conteo, Existencias, Apartados) o abre el modal de siempre (Ajustar), nunca hace el trabajo
+// Colgar en el piso, Etiquetas, Conteo, Existencias, Apartados) o abre el modal de siempre (Ajustar), nunca hace el trabajo
 // aquí. Cada uno aparece solo si quien mira ve ese módulo (ADR-0161): un atajo que termina en «Sin acceso» es peor que
 // no tenerlo.
 //
@@ -74,7 +74,7 @@ export function hrefEtiquetas(varianteIds: readonly string[]): string | null {
   return `/etiquetas-de-precio?variantes=${ids.join(",")}`;
 }
 
-/** «Bajar al piso» con las tallas cargadas «por escanear» (el 1 es solo la forma del enlace: ADR-0237). */
+/** «Colgar en el piso» con las tallas cargadas «por escanear» (el 1 es solo la forma del enlace: ADR-0237). */
 export function hrefBajarAlPiso(varianteIds: readonly string[]): string | null {
   const ids = [...new Set(varianteIds)];
   if (ids.length === 0 || ids.length > MAX_VARIANTES_EN_URL) return null;
@@ -98,7 +98,7 @@ export function atajosDeMovimiento(m: Movimiento, accesos: AccesosAtajos, aparta
   // Lo que llegó: colgarlo (si quedó en el almacén) y etiquetarlo.
   if (esLlegada(m)) {
     const bajar = zonaDeLaSede(m) === "almacen_tienda" && ve("existencias") ? hrefBajarAlPiso([m.varianteId]) : null;
-    if (bajar) atajos.push({ clave: "bajar", texto: "Bajar al piso", detalle: "llega con esta talla cargada", href: bajar, principal: true });
+    if (bajar) atajos.push({ clave: "bajar", texto: "Colgar en el piso", detalle: "llega con esta talla cargada", href: bajar, principal: true });
     const etiquetas = hrefEtiquetas([m.varianteId]);
     if (etiquetas) atajos.push({ clave: "etiquetas", texto: "Imprimir etiqueta", detalle: [m.talla, m.color].filter(Boolean).join(" · ") || "de esta prenda", href: etiquetas });
   }
@@ -139,7 +139,7 @@ export function atajosDeOperacion(filas: readonly Movimiento[], accesos: Accesos
   const alAlmacen = llegadas.filter((m) => zonaDeLaSede(m) === "almacen_tienda").map((m) => m.varianteId);
   const bajar = alAlmacen.length > 0 && ve("existencias") ? hrefBajarAlPiso(alAlmacen) : null;
   const nBajar = new Set(alAlmacen).size;
-  if (bajar) atajos.push({ clave: "bajar", texto: `Bajar ${nBajar === 1 ? "esta" : `estas ${nBajar}`} al piso`, detalle: "", href: bajar, principal: true });
+  if (bajar) atajos.push({ clave: "bajar", texto: `Colgar ${nBajar === 1 ? "esta" : `estas ${nBajar}`} en el piso`, detalle: "", href: bajar, principal: true });
   const etiquetas = hrefEtiquetas(ids);
   if (etiquetas) atajos.push({ clave: "etiquetas", texto: `Imprimir ${ids.length} ${ids.length === 1 ? "etiqueta" : "etiquetas"}`, detalle: "", href: etiquetas });
   return atajos;

@@ -37,7 +37,7 @@ describe("filtrosDeUrl", () => {
   });
 
   it("un «Hoy» o una condición que no existen no filtran (tampoco los nombres viejos «accion» y «estado»)", () => {
-    const f = filtrosDeUrl("hoy=borrar&condicion=perdida&accion=reponer_a_piso&estado=danado", { separa: true });
+    const f = filtrosDeUrl("hoy=borrar&condicion=perdida&accion=bajar_al_piso&estado=danado", { separa: true });
     expect(f.hoy).toBeNull();
     expect(f.condicion).toBeNull();
   });
@@ -118,7 +118,7 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     talla,
     color,
     colorFamilia: { "Azul marino": "azul", "Azul claro": "azul", Beige: "neutro", Negro: "neutro" }[color] ?? null,
-    accionHoy: { tipo: piso <= 1 ? "reponer_a_piso" : "sin_accion" },
+    accionHoy: { tipo: piso <= 1 ? "bajar_al_piso" : "sin_accion" },
     danado: 0,
     apartado: 0,
     pisoDisponible: piso,

@@ -214,8 +214,8 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
   it("en el almacén: dice que la bajada no se registró, cuántas hay y que agregarla la registra (ADR-0321) — ya no manda a Existencias", () => {
     const aviso = avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2 });
     expect(aviso).toEqual({
-      titulo: "Blusa Paracas · M no se registró como bajada al piso",
-      detalle: "En el sistema hay 0 en el piso y 2 en el almacén de Tienda TRU. Si ya la tienes en la mano, agrégala: la bajada queda registrada.",
+      titulo: "Blusa Paracas · M no se registró como colgada en el piso",
+      detalle: "En el sistema hay 0 en el piso y 2 en el almacén de Tienda TRU. Si ya la tienes en la mano, agrégala: queda registrada como colgada.",
     });
     expect(aviso.detalle).not.toContain("Existencias");
   });
@@ -243,7 +243,7 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
   });
 
   it("piso apartado pero con almacén libre: el aviso es el del almacén (hay camino de venta), no el de apartada", () => {
-    expect(avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2, apartadoAqui: 1 }).titulo).toBe("Blusa Paracas · M no se registró como bajada al piso");
+    expect(avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2, apartadoAqui: 1 }).titulo).toBe("Blusa Paracas · M no se registró como colgada en el piso");
   });
 
   it("tope sin almacén: el aviso de siempre", () => {
@@ -257,19 +257,19 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
   it("tope con más en el almacén, al escanear o tocar otra: lo dice y que agregarla registra la bajada (ADR-0321)", () => {
     expect(avisoTope({ ...base, stockAqui: 1, almacenAqui: 1 })).toEqual({
       titulo: "No hay más de Blusa Paracas · M en el piso",
-      detalle: "La del piso ya está en el ticket. Hay 1 más en el almacén de Tienda TRU. Si tienes otra en la mano, agrégala: la bajada queda registrada.",
+      detalle: "La del piso ya está en el ticket. Hay 1 más en el almacén de Tienda TRU. Si tienes otra en la mano, agrégala: queda registrada como colgada.",
     });
     expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 3 }).detalle).toBe(
-      "Las 2 del piso ya están en el ticket. Hay 3 más en el almacén de Tienda TRU. Si tienes otra en la mano, agrégala: la bajada queda registrada.",
+      "Las 2 del piso ya están en el ticket. Hay 3 más en el almacén de Tienda TRU. Si tienes otra en la mano, agrégala: queda registrada como colgada.",
     );
   });
 
   it("tope con más en el almacén y la cantidad ESCRITA a mano: sigue mandando a Existencias (no hay una prenda en la mano)", () => {
     expect(avisoTope({ ...base, stockAqui: 1, almacenAqui: 1, quedoEn: true }).detalle).toBe(
-      "En el piso quedan 1; la cantidad quedó en 1. Hay 1 más en el almacén de Tienda TRU: que la bajen en Inventario ▸ Existencias ▸ Reponer.",
+      "En el piso quedan 1; la cantidad quedó en 1. Hay 1 más en el almacén de Tienda TRU: que la cuelguen en Inventario ▸ Existencias ▸ Colgar en el piso.",
     );
     expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 3, quedoEn: true }).detalle).toBe(
-      "En el piso quedan 2; la cantidad quedó en 2. Hay 3 más en el almacén de Tienda TRU: que bajen las que necesites en Inventario ▸ Existencias ▸ Reponer.",
+      "En el piso quedan 2; la cantidad quedó en 2. Hay 3 más en el almacén de Tienda TRU: que cuelguen las que necesites en Inventario ▸ Existencias ▸ Colgar en el piso.",
     );
   });
 
@@ -284,7 +284,7 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
     expect(avisoCortas([{ nombre: "Blusa Paracas (BLU-M)", piso: 0, almacen: 2 }, { nombre: "Casaca Ximena (CAS-M)", piso: 1, almacen: 0 }], "Tienda TRU")).toEqual({
       titulo: "No alcanza lo del piso de Tienda TRU",
       detalle:
-        "Blusa Paracas (BLU-M): en el piso quedan 0 y en el almacén hay 2; Casaca Ximena (CAS-M): quedan 1. Lo del almacén se cobra cuando lo bajen en Inventario ▸ Existencias ▸ Reponer; si no, ajusta la cantidad o quita la prenda.",
+        "Blusa Paracas (BLU-M): en el piso quedan 0 y en el almacén hay 2; Casaca Ximena (CAS-M): quedan 1. Lo del almacén se cobra cuando lo cuelguen en Inventario ▸ Existencias ▸ Colgar en el piso; si no, ajusta la cantidad o quita la prenda.",
     });
   });
 
@@ -292,21 +292,21 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
     expect(avisoQuedaronEnAlmacen([], "Tienda TRU")).toBeNull();
     expect(avisoQuedaronEnAlmacen(["Blusa Paracas · M"], "Tienda TRU")).toEqual({
       titulo: "Blusa Paracas · M no entró al ticket",
-      detalle: "No se registró como bajada al piso: el sistema la tiene en el almacén de Tienda TRU. Si la tienes en la mano, agrégala: la bajada queda registrada.",
+      detalle: "No se registró como colgada en el piso: el sistema la tiene en el almacén de Tienda TRU. Si la tienes en la mano, agrégala: queda registrada como colgada.",
     });
     expect(avisoQuedaronEnAlmacen(["Blusa Paracas · M", "Casaca Ximena · S"], "Tienda TRU")).toEqual({
       titulo: "2 prendas no entraron al ticket",
       detalle:
-        "Blusa Paracas · M, Casaca Ximena · S. No se registraron como bajada al piso: el sistema las tiene en el almacén de Tienda TRU. Si las tienes en la mano, agrégalas: la bajada queda registrada.",
+        "Blusa Paracas · M, Casaca Ximena · S. No se registraron como colgadas en el piso: el sistema las tiene en el almacén de Tienda TRU. Si las tienes en la mano, agrégalas: quedan registradas como colgadas.",
     });
   });
 });
 
 describe("la bajada que se olvidó, desde la caja (ADR-0321)", () => {
   it("el botón del aviso: una prenda o varias", () => {
-    expect(ACCION_BAJAR_Y_AGREGAR).toBe("Agregar y registrar la bajada");
+    expect(ACCION_BAJAR_Y_AGREGAR).toBe("Agregar y registrar como colgada");
     expect(accionBajarYAgregar(1)).toBe(ACCION_BAJAR_Y_AGREGAR);
-    expect(accionBajarYAgregar(3)).toBe("Agregar las 3 y registrar la bajada");
+    expect(accionBajarYAgregar(3)).toBe("Agregar las 3 y registrar como colgadas");
   });
 
   it("qué avisos ofrecen el botón: solo lo que está en el almacén de esta tienda (la misma regla que la cámara)", () => {
@@ -319,12 +319,12 @@ describe("la bajada que se olvidó, desde la caja (ADR-0321)", () => {
 
   it("el aviso de éxito: «bajada registrada» si se bajó; si otra persona ya la había registrado, solo «agregada»", () => {
     expect(avisoBajadaRegistrada({ nombre: "Blusa Paracas · M", sede: "Tienda TRU", bajadas: 1 })).toEqual({
-      titulo: "Bajada registrada y agregada al ticket",
+      titulo: "Colgada en el piso y agregada al ticket",
       detalle: "Blusa Paracas · M ya figura en el piso de Tienda TRU.",
     });
     expect(avisoBajadaRegistrada({ nombre: "Blusa Paracas · M", sede: "Tienda TRU", bajadas: 0 })).toEqual({
       titulo: "Agregada al ticket",
-      detalle: "Blusa Paracas · M · la bajada al piso ya estaba registrada.",
+      detalle: "Blusa Paracas · M · ya estaba registrada en el piso.",
     });
   });
 });

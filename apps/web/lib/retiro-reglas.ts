@@ -1,7 +1,7 @@
 /**
  * «Subir a almacén» (ADR-0300): las reglas puras de la ventana que sube varias tallas del piso al almacén, sin React ni supabase.
  *
- * EL PROBLEMA. «Reponer» sube varias tallas de una vez porque existe `bajar_al_piso`; el movimiento contrario solo tenía
+ * EL PROBLEMA. «Colgar en el piso» sube varias tallas de una vez porque existe `bajar_al_piso`; el movimiento contrario solo tenía
  * una llamada por talla, y con dos llamadas una prenda podía quedar subida a medias. `retirar_del_piso`
  * (`20261001150000_retirar_del_piso.sql`) las sube TODAS en una transacción, con una marca de reintento por lista.
  *
@@ -13,9 +13,9 @@
 
 import { BOTON_CONFIRMAR_DE_NUEVO, itemsParaRpc, lineasSinAlcance, type ItemRpc, type LineaBajada } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
-import { RETIRO_NO_ES_BAJA, quedaraPidiendoReponer } from "./inventario-reglas";
+import { RETIRO_NO_ES_BAJA, quedaraPidiendoBajada } from "./inventario-reglas";
 import type { PoliticaOperativaInventario } from "./politica-operativa-inventario";
-import type { Cantidades, TallaParaReponer } from "./reponer-prenda-reglas";
+import type { Cantidades, TallaParaBajar } from "./bajar-prenda-reglas";
 
 /** La RPC y sus parámetros en un solo lugar: `retiro-reglas.test.ts` los fija contra la migración. */
 export const RPC_RETIRO = "retirar_del_piso";
@@ -106,20 +106,20 @@ export function tituloDeExitoRetiro(unidades: number): string {
 export const TEXTO_YA_ESTABA_SUBIDA = "Esta subida ya estaba registrada. No se repitió.";
 
 /** Lo que Existencias va a decir de las tallas que queden con poco: se avisa ANTES de confirmar (ADR-0208, bloque 3). */
-export const AVISO_QUEDAN_CON_POCO = "Existencias va a pedir bajar de nuevo las tallas que queden con poco en el piso.";
+export const AVISO_QUEDAN_CON_POCO = "Existencias va a pedir colgar de nuevo las tallas que queden con poco en el piso.";
 
 /** Los dos textos que puede mostrar el bloque de abajo, para que la ventana reserve el alto del más largo (ADR-0185). */
 export const TEXTOS_BLOQUE_SUBIR: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_QUEDAN_CON_POCO];
 
 /**
  * El texto del bloque: si alguna talla elegida quedaría pidiendo reponer (o «Por colgar») según la política de la sede, lo dice;
- * si no, recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoReponer`, la misma regla que después pinta la fila, y recibe
+ * si no, recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoBajada`, la misma regla que después pinta la fila, y recibe
  * lo DISPONIBLE como la ventana.
  */
-export function textoDelBloqueSubir(tallas: readonly TallaParaReponer[], cantidades: Cantidades, politica: PoliticaOperativaInventario): string {
+export function textoDelBloqueSubir(tallas: readonly TallaParaBajar[], cantidades: Cantidades, politica: PoliticaOperativaInventario): string {
   const quedaCorto = tallas.some((t) => {
     const n = Math.min(Math.max(0, Math.trunc(cantidades[t.varianteId] ?? 0)), t.piso);
-    return n > 0 && quedaraPidiendoReponer({ piso: t.piso, almacen: t.almacen }, n, politica);
+    return n > 0 && quedaraPidiendoBajada({ piso: t.piso, almacen: t.almacen }, n, politica);
   });
   return quedaCorto ? AVISO_QUEDAN_CON_POCO : RETIRO_NO_ES_BAJA;
 }

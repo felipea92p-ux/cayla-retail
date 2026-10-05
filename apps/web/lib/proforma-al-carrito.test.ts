@@ -176,7 +176,7 @@ describe("avisoFaltanDeProforma", () => {
     expect(avisoFaltanDeProforma({ numero: "PRO-000012", faltan, faltanEnAlmacen })).toEqual({
       titulo: "No todo lo de PRO-000012 entró al ticket",
       detalle:
-        "Casaca Ximena · M · Negro (2 en el almacén); Blusa Emma · S · Negro (no hay en esta tienda). Lo del almacén se puede cobrar: que lo bajen en Inventario ▸ Existencias ▸ Reponer y súmalo al ticket; entra al precio de la proforma.",
+        "Casaca Ximena · M · Negro (2 en el almacén); Blusa Emma · S · Negro (no hay en esta tienda). Lo del almacén se puede cobrar: que lo cuelguen en Inventario ▸ Existencias ▸ Colgar en el piso y súmalo al ticket; entra al precio de la proforma.",
     });
   });
 });

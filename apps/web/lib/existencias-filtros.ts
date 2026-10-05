@@ -12,7 +12,7 @@ import { claveDeTarjeta } from "./existencias-tarjetas";
 
    Dos preguntas distintas sobre una talla, dos filtros (separadas el 2026-09-25, renombradas el 2026-10-03):
      · «Hoy»: qué pide la talla (Por colgar · Por reponer · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
-       cae en UNO solo, y la tarjeta y la tabla dicen la misma palabra. Antes eran «Acción» («Reponer a piso» / «Mantener») y
+       cae en UNO solo, y la tarjeta y la tabla dicen la misma palabra. Antes eran «Acción» («Colgar en el piso» / «Mantener») y
        «Por colgar» escondido en «Estado»: elegir «Mantener» + «Por colgar» siempre daba vacío.
      · «Condición»: en qué condición está el inventario (Dañadas · Apartadas). No excluye a «Hoy»: una talla puede pedir
        reponer y tener una apartada a la vez.
@@ -21,7 +21,7 @@ import { claveDeTarjeta } from "./existencias-tarjetas";
 /* ====================================================================
    Los filtros viven en la URL (2026-10-03, misma estructura que Productos, ADR-0308)
 
-   Antes cada combo era un `useState`: al ir a «Bajar al piso» y volver, o al recargar, la asesora rehacía los
+   Antes cada combo era un `useState`: al ir a «Colgar en el piso» y volver, o al recargar, la asesora rehacía los
    filtros; y no había enlace que mandar a otra sede («esto es lo que falta de Krisstell en M»). Ahora la URL es
    la única fuente de verdad y la pantalla solo la lee. A diferencia de Productos, aquí NO se navega: Existencias ya
    tiene todo el stock de la sede en el navegador, así que cambiar un filtro reescribe la URL con la historia del

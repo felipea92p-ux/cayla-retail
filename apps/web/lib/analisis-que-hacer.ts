@@ -10,7 +10,7 @@ import { compararTallas } from "./tallas";
 
 // Análisis conectado (ADR-0245, spike `docs/maquetas/analisis-conectado-2026-09/`): de la lectura de cada talla a
 // «qué hacer» y a la pantalla que lo hace. Regla de oro (ADR-0121): Análisis SUGIERE, nunca mueve stock — cada acción
-// lleva a la pantalla que ya hace el trabajo (Bajar al piso, Mover mercadería, Etiquetas, Compras, Producción) con la
+// lleva a la pantalla que ya hace el trabajo (Colgar en el piso, Mover mercadería, Etiquetas, Compras, Producción) con la
 // lista cargada, o abre «Pedir a otra sede» (ADR-0242 D-7), que la otra sede confirma. Nunca sugiere cantidades: cada
 // talla viaja con 1 y la persona pone cuántas (ADR-0231).
 //
@@ -31,7 +31,7 @@ export type GrupoTrabajo = (typeof GRUPOS_TRABAJO)[number];
 
 export const INFO_GRUPO: Record<GrupoQueHacer, { titulo: string; que: string; accion: string; chip: string; tono: "rojo" | "ambar" | "verde" | "neutro" }> = {
   agotada: { titulo: "Se agotaron", que: "Vendían y el piso quedó vacío", accion: "Reponer", chip: "Se agotó", tono: "rojo" },
-  duerme: { titulo: "Duermen en almacén", que: "Venden al colgarse, pero están guardadas", accion: "Bajar al piso", chip: "Duerme en almacén", tono: "ambar" },
+  duerme: { titulo: "Duermen en almacén", que: "Venden al colgarse, pero están guardadas", accion: "Colgar en el piso", chip: "Duerme en almacén", tono: "ambar" },
   estancada: { titulo: "Estancadas", que: "14 días o más colgadas sin vender", accion: "Trasladar o rebajar", chip: "Estancada", tono: "ambar" },
   top: { titulo: "Las que más venden", que: "Cuida que no se corten las tallas", accion: "Ver tallas", chip: "Vende bien", tono: "verde" },
   sinbase: { titulo: "Aún sin base", que: "Recién colgadas: todavía no se pueden juzgar", accion: "Esperar", chip: "Recién colgada", tono: "neutro" },
@@ -57,7 +57,7 @@ export function grupoDeTalla(x: AnalisisDesempeno, lectura: Lectura | null, esTo
       return "estancada";
     case "problema_reposicion":
     case "sobrestock":
-      // «Duerme en almacén» pide bajar al piso: sin nada en el almacén HOY no hay qué bajar, y no se promete.
+      // «Duerme en almacén» pide colgar en el piso: sin nada en el almacén HOY no hay qué bajar, y no se promete.
       return (x.fila.stockActualPisoAlmacen?.almacen ?? 0) > 0 ? "duerme" : "otras";
     case "saludable":
       return esTop ? "top" : "otras";
@@ -347,24 +347,24 @@ function reponer(p: PrendaAnalisis, red: Readonly<Record<string, RedVariante>>, 
 
 /**
  * La acción que conviene según lo que dice la prenda (el cuadro del README del spike):
- *   se agotó  → Bajar al piso si hay en el almacén; si no, Pedir a la tienda que tiene; si nadie, Reponer
- *   duerme    → Bajar al piso
+ *   se agotó  → Colgar en el piso si hay en el almacén; si no, Pedir a la tienda que tiene; si nadie, Reponer
+ *   duerme    → Colgar en el piso
  *   estancada → Trasladar lo que está en el almacén; si todo está colgado, Rebajar (etiquetas nuevas)
- *   vende bien→ Bajar al piso la talla que se está cortando (1 o menos colgada y algo guardado)
+ *   vende bien→ Colgar en el piso la talla que se está cortando (1 o menos colgada y algo guardado)
  */
 export function accionPrincipal(p: PrendaAnalisis, grupo: GrupoQueHacer, red: Readonly<Record<string, RedVariante>>, a: AccesoAnalisis): AccionAnalisis | null {
   const foco = p.tallas.filter((t) => t.grupo === grupo);
   switch (grupo) {
     case "agotada": {
       const href = a.bajar ? urlBajar(foco) : null;
-      if (href) return { clave: "bajar", texto: "Bajar al piso", sub: "las tallas vacías que tienen almacén", href };
+      if (href) return { clave: "bajar", texto: "Colgar en el piso", sub: "las tallas vacías que tienen almacén", href };
       const pedido = a.pedir ? mejorTiendaParaPedir(foco, red) : null;
       if (pedido) return { clave: "pedir", texto: `Pedir a ${pedido.origen.nombre}`, sub: `${pedido.origen.nombre} la envía; tú la recibes`, ...pedido };
       return reponer(p, red, a);
     }
     case "duerme": {
       const href = a.bajar ? urlBajar(foco) : null;
-      return href ? { clave: "bajar", texto: "Bajar al piso", sub: "lo que espera en el almacén", href } : null;
+      return href ? { clave: "bajar", texto: "Colgar en el piso", sub: "lo que espera en el almacén", href } : null;
     }
     case "estancada": {
       const mover = a.traslados ? urlTrasladar(foco) : null;
@@ -375,7 +375,7 @@ export function accionPrincipal(p: PrendaAnalisis, grupo: GrupoQueHacer, red: Re
     case "top": {
       const cortandose = foco.filter((t) => (hoyDe(t)?.piso ?? Infinity) <= 1);
       const href = a.bajar ? urlBajar(cortandose) : null;
-      return href ? { clave: "bajar", texto: "Bajar al piso", sub: "la talla que se está cortando", href } : null;
+      return href ? { clave: "bajar", texto: "Colgar en el piso", sub: "la talla que se está cortando", href } : null;
     }
     default:
       return null;
@@ -388,7 +388,7 @@ export function accionesDelDetalle(p: PrendaAnalisis, grupo: GrupoQueHacer, red:
   const lista: AccionAnalisis[] = principal ? [principal] : [];
   const ya = (clave: AccionAnalisis["clave"]) => lista.some((x) => x.clave === clave);
   const bajar = a.bajar ? urlBajar(p.tallas) : null;
-  if (bajar && !ya("bajar")) lista.push({ clave: "bajar", texto: "Bajar al piso", sub: "de su almacén", href: bajar });
+  if (bajar && !ya("bajar")) lista.push({ clave: "bajar", texto: "Colgar en el piso", sub: "de su almacén", href: bajar });
   const mover = a.traslados ? urlTrasladar(p.tallas) : null;
   if (mover && !ya("trasladar")) lista.push({ clave: "trasladar", texto: "Trasladar", sub: "a otra sede", href: mover });
   if (!ya("pedir") && a.pedir) {

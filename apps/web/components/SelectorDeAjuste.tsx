@@ -18,7 +18,7 @@ export type FilaDeAjuste = {
   minimo: number;
 };
 
-// La lista de tallas de «Ajustar» (ADR-0300): la talla en una insignia, dos líneas de texto y un control − 0 +. (Hasta ADR-0317 «Reponer» y «Subir» usaban la misma
+// La lista de tallas de «Ajustar» (ADR-0300): la talla en una insignia, dos líneas de texto y un control − 0 +. (Hasta ADR-0317 «Colgar en el piso» y «Subir» usaban la misma
 // forma; ahora son una tabla color × talla, `MatrizMover`.) Se distingue en una
 // cosa: aquí el número puede ser negativo (restar) o «sin contar» (vacío), según el motivo: con «Conteo físico», cuántas hay; con
 // los demás, cuánto se suma o se resta. El valor se guarda tal cual lo escribió la persona (texto): `lineasDeAjuste` decide qué es

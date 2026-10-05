@@ -4,9 +4,9 @@ import type { TipoAccionHoy } from "./existencias-recomendaciones";
 /* ====================================================================
    «Hoy»: qué pide cada talla, en UNA sola palabra para toda Existencias (Felipe, 2026-10-03)
 
-   El problema: la misma situación se decía de cinco maneras —el filtro «Acción» («Reponer a piso»), el filtro «Estado»
+   El problema: la misma situación se decía de cinco maneras —el filtro «Acción» («Colgar en el piso»), el filtro «Estado»
    («Por colgar»), la tarjeta («N tallas sin stock en piso»), el cajón («Faltan tallas en piso», «Piso al día») y la tabla
-   («Reponer a piso», «Mantener»)—, y quien filtraba «Por colgar» veía tarjetas que decían otra cosa. Además «Reponer a piso»
+   («Colgar en el piso», «Mantener»)—, y quien filtraba «Por colgar» veía tarjetas que decían otra cosa. Además «Colgar en el piso»
    juntaba tallas que se pueden bajar hoy con tallas cuyo almacén está vacío: la asesora filtraba para trabajar y parte de la
    lista no se podía hacer.
 
@@ -15,8 +15,8 @@ import type { TipoAccionHoy } from "./existencias-recomendaciones";
      · Por reponer     — queda poco en el piso (la regla física de piso pide reponer) y hay en el almacén para bajar.
      · Sin stock atrás — la regla pide reponer pero el almacén está vacío: no se resuelve en la tienda (pedir o trasladar).
      · Mantener        — nada que hacer hoy con el piso.
-   No cambia el motor de «Acción hoy» (`calcularAccionHoy`, regla del 2026-09-25): solo separa SU «Reponer a piso» según haya o
-   no algo libre atrás, con las mismas cifras que ya decide «Reponer prenda» (`sePuedeBajar`).
+   No cambia el motor de «Acción hoy» (`calcularAccionHoy`, regla del 2026-09-25): solo separa SU «Colgar en el piso» según haya o
+   no algo libre atrás, con las mismas cifras que ya decide «Colgar en el piso» (`sePuedeBajar`).
    ==================================================================== */
 
 export const TIPOS_HOY = ["por_colgar", "por_reponer", "sin_stock_atras", "mantener"] as const;
@@ -32,7 +32,7 @@ export const TEXTO_HOY: Record<TipoHoy, string> = {
 /** Lo que significa cada caso, en palabras del piso (para el `title` de un chip y la leyenda de la tabla). */
 export const AYUDA_HOY: Record<TipoHoy, string> = {
   por_colgar: "En el piso no queda ninguna para vender y en el almacén sí: se cuelga hoy",
-  por_reponer: "Queda poco en el piso y hay en el almacén para bajar",
+  por_reponer: "Queda poco en el piso y hay en el almacén para colgar",
   sin_stock_atras: "Falta en el piso y el almacén está vacío: hay que pedirla o trasladarla",
   mantener: "Nada que hacer hoy con el piso de esta talla",
 };
@@ -45,7 +45,7 @@ export type TallaParaHoy = { pisoDisponible: number | null; almacenDisponible: n
 export function hoyDeTalla(f: TallaParaHoy): TipoHoy | null {
   if (f.pisoDisponible === null || f.almacenDisponible === null) return null;
   if (porColgar(f)) return "por_colgar";
-  if (f.accionHoy?.tipo === "reponer_a_piso") return f.almacenDisponible > 0 ? "por_reponer" : "sin_stock_atras";
+  if (f.accionHoy?.tipo === "bajar_al_piso") return f.almacenDisponible > 0 ? "por_reponer" : "sin_stock_atras";
   return "mantener";
 }
 

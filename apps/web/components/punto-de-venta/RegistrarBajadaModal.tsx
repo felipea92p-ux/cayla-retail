@@ -30,14 +30,14 @@ export function RegistrarBajadaModal({
 }) {
   const varias = nombres.length > 1;
   return (
-    <Modal titulo="Registrar la bajada al piso" ancho="max-w-md" onClose={onClose}>
+    <Modal titulo="Registrar que se colgó en el piso" ancho="max-w-md" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm text-tinta/80">
             {varias
               ? `${nombres.join(", ")} entran al ticket y quedan registradas en el piso de ${sede}.`
               : `${nombres[0]} entra al ticket y queda registrada en el piso de ${sede}.`}{" "}
-            La bajada va a nombre de quien atiende.
+            Queda a nombre de quien atiende.
           </p>
           <ComboResponsable control={responsable} />
           <div className="flex gap-2">

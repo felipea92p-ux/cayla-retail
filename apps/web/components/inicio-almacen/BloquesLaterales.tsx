@@ -146,7 +146,7 @@ export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) 
 // ── Por colgar ───────────────────────────────────────────────────────────────────────────────────
 
 /** Lo que está por colgar en la sede, con la cifra y la palabra de «Para hoy» en Existencias (`existenciasDeAlmacen`): cada prenda
- *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Bajar al piso» con esas tallas ya cargadas. */
+ *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Colgar en el piso» con esas tallas ya cargadas. */
 export function PorColgarAlmacen({ existencias }: { existencias: Existencias | null | undefined }) {
   if (existencias === undefined) return null;
   if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay nada que colgar
@@ -187,7 +187,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
                 {tallas} {tallas === 1 ? "talla" : "tallas"} por colgar
               </span>
               <Link href={existencias.hrefBajar} className="ia-enl">
-                Bajar al piso <Ico clave="arrow" />
+                Colgar en el piso <Ico clave="arrow" />
               </Link>
             </div>
           </>

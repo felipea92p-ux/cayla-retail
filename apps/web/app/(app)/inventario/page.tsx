@@ -110,7 +110,7 @@ export default async function InventarioPage({
   // Motor único de «Acción hoy» (`existencias-recomendaciones.ts`, sin `planDeReposicion`): sobre
   // `stockBase` directo — piso/almacén/en tránsito ya vienen ahí, ninguna otra reconstrucción.
   // Regla física de piso (2026-09-25, cuarta ronda): ya NO recibe Ritmo reciente ni Cobertura
-  // piso — no le hacen falta para decidir nada (`politica.umbralStockPisoReposicion` manda solo).
+  // piso — no le hacen falta para decidir nada (`politica.umbralStockPisoBajada` manda solo).
   const accionHoy = vende ? accionHoyPorVariante(stockBase, politica) : new Map();
 
   // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
@@ -140,7 +140,7 @@ export default async function InventarioPage({
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 
-  // «Bajar al piso» (ADR-0208): la única entrada a /inventario/bajar (Felipe, 2026-09-25; el lateral no cambia). Solo si
+  // «Colgar en el piso» (ADR-0208): la única entrada a /inventario/bajar (Felipe, 2026-09-25; el lateral no cambia). Solo si
   // su rol ve «Bajada al piso» y si lo que se mira es SU sede activa y separa piso y almacén: esa pantalla baja siempre en
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
@@ -218,7 +218,7 @@ export default async function InventarioPage({
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-primario shrink-0 gap-2">
                 <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                Bajar al piso
+                Colgar en el piso
               </Link>
             )}
             <nav aria-label="Pantallas relacionadas" className="flex shrink-0 items-center gap-1">

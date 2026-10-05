@@ -13,7 +13,7 @@ import {
   tallasPorPrenda,
   textoTallasRecortadas,
   sePuedeBajar,
-  tallaParaReponer,
+  tallaParaBajar,
   tallaPorCodigo,
   urlBajarAlPiso,
   urlEtiquetas,
@@ -22,7 +22,7 @@ import {
   type FilaPrenda,
 } from "./existencias-prendas";
 
-const REPONER = { tipo: "reponer_a_piso" as const, texto: "Reponer a piso", motivo: "poco en piso", contexto: null };
+const REPONER = { tipo: "bajar_al_piso" as const, texto: "Colgar en el piso", motivo: "poco en piso", contexto: null };
 const SIN_ACCION = { tipo: "sin_accion" as const, texto: "Sin acción", motivo: null, contexto: null };
 
 function fila(p: Partial<FilaPrenda> & { varianteId: string }): FilaPrenda {
@@ -58,7 +58,7 @@ describe("estadoTalla dice lo mismo que hoyDeTalla, en toda combinación", () =>
     it(`umbral de piso ${umbral}`, () => {
       for (let piso = 0; piso <= 6; piso++) {
         for (let almacen = 0; almacen <= 6; almacen++) {
-          const accionHoy = calcularAccionHoy({ varianteId: "v", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, { minDiasExposicionRitmo: 3, umbralStockPisoReposicion: umbral });
+          const accionHoy = calcularAccionHoy({ varianteId: "v", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, { minDiasExposicionRitmo: 3, umbralStockPisoBajada: umbral });
           const f = fila({ varianteId: "v", pisoDisponible: piso, almacenDisponible: almacen, accionHoy });
           const hoy = hoyDeTalla(f);
           const esperado = piso + almacen <= 0 ? "sin_stock" : hoy ? EQUIVALE[hoy] : "normal";
@@ -135,7 +135,7 @@ describe("enlaces con la lista cargada", () => {
   const normal = fila({ varianteId: "v2" });
   const sinAtras = fila({ varianteId: "v3", accionHoy: REPONER, pisoDisponible: 1, almacenDisponible: 0 });
 
-  it("Bajar al piso lleva solo lo que se puede bajar, de a una unidad (CAYLA no sugiere cantidades)", () => {
+  it("Colgar en el piso lleva solo lo que se puede bajar, de a una unidad (CAYLA no sugiere cantidades)", () => {
     expect(lineasParaBajar([bajable, normal, sinAtras])).toEqual([{ varianteId: "v1", cantidad: 1 }]);
     expect(urlBajarAlPiso([bajable, normal])).toBe("/inventario/bajar?lineas=v1:1");
   });
@@ -209,19 +209,19 @@ describe("ordenarPorUrgencia (análisis de Existencias, tarea #5)", () => {
   });
 });
 
-describe("tallaParaReponer (tarea #7): «Reponer N tallas» abre una talla que se pueda bajar", () => {
+describe("tallaParaBajar (tarea #7): «Reponer N tallas» abre una talla que se pueda bajar", () => {
   const sinAtras = fila({ varianteId: "sin-atras", talla: "S", accionHoy: REPONER, pisoDisponible: 1, almacenDisponible: 0 });
   const reponer = fila({ varianteId: "reponer", talla: "M", accionHoy: REPONER, pisoDisponible: 2, almacenDisponible: 3 });
   const porColgar = fila({ varianteId: "por-colgar", talla: "L", accionHoy: REPONER, pisoDisponible: 0, almacenDisponible: 2 });
 
   it("primero una por colgar que se pueda bajar", () => {
-    expect(tallaParaReponer([sinAtras, reponer, porColgar])?.varianteId).toBe("por-colgar");
+    expect(tallaParaBajar([sinAtras, reponer, porColgar])?.varianteId).toBe("por-colgar");
   });
   it("si no hay por colgar, la primera que se pueda bajar — nunca una que pide reponer sin nada atrás", () => {
-    expect(tallaParaReponer([sinAtras, reponer])?.varianteId).toBe("reponer");
+    expect(tallaParaBajar([sinAtras, reponer])?.varianteId).toBe("reponer");
   });
   it("sin ninguna que se pueda bajar, ninguna", () => {
-    expect(tallaParaReponer([sinAtras])).toBeNull();
+    expect(tallaParaBajar([sinAtras])).toBeNull();
   });
 });
 

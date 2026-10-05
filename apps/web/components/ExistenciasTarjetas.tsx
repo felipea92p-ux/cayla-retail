@@ -6,7 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
-import { estadoTalla, queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, queHacerPrenda, tallaParaBajar, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
@@ -26,7 +26,7 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    (ámbar: hay atrás y ninguna afuera) y sin nada en la sede (borde punteado: un lugar vacío, no un error). Reemplaza las cajas
    «Piso / Almacén» (la de Piso iba siempre en rojo) y la cuadrícula con los rótulos repetidos en cada renglón.
 
-   UN botón por tarjeta (rediseño 2026-10-04): «Reponer» solo si algún color tiene algo que bajar; Subir, Ajustar y Ver detalle
+   UN botón por tarjeta (rediseño 2026-10-04): «Colgar en el piso» solo si algún color tiene algo que bajar; Subir, Ajustar y Ver detalle
    viven en el menú «⋯». Antes eran cuatro botones y uno negro en cada tarjeta: quince negros por página.
 
    No decide nada nuevo: las cifras son las LIBRES de `PrendaAgrupada` (las mismas de la tabla) y la pastilla es el diagnóstico
@@ -92,26 +92,26 @@ function EtiquetaTalla({ f, separa }: { f: FilaExistencias; separa: boolean }) {
 export function ExistenciasTarjetas({
   modelos,
   separa,
-  puedeReponer,
+  puedeBajarPrendas,
   puedeAjustar,
   mostrarMarca,
   tallasDePrenda,
-  onReponer,
+  onBajarAlPiso,
   onSubir,
   onAjustar,
   onVerDetalle,
 }: {
   modelos: ModeloPrendas<FilaExistencias>[];
   separa: boolean;
-  puedeReponer: boolean;
+  puedeBajarPrendas: boolean;
   puedeAjustar: boolean;
   mostrarMarca: boolean;
   /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
    *  lo dice («Solo M · L (de 4 tallas)»), porque sus cifras suman solo las que se ven. */
   tallasDePrenda?: ReadonlyMap<string, number>;
-  /** «Reponer prenda» abre la ventana del MODELO entero (todos sus colores y tallas, ADR-0317); `prenda` es el color que se ve. */
-  onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
-  /** «Subir prenda» abre la ventana del MODELO entero (todos sus colores y tallas). Mismo permiso que «Reponer prenda». */
+  /** «Colgar en el piso» abre la ventana del MODELO entero (todos sus colores y tallas, ADR-0317); `prenda` es el color que se ve. */
+  onBajarAlPiso: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
+  /** «Subir prenda» abre la ventana del MODELO entero (todos sus colores y tallas). Mismo permiso que «Colgar en el piso». */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   onAjustar: (fila: FilaExistencias, origen: HTMLElement) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
@@ -127,9 +127,9 @@ export function ExistenciasTarjetas({
     <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,30rem),1fr))]">
       {modelos.map((m) => {
         const p = m.colores.find((c) => c.clave === elegida[m.clave]) ?? m.colores[0];
-        // «Reponer prenda» y «Subir prenda» abren el MODELO entero (todos sus colores, ADR-0317): se ofrecen si ALGÚN color tiene
+        // «Colgar en el piso» y «Subir prenda» abren el MODELO entero (todos sus colores, ADR-0317): se ofrecen si ALGÚN color tiene
         // algo que mover, no solo el que se está viendo.
-        const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
+        const hayQueBajar = puedeBajarPrendas && m.colores.some((c) => tallaParaBajar(c.tallas) !== null);
         // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
         const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
         const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
@@ -141,7 +141,7 @@ export function ExistenciasTarjetas({
         const guardadas = p.almacen ?? 0;
         const origen = () => tarjetas.current.get(m.clave) ?? document.body;
         const menu = [
-          ...(puedeReponer
+          ...(puedeBajarPrendas
             ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
             : []),
           ...(puedeAjustar ? [{ clave: "ajustar", etiqueta: "Ajustar stock", onSelect: () => onAjustar(p.tallas[0], origen()) }] : []),
@@ -242,12 +242,12 @@ export function ExistenciasTarjetas({
                 {hayQueBajar && (
                   <button
                     type="button"
-                    onClick={(e) => onReponer(p, e.currentTarget)}
-                    title="Bajar prendas del almacén al piso, de todos los colores"
+                    onClick={(e) => onBajarAlPiso(p, e.currentTarget)}
+                    title="Colgar en el piso las prendas del almacén, de todos los colores"
                     className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5"
                   >
                     <IconoPercha aria-hidden className="h-4 w-4" strokeWidth={1.6} />
-                    Reponer
+                    Colgar en el piso
                   </button>
                 )}
               </div>

@@ -30,7 +30,7 @@ import { formatoSolesCompacto, formatoVariacion, pluralizar } from "@/lib/resume
 // toque). Una fila por modelo + color, como Existencias (ADR-0237): la curva de tallas dice qué talla vendió y qué hay hoy,
 // y la última columna dice qué hacer, con el botón que lleva a la pantalla que lo hace. En el celular, tarjetas con el
 // botón a la vista y «Escanear prenda» fijo abajo (el mismo lector de Existencias y Cambios). Marcar varias abre la barra
-// de abajo con Bajar al piso, Trasladar y Etiquetas (una unidad por talla: la persona pone la cantidad, ADR-0231).
+// de abajo con Colgar en el piso, Trasladar y Etiquetas (una unidad por talla: la persona pone la cantidad, ADR-0231).
 
 const PLANTILLA = "grid-cols-[1.5rem_minmax(12rem,1.1fr)_minmax(13rem,1.2fr)_5.5rem_6rem_6.5rem_6.5rem_minmax(11rem,0.9fr)]";
 
@@ -425,7 +425,7 @@ export function AnalisisPrendas({
               {enlaces.bajar && (
                 <Link href={enlaces.bajar} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <ArrowDownToLine aria-hidden className="h-4 w-4" />
-                  Bajar al piso
+                  Colgar en el piso
                 </Link>
               )}
               {enlaces.trasladar && (

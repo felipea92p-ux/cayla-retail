@@ -76,7 +76,7 @@ export default async function EditarProductoPage({
 
   // Ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es la ventana de Existencias
   // sobre la SEDE ACTIVA, y solo para quien tiene el módulo «Ajustar stock» (`ajustarStock`), que es lo mismo que exige la base
-  // (`ajustar_inventario`). «Bajada al piso» sigue las mismas reglas que en Existencias: el rol lo ve y la sede separa piso y almacén.
+  // (`ajustar_inventario`). «Colgar en el piso» sigue las mismas reglas que en Existencias: el rol lo ve y la sede separa piso y almacén.
   // Sin el módulo, el stock de la sede se LEE igual (`lecturaStock`): antes no se pedía y la matriz y el panel mostraban 0 en cada
   // talla, que se lee como «no hay nada» (revisión del 2026-10-03). Se ve, no se toca.
   const puedeAjustarStock = puede(persona, "ajustarStock");

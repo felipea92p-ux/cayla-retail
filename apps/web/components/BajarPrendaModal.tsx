@@ -32,28 +32,28 @@ import {
   detalleDeLoMovido,
   lineasDeMoverModelo,
   sePuedeBajarTalla,
-  textoBotonReponer,
+  textoBotonBajar,
   textoFilaSinAlcance,
-  totalAReponer,
+  totalABajar,
   totalesDeMatriz,
   type Cantidades,
-  type PrendaParaReponer,
-} from "@/lib/reponer-prenda-reglas";
+  type PrendaParaBajar,
+} from "@/lib/bajar-prenda-reglas";
 
 const TOPE_ESPERA_MS = 20_000;
 
-// «Reponer prenda» (ADR-0295, ADR-0317): el botón de la tarjeta abre ESTA ventana con el MODELO entero —una fila por color, una
+// «Colgar en el piso» (ADR-0295, ADR-0317): el botón de la tarjeta abre ESTA ventana con el MODELO entero —una fila por color, una
 // columna por talla— y al confirmar llama UNA vez a `bajar_al_piso` (todo o nada, con marca de reintento: ADR-0208). Antes abría
 // una ventana por color: un Polo en azul, blanco y negro eran tres búsquedas, tres ventanas y tres esperas.
 //
 // Por qué `bajar_al_piso` y no `mover_entre_piso_y_almacen` una vez por talla: con dos llamadas, la segunda puede fallar
 // con la primera ya guardada y la prenda queda repuesta a medias (ADR-0208 lo descartó: «llamar N veces desde la web no
-// es todo o nada»). Las filas de movimiento son las mismas que escribía «Reponer» (cada línea es un `mover_interno`
+// es todo o nada»). Las filas de movimiento son las mismas que escribía «Colgar en el piso» (cada línea es un `mover_interno`
 // almacén → piso) y Frescura las lee por su forma, así que ningún indicador cambia; solo se suma la cabecera de la bajada.
 //
 // La ventana NO sugiere cuántas bajar (ADR-0231): arranca en cero y la cifra la pone quien tiene la prenda en la mano.
 // «Retirar del piso» sigue en `ReponerPisoModal`: es una sola talla y lleva nota.
-export function ReponerPrendaModal({
+export function BajarPrendaModal({
   prendas,
   ubicacionId,
   sede,
@@ -61,11 +61,11 @@ export function ReponerPrendaModal({
   onClose,
 }: {
   /** Los colores del modelo, cada uno con todas sus tallas (la prenda que se tocó va primero). */
-  prendas: readonly PrendaParaReponer[];
+  prendas: readonly PrendaParaBajar[];
   ubicacionId: string;
   /** El nombre de la sede, para los textos de la base («…al piso de Tienda TRU»). */
   sede: string;
-  /** El control que abrió la ventana (el «Reponer» de la tarjeta): al cerrar, el teclado vuelve ahí. */
+  /** El control que abrió la ventana (el «Colgar en el piso» de la tarjeta): al cerrar, el teclado vuelve ahí. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
@@ -90,13 +90,13 @@ export function ReponerPrendaModal({
   const responsable = useResponsable();
 
   const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
-  const total = totalAReponer(lineas);
+  const total = totalABajar(lineas);
   const totales = totalesDeMatriz(colores, cantidades, "bajar");
   const hayAlgoQueBajar = colores.some((c) => c.tallas.some(sePuedeBajarTalla));
 
   // La guía de foco (ADR-0284) sale de lo que ya bloquea el botón: algo elegido y quién lo hace.
   const guia = useGuiaCampos([
-    { id: "cantidades", nombre: "Cuántas bajar", requerido: true, hecho: total > 0, pendiente: "Elige cuántas prendas bajar." },
+    { id: "cantidades", nombre: "Cuántas colgar", requerido: true, hecho: total > 0, pendiente: "Elige cuántas prendas colgar." },
     { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién baja las prendas." },
   ]);
 
@@ -116,7 +116,7 @@ export function ReponerPrendaModal({
     e.preventDefault();
     if (enVuelo.current || !responsable.listo) return;
     if (lineas.length === 0) {
-      setError("Elige cuántas prendas bajar.");
+      setError("Elige cuántas prendas colgar.");
       return;
     }
     enVuelo.current = true;
@@ -162,7 +162,7 @@ export function ReponerPrendaModal({
         // La base contestó sin mirar la marca (módulo apagado, sesión vencida): lo anterior sigue en duda y las cifras
         // siguen fijas; soltarlas dejaría bajar dos veces lo que quizá ya se guardó.
         setCongelado(true);
-        setError(`${fallo.mensaje} ${textoMarcaSinResolver(marcaDeEnvio, textoBotonReponer(total, true))}`);
+        setError(`${fallo.mensaje} ${textoMarcaSinResolver(marcaDeEnvio, textoBotonBajar(total, true))}`);
         return;
       }
       // La base miró la marca: o esa transacción se deshizo entera, o dice qué guardó. La marca de envío sobra.
@@ -192,7 +192,7 @@ export function ReponerPrendaModal({
       }
       if (fallo.tipo === "sin_alcance" && fallo.lineas.length > 0) {
         setProblemas(Object.fromEntries(fallo.lineas.map((l) => [l.varianteId, textoFilaSinAlcance(l.hay, l.motivo)])));
-        setError("No se bajó nada: revisa las tallas marcadas.");
+        setError("No se colgó nada: revisa las tallas marcadas.");
       } else {
         setError(fallo.mensaje);
       }
@@ -222,7 +222,7 @@ export function ReponerPrendaModal({
 
   return (
     <Modal
-      titulo="Reponer prenda"
+      titulo="Colgar en el piso"
       subtitulo="Del almacén al piso de venta"
       onClose={onClose}
       bloqueado={loading}
@@ -248,7 +248,7 @@ export function ReponerPrendaModal({
                 {total} {total === 1 ? "prenda" : "prendas"} en {coloresConAlgo(colores, totales)} {coloresConAlgo(colores, totales) === 1 ? "color" : "colores"}.
               </p>
             )}
-            {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ningún color tiene prendas libres en el almacén para bajar.</p>}
+            {!hayAlgoQueBajar && <p className="mt-2 text-xs text-taupe">Ningún color tiene prendas libres en el almacén para colgar.</p>}
           </CampoGuiado>
 
           <CampoGuiado id="responsable" guia={guia}>
@@ -261,7 +261,7 @@ export function ReponerPrendaModal({
             </p>
           )}
 
-          <PieGuia guia={guia} listo="Todo listo para bajar." />
+          <PieGuia guia={guia} listo="Todo listo para colgar." />
 
           {/* `pie-hoja-fijo`: Cancelar y el botón principal no se van bajo el pliegue en un laptop de 768 px de alto (globals.css). */}
           <div className="pie-hoja-fijo flex gap-2 pt-1">
@@ -276,7 +276,7 @@ export function ReponerPrendaModal({
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
-              {textoBotonReponer(total, congelado)}
+              {textoBotonBajar(total, congelado)}
             </Boton>
           </div>
         </form>

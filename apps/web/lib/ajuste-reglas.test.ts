@@ -376,7 +376,7 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
   });
 
   it("la nota nombra los dos caminos que mueven prendas entre piso y almacén y el motivo para lo encontrado de más", () => {
-    expect(NOTA_REPOSICION_CERRADA).toContain("«Reponer»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Colgar en el piso»");
     expect(NOTA_REPOSICION_CERRADA).toContain("«Subir a almacén»");
     expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
   });

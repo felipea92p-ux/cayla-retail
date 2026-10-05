@@ -11,9 +11,9 @@
    Reglas aprobadas hasta hoy:
    - `minDiasExposicionRitmo` (3 jornadas completas): antes de esto, «Ritmo reciente» no se
      calcula — se muestran los hechos crudos (`existencias-ritmo.ts`).
-   - `umbralStockPisoReposicion` (4 unidades — Felipe, tercera ronda 2026-09-25): REGLA FÍSICA
-     DE PISO, no una estimación de demanda. `stock_piso <= umbralStockPisoReposicion` es SIEMPRE
-     «Reponer a piso», incluido el propio 4, sin importar Ritmo reciente, Cobertura piso ni
+   - `umbralStockPisoBajada` (4 unidades — Felipe, tercera ronda 2026-09-25): REGLA FÍSICA
+     DE PISO, no una estimación de demanda. `stock_piso <= umbralStockPisoBajada` es SIEMPRE
+     «Colgar en el piso», incluido el propio 4, sin importar Ritmo reciente, Cobertura piso ni
      jornadas de exposición — con pocas prendas físicamente en el piso, la vendedora debe
      revisar y reponer aunque la cobertura calculada «parezca» aceptable. Responde SOLO
      «¿necesita algo hoy?», nunca «¿cuántas unidades?» — esa política de cantidad todavía no
@@ -38,15 +38,15 @@ export type PoliticaOperativaInventario = {
   /** Jornadas completas de exposición comercial mínimas para calcular un Ritmo reciente
    *  confiable (`existencias-ritmo.ts`, `RitmoReciente.tipo === "insuficiente"` con menos). */
   minDiasExposicionRitmo: number;
-  /** Unidades en PISO en o por debajo de las cuales una variante necesita «Reponer a piso» HOY
+  /** Unidades en PISO en o por debajo de las cuales una variante necesita «Colgar en el piso» HOY
    *  — regla física, no depende de Ritmo reciente ni de Cobertura piso (`existencias-recomendaciones.ts`). */
-  umbralStockPisoReposicion: number;
+  umbralStockPisoBajada: number;
 };
 
 const DEFAULT: PoliticaOperativaInventario = {
   minDiasExposicionRitmo: 3,
   // 1 colgada por talla y color (Felipe, 2026-10-04): se repone cuando no queda ninguna.
-  umbralStockPisoReposicion: 0,
+  umbralStockPisoBajada: 0,
 };
 
 /**
@@ -56,7 +56,7 @@ const DEFAULT: PoliticaOperativaInventario = {
  * sede su propio número el día que haga falta (ej. LIM con 5 unidades en vez de 4), se agrega
  * UNA línea acá:
  *
- *   "<ubicacion_id-de-LIM>": { umbralStockPisoReposicion: 5 },
+ *   "<ubicacion_id-de-LIM>": { umbralStockPisoBajada: 5 },
  *
  * y `politicaDe` la aplica sola — ningún consumidor (KPI, tabla, filtro, motor de Acción hoy)
  * cambia una línea.

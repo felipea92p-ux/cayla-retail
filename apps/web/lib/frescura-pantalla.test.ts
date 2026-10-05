@@ -439,7 +439,7 @@ describe("el registro al colgar (solo el líder) y «Las N tiendas»", () => {
   ];
   it("el mes más reciente de ESA sede, con singular y plural", () => {
     expect(textoRegistro(filas, "tru")).toEqual({ texto: "En setiembre se registraron al colgarlas 103 de 104 unidades (1 recién al venderla).", nivel: "solido" });
-    expect(textoRegistro(filas, "lim")).toEqual({ texto: "En setiembre todavía no hay bajadas al piso que cuenten.", nivel: null });
+    expect(textoRegistro(filas, "lim")).toEqual({ texto: "En setiembre todavía no hay prendas colgadas en el piso que cuenten.", nivel: null });
     expect(textoRegistro(filas, "otra")).toBeNull();
   });
   it("«Las N tiendas»: cada tienda, este mes y el anterior", () => {

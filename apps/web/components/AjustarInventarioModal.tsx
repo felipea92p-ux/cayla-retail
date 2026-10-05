@@ -99,7 +99,7 @@ export function leerVariantesParaAjuste(productoId: string, ubicacionId: string,
   return sinLoader ? consulta.setHeader("x-espera", "no") : consulta;
 }
 
-// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPrendaModal`).
+// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Colgar en el piso», `BajarPrendaModal`).
 const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
@@ -415,7 +415,7 @@ export function AjustarInventarioModal({
             </p>
           ) : (
             <>
-              {/* La prenda, como en «Reponer» y «Subir a almacén»: un puntito de su color, el nombre y el color. */}
+              {/* La prenda, como en «Colgar en el piso» y «Subir a almacén»: un puntito de su color, el nombre y el color. */}
               <p className="flex items-center gap-2 text-[15px] text-tinta">
                 {prenda?.colorHex && <span aria-hidden className="h-4 w-4 shrink-0 rounded-full border border-tinta/15" style={{ background: prenda.colorHex }} />}
                 <span className="font-semibold">{referencia}</span>

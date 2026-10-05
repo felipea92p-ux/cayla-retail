@@ -79,7 +79,7 @@ export function MovimientoDetalle({
               <p className={`font-display text-3xl tabular-nums ${m.delta > 0 ? "text-verde-profundo" : "text-tinta"}`}>{textoDelta(m)}</p>
               <p className="label-cayla text-[10px] text-tinta/55">
                 {/* «movidas», no «repuestas»: un interno también puede ser un retiro del piso al almacén
-                    (D-41). Hacia dónde fue ya lo dice el título del detalle («Bajada al piso» / «Retiro del piso»). */}
+                    (D-41). Hacia dónde fue ya lo dice el título del detalle («Colgada en el piso» / «Retiro del piso»). */}
                 {m.categoria === "interno"
                   ? "unidades movidas"
                   : m.categoria === "apartado"

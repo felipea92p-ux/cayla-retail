@@ -206,7 +206,7 @@ export type EstadoAlta = {
   separaPiso: boolean;
   /** Dónde están hoy las prendas de la carga. `null` = todavía sin responder: la pregunta no trae respuesta de fábrica
    *  (Felipe 2026-10-04, ADR-0328). Con «almacén» marcado de antemano, TRU se cargó casi entera como guardada estando colgada:
-   *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Reponer» marcaba todas las tallas. */
+   *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Colgar en el piso» marcaba todas las tallas. */
   lugarCarga: LugarCarga | null;
 };
 

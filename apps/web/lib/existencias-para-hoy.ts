@@ -2,7 +2,7 @@
    «Para hoy» de Existencias (rediseño del 2026-10-04, decisión de Felipe en la ronda 2: la portada es el buscador, «Para
    hoy» y el catálogo de prendas).
 
-   El problema que reemplaza: cuatro tarjetas fijas («Resumen disponible», «Reponer a piso hoy», «En camino hacia acá»,
+   El problema que reemplaza: cuatro tarjetas fijas («Resumen disponible», «Colgar en el piso hoy», «En camino hacia acá»,
    «Incidencias») que se dibujaban siempre, aunque dijeran 0, y que ocupaban la primera pantalla sin decir por dónde empezar.
    Aquí cada cosa pendiente de la sede es una TAREA con su cifra y su frase, en el orden en que conviene hacerlas; lo que está en
    0 no aparece. La pantalla muestra las tres primeras y deja ver el resto a un toque.
@@ -67,7 +67,7 @@ export type PorColgarDeSede<F extends FilaPrenda> = {
   tallas: number;
   /** Lo libre en el almacén de esas tallas: lo que se podría colgar hoy. */
   unidades: number;
-  /** Esas tallas, en el orden de la sede (lo que se manda a «Bajar al piso»). */
+  /** Esas tallas, en el orden de la sede (lo que se manda a «Colgar en el piso»). */
   filas: F[];
   /** Agrupadas por prenda (modelo + color), la que más tallas tiene por colgar primero. */
   prendas: PrendaAgrupada<F>[];
@@ -124,7 +124,7 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       texto: plural(e.porColgar.tallas, "talla por colgar", "tallas por colgar"),
       // La segunda frase es la honestidad del número: si la prenda ya cuelga y el sistema la cree guardada (una bajada que no se
       // registró, o la carga inicial que entró al almacén), lo que toca es registrarla, no volver a colgarla.
-      detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al bajar.`,
+      detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al colgarlas.`,
       tono: "ambar",
     });
   }

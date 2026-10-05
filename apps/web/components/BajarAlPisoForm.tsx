@@ -59,7 +59,7 @@ import {
 } from "@/lib/bajada-reglas";
 
 /*
- * «Bajar prendas al piso» (ADR-0208, paso 1). Se usa de pie junto al fardo, con la pistola (que es un teclado): cada
+ * «Colgar en el piso» (ADR-0208, paso 1). Se usa de pie junto al fardo, con la pistola (que es un teclado): cada
  * lectura suma 1 a su línea y la base se toca UNA vez, al confirmar, con `bajar_al_piso` (todo o nada). Por eso no hay
  * <form>: nada de lo que escriba la pistola puede enviar la bajada, y el botón es type="button".
  *
@@ -166,10 +166,10 @@ export function BajarAlPisoForm({
   const hayEscaneadas = resumen.prendas > 0;
   const motivo = !hayEscaneadas
     ? lineas.length > 0
-      ? "Escanea cada prenda de la lista al colgarla: solo se baja lo escaneado."
+      ? "Escanea cada prenda de la lista al colgarla: solo se cuelga lo escaneado."
       : "Escanea al menos una prenda."
     : lineas.length > MAX_LINEAS_BAJADA
-        ? `Una bajada admite hasta ${MAX_LINEAS_BAJADA} prendas distintas y esta lista tiene ${lineas.length}: quita ${lineas.length - MAX_LINEAS_BAJADA} y bájalas en otra.`
+        ? `Una tanda admite hasta ${MAX_LINEAS_BAJADA} prendas distintas y esta lista tiene ${lineas.length}: quita ${lineas.length - MAX_LINEAS_BAJADA} y cuélgalas en otra.`
         : responsable.motivo;
   const puedeConfirmar = !enviando && motivo === null;
 
@@ -606,7 +606,7 @@ export function BajarAlPisoForm({
         <section role="alert" className="card-cayla anim-revelar space-y-4 border-l-2 border-l-rojo p-5">
           <p className="text-sm text-tinta">{errorConfirmar.mensaje}</p>
           <button type="button" className="btn-cayla btn-primario h-11" onClick={empezarOtraBajada}>
-            Empezar otra bajada
+            Colgar otra tanda
           </button>
         </section>
       ) : (
@@ -628,7 +628,7 @@ export function BajarAlPisoForm({
                   volverAlEscaner();
                 }}
               >
-                Bajar otro fardo
+                Colgar otro fardo
               </button>
             </section>
           )}
@@ -750,7 +750,7 @@ export function BajarAlPisoForm({
                   ) : hayEscaneadas ? (
                     textoDeConfirmar(resumen.prendas)
                   ) : (
-                    "Confirmar bajada"
+                    "Confirmar y colgar"
                   )}
                 </button>
               </div>

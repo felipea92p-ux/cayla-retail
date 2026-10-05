@@ -183,16 +183,16 @@ describe("despuesDeRecibir", () => {
     { varianteId: "b", cantidad: 1, costo: "" },
   ];
 
-  it("con lote: etiquetas primero (principal) y bajar al piso con las prendas que llegaron", () => {
+  it("con lote: etiquetas primero (principal) y colgar en el piso con las prendas que llegaron", () => {
     expect(despuesDeRecibir({ loteId: "L1", lineas, veExistencias: true })).toEqual([
       { clave: "etiquetas", texto: "Imprimir 3 etiquetas de precio", href: "/etiquetas-de-precio?lotes=L1", principal: true },
-      { clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar?lineas=a:2,b:1", principal: false },
+      { clave: "bajar", texto: "Colgar en el piso", href: "/inventario/bajar?lineas=a:2,b:1", principal: false },
     ]);
   });
 
   it("sin conexión (sin lote) no hay etiquetas por lote: bajar pasa a ser lo principal; sin Existencias, no se ofrece", () => {
     expect(despuesDeRecibir({ loteId: null, lineas, veExistencias: true })).toEqual([
-      { clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar?lineas=a:2,b:1", principal: true },
+      { clave: "bajar", texto: "Colgar en el piso", href: "/inventario/bajar?lineas=a:2,b:1", principal: true },
     ]);
     expect(despuesDeRecibir({ loteId: null, lineas, veExistencias: false })).toEqual([]);
     expect(despuesDeRecibir({ loteId: "L1", lineas: [lineas[0]].map((l) => ({ ...l, cantidad: 1 })), veExistencias: false })[0].texto).toBe(

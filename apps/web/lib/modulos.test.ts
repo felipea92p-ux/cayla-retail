@@ -383,7 +383,7 @@ describe("REGLA: lo que nace quitado al líder es lo mismo en la web y en las mi
 });
 
 // REGLA (Felipe, 2026-10-02, ADR-0306 — CLAUDE.md «Módulos y roles»): un módulo de Roles y accesos es una entrada del menú
-// izquierdo. Lo que vive DENTRO de una pantalla (bajar al piso, ajustar stock, reponer, retirar…) es una función del módulo
+// izquierdo. Lo que vive DENTRO de una pantalla (colgar en el piso, ajustar stock, reponer, retirar…) es una función del módulo
 // donde está su botón, no otro módulo; y quien ve un módulo hace todo lo que hay dentro. Nació de «Bajada al piso» y «Ajustar
 // stock»: módulos sin menú, sin rol, que dejaron al terminal con Existencias sin poder reponer.
 describe("un módulo es una entrada del menú, no una función suelta (ADR-0306)", () => {

@@ -1098,8 +1098,8 @@ export function NuevoProductoForm({
                     {lugarCarga === "piso"
                       ? "La caja las puede cobrar desde ya."
                       : lugarCarga === "almacen"
-                        ? "Para venderlas, primero hay que bajarlas al piso."
-                        : "Colgadas: la caja las cobra desde ya. Guardadas: primero hay que bajarlas al piso."}
+                        ? "Para venderlas, primero hay que colgarlas en el piso."
+                        : "Colgadas: la caja las cobra desde ya. Guardadas: primero hay que colgarlas en el piso."}
                   </p>
                 </div>
               )

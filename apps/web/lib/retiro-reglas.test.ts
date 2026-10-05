@@ -18,7 +18,7 @@ import {
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { RETIRO_NO_ES_BAJA } from "./inventario-reglas";
 import { resolverPolitica } from "./politica-operativa-inventario";
-import { lineasDeMover, sePuedeSubirTalla, tallasParaReponer, textoFilaSinAlcance } from "./reponer-prenda-reglas";
+import { lineasDeMover, sePuedeSubirTalla, tallasParaBajar, textoFilaSinAlcance } from "./bajar-prenda-reglas";
 
 // La migración es la fuente: si cambia el nombre o los parámetros de la RPC, la pantalla se entera aquí y no en producción.
 const MIGRACION = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "20261001150000_retirar_del_piso.sql"), "utf8").replace(/--[^\n]*/g, "");
@@ -95,7 +95,7 @@ describe("interpretarErrorDeRetiro: los tres finales posibles", () => {
 
 describe("las tallas que se pueden subir y las líneas que viajan", () => {
   // S: piso 4, almacén 0 · M: piso 0, almacén 3 · L: piso 2, almacén 1
-  const tallas = tallasParaReponer([
+  const tallas = tallasParaBajar([
     { varianteId: "s", talla: "S", pisoDisponible: 4, almacenDisponible: 0 },
     { varianteId: "m", talla: "M", pisoDisponible: 0, almacenDisponible: 3 },
     { varianteId: "l", talla: "L", pisoDisponible: 2, almacenDisponible: 1 },
@@ -143,7 +143,7 @@ describe("los textos", () => {
 
   it("el bloque de abajo avisa si lo que se sube dejaría la talla pidiendo reponer, y si no, recuerda que subir no es dar de baja", () => {
     const politica = resolverPolitica(undefined);
-    const tallas = tallasParaReponer([
+    const tallas = tallasParaBajar([
       { varianteId: "poco", talla: "S", pisoDisponible: 3, almacenDisponible: 0 }, // subir las 3 → 0 en el piso: «Por colgar»
       { varianteId: "mucho", talla: "M", pisoDisponible: 40, almacenDisponible: 0 }, // subir 1 → 39 en el piso: no pide nada
     ]);

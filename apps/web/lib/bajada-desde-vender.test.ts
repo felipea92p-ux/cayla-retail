@@ -75,13 +75,13 @@ describe("lo que dice el aviso si la bajada no se registró", () => {
 
   it("sin la función en la base (web publicada antes que la migración): el camino de Existencias, sin códigos", () => {
     expect(textoErrorBajadaDesdeCaja({ code: "PGRST202", message: "Could not find the function retail.bajar_al_piso_desde_vender" }, "Blusa Paracas · M")).toBe(
-      "Registrar la bajada desde Vender todavía no está activo. Regístrala en Inventario ▸ Existencias ▸ Reponer y vuelve a escanear Blusa Paracas · M.",
+      "Registrar que se colgó desde Vender todavía no está activo. Regístralo en Inventario ▸ Existencias ▸ Colgar en el piso y vuelve a escanear Blusa Paracas · M.",
     );
   });
 
   it("corte de red o respuesta perdida: no se sabe si se guardó, y volver a escanear es seguro — nunca «no se guardó nada»", () => {
     const texto = textoErrorBajadaDesdeCaja({ message: "TypeError: Failed to fetch" }, "Blusa Paracas · M");
-    expect(texto).toBe("Se cortó la conexión y no sabemos si la bajada de Blusa Paracas · M se registró. Vuelve a escanearla: si ya estaba registrada, no se repite.");
+    expect(texto).toBe("Se cortó la conexión y no sabemos si Blusa Paracas · M se registró como colgada. Vuelve a escanearla: si ya estaba registrada, no se repite.");
     expect(texto).not.toContain("No se guardó");
     // Cortada a los 20 s (AbortError, sin código): igual de incierta.
     expect(textoErrorBajadaDesdeCaja({ message: "AbortError: signal is aborted without reason", code: "" }, "Blusa Paracas · M")).toContain("no sabemos si");

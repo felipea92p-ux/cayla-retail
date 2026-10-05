@@ -8,7 +8,7 @@
  *  · Cada lectura suena y vibra distinto según qué pasó: `sonidoDeLectura`.
  *
  * El resto de lo que vivía acá (agrupar «faltan» por percha, recontar a ciegas, «no encontradas» con su decisión, los
- * accesos «Bajar al piso» y «Imprimir etiquetas» tras cerrar, las marcas en el aparato) se fue con el rediseño: ahora
+ * accesos «Colgar en el piso» y «Imprimir etiquetas» tras cerrar, las marcas en el aparato) se fue con el rediseño: ahora
  * cada variante tiene su «Debe haber» y su estado en la propia lista (`conteo-reglas.ts`), sin listas aparte.
  */
 

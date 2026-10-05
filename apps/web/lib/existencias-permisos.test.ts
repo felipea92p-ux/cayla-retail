@@ -15,7 +15,7 @@ const TODO: EntradaPermisos = {
 describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mismo que la base (ADR-0240)", () => {
   it("con todo, en su tienda, se ofrece todo", () => {
     expect(permisosDelDetalle(TODO)).toEqual({
-      reponerYRetirar: true,
+      bajarYRetirar: true,
       apartar: true,
       ajustar: true,
       trasladar: true,
@@ -25,9 +25,9 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     });
   });
 
-  it("sin poder bajar al piso (otra sede o sin piso y almacén en su tienda) no hay Reponer ni Retirar", () => {
+  it("sin poder colgar en el piso (otra sede o sin piso y almacén en su tienda) no hay «Colgar en el piso» ni Retirar", () => {
     const p = permisosDelDetalle({ ...TODO, puedeBajarAlPiso: false });
-    expect(p.reponerYRetirar).toBe(false);
+    expect(p.bajarYRetirar).toBe(false);
     expect(p.apartar).toBe(true);
   });
 
@@ -35,12 +35,12 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     const p = permisosDelDetalle({ ...TODO, veApartados: false });
     expect(p.apartar).toBe(false);
     expect(p.pedirAOtraSede).toBe(false);
-    expect(p.reponerYRetirar).toBe(true);
+    expect(p.bajarYRetirar).toBe(true);
   });
 
   it("mirando OTRA sede no se ofrece nada que escriba ni nada que trabaje sobre la sede activa", () => {
     expect(permisosDelDetalle({ ...TODO, enSedeActiva: false })).toEqual({
-      reponerYRetirar: false,
+      bajarYRetirar: false,
       apartar: false,
       ajustar: false,
       trasladar: false,
@@ -52,7 +52,7 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
 
   it("donde no se separa piso y almacén (Taller) no hay reponer ni apartar, pero sí ajustar y trasladar", () => {
     const p = permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false });
-    expect(p.reponerYRetirar).toBe(false);
+    expect(p.bajarYRetirar).toBe(false);
     expect(p.apartar).toBe(false);
     expect(p.ajustar).toBe(true);
     expect(p.trasladar).toBe(true);

@@ -502,15 +502,15 @@ describe("existenciasDeAlmacen: el Inicio dice lo mismo que «Para hoy» de Exis
     expect(paraHoy?.detalle).toMatch(/^6 guardadas y ninguna colgada/);
   });
 
-  it("habla como Existencias: «Por colgar» y «Bajar al piso», nunca «Sube … al piso»", () => {
+  it("habla como Existencias: «Por colgar» y «Colgar en el piso», nunca «Sube … al piso»", () => {
     expect(aviso?.titulo).toBe("Por colgar");
-    expect(aviso?.ahora).toBe("Baja al piso 3 tallas por colgar");
+    expect(aviso?.ahora).toBe("Cuelga en el piso 3 tallas por colgar");
     expect(aviso?.ahora).not.toMatch(/sube/i);
     // La misma frase honesta que «Para hoy»: si ya cuelgan y el sistema las cree guardadas, se registran al bajar.
-    expect(aviso?.detalle).toBe("6 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.");
+    expect(aviso?.detalle).toBe("6 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.");
   });
 
-  it("«Bajar al piso» llega con las tallas por colgar ya en la lista", () => {
+  it("«Colgar en el piso» llega con las tallas por colgar ya en la lista", () => {
     const lineas = new URLSearchParams(inicio.hrefBajar.split("?")[1] ?? "").get("lineas") ?? "";
     const enLista = lineas.split(",").map((l) => l.split(":")[0]);
     expect(inicio.hrefBajar.startsWith("/inventario/bajar")).toBe(true);

@@ -9,14 +9,14 @@ import {
   lineasDeMover,
   lineasDeMoverModelo,
   sePuedeBajarTalla,
-  tallasParaReponer,
-  textoBotonReponer,
+  tallasParaBajar,
+  textoBotonBajar,
   textoFilaSinAlcance,
   topeDeTalla,
-  totalAReponer,
+  totalABajar,
   totalesDeMatriz,
   tallaDelColor,
-} from "./reponer-prenda-reglas";
+} from "./bajar-prenda-reglas";
 import { argumentosDeBajada, BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 
 // El caso de la captura de Felipe (2026-10-01): Body Bonita · Beige en TRU, con la S y la M por colgar (0 en el piso).
@@ -24,20 +24,20 @@ const S = { varianteId: "bonita-beige-s", talla: "S", pisoDisponible: 0, almacen
 const M = { varianteId: "bonita-beige-m", talla: "M", pisoDisponible: 0, almacenDisponible: 2 };
 const L = { varianteId: "bonita-beige-l", talla: "L", pisoDisponible: 3, almacenDisponible: 0 };
 
-describe("tallasParaReponer: la ventana ve TODAS las tallas, no una", () => {
+describe("tallasParaBajar: la ventana ve TODAS las tallas, no una", () => {
   it("lista la S y la M (antes solo aparecía la S) y también la que no tiene nada atrás", () => {
-    const t = tallasParaReponer([S, M, L]);
+    const t = tallasParaBajar([S, M, L]);
     expect(t.map((x) => x.talla)).toEqual(["S", "M", "L"]);
     expect(t.map(sePuedeBajarTalla)).toEqual([true, true, false]);
   });
 
   it("no inventa cifras: un nulo (tienda que no separa piso y almacén) es 0, y una talla sin nombre es «Única»", () => {
-    const [t] = tallasParaReponer([{ varianteId: "x", talla: null, pisoDisponible: null, almacenDisponible: null }]);
+    const [t] = tallasParaBajar([{ varianteId: "x", talla: null, pisoDisponible: null, almacenDisponible: null }]);
     expect(t).toEqual({ varianteId: "x", talla: "Única", piso: 0, almacen: 0 });
   });
 
   it("una cifra negativa (stock y libro que no cuadran) nunca ofrece bajar", () => {
-    const [t] = tallasParaReponer([{ varianteId: "x", talla: "S", pisoDisponible: -2, almacenDisponible: -1 }]);
+    const [t] = tallasParaBajar([{ varianteId: "x", talla: "S", pisoDisponible: -2, almacenDisponible: -1 }]);
     expect(t.piso).toBe(0);
     expect(sePuedeBajarTalla(t)).toBe(false);
   });
@@ -62,7 +62,7 @@ describe("cantidades: el selector no deja pedir lo imposible", () => {
 });
 
 describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
-  const tallas = tallasParaReponer([S, M, L]);
+  const tallas = tallasParaBajar([S, M, L]);
 
   it("solo las tallas con algo elegido, en el orden de la curva, y la S y la M van JUNTAS en una sola llamada", () => {
     const lineas = lineasDeMover(tallas, { [M.varianteId]: 2, [S.varianteId]: 1 }, "bajar");
@@ -70,7 +70,7 @@ describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
       { varianteId: S.varianteId, cantidad: 1 },
       { varianteId: M.varianteId, cantidad: 2 },
     ]);
-    expect(totalAReponer(lineas)).toBe(3);
+    expect(totalABajar(lineas)).toBe(3);
     const args = argumentosDeBajada("tru", lineas, "marca");
     expect(args.p_items).toHaveLength(2);
     expect(args.p_token).toBe("marca");
@@ -92,10 +92,10 @@ describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
 
 describe("los textos", () => {
   it("el botón dice cuánto baja; tras un corte de red pide confirmar lo mismo de nuevo", () => {
-    expect(textoBotonReponer(0, false)).toBe("Bajar al piso");
-    expect(textoBotonReponer(1, false)).toBe("Bajar 1 prenda");
-    expect(textoBotonReponer(3, false)).toBe("Bajar 3 prendas");
-    expect(textoBotonReponer(3, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
+    expect(textoBotonBajar(0, false)).toBe("Colgar en el piso");
+    expect(textoBotonBajar(1, false)).toBe("Colgar 1 prenda");
+    expect(textoBotonBajar(3, false)).toBe("Colgar 3 prendas");
+    expect(textoBotonBajar(3, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
   });
 
 
@@ -168,7 +168,7 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
     expect(t.total).toBe(12);
     expect(coloresConAlgo(colores, t)).toBe(3);
     const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
-    expect(totalAReponer(lineas)).toBe(t.total);
+    expect(totalABajar(lineas)).toBe(t.total);
   });
 
   it("lo que pasa del tope se recorta igual en los totales y en las líneas (lo que se ve es lo que se envía)", () => {

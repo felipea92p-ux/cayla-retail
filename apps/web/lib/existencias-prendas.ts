@@ -49,9 +49,9 @@ export function estadoTalla(f: FilaPrenda): EstadoTalla {
   return "normal";
 }
 
-/** ¿Esta talla se puede bajar al piso hoy? Pide reponer (la regla única) y hay algo libre atrás: lo apartado no se mueve. */
+/** ¿Esta talla se puede colgar en el piso hoy? Pide reponer (la regla única) y hay algo libre atrás: lo apartado no se mueve. */
 export function sePuedeBajar(f: FilaPrenda): boolean {
-  return f.accionHoy?.tipo === "reponer_a_piso" && (f.almacenDisponible ?? 0) > 0;
+  return f.accionHoy?.tipo === "bajar_al_piso" && (f.almacenDisponible ?? 0) > 0;
 }
 
 export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
@@ -75,7 +75,7 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   apartado: number;
   danado: number;
   enTransito: number;
-  /** Cuántas tallas se pueden bajar al piso hoy (`sePuedeBajar`). */
+  /** Cuántas tallas se pueden colgar en el piso hoy (`sePuedeBajar`). */
   tallasParaBajar: number;
   /** Cuántas tallas no tienen ni una para vender en el piso y sí atrás (`porColgar`). */
   tallasPorColgar: number;
@@ -123,13 +123,13 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
   });
 }
 
-/** Todos los colores de un MODELO (las prendas del mismo producto), en el orden en que las agrupa la lista. «Reponer prenda» y «Subir
+/** Todos los colores de un MODELO (las prendas del mismo producto), en el orden en que las agrupa la lista. «Colgar en el piso» y «Subir
  *  prenda» (ADR-0317) abren esta lista entera: un Polo en azul, blanco y negro se mueve en UNA ventana, no en tres. */
 export function coloresDelModelo<F extends FilaPrenda>(filas: readonly F[], productoId: string): PrendaAgrupada<F>[] {
   return agruparPorPrenda(filas.filter((f) => f.productoId === productoId));
 }
 
-/** `id:cantidad,id:cantidad`: el formato que ya leen «Mover mercadería» (`parsearLineasPrellenadas`) y ahora «Bajar al piso». */
+/** `id:cantidad,id:cantidad`: el formato que ya leen «Mover mercadería» (`parsearLineasPrellenadas`) y ahora «Colgar en el piso». */
 export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: number }[]): string {
   return lineas
     .filter((l) => Number.isInteger(l.cantidad) && l.cantidad > 0)
@@ -137,8 +137,8 @@ export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: num
     .join(",");
 }
 
-/** Lo que va a «Bajar al piso» desde lo marcado: solo las tallas que se pueden bajar. El 1 es solo la forma del enlace
- *  (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por escanear», en 0, y cada lectura suma una
+/** Lo que va a «Colgar en el piso» desde lo marcado: solo las tallas que se pueden bajar. El 1 es solo la forma del enlace
+ *  (`lineasEnUrl` no lleva ceros): «Colgar en el piso» las recibe todas «por escanear», en 0, y cada lectura suma una
  *  (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer (ADR-0231): lo que se baja es lo que
  *  la vendedora escanea al colgar. */
 export function lineasParaBajar(filas: readonly FilaPrenda[]): { varianteId: string; cantidad: number }[] {
@@ -176,9 +176,9 @@ export function urlEtiquetas(filas: readonly FilaPrenda[]): string | null {
 }
 
 /** Con qué talla se abre el detalle desde «Reponer N tallas» (tarea #7): una que SE PUEDA bajar —primero una por colgar—,
- *  para que el detalle muestre «Reponer al piso». Antes podía abrir una talla que pedía reponer sin nada en el almacén, y
+ *  para que el detalle muestre «Colgar en el piso». Antes podía abrir una talla que pedía reponer sin nada en el almacén, y
  *  el botón que llevó hasta ahí no llevaba a la acción. */
-export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F | null {
+export function tallaParaBajar<F extends FilaPrenda>(tallas: readonly F[]): F | null {
   return tallas.find((f) => estadoTalla(f) === "por_colgar" && sePuedeBajar(f)) ?? tallas.find(sePuedeBajar) ?? null;
 }
 

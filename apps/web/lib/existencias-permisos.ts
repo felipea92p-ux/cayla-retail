@@ -1,7 +1,7 @@
 // Qué puede hacer la persona desde el detalle de una prenda en Existencias (tarea #11 del análisis `/pantalla`).
 //
 // Vivía como cuatro líneas sueltas dentro de `InventarioPanel.tsx`, sin prueba: un cambio ahí (quitar un `&&`) volvía a
-// abrir «Reponer al piso» a una cuenta que no ve Existencias (ADR-0240; ADR-0306 quitó el módulo «Bajada al piso»). Aquí es una
+// abrir «Colgar en el piso» a una cuenta que no ve Existencias (ADR-0240; ADR-0306 quitó el módulo «Bajada al piso»). Aquí es una
 // función pura con su prueba; la pantalla solo la lee.
 //
 // Las tres reglas que se cruzan:
@@ -22,7 +22,7 @@ export type EntradaPermisos = {
   separaPisoAlmacen: boolean;
   /** Lo que se mira es la sede activa de la cabecera. */
   enSedeActiva: boolean;
-  /** Su rol ve Existencias (ADR-0306: bajar al piso es una función suya) (y la página ya comprobó que es su sede y que separa piso y almacén). */
+  /** Su rol ve Existencias (ADR-0306: colgar en el piso es una función suya) (y la página ya comprobó que es su sede y que separa piso y almacén). */
   puedeBajarAlPiso: boolean;
   /** Su rol ve «Apartados». */
   veApartados: boolean;
@@ -37,7 +37,7 @@ export type EntradaPermisos = {
 };
 
 export type PermisosDelDetalle = {
-  reponerYRetirar: boolean;
+  bajarYRetirar: boolean;
   apartar: boolean;
   ajustar: boolean;
   trasladar: boolean;
@@ -53,7 +53,7 @@ export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
   const aqui = e.enSedeActiva;
   const conPiso = e.separaPisoAlmacen && aqui;
   return {
-    reponerYRetirar: conPiso && e.puedeBajarAlPiso,
+    bajarYRetirar: conPiso && e.puedeBajarAlPiso,
     apartar: conPiso && e.veApartados,
     ajustar: aqui && e.puedeAjustar,
     trasladar: aqui && e.veTraslados,

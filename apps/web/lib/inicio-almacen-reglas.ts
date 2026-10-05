@@ -352,7 +352,7 @@ export type Existencias = {
   porColgar: { tallas: number; unidades: number; prendas: number };
   /** Las tres prendas que conviene colgar primero. */
   primeras: PrendaPorColgar[];
-  /** «Bajar al piso» con esas tallas ya en la lista: el mismo enlace que el botón de «Para hoy». */
+  /** «Colgar en el piso» con esas tallas ya en la lista: el mismo enlace que el botón de «Para hoy». */
   hrefBajar: string;
 };
 
@@ -365,7 +365,7 @@ export type Existencias = {
  * metía las tallas agotadas en la sede (piso 0 y nada atrás), y el Inicio decía «Sube N modelos al piso» con prendas que no
  * existían atrás. Las agotadas son «sin stock atrás»: se piden a otra sede, no se cuelgan.
  *
- * `stock` lleva «Acción hoy» (`accionHoy`) solo para armar el enlace de «Bajar al piso» (`urlBajarAlPiso`), igual que Existencias.
+ * `stock` lleva «Acción hoy» (`accionHoy`) solo para armar el enlace de «Colgar en el piso» (`urlBajarAlPiso`), igual que Existencias.
  */
 export function existenciasDeAlmacen<F extends FilaPrenda>(stock: readonly F[]): Existencias {
   if (!stock.some((f) => f.pisoDisponible !== null)) {
