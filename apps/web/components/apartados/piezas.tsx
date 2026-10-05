@@ -7,22 +7,24 @@ import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
 import { money } from "@/components/PuntoDeVenta";
-import { IconoCategoria } from "@/components/IconoCategoria";
-import { tonoDeCategoria } from "@/components/MuestraCategoria";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
 
 /**
  * La foto de la prenda, servida al tamaño en que se VE. `ancho` es el ancho en pantalla (px CSS): el optimizador de
  * Next entrega un WebP de ese ancho (y el doble en pantallas retina), no el original. Medido el 2026-09-22 en
  * producción: 31 fotos, promedio 90 KB y la mayor 199 KB; una miniatura de 44 px pesa unos 5 KB. Sin esto, la lista
- * del buscador bajaba ~0,7 MB por búsqueda. Si no hay foto o no carga (404, host no permitido), queda el dibujo de su
- * categoría en el tono de su familia —el mismo plan B que el catálogo del Punto de venta—: nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
+ * del buscador bajaba ~0,7 MB por búsqueda. Si no hay foto o no carga (404, host no permitido), queda el ícono de su
+ * categoría sobre el color de la prenda (`MosaicoPrenda`, ADR-0332; antes el ícono sobre el tono de su familia, sin color):
+ * nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
  * rechazaría tumbando la pantalla.
  */
 export function FotoPrenda({
   fotoUrl,
   referencia,
   ancho,
+  colorHex,
+  categoria,
   categoriaPrefijo,
   categoriaFamilia = null,
   className = "",
@@ -30,6 +32,10 @@ export function FotoPrenda({
   fotoUrl: string | null | undefined;
   referencia: string;
   ancho: number;
+  /** El color de la prenda (`#rrggbb`): es el fondo cuando no hay foto. Sin él, el tono de su familia. */
+  colorHex?: string | null;
+  /** Su nombre de categoría: se escribe bajo el ícono en las cajas grandes (≥ 64 px). */
+  categoria?: string | null;
   /** Prefijo y familia de su categoría: dibujan su ícono cuando no hay foto (`IconoCategoria`, por prefijo). */
   categoriaPrefijo?: string | null;
   categoriaFamilia?: string | null;
@@ -37,12 +43,8 @@ export function FotoPrenda({
 }) {
   const [rota, setRota] = useState(false);
   const conFoto = Boolean(fotoUrl) && !rota;
-  const tono = tonoDeCategoria(categoriaFamilia);
   return (
-    <div
-      className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg ${conFoto ? "bg-sand/40" : ""} ${className}`}
-      style={conFoto ? undefined : { backgroundColor: tono.fondo, color: tono.acento }}
-    >
+    <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg ${conFoto ? "bg-sand/40" : ""} ${className}`}>
       {fotoUrl && conFoto ? (
         <Image
           src={fotoUrl}
@@ -54,9 +56,10 @@ export function FotoPrenda({
           onError={() => setRota(true)}
         />
       ) : (
-        <span aria-hidden className="absolute inset-0 flex items-center justify-center">
-          <IconoCategoria prefijo={categoriaPrefijo} familia={categoriaFamilia} className={ancho < 40 ? "h-3/5 w-3/5" : "h-1/2 w-1/2"} />
-        </span>
+        // La capa absoluta es de este contenedor: el mosaico trae su propio `relative`.
+        <div className="absolute inset-0">
+          <MosaicoPrenda forma="relleno" conNombre={ancho >= 64} colorHex={colorHex} prefijo={categoriaPrefijo} familia={categoriaFamilia} categoria={categoria} className="h-full w-full !rounded-none" />
+        </div>
       )}
     </div>
   );

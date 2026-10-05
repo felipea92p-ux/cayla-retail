@@ -47,12 +47,13 @@ export function MosaicoPrenda({
   const enGrilla = forma === "grilla";
   const sinCategoria = !prefijo && !familia;
   const conRotulo = Boolean(categoria) && conNombre;
-  // `relleno` sin nombre: el ícono es la mitad de la caja, ni menos de 20 px (miniatura de tabla) ni más de 56 px (foto de cajón).
+  // `relleno`: el ícono crece con la caja —casi la mitad de su ancho—, ni menos de 20 px (miniatura de tabla) ni más de 56 px (foto
+  // grande); con el nombre debajo (cajas de 64 px o más) cede un poco para que ambos quepan.
   const claseIcono = enGrilla
     ? "aspect-square h-auto w-[38%] shrink-0 transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.06]"
-    : forma === "fila" || (forma === "relleno" && conRotulo)
+    : forma === "fila"
       ? "h-7 w-7 shrink-0"
-      : "aspect-square h-auto w-1/2 min-w-5 max-w-14 shrink-0";
+      : `aspect-square h-auto ${conRotulo ? "w-[44%]" : "w-1/2"} min-w-5 max-w-14 shrink-0`;
   return (
     <div
       aria-hidden

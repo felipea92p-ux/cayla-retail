@@ -1,10 +1,11 @@
 import Image from "next/image";
+import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Existencias, ViajeEnCamino } from "@/lib/inicio-almacen";
 import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
-import { Ico, PrendaSinFoto, type ClaveIco } from "./iconos";
+import { Ico, type ClaveIco } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
 
 // Los bloques de la columna derecha del Inicio de Almacén: Pulso, En camino, Reponer a piso y Accesos. Cada uno dice la verdad
@@ -161,7 +162,7 @@ export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias 
           <>
             {existencias.reponer.map((p, i) => (
               <Link key={p.clave} href="/inventario" className={`ia-it ${i === 0 ? "ia-f" : ""}`}>
-                <span className="ia-mg">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="40px" unoptimized /> : <PrendaSinFoto />}</span>
+                <span className="ia-mg">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="40px" unoptimized /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />}</span>
                 <div className="min-w-0">
                   <p className="ia-nm">{p.referencia}</p>
                   {p.color && <p className="ia-cl">{p.color}</p>}

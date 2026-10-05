@@ -60,6 +60,7 @@ export async function getNuevosDelCatalogo(ubicacionId: string, ahoraMs: number 
     const res = await productosVigentes(
       supabase,
       `id, codigo, referencia, created_at, propuesto_por,
+       categoria:categorias ( nombre, prefijo, familia ),
        producto_fotos ( url, orden, es_principal ),
        variantes ( id, precio, activo, color:colores ( nombre, hex ) )`
     )
@@ -173,7 +174,12 @@ export type PrendaParaReponer = {
   clave: string;
   referencia: string;
   color: string | null;
+  colorHex?: string | null;
   fotoUrl: string | null;
+  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, ADR-0332). */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** Solo las tallas que piden piso: «piso» = en el piso no queda ninguna y atrás sí (`por_colgar`). */
   tallas: { talla: string; sinPiso: boolean }[];
 };
@@ -209,7 +215,11 @@ export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: 
         clave: p.clave,
         referencia: p.referencia,
         color: p.color,
+        colorHex: p.colorHex,
         fotoUrl: p.fotoUrl,
+        categoria: p.categoria ?? null,
+        categoriaPrefijo: p.categoriaPrefijo ?? null,
+        categoriaFamilia: p.categoriaFamilia ?? null,
         tallas: p.tallas
           .filter((f) => f.accionHoy?.tipo === "reponer_a_piso")
           .map((f) => ({ talla: f.talla ?? "Única", sinPiso: estadoTalla(f) === "por_colgar" })),

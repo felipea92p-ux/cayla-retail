@@ -216,7 +216,8 @@ isotipo de CAYLA, que es la marca (loader, tickets, etiquetas) y no un hueco. Se
 `<FotoDePrenda>` (`components/ui/`) pasándoles `colorHex` y `{...categoriaDe(fila)}` (`lib/categoria-de-prenda.ts`); no dibujes
 otro «sin foto». Si la fila no trae la categoría, la miniatura dibuja la percha (no se cae): al cargar una prenda, pide
 `categorias ( nombre, prefijo, familia )`. `lib/sin-foto.test.ts` falla si un archivo fuera de su lista de marca dibuja
-`/cayla-isotipo.png`. Falta unificar Catálogo ▸ Productos, Apartados e Inicio de Almacén (ver el ADR).
+`/cayla-isotipo.png`. Catálogo ▸ Productos, Apartados e Inicio de Almacén ya usan la misma pieza (ADR-0332); Movimientos, Traslados,
+Cambios, Devoluciones, Compras, Resumen y Análisis dibujan la percha porque su cargador aún no trae la categoría.
 
 ## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
 

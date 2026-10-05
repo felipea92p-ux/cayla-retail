@@ -9,8 +9,10 @@ import { Chip } from "@/components/ui/Chip";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { ProductoListado } from "@/lib/catalogo-v2";
-import { coloresDe, mezclar, rangoSoles, variantesQueSeVenden, type ColorDisponible } from "@/lib/productos-vista";
-import { IconoPercha, SwatchesColor } from "@/components/ProductoPiezas";
+import { coloresDe, rangoSoles, variantesQueSeVenden, type ColorDisponible } from "@/lib/productos-vista";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { SwatchesColor } from "@/components/ProductoPiezas";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
 import {
   alertaDeStock,
   textoDeStock,
@@ -134,7 +136,6 @@ function TarjetaProducto({
 
   const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
-  const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
 
   // Una prenda descontinuada no dispara alertas y se ve como tal; «Sin stock» no es rojo (lib/productos-stock.ts).
   // /70 y no /55: el número de una descontinuada con stock (una liquidación) es justo el que más hay que poder leer.
@@ -152,14 +153,15 @@ function TarjetaProducto({
         onClick={() => setVistaRapida(true)}
         aria-label={`Vista rápida de ${producto.referencia}${descontinuado ? " (descontinuado)" : ""}`}
         className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
-        style={activo?.fotoUrl ? undefined : { background: tinte }}
       >
         {activo?.fotoUrl ? (
           <Image src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover" unoptimized />
         ) : (
           <>
-            <div className="flex h-full items-center justify-center">
-              <IconoPercha color={activo?.hex} />
+            {/* Sin foto de ese color: el ícono de su categoría sobre el color (`MosaicoPrenda`, ADR-0332). La capa absoluta es de este
+                contenedor: el mosaico trae su propio `relative`. */}
+            <div className="absolute inset-0">
+              <MosaicoPrenda forma="relleno" colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />
             </div>
             <span className="label-cayla absolute right-2.5 top-2.5 rounded-full bg-papel/85 px-2 py-1 text-[9px] text-tinta/70">
               Muestra{activo ? ` — ${activo.nombre}` : ""}
@@ -296,7 +298,6 @@ function VistaRapidaModal({
 
   const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
-  const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
 
   // Stock por talla EN ESTA SEDE, como la ficha de la Tabla: es el mismo número con el que Etiquetas decide cuántas salen.
   // Viene de la lectura de toda la página; al abrir se relee este modelo, por si cambió desde que se cargó la grilla.
@@ -310,14 +311,13 @@ function VistaRapidaModal({
     <Modal titulo={producto.referencia} subtitulo={producto.codigo ?? undefined} onClose={onClose} ancho="max-w-3xl">
       <div className="grid gap-6 sm:grid-cols-[minmax(0,260px)_1fr]">
         <div>
-          <div
-            className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg transition-colors duration-300"
-            style={activo?.fotoUrl ? undefined : { background: tinte }}
-          >
+          <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-lg">
             {activo?.fotoUrl ? (
               <Image src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes="260px" className="object-cover" unoptimized />
             ) : (
-              <IconoPercha color={activo?.hex} size={56} />
+              <div className="absolute inset-0">
+                <MosaicoPrenda forma="relleno" conNombre colorHex={activo?.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none transition-colors duration-300" />
+              </div>
             )}
           </div>
           <div className="mt-3 flex items-center gap-2">

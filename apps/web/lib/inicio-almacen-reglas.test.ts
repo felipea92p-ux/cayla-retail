@@ -23,6 +23,7 @@ import {
   type FilaNuevoCruda,
   type NuevoProducto,
   type OrigenDeProducto,
+  colorUnico,
 } from "./inicio-almacen-reglas";
 import type { ClaveModulo } from "./modulos";
 
@@ -404,5 +405,26 @@ describe("fuentesDeAlmacen", () => {
   });
   it("las fotos que faltan nunca son negativas", () => {
     expect(fuentesDeAlmacen({ fotos: { activos: 3, conFoto: 3 }, porCompletar: 0 }).fotosQueFaltan).toBe(0);
+  });
+});
+
+describe("la categoría y el color de un producto nuevo sin foto (ADR-0332)", () => {
+  it("armarNuevos lleva nombre, prefijo y familia de la categoría; sin ella, null", () => {
+    const [con, sin] = armarNuevos(
+      [fila("a", "2026-09-30T14:00:00Z", { categoria: { nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" } }), fila("b", "2026-09-30T13:00:00Z")],
+      new Map(),
+      null,
+      AHORA
+    );
+    expect(con).toMatchObject({ categoria: "Camisas y Blusas", categoriaPrefijo: "CMS", categoriaFamilia: "indumentaria" });
+    expect(sin).toMatchObject({ categoria: null, categoriaPrefijo: null, categoriaFamilia: null });
+  });
+
+  it("colorUnico: el color solo si el producto tiene uno; con varios, ninguno (no se afirma un color que la prenda no tiene)", () => {
+    expect(colorUnico([{ hex: "#6b2a35" }])).toBe("#6b2a35");
+    expect(colorUnico([{ hex: "#6b2a35" }, { hex: "#111111" }])).toBeNull();
+    expect(colorUnico([])).toBeNull();
+    // Un único color que no es un color (Estampado, Multicolor) no tiene hex.
+    expect(colorUnico([{ hex: null }])).toBeNull();
   });
 });
