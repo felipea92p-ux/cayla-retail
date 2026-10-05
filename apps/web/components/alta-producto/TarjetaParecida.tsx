@@ -13,7 +13,7 @@ import { FRASE, TEXTO, type TarjetaVista } from "@/lib/parecidas-alta-vista";
 // con la foto, los colores, las tallas y el stock de la prenda que ya existe. Hoy el aviso solo dice un nombre. La tarjeta pone todo eso junto y deja
 // dos respuestas: «Es el mismo diseño» (abre esa prenda) y «No, es otro diseño» (la pliega).
 //
-// CONTRATO. PROMETE: dibujar `tarjeta` tal cual; foto grande o el isotipo neutro «Sin foto todavía» (nunca la muestra del tejido: cinco jeans
+// CONTRATO. PROMETE: dibujar `tarjeta` tal cual; foto grande o la miniatura neutra «Sin foto todavía» (la percha sobre el tono neutro, sin color ni categoría: es una candidata, no la prenda; nunca la muestra del tejido: cinco jeans
 //   mostrarían el mismo denim y parecerían iguales); el código leído del texto como chip (con `title` de dónde se leyó); «Es el mismo diseño» como
 //   enlace a /productos/<id>/editar con la frase honesta de lo que hace y lo que NO; ningún botón lleno (el único lleno de la pantalla es «Seguir»);
 //   nada de precio ni costo; stock solo en cantidades; ni un texto propio (todos vienen de `TEXTO` y `FRASE`); la cápsula de un color sin hex en rueda de
@@ -54,7 +54,7 @@ export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada =
   return (
     <article className="parecidas-tarjeta" data-id={t.id} data-exacto={t.exacto ? "" : undefined} data-llamado={llamada ? "" : undefined} aria-label={t.nombre}>
       <div className="parecidas-tarjeta-in">
-        {/* Foto grande o el isotipo neutro: el diseño es lo que se compara, y sin foto no se puede comparar a la vista (y se dice). */}
+        {/* Foto grande o la miniatura neutra: el diseño es lo que se compara, y sin foto no se puede comparar a la vista (y se dice). */}
         <figure className="parecidas-foto">
           {t.fotoUrl ? (
             <Image src={t.fotoUrl} alt={FRASE.fotoAlt(t.nombre)} fill unoptimized sizes="116px" className="parecidas-foto-img" />
