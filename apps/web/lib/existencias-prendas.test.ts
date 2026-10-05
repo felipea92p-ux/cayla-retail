@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { hoyDeTalla } from "./existencias-hoy";
+import { sumarCantidades, type FilaCantidadCruda } from "./inventario-reglas";
+import { cantidadCobrable } from "./vender-stock-local";
 import {
+  aclaracionDeLaCaja,
   agruparPorPrenda,
+  deLaPrenda,
+  desgloseDePrenda,
   estadoTalla,
+  lineaDeLaSuma,
   lineasEnUrl,
   lineasParaBajar,
   lineasParaTrasladar,
@@ -373,5 +379,105 @@ describe("textoTallasRecortadas y tallasPorPrenda — la tarjeta dice qué talla
     expect(cuenta.get(JSON.stringify(["p1", "Beige"]))).toBe(2);
     expect(cuenta.get(JSON.stringify(["p1", "Negro"]))).toBe(1);
     expect(cuenta.get(JSON.stringify(["p2", "Beige"]))).toBe(1);
+  });
+});
+
+// Los cuatro lugares de una prenda (2026-10-04): la suma se prueba contra la regla REAL de cantidades (`sumarCantidades`), no
+// contra números escritos a mano — si alguien cambia cómo cuenta el stock, esta prueba falla en vez de dejar al cajón
+// diciendo una suma que ya no es la de la lista.
+describe("desgloseDePrenda — piso + almacén + apartada + dañada", () => {
+  // Una tienda: la talla M tiene 10 en el piso (2 apartadas ahí), 5 en el almacén (1 apartada) y 3 en cuarentena.
+  const crudas: FilaCantidadCruda[] = [
+    { variante_id: "M", cantidad: 10, cantidad_apartada: 2, sububicacion: { tipo: "piso_venta" } },
+    { variante_id: "M", cantidad: 5, cantidad_apartada: 1, sububicacion: { tipo: "almacen_tienda" } },
+    { variante_id: "M", cantidad: 3, cantidad_apartada: 0, sububicacion: { tipo: "cuarentena" } },
+    { variante_id: "L", cantidad: 4, cantidad_apartada: 0, sububicacion: { tipo: "piso_venta" } },
+    { variante_id: "L", cantidad: 0, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } },
+    { variante_id: "L", cantidad: 0, cantidad_apartada: 0, sububicacion: { tipo: "cuarentena" } },
+  ];
+  const cant = sumarCantidades(crudas);
+  const filasReales = (["M", "L"] as const).map((id) => {
+    const c = cant.get(id)!;
+    return fila({
+      varianteId: id,
+      talla: id,
+      pisoDisponible: c.pisoDisponible,
+      almacenDisponible: c.almacenDisponible,
+      disponible: c.disponible,
+      apartado: c.apartado,
+      danado: c.danado,
+    });
+  });
+  const [prenda] = agruparPorPrenda(filasReales);
+  const d = desgloseDePrenda(prenda)!;
+
+  it("las cuatro cifras no se pisan: lo apartado sale del piso y del almacén, lo dañado queda fuera", () => {
+    expect(d).toMatchObject({ piso: 8 + 4, almacen: 4, apartada: 3, danada: 3 });
+  });
+  it("«en stock» es el `total` de la base (piso + almacén contando lo apartado); «en la sede» le suma lo dañado", () => {
+    const total = [...cant.values()].reduce((n, c) => n + c.total, 0);
+    const danado = [...cant.values()].reduce((n, c) => n + (c.danado ?? 0), 0);
+    expect(d.enStock).toBe(total);
+    expect(d.enLaSede).toBe(total + danado);
+  });
+  it("lo que cobra la caja es el piso del cajón, ni más ni menos (atado a `cantidadCobrable`, la regla de la caja)", () => {
+    const cobrable = [...cant.values()].reduce((n, c) => n + cantidadCobrable(c), 0);
+    expect(d.piso).toBe(cobrable);
+  });
+  it("sin piso y almacén (Taller) no hay desglose, y 0 no se confunde con «no aplica»", () => {
+    const [taller] = agruparPorPrenda([fila({ varianteId: "t", pisoDisponible: null, almacenDisponible: null, disponible: 4 })]);
+    expect(desgloseDePrenda(taller)).toBeNull();
+    const [vacia] = agruparPorPrenda([fila({ varianteId: "v", pisoDisponible: 0, almacenDisponible: 0, disponible: 0 })]);
+    expect(desgloseDePrenda(vacia)).toMatchObject({ piso: 0, almacen: 0, apartada: 0, danada: 0, enStock: 0, enLaSede: 0 });
+  });
+  it("recorre toda combinación: la suma de las cuatro siempre es «en la sede»", () => {
+    for (let piso = 0; piso <= 4; piso++)
+      for (let almacen = 0; almacen <= 4; almacen++)
+        for (let apartada = 0; apartada <= 3; apartada++)
+          for (let danada = 0; danada <= 3; danada++) {
+            const x = desgloseDePrenda({ piso, almacen, apartado: apartada, danado: danada })!;
+            expect(x.piso + x.almacen + x.apartada + x.danada).toBe(x.enLaSede);
+            expect(x.enStock).toBe(x.enLaSede - x.danada);
+          }
+  });
+});
+
+describe("lineaDeLaSuma y aclaracionDeLaCaja — lo que se lee bajo las cuatro cifras", () => {
+  const con = (piso: number, almacen: number, apartada: number, danada: number) => desgloseDePrenda({ piso, almacen, apartado: apartada, danado: danada })!;
+  it("escribe la cuenta entera, también con ceros: el contrato de la suma no cambia de una prenda a otra", () => {
+    expect(lineaDeLaSuma(con(8, 5, 2, 1)).cuenta).toBe("8 + 5 + 2 + 1 = 16");
+    expect(lineaDeLaSuma(con(0, 0, 0, 0)).cuenta).toBe("0 + 0 + 0 + 0 = 0");
+  });
+  it("sin dañadas no hay aclaración aparte (nada que comparar con la lista)", () => {
+    expect(lineaDeLaSuma(con(8, 5, 2, 0)).aparte).toBeNull();
+  });
+  it("con dañadas dice cuánto es la suma sin ellas y que están en cuarentena, en singular y plural", () => {
+    expect(lineaDeLaSuma(con(8, 5, 2, 1)).aparte).toBe("15 sin contar la dañada, que está en cuarentena");
+    expect(lineaDeLaSuma(con(8, 5, 2, 3)).aparte).toBe("15 sin contar las dañadas, que están en cuarentena");
+    expect(lineaDeLaSuma(con(1, 0, 0, 2)).aparte).toBe("1 sin contar las dañadas, que están en cuarentena");
+  });
+  it("«prenda» en singular solo con una", () => {
+    expect(lineaDeLaSuma(con(1, 0, 0, 0)).texto).toBe("prenda en esta sede");
+    expect(lineaDeLaSuma(con(0, 0, 0, 0)).texto).toBe("prendas en esta sede");
+  });
+  it("la aclaración da el número que SÍ cobra la caja y nunca dice «clienta»", () => {
+    expect(aclaracionDeLaCaja(con(8, 5, 2, 1))).toContain("hoy,\u00a08.");
+    expect(aclaracionDeLaCaja(con(0, 5, 0, 0))).toContain("hoy,\u00a00.");
+    expect(aclaracionDeLaCaja(con(8, 5, 2, 1))).not.toMatch(/clienta/i);
+  });
+});
+
+describe("deLaPrenda — lo de la sede que es de ESTA prenda", () => {
+  const prenda = agruparPorPrenda([fila({ varianteId: "bei-M" }), fila({ varianteId: "bei-L", talla: "L" })])[0];
+  const cola = [
+    { id: "1", varianteId: "bei-M" },
+    { id: "2", varianteId: "neg-S" },
+    { id: "3", varianteId: "bei-L" },
+  ];
+  it("deja solo lo de sus tallas, en el orden en que venía", () => {
+    expect(deLaPrenda(cola, prenda).map((x) => x.id)).toEqual(["1", "3"]);
+  });
+  it("sin nada suyo, lista vacía (la cifra no se vuelve un enlace a una ventana vacía)", () => {
+    expect(deLaPrenda([{ id: "9", varianteId: "otra" }], prenda)).toEqual([]);
   });
 });

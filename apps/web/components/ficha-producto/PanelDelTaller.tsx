@@ -161,6 +161,8 @@ export function PanelDelTaller({
               const talla = n.talla(f.tallaId) || "Única";
               const nombre = `${n.color(colorMostrado)} · ${talla}`;
               const puedeBajar = guardada ? stock.puedeAjustar && stock.puedeBajar(f.id!) : u > 0;
+              // ADR-0328: con la carga inicial cerrada, una talla que nunca estuvo aquí suma solo con «Encontré prendas».
+              const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
               // Lo tocado y sin guardar, en ámbar como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
               const cambiada = !esperando && (guardada ? u !== stock.numeroGuardado(f.id!) : u > 0);
               // Sin «Ajustar stock» no hay stepper, ni en una variante nueva (no se le podría cargar stock inicial).
@@ -198,8 +200,9 @@ export function PanelDelTaller({
                       </button>
                       <button
                         type="button"
-                        aria-label={`Una más de ${nombre}`}
-                        disabled={deshabilitado || esperando}
+                        aria-label={bloqueo ? `Una más de ${nombre}: ${bloqueo}` : `Una más de ${nombre}`}
+                        title={bloqueo ?? undefined}
+                        disabled={deshabilitado || esperando || !!bloqueo}
                         onClick={() => {
                           if (!guardada) return stock.pasoNueva(f.clave, 1);
                           if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);

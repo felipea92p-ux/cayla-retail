@@ -673,6 +673,15 @@ export function ProductoForm({
       const enfocar = bloqueante.clave ? `producto-variante-${bloqueante.clave}-precio` : filas.length === 0 ? "variantes-agregar-color" : undefined;
       return void enVista(bloqueante.clave ? "precio" : vista, () => avisar.error(bloqueante.texto, enfocar ? { enfocar } : undefined));
     }
+    // ADR-0328: lo que la base rechazaría del stock (una talla nueva en la tienda con la carga cerrada y otro motivo, «Encontré
+    // prendas» que resta o sin nota), dicho aquí con el campo que lo arregla: el motivo de la visita o su nota.
+    const problemaStock = stock.cambios.length > 0 || stock.nuevasConStock > 0 ? stock.problema : null;
+    if (problemaStock) {
+      abrir("variantes");
+      return void enVista("unidades", () =>
+        avisar.error(problemaStock.texto, { enfocar: problemaStock.campo === "nota" ? "ficha-stock-nota" : "ficha-stock-motivo" })
+      );
+    }
     // El stock va firmado por quien hace el ajuste (el combo de la línea «Registrar los ajustes…»), como en el modal de siempre.
     if ((stock.cambios.length > 0 || stock.nuevasConStock > 0) && !stock.responsable.listo) {
       abrir("variantes");

@@ -90,6 +90,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- inventario ----
   "/inventario": { estado: "no-aplica", motivo: "Lista de existencias con buscador y filtros: su único campo es el buscador, y lo que sigue lo dice «Para hoy» (tareas con su cifra y su botón, en orden; rediseño 2026-10-04). Lo que se llena vive en sus ventanas (Reponer, Subir, Ajustar, Dañadas), cada una con su guía en el registro de modales." },
   "/inventario/bajar": PENDIENTE,
+  // ADR-0328 (actividad 3): nace con su guía. Escanear: «Lo guardado» (o «no hay nada guardado») y lo que hay que volver a escanear;
+  // confirmar: quién cuadra y, si la sede ya se cuadró, por qué se vuelve a cuadrar (lo exige la base). Lógica en lib/cuadre-piso-reglas.ts.
+  "/inventario/cuadrar": { estado: "aplicada", evidencia: ["components/cuadre-piso/CuadrarPisoForm.tsx"] },
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
   "/inventario/conteo/[id]/confirmar": PENDIENTE,
@@ -175,6 +178,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
+  // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
+  // base la acepte: `validarCierre`) y quién hace el cambio.
+  "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja).

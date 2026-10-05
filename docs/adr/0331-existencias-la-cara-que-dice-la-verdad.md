@@ -203,3 +203,15 @@ la categoría).
 - La edad del piso dentro de Existencias: Felipe la aprobó para **después** del cuadre.
 - «Eliminar el producto» sigue en el cajón (D4 del 3-oct, abierta) y el verbo de bajar sigue con tres nombres («Bajar al piso»,
   «Reponer prenda», «Subir prenda»): no entraron en las 8 actividades.
+
+## Actualización 2026-10-04 (noche) — la regla del piso la define el motor (ADR-0328, actividad 7)
+
+Este ADR dejó el umbral de reponer en 0 (mínimo de 1 colgada por talla y color) dentro de `politicaDe`. Con el motor del piso
+(`lib/piso-plan.ts`, PR #787) la regla vive en un solo lugar y es la que Felipe decidió en las rondas del 2026-10-04
+(ADR-0328 y ADR-0329, «Actualización 2026-10-04»): **1 colgada por color en las tallas centrales y en toda talla que se
+vendió en los últimos 14 días** (las extremas que no se venden pueden quedar guardadas); lo vendido decide si una talla se
+cuelga, nunca cuántas. Con 1 por color, «Por reponer» y «Por colgar» decían lo mismo: **queda una sola palabra, «Por colgar»**,
+y «Hoy» tiene tres casos (Por colgar · Sin stock atrás · Mantener), más «En pausa» mientras la sede no cuadra su piso
+(ADR-0328, decisión 5), que «Para hoy» explica con la tarea «Cuadra el piso». La cara (cabecera, «Para hoy», riel de tallas,
+TONO_HOY sin rojo) sigue siendo la de este ADR. Lo que aquí dice «por reponer en ámbar» queda como historia.
+

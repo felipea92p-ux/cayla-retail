@@ -33,7 +33,7 @@ import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -287,6 +287,21 @@ export function InventarioPanel({
   const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [viendoApartados, setViendoApartados] = useState(false);
+  // Las cifras «Apartada» y «Dañada» del cajón abren esas mismas ventanas, pero solo con lo de ESA prenda (no la cola entera de
+  // la sede). Sin prenda (null) las ventanas muestran todo, como cuando se abren desde «Para hoy» o el aviso de cuarentena.
+  const [soloPrenda, setSoloPrenda] = useState<PrendaAgrupada<FilaExistencias> | null>(null);
+  // Una ventana abierta desde el cajón de UNA prenda se cierra sola cuando de esa prenda ya no queda nada (se resolvió o se liberó la
+  // última): sin esto la lista filtrada quedaba vacía y la ventana decía «no hay nada en esta ubicación» con la sede llena de otras
+  // dañadas o apartados (revisión del 2026-10-04). Abierta desde «Para hoy» (sin prenda) nunca se cierra sola: ahí vacío sí es vacío.
+  const filtradaVacia =
+    soloPrenda !== null &&
+    ((viendoDanados && deLaPrenda(danadosPendientes, soloPrenda).length === 0) || (viendoApartados && deLaPrenda(apartados, soloPrenda).length === 0));
+  // Se ajusta el estado en el mismo render (patrón de React para estado derivado, sin efecto): la condición se apaga sola al limpiar `soloPrenda`.
+  if (filtradaVacia) {
+    setViendoDanados(false);
+    setViendoApartados(false);
+    setSoloPrenda(null);
+  }
   const [viendoDisponible, setViendoDisponible] = useState(false);
   // Existencias conectada (ADR-0237): la lista entra agrupada por prenda (modelo + color, con su curva de tallas); «Por
   // talla» es la tabla del #445, una fila por talla con Cobertura y Ritmo. La prenda abierta se guarda por su clave, no
@@ -1248,10 +1263,27 @@ export function InventarioPanel({
       )}
 
       {viendoDanados && (
-        <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} otraSede={!enSedeActiva} onClose={() => setViendoDanados(false)} />
+        <ResolverDanadosModal
+          pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
+          esLider={esLider}
+          otraSede={!enSedeActiva}
+          onClose={() => {
+            setViendoDanados(false);
+            setSoloPrenda(null);
+          }}
+        />
       )}
 
-      {viendoApartados && <ApartadosModal apartados={apartados} otraSede={!enSedeActiva} onClose={() => setViendoApartados(false)} />}
+      {viendoApartados && (
+        <ApartadosModal
+          apartados={soloPrenda ? deLaPrenda(apartados, soloPrenda) : apartados}
+          otraSede={!enSedeActiva}
+          onClose={() => {
+            setViendoApartados(false);
+            setSoloPrenda(null);
+          }}
+        />
+      )}
 
       {viendoDisponible && <ResumenStockOverlay stock={stock} separa={separa} ubicacionId={ubicacionId} sedeNombre={sedeNombre} onClose={() => setViendoDisponible(false)} />}
 
@@ -1288,6 +1320,26 @@ export function InventarioPanel({
             setAbierta(null);
             setAjustando(f);
           }}
+          // Solo si hay algo suyo que mostrar: una cifra que abriría una ventana vacía no es un botón (cajón, `DesgloseStockPrenda`).
+          onVerApartadas={
+            deLaPrenda(apartados, prendaAbierta).length > 0
+              ? () => {
+                  setAbierta(null);
+                  setSoloPrenda(prendaAbierta);
+                  setViendoApartados(true);
+                }
+              : undefined
+          }
+          onVerDanadas={
+            deLaPrenda(danadosPendientes, prendaAbierta).length > 0
+              ? () => {
+                  setAbierta(null);
+                  setSoloPrenda(prendaAbierta);
+                  setViendoDanados(true);
+                }
+              : undefined
+          }
+          puedeResolverDanadas={esLider && enSedeActiva}
           onCerrar={() => setAbierta(null)}
         />
       )}

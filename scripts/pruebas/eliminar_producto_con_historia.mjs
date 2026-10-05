@@ -19,6 +19,9 @@
  *     producto que ya no existe lo dice;
  *   · red de seguridad: si una tabla nueva cita un movimiento y la función no la conoce, la llave lo frena, no queda nada a
  *     medias y los candados siguen como estaban;
+ *   · el cuadre del piso (ADR-0328): un producto cuyas prendas pasaron por el cuadre se elimina con su línea del cuadre (historia
+ *     de stock, como una bajada), la cabecera del cuadre de la sede se queda, el candado vuelve a su modo y restaurar la
+ *     devuelve idéntica;
  *   · DERIVA: toda tabla que cite `movimientos` está clasificada (la función la borra, o su historia frena el borrado).
  *
  * CÓMO. Igual que `eliminar_producto.mjs`: cada escenario en su transacción con ROLLBACK y sesión simulada con
@@ -487,7 +490,7 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
 // BORRA con el producto (agrégala a `eliminar_producto_con_historia` y a su respaldo, y a restaurar-purga.sql) o si su
 // historia FRENA el borrado (agrégala a `fn_producto_historia` con borrable = false).
 {
-  const LAS_BORRA = ["conteo_items", "bajada_piso_items", "apartados", "movimientos_internos_intentos"];
+  const LAS_BORRA = ["conteo_items", "bajada_piso_items", "cuadre_piso_items", "apartados", "movimientos_internos_intentos"];
   // Frenan: devoluciones y cambios (vienen de una venta), traslados entre sedes, prendas dañadas, envíos de proveedor, costos.
   const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial"];
   const conocidas = [...LAS_BORRA, ...FRENAN].map((t) => `'retail.${t}'`).join(", ");
@@ -506,9 +509,9 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
 // historial) tiene que estar en su lista `c_candados`: si no, el borrado falla entero en producción con «no se borra».
 // Si esta prueba falla, nació un candado nuevo: agrégalo a `c_candados` (y a CANDADOS arriba) o saca esa tabla del borrado.
 {
-  const BORRA = ["movimientos", "movimientos_internos_intentos", "bajada_piso_items", "conteo_items", "apartados", "pedidos_no_atendidos",
+  const BORRA = ["movimientos", "movimientos_internos_intentos", "bajada_piso_items", "cuadre_piso_items", "conteo_items", "apartados", "pedidos_no_atendidos",
     "stock", "codigos_barras", "producto_fotos", "variantes", "variante_etiquetas", "producto_color_temporadas", "productos"];
-  const APAGA = ["movimientos_inmutables", "movimientos_internos_intentos_inmutables", "bajada_piso_items_inmutables"];
+  const APAGA = ["movimientos_inmutables", "movimientos_internos_intentos_inmutables", "bajada_piso_items_inmutables", "cuadre_piso_items_inmutables"];
   // Los que no frenan: cuentan la versión del catálogo (después de la sentencia) o solo miran inserciones y ediciones.
   const r = correr(`select coalesce(string_agg(t.tgrelid::regclass::text || '.' || t.tgname::text, ', ' order by 1), 'NINGUNO')
     from pg_trigger t
@@ -520,6 +523,38 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
     r.ok && r.salida === "NINGUNO",
     r
   );
+}
+
+// 15. El cuadre del piso (ADR-0328, revisión adversarial del 2026-10-04): un producto cuyas prendas pasaron por el cuadre
+// es historia de STOCK (un traslado interno de la misma tienda, como una bajada). Se elimina con su línea del cuadre; la
+// cabecera del cuadre (la fecha del cuadre de la sede) se queda; el candado vuelve a su modo; restaurar la devuelve idéntica.
+{
+  const r = correr(`${ESCENA}
+-- Lo que cuadrar_piso deja de un cuadre: el traslado interno almacén → piso, la cabecera de la sede y la línea.
+select pg_temp.mov(:'a1', :'tienda', :'almacen', 'traslado', 1, 'movimiento_interno', :'yo', :'piso') as m_cuadre \\gset
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'tienda', :'yo', gen_random_uuid(), md5('prueba'), now(), '{}'::jsonb, 'prueba de eliminar') returning id as cuadre \\gset
+insert into retail.cuadre_piso_items (movimiento_id, cuadre_id, variante_id, sentido, cantidad) values (:'m_cuadre', :'cuadre', :'a1', 'al_piso', 1);
+set constraints retail.trg_actividad_movimientos immediate;
+select string_agg(t.tgname::text || '=' || t.tgenabled::text, ',') as candado_antes from pg_trigger t where t.tgname = 'cuadre_piso_items_inmutables' \\gset
+select pg_temp.como(:'pa');
+select retail.eliminar_producto_con_historia(:'pa');
+select (select count(*) from retail.cuadre_piso_items where variante_id in (:'a1', :'a2')) || '|' || (select count(*) from retail.cuadres_piso where id = :'cuadre')
+    || '|' || ((select string_agg(t.tgname::text || '=' || t.tgenabled::text, ',') from pg_trigger t where t.tgname = 'cuadre_piso_items_inmutables') = :'candado_antes')::text
+    || '|' || pg_temp.libro_cuadra_no();
+select purga from respaldo_purgas.filas where purga like 'eliminado %' order by id desc limit 1 \\gset
+select count(*) from respaldo_purgas.filas where purga = :'purga' and tabla = 'cuadre_piso_items';
+reset role;
+select set_config('cayla_purga.nombre', :'purga', true) as _c \\gset
+${RESTAURAR}
+select (select count(*) from retail.cuadre_piso_items where movimiento_id = :'m_cuadre' and cuadre_id = :'cuadre' and variante_id = :'a1' and sentido = 'al_piso' and cantidad = 1)
+    || '|' || pg_temp.libro_cuadra_no();`);
+  const [como, devuelto, despues, respaldo, restaurado] = lineas(r).filter((x) => !/^\s*$/.test(x)).slice(-5);
+  esperar("cuadre · la ventana lo cuenta como historia de stock: con historia, puede, y dice «cuadres del piso (1)»", r.ok && /^con_historia\|true\|.*cuadres del piso \(1\)/.test(como), r);
+  esperar("cuadre · se elimina con su línea del cuadre", r.ok && devuelto === "Prueba A", r);
+  esperar("cuadre · no queda su línea; la cabecera del cuadre de la sede se queda; el candado volvió a su modo; el libro cuadra", r.ok && despues === "0|1|true|0", r);
+  esperar("cuadre · el respaldo guarda la línea del cuadre", r.ok && respaldo === "1", r);
+  esperar("cuadre · restaurar la devuelve idéntica y el libro sigue cuadrando", r.ok && restaurado === "1|0", r);
 }
 
 console.log(`\n${casos - fallos}/${casos} casos pasaron.`);
