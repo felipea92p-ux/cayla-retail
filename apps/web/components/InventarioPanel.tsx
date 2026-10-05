@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ListChecks, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -11,6 +12,7 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
+import { Modal } from "@/components/ui/Modal";
 import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
 import { SubirAAlmacenModal } from "@/components/SubirAAlmacenModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
@@ -31,6 +33,8 @@ import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
+import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
+import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -41,7 +45,7 @@ import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { avisoPausaDelPiso, AYUDA_HOY, estadoHoyDeTalla, hoyDeTalla, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
 import { pidePiso } from "@/lib/piso-plan";
-import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { conteosDeFiltros, contarFiltrosActivos, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { textoDeFamilia } from "@/lib/colores-familias";
 import type { ColorDeCatalogo } from "@/lib/existencias-catalogo";
 import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
@@ -297,6 +301,8 @@ export function InventarioPanel({
   const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [viendoApartados, setViendoApartados] = useState(false);
+  // «Pendientes»: la ventana con las tareas de «Para hoy» (ya no van en la pantalla).
+  const [viendoPendientes, setViendoPendientes] = useState(false);
   // Las cifras «Apartada» y «Dañada» del cajón abren esas mismas ventanas, pero solo con lo de ESA prenda (no la cola entera de
   // la sede). Sin prenda (null) las ventanas muestran todo, como cuando se abren desde «Para hoy» o el aviso de cuarentena.
   const [soloPrenda, setSoloPrenda] = useState<PrendaAgrupada<FilaExistencias> | null>(null);
@@ -443,6 +449,15 @@ export function InventarioPanel({
   const paginaTarjetas = paginar(tarjetasOrdenadas, pagina, FILAS_POR_PAGINA);
   // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar».
   const conteo = conteoDeLista(tarjetasOrdenadas.length, filtradas, elegidos.hoy);
+  // «Colgar primero» (2026-10-05): las tres prendas de TODA la sede que más conviene reponer, en el orden de la lista del día, con lo
+  // que dura lo que hay al ritmo reciente. No depende de los filtros (es la sede entera) y solo se ve cuando no hay nada filtrado ni
+  // escrito —o solo «Por colgar», que es lo mismo que pregunta—: con otro filtro puesto, la persona ya está buscando otra cosa.
+  const colgarPrimeroDeLaSede = useMemo(
+    () => colgarPrimero(ordenarPorListaDelDia(agruparPorPrenda(stock), listaDelDia)),
+    [stock, listaDelDia]
+  );
+  const filtrosPuestos = contarFiltrosActivos(elegidos);
+  const verColgarPrimero = resumen.separaPisoAlmacen && !verDetalle && sinTexto && (filtrosPuestos === 0 || (filtrosPuestos === 1 && elegidos.hoy === "por_colgar"));
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -490,6 +505,7 @@ export function InventarioPanel({
     editaCatalogo,
     tieneCuarentena: sububicaciones.some((s) => s.tipo === "cuarentena"),
   });
+  const router = useRouter();
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
@@ -699,28 +715,9 @@ export function InventarioPanel({
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
     <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
-      {/* «Para hoy» (rediseño 2026-10-04, decisión de Felipe en la ronda 2): lo pendiente de la sede como frases con su cifra y un
-          botón, en el orden en que conviene hacerlo (`tareasParaHoy`). Reemplaza las cuatro tarjetas de «Prioridades de hoy» (2026-09-28),
-          que se dibujaban aunque dijeran 0 y ocupaban la primera pantalla sin decir por dónde empezar. «Por colgar» cuenta con la
-          MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Reponer a piso hoy» contaba
-          con otra (ADR-0326 §5). */}
-      <ParaHoy
-        tareas={tareasHoy}
-        acciones={accionesHoy}
-        verCuales={verCualesHoy}
-        extra={
-          <>
-            {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
-              <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-                {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
-              </button>
-            )}
-            <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-              Resumen por categoría
-            </button>
-          </>
-        }
-      />
+      {/* «Para hoy» ya no ocupa la primera pantalla (Felipe, 2026-10-05: «como en la maqueta», que arranca con la barra y las tarjetas). Sus tareas
+          —cuadrar el piso, ventas sin registrar, dañadas, apartados vencidos— siguen a un toque, en el botón «Pendientes» de la barra (ventana
+          `viendoPendientes`, más abajo): sin ella, «Regularizar» y «Decidir» no tendrían entrada desde Existencias (ADR-0330 sacó «Regularizar» de la cabecera). */}
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
@@ -758,6 +755,7 @@ export function InventarioPanel({
             conteo={conteo}
             detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
             panelInicial={panelFiltros}
+            onEscanear={() => setCamara(true)}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
             orden={
               verDetalle
@@ -766,6 +764,17 @@ export function InventarioPanel({
             }
             vista={
               <>
+                {/* «Pendientes»: lo que antes era «Para hoy» (cuadrar el piso, ventas sin registrar, dañadas…), a un toque. */}
+                <button
+                  type="button"
+                  onClick={() => setViendoPendientes(true)}
+                  title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
+                  className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe"
+                >
+                  <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
+                  Pendientes
+                  {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
+                </button>
                 {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
                 <button
                   type="button"
@@ -898,6 +907,16 @@ export function InventarioPanel({
       ) : !verDetalle ? (
         // La lista de entrada: una tarjeta por prenda. Mismas páginas, mismo «Exportar CSV» y misma leyenda que la tabla.
         <div className="mt-3.5">
+          {verColgarPrimero && (
+            <ColgarPrimero
+              pisoSinCuadrar={tallasEnPausa > 0}
+              prendas={colgarPrimeroDeLaSede}
+              alReponer={(prenda, origen) => {
+                setAbierta(null);
+                abrirReponer(prenda, origen);
+              }}
+            />
+          )}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}
@@ -906,6 +925,13 @@ export function InventarioPanel({
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
             puedeReportarDanada={permisos.reportarDanada}
+            // «Enviar a otra sede» desde la tarjeta: la misma entrada a Traslados que «Trasladar» de lo marcado (`urlTrasladar`), con las
+            // tallas de todos los colores del modelo que tienen algo libre atrás. Solo para quien ve Traslados.
+            puedeEnviar={veTraslados}
+            onEnviar={(tallas) => {
+              const href = urlTrasladar(tallas);
+              if (href) router.push(href);
+            }}
             onReponer={(prenda, origen) => {
               setAbierta(null);
               abrirReponer(prenda, origen);
@@ -930,6 +956,11 @@ export function InventarioPanel({
               setBusqueda(p.referencia);
               setVerDetalle(true);
               setPagina(1);
+            }}
+            // Tocar una talla abre el cajón de ESA talla: la tabla de detalle con la prenda abierta (como al escanear su código).
+            onAbrirTalla={(prenda, fila) => {
+              setVerDetalle(true);
+              abrirPrenda(prenda, fila.varianteId);
             }}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
@@ -1379,6 +1410,30 @@ export function InventarioPanel({
           puedeResolverDanadas={esLider && enSedeActiva}
           onCerrar={() => setAbierta(null)}
         />
+      )}
+
+      {viendoPendientes && (
+        <Modal titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} ancho="max-w-2xl">
+          {/* Cada botón de una tarea cierra la ventana (`alElegir`) y hace lo suyo: filtrar, abrir Dañadas o Apartados, o ir a otra pantalla. */}
+          <ParaHoy
+            tareas={tareasHoy}
+            acciones={accionesHoy}
+            verCuales={verCualesHoy}
+            alElegir={() => setViendoPendientes(false)}
+            extra={
+              <>
+                {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
+                  <button type="button" onClick={() => { setViendoPendientes(false); setViendoApartados(true); }} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+                    {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
+                  </button>
+                )}
+                <button type="button" onClick={() => { setViendoPendientes(false); setViendoDisponible(true); }} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+                  Resumen por categoría
+                </button>
+              </>
+            }
+          />
+        </Modal>
       )}
 
       {camara && (

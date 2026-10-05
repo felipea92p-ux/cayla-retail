@@ -29,8 +29,9 @@
 
 name: CI
 
-# El equipo trabaja con ramas y PR (CONTRIBUTING.md §2): el PR corre todo antes de
-# fusionar, y el push a main lo vuelve a correr sobre el resultado ya fusionado.
+# El equipo trabaja con ramas y PR (CONTRIBUTING.md §2): el PR corre todo antes de fusionar. El push a main ya NO lo repite
+# entero (ADR-0345): el ruleset exige la rama al día, así que el PR corrió sobre el mismo árbol que queda en main. Solo corre
+# lo que el PR no corrió: la base entera si el PR era «solo web», y todo si el commit llegó directo, sin PR.
 on:
   push:
     branches: [main]
@@ -62,6 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       alcance: ${{ steps.medir.outputs.alcance }}
+      verificar: ${{ steps.medir.outputs.verificar }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,6 +73,11 @@ jobs:
 
   verificar:
     name: Tipos, lint y pruebas
+    # En un push a `main` que viene de un PR este job ya corrió sobre el mismo árbol (el ruleset exige la rama al día: ADR-0345)
+    # y `alcance` dice `verificar=no`. Con `!cancelled()` y `!= 'no'` y no `== 'si'`: si `alcance` falla, su salida llega
+    # vacía y el job corre; nunca se salta por no saber. En un PR `alcance` siempre dice `si`.
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.verificar != 'no' }}
     runs-on: ubuntu-latest
     steps:
       # Dos commits: el candado de la bitácora compara el PR contra el main de hoy (HEAD^1 del merge del PR).

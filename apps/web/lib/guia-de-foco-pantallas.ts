@@ -245,7 +245,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PorRegularizarLista.tsx": { estado: "aplicada", evidencia: ["components/PorRegularizarLista.tsx"] },
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
-  "components/ProductosGrilla.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
   "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
   "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles

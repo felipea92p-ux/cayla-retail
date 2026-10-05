@@ -7,7 +7,7 @@ import { hoyLima } from "./fechas-lima";
 
 export type Alcance = "ubicacion" | "empresa" | "consolidado";
 export type EstadoPeriodo = "abierto" | "cerrado" | "reabierto";
-export type ClaveChequeo = "cajas" | "egresos" | "regularizar" | "fijos" | "conciliacion" | "planilla" | "sin_costo" | "diario" | "huella";
+export type ClaveChequeo = "cajas" | "egresos" | "regularizar" | "fijos" | "conciliacion" | "planilla" | "sin_costo" | "cerrada_sin_prenda" | "diario" | "huella";
 
 /** Un chequeo tal como lo mide la base: si pasa, si bloquea el cierre y los datos para decir qué falta. */
 export type Chequeo = { clave: ClaveChequeo | string; ok: boolean; bloquea: boolean; datos: Record<string, unknown> };
@@ -206,6 +206,7 @@ const TITULOS: Record<ClaveChequeo, string> = {
   conciliacion: "Bancos conciliados al fin de mes",
   planilla: "Planilla del mes leída de Dynamic",
   sin_costo: "Prendas vendidas con su costo",
+  cerrada_sin_prenda: "Ventas cerradas sin prenda",
   diario: "El diario de la unidad cuadra",
   huella: "Lo congelado sigue igual al diario de hoy",
 };
@@ -260,6 +261,16 @@ export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle
       const n = numero(d.n);
       return { titulo, detalle: c.ok ? "Todas las prendas vendidas tienen costo" : `${plural(n, "prenda vendida", "prendas vendidas")} sin costo cargado: el margen del mes sale inflado` };
     }
+    case "cerrada_sin_prenda": {
+      // ADR-0337: un líder dio por hechas estas ventas sin identificar la prenda (ADR-0334). Su línea sigue en «Cargo especial» con
+      // costo 0: el ingreso cuenta y el costo no existe. No se puede arreglar cargando un costo, por eso avisa y no bloquea.
+      const n = numero(d.n);
+      if (c.ok) return { titulo, detalle: "Ninguna venta se cerró sin prenda" };
+      return {
+        titulo,
+        detalle: `${plural(n, "venta sin registrar", "ventas sin registrar")} (${soles(numero(d.monto))}) ${n === 1 ? "se cerró" : "se cerraron"} sin prenda: su costo es desconocido y el margen de ${m} sale más alto de lo real. Puedes cerrar igual`,
+      };
+    }
     case "diario": {
       const asientos = numero(d.asientos);
       const lineas = plural(numero(d.lineas), "línea", "líneas");
@@ -280,6 +291,13 @@ export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle
   }
 }
 
+/** «Ventas sin registrar» en Existencias, en la sede de la unidad (el líder la ve filtrada; quien no es líder ve la suya). */
+const enlaceVentasSinRegistrar = (u: Pick<Unidad, "alcance" | "ubicacionId">): string =>
+  `/inventario/por-regularizar${u.alcance === "ubicacion" && u.ubicacionId ? `?ubicacion=${u.ubicacionId}` : ""}`;
+
+/** Lo que dice el botón de un chequeo: «Resolver», salvo el que no se puede resolver, solo mirar (las cerradas sin prenda ya no tienen cura). */
+export const etiquetaEnlace = (c: Chequeo): string => (c.clave === "cerrada_sin_prenda" ? "Ver ventas" : "Resolver");
+
 /** Adónde ir a resolver un chequeo que no pasa. `null` si no hay pantalla para eso (la planilla vive en Dynamic). */
 export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacionId">, mes: string): string | null {
   if (c.ok) return null;
@@ -290,7 +308,9 @@ export function enlaceChequeo(c: Chequeo, u: Pick<Unidad, "alcance" | "ubicacion
     case "egresos":
       return `/finanzas/gastos?tab=egresos&ver=${ver}`;
     case "regularizar":
-      return "/recibir";
+    case "cerrada_sin_prenda":
+      // La lista vive en Existencias desde ADR-0330 (`/recibir` ya no la muestra). El líder la ve por sede.
+      return enlaceVentasSinRegistrar(u);
     case "fijos":
       return `/finanzas/gastos?tab=fijos&mes=${mes}&ver=${ver}`;
     case "conciliacion":
