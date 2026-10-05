@@ -3,7 +3,7 @@
 - Fecha: 2026-10-05
 - Estado: aceptado. Felipe decidió el 2026-10-05 que la cifra del motor va al lado de la sugerencia de Producción, sin reemplazarla.
 - Sigue a ADR-0346 (cuándo puede hablar el motor). Diseño completo: `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`, capas 1 y 2.
-- Migración `20261005215000_motor_demanda_lectura.sql`: una función de lectura. **No está en producción.**
+- Migración `20261005215000_motor_demanda_lectura.sql`: una función de lectura. **En producción desde el 2026-10-05** (pegada por el MCP de Supabase con el OK de Felipe; `supabase_migrations.schema_migrations` la registra como versión `20261005203655`, la hora de aplicación, no la del archivo; huella del cuerpo idéntica a la local).
 
 ## Problema
 

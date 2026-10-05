@@ -3,7 +3,7 @@
 - Fecha: 2026-10-05
 - Estado: aceptado. Felipe aprobó el diseño y fijó el umbral, la falta de historia y quién decide (2026-10-05).
 - Diseño completo e investigación (empresas, código, datos de producción): `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`.
-- Migración `20261005210000_motor_demanda_preparacion.sql`: una función de lectura. **No está en producción.**
+- Migración `20261005210000_motor_demanda_preparacion.sql`: una función de lectura. **En producción desde el 2026-10-05** (pegada por el MCP de Supabase con el OK de Felipe; `supabase_migrations.schema_migrations` la registra como versión `20261005203539`, la hora de aplicación, no la del archivo; huella del cuerpo idéntica a la local).
 
 ## Problema
 

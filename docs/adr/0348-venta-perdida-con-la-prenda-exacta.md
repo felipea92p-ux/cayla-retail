@@ -3,7 +3,7 @@
 - Fecha: 2026-10-05
 - Estado: aceptado. Felipe decidió el 2026-10-05 guardar la prenda exacta y avisarle a Dany antes de pegar en producción.
 - Toca el Club, que planificó Dany (acta D-92 a D-111). **Ver «Para Dany» abajo.**
-- Migración `20261005212000_venta_perdida_con_prenda.sql`. **No está en producción.**
+- Migración `20261005212000_venta_perdida_con_prenda.sql`. **En producción desde el 2026-10-05** (pegada por el MCP de Supabase con el OK de Felipe; `supabase_migrations.schema_migrations` la registra como versión `20261005203608`, la hora de aplicación, no la del archivo; huella del cuerpo idéntica a la local).
 
 ## Problema
 

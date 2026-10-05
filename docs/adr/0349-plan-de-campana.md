@@ -4,7 +4,7 @@
 - Estado: aceptado. Felipe decidió el 2026-10-05: tres escenarios, la curva la propone el sistema y la cabecera es la de Ventas e
   Inventario.
 - Es la etapa 4 del motor de demanda (ADR-0346/0347) mientras no hay datos. Diseño: `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`, §5.
-- Migración `20261005220000_plan_de_campana.sql`. **No está en producción.**
+- Migración `20261005220000_plan_de_campana.sql`. **En producción desde el 2026-10-05** (pegada por el MCP de Supabase con el OK de Felipe; `supabase_migrations.schema_migrations` la registra como versión `20261005203752`, la hora de aplicación, no la del archivo; huella del cuerpo idéntica a la local).
 
 ## Problema
 
