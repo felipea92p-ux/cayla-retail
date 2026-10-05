@@ -154,10 +154,16 @@ export function etiquetaProceso(motivo: string | null): string {
 /** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0239 suma la vuelta de un envío anulado). */
 const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
 
-/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
+/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena.
+ *  Entrar a la cuarentena desde el piso o el almacén lo escribe SOLO `reportar_danada`, y salir de ella al almacén SOLO
+ *  `arreglar_prenda_danada` (ADR-0328 act. 10; `mover_interno` ya no se llama desde el navegador, ADR-0240): por eso esos
+ *  pares se nombran como lo que son. Cuarentena → piso no lo escribe nadie y conserva el nombre genérico. */
 const INTERNO_POR_PAR: Record<string, string> = {
   "almacen_tienda→piso_venta": "Bajada al piso",
   "piso_venta→almacen_tienda": "Retiro del piso",
+  "piso_venta→cuarentena": "Dañado · reportada en el piso",
+  "almacen_tienda→cuarentena": "Dañado · reportada en el almacén",
+  "cuarentena→almacen_tienda": "Dañado · se arregló",
 };
 
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una

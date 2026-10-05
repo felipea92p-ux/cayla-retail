@@ -175,6 +175,8 @@
     "pruebas:envio-costo-atipico": "node scripts/pruebas/envio_costo_atipico.mjs",
     "pruebas:corregir-variantes": "node scripts/pruebas/corregir_variantes.mjs",
     "pruebas:cuarentena-no-se-vende": "node scripts/pruebas/cuarentena_no_se_vende.mjs",
+    "pruebas:danadas-reportar-arreglar": "node scripts/pruebas/danadas_reportar_arreglar.mjs",
+    "pruebas:danadas-concurrencia": "node scripts/pruebas/danadas_concurrencia.mjs",
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
     "pruebas:colaboradores-alta-aprobacion": "node scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs",
     "pruebas:crear-devolucion-motivo": "node scripts/pruebas/crear_devolucion_motivo.mjs",
