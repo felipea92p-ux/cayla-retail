@@ -250,3 +250,60 @@ export function tallasPorPrenda(filas: readonly Pick<FilaPrenda, "productoId" | 
   }
   return cuenta;
 }
+
+// --- Los cuatro lugares de una prenda (cajón de Existencias, 2026-10-04) ------------------------------------------------
+// Antes el cajón decía solo «Piso 8 · Almacén 5»: lo apartado y lo dañado existían en la prenda (`apartado`, `danado`) y
+// nadie los mostraba, así que lo que se contaba a mano en la tienda no coincidía con lo que se podía vender. Una prenda
+// en una tienda está SIEMPRE en uno de cuatro lugares, y las cuatro cifras no se pisan:
+//   · piso       libre: colgada, lo único que cobra la caja (`cantidadCobrable`, lib/vender-stock-local.ts).
+//   · almacén    libre: guardada atrás; para venderla se baja al piso primero.
+//   · apartada   reservada para un cliente. Sigue físicamente en el piso o en el almacén, pero ni se vende ni se mueve;
+//                por eso `piso` y `almacen` son NETOS de ella (`pisoDisponible`, `almacenDisponible`) y no se cuenta dos veces.
+//   · dañada     en cuarentena. NUNCA entra al `total` de la sede (lib/inventario-reglas.ts, `sumarCantidades`): no es stock.
+// De ahí dos totales, y los dos se dicen: `enStock` (piso + almacén + apartada) es el que usan la lista y el Conteo;
+// `enLaSede` suma además lo dañado y es lo que de verdad hay de la prenda aquí.
+
+export type DesgloseDePrenda = {
+  piso: number;
+  almacen: number;
+  apartada: number;
+  danada: number;
+  /** piso + almacén + apartada: el `total` de la lista de Existencias y del Conteo. */
+  enStock: number;
+  /** enStock + dañadas: todo lo que hay de la prenda en la sede. */
+  enLaSede: number;
+};
+
+/** Las cuatro cifras de una prenda y sus dos totales. `null` donde no se separa piso y almacén (el Taller): ahí no hay
+ *  «colgada» ni «guardada» que repartir, y «no aplica» nunca se disfraza de 0. */
+export function desgloseDePrenda(p: Pick<PrendaAgrupada, "piso" | "almacen" | "apartado" | "danado">): DesgloseDePrenda | null {
+  if (p.piso === null || p.almacen === null) return null;
+  const enStock = p.piso + p.almacen + p.apartado;
+  return { piso: p.piso, almacen: p.almacen, apartada: p.apartado, danada: p.danado, enStock, enLaSede: enStock + p.danado };
+}
+
+/** La suma explicada bajo las cuatro cifras. `aparte` solo existe si hay dañadas: es lo que evita que alguien compare el
+ *  total del cajón con el de la lista (que no cuenta las dañadas) y concluya que «no coincide». */
+export function lineaDeLaSuma(d: DesgloseDePrenda): { cuenta: string; texto: string; aparte: string | null } {
+  return {
+    cuenta: `${d.piso} + ${d.almacen} + ${d.apartada} + ${d.danada} = ${d.enLaSede}`,
+    texto: `${d.enLaSede === 1 ? "prenda" : "prendas"} en esta sede`,
+    aparte:
+      d.danada > 0
+        ? `${d.enStock} ${d.enStock === 1 ? "cuenta" : "cuentan"} como stock: ${d.danada === 1 ? "la dañada va aparte" : "las dañadas van aparte"}`
+        : null,
+  };
+}
+
+/** Lo que hace la caja con cada lugar, en una frase: la aclaración que pidió Felipe (2026-10-04). El número es lo que la
+ *  caja puede cobrar HOY de esta prenda. «Cliente», no «clienta»: en pantalla se le habla igual a un hombre que a una mujer. */
+export function aclaracionDeLaCaja(d: DesgloseDePrenda): string {
+  return `La caja solo cobra lo que está colgado en el piso y libre: hoy,\u00a0${d.piso}. Lo del almacén se baja al piso primero, lo apartado está reservado para un cliente y lo dañado espera la decisión de un líder.`;
+}
+
+/** De una lista de la sede (apartados, dañadas en cuarentena…), solo lo que es de ESTA prenda, por sus tallas. Es lo que abre
+ *  cada cifra del cajón: tocar «Dañada 1» muestra esa prenda, no la cola entera de la sede. */
+export function deLaPrenda<T extends { varianteId: string }>(items: readonly T[], prenda: { tallas: readonly Pick<FilaPrenda, "varianteId">[] }): T[] {
+  const ids = new Set(prenda.tallas.map((t) => t.varianteId));
+  return items.filter((i) => ids.has(i.varianteId));
+}
