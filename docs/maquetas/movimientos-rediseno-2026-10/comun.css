@@ -1,0 +1,226 @@
+/* ====================================================================
+   MOVIMIENTOS · REDISEÑO · piezas comunes de las tres maquetas (2026-10-05)
+   Tokens = apps/web/app/globals.css (ADR-0169). Cabecera = EncabezadoPagina (ADR-0220).
+   Movimiento = ADR-0136: --ease-cayla, sin rebote, nada en bucle (salvo señales),
+   todo se apaga con prefers-reduced-motion. Datos inventados.
+   El celular se simula con CONTAINER QUERIES (el marco de 375 px responde igual
+   que una ventana angosta de verdad).
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojop:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  /* otra tonalidad del verde (no es un token nuevo: es verde con un toque de ámbar) */
+  --verde-2:color-mix(in srgb,var(--verde) 66%,var(--ambar));
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t35:rgba(26,26,24,.35);--t10:rgba(26,26,24,.10);
+  --ease:cubic-bezier(.32,.72,.24,1);
+  --serif:'EB Garamond',Georgia,serif;
+  --spk:54px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+input{font:inherit;color:inherit}
+a{color:inherit}
+.num{font-variant-numeric:tabular-nums}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px;color:var(--t65)}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+svg.gl{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+:focus-visible{outline:2px solid var(--pizarra);outline-offset:2px;border-radius:8px}
+
+/* ── Color por tipo: una sola fuente para sello, riel, chip, barra… ───────── */
+.t-venta{--c:var(--verde)}
+.t-colgada{--c:var(--ambar)}
+.t-subida{--c:var(--pizarra)}
+.t-llegada{--c:var(--verde-2)}
+.t-traslado{--c:var(--tinta)}
+.t-devolucion,.t-cambio{--c:var(--rojo)}
+.t-ajuste,.t-conteo{--c:var(--taupe)}
+[class*="t-"]{--c-bg:color-mix(in srgb,var(--c) 7%,var(--papel));--c-md:color-mix(in srgb,var(--c) 15%,var(--papel));--c-ln:color-mix(in srgb,var(--c) 30%,var(--sand))}
+
+/* ── Barra del demo (no existe en el ERP) ─────────────────────────────────── */
+.spk{position:sticky;top:0;z-index:90;height:var(--spk);background:var(--tinta);color:var(--crema);padding:0 18px;display:flex;gap:10px 18px;align-items:center;font-size:12.5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.spk::-webkit-scrollbar{display:none}
+.spk .tit{font-family:var(--serif);font-size:19px;white-space:nowrap}
+.spk .tit small{font-family:'DM Sans';font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,240,232,.55);margin-left:8px}
+.spk .sp{flex:1}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden;flex:none}
+.seg button{padding:5px 11px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk .acc{border:1px solid rgba(245,240,232,.25);border-radius:8px;padding:5px 11px;color:rgba(245,240,232,.85);white-space:nowrap;text-decoration:none;display:inline-flex;gap:6px;align-items:center;flex:none}
+.spk .acc:hover{background:rgba(245,240,232,.1)}
+
+/* ── Marco ────────────────────────────────────────────────────────────────── */
+.escena{padding:16px;display:flex;justify-content:center}
+.vista{container-type:inline-size;container-name:vista;position:relative;width:100%;max-width:1480px;height:calc(100dvh - var(--spk) - 32px);min-height:560px;background:var(--crema);border-radius:14px;overflow:hidden;border:1px solid rgba(26,26,24,.08);box-shadow:0 30px 64px -26px rgba(26,26,24,.3);transition:width .45s var(--ease),border-radius .45s var(--ease)}
+.vista[data-modo=celular]{width:395px;border-radius:44px;border:10px solid var(--tinta);min-height:560px}
+.app{display:grid;grid-template-columns:200px minmax(0,1fr);height:100%}
+.lat{border-right:1px solid var(--sand);padding:20px 12px;overflow:auto;background:var(--crema)}
+.lat .logo{display:flex;align-items:center;gap:9px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat .g{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t50);padding:14px 10px 5px}
+.lat a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.sub{padding-left:26px;font-size:13px}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.cuerpo{position:relative;overflow:auto;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--sand) transparent;min-width:0}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 24px;position:sticky;top:0;background:color-mix(in srgb,var(--crema) 92%,transparent);backdrop-filter:blur(8px);z-index:20}
+.top .act{font-size:11px;letter-spacing:.14em;font-weight:600;color:var(--t65);display:flex;align-items:center;gap:6px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.top .menu{display:none}
+.top .marca{display:none;align-items:center;gap:8px;letter-spacing:.3em;font-weight:600;font-size:12px}
+.top .marca i{width:18px;height:15px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.main{padding:26px 32px 72px}
+
+/* ── Cabecera de página (EncabezadoPagina, ADR-0220) ──────────────────────── */
+.enc{display:flex;gap:20px 32px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+.enc h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.05;letter-spacing:-.01em;margin:6px 0 4px}
+.frase{color:var(--t65);max-width:560px}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:500;border:1px solid var(--sand);background:var(--papel);white-space:nowrap;transition:border-color .2s}
+.btn:hover{border-color:var(--taupe)}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.acciones{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── Tarjeta, píldoras, campo ─────────────────────────────────────────────── */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.pils{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pil{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:5px 13px;font-size:12.5px;font-weight:500;white-space:nowrap;transition:background .2s,border-color .2s,color .2s}
+.pil:hover{border-color:var(--taupe)}
+.pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pil .d{color:var(--t50);font-size:11px}
+.pil.on .d{color:rgba(245,240,232,.65)}
+.campo{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:10px;padding:0 12px;height:38px;min-width:0;flex:1 1 220px;color:var(--t65)}
+.campo input{border:0;background:none;outline:none;width:100%;min-width:0}
+.nota-pie{margin-top:18px;background:var(--hueso);border-radius:12px;padding:12px 16px;font-size:12.5px;color:var(--t65)}
+.nota-pie b{color:var(--tinta)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--c);background:var(--c-bg);border:1px solid var(--c-ln);border-radius:99px;padding:2px 9px 2px 8px;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c)}
+
+/* ── Sello (el ícono grande que dice qué tipo es) y mosaico de prenda ─────── */
+.sello{width:var(--sz,48px);height:var(--sz,48px);border-radius:calc(var(--sz,48px)*.3);background:var(--c-md);color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c-ln);display:grid;place-items:center;flex:none;position:relative;overflow:hidden}
+.sello .gl{width:56%;height:56%;stroke-width:1.8}
+.sello.suave{background:var(--c-md);color:var(--c)}
+.t-ajuste .sello:not(.suave):not(.anillo),.t-conteo .sello:not(.suave):not(.anillo){background:var(--c-bg);color:var(--c);border:2px dashed var(--c);box-shadow:none}
+.sello.anillo{background:var(--c-bg);color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c-ln)}
+.mos{width:var(--m,38px);height:var(--m,38px);border-radius:calc(var(--m,38px)*.27);display:grid;place-items:center;flex:none;box-shadow:0 0 0 2px var(--papel)}
+.mos svg{width:58%;height:58%;fill:currentColor;stroke:none;opacity:.88}
+.pila{display:flex}
+.pila .mos+.mos,.pila .mos+.mas{margin-left:calc(var(--m,38px)*-.3)}
+.mas{width:var(--m,38px);height:var(--m,38px);border-radius:calc(var(--m,38px)*.27);background:var(--hueso);color:var(--t65);display:grid;place-items:center;font-size:11px;font-weight:600;box-shadow:0 0 0 2px var(--papel)}
+.av{width:22px;height:22px;border-radius:50%;background:var(--hueso);color:var(--taupe);display:inline-grid;place-items:center;font-size:10.5px;font-weight:700;flex:none;font-style:normal}
+
+/* ── Punto de la ruta: «Piso», «Cliente», «Almacén»… con su ícono ─────────── */
+.pt{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--t80);background:var(--hueso);border-radius:99px;padding:3px 10px 3px 8px;white-space:nowrap}
+.pt svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pt.ext{background:transparent;border:1px dashed var(--t35)}
+
+/* ── La ruta de un movimiento: de dónde a dónde, con una prenda que viaja ───── */
+.ruta{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+.ruta .rail{position:relative;flex:1 1 56px;min-width:34px;max-width:160px;height:2px;background:var(--sand);border-radius:2px}
+.ruta .rail .fill{position:absolute;inset:0;background:var(--c);border-radius:2px;transform-origin:left;transform:scaleX(0)}
+.ruta .rail .dot{position:absolute;top:50%;left:0;width:9px;height:9px;margin:-4.5px 0 0 -4px;border-radius:50%;background:var(--c);opacity:0}
+.ruta .rail:after{content:"";position:absolute;right:-1px;top:50%;width:7px;height:7px;border-top:2px solid var(--c);border-right:2px solid var(--c);transform:translateY(-50%) rotate(45deg);opacity:.0;transition:opacity .3s .55s}
+.ruta.go .rail:after,.ruta:not([data-go]) .rail:after{opacity:1}
+.ruta.go .fill{animation:r-llena .9s var(--ease) both}
+.ruta.go .dot{animation:r-viaja 1.05s .08s var(--ease) both}
+.ruta:not([data-go]) .fill{transform:none}
+.ruta .solo{font-size:11.5px;color:var(--t65)}
+@keyframes r-llena{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes r-viaja{0%{left:0;opacity:0}12%{opacity:1}86%{opacity:1}100%{left:100%;opacity:0}}
+
+/* ── Movimiento de los íconos de tipo (una vez; `.go` lo dispara el JS) ───── */
+.gl *{transform-box:view-box}
+.go .g-venta .bolsa{animation:g-sube .7s var(--ease) both}
+.go .g-venta .asa{stroke-dasharray:14;animation:g-trazo .8s .08s var(--ease) both}
+.go .g-colgada .perch{transform-origin:12px 3.6px;animation:g-mece 1.15s var(--ease) both}
+.go .g-subida .tapa{animation:g-tapa .9s var(--ease) both}
+.go .g-subida .fl{animation:g-flecha-arriba .9s var(--ease) both}
+.go .g-llegada .paq{animation:g-cae .8s var(--ease) both}
+.go .g-traslado .cam{animation:g-llega-izq .8s var(--ease) both}
+.go .g-traslado .ray{animation:g-fade .8s .15s var(--ease) both}
+.go .g-devolucion .giro{stroke-dasharray:30;animation:g-trazo30 .9s var(--ease) both}
+.go .g-cambio .a1{animation:g-der .7s var(--ease) both}
+.go .g-cambio .a2{animation:g-izq .7s var(--ease) both}
+.go .g-ajuste .k1{animation:g-izq .8s var(--ease) both}
+.go .g-ajuste .k2{animation:g-der .8s var(--ease) both}
+.go .g-conteo .vis{stroke-dasharray:14;animation:g-trazo .8s .1s var(--ease) both}
+@keyframes g-sube{from{transform:translateY(3px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes g-trazo{from{stroke-dashoffset:14}to{stroke-dashoffset:0}}
+@keyframes g-trazo30{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+@keyframes g-mece{0%{transform:rotate(0)}22%{transform:rotate(11deg)}50%{transform:rotate(-6deg)}76%{transform:rotate(2.5deg)}100%{transform:rotate(0)}}
+@keyframes g-tapa{0%{transform:none}35%{transform:translateY(-3.4px)}100%{transform:none}}
+@keyframes g-flecha-arriba{0%{transform:translateY(5px);opacity:0}45%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes g-cae{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+@keyframes g-llega-izq{from{transform:translateX(-7px);opacity:.2}to{transform:none;opacity:1}}
+@keyframes g-der{from{transform:translateX(-4px)}to{transform:none}}
+@keyframes g-izq{from{transform:translateX(4px)}to{transform:none}}
+@keyframes g-fade{from{opacity:0}to{opacity:1}}
+
+/* ── Entrada de las filas al llegar a la vista (cascada corta) ────────────── */
+.rev{opacity:0;transform:translateY(14px);transition:opacity .45s var(--ease),transform .5s var(--ease);transition-delay:calc(var(--i,0)*45ms)}
+.rev.in{opacity:1;transform:none}
+
+/* ── Cajón de detalle (misma forma que <Modal>: velo con desenfoque → hoja → cascada) ── */
+.velo{position:absolute;inset:0;z-index:60;background:rgba(26,26,24,.32);backdrop-filter:blur(3px);opacity:0;transition:opacity .26s var(--ease);display:flex;justify-content:flex-end}
+.velo.in{opacity:1}
+.hoja{width:min(440px,100%);height:100%;background:var(--crema);border-left:1px solid var(--sand);transform:translateX(26px) translateY(8px);opacity:0;transition:transform .34s var(--ease),opacity .26s var(--ease);display:flex;flex-direction:column;overflow:hidden}
+.velo.in .hoja{transform:none;opacity:1}
+.velo.sale{opacity:0}
+.velo.sale .hoja{transform:translateX(18px);opacity:0;transition-duration:.18s}
+.hoja .cab{padding:22px 24px 18px;position:relative;border-bottom:1px solid var(--sand);background:var(--c-bg)}
+.hoja .cab .x{position:absolute;right:14px;top:14px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--papel);border:1px solid var(--sand)}
+.hoja .cab .x:hover{border-color:var(--taupe)}
+.hoja .cab h2{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;margin:12px 0 2px}
+.hoja .cab p{color:var(--t65);font-size:13px}
+.hoja .cue{padding:18px 24px 28px;overflow:auto;display:grid;gap:18px;align-content:start}
+.hoja .casc{opacity:0;transform:translateY(10px);transition:opacity .4s var(--ease),transform .45s var(--ease);transition-delay:calc(var(--i,0)*55ms + 90ms)}
+.velo.in .casc{opacity:1;transform:none}
+.cue h4{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:8px}
+.lin{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--sand)}
+.lin:first-of-type{border-top:0}
+.lin .n{flex:1;min-width:0}
+.lin .n b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lin .n span{font-size:12px;color:var(--t65)}
+.lin .q{font-family:var(--serif);font-size:22px;color:var(--c)}
+.hist{display:grid;gap:0;position:relative}
+.hist .paso{display:grid;grid-template-columns:22px 1fr;gap:10px;padding-bottom:14px;position:relative}
+.hist .paso:before{content:"";position:absolute;left:10px;top:20px;bottom:-2px;width:2px;background:var(--sand);transform-origin:top;transform:scaleY(0);transition:transform .5s var(--ease);transition-delay:calc(var(--i,0)*55ms + 260ms)}
+.velo.in .hist .paso:before{transform:scaleY(1)}
+.hist .paso:last-child:before{display:none}
+.hist .pn{width:22px;height:22px;border-radius:50%;background:var(--c);color:var(--crema);display:grid;place-items:center;font-size:11px;font-weight:700;z-index:1}
+.hist .paso.hecho .pn{background:var(--papel);color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c)}
+.hist b{display:block;font-weight:600}
+.hist span{font-size:12.5px;color:var(--t65)}
+.atajos{display:flex;flex-wrap:wrap;gap:8px}
+.atajos .btn{font-size:12.5px;padding:6px 12px}
+.caja-ref{display:flex;align-items:center;gap:10px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:10px 14px}
+.caja-ref .ic{color:var(--taupe)}
+.caja-ref small{display:block;color:var(--t65);font-size:11.5px}
+.nota-op{background:var(--hueso);border-radius:12px;padding:10px 14px;font-size:13px}
+
+/* ── Móvil: el marco se angosta (container query) ─────────────────────────── */
+@container vista (max-width:760px){
+  .app{grid-template-columns:1fr}
+  .lat{display:none}
+  .top{padding:0 16px}
+  .top .marca{display:flex;margin-right:auto}
+  .top .menu{display:grid}
+  .main{padding:20px 16px 72px}
+  .enc h1{font-size:36px}
+  .frase{font-size:13.5px}
+  .hoja{width:100%}
+}
+@media (max-width:640px){
+  .spk .tit small{display:none}
+  .escena{padding:8px}
+  :root{--spk:50px}
+  .vista{height:calc(100dvh - var(--spk) - 16px)}
+  .vista[data-modo=celular]{width:100%;border-width:6px;border-radius:30px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important;transition-delay:0ms!important}
+  .cuerpo{scroll-behavior:auto}
+  .rev{opacity:1;transform:none}
+}
