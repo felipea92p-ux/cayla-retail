@@ -42,6 +42,7 @@
     "pruebas:presupuesto": "node scripts/pruebas/presupuesto.mjs",
     "pruebas:cierre-mes": "node scripts/pruebas/cierre_mes.mjs",
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
+    "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
     "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
     "pruebas:finanzas-arranque": "node scripts/pruebas/finanzas_arranque.mjs",
     "pruebas:totales-caja-historial": "node scripts/pruebas/totales_caja_e_historial.mjs",
