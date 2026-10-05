@@ -1,4 +1,4 @@
-## 🧹 Cierre de mes: las ventas cerradas sin prenda salen como un aviso que no bloquea (2026-10-04, ADR-0337) — **SQL YA en producción (2026-10-04, verificado por efectos)**; rama `claude/cierre-mes-ventas-cerradas-sin-prenda` (apilada sobre `claude/unregistered-merchandise-solutions-860786`, ADR-0334)
+## 🧹 Cierre de mes: las ventas cerradas sin prenda salen como un aviso que no bloquea (2026-10-04, ADR-0337) — **SQL YA en producción (2026-10-04, verificado por efectos)**; rama `claude/cierre-mes-ventas-cerradas-sin-prenda` (sobre `main`: ADR-0334 ya está fusionado en #800)
 
 Decisión de Felipe (2026-10-04): opción A — aviso que no bloquea y queda en `periodo_cierres.avisos`. Producción el 2026-10-04 (solo lectura): septiembre tiene 31
 ventas sin registrar pendientes (AQP 26 por S/ 1,170.80; TRU 5 por S/ 370.60) que hoy BLOQUEAN el cierre de septiembre; octubre, 236 más.
