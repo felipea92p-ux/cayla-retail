@@ -37,6 +37,17 @@ function textos(e: EstadoExactitud): { titulo: string; detalle: string } {
   switch (e.estado) {
     case "pendiente":
       return { titulo: "Exactitud de inventario aún no validada", detalle: "Último conteo: pendiente. Los datos pueden tener diferencias." };
+    case "sin_medir":
+      // ADR-0328: hubo conteo, pero no mide la exactitud. Se dice cuál fue y desde cuándo se mide; nunca «pendiente».
+      return e.sinMedida === "arranque"
+        ? {
+            titulo: "Exactitud de inventario aún no medida",
+            detalle: `Conteo de arranque hecho el ${fecha(e.ultimoConteo!)}: corrigió el stock, y la exactitud se mide desde el próximo conteo.`,
+          }
+        : {
+            titulo: "Exactitud de inventario aún no medida",
+            detalle: `Último conteo el ${fecha(e.ultimoConteo!)}: se aplicó sin contar, así que no mide la exactitud. Cuenta las prendas para medirla.`,
+          };
     case "antiguo":
       return { titulo: "El último conteo ya es antiguo", detalle: `Último conteo el ${fecha(e.ultimoConteo!)} (hace ${e.diasDesde} días). Los datos pueden haber cambiado.` };
     case "baja":
