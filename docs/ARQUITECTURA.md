@@ -1323,6 +1323,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     Sección «¿El sistema ya puede recomendar?» (ADR-0346, motor de demanda etapa 0) → `lib/motor-demanda.ts`
     (`fn_motor_demanda_preparacion`) + `lib/motor-demanda-reglas.ts` (90 % sostenido 14 días, piso cuadrado, almacén contado) +
     `components/motor-demanda/PreparacionMotor.tsx`.
+    Producción ▸ «Nueva orden», bloque «Lo que dice el motor de demanda» (ADR-0347, al lado de la curva de siempre) →
+    `lib/decision-produccion.ts` → `getMotorDeLaRed` (`lib/motor-demanda.ts`: `fn_motor_demanda_preparacion` + `fn_demanda_sede` por
+    tienda) + `lib/demanda-reglas.ts` (ritmo de cada prenda apoyado en su grupo, curva del motor, «se vendió rápido y falta») +
+    `components/motor-demanda/MotorEnProduccion.tsx`.
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 
