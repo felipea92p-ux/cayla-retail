@@ -28,7 +28,7 @@ export const ANCHO_MINIMO_TABLA = "md:min-w-[760px]";
 function Decision({ d }: { d: FilaDeDecision }) {
   return (
     <div className="flex flex-col items-start gap-1">
-      <Chip tono={d.chip.tono} className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono={d.chip.tono} className="!px-2 !text-[12.5px] !leading-[18px]">
         {d.chip.texto}
       </Chip>
       <span className="text-[12.5px] leading-snug text-tinta/80">{d.frase}</span>
@@ -66,14 +66,14 @@ function Prenda({ fila, muchasSinTemporada, apariencia, categoria }: { fila: Fil
           <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
             {fila.temporadaPasada && (
               <>
-                <Chip tono="ambar" className="!px-2 !text-[11.5px] !leading-[18px]">
+                <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
                   Temporada pasada
                 </Chip>
                 <span className="text-[12px] leading-snug text-taupe">{fila.temporadaPasada}</span>
               </>
             )}
             {fila.sinTemporada && !muchasSinTemporada && (
-              <Chip tono="neutro" className="!px-2 !text-[11.5px] !leading-[18px]">
+              <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
                 ¿De qué temporada es? Complétala
               </Chip>
             )}

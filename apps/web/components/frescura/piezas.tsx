@@ -15,11 +15,11 @@ export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; ap
         {estado.texto}
       </Chip>
       {estado.debajo.map((d) => (
-        <span key={d} className="text-[11px] leading-snug text-taupe">
+        <span key={d} className="text-[12px] leading-snug text-taupe">
           {d}
         </span>
       ))}
-      {estado.previo && <span className="text-[11.5px] leading-snug text-taupe">{estado.previo}</span>}
+      {estado.previo && <span className="text-[12px] leading-snug text-taupe">{estado.previo}</span>}
     </span>
   );
 }
@@ -28,13 +28,13 @@ export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; ap
 export function NivelChip({ nivel }: { nivel: NivelConfianza | null }) {
   if (nivel === "pocos_datos")
     return (
-      <Chip tono="ambar" className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
         Pocos datos
       </Chip>
     );
   if (nivel === "aceptable")
     return (
-      <Chip tono="neutro" className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
         Aceptable
       </Chip>
     );
