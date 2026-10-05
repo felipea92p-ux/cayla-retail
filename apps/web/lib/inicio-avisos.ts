@@ -64,7 +64,8 @@ export type FuentesAvisos = {
   devoluciones?: number | null;
   pedidos?: number | null;
   traslados?: number | null;
-  /** ADR-0328 act. 17: los pedidos entre sedes que llevan 48 h o más sin respuesta, de los dos lados (solo para el líder).
+  /** ADR-0328 act. 17: los pedidos entre sedes que llevan 48 h o más sin respuesta, de los dos lados (solo para los líderes
+   *  de esa sede, en el Inicio de su sede: `leAvisaSinRespuesta`).
    *  Ya resumidos por `pedidos-por-atender-reglas.ts`: cuántos, el detalle y la frase de «Sigue ahora». */
   pedidosSinRespuesta?: { tePiden: number; pediste: number; detalle: string; ahora: string } | null;
   /** ADR-0328 act. 17 (decisión del 2026-10-04): los pedidos que esta tienda hizo a otra para un cliente y que piden un paso

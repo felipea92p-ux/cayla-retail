@@ -5,7 +5,8 @@
 // (`fn_pedidos_por_atender`, migración 20261005100100). Aquí, sin React ni Supabase (se prueba en
 // `pedidos-por-atender-reglas.test.ts`), se decide:
 //   · cuántos le piden a la sede (el número del menú: `numeroDelMenuTraslados`, sumado a los traslados por recibir);
-//   · cuáles llevan 48 h o más sin respuesta, de los dos lados (el Inicio del líder y el Observatorio).
+//   · cuáles llevan 48 h o más sin respuesta, de los dos lados (el Inicio de los líderes de las dos sedes y el Observatorio);
+//   · a quién le avisa el Inicio (decisión del 2026-10-04): a los líderes cuya sede es una de las dos del pedido.
 // «Sin respuesta» = la sede a la que le pidieron todavía no lo envió ni dijo «No la tengo»: mientras sigue «pedido».
 
 export type DireccionPorAtender = "pedi" | "me_piden";
@@ -74,6 +75,17 @@ export type SinRespuesta = {
   /** Horas del más antiguo de los dos lados; null si no hay ninguno. */
   horasMasAntiguo: number | null;
 };
+
+/**
+ * ¿El Inicio de esta cuenta lleva el aviso de 48 h de la sede que está mirando? (Decisión del 2026-10-04: «a los líderes de
+ * las DOS sedes, los que tienen esa sede, y al Observatorio del Admin».) Solo un líder, y solo en el Inicio de SU sede (la
+ * de partida): el de Trujillo y el de Arequipa ven el pedido Trujillo ↔ Arequipa; el de Lima no, aunque se pare en Trujillo
+ * con el selector (ese aviso ya les llega a los de Trujillo). En CAYLA Global la sede mirada sigue siendo la propia. El
+ * Admin los ve todos, de toda la red, en el Observatorio (`sinRespuestaEnLaRed`).
+ */
+export function leAvisaSinRespuesta(cuenta: { esLider: boolean; sedePropiaId: string | null }, sedeMirada: string): boolean {
+  return cuenta.esLider && !!cuenta.sedePropiaId && cuenta.sedePropiaId === sedeMirada;
+}
 
 /** Los pedidos que llevan `horas` (48) o más sin respuesta, de los dos lados, el más antiguo primero. */
 export function pedidosSinRespuesta(filas: readonly FilaPorAtender[], ahoraIso: string, horas = HORAS_SIN_RESPUESTA): SinRespuesta {

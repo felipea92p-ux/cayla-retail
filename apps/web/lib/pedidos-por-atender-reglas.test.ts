@@ -7,6 +7,7 @@ import {
   esperaVisible,
   filaPorAtenderDeFila,
   horasEsperando,
+  leAvisaSinRespuesta,
   numeroDelMenuTraslados,
   pedidosSinRespuesta,
   sinRespuestaEnLaRed,
@@ -179,5 +180,23 @@ describe("sinRespuestaEnLaRed — el Observatorio", () => {
     );
     expect(r.pedidos.map((p) => p.id)).toEqual(["c", "b"]);
     expect(r.porTienda).toEqual({ aqp: 2, tru: 1, lim: 1 });
+  });
+});
+
+describe("leAvisaSinRespuesta — a los líderes de las DOS sedes, cada uno en el Inicio de la suya (decisión del 2026-10-04)", () => {
+  it("el líder de la sede lo ve en el Inicio de su sede", () => {
+    expect(leAvisaSinRespuesta({ esLider: true, sedePropiaId: "tru" }, "tru")).toBe(true);
+  });
+  it("un líder parado en otra sede con el selector no lo recibe por ella (les llega a los líderes de allá)", () => {
+    expect(leAvisaSinRespuesta({ esLider: true, sedePropiaId: "lim" }, "tru")).toBe(false);
+  });
+  it("quien no es líder, o una cuenta sin sede propia, nunca", () => {
+    expect(leAvisaSinRespuesta({ esLider: false, sedePropiaId: "tru" }, "tru")).toBe(false);
+    expect(leAvisaSinRespuesta({ esLider: true, sedePropiaId: null }, "tru")).toBe(false);
+    expect(leAvisaSinRespuesta({ esLider: true, sedePropiaId: "" }, "")).toBe(false);
+  });
+  it("el Inicio lo pregunta antes de leer: el candado está en la lectura, no solo en la regla", () => {
+    const inicio = readFileSync(new URL("./inicio.ts", import.meta.url), "utf8");
+    expect(inicio).toMatch(/leAvisaSinRespuesta\(cuenta, ubicacionId\)\s*\?\s*getPedidosPorAtender\(ubicacionId\)/);
   });
 });

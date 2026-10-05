@@ -111,7 +111,7 @@ export default async function InicioPage() {
       : Promise.resolve(null),
   ]);
   const fuentes = await getFuentesAvisos(
-    { ubicacionId: persona.ubicacionId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
+    { ubicacionId: persona.ubicacionId, sedePropiaId: persona.sedePropiaId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
     {
       traslados,
       prendasVencidas,

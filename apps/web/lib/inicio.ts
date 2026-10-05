@@ -11,7 +11,7 @@ import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
 import type { ClaveModulo } from "@/lib/modulos";
 import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/lib/pedidos-entre-sedes";
 import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
-import { ahoraSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
+import { ahoraSinRespuesta, leAvisaSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
 import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
@@ -119,7 +119,7 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 }
 
 export async function getFuentesAvisos(
-  cuenta: { ubicacionId: string; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
+  cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
   base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
@@ -145,8 +145,10 @@ export async function getFuentesAvisos(
           return { vencidas: de("vencida").comprobantes, montoVencido: de("vencida").monto, semana: de("0_7").comprobantes, montoSemana: de("0_7").monto };
         })
       : undefined,
-    // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar).
-    cuenta.esLider
+    // ADR-0328 act. 17: a las 48 h sin respuesta, aviso a los líderes de las DOS sedes (la que pidió y la que debe enviar),
+    // cada uno en el Inicio de SU sede (decisión del 2026-10-04: «los que tienen esa sede»; un líder parado en otra no lo
+    // recibe por ella). El Admin los ve todos en el Observatorio.
+    leAvisaSinRespuesta(cuenta, ubicacionId)
       ? getPedidosPorAtender(ubicacionId).then((filas) => {
           if (filas === null) return null;
           const ahoraIso = new Date().toISOString();
