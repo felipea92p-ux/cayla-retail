@@ -452,7 +452,7 @@ export function PuntoDeVentaCatalogo({
         </div>
       </div>
 
-      <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
+      <div className="scroll-cayla min-h-0 flex-1 scroll-py-1 overflow-y-auto px-4 pb-5 pt-1 sm:px-6">
         {/* Solo la grilla se colapsa con el botón de arriba. «Ventas de hoy» ya no vive aquí abajo: es la píldora
             «Hoy» de la cabecera (spike 2026-09-26). `@container`: las columnas dependen del ancho del catálogo, no de
             la pantalla — con el lateral abierto o cerrado, cada tarjeta mide lo mismo. */}
