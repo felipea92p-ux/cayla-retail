@@ -21,3 +21,14 @@ Por qué así: el escéptico descartó o achicó 7 de 14 hallazgos y mostró tre
 modernos de Chrome. Todo quedó corregido y probado sobre la pantalla real. La prueba ciega salió débil: el primer intento lo frenó un filtro de la API y el reintento con Haiku no entregó el formato pedido.
 Felipe se lleva: el informe `docs/formidable/inventario-frescura.md` con los 3 cambios, dos decisiones de negocio suyas (qué se decide en «Por decidir» y si se muestra el semáforo con menos de 10 ventas) y
 una alerta: en TRU el semáforo se apoya en 4 ventas en 120 días. No se cambió ninguna pantalla: espera su OK.
+
+## 2026-10-05 (Frescura del piso se entiende de un vistazo: se ejecutaron los 3 cambios de Formidable — ADR-0350, ADR-0208 act. 2026-10-05)
+Qué hice: Felipe aprobó los tres cambios del informe y los ejecuté en tres commits. (1) La fila es una prenda y una frase: miniatura con su color y el ícono de su categoría, una palabra de estado
+(Recién llegada / En su tiempo / Se está quedando / Hay que moverla), «Lleva N días o más» y una sola acción; cuatro columnas en vez de siete. (2) La frase bajo el título es la pregunta con su respuesta («¿Qué lleva mucho tiempo
+colgado? 2 prendas esperan tu decisión»), la cabecera queda con dos datos neutros y de entrada se ven primero las prendas por decidir, con «Ver todas las prendas» a un toque. (3) La metodología pasó a «¿Cómo se lee esto?»,
+se quitó «Ventas a pedido» (no tenía dato), y lo aproximado se dice una vez cuando es la regla y se marca solo cuando es la excepción.
+Por qué así: sin migración y sin tocar ninguna regla: el color, la foto y la categoría de la miniatura se piden aparte y, si fallan, la pantalla sigue entera. El título se queda como nombre del menú (ADR-0220) y la pregunta va en la frase.
+Dos decisiones del 28-sep de Felipe (nombres de estado y «frases C») quedaron reemplazadas con su OK y escritas en ADR-0208. Al volver a medir, el medidor encontró un defecto mío (botones de 16 px) y lo corregí.
+Felipe se lleva: 4 commits locales en `claude/ultra-prompt-ui-ux-apple-cf045a`, sin push ni PR. Verificado a 1440 y 375 px y con 444 pruebas en verde, pero con datos de ensayo y no con colaboradoras reales:
+las notas no se recalificaron. Sigue abierto: qué se decide en «Por decidir» y si el semáforo se muestra con menos de 10 ventas.
+

@@ -81,7 +81,17 @@
 - **Caída externa:** el fallo de lectura de «lo ya decidido» ocurrió de verdad y la pantalla **siguió dibujándose y lo avisó** [Observado]: degrada con gracia.
 - **Persona sin contexto:** ciega inconclusa, real sin probar. **Está calificada, no certificada.**
 
+## Después de ejecutar los 3 cambios (2026-10-05, mismo día; Felipe aprobó)
+Commits `afab1e7a9` (cambio 1), `6506121ac` (cambio 2), `a205dc895` (cambio 3) y `724dd4172` (arreglo del medidor). Verificado en una página de ensayo con la salida
+real guardada de la base (17 prendas, 2 por decidir; borrada al terminar) a 1440 px y 375 px, y con las pruebas (386 de Frescura y 444 con las reglas del repo, todas en verde).
+- **[Medido]** columnas de la tabla **7 → 4**; cifras de la cabecera **4 → 2**; «Por decidir» **3 veces → 1** (frase) más su píldora; la metodología pasó de siempre abierta a un toque.
+- **[Medido]** el medidor, al volver a pasar, **encontró un defecto que yo había introducido** (los botones nuevos medían 16 px) y quedó corregido. Contraste del texto: 0 fallas; huecos fuera de escala: 0.
+- **Lo que NO se puede afirmar:** las notas de las leyes **no se recalificaron**. Hacerlo exige repetir los cuatro agentes con datos que permitan la tarea y, sobre todo, 3 a 5 colaboradoras reales.
+  El oficio visual medido ahora (6 de 8 fallan, sin el menú lateral ni el buscador) **no es comparable** con el de antes (7 de 8, con el chrome global de la app real): la página de ensayo no los trae.
+- **Pendiente de la lista aparte:** texto bajo 12 px (chips y leyendas), el foco visible débil de todo el ERP y las cifras sin uso de `cifrasVista` (hay una tarea creada para cada uno).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-05 | `ab866fc82` | 4,5 (±1) · ley 1 sin nota | 5 (provisional) | — (primera corrida) |
+| 2026-10-05 | `724dd4172` | sin recalificar | medición parcial, no comparable | 1, 2 y 3 ejecutados; falta la corrida 2 con datos y personas reales |
