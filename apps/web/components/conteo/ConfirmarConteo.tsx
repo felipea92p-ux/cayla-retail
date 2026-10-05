@@ -3,8 +3,11 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, Flag, Info } from "lucide-react";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
@@ -15,6 +18,9 @@ import { paginar } from "@/lib/paginacion";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmaOmitida } from "@/lib/responsable-omitido";
+import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, preguntaFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
+import { claveResponsableConteo } from "@/lib/responsable-conteo";
+import { useResponsable } from "@/lib/useResponsable";
 
 /* ====================================================================
    Confirmar conteo · el último paso: lo que va a cambiar, y cerrar
@@ -37,6 +43,21 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
        «Ver el conteo», que muestra cómo quedó.
 
    Sin permiso para cerrar (`ajustarInventario`) el botón no desaparece: se apaga y dice quién sí puede.
+
+   Quién cierra (ADR-0328, actividad 15; Felipe: «si ya se colocó un nombre en el manejo de una operación no creo necesario estar
+   pidiéndolo varias veces»). En la cuenta de una persona firma ella. En una terminal (`firmaEnPantalla`):
+     · si en este aparato ya eligieron a alguien para ESTE conteo (al contar o al revisar: `recordarEn`, como las otras tres
+       pantallas del conteo) y sigue de turno, firma esa persona, aunque el conteo sea de otro día: no se pregunta lo que el
+       aparato ya sabe;
+     · si no, la base pone el nombre de quien abrió el conteo si fue HOY y sigue de turno, y la pantalla solo lo dice;
+     · si se abrió otro día, quien lo abrió ya marcó su salida o nadie lo firmó, pregunta UNA vez con el combo, con su guía de foco.
+   Cuando la pantalla pone un nombre por su cuenta, deja corregirlo («¿No es Rosa? Elige quién cierra»): el cierre es la aprobación
+   del conteo y tiene que quedar a nombre de quien está frente a la terminal. Si la base igual pide el nombre (pasó la medianoche
+   mientras se revisaba), el combo aparece entonces: nunca queda un cierre sin persona.
+
+   Conteo de arranque: si al cerrarlo completo será el primero de su tramo (el almacén entero; en el piso, cada categoría, y desde
+   el último cuadre del piso), se dice qué significa y de qué categorías; si se cierra a medias, se avisa en
+   ámbar que así NO será el de arranque (sus diferencias contarán como pérdida). Lo decide `cerrar_conteo`; aquí solo se dice.
    ==================================================================== */
 
 const POR_PAGINA = 20;
@@ -49,6 +70,8 @@ export function ConfirmarConteo({
   pendientes,
   parcial,
   puedeCerrar,
+  firma = { tipo: "propia" },
+  notaArranque = null,
 }: {
   conteoId: string;
   /** Las variantes que cambian, ya en orden (`diferenciasEnOrden`). */
@@ -61,8 +84,30 @@ export function ConfirmarConteo({
   pendientes: number;
   parcial: boolean;
   puedeCerrar: boolean;
+  /** Quién firma el cierre (`firmaDelPaso`): la persona de la sesión, el heredado de hoy o hay que preguntarlo. */
+  firma?: FirmaDelPaso;
+  /** Lo que se dice del conteo de arranque (`notaDeArranque`), o `null`. */
+  notaArranque?: { texto: string; tono: "nota" | "aviso" } | null;
 }) {
   const router = useRouter();
+  // El mismo recuerdo que Contar, Revisar y Cancelar: quien eligieron en este aparato para este conteo firma también el cierre.
+  const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteoId) });
+  const [laBasePidioNombre, setLaBasePidioNombre] = useState(false);
+  // La persona pidió elegir (tocó «¿No es…?» o el combo): desde ahí el combo se queda a la vista.
+  const [aMano, setAMano] = useState(false);
+  const nombreElegido = responsable.listo ? (responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null) : null;
+  const enPantalla = firmaEnPantalla(firma, { recordado: nombreElegido, aMano, laBaseLoPidio: laBasePidioNombre }, "cierre_conteo");
+  const preguntar = enPantalla.modo === "elegir";
+  const conNombre = mandaNombre(enPantalla);
+  // El combo, con lo que toca: elegir a alguien en él lo deja a la vista (no desaparece bajo el dedo al elegir).
+  const combo = {
+    ...responsable,
+    elegir: (personaId: string) => {
+      setAMano(true);
+      responsable.elegir(personaId);
+    },
+  };
+  const guia = useGuiaCampos(camposDeFirma("cierre_conteo", { preguntar, responsableListo: responsable.listo }), { enModal: false });
   const [cerrando, setCerrando] = useState(false);
   const [fallo, setFallo] = useState<{ texto: string; incierto: boolean } | null>(null);
   const [pagina, setPagina] = useState(1);
@@ -78,10 +123,21 @@ export function ConfirmarConteo({
     setCerrando(true);
     setFallo(null);
     try {
-      // Cerrar va sin responsable (Felipe, 2026-09-29, ADR-0280): la clave `conteo_cerrar` la respeta la base.
-      const { error } = await firmar(createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }), firmaOmitida("conteo_cerrar"));
+      // Cerrar no pregunta el nombre (ADR-0280) salvo que haga falta: la clave `conteo_cerrar` le dice a la base que lo herede de quien
+      // abrió el conteo hoy (ADR-0328). Si el aparato ya sabe quién, o se eligió en el combo, firma esa persona.
+      const { error } = await firmar(
+        createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }),
+        conNombre ? responsable.firma() : firmaOmitida("conteo_cerrar")
+      );
+      if (conNombre) responsable.despues(error);
       if (error) {
-        setFallo(mensajeDeCierre(error));
+        if (esPedidoDeNombre(error)) {
+          // La base no tenía de quién heredar: se pregunta una vez, aquí mismo, sin perder lo revisado.
+          setLaBasePidioNombre(true);
+          setFallo({ texto: "Elige quién cierra el conteo y vuelve a cerrarlo. No se movió ninguna existencia.", incierto: false });
+        } else {
+          setFallo(mensajeDeCierre(error));
+        }
         setCerrando(false);
         return;
       }
@@ -100,7 +156,11 @@ export function ConfirmarConteo({
   const resumenPie = [cambian, noCambian, ...(parcial ? [`${pendientes} sin verificar`] : [])].join(" · ");
 
   // Lo que dice el pie: si el botón está apagado, la razón —no un botón mudo—.
-  const razonApagado = !puedeCerrar ? "Solo quien ajusta inventario puede cerrar el conteo." : null;
+  const razonApagado = !puedeCerrar
+    ? "Solo quien ajusta inventario puede cerrar el conteo."
+    : preguntar && !responsable.listo
+      ? (responsable.motivo ?? "Elige quién cierra el conteo.")
+      : null;
 
   return (
     <>
@@ -193,6 +253,38 @@ export function ConfirmarConteo({
           {yaAjustadas === 1 ? "1 variante ya se ajustó en el cierre anterior y no cambia al cerrar de nuevo." : `${yaAjustadas} variantes ya se ajustaron en el cierre anterior y no cambian al cerrar de nuevo.`}
         </p>
       )}
+      {notaArranque &&
+        (notaArranque.tono === "aviso" ? (
+          <p role="status" className="flex items-start gap-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
+            <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0" />
+            {notaArranque.texto}
+          </p>
+        ) : (
+          <p className="nota-cayla flex items-start gap-2">
+            <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+            {notaArranque.texto}
+          </p>
+        ))}
+      {/* Quién cierra: a nombre de quién va (lo que sabe el aparato o el heredado de hoy, con «¿No es…?»), o el combo una sola vez.
+          La persona de la sesión no ve nada. */}
+      {enPantalla.modo === "elegir" ? (
+        <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Quién cierra el conteo">
+          <p className="text-sm text-tinta/80">{enPantalla.texto}</p>
+          <CampoGuiado id="firma" guia={guia} titulo={preguntaFirma("cierre_conteo")}>
+            <ComboResponsable control={combo} deshabilitado={cerrando} compacto className="w-full sm:w-80" />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Listo para cerrar." />
+        </section>
+      ) : (enPantalla.modo === "base" || enPantalla.modo === "recordada") && enPantalla.texto ? (
+        <p className="nota-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span>{enPantalla.texto}</span>
+          {enPantalla.cambiar && (
+            <button type="button" onClick={() => setAMano(true)} disabled={cerrando} className="btn-cayla btn-enlace text-xs">
+              {enPantalla.cambiar}
+            </button>
+          )}
+        </p>
+      ) : null}
       {/* Con un error la barra crece (el aviso suma hasta 4 renglones en un celular): sin este aire, taparía la última nota. */}
       {fallo && <div aria-hidden className="h-24" />}
 
@@ -221,7 +313,7 @@ export function ConfirmarConteo({
               disabled={cerrando || razonApagado !== null}
               title={razonApagado ?? undefined}
               onClick={() => void cerrar()}
-              className="btn-cayla btn-primario h-11 w-full sm:w-auto"
+              className={`btn-cayla btn-primario h-11 w-full sm:w-auto ${preguntar ? guia.claseConfirmar : ""}`}
             >
               {cerrando ? "Actualizando…" : "Cerrar y actualizar existencias"}
             </button>

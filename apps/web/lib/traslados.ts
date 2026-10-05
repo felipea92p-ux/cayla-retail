@@ -4,6 +4,9 @@ import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
 import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
+import type { FirmaVigente } from "@/lib/firma-heredada";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -315,6 +318,9 @@ type FilaContador = {
  *
  * `transferencia_items!inner`: un traslado sin prendas (las cabeceras vacías de la limpieza de datos,
  * ver `esTrasladoVacio`) no cuenta — si no, la sede destino tendría un «por recibir» de nada.
+ *
+ * Es lo que LLEGA: Conteo («recíbelos primero») y Caja («traslados por recibir») lo usan solo. El número del menú le suma
+ * los pedidos de otras sedes: `getNumeroDelMenuTraslados`.
  */
 export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
@@ -342,6 +348,19 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
     console.error("Contador de traslados:", e);
     return null;
   }
+});
+
+/**
+ * El número junto a «Traslados» en el menú y en el aviso «Traslados» del Inicio (ADR-0328 act. 17, Felipe: «"Te piden"
+ * lleva número en el menú desde que llega el pedido»): lo que llega por recibir (`getTrasladosPorAtender`) más lo que
+ * otras sedes le pidieron a esta y todavía no sale (`fn_pedidos_por_atender`). La suma es `numeroDelMenuTraslados`.
+ * «Para enviar» NO suma aquí (decisión del 2026-10-04): es un paso que la sede se debe a sí misma, y lo que lleva más de
+ * 3 días se avisa en su Inicio (`paraEnviarAtrasadas`).
+ * Total como su vecina: nunca lanza. `cache()`: el layout y el Inicio lo piden en el mismo request.
+ */
+export const getNumeroDelMenuTraslados = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
+  const [porRecibir, pedidos] = await Promise.all([getTrasladosPorAtender(ubicacionId, puedeCerrarDiferencia), getPedidosPorAtender(ubicacionId)]);
+  return numeroDelMenuTraslados(porRecibir, pedidos);
 });
 
 export type LineaTraslado = {
@@ -390,6 +409,31 @@ export type TrasladoDetalle = {
   motivoAnulacion: string | null;
   lineas: LineaTraslado[];
 };
+
+/**
+ * La firma vigente de la recepción de un traslado (ADR-0328): quién firmó por última vez un paso de recibir, si fue hoy (lo dice la
+ * base, en día de Lima) y si sigue de turno en la sede que recibe. Con ella una terminal sabe ANTES de contar si tiene que preguntar quién recibe o si la base ya lo pone. Es un
+ * dato de apoyo: si la función no está todavía en la base o falla, devuelve `null` y la pantalla no adivina (se recibe sin nombre y,
+ * si la base lo pide, se pregunta).
+ */
+export async function getFirmaRecepcion(id: string): Promise<FirmaVigente> {
+  const supabase = await createClient();
+  const res = await supabase.rpc("fn_traslado_firma_recepcion", { p_transferencia_id: id });
+  if (res.error) {
+    console.warn(`fn_traslado_firma_recepcion no respondió; la recepción pregunta el nombre solo si la base lo pide. ${res.error.message}`);
+    return null;
+  }
+  const j = res.data;
+  if (typeof j !== "object" || j === null || Array.isArray(j)) return null;
+  const o = j as { persona_id?: unknown; nombre?: unknown; de_hoy?: unknown; presente?: unknown };
+  return {
+    personaId: typeof o.persona_id === "string" ? o.persona_id : null,
+    nombre: typeof o.nombre === "string" ? o.nombre : null,
+    deHoy: o.de_hoy === true,
+    // Si ya marcó su salida, la base no hereda su firma: la pantalla pregunta desde ya. Sin el dato, decide la base.
+    presente: typeof o.presente === "boolean" ? o.presente : null,
+  };
+}
 
 export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | null> {
   const supabase = await createClient();

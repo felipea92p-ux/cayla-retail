@@ -20,6 +20,8 @@ import { getFilasRecientesDeSede } from "@/lib/resumen-inventario";
 import { calcularCobertura, velocidadDeFila } from "@/lib/resumen-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { siglaSede } from "@/lib/inicio-almacen-reglas";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { sinRespuestaEnLaRed, textoEspera } from "@/lib/pedidos-por-atender-reglas";
 import { getResumenPerdidas } from "@/lib/perdidas";
 import { DIAS_VENTANA_REPETICION, perdidasQueSeRepiten } from "@/lib/perdidas-reglas";
 import { restarDias } from "@/lib/movimientos-reglas";
@@ -82,7 +84,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, perdidas] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -97,6 +99,17 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       if (error) throw new Error(error.message);
       return data ?? [];
     }),
+    // ADR-0328 act. 17: los pedidos entre sedes que esperan respuesta, tienda por tienda (si una no se lee, el aviso entero
+    // dice «no se pudo leer»: contar la mitad lo haría parecer al día).
+    tolerar("los pedidos entre sedes", async () =>
+      Promise.all(
+        tiendas.map(async (t) => {
+          const filas = await getPedidosPorAtender(t.id);
+          if (filas === null) throw new Error(`no se leyeron los pedidos de ${t.nombre}`);
+          return { tiendaId: t.id, filas };
+        })
+      )
+    ),
     // ADR-0328 act. 14: lo que se repite en los últimos 30 días de cada tienda (la regla del Inicio del líder). Si una tienda
     // no se pudo leer, el aviso entero dice «no se pudo leer» (`tolerar` → null), nunca «al día».
     tolerar("las pérdidas que se repiten", () =>
@@ -191,9 +204,10 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     });
   }
   {
-    // Los que vencen hoy o mañana (o ya vencieron): los que piden una decisión.
+    // Los que vencen hoy o mañana (o ya vencieron): los que piden una decisión. La reserva de un pedido de otra sede no vence
+    // (decisión del 2026-10-04: la sostiene la tienda que pidió, a la que se le pregunta a los 7 días): no entra.
     const manana = sumarDias(hoy, 1);
-    const filas = (apartados ?? []).filter((a) => a.venceEl <= manana);
+    const filas = (apartados ?? []).filter((a): a is typeof a & { venceEl: string } => a.venceEl !== null && a.venceEl <= manana);
     const n = apartados === null ? null : filas.length;
     avisos.push({
       clave: "apartados",
@@ -261,6 +275,34 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
     href: "/vender/comprobantes/por-reintentar",
     detalle: null,
   });
+  {
+    // ADR-0328 act. 17 (Felipe: a las 48 h sin respuesta, aviso a los líderes de las dos tiendas): cada pedido cuenta una
+    // vez y suma a las DOS sedes en el reparto.
+    const red = pedidosEntreSedes === null ? null : sinRespuestaEnLaRed(pedidosEntreSedes, ahora.toISOString());
+    const n = red === null ? null : red.pedidos.length;
+    const siglaDe = (id: string) => tiendas.find((t) => t.id === id)?.sigla ?? "otra sede";
+    avisos.push({
+      clave: "pedidosSede",
+      nivel: nivelPorCuenta(n, "urg"),
+      n,
+      icono: "flecha",
+      titulo: "Pedidos entre sedes sin respuesta",
+      corto: n === 1 ? "pedido sin respuesta" : "pedidos sin respuesta",
+      porTienda: red === null ? null : red.porTienda,
+      edad: red && red.pedidos.length ? Math.floor(red.pedidos[0].horas / 24) : null,
+      href: "/inventario/traslados",
+      detalle: red && red.pedidos.length
+        ? {
+            tipo: "lista",
+            filas: red.pedidos.slice(0, 6).map((p) => ({
+              titulo: `${siglaDe(p.otraSedeId)} le pidió a ${siglaDe(p.origenId)}`,
+              detalle: `${p.prendas} ${p.prendas === 1 ? "prenda" : "prendas"}${p.conCliente ? " · un cliente espera" : ""}`,
+              chip: textoEspera(p.horas),
+            })),
+          }
+        : null,
+    });
+  }
   {
     const n = devoluciones === null ? null : devoluciones.length;
     avisos.push({

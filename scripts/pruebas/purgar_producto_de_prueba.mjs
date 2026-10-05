@@ -26,6 +26,8 @@
  *     otra prenda siguen idénticas.
  *   · RESPALDO: restaurarlo con `restaurar-purga.sql` devuelve la base a como estaba, FILA POR FILA en todas las tablas
  *     (menos Actividad, el historial del producto y la versión del catálogo, que solo avanzan).
+ *   · EN LA MANO (ADR-0328, actividad 9): una prenda corregida y colgada con `bajar_en_mano` no frena la purga; su marca
+ *     (`bajadas_en_mano`) se respalda, se va en cascada con la corrección y vuelve idéntica al restaurar.
  *   · RECHAZOS (no se borra nada, y el mensaje dice qué impide): el producto en otra venta, separación o compra no
  *     nombrada; un documento nombrado que no tiene el producto; una separación o compra con otras prendas; una
  *     separación pagada en efectivo; una compra con un pago; un comprobante que llegó a SUNAT en producción (LA LÍNEA
@@ -472,6 +474,61 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) ||
     esperar("respaldo: queda una línea en Actividad que cuenta la restauración", r.ok && actividad === "1", r);
     esperar("respaldo: los disparadores vuelven a su modo normal (origin) al terminar", r.ok && rol === "origin", r);
     esperar("respaldo: la base entera vuelve a ser la de antes, tabla por tabla (salvo Actividad, historial y versión del catálogo)", r.ok && distintas === "[]", r);
+  }
+
+  // 3b. Una prenda corregida «en la mano» (ADR-0328, actividad 9): la marca que une su bajada con la corrección del almacén
+  // no frena la purga, se respalda, se va con la corrección y vuelve con la restauración. Antes, el candado (f) la veía
+  // como «una tabla que cita movimientos que se borrarían» y la purga no corría.
+  {
+    const enMano = `select set_config('request.headers', '{}', true) as _h \\gset
+-- La prenda tuvo 1 en el almacén de Lima y se fue (historia: no es una primera carga); la asesora la tiene en la mano.
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo) values (:'va', :'ubic', :'sub_alm', 'entrada', 1, 'colchon') returning id as em1 \\gset
+select retail.fn_aplicar_movimiento(:'em1') as _em1 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo) values (:'va', :'ubic', :'sub_alm', 'salida', 1, 'colchon') returning id as em2 \\gset
+select retail.fn_aplicar_movimiento(:'em2') as _em2 \\gset
+select retail.bajar_en_mano(:'ubic', :'va', 'prueba purga', gen_random_uuid()) as en_mano \\gset
+select (:'en_mano'::jsonb ->> 'bajada_id') as bajada_mano, (:'en_mano'::jsonb ->> 'corregida') as corregida_mano \\gset
+`;
+    const MARCA = `(select count(*) from retail.bajadas_en_mano where bajada_id = :'bajada_mano')`;
+    const ensayo = correr(
+      `${escena()}
+${enMano}
+select pg_temp.foto() as foto_antes \\gset
+savepoint antes_del_ensayo;
+${params()}${CUERPO_TRAS_LA_ESCENA}
+rollback to savepoint antes_del_ensayo;
+select concat_ws(',', :'corregida_mano', ${MARCA});
+select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
+      true
+    );
+    const [marcaAntes, distintasEnsayo] = ultimas(ensayo);
+    esperar(
+      "en la mano: el ensayo de un producto corregido en la mano dice ENSAYO OK (la marca no frena) y cuenta la corrección en el resumen",
+      ensayo.ok && marcaAntes === "true,1" && /ENSAYO OK/.test(ensayo.err) && !/NO SE BORRA NADA/.test(ensayo.err) && /correcciones «La tengo en la mano» 1/.test(ensayo.err),
+      `${marcaAntes} · ${ensayo.err.slice(0, 1200)}`
+    );
+    esperar("en la mano: y el ensayo no dejó nada escrito", ensayo.ok && distintasEnsayo === "[]", ensayo);
+
+    const r = correr(
+      `${escena()}
+${enMano}
+select pg_temp.foto(${QUEDAN_IGUAL}) as foto_antes \\gset
+${purgaDefinitiva()}
+select concat_ws(',', ${MARCA}, (select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'bajadas_en_mano'),
+  (select count(*) from retail.fn_verificar_bajadas_en_mano()));
+drop function pg_temp.libro_descuadra();
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}
+select concat_ws(',', ${MARCA},
+  (select bool_and(exists (select 1 from retail.bajadas_en_mano x where to_jsonb(x) = f.fila)) from respaldo_purgas.filas f
+    where f.purga = :'nombre_purga' and f.tabla = 'bajadas_en_mano'),
+  (select count(*) from retail.fn_verificar_bajadas_en_mano()));
+select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) || ']';`
+    );
+    const [trasPurga, trasRestaurar, distintas] = ultimas(r).slice(-3);
+    esperar("en la mano: definitivo — la marca se va con su corrección, queda respaldada y el diagnóstico sigue en 0", r.ok && trasPurga === "0,1,0", r);
+    esperar("en la mano: restaurar devuelve la marca idéntica y el diagnóstico sigue en 0", r.ok && trasRestaurar === "1,t,0", r);
+    esperar("en la mano: la base entera vuelve a ser la de antes, tabla por tabla", r.ok && distintas === "[]", r);
   }
 
   // 4. Repetirla no hace nada: el producto ya no existe.

@@ -489,6 +489,16 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajada-desde-vender
 
+      # «La tengo en la mano» (ADR-0328, actividad 9): `bajar_en_mano` corrige el almacén (+1 «Encontré prendas», con la nota
+      # automática) y cuelga la prenda con la MISMA bajada de `bajar_al_piso`, todo o nada; corrige solo si el almacén no tiene
+      # ninguna libre, no toca lo apartado ni lo que nunca entró a la tienda, topa 5 correcciones por prenda y día, firma el
+      # responsable, la misma marca no escribe dos veces (tampoco desde otra tienda), el tope cuenta el día de Lima, Frescura la
+      # ve como bajada real y «Eliminar con historia» no se frena. Cada caso termina en ROLLBACK (las carreras con COMMIT
+      # —`pruebas:bajar-en-mano-concurrencia`, el candado de la prenda y el de la marca— solo corren con BASE_DESECHABLE=1, no aquí).
+      - name: pruebas:bajar-en-mano
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:bajar-en-mano
+
       # Nuevo producto con su stock de hoy (ADR-0212): el producto y la carga inicial son todo o nada (sin tienda, otra tienda,
       # un Taller «al piso» o un rol sin «Bajada al piso» no dejan ni el producto), las cantidades entran como «carga_inicial»
       # al almacén (o al piso con UNA bajada), firma el responsable, el mismo token no carga dos veces, la carga es solo para
@@ -567,6 +577,15 @@ jobs:
       - name: pruebas:conteo-rediseno
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:conteo-rediseno
+
+      # Conteo I (ADR-0328, 20261004230000/230100): desde una terminal, el cierre de un conteo y la recepción de un traslado
+      # heredan la firma de la operación si es del mismo día (otro día, o sin nadie, piden el nombre una vez); el primer conteo
+      # completo de cada lugar es «de arranque» (motivo conteo_arranque: no es merma) y uno parcial, de categoría o de prueba no
+      # lo consume; «Aplicar todos completos» marca «aplicada sin contar» y el historial lo suma aparte. Con controles que muerden
+      # por mutación. Cada caso: ROLLBACK.
+      - name: pruebas:conteo-firma-arranque
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:conteo-firma-arranque
 
       # Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
       # venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.
@@ -908,6 +927,15 @@ jobs:
       - name: pruebas:pedir-a-otra-sede
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:pedir-a-otra-sede
+
+      # Pedidos que no se pierden (ADR-0328 act. 17): pedir para un cliente (también desde Vender) lo APARTA en la otra sede
+      # (almacén primero) y el token no duplica; lo que allá no alcanza no deja nada a medias; lo colgado no sale en un paso
+      # (subir_pedido_al_almacen, idempotente) y al salir la reserva se suelta; cancelar la suelta; anular el traslado la
+      # vuelve a apartar; avisar al cliente solo tras llegar; fn_pedidos_por_atender (menú y 48 h) de los dos lados; la lista
+      # «Para enviar» sale con el traslado a ESE destino y vuelve si se anula; Eliminar un producto la conoce. ROLLBACK.
+      - name: pruebas:pedidos-que-no-se-pierden
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pedidos-que-no-se-pierden
 
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Scale, Shirt, ShoppingBag, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
@@ -319,6 +320,8 @@ export default async function InventarioPage({
         panelFiltros={panelFiltros}
         coloresCatalogo={colores}
         sinRegistrar={sinRegistrar}
+        // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
+        destinosParaEnviar={veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : []}
       />
     </div>
   );

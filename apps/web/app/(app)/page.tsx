@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTrasladosPorAtender } from "@/lib/traslados";
+import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
 import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
@@ -92,8 +92,8 @@ export default async function InicioPage() {
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Su meta (ADR-0325): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
     !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
-    // Total (nunca lanza): la misma cifra del número del menú.
-    ve("traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
+    // Total (nunca lanza): la misma cifra del número del menú (lo que llega + lo que otras sedes te piden, ADR-0328 act. 17).
+    ve("traslados") ? getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(undefined),
     // Las tres colas del líder (ADR-0179, ADR-0186, PL-114): no son de quien no lo es.
     esLider ? contarVencidas() : Promise.resolve(undefined),
     esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
@@ -104,7 +104,7 @@ export default async function InicioPage() {
     esAlmacen ? getInicioAlmacen({ ubicacionId: persona.ubicacionId, ve }) : Promise.resolve(null),
   ]);
   const fuentes = await getFuentesAvisos(
-    { ubicacionId: persona.ubicacionId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
+    { ubicacionId: persona.ubicacionId, sedePropiaId: persona.sedePropiaId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
     {
       traslados,
       prendasVencidas,

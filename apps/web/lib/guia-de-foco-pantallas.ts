@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 66;
+export const PENDIENTES_HOY = 65;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -95,7 +95,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/cuadrar": { estado: "aplicada", evidencia: ["components/cuadre-piso/CuadrarPisoForm.tsx"] },
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
-  "/inventario/conteo/[id]/confirmar": PENDIENTE,
+  // ADR-0328 (actividad 15): su único campo es «¿Quién cierra el conteo?», que aparece solo cuando hay que preguntarlo (terminal y conteo
+  // de otro día); con él a la vista, la guía lo enciende y el pie dice qué falta. Sin él no hay nada que llenar: un botón.
+  "/inventario/conteo/[id]/confirmar": { estado: "aplicada", evidencia: ["components/conteo/ConfirmarConteo.tsx"] },
   "/inventario/conteo/[id]/revisar": PENDIENTE,
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
@@ -111,6 +113,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/traslados": PENDIENTE,
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
+  // ADR-0328 (actividad 15): «¿Quién recibe?» ya lleva su guía (CampoGuiado + PieGuia), y por eso `pnpm focus` la ve «con guía».
+  // Sigue pendiente a propósito: las casillas de lo recibido por prenda, que son el trabajo de la pantalla, todavía no dicen qué
+  // falta ni qué sigue. Pasarla a «aplicada» por un solo campo haría mentir al tablero.
   "/inventario/traslados/[id]": PENDIENTE,
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
@@ -174,6 +179,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
   "components/ApartadosModal.tsx": PENDIENTE, // 3 controles
   "components/ApartarModal.tsx": PENDIENTE, // 8 controles
+  // ADR-0328 (actividad 9): «La tengo en la mano» en Bajar al piso. Lo que falta es solo quién lo hace (lo mismo que apaga el botón);
+  // de dónde salió es opcional (la nota automática va siempre).
+  "components/BajarEnManoModal.tsx": { estado: "aplicada", evidencia: ["components/BajarEnManoModal.tsx"] },
   "components/BuscadorGlobal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   // «Falta» = lo mismo que apaga el botón «Cerrar»: la tienda (si se elige entre varias) y el motivo. La nota es opcional (ADR-0334).
@@ -221,9 +229,17 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
+  // ADR-0328 act. 17: «Para enviar» en Traslados. Su ventana «Ya no la envío»: «falta» = el porqué (la base lo exige) y quién lo hace.
+  "components/ParaEnviar.tsx": { estado: "aplicada", evidencia: ["components/ParaEnviar.tsx"] },
+  // ADR-0328 act. 17: «Subir al almacén» (el primer paso de un pedido colgado), «Avisar al cliente» que llegó o que no va a
+  // llegar, y «¿Sigue en pie?» (a los 7 días; decisión del 2026-10-04).
+  "components/PedidoClienteModales.tsx": { estado: "no-aplica", motivo: "Tres ventanas de confirmación de un solo control: elegir quién lo hace (el combo Responsable). «Subir al almacén» confirma que la prenda del pedido se guardó; «Avisar al cliente» abre WhatsApp con el mensaje listo; «¿Sigue en pie?» se responde con uno de dos botones. No hay campos que llenar ni pasos." },
   "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
   // «Falta» = lo mismo que apaga el botón «Pedir»: la tienda (si se elige), al menos una prenda y quién registra. La nota es opcional.
   "components/PedirAOtraSedeModal.tsx": { estado: "aplicada", evidencia: ["components/PedirAOtraSedeModal.tsx"] },
+  // ADR-0328 act. 17: «Pedir y apartar para el cliente» (Vender y Apartados). «Falta» = lo que apaga el botón y la base rechaza:
+  // talla y tienda (si hay más de una), nombres, apellidos, celular de 9 dígitos que empieza en 9, y quién atiende. Nota opcional.
+  "components/PedirYApartarModal.tsx": { estado: "aplicada", evidencia: ["components/PedirYApartarModal.tsx"] },
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
   "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
