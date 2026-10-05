@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { leerTodas, tolerar } from "@/lib/resultado";
 import type { ProductoDeCatalogo } from "@/lib/existencias-catalogo-reglas";
 
-// Lectura ligera de `productos` para Existencias: la marca y la categoría de cada producto y qué productos activos
+// Lectura ligera de `productos` para Existencias: la marca, la categoría (y su familia) de cada producto y qué productos activos
 // tiene el catálogo (los puros, en `existencias-catalogo-reglas.ts`). Son ~13 filas hoy y unas 500-600 a 3 años.
 //
 // Aparte del `select` de `stock` (`getStockPorUbicacion`) A PROPÓSITO: ese lo comparten Vender, Cambios y Traslados, y
@@ -27,7 +27,7 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     (desde, hasta) =>
       supabase
         .from("productos")
-        .select("id, referencia, estado, estado_alta, es_prueba, marca:marcas ( nombre ), categoria:categorias ( nombre ), variantes ( id )")
+        .select("id, referencia, estado, estado_alta, es_prueba, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id )")
         .eq("variantes.activo", true)
         .limit(1, { referencedTable: "variantes" })
         .order("id")
@@ -42,6 +42,7 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     referencia: p.referencia,
     marca: p.marca?.nombre ?? null,
     categoria: p.categoria?.nombre ?? null,
+    familia: p.categoria?.familia ?? null,
     estado: p.estado,
     estadoAlta: p.estado_alta,
     esPrueba: p.es_prueba,
