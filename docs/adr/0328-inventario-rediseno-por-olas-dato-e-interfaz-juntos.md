@@ -331,3 +331,19 @@ dañada» (#796) en vez de ajustar. «Conteo físico» sigue en Ajustar como «C
 Por prenda»). La tabla `retail.motivos_movimiento` es decisión estructural pendiente de Felipe en esa sesión. Aquí queda solo la
 confirmación del líder cuando se quitan más de 5 de una talla o se deja en 0 una que tenía 3 o más.
 
+**Actualización (2026-10-04, madrugada del 5):** esa confirmación tampoco queda aquí. La toma la sesión «Confirmación de
+correcciones grandes de stock» (rama `claude/stock-correction-approval-5a9a71`, ADR propio, tentativamente el 0337), que la
+decidió con Felipe así:
+- **Se mide lo acumulado del día, no cada corrección.** Cuenta lo quitado de esa talla en esa sede durante el día de Lima. Es
+  grande si pasa de 5, o si la talla queda en 0 y ese día se quitaron 3 o más. Con el umbral por corrección, dos correcciones de 4
+  lo esquivaban. Solo cuentan las restas: sumar («Encontré prendas») no pide nada.
+- **No es una clave.** La corrección grande queda pendiente, sin mover el stock, y la aprueba una líder desde su propia sesión: la
+  que eligió quien pide, o cualquier líder de esa sede. Si nadie la aprueba en 24 h, vence sin aplicarse. El lote espera completo
+  (todo o nada). Una líder que corrige desde su propia cuenta (`fn_es_lider()`) pasa directo. No es un módulo nuevo: es una
+  función de Existencias (ADR-0306).
+- **El candado vive en `registrar_movimiento`** (ajuste con cantidad negativa), no solo en el modal: la función se puede llamar
+  directo desde el navegador. Se pone por ancla sobre el cuerpo vivo, encima de lo que ya le agregaron #784 y #785.
+- **Qué no pasa por ese candado:** el cierre del conteo (`cerrar_conteo` escribe sus ajustes por su cuenta), el cuadre del piso,
+  Reportar dañada (mueve a cuarentena, no ajusta) y «La tengo en la mano» (solo suma). Si el acumulado del día cuenta lo que quitó
+  un conteo, lo decide esa sesión con Felipe.
+
