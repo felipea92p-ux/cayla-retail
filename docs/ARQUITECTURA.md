@@ -105,8 +105,12 @@ flowchart TB
 - `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
   (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
   puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
-  catálogo», pulso, en camino, reponer a piso y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
-  (`getInicioAlmacen`: productos nuevos, fotos, por completar, por recibir, existencias, movimientos de hoy, en camino), cada una tolerante.
+  catálogo», pulso, en camino, por colgar y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
+  (`getInicioAlmacen`: productos nuevos, fotos, por completar, por recibir, el piso de la sede —el bloque «Por colgar» y el aviso
+  «Baja al piso N tallas por colgar» (o «Cuadrar el piso» con las tallas que esperan): UNA lectura del motor del piso
+  (`fn_piso_plan_lectura` → `lib/piso-plan.ts`) pasada como filas (`filasDelPiso`) por `porColgarDeLaSede`, la MISMA cuenta de
+  «Para hoy» y del filtro «Hoy» de Existencias (ADR-0331 act. b; lo vigila `lib/inicio-almacen-reglas.test.ts`)—, movimientos de
+  hoy, en camino), cada una tolerante.
   Reglas puras con pruebas: `lib/inicio-almacen-reglas.ts`. La sigla de la sede donde se registró cada producto sale de `fn_producto_origen` (tabla `producto_origen` + disparador en `productos`, migración `20260930170000`; `components/inicio-almacen/ChipSede.tsx`). Estilos: `app/estilos/inicio-almacen.css` (clases `ia-*`, bloque «AMBIENTE» aislado). Ocupa todo el ancho del `<main>`: el marcador `data-ancho-completo` de `InicioAlmacen` le quita el tope de 64 rem que `AppShell` pone por defecto (`has-[[data-ancho-completo]]:max-w-none`; `lib/ancho-completo.test.ts`). ADR-0292.
 - **Una cuenta Admin** (`persona.esAdmin`) tiene el **Observatorio** (ADR-0322): `components/observatorio/Observatorio.tsx` (raíz: estado, lectura cada
   30 s, teclado, «Repetir el día»), `Mapa.tsx` (zoom y transformación del contorno, cuadro a cuadro sobre el DOM), `PanelGlobal.tsx`, `PanelTienda.tsx`
@@ -277,9 +281,21 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
+  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migración `20261004213000`: lo libre en piso y almacén, lo vendido
+  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color —lo que el cliente
+  se llevó: un cambio cuenta como la prenda nueva, sin devoluciones aprobadas ni liquidaciones de dañadas—, lo anotado a mano
+  hoy y ayer por categoría × talla × color (el reloj rápido de lo que no tiene prenda), las curvas de
+  tallas y la fecha del último cuadre del piso —`cuadres_piso`, actividad 3; sin ella, lo que manda a bajar queda «En pausa»,
+  ADR-0328 decisión 5—; solo para quien opera esa sede; vía `lib/piso-plan-servidor.ts`, que se la pasa al motor puro
+  `lib/piso-plan.ts`: «Hoy» de cada talla —por colgar · sin stock atrás · mantener, más «En pausa»—, la lista del
+  día y «se vendió rápido y falta»; la
+  decisión viaja en `FilaExistencias.planPiso` y la leen la tabla, el filtro, la tarjeta, el cajón y «Subir prenda»; ningún
+  umbral de piso vive fuera de ese archivo, `lib/piso-plan-umbral.test.ts`; cuántas tallas hay «por colgar» o «en pausa» lo
+  cuenta solo `porColgarDeLaSede`, `lib/existencias-para-hoy.ts`, con el orden de la lista del día) →
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
-  `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, semáforo de 4 estados con
-  `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
+  `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, «Hoy» de cada talla con las
+  palabras de ADR-0326 en `lib/existencias-hoy.ts` (tres: «Por reponer» se fundió en «Por colgar»), leyenda; primera columna
+  «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer prenda» (tarjeta y cajón) abre
   `ReponerPrendaModal.tsx` (ADR-0295 y ADR-0320: el MODELO entero —una fila por color, una columna por talla, `MatrizMover.tsx`— y UNA llamada a `bajar_al_piso`, todo o nada, con
   marca) y «Subir prenda» (entre «Reponer prenda» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
@@ -315,7 +331,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   **Barra de filtros con la estructura de Productos (2026-10-03, ADR-0326):** `components/FiltrosExistencias.tsx` (piezas de
   `ui/FiltrosPildora`; no es `FiltrosProductos`) lee y escribe la URL con `components/useFiltrosExistencias.ts` (`history.pushState`,
   sin navegar ni pedir la página). El filtro completo, los chips y los números de cada opción (disyuntivos, por producto) son puros en
-  `lib/existencias-filtros.ts`; «Hoy» (Por colgar · Por reponer · Sin stock atrás · Mantener) en `lib/existencias-hoy.ts`, que también
+  `lib/existencias-filtros.ts`; «Hoy» (Por colgar · Sin stock atrás · Mantener) en `lib/existencias-hoy.ts`, que también
   leen la pastilla de la tarjeta, `ExistenciasPorPrenda`, el cajón y la columna «Hoy» de la tabla. La familia de cada color llega de
   `lib/existencias-catalogo.ts:getColoresParaExistencias` (tolerante) + `conFamiliaDeColor`.
   **Prioridades de hoy (2026-09-29):** las cuatro tarjetas van en este orden —Resumen disponible, «Reponer a piso hoy»
