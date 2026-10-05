@@ -19,3 +19,25 @@ Diseño: `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`. Cada etapa 
 - [x] **Venta perdida con la prenda exacta (ADR-0348):** `pedidos_no_atendidos.variante_id` + `registrar_pedido_no_atendido` con `p_variante_id` (migración `20261005212000`, **sin pegar**, va ANTES de `20261005215000`); Vender y Cambios mandan la variante; `fn_demanda_sede` suma «buscó y no había» con prenda a su grupo. Probado: SQL L1/L2, pedidos-no-atendidos 20/20, club-se-probo 22/22 (ajustada a la firma de 8), vitest, 375 px.
 - [ ] **Avisarle a Dany (Felipe):** ADR-0348, sección «Para Dany». Antes de pegar `20261005212000` en producción.
 - [ ] **Orden de pegado en producción (con el OK de Felipe):** `20261005210000` → `20261005212000` → `20261005215000` → `20261005220000`, y después publicar la web. Luego `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+
+### Contrato para Inventario ▸ Tareas (ADR-0345): talla rota y traslados con cantidad (etapa 2)
+
+Felipe decidió el 2026-10-05 que la tienda vea estas dos recomendaciones en la columna «Sugerencias» de Tareas, no en
+Existencias. La sesión de Tareas se cerró sin subir su rama, así que esto queda escrito para quien la retome cuando Tareas
+esté en main.
+
+- **La puerta:** usar `getPreparacionMotor(sede)` (`lib/motor-demanda.ts`).
+  - Si `!puedeHablar`, Tareas muestra `fraseDelMotor(p)` y no sugiere nada.
+  - Si `falla` no es null, no muestra la línea.
+- **La cifra:** `fn_demanda_sede(sede, 28)` + `ritmosDePrendas` / `gruposDeDemanda` (`lib/demanda-reglas.ts`). Es la misma
+  cifra que usa Producción.
+- [ ] **Talla rota:** por modelo y color en la sede, la talla central (`esTallaCentral`, `piso-plan.ts`) sin piso.
+  - El origen se elige en este orden: el almacén propio (si la sede está cuadrada) → otra sede (`fn_stock_por_sede`) →
+    «retírala del piso».
+  - Una regla nueva, `tallaRota(...)`, va en `lib/demanda-reglas.ts`, con su prueba.
+- [ ] **Traslado con cantidad:** cuánto puede ceder la sede A sin quedarse corta, con esta cuenta:
+  `libre_A − ⌈ritmo_A × 14⌉ − 1 en el piso por talla`. La sede B lo vende en
+  `⌈cantidad ÷ ritmo_B⌉` días.
+  - Reemplaza a `cedibleDe` (`resumen-reglas.ts:407`), cuyo umbral de 10 casi siempre da 0.
+  - Se abre `PedirAOtraSedeModal` con `lineas` y su `cantidad`.
+- [ ] **Avisar a quien tenga Existencias** (sesión de olas, ADR-0328) antes de tocar `piso-plan.ts`.
