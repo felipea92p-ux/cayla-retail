@@ -1,0 +1,153 @@
+// El escáner que corre DENTRO de la página (lo inyecta `auditar.mjs` con `addScriptTag`). Define `window.__temaEscanear()`.
+// Mide en el tema que esté puesto en <html data-tema>: (1) el contraste WCAG de cada texto contra su fondo REAL —compuesto capa
+// por capa—; (2) «manchas claras»: superficies grandes que en oscuro siguen claras y no son papel fijo ni un relleno invertido
+// a propósito; (3) «velos claros»: una capa fija que cubre la pantalla y en oscuro la aclara en vez de oscurecerla.
+// ADR-0336. No lleva `export`: es un script clásico para que `addScriptTag({ content })` lo evalúe tal cual.
+
+(() => {
+  const lienzo = document.createElement("canvas");
+  lienzo.width = lienzo.height = 1;
+  const ctx = lienzo.getContext("2d", { willReadFrequently: true });
+  const memo = new Map();
+
+  /** Cualquier color CSS (rgb, color-mix, oklab…) → [r,g,b,a]. Pinta el color sobre negro y sobre blanco y despeja el alfa:
+   *  sobre negro = a·C, sobre blanco = a·C + (1−a)·255 (`getImageData` ya devuelve sin premultiplicar, y así no se pierde precisión). */
+  function leer(css) {
+    if (memo.has(css)) return memo.get(css);
+    const sobreFondo = (fondo) => {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = fondo;
+      ctx.fillRect(0, 0, 1, 1);
+      ctx.fillStyle = css;
+      ctx.fillRect(0, 0, 1, 1);
+      return ctx.getImageData(0, 0, 1, 1).data;
+    };
+    const n = sobreFondo("#000");
+    const b = sobreFondo("#fff");
+    const a = 1 - (b[0] - n[0] + (b[1] - n[1]) + (b[2] - n[2])) / (3 * 255);
+    const r = a <= 0.004 ? [0, 0, 0, 0] : [Math.min(255, n[0] / a), Math.min(255, n[1] / a), Math.min(255, n[2] / a), Math.min(1, a)];
+    memo.set(css, r);
+    return r;
+  }
+  const sobre = ([r, g, b, a], [R, G, B, A]) => {
+    const sal = a + A * (1 - a);
+    return sal === 0 ? [0, 0, 0, 0] : [(r * a + R * A * (1 - a)) / sal, (g * a + G * A * (1 - a)) / sal, (b * a + B * A * (1 - a)) / sal, sal];
+  };
+  const canal = (c) => {
+    const x = c / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = ([r, g, b]) => 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+  const contraste = (a, b) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  const hex = ([r, g, b]) => "#" + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+
+  const RUIDO = /^(h-|w-|px-|py-|p-|m|gap|flex|grid|items|justify|min-|max-|sm:|lg:|md:|xl:|text-(xs|sm|base|lg|\[)|font|leading|tracking|truncate|whitespace|relative|absolute|anim-|transition|duration|ease|cursor|select|overflow|shrink|grow|basis|col-|row-|space-|divide-|order-|z-|inset|top-|left-|right-|bottom-|size-|aspect-|tabular|sr-only|hidden|block|inline|border(-[trblxy])?$|rounded|shadow|opacity|group|peer|data-|aria-|\[)/;
+  function camino(el) {
+    const partes = [];
+    for (let e = el; e && e.nodeType === 1 && partes.length < 4; e = e.parentElement) {
+      const c = [...e.classList].filter((k) => !RUIDO.test(k)).slice(0, 3);
+      partes.unshift(e.tagName.toLowerCase() + (c.length ? "." + c.join(".") : ""));
+    }
+    return partes.join(" > ");
+  }
+
+  function fondoDeLaPagina() {
+    const h = leer(getComputedStyle(document.documentElement).backgroundColor);
+    const b = leer(getComputedStyle(document.body).backgroundColor);
+    let f = b[3] > 0 ? b : h;
+    if (f[3] < 0.999) f = sobre(f, [255, 255, 255, 1]);
+    return f;
+  }
+
+  /** El fondo efectivo de un elemento: sus capas de color, de adentro hacia afuera, sobre el fondo de la página. */
+  function fondoEfectivo(el) {
+    let acum = [0, 0, 0, 0];
+    let hayImagen = false;
+    for (let e = el; e; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      if (cs.backgroundImage !== "none") hayImagen = true;
+      const c = leer(cs.backgroundColor);
+      if (c[3] > 0) acum = sobre(acum, c);
+      if (acum[3] >= 0.999) break;
+    }
+    if (acum[3] < 0.999) acum = sobre(acum, fondoDeLaPagina());
+    return { fondo: acum, hayImagen };
+  }
+
+  function opacidadHeredada(el) {
+    let o = 1;
+    for (let e = el; e; e = e.parentElement) o *= parseFloat(getComputedStyle(e).opacity);
+    return o;
+  }
+
+  /** Un control deshabilitado queda exento de contraste (WCAG 1.4.3). */
+  const deshabilitado = (el) => !!el.closest(":disabled, [aria-disabled='true'], [data-disabled]");
+
+  window.__temaEscanear = function escanear({ minimo = 4.5 } = {}) {
+    const tema = document.documentElement.getAttribute("data-tema") || "(sin atributo)";
+    const contrastes = [];
+    const vistos = new Set();
+    let analizados = 0;
+
+    const textos = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.nodeValue.trim() && n.parentElement && !/^(SCRIPT|STYLE|NOSCRIPT)$/.test(n.parentElement.tagName) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+    });
+    for (let n = textos.nextNode(); n; n = textos.nextNode()) {
+      const el = n.parentElement;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.display === "none") continue;
+      const caja = el.getBoundingClientRect();
+      if (caja.width < 2 || caja.height < 2) continue;
+      if (parseFloat(cs.fontSize) < 1 || deshabilitado(el)) continue;
+      const op = opacidadHeredada(el);
+      if (op < 0.05) continue;
+      const { fondo, hayImagen } = fondoEfectivo(el);
+      let tinta = leer(cs.color);
+      tinta = sobre([tinta[0], tinta[1], tinta[2], tinta[3] * op], fondo);
+      const ratio = contraste(tinta, fondo);
+      analizados++;
+      const px = parseFloat(cs.fontSize);
+      const grande = px >= 24 || (px >= 18.66 && parseInt(cs.fontWeight, 10) >= 700);
+      const umbral = grande ? 3 : minimo;
+      if (ratio >= umbral) continue;
+      const donde = camino(el);
+      const texto = n.nodeValue.trim().slice(0, 40);
+      const clave = `${donde}|${texto}|${hex(tinta)}|${hex(fondo)}`;
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
+      contrastes.push({ tipo: "contraste", clave: `${donde}|${texto}`, ratio: +ratio.toFixed(2), umbral, texto, color: hex(tinta), fondo: hex(fondo), imagen: hayImagen, donde });
+    }
+
+    const manchas = [];
+    const velos = [];
+    if (tema === "oscuro") {
+      const pagina = fondoDeLaPagina();
+      const tintaFija = leer(getComputedStyle(document.documentElement).getPropertyValue("--color-tinta").trim() || "#f5f0e8");
+      const cercano = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) < 12;
+      for (const el of document.body.querySelectorAll("*")) {
+        if (el.closest(".papel-fijo, img, canvas, video, svg, [data-papel]")) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.display === "none") continue;
+        const caja = el.getBoundingClientRect();
+        const c = leer(cs.backgroundColor);
+        if (c[3] < 0.05) continue;
+        // Un velo: capa fija que cubre (casi) toda la pantalla. En oscuro debe oscurecer; si queda más claro que la página, aclara.
+        if (cs.position === "fixed" && caja.width >= innerWidth * 0.9 && caja.height >= innerHeight * 0.9) {
+          const compuesto = sobre(c, pagina);
+          if (lum(compuesto) > lum(pagina) + 0.01) velos.push({ tipo: "velo-claro", clave: camino(el), fondo: hex(compuesto), pagina: hex(pagina), donde: camino(el) });
+          continue;
+        }
+        if (c[3] < 0.5) continue;
+        if (caja.width * caja.height < 6000 || caja.width < 60 || caja.height < 40) continue;
+        const compuesto = sobre(c, fondoEfectivo(el.parentElement || el).fondo);
+        // El relleno de `tinta` (que en oscuro es crema) es la inversión a propósito: botón primario, píldora activa.
+        if (cercano(compuesto, tintaFija)) continue;
+        if (lum(compuesto) > 0.35) manchas.push({ tipo: "mancha-clara", clave: camino(el), fondo: hex(compuesto), tam: `${Math.round(caja.width)}x${Math.round(caja.height)}`, donde: camino(el) });
+      }
+    }
+    return { tema, textosAnalizados: analizados, contrastes, manchas, velos };
+  };
+})();
