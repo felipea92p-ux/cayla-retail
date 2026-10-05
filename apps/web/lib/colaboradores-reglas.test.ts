@@ -9,7 +9,6 @@ import {
   filtrarDisponibles,
   fraseEvento,
   vistaDe,
-  resumenAlta,
 } from "./colaboradores-reglas";
 
 describe("filtrarDisponibles", () => {
@@ -25,19 +24,6 @@ describe("filtrarDisponibles", () => {
   it("busca nombre o correo sin tildes", () => {
     expect(filtrarDisponibles(disp, "zarate").map((d) => d.persona_id)).toEqual(["a"]);
     expect(filtrarDisponibles(disp, "cayla.pe").map((d) => d.persona_id)).toEqual(["b"]);
-  });
-});
-
-describe("resumenAlta", () => {
-  it("pide elegir a alguien cuando no hay nadie", () => {
-    expect(resumenAlta(0, "Taller LIM")).toBe("Elige al menos una persona para continuar");
-  });
-  it("singular y plural", () => {
-    expect(resumenAlta(1, "Tienda TRU")).toBe("Se agregará 1 persona como Integrante en Tienda TRU");
-    expect(resumenAlta(2, "Taller LIM")).toBe("Se agregarán 2 personas como Integrante en Taller LIM");
-  });
-  it("sin ubicación elegida todavía no inventa una", () => {
-    expect(resumenAlta(2, null)).toBe("Se agregarán 2 personas como Integrante");
   });
 });
 

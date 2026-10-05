@@ -20,7 +20,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Modal } from "@/components/ui/Modal";
 import { History } from "lucide-react";
-import { AgregarColaboradoresModal, AlternarTerminalModal } from "@/components/ColaboradoresModales";
+import { AlternarTerminalModal } from "@/components/ColaboradoresModales";
+import { DarAccesoModal } from "@/components/colaboradores/DarAccesoModal";
+import { avisoDarAcceso } from "@/lib/dar-acceso-reglas";
 import { AsignarRolModal } from "@/components/RolesModales";
 import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
 import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
@@ -382,13 +384,23 @@ export function ColaboradoresPanel({
       )}
 
       {modal?.tipo === "agregar" && (
-        <AgregarColaboradoresModal
+        <DarAccesoModal
           responsable={responsable}
           disponibles={disponibles}
           ubicaciones={ubicaciones}
+          roles={roles}
+          soyLider={soyLider}
+          soyAdmin={soyAdmin}
+          misModulos={misModulos}
           onClose={() => setModal(null)}
-          onConfirmar={(personas, ubicacionId) =>
-            ejecutar(null, "agregar a los colaboradores", (f) => acciones.agregar(personas, ubicacionId, f), `${plural(personas.length, "persona queda pendiente de aprobación", "personas quedan pendientes de aprobación")} — un líder debe aprobarlas antes de que puedan operar`)
+          onConfirmar={(personas, ubicacionId, rolId) =>
+            ejecutar(
+              null,
+              "dar el acceso",
+              (f) => acciones.agregar(personas.map((p) => p.id), ubicacionId, rolId, f),
+              // ADR-0341: lo que da un líder entra directo; lo de quien no es líder espera el ok de un líder.
+              avisoDarAcceso(personas.map((p) => p.nombre), soyLider),
+            )
           }
         />
       )}

@@ -166,8 +166,9 @@ flowchart TB
   `fn_dynamic_disponibles`, y `fn_asesoras_de_turno` por sede para el punto «de turno hoy») → `ColaboradoresPanel.tsx` (dos secciones —Equipo y Roles y
   accesos—, Actividad en modal; ADR-0172 y ADR-0340) → `colaboradores/EquipoLista.tsx` (la lista por sede, con «Esperan tu ok») +
   `colaboradores/FichaColaborador.tsx` (la ficha al costado: cambiar rol, sede, suspender, reactivar y quitar) sobre las reglas
-  puras de `lib/equipo-reglas.ts`; `ColaboradoresTablas.tsx` (aparatos y actividad) + `ColaboradoresModales.tsx` (dar acceso, desactivar aparato). Escribe por `lib/colaboradores-acciones.ts` → RPC
-  `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
+  puras de `lib/equipo-reglas.ts`; `colaboradores/DarAccesoModal.tsx` (dar acceso: quién, sede y rol, con su guía; reglas en `lib/dar-acceso-reglas.ts`; ADR-0341) +
+  `ColaboradoresTablas.tsx` (aparatos y actividad) + `ColaboradoresModales.tsx` (desactivar aparato). Escribe por `lib/colaboradores-acciones.ts` → RPC
+  `agregar_colaboradores` (con `p_rol_id` desde ADR-0341: lo que da un líder entra activo), `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Roles y accesos** (`RolesPanel.tsx`, `lib/roles.ts`, `lib/roles-reglas.ts`): lee `roles` y `rol_modulos` por RLS y,
   para el Líder de equipo, `fn_lider_modulos_ocultos()` (ADR-0253: el Líder ve todo menos lo que un Admin le quitó);

@@ -172,7 +172,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 66;
+export const MODALES_PENDIENTES_HOY = 65;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -196,7 +196,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja).
   "components/ClientaFichaModal.tsx": { estado: "aplicada", evidencia: ["components/ClientaFichaModal.tsx"] },
-  "components/ColaboradoresModales.tsx": PENDIENTE, // 14 controles
+  // Desde ADR-0341 solo queda aquí confirmar desactivar o reactivar un aparato («Dar acceso» se mudó a colaboradores/DarAccesoModal).
+  "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar un aparato: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
   "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },
   "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
   "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
@@ -283,6 +284,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
+  // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
+  "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
   // 2026-10-05: la ficha de una persona del equipo. Cada acción abre su panel y pide UNA cosa (el rol nuevo, la sede o el motivo
   // opcional de la suspensión) con su botón; solo al bajar a un líder sin sede se suma elegir la sede, en el mismo panel.
   "components/colaboradores/FichaColaborador.tsx": { estado: "no-aplica", motivo: "Ficha de una persona del equipo: cada acción se abre sola y pide una sola cosa (el rol nuevo, la sede o el motivo opcional de la suspensión) con su botón. El combo de quién firma es el mismo de toda la pantalla." },

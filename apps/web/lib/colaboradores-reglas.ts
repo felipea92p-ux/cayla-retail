@@ -40,13 +40,6 @@ export function filtrarDisponibles(lista: readonly DynamicDisponible[], texto: s
 
 export const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-/** «Se agregarán 2 personas como Integrante en Taller LIM». */
-export function resumenAlta(cuantas: number, ubicacion: string | null): string {
-  if (cuantas === 0) return "Elige al menos una persona para continuar";
-  const donde = ubicacion ? ` en ${ubicacion}` : "";
-  return `Se ${cuantas === 1 ? "agregará" : "agregarán"} ${plural(cuantas, "persona", "personas")} como Integrante${donde}`;
-}
-
 /** Lo que puede hacer la fila del menú «⋯», en el orden en que se muestra. */
 /* Colaboradores tiene DOS secciones (spike `docs/maquetas/colaboradores-ux-spike-2026-09/`, Felipe 2026-09-22): «Cuentas»
  * (personas y terminales, filtradas por estado) y «Roles y accesos». Antes eran 7 pestañas que mezclaban estados de una
