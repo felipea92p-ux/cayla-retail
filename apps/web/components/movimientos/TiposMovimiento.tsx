@@ -4,7 +4,7 @@ import { SelloTipo } from "@/components/movimientos/SelloTipo";
 import { desgloseAjustes, desgloseCifras, ventasAnuladas, type CategoriaFiltro, type CifrasGrupo, type ResumenTienda } from "@/lib/movimientos-reglas";
 import { GRUPOS_TIPO, TIPOS_VISUALES, type GrupoTipo, type InfoGrupo } from "@/lib/movimientos-tipos";
 
-// La columna de los siete tipos, a la derecha de la lista (rediseño 2026-10-05, ADR-0346; maqueta: opción A · Ruta, columna
+// La columna de los siete tipos, a la derecha de la lista (rediseño 2026-10-05, ADR-0353; maqueta: opción A · Ruta, columna
 // a la derecha que pidió Felipe para aprovechar el espacio entre el detalle de la fila y su cantidad). Cada botón es el
 // filtro de ese tipo Y su cifra: cuántas operaciones fueron y cuántas prendas. Reemplaza a las píldoras de tipo de los
 // filtros y a las tres tarjetas de arriba (Entró, Salió, Ajustes): lo que decían ahora lo dice cada botón.

@@ -244,7 +244,7 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 
 ## Actualización 2026-10-05 (b) — Movimientos: el sello de cada tipo y su trayecto
 
-- **Qué:** en Movimientos (ADR-0346) cada fila lleva el sello de su tipo, cuyo ícono se mueve **una vez** al entrar a la vista y otra al pasar el mouse por la
+- **Qué:** en Movimientos (ADR-0353) cada fila lleva el sello de su tipo, cuyo ícono se mueve **una vez** al entrar a la vista y otra al pasar el mouse por la
   fila (la bolsa sube, la caja levanta su tapa, el paquete cae, el camión llega…), y un trayecto «Piso → Cliente» con una prenda que viaja de un punto al otro.
   El **perchero de la colgada se mece** (un péndulo que se asienta, como el cartel de ADR-0301). También cuentan los números de los botones de tipo y se llenan
   sus barras, las franjas del día suben y las capas del mazo se abren en abanico.

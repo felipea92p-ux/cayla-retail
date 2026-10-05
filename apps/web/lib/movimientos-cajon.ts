@@ -88,7 +88,7 @@ export type PasoCajon = { texto: string; hecho: boolean };
 export type DetalleCajon = {
   forma: FormaCajon;
   clave: string;
-  /** El tipo que se ve (ADR-0346): decide el sello, su color y el trayecto. */
+  /** El tipo que se ve (ADR-0353): decide el sello, su color y el trayecto. */
   tipo: TipoVisual;
   ruta: RutaCajon | null;
   pasos: PasoCajon[];
@@ -268,7 +268,7 @@ function masInformacion(op: OperacionMovimiento, ctx: ContextoCajon): ConsultarL
 }
 
 // ---------------------------------------------------------------------------
-// «Qué pasó»: tres pasos por tipo, solo con lo que el registro respalda (ADR-0346).
+// «Qué pasó»: tres pasos por tipo, solo con lo que el registro respalda (ADR-0353).
 // ---------------------------------------------------------------------------
 
 /** El lugar de una fila para decir «en el piso», «en el almacén», o el nombre de otra sububicación; «la tienda» si no trae. */

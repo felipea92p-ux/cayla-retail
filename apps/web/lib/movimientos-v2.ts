@@ -188,7 +188,7 @@ export async function listarMovimientos(
     });
   const pedir = async (cursor: CursorMovimientos | null, cuantas: number): Promise<Movimiento[]> => {
     let respuesta = await llamar(filtros.categoria, cursor, cuantas);
-    // ADR-0346: «colgada» y «guardada» las entiende la migración 20261005160000. Si la web sale antes que ella, la base
+    // ADR-0353: «colgada» y «guardada» las entiende la migración 20261005160000. Si la web sale antes que ella, la base
     // dice «Categoría de movimiento desconocida»: en vez de romper la pantalla, se piden las dos juntas (`interno`) y
     // cada fila se lee igual por su par. Se pierde el filtro fino, no la lista (principio 9).
     if ((filtros.categoria === "colgada" || filtros.categoria === "guardada") && respuesta.error?.message?.includes("Categoría de movimiento desconocida")) {

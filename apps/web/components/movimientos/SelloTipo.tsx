@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, type CSSProperties, type ReactNode } fro
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import { TIPOS_VISUALES, type TipoVisual } from "@/lib/movimientos-tipos";
 
-// El sello de un tipo de movimiento (ADR-0346): un cuadrado suave del color del tipo con su ícono, que se mueve UNA vez
+// El sello de un tipo de movimiento (ADR-0353): un cuadrado suave del color del tipo con su ícono, que se mueve UNA vez
 // cuando entra a la vista y otra cada vez que se pasa el mouse por su fila. Los estilos y los movimientos viven en
 // `app/estilos/movimientos-sellos.css`; acá solo están los dibujos y el momento de arrancar.
 //

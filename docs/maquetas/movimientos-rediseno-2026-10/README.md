@@ -8,7 +8,7 @@ Para verlas: `index.html` (o el servidor `maquetas` de `.claude/launch.json`, pu
 Cada una tiene arriba, en la barra oscura que no existe en el ERP, **Escritorio / Celular** (el marco de celular responde con
 *container queries*, igual que una ventana de 375 px de verdad) y **Repetir animaciones**. `?vista=celular` abre directo en celular.
 
-> **Construida (ADR-0346, 2026-10-05).** Esta carpeta queda como referencia visual; el sistema manda.
+> **Construida (ADR-0353, 2026-10-05).** Esta carpeta queda como referencia visual; el sistema manda.
 >
 > **Elegida por Felipe (2026-10-05): la A · Ruta**, con los siete botones de tipo en una columna a la derecha (fija mientras
 > se baja por la lista; en celular o en ancho angosto pasan arriba como una fila que se desliza). B y C quedan como referencia.

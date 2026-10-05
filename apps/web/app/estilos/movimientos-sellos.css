@@ -1,10 +1,10 @@
 /* ====================================================================
-   Movimientos · el sello de cada tipo, su trayecto y su fila (rediseño 2026-10-05, ADR-0346)
+   Movimientos · el sello de cada tipo, su trayecto y su fila (rediseño 2026-10-05, ADR-0353)
    Maqueta: docs/maquetas/movimientos-rediseno-2026-10/ (opción A · Ruta).
 
    Solo tokens de globals.css. Cada tipo lleva SU color (`data-mv-tono`), su ícono y un movimiento que corre UNA vez (al
    entrar a la vista o al pasar el mouse por la fila): `--ease-cayla`, sin rebote y nada en bucle (ADR-0136). Todo se
-   apaga con `prefers-reduced-motion`. El péndulo del perchero al colgarse es la excepción pedida por Felipe (ADR-0346):
+   apaga con `prefers-reduced-motion`. El péndulo del perchero al colgarse es la excepción pedida por Felipe (ADR-0353):
    un solo vaivén que se asienta, como el cartel de ADR-0301.
    ==================================================================== */
 

@@ -1,4 +1,4 @@
-## 2026-10-05 (Movimientos: los tipos que se ven — ADR-0346)
+## 2026-10-05 (Movimientos: los tipos que se ven — ADR-0353)
 Qué hice: Felipe pidió rediseñar Movimientos para que se note de un vistazo si fue una venta, una colgada en piso o una guardada en almacén. Armé tres
 maquetas (`docs/maquetas/movimientos-rediseno-2026-10/`), eligió la A · Ruta con los siete botones en una columna a la derecha, y la construí en siete
 actividades, un commit cada una: las palabras y los tipos (`lib/movimientos-tipos.ts`), el sello y el trayecto en cada fila, la base (migración

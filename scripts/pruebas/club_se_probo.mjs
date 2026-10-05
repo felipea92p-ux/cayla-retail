@@ -63,6 +63,10 @@ if (VERSIONES.length !== 2) {
 }
 const FIRMA_PEDIDO = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text)";
 const FIRMA_PEDIDO_VIEJA = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid)";
+// ADR-0348 (20261005212000, venta perdida con la prenda exacta) reemplazó la firma de 7 parámetros por una de 8 (+ p_variante_id,
+// opcional): lo que esta migración dejó sigue igual, pero la función VIVA ya es la de ADR-0348. Los casos que miran la base tal como
+// quedó hoy usan esta firma; los que vuelven a pegar esta migración siguen mirando la suya.
+const FIRMA_PEDIDO_VIGENTE = "retail.registrar_pedido_no_atendido(uuid,uuid,text,text,uuid,text,text,uuid)";
 
 
 // Seed local: Felipe (líder y Admin), Micaela (integrante de Trujillo).
@@ -279,7 +283,7 @@ caso(
   "(a) `anon` no ejecuta la firma nueva; `authenticated` sí",
   `reset role;\nset local role anon;\n` +
     intentoCon(`select retail.registrar_pedido_no_atendido(%L::uuid, null::uuid, 'X', null, null::uuid, 'se_probo_no_llevo', null)`, ":'lima'") +
-    `reset role;\nselect has_function_privilege('authenticated', '${FIRMA_PEDIDO}', 'execute'), has_function_privilege('anon', '${FIRMA_PEDIDO}', 'execute');\n`,
+    `reset role;\nselect has_function_privilege('authenticated', '${FIRMA_PEDIDO_VIGENTE}', 'execute'), has_function_privilege('anon', '${FIRMA_PEDIDO_VIGENTE}', 'execute');\n`,
   "42501|permission denied for function registrar_pedido_no_atendido\nt|f"
 );
 
@@ -364,15 +368,19 @@ select pg_get_function_result('retail.fn_clienta_compras(uuid)'::regprocedure) ~
 // e. Estructura y pegado
 // =====================================================================================================================
 caso(
-  "(e) una sola firma de registrar_pedido_no_atendido (la de 7 parámetros): la vieja ya no existe",
+  "(e) una sola firma de registrar_pedido_no_atendido (hoy la de 8 parámetros de ADR-0348): la de 5 y la de 7 ya no existen",
   `reset role;
-select count(*), bool_and(oid = to_regprocedure('${FIRMA_PEDIDO}')) from pg_proc
+select count(*), bool_and(oid = to_regprocedure('${FIRMA_PEDIDO_VIGENTE}')) from pg_proc
  where pronamespace = 'retail'::regnamespace and proname = 'registrar_pedido_no_atendido';
-select to_regprocedure('${FIRMA_PEDIDO_VIEJA}') is null;
+select to_regprocedure('${FIRMA_PEDIDO_VIEJA}') is null and to_regprocedure('${FIRMA_PEDIDO}') is null;
 `,
   "1|t\nt"
 );
-caso("(e) los md5 «después» de la sección 0 (PARTE 2) son los de la función viva", `reset role;\n${MD5_VIVOS}`, MD5_ESPERADOS);
+caso(
+  "(e) los md5 «después» de la sección 0 (PARTE 2) son los de la función viva (la de 7 parámetros, reemplazada por ADR-0348, ya no existe)",
+  `reset role;\n${MD5_VIVOS}`,
+  VERSIONES.map((v) => (v.firma.replace(/\s/g, "") === FIRMA_PEDIDO ? "NO_EXISTE" : (v.despues ?? "NO_EXISTE"))).join("\n")
+);
 caso(
   "(e) pegar las dos partes otra vez deja lo mismo (idempotente)",
   `reset role;\n${MIGRACION}\nreset role;\n${MD5_VIVOS}select count(*) from pg_constraint where conrelid = 'retail.pedidos_no_atendidos'::regclass and conname in ('pedidos_no_atendidos_motivo_valido', 'pedidos_no_atendidos_razon_solo_si_se_probo');\n`,

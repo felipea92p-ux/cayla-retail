@@ -133,7 +133,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       {/* Filtros y lista en UNA tarjeta (ADR-0169): lo que se filtra y lo filtrado se leen como una sola cosa, y la
           lista sube a la primera pantalla. Separadas, entre las dos iban dos huecos y una línea de ayuda, y en 1366×768
           se veía una sola fila. */}
-      {/* Lista a la izquierda, tipos a la derecha (rediseño 2026-10-05, ADR-0346, columna que pidió Felipe): los siete botones son el
+      {/* Lista a la izquierda, tipos a la derecha (rediseño 2026-10-05, ADR-0353, columna que pidió Felipe): los siete botones son el
           filtro de tipo Y sus cifras —reemplazan a las píldoras de tipo y a las tres tarjetas de arriba—. Desde lg la columna
           acompaña al bajar por la lista; debajo, la fila de botones va ARRIBA de la lista y se desliza de lado. */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start">

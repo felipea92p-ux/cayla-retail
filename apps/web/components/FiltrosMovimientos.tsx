@@ -29,7 +29,7 @@ import { grupoPorId } from "@/lib/movimientos-tipos";
 // Cambiar un filtro borra el cursor de paginado.
 //
 // El TIPO (venta, colgada en piso, llegada…) ya no se elige aquí: son los siete botones de la columna de la derecha
-// (`TiposMovimiento`, ADR-0346), que además traen su cifra. Aquí quedan la búsqueda, el período, la zona y, debajo de un
+// (`TiposMovimiento`, ADR-0353), que además traen su cifra. Aquí quedan la búsqueda, el período, la zona y, debajo de un
 // tipo elegido, sus procesos.
 //
 // El buscador entiende el nombre de un proceso (ADR-0234): «venta», «traslado», «ajuste»… no buscan prendas —ninguna se

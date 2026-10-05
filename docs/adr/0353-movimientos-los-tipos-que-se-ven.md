@@ -1,4 +1,4 @@
-# ADR-0346 · Movimientos: los tipos que se ven (sello, color, ruta y una columna de filtros a la derecha)
+# ADR-0353 · Movimientos: los tipos que se ven (sello, color, ruta y una columna de filtros a la derecha)
 
 - **Fecha:** 2026-10-05 · **Estado:** construido en la rama `claude/movimientos-module-redesign-7659ce` (siete actividades, un commit cada una, más
   una ampliación de la base). **Una migración de funciones de lectura (`20261005160000`) aplicada SOLO en la base local; falta pegarla en
@@ -6,6 +6,7 @@
   Movimientos contra el Postgres local (33 + 27 + 72 + 11 + 146 verificaciones) y la pantalla real a 1.100 px y a 375 px con datos locales.
 - **Pedido:** Felipe, 2026-10-05: «rediseñar Movimientos para que sea más entendible, que se diferencie por algo más notorio si es una venta, una
   colgada en piso o una subida de almacén». Tres maquetas; eligió la **A · Ruta**, con los siete botones de tipo **en una columna a la derecha**.
+- **Número:** nació como ADR-0346 y chocó con el del motor de demanda al fusionarse; pasó al **0353**. Las **marcas de la migración** (`ADR-0346: validacion_tipos_visuales`, `filtro_…`, `grupos_…`, `sububicaciones_…`) conservan su nombre a propósito: son la huella que hace re-pegable el SQL, ya pegado en producción con ellas, y cambiarlas rompería un segundo pegado.
 - **Maqueta:** `docs/maquetas/movimientos-rediseno-2026-10/` (`a-ruta.html`; B y C quedan como referencia). **Complementa:** ADR-0234 (las cifras
   desde la tienda), ADR-0241 (Movimientos conectado), ADR-0327 (cifras que dicen la verdad), ADR-0136 (movimiento). **Revoca en parte:** la banda
   negra del día y el cajón de «todas las bajadas juntas» (ADR-0241, 2026-09-28 y 2026-10-01).

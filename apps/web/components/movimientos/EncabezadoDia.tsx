@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { etiquetaDia, type OperacionMovimiento } from "@/lib/movimientos-reglas";
 import { TIPOS_VISUALES, tipoDeOperacion } from "@/lib/movimientos-tipos";
 
-// El encabezado de cada día de la lista (rediseño 2026-10-05, ADR-0346): su nombre y, al lado, una franja de color por cada
+// El encabezado de cada día de la lista (rediseño 2026-10-05, ADR-0353): su nombre y, al lado, una franja de color por cada
 // operación —de la más vieja a la más nueva—, que muestra de qué estuvo hecho el día antes de leer una fila: ámbar las
 // colgadas, verde las ventas, oliva las llegadas… Tocar una franja lleva a su fila (abre el mazo si está dentro de uno) y la
 // destella una vez.

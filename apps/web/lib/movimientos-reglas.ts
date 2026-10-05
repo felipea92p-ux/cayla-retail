@@ -24,7 +24,7 @@ export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apart
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
-/** Lo que se puede PEDIR en el filtro de tipo: las cinco categorías de siempre y, desde el rediseño (ADR-0346, migración
+/** Lo que se puede PEDIR en el filtro de tipo: las cinco categorías de siempre y, desde el rediseño (ADR-0353, migración
  *  20261005160000), los tipos que se ven: `venta`, `colgada` (almacén → piso), `guardada` (piso → almacén), `llegada`,
  *  `traslado` (el que se envía) y `cliente` (devolución, venta anulada y cambio). Son los mismos que dibuja `tipoVisual`
  *  (lib/movimientos-tipos.ts): una FILA nunca trae estos como categoría, la trae como «entrada», «interno»…; el tipo que se ve
@@ -143,7 +143,7 @@ export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
-  // Los tipos que se ven (ADR-0346). Un tipo con un solo proceso no muestra la fila de procesos: no habría qué elegir.
+  // Los tipos que se ven (ADR-0353). Un tipo con un solo proceso no muestra la fila de procesos: no habría qué elegir.
   venta: ["venta"],
   colgada: ["movimiento_interno", "activacion_piso_almacen"],
   guardada: ["movimiento_interno", "activacion_piso_almacen"],
@@ -169,7 +169,7 @@ export function etiquetaProceso(motivo: string | null): string {
 /** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0239 suma la vuelta de un envío anulado). */
 const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
 
-/** Las dos palabras de lo que pasa entre el almacén y el piso (Felipe, 2026-10-05, ADR-0346): lo que se CUELGA en el piso y
+/** Las dos palabras de lo que pasa entre el almacén y el piso (Felipe, 2026-10-05, ADR-0353): lo que se CUELGA en el piso y
  *  lo que se GUARDA en el almacén. Antes eran «Bajada al piso» y «Retiro del piso». */
 export const ETIQUETA_COLGADA = "Colgada en piso";
 export const ETIQUETA_GUARDADA = "Guardada en almacén";
@@ -721,7 +721,7 @@ export function textoApartado(unidades: number, categoria: "apartado" | "liberac
 }
 
 // ---------------------------------------------------------------------------
-// Mazos (ADR-0241, ADR-0346): en «Todos», las colgadas en piso del día —no cambian el total— van en UN mazo que se abre en
+// Mazos (ADR-0241, ADR-0353): en «Todos», las colgadas en piso del día —no cambian el total— van en UN mazo que se abre en
 // abanico, y las guardadas en almacén, en otro. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía
 // el stock. Cada mazo es de UNA sola cosa: antes eran «todo lo de piso ↔ almacén» juntos y la fila no sabía decir si colgaron
 // o guardaron.
@@ -937,7 +937,7 @@ export function unidades(cifra: number): string {
 type FiltroDePalabra = { cat: CategoriaFiltro | null; proc: string | null; etiqueta: string };
 
 const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly string[] })[] = [
-  // Cada palabra lleva al tipo que ahora se ve como botón (ADR-0346), para que el botón quede apretado.
+  // Cada palabra lleva al tipo que ahora se ve como botón (ADR-0353), para que el botón quede apretado.
   { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "venta", proc: null, etiqueta: "Ventas" },
   // «Traslados» a secas sigue trayendo las dos piernas (lo que llegó y lo que salió): no tiene botón.
   { palabras: ["traslado", "traslados", "transferencia", "transferencias"], cat: "transferencia", proc: null, etiqueta: "Traslados" },
@@ -949,7 +949,7 @@ const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly strin
   { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "llegada", proc: "recepcion", etiqueta: "Recepciones" },
   { palabras: ["stock inicial", "carga inicial"], cat: "llegada", proc: "carga_inicial", etiqueta: "Stock inicial" },
   // «bajada» y «retiro» siguen valiendo, con el tipo que ahora se llama «colgada» y «guardada»: es lo que escribía la gente
-  // antes de las palabras nuevas (ADR-0346).
+  // antes de las palabras nuevas (ADR-0353).
   { palabras: ["colgada", "colgadas", "bajada", "bajadas"], cat: "colgada", proc: null, etiqueta: "Colgadas en piso" },
   { palabras: ["guardada", "guardadas", "retiro", "retiros"], cat: "guardada", proc: null, etiqueta: "Guardadas en almacén" },
   { palabras: ["entrada", "entradas"], cat: "entrada", proc: null, etiqueta: "Entradas" },

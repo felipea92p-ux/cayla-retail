@@ -1,4 +1,4 @@
-## 🎨 Movimientos: los tipos que se ven (2026-10-05, ADR-0346) — construido; falta pegar la migración en producción; rama `claude/movimientos-module-redesign-7659ce`
+## 🎨 Movimientos: los tipos que se ven (2026-10-05, ADR-0353) — construido; falta pegar la migración en producción; rama `claude/movimientos-module-redesign-7659ce`
 - [x] Tres maquetas (`docs/maquetas/movimientos-rediseno-2026-10/`) y elección de Felipe: A · Ruta, botones de tipo en una columna a la derecha
 - [x] Palabras «Colgada en piso» y «Guardada en almacén» dentro de Movimientos; colores separados; venta en verde y llegada en verde oliva (`--color-oliva`)
 - [x] Act. 1 tipos y palabras · 2 sello y trayecto · 3 base (migración `20261005160000`) · 4 columna de tipos · 5 día con franja y mazos · 6 cajón con sello, ruta y «Qué pasó»

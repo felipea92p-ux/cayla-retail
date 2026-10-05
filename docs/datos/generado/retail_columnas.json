@@ -399,6 +399,15 @@
    "ordinal_position": 28,
    "table_name": "activos_fijos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "carga_inicial",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 29,
+   "table_name": "activos_fijos",
+   "table_schema": "retail"
   }
  ],
  "ajustes_inventario_intentos": [
@@ -525,7 +534,7 @@
    "column_default": null,
    "column_name": "vence_el",
    "data_type": "date",
-   "is_nullable": "NO",
+   "is_nullable": "YES",
    "ordinal_position": 9,
    "table_name": "apartados",
    "table_schema": "retail"
@@ -730,6 +739,26 @@
    "is_nullable": "NO",
    "ordinal_position": 4,
    "table_name": "bajada_piso_items",
+   "table_schema": "retail"
+  }
+ ],
+ "bajadas_en_mano": [
+  {
+   "column_default": null,
+   "column_name": "bajada_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "bajadas_en_mano",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ajuste_movimiento_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 2,
+   "table_name": "bajadas_en_mano",
    "table_schema": "retail"
   }
  ],
@@ -1348,6 +1377,80 @@
    "table_schema": "retail"
   }
  ],
+ "capacidad_piso": [
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "m2_sala",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "densidad",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "capacidad",
+   "data_type": "integer",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "contada_el",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "1",
+   "column_name": "version",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "actualizado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "actualizado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "capacidad_piso",
+   "table_schema": "retail"
+  }
+ ],
  "catalogo_version": [
   {
    "column_default": "1",
@@ -1600,6 +1703,89 @@
    "is_nullable": "NO",
    "ordinal_position": 6,
    "table_name": "categorias_gasto",
+   "table_schema": "retail"
+  }
+ ],
+ "cierres_cola_arranque": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "corte",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "filas",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "soles",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cerrado_por",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "cierres_cola_arranque",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "cerrado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "cierres_cola_arranque",
    "table_schema": "retail"
   }
  ],
@@ -2643,6 +2829,35 @@
    "is_nullable": "NO",
    "ordinal_position": 8,
    "table_name": "codigos_descuento",
+   "table_schema": "retail"
+  }
+ ],
+ "cola_arranque_plazo": [
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "cola_arranque_plazo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "hasta",
+   "data_type": "date",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "cola_arranque_plazo",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "fijado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "cola_arranque_plazo",
    "table_schema": "retail"
   }
  ],
@@ -5751,6 +5966,15 @@
    "ordinal_position": 11,
    "table_name": "conteo_items",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "aplicada_sin_contar",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 12,
+   "table_name": "conteo_items",
+   "table_schema": "retail"
   }
  ],
  "conteos": [
@@ -5877,6 +6101,15 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "YES",
    "ordinal_position": 14,
+   "table_name": "conteos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "es_arranque",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 15,
    "table_name": "conteos",
    "table_schema": "retail"
   }
@@ -6053,6 +6286,145 @@
    "is_nullable": "NO",
    "ordinal_position": 8,
    "table_name": "cotizaciones_maquila",
+   "table_schema": "retail"
+  }
+ ],
+ "cuadre_piso_items": [
+  {
+   "column_default": null,
+   "column_name": "movimiento_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "cuadre_piso_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cuadre_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "cuadre_piso_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "cuadre_piso_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "sentido",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "cuadre_piso_items",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "cuadre_piso_items",
+   "table_schema": "retail"
+  }
+ ],
+ "cuadres_piso": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "persona_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "token_cliente",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "huella",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "escaneo_desde",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "resumen",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'[]'::jsonb",
+   "column_name": "no_cargado",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "cuadres_piso",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "cuadres_piso",
    "table_schema": "retail"
   }
  ],
@@ -9067,6 +9439,15 @@
    "ordinal_position": 6,
    "table_name": "parametros_finanzas",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "inicio_finanzas",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "parametros_finanzas",
+   "table_schema": "retail"
   }
  ],
  "parametros_tributarios": [
@@ -9361,6 +9742,15 @@
    "ordinal_position": 12,
    "table_name": "pedidos_no_atendidos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "pedidos_no_atendidos",
+   "table_schema": "retail"
   }
  ],
  "periodo_cierres": [
@@ -9583,6 +9973,172 @@
    "table_schema": "retail"
   }
  ],
+ "planes_compra": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "planes_compra",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "planes_compra",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "desde",
+   "data_type": "date",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "planes_compra",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "hasta",
+   "data_type": "date",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "planes_compra",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "planes_compra",
+   "table_schema": "retail"
+  }
+ ],
+ "planes_compra_lineas": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "plan_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "categoria_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "flojo",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "normal",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "bueno",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "precio",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "costo",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "recupero_pct",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'{}'::jsonb",
+   "column_name": "curva",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "actualizado_por",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 12,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "updated_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 13,
+   "table_name": "planes_compra_lineas",
+   "table_schema": "retail"
+  }
+ ],
  "planilla_por_sede": [
   {
    "column_default": null,
@@ -9792,6 +10348,172 @@
    "ordinal_position": 14,
    "table_name": "prendas_danadas",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo_reporte",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "prendas_danadas",
+   "table_schema": "retail"
+  }
+ ],
+ "prendas_para_enviar": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_destino_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "creado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cancelado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cancelado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cancelado_motivo",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "token_cliente",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "prendas_para_enviar",
+   "table_schema": "retail"
+  }
+ ],
+ "prendas_para_enviar_salidas": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "prendas_para_enviar_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "prenda_para_enviar_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "prendas_para_enviar_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "transferencia_item_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "prendas_para_enviar_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "prendas_para_enviar_salidas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "prendas_para_enviar_salidas",
+   "table_schema": "retail"
   }
  ],
  "prendas_por_regularizar": [
@@ -9945,6 +10667,15 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "YES",
    "ordinal_position": 17,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cierre_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 18,
    "table_name": "prendas_por_regularizar",
    "table_schema": "retail"
   }
@@ -12373,6 +13104,60 @@
    "ordinal_position": 21,
    "table_name": "separacion_pedidos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apartado_origen_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 22,
+   "table_name": "separacion_pedidos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "avisado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 23,
+   "table_name": "separacion_pedidos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "avisado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 24,
+   "table_name": "separacion_pedidos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cancelado_desde",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 25,
+   "table_name": "separacion_pedidos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "sigue_en_pie_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 26,
+   "table_name": "separacion_pedidos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "sigue_en_pie_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 27,
+   "table_name": "separacion_pedidos",
+   "table_schema": "retail"
   }
  ],
  "separaciones": [
@@ -13722,6 +14507,24 @@
    "ordinal_position": 20,
    "table_name": "transferencias",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "recepcion_firmada_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 21,
+   "table_name": "transferencias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "recepcion_firmada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 22,
+   "table_name": "transferencias",
+   "table_schema": "retail"
   }
  ],
  "ubicacion_datos_fiscales": [
@@ -13933,6 +14736,15 @@
    "data_type": "text",
    "is_nullable": "YES",
    "ordinal_position": 10,
+   "table_name": "ubicaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "carga_inicial_hasta",
+   "data_type": "date",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
    "table_name": "ubicaciones",
    "table_schema": "retail"
   }
