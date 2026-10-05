@@ -26,3 +26,11 @@ Producción el 2026-10-04 (solo lectura): `fn_piso_plan_lectura` con huella `faf
   colgar carteras nude y anillos talla 7 que nadie compró, pendientes o cerradas (antes y después de esta migración). Y nunca se van a poder
   regularizar: no hay prenda que encontrar. Hay que decidir cómo se cobra la bolsa (un producto propio en Vender, u otra vía) antes de que la
   caja de AQP siga anotándolas así; las 27 de hoy salen de la ventana de 14 días sola hacia el 17-oct.
+- [x] **Colas de arranque cerradas por Felipe (2026-10-05), las dos con «La prenda aún no está cargada»:** AQP 170 ventas (S/ 7,749.68) y TRU
+  99 (S/ 5,795.18). Verificado en solo lectura: el motor ya tenía la huella `33dfc4b1…` (cuenta las cerradas); ninguna línea dejó la centinela
+  y 0 movimientos de las cerradas (el contrato se cumple en producción). Felipe: «eran prendas de arranque que aún no estaban en sistema; por la
+  prisa vendieron así, sin registrar».
+- [ ] **Vigilar en el próximo conteo de TRU:** 59 de sus 99 cerradas coinciden en categoría × talla × color con prendas que TRU sí tiene en
+  stock (en AQP, 3). No prueba que sean la misma prenda (puede ser otro modelo igual), pero si alguna sí estaba cargada, el sistema la tiene con
+  1 unidad de más. Un faltante del conteo que calce con una venta de la pestaña «Cerradas» es esa venta, no una pérdida: el cruce automático del
+  conteo con las ventas sin registrar (ADR-0328, decisión 9) solo mira las pendientes, así que hay que mirarlo a mano.
