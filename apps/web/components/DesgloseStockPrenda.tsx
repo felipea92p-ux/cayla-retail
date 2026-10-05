@@ -9,7 +9,7 @@ import { aclaracionDeLaCaja, lineaDeLaSuma, type DesgloseDePrenda } from "@/lib/
    suma explicada y lo que la caja cobra de todo eso. La regla de las cifras y de los dos totales vive en
    `lib/existencias-prendas.ts` (`desgloseDePrenda`); aquí solo se dibuja.
 
-   Las cuatro celdas salen SIEMPRE, también en 0 (atenuadas): si una desapareciera cuando vale 0, la suma se leería distinta de
+   Las cuatro celdas salen SIEMPRE, también en 0 (en taupe, no en tinta): si una desapareciera cuando vale 0, la suma se leería distinta de
    una prenda a otra. Una cifra solo es un botón cuando hay algo que hacer con ella (`accion`): un botón que abriría una
    ventana vacía, o que terminaría en «Sin acceso», no se dibuja (ADR-0161).
    ==================================================================== */
@@ -30,12 +30,13 @@ function Celda({
   apodo?: string;
   cantidad: number;
   ayuda: string;
-  /** Color de la cifra cuando hay algo: ámbar lo que espera una decisión, pizarra lo que es de otro. Con 0 siempre se atenúa. */
-  tono?: "ambar" | "pizarra";
+  /** Color de la cifra cuando hay algo: los MISMOS tonos que los chips de la lista («Apartado» ámbar, «Dañado» rojo), para que el
+   *  mismo estado no cambie de color al abrir la fila. Con 0 va en taupe (sin opacidad: a 30 px, 60 % daba 2,3:1 y no pasaba). */
+  tono?: "ambar" | "rojo";
   accion?: Accion;
   clase?: string;
 }) {
-  const colorCifra = cantidad === 0 ? "text-taupe/60" : tono === "ambar" ? "text-ambar-profundo" : tono === "pizarra" ? "text-pizarra" : "text-tinta";
+  const colorCifra = cantidad === 0 ? "text-taupe" : tono === "ambar" ? "text-ambar-profundo" : tono === "rojo" ? "text-rojo-profundo" : "text-tinta";
   const contenido: ReactNode = (
     <>
       <span className="flex flex-wrap items-baseline gap-x-1.5 text-[13px] leading-tight">
@@ -92,10 +93,10 @@ export function DesgloseStockPrenda({
           <Celda etiqueta="Almacén" apodo="guardada" cantidad={desglose.almacen} ayuda="se baja al piso para venderla" accion={accionAlmacen} />
         </li>
         <li className="border-r border-sand">
-          <Celda etiqueta="Apartada" cantidad={desglose.apartada} ayuda="reservada para un cliente" tono="pizarra" accion={accionApartada} />
+          <Celda etiqueta="Apartada" cantidad={desglose.apartada} ayuda="reservada para un cliente" tono="ambar" accion={accionApartada} />
         </li>
         <li>
-          <Celda etiqueta="Dañada" cantidad={desglose.danada} ayuda="en cuarentena" tono="ambar" accion={accionDanada} />
+          <Celda etiqueta="Dañada" cantidad={desglose.danada} ayuda="en cuarentena" tono="rojo" accion={accionDanada} />
         </li>
       </ul>
 

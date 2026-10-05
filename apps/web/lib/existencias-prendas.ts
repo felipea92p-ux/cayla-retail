@@ -260,15 +260,17 @@ export function tallasPorPrenda(filas: readonly Pick<FilaPrenda, "productoId" | 
 //   · apartada   reservada para un cliente. Sigue físicamente en el piso o en el almacén, pero ni se vende ni se mueve;
 //                por eso `piso` y `almacen` son NETOS de ella (`pisoDisponible`, `almacenDisponible`) y no se cuenta dos veces.
 //   · dañada     en cuarentena. NUNCA entra al `total` de la sede (lib/inventario-reglas.ts, `sumarCantidades`): no es stock.
-// De ahí dos totales, y los dos se dicen: `enStock` (piso + almacén + apartada) es el que usan la lista y el Conteo;
-// `enLaSede` suma además lo dañado y es lo que de verdad hay de la prenda aquí.
+// De ahí dos totales: `enStock` (piso + almacén + apartada) es lo que hay en el piso y el almacén contando lo apartado, y
+// `enLaSede` suma además lo dañado. OJO: la lista de Existencias NO muestra ninguno de los dos (su «Stock actual» es solo lo LIBRE:
+// «nunca cuarentena, nunca lo apartado», y el Resumen dice «prendas libres, sin las apartadas»), así que ningún texto del cajón
+// dice que un total «es el de la lista»: la suma se explica sola, cifra por cifra (revisión del 2026-10-04).
 
 export type DesgloseDePrenda = {
   piso: number;
   almacen: number;
   apartada: number;
   danada: number;
-  /** piso + almacén + apartada: el `total` de la lista de Existencias y del Conteo. */
+  /** piso + almacén + apartada: lo que hay en el piso y el almacén, contando lo apartado (sin lo dañado). */
   enStock: number;
   /** enStock + dañadas: todo lo que hay de la prenda en la sede. */
   enLaSede: number;
@@ -282,15 +284,16 @@ export function desgloseDePrenda(p: Pick<PrendaAgrupada, "piso" | "almacen" | "a
   return { piso: p.piso, almacen: p.almacen, apartada: p.apartado, danada: p.danado, enStock, enLaSede: enStock + p.danado };
 }
 
-/** La suma explicada bajo las cuatro cifras. `aparte` solo existe si hay dañadas: es lo que evita que alguien compare el
- *  total del cajón con el de la lista (que no cuenta las dañadas) y concluya que «no coincide». */
+/** La suma explicada bajo las cuatro cifras. `aparte` solo existe si hay dañadas: dice cuánto es la suma SIN ellas, para que
+ *  quien cuente a mano el piso y el almacén no espere encontrar también lo que está en cuarentena. No dice «stock»: esa palabra
+ *  ya significa «lo libre» en la lista y en el Resumen. */
 export function lineaDeLaSuma(d: DesgloseDePrenda): { cuenta: string; texto: string; aparte: string | null } {
   return {
     cuenta: `${d.piso} + ${d.almacen} + ${d.apartada} + ${d.danada} = ${d.enLaSede}`,
     texto: `${d.enLaSede === 1 ? "prenda" : "prendas"} en esta sede`,
     aparte:
       d.danada > 0
-        ? `${d.enStock} ${d.enStock === 1 ? "cuenta" : "cuentan"} como stock: ${d.danada === 1 ? "la dañada va aparte" : "las dañadas van aparte"}`
+        ? `${d.enStock} sin contar ${d.danada === 1 ? "la dañada, que está" : "las dañadas, que están"} en cuarentena`
         : null,
   };
 }

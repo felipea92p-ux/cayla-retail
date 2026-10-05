@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { calcularAccionHoy } from "./existencias-recomendaciones";
 import { hoyDeTalla } from "./existencias-hoy";
 import { sumarCantidades, type FilaCantidadCruda } from "./inventario-reglas";
+import { cantidadCobrable } from "./vender-stock-local";
 import {
   aclaracionDeLaCaja,
   agruparPorPrenda,
@@ -329,14 +330,14 @@ describe("desgloseDePrenda — piso + almacén + apartada + dañada", () => {
   it("las cuatro cifras no se pisan: lo apartado sale del piso y del almacén, lo dañado queda fuera", () => {
     expect(d).toMatchObject({ piso: 8 + 4, almacen: 4, apartada: 3, danada: 3 });
   });
-  it("«en stock» es el total de la lista y del Conteo; «en la sede» le suma lo dañado", () => {
+  it("«en stock» es el `total` de la base (piso + almacén contando lo apartado); «en la sede» le suma lo dañado", () => {
     const total = [...cant.values()].reduce((n, c) => n + c.total, 0);
     const danado = [...cant.values()].reduce((n, c) => n + (c.danado ?? 0), 0);
     expect(d.enStock).toBe(total);
     expect(d.enLaSede).toBe(total + danado);
   });
-  it("lo que cobra la caja es el piso del cajón, ni más ni menos", () => {
-    const cobrable = [...cant.values()].reduce((n, c) => n + (c.pisoDisponible ?? 0), 0);
+  it("lo que cobra la caja es el piso del cajón, ni más ni menos (atado a `cantidadCobrable`, la regla de la caja)", () => {
+    const cobrable = [...cant.values()].reduce((n, c) => n + cantidadCobrable(c), 0);
     expect(d.piso).toBe(cobrable);
   });
   it("sin piso y almacén (Taller) no hay desglose, y 0 no se confunde con «no aplica»", () => {
@@ -366,10 +367,10 @@ describe("lineaDeLaSuma y aclaracionDeLaCaja — lo que se lee bajo las cuatro c
   it("sin dañadas no hay aclaración aparte (nada que comparar con la lista)", () => {
     expect(lineaDeLaSuma(con(8, 5, 2, 0)).aparte).toBeNull();
   });
-  it("con dañadas dice cuántas cuentan como stock y que lo dañado va aparte, en singular y plural", () => {
-    expect(lineaDeLaSuma(con(8, 5, 2, 1)).aparte).toBe("15 cuentan como stock: la dañada va aparte");
-    expect(lineaDeLaSuma(con(8, 5, 2, 3)).aparte).toBe("15 cuentan como stock: las dañadas van aparte");
-    expect(lineaDeLaSuma(con(1, 0, 0, 2)).aparte).toBe("1 cuenta como stock: las dañadas van aparte");
+  it("con dañadas dice cuánto es la suma sin ellas y que están en cuarentena, en singular y plural", () => {
+    expect(lineaDeLaSuma(con(8, 5, 2, 1)).aparte).toBe("15 sin contar la dañada, que está en cuarentena");
+    expect(lineaDeLaSuma(con(8, 5, 2, 3)).aparte).toBe("15 sin contar las dañadas, que están en cuarentena");
+    expect(lineaDeLaSuma(con(1, 0, 0, 2)).aparte).toBe("1 sin contar las dañadas, que están en cuarentena");
   });
   it("«prenda» en singular solo con una", () => {
     expect(lineaDeLaSuma(con(1, 0, 0, 0)).texto).toBe("prenda en esta sede");

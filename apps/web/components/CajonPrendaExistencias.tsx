@@ -156,8 +156,8 @@ export function CajonPrendaExistencias({
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
   const hayOperar = (puedeReponer && (hayQueReponer || hayQueSubir)) || hrefTrasladar !== null;
   // Cada cifra es un botón solo si hay algo que hacer con ella y la persona puede hacerlo (ADR-0161: nunca un botón que acabe en
-  // «Sin acceso» o en una ventana vacía). Almacén baja al piso con la misma ventana de «Reponer prenda»; Piso no lleva botón.
-  const accionAlmacen = desglose && desglose.almacen > 0 && puedeReponer && hayQueReponer ? { texto: "Bajar al piso", onClick: () => onReponer(prenda) } : undefined;
+  // «Sin acceso» o en una ventana vacía). Almacén abre la misma ventana de «Reponer prenda» y se llama igual (la ventana, el botón de abajo y la celda dicen lo mismo); Piso no lleva botón.
+  const accionAlmacen = desglose && desglose.almacen > 0 && puedeReponer && hayQueReponer ? { texto: "Reponer prenda", onClick: () => onReponer(prenda) } : undefined;
   const accionApartada = desglose && desglose.apartada > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined;
   const accionDanada = desglose && desglose.danada > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined;
   const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));

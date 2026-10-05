@@ -278,6 +278,18 @@ export function InventarioPanel({
   // Las cifras «Apartada» y «Dañada» del cajón abren esas mismas ventanas, pero solo con lo de ESA prenda (no la cola entera de
   // la sede). Sin prenda (null) las ventanas muestran todo, como cuando se abren desde «Para hoy» o el aviso de cuarentena.
   const [soloPrenda, setSoloPrenda] = useState<PrendaAgrupada<FilaExistencias> | null>(null);
+  // Una ventana abierta desde el cajón de UNA prenda se cierra sola cuando de esa prenda ya no queda nada (se resolvió o se liberó la
+  // última): sin esto la lista filtrada quedaba vacía y la ventana decía «no hay nada en esta ubicación» con la sede llena de otras
+  // dañadas o apartados (revisión del 2026-10-04). Abierta desde «Para hoy» (sin prenda) nunca se cierra sola: ahí vacío sí es vacío.
+  const filtradaVacia =
+    soloPrenda !== null &&
+    ((viendoDanados && deLaPrenda(danadosPendientes, soloPrenda).length === 0) || (viendoApartados && deLaPrenda(apartados, soloPrenda).length === 0));
+  // Se ajusta el estado en el mismo render (patrón de React para estado derivado, sin efecto): la condición se apaga sola al limpiar `soloPrenda`.
+  if (filtradaVacia) {
+    setViendoDanados(false);
+    setViendoApartados(false);
+    setSoloPrenda(null);
+  }
   const [viendoDisponible, setViendoDisponible] = useState(false);
   // Existencias conectada (ADR-0237): la lista entra agrupada por prenda (modelo + color, con su curva de tallas); «Por
   // talla» es la tabla del #445, una fila por talla con Cobertura y Ritmo. La prenda abierta se guarda por su clave, no
