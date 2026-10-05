@@ -24,6 +24,8 @@ import {
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, LiberarModal, RecordarModal } from "@/components/apartados/ModalesApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
+import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
+import { envioConCliente, type PedidoParaSubir } from "@/lib/pedidos-con-cliente-reglas";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
@@ -122,6 +124,9 @@ export function TodosVista({
   const conOtraSede = encendida(apagadas, "otra_sede");
   const [enviarPedido, setEnviarPedido] = useState<PedidoApartado | null>(null);
   const [cancelarPedido, setCancelarPedido] = useState<PedidoApartado | null>(null);
+  // ADR-0328 act. 17 (revisión adversarial): lo colgado sale en dos pasos también desde aquí, con la misma regla que
+  // Traslados (`envioConCliente`): una sola forma de enviar un pedido para un cliente.
+  const [subirPedido, setSubirPedido] = useState<PedidoParaSubir | null>(null);
   const prendaDe = (id: string) => (prendas as PrendaApartable[]).find((p) => p.varianteId === id);
   // «Qué ver» (spike Apartados v2): qué lleva cada fila. Es comodidad de quien mira, así que vive en SU navegador; si el
   // navegador no deja guardar, queda lo de fábrica.
@@ -204,6 +209,8 @@ export function TodosVista({
             {pedidos.map((pe) => {
               const pr = prendaDe(pe.varianteId);
               const activo = pe.estado === "pedido" || pe.estado === "en_camino" || pe.estado === "llego";
+              const envio = pe.direccion === "me_piden" && pe.estado === "pedido" ? envioConCliente(pe.reservaEn) : null;
+              const prendaTexto = [pr?.referencia ?? "Prenda", pr?.color, pr?.talla].filter(Boolean).join(" · ");
               return (
                 <li key={pe.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                   <FotoPrenda fotoUrl={pr?.fotoUrl} referencia={pr?.referencia ?? "Prenda"} categoriaPrefijo={pr?.categoriaPrefijo} categoriaFamilia={pr?.categoriaFamilia} ancho={32} className="w-8" />
@@ -221,8 +228,17 @@ export function TodosVista({
                   <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
                     {textoEstadoPedido(pe)}
                   </span>
-                  <div className="flex gap-1.5">
-                    {pe.direccion === "me_piden" && pe.estado === "pedido" && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {envio?.subirAlAlmacen && (
+                      <button
+                        type="button"
+                        onClick={() => setSubirPedido({ id: pe.id, prenda: prendaTexto, cliente: `${pe.nombres} ${pe.apellidos}`.trim(), otraSede: pe.otraSede, reservaEn: pe.reservaEn })}
+                        className={envio.enviar ? BOTON_CHICO : BOTON_CHICO_NEGRO}
+                      >
+                        Subir al almacén
+                      </button>
+                    )}
+                    {envio?.enviar && (
                       <button type="button" onClick={() => setEnviarPedido(pe)} className={BOTON_CHICO_NEGRO}>Enviar</button>
                     )}
                     {pe.direccion === "pedi" && pe.estado === "llego" && onApartarPedido && (
@@ -377,6 +393,7 @@ export function TodosVista({
 
       {enviarPedido && <EnviarPedidoModal pedido={enviarPedido} prenda={prendaDe(enviarPedido.varianteId)} ubicacion={ubicacion} onClose={() => setEnviarPedido(null)} />}
       {cancelarPedido && <CancelarPedidoModal pedido={cancelarPedido} ubicacion={ubicacion} onClose={() => setCancelarPedido(null)} />}
+      {subirPedido && <SubirPedidoAlAlmacenModal pedido={subirPedido} ubicacion={ubicacion} onClose={() => setSubirPedido(null)} />}
       {recordar && (
         <RecordarModal
           cola={recordar}

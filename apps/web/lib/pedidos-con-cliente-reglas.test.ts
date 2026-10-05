@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   accionesDe,
   candidatosParaPedir,
+  envioConCliente,
+  textoSubirAlAlmacen,
   celularValido,
   estadoVisibleConCliente,
   faltaParaPedir,
@@ -93,8 +95,14 @@ describe("accionesDe — qué botón ve cada lado", () => {
   it("me piden, apartada COLGADA: primero subir (Felipe: dos pasos), Enviar no", () => {
     expect(accionesDe(p(cliente({ reservaEn: "piso" })))).toMatchObject({ enviar: false, subirAlAlmacen: true, noLaTengo: true });
   });
-  it("sin reserva (la liberaron allá) se puede enviar igual", () => {
-    expect(accionesDe(p(cliente({ reservaEn: "sin_reserva" })))).toMatchObject({ enviar: true, subirAlAlmacen: false });
+  it("sin reserva (la liberaron allá): Enviar y también Subir al almacén (no se sabe si quedó colgada)", () => {
+    expect(accionesDe(p(cliente({ reservaEn: "sin_reserva" })))).toMatchObject({ enviar: true, subirAlAlmacen: true });
+  });
+  it("una sede sin piso ni almacén: Enviar", () => {
+    expect(accionesDe(p(cliente({ reservaEn: "sin_lugar" })))).toMatchObject({ enviar: true, subirAlAlmacen: false });
+  });
+  it("lo que pedí y espera no ofrece enviar ni subir desde aquí", () => {
+    expect(accionesDe(p(cliente({ reservaEn: "piso" }), { direccion: "pedi" }))).toMatchObject({ enviar: false, subirAlAlmacen: false });
   });
   it("pedí y llegó: avisar al cliente (aunque ya se haya avisado: se puede repetir)", () => {
     const llego = cliente({ estado: "llego" });
@@ -103,6 +111,20 @@ describe("accionesDe — qué botón ve cada lado", () => {
   });
   it("me piden y ya llegó allá: nada que hacer aquí", () => {
     expect(accionesDe(p(cliente({ estado: "llego" }), { estado: "recibido" }))).toMatchObject({ enviar: false, subirAlAlmacen: false, avisar: false, noLaTengo: false });
+  });
+});
+
+describe("envioConCliente — una sola regla para Traslados y Apartados", () => {
+  it("colgada: solo subir; sin reserva: los dos; almacén, sin lugar o sin dato: enviar", () => {
+    expect(envioConCliente("piso")).toEqual({ enviar: false, subirAlAlmacen: true });
+    expect(envioConCliente("sin_reserva")).toEqual({ enviar: true, subirAlAlmacen: true });
+    expect(envioConCliente("almacen")).toEqual({ enviar: true, subirAlAlmacen: false });
+    expect(envioConCliente("sin_lugar")).toEqual({ enviar: true, subirAlAlmacen: false });
+    expect(envioConCliente(null)).toEqual({ enviar: true, subirAlAlmacen: false });
+  });
+  it("la ventana «Subir al almacén» dice lo que pasa en cada caso, con la sede que espera", () => {
+    expect(textoSubirAlAlmacen("piso", "Tienda Lima")).toMatch(/^Está colgada en el piso.*Tienda Lima\.$/);
+    expect(textoSubirAlAlmacen("sin_reserva", "Tienda Lima")).toMatch(/^Ya no está apartada.*no se mueve nada.*Tienda Lima\.$/);
   });
 });
 

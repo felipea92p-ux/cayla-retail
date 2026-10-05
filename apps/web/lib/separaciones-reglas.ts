@@ -6,6 +6,7 @@
 import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
+import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -460,8 +461,14 @@ export type PedidoApartado = {
   guardadaHasta: string | null;
   trasladoNumero: number | null;
   canceladoMotivo: string | null;
+  /** ADR-0328 act. 17: dónde quedó apartada la prenda en la sede que la envía (null si el pedido ya no espera). Decide si
+   *  esa sede ve «Enviar» o primero «Subir al almacén» (`envioConCliente`, la misma regla que Traslados). */
+  reservaEn: ReservaEnOrigen | null;
 };
 
+const RESERVAS_ORIGEN: readonly ReservaEnOrigen[] = ["almacen", "piso", "sin_lugar", "sin_reserva"];
+
+/** Una fila de `fn_pedidos_con_cliente` (desde ADR-0328 act. 17; antes `fn_pedidos_para_apartar`, que decía «clienta_»). */
 export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
   return {
     id: String(f.id),
@@ -469,15 +476,16 @@ export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
     otraSede: String(f.otra_sede ?? ""),
     varianteId: String(f.variante_id),
     cantidad: Number(f.cantidad ?? 1),
-    nombres: String(f.clienta_nombres ?? ""),
-    apellidos: String(f.clienta_apellidos ?? ""),
-    celular: String(f.clienta_celular ?? ""),
+    nombres: String(f.cliente_nombres ?? f.clienta_nombres ?? ""),
+    apellidos: String(f.cliente_apellidos ?? f.clienta_apellidos ?? ""),
+    celular: String(f.cliente_celular ?? f.clienta_celular ?? ""),
     nota: (f.nota as string | null) ?? null,
     estado: f.estado as EstadoPedido,
     creadoEn: String(f.created_at),
     guardadaHasta: (f.guardada_hasta as string | null) ?? null,
     trasladoNumero: f.traslado_numero == null ? null : Number(f.traslado_numero),
     canceladoMotivo: (f.cancelado_motivo as string | null) ?? null,
+    reservaEn: RESERVAS_ORIGEN.includes(f.reserva_en as ReservaEnOrigen) ? (f.reserva_en as ReservaEnOrigen) : null,
   };
 }
 

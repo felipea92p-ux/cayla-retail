@@ -8,7 +8,7 @@
 //   · qué le ofrece Vender desde «Dónde más hay» y el mensaje de WhatsApp cuando llega.
 
 import { nombreCortoSede, type SedeConStock } from "./stock-por-sede";
-import { accionesDePedido, type AccionesPedido, type PedidoEntreSedes, type TonoEstadoPedido } from "./pedidos-entre-sedes-reglas";
+import { accionesDePedido, etiquetaLinea, type AccionesPedido, type PedidoEntreSedes, type TonoEstadoPedido } from "./pedidos-entre-sedes-reglas";
 
 /** Dónde está apartada la prenda en la sede que la envía (null si el pedido ya no espera). */
 export type ReservaEnOrigen = "almacen" | "piso" | "sin_lugar" | "sin_reserva";
@@ -87,16 +87,52 @@ export type AccionesConCliente = AccionesPedido & {
   avisar: boolean;
 };
 
+/**
+ * Cómo sale un pedido para un cliente que la sede que lo tiene ya puede enviar, según dónde quedó apartada la prenda allí.
+ * UNA regla para Traslados y Apartados (revisión adversarial: Apartados ofrecía «Enviar» sin el paso «Subir al almacén»):
+ *   · colgada en el piso → solo «Subir al almacén» (Felipe: lo colgado sale en dos pasos);
+ *   · sin reserva (alguien la liberó a mano) → «Enviar» y también «Subir al almacén»: no se sabe dónde quedó. Enviar la
+ *     vuelve a apartar (almacén primero) y, si lo único libre está colgado, la base lo dice («primero súbela al almacén»);
+ *   · en el almacén o en una sede sin piso ni almacén → «Enviar».
+ */
+export function envioConCliente(reservaEn: ReservaEnOrigen | null): { enviar: boolean; subirAlAlmacen: boolean } {
+  if (reservaEn === "piso") return { enviar: false, subirAlAlmacen: true };
+  if (reservaEn === "sin_reserva") return { enviar: true, subirAlAlmacen: true };
+  return { enviar: true, subirAlAlmacen: false };
+}
+
+/** Lo que dibuja la ventana «Subir al almacén» (la abren Traslados y Apartados): el pedido, la prenda, para quién, la sede
+ *  que la espera y dónde quedó apartada. */
+export type PedidoParaSubir = { id: string; prenda: string; cliente: string; otraSede: string; reservaEn: ReservaEnOrigen | null };
+
+/** Desde la lista de Traslados (un pedido para un cliente es UNA prenda). */
+export function paraSubirDe(pedido: PedidoEntreSedes & { cliente: ClientePedido }): PedidoParaSubir {
+  return {
+    id: pedido.grupoId,
+    prenda: pedido.lineas.map(etiquetaLinea).join(", "),
+    cliente: nombreCliente(pedido.cliente),
+    otraSede: pedido.otraSede,
+    reservaEn: pedido.cliente.reservaEn,
+  };
+}
+
+/** Lo que explica la ventana «Subir al almacén», según dónde quedó la prenda apartada para el cliente. */
+export function textoSubirAlAlmacen(reservaEn: ReservaEnOrigen | null, otraSede: string): string {
+  if (reservaEn === "sin_reserva") {
+    return `Ya no está apartada: alguien la liberó. Si está colgada, bájala y guárdala en el almacén; si ya está en el almacén, no se mueve nada. En los dos casos vuelve a quedar apartada para el cliente y viaja en el próximo envío a ${otraSede}.`;
+  }
+  return `Está colgada en el piso y apartada para el cliente. Bájala del colgador y guárdala en el almacén: así viaja en el próximo envío a ${otraSede}.`;
+}
+
 /** Los botones de un pedido de la lista, con o sin cliente. Sin cliente, los de siempre (`accionesDePedido`). */
 export function accionesDe(p: Pick<PedidoEntreSedes, "estado" | "direccion" | "trasladoId" | "cliente">): AccionesConCliente {
   const base = accionesDePedido(p);
   const c = p.cliente;
   if (!c) return { ...base, subirAlAlmacen: false, avisar: false };
-  const colgada = base.enviar && c.reservaEn === "piso";
+  const envio = base.enviar ? envioConCliente(c.reservaEn) : { enviar: false, subirAlAlmacen: false };
   return {
     ...base,
-    enviar: base.enviar && !colgada,
-    subirAlAlmacen: colgada,
+    ...envio,
     avisar: p.direccion === "pedi" && c.estado === "llego",
   };
 }

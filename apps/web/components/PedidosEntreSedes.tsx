@@ -26,7 +26,7 @@ import {
   type OpcionLlegada,
   type PedidoEntreSedes,
 } from "@/lib/pedidos-entre-sedes-reglas";
-import { accionesDe, estadoVisibleConCliente, nombreCliente, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
+import { accionesDe, estadoVisibleConCliente, nombreCliente, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
 import { esperaVisible } from "@/lib/pedidos-por-atender-reglas";
 import { AvisarLlegadaModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 
@@ -91,7 +91,7 @@ export function PedidosEntreSedes({ pedidos, ubicacion, ahoraIso }: { pedidos: P
 
       {enviar && <EnviarPedidoEntreSedesModal pedido={enviar} ubicacion={ubicacion} onClose={() => setEnviar(null)} />}
       {cancelar && <CancelarPedidoEntreSedesModal pedido={cancelar} ubicacion={ubicacion} onClose={() => setCancelar(null)} />}
-      {conCliente(subir) && <SubirPedidoAlAlmacenModal pedido={subir} ubicacion={ubicacion} onClose={() => setSubir(null)} />}
+      {conCliente(subir) && <SubirPedidoAlAlmacenModal pedido={paraSubirDe(subir)} ubicacion={ubicacion} onClose={() => setSubir(null)} />}
       {conCliente(avisarA) && <AvisarLlegadaModal pedido={avisarA} sede={ubicacion} onClose={() => setAvisarA(null)} />}
     </section>
   );
@@ -158,7 +158,8 @@ function PedidoFila({
 
       <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
         {acciones.subirAlAlmacen && (
-          <button type="button" onClick={onSubir} className="btn-cayla btn-primario">
+          // Con «Enviar» al lado (la reserva se liberó a mano y no se sabe dónde quedó), subir es la segunda opción.
+          <button type="button" onClick={onSubir} className={`btn-cayla ${acciones.enviar ? "btn-secundario" : "btn-primario"}`}>
             Subir al almacén
           </button>
         )}

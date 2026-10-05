@@ -25,6 +25,7 @@ import {
   vueltoDelAdelanto,
   type Apartado,
   type FormularioApartado,
+  pedidoDeFila,
 } from "./separaciones-reglas";
 import { totalDeLineas } from "./vender-reglas";
 
@@ -318,3 +319,14 @@ describe("abonos y opciones", () => {
   });
 });
 
+describe("pedidoDeFila — Apartados lee los pedidos con dónde quedó la prenda (ADR-0328 act. 17)", () => {
+  const base = { id: "p1", direccion: "me_piden", otra_sede: "Tienda Lima", variante_id: "v1", cantidad: 1, nota: null, estado: "pedido", created_at: "2026-10-04T15:00:00Z", guardada_hasta: null, traslado_numero: null, cancelado_motivo: null };
+  it("lee fn_pedidos_con_cliente (cliente_*) y su reserva en el origen", () => {
+    const p = pedidoDeFila({ ...base, cliente_nombres: "Ana", cliente_apellidos: "Lozano", cliente_celular: "987111222", reserva_en: "piso" });
+    expect(p).toMatchObject({ nombres: "Ana", apellidos: "Lozano", celular: "987111222", reservaEn: "piso", direccion: "me_piden" });
+  });
+  it("una reserva que no conoce, o la fila vieja sin reserva (clienta_*), queda en null", () => {
+    expect(pedidoDeFila({ ...base, cliente_nombres: "Ana", reserva_en: "otra" }).reservaEn).toBeNull();
+    expect(pedidoDeFila({ ...base, clienta_nombres: "Ana", clienta_apellidos: "Lozano" })).toMatchObject({ nombres: "Ana", apellidos: "Lozano", reservaEn: null });
+  });
+});
