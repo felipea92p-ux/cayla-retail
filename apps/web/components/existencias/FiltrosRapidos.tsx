@@ -42,14 +42,21 @@ const TONO_ENCENDIDO: Record<ClaveRapida, string> = {
   sin_ventas: "border-pizarra/40 bg-pizarra/10 text-pizarra",
 };
 
+/** El orden de las tarjetas, del que la maqueta muestra dos: «Prioridad» (lo que falta en el piso primero, la lista del día del motor) y «A–Z».
+ *  Los otros órdenes siguen en «Ordenar por», debajo. Mismo estado que ese combo (`useFiltrosExistencias`). */
+type OrdenCorto = { valor: string; onValor: (v: string) => void };
+
 export function FiltrosRapidos({
   elegidos,
   conteos,
   onCambiar,
+  orden = null,
 }: {
   elegidos: Pick<FiltrosElegidos, "hoy" | "condicion">;
   conteos: Pick<ConteosFiltros, "hoy" | "condicion">;
   onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
+  /** Solo en las tarjetas: la tabla conserva su orden. */
+  orden?: OrdenCorto | null;
 }) {
   const vista = useSyncExternalStore(vistaRapidos.suscribir, vistaRapidos.leer, vistaRapidos.leerEnServidor);
   const soloIconos = vista === "iconos";
@@ -131,6 +138,28 @@ export function FiltrosRapidos({
             </button>
           ))}
         </span>
+
+        {orden && (
+          <span role="group" aria-label="Orden" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
+            {(
+              [
+                ["relevancia", "Prioridad", "Lo que falta en el piso y más se vende, primero"],
+                ["nombre", "A–Z", "Por nombre"],
+              ] as const
+            ).map(([v, texto, ayuda]) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={orden.valor === v}
+                title={ayuda}
+                onClick={() => orden.onValor(v)}
+                className="h-8 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta"
+              >
+                {texto}
+              </button>
+            ))}
+          </span>
+        )}
       </div>
     </TooltipProvider>
   );
