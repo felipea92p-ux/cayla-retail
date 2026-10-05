@@ -11,6 +11,7 @@
 
 import { siglaSede } from "./inicio-almacen-reglas";
 import { esSiglaConMapa, type SiglaConMapa } from "./observatorio-mapa";
+import { fraseRepeticion, hrefPerdidas, type Repeticion } from "./perdidas-reglas";
 
 export type Periodo = "hoy" | "7d" | "30d";
 export type Ventana = "hoy" | "d7" | "d30";
@@ -347,7 +348,7 @@ export type AvisoObs = {
   nivel: NivelObs;
   /** `null` = no se pudo leer. */
   n: number | null;
-  icono: "dolar" | "etiqueta" | "flecha" | "marca" | "doc" | "camara" | "sunat" | "cambio";
+  icono: "dolar" | "etiqueta" | "flecha" | "marca" | "doc" | "camara" | "sunat" | "cambio" | "alerta";
   titulo: string;
   corto: string;
   /** Cuántos tiene cada tienda (por id); `null` si el aviso es de toda la empresa. */
@@ -367,6 +368,50 @@ export function llenadoDelAro(a: Pick<AvisoObs, "nivel" | "edad">): number {
 /** El nivel de un aviso que solo cuenta: al día si no hay ninguno; si no, el nivel que le toca. */
 export function nivelPorCuenta(n: number | null, nivel: Exclude<NivelObs, "ok">): NivelObs {
   return n === 0 ? "ok" : nivel;
+}
+
+const ORDEN_REPETICION: Record<Repeticion["tipo"], number> = { resta_grande: 0, prenda: 1, zona: 2 };
+
+/** «Pérdidas que se repiten» en el Observatorio (ADR-0328 act. 14; Felipe, 2026-10-04: «avisa cuando se repite»). Es la
+ *  MISMA regla del Inicio del líder (`perdidasQueSeRepiten`, últimos 30 días), leída tienda por tienda: el Admin entra aquí
+ *  y no al Inicio, y sin esto el aviso no le llegaba a quien lo pidió.
+ *
+ *  PROMETE: el aviso al día si ninguna tienda repite; si no, «esta semana» (revisar, no urgente: no es plata que no cuadra),
+ *  su reparto por tienda, el detalle (hasta 6: primero las restas grandes sin nota, después lo que más perdió) con la sigla de
+ *  la tienda, y el enlace a la pestaña «Pérdidas» (de la sede elegida arriba, como todo aviso de aquí: la sede la decide solo
+ *  el selector de la cabecera). ASUME: `lecturas` null = alguna tienda no se pudo leer, y entonces el aviso entero dice «no se
+ *  pudo leer»: una cuenta parcial diría «al día» de una tienda que nadie miró. */
+export function avisoPerdidasObs(
+  lecturas: readonly { tienda: Pick<TiendaObs, "id" | "sigla">; repeticiones: readonly Repeticion[] }[] | null,
+  hoy: string
+): AvisoObs {
+  const filas = (lecturas ?? [])
+    .flatMap((l) => l.repeticiones.map((r) => ({ r, sigla: l.tienda.sigla })))
+    .sort((x, y) => ORDEN_REPETICION[x.r.tipo] - ORDEN_REPETICION[y.r.tipo] || y.r.unidades - x.r.unidades);
+  const n = lecturas === null ? null : filas.length;
+  const diaDe = (r: Repeticion) => (r.tipo === "resta_grande" ? r.dia : r.ultimoDia);
+  const diasHasta = (dia: string) => Math.max(0, Math.round((Date.parse(`${hoy}T12:00:00Z`) - Date.parse(`${dia}T12:00:00Z`)) / 86400000));
+  return {
+    clave: "perdidas",
+    nivel: nivelPorCuenta(n, "semana"),
+    n,
+    icono: "alerta",
+    titulo: n === 1 ? "Pérdida que se repite" : "Pérdidas que se repiten",
+    corto: n === 1 ? "pérdida" : "pérdidas",
+    porTienda: lecturas === null ? null : Object.fromEntries(lecturas.map((l) => [l.tienda.id, l.repeticiones.length])),
+    edad: filas.length ? Math.max(...filas.map(({ r }) => diasHasta(diaDe(r)))) : null,
+    href: hrefPerdidas({ periodo: "30" }),
+    detalle: filas.length
+      ? {
+          tipo: "lista",
+          filas: filas.slice(0, 6).map(({ r, sigla }) => ({
+            titulo: fraseRepeticion(r),
+            detalle: `${sigla} · ${fechaCorta(diaDe(r))}`,
+            chip: r.tipo === "resta_grande" ? "Sin nota" : `${r.veces} días`,
+          })),
+        }
+      : null,
+  };
 }
 
 export type TallerObs = {
