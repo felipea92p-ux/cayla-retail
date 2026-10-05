@@ -536,7 +536,9 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
                     </td>
                     {verTodas && <td data-l="Unidad">{a.ubicacionNombre}</td>}
                     <td data-l="Comprado">{fechaCorta(a.fechaAdquisicion, true)}</td>
-                    <td data-l="Factura">{a.comprobante ?? <span className="fin-tenue">Sin comprobante</span>}</td>
+                    <td data-l="Factura">
+                      {a.comprobante ?? (a.cargaInicial ? <Chip tono="pizarra">Ya lo teníamos</Chip> : <span className="fin-tenue">Sin comprobante</span>)}
+                    </td>
                     <td className="fin-num" data-l="Costo">
                       {solesRedondo(a.costo)}
                     </td>
@@ -659,13 +661,14 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
     >
       <ListaDatos
         filas={[
-          { dato: "Costo (sin IGV)", valor: soles(a.costo) },
+          { dato: a.cargaInicial ? "Costo (lo que se pagó)" : "Costo (sin IGV)", valor: soles(a.costo) },
           { dato: "Vida útil", valor: textoVidaUtil(a.vidaUtilMeses) },
           { dato: "Se deprecia al mes", valor: soles(a.depreciacionMensual) },
           { dato: "Depreciado", valor: `${soles(a.depreciacionAcumulada)} · ${a.mesesDepreciados} de ${a.vidaUtilMeses} meses` },
           { dato: "Vale hoy", valor: soles(a.valorHoy) },
           ...(a.saldo !== null && a.saldo > 0 && a.estado === "activo" ? [{ dato: "Falta pagar", valor: `${soles(a.saldo)} · en Compras ▸ Por pagar` }] : []),
           ...(a.serie ? [{ dato: "N.° de serie", valor: a.serie }] : []),
+          ...(a.cargaInicial ? [{ dato: "Origen", valor: <Chip tono="pizarra">Ya lo teníamos</Chip> }] : []),
           { dato: "Estado", valor: <Chip tono={e.tono}>{e.texto}</Chip> },
           ...(a.fechaBaja ? [{ dato: "Dado de baja", valor: `${fechaCorta(a.fechaBaja, true)} · ${a.motivoBaja ?? ""}`, tenue: true }] : []),
           ...(a.motivoAnulacion ? [{ dato: "Anulado", valor: a.motivoAnulacion, tenue: true }] : []),

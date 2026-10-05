@@ -554,6 +554,8 @@ export type ActivoFila = {
   cajaMovimientoId: string | null;
   motivoAnulacion: string | null;
   registradoPor: string | null;
+  /** «Ya lo teníamos» (ADR-0335): lo tenía CAYLA antes del sistema; sin comprobante ni pago, y no movió plata. */
+  cargaInicial: boolean;
 };
 
 export function leerTipoActivo(t: Fila): TipoActivo {
@@ -591,6 +593,7 @@ export function leerActivo(a: Fila): ActivoFila {
     cajaMovimientoId: txt(a.caja_movimiento_id),
     motivoAnulacion: txt(a.motivo_anulacion),
     registradoPor: txt(a.registrado_por_nombre),
+    cargaInicial: !!a.carga_inicial,
   };
 }
 

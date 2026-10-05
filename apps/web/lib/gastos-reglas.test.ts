@@ -10,6 +10,7 @@ import {
   parsearMonto,
   partirSerieNumero,
   puedeAnular,
+  leerActivo,
   puedeAnularActivo,
   rangoMes,
   resumenFijos,
@@ -213,6 +214,16 @@ describe("F2b: activos fijos", () => {
     expect(puedeAnularActivo({ estado: "activo", compraId: "c", tienePagos: true })).toBe(false);
     expect(puedeAnularActivo({ estado: "activo", compraId: "c", tienePagos: false })).toBe(true);
     expect(puedeAnularActivo({ estado: "baja", compraId: null, tienePagos: false })).toBe(false);
+  });
+  it("«ya lo teníamos» (ADR-0335): la lista lo marca y, sin comprobante ni pagos, se puede anular para corregirlo", () => {
+    const fila = { id: "a1", ubicacion_id: "taller", ubicacion_nombre: "Taller", nombre: "Remalladora", fecha_adquisicion: "2025-10-13", costo: "1337.70", vida_util_meses: 120, estado: "activo" };
+    const cargado = leerActivo({ ...fila, carga_inicial: true });
+    expect(cargado.cargaInicial).toBe(true);
+    expect(cargado.compraId).toBeNull();
+    expect(cargado.medioPago).toBeNull();
+    expect(puedeAnularActivo(cargado)).toBe(true);
+    // una base que todavía no tiene la columna (antes de pegar la migración) no lo marca ni se cae
+    expect(leerActivo(fila).cargaInicial).toBe(false);
   });
 });
 
