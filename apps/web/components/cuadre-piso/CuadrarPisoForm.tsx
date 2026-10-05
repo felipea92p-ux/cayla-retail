@@ -795,7 +795,7 @@ export function CuadrarPisoForm({
                             e.preventDefault();
                             volverAlEscaner();
                           }}
-                          className="caja-cayla h-11 w-14 text-center text-base tabular-nums text-tinta outline-none disabled:opacity-60"
+                          className="caja-cayla h-11 w-14 text-center text-base tabular-nums text-tinta disabled:opacity-60"
                         />
                         <button
                           type="button"
