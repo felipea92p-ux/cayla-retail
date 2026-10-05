@@ -4,6 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -211,10 +212,12 @@ export function SubirAAlmacenModal({
     if (r.ya_registrada) {
       avisar.aviso(TEXTO_YA_ESTABA_SUBIDA, { detalle: sede });
     } else if (paraEnviar && destino) {
+      sonarConfirmacion();
       avisar.exito(`${tituloDeExitoRetiro(r.unidades)} para enviar a ${destino.nombre}`, {
         detalle: `${modelo.referencia} · ${detalleDeLoMovido(colores, lineas)}. Queda en Traslados ▸ Para enviar hasta que salga.`,
       });
     } else {
+      sonarConfirmacion();
       avisar.exito(tituloDeExitoRetiro(r.unidades), {
         detalle: `${modelo.referencia} · ${detalleDeLoMovido(colores, lineas)}`,
       });

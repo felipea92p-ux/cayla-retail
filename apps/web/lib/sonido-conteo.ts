@@ -24,9 +24,11 @@ function obtenerContexto(): AudioContext | null {
   }
 }
 
-/** Suena y vibra según lo que pasó con la lectura. Nunca lanza. */
-export function avisarLectura(sonido: SonidoLectura): void {
-  const patron = PATRON_SONIDO[sonido];
+export type PatronSonoro = { tonos: readonly (readonly [number, number])[]; vibracion: number | number[] };
+
+/** Suena y vibra con un patrón (tonos en hercios y milisegundos, y vibración). Nunca lanza. Lo usan el bip del conteo y el sonido
+ *  de «confirmado» (`sonido-confirmar.ts`): un solo motor de audio en toda la web, no uno por pantalla. */
+export function reproducirPatron(patron: PatronSonoro): void {
   try {
     navigator.vibrate?.(patron.vibracion);
   } catch {
@@ -54,4 +56,9 @@ export function avisarLectura(sonido: SonidoLectura): void {
   } catch {
     // Sonar es opcional.
   }
+}
+
+/** Suena y vibra según lo que pasó con la lectura. Nunca lanza. */
+export function avisarLectura(sonido: SonidoLectura): void {
+  reproducirPatron(PATRON_SONIDO[sonido]);
 }
