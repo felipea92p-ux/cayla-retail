@@ -141,7 +141,7 @@ export function FrescuraFila({
       onKeyDown={alTeclado}
       aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
       data-prenda={fila.clave}
-      className={`fila-cayla relative cursor-pointer border-t border-sand outline-none focus-visible:bg-crema/60 focus-visible:shadow-[inset_0_0_0_2px_color-mix(in_oklab,var(--color-rojo)_45%,transparent)] ${fila.porDecidir ? FILETE : ""}`}
+      className={`fila-cayla relative cursor-pointer border-t border-sand focus-visible:bg-crema/60 ${fila.porDecidir ? FILETE : ""}`}
     >
       {/* Computadora: una fila de la tabla. */}
       <div className={`hidden items-center gap-x-4 px-5 py-3.5 md:grid ${PLANTILLA_FRESCURA}`}>
