@@ -5,7 +5,6 @@ import {
   fotoPrincipal,
   ordenarPorModeloColorTalla,
   porColgar,
-  resumirPorColgar,
   sumarCantidades,
   quedaraPidiendoReponer,
   RETIRO_NO_ES_BAJA,
@@ -140,24 +139,6 @@ describe("porColgar", () => {
       const accion = calcularAccionHoy({ varianteId: "v1", pisoDisponible: c.pisoDisponible, almacenDisponible: c.almacenDisponible, enTransito: 0 }, POLITICA_REF);
       expect(accion.tipo).toBe("reponer_a_piso");
     }
-  });
-});
-
-describe("resumirPorColgar (el contador del filtro)", () => {
-  it("cuenta tallas y suma lo que se puede bajar del almacén, neto de apartados", () => {
-    const c = sumarCantidades([
-      { variante_id: "a", cantidad: 5, cantidad_apartada: 1, sububicacion: { tipo: "almacen_tienda" } }, // por colgar: 4 que bajar
-      { variante_id: "b", cantidad: 2, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } }, // por colgar: 2
-      { variante_id: "c", cantidad: 1, cantidad_apartada: 0, sububicacion: { tipo: "piso_venta" } }, // colgada: no
-      { variante_id: "c", cantidad: 9, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } },
-      { variante_id: "d", cantidad: 0, cantidad_apartada: 0, sububicacion: { tipo: "almacen_tienda" } }, // nada: no
-    ]);
-    expect(resumirPorColgar([...c.values()])).toEqual({ tallas: 2, unidades: 6 });
-  });
-
-  it("sin nada por colgar (o en Taller) da cero, no NaN", () => {
-    expect(resumirPorColgar([])).toEqual({ tallas: 0, unidades: 0 });
-    expect(resumirPorColgar([{ pisoDisponible: null, almacenDisponible: null }])).toEqual({ tallas: 0, unidades: 0 });
   });
 });
 

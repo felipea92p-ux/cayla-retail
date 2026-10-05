@@ -27,9 +27,10 @@ import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
-import { tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
+import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
-import { ExistenciasTarjetas, agruparPorModelo, opcionesOrden, ordenarModelos, type OrdenPrendas } from "@/components/ExistenciasTarjetas";
+import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
+import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -45,7 +46,7 @@ import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
 import { FiltrosExistencias, ID_BUSCADOR_EXISTENCIAS } from "@/components/FiltrosExistencias";
 import type { EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
-import { clavePercha, ordenarPorModeloColorTalla, resumirPorColgar } from "@/lib/inventario-reglas";
+import { clavePercha, ordenarPorModeloColorTalla } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -367,8 +368,9 @@ export function InventarioPanel({
   }, [indiceBusqueda, elegidos, porColgarElegido]);
 
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
-  // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
-  const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
+  // que la clienta no ve»), igual que «Para hoy». Baja sola después de cada «Reponer». Es la misma cuenta que lee el Inicio de
+  // Almacén (`porColgarDeLaSede`): los dos números no pueden discrepar.
+  const cuentaPorColgar = useMemo(() => porColgarDeLaSede(stock), [stock]);
   // Cuántas tallas tiene cada prenda sin filtros: la tarjeta dice «Solo M · L (de 4 tallas)» cuando un filtro dejó menos.
   const tallasDePrenda = useMemo(() => tallasPorPrenda(stock), [stock]);
 
@@ -395,12 +397,15 @@ export function InventarioPanel({
     return sinTexto ? ordenarPorUrgencia(agrupadas) : agrupadas;
   }, [filtradas, sinTexto]);
   const paginaPrendas = paginar(prendas, pagina, FILAS_POR_PAGINA);
-  // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido. Sin `orden` (o con uno que
-  // esta sede no ofrece: Taller no separa piso y almacén) queda el orden de siempre.
+  // Las tarjetas: una por MODELO (sus colores van en la misma tarjeta), lo ya filtrado, en el orden elegido; con un caso de «Hoy», una
+  // por PRENDA, para que sus pastillas sumen la cifra de «Para hoy» (`tarjetasDeExistencias`, ADR-0331 act. c). Sin `orden` (o con uno
+  // que esta sede no ofrece: Taller no separa piso y almacén) queda el orden de siempre.
   const opcionesDeOrden = opcionesOrden(resumen.separaPisoAlmacen);
   const ordenEfectivo = opcionesDeOrden.some((o) => o.valor === orden) ? orden : "relevancia";
-  const modelosOrdenados = useMemo(() => ordenarModelos(agruparPorModelo(prendas), ordenEfectivo), [prendas, ordenEfectivo]);
-  const paginaTarjetas = paginar(modelosOrdenados, pagina, FILAS_POR_PAGINA);
+  const tarjetasOrdenadas = useMemo(() => ordenarModelos(tarjetasDeExistencias(prendas, elegidos.hoy), ordenEfectivo), [prendas, elegidos.hoy, ordenEfectivo]);
+  const paginaTarjetas = paginar(tarjetasOrdenadas, pagina, FILAS_POR_PAGINA);
+  // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar».
+  const conteo = conteoDeLista(tarjetasOrdenadas.length, filtradas, elegidos.hoy);
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -499,12 +504,12 @@ export function InventarioPanel({
 
   // «Para hoy»: las tareas de la sede y su botón. «Por colgar» y «sin nada atrás» con la regla de «Hoy» (la misma del filtro y de
   // cada prenda); los nombres con los que empezar, por urgencia. «Bajar al piso» llega con la lista cargada si cabe en la URL.
-  const filasPorColgar = useMemo(() => stock.filter((f) => hoyDeTalla(f) === "por_colgar"), [stock]);
+  const filasPorColgar = cuentaPorColgar.filas;
   const tareasHoy = useMemo(
     () =>
       tareasParaHoy({
         separa,
-        porColgar: { ...cuentaPorColgar, prendas: ordenarPorUrgencia(agruparPorPrenda(filasPorColgar)).map((p) => p.referencia) },
+        porColgar: entradaPorColgar(cuentaPorColgar),
         // Lo que ya viene en camino no se pide de nuevo (revisión 2026-10-04: una talla nueva que LIM le envía a TRU salía a la vez en
         // «en camino» y en «pídela a otra sede»).
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
@@ -514,7 +519,7 @@ export function InventarioPanel({
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, filasPorColgar, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
@@ -622,7 +627,8 @@ export function InventarioPanel({
           vocabulario: indiceBusqueda.vocabulario,
           palabras: palabrasBuscables(stock),
           // «¿Cuántas prendas se verían si esto no estuviera?»: el mismo filtro de la tabla, sin el texto o sin un filtro visual.
-          // En productos (modelos), la misma unidad del «N productos» de arriba: «Quitar Color · 2 productos» trae 2 productos.
+          // En productos (modelos): «Quitar Color · 2 productos» trae 2 productos. Con un caso de «Hoy» la lista va por prendas
+          // (`tarjetasDeExistencias`) y este número sigue en productos, con su palabra: pendiente en el backlog de ADR-0331 act. c.
           contar: (consulta, omitir) => new Set(filtrarExistencias(indiceBusqueda, { ...elegidos, q: consulta }, omitir).filas.map((f) => f.productoId)).size,
           sinStock,
           filtroMarca: filtroMarcaElegida,
@@ -702,7 +708,7 @@ export function InventarioPanel({
             conteos={conteos}
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
-            total={modelosOrdenados.length}
+            conteo={conteo}
             detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
             panelInicial={panelFiltros}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
@@ -872,7 +878,7 @@ export function InventarioPanel({
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
-                {modelosOrdenados.length} {modelosOrdenados.length === 1 ? "producto" : "productos"} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
+                {conteo.total} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaTarjetas.pagina} totalPaginas={paginaTarjetas.totalPaginas} onPagina={irAPagina} />
               <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
