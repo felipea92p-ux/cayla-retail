@@ -314,7 +314,7 @@ export function OrdenInsumos({
                       className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-tinta/15"
                     >
                       {i.nombre}
-                      <small className="ml-1.5 opacity-70">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
+                      <small className="ml-1.5 opacity-70 dark:opacity-85">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
                     </button>
                   );
                 })}

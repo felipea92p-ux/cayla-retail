@@ -371,7 +371,7 @@ export function MatrizStockFicha({
                     scope="row"
                     className={`sticky left-0 z-[1] relative overflow-hidden border-r border-t border-sand py-1.5 pl-3 pr-1.5 text-left text-[12.5px] font-semibold text-tinta @lg:py-2 @lg:pl-3.5 @lg:pr-2 @lg:text-[13.5px] ${fondoFila}`}
                   >
-                    <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]" style={{ background: franja }} />
+                    <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_color-mix(in_srgb,var(--color-tinta)_18%,transparent)]" style={{ background: franja }} />
                     <span className="flex items-center justify-between gap-1.5">
                     <button
                       type="button"

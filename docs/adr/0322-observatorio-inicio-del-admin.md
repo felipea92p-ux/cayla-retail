@@ -100,3 +100,8 @@ y ordena el ranking por lo vendido hasta que se cargue en Configuración) y **el
 - En el navegador, contra la base local con ventas de demostración (foto antes y la base devuelta idéntica después): 1440, 1920 y
   375 px; acercar y alejar, las cuatro pestañas, 7 días, el detalle de un aviso, «Repetir el día», el cambio de sede arriba y CAYLA
   Global; y sin las funciones en la base, el Inicio de siempre.
+
+
+## Actualización 2026-10-05 — el modo oscuro entró (ADR-0336)
+
+**El «modo oscuro listo, apagado» (decisión 8) se encendió.** La pregunta que dejó abierta —cómo se activa en todo el sistema— se resolvió como preferencia del APARATO (`localStorage`), con un botón en la cabecera (ADR-0336, decisión 4). El bloque `[data-tema="oscuro"] .obs` que definía sus propias variables ya no existe: el Observatorio hereda los tokens oscuros del sistema, que parten de la misma paleta (`#1a1a18` / `#f5f0e8`), y solo conserva un ajuste de su tercer nivel de texto (`--o-tx3`) para llegar a 4.5:1.

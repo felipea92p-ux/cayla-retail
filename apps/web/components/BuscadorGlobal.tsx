@@ -154,8 +154,8 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         </svg>
         <span>Buscar…</span>
         <span className="ml-1 flex items-center gap-0.5">
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/50">Ctrl</span>
-          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/50">K</span>
+          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/50 dark:text-tinta/60">Ctrl</span>
+          <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/50 dark:text-tinta/60">K</span>
         </span>
       </button>
 
@@ -187,14 +187,14 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={alTecladoLista}
               placeholder="Pantalla o persona del equipo…"
-              className="caja-cayla w-full py-2.5 pl-9 pr-3 text-sm text-tinta placeholder:text-tinta/40 focus:border-taupe/40"
+              className="caja-cayla w-full py-2.5 pl-9 pr-3 text-sm text-tinta placeholder:text-tinta/40 dark:placeholder:text-tinta/55 focus:border-taupe/40"
             />
           </div>
 
           <div className="-mx-1 max-h-[22rem] space-y-4 overflow-y-auto px-1">
             {pantallasFiltradas.length > 0 && (
               <div>
-                <p className="label-cayla px-2 pb-1.5 text-[10.5px] text-tinta/50">Pantallas</p>
+                <p className="label-cayla px-2 pb-1.5 text-[10.5px] text-tinta/50 dark:text-tinta/60">Pantallas</p>
                 <div className="space-y-0.5">
                   {pantallasFiltradas.map((p, idx) => (
                     <Link
@@ -206,7 +206,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
                       }`}
                     >
                       <span className="flex-1">{p.etiqueta}</span>
-                      <span className="font-mono text-[11px] text-tinta/40">{p.href}</span>
+                      <span className="font-mono text-[11px] text-tinta/40 dark:text-tinta/55">{p.href}</span>
                     </Link>
                   ))}
                 </div>
@@ -215,7 +215,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
 
             {equipoFiltrado.length > 0 && (
               <div>
-                <p className="label-cayla px-2 pb-1.5 text-[10.5px] text-tinta/50">Equipo · {ubicacionEtiqueta}</p>
+                <p className="label-cayla px-2 pb-1.5 text-[10.5px] text-tinta/50 dark:text-tinta/60">Equipo · {ubicacionEtiqueta}</p>
                 <div className="space-y-0.5">
                   {equipoFiltrado.map((m, idx) => {
                     const i = pantallasFiltradas.length + idx;
@@ -234,7 +234,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
             )}
 
             {pantallasFiltradas.length === 0 && equipoFiltrado.length === 0 && (
-              <p className="px-2 py-6 text-center text-sm text-tinta/50">Sin coincidencias para «{query}»</p>
+              <p className="px-2 py-6 text-center text-sm text-tinta/50 dark:text-tinta/60">Sin coincidencias para «{query}»</p>
             )}
           </div>
         </Modal>

@@ -89,7 +89,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
                   className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
                 >
                   {r.etiqueta}
-                  <small className="ml-1.5 opacity-70">{r.n}</small>
+                  <small className="ml-1.5 opacity-70 dark:opacity-85">{r.n}</small>
                 </button>
               ))}
             </div>

@@ -30,7 +30,7 @@ export function BotonFiltro({
     >
       {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
       {children}
-      <span className={`font-normal tabular-nums ${activo ? "text-crema/60" : "text-tinta/40"}`}>{cuenta}</span>
+      <span className={`font-normal tabular-nums ${activo ? "text-crema/60 dark:text-crema/75" : "text-tinta/40"}`}>{cuenta}</span>
     </button>
   );
 }

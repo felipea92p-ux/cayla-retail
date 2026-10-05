@@ -308,7 +308,7 @@ export function DevolucionesPanel({
                   aria-selected={vista === p.valor}
                   onClick={() => setVista(p.valor)}
                   className={`h-9 shrink-0 rounded-full px-3 text-sm sm:px-4 transition-colors duration-200 ${
-                    vista === p.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_rgba(26,26,24,0.08)]" : "text-tinta/75 hover:text-tinta"
+                    vista === p.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_color-mix(in_srgb,var(--color-sombra)_8%,transparent)]" : "text-tinta/75 hover:text-tinta"
                   }`}
                 >
                   {p.texto} <span className={`tabular-nums ${p.alerta ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{p.cuantas}</span>

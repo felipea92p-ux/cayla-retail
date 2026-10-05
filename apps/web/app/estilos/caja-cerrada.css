@@ -153,7 +153,7 @@
   height: 12px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, var(--color-papel), var(--color-taupe));
-  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-tinta) 40%, transparent);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-sombra) 40%, transparent);
 }
 .caja-cerrada-cuerdas {
   width: 220px;
@@ -195,7 +195,7 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   /* Flota delante de la persiana: lleva sombra (no está pegado al fondo). */
-  box-shadow: 0 30px 44px -24px color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  box-shadow: 0 30px 44px -24px color-mix(in srgb, var(--color-sombra) 45%, transparent);
 }
 /* Los dos agujeros por donde pasa la cuerda. */
 .caja-cerrada-cara::before,
@@ -207,7 +207,7 @@
   height: 7px;
   border-radius: 50%;
   background: var(--color-hueso);
-  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-sombra) 25%, transparent);
 }
 .caja-cerrada-cara::before { left: 52px; }
 .caja-cerrada-cara::after { right: 52px; }
