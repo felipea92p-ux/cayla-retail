@@ -61,6 +61,7 @@ export async function getNuevosDelCatalogo(ubicacionId: string, ahoraMs: number 
     const res = await productosVigentes(
       supabase,
       `id, codigo, referencia, created_at, propuesto_por,
+       categoria:categorias ( nombre, prefijo, familia ),
        producto_fotos ( url, orden, es_principal ),
        variantes ( id, precio, activo, color:colores ( nombre, hex ) )`
     )

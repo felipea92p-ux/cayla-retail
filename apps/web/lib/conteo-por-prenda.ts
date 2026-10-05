@@ -26,6 +26,9 @@ export type PrendaDelLugar = {
   colorHex: string | null;
   talla: string | null;
   categoria: string | null;
+  /** Prefijo y familia de su categoría: de ahí sale el ícono de la prenda sin foto (`SinFoto`, 2026-10-04). Opcionales. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   fotoUrl: string | null;
   /** Dónde tiene stock (> 0). En una sede que no separa piso y almacén (el Taller) solo cuenta `enUbicacion`. */
   enPiso: boolean;
@@ -57,6 +60,8 @@ export function prendaDelLugarDesdeStock(f: FilaStock): PrendaDelLugar {
     colorHex: f.colorHex,
     talla: f.talla,
     categoria: f.categoria,
+    categoriaPrefijo: f.categoriaPrefijo ?? null,
+    categoriaFamilia: f.categoriaFamilia ?? null,
     fotoUrl: f.fotoUrl,
     enPiso: (f.piso ?? 0) > 0,
     enAlmacen: (f.almacen ?? 0) > 0,

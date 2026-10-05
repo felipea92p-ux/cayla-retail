@@ -27,6 +27,10 @@ export type PrendaParaReponer = {
   colorHex: string | null;
   /** La foto de la prenda: va a la izquierda de la ventana. */
   fotoUrl?: string | null;
+  /** Su categoría (opcional), para dibujar la prenda sin foto con su ícono: ver `SinFoto`. Una `PrendaAgrupada` la trae. */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   tallas: readonly FilaDeTalla[];
 };
 

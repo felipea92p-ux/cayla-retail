@@ -6,7 +6,7 @@ import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
@@ -1055,7 +1055,7 @@ export function InventarioPanel({
                     </span>
                   )}
                   <span className="flex min-w-0 flex-1 items-center gap-3.5">
-                    <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="md" />
+                    <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="md" {...categoriaDe(f)} />
                     <span className="min-w-0">
                       <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta" title={mostrarMarca && f.marca ? `${f.referencia} · ${f.marca}` : f.referencia}>
                         {f.referencia}
@@ -1228,7 +1228,7 @@ export function InventarioPanel({
         <AjustarInventarioModal
           productoId={ajustando.productoId}
           // Cada fila de Existencias es una prenda (modelo + color): el ajuste muestra solo sus tallas.
-          prenda={{ color: ajustando.color, colorHex: ajustando.colorHex, fotoUrl: ajustando.fotoUrl }}
+          prenda={{ color: ajustando.color, colorHex: ajustando.colorHex, fotoUrl: ajustando.fotoUrl, categoriaPrefijo: ajustando.categoriaPrefijo, categoriaFamilia: ajustando.categoriaFamilia, categoria: ajustando.categoria }}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
           puedeBajarAlPiso={puedeBajarAlPiso}

@@ -44,6 +44,10 @@ export type NuevoProducto = {
   /** Los colores de sus variantes, sin repetir. */
   colores: { nombre: string; hex: string | null }[];
   fotoUrl: string | null;
+  /** Su categoría, para dibujar el producto sin foto con su ícono (`SinFoto`, ADR-0333). */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** Lo que se puede vender de este producto en la sede de quien mira (`fn_existencias_productos`, la misma cifra que
    *  Existencias y el Catálogo: ADR-0270). `null` = no se pudo leer: la tarjeta no dice nada en vez de decir «0». */
   enMiSede: number | null;
@@ -59,6 +63,16 @@ export type NuevoProducto = {
   propia: boolean;
 };
 
+/**
+ * El color con el que se dibuja un PRODUCTO sin foto (`SinFoto`, ADR-0333): el de su único color. Con varios no hay uno que decir: pintar
+ * el primero afirmaría que el producto es de ese color, y «Nuevo en el catálogo» sirve justo para reconocer una prenda por su diseño,
+ * así que cae al tono de su familia (mismo criterio de `TarjetaParecida`: nunca un dato que la prenda no tiene). `null` si no hay
+ * colores, o su único color no es un color (Estampado, Multicolor).
+ */
+export function colorUnico(colores: readonly { hex: string | null }[]): string | null {
+  return colores.length === 1 ? colores[0].hex : null;
+}
+
 /** Lo que dice `fn_producto_origen` de un producto: la sede desde la que se registró (`null` = se sabe que se registró, no dónde). */
 export type OrigenDeProducto = { ubicacionId: string | null; nombre: string | null };
 
@@ -69,6 +83,8 @@ export type FilaNuevoCruda = {
   referencia: string;
   created_at: string;
   propuesto_por: string | null;
+  /** Su categoría (opcional: una lectura que no la pidió dibuja la percha). */
+  categoria?: { nombre: string; prefijo: string | null; familia: string | null } | null;
   producto_fotos: FotoCruda[] | null;
   variantes:
     | {
@@ -166,6 +182,9 @@ export function armarNuevos(
         precio: precios.length ? Math.min(...precios) : null,
         colores,
         fotoUrl: fotoPrincipal(f.producto_fotos),
+        categoria: f.categoria?.nombre ?? null,
+        categoriaPrefijo: f.categoria?.prefijo ?? null,
+        categoriaFamilia: f.categoria?.familia ?? null,
         enMiSede: aqui === null ? null : (aqui.get(f.id) ?? 0),
         quien: nombreDePila(f.propuesto_por ? nombres.get(f.propuesto_por) : null),
         sede: nombreSede ? etiquetaSedeDeOrigen(nombreSede) : null,
@@ -317,7 +336,12 @@ export type PrendaPorColgar = {
   clave: string;
   referencia: string;
   color: string | null;
+  colorHex?: string | null;
   fotoUrl: string | null;
+  /** Su categoría, para dibujar la prenda sin foto con su ícono (`SinFoto`, ADR-0333). */
+  categoria?: string | null;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** Sus tallas por colgar, en curva («Única» si el modelo no tiene talla). */
   tallas: string[];
 };
@@ -389,7 +413,11 @@ export function existenciasDeAlmacen<F extends FilaPrenda>(stock: readonly F[], 
       clave: x.clave,
       referencia: x.referencia,
       color: x.color,
+      colorHex: x.colorHex,
       fotoUrl: x.fotoUrl,
+      categoria: x.categoria ?? null,
+      categoriaPrefijo: x.categoriaPrefijo ?? null,
+      categoriaFamilia: x.categoriaFamilia ?? null,
       tallas: x.tallas.map((f) => f.talla ?? "Única"),
     })),
     hrefBajar: urlBajarAlPiso(p.filas) ?? "/inventario/bajar",
