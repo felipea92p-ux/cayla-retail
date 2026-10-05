@@ -7,7 +7,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, FileText, History, ListChecks, X } from "lucide-react";
 import { MiniaturaPrenda, SinFoto } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
-import type { ConsultarLink, DetalleBajadas, DetalleCajon, ItemPrenda, TonoCifra, VistaCajon } from "@/lib/movimientos-cajon";
+import { SelloTipo } from "@/components/movimientos/SelloTipo";
+import { TrayectoMovimiento } from "@/components/movimientos/TrayectoMovimiento";
+import type { ConsultarLink, DetalleBajadas, DetalleCajon, ItemPrenda, PasoCajon, RutaCajon, TonoCifra, VistaCajon } from "@/lib/movimientos-cajon";
+import { TIPOS_VISUALES, type TipoVisual } from "@/lib/movimientos-tipos";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css (mismo contrato que `CajonPrendaExistencias`). */
 const MS_SALIDA = 240;
@@ -26,8 +29,12 @@ const MS_SALIDA = 240;
    lo hizo; y debajo solo lo que ayuda a creerla — la prenda, la lista, lo que había y lo que hay ahora, el documento.
    Qué dice cada frase y cada línea lo decide `lib/movimientos-cajon.ts`; acá solo se pinta.
 
-   Es un solo marco con dos contenidos: UNA operación (`ContenidoOperacion`) o las bajadas de un día / un movimiento
-   interno suelto (`ContenidoBajadas`). Pasar de uno a otro cambia el contenido sin cerrar ni volver a deslizar.
+   Es un solo marco con dos contenidos: UNA operación (`ContenidoOperacion`) o un movimiento interno (una colgada en piso o una
+   guardada en almacén, `ContenidoBajadas`). Pasar de uno a otro cambia el contenido sin cerrar ni volver a deslizar.
+
+   Rediseño 2026-10-05 (ADR-0345): la cabecera lleva el sello y el color de su tipo, y después de la frase vienen la ruta (de dónde
+   a dónde) y «Qué pasó» (tres pasos, solo con lo que el registro respalda). Todo lo demás —la frase con el número grande, lo
+   que había y hay, la lista, el documento— sigue como lo aprobó Felipe.
    ==================================================================== */
 
 const TONO_TEXTO: Record<TonoCifra, string> = {
@@ -36,15 +43,52 @@ const TONO_TEXTO: Record<TonoCifra, string> = {
   neutro: "text-tinta",
 };
 
-/** Nombre del movimiento y cuándo. El título es el mismo texto que la lista dice para esa fila: se reconoce sin leer. */
-function Encabezado({ titulo, cuando }: { titulo: string; cuando: string }) {
+/** Nombre del movimiento y cuándo, en una cabecera con el color y el sello de su tipo (ADR-0345): el mismo ícono y color que
+ *  la fila de la lista, así se reconoce al abrirlo. El título es el mismo texto que la lista dice para esa fila. */
+function Encabezado({ titulo, cuando, tipo }: { titulo: string; cuando: string; tipo: TipoVisual }) {
   return (
-    <div className="pr-9">
-      <Dialog.Title asChild>
-        <h2 className="font-display text-[26px] leading-tight text-tinta">{titulo}</h2>
-      </Dialog.Title>
-      <Dialog.Description className="mt-1 text-[15px] tabular-nums text-taupe">{cuando}</Dialog.Description>
+    <div className="mv-cajon-cab" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
+      <SelloTipo tipo={tipo} tamano={56} />
+      <div className="min-w-0 pr-9">
+        <Dialog.Title asChild>
+          <h2 className="font-display text-[26px] leading-tight text-tinta">{titulo}</h2>
+        </Dialog.Title>
+        <Dialog.Description className="mt-1 text-[15px] tabular-nums text-taupe">{cuando}</Dialog.Description>
+      </div>
     </div>
+  );
+}
+
+/** De dónde a dónde fue, con la prenda que viaja: el mismo trayecto de la fila. */
+function BloqueRuta({ ruta, tipo }: { ruta: RutaCajon; tipo: TipoVisual }) {
+  // Sin destino solo tiene sentido un ajuste o un conteo («se corrigió aquí»): un stock inicial o una carga no «van» a ninguna parte.
+  const corrige = tipo === "ajuste" || tipo === "conteo";
+  if (!ruta.destino && !corrige) return null;
+  return (
+    <section className="mt-6 border-t border-sand pt-5" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
+      <h3 className="mb-3 text-[15px] font-semibold text-tinta">Ruta</h3>
+      <TrayectoMovimiento origen={ruta.origen} destino={ruta.destino} tipo={tipo} motivo={ruta.motivo} solo={tipo === "conteo" ? "se corrigió tras contar" : "se corrigió aquí"} />
+    </section>
+  );
+}
+
+/** «Qué pasó»: los pasos, con una línea que los une. Un paso que todavía falta (un traslado en camino) va hueco. */
+function BloquePasos({ pasos, tipo }: { pasos: PasoCajon[]; tipo: TipoVisual }) {
+  if (pasos.length === 0) return null;
+  return (
+    <section className="mt-6 border-t border-sand pt-5" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
+      <h3 className="mb-3 text-[15px] font-semibold text-tinta">Qué pasó</h3>
+      <ol className="mv-pasos">
+        {pasos.map((p, i) => (
+          <li key={i} data-hecho={p.hecho ? "" : undefined} style={{ "--k": i } as React.CSSProperties}>
+            <span aria-hidden className="mv-paso-marca">
+              {p.hecho ? "✓" : i + 1}
+            </span>
+            <span className="text-[14.5px] leading-snug text-tinta">{p.texto}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -181,9 +225,11 @@ function FilaEnlace({ link, onVerVenta }: { link: ConsultarLink; onVerVenta?: ()
 function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
   return (
     <>
-      <Encabezado titulo={b.titulo} cuando={b.cuando} />
+      <Encabezado titulo={b.titulo} cuando={b.cuando} tipo={b.tipo} />
       <Hero cifra={b.cifra} frase={b.frase} quien={b.quien} />
       <p className="mt-3 text-[13.5px] leading-snug text-taupe">{b.nota}</p>
+      {b.ruta && <BloqueRuta ruta={b.ruta} tipo={b.tipo} />}
+      <BloquePasos pasos={b.pasos} tipo={b.tipo} />
 
       <Seccion icono={ListChecks} titulo="Prendas">
         <ul className="-mt-1">
@@ -214,9 +260,11 @@ function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
 function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: () => void }) {
   return (
     <>
-      <Encabezado titulo={d.titulo} cuando={d.cuando} />
+      <Encabezado titulo={d.titulo} cuando={d.cuando} tipo={d.tipo} />
       {d.prenda && <BloquePrenda prenda={d.prenda} />}
       <Hero cifra={d.cifra} frase={d.frase} donde={d.donde} quien={d.quien} />
+      {d.ruta && <BloqueRuta ruta={d.ruta} tipo={d.tipo} />}
+      <BloquePasos pasos={d.pasos} tipo={d.tipo} />
 
       {d.enTienda && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-sand px-5 py-3 text-[14px]">

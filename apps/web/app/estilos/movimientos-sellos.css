@@ -243,8 +243,18 @@ ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
 .mv-fila[data-flash] { animation: mv-destello 1.3s var(--ease-cayla); }
 @keyframes mv-destello { 0%, 100% { background: transparent; } 25% { background: color-mix(in srgb, var(--mv-c) 17%, var(--color-papel)); } }
 
+/* ── El cajón de un movimiento: cabecera con el sello de su tipo, y «Qué pasó» ── */
+.mv-cajon-cab { display: flex; align-items: flex-start; gap: 1rem; border-radius: 16px; background: color-mix(in srgb, var(--mv-c) 9%, var(--color-papel)); padding: 1.125rem 1.25rem; }
+.mv-pasos { position: relative; display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.mv-pasos li { position: relative; display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); gap: 0.625rem; padding-bottom: 0.875rem; }
+.mv-pasos li:last-child { padding-bottom: 0; }
+.mv-pasos li:not(:last-child)::before { content: ""; position: absolute; left: 0.6875rem; top: 1.5rem; bottom: -0.125rem; width: 2px; background: var(--color-sand); transform-origin: top; animation: mv-hilo 0.5s var(--ease-cayla) both; animation-delay: calc(var(--k, 0) * 55ms + 260ms); }
+.mv-paso-marca { z-index: 1; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 9999px; background: var(--color-papel); color: var(--mv-c); font-size: 11px; font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--mv-c); }
+.mv-pasos li:not([data-hecho]) .mv-paso-marca { color: var(--color-taupe); box-shadow: inset 0 0 0 1.5px var(--color-sand); }
+@keyframes mv-hilo { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .mv-sello *, .mv-ruta *, .mv-fila, .mv-fila::before, .mv-tipo, .mv-tipo-barra i, .mv-capas, .mv-mazo-hijos, .mv-mazo-hijos .mv-fila, .mv-codigo button { animation: none !important; transition: none !important; }
+  .mv-sello *, .mv-ruta *, .mv-fila, .mv-fila::before, .mv-tipo, .mv-tipo-barra i, .mv-capas, .mv-mazo-hijos, .mv-mazo-hijos .mv-fila, .mv-codigo button, .mv-pasos li::before { animation: none !important; transition: none !important; }
   .mv-codigo button { transform: none; }
   .mv-mazo-hijos .mv-fila { transform: none; opacity: 1; }
   .mv-riel .mv-viaje { display: none; }
