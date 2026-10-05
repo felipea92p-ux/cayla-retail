@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION, type PreparacionSede } from "@/lib/motor-demanda-reglas";
 
-// Motor de demanda, etapa 0 (ADR-0344): lectura del servidor. Solo LEE, por la función de la base
+// Motor de demanda, etapa 0 (ADR-0346): lectura del servidor. Solo LEE, por la función de la base
 // (`fn_motor_demanda_preparacion`, 20261005210000). Si falla —la web publicada antes que la migración, o la base caída—, lo
 // dice (principio 9): una sede nunca aparece «lista» ni «sin datos» por un error.
 

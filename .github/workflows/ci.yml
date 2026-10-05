@@ -1279,7 +1279,7 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:piso-plan
 
-      # El motor de demanda, etapa 0 (ADR-0344): `fn_motor_demanda_preparacion` cuenta por tienda y por día de Lima las unidades
+      # El motor de demanda, etapa 0 (ADR-0346): `fn_motor_demanda_preparacion` cuenta por tienda y por día de Lima las unidades
       # vendidas y cuántas apuntan a una prenda real (no a la centinela «sin registrar»), más el último cuadre del piso y si el
       # almacén tuvo su conteo de arranque. Vigila las puertas (sin sede solo CAYLA Global; con sede, quien la opera), el día de
       # Lima, que anuladas, de prueba, de otra sede, viejas y liquidaciones de dañadas no cuenten, y que una venta regularizada

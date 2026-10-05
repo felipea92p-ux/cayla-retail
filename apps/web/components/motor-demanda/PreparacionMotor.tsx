@@ -2,7 +2,7 @@ import { Check, Circle } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { DIAS_SOSTENIDOS, fraseDelMotor, porciento, type PreparacionSede } from "@/lib/motor-demanda-reglas";
 
-// Motor de demanda, etapa 0 (ADR-0344): una tarjeta por tienda que dice si el sistema ya puede recomendar ahí y, si no, qué le
+// Motor de demanda, etapa 0 (ADR-0346): una tarjeta por tienda que dice si el sistema ya puede recomendar ahí y, si no, qué le
 // falta. Solo dibuja: el veredicto sale de `preparacionDeSede` (lib/motor-demanda-reglas.ts). Server Component.
 //
 // La racha se ve como 14 marcas, una por día: lo que el líder tiene que mirar es cuánto falta, no un porcentaje suelto.

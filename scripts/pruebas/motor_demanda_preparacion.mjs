@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la lectura del motor de demanda, etapa 0 (ADR-0344) — `retail.fn_motor_demanda_preparacion(p_ubicacion_id)`,
+ * Pruebas de la lectura del motor de demanda, etapa 0 (ADR-0346) — `retail.fn_motor_demanda_preparacion(p_ubicacion_id)`,
  * migración `20261005210000_motor_demanda_preparacion.sql`. CAYLA V2.
  *
  * LO QUE VIGILA. La lectura dice, por tienda, cuántas unidades se vendieron cada día de Lima y cuántas apuntan a una prenda real

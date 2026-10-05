@@ -1,4 +1,4 @@
--- Motor de demanda, etapa 0: «¿el motor puede hablar en esta sede?» (ADR-0344; diseño en
+-- Motor de demanda, etapa 0: «¿el motor puede hablar en esta sede?» (ADR-0346; diseño en
 -- docs/investigacion/2026-10-05-algoritmo-de-inventario.md).
 --
 -- POR QUÉ. Antes de recomendar cuánto colgar, trasladar, producir o comprar, el motor necesita datos que digan la verdad. El
@@ -126,7 +126,7 @@ revoke all on function retail.fn_motor_demanda_preparacion(uuid) from public, an
 grant execute on function retail.fn_motor_demanda_preparacion(uuid) to authenticated, service_role;
 
 comment on function retail.fn_motor_demanda_preparacion(uuid) is
-  'ADR-0344: materia prima de «¿el motor de demanda puede hablar en esta sede?» — por tienda activa: unidades vendidas e '
+  'ADR-0346: materia prima de «¿el motor de demanda puede hablar en esta sede?» — por tienda activa: unidades vendidas e '
   'identificadas (no centinela) por día de Lima en los últimos 45 días, primera venta, último cuadre del piso y si el almacén ya '
   'tuvo su conteo de arranque. La regla (90 % sostenido 14 días) vive en lib/motor-demanda-reglas.ts. Sin sede: todas, con el '
   'módulo cayla_global; con sede: también quien la opera.';

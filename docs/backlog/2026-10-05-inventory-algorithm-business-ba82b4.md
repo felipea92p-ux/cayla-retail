@@ -3,7 +3,7 @@
 Diseño: `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`. Cada etapa se abre por una condición de los datos, no por fecha.
 
 - [x] Investigación (empresas con fuentes, mapa del código, datos de producción) y decisiones de Felipe (umbral 90 %, sin historia, deciden los tres).
-- [x] **Etapa 0 — La verdad (ADR-0344):** indicador por tienda «¿el sistema ya puede recomendar?» en CAYLA Global (90 % sostenido 14 días, piso cuadrado, almacén contado). `fn_motor_demanda_preparacion` (migración `20261005210000`), `lib/motor-demanda-reglas.ts`, `PreparacionMotor.tsx`. Probado: SQL 12/12, vitest 19/19, navegador local.
+- [x] **Etapa 0 — La verdad (ADR-0346):** indicador por tienda «¿el sistema ya puede recomendar?» en CAYLA Global (90 % sostenido 14 días, piso cuadrado, almacén contado). `fn_motor_demanda_preparacion` (migración `20261005210000`), `lib/motor-demanda-reglas.ts`, `PreparacionMotor.tsx`. Probado: SQL 12/12, vitest 19/19, navegador local.
 - [ ] **Sin pegar en producción:** `20261005210000_motor_demanda_preparacion.sql` (una función de lectura, una sola parte, sin políticas). Hasta entonces CAYLA Global dice «No se pudo leer…» en esa sección. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
 - [ ] **Conectar a Inventario ▸ Tareas (ADR-0345, otra sesión):** su columna «Sugerencias» usa `getPreparacionMotor(sede)` + `fraseDelMotor`; lo conecta esa sesión.
 - [ ] **Cargar el stock de AQP y LIM** (operación, no código): hoy AQP tiene 13 unidades y LIM 1.

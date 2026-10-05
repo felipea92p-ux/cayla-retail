@@ -11,7 +11,7 @@ Felipe decidió: una sede habla desde el 90 % de venta identificada sostenido 14
 espera una temporada limpia y diciembre se compra con una hoja de supuestos; deciden encargado de sede, Compras y líder, cada uno
 desde el módulo donde vive la sugerencia. Sin código ni migración todavía.
 
-## 2026-10-05 (Motor de demanda, etapa 0: «¿El sistema ya puede recomendar?» en CAYLA Global, ADR-0344)
+## 2026-10-05 (Motor de demanda, etapa 0: «¿El sistema ya puede recomendar?» en CAYLA Global, ADR-0346)
 Qué hice: agregué una función de lectura, `fn_motor_demanda_preparacion`, que cuenta por tienda y por día de Lima las unidades
 vendidas y cuántas tienen su prenda, y trae el último cuadre del piso y si el almacén ya tuvo su conteo de arranque. La regla vive
 en `lib/motor-demanda-reglas.ts`: 90 % sostenido 14 días cerrados; un día sin ventas no corta la racha y una venta regularizada

@@ -1,4 +1,4 @@
-// Motor de demanda, etapa 0 (ADR-0344): «¿el motor puede hablar en esta sede?». Lógica pura, sin React ni red, para probarla
+// Motor de demanda, etapa 0 (ADR-0346): «¿el motor puede hablar en esta sede?». Lógica pura, sin React ni red, para probarla
 // entera. Diseño: docs/investigacion/2026-10-05-algoritmo-de-inventario.md.
 //
 // EL PROBLEMA. Recomendar cuánto colgar, trasladar, producir o comprar sobre ventas que no dicen qué prenda fue es recomendar

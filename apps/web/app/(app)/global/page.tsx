@@ -113,7 +113,7 @@ export default async function SaludDelNegocioPage() {
         </section>
       )}
 
-      {/* Motor de demanda, etapa 0 (ADR-0344): antes de recomendar nada, si los datos de cada tienda ya dicen la verdad. */}
+      {/* Motor de demanda, etapa 0 (ADR-0346): antes de recomendar nada, si los datos de cada tienda ya dicen la verdad. */}
       <section aria-labelledby="motor-titulo" className="space-y-3">
         <div>
           <h2 id="motor-titulo" className="font-display text-xl text-tinta">¿El sistema ya puede recomendar?</h2>

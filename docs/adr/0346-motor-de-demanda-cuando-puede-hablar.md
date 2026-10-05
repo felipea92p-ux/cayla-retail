@@ -1,4 +1,4 @@
-# ADR-0344 — Motor de demanda, etapa 0: el sistema solo recomienda en una sede cuyos datos dicen la verdad
+# ADR-0346 — Motor de demanda, etapa 0: el sistema solo recomienda en una sede cuyos datos dicen la verdad
 
 - Fecha: 2026-10-05
 - Estado: aceptado. Felipe aprobó el diseño y fijó el umbral, la falta de historia y quién decide (2026-10-05).
