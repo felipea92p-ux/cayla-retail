@@ -1,8 +1,8 @@
 # ADR-0335 · El cierre de mes avisa de las ventas cerradas sin prenda: un aviso que no bloquea y queda en el cierre
 
 - **Fecha:** 2026-10-04 · **Estado:** aprobado por Felipe (opción A de tres, «Aviso que no bloquea»). Construido y verificado en una base local
-  propia y en el navegador (escritorio y 375 px). **La migración NO está en producción** (`docs/backlog/2026-10-04-cierre-mes-ventas-cerradas-sin-prenda.md`
-  trae la comprobación previa y la posterior, con la huella exacta que debe dar la función).
+  propia y en el navegador (escritorio y 375 px). **La migración está en producción desde el 2026-10-04** (la pegó Felipe; verificada por efectos: la función viva da
+  `md5 ea9dede5a8c7a70191867b31bd1c6f73` y 13,199 caracteres, con la delegación de ADR-0253 intacta y la cola sin cambios).
 - **Pedido:** cerrar el pendiente que ADR-0334 dejó escrito en «Lo que queda abierto»: *«Finanzas ▸ Cierre de mes no nombra las ventas cerradas
   sin costo (excluye la variante «Cargo especial»). Tarea aparte con su decisión contable.»* Felipe eligió la decisión con una pregunta.
 - **Usa y complementa:** ADR-0334 (el estado `cerrada_sin_prenda`), ADR-0195 F9 y ADR-0198 (el cierre de mes y sus chequeos), ADR-0253 (el

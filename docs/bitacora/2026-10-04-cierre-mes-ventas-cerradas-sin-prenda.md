@@ -9,7 +9,7 @@ Por qué así: bloquear dejaba un mes con cola cerrada imposible de cerrar (la p
 número que queda congelado con huella. Es un chequeo aparte de «sin costo» porque ese tiene cura (cargar el costo) y este no. Se parchó la función viva en vez
 de recrearla porque otra migración (ADR-0253) le cambió la puerta del cierre y recrearla desde el archivo la habría borrado; en producción la función es
 idéntica byte por byte a la de la base de pruebas.
-Felipe se lleva: ADR-0335; la migración NO está en producción (el orden y la huella que debe dar la función, en
-`docs/backlog/2026-10-04-cierre-mes-ventas-cerradas-sin-prenda.md`); y una tarea que no pidió: el Estado de resultados tiene la misma exclusión y no avisa
+Felipe se lleva: ADR-0335; la migración YA está en producción (la pegó el mismo día; la función viva dio la huella esperada `ea9dede5…`, 13,199 caracteres, y el
+aviso aparecerá cuando un líder cierre la cola de arranque); y una tarea que no pidió: el Estado de resultados tiene la misma exclusión y no avisa
 de estas ventas, así que el margen que lee el contador sale inflado a diario, no solo al cerrar. Verificado: 124 casos SQL, 8 de 8 mutaciones detectadas,
 vitest, y el navegador a 375 px y escritorio.

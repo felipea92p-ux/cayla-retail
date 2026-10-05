@@ -1,4 +1,4 @@
-## 🧹 Cierre de mes: las ventas cerradas sin prenda salen como un aviso que no bloquea (2026-10-04, ADR-0335) — **SQL SIN pegar en producción**; rama `claude/cierre-mes-ventas-cerradas-sin-prenda` (apilada sobre `claude/unregistered-merchandise-solutions-860786`, ADR-0334)
+## 🧹 Cierre de mes: las ventas cerradas sin prenda salen como un aviso que no bloquea (2026-10-04, ADR-0335) — **SQL YA en producción (2026-10-04, verificado por efectos)**; rama `claude/cierre-mes-ventas-cerradas-sin-prenda` (apilada sobre `claude/unregistered-merchandise-solutions-860786`, ADR-0334)
 
 Decisión de Felipe (2026-10-04): opción A — aviso que no bloquea y queda en `periodo_cierres.avisos`. Producción el 2026-10-04 (solo lectura): septiembre tiene 31
 ventas sin registrar pendientes (AQP 26 por S/ 1,170.80; TRU 5 por S/ 370.60) que hoy BLOQUEAN el cierre de septiembre; octubre, 236 más.
@@ -9,7 +9,10 @@ ventas sin registrar pendientes (AQP 26 por S/ 1,170.80; TRU 5 por S/ 370.60) qu
   chequeo `regularizar` iba a `/recibir` (que desde ADR-0330 ya no muestra la lista) y ahora va a `/inventario/por-regularizar?ubicacion=…`.
 - [x] **Pruebas:** `pnpm pruebas:cierre-mes` 124 casos (bloque G nuevo, 20), mutación 8 de 8, `cierre-reglas.test.ts` 26, navegador a 375 px y escritorio.
 
-### Para pegar en producción (lo hace Felipe; UNA ejecución, sin `drop` ni `select … into` en textos entre comillas)
+### Pegado en producción el 2026-10-04 por Felipe (UNA ejecución). Lo de abajo queda como registro y como receta de verificación
+
+- [x] **Pegada y verificada:** la función viva dio `ea9dede5a8c7a70191867b31bd1c6f73` y 13,199 caracteres (lo esperado), la delegación de ADR-0253 sigue en pie y la cola
+  quedó igual (267 pendientes, 1 anulada, 0 cerradas: el aviso aparecerá cuando un líder cierre la cola de arranque, ADR-0334).
 
 Se puede pegar en cualquier momento del día (solo reemplaza el texto de una función) y antes o después de las cinco migraciones de ADR-0334. La web de este cambio
 puede publicarse antes o después: sin la migración el aviso no aparece y el resto funciona igual.
