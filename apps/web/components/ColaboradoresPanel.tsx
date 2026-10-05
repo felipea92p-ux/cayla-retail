@@ -12,52 +12,37 @@ import type {
   Terminal,
 } from "@/lib/colaboradores";
 import { accionesSupabase, type AccionesColaboradores, type ResultadoAccion } from "@/lib/colaboradores-acciones";
-import {
-  avisoTerminal,
-  filtrarColaboradores,
-  plural,
-  porAtender,
-  resumirAccesos,
-  vistaDe,
-  type AccionFila,
-  type EstadoCuenta,
-  type FiltroRol,
-  type SeccionColaboradores,
-  type TipoCuenta,
-  type VistaColaboradores,
-} from "@/lib/colaboradores-reglas";
+import { avisoTerminal, plural, vistaDe, type SeccionColaboradores, type VistaColaboradores } from "@/lib/colaboradores-reglas";
+import { armarEquipo, type FiltroEquipo, type PersonaEquipo } from "@/lib/equipo-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton } from "@/components/ui/campos";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { Modal } from "@/components/ui/Modal";
-import { Check, History } from "lucide-react";
-import { AgregarColaboradoresModal, AlternarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { History } from "lucide-react";
+import { AlternarTerminalModal } from "@/components/ColaboradoresModales";
+import { DarAccesoModal } from "@/components/colaboradores/DarAccesoModal";
+import { avisoDarAcceso } from "@/lib/dar-acceso-reglas";
 import { AsignarRolModal } from "@/components/RolesModales";
 import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
 import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
-import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos } from "@/components/ColaboradoresTablas";
-import { TerminalesPanel, type AccionesTerminales } from "@/components/TerminalesPanel";
-import { ComboResponsable } from "@/components/ComboResponsable";
+import { ActividadEquipo } from "@/components/colaboradores/ActividadEquipo";
+import { accionesTerminalesServidor, type AccionesTerminales } from "@/components/colaboradores/terminales-acciones";
+import { FichaTerminal } from "@/components/colaboradores/FichaTerminal";
+import { CambiarClaveModal, NuevaTerminalModal } from "@/components/TerminalesModales";
+import { EquipoLista } from "@/components/colaboradores/EquipoLista";
+import { FichaColaborador } from "@/components/colaboradores/FichaColaborador";
 import { useResponsable } from "@/lib/useResponsable";
 import type { Firma } from "@/lib/responsable-reglas";
 
-// «Terminales» (ADR-0162): aparatos de cada tienda con cuenta propia y SIN persona — ya no salen de `fn_colaboradores()`
-// sino de `fn_terminales()`. La pestaña entera vive en `TerminalesPanel` (crear, cambiar clave; sin tipo desde el
-// 2026-09-22); aquí quedan Desactivar/Reactivar y Cambiar rol, que comparten modales con el resto de la pantalla.
-// Desde el spike `docs/maquetas/colaboradores-ux-spike-2026-09/` (Felipe, 2026-09-22) la pantalla tiene DOS secciones:
-// «Cuentas» (personas o terminales; las personas filtradas por estado) y «Roles y accesos». Arriba de Cuentas, «Por
-// atender» solo cuando algo pide acción. Actividad se abre en un modal. `?pestana=` de antes sigue funcionando (`vistaDe`).
-
-const ESTADOS: { clave: EstadoCuenta; etiqueta: string; punto: string }[] = [
-  { clave: "activas", etiqueta: "Activas", punto: "bg-verde" },
-  { clave: "pendientes", etiqueta: "Por aprobar", punto: "bg-ambar" },
-  { clave: "suspendidas", etiqueta: "Suspendidas", punto: "bg-rojo-profundo" },
-  { clave: "inactivas", etiqueta: "Inactivas en Dynamic", punto: "bg-taupe" },
-];
+// Colaboradores: quién entra a retail, en qué sede y con qué rol. Retail nunca crea gente nueva aquí —Dynamic ya es dueño
+// de esa identidad (0009_integracion_dynamic.sql)— solo decide a cuáles cuentas YA existentes en Dynamic les da acceso.
+// Dos secciones: «Equipo» (desde el 2026-10-05: una lista agrupada por sede con la ficha de cada persona al costado; antes
+// «Cuentas», con pestañas por tipo y por estado) y «Roles y accesos». Actividad se abre en un modal: se consulta, no se
+// trabaja ahí. `?pestana=` de antes sigue funcionando (`vistaDe`).
+// `acciones` y `alActualizar` existen para poder mostrar la pantalla con datos de ejemplo: por defecto escriben en la base
+// y recargan los datos del servidor.
 
 /** Una de las dos secciones: título y, debajo, su resumen (con lo que pide atención en ámbar). */
 function BotonSeccion({ activa, onClick, titulo, children }: { activa: boolean; onClick: () => void; titulo: string; children: React.ReactNode }) {
@@ -76,27 +61,20 @@ function BotonSeccion({ activa, onClick, titulo, children }: { activa: boolean; 
   );
 }
 
-type Modal =
+type ModalPanel =
   | { tipo: "agregar" }
   | { tipo: "terminal"; terminal: Terminal }
-  | { tipo: "suspender"; persona: Colaborador }
-  | { tipo: "ubicacion"; persona: Colaborador }
-  | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean; pendiente?: boolean }
-  | { tipo: "rol"; cuenta: CuentaConRol };
+  | { tipo: "rol_terminal"; cuenta: CuentaConRol }
+  | { tipo: "nueva_terminal" }
+  | { tipo: "clave"; terminal: Terminal };
 
-const entrada =
-  "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo sm:w-80";
-
-function Vacio({ children }: { children: React.ReactNode }) {
-  return <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">{children}</p>;
+/** Con qué atajo abre Equipo según el `?pestana=` de antes: los enlaces viejos siguen llevando a lo mismo. */
+function filtroInicial(v: VistaColaboradores): FiltroEquipo {
+  if (v.tipo === "terminales") return "terminales";
+  if (v.estado === "suspendidas" || v.estado === "inactivas") return "suspendidas";
+  return "todas";
 }
 
-// Colaboradores: quién puede entrar a retail hoy. Retail nunca crea gente nueva acá — Dynamic ya es dueño de esa
-// identidad (0009_integracion_dynamic.sql) — solo decide a cuáles cuentas YA existentes en Dynamic les da acceso
-// (0013_colaboradores_autorizados.sql). Suspender la saca de la puerta sin borrarla; Quitar es la baja definitiva
-// (20260922110000_colaboradores_suspender_y_actividad.sql, ADR-0148).
-// `acciones` y `alActualizar` existen para poder mostrar la pantalla con datos de ejemplo: por defecto escriben en
-// la base y recargan los datos del servidor.
 export function ColaboradoresPanel({
   colaboradores,
   pendientes,
@@ -106,6 +84,9 @@ export function ColaboradoresPanel({
   disponibles,
   ubicaciones,
   terminales,
+  deTurno = [],
+  ahoraIso,
+  veActividadModulo = false,
   roles = null,
   cuentas = null,
   vistaInicial = vistaDe(undefined),
@@ -117,7 +98,7 @@ export function ColaboradoresPanel({
   misModulos = null,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
-  accionesTerminales,
+  accionesTerminales = accionesTerminalesServidor,
   alActualizar,
 }: {
   colaboradores: Colaborador[];
@@ -129,20 +110,25 @@ export function ColaboradoresPanel({
   ubicaciones: Ubicacion[];
   /** `null` = no se pudieron leer (p. ej. la base aún no tiene la migración del ADR-0162); el resto de la pantalla sigue. */
   terminales: Terminal[] | null;
-  /** ADR-0161 B: los roles y las cuentas con su rol. `null` = no se pudieron leer (o la base aún no tiene la migración):
-   *  la pantalla sigue, sin la columna del rol ni «Cambiar rol». */
+  /** Quiénes están de turno hoy (asistencia de Dynamic): el punto verde. Vacío si no se pudo leer. */
+  deTurno?: readonly string[];
+  /** «Ahora» del servidor, para que «hoy 09:12» diga lo mismo al pintar en el servidor y en el navegador. */
+  ahoraIso: string;
+  /** ¿La cuenta ve el módulo Actividad? Con él, «Actividad» lee `fn_actividad` (accesos y roles); sin él, el registro de accesos. */
+  veActividadModulo?: boolean;
+  /** ADR-0161 B: los roles y las cuentas con su rol. `null` = no se pudieron leer (o quien mira no tiene Roles y accesos):
+   *  la pantalla sigue, con el nivel (Líder / Integrante) en vez del rol y sin «Cambiar rol». */
   roles?: RolVista[] | null;
   cuentas?: CuentaConRol[] | null;
   /** Sección y filtros con que abre (`?pestana=` de siempre, ver `vistaDe`). */
   vistaInicial?: VistaColaboradores;
-  /** Las secciones que ve esta cuenta (20260923131000): Cuentas con el módulo Colaboradores, Roles y accesos con el suyo.
+  /** Las secciones que ve esta cuenta (20260923131000): Equipo con el módulo Colaboradores, Roles y accesos con el suyo.
    *  Ausente = las dos (el líder, y las maquetas). */
   secciones?: readonly SeccionColaboradores[];
-  /** ¿Quien mira es líder? Sin serlo (tiene el módulo), no se le ofrece tocar a un líder ni dar el rol Líder. */
   soyLider?: boolean;
   /** ADR-0178: ¿quien mira es Admin (admin en Dynamic + Líder aquí)? Solo un Admin toca a un líder o da el rol Líder. */
   soyAdmin?: boolean;
-  /** ADR-0178: las personas que son Admin, para marcarlas en la tabla. */
+  /** ADR-0178: las personas que son Admin, para marcarlas. */
   admins?: readonly string[];
   /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: personas a las que quien mira no alcanza (sin acciones). */
   fueraDeAlcance?: readonly string[];
@@ -156,23 +142,72 @@ export function ColaboradoresPanel({
 }) {
   const router = useRouter();
   const [seccion, setSeccion] = useState<SeccionColaboradores>(vistaInicial.seccion);
-  const [tipo, setTipo] = useState<TipoCuenta>(vistaInicial.tipo);
-  const [estado, setEstado] = useState<EstadoCuenta>(vistaInicial.estado);
+  const [filtro, setFiltro] = useState<FiltroEquipo>(() => filtroInicial(vistaInicial));
   const [verActividad, setVerActividad] = useState(vistaInicial.actividad);
   const [rolElegidoId, setRolElegidoId] = useState<string | null>(null);
-  const [busqueda, setBusqueda] = useState("");
-  const [rol, setRol] = useState<FiltroRol>("todos");
-  const [modal, setModal] = useState<Modal | null>(null);
+  const [fichaId, setFichaId] = useState<string | null>(null);
+  const [terminalId, setTerminalId] = useState<string | null>(null);
+  // Tras crear una terminal o cambiarle la clave, la lista se refresca al CERRAR el paso de la clave: así no salta detrás de la
+  // clave que se está leyendo (se muestra una sola vez).
+  const [refrescarAlCerrar, setRefrescarAlCerrar] = useState(false);
+  const [modal, setModal] = useState<ModalPanel | null>(null);
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
   // Quién hace cada cambio (ADR-0161/0162; Felipe 2026-09-23: el combo va en TODA acción que guarda, también aquí).
-  // UNO para toda la pantalla: lo pintan cada modal, las tablas de un clic (aprobar, reactivar) y Roles y accesos. La
-  // base firma el historial con esa persona; quién PUEDE hacer el cambio lo sigue decidiendo la cuenta.
+  // UNO para toda la pantalla: lo pintan la franja de altas, la ficha, cada modal y Roles y accesos. La base firma el
+  // historial con esa persona; quién PUEDE hacer el cambio lo sigue decidiendo la cuenta.
   const responsable = useResponsable();
 
-  const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
-  const filas = useMemo(() => filtrarColaboradores(colaboradores, busqueda, rol), [colaboradores, busqueda, rol]);
+  const nombreDeRol = (id: string) => roles?.find((r) => r.id === id)?.nombre ?? null;
+  const miembros = useMemo(
+    () =>
+      armarEquipo({
+        activos: colaboradores,
+        suspendidos,
+        inactivos,
+        terminales,
+        ubicaciones,
+        rolDe:
+          roles && cuentas
+            ? (id) => {
+                const c = cuentas.find((x) => x.tipo === "persona" && x.id === id);
+                const r = c ? roles.find((x) => x.id === c.rolId) : undefined;
+                return r ? { id: r.id, nombre: r.nombre } : null;
+              }
+            : undefined,
+        admins,
+        fueraDeAlcance,
+        soyAdmin,
+        deTurno: new Set(deTurno),
+      }),
+    [colaboradores, suspendidos, inactivos, terminales, ubicaciones, roles, cuentas, admins, fueraDeAlcance, soyAdmin, deTurno],
+  );
+  // La ficha se arma de los datos de hoy: tras guardar y recargar, muestra a la persona ya cambiada (o se cierra si se fue).
+  const enFicha = miembros.find((m): m is PersonaEquipo => m.tipo === "persona" && m.id === fichaId) ?? null;
+  const enFichaTerminal = terminales?.find((t) => t.id === terminalId) ?? null;
+  const abrirPersona = (id: string) => {
+    setTerminalId(null);
+    setFichaId(id);
+  };
+  const abrirTerminal = (id: string) => {
+    setFichaId(null);
+    setTerminalId(id);
+  };
+  function cerrarModalDeClave() {
+    setModal(null);
+    if (refrescarAlCerrar) {
+      setRefrescarAlCerrar(false);
+      (alActualizar ?? (() => router.refresh()))();
+    }
+  }
 
-  async function ejecutar(idOcupado: string | null, verbo: string, llamada: (firma: Firma | null) => Promise<ResultadoAccion>, exito: string, detalle?: string) {
+  /** Guarda con el responsable de la pantalla. Con `deshacer`, el aviso trae el botón para volver atrás (7 s). */
+  async function ejecutar(
+    idOcupado: string | null,
+    verbo: string,
+    llamada: (firma: Firma | null) => Promise<ResultadoAccion>,
+    exito: string,
+    opciones?: { detalle?: string; deshacer?: () => void },
+  ) {
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return false;
@@ -185,283 +220,168 @@ export function ColaboradoresPanel({
       avisar.error(traducirError(error, verbo));
       return false;
     }
-    avisar.exito(exito, detalle ? { detalle } : undefined);
+    avisar.exito(exito, {
+      detalle: opciones?.detalle,
+      ...(opciones?.deshacer ? { accion: { texto: "Deshacer", onClick: opciones.deshacer }, duracion: 7000 } : {}),
+    });
     (alActualizar ?? (() => router.refresh()))();
     return true;
   }
 
-  const nombreDeRol = (id: string) => roles?.find((r) => r.id === id)?.nombre ?? null;
-  const rolDe = roles && cuentas ? (id: string) => {
-    const c = cuentas.find((x) => x.id === id);
-    return c ? nombreDeRol(c.rolId) : null;
-  } : undefined;
-  function abrirCambioDeRol(tipo: "persona" | "terminal", id: string) {
-    const cuenta = cuentas?.find((c) => c.tipo === tipo && c.id === id);
+  const ve = (x: SeccionColaboradores) => !secciones || secciones.includes(x);
+  const terminalesActivas = terminales?.filter((t) => t.activo).length ?? 0;
+  const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
+  const rolesSinModulos = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "sin_modulos").length : 0;
+  const nombreSede = (id: string) => ubicaciones.find((u) => u.id === id)?.nombre ?? "la nueva sede";
+
+  function abrirCambioDeRolTerminal(t: Terminal) {
+    const cuenta = cuentas?.find((c) => c.tipo === "terminal" && c.id === t.id);
     if (!roles || !cuenta) {
       avisar.error("No se pudieron leer los roles. Actualiza la pantalla e inténtalo de nuevo.");
       return;
     }
-    setModal({ tipo: "rol", cuenta });
+    setModal({ tipo: "rol_terminal", cuenta });
   }
 
-  function alElegirAccion(c: Colaborador, accion: AccionFila) {
-    if (accion === "cambiar_rol") abrirCambioDeRol("persona", c.persona_id);
-    else if (accion === "cambiar_ubicacion") setModal({ tipo: "ubicacion", persona: c });
-    else if (accion === "suspender") setModal({ tipo: "suspender", persona: c });
-    else setModal({ tipo: "quitar", persona: c, suspendida: false });
-  }
-
-  const ve = (x: SeccionColaboradores) => !secciones || secciones.includes(x);
-  const avisos = porAtender(pendientes.length, inactivos.length);
-  const terminalesActivas = terminales?.filter((t) => t.activo).length ?? 0;
-  const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
-  const rolesSinModulos = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "sin_modulos").length : 0;
-  const conteoEstado: Record<EstadoCuenta, number> = {
-    activas: colaboradores.length,
-    pendientes: pendientes.length,
-    suspendidas: suspendidos.length,
-    inactivas: inactivos.length,
-  };
-  const irAEstado = (e: EstadoCuenta) => {
-    setTipo("personas");
-    setEstado(e);
-  };
-  const verRolDe = roles && cuentas && ve("roles") ? (personaId: string) => {
-    const c = cuentas.find((x) => x.tipo === "persona" && x.id === personaId);
-    if (!c) return;
-    setRolElegidoId(c.rolId);
-    setSeccion("roles");
-  } : undefined;
+  const accionesFicha = (p: PersonaEquipo) => ({
+    cambiarRol: (rolId: string, cuenta: CuentaConRol, ubicacionId?: string) => {
+      const antes = cuenta.rolId;
+      const destino = roles?.find((r) => r.id === rolId);
+      // Para deshacer, la cuenta como queda DESPUÉS del cambio (si bajó de Líder, ya tiene sede y no la vuelve a pedir).
+      const despues: CuentaConRol = { ...cuenta, rolId, esLider: !!destino?.fijo, ubicacion: ubicacionId ? nombreSede(ubicacionId) : cuenta.ubicacion };
+      return ejecutar(p.id, "cambiar el rol", (f) => accionesRoles.asignar(rolId, cuenta, ubicacionId, f), `${p.nombre} ahora es ${nombreDeRol(rolId) ?? "del nuevo rol"}`, {
+        deshacer: () => void ejecutar(p.id, "volver al rol de antes", (f) => accionesRoles.asignar(antes, despues, undefined, f), `${p.nombre} volvió a ${nombreDeRol(antes) ?? "su rol"}`),
+      });
+    },
+    cambiarSede: (ubicacionId: string) => {
+      const antes = p.ubicacionId;
+      return ejecutar(p.id, "cambiar la sede", (f) => acciones.cambiarUbicacion(p.id, ubicacionId, f), `${p.nombre} ahora está en ${nombreSede(ubicacionId)}`, {
+        deshacer: antes ? () => void ejecutar(p.id, "volver a la sede de antes", (f) => acciones.cambiarUbicacion(p.id, antes, f), `${p.nombre} volvió a ${nombreSede(antes)}`) : undefined,
+      });
+    },
+    suspender: (motivo: string) =>
+      ejecutar(p.id, "suspender el acceso", (f) => acciones.suspender(p.id, motivo, f), `Acceso de ${p.nombre} suspendido`, {
+        deshacer: () => void ejecutar(p.id, "reactivar el acceso", (f) => acciones.reactivar(p.id, f), `${p.nombre} ya tiene acceso otra vez`),
+      }),
+    reactivar: () =>
+      ejecutar(p.id, "reactivar el acceso", (f) => acciones.reactivar(p.id, f), `${p.nombre} ya tiene acceso otra vez`, {
+        deshacer: () => void ejecutar(p.id, "suspender el acceso", (f) => acciones.suspender(p.id, p.motivo ?? "", f), `Acceso de ${p.nombre} suspendido`),
+      }),
+    quitar: async () => {
+      const ok = await ejecutar(p.id, "quitar el acceso", (f) => acciones.quitar(p.id, f), "Acceso quitado", { detalle: `${p.nombre} ya no puede entrar a retail.` });
+      if (ok) setFichaId(null);
+      return ok;
+    },
+  });
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Retail</p>
-          <h1 className="font-display mt-1 text-3xl text-tinta">Colaboradores</h1>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-tinta/70">
-            Quién entra a retail, con qué rol y desde qué ubicación. Las personas se dan de alta en Dynamic.
-          </p>
-        </div>
-        {ve("cuentas") && (
-        <div className="text-right">
-          <div className="flex flex-wrap justify-end gap-2">
-            <Boton peso="discreto" onClick={() => setVerActividad(true)}>
-              <History aria-hidden className="mr-1.5 inline h-3.5 w-3.5" />
-              Actividad
-            </Boton>
-            <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
-              + Agregar colaboradores
-            </Boton>
-          </div>
-          {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
-        </div>
-        )}
-      </div>
+    <div className="space-y-6">
+      <EncabezadoPagina
+        sede="Toda CAYLA"
+        titulo="Colaboradores"
+        subtitulo="Quién entra a retail, en qué sede y con qué rol."
+        acciones={
+          ve("cuentas") && (
+            <>
+              <button type="button" className="btn-cayla btn-secundario" onClick={() => setVerActividad(true)}>
+                <History aria-hidden className="h-4 w-4" />
+                Actividad
+              </button>
+              <button
+                type="button"
+                className="btn-cayla btn-primario"
+                onClick={() => setModal({ tipo: "agregar" })}
+                disabled={disponibles.length === 0}
+                title={disponibles.length === 0 ? "Todas las cuentas activas de Dynamic ya tienen acceso." : undefined}
+              >
+                + Dar acceso
+              </button>
+            </>
+          )
+        }
+      />
 
-      {/* Dos secciones grandes en vez de 7 pestañas. Cada una resume lo suyo y avisa en ámbar lo que pide atención. */}
       {ve("cuentas") && ve("roles") && (
-      <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl">
-        <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Cuentas">
-          {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
-          {pendientes.length > 0 && <strong className="font-semibold text-ambar-profundo"> · {pendientes.length} por aprobar</strong>}
-        </BotonSeccion>
-        <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos">
-          {plural(rolesVigentes.length, "rol", "roles")}
-          {rolesSinModulos > 0 ? (
-            <strong className="font-semibold text-ambar-profundo"> · {rolesSinModulos === 1 ? "1 deja" : `${rolesSinModulos} dejan`} cuentas sin ningún módulo</strong>
-          ) : (
-            " · qué ve cada cuenta"
-          )}
-        </BotonSeccion>
-      </nav>
+        <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl">
+          <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Equipo">
+            {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
+            {pendientes.length > 0 && <strong className="font-semibold text-ambar-profundo"> · {pendientes.length} por aprobar</strong>}
+          </BotonSeccion>
+          <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos">
+            {plural(rolesVigentes.length, "rol", "roles")}
+            {rolesSinModulos > 0 ? (
+              <strong className="font-semibold text-ambar-profundo"> · {rolesSinModulos === 1 ? "1 deja" : `${rolesSinModulos} dejan`} cuentas sin ningún módulo</strong>
+            ) : (
+              " · qué ve cada cuenta"
+            )}
+          </BotonSeccion>
+        </nav>
       )}
 
       {seccion === "cuentas" && ve("cuentas") && (
-        <section aria-label="Cuentas" className="space-y-4">
-          {avisos.length > 0 ? (
-            <div className="space-y-2">
-              {avisos.map((a) => (
-                <div
-                  key={a.estado}
-                  className={`flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 text-sm ${
-                    a.tono === "ambar" ? "bg-ambar/10 text-ambar-profundo" : "card-cayla text-tinta/75"
-                  }`}
-                >
-                  <p className="min-w-0 flex-1">
-                    <strong className="font-semibold">{a.titulo}</strong> {a.detalle}
-                  </p>
-                  <Boton peso="discreto" className="px-3 py-1.5" onClick={() => irAEstado(a.estado)}>
-                    {a.accion}
-                  </Boton>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="flex items-center gap-1.5 text-[13px] text-verde">
-              <Check aria-hidden className="h-3.5 w-3.5" /> Nada por atender: sin altas pendientes ni cuentas inactivas en Dynamic.
-            </p>
-          )}
+        <EquipoLista
+          miembros={miembros}
+          ubicaciones={ubicaciones}
+          pendientes={pendientes}
+          ocupadoId={ocupadoId}
+          elegidoId={fichaId ?? terminalId}
+          ahoraIso={ahoraIso}
+          responsable={responsable}
+          filtro={filtro}
+          onFiltro={setFiltro}
+          onAbrir={abrirPersona}
+          onAprobar={(c) =>
+            ejecutar(c.persona_id, "aprobar el alta", (f) => acciones.aprobar(c.persona_id, f), `${c.nombre} ya puede entrar a retail`)
+          }
+          onRechazar={(c) =>
+            ejecutar(c.persona_id, "rechazar el alta", (f) => acciones.quitar(c.persona_id, f), "Alta rechazada", { detalle: "La propuesta de alta se descartó." })
+          }
+          conTerminales={terminales !== null}
+          onAbrirTerminal={abrirTerminal}
+          onNuevaTerminal={terminales !== null ? () => setModal({ tipo: "nueva_terminal" }) : undefined}
+        />
+      )}
 
-          <div className="flex flex-wrap items-center gap-3">
-            <SegmentoDeslizante
-              etiqueta="Tipo de cuenta"
-              valor={tipo}
-              onCambio={(k) => setTipo(k as TipoCuenta)}
-              opciones={[
-                { clave: "personas", etiqueta: "Personas", conteo: colaboradores.length },
-                { clave: "terminales", etiqueta: "Terminales", conteo: terminalesActivas },
-              ]}
-            />
-            {tipo === "personas" && (
-              <div role="radiogroup" aria-label="Estado" className="flex flex-wrap gap-1.5">
-                {ESTADOS.map((e) => {
-                  const n = conteoEstado[e.clave];
-                  const activo = estado === e.clave;
-                  return (
-                    <button
-                      key={e.clave}
-                      type="button"
-                      role="radio"
-                      aria-checked={activo}
-                      onClick={() => setEstado(e.clave)}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] transition-colors duration-200 ease-cayla ${
-                        activo ? "border-tinta bg-tinta text-crema" : `border-tinta/15 bg-papel text-tinta/70 hover:border-tinta/40 ${n === 0 ? "opacity-55" : ""}`
-                      }`}
-                    >
-                      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${e.punto}`} />
-                      {e.etiqueta}
-                      <span className={`font-semibold tabular-nums ${activo ? "text-crema" : "text-tinta"}`}>{n}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+      {seccion === "cuentas" && enFicha && (
+        <FichaColaborador
+          persona={enFicha}
+          roles={roles}
+          cuentas={cuentas}
+          ubicaciones={ubicaciones}
+          soyAdmin={soyAdmin}
+          misModulos={misModulos}
+          ahoraIso={ahoraIso}
+          responsable={responsable}
+          ocupado={ocupadoId !== null}
+          acciones={accionesFicha(enFicha)}
+          onVerRol={
+            ve("roles") && roles && enFicha.rolId
+              ? () => {
+                  setRolElegidoId(enFicha.rolId);
+                  setFichaId(null);
+                  setSeccion("roles");
+                }
+              : undefined
+          }
+          onCerrar={() => setFichaId(null)}
+        />
+      )}
 
-          {tipo === "terminales" && (
-            <TerminalesPanel
-              terminales={terminales}
-              ubicaciones={ubicaciones}
-              roles={roles ? roles.filter((r) => fueraDeLoMio(r.modulos, misModulos).length === 0) : roles}
-              ocupadoId={ocupadoId}
-              onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })}
-              onCambiarRol={roles && cuentas ? (t) => abrirCambioDeRol("terminal", t.id) : undefined}
-              acciones={accionesTerminales}
-              alActualizar={alActualizar}
-            />
-          )}
-
-          {tipo === "personas" && estado === "activas" && (
-            <section aria-label="Personas con acceso" className="space-y-4">
-              {colaboradores.length === 0 ? (
-                <Vacio>Nadie tiene acceso a retail todavía.</Vacio>
-              ) : (
-                <>
-                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                    <input
-                      type="search"
-                      value={busqueda}
-                      onChange={(e) => setBusqueda(e.target.value)}
-                      placeholder="Buscar por nombre o correo…"
-                      aria-label="Buscar colaborador por nombre o correo"
-                      className={entrada}
-                      autoComplete="off"
-                    />
-                    <SegmentoDeslizante
-                      etiqueta="Filtrar por nivel"
-                      valor={rol}
-                      onCambio={(k) => setRol(k as FiltroRol)}
-                      opciones={[
-                        { clave: "todos", etiqueta: "Todos", conteo: colaboradores.length },
-                        { clave: "lider", etiqueta: "Líderes", conteo: resumen.lideres },
-                        { clave: "integrante", etiqueta: "Integrantes", conteo: resumen.colaboradores },
-                      ]}
-                    />
-                  </div>
-                  {filas.length === 0 ? (
-                    <Vacio>Nadie coincide con lo que buscas.</Vacio>
-                  ) : (
-                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} soyAdmin={soyAdmin} admins={admins} fueraDeAlcance={fueraDeAlcance} />
-                  )}
-                  <p className="text-xs text-tinta/65" role="status">
-                    {filas.length === colaboradores.length
-                      ? plural(filas.length, "persona con acceso", "personas con acceso")
-                      : `${filas.length} de ${plural(colaboradores.length, "persona", "personas")}`}
-                  </p>
-                </>
-              )}
-            </section>
-          )}
-
-          {tipo === "personas" && estado === "pendientes" && (
-            <section aria-label="Altas pendientes de aprobación" className="space-y-3">
-              {pendientes.length === 0 ? (
-                <Vacio>No hay altas esperando aprobación.</Vacio>
-              ) : (
-                <>
-                  <p className="text-sm text-tinta/70">
-                    Un líder propuso el alta de estas personas (D-70): todavía no pueden vender, abrir caja ni mover stock hasta que alguien —el mismo líder u otro— la apruebe.
-                  </p>
-                  {/* «Aprobar» guarda de un clic: el combo va encima de la tabla, una vez (no uno por fila). */}
-                  <ComboResponsable control={responsable} deshabilitado={ocupadoId !== null} className="max-w-sm" />
-                  <TablaPendientes
-                    filas={pendientes}
-                    ocupadoId={ocupadoId}
-                    onAprobar={(c) =>
-                      ejecutar(c.persona_id, "aprobar el alta", (f) => acciones.aprobar(c.persona_id, f), `${c.nombre} ya puede entrar a retail`)
-                    }
-                    onRechazar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: false, pendiente: true })}
-                  />
-                </>
-              )}
-            </section>
-          )}
-
-          {tipo === "personas" && estado === "suspendidas" && (
-            <section aria-label="Colaboradores suspendidos" className="space-y-3">
-              {suspendidos.length === 0 ? (
-                <Vacio>Nadie está suspendido.</Vacio>
-              ) : (
-                <>
-                  <p className="text-sm text-tinta/70">No pueden entrar a retail ni operar ventas o caja hasta que las reactives. Conservan su ubicación y su historial.</p>
-                  {/* «Reactivar» guarda de un clic: el combo va encima de la tabla, una vez (no uno por fila). */}
-                  <ComboResponsable control={responsable} deshabilitado={ocupadoId !== null} className="max-w-sm" />
-                  <TablaSuspendidos
-                    filas={suspendidos}
-                    ocupadoId={ocupadoId}
-                    onReactivar={(c) =>
-                      ejecutar(c.persona_id, "reactivar el acceso", (f) => acciones.reactivar(c.persona_id, f), `${c.nombre} ya tiene acceso otra vez`)
-                    }
-                    onQuitar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: true })}
-                    puedeTocar={(c) => !fueraDeAlcance.includes(c.persona_id) && (soyAdmin || c.rol !== "lider")}
-                  />
-                </>
-              )}
-            </section>
-          )}
-
-          {tipo === "personas" && estado === "inactivas" && (
-            <section aria-label="Cuentas inactivas en Dynamic" className="space-y-3">
-              {inactivos.length === 0 ? (
-                <Vacio>Ninguna cuenta con acceso está inactiva en Dynamic.</Vacio>
-              ) : (
-                <>
-                  <p className="text-sm text-tinta/70">
-                    Personas que tenían acceso y Dynamic dio de baja: ya no pueden entrar. Solo lectura — si vuelven a estar activas en Dynamic, recuperan su acceso solas.
-                  </p>
-                  <TablaInactivas filas={inactivos} />
-                </>
-              )}
-            </section>
-          )}
-        </section>
+      {seccion === "cuentas" && enFichaTerminal && (
+        <FichaTerminal
+          terminal={enFichaTerminal}
+          ahoraIso={ahoraIso}
+          onClave={() => setModal({ tipo: "clave", terminal: enFichaTerminal })}
+          onCambiarRol={roles && cuentas ? () => abrirCambioDeRolTerminal(enFichaTerminal) : undefined}
+          onAlternar={() => setModal({ tipo: "terminal", terminal: enFichaTerminal })}
+          onCerrar={() => setTerminalId(null)}
+        />
       )}
 
       {seccion === "roles" && ve("roles") && (
         <section aria-label="Roles y accesos">
           {roles === null ? (
-            <Vacio>No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Vacio>
+            <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</p>
           ) : (
             <RolesPanel
               key={rolElegidoId ?? "inicio"}
@@ -481,27 +401,27 @@ export function ColaboradoresPanel({
         </section>
       )}
 
-      {/* Actividad: un historial que se consulta, no una sección donde se trabaja. Mismo <Modal> de siempre (ADR-0136). */}
-      {verActividad && (
-        <Modal
-          titulo="Actividad de accesos"
-          ancho="max-w-2xl"
-          onClose={() => setVerActividad(false)}
-        >
-          <div className="mt-4 max-h-[65vh] overflow-y-auto pr-1">
-            {actividad.length === 0 ? <Vacio>Todavía no hay movimientos de acceso.</Vacio> : <ListaActividad eventos={actividad} />}
-          </div>
-        </Modal>
-      )}
+      {/* Actividad: un historial que se consulta, no una sección donde se trabaja (ADR-0343). */}
+      {verActividad && <ActividadEquipo veActividad={veActividadModulo} esLider={soyLider} accesos={actividad} onClose={() => setVerActividad(false)} />}
 
       {modal?.tipo === "agregar" && (
-        <AgregarColaboradoresModal
+        <DarAccesoModal
           responsable={responsable}
           disponibles={disponibles}
           ubicaciones={ubicaciones}
+          roles={roles}
+          soyLider={soyLider}
+          soyAdmin={soyAdmin}
+          misModulos={misModulos}
           onClose={() => setModal(null)}
-          onConfirmar={(personas, ubicacionId) =>
-            ejecutar(null, "agregar a los colaboradores", (f) => acciones.agregar(personas, ubicacionId, f), `${plural(personas.length, "persona queda pendiente de aprobación", "personas quedan pendientes de aprobación")} — un líder debe aprobarlas antes de que puedan operar`)
+          onConfirmar={(personas, ubicacionId, rolId) =>
+            ejecutar(
+              null,
+              "dar el acceso",
+              (f) => acciones.agregar(personas.map((p) => p.id), ubicacionId, rolId, f),
+              // ADR-0341: lo que da un líder entra directo; lo de quien no es líder espera el ok de un líder.
+              avisoDarAcceso(personas.map((p) => p.nombre), soyLider),
+            )
           }
         />
       )}
@@ -515,35 +435,37 @@ export function ColaboradoresPanel({
               modal.terminal.id,
               modal.terminal.activo ? "desactivar la terminal" : "reactivar la terminal",
               (f) => (modal.terminal.activo ? acciones.desactivarTerminal(modal.terminal.id, f) : acciones.reactivarTerminal(modal.terminal.id, f)),
-              avisoTerminal(modal.terminal.nombre, modal.terminal.activo)
+              avisoTerminal(modal.terminal.nombre, modal.terminal.activo),
             )
           }
         />
       )}
-      {modal?.tipo === "suspender" && (
-        <SuspenderModal
-          responsable={responsable}
-          nombre={modal.persona.nombre}
-          onClose={() => setModal(null)}
-          onConfirmar={(motivo) =>
-            ejecutar(modal.persona.persona_id, "suspender el acceso", (f) => acciones.suspender(modal.persona.persona_id, motivo, f), "Acceso suspendido", `${modal.persona.nombre} pasó a Suspendidos.`)
-          }
-        />
-      )}
-      {modal?.tipo === "ubicacion" && (
-        <CambiarUbicacionModal
-          responsable={responsable}
-          nombre={modal.persona.nombre}
-          esLider={modal.persona.rol === "lider"}
-          ubicacionActualId={modal.persona.ubicacion_id}
+      {modal?.tipo === "nueva_terminal" && (
+        <NuevaTerminalModal
           ubicaciones={ubicaciones}
-          onClose={() => setModal(null)}
-          onConfirmar={(ubicacionId) =>
-            ejecutar(modal.persona.persona_id, "cambiar la ubicación", (f) => acciones.cambiarUbicacion(modal.persona.persona_id, ubicacionId, f), "Ubicación actualizada", `${modal.persona.nombre} quedó en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la nueva ubicación"}.`)
-          }
+          roles={roles ? roles.filter((r) => fueraDeLoMio(r.modulos, misModulos).length === 0) : roles}
+          terminales={terminales ?? []}
+          crear={accionesTerminales.crear}
+          onCreada={(nombre) => {
+            setRefrescarAlCerrar(true);
+            avisar.exito("Terminal creada", { detalle: `${nombre} ya puede iniciar sesión.` });
+          }}
+          onClose={cerrarModalDeClave}
         />
       )}
-      {modal?.tipo === "rol" && roles && (
+      {modal?.tipo === "clave" && (
+        <CambiarClaveModal
+          terminal={modal.terminal}
+          cambiar={accionesTerminales.cambiarClave}
+          onCambiada={(nombre, aviso) => {
+            setRefrescarAlCerrar(true);
+            avisar.exito("Clave cambiada", { detalle: `La clave anterior de ${nombre} ya no sirve.` });
+            if (aviso) avisar.aviso("No quedó anotado quién", { detalle: aviso });
+          }}
+          onClose={cerrarModalDeClave}
+        />
+      )}
+      {modal?.tipo === "rol_terminal" && roles && (
         <AsignarRolModal
           responsable={responsable}
           roles={rolesAsignables(roles, undefined, soyAdmin, misModulos)}
@@ -552,25 +474,7 @@ export function ColaboradoresPanel({
           cuentaFija={modal.cuenta}
           onClose={() => setModal(null)}
           onConfirmar={(rolId, cuenta, ubicacionId) =>
-            ejecutar(cuenta.id, "cambiar el rol", (f) => accionesRoles.asignar(rolId, cuenta, ubicacionId, f), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
-          }
-        />
-      )}
-      {modal?.tipo === "quitar" && (
-        <QuitarAccesoModal
-          responsable={responsable}
-          nombre={modal.persona.nombre}
-          suspendida={modal.suspendida}
-          pendiente={modal.pendiente}
-          onClose={() => setModal(null)}
-          onConfirmar={() =>
-            ejecutar(
-              modal.persona.persona_id,
-              modal.pendiente ? "rechazar el alta" : "quitar el acceso",
-              (f) => acciones.quitar(modal.persona.persona_id, f),
-              modal.pendiente ? "Alta rechazada" : "Acceso quitado",
-              modal.pendiente ? "La propuesta de alta se descartó." : "La persona ya no puede entrar al sistema de retail."
-            )
+            ejecutar(cuenta.id, "cambiar el rol", (f) => accionesRoles.asignar(rolId, cuenta, ubicacionId, f), "Rol actualizado", { detalle: `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».` })
           }
         />
       )}

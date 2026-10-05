@@ -103,3 +103,98 @@ registrada por `apply_migration` con su propia versión, así que el cambio de n
 `fn_acepta_pago_qr` todavía dice «20261002120000»: es el texto que tiene producción y se deja igual a propósito.
 El número de este ADR también cambió al fusionar: nació como 0306, y `main` ya tenía el 0306 («Bajada y ajuste son funciones de
 Existencias»).
+
+## 8. Actualización 2026-10-05 — la hoja se ajusta a cualquier pantalla (Felipe)
+
+**El problema.** Felipe cobraba desde un laptop y «Confirmar cobro» salía recortado: había que bajar el scroll para llegar al botón.
+La §6 había medido «sin scroll» a 1440 × 900, el tamaño con que se diseñó; nadie lo había medido en un laptop corriente. Medido en el
+navegador a 1280 × 650 (menú abierto): la hoja mide **480 px** de alto (el del catálogo, `inset-y-3`) y su contenido pedía **715 px**
+(fichas cuadradas de 150 px, billetes en tres filas, documento del cliente apilado). Toda la hoja era un solo scroll, así que el botón
+principal, lo único que siempre se necesita, iba al final.
+
+**La causa raíz** eran dos cosas, no una: el botón estaba DENTRO de lo que scrollea, y el diseño tenía medidas fijas pensadas para una
+pantalla alta. Subir o bajar un padding no arreglaba ninguna.
+
+```
+DECIDÍ:    1 · El botón y la cabecera no scrollean. La hoja recorta (`overflow-hidden`) y solo el CUERPO de los dos pasos
+               (`.hoja-cobro-cuerpo`) scrollea, y solo si ni compactada cabe. «Confirmar cobro» queda siempre a la vista, a
+               1280 × 500 también.
+           2 · La hoja se adapta por SU alto, no por el de la ventana: es un contenedor de tamaño con nombre (`container: cobro / size`)
+               y los bloques `@container cobro (max-height: …)` de `globals.css` cambian sus medidas. **La forma no cambia nunca:** dos filas
+               de tres fichas y, en la hoja ancha, los billetes al lado; solo cambia el tamaño. De 52 rem de alto para arriba (~832 px) es el
+               diseño de siempre, sin tocar. Bajo 52 rem se aprietan los espacios (cabecera, relleno de los pasos, botones del comprobante) y
+               las fichas valen lo que sobra, entre 4,25 rem y su tamaño de siempre (hoja ancha: 28,5 rem es lo que ocupa todo lo demás en el
+               peor caso, así que desde ~45 rem las fichas siguen siendo las de siempre; los billetes pasan a 3 por fila). La hoja ANGOSTA (a
+               una columna los billetes caen debajo y el diseño de siempre pide ~1150 px con efectivo) usa la disposición ajustada hasta
+               80 rem: fichas de 3,25 rem hasta cuadradas (9,4 rem), los billetes en UNA línea con el vuelto junto a «¿Con cuánto paga?» y el
+               documento del cliente en 2 × 2 en vez de apilado. Bajo 40 rem la cabecera «Total / Volver» se esconde (repite el total del
+               ticket y del botón; «Volver» está en «← Ticket», Esc y el velo). Con pago en dos medios las fichas suben a 5,75 rem para que
+               quepa el monto de cada una.
+           3 · Al elegir el comprobante, si el documento del cliente queda bajo el pliegue, el cuerpo baja lo justo para mostrarlo
+               (`scrollIntoView({ block: "nearest" })`, sin movimiento con `prefers-reduced-motion`).
+           4 · En una hoja muy angosta (< 24 rem útiles: una tablet a 1024 px con el menú abierto) el comprobante pasa a dos líneas en
+               vez de cortarse («NOTA …») y «Confirmar cobro» pierde el ✓ para que su rótulo quepa.
+DESCARTÉ:  · Escalar toda la hoja con `zoom`/`transform` según el alto: a 0,6 el rótulo de 13 px queda en 8 px y no se lee.
+           · Compactar por `@media (max-height)` de la ventana: el alto que le queda a la hoja cambia con la cabecera de la página, el
+             zoom y el navegador; la ventana no lo sabe. Medido: 650 px de ventana = 480 de hoja, pero 730 = 560 y 800 = 630.
+           · Poner los dos pasos lado a lado en una hoja baja: a 480 px de ancho cada columna quedaba de 230 px y los billetes no caben.
+           · Esconder los campos opcionales del documento (nombre, celular) tras un «+»: cambia qué se ve al cobrar, y eso es del negocio.
+```
+
+**Lo medido.** Con la hoja REAL a 1920 × 1080 (736 × 910) y a 1280 × 650, 1366 × 650, 1440 × 800, 1536 × 730, 1280 × 500, 1024 × 768 y 375 × 812
+(`compacta`: igual que antes). Los demás tamaños, con una maqueta temporal con el MISMO marcado y las mismas clases, calibrada contra la hoja real
+(a 736 × 910 dio cabecera 61, paso 1 = 352, pie 64 y fichas de 127 × 127: lo mismo que la hoja real; el paso 2 difirió en 3 px). «Cabe» = el peor
+caso (efectivo + boleta con DNI y celular; también factura y nota de venta) sin scroll en el cuerpo:
+
+| Hoja (ancho × alto) | Fichas | Peor caso |
+|---|---|---|
+| 736 × 910 y 736 × 817 (monitor grande) | 128 × 126 (las de siempre) | cabe |
+| 736 × 760 | 128 × 126 | cabe |
+| 736 × 700 | 128 × 121 | cabe |
+| 736 × 650 | 128 × 96 | cabe |
+| 736 × 560 (sin cabecera) | 128 × 68 | cabe |
+| 641 × 630 | 120 × 86 | cabe |
+| 531 × 1000 (angosta, alta) | 155 × 150 (cuadradas) | cabe |
+| 531 × 850 | 155 × 108 | cabe |
+| 531 × 650 y 531 × 740 | 158 × 48 y 158 × 53 | cabe |
+| 531 × 550 (laptop, menú abierto) | 154 × 48 | scrollea 9 px |
+| 582 × 480 y 531 × 480 (laptop de 650 px, menú abierto) | 97 × 68 y 154 × 48 | scrollea 55–79 px, solo para el documento; el botón no se mueve |
+| 325 × 700 y 325 × 598 (tablet a 1024 px) | 89 × 48 y 85 × 48 | cabe y scrollea 4 px; botón y rótulos enteros |
+
+**Lo que NO se resolvió y por qué.** En una hoja angosta y baja (menú abierto en un laptop de ~650 px) con efectivo, boleta y el
+documento completo, los pasos suman ~510 px y la hoja da ~400: ahí sí scrollea, pero el botón no se mueve y el documento sube solo. Cabría
+sin scroll escondiendo campos del documento, y eso lo decide Felipe (arriba, «descarté»).
+
+**Correcciones el mismo día (Felipe, al verlo en su monitor).** La primera versión compactaba bajo 52 rem para todo ancho y, desde ~47 rem, la
+hoja ancha pasaba a SEIS fichas en una fila (íconos y nombres chicos, la mitad de la hoja vacía): su hoja mide ~817 px y le tocó eso. Él pidió
+dos veces lo mismo: *«quiero el diseño anterior en dos filas de 3 donde se veían más grandes, simplemente quería que sea responsive»*. Se
+eliminó la fila de seis y el apilado de la hoja ancha: la FORMA queda fija y solo cambia el tamaño (arriba). El candado
+`lib/hoja-de-cobro-ajuste.test.ts` ahora impide `repeat(6` y exige que la ficha base siga siendo cuadrada. **Qué se midió y qué no:** a 736 × 817 la
+maqueta da fichas de 128 × 126 y el peor caso cabe; no se abrió la hoja real a esa altura (el panel del navegador tenía otra sesión del usuario).
+
+**Tercera vuelta (Felipe: «así tal cual debe quedar; solo hazlo más responsive»; falla en laptop con el menú abierto y en tablet).** El diseño
+grande no se tocó. Esos dos casos son de ANCHO (hoja de 531 y de 325 px: el menú lateral ocupa 256 px y la columna del ticket ~380), y se mejoró
+lo que cabe dentro del cobro: el documento del cliente en 2 × 2 desde 17,5 rem (antes 26), fichas con nombres legibles (mínimo 9 px y «Transf.» en
+la ficha de menos de 6 rem), «Confirmar cobro» sin cortarse a 325 px (rótulo de 12 px sin el ✓), la etiqueta «Sigue aquí» y el estado del paso sin
+pisarse, y fichas y comprobante un poco más bajos en la hoja angosta (de 52 a 48 px). Efecto: a 325 × 598 el scroll del peor caso bajó de 233 a
+4 px; a 531 × 650 cabe todo. **Lo que falta es del lateral, no del cobro:** el menú lateral plegado le daría a la hoja ~190 px más (a 1280 px de ancho
+llegaría a su tope de 736 y se vería como el diseño grande). Hoy plegar es una preferencia de la persona (`lateralPlegado`, cookie); plegarlo solo
+mientras el cobro está abierto toca el `AppShell` de todos los módulos y queda como decisión de Felipe.
+
+**Lo que dejó escrito para no repetirlo.**
+- `lib/hoja-de-cobro-ajuste.test.ts` vigila las tres piezas: la hoja no tiene `overflow-y-auto`, el botón está fuera del cuerpo, la hoja es el
+  contenedor `cobro`, y ninguna clase que la compactación cambia convive con una utilidad de Tailwind de su misma familia (`gap-2`, `h-14`…): la
+  capa `utilities` le gana a `@layer components` (ADR-0105) y el valor compacto nunca se aplicaría. Al escribirlo apareció un `gap-2` mío en la raíz
+  que ya lo hacía.
+- Los tamaños que cambian viven en clases `hoja-cobro-*` de `globals.css`, no como utilidades en `HojaDeCobro.tsx`.
+- Medir una pantalla en un monitor grande no prueba nada para un laptop: este arreglo se midió a 13 tamaños.
+
+## 9. Actualización 2026-10-05 (tarde) — lo recibido en efectivo se lee en color (Felipe)
+
+Bajo los billetes de «¿Con cuánto paga?» la hoja dice qué pasa con lo recibido. Felipe pidió que **lo exacto salga en verde** (el ✓, el texto y la
+cantidad) y **lo que falta en rojo** (el texto y la cantidad). Quedó así: «EXACTO ✓ S/149.90» en `verde-profundo`, «FALTAN S/5.00» en `rojo-profundo`
+(antes, ámbar) y «VUELTO S/50.10» neutro: el vuelto es información, no un aviso. La línea de exacto ahora lleva el monto además del ✓ (antes solo el ✓) y, en la hoja
+ancha, baja de 3 a 2,25 rem para caber junto a la etiqueta en la columna de los billetes (279 px; medido a 736 × 817, 736 × 650 y 531 × 650: nunca se desborda).
+La regla vive en `lecturaDelRecibido` (`lib/vender-reglas.ts`, con su prueba): `null` sin recibido, `vuelto` si sobra, `falta` si no llega y `exacto` si es justo,
+contra lo que se cobra en monedas (con el redondeo, ADR-0311). No cambia lo que bloquea el cobro: eso sigue siendo `motivoBloqueoCobro`. El «Falta S/…» de la
+cabecera del paso 1 (ámbar) no se tocó: Felipe habló de la línea bajo los billetes.

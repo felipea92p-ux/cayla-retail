@@ -314,16 +314,6 @@ export function alternarGrupo(modulos: readonly ClaveModulo[], grupo: Modulo["gr
   return MODULOS.filter((m) => (delGrupo.has(m.clave) ? encender : modulos.includes(m.clave))).map((m) => m.clave);
 }
 
-const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-
-/** Los grupos con los módulos que coinciden con lo buscado (nombre, lo que incluye o el grupo). Vacío = todos. */
-export function modulosFiltrados(texto: string): { grupo: Modulo["grupo"]; modulos: Modulo[] }[] {
-  const q = sinTildes(texto.trim());
-  if (!q) return modulosPorGrupo();
-  return modulosPorGrupo()
-    .map((g) => ({ grupo: g.grupo, modulos: g.modulos.filter((m) => sinTildes(`${m.nombre} ${m.incluye} ${g.grupo}`).includes(q)) }))
-    .filter((g) => g.modulos.length > 0);
-}
 
 export type CambioMenu = "igual" | "suma" | "quita";
 export type FilaMenuConCambios = { etiqueta: string; cambio: CambioMenu; hijas: { etiqueta: string; cambio: CambioMenu }[] };
