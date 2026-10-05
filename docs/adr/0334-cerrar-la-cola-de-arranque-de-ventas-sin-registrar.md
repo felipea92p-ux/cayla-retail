@@ -65,7 +65,7 @@ LIMITACIÓN CONOCIDA (revisión independiente, 2026-10-04): «solo lo que el lí
 quería devolverla vuelve a chocar con «prenda_cerrada_sin_prenda»). No es un estado inválido ni mueve stock o dinero, el registro del cierre y
 Actividad dicen la cifra verdadera (el aviso de éxito también: lee la cifra que cerró la base) y se deshace reabriéndola otra vez. La solución estricta
 —que la hoja mande cuántas filas vio y la base rechace si cambió (`p_filas_esperadas`)— obliga a reemplazar `cerrar_cola_arranque`, que ya está en
-producción, por una función de otra firma; se dejó fuera por un caso que exige dos líderes en la misma ventana de segundos.
+producción, por una función de otra firma; se dejó fuera por un caso que exige dos líderes en la misma ventana de segundos (Felipe, 2026-10-04: «dejarlo documentado»).
 
 **4. La salida de emergencia nace cerrada y expira.**
 DECIDÍ: `cola_arranque_plazo` (una fila por tienda, último día inclusivo en hora de Lima). Sin fila no hay botón. Las tres tiendas arrancan
@@ -100,7 +100,7 @@ de cuarentena y sin lo apartado; dice además si la prenda es «limpia» (toda u
 (solo líder) queda encima: solo las ventas con **exactamente una** prenda posible, esa prenda «limpia», sin proponer más ventas que unidades.
 `regularizar_prendas_sugeridas` aplica las parejas que el líder marcó, **todas o ninguna**, cada una por `regularizar_prenda` («ya estaba registrada»),
 toma los candados en el orden de ADR-0190 (cola → prendas → stock) antes de su bucle y, si una pareja falla, nombra la venta. Las casillas nacen
-sin marcar. Rechaza una pareja que no calce o sea de otra tienda.
+sin marcar (Felipe, 2026-10-04: confirmar sin mirar no puede ser un clic; «Marcar todas» es un gesto deliberado). Rechaza una pareja que no calce o sea de otra tienda.
 DESCARTÉ: aplicar las sugerencias sin que alguien las mire: una sola candidata no es certeza. Si la prenda vendida nunca se cargó, la candidata
 es OTRA prenda que sigue colgada y quedaría con 1 de menos (ADR-0328, decisión 9: «por eso confirma una persona»). Proponer también las de 2 o 3
 candidatas en bloque: elegir sería adivinar (el modal de una venta suelta SÍ puede mostrarlas todas para que la persona elija, leyendo la base común).
