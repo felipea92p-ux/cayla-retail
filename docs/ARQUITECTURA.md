@@ -163,8 +163,10 @@ flowchart TB
     lista completa y lo que queda fuera a propósito: ADR-0161, sección «F4b».
 - `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
   `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
-  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (dos secciones —Cuentas y Roles y accesos—, «Por atender», Actividad en modal; ADR-0172) + `ColaboradoresTablas.tsx` +
-  `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
+  `fn_dynamic_disponibles`, y `fn_asesoras_de_turno` por sede para el punto «de turno hoy») → `ColaboradoresPanel.tsx` (dos secciones —Equipo y Roles y
+  accesos—, Actividad en modal; ADR-0172 y ADR-0340) → `colaboradores/EquipoLista.tsx` (la lista por sede, con «Esperan tu ok») +
+  `colaboradores/FichaColaborador.tsx` (la ficha al costado: cambiar rol, sede, suspender, reactivar y quitar) sobre las reglas
+  puras de `lib/equipo-reglas.ts`; `ColaboradoresTablas.tsx` (aparatos y actividad) + `ColaboradoresModales.tsx` (dar acceso, desactivar aparato). Escribe por `lib/colaboradores-acciones.ts` → RPC
   `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Roles y accesos** (`RolesPanel.tsx`, `lib/roles.ts`, `lib/roles-reglas.ts`): lee `roles` y `rol_modulos` por RLS y,

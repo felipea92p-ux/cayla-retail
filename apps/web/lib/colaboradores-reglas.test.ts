@@ -1,66 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { Colaborador, ColaboradorSuspendido, DynamicDisponible } from "./colaboradores";
+import type { DynamicDisponible } from "./colaboradores";
 import {
   accionesDeFila,
   avisoTerminal,
   confirmacionTerminal,
   fechaHoraLima,
   fechaLima,
-  filtrarColaboradores,
   filtrarDisponibles,
   fraseEvento,
-  porAtender,
   vistaDe,
   resumenAlta,
-  resumirAccesos,
-  ultimoAccesoTexto,
 } from "./colaboradores-reglas";
-
-const persona = (id: string, nombre: string, rol: "lider" | "colaborador", extra: Partial<Colaborador> = {}): Colaborador => ({
-  persona_id: id,
-  nombre,
-  correo: `${nombre.toLowerCase().replace(/\s/g, ".")}@cayla.pe`,
-  sede: "Tienda TRU",
-  rol,
-  ubicacion_asignada: rol === "lider" ? null : "Tienda TRU",
-  agregado_en: "2026-09-16T15:00:00Z",
-  ubicacion_id: rol === "lider" ? null : "u1",
-  es_yo: false,
-  ultimo_acceso: null,
-  ...extra,
-});
-
-const activos = [
-  persona("1", "Ángela Ríos", "lider", { es_yo: true }),
-  persona("2", "Benjamín Cueva", "lider"),
-  persona("3", "Chiara Flores", "colaborador"),
-  persona("4", "Daniel Ruiz", "colaborador"),
-  persona("5", "Elena Vega", "colaborador"),
-];
-
-describe("filtrarColaboradores", () => {
-  it("sin texto y en «todos» deja pasar a todos", () => {
-    expect(filtrarColaboradores(activos, "", "todos")).toHaveLength(5);
-  });
-  it("busca por nombre sin importar tildes ni mayúsculas", () => {
-    expect(filtrarColaboradores(activos, "angela", "todos").map((c) => c.persona_id)).toEqual(["1"]);
-    expect(filtrarColaboradores(activos, "BENJAMIN", "todos").map((c) => c.persona_id)).toEqual(["2"]);
-  });
-  it("busca por correo", () => {
-    expect(filtrarColaboradores(activos, "elena.vega@", "todos").map((c) => c.persona_id)).toEqual(["5"]);
-  });
-  it("ignora espacios sobrantes en la búsqueda", () => {
-    expect(filtrarColaboradores(activos, "  daniel  ", "todos")).toHaveLength(1);
-  });
-  it("filtra por rol y combina con el texto", () => {
-    expect(filtrarColaboradores(activos, "", "lider")).toHaveLength(2);
-    expect(filtrarColaboradores(activos, "", "colaborador")).toHaveLength(3);
-    expect(filtrarColaboradores(activos, "ruiz", "lider")).toHaveLength(0);
-  });
-  it("sin coincidencias devuelve lista vacía", () => {
-    expect(filtrarColaboradores(activos, "zzz", "todos")).toEqual([]);
-  });
-});
 
 describe("filtrarDisponibles", () => {
   const disp: DynamicDisponible[] = [
@@ -75,22 +25,6 @@ describe("filtrarDisponibles", () => {
   it("busca nombre o correo sin tildes", () => {
     expect(filtrarDisponibles(disp, "zarate").map((d) => d.persona_id)).toEqual(["a"]);
     expect(filtrarDisponibles(disp, "cayla.pe").map((d) => d.persona_id)).toEqual(["b"]);
-  });
-});
-
-describe("resumirAccesos", () => {
-  const susp: ColaboradorSuspendido[] = [
-    { persona_id: "9", nombre: "X", correo: "x@x", sede: null, rol: "colaborador", ubicacion_asignada: "Taller LIM", suspendido_en: "2026-09-20T10:00:00Z", suspendido_por_nombre: "Y", motivo: null },
-  ];
-  const disp: DynamicDisponible[] = [
-    { persona_id: "a", nombre: "A", correo: "a@a", sede: null },
-    { persona_id: "b", nombre: "B", correo: "b@b", sede: null },
-  ];
-  it("cuenta líderes, colaboradores, suspendidos y las cuentas activas de Dynamic", () => {
-    expect(resumirAccesos(activos, susp, disp)).toEqual({ conAcceso: 5, lideres: 2, colaboradores: 3, suspendidos: 1, cuentasDynamic: 8 });
-  });
-  it("con todo vacío da ceros", () => {
-    expect(resumirAccesos([], [], [])).toEqual({ conAcceso: 0, lideres: 0, colaboradores: 0, suspendidos: 0, cuentasDynamic: 0 });
   });
 });
 
@@ -153,10 +87,6 @@ describe("fechas en hora de Lima", () => {
   });
   it("fecha y hora", () => {
     expect(fechaHoraLima("2026-09-22T16:15:00Z")).toBe("22/09 11:15");
-  });
-  it("quien nunca ingresó lo dice", () => {
-    expect(ultimoAccesoTexto(null)).toBe("Aún no ingresa");
-    expect(ultimoAccesoTexto("2026-09-22T16:15:00Z")).toBe("22/09 11:15");
   });
 });
 
@@ -221,17 +151,5 @@ describe("vistaDe (dos secciones; los enlaces viejos siguen funcionando)", () =>
     expect(vistaDe("suspendidos").estado).toBe("suspendidas");
     expect(vistaDe("inactivas").estado).toBe("inactivas");
     expect(vistaDe("actividad")).toMatchObject({ seccion: "cuentas", actividad: true });
-  });
-});
-
-describe("porAtender", () => {
-  it("con todo en cero no avisa nada", () => {
-    expect(porAtender(0, 0)).toEqual([]);
-  });
-  it("altas primero (ámbar), inactivas después (neutro)", () => {
-    const a = porAtender(2, 1);
-    expect(a.map((x) => [x.estado, x.tono])).toEqual([["pendientes", "ambar"], ["inactivas", "neutro"]]);
-    expect(a[0].titulo).toBe("2 altas esperan tu aprobación.");
-    expect(porAtender(0, 1)[0].titulo).toBe("1 cuenta con acceso está inactiva en Dynamic.");
   });
 });
