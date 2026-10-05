@@ -16,7 +16,10 @@ export type FilaPorRegularizar = {
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
-  estado: "pendiente" | "regularizada" | "anulada";
+  /** `cerrada_sin_prenda` (ADR-0334): un líder la dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
+  estado: "pendiente" | "regularizada" | "anulada" | "cerrada_sin_prenda";
+  /** Solo cerrada (o anulada después de cerrada): por qué se cerró y cuándo. */
+  cierre: { motivo: string; cerradoEn: string } | null;
   /** Solo regularizada: la prenda real y la diferencia (cobrado − oficial). */
   prendaReal: string | null;
   forma: "ya_registrada" | "llego_nueva" | null;
@@ -25,7 +28,8 @@ export type FilaPorRegularizar = {
 
 const COLUMNAS = `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
        categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
-       ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) )`;
+       ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) ),
+       cierre:cierres_cola_arranque!prendas_por_regularizar_cierre_fk ( motivo, cerrado_en )`;
 
 /**
  * La cola entera: las PENDIENTES (las más antiguas arriba, sin tope ni ventana) y, después, lo ya resuelto de este mes y el
@@ -79,6 +83,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",
     estado: f.estado as FilaPorRegularizar["estado"],
+    cierre: f.cierre ? { motivo: f.cierre.motivo, cerradoEn: f.cierre.cerrado_en } : null,
     prendaReal: f.variante ? `${f.variante.producto?.referencia ?? ""} · ${f.variante.sku}` : null,
     forma: f.forma as FilaPorRegularizar["forma"],
     diferencia: f.diferencia === null ? null : Number(f.diferencia),
@@ -96,4 +101,17 @@ export async function contarVencidas(): Promise<number | null> {
     .lte("vendido_en", vencidasDesde());
   // Nunca lanza: si no se puede leer, el inicio lo dice en la tarjeta en vez de dibujar un 0.
   return error ? null : (count ?? 0);
+}
+
+/**
+ * Hasta cuándo cada tienda puede cerrar su cola de arranque (ADR-0334): `ubicacion_id → AAAA-MM-DD`. RLS deja ver solo las tiendas que la
+ * persona opera. Una tienda sin fila no tiene plazo, y sin plazo la pantalla no ofrece el cierre.
+ * Nunca lanza: si no se puede leer, devuelve `{}` y la pantalla sigue entera, solo sin ese botón (principio 9: lo accesorio no tumba lo
+ * principal). La base vuelve a exigir el plazo al cerrar.
+ */
+export async function getPlazosColaArranque(): Promise<Record<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("cola_arranque_plazo").select("ubicacion_id, hasta");
+  if (error || !data) return {};
+  return Object.fromEntries(data.map((p) => [p.ubicacion_id, p.hasta]));
 }

@@ -29,6 +29,7 @@ export const ACCIONES_SIN_RESPONSABLE = {
   traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado",
   conteo_cerrar: "Cerrar el conteo y aplicar las diferencias",
   regularizar_prenda: "Regularizar una prenda por regularizar",
+  cola_arranque_cerrar: "Cerrar la cola de arranque de ventas sin registrar de una tienda",
   compra_adjunto_subir: "Adjuntar un archivo a una factura de compra",
   compra_adjunto_quitar: "Quitar un adjunto de una factura de compra",
   alta_producto_categoria: "Configurar una categoría dentro del alta de producto",

@@ -1080,6 +1080,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
 
+      # Cierre de la cola de arranque (ADR-0334): un líder da por hechas, en bloque y dentro de su plazo, las ventas sin registrar que
+      # ya no se pueden identificar. Cubre que sea todo-o-nada y solo del líder, que cerrar no mueva stock, que una prenda cerrada no
+      # pueda cambiarse ni regularizarse por el camino de siempre, y los estados imposibles del esquema. Cada caso termina en ROLLBACK;
+      # la carrera con COMMIT real (`pruebas:cola-arranque-concurrencia`) corre solo en una base desechable, no aquí.
+      - name: pruebas:cola-arranque
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cola-arranque
+
       # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
       # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
       # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un

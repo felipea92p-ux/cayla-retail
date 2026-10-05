@@ -81,6 +81,22 @@ const HUELLAS: Huella[] = [
     marca: "prenda_ya_regularizada",
     frase: "Esta prenda ya se regularizó (o su venta se anuló). Recarga la página para ver cómo quedó.",
   },
+  // Cierre de la cola de arranque (ADR-0334): 20261005100100.
+  {
+    marca: "prenda_cerrada_sin_prenda",
+    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide a un líder que la reabra en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
+  },
+  { marca: "cola_solo_lider", frase: "Solo un líder puede cerrar la cola de ventas sin registrar de una tienda." },
+  { marca: "cola_sin_persona", frase: "No se sabe quién cierra la cola. Entra con tu cuenta y vuelve a intentarlo." },
+  { marca: "cola_sin_permiso_sede", frase: "No tienes permiso para cerrar la cola de esa tienda." },
+  { marca: "cola_motivo_invalido", frase: "Elige por qué se cierran sin identificar la prenda." },
+  { marca: "cola_corte_invalido", frase: "No se pudo fijar hasta qué venta se cierra. Recarga la página y vuelve a intentarlo." },
+  { marca: "cola_sin_plazo", frase: "Esta tienda no tiene plazo abierto para cerrar su cola de ventas sin registrar." },
+  { marca: "cola_plazo_vencido", frase: "El plazo para cerrar la cola de esta tienda ya venció." },
+  {
+    marca: "cola_vacia",
+    frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
+  },
   {
     marca: "prenda_sin_stock_para_descontar",
     frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",

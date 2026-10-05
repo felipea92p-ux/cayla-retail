@@ -173,6 +173,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ApartarModal.tsx": PENDIENTE, // 8 controles
   "components/BuscadorGlobal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
+  // «Falta» = lo mismo que apaga el botón «Cerrar»: la tienda (si se elige entre varias) y el motivo. La nota es opcional (ADR-0334).
+  "components/CerrarColaArranqueModal.tsx": { estado: "aplicada", evidencia: ["components/CerrarColaArranqueModal.tsx"] },
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
