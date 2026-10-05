@@ -64,6 +64,10 @@ select (select count(*) from (
 ) x) as _cerro_previa \\gset
 select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gset
 update retail.prendas_por_regularizar set vendido_en = now() + interval '1 day' where ubicacion_id = :'ubic' and estado = 'pendiente';
+-- El plazo se asegura aquí y no se espera de la base: en un arranque limpio (el CI) seed.sql crea las tiendas DESPUÉS de las
+-- migraciones, y la siembra de plazos de la migración (que en producción sí encuentra sus tres tiendas) no ve ninguna.
+insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'ubic', retail.fn_hoy_lima() + 11)
+  on conflict (ubicacion_id) do update set hasta = excluded.hasta;
 
 select id as v1 from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset

@@ -1,4 +1,4 @@
-## 🧹 Ventas sin registrar: cerrar la cola de arranque, reabrir e identificar con sugerencias (2026-10-04, ADR-0334) — **SQL SIN pegar en producción**; rama `claude/unregistered-merchandise-solutions-860786`
+## 🧹 Ventas sin registrar: cerrar la cola de arranque, reabrir e identificar con sugerencias (2026-10-04, ADR-0334) — **partes 1–3 YA EN PRODUCCIÓN (2026-10-04); `110000` y `120000` POR PEGAR**; rama `claude/unregistered-merchandise-solutions-860786`
 
 Producción el 2026-10-04 (solo lectura): TRU 97 pendientes (20 vencidas), AQP 170 (83 vencidas); AQP tiene 13 prendas cargadas. De las 97 de TRU,
 23 tienen UNA prenda posible. Decisión de Felipe: opción B (cierre en bloque, solo líder, con plazo), reabrir solo líder, plazo 15-oct las tres tiendas.
@@ -9,7 +9,7 @@ Producción el 2026-10-04 (solo lectura): TRU 97 pendientes (20 vencidas), AQP 1
 - [x] **3 · Identificar con sugerencias** (`70c47bcc`): `20261005120000`, `fn_cola_arranque_candidatas` + `regularizar_prendas_sugeridas`, hoja con casillas.
 - [x] **Cierre:** ADR-0334, nota en ADR-0328, `docs/ARQUITECTURA.md`, fila en `SESIONES-ACTIVAS.md`.
 
-### Para pegar en producción (lo hace Felipe; ninguna migración usa `drop trigger` ni `select … into` dentro de texto entre comillas)
+### Para pegar en producción — estado: 1, 2 y 3 pegadas y verificadas; faltan 4 y 5 (lo hace Felipe; ninguna migración usa `drop trigger` ni `select … into` dentro de texto entre comillas)
 
 **Orden** (cada archivo en su PROPIA transacción del SQL Editor; todos llevan `retail.` y `set lock_timeout = '3s'`; se pueden pegar dos veces):
 
@@ -19,7 +19,7 @@ Producción el 2026-10-04 (solo lectura): TRU 97 pendientes (20 vencidas), AQP 1
 4. `…110000_cola_arranque_reabrir.sql`
 5. `…120000_cola_arranque_sugerencias.sql`
 
-**La web se fusiona DESPUÉS de las partes 1 y 3 como mínimo**: la lista de Ventas sin registrar pide `cierres_cola_arranque` en la misma consulta; sin esa
+**La web se fusiona DESPUÉS de las partes 1 y 3 como mínimo (ya cumplido) y, recomendado, también de la 4 y la 5**: la lista de Ventas sin registrar pide `cierres_cola_arranque` en la misma consulta; sin esa
 tabla la pantalla entera falla. (Los botones de reabrir y sugerencias fallan solos si faltan las partes 4 y 5; no tumban nada.)
 
 **Sonda previa (solo lectura):**

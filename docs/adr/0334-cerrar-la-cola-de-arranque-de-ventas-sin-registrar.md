@@ -2,8 +2,8 @@
 
 - **Fecha:** 2026-10-04 · **Estado:** aprobado por Felipe (opción B de tres, «ok ejecuta B»; las dos decisiones de negocio que
   faltaban —qué pasa con una devolución y hasta cuándo— las respondió con preguntas el mismo día). Construido y verificado en una base
-  local propia, con los cuatro recorridos del navegador. **Las cinco migraciones NO están en producción** (`docs/backlog/2026-10-04-unregistered-merchandise-solutions-860786.md`
-  trae el orden y las comprobaciones).
+  local propia, con los cuatro recorridos del navegador. **Las partes 1, 2 y 3 (`20261005100000`/`100`/`200`) YA están en producción** (verificado por efectos, solo lectura, el 2026-10-04 por la noche: tablas, columna, candados, políticas, `cerrar_cola_arranque` y los tres plazos del 15-oct, con 0 cierres hechos y la cola intacta: TRU 97 y AQP 170 pendientes). **Siguen sin pegar `20261005110000` (reabrir) y `20261005120000` (sugerencias).**
+  El orden y las comprobaciones están en `docs/backlog/2026-10-04-unregistered-merchandise-solutions-860786.md`.
 - **Pedido:** «esto es mercancía que no estaba registrada, ¿cómo quieres que regularice? Recién estamos adoptando el sistema: que exista
   alguna opción de "lo entiendo y doy por hecho / no lo sé". Analiza y dame 3 soluciones, las mejores».
 - **Usa y complementa:** ADR-0179 (la venta sin registrar y su cola), ADR-0328 (decisiones 8 y 9 y actividad 5: la «limpieza de arranque»),
@@ -68,6 +68,9 @@ DESCARTÉ: una fecha dentro de `ubicaciones` o de la configuración de empresa, 
 «fecha de cierre de la carga inicial por sede»; cuando exista, esta tabla se une a ella. Y una pantalla para editar el plazo (se dejó fuera: un
 cambio de fecha es una migración de una línea; si pesa, es una actividad aparte).
 SE ROMPE SI: AQP no termina su carga el 15-oct. Se amplía con una migración.
+NOTA DE ARRANQUE LIMPIO: en producción las tiendas ya existían cuando se pegó la migración y recibieron su plazo; en un arranque limpio (CI, local)
+`seed.sql` crea las tiendas DESPUÉS de las migraciones y la siembra no ve ninguna. Por eso `seed.sql` siembra sus propios plazos (hoy + 30 días) y
+cada prueba asegura el suyo: una prueba no puede depender de en qué orden se llenó la base (así falló el CI de PR #800 la primera vez).
 
 **5. Una venta cerrada sigue bloqueada para cambios y devoluciones; la salida es reabrir.**
 DECIDÍ: `fn_exige_prenda_regularizada` rechaza cambios y devoluciones de una fila `pendiente` **o** `cerrada_sin_prenda` (con mensaje propio:

@@ -83,6 +83,9 @@ select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas
 select retail.abrir_caja(:'ubic', 100.00, 'prueba de concurrencia') as caja_id \\gset
 -- Lo que ya estuviera pendiente (corridas anteriores, otra sesión) se aparta: el cierre solo ve lo de esta corrida.
 update retail.prendas_por_regularizar set vendido_en = now() + interval '1 day' where ubicacion_id = :'ubic' and estado = 'pendiente';
+-- El plazo se asegura aquí (ver cola_arranque.mjs): no depende de si el seed corrió antes o después de la migración.
+insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'ubic', retail.fn_hoy_lima() + 11)
+  on conflict (ubicacion_id) do update set hasta = excluded.hasta;
 select id as v1 from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
