@@ -181,6 +181,21 @@ escena pasada por los tres caminos —«Hoy», «Para hoy» y el Inicio— con e
 mutaciones: el Inicio sin la decisión del motor, sin la lista del día, con piso y almacén cruzados, la cuenta sin la pausa, el aviso
 contando unidades y el panel sin la lista: todas en rojo).
 
+## Actualización 2026-10-04 (e): el Inicio dibuja la prenda sin foto con la misma lectura del motor (merge con ADR-0333)
+ADR-0333 (main) dibuja la prenda sin foto con el ícono de su categoría sobre su color en todo el ERP, y para el Inicio de Almacén le
+pasó color y categoría a las tres prendas de «Por colgar»… desde las filas de Existencias. Con (d) esas filas salen de la lectura del
+motor (`filasDelPiso`), que no traía ni el hex del color ni el prefijo y la familia de la categoría: el merge compilaba y las tres
+prendas habrían salido como una percha sobre un tono neutro.
+DECIDÍ: `fn_piso_plan_lectura` trae `color_hex` en cada talla y `prefijo` y `familia` en cada curva (ya traía el nombre de la
+categoría), `lecturaDesdeJson` los traduce y `filasDelPiso` los pone en cada fila. El motor no los usa. Cuestan dos columnas de dos
+uniones que la lectura ya hacía (`colores`, `categorias`).
+DESCARTÉ: una segunda consulta del Inicio por la categoría y el color de sus tres prendas (otra ida a la base y otra lectura que puede
+fallar sola, para lo que la primera ya tenía a mano), y volver a leer Existencias entera (lo que (d) descartó).
+SE ROMPE SI: una pantalla nueva arma filas desde la lectura del motor sin `filasDelPiso`, o la lectura deja de traer esos campos. Lo
+vigilan F5 y F6 de `pnpm pruebas:piso-plan` (las claves de la talla; el hex, el prefijo y la familia, con mutación en rojo) y la
+escena de `lib/inicio-almacen-reglas.test.ts` («dibuja la prenda sin foto como el resto del ERP», también en rojo si el Inicio pierde
+la categoría).
+
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se
   engancha en `tareasParaHoy` cuando exista.

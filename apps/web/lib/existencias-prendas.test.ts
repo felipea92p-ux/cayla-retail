@@ -225,6 +225,7 @@ describe("la lista del día ordena Existencias igual que el Inicio (revisión ad
     tallaId: `t-${p.talla}`,
     colorCodigo: "NEG",
     color: "Negro",
+    colorHex: "#1A1A1A",
     familiaColor: "neutro",
     retirada: false,
     fotoUrl: null,
@@ -253,7 +254,7 @@ describe("la lista del día ordena Existencias igual que el Inicio (revisión ad
     tallas,
     ventas: [],
     anotadasRecientes: [],
-    curvas: [{ categoriaId: "cat-polos", categoria: "Polos", tallas: ["XS", "S", "M", "L", "XL"] }],
+    curvas: [{ categoriaId: "cat-polos", categoria: "Polos", prefijo: null, familia: null, tallas: ["XS", "S", "M", "L", "XL"] }],
   };
   const plan = planDelPiso(lectura);
   const filas = tallas.map((x) =>

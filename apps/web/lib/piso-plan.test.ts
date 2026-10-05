@@ -214,9 +214,9 @@ const POLOS = "cat-polos";
 const JEANS = "cat-jeans";
 const ZAPATOS = "cat-zapatos";
 const CURVAS = [
-  { categoriaId: POLOS, categoria: "Polos", tallas: ["XS", "S", "M", "L", "XL", "Estándar"] },
-  { categoriaId: JEANS, categoria: "Jeans", tallas: ["26", "28", "30", "32", "34"] },
-  { categoriaId: ZAPATOS, categoria: "Zapatillas", tallas: ["34", "35", "36", "37", "38", "39", "40", "41", "42"] },
+  { categoriaId: POLOS, categoria: "Polos", prefijo: null, familia: null, tallas: ["XS", "S", "M", "L", "XL", "Estándar"] },
+  { categoriaId: JEANS, categoria: "Jeans", prefijo: null, familia: null, tallas: ["26", "28", "30", "32", "34"] },
+  { categoriaId: ZAPATOS, categoria: "Zapatillas", prefijo: null, familia: null, tallas: ["34", "35", "36", "37", "38", "39", "40", "41", "42"] },
 ];
 
 let siguiente = 0;
@@ -230,6 +230,7 @@ function talla(p: Partial<TallaEnSede> & { talla: string | null }): TallaEnSede 
     tallaId: p.tallaId ?? (p.talla ? `t-${p.talla}` : null),
     colorCodigo: p.colorCodigo ?? "NEG",
     color: p.color ?? "Negro",
+    colorHex: p.colorHex ?? null,
     familiaColor: p.familiaColor === undefined ? "neutro" : p.familiaColor,
     retirada: p.retirada ?? false,
     fotoUrl: null,
@@ -462,19 +463,22 @@ describe("lecturaDesdeJson — la respuesta de la base", () => {
     tallas: [
       {
         variante_id: "v1", producto_id: "p1", referencia: "Polo", categoria_id: POLOS, talla_id: "t-M", talla: "M", color_codigo: "NEG",
-        color: "Negro", familia_color: "neutro", retirada: false, foto_url: null, piso_libre: 0, almacen_libre: 2, en_camino: 0,
+        color: "Negro", color_hex: "#1A1A1A", familia_color: "neutro", retirada: false, foto_url: null, piso_libre: 0, almacen_libre: 2, en_camino: 0,
         vendidas_hoy: 0, vendidas_ayer: 1, vendidas_14: 3,
       },
     ],
     ventas: [{ categoria_id: POLOS, talla_id: "t-M", talla: "M", familia_color: "neutro", escaneadas: 3, anotadas: 1 }],
     anotadas_recientes: [{ categoria_id: POLOS, talla_id: "t-XL", color_codigo: "NEG", hoy: 0, ayer: 1 }],
-    curvas: [{ categoria_id: POLOS, categoria: "Polos", tallas: [{ talla_id: "t-S", talla: "S" }, { talla_id: "t-M", talla: "M" }] }],
+    curvas: [{ categoria_id: POLOS, categoria: "Polos", prefijo: "POL", familia: "indumentaria", tallas: [{ talla_id: "t-S", talla: "S" }, { talla_id: "t-M", talla: "M" }] }],
   };
   it("traduce la forma de la base y el motor la usa tal cual", () => {
     const l = lecturaDesdeJson(json);
     expect(l).toMatchObject({ ubicacionId: "tru", separaPiso: true, cuadradoEn: "2026-10-01T15:00:00+00:00", hoy: "2026-10-04", dias: 14 });
     expect(l?.tallas[0]).toMatchObject({ varianteId: "v1", talla: "M", almacenLibre: 2, vendidasAyer: 1, familiaColor: "neutro" });
     expect(l?.curvas[0].tallas).toEqual(["S", "M"]);
+    // Lo que dibuja la prenda sin foto (ADR-0333): el motor no lo usa, pero tiene que llegar al Inicio de Almacén.
+    expect(l?.tallas[0].colorHex).toBe("#1A1A1A");
+    expect(l?.curvas[0]).toMatchObject({ categoria: "Polos", prefijo: "POL", familia: "indumentaria" });
     expect(l?.anotadasRecientes).toEqual([{ categoriaId: POLOS, tallaId: "t-XL", colorCodigo: "NEG", hoy: 0, ayer: 1 }]);
     expect(accion(planDelPiso(l!), "v1")).toBe("por_colgar");
   });

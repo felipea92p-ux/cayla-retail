@@ -11,6 +11,9 @@ import { DIAS_VENTANA, planDelPiso, type LecturaDelPiso, type PlanDelPiso, type 
 /** La curva de la categoría de prueba: ropa con letras y pantalones con números. Centrales: S · M · L y 28 · 30 · 32. */
 export const CURVA_DE_PRUEBA = ["XS", "S", "M", "L", "XL", "26", "28", "30", "32", "34"];
 
+/** La categoría de la escena, con lo que la base trae en su curva para dibujar la prenda sin foto (ADR-0333). */
+export const CATEGORIA_DE_PRUEBA = { categoria: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" } as const;
+
 /** Una fecha de cuadre del piso cualquiera: con ella el motor manda a colgar; con `null`, todo lo que mandaría queda en pausa. */
 export const CUADRADO_EN = "2026-10-01T15:00:00+00:00";
 
@@ -36,6 +39,7 @@ export function lecturaDeFilas(
       talla: f.talla,
       colorCodigo: f.color,
       color: f.color,
+      colorHex: f.colorHex,
       familiaColor: null,
       retirada: false,
       fotoUrl: f.fotoUrl,
@@ -49,7 +53,7 @@ export function lecturaDeFilas(
     })),
     ventas: [],
     anotadasRecientes: [],
-    curvas: [{ categoriaId: "cat-prueba", categoria: "Prueba", tallas: CURVA_DE_PRUEBA }],
+    curvas: [{ categoriaId: "cat-prueba", ...CATEGORIA_DE_PRUEBA, tallas: CURVA_DE_PRUEBA }],
   };
 }
 

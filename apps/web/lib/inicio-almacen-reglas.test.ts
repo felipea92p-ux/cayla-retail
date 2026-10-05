@@ -35,7 +35,7 @@ import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type EntradaParaHoy
 import { agruparPorPrenda, queHacerPrenda, type FilaPrenda } from "./existencias-prendas";
 import { tarjetasDeExistencias } from "./existencias-tarjetas";
 import { avisosInicio } from "./inicio-avisos";
-import { conMotor } from "./piso-plan-fixtures";
+import { CATEGORIA_DE_PRUEBA, conMotor } from "./piso-plan-fixtures";
 
 // 10:42 a. m. en Lima del miércoles 30 de setiembre de 2026 (UTC−5).
 const AHORA = Date.parse("2026-09-30T15:42:00Z");
@@ -466,7 +466,7 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
     talla("Blusa Emma", "Negro", "L", 0, 0, { enTransito: 2 }), // agotada y viene en camino
     talla("Pantalón Carla", "Beige", "28", 0, 2, { apartado: 1 }), // por colgar (lo libre ya viene neto de apartados)
     talla("Casaca Nina", "Rojo", "S", 0, 0), // agotada
-    talla("Casaca Nina", "Rojo", "XL", 0, 2), // extrema, pero se vendió ayer: por colgar, y primero
+    talla("Casaca Nina", "Rojo", "XL", 0, 2, { colorHex: "#9B1B30" }), // extrema, pero se vendió ayer: por colgar, y primero
     talla("Polo Rita", "Blanco", null, 1, 0), // colgada, sin talla
   ];
   const ventas = { [crudo[8].varianteId]: { vendidasAyer: 1, vendidas14: 1 } };
@@ -528,6 +528,15 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
       ]);
       expect(e.inicio.porColgar).toEqual({ tallas: 4, unidades: 8, prendas: 3, enPausa: 0 });
       expect(paraHoy?.detalle).toMatch(/^8 guardadas y ninguna colgada: empieza por Casaca Nina, Blusa Emma y 1 más/);
+    });
+
+    // La lectura del motor tiene que traer lo que el resto del ERP usa para dibujar una prenda sin foto: si el Inicio armara sus
+    // filas sin el color ni la categoría (como hasta el merge con ADR-0333), sus tres prendas saldrían como una percha gris.
+    it("dibuja la prenda sin foto como el resto del ERP: su categoría sobre su color, leídos de la misma lectura (ADR-0333)", () => {
+      expect(e.inicio.primeras[0]).toMatchObject({ referencia: "Casaca Nina", fotoUrl: null, colorHex: "#9B1B30" });
+      for (const p of e.inicio.primeras) {
+        expect(p).toMatchObject({ categoria: CATEGORIA_DE_PRUEBA.categoria, categoriaPrefijo: CATEGORIA_DE_PRUEBA.prefijo, categoriaFamilia: CATEGORIA_DE_PRUEBA.familia });
+      }
     });
 
     it("habla como Existencias: «Por colgar» y «Bajar al piso», nunca «Sube … al piso»", () => {

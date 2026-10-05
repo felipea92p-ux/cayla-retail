@@ -183,6 +183,9 @@ export type TallaEnSede = {
   talla: string | null;
   colorCodigo: string | null;
   color: string | null;
+  /** `colores.hex`. El motor no lo usa: es para dibujar la prenda sin foto sobre su color (ADR-0333). `null` si el color no es
+   *  un color (Estampado, Multicolor). */
+  colorHex: string | null;
   familiaColor: string | null;
   retirada: boolean;
   fotoUrl: string | null;
@@ -208,8 +211,9 @@ export type VentaPorAtributo = {
  *  tiene prenda. Una llave con algún vacío no se cruza con ninguna talla (no se sabe a cuál pertenece). */
 export type AnotadaReciente = { categoriaId: string | null; tallaId: string | null; colorCodigo: string | null; hoy: number; ayer: number };
 
-/** Las tallas que ofrece una categoría (`categoria_tallas`). */
-export type CurvaDeCategoria = { categoriaId: string; categoria: string; tallas: string[] };
+/** Las tallas que ofrece una categoría (`categoria_tallas`), con lo que la identifica: el nombre y —solo para dibujar la prenda
+ *  sin foto con su ícono y su tono (ADR-0333); el motor no los usa— `categorias.prefijo` y `categorias.familia`. */
+export type CurvaDeCategoria = { categoriaId: string; categoria: string; prefijo: string | null; familia: string | null; tallas: string[] };
 
 export type LecturaDelPiso = {
   ubicacionId: string;
@@ -512,6 +516,7 @@ export function lecturaDesdeJson(json: unknown): LecturaDelPiso | null {
       talla: texto(t.talla),
       colorCodigo: texto(t.color_codigo),
       color: texto(t.color),
+      colorHex: texto(t.color_hex),
       familiaColor: texto(t.familia_color),
       retirada: t.retirada === true,
       fotoUrl: texto(t.foto_url),
@@ -544,7 +549,7 @@ export function lecturaDesdeJson(json: unknown): LecturaDelPiso | null {
     const categoriaId = texto(c.categoria_id);
     if (!categoriaId) continue;
     const tallasCurva = Array.isArray(c.tallas) ? (c.tallas as unknown[]).map((x) => texto((x as Record<string, unknown> | null)?.talla)).filter((x): x is string => !!x) : [];
-    curvas.push({ categoriaId, categoria: texto(c.categoria) ?? "", tallas: tallasCurva });
+    curvas.push({ categoriaId, categoria: texto(c.categoria) ?? "", prefijo: texto(c.prefijo), familia: texto(c.familia), tallas: tallasCurva });
   }
   // Sin `cuadrado_en` (una lectura que no lo trae) es «sin cuadre»: falla cerrado, nunca publica «Por colgar» sin saber.
   return { ubicacionId, separaPiso: j.separa_piso === true, cuadradoEn: texto(j.cuadrado_en), hoy, dias, tallas, ventas, anotadasRecientes, curvas };

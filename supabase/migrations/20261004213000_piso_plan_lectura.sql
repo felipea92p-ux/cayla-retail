@@ -12,14 +12,16 @@
 --
 -- QUÉ HACE. `retail.fn_piso_plan_lectura(p_ubicacion_id)` devuelve UN jsonb con las entradas crudas, sin decidir nada:
 --   · `tallas`: cada talla (variante) con stock o en camino en la sede —lo libre en piso y almacén sale de
---     `fn_existencias_base`, LA fórmula de stock (ADR-0270)— con su categoría, talla, color y familia de color, y cuántas de ESA
---     prenda se vendieron escaneadas hoy, ayer y en los 14 días (días de Lima).
+--     `fn_existencias_base`, LA fórmula de stock (ADR-0270)— con su categoría, talla, color (y su `color_hex`) y familia de
+--     color, y cuántas de ESA prenda se vendieron escaneadas hoy, ayer y en los 14 días (días de Lima).
 --   · `ventas`: lo vendido en los 14 días por categoría × talla × familia de color: `escaneadas` y `anotadas` (las ventas
 --     «sin registrar» que siguen pendientes en `prendas_por_regularizar`).
 --   · `anotadas_recientes`: lo anotado a mano «sin registrar» hoy y ayer que sigue pendiente, por categoría × talla × color exacto:
 --     el reloj rápido para lo que no tiene prenda (en AQP, 169 de 170 ventas). El motor sube a 1 lo colgado que piden las tallas
 --     de la sede con esa llave y las pone primero, sin nombrar un modelo (ADR-0329 act. 9).
---   · `curvas`: las tallas que ofrece cada categoría que aparece arriba (`categoria_tallas`), para decidir las tallas centrales.
+--   · `curvas`: las tallas que ofrece cada categoría que aparece arriba (`categoria_tallas`), para decidir las tallas centrales,
+--     con su nombre, `prefijo` y `familia`. El motor no los usa: con `color_hex` son lo que el Inicio de Almacén necesita para
+--     dibujar la prenda sin foto como el resto del ERP —el ícono de su categoría sobre su color (ADR-0333)— sin otra consulta.
 --   · `hoy`, `desde`, `dias` (14), `separa_piso` (la sede tiene piso de venta o almacén de tienda, como lo decide Existencias)
 --     y `ubicacion_tipo`.
 --   · `cuadrado_en`: cuándo se cuadró el piso de la sede por última vez (`retail.cuadres_piso`, actividad 3); NULL si nunca, o si
@@ -75,7 +77,7 @@
 -- entre comillas (ADR-0288). La guarda de arriba aborta, sin tocar nada, si falta algo de lo que asume. Se puede pegar dos veces.
 -- Después de pegar, solo lectura:
 --   select md5(prosrc) from pg_proc where oid = 'retail.fn_piso_plan_lectura(uuid)'::regprocedure;
---     → `b5c7f77a99bf80056f3077ba3862692a` (el cuerpo de este archivo; medido en la base con todas las migraciones).
+--     → `faff73d2a6db4c0692775c1f6d6e284d` (el cuerpo de este archivo; medido en la base con todas las migraciones).
 --   select retail.fn_piso_plan_lectura('<id de TRU>') is null;
 --     → `true` en el SQL Editor: ahí no hay sesión, y eso también es la prueba de la puerta. Con sesión (la web) trae el jsonb.
 --
@@ -84,7 +86,12 @@
 -- una venta se registra con una sede distinta de donde salió la prenda: la velocidad caería en la sede equivocada. Y si la
 -- actividad 3 renombra `cuadres_piso` o deja de guardar la fecha en su `created_at`: la sede quedaría «sin cuadrar» para siempre
 -- (falla visible —«Cuadra el piso» después de cuadrar—, nunca un «Por colgar» falso); el caso K3 de la prueba compara esta
--- fecha con la de `fn_cuadre_piso_estado` en cuanto las dos viven en la misma base.
+-- fecha con la de `fn_cuadre_piso_estado` en cuanto las dos viven en la misma base. Y se rompe si llega el estado
+-- `cerrada_sin_prenda` de la cola (PR #800, ADR-0334: el líder cierra en bloque las anotadas de arranque de una tienda) y los dos
+-- filtros `p.estado = 'pendiente'` de abajo (`por_atributo` y `anotadas_recientes`) no pasan a
+-- `p.estado in ('pendiente', 'cerrada_sin_prenda')`: una cerrada sigue sin prenda y sin salida en el libro (no cuenta dos veces),
+-- pero esta lectura dejaría de verla y la tienda que cierra su cola —AQP, que vende casi todo «sin registrar»— quedaría con la
+-- velocidad de lo escaneado. Es el contrato de ADR-0334 con este motor; lo construye el PR que se fusione segundo.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -266,7 +273,7 @@ begin
     ),
     tallas_sede as (
       select e.variante_id, e.producto_id, pr.referencia, pr.categoria_id, va.talla_id, t.valor as talla,
-             va.color_codigo, co.nombre as color, co.familia_color, e.talla_retirada,
+             va.color_codigo, co.nombre as color, co.hex as color_hex, co.familia_color, e.talla_retirada,
              e.piso_libre, e.almacen_libre, e.en_camino,
              coalesce(s.hoy, 0)::integer as vendidas_hoy,
              coalesce(s.ayer, 0)::integer as vendidas_ayer,
@@ -301,7 +308,7 @@ begin
         select jsonb_agg(jsonb_build_object(
                  'variante_id', t.variante_id, 'producto_id', t.producto_id, 'referencia', t.referencia,
                  'categoria_id', t.categoria_id, 'talla_id', t.talla_id, 'talla', t.talla,
-                 'color_codigo', t.color_codigo, 'color', t.color, 'familia_color', t.familia_color,
+                 'color_codigo', t.color_codigo, 'color', t.color, 'color_hex', t.color_hex, 'familia_color', t.familia_color,
                  'retirada', t.talla_retirada, 'foto_url', t.foto_url,
                  'piso_libre', t.piso_libre, 'almacen_libre', t.almacen_libre, 'en_camino', t.en_camino,
                  'vendidas_hoy', t.vendidas_hoy, 'vendidas_ayer', t.vendidas_ayer, 'vendidas_14', t.vendidas_14)
@@ -320,7 +327,7 @@ begin
         from anotadas_recientes a), '[]'::jsonb),
       'curvas', coalesce((
         select jsonb_agg(jsonb_build_object(
-                 'categoria_id', c.id, 'categoria', c.nombre,
+                 'categoria_id', c.id, 'categoria', c.nombre, 'prefijo', c.prefijo, 'familia', c.familia,
                  'tallas', coalesce((select jsonb_agg(jsonb_build_object('talla_id', ct.talla_id, 'talla', ta.valor) order by ta.valor)
                                      from retail.categoria_tallas ct join retail.tallas ta on ta.id = ct.talla_id
                                      where ct.categoria_id = c.id), '[]'::jsonb))

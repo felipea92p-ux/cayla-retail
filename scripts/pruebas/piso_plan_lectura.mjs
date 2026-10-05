@@ -11,7 +11,8 @@
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; una sede NUEVA por caso, así nada del seed se mezcla).
  *   F   FORMA: una sola firma, SECURITY DEFINER, STABLE, search_path fijo, devuelve jsonb; anon sin EXECUTE y authenticated con
- *       EXECUTE; las claves del contrato; `hoy` es el día de Lima y `desde` 13 días antes (14 días, hoy incluido).
+ *       EXECUTE; las claves del contrato; `hoy` es el día de Lima y `desde` 13 días antes (14 días, hoy incluido); y lo que dibuja
+ *       la prenda sin foto en el Inicio de Almacén (ADR-0333): el hex del color en la talla, el prefijo y la familia en la curva.
  *   P   PUERTAS: la de todas las lecturas (`fn_tiene_acceso_retail()`; el PR #781 enseñó que una copia dejaba afuera a las
  *       terminales) y la de la sede (`fn_puede_operar_ubicacion`, revisión adversarial): el líder lee cualquier sede; una
  *       integrante y una terminal de ventas ACTIVA leen la suya y reciben NULL de otra; reciben NULL —nunca un jsonb vacío que
@@ -282,7 +283,18 @@ caso(
   `select pg_temp.prenda('PP-F5', :'cat', 'M', :'neutro') as v \\gset
    select pg_temp.stock(:'v', 1, 2);
    select string_agg(k, ';' order by k) from jsonb_object_keys(pg_temp.talla(:'sede', :'v')) k;`,
-  "almacen_libre;categoria_id;color;color_codigo;en_camino;familia_color;foto_url;piso_libre;producto_id;referencia;retirada;talla;talla_id;variante_id;vendidas_14;vendidas_ayer;vendidas_hoy"
+  "almacen_libre;categoria_id;color;color_codigo;color_hex;en_camino;familia_color;foto_url;piso_libre;producto_id;referencia;retirada;talla;talla_id;variante_id;vendidas_14;vendidas_ayer;vendidas_hoy"
+);
+caso(
+  "F6 la prenda sin foto se dibuja con lo que trae la lectura (ADR-0333): la talla, el hex de su color; la curva, el nombre, el prefijo y la familia de su categoría",
+  `update retail.categorias set prefijo = 'QPP' where id = :'cat';
+   select pg_temp.prenda('PP-F6', :'cat', 'M', :'neutro') as v \\gset
+   select pg_temp.stock(:'v', 1, 2);
+   select concat_ws(',',
+     (pg_temp.talla(:'sede', :'v') ->> 'color_hex') = (select hex from retail.colores where codigo = :'neutro'),
+     (select c ->> 'categoria' || '|' || coalesce(c ->> 'prefijo', '∅') || '|' || coalesce(c ->> 'familia', '∅')
+        from jsonb_array_elements(pg_temp.lee(:'sede') -> 'curvas') c where c ->> 'categoria_id' = :'cat'));`,
+  "t,PP Polos|QPP|indumentaria"
 );
 
 // ===========================================================================

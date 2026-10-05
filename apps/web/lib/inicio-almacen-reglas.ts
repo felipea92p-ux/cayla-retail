@@ -368,27 +368,37 @@ export type Existencias = {
  * (libre, sin Cuarentena, sin tallas retiradas, sin pruebas). `pnpm pruebas:piso-plan` (S4) compara la lectura con esa función
  * talla por talla. Lo que la lectura no trae (código, códigos de barras, apartado, dañado, marca) va vacío: el Inicio no lo
  * muestra. Si algún día lo muestra, que lea Existencias.
+ *
+ * La prenda sin foto se dibuja como en el resto del ERP —el ícono de su categoría sobre su color (ADR-0333)—: el hex viene en cada
+ * talla y el nombre, el prefijo y la familia de la categoría, en su curva (`lectura.curvas`, una por categoría que aparece).
  */
 export function filasDelPiso(lectura: LecturaDelPiso, plan: Pick<PlanDelPiso, "porTalla">): FilaPrenda[] {
-  return lectura.tallas.map((t) => ({
-    varianteId: t.varianteId,
-    productoId: t.productoId,
-    referencia: t.referencia,
-    sku: "",
-    talla: t.talla,
-    color: t.color,
-    colorHex: null,
-    fotoUrl: t.fotoUrl,
-    codigosBarras: [],
-    pisoDisponible: lectura.separaPiso ? t.pisoLibre : null,
-    almacenDisponible: lectura.separaPiso ? t.almacenLibre : null,
-    disponible: t.pisoLibre + t.almacenLibre,
-    apartado: 0,
-    danado: lectura.separaPiso ? 0 : null,
-    enTransito: t.enCamino,
-    planPiso: plan.porTalla.get(t.varianteId) ?? null,
-    marca: null,
-  }));
+  const categorias = new Map(lectura.curvas.map((c) => [c.categoriaId, c]));
+  return lectura.tallas.map((t) => {
+    const categoria = t.categoriaId ? categorias.get(t.categoriaId) : undefined;
+    return {
+      varianteId: t.varianteId,
+      productoId: t.productoId,
+      referencia: t.referencia,
+      sku: "",
+      talla: t.talla,
+      color: t.color,
+      colorHex: t.colorHex,
+      fotoUrl: t.fotoUrl,
+      categoria: categoria?.categoria ?? null,
+      categoriaPrefijo: categoria?.prefijo ?? null,
+      categoriaFamilia: categoria?.familia ?? null,
+      codigosBarras: [],
+      pisoDisponible: lectura.separaPiso ? t.pisoLibre : null,
+      almacenDisponible: lectura.separaPiso ? t.almacenLibre : null,
+      disponible: t.pisoLibre + t.almacenLibre,
+      apartado: 0,
+      danado: lectura.separaPiso ? 0 : null,
+      enTransito: t.enCamino,
+      planPiso: plan.porTalla.get(t.varianteId) ?? null,
+      marca: null,
+    };
+  });
 }
 
 /**
