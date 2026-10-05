@@ -288,6 +288,7 @@ textarea.texto{min-height:76px;resize:vertical}
 @keyframes pista{0%{box-shadow:0 0 0 12px color-mix(in srgb,var(--ambar) 0%,transparent)}100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 45%,transparent)}}
 .panel.arrastrando{transition:none}
 .con-cinta .aviso{top:86px}
+.cinta[hidden]{display:none}
 
 /* ---------- computadora: mouse y teclado ---------- */
 .aparato.pc{border:1px solid var(--sand);border-radius:16px}
@@ -328,27 +329,7 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 .simb{min-height:30px;font-size:14px;padding:0 10px;border:0;cursor:pointer;font-family:inherit}
 .simb svg{width:13px;height:13px}
 /* el detalle: un icono fino que solo asoma al pasar el mouse (en tablet queda tenue) */
-.i-info{display:inline-flex;margin-left:2px;opacity:0;transition:opacity .2s var(--ease)}
-.i-info svg{width:13px;height:13px}
-.pc .modelo:hover .i-info,.pc .simb:focus-visible .i-info,.simb[aria-expanded="true"] .i-info{opacity:.6}
-.aparato:not(.pc) .i-info{opacity:.4}
 /* botón con icono + acciones rápidas al pasar el mouse */
-.dial{position:relative;margin-left:auto;display:inline-flex}
-.split{display:inline-flex;border:1px solid var(--sand);border-radius:12px;overflow:hidden;background:var(--papel)}
-.split .btn{border:0;border-radius:0;min-height:38px;background:transparent}
-.split .accion-c{margin-left:0;padding:0 12px 0 10px;gap:7px;font-size:14px}
-.split .accion-c svg{color:var(--ambar)}
-.split .accion-m{padding:0 8px;border-left:1px solid var(--sand);color:var(--taupe)}
-.split .btn:hover{background:var(--crema)}
-.dial-menu{position:absolute;right:0;bottom:100%;padding-bottom:8px;z-index:12;opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .16s var(--ease),transform .16s var(--ease),visibility .16s;pointer-events:none}
-.dial-in{display:grid;gap:2px;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:6px;min-width:216px;box-shadow:0 12px 28px rgba(26,26,24,.16)}
-.rapida{display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:10px;min-height:42px;padding:0 12px;font-size:14px;text-align:left;width:100%}
-.rapida svg{color:var(--taupe)}
-.rapida:hover,.rapida:focus-visible{background:var(--hueso)}
-.dial:focus-within .dial-menu,.dial.abierta .dial-menu{opacity:1;visibility:visible;transform:none;pointer-events:auto}
-@media (hover:hover){.dial:hover .dial-menu{opacity:1;visibility:visible;transform:none;pointer-events:auto}}
-.dial.abierta .accion-m svg{transform:rotate(180deg)}
-.split .accion-m svg{transition:transform .2s var(--ease)}
 /* barra de búsqueda y filtros */
 .herr{display:grid;gap:10px}
 .buscador{display:flex;gap:8px;align-items:center}
@@ -404,6 +385,27 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 .atajos .btn svg{color:var(--ambar)}
 .dot-falta{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ambar);margin-left:5px;vertical-align:1px}
 .acciones .accion:last-child:nth-child(odd){grid-column:1/-1}
+
+/* ---------- solo iconos ---------- */
+.solo-lector{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fila-estado{justify-content:flex-end;min-height:40px}
+.fila-acciones{display:flex;gap:6px}
+.ib{width:40px;height:40px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--taupe);position:relative;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease)}
+.ib svg{width:19px;height:19px}
+.ib:hover{border-color:var(--taupe);color:var(--tinta);background:var(--crema)}
+.ib.sugerida{background:var(--t-ambar);color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 40%,transparent)}
+.aparato:not(.pc) .ib{width:44px;height:44px}
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translate(-50%,4px);background:var(--tinta);color:var(--papel);font:500 12px/1 var(--sans);padding:6px 9px;border-radius:8px;white-space:nowrap;z-index:40;pointer-events:none;opacity:0;transition:opacity .15s var(--ease),transform .15s var(--ease)}
+[data-tip][data-tip-pos="abajo"]::after{bottom:auto;top:calc(100% + 7px);transform:translate(-50%,-4px)}
+@media (hover:hover){[data-tip]:hover::after{opacity:1;transform:translate(-50%,0)}}
+[data-tip]:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+.chip-f.solo-icono{min-height:40px;min-width:48px;padding:0 10px 0 11px;justify-content:center}
+.chip-f.solo-icono svg{width:16px;height:16px}
+.orden.vista-f{margin-left:auto}
+.orden.vista-f+.orden{margin-left:0}
+.orden.vista-f button{min-width:36px;display:grid;place-items:center}
+.orden.vista-f button[aria-pressed="true"]{color:var(--tinta)}
 
 /* ---------- documento ---------- */
 .doc{margin-top:46px;display:grid;gap:16px}
@@ -516,6 +518,11 @@ table.t td:first-child{font-weight:600}
         <tr><td>Casi no hay</td><td>Talla con 1 o ninguna unidad aquí, que otra sede sí tiene y no viene en camino.</td><td>Franja azul con «Pedir», en el panel y en «Reponer varias».</td></tr>
       </tbody>
     </table></div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>La tarjeta no repite el estado: se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen, y los botones son solo iconos (Reponer, Retirar del piso, Enviar a otra sede; el que la pantalla sugiere va en ámbar). El nombre sale al pasar el mouse o al enfocar con el teclado, y cada botón lo lleva también como etiqueta para el lector de pantalla. Los filtros se pueden ver de dos formas, con el interruptor de la derecha: solo iconos (con el nombre y la cifra al pasar el mouse) o iconos con texto.</p>
+      <p><span class="k">Descarté</span>Dejar el menú que se abría al pasar el mouse por el botón: con solo iconos caben los tres a la vista, y en tablet no hay mouse.</p>
+      <p><span class="k">Se rompe si</span>una integrante nueva no distingue «Retirar del piso» de «Enviar a otra sede» solo por el icono: en tablet no hay mouse para ver el nombre. Por eso el interruptor de filtros existe y el panel conserva los nombres escritos; en las tarjetas conviene probarlo con alguien sin capacitación antes de dejar solo iconos.</p>
+    </div>
     <div class="decision">
       <p><span class="k">Decidí</span>Tres cosas a la vez: «Reponer primero» (los 3 modelos que más conviene reponer, con su aro de semanas), el orden «Prioridad» en toda la lista y, en «Reponer varias», los atajos «Lo que falta en el piso», «Todo el almacén» y «Vaciar». El botón de cada tarjeta lleva icono, y al pasar el mouse por él salen las acciones rápidas: Reponer, Retirar del piso y Enviar a otra sede. El detalle pasó a un icono fino que solo asoma al pasar el mouse; la búsqueda y los filtros comparten una barra, y Escanear es un icono.</p>
       <p><span class="k">Descarté</span>Dejar las cantidades ya llenas al abrir «Reponer varias», como hace el otro artefacto («Ya las marqué abajo»): ADR-0231 pide que arranquen en 0 y que la cifra la ponga quien tiene la prenda en la mano. Aquí se marcan con un punto y un toque en «Lo que falta en el piso» las llena. También descarté abrir las acciones rápidas al pasar el mouse por toda la tarjeta: con 12 tarjetas, cada movimiento del mouse abriría un menú.</p>
@@ -632,7 +639,7 @@ table.t td:first-child{font-weight:600}
   let P, S;
   function inicial() {
     P = BASE();
-    S = { orden:"prioridad", detalle:null, q:"", filtro:"todo", color:{}, panel:null, caja:true, ultimo:null, hecho:null, pedidos:{} };
+    S = { vf:"iconos", orden:"prioridad", detalle:null, q:"", filtro:"todo", color:{}, panel:null, caja:true, ultimo:null, hecho:null, pedidos:{} };
   }
   inicial();
 
@@ -750,7 +757,8 @@ table.t td:first-child{font-weight:600}
     const t = totales();
     const enBusqueda = P.filter(coincide);
     const n = k => k === "todo" ? enBusqueda.length : enBusqueda.reduce((m, p) => m + coincidencias(p, k).length, 0);
-    const chip = ([k, txt]) => `<button class="chip-f" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}" data-tono="${TONO_F[k] || "tinta"}">${ICON_F[k]}<span>${txt}</span><b>${n(k)}</b></button>`;
+const solo = S.vf === "iconos";
+    const chip = ([k, txt]) => `<button class="chip-f${solo ? " solo-icono" : ""}" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}" data-tono="${TONO_F[k] || "tinta"}"${solo ? ` data-tip="${esc(txt)} · ${n(k)}" data-tip-pos="abajo" aria-label="${esc(txt)}, ${n(k)}"` : ""}>${ICON_F[k]}${solo ? "" : `<span>${txt}</span>`}<b>${n(k)}</b></button>`;
     document.getElementById("barra").innerHTML = `
       <div class="fila-top">
         <div class="titulo-app"><h1>Existencias</h1><small>Tienda TRU · vista de las 09:28</small></div>
@@ -764,8 +772,9 @@ table.t td:first-child{font-weight:600}
         </div>
         <div class="rail" role="group" aria-label="Filtro">
           ${FILTROS.filter(f => !["acaban", "quietas"].includes(f[0])).map(chip).join("")}
-          <span class="rail-sep" aria-hidden="true"></span><span class="rail-tit">Recomendados</span>
+          <span class="rail-sep" aria-hidden="true"></span>${solo ? "" : '<span class="rail-tit">Recomendados</span>'}
           ${FILTROS.filter(f => ["acaban", "quietas"].includes(f[0])).map(chip).join("")}
+          <div class="orden vista-f" role="group" aria-label="Cómo ver los filtros"><button aria-pressed="${solo}" data-acc="vista-f" data-k="iconos" data-tip="Solo iconos" data-tip-pos="abajo" aria-label="Solo iconos">${IC.grid}</button><button aria-pressed="${!solo}" data-acc="vista-f" data-k="texto" data-tip="Iconos con texto" data-tip-pos="abajo" aria-label="Iconos con texto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h16"/></svg></button></div>
           <div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div>
         </div>
       </div>`;
@@ -774,22 +783,18 @@ table.t td:first-child{font-weight:600}
   // ================= lista =================
   // La fila de estado de la tarjeta: solo SÍMBOLO + número + la acción. El texto completo vive detrás de «ⓘ» (se abre al tocar,
   // como las descripciones de otros apartados) y en el title para quien usa mouse. Así la tarjeta no se llena de frases.
-  // La fila de estado: el símbolo con su número (al tocarlo, el detalle) y un botón con icono. Al pasar el mouse por el botón
-  // salen las acciones rápidas (Reponer · Retirar del piso · Enviar a otra sede); en tablet, con el chevrón.
-  function dial(p, c, accion) {
-    const ic = !accion ? IC.mas : accion.txt === "Reponer" ? IC.reponer : accion.txt === "Pedir" ? IC.pedir : IC.ficha;
-    const principal = accion ? `<button class="btn accion-c" ${accion.attrs}>${ic}<span>${accion.txt}</span></button>` : `<button class="btn accion-c" data-acc="dial">${ic}<span>Acciones</span></button>`;
-    const rap = (k, txt, icono) => `<button class="rapida" role="menuitem" data-acc="rapida" data-k="${k}" data-pid="${p.id}" data-c="${c}">${icono}<span>${txt}</span></button>`;
-    return `<div class="dial"><div class="split">${principal}<button class="btn accion-m" data-acc="dial" aria-label="Acciones rápidas" title="Acciones rápidas">${IC.chev}</button></div>
-      <div class="dial-menu" role="menu" aria-label="Acciones rápidas"><div class="dial-in">${rap("reponer", "Reponer", IC.reponer)}${rap("retirar", "Retirar del piso", IC.retirar)}${rap("enviar", "Enviar a otra sede", IC.enviar)}</div></div></div>`;
-  }
-  function filaEstado(p, c, { tono, svg, n, etiqueta, detalle, accion }) {
-    const abierto = S.detalle === p.id, texto = detalle.replace(/<[^>]+>/g, "");
-    return `<div class="fila-estado">
-      <button class="simb ${tono}" data-acc="detalle" data-pid="${p.id}" aria-expanded="${abierto}" aria-controls="det-${p.id}" title="${esc(texto)}" aria-label="${esc(etiqueta)}. Ver detalle">${svg}${n !== null ? `<b>${n}</b>` : ""}<span class="i-info" aria-hidden="true">${IC.info}</span></button>
-      ${dial(p, c, accion)}
-      ${abierto ? `<div class="burbuja" id="det-${p.id}" role="note">${detalle}</div>` : ""}
-    </div>`;
+  // La fila de acciones de la tarjeta: solo iconos (el nombre sale al pasar el mouse o al enfocar). La que la pantalla sugiere va
+  // resaltada. El estado ya lo dicen las tallas (ámbar = por reponer, punteada = sin stock): no se repite con un indicador aparte.
+  function filaEstado(p, c, { etiqueta, accion }) {
+    const ib = (txt, icono, attrs, sug) => `<button class="ib${sug ? " sugerida" : ""}" data-tip="${esc(txt)}" aria-label="${esc(txt)}" ${attrs}>${icono}</button>`;
+    const rap = k => `data-acc="rapida" data-k="${k}" data-pid="${p.id}" data-c="${c}"`;
+    const sugReponer = accion?.txt === "Reponer";
+    const botones = [];
+    if (accion && !sugReponer) botones.push(ib(accion.txt === "Pedir" ? "Pedir a otra sede" : accion.txt, accion.txt === "Pedir" ? IC.pedir : IC.ficha, accion.attrs, true));
+    botones.push(ib("Reponer", IC.reponer, sugReponer ? accion.attrs : rap("reponer"), sugReponer));
+    botones.push(ib("Retirar del piso", IC.retirar, rap("retirar"), false));
+    botones.push(ib("Enviar a otra sede", IC.enviar, rap("enviar"), false));
+    return `<div class="fila-estado"><span class="solo-lector">${esc(etiqueta)}</span><div class="fila-acciones" role="group" aria-label="Acciones de ${esc(p.nombre)}">${botones.join("")}</div></div>`;
   }
   const SVG_OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   function pastilla(p, c) {
@@ -1341,14 +1346,13 @@ table.t td:first-child{font-weight:600}
     const d = el.dataset, f = S.panel?.flujo;
     switch (d.acc) {
       case "limpiar": S.q = ""; renderBarra(); renderLista(); document.getElementById("q").focus(); break;
-      case "dial": { const dd = el.closest(".dial"), abre = !dd.classList.contains("abierta"); document.querySelectorAll(".dial.abierta").forEach(x => x.classList.remove("abierta")); if (abre) dd.classList.add("abierta"); break; }
+      case "vista-f": S.vf = d.k; renderBarra(); break;
       case "orden": S.orden = d.k; renderBarra(); renderLista(); break;
       case "reco": lanzar(d.pid, +d.c, null, "reponerVarias", { cant:{} }); break;
       case "pedir-rapido": { const p = prod(d.pid), c = +d.c, v = vr(p, c, d.t), mejor = SEDES.filter(sd => v.otras[sd] > 0).sort((a, b) => v.otras[b] - v.otras[a])[0];
         if (!mejor) { avisar("Ninguna sede tiene esta talla"); break; }
         lanzar(d.pid, c, d.t, "pedir", { para:"reponer", origen:mejor, n:1 }); S.panel.flujo.i = 2; renderPanel(true); break; }
       case "rapida": {
-        document.querySelectorAll(".dial.abierta").forEach(x => x.classList.remove("abierta"));
         const p = prod(d.pid), c = +d.c, con = k => Object.keys(p.colores[c].tallas).filter(t => vr(p, c, t)[k] > 0).sort((a, b) => vr(p, c, b)[k] - vr(p, c, a)[k]);
         if (d.k === "reponer") { if (p.colores.some((_, cc) => faltanDe(p, cc).length)) lanzar(d.pid, c, null, "reponerVarias", { cant:{} }); else if (con("alm")[0]) lanzar(d.pid, c, con("alm")[0], "reponer", {}); else avisar("No hay nada en el almacén para reponer"); }
         else if (d.k === "retirar") { if (con("piso")[0]) lanzar(d.pid, c, con("piso")[0], "retirar", {}); else avisar("No hay nada en el piso para retirar"); }
@@ -1410,7 +1414,6 @@ table.t td:first-child{font-weight:600}
     if (e.key === "Escape" && S.panel) { if (S.panel.flujo) { S.panel.flujo = null; renderPanel(true); } else cerrarPanel(); }
   });
 
-  document.addEventListener("click", e => { if (!e.target.closest(".dial")) document.querySelectorAll(".dial.abierta").forEach(x => x.classList.remove("abierta")); });
 
   // ================= controles de la maqueta =================
   document.querySelectorAll("[data-ancho]").forEach(b => b.addEventListener("click", () => {
