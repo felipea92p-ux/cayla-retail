@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Lock, Search } from "lucide-react";
+import { ChevronDown, Lock, Plus, Search } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
-import { Boton, Desplegable, Interruptor } from "@/components/ui/campos";
+import { Boton, Desplegable } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ArchivarRolModal, AsignarRolModal, NuevoRolModal, RenombrarRolModal } from "@/components/RolesModales";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { IconoModulo } from "@/components/colaboradores/IconoModulo";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { Firma } from "@/lib/responsable-reglas";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { Ubicacion } from "@/lib/ubicaciones";
-import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo, type Modulo } from "@/lib/modulos";
+import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo } from "@/lib/modulos";
 import { accionesRolesSupabase, type AccionesRoles, type ResultadoRol } from "@/lib/roles-acciones";
 import {
   alternarGrupo,
@@ -35,7 +36,7 @@ import {
   familiaDeRol,
   hayCambios,
   menuConCambios,
-  modulosFiltrados,
+  modulosPorGrupo,
   motivoParaNoArchivar,
   motivoParaNoGuardar,
   nombreDeCopia,
@@ -50,9 +51,10 @@ import {
   type RolVista,
 } from "@/lib/roles-reglas";
 
-// «Roles y accesos» (ADR-0161 B). Rediseño del spike `docs/maquetas/colaboradores-ux-spike-2026-09/` (Felipe, 2026-09-22):
-// lista de roles agrupada y con avisos, grupos de módulos plegables con buscador, borrador con barra de guardado, vista previa
-// del menú que marca lo que se suma y se quita, y «Comparar roles» (matriz). Cada rol decide SOLO qué módulos ve; quien ve un
+// «Roles y accesos» (ADR-0161 B). Desde el 2026-10-05 (ADR-0342, propuesta de Felipe): los roles en tarjetas (quiénes lo tienen y
+// los íconos de lo que ve) y, abajo, el rol elegido con sus módulos como baldosas (negra = la ve; tocarla dice qué incluye),
+// borrador con barra de guardado y la vista previa del menú que marca lo que se suma y se quita. Sin la matriz «Comparar
+// roles» ni el buscador de módulos (Felipe: no les veía uso). Cada rol decide SOLO qué módulos ve; quien ve un
 // módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder». El Líder también se edita (ADR-0253):
 // sus módulos los mueve solo un Admin, se le puede quitar cualquiera menos Roles y accesos, y lo que nazca después le
 // aparece solo. Todo lo que se escribe pasa por RPC (del líder o de quien ve Roles y accesos, 20260923131000), que anota
@@ -82,10 +84,10 @@ function sinBorrador<T>(b: Record<string, T>, id: string): Record<string, T> {
 }
 
 function descripcionDe(rol: RolVista): string {
-  if (rol.fijo) return "Ve todo lo que no le quites, y cada módulo nuevo le aparece solo. Lo «siempre solo del líder» sigue siendo suyo.";
-  if (rol.clave === "integrante") return "Rol que recibe una persona nueva al darle acceso. Lo que enciendas aquí lo verá desde su primer día.";
-  if (rol.archivado) return "Archivado: no se ofrece al asignar roles. Restáuralo para volver a usarlo o editarlo.";
-  return rol.descripcion ?? "Rol a medida. Se edita, se duplica y se archiva (nunca se borra).";
+  if (rol.fijo) return "Ve todo, también cada módulo nuevo.";
+  if (rol.clave === "integrante") return "El que recibe quien recién entra, si no se elige otro.";
+  if (rol.archivado) return "Archivado: no se ofrece al dar roles. Restáuralo para volver a usarlo.";
+  return rol.descripcion ?? "";
 }
 
 const FAMILIAS: { clave: FamiliaRol; etiqueta: string; cabecera: string }[] = [
@@ -133,7 +135,7 @@ export function RolesPanel({
 }) {
   const router = useRouter();
   // ADR-0193: lo que esta pantalla guardó (con la versión que devolvió la base) manda hasta que `router.refresh()` traiga
-  // los roles nuevos: así dos clics seguidos en la matriz no chocan consigo mismos ni se pisan entre sí.
+  // los roles nuevos: así dos guardados seguidos no chocan consigo mismos ni se pisan entre sí.
   const [guardados, setGuardados] = useState<Record<string, GuardadoLocal>>({});
   const roles = conGuardadosLocales(rolesServidor, guardados);
   const vigentes = roles.filter((r) => !r.archivado);
@@ -147,11 +149,9 @@ export function RolesPanel({
   const [modal, setModal] = useState<Modal | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [verArchivados, setVerArchivados] = useState(false);
-  const [vista, setVista] = useState<"rol" | "matriz">("rol");
-  const [busqueda, setBusqueda] = useState("");
-  const [plegados, setPlegados] = useState<ReadonlySet<string>>(new Set());
+  // El módulo que se tocó: su «qué incluye» sale en la línea de ayuda de arriba de las baldosas.
+  const [ayudaId, setAyudaId] = useState<ClaveModulo | null>(null);
   const [ubicacionPrevia, setUbicacionPrevia] = useState<"tienda" | "taller">("tienda");
-  const [matrizOcupada, setMatrizOcupada] = useState<string | null>(null);
 
   const borrador = rol ? (borradores[rol.id] ?? rol.modulos) : [];
   // Se autocorrige contra el borrador de módulos: si se apaga el módulo elegido, vuelve solo a «sin preferencia»
@@ -206,36 +206,6 @@ export function RolesPanel({
     }
   }
 
-  /** Matriz: cada clic guarda al instante (es la vista para comparar y retocar, no para armar un rol desde cero). */
-  async function alternarEnMatriz(r: RolVista, m: Modulo) {
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
-    const clave = `${r.id}:${m.clave}`;
-    setMatrizOcupada(clave);
-    const nuevos = alternarModulo(r.modulos, m.clave, r.fijo);
-    // ADR-0161 P6: Colaboradores y Roles y accesos no se encienden en un rol que tienen terminales (la base también lo
-    // rechaza; aquí se avisa antes, con los nombres de las terminales).
-    const motivo = motivoPorLoMio(r, r.modulos, nuevos, quien) ?? motivoParaNoGuardar(r.modulos, nuevos, cuentasDe(r.id));
-    if (motivo) {
-      avisar.error(motivo);
-      setMatrizOcupada(null);
-      return;
-    }
-    const encendido = nuevos.includes(m.clave);
-    // Si se apaga justo el módulo elegido como pantalla principal, vuelve a «sin preferencia» — nunca se manda una
-    // elección que ya no es válida.
-    const pantallaPrincipal = pantallaPrincipalValida(r.pantallaPrincipal, nuevos);
-    const hecho = await ejecutar(
-      "guardar los módulos del rol",
-      (f) => acciones.guardarModulos(r.id, nuevos, r.version, pantallaPrincipal, f),
-      `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`,
-    );
-    if (hecho) recordarGuardado(r.id, hecho.version, nuevos, pantallaPrincipal);
-    setMatrizOcupada(null);
-  }
-
   function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[], pantallaPrincipal: ClaveModulo | null) {
     // Sin versión (base sin ADR-0193) no hay nada que recordar: manda lo que traiga el servidor.
     if (version === undefined) return;
@@ -244,7 +214,7 @@ export function RolesPanel({
 
   function elegir(id: string) {
     setElegidoId(id);
-    setBusqueda("");
+    setAyudaId(null);
   }
 
   const ponerBorrador = (modulos: ClaveModulo[]) => {
@@ -265,8 +235,7 @@ export function RolesPanel({
   const esMio = esMiRolSinSerLider(rol, quien);
   // ADR-0253: el Líder lo edita solo un Admin (tocarlo es tocar a todos los líderes).
   const editable = (!rol.fijo || soyAdmin) && !rol.archivado && !esMio;
-  const grupos = modulosFiltrados(busqueda);
-  const veCuantos = borrador.length;
+  const ayuda = ayudaId ? (MODULOS.find((m) => m.clave === ayudaId) ?? null) : null;
 
   const itemsMenu: ItemMenu[] = [
     ...(!rol.fijo && !rol.archivado ? [{ clave: "renombrar", etiqueta: "Renombrar", onSelect: () => setModal({ tipo: "renombrar", rol }) }] : []),
@@ -281,102 +250,34 @@ export function RolesPanel({
 
   return (
     <div className={`@container space-y-5 ${conCambios ? "pb-24" : ""}`}>
-      {/* Tres ideas en vez de un párrafo: lo mínimo para entender la pantalla sin leerla entera. */}
-      <ol className="grid gap-2.5 @[760px]:grid-cols-3">
-        {[
-          ["Un rol es una lista de módulos.", "Quien ve un módulo hace todo lo que hay en él."],
-          ["Cada cuenta tiene un solo rol.", "Persona o terminal. Se asigna aquí o desde su fila en Cuentas."],
-          ["Algunas cosas son siempre del líder.", "Anular, autorizar sobre el tope… no dependen del rol."],
-        ].map(([titulo, texto], i) => (
-          <li key={titulo} className="flex items-start gap-3 rounded-xl border border-dashed border-tinta/15 bg-papel/50 px-3.5 py-3">
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-tinta text-xs font-semibold text-crema">{i + 1}</span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-tinta">{titulo}</span>
-              <span className="block text-[13px] text-tinta/65">{texto}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SegmentoDeslizante
-          etiqueta="Cómo ver los roles"
-          valor={vista}
-          onCambio={(k) => setVista(k as "rol" | "matriz")}
-          opciones={[
-            { clave: "rol", etiqueta: "Editar por rol" },
-            { clave: "matriz", etiqueta: "Comparar roles" },
-          ]}
-        />
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="w-full max-w-xs space-y-1">
-          {/* UN combo para toda la sección (regla 10 de CLAUDE.md): las casillas de la matriz guardan al instante y no
-              caben un combo por casilla. El mismo control se ve en cada modal y apaga «Guardar cambios» si falta. */}
-          <ComboResponsable control={responsable} deshabilitado={guardando || matrizOcupada !== null} />
-          <p className="text-[12px] text-tinta/60">Lo cambia un líder de equipo o quien tenga Roles y accesos en su rol.</p>
+          {/* UN combo para toda la sección (regla 10 de CLAUDE.md). El mismo control se ve en cada modal y apaga
+              «Guardar cambios» si falta. */}
+          <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
       </div>
 
-      {vista === "matriz" ? (
-        <Matriz roles={vigentes} cuentasDe={(id) => cuentasDe(id).length} ocupada={matrizOcupada} onAlternar={alternarEnMatriz} onElegir={(id) => { elegir(id); setVista("rol"); }} quien={quien} />
-      ) : (
-      <div className="grid gap-5 @[640px]:grid-cols-[240px_minmax(0,1fr)] @[1060px]:grid-cols-[250px_minmax(0,1fr)_300px]">
-        <nav aria-label="Roles" className="card-cayla self-start p-2 @[640px]:sticky @[640px]:top-20">
-          <div className="flex items-center justify-between px-2 pb-1 pt-1.5">
-            <span className="label-cayla text-[11px] text-tinta/60">Roles</span>
-            <Boton type="button" peso="fantasma" className="px-2 py-1 text-xs" onClick={() => setModal({ tipo: "nuevo" })}>
-              + Nuevo
-            </Boton>
-          </div>
-          {FAMILIAS.map((f) => {
-            const deLaFamilia = vigentes.filter((r) => familiaDeRol(r) === f.clave);
-            if (deLaFamilia.length === 0) return null;
-            return (
-              <div key={f.clave} className="border-t border-tinta/5 pt-1.5 first-of-type:border-0">
-                <p className="px-3 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo">{f.etiqueta}</p>
-                {deLaFamilia.map((r) => (
-                  <FilaRol
-                    key={r.id}
-                    rol={r}
-                    elegido={r.id === rol.id}
-                    cuentas={cuentas ? cuentasDe(r.id).length : null}
-                    sinGuardar={!!borradores[r.id] && hayCambios(r.modulos, borradores[r.id])}
-                    onElegir={() => elegir(r.id)}
-                  />
-                ))}
-              </div>
-            );
-          })}
-          {archivados.length > 0 && (
-            <div className="border-t border-tinta/5 px-2 pb-1 pt-2">
-              <button type="button" className="label-cayla text-[11px] text-taupe-profundo hover:text-rojo" aria-expanded={verArchivados} onClick={() => setVerArchivados((v) => !v)}>
-                Archivados ({archivados.length}) {verArchivados ? "▴" : "▾"}
-              </button>
-              {verArchivados && (
-                <ul className="mt-1.5 space-y-0.5">
-                  {archivados.map((r) => (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        onClick={() => elegir(r.id)}
-                        className={`block w-full truncate rounded-md px-2 py-1.5 text-left text-sm ${r.id === rol.id ? "bg-crema text-tinta" : "text-tinta/60 hover:text-tinta"}`}
-                      >
-                        {r.nombre}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </nav>
+      <TarjetasRoles
+        roles={vigentes}
+        archivados={archivados}
+        elegidoId={rol.id}
+        cuentasDe={cuentas ? cuentasDe : null}
+        sinGuardar={(id) => !!borradores[id] && hayCambios(roles.find((r) => r.id === id)?.modulos ?? [], borradores[id])}
+        verArchivados={verArchivados}
+        onVerArchivados={() => setVerArchivados((v) => !v)}
+        onElegir={elegir}
+        onNuevo={() => setModal({ tipo: "nuevo" })}
+      />
 
+      <div className="grid gap-5 @[980px]:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label={`Rol ${rol.nombre}`} className="card-cayla min-w-0 overflow-hidden">
           <div className="border-b border-tinta/10 px-5 py-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 max-w-xl">
                 <p className="label-cayla text-[11px] text-tinta/60">{rol.archivado ? "Rol archivado" : FAMILIAS.find((f) => f.clave === familiaDeRol(rol))?.cabecera}</p>
                 <h2 className="font-display mt-0.5 text-[28px] leading-tight text-tinta">{rol.nombre}</h2>
-                <p className="mt-1 text-sm text-tinta/70">{descripcionDe(rol)}</p>
+                {descripcionDe(rol) && <p className="mt-1 text-sm text-tinta/70">{descripcionDe(rol)}</p>}
               </div>
               <div className="flex items-center gap-2">
                 {!rol.archivado && puedeAsignarRol(rol, soyAdmin, misModulos) && (
@@ -418,12 +319,12 @@ export function RolesPanel({
           </div>
 
           {rol.fijo && (
-            <p className="mx-5 mt-4 rounded-lg border border-tinta/10 bg-crema/60 px-3.5 py-2.5 text-[13px] leading-relaxed text-tinta/70">
-              Sus módulos los cambia solo un <strong className="font-semibold text-tinta">Admin</strong> (quien es admin en Dynamic), porque tocarlo es
-              tocar a todos los líderes. Quitarle un módulo lo saca de su menú; lo de <strong className="font-semibold text-tinta">«Siempre solo del
-              líder»</strong> sigue siendo suyo. <strong className="font-semibold text-tinta">Roles y accesos</strong> no se le quita: sin él nadie
-              podría devolverle lo que le quites.
-              {!soyAdmin && " Tú lo ves, pero no lo cambias."}
+            <p className="mx-5 mt-4 flex items-start gap-2 rounded-lg bg-hueso px-3.5 py-2.5 text-[13px] text-tinta/75">
+              <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                {soyAdmin ? "Lo cambia solo un Admin, y afecta a todos los líderes." : "Lo cambia solo un Admin: tú lo ves, pero no lo cambias."}{" "}
+                <strong className="font-semibold text-tinta">Roles y accesos</strong> no se le quita.
+              </span>
             </p>
           )}
           {esMio && !rol.archivado && (
@@ -448,14 +349,10 @@ export function RolesPanel({
               ajusta stock y no edita el catálogo aunque vea Caja, Existencias o Productos. Cuando se decida, se levanta este límite o se apagan esos módulos.
             </p>
           )}
-          {!rol.fijo && !rol.archivado && motivoArchivo && !rol.esSistema && (
-            <p className="mx-5 mt-3 text-xs text-tinta/60">Para archivarlo: {motivoArchivo.charAt(0).toLowerCase() + motivoArchivo.slice(1)}</p>
-          )}
-
           {editable && (
             <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
               <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
-                Pantalla principal
+                Pantalla al entrar
               </label>
               {/* Combo del sistema (ADR-0209), no el <select> del navegador: misma caja y misma lista que el resto del ERP. */}
               <Desplegable
@@ -470,118 +367,89 @@ export function RolesPanel({
                   ...pantallasElegibles(borrador).map((m) => ({ valor: m.clave, texto: m.nombre })),
                 ]}
               />
-              <span className="text-xs text-tinta/60">a dónde aterriza esta cuenta al iniciar sesión</span>
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 px-5 pb-2 pt-4">
-            <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-tinta/10 bg-crema/60 px-3 py-2 focus-within:border-tinta/40">
-              <Search aria-hidden className="h-4 w-4 text-tinta/50" />
-              <input
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar módulo o acción (ej. «anular», «stock»)"
-                aria-label="Buscar módulo o acción"
-                autoComplete="off"
-                className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
-              />
-            </label>
-            <p className="whitespace-nowrap text-[13px] text-tinta/65">
-              Ve <strong className="font-semibold text-tinta">{veCuantos}</strong> de {rol.fijo ? `${MODULOS.length} módulos` : `${DELEGABLES} módulos que se pueden dar`}
+          <div className="space-y-4 px-5 pb-5 pt-4">
+            {/* La ayuda aparece al tocar: qué incluye el módulo tocado, en una línea (propuesta del 2026-10-05). */}
+            <p role="status" className="min-h-[2.75rem] rounded-xl bg-hueso px-4 py-2.5 text-[13.5px] leading-snug text-tinta/75">
+              {ayuda ? (
+                <>
+                  <strong className="font-semibold text-tinta">{ayuda.nombre}:</strong> {ayuda.incluye}.
+                </>
+              ) : editable ? (
+                "Toca un módulo para encenderlo o apagarlo. Aquí verás qué incluye."
+              ) : (
+                "Toca un módulo para ver qué incluye."
+              )}
             </p>
-          </div>
-
-          <div className="space-y-3 px-5 pb-5 pt-2">
-            {grupos.length === 0 && <p className="py-6 text-center text-sm text-tinta/60">Ningún módulo coincide con «{busqueda}».</p>}
-            {grupos.map(({ grupo, modulos }) => {
-              const abierto = !!busqueda || !plegados.has(grupo);
-              // El Líder (ADR-0253) cuenta y mueve todos los módulos del grupo, menos Roles y accesos, que no se le quita.
+            <p className="text-[13px] text-tinta/65">
+              Ve <strong className="font-semibold text-tinta">{borrador.length}</strong> de {rol.fijo ? `${MODULOS.length} módulos` : `${DELEGABLES} módulos que se pueden dar`}
+            </p>
+            {modulosPorGrupo().map(({ grupo, modulos }) => {
+              // ADR-0178: «Todos» solo mueve lo que quien mira puede dar; el Líder (ADR-0253) todo menos Roles y accesos.
               const delegables = rol.fijo ? modulos : modulos.filter(esDelegable);
-              const encendidos = delegables.filter((m) => veModulo({ modulos: borrador }, m.clave)).length;
-              // ADR-0178: «Encender todo» solo mueve lo que quien mira puede dar; lo que no tiene queda como está.
               const mios = delegables.filter((m) => (rol.fijo ? m.clave !== MODULO_FIJO_DEL_LIDER : fueraDeLoMio([m.clave], misModulos).length === 0));
               const todoEncendido = mios.length > 0 && mios.every((m) => borrador.includes(m.clave));
               return (
-                <div key={grupo} className="overflow-hidden rounded-xl border border-tinta/10">
-                  <div className="flex items-center gap-3 bg-crema/70 px-4 py-2.5">
-                    <button
-                      type="button"
-                      aria-expanded={abierto}
-                      onClick={() => setPlegados((p) => { const n = new Set(p); if (n.has(grupo)) n.delete(grupo); else n.add(grupo); return n; })}
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                    >
-                      <span className="text-sm font-semibold text-tinta">{grupo}</span>
-                      <span aria-hidden className="flex gap-[3px]">
-                        {modulos.map((m) => (
-                          <i
-                            key={m.clave}
-                            className={`block h-2 w-2 rounded-[2px] ${
-                              !rol.fijo && !esDelegable(m) ? "border border-dashed border-taupe" : veModulo({ modulos: borrador }, m.clave) ? "bg-tinta" : "bg-tinta/15"
-                            }`}
-                          />
-                        ))}
-                      </span>
-                      <span className="text-[12.5px] text-tinta/60">
-                        {delegables.length === 0 ? "Solo líder" : `${encendidos} de ${delegables.length}`}
-                      </span>
-                      <ChevronDown aria-hidden className={`ml-auto h-4 w-4 text-tinta/50 transition-transform duration-200 ease-cayla ${abierto ? "" : "-rotate-90"}`} />
-                    </button>
+                <div key={grupo}>
+                  <div className="mb-2 flex items-baseline justify-between gap-3">
+                    <h3 className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-taupe-profundo">{grupo}</h3>
                     {editable && mios.length > 0 && (
                       <button
                         type="button"
+                        className="btn-cayla btn-enlace text-[12.5px]"
                         onClick={() =>
                           ponerBorrador(
                             alternarGrupo(borrador, grupo, !todoEncendido, rol.fijo).filter((c) => borrador.includes(c) || fueraDeLoMio([c], misModulos).length === 0),
                           )
                         }
-                        className="shrink-0 rounded-full border border-tinta/15 bg-papel px-2.5 py-0.5 text-xs text-tinta/75 hover:border-tinta/40"
                       >
-                        {todoEncendido ? "Quitar todo" : "Encender todo"}
+                        {todoEncendido ? "Quitar todos" : "Todos"}
                       </button>
                     )}
                   </div>
-                  {abierto && (
-                    <ul>
-                      {modulos.map((m) => {
-                        const on = veModulo({ modulos: borrador }, m.clave);
-                        const control = controlDe(rol, m, quien, on);
-                        const marca = cambios.suma.includes(m.clave) ? "suma" : cambios.quita.includes(m.clave) ? "quita" : null;
-                        return (
-                          <li
-                            key={m.clave}
-                            className={`flex items-center justify-between gap-4 border-t border-tinta/5 px-4 py-2.5 transition-colors duration-200 ease-cayla ${marca ? "bg-ambar/[0.07]" : ""}`}
-                          >
-                            <span className="min-w-0">
-                              <span className={`flex flex-wrap items-center gap-2 text-sm ${control.tipo === "candado" ? "text-tinta/60" : "text-tinta"}`}>
-                                {m.nombre}
-                                {marca && (
-                                  <span
-                                    className={`anim-revelar rounded-full px-2 py-px text-[10.5px] font-semibold ${marca === "suma" ? "bg-verde/15 text-verde-profundo" : "bg-rojo/10 text-rojo-profundo"}`}
-                                  >
-                                    {marca === "suma" ? "Se suma" : "Se quita"}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block text-xs text-tinta/60">{m.incluye}</span>
+                  <div className="grid grid-cols-2 gap-2 @[520px]:grid-cols-3 @[760px]:grid-cols-4">
+                    {modulos.map((m) => {
+                      const on = veModulo({ modulos: borrador }, m.clave);
+                      const control = controlDe(rol, m, quien, on);
+                      const marca = cambios.suma.includes(m.clave) ? "suma" : cambios.quita.includes(m.clave) ? "quita" : null;
+                      const tocable = control.tipo === "interruptor" && control.editable;
+                      return (
+                        <button
+                          key={m.clave}
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={`${m.nombre}: ${on ? "lo ve" : "no lo ve"}${control.tipo === "candado" ? ` (${control.texto})` : ""}`}
+                          onClick={() => {
+                            setAyudaId(m.clave);
+                            if (tocable) ponerBorrador(alternarModulo(borrador, m.clave, rol.fijo));
+                          }}
+                          className={`relative grid min-h-[86px] content-between gap-2 rounded-xl border p-3 text-left text-[13.5px] font-semibold leading-tight transition-colors duration-200 ease-cayla ${
+                            on
+                              ? "border-tinta bg-tinta text-crema"
+                              : control.tipo === "candado"
+                                ? "border-dashed border-taupe/60 text-tinta/55"
+                                : "border-sand text-tinta hover:border-taupe"
+                          } ${tocable ? "" : "cursor-default"}`}
+                        >
+                          <IconoModulo clave={m.clave} className="h-5 w-5" />
+                          <span>{m.nombre}</span>
+                          {control.tipo === "candado" && (
+                            <span className="flex items-center gap-1 text-[11px] font-normal">
+                              <Lock aria-hidden className="h-3 w-3" /> {control.texto}
                             </span>
-                            {control.tipo === "candado" ? (
-                              <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-taupe px-2.5 py-0.5 text-[11.5px] text-taupe-profundo">
-                                <Lock aria-hidden className="h-3 w-3" /> {control.texto}
-                              </span>
-                            ) : (
-                              <Interruptor
-                                activo={on}
-                                disabled={!control.editable}
-                                onActivo={() => ponerBorrador(alternarModulo(borrador, m.clave, rol.fijo))}
-                                etiqueta={<span className="sr-only">Ve {m.nombre}</span>}
-                              />
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
+                          )}
+                          {marca && (
+                            <span
+                              title={marca === "suma" ? "Se suma al guardar" : "Se quita al guardar"}
+                              className={`anim-revelar absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full ${marca === "suma" ? "bg-verde" : "bg-rojo"}`}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
@@ -590,7 +458,7 @@ export function RolesPanel({
 
         <aside
           aria-label="Efecto del rol"
-          className="grid gap-4 self-start @[640px]:col-span-2 @[640px]:grid-cols-2 @[1060px]:sticky @[1060px]:top-20 @[1060px]:col-span-1 @[1060px]:max-h-[calc(100vh-6rem)] @[1060px]:grid-cols-1 @[1060px]:overflow-y-auto"
+          className="grid gap-4 self-start @[640px]:grid-cols-2 @[980px]:sticky @[980px]:top-20 @[980px]:max-h-[calc(100vh-6rem)] @[980px]:grid-cols-1 @[980px]:overflow-y-auto"
         >
           <VistaPreviaMenu
             todo={borrador.length === MODULOS.length}
@@ -621,10 +489,9 @@ export function RolesPanel({
           </details>
         </aside>
       </div>
-      )}
 
       <BarraFija
-        visible={vista === "rol" && conCambios}
+        visible={conCambios}
         resumen={
           <>
             <strong className="font-semibold text-tinta">{nCambios === 1 ? "1 cambio" : `${nCambios} cambios`}</strong> en «{rol.nombre}»
@@ -715,43 +582,125 @@ export function RolesPanel({
   );
 }
 
-/** Un rol en la lista: nombre, cuántos módulos ve (con su barra), cuántas cuentas lo tienen y su aviso si lo hay. */
-function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVista; elegido: boolean; cuentas: number | null; sinGuardar: boolean; onElegir: () => void }) {
+/** La línea de cada tarjeta: para qué es el rol, en pocas palabras. */
+function lineaDe(rol: RolVista): string {
+  if (rol.fijo) return "Ve todo y administra el equipo.";
+  if (rol.clave === "integrante") return "El que recibe quien recién entra.";
+  if (familiaDeRol(rol) === "terminal") return "Para las terminales de tienda.";
+  return rol.descripcion ?? "Rol a medida.";
+}
+
+/**
+ * Los roles en tarjetas (propuesta del 2026-10-05, pantalla 4): cada uno se reconoce por quiénes lo tienen y qué ve (los íconos
+ * de sus módulos y una barra). Reemplaza la lista lateral por familias. Tocar una abre su editor abajo.
+ */
+function TarjetasRoles({
+  roles,
+  archivados,
+  elegidoId,
+  cuentasDe,
+  sinGuardar,
+  verArchivados,
+  onVerArchivados,
+  onElegir,
+  onNuevo,
+}: {
+  roles: RolVista[];
+  archivados: RolVista[];
+  elegidoId: string;
+  /** `null` = no se pudieron leer las cuentas: las tarjetas salen sin caras. */
+  cuentasDe: ((id: string) => CuentaConRol[]) | null;
+  sinGuardar: (id: string) => boolean;
+  verArchivados: boolean;
+  onVerArchivados: () => void;
+  onElegir: (id: string) => void;
+  onNuevo: () => void;
+}) {
+  return (
+    <section aria-label="Roles" className="space-y-2.5">
+      <div className="grid gap-2.5 @[560px]:grid-cols-2 @[900px]:grid-cols-3 @[1240px]:grid-cols-4">
+        {roles.map((r) => (
+          <TarjetaRol key={r.id} rol={r} elegido={r.id === elegidoId} cuentas={cuentasDe ? cuentasDe(r.id) : null} sinGuardar={sinGuardar(r.id)} onElegir={() => onElegir(r.id)} />
+        ))}
+        <button
+          type="button"
+          onClick={onNuevo}
+          className="grid min-h-[150px] place-content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-taupe/60 text-[14px] font-semibold text-taupe transition-colors duration-200 ease-cayla hover:border-taupe hover:text-tinta"
+        >
+          <Plus aria-hidden className="h-6 w-6" strokeWidth={1.6} />
+          Nuevo rol
+        </button>
+      </div>
+      {archivados.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" className="btn-cayla btn-enlace text-[13px]" aria-expanded={verArchivados} onClick={onVerArchivados}>
+            Archivados ({archivados.length}) {verArchivados ? "▴" : "▾"}
+          </button>
+          {verArchivados &&
+            archivados.map((r) => (
+              <button key={r.id} type="button" className="pildora-cayla" aria-pressed={r.id === elegidoId} onClick={() => onElegir(r.id)}>
+                {r.nombre}
+              </button>
+            ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVista; elegido: boolean; cuentas: CuentaConRol[] | null; sinGuardar: boolean; onElegir: () => void }) {
   const n = rol.modulos.length;
   // El Líder se mide contra TODOS los módulos (también los que no se delegan); los demás, contra los que se pueden dar.
   const de = rol.fijo ? MODULOS.length : DELEGABLES;
-  const aviso = cuentas === null ? null : avisoDelRol(rol, cuentas);
+  const aviso = cuentas === null ? null : avisoDelRol(rol, cuentas.length);
+  const muestra = rol.modulos.filter((m) => m !== "inicio");
   return (
     <button
       type="button"
       aria-pressed={elegido}
       onClick={onElegir}
-      className={`block w-full rounded-lg border px-3 py-2.5 text-left transition-colors duration-200 ease-cayla ${
-        elegido ? "border-tinta/10 bg-crema shadow-[inset_3px_0_0_var(--color-rojo)]" : "border-transparent hover:bg-crema/70"
+      className={`grid content-start gap-2.5 rounded-2xl border p-4 text-left transition-colors duration-200 ease-cayla ${
+        elegido ? "border-tinta bg-papel shadow-[inset_0_-2px_0_var(--color-rojo)]" : "border-sand bg-papel hover:border-taupe"
       }`}
     >
-      <span className="flex items-center justify-between gap-2">
-        <span className="truncate text-sm font-semibold text-tinta">
+      <span className="flex items-start justify-between gap-2">
+        <span className="font-display text-[22px] leading-tight text-tinta">
           {rol.nombre}
-          {sinGuardar && <span className="ml-1.5 text-rojo" title="Cambios sin guardar">•</span>}
+          {sinGuardar && <span className="ml-1.5 align-top text-base text-rojo" title="Cambios sin guardar">•</span>}
         </span>
         {aviso === "sin_modulos" ? (
-          <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo" title="Sus cuentas no ven ningún módulo">
-            Sin módulos
-          </span>
+          <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo">Sin módulos</span>
         ) : aviso === "sin_uso" ? (
           <span className="shrink-0 rounded-full bg-tinta/[0.06] px-2 py-px text-[10.5px] font-semibold text-tinta/60">Sin uso</span>
         ) : null}
       </span>
-      <span className="mt-0.5 block text-xs text-tinta/60">
-        {rol.fijo && n === de ? "Todo" : `${n} de ${de} módulos`}
-        {cuentas !== null && ` · ${cuentas} cuenta${cuentas === 1 ? "" : "s"}`}
+      <span className="text-[13px] leading-snug text-tinta/65">{lineaDe(rol)}</span>
+      <span aria-hidden className="flex flex-wrap gap-1">
+        {muestra.slice(0, 8).map((m) => (
+          <span key={m} className="grid h-7 w-7 place-items-center rounded-lg bg-hueso text-tinta/70">
+            <IconoModulo clave={m} className="h-3.5 w-3.5" />
+          </span>
+        ))}
+        {muestra.length > 8 && <span className="grid h-7 place-items-center px-1 text-[11.5px] font-semibold text-tinta/60">+{muestra.length - 8}</span>}
       </span>
-      <span aria-hidden className="mt-2 block h-1 overflow-hidden rounded-full bg-tinta/10">
-        <span
-          className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`}
-          style={{ width: `${Math.round((n / de) * 100)}%` }}
-        />
+      <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-hueso">
+        <span className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`} style={{ width: `${Math.round((n / de) * 100)}%` }} />
+      </span>
+      <span className="flex items-center justify-between gap-2 text-[12.5px] text-tinta/60">
+        <span className="flex" aria-hidden>
+          {(cuentas ?? []).slice(0, 4).map((c) => (
+            <span
+              key={`${c.tipo}:${c.id}`}
+              className={`-ml-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-papel text-[9.5px] font-semibold first:ml-0 ${c.tipo === "terminal" ? "bg-tinta/10 text-tinta/70" : "bg-sand text-tinta"}`}
+            >
+              {iniciales(c.nombre)}
+            </span>
+          ))}
+        </span>
+        <span>
+          {rol.fijo && n === de ? "Ve todo" : `${n} de ${de} módulos`}
+          {cuentas !== null && ` · ${cuentas.length === 0 ? "sin cuentas" : cuentas.length === 1 ? "1 cuenta" : `${cuentas.length} cuentas`}`}
+        </span>
       </span>
     </button>
   );
@@ -816,113 +765,6 @@ function VistaPreviaMenu({
         />
       </div>
     </section>
-  );
-}
-
-/** «Comparar roles»: todos los roles contra todos los módulos. Un clic enciende o apaga y guarda al instante. */
-function Matriz({
-  roles,
-  cuentasDe,
-  ocupada,
-  onAlternar,
-  onElegir,
-  quien,
-}: {
-  roles: RolVista[];
-  cuentasDe: (id: string) => number;
-  ocupada: string | null;
-  onAlternar: (r: RolVista, m: Modulo) => void;
-  onElegir: (id: string) => void;
-  quien: QuienEdita;
-}) {
-  const grupos = modulosFiltrados("");
-  return (
-    <div className="card-cayla overflow-x-auto">
-      <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
-        <thead>
-          <tr>
-            <th className="sticky left-0 z-10 bg-crema px-4 py-3 text-left text-xs font-semibold text-tinta">Módulo</th>
-            {roles.map((r) => (
-              <th key={r.id} className="bg-crema px-3 py-3 text-center text-xs font-semibold text-tinta">
-                <button type="button" onClick={() => onElegir(r.id)} className="underline decoration-tinta/20 underline-offset-2 hover:decoration-tinta/60">
-                  {r.nombre}
-                </button>
-                <span className="block text-[11px] font-normal text-tinta/55">{cuentasDe(r.id)} cuentas</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {grupos.map(({ grupo, modulos }) => (
-            <MatrizGrupo key={grupo} grupo={grupo} modulos={modulos} roles={roles} ocupada={ocupada} onAlternar={onAlternar} quien={quien} />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function MatrizGrupo({
-  grupo,
-  modulos,
-  roles,
-  ocupada,
-  onAlternar,
-  quien,
-}: {
-  grupo: string;
-  modulos: Modulo[];
-  roles: RolVista[];
-  ocupada: string | null;
-  onAlternar: (r: RolVista, m: Modulo) => void;
-  quien: QuienEdita;
-}) {
-  return (
-    <>
-      <tr>
-        <td colSpan={roles.length + 1} className="label-cayla sticky left-0 bg-tinta/[0.03] px-4 py-2 text-[11px] text-taupe-profundo">
-          {grupo}
-        </td>
-      </tr>
-      {modulos.map((m) => (
-        <tr key={m.clave}>
-          <td className="sticky left-0 z-10 border-t border-tinta/5 bg-papel px-4 py-2 text-tinta">
-            <span className="inline-flex items-center gap-1.5">
-              {m.nombre}
-              {!esDelegable(m) && <Lock aria-label="Solo líder" className="h-3 w-3 text-tinta/45" />}
-            </span>
-          </td>
-          {roles.map((r) => {
-            const on = veModulo(r, m.clave);
-            const control = controlDe(r, m, quien, on);
-            return (
-              <td key={r.id} className="border-t border-tinta/5 px-3 py-2 text-center">
-                {r.fijo && control.tipo === "candado" ? (
-                  // Roles y accesos en el Líder: lo ve siempre, no se le quita (ADR-0253).
-                  <span aria-label={control.texto} title={control.texto} className="inline-grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-taupe text-[11px] text-white">✓</span>
-                ) : control.tipo === "candado" ? (
-                  <span aria-label={control.texto} className="text-tinta/35">—</span>
-                ) : (
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={on}
-                    aria-label={`${r.nombre} ve ${m.nombre}`}
-                    disabled={ocupada !== null || !control.editable}
-                    onClick={() => onAlternar(r, m)}
-                    className={`inline-grid h-[18px] w-[18px] place-items-center rounded-[5px] border text-[11px] transition-colors duration-200 ease-cayla disabled:opacity-50 ${
-                      on ? "border-tinta bg-tinta text-crema" : "border-tinta/25 hover:border-tinta"
-                    } ${ocupada === `${r.id}:${m.clave}` ? "animate-pulse" : ""}`}
-                  >
-                    {on ? "✓" : ""}
-                  </button>
-                )}
-              </td>
-            );
-          })}
-        </tr>
-      ))}
-    </>
   );
 }
 

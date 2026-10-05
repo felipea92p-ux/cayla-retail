@@ -1,0 +1,4 @@
+## 2026-10-05 (La persiana de «Caja cerrada» deja el negro y pasa a tonos claros de CAYLA)
+Qué hice: cambié el color de la persiana de Vender con la caja cerrada: velo de `sand` y listones de `taupe` en lugar del gris casi negro; el título, la bajada y el botón «Abrir caja» pasaron a tinta (botón negro con letra crema) para leerse sobre el fondo claro. Solo `app/estilos/caja-cerrada.css`.
+Por qué así: lo que hace notoria la reja es el contraste entre cada listón y su sombra, no lo oscuro del conjunto; así sigue viéndose sin pelear con la estética de la marca. Contraste medido ≥ 4,7:1 en todo el texto.
+Felipe se lleva: una persiana cálida y clara, con el botón como punto más fuerte de la pantalla. Falta que la mires dentro del ERP real con una sede cerrada y me digas si quieres la reja más marcada o más suave (son dos números en `.caja-cerrada-persiana`: 13 % y 28 % de `taupe`). La primera pasada, al 20/42 %, se sintió dura y la dejé más suave el mismo día.

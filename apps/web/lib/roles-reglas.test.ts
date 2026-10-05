@@ -7,7 +7,6 @@ import {
   cambiosDelBorrador,
   familiaDeRol,
   menuConCambios,
-  modulosFiltrados,
   controlDe,
   cuentasAsignables,
   esMiRolSinSerLider,
@@ -272,12 +271,6 @@ describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
     expect(r).toContain("existencias");
     expect(r.filter((c) => !compras.includes(c))).toEqual(["existencias"]);
     expect(alternarGrupo(r, "Compras", false)).toEqual(["existencias"]);
-  });
-  it("el buscador encuentra por lo que incluye, sin tildes", () => {
-    const g = modulosFiltrados("reimprimir");
-    expect(g.flatMap((x) => x.modulos.map((m) => m.clave))).toEqual(["historial"]);
-    expect(modulosFiltrados("categorias").flatMap((x) => x.modulos.map((m) => m.clave))).toContain("atributos");
-    expect(modulosFiltrados("")).toEqual(modulosPorGrupo());
   });
   it("la vista previa marca lo que se suma y lo que se quita", () => {
     const guardado = rol({ modulos: ["vender"] });

@@ -1,6 +1,8 @@
 /* VENDER CON LA CAJA CERRADA: LA PERSIANA (ADR-0301; maqueta B, docs/maquetas/caja-cerrada-2026-10/).
-   Con la caja cerrada, el área de trabajo se desenfoca, baja una persiana oscura y se cuelga un cartel «Cerrado»; al abrir,
-   el cartel gira a «Abierto» y la persiana sube. Lo dibuja `components/punto-de-venta/CajaCerrada.tsx`, que pone `data-fase`:
+   Con la caja cerrada, el área de trabajo se desenfoca, baja una persiana y se cuelga un cartel «Cerrado»; al abrir,
+   el cartel gira a «Abierto» y la persiana sube. La persiana es CLARA, en tonos sand/taupe (Felipe 2026-10-05: el gris casi
+   negro de antes hacía ruido con la estética de CAYLA); por eso el texto y el botón de encima van en tinta, no en crema.
+   Lo dibuja `components/punto-de-venta/CajaCerrada.tsx`, que pone `data-fase`:
      cerrada  → entra (velo, persiana que baja, cartel que se cuelga, texto en cascada) y se queda;
      girando  → el cartel gira a «Abierto» y el texto se va;
      subiendo → la persiana sube llevándose el cartel y el desenfoque se aclara.
@@ -15,7 +17,7 @@
 
 .caja-cerrada {
   --telon: cubic-bezier(0.6, 0.02, 0.2, 1);
-  --cc-velo: color-mix(in srgb, var(--color-tinta) 56%, transparent);
+  --cc-velo: color-mix(in srgb, var(--color-sand) 62%, transparent);
   overflow: hidden;
   isolation: isolate;
 }
@@ -44,9 +46,9 @@
   inset: 0;
   background: repeating-linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-tinta) 30%, transparent) 0 21px,
-    color-mix(in srgb, var(--color-crema) 10%, transparent) 21px 22px,
-    color-mix(in srgb, var(--color-tinta) 48%, transparent) 22px 26px
+    color-mix(in srgb, var(--color-taupe) 13%, transparent) 0 21px,
+    color-mix(in srgb, var(--color-papel) 55%, transparent) 21px 22px,
+    color-mix(in srgb, var(--color-taupe) 28%, transparent) 22px 26px
   );
   transform: translateY(-101%);
   animation: cc-baja 1050ms 100ms var(--telon) both;
@@ -56,8 +58,8 @@
   position: absolute;
   inset: auto 0 0;
   height: 30px;
-  background: linear-gradient(color-mix(in srgb, var(--color-tinta) 88%, var(--color-crema)), var(--color-tinta));
-  border-top: 1px solid color-mix(in srgb, var(--color-crema) 14%, transparent);
+  background: linear-gradient(color-mix(in srgb, var(--color-taupe) 48%, var(--color-crema)), color-mix(in srgb, var(--color-taupe) 68%, var(--color-crema)));
+  border-top: 1px solid color-mix(in srgb, var(--color-papel) 40%, transparent);
 }
 .caja-cerrada-manija {
   position: absolute;
@@ -68,7 +70,7 @@
   height: 8px;
   margin-left: -38px;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--color-crema) 22%, transparent);
+  background: color-mix(in srgb, var(--color-papel) 55%, transparent);
 }
 @keyframes cc-baja {
   to { transform: none; }
@@ -87,7 +89,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(100deg, transparent 42%, color-mix(in srgb, var(--color-crema) 7%, transparent) 50%, transparent 58%);
+  background: linear-gradient(100deg, transparent 42%, color-mix(in srgb, var(--color-papel) 45%, transparent) 50%, transparent 58%);
   background-size: 260% 100%;
   background-position: 130% 0;
   animation: cc-barre 8s 2.4s linear infinite;
@@ -110,7 +112,7 @@
   justify-content: center;
   overflow-y: auto;
   padding: 24px 24px 48px;
-  color: var(--color-crema);
+  color: var(--color-tinta);
   text-align: center;
 }
 
@@ -150,7 +152,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, var(--color-crema), var(--color-taupe));
+  background: radial-gradient(circle at 35% 35%, var(--color-papel), var(--color-taupe));
   box-shadow: 0 2px 4px color-mix(in srgb, var(--color-tinta) 40%, transparent);
 }
 .caja-cerrada-cuerdas {
@@ -161,7 +163,7 @@
 }
 .caja-cerrada-cuerdas path {
   fill: none;
-  stroke: color-mix(in srgb, var(--color-crema) 55%, transparent);
+  stroke: color-mix(in srgb, var(--color-taupe) 80%, transparent);
   stroke-width: 1.4;
 }
 .caja-cerrada-marco {
@@ -193,7 +195,7 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   /* Flota delante de la persiana: lleva sombra (no está pegado al fondo). */
-  box-shadow: 0 34px 50px -22px color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  box-shadow: 0 30px 44px -24px color-mix(in srgb, var(--color-tinta) 45%, transparent);
 }
 /* Los dos agujeros por donde pasa la cuerda. */
 .caja-cerrada-cara::before,
@@ -290,7 +292,7 @@
   max-width: 440px;
   margin: 10px auto 0;
   font-size: 15px;
-  color: color-mix(in srgb, var(--color-crema) 85%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 86%, transparent);
   text-wrap: balance;
 }
 .caja-cerrada-boton {
@@ -305,8 +307,8 @@
   margin: 26px auto 0;
   overflow: hidden;
   border-radius: 16px;
-  background: var(--color-crema);
-  color: var(--color-tinta);
+  background: var(--color-tinta);
+  color: var(--color-crema);
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -321,7 +323,7 @@
   transform: scale(0.985);
 }
 .caja-cerrada-boton:focus-visible {
-  outline: 2px solid var(--color-crema);
+  outline: 2px solid var(--color-tinta);
   outline-offset: 3px;
 }
 .caja-cerrada-flecha {
@@ -336,7 +338,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--color-rojo) 14%, transparent) 50%, transparent 65%);
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--color-crema) 16%, transparent) 50%, transparent 65%);
   transform: translateX(-100%);
   animation: cc-brillo 1100ms 2100ms var(--ease-cayla) both;
 }
@@ -351,7 +353,7 @@
   gap: 4px 8px;
   margin-top: 16px;
   font-size: 12.5px;
-  color: color-mix(in srgb, var(--color-crema) 70%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 82%, transparent);
 }
 .caja-cerrada-pieza {
   display: inline-flex;
@@ -362,20 +364,21 @@
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--color-crema) 45%, transparent);
+  background: color-mix(in srgb, var(--color-tinta) 45%, transparent);
 }
 .caja-cerrada-atajo {
   margin-top: 10px;
   font-size: 12px;
-  color: color-mix(in srgb, var(--color-crema) 55%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 78%, transparent);
 }
 .caja-cerrada-atajo kbd {
   padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--color-crema) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 35%, transparent);
   border-bottom-width: 2px;
   border-radius: 6px;
+  background: color-mix(in srgb, var(--color-papel) 60%, transparent);
   font: 600 11px var(--font-sans);
-  color: var(--color-crema);
+  color: var(--color-tinta);
 }
 /* Las ventas sin conexión (ADR-0036) se ven también con la caja cerrada: van en papel, bajo el botón. */
 .caja-cerrada-cola {
@@ -385,6 +388,7 @@
   text-align: left;
   color: var(--color-tinta);
   background: var(--color-papel);
+  border: 1px solid var(--color-sand);
 }
 .caja-cerrada-cola:empty {
   display: none;
