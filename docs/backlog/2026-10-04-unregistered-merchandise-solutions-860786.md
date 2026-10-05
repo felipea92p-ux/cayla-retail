@@ -1,4 +1,4 @@
-## 🧹 Ventas sin registrar: cerrar la cola de arranque, reabrir e identificar con sugerencias (2026-10-04, ADR-0334) — **partes 1–3 YA EN PRODUCCIÓN (2026-10-04); `110000` y `120000` POR PEGAR**; rama `claude/unregistered-merchandise-solutions-860786`
+## 🧹 Ventas sin registrar: cerrar la cola de arranque, reabrir e identificar con sugerencias (2026-10-04, ADR-0334) — **las 5 migraciones YA EN PRODUCCIÓN (2026-10-04)**; rama `claude/unregistered-merchandise-solutions-860786`
 
 Producción el 2026-10-04 (solo lectura): TRU 97 pendientes (20 vencidas), AQP 170 (83 vencidas); AQP tiene 13 prendas cargadas. De las 97 de TRU,
 23 tienen UNA prenda posible. Decisión de Felipe: opción B (cierre en bloque, solo líder, con plazo), reabrir solo líder, plazo 15-oct las tres tiendas.
@@ -9,7 +9,7 @@ Producción el 2026-10-04 (solo lectura): TRU 97 pendientes (20 vencidas), AQP 1
 - [x] **3 · Identificar con sugerencias** (`70c47bcc`): `20261005120000`, `fn_cola_arranque_candidatas` + `regularizar_prendas_sugeridas`, hoja con casillas.
 - [x] **Cierre:** ADR-0334, nota en ADR-0328, `docs/ARQUITECTURA.md`, fila en `SESIONES-ACTIVAS.md`.
 
-### Para pegar en producción — estado: 1, 2 y 3 pegadas y verificadas; faltan 4 y 5 (lo hace Felipe; ninguna migración usa `drop trigger` ni `select … into` dentro de texto entre comillas)
+### Para pegar en producción — HECHO el 2026-10-04: las cinco pegadas y verificadas (lo hizo Felipe; ninguna migración usa `drop trigger` ni `select … into` dentro de texto entre comillas)
 
 **`20261005120000` fue REESCRITO el 2026-10-04 tras la revisión independiente** (ver ADR-0334): trae la base común `fn_candidatas_de_venta`, propone solo prendas «limpias»,
 toma los candados en el orden de ADR-0190 y nombra la venta que falla. `110000` cambió solo un texto (lenguaje neutro). **Pega las versiones del repo de HOY, no copias anteriores.**

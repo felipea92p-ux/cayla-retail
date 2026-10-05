@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-04 · **Estado:** aprobado por Felipe (opción B de tres, «ok ejecuta B»; las dos decisiones de negocio que
   faltaban —qué pasa con una devolución y hasta cuándo— las respondió con preguntas el mismo día). Construido y verificado en una base
-  local propia, con los cuatro recorridos del navegador. **Las partes 1, 2 y 3 (`20261005100000`/`100`/`200`) YA están en producción** (verificado por efectos, solo lectura, el 2026-10-04 por la noche: tablas, columna, candados, políticas, `cerrar_cola_arranque` y los tres plazos del 15-oct, con 0 cierres hechos y la cola intacta: TRU 97 y AQP 170 pendientes). **Siguen sin pegar `20261005110000` (reabrir) y `20261005120000` (sugerencias).**
+  local propia, con los cuatro recorridos del navegador. **Las cinco migraciones YA están en producción** (pegadas por Felipe y verificadas por efectos, solo lectura, el 2026-10-04 por la noche, con las versiones de ese día; 0 cierres hechos y la cola intacta: TRU 97 y AQP 170 pendientes).
   El orden y las comprobaciones están en `docs/backlog/2026-10-04-unregistered-merchandise-solutions-860786.md`.
 - **Pedido:** «esto es mercancía que no estaba registrada, ¿cómo quieres que regularice? Recién estamos adoptando el sistema: que exista
   alguna opción de "lo entiendo y doy por hecho / no lo sé". Analiza y dame 3 soluciones, las mejores».

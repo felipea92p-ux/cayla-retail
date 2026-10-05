@@ -6,8 +6,7 @@ construyó en tres cortes, uno por commit, cada uno probado contra Postgres y en
 bloque, con motivo y dentro del plazo (15-oct), y las filas quedan «cerradas sin prenda», sin mover stock; (2) si una cliente devuelve una
 prenda cerrada, un líder la «reabre» (la respuesta de Felipe a una pregunta sobre devoluciones); (3) antes de cerrar, «Identificar con
 sugerencias» une de una vez las ventas que tienen UNA sola prenda posible (23 en TRU), con la confirmación fila por fila del líder. Una
-colaboradora no ve ninguno de los tres botones. **Producción:** Felipe ya pegó las partes 1, 2 y 3 (verificado por efectos, solo lectura: 0 cierres, la cola intacta); las dos migraciones
-restantes (`20261005110000` reabrir y `20261005120000` sugerencias) esperan su «dale». El primer CI falló porque las pruebas daban por hecho un plazo que
+colaboradora no ve ninguno de los tres botones. **Producción:** Felipe pegó las cinco migraciones (verificado por efectos, solo lectura: las versiones del 4-oct, 0 cierres, la cola intacta). El primer CI falló porque las pruebas daban por hecho un plazo que
 solo existe si las tiendas ya estaban cuando corrió la migración (en un arranque limpio las crea `seed.sql` después): se arregló en las pruebas y en `seed.sql`.
 Por qué así: cerrar es una decisión de una persona con fecha y firma, no cientos de clics (un botón por fila se volvía el camino fácil). Los
 estados imposibles los impide el esquema (una venta cerrada sin su cierre, o con el cierre de otra tienda, no puede existir). Y una sola
