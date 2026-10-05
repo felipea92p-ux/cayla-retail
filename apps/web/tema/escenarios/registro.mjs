@@ -688,6 +688,34 @@ ESCENARIOS.push(
   },
 );
 
+// ---------- Inventario II: Conteo, Bajar al piso, Cuadrar, Frescura, Por regularizar y Análisis (actividad 10) ----------
+const CONTEO_ID = () => consultarLocal("select id from retail.conteos where estado = 'cerrado' order by created_at limit 1");
+const llenar = (placeholder, texto) => async (pagina) => {
+  await pagina.getByPlaceholder(placeholder).first().fill(texto);
+  await esperar(pagina, 1800);
+};
+ESCENARIOS.push(
+  { id: "conteo.piso", ruta: "/inventario/conteo", cuentas: INVENTARIO, nombre: "Conteo · el piso de venta elegido", preparar: clicRol("radio", /Piso de venta/i) },
+  { id: "conteo.categoria", ruta: "/inventario/conteo", cuentas: INVENTARIO, nombre: "Conteo · «Una categoría» (las categorías a elegir)", preparar: clicRol("radio", /Una categoría/i) },
+  { id: "conteo.prenda", ruta: "/inventario/conteo", cuentas: INVENTARIO, nombre: "Conteo · «Por prenda»", preparar: clicRol("radio", /Por prenda/i) },
+  { id: "conteo.detalle", ruta: "/inventario/conteo/[id]", cuentas: ["admin"], abre: "h1", nombre: "Conteo · un conteo cerrado", preparar: async (pagina) => irA(`/inventario/conteo/${CONTEO_ID()}`)(pagina) },
+  { id: "conteo.revisar", ruta: "/inventario/conteo/[id]/revisar", cuentas: ["admin"], nombre: "Conteo · la revisión de un conteo", preparar: async (pagina) => irA(`/inventario/conteo/${CONTEO_ID()}/revisar`)(pagina) },
+  { id: "bajar.buscar", ruta: "/inventario/bajar", cuentas: INVENTARIO, nombre: "Bajar al piso · una prenda buscada", preparar: llenar(/Escanea o escribe el nombre/i, "Vestido") },
+  { id: "bajar.camara", ruta: "/inventario/bajar", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]", nombre: "Bajar al piso (celular) · la cámara", preparar: clicRol("button", /Escanear con la cámara/i) },
+  { id: "cuadrar.buscar", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, nombre: "Cuadrar el piso · una prenda buscada", preparar: llenar(/Escanea o escribe el código/i, "Vestido") },
+  { id: "cuadrar.guardado", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, nombre: "Cuadrar el piso · «Lo guardado»", preparar: clicRol("button", /Lo guardado/i) },
+  { id: "cuadrar.camara", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]", nombre: "Cuadrar el piso (celular) · la cámara", preparar: clicRol("button", /Escanear con la cámara/i) },
+  { id: "frescura.categoria", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
+  { id: "frescura.estado", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
+  { id: "regularizar.vendio", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Por regularizar · la lista «Quién vendió»", preparar: clicRol("combobox", /Quién vendió/i) },
+  { id: "regularizar.todas", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, nombre: "Por regularizar · «Todas»", preparar: clicRol("button", /^Todas/i) },
+  { id: "analisis.comparar", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Comparar períodos»", preparar: clicRol("tab", /Comparar períodos/i) },
+  { id: "analisis.personalizado", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · período «Personalizado»", preparar: clicRol("radio", /Personalizado/i) },
+  { id: "analisis.categoria", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Análisis · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
+  { id: "analisis.duermen", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · las prendas que duermen en almacén", preparar: clicRol("button", /^Duermen 23|Duermen en almacén/i) },
+  { id: "analisis.como-se-calcula", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · «Cómo se calcula»", preparar: clicRol("button", /cómo se calcula/i) },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

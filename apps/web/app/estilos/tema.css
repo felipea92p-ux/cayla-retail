@@ -182,5 +182,11 @@
     :where(:root[data-tema="oscuro"]) .text-tinta\/50 {
       color: color-mix(in oklab, var(--color-tinta) 58%, transparent);
     }
+    /* Lo mismo para el taupe tenue (12 usos): sobre papel oscuro, el taupe al 50–70 % rinde 3.4 a 4.2:1. */
+    :where(:root[data-tema="oscuro"]) .text-taupe\/50,
+    :where(:root[data-tema="oscuro"]) .text-taupe\/60,
+    :where(:root[data-tema="oscuro"]) .text-taupe\/70 {
+      color: color-mix(in oklab, var(--color-taupe) 82%, transparent);
+    }
   }
 }
