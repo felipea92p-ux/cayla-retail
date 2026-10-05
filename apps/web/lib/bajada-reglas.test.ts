@@ -539,8 +539,8 @@ describe("la pistola mientras la pantalla no puede leer (guardando o con la list
   });
 
   it("si escanea con la lista congelada, se le pide primero el botón que falta", () => {
-    expect(textoEscaneoCongelado(BOTON_CONFIRMAR_DE_NUEVO)).toBe("Primero pulsa «Confirmar de nuevo»: no sabemos si la bajada anterior se guardó.");
-    expect(textoEscaneoCongelado(BOTON_COMPROBAR)).toBe("Primero pulsa «Comprobar»: no sabemos si la bajada anterior se guardó.");
+    expect(textoEscaneoCongelado(BOTON_CONFIRMAR_DE_NUEVO)).toBe("Primero pulsa «Confirmar de nuevo»: no sabemos si la tanda anterior se guardó.");
+    expect(textoEscaneoCongelado(BOTON_COMPROBAR)).toBe("Primero pulsa «Comprobar»: no sabemos si la tanda anterior se guardó.");
   });
 });
 
@@ -549,7 +549,7 @@ describe("resumenDeBajada y los textos del pie", () => {
     const r = resumenDeBajada([{ varianteId: BLUSA.varianteId, cantidad: 1 }], PRENDAS);
     expect(r).toEqual({ prendas: 1, modelos: 1 });
     expect(textoDeResumen(r)).toBe("1 prenda · 1 modelo");
-    expect(textoDeConfirmar(r.prendas)).toBe("Confirmar bajada · 1 prenda");
+    expect(textoDeConfirmar(r.prendas)).toBe("Confirmar y colgar · 1 prenda");
   });
 
   it("N prendas · M modelos: dos tallas del mismo modelo son un solo modelo", () => {
@@ -564,7 +564,7 @@ describe("resumenDeBajada y los textos del pie", () => {
     );
     expect(r).toEqual({ prendas: 6, modelos: 2 });
     expect(textoDeResumen(r)).toBe("6 prendas · 2 modelos");
-    expect(textoDeConfirmar(r.prendas)).toBe("Confirmar bajada · 6 prendas");
+    expect(textoDeConfirmar(r.prendas)).toBe("Confirmar y colgar · 6 prendas");
   });
 
   it("lista vacía: 0 prendas · 0 modelos", () => {
@@ -676,10 +676,10 @@ describe("respuestaResuelveLaMarca: cuándo un reenvío deja de estar en duda", 
 
   it("los textos mientras sigue en duda", () => {
     expect(textoMarcaSinResolver("2026-09-25T15:32:00.000Z", BOTON_COMPROBAR)).toBe(
-      "Todavía no sabemos si la bajada que enviaste a las 10:32 se guardó. Cuando se resuelva lo de arriba, pulsa «Comprobar»: si ya se había guardado, no se repite."
+      "Todavía no sabemos si la tanda que enviaste a las 10:32 se guardó. Cuando se resuelva lo de arriba, pulsa «Comprobar»: si ya se había guardado, no se repite."
     );
     expect(textoNotaDelPie(false)).toContain("siguen en el almacén para el sistema");
-    expect(textoNotaDelPie(true)).toBe("Hasta comprobar, no sabemos si el sistema ya las ve en el piso: no las subas por «Reponer» mientras tanto.");
+    expect(textoNotaDelPie(true)).toBe("Hasta comprobar, no sabemos si el sistema ya las ve en el piso: no las subas por «Colgar en el piso» mientras tanto.");
   });
 });
 
@@ -722,10 +722,10 @@ describe("textoDeLectura: el banner bajo el campo", () => {
   // mismas unidades) y la siguiente lectura sale «en 0», con su salida.
   it("tope, en plural y en singular", () => {
     expect(textoDeLectura({ tipo: "tope", prenda: CAMISON, disponible: 3 }, SEDE)).toBe(
-      "Camisón · L · Azul: en el almacén hay 3 y ya las tienes todas en la lista. Si tienes otra en la mano, confirma esta bajada y vuelve a escanearla."
+      "Camisón · L · Azul: en el almacén hay 3 y ya las tienes todas en la lista. Si tienes otra en la mano, confirma esta tanda y vuelve a escanearla."
     );
     expect(textoDeLectura({ tipo: "tope", prenda: CAMISON, disponible: 1 }, SEDE)).toBe(
-      "Camisón · L · Azul: en el almacén hay 1 y ya la tienes en la lista. Si tienes otra en la mano, confirma esta bajada y vuelve a escanearla."
+      "Camisón · L · Azul: en el almacén hay 1 y ya la tienes en la lista. Si tienes otra en la mano, confirma esta tanda y vuelve a escanearla."
     );
   });
 
@@ -743,7 +743,7 @@ describe("interpretarErrorDeBajada: el rechazo al confirmar", () => {
     "No se bajó nada. Blusa lino · M · Blanco: pides 3 y en el almacén hay 1 (2 apartadas para clientas). Puede que otra persona ya las haya bajado: revisa el piso y corrige esas líneas.";
 
   const RED_CAIDA =
-    "Se cortó la conexión y no sabemos si la bajada se guardó. Tu lista sigue aquí: pulsa «Confirmar de nuevo». Si ya se había guardado, no se repite.";
+    "Se cortó la conexión y no sabemos si la tanda se guardó. Tu lista sigue aquí: pulsa «Confirmar de nuevo». Si ya se había guardado, no se repite.";
 
   it("red caída: no sabemos si se guardó, la lista sigue y el único camino es «Confirmar de nuevo» (no el «no se guardó nada» genérico)", () => {
     expect(interpretarErrorDeBajada({ message: "TypeError: Failed to fetch", details: "", hint: "", code: "" }, SEDE)).toEqual({
@@ -851,7 +851,7 @@ describe("interpretarErrorDeBajada: el rechazo al confirmar", () => {
     expect(r).toEqual({
       tipo: "otro",
       mensaje:
-        "No se pudo bajar las prendas al piso de Tienda TRU: esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.",
+        "No se pudo colgar las prendas en el piso de Tienda TRU: esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.",
     });
   });
 
@@ -865,9 +865,9 @@ describe("interpretarErrorDeBajada: el rechazo al confirmar", () => {
 
   it("lo que no reconoce no se lo traga: dice qué se intentaba, en qué tienda, y deja el código", () => {
     const r = interpretarErrorDeBajada({ message: "algo raro", code: "XX000" }, SEDE);
-    expect(r).toEqual({ tipo: "otro", mensaje: "No se pudo bajar las prendas al piso de Tienda TRU. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: algo raro" });
-    expect(interpretarErrorDeBajada(null, SEDE)).toEqual({ tipo: "otro", mensaje: "No se pudo bajar las prendas al piso de Tienda TRU." });
-    expect(interpretarErrorDeBajada(null, "")).toEqual({ tipo: "otro", mensaje: "No se pudo bajar las prendas al piso." });
+    expect(r).toEqual({ tipo: "otro", mensaje: "No se pudo colgar las prendas en el piso de Tienda TRU. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: algo raro" });
+    expect(interpretarErrorDeBajada(null, SEDE)).toEqual({ tipo: "otro", mensaje: "No se pudo colgar las prendas en el piso de Tienda TRU." });
+    expect(interpretarErrorDeBajada(null, "")).toEqual({ tipo: "otro", mensaje: "No se pudo colgar las prendas en el piso." });
   });
 });
 
@@ -906,12 +906,12 @@ describe("resolverTokenReusado: ese token ya guardó una bajada", () => {
   it("si no falta nada, es una bajada que ya estaba registrada: la tarjeta de éxito con la hora del texto de la base", () => {
     expect(resolverTokenReusado([{ varianteId: BLUSA.varianteId, cantidad: 1 }], guardadas, MENSAJE, SEDE)).toEqual({
       tipo: "ya_estaba",
-      exito: { titulo: "Se bajaron 3 prendas al piso de Tienda TRU", detalle: "Esta bajada ya estaba registrada a las 10:32. No se repitió." },
+      exito: { titulo: "Se colgaron 3 prendas en el piso de Tienda TRU", detalle: "Esta tanda ya estaba registrada a las 10:32. No se repitió." },
     });
     const una = resolverTokenReusado([], [{ varianteId: BLUSA.varianteId, cantidad: 1 }], "Esa bajada ya se guardó.", SEDE);
     expect(una).toEqual({
       tipo: "ya_estaba",
-      exito: { titulo: "Se bajó 1 prenda al piso de Tienda TRU", detalle: "Esta bajada ya estaba registrada. No se repitió." },
+      exito: { titulo: "Se colgó 1 prenda en el piso de Tienda TRU", detalle: "Esta tanda ya estaba registrada. No se repitió." },
     });
   });
 
@@ -975,21 +975,21 @@ describe("el éxito: tarjeta y aviso", () => {
   });
 
   it("en plural, con el responsable en el detalle", () => {
-    expect(textoDeExito(base, SEDE, "Ana Ríos")).toEqual({ titulo: "Se bajaron 12 prendas al piso de Tienda TRU", detalle: "10:32 · Ana Ríos" });
-    expect(textoDeExito(base, SEDE)).toEqual({ titulo: "Se bajaron 12 prendas al piso de Tienda TRU", detalle: "10:32" });
-    expect(avisoDeExito(base, SEDE)).toEqual({ titulo: "12 prendas bajadas al piso", detalle: "Tienda TRU" });
+    expect(textoDeExito(base, SEDE, "Ana Ríos")).toEqual({ titulo: "Se colgaron 12 prendas en el piso de Tienda TRU", detalle: "10:32 · Ana Ríos" });
+    expect(textoDeExito(base, SEDE)).toEqual({ titulo: "Se colgaron 12 prendas en el piso de Tienda TRU", detalle: "10:32" });
+    expect(avisoDeExito(base, SEDE)).toEqual({ titulo: "12 prendas colgadas en el piso", detalle: "Tienda TRU" });
   });
 
   it("en singular", () => {
     const una = { ...base, lineas: 1, unidades: 1 };
-    expect(textoDeExito(una, SEDE, "Ana Ríos").titulo).toBe("Se bajó 1 prenda al piso de Tienda TRU");
-    expect(avisoDeExito(una, SEDE).titulo).toBe("1 prenda bajada al piso");
+    expect(textoDeExito(una, SEDE, "Ana Ríos").titulo).toBe("Se colgó 1 prenda en el piso de Tienda TRU");
+    expect(avisoDeExito(una, SEDE).titulo).toBe("1 prenda colgada en el piso");
   });
 
-  it("si ya estaba registrada, lo dice y no pretende que se bajó de nuevo", () => {
+  it("si ya estaba registrada, lo dice y no pretende que se colgó de nuevo", () => {
     expect(textoDeExito({ ...base, ya_registrada: true }, SEDE, "Ana Ríos")).toEqual({
-      titulo: "Se bajaron 12 prendas al piso de Tienda TRU",
-      detalle: "Esta bajada ya estaba registrada a las 10:32. No se repitió.",
+      titulo: "Se colgaron 12 prendas en el piso de Tienda TRU",
+      detalle: "Esta tanda ya estaba registrada a las 10:32. No se repitió.",
     });
   });
 });
@@ -1072,9 +1072,9 @@ describe("el borrador en el navegador", () => {
   });
 
   it("el aviso para retomarlo dice cuántas prendas y a qué hora (Lima)", () => {
-    expect(textoDeBorrador(borrador)).toBe("Dejaste una bajada sin confirmar (3 prendas, 10:32). ¿Sigues con ella o empiezas de nuevo?");
+    expect(textoDeBorrador(borrador)).toBe("Dejaste una tanda sin confirmar (3 prendas, 10:32). ¿Sigues con ella o empiezas de nuevo?");
     expect(textoDeBorrador({ ...borrador, lineas: [{ varianteId: BLUSA.varianteId, cantidad: 1 }] })).toBe(
-      "Dejaste una bajada sin confirmar (1 prenda, 10:32). ¿Sigues con ella o empiezas de nuevo?"
+      "Dejaste una tanda sin confirmar (1 prenda, 10:32). ¿Sigues con ella o empiezas de nuevo?"
     );
   });
 
@@ -1109,7 +1109,7 @@ describe("el borrador en el navegador", () => {
 
   it("el texto del envío incierto dice a qué hora se envió y que «Comprobar» no repite", () => {
     expect(textoDeEnvioIncierto(enviadoEn)).toBe(
-      "Enviaste esta bajada a las 10:40 y no llegó la respuesta. Pulsa «Comprobar»: si ya se guardó, no se repite."
+      "Enviaste esta tanda a las 10:40 y no llegó la respuesta. Pulsa «Comprobar»: si ya se guardó, no se repite."
     );
   });
 });

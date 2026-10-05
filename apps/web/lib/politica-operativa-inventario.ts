@@ -5,8 +5,8 @@
    - `minDiasExposicionRitmo` (3 jornadas completas): antes de esto, «Ritmo reciente» no se
      calcula — se muestran los hechos crudos (`existencias-ritmo.ts`).
 
-   LO QUE YA NO VIVE AQUÍ (ADR-0328 act. 7, 2026-10-04): `umbralStockPisoReposicion` (piso ≤ 4 → «Reponer a piso») se retiró.
-   Con esa regla Tienda TRU marcaba «Reponer» en sus 510 tallas de 510 (ninguna tiene más de 4 colgadas), así que nunca podía
+   LO QUE YA NO VIVE AQUÍ (ADR-0328 act. 7, 2026-10-04): `umbralStockPisoBajada` (piso ≤ 4 → «Colgar en el piso») se retiró.
+   Con esa regla Tienda TRU marcaba «Colgar en el piso» en sus 510 tallas de 510 (ninguna tiene más de 4 colgadas), así que nunca podía
    decir «Mantener». Lo que el piso pide hoy lo decide UN motor, `lib/piso-plan.ts` (mínimo de 1 por talla y color en las tallas
    centrales, lo vendido ayer primero, la pausa sin cuadre), y `lib/piso-plan-umbral.test.ts` falla si alguien vuelve a escribir
    un umbral de piso fuera de ese archivo — también aquí.

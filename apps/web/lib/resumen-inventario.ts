@@ -151,7 +151,7 @@ export async function getDesempenoInventario(ubicacion: UbicacionApp, params: Pa
   return armarDesempeno({ filas, ubicacion: { id: ubicacion.id, nombre: ubicacion.nombre, tipo: ubicacion.tipo }, params, ahora, conteos, red });
 }
 
-/** Qué otras TIENDAS tienen cada variante y cómo se abastece (ADR-0245: «Pedir a otra sede» y «Reponer»). Sale de la
+/** Qué otras TIENDAS tienen cada variante y cómo se abastece (ADR-0245: «Pedir a otra sede» y «Colgar en el piso»). Sale de la
  *  misma lectura que Existencias (`fn_resumen_variantes_json`, en caché por pedido). Es un dato SECUNDARIO: si falla,
  *  Análisis sigue entero y solo se pierden esos dos botones (principio 9). */
 async function getRedPorVariante(ubicacionId: string, ahora: Date): Promise<Record<string, RedVariante>> {

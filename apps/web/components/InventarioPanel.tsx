@@ -11,7 +11,7 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
-import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
+import { BajarPrendaModal } from "@/components/BajarPrendaModal";
 import { SubirAAlmacenModal } from "@/components/SubirAAlmacenModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
@@ -123,8 +123,8 @@ function CeldaCoberturaPiso({ f }: { f: FilaExistencias }) {
       </span>
     );
   }
-  const pideReponer = pidePiso(f.planPiso?.accion);
-  const etiqueta = c.tipo === "agotado" ? "bg-ambar/15 text-ambar-profundo" : c.tipo === "medida" && pideReponer ? "bg-ambar/15 text-ambar-profundo" : null;
+  const pideBajada = pidePiso(f.planPiso?.accion);
+  const etiqueta = c.tipo === "agotado" ? "bg-ambar/15 text-ambar-profundo" : c.tipo === "medida" && pideBajada ? "bg-ambar/15 text-ambar-profundo" : null;
   const piso = f.piso ?? 0;
   const almacen = f.almacen ?? 0;
   const totalSede = piso + almacen;
@@ -236,8 +236,8 @@ export function InventarioPanel({
   politica: PoliticaOperativaInventario;
   /** ¿Su rol ve Traslados? «Trasladar» (detalle y barra de varias) lleva a «Mover mercadería», que exige ese módulo. */
   veTraslados?: boolean;
-  /** ¿Puede usar «Bajar al piso» aquí (su módulo, su sede activa, y la sede separa piso y almacén)? Lo decide la página.
-   *  También habilita «Reponer al piso» y «Retirar del piso» de cada talla (ADR-0240: mover piso↔almacén es de ese módulo). */
+  /** ¿Puede usar «Colgar en el piso» aquí (su módulo, su sede activa, y la sede separa piso y almacén)? Lo decide la página.
+   *  También habilita «Colgar en el piso» y «Retirar del piso» de cada talla (ADR-0240: mover piso↔almacén es de ese módulo). */
   puedeBajarAlPiso?: boolean;
   /** ¿Su rol ve «Apartados»? «Apartar» desde Existencias es de ese módulo (ADR-0240). */
   veApartados?: boolean;
@@ -253,10 +253,10 @@ export function InventarioPanel({
   /** A qué sedes se puede mandar lo que se sube «para enviar» (ADR-0328 act. 17). Vacío: «Subir prenda» no ofrece enviar. */
   destinosParaEnviar?: readonly { id: string; nombre: string }[];
   /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
-   *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
+   *  ayer primero). La tarjeta «Colgar en el piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
   listaDelDia?: readonly string[];
 }) {
-  // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
+  // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Colgar en el piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
   const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
   const setBusqueda = fijarBusqueda;
@@ -269,14 +269,14 @@ export function InventarioPanel({
   const setOrden = (v: OrdenPrendas) => aplicar({ orden: v === "relevancia" ? null : v });
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
-  // «Reponer prenda» abre la ventana del MODELO entero (`ReponerPrendaModal`, ADR-0295 y ADR-0317): todos sus colores, una fila cada
+  // «Colgar en el piso» abre la ventana del MODELO entero (`BajarPrendaModal`, ADR-0295 y ADR-0317): todos sus colores, una fila cada
   // uno. Se guarda el producto y no una copia de las filas: tras guardar o chocar con otra persona, `router.refresh()` trae las cifras
   // nuevas y la ventana las lee de `stock`, no de lo que había al abrirla.
-  const [reponiendo, setReponiendo] = useState<string | null>(null);
-  const prendasReponiendo = reponiendo ? coloresDelModelo(stock, reponiendo) : [];
-  function abrirReponer(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
+  const [bajando, setBajando] = useState<string | null>(null);
+  const prendasBajando = bajando ? coloresDelModelo(stock, bajando) : [];
+  function abrirBajada(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
     volverFoco.current = origen;
-    setReponiendo(prenda.productoId);
+    setBajando(prenda.productoId);
   }
   // «Subir prenda» (ADR-0300, ADR-0317): la misma idea del lado contrario, con la ventana `SubirAAlmacenModal`.
   const [subiendo, setSubiendo] = useState<string | null>(null);
@@ -395,7 +395,7 @@ export function InventarioPanel({
   }, [indiceBusqueda, elegidos, porColgarElegido]);
 
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
-  // que el cliente no ve»), igual que «Para hoy». Baja sola después de cada «Reponer». Es la misma cuenta que lee el Inicio de
+  // que el cliente no ve»), igual que «Para hoy». Baja sola después de cada «Colgar en el piso». Es la misma cuenta que lee el Inicio de
   // Almacén (`porColgarDeLaSede`), alimentada por el motor del piso: la decisión de cada talla (`planPiso`) y el orden de la lista
   // del día. Los números de «Para hoy», del filtro «Hoy» y del Inicio no pueden discrepar.
   const cuentaPorColgar = useMemo(() => porColgarDeLaSede(stock, listaDelDia), [stock, listaDelDia]);
@@ -443,7 +443,7 @@ export function InventarioPanel({
     const tarjeta = tarjetaTablaRef.current;
     if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
   }
-  // «Reponer a piso hoy» filtra una tabla que queda más abajo, fuera de la vista: sin llevarla hasta ahí, el clic
+  // «Colgar en el piso hoy» filtra una tabla que queda más abajo, fuera de la vista: sin llevarla hasta ahí, el clic
   // parecía no hacer nada (solo cambiaba el fondo de la tarjeta). Se desplaza en el cuadro siguiente, cuando la tabla
   // ya tiene su alto filtrado; suave para que se vea de dónde a dónde se fue, y de una vez con `prefers-reduced-motion`.
   function mostrarTablaFiltrada() {
@@ -469,9 +469,9 @@ export function InventarioPanel({
   const enSedeActiva = sedeActiva?.ubicacionId === ubicacionId;
   // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
   // ADR-0240 (opción A de Felipe): cada escritura es del módulo que la nombra, y la base pide lo mismo
-  // (`mover_entre_piso_y_almacen` → «Bajada al piso», `apartar_prenda` → «Apartados»): el botón solo aparece si va a pasar.
+  // (`mover_entre_piso_y_almacen` → «Colgada en el piso», `apartar_prenda` → «Apartados»): el botón solo aparece si va a pasar.
   // Una sola función, con su prueba (tarea #11, `lib/existencias-permisos.ts`): un `&&` quitado aquí volvía a abrir
-  // «Reponer» a quien no tiene el módulo sin que nada avisara.
+  // «Colgar en el piso» a quien no tiene el módulo sin que nada avisara.
   const permisos = permisosDelDetalle({
     separaPisoAlmacen: separaConSububicaciones,
     enSedeActiva,
@@ -482,7 +482,7 @@ export function InventarioPanel({
     esTienda,
     editaCatalogo,
   });
-  const puedeReponer = permisos.reponerYRetirar;
+  const puedeBajarPrendas = permisos.bajarYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
@@ -490,7 +490,7 @@ export function InventarioPanel({
   // La prenda abierta sale de TODO el stock, no de lo filtrado: si se abre escaneando o tras un guardado cambia su «Acción
   // hoy», el detalle no se cierra solo por dejar de coincidir con un filtro.
   const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stock).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stock]);
-  // Marcar varias y llevarlas a otra pantalla (Bajar al piso, Trasladar, Etiquetas) solo en la sede activa: esas pantallas
+  // Marcar varias y llevarlas a otra pantalla (Colgar en el piso, Trasladar, Etiquetas) solo en la sede activa: esas pantallas
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
   const conSeleccion = enSedeActiva;
   const filasMarcadas = useMemo(() => stock.filter((f) => marcadas.has(f.varianteId)), [stock, marcadas]);
@@ -529,7 +529,7 @@ export function InventarioPanel({
   // «Ver recomendaciones» / «Ver análisis de cobertura» ya no viven en Existencias (rediseño 2026-09-28, cabecera de
   // «Prioridades de hoy» más abajo): `abrirDesdeRecomendacion` (main, PR #575) resolvía un clic dentro de ese overlay
   // retirado — sin overlay, sin destino. La cobertura sigue disponible en Análisis; las recomendaciones, en «Acción hoy»
-  // de cada fila y en la tarjeta «Reponer a piso hoy».
+  // de cada fila y en la tarjeta «Colgar en el piso hoy».
 
 
   // «Para hoy»: las tareas de la sede y su botón. «Por colgar» y «sin nada atrás» con la regla de «Hoy» (la misma del filtro y de
@@ -560,13 +560,13 @@ export function InventarioPanel({
   }
   const hrefBajarPorColgar = puedeBajarAlPiso ? (urlBajarAlPiso(filasPorColgar) ?? "/inventario/bajar") : null;
   const accionesHoy: Partial<Record<TipoTareaHoy, AccionTarea>> = {
-    por_colgar: hrefBajarPorColgar ? { texto: "Bajar al piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
+    por_colgar: hrefBajarPorColgar ? { texto: "Colgar en el piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
     // «Cuadrar el piso» (/inventario/cuadrar, ADR-0328 act. 3) con la misma condición que su acceso en la cabecera
     // (`puedeCuadrarPiso = puedeBajarAlPiso`): una función de Existencias (ADR-0306) en la sede activa que separa piso y almacén.
     // Confirmar el cuadre es de un líder: esa pantalla lo dice. Sin la condición, la fila informa y no lleva botón.
     piso_en_pausa: puedeBajarAlPiso ? { texto: "Cuadrar el piso", href: "/inventario/cuadrar" } : undefined,
-    // Sin plan, «Bajar al piso» sigue sirviendo a mano: no depende de lo que recomienda el motor.
-    piso_sin_calcular: puedeBajarAlPiso ? { texto: "Bajar al piso", href: "/inventario/bajar" } : undefined,
+    // Sin plan, «Colgar en el piso» sigue sirviendo a mano: no depende de lo que recomienda el motor.
+    piso_sin_calcular: puedeBajarAlPiso ? { texto: "Colgar en el piso", href: "/inventario/bajar" } : undefined,
     // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas. La lista vive en
     // Existencias (ADR-0330), bajo el mismo módulo que esta pantalla: quien ve la fila puede resolverla.
     sin_registrar: { texto: "Regularizar", href: `/inventario/por-regularizar?ubicacion=${ubicacionId}` },
@@ -694,7 +694,7 @@ export function InventarioPanel({
       {/* «Para hoy» (rediseño 2026-10-04, decisión de Felipe en la ronda 2): lo pendiente de la sede como frases con su cifra y un
           botón, en el orden en que conviene hacerlo (`tareasParaHoy`). Reemplaza las cuatro tarjetas de «Prioridades de hoy» (2026-09-28),
           que se dibujaban aunque dijeran 0 y ocupaban la primera pantalla sin decir por dónde empezar. «Por colgar» cuenta con la
-          MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Reponer a piso hoy» contaba
+          MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Colgar en el piso hoy» contaba
           con otra (ADR-0326 §5). */}
       <ParaHoy
         tareas={tareasHoy}
@@ -716,7 +716,7 @@ export function InventarioPanel({
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
-          `scroll-mt-24` compensa la cabecera fija: con menos, al llegar aquí (paginar, «Reponer a piso hoy») el
+          `scroll-mt-24` compensa la cabecera fija: con menos, al llegar aquí (paginar, «Colgar en el piso hoy») el
           buscador quedaba debajo de ella.
 
           Con «Ver detalle» (la tabla) sigue siendo UNA tarjeta. Con las tarjetas de prenda (la lista de entrada) los filtros
@@ -818,7 +818,7 @@ export function InventarioPanel({
                         </button>
                       </>
                     ) : (
-                      "Algunas se guardan a propósito (fin de temporada): no es una orden de bajar todo, elige cuáles van al piso."
+                      "Algunas se guardan a propósito (fin de temporada): no es una orden de colgar todo, elige cuáles van al piso."
                     )}
                   </p>
                 )}
@@ -895,11 +895,11 @@ export function InventarioPanel({
             separa={separa}
             mostrarMarca={mostrarMarca}
             tallasDePrenda={tallasDePrenda}
-            puedeReponer={puedeReponer}
+            puedeBajarPrendas={puedeBajarPrendas}
             puedeAjustar={puedeAjustarAqui}
-            onReponer={(prenda, origen) => {
+            onBajarAlPiso={(prenda, origen) => {
               setAbierta(null);
-              abrirReponer(prenda, origen);
+              abrirBajada(prenda, origen);
             }}
             onSubir={(prenda, origen) => {
               setAbierta(null);
@@ -1222,13 +1222,13 @@ export function InventarioPanel({
       )}
       </div>
 
-      {prendasReponiendo.length > 0 && (
-        <ReponerPrendaModal
-          prendas={prendasReponiendo}
+      {prendasBajando.length > 0 && (
+        <BajarPrendaModal
+          prendas={prendasBajando}
           ubicacionId={ubicacionId}
           sede={sedeNombre}
           alCerrarEnfocar={volverFoco}
-          onClose={() => setReponiendo(null)}
+          onClose={() => setBajando(null)}
         />
       )}
 
@@ -1303,7 +1303,7 @@ export function InventarioPanel({
         <CajonPrendaExistencias
           prenda={prendaAbierta}
           separa={separa}
-          puedeReponer={puedeReponer}
+          puedeBajarPrendas={puedeBajarPrendas}
           enSedeActiva={permisos.etiquetasEHistorial}
           puedeAjustar={puedeAjustarAqui}
           veTraslados={permisos.trasladar}
@@ -1312,9 +1312,9 @@ export function InventarioPanel({
             setAbierta(null);
             setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia, estado: prendaAbierta.tallas[0]?.estadoProducto ?? null });
           }}
-          onReponer={(prenda) => {
+          onBajarAlPiso={(prenda) => {
             setAbierta(null);
-            abrirReponer(prenda, null);
+            abrirBajada(prenda, null);
           }}
           onSubir={(prenda) => {
             setAbierta(null);
@@ -1365,7 +1365,7 @@ export function InventarioPanel({
       )}
 
       {/* Varias a la vez (ADR-0237): lo marcado llega a la otra pantalla con la lista ya cargada. Cada botón aparece solo si
-          su rol ve esa pantalla y hay algo que llevar (Bajar al piso: solo las tallas que se pueden bajar). */}
+          su rol ve esa pantalla y hay algo que llevar (Colgar en el piso: solo las tallas que se pueden bajar). */}
       {/* Lo marcado que SIGUE en la lista, no el conjunto crudo: tras eliminar un producto marcado (ADR-0252) sus tallas
           ya no están, y la barra quedaba en «0 prendas · 0 tallas» sin botones. */}
       {filasMarcadas.length > 0 && (
@@ -1390,7 +1390,7 @@ export function InventarioPanel({
               {hrefBajarMarcadas && (
                 <Link href={hrefBajarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <ArrowDownToLine aria-hidden className="h-4 w-4" />
-                  Bajar al piso
+                  Colgar en el piso
                 </Link>
               )}
               {hrefTrasladarMarcadas && (

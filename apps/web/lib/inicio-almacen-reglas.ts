@@ -354,7 +354,7 @@ export type Existencias = {
   porColgar: { tallas: number; unidades: number; prendas: number; enPausa: number };
   /** Las tres prendas que conviene colgar primero: las primeras de la lista del día (lo vendido ayer primero). */
   primeras: PrendaPorColgar[];
-  /** «Bajar al piso» con esas tallas ya en la lista: el mismo enlace que el botón de «Para hoy». */
+  /** «Colgar en el piso» con esas tallas ya en la lista: el mismo enlace que el botón de «Para hoy». */
   hrefBajar: string;
 };
 

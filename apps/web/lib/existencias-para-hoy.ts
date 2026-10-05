@@ -2,7 +2,7 @@
    «Para hoy» de Existencias (rediseño del 2026-10-04, decisión de Felipe en la ronda 2: la portada es el buscador, «Para
    hoy» y el catálogo de prendas).
 
-   El problema que reemplaza: cuatro tarjetas fijas («Resumen disponible», «Reponer a piso hoy», «En camino hacia acá»,
+   El problema que reemplaza: cuatro tarjetas fijas («Resumen disponible», «Colgar en el piso hoy», «En camino hacia acá»,
    «Incidencias») que se dibujaban siempre, aunque dijeran 0, y que ocupaban la primera pantalla sin decir por dónde empezar.
    Aquí cada cosa pendiente de la sede es una TAREA con su cifra y su frase, en el orden en que conviene hacerlas; lo que está en
    0 no aparece. La pantalla muestra las tres primeras y deja ver el resto a un toque.
@@ -18,7 +18,7 @@
    Lo mismo vale para el motor del piso (ADR-0328 act. 7, integración de la ola 1): con el piso SIN CUADRAR —como está toda tienda
    el día que se pega el motor— no hay «por colgar» (cada talla que lo sería queda «En pausa»), y si su lectura falla tampoco.
    Sin una fila propia, las dos cosas se leían «Todo al día. No hay nada pendiente en el piso», justo el falso «al día» que la
-   tarjeta «Reponer a piso hoy» ya había corregido antes de que el rediseño la retirara.
+   tarjeta «Colgar en el piso hoy» ya había corregido antes de que el rediseño la retirara.
    ==================================================================== */
 
 import { MAX_ROJO_POR_PANTALLA } from "@cayla-retail/shared";
@@ -78,7 +78,7 @@ export type PorColgarDeSede<F extends FilaPrenda> = {
   /** Cuántas tallas serían «por colgar» pero esperan el cuadre del piso («En pausa», ADR-0328 decisión 5). Con el piso sin
    *  cuadrar `tallas` es 0 y esta es la cifra que «Para hoy» y el Inicio dicen en su lugar: nunca un «al día» falso. */
   enPausa: number;
-  /** Esas tallas, en el orden de la sede (lo que se manda a «Bajar al piso»). */
+  /** Esas tallas, en el orden de la sede (lo que se manda a «Colgar en el piso»). */
   filas: F[];
   /** Agrupadas por prenda (modelo + color), en el orden de la lista del día del motor: lo vendido ayer primero. */
   prendas: PrendaAgrupada<F>[];
@@ -142,7 +142,7 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       texto: plural(e.porColgar.tallas, "talla por colgar", "tallas por colgar"),
       // La segunda frase es la honestidad del número: si la prenda ya cuelga y el sistema la cree guardada (una bajada que no se
       // registró, o la carga inicial que entró al almacén), lo que toca es registrarla, no volver a colgarla.
-      detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al bajar.`,
+      detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al colgarlas.`,
       tono: "ambar",
     });
   }
@@ -153,7 +153,7 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       tipo: "piso_sin_calcular",
       cifra: null,
       texto: "No se pudo calcular qué colgar hoy",
-      detalle: "La columna «Hoy» dice N/D hasta que responda. Si ves una talla sin nada colgado, bájala igual al piso.",
+      detalle: "La columna «Hoy» dice N/D hasta que responda. Si ves una talla sin nada colgado, cuélgala igual en el piso.",
       tono: "pizarra",
     });
   } else if (e.separa && e.piso.enPausa > 0) {

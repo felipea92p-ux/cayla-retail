@@ -9,7 +9,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
  * «¿Quién está atendiendo?» antes de registrar, desde Vender, la bajada al piso que se olvidó (ADR-0321).
  *
  * La bajada mueve stock y queda firmada (ADR-0162), pero en Vender el responsable se elige recién al cobrar. Si al tocar
- * «Agregar y registrar la bajada» todavía no hay nadie elegido, sale esta hoja con el MISMO combo del ticket: lo elegido
+ * «Agregar y registrar como colgada» todavía no hay nadie elegido, sale esta hoja con el MISMO combo del ticket: lo elegido
  * aquí queda elegido para la venta (es la misma persona atendiendo), así que no se pregunta dos veces. Con el responsable
  * ya elegido esta hoja ni aparece: la prenda entra directo.
  */
@@ -30,14 +30,14 @@ export function RegistrarBajadaModal({
 }) {
   const varias = nombres.length > 1;
   return (
-    <Modal titulo="Registrar la bajada al piso" ancho="max-w-md" onClose={onClose}>
+    <Modal titulo="Registrar que se colgó en el piso" ancho="max-w-md" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm text-tinta/80">
             {varias
               ? `${nombres.join(", ")} entran al ticket y quedan registradas en el piso de ${sede}.`
               : `${nombres[0]} entra al ticket y queda registrada en el piso de ${sede}.`}{" "}
-            La bajada va a nombre de quien atiende.
+            Queda a nombre de quien atiende.
           </p>
           <ComboResponsable control={responsable} />
           <div className="flex gap-2">

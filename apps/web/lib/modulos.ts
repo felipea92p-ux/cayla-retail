@@ -64,7 +64,7 @@ export const MODULOS: readonly Modulo[] = [
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   // «Bajada al piso» y «Ajustar stock» NO son módulos (ADR-0306, Felipe 2026-10-02): son funciones de Existencias, porque no
   // tienen entrada propia en el menú. Regla: un módulo es una entrada del menú izquierdo; quien lo ve hace todo lo de adentro.
-  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer el piso (bajar del almacén, subir y retirar), apartar prendas y ajustar stock" },
+  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, colgar en el piso desde el almacén, subir al almacén y retirar, apartar prendas y ajustar stock" },
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },

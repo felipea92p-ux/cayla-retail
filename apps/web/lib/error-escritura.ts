@@ -256,7 +256,7 @@ const HUELLAS: Huella[] = [
     // 0010_stock_concurrencia.sql:14 — la red que impide dejar el stock en negativo.
     marca: "stock_cantidad_no_negativa",
     frase:
-      "No hay suficiente stock para eso. Revisa la cantidad, o mira en Inventario si la prenda está en el almacén y todavía no bajó a piso.",
+      "No hay suficiente stock para eso. Revisa la cantidad, o mira en Inventario si la prenda está en el almacén y todavía no se colgó en el piso.",
   },
   {
     // 0045_ajuste_con_signo.sql:97 — la misma red, sobre el almacén interno de la sede.
@@ -600,7 +600,7 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
  * ¿La respuesta NO trae el veredicto de la base? Un corte de red, o un error sin código de Postgres (un 502/504 del
  * camino, una excepción del cliente, un envío cortado por tiempo): en esos casos la transacción pudo confirmarse
  * igual. Un error CON código es la base diciendo que no: la transacción se deshizo. Lo usan las pantallas que envían
- * con marca (la bajada al piso, «Reponer» y «Retirar del piso»): mientras la respuesta es incierta, solo se puede
+ * con marca (la bajada al piso, «Colgar en el piso» y «Retirar del piso»): mientras la respuesta es incierta, solo se puede
  * reenviar lo mismo con la misma marca.
  */
 export function esRespuestaIncierta(error: ErrorEscritura): boolean {

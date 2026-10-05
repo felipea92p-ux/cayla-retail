@@ -423,7 +423,7 @@ export type DesempenoParaPantalla = {
   tallasVendidas: { talla: string; unidades: number }[];
   /** Las 5 prendas que más vendieron (gráfico «Las que más venden»). */
   topPrendas: { clave: string; etiqueta: string; unidades: number }[];
-  /** La red de las variantes que se ven en pantalla (qué otras tiendas tienen y cómo se abastece), para «Pedir» y «Reponer». */
+  /** La red de las variantes que se ven en pantalla (qué otras tiendas tienen y cómo se abastece), para «Pedir» y «Colgar en el piso». */
   red: Record<string, RedVariante>;
 };
 
@@ -443,7 +443,7 @@ export function armarDesempeno(e: {
   params: ParametrosResumen;
   ahora: Date;
   conteos: DatosExactitud;
-  /** La red por variante (`fn_resumen_variantes_json`); vacía si esa lectura falló: se pierden «Pedir» y «Reponer», nada más. */
+  /** La red por variante (`fn_resumen_variantes_json`); vacía si esa lectura falló: se pierden «Pedir» y «Colgar en el piso», nada más. */
   red?: Readonly<Record<string, RedVariante>>;
 }): DesempenoParaPantalla {
   const { periodo, mitades } = mitadesDelDesempeno(e.params, e.ahora);

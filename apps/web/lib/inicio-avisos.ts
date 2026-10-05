@@ -376,8 +376,8 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
   }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión
   // del motor del piso) y su misma palabra. Antes decía «Sube N modelos al piso»: otro número (modelos, con las agotadas incluidas) y
-  // el verbo al revés, porque en Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Bajar al piso». Lleva a la lista
-  // filtrada por «Hoy ▸ Por colgar», donde están las mismas tallas y el botón «Bajar al piso». El detalle repite la honestidad de
+  // el verbo al revés, porque en Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Colgar en el piso». Lleva a la lista
+  // filtrada por «Hoy ▸ Por colgar», donde están las mismas tallas y el botón «Colgar en el piso». El detalle repite la honestidad de
   // «Para hoy»: si ya cuelgan y el sistema las cree guardadas, lo que toca es registrarlas al bajar.
   // Con el piso sin cuadrar (ADR-0328, decisión 5) el motor no manda a colgar nada: el aviso dice «Cuadrar el piso» con las tallas
   // que esperan —la misma cifra de la fila «esperan el cuadre del piso» de «Para hoy»— y lleva a Existencias, donde está su botón.
@@ -394,12 +394,12 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: enPausa ? "Cuadrar el piso" : "Por colgar",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
-      ahora: !n ? "" : enPausa ? "Cuadra el piso antes de colgar" : `Baja al piso ${n} ${plural(n, "talla", "tallas")} por colgar`,
+      ahora: !n ? "" : enPausa ? "Cuadra el piso antes de colgar" : `Cuelga en el piso ${n} ${plural(n, "talla", "tallas")} por colgar`,
       detalle:
         p === null ? SIN_LEER
           : enPausa ? `${p.enPausa} ${plural(p.enPausa, "talla espera", "tallas esperan")} el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.`
             : p.tallas === 0 ? "El piso de venta está al día."
-              : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.`,
+              : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.`,
       href: enPausa ? "/inventario" : "/inventario?hoy=por_colgar",
       ocultable: true,
     });

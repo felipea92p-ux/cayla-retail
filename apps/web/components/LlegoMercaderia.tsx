@@ -53,7 +53,7 @@ type Recibido = { lineas: LineaLlegada[]; unidades: number; loteId: string | nul
 const ID_BUSCADOR = "llegada-buscador";
 
 // «Llegó mercadería» (ADR-0330): la puerta única para lo que llega de un proveedor. Dos preguntas —¿de quién? y ¿qué llegó?— y
-// se recibe en la sede de la cabecera; lo recibido entra al almacén (ADR-0328) y después se etiqueta y se baja al piso. Escribe
+// se recibe en la sede de la cabecera; lo recibido entra al almacén (ADR-0328) y después se etiqueta y se cuelga en el piso. Escribe
 // con `recibir_lote` sin cambios: una transacción, token contra el doble clic (ADR-0190) y cola sin conexión (ADR-0210). La
 // factura no se pide aquí: si existe, se recibe contra ella en `RecepcionEnvio`; si no, se une después (fase 2 del ADR).
 // Toda la regla vive en `lib/llegada-reglas.ts` (con su prueba); este archivo solo la dibuja.
@@ -266,7 +266,7 @@ export function LlegoMercaderia({
           <p className="text-sm text-tinta/70">
             {ok.sinConexion
               ? `Sumarán al almacén de ${ubicacionEtiqueta} cuando vuelva el internet.`
-              : `Entraron al almacén de ${ubicacionEtiqueta}. Para venderlas, etiquétalas y bájalas al piso.`}
+              : `Entraron al almacén de ${ubicacionEtiqueta}. Para venderlas, etiquétalas y cuélgalas en el piso.`}
           </p>
           <div className="mx-auto flex max-w-sm flex-col gap-2">
             {despuesDeRecibir({ loteId: ok.loteId, lineas: ok.lineas, veExistencias }).map((a) => (

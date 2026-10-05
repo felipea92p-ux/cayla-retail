@@ -71,7 +71,7 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
   const tipoRecibido = sububicaciones.find((s) => s.id === traslado.sububicacionDestinoId)?.tipo;
   const lugarRecibido: DestinoRecepcion = tipoRecibido === "piso_venta" || tipoRecibido === "almacen_tienda" ? tipoRecibido : null;
   // Lo siguiente (ADR-0242 D-6.1): solo para quien recibió y solo con lo que de verdad entró; si lo recibido quedó en el almacén,
-  // «Bajar estas al piso» con esas prendas ya cargadas. Va bajo el título, a la vista, no al final de una tabla larga.
+  // «Colgar estas en el piso» con esas prendas ya cargadas. Va bajo el título, a la vista, no al final de una tabla larga.
   const entradaDeLoSiguiente = {
     esDestino,
     lugarRecibido,
@@ -83,7 +83,7 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
     sede: traslado.ubicacionDestinoNombre,
   };
   let loSiguiente = loSiguienteDeLaRecepcion(entradaDeLoSiguiente);
-  // «Bajar al piso» solo si algo de lo que llegó sigue en el almacén (si ya se bajó o se apartó, el botón llevaría a una lista
+  // «Colgar en el piso» solo si algo de lo que llegó sigue en el almacén (si ya se bajó o se apartó, el botón llevaría a una lista
   // vacía): se lee el stock únicamente cuando la tarjeta ya iba a ofrecerlo.
   if (loSiguiente?.acciones.some((a) => a.clave === "bajar")) {
     loSiguiente = loSiguienteDeLaRecepcion({ ...entradaDeLoSiguiente, bajables: await prendasEnElAlmacen(persona.ubicacionId) });

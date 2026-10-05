@@ -274,14 +274,14 @@ describe("motor de reposición", () => {
     return planDeReposicion({ f, velocidad, cobertura: calcularCobertura(f.utilizable, velocidad), destino, ahora: AHORA, motivo: "demanda" });
   };
 
-  it("1. lo primero es el almacén de la misma tienda: «Bajar 5 al piso»", () => {
+  it("1. lo primero es el almacén de la misma tienda: «Colgar 5 en el piso»", () => {
     const plan = planDe(casaca({ enRed: [taller()] }));
-    expect(plan.principal).toMatchObject({ tipo: "bajar_al_piso", cantidad: 5, texto: "Bajar 5 al piso", accionable: true });
+    expect(plan.principal).toMatchObject({ tipo: "bajar_al_piso", cantidad: 5, texto: "Colgar 5 en el piso", accionable: true });
     expect(plan.pasos[0].tipo).toBe("bajar_al_piso");
     expect(plan.urgencia).toBe("alta");
   });
 
-  it("bajar al piso pasa por delante de un traslado externo, pero el plan sigue con lo que falta", () => {
+  it("colgar en el piso pasa por delante de un traslado externo, pero el plan sigue con lo que falta", () => {
     const plan = planDe(casaca({ enRed: [taller()] }));
     expect(plan.pasos.map((p) => p.tipo)).toEqual(["bajar_al_piso", "pedir_al_taller", "revisar_abastecimiento"]);
   });

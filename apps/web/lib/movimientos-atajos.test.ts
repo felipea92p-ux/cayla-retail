@@ -66,7 +66,7 @@ describe("atajosDeMovimiento", () => {
     expect(claves({ ...venta, venta: { id: "ve", nota: null, comprobante: null } })).toEqual(["existencias"]);
   });
 
-  it("lo que llegó al almacén se baja al piso y se etiqueta; y se puede contar o corregir", () => {
+  it("lo que llegó al almacén se cuelga en el piso y se etiqueta; y se puede contar o corregir", () => {
     const a = atajosDeMovimiento(movimiento({}), TODO);
     expect(a.map((x) => x.clave)).toEqual(["bajar", "etiquetas", "contar", "ajustar", "existencias"]);
     expect(a[0]).toMatchObject({ href: "/inventario/bajar?lineas=v1:1", principal: true });
@@ -108,7 +108,7 @@ describe("atajosDeOperacion", () => {
   it("una recepción de varias tallas se baja y se etiqueta entera", () => {
     const filas = [movimiento({}), movimiento({ id: "m2", varianteId: "v2" }), movimiento({ id: "m3", varianteId: "v3", sububicacion: { id: "sp", nombre: "Piso", tipo: "piso_venta" } })];
     const a = atajosDeOperacion(filas, TODO);
-    expect(a.map((x) => x.texto)).toEqual(["Bajar estas 2 al piso", "Imprimir 3 etiquetas"]);
+    expect(a.map((x) => x.texto)).toEqual(["Colgar estas 2 en el piso", "Imprimir 3 etiquetas"]);
     expect(a[0].href).toBe("/inventario/bajar?lineas=v1:1,v2:1");
     expect(a[1].href).toBe("/etiquetas-de-precio?variantes=v1,v2,v3");
   });

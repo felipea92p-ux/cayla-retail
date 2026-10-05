@@ -1,7 +1,7 @@
 /**
  * «Reponer piso» por PRENDA (modelo + color): las reglas puras de la ventana, sin React ni supabase, para probarlas.
  *
- * EL PROBLEMA. El botón «Reponer» de la tarjeta (y «Reponer a piso» del cajón) abría una ventana para UNA sola talla —la
+ * EL PROBLEMA. El botón «Colgar en el piso» de la tarjeta (y «Colgar en el piso» del cajón) abría una ventana para UNA sola talla —la
  * primera que se podía bajar—: con la S y la M por colgar, la M no aparecía y para bajarla había que cerrar y volver a
  * empezar. Además la ventana mostraba el SKU y «disponible en piso / en almacén» en voz de sistema.
  *
@@ -10,7 +10,7 @@
  * las cifras que recibe son lo DISPONIBLE (neto de lo apartado para clientas), que es lo único que la base deja mover.
  * No sugiere cuántas bajar (ADR-0231): arranca en cero y la cifra la pone quien tiene la prenda en la mano.
  *
- * UN MODELO, TODOS SUS COLORES (ADR-0317). «Reponer prenda» y «Subir prenda» abren la ventana con el MODELO entero: una fila por
+ * UN MODELO, TODOS SUS COLORES (ADR-0317). «Colgar en el piso» y «Subir prenda» abren la ventana con el MODELO entero: una fila por
  * color y una columna por talla (la misma tabla de Nuevo/Editar producto). Cada celda es una variante, así que `cantidades`,
  * `problemas` y las líneas siguen yendo por `varianteId` y la llamada a la base sigue siendo UNA, todo o nada.
  */
@@ -21,7 +21,7 @@ import type { PisoDeTalla } from "./piso-plan";
 import { compararTallas } from "./tallas";
 
 /** Un color del modelo tal como llega a la ventana: una prenda (modelo + color) con todas sus tallas. */
-export type PrendaParaReponer = {
+export type PrendaParaBajar = {
   referencia: string;
   color: string | null;
   colorHex: string | null;
@@ -42,17 +42,17 @@ export type FilaDeTalla = Pick<FilaPrenda, "varianteId" | "talla" | "pisoDisponi
 
 /** Una talla tal como la lee la ventana: sin nulos, para que ninguna cuenta dependa de `?? 0` regado por el JSX. `requisito`:
  *  cuántas debería tener colgadas hoy (`lib/piso-plan.ts`); 0 si el motor no la decidió. */
-export type TallaParaReponer = { varianteId: string; talla: string; piso: number; almacen: number; requisito: number };
+export type TallaParaBajar = { varianteId: string; talla: string; piso: number; almacen: number; requisito: number };
 
 /** Cuánto lleva cada talla en el selector, por variante. Lo que no está aquí es 0. */
 export type Cantidades = Readonly<Record<string, number>>;
 
-/** Hacia dónde van las prendas: «bajar» = del almacén al piso («Reponer»); «subir» = del piso al almacén («Subir a almacén»). */
+/** Hacia dónde van las prendas: «bajar» = del almacén al piso («Colgar en el piso»); «subir» = del piso al almacén («Subir a almacén»). */
 export type Rumbo = "bajar" | "subir";
 
 /** Todas las tallas de la prenda, en el orden en que llegan (ya vienen en curva: `agruparPorPrenda`). Sin tope ni filtro:
  *  una talla sin nada en el almacén también se lista, para que quien la busca vea POR QUÉ no se puede bajar. */
-export function tallasParaReponer(filas: readonly FilaDeTalla[]): TallaParaReponer[] {
+export function tallasParaBajar(filas: readonly FilaDeTalla[]): TallaParaBajar[] {
   return filas.map((f) => ({
     varianteId: f.varianteId,
     talla: f.talla?.trim() || "Única",
@@ -64,12 +64,12 @@ export function tallasParaReponer(filas: readonly FilaDeTalla[]): TallaParaRepon
 
 /** Se puede bajar si hay algo LIBRE en el almacén. No pide que «Acción hoy» diga reponer: quien ve una talla con 3 en el
  *  piso y 4 atrás puede querer subir una más, y la base solo exige que haya. */
-export function sePuedeBajarTalla(t: Pick<TallaParaReponer, "almacen">): boolean {
+export function sePuedeBajarTalla(t: Pick<TallaParaBajar, "almacen">): boolean {
   return t.almacen > 0;
 }
 
 /** Se puede subir al almacén si hay algo LIBRE en el piso (lo apartado para una clienta no se mueve). */
-export function sePuedeSubirTalla(t: Pick<TallaParaReponer, "piso">): boolean {
+export function sePuedeSubirTalla(t: Pick<TallaParaBajar, "piso">): boolean {
   return t.piso > 0;
 }
 
@@ -91,7 +91,7 @@ export function leerCantidadTecleada(texto: string, tope: number): number {
 
 /** Las líneas que viajan a la base: solo las tallas con algo elegido, en el orden de la curva, recortadas al tope del lugar
  *  de donde salen (el almacén al bajar, el piso al subir). */
-export function lineasDeMover(tallas: readonly TallaParaReponer[], cantidades: Cantidades, rumbo: Rumbo): LineaBajada[] {
+export function lineasDeMover(tallas: readonly TallaParaBajar[], cantidades: Cantidades, rumbo: Rumbo): LineaBajada[] {
   const lineas: LineaBajada[] = [];
   for (const t of tallas) {
     const cantidad = acotarCantidad(cantidadDe(cantidades, t.varianteId), rumbo === "bajar" ? t.almacen : t.piso);
@@ -100,21 +100,21 @@ export function lineasDeMover(tallas: readonly TallaParaReponer[], cantidades: C
   return lineas;
 }
 
-export function totalAReponer(lineas: readonly LineaBajada[]): number {
+export function totalABajar(lineas: readonly LineaBajada[]): number {
   return lineas.reduce((suma, l) => suma + l.cantidad, 0);
 }
 
 /** El botón: dice cuánto se va a bajar apenas hay algo elegido, y tras un corte de red pide confirmar lo mismo de nuevo. */
-export function textoBotonReponer(total: number, congelado: boolean): string {
+export function textoBotonBajar(total: number, congelado: boolean): string {
   if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;
-  if (total <= 0) return "Bajar al piso";
-  return total === 1 ? "Bajar 1 prenda" : `Bajar ${total} prendas`;
+  if (total <= 0) return "Colgar en el piso";
+  return total === 1 ? "Colgar 1 prenda" : `Colgar ${total} prendas`;
 }
 
 /** Lo que dice una fila cuando la base le contestó que ya no hay tanto. `motivo` viene de `bajar_al_piso` / `retirar_del_piso`;
  *  `lugar` es de donde salen las prendas (el almacén al bajar, el piso al subir). */
 export function textoFilaSinAlcance(hay: number, motivo: string, lugar: "almacén" | "piso" = "almacén"): string {
-  if (motivo === "archivada") return "Esta talla está archivada: no se baja al piso.";
+  if (motivo === "archivada") return "Esta talla está archivada: no se cuelga en el piso.";
   if (motivo === "no_existe") return "Esta talla ya no existe en el catálogo.";
   if (motivo === "no_es_prenda") return "Esto no es una prenda real: no se mueve.";
   const en = lugar === "piso" ? "el piso" : "el almacén";
@@ -122,15 +122,15 @@ export function textoFilaSinAlcance(hay: number, motivo: string, lugar: "almacé
 }
 
 /** Un color del modelo ya leído por la ventana: sin nulos, con la clave que lo distingue de los demás. */
-export type ColorParaMover = { clave: string; nombre: string; hex: string | null; tallas: readonly TallaParaReponer[] };
+export type ColorParaMover = { clave: string; nombre: string; hex: string | null; tallas: readonly TallaParaBajar[] };
 
 /** Los colores del modelo, en el orden en que llegan. `clave` es el nombre: dos colores del mismo modelo no se llaman igual. */
-export function coloresParaMover(prendas: readonly PrendaParaReponer[]): ColorParaMover[] {
+export function coloresParaMover(prendas: readonly PrendaParaBajar[]): ColorParaMover[] {
   return prendas.map((p, i) => ({
     clave: `${i}:${p.color?.trim() || "sin-color"}`,
     nombre: p.color?.trim() || "Sin color",
     hex: p.colorHex,
-    tallas: tallasParaReponer(p.tallas),
+    tallas: tallasParaBajar(p.tallas),
   }));
 }
 
@@ -143,12 +143,12 @@ export function columnasDeTallas(colores: readonly Pick<ColorParaMover, "tallas"
 }
 
 /** La celda de un color en una talla; `undefined` si ese color no tiene esa talla. */
-export function tallaDelColor(color: Pick<ColorParaMover, "tallas">, talla: string): TallaParaReponer | undefined {
+export function tallaDelColor(color: Pick<ColorParaMover, "tallas">, talla: string): TallaParaBajar | undefined {
   return color.tallas.find((t) => t.talla === talla);
 }
 
 /** Lo máximo que se mueve de esta celda: lo libre del lugar de donde salen las prendas. */
-export const topeDeTalla = (t: Pick<TallaParaReponer, "piso" | "almacen">, rumbo: Rumbo): number => (rumbo === "bajar" ? t.almacen : t.piso);
+export const topeDeTalla = (t: Pick<TallaParaBajar, "piso" | "almacen">, rumbo: Rumbo): number => (rumbo === "bajar" ? t.almacen : t.piso);
 
 export type TotalesDeMatriz = { porColor: Record<string, number>; porTalla: Record<string, number>; total: number };
 

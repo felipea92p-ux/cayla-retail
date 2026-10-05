@@ -15,9 +15,9 @@ import {
   type Cantidades,
   type ColorParaMover,
   type Rumbo,
-} from "@/lib/reponer-prenda-reglas";
+} from "@/lib/bajar-prenda-reglas";
 
-// La tabla de «Reponer prenda» y «Subir prenda» (ADR-0317): un MODELO con todos sus colores, una fila por color y una columna por talla.
+// La tabla de «Colgar en el piso» y «Subir prenda» (ADR-0317): un MODELO con todos sus colores, una fila por color y una columna por talla.
 // Es la MISMA tabla de Nuevo y Editar producto (`MatrizCantidades`, Felipe 2026-10-03): encabezado hueso, franja de 5 px con el color
 // de la fila pegada al nombre, filas alternadas, la caja − N + por celda (que también se escribe), la columna «Total» y la fila «Total»
 // fija abajo; en celular se desliza de lado con la columna del color fija. Una sola forma para que quien ya la conoce no vuelva a leerla.

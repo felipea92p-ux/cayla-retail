@@ -1,7 +1,7 @@
 /**
  * «Subir a almacén» (ADR-0300): las reglas puras de la ventana que sube varias tallas del piso al almacén, sin React ni supabase.
  *
- * EL PROBLEMA. «Reponer» sube varias tallas de una vez porque existe `bajar_al_piso`; el movimiento contrario solo tenía
+ * EL PROBLEMA. «Colgar en el piso» sube varias tallas de una vez porque existe `bajar_al_piso`; el movimiento contrario solo tenía
  * una llamada por talla, y con dos llamadas una prenda podía quedar subida a medias. `retirar_del_piso`
  * (`20261001150000_retirar_del_piso.sql`) las sube TODAS en una transacción, con una marca de reintento por lista.
  *
@@ -15,7 +15,7 @@ import { BOTON_CONFIRMAR_DE_NUEVO, itemsParaRpc, lineasSinAlcance, type ItemRpc,
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { RETIRO_NO_ES_BAJA } from "./inventario-reglas";
 import { quedaraPidiendoColgar } from "./piso-plan";
-import type { Cantidades, TallaParaReponer } from "./reponer-prenda-reglas";
+import type { Cantidades, TallaParaBajar } from "./bajar-prenda-reglas";
 
 /** La RPC y sus parámetros en un solo lugar: `retiro-reglas.test.ts` los fija contra la migración. */
 export const RPC_RETIRO = "retirar_del_piso";
@@ -118,7 +118,7 @@ export const TEXTOS_BLOQUE_SUBIR: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_
  * recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoColgar` (`lib/piso-plan.ts`), la misma regla que después
  * pinta la fila, con el requisito de cada talla, y recibe lo DISPONIBLE como la ventana.
  */
-export function textoDelBloqueSubir(tallas: readonly TallaParaReponer[], cantidades: Cantidades): string {
+export function textoDelBloqueSubir(tallas: readonly TallaParaBajar[], cantidades: Cantidades): string {
   const quedaCorto = tallas.some((t) => {
     const n = Math.min(Math.max(0, Math.trunc(cantidades[t.varianteId] ?? 0)), t.piso);
     return n > 0 && quedaraPidiendoColgar({ piso: t.piso, almacen: t.almacen }, n, t.requisito);

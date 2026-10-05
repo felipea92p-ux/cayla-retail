@@ -676,7 +676,7 @@ export function textoRegistro(filas: readonly FilaConfianza[], ubicacionId: stri
   const f = deSede[0];
   if (!f) return null;
   const mes = nombreMes(f.mes);
-  if (f.unidades <= 0) return { texto: `En ${mes} todavía no hay bajadas al piso que cuenten.`, nivel: null };
+  if (f.unidades <= 0) return { texto: `En ${mes} todavía no hay prendas colgadas en el piso que cuenten.`, nivel: null };
   const alColgar = f.unidades - f.tardias;
   const tardias = f.tardias === 0 ? "ninguna recién al venderla" : `${f.tardias} recién al ${f.tardias === 1 ? "venderla" : "venderlas"}`;
   return { texto: `En ${mes} se registraron al colgarlas ${alColgar} de ${f.unidades} unidades (${tardias}).`, nivel: f.nivel };
@@ -689,7 +689,7 @@ export function registroCorto(filas: readonly FilaConfianza[], ubicacionId: stri
     .sort((a, b) => b.mes.localeCompare(a.mes))
     .map((f) => ({
       mes: nombreMes(f.mes),
-      texto: f.unidades > 0 ? `${f.unidades - f.tardias} de ${f.unidades} al colgarlas` : "sin bajadas que cuenten",
+      texto: f.unidades > 0 ? `${f.unidades - f.tardias} de ${f.unidades} al colgarlas` : "sin prendas colgadas que cuenten",
       nivel: f.nivel,
     }));
 }

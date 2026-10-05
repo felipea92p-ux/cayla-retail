@@ -54,7 +54,7 @@ export type ResumenParaPantalla = {
   categorias: { id: string; nombre: string; variantes: number }[];
   tabla: { filas: AnalisisVariante[]; pagina: number; paginas: number; total: number; totalAlcance: number; totalSede: number };
   exactitud: EstadoExactitud;
-  /** Para «Bajar al piso»: la sububicación de piso y la de almacén, si la sede las separa. */
+  /** Para «Colgar en el piso»: la sububicación de piso y la de almacén, si la sede las separa. */
   sububicaciones: { pisoId: string | null; almacenId: string | null };
 };
 

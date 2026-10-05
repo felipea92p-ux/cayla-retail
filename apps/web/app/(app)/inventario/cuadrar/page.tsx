@@ -11,7 +11,7 @@ import type { PrendaCuadre, StockLibre } from "@/lib/cuadre-piso-reglas";
 // «Cuadrar el piso» (ADR-0328, decisión técnica 4). TRU tiene en el sistema 138 colgadas y 635 guardadas; en la tienda cuelgan
 // 600–750 y hay más de 200 guardadas. Se arregla una vez por sede: se escanea lo que de verdad está GUARDADO y lo que el sistema
 // tiene en el almacén y nadie escaneó pasa al piso en un solo movimiento (`cuadrar_piso`, todo o nada). La sede es siempre la
-// activa de quien entra, como en «Bajar al piso»; la lista se arma en el navegador y la base se toca para revisar y una vez para
+// activa de quien entra, como en «Colgar en el piso»; la lista se arma en el navegador y la base se toca para revisar y una vez para
 // confirmar. Se llega por el botón «Cuadrar el piso» de Existencias (lo ve quien ve Existencias: escanea la cuenta Almacén y confirma
 // un líder en el mismo equipo); el lateral no tiene entrada propia.
 export default async function CuadrarPisoPage() {

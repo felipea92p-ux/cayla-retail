@@ -324,11 +324,11 @@ describe("vistaDeOperacion — un movimiento interno se lee con el cajón de las
       ...parcial,
     });
 
-  it("una bajada suelta se llama «Bajada al piso» (en singular), dice cuántas pasaron, y no repite la hora en cada fila", () => {
+  it("una bajada suelta se llama «Colgada en el piso» (en singular), dice cuántas pasaron, y no repite la hora en cada fila", () => {
     const v = vistaDeOperacion(operacion([interna()]), CTX_BASE);
     expect(v.tipo).toBe("bajadas");
     if (v.tipo !== "bajadas") return;
-    expect(v.detalle).toMatchObject({ titulo: "Bajada al piso", cuando: "Hoy, a las 10:59", cifra: "3", frase: "prendas pasaron del almacén al piso de venta", mostrarHora: false });
+    expect(v.detalle).toMatchObject({ titulo: "Colgada en el piso", cuando: "Hoy, a las 10:59", cifra: "3", frase: "prendas pasaron del almacén al piso de venta", mostrarHora: false });
   });
 
   it("el mismo par al revés es «Retiro del piso» y dice que volvieron al almacén", () => {
@@ -363,7 +363,7 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
 
   it("dice en una frase qué pasó, cuándo y cuántas, con la más reciente primero", () => {
     const d = construirDetalleBajadas("bajadas-2026-09-28", ops([bajada("b1", "10:41", "v1"), bajada("b2", "10:30", "v2", { cantidad: 2 }), bajada("b3", "10:04", "v1")]), CTX_BASE);
-    expect(d.titulo).toBe("Bajadas al piso");
+    expect(d.titulo).toBe("Colgadas en el piso");
     expect(d.cuando).toBe("Hoy, de 10:04 a 10:41");
     expect(d.cifra).toBe("4");
     expect(d.frase).toBe("prendas pasaron del almacén al piso de venta");

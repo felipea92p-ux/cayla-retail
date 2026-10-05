@@ -38,7 +38,7 @@ describe("filtrosDeUrl", () => {
   });
 
   it("un «Hoy» o una condición que no existen no filtran (tampoco los nombres viejos «accion» y «estado»)", () => {
-    const f = filtrosDeUrl("hoy=borrar&condicion=perdida&accion=reponer_a_piso&estado=danado", { separa: true });
+    const f = filtrosDeUrl("hoy=borrar&condicion=perdida&accion=bajar_al_piso&estado=danado", { separa: true });
     expect(f.hoy).toBeNull();
     expect(f.condicion).toBeNull();
   });

@@ -64,10 +64,10 @@ export function leerRespuestaBajadaDesdeVender(data: unknown): RespuestaBajadaDe
  *  · lo demás (no queda libre en el almacén, falta el responsable, otra tienda) ya viene en castellano de la base. */
 export function textoErrorBajadaDesdeCaja(error: ErrorEscritura, nombre: string): string {
   if (error?.code === "PGRST202") {
-    return `Registrar la bajada desde Vender todavía no está activo. Regístrala en ${DONDE_SE_BAJA} y vuelve a escanear ${nombre}.`;
+    return `Registrar que se colgó desde Vender todavía no está activo. Regístralo en ${DONDE_SE_BAJA} y vuelve a escanear ${nombre}.`;
   }
   if (esRespuestaIncierta(error)) {
-    return `Se cortó la conexión y no sabemos si la bajada de ${nombre} se registró. Vuelve a escanearla: si ya estaba registrada, no se repite.`;
+    return `Se cortó la conexión y no sabemos si ${nombre} se registró como colgada. Vuelve a escanearla: si ya estaba registrada, no se repite.`;
   }
-  return traducirError(error, `registrar la bajada de ${nombre}`);
+  return traducirError(error, `registrar que ${nombre} se colgó`);
 }

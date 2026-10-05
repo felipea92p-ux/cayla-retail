@@ -3,7 +3,7 @@
 
    EL PROBLEMA. La misma pregunta —¿falta o sobra en el piso?— tenía cinco reglas: piso ≤ 4 (la política de Existencias), 0 en
    el piso y algo atrás («Por colgar»), 14 días de cobertura (Análisis), «estancada» a los 14 días y la vara de Frescura. Con
-   piso ≤ 4, Tienda TRU marcaba «Reponer» en sus 510 tallas de 510: ninguna tiene más de 4 colgadas, así que la regla nunca podía
+   piso ≤ 4, Tienda TRU marcaba «Colgar en el piso» en sus 510 tallas de 510: ninguna tiene más de 4 colgadas, así que la regla nunca podía
    decir «Mantener». Y el Inicio decía «Sube» cuando en Existencias «Subir» es del piso al almacén.
 
    LO QUE DECIDIÓ FELIPE (2026-10-04), y es TODO lo que este archivo sabe del negocio:

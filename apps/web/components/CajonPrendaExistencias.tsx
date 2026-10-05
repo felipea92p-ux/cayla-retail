@@ -8,7 +8,7 @@ import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, F
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
-import { desgloseDePrenda, estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { desgloseDePrenda, estadoTalla, queHacerPrenda, tallaParaBajar, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { DesgloseStockPrenda } from "@/components/DesgloseStockPrenda";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 
@@ -89,12 +89,12 @@ function Grupo({ titulo, bajada, children }: { titulo: string; bajada: string; c
 export function CajonPrendaExistencias({
   prenda,
   separa,
-  puedeReponer,
+  puedeBajarPrendas,
   enSedeActiva,
   puedeAjustar,
   veTraslados,
   puedeEliminar = false,
-  onReponer,
+  onBajarAlPiso,
   onSubir,
   onAjustar,
   onEliminar,
@@ -106,7 +106,7 @@ export function CajonPrendaExistencias({
   prenda: PrendaAgrupada<FilaExistencias>;
   separa: boolean;
   /** ¿Puede reponer aquí? Su módulo Existencias y su sede activa (`permisosDelDetalle`). */
-  puedeReponer: boolean;
+  puedeBajarPrendas: boolean;
   /** ¿Lo que se mira es la sede activa? Etiquetas e Historial trabajan SIEMPRE sobre la sede activa (sus pantallas no reciben otra). */
   enSedeActiva: boolean;
   /** En su sede, pero su rol no tiene «Bajada al piso» (ADR-0240): lo dice en vez de callar. */
@@ -116,8 +116,8 @@ export function CajonPrendaExistencias({
   /** Quien edita el catálogo, en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
    *  base (trasplantado de `DetallePrendaExistencias.tsx`, main PR #574, al cajón nuevo). */
   puedeEliminar?: boolean;
-  /** «Reponer prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`ReponerPrendaModal`, ADR-0317). */
-  onReponer: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** «Colgar en el piso» abre la ventana del MODELO entero, con todos sus colores y tallas (`BajarPrendaModal`, ADR-0317). */
+  onBajarAlPiso: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** «Subir prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`SubirAAlmacenModal`, ADR-0317). */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   onAjustar: (f: FilaExistencias) => void;
@@ -147,17 +147,17 @@ export function CajonPrendaExistencias({
   const diagnostico = separa ? queHacerPrenda(prenda.tallas) : null;
   // Los cuatro lugares (piso, almacén, apartada, dañada) y su suma; `null` en el Taller, que no separa piso y almacén.
   const desglose = separa ? desgloseDePrenda(prenda) : null;
-  // «Reponer a piso» se ofrece si alguna talla se puede bajar (`tallaParaReponer`); la ventana lista todas las tallas.
-  const hayQueReponer = tallaParaReponer(prenda.tallas) !== null;
+  // «Colgar en el piso» se ofrece si alguna talla se puede bajar (`tallaParaBajar`); la ventana lista todas las tallas.
+  const hayQueBajar = tallaParaBajar(prenda.tallas) !== null;
   // «Subir a almacén» se ofrece si alguna talla tiene algo LIBRE en el piso (lo apartado para una clienta no se sube).
   const hayQueSubir = prenda.tallas.some((f) => (f.pisoDisponible ?? 0) > 0);
   const hrefTrasladar = veTraslados ? urlTrasladar(prenda.tallas) : null;
   const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
-  const hayOperar = (puedeReponer && (hayQueReponer || hayQueSubir)) || hrefTrasladar !== null;
+  const hayOperar = (puedeBajarPrendas && (hayQueBajar || hayQueSubir)) || hrefTrasladar !== null;
   // Cada cifra es un botón solo si hay algo que hacer con ella y la persona puede hacerlo (ADR-0161: nunca un botón que acabe en
-  // «Sin acceso» o en una ventana vacía). Almacén abre la misma ventana de «Reponer prenda» y se llama igual (la ventana, el botón de abajo y la celda dicen lo mismo); Piso no lleva botón.
-  const accionAlmacen = desglose && desglose.almacen > 0 && puedeReponer && hayQueReponer ? { texto: "Reponer prenda", onClick: () => onReponer(prenda) } : undefined;
+  // «Sin acceso» o en una ventana vacía). Almacén abre la misma ventana de «Colgar en el piso» y se llama igual (la ventana, el botón de abajo y la celda dicen lo mismo); Piso no lleva botón.
+  const accionAlmacen = desglose && desglose.almacen > 0 && puedeBajarPrendas && hayQueBajar ? { texto: "Colgar en el piso", onClick: () => onBajarAlPiso(prenda) } : undefined;
   const accionApartada = desglose && desglose.apartada > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined;
   const accionDanada = desglose && desglose.danada > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined;
   const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
@@ -311,8 +311,8 @@ export function CajonPrendaExistencias({
                 {hayOperar && (
                   <Grupo titulo="Operar esta prenda" bajada="Acciones rápidas de reposición y movimiento.">
                     <div className="grid gap-2">
-                      {puedeReponer && hayQueReponer && <Accion principal icono={IconoPercha} texto="Reponer prenda" onClick={() => onReponer(prenda)} />}
-                      {puedeReponer && hayQueSubir && <Accion icono={Warehouse} texto="Subir prenda" onClick={() => onSubir(prenda)} />}
+                      {puedeBajarPrendas && hayQueBajar && <Accion principal icono={IconoPercha} texto="Colgar en el piso" onClick={() => onBajarAlPiso(prenda)} />}
+                      {puedeBajarPrendas && hayQueSubir && <Accion icono={Warehouse} texto="Subir prenda" onClick={() => onSubir(prenda)} />}
                       {hrefTrasladar && <Accion icono={ArrowLeftRight} texto="Trasladar" href={hrefTrasladar} />}
                     </div>
                   </Grupo>

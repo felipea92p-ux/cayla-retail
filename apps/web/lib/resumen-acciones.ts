@@ -6,7 +6,7 @@ import { textoDondeHay, textoLlegada, type AnalisisVariante, type PasoPlan, type
 // lleva o prellena el flujo real que ya existe, y la persona confirma allí:
 //   · trasladar / pedir al Taller → `/inventario/mover?origen&destino&variante&cantidad`
 //     (el formulario de `iniciar_traslado`, con fecha y confirmación humana);
-//   · bajar al piso → «Reponer» de Existencias (`ReponerPrendaModal`, `bajar_al_piso`); hoy
+//   · colgar en el piso → «Colgar en el piso» de Existencias (`BajarPrendaModal`, `bajar_al_piso`); hoy
 //     esa ventana arranca en cero (ADR-0231), así que `cantidad` es la sugerencia del plan, no un prellenado;
 //   · esperar llegada → el traslado que viene en camino;
 //   · lo demás → el detalle, que explica y ofrece los enlaces.

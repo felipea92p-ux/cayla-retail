@@ -57,7 +57,7 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
         </Link>
       </div>
       <p className="nota-cayla">
-        Desde hoy, lo que cuelgues o guardes se registra al momento con «Bajar al piso» y «Subir a almacén». Si en unos días el piso del
+        Desde hoy, lo que cuelgues o guardes se registra al momento con «Colgar en el piso» y «Subir a almacén». Si en unos días el piso del
         sistema vuelve a no coincidir con el real, cuéntalo con un conteo antes de volver a cuadrar.
       </p>
     </div>

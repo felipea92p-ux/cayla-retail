@@ -156,7 +156,7 @@ const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_sa
 
 /** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
 const INTERNO_POR_PAR: Record<string, string> = {
-  "almacen_tienda→piso_venta": "Bajada al piso",
+  "almacen_tienda→piso_venta": "Colgada en el piso",
   "piso_venta→almacen_tienda": "Retiro del piso",
 };
 
@@ -189,7 +189,7 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} · ${etiquetaMovimiento(m)}`;
-  // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
+  // Dentro de la tienda no entra ni sale nada: «Colgada en el piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
   if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
   const direccion = ETIQUETA_CATEGORIA[m.categoria];
@@ -716,7 +716,7 @@ export function plegarBajadas(operaciones: readonly OperacionMovimiento[]): Item
   return items;
 }
 
-/** Lo que dice la fila plegada: «Bajadas al piso» si todas lo fueron (lo normal), si no «Movido dentro de la sede»;
+/** Lo que dice la fila plegada: «Colgadas en el piso» si todas lo fueron (lo normal), si no «Movido dentro de la sede»;
  *  cuántas veces, cuántas tallas, cuántas unidades y entre qué horas (las operaciones llegan de la más nueva a la más
  *  vieja). */
 export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
@@ -729,9 +729,9 @@ export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
 } {
   const filas = operaciones.flatMap((op) => op.filas);
   const etiquetas = new Set(filas.map((m) => etiquetaConDireccion(m)));
-  const soloBajadas = etiquetas.size === 1 && etiquetas.has("Bajada al piso");
+  const soloBajadas = etiquetas.size === 1 && etiquetas.has("Colgada en el piso");
   return {
-    etiqueta: soloBajadas ? "Bajadas al piso" : "Movido dentro de la sede",
+    etiqueta: soloBajadas ? "Colgadas en el piso" : "Movido dentro de la sede",
     veces: operaciones.length,
     tallas: new Set(filas.map((m) => m.varianteId)).size,
     unidades: filas.reduce((s, m) => s + Math.abs(m.cantidad), 0),
@@ -900,7 +900,7 @@ const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly strin
   { palabras: ["cambio", "cambios"], cat: null, proc: "cambio", etiqueta: "Cambios" },
   { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "entrada", proc: "recepcion", etiqueta: "Recepciones" },
   { palabras: ["stock inicial", "carga inicial"], cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" },
-  { palabras: ["bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
+  { palabras: ["colgada", "colgadas", "colgar", "bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
   { palabras: ["entrada", "entradas", "llegada", "llegadas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
   { palabras: ["salida", "salidas"], cat: "salida", proc: null, etiqueta: "Salidas" },
 ];

@@ -181,7 +181,7 @@ describe("los textos de la tarjeta y de la ventana", () => {
   it("los pasos nombran la sede, «Encontré prendas» y la nota automática", () => {
     const [uno, dos, tres] = pasosEnMano(SEDE);
     expect(uno).toBe(`Se suma 1 al almacén de Tienda TRU como «Encontré prendas», con la nota «${NOTA_AUTOMATICA}».`);
-    expect(dos).toMatch(/Se baja al piso/);
+    expect(dos).toMatch(/Se cuelga en el piso/);
     expect(tres).toMatch(/Movimientos/);
   });
 });

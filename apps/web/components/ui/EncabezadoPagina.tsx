@@ -28,7 +28,7 @@ export function EncabezadoPagina({
   sinHora?: boolean;
   /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */
   detalle?: ReactNode;
-  /** Lo que se hace desde la pantalla, la principal al final (Existencias: bajar al piso y nuevo traslado).
+  /** Lo que se hace desde la pantalla, la principal al final (Existencias: colgar en el piso y nuevo traslado).
    *  Van a la derecha, en el espacio libre; si la derecha ya es de las cifras o del reloj (`children`), bajan
    *  bajo la frase, como en Caja. Lo decide esta cabecera, no cada pantalla (ADR-0220, actualización). */
   acciones?: ReactNode;

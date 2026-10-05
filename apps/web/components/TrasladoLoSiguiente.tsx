@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { LoSiguiente } from "@/lib/traslados-recepcion-reglas";
 
 // «Lo siguiente» tras recibir un traslado (ADR-0242 D-6.1): qué sigue y a dónde llevar las prendas que acaban de entrar. Lo que
-// llegó al almacén no se vende hasta bajarlo al piso, y nadie lo recordaba. La regla (qué se ofrece, con qué prendas, cuánto
+// llegó al almacén no se vende hasta colgarlo en el piso, y nadie lo recordaba. La regla (qué se ofrece, con qué prendas, cuánto
 // dura) vive en `loSiguienteDeLaRecepcion` (lib/traslados-recepcion-reglas.ts, con pruebas); esto solo la dibuja.
 // Sin estado ni campos: es un componente de servidor, justo bajo el título, a la vista sin desplazarse.
 export function TrasladoLoSiguiente({ intro, acciones }: LoSiguiente) {

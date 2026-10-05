@@ -97,14 +97,14 @@ describe("avisosInicio", () => {
   });
 
   // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
-  // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Baja al piso», nunca «Sube» (en Existencias «Subir» es del piso al
+  // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Cuelga en el piso», nunca «Sube» (en Existencias «Subir» es del piso al
   // almacén). Que la cifra sea la misma que la de «Para hoy» y la del filtro «Hoy» lo prueba `inicio-almacen-reglas.test.ts`.
-  it("lo que hay que colgar dice «Baja al piso N tallas» y lleva a la lista «Hoy ▸ Por colgar»; nunca «Sube»", () => {
+  it("lo que hay que colgar dice «Cuelga en el piso N tallas» y lleva a la lista «Hoy ▸ Por colgar»; nunca «Sube»", () => {
     const [a] = avisosInicio({ porColgar: { tallas: 12, unidades: 20, enPausa: 0 } });
     expect(a).toMatchObject({ clave: "reponer", titulo: "Por colgar", cantidad: 12, nivel: "toca", href: "/inventario?hoy=por_colgar" });
-    expect(a!.ahora).toBe("Baja al piso 12 tallas por colgar");
-    expect(a!.detalle).toBe("20 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.");
-    expect(avisosInicio({ porColgar: { tallas: 1, unidades: 1, enPausa: 0 } })[0]!.ahora).toBe("Baja al piso 1 talla por colgar");
+    expect(a!.ahora).toBe("Cuelga en el piso 12 tallas por colgar");
+    expect(a!.detalle).toBe("20 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.");
+    expect(avisosInicio({ porColgar: { tallas: 1, unidades: 1, enPausa: 0 } })[0]!.ahora).toBe("Cuelga en el piso 1 talla por colgar");
     for (const p of [{ tallas: 1, unidades: 1, enPausa: 0 }, { tallas: 0, unidades: 0, enPausa: 4 }, { tallas: 0, unidades: 0, enPausa: 0 }]) {
       const [x] = avisosInicio({ porColgar: p });
       expect(`${x!.titulo} ${x!.ahora} ${x!.detalle}`).not.toMatch(/\bsub[eai]/i);

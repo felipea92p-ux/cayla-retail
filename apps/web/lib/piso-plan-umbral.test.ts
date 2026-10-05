@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
    EL PROBLEMA QUE VIGILA. La misma pregunta —¿falta o sobra en el piso?— llegó a tener cinco reglas, cada una con su número:
    piso ≤ 4 en la política de Existencias, «0 en el piso y algo atrás» en las reglas de inventario, «se está cortando» con
-   piso ≤ 1 en Análisis… y Tienda TRU terminó con «Reponer» en sus 510 tallas de 510. Desde la actividad 7 lo decide UN motor,
+   piso ≤ 1 en Análisis… y Tienda TRU terminó con «Colgar en el piso» en sus 510 tallas de 510. Desde la actividad 7 lo decide UN motor,
    `lib/piso-plan.ts`. Esta prueba falla si alguien vuelve a comparar lo colgado contra un umbral fuera de ese archivo.
 
    QUÉ CUENTA COMO «UMBRAL DE PISO». Se lee el código de verdad (el árbol de TypeScript, no el texto: un comentario o un texto
@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
    `pisoDisponible`, `pisoLibre`, `piso_libre`, `stockPiso`, `enPiso`, `colgadas`, o los días que cubre: `pisoCubreDias`,
    `coberturaPiso`, `diasDePiso`, o una de esas dividida por algo) y el otro un número de 1 para arriba o un nombre de umbral
    (`umbral…`, `minimo…`, `requisito…`, `…alerta…`). Comparar con 0 («¿hay algo colgado?») no es un umbral: es presencia.
-   Y el nombre retirado `umbralStockPisoReposicion` no puede volver en ningún lado.
+   Y el nombre retirado `umbralStockPisoBajada` no puede volver en ningún lado.
 
    LA DEUDA DE ANTES. Análisis tiene sus propias cifras de piso, de antes del motor (dos «piso ≤ 1» y los días que cubre el piso
    contra `DIAS_PISO_ALERTA`); las reemplaza la actividad 11 («se vendió rápido y falta»). Están listadas abajo con su cuenta
@@ -28,7 +28,7 @@ const CARPETAS = ["lib", "components", "app"];
 const CASA = "lib/piso-plan.ts";
 
 // Las cifras de lo colgado, y las que salen de dividirlo por un ritmo (días que cubre el piso): `piso / ritmo < 3` es el mismo
-// umbral de piso con otra cara (revisión adversarial: Análisis decide «Bajar al piso» así y la prueba no lo veía).
+// umbral de piso con otra cara (revisión adversarial: Análisis decide «Colgar en el piso» así y la prueba no lo veía).
 const CIFRAS_DE_PISO = new Set([
   "piso",
   "pisoDisponible",
@@ -52,11 +52,11 @@ const COMPARACIONES = new Set([
 
 /** La deuda de Análisis, anterior al motor, con cuántas cifras de piso tiene cada archivo. Solo baja (actividad 11). */
 const DEUDA_DE_ANALISIS: Record<string, number> = {
-  // «Bajar al piso» en el detalle de una prenda de Análisis cuando la talla tiene 1 o menos colgadas.
+  // «Colgar en el piso» en el detalle de una prenda de Análisis cuando la talla tiene 1 o menos colgadas.
   "components/DetallePrendaAnalisis.tsx": 1,
   // «La talla que se está cortando» de la prenda top: piso ≤ 1.
   "lib/analisis-que-hacer.ts": 1,
-  // «Bajar al piso» del Resumen cuando lo colgado cubre menos de 3 días al ritmo de la talla (`DIAS_PISO_ALERTA`).
+  // «Colgar en el piso» del Resumen cuando lo colgado cubre menos de 3 días al ritmo de la talla (`DIAS_PISO_ALERTA`).
   "lib/resumen-reglas.ts": 1,
 };
 
@@ -97,9 +97,9 @@ export function umbralesDePiso(ruta: string, texto: string): string[] {
         hallados.push(`${ruta}:${line + 1} ${n.getText()}`);
       }
     }
-    if (ts.isIdentifier(n) && n.text === "umbralStockPisoReposicion") {
+    if (ts.isIdentifier(n) && n.text === "umbralStockPisoBajada") {
       const { line } = fuente.getLineAndCharacterOfPosition(n.getStart());
-      hallados.push(`${ruta}:${line + 1} umbralStockPisoReposicion`);
+      hallados.push(`${ruta}:${line + 1} umbralStockPisoBajada`);
     }
     ts.forEachChild(n, visitar);
   };
@@ -146,7 +146,7 @@ describe("una sola casa para las cifras del piso", () => {
 
   it("reconoce las formas de antes (la regla de piso ≤ 4, la de Análisis y el nombre retirado) y no confunde presencia con umbral", () => {
     const caso = (codigo: string) => umbralesDePiso("x.ts", codigo).length;
-    expect(caso("if (piso <= politica.umbralStockPisoReposicion) {}")).toBe(2);
+    expect(caso("if (piso <= politica.umbralStockPisoBajada) {}")).toBe(2);
     expect(caso("const c = (hoyDe(t)?.piso ?? Infinity) <= 1;")).toBe(1);
     expect(caso("const b = hoy && hoy.piso <= 1;")).toBe(1);
     expect(caso("if (4 >= f.pisoDisponible!) {}")).toBe(1);

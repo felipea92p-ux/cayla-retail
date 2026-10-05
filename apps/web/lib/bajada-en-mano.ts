@@ -1,5 +1,5 @@
 /**
- * «La tengo en la mano» en Bajar al piso (ADR-0328, actividad 9): las reglas puras del callejón «el sistema dice 0 en el
+ * «La tengo en la mano» en Colgar en el piso (ADR-0328, actividad 9): las reglas puras del callejón «el sistema dice 0 en el
  * almacén y la prenda está en mi mano», sin React, sin DOM y sin supabase.
  *
  * CONTRATO
@@ -116,7 +116,7 @@ export function textoYaEstabaColgada(prenda: Pick<PrendaBajable, "referencia" | 
 export function pasosEnMano(sede: string): [string, string, string] {
   return [
     `Se suma 1 al almacén de ${sede} como «Encontré prendas», con la nota «${NOTA_AUTOMATICA}».`,
-    "Se baja al piso, igual que una prenda escaneada: la caja ya la puede cobrar.",
+    "Se cuelga en el piso, igual que una prenda escaneada: la caja ya la puede cobrar.",
     "Queda en Movimientos con el nombre de quien lo hace.",
   ];
 }

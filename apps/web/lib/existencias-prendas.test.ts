@@ -18,7 +18,7 @@ import {
   tallasPorPrenda,
   textoTallasRecortadas,
   sePuedeBajar,
-  tallaParaReponer,
+  tallaParaBajar,
   tallaPorCodigo,
   urlBajarAlPiso,
   urlEtiquetas,
@@ -110,7 +110,7 @@ describe("sePuedeBajar: un hecho físico, no una recomendación (revisión adver
   });
 });
 
-describe("«Reponer prenda» y «Bajar al piso» no se apagan con «Mantener» ni con el motor caído (hallazgo H-A de la revisión)", () => {
+describe("«Colgar en el piso» y «Colgar en el piso» no se apagan con «Mantener» ni con el motor caído (hallazgo H-A de la revisión)", () => {
   // S, M y L con 1 colgada y 3 guardadas, y XL con 0 y 2: con el mínimo de 1 por talla central, el motor dice «Mantener» en las
   // cuatro (XL es extrema). Hay 11 guardadas: el botón no puede decir que el almacén está vacío.
   const tallas = [
@@ -119,14 +119,14 @@ describe("«Reponer prenda» y «Bajar al piso» no se apagan con «Mantener» n
     fila({ varianteId: "l", talla: "L", pisoDisponible: 1, almacenDisponible: 3, planPiso: plan("mantener") }),
     fila({ varianteId: "xl", talla: "XL", pisoDisponible: 0, almacenDisponible: 2, planPiso: plan("mantener") }),
   ];
-  it("con «Mantener» en todas: hay talla para reponer y las cuatro van a «Bajar al piso»", () => {
-    expect(tallaParaReponer(tallas)?.varianteId).toBe("s");
+  it("con «Mantener» en todas: hay talla para reponer y las cuatro van a «Colgar en el piso»", () => {
+    expect(tallaParaBajar(tallas)?.varianteId).toBe("s");
     expect(lineasParaBajar(tallas).map((l) => l.varianteId)).toEqual(["s", "m", "l", "xl"]);
     expect(agruparPorPrenda(tallas)[0].tallasParaBajar).toBe(4);
   });
   it("con el motor caído (planPiso null en todas): lo mismo", () => {
     const sinMotor = tallas.map((f) => ({ ...f, planPiso: null }));
-    expect(tallaParaReponer(sinMotor)?.varianteId).toBe("s");
+    expect(tallaParaBajar(sinMotor)?.varianteId).toBe("s");
     expect(urlBajarAlPiso(sinMotor)).toBe("/inventario/bajar?lineas=s:1,m:1,l:1,xl:1");
   });
   it("que se pueda bajar no la vuelve urgente: con «Mantener» no entra a «Por colgar» de «Para hoy» ni del Inicio", () => {
@@ -175,7 +175,7 @@ describe("enlaces con la lista cargada", () => {
   const normal = fila({ varianteId: "v2" });
   const sinAtras = fila({ varianteId: "v3", planPiso: plan("sin_atras"), pisoDisponible: 1, almacenDisponible: 0 });
 
-  it("Bajar al piso lleva lo marcado que tiene algo libre atrás, lo pida el motor o no, de a una unidad (CAYLA no sugiere cantidades)", () => {
+  it("Colgar en el piso lleva lo marcado que tiene algo libre atrás, lo pida el motor o no, de a una unidad (CAYLA no sugiere cantidades)", () => {
     expect(lineasParaBajar([bajable, normal, sinAtras])).toEqual([
       { varianteId: "v1", cantidad: 1 },
       { varianteId: "v2", cantidad: 1 },
@@ -294,21 +294,21 @@ describe("la lista del día ordena Existencias igual que el Inicio (revisión ad
   });
 });
 
-describe("tallaParaReponer (tarea #7): «Reponer N tallas» abre una talla que se pueda bajar", () => {
+describe("tallaParaBajar (tarea #7): «Reponer N tallas» abre una talla que se pueda bajar", () => {
   const sinAtras = fila({ varianteId: "sin-atras", talla: "S", planPiso: plan("sin_atras"), pisoDisponible: 1, almacenDisponible: 0 });
   const mantener = fila({ varianteId: "mantener", talla: "M", planPiso: plan("mantener"), pisoDisponible: 2, almacenDisponible: 3 });
   const porColgar = fila({ varianteId: "por-colgar", talla: "L", planPiso: plan("por_colgar"), pisoDisponible: 0, almacenDisponible: 2 });
 
   it("primero una por colgar que se pueda bajar", () => {
-    expect(tallaParaReponer([sinAtras, mantener, porColgar])?.varianteId).toBe("por-colgar");
+    expect(tallaParaBajar([sinAtras, mantener, porColgar])?.varianteId).toBe("por-colgar");
   });
   it("si el motor no pide nada, igual abre una que se pueda bajar: la primera con algo atrás — nunca una sin nada atrás", () => {
     const xl = fila({ varianteId: "xl", talla: "XL", planPiso: plan("mantener"), pisoDisponible: 1, almacenDisponible: 4 });
-    expect(tallaParaReponer([sinAtras, xl])?.varianteId).toBe("xl");
-    expect(tallaParaReponer([sinAtras, mantener, xl])?.varianteId).toBe("mantener");
+    expect(tallaParaBajar([sinAtras, xl])?.varianteId).toBe("xl");
+    expect(tallaParaBajar([sinAtras, mantener, xl])?.varianteId).toBe("mantener");
   });
   it("sin ninguna que se pueda bajar, ninguna", () => {
-    expect(tallaParaReponer([sinAtras])).toBeNull();
+    expect(tallaParaBajar([sinAtras])).toBeNull();
   });
 });
 

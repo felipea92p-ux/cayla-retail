@@ -529,9 +529,9 @@ export function recorridoRecepcion(
 // 7. Lo siguiente: después de recibir (ADR-0242 D-6.1, 2026-10-03)
 // ---------------------------------------------------------------------------------------------------------------
 //
-// EL PROBLEMA. Recibir termina en «entraron 5 prendas al almacén», pero lo del almacén no se vende hasta bajarlo al piso, y
+// EL PROBLEMA. Recibir termina en «entraron 5 prendas al almacén», pero lo del almacén no se vende hasta colgarlo en el piso, y
 // nadie lo recuerda: en la caja salía «está en el almacén» con la prenda en la mano (hallazgo 1 del análisis del 26-sep). El
-// modal de confirmar mandaba a «Reponer», que no es el nombre de la pantalla («Bajar al piso») y no llevaba a ningún lado.
+// modal de confirmar mandaba a «Colgar en el piso», que no es el nombre de la pantalla («Colgar en el piso») y no llevaba a ningún lado.
 // Ahora, bajo el título, dice qué sigue y lleva ahí con las prendas que acaban de entrar ya cargadas.
 
 /** Cuánto dura «Lo siguiente» desde que entró lo último: pasada una semana el aviso sería ruido (Existencias ya sugiere qué colgar). */
@@ -542,11 +542,11 @@ export type LoSiguiente = { intro: string; acciones: AccionLoSiguiente[] };
 
 /**
  * Qué sigue después de recibir, solo para la sede que recibió y solo con lo que de verdad entró:
- *  · Si quedó en el ALMACÉN de una tienda: «Bajar estas al piso» (principal; abre Bajar al piso con las prendas que TODAVÍA están
+ *  · Si quedó en el ALMACÉN de una tienda: «Colgar estas en el piso» (principal; abre Colgar en el piso con las prendas que TODAVÍA están
  *    en el almacén, por escanear: el enlace dice QUÉ buscar, no cuánto, así que la cantidad la dan las lecturas) e «Imprimir
  *    etiquetas» de justo las unidades que entraron.
  *  · Si quedó en el PISO: solo «Imprimir etiquetas».
- *  · «Bajar al piso» exige el módulo Existencias (si no, el enlace llevaría a «Sin acceso»): sin él, no se ofrece.
+ *  · «Colgar en el piso» exige el módulo Existencias (si no, el enlace llevaría a «Sin acceso»): sin él, no se ofrece.
  * Nada para quien envió, para una sede sin piso y almacén (el Taller: no hay a dónde bajar), ni cuando no entró ninguna prenda,
  * ni pasados `DIAS_LO_SIGUIENTE` días. Con más de `MAX_VARIANTES_EN_URL` prendas distintas el enlace se vuelve frágil: «Bajar al
  * piso» se abre sin lista y las etiquetas no se ofrecen.
@@ -589,8 +589,8 @@ export function loSiguienteDeLaRecepcion(p: {
   if (ofreceBajar) {
     acciones.push(
       porBajar.length <= MAX_VARIANTES_EN_URL
-        ? { clave: "bajar", texto: "Bajar estas al piso", href: `/inventario/bajar?lineas=${lineasEnUrl(porBajar)}`, principal: true }
-        : { clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar", principal: true },
+        ? { clave: "bajar", texto: "Colgar estas en el piso", href: `/inventario/bajar?lineas=${lineasEnUrl(porBajar)}`, principal: true }
+        : { clave: "bajar", texto: "Colgar en el piso", href: "/inventario/bajar", principal: true },
     );
   }
   if (enLista) {
@@ -610,7 +610,7 @@ export function loSiguienteDeLaRecepcion(p: {
         ? `Lo que llegó ya está en el piso de ${p.sede}.`
         : yaSalioDelAlmacen
           ? `Lo que llegó ya salió del almacén de ${p.sede}.`
-          : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que bajarlo al piso.`,
+          : `Lo que llegó quedó en el almacén de ${p.sede}. Para venderlo, hay que colgarlo en el piso.`,
     acciones,
   };
 }

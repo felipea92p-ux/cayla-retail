@@ -7,7 +7,7 @@ const una = (o: Parameters<typeof fila>[0]) => analizarSede([fila(o)], TRUJILLO,
 const ctx = (a: ReturnType<typeof una>, puede = true) => contextoAccion(a, TRUJILLO, puede);
 
 describe("resolver una acción: siempre un flujo real, nunca una escritura directa", () => {
-  it("bajar al piso abre el modal de Existencias con la cantidad; sin sububicaciones cae al detalle", () => {
+  it("colgar en el piso abre el modal de Existencias con la cantidad; sin sububicaciones cae al detalle", () => {
     const a = una({ ventas: 123, piso: 2, almacen: 5 });
     expect(resolverAccion(a.plan.principal, ctx(a))).toEqual({ via: "bajar_al_piso", cantidad: 5 });
     expect(resolverAccion(a.plan.principal, ctx(a, false))).toEqual({ via: "detalle" });

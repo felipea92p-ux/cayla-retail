@@ -1,5 +1,5 @@
 /**
- * «Bajar prendas al piso» (ADR-0208, paso 1): las reglas puras de la pantalla, sin React, sin DOM y sin supabase,
+ * «Colgar en el piso» (ADR-0208, paso 1): las reglas puras de la pantalla, sin React, sin DOM y sin supabase,
  * para que las usen la página (servidor) y el formulario (cliente) y se puedan probar.
  *
  * EL PROBLEMA. Frescura del piso solo sirve si la bajada se registra cuando la prenda se cuelga, no cuando se cobra.
@@ -416,7 +416,7 @@ export function leerRespuestaDeBajada(data: unknown): RespuestaBajada | null {
 
 // Aquí no va el «no se guardó nada» genérico: sería falso si la respuesta se perdió DESPUÉS de guardar. El mismo token
 // con la misma lista hace seguro volver a enviar; por eso la lista se congela hasta que la base responda.
-const TEXTO_RED_CAIDA = `Se cortó la conexión y no sabemos si la bajada se guardó. Tu lista sigue aquí: pulsa «${BOTON_CONFIRMAR_DE_NUEVO}». Si ya se había guardado, no se repite.`;
+const TEXTO_RED_CAIDA = `Se cortó la conexión y no sabemos si la tanda se guardó. Tu lista sigue aquí: pulsa «${BOTON_CONFIRMAR_DE_NUEVO}». Si ya se había guardado, no se repite.`;
 
 /** Las líneas que la base dijo que no alcanzan, leídas de su `detail` (JSON): sirve a `bajar_al_piso` y a `retirar_del_piso`,
  *  que traen el mismo detalle. Nunca lanza, ni con un `details` roto. */
@@ -484,13 +484,13 @@ export function respuestaResuelveLaMarca(error: ErrorEscritura): boolean {
 
 /** Debajo del rechazo, mientras la lista sigue congelada porque la base no miró la marca. */
 export function textoMarcaSinResolver(enviadoEn: string, boton: string): string {
-  return `Todavía no sabemos si la bajada que enviaste a las ${formatearHoraLima(enviadoEn)} se guardó. Cuando se resuelva lo de arriba, pulsa «${boton}»: si ya se había guardado, no se repite.`;
+  return `Todavía no sabemos si la tanda que enviaste a las ${formatearHoraLima(enviadoEn)} se guardó. Cuando se resuelva lo de arriba, pulsa «${boton}»: si ya se había guardado, no se repite.`;
 }
 
 /** La nota junto al pie. Con la lista congelada no se puede afirmar que las prendas sigan en el almacén. */
 export function textoNotaDelPie(congelada: boolean): string {
   return congelada
-    ? "Hasta comprobar, no sabemos si el sistema ya las ve en el piso: no las subas por «Reponer» mientras tanto."
+    ? "Hasta comprobar, no sabemos si el sistema ya las ve en el piso: no las subas por «Colgar en el piso» mientras tanto."
     : "Mientras no confirmes, estas prendas siguen en el almacén para el sistema: la caja no las ve en el piso.";
 }
 
@@ -500,7 +500,7 @@ export function interpretarErrorDeBajada(error: ErrorEscritura, sede: string): E
   if (error?.code === "40P01") {
     return { tipo: "otro", mensaje: "Otra operación estaba moviendo las mismas prendas en ese momento. No se guardó nada: vuelve a confirmar." };
   }
-  const contexto = sede.trim() ? `bajar las prendas al piso de ${sede.trim()}` : "bajar las prendas al piso";
+  const contexto = sede.trim() ? `colgar las prendas en el piso de ${sede.trim()}` : "colgar las prendas en el piso";
   if (error?.hint === "bajada_sin_alcance") {
     return { tipo: "sin_alcance", mensaje: error.message || traducirError(error, contexto), lineas: lineasSinAlcance(error.details) };
   }
@@ -528,7 +528,7 @@ export function resolverTokenReusado(lineas: readonly LineaBajada[], guardadas: 
       tipo: "ya_estaba",
       exito: {
         titulo: tituloDeExito(unidadesDe(guardadas), sede),
-        detalle: hora ? `Esta bajada ya estaba registrada a las ${hora}. No se repitió.` : "Esta bajada ya estaba registrada. No se repitió.",
+        detalle: hora ? `Esta tanda ya estaba registrada a las ${hora}. No se repitió.` : "Esta tanda ya estaba registrada. No se repitió.",
       },
     };
   }
@@ -564,17 +564,17 @@ export function textoDeLectura(l: Lectura, sede: string): string {
         ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para un cliente y no se puede mover. Si la que tienes es esa, déjala guardada; si es otra, corrígela en Ajustar stock.`
         : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientes y no se pueden mover. Si la que tienes es una de esas, déjala guardada; si es otra, corrígela en Ajustar stock.`;
     // Con otra en la mano, el almacén del sistema se quedó corto: primero se confirma lo de la lista (si no, la corrección
-    // pelearía con esta bajada por las mismas unidades) y la siguiente lectura ya sale «en 0», con su salida.
+    // pelearía con esta tanda por las mismas unidades) y la siguiente lectura ya sale «en 0», con su salida.
     case "tope":
       return l.disponible === 1
-        ? `${nombreDePrenda(l.prenda)}: en el almacén hay 1 y ya la tienes en la lista. Si tienes otra en la mano, confirma esta bajada y vuelve a escanearla.`
-        : `${nombreDePrenda(l.prenda)}: en el almacén hay ${l.disponible} y ya las tienes todas en la lista. Si tienes otra en la mano, confirma esta bajada y vuelve a escanearla.`;
+        ? `${nombreDePrenda(l.prenda)}: en el almacén hay 1 y ya la tienes en la lista. Si tienes otra en la mano, confirma esta tanda y vuelve a escanearla.`
+        : `${nombreDePrenda(l.prenda)}: en el almacén hay ${l.disponible} y ya las tienes todas en la lista. Si tienes otra en la mano, confirma esta tanda y vuelve a escanearla.`;
   }
 }
 
 /** Si ella escanea con la lista congelada: primero hay que saber qué pasó con la bajada anterior. */
 export function textoEscaneoCongelado(boton: string): string {
-  return `Primero pulsa «${boton}»: no sabemos si la bajada anterior se guardó.`;
+  return `Primero pulsa «${boton}»: no sabemos si la tanda anterior se guardó.`;
 }
 
 /** «12 prendas · 3 modelos» del pie. */
@@ -582,9 +582,9 @@ export function textoDeResumen(r: { prendas: number; modelos: number }): string 
   return `${plural(r.prendas, "prenda", "prendas")} · ${plural(r.modelos, "modelo", "modelos")}`;
 }
 
-/** El rótulo del botón: «Confirmar bajada · 12 prendas». */
+/** El rótulo del botón: «Confirmar y colgar · 12 prendas». */
 export function textoDeConfirmar(prendas: number): string {
-  return `Confirmar bajada · ${plural(prendas, "prenda", "prendas")}`;
+  return `Confirmar y colgar · ${plural(prendas, "prenda", "prendas")}`;
 }
 
 /** 'HH:mm' en 24 h, hora de Lima (misma cuenta que `diaYHoraLima`). */
@@ -593,7 +593,7 @@ export function formatearHoraLima(iso: string): string {
 }
 
 function tituloDeExito(unidades: number, sede: string): string {
-  return unidades === 1 ? `Se bajó 1 prenda al piso de ${sede}` : `Se bajaron ${unidades} prendas al piso de ${sede}`;
+  return unidades === 1 ? `Se colgó 1 prenda en el piso de ${sede}` : `Se colgaron ${unidades} prendas en el piso de ${sede}`;
 }
 
 /**
@@ -603,13 +603,13 @@ function tituloDeExito(unidades: number, sede: string): string {
 export function textoDeExito(r: RespuestaBajada, sede: string, responsable?: string | null): { titulo: string; detalle: string } {
   const hora = formatearHoraLima(r.registrada_en);
   const titulo = tituloDeExito(r.unidades, sede);
-  if (r.ya_registrada) return { titulo, detalle: `Esta bajada ya estaba registrada a las ${hora}. No se repitió.` };
+  if (r.ya_registrada) return { titulo, detalle: `Esta tanda ya estaba registrada a las ${hora}. No se repitió.` };
   return { titulo, detalle: responsable?.trim() ? `${hora} · ${responsable.trim()}` : hora };
 }
 
 /** El aviso de la esquina (`avisar.exito`). */
 export function avisoDeExito(r: RespuestaBajada, sede: string): { titulo: string; detalle: string } {
-  return { titulo: r.unidades === 1 ? "1 prenda bajada al piso" : `${r.unidades} prendas bajadas al piso`, detalle: sede };
+  return { titulo: r.unidades === 1 ? "1 prenda colgada en el piso" : `${r.unidades} prendas colgadas en el piso`, detalle: sede };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -671,12 +671,12 @@ export function leerBorrador(texto: string | null, ahora: Date, prendas: readonl
   return enviadoEn ? { v: VERSION_BORRADOR, token, lineas, creadoEn, enviadoEn } : { v: VERSION_BORRADOR, token, lineas, creadoEn };
 }
 
-/** «Dejaste una bajada sin confirmar (12 prendas, 10:32). ¿Sigues con ella o empiezas de nuevo?» */
+/** «Dejaste una tanda sin confirmar (12 prendas, 10:32). ¿Sigues con ella o empiezas de nuevo?» */
 export function textoDeBorrador(b: BorradorDeBajada): string {
-  return `Dejaste una bajada sin confirmar (${plural(unidadesDe(b.lineas), "prenda", "prendas")}, ${formatearHoraLima(b.creadoEn)}). ¿Sigues con ella o empiezas de nuevo?`;
+  return `Dejaste una tanda sin confirmar (${plural(unidadesDe(b.lineas), "prenda", "prendas")}, ${formatearHoraLima(b.creadoEn)}). ¿Sigues con ella o empiezas de nuevo?`;
 }
 
 /** El borrador que ya se envió y cuya respuesta no llegó: primero se comprueba, después se decide. */
 export function textoDeEnvioIncierto(enviadoEn: string): string {
-  return `Enviaste esta bajada a las ${formatearHoraLima(enviadoEn)} y no llegó la respuesta. Pulsa «${BOTON_COMPROBAR}»: si ya se guardó, no se repite.`;
+  return `Enviaste esta tanda a las ${formatearHoraLima(enviadoEn)} y no llegó la respuesta. Pulsa «${BOTON_COMPROBAR}»: si ya se guardó, no se repite.`;
 }

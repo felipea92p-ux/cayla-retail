@@ -539,15 +539,15 @@ describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio
       }
     });
 
-    it("habla como Existencias: «Por colgar» y «Bajar al piso», nunca «Sube … al piso»", () => {
+    it("habla como Existencias: «Por colgar» y «Colgar en el piso», nunca «Sube … al piso»", () => {
       expect(e.aviso?.titulo).toBe("Por colgar");
-      expect(e.aviso?.ahora).toBe("Baja al piso 4 tallas por colgar");
+      expect(e.aviso?.ahora).toBe("Cuelga en el piso 4 tallas por colgar");
       expect(e.aviso?.ahora).not.toMatch(/sube/i);
       // La misma frase honesta que «Para hoy»: si ya cuelgan y el sistema las cree guardadas, se registran al bajar.
-      expect(e.aviso?.detalle).toBe("8 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.");
+      expect(e.aviso?.detalle).toBe("8 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.");
     });
 
-    it("«Bajar al piso» llega con las tallas por colgar ya en la lista", () => {
+    it("«Colgar en el piso» llega con las tallas por colgar ya en la lista", () => {
       const lineas = new URLSearchParams(e.inicio.hrefBajar.split("?")[1] ?? "").get("lineas") ?? "";
       const enLista = lineas.split(",").map((l) => l.split(":")[0]);
       expect(e.inicio.hrefBajar.startsWith("/inventario/bajar")).toBe(true);

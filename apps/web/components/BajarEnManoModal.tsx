@@ -38,7 +38,7 @@ const TOPE_ESPERA_MS = 20_000;
 // sugerir-fijo: de dónde puede salir una prenda que el sistema no tenía no depende de nada elegido antes (talla, color o sede).
 const DE_DONDE = ["Venía en un fardo", "Estaba guardada sin registrar"] as const;
 
-// «La tengo en la mano» (ADR-0328, actividad 9): la asesora escaneó en Bajar al piso una prenda que el sistema tiene en 0 en el
+// «La tengo en la mano» (ADR-0328, actividad 9): la asesora escaneó en Colgar en el piso una prenda que el sistema tiene en 0 en el
 // almacén. Esta ventana la corrige (+1 «Encontré prendas») y la cuelga en UN paso con `bajar_en_mano` (todo o nada, con marca de
 // reintento). No es optimista: espera a la base (el loader global la acompaña) y recién entonces suena, avisa y cierra.
 //

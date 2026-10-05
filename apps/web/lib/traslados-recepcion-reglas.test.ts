@@ -323,11 +323,11 @@ describe("Lo siguiente: después de recibir (ADR-0242 D-6.1)", () => {
     sede: "Tienda Lima",
   };
 
-  it("si quedó en el almacén: «Bajar estas al piso» (principal) con las prendas que entraron, y las etiquetas de justo esas unidades", () => {
+  it("si quedó en el almacén: «Colgar estas en el piso» (principal) con las prendas que entraron, y las etiquetas de justo esas unidades", () => {
     const r = loSiguienteDeLaRecepcion(base)!;
-    expect(r.intro).toBe("Lo que llegó quedó en el almacén de Tienda Lima. Para venderlo, hay que bajarlo al piso.");
+    expect(r.intro).toBe("Lo que llegó quedó en el almacén de Tienda Lima. Para venderlo, hay que colgarlo en el piso.");
     expect(r.acciones).toEqual([
-      { clave: "bajar", texto: "Bajar estas al piso", href: "/inventario/bajar?lineas=v1:3,v2:1", principal: true },
+      { clave: "bajar", texto: "Colgar estas en el piso", href: "/inventario/bajar?lineas=v1:3,v2:1", principal: true },
       { clave: "etiquetas", texto: "Imprimir etiquetas", href: "/etiquetas-de-precio?unidades=v1:3,v2:1&traslado=tr-1", principal: false },
     ]);
   });
@@ -344,7 +344,7 @@ describe("Lo siguiente: después de recibir (ADR-0242 D-6.1)", () => {
     expect(r.acciones[0]!.href).toBe("/inventario/bajar?lineas=v1:3");
   });
 
-  it("sin el módulo Existencias no se ofrece «Bajar al piso» (llevaría a «Sin acceso»), pero las etiquetas sí", () => {
+  it("sin el módulo Existencias no se ofrece «Colgar en el piso» (llevaría a «Sin acceso»), pero las etiquetas sí", () => {
     const r = loSiguienteDeLaRecepcion({ ...base, veExistencias: false })!;
     expect(r.acciones.map((a) => a.clave)).toEqual(["etiquetas"]);
     expect(r.acciones[0]!.principal).toBe(true);
@@ -394,10 +394,10 @@ describe("Lo siguiente: después de recibir (ADR-0242 D-6.1)", () => {
     expect(loSiguienteDeLaRecepcion({ ...base, ultimoIngresoIso: null })).toBeNull();
   });
 
-  it("con más prendas distintas que el tope de una URL: «Bajar al piso» se abre sin lista y no se ofrecen etiquetas", () => {
+  it("con más prendas distintas que el tope de una URL: «Colgar en el piso» se abre sin lista y no se ofrecen etiquetas", () => {
     const muchas = Array.from({ length: 101 }, (_, i) => ({ varianteId: `v${i}`, cantidadRecibida: 1, ingresado: true }));
     const r = loSiguienteDeLaRecepcion({ ...base, lineas: muchas })!;
-    expect(r.acciones).toEqual([{ clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar", principal: true }]);
+    expect(r.acciones).toEqual([{ clave: "bajar", texto: "Colgar en el piso", href: "/inventario/bajar", principal: true }]);
     expect(loSiguienteDeLaRecepcion({ ...base, lugarRecibido: "piso_venta", lineas: muchas })).toBeNull();
   });
 });

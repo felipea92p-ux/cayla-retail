@@ -265,7 +265,7 @@ export function CuadrarPisoForm({
     setPaso("confirmar");
   });
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- misma decisión que Bajar al piso: no hay otra forma de leerlo sin romper la hidratación
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- misma decisión que Colgar en el piso: no hay otra forma de leerlo sin romper la hidratación
     alMontar();
     // En computadora el campo toma el foco solo si el puntero es fino: en el celular abriría el teclado encima de la lista.
     if (window.matchMedia?.("(pointer: fine)").matches) escaner.current?.focus({ preventScroll: true });

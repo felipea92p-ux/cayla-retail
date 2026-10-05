@@ -82,8 +82,8 @@ export function FrescuraTiendas({
           </ul>
           {registro.fallo && <p className="mt-3 text-[13px] text-taupe">{registro.fallo}</p>}
           <p className="mt-3 text-[13px] text-taupe">
-            «Al colgarlas»: las unidades que se registraron al bajarlas al piso, no recién al venderlas. La carga inicial y las bajadas que se
-            deshicieron con un retiro no cuentan. «Ventas a pedido» llega con los botones de la caja.
+            «Al colgarlas»: las unidades que se registraron al colgarlas en el piso, no recién al venderlas. La carga inicial y lo que se colgó y
+            se deshizo con un retiro no cuentan. «Ventas a pedido» llega con los botones de la caja.
           </p>
           <div className="mt-4 flex justify-end border-t border-sand pt-4">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">

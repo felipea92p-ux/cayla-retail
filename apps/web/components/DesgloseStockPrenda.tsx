@@ -70,7 +70,7 @@ export function DesgloseStockPrenda({
   accionDanada,
 }: {
   desglose: DesgloseDePrenda;
-  /** «Bajar al piso»: la acción de Reponer que ya existe en el cajón. */
+  /** «Colgar en el piso»: la acción de Reponer que ya existe en el cajón. */
   accionAlmacen?: Accion;
   /** Abre los apartados de ESTA prenda. */
   accionApartada?: Accion;
@@ -90,7 +90,7 @@ export function DesgloseStockPrenda({
           <Celda etiqueta="Piso" apodo="colgada" cantidad={desglose.piso} ayuda="la caja cobra esto" />
         </li>
         <li className="border-b border-sand">
-          <Celda etiqueta="Almacén" apodo="guardada" cantidad={desglose.almacen} ayuda="se baja al piso para venderla" accion={accionAlmacen} />
+          <Celda etiqueta="Almacén" apodo="guardada" cantidad={desglose.almacen} ayuda="se cuelga en el piso para venderla" accion={accionAlmacen} />
         </li>
         <li className="border-r border-sand">
           <Celda etiqueta="Apartada" cantidad={desglose.apartada} ayuda="reservada para un cliente" tono="ambar" accion={accionApartada} />

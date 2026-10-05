@@ -146,7 +146,7 @@ export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) 
 // ── Por colgar (la cuenta de «Para hoy», con la decisión y el orden del motor del piso, ADR-0328 act. 7) ──────────
 
 /** Lo que está por colgar en la sede, con la cifra y la palabra de «Para hoy» en Existencias (`existenciasDeAlmacen`): cada prenda
- *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Bajar al piso» con esas tallas ya cargadas. Las prendas van en el
+ *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Colgar en el piso» con esas tallas ya cargadas. Las prendas van en el
  *  orden de la lista del día (lo vendido ayer primero). Con el piso sin cuadrar no hay nada que colgar todavía: dice cuántas tallas
  *  esperan el cuadre, nunca «al día». */
 export function PorColgarAlmacen({ existencias }: { existencias: Existencias | null | undefined }) {
@@ -194,7 +194,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
                 {tallas} {tallas === 1 ? "talla" : "tallas"} por colgar
               </span>
               <Link href={existencias.hrefBajar} className="ia-enl">
-                Bajar al piso <Ico clave="arrow" />
+                Colgar en el piso <Ico clave="arrow" />
               </Link>
             </div>
           </>

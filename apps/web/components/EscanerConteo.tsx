@@ -23,7 +23,7 @@ import { debeContarLectura } from "@/lib/conteo-conectado";
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
-/** Lo que la hoja dice con palabras. Por defecto, lo de Conteo; Bajar al piso pasa los suyos (la misma ráfaga, otra tarea). */
+/** Lo que la hoja dice con palabras. Por defecto, lo de Conteo; Colgar en el piso pasa los suyos (la misma ráfaga, otra tarea). */
 export type TextosEscaner = {
   titulo: string;
   subtitulo: string;

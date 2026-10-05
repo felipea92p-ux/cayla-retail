@@ -51,9 +51,9 @@ export function estadoTalla(f: FilaPrenda): EstadoTalla {
   return "normal";
 }
 
-/** ¿Esta talla SE PUEDE bajar al piso? Es un hecho físico, no una recomendación: la sede separa piso y almacén y en el almacén hay
+/** ¿Esta talla SE PUEDE colgar en el piso? Es un hecho físico, no una recomendación: la sede separa piso y almacén y en el almacén hay
  *  algo libre (lo apartado no se mueve). Qué CONVIENE bajar primero lo dice el motor del piso (`planPiso`), nunca si se puede: con
- *  «Mantener» —lo normal en un piso cuadrado—, con el piso en pausa o con el motor caído, «Reponer prenda» y «Bajar al piso» siguen
+ *  «Mantener» —lo normal en un piso cuadrado—, con el piso en pausa o con el motor caído, «Colgar en el piso» y «Colgar en el piso» siguen
  *  abiertos (ADR-0306: bajar es una función de Existencias). Atarlo a la recomendación apagaba los botones diciendo que el almacén
  *  estaba vacío cuando no lo estaba. */
 export function sePuedeBajar(f: FilaPrenda): boolean {
@@ -81,7 +81,7 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   apartado: number;
   danado: number;
   enTransito: number;
-  /** Cuántas tallas se PUEDEN bajar al piso (`sePuedeBajar`: algo libre atrás), lo pida el motor o no. */
+  /** Cuántas tallas se PUEDEN colgar en el piso (`sePuedeBajar`: algo libre atrás), lo pida el motor o no. */
   tallasParaBajar: number;
   /** Cuántas tallas están «Por colgar» (`hoyDeTalla`). */
   tallasPorColgar: number;
@@ -129,13 +129,13 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
   });
 }
 
-/** Todos los colores de un MODELO (las prendas del mismo producto), en el orden en que las agrupa la lista. «Reponer prenda» y «Subir
+/** Todos los colores de un MODELO (las prendas del mismo producto), en el orden en que las agrupa la lista. «Colgar en el piso» y «Subir
  *  prenda» (ADR-0317) abren esta lista entera: un Polo en azul, blanco y negro se mueve en UNA ventana, no en tres. */
 export function coloresDelModelo<F extends FilaPrenda>(filas: readonly F[], productoId: string): PrendaAgrupada<F>[] {
   return agruparPorPrenda(filas.filter((f) => f.productoId === productoId));
 }
 
-/** `id:cantidad,id:cantidad`: el formato que ya leen «Mover mercadería» (`parsearLineasPrellenadas`) y ahora «Bajar al piso». */
+/** `id:cantidad,id:cantidad`: el formato que ya leen «Mover mercadería» (`parsearLineasPrellenadas`) y ahora «Colgar en el piso». */
 export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: number }[]): string {
   return lineas
     .filter((l) => Number.isInteger(l.cantidad) && l.cantidad > 0)
@@ -143,8 +143,8 @@ export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: num
     .join(",");
 }
 
-/** Lo que va a «Bajar al piso» desde lo marcado: las tallas que se pueden bajar (`sePuedeBajar`), las pida el motor o no —quien
- *  las marcó decide—. El 1 es solo la forma del enlace (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por
+/** Lo que va a «Colgar en el piso» desde lo marcado: las tallas que se pueden bajar (`sePuedeBajar`), las pida el motor o no —quien
+ *  las marcó decide—. El 1 es solo la forma del enlace (`lineasEnUrl` no lleva ceros): «Colgar en el piso» las recibe todas «por
  *  escanear», en 0, y cada lectura suma una (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer
  *  (ADR-0231): lo que se baja es lo que la asesora escanea al colgar. */
 export function lineasParaBajar(filas: readonly FilaPrenda[]): { varianteId: string; cantidad: number }[] {
@@ -181,10 +181,10 @@ export function urlEtiquetas(filas: readonly FilaPrenda[]): string | null {
   return `/etiquetas-de-precio?variantes=${filas.map((f) => f.varianteId).join(",")}`;
 }
 
-/** Con qué talla se abre «Reponer prenda» (tarea #7): una que SE PUEDA bajar, y entre ellas la que el motor pide —por colgar—.
+/** Con qué talla se abre «Colgar en el piso» (tarea #7): una que SE PUEDA bajar, y entre ellas la que el motor pide —por colgar—.
  *  `null` solo si ninguna tiene algo libre atrás: el botón que dice «No hay nada libre en el almacén» dice la verdad. Antes podía
  *  abrir una talla que pedía reponer sin nada en el almacén, y el botón no llevaba a la acción. */
-export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F | null {
+export function tallaParaBajar<F extends FilaPrenda>(tallas: readonly F[]): F | null {
   const bajables = tallas.filter(sePuedeBajar);
   return bajables.find((f) => hoyDeTalla(f) === "por_colgar") ?? bajables[0] ?? null;
 }
@@ -266,7 +266,7 @@ export function tallasPorPrenda(filas: readonly Pick<FilaPrenda, "productoId" | 
 // nadie los mostraba, así que lo que se contaba a mano en la tienda no coincidía con lo que se podía vender. Una prenda
 // en una tienda está SIEMPRE en uno de cuatro lugares, y las cuatro cifras no se pisan:
 //   · piso       libre: colgada, lo único que cobra la caja (`cantidadCobrable`, lib/vender-stock-local.ts).
-//   · almacén    libre: guardada atrás; para venderla se baja al piso primero.
+//   · almacén    libre: guardada atrás; para venderla se cuelga en el piso primero.
 //   · apartada   reservada para un cliente. Sigue físicamente en el piso o en el almacén, pero ni se vende ni se mueve;
 //                por eso `piso` y `almacen` son NETOS de ella (`pisoDisponible`, `almacenDisponible`) y no se cuenta dos veces.
 //   · dañada     en cuarentena. NUNCA entra al `total` de la sede (lib/inventario-reglas.ts, `sumarCantidades`): no es stock.
@@ -311,7 +311,7 @@ export function lineaDeLaSuma(d: DesgloseDePrenda): { cuenta: string; texto: str
 /** Lo que hace la caja con cada lugar, en una frase: la aclaración que pidió Felipe (2026-10-04). El número es lo que la
  *  caja puede cobrar HOY de esta prenda. «Cliente», no «clienta»: en pantalla se le habla igual a un hombre que a una mujer. */
 export function aclaracionDeLaCaja(d: DesgloseDePrenda): string {
-  return `La caja solo cobra lo que está colgado en el piso y libre: hoy,\u00a0${d.piso}. Lo del almacén se baja al piso primero, lo apartado está reservado para un cliente y lo dañado espera la decisión de un líder.`;
+  return `La caja solo cobra lo que está colgado en el piso y libre: hoy,\u00a0${d.piso}. Lo del almacén se cuelga en el piso primero, lo apartado está reservado para un cliente y lo dañado espera la decisión de un líder.`;
 }
 
 /** De una lista de la sede (apartados, dañadas en cuarentena…), solo lo que es de ESTA prenda, por sus tallas. Es lo que abre

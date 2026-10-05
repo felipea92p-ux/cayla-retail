@@ -20,7 +20,7 @@ import { compararTallas } from "./tallas";
  *  distintas, dos números. */
 export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 
-/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
+/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «colgar en el piso»
  *  sin ritmo medible): cuántas sugerir bajar, con un ritmo de 30 días. Existencias NO lo usa: lo que
  *  el piso pide hoy lo decide el motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7). Es deuda de
  *  Análisis (actividad 11). */
@@ -124,7 +124,7 @@ export const DIAS_RESERVA_SEGURIDAD = 3;
 /** El piso debe alcanzar para esta cantidad de días de venta al bajar mercadería. */
 export const DIAS_OBJETIVO_PISO = 7;
 
-/** Si el piso cubre menos que esto (con stock atrás) se sugiere bajar al piso. */
+/** Si el piso cubre menos que esto (con stock atrás) se sugiere colgar en el piso. */
 export const DIAS_PISO_ALERTA = 3;
 
 /** Días de venta propia que una sede conserva al ceder mercadería: lo que ella

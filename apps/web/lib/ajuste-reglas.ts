@@ -316,7 +316,7 @@ export function textoApartadoTalla(apartado: number, modo: ModoAjuste): string {
 // Motivos del ajuste. «Encontré prendas» (antes «Reposición»; ADR-0328: en la tienda «reponer» es colgar una prenda del almacén
 // en el piso, y se confundían) es el que SUMA prendas que aparecieron sin papeles. Su código sigue siendo `reposicion`: la
 // historia de Movimientos no se reescribe. No se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
-// almacén se baja (Bajar al piso / Reponer, en Existencias) para que salga del almacén y el reloj de piso de Frescura tenga
+// almacén se baja (Colgar en el piso / Reponer, en Existencias) para que salga del almacén y el reloj de piso de Frescura tenga
 // hora de colgado. La base lo rechaza igual (20260926000400, hint reposicion_piso_cerrada); aquí solo se evita el viaje.
 export const MOTIVOS_AJUSTE = [
   { valor: "reposicion", texto: "Encontré prendas" },
@@ -341,7 +341,7 @@ export function motivosAjusteDisponibles(
 // Nombra los dos caminos: sin ellos, quien sube o guarda prendas lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
 // «Subir a almacén» es el botón de la tarjeta de Existencias (ADR-0300); antes decía «⋯ ▸ Retirar del piso», un menú que ya no existe.
 export const NOTA_REPOSICION_CERRADA =
-  "«Encontré prendas» se registra en el almacén. Subir al piso: «Reponer». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
+  "«Encontré prendas» se registra en el almacén. Prendas al piso: «Colgar en el piso». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
 
 /** El motivo que pide nota (ADR-0328): «Encontré prendas» dice dónde estaban o por qué aparecieron. La base exige lo mismo
  *  (`registrar_movimiento`, hint `encontre_prendas_sin_nota`): al menos 3 letras, sin contar los espacios de los bordes. */
@@ -355,9 +355,9 @@ export function notaSuficiente(motivo: MotivoAjuste | "", nota: string): boolean
   return !motivoPideNota(motivo) || nota.trim().length >= NOTA_MINIMA_ENCONTRE;
 }
 
-/** Bajo el motivo, para que «Encontré prendas» no se confunda con «Reponer» (colgar una prenda del almacén en el piso). */
+/** Bajo el motivo, para que «Encontré prendas» no se confunda con «Colgar en el piso» (colgar una prenda del almacén en el piso). */
 export const AYUDA_ENCONTRE_PRENDAS =
-  "Prendas que aparecieron y el sistema no tenía: solo suma, al almacén, y cuenta dónde estaban. Para colgar en el piso lo que está en el almacén, es «Reponer», en Existencias.";
+  "Prendas que aparecieron y el sistema no tenía: solo suma, al almacén, y cuenta dónde estaban. Para colgar en el piso lo que está en el almacén, es «Colgar en el piso», en Existencias.";
 
 /** Por qué una talla no se puede guardar con este motivo, ANTES de ir a la base: «Encontré prendas» solo suma
  *  (`encontre_prendas_resta`) y, con la carga inicial de la sede cerrada, una prenda que nunca estuvo en ella entra SOLO con
@@ -412,7 +412,7 @@ export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen:
       : "Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»";
   }
   if (separaPisoAlmacen && ubicado === "piso" && !puedeBajarAlPiso) {
-    return "Nueva en esta tienda · entra al almacén: tu rol no baja prendas al piso";
+    return "Nueva en esta tienda · entra al almacén: tu rol no puede colgar prendas en el piso";
   }
   return "Nueva en esta tienda · entra como stock inicial";
 }

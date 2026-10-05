@@ -22,11 +22,11 @@ import {
   lineasDeMoverModelo,
   sePuedeSubirTalla,
   textoFilaSinAlcance,
-  totalAReponer,
+  totalABajar,
   totalesDeMatriz,
   type Cantidades,
-  type PrendaParaReponer,
-} from "@/lib/reponer-prenda-reglas";
+  type PrendaParaBajar,
+} from "@/lib/bajar-prenda-reglas";
 import {
   argumentosDeRetiro,
   AVISO_QUEDA_SIN_COLGAR,
@@ -47,10 +47,10 @@ import { RPC_SUBIR_PARA_ENVIAR, faltaDestino } from "@/lib/para-enviar-reglas";
 
 const TOPE_ESPERA_MS = 20_000;
 
-// «Subir prenda» (ADR-0300, ADR-0317): el movimiento contrario a «Reponer prenda». Abre el MODELO entero —una fila por color, una
+// «Subir prenda» (ADR-0300, ADR-0317): el movimiento contrario a «Colgar en el piso». Abre el MODELO entero —una fila por color, una
 // columna por talla—, la persona elige cuántas sube de cada celda y al confirmar se hace UNA llamada a `retirar_del_piso` (todo o
 // nada, con marca de reintento), nunca una por talla ni por color: con varias llamadas la prenda podría quedar subida a medias. Es la
-// misma ventana que `ReponerPrendaModal` (comparten `MatrizMover`); lo que cambia es que sale del PISO, lleva una nota opcional
+// misma ventana que `BajarPrendaModal` (comparten `MatrizMover`); lo que cambia es que sale del PISO, lleva una nota opcional
 // —el único rastro de por qué se guardó— y avisa si alguna talla va a quedar pidiendo reponer.
 // ADR-0328 act. 17 (Felipe: lo colgado se manda a otra sede en DOS pasos): «Es para enviar a otra sede» sube igual, con la misma
 // puerta, y además la deja en Traslados ▸ «Para enviar» hasta que sale el traslado (`subir_para_enviar`). Así el segundo paso
@@ -64,7 +64,7 @@ export function SubirAAlmacenModal({
   onClose,
 }: {
   /** Los colores del modelo, cada uno con todas sus tallas (la prenda que se tocó va primero). */
-  prendas: readonly PrendaParaReponer[];
+  prendas: readonly PrendaParaBajar[];
   ubicacionId: string;
   /** El nombre de la sede, para los textos de la base («…al almacén de Tienda TRU»). */
   sede: string;
@@ -101,7 +101,7 @@ export function SubirAAlmacenModal({
   const responsable = useResponsable();
 
   const lineas = lineasDeMoverModelo(colores, cantidades, "subir");
-  const total = totalAReponer(lineas);
+  const total = totalABajar(lineas);
   const totales = totalesDeMatriz(colores, cantidades, "subir");
   const hayAlgoQueSubir = colores.some((c) => c.tallas.some(sePuedeSubirTalla));
   // El aviso de lo que quedará pregunta lo mismo que «Hoy» de la fila: el requisito de cada talla viene del motor del piso.

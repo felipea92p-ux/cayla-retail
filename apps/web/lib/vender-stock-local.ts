@@ -40,7 +40,7 @@ export function apartadoEnPiso(c: Cantidades | undefined): number {
 // --- «Agotada» o «está en el almacén» (D-40) ---------------------------------------------------------------------
 // La caja solo cobra del PISO, pero con el piso en 0 y la prenda guardada en el almacén de la MISMA tienda, decir
 // «agotada» hacía que la colaboradora le dijera «no hay» a una clienta con la prenda a unos metros. D-40: lo del
-// almacén se puede vender y la caja no se frena por un trámite. Mientras bajar al piso siga siendo un paso aparte, la
+// almacén se puede vender y la caja no se frena por un trámite. Mientras colgar en el piso siga siendo un paso aparte, la
 // caja no cobra del almacén (registrar_venta descuenta el piso): lo dice, y dice qué hacer.
 
 /** Qué puede hacer la caja con una prenda AHORA: cobrarla (hay en el piso), pedir que la bajen (el piso está en 0 y
@@ -95,11 +95,11 @@ export function tooltipTallaSinPiso(v: { stockAqui: number; almacenAqui?: number
 export type DatosAvisoStock = { nombre: string; sede: string; stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null };
 export type AvisoStock = { titulo: string; detalle: string };
 
-/** Dónde se REGISTRA que una prenda pasó del almacén al piso: el botón «Reponer» de su fila en Existencias
+/** Dónde se REGISTRA que una prenda pasó del almacén al piso: el botón «Colgar en el piso» de su fila en Existencias
  *  (`InventarioPanel`). Lo nombran los textos donde no hay una prenda en la mano (una cantidad escrita, un ticket retomado,
  *  la proforma): «que la bajen» a secas se lee como un paso físico, y lo que falta es el registro. Con la prenda en la mano
  *  (escaneada o tocada) el aviso ya no manda aquí: la bajada se registra desde la caja (ADR-0321). */
-export const DONDE_SE_BAJA = "Inventario ▸ Existencias ▸ Reponer";
+export const DONDE_SE_BAJA = "Inventario ▸ Existencias ▸ Colgar en el piso";
 
 // --- La bajada que se olvidó, desde la misma caja (ADR-0321) ---------------------------------------------------------
 // A veces cuelgan una prenda del almacén sin registrar la bajada y recién se nota al escanearla en la caja. El aviso ya no
@@ -111,11 +111,11 @@ export const DONDE_SE_BAJA = "Inventario ▸ Existencias ▸ Reponer";
 // «agotada» o «apartada» no tienen nada que bajar.
 
 /** El botón del aviso cuando lo que no entró es UNA prenda (o una más de la misma). */
-export const ACCION_BAJAR_Y_AGREGAR = "Agregar y registrar la bajada";
+export const ACCION_BAJAR_Y_AGREGAR = "Agregar y registrar como colgada";
 
 /** El botón del aviso al cerrar la cámara: con varias prendas fuera, las nombra por cantidad. */
 export function accionBajarYAgregar(n: number): string {
-  return n > 1 ? `Agregar las ${n} y registrar la bajada` : ACCION_BAJAR_Y_AGREGAR;
+  return n > 1 ? `Agregar las ${n} y registrar como colgadas` : ACCION_BAJAR_Y_AGREGAR;
 }
 
 /** El aviso cuando la bajada se registró desde la caja y la prenda entró al ticket. `bajadas` 0: otra persona ya la había
@@ -123,8 +123,8 @@ export function accionBajarYAgregar(n: number): string {
  *  dos avisos con el mismo texto. */
 export function avisoBajadaRegistrada({ nombre, sede, bajadas }: { nombre: string; sede: string; bajadas: number }): AvisoStock {
   return bajadas > 0
-    ? { titulo: "Bajada registrada y agregada al ticket", detalle: `${nombre} ya figura en el piso de ${sede}.` }
-    : { titulo: "Agregada al ticket", detalle: `${nombre} · la bajada al piso ya estaba registrada.` };
+    ? { titulo: "Colgada en el piso y agregada al ticket", detalle: `${nombre} ya figura en el piso de ${sede}.` }
+    : { titulo: "Agregada al ticket", detalle: `${nombre} · ya estaba registrada en el piso.` };
 }
 
 /** El aviso cuando una prenda no entra al ticket porque en el piso no hay: dice DÓNDE está y QUÉ hacer, en palabras
@@ -135,8 +135,8 @@ export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui, apartadoAqu
   const motivo = motivoNoCobrable({ stockAqui, almacenAqui, apartadoAqui });
   if (motivo === "en_almacen") {
     return {
-      titulo: `${nombre} no se registró como bajada al piso`,
-      detalle: `En el sistema hay 0 en el piso y ${almacenAqui} en el almacén de ${sede}. Si ya la tienes en la mano, agrégala: la bajada queda registrada.`,
+      titulo: `${nombre} no se registró como colgada en el piso`,
+      detalle: `En el sistema hay 0 en el piso y ${almacenAqui} en el almacén de ${sede}. Si ya la tienes en la mano, agrégala: queda registrada como colgada.`,
     };
   }
   if (motivo === "apartada") {
@@ -173,10 +173,10 @@ export function avisoTope({ nombre, sede, stockAqui, almacenAqui, quedoEn = fals
       const delPiso = stockAqui === 1 ? "La del piso ya está en el ticket." : `Las ${stockAqui} del piso ya están en el ticket.`;
       return {
         titulo: `No hay más de ${nombre} en el piso`,
-        detalle: `${delPiso} Hay ${enAlmacen} más en el almacén de ${sede}. Si tienes otra en la mano, agrégala: la bajada queda registrada.`,
+        detalle: `${delPiso} Hay ${enAlmacen} más en el almacén de ${sede}. Si tienes otra en la mano, agrégala: queda registrada como colgada.`,
       };
     }
-    const pedir = enAlmacen === 1 ? "que la bajen" : "que bajen las que necesites";
+    const pedir = enAlmacen === 1 ? "que la cuelguen" : "que cuelguen las que necesites";
     return {
       titulo: `No hay más de ${nombre} en el piso`,
       detalle: `En el piso quedan ${stockAqui}; la cantidad quedó en ${stockAqui}. Hay ${enAlmacen} más en el almacén de ${sede}: ${pedir} en ${DONDE_SE_BAJA}.`,
@@ -202,7 +202,7 @@ export function avisoCortas(cortas: LineaCorta[], sede: string): AvisoStock {
     .map((c) => ((c.almacen ?? 0) > 0 ? `${c.nombre}: en el piso quedan ${c.piso} y en el almacén hay ${c.almacen}` : `${c.nombre}: quedan ${c.piso}`))
     .join("; ");
   return hayEnAlmacen
-    ? { titulo: `No alcanza lo del piso de ${sede}`, detalle: `${lista}. Lo del almacén se cobra cuando lo bajen en ${DONDE_SE_BAJA}; si no, ajusta la cantidad o quita la prenda.` }
+    ? { titulo: `No alcanza lo del piso de ${sede}`, detalle: `${lista}. Lo del almacén se cobra cuando lo cuelguen en ${DONDE_SE_BAJA}; si no, ajusta la cantidad o quita la prenda.` }
     : { titulo: `Ya no hay stock suficiente en ${sede}`, detalle: `${lista}. Ajusta la cantidad o quita la prenda.` };
 }
 
@@ -214,12 +214,12 @@ export function avisoQuedaronEnAlmacen(nombres: string[], sede: string): AvisoSt
   if (nombres.length === 1) {
     return {
       titulo: `${nombres[0]} no entró al ticket`,
-      detalle: `No se registró como bajada al piso: el sistema la tiene en el almacén de ${sede}. Si la tienes en la mano, agrégala: la bajada queda registrada.`,
+      detalle: `No se registró como colgada en el piso: el sistema la tiene en el almacén de ${sede}. Si la tienes en la mano, agrégala: queda registrada como colgada.`,
     };
   }
   return {
     titulo: `${nombres.length} prendas no entraron al ticket`,
-    detalle: `${nombres.join(", ")}. No se registraron como bajada al piso: el sistema las tiene en el almacén de ${sede}. Si las tienes en la mano, agrégalas: la bajada queda registrada.`,
+    detalle: `${nombres.join(", ")}. No se registraron como colgadas en el piso: el sistema las tiene en el almacén de ${sede}. Si las tienes en la mano, agrégalas: quedan registradas como colgadas.`,
   };
 }
 

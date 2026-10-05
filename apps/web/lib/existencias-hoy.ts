@@ -3,9 +3,9 @@ import type { AccionPiso, PisoDeTalla } from "./piso-plan";
 /* ====================================================================
    «Hoy»: qué pide cada talla, en UNA sola palabra para toda Existencias (Felipe, 2026-10-03)
 
-   El problema: la misma situación se decía de cinco maneras —el filtro «Acción» («Reponer a piso»), el filtro «Estado»
+   El problema: la misma situación se decía de cinco maneras —el filtro «Acción» («Colgar en el piso»), el filtro «Estado»
    («Por colgar»), la tarjeta («N tallas sin stock en piso»), el cajón («Faltan tallas en piso», «Piso al día») y la tabla
-   («Reponer a piso», «Mantener»)—, y quien filtraba «Por colgar» veía tarjetas que decían otra cosa. Además «Reponer a piso»
+   («Colgar en el piso», «Mantener»)—, y quien filtraba «Por colgar» veía tarjetas que decían otra cosa. Además «Colgar en el piso»
    juntaba tallas que se pueden bajar hoy con tallas cuyo almacén está vacío: la asesora filtraba para trabajar y parte de la
    lista no se podía hacer.
 

@@ -57,7 +57,7 @@ describe("tareasParaHoy", () => {
     const [t] = tareasParaHoy({ ...vacia, porColgar: { tallas: 1, unidades: 1, prendas: ["Casaca Ximena"] } });
     expect(t.tono).toBe("ambar");
     expect(t.texto).toBe("talla por colgar");
-    expect(t.detalle).toBe("1 guardada y ninguna colgada: empieza por Casaca Ximena. ¿Ya cuelgan? Regístralas al bajar.");
+    expect(t.detalle).toBe("1 guardada y ninguna colgada: empieza por Casaca Ximena. ¿Ya cuelgan? Regístralas al colgarlas.");
   });
 
   it("si la cola de ventas sin registrar falló, lo dice sin número (no la calla ni inventa un 0)", () => {

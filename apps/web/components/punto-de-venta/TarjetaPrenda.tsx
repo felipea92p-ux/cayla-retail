@@ -304,7 +304,7 @@ function CasillaTalla({
             {t.talla}
           </button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · si la tienes en la mano, tócala: se registra la bajada`}</TooltipContent>
+        <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · si la tienes en la mano, tócala: se registra como colgada`}</TooltipContent>
       </Tooltip>
     );
   if (t.stockAqui > 0)
