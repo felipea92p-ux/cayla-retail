@@ -105,9 +105,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
-  // `estado` va en la misma línea que la ruta: `scripts/focus/escanear.mjs` lee el registro línea por línea (si no, `pnpm focus` la da por
-  // «falta en el registro»).
-  "/inventario/por-regularizar": { estado: "no-aplica",
+  "/inventario/por-regularizar": {
+    estado: "no-aplica",
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
   "/inventario/resumen": PENDIENTE,

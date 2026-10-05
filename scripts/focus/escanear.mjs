@@ -124,10 +124,15 @@ export function alcanzables(grafo, raiz, excluidos = () => false) {
   return vistos;
 }
 
-/** El registro `lib/guia-de-foco-pantallas.ts` como `Map ruta → "aplicada" | "no-aplica" | "pendiente"` (lectura por texto: sin compilar TS). */
+/**
+ * El registro `lib/guia-de-foco-pantallas.ts` como `Map ruta → "aplicada" | "no-aplica" | "pendiente"` (lectura por texto: sin compilar TS).
+ * Una entrada puede venir en varias líneas (`estado` debajo de la clave, como la deja el formateador): se busca `estado` dentro de SU
+ * objeto (`[^}]`: hasta la llave que lo cierra, nunca en la entrada siguiente). Revisión 2026-10-05: con `[^\n]` el escáner daba por
+ * «falta en el registro» a dos entradas que la prueba web sí ve.
+ */
 export function parsearRegistro(texto) {
   const out = new Map();
-  for (const m of texto.matchAll(/^\s*"((?:\/|components\/|app\/)[^"]*)":\s*(PENDIENTE\b|\{[^\n]*?estado:\s*"(aplicada|no-aplica)")/gm)) {
+  for (const m of texto.matchAll(/^\s*"((?:\/|components\/|app\/)[^"]*)":\s*(PENDIENTE\b|\{[^}]*?estado:\s*"(aplicada|no-aplica)")/gm)) {
     out.set(m[1], m[2].startsWith("PENDIENTE") ? "pendiente" : m[3]);
   }
   return out;
