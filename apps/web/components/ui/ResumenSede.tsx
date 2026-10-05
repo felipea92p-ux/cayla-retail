@@ -33,6 +33,8 @@ export type CifraResumen = {
   /** Al lado del número, en letra de texto y taupe («quizá más»): la cifra puede ser más. */
   nota?: string;
   etiqueta: string;
+  /** Solo para `CifrasEnLinea` (celular): la etiqueta corta («colgadas»). Sin ella se usa `etiqueta`, en minúscula. */
+  corta?: string;
   icono: LucideIcon;
   /** La cifra se puede tocar y lleva ahí (Devoluciones: «Por aprobar» → `#por-aprobar`). */
   href?: string;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -26,7 +26,9 @@ import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
+import { DockExistencias } from "@/components/existencias/DockExistencias";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
+import type { AccionHacer } from "@/lib/existencias-hacer";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
@@ -190,6 +192,7 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
+  accionesHacer = [],
   listaDelDia = SIN_LISTA,
 }: {
   ubicacionId: string;
@@ -249,6 +252,9 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
+  /** Lo que «Hacer…» (el botón fijo del celular) ofrece a esta persona en esta sede: `accionesHacer` de `lib/existencias-hacer.ts`, que
+   *  calcula la página. Vacía = el botón no se dibuja. */
+  accionesHacer?: AccionHacer[];
   /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
    *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
   listaDelDia?: readonly string[];
@@ -685,6 +691,29 @@ export function InventarioPanel({
   const hrefEtiquetasMarcadas = urlEtiquetas(filasMarcadas);
   const prendasMarcadas = new Set(filasMarcadas.map((f) => clavePercha(f))).size;
 
+  // «Para hoy» se dibuja en dos sitios, uno por tamaño (rediseño 2026-10-04): en pantallas anchas arriba, como tarjeta; en el celular
+  // dentro de la tarjeta del buscador, justo debajo del campo, para que buscador, lo pendiente y la primera prenda entren juntos.
+  const paraHoy = (incrustado: boolean) => (
+    <ParaHoy
+      tareas={tareasHoy}
+      acciones={accionesHoy}
+      verCuales={verCualesHoy}
+      extra={
+        <>
+          {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
+            <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+              {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
+            </button>
+          )}
+          <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+            Resumen por categoría
+          </button>
+        </>
+      }
+      incrustado={incrustado}
+    />
+  );
+
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
     <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
@@ -693,23 +722,9 @@ export function InventarioPanel({
           que se dibujaban aunque dijeran 0 y ocupaban la primera pantalla sin decir por dónde empezar. «Por colgar» cuenta con la
           MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Reponer a piso hoy» contaba
           con otra (ADR-0326 §5). */}
-      <ParaHoy
-        tareas={tareasHoy}
-        acciones={accionesHoy}
-        verCuales={verCualesHoy}
-        extra={
-          <>
-            {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
-              <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-                {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
-              </button>
-            )}
-            <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-              Resumen por categoría
-            </button>
-          </>
-        }
-      />
+      {/* Pantallas anchas: la tarjeta de siempre, arriba. Celular: va dentro de la tarjeta del buscador (ranura `bajoBuscador`); sin
+          prendas no hay tarjeta de buscador y se dibuja aquí. */}
+      <div className={stock.length > 0 ? "max-sm:hidden" : undefined}>{paraHoy(false)}</div>
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
@@ -724,6 +739,7 @@ export function InventarioPanel({
         // píldoras en dos filas, chips de lo puesto, y en la fila del conteo «Copiar enlace», la vista y «Ordenar por».
         <div className={`px-4 pb-3 pt-4 sm:px-5 ${verDetalle ? "" : "card-cayla"}`}>
           <FiltrosExistencias
+            bajoBuscador={paraHoy(true)}
             busqueda={busqueda}
             onTeclear={teclear}
             onSoltar={soltarBusqueda}
@@ -1414,20 +1430,10 @@ export function InventarioPanel({
         </div>
       )}
 
-      {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios.
-          Es una acción de esta pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
-      {stock.length > 0 && filasMarcadas.length === 0 && !camara && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <button
-            type="button"
-            onClick={() => setCamara(true)}
-            className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-          >
-            <ScanLine size={19} aria-hidden />
-            Escanear prenda
-          </button>
-        </div>
-      )}
+      {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios — y, al lado,
+          «Hacer…» con los accesos que en pantallas anchas son la fila de la cabecera (rediseño 2026-10-04). Es una acción de esta
+          pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
+      {stock.length > 0 && filasMarcadas.length === 0 && !camara && <DockExistencias acciones={accionesHacer} onEscanear={() => setCamara(true)} />}
     </div>
   );
 }

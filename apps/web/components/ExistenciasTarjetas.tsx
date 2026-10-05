@@ -50,7 +50,7 @@ function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
   const texto = textoHoyDePrenda(q.tipo, q.n);
   return (
-    <span title={AYUDA_HOY[q.tipo]} className={`inline-flex min-h-[28px] items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium leading-tight ${t.caja}`}>
+    <span title={AYUDA_HOY[q.tipo]} className={`inline-flex min-h-[28px] items-center max-sm:min-h-6 gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium leading-tight ${t.caja}`}>
       <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ring-[3px] ${t.punto}`} />
       {texto}
     </span>
@@ -79,13 +79,13 @@ function EtiquetaTalla({ f, separa }: { f: FilaExistencias; separa: boolean }) {
   return (
     <li className="flex shrink-0 flex-col items-center" title={lectura} aria-label={lectura}>
       {/* El gancho que la cuelga del riel. */}
-      <span aria-hidden className="h-2.5 w-px bg-tinta/30" />
-      <span className={`relative flex min-w-[3.25rem] flex-col items-center rounded-[10px] border px-2 pb-1.5 pt-3 ${e.caja}`}>
+      <span aria-hidden className="h-2.5 w-px bg-tinta/30 max-sm:h-1.5" />
+      <span className={`relative flex min-w-[3.25rem] flex-col items-center rounded-[10px] border px-2 pb-1.5 pt-3 max-sm:min-w-[3rem] max-sm:pb-1 max-sm:pt-2.5 ${e.caja}`}>
         {/* El ojal de la etiqueta. */}
         <span aria-hidden className="absolute left-1/2 top-1 h-1 w-1 -translate-x-1/2 rounded-full bg-crema ring-1 ring-tinta/25" />
         <span className="text-[11px] font-semibold leading-none tracking-wide text-taupe">{nombre}</span>
-        <b className={`mt-1 font-display text-[22px] font-medium leading-none tabular-nums ${e.cifra}`}>{colgadas}</b>
-        {separa && <span className={`mt-1 text-[10.5px] leading-none tabular-nums ${e.atras}`}>{guardadas > 0 ? `+${guardadas}` : "—"}</span>}
+        <b className={`mt-1 font-display text-[22px] font-medium leading-none tabular-nums max-sm:mt-0.5 max-sm:text-xl ${e.cifra}`}>{colgadas}</b>
+        {separa && <span className={`mt-1 text-[10.5px] leading-none tabular-nums max-sm:mt-0.5 ${e.atras}`}>{guardadas > 0 ? `+${guardadas}` : "—"}</span>}
       </span>
     </li>
   );
@@ -158,10 +158,10 @@ export function ExistenciasTarjetas({
             }}
             tabIndex={-1}
             aria-label={etiqueta}
-            className="card-cayla @container flex min-w-0 flex-col p-4 outline-none transition-colors hover:border-tinta/20 focus-visible:ring-2 focus-visible:ring-tinta/30 max-sm:p-3.5"
+            className="card-cayla @container flex min-w-0 flex-col p-4 outline-none transition-colors hover:border-tinta/20 focus-visible:ring-2 focus-visible:ring-tinta/30 max-sm:p-3"
           >
             <div className="flex gap-3.5">
-              <div className="h-[100px] w-[75px] shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[88px] max-sm:w-[66px]">
+              <div className="h-[100px] w-[75px] shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[84px] max-sm:w-[63px]">
                 {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={150} height={200} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} conNombre />}
               </div>
               <div className="min-w-0 flex-1">
@@ -178,7 +178,7 @@ export function ExistenciasTarjetas({
                   </div>
                   <MenuAcciones etiqueta={`Más acciones de ${etiqueta}`} items={menu} />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Colores de ${p.referencia}`}>
+                <div className="mt-2 flex flex-wrap gap-1.5 max-sm:mt-1" role="group" aria-label={`Colores de ${p.referencia}`}>
                   {m.colores.map((h) => {
                     const propia = h.clave === p.clave;
                     return (
@@ -198,7 +198,7 @@ export function ExistenciasTarjetas({
                   })}
                 </div>
                 {/* Las cifras del color que se ve, en una línea: lo que cobra la caja primero. */}
-                <p className="mt-2 text-[12.5px] leading-none text-taupe tabular-nums">
+                <p className="mt-2 text-[12.5px] leading-none text-taupe tabular-nums max-sm:mt-1">
                   {separa ? (
                     <>
                       <b className="font-semibold text-tinta">{colgadas}</b> {colgadas === 1 ? "colgada" : "colgadas"}
@@ -216,7 +216,7 @@ export function ExistenciasTarjetas({
 
             {/* El riel y, a su lado cuando la tarjeta tiene ancho (`@container`, no la ventana), lo que la prenda pide y su botón; en una
                 tarjeta angosta (celular) van debajo. Con muchas tallas el riel se desliza de lado dentro de la tarjeta. */}
-            <div className="mt-3.5 flex flex-col gap-3 @min-[30rem]:flex-row @min-[30rem]:items-end">
+            <div className="mt-3.5 flex flex-col gap-3 max-sm:mt-2.5 max-sm:gap-2 @min-[30rem]:flex-row @min-[30rem]:items-end">
               <div className="relative min-w-0 flex-1">
                 <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] rounded-full bg-tinta/20" />
                 {/* Con más tallas que ancho, el borde derecho se desvanece (solo sobre el aire de `pr-6`): se nota que hay más y, al
@@ -246,7 +246,7 @@ export function ExistenciasTarjetas({
                     type="button"
                     onClick={(e) => onReponer(p, e.currentTarget)}
                     title="Bajar prendas del almacén al piso, de todos los colores"
-                    className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5"
+                    className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5 max-sm:-my-1.5"
                   >
                     <IconoPercha aria-hidden className="h-4 w-4" strokeWidth={1.6} />
                     Reponer
