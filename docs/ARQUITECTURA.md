@@ -300,8 +300,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
-  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migración `20261004213000`: lo libre en piso y almacén, lo vendido
-  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color —lo que el cliente
+  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migraciones `20261004213000` y `20261005160000`: lo libre en piso y almacén, lo vendido
+  escaneado y anotado «sin registrar» en 14 días —la anotada cuenta mientras no tenga prenda: pendiente o cerrada sin prenda,
+  ADR-0334— por prenda y por categoría × talla × familia de color —lo que el cliente
   se llevó: un cambio cuenta como la prenda nueva, sin devoluciones aprobadas ni liquidaciones de dañadas—, lo anotado a mano
   hoy y ayer por categoría × talla × color (el reloj rápido de lo que no tiene prenda), las curvas de
   tallas y la fecha del último cuadre del piso —`cuadres_piso`, actividad 3; sin ella, lo que manda a bajar queda «En pausa»,
