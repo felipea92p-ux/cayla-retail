@@ -57,3 +57,6 @@ Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar` (entran al dic
 - [ ] **Deuda anterior que `pnpm focus` vuelve a señalar:** el modal «Regularizar prenda» (`PorRegularizarLista.tsx`) sigue `pendiente` en el registro de la guía de
   foco; lo toca la sesión de ADR-0328 (`inventory-module-redesign`), por eso no se tocó aquí.
 - [ ] **Contrato para el motor del piso (`lib/piso-plan.ts`):** la velocidad cuenta `pendiente` y `cerrada_sin_prenda`. Avisado en `SESIONES-ACTIVAS.md` y en ADR-0328.
+- [ ] **Regla de orden con el rediseño de Inventario (PR #787, `fn_piso_plan_lectura`):** no cerrar la cola de AQP antes de que ese motor cuente las cerradas, o la velocidad de AQP cae a 0 ese día. El PR que se fusione segundo comprueba el contrato.
+- [ ] **Al refrescar el volcado de producción** (`pnpm datos:generar:produccion`, tras pegar la 4 y la 5): `cierres_cola_arranque` y `cola_arranque_plazo` ya tienen pájaro en `scripts/datos/aviario.mjs` (el mismo que `prendas_por_regularizar`); correr `pnpm datos:aviario` y commitear `AVIARIO.md`.
+- [x] **Prueba SQL `responsable_omitido.mjs`:** su total pasa de 31 a 34 (mis 3 acciones: cerrar, reabrir, identificar); la detectó la sesión de ADR-0328 en su revisión.

@@ -105,6 +105,10 @@ hoy no las nombra: queda abierto (abajo).
 veces (a diferencia de una `regularizada`, que ya tiene su salida `venta` en `movimientos`). Si solo se cuentan las pendientes, cerrar la cola
 de AQP la deja «ciega» justo cuando más vende sin registrar. El filtro es `estado in ('pendiente', 'cerrada_sin_prenda')`.
 
+**Regla de orden (acordada con la sesión del rediseño de Inventario, 2026-10-04):** su `fn_piso_plan_lectura` contará las dos al fusionarse. **No cerrar la cola de AQP
+antes de que el motor del piso cuente las cerradas**: si el motor solo contara pendientes, la velocidad de AQP caería a 0 ese día. Hoy no hay ese motor (Frescura y Análisis ven
+1 de cada 141 ventas de AQP), así que cerrar antes no pierde nada que exista; el riesgo aparece al fusionar el motor, y el PR que se fusione segundo comprueba el contrato.
+
 ## Cómo se verifica
 
 - `pnpm pruebas:cola-arranque`: 44 casos SQL con ROLLBACK (todo-o-nada, solo líder, plazo inclusivo, corte, cerrada bloqueada, anular,
