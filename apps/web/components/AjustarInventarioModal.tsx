@@ -7,6 +7,7 @@ import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-es
 import { avisar } from "@/components/ui/Avisos";
 import { useRecordatorioEtiquetas } from "@/components/ficha-producto/RecordatorioEtiquetas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
+import { categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
 import {
@@ -399,7 +400,7 @@ export function AjustarInventarioModal({
       alCerrarEnfocar={alCerrarEnfocar}
       ancho="max-w-md"
       bloqueado={enviando}
-      lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} /> : undefined}
+      lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} {...categoriaDe(prenda)} /> : undefined}
     >
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.

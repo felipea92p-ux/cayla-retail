@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005110000_danadas_reportar_y_se_arreglo.sql — CAYLA V2 · ADR-0328, actividad 10 (Felipe, 2026-10-04)
+-- 20261005140000_danadas_reportar_y_se_arreglo.sql — CAYLA V2 · ADR-0328, actividad 10 (Felipe, 2026-10-04)
 -- Dañadas: una prenda manchada se REPORTA desde Existencias y, si el arreglo es menor, «Se arregló» la devuelve al almacén.
 --
 -- EL PROBLEMA PRIMERO. La cuarentena (sububicación 'cuarentena' + `prendas_danadas`, ADR-0071) solo aceptaba prendas que

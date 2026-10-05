@@ -11,6 +11,7 @@
 // «Para decidir hoy» con su origen y su enlace, y el orden («primero lo que más cuesta si se deja pasar»).
 
 import { leerCuenta, type CuentaDinero, type SinCuenta } from "./cuentas-dinero-reglas";
+import { avisoAntesDelCorte, leerInicioFinanzas, mesAntesDelCorte, mesDelCorte } from "./finanzas-arranque-reglas";
 import { diasHasta, leerFilaPorPagar, textoVence, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import {
   etiquetaSemana,
@@ -95,6 +96,12 @@ export type ResumenFinanzas = {
   mes: string;
   /** «2026-08»: el último mes completo (utilidad, punto de equilibrio, cierre). */
   mesAnterior: string;
+  /**
+   * «2026-10-01» si Finanzas cuenta desde un día POSTERIOR al fin de `mesAnterior` (ADR-0332): ese mes no se mide, así que
+   * `resultadosAnterior` y `cierre` vuelven «no aplica» y las frases lo explican en vez de mostrar ceros. Null = sin corte
+   * o el último mes completo ya cuenta.
+   */
+  antesDelCorte: string | null;
   lider: boolean;
   ver: VerResumen;
   unidades: UnidadResumen[];
@@ -131,14 +138,25 @@ function parte<T>(v: unknown, leer: (d: Fila) => T): Parte<T> {
 
 const TIPOS_VER: readonly TipoVer[] = ["todas", "tienda", "taller", "almacen", "empresa"];
 
-/** El JSON de `fn_resumen_finanzas` → tipos de la pantalla. */
+/**
+ * El JSON de `fn_resumen_finanzas` → tipos de la pantalla. Si Finanzas cuenta desde un día posterior al fin del último mes
+ * completo (ADR-0332), esa utilidad y ese cierre no existen: se leen como «no aplica» y `antesDelCorte` dice desde cuándo.
+ */
 export function leerResumen(data: unknown): ResumenFinanzas {
+  const r = leerResumenBruto(data);
+  const inicio = leerInicioFinanzas(obj(obj(data).parametros));
+  if (!inicio || !mesAntesDelCorte(r.mesAnterior, inicio)) return r;
+  return { ...r, antesDelCorte: inicio, resultadosAnterior: { estado: "no_aplica" }, cierre: { estado: "no_aplica" } };
+}
+
+function leerResumenBruto(data: unknown): ResumenFinanzas {
   const d = obj(data);
   const v = obj(d.ver);
   return {
     hoy: String(d.hoy ?? "").slice(0, 10),
     mes: aMes(d.mes),
     mesAnterior: aMes(d.mes_anterior),
+    antesDelCorte: null,
     lider: d.lider === true,
     ver: {
       ubicacionId: txt(v.ubicacion_id),
@@ -343,6 +361,7 @@ function fraseDiasDeCaja(r: ResumenFinanzas): Frase {
 
 function fraseEquilibrio(r: ResumenFinanzas, quien: string, holgura: number): Frase | null {
   const origen = "Reportes ▸ Estado de resultados";
+  if (r.antesDelCorte) return { clave: "equilibrio", n: "—", t: `Cuándo ${quien} cubre sus costos`, d: avisoAntesDelCorte(r.antesDelCorte), tono: "pizarra", origen };
   if (r.resultadosAnterior.estado !== "ok") return null;
   const f = filaDeVer(r.resultadosAnterior.datos, r.ver);
   const mes = mesNombre(r.mesAnterior);
@@ -491,6 +510,9 @@ function sumaTipos(cs: readonly CuentaDinero[], tipos: readonly CuentaDinero["ti
 
 export function cifrasResumen(r: ResumenFinanzas): Cifra[] {
   const mesAnt = mesNombre(r.mesAnterior);
+  // Las cifras de «el último mes completo» hablan del primer mes que cuenta cuando el anterior quedó antes del corte; el IGV
+  // sigue con el mes anterior de verdad (se declara a SUNAT aunque Finanzas arranque después).
+  const mesMedido = r.antesDelCorte ? mesNombre(mesDelCorte(r.antesDelCorte)) : mesAnt;
   const out: Cifra[] = [];
 
   // 1 · Lo vendido en el mes (F5, sin IGV).
@@ -577,11 +599,12 @@ export function cifrasResumen(r: ResumenFinanzas): Cifra[] {
   const fAnt = filaDeVer(erAnt, r.ver);
   out.push({
     clave: "utilidad",
-    etiqueta: `Utilidad de ${mesAnt}`,
+    etiqueta: `Utilidad de ${mesMedido}`,
     valor: r.resultadosAnterior.estado === "ok" ? soles(fAnt?.resultado ?? 0) : "—",
     rojo: (fAnt?.resultado ?? 0) < 0,
-    detalle:
-      r.resultadosAnterior.estado !== "ok"
+    detalle: r.antesDelCorte
+      ? "Se mide cuando el mes termine"
+      : r.resultadosAnterior.estado !== "ok"
         ? (motivoAusencia(r.resultadosAnterior) ?? "")
         : fAnt && fAnt.ventas > 0
           ? `Margen bruto ${porcentaje(fAnt.margen, fAnt.ventas)}`
@@ -627,7 +650,7 @@ export function cifrasResumen(r: ResumenFinanzas): Cifra[] {
   } else {
     out.push({
       clave: "gastos",
-      etiqueta: `Gastos de ${mesAnt}`,
+      etiqueta: `Gastos de ${mesMedido}`,
       valor: r.resultadosAnterior.estado === "ok" ? soles(fAnt?.gastos ?? 0) : "—",
       detalle: r.ver.tipo === "taller" ? "No entran al costo de las prendas" : "Lo pagan las tiendas con su margen",
       origen: "Estado de resultados (F5)",

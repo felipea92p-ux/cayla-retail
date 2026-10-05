@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   accesosAlmacen,
@@ -11,6 +13,7 @@ import {
   etiquetaHace,
   etiquetaLlegada,
   etiquetaSedeDeOrigen,
+  existenciasDeAlmacen,
   filtrarNuevos,
   fuentesDeAlmacen,
   inicioDeAyerLima,
@@ -23,8 +26,15 @@ import {
   type FilaNuevoCruda,
   type NuevoProducto,
   type OrigenDeProducto,
+  colorUnico,
 } from "./inicio-almacen-reglas";
 import type { ClaveModulo } from "./modulos";
+import { accionHoyPorVariante } from "./existencias-recomendaciones";
+import { filtrarExistencias, filtrosDeUrl, indiceDeExistencias } from "./existencias-filtros";
+import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy } from "./existencias-para-hoy";
+import type { FilaPrenda } from "./existencias-prendas";
+import { avisosInicio } from "./inicio-avisos";
+import { politicaDe } from "./politica-operativa-inventario";
 
 // 10:42 a. m. en Lima del miércoles 30 de setiembre de 2026 (UTC−5).
 const AHORA = Date.parse("2026-09-30T15:42:00Z");
@@ -387,22 +397,138 @@ describe("accesosAlmacen", () => {
 
 describe("fuentesDeAlmacen", () => {
   const fotos = { activos: 10, conFoto: 3 };
+  const porColgar = { tallas: 7, unidades: 12, prendas: 3 };
   it("pasa cada cola con su cifra", () => {
-    expect(fuentesDeAlmacen({ porRecibir: { facturas: 2, primera: "F001-1 · Andina" }, existencias: { enAlmacen: 50, modelosParaReponer: 5 }, fotos, porCompletar: 2 })).toEqual({
+    expect(fuentesDeAlmacen({ porRecibir: { facturas: 2, primera: "F001-1 · Andina" }, existencias: { enAlmacen: 50, porColgar }, fotos, porCompletar: 2 })).toEqual({
       porRecibir: { facturas: 2, primera: "F001-1 · Andina" },
-      reponer: 5,
+      porColgar,
       fotosQueFaltan: 7,
       porCompletar: 2,
     });
   });
   it("lo que la cuenta no ve no existe (undefined) y lo que falló es «sin leer» (null): nunca un cero", () => {
-    expect(fuentesDeAlmacen({ fotos: null, porCompletar: null })).toEqual({ porRecibir: undefined, reponer: undefined, fotosQueFaltan: null, porCompletar: null });
-    expect(fuentesDeAlmacen({ existencias: null, fotos, porCompletar: 0 }).reponer).toBeNull();
+    expect(fuentesDeAlmacen({ fotos: null, porCompletar: null })).toEqual({ porRecibir: undefined, porColgar: undefined, fotosQueFaltan: null, porCompletar: null });
+    expect(fuentesDeAlmacen({ existencias: null, fotos, porCompletar: 0 }).porColgar).toBeNull();
   });
-  it("una sede que no separa piso y almacén no tiene «Reponer a piso»", () => {
-    expect(fuentesDeAlmacen({ existencias: { enAlmacen: null, modelosParaReponer: 0 }, fotos, porCompletar: 0 }).reponer).toBeUndefined();
+  it("una sede que no separa piso y almacén no tiene «Por colgar»", () => {
+    expect(fuentesDeAlmacen({ existencias: { enAlmacen: null, porColgar: { tallas: 0, unidades: 0, prendas: 0 } }, fotos, porCompletar: 0 }).porColgar).toBeUndefined();
   });
   it("las fotos que faltan nunca son negativas", () => {
     expect(fuentesDeAlmacen({ fotos: { activos: 3, conFoto: 3 }, porCompletar: 0 }).fotosQueFaltan).toBe(0);
+  });
+});
+
+describe("la categoría y el color de un producto nuevo sin foto (ADR-0333)", () => {
+  it("armarNuevos lleva nombre, prefijo y familia de la categoría; sin ella, null", () => {
+    const [con, sin] = armarNuevos(
+      [fila("a", "2026-09-30T14:00:00Z", { categoria: { nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" } }), fila("b", "2026-09-30T13:00:00Z")],
+      new Map(),
+      null,
+      AHORA
+    );
+    expect(con).toMatchObject({ categoria: "Camisas y Blusas", categoriaPrefijo: "CMS", categoriaFamilia: "indumentaria" });
+    expect(sin).toMatchObject({ categoria: null, categoriaPrefijo: null, categoriaFamilia: null });
+  });
+
+  it("colorUnico: el color solo si el producto tiene uno; con varios, ninguno (no se afirma un color que la prenda no tiene)", () => {
+    expect(colorUnico([{ hex: "#6b2a35" }])).toBe("#6b2a35");
+    expect(colorUnico([{ hex: "#6b2a35" }, { hex: "#111111" }])).toBeNull();
+    expect(colorUnico([])).toBeNull();
+    // Un único color que no es un color (Estampado, Multicolor) no tiene hex.
+    expect(colorUnico([{ hex: null }])).toBeNull();
+  });
+});
+
+// «Por colgar» del Inicio de Almacén = «Para hoy» de Existencias (2026-10-04, ADR-0331). Hasta ese día el Inicio contaba MODELOS con
+// alguna talla que pedía reponer, agotadas incluidas, y decía «Sube 4 modelos al piso» donde Existencias decía «3 tallas por
+// colgar». La prueba arma UN stock de sede, lo pasa por los dos caminos que usa la web (el del servidor del Inicio y el de la
+// pantalla de Existencias) y exige el mismo número en el aviso, en el bloque, en «Para hoy» y en la lista a la que lleva el aviso.
+describe("existenciasDeAlmacen: el Inicio dice lo mismo que «Para hoy» de Existencias", () => {
+  let n = 0;
+  const talla = (referencia: string, color: string, t: string | null, piso: number | null, almacen: number | null, extra: Partial<FilaPrenda> = {}) =>
+    ({
+      varianteId: `v${++n}`, productoId: referencia, referencia, sku: `SKU-${n}`, talla: t, color, colorHex: null, fotoUrl: null,
+      codigosBarras: [], categoria: null, pisoDisponible: piso, almacenDisponible: almacen, disponible: (piso ?? 0) + (almacen ?? 0),
+      apartado: 0, danado: 0, enTransito: 0, accionHoy: null, marca: null, ...extra,
+    }) as FilaPrenda & { categoria: string | null };
+
+  // Una tienda de verdad: tallas por colgar, colgadas, agotadas (con y sin traslado en camino) y una sin talla.
+  const crudo = [
+    talla("Blusa Emma", "Azul", "S", 0, 3), // por colgar
+    talla("Blusa Emma", "Azul", "M", 0, 1), // por colgar
+    talla("Blusa Emma", "Azul", "L", 2, 5), // colgada: nada que hacer
+    talla("Blusa Emma", "Negro", "M", 0, 0), // agotada: sin stock atrás (el caso que el Inicio contaba de más)
+    talla("Blusa Emma", "Negro", "L", 0, 0, { enTransito: 2 }), // agotada y viene en camino
+    talla("Pantalón Carla", "Beige", "28", 0, 2, { apartado: 1 }), // por colgar (lo libre ya viene neto de apartados)
+    talla("Casaca Nina", "Rojo", "S", 0, 0), // agotada
+    talla("Polo Rita", "Blanco", null, 1, 0), // colgada, sin talla
+  ];
+  // Lo mismo que hacen el servidor del Inicio (`getExistenciasDeAlmacen`) y la página de Existencias: «Acción hoy» con la política de la sede.
+  const accion = accionHoyPorVariante(crudo, politicaDe("sede-de-prueba"));
+  const stock = crudo.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null }));
+
+  const inicio = existenciasDeAlmacen(stock);
+  const paraHoy = tareasParaHoy({
+    separa: true,
+    porColgar: entradaPorColgar(porColgarDeLaSede(stock)),
+    sinStockAtras: { tallas: 0 },
+    sinRegistrar: null,
+    danadas: 0,
+    resuelveDanadas: false,
+    apartados: { vencidos: 0 },
+    enCamino: { traslados: 0, atrasados: 0, proximaLlegada: null },
+  }).find((t) => t.tipo === "por_colgar");
+  const aviso = avisosInicio(fuentesDeAlmacen({ existencias: inicio, fotos: null, porCompletar: null })).find((a) => a.clave === "reponer");
+
+  it("el bloque y el aviso del Inicio cuentan las mismas tallas que «Para hoy»", () => {
+    expect(paraHoy?.cifra).toBe(3);
+    expect(inicio.porColgar.tallas).toBe(paraHoy?.cifra);
+    expect(aviso?.cantidad).toBe(paraHoy?.cifra);
+  });
+
+  it("el enlace del aviso abre la lista «Hoy ▸ Por colgar» con esas mismas tallas", () => {
+    const [ruta, consulta] = aviso!.href.split("?");
+    expect(ruta).toBe("/inventario");
+    const lista = filtrarExistencias(indiceDeExistencias(stock), filtrosDeUrl(consulta ?? "", { separa: true })).filas;
+    expect(lista.length).toBe(inicio.porColgar.tallas);
+  });
+
+  it("no propone colgar lo agotado: solo prendas con algo guardado, y las unidades son las de «Para hoy»", () => {
+    expect(inicio.primeras.map((p) => [p.referencia, p.color, p.tallas])).toEqual([
+      ["Blusa Emma", "Azul", ["S", "M"]],
+      ["Pantalón Carla", "Beige", ["28"]],
+    ]);
+    expect(inicio.porColgar).toEqual({ tallas: 3, unidades: 6, prendas: 2 });
+    expect(paraHoy?.detalle).toMatch(/^6 guardadas y ninguna colgada/);
+  });
+
+  it("habla como Existencias: «Por colgar» y «Bajar al piso», nunca «Sube … al piso»", () => {
+    expect(aviso?.titulo).toBe("Por colgar");
+    expect(aviso?.ahora).toBe("Baja al piso 3 tallas por colgar");
+    expect(aviso?.ahora).not.toMatch(/sube/i);
+    // La misma frase honesta que «Para hoy»: si ya cuelgan y el sistema las cree guardadas, se registran al bajar.
+    expect(aviso?.detalle).toBe("6 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.");
+  });
+
+  it("«Bajar al piso» llega con las tallas por colgar ya en la lista", () => {
+    const lineas = new URLSearchParams(inicio.hrefBajar.split("?")[1] ?? "").get("lineas") ?? "";
+    const enLista = lineas.split(",").map((l) => l.split(":")[0]);
+    expect(inicio.hrefBajar.startsWith("/inventario/bajar")).toBe(true);
+    expect(new Set(enLista)).toEqual(new Set(porColgarDeLaSede(stock).filas.map((f) => f.varianteId)));
+  });
+
+  // Lo de arriba prueba la regla; esto prueba que las dos pantallas la usan. Si Existencias vuelve a contar «por colgar» dentro del
+  // componente (como hasta el 2026-10-04), las pruebas de arriba seguirían en verde y los números volverían a separarse.
+  it("Existencias y el Inicio cuentan con la misma función, no cada uno por su lado", () => {
+    const fuente = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
+    expect(fuente("components/InventarioPanel.tsx")).toMatch(/porColgarDeLaSede\(stock\)/);
+    expect(fuente("components/InventarioPanel.tsx")).toMatch(/porColgar: entradaPorColgar\(/);
+    expect(fuente("lib/inicio-almacen.ts")).toMatch(/existenciasDeAlmacen\(/);
+  });
+
+  it("en una sede que no separa piso y almacén no hay «Por colgar» (el Taller)", () => {
+    const taller = existenciasDeAlmacen([talla("Blusa Emma", "Azul", "M", null, null)]);
+    expect(taller.enAlmacen).toBeNull();
+    expect(fuentesDeAlmacen({ existencias: taller, fotos: null, porCompletar: null }).porColgar).toBeUndefined();
   });
 });

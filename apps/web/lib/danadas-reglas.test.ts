@@ -42,7 +42,7 @@ import { sePuedeConfirmar } from "./guia-campos";
 
 // La migración es la fuente: si cambia el nombre o los parámetros de una RPC, la pantalla se entera aquí y no en producción.
 const MIGRACION = readFileSync(
-  join(__dirname, "..", "..", "..", "supabase", "migrations", "20261005110000_danadas_reportar_y_se_arreglo.sql"),
+  join(__dirname, "..", "..", "..", "supabase", "migrations", "20261005140000_danadas_reportar_y_se_arreglo.sql"),
   "utf8"
 ).replace(/--[^\n]*/g, "");
 

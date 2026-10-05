@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de concurrencia de ADR-0328, actividad 10 — Dañadas (`20261005110000_danadas_reportar_y_se_arreglo.sql`) con dos
+ * Prueba de concurrencia de ADR-0328, actividad 10 — Dañadas (`20261005140000_danadas_reportar_y_se_arreglo.sql`) con dos
  * conexiones reales y COMMIT.
  *
  * POR QUÉ APARTE. `danadas_reportar_arreglar.mjs` corre todo en ROLLBACK, y una transacción sin commit es invisible para la otra:

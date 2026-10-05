@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Prueba de ADR-0328, actividad 10 — Dañadas: reportar desde Existencias y «Se arregló»
- * (`20261005110000_danadas_reportar_y_se_arreglo.sql`).
+ * (`20261005140000_danadas_reportar_y_se_arreglo.sql`).
  *
  * QUÉ CUBRE
  *   D1 forma: una sola versión de cada función con la firma del contrato; anon no las ejecuta y authenticated sí;
@@ -45,7 +45,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = "20261005110000_danadas_reportar_y_se_arreglo.sql";
+const MIGRACION = "20261005140000_danadas_reportar_y_se_arreglo.sql";
 const TEXTO_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", MIGRACION), "utf8");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)

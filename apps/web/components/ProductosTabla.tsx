@@ -13,6 +13,7 @@ import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { describirRotacion } from "@/lib/reorden-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import {
@@ -450,7 +451,7 @@ function FilaAncha({
             >
               <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
             </button>
-            <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} />
+            <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
             <div className={`min-w-0 ${fila.descontinuado ? "opacity-70" : ""}`}>
               <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
                 {p.referencia}
@@ -612,7 +613,7 @@ function TarjetaFila({
         <div className="pt-1">
           <CasillaMarca marcada={marcada} onCambiar={onMarcar} etiqueta={`Marcar ${p.referencia}`} />
         </div>
-        <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[62px] w-[50px] ${fila.descontinuado ? "opacity-60" : ""}`} />
+        <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[62px] w-[50px] ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>

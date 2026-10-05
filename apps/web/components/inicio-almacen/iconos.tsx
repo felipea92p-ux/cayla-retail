@@ -1,5 +1,5 @@
 // Íconos del Inicio de Almacén: el mismo trazo de 1.6 que el lateral y el resto del Inicio (los de `AppShell` son privados de
-// ese archivo). Un solo lugar para los trazos, y `PrendaSinFoto`, la silueta punteada de «esta prenda no tiene foto».
+// ese archivo). Un solo lugar para los trazos.
 
 const TRAZOS = {
   plus: "M12 5v14M5 12h14",
@@ -27,15 +27,6 @@ export function Ico({ clave, className = "" }: { clave: ClaveIco; className?: st
   return (
     <svg viewBox="0 0 24 24" className={`ia-ic ${className}`} aria-hidden>
       <path d={TRAZOS[clave]} />
-    </svg>
-  );
-}
-
-/** La silueta (una blusa) punteada que ocupa el lugar de una foto que todavía no existe. */
-export function PrendaSinFoto({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 120" className={`ia-g ${className}`} aria-hidden>
-      <path d="M33 12 L44 8 Q50 19 56 8 L67 12 L90 34 L80 48 L70 41 L70 106 Q50 112 30 106 L30 41 L20 48 L10 34 Z" />
     </svg>
   );
 }

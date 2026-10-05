@@ -5,7 +5,7 @@
  * EL PROBLEMA. Una prenda manchada que se descubría en el perchero no tenía puerta: la cuarentena solo recibía lo que volvía
  * por una devolución o un cambio, así que terminaba como ajuste «Merma» o seguía colgada y la caja la cobraba. Y de la
  * cuarentena no se salía «arreglada»: un botón descosido se perdía como merma. `reportar_danada` y `arreglar_prenda_danada`
- * (`20261005110000_danadas_reportar_y_se_arreglo.sql`) son las dos puertas; esta pantalla solo las llama.
+ * (`20261005140000_danadas_reportar_y_se_arreglo.sql`) son las dos puertas; esta pantalla solo las llama.
  *
  * CONTRATO.
  *   PROMETE: decir qué falta para reportar (la talla, dónde estaba, cuántas, qué tiene) con las MISMAS reglas que la base

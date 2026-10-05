@@ -18,7 +18,8 @@
    ==================================================================== */
 
 import { MAX_ROJO_POR_PANTALLA } from "@cayla-retail/shared";
-import { TEXTO_HOY } from "./existencias-hoy";
+import { hoyDeTalla, TEXTO_HOY } from "./existencias-hoy";
+import { agruparPorPrenda, ordenarPorUrgencia, type FilaPrenda, type PrendaAgrupada } from "./existencias-prendas";
 
 export type TipoTareaHoy =
   | "por_colgar"
@@ -59,6 +60,36 @@ export type EntradaParaHoy = {
 };
 
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
+
+/** Lo «por colgar» de TODA la sede (no lo filtrado), con la regla de «Hoy» (`hoyDeTalla`). */
+export type PorColgarDeSede<F extends FilaPrenda> = {
+  /** Cuántas tallas (variantes) no tienen ninguna libre en el piso y sí en el almacén. */
+  tallas: number;
+  /** Lo libre en el almacén de esas tallas: lo que se podría colgar hoy. */
+  unidades: number;
+  /** Esas tallas, en el orden de la sede (lo que se manda a «Bajar al piso»). */
+  filas: F[];
+  /** Agrupadas por prenda (modelo + color), la que más tallas tiene por colgar primero. */
+  prendas: PrendaAgrupada<F>[];
+};
+
+/** La ÚNICA cuenta de «por colgar» de una sede: de aquí salen la fila de «Para hoy» en Existencias y el aviso y el bloque del
+ *  Inicio de Almacén. Hasta el 2026-10-04 el Inicio contaba por su lado (modelos con alguna talla que pedía reponer, agotadas
+ *  incluidas) y su número no coincidía con el de Existencias: con una sola función, no pueden discrepar. */
+export function porColgarDeLaSede<F extends FilaPrenda>(stock: readonly F[]): PorColgarDeSede<F> {
+  const filas = stock.filter((f) => hoyDeTalla(f) === "por_colgar");
+  return {
+    tallas: filas.length,
+    unidades: filas.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
+    filas,
+    prendas: ordenarPorUrgencia(agruparPorPrenda(filas)),
+  };
+}
+
+/** Lo que la fila «por colgar» de «Para hoy» lee de esa cuenta: las cifras y los nombres con los que empezar. */
+export function entradaPorColgar(p: PorColgarDeSede<FilaPrenda>): EntradaParaHoy["porColgar"] {
+  return { tallas: p.tallas, unidades: p.unidades, prendas: p.prendas.map((x) => x.referencia) };
+}
 
 /** «Pantalón Carla, Blusa Emma y 3 más»: los nombres con los que empezar, sin alargar la línea. */
 export function nombresConResto(nombres: readonly string[], mostrar = 2): string {

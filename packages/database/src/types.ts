@@ -6109,7 +6109,7 @@ export type Database = {
         }
         Returns: number
       }
-      // ADR-0328 act. 10 (20261005110000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
+      // ADR-0328 act. 10 (20261005140000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
       arreglar_prenda_danada: {
         Args: { p_id: string; p_nota: string; p_token: string }
         Returns: Json
@@ -8416,7 +8416,7 @@ export type Database = {
         }
         Returns: string
       }
-      // ADR-0328 act. 10 (20261005110000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena).
+      // ADR-0328 act. 10 (20261005140000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena).
       reportar_danada: {
         Args: {
           p_cantidad: number

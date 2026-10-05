@@ -34,6 +34,10 @@ export type FilaStock = {
   colorHex: string | null;
   referencia: string;
   categoria: string | null;
+  /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
+   *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   codigosBarras: string[];
   /** La foto principal del PRODUCTO (`producto_fotos.es_principal`; si
    *  ninguna está marcada, la de menor `orden`). Null si el producto no
@@ -90,7 +94,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
        variante:variantes!inner (
          sku, codigo, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
        )`
     )
@@ -121,7 +125,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
                variante:variantes!inner (
                  sku, codigo, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
-                 producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+                 producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
                )`
             )
@@ -148,6 +152,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       colorHex: f.variante?.color?.hex ?? null,
       referencia: f.variante?.producto?.referencia ?? "",
       categoria: f.variante?.producto?.categoria?.nombre ?? null,
+      categoriaPrefijo: f.variante?.producto?.categoria?.prefijo ?? null,
+      categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
     });
@@ -272,7 +278,7 @@ export async function getExistencias(
            variante:variantes (
              sku, codigo, talla:tallas ( valor ),
              color:colores ( nombre, hex ),
-             producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+             producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
              codigos_barras ( codigo )
            )`
         )
@@ -331,6 +337,8 @@ export async function getExistencias(
       colorHex: item.variante?.color?.hex ?? null,
       referencia: item.variante?.producto?.referencia ?? "",
       categoria: item.variante?.producto?.categoria?.nombre ?? null,
+      categoriaPrefijo: item.variante?.producto?.categoria?.prefijo ?? null,
+      categoriaFamilia: item.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (item.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(item.variante?.producto?.producto_fotos),
       total: 0,
@@ -408,7 +416,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       .order("id")
       .range(desde, hasta)
   );
-  // TEMPORAL — mientras `20261005110000_danadas_reportar_y_se_arreglo.sql` no esté pegada en producción: esta lectura va en el
+  // TEMPORAL — mientras `20261005140000_danadas_reportar_y_se_arreglo.sql` no esté pegada en producción: esta lectura va en el
   // `Promise.all` de /inventario y `exigir` lanza, así que una web publicada antes que el SQL tumbaría Existencias ENTERA, no solo
   // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
   // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón

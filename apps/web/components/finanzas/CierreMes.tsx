@@ -14,6 +14,7 @@ import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/com
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
+import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import {
   avisosPendientes,
   bajadaUnidad,
@@ -49,19 +50,36 @@ const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as stri
 
 type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
 
-export function CierreMes({ panel, falla, unidadPedida }: { panel: PanelCierre | null; falla: string | null; unidadPedida: string | null }) {
+/**
+ * `inicioFinanzas` (ADR-0332): desde cuándo cuenta Finanzas; los meses anteriores no se ofrecen para cerrar (cerrar un mes que no
+ * se cuenta congelaría un diario vacío y bloquearía mover el corte). `avisoCorte`: el mes que se pidió es anterior al corte;
+ * en vez de un panel vacío se dice por qué.
+ */
+export function CierreMes({
+  panel,
+  falla,
+  unidadPedida,
+  inicioFinanzas = null,
+  avisoCorte = null,
+}: {
+  panel: PanelCierre | null;
+  falla: string | null;
+  unidadPedida: string | null;
+  inicioFinanzas?: string | null;
+  avisoCorte?: string | null;
+}) {
   if (!panel) {
     return (
       <div className="space-y-6">
         <CabeceraPantalla sobretitulo="Finanzas · Cierre de mes" titulo="Cierre de mes" />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla ?? "No se pudo leer el cierre de mes."}</p>
+        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{avisoCorte ?? falla ?? "No se pudo leer el cierre de mes."}</p>
       </div>
     );
   }
-  return <Pantalla panel={panel} unidadPedida={unidadPedida} />;
+  return <Pantalla panel={panel} unidadPedida={unidadPedida} inicioFinanzas={inicioFinanzas} />;
 }
 
-function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: string | null }) {
+function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre; unidadPedida: string | null; inicioFinanzas: string | null }) {
   const router = useRouter();
   const { mes, unidades, consolidado } = panel;
   const [elegida, setElegida] = useState<string | null>(() => unidadInicial(unidades, unidadPedida));
@@ -86,7 +104,7 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
               className="w-fit min-w-[150px]"
               valor={mes}
               onValor={irMes}
-              opciones={panel.meses.map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
+              opciones={panel.meses.filter((m) => m.mes === mes || !mesAntesDelCorte(m.mes, inicioFinanzas)).map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
             />
           </>
         }

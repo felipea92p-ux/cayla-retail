@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { baseTraeElCorte, leerInicioFinanzas } from "@/lib/finanzas-arranque-reglas";
 import {
   leerConfiguracion,
   leerParametrosCaja,
@@ -7,7 +8,7 @@ import {
   type ConfiguracionTiendas,
   type DatosEmpresa,
   type ParametrosCaja,
-  type ParametrosFinanzas,
+  type ParametrosFinanzasConCorte,
 } from "@/lib/configuracion-reglas";
 
 export type { CampanaConfig, ConfiguracionTiendas, EfectoCampana, TiendaConfig } from "@/lib/configuracion-reglas";
@@ -41,11 +42,13 @@ export async function getParametrosCaja(ubicacionId: string, fecha: string): Pro
 
 /** Configuración ▸ Caja y avisos (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
  *  tiene o la cuenta no ve Finanzas. */
-export async function getParametrosFinanzas(): Promise<ParametrosFinanzas | null> {
+export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_parametros_finanzas" as never);
   if (error) return null;
-  return leerParametrosFinanzas(data);
+  const p = leerParametrosFinanzas(data);
+  // `inicioFinanzas` nace con ADR-0332: una base que aún no tiene esa migración no manda la clave y sale «sin corte».
+  return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
 }
 
 /** Configuración ▸ Empresa: los datos de la empresa y de cada punto de emisión, tal como los usa Facturación. Solo lectura. */

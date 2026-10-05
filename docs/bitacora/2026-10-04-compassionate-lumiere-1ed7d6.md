@@ -1,0 +1,4 @@
+## 2026-10-04 (el Inicio de Almacén dice el mismo «por colgar» que Existencias)
+Qué hice: el aviso y el bloque del Inicio de la cuenta Almacén ahora cuentan las tallas «por colgar» con la misma función que «Para hoy» de Existencias (`porColgarDeLaSede`); se llaman «Por colgar», dicen «Baja al piso N tallas por colgar» y llevan a la lista filtrada o a «Bajar al piso» con esas tallas cargadas (ADR-0331, actualización b).
+Por qué así: el Inicio contaba modelos que pedían reponer, agotadas incluidas, y decía «Sube N modelos al piso»: otro número que el de Existencias, prendas que no existían atrás y el verbo al revés (en Existencias «Subir» es del piso al almacén).
+Felipe se lleva: con la misma sede, el Inicio y Existencias ya no pueden discrepar (verificado en local con Trujillo: 15 tallas y 75 guardadas en los dos); las agotadas siguen en «Para hoy» como «sin stock atrás», que el Inicio no muestra.
