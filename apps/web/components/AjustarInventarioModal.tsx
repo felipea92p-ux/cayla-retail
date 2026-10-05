@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { useRecordatorioEtiquetas } from "@/components/ficha-producto/RecordatorioEtiquetas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { categoriaDe } from "@/components/ui/PrendaCelda";
@@ -417,6 +418,7 @@ export function AjustarInventarioModal({
       return;
     }
     const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, enlazados: hallazgos.enlaces.size, ya_registrado: false };
+    sonarConfirmacion();
     avisar.exito(textoExitoAjuste(r), { detalle: referencia });
     // Subir una cantidad es una prenda más sin etiquetar; se junta en el recordatorio del módulo (no se avisa aquí
     // mismo, para no interrumpir con un aviso por cada ajuste — ver RecordatorioEtiquetas.tsx).

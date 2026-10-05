@@ -5,6 +5,7 @@ import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, Shirt, Tag
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
+import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -390,6 +391,8 @@ export function FiltrosExistencias({
             <span className="hidden sm:inline">Copiar enlace</span>
           </button>
           {vista}
+          {/* El sonido de «confirmado» (por equipo): suena al reponer, retirar del piso, ajustar o reportar una dañada. */}
+          <BotonSonidoConfirmar />
           {orden && (
             <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
               <DesplegablePildora

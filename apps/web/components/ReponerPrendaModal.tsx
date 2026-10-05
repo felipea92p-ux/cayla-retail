@@ -4,6 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -212,6 +213,7 @@ export function ReponerPrendaModal({
     if (r.ya_registrada) {
       avisar.aviso(textoDeExito(r, sede).detalle, { detalle: sede });
     } else {
+      sonarConfirmacion();
       avisar.exito(avisoDeExito(r, sede).titulo, {
         detalle: `${modelo.referencia} · ${detalleDeLoMovido(colores, lineas)}`,
       });
