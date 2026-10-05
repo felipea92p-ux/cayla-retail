@@ -137,6 +137,8 @@ export type ModeloProducible = {
   productoId: string;
   referencia: string;
   categoria: string | null;
+  /** Para leer lo que el motor de demanda dice de su categoría (ADR-0347). */
+  categoriaId: string | null;
   variantes: VarianteDeModelo[];
 };
 
@@ -152,7 +154,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
       supabase
         .from("productos")
         .select(
-          `id, referencia, categoria:categorias ( nombre ),
+          `id, referencia, categoria_id, categoria:categorias ( nombre ),
            variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
         )
         .order("referencia")
@@ -167,6 +169,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
       productoId: p.id,
       referencia: p.referencia,
       categoria: p.categoria?.nombre ?? null,
+      categoriaId: p.categoria_id ?? null,
       variantes: (p.variantes ?? [])
         .filter((v) => v.activo)
         .map((v) => ({

@@ -16,6 +16,7 @@ import { compararTallas } from "@/lib/tallas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
@@ -105,6 +106,11 @@ export function NuevaOrdenProduccionForm({
   const demandaPorVariante = useMemo(() => new Map((datos?.demanda ?? []).map((d) => [d.varianteId, d])), [datos]);
   const enProduccion = useMemo(() => new Map(Object.entries(datos?.enProduccion ?? {})), [datos]);
   const curva = useMemo(() => sugerirCurva(modelo?.variantes ?? [], demandaPorVariante, enProduccion, diasObjetivo), [modelo, demandaPorVariante, enProduccion, diasObjetivo]);
+  // El motor de demanda (ADR-0347) se compara con la curva de arriba sobre el MISMO disponible: solo cambia el ritmo.
+  const disponibleDeVariante = useMemo(
+    () => (id: string) => curva.porVariante.get(id)?.disponible ?? (enProduccion.get(id) ?? 0),
+    [curva, enProduccion]
+  );
   const rendimiento = datos && modelo ? (datos.rendimientoPorModelo[modelo.productoId] ?? []) : [];
   const saldos = useMemo(() => new Map((datos?.insumos ?? []).map((i) => [i.insumoId, i])), [datos]);
   const analisis = analizarInsumos(rendimiento, total, saldos);
@@ -327,6 +333,9 @@ export function NuevaOrdenProduccionForm({
                     })}
                 </ul>
               </details>
+            )}
+            {datos.motor && (
+              <MotorEnProduccion motor={datos.motor} modelo={modelo} disponible={disponibleDeVariante} diasObjetivo={diasObjetivo} onUsar={setCantidades} />
             )}
           </section>
         )}

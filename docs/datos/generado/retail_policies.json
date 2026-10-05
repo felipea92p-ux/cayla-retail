@@ -136,6 +136,15 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "cierres_cola_arranque_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cierres_cola_arranque",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "clientas_select",
   "qual": "( SELECT retail.fn_ve_modulo('clientas'::text) AS fn_ve_modulo)",
   "roles": "{public}",
@@ -196,6 +205,15 @@
   "schemaname": "retail",
   "tablename": "codigos_descuento",
   "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "cola_arranque_plazo_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cola_arranque_plazo",
+  "with_check": null
  },
  {
   "cmd": "SELECT",
@@ -546,7 +564,7 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR retail.fn_puede_dar_descuento_por_etiqueta()))"
+  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR ( SELECT retail.fn_puede_dar_descuento_por_etiqueta() AS fn_puede_dar_descuento_por_etiqueta)))"
  },
  {
   "cmd": "SELECT",
