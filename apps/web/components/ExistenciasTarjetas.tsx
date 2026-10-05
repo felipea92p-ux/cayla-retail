@@ -45,6 +45,8 @@ const TONO_PASTILLA = {
  *  diagnóstico. */
 function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const q = queHacerPrenda(prenda.tallas);
+  // Sin nada sabido de ninguna talla (el motor no respondió), sin pastilla: el aviso de la pantalla lo dice.
+  if (!q) return null;
   const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
   const texto = textoHoyDePrenda(q.tipo, q.n);
   return (
@@ -58,7 +60,7 @@ function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
 /** Cómo se ve cada etiqueta del riel, según el estado de la talla (`estadoTalla`, que sale de «Hoy»). */
 const ETIQUETA = {
   normal: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
-  reponer: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
+  sin_atras: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
   por_colgar: { caja: "border-ambar/45 bg-ambar/[0.08]", cifra: "text-ambar-profundo", atras: "font-semibold text-ambar-profundo" },
   // El borde punteado ya dice «lugar vacío»: la cifra no se apaga (al 55 % quedaba en 2,3:1 sobre papel; taupe da 5,6:1).
   sin_stock: { caja: "border-dashed border-taupe/45 bg-transparent", cifra: "text-taupe", atras: "text-taupe" },

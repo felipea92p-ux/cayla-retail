@@ -59,6 +59,13 @@ select 'Tienda Lima', 'tienda', id from public.sedes where codigo = 'LIM'
 union all
 select 'Tienda Trujillo', 'tienda', id from public.sedes where codigo = 'TRU';
 
+-- Plazo para cerrar la cola de arranque de ventas sin registrar (ADR-0334). En producción la migración 20261005100000 lo siembra
+-- hasta el 15-oct; aquí las tiendas nacen DESPUÉS de las migraciones, así que se siembra de nuevo, siempre vigente (hoy + 30 días)
+-- para que quien levante el sistema local vea el botón «Cerrar la cola de arranque» como en producción.
+insert into retail.cola_arranque_plazo (ubicacion_id, hasta)
+select id, retail.fn_hoy_lima() + 30 from retail.ubicaciones where tipo = 'tienda'
+on conflict (ubicacion_id) do nothing;
+
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select id, 'Rack A', 'rack' from retail.ubicaciones where nombre = 'Taller'
 union all

@@ -105,3 +105,26 @@ SE ROMPE SI: Productos cambia el prefijo «familia:» de su lista de color: lo v
   motor (incluye «Sin stock atrás»): decisión de Felipe pendiente.
 - «Reponer prenda» se enciende si OTRO color del modelo tiene algo atrás (`ExistenciasTarjetas.tsx`, `hayQueBajar`).
 - `/inventario` sigue «pendiente» en la guía de foco por formularios que este trabajo no toca (`MatrizMover`, `SelectorDeAjuste`…).
+
+## Actualización 2026-10-04 (noche) — «Por reponer» se funde en «Por colgar» (PR #787, motor del piso)
+
+Felipe decidió (ADR-0328, «Actualización 2026-10-04 (tarde)») que **se repone cuando se acaba lo colgado de esa talla y color,
+ordenado por lo que más se vende**: «en una tienda chica basta 1 por color». Hasta ese día «Por reponer» era «queda en el piso menos
+de lo que se vendió en un día»; con 1 por color el motor del piso (`lib/piso-plan.ts`) nunca pide más de una colgada, y «Por reponer»
+pasó a ser el mismo hecho que «Por colgar» (ninguna colgada y algo atrás) y la misma tarea (bajar una del almacén y colgarla).
+
+```
+DECIDÍ:    «Hoy» queda con TRES casos: Por colgar · Sin stock atrás · Mantener. Lo vendido decide SI una talla se cuelga (aunque
+           sea extrema), nunca CUÁNTAS. Se queda «Por colgar»: es el verbo de lo que la asesora hace con la prenda en la mano, y
+           la palabra que ya dicen «Para hoy», el Inicio («Por colgar hoy», «Cuelga N») y el filtro. El orden de la lista del día
+           sigue: primero lo vendido ayer y hoy (de más a menos), luego lo que más se vende en su categoría × talla × familia.
+DESCARTÉ:  dejar las dos palabras separando el MOTIVO («Por colgar» = la talla central, «Por reponer» = la que se vendió): una
+           talla central vendida ayer cae en las dos, y dos palabras para una sola tarea es justo el problema 2 de este ADR. Y
+           quedarse con «Por reponer»: es vocabulario de sistema, no de piso.
+SE ROMPE SI: una sede grande pide más de una colgada por color: `REQUISITO_POR_COLOR` sube y «falta» vuelve a poder ser «queda
+           poca». La tabla de `decidirTalla` sigue dando «por colgar» para lo que falta y se puede bajar, así que la palabra
+           aguanta; lo que habría que volver a mirar es el aviso de «Subir prenda» y la ayuda de las tallas del Inicio, que hoy dicen «sin
+           ninguna colgada».
+```
+
+Un enlace viejo con `?hoy=por_reponer` no filtra (`filtrosDeUrl` ignora un «Hoy» que no existe): la lista sale completa, nunca vacía.

@@ -8,14 +8,15 @@ import { EtiquetasDeLaMatriz, ordenarEtiquetas, type EtiquetaMatriz } from "./Et
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { Desplegable } from "@/components/ui/campos";
+import { CampoTexto, Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
 import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
-import type { MotivoAjuste } from "@/lib/ajuste-reglas";
+import { AYUDA_ENCONTRE_PRENDAS, notaSuficiente, type MotivoAjuste } from "@/lib/ajuste-reglas";
+import { ConMarca } from "./TiraFicha";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 
@@ -547,6 +548,10 @@ export function MatrizStockFicha({
     const antes = guardada ? stock.numeroGuardado(f.id!) : 0;
     const cambiada = guardada ? u !== antes : u > 0;
     const puedeBajar = guardada ? !esperando && stock.puedeBajar(f.id!) : u > 0;
+    // ADR-0328: con la carga inicial cerrada, una talla que nunca estuvo en la tienda suma solo con «Encontré prendas». Con otro
+    // motivo la celda queda quieta (sin cambios no hay nada que restar) y dice por qué; la línea bajo el motivo dice qué hacer.
+    const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
+    const quieta = !!bloqueo && u === 0;
     const valor = borrador[f.clave] ?? (esperando ? "" : String(u));
     return (
       <span
@@ -554,7 +559,10 @@ export function MatrizStockFicha({
         data-tocada={tocadas.has(f.clave) || undefined}
         data-cambiada={cambiada || undefined}
         data-nueva={!guardada || undefined}
-        title={cambiada ? (guardada ? `Antes ${antes} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined}
+        title={
+          bloqueo ??
+          (cambiada ? (guardada ? `Antes ${antes} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined)
+        }
       >
         <button type="button" tabIndex={-1} disabled={deshabilitado || !puedeBajar} aria-label={`Restar a ${etiqueta}`} onClick={() => paso(f, -1)} className={BOTON_PASO}>
           <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
@@ -568,7 +576,7 @@ export function MatrizStockFicha({
           aria-label={`Cuántas hay de ${etiqueta}`}
           placeholder={esperando ? "…" : "0"} // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
           value={valor}
-          disabled={deshabilitado || esperando}
+          disabled={deshabilitado || esperando || quieta}
           onChange={(e) => escribir(f, e.target.value)}
           onFocus={(e) => e.currentTarget.select()}
           onBlur={() => salirDeCelda(f)}
@@ -579,8 +587,8 @@ export function MatrizStockFicha({
         <button
           type="button"
           tabIndex={-1}
-          disabled={deshabilitado || esperando}
-          aria-label={`Sumar a ${etiqueta}`}
+          disabled={deshabilitado || esperando || !!bloqueo}
+          aria-label={bloqueo ? `Sumar a ${etiqueta}: ${bloqueo}` : `Sumar a ${etiqueta}`}
           onClick={() => paso(f, 1)}
           className={BOTON_PASO}
         >
@@ -677,6 +685,7 @@ export function MotivoDeLaVisita({ stock, deshabilitado }: { stock: StockFicha; 
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-taupe">
         <span>Registrar los ajustes de stock de esta visita como</span>
         <Desplegable<MotivoAjuste>
+          id="ficha-stock-motivo"
           forma="cajaBaja"
           className="w-auto min-w-[9.5rem]"
           etiquetaAccesible="Motivo de los ajustes de stock"
@@ -703,9 +712,27 @@ export function MotivoDeLaVisita({ stock, deshabilitado }: { stock: StockFicha; 
           </>
         )}
       </div>
+      {/* ADR-0328: «Encontré prendas» dice dónde estaban (la base la exige: 3 letras o más). Va junto al motivo que la pide, con su
+          marca de la guía: ✓ cuando ya alcanza, «falta» mientras no. Sin «Encontré prendas» no se ve ni se envía. */}
+      {stock.pideNota && (
+        <div className="max-w-sm">
+          <CampoTexto
+            id="ficha-stock-nota"
+            etiqueta={<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? "hecho" : "falta"}>{stock.ayudaNota.etiqueta}</ConMarca>}
+            ayuda={AYUDA_ENCONTRE_PRENDAS}
+            value={stock.nota}
+            disabled={deshabilitado}
+            onChange={(e) => stock.cambiarNota(e.target.value)}
+            maxLength={200}
+            placeholder={stock.ayudaNota.placeholder}
+          />
+        </div>
+      )}
       <div id="ficha-stock-responsable" className="max-w-sm">
         <ComboResponsable control={stock.responsable} compacto deshabilitado={deshabilitado} />
       </div>
+      {/* ADR-0328: hasta cuándo esta sede carga lo que ya tenía (o que ya se cerró), antes de tocar una talla nueva. */}
+      {stock.avisoCarga && <p className="text-[12px] text-taupe">{stock.avisoCarga}</p>}
     </div>
   );
 }

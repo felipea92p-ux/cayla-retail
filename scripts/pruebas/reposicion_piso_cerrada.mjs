@@ -8,6 +8,10 @@
  * (`mover_interno`) y el mensaje de permiso para quien no puede ajustar. Además, que la migración se pega dos veces sin
  * duplicar el bloque y sin borrar los parches en vivo (firma del responsable y candado por capacidad).
  *
+ * DESDE ADR-0328 (actividad 4, 20261004210200) «Reposición» se llama «Encontré prendas»: el mensaje del piso lo dice así, y
+ * en el almacén el motivo pide una nota (dónde o por qué aparecieron). Por eso cada ajuste de esta prueba lleva una nota; la
+ * regla de la nota en sí la prueba `cierre_carga_inicial.mjs`.
+ *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK (seguro contra una base compartida), como Felipe (líder) o
  * Micaela (colaboradora de Tienda Trujillo) con `set local request.jwt.claim.sub`. `pg_temp.intento` devuelve
  * «SQLSTATE|hint|mensaje» sin abortar la transacción, para verificar después que el stock no se movió.
@@ -79,7 +83,7 @@ select count(*) as mov0 from retail.movimientos where variante_id = :'va' \\gset
 set local request.jwt.claim.sub = '${quien}';
 `;
 const AJUSTE = (cantidad, motivo, sub = ":'piso'", ubic = ":'tru'") =>
-  `pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', ${cantidad}, %L, null, %L)', :'va', ${ubic}, '${motivo}', ${sub === "null" ? "null::uuid" : sub}))`;
+  `pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', ${cantidad}, %L, ''nota de la prueba'', %L)', :'va', ${ubic}, '${motivo}', ${sub === "null" ? "null::uuid" : sub}))`;
 const PISO = `(select coalesce(sum(cantidad), 0) from retail.stock where variante_id = :'va' and ubicacion_id = :'tru' and sububicacion_id = :'piso')`;
 const ALM = `(select coalesce(sum(cantidad), 0) from retail.stock where variante_id = :'va' and ubicacion_id = :'tru' and sububicacion_id = :'alm')`;
 const MOVS = `(select count(*) from retail.movimientos where variante_id = :'va')`;
@@ -88,9 +92,9 @@ const CASOS = [];
 const caso = (nombre, sql, esperado) => CASOS.push({ nombre, sql, esperado });
 
 caso(
-  "líder: «Reposición» +2 en el piso se rechaza con su hint y el stock no se mueve",
+  "líder: «Encontré prendas» (código «reposicion») +2 en el piso se rechaza con su hint y el stock no se mueve",
   `${ESCENA(FELIPE)}select ${AJUSTE(2, "reposicion")} as r \\gset
-select split_part(:'r', '|', 1), split_part(:'r', '|', 2), split_part(:'r', '|', 3) like '«Reposición» no se usa en el piso:%',
+select split_part(:'r', '|', 1), split_part(:'r', '|', 2), split_part(:'r', '|', 3) like '«Encontré prendas» se registra en el almacén, no en el piso:%',
   ${PISO} = :piso0, ${MOVS} = :mov0;
 rollback;`,
   [`P0001|${HINT}|t|t|t`]

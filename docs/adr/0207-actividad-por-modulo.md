@@ -172,3 +172,20 @@ Migración `20261003210000_actividad_colaboradores_roles_configuracion_regulariz
 
 **Siguientes:** Facturación (notas de crédito, reenvíos, anulaciones: validez ante SUNAT, pide su propio cuidado), y
 preparar antes de que se usen Devoluciones, Recibir mercadería / Compras, Producción y Finanzas.
+
+## Actualización 2026-10-04 — Regularizar anota en Existencias (corrige G3)
+
+**Decide:** el criterio de G3 («cada línea va al módulo donde vive la pantalla») sigue igual; lo que cambió es dónde vive.
+Con ADR-0330 la lista «Ventas sin registrar» pasó de Recibir mercadería a `/inventario/por-regularizar`, del módulo
+Existencias, y Recibir quedó solo para lo que llega de un proveedor. Migración
+`20261004233000_actividad_regularizar_anota_en_existencias.sql` (solo el módulo de la anotación; frase, sede, firma y
+`detalle` idénticos); prueba `pnpm pruebas:actividad-gestion`, caso 6.
+
+- **H1 — No se reescribe lo anotado.** La actividad es de solo agregar (`trg_actividad_inmutable`): reetiquetar filas
+  viejas exigiría apagar ese candado, como lo hizo una sola vez 20260928190000. El 2026-10-04 no había nada que reetiquetar
+  (0 líneas `prenda_regularizada` en producción, 267 prendas pendientes y ninguna regularizada), por eso conviene pegarla
+  antes de que se empiece a regularizar: lo que nazca como `recibir` ya no se corrige sin abrir el candado.
+- **H2 — Quién la ve no cambia.** `fn_actividad` filtra por sede y por el módulo «Actividad» de quien lee, no por el módulo
+  de la fila: el cambio mueve la línea de un filtro a otro.
+- **H3 — Queda una opción vacía.** `recibir` sigue en `MODULOS_CON_ACTIVIDAD` (la prueba de la web lo exige mientras la
+  migración vieja lo cite); nada nuevo cae ahí. Se quita cuando Recibir tenga actividad propia o se decida retirarla.

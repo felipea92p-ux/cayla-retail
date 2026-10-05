@@ -28,7 +28,7 @@ function fila(p: Partial<FilaDeStock> & { varianteId: string; referencia: string
     apartado: 0,
     danado: 0,
     enTransito: 0,
-    accionHoy: null,
+    planPiso: null,
     marca: null,
     categoria: "Blusas",
     ...p,
