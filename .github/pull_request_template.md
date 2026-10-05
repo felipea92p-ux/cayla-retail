@@ -6,6 +6,10 @@
 
 - [ ] Si toca Vender, Cambios o Devoluciones (`/vender`, `/vender/apartados`, `/cambios`, `/devoluciones`, o los componentes `PuntoDeVenta*`, `Cambio*`/`Cambios*`, `Devoluciones*`): **probado a 375 px de ancho, con captura** adjunta aquí. Caja y Almacén siguen siendo de escritorio (PL-105).
 
+- [ ] Si agrega o cambia una pantalla, un modal o una pieza visual: **se ve y se lee en modo oscuro** (CLAUDE.md «Modo oscuro», ADR-0336):
+  solo tokens (nada de hex, `rgba()` ni `bg-white`), velos y sombras con `--color-sombra`, papel físico con `.papel-fijo`, y corrida
+  `pnpm --filter web tema:auditar` con 0 hallazgos «solo en oscuro» y capturas mirando el estado nuevo; o el cuerpo dice por qué no aplica.
+
 - [ ] Si agrega o cambia una pantalla o un modal donde se llenan campos o se avanza por pasos: **lleva su guía de foco** (qué está
   hecho, qué sigue y qué falta; CLAUDE.md «Guía de foco», ADR-0284) y, si es una pantalla nueva, está declarada en
   `lib/guia-de-foco-pantallas.ts`; o el cuerpo dice por qué no aplica. Una pantalla nueva no nace «pendiente».

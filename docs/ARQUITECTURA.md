@@ -134,6 +134,16 @@ flowchart TB
 - `(app)/layout.tsx` → `AppShell.tsx` (shell de navegación de todo el app) +
   `SedeSwitcher.tsx` → Server Action `cambiarSedeActiva`. Monta además `SedeActiva.tsx` (la sede activa como contexto
   de cliente, de donde sale `x-ubicacion`).
+- **Modo oscuro (ADR-0336, 2026-10-05; sin base de datos).** Preferencia del aparato: `app/layout.tsx` pone en el `<head>` el script
+  `SCRIPT_TEMA_ANTES_DE_PINTAR` (de `lib/tema-reglas.ts`) que lee `localStorage["cayla-tema"]` y fija `data-tema` en `<html>` antes de
+  pintar; `components/ui/BotonTema.tsx` (en `AppShell`, entre «Actividad» y `SedeSwitcher`) lo alterna con una transición de vista
+  (`lib/tema-cliente.ts`). Los tokens oscuros viven en `app/estilos/tema.css` (mismos nombres que `globals.css`, `tinta` y `crema`
+  intercambiados, dentro de `@media screen`: imprimir sale en claro), junto con `.papel-fijo` (papel físico: tokens claros) y el
+  piso de legibilidad del texto tenue. Candado de CI: `lib/tema-tokens.test.ts` (tokens sincronizados, contraste, toda
+  `var(--color-…)` existe) y `lib/tema-colores.test.ts` + `lib/tema-colores-archivos.ts` (ningún color suelto en la interfaz; deuda 0).
+  Herramienta de auditoría: `apps/web/tema/` (`pnpm --filter web tema:auditar`; cuentas de prueba con `pnpm --filter web tema:cuentas`;
+  escenarios en `tema/escenarios/registro.mjs`). Páginas fuera del `(app)` que dibujan sin `globals.css` (`app/global-error.tsx`,
+  `public/sin-conexion.html`) llevan su propia paleta y leen la misma preferencia. Las tres páginas públicas del club se quedan en claro.
 - **Quién firma vs. quién tiene permiso (ADR-0161/0162, rama `claude/responsable-y-roles-spike`, sin pegar en
   producción).** Son dos preguntas distintas y viven en funciones distintas:
   - **Quién FIRMA** (`usuario_id`, `creado_por`, `*_por`): `retail.fn_actor_persona_id(p_de_tienda)`. Con sesión de
