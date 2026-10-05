@@ -249,7 +249,7 @@ vendido a precio completo por sede (ADR-0208).
 **Cuadre, carga y ventas sin registrar**
 - El cuadre del piso es **una sola vez por sede**, no una rutina: corrige el arranque y no se repite («no puede ser que eso se haga todos los días»).
 - Lo guardado sin etiqueta **se etiqueta y se carga antes del cuadre** (si no, el cuadre lo da por colgado).
-- Cierre de la carga inicial: TRU el 15-oct; **AQP y LIM sin fecha por ahora**; correr una fecha hacia adelante, **solo el Admin**.
+- Cierre de la carga inicial: **el 15-oct en las tres sedes** (TRU, AQP y LIM; Felipe, 2026-10-04 noche, igual que la cola de arranque de ADR-0334: «todos los días vamos a subir todo, máximo hasta el 15»; antes había dicho «AQP y LIM sin fecha»); correr una fecha hacia adelante, **solo el Admin**.
 - Las ventas sin registrar son **algo de la adopción** («no podíamos dejar de vender y había prendas sin etiquetar»): limpieza de arranque, no rutina. Nadie regulariza su propia venta, salvo el líder.
 - Mínimo por modelo colgado: 1 por talla y color, **solo tallas centrales**.
 
