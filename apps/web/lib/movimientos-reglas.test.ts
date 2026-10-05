@@ -189,8 +189,8 @@ describe("etiquetaMovimiento", () => {
     });
   });
 
-  it("los ajustes sueltos llevan «Ajuste a mano ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
-    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste a mano · reposición");
+  it("los ajustes sueltos llevan «Ajuste a mano ·»; `reposicion` se lee «encontré prendas» (ADR-0328), no se confunde con reponer el piso", () => {
+    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste a mano · encontré prendas");
     expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste a mano · merma");
   });
 });
@@ -736,6 +736,10 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
   it("solo el conteo y lo encontrado tras un conteo tienen un documento detrás; todo otro ajuste es a mano", () => {
     expect(respaldoDeAjuste("conteo")).toBe("en_un_conteo");
     expect(respaldoDeAjuste("hallazgo_conteo")).toBe("en_un_conteo");
+    // ADR-0328: el cierre del conteo de arranque también tiene su conteo detrás, con su nombre en la lista y en el filtro.
+    expect(respaldoDeAjuste("conteo_arranque")).toBe("en_un_conteo");
+    expect(etiquetaProceso("conteo_arranque")).toBe("Conteo de arranque");
+    expect(categoriaDeProceso("conteo_arranque")).toBe("ajuste");
     for (const { valor } of MOTIVOS_AJUSTE) expect(respaldoDeAjuste(valor), valor).toBe("a_mano");
     // Un motivo que mañana escriba `registrar_movimiento` sin pasar por un conteo tampoco tiene documento.
     expect(respaldoDeAjuste("motivo_que_no_existe")).toBe("a_mano");

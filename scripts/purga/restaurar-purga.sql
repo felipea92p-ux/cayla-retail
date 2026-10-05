@@ -10,8 +10,9 @@
 -- QUÉ HACE, en una sola transacción:
 --   · devuelve cada tabla del respaldo —el producto con sus variantes, códigos, etiquetas, fotos, temporadas por color y
 --     stock; ventas, líneas, pagos y comprobantes; separaciones con sus líneas, pagos y apartados; compras con sus líneas,
---     reparto, reasignaciones, cierres, ingresos (lotes), envíos y costos; movimientos, líneas de conteo, bajadas al piso,
---     marcas de reintento y pedidos no atendidos—, de padres a hijos, SIN sus columnas generadas (como
+--     reparto, reasignaciones, cierres, ingresos (lotes), envíos y costos; movimientos, líneas de conteo, bajadas al piso
+--     (con su marca «La tengo en la mano», después de su corrección), líneas del cuadre del piso, marcas de reintento y
+--     pedidos no atendidos—, de padres a hijos, SIN sus columnas generadas (como
 --     `venta_items.subtotal`, que la base recalcula sola: reinsertarla a mano falla). Si el respaldo trae una tabla que este
 --     script no sabe devolver, no devuelve nada: una restauración a medias es peor que ninguna;
 --   · a las otras prendas les quita lo que la purga les había devuelto (lo vendido), y ninguna serie de comprobantes
@@ -40,7 +41,8 @@ create function pg_temp.tablas_en_orden() returns text[] language sql immutable 
                'stock', 'compras', 'compra_items', 'compra_item_destinos', 'compra_reasignaciones', 'compra_item_cierres',
                'envios', 'lotes', 'ventas', 'venta_items', 'venta_pagos', 'separaciones', 'separacion_items', 'separacion_pagos',
                'comprobantes', 'comprobante_anticipos', 'movimientos', 'costo_historial', 'conteo_items', 'bajada_piso_items',
-               'apartados', 'pedidos_no_atendidos', 'movimientos_internos_intentos', 'frescura_decisiones']
+               'cuadre_piso_items', 'bajadas_en_mano', 'apartados', 'pedidos_no_atendidos', 'movimientos_internos_intentos',
+               'frescura_decisiones']
 $f$;
 
 do $$

@@ -26,9 +26,14 @@
 export const ACCIONES_SIN_RESPONSABLE = {
   apartar_prenda: "Apartar una prenda para un cliente (desde Existencias)",
   aviso_apartado: "Dejar el aviso o recordatorio al cliente de un apartado",
-  traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado",
-  conteo_cerrar: "Cerrar el conteo y aplicar las diferencias",
+  // ADR-0328 (actividad 15): estas dos no piden el combo, pero tampoco quedan sin nombre: la base hereda la firma de la operación del
+  // mismo día si esa persona sigue de turno (`fn_firma_heredada`) y, si no, pide el nombre una vez (la pantalla muestra el combo).
+  traslado_recibir: "Recibir, confirmar o cerrar con diferencia un traslado (firma quien firmó la recepción hoy, si sigue de turno; si no, se pregunta una vez)",
+  conteo_cerrar: "Cerrar el conteo y aplicar las diferencias (firma quien lo abrió hoy, si sigue de turno; si no, se pregunta una vez)",
   regularizar_prenda: "Regularizar una prenda por regularizar",
+  cola_arranque_cerrar: "Cerrar la cola de arranque de ventas sin registrar de una tienda",
+  cola_arranque_reabrir: "Reabrir una venta sin registrar que se cerró sin prenda",
+  cola_arranque_identificar: "Identificar con sugerencias las ventas sin registrar de una tienda (varias a la vez)",
   compra_adjunto_subir: "Adjuntar un archivo a una factura de compra",
   compra_adjunto_quitar: "Quitar un adjunto de una factura de compra",
   alta_producto_categoria: "Configurar una categoría dentro del alta de producto",

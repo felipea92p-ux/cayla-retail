@@ -241,8 +241,10 @@ export function preguntaCantidades(modo: ModoAjuste, lugar: LugarAjuste): string
 
 /** El piso de cada talla en los botones «−»: más abajo la base lo rechazaría. Una prenda nueva en la tienda no baja de cero y lo
  *  apartado para clientas no se puede dejar de contar. Al sumar o restar es un cambio (negativo o cero); al contar, una cantidad. */
-export function minimoDeAjuste(v: VarianteAjuste, lugar: LugarAjuste, modo: ModoAjuste): number {
+export function minimoDeAjuste(v: VarianteAjuste, lugar: LugarAjuste, modo: ModoAjuste, motivo: MotivoAjuste | "" = ""): number {
   if (v.sinHistoria) return 0;
+  // «Encontré prendas» solo suma (ADR-0328; la base: `encontre_prendas_resta`).
+  if (motivo === "reposicion") return 0;
   const apartado = apartadoEn(v, lugar);
   return modo === "contado" ? apartado : 0 - Math.max(0, stockEn(v, lugar) - apartado);
 }
@@ -288,6 +290,8 @@ export function detalleDeTalla(o: {
   ubicado: "piso" | "almacen";
   separaPisoAlmacen: boolean;
   puedeBajarAlPiso: boolean;
+  /** ADR-0328: la carga inicial de la sede sigue abierta (sin dato, sí). */
+  cargaAbierta?: boolean;
 }): string {
   const { variante, linea, texto, modo, lugar } = o;
   const escrito = texto.trim();
@@ -296,7 +300,7 @@ export function detalleDeTalla(o: {
     textoQuedara(linea, modo),
     coincide ? "Coincide con el sistema" : "",
     textoApartadoTalla(apartadoEn(variante, lugar), modo).replace(/^ · /, ""),
-    variante.sinHistoria ? textoPrendaNueva(o.ubicado, o.separaPisoAlmacen, o.puedeBajarAlPiso) : "",
+    variante.sinHistoria ? textoPrendaNueva(o.ubicado, o.separaPisoAlmacen, o.puedeBajarAlPiso, o.cargaAbierta ?? true) : "",
   ];
   return partes.filter(Boolean).join(" · ");
 }
@@ -309,11 +313,13 @@ export function textoApartadoTalla(apartado: number, modo: ModoAjuste): string {
   return ` · ${apartadas(apartado)}`;
 }
 
-// Motivos del ajuste. «Reposición» no se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
+// Motivos del ajuste. «Encontré prendas» (antes «Reposición»; ADR-0328: en la tienda «reponer» es colgar una prenda del almacén
+// en el piso, y se confundían) es el que SUMA prendas que aparecieron sin papeles. Su código sigue siendo `reposicion`: la
+// historia de Movimientos no se reescribe. No se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
 // almacén se baja (Colgar en el piso / Reponer, en Existencias) para que salga del almacén y el reloj de piso de Frescura tenga
 // hora de colgado. La base lo rechaza igual (20260926000400, hint reposicion_piso_cerrada); aquí solo se evita el viaje.
 export const MOTIVOS_AJUSTE = [
-  { valor: "reposicion", texto: "Reposición" },
+  { valor: "reposicion", texto: "Encontré prendas" },
   { valor: "merma", texto: "Merma" },
   { valor: "conteo_fisico", texto: "Conteo físico" },
   { valor: "otro", texto: "Otro" },
@@ -335,12 +341,54 @@ export function motivosAjusteDisponibles(
 // Nombra los dos caminos: sin ellos, quien sube o guarda prendas lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
 // «Subir a almacén» es el botón de la tarjeta de Existencias (ADR-0300); antes decía «⋯ ▸ Retirar del piso», un menú que ya no existe.
 export const NOTA_REPOSICION_CERRADA =
-  "Prendas al piso: «Colgar en el piso». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
+  "«Encontré prendas» se registra en el almacén. Prendas al piso: «Colgar en el piso». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
+
+/** El motivo que pide nota (ADR-0328): «Encontré prendas» dice dónde estaban o por qué aparecieron. La base exige lo mismo
+ *  (`registrar_movimiento`, hint `encontre_prendas_sin_nota`): al menos 3 letras, sin contar los espacios de los bordes. */
+export const NOTA_MINIMA_ENCONTRE = 3;
+
+export function motivoPideNota(motivo: MotivoAjuste | ""): boolean {
+  return motivo === "reposicion";
+}
+
+export function notaSuficiente(motivo: MotivoAjuste | "", nota: string): boolean {
+  return !motivoPideNota(motivo) || nota.trim().length >= NOTA_MINIMA_ENCONTRE;
+}
+
+/** Bajo el motivo, para que «Encontré prendas» no se confunda con «Colgar en el piso» (colgar una prenda del almacén en el piso). */
+export const AYUDA_ENCONTRE_PRENDAS =
+  "Prendas que aparecieron y el sistema no tenía: solo suma, al almacén, y cuenta dónde estaban. Para colgar en el piso lo que está en el almacén, es «Colgar en el piso», en Existencias.";
+
+/** Por qué una talla no se puede guardar con este motivo, ANTES de ir a la base: «Encontré prendas» solo suma
+ *  (`encontre_prendas_resta`) y, con la carga inicial de la sede cerrada, una prenda que nunca estuvo en ella entra SOLO con
+ *  «Encontré prendas» (`carga_inicial_cerrada`). `null`: está bien.
+ *  `enPisoCerrado`: se ajusta el PISO de una tienda que separa piso y almacén, donde «Encontré prendas» no se ofrece
+ *  (`reposicionCerrada`): la salida dicha es «en el almacén», no un motivo que aquí no está. */
+export function textoProblemaMotivo(
+  l: { delta: number; variante: Pick<VarianteAjuste, "sinHistoria"> },
+  motivo: MotivoAjuste | "",
+  cargaAbierta: boolean,
+  enPisoCerrado = false
+): string | null {
+  if (motivo === "reposicion" && l.delta < 0) return "«Encontré prendas» solo suma: para quitar, elige otro motivo.";
+  if (!cargaAbierta && l.variante.sinHistoria && motivo !== "" && motivo !== "reposicion") {
+    return enPisoCerrado
+      ? "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, anótala en el almacén con «Encontré prendas»."
+      : "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, elige «Encontré prendas».";
+  }
+  return null;
+}
 
 /** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
  *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad
- *  negativa no es stock inicial: el modal la frena antes (dejaría el stock en negativo). */
-export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, "sinHistoria">; delta: number }>(lineas: readonly L[]): { ajustes: L[]; cargaInicial: L[] } {
+ *  negativa no es stock inicial: el modal la frena antes (dejaría el stock en negativo).
+ *  ADR-0328: con la carga inicial de la sede CERRADA no hay stock inicial: todo va como ajuste, y una prenda nueva entra con
+ *  «Encontré prendas» (`textoProblemaMotivo` frena cualquier otro motivo antes de ir a la base). */
+export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, "sinHistoria">; delta: number }>(
+  lineas: readonly L[],
+  cargaAbierta = true
+): { ajustes: L[]; cargaInicial: L[] } {
+  if (!cargaAbierta) return { ajustes: [...lineas], cargaInicial: [] };
   return {
     ajustes: lineas.filter((l) => !l.variante.sinHistoria),
     cargaInicial: lineas.filter((l) => l.variante.sinHistoria && l.delta > 0),
@@ -355,8 +403,14 @@ export function cargaInicialAlPiso(ubicado: "piso" | "almacen", separaPisoAlmace
   return separaPisoAlmacen && ubicado === "piso" && puedeBajarAlPiso;
 }
 
-/** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial. */
-export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): string {
+/** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial (o, con la carga cerrada, por dónde entra). */
+export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean, cargaAbierta = true): string {
+  if (!cargaAbierta) {
+    // En el piso de una tienda que separa piso y almacén «Encontré prendas» no se ofrece: la salida es el almacén.
+    return reposicionCerrada(ubicado, separaPisoAlmacen)
+      ? "Nueva en esta tienda · la carga inicial se cerró: entra por el almacén con «Encontré prendas»"
+      : "Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»";
+  }
   if (separaPisoAlmacen && ubicado === "piso" && !puedeBajarAlPiso) {
     return "Nueva en esta tienda · entra al almacén: tu rol no puede colgar prendas en el piso";
   }

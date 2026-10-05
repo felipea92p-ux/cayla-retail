@@ -1190,7 +1190,13 @@ export function resumirAlcance(analisis: AnalisisVariante[]): ResumenAlcance {
 // ---------------------------------------------------------------------------
 
 export type EstadoExactitud = {
-  estado: "pendiente" | "vigente" | "antiguo" | "baja";
+  /**
+   * `sin_medir` (ADR-0328): hay un conteo cerrado, pero lo cerrado no mide la exactitud (fue el conteo de arranque, o se aplicó
+   * entero sin contar). No es «pendiente»: decir «Último conteo: pendiente» justo después de contar el piso entero sería falso.
+   */
+  estado: "pendiente" | "sin_medir" | "vigente" | "antiguo" | "baja";
+  /** Por qué no se mide, con `sin_medir`. */
+  sinMedida?: "arranque" | "sin_contar";
   ultimoConteo: string | null;
   diasDesde: number | null;
   porcentaje: number | null;
@@ -1198,11 +1204,20 @@ export type EstadoExactitud = {
   conteos: number;
 };
 
-export function evaluarExactitud(
-  datos: { exactitud: { porcentaje: number; lineas: number; conteos: number } | null; ultimoCerradoEn: string | null },
-  ahora: Date,
-): EstadoExactitud {
-  const { exactitud, ultimoCerradoEn } = datos;
+/** Lo que Análisis lee de los conteos para la exactitud (`resumen-inventario.ts`, `getExactitud`). */
+export type DatosExactitud = {
+  exactitud: { porcentaje: number; lineas: number; conteos: number } | null;
+  ultimoCerradoEn: string | null;
+  /** `porQueSinExactitud` (conteo-varianza): por qué no hay exactitud aunque haya conteos cerrados. Opcional: sin él, «pendiente». */
+  sinMedida?: "arranque" | "sin_contar" | null;
+};
+
+export function evaluarExactitud(datos: DatosExactitud, ahora: Date): EstadoExactitud {
+  const { exactitud, ultimoCerradoEn, sinMedida } = datos;
+  if (!exactitud && ultimoCerradoEn && sinMedida) {
+    const diasDesde = Math.floor((ahora.getTime() - new Date(ultimoCerradoEn).getTime()) / MS_DIA);
+    return { estado: "sin_medir", sinMedida, ultimoConteo: ultimoCerradoEn, diasDesde, porcentaje: null, lineas: 0, conteos: 0 };
+  }
   if (!exactitud || !ultimoCerradoEn) return { estado: "pendiente", ultimoConteo: null, diasDesde: null, porcentaje: null, lineas: 0, conteos: 0 };
   const diasDesde = Math.floor((ahora.getTime() - new Date(ultimoCerradoEn).getTime()) / MS_DIA);
   const base = { ultimoConteo: ultimoCerradoEn, diasDesde, porcentaje: exactitud.porcentaje, lineas: exactitud.lineas, conteos: exactitud.conteos };

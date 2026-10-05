@@ -11,6 +11,8 @@
 
 import { resolverCodigoV2 } from "./buscar-prenda-v2";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
+import type { SonidoLectura } from "./conteo-conectado";
+import { filtrarConteo } from "./conteo-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { diaYHoraLima } from "./fechas-lima";
 
@@ -46,6 +48,8 @@ export type FilaDeStock = {
   piso: number | null;
   almacen: number | null;
   almacenDisponible: number | null;
+  /** Las de esta prenda en cuarentena (dañadas). Opcional: quien no la trae, cuenta 0. */
+  danado?: number | null;
 };
 
 export type PrendaBajable = {
@@ -62,6 +66,8 @@ export type PrendaBajable = {
   piso: number;
   almacen: number;
   almacenDisponible: number;
+  /** Las dañadas en cuarentena: con la prenda en la mano, la suya puede ser una de esas (ADR-0328, «La tengo en la mano»). */
+  danado: number;
 };
 
 export type LineaBajada = { varianteId: string; cantidad: number };
@@ -119,13 +125,16 @@ function unidadesDe(lineas: readonly LineaBajada[]): number {
 // La lista de prendas de la tienda
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Solo tiendas que separan piso y almacén; conserva las que tienen almacén > 0 o piso > 0; ordena por referencia, talla y color. */
+/**
+ * Solo tiendas que separan piso y almacén; ordena por referencia, talla y color. Conserva TODAS las prendas que la tienda
+ * conoce, también las que el sistema tiene en 0 en el piso y en el almacén: esas son justo las que una asesora puede tener en la
+ * mano sin que el sistema lo sepa (ADR-0328, «La tengo en la mano»). Antes se descartaban y su etiqueta respondía «no la
+ * encuentro», un callejón que terminaba con la prenda colgada sin registrar.
+ */
 export function aPrendasBajables(filas: readonly FilaDeStock[]): PrendaBajable[] {
   const prendas: PrendaBajable[] = [];
   for (const f of filas) {
     if (f.piso === null || f.almacen === null || f.varianteId === ID_CARGO_ESPECIAL) continue;
-    // Una prenda que ya está toda en el piso se queda: al escanearla se oye cuánto cuenta el sistema, no «no la encuentro».
-    if (f.almacen <= 0 && f.piso <= 0) continue;
     prendas.push({
       varianteId: f.varianteId,
       sku: f.sku ?? "",
@@ -140,6 +149,7 @@ export function aPrendasBajables(filas: readonly FilaDeStock[]): PrendaBajable[]
       piso: f.piso,
       almacen: f.almacen,
       almacenDisponible: Math.min(Math.max(f.almacenDisponible ?? f.almacen, 0), f.almacen),
+      danado: Math.max(0, f.danado ?? 0),
     });
   }
   return prendas.sort(
@@ -186,11 +196,70 @@ export function leerCodigo(texto: string, prendas: readonly PrendaBajable[], lin
   if (!codigo) return { tipo: "vacio" };
   const prenda = resolverCodigoV2(codigo, prendas.slice());
   if (!prenda) return { tipo: "desconocido", codigo };
+  return leerPrenda(prenda, lineas);
+}
+
+/**
+ * Lo mismo que una lectura de su código, para la prenda elegida por nombre (la etiqueta no se lee): tocarla en la lista es
+ * escanearla (ADR-0328: «si la etiqueta no se lee, se elige por nombre»). Suma 1 con los mismos topes.
+ */
+export function leerPrenda(prenda: PrendaBajable, lineas: readonly LineaBajada[]): Lectura {
   const apartadas = apartadasEnAlmacen(prenda);
   if (prenda.almacenDisponible <= 0) return apartadas > 0 ? { tipo: "todo_apartado", prenda, apartadas } : { tipo: "sin_almacen", prenda };
   const enLista = lineas.find((l) => l.varianteId === prenda.varianteId)?.cantidad ?? 0;
   if (enLista >= prenda.almacenDisponible) return { tipo: "tope", prenda, disponible: prenda.almacenDisponible };
   return { tipo: "suma", prenda, cantidadAhora: enLista + 1 };
+}
+
+/**
+ * Lo que dice el oído (`avisarLectura`, el mismo bip de Conteo): con la pistola se mira el rack, no la pantalla. La primera de una
+ * prenda suena distinto de la siguiente; todo lo que NO sumó (no la encuentro, almacén en 0, apartada, tope) suena grave y largo:
+ * «mira la pantalla». Un Enter vacío no suena.
+ */
+export function sonidoDeLecturaBajada(l: Lectura): SonidoLectura | null {
+  if (l.tipo === "vacio") return null;
+  if (l.tipo === "suma") return l.cantidadAhora === 1 ? "nueva" : "suma";
+  return "desconocida";
+}
+
+/** Cuántas prendas muestra la lista de «elígela por nombre». */
+export const MAX_SUGERENCIAS_POR_NOMBRE = 6;
+
+/**
+ * Elegir la prenda por nombre cuando la etiqueta no se lee: la misma búsqueda por palabras de Conteo (`filtrarConteo`: «blusa
+ * beige m» — todas las palabras, en cualquier orden, sin tildes ni mayúsculas; la talla entera, el comienzo de una palabra del
+ * modelo o del color, o un pedazo del código). Primero lo que se puede bajar (con algo libre en el almacén) y después lo demás
+ * (en 0: «La tengo en la mano»); dentro de cada grupo, el orden de la pantalla. Menos de 2 letras no busca: con una sola,
+ * coincidiría casi todo.
+ */
+export function buscarPorNombre(texto: string, prendas: readonly PrendaBajable[], max = MAX_SUGERENCIAS_POR_NOMBRE): PrendaBajable[] {
+  if (texto.replace(/\s+/g, "").length < 2) return [];
+  const coinciden = filtrarConteo(prendas, texto);
+  // `sort` es estable: dentro de cada grupo queda el orden de la pantalla (referencia, talla, color).
+  return [...coinciden].sort((a, b) => Number(b.almacenDisponible > 0) - Number(a.almacenDisponible > 0)).slice(0, max);
+}
+
+/** Lo que el sistema cuenta de una prenda de la lista «elígela por nombre»: decide si se baja o si es «La tengo en la mano». */
+export function textoDeExistencia(p: Pick<PrendaBajable, "almacenDisponible" | "piso">): string {
+  if (p.almacenDisponible > 0) return `Almacén ${p.almacenDisponible}`;
+  return p.piso > 0 ? `Almacén 0 · piso ${p.piso}` : "En 0 en el sistema";
+}
+
+/**
+ * Qué hace el Enter del campo (la pistola remata cada código con Enter):
+ * - `lectura`: el texto es el código de una prenda de la tienda, o no coincide con nada (→ «no la encuentro»).
+ * - `elegir`: no es un código, pero coincide por nombre: la lista se queda a la vista y ella TOCA la que es. Nunca se elige
+ *   sola, aunque haya una sola: lo registrado es lo que ella señaló (ADR-0237).
+ * `null`: campo vacío.
+ */
+export type AccionEnterBajada = { tipo: "lectura"; lectura: Lectura } | { tipo: "elegir"; opciones: PrendaBajable[] };
+
+export function accionDelEnterBajada(texto: string, prendas: readonly PrendaBajable[], lineas: readonly LineaBajada[]): AccionEnterBajada | null {
+  const limpio = texto.trim();
+  if (!limpio) return null;
+  if (resolverCodigoV2(limpio, prendas.slice())) return { tipo: "lectura", lectura: leerCodigo(limpio, prendas, lineas) };
+  const opciones = buscarPorNombre(limpio, prendas);
+  return opciones.length > 0 ? { tipo: "elegir", opciones } : { tipo: "lectura", lectura: { tipo: "desconocido", codigo: limpio } };
 }
 
 /** +1 y la línea sube al principio: la última escaneada queda arriba, donde ella mira. */
@@ -477,24 +546,29 @@ export function textoDeLectura(l: Lectura, sede: string): string {
   switch (l.tipo) {
     case "vacio":
       return "";
+    // Si nunca entró a la tienda, cada causa tiene su puerta: otra sede → Traslados; el proveedor → Recibir mercadería (ADR-0299);
+    // nunca se cargó (lo más probable en una carga inicial incompleta) → Ajustar stock, que la entra como stock inicial (ADR-0235).
     case "desconocido":
-      return `No encuentro «${l.codigo}» entre las prendas que hay en ${sede} según el sistema. Escríbelo a mano (es el SKU) o revisa que la prenda esté recibida en Recibir mercadería.`;
+      return `No encuentro «${l.codigo}» entre las prendas de ${sede}. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista. Si nunca entró a ${sede}: recíbela en Traslados (de otra sede) o en Recibir mercadería (del proveedor), o regístrala en Ajustar stock si nunca se cargó.`;
     case "suma":
       return `${nombreDePrenda(l.prenda)}, ahora ${l.cantidadAhora}`;
     case "sin_almacen": {
-      // Ella tiene la prenda en la mano: el almacén real no está en 0, el sistema está desfasado. Se dice el hecho y el
-      // paso siguiente, sin decirle dónde exhibirla.
+      // Ella tiene la prenda en la mano: el almacén real no está en 0, el sistema está desfasado. Se dice el hecho y la
+      // salida está al lado («La tengo en la mano», ADR-0328): corregir y colgar en un paso, o «Ya estaba colgada».
       const enPiso = l.prenda.piso > 0 ? ` (cuenta ${l.prenda.piso} en el piso)` : "";
-      return `${nombreDePrenda(l.prenda)}: el sistema no tiene unidades en el almacén de ${sede}${enPiso}. Si la tienes en la mano, revisa que el fardo esté recibido en Recibir mercadería o avisa al líder.`;
+      return `${nombreDePrenda(l.prenda)}: el sistema no tiene unidades en el almacén de ${sede}${enPiso}. Si la tienes en la mano, corrígela y cuélgala aquí mismo.`;
     }
+    // La misma salida que da la base (`en_mano_apartada`): si la que tiene en la mano es otra unidad, no se queda sin camino.
     case "todo_apartado":
       return l.apartadas === 1
-        ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para un cliente y no se puede mover.`
-        : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientes y no se pueden mover.`;
+        ? `${nombreDePrenda(l.prenda)}: la única unidad del almacén está apartada para un cliente y no se puede mover. Si la que tienes es esa, déjala guardada; si es otra, corrígela en Ajustar stock.`
+        : `${nombreDePrenda(l.prenda)}: las ${l.apartadas} unidades del almacén están apartadas para clientes y no se pueden mover. Si la que tienes es una de esas, déjala guardada; si es otra, corrígela en Ajustar stock.`;
+    // Con otra en la mano, el almacén del sistema se quedó corto: primero se confirma lo de la lista (si no, la corrección
+    // pelearía con esta tanda por las mismas unidades) y la siguiente lectura ya sale «en 0», con su salida.
     case "tope":
       return l.disponible === 1
-        ? `${nombreDePrenda(l.prenda)}: en el almacén hay 1 y ya la tienes en la lista. No se puede bajar más.`
-        : `${nombreDePrenda(l.prenda)}: en el almacén hay ${l.disponible} y ya las tienes todas en la lista. No se puede bajar más.`;
+        ? `${nombreDePrenda(l.prenda)}: en el almacén hay 1 y ya la tienes en la lista. Si tienes otra en la mano, confirma esta tanda y vuelve a escanearla.`
+        : `${nombreDePrenda(l.prenda)}: en el almacén hay ${l.disponible} y ya las tienes todas en la lista. Si tienes otra en la mano, confirma esta tanda y vuelve a escanearla.`;
   }
 }
 
@@ -508,7 +582,7 @@ export function textoDeResumen(r: { prendas: number; modelos: number }): string 
   return `${plural(r.prendas, "prenda", "prendas")} · ${plural(r.modelos, "modelo", "modelos")}`;
 }
 
-/** El rótulo del botón: «Confirmar bajada · 12 prendas». */
+/** El rótulo del botón: «Confirmar y colgar · 12 prendas». */
 export function textoDeConfirmar(prendas: number): string {
   return `Confirmar y colgar · ${plural(prendas, "prenda", "prendas")}`;
 }

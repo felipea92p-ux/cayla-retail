@@ -16,6 +16,10 @@ import {
   MOTIVOS_AJUSTE,
   motivosAjusteDisponibles,
   NOTA_REPOSICION_CERRADA,
+  NOTA_MINIMA_ENCONTRE,
+  motivoPideNota,
+  notaSuficiente,
+  textoProblemaMotivo,
   reposicionCerrada,
   repartirLineasAjuste,
   textoPrendaNueva,
@@ -631,5 +635,79 @@ describe("las filas del modal, en voz de tienda y sin códigos (Felipe, 2026-10-
     const base = { ubicado: "almacen", separaPisoAlmacen: true, puedeBajarAlPiso: true, lugar: "almacen" } as const;
     expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "2", modo: "contado" })).toBe("Coincide con el sistema");
     expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "", modo: "contado" })).toBe("");
+  });
+});
+
+describe("«Encontré prendas» y la carga inicial cerrada (ADR-0328, actividad 4)", () => {
+  const nueva = { sinHistoria: true };
+  const conHistoria = { sinHistoria: false };
+
+  it("«Reposición» se llama «Encontré prendas»; el código del motivo no cambia (la historia de Movimientos tampoco)", () => {
+    expect(MOTIVOS_AJUSTE.find((m) => m.valor === "reposicion")?.texto).toBe("Encontré prendas");
+    expect(MOTIVOS_AJUSTE.map((m) => m.texto)).not.toContain("Reposición");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Encontré prendas» se registra en el almacén");
+  });
+
+  it("pide una nota de 3 letras o más, y solo «Encontré prendas» (la misma regla que la base)", () => {
+    expect(motivoPideNota("reposicion")).toBe(true);
+    for (const m of ["", "merma", "conteo_fisico", "otro"] as const) {
+      expect(motivoPideNota(m)).toBe(false);
+      expect(notaSuficiente(m, "")).toBe(true);
+    }
+    expect(notaSuficiente("reposicion", "")).toBe(false);
+    expect(notaSuficiente("reposicion", "  ab  ")).toBe(false);
+    expect(notaSuficiente("reposicion", "en una caja")).toBe(true);
+    expect(NOTA_MINIMA_ENCONTRE).toBe(3);
+  });
+
+  it("solo suma: restar con «Encontré prendas» se dice en la talla, y su «−» no baja de lo que hay", () => {
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: -1 }, "reposicion", true)).toMatch(/solo suma/);
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 2 }, "reposicion", true)).toBeNull();
+    const s = armarVariantesAjuste([fila("1", "S", { stock: [{ cantidad: 4, sububicacion_id: ALMACEN }] })], PISO, ALMACEN)[0]!;
+    expect(minimoDeAjuste(s, "almacen", "diferencia", "reposicion")).toBe(0);
+    expect(minimoDeAjuste(s, "almacen", "diferencia", "merma")).toBe(-4);
+  });
+
+  it("con la carga ABIERTA, lo nuevo en la tienda sigue entrando como stock inicial", () => {
+    const { ajustes, cargaInicial } = repartirLineasAjuste([{ variante: nueva, delta: 3 }, { variante: conHistoria, delta: 1 }], true);
+    expect(cargaInicial.map((l) => l.delta)).toEqual([3]);
+    expect(ajustes.map((l) => l.delta)).toEqual([1]);
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "conteo_fisico", true)).toBeNull();
+  });
+
+  it("con la carga CERRADA no hay stock inicial: todo es ajuste, y lo nuevo entra solo con «Encontré prendas»", () => {
+    const { ajustes, cargaInicial } = repartirLineasAjuste([{ variante: nueva, delta: 3 }, { variante: conHistoria, delta: 1 }], false);
+    expect(cargaInicial).toEqual([]);
+    expect(ajustes.map((l) => l.delta)).toEqual([3, 1]);
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "conteo_fisico", false)).toMatch(/elige «Encontré prendas»/);
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "reposicion", false)).toBeNull();
+    // Sin motivo todavía no se marca la talla: la guía pide primero el motivo.
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "", false)).toBeNull();
+    // Una prenda con historia no depende de la carga inicial.
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 1 }, "merma", false)).toBeNull();
+  });
+
+  it("la fila de una prenda nueva dice por dónde entra, abierta o cerrada", () => {
+    expect(textoPrendaNueva("almacen", true, true, true)).toBe("Nueva en esta tienda · entra como stock inicial");
+    expect(textoPrendaNueva("almacen", true, true, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»");
+    // Revisión adversarial: en el PISO de una tienda que separa piso y almacén «Encontré prendas» no se ofrece; la salida es el almacén.
+    for (const puede of [true, false]) {
+      expect(textoPrendaNueva("piso", true, puede, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra por el almacén con «Encontré prendas»");
+    }
+    // Una tienda sin piso separado no tiene «piso cerrado»: la frase es la de siempre.
+    expect(textoPrendaNueva("piso", false, true, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»");
+  });
+
+  it("en el piso cerrado, el problema de la talla manda al almacén, no a un motivo que ahí no está", () => {
+    for (const m of ["merma", "conteo_fisico", "otro"] as const) {
+      expect(motivosAjusteDisponibles("piso", true).some((x) => x.valor === "reposicion")).toBe(false);
+      expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, m, false, true)).toBe(
+        "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, anótala en el almacén con «Encontré prendas»."
+      );
+      expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, m, false, false)).toMatch(/elige «Encontré prendas»\.$/);
+    }
+    // Abierta, o con historia, el piso no cambia nada.
+    expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, "merma", true, true)).toBeNull();
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 2 }, "merma", false, true)).toBeNull();
   });
 });

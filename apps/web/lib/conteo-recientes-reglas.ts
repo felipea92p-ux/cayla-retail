@@ -156,9 +156,17 @@ export function textoAperturaCierre(c: Pick<ConteoResumen, "creadoEn" | "cerrado
 /**
  * La línea de apoyo bajo el resultado: cuándo cerró un conteo cerrado, «Sigue abierto» uno en curso y nada en uno cancelado (no hay
  * nada que decir de lo que se tiró). Es el equivalente a la ruta «Almacén → Piso» bajo el proceso en Movimientos.
+ * Un conteo terminado dice además lo que su resultado no puede decir solo (ADR-0328): que fue el de ARRANQUE (sus diferencias no son
+ * pérdida) y cuántas variantes se anotaron con «Aplicar todos completos» SIN CONTAR — en el historial, no solo en su detalle.
  */
-export function apoyoDeResultado(c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado" | "lineas" | "lineasConDiferencia" | "parcial" | "variantes">): string | null {
-  return resultadoConteo(c) === "en_curso" ? "Sigue abierto" : textoCierre(c);
+export function apoyoDeResultado(
+  c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado" | "lineas" | "lineasConDiferencia" | "parcial" | "variantes"> & Partial<Pick<ConteoResumen, "sinContar" | "esArranque">>
+): string | null {
+  const r = resultadoConteo(c);
+  if (r === "en_curso") return "Sigue abierto";
+  if (r === "cancelado") return textoCierre(c);
+  const partes = [textoCierre(c), c.esArranque ? "De arranque" : null, (c.sinContar ?? 0) > 0 ? `${c.sinContar} sin contar` : null].filter((p): p is string => !!p);
+  return partes.length > 0 ? partes.join(" · ") : null;
 }
 
 /**

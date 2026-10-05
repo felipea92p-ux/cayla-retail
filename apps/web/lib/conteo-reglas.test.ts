@@ -39,6 +39,13 @@ import {
   textoTerminado,
   type LineaConteo,
   pendientesParaCompletar,
+  pendientesParaAplicar,
+  delLugar,
+  notaDeArranque,
+  textoAplicadas,
+  textosAplicarTodos,
+  avisoArranqueAlAplicar,
+  tramoDeArranque,
 } from "./conteo-reglas";
 
 // Las reglas del conteo rediseñado que se rompen calladas si nadie las fija:
@@ -59,6 +66,7 @@ function linea(p: Partial<LineaConteo> & { debeHaber: number; contada: number | 
     ajustadoTotal: 0,
     ajustadoAntes: 0,
     hallazgos: 0,
+    aplicadaSinContar: false,
     ...p,
   };
   const estado = estadoDeLinea(base);
@@ -324,6 +332,7 @@ describe("resumirLineas, bloqueoDeCierre y los textos del resumen", () => {
       conDiferencia: 3,
       confirmadas: 1,
       enReconteo: 1,
+      sinContar: 0,
       unidadesSobrantes: 1,
       unidadesFaltantes: 2 + 7,
     });
@@ -722,6 +731,7 @@ describe("lineaDesdeJson y detalleDesdeJson — leer la base sin confiar en ella
       ajustadoTotal: 0,
       ajustadoAntes: 0,
       hallazgos: 0,
+      aplicadaSinContar: false,
       estado: "con_diferencia",
     });
   });
@@ -1080,5 +1090,269 @@ describe("pendientesParaCompletar: a quién llega «Completar todo» y «Aplicar
   });
   it("sin variantes no hay nada que completar", () => {
     expect(pendientesParaCompletar([], lineaDe)).toEqual([]);
+  });
+});
+
+describe("pendientesParaAplicar: «Aplicar todos completos» no toca una «en reconteo» (revisión adversarial, ADR-0328)", () => {
+  const lineas: Record<string, { contada: number | null; anterior: number | null }> = {
+    a: { contada: null, anterior: null },
+    b: { contada: 3, anterior: null },
+    r: { contada: null, anterior: 2 },
+    d: { contada: null, anterior: null },
+  };
+  const lineaDe = (id: string) => lineas[id];
+
+  it("solo las pendientes que nadie contó, en el orden dado; las en reconteo se cuentan aparte", () => {
+    expect(pendientesParaAplicar(["d", "r", "a", "b"], lineaDe)).toEqual({ ids: ["d", "a"], enReconteo: 1 });
+  });
+  it("una variante que no está en el conteo ni se inventa ni se cuenta", () => {
+    expect(pendientesParaAplicar(["zzz", "a"], lineaDe)).toEqual({ ids: ["a"], enReconteo: 0 });
+  });
+  it("solo en reconteo: nada que aplicar, y se sabe cuántas quedan por recontar", () => {
+    expect(pendientesParaAplicar(["r"], lineaDe)).toEqual({ ids: [], enReconteo: 1 });
+  });
+  it("«Completar todo» de una tarjeta sí la toma (la persona la tiene delante): son dos reglas distintas a propósito", () => {
+    expect(pendientesParaCompletar(["r"], lineaDe)).toEqual(["r"]);
+  });
+});
+
+describe("textosAplicarTodos: la pregunta dice las cifras reales del conteo, nunca un ejemplo fijo (ADR-0290)", () => {
+  it("con 3 pendientes y 12 contadas: «12 contadas · 3 sin contar», no «40 sin contar»", () => {
+    const t = textosAplicarTodos({ cuantas: 3, contadas: 12, sinContar: 0, enReconteo: 0 });
+    expect(t.subtitulo).toBe("Se anotará en las 3 variantes pendientes lo que CAYLA espera, y quedarán marcadas «sin contar».");
+    expect(t.detalle).toMatch(/^Si terminas así, el resultado dirá «12 contadas · 3 sin contar», y lo que se aplica sin contar no sube la exactitud\./);
+    expect(t.reconteo).toBeNull();
+  });
+  it("suma lo que ya estaba aplicado y habla en singular cuando toca", () => {
+    const t = textosAplicarTodos({ cuantas: 1, contadas: 1, sinContar: 4, enReconteo: 0 });
+    expect(t.subtitulo).toBe("Se anotará en la 1 variante pendiente lo que CAYLA espera, y quedará marcada «sin contar».");
+    expect(t.detalle).toMatch(/«1 contada · 5 sin contar»/);
+  });
+  it("si hay en reconteo, dice cuántas se dejan y por qué", () => {
+    expect(textosAplicarTodos({ cuantas: 3, contadas: 0, sinContar: 0, enReconteo: 1 }).reconteo).toBe(
+      "La variante en reconteo no se toca: ahí alguien ya vio una diferencia, y hay que volver a contarla a mano."
+    );
+    expect(textosAplicarTodos({ cuantas: 3, contadas: 0, sinContar: 0, enReconteo: 2 }).reconteo).toBe(
+      "Las 2 variantes en reconteo no se tocan: ahí alguien ya vio una diferencia, y hay que volver a contarlas a mano."
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// ADR-0328 (actividad 15): «Aplicar todos completos» dice la verdad sobre sí mismo, y el conteo de arranque se anuncia
+// ---------------------------------------------------------------------------------------------------------------
+describe("«aplicada sin contar»: se lee de la base, se resume aparte y contar a mano la borra", () => {
+  const jsonAplicada = (p: Record<string, unknown> = {}) => ({
+    variante_id: "v1",
+    debe_haber: 5,
+    foto: 5,
+    contada: 5,
+    anterior: null,
+    verificado_en: "2026-10-04T15:00:00Z",
+    confirmada_en: null,
+    actual: 5,
+    diferencia: 0,
+    ajuste_movimiento_id: null,
+    ajustado_total: 0,
+    ajustado_antes: 0,
+    hallazgos: 0,
+    aplicada_sin_contar: true,
+    estado: "correcta",
+    ...p,
+  });
+
+  it("la marca viene de la base; sin ella (web antes que el SQL) nada se dice «sin contar»", () => {
+    expect(lineaDesdeJson(jsonAplicada())).toMatchObject({ aplicadaSinContar: true, estado: "correcta" });
+    expect(lineaDesdeJson(jsonAplicada({ aplicada_sin_contar: undefined }))).toMatchObject({ aplicadaSinContar: false });
+    expect(lineaDesdeJson(jsonAplicada({ aplicada_sin_contar: "true" }))).toMatchObject({ aplicadaSinContar: false });
+  });
+
+  it("el resumen las cuenta aparte, dentro de las verificadas (12 contadas · 40 sin contar)", () => {
+    const lineas = [
+      ...Array.from({ length: 40 }, (_, i) => linea({ varianteId: `s${i}`, debeHaber: 2, contada: 2, aplicadaSinContar: true })),
+      ...Array.from({ length: 9 }, (_, i) => linea({ varianteId: `c${i}`, debeHaber: 3, contada: 3 })),
+      ...Array.from({ length: 3 }, (_, i) => linea({ varianteId: `d${i}`, debeHaber: 3, contada: 1 })),
+    ];
+    const r = resumirLineas(lineas);
+    expect(r).toMatchObject({ verificadas: 52, correctas: 49, conDiferencia: 3, sinContar: 40 });
+    expect(textoTerminado(r, false)).toBe("12 contadas · 40 sin contar · 9 coincidieron · 3 con diferencia");
+    expect(textoRevision(r)).toBe("9 correctas · 40 sin contar · 3 con diferencia · 0 pendientes");
+  });
+
+  it("sin nada aplicado, los textos son los de siempre (no aparece «sin contar»)", () => {
+    const r = resumirLineas([linea({ varianteId: "a", debeHaber: 5, contada: 5 }), linea({ varianteId: "b", debeHaber: 5, contada: 4 })]);
+    expect(r.sinContar).toBe(0);
+    expect(textoTerminado(r, false)).toBe("2 variantes verificadas · 1 coincidió · 1 con diferencia");
+    expect(textoRevision(r)).toBe("1 correcta · 1 con diferencia · 0 pendientes");
+  });
+
+  it("singular: 1 contada · 1 sin contar · 0 coincidieron", () => {
+    const r = resumirLineas([linea({ varianteId: "a", debeHaber: 5, contada: 5, aplicadaSinContar: true }), linea({ varianteId: "b", debeHaber: 5, contada: 4 })]);
+    expect(textoTerminado(r, false)).toBe("1 contada · 1 sin contar · 0 coincidieron · 1 con diferencia");
+  });
+
+  it("después de aplicar, cuántas y que quedan «sin contar»; si no quedaba nada, se dice", () => {
+    expect(textoAplicadas(40)).toBe("Se anotaron 40 variantes con lo que CAYLA esperaba, marcadas «sin contar»: no suben la exactitud. Si cuentas alguna a mano, deja de estar «sin contar».");
+    expect(textoAplicadas(1)).toMatch(/^Se anotaron 1 variante con/);
+    // El separador de miles depende de los datos de idioma del motor (es-PE: «1,200» o «1.200»); la cifra es la misma.
+    expect(textoAplicadas(1200)).toMatch(/^Se anotaron 1[.,\u00a0]?200 variantes/);
+    expect(textoAplicadas(0)).toBe("No quedaba ninguna variante pendiente: no se anotó nada.");
+  });
+
+  it("un reintento (la respuesta se perdió y la base ya las tenía): no dice «no se anotó nada» mientras las filas pasan a «Sin contar»", () => {
+    expect(textoAplicadas(0, 3)).toBe("Ya estaban aplicadas: 3 variantes sin contar. No se anotó nada nuevo.");
+    expect(textoAplicadas(0, 1)).toBe("Ya estaban aplicadas: 1 variante sin contar. No se anotó nada nuevo.");
+    // Si esta vez sí anotó, manda lo anotado.
+    expect(textoAplicadas(2, 2)).toMatch(/^Se anotaron 2 variantes/);
+  });
+
+  it("la fila dice «Sin contar» en neutro, no «Correcto» en verde: nadie la miró", () => {
+    expect(etiquetaDeLinea({ estado: "correcta", diferencia: 0, sinContar: true })).toEqual({ texto: "Sin contar", tono: "neutro", confirmada: false });
+    expect(etiquetaDeLinea({ estado: "correcta", diferencia: 0 })).toEqual({ texto: "Correcto", tono: "verde", confirmada: false });
+    // Solo una correcta puede venir así; en cualquier otro estado manda el estado.
+    expect(etiquetaDeLinea({ estado: "con_diferencia", diferencia: -1, sinContar: true }).texto).toBe("Falta 1");
+  });
+
+  it("una pendiente nunca se cuenta «sin contar» aunque llegara marcada (la base lo impide; aquí tampoco se cree)", () => {
+    expect(resumirLineas([{ estado: "pendiente", diferencia: null, aplicadaSinContar: true }]).sinContar).toBe(0);
+  });
+
+  it("contar a mano una línea aplicada (aunque sea la misma cifra) le quita la marca; borrarla también", () => {
+    const aplicada = linea({ debeHaber: 5, contada: 5, aplicadaSinContar: true, verificadoEn: AHORA });
+    expect(contarLinea(aplicada, 5, AHORA)?.aplicadaSinContar).toBe(false);
+    expect(contarLinea(aplicada, null, AHORA)?.aplicadaSinContar).toBe(false);
+  });
+
+  it("el historial: sin_contar y es_arranque de la base; sin ellos (web antes que el SQL) valen 0 y false", () => {
+    const fila = {
+      id: "c1", numero: 3, estado: "cerrado", created_at: "2026-10-04T14:00:00Z", cerrado_en: "2026-10-04T15:00:00Z", sububicacion_id: "piso",
+      sububicacion_nombre: "Piso de venta", sububicacion_tipo: "piso_venta", alcance: "todo", alcance_categoria_nombre: null, abierto_por: null,
+      cerrado_por: null, lineas: 52, lineas_con_diferencia: 3, sistema: 100, contado: 97, diferencia: -3, pendientes: 0, parcial: false,
+    };
+    expect(conteoResumenDesdeFila({ ...fila, sin_contar: 40, es_arranque: true }, new Map())).toMatchObject({ sinContar: 40, esArranque: true });
+    expect(conteoResumenDesdeFila(fila, new Map())).toMatchObject({ sinContar: 0, esArranque: false });
+  });
+});
+
+describe("el resultado de un conteo con líneas aplicadas sin contar (ADR-0328)", () => {
+  const cerrado = { estado: "cerrado", lineas: 52, lineasConDiferencia: 0, parcial: false };
+  it("sin diferencias y una parte aplicada: no dice «Todo correcto», dice «en lo contado»", () => {
+    expect(resultadoConteo({ ...cerrado, sinContar: 40 })).toBe("todo_correcto");
+    expect(textoResultadoConteo({ ...cerrado, sinContar: 40 })).toBe("Sin diferencias en lo contado");
+    expect(textoResultadoConteo(cerrado)).toBe("Todo correcto");
+  });
+  it("TODO aplicado sin contar: ni correcto ni con diferencias, «Sin contar»", () => {
+    expect(resultadoConteo({ ...cerrado, sinContar: 52 })).toBe("sin_contar");
+    expect(textoResultadoConteo({ ...cerrado, sinContar: 52 })).toBe("Sin contar: se aplicó todo");
+  });
+  it("las diferencias y el cierre parcial mandan antes que lo aplicado", () => {
+    expect(resultadoConteo({ ...cerrado, lineasConDiferencia: 3, sinContar: 40 })).toBe("con_diferencias");
+    expect(resultadoConteo({ ...cerrado, parcial: true, sinContar: 52 })).toBe("parcial");
+  });
+});
+
+describe("el conteo de arranque en el detalle y en las pantallas de cerrar y de resultado", () => {
+  const cabecera = (p: Record<string, unknown> = {}) =>
+    detalleDesdeJson({
+      conteo: {
+        id: "c1", numero: 4, estado: "abierto", ubicacion_id: "u1", sububicacion_id: "s1", sububicacion_tipo: "piso_venta", sububicacion_nombre: "Piso de venta",
+        alcance: "todo", alcance_categoria_id: null, alcance_categoria_nombre: null, abierto_por: "p1", abierto_por_nombre: "Rosa", cerrado_por: null,
+        cerrado_en: null, created_at: "2026-10-04T14:00:00Z", foto_en: "2026-10-04T14:00:01Z", es_prueba: false, ...p,
+      },
+      lineas: [],
+    })!.conteo;
+
+  it("lee es_arranque, arranque_posible, arranque_por_categoria y abierto_hoy; sin el SQL, ni lo es ni puede serlo y no se sabe si es de hoy", () => {
+    expect(cabecera({ es_arranque: true, arranque_posible: false, arranque_por_categoria: true, abierto_hoy: true })).toMatchObject({
+      esArranque: true,
+      arranquePosible: false,
+      arranquePorCategoria: true,
+      abiertoHoy: true,
+    });
+    expect(cabecera()).toMatchObject({ esArranque: false, arranquePosible: false, arranquePorCategoria: false, abiertoHoy: null, abiertoPorPresente: null });
+    // Si quien lo abrió ya marcó su salida, la base no hereda su firma: la pantalla lo sabe antes de cerrar.
+    expect(cabecera({ abierto_por_presente: false })).toMatchObject({ abiertoPorPresente: false });
+    expect(cabecera({ abierto_por_presente: "no" })).toMatchObject({ abiertoPorPresente: null });
+  });
+
+  it("«del piso de venta», «del almacén de tienda», «de toda la ubicación»", () => {
+    expect(delLugar({ sububicacionTipo: "piso_venta", sububicacionNombre: null })).toBe("del piso de venta");
+    expect(delLugar({ sububicacionTipo: "almacen_tienda", sububicacionNombre: null })).toBe("del almacén de tienda");
+    expect(delLugar({ sububicacionTipo: null, sububicacionNombre: null })).toBe("de toda la ubicación");
+  });
+
+  it("al cerrar uno que puede ser el de arranque: completo lo será (nota); a medias NO, y se avisa antes (ámbar)", () => {
+    const c = cabecera({ arranque_posible: true });
+    expect(notaDeArranque(c, false)).toEqual({
+      texto: "Es el conteo de arranque del piso de venta: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.",
+      tono: "nota",
+    });
+    expect(notaDeArranque(c, true)?.tono).toBe("aviso");
+    expect(notaDeArranque(c, true)?.texto).toMatch(/^Cerrado a medias no es el conteo de arranque del piso de venta: sus diferencias contarán como pérdida\./);
+  });
+
+  it("con algo aplicado sin contar tampoco lo es (la base no lo reconoce): se avisa en ámbar, con cuántas y qué hacer", () => {
+    const c = cabecera({ arranque_posible: true });
+    expect(notaDeArranque(c, false, 40)).toEqual({
+      texto: "Con 40 variantes aplicadas sin contar, este no es el conteo de arranque del piso de venta: lo que falte en lo contado contará como pérdida. Para que lo sea, vuelve a Contar y cuéntalas a mano.",
+      tono: "aviso",
+    });
+    expect(notaDeArranque(c, false, 1)?.texto).toMatch(/^Con 1 variante aplicada sin contar, .*cuéntala a mano\.$/);
+    // El cierre a medias manda: es lo primero que hay que resolver.
+    expect(notaDeArranque(c, true, 40)?.texto).toMatch(/^Cerrado a medias/);
+    // Sin poder ser el de arranque, lo aplicado no cambia nada que decir aquí.
+    expect(notaDeArranque(cabecera(), false, 40)).toBeNull();
+  });
+
+  it("aplicar sin contar en uno que todavía puede ser el de arranque: se avisa antes que deja de serlo; en otro, nada", () => {
+    expect(avisoArranqueAlAplicar(cabecera({ arranque_posible: true }))).toBe(
+      "Este es el conteo de arranque del piso de venta. Si aplicas sin contar, deja de serlo: lo que falte en lo contado contará como pérdida. Para que sea el de arranque, cuenta todo a mano."
+    );
+    expect(avisoArranqueAlAplicar(cabecera())).toBeNull();
+    expect(avisoArranqueAlAplicar(cabecera({ estado: "cerrado", arranque_posible: true }))).toBeNull();
+  });
+
+  it("el resultado de uno que fue el de arranque dice lo que hizo; los demás no dicen nada", () => {
+    expect(notaDeArranque(cabecera({ estado: "cerrado", es_arranque: true }), false)).toEqual({
+      texto: "Conteo de arranque del piso de venta: corrigió el stock, y sus diferencias no cuentan como pérdida ni bajan la exactitud.",
+      tono: "nota",
+    });
+    expect(notaDeArranque(cabecera({ estado: "cerrado" }), false)).toBeNull();
+    expect(notaDeArranque(cabecera(), false)).toBeNull();
+    expect(notaDeArranque(cabecera({ estado: "anulado", arranque_posible: true }), false)).toBeNull();
+  });
+
+  // En el piso el arranque es por categoría (Felipe, 2026-10-04): la base lo dice (`arranque_por_categoria`) y la frase nombra el tramo.
+  it("en el piso, el de una categoría dice de cuál; el de todo el piso, que es de las categorías que todavía no lo tenían", () => {
+    const deBlusas = cabecera({ arranque_posible: true, arranque_por_categoria: true, alcance: "categoria", alcance_categoria_id: "k1", alcance_categoria_nombre: "Blusas" });
+    expect(tramoDeArranque(deBlusas)).toBe("de Blusas en el piso de venta");
+    expect(notaDeArranque(deBlusas, false)).toEqual({
+      texto: "Es el conteo de arranque de Blusas en el piso de venta: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud.",
+      tono: "nota",
+    });
+    expect(avisoArranqueAlAplicar(deBlusas)).toMatch(/^Este es el conteo de arranque de Blusas en el piso de venta\. Si aplicas sin contar, deja de serlo/);
+    expect(notaDeArranque({ ...deBlusas, estado: "cerrado", esArranque: true }, false)?.texto).toBe(
+      "Conteo de arranque de Blusas en el piso de venta: corrigió el stock, y sus diferencias no cuentan como pérdida ni bajan la exactitud."
+    );
+
+    const todoElPiso = cabecera({ arranque_posible: true, arranque_por_categoria: true });
+    expect(tramoDeArranque(todoElPiso)).toBe("de las categorías del piso de venta que todavía no lo tenían");
+    expect(notaDeArranque(todoElPiso, false)).toEqual({
+      texto:
+        "Es el conteo de arranque de las categorías del piso de venta que todavía no lo tenían: en ellas, lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud. Si alguna ya lo tuvo, sus diferencias sí cuentan.",
+      tono: "nota",
+    });
+    expect(notaDeArranque({ ...todoElPiso, estado: "cerrado", esArranque: true }, false)?.texto).toBe(
+      "Conteo de arranque de las categorías del piso de venta que todavía no lo tenían: corrigió el stock, y en ellas las diferencias no cuentan como pérdida ni bajan la exactitud."
+    );
+    expect(notaDeArranque(todoElPiso, true)?.texto).toMatch(/^Cerrado a medias no es el conteo de arranque de las categorías del piso de venta/);
+  });
+
+  it("en el almacén el tramo es el lugar entero: la frase no nombra categorías", () => {
+    const alm = cabecera({ arranque_posible: true, arranque_por_categoria: false, sububicacion_tipo: "almacen_tienda", sububicacion_nombre: "Almacén de tienda" });
+    expect(tramoDeArranque(alm)).toBe("del almacén de tienda");
+    expect(notaDeArranque(alm, false)?.texto).toBe(
+      "Es el conteo de arranque del almacén de tienda: lo que encontraste corrige el stock, pero no cuenta como pérdida ni baja la exactitud."
+    );
   });
 });

@@ -159,6 +159,43 @@ número de la barra es lo que trae la lista, en tarjetas). Mutación: agrupar si
 Verificado en local con Chrome sin ventana, en escritorio y a 375 px: «Para hoy» 15 → «Ver cuáles» → 6 tarjetas, 3+3+3+3+2+1 = 15,
 sin desborde ni errores de consola; sin «Hoy», Blusa Valentina vuelve a ser una tarjeta con dos puntos y el punto cambia el color.
 
+## Actualización 2026-10-04 (d): la cuenta única la alimenta el motor del piso (integración con el PR #787)
+El PR #787 (ADR-0328 act. 7) cambió QUÉ es «por colgar» —lo decide un motor, `lib/piso-plan.ts`: 1 por color en las tallas del centro
+y en lo vendido en 14 días, lo vendido ayer primero, «En pausa» sin piso cuadrado— y, en paralelo con (b), le dio al Inicio su propia
+cuenta por percha (`paraColgarHoy`) sobre la lectura del motor. Al juntarlos quedaban dos cuentas otra vez.
+DECIDÍ: `porColgarDeLaSede` sigue siendo la ÚNICA cuenta, y el motor la alimenta: cada fila trae la decisión del motor (`planPiso`) y la
+función recibe la lista del día (`listaDelDia`, obligatoria) para ordenar las prendas; además devuelve `enPausa` (tallas que esperan el
+cuadre), la cifra que «Para hoy» y el Inicio dicen en lugar de «por colgar» con el piso sin cuadrar. El Inicio no vuelve a leer
+Existencias entera: pasa la MISMA lectura del motor (`fn_piso_plan_lectura`, 3,2 ms en TRU) a filas (`filasDelPiso`,
+`lib/inicio-almacen-reglas.ts`) y cuenta con esa función. El aviso cuenta tallas («Baja al piso N tallas por colgar») y, con el piso sin
+cuadrar, dice «Cuadrar el piso» con las tallas que esperan. Se borran `paraColgarHoy` (motor), `prendasParaColgarHoy` (sin uso desde que
+se retiró la tarjeta «Reponer a piso hoy») y `resumirPorColgar` (`existencias-hoy.ts`): tres cuentas más de lo mismo.
+DESCARTÉ: que el Inicio leyera Existencias entera (`getExistencias`, como en (b)) para tener exactamente las mismas filas: garantiza la
+igualdad por construcción, pero vuelve a poner ~0,9 s solo de stock (más la red de sedes y los traslados) en la portada de una cuenta de
+almacén para mostrar un número y tres prendas, lo que el #787 había quitado. Y mantener `paraColgarHoy` probada «igual» a la cuenta de
+Existencias: dos funciones que una prueba obliga a coincidir son dos lugares donde cambiar la regla, y la siguiente pantalla elige una.
+SE ROMPE SI: las filas de Existencias (`getExistencias`, que todavía suma `stock` en TypeScript) y `fn_existencias_base` dejan de aplicar
+la misma regla de «libre» (ADR-0270, tarea #4 pendiente): el Inicio y «Para hoy» contarían las mismas tallas con unidades distintas. Lo
+vigilan `pnpm pruebas:piso-plan` (S4: la lectura = `fn_existencias_base`, talla por talla) y `lib/inicio-almacen-reglas.test.ts` (una
+escena pasada por los tres caminos —«Hoy», «Para hoy» y el Inicio— con el piso cuadrado y sin cuadrar, más candados de fuente;
+mutaciones: el Inicio sin la decisión del motor, sin la lista del día, con piso y almacén cruzados, la cuenta sin la pausa, el aviso
+contando unidades y el panel sin la lista: todas en rojo).
+
+## Actualización 2026-10-04 (e): el Inicio dibuja la prenda sin foto con la misma lectura del motor (merge con ADR-0333)
+ADR-0333 (main) dibuja la prenda sin foto con el ícono de su categoría sobre su color en todo el ERP, y para el Inicio de Almacén le
+pasó color y categoría a las tres prendas de «Por colgar»… desde las filas de Existencias. Con (d) esas filas salen de la lectura del
+motor (`filasDelPiso`), que no traía ni el hex del color ni el prefijo y la familia de la categoría: el merge compilaba y las tres
+prendas habrían salido como una percha sobre un tono neutro.
+DECIDÍ: `fn_piso_plan_lectura` trae `color_hex` en cada talla y `prefijo` y `familia` en cada curva (ya traía el nombre de la
+categoría), `lecturaDesdeJson` los traduce y `filasDelPiso` los pone en cada fila. El motor no los usa. Cuestan dos columnas de dos
+uniones que la lectura ya hacía (`colores`, `categorias`).
+DESCARTÉ: una segunda consulta del Inicio por la categoría y el color de sus tres prendas (otra ida a la base y otra lectura que puede
+fallar sola, para lo que la primera ya tenía a mano), y volver a leer Existencias entera (lo que (d) descartó).
+SE ROMPE SI: una pantalla nueva arma filas desde la lectura del motor sin `filasDelPiso`, o la lectura deja de traer esos campos. Lo
+vigilan F5 y F6 de `pnpm pruebas:piso-plan` (las claves de la talla; el hex, el prefijo y la familia, con mutación en rojo) y la
+escena de `lib/inicio-almacen-reglas.test.ts` («dibuja la prenda sin foto como el resto del ERP», también en rojo si el Inicio pierde
+la categoría).
+
 ## Lo que no se hizo aquí
 - La fecha de cuadre por sede y la «puerta de confianza» de «Para hoy» (ADR-0328, decisiones 4 y 5): es de la otra sesión; se
   engancha en `tareasParaHoy` cuando exista.
@@ -166,3 +203,15 @@ sin desborde ni errores de consola; sin «Hoy», Blusa Valentina vuelve a ser un
 - La edad del piso dentro de Existencias: Felipe la aprobó para **después** del cuadre.
 - «Eliminar el producto» sigue en el cajón (D4 del 3-oct, abierta) y el verbo de bajar sigue con tres nombres («Bajar al piso»,
   «Reponer prenda», «Subir prenda»): no entraron en las 8 actividades.
+
+## Actualización 2026-10-04 (noche) — la regla del piso la define el motor (ADR-0328, actividad 7)
+
+Este ADR dejó el umbral de reponer en 0 (mínimo de 1 colgada por talla y color) dentro de `politicaDe`. Con el motor del piso
+(`lib/piso-plan.ts`, PR #787) la regla vive en un solo lugar y es la que Felipe decidió en las rondas del 2026-10-04
+(ADR-0328 y ADR-0329, «Actualización 2026-10-04»): **1 colgada por color en las tallas centrales y en toda talla que se
+vendió en los últimos 14 días** (las extremas que no se venden pueden quedar guardadas); lo vendido decide si una talla se
+cuelga, nunca cuántas. Con 1 por color, «Por reponer» y «Por colgar» decían lo mismo: **queda una sola palabra, «Por colgar»**,
+y «Hoy» tiene tres casos (Por colgar · Sin stock atrás · Mantener), más «En pausa» mientras la sede no cuadra su piso
+(ADR-0328, decisión 5), que «Para hoy» explica con la tarea «Cuadra el piso». La cara (cabecera, «Para hoy», riel de tallas,
+TONO_HOY sin rojo) sigue siendo la de este ADR. Lo que aquí dice «por reponer en ámbar» queda como historia.
+

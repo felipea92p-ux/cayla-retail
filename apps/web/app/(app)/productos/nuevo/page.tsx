@@ -3,6 +3,8 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
+import { getCargaInicial } from "@/lib/carga-inicial";
+import { cargaInicialDe } from "@/lib/carga-inicial-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 
@@ -18,8 +20,9 @@ export default async function NuevoProductoPage() {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
-  // En paralelo: el contexto del alta y cómo es la tienda donde entra el stock de hoy (la sede activa de la cabecera).
-  const [contexto, sububicaciones] = await Promise.all([getContextoAlta(), getSububicaciones(persona.ubicacionId)]);
+  // En paralelo: el contexto del alta, cómo es la tienda donde entra el stock de hoy (la sede activa de la cabecera) y hasta cuándo
+  // esa sede acepta carga inicial (ADR-0328; `null` si la base todavía no lo sabe: el paso 4 no avisa nada).
+  const [contexto, sububicaciones, carga] = await Promise.all([getContextoAlta(), getSububicaciones(persona.ubicacionId), getCargaInicial()]);
   const destino = {
     ubicacionId: persona.ubicacionId,
     etiqueta: persona.ubicacionEtiqueta,
@@ -41,7 +44,13 @@ export default async function NuevoProductoPage() {
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay categorías activas en el catálogo.</p>
       ) : (
         // `key`: si se cambia de sede en la cabecera, el stock de hoy es de OTRA tienda: el formulario empieza de nuevo.
-        <NuevoProductoForm key={persona.ubicacionId} contexto={contexto} destino={destino} puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")} />
+        <NuevoProductoForm
+          key={persona.ubicacionId}
+          contexto={contexto}
+          destino={destino}
+          cargaInicial={cargaInicialDe(carga, persona.ubicacionId)}
+          puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")}
+        />
       )}
     </div>
   );

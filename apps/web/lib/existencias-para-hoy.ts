@@ -15,14 +15,20 @@
      siguientes bajan a ámbar. Con un rojo por fila, el que importa deja de verse.
    - la cola que no responde se DICE («no se pudo leer»), no se calla: una tarea que desaparece cuando la base falla se lee
      igual que «no hay ninguna».
+   Lo mismo vale para el motor del piso (ADR-0328 act. 7, integración de la ola 1): con el piso SIN CUADRAR —como está toda tienda
+   el día que se pega el motor— no hay «por colgar» (cada talla que lo sería queda «En pausa»), y si su lectura falla tampoco.
+   Sin una fila propia, las dos cosas se leían «Todo al día. No hay nada pendiente en el piso», justo el falso «al día» que la
+   tarjeta «Colgar en el piso hoy» ya había corregido antes de que el rediseño la retirara.
    ==================================================================== */
 
 import { MAX_ROJO_POR_PANTALLA } from "@cayla-retail/shared";
-import { hoyDeTalla, TEXTO_HOY } from "./existencias-hoy";
-import { agruparPorPrenda, ordenarPorUrgencia, type FilaPrenda, type PrendaAgrupada } from "./existencias-prendas";
+import { contarEnPausa, hoyDeTalla, TEXTO_HOY } from "./existencias-hoy";
+import { agruparPorPrenda, ordenarPorListaDelDia, type FilaPrenda, type PrendaAgrupada } from "./existencias-prendas";
 
 export type TipoTareaHoy =
   | "por_colgar"
+  | "piso_en_pausa"
+  | "piso_sin_calcular"
   | "sin_registrar"
   | "danadas"
   | "apartados_vencidos"
@@ -48,6 +54,8 @@ export type EntradaParaHoy = {
   /** La sede separa piso y almacén (una tienda). En el Taller no hay «por colgar». */
   separa: boolean;
   porColgar: { tallas: number; unidades: number; prendas: readonly string[] };
+  /** El motor del piso: cuántas tallas esperan el cuadre del piso («En pausa») y si su lectura no respondió (`fallo`). */
+  piso: { enPausa: number; fallo: boolean };
   /** Tallas «sin stock atrás» que tampoco vienen en camino (lo que viene en camino no se pide de nuevo). */
   sinStockAtras: { tallas: number };
   /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
@@ -61,28 +69,38 @@ export type EntradaParaHoy = {
 
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 
-/** Lo «por colgar» de TODA la sede (no lo filtrado), con la regla de «Hoy» (`hoyDeTalla`). */
+/** Lo «por colgar» de TODA la sede (no lo filtrado), con la decisión del motor del piso que trae cada talla (`hoyDeTalla`). */
 export type PorColgarDeSede<F extends FilaPrenda> = {
-  /** Cuántas tallas (variantes) no tienen ninguna libre en el piso y sí en el almacén. */
+  /** Cuántas tallas (variantes) están «Por colgar»: el motor pide una colgada, no queda ninguna y en el almacén hay. */
   tallas: number;
   /** Lo libre en el almacén de esas tallas: lo que se podría colgar hoy. */
   unidades: number;
+  /** Cuántas tallas serían «por colgar» pero esperan el cuadre del piso («En pausa», ADR-0328 decisión 5). Con el piso sin
+   *  cuadrar `tallas` es 0 y esta es la cifra que «Para hoy» y el Inicio dicen en su lugar: nunca un «al día» falso. */
+  enPausa: number;
   /** Esas tallas, en el orden de la sede (lo que se manda a «Colgar en el piso»). */
   filas: F[];
-  /** Agrupadas por prenda (modelo + color), la que más tallas tiene por colgar primero. */
+  /** Agrupadas por prenda (modelo + color), en el orden de la lista del día del motor: lo vendido ayer primero. */
   prendas: PrendaAgrupada<F>[];
 };
 
-/** La ÚNICA cuenta de «por colgar» de una sede: de aquí salen la fila de «Para hoy» en Existencias y el aviso y el bloque del
- *  Inicio de Almacén. Hasta el 2026-10-04 el Inicio contaba por su lado (modelos con alguna talla que pedía reponer, agotadas
- *  incluidas) y su número no coincidía con el de Existencias: con una sola función, no pueden discrepar. */
-export function porColgarDeLaSede<F extends FilaPrenda>(stock: readonly F[]): PorColgarDeSede<F> {
+/** La ÚNICA cuenta de «por colgar» de una sede: de aquí salen la fila de «Para hoy» en Existencias, la cifra que suma el filtro
+ *  «Hoy ▸ Por colgar» y el aviso y el bloque del Inicio de Almacén. Hasta el 2026-10-04 el Inicio contaba por su lado (modelos con
+ *  alguna talla que pedía reponer, agotadas incluidas) y su número no coincidía con el de Existencias: con una sola función, no
+ *  pueden discrepar (ADR-0331 act. b).
+ *
+ *  QUÉ es «por colgar» no se decide aquí: lo decide el motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7) y cada talla trae su
+ *  decisión en `planPiso`. El motor también da el ORDEN (`listaDelDia`: lo vendido ayer primero); sin lista (el motor no respondió,
+ *  o el piso está en pausa) las prendas quedan en el orden en que llegaron. Se pide siempre, para que ninguna pantalla vuelva a
+ *  ordenar por su cuenta. */
+export function porColgarDeLaSede<F extends FilaPrenda>(stock: readonly F[], listaDelDia: readonly string[]): PorColgarDeSede<F> {
   const filas = stock.filter((f) => hoyDeTalla(f) === "por_colgar");
   return {
     tallas: filas.length,
     unidades: filas.reduce((s, f) => s + (f.almacenDisponible ?? 0), 0),
+    enPausa: contarEnPausa(stock),
     filas,
-    prendas: ordenarPorUrgencia(agruparPorPrenda(filas)),
+    prendas: ordenarPorListaDelDia(agruparPorPrenda(filas), listaDelDia),
   };
 }
 
@@ -125,6 +143,26 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       // La segunda frase es la honestidad del número: si la prenda ya cuelga y el sistema la cree guardada (una bajada que no se
       // registró, o la carga inicial que entró al almacén), lo que toca es registrarla, no volver a colgarla.
       detalle: `${e.porColgar.unidades} ${plural(e.porColgar.unidades, "guardada", "guardadas")} y ninguna colgada${empezar ? `: empieza por ${empezar}` : ""}. ¿Ya cuelgan? Regístralas al colgarlas.`,
+      tono: "ambar",
+    });
+  }
+
+  // En el lugar de «por colgar», porque es lo que lo reemplaza: sin plan no se sabe qué colgar, y en pausa no se manda a colgar.
+  if (e.separa && e.piso.fallo) {
+    tareas.push({
+      tipo: "piso_sin_calcular",
+      cifra: null,
+      texto: "No se pudo calcular qué colgar hoy",
+      detalle: "La columna «Hoy» dice N/D hasta que responda. Si ves una talla sin nada colgado, cuélgala igual en el piso.",
+      tono: "pizarra",
+    });
+  } else if (e.separa && e.piso.enPausa > 0) {
+    tareas.push({
+      tipo: "piso_en_pausa",
+      cifra: e.piso.enPausa,
+      texto: plural(e.piso.enPausa, "talla espera el cuadre del piso", "tallas esperan el cuadre del piso"),
+      // La misma razón del aviso de la tabla (`avisoPausaDelPiso`): sin cuadre, «colgar» podría pedir lo que ya cuelga.
+      detalle: "Hasta cuadrarlo, «Hoy» no manda a colgar nada: podría pedir colgar lo que ya cuelga. Se cuadra una vez, escaneando lo guardado.",
       tono: "ambar",
     });
   }

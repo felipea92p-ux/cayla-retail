@@ -576,6 +576,24 @@ export type Database = {
           },
         ]
       }
+      cierres_cola_arranque: {
+        Row: {
+          cerrado_en: string
+          cerrado_por: string
+          corte: string
+          filas: number
+          id: string
+          motivo: string
+          nota: string | null
+          soles: number
+          ubicacion_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "cierres_cola_arranque_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: false; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
+        ]
+      }
       clientas: {
         Row: {
           anonimizada: boolean
@@ -974,6 +992,18 @@ export type Database = {
             referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      cola_arranque_plazo: {
+        Row: {
+          fijado_en: string
+          hasta: string
+          ubicacion_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "cola_arranque_plazo_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: true; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
         ]
       }
       colaboradores: {
@@ -1752,6 +1782,7 @@ export type Database = {
       }
       conteo_items: {
         Row: {
+          aplicada_sin_contar: boolean
           cantidad_contada: number | null
           cantidad_foto: number | null
           cantidad_sistema: number
@@ -1765,6 +1796,7 @@ export type Database = {
           verificado_en: string | null
         }
         Insert: {
+          aplicada_sin_contar?: boolean
           cantidad_contada?: number | null
           cantidad_foto?: number | null
           cantidad_sistema: number
@@ -1778,6 +1810,7 @@ export type Database = {
           verificado_en?: string | null
         }
         Update: {
+          aplicada_sin_contar?: boolean
           cantidad_contada?: number | null
           cantidad_foto?: number | null
           cantidad_sistema?: number
@@ -1822,6 +1855,7 @@ export type Database = {
           cerrado_en: string | null
           cerrado_por: string | null
           created_at: string
+          es_arranque: boolean
           es_prueba: boolean
           estado: string
           foto_en: string | null
@@ -1837,6 +1871,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_arranque?: boolean
           es_prueba?: boolean
           estado?: string
           foto_en?: string | null
@@ -1852,6 +1887,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_arranque?: boolean
           es_prueba?: boolean
           estado?: string
           foto_en?: string | null
@@ -3249,6 +3285,7 @@ export type Database = {
       prendas_por_regularizar: {
         Row: {
           categoria_id: string
+          cierre_id: string | null
           color_codigo: string
           descripcion: string
           diferencia: number | null
@@ -3270,6 +3307,7 @@ export type Database = {
         Update: never
         Relationships: [
           { foreignKeyName: "prendas_por_regularizar_categoria_id_fkey"; columns: ["categoria_id"]; isOneToOne: false; referencedRelation: "categorias"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_cierre_fk"; columns: ["cierre_id", "ubicacion_id"]; isOneToOne: false; referencedRelation: "cierres_cola_arranque"; referencedColumns: ["id", "ubicacion_id"] },
           { foreignKeyName: "prendas_por_regularizar_color_codigo_fkey"; columns: ["color_codigo"]; isOneToOne: false; referencedRelation: "colores"; referencedColumns: ["codigo"] },
           { foreignKeyName: "prendas_por_regularizar_talla_id_fkey"; columns: ["talla_id"]; isOneToOne: false; referencedRelation: "tallas"; referencedColumns: ["id"] },
           { foreignKeyName: "prendas_por_regularizar_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: false; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
@@ -4331,6 +4369,8 @@ export type Database = {
           nota: string | null
           nota_cierre: string | null
           numero: number
+          recepcion_firmada_en: string | null
+          recepcion_firmada_por: string | null
           sububicacion_destino_id: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
@@ -4351,6 +4391,8 @@ export type Database = {
           nota?: string | null
           nota_cierre?: string | null
           numero?: number
+          recepcion_firmada_en?: string | null
+          recepcion_firmada_por?: string | null
           sububicacion_destino_id?: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
@@ -4371,6 +4413,8 @@ export type Database = {
           nota?: string | null
           nota_cierre?: string | null
           numero?: number
+          recepcion_firmada_en?: string | null
+          recepcion_firmada_por?: string | null
           sububicacion_destino_id?: string | null
           ubicacion_destino_id?: string
           ubicacion_origen_id?: string
@@ -4436,6 +4480,7 @@ export type Database = {
       ubicaciones: {
         Row: {
           activo: boolean
+          carga_inicial_hasta: string | null
           created_at: string
           hora_cierre: string | null
           id: string
@@ -4447,6 +4492,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          carga_inicial_hasta?: string | null
           created_at?: string
           hora_cierre?: string | null
           id?: string
@@ -4458,6 +4504,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          carga_inicial_hasta?: string | null
           created_at?: string
           hora_cierre?: string | null
           id?: string
@@ -5230,6 +5277,8 @@ export type Database = {
       }
       anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       reabrir_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
+      reabrir_prenda_cerrada: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
+      regularizar_prendas_sugeridas: { Args: { p_pares: Json; p_ubicacion_id: string }; Returns: number }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
@@ -5326,6 +5375,8 @@ export type Database = {
         Returns: string
       }
 
+      fn_candidatas_de_venta: { Args: { p_ubicacion_id: string }; Returns: { disponible: number; limpia: boolean; prenda_id: string; variante_id: string }[] }
+      fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
@@ -5997,6 +6048,10 @@ export type Database = {
           monto_trasladado: number
         }[]
       }
+      cerrar_cola_arranque: {
+        Args: { p_hasta: string; p_motivo: string; p_nota?: string; p_ubicacion_id: string }
+        Returns: string
+      }
       cerrar_conteo: {
         Args: { p_conteo_id: string; p_parcial?: boolean }
         Returns: {
@@ -6067,6 +6122,11 @@ export type Database = {
         }
         Returns: Json
       }
+      // ADR-0328 (20261004230100): «Aplicar todos completos» en una sola llamada; devuelve { aplicadas, lineas }.
+      conteo_aplicar_completos: {
+        Args: { p_conteo_id: string; p_variantes: string[] }
+        Returns: Json
+      }
       conteo_recontar: {
         Args: { p_conteo_id: string; p_variante_id: string }
         Returns: Json
@@ -6118,6 +6178,12 @@ export type Database = {
         Args: { p_fechas: Json }
         Returns: number
       }
+      // 20261004210100 (ADR-0328, actividad 4): la carga inicial se cierra por sede.
+      fijar_cierre_carga_inicial: {
+        Args: { p_fecha: string | null; p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_carga_inicial_sedes: { Args: never; Returns: Json }
       fijar_meta_persona: {
         Args: {
           p_detalle?: string
@@ -6506,6 +6572,16 @@ export type Database = {
           variantes: number
         }[]
       }
+      // ADR-0328 (20261004230100): por lugar de conteo (sububicacion_id NULL = toda la ubicación), con categoria_id NULL si un conteo de
+      // TODO el lugar sería de arranque; en el piso, además, una fila por categoría activa (el arranque del piso es por categoría).
+      fn_conteo_arranque: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          arranque_pendiente: boolean
+          categoria_id: string | null
+          sububicacion_id: string | null
+        }[]
+      }
       fn_conteo_detalle: { Args: { p_conteo_id: string }; Returns: Json }
       fn_conteos_resumen: {
         Args: { p_limite?: number; p_ubicacion_id: string }
@@ -6518,6 +6594,7 @@ export type Database = {
           contado: number
           created_at: string
           diferencia: number
+          es_arranque: boolean
           estado: string
           id: string
           lineas: number
@@ -6525,6 +6602,7 @@ export type Database = {
           numero: number
           parcial: boolean
           pendientes: number
+          sin_contar: number
           sistema: number
           sububicacion_id: string
           sububicacion_nombre: string
@@ -7686,6 +7764,8 @@ export type Database = {
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_titulo_referencia: { Args: { p: string }; Returns: string }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
+      // ADR-0328 (20261004230100): la firma vigente de la recepción de un traslado { persona_id, nombre, firmada_en, de_hoy }.
+      fn_traslado_firma_recepcion: { Args: { p_transferencia_id: string }; Returns: Json }
       fn_traslado_lineas: {
         Args: { p_transferencia_id: string }
         Returns: {

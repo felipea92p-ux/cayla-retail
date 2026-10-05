@@ -88,6 +88,10 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
+import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
+
+/** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
+const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
@@ -141,10 +145,13 @@ const TITULOS: Record<NumeroPaso, string> = {
 export function NuevoProductoForm({
   contexto,
   destino,
+  cargaInicial = null,
   puedeAprobarEtiquetas,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
+  /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
+  cargaInicial?: CargaInicialSede | null;
   /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
   puedeAprobarEtiquetas: boolean;
 }) {
@@ -393,8 +400,14 @@ export function NuevoProductoForm({
     coloresElegidos
   );
   const celdasIncluidas = celdas.filter((c) => !excluidas.has(c.clave));
+  // ADR-0328 (actividad 4): la carga inicial de esta sede. Cerrada, el alta va sin unidades —«Cuántas tienes hoy» no se ofrece y
+  // lo escrito antes no viaja; la base lo rechazaría igual (`carga_inicial_cerrada`)—; abierta con fecha, se avisa cuánto falta.
+  const cargaCerrada = !cargaAbierta(cargaInicial);
+  const avisoCarga = avisoCargaInicial(cargaInicial);
+  const cantidadesVigentes = cargaCerrada ? SIN_CANTIDADES : cantidades;
+  const sinStockVigente = sinStock || cargaCerrada;
   const stock = resumenStock(
-    cantidades,
+    cantidadesVigentes,
     celdasIncluidas.map((c) => c.clave)
   );
   const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
@@ -418,7 +431,7 @@ export function NuevoProductoForm({
     costoBase,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
-    sinStock,
+    sinStock: sinStockVigente,
     separaPiso: destino.separaPiso,
     lugarCarga,
   };
@@ -524,7 +537,7 @@ export function NuevoProductoForm({
       const o = overridePrecio[c.clave];
       const precio = o !== undefined && o !== "" ? Number(o) : precioNum;
       // Solo viaja la cantidad de la celda que tiene stock: sin la clave, la base no carga nada (y no inventa un cero).
-      const cantidad = leerCantidad(cantidades[c.clave] ?? "") ?? 0;
+      const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
@@ -621,6 +634,9 @@ export function NuevoProductoForm({
         return;
       }
       avisar.error(traducirError(error, "crear el producto"));
+      // La carga de la sede se cerró con el formulario abierto (pasada la medianoche del último día): la página vuelve a leer el
+      // cierre y el paso 4 apaga «Cuántas tienes hoy»; lo escrito no se pierde y el producto se puede crear sin unidades (ADR-0328).
+      if (esRechazoPorCargaCerrada(error)) router.refresh();
       return;
     }
 
@@ -733,7 +749,7 @@ export function NuevoProductoForm({
       : "",
     4: [
       precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
-      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStock ? "Sin stock todavía" : null,
+      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
       .join(" · "),
@@ -1063,7 +1079,12 @@ export function NuevoProductoForm({
         </FilaAlta>
 
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
-        <FilaAlta etiqueta="Unidades de hoy" ayuda={`Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`} campo="stock" estado={est.stock}>
+        <FilaAlta
+          etiqueta="Unidades de hoy"
+          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`}
+          campo="stock"
+          estado={est.stock}
+        >
           <div className="space-y-5">
             <MatrizCantidades
               celdas={celdas}
@@ -1079,9 +1100,15 @@ export function NuevoProductoForm({
               precios={overridePrecio}
               onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
               destinoEtiqueta={destino.etiqueta}
+              cantidadesCerradas={cargaCerrada ? avisoCarga : null}
             />
 
-            {stock.total > 0 ? (
+            {cargaCerrada ? (
+              // La salida, dicha donde se iba a escribir: el producto se crea sin unidades y lo que haya entra por otra puerta.
+              <AvisoInline tono="neutro">
+                {avisoCarga} Este producto se crea sin unidades: lo que llegue de un proveedor entra por Recibir.
+              </AvisoInline>
+            ) : stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
                   <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están hoy?</p>
@@ -1109,10 +1136,13 @@ export function NuevoProductoForm({
               </ChipOpcion>
             )}
 
-            <p className="nota-cayla text-[12.5px]">
-              Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
-              inicial». Lo que llegue después se registra al recibirlo.
-            </p>
+            {!cargaCerrada && (
+              <p className="nota-cayla text-[12.5px]">
+                Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
+                inicial». Lo que llegue después se registra al recibirlo.
+                {avisoCarga && <span className="mt-1 block font-medium text-tinta">{avisoCarga}</span>}
+              </p>
+            )}
           </div>
         </FilaAlta>
 
@@ -1204,7 +1234,7 @@ export function NuevoProductoForm({
                 marca: marcaId ? marcaNombre || null : null,
                 tejido: tejidoTexto,
                 variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
-                hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
+                hoy: stock.total > 0 ? stock.total : sinStockVigente ? 0 : null,
                 precio: precioNum > 0 ? precioNum : null,
                 margen,
                 campana: campanaHoy,

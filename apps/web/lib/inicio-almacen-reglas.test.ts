@@ -14,6 +14,7 @@ import {
   etiquetaLlegada,
   etiquetaSedeDeOrigen,
   existenciasDeAlmacen,
+  filasDelPiso,
   filtrarNuevos,
   fuentesDeAlmacen,
   inicioDeAyerLima,
@@ -29,12 +30,12 @@ import {
   colorUnico,
 } from "./inicio-almacen-reglas";
 import type { ClaveModulo } from "./modulos";
-import { accionHoyPorVariante } from "./existencias-recomendaciones";
 import { filtrarExistencias, filtrosDeUrl, indiceDeExistencias } from "./existencias-filtros";
-import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy } from "./existencias-para-hoy";
-import type { FilaPrenda } from "./existencias-prendas";
+import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type EntradaParaHoy } from "./existencias-para-hoy";
+import { agruparPorPrenda, queHacerPrenda, type FilaPrenda } from "./existencias-prendas";
+import { tarjetasDeExistencias } from "./existencias-tarjetas";
 import { avisosInicio } from "./inicio-avisos";
-import { politicaDe } from "./politica-operativa-inventario";
+import { CATEGORIA_DE_PRUEBA, conMotor } from "./piso-plan-fixtures";
 
 // 10:42 a. m. en Lima del miércoles 30 de setiembre de 2026 (UTC−5).
 const AHORA = Date.parse("2026-09-30T15:42:00Z");
@@ -397,7 +398,7 @@ describe("accesosAlmacen", () => {
 
 describe("fuentesDeAlmacen", () => {
   const fotos = { activos: 10, conFoto: 3 };
-  const porColgar = { tallas: 7, unidades: 12, prendas: 3 };
+  const porColgar = { tallas: 7, unidades: 12, prendas: 3, enPausa: 0 };
   it("pasa cada cola con su cifra", () => {
     expect(fuentesDeAlmacen({ porRecibir: { facturas: 2, primera: "F001-1 · Andina" }, existencias: { enAlmacen: 50, porColgar }, fotos, porCompletar: 2 })).toEqual({
       porRecibir: { facturas: 2, primera: "F001-1 · Andina" },
@@ -411,7 +412,7 @@ describe("fuentesDeAlmacen", () => {
     expect(fuentesDeAlmacen({ existencias: null, fotos, porCompletar: 0 }).porColgar).toBeNull();
   });
   it("una sede que no separa piso y almacén no tiene «Por colgar»", () => {
-    expect(fuentesDeAlmacen({ existencias: { enAlmacen: null, porColgar: { tallas: 0, unidades: 0, prendas: 0 } }, fotos, porCompletar: 0 }).porColgar).toBeUndefined();
+    expect(fuentesDeAlmacen({ existencias: { enAlmacen: null, porColgar: { tallas: 0, unidades: 0, prendas: 0, enPausa: 0 } }, fotos, porCompletar: 0 }).porColgar).toBeUndefined();
   });
   it("las fotos que faltan nunca son negativas", () => {
     expect(fuentesDeAlmacen({ fotos: { activos: 3, conFoto: 3 }, porCompletar: 0 }).fotosQueFaltan).toBe(0);
@@ -439,95 +440,171 @@ describe("la categoría y el color de un producto nuevo sin foto (ADR-0333)", ()
   });
 });
 
-// «Por colgar» del Inicio de Almacén = «Para hoy» de Existencias (2026-10-04, ADR-0331). Hasta ese día el Inicio contaba MODELOS con
-// alguna talla que pedía reponer, agotadas incluidas, y decía «Sube 4 modelos al piso» donde Existencias decía «3 tallas por
-// colgar». La prueba arma UN stock de sede, lo pasa por los dos caminos que usa la web (el del servidor del Inicio y el de la
-// pantalla de Existencias) y exige el mismo número en el aviso, en el bloque, en «Para hoy» y en la lista a la que lleva el aviso.
-describe("existenciasDeAlmacen: el Inicio dice lo mismo que «Para hoy» de Existencias", () => {
+// «Por colgar» del Inicio de Almacén = «Para hoy» de Existencias = el filtro «Hoy ▸ Por colgar» (2026-10-04, ADR-0331 act. b y c),
+// con la decisión del motor del piso (ADR-0328 act. 7). Hasta ese día el Inicio contaba MODELOS con alguna talla que pedía reponer,
+// agotadas incluidas, y decía «Sube 4 modelos al piso» donde Existencias decía «3 tallas por colgar»; y la lista «Hoy ▸ Por colgar»
+// sumaba 12 donde «Para hoy» decía 15. La prueba arma UNA escena de sede, la pasa por el motor y después por los TRES caminos que usa
+// la web —la página de Existencias (filas con `planPiso` + lista del día), su filtro «Hoy» y el servidor del Inicio (`filasDelPiso`
+// sobre la misma lectura)— y exige el mismo número en los tres, con el piso cuadrado y sin cuadrar.
+describe("las tres cifras de «por colgar» —«Hoy», «Para hoy» y el Inicio de Almacén— salen de la misma función", () => {
   let n = 0;
   const talla = (referencia: string, color: string, t: string | null, piso: number | null, almacen: number | null, extra: Partial<FilaPrenda> = {}) =>
     ({
       varianteId: `v${++n}`, productoId: referencia, referencia, sku: `SKU-${n}`, talla: t, color, colorHex: null, fotoUrl: null,
       codigosBarras: [], categoria: null, pisoDisponible: piso, almacenDisponible: almacen, disponible: (piso ?? 0) + (almacen ?? 0),
-      apartado: 0, danado: 0, enTransito: 0, accionHoy: null, marca: null, ...extra,
+      apartado: 0, danado: 0, enTransito: 0, planPiso: null, marca: null, ...extra,
     }) as FilaPrenda & { categoria: string | null };
 
-  // Una tienda de verdad: tallas por colgar, colgadas, agotadas (con y sin traslado en camino) y una sin talla.
+  // Una tienda de verdad: tallas por colgar, colgadas, agotadas (con y sin traslado en camino), una extrema guardada que el motor
+  // deja quieta, una extrema que se vendió ayer (el reloj rápido la manda a colgar, y primero) y una sin talla.
   const crudo = [
     talla("Blusa Emma", "Azul", "S", 0, 3), // por colgar
     talla("Blusa Emma", "Azul", "M", 0, 1), // por colgar
     talla("Blusa Emma", "Azul", "L", 2, 5), // colgada: nada que hacer
+    talla("Blusa Emma", "Azul", "XL", 0, 4), // extrema y no se vendió: puede quedar guardada («Mantener»)
     talla("Blusa Emma", "Negro", "M", 0, 0), // agotada: sin stock atrás (el caso que el Inicio contaba de más)
     talla("Blusa Emma", "Negro", "L", 0, 0, { enTransito: 2 }), // agotada y viene en camino
     talla("Pantalón Carla", "Beige", "28", 0, 2, { apartado: 1 }), // por colgar (lo libre ya viene neto de apartados)
     talla("Casaca Nina", "Rojo", "S", 0, 0), // agotada
+    talla("Casaca Nina", "Rojo", "XL", 0, 2, { colorHex: "#9B1B30" }), // extrema, pero se vendió ayer: por colgar, y primero
     talla("Polo Rita", "Blanco", null, 1, 0), // colgada, sin talla
   ];
-  // Lo mismo que hacen el servidor del Inicio (`getExistenciasDeAlmacen`) y la página de Existencias: «Acción hoy» con la política de la sede.
-  const accion = accionHoyPorVariante(crudo, politicaDe("sede-de-prueba"));
-  const stock = crudo.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null }));
+  const ventas = { [crudo[8].varianteId]: { vendidasAyer: 1, vendidas14: 1 } };
 
-  const inicio = existenciasDeAlmacen(stock);
-  const paraHoy = tareasParaHoy({
-    separa: true,
-    porColgar: entradaPorColgar(porColgarDeLaSede(stock)),
-    sinStockAtras: { tallas: 0 },
-    sinRegistrar: null,
-    danadas: 0,
-    resuelveDanadas: false,
-    apartados: { vencidos: 0 },
-    enCamino: { traslados: 0, atrasados: 0, proximaLlegada: null },
-  }).find((t) => t.tipo === "por_colgar");
-  const aviso = avisosInicio(fuentesDeAlmacen({ existencias: inicio, fotos: null, porCompletar: null })).find((a) => a.clave === "reponer");
+  /** La escena por los tres caminos, con el piso cuadrado (por defecto) o sin cuadrar (`null`). */
+  function escena(cuadradoEn?: string | null) {
+    // La página de Existencias: la lectura pasa por el motor y cada fila recibe su decisión; la lista del día va a la pantalla.
+    const { filas: stock, plan, lectura } = conMotor(crudo, { cuadradoEn, ventas });
+    const cuenta = porColgarDeLaSede(stock, plan.listaDelDia);
+    // «Para hoy»: lo mismo que arma `InventarioPanel`.
+    const entrada: EntradaParaHoy = {
+      separa: true,
+      porColgar: entradaPorColgar(cuenta),
+      piso: { enPausa: cuenta.enPausa, fallo: false },
+      sinStockAtras: { tallas: 0 },
+      sinRegistrar: null,
+      danadas: 0,
+      resuelveDanadas: false,
+      apartados: { vencidos: 0 },
+      enCamino: { traslados: 0, atrasados: 0, proximaLlegada: null },
+    };
+    const tareas = tareasParaHoy(entrada);
+    // El filtro «Hoy ▸ Por colgar» (lo que abre el aviso del Inicio y el botón «Ver cuáles» de «Para hoy»), con sus tarjetas.
+    const elegidos = filtrosDeUrl("hoy=por_colgar", { separa: true });
+    const lista = filtrarExistencias(indiceDeExistencias(stock), elegidos).filas;
+    const tarjetas = tarjetasDeExistencias(agruparPorPrenda(lista), elegidos.hoy);
+    // El servidor del Inicio: NO lee Existencias; cuenta sobre la misma lectura del motor (`getExistenciasDeAlmacen`).
+    const inicio = existenciasDeAlmacen(filasDelPiso(lectura, plan), plan.listaDelDia);
+    const aviso = avisosInicio(fuentesDeAlmacen({ existencias: inicio, fotos: null, porCompletar: null })).find((a) => a.clave === "reponer");
+    return { stock, cuenta, tareas, lista, tarjetas, inicio, aviso };
+  }
 
-  it("el bloque y el aviso del Inicio cuentan las mismas tallas que «Para hoy»", () => {
-    expect(paraHoy?.cifra).toBe(3);
-    expect(inicio.porColgar.tallas).toBe(paraHoy?.cifra);
-    expect(aviso?.cantidad).toBe(paraHoy?.cifra);
+  describe("con el piso cuadrado", () => {
+    const e = escena();
+    const paraHoy = e.tareas.find((t) => t.tipo === "por_colgar");
+
+    it("«Hoy», «Para hoy», el bloque y el aviso del Inicio dicen el mismo número de tallas", () => {
+      expect(paraHoy?.cifra).toBe(4);
+      expect(e.lista.length).toBe(paraHoy?.cifra);
+      expect(e.tarjetas.reduce((s, t) => s + (queHacerPrenda(t.colores[0].tallas)?.n ?? 0), 0)).toBe(paraHoy?.cifra);
+      expect(e.inicio.porColgar.tallas).toBe(paraHoy?.cifra);
+      expect(e.aviso?.cantidad).toBe(paraHoy?.cifra);
+    });
+
+    it("el enlace del aviso abre la lista «Hoy ▸ Por colgar» con esas mismas tallas", () => {
+      const [ruta, consulta] = e.aviso!.href.split("?");
+      expect(ruta).toBe("/inventario");
+      const lista = filtrarExistencias(indiceDeExistencias(e.stock), filtrosDeUrl(consulta ?? "", { separa: true })).filas;
+      expect(lista.map((f) => f.varianteId).sort()).toEqual(e.cuenta.filas.map((f) => f.varianteId).sort());
+    });
+
+    it("las mismas prendas en el mismo orden: lo vendido ayer primero, y nunca lo agotado ni la extrema que puede quedar guardada", () => {
+      const paraHoyPrendas = e.cuenta.prendas.map((p) => [p.referencia, p.color, p.tallas.map((f) => f.talla ?? "Única")]);
+      expect(e.inicio.primeras.map((p) => [p.referencia, p.color, p.tallas])).toEqual(paraHoyPrendas.slice(0, 3));
+      expect(paraHoyPrendas).toEqual([
+        ["Casaca Nina", "Rojo", ["XL"]],
+        ["Blusa Emma", "Azul", ["S", "M"]],
+        ["Pantalón Carla", "Beige", ["28"]],
+      ]);
+      expect(e.inicio.porColgar).toEqual({ tallas: 4, unidades: 8, prendas: 3, enPausa: 0 });
+      expect(paraHoy?.detalle).toMatch(/^8 guardadas y ninguna colgada: empieza por Casaca Nina, Blusa Emma y 1 más/);
+    });
+
+    // La lectura del motor tiene que traer lo que el resto del ERP usa para dibujar una prenda sin foto: si el Inicio armara sus
+    // filas sin el color ni la categoría (como hasta el merge con ADR-0333), sus tres prendas saldrían como una percha gris.
+    it("dibuja la prenda sin foto como el resto del ERP: su categoría sobre su color, leídos de la misma lectura (ADR-0333)", () => {
+      expect(e.inicio.primeras[0]).toMatchObject({ referencia: "Casaca Nina", fotoUrl: null, colorHex: "#9B1B30" });
+      for (const p of e.inicio.primeras) {
+        expect(p).toMatchObject({ categoria: CATEGORIA_DE_PRUEBA.categoria, categoriaPrefijo: CATEGORIA_DE_PRUEBA.prefijo, categoriaFamilia: CATEGORIA_DE_PRUEBA.familia });
+      }
+    });
+
+    it("habla como Existencias: «Por colgar» y «Colgar en el piso», nunca «Sube … al piso»", () => {
+      expect(e.aviso?.titulo).toBe("Por colgar");
+      expect(e.aviso?.ahora).toBe("Cuelga en el piso 4 tallas por colgar");
+      expect(e.aviso?.ahora).not.toMatch(/sube/i);
+      // La misma frase honesta que «Para hoy»: si ya cuelgan y el sistema las cree guardadas, se registran al bajar.
+      expect(e.aviso?.detalle).toBe("8 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.");
+    });
+
+    it("«Colgar en el piso» llega con las tallas por colgar ya en la lista", () => {
+      const lineas = new URLSearchParams(e.inicio.hrefBajar.split("?")[1] ?? "").get("lineas") ?? "";
+      const enLista = lineas.split(",").map((l) => l.split(":")[0]);
+      expect(e.inicio.hrefBajar.startsWith("/inventario/bajar")).toBe(true);
+      expect(new Set(enLista)).toEqual(new Set(e.cuenta.filas.map((f) => f.varianteId)));
+    });
   });
 
-  it("el enlace del aviso abre la lista «Hoy ▸ Por colgar» con esas mismas tallas", () => {
-    const [ruta, consulta] = aviso!.href.split("?");
-    expect(ruta).toBe("/inventario");
-    const lista = filtrarExistencias(indiceDeExistencias(stock), filtrosDeUrl(consulta ?? "", { separa: true })).filas;
-    expect(lista.length).toBe(inicio.porColgar.tallas);
+  describe("con el piso sin cuadrar (así está toda tienda el día que se pega el motor)", () => {
+    const e = escena(null);
+    const espera = e.tareas.find((t) => t.tipo === "piso_en_pausa");
+
+    it("nadie manda a colgar: «Hoy ▸ Por colgar» vacío, «Para hoy» sin fila «por colgar» y el Inicio en 0 tallas", () => {
+      expect(e.lista).toEqual([]);
+      expect(e.tareas.some((t) => t.tipo === "por_colgar")).toBe(false);
+      expect(e.inicio.porColgar.tallas).toBe(0);
+    });
+
+    it("«Para hoy» y el Inicio dicen cuántas tallas esperan el cuadre, con la misma cifra, nunca «al día»", () => {
+      expect(espera?.cifra).toBe(4);
+      expect(e.inicio.porColgar.enPausa).toBe(espera?.cifra);
+      expect(e.aviso).toMatchObject({ titulo: "Cuadrar el piso", cantidad: espera?.cifra, ahora: "Cuadra el piso antes de colgar", href: "/inventario" });
+      expect(e.aviso?.detalle).toBe("4 tallas esperan el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.");
+    });
   });
 
-  it("no propone colgar lo agotado: solo prendas con algo guardado, y las unidades son las de «Para hoy»", () => {
-    expect(inicio.primeras.map((p) => [p.referencia, p.color, p.tallas])).toEqual([
-      ["Blusa Emma", "Azul", ["S", "M"]],
-      ["Pantalón Carla", "Beige", ["28"]],
-    ]);
-    expect(inicio.porColgar).toEqual({ tallas: 3, unidades: 6, prendas: 2 });
-    expect(paraHoy?.detalle).toMatch(/^6 guardadas y ninguna colgada/);
+  it("si el motor no responde, el Inicio dice «Sin leer», nunca un cero", () => {
+    const aviso = avisosInicio(fuentesDeAlmacen({ existencias: null, fotos: null, porCompletar: null })).find((a) => a.clave === "reponer");
+    expect(aviso?.cantidad).toBeNull();
   });
 
-  it("habla como Existencias: «Por colgar» y «Colgar en el piso», nunca «Sube … al piso»", () => {
-    expect(aviso?.titulo).toBe("Por colgar");
-    expect(aviso?.ahora).toBe("Cuelga en el piso 3 tallas por colgar");
-    expect(aviso?.ahora).not.toMatch(/sube/i);
-    // La misma frase honesta que «Para hoy»: si ya cuelgan y el sistema las cree guardadas, se registran al bajar.
-    expect(aviso?.detalle).toBe("6 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.");
-  });
-
-  it("«Colgar en el piso» llega con las tallas por colgar ya en la lista", () => {
-    const lineas = new URLSearchParams(inicio.hrefBajar.split("?")[1] ?? "").get("lineas") ?? "";
-    const enLista = lineas.split(",").map((l) => l.split(":")[0]);
-    expect(inicio.hrefBajar.startsWith("/inventario/bajar")).toBe(true);
-    expect(new Set(enLista)).toEqual(new Set(porColgarDeLaSede(stock).filas.map((f) => f.varianteId)));
-  });
-
-  // Lo de arriba prueba la regla; esto prueba que las dos pantallas la usan. Si Existencias vuelve a contar «por colgar» dentro del
-  // componente (como hasta el 2026-10-04), las pruebas de arriba seguirían en verde y los números volverían a separarse.
-  it("Existencias y el Inicio cuentan con la misma función, no cada uno por su lado", () => {
+  // Lo de arriba prueba la regla; esto prueba que las pantallas la usan. Si una pantalla vuelve a contar «por colgar» por su lado
+  // (como el Inicio hasta el 2026-10-04, o el motor con su propia cuenta por percha), las pruebas de arriba seguirían en verde y los
+  // números volverían a separarse.
+  it("Existencias, su filtro «Hoy» y el Inicio cuentan con la misma función y la misma decisión, no cada uno por su lado", () => {
     const fuente = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    expect(fuente("components/InventarioPanel.tsx")).toMatch(/porColgarDeLaSede\(stock\)/);
-    expect(fuente("components/InventarioPanel.tsx")).toMatch(/porColgar: entradaPorColgar\(/);
-    expect(fuente("lib/inicio-almacen.ts")).toMatch(/existenciasDeAlmacen\(/);
+    const panel = fuente("components/InventarioPanel.tsx");
+    expect(panel).toMatch(/porColgarDeLaSede\(stock, listaDelDia\)/);
+    expect(panel).toMatch(/porColgar: entradaPorColgar\(cuentaPorColgar\)/);
+    expect(panel).toMatch(/enPausa: cuentaPorColgar\.enPausa/);
+    // La página pone en cada fila la decisión del motor y le pasa al panel la lista del día del MISMO plan.
+    const pagina = fuente("app/(app)/inventario/page.tsx");
+    expect(pagina).toMatch(/planPiso: planPiso\.get\(f\.varianteId\)/);
+    expect(pagina).toMatch(/listaDelDia=\{plan\?\.listaDelDia\}/);
+    // El filtro «Hoy» y la cuenta preguntan lo mismo a cada talla (`hoyDeTalla`: la decisión del motor dicha en palabras).
+    expect(fuente("lib/existencias-filtros.ts")).toMatch(/hoyDeTalla\(f\) !== elegidos\.hoy/);
+    expect(fuente("lib/existencias-para-hoy.ts")).toMatch(/stock\.filter\(\(f\) => hoyDeTalla\(f\) === "por_colgar"\)/);
+    // El Inicio: la lectura del motor → sus filas → la misma cuenta.
+    expect(fuente("lib/inicio-almacen.ts")).toMatch(/existenciasDeAlmacen\(filasDelPiso\(lectura, plan\), plan\.listaDelDia\)/);
+    expect(fuente("lib/inicio-almacen-reglas.ts")).toMatch(/porColgarDeLaSede\(stock, listaDelDia\)/);
+    // Ninguna segunda cuenta de «por colgar» (las que hubo: `resumirPorColgar`, `paraColgarHoy`, `prendasParaColgarHoy`).
+    for (const ruta of ["lib/existencias-hoy.ts", "lib/inventario-reglas.ts", "lib/piso-plan.ts", "lib/existencias-prendas.ts", "lib/inicio-almacen.ts"]) {
+      expect({ ruta, otra: /export function (resumirPorColgar|paraColgarHoy|prendasParaColgarHoy)\b/.test(fuente(ruta)) }).toEqual({ ruta, otra: false });
+    }
   });
 
   it("en una sede que no separa piso y almacén no hay «Por colgar» (el Taller)", () => {
-    const taller = existenciasDeAlmacen([talla("Blusa Emma", "Azul", "M", null, null)]);
+    const taller = existenciasDeAlmacen([talla("Blusa Emma", "Azul", "M", null, null)], []);
     expect(taller.enAlmacen).toBeNull();
     expect(fuentesDeAlmacen({ existencias: taller, fotos: null, porCompletar: null }).porColgar).toBeUndefined();
   });

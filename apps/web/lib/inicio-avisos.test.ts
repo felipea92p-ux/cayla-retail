@@ -33,11 +33,57 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("pérdidas que se repiten (ADR-0328 act. 14): por hacer, ocultable, con la frase y el enlace de la regla; sin leer no es «al día»", () => {
+    const href = "/inventario/movimientos?vista=perdidas&p=30&variante=x";
+    const [a] = avisosInicio({ perdidas: { cantidad: 1, detalle: "Polo Básico · M · Negro perdió 2 prendas en 2 días distintos.", href } });
+    expect(a).toMatchObject({ clave: "perdidas", grupo: "Inventario", nivel: "toca", ocultable: true, cantidad: 1, href });
+    expect(a!.ahora).toBe("Revisa 1 pérdida que se repite");
+    expect(a!.detalle).toContain("2 días distintos");
+    expect(avisosInicio({ perdidas: { cantidad: 0, detalle: "", href } })[0]!.nivel).toBe("aldia");
+    const sinLeer = avisosInicio({ perdidas: null })[0]!;
+    expect(sinLeer.nivel).toBe("sinleer");
+    expect(sinLeer.href).toBe("/inventario/movimientos?vista=perdidas&p=30");
+  });
+
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");
     expect(vencida.titulo).toBe("Facturas de proveedor vencidas");
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
+  });
+
+  // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
+  // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Cuelga en el piso», nunca «Sube» (en Existencias «Subir» es del piso al
+  // almacén). Que la cifra sea la misma que la de «Para hoy» y la del filtro «Hoy» lo prueba `inicio-almacen-reglas.test.ts`.
+  it("lo que hay que colgar dice «Cuelga en el piso N tallas» y lleva a la lista «Hoy ▸ Por colgar»; nunca «Sube»", () => {
+    const [a] = avisosInicio({ porColgar: { tallas: 12, unidades: 20, enPausa: 0 } });
+    expect(a).toMatchObject({ clave: "reponer", titulo: "Por colgar", cantidad: 12, nivel: "toca", href: "/inventario?hoy=por_colgar" });
+    expect(a!.ahora).toBe("Cuelga en el piso 12 tallas por colgar");
+    expect(a!.detalle).toBe("20 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al colgarlas.");
+    expect(avisosInicio({ porColgar: { tallas: 1, unidades: 1, enPausa: 0 } })[0]!.ahora).toBe("Cuelga en el piso 1 talla por colgar");
+    for (const p of [{ tallas: 1, unidades: 1, enPausa: 0 }, { tallas: 0, unidades: 0, enPausa: 4 }, { tallas: 0, unidades: 0, enPausa: 0 }]) {
+      const [x] = avisosInicio({ porColgar: p });
+      expect(`${x!.titulo} ${x!.ahora} ${x!.detalle}`).not.toMatch(/\bsub[eai]/i);
+    }
+  });
+
+  it("con el piso sin cuadrar no manda a colgar: pide cuadrar primero, con las tallas que esperan (ADR-0328, decisión 5)", () => {
+    const [a] = avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 4 } });
+    expect(a).toMatchObject({ titulo: "Cuadrar el piso", cantidad: 4, ahora: "Cuadra el piso antes de colgar", nivel: "toca", href: "/inventario" });
+    expect(a!.detalle).toBe("4 tallas esperan el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.");
+    expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 1 } })[0]!.detalle).toBe(
+      "1 talla espera el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar."
+    );
+  });
+
+  it("nada que colgar ni que esperar es «al día»; si el motor no se pudo leer es «sin leer», nunca un cero", () => {
+    expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 0 } })[0]).toMatchObject({
+      titulo: "Por colgar",
+      nivel: "aldia",
+      ahora: "",
+      detalle: "El piso de venta está al día.",
+    });
+    expect(avisosInicio({ porColgar: null })[0]).toMatchObject({ nivel: "sinleer", cantidad: null });
   });
 });
 

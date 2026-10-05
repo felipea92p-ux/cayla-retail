@@ -36,8 +36,8 @@ import { leerEventosPiso, type EventoPiso } from "./inventario-exposicion";
 // Un día entero en almacén no es una jornada de observación: no castiga ni cuenta. Con menos de
 // `minDiasExposicion` jornadas no se afirma un ritmo — se muestran los hechos crudos (jornada por
 // jornada) para que la persona los lea sin que CAYLA invente una tasa prematura. El mínimo de
-// jornadas y el umbral de reposición son política operativa — `politica-operativa-inventario.ts`,
-// nunca un número local a este archivo.
+// jornadas es política operativa — `politica-operativa-inventario.ts`, nunca un número local a este archivo. Lo que el piso
+// pide hoy NO sale del ritmo: lo decide el motor del piso (`lib/piso-plan.ts`).
 
 /** Ventana operativa de «Ritmo reciente»: últimos N días calendario (no de exposición). */
 export const VENTANA_RITMO_RECIENTE_DIAS = 7;

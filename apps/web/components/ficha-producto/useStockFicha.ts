@@ -14,14 +14,18 @@ import {
   cargaInicialAlPiso,
   faltantesDesdeJson,
   lugarDeAjuste,
+  motivoPideNota,
   motivosAjusteDisponibles,
   repartirLineasAjuste,
+  reposicionCerrada,
   type FaltanteConteo,
   type LugarAjuste,
   type MotivoAjuste,
   type VarianteAjuste,
 } from "@/lib/ajuste-reglas";
 import {
+  avisoCargaDeLaFicha,
+  bloqueoDeSubida,
   cambiosDeStock,
   cantidadDeCelda,
   conPaso,
@@ -30,11 +34,15 @@ import {
   lineasDelLote,
   minimoDeCelda,
   pasoDeCelda,
+  problemaDelStockDeLaVisita,
   type CambioDeStock,
   type Pendientes,
   type Subida,
 } from "@/lib/matriz-ficha-reglas";
 import type { AjusteStockFicha, LecturaStockFicha } from "./piezas";
+import { useCargaInicial } from "@/lib/useCargaInicial";
+import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
+import { sugerirNotaAjuste, type NotaAjuste } from "@/lib/sugerencias-ajuste";
 
 // El stock de la matriz de Editar producto (maqueta B, Felipe 2026-10-02): cada «−»/«+» (o el número escrito en la celda) es un
 // ajuste de inventario —el mismo de `AjustarInventarioModal` (ADR-0240, `ajustar_inventario`)— que ESPERA a «Revisar y guardar»
@@ -52,6 +60,11 @@ import type { AjusteStockFicha, LecturaStockFicha } from "./piezas";
 //    después de crearla (`cargarNuevas`).
 //  · Lo que subió (cuántas unidades por talla) se entrega para imprimir sus etiquetas: el aviso de «guardado» lo ofrece y, al salir
 //    de la ficha, queda la franja del módulo hasta imprimirlas o cambiar de módulo.
+//  · ADR-0328 (actividad 4): la carga inicial de la sede se cierra en su fecha. La ficha lo avisa antes (`avisoCarga`). «Encontré
+//    prendas» se ofrece aquí como en Ajustar, con su nota (dónde estaban) y solo sumando; cerrada la carga, es la ÚNICA forma de
+//    sumar una talla que nunca estuvo en la tienda (o una variante nueva): con otro motivo su celda queda quieta y dice por qué
+//    (`bloqueoDeSubida`), y lo nuevo viaja como ajuste con ese motivo. Lo que la base rechazaría se dice antes de guardar
+//    (`problema`, revisión adversarial: la ficha decía «usa Encontré prendas» sin ofrecerla, y el «+» callaba desde el 2.º clic).
 
 /** Un guardado de stock que no responde en 20 s se da por cortado: se vuelve a leer la base (ver arriba). */
 const TOPE_ESPERA_MS = 20_000;
@@ -59,6 +72,8 @@ const TOPE_ESPERA_MS = 20_000;
 export type StockFicha = {
   /** `false` = la cuenta no tiene «Ajustar stock»: los números se ven, los botones no. */
   puedeAjustar: boolean;
+  /** ADR-0328: hasta cuándo esta sede acepta carga inicial, o que ya se cerró. `null` = sin fecha (o no se sabe): nada que avisar. */
+  avisoCarga: string | null;
   cargando: boolean;
   /** No se pudo leer el stock de la sede (las celdas siguen en «…»): `recargar` lo vuelve a intentar. */
   fallaLectura: boolean;
@@ -69,6 +84,18 @@ export type StockFicha = {
   motivo: MotivoAjuste;
   cambiarMotivo: (m: MotivoAjuste) => void;
   motivos: readonly { valor: MotivoAjuste; texto: string }[];
+  /** La nota de la visita: solo se pide (y se envía) con «Encontré prendas» (`pideNota`). */
+  nota: string;
+  cambiarNota: (t: string) => void;
+  pideNota: boolean;
+  /** La etiqueta y el ejemplo de la caja de nota, según el motivo (ADR-0290). */
+  ayudaNota: NotaAjuste;
+  /** Lo que la base rechazaría al guardar el stock, dicho antes, con el campo que lo arregla. `null` = nada. */
+  problema: { texto: string; campo: "motivo" | "nota" } | null;
+  /** Por qué el «+» de una variante guardada no suma (`null` = suma). */
+  bloqueoDeSubida: (varianteId: string) => string | null;
+  /** Lo mismo para las variantes nuevas (todas nacen sin historia en la tienda). */
+  bloqueoNuevas: string | null;
   responsable: ControlResponsable;
   /** Hay stock tocado en variantes guardadas que todavía no se guarda. */
   hayPendientes: boolean;
@@ -140,10 +167,23 @@ export function useStockFicha({
   const [faltantes, setFaltantes] = useState<ReadonlyMap<string, FaltanteConteo>>(new Map());
   const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
   const [motivo, setMotivo] = useState<MotivoAjuste>("conteo_fisico");
+  const [nota, setNota] = useState("");
   const [pendientes, setPendientes] = useState<Pendientes>({});
   const [nuevas, setNuevas] = useState<Record<string, number>>({});
   const responsable = useResponsable(undefined, { recordarEn: productoId ? `ficha-stock:${productoId}` : undefined });
   const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
+  // La carga inicial de esta sede (lectura opcional, solo si se puede tocar el stock). Cerrada, lo que nunca estuvo en la tienda
+  // suma solo con «Encontré prendas»; con otro motivo su celda queda quieta y dice por qué.
+  const { carga, releer: releerCarga } = useCargaInicial(puedeTocar ? ubicacionId : null);
+  const abiertaCarga = cargaAbierta(carga);
+  const enPisoCerrado = reposicionCerrada(ubicado, separaPisoAlmacen);
+  const avisoCarga = avisoCargaDeLaFicha(avisoCargaInicial(carga), abiertaCarga, motivo, enPisoCerrado);
+  const pideNota = motivoPideNota(motivo);
+  // La nota viaja solo con el motivo que la pide: escrita con «Encontré prendas» y cambiada a otro motivo, no se manda escondida.
+  const notaParaEnviar = pideNota ? nota : "";
+  const bloqueoDe = (v: VarianteAjuste | undefined) =>
+    v ? bloqueoDeSubida({ sinHistoria: v.sinHistoria, cargaAbierta: abiertaCarga, motivo, enPisoCerrado }) : null;
+  const bloqueoNuevas = bloqueoDeSubida({ sinHistoria: true, cargaAbierta: abiertaCarga, motivo, enPisoCerrado });
 
   // Lo que subió en la visita, por talla: para el recordatorio del módulo al salir (`subieron`) y para el aviso del guardado
   // que se está haciendo (`delGuardado`, se lee una vez).
@@ -204,7 +244,7 @@ export function useStockFicha({
       setPendientes({});
       return { ok: true };
     }
-    const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
+    const { ajustes, cargaInicial } = repartirLineasAjuste(lineas, abiertaCarga);
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     const { error } = await firmar(
@@ -218,7 +258,7 @@ export function useStockFicha({
             cargaInicial,
             motivo,
             alPiso: cargaInicialAlPiso(ubicado, separaPisoAlmacen, !!ajuste?.puedeBajarAlPiso),
-            nota: "",
+            nota: notaParaEnviar,
             token: crypto.randomUUID(),
           })
         )
@@ -236,6 +276,8 @@ export function useStockFicha({
         avisar.error("Se cortó la conexión y no sabemos si el stock se guardó: la ficha volvió a leerlo de la base, y ese es el número de cada talla ahora.");
       } else {
         avisar.error(traducirError(error, "guardar el stock"), { detalle: "Lo que tocaste sigue en la ficha: corrígelo y vuelve a guardar." });
+        // La carga se cerró con la ficha abierta (pasada la medianoche del último día): se vuelve a leer (ADR-0328).
+        if (esRechazoPorCargaCerrada(error)) releerCarga();
       }
       return { ok: false };
     }
@@ -257,7 +299,7 @@ export function useStockFicha({
 
   function puedeBajar(varianteId: string): boolean {
     const v = varianteDe(varianteId);
-    return pasoDeCelda(cantidadDeCelda(v, lugar, 0), pendientes[varianteId] ?? 0, -1, minimoDeCelda(v, lugar)) !== null;
+    return pasoDeCelda(cantidadDeCelda(v, lugar, 0), pendientes[varianteId] ?? 0, -1, minimoDeCelda(v, lugar, motivo)) !== null;
   }
 
   function paso(varianteId: string, p: 1 | -1): { abrirModal: boolean } {
@@ -266,9 +308,11 @@ export function useStockFicha({
     // Una variante que no está en la lectura (recién creada, antes de releer) no se toca: su paso no viajaría en ningún lote.
     if (!v) return { abrirModal: false };
     if (p > 0 && (faltantes.get(varianteId)?.pendientes ?? 0) > 0) return { abrirModal: true };
+    // La celda ya se ve quieta (su «+» apagado dice por qué); esto es solo la red por si el toque llega igual.
+    if (p > 0 && bloqueoDe(v)) return { abrirModal: false };
     // Sobre lo pendiente MÁS reciente (no el del render): dos toques en el mismo instante cuentan dos.
     setPendientes((actual) => {
-      const siguiente = pasoDeCelda(cantidadDeCelda(v, lugar, 0), actual[varianteId] ?? 0, p, minimoDeCelda(v, lugar));
+      const siguiente = pasoDeCelda(cantidadDeCelda(v, lugar, 0), actual[varianteId] ?? 0, p, minimoDeCelda(v, lugar, motivo));
       return siguiente === null ? actual : conPaso(actual, varianteId, siguiente);
     });
     return { abrirModal: false };
@@ -285,7 +329,8 @@ export function useStockFicha({
       setPendientes((actual) => conPaso(actual, varianteId, 0));
       return { abrirModal: true, rechazado: false };
     }
-    const siguiente = fijarCelda(hoy, objetivo, minimoDeCelda(v, lugar));
+    if (objetivo > hoy && bloqueoDe(v)) return { abrirModal: false, rechazado: false };
+    const siguiente = fijarCelda(hoy, objetivo, minimoDeCelda(v, lugar, motivo));
     if (siguiente === null) return { abrirModal: false, rechazado: true };
     setPendientes((actual) => conPaso(actual, varianteId, siguiente));
     return { abrirModal: false, rechazado: false };
@@ -295,11 +340,14 @@ export function useStockFicha({
   // silencio (la hoja diría «entran con 3 unidades» y el aviso, «nacen sin unidades»).
   function pasoNueva(clave: string, p: 1 | -1) {
     if (!ajuste) return;
+    // Con la carga cerrada, una variante nueva suma solo con «Encontré prendas» (su celda ya se ve quieta con otro motivo).
+    if (p > 0 && bloqueoNuevas) return;
     setNuevas((actual) => conPaso(actual, clave, Math.max(0, (actual[clave] ?? 0) + p)));
   }
 
   function fijarNueva(clave: string, objetivo: number) {
     if (!ajuste || !Number.isInteger(objetivo) || objetivo < 0) return;
+    if (objetivo > 0 && bloqueoNuevas) return;
     setNuevas((actual) => conPaso(actual, clave, objetivo));
   }
 
@@ -313,6 +361,9 @@ export function useStockFicha({
     // desde «Ajustar stock» y entraban dos veces.
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
+    // Carga abierta: stock inicial, sin motivo ni nota. Cerrada (ADR-0328): no hay stock inicial; entran como ajuste con el motivo
+    // de la visita, que solo puede ser «Encontré prendas» (`bloqueoNuevas` y `problema` lo aseguran antes), y su nota.
+    const comoAjuste = !abiertaCarga;
     const { error } = await firmar(
       createClient()
         .rpc(
@@ -320,11 +371,11 @@ export function useStockFicha({
           argumentosDeAjuste({
             ubicacionId,
             sububicacionId: separaPisoAlmacen ? (ubicado === "piso" ? pisoId! : almacenId!) : null,
-            ajustes: [],
-            cargaInicial: cargas,
-            motivo: "",
+            ajustes: comoAjuste ? cargas : [],
+            cargaInicial: comoAjuste ? [] : cargas,
+            motivo: comoAjuste ? motivo : "",
             alPiso: cargaInicialAlPiso(ubicado, separaPisoAlmacen, !!ajuste?.puedeBajarAlPiso),
-            nota: "",
+            nota: comoAjuste ? notaParaEnviar : "",
             token: crypto.randomUUID(),
           })
         )
@@ -345,6 +396,7 @@ export function useStockFicha({
         avisar.error(traducirError(error, "cargar el stock de las variantes nuevas"), {
           detalle: "La prenda ya quedó guardada; carga sus unidades con «+» en la tabla y vuelve a guardar.",
         });
+        if (esRechazoPorCargaCerrada(error)) releerCarga();
       }
       return 0;
     }
@@ -369,9 +421,25 @@ export function useStockFicha({
   }
 
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
+  const problema = problemaDelStockDeLaVisita({
+    lineas: variantes ? lineasDelLote(variantes, pendientes, lugar, motivo) : [],
+    nuevasConStock: Object.values(nuevas).filter((n) => n > 0).length,
+    motivo,
+    nota,
+    cargaAbierta: abiertaCarga,
+    enPisoCerrado,
+  });
 
   return {
     puedeAjustar: puedeTocar,
+    avisoCarga: puedeTocar ? avisoCarga : null,
+    nota,
+    cambiarNota: setNota,
+    pideNota,
+    ayudaNota: sugerirNotaAjuste(motivo),
+    problema,
+    bloqueoDeSubida: (id) => bloqueoDe(varianteDe(id)),
+    bloqueoNuevas,
     cargando: !!fuente && variantes === null,
     fallaLectura: fallaEn === lectura,
     lugar,

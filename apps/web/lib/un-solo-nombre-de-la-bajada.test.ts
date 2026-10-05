@@ -176,7 +176,7 @@ describe("la web nombra la acción con un solo nombre: «Colgar en el piso»", (
 
   it("la prueba de verdad lee la web (no pasa por no haber mirado nada)", () => {
     expect(fuentes.length).toBeGreaterThan(200);
-    const nombreNuevo = readFileSync(join(WEB, "lib/existencias-recomendaciones.ts"), "utf8");
+    const nombreNuevo = readFileSync(join(WEB, "lib/analisis-que-hacer.ts"), "utf8");
     expect(nombreNuevo).toContain("Colgar en el piso");
   });
 

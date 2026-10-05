@@ -143,10 +143,12 @@ export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) 
   );
 }
 
-// ── Por colgar ───────────────────────────────────────────────────────────────────────────────────
+// ── Por colgar (la cuenta de «Para hoy», con la decisión y el orden del motor del piso, ADR-0328 act. 7) ──────────
 
 /** Lo que está por colgar en la sede, con la cifra y la palabra de «Para hoy» en Existencias (`existenciasDeAlmacen`): cada prenda
- *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Colgar en el piso» con esas tallas ya cargadas. */
+ *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Colgar en el piso» con esas tallas ya cargadas. Las prendas van en el
+ *  orden de la lista del día (lo vendido ayer primero). Con el piso sin cuadrar no hay nada que colgar todavía: dice cuántas tallas
+ *  esperan el cuadre, nunca «al día». */
 export function PorColgarAlmacen({ existencias }: { existencias: Existencias | null | undefined }) {
   if (existencias === undefined) return null;
   if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay nada que colgar
@@ -161,8 +163,13 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
             <p>No se pudo leer el piso de venta. Lo demás sí está al día.</p>
             <ReintentarLectura />
           </div>
+        ) : tallas === 0 && existencias.porColgar.enPausa > 0 ? (
+          <Vacio
+            titulo="Cuadra el piso antes de colgar"
+            detalle={`${existencias.porColgar.enPausa} ${existencias.porColgar.enPausa === 1 ? "talla espera" : "tallas esperan"}: mientras el piso de la sede no esté cuadrado, la lista podría pedir colgar lo que ya cuelga.`}
+          />
         ) : tallas === 0 ? (
-          <Vacio titulo="Nada por colgar" detalle="Cada talla guardada ya tiene una colgada." />
+          <Vacio titulo="Piso al día" detalle="No hay nada que colgar hoy." />
         ) : (
           <>
             {existencias.primeras.map((p, i) => (

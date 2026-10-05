@@ -1,7 +1,8 @@
 import { Volver } from "@/components/ui/Volver";
 import { notFound } from "next/navigation";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getTrasladoDetalle } from "@/lib/traslados";
+import { getFirmaRecepcion, getTrasladoDetalle } from "@/lib/traslados";
+import { firmaDelPaso } from "@/lib/firma-heredada";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { aPrendasBajables } from "@/lib/bajada-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
@@ -43,7 +44,8 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
   // Abierto desde Movimientos (ADR-0234): «←» vuelve a esa lista, con sus filtros, en vez de a Traslados.
   const volverA = volverAMovimientos(volver);
   const persona = await requirePersonaActualV2();
-  const [traslado, catalogo] = await Promise.all([getTrasladoDetalle(id), getCatalogo()]);
+  // La firma de la recepción solo le importa a una terminal (una persona firma ella misma): para nadie más se pregunta a la base.
+  const [traslado, catalogo, firmaVigente] = await Promise.all([getTrasladoDetalle(id), getCatalogo(), persona.terminal ? getFirmaRecepcion(id) : Promise.resolve(null)]);
   if (!traslado) notFound();
   const sububicaciones = await sububicacionesDe(traslado.ubicacionDestinoId);
 
@@ -51,6 +53,8 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
   const ahoraIso = new Date().toISOString();
   const esDestino = persona.ubicacionId === traslado.ubicacionDestinoId;
   const esOrigen = persona.ubicacionId === traslado.ubicacionOrigenId;
+  // ADR-0328: en una terminal, quien firmó la recepción hoy firma lo que sigue; si no hay nadie de hoy, se pregunta una vez.
+  const firmaRecepcion = firmaDelPaso({ terminal: persona.terminal, firma: firmaVigente });
   const puedeCerrarDiferencia = puede(persona, "ajustarInventario");
   const cerradoConDiferencia = traslado.lineas.some((l) => l.cantidadRecibida !== null && l.cantidadRecibida !== (l.cantidadEnviada ?? 0));
   // La insignia del título dice lo mismo que la de la lista: se lee desde el destino o, si no, desde el origen.
@@ -122,6 +126,7 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
         puedeCerrarDiferencia={puedeCerrarDiferencia}
         opcionesDestino={[...opcionesDestino]}
         lugarRecibido={lugarRecibido}
+        firma={firmaRecepcion}
         catalogo={catalogo
           .filter((v) => v.activo)
           .map((v) => ({ varianteId: v.varianteId, sku: v.sku, referencia: v.referencia, talla: v.talla, color: v.color, codigosBarras: v.codigosBarras }))}

@@ -97,12 +97,15 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   anulacion_venta: "Venta anulada",
   produccion: "Producción",
   conteo: "Conteo",
+  // ADR-0328: el primer conteo completo de un lugar. Corrige el stock, pero no es pérdida (fn_es_merma lo deja fuera).
+  conteo_arranque: "Conteo de arranque",
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste a mano ·» delante: «Reposición» a secas se confundía con la bajada del almacén al
   // piso, que es otra cosa; y «a mano» (Felipe, 2026-10-03) los separa del ajuste de un conteo, que tiene documento —
-  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos.
-  reposicion: "Ajuste a mano · reposición",
+  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos. El código `reposicion` se muestra como «encontré
+  // prendas» desde ADR-0328 (actividad 4): es el nombre del motivo en Ajustar, también para lo registrado antes.
+  reposicion: "Ajuste a mano · encontré prendas",
   merma: "Ajuste a mano · merma",
   conteo_fisico: "Ajuste a mano · conteo físico",
   // 2026-10-01 (ADR-0291): la prenda que faltó en un conteo y apareció; el ajuste queda enlazado a ese conteo.
@@ -131,7 +134,7 @@ export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
   salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
-  ajuste: ["conteo", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
+  ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
 };
 
 /** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
@@ -839,11 +842,11 @@ export function ventasAnuladas(resumen: ResumenTienda): number {
   return resumen.entrada.procesos.filter((p) => p.proceso === "anulacion_venta").reduce((s, p) => s + p.entran, 0);
 }
 
-/** Los ajustes que salen de un conteo de verdad: `conteo` lo escribe solo `cerrar_conteo`, y `hallazgo_conteo` queda
+/** Los ajustes que salen de un conteo de verdad: `conteo` y `conteo_arranque` (ADR-0328) los escribe solo `cerrar_conteo`, y `hallazgo_conteo` queda
  *  enlazado al conteo donde faltó la prenda (ADR-0291); los dos llevan `conteo_item_id`. Todo otro ajuste —reposición,
  *  merma, conteo físico, otro, o un motivo que todavía no existe— lo escribe alguien a mano en «Ajustar stock» y no tiene
  *  documento detrás. */
-const AJUSTES_EN_UN_CONTEO: readonly string[] = ["conteo", "hallazgo_conteo"];
+const AJUSTES_EN_UN_CONTEO: readonly string[] = ["conteo", "conteo_arranque", "hallazgo_conteo"];
 
 export type RespaldoAjuste = "a_mano" | "en_un_conteo";
 
@@ -940,6 +943,7 @@ export function verboDelResponsable(m: Pick<Movimiento, "categoria" | "motivo" |
     case "recepcion":
       return "Recibió";
     case "conteo":
+    case "conteo_arranque":
       return "Cerró el conteo";
     case "hallazgo_conteo":
       return "Registró el hallazgo";

@@ -16,6 +16,7 @@ import {
   listarCategorias,
   resumirAlcance,
   type AnalisisVariante,
+  type DatosExactitud,
   type EstadoExactitud,
   type FilaResumen,
   type ResumenAlcance,
@@ -78,7 +79,7 @@ export function armarResumen(e: {
   params: ParametrosResumen;
   ahora: Date;
   /** Exactitud agregada de los conteos cerrados y cuándo se cerró el último. */
-  conteos: { exactitud: { porcentaje: number; lineas: number; conteos: number } | null; ultimoCerradoEn: string | null };
+  conteos: DatosExactitud;
   sububicaciones: { pisoId: string | null; almacenId: string | null };
 }): ResumenParaPantalla {
   const { periodo, modo, comparacion } = rangosDelResumen(e.params, e.ahora);
