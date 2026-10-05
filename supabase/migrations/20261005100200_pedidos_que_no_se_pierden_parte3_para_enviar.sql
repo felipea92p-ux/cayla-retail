@@ -45,6 +45,8 @@ set search_path = retail, public, extensions;
 -- ---------------------------------------------------------------------------
 -- 1. Lo que falta enviar de una prenda de la lista (una sola fórmula, la usan el disparador y la lectura)
 -- ---------------------------------------------------------------------------
+-- PROMETE: cantidad subida − lo que se llevaron los traslados que NO se anularon (puede dar 0; nunca cuenta una salida
+-- anulada). ASUME: la fila existe (si no, null). No mira si se canceló: eso lo filtra quien la llama.
 create or replace function retail.fn_para_enviar_pendiente(p_id uuid)
 returns integer
 language sql
@@ -191,6 +193,9 @@ comment on function retail.subir_para_enviar(uuid, uuid, jsonb, text, uuid) is
 -- ---------------------------------------------------------------------------
 -- 4. «Ya no la envío»
 -- ---------------------------------------------------------------------------
+-- PROMETE: saca la prenda de la lista con cuándo, quién y por qué; repetirla no falla ni cambia nada. ASUME: la llama quien
+-- opera la sede que la iba a enviar, con Traslados o Existencias, y todavía falta enviar algo (lo que ya salió no se
+-- cancela). Toma solo su fila: un traslado que sale a la vez se pone en fila detrás (el disparador toma la misma fila).
 create or replace function retail.cancelar_para_enviar(p_id uuid, p_motivo text)
 returns void
 language plpgsql

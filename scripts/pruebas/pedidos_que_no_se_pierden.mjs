@@ -22,6 +22,10 @@
  *      ESE destino (y no con otro destino); anular el traslado la devuelve; «Ya no la envío» con motivo.
  *  10. Eliminar un producto la conoce (frena el borrado).
  *  11. Permisos: nada abierto a anon; las internas no las llama nadie desde la web.
+ *  12. Revisión adversarial: con la reserva liberada a mano, Enviar vuelve a apartar (lo colgado dice «súbela al
+ *      almacén», no «Stock insuficiente»); cancelar exige un módulo del pedido; el libro dice qué pasó con la reserva
+ *      (nunca «se entrega a la clienta»); Apartados también sube; los candados de sede de las lecturas, del aviso y de
+ *      subir; un traslado de OTRA sede al mismo destino no descuenta la lista «Para enviar».
  *
  * CÓMO. Mismo patrón que `pedir_a_otra_sede.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
  * compartido; jamás `db reset`), sesión simulada con `request.jwt.claim(s)`, las RPC se llaman como la API
@@ -112,14 +116,17 @@ select pg_temp.cargar(:'v1', :'lim', :'lim_piso', 1) as _c2 \\gset
 select pg_temp.cargar(:'v2', :'lim', :'lim_piso', 1) as _c3 \\gset
 select pg_temp.cargar(:'v3', :'tru', :'tru_piso', 3) as _c4 \\gset
 
--- Roles de prueba (solo dentro de la transacción): uno que solo ve Análisis.
+-- Roles de prueba (solo dentro de la transacción): uno que solo ve Análisis y otro que solo ve Apartados.
 insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-0000000000b2', 'Solo Análisis (prueba pedidos)', 'temporal');
 insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-0000000000b2', 'analisis');
+insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-0000000000b3', 'Solo Apartados (prueba pedidos)', 'temporal');
+insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-0000000000b3', 'apartados');
 select rol_id as rol_micaela from retail.colaboradores where persona_id = :'micaela' \\gset
 ${sesion(FELIPE)}`;
 
 const rolMicaela = (rolId) => `${COMO_POSTGRES}update retail.colaboradores set rol_id = ${rolId} where persona_id = :'micaela';\n`;
 const SOLO_ANALISIS = "'44444444-4444-4444-8444-0000000000b2'";
+const SOLO_APARTADOS = "'44444444-4444-4444-8444-0000000000b3'";
 
 const K = (clave, expresion) => `select 'K|${clave}|' || coalesce((${expresion})::text, '∅');`;
 /** Trujillo le pide a Lima (como la API) una prenda para Ana Lozano; deja el pedido en :ped (o el nombre que se pida). */
@@ -506,11 +513,140 @@ select 'K|check_sin_motivo|' || :'_i';`,
 );
 
 // ---------------------------------------------------------------------------
+// Revisión adversarial (ADR-0328 act. 17): lo que la prueba original no veía.
+// ---------------------------------------------------------------------------
+/** La nota del libro y el motivo con que se cerró la reserva del pedido en el origen. */
+const cierreReserva = (ped = "ped") =>
+  `(select m.nota || '#' || a.cierre_motivo from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_origen_id join retail.movimientos m on m.id = a.movimiento_cierre_id where pe.id = :'${ped}')`;
+
+correr(
+  "Enviar con la reserva liberada a mano · lo colgado dice «súbela al almacén» (no «Stock insuficiente»); lo del almacén se vuelve a apartar y sale",
+  `${pedir("v2")}
+select a.id as ap2 from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_origen_id where pe.id = :'ped' \\gset
+${COMO_API}select retail.liberar_apartado(:'ap2', 'otro') as _l \\gset
+select 'K|leida|' || reserva_en from retail.fn_pedidos_con_cliente(:'lim') where id = :'ped';
+${COMO_POSTGRES}
+${intento("enviar_colgada_libre", enviarSql())}
+${K("sigue", "(select estado from retail.separacion_pedidos where id = :'ped') || ':' || " + reserva())}
+${K("lim_piso", stockEn("v2", "lim", "lim_piso"))}
+${intento("subir", "format('select retail.subir_pedido_al_almacen(%L::uuid)::text', :'ped')")}
+${K("reserva_subida", reserva())}
+${enviar()}
+${K("enviado", "(select estado from retail.separacion_pedidos where id = :'ped') || ':' || " + reserva())}
+${pedir("v1", { como: "ped_b" })}
+select a.id as ap1 from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_origen_id where pe.id = :'ped_b' \\gset
+${COMO_API}select retail.liberar_apartado(:'ap1', 'otro') as _l2 \\gset
+${COMO_POSTGRES}
+${enviar("ped_b", "tr_b")}
+${K("enviado_b", "(select estado || ':' || (transferencia_id = :'tr_b') from retail.separacion_pedidos where id = :'ped_b') || ':' || " + reserva("ped_b"))}
+${K("lim_b", `${stockEn("v1", "lim", "lim_alm")} || ',' || ${stockEn("v1", "lim", "lim_piso")}`)}`,
+  (d) => {
+    afirmar("liberada a mano, la lectura dice «sin_reserva»", d.leida === "sin_reserva", d.leida);
+    afirmar("Enviar la vuelve a apartar, la encuentra colgada y dice «súbela al almacén» (hint pedido_en_piso)", falloCon(d.enviar_colgada_libre, /súbela al almacén/) && j(d.enviar_colgada_libre)?.hint === "pedido_en_piso", d.enviar_colgada_libre);
+    afirmar("…sin dejar nada a medias: sigue «pedido», la reserva liberada a mano, el piso libre (1/0)", d.sigue === "pedido:liberado:piso" && d.lim_piso === "1/0", `${d.sigue} ${d.lim_piso}`);
+    afirmar("«Subir al almacén» la vuelve a apartar y la sube", j(d.subir)?.ok === true && d.reserva_subida === "abierto:alm", `${d.subir} ${d.reserva_subida}`);
+    afirmar("después sale", d.enviado === "en_camino:liberado:alm", d.enviado);
+    afirmar("si estaba libre en el almacén, Enviar la vuelve a apartar y sale en un paso", d.enviado_b === "en_camino:true:liberado:alm", d.enviado_b);
+    afirmar("…y se lleva la del almacén, no la del piso (0/0 y 1/0)", d.lim_b === "0/0,1/0", d.lim_b);
+  },
+);
+
+correr(
+  "Cancelar exige un módulo del pedido · el libro dice qué pasó con la reserva (nunca «se entrega a la clienta»)",
+  `${sesion(MICAELA)}
+${pedir("v1")}
+${rolMicaela(SOLO_ANALISIS)}
+${intento("cancelar_sin_modulo", "format('select retail.cancelar_pedido_para_apartar(%L::uuid, %L)::text', :'ped', 'x')")}
+${K("tras_sin_modulo", "(select estado from retail.separacion_pedidos where id = :'ped') || ':' || " + reserva())}
+${rolMicaela(":'rol_micaela'")}
+${intento("cancelar_con_vender", "format('select retail.cancelar_pedido_para_apartar(%L::uuid, %L)::text', :'ped', 'El cliente ya no la quiere')")}
+${K("tras_cancelar", "(select estado from retail.separacion_pedidos where id = :'ped') || ':' || " + reserva())}
+${K("nota_cancelar", cierreReserva())}
+${sesion(FELIPE)}
+${pedir("v2", { como: "ped_c" })}
+${intento("subir_c", "format('select retail.subir_pedido_al_almacen(%L::uuid)::text', :'ped_c')")}
+${enviar("ped_c", "tr_c")}
+${K("nota_enviar", cierreReserva("ped_c"))}
+${K("notas_v2", "(select string_agg(nota, ' / ' order by nota) from retail.movimientos where variante_id = :'v2' and tipo = 'liberacion_apartado')")}
+${K("entrega", "(select count(*) from retail.movimientos where variante_id in (:'v1', :'v2') and nota like '%se entrega a la clienta%')")}`,
+  (d) => {
+    afirmar("con solo Análisis no se cancela (aunque opere la sede que pidió)", j(d.cancelar_sin_modulo)?.estado === "42501" && /Traslados, Apartados ni Vender/.test(j(d.cancelar_sin_modulo)?.msg), d.cancelar_sin_modulo);
+    afirmar("…y la reserva de Lima sigue en pie", d.tras_sin_modulo === "pedido:abierto:alm", d.tras_sin_modulo);
+    afirmar("con su rol (Vender) sí cancela y la reserva se suelta", j(d.cancelar_con_vender)?.ok === true && d.tras_cancelar === "cancelado:liberado:alm", `${d.cancelar_con_vender} ${d.tras_cancelar}`);
+    afirmar("el libro: «se canceló el pedido de Tienda Trujillo», motivo «otro»", d.nota_cancelar === "Apartado de Ana Lozano: se canceló el pedido de Tienda Trujillo#otro", d.nota_cancelar);
+    afirmar("al enviar: «sale en traslado hacia Tienda Trujillo para el cliente», motivo «otro»", d.nota_enviar === "Apartado de Ana Lozano: sale en traslado hacia Tienda Trujillo para el cliente#otro", d.nota_enviar);
+    afirmar("al subir: «se sube al almacén para enviarla a Tienda Trujillo»", d.notas_v2 === "Apartado de Ana Lozano: sale en traslado hacia Tienda Trujillo para el cliente / Apartado de Ana Lozano: se sube al almacén para enviarla a Tienda Trujillo", d.notas_v2);
+    afirmar("ninguna nota dice «se entrega a la clienta»", d.entrega === "0", d.entrega);
+  },
+);
+
+correr(
+  "Candados de sede y módulo · subir (Apartados sí, Análisis no), avisar solo la sede que pidió",
+  `${pedir("v3", { como: "ped_t", desde: "lim", a: "tru" })}
+${K("reserva_t", "(select a.estado || ':' || case a.sububicacion_id when :'tru_piso' then 'piso' when :'tru_alm' then 'alm' else 'otro' end from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_origen_id where pe.id = :'ped_t')")}
+${sesion(MICAELA)}${rolMicaela(SOLO_ANALISIS)}
+${intento("subir_sin_modulo", "format('select retail.subir_pedido_al_almacen(%L::uuid)::text', :'ped_t')")}
+${rolMicaela(SOLO_APARTADOS)}
+${intento("subir_con_apartados", "format('select retail.subir_pedido_al_almacen(%L::uuid)::text', :'ped_t')")}
+${rolMicaela(":'rol_micaela'")}
+${sesion(FELIPE)}
+${enviar("ped_t", "tr_t")}
+${contar("v3", 1, "tr_t")}${confirmar("tr_t")}
+${K("llego_t", "(select estado from retail.separacion_pedidos where id = :'ped_t')")}
+${sesion(MICAELA)}
+${intento("avisar_desde_origen", "format('select retail.marcar_pedido_avisado(%L::uuid)::text', :'ped_t')")}
+${K("sin_aviso", "(select avisado_en is null from retail.separacion_pedidos where id = :'ped_t')")}`,
+  (d) => {
+    afirmar("Lima pide la 3 a Trujillo: se aparta colgada en el piso de Trujillo", d.reserva_t === "abierto:piso", d.reserva_t);
+    afirmar("quien opera Trujillo sin Traslados, Apartados ni Existencias no la sube", j(d.subir_sin_modulo)?.estado === "42501" && /Traslados, Apartados ni Existencias/.test(j(d.subir_sin_modulo)?.msg), d.subir_sin_modulo);
+    afirmar("con solo Apartados sí la sube (el botón vive ahí, ADR-0306)", j(d.subir_con_apartados)?.ok === true && JSON.parse(j(d.subir_con_apartados).res).ya_estaba === false, d.subir_con_apartados);
+    afirmar("sale y llega a Lima", d.llego_t === "llego", d.llego_t);
+    afirmar("Micaela (opera solo Trujillo, el origen) no marca el aviso: le avisa la sede que pidió", j(d.avisar_desde_origen)?.estado === "42501" && /sede que pidió/.test(j(d.avisar_desde_origen)?.msg) && d.sin_aviso === "true", `${d.avisar_desde_origen} ${d.sin_aviso}`);
+  },
+);
+
+correr(
+  "Candados de las lecturas · Micaela (Trujillo) no lee los pedidos ni la lista «Para enviar» de Lima",
+  `${pedir("v1")}
+${COMO_API}select retail.subir_para_enviar(:'lim', :'tru', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1)), null, gen_random_uuid()) as r_lim \\gset
+select 'K|felipe_lim|' || (select count(*) from retail.fn_pedidos_con_cliente(:'lim')) || ':' || (select count(*) from retail.fn_para_enviar(:'lim'));
+${COMO_POSTGRES}
+${sesion(MICAELA)}${COMO_API}
+select 'K|micaela_lim|' || (select count(*) from retail.fn_pedidos_con_cliente(:'lim')) || ':' || (select count(*) from retail.fn_para_enviar(:'lim'));
+select 'K|micaela_tru|' || (select count(*) from retail.fn_pedidos_con_cliente(:'tru'));
+${COMO_POSTGRES}`,
+  (d) => {
+    afirmar("Felipe ve en Lima 1 pedido para un cliente y 1 prenda para enviar", d.felipe_lim === "1:1", d.felipe_lim);
+    afirmar("Micaela no ve ni los clientes ni la lista de Lima (0 y 0)", d.micaela_lim === "0:0", d.micaela_lim);
+    afirmar("Micaela sí ve el pedido de su sede", d.micaela_tru === "1", d.micaela_tru);
+  },
+);
+
+correr(
+  "Para enviar · un traslado de OTRA sede al mismo destino no descuenta lo que Trujillo subió para Lima",
+  `${COMO_API}select retail.subir_para_enviar(:'tru', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v3', 'cantidad', 1)), null, gen_random_uuid()) as r1 \\gset
+${COMO_POSTGRES}
+select pg_temp.cargar(:'v3', :'taller', null, 1) as _ct \\gset
+${COMO_API}select retail.iniciar_traslado(:'taller', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v3', 'cantidad', 1)), now() + interval '1 day', null, gen_random_uuid()) as tr_taller \\gset
+select 'K|tras_taller|' || coalesce(string_agg(falta || ':' || en_almacen, ','), 'vacía') from retail.fn_para_enviar(:'tru');
+${COMO_POSTGRES}
+${K("salidas", "(select count(*) from retail.prendas_para_enviar_salidas s join retail.prendas_para_enviar pp on pp.id = s.prenda_para_enviar_id where pp.variante_id = :'v3')")}
+${COMO_API}select retail.iniciar_traslado(:'tru', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v3', 'cantidad', 1)), now() + interval '1 day', null, gen_random_uuid()) as tr_tru \\gset
+select 'K|tras_tru|' || coalesce(string_agg(falta || ':' || en_almacen, ','), 'vacía') from retail.fn_para_enviar(:'tru');
+${COMO_POSTGRES}`,
+  (d) => {
+    afirmar("Taller → Lima con la misma prenda: a Trujillo le sigue faltando 1 (y la tiene en el almacén)", d.tras_taller === "1:1", d.tras_taller);
+    afirmar("…sin ninguna salida registrada", d.salidas === "0", d.salidas);
+    afirmar("el traslado de Trujillo a Lima sí la saca de la lista", d.tras_tru === "vacía", d.tras_tru);
+  },
+);
+
+// ---------------------------------------------------------------------------
 correr(
   "Permisos · nada abierto a anon; las internas no las llama nadie desde la web; las tablas solo por funciones",
   `${K("anon", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('anon', 'retail.${f}', 'execute')`).join(" or "))}
 ${K("authenticated", ["subir_pedido_al_almacen(uuid)", "marcar_pedido_avisado(uuid)", "fn_pedidos_por_atender(uuid)", "fn_pedidos_con_cliente(uuid)", "subir_para_enviar(uuid, uuid, jsonb, text, uuid)", "cancelar_para_enviar(uuid, text)", "fn_para_enviar(uuid)"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" and "))}
-${K("internas", ["fn_reservar_pedido_en_origen(uuid, uuid)", "fn_soltar_reserva_de_origen(uuid, boolean)", "fn_pedidos_vuelven_a_esperar(uuid)", "fn_para_enviar_pendiente(uuid)", "trg_para_enviar_al_salir()"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" or "))}
+${K("internas", ["fn_reservar_pedido_en_origen(uuid, uuid)", "fn_cerrar_reserva_de_pedido(uuid, text, uuid)", "fn_soltar_reserva_de_origen(uuid, boolean)", "fn_pedidos_vuelven_a_esperar(uuid)", "fn_para_enviar_pendiente(uuid)", "trg_para_enviar_al_salir()"].map((f) => `has_function_privilege('authenticated', 'retail.${f}', 'execute')`).join(" or "))}
 ${K("tablas", "has_table_privilege('authenticated', 'retail.prendas_para_enviar', 'select') or has_table_privilege('authenticated', 'retail.prendas_para_enviar_salidas', 'select')")}
 ${K("rls", "(select bool_and(relrowsecurity) from pg_class where oid in ('retail.prendas_para_enviar'::regclass, 'retail.prendas_para_enviar_salidas'::regclass))")}`,
   (d) => {

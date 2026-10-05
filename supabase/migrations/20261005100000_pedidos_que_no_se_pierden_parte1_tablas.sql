@@ -35,8 +35,9 @@
 -- por funciones `security definer`.
 --
 -- SE ROMPE SI alguien libera a mano (Existencias ▸ Apartados) la reserva que el pedido hizo en el origen: la columna sigue
--- apuntando a un apartado ya liberado. Las funciones de la parte 2 lo toleran (solo sueltan lo que sigue abierto) y la
--- pantalla lo dice («ya no está apartada»), pero la prenda vuelve a poder venderse en el origen.
+-- apuntando a un apartado ya liberado. Las funciones de la parte 2 lo toleran (solo sueltan lo que sigue abierto; al
+-- enviar o subir al almacén la vuelven a apartar si sigue libre) y la pantalla lo dice («ya no está apartada»), pero
+-- mientras tanto la prenda vuelve a poder venderse en el origen.
 -- ============================================================================
 
 set lock_timeout = '3s';

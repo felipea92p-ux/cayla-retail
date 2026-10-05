@@ -13,13 +13,19 @@
 --     más hay» la pide la asesora, que no siempre tiene Apartados); toma el candado del stock del ORIGEN antes de mirar lo
 --     disponible (ADR-0190) y, al guardar el pedido, lo APARTA allá (`fn_reservar_pedido_en_origen`): almacén primero
 --     (de ahí sale un traslado), si no el piso. Todo en la misma transacción: o queda pedido Y apartado, o nada.
---   · `enviar_pedido_para_apartar` (anclado): suelta esa reserva justo antes del traslado. Si la prenda apartada está
---     COLGADA, no la manda: «primero súbela al almacén» (Felipe: lo colgado se envía en dos pasos). Alrededor de su
+--   · `enviar_pedido_para_apartar` (anclado): suelta esa reserva justo antes del traslado. Si alguien la había liberado a
+--     mano, primero la vuelve a apartar (almacén primero). Si la prenda apartada está COLGADA, no la manda: «primero
+--     súbela al almacén» (Felipe: lo colgado se envía en dos pasos), con su pista `pedido_en_piso`. Alrededor de su
 --     `iniciar_traslado` pone y borra la marca `retail.salida_de_pedido_cliente` (local a la transacción): esa caja lleva la
 --     prenda apartada para el cliente y no descuenta la lista «Para enviar» (parte 3).
 --   · `subir_pedido_al_almacen` (nueva): el primer paso para un pedido colgado. Suelta la reserva del piso, sube la prenda
---     al almacén y la vuelve a apartar allí, en una transacción. Idempotente por estado: repetirla no sube dos veces.
---   · `cancelar_pedido_para_apartar` (anclado): «No la tengo» o «ya no la quiere» sueltan también la reserva del origen.
+--     al almacén y la vuelve a apartar allí, en una transacción. Idempotente por estado: repetirla no sube dos veces. La
+--     ofrecen Traslados y Apartados (donde vive su botón, ADR-0306) y Existencias.
+--   · `cancelar_pedido_para_apartar` (anclado): «No la tengo» o «ya no la quiere» sueltan también la reserva del origen, y
+--     desde ahora exigen ver Traslados, Apartados o Vender (antes bastaba operar una de las dos sedes, sin ningún módulo).
+--   · La reserva se cierra con su propia nota en el libro (`fn_cerrar_reserva_de_pedido`): «sale en traslado hacia…»,
+--     «se canceló el pedido…», «se sube al almacén…». No «se entrega a la clienta»: allá nadie la entregó, y el libro de
+--     movimientos no se corrige después.
 --   · `anular_traslado` (anclado): el pedido que viajaba vuelve a esperar Y se vuelve a apartar en el origen (la prenda
 --     regresó a su almacén con la anulación). Si no se pudiera apartar, el pedido vuelve igual y la pantalla lo dice.
 --   · `marcar_pedido_avisado` (nueva): la sede que pidió deja constancia de que le avisó al cliente que llegó.
@@ -47,8 +53,8 @@
 --   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'pedir_prenda_para_apartar';
 --
 -- SE ROMPE SI alguien vuelve a pegar 20260927140000 o 20260927210000 (recrean pedir/enviar/cancelar desde el archivo y
--- borran las anclas: el pedido dejaría de apartar en el origen sin avisar), o si `fn_cerrar_apartado_de_separacion`
--- cambia sus motivos aceptados (usa 'entregada' y 'otro').
+-- borran las anclas: el pedido dejaría de apartar en el origen sin avisar), o si el CHECK de `apartados.cierre_motivo`
+-- deja de aceptar 'otro' (la reserva de un pedido se cierra con ese motivo y su nota).
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -134,7 +140,7 @@ begin
     v_hay := true;
   end loop;
   if not v_hay then
-    raise exception '% ya no tiene libre esa prenda para apartarla: elige otra sede o avísale al cliente',
+    raise exception '% ya no tiene libre esa prenda para apartarla para el cliente',
       coalesce((select nombre from ubicaciones where id = pe.ubicacion_origen_id), 'La otra sede')
       using hint = 'pedido_sin_stock_en_origen';
   end if;
@@ -166,8 +172,40 @@ comment on function retail.fn_reservar_pedido_en_origen(uuid, uuid) is
   'ADR-0328 act. 17 (interna): aparta en la sede que ENVÍA la prenda de un pedido para un cliente («allá la apartan»). Almacén primero, después el piso. Devuelve el apartado (el mismo si ya estaba abierto); null si el pedido ya no espera. Aborta (hint pedido_sin_stock_en_origen) si no alcanza.';
 
 -- ---------------------------------------------------------------------------
--- 2. Soltar la reserva del origen (interna: enviar y cancelar)
+-- 2. Cerrar y soltar la reserva del origen (internas: enviar, cancelar y subir al almacén)
 -- ---------------------------------------------------------------------------
+-- PROMETE: cierra el apartado abierto de la reserva de un pedido con un movimiento «liberación» cuya nota dice qué pasó
+-- (`p_nota`: sale en traslado, se canceló, se sube al almacén) y `cierre_motivo` 'otro'; devuelve el movimiento.
+-- ASUME: quien llama ya tomó el stock (fn_bloquear_en_orden) y el apartado sigue abierto; si no, aborta.
+-- Por qué no `fn_cerrar_apartado_de_separacion`: su nota es la de una separación («se entrega a la clienta»), que aquí
+-- sería falsa, y el libro de movimientos es append-only: no se corrige después.
+create or replace function retail.fn_cerrar_reserva_de_pedido(p_apartado_id uuid, p_nota text, p_persona uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  a apartados%rowtype;
+  v_mov uuid;
+begin
+  select * into a from apartados where id = p_apartado_id for update;
+  if not found or a.estado <> 'abierto' then
+    raise exception 'La reserva % ya no está abierta: el pedido quedó inconsistente', p_apartado_id;
+  end if;
+  insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)
+    values (a.variante_id, a.ubicacion_id, a.sububicacion_id, 'liberacion_apartado', a.cantidad, 'liberacion_apartado', p_persona,
+            left('Apartado de ' || a.clienta_nombre || ': ' || p_nota, 500))
+    returning id into v_mov;
+  perform fn_aplicar_movimiento(v_mov);
+  update apartados
+     set estado = 'liberado', cerrado_por = p_persona, cerrado_en = now(), cierre_motivo = 'otro', movimiento_cierre_id = v_mov
+   where id = a.id;
+  return v_mov;
+end;
+$$;
+revoke all on function retail.fn_cerrar_reserva_de_pedido(uuid, text, uuid) from public, anon, authenticated;
+
 -- PROMETE: si el pedido tiene una reserva abierta en el origen, la suelta (movimiento «liberación» incluido); si no, nada.
 -- Con p_para_enviar, se niega si la prenda apartada está colgada: lo colgado se sube primero (Felipe, dos pasos).
 -- ASUME: quien llama tiene tomada la fila del pedido.
@@ -181,6 +219,7 @@ declare
   pe separacion_pedidos%rowtype;
   a apartados%rowtype;
   v_salida uuid;
+  v_sede text;
 begin
   select * into pe from separacion_pedidos where id = p_pedido_id;
   if not found or pe.apartado_origen_id is null then
@@ -199,7 +238,11 @@ begin
         using hint = 'pedido_en_piso';
     end if;
   end if;
-  perform fn_cerrar_apartado_de_separacion(a.id, case when p_para_enviar then 'entregada' else 'otro' end, fn_actor_persona_id(true));
+  v_sede := coalesce((select nombre from ubicaciones where id = pe.ubicacion_id), 'otra sede');
+  perform fn_cerrar_reserva_de_pedido(a.id,
+    case when p_para_enviar then 'sale en traslado hacia ' || v_sede || ' para el cliente'
+         else 'se canceló el pedido de ' || v_sede end,
+    fn_actor_persona_id(true));
 end;
 $$;
 revoke all on function retail.fn_soltar_reserva_de_origen(uuid, boolean) from public, anon, authenticated;
@@ -207,6 +250,9 @@ revoke all on function retail.fn_soltar_reserva_de_origen(uuid, boolean) from pu
 -- ---------------------------------------------------------------------------
 -- 3. Cuando se anula el traslado, el pedido vuelve a esperar y se vuelve a apartar (interna: anular_traslado)
 -- ---------------------------------------------------------------------------
+-- PROMETE: cada pedido que viajaba en ese traslado vuelve a «pedido» sin traslado y, si es para un cliente, se vuelve a
+-- apartar en el origen. ASUME: la anulación ya devolvió la prenda al almacén del origen (anular_traslado). Si apartar
+-- falla, NO frena la anulación: el pedido vuelve igual sin reserva (aviso en el log) y la lectura dice «sin_reserva».
 create or replace function retail.fn_pedidos_vuelven_a_esperar(p_transferencia_id uuid)
 returns void
 language plpgsql
@@ -285,9 +331,12 @@ end;$n$
 select pg_temp.anclar(
   'retail.enviar_pedido_para_apartar(uuid, timestamptz, uuid)',
   $v$  v_tr := iniciar_traslado($v$,
-  $n$  -- ADR-0328 act. 17: la reserva del origen se suelta para que el traslado se lleve ESA prenda. Y esa caja lleva la
-  -- prenda apartada para el cliente, no una subida «para enviar» al mismo destino: la marca le dice al disparador de esa
-  -- lista que no descuente nada (parte 3), y se borra apenas sale el traslado.
+  $n$  -- ADR-0328 act. 17: la reserva del origen se suelta para que el traslado se lleve ESA prenda. Si alguien la liberó a
+  -- mano, primero se vuelve a apartar (almacén primero): si lo único libre está colgado, el freno de abajo lo dice con su
+  -- pista (pedido_en_piso) en vez de un «Stock insuficiente» que nadie entiende. Y esa caja lleva la prenda apartada para
+  -- el cliente, no una subida «para enviar» al mismo destino: la marca le dice al disparador de esa lista que no
+  -- descuente nada (parte 3), y se borra apenas sale el traslado.
+  perform fn_reservar_pedido_en_origen(pe.id);
   perform fn_soltar_reserva_de_origen(pe.id, true);
   perform set_config('retail.salida_de_pedido_cliente', 'si', true);
   v_tr := iniciar_traslado($n$
@@ -301,11 +350,16 @@ select pg_temp.anclar(
   update separacion_pedidos set estado = 'en_camino', transferencia_id = v_tr, enviado_por = v_persona where id = pe.id;$n$
 );
 
--- 4c. Cancelar: «No la tengo» / «ya no la quiere» sueltan también la reserva del origen.
+-- 4c. Cancelar: «No la tengo» / «ya no la quiere» sueltan también la reserva del origen (y exigen un módulo del pedido).
 select pg_temp.anclar(
   'retail.cancelar_pedido_para_apartar(uuid, text)',
   $v$  if pe.apartado_id is not null and exists (select 1 from apartados where id = pe.apartado_id and estado = 'abierto') then$v$,
-  $n$  -- ADR-0328 act. 17: si todavía no salió, la prenda apartada en el origen vuelve a estar libre allá.
+  $n$  -- ADR-0328 act. 17: cancelar ahora suelta también la prenda apartada en la otra sede. Lo hace quien ve un módulo donde
+  -- vive el pedido (Traslados, Apartados o Vender: los que piden o envían), no cualquier cuenta que opere una de las sedes.
+  if not (fn_ve_modulo('traslados') or fn_ve_modulo('apartados') or fn_ve_modulo('vender')) then
+    raise exception 'Tu rol no tiene Traslados, Apartados ni Vender' using errcode = '42501';
+  end if;
+  -- Si todavía no salió, la prenda apartada en el origen vuelve a estar libre allá.
   perform fn_soltar_reserva_de_origen(pe.id, false);
   if pe.apartado_id is not null and exists (select 1 from apartados where id = pe.apartado_id and estado = 'abierto') then$n$
 );
@@ -324,7 +378,8 @@ select pg_temp.anclar(
 -- ---------------------------------------------------------------------------
 -- PROMETE: la prenda apartada para el pedido pasa del piso al almacén y queda apartada ahí, todo o nada. Si ya estaba en
 -- el almacén, no hace nada (devuelve ya_estaba = true): repetirla no sube dos veces.
--- ASUME: la sede que la tiene separa piso y almacén; la llama quien opera esa sede, con Traslados o Existencias.
+-- ASUME: la sede que la tiene separa piso y almacén; la llama quien opera esa sede, con Traslados, Apartados o Existencias
+-- (el botón vive en Traslados y en Apartados: quien ve el módulo hace lo que hay en él, ADR-0306).
 create or replace function retail.subir_pedido_al_almacen(p_pedido_id uuid)
 returns jsonb
 language plpgsql
@@ -346,8 +401,8 @@ begin
   if pe.clienta_nombres is null then
     raise exception 'Ese pedido es una reposición: se envía entero desde Traslados';
   end if;
-  if not (fn_ve_modulo('traslados') or fn_ve_modulo('existencias')) then
-    raise exception 'Tu rol no tiene Traslados ni Existencias' using errcode = '42501';
+  if not (fn_ve_modulo('traslados') or fn_ve_modulo('apartados') or fn_ve_modulo('existencias')) then
+    raise exception 'Tu rol no tiene Traslados, Apartados ni Existencias' using errcode = '42501';
   end if;
   if not fn_puede_operar_ubicacion(pe.ubicacion_origen_id) then
     raise exception 'La sube la sede que tiene la prenda' using errcode = '42501';
@@ -378,7 +433,7 @@ begin
   v_persona := fn_actor_persona_id(true);
   v_sede := coalesce((select nombre from ubicaciones where id = pe.ubicacion_id), 'otra sede');
   -- Suelta la reserva del piso, sube la prenda y la vuelve a apartar en el almacén: nunca queda libre en medio.
-  perform fn_cerrar_apartado_de_separacion(a.id, 'otro', v_persona);
+  perform fn_cerrar_reserva_de_pedido(a.id, 'se sube al almacén para enviarla a ' || v_sede, v_persona);
   perform mover_interno(pe.ubicacion_origen_id, pe.variante_id, a.cantidad, v_piso, v_alm,
                         left('Pedido de ' || v_sede || ' para ' || btrim(pe.clienta_nombres || ' ' || pe.clienta_apellidos)
                              || ': se sube al almacén para enviarlo', 500));
@@ -389,12 +444,14 @@ end;
 $$;
 
 comment on function retail.subir_pedido_al_almacen(uuid) is
-  'ADR-0328 act. 17: primer paso para enviar un pedido cuya prenda está colgada en el origen. Suelta la reserva del piso, sube la prenda al almacén y la vuelve a apartar ahí, todo o nada. Traslados o Existencias + operar el origen. Idempotente por estado (ya_estaba).';
+  'ADR-0328 act. 17: primer paso para enviar un pedido cuya prenda está colgada en el origen. Suelta la reserva del piso, sube la prenda al almacén y la vuelve a apartar ahí, todo o nada. Traslados, Apartados o Existencias + operar el origen. Sin reserva (la liberaron a mano), la vuelve a apartar primero. Idempotente por estado (ya_estaba).';
 
 -- ---------------------------------------------------------------------------
 -- 6. Avisar al cliente que llegó
 -- ---------------------------------------------------------------------------
--- PROMETE: deja la hora y quién le avisó al cliente; repetirla solo actualiza la hora. ASUME: el pedido ya llegó.
+-- PROMETE: deja la hora y quién le avisó al cliente; repetirla («Avisar otra vez») pisa la hora y quién: guarda el ÚLTIMO
+-- aviso, no la historia (si Felipe la quiere, va en filas como `separacion_avisos`, ADR-0227). ASUME: el pedido ya llegó
+-- y quien avisa opera la sede que pidió, con Vender o Apartados.
 create or replace function retail.marcar_pedido_avisado(p_pedido_id uuid)
 returns timestamptz
 language plpgsql
