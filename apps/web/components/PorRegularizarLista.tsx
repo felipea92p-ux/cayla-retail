@@ -49,7 +49,13 @@ import {
   type SugerenciaVenta,
 } from "@/lib/por-regularizar-candidatas";
 import type { CategoriaSugerida } from "@/lib/sugerir-categoria-sin-registrar";
-import { opcionesDeLaSede, opcionesDelCatalogo, textoSinCandidatas, type ModoBuscador } from "@/lib/por-regularizar-buscador";
+import {
+  etiquetaBuscarEnCatalogo,
+  opcionesDeLaSede,
+  opcionesDelCatalogo,
+  textoSinCandidatas,
+  type ModoBuscador,
+} from "@/lib/por-regularizar-buscador";
 import { marcadorBuscador } from "@/lib/sugerencias-regularizar";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
@@ -337,10 +343,11 @@ export function PorRegularizarLista({
   );
 }
 
-/** Lo que anotó caja, sin repetir talla ni color si la descripción ya los dice (la sugerida los trae). */
+/** Lo que anotó caja, sin repetir talla ni color si la descripción ya los dice (la sugerida los trae), y en qué tienda se cobró: la
+ *  lista del buscador es de ESA tienda (revisión 2026-10-05), y así se lee aunque el texto del buscador la suelte a 375 px. */
 function subtituloPrenda(f: FilaPorRegularizar): string {
   const extra = [f.talla && !f.descripcion.includes(`Talla ${f.talla}`) ? `Talla ${f.talla}` : null, f.color && !f.descripcion.includes(f.color) ? f.color : null];
-  return [f.descripcion, ...extra.filter(Boolean), `cobrada a ${soles(f.precioCobrado)}`].join(" · ");
+  return [f.descripcion, ...extra.filter(Boolean), `cobrada a ${soles(f.precioCobrado)}${f.sede ? ` en ${f.sede}` : ""}`].join(" · ");
 }
 
 function textoDiferencia(diferencia: number): string {
@@ -443,11 +450,15 @@ function RegularizarModal({
   const delCatalogo = useMemo(() => opcionesDelCatalogo(prendas, sugerencia, f), [prendas, sugerencia, f]);
   const opciones = modo === "sede" ? deLaSede : delCatalogo;
   const marcador = marcadorBuscador({ modo, categoria: f.categoria, color: f.color, talla: f.talla, sede: f.sede, escrita: escrita?.nombre });
-  function cambiarModo(nuevo: ModoBuscador) {
+  // Lo que la persona escribió en la lista de la tienda, para que la búsqueda siga en el catálogo sin volver a escribirla.
+  const [textoCatalogo, setTextoCatalogo] = useState("");
+  function cambiarModo(nuevo: ModoBuscador, escrito = "") {
     // De vuelta a la tienda, una prenda elegida en el catálogo que no es de aquí se suelta: el combo no la mostraría.
     if (nuevo === "sede" && elegidaId && !deLaSede.some((o) => o.valor === elegidaId)) setElegidaId("");
+    setTextoCatalogo(nuevo === "catalogo" ? escrito.trim() : "");
     setModo(nuevo);
   }
+  const sedeVenta = f.sede || "esta tienda";
 
   async function guardar() {
     if (!elegida || !forma || !listo) return;
@@ -505,20 +516,12 @@ function RegularizarModal({
             </div>
           ) : (
             <>
-              {/* `key`: al cambiar de modo el combo vuelve a nacer con el foco puesto, listo para escribir. */}
-              <ComboBuscable
-                key={modo}
-                valor={elegidaId}
-                onValor={setElegidaId}
-                opciones={opciones}
-                marcador={marcador}
-                etiquetaAccesible="¿Qué prenda es?"
-                autoFocus
-              />
-              <p className="mt-1.5 text-xs text-taupe" data-buscador-modo={modo}>
+              {/* Revisión 2026-10-05: de qué tienda es la lista y la salida van ARRIBA del buscador. La lista se abre sola (el
+                  buscador nace con el foco) y tapaba lo que estaba debajo: «Buscar en todo el catálogo» no quedaba a la vista. */}
+              <p className="mb-1.5 text-xs text-taupe" data-buscador-modo={modo}>
                 {modo === "sede" ? (
                   <>
-                    Solo las de {f.sede || "esta tienda"} que calzan con lo que anotó caja. ¿No está?{" "}
+                    Solo las de {sedeVenta} que calzan con lo que anotó caja. ¿No está?{" "}
                     <button type="button" onClick={() => cambiarModo("catalogo")} className="btn-cayla btn-enlace">
                       Buscar en todo el catálogo
                     </button>
@@ -530,13 +533,36 @@ function RegularizarModal({
                       <>
                         {" "}
                         <button type="button" onClick={() => cambiarModo("sede")} className="btn-cayla btn-enlace">
-                          Ver solo las de {f.sede || "esta tienda"}
+                          Ver solo las de {sedeVenta}
                         </button>
                       </>
                     )}
                   </>
                 )}
               </p>
+              {modo === "catalogo" && (
+                <p className="mb-1.5 text-xs text-taupe" data-buscador-alta>
+                  ¿No está en el catálogo?{" "}
+                  <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                    Dala de alta
+                  </Link>{" "}
+                  con su precio oficial y vuelve aquí a buscarla.
+                </p>
+              )}
+              {/* `key`: al cambiar de modo el combo vuelve a nacer con el foco puesto, listo para escribir (y, al pasar al catálogo,
+                  con lo que ya se había escrito). En la tienda, la última fila de la lista es la salida al catálogo: así está a la
+                  vista también con la lista abierta y con «Nada coincide». */}
+              <ComboBuscable
+                key={modo}
+                valor={elegidaId}
+                onValor={setElegidaId}
+                opciones={opciones}
+                marcador={marcador}
+                etiquetaAccesible="¿Qué prenda es?"
+                autoFocus
+                textoInicial={modo === "catalogo" ? textoCatalogo : ""}
+                crear={modo === "sede" ? { etiqueta: etiquetaBuscarEnCatalogo, onCrear: (escrito) => cambiarModo("catalogo", escrito) } : undefined}
+              />
             </>
           )}
           {motivoPrenda && (
@@ -556,15 +582,6 @@ function RegularizarModal({
             <p className="mt-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta">
               {elegida.nombre} · {elegida.talla} · {elegida.color} · precio oficial {soles(elegida.precio)} ·{" "}
               <span className="text-taupe">{textoDiferencia(Math.round((f.precioCobrado - elegida.precio) * 100) / 100)}</span>
-            </p>
-          )}
-          {modo === "catalogo" && (
-            <p className="mt-2 text-xs text-taupe">
-              ¿No está en el catálogo?{" "}
-              <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-                Dala de alta
-              </Link>{" "}
-              con su precio oficial y vuelve aquí a buscarla.
             </p>
           )}
         </CampoGuiado>

@@ -58,6 +58,28 @@ export function tramosPorGrupo<O extends { grupo?: string }>(opciones: readonly 
   return tramos;
 }
 
+/**
+ * Al buscar en una lista con grupos, los grupos siguen en el orden en que quien armó la lista los puso (revisión 2026-10-05,
+ * ADR-0328 act. 5). `filtrarCombo` ordena por calidad del acierto, y una opción de un grupo de abajo podía quedar entre dos de
+ * otro: «Igual a lo que anotó caja · Color parecido · Igual a lo que anotó caja», con el título repetido y el tramo de mayor
+ * confianza partido en dos. Esto reordena lo filtrado por grupo —cada grupo en el lugar de su PRIMERA aparición en `todas`— y,
+ * dentro de cada grupo, conserva el orden que le dio el filtro (el mejor acierto primero). Sin grupos, o sin buscar, la lista
+ * queda igual. Estable: dos opciones del mismo grupo nunca se cruzan.
+ */
+export function ordenarPorGrupo<T>(filtradas: readonly T[], todas: readonly T[], grupoDe: (o: T) => string | undefined): T[] {
+  const lugar = new Map<string | undefined, number>();
+  todas.forEach((o, i) => {
+    const g = grupoDe(o);
+    if (!lugar.has(g)) lugar.set(g, i);
+  });
+  // Un grupo que no está en `todas` (no debería pasar) va al final, en el orden en que llegó.
+  const de = (o: T) => lugar.get(grupoDe(o)) ?? Number.MAX_SAFE_INTEGER;
+  return filtradas
+    .map((o, i) => ({ o, i }))
+    .sort((a, b) => de(a.o) - de(b.o) || a.i - b.i)
+    .map(({ o }) => o);
+}
+
 /* ====================================================================
    Buscar dentro de un combo (2026-09-29) — tolerante a como escribe la gente
 

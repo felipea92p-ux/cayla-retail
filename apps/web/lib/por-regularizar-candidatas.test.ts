@@ -19,6 +19,8 @@ import {
   type PrendaParaRegularizar,
   type VentaPorRegularizar,
 } from "./por-regularizar-candidatas";
+import { sugerirDescripcion } from "./prenda-sin-registrar-reglas";
+import { sugerenciaParaMostrar } from "./sugerir-categoria-sin-registrar";
 
 // Lo que se prueba: (1) la respuesta deducida del libro —el sistema no tenía ninguna a la hora de la venta ⇒ llegó nueva; tenía y
 // después no llegó ni se ajustó nada ⇒ ya estaba registrada; tenía y después llegó algo ⇒ no se sabe— y (2) el orden de las
@@ -270,6 +272,17 @@ describe("categoriaEscritaDistinta — ¿lo que ESCRIBIÓ la caja nombra otra ca
   });
   it("la descripción que armó el sistema con la categoría anotada no es evidencia", () => {
     expect(categoriaEscritaDistinta({ ...JEAN_COMO_PANTALON, descripcion: "Pantalones · Azul · Talla 28" }, CATEGORIAS)).toBeNull();
+  });
+  it("…ni cuando el COLOR de la paleta nombra otra prenda: «Azul denim» (revisión 2026-10-05, el caso donde la guarda decide)", () => {
+    // Sin la guarda, «Pantalones · Azul denim · Talla 28» se lee como Jeans (PAN seguido de «denim»): la cola pediría una segunda
+    // lectura en Jeans y diría «Caja escribió «denim»» aunque nadie escribió nada. Con «Azul» a secas la guarda no se nota.
+    const venta = { ...JEAN_COMO_PANTALON, color: "Azul denim" };
+    const armada = sugerirDescripcion(venta.categoria, venta.color, venta.talla) ?? "";
+    expect(armada).toBe("Pantalones · Azul denim · Talla 28");
+    expect(sugerenciaParaMostrar(armada, "cat-pan", CATEGORIAS)?.nombre).toBe("Jeans");
+    expect(categoriaEscritaDistinta({ ...venta, descripcion: armada }, CATEGORIAS)).toBeNull();
+    // Lo que SÍ escribió una persona sigue contando, con el mismo color.
+    expect(categoriaEscritaDistinta({ ...venta, descripcion: "jean azul denim" }, CATEGORIAS)?.nombre).toBe("Jeans");
   });
   it("categoriasPorLoEscrito: solo las pendientes, cada una con su categoría escrita", () => {
     const filas = [

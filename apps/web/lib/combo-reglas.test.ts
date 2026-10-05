@@ -8,6 +8,7 @@ import {
   filtrarCombo,
   mismoNombreCombo,
   normalizarBusqueda,
+  ordenarPorGrupo,
   primeraElegible,
   siguienteElegible,
   tramosPorGrupo,
@@ -253,5 +254,45 @@ describe("tramosPorGrupo", () => {
   it("sin grupos, un solo tramo sin título: la lista de siempre", () => {
     expect(tramosPorGrupo([{}, {}]).map((t) => [t.grupo, t.items.length])).toEqual([[undefined, 2]]);
     expect(tramosPorGrupo([])).toEqual([]);
+  });
+});
+
+describe("ordenarPorGrupo · buscar no parte un tramo ni repite su título (revisión 2026-10-05)", () => {
+  // El caso de la revisión: dos exactas y una parecida; «lisboa palazzo» acierta MEJOR en la parecida que en una exacta.
+  const opciones = [
+    { texto: "Pantalón Palazzo Lisboa", grupo: "Igual a lo que anotó caja" },
+    { texto: "Pantalón Lisboa Palazzo Recto", grupo: "Igual a lo que anotó caja" },
+    { texto: "Pantalón Lisboa Palazzo", grupo: "Color parecido" },
+  ];
+  const buscar = (q: string) =>
+    ordenarPorGrupo(
+      filtrarCombo(opciones, q, (o) => o),
+      opciones,
+      (o) => o.grupo,
+    );
+
+  it("el filtro solo intercala los tramos (por eso existe esto)", () => {
+    const sinOrdenar = filtrarCombo(opciones, "lisboa palazzo", (o) => o);
+    expect(tramosPorGrupo(sinOrdenar).map((t) => t.grupo)).toEqual(["Igual a lo que anotó caja", "Color parecido", "Igual a lo que anotó caja"]);
+  });
+
+  it("con el orden por grupo, cada título sale una sola vez y en el orden de la lista", () => {
+    expect(tramosPorGrupo(buscar("lisboa palazzo")).map((t) => t.grupo)).toEqual(["Igual a lo que anotó caja", "Color parecido"]);
+  });
+
+  it("dentro de cada grupo manda el filtro: el mejor acierto primero", () => {
+    const filtradas = filtrarCombo(opciones, "lisboa palazzo", (o) => o).filter((o) => o.grupo === "Igual a lo que anotó caja");
+    expect(buscar("lisboa palazzo").filter((o) => o.grupo === "Igual a lo que anotó caja")).toEqual(filtradas);
+  });
+
+  it("sin buscar, o sin grupos, la lista queda igual", () => {
+    expect(buscar("")).toEqual(opciones);
+    const sueltas = [{ texto: "b" }, { texto: "a" }];
+    expect(ordenarPorGrupo(sueltas, sueltas, () => undefined)).toEqual(sueltas);
+  });
+
+  it("un grupo que llega primero en lo filtrado pero va después en la lista vuelve a su lugar", () => {
+    const todas = [{ g: "A", n: 1 }, { g: "B", n: 2 }, { g: "A", n: 3 }];
+    expect(ordenarPorGrupo([todas[1], todas[2], todas[0]], todas, (o) => o.g).map((o) => o.n)).toEqual([3, 1, 2]);
   });
 });

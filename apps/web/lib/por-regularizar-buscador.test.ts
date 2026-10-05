@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   TITULO_RESTO,
+  etiquetaBuscarEnCatalogo,
   loAnotado,
   opcionesDeLaSede,
   opcionesDelCatalogo,
@@ -114,8 +115,38 @@ describe("opcionesDeLaSede — por defecto, solo lo de la tienda de la venta que
     expect(tituloTramo("escrita", s)).toBe("La categoría que escribió caja: Jeans");
   });
 
+  it("…porque la primera fila es la que elige Enter al abrir: con lo escrito distinto, es la «Más probable», nunca un pantalón", () => {
+    // Revisión 2026-10-05 (D2): «primero las exactas» vale dentro de lo ANOTADO. Cuando la caja escribió otra categoría, lo anotado
+    // es lo dudoso (`sugerenciaDeVenta`: un pantalón nunca es la «Más probable» de una venta escrita «Jean…»); con las iguales
+    // arriba, abrir y apretar Enter elegía un pantalón para una venta de un jean. ADR-0328, «Actualización 2026-10-05», D2.
+    const jean = prenda("jean", { categoria: "Jeans", nombre: "Jean Mom", codigo: "JEA-1" });
+    const cat = new Map([...CAT, ["jean", jean]]);
+    const escrita = { categoriaId: "jeans", nombre: "Jeans", palabra: "Jean" };
+    const s = sugerenciaDeVenta(VENTA, hechosConExactas(EXACTAS, HECHOS), [hecho("jean")], cat, escrita);
+    const [primera] = opcionesDeLaSede(s);
+    expect(primera?.valor).toBe(s.probable?.prenda.id);
+    expect(primera?.detalle.startsWith("Más probable")).toBe(true);
+  });
+
+  it("solo colores parecidos en la tienda (ninguna igual): la lista no queda vacía y la parecida es la «Más probable», en su tramo", () => {
+    // Revisión 2026-10-05: sin exactas, las parecidas siguen siendo candidatas (una venta «Chocolate» y un «Café» en la tienda).
+    const s = sugerenciaDeVenta(VENTA, hechosConExactas([], [hecho("cafe", { colorExacto: false })]), [], CAT, null);
+    const o = opcionesDeLaSede(s);
+    expect(o.map((x) => [x.valor, x.seccion])).toEqual([["cafe", "Color parecido"]]);
+    expect(s.probable?.prenda.id).toBe("cafe");
+    expect(o[0]?.detalle.startsWith("Más probable")).toBe(true);
+  });
+
   it("sin nada que calce en la tienda, la lista está vacía (el modal lo explica y ofrece el catálogo)", () => {
     expect(opcionesDeLaSede(sugerenciaDeVenta(VENTA, hechosConExactas([], []), [], CAT, null))).toEqual([]);
+  });
+});
+
+describe("etiquetaBuscarEnCatalogo — la salida al catálogo, dentro de la lista de la tienda", () => {
+  it("sin escribir, la pregunta y la salida; con lo escrito, lo lleva al catálogo", () => {
+    expect(etiquetaBuscarEnCatalogo("")).toBe("¿No está? Buscar en todo el catálogo");
+    expect(etiquetaBuscarEnCatalogo("  ")).toBe("¿No está? Buscar en todo el catálogo");
+    expect(etiquetaBuscarEnCatalogo(" largo ")).toBe("Buscar «largo» en todo el catálogo");
   });
 });
 
@@ -125,6 +156,13 @@ describe("opcionesDelCatalogo — «Buscar en todo el catálogo», la salida par
     expect(o.map((x) => x.valor)).toEqual(["exacta-1", "exacta-2", "cafe", "en-lima", "talla-30", "blusa"]);
     expect(o.slice(3).every((x) => x.seccion === TITULO_RESTO)).toBe(true);
     expect(new Set(o.map((x) => x.valor))).toEqual(new Set(CATALOGO.map((p) => p.id)));
+  });
+
+  it("en el resto, a igual categoría y talla, el color anotado va antes que otro (aunque el catálogo lo traiga después)", () => {
+    const negro = prenda("negro", { color: "Negro" });
+    const chocolate = prenda("chocolate-en-otra-sede");
+    const o = opcionesDelCatalogo([negro, chocolate], SUGERENCIA, VENTA).map((x) => x.valor);
+    expect(o.slice(3)).toEqual(["chocolate-en-otra-sede", "negro"]);
   });
 
   it("si la caja escribió otra categoría, el resto se ordena por ESA (la escrita)", () => {

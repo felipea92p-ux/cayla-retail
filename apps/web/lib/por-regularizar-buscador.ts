@@ -9,9 +9,11 @@
 //   PROMETE: (1) `opcionesDeLaSede`: SOLO las prendas con stock disponible en la tienda DE LA VENTA que calzan con lo que anotó (o
 //            escribió) la caja, en tramos rotulados y en este orden: la categoría que escribió la caja (si nombra otra), igual a lo
 //            que anotó (el tramo exacto: `fn_candidatas_de_venta`, ver `hechosConExactas`) y color parecido; la sugerida siempre está
-//            ahí y dice «Más probable». (2) `opcionesDelCatalogo`: esas mismas arriba y después todo el catálogo, con lo que más se
-//            parece a lo anotado primero: la salida para la prenda que la tienda nunca cargó. (3) `textoSinCandidatas`: qué decir,
-//            en palabras de tienda, cuando la tienda no tiene ninguna que calce.
+//            ahí y dice «Más probable». Lo escrito va antes que lo anotado porque, cuando no coinciden, lo anotado es lo dudoso y la
+//            primera fila es la que elige Enter (revisión 2026-10-05; ADR-0328 «Actualización 2026-10-05»). (2) `opcionesDelCatalogo`:
+//            esas mismas arriba y después todo el catálogo, con lo que más se parece a lo anotado primero: la salida para la prenda que
+//            la tienda nunca cargó. (3) `textoSinCandidatas`: qué decir, en palabras de tienda, cuando la tienda no tiene ninguna que
+//            calce. (4) `etiquetaBuscarEnCatalogo`: la salida al catálogo dentro de la lista de la tienda, con lo escrito.
 //   ASUME:   que `SugerenciaVenta` ya trae las candidatas de la sede de la venta (las dos lecturas de la base son por sede).
 //   NO HACE: no decide nada: la persona elige, y la base vuelve a exigir lo suyo al guardar (`regularizar_prenda`).
 import type { Candidata, PrendaParaRegularizar, SugerenciaVenta, Tramo } from "./por-regularizar-candidatas";
@@ -74,6 +76,16 @@ export function opcionesDelCatalogo(
     .sort((a, b) => b.n - a.n || a.i - b.i)
     .map(({ p }) => ({ valor: p.id, texto: p.nombre, detalle: `${p.talla} · ${p.color} · ${p.codigo} · ${soles(p.precio)}`, seccion: TITULO_RESTO }));
   return [...deLaSede, ...resto];
+}
+
+/**
+ * La salida al catálogo completo DENTRO de la lista de la tienda (última fila del combo; revisión adversarial del 2026-10-05). La
+ * lista se abre sola al abrir el modal y tapa lo que está debajo del buscador: con «Nada coincide con «largo».» la persona quedaba
+ * sin salida a la vista. Con lo escrito, la búsqueda sigue en el catálogo sin volver a escribirla.
+ */
+export function etiquetaBuscarEnCatalogo(escrito: string): string {
+  const t = escrito.trim();
+  return t ? `Buscar «${t}» en todo el catálogo` : "¿No está? Buscar en todo el catálogo";
 }
 
 /** «de Pantalones en talla 28 y color Chocolate»: lo anotado, dicho en una frase y sin piezas vacías (un accesorio no trae talla). */
