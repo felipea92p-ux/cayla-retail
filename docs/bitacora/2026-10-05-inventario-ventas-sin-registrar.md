@@ -11,3 +11,14 @@ cuerpo: el lote ya mandaba su propia clave, así que sacar «regularizar» de la
 Felipe se lleva: pegar UNA migración (`20261004204000`, la parte 1 ya está en producción) con la sonda previa, y fusionar el PR #788; las 14
 capturas de la verificación con la carga real de la pantalla; y las tres preguntas del PR (líder en la terminal, nombre por fila en Almacén,
 vocabulario de sinónimos).
+
+## 2026-10-05 (revisión adversarial del PR #788: la salida al catálogo a la vista y las tildes que llegaron dañadas a producción)
+Qué hice: la lista del buscador se abre sola y tapaba «Buscar en todo el catálogo»: con «Nada coincide» la persona quedaba sin salida. Ahora
+la línea con la tienda y la salida va arriba del buscador, la última fila de la lista es la salida (lleva lo escrito al catálogo) y el
+subtítulo dice en qué tienda se cobró. Al buscar, los tramos ya no se mezclan ni repiten su título. La parte 1 se pegó en producción con las
+tildes dañadas (el texto pasó por algo que lo leyó como Mac Roman): la lógica está bien, los comentarios no. La parte 2 ahora aborta, sin
+tocar nada, si le pasa lo mismo, y lo dice; antes decía que la función «cambió», que era falso.
+Por qué así: lo que la persona necesita cuando no encuentra la prenda tiene que estar donde mira en ese momento (la lista), no debajo de ella.
+Y un mensaje de error que apunta a la causa equivocada hace que alguien «arregle» lo que no estaba roto.
+Felipe se lleva: pegar la parte 2 copiándola del archivo crudo de GitHub (no desde la terminal), y opcionalmente volver a pegar la parte 1 por
+el mismo medio para limpiar sus comentarios antes del próximo volcado del diccionario.
