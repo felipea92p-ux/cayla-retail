@@ -75,7 +75,8 @@
 -- hace nada (se puede pegar dos veces). Ningún texto (ni el ancla ni el nuevo) trae `select … into` (ADR-0288): por eso el ancla
 -- del punto 3 empieza en el `where` y deja intacta la línea de arriba.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: tal cual en el SQL Editor (trae `retail.` y `set search_path`), en una sola parte, DESPUÉS de
+-- CÓMO SE PEGA EN PRODUCCIÓN: tal cual en el SQL Editor (trae `retail.` y `set search_path`), copiada del archivo crudo de GitHub o
+-- del editor para que lleguen las tildes enteras (si llegan dañadas, la guarda 0 aborta sin tocar nada y lo dice), en una sola parte, DESPUÉS de
 -- 20260923162300, 20260929230000 y 20261004203000 (si falta alguna, aborta con un mensaje claro) y ANTES de fusionar el PR. Si
 -- una versión anterior de ESTA migración ya se hubiera pegado, la validación final aborta sin tocar nada (quedarían dos reglas;
 -- la del aviso de «sin cargar» de antes del ajuste del 2026-10-04 se reconoce porque dejaba el hint dentro del cuerpo):
@@ -98,6 +99,23 @@
 
 set lock_timeout = '3s';
 set search_path = retail, public, extensions;
+
+-- 0. Las tildes tienen que llegar enteras (revisión adversarial del 2026-10-05). La parte 1 (20261004203000) se pegó en producción
+-- por un medio que leyó el UTF-8 como Mac Roman: su lógica es la del repo, pero sus comentarios quedaron ilegibles (cada «ú» se
+-- volvió dos signos raros; el md5 del cuerpo vivo es exactamente el del archivo leído así). Aquí no sería cosmético: el ancla 1
+-- lleva tildes («regularizó», «anuló»), así que no se encontraría y la migración abortaría diciendo que `regularizar_prenda`
+-- «cambió» y pidiendo regenerar el reemplazo (un diagnóstico falso); y los mensajes de tienda quedarían dañados para siempre. Esta
+-- guarda compara una «ó» escrita en el archivo con la misma letra escrita como código (`chr(243)`): si no son iguales, lo pegado
+-- llegó con otra codificación y se aborta ANTES de tocar nada, diciendo eso. Su mensaje va sin tildes a propósito: un texto dañado
+-- no puede dañarlo. Remedio: pegarla desde el archivo crudo de GitHub o desde el editor, nunca desde una copia que pasó por una
+-- terminal sin UTF-8 (`pbcopy` sin `LANG=…UTF-8` lee los bytes como Mac Roman).
+do $$
+begin
+  if 'ó' <> chr(243) then
+    raise exception 'Las tildes de este texto llegaron danadas (se copio con otra codificacion, no UTF-8): no se aplico nada. Pegalo desde el archivo crudo de GitHub (boton Raw) o desde el editor. Si lo copiaste en la terminal, usa: LANG=en_US.UTF-8 pbcopy < archivo.sql'
+      using hint = 'tildes_danadas';
+  end if;
+end $$;
 
 do $$
 begin

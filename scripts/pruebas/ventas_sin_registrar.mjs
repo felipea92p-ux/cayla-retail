@@ -68,8 +68,11 @@ const ANCLAS = [...MIG_REGLAS.matchAll(/reemplazar_unico\(\s*'[^']+',\s*\$v\$([\
  */
 function sonda() {
   const filas = ANCLAS.map((t, i) => `(${i + 1}, $a${i + 1}$${t}$a${i + 1}$)`).join(",\n       ");
-  return `-- Sonda de solo lectura (20261004204000): cada ancla tiene que aparecer UNA vez en el cuerpo vivo de regularizar_prenda.
-select a.n as ancla, (length(f.d) - length(replace(f.d, a.t, ''))) / length(a.t) as veces
+  // `tildes_bien` (revisión 2026-10-05): la parte 1 se pegó con las tildes dañadas (UTF-8 leído como Mac Roman). El ancla 1 lleva
+  // tildes: pegada por ese medio, la sonda diría 0 y parecería que el cuerpo vivo cambió. Con `tildes_bien = false` el problema es
+  // el medio, no el cuerpo: no regenerar nada, volver a copiar desde el archivo crudo.
+  return `-- Sonda de solo lectura (20261004204000): cada ancla tiene que aparecer UNA vez en el cuerpo vivo de regularizar_prenda, y tildes_bien = true.
+select a.n as ancla, (length(f.d) - length(replace(f.d, a.t, ''))) / length(a.t) as veces, 'ó' = chr(243) as tildes_bien
   from (select pg_get_functiondef('retail.regularizar_prenda(uuid, uuid, text)'::regprocedure) as d) f,
        (values ${filas}) as a(n, t)
  order by a.n;`;
@@ -946,6 +949,20 @@ caso(
 select pg_temp.intento(${"$m$"}${MIG_REGLAS.replace(/notify pgrst, 'reload schema';\s*$/, "")}${"$m$"}) as r \\gset
 select :'r' || ' / clave=' || (select count(*) from retail.acciones_sin_responsable where clave = 'regularizar_prenda');`,
   (s) => s.includes("cambió desde que se escribió esta migración") && s.endsWith(" / clave=1"),
+);
+
+// P4 (revisión adversarial del 2026-10-05): la parte 1 se pegó en producción con el UTF-8 leído como Mac Roman. Pegada así, la
+// parte 2 no puede abortar diciendo que el cuerpo «cambió» (ancla 1 con 0 apariciones): tiene que decir que las tildes llegaron
+// dañadas, y no tocar nada (ni la función ni la lista). La sonda dañada dice `tildes_bien = false`.
+const MAC_ROMAN = new TextDecoder("macintosh");
+const danado = (t) => MAC_ROMAN.decode(Buffer.from(t, "utf8"));
+caso(
+  "P4 · con las tildes dañadas (UTF-8 leído como Mac Roman, como llegó la parte 1) la migración aborta diciendo eso, no «cambió», y no toca nada",
+  `${REPONER_ORIGINAL}select pg_temp.intento(${"$m$"}${danado(MIG_REGLAS).replace(/notify pgrst, 'reload schema';\s*$/, "")}${"$m$"}) as r \\gset
+select :'r' || ' / ' || (select count(*) from retail.acciones_sin_responsable where clave = 'regularizar_prenda')
+       || ' / ' || (select md5(prosrc) from pg_proc where oid = 'retail.regularizar_prenda(uuid, uuid, text)'::regprocedure)
+       || ' / sonda=' || (select string_agg(veces || ':' || tildes_bien, ',' order by ancla) from (${danado(sonda()).replace(/^--.*\n/, "").replace(/;\s*$/, "")}) s);`,
+  "P0001|tildes_danadas / 1 / 32f2ac4d00d3d0d1044e141c00e16f10 / sonda=0:false,1:false,1:false",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""}`);
