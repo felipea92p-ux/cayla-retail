@@ -179,6 +179,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
   "components/ApartadosModal.tsx": PENDIENTE, // 3 controles
   "components/ApartarModal.tsx": PENDIENTE, // 8 controles
+  // ADR-0328 (actividad 9): «La tengo en la mano» en Bajar al piso. Lo que falta es solo quién lo hace (lo mismo que apaga el botón);
+  // de dónde salió es opcional (la nota automática va siempre).
+  "components/BajarEnManoModal.tsx": { estado: "aplicada", evidencia: ["components/BajarEnManoModal.tsx"] },
   "components/BuscadorGlobal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   // «Falta» = lo mismo que apaga el botón «Cerrar»: la tienda (si se elige entre varias) y el motivo. La nota es opcional (ADR-0334).

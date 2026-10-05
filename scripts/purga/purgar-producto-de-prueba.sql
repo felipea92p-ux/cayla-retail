@@ -176,6 +176,11 @@ insert into zz_hoja values
   -- Una línea del cuadre del piso (ADR-0328): el traslado interno que corrigió el reparto piso/almacén, como una bajada. Su
   -- cabecera (`cuadres_piso`, la fecha del cuadre de la sede) se queda: es de la sede, no del producto.
   ('cuadre_piso_items', 'movimiento_id', 'movimientos'),
+  -- La marca de «La tengo en la mano» (ADR-0328, actividad 9): une la bajada con la corrección del almacén (+1) que la hizo
+  -- posible. Se respalda como hoja de esa corrección y se va con ella POR LA CASCADA de su llave (su disparador solo deja
+  -- pasar ese borrado; un `delete` directo lo rechazaría). Si la corrección no hizo falta (`ajuste_movimiento_id` nulo),
+  -- la marca solo cita la cabecera de la bajada, que se queda (como cualquier cabecera sin líneas).
+  ('bajadas_en_mano', 'ajuste_movimiento_id', 'movimientos'),
   ('movimientos_internos_intentos', 'movimiento_id', 'movimientos'),
   ('compra_item_destinos', 'compra_item_id', 'compra_items'),
   ('comprobante_anticipos', 'comprobante_id', 'comprobantes'),
@@ -498,6 +503,8 @@ update stock s set cantidad = s.cantidad + r.q, updated_at = now()
 -- 4b. De hijos a padres.
 delete from bajada_piso_items where movimiento_id in (select id from zz_borrar where tabla = 'movimientos');
 delete from cuadre_piso_items where movimiento_id in (select id from zz_borrar where tabla = 'movimientos');
+-- `bajadas_en_mano` NO se borra aquí: se va en cascada con su corrección, en el `delete from movimientos` de abajo (la
+-- demostración 5a comprueba que no quede ninguna).
 delete from movimientos_internos_intentos where movimiento_id in (select id from zz_borrar where tabla = 'movimientos');
 delete from separacion_items where id in (select id from zz_borrar where tabla = 'separacion_items');
 delete from apartados where id in (select id from zz_borrar where tabla = 'apartados');
@@ -631,7 +638,8 @@ create temp table zz_resumen on commit drop as
   union all select 22, 'traslados', (select count(*) from zz_traslado)
   union all select 23, 'proformas', (select count(*) from zz_proforma)
   union all select 24, 'decisiones de Frescura', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'frescura_decisiones')
-  union all select 25, 'líneas del cuadre del piso', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'cuadre_piso_items');
+  union all select 25, 'líneas del cuadre del piso', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'cuadre_piso_items')
+  union all select 26, 'correcciones «La tengo en la mano»', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'bajadas_en_mano');
 
 do $$
 declare r record; v_n bigint; v_resumen text; v_libro bigint;
