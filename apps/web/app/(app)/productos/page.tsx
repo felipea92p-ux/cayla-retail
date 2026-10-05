@@ -256,6 +256,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             veExistencias={veModulo(persona, "existencias")}
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
+            puedeEditar={editaCatalogo}
             puedeEliminar={editaCatalogo}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
             tamanoInicial={tamanoGrilla}
