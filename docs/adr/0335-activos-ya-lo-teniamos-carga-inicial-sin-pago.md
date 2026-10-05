@@ -70,15 +70,23 @@ crédito fiscal, el costo tributario es sin IGV, y capitalizarlo con IGV sobrees
   S/ 2,673.53; valor neto S/ 19,107.14. Quedó fuera la «Mesa plegable» (S/ 139.50, menos de S/ 150). Las 5 filas IME de la hoja que no
   estaban en la lista curada (S/ 2,100: plancha industrial, mesa de corte, sillas, cortadora, planchador) NO se cargan: no están en la
   lista de Felipe y el «Patrimonio» del propio libro las omite por categoría.
-- **TRU y AQP: pendientes.** Las actas dan qué existe y su valor declarado; la fecha y el costo real se buscan en las hojas «Gastos»
-  de SINATRA (TRU 151 filas IME, AQP 37), que traen errores: montos de 2021–2023 que parecen proporcionales (×0.1125), compras
-  repartidas por tercios o mitades entre sedes, filas marcadas `adm` que parecen activos y posibles duplicados entre hojas.
+- **Tienda TRU (9 equipos) y Tienda AQP (8 equipos): preparadas, ensayadas en producción con ROLLBACK, sin pegar.** Las actas de custodia dicen qué
+  existe y su serie; la fecha y el costo salen de la compra que se encontró en las hojas «Gastos» de SINATRA. TRU **S/ 18,724.14** (depreciado a
+  fines de septiembre S/ 5,230.79; neto S/ 13,493.35) y AQP **S/ 19,133.63** (depreciado S/ 4,377.99; neto S/ 14,755.64); 0 totalmente depreciados.
+  Reglas de Felipe: **cada equipo una sola vez, a costo completo, en la sede donde está** (no la porción que reparte la hoja: 4 Mac mini comprados,
+  3 en TRU y 1 en AQP, mientras la hoja de TRU carga solo la parte de TRU); emparejamientos aproximados como en la tabla que se le mostró (Mac mini
+  con N.° 134 y 136, MacBook M5 con el N.° 257 de TRU, iPhone 15 con «Archi-Iphone», Redmi con las compras Xiaomi); los 3 equipos sin compra en las
+  hojas (iPhone 12, Canon EOS 80D + lentes, Lenovo V14-IIL) van con el valor del acta, **3 años de antigüedad** y la nota «ESTIMADO». Las series son
+  las del acta, transcritas de una captura: se verifican contra el equipo. Total de las tres sedes: **S/ 59,638.44** de costo, S/ 12,282.31
+  depreciados y S/ 47,356.13 de valor neto al 30-sep-2026.
+- Los libros SINATRA tienen errores que se dejaron intactos: montos de 2021–2023 de TRU que parecen proporcionales (×0.1125), compras repartidas por
+  tercios o mitades entre sedes, filas marcadas `adm` que parecen activos y posibles duplicados entre hojas.
 - Los datos (costos, series) **no van a git**: el cargador vive fuera del repo.
 
 ## Cómo se pega (CLAUDE.md «Políticas y deadlocks»)
 
 Dos ejecuciones separadas del SQL Editor, en orden: **PARTE 1** (la tabla) y **PARTE 2** (disparador, función, lista); después la carga del
-Taller con la sesión del líder (`set_config('request.jwt.claim.sub', …, true)` en el mismo lote). Idempotente (tokens fijos por fila).
+Taller y la de TRU y AQP, cada una con la sesión del líder (`set_config('request.jwt.claim.sub', …, true)` en el mismo lote). Idempotente (tokens fijos por fila).
 Verificación posterior, solo lectura: `fn_activos_lista('2026-09-30')` del Taller = 16 activos, S/ 21,780.67, depreciado S/ 2,673.53;
 `fn_dinero_libro` sin líneas `activo:%` nuevas; `fn_saldos_iniciales_propuesta('2026-10-01')` con la 333 en S/ 15,327.10 y la 391 en
 S/ 2,673.53 (solo del Taller).
