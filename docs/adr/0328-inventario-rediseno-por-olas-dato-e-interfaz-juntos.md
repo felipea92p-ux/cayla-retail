@@ -113,7 +113,7 @@ Les falta solo el modelo exacto. Por eso la lectura comercial de Felipe se puede
 | Primer conteo | **De arranque**: corrige el stock sin contar como merma ni entrar en la exactitud. |
 | Firma | **El nombre se pide una vez por operación**, no en cada paso: «si ya se colocó un nombre en el manejo de una operación no creo necesario estar pidiéndolo varias veces». |
 | Ventas sin registrar | Es **algo temporal de la adopción** («no podíamos dejar de vender y había prendas sin etiquetar»): limpieza de arranque, no una rutina permanente. Nadie regulariza su propia venta, salvo el líder. |
-| Cierre de la carga inicial | **Fecha por sede y cierre automático**: TRU el 15-oct; AQP y LIM cuando terminen su carga, con un tope que fija Felipe. |
+| Cierre de la carga inicial | **Fecha por sede y cierre automático**: el 15-oct en TRU, AQP y LIM (Felipe, 2026-10-04 noche; ver «Actualización 2026-10-04 (tarde)»); el Taller, sin carga de tienda. |
 
 ## Decisiones técnicas
 
