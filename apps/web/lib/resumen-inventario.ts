@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, type Tolerado } from "@/lib/resultado";
 import { getConteosResumen } from "@/lib/conteos";
-import { exactitudConteos } from "@/lib/conteo-varianza";
+import { exactitudConteos, porQueSinExactitud } from "@/lib/conteo-varianza";
 import type { Ubicacion as UbicacionApp } from "@/lib/ubicaciones";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
 import { mapearFila, type FilaCruda } from "@/lib/resumen-mapeo";
@@ -123,7 +123,7 @@ async function getFilasComparacion(ubicacionId: string, a: Rango, b: Rango): Pro
 async function getExactitud(ubicacionId: string) {
   const conteos = await getConteosResumen(ubicacionId);
   const cerrado = conteos.find((c) => c.estado === "cerrado" && c.cerradoEn);
-  return { exactitud: exactitudConteos(conteos), ultimoCerradoEn: cerrado?.cerradoEn ?? null };
+  return { exactitud: exactitudConteos(conteos), ultimoCerradoEn: cerrado?.cerradoEn ?? null, sinMedida: porQueSinExactitud(conteos) };
 }
 
 export async function getComparacionInventario(ubicacion: UbicacionApp, params: ParametrosResumen, ahora: Date = new Date()): Promise<ComparacionParaPantalla> {

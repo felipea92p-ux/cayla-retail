@@ -8,6 +8,7 @@ import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo }
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { getDeudaPorVencimiento } from "@/lib/compras-indicadores";
+import { getAvisoPerdidas } from "@/lib/perdidas";
 import type { ClaveModulo } from "@/lib/modulos";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
@@ -116,11 +117,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -141,8 +142,10 @@ export async function getFuentesAvisos(
           return { vencidas: de("vencida").comprobantes, montoVencido: de("vencida").monto, semana: de("0_7").comprobantes, montoSemana: de("0_7").monto };
         })
       : undefined,
+    // ADR-0328 act. 14: «se repite», solo del líder y con el módulo de la pestaña a la que lleva (Movimientos).
+    cuenta.esLider && ve("movimientos") ? tolerarLectura("las pérdidas que se repiten", () => getAvisoPerdidas(ubicacionId)) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

@@ -322,6 +322,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:balance
 
+      # Pérdidas (ADR-0328 act. 14): UNA definición —cada tipo y motivo clasificado, todo motivo que escribe la base decidido—,
+      # la pestaña (razón, categoría, talla, «más faltan», lo que apareció aparte, traslados y anulaciones), el 659 del diario
+      # igual al total de la pestaña sede por sede, permisos y la guarda de meses cerrados. ROLLBACK.
+      - name: pruebas:perdidas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:perdidas
+
       # Resumen de Finanzas (ADR-0195 F10): cada número es el de su fase (F2–F9 y Presupuesto) mirando CAYLA entera, una
       # tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
       - name: pruebas:resumen-finanzas
@@ -551,6 +558,15 @@ jobs:
       - name: pruebas:conteo-rediseno
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:conteo-rediseno
+
+      # Conteo I (ADR-0328, 20261004230000/230100): desde una terminal, el cierre de un conteo y la recepción de un traslado
+      # heredan la firma de la operación si es del mismo día (otro día, o sin nadie, piden el nombre una vez); el primer conteo
+      # completo de cada lugar es «de arranque» (motivo conteo_arranque: no es merma) y uno parcial, de categoría o de prueba no
+      # lo consume; «Aplicar todos completos» marca «aplicada sin contar» y el historial lo suma aparte. Con controles que muerden
+      # por mutación. Cada caso: ROLLBACK.
+      - name: pruebas:conteo-firma-arranque
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:conteo-firma-arranque
 
       # Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
       # venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.

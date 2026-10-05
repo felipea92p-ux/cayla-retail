@@ -71,7 +71,7 @@ export const FilaConteo = memo(function FilaConteo({
         <CampoContaste varianteId={id} contada={linea.contada} sugerida={linea.contada === null ? linea.anterior : null} etiqueta={etiqueta} alConfirmar={alConfirmar} alInvalido={alInvalido} alEnter={alEnter} />
       </td>
       <td className="py-[3px] pl-2 pr-3 align-middle">
-        <EstadoLinea sinReserva antes={linea.anterior} estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
+        <EstadoLinea sinReserva antes={linea.anterior} sinContar={linea.aplicadaSinContar} estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
         {nota && <p className="mt-0.5 text-[11px] leading-[15px] text-taupe">{nota}</p>}
       </td>
     </tr>
