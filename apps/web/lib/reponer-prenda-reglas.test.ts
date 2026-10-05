@@ -33,7 +33,7 @@ describe("tallasParaReponer: la ventana ve TODAS las tallas, no una", () => {
 
   it("no inventa cifras: un nulo (tienda que no separa piso y almacén) es 0, y una talla sin nombre es «Única»", () => {
     const [t] = tallasParaReponer([{ varianteId: "x", talla: null, pisoDisponible: null, almacenDisponible: null }]);
-    expect(t).toEqual({ varianteId: "x", talla: "Única", piso: 0, almacen: 0 });
+    expect(t).toEqual({ varianteId: "x", talla: "Única", piso: 0, almacen: 0, requisito: 0 });
   });
 
   it("una cifra negativa (stock y libro que no cuadran) nunca ofrece bajar", () => {

@@ -18,6 +18,7 @@ import { textoProgreso, textoResumen, textoRevision, textoTerminado, type Resume
      · «cifras»    — solo la línea de cifras. El encabezado de la lista de Contar, donde la barra ya va en el pie.
      · «revision»  — «37 variantes» y «34 correctas · 3 con diferencia · 0 pendientes» (Revisar conteo).
      · «resultado» — «37 variantes verificadas · 34 coincidieron · 3 con diferencia» (Conteo terminado).
+     Con líneas de «Aplicar todos completos» (ADR-0328) las dos dicen aparte cuántas quedaron «sin contar».
                      `parcial` suma cuántas quedaron sin verificar.
 
    Una pantalla tiene UNA barra de progreso (`role="progressbar"`): por eso «completo» y «progreso» no se combinan en
@@ -34,7 +35,7 @@ export type VarianteResumenConteo = "completo" | "progreso" | "cifras" | "revisi
 
 /** Lo que este resumen lee. `ResumenConteo` de la lib lo cumple entero; el historial lo arma con sus cuatro cifras
  *  (`correctas` es opcional: si falta son las verificadas que no tienen diferencia). */
-export type ResumenParaMostrar = Pick<ResumenDeConteo, "variantes" | "verificadas" | "pendientes" | "conDiferencia"> & Partial<Pick<ResumenDeConteo, "correctas">>;
+export type ResumenParaMostrar = Pick<ResumenDeConteo, "variantes" | "verificadas" | "pendientes" | "conDiferencia"> & Partial<Pick<ResumenDeConteo, "correctas" | "sinContar">>;
 
 // Un espacio duro antes del punto medio: al partirse la línea, el «·» se queda al final de la anterior y no abre la siguiente.
 const sinPuntoAlInicio = (t: string) => t.replaceAll(" · ", " · ");
@@ -109,7 +110,7 @@ export function ResumenConteo({
         <p className="font-display text-2xl leading-tight tabular-nums text-tinta">
           {resumen.variantes} {resumen.variantes === 1 ? "variante" : "variantes"}
         </p>
-        <p className="mt-1 text-sm tabular-nums text-taupe">{sinPuntoAlInicio(textoRevision({ correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes }))}</p>
+        <p className="mt-1 text-sm tabular-nums text-taupe">{sinPuntoAlInicio(textoRevision({ correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes, sinContar: resumen.sinContar }))}</p>
       </div>
     );
   }
@@ -117,7 +118,7 @@ export function ResumenConteo({
   if (variante === "resultado") {
     return (
       <p className={`text-sm tabular-nums text-tinta/75 ${className}`}>
-        {sinPuntoAlInicio(textoTerminado({ verificadas: resumen.verificadas, correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes }, parcial))}
+        {sinPuntoAlInicio(textoTerminado({ verificadas: resumen.verificadas, correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes, sinContar: resumen.sinContar }, parcial))}
       </p>
     );
   }

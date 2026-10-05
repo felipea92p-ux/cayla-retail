@@ -92,3 +92,113 @@ export function variantesDelConteo(alcance: AlcanceConteo | null, lugar: string 
 export function sufijoVariantes(ids: readonly string[]): string {
   return ids.length === 0 ? "" : `?variantes=${ids.join(",")}`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// El conteo de ARRANQUE (ADR-0328, actividad 15)
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * Una fila de `fn_conteo_arranque` (`sububicacion_id` NULL = toda la ubicación). Con `categoria_id` NULL: si un conteo de TODO ese lugar
+ * sería de arranque (en el piso, para alguna de sus categorías). Con categoría (solo en el piso): si el próximo conteo de esa categoría
+ * sería el de arranque. Una base con la primera versión del SQL no trae `categoria_id`: todas sus filas son de «todo».
+ */
+export type FilaArranque = { sububicacion_id: string | null; categoria_id?: string | null; arranque_pendiente: boolean };
+
+/**
+ * Por lugar (id de sububicación o `TODA_LA_UBICACION`): `todo` = un conteo de todo el lugar sería de arranque; `porCategoria` = en ese
+ * lugar el arranque es por categoría (el piso: la base manda una fila por categoría) y si cada una lo tiene pendiente; `null` = el
+ * arranque es del lugar entero (el almacén, o una ubicación sin piso ni almacén aparte).
+ */
+export type ArranqueLugar = { todo: boolean; porCategoria: Record<string, boolean> | null };
+export type ArranqueConteo = Record<string, ArranqueLugar>;
+
+/**
+ * La respuesta de `fn_conteo_arranque` ya leída, o `null` y el porqué si la base no pudo darla. Es un dato de apoyo como las cifras:
+ * sin él (la web salió antes que el SQL, o falló) la tarjeta no dice nada del arranque y abrir un conteo sigue igual. Lo que decide
+ * si un cierre es de arranque es `cerrar_conteo`, no esta lectura. Qué lugar es «por categoría» tampoco lo decide la web: lo dice la
+ * base mandando filas por categoría (`fn_arranque_por_categoria`).
+ */
+export function arranqueDeRespuesta(respuesta: { data: readonly FilaArranque[] | null; error: { message: string } | null }): {
+  arranque: ArranqueConteo | null;
+  fallo: string | null;
+} {
+  const { datos, fallo } = tolerar(respuesta, "qué lugares no tuvieron su conteo de arranque");
+  if (!datos) return { arranque: null, fallo };
+  const arranque: ArranqueConteo = {};
+  for (const f of datos) {
+    const lugar = (arranque[f.sububicacion_id ?? TODA_LA_UBICACION] ??= { todo: false, porCategoria: null });
+    if (f.categoria_id) (lugar.porCategoria ??= {})[f.categoria_id] = f.arranque_pendiente === true;
+    else lugar.todo = f.arranque_pendiente === true;
+  }
+  return { arranque, fallo };
+}
+
+/**
+ * Lo que «Abrir un conteo» dice del arranque (ADR-0328; Felipe: el primer conteo de cada tramo «corrige el stock sin contar como merma
+ * ni entrar en la exactitud»). El tramo lo pone la base: en el ALMACÉN (o en toda la ubicación) es el lugar entero; en el PISO, cada
+ * categoría, porque el piso se cuenta por categorías a lo largo de la semana. Y un cuadre del piso los reinicia todos.
+ *   · Almacén, si todavía no tuvo su arranque: contando TODO, que este lo será, qué significa y cuándo vale (contado a mano y cerrado
+ *     sin pendientes: lo aplicado sin contar no vale, `fn_conteo_vale_como_arranque`); contando una categoría o unas prendas, que así
+ *     NO lo es y sus diferencias sí cuentan como pérdida (para que nadie lo pierda sin saberlo).
+ *   · Piso: contando una categoría que todavía no tuvo el suyo, que este lo será; contando TODO, que lo será de cada categoría que
+ *     todavía no lo tuvo; contando unas prendas, que así ninguna arranca. Una categoría que ya lo tuvo no dice nada.
+ * `null` si no hay nada que decir, si falta elegir el lugar (o la categoría) o si no se pudo leer.
+ */
+export function avisoDeArranque(e: {
+  arranque: ArranqueConteo | null;
+  /** La clave del lugar elegido (id o `TODA_LA_UBICACION`); `null` si falta elegirlo. */
+  lugarClave: string | null;
+  queCuento: "todo" | "categoria" | "prendas";
+  /** «el piso de venta», «el almacén de tienda», «esta ubicación». */
+  lugarConArticulo: string;
+  /** La categoría elegida, si `queCuento` es «categoria» y ya se eligió. */
+  categoria?: { id: string; nombre: string } | null;
+}): { tipo: "arranque" | "no_es_arranque"; titulo: string; texto: string } | null {
+  const l = e.arranque && e.lugarClave !== null ? e.arranque[e.lugarClave] : undefined;
+  if (!l) return null;
+  // «de» + «el piso de venta» → «del piso de venta»; «de esta ubicación» queda igual. «en» + «el piso de venta» queda igual.
+  const deLugar = e.lugarConArticulo.startsWith("el ") ? `del ${e.lugarConArticulo.slice(3)}` : `de ${e.lugarConArticulo}`;
+  const lugar = `${e.lugarConArticulo.charAt(0).toUpperCase()}${e.lugarConArticulo.slice(1)}`;
+  const comoVale = "Vale si cuentas todo a mano, sin «Aplicar todos completos», y lo cierras sin pendientes.";
+
+  // El piso: el arranque es por categoría.
+  if (l.porCategoria) {
+    if (e.queCuento === "categoria") {
+      if (!e.categoria || l.porCategoria[e.categoria.id] !== true) return null;
+      return {
+        tipo: "arranque",
+        titulo: "Conteo de arranque",
+        texto: `Es el primer conteo de ${e.categoria.nombre} en ${e.lugarConArticulo}. Lo que encuentres corrige el stock, pero las diferencias no cuentan como pérdida ni bajan la exactitud: son errores de registro de antes, no prendas perdidas. Vale si cuentas toda la categoría a mano, sin «Aplicar todos completos», y lo cierras sin pendientes.`,
+      };
+    }
+    if (!l.todo) return null;
+    if (e.queCuento === "todo") {
+      return {
+        tipo: "arranque",
+        titulo: "Conteo de arranque",
+        texto: `En ${e.lugarConArticulo} el arranque es por categoría: este conteo será el de cada categoría que todavía no tuvo el suyo. En ellas, lo que encuentres corrige el stock, pero las diferencias no cuentan como pérdida ni bajan la exactitud. ${comoVale}`,
+      };
+    }
+    return {
+      tipo: "no_es_arranque",
+      titulo: "Todavía falta el conteo de arranque",
+      texto: `Hay categorías ${deLugar} que todavía no tuvieron su conteo de arranque. Contando solo unas prendas, las diferencias sí cuentan como pérdida; si cuentas una categoría entera o «Todo», será el de arranque.`,
+    };
+  }
+
+  // El almacén (o toda la ubicación): el arranque es del lugar entero.
+  if (!l.todo) return null;
+  if (e.queCuento === "todo") {
+    return {
+      tipo: "arranque",
+      titulo: "Conteo de arranque",
+      texto: `Será el conteo de arranque ${deLugar}. Lo que encuentres corrige el stock, pero las diferencias no cuentan como pérdida ni bajan la exactitud: son errores de registro de antes, no prendas perdidas. ${comoVale}`,
+    };
+  }
+  const acotado = e.queCuento === "categoria" ? "solo una categoría" : "solo unas prendas";
+  return {
+    tipo: "no_es_arranque",
+    titulo: "Todavía falta el conteo de arranque",
+    texto: `${lugar} todavía no tuvo su conteo de arranque. Contando ${acotado}, las diferencias sí cuentan como pérdida; si eliges «Todo», será el conteo de arranque.`,
+  };
+}

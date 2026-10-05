@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { contar, tolerarLectura } from "@/lib/inicio";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
-import { getExistencias } from "@/lib/inventario-v2";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
-import { accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
-import { politicaDe } from "@/lib/politica-operativa-inventario";
+import { planDelPiso } from "@/lib/piso-plan";
+import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { getResumenTienda } from "@/lib/movimientos-v2";
 import { listarPorRecibir } from "@/lib/compras";
 import { getTrasladosEnCurso } from "@/lib/traslados";
@@ -14,6 +13,7 @@ import {
   avanceDelTrayecto,
   etiquetaLlegada,
   existenciasDeAlmacen,
+  filasDelPiso,
   inicioDeAyerLima,
   siglaSede,
   type Existencias,
@@ -172,15 +172,18 @@ export async function getEnCamino(ubicacionId: string, ahoraMs: number = Date.no
 // ── «Por colgar» y «Pulso del almacén» ─────────────────────────────────────────────────────────────
 
 /**
- * Lo que sale de las existencias de la sede: cuánto hay atrás y qué está por colgar (`existenciasDeAlmacen`, la misma cuenta que
- * «Para hoy» de Existencias). La misma lectura (`getExistencias`) y la misma «Acción hoy» (`accionHoyPorVariante` con
- * `politicaDe`) que esa pantalla. `null` si no se pudo leer.
+ * Lo que sale del piso de la sede: cuánto hay atrás y qué está por colgar. Cuenta con `existenciasDeAlmacen` →
+ * `porColgarDeLaSede`, la MISMA función que «Para hoy» y el filtro «Hoy» de Existencias, alimentada por el MISMO motor del piso
+ * (`lib/piso-plan.ts` sobre `fn_piso_plan_lectura`): la decisión de cada talla y el orden de la lista del día. Es UNA lectura
+ * (antes, la de Existencias entera: stock, red, traslados y productos de prueba). `null` si no se pudo leer: el aviso dice «Sin
+ * leer», nunca un cero.
  */
-export async function getExistenciasDeAlmacen(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<Existencias | null> {
-  return tolerarLectura("las existencias de la sede", async () => {
-    const stock = await getExistencias(ubicacionId, ubicaciones);
-    const accion = accionHoyPorVariante(stock, politicaDe(ubicacionId));
-    return existenciasDeAlmacen(stock.map((f) => ({ ...f, accionHoy: accion.get(f.varianteId) ?? null })));
+export async function getExistenciasDeAlmacen(ubicacionId: string): Promise<Existencias | null> {
+  return tolerarLectura("el piso de la sede", async () => {
+    const lectura = await leerLecturaDelPiso(ubicacionId);
+    if (!lectura) throw new Error("sin lectura del piso");
+    const plan = planDelPiso(lectura);
+    return existenciasDeAlmacen(filasDelPiso(lectura, plan), plan.listaDelDia);
   });
 }
 
@@ -214,16 +217,15 @@ export type DatosInicioAlmacen = {
  */
 export async function getInicioAlmacen(cuenta: {
   ubicacionId: string;
-  ubicaciones: { id: string; nombre: string }[];
   ve: (m: ClaveModulo) => boolean;
 }): Promise<DatosInicioAlmacen> {
-  const { ubicacionId, ubicaciones, ve } = cuenta;
+  const { ubicacionId, ve } = cuenta;
   const [nuevos, fotos, porCompletar, porRecibir, existencias, hoy, enCamino] = await Promise.all([
     getNuevosDelCatalogo(ubicacionId),
     tolerarLectura("la cobertura de fotos", getCoberturaDeFotos).then((r) => r ?? null),
     getPorCompletar(),
     ve("recibir") ? getPorRecibir(ubicacionId) : undefined,
-    ve("existencias") ? getExistenciasDeAlmacen(ubicacionId, ubicaciones) : undefined,
+    ve("existencias") ? getExistenciasDeAlmacen(ubicacionId) : undefined,
     ve("movimientos") ? getEntradasYSalidasDeHoy(ubicacionId) : undefined,
     ve("traslados") ? getEnCamino(ubicacionId) : undefined,
   ]);

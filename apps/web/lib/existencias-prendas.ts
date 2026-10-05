@@ -1,13 +1,14 @@
 // Existencias por prenda (ADR-0237, spike docs/maquetas/existencias-conectada-2026-09/): la tabla de Existencias
 // agrupa sus filas (una por talla) en PRENDAS — un modelo en un color, la misma «percha» de «Por colgar»
 // (`clavePercha`) — y cada prenda muestra su curva de tallas en una línea. Lógica pura: la usan la lista, el detalle de
-// la prenda y la barra de «varias a la vez»; nada aquí decide qué hay que reponer (eso es `calcularAccionHoy`, ADR-0231).
+// la prenda y la barra de «varias a la vez»; nada aquí decide qué hay que reponer (eso es el motor del piso, `lib/piso-plan.ts`,
+// ADR-0328 act. 7: cada talla trae su decisión en `planPiso`).
 
-import { clavePercha, porColgar } from "./inventario-reglas";
+import { clavePercha } from "./inventario-reglas";
 import { compararTallas } from "./tallas";
 import type { FilaExistencias } from "./inventario-v2";
 import { guionDeLaPistola } from "./escaner-guion";
-import { hoyDeTalla, type TipoHoy } from "./existencias-hoy";
+import { estadoHoyDeTalla, hoyDeTalla, type EstadoHoy } from "./existencias-hoy";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
 
 /** Lo mínimo de una fila de Existencias que usa esta regla (las pruebas no arman una fila entera). */
@@ -30,7 +31,7 @@ export type FilaPrenda = Pick<
   | "apartado"
   | "danado"
   | "enTransito"
-  | "accionHoy"
+  | "planPiso"
   | "marca"
 > &
   // La categoría es opcional aquí (`FilaStock.categoria` es obligatoria, pero las pruebas arman filas mínimas): la miniatura dibuja la percha sin ella.
@@ -38,20 +39,25 @@ export type FilaPrenda = Pick<
 
 /** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
  *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma
- *  tarjeta. Lo único que agrega es «sin_stock»: no hay nada libre en la sede (ni colgado ni guardado). */
-export type EstadoTalla = "por_colgar" | "reponer" | "sin_stock" | "normal";
+ *  tarjeta. Lo único que agrega es «sin_stock»: no hay nada libre en la sede (ni colgado ni guardado). «sin_atras» se llamó
+ *  «reponer» mientras existió «Por reponer», que se fundió en «Por colgar» (se repone cuando se acaba, basta 1 por color). */
+export type EstadoTalla = "por_colgar" | "sin_atras" | "sin_stock" | "normal";
 
 export function estadoTalla(f: FilaPrenda): EstadoTalla {
   if (f.disponible <= 0) return "sin_stock";
   const hoy = hoyDeTalla(f);
   if (hoy === "por_colgar") return "por_colgar";
-  if (hoy === "por_reponer" || hoy === "sin_stock_atras") return "reponer";
+  if (hoy === "sin_stock_atras") return "sin_atras";
   return "normal";
 }
 
-/** ¿Esta talla se puede bajar al piso hoy? Pide reponer (la regla única) y hay algo libre atrás: lo apartado no se mueve. */
+/** ¿Esta talla SE PUEDE bajar al piso? Es un hecho físico, no una recomendación: la sede separa piso y almacén y en el almacén hay
+ *  algo libre (lo apartado no se mueve). Qué CONVIENE bajar primero lo dice el motor del piso (`planPiso`), nunca si se puede: con
+ *  «Mantener» —lo normal en un piso cuadrado—, con el piso en pausa o con el motor caído, «Reponer prenda» y «Bajar al piso» siguen
+ *  abiertos (ADR-0306: bajar es una función de Existencias). Atarlo a la recomendación apagaba los botones diciendo que el almacén
+ *  estaba vacío cuando no lo estaba. */
 export function sePuedeBajar(f: FilaPrenda): boolean {
-  return f.accionHoy?.tipo === "reponer_a_piso" && (f.almacenDisponible ?? 0) > 0;
+  return f.pisoDisponible !== null && f.almacenDisponible !== null && f.almacenDisponible > 0;
 }
 
 export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
@@ -75,9 +81,9 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   apartado: number;
   danado: number;
   enTransito: number;
-  /** Cuántas tallas se pueden bajar al piso hoy (`sePuedeBajar`). */
+  /** Cuántas tallas se PUEDEN bajar al piso (`sePuedeBajar`: algo libre atrás), lo pida el motor o no. */
   tallasParaBajar: number;
-  /** Cuántas tallas no tienen ni una para vender en el piso y sí atrás (`porColgar`). */
+  /** Cuántas tallas están «Por colgar» (`hoyDeTalla`). */
   tallasPorColgar: number;
 };
 
@@ -118,7 +124,7 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       danado: tallas.reduce((acc, f) => acc + (f.danado ?? 0), 0),
       enTransito: tallas.reduce((acc, f) => acc + f.enTransito, 0),
       tallasParaBajar: tallas.filter(sePuedeBajar).length,
-      tallasPorColgar: tallas.filter((f) => porColgar(f)).length,
+      tallasPorColgar: tallas.filter((f) => hoyDeTalla(f) === "por_colgar").length,
     };
   });
 }
@@ -137,10 +143,10 @@ export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: num
     .join(",");
 }
 
-/** Lo que va a «Bajar al piso» desde lo marcado: solo las tallas que se pueden bajar. El 1 es solo la forma del enlace
- *  (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por escanear», en 0, y cada lectura suma una
- *  (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer (ADR-0231): lo que se baja es lo que
- *  la vendedora escanea al colgar. */
+/** Lo que va a «Bajar al piso» desde lo marcado: las tallas que se pueden bajar (`sePuedeBajar`), las pida el motor o no —quien
+ *  las marcó decide—. El 1 es solo la forma del enlace (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por
+ *  escanear», en 0, y cada lectura suma una (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer
+ *  (ADR-0231): lo que se baja es lo que la asesora escanea al colgar. */
 export function lineasParaBajar(filas: readonly FilaPrenda[]): { varianteId: string; cantidad: number }[] {
   return filas.filter(sePuedeBajar).map((f) => ({ varianteId: f.varianteId, cantidad: 1 }));
 }
@@ -175,11 +181,12 @@ export function urlEtiquetas(filas: readonly FilaPrenda[]): string | null {
   return `/etiquetas-de-precio?variantes=${filas.map((f) => f.varianteId).join(",")}`;
 }
 
-/** Con qué talla se abre el detalle desde «Reponer N tallas» (tarea #7): una que SE PUEDA bajar —primero una por colgar—,
- *  para que el detalle muestre «Reponer al piso». Antes podía abrir una talla que pedía reponer sin nada en el almacén, y
- *  el botón que llevó hasta ahí no llevaba a la acción. */
+/** Con qué talla se abre «Reponer prenda» (tarea #7): una que SE PUEDA bajar, y entre ellas la que el motor pide —por colgar—.
+ *  `null` solo si ninguna tiene algo libre atrás: el botón que dice «No hay nada libre en el almacén» dice la verdad. Antes podía
+ *  abrir una talla que pedía reponer sin nada en el almacén, y el botón no llevaba a la acción. */
 export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F | null {
-  return tallas.find((f) => estadoTalla(f) === "por_colgar" && sePuedeBajar(f)) ?? tallas.find(sePuedeBajar) ?? null;
+  const bajables = tallas.filter(sePuedeBajar);
+  return bajables.find((f) => hoyDeTalla(f) === "por_colgar") ?? bajables[0] ?? null;
 }
 
 /** Normaliza un código leído (pistola, cámara o tipeo) para compararlo: sin espacios, sin mayúsculas y con el guion que la
@@ -202,34 +209,37 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
 
 /** «Qué hacer» de una prenda (un color de un modelo): SOLO el diagnóstico, nunca un botón —la acción se hace en el cajón—. Es el
  *  caso de «Hoy» (`lib/existencias-hoy.ts`) más urgente entre sus tallas y cuántas tallas están en él, con las MISMAS palabras
- *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (la clienta no la ve y se arregla hoy), luego «Por reponer» y
- *  «Sin stock atrás» (no se arregla en la tienda); si ninguna pide nada, «Mantener». Lo usan la tarjeta, la lista «Por prenda»
- *  y el cajón: antes decían «sin stock en piso», «Faltan tallas en piso» y «Piso al día» para lo mismo. */
-export type QueHacerPrenda = { tipo: TipoHoy; n: number };
+ *  del filtro «Hoy» (Felipe, 2026-10-03): «Por colgar» primero (el cliente no la ve y se arregla hoy), luego «Sin stock atrás»
+ *  (no se arregla en la tienda), luego «En pausa» (espera el cuadre del piso); si ninguna pide nada,
+ *  «Mantener». Lo usan la tarjeta, la lista «Por prenda» y el cajón: antes decían «sin stock en piso», «Faltan tallas en piso» y
+ *  «Piso al día» para lo mismo. `null` si de NINGUNA talla se sabe nada (el motor no respondió, o la sede no separa piso y
+ *  almacén): un «Mantener» ahí afirmaría que el piso está al día sin saberlo. */
+export type QueHacerPrenda = { tipo: EstadoHoy; n: number };
 
-export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda {
-  for (const tipo of ["por_colgar", "por_reponer", "sin_stock_atras"] as const) {
-    const n = tallas.filter((f) => hoyDeTalla(f) === tipo).length;
+export function queHacerPrenda(tallas: readonly FilaPrenda[]): QueHacerPrenda | null {
+  const estados = tallas.map(estadoHoyDeTalla);
+  for (const tipo of ["por_colgar", "sin_stock_atras", "en_pausa"] as const) {
+    const n = estados.filter((e) => e === tipo).length;
     if (n > 0) return { tipo, n };
   }
-  return { tipo: "mantener", n: 0 };
+  return estados.includes("mantener") ? { tipo: "mantener", n: 0 } : null;
 }
 
-/** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo
- *  atrás), 1 = pide reponer y se puede bajar, 2 = nada que hacer hoy. */
-export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasParaBajar">): 0 | 1 | 2 {
-  if (p.tallasPorColgar > 0) return 0;
-  if (p.tallasParaBajar > 0) return 1;
-  return 2;
+/** La posición de cada talla en la lista del día del motor (`PlanDelPiso.listaDelDia`). */
+function posiciones(listaDelDia: readonly string[]): Map<string, number> {
+  return new Map(listaDelDia.map((id, i) => [id, i]));
 }
 
-/** La lista SIN búsqueda escrita, por urgencia (análisis de Existencias, tarea #5): primero lo que falta en el piso, y
- *  dentro de cada grupo, la que más tallas tiene por colgar. Es estable: a igual urgencia, se respeta el orden de
- *  llegada (modelo y color). Con texto escrito NO se usa: manda la relevancia de la búsqueda. */
-export function ordenarPorUrgencia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[]): PrendaAgrupada<F>[] {
+/** La lista SIN búsqueda escrita (análisis de Existencias, tarea #5): primero las prendas de la lista del día, en su orden —el
+ *  mismo del Inicio y de «Para hoy» (`porColgarDeLaSede` ordena con esta misma función): lo vendido ayer primero (ADR-0329
+ *  act. 1)—; después el resto, en el orden en que llegaron (modelo y color). Estable. Con texto escrito NO se usa: manda la
+ *  relevancia de la búsqueda. */
+export function ordenarPorListaDelDia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[], listaDelDia: readonly string[]): PrendaAgrupada<F>[] {
+  const pos = posiciones(listaDelDia);
+  const rango = (p: PrendaAgrupada<F>) => p.tallas.reduce((min, f) => Math.min(min, pos.get(f.varianteId) ?? Infinity), Infinity);
   return prendas
-    .map((p, i) => ({ p, i }))
-    .sort((a, b) => urgenciaDePrenda(a.p) - urgenciaDePrenda(b.p) || b.p.tallasPorColgar - a.p.tallasPorColgar || a.i - b.i)
+    .map((p, i) => ({ p, i, r: rango(p) }))
+    .sort((a, b) => (a.r === b.r ? a.i - b.i : a.r - b.r))
     .map(({ p }) => p);
 }
 

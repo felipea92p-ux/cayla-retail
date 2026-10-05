@@ -1,6 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  accionDelEnterBajada,
+  buscarPorNombre,
+  leerPrenda,
+  MAX_SUGERENCIAS_POR_NOMBRE,
+  sonidoDeLecturaBajada,
+  textoDeExistencia,
   lineasIniciales,
   porEscanear,
   unirConIniciales,
@@ -73,6 +79,7 @@ function prenda(parcial: Partial<PrendaBajable> = {}): PrendaBajable {
     piso: 2,
     almacen: 5,
     almacenDisponible: 5,
+    danado: 0,
     ...parcial,
   };
 }
@@ -106,13 +113,21 @@ describe("aPrendasBajables: qué prendas de la tienda puede escanear", () => {
     expect(aPrendasBajables([])).toEqual([]);
   });
 
-  it("deja fuera lo que está en 0 en el piso y en el almacén, y conserva lo que ya está todo en el piso", () => {
+  // ADR-0328 («La tengo en la mano»): una prenda en 0 en el piso y en el almacén es justo la que una asesora puede tener en la
+  // mano sin que el sistema lo sepa. Antes se descartaba y su etiqueta respondía «no la encuentro»: un callejón.
+  it("conserva TODO lo que la tienda conoce: también lo que está en 0 en el piso y en el almacén, y lo que ya está todo en el piso", () => {
     const r = aPrendasBajables([
-      fila({ varianteId: id(1), piso: 0, almacen: 0, almacenDisponible: 0 }),
-      fila({ varianteId: id(2), piso: 4, almacen: 0, almacenDisponible: 0 }),
-      fila({ varianteId: id(3), piso: 0, almacen: 2, almacenDisponible: 2 }),
+      fila({ varianteId: id(1), referencia: "A", piso: 0, almacen: 0, almacenDisponible: 0 }),
+      fila({ varianteId: id(2), referencia: "B", piso: 4, almacen: 0, almacenDisponible: 0 }),
+      fila({ varianteId: id(3), referencia: "C", piso: 0, almacen: 2, almacenDisponible: 2 }),
     ]);
-    expect(r.map((p) => p.varianteId)).toEqual([id(2), id(3)]);
+    expect(r.map((p) => p.varianteId)).toEqual([id(1), id(2), id(3)]);
+  });
+
+  it("las dañadas en cuarentena viajan como `danado` (0 si la fila no las trae o vienen nulas)", () => {
+    expect(aPrendasBajables([fila({ danado: 2 })])[0].danado).toBe(2);
+    expect(aPrendasBajables([fila({ danado: null })])[0].danado).toBe(0);
+    expect(aPrendasBajables([fila()])[0].danado).toBe(0);
   });
 
   it("nunca ofrece la «Prenda sin registrar» (la base tampoco la baja)", () => {
@@ -176,6 +191,7 @@ describe("aPrendasBajables: qué prendas de la tienda puede escanear", () => {
         piso: 2,
         almacen: 5,
         almacenDisponible: 4,
+        danado: 0,
       },
     ]);
   });
@@ -234,6 +250,79 @@ describe("leerCodigo: cada disparo de la pistola", () => {
   it("cuenta lo que ya está en la lista: la siguiente lectura dice cuántas quedarán", () => {
     const lineas: LineaBajada[] = [{ varianteId: BLUSA.varianteId, cantidad: 2 }];
     expect(leerCodigo("7750001000017", PRENDAS, lineas)).toEqual({ tipo: "suma", prenda: BLUSA, cantidadAhora: 3 });
+  });
+
+  it("leerPrenda (la elegida por nombre) responde EXACTAMENTE lo mismo que la lectura de su código", () => {
+    const lineas: LineaBajada[] = [{ varianteId: CAMISON.varianteId, cantidad: 3 }, { varianteId: BLUSA.varianteId, cantidad: 1 }];
+    for (const p of PRENDAS) expect(leerPrenda(p, lineas)).toEqual(leerCodigo(p.sku, PRENDAS, lineas));
+  });
+});
+
+describe("sonidoDeLecturaBajada: el oído dice qué pasó (se mira el rack, no la pantalla)", () => {
+  it("la primera de una prenda suena «nueva», la siguiente «suma»", () => {
+    expect(sonidoDeLecturaBajada({ tipo: "suma", prenda: BLUSA, cantidadAhora: 1 })).toBe("nueva");
+    expect(sonidoDeLecturaBajada({ tipo: "suma", prenda: BLUSA, cantidadAhora: 4 })).toBe("suma");
+  });
+
+  it("todo lo que NO sumó suena grave y largo, y un Enter vacío no suena", () => {
+    expect(sonidoDeLecturaBajada({ tipo: "desconocido", codigo: "X" })).toBe("desconocida");
+    expect(sonidoDeLecturaBajada({ tipo: "sin_almacen", prenda: AGOTADA })).toBe("desconocida");
+    expect(sonidoDeLecturaBajada({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 3 })).toBe("desconocida");
+    expect(sonidoDeLecturaBajada({ tipo: "tope", prenda: CAMISON, disponible: 3 })).toBe("desconocida");
+    expect(sonidoDeLecturaBajada({ tipo: "vacio" })).toBeNull();
+  });
+});
+
+describe("buscarPorNombre: la etiqueta no se lee y ella escribe el modelo, la talla o el color", () => {
+  it("todas las palabras, en cualquier orden, sin tildes ni mayúsculas", () => {
+    expect(buscarPorNombre("blusa blanco m", PRENDAS)).toEqual([BLUSA]);
+    expect(buscarPorNombre("M BLUSA", PRENDAS)).toEqual([BLUSA]);
+    expect(buscarPorNombre("camison", PRENDAS)).toEqual([CAMISON]);
+    expect(buscarPorNombre("CAMISÓN azul", PRENDAS)).toEqual([CAMISON]);
+  });
+
+  it("la talla se busca entera: «m» es la M (y lo que empiece con m), no cualquier palabra con una m adentro", () => {
+    expect(buscarPorNombre("vestido m", PRENDAS)).toEqual([APARTADA]);
+  });
+
+  it("con menos de 2 letras no busca (coincidiría casi todo)", () => {
+    expect(buscarPorNombre("b", PRENDAS)).toEqual([]);
+    expect(buscarPorNombre("  ", PRENDAS)).toEqual([]);
+  });
+
+  it("primero lo que se puede bajar (algo libre en el almacén), después lo que está en 0 («La tengo en la mano»)", () => {
+    const sinAlmacen = prenda({ varianteId: id(11), sku: "BLU-LIN-AZU-S", referencia: "Blusa lino", talla: "S", color: "Azul", codigosBarras: [], piso: 0, almacen: 0, almacenDisponible: 0 });
+    const conAlmacen = prenda({ varianteId: id(12), sku: "BLU-LIN-AZU-L", referencia: "Blusa lino", talla: "L", color: "Azul", codigosBarras: [], piso: 0, almacen: 2, almacenDisponible: 2 });
+    expect(buscarPorNombre("blusa azul", [sinAlmacen, conAlmacen]).map((p) => p.varianteId)).toEqual([id(12), id(11)]);
+  });
+
+  it("muestra como mucho 6", () => {
+    const muchas = Array.from({ length: 10 }, (_, i) => prenda({ varianteId: id(100 + i), sku: `POL-${i}`, referencia: "Polo básico", talla: String(i) }));
+    expect(buscarPorNombre("polo", muchas)).toHaveLength(MAX_SUGERENCIAS_POR_NOMBRE);
+    expect(MAX_SUGERENCIAS_POR_NOMBRE).toBe(6);
+  });
+});
+
+describe("textoDeExistencia: lo que cuenta el sistema, en la lista de «elígela por nombre»", () => {
+  it("con algo libre en el almacén, cuántas; en 0, lo que hay en el piso; sin nada, que el sistema la tiene en 0", () => {
+    expect(textoDeExistencia(BLUSA)).toBe("Almacén 5");
+    expect(textoDeExistencia(SOLO_PISO)).toBe("Almacén 0 · piso 4");
+    expect(textoDeExistencia(AGOTADA)).toBe("En 0 en el sistema");
+  });
+});
+
+describe("accionDelEnterBajada: el Enter con un código suma; con un nombre, muestra la lista para que ella toque", () => {
+  it("un código exacto es una lectura, aunque también coincida por nombre", () => {
+    expect(accionDelEnterBajada("BLU-LIN-BLA-M", PRENDAS, [])).toEqual({ tipo: "lectura", lectura: { tipo: "suma", prenda: BLUSA, cantidadAhora: 1 } });
+  });
+
+  it("un nombre que coincide NO se elige solo, aunque haya una sola: ella toca la que es", () => {
+    expect(accionDelEnterBajada("blusa blanco", PRENDAS, [])).toEqual({ tipo: "elegir", opciones: [BLUSA] });
+  });
+
+  it("lo que no es código ni nombre es «no la encuentro»; el campo vacío no hace nada", () => {
+    expect(accionDelEnterBajada(" 999-XYZ ", PRENDAS, [])).toEqual({ tipo: "lectura", lectura: { tipo: "desconocido", codigo: "999-XYZ" } });
+    expect(accionDelEnterBajada("   ", PRENDAS, [])).toBeNull();
   });
 });
 
@@ -595,41 +684,48 @@ describe("respuestaResuelveLaMarca: cuándo un reenvío deja de estar en duda", 
 });
 
 describe("textoDeLectura: el banner bajo el campo", () => {
+  // Ya no pide teclear «el SKU», que nadie recuerda (docs/pantallas/inventario-bajar.md, #2): manda a elegirla por nombre.
   it("código desconocido", () => {
     expect(textoDeLectura({ tipo: "desconocido", codigo: "XYZ-999" }, SEDE)).toBe(
-      "No encuentro «XYZ-999» entre las prendas que hay en Tienda TRU según el sistema. Escríbelo a mano (es el SKU) o revisa que la prenda esté recibida en Recibir mercadería."
+      "No encuentro «XYZ-999» entre las prendas de Tienda TRU. Si la etiqueta no se lee, escribe el modelo, la talla o el color y elígela de la lista. Si nunca entró a Tienda TRU: recíbela en Traslados (de otra sede) o en Recibir mercadería (del proveedor), o regístrala en Ajustar stock si nunca se cargó."
     );
+    expect(textoDeLectura({ tipo: "desconocido", codigo: "XYZ-999" }, SEDE)).not.toContain("SKU");
   });
 
   // Ella tiene la prenda en la mano: el texto dice lo que cuenta el sistema y el paso siguiente, nunca «no hace falta
-  // bajarla» (eso la haría devolver al fardo una prenda que el sistema no ve).
+  // bajarla» (eso la haría devolver al fardo una prenda que el sistema no ve) ni «avisa al líder» (un callejón, ADR-0328).
   it("sin almacén, sin nada en el piso", () => {
     expect(textoDeLectura({ tipo: "sin_almacen", prenda: AGOTADA }, SEDE)).toBe(
-      "Falda · M · Rojo: el sistema no tiene unidades en el almacén de Tienda TRU. Si la tienes en la mano, revisa que el fardo esté recibido en Recibir mercadería o avisa al líder."
+      "Falda · M · Rojo: el sistema no tiene unidades en el almacén de Tienda TRU. Si la tienes en la mano, corrígela y cuélgala aquí mismo."
     );
   });
 
   it("sin almacén, con unidades en el piso", () => {
     expect(textoDeLectura({ tipo: "sin_almacen", prenda: SOLO_PISO }, SEDE)).toBe(
-      "Top · S · Negro: el sistema no tiene unidades en el almacén de Tienda TRU (cuenta 4 en el piso). Si la tienes en la mano, revisa que el fardo esté recibido en Recibir mercadería o avisa al líder."
+      "Top · S · Negro: el sistema no tiene unidades en el almacén de Tienda TRU (cuenta 4 en el piso). Si la tienes en la mano, corrígela y cuélgala aquí mismo."
     );
+    expect(textoDeLectura({ tipo: "sin_almacen", prenda: SOLO_PISO }, SEDE)).not.toContain("avisa al líder");
   });
 
-  it("todo apartado, en plural y en singular", () => {
+  // Revisión adversarial: con lo del almacén apartado y OTRA unidad en la mano, el texto no daba salida y la prenda se colgaba
+  // sin registrar. Ahora dice lo mismo que la base (`en_mano_apartada`).
+  it("todo apartado, en plural y en singular, con la salida si la que tiene es otra", () => {
     expect(textoDeLectura({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 3 }, SEDE)).toBe(
-      "Vestido · M · Verde: las 3 unidades del almacén están apartadas para clientes y no se pueden mover."
+      "Vestido · M · Verde: las 3 unidades del almacén están apartadas para clientes y no se pueden mover. Si la que tienes es una de esas, déjala guardada; si es otra, corrígela en Ajustar stock."
     );
     expect(textoDeLectura({ tipo: "todo_apartado", prenda: APARTADA, apartadas: 1 }, SEDE)).toBe(
-      "Vestido · M · Verde: la única unidad del almacén está apartada para un cliente y no se puede mover."
+      "Vestido · M · Verde: la única unidad del almacén está apartada para un cliente y no se puede mover. Si la que tienes es esa, déjala guardada; si es otra, corrígela en Ajustar stock."
     );
   });
 
+  // Otra en la mano con todo el almacén ya en la lista: primero se confirma (si no, la corrección pelearía con la bajada por las
+  // mismas unidades) y la siguiente lectura sale «en 0», con su salida.
   it("tope, en plural y en singular", () => {
     expect(textoDeLectura({ tipo: "tope", prenda: CAMISON, disponible: 3 }, SEDE)).toBe(
-      "Camisón · L · Azul: en el almacén hay 3 y ya las tienes todas en la lista. No se puede bajar más."
+      "Camisón · L · Azul: en el almacén hay 3 y ya las tienes todas en la lista. Si tienes otra en la mano, confirma esta bajada y vuelve a escanearla."
     );
     expect(textoDeLectura({ tipo: "tope", prenda: CAMISON, disponible: 1 }, SEDE)).toBe(
-      "Camisón · L · Azul: en el almacén hay 1 y ya la tienes en la lista. No se puede bajar más."
+      "Camisón · L · Azul: en el almacén hay 1 y ya la tienes en la lista. Si tienes otra en la mano, confirma esta bajada y vuelve a escanearla."
     );
   });
 
