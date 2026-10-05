@@ -604,11 +604,14 @@ const enviarYRecibir = `select retail.enviar_pedido_para_apartar(:'ped', now() +
 select retail.registrar_recepcion_traslado(:'tr', :'v', 1) as _rr \\gset
 select * from retail.confirmar_traslado(:'tr') \\gset
 `;
-exito("otra sede: pedir queda «pedido» y no toca el stock de la otra tienda",
+// ADR-0328 act. 17 (Felipe, 2026-10-04: «allá la apartan»): pedir para un cliente APARTA la prenda en la otra tienda
+// (antes no tocaba su stock y la otra caja la podía vender mientras el pedido esperaba).
+exito("otra sede: pedir queda «pedido» y la aparta en la otra tienda",
   `${preparar(FELIPE)}${conLima}${pedir()}
-select pe.estado, (select sum(cantidad_apartada) from retail.stock where variante_id = :'v' and ubicacion_id = :'lima')
+select pe.estado, (select sum(cantidad_apartada) from retail.stock where variante_id = :'v' and ubicacion_id = :'lima'),
+       (select a.estado from retail.apartados a where a.id = pe.apartado_origen_id)
   from retail.separacion_pedidos pe where pe.id = :'ped';`,
-  (x) => x === "pedido|0");
+  (x) => x === "pedido|1|abierto");
 exito("otra sede: al cerrar el traslado, la prenda queda guardada sola para la clienta en el almacén",
   `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
 select pe.estado, a.estado, a.clienta_nombre, a.sububicacion_id = retail.fn_sububicacion_por_defecto(:'ubic', 'traslado_entrada'),
@@ -634,10 +637,18 @@ exito("otra sede: cancelar lo que ya llegó suelta la reserva",
 select retail.cancelar_pedido_para_apartar(:'ped', 'ya no la quiere') as _c \\gset
 select pe.estado, (select estado from retail.apartados where id = pe.apartado_id) from retail.separacion_pedidos pe where pe.id = :'ped';`,
   (x) => x === "cancelado|liberado");
-error("otra sede: sin el módulo Apartados no se pide",
+// ADR-0328 act. 17: desde Vender («Dónde más hay») pide la asesora que atiende, que no siempre tiene Apartados.
+exito("otra sede: con Vender (sin Apartados) se pide",
   `${preparar(FELIPE)}${conLima}
 set local request.jwt.claim.sub = '${MICAELA}';
-select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene el módulo Apartados");
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222') is not null as pidio \\gset
+select :'pidio';`,
+  (x) => x === "t");
+error("otra sede: sin Vender ni Apartados no se pide",
+  `${preparar(FELIPE)}${conLima}
+delete from retail.rol_modulos where rol_id = '44444444-4444-4444-8444-000000000003';
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene Vender ni Apartados");
 
 // ---------------------------------------------------------------------------
 let ok = 0;

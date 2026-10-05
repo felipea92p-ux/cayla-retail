@@ -919,6 +919,15 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:pedir-a-otra-sede
 
+      # Pedidos que no se pierden (ADR-0328 act. 17): pedir para un cliente (también desde Vender) lo APARTA en la otra sede
+      # (almacén primero) y el token no duplica; lo que allá no alcanza no deja nada a medias; lo colgado no sale en un paso
+      # (subir_pedido_al_almacen, idempotente) y al salir la reserva se suelta; cancelar la suelta; anular el traslado la
+      # vuelve a apartar; avisar al cliente solo tras llegar; fn_pedidos_por_atender (menú y 48 h) de los dos lados; la lista
+      # «Para enviar» sale con el traslado a ESE destino y vuelve si se anula; Eliminar un producto la conoce. ROLLBACK.
+      - name: pruebas:pedidos-que-no-se-pierden
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pedidos-que-no-se-pierden
+
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y
       # el borde del día en Lima. Compara contra una línea base, no contra valores absolutos. Cada caso termina en ROLLBACK.

@@ -14,7 +14,6 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { hoyLima } from "@/lib/apartados-reglas";
 import {
-  accionesDePedido,
   estadoVisiblePedido,
   etiquetaLinea,
   faltaEnOrigen,
@@ -27,27 +26,67 @@ import {
   type OpcionLlegada,
   type PedidoEntreSedes,
 } from "@/lib/pedidos-entre-sedes-reglas";
+import { accionesDe, avisoAlCliente, estadoVisibleConCliente, paraQuien, paraSubirDe, type ClientePedido } from "@/lib/pedidos-con-cliente-reglas";
+import { esperaVisible } from "@/lib/pedidos-por-atender-reglas";
+import { AvisarAlClienteModal, SigueEnPieModal, SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
+import { SeccionParaEnviar } from "@/components/ParaEnviar";
+import type { GrupoParaEnviar } from "@/lib/para-enviar-reglas";
 
 // «Pedir a otra sede» en Traslados (ADR-0242 D-7). Lugar provisional: el definitivo es la bandeja «Hoy te toca» de la
 // tanda 2, que todavía no existe. Dos listas en una tarjeta:
 //   · «Te piden»: lo que otra tienda me pidió y todavía no sale → «Enviar» (arma UN traslado con todo) o «No la tengo».
 //   · «Pediste»: lo que yo pedí → su estado, «Ya no la necesito» mientras no salga, o el enlace al traslado.
 // La página solo la monta si hay algo que mostrar (`hayPedidosQueMostrar`): nunca una tarjeta vacía.
+// ADR-0328 act. 17: la misma lista lleva los pedidos PARA UN CLIENTE (una prenda, apartada en la sede que la envía): si
+// está colgada, primero «Subir al almacén» (Felipe: dos pasos); al llegar, o si no va a llegar, «Avisar al cliente». Cada fila que espera dice
+// hace cuánto, y desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes). Decisión del 2026-10-04: del
+// lado que tiene la prenda, el pedido es «para un cliente» (no conoce su nombre); del lado que pidió, a los 7 días se
+// pregunta «¿sigue en pie?» (la reserva allá no vence sola). Y es UNA sola lista con «Para enviar» (lo subido al almacén
+// para mandarlo a otra sede), entre «Te piden» y «Pediste»: todo lo que esta sede tiene que mandar, junto.
+
+type ConCliente = PedidoEntreSedes & { cliente: ClientePedido };
+const conCliente = (p: PedidoEntreSedes | null): p is ConCliente => !!p?.cliente;
 
 type Ubicacion = { ubicacionId: string; etiqueta: string };
 
-export function PedidosEntreSedes({ pedidos, ubicacion }: { pedidos: PedidoEntreSedes[]; ubicacion: Ubicacion }) {
+export function PedidosEntreSedes({
+  pedidos,
+  paraEnviar,
+  ubicacion,
+  ahoraIso,
+}: {
+  pedidos: PedidoEntreSedes[];
+  paraEnviar: GrupoParaEnviar[];
+  ubicacion: Ubicacion;
+  ahoraIso: string;
+}) {
   const { tePiden, pediste } = separarPedidos(pedidos);
   const [enviar, setEnviar] = useState<PedidoEntreSedes | null>(null);
   const [cancelar, setCancelar] = useState<PedidoEntreSedes | null>(null);
+  const [subir, setSubir] = useState<PedidoEntreSedes | null>(null);
+  const [avisarA, setAvisarA] = useState<PedidoEntreSedes | null>(null);
+  const [preguntar, setPreguntar] = useState<PedidoEntreSedes | null>(null);
+  // Qué se le avisa al cliente (decisión del 2026-10-04): que llegó, o que no va a llegar.
+  const avisoA = avisarA ? avisoAlCliente(avisarA) : null;
+  const fila = (p: PedidoEntreSedes) => (
+    <PedidoFila
+      pedido={p}
+      ahoraIso={ahoraIso}
+      onEnviar={() => setEnviar(p)}
+      onCancelar={() => setCancelar(p)}
+      onSubir={() => setSubir(p)}
+      onAvisar={() => setAvisarA(p)}
+      onPreguntar={() => setPreguntar(p)}
+    />
+  );
 
   return (
     <section className="card-cayla overflow-hidden" aria-labelledby="pedidos-entre-sedes">
       <header className="px-4 pt-4 sm:px-5">
         <h2 id="pedidos-entre-sedes" className="font-display text-[22px] leading-tight text-tinta">
-          Pedidos entre sedes
+          Pedidos y envíos entre sedes
         </h2>
-        <p className="mt-0.5 text-sm text-taupe">Reposición entre tiendas: lo que te piden para enviar y lo que tú pediste.</p>
+        <p className="mt-0.5 text-sm text-taupe">Lo que otras tiendas te piden, lo que subiste para enviar y lo que tú pediste, para reponer o para un cliente que espera.</p>
       </header>
 
       {tePiden.length > 0 && (
@@ -56,20 +95,22 @@ export function PedidosEntreSedes({ pedidos, ubicacion }: { pedidos: PedidoEntre
           <ul className="mt-1 divide-y divide-sand border-t border-sand">
             {tePiden.map((p) => (
               <li key={p.grupoId} className="px-4 py-3 sm:px-5">
-                <PedidoFila pedido={p} onEnviar={() => setEnviar(p)} onCancelar={() => setCancelar(p)} />
+                {fila(p)}
               </li>
             ))}
           </ul>
         </div>
       )}
 
+      {paraEnviar.length > 0 && <SeccionParaEnviar grupos={paraEnviar} ubicacion={ubicacion} ahoraIso={ahoraIso} conBorde={tePiden.length > 0} />}
+
       {pediste.length > 0 && (
-        <div className={tePiden.length > 0 ? "border-t border-sand pt-3" : "mt-3"}>
+        <div className={tePiden.length > 0 || paraEnviar.length > 0 ? "border-t border-sand pt-3" : "mt-3"}>
           <p className="label-cayla px-4 text-[11px] text-taupe sm:px-5">Pediste · {pediste.length}</p>
           <ul className="mt-1 divide-y divide-sand border-t border-sand">
             {pediste.map((p) => (
               <li key={p.grupoId} className="px-4 py-3 sm:px-5">
-                <PedidoFila pedido={p} onEnviar={() => setEnviar(p)} onCancelar={() => setCancelar(p)} />
+                {fila(p)}
               </li>
             ))}
           </ul>
@@ -78,16 +119,42 @@ export function PedidosEntreSedes({ pedidos, ubicacion }: { pedidos: PedidoEntre
 
       {enviar && <EnviarPedidoEntreSedesModal pedido={enviar} ubicacion={ubicacion} onClose={() => setEnviar(null)} />}
       {cancelar && <CancelarPedidoEntreSedesModal pedido={cancelar} ubicacion={ubicacion} onClose={() => setCancelar(null)} />}
+      {conCliente(subir) && <SubirPedidoAlAlmacenModal pedido={paraSubirDe(subir)} ubicacion={ubicacion} onClose={() => setSubir(null)} />}
+      {conCliente(avisarA) && avisoA && <AvisarAlClienteModal pedido={avisarA} aviso={avisoA} sede={ubicacion} onClose={() => setAvisarA(null)} />}
+      {conCliente(preguntar) && <SigueEnPieModal pedido={preguntar} sede={ubicacion} ahoraIso={ahoraIso} onClose={() => setPreguntar(null)} />}
     </section>
   );
 }
 
-function PedidoFila({ pedido, onEnviar, onCancelar }: { pedido: PedidoEntreSedes; onEnviar: () => void; onCancelar: () => void }) {
-  const acciones = accionesDePedido(pedido);
-  const estado = estadoVisiblePedido(pedido);
+function PedidoFila({
+  pedido,
+  ahoraIso,
+  onEnviar,
+  onCancelar,
+  onSubir,
+  onAvisar,
+  onPreguntar,
+}: {
+  pedido: PedidoEntreSedes;
+  ahoraIso: string;
+  onEnviar: () => void;
+  onCancelar: () => void;
+  onSubir: () => void;
+  onAvisar: () => void;
+  onPreguntar: () => void;
+}) {
+  const acciones = accionesDe(pedido, ahoraIso);
+  const estado = conCliente(pedido) ? estadoVisibleConCliente(pedido, ahoraIso) : estadoVisiblePedido(pedido);
   const total = totalPrendas(pedido);
-  const titulo = pedido.direccion === "me_piden" ? `${pedido.otraSede} te pide ${textoPrendas(total)}` : `A ${pedido.otraSede} · ${textoPrendas(total)}`;
+  // Del lado que tiene la prenda, «para un cliente» (no conoce su nombre); del lado que pidió, «para Ana Lozano».
+  const destinatario = conCliente(pedido) ? ` ${paraQuien(pedido)}` : "";
+  const titulo =
+    pedido.direccion === "me_piden"
+      ? `${pedido.otraSede} te pide ${textoPrendas(total)}${destinatario}`
+      : `A ${pedido.otraSede} · ${textoPrendas(total)}${destinatario}`;
   const quien = [pedido.creadoPorNombre, fechaCorta(pedido.creadoEn)].filter(Boolean).join(" · ");
+  // Lo que sigue esperando dice hace cuánto; desde las 48 h, «Sin respuesta» (el mismo plazo que avisa a los líderes).
+  const espera = pedido.estado === "pedido" ? esperaVisible(pedido.creadoEn, ahoraIso) : null;
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -99,6 +166,9 @@ function PedidoFila({ pedido, onEnviar, onCancelar }: { pedido: PedidoEntreSedes
           </Chip>
         </div>
         {quien && <p className="mt-0.5 text-xs text-taupe">Pidió {quien}</p>}
+        {espera && (
+          <p className={`mt-0.5 text-xs ${espera.tarde ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>{espera.texto}</p>
+        )}
         <ul className="mt-2 space-y-1 text-sm text-tinta">
           {pedido.lineas.map((l) => (
             <li key={l.pedidoId || l.varianteId} className="flex flex-wrap items-baseline gap-x-2">
@@ -119,9 +189,25 @@ function PedidoFila({ pedido, onEnviar, onCancelar }: { pedido: PedidoEntreSedes
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+        {acciones.subirAlAlmacen && (
+          // Con «Enviar» al lado (la reserva se liberó a mano y no se sabe dónde quedó), subir es la segunda opción.
+          <button type="button" onClick={onSubir} className={`btn-cayla ${acciones.enviar ? "btn-secundario" : "btn-primario"}`}>
+            Subir al almacén
+          </button>
+        )}
         {acciones.enviar && (
           <button type="button" onClick={onEnviar} className="btn-cayla btn-primario">
             Enviar
+          </button>
+        )}
+        {acciones.sigueEnPie && (
+          <button type="button" onClick={onPreguntar} className="btn-cayla btn-primario">
+            ¿Sigue en pie?
+          </button>
+        )}
+        {acciones.avisar && (
+          <button type="button" onClick={onAvisar} className={`btn-cayla ${pedido.cliente?.avisadoEn ? "btn-sutil" : "btn-primario"}`}>
+            {pedido.cliente?.avisadoEn ? "Avisar otra vez" : avisoAlCliente(pedido) === "no_llego" ? "Avisar que no llegó" : "Avisar al cliente"}
           </button>
         )}
         {acciones.noLaTengo && (
@@ -131,7 +217,7 @@ function PedidoFila({ pedido, onEnviar, onCancelar }: { pedido: PedidoEntreSedes
         )}
         {acciones.yaNoLaNecesito && (
           <button type="button" onClick={onCancelar} className="btn-cayla btn-sutil">
-            Ya no la necesito
+            {pedido.cliente ? "Ya no la quiere" : "Ya no la necesito"}
           </button>
         )}
         {acciones.verTraslado && pedido.trasladoId && (
@@ -165,12 +251,12 @@ function EnviarPedidoEntreSedesModal({ pedido, ubicacion, onClose }: { pedido: P
   async function enviar(cerrar: () => void) {
     if (!responsable.listo) return;
     setEnviando(true);
+    // Un pedido para un cliente sale con su función (suelta la reserva de aquí y viaja con su nombre); la reposición, por grupo.
+    const supabase = createClient();
     const { error } = await firmar(
-      createClient().rpc("enviar_pedido_a_otra_sede", {
-        p_grupo_id: pedido.grupoId,
-        p_fecha_estimada_llegada: llegadaIso(llegada.fecha),
-        p_token: token.current,
-      }),
+      pedido.cliente
+        ? supabase.rpc("enviar_pedido_para_apartar", { p_pedido_id: pedido.grupoId, p_fecha_estimada_llegada: llegadaIso(llegada.fecha), p_token: token.current })
+        : supabase.rpc("enviar_pedido_a_otra_sede", { p_grupo_id: pedido.grupoId, p_fecha_estimada_llegada: llegadaIso(llegada.fecha), p_token: token.current }),
       responsable.firma(),
     );
     setEnviando(false);
@@ -209,7 +295,9 @@ function EnviarPedidoEntreSedesModal({ pedido, ubicacion, onClose }: { pedido: P
             </div>
           </div>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">
-            Sale de tu stock como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.
+            {pedido.cliente
+              ? `Está apartada para el pedido de ${pedido.otraSede}: sale de tu almacén como un traslado más y, al llegar, ${pedido.otraSede} la tiene guardada para su cliente.`
+              : `Sale de tu stock como un traslado más; Traslados lo muestra en camino hasta que ${pedido.otraSede} lo reciba.`}
           </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
@@ -231,14 +319,18 @@ function CancelarPedidoEntreSedesModal({ pedido, ubicacion, onClose }: { pedido:
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const responsable = useResponsable(ubicacion);
-  const motivo = motivoCancelacion(pedido.direccion);
+  // Para un cliente, quien pidió cancela porque el cliente ya no la quiere; «No la tengo» suelta también la reserva de allá.
+  const motivo = pedido.cliente && pedido.direccion === "pedi" ? "El cliente ya no la quiere" : motivoCancelacion(pedido.direccion);
   const mePiden = pedido.direccion === "me_piden";
 
   async function cancelar(cerrar: () => void) {
     if (!responsable.listo) return;
     setEnviando(true);
+    const supabase = createClient();
     const { error } = await firmar(
-      createClient().rpc("cancelar_pedido_a_otra_sede", { p_grupo_id: pedido.grupoId, p_motivo: motivo }),
+      pedido.cliente
+        ? supabase.rpc("cancelar_pedido_para_apartar", { p_pedido_id: pedido.grupoId, p_motivo: motivo })
+        : supabase.rpc("cancelar_pedido_a_otra_sede", { p_grupo_id: pedido.grupoId, p_motivo: motivo }),
       responsable.firma(),
     );
     setEnviando(false);

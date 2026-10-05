@@ -113,8 +113,8 @@ type Props = {
   /** Solo se usa si `persona.puedeCambiarUbicacion` — un integrante nunca ve
    *  el selector, así que no hace falta traerle la lista completa. */
   ubicaciones: { id: string; nombre: string }[];
-  /** Traslados que esperan una acción de quien mira (`getTrasladosPorAtender`). `null` = no se pudo
-   *  calcular: el menú sale igual, sin número. */
+  /** Traslados que esperan una acción de quien mira y pedidos de otras sedes que esperan a esta («Te piden», ADR-0328
+   *  act. 17): `getNumeroDelMenuTraslados`. `null` = no se pudo calcular: el menú sale igual, sin número. */
   trasladosPorAtender?: number | null;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
