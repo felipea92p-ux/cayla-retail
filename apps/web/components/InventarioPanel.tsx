@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -31,6 +32,8 @@ import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
+import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
+import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { CajonPrendaExistencias } from "@/components/CajonPrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -41,7 +44,7 @@ import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { avisoPausaDelPiso, AYUDA_HOY, estadoHoyDeTalla, hoyDeTalla, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
 import { pidePiso } from "@/lib/piso-plan";
-import { conteosDeFiltros, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { conteosDeFiltros, contarFiltrosActivos, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { textoDeFamilia } from "@/lib/colores-familias";
 import type { ColorDeCatalogo } from "@/lib/existencias-catalogo";
 import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
@@ -443,6 +446,15 @@ export function InventarioPanel({
   const paginaTarjetas = paginar(tarjetasOrdenadas, pagina, FILAS_POR_PAGINA);
   // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar».
   const conteo = conteoDeLista(tarjetasOrdenadas.length, filtradas, elegidos.hoy);
+  // «Colgar primero» (2026-10-05): las tres prendas de TODA la sede que más conviene reponer, en el orden de la lista del día, con lo
+  // que dura lo que hay al ritmo reciente. No depende de los filtros (es la sede entera) y solo se ve cuando no hay nada filtrado ni
+  // escrito —o solo «Por colgar», que es lo mismo que pregunta—: con otro filtro puesto, la persona ya está buscando otra cosa.
+  const colgarPrimeroDeLaSede = useMemo(
+    () => colgarPrimero(ordenarPorListaDelDia(agruparPorPrenda(stock), listaDelDia)),
+    [stock, listaDelDia]
+  );
+  const filtrosPuestos = contarFiltrosActivos(elegidos);
+  const verColgarPrimero = resumen.separaPisoAlmacen && !verDetalle && sinTexto && (filtrosPuestos === 0 || (filtrosPuestos === 1 && elegidos.hoy === "por_colgar"));
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -490,6 +502,7 @@ export function InventarioPanel({
     editaCatalogo,
     tieneCuarentena: sububicaciones.some((s) => s.tipo === "cuarentena"),
   });
+  const router = useRouter();
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
@@ -758,6 +771,7 @@ export function InventarioPanel({
             conteo={conteo}
             detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
             panelInicial={panelFiltros}
+            onEscanear={() => setCamara(true)}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
             orden={
               verDetalle
@@ -898,6 +912,15 @@ export function InventarioPanel({
       ) : !verDetalle ? (
         // La lista de entrada: una tarjeta por prenda. Mismas páginas, mismo «Exportar CSV» y misma leyenda que la tabla.
         <div className="mt-3.5">
+          {verColgarPrimero && (
+            <ColgarPrimero
+              prendas={colgarPrimeroDeLaSede}
+              alReponer={(prenda, origen) => {
+                setAbierta(null);
+                abrirReponer(prenda, origen);
+              }}
+            />
+          )}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}
@@ -906,6 +929,13 @@ export function InventarioPanel({
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
             puedeReportarDanada={permisos.reportarDanada}
+            // «Enviar a otra sede» desde la tarjeta: la misma entrada a Traslados que «Trasladar» de lo marcado (`urlTrasladar`), con las
+            // tallas de todos los colores del modelo que tienen algo libre atrás. Solo para quien ve Traslados.
+            puedeEnviar={veTraslados}
+            onEnviar={(tallas) => {
+              const href = urlTrasladar(tallas);
+              if (href) router.push(href);
+            }}
             onReponer={(prenda, origen) => {
               setAbierta(null);
               abrirReponer(prenda, origen);
