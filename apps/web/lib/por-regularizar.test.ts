@@ -106,10 +106,10 @@ describe("getPorRegularizar — la cola no se corta", () => {
     expect(new Set(filas.map((f) => f.id)).size).toBe(1250);
   });
 
-  it("lo normal cuesta dos consultas: una por la cola y otra por lo resuelto", async () => {
+  it("lo normal cuesta tres consultas: la cola, lo resuelto y lo cerrado sin prenda", async () => {
     base.filas = [...serie(5, (i) => fila("pendiente", 0.5 + i)), ...serie(5, (i) => fila("regularizada", 0.5 + i, { diferencia: -10 }))];
     await getPorRegularizar(null, AHORA);
-    expect(base.consultas).toBe(2);
+    expect(base.consultas).toBe(3);
   });
 });
 
@@ -129,6 +129,15 @@ describe("getPorRegularizar — lo resuelto se corta por fecha, no por cantidad"
     const resueltas = filas.slice(3).map((f) => Date.parse(f.vendidoEn));
     expect(resueltas).toEqual([...resueltas].sort((a, b) => b - a));
     expect(Math.min(...resueltas)).toBeGreaterThanOrEqual(Date.parse("2026-09-01T00:00:00-05:00"));
+  });
+
+  it("una venta CERRADA sin prenda sale aunque sea de hace tres meses: sin ella no habría botón para reabrirla", async () => {
+    base.filas = [fila("cerrada_sin_prenda", 95), fila("regularizada", 95, { diferencia: -5 }), fila("cerrada_sin_prenda", 2)];
+    const filas = await getPorRegularizar(null, AHORA);
+    expect(filas.map((f) => f.estado)).toEqual(["cerrada_sin_prenda", "cerrada_sin_prenda"]);
+    // De la más nueva a la más vieja, como el resto de lo resuelto.
+    const fechas = filas.map((f) => Date.parse(f.vendidoEn));
+    expect(fechas).toEqual([...fechas].sort((a, b) => b - a));
   });
 
   it("una pendiente de hace tres meses sigue saliendo: la cola de trabajo no tiene ventana", async () => {

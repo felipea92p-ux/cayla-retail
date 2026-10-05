@@ -36,6 +36,7 @@ export function MatrizCantidades({
   precios,
   onPrecio,
   destinoEtiqueta,
+  cantidadesCerradas = null,
 }: {
   celdas: CeldaAlta[];
   /** Las tallas elegidas, ya ordenadas. Vacío = el producto no tiene talla (una sola columna). */
@@ -49,8 +50,12 @@ export function MatrizCantidades({
   onPrecio: (clave: string, valor: string) => void;
   /** Dónde entra el stock, en palabras de tienda: «TRU · Real Plaza». */
   destinoEtiqueta: string;
+  /** La carga inicial de la sede ya se cerró (ADR-0328): «Cuántas tienes hoy» no se ofrece —queda apagado, con esta frase al
+   *  pasar el mouse— y la tabla solo sirve para el precio distinto. `null` = abierta, como siempre. */
+  cantidadesCerradas?: string | null;
 }) {
-  const [modo, setModo] = useState<Modo>("cantidades");
+  const [modoElegido, setModo] = useState<Modo>("cantidades");
+  const modo: Modo = cantidadesCerradas ? "precios" : modoElegido;
   const [relleno, setRelleno] = useState("");
 
   const filas: (string | null)[] = colores.length ? colores.map((c) => c.codigo) : [null];
@@ -87,10 +92,12 @@ export function MatrizCantidades({
               key={m}
               type="button"
               aria-pressed={modo === m}
+              disabled={m === "cantidades" && !!cantidadesCerradas}
+              title={m === "cantidades" && cantidadesCerradas ? cantidadesCerradas : undefined}
               onClick={() => setModo(m)}
               className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12.5px] font-medium transition-colors sm:flex-none ${
                 modo === m ? "bg-papel text-tinta ring-1 ring-sand" : "text-tinta/60 hover:text-tinta"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:text-tinta/60`}
             >
               {texto}
             </button>
