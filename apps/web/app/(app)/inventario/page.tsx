@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
-import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Scale, Shirt, ShoppingBag, Truck } from "lucide-react";
+import { Package, Shirt, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
@@ -19,12 +18,11 @@ import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
 import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
-import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
+import { estaAtrasado } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
-import { IconoPercha } from "@/components/ui/IconoPercha";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -157,7 +155,6 @@ export default async function InventarioPage({
   // ve quien ve Existencias —la cuenta Almacén, que escanea con la pistola—, en su sede activa cuando separa piso y almacén (esa
   // pantalla cuadra siempre la sede activa). Confirmar es solo de un líder: allí el botón se apaga y dice quién sí puede, y la base
   // lo vuelve a preguntar (`fn_es_lider()` en cuadrar_piso).
-  const puedeCuadrarPiso = puedeBajarAlPiso;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
@@ -229,57 +226,9 @@ export default async function InventarioPage({
         // cargó, y un reloj vivo encima haría creer que está al minuto.
         sinHora
         detalle={`vista de las ${horaCarga}`}
-        // Rediseño 2026-10-04: UN botón oscuro, el trabajo de todos los días en una tienda (colgar lo guardado); a su lado,
-        // claros, los accesos a las pantallas que trabajan de la mano con esta (ADR-0237). Antes «+ Nuevo traslado» era el
-        // oscuro y competía con cuatro botones más en dos renglones. Cada acceso solo si su rol ve esa pantalla (ADR-0161);
-        // Recibir, Contar y Apartados solo mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
-        // Con las cifras a la derecha, la cabecera pone las acciones bajo la frase. En el celular, una sola fila que se desliza
-        // de lado: la página nunca se corre a los costados.
-        acciones={
-          // El borde derecho se desvanece en el celular: sin eso, la fila cortada no decía que había más accesos a un deslizamiento.
-          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:-my-1 max-sm:-ml-1 max-sm:py-1 max-sm:pl-1 max-sm:pr-10 max-sm:[mask-image:linear-gradient(90deg,#000_calc(100%-2.5rem),transparent)] max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
-            {puedeBajarAlPiso && (
-              <Link href="/inventario/bajar" className="btn-cayla btn-primario shrink-0 gap-2">
-                <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                Bajar al piso
-              </Link>
-            )}
-            <nav aria-label="Pantallas relacionadas" className="flex shrink-0 items-center gap-1">
-              {puedeCuadrarPiso && (
-                <Link href="/inventario/cuadrar" className="btn-cayla btn-sutil btn-chico shrink-0">
-                  <Scale aria-hidden className="h-4 w-4" />
-                  Cuadrar el piso
-                </Link>
-              )}
-              {enSuSede && veModulo(persona, "recibir") && (
-                <Link href="/recibir" className="btn-cayla btn-sutil btn-chico shrink-0">
-                  <PackageOpen aria-hidden className="h-4 w-4" />
-                  Recibir
-                </Link>
-              )}
-              {enSuSede && veModulo(persona, "conteos") && (
-                <Link href="/inventario/conteo" className="btn-cayla btn-sutil btn-chico shrink-0">
-                  <ClipboardCheck aria-hidden className="h-4 w-4" />
-                  Contar
-                </Link>
-              )}
-              {veTraslados && (
-                <Link href={`${RUTA_NUEVO_TRASLADO}?desde=existencias`} className="btn-cayla btn-sutil btn-chico shrink-0">
-                  <ArrowLeftRight aria-hidden className="h-4 w-4" />
-                  Trasladar
-                </Link>
-              )}
-              {enSuSede && vende && veModulo(persona, "apartados") && (
-                <Link href="/vender/apartados" className="btn-cayla btn-sutil btn-chico shrink-0">
-                  <ShoppingBag aria-hidden className="h-4 w-4" />
-                  Apartados
-                  {/* Sin número (tarea #7 del 3-oct): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva
-                      lista separaciones (una por ticket). */}
-                </Link>
-              )}
-            </nav>
-          </div>
-        }
+        // Como la maqueta (Felipe, 2026-10-05: «me da más herramientas, en la maqueta no»): la cabecera no lleva fila de botones. Colgar
+        // se hace en cada tarjeta, «Cuadrar el piso» y lo demás pendiente están en «Pendientes», y Recibir, Contar, Trasladar y
+        // Apartados siguen en el menú lateral. `/inventario/bajar` conserva su ruta, sin botón en esta pantalla.
       >
         <ResumenSede sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />
       </EncabezadoPagina>
