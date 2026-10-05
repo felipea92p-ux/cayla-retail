@@ -14,7 +14,7 @@
  *   · reabrir pide motivo, queda en la historia y reabre el consolidado; volver a cerrar crea la versión 2 sin borrar la 1;
  *   · los chequeos: cajas abiertas, egresos sin clasificar, prendas por regularizar y diario descuadrado BLOQUEAN; gastos
  *     fijos que faltan, bancos sin conciliar, prendas sin costo y ventas «cerradas sin prenda» (ADR-0334: costo desconocido,
- *     ADR-0335) AVISAN y quedan guardados en el cierre;
+ *     ADR-0337) AVISAN y quedan guardados en el cierre;
  *   · `fn_diario` trae lo congelado aunque el diario vivo cambie, y el chequeo de la huella lo delata;
  *   · el líder o quien tiene el módulo «Cierre de mes» (se delega desde el ADR-0253); nadie lee las tablas directo; lo
  *     congelado no se edita ni se borra.
@@ -344,7 +344,7 @@ ${cambiaA(FELIPE)}
 select 'F4 el líder sí', (select jsonb_typeof(retail.fn_cierre_panel('2025-03-01')) = 'object');
 `;
 
-// ---- G · Ventas «cerradas sin prenda» (ADR-0334): el cierre de mes las AVISA y no las bloquea (ADR-0335) ---------------------------
+// ---- G · Ventas «cerradas sin prenda» (ADR-0334): el cierre de mes las AVISA y no las bloquea (ADR-0337) ---------------------------
 // Una venta sin registrar que un líder dio por hecha conserva su línea en «Cargo especial» con costo 0: el ingreso es real, el costo
 // no existe y el margen sale inflado. Mientras estaba PENDIENTE la frenaba `regularizar`; cerrada, no la nombraba nadie.
 const CENTINELA = "22222222-2222-4222-8222-222222222222";

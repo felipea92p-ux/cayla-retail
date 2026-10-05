@@ -262,7 +262,7 @@ export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle
       return { titulo, detalle: c.ok ? "Todas las prendas vendidas tienen costo" : `${plural(n, "prenda vendida", "prendas vendidas")} sin costo cargado: el margen del mes sale inflado` };
     }
     case "cerrada_sin_prenda": {
-      // ADR-0335: un líder dio por hechas estas ventas sin identificar la prenda (ADR-0334). Su línea sigue en «Cargo especial» con
+      // ADR-0337: un líder dio por hechas estas ventas sin identificar la prenda (ADR-0334). Su línea sigue en «Cargo especial» con
       // costo 0: el ingreso cuenta y el costo no existe. No se puede arreglar cargando un costo, por eso avisa y no bloquea.
       const n = numero(d.n);
       if (c.ok) return { titulo, detalle: "Ninguna venta se cerró sin prenda" };

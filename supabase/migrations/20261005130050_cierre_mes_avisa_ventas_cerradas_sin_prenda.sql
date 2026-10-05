@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005130000_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql — CAYLA V2 (ADR-0335, Felipe 2026-10-04)
+-- 20261005130050_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql — CAYLA V2 (ADR-0337, Felipe 2026-10-04)
 -- Finanzas ▸ Cierre de mes: las ventas «cerradas sin prenda» (ADR-0334) aparecen como un AVISO que no bloquea.
 --
 -- EL PROBLEMA PRIMERO. Un líder puede dar por hechas, en bloque, las ventas sin registrar que ya no se pueden identificar
@@ -32,7 +32,7 @@
 --
 -- POR QUÉ SE PARCHA Y NO SE REESCRIBE. La versión VIVA de `fn_cierre_mes_estado` no es la del archivo 20260925180000:
 -- `20260928220000_finanzas_modulos_delegables.sql` le cambió la puerta (`fn_es_lider()` → `fn_puede_cerrar_mes()`) editando su
--- definición viva. Copiarla desde el archivo borraría esa delegación. Se insertan solo los bloques de ADR-0335, cada ancla
+-- definición viva. Copiarla desde el archivo borraría esa delegación. Se insertan solo los bloques de ADR-0337, cada ancla
 -- debe aparecer EXACTAMENTE una vez o se aborta todo (verificado en producción el 2026-10-04, sin escrituras).
 --
 -- INDEPENDIENTE DE ADR-0334. Compara `r.estado = 'cerrada_sin_prenda'` como TEXTO: antes de que se pegue la cola de arranque
@@ -43,6 +43,16 @@
 -- candados exclusivos; CLAUDE.md «Políticas y deadlocks»). Ya lleva `retail.`. Re-ejecutable: cada reemplazo se salta si su
 -- texto nuevo ya está. Ningún texto entre comillas lleva una lectura con destino a variable (CLAUDE.md, «El SQL Editor
 -- agrega líneas por su cuenta»): el texto que se inserta en la función es solo CTE y filas de chequeo.
+--
+-- RENOMBRADA el 2026-10-04 desde `20261005130000_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql`: esa versión la usa
+-- `20261005130000_pedidos_que_no_se_pierden_parte1_tablas.sql` (PR #799) y Supabase toma el prefijo como llave del historial.
+-- Esta migración YA corrió en producción (2026-10-04, pegada en el SQL Editor, verificada por efectos): pegar ahí no registra
+-- versiones, así que el nombre del archivo no está en ningún historial y renombrarlo es seguro. Y el ADR era 0335 y pasó a
+-- 0337 (0335 lo tomó «Activos ya lo teníamos», #802): donde este archivo dice ADR-0337 antes decía ADR-0335.
+-- OJO, a propósito: el comentario «(ADR-0335)» del bloque 1 (el de la CTE `cs`) va DENTRO del texto que se
+-- inserta en la función viva y se dejó igual. Léelo como ADR-0337. Cambiarlo rompería la re-ejecución: el reemplazo
+-- mira primero si su texto nuevo ya está y lo compara byte a byte; con una letra distinta no lo reconocería, volvería a
+-- insertar `cs` y la función quedaría con la CTE duplicada.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -62,7 +72,7 @@ declare
 begin
   select array_agg(p.oid) into v_oids from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = p_nombre;
   if coalesce(cardinality(v_oids), 0) <> 1 then
-    raise exception 'ADR-0335: se esperaba una sola función retail.% y hay %', p_nombre, coalesce(cardinality(v_oids), 0);
+    raise exception 'ADR-0337: se esperaba una sola función retail.% y hay %', p_nombre, coalesce(cardinality(v_oids), 0);
   end if;
   v_def := pg_get_functiondef(v_oids[1]);
   if position(p_nuevo in v_def) > 0 then
@@ -70,7 +80,7 @@ begin
   end if;
   v_veces := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
   if v_veces <> 1 then
-    raise exception 'ADR-0335: retail.% trae % veces el ancla «%» (se esperaba 1): la base no es la que se revisó, no se toca nada',
+    raise exception 'ADR-0337: retail.% trae % veces el ancla «%» (se esperaba 1): la base no es la que se revisó, no se toca nada',
       p_nombre, v_veces, left(p_viejo, 60);
   end if;
   execute replace(v_def, p_viejo, p_nuevo);
@@ -122,15 +132,15 @@ do $v$
 declare v_def text := pg_get_functiondef('retail.fn_cierre_mes_estado(date)'::regprocedure);
 begin
   if position('''cerrada_sin_prenda''' in v_def) = 0 or position('  cs as (' in v_def) = 0 then
-    raise exception 'ADR-0335: fn_cierre_mes_estado no quedó con el chequeo cerrada_sin_prenda';
+    raise exception 'ADR-0337: fn_cierre_mes_estado no quedó con el chequeo cerrada_sin_prenda';
   end if;
   -- El parche de la delegación (ADR-0253) tiene que seguir en pie: no se recreó la función desde el archivo.
   if position('fn_puede_cerrar_mes' in v_def) = 0 then
-    raise exception 'ADR-0335: fn_cierre_mes_estado perdió la puerta fn_puede_cerrar_mes (ADR-0253)';
+    raise exception 'ADR-0337: fn_cierre_mes_estado perdió la puerta fn_puede_cerrar_mes (ADR-0253)';
   end if;
   -- Los órdenes del chequeo no se repiten: sin_costo 7, cerrada_sin_prenda 8, diario 9, huella 10.
   if position('uni.uid, 10, ''huella''' in v_def) = 0 or position('uni.uid, 9, ''diario''' in v_def) = 0 then
-    raise exception 'ADR-0335: el orden de diario y huella no quedó';
+    raise exception 'ADR-0337: el orden de diario y huella no quedó';
   end if;
 end
 $v$;

@@ -1,8 +1,13 @@
-# ADR-0335 · El cierre de mes avisa de las ventas cerradas sin prenda: un aviso que no bloquea y queda en el cierre
+# ADR-0337 · El cierre de mes avisa de las ventas cerradas sin prenda: un aviso que no bloquea y queda en el cierre
 
 - **Fecha:** 2026-10-04 · **Estado:** aprobado por Felipe (opción A de tres, «Aviso que no bloquea»). Construido y verificado en una base local
   propia y en el navegador (escritorio y 375 px). **La migración está en producción desde el 2026-10-04** (la pegó Felipe; verificada por efectos: la función viva da
   `md5 ea9dede5a8c7a70191867b31bd1c6f73` y 13,199 caracteres, con la delegación de ADR-0253 intacta y la cola sin cambios).
+- **Renumerado el 2026-10-04:** nació como ADR-0335, pero 0335 lo tomó «Activos ya lo teníamos» (#802) en `main`, y 0336 la herramienta «qué falta pegar».
+  Pasó a 0337. La migración pasó de `20261005130000_…` a `20261005130050_…` (la versión `…130000` la usa Pedidos, PR #799). Como el SQL ya estaba
+  pegado en producción, el cambio de nombre no toca ningún historial. **Un detalle que no se cambió a propósito:** la función viva
+  `retail.fn_cierre_mes_estado` lleva un comentario «(ADR-0335)» dentro de la CTE `cs`; es este ADR, y se dejó así porque el parche compara su texto
+  byte a byte para saber si ya se aplicó (cambiarlo duplicaría la CTE al re-ejecutar).
 - **Pedido:** cerrar el pendiente que ADR-0334 dejó escrito en «Lo que queda abierto»: *«Finanzas ▸ Cierre de mes no nombra las ventas cerradas
   sin costo (excluye la variante «Cargo especial»). Tarea aparte con su decisión contable.»* Felipe eligió la decisión con una pregunta.
 - **Usa y complementa:** ADR-0334 (el estado `cerrada_sin_prenda`), ADR-0195 F9 y ADR-0198 (el cierre de mes y sus chequeos), ADR-0253 (el
@@ -52,7 +57,7 @@ SE ROMPE SI: aparece otro estado de venta que no es `completada` pero sí cuenta
 
 La versión VIVA de `fn_cierre_mes_estado` no es la del archivo `20260925180000`: `20260928220000` le cambió la puerta (`fn_es_lider()` →
 `fn_puede_cerrar_mes()`, ADR-0253) editando su definición viva. Recrearla desde el archivo habría borrado esa delegación. La migración
-`20261005130000_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql` reemplaza **tres anclas** del texto vivo, cada una debe aparecer EXACTAMENTE una vez
+`20261005130050_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql` reemplaza **tres anclas** del texto vivo, cada una debe aparecer EXACTAMENTE una vez
 o se aborta sin tocar nada: la CTE nueva `cs` (antes de `pm as (`), la fila del chequeo (con `diario` 8→9) y `huella` 9→10. Es re-ejecutable (mira
 primero si el texto nuevo ya está: la CTE nueva contiene su propia ancla) y no toca tablas ni políticas, así que no toma candados exclusivos.
 

@@ -162,7 +162,7 @@ describe("cada chequeo en palabras", () => {
     expect(textoChequeo(ch("fijos", true, { total: 3, faltan: 0 }, false), mes).detalle).toBe("Los 3 gastos fijos del mes están registrados");
     expect(textoChequeo(ch("sin_costo", false, { n: 1 }, false), mes).detalle).toBe("1 prenda vendida sin costo cargado: el margen del mes sale inflado");
   });
-  it("ventas cerradas sin prenda (ADR-0335): cuántas, cuánto vendieron y que su costo es desconocido; avisa, no bloquea", () => {
+  it("ventas cerradas sin prenda (ADR-0337): cuántas, cuánto vendieron y que su costo es desconocido; avisa, no bloquea", () => {
     expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 2, monto: 150 }, false), mes)).toEqual({
       titulo: "Ventas cerradas sin prenda",
       detalle: "2 ventas sin registrar (S/ 150) se cerraron sin prenda: su costo es desconocido y el margen de agosto sale más alto de lo real. Puedes cerrar igual",
@@ -236,7 +236,7 @@ describe("estados", () => {
     expect(avisosPendientes(unidad("De la empresa")).map((c) => c.clave)).toEqual(["conciliacion"]);
     expect(avisosPendientes({ ...unidad("Tienda Trujillo"), chequeos: [ch("huella", false, {}, false)] })).toEqual([]);
   });
-  it("una venta cerrada sin prenda es un AVISO, no un bloqueo: la unidad sigue lista y el aviso queda para el modal (ADR-0335)", () => {
+  it("una venta cerrada sin prenda es un AVISO, no un bloqueo: la unidad sigue lista y el aviso queda para el modal (ADR-0337)", () => {
     const conVentas: Unidad = { ...unidad("Taller"), avisos: 1, chequeos: [ch("cerrada_sin_prenda", false, { n: 3, monto: 220 }, false), ...unidad("Taller").chequeos] };
     expect(puedeCerrar(conVentas)).toBe(true);
     expect(estadoTarjeta(conVentas)).toEqual({ texto: "lista para cerrar", tono: "pizarra" });

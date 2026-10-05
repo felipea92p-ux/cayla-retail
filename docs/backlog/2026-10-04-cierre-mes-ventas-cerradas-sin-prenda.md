@@ -1,9 +1,9 @@
-## 🧹 Cierre de mes: las ventas cerradas sin prenda salen como un aviso que no bloquea (2026-10-04, ADR-0335) — **SQL YA en producción (2026-10-04, verificado por efectos)**; rama `claude/cierre-mes-ventas-cerradas-sin-prenda` (apilada sobre `claude/unregistered-merchandise-solutions-860786`, ADR-0334)
+## 🧹 Cierre de mes: las ventas cerradas sin prenda salen como un aviso que no bloquea (2026-10-04, ADR-0337) — **SQL YA en producción (2026-10-04, verificado por efectos)**; rama `claude/cierre-mes-ventas-cerradas-sin-prenda` (apilada sobre `claude/unregistered-merchandise-solutions-860786`, ADR-0334)
 
 Decisión de Felipe (2026-10-04): opción A — aviso que no bloquea y queda en `periodo_cierres.avisos`. Producción el 2026-10-04 (solo lectura): septiembre tiene 31
 ventas sin registrar pendientes (AQP 26 por S/ 1,170.80; TRU 5 por S/ 370.60) que hoy BLOQUEAN el cierre de septiembre; octubre, 236 más.
 
-- [x] **Migración** `20261005130000_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql`: parche anclado a `fn_cierre_mes_estado` (CTE `cs` + chequeo `cerrada_sin_prenda`,
+- [x] **Migración** `20261005130050_cierre_mes_avisa_ventas_cerradas_sin_prenda.sql`: parche anclado a `fn_cierre_mes_estado` (CTE `cs` + chequeo `cerrada_sin_prenda`,
   `diario` 8→9, `huella` 9→10). No toca tablas ni políticas. Independiente de ADR-0334 (compara el estado como texto).
 - [x] **Web:** `lib/cierre-reglas.ts` (texto, título, enlace «Ver ventas», `etiquetaEnlace`), `components/finanzas/CierreMes.tsx` (el botón). Arreglado de paso: el enlace del
   chequeo `regularizar` iba a `/recibir` (que desde ADR-0330 ya no muestra la lista) y ahora va a `/inventario/por-regularizar?ubicacion=…`.
@@ -45,4 +45,4 @@ select position('fn_puede_cerrar_mes' in pg_get_functiondef('retail.fn_cierre_me
   `fn_estado_resultados` no (dos pantallas dicen distinto). Decidir con Felipe si el reporte avisa siempre (lo recomendable) o solo al cerrar.
 - [ ] **Tarea aparte (ADR-0334):** la hoja de «Reabrir» una venta cerrada debería avisar que, si su mes ya está cerrado, regularizarla exige reabrir el mes (el candado de
   `venta_items` frena el cambio de costo).
-- [ ] **Quien vuelva a tocar `fn_cierre_mes_estado`:** su texto vivo NO es el del archivo `20260925180000` (ADR-0253 y ADR-0335 la parcharon). Parchea por ancla, no la recrees.
+- [ ] **Quien vuelva a tocar `fn_cierre_mes_estado`:** su texto vivo NO es el del archivo `20260925180000` (ADR-0253 y ADR-0337 la parcharon). Parchea por ancla, no la recrees.
