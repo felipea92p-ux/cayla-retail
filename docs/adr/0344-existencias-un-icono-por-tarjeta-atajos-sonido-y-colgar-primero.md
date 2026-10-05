@@ -131,3 +131,8 @@ dice «Aparece cuando se cuadre el piso de esta sede», para que su ausencia no 
 - **El celular a 375 px.** Existencias no está en la lista de pantallas de celular obligatorio, pero la fila de atajos, el icono y la ventana
   hacia arriba conviene mirarlos allí; la ventana se abre con el «⋯».
 - **Sonido y vibración** en un dispositivo real; solo se probó que el patrón suena distinto del bip de la pistola.
+
+## Tercera vuelta (2026-10-05): la pantalla igual a la maqueta
+
+11. **Sin herramientas de más.** La cabecera pierde su fila de botones (Recibir, Contar, Trasladar y Apartados siguen en el lateral; Cuadrar el piso, en «Pendientes»); con tarjetas no hay «Copiar enlace» ni segundo «Ordenar por» (queda «Prioridad | A–Z»); «Ver detalle» es un icono. La ventana de la tarjeta lleva solo Colgar en el piso, Subir a almacén y Enviar a otra sede.
+12. **El panel de la talla reemplaza al cajón** (`components/existencias/PanelTalla.tsx`, lógica en `lib/existencias-panel-talla.ts`): vistas Esta talla / Todas / Ficha, color y talla para cambiar sin salir, cuatro cifras, frase de diagnóstico, ritmo, otras sedes y siete acciones con lo que dicen debajo. En este corte cada acción abre la ventana que ya existía; **Apartar** (se hace en Vender) y **Pedir a otra sede** (no existe en la base) se dibujan apagadas. Los pasos guiados dentro del panel quedan para el siguiente corte.
