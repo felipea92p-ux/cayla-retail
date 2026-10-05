@@ -54,10 +54,12 @@ type Props = {
   sinReserva?: boolean;
   /** Lo que se contó antes de mandar la variante a recontar: solo se dice con «En reconteo» («antes contaste 5»). */
   antes?: number | null;
+  /** La cifra la anotó «Aplicar todos completos» (ADR-0328): se dice «Sin contar», en neutro, en vez de «Correcto». */
+  sinContar?: boolean;
   className?: string;
 };
 
-export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada, sinReserva = false, antes = null, className = "" }: Props) {
+export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada, sinReserva = false, antes = null, sinContar = false, className = "" }: Props) {
   // La transición Pendiente → Correcto: se guarda el estado anterior EN el estado del componente y se compara al
   // renderizar (patrón de React para «derivar de la render anterior»; sin efecto ni ref). `asienta` queda en `true`
   // hasta el siguiente cambio de estado, así que la animación corre una sola vez, justo cuando la línea se verifica.
@@ -70,7 +72,7 @@ export function EstadoLinea({ estado, debeHaber, contada, diferencia, confirmada
 
   const efectivo: EstadoLineaConteo = estado === "con_diferencia" && confirmada === true ? "diferencia_confirmada" : estado;
   const dif = diferencia ?? (contada === null ? null : contada - debeHaber);
-  const etiqueta = etiquetaDeLinea({ estado: efectivo, diferencia: dif });
+  const etiqueta = etiquetaDeLinea({ estado: efectivo, diferencia: dif, sinContar });
   // Mientras hay diferencia se reserva la línea de «Confirmado» (invisible hasta que se confirma): confirmar no debe
   // empujar nada ni cambiar el alto de la fila.
   const conDiferencia = efectivo === "con_diferencia" || efectivo === "diferencia_confirmada";
