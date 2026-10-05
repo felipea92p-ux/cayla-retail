@@ -162,7 +162,7 @@ const foto = (p: PerfilDelMenu) => {
 // depende de su módulo sale siempre ahí). (ADR-0219, 2026-09-29): Rendimiento, igual: nace sin rol. Con los cuatro
 // sumados, el menú vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas cuatro pantallas. (ADR-0288 act. g,
 // 2026-10-01): «Avisos del club», igual: nace sin rol, y sin él la integrante ve Clientas como siempre (el grupo se disuelve en «Fichas»).
-// (ADR-0329, 2026-10-06): «Plan del piso», igual: nace sin rol; la fotografía de antes lo trae porque sus perfiles no traen módulos.
+// (ADR-0329, 2026-10-05): «Plan del piso», igual: nace sin rol; la fotografía de antes lo trae porque sus perfiles no traen módulos.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)

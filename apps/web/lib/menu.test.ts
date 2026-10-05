@@ -258,7 +258,7 @@ const TOPE_HIJAS = 6;
 // mercadería sin ver Compras (hoy no existe). Se descartó el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba
 // el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
 // Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
-// INVENTARIO, 8 (Felipe, 2026-10-06; ADR-0329, Plan del piso): la cláusula de arriba se cumplió y Felipe eligió SUBIR el tope en
+// INVENTARIO, 8 (Felipe, 2026-10-05; ADR-0329, Plan del piso): la cláusula de arriba se cumplió y Felipe eligió SUBIR el tope en
 // vez de regrupar (preguntado con las dos opciones): «Plan del piso» va DIRECTO en Inventario, después de Frescura, para que ni una
 // ni otra queden un clic más adentro. El líder ve 7 (a Existencias, Movimientos, Traslados, Conteo, Análisis y Frescura suma Plan del
 // piso; Recibir mercadería sigue saliendo solo a quien no ve Compras). Llega a 8 únicamente un rol que vea Análisis, Frescura y

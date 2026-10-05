@@ -316,7 +316,7 @@ export const ARBOL: readonly Nodo[] = [
       // aquí («Recibir mercadería» solo sale a quien NO ve Compras); solo un rol con Análisis, Frescura y Recibir sin
       // Compras llega a 7, y para ese caso `menu.test.ts` tiene la excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`).
       { id: "inventario.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila" },
-      // Plan del piso (ADR-0329, ADR-0328 actividad 12; Felipe 2026-10-06: entrada propia en Inventario, no una pestaña de
+      // Plan del piso (ADR-0329, ADR-0328 actividad 12; Felipe 2026-10-05: entrada propia en Inventario, no una pestaña de
       // Existencias, porque una pestaña no es un módulo y quien ve Existencias no tendría por qué ver el plan). Nace solo para el
       // líder. Con ella el líder ve 7 filas en Inventario (el tope de la excepción); un rol que sumara además Recibir sin Compras
       // llegaría a 8 y ahí sí se regrupa Inventario, sin subir el tope (ver `EXCEPCIONES_TOPE_HIJAS` en `menu.test.ts`).
