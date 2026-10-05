@@ -4468,6 +4468,7 @@ export type Database = {
       ubicaciones: {
         Row: {
           activo: boolean
+          carga_inicial_hasta: string | null
           created_at: string
           hora_cierre: string | null
           id: string
@@ -4479,6 +4480,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          carga_inicial_hasta?: string | null
           created_at?: string
           hora_cierre?: string | null
           id?: string
@@ -4490,6 +4492,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          carga_inicial_hasta?: string | null
           created_at?: string
           hora_cierre?: string | null
           id?: string
@@ -6158,6 +6161,12 @@ export type Database = {
         Args: { p_fechas: Json }
         Returns: number
       }
+      // 20261004210100 (ADR-0328, actividad 4): la carga inicial se cierra por sede.
+      fijar_cierre_carga_inicial: {
+        Args: { p_fecha: string | null; p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_carga_inicial_sedes: { Args: never; Returns: Json }
       fijar_meta_persona: {
         Args: {
           p_detalle?: string

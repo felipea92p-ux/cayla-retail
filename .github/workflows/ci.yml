@@ -688,6 +688,16 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
 
+      # La carga inicial se cierra por sede (ADR-0328, actividad 4): las tres puertas de carga inicial cargan hasta la fecha de
+      # la sede (inclusive) y se cierran al día siguiente; registrar_movimiento no escribe «carga_inicial»; «Encontré prendas»
+      # pide nota, solo suma y es la entrada de lo que aparece con la carga cerrada; quién mueve la fecha (el líder aprieta,
+      # el Admin afloja) y el guardián de la columna. Fechas relativas a fn_hoy_lima(): sin bomba de calendario. Y la siembra de
+      # Felipe en las TRES tiendas (TRU, AQP y LIM al 15-oct; el Taller sin fecha) sobre producción en miniatura, con un reloj
+      # puesto a mano: abiertas el 15-oct hasta las 23:59:59 de Lima, cerradas desde el 16-oct 00:00. ROLLBACK.
+      - name: pruebas:cierre-carga-inicial
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cierre-carga-inicial
+
       # Descontinuar/reactivar en bloque desde la Tabla de Productos (ADR-0254): todo o nada, al reactivar revisa marca y
       # proveedor como «Editar» y nombra la prenda que falla; sin permiso lo dice en palabras. Cada caso en ROLLBACK.
       - name: pruebas:productos-estado-en-bloque
