@@ -1,5 +1,5 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
-import { ETIQUETA_COLGADA, ETIQUETA_GUARDADA, parDeInterno, respaldoDeAjuste, type Movimiento } from "./movimientos-reglas";
+import { ETIQUETA_COLGADA, ETIQUETA_GUARDADA, etiquetaMovimiento, parDeInterno, respaldoDeAjuste, type Movimiento } from "./movimientos-reglas";
 
 // Los tipos que se VEN de un movimiento (rediseño de Movimientos, ADR-0345): cada uno con su nombre, su color, su ícono
 // y el grupo del filtro de la derecha al que pertenece. Es la capa que contesta «¿qué fue esto?» de un vistazo —una
@@ -54,7 +54,7 @@ export const TIPOS_VISUALES: Record<TipoVisual, InfoTipo> = {
   ajuste: { nombre: "Ajuste a mano", plural: "Ajustes a mano", tono: "taupe", icono: "ajuste", punteado: true },
   conteo: { nombre: "Conteo", plural: "Conteos", tono: "taupe", icono: "conteo", punteado: true },
   apartado: { nombre: "Apartado", plural: "Apartados", tono: "taupe", icono: "apartado", punteado: false },
-  danada: { nombre: "Dañada", plural: "Dañadas", tono: "rojo-profundo", icono: "danada", punteado: false },
+  danada: { nombre: "Dañado", plural: "Dañados", tono: "rojo-profundo", icono: "danada", punteado: false },
   movida: { nombre: "Movido dentro de la sede", plural: "Movidos dentro de la sede", tono: "tinta", icono: "movida", punteado: false },
   otro: { nombre: "Otro movimiento", plural: "Otros movimientos", tono: "tinta", icono: "otro", punteado: false },
 };
@@ -132,4 +132,39 @@ export function grupoDeTipo(tipo: TipoVisual): InfoGrupo | null {
 
 export function grupoPorId(id: string | null | undefined): InfoGrupo | null {
   return GRUPOS_TIPO.find((g) => g.id === id) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Cómo se lee una fila: el rótulo de arriba («VENTA», «LLEGADA · Recepción») y los lugares del trayecto.
+// ---------------------------------------------------------------------------
+
+/** El rótulo de una fila: el nombre del tipo y, si el proceso dice algo más, ese detalle («Llegada · Recepción»,
+ *  «Ajuste a mano · merma»). Si el proceso ya empieza con el nombre del tipo («Ajuste a mano · merma»), no se repite. */
+export function rotuloDeMovimiento(m: FilaDeTipo): { tipo: TipoVisual; titulo: string; detalle: string | null } {
+  const tipo = tipoVisual(m);
+  const nombre = TIPOS_VISUALES[tipo].nombre;
+  const proceso = etiquetaMovimiento(m);
+  const igual = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
+  if (igual(proceso, nombre)) return { tipo, titulo: nombre, detalle: null };
+  if (proceso.toLocaleLowerCase("es").startsWith(nombre.toLocaleLowerCase("es"))) {
+    // «Ajuste a mano · merma» → título «Ajuste a mano», detalle «merma»
+    const resto = proceso.slice(nombre.length).replace(/^[\s·]+/, "");
+    return { tipo, titulo: nombre, detalle: resto || null };
+  }
+  return { tipo, titulo: nombre, detalle: proceso };
+}
+
+/** Qué ícono lleva cada punto del trayecto: el piso, el almacén, el cliente, «de fuera» (un proveedor o el Taller) o una sede. */
+export type KindLugar = "piso" | "almacen" | "cliente" | "fuera" | "sede";
+
+/** Los procesos que llegan de AFUERA de la red de sedes: un proveedor, el Taller, una carga. Su origen es «de fuera». */
+const MOTIVOS_DE_FUERA: readonly string[] = ["recepcion", "produccion", "carga_inicial", "ingreso_regularizado", "siembra_cargo_especial"];
+
+export function kindDeLugar(texto: string, lado: "origen" | "destino", motivo: string | null, tipo: TipoVisual): KindLugar {
+  if (texto === "Piso") return "piso";
+  if (texto === "Almacén") return "almacen";
+  if (texto === "Cliente") return "cliente";
+  if (lado === "origen" && tipo === "llegada" && motivo && MOTIVOS_DE_FUERA.includes(motivo)) return "fuera";
+  if (texto === "Producción") return "fuera";
+  return "sede";
 }

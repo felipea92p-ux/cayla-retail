@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filtroDePalabra, type Movimiento } from "./movimientos-reglas";
-import { GRUPOS_TIPO, TIPOS_VISUALES, grupoDeTipo, grupoPorId, tipoDeOperacion, tipoVisual, type TipoVisual } from "./movimientos-tipos";
+import { GRUPOS_TIPO, TIPOS_VISUALES, grupoDeTipo, grupoPorId, kindDeLugar, rotuloDeMovimiento, tipoDeOperacion, tipoVisual, type TipoVisual } from "./movimientos-tipos";
 
 type Fila = Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">;
 const sub = (tipo: string) => ({ id: tipo, nombre: tipo, tipo });
@@ -129,5 +129,39 @@ describe("el buscador entiende las palabras nuevas y las de antes", () => {
     for (const palabra of ["colgada", "Colgadas", "guardadas", "bajadas", "retiros"]) {
       expect(filtroDePalabra(palabra), palabra).toMatchObject({ cat: "interno", proc: null });
     }
+  });
+});
+
+describe("rotuloDeMovimiento: lo que dice arriba de cada fila", () => {
+  it("si el proceso dice lo mismo que el tipo, no se repite", () => {
+    expect(rotuloDeMovimiento(fila({ categoria: "salida", motivo: "venta", delta: -1 }))).toEqual({ tipo: "venta", titulo: "Venta", detalle: null });
+    expect(rotuloDeMovimiento(fila({ categoria: "interno", motivo: "movimiento_interno", sububicacion: almacen, sububicacionDestino: piso }))).toEqual({ tipo: "colgada", titulo: "Colgada en piso", detalle: null });
+    expect(rotuloDeMovimiento(fila({ categoria: "interno", motivo: "movimiento_interno", sububicacion: piso, sububicacionDestino: almacen }))).toEqual({ tipo: "guardada", titulo: "Guardada en almacén", detalle: null });
+  });
+
+  it("si el proceso dice algo más, va como detalle: «Llegada · Recepción»", () => {
+    expect(rotuloDeMovimiento(fila({ categoria: "entrada", motivo: "recepcion", delta: 48 }))).toEqual({ tipo: "llegada", titulo: "Llegada", detalle: "Recepción" });
+    expect(rotuloDeMovimiento(fila({ categoria: "transferencia", motivo: "traslado_entrada", delta: 8 }))).toEqual({ tipo: "llegada", titulo: "Llegada", detalle: "Traslado recibido" });
+    expect(rotuloDeMovimiento(fila({ categoria: "entrada", motivo: "anulacion_venta", delta: 1 }))).toEqual({ tipo: "devolucion", titulo: "Devolución", detalle: "Venta anulada" });
+  });
+
+  it("si el proceso ya empieza con el nombre del tipo, solo se queda con lo que sigue: «Ajuste a mano · merma»", () => {
+    expect(rotuloDeMovimiento(fila({ categoria: "ajuste", motivo: "merma", delta: -1 }))).toEqual({ tipo: "ajuste", titulo: "Ajuste a mano", detalle: "merma" });
+    expect(rotuloDeMovimiento(fila({ categoria: "interno", sububicacion: piso, sububicacionDestino: cuarentena, motivo: null }))).toMatchObject({ tipo: "danada", titulo: "Dañado", detalle: "reportada en el piso" });
+  });
+});
+
+describe("kindDeLugar: el ícono de cada punto del trayecto", () => {
+  it("el piso, el almacén y el cliente se reconocen por su nombre", () => {
+    expect(kindDeLugar("Piso", "origen", "venta", "venta")).toBe("piso");
+    expect(kindDeLugar("Almacén", "destino", "movimiento_interno", "colgada")).toBe("almacen");
+    expect(kindDeLugar("Cliente", "destino", "venta", "venta")).toBe("cliente");
+  });
+
+  it("el origen de una recepción o de producción es «de fuera»; el de un traslado es una sede", () => {
+    expect(kindDeLugar("Textiles Andinos", "origen", "recepcion", "llegada")).toBe("fuera");
+    expect(kindDeLugar("Producción", "origen", "produccion", "llegada")).toBe("fuera");
+    expect(kindDeLugar("Tienda Lima", "origen", "traslado_entrada", "llegada")).toBe("sede");
+    expect(kindDeLugar("Tienda Lima", "destino", "traslado_salida", "traslado")).toBe("sede");
   });
 });
