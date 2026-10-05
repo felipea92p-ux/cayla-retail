@@ -73,7 +73,7 @@ function TallaBoton({ f, separa, onAbrir }: { f: FilaExistencias; separa: boolea
       onClick={onAbrir}
       title={lectura}
       aria-label={`${lectura}. Ver detalle`}
-      className={`flex min-h-[46px] min-w-[44px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-1.5 py-1 leading-none transition-colors hover:border-taupe focus-visible:outline-2 focus-visible:outline-tinta/40 ${BOTON_TALLA[estado]}`}
+      className={`flex min-h-[46px] min-w-[44px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-1.5 py-1 leading-none transition-colors hover:border-taupe ${BOTON_TALLA[estado]}`}
     >
       <b className="text-[15px] font-semibold">{nombre}</b>
       <small className={`mt-1 text-[10.5px] tabular-nums ${estado === "por_colgar" ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
@@ -190,7 +190,7 @@ export function ExistenciasTarjetas({
             }}
             tabIndex={-1}
             aria-label={etiqueta}
-            className="card-cayla flex min-w-0 flex-col gap-2.5 p-3.5 outline-none transition-colors hover:border-tinta/20 focus-visible:ring-2 focus-visible:ring-tinta/30"
+            className="card-cayla flex min-w-0 flex-col gap-2.5 p-3.5 transition-colors hover:border-tinta/20"
           >
             {/* Foto (o su categoría sobre su color), nombre, marca y categoría, y el precio. */}
             <div className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-2.5">
@@ -220,7 +220,7 @@ export function ExistenciasTarjetas({
                       aria-label={h.color ?? "Sin color"}
                       aria-pressed={propia}
                       // El área para tocar crece sin que el círculo: 28 px con mouse y 36 con el dedo (`pointer-coarse`).
-                      className={`relative h-[20px] w-[20px] cursor-pointer rounded-full border-2 border-papel outline transition-transform after:absolute after:-inset-1 after:content-[''] pointer-coarse:after:-inset-2 hover:scale-110 ${
+                      className={`relative h-[20px] w-[20px] cursor-pointer rounded-full border-2 border-papel outline transition-transform after:absolute after:-inset-1 after:content-[''] pointer-coarse:after:-inset-2 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
                         propia ? "outline-2 outline-tinta" : "outline-[1.5px] outline-tinta/15"
                       }`}
                       style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
