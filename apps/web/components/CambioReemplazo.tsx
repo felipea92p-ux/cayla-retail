@@ -115,7 +115,7 @@ export function CambioReemplazo({
                     onClick={() => onCambio({ talla: t })}
                   >
                     {t}
-                    <span className="block text-[11.5px] font-normal opacity-70">{subtitulo}</span>
+                    <span className="block text-[11.5px] font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
                   </button>
                 );
               })}

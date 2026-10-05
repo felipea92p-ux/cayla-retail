@@ -8,9 +8,14 @@
       La sirve el service worker (public/sw.js, ADR-0210) cuando se abre una pantalla sin internet que no quedó guardada.
       Es HTML estático: no puede cargar globals.css (su nombre cambia en cada build), así que los colores repiten a mano
       los tokens de la guía CAYLA Dynamic (ADR-0169): crema, papel, tinta, taupe, sand, rojo, ámbar.
+
+      MODO OSCURO (ADR-0336, 2026-10-05): lee la misma preferencia que el ERP (`localStorage["cayla-tema"]`) y redefine esas
+      variables con los valores de `app/estilos/tema.css`. El script va ANTES del <style> para que no haya un destello claro.
     -->
+    <script>try{if(localStorage.getItem("cayla-tema")==="oscuro")document.documentElement.setAttribute("data-tema","oscuro")}catch(e){}</script>
     <style>
       :root { --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --taupe: #805c4c; --sand: #e8e0d0; --rojo: #b8412d; --ambar: #74501a; }
+      :root[data-tema="oscuro"] { color-scheme: dark; --crema: #1a1a18; --papel: #262624; --tinta: #f5f0e8; --taupe: #c4a898; --sand: #3d3c38; --rojo: #e8806a; --ambar: #e4b968; }
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; background: var(--crema); color: var(--tinta); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; padding: 16px; }
       main { max-width: 30rem; width: 100%; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 28px 24px; }

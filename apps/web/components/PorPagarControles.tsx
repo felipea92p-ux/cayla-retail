@@ -91,7 +91,7 @@ export function BotonSoloVencidas({ cantidad }: { cantidad: number }) {
       }`}
     >
       Solo vencidas
-      {cantidad > 0 && <span className="font-medium tracking-normal opacity-70">· {cantidad}</span>}
+      {cantidad > 0 && <span className="font-medium tracking-normal opacity-70 dark:opacity-85">· {cantidad}</span>}
     </button>
   );
 }

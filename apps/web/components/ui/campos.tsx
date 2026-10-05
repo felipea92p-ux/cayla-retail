@@ -53,7 +53,7 @@ export function Hilo({
       {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
           el paso del comprobante); sin definirla es el mismo gris de siempre. */}
       {reposo && (
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,color-mix(in_srgb,var(--color-tinta)_25%,transparent))] transition-colors duration-500" />
       )}
       <span
         aria-hidden

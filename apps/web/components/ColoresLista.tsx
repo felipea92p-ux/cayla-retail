@@ -113,7 +113,7 @@ function gruposPorFamilia(lista: Color[]) {
 // color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
 // jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
 function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "#e8e0d0", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "var(--color-sand)", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
@@ -694,7 +694,7 @@ function ColorEditarModal({
 }) {
   const [nombre, setNombre] = useState(color.nombre);
   const [familiaColor, setFamiliaColor] = useState<FamiliaColor>((color.familiaColor as FamiliaColor) ?? "neutro");
-  const [hex, setHex] = useState(color.hex ?? "#c9b79c");
+  const [hex, setHex] = useState(color.hex ?? "#c9b79c"); // tema-fijo: valor inicial del selector de color (un input type=color exige un hex): es un dato
   const [hexAbierto, setHexAbierto] = useState(false);
   const [notas, setNotas] = useState(color.notas ?? "");
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");

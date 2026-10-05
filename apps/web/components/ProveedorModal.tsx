@@ -340,7 +340,7 @@ export function ProveedorModal({
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && fase !== "guardando" && pedirCierre()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/30 backdrop-blur-[2.5px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
+        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/30 dark:bg-sombra/55 backdrop-blur-[2.5px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         {/* La posición vive en este contenedor y no en el panel: la animación de entrada usa `transform`. Anclada arriba
             en escritorio, como `<Modal>` (ADR-0185): centrada, cada cambio de alto movía el borde de arriba. */}
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]">
