@@ -12,6 +12,7 @@ import type { ClaveModulo } from "./modulos";
 import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
+import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -23,6 +24,7 @@ export type ClaveAviso =
   | "pedidos"
   | "traslados"
   | "conteo"
+  | "perdidas"
   | "regularizar"
   | "porPagar"
   | "recibir"
@@ -61,6 +63,8 @@ export type FuentesAvisos = {
   traslados?: number | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
+  /** Pérdidas que se repiten en los últimos 30 días (ADR-0328 act. 14): solo del líder, con la regla de `perdidas-reglas`. */
+  perdidas?: AvisoPerdidas | null;
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
@@ -201,6 +205,24 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ahora: c ? "Cierra el conteo que está abierto" : "",
       detalle: c === null ? SIN_LEER : c ? "Hay un conteo sin cerrar en esta sede." : "No hay conteos abiertos.",
       href: "/inventario/conteo",
+      ocultable: true,
+    });
+  }
+  // ADR-0328 act. 14 (Felipe, 2026-10-04): se avisa CUANDO SE REPITE —la misma prenda o la misma zona pierde en dos días
+  // distintos de los últimos 30, o se quitaron muchas sin nota—, no cada faltante. Sin un tope en % inventado. Lleva a la
+  // pestaña «Pérdidas» de Movimientos, filtrada si es un solo hallazgo. Por hacer, no urgente: no es plata que no cuadra.
+  if (f.perdidas !== undefined) {
+    const p = f.perdidas;
+    const n = p === null ? null : p.cantidad;
+    avisos.push({
+      clave: "perdidas",
+      grupo: "Inventario",
+      titulo: "Pérdidas que se repiten",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Revisa ${n} ${plural(n, "pérdida que se repite", "pérdidas que se repiten")}` : "",
+      detalle: p === null ? SIN_LEER : n === 0 ? "Ninguna prenda ni zona perdió dos veces en 30 días." : p.detalle,
+      href: p?.href ?? hrefPerdidas({ periodo: "30" }),
       ocultable: true,
     });
   }
