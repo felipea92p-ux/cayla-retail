@@ -43,10 +43,9 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   // ---------- Permanentes: marca y máscaras ----------
   "components/ui/IsotipoCayla.tsx": { cuenta: 1, motivo: "El rojo de la MARCA (muestreado del propio logo): no cambia con el tema." },
   "app/estilos/inicio-almacen.css": { cuenta: 6, motivo: MASCARA },
+  "app/global-error.tsx": { cuenta: 6, motivo: "Pantalla de error global: se dibuja sin globals.css (el layout raíz reventó), así que lleva su propia paleta en dos juegos de variables, claro y oscuro, con los valores de tema.css." },
 
   // ---------- Deuda: se paga en la actividad de su módulo (ADR-0336) ----------
-  "app/global-error.tsx": { cuenta: 7, deuda: "actividad 4", motivo: "Pantalla de error global: se dibuja fuera del layout, sin la hoja de estilos; debe leer la preferencia guardada." },
-  "app/estilos/recordatorio-cierre.css": { cuenta: 14, deuda: "actividad 4", motivo: "«Es hora de cerrar caja»: crema escrito a mano sobre un fondo de tinta; en oscuro, la tinta es crema y el texto se perdería." },
   "app/estilos/observatorio.css": { cuenta: 7, deuda: "actividad 5", motivo: "Dos máscaras (legítimas) y la sombra del tooltip (rgb de tinta) que debe ser de `sombra`." },
   "components/CerrarCajaModalV2.tsx": { cuenta: 1, deuda: "actividad 6", motivo: "Un campo con `bg-white`." },
   "components/apartados/TodosVista.tsx": { cuenta: 1, deuda: "actividad 6", motivo: "Rayado de custodia con el rgb de sand escrito a mano." },

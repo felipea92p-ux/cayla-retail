@@ -136,6 +136,7 @@
         if (c[3] < 0.05) continue;
         // Un velo: capa fija que cubre (casi) toda la pantalla. En oscuro debe oscurecer; si queda más claro que la página, aclara.
         if (cs.position === "fixed" && caja.width >= innerWidth * 0.9 && caja.height >= innerHeight * 0.9) {
+          if (opacidadHeredada(el) < 0.05) continue; // un velo cerrado (opacidad 0) no se ve: se audita abierto, con su escenario
           const compuesto = sobre(c, pagina);
           if (lum(compuesto) > lum(pagina) + 0.01) velos.push({ tipo: "velo-claro", clave: camino(el), fondo: hex(compuesto), pagina: hex(pagina), donde: camino(el) });
           continue;

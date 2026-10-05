@@ -27,7 +27,7 @@ import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CUENTAS, porClave } from "./cuentas.mjs";
+import { CUENTAS, inicioDe, porClave } from "./cuentas.mjs";
 import { escenariosDe, ESCENARIOS } from "./escenarios/registro.mjs";
 import { inventarioDeRutas, moduloDeRuta } from "./motor/rutas.mjs";
 import { escribirReporte, resumirVisita } from "./motor/reporte.mjs";
@@ -70,6 +70,18 @@ if (args.listar) {
 }
 
 exigirLocal(baseUrl);
+// ¿El servidor de esa URL es el de ESTA obra? Con varias sesiones corriendo `next dev` en puertos vecinos, auditar el de otra
+// worktree da un «0 hallazgos» que no vale nada. Si su HTML no trae el script del tema, no tiene el modo oscuro.
+try {
+  const html = await (await fetch(`${baseUrl}/login`, { redirect: "follow" })).text();
+  if (!html.includes("cayla-tema")) {
+    console.error(`El servidor de ${baseUrl} no trae el modo oscuro (su HTML no tiene el script del tema): ¿es el de otra worktree?\nLevanta el de esta con \`pnpm --filter web dev\` y pasa su puerto con --base-url o TEMA_BASE_URL.`);
+    process.exit(2);
+  }
+} catch (e) {
+  console.error(`No se pudo hablar con ${baseUrl}: ${e.message}. ¿Está levantado el \`next dev\`? (--base-url o TEMA_BASE_URL)`);
+  process.exit(2);
+}
 const cuentas = args.cuenta === "todas" ? CUENTAS : lista(args.cuenta || "admin").map((c) => porClave(c) ?? (console.error(`No existe la cuenta «${c}». Con --listar se ven.`), process.exit(2)));
 let rutas = lista(args.ruta);
 if (args.modulo) rutas.push(...estaticas.filter((r) => lista(args.modulo).includes(moduloDeRuta(r))));
@@ -82,11 +94,13 @@ const dirSalida = args.salida || join(AQUI, ".salida", `${cuando.slice(0, 8)}-${
 
 /** Lo que se visita: cada ruta, y sus escenarios si se pidieron. */
 function visitasDe(cuenta) {
-  const v = rutas.map((ruta) => ({ ruta, titulo: ruta, escenario: null }));
+  // «/» es el INICIO de la cuenta: para la terminal de ventas es Vender. `logica` es la ruta con la que se buscan los escenarios.
+  const casa = (r) => (r === "/" ? inicioDe(cuenta) : r);
+  const v = rutas.map((ruta) => ({ ruta: casa(ruta), logica: ruta, titulo: casa(ruta), escenario: null }));
   if (args.escenarios || args.escenario) {
     const candidatas = new Set([...rutas, ...(args.escenario ? ESCENARIOS.filter((e) => e.id === args.escenario).map((e) => e.ruta) : [])]);
     for (const ruta of candidatas) {
-      for (const e of escenariosDe(ruta, cuenta.clave)) if (!args.escenario || e.id === args.escenario) v.push({ ruta, titulo: `${ruta} · ${e.nombre}`, escenario: e });
+      for (const e of escenariosDe(ruta, cuenta.clave, ancho < 700)) if (!args.escenario || e.id === args.escenario) v.push({ ruta: casa(ruta), logica: ruta, titulo: `${casa(ruta)} · ${e.nombre}`, escenario: e });
     }
   }
   return args.escenario ? v.filter((x) => x.escenario?.id === args.escenario) : v;

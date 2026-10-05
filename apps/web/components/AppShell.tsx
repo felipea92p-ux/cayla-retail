@@ -935,7 +935,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         aria-hidden
         data-abierto={movilAbierto}
         onClick={() => cerrarMovil()}
-        className={`velo-cajon fixed inset-0 z-40 bg-tinta/25 backdrop-blur-[2px] sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
+        className={`velo-cajon fixed inset-0 z-40 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
       />
 
       {/* ==================== Lateral (escritorio) / cajón (celular) ==================== */}
