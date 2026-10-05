@@ -12,6 +12,8 @@ import type { ClaveModulo } from "./modulos";
 import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
+import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
+import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
@@ -23,6 +25,9 @@ export type ClaveAviso =
   | "devoluciones"
   | "pedidos"
   | "traslados"
+  | "pedidosSede"
+  | "pedidosCliente"
+  | "paraEnviar"
   | "conteo"
   | "perdidas"
   | "regularizar"
@@ -61,6 +66,17 @@ export type FuentesAvisos = {
   devoluciones?: number | null;
   pedidos?: number | null;
   traslados?: number | null;
+  /** ADR-0328 act. 17: los pedidos entre sedes que llevan 48 h o más sin respuesta, de los dos lados (solo para los líderes
+   *  de esa sede, en el Inicio de su sede: `leAvisaSinRespuesta`).
+   *  Ya resumidos por `pedidos-por-atender-reglas.ts`: cuántos, el detalle y la frase de «Sigue ahora». */
+  pedidosSinRespuesta?: { tePiden: number; pediste: number; detalle: string; ahora: string } | null;
+  /** ADR-0328 act. 17 (decisión del 2026-10-04): los pedidos que esta tienda hizo a otra para un cliente y que piden un paso
+   *  de quien atiende: avisarle que llegó o que no va a llegar, o preguntarle si el pedido sigue en pie (a los 7 días). Ya
+   *  resumidos por `resumenParaElInicio`. */
+  pedidosCliente?: { llegaron: number; noLlegaron: number; sigueEnPie: number; primero: string | null } | null;
+  /** ADR-0328 act. 17 (decisión del 2026-10-04): lo subido al almacén «para enviar» a otra sede que lleva más de 3 días sin
+   *  salir. Se avisa aquí y no en el número del menú. Ya resumido por `paraEnviarAtrasadas`. */
+  paraEnviar?: { prendas: number; destinos: string[]; dias: number } | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
   /** Pérdidas que se repiten en los últimos 30 días (ADR-0328 act. 14): solo del líder, con la regla de `perdidas-reglas`. */
@@ -165,6 +181,39 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ocultable: true,
     });
   }
+  // ADR-0328 act. 17 (decisión del 2026-10-04): la tienda que pidió una prenda a otra para un cliente se entera aquí (y en
+  // la franja de Vender, adonde lleva) de lo que le toca: avisarle al cliente que llegó, o que no va a llegar porque la otra
+  // sede no la tenía o el envío se cerró sin ella, y preguntarle si el pedido sigue en pie cuando lleva 7 días apartado allá
+  // (la reserva no vence sola: la sostiene esta tienda).
+  if (f.pedidosCliente !== undefined) {
+    const p = f.pedidosCliente;
+    const avisar = p === null ? 0 : p.llegaron + p.noLlegaron;
+    const n = p === null ? null : avisar + p.sigueEnPie;
+    const partes = p
+      ? [
+          p.noLlegaron ? `${p.noLlegaron} no ${plural(p.noLlegaron, "va", "van")} a llegar` : "",
+          p.llegaron ? `${p.llegaron} ${plural(p.llegaron, "llegó", "llegaron")}` : "",
+          p.sigueEnPie ? `${p.sigueEnPie} ${plural(p.sigueEnPie, "lleva", "llevan")} ${DIAS_PARA_PREGUNTAR} días o más: ¿sigue en pie?` : "",
+        ].filter(Boolean)
+      : [];
+    const accion = avisar > 0 ? `${plural(avisar, "avísale", "avísales")} por WhatsApp desde Vender` : "pregúntale al cliente y responde en Vender";
+    avisos.push({
+      clave: "pedidosCliente",
+      grupo: "Ventas y posventa",
+      titulo: "Pedidos para clientes",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !p || !n ? ""
+        : avisar > 0 ? `Avisa a ${avisar} ${plural(avisar, "cliente", "clientes")} cómo terminó su pedido`
+          : `Confirma si ${p.sigueEnPie} ${plural(p.sigueEnPie, "pedido sigue", "pedidos siguen")} en pie`,
+      detalle:
+        p === null ? SIN_LEER
+          : n === 0 ? "Ningún cliente espera noticias de una prenda pedida a otra sede."
+            : `${partes.join(" · ")}${p.primero ? ` · ${p.primero}` : ""}: ${accion}.`,
+      href: "/vender",
+      ocultable: true,
+    });
+  }
   if (f.pedidos !== undefined) {
     const n = f.pedidos;
     avisos.push({
@@ -188,7 +237,48 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       cantidad: n,
       nivel: nivelDe(n, "toca"),
       ahora: n ? `Atiende ${n} ${plural(n, "traslado", "traslados")}` : "",
-      detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} tu confirmación.`,
+      // ADR-0328 act. 17: el número suma lo que llega por recibir y lo que otras sedes te piden enviar.
+      detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} a tu sede: recibir lo que llegó o enviar lo que te piden.`,
+      href: "/inventario/traslados",
+      ocultable: true,
+    });
+  }
+  // ADR-0328 act. 17 (Felipe: «a las 48 h sin respuesta, aviso a los líderes de las dos tiendas»). Solo cuenta lo que ya
+  // pasó las 48 h, así que si hay alguno es urgente: un cliente espera, o la otra sede espera una respuesta.
+  if (f.pedidosSinRespuesta !== undefined) {
+    const p = f.pedidosSinRespuesta;
+    const n = p === null ? null : p.tePiden + p.pediste;
+    avisos.push({
+      clave: "pedidosSede",
+      grupo: "Inventario",
+      titulo: "Pedidos entre sedes sin respuesta",
+      cantidad: n,
+      nivel: nivelDe(n, "urgente"),
+      ahora: p?.ahora ?? "",
+      detalle: p === null ? SIN_LEER : p.detalle,
+      href: "/inventario/traslados",
+      ocultable: true,
+      urgenteSi: "Cuando un pedido lleva 48 h sin respuesta",
+    });
+  }
+  // ADR-0328 act. 17 (decisión del 2026-10-04): lo colgado se manda en dos pasos (subir, después el traslado) y el segundo
+  // se olvida. Lo que lleva más de 3 días «para enviar» se avisa en el Inicio de ESA sede; no suma al número del menú, que
+  // es lo que otros esperan de ella.
+  if (f.paraEnviar !== undefined) {
+    const p = f.paraEnviar;
+    const n = p === null ? null : p.prendas;
+    const destinos = p ? (p.destinos.length <= 2 ? p.destinos.join(" y ") : `${p.destinos.slice(0, -1).join(", ")} y ${p.destinos.at(-1)}`) : "";
+    avisos.push({
+      clave: "paraEnviar",
+      grupo: "Inventario",
+      titulo: "Para enviar",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Envía ${n} ${plural(n, "prenda que espera", "prendas que esperan")} en el almacén` : "",
+      detalle:
+        p === null ? SIN_LEER
+          : !n ? `Nada lleva más de ${DIAS_PARA_ENVIAR} días esperando salir.`
+            : `${n} ${plural(n, "prenda subida", "prendas subidas")} para ${destinos} ${plural(n, "lleva", "llevan")} ${p.dias === DIAS_PARA_ENVIAR ? "más de" : "hasta"} ${p.dias} días en tu almacén: arma el envío.`,
       href: "/inventario/traslados",
       ocultable: true,
     });
@@ -417,13 +507,15 @@ export function cookieEleccion(personaId: string | null): string {
 // ── Apartados: de la lista a lo que el aviso necesita ────────────────────────────────────────────
 
 /** `venceEl` es una fecha `YYYY-MM-DD` de Lima; `hoy` también (`hoyLima()`). */
-export function resumirApartados(apartados: { venceEl: string; clienta: string }[], hoy: string): ResumenApartados {
+/** `venceEl` null = la reserva de un pedido de otra sede: no vence sola (decisión del 2026-10-04), así que no cuenta aquí. */
+export function resumirApartados(apartados: { venceEl: string | null; clienta: string }[], hoy: string): ResumenApartados {
   const manana = new Date(`${hoy}T12:00:00Z`);
   manana.setUTCDate(manana.getUTCDate() + 1);
   const diaManana = manana.toISOString().slice(0, 10);
   let vencidos = 0, deHoy = 0, deManana = 0;
   let primeraClienta: string | null = null;
-  for (const a of [...apartados].sort((x, y) => x.venceEl.localeCompare(y.venceEl))) {
+  const conFecha = apartados.filter((a): a is { venceEl: string; clienta: string } => a.venceEl !== null);
+  for (const a of conFecha.sort((x, y) => x.venceEl.localeCompare(y.venceEl))) {
     const dia = a.venceEl.slice(0, 10);
     if (dia < hoy) vencidos++;
     else if (dia === hoy) deHoy++;
