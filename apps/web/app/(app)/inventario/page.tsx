@@ -20,6 +20,7 @@ import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
+import { CifrasEnLinea } from "@/components/existencias/CifrasEnLinea";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -184,12 +185,12 @@ export default async function InventarioPage({
   const notaSemana = semana.fallo || deltaSede.pct === null ? undefined : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)} % en 7 días`;
   const cifras: CifraResumen[] = separa
     ? [
-        { valor: colgadas, etiqueta: "Colgadas en el piso", icono: Shirt, titulo: "Prendas en el piso de venta, libres para vender: son las que cobra la caja" },
-        { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
+        { valor: colgadas, etiqueta: "Colgadas en el piso", corta: "colgadas", icono: Shirt, titulo: "Prendas en el piso de venta, libres para vender: son las que cobra la caja" },
+        { valor: guardadas, etiqueta: "Guardadas en el almacén", corta: "guardadas", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
       ]
-    : [{ valor: resumen.disponible, nota: notaSemana, etiqueta: "Disponibles aquí", icono: Package, titulo: "Prendas libres en esta sede" }];
+    : [{ valor: resumen.disponible, nota: notaSemana, etiqueta: "Disponibles aquí", corta: "disponibles", icono: Package, titulo: "Prendas libres en esta sede" }];
   if (resumen.enTransito > 0) {
-    cifras.push({ valor: resumen.enTransito, etiqueta: "En camino hacia aquí", icono: Truck, href: veTraslados ? "/inventario/traslados" : undefined, titulo: "Prendas que vienen en traslados hacia esta sede" });
+    cifras.push({ valor: resumen.enTransito, etiqueta: "En camino hacia aquí", corta: "en camino", icono: Truck, href: veTraslados ? "/inventario/traslados" : undefined, titulo: "Prendas que vienen en traslados hacia esta sede" });
   }
 
   return (
@@ -205,6 +206,7 @@ export default async function InventarioPage({
         // La única hora de la cabecera es la de la foto (ADR-0220): el stock de abajo es el del momento en que se
         // cargó, y un reloj vivo encima haría creer que está al minuto.
         sinHora
+        compactoMovil
         detalle={`vista de las ${horaCarga}`}
         // Rediseño 2026-10-04: UN botón oscuro, el trabajo de todos los días en una tienda (colgar lo guardado); a su lado,
         // claros, los accesos a las pantallas que trabajan de la mano con esta (ADR-0237). Antes «+ Nuevo traslado» era el
@@ -252,7 +254,12 @@ export default async function InventarioPage({
           </div>
         }
       >
-        <ResumenSede sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />
+        {/* Celular (rediseño 2026-10-05): las mismas cifras, en una línea (`CifrasEnLinea`). En pantallas anchas el contenedor desaparece
+            (`contents`) y el recuadro queda como siempre. */}
+        <div className="contents max-sm:hidden">
+          <ResumenSede sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />
+        </div>
+        <CifrasEnLinea sede={ubicacionActiva?.nombre ?? "esta sede"} cifras={cifras} />
       </EncabezadoPagina>
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una

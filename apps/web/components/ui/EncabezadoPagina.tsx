@@ -19,6 +19,7 @@ export function EncabezadoPagina({
   detalle,
   acciones,
   pie,
+  compactoMovil = false,
   children,
 }: {
   sede: string;
@@ -35,23 +36,30 @@ export function EncabezadoPagina({
   /** Bajo la frase, a la izquierda: la vuelta a la pantalla de arriba («← Traslados») o un estado que no es
    *  una acción (el resultado de un conteo). */
   pie?: ReactNode;
+  /** Celular, más compacto (Existencias, 2026-10-05): el día se omite (queda la sede y, si hay, el detalle), el título baja a 28 px y
+   *  la frase no se dibuja. Pantallas anchas sin cambio. */
+  compactoMovil?: boolean;
   /** A la derecha: las cifras de la sede (`ResumenSede`) o el reloj de Caja. */
   children?: ReactNode;
 }) {
   const derechaOcupada = Boolean(children);
   const bajoLaFrase = derechaOcupada && acciones ? <>{pie}{acciones}</> : pie;
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
+    <header className={`flex flex-wrap items-center justify-between gap-x-10 gap-y-5 ${compactoMovil ? "max-sm:gap-y-3" : ""}`}>
       <div className="anim-sube min-w-0">
         <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-taupe-profundo">
           <span aria-hidden className="hilo-dibuja block h-px w-8 shrink-0 bg-taupe" />
           <span className="min-w-0">
-            {sede} · <FechaHoraLima sinHora={sinHora} />
+            {sede}
+            <span className={compactoMovil ? "max-sm:hidden" : undefined}>
+              {" "}
+              · <FechaHoraLima sinHora={sinHora} />
+            </span>
             {detalle && <> · {detalle}</>}
           </span>
         </p>
-        <h1 className="font-display mt-3 text-4xl leading-none tracking-tight text-tinta sm:text-[46px]">{titulo}</h1>
-        <p className="mt-2.5 max-w-md text-[15px] text-tinta/70">{subtitulo}</p>
+        <h1 className={`font-display text-4xl leading-none tracking-tight text-tinta sm:text-[46px] ${compactoMovil ? "mt-2 max-sm:text-[28px] sm:mt-3" : "mt-3"}`}>{titulo}</h1>
+        <p className={`mt-2.5 max-w-md text-[15px] text-tinta/70 ${compactoMovil ? "max-sm:hidden" : ""}`}>{subtitulo}</p>
         {bajoLaFrase && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5">{bajoLaFrase}</div>}
       </div>
       {derechaOcupada
