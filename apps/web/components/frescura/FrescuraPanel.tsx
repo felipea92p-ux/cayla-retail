@@ -170,7 +170,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const pieCabecera =
     datos.esLider && datos.tiendas && datos.tiendas.length > 1 ? (
       <p className="max-w-[30rem] text-[13px] leading-relaxed text-taupe">
-        <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace text-[13px]">
+        <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]">
           Ver las {datos.tiendas.length} tiendas
         </button>
       </p>
@@ -262,7 +262,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               )}
               <button
                 type="button"
-                className="btn-cayla btn-enlace ml-auto text-[13px]"
+                className="btn-cayla btn-enlace ml-auto inline-flex min-h-7 items-center text-[13px]"
                 aria-expanded={comoSeLee}
                 aria-controls="frescura-como-se-lee"
                 onClick={() => setComoSeLee((v) => !v)}
@@ -317,7 +317,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 <span className="text-sm font-semibold text-tinta">
                   Esperan tu decisión <span className="font-medium tabular-nums text-taupe">· {visibles.length}</span>
                 </span>
-                <button type="button" className="btn-cayla btn-enlace text-[13.5px]" onClick={() => cambiar({ todas: true })}>
+                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13.5px]" onClick={() => cambiar({ todas: true })}>
                   Ver todas las prendas ({enTabla.length})
                 </button>
               </div>
