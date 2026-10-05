@@ -257,6 +257,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:activos-y-fijos
 
+      # Activos «ya lo teníamos» (ADR-0335): lo anterior al sistema entra sin pago, sin mover plata, con su fecha real y su
+      # depreciación; solo el líder; los estados imposibles los impide la base. ROLLBACK.
+      - name: pruebas:activos-carga-inicial
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:activos-carga-inicial
+
       # Cuentas y dinero (ADR-0195 F3): cada movimiento, que se anula y no se borra, los saldos sumados, un egreso respalda
       # una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
       - name: pruebas:cuentas-dinero
@@ -449,6 +455,15 @@ jobs:
       - name: pruebas:retirar-del-piso
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:retirar-del-piso
+
+      # «Cuadrar el piso» (ADR-0328, decisión técnica 4): `cuadrar_piso` pasa al piso, de una vez y todo o nada, lo que el almacén
+      # tiene libre y nadie escaneó como guardado (y sube lo escaneado que el sistema creía colgado). Solo un líder confirma; lo
+      # apartado, la cuarentena, lo archivado y lo de prueba no se mueven; las «no cargadas» se guardan y no se aplican; la
+      # previsualización y el cuadre usan la MISMA cuenta; un almacén movido después del escaneo lo rechaza; la misma marca no
+      # cuadra dos veces; Frescura no lo lee como bajadas (núcleo) y lo bajado llega con edad desconocida. Cada caso en ROLLBACK.
+      - name: pruebas:cuadrar-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuadrar-piso
 
       # La caja registra la bajada que se olvidó (ADR-0321): `bajar_al_piso_desde_vender` pide VENDER (no Existencias: la
       # Terminal de ventas baja), baja solo lo que falta para el ticket (0 si otra persona ya la registró), lo apartado no

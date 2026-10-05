@@ -113,7 +113,7 @@ Les falta solo el modelo exacto. Por eso la lectura comercial de Felipe se puede
 | Primer conteo | **De arranque**: corrige el stock sin contar como merma ni entrar en la exactitud. |
 | Firma | **El nombre se pide una vez por operación**, no en cada paso: «si ya se colocó un nombre en el manejo de una operación no creo necesario estar pidiéndolo varias veces». |
 | Ventas sin registrar | Es **algo temporal de la adopción** («no podíamos dejar de vender y había prendas sin etiquetar»): limpieza de arranque, no una rutina permanente. Nadie regulariza su propia venta, salvo el líder. |
-| Cierre de la carga inicial | **Fecha por sede y cierre automático**: TRU el 15-oct; AQP y LIM cuando terminen su carga, con un tope que fija Felipe. |
+| Cierre de la carga inicial | **Fecha por sede y cierre automático**: el 15-oct en TRU, AQP y LIM (Felipe, 2026-10-04 noche; ver «Actualización 2026-10-04 (tarde)»); el Taller, sin carga de tienda. |
 
 ## Decisiones técnicas
 
@@ -241,3 +241,93 @@ y crear las bolsas, cajas y sorpresas como productos.
 Cada actividad trae su verificación (prueba, comando o pantalla en el navegador). El rediseño entero se mide con los tres números de
 éxito de Felipe: la prueba de 5 minutos con una integrante de TRU antes y después, la cola sin registrar en 2 días o menos, y el %
 vendido a precio completo por sede (ADR-0208).
+
+## Actualización 2026-10-04 (tarde) — rondas 3 y 4, la estadística de Frescura y la ola 1
+
+### Lo que decidió Felipe
+
+**Cuadre, carga y ventas sin registrar**
+- El cuadre del piso es **una sola vez por sede**, no una rutina: corrige el arranque y no se repite («no puede ser que eso se haga todos los días»).
+- Lo guardado sin etiqueta **se etiqueta y se carga antes del cuadre** (si no, el cuadre lo da por colgado).
+- Cierre de la carga inicial: **el 15-oct en las tres sedes** (TRU, AQP y LIM; Felipe, 2026-10-04 noche, igual que la cola de arranque de ADR-0334: «todos los días vamos a subir todo, máximo hasta el 15»; antes había dicho «AQP y LIM sin fecha»); correr una fecha hacia adelante, **solo el Admin**.
+- Las ventas sin registrar son **algo de la adopción** («no podíamos dejar de vender y había prendas sin etiquetar»): limpieza de arranque, no rutina. Nadie regulariza su propia venta, salvo el líder.
+- Mínimo por modelo colgado: 1 por talla y color, **solo tallas centrales**.
+
+**La mercadería y la edad del piso.** «Por lo general llega la mercadería a almacén, se cuenta allí y luego se cuelga en piso». La forma normal de decir
+«se colgó» es **Bajar al piso**; la edad del piso empieza en esa bajada; la caja es solo red de seguridad. La edad la da la entrada real (Recibir, traslado
+del Taller): lo de la carga inicial cuenta como «al menos N días», sin pregunta nueva en el alta.
+
+**Frescura (ronda 4)**
+- El encargado revisa el piso **los lunes, 20 minutos, en Frescura**.
+- La rotación se dice **en días por categoría** («los polos se venden en el piso en ~6 días»), y cada prenda se compara con lo típico de su categoría.
+- La cifra grande es el **% del piso a tiempo** (prendas colgadas que no van lentas ÷ prendas colgadas que se pueden medir; al lado, «N sin medir»).
+- Las tres piezas de la maqueta (tablero de renovación, perchero, matriz) van como **tres vistas de los mismos datos**: el tablero es la portada, el perchero la vista del encargado y la matriz la del líder.
+- «Qué renovar esta semana» se ordena por **la más cerca de Crítica**, con «Ya decidí» en cada fila.
+- La comparación entre sedes la ven todos, **lado a lado y sin ranking** (reemplaza «la comparación es del líder», 2026-09-26).
+- Metas: **contra sí misma** (el % a tiempo frente a hace 4 semanas, marcado solo si supera el ruido de la cifra).
+- La señal de registro la ve **el equipo, después del cuadre** de su sede.
+- La caja conserva su botón principal y suma el enlace «La traje del almacén para el cliente».
+- **Evidencia para «va lenta»: 9 a 1.**
+
+**Análisis (ronda 4).** Es **la mesa del lunes** (se va a agotar, está quieto, qué pedir al Taller), la ven todos; «vendido» es **lo cobrado, con la
+brecha** a la vista («N sin prenda identificada → Regularizar»); el Taller ve **el % vendido por tienda** de lo que mandó; el pedido al Taller lleva
+**la proporción por talla y color** (la cantidad la pone el Taller); el **margen por prenda solo lo ve el líder**, dentro de Análisis.
+
+### La estadística de Frescura (investigación con simulación del 2026-10-04)
+
+Pedido de Felipe: «investiga si existe un mejor método matemático y estadístico», «qué es lo mejor para decir cuándo una prenda va lenta» y «¿por qué 8
+semanas?». Siete agentes (supervivencia, detección, ventana, código y datos, simulación Monte Carlo con 2.000 réplicas por escenario, síntesis y un
+escéptico que la reprodujo por separado). Detalle completo en el PR de la actividad 18.
+
+- **Las «8 semanas» no salían de ningún cálculo** (ADR-0208 «Lo que falta decidir», línea 218, copiada a cuatro documentos). La precisión la da el número
+  de ventas (±39 % con 5, ±19 % con 20, ±12 % con 50), no las semanas; con 8 semanas la cifra tarda 13 días más en ver un cambio de temporada.
+  **Ventana: 28 días** (la referencia de CAYLA, hasta 84 si junta menos de 20 ventas).
+- **Lo típico = la mediana de Kaplan-Meier** (cuenta también lo que sigue colgado), **contraída hacia CAYLA con el peso de 5 ventas** mientras la sede
+  tenga pocas: m̃ = exp(w·ln m_sede + (1−w)·ln m_CAYLA), w = n/(n+5). Con 5 ventas propias, el error en el peor caso baja de 70 % a 45 %. Si con 20 o más
+  ventas la sede se aparta de CAYLA más que el azar, sale «tu sede vende distinto» y manda su cifra. El rango «tu sede sola: entre X e Y» (Brookmeyer-Crowley).
+- **Va lenta = vendidas contra esperadas** (la cuenta «observados contra esperados» de salud pública, Clayton y Kaldor 1987): E = riesgo acumulado de su
+  categoría a su edad (con la cola prestada de CAYLA más allá de la última venta de la sede); P(lenta) = P(Poisson(E+2) ≥ O+2); va lenta si ≥ 0,9.
+  Mirar solo los días colgada acertaba 37 % de lo que marcaba; esta regla, 72 % a los 14 días (79 % a los 21), con 12 % de falsas alarmas.
+- **% a tiempo = no va lenta** (no «edad ≤ lo típico», que en un piso sano daba 31–63 % por la paradoja de la inspección: lo lento se queda colgado).
+- **Edad conocida** solo desde una llegada real o una bajada posterior al cuadre de la sede; todo lo anterior, «al menos». Hoy la Frescura publicada pinta
+  «Crítica» todo polo de más de 2,1 días porque las 187 bajadas de TRU son registros de prendas que ya colgaban: esto lo corrige.
+
+### Decisiones técnicas de la ola 1 (tomadas por Claude; Felipe pidió decidir lo que no es de dueño)
+
+Lo eliminable con historia incluye lo que pasó por un cuadre (es historia de stock, ADR-0252). La limpieza de las ventas sin registrar es una operación:
+el nombre se pide una vez y se recuerda mientras la pantalla está abierta. El líder que vendió desde la terminal regulariza su propia venta entrando con su
+cuenta. El conteo de arranque del piso es por categoría (el primero de cada una); el del almacén, el primero completo; los conteos viejos de TRU quedan como
+están (el cuadre es su reinicio). «Devolver al proveedor» es reclamo, no pérdida. Talla única: 1 por color; los accesorios se miden fuera del riel. Un
+cambio de talla cuenta como venta en la fecha de la venta. «Error al cobrar» es talla cruzada (no pérdida); «Uso interno» es **pérdida con su propio rótulo** (clase a_mano por ahora; Felipe lo respondió directo en la sesión «Rediseñar flujo de corrección de cantidad», 2026-10-04, y reemplaza la decisión técnica previa de tratarlo como gasto);
+«Se dañó» va a Dañadas. Lo que faltó en un traslado se carga a la tienda que recibe, después de que la que envía confirme si salió. «Por reponer» se activa
+cuando se acaba lo colgado de esa talla y color, ordenado por lo que más se vende. Tallas centrales de calzado 37·38·39 y de anillos 7·8. «Es otra:
+corregir y colgar», cualquier integrante con Existencias, tope de 5 por prenda al día.
+
+### Coordinación con otras sesiones
+
+- **La cara de Existencias es de ADR-0331** (sesión «UI/UX», PR #790): cabecera, «Para hoy», tarjetas, umbral. **La actividad 8 sale de esta lista** y la
+  parte de pantalla de la 6 también: el cuadre entra por «Para hoy» (`EntradaParaHoy.piso` → tarea «cuadrar_piso» primero, «por colgar» en pausa) y la
+  capacidad como nota «de 600» en `ResumenSede`. El Inicio de Almacén lo alinea otra sesión: el motor del piso no toca el Inicio.
+- **Por regularizar vive en /inventario/por-regularizar** (ADR-0330).
+
+### Estado de la ola 1 (7 PR, construidos en paralelo, cada uno con revisión adversarial y corrección)
+
+#792 (3, cuadrar el piso) · #785 (4, cierre de la carga y «Encontré prendas») · #788 (5, ventas sin registrar) · #787 (7, motor del piso) · #786 (9, «La
+tengo en la mano») · #784 (14, pérdidas; cambia las Mermas de los meses abiertos en Finanzas: Felipe ve la sonda antes de pegar) · #789 (15, Conteo I).
+Ninguno pegado ni fusionado; el orden de pegado sale de la prueba de integración.
+
+### Actividades nuevas
+
+18. **Frescura con estadística:** lo típico contraído, «va lenta» por vendidas contra esperadas, % del piso a tiempo, ventana de 28 días, edad desde la
+    bajada o la llegada real (va sobre la actividad 3).
+19. **Frescura que luce:** tablero de renovación (portada, con la película de 8 semanas), perchero (encargado) y matriz (líder); «Qué renovar esta semana».
+
+### Reparto de la actividad 13 (2026-10-04, noche)
+
+La parte «razones al quitar y el motivo decide si suma o resta» la toma la sesión «Rediseñar flujo de corrección de cantidad», con
+estos códigos: `reposicion` («Encontré prendas», suma, nota obligatoria), `no_aparece` (pérdida), `error_al_cobrar`
+(reclasificación, no pérdida), `uso_interno` (pérdida con su rótulo) y `otro` (pérdida, con nota). «Se dañó» abre «Reportar
+dañada» (#796) en vez de ajustar. «Conteo físico» sigue en Ajustar como «Conté y no coincide» hasta la actividad 16 («Ajustar abre
+Por prenda»). La tabla `retail.motivos_movimiento` es decisión estructural pendiente de Felipe en esa sesión. Aquí queda solo la
+confirmación del líder cuando se quitan más de 5 de una talla o se deja en 0 una que tenía 3 o más.
+

@@ -70,7 +70,7 @@ function todoElTexto(): string {
   const partes: string[] = [];
   for (const v of ["sirvio", "no_alcanzo", "aun_no_se_sabe", "sin_control", "no_estuvo_colgada", "se_mide_en_destino", "aun_no_llega"] as const) {
     for (const enCurso of [false, true]) {
-      for (const cortadaPor of [null, "llegada", "temporada", "otra_decision", "traslado_anulado"] as const) {
+      for (const cortadaPor of [null, "llegada", "temporada", "otra_decision", "traslado_anulado", "cuadre"] as const) {
         const r = resultado({ veredicto: v, enCurso, cortadaPor, enSede: "Tienda Lima" });
         partes.push(textoResultado(r, linea(), CAT, SEDE));
         partes.push(textoResultado({ ...r, rebaje: { conLiquidacion: 0, deCampana: 2, sinDescuento: 1 } }, linea({ accion: "rebaje" }), CAT, SEDE));
@@ -209,6 +209,9 @@ describe("el resultado, en frases de tienda", () => {
   it("si la ventana se acortó, lo dice: llegó mercadería, o terminó su temporada", () => {
     expect(textoResultado(resultado({ cortadaPor: "llegada", hasta: lima("2026-10-03T09:00:00") }), l, CAT, SEDE)).toMatch(/Se midió en 4 días: el 3 oct llegó mercadería y lo que se decidió era sobre lo anterior\./);
     expect(textoResultado(resultado({ cortadaPor: "temporada", hasta: lima("2026-10-03T00:00:00") }), l, CAT, SEDE)).toMatch(/Se midió hasta el 3 oct, cuando terminó su temporada\./);
+    expect(textoResultado(resultado({ cortadaPor: "cuadre", hasta: lima("2026-10-03T07:30:00") }), l, CAT, SEDE)).toMatch(
+      /Se midió hasta el 3 oct, cuando se cuadró el piso de la tienda: desde ahí el sistema cuenta otras prendas colgadas\./,
+    );
   });
 
   it("«La rebajé»: separa liquidación de campaña y pregunta si la caja sabe que está rebajada", () => {
