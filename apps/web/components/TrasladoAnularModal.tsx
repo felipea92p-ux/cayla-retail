@@ -44,7 +44,7 @@ export function TrasladoAnularModal({
               placeholder="Ej.: mandé la talla equivocada; sale otro traslado con la correcta."
               rows={3}
               disabled={ocupado}
-              className="caja-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-taupe"
+              className="caja-cayla w-full px-3 py-2 text-sm text-tinta placeholder:text-taupe"
             />
           </div>
           <ComboResponsable control={responsable} deshabilitado={ocupado} />
