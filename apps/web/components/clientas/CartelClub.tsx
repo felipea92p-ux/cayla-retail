@@ -132,7 +132,7 @@ export function CartelClub({
 /** El cartel mismo, con las medidas del diseño por `--u` (ver arriba): el que lo contiene decide su tamaño. */
 function Cartel({ cartel, textos }: { cartel: CartelDeTienda; textos: TextosCartel }) {
   return (
-    <div className="cartel-club">
+    <div className="cartel-club papel-fijo">
       <div className="cartel-club-marco">
         <div className="cartel-club-interior">
           <div className="cartel-club-cabeza">
