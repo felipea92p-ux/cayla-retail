@@ -8,7 +8,7 @@ import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -649,7 +649,7 @@ export function BajarAlPisoForm({
                       <li key={l.varianteId} className={`relative flex flex-wrap items-center gap-x-4 gap-y-2.5 px-4 py-3 sm:px-5 ${enRojo ? "bg-rojo/[0.05]" : ""}`}>
                         {destello?.id === l.varianteId && <span key={destello.n} aria-hidden className="anim-destello-lectura pointer-events-none absolute inset-0" />}
                         <div className="relative flex min-w-0 flex-1 basis-56 items-start gap-3">
-                          <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} tamano="lg" />
+                          <MiniaturaPrenda fotoUrl={prenda?.fotoUrl ?? null} tamano="lg" {...categoriaDe(prenda)} />
                           <div className="min-w-0">
                             <p className="text-sm text-tinta">{nombre}</p>
                             {prenda?.sku && <p className="font-mono text-xs text-tinta/65">{prenda.sku}</p>}

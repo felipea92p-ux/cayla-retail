@@ -96,6 +96,10 @@ export type PrendaAjuste = {
   /** La foto de la prenda, para el costado de la ventana. `undefined` = quien lo abre no la tiene (la ficha del producto en edición):
    *  la ventana va sin foto y con su ancho de antes; `null` = la prenda no tiene foto (se dibuja el marcador). */
   fotoUrl?: string | null;
+  /** Su categoría, para dibujar la prenda sin foto (`FotoDePrenda`): el ícono sale del prefijo (o de la familia) y el nombre se escribe debajo. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
+  categoria?: string | null;
 };
 
 /** Solo las variantes del color de la prenda; sin prenda, todas. Compara por NOMBRE porque es lo que trae la fila de

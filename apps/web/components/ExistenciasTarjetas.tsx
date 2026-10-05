@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
-import { SinFoto } from "@/components/ui/PrendaCelda";
+import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
@@ -160,7 +160,7 @@ export function ExistenciasTarjetas({
           >
             <div className="flex gap-3.5">
               <div className="h-[100px] w-[75px] shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[88px] max-sm:w-[66px]">
-                {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={150} height={200} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" />}
+                {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={150} height={200} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} conNombre />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">

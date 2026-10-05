@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import {
   RESULTADOS_POR_PAGINA,
   MAX_PRENDAS_POR_CONTEO,
@@ -193,7 +193,7 @@ export function ElegirPrendas({
                         {/* Dos líneas a propósito: lo que distingue una fila de la de al lado es el color y la talla, y en una sola
                             línea angosta (375 px) «Blusa Valentina · Blanc…» las dejaba todas iguales. */}
                         <span className="flex min-w-0 items-center gap-2.5">
-                          <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} />
+                          <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} {...categoriaDe(p)} />
                           <span className="min-w-0">
                             <span className="block truncate text-sm text-tinta">{p.referencia}</span>
                             <span className="flex min-w-0 items-baseline gap-1.5 text-xs text-tinta/65">

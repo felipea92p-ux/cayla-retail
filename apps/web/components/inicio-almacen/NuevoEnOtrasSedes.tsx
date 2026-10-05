@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import { categoriaDe } from "@/components/ui/PrendaCelda";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
 import { formatoSoles } from "@/lib/resumen-formato";
-import { ayudaNuevos, chipsNuevos, filtrarNuevos, hrefFichaProducto, hrefFotosProducto, notaEnMiSede, type FiltroNuevos, type NuevoProducto } from "@/lib/inicio-almacen-reglas";
+import { ayudaNuevos, chipsNuevos, filtrarNuevos, hrefFichaProducto, hrefFotosProducto, notaEnMiSede, type FiltroNuevos, type NuevoProducto, colorUnico } from "@/lib/inicio-almacen-reglas";
 import { ChipSede } from "./ChipSede";
-import { Ico, PrendaSinFoto } from "./iconos";
+import { Ico } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
 
 /**
@@ -144,8 +146,15 @@ function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number;
   const visibles = p.colores.slice(0, 4);
   return (
     <article className="ia-pc ia-tilt ia-spot" style={estilo}>
-      <div className={`ia-ft ${p.fotoUrl ? "" : "ia-sin"}`}>
-        {p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="250px" unoptimized /> : <PrendaSinFoto />}
+      <div className="ia-ft">
+        {p.fotoUrl ? (
+          <Image src={p.fotoUrl} alt="" fill sizes="250px" unoptimized />
+        ) : (
+          // La capa absoluta es de este contenedor: el mosaico trae su propio `relative`.
+          <div className="absolute inset-0">
+            <MosaicoPrenda forma="relleno" conNombre colorHex={colorUnico(p.colores)} {...categoriaDe(p)} className="h-full w-full !rounded-none" />
+          </div>
+        )}
         <i className="ia-scan" />
         <span className="ia-bd ia-nv">
           <Ico clave="plus" />
