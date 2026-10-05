@@ -389,7 +389,13 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 /* ---------- solo iconos ---------- */
 .solo-lector{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .fila-estado{justify-content:flex-end;min-height:40px}
-.fila-acciones{display:flex;gap:6px}
+.acciones-c{position:relative;display:inline-flex;flex-direction:row-reverse;gap:6px}
+.acciones-c .ib-mas{display:none}
+.aparato:not(.pc) .acciones-c .ib-mas{display:grid}
+.ib-otros{position:absolute;right:100%;top:0;display:flex;gap:6px;padding-right:6px;opacity:0;visibility:hidden;transform:translateX(10px);pointer-events:none;transition:opacity .16s var(--ease),transform .16s var(--ease),visibility .16s}
+.acciones-c:focus-within .ib-otros,.acciones-c.abierta .ib-otros{opacity:1;visibility:visible;transform:none;pointer-events:auto}
+@media (hover:hover){.pc .acciones-c:hover .ib-otros{opacity:1;visibility:visible;transform:none;pointer-events:auto}}
+.acciones-c.abierta .ib-mas{background:var(--hueso);color:var(--tinta)}
 .ib{width:40px;height:40px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--taupe);position:relative;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease)}
 .ib svg{width:19px;height:19px}
 .ib:hover{border-color:var(--taupe);color:var(--tinta);background:var(--crema)}
@@ -519,8 +525,8 @@ table.t td:first-child{font-weight:600}
       </tbody>
     </table></div>
     <div class="decision">
-      <p><span class="k">Decidí</span>La tarjeta no repite el estado: se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen, y los botones son solo iconos (Reponer, Retirar del piso, Enviar a otra sede; el que la pantalla sugiere va en ámbar). El nombre sale al pasar el mouse o al enfocar con el teclado, y cada botón lo lleva también como etiqueta para el lector de pantalla. Los filtros se pueden ver de dos formas, con el interruptor de la derecha: solo iconos (con el nombre y la cifra al pasar el mouse) o iconos con texto.</p>
-      <p><span class="k">Descarté</span>Dejar el menú que se abría al pasar el mouse por el botón: con solo iconos caben los tres a la vista, y en tablet no hay mouse.</p>
+      <p><span class="k">Decidí</span>La tarjeta no repite el estado (se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen) y muestra un solo icono: la acción que la pantalla sugiere, en ámbar. Al pasar el mouse o enfocar con el teclado salen a su izquierda las demás (Reponer, Retirar del piso, Enviar a otra sede), y en tablet las abre un botón «⋯». El nombre sale al pasar el mouse y cada botón lo lleva como etiqueta para el lector de pantalla. Los filtros se pueden ver de dos formas, con el interruptor de la derecha: solo iconos (con el nombre y la cifra al pasar el mouse) o iconos con texto.</p>
+      <p><span class="k">Descarté</span>Mostrar los tres iconos siempre: en 8 tarjetas son 24 botones iguales y ninguno dice cuál conviene.</p>
       <p><span class="k">Se rompe si</span>una integrante nueva no distingue «Retirar del piso» de «Enviar a otra sede» solo por el icono: en tablet no hay mouse para ver el nombre. Por eso el interruptor de filtros existe y el panel conserva los nombres escritos; en las tarjetas conviene probarlo con alguien sin capacitación antes de dejar solo iconos.</p>
     </div>
     <div class="decision">
@@ -783,18 +789,17 @@ const solo = S.vf === "iconos";
   // ================= lista =================
   // La fila de estado de la tarjeta: solo SÍMBOLO + número + la acción. El texto completo vive detrás de «ⓘ» (se abre al tocar,
   // como las descripciones de otros apartados) y en el title para quien usa mouse. Así la tarjeta no se llena de frases.
-  // La fila de acciones de la tarjeta: solo iconos (el nombre sale al pasar el mouse o al enfocar). La que la pantalla sugiere va
-  // resaltada. El estado ya lo dicen las tallas (ámbar = por reponer, punteada = sin stock): no se repite con un indicador aparte.
+  // La tarjeta muestra UN solo icono: la acción que la pantalla sugiere (o Reponer). Al pasar el mouse, o al enfocar con el teclado,
+  // salen a su izquierda las demás. En tablet, que no tiene mouse, un botón «⋯» las abre. El estado no se repite aparte: ya lo dicen las tallas.
   function filaEstado(p, c, { etiqueta, accion }) {
     const ib = (txt, icono, attrs, sug) => `<button class="ib${sug ? " sugerida" : ""}" data-tip="${esc(txt)}" aria-label="${esc(txt)}" ${attrs}>${icono}</button>`;
     const rap = k => `data-acc="rapida" data-k="${k}" data-pid="${p.id}" data-c="${c}"`;
-    const sugReponer = accion?.txt === "Reponer";
-    const botones = [];
-    if (accion && !sugReponer) botones.push(ib(accion.txt === "Pedir" ? "Pedir a otra sede" : accion.txt, accion.txt === "Pedir" ? IC.pedir : IC.ficha, accion.attrs, true));
-    botones.push(ib("Reponer", IC.reponer, sugReponer ? accion.attrs : rap("reponer"), sugReponer));
-    botones.push(ib("Retirar del piso", IC.retirar, rap("retirar"), false));
-    botones.push(ib("Enviar a otra sede", IC.enviar, rap("enviar"), false));
-    return `<div class="fila-estado"><span class="solo-lector">${esc(etiqueta)}</span><div class="fila-acciones" role="group" aria-label="Acciones de ${esc(p.nombre)}">${botones.join("")}</div></div>`;
+    const sugReponer = accion?.txt === "Reponer", otraSug = accion && !sugReponer;
+    const principal = otraSug
+      ? ib(accion.txt === "Pedir" ? "Pedir a otra sede" : accion.txt, accion.txt === "Pedir" ? IC.pedir : IC.ficha, accion.attrs, true)
+      : ib("Reponer", IC.reponer, sugReponer ? accion.attrs : rap("reponer"), sugReponer);
+    const otros = [otraSug ? ib("Reponer", IC.reponer, rap("reponer"), false) : "", ib("Retirar del piso", IC.retirar, rap("retirar"), false), ib("Enviar a otra sede", IC.enviar, rap("enviar"), false)].join("");
+    return `<div class="fila-estado"><span class="solo-lector">${esc(etiqueta)}</span><div class="acciones-c" role="group" aria-label="Acciones de ${esc(p.nombre)}">${principal}<button class="ib ib-mas" data-acc="ib-mas" data-tip="Más acciones" aria-label="Más acciones" aria-expanded="false">${IC.mas}</button><div class="ib-otros">${otros}</div></div></div>`;
   }
   const SVG_OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   function pastilla(p, c) {
@@ -1346,6 +1351,7 @@ const solo = S.vf === "iconos";
     const d = el.dataset, f = S.panel?.flujo;
     switch (d.acc) {
       case "limpiar": S.q = ""; renderBarra(); renderLista(); document.getElementById("q").focus(); break;
+      case "ib-mas": { const ac = el.closest(".acciones-c"), abre = !ac.classList.contains("abierta"); document.querySelectorAll(".acciones-c.abierta").forEach(x => x.classList.remove("abierta")); if (abre) ac.classList.add("abierta"); el.setAttribute("aria-expanded", String(abre)); break; }
       case "vista-f": S.vf = d.k; renderBarra(); break;
       case "orden": S.orden = d.k; renderBarra(); renderLista(); break;
       case "reco": lanzar(d.pid, +d.c, null, "reponerVarias", { cant:{} }); break;
@@ -1414,6 +1420,8 @@ const solo = S.vf === "iconos";
     if (e.key === "Escape" && S.panel) { if (S.panel.flujo) { S.panel.flujo = null; renderPanel(true); } else cerrarPanel(); }
   });
 
+
+  document.addEventListener("click", e => { if (!e.target.closest(".acciones-c")) document.querySelectorAll(".acciones-c.abierta").forEach(x => x.classList.remove("abierta")); });
 
   // ================= controles de la maqueta =================
   document.querySelectorAll("[data-ancho]").forEach(b => b.addEventListener("click", () => {
