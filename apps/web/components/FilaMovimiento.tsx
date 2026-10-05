@@ -26,7 +26,7 @@ import {
 } from "@/lib/movimientos-reglas";
 import { TIPOS_VISUALES, rotuloDeMovimiento, tipoDeOperacion, type TipoVisual } from "@/lib/movimientos-tipos";
 
-// Una fila de la lista de Movimientos (rediseño 2026-10-05, ADR-0345; maqueta: docs/maquetas/movimientos-rediseno-2026-10/,
+// Una fila de la lista de Movimientos (rediseño 2026-10-05, ADR-0346; maqueta: docs/maquetas/movimientos-rediseno-2026-10/,
 // opción A · Ruta, elegida por Felipe). Se lee de izquierda a derecha: el SELLO del tipo (su color y su ícono dicen de un
 // vistazo si fue una venta, una colgada en piso, una guardada en almacén…) · qué fue y de qué prenda · el TRAYECTO «de dónde
 // a dónde» con su referencia · la cantidad en grande, con el color del tipo.
@@ -227,7 +227,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   );
 }
 
-/** El MAZO: las colgadas (o las guardadas) de un día, plegadas en una fila con sus capas apiladas (ADR-0241, ADR-0345). Al
+/** El MAZO: las colgadas (o las guardadas) de un día, plegadas en una fila con sus capas apiladas (ADR-0241, ADR-0346). Al
  *  tocarla se abre en abanico —cada operación es su fila, que a su vez abre el cajón— y al volver a tocarla se pliega. Solo existe
  *  en «Todos» sin búsqueda: con el filtro de tipo o buscando una prenda, cada una es su fila (quien viene a confirmar «¿la
  *  colgué?» la ve). El cajón de «todas juntas» (ADR-0241, 2026-09-28) lo reemplaza el abanico: cada operación ya tiene el suyo. */

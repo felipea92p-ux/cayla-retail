@@ -408,7 +408,7 @@ describe("construirDetalleBajadas (el cajón de las bajadas del día)", () => {
   });
 });
 
-describe("el cajón dice de qué tipo es, por dónde fue y qué pasó (ADR-0345)", () => {
+describe("el cajón dice de qué tipo es, por dónde fue y qué pasó (ADR-0346)", () => {
   const piso = { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" };
   const almacen = { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" };
   const una = (parcial: Partial<Movimiento>) => agruparPorOperacion([movimiento(parcial)])[0];

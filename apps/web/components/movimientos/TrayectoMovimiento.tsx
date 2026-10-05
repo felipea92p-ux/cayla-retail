@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import { kindDeLugar, type KindLugar, type TipoVisual } from "@/lib/movimientos-tipos";
 
-// El trayecto de un movimiento (ADR-0345): «Piso → Cliente», «Almacén → Piso», con el ícono de cada lugar y una prenda que
+// El trayecto de un movimiento (ADR-0346): «Piso → Cliente», «Almacén → Piso», con el ícono de cada lugar y una prenda que
 // viaja de un punto al otro UNA vez. Sin destino (un ajuste, un conteo): un solo lugar y lo que pasó ahí.
 
 const ICONOS: Record<KindLugar, string> = {

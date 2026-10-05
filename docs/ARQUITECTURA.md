@@ -290,6 +290,14 @@ flowchart TB
   («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
   (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
   «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
+  **2026-10-05 (ADR-0346, los tipos que se ven):** cada fila se dibuja con su **tipo** (`lib/movimientos-tipos.ts`: `tipoVisual`, `TIPOS_VISUALES`,
+  `GRUPOS_TIPO`, `rotuloDeMovimiento`, `kindDeLugar`) con su sello (`components/movimientos/SelloTipo.tsx`) y su trayecto (`TrayectoMovimiento.tsx`); estilos en
+  `app/estilos/movimientos-sellos.css` (`mv-*`). **Los siete botones de tipo en una columna a la derecha** (`TiposMovimiento.tsx`) son el filtro Y la cifra: reemplazan
+  las píldoras de tipo de `FiltrosMovimientos` y las tres tarjetas de arriba. La base acepta `p_categoria` `venta | colgada | guardada | llegada | traslado | cliente`
+  en `fn_movimientos` y suma esos grupos en `fn_movimientos_resumen_procesos` (migración `20261005160000`, solo lectura; prueba
+  `pnpm pruebas:movimientos-colgada-y-guardada`). El día lleva su franja de operaciones (`EncabezadoDia.tsx`, sin cifra) y las colgadas y las guardadas del día van en
+  mazos separados (`plegarBajadas`, `FilaBajadas`); el cajón trae sello, ruta y «Qué pasó» (`pasosDeOperacion`). «Colgada en piso» y «Guardada en almacén» reemplazan
+  «Bajada al piso» y «Retiro del piso» solo dentro de Movimientos.
   **2026-10-04 (ADR-0328 act. 14, pestaña «Pérdidas»):** `?vista=perdidas` (`PaginaPerdidas` en `page.tsx`, pestañas `Pestanas`) →
   `lib/perdidas.ts` (`getResumenPerdidas`) → RPC `fn_perdidas_resumen(sede, desde, hasta, prenda?, zona?)` (jsonb: perdido, aparecido,
   por razón, categoría y talla, «más faltan», hechos; costo por prenda solo del líder) → `components/perdidas/PerdidasVista.tsx`. La

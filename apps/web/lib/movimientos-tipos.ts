@@ -1,7 +1,7 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { ETIQUETA_COLGADA, ETIQUETA_GUARDADA, etiquetaMovimiento, parDeInterno, respaldoDeAjuste, type Movimiento } from "./movimientos-reglas";
 
-// Los tipos que se VEN de un movimiento (rediseño de Movimientos, ADR-0345): cada uno con su nombre, su color, su ícono
+// Los tipos que se VEN de un movimiento (rediseño de Movimientos, ADR-0346): cada uno con su nombre, su color, su ícono
 // y el grupo del filtro de la derecha al que pertenece. Es la capa que contesta «¿qué fue esto?» de un vistazo —una
 // venta, una colgada en piso, una guardada en almacén…— y reemplaza al color por categoría (`tonoCategoria`), que no
 // separaba una bajada de un retiro.

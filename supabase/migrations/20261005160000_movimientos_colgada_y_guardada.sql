@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261005160000_movimientos_colgada_y_guardada.sql — CAYLA V2 · ADR-0345 (Felipe, 2026-10-05)
+-- 20261005160000_movimientos_colgada_y_guardada.sql — CAYLA V2 · ADR-0346 (Felipe, 2026-10-05)
 -- Movimientos se filtra y se cuenta por LOS TIPOS QUE SE VEN: venta, colgada en piso, guardada en almacén, llegada, traslado
 -- enviado, cambio o devolución, y ajuste. Lo que hasta ahora eran dos cosas (`p_categoria` y `p_motivo`) pasa a poder pedirse
 -- con una sola palabra.
@@ -79,15 +79,15 @@ $f$;
 select pg_temp.reemplazar_una_vez(
   'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamp with time zone, uuid, integer, uuid)',
   $viejo$p_categoria not in ('entrada', 'salida', 'interno', 'ajuste', 'transferencia')$viejo$,
-  $nuevo$p_categoria not in ('entrada', 'salida', 'interno', 'ajuste', 'transferencia', 'venta', 'colgada', 'guardada', 'llegada', 'traslado', 'cliente') /* ADR-0345: validacion_tipos_visuales */$nuevo$,
-  'ADR-0345: validacion_tipos_visuales'
+  $nuevo$p_categoria not in ('entrada', 'salida', 'interno', 'ajuste', 'transferencia', 'venta', 'colgada', 'guardada', 'llegada', 'traslado', 'cliente') /* ADR-0346: validacion_tipos_visuales */$nuevo$,
+  'ADR-0346: validacion_tipos_visuales'
 );
 
 select pg_temp.reemplazar_una_vez(
   'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamp with time zone, uuid, integer, uuid)',
   $viejo$or (p_categoria = 'interno' and m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id)$viejo$,
   $nuevo$or (p_categoria = 'interno' and m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id)
-      or (p_categoria = 'venta' and m.motivo = 'venta') /* ADR-0345: filtro_tipos_visuales */
+      or (p_categoria = 'venta' and m.motivo = 'venta') /* ADR-0346: filtro_tipos_visuales */
       or (p_categoria = 'colgada' and m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id
             and so.tipo = 'almacen_tienda' and sd.tipo = 'piso_venta')
       or (p_categoria = 'guardada' and m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id
@@ -101,7 +101,7 @@ select pg_temp.reemplazar_una_vez(
             or (m.tipo = 'traslado' and m.ubicacion_id <> m.ubicacion_destino_id and m.ubicacion_id = p_ubicacion_id)
           ))
       or (p_categoria = 'cliente' and m.motivo in ('devolucion', 'anulacion_venta', 'cambio'))$nuevo$,
-  'ADR-0345: filtro_tipos_visuales'
+  'ADR-0346: filtro_tipos_visuales'
 );
 
 -- ---------- 2. Las cifras: los mismos grupos ----------
@@ -109,16 +109,16 @@ select pg_temp.reemplazar_una_vez(
   'retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)',
   $viejo$    left join venta_items vi on vi.id = m.venta_item_id$viejo$,
   $nuevo$    left join venta_items vi on vi.id = m.venta_item_id
-    left join sububicaciones so on so.id = m.sububicacion_id /* ADR-0345: sububicaciones_tipos_visuales */
+    left join sububicaciones so on so.id = m.sububicacion_id /* ADR-0346: sububicaciones_tipos_visuales */
     left join sububicaciones sd on sd.id = m.sububicacion_destino_id$nuevo$,
-  'ADR-0345: sububicaciones_tipos_visuales'
+  'ADR-0346: sububicaciones_tipos_visuales'
 );
 
 select pg_temp.reemplazar_una_vez(
   'retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)',
   $viejo$case when m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id then 'interno' end,$viejo$,
   $nuevo$case when m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id then 'interno' end,
-        case when m.motivo = 'venta' then 'venta' end, /* ADR-0345: grupos_tipos_visuales */
+        case when m.motivo = 'venta' then 'venta' end, /* ADR-0346: grupos_tipos_visuales */
         case when m.tipo = 'traslado' and m.ubicacion_id = m.ubicacion_destino_id
                and so.tipo = 'almacen_tienda' and sd.tipo = 'piso_venta'
              then 'colgada' end,
@@ -132,8 +132,8 @@ select pg_temp.reemplazar_una_vez(
                or (m.tipo = 'traslado' and m.ubicacion_id <> m.ubicacion_destino_id and m.ubicacion_id = p_ubicacion_id)
              then 'traslado' end,
         case when m.motivo in ('devolucion', 'anulacion_venta', 'cambio') then 'cliente' end,$nuevo$,
-  'ADR-0345: grupos_tipos_visuales'
+  'ADR-0346: grupos_tipos_visuales'
 );
 
 comment on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) is
-  'ADR-0234 y ADR-0345: las tarjetas y las cifras de Movimientos leídas desde la tienda. Por (grupo de la pantalla: todos, entrada, salida, transferencia, ajuste, interno y los tipos que se ven: venta, colgada, guardada, llegada, traslado, cliente; proceso): operaciones (lo guardado de una sola vez), filas, y las unidades que ENTRARON a la sede, SALIERON de ella o se MOVIERON entre piso y almacén. Mismo permiso que la lista.';
+  'ADR-0234 y ADR-0346: las tarjetas y las cifras de Movimientos leídas desde la tienda. Por (grupo de la pantalla: todos, entrada, salida, transferencia, ajuste, interno y los tipos que se ven: venta, colgada, guardada, llegada, traslado, cliente; proceso): operaciones (lo guardado de una sola vez), filas, y las unidades que ENTRARON a la sede, SALIERON de ella o se MOVIERON entre piso y almacén. Mismo permiso que la lista.';

@@ -32,7 +32,7 @@ const MS_SALIDA = 240;
    Es un solo marco con dos contenidos: UNA operación (`ContenidoOperacion`) o un movimiento interno (una colgada en piso o una
    guardada en almacén, `ContenidoBajadas`). Pasar de uno a otro cambia el contenido sin cerrar ni volver a deslizar.
 
-   Rediseño 2026-10-05 (ADR-0345): la cabecera lleva el sello y el color de su tipo, y después de la frase vienen la ruta (de dónde
+   Rediseño 2026-10-05 (ADR-0346): la cabecera lleva el sello y el color de su tipo, y después de la frase vienen la ruta (de dónde
    a dónde) y «Qué pasó» (tres pasos, solo con lo que el registro respalda). Todo lo demás —la frase con el número grande, lo
    que había y hay, la lista, el documento— sigue como lo aprobó Felipe.
    ==================================================================== */
@@ -43,7 +43,7 @@ const TONO_TEXTO: Record<TonoCifra, string> = {
   neutro: "text-tinta",
 };
 
-/** Nombre del movimiento y cuándo, en una cabecera con el color y el sello de su tipo (ADR-0345): el mismo ícono y color que
+/** Nombre del movimiento y cuándo, en una cabecera con el color y el sello de su tipo (ADR-0346): el mismo ícono y color que
  *  la fila de la lista, así se reconoce al abrirlo. El título es el mismo texto que la lista dice para esa fila. */
 function Encabezado({ titulo, cuando, tipo }: { titulo: string; cuando: string; tipo: TipoVisual }) {
   return (

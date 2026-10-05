@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de integración de los tipos que se ven en Movimientos (ADR-0345, migración 20261005160000) contra el Postgres LOCAL:
+ * Prueba de integración de los tipos que se ven en Movimientos (ADR-0346, migración 20261005160000) contra el Postgres LOCAL:
  * el filtro `p_categoria = venta | colgada | guardada | llegada | traslado | cliente` de `retail.fn_movimientos` y los mismos
  * grupos de `retail.fn_movimientos_resumen_procesos`.
  *
@@ -236,9 +236,9 @@ rollback;`);
 correr(
   "5. El parche está puesto y es re-pegable",
   `begin;
-${K("marca_validacion", "position('ADR-0345: validacion_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("marca_filtro", "position('ADR-0345: filtro_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("marca_grupos", "position('ADR-0345: grupos_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure)) > 0")}
+${K("marca_validacion", "position('ADR-0346: validacion_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
+${K("marca_filtro", "position('ADR-0346: filtro_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
+${K("marca_grupos", "position('ADR-0346: grupos_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure)) > 0")}
 ${K("n_lista", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos')")}
 ${K("anon", "has_function_privilege('anon', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("auth", "has_function_privilege('authenticated', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
