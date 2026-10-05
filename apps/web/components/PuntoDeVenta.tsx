@@ -2079,7 +2079,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                     key={color.clave}
                     ubicacionId={ubicacionId}
                     descripcion={descripcionDePrenda(prendaElegida.referencia, color.color)}
-                    tallas={color.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
+                    tallas={color.tallas
+                      .filter((t) => motivoNoCobrable(t.variante) !== "cobrable")
+                      .map((t) => ({ talla: t.talla ?? "Única", varianteId: t.variante.varianteId }))}
                     clientaId={clienta?.id ?? null}
                     responsable={responsable}
                   />
