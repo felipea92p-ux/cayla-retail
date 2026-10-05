@@ -75,6 +75,16 @@ export function noEstaCompleta(p: Pick<PrendaParaEnviar, "falta" | "enAlmacen">)
   return p.enAlmacen < p.falta;
 }
 
+/**
+ * Lo que dice la lista cuando falta prenda en el almacén. `enAlmacen` es lo LIBRE: una prenda apartada (por ejemplo para
+ * el pedido de un cliente de esa misma sede, que el almacén aparta primero) tampoco cuenta. Por eso no se afirma que se
+ * vendió: se nombran las tres salidas posibles, y quien la subió decide antes de tocar «Ya no la envío».
+ */
+export function avisoNoEstaCompleta(p: Pick<PrendaParaEnviar, "falta" | "enAlmacen">): string {
+  if (enviableHoy(p) === 0) return "Ya no está libre en tu almacén: ¿se vendió, se movió o se apartó para un pedido?";
+  return `En tu almacén hay ${p.enAlmacen} ${p.enAlmacen === 1 ? "libre" : "libres"}: revisa si se vendió o se apartó alguna.`;
+}
+
 /** La lista por sede de destino (en orden alfabético), y dentro, lo más antiguo primero. Solo lo que falta enviar. */
 export function agruparPorDestino(filas: readonly PrendaParaEnviar[]): GrupoParaEnviar[] {
   const grupos = new Map<string, GrupoParaEnviar>();

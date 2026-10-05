@@ -4,6 +4,7 @@ import {
   PARAMETROS_RPC_SUBIR_PARA_ENVIAR,
   RPC_SUBIR_PARA_ENVIAR,
   agruparPorDestino,
+  avisoNoEstaCompleta,
   destinosParaEnviar,
   enviableHoy,
   etiquetaParaEnviar,
@@ -79,6 +80,11 @@ describe("lo que se puede enviar hoy", () => {
   it("si en el almacén hay menos de lo que falta, la lista lo avisa", () => {
     expect(noEstaCompleta({ falta: 2, enAlmacen: 1 })).toBe(true);
     expect(noEstaCompleta({ falta: 2, enAlmacen: 2 })).toBe(false);
+  });
+  it("el aviso no afirma que se vendió: también pudo apartarse para un pedido (revisión adversarial)", () => {
+    expect(avisoNoEstaCompleta({ falta: 1, enAlmacen: 0 })).toBe("Ya no está libre en tu almacén: ¿se vendió, se movió o se apartó para un pedido?");
+    expect(avisoNoEstaCompleta({ falta: 3, enAlmacen: 1 })).toBe("En tu almacén hay 1 libre: revisa si se vendió o se apartó alguna.");
+    expect(avisoNoEstaCompleta({ falta: 3, enAlmacen: 2 })).toBe("En tu almacén hay 2 libres: revisa si se vendió o se apartó alguna.");
   });
 });
 

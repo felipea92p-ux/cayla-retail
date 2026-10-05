@@ -16,7 +16,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { textoPrendas } from "@/lib/pedidos-entre-sedes-reglas";
 import {
   MAX_MOTIVO_YA_NO,
-  enviableHoy,
+  avisoNoEstaCompleta,
   etiquetaParaEnviar,
   motivoYaNoValido,
   noEstaCompleta,
@@ -75,7 +75,7 @@ export function ParaEnviar({ grupos, ubicacion }: { grupos: GrupoParaEnviar[]; u
                     {noEstaCompleta(p) && (
                       <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-ambar-profundo">
                         <AlertTriangle aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        {enviableHoy(p) === 0 ? "Ya no está en tu almacén: ¿se vendió o se movió?" : `En tu almacén hay ${p.enAlmacen}: revisa si se vendió alguna.`}
+                        {avisoNoEstaCompleta(p)}
                       </p>
                     )}
                   </div>
