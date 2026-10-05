@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Pruebas de `20260922170000_alta_colaborador_requiere_aprobacion.sql` (D-70, ADR-0157)
- * contra el Postgres local.
+ * Pruebas de `20260922170000_alta_colaborador_requiere_aprobacion.sql` (D-70, ADR-0157) y de
+ * `20261005190000_dar_acceso_lider_entra_directo_con_rol.sql` (ADR-0341) contra el Postgres local.
  *
  * QUÉ PRUEBA
- *   · `agregar_colaborador` crea la fila en `pendiente_aprobacion`, no en `activo`;
+ *   · desde el 2026-10-05, el alta que da un LÍDER entra activa (la de quien no es líder sigue pendiente: lo prueba
+ *     `roles_por_modulo.mjs`, con una integrante que tiene el módulo Colaboradores);
+ *   · el rol se elige al dar acceso: queda en la fila y en `roles_historial`; el rol Líder no se da al entrar;
  *   · con la fila en `pendiente_aprobacion`, `fn_puede_operar_ubicacion` da falso para esa
  *     ubicación — la persona nueva NO puede operar;
  *   · `fn_aprobar_alta_colaborador` exige ser líder o tener el módulo Colaboradores (20260923131000; 42501 si no);
@@ -38,7 +40,15 @@ const SQL_MIGRACION = readFileSync(
   join(RAIZ, "supabase", "migrations", "20260922170000_alta_colaborador_requiere_aprobacion.sql"),
   "utf8"
 );
-const PRELUDIO = EN_SECO ? SQL_MIGRACION : "";
+const SQL_DAR_ACCESO = readFileSync(join(RAIZ, "supabase", "migrations", "20261005190000_dar_acceso_lider_entra_directo_con_rol.sql"), "utf8");
+// En seco carga solo la de Dar acceso: la de D-70 (2026-09-22) ya está en toda base, y volver a cargarla trae funciones
+// que migraciones posteriores cambiaron (p. ej. `fn_ubicacion_actual_persona`) y el escenario deja de parecerse a producción.
+const PRELUDIO = EN_SECO ? SQL_DAR_ACCESO : "";
+
+// Un alta pendiente, como la deja quien tiene el módulo Colaboradores sin ser líder (desde ADR-0341 un líder ya no deja
+// ninguna pendiente). Se inserta directo para probar la aprobación sin armar esa cuenta aquí.
+const ALTA_PENDIENTE = `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado)
+  values (:'candidata_id', 'integrante', :'ubi', 'pendiente_aprobacion');`;
 
 function correr(sql) {
   try {
@@ -103,17 +113,58 @@ function verificar(nombre, res, esperado) {
 }
 
 verificar(
-  "agregar_colaborador crea la fila pendiente_aprobacion, no activa",
+  "el alta que da un líder entra activa (ADR-0341)",
   correr(escena(`
     select retail.agregar_colaborador(:'candidata_id', :'ubi');
     select estado from retail.colaboradores where persona_id = :'candidata_id';`)),
-  /(^|\n)pendiente_aprobacion$/
+  /(^|\n)activo$/
+);
+
+verificar(
+  "el alta de un líder ya puede operar su ubicación, sin aprobar",
+  correr(escena(`
+    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    set local request.jwt.claim.sub = :'candidata_auth';
+    select retail.fn_puede_operar_ubicacion(:'ubi'::uuid);`)),
+  /(^|\n)t$/
+);
+
+verificar(
+  "sin rol elegido entra como Integrante",
+  correr(escena(`
+    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    select (rol_id = retail.fn_rol_por_clave('integrante'))::text from retail.colaboradores where persona_id = :'candidata_id';`)),
+  /(^|\n)true$/
+);
+
+verificar(
+  "con rol elegido entra con ese rol y queda en el historial de roles",
+  correr(escena(`
+    select retail.agregar_colaboradores(array[:'candidata_id']::uuid[], :'ubi', retail.fn_rol_por_clave('terminal_ventas'));
+    select (rol_id = retail.fn_rol_por_clave('terminal_ventas'))::text from retail.colaboradores where persona_id = :'candidata_id';
+    select count(*) from retail.roles_historial where accion = 'asignacion' and detalle ->> 'persona_id' = :'candidata_id';`)),
+  /(^|\n)true\n1$/
+);
+
+verificar(
+  "el rol Líder no se da al entrar",
+  correr(escena(`
+    select pg_temp.intento(format('select retail.agregar_colaborador(%L, %L, %L)', :'candidata_id', :'ubi', retail.fn_rol_por_clave('lider')));`)),
+  /42501\|El rol Líder de equipo no se da al entrar/
+);
+
+verificar(
+  "queda una sola firma de cada función (sin sobrecargas)",
+  correr(escena(`
+    select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'retail' and p.proname in ('agregar_colaborador', 'agregar_colaboradores');`)),
+  /(^|\n)2$/
 );
 
 verificar(
   "pendiente: fn_puede_operar_ubicacion da falso para su propia ubicación",
   correr(escena(`
-    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    ${ALTA_PENDIENTE}
     set local request.jwt.claim.sub = :'candidata_auth';
     select retail.fn_puede_operar_ubicacion(:'ubi'::uuid);`)),
   /(^|\n)f$/
@@ -122,7 +173,7 @@ verificar(
 verificar(
   "fn_aprobar_alta_colaborador exige ser líder o tener el módulo Colaboradores (una integrante sin él, rechazada)",
   correr(escena(`
-    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    ${ALTA_PENDIENTE}
     set local request.jwt.claim.sub = :'candidata_auth';
     select pg_temp.intento(format('select retail.fn_aprobar_alta_colaborador(%L)', :'candidata_id'));`)),
   /Solo un líder puede aprobar|Aprobar un alta necesita el módulo Colaboradores/
@@ -131,7 +182,7 @@ verificar(
 verificar(
   "tras aprobar: fn_puede_operar_ubicacion da verdadero para su ubicación",
   correr(escena(`
-    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    ${ALTA_PENDIENTE}
     select retail.fn_aprobar_alta_colaborador(:'candidata_id');
     set local request.jwt.claim.sub = :'candidata_auth';
     select retail.fn_puede_operar_ubicacion(:'ubi'::uuid);`)),
@@ -141,7 +192,7 @@ verificar(
 verificar(
   "aprobar una alta ya activa falla con mensaje claro",
   correr(escena(`
-    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    ${ALTA_PENDIENTE}
     select retail.fn_aprobar_alta_colaborador(:'candidata_id');
     select pg_temp.intento(format('select retail.fn_aprobar_alta_colaborador(%L)', :'candidata_id'));`)),
   /Esa alta ya estaba aprobada/
@@ -157,7 +208,7 @@ verificar(
 verificar(
   "suspender_colaborador rechaza a alguien todavía pendiente",
   correr(escena(`
-    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    ${ALTA_PENDIENTE}
     select pg_temp.intento(format('select retail.suspender_colaborador(%L, null)', :'candidata_id'));`)),
   /todavía no está aprobada/
 );
@@ -165,7 +216,7 @@ verificar(
 verificar(
   "aprobar deja registro en el historial (accion 'aprobacion')",
   correr(escena(`
-    select retail.agregar_colaborador(:'candidata_id', :'ubi');
+    ${ALTA_PENDIENTE}
     select retail.fn_aprobar_alta_colaborador(:'candidata_id');
     select count(*) from retail.colaboradores_historial where persona_id = :'candidata_id' and accion = 'aprobacion';`)),
   /(^|\n)1$/
@@ -179,8 +230,8 @@ verificar(
 );
 
 verificar(
-  "la migración se puede pegar dos veces",
-  correr(`begin;\n${SQL_MIGRACION}\n${SQL_MIGRACION}\nrollback;`),
+  "las migraciones se pueden pegar dos veces",
+  correr(`begin;\n${SQL_MIGRACION}\n${SQL_MIGRACION}\n${SQL_DAR_ACCESO}\n${SQL_DAR_ACCESO}\nrollback;`),
   /^$/
 );
 

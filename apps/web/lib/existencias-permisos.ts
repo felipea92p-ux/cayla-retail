@@ -34,6 +34,8 @@ export type EntradaPermisos = {
   esTienda: boolean;
   /** Edita el catálogo (`puede(persona, "editarCatalogo")`, en la base `fn_puede_editar_catalogo()`): puede eliminar un producto (ADR-0252). */
   editaCatalogo: boolean;
+  /** La sede tiene su sububicación de cuarentena (toda tienda la tiene: `seed.sql`, `activacion-cuarentena-produccion.sql`). */
+  tieneCuarentena: boolean;
 };
 
 export type PermisosDelDetalle = {
@@ -47,12 +49,17 @@ export type PermisosDelDetalle = {
   pedirAOtraSede: boolean;
   /** «Eliminar el producto» (ADR-0252): abre la ventana que pregunta a la base; borra el producto entero, en todas las sedes. */
   eliminar: boolean;
+  /** «Reportar dañada» (ADR-0328 act. 10, `reportar_danada`): mueve una prenda del piso o del almacén a la cuarentena. Es una
+   *  función de Existencias (ADR-0306): la base pide el módulo y operar la sede, y la sede tiene que separar piso, almacén y
+   *  cuarentena. Lo que se HACE con la dañada (Se arregló, Liquidada…) sigue siendo del líder, en Dañadas. */
+  reportarDanada: boolean;
 };
 
 export function permisosDelDetalle(e: EntradaPermisos): PermisosDelDetalle {
   const aqui = e.enSedeActiva;
   const conPiso = e.separaPisoAlmacen && aqui;
   return {
+    reportarDanada: conPiso && e.puedeBajarAlPiso && e.tieneCuarentena,
     reponerYRetirar: conPiso && e.puedeBajarAlPiso,
     apartar: conPiso && e.veApartados,
     ajustar: aqui && e.puedeAjustar,

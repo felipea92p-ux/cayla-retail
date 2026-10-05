@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { COOKIE_LATERAL, COOKIE_LATERAL_PLEGADO } from "@/lib/lateral-cookie";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getTrasladosPorAtender } from "@/lib/traslados";
+import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const recibeRecordatorio = recibeRecordatorioCierre(persona);
   const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
-    getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
+    getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")),
     recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
   ]);
 

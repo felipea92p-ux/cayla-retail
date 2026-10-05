@@ -20,6 +20,7 @@ import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
+import { ReportarDanadaModal } from "@/components/ReportarDanadaModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
@@ -50,6 +51,8 @@ import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
+// Solo el TIPO: `lib/sububicaciones.ts` importa el cliente de servidor (`next/headers`) y este archivo es "use client";
+// importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
 import type { Sububicacion } from "@/lib/sububicaciones";
 
 const TODAS = "__todas__";
@@ -190,6 +193,7 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
+  destinosParaEnviar = [],
   listaDelDia = SIN_LISTA,
 }: {
   ubicacionId: string;
@@ -249,6 +253,8 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
+  /** A qué sedes se puede mandar lo que se sube «para enviar» (ADR-0328 act. 17). Vacío: «Subir prenda» no ofrece enviar. */
+  destinosParaEnviar?: readonly { id: string; nombre: string }[];
   /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
    *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
   listaDelDia?: readonly string[];
@@ -283,6 +289,10 @@ export function InventarioPanel({
     setSubiendo(prenda.productoId);
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  // «Reportar dañada» (ADR-0328 act. 10): la ventana del MODELO con el color que se veía elegido. Se guarda el producto y no una copia
+  // de las filas: tras un rechazo, `router.refresh()` trae lo libre de nuevo y la ventana lo lee de `stock`.
+  const [reportando, setReportando] = useState<{ productoId: string; colorClave: string } | null>(null);
+  const prendasReportando = reportando ? coloresDelModelo(stock, reportando.productoId) : [];
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
   const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
@@ -478,6 +488,7 @@ export function InventarioPanel({
     veTraslados,
     esTienda,
     editaCatalogo,
+    tieneCuarentena: sububicaciones.some((s) => s.tipo === "cuarentena"),
   });
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
@@ -894,6 +905,7 @@ export function InventarioPanel({
             tallasDePrenda={tallasDePrenda}
             puedeReponer={puedeReponer}
             puedeAjustar={puedeAjustarAqui}
+            puedeReportarDanada={permisos.reportarDanada}
             onReponer={(prenda, origen) => {
               setAbierta(null);
               abrirReponer(prenda, origen);
@@ -907,6 +919,11 @@ export function InventarioPanel({
               // Desde el menú «⋯» no queda un botón al que volver: el foco vuelve a la tarjeta al cerrar la ventana.
               volverFoco.current = origen;
               setAjustando(f);
+            }}
+            onReportarDanada={(prenda, origen) => {
+              setAbierta(null);
+              volverFoco.current = origen;
+              setReportando({ productoId: prenda.productoId, colorClave: prenda.clave });
             }}
             // «Ver detalle» de una tarjeta: ese producto en la tabla (donde está el cajón de la prenda).
             onVerDetalle={(p) => {
@@ -1159,7 +1176,7 @@ export function InventarioPanel({
                             mismo tiempo — no son el mismo eje. Solo informa; resolverlas vive en la tarjeta «Incidencias». */}
                         {!!f.danado && (
                           <Chip tono="rojo">
-                            <span title="En cuarentena, esperando Liquidada/Se botó/Donada">Dañado · {f.danado}</span>
+                            <span title="En cuarentena: un líder decide si se arregló y vuelve, o si se liquida, se bota o se dona">Dañado · {f.danado}</span>
                           </Chip>
                         )}
                         {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
@@ -1235,6 +1252,7 @@ export function InventarioPanel({
           ubicacionId={ubicacionId}
           sede={sedeNombre}
           alCerrarEnfocar={volverFoco}
+          destinos={destinosParaEnviar}
           onClose={() => setSubiendo(null)}
         />
       )}
@@ -1262,11 +1280,23 @@ export function InventarioPanel({
         />
       )}
 
+      {reportando && prendasReportando.length > 0 && (
+        <ReportarDanadaModal
+          prendas={prendasReportando}
+          colorInicial={reportando.colorClave}
+          ubicacionId={ubicacionId}
+          sede={sedeNombre}
+          alCerrarEnfocar={volverFoco}
+          onClose={() => setReportando(null)}
+        />
+      )}
+
       {viendoDanados && (
         <ResolverDanadosModal
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
           esLider={esLider}
           otraSede={!enSedeActiva}
+          sede={sedeNombre}
           onClose={() => {
             setViendoDanados(false);
             setSoloPrenda(null);
@@ -1304,6 +1334,13 @@ export function InventarioPanel({
           puedeAjustar={puedeAjustarAqui}
           veTraslados={permisos.trasladar}
           puedeEliminar={permisos.eliminar}
+          puedeReportarDanada={permisos.reportarDanada}
+          onReportarDanada={(prenda) => {
+            setAbierta(null);
+            // Como Reponer y Subir desde el cajón: el cajón se cierra, así que el foco no vuelve al «⋯» de una tarjeta vieja.
+            volverFoco.current = null;
+            setReportando({ productoId: prenda.productoId, colorClave: prenda.clave });
+          }}
           onEliminar={() => {
             setAbierta(null);
             setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia, estado: prendaAbierta.tallas[0]?.estadoProducto ?? null });

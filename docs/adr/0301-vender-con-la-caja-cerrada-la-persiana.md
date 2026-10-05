@@ -83,3 +83,27 @@ cerró dos veces, cuadrando con el mismo fondo (S/ 219.90): la base local quedó
   a 709 px, a la vista). En `/caja` el formulario no cambia.
 - Verificado a 2560 × 1440, 1920 × 1000 (plegando el menú), 1366 × 768, 1280 × 640, 1024 × 768, 768 × 1024, 640 × 800 y
   375 × 812: la capa calza con la cabecera y con los bordes, el botón queda a la vista y nada se sale de lado.
+
+## Actualización 2026-10-05 — la persiana pasa a tonos claros de la paleta (Felipe, con captura)
+- **Pedido:** el gris casi negro de la persiana (velo de tinta al 56 % + listones de tinta al 30–48 %) «hacía ruido» con la
+  estética de CAYLA. Quería un color más claro pero que la reja siguiera notándose.
+- **Decidí:** velo de `sand` al 62 % (el desenfoque queda igual) y listones de `taupe` (cuerpo al 13 %, sombra de 4 px al
+  28 %, filo de `papel` al 55 % de 1 px entre uno y otro; la primera pasada, al 20/42/70 %, se sintió dura y Felipe pidió
+  «un toque más suave» el mismo día). La barra del pie es un `taupe` mezclado con `crema` (48 % → 68 %) y la manija, `papel`. La reja se sigue leyendo
+  porque lo que la marca es el contraste entre el cuerpo del listón y su sombra, no lo oscuro del conjunto. Solo tokens de
+  `globals.css` (ADR-0169); es un cambio de `app/estilos/caja-cerrada.css`, sin tocar el componente ni la base.
+- **Consecuencia que había que arrastrar:** el texto de encima estaba pensado para fondo oscuro. El título, la bajada, la línea
+  del último cierre y el atajo «Enter» pasan de `crema` a `tinta`; el botón «Abrir caja» pasa de crema a **tinta con letra
+  crema** (el mismo `btn-primario` del sistema; con hover rojo como antes), que sobre el fondo claro es el punto más fuerte de la
+  pantalla. Las cuerdas y el clavo del cartel pasan a `taupe`; el reflejo que cruza la persiana, a `papel`; y las ventas sin
+  conexión (`caja-cerrada-cola`) llevan borde `sand` para no perder su canto.
+- **Contraste medido** (con los listones de la primera pasada, 20/42 %; los de 13/28 % son más claros y solo lo mejoran; cálculo sobre la peor franja, la sombra de 4 px, y con un parche oscuro desenfocado detrás): título
+  ≥ 7,1:1, bajada ≥ 5,6:1, línea del cierre ≥ 5,1:1, atajo ≥ 4,7:1, botón 15,4:1. El cartel (`papel`) sobre la persiana queda
+  a 2,1:1: se separa por la sombra y el borde `sand`, igual que antes.
+- **Descarté:** dejar el texto en crema y aclarar solo un poco la persiana (con crema sobre un fondo medio el contraste cae
+  a ~2:1 y la bajada no se lee); y un velo de `crema` casi blanco (la reja desaparecía: era el «sigue siendo notorio»).
+- **Se rompe si:** alguien vuelve a poner un texto en `crema` sobre la persiana o un velo más oscuro sin volver también a
+  `crema` el texto; o si se baja el 13/28 % de los listones, que es lo que mantiene la reja a la vista.
+- **Cómo se verificó:** CSS real cargado en una página de prueba con un POS desenfocado detrás (no con el ERP completo: el
+  worktree no tiene dependencias ni base). Escritorio 1440 × 900 y celular 375 × 812: sin desborde horizontal, el botón y el
+  texto a la vista. Falta verla dentro del ERP real con una sede de caja cerrada.

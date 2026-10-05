@@ -33,7 +33,8 @@ export type ApartadosDeTienda =
       avisos: Record<string, AvisoApartado>;
       /** Lo que esta tienda apagó en «Opciones» (20260927130000). Vacío = Completo, el de fábrica. */
       apagadas: string[];
-      /** Pedidos a otras tiendas para apartar (20260927140000): los que esta tienda hizo y los que le hicieron. */
+      /** Pedidos a otras tiendas para apartar (20260927140000): los que esta tienda hizo y los que le hicieron, con dónde
+       *  quedó apartada la prenda en la sede que la envía (ADR-0328 act. 17). */
       pedidos: PedidoApartado[];
     };
 
@@ -52,8 +53,10 @@ export async function getApartadosDeTienda(ubicacionId: string): Promise<Apartad
     supabase.rpc("fn_avisos_separaciones", { p_ubicacion_id: ubicacionId }),
     // Opciones de la tienda: si fallan o la migración aún no está, todo queda encendido (Completo).
     supabase.rpc("fn_opciones_apartados", { p_ubicacion_id: ubicacionId }),
-    // Pedidos a otra sede: secundario como los anteriores (sin la migración, la lista queda vacía).
-    supabase.rpc("fn_pedidos_para_apartar", { p_ubicacion_id: ubicacionId }),
+    // Pedidos a otra sede: secundario como los anteriores (sin la migración, la lista queda vacía). La misma lectura que
+    // Traslados (ADR-0328 act. 17): trae `reserva_en`, para que las dos listas decidan igual entre «Enviar» y «Subir al
+    // almacén» (`envioConCliente`).
+    supabase.rpc("fn_pedidos_con_cliente", { p_ubicacion_id: ubicacionId }),
   ]);
   const filas = exigir(lista, "los apartados");
   const r = exigir(resumen, "el resumen de apartados")[0];

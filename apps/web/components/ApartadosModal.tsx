@@ -129,7 +129,10 @@ export function ApartadosModal({
           <div className="mt-2 space-y-3">
             <ul className="divide-y divide-tinta/10">
               {apartados.map((a) => {
-                const estado = estadoVencimiento(a.venceEl, hoy);
+                // La reserva de un pedido de otra sede no vence ni lleva al cliente (decisión del 2026-10-04): la sostiene
+                // la tienda que pidió; aquí se ve «Pedido de Tienda Trujillo», sin teléfono que marcar.
+                const dePedido = a.venceEl === null;
+                const estado = a.venceEl === null ? null : estadoVencimiento(a.venceEl, hoy);
                 const detalle = [a.talla, a.color].filter(Boolean).join(" · ");
                 return (
                   <li key={a.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
@@ -142,17 +145,25 @@ export function ApartadosModal({
                         {a.sku}
                         {detalle ? ` · ${detalle}` : ""}
                       </p>
-                      <p className="mt-1 text-sm text-tinta">
-                        {a.clienta} ·{" "}
-                        <a href={`tel:${a.contacto.replace(/[^\d+]/g, "")}`} className="underline underline-offset-2 hover:text-rojo">
-                          {a.contacto}
-                        </a>
-                      </p>
+                      {dePedido ? (
+                        <p className="mt-1 text-sm text-tinta">{a.clienta}</p>
+                      ) : (
+                        <p className="mt-1 text-sm text-tinta">
+                          {a.clienta} ·{" "}
+                          <a href={`tel:${a.contacto.replace(/[^\d+]/g, "")}`} className="underline underline-offset-2 hover:text-rojo">
+                            {a.contacto}
+                          </a>
+                        </p>
+                      )}
                       {a.nota && <p className="text-xs text-tinta/65">{a.nota}</p>}
                       <p className="text-[11px] text-tinta/45">Apartó {a.apartoNombre ?? "—"}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>
+                      {a.venceEl === null ? (
+                        <Chip tono="pizarra">Para otra sede · no vence</Chip>
+                      ) : (
+                        <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>
+                      )}
                       {a.puedeLiberar && !otraSede && (
                         <button
                           type="button"

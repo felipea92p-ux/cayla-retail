@@ -120,6 +120,11 @@ import {
 import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
+import { PedirEnOtraTienda } from "@/components/punto-de-venta/PedirEnOtraTienda";
+import { PedidosParaClientes } from "@/components/punto-de-venta/PedidosParaClientes";
+import { PedirYApartarModal } from "@/components/PedirYApartarModal";
+import { candidatosParaPedir, type CandidatoPedir, type TiendaParaPedir } from "@/lib/pedidos-con-cliente-reglas";
+import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
 import { descripcionDePrenda } from "@/lib/se-probo-reglas";
 import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
@@ -317,6 +322,15 @@ type Props = {
    *  múltiplo de S/ 0.10, hacia abajo (la ley) y viaja la fila de redondeo. Hasta que la migración esté en producción, la caja cobra
    *  exacto como siempre: una venta con redondeo ahí se rechazaría entera. */
   redondeoEfectivoDisponible?: boolean;
+  /** «Pedir y apartar para este cliente» desde «Dónde más hay» (ADR-0328 act. 17): las otras tiendas a las que se les puede
+   *  pedir. `null`: la opción no aparece (no es una tienda, o la sede apagó «Pedir a otra sede» en sus opciones de Apartados). */
+  pedirAOtraSede?: { tiendas: TiendaParaPedir[] } | null;
+  /** Lo que esta tienda pidió a otra para un cliente (`fn_pedidos_con_cliente`): los que llegaron, o no van a llegar, sin aviso al
+   *  cliente salen en una franja (`PedidosParaClientes`). */
+  pedidosConCliente?: PedidoEntreSedes[];
+  /** El «ahora» del servidor para lo que se cuenta en días en esa franja («¿sigue en pie?» a los 7 días): el HTML del servidor
+   *  y el del navegador dicen lo mismo. Sin él, la franja no pregunta (solo avisa lo que llegó o no llegó). */
+  ahoraIso?: string;
 };
 
 /** La proforma que se está cobrando: lo que la franja muestra y lo que `marcar_proforma_cobrada` necesita. */
@@ -337,7 +351,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -379,6 +393,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // La prenda abierta en «Todo de la prenda» (ADR-0323) y el color que se estaba viendo en su tarjeta. Se guarda la
   // clave y no la prenda: se vuelve a buscar en `prendas` en cada render, así nunca muestra un stock viejo.
   const [tarjetaElegida, setTarjetaElegida] = useState<{ clave: string; color?: string } | null>(null);
+  // «Pedir y apartar para este cliente» (ADR-0328 act. 17): la prenda, su color y las tallas que se pueden pedir.
+  const [pedirApartar, setPedirApartar] = useState<{ referencia: string; color: string | null; candidatos: CandidatoPedir[] } | null>(null);
   const [carrito, setCarrito] = useState<ItemCarrito[]>(() => proforma?.lineas ?? repeticion?.lineas ?? []);
   // La proforma en cobro (ADR-0167): se suelta al cobrar o con «Soltar». Una vencida pide confirmar el precio.
   const [proformaActiva, setProformaActiva] = useState<ProformaEnCobro | null>(proforma);
@@ -883,8 +899,23 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   /** El aviso de una prenda frenada lleva botón solo si lo que la frena es el almacén de ESTA tienda (`quedoEnAlmacen`).
    *  El botón dura más (15 s): hay que leer y decidir con la clienta delante. */
   function accionDeBajada(estado: string, v: VarianteBusqueda): { accion?: { texto: string; onClick: () => void }; duracion?: number } {
-    if (!quedoEnAlmacen(estado, v.almacenAqui)) return {};
+    if (!quedoEnAlmacen(estado, v.almacenAqui)) return accionDePedir(estado, v);
     return { accion: { texto: ACCION_BAJAR_Y_AGREGAR, onClick: () => alDia.current.pedirBajada([v.varianteId]) }, duracion: 15_000 };
+  }
+
+  /** ADR-0328 act. 17: aquí no hay (o lo que queda es de otro cliente) y otra TIENDA la tiene libre: el aviso ofrece pedirla y
+   *  que la aparten para el cliente. Lo que está en el almacén de esta sede no llega aquí: eso es bajarla (arriba). */
+  function accionDePedir(estado: string, v: VarianteBusqueda): { accion?: { texto: string; onClick: () => void }; duracion?: number } {
+    if (!pedirAOtraSede || (estado !== "agotada" && estado !== "apartada")) return {};
+    const candidatos = candidatosParaPedir(
+      [{ varianteId: v.varianteId, talla: v.talla, motivo: estado, stockOtrasSedes: v.stockOtrasSedes ?? [] }],
+      pedirAOtraSede.tiendas,
+    );
+    if (candidatos.length === 0) return {};
+    return {
+      accion: { texto: "Pedir y apartar para el cliente", onClick: () => setPedirApartar({ referencia: v.referencia, color: v.color ?? null, candidatos }) },
+      duracion: 15_000,
+    };
   }
 
   /** Lo más reciente de esta pantalla para el botón de un aviso (que se dibujó hace unos segundos: el responsable pudo
@@ -1865,6 +1896,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               subir, se tiene que ver tanto si la caja sigue abierta como si ya cerró. */}
           <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
 
+          {/* ADR-0328 act. 17: lo que se pidió a otra tienda para un cliente y llegó (o no va a llegar), hasta que alguien le avisa. */}
+          <PedidosParaClientes pedidos={pedidosConCliente} sede={{ ubicacionId, etiqueta: ubicacionEtiqueta }} responsable={responsable} ahoraIso={ahoraIso} />
+
           {/* Cobrando una proforma (ADR-0167): de quién es, y la confirmación si venció. */}
           {proformaActiva && (
             <div role="status" className="anim-revelar flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-sand bg-ambar/[0.07] px-4 py-2.5 text-sm sm:px-6">
@@ -2016,20 +2050,54 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           onAgregar={agregar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
-          pie={(color) =>
-            // La talla que no se puede cobrar aquí (spike 2026-09-26, hallazgo 3): la ventana ya dice dónde hay; si al
-            // cliente no le sirve esperar, se anota para Compras. Del color que se está mirando.
-            color.tallas.some((t) => motivoNoCobrable(t.variante) !== "cobrable") && (
-              <AnotarNoHabia
-                key={color.clave}
-                ubicacionId={ubicacionId}
-                descripcion={descripcionDePrenda(prendaElegida.referencia, color.color)}
-                tallas={color.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
-                clientaId={clienta?.id ?? null}
-                responsable={responsable}
-              />
-            )
-          }
+          pie={(color) => {
+            // ADR-0328 act. 17: la talla que aquí no hay y otra tienda tiene se puede pedir y apartar para el cliente.
+            const candidatos = pedirAOtraSede
+              ? candidatosParaPedir(
+                  color.tallas.map((t) => ({ varianteId: t.variante.varianteId, talla: t.talla, motivo: motivoNoCobrable(t.variante), stockOtrasSedes: t.variante.stockOtrasSedes ?? [] })),
+                  pedirAOtraSede.tiendas,
+                )
+              : [];
+            return (
+              <>
+                {candidatos.length > 0 && (
+                  <PedirEnOtraTienda
+                    key={`pedir-${color.clave}`}
+                    candidatos={candidatos}
+                    onPedir={() => {
+                      setTarjetaElegida(null);
+                      setPedirApartar({ referencia: prendaElegida.referencia, color: color.color ?? null, candidatos });
+                    }}
+                  />
+                )}
+                {/* La talla que no se puede cobrar aquí (spike 2026-09-26, hallazgo 3): la ventana ya dice dónde hay; si al
+                    cliente no le sirve esperar, se anota para Compras. Del color que se está mirando. */}
+                {color.tallas.some((t) => motivoNoCobrable(t.variante) !== "cobrable") && (
+                  <AnotarNoHabia
+                    key={color.clave}
+                    ubicacionId={ubicacionId}
+                    descripcion={descripcionDePrenda(prendaElegida.referencia, color.color)}
+                    tallas={color.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
+                    clientaId={clienta?.id ?? null}
+                    responsable={responsable}
+                  />
+                )}
+              </>
+            );
+          }}
+        />
+      )}
+
+      {pedirApartar && (
+        <PedirYApartarModal
+          ubicacion={{ ubicacionId, etiqueta: ubicacionEtiqueta }}
+          referencia={pedirApartar.referencia}
+          color={pedirApartar.color}
+          candidatos={pedirApartar.candidatos}
+          cliente={clienta ? { nombre: clienta.nombre, celular: clienta.celular } : null}
+          responsable={responsable}
+          alCerrarEnfocar={buscador}
+          onClose={() => setPedirApartar(null)}
         />
       )}
 

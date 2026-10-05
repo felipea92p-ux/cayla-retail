@@ -5,8 +5,10 @@ import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
 import { PedidosEntreSedes } from "@/components/PedidosEntreSedes";
-import { getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
-import { hayPedidosQueMostrar, sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
+import { getParaEnviar, getPedidosConCliente, getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
+import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
+import { hayAlgoEnLaLista, juntarPedidos } from "@/lib/pedidos-con-cliente-reglas";
+import { agruparPorDestino } from "@/lib/para-enviar-reglas";
 import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -30,11 +32,17 @@ const LIMITE_CERRADOS = 30;
 export default async function TrasladosPage() {
   const persona = await requirePersonaActualV2();
   // «Pedir a otra sede» (ADR-0242 D-7) se lee en paralelo y es secundario: si falla, la tarjeta no aparece y la lista sigue.
-  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos, ubicaciones] = await Promise.all([
+  // ADR-0328 act. 17: también los pedidos PARA UN CLIENTE (la misma tarjeta: una sola lista de pedidos) y lo subido
+  // «para enviar». Las dos lecturas son secundarias igual: si fallan, su tarjeta no aparece y lo demás sigue.
+  const [{ enCurso, cerrados, vacios, cerradosLeidos }, reposicion, conCliente, paraEnviar, ubicaciones] = await Promise.all([
     getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS),
     getPedidosEntreSedes(persona.ubicacionId),
+    getPedidosConCliente(persona.ubicacionId),
+    getParaEnviar(persona.ubicacionId),
     getUbicaciones(),
   ]);
+  const pedidos = juntarPedidos(reposicion, conCliente);
+  const gruposParaEnviar = agruparPorDestino(paraEnviar);
   // A quién se le puede pedir desde aquí (otras tiendas; si quien mira es el Taller, a nadie y el botón no se dibuja).
   const pedir = { ubicacionId: persona.ubicacionId, sedes: sedesParaPedir(ubicaciones, persona.ubicacionId) };
   const puedeAjustar = puede(persona, "ajustarInventario");
@@ -62,13 +70,16 @@ export default async function TrasladosPage() {
         }
       />
 
-      {/* Pedidos de reposición entre tiendas (ADR-0242 D-7), de la sede activa. Solo si hay algo: nunca una tarjeta vacía.
-          Lugar provisional hasta la bandeja «Hoy te toca» (tanda 2). */}
-      {hayPedidosQueMostrar(pedidos) && (
+      {/* Pedidos entre tiendas (ADR-0242 D-7) y lo subido «para enviar» (ADR-0328 act. 17, dos pasos), de la sede activa, en
+          UNA sola lista (decisión del 2026-10-04). Solo si hay algo: nunca una tarjeta vacía. Lugar provisional hasta la
+          bandeja «Hoy te toca» (tanda 2). */}
+      {hayAlgoEnLaLista(pedidos, gruposParaEnviar) && (
         <PedidosEntreSedes
           key={`pedidos-${persona.ubicacionId}`}
           pedidos={pedidos}
+          paraEnviar={gruposParaEnviar}
           ubicacion={{ ubicacionId: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
+          ahoraIso={ahoraIso}
         />
       )}
 

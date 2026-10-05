@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ArrowLeftRight, ClipboardCheck, Package, PackageOpen, Scale, Shirt, ShoppingBag, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
@@ -14,6 +15,8 @@ import { leerPlanDelPiso } from "@/lib/piso-plan-servidor";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
+import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
+import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado, RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -54,6 +57,9 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
+  // Cuántas prendas caben colgadas en el piso (ADR-0329, m² × prendas por m²): la nota «de 600» de «Colgadas en el piso». Solo una
+  // tienda tiene piso de venta. Corre en paralelo con lo de abajo y nunca lanza: si no responde, la cifra sale sin nota.
+  const capacidadPiso = vende ? getCapacidadPiso(ubicacionActivaId) : Promise.resolve(null);
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
@@ -185,13 +191,23 @@ export default async function InventarioPage({
   // caja cobra solo las colgadas, y «795 uds» sin partir hacía creer que había 795 para vender. Mismo recuadro que Ventas,
   // Cambios y Devoluciones (`ResumenSede`): Inventario usa la cabecera de Ventas (ADR-0220).
   const separa = resumen.separaPisoAlmacen;
-  const colgadas = stock.reduce((n, f) => n + (f.pisoDisponible ?? 0), 0);
   const guardadas = stock.reduce((n, f) => n + (f.almacenDisponible ?? 0), 0);
   const veTraslados = veModulo(persona, "traslados");
   const notaSemana = semana.fallo || deltaSede.pct === null ? undefined : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)} % en 7 días`;
+  // «583 de 600» (ADR-0328: el número grande son las colgadas contra lo que cabe), con «· por cuadrar» mientras la sede no haya
+  // cuadrado su piso (la fecha viaja en la misma lectura). Solo en «Colgadas en el piso», que solo existe donde la sede separa piso y
+  // almacén; una tienda sin m² no lleva nota.
+  const capacidad = await capacidadPiso;
+  // La capacidad cuenta solo ropa colgada (ADR-0329, accesorios fuera del riel): esta tarjeta cuenta lo mismo, la ropa libre en el
+  // piso, y dice aparte «+ 17 accesorios», para que «583 de 600» compare lo mismo. Las dos suman lo que cobra la caja (ADR-0331).
+  // Solo esta tarjeta: «Para hoy» e Inicio siguen contando lo que contaban.
   const cifras: CifraResumen[] = separa
     ? [
-        { valor: colgadas, etiqueta: "Colgadas en el piso", icono: Shirt, titulo: "Prendas en el piso de venta, libres para vender: son las que cobra la caja" },
+        {
+          ...cifraColgadasEnElPiso({ filas: stock, productos: catalogo.productos, catalogoFallo: catalogo.fallo !== null, capacidad }),
+          etiqueta: "Colgadas en el piso",
+          icono: Shirt,
+        },
         { valor: guardadas, etiqueta: "Guardadas en el almacén", icono: Package, titulo: "Prendas en el almacén de la tienda: para venderlas hay que colgarlas" },
       ]
     : [{ valor: resumen.disponible, nota: notaSemana, etiqueta: "Disponibles aquí", icono: Package, titulo: "Prendas libres en esta sede" }];
@@ -304,6 +320,8 @@ export default async function InventarioPage({
         panelFiltros={panelFiltros}
         coloresCatalogo={colores}
         sinRegistrar={sinRegistrar}
+        // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
+        destinosParaEnviar={veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : []}
       />
     </div>
   );

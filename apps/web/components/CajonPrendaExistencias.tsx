@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { AlertTriangle, Archive, ArrowLeftRight, Barcode, Check, ChevronRight, FileText, Layers, Trash2, X, Warehouse } from "lucide-react";
+import { AlertTriangle, Archive, ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, FileText, Layers, Trash2, X, Warehouse } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -94,10 +94,12 @@ export function CajonPrendaExistencias({
   puedeAjustar,
   veTraslados,
   puedeEliminar = false,
+  puedeReportarDanada = false,
   onReponer,
   onSubir,
   onAjustar,
   onEliminar,
+  onReportarDanada,
   onVerApartadas,
   onVerDanadas,
   puedeResolverDanadas = false,
@@ -116,6 +118,8 @@ export function CajonPrendaExistencias({
   /** Quien edita el catálogo, en su sede (ADR-0252, `permisosDelDetalle`): «Eliminar el producto» abre la ventana que pregunta a la
    *  base (trasplantado de `DetallePrendaExistencias.tsx`, main PR #574, al cajón nuevo). */
   puedeEliminar?: boolean;
+  /** «Reportar dañada» (ADR-0328 act. 10, `permisosDelDetalle`): quien ve Existencias, en su sede, con piso, almacén y cuarentena. */
+  puedeReportarDanada?: boolean;
   /** «Reponer prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`ReponerPrendaModal`, ADR-0317). */
   onReponer: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** «Subir prenda» abre la ventana del MODELO entero, con todos sus colores y tallas (`SubirAAlmacenModal`, ADR-0317). */
@@ -123,6 +127,8 @@ export function CajonPrendaExistencias({
   onAjustar: (f: FilaExistencias) => void;
   /** Sin ella si `puedeEliminar` es false: nunca se ofrece un botón que la pantalla no sabría atender. */
   onEliminar?: () => void;
+  /** Abre «Reportar dañada» con el color de esta prenda. */
+  onReportarDanada?: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** Abre los apartados de ESTA prenda. Sin ella (no hay ninguno, o la pantalla no sabe abrirlos) la cifra «Apartada» no es un botón. */
   onVerApartadas?: () => void;
   /** Abre las dañadas en cuarentena de ESTA prenda. Sin ella la cifra «Dañada» no es un botón. */
@@ -155,12 +161,14 @@ export function CajonPrendaExistencias({
   const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
   const hayOperar = (puedeReponer && (hayQueReponer || hayQueSubir)) || hrefTrasladar !== null;
+  // «Reportar dañada» se ofrece si alguna talla tiene algo LIBRE en el piso o en el almacén (lo apartado no se mueve).
+  const hayQueReportar = puedeReportarDanada && Boolean(onReportarDanada) && prenda.tallas.some((f) => (f.pisoDisponible ?? 0) + (f.almacenDisponible ?? 0) > 0);
   // Cada cifra es un botón solo si hay algo que hacer con ella y la persona puede hacerlo (ADR-0161: nunca un botón que acabe en
   // «Sin acceso» o en una ventana vacía). Almacén abre la misma ventana de «Reponer prenda» y se llama igual (la ventana, el botón de abajo y la celda dicen lo mismo); Piso no lleva botón.
   const accionAlmacen = desglose && desglose.almacen > 0 && puedeReponer && hayQueReponer ? { texto: "Reponer prenda", onClick: () => onReponer(prenda) } : undefined;
   const accionApartada = desglose && desglose.apartada > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined;
   const accionDanada = desglose && desglose.danada > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined;
-  const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
+  const hayGestion = puedeAjustar || hayQueReportar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
 
   return (
     <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
@@ -322,6 +330,8 @@ export function CajonPrendaExistencias({
                   <Grupo titulo="Gestión" bajada="Acciones de administración de stock.">
                     <div className="grid gap-2">
                       {puedeAjustar && <Accion icono={Archive} texto="Ajustar stock" onClick={() => onAjustar(prenda.tallas[0])} />}
+                      {/* Una mancha o una rotura (ADR-0328 act. 10): pasa a Dañadas (deja de contar para la venta; separarla del perchero lo pide la ventana) y el líder decide. */}
+                      {hayQueReportar && onReportarDanada && <Accion icono={Bandage} texto="Reportar dañada" onClick={() => onReportarDanada(prenda)} />}
                       {hrefEtiquetas && <Accion icono={Barcode} texto="Imprimir etiquetas" href={hrefEtiquetas} />}
                       {/* ADR-0252: al final y en rojo, como en `DetallePrendaExistencias.tsx` — es del PRODUCTO entero (todas sus
                           tallas y colores, en todas las sedes), no de esta talla ni de este color; la ventana que abre lo dice y la

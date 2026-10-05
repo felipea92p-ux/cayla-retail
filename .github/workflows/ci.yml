@@ -463,6 +463,15 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:retirar-del-piso
 
+      # Capacidad del piso por sede (ADR-0329, actividad 6 de ADR-0328): la siembra (TRU 600 contada, AQP 1800 y LIM 180
+      # provisionales, con los nombres de producción y los locales); `fn_capacidad_piso` para líder, colaboradora y terminal, 42501
+      # para la cuenta de afuera; `fijar_capacidad_piso` solo del líder, con firma, historial y Actividad, «sin cambios» al
+      # reintentar y PT409 si otra persona la cambió; los candados de la tabla (capacidad calculada, rangos, solo tiendas); «por
+      # cuadrar» (cuadrado_en) y la carrera de tres sesiones: el segundo guardado de una sede espera al primero, otra sede no. ROLLBACK.
+      - name: pruebas:capacidad-piso
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:capacidad-piso
+
       # «Cuadrar el piso» (ADR-0328, decisión técnica 4): `cuadrar_piso` pasa al piso, de una vez y todo o nada, lo que el almacén
       # tiene libre y nadie escaneó como guardado (y sube lo escaneado que el sistema creía colgado). Solo un líder confirma; lo
       # apartado, la cuarentena, lo archivado y lo de prueba no se mueven; las «no cargadas» se guardan y no se aplican; la
@@ -608,6 +617,14 @@ jobs:
       - name: pruebas:cuarentena-no-se-vende
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cuarentena-no-se-vende
+
+      # Dañadas (ADR-0328 act. 10): reportar desde Existencias mueve lo LIBRE del piso o del almacén a la cuarentena y abre
+      # su fila (todo o nada, lo apartado no se mueve, firma, marca de reintento, candado de Existencias y de la sede);
+      # «Se arregló» la devuelve al ALMACÉN, solo el líder y con nota; ninguna de las dos es pérdida (traslado interno);
+      # los candados del esquema (tres orígenes, arreglo con nota, un movimiento por dañada). Cada caso: ROLLBACK.
+      - name: pruebas:danadas-reportar-arreglar
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:danadas-reportar-arreglar
 
       # Cron de SUNAT (PL-113): la llave de servicio toma la cola solo de las últimas 4 horas, sin claims el candado
       # sigue cerrado y las tres funciones de la cola la dejan pasar. Control sin la migración. Cada caso: ROLLBACK.
@@ -918,6 +935,15 @@ jobs:
       - name: pruebas:pedir-a-otra-sede
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:pedir-a-otra-sede
+
+      # Pedidos que no se pierden (ADR-0328 act. 17): pedir para un cliente (también desde Vender) lo APARTA en la otra sede
+      # (almacén primero) y el token no duplica; lo que allá no alcanza no deja nada a medias; lo colgado no sale en un paso
+      # (subir_pedido_al_almacen, idempotente) y al salir la reserva se suelta; cancelar la suelta; anular el traslado la
+      # vuelve a apartar; avisar al cliente solo tras llegar; fn_pedidos_por_atender (menú y 48 h) de los dos lados; la lista
+      # «Para enviar» sale con el traslado a ESE destino y vuelve si se anula; Eliminar un producto la conoce. ROLLBACK.
+      - name: pruebas:pedidos-que-no-se-pierden
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pedidos-que-no-se-pierden
 
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y
