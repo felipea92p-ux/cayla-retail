@@ -178,6 +178,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   "components/CerrarCajaModalV2.tsx": PENDIENTE, // 10 controles
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
+  // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
+  // base la acepte: `validarCierre`) y quién hace el cambio.
+  "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja).
