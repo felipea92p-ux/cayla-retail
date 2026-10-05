@@ -11,6 +11,7 @@ import {
   partirSerieNumero,
   puedeAnular,
   leerActivo,
+  resumenActivosPorSede,
   puedeAnularActivo,
   rangoMes,
   resumenFijos,
@@ -214,6 +215,31 @@ describe("F2b: activos fijos", () => {
     expect(puedeAnularActivo({ estado: "activo", compraId: "c", tienePagos: true })).toBe(false);
     expect(puedeAnularActivo({ estado: "activo", compraId: "c", tienePagos: false })).toBe(true);
     expect(puedeAnularActivo({ estado: "baja", compraId: null, tienePagos: false })).toBe(false);
+  });
+  it("la vista integrada: una fila por sede (aun sin activos) y el total de CAYLA, solo de lo que está en uso", () => {
+    const base = { estado: "activo", costo: 1000, depreciacionAcumulada: 100, valorHoy: 900, depreciacionMensual: 10, mesesDepreciados: 10, vidaUtilMeses: 120 };
+    const activos = [
+      { ...base, ubicacionId: "taller", costo: 2928, depreciacionAcumulada: 317.2, valorHoy: 2610.8, depreciacionMensual: 24.4 },
+      { ...base, ubicacionId: "taller" },
+      { ...base, ubicacionId: "tru", costo: 1899, depreciacionAcumulada: 0, valorHoy: 1899, depreciacionMensual: 15.83, mesesDepreciados: 0 },
+      { ...base, ubicacionId: "tru", estado: "baja" }, // dada de baja: no cuenta
+      { ...base, ubicacionId: "tru", estado: "anulado" }, // anulada: no cuenta
+    ];
+    const sedes = [
+      { id: "taller", nombre: "Taller" },
+      { id: "lim", nombre: "Tienda LIM" },
+      { id: "tru", nombre: "Tienda TRU" },
+    ];
+    const r = resumenActivosPorSede(activos as never, sedes);
+    expect(r.porSede.map((s) => s.nombre)).toEqual(["Taller", "Tienda LIM", "Tienda TRU"]); // el orden que se le pasa
+    expect(r.porSede[0]).toMatchObject({ ubicacionId: "taller", activos: 2, costo: 3928, depreciado: 417.2, valorHoy: 3510.8 });
+    expect(r.porSede[1]).toMatchObject({ ubicacionId: "lim", activos: 0, costo: 0, depreciado: 0, valorHoy: 0, alMes: 0 }); // se ve lo que falta cargar
+    expect(r.porSede[2]).toMatchObject({ activos: 1, costo: 1899, valorHoy: 1899 });
+    // el total es la suma de las sedes, ni una más ni una menos
+    expect(r.total.activos).toBe(r.porSede.reduce((n, s) => n + s.activos, 0));
+    expect(r.total.costo).toBeCloseTo(r.porSede.reduce((n, s) => n + s.costo, 0), 2);
+    expect(r.total.valorHoy).toBeCloseTo(r.porSede.reduce((n, s) => n + s.valorHoy, 0), 2);
+    expect(resumenActivosPorSede([], sedes).total).toEqual({ activos: 0, costo: 0, depreciado: 0, valorHoy: 0, alMes: 0 });
   });
   it("«ya lo teníamos» (ADR-0335): la lista lo marca y, sin comprobante ni pagos, se puede anular para corregirlo", () => {
     const fila = { id: "a1", ubicacion_id: "taller", ubicacion_nombre: "Taller", nombre: "Remalladora", fecha_adquisicion: "2025-10-13", costo: "1337.70", vida_util_meses: 120, estado: "activo" };

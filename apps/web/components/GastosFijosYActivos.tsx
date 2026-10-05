@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +8,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { CabeceraBloque, CampoFin, GuiaVacia, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
@@ -20,6 +21,7 @@ import {
   TIPOS_COMPROBANTE,
   fechaCorta,
   puedeAnularActivo,
+  resumenActivosPorSede,
   solesRedondo,
   textoVidaUtil,
   totalesActivos,
@@ -477,6 +479,45 @@ export function GastoFijoModal({
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Activos fijos
+
+/**
+ * La vista integrada de los activos (ADR-0335): una tarjeta por sede con lo que vale hoy, y el total de CAYLA. Solo en «Todas las
+ * tiendas». Una sede sin activos sale punteada y dice «Sin activos cargados»: así se ve lo que falta cargar. Tocar una sede lleva la
+ * lista a esa sede. Lo que vale hoy es costo menos lo depreciado: es la cifra que el Balance toma de cada sede.
+ */
+export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<typeof resumenActivosPorSede>; onVer: (ubicacionId: string) => void }) {
+  const { porSede, total } = resumen;
+  const entra = (i: number): { className: string; style: CSSProperties } => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
+  const detalle = (s: { activos: number; costo: number; alMes: number }) => (
+    <>
+      <span className="block">
+        {s.activos} {s.activos === 1 ? "activo" : "activos"} · costo {solesRedondo(s.costo)}
+      </span>
+      <span className="block">se deprecian {soles(s.alMes)} al mes</span>
+    </>
+  );
+  return (
+    <section className="fin-cifras fin-cifras-activos" aria-label="Activos de cada sede y total de CAYLA">
+      {porSede.map((s, i) => (
+        <TarjetaCifra
+          key={s.ubicacionId}
+          compacta
+          vacia={s.activos === 0}
+          etiqueta={s.nombre}
+          valor={s.activos ? solesRedondo(s.valorHoy) : "—"}
+          unidad={s.activos ? "vale hoy" : undefined}
+          onClick={s.activos ? () => onVer(s.ubicacionId) : undefined}
+          {...entra(i + 1)}
+        >
+          {s.activos ? detalle(s) : "Sin activos cargados"}
+        </TarjetaCifra>
+      ))}
+      <TarjetaCifra compacta activa etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
+        {detalle(total)}
+      </TarjetaCifra>
+    </section>
+  );
+}
 
 export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFila[]; verTodas: boolean; onAbrir: (a: ActivoFila) => void }) {
   const t = totalesActivos(activos);

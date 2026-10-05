@@ -625,6 +625,30 @@ export function totalesActivos(activos: readonly ActivoFila[]): { costo: number;
   };
 }
 
+/** Una sede con lo que tiene en uso (ADR-0335): cuántos activos, lo que costaron, lo depreciado, lo que valen hoy y lo que se deprecia al mes. */
+export type ResumenActivosSede = { ubicacionId: string; nombre: string; activos: number; costo: number; depreciado: number; valorHoy: number; alMes: number };
+
+/**
+ * La vista integrada de los activos: una fila por sede y el total de CAYLA, solo de lo que está en uso (como el pie de la tabla).
+ *
+ * CONTRATO. Promete: `porSede` trae TODAS las sedes que se le pasan, en ese orden, aun sin un solo activo (ceros: así se ve lo que
+ *   falta cargar, como la Tienda LIM), y `total` es la suma de los activos en uso. Asume: `sedes` son las unidades que la cuenta ve y
+ *   cada activo trae el `ubicacionId` de una de ellas (la base solo devuelve activos de unidades activas que la cuenta ve).
+ */
+export function resumenActivosPorSede(
+  activos: readonly ActivoFila[],
+  sedes: readonly UbicacionGastos[]
+): { porSede: ResumenActivosSede[]; total: Omit<ResumenActivosSede, "ubicacionId" | "nombre"> } {
+  const fila = (lista: readonly ActivoFila[]) => {
+    const t = totalesActivos(lista);
+    return { activos: t.enUso, costo: t.costo, depreciado: t.depreciado, valorHoy: t.valorHoy, alMes: t.alMes };
+  };
+  return {
+    porSede: sedes.map((s) => ({ ubicacionId: s.id, nombre: s.nombre, ...fila(activos.filter((a) => a.ubicacionId === s.id)) })),
+    total: fila(activos),
+  };
+}
+
 /** Anular: solo en uso y sin factura pagada (si no, se da de baja). */
 export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "tienePagos">): boolean {
   return a.estado === "activo" && !(a.compraId && a.tienePagos);

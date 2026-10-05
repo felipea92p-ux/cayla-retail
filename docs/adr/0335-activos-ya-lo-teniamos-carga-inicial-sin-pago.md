@@ -1,8 +1,9 @@
 # ADR-0335 · Activos «ya lo teníamos»: lo anterior al sistema entra sin inventar un pago
 
-- **Fecha:** 2026-10-04 · **Estado:** construido y probado en local (25 casos + regresión de 8 pruebas existentes, 560 casos, 0 fallas) y
-  **ensayado en producción con ROLLBACK** (lote que termina en excepción a propósito). **SIN PEGAR en producción:** la política de la
-  herramienta bloqueó la escritura (cambio de esquema); la migración y la carga del Taller las pega Felipe en el SQL Editor.
+- **Fecha:** 2026-10-04 · **Estado:** **EN PRODUCCIÓN desde el 2026-10-04** (Felipe pegó la migración a las 21:26, hora de Lima, y las dos cargas; verificado
+  en la base, solo lectura: 33 activos, S/ 59,638.44 de costo, S/ 12,282.31 depreciados a fines de septiembre, 0 líneas en el libro de dinero, los
+  33 con token único y firmados por Felipe). Probado en local (25 casos + regresión de 8 pruebas existentes, 560 casos, 0 fallas; la web, 155,435).
+  La herramienta de la sesión bloqueó escribir en producción; por eso las pegó Felipe en el SQL Editor.
 - **Pedido:** Felipe, 2026-10-04: «reconstruir los activos de cada sede y luego tener un balance» — Taller, TRU y AQP, cada uno en su sede,
   más una vista integrada del total; «súbelo como activos, tú ve la mejor forma según normas internacionales y deprécialo según las
   normas contables del Perú».
@@ -82,6 +83,20 @@ crédito fiscal, el costo tributario es sin IGV, y capitalizarlo con IGV sobrees
 - Los libros SINATRA tienen errores que se dejaron intactos: montos de 2021–2023 de TRU que parecen proporcionales (×0.1125), compras repartidas por
   tercios o mitades entre sedes, filas marcadas `adm` que parecen activos y posibles duplicados entre hojas.
 - Los datos (costos, series) **no van a git**: el cargador vive fuera del repo.
+
+## La vista integrada: una tarjeta por sede y el total de CAYLA
+
+Finanzas ▸ Gastos ▸ **Activos fijos**, cuando el líder mira «Todas las tiendas»: sobre la tabla, una tarjeta por sede (Taller, Tienda AQP, Tienda LIM,
+Tienda TRU) con **lo que vale hoy** (costo menos lo depreciado, la cifra que el Balance toma de cada sede), cuántos activos son, lo que costaron y lo que
+se deprecia al mes, y al final la del total de CAYLA. Una sede sin activos sale punteada y dice «Sin activos cargados» (hoy, la Tienda LIM): se ve lo que
+falta cargar. Tocar una sede lleva la lista a esa sede. Un colaborador con el módulo Gastos no la ve: ve solo su tienda.
+
+- **Es un agregado nuestro:** el spike de Finanzas (`docs/maquetas/finanzas-2026-09/`, `vista-gastos.js`) no tiene franja en esta pestaña, solo la tabla
+  y su pie. Se armó con las piezas del propio kit (`fin-cifras` + `TarjetaCifra compacta`, la misma de las cuatro cifras de arriba) y una sola regla de CSS
+  (`.fin-cifras-activos`: las columnas se acomodan al ancho, porque son cinco y cuatro columnas fijas dejarían una huérfana).
+- **Lógica pura y probada:** `resumenActivosPorSede` en `lib/gastos-reglas.ts` (una fila por sede aunque no tenga activos; solo lo que está en uso; el total
+  es la suma de las sedes). Verificada en el navegador con datos de muestra: a 1280 px las cinco caben en una fila del mismo alto; a 375 px, una columna sin
+  desbordar; el clic filtra la lista; las tarjetas con activos son botones alcanzables con el teclado.
 
 ## Cómo se pega (CLAUDE.md «Políticas y deadlocks»)
 
