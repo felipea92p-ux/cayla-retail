@@ -360,3 +360,24 @@ faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pe
 Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
 venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
 velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican).
+
+## Actualización 2026-10-05 — el resto de la actividad 5 (PR #788) encima de ADR-0334
+
+Lo pendiente de arriba (categoría sugerida, «nadie regulariza su propia venta salvo el líder», la prenda candidata con su respuesta
+deducida) se terminó en el PR #788, ya con #800 en `main`. Felipe reportó, con captura, que el buscador del modal «Regularizar prenda»
+mostraba «todo, de todas las sedes, sin filtro». Cuatro decisiones técnicas:
+
+- **D1 · Una sola definición de «calza exacto»: `fn_candidatas_de_venta` (ADR-0334).** El tramo «Igual a lo que anotó caja» del modal
+  sale solo de ella, igual que el lote del líder. `fn_candidatas_por_regularizar` (20261004203000, ya en producción) aporta los hechos
+  para deducir la respuesta y dos tramos aparte, con título: «Color parecido» y «La categoría que escribió caja». Se une en la web
+  (`hechosConExactas`), sin migración nueva. Una prueba SQL lo exige para toda venta pendiente (casos X de `pruebas:ventas-sin-registrar`).
+  Lo único que solo trae la base común es una prenda de prueba o una venta con más de 20 posibles, que entra sin respuesta deducida.
+- **D2 · El buscador mira la tienda de la venta** (`prendas_por_regularizar.ubicacion_id`, no la de la cabecera). Por defecto muestra
+  solo lo que calza, con la sugerida dentro. «Buscar en todo el catálogo» queda a la vista para la prenda que esa tienda nunca cargó, y
+  la lista vacía se explica en palabras de tienda. El texto de ayuda sigue lo anotado (ADR-0290).
+- **D3 · El lote del líder sigue funcionando sobre la regla.** `fn_actor_persona_id(true)` lee los encabezados de la petición, uno solo
+  para toda la cadena. El lote manda la clave `cola_arranque_identificar` y cada `regularizar_prenda` anidada firma con el líder, también
+  en su propia venta («salvo el líder»). Sacar `regularizar_prenda` de `acciones_sin_responsable` no toca ese camino. Lo prueban los
+  casos L, con el interruptor encendido y un líder sin admin.
+- **D4 · `acciones_sin_responsable` queda en 33** (28 + 3 del club + 3 de la cola de arranque − regularizar), contado en una base con
+  todas las migraciones.
