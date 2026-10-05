@@ -22,3 +22,21 @@ lectura porque la regularización cambia días pasados.
 Felipe se lleva: pegar `20261005210000_motor_demanda_preparacion.sql` en producción (una sola parte, sin políticas). Hasta
 entonces, esa sección de CAYLA Global dice que no se pudo leer. La sesión de Inventario ▸ Tareas (ADR-0345) conectará la misma
 frase en su columna «Sugerencias».
+
+## 2026-10-05 (Motor de demanda: etapa 1, venta perdida y plan de diciembre — ADR-0347, 0348 y 0349)
+Qué hice: hice tres cortes, cada uno en su commit y probado contra Postgres y en el navegador local.
+- **Una sola cifra de demanda** (`fn_demanda_sede` + `lib/demanda-reglas.ts`): cuenta los días en que la prenda estuvo colgada y
+  apoya cada prenda en su grupo. Se muestra en Nueva orden de producción, al lado de la curva de siempre.
+- **«Anotar que no había» guarda la prenda exacta**, y el motor cuenta esa venta perdida como demanda.
+- **Compras ▸ Plan de campaña:** tres escenarios por categoría, cuantil crítico, curva propuesta, y en enero lo vendido de verdad.
+
+Al probar apareció un hueco en el libro: `fn_ledger_puntos` sin lista de prendas omite las que no se movieron, y con lista omite las
+agotadas. Quedó corregido en la función nueva y vigilado por las pruebas K1 y E2.
+
+Por qué así: Felipe eligió comparar antes de reemplazar (Producción), guardar la prenda exacta avisando a Dany y planificar diciembre
+con escenarios, porque no hay historia para pronosticarlo. Cada cifra dice su porqué, y la que todavía no tiene datos se calla.
+
+Felipe se lleva:
+- pegar las cuatro migraciones en orden (`210000` → `212000` → `215000` → `220000`) y publicar;
+- pasarle a Dany la sección «Para Dany» de ADR-0348;
+- llenar el plan de diciembre antes de comprar.

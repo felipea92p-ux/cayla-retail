@@ -1329,6 +1329,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     `components/motor-demanda/MotorEnProduccion.tsx`.
     Venta perdida con la prenda exacta (ADR-0348): `AnotarNoHabia` (Vender) y `CambioSalidas` (Cambios) mandan `p_variante_id` a
     `registrar_pedido_no_atendido` (`lib/se-probo-reglas.ts` → `argsRegistrarPedido`); `fn_demanda_sede` la suma a su grupo.
+  - `/compras/plan` («Plan de campaña», ADR-0349, módulo `plan_compra`, pide `verDineroCompras`) → `lib/plan-compra.ts`
+    (`fn_plan_compra`) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación) +
+    `lib/plan-compra-guia.ts` + `components/plan-compra/PlanCampana.tsx` y `PlanCategoriaModal.tsx` (`guardar_plan_compra_linea`).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 
