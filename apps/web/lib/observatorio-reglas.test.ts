@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { Repeticion } from "./perdidas-reglas";
 import {
+  avisoPerdidasObs,
   calcular,
   diasDesde,
   grillaPico,
@@ -199,5 +201,54 @@ describe("avisos y formato", () => {
     expect(textoVsDe("hoy", "2026-10-05")).toBe("vs lun. pasado");
     expect(textoVsDe("30d", HOY)).toBe("vs 30 días antes");
     expect(ventanaDe("7d")).toBe("d7");
+  });
+});
+
+describe("avisoPerdidasObs — pérdidas que se repiten, tienda por tienda (ADR-0328 act. 14)", () => {
+  const TRU = { id: "tru", sigla: "TRU" };
+  const LIM = { id: "lim", sigla: "LIM" };
+  const prenda = (o: Partial<Extract<Repeticion, { tipo: "prenda" }>> = {}): Repeticion => ({
+    tipo: "prenda",
+    clave: "prenda:v1",
+    varianteId: "v1",
+    etiqueta: "Polo Básico · M · Negro",
+    veces: 2,
+    unidades: 3,
+    ultimoDia: "2026-09-30",
+    ...o,
+  });
+  const grande: Repeticion = { tipo: "resta_grande", clave: "resta:h1", hechoId: "h1", varianteId: "v2", etiqueta: "Jean Recto · 28 · Azul", unidades: 6, quedaron: 0, dia: "2026-10-02" };
+
+  it("con hallazgos: para esta semana, repartido por tienda, primero la resta grande, con la sigla y el enlace a la pestaña", () => {
+    const a = avisoPerdidasObs([{ tienda: TRU, repeticiones: [prenda()] }, { tienda: LIM, repeticiones: [grande] }], HOY);
+    expect(a).toMatchObject({ clave: "perdidas", nivel: "semana", n: 2, icono: "alerta", titulo: "Pérdidas que se repiten", porTienda: { tru: 1, lim: 1 } });
+    expect(a.href).toBe("/inventario/movimientos?vista=perdidas&p=30");
+    expect(a.edad).toBe(3); // la más antigua perdió el 30-sep: 3 días antes de hoy
+    expect(a.detalle).toEqual({
+      tipo: "lista",
+      filas: [
+        { titulo: "Se quitaron 6 prendas de Jean Recto · 28 · Azul sin nota y la talla quedó en 0", detalle: "LIM · 2 oct", chip: "Sin nota" },
+        { titulo: "Polo Básico · M · Negro perdió 3 prendas en 2 días distintos", detalle: "TRU · 30 sep", chip: "2 días" },
+      ],
+    });
+  });
+
+  it("ninguna tienda repite: al día, sin detalle ni aro", () => {
+    const a = avisoPerdidasObs([{ tienda: TRU, repeticiones: [] }, { tienda: LIM, repeticiones: [] }], HOY);
+    expect(a).toMatchObject({ nivel: "ok", n: 0, detalle: null, edad: null, porTienda: { tru: 0, lim: 0 } });
+  });
+
+  it("si una tienda no se pudo leer, el aviso no dice «al día»: no se pudo leer", () => {
+    const a = avisoPerdidasObs(null, HOY);
+    expect(a.n).toBeNull();
+    expect(a.porTienda).toBeNull();
+    expect(a.nivel).not.toBe("ok");
+  });
+
+  it("el detalle muestra hasta 6, los que más perdieron primero", () => {
+    const muchas = Array.from({ length: 8 }, (_, i) => prenda({ clave: `prenda:v${i}`, varianteId: `v${i}`, etiqueta: `Prenda ${i}`, unidades: i + 1 }));
+    const a = avisoPerdidasObs([{ tienda: TRU, repeticiones: muchas }], HOY);
+    expect(a.n).toBe(8);
+    expect(a.detalle?.tipo === "lista" && a.detalle.filas.map((f) => f.titulo.split(" perdió")[0])).toEqual(["Prenda 7", "Prenda 6", "Prenda 5", "Prenda 4", "Prenda 3", "Prenda 2"]);
   });
 });
