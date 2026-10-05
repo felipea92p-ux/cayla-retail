@@ -17,6 +17,13 @@ const PREFIJO = "cayla:responsable-conteo:";
 
 export const claveResponsableConteo = (conteoId: string): string => `${PREFIJO}${conteoId}`;
 
+/**
+ * Lo mismo para la recepción de un traslado (ADR-0328: el nombre se pide una vez por operación): quien eligieron para recibir ESTE
+ * traslado en este aparato firma los pasos siguientes (cada casilla, confirmar, cerrar con diferencia) y un guardado exitoso no vacía
+ * el combo. Prefijo propio: un traslado y un conteo no comparten recuerdo.
+ */
+export const claveResponsableRecepcion = (transferenciaId: string): string => `cayla:responsable-recepcion:${transferenciaId}`;
+
 type Almacen = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 // Quien mira el recuerdo (`useSyncExternalStore`) se entera de un cambio hecho en esta pestaña (guardar/olvidar) y en otra (`storage`).

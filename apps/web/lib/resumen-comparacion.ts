@@ -1,5 +1,5 @@
 import { RANGOS_SELL_THROUGH_PCT, SELL_THROUGH_CAMBIO_RELEVANTE_PP, TENDENCIA_MIN_UNIDADES, TENDENCIA_UMBRAL_PCT } from "./inventario-reglas";
-import { calcularSellThrough, calcularTendencia, calcularVelocidad, evaluarExactitud, type EstadoCosto, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
+import { calcularSellThrough, calcularTendencia, calcularVelocidad, evaluarExactitud, type EstadoCosto, type DatosExactitud, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
 import type { CamposBusqueda } from "./resumen-busqueda";
 import { aplicarAlcance, FILAS_POR_PAGINA, leerFiltros, paginar, type AlcanceResumen } from "./resumen-filtros";
 import { formatoRotacion, formatoSellThrough, formatoVariacion, formatoVelocidad, pluralizar } from "./resumen-formato";
@@ -840,7 +840,7 @@ export function armarComparacion(e: {
   ubicacion: Ubicacion;
   params: ParametrosResumen;
   ahora: Date;
-  conteos: { exactitud: { porcentaje: number; lineas: number; conteos: number } | null; ultimoCerradoEn: string | null };
+  conteos: DatosExactitud;
 }): ComparacionParaPantalla {
   const { rangoA, modoA, periodoB } = rangosDeLaComparacion(e.params, e.ahora);
   const { alcance, cambio, orden, pagina } = leerVistaComparacion(e.params);
