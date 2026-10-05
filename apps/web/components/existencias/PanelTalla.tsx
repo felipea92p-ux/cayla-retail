@@ -10,6 +10,7 @@ import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { accionesDeTalla, diagnosticoDeTalla, type ClaveAccionTalla } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
+import { fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
 import { estadoTalla, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import type { FilaExistencias } from "@/lib/inventario-v2";
@@ -125,6 +126,10 @@ export function PanelTalla({
   const ritmo = fila ? textoDeRitmo(ritmoDePrenda({ ...prenda, tallas: [fila], disponible: fila.disponible })) : null;
   const precio = solesDe(prenda.precio);
   const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
+  const frase = fraseDeLoQueFalta(colores);
+  // Tallas del modelo sin nada aquí pero con stock en otra sede: lo que la maqueta lista con su «Pedir».
+  const agotadas = colores.flatMap((c) => c.tallas.filter((t) => t.disponible <= 0 && (t.enRed ?? []).some((x) => x.cantidad > 0)).map((t) => ({ c, t })));
+  const codigo = fila?.codigosBarras?.[0] ?? fila?.sku ?? null;
   const hrefEnviar = puedeEnviar && fila ? urlTrasladar(prenda.tallas) : null;
 
   function elegirColor(c: Prenda) {
@@ -268,7 +273,23 @@ export function PanelTalla({
                   {cifra(fila.danado ?? 0, "Dañado", (fila.danado ?? 0) > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined)}
                 </div>
                 <p className={`rounded-xl px-3 py-2.5 text-sm ${TONO_DIAGNOSTICO[diag.tono]}`}>{diag.texto}</p>
+                {/* Lo que falta en el piso de TODO el modelo (todos sus colores), como en la maqueta. */}
+                {separa && frase && <p className="rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">{frase}</p>}
+                {agotadas.map(({ c, t }) => (
+                  <div key={t.varianteId} className="flex items-center justify-between gap-3 rounded-xl bg-pizarra/[0.10] px-3 py-2.5 text-sm text-pizarra">
+                    <b className="min-w-0 font-semibold">
+                      {c.color ? `${c.color} ` : ""}
+                      {t.talla ?? "Única"} agotada: en otras sedes
+                    </b>
+                    <span className="shrink-0 tabular-nums">{(t.enRed ?? []).filter((x) => x.cantidad > 0).map((x) => `${nombreCortoSede(x.sede)} ${x.cantidad}`).join(" · ")}</span>
+                  </div>
+                ))}
                 {ritmo && <p className="text-sm text-tinta/80">{ritmo}</p>}
+                {codigo && (
+                  <p className="text-[13px] text-taupe">
+                    Código <span className="tabular-nums text-tinta">{codigo}</span>
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="label-cayla mr-1 text-[11px] text-taupe">Otras sedes</span>
                   {(fila.enRed ?? []).length === 0 && fila.enTransito === 0 && <span className="text-sm text-taupe">Ninguna tiene</span>}
