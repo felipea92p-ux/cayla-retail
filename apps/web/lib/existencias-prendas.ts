@@ -35,7 +35,7 @@ export type FilaPrenda = Pick<
   | "marca"
 > &
   // La categoría es opcional aquí (`FilaStock.categoria` es obligatoria, pero las pruebas arman filas mínimas): la miniatura dibuja la percha sin ella.
-  Partial<Pick<FilaExistencias, "categoria">>;
+  Partial<Pick<FilaExistencias, "categoria" | "precio">>;
 
 /** Cómo se pinta una talla en la curva. Desde el 2026-10-04 sale de `hoyDeTalla` y de nada más: antes decidía con sus propias
  *  preguntas y una talla con 2 en el piso y 0 atrás era «reponer» en la celda y «sin stock atrás» en la pastilla de la misma
@@ -72,6 +72,8 @@ export type PrendaAgrupada<F extends FilaPrenda = FilaPrenda> = {
   categoria?: string | null;
   categoriaPrefijo?: string | null;
   categoriaFamilia?: string | null;
+  /** El precio de catálogo (el de su primera talla: en CAYLA el precio es del producto y color, no de la talla). `null` si no se leyó. */
+  precio?: number | null;
   /** Sus tallas en curva (XS, S, M… y luego la numeración), no en el orden en que llegaron. */
   tallas: F[];
   /** Sumas de lo LIBRE (neto de apartados), las mismas cifras que la tabla por talla. `null` donde no se separa piso y almacén. */
@@ -116,6 +118,7 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       categoria: primera.categoria ?? null,
       categoriaPrefijo: primera.categoriaPrefijo ?? null,
       categoriaFamilia: primera.categoriaFamilia ?? null,
+      ...(primera.precio != null ? { precio: primera.precio } : {}),
       tallas,
       piso: sumarONull(tallas, "pisoDisponible"),
       almacen: sumarONull(tallas, "almacenDisponible"),

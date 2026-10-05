@@ -15,8 +15,9 @@
  *   4. Llegar: al confirmar, las filas pasan a «recibido» y NO se aparta nada; llegada parcial; anular devuelve a
  *      «pedido» y se reenvía.
  *   5. Cancelar: «No la tengo» desde el origen, reintento sin error, no se cancela lo que ya salió.
- *   6. Apartados no cambia: `fn_pedidos_para_apartar` no ve la reposición, sus funciones la rechazan y un pedido CON
- *      clienta se sigue apartando al llegar.
+ *   6. Apartados no cambia: `fn_pedidos_con_cliente` (la lectura de Apartados desde ADR-0328 act. 17; antes
+ *      `fn_pedidos_para_apartar`, retirada en 20261005170000) no ve la reposición, sus funciones la rechazan y un pedido
+ *      CON clienta se sigue apartando al llegar.
  *   7. `fn_pedidos_entre_sedes`: las dos direcciones, las líneas y el disponible; exige operar la sede.
  *   8. Permisos: nada abierto a anon.
  *
@@ -369,8 +370,8 @@ correr(
   "Apartados no cambia · no ve la reposición y sus funciones la rechazan",
   `${pedir(LINEAS(["v2", 1]))}
 ${COMO_API}select retail.pedir_prenda_para_apartar(:'lim', :'tru', :'v1', 1, 'Ana', 'Lozano', '987111222') as ped \\gset
-select 'K|apartados_lima|' || count(*) || ':' || string_agg(clienta_nombres, ',') from retail.fn_pedidos_para_apartar(:'lim');
-select 'K|apartados_tru|' || count(*) from retail.fn_pedidos_para_apartar(:'tru');
+select 'K|apartados_lima|' || count(*) || ':' || string_agg(cliente_nombres, ',') from retail.fn_pedidos_con_cliente(:'lim');
+select 'K|apartados_tru|' || count(*) from retail.fn_pedidos_con_cliente(:'tru');
 select 'K|traslados_lima|' || count(*) from retail.fn_pedidos_entre_sedes(:'lim');
 ${COMO_POSTGRES}
 select id as fila_repo from retail.separacion_pedidos where grupo_id = :'g' \\gset
