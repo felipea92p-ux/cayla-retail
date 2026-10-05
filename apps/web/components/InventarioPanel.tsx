@@ -51,7 +51,9 @@ import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
 import { clavePercha, ordenarPorModeloColorTalla } from "@/lib/inventario-reglas";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
-import { encontrarPorTipo, type Sububicacion } from "@/lib/sububicaciones";
+// Solo el TIPO: `lib/sububicaciones.ts` importa el cliente de servidor (`next/headers`) y este archivo es "use client";
+// importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
+import type { Sububicacion } from "@/lib/sububicaciones";
 
 const TODAS = "__todas__";
 
@@ -486,7 +488,7 @@ export function InventarioPanel({
     veTraslados,
     esTienda,
     editaCatalogo,
-    tieneCuarentena: encontrarPorTipo(sububicaciones, "cuarentena") !== null,
+    tieneCuarentena: sububicaciones.some((s) => s.tipo === "cuarentena"),
   });
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
