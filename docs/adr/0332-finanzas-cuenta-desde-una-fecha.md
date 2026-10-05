@@ -1,8 +1,9 @@
 # ADR-0332 · Finanzas cuenta desde una fecha: lo de antes de que el sistema se usara no entra a los estados
 
 - **Fecha:** 2026-10-04 · **Estado:** construido y probado en local, en la rama `claude/ajuste-fecha-nomina-07b3ed`. **La migración
-  `20261004190000_finanzas_cuenta_desde.sql` NO está en producción** (cambio de esquema: espera el «dale» de Felipe). Mientras no se
-  pegue, la web nueva no rompe nada: la tarjeta de Configuración dice «falta pegar la migración» y todo lo demás se lee como «sin corte».
+  `20261004190000_finanzas_cuenta_desde.sql` YA ESTÁ EN PRODUCCIÓN** (Felipe la pegó el 2026-10-04; verificada por efectos, solo lectura:
+  columna con su `check`, `fn_finanzas_desde`, `guardar_inicio_finanzas`, las tres funciones parchadas, `parametros_finanzas` con la clave,
+  `anon` sin ejecución y sin restos de `pg_temp`). El corte sigue **sin fecha** hasta que se elija en Configuración tras publicar la web.
 - **Pedido:** Felipe, 2026-10-04, sobre una captura de Finanzas ▸ Resumen: «mi sistema es prácticamente nuevo, por lo que poner ese egreso
   de nómina que proviene de Dynamic de septiembre no tendría mucho sentido; mejor que todo corra a partir de octubre». Decidió la opción A
   (fecha configurable) entre tres que se le propusieron.

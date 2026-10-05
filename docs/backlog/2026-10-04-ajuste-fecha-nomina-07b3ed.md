@@ -1,4 +1,4 @@
-## 🗓️ Finanzas cuenta desde una fecha (2026-10-04, ADR-0332) — rama `claude/ajuste-fecha-nomina-07b3ed`; **SQL SIN PEGAR en producción**
+## 🗓️ Finanzas cuenta desde una fecha (2026-10-04, ADR-0332) — rama `claude/ajuste-fecha-nomina-07b3ed`; **SQL YA EN PRODUCCIÓN (2026-10-04)**; falta fusionar la web y elegir la fecha
 
 Pedido de Felipe: que la planilla de Dynamic de septiembre no aparezca como pérdida en un sistema que arrancó en octubre. Opción A elegida.
 
@@ -7,10 +7,10 @@ Pedido de Felipe: que la planilla de Dynamic de septiembre no aparezca como pér
   `fn_parametros_finanzas`). `pnpm pruebas:finanzas-arranque` 39/39 + mutación. En `ci.yml`.
 - [x] **Web:** `lib/finanzas-arranque-reglas.ts` (+ prueba), Resumen (`resumen-finanzas-reglas.ts`, `ResumenFinanzas.tsx`), Configuración ▸ Caja y
   avisos (`ConfiguracionCajaAvisos.tsx`), Cierre (`cierre/page.tsx`, `CierreMes.tsx`) y Reportes (`reportes/page.tsx`).
-- [ ] **PEGAR EN PRODUCCIÓN (Felipe, una ejecución):** el archivo `20261004190000_finanzas_cuenta_desde.sql` tal cual, en el SQL Editor.
-  Antes: comprobar que las huellas md5 de `fn_asientos`, `fn_estado_resultados`, `fn_flujo_caja_real` y `fn_parametros_finanzas` siguen siendo las
-  del ADR-0332 (si alguien las parchó, la migración aborta sola y no toca nada). **Orden: primero el SQL, después fusionar la web.**
-- [ ] **Después de pegar:** Configuración ▸ Caja y avisos ▸ «Desde cuándo cuenta Finanzas» ▸ **Desde Octubre 2026** ▸ Guardar. Verificar en el
+- [x] **PEGADO EN PRODUCCIÓN (Felipe, 2026-10-04)** y verificado por efectos en solo lectura: columna + `check` de día 1, `fn_finanzas_desde`,
+  `guardar_inicio_finanzas`, las tres funciones con el corte, `fn_parametros_finanzas` con la clave, `anon` sin ejecución, sin restos de
+  `pg_temp`. El corte quedó sin fecha (no cambia ningún número todavía).
+- [ ] **Después de fusionar la web:** Configuración ▸ Caja y avisos ▸ «Desde cuándo cuenta Finanzas» ▸ **Desde Octubre 2026** ▸ Guardar. Verificar en el
   Resumen: ya no dice «Utilidad de septiembre», «TRU perdió…» ni «Septiembre sigue abierto»; sigue diciendo los días de caja, la semana bajo el
   mínimo (26-oct a 1-nov) y «septiembre: S/ 252 por declarar» del IGV. Correr `pnpm datos:generar:produccion` (regla de oro del diccionario:
   `parametros_finanzas` gana una columna).
