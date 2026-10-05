@@ -5245,11 +5245,11 @@ export type Database = {
         Returns: undefined
       }
       agregar_colaborador: {
-        Args: { p_persona_id: string; p_ubicacion_id: string }
+        Args: { p_persona_id: string; p_rol_id?: string; p_ubicacion_id: string }
         Returns: undefined
       }
       agregar_colaboradores: {
-        Args: { p_personas: string[]; p_ubicacion_id: string }
+        Args: { p_personas: string[]; p_rol_id?: string; p_ubicacion_id: string }
         Returns: number
       }
       agregar_terminal: {

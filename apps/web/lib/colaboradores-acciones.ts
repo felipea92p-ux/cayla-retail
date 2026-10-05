@@ -13,7 +13,8 @@ import { firmar, type Firma } from "@/lib/responsable-reglas";
 export type ResultadoAccion = { error: ErrorEscritura };
 
 export type AccionesColaboradores = {
-  agregar: (personas: string[], ubicacionId: string, firma: Firma | null) => Promise<ResultadoAccion>;
+  /** ADR-0341: con `rolId` entra con ese rol (sin él, Integrante). Si quien lo da es líder entra activa; si no, pendiente. */
+  agregar: (personas: string[], ubicacionId: string, rolId: string | null, firma: Firma | null) => Promise<ResultadoAccion>;
   /** D-70: aprueba el alta de un colaborador (persona) que otro líder propuso. Las terminales no pasan por aquí: no son
    *  personas (ADR-0162) y se crean con `pnpm terminales:crear`, no desde esta pantalla. */
   aprobar: (personaId: string, firma: Firma | null) => Promise<ResultadoAccion>;
@@ -28,8 +29,9 @@ export type AccionesColaboradores = {
 };
 
 export const accionesSupabase: AccionesColaboradores = {
-  agregar: async (personas, ubicacionId, firma) => {
-    const { error } = await firmar(createClient().rpc("agregar_colaboradores", { p_personas: personas, p_ubicacion_id: ubicacionId }), firma);
+  agregar: async (personas, ubicacionId, rolId, firma) => {
+    const args = { p_personas: personas, p_ubicacion_id: ubicacionId, ...(rolId ? { p_rol_id: rolId } : {}) };
+    const { error } = await firmar(createClient().rpc("agregar_colaboradores", args), firma);
     return { error };
   },
   aprobar: async (personaId, firma) => {

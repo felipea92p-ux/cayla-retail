@@ -316,6 +316,26 @@ corregir y colgar», cualquier integrante con Existencias, tope de 5 por prenda 
 tengo en la mano») · #784 (14, pérdidas; cambia las Mermas de los meses abiertos en Finanzas: Felipe ve la sonda antes de pegar) · #789 (15, Conteo I).
 Ninguno pegado ni fusionado; el orden de pegado sale de la prueba de integración.
 
+**Actualización (2026-10-05): la ola 1 y la 2a están publicadas, salvo #788.** Felipe pegó el SQL de todas (verificado por
+efectos en producción) y se fusionaron en este orden: #792 → #785 → #787 → #784 → #789 → #786 → #799 (17, traslados) → #795 (6,
+capacidad) → #796 (10, dañadas), más #804 (este reparto). Cada una pasó por la regla `strict` de `main` (al día con `main` antes
+de fusionar). Una pantalla de la web no llama a ninguna función que producción no tenga, ni con parámetros que no acepte:
+comprobado con `datos:comparar` y las firmas vivas de las 28 funciones nuevas. Lo que la publicación destapó y quedó resuelto:
+- **Dos migraciones con la misma versión** (`20261004200000`: el cuadre y los activos de #802). Se renombró la de activos a
+  `20261004195000`, solo el nombre: ninguna de las dos estaba en `supabase_migrations.schema_migrations`.
+- **Un estado nuevo de las dañadas («se arregló», #796) que la prueba de pérdidas (#784) tomaba por una salida**: «se arregló»
+  vuelve al almacén por `mover_interno` y `resolver_prenda_danada` no lo acepta, así que la salida `cuarentena_se_arreglo` no
+  puede existir; la prueba lo excluye y un guardián lo vigila.
+- **Una prueba de capacidad (#795) que cuadraba dos veces la misma sede sin nota**, lo que la regla de #792 rechaza.
+- **El build de #796** importaba en un componente de cliente una función que lee `next/headers`.
+
+Lo que sigue abierto: **#788** (5, ventas sin registrar) se rehízo sobre #800 —una sola definición de candidata exacta,
+`fn_candidatas_de_venta`, y el buscador de «Regularizar prenda» por la tienda DE LA VENTA, que Felipe reportó mostrando todo el
+catálogo— y su parte 2 (`20261004204000`) está sin pegar. **El contrato con ADR-0334** (el motor cuenta `pendiente` y
+`cerrada_sin_prenda`) no se cumplió porque #800 entró antes que #787: lo cierra una migración nueva en otra sesión («Motor del
+piso: contar las ventas cerradas sin prenda»). **Hasta que se pegue, ninguna sede debe cerrar su cola de arranque**, o su
+velocidad cae ese mismo día.
+
 ### Actividades nuevas
 
 18. **Frescura con estadística:** lo típico contraído, «va lenta» por vendidas contra esperadas, % del piso a tiempo, ventana de 28 días, edad desde la
