@@ -104,7 +104,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
       <span
         aria-hidden
         className="absolute top-[17px] h-0.5 rounded-full"
-        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, rgba(164,120,101,0.5) 0 6px, transparent 6px 11px)" }}
+        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-taupe) 50%, transparent) 0 6px, transparent 6px 11px)" }}
       />
       <span
         aria-hidden
@@ -112,7 +112,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
         style={{ left: `${inicio}%`, width: `${avance}%` }}
       />
       <span aria-hidden className="pointer-events-none absolute top-3 h-3 transition-[width] duration-700" style={{ left: `${inicio}%`, width: `${avance}%` }}>
-        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,#fff,rgba(255,255,255,0)_70%)]" />
+        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,var(--color-crema-fija),transparent_70%)]" />
       </span>
       {pasos.map((nombre, i) => {
         const n = i + 1;
@@ -134,7 +134,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
                   hecho
                     ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80"
                     : esActual
-                      ? "bg-papel text-tinta shadow-[0_0_0_8px_rgba(26,26,24,0.06)] ring-2 ring-tinta"
+                      ? "bg-papel text-tinta shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-tinta)_6%,transparent)] ring-2 ring-tinta"
                       : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
                 }`}
               >

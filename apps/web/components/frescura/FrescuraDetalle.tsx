@@ -34,7 +34,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
   return (
     <div className="relative mt-3.5 pt-7" role="img" aria-label={`Dónde cae entre las demás de su categoría: ${regla.ella.texto}`}>
       <span
-        className={`absolute top-0 flex flex-col text-[11.5px] font-semibold ${TRASLADO[alinearElla]} ${alinearElla === "medio" ? "items-center" : alinearElla === "fin" ? "items-end" : "items-start"}`}
+        className={`absolute top-0 flex flex-col text-[12px] font-semibold ${TRASLADO[alinearElla]} ${alinearElla === "medio" ? "items-center" : alinearElla === "fin" ? "items-end" : "items-start"}`}
         style={{ left: `${regla.ella.pos}%` } as CSSProperties}
       >
         <span className="whitespace-nowrap">{regla.ella.texto}</span>
@@ -45,7 +45,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
           <span
             key={`${z.clave}-${i}`}
             title={z.nombre}
-            className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[11px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
+            className={`flex h-full min-w-0 items-center overflow-hidden px-1.5 text-[12px] text-tinta ${ZONA[z.clave]} ${i > 0 ? "border-l border-taupe" : ""}`}
             style={{ width: `${z.ancho}%` }}
           >
             <span className="truncate">{z.nombre}</span>
@@ -56,7 +56,7 @@ function Regla({ regla }: { regla: ReglaVista }) {
         {regla.marcas.map((m, i) => (
           <span
             key={i}
-            className={`absolute top-1.5 whitespace-nowrap text-center text-[11px] leading-tight text-taupe ${TRASLADO[m.alinear]}`}
+            className={`absolute top-1.5 whitespace-nowrap text-center text-[12px] leading-tight text-taupe ${TRASLADO[m.alinear]}`}
             style={{ left: `${m.pos}%` }}
           >
             {m.arriba}
@@ -113,7 +113,7 @@ function BarraDias({ dia, de }: { dia: number; de: number }) {
 function Bloque({ titulo, children, primero = false }: { titulo?: string; children: ReactNode; primero?: boolean }) {
   return (
     <div className={primero ? "pb-4" : "border-t border-sand py-4"}>
-      {titulo && <span className="label-cayla mb-2 block text-[11px] text-taupe">{titulo}</span>}
+      {titulo && <span className="label-cayla mb-2 block text-[12px] text-taupe">{titulo}</span>}
       {children}
     </div>
   );
@@ -144,13 +144,13 @@ export function FrescuraDetalle({
   const temporada =
     detalle.temporada?.tipo === "pasada" ? (
       <>
-        <Chip tono="ambar" className="!px-2 !text-[11.5px] !leading-[18px]">
+        <Chip tono="ambar" className="!px-2 !text-[12.5px] !leading-[18px]">
           Temporada pasada
         </Chip>{" "}
         <span className="text-[12.5px]">{detalle.temporada.texto}</span>
       </>
     ) : detalle.temporada?.tipo === "sin" ? (
-      <Chip tono="neutro" className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
         ¿De qué temporada es? Complétala
       </Chip>
     ) : detalle.temporada?.tipo === "tiene" ? (
@@ -230,7 +230,7 @@ export function FrescuraDetalle({
                 {bloque.resultado && (
                   <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-[13.5px] leading-relaxed">
                     {bloque.resultado.chip && (
-                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-[11.5px] !leading-[18px]">
+                      <Chip tono={bloque.resultado.chip.tono} className="!px-2 !text-[12px] !leading-[18px]">
                         {bloque.resultado.chip.texto}
                       </Chip>
                     )}
@@ -267,7 +267,7 @@ export function FrescuraDetalle({
             )}
             {bloque.historial.length > 0 && (
               <div className="mt-4 border-t border-sand pt-3">
-                <span className="label-cayla mb-2 block text-[11px] text-taupe">Lo que se decidió antes</span>
+                <span className="label-cayla mb-2 block text-[12px] text-taupe">Lo que se decidió antes</span>
                 <ul className="space-y-1.5 text-[13px] leading-snug">
                   {bloque.historial.map((h) => (
                     <li key={h.id}>

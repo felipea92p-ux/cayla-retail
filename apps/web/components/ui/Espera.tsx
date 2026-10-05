@@ -314,7 +314,7 @@ export function EsperaGlobal() {
       }`}
     >
       <div
-        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_rgba(80,50,20,0.5)] ring-1 ring-tinta/[0.07] ${
+        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] ${
           saliendo ? "anim-modal-sale" : "anim-modal-entra"
         }`}
       >

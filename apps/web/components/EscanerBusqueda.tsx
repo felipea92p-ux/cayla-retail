@@ -107,7 +107,7 @@ export function EscanerBusqueda({
             <canvas ref={lienzoRef} className="hidden" aria-hidden />
           </div>
 
-          <div className="relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+          <div className="papel-fijo relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
@@ -115,7 +115,7 @@ export function EscanerBusqueda({
             <span aria-hidden className="w-11" />
           </div>
 
-          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
+          <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
             {sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
                 <p className="text-[15px] leading-relaxed">
@@ -129,7 +129,7 @@ export function EscanerBusqueda({
               </div>
             ) : (
               <>
-                <div className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-tinta)_62%,transparent)]">
+                <div className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]">
                   {(
                     [
                       "-left-[3px] -top-[3px] border-l-[3px] border-t-[3px] rounded-tl-[30px]",
@@ -149,7 +149,7 @@ export function EscanerBusqueda({
             )}
           </div>
 
-          <div className="relative z-10 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3">
+          <div className="papel-fijo relative z-10 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3">
             <button type="button" onClick={onEscribir} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-crema/30 text-sm font-medium text-crema">
               <Search aria-hidden className="h-4 w-4" />
               Mejor buscar escribiendo

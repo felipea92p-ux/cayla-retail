@@ -309,7 +309,7 @@ export function EscanerCamara({
           </div>
 
           {/* Barra de arriba: sobre un degradé para que la ✕ se lea sobre cualquier imagen. */}
-          <div className="relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+          <div className="papel-fijo relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
@@ -330,7 +330,7 @@ export function EscanerCamara({
           </div>
 
           {/* El visor: todo se oscurece salvo el cuadro (la sombra de 200vmax ES el velo con recorte). */}
-          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
+          <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
             {sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
                 <p className="text-[15px] leading-relaxed">
@@ -346,7 +346,7 @@ export function EscanerCamara({
               <>
                 <div
                   ref={marcoRef}
-                  className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-tinta)_62%,transparent)]"
+                  className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]"
                 >
                   {/* Lo que se mueve con cada lectura va en esta capa (re-montada por `destello.id`): el marco que lleva
                       la sombra se queda quieto, así el velo no «respira» con el visor. */}
@@ -372,7 +372,7 @@ export function EscanerCamara({
 
           {/* La bandeja: lo que ya se leyó y el ticket. Alto fijo para las filas (ADR-0185): la hoja no salta al llegar la
               primera prenda. En pantallas bajas caben dos filas; desde 700 px de alto, tres. */}
-          <div className="relative z-10 rounded-t-[28px] bg-crema px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <div className="relative z-10 rounded-t-[28px] bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             <p className="label-cayla text-[10px] text-taupe">Escaneadas</p>
             <ul aria-live="polite" className="mt-1 h-[6.5rem] overflow-hidden [@media(min-height:700px)]:h-[9.75rem]">
               {historial.length === 0 ? (

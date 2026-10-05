@@ -5,6 +5,7 @@ import { Avisos } from "@/components/ui/Avisos";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
+import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -23,7 +24,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${serif.variable} ${sans.variable}`}>
+    // `suppressHydrationWarning`: el script de abajo pone `data-tema` en <html> antes de que React hidrate (ADR-0336).
+    <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
+      <head>
+        {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />
+      </head>
       <body className="antialiased">
         {children}
         {/* Avisos globales (arriba a la derecha): montado una sola vez, acá,

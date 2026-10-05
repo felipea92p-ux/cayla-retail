@@ -255,7 +255,7 @@ export function AvisosClubPanel({
                 {(["todos", ...TIPOS_AVISO] as const).map((t) => (
                   <button key={t} type="button" className="pildora-cayla" aria-pressed={filtro === t} onClick={() => setFiltro(t)}>
                     {t === "todos" ? "Todos" : INFO_TIPO_AVISO[t].titulo}
-                    <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60">{t === "todos" ? cuenta.total : cuenta[t]}</span>
+                    <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60 dark:opacity-85">{t === "todos" ? cuenta.total : cuenta[t]}</span>
                   </button>
                 ))}
               </nav>

@@ -85,7 +85,7 @@ export function NotaCreditoVistaRapida({
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
+        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
           onEscapeKeyDown={alEscape}
           onKeyDown={alFlecha}

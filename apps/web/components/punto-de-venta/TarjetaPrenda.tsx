@@ -124,7 +124,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         onClick={() => onAbrir(prenda.clave, elegido.clave)}
         disabled={bloqueado}
         aria-label={`Ver todos los colores y tallas de ${nombre}`}
-        className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 disabled:cursor-default"
+        className="absolute inset-0 cursor-pointer rounded-xl disabled:cursor-default"
       />
       <div className={`pointer-events-none relative aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
         {saliente && buscar(saliente) && capa(buscar(saliente)!, false)}

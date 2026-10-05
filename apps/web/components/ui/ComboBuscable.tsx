@@ -255,7 +255,7 @@ export function ComboBuscable<T extends string>({
         onBlur={() => cerrarSinElegir()}
         className={
           caja
-            ? "caja-cayla h-10 w-full min-w-0 px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            ? "caja-cayla h-10 w-full min-w-0 px-3 text-sm text-tinta placeholder:text-tinta/45"
             : "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
         }
       />

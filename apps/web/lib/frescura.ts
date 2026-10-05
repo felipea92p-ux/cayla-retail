@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { enLaTabla } from "@/lib/frescura-pantalla";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
@@ -52,6 +54,11 @@ function rpcFrescura(supabase: Supabase): LlamarRpcFrescura {
  */
 export type CifrasDeTienda = (FrescuraSede["cifras"] & { resumen: ResumenDecisiones | null }) | { separaPiso: false };
 
+/** El color y la foto de una prenda (modelo+color): la misma fuente y regla que Existencias (`getAparienciaVariantes`). */
+export type AparienciaPrenda = { colorHex: string | null; fotoUrl: string | null };
+/** Lo que decide el ícono de una prenda sin foto (`SinFoto`, ADR-0333): `categorias.prefijo` y `categorias.familia`. */
+export type CategoriaVisual = { prefijo: string | null; familia: string | null };
+
 /** Lo que la pantalla necesita, en una vuelta. Todo es serializable: viaja del servidor al navegador tal cual. */
 export type DatosFrescura = {
   /** La sede que se mira: la del selector global (líder) o la suya (los demás). */
@@ -68,7 +75,42 @@ export type DatosFrescura = {
   /** clave → nombre de cada temporada y la estación en que empieza. Vacío si no se pudo leer (la pantalla dice «su
    *  estación» en las frases y muestra la clave junto al color). */
   temporadas: NombresDeTemporadas;
+  /** clave de la prenda → su color y su foto. Decorativo: si no se pudo leer viene vacío y la miniatura dibuja la percha. */
+  apariencias: Record<string, AparienciaPrenda>;
+  /** id de la categoría → lo que decide el ícono de su miniatura. Decorativo, como `apariencias`. */
+  categoriasVisuales: Record<string, CategoriaVisual>;
 };
+
+/**
+ * La miniatura de cada prenda de la tabla (ADR-0333: sin foto, el ícono de su categoría sobre su color; nunca el isotipo). La
+ * lectura de Frescura trae el NOMBRE del color pero no su hex ni la foto ni el prefijo de la categoría, así que se piden aquí,
+ * por la talla de cada prenda, sin tocar la función SQL. Es un dato decorativo (`lib/resultado.ts`, `tolerar`): nadie decide
+ * mirando una miniatura, así que si falla la pantalla sigue entera y cada prenda se dibuja con la percha.
+ */
+async function miniaturasDeLaTabla(supabase: Supabase, lectura: DatosFrescura["lectura"]): Promise<Pick<DatosFrescura, "apariencias" | "categoriasVisuales">> {
+  const vacio = { apariencias: {}, categoriasVisuales: {} };
+  const sede = lectura.datos;
+  if (!sede || !sede.separaPiso) return vacio;
+  try {
+    const prendas = sede.prendas.filter(enLaTabla);
+    const idsPorClave = new Map(prendas.map((p) => [p.clave, p.tallas[0]?.varianteId ?? null] as const));
+    const categoriaIds = [...new Set(prendas.map((p) => p.categoriaId).filter((id) => id !== ""))];
+    const [apariencia, categorias] = await Promise.all([
+      getAparienciaVariantes(supabase, [...idsPorClave.values()].filter((id): id is string => id !== null)),
+      categoriaIds.length > 0 ? supabase.from("categorias").select("id, prefijo, familia").in("id", categoriaIds) : Promise.resolve({ data: [], error: null }),
+    ]);
+    const apariencias: Record<string, AparienciaPrenda> = {};
+    for (const [clave, varianteId] of idsPorClave) {
+      const a = varianteId ? apariencia.get(varianteId) : undefined;
+      if (a) apariencias[clave] = { colorHex: a.colorHex, fotoUrl: a.fotoUrl };
+    }
+    const categoriasVisuales: Record<string, CategoriaVisual> = {};
+    if (!categorias.error) for (const c of categorias.data ?? []) categoriasVisuales[c.id] = { prefijo: c.prefijo ?? null, familia: c.familia ?? null };
+    return { apariencias, categoriasVisuales };
+  } catch {
+    return vacio;
+  }
+}
 
 async function nombresDeTemporadas(supabase: Supabase): Promise<NombresDeTemporadas> {
   try {
@@ -101,16 +143,17 @@ export async function getFrescuraPantalla(
       sede.tienda ? armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias).then((f) => f.lectura) : Promise.resolve(sinPiso),
       nombresDeTemporadas(supabase),
     ]);
-    return { sede, esLider: false, lectura, registro: null, cayla: null, tiendas: null, temporadas };
+    return { sede, esLider: false, lectura, registro: null, cayla: null, tiendas: null, temporadas, ...(await miniaturasDeLaTabla(supabase, lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
   const [lider, temporadas] = await Promise.all([armarFrescuraLider(tiendas, rpc, dias), nombresDeTemporadas(supabase)]);
   const propia = lider.sedes.find((s) => s.ubicacionId === sede.id);
+  const lecturaDeSede = propia ? propia.lectura : sinPiso;
   return {
     sede,
     esLider: true,
-    lectura: propia ? propia.lectura : sinPiso,
+    lectura: lecturaDeSede,
     registro: lider.confianza,
     cayla: lider.referenciaCayla,
     tiendas: lider.sedes.map((s) => ({
@@ -126,5 +169,6 @@ export async function getFrescuraPantalla(
         : { datos: null, fallo: s.lectura.fallo },
     })),
     temporadas,
+    ...(await miniaturasDeLaTabla(supabase, lecturaDeSede)),
   };
 }
