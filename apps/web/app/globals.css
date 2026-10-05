@@ -250,6 +250,25 @@ body {
   }
 }
 
+/* Foco de teclado — UN solo anillo para todo el ERP (ADR-0351, Felipe 2026-10-05).
+   Hasta hoy el foco salía de tres maneras: el anillo AZUL por defecto del navegador (fuera de paleta, distinto en cada
+   navegador), anillos en rojo con 30–60 % de opacidad (1,5 a 2,5:1 contra crema) y controles con `outline-none` que solo
+   cambiaban un borde. WCAG 2.2 pide ≥ 3:1 (1.4.11) y visible siempre (2.4.7); 2 px es el tamaño de 2.4.13.
+   Tinta, y no rojo: el rojo es el acento «sagrado» (máx. 2 por pantalla, ADR-0169) y el foco aparece en cada Tab.
+   Tinta sobre crema 15,4:1, papel 16,4:1, hueso 13,4:1, sand 13,3:1. La regla va en `base` (especificidad mínima): un control
+   con su propio `outline-*` la sigue pisando; el que solo quiere ESTE anillo no escribe nada. Detalle y medidas: ADR-0351. */
+@layer base {
+  :root {
+    --foco-color: var(--color-tinta);
+    --foco-ancho: 2px;
+    --foco-separacion: 2px;
+  }
+  :focus-visible {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: var(--foco-separacion);
+  }
+}
+
 /* ==================================================================
    Clases de componente propias — TODAS viven en `@layer components`
    (2026-09-18).
@@ -436,8 +455,13 @@ body {
     border-radius: var(--radius-md);
     transition: border-color 150ms;
   }
-  .caja-cayla:focus-within {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  /* Foco de la caja (ADR-0351). Un campo de texto con el cursor adentro enciende la caja entera (`:has`), no el `<input>`
+     transparente de dentro; una caja que es su propio control (combo, input con la clase) se enciende por el anillo
+     común de `base`. Por ADR-0105 vive en `components`: una utilidad le gana, así que NINGÚN control con `caja-cayla`
+     escribe `outline-none` (lo vigila `lib/foco-comun.test.ts`). */
+  .caja-cayla:has(:focus-visible) {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: var(--foco-separacion);
   }
 
   /* La nota al pie de una pantalla («Registro transparente: …»): explica una regla del negocio,
@@ -469,6 +493,12 @@ body {
   }
   .fila-cayla:hover {
     background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  }
+  /* Foco de una fila clicable (ADR-0351): el anillo va HACIA ADENTRO (offset negativo). Hacia afuera la tarjeta de la tabla
+     (`overflow-hidden`) lo recortaba en los costados y la fila de arriba y la de abajo lo tapaban. */
+  .fila-cayla:focus-visible {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: calc(var(--foco-ancho) * -1);
   }
 }
 

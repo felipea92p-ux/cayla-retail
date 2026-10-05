@@ -20,15 +20,14 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 export type VarianteBotonCompacto = "primario" | "vidrio" | "fila" | "fila-alerta";
 
-// Dos detalles de Tailwind 4 que no se ven a simple vista (ambos comprobados en el CSS compilado):
-// - `outline-none` fija `--tw-outline-style: none` y `focus-visible:outline*` lo lee: sin
-//   `focus-visible:outline-solid` el anillo de foco (`outline-rojo/60`) nunca se dibuja.
+// Un detalle de Tailwind 4 que no se ve a simple vista (comprobado en el CSS compilado):
+// - El foco de teclado NO se escribe acá: lo pone el anillo común (`:focus-visible` de `globals.css`, ADR-0351).
+//   Antes había un `outline-rojo/60` (2,5:1 contra crema, bajo el 3:1 de WCAG 1.4.11).
 // - `hover:-translate-y-px` usa la propiedad `translate`, no `transform`: por eso la transición
 //   lista `translate`; con `transform` el alzado de 1 px saltaría en seco mientras la sombra sí entra suave.
 const BASE =
-  "relative inline-flex shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap font-medium outline-none " +
+  "relative inline-flex shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap font-medium " +
   "transition-[translate,box-shadow,background-color,border-color,color] duration-200 ease-cayla " +
-  "focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:h-[15px] [&>svg]:w-[15px] [&>svg]:shrink-0";
 
 // `enabled:hover:` y no `hover:`: `hover:` no excluye `:disabled`, así que un botón deshabilitado o
