@@ -154,8 +154,29 @@
     const velos = [];
     if (tema === "oscuro") {
       const pagina = fondoDeLaPagina();
-      const tintaFija = leer(getComputedStyle(document.documentElement).getPropertyValue("--color-tinta").trim() || "#f5f0e8");
+      // Una superficie clara que ES un token del sistema (el relleno de `tinta` invertido, el color de un medio de pago elegido, el verde de
+      // «hecho»…) es una decisión del diseño; un blanco escrito a mano NO coincide con ningún token. Se recogen los `--color-*` de las hojas.
+      const raiz = getComputedStyle(document.documentElement);
+      const nombres = new Set();
+      // Tailwind publica su propia paleta (`--color-white`, `--color-gray-100`…): NO son tokens de CAYLA, y un `bg-white` coincidiría con ella.
+      const PALETA_DE_TAILWIND = /^--color-(white|black|(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d+)$/;
+      // Los tokens viven DENTRO de `@layer theme { … }` y de `@media screen { … }`: hay que bajar por los grupos de reglas.
+      const recorrer = (reglas) => {
+        for (const regla of reglas) {
+          if (regla.style) for (const prop of regla.style) if (prop.startsWith("--color-") && !PALETA_DE_TAILWIND.test(prop)) nombres.add(prop);
+          if (regla.cssRules) recorrer(regla.cssRules);
+        }
+      };
+      for (const hoja of document.styleSheets) {
+        try {
+          recorrer(hoja.cssRules);
+        } catch {
+          /* hoja de otro origen: no se puede leer */
+        }
+      }
+      const tokens = [...nombres].map((n) => leer(raiz.getPropertyValue(n).trim() || "#000")).filter((c) => c[3] > 0.99);
       const cercano = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) < 12;
+      const esToken = (c) => tokens.some((t) => cercano(c, t));
       for (const el of document.body.querySelectorAll("*")) {
         if (el.closest(".papel-fijo, img, canvas, video, svg, [data-papel]")) continue;
         const cs = getComputedStyle(el);
@@ -174,9 +195,9 @@
         // Una SUPERFICIE (tarjeta, panel), no una barra de gráfico ni un botón: 100×60 como mínimo y 9.000 px² de área.
         if (caja.width * caja.height < 9000 || caja.width < 100 || caja.height < 60) continue;
         const compuesto = sobre(c, fondoEfectivo(el.parentElement || el).fondo);
-        // El relleno de `tinta` (que en oscuro es crema) es la inversión a propósito: botón primario, píldora activa.
-        if (cercano(compuesto, tintaFija)) continue;
-        if (lum(compuesto) > 0.35) manchas.push({ tipo: "mancha-clara", clave: camino(el), fondo: hex(compuesto), tam: `${Math.round(caja.width)}x${Math.round(caja.height)}`, donde: camino(el) });
+        if (esToken(compuesto)) continue;
+        // Un relleno de color (el medio de pago elegido, un estado) es una mezcla de un token y rara vez pasa de 0.6; un blanco o gris claro escrito a mano, sí.
+        if (lum(compuesto) > 0.6) manchas.push({ tipo: "mancha-clara", clave: camino(el), fondo: hex(compuesto), tam: `${Math.round(caja.width)}x${Math.round(caja.height)}`, donde: camino(el) });
       }
     }
     abrirPunteros.remove();

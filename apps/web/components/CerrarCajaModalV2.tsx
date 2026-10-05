@@ -415,7 +415,7 @@ export function CerrarCajaModalV2({
                             value={billetes[d] ?? ""}
                             onChange={(e) => cambiarBillete(d, e.target.value.replace(/\D/g, ""))}
                             aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
-                            className="w-full rounded border border-sand bg-white px-2 py-1 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                            className="w-full rounded border border-sand bg-vidrio px-2 py-1 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
                           />
                           <span className={`text-right tabular-nums ${cantidad > 0 ? "text-tinta" : "text-tinta/35"}`}>
                             {money(cantidad * d)}

@@ -47,12 +47,9 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "app/global-error.tsx": { cuenta: 6, motivo: "Pantalla de error global: se dibuja sin globals.css (el layout raíz reventó), así que lleva su propia paleta en dos juegos de variables, claro y oscuro, con los valores de tema.css." },
 
   // ---------- Deuda: se paga en la actividad de su módulo (ADR-0336) ----------
-  "components/CerrarCajaModalV2.tsx": { cuenta: 1, deuda: "actividad 6", motivo: "Un campo con `bg-white`." },
-  "components/apartados/TodosVista.tsx": { cuenta: 1, deuda: "actividad 6", motivo: "Rayado de custodia con el rgb de sand escrito a mano." },
   "components/FlujoGuiado.tsx": { cuenta: 3, deuda: "actividad 7", motivo: "Trama del hilo y la aguja con rgba escrito a mano." },
   "app/estilos/comprobantes-lista.css": { cuenta: 1, deuda: "actividad 7", motivo: "Brillo blanco del esqueleto de carga." },
   "components/NuevaProformaModal.tsx": { cuenta: 2, deuda: "actividad 7", motivo: "Un control con `bg-white/60` y el color de reserva de una muestra." },
-  "components/MosaicoPrenda.tsx": { cuenta: 1, deuda: "actividad 8", motivo: "Anillo de la muestra con el rgb de la tinta escrito a mano." },
   "components/ProductosTabla.tsx": { cuenta: 1, deuda: "actividad 8", motivo: "Color de reserva de una muestra (#e8e0d0 = sand) que debe ser el token." },
   "components/ColoresLista.tsx": { cuenta: 2, deuda: "actividad 8", motivo: "Color de reserva de una muestra (#e8e0d0 = sand) y el valor inicial del selector." },
   "components/alta-producto/MatrizVariantes.tsx": { cuenta: 1, deuda: "actividad 8", motivo: "Rayado de «fuera de la matriz» con el rgb de la tinta escrito a mano." },

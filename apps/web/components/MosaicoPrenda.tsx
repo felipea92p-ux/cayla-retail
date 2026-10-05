@@ -43,7 +43,7 @@ export function MosaicoPrenda({
   const trazo = color?.trazo ?? tono.acento;
   // En `relleno` el filo va siempre: reemplaza al borde que tenía la miniatura del isotipo y que llevan las fotos a su lado.
   const filo = color?.filo || forma === "relleno";
-  const estilo: CSSProperties = { backgroundColor: fondo, color: trazo, ...(filo ? { boxShadow: "inset 0 0 0 1px rgb(26 26 24 / 0.1)" } : {}) };
+  const estilo: CSSProperties = { backgroundColor: fondo, color: trazo, ...(filo ? { boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 10%, transparent)" } : {}) };
   const enGrilla = forma === "grilla";
   const sinCategoria = !prefijo && !familia;
   const conRotulo = Boolean(categoria) && conNombre;
@@ -64,7 +64,7 @@ export function MosaicoPrenda({
     >
       {sinCategoria ? <IconoPercha className={claseIcono} strokeWidth={1.5} /> : <IconoCategoria prefijo={prefijo} familia={familia ?? null} className={claseIcono} />}
       {conRotulo && (
-        <span className={`label-cayla line-clamp-2 max-w-full text-center leading-snug ${enGrilla ? "text-[9.5px]" : "text-[8px] !tracking-[0.04em]"}`} style={{ opacity: color ? 0.85 : 0.6, color: color ? undefined : "var(--color-tinta)" }}>
+        <span className={`label-cayla line-clamp-2 max-w-full text-center leading-snug ${enGrilla ? "text-[9.5px]" : "text-[8px] !tracking-[0.04em]"}`} style={{ opacity: color ? 0.85 : 0.6, color: color ? undefined : "var(--color-tinta-fija)" }}>
           {categoria}
         </span>
       )}

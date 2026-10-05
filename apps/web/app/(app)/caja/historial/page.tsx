@@ -90,23 +90,23 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
                     pantalla de cuadre. La etiqueta va SOLO en celular: en escritorio
                     ya la da la columna. */}
                 <span className={celda("izq", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Cerró</span>
+                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Cerró</span>
                   {c.cerradaPorNombre ?? "—"}
                 </span>
                 <span className={celda("der", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Apertura</span>
+                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Apertura</span>
                   {money(c.montoApertura)}
                 </span>
                 <span className={celda("der", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Esperado</span>
+                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Esperado</span>
                   {money(c.montoCierreSistema)}
                 </span>
                 <span className={celda("der", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Contado</span>
+                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Contado</span>
                   {money(c.montoCierreReal)}
                 </span>
                 <span className={celda("der", `font-semibold ${cuadra ? "text-tinta" : c.diferencia > 0 ? "text-verde-profundo" : "text-rojo-profundo"}`)}>
-                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Diferencia</span>
+                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Diferencia</span>
                   {c.diferencia >= 0 ? "+" : ""}
                   {money(c.diferencia)}
                 </span>

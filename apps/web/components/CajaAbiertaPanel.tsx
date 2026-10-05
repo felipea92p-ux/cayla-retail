@@ -315,7 +315,7 @@ export function CajaAbiertaPanel({
                   >
                     <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
                     {METODO_RITMO[clave].texto}
-                    <span className="font-normal tabular-nums opacity-70">{ventas}</span>
+                    <span className="font-normal tabular-nums opacity-70 dark:opacity-85">{ventas}</span>
                   </button>
                 ))}
               </div>

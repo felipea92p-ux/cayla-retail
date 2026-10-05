@@ -81,7 +81,7 @@ export function TarjetaCajon({ esperado, piezas, indice }: { esperado: number | 
       <p className="mt-3.5 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-tinta/65 tabular-nums">
         {piezas.map((p, i) => (
           <span key={p.etiqueta} className="whitespace-nowrap">
-            {i > 0 && <span className="mr-2 text-tinta/40">{p.signo}</span>}
+            {i > 0 && <span className="mr-2 text-tinta/40 dark:text-tinta/55">{p.signo}</span>}
             {p.etiqueta} <b className="font-semibold text-tinta">{soles(p.monto)}</b>
           </span>
         ))}

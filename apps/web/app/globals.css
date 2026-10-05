@@ -32,7 +32,10 @@
    "Tres colores. No más, nunca más. La profundidad viene de la
    tipografía y el espacio." — brandbook CAYLA
    ================================================================== */
-@theme {
+/* `static`: Tailwind v4 solo emite los tokens que alguna utilidad o regla CSS usa. Un token que se usa SOLO desde TSX (`style={{ color:
+   "var(--color-tinta-fija)" }}`) no se emitía: la variable no existía en ejecución y el texto caía al color heredado (ADR-0336: una prenda
+   clara mostraba texto claro). Con `static` todos los de la paleta existen siempre. */
+@theme static {
   /* Paleta primaria — los tres únicos colores de identidad */
   --color-rojo: #b8412d;        /* Acento sagrado. Nunca decoración. Máx. 2 por pantalla. */
   --color-crema: #f5f0e8;       /* Fondo dominante. Nunca blanco puro. */
@@ -56,6 +59,11 @@
      (blanco en claro, un gris cálido en oscuro). */
   --color-sombra: #1a1a18;
   --color-vidrio: #ffffff;
+  /* La tinta y la crema FIJAS: iguales en claro y en oscuro. Para lo que se dibuja sobre un color de DATO —la prenda, una muestra, un
+     tinte—: ese color no cambia con el tema, así que el texto que se lee sobre él tampoco puede intercambiarse. `--color-tinta` y
+     `--color-crema` sí se intercambian (ADR-0336); con ellos, una prenda negra mostraba su nombre en el mismo negro. */
+  --color-tinta-fija: #1a1a18;
+  --color-crema-fija: #f5f0e8;
   --color-pizarra: #4c5d6e;     /* Estado informativo — programado, en revisión, en camino. No es semáforo. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 

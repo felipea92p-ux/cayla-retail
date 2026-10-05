@@ -10,6 +10,8 @@
 //   · `ancho`   «escritorio» o «celular» (menos de 700 px): el escenario solo existe en ese tamaño (sin esto, en los dos).
 // Cada módulo que se audita agrega aquí los suyos. Se corren con `--escenarios` (o con `--escenario <id>`).
 
+import { consultarLocal } from "../motor/sesion.mjs";
+
 const esperar = (pagina, ms = 700) => pagina.waitForTimeout(ms);
 
 export const ESCENARIOS = [
@@ -232,6 +234,238 @@ ESCENARIOS.push(
       await esperar(pagina, 600);
     },
   },
+);
+
+// ---------- Ventas I: Vender y Caja (actividad 6) ----------
+const VENDEDORAS = ["terminal-ventas", "admin", "integrante", "rol-personalizado"];
+
+/**
+ * Para vender, Vender exige que haya alguien DE TURNO (la asistencia de Dynamic: `fn_asesoras_de_turno`), y la base local no trae
+ * las tablas de asistencia (`public.marcajes`): ahí nadie está nunca de turno y «Cobrar» queda deshabilitado. El hook del cliente
+ * (`lib/useDeTurno.ts`) lee esa RPC desde el NAVEGADOR, así que se simula SOLO en la red de la auditoría (no se toca la base): una
+ * asesora presente. `limpiar` quita la ruta.
+ */
+async function simularAsesoraDeTurno(pagina) {
+  const id = consultarLocal("select p.id from public.personas p join auth.users u on u.id = p.auth_user_id where u.email = 'lucia@cayla.local'");
+  await pagina.route(/\/rpc\/fn_asesoras_de_turno/, (ruta) =>
+    ruta.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ persona_id: id, nombre_corto: "Lucía P.", estado_ahora: "presente", es_de_esta_sede: true }]) }),
+  );
+}
+const quitarAsesora = (pagina) => pagina.unroute(/\/rpc\/fn_asesoras_de_turno/).catch(() => {});
+
+/** Agrega la primera prenda del catálogo al ticket (el botón «Agregar …» de su tarjeta) y espera a que el ticket tenga línea. */
+async function agregarPrendaAlTicket(pagina) {
+  await pagina.locator('button[aria-label^="Agregar "]').first().click();
+  await esperar(pagina, 900);
+}
+async function habilitarCobro(pagina) {
+  await simularAsesoraDeTurno(pagina);
+  // La lectura del turno ya se hizo al cargar (sin la simulación): se vuelve a pedir recargando la pantalla.
+  await pagina.reload({ waitUntil: "networkidle" });
+  await esperar(pagina, 1800);
+  await agregarPrendaAlTicket(pagina);
+  // «Responsable» es obligatorio para guardar: se elige a la asesora presente y «Cobrar» se habilita. Quien ya viene con una
+  // responsable (una líder, que se elige a sí misma) no ve el combo vacío: el paso se salta.
+  const pedido = pagina.getByText("¿Quién está atendiendo?").first();
+  if (await pedido.count()) {
+    await pedido.click();
+    await esperar(pagina, 600);
+    await pagina.locator("[role=option]").first().click(); // la única opción: la asesora simulada (con su nombre completo)
+    await esperar(pagina, 900);
+  }
+}
+
+/** La hoja de cobro abierta (con una prenda y su responsable). */
+async function abrirCobro(pagina) {
+  await habilitarCobro(pagina);
+  await pagina.getByRole("button", { name: /^Cobrar/ }).first().click();
+  await esperar(pagina, 1400);
+}
+const medio = (nombre) => async (pagina) => {
+  await abrirCobro(pagina);
+  await pagina.getByRole("button", { name: nombre }).first().click();
+  await esperar(pagina, 1100);
+};
+
+ESCENARIOS.push(
+  {
+    id: "vender.ticket",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    nombre: "Vender · una prenda en el ticket",
+    async preparar(pagina) {
+      await agregarPrendaAlTicket(pagina);
+    },
+  },
+  {
+    id: "vender.cobrar",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: ".hoja-cobro",
+    nombre: "Vender · la hoja de cobro (medios de pago)",
+    preparar: abrirCobro,
+    limpiar: quitarAsesora,
+  },
+  { id: "vender.cobro-efectivo", ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".hoja-cobro", nombre: "Vender · cobro en efectivo (monto recibido y vuelto)", preparar: medio(/Efectivo/i), limpiar: quitarAsesora },
+  { id: "vender.cobro-tarjeta", ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".hoja-cobro", nombre: "Vender · cobro con tarjeta", preparar: medio(/Tarjeta/i), limpiar: quitarAsesora },
+  { id: "vender.cobro-yape", ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".hoja-cobro", nombre: "Vender · cobro con Yape", preparar: medio(/Yape/i), limpiar: quitarAsesora },
+  {
+    id: "vender.cobro-dos-medios",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: ".hoja-cobro",
+    nombre: "Vender · cobro con dos medios (efectivo + Yape) y boleta",
+    async preparar(pagina) {
+      await abrirCobro(pagina);
+      await pagina.getByRole("button", { name: /Efectivo/i }).first().click();
+      await esperar(pagina, 700);
+      await pagina.getByRole("button", { name: /Yape/i }).first().click();
+      await esperar(pagina, 700);
+      await pagina.getByRole("button", { name: /Boleta/i }).first().click();
+      await esperar(pagina, 1100);
+    },
+    limpiar: quitarAsesora,
+  },
+  {
+    id: "vender.cobro-factura",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: ".hoja-cobro",
+    nombre: "Vender · cobro con factura (datos del cliente)",
+    async preparar(pagina) {
+      await abrirCobro(pagina);
+      await pagina.getByRole("button", { name: /Efectivo/i }).first().click();
+      await esperar(pagina, 600);
+      await pagina.getByRole("button", { name: /Factura/i }).first().click();
+      await esperar(pagina, 1100);
+    },
+    limpiar: quitarAsesora,
+  },
+  {
+    id: "vender.ver-opciones",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[role=dialog]",
+    nombre: "Vender · «Ver todos los colores y tallas» de una prenda",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver todos los colores y ta/ }).first().click();
+      await esperar(pagina, 1100);
+    },
+  },
+  {
+    id: "vender.sin-registrar",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[role=dialog]",
+    nombre: "Vender · «Prenda sin registrar»",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Prenda sin registrar/i }).first().click();
+      await esperar(pagina, 1100);
+    },
+  },
+  {
+    id: "vender.mas",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    nombre: "Vender · el menú «Más»",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /^Más/ }).first().click();
+      await esperar(pagina, 900);
+    },
+  },
+);
+
+// ---- Vender en CELULAR (PL-105: 375 px obligatorio): el catálogo viene plegado y el ticket es una hoja que sube desde abajo ----
+async function abrirCatalogoCelular(pagina) {
+  await pagina.getByRole("button", { name: /Ver catálogo/i }).first().click();
+  await esperar(pagina, 1200);
+}
+async function ticketCelular(pagina) {
+  await abrirCatalogoCelular(pagina);
+  await agregarPrendaAlTicket(pagina);
+  await pagina.getByRole("button", { name: /Ver ticket/i }).first().click();
+  await esperar(pagina, 1400);
+}
+ESCENARIOS.push(
+  { id: "vender.m-catalogo", ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", nombre: "Vender (celular) · el catálogo abierto", preparar: abrirCatalogoCelular },
+  { id: "vender.m-ticket", ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", abre: "[role=dialog]", nombre: "Vender (celular) · la hoja del ticket con una prenda", preparar: ticketCelular },
+  {
+    id: "vender.m-cobrar",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "celular",
+    // En celular el cobro vive dentro de la hoja del ticket (un <Modal>), no en `.hoja-cobro` (el panel lateral de escritorio).
+    abre: "[role=dialog]",
+    nombre: "Vender (celular) · la hoja de cobro",
+    async preparar(pagina) {
+      await simularAsesoraDeTurno(pagina);
+      await pagina.reload({ waitUntil: "networkidle" });
+      await esperar(pagina, 1800);
+      await ticketCelular(pagina);
+      const pedido = pagina.getByText("¿Quién está atendiendo?").first();
+      if (await pedido.count()) {
+        await pedido.click();
+        await esperar(pagina, 600);
+        await pagina.locator("[role=option]").first().click();
+        await esperar(pagina, 900);
+      }
+      await pagina.getByRole("button", { name: /^Cobrar/ }).first().click();
+      await esperar(pagina, 1400);
+    },
+    limpiar: quitarAsesora,
+  },
+);
+
+// ---------- Caja (actividad 6) ----------
+const CAJEROS = ["admin", "integrante", "terminal-ventas", "rol-personalizado"];
+const botonCaja = (nombre) => async (pagina) => {
+  await pagina.getByRole("button", { name: nombre }).first().click();
+  await esperar(pagina, 1300);
+};
+ESCENARIOS.push(
+  { id: "caja.gasto", ruta: "/caja", cuentas: CAJEROS, ancho: "escritorio", abre: "[role=dialog]", nombre: "Caja · «Registrar gasto»", preparar: botonCaja(/^Registrar gasto/) },
+  { id: "caja.deposito", ruta: "/caja", cuentas: CAJEROS, ancho: "escritorio", abre: "[role=dialog]", nombre: "Caja · «Depósito o retiro»", preparar: botonCaja(/Depósito o retiro/) },
+  { id: "caja.cerrar", ruta: "/caja", cuentas: CAJEROS, ancho: "escritorio", abre: "[role=dialog]", nombre: "Caja · «Cerrar caja» (el conteo del efectivo)", preparar: botonCaja(/^Cerrar caja/) },
+  {
+    id: "caja.venta",
+    ruta: "/caja",
+    cuentas: CAJEROS,
+    ancho: "escritorio",
+    abre: "[role=dialog]",
+    nombre: "Caja · el detalle de una venta del turno",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver el detalle de la venta/ }).first().evaluate((el) => el.click());
+      await esperar(pagina, 1500);
+    },
+  },
+  { id: "caja.movimientos-cajon", ruta: "/caja", cuentas: CAJEROS, ancho: "escritorio", nombre: "Caja · filtro «Mueve el cajón»", preparar: botonCaja(/^Mueve el cajón/) },
+  {
+    id: "caja.historial-cierre",
+    ruta: "/caja/historial",
+    cuentas: CAJEROS,
+    ancho: "escritorio",
+    abre: "[role=dialog]",
+    nombre: "Historial de cajas · el detalle de un cierre",
+    async preparar(pagina) {
+      await pagina.getByRole("button", { name: /Ver el detalle del cierre/ }).first().evaluate((el) => el.click());
+      await esperar(pagina, 1500);
+    },
+  },
+);
+
+// Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
+// Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
+ESCENARIOS.push(
+  { id: "caja.cerrada-vender", soloPorId: true, ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".caja-cerrada", nombre: "Vender · con la caja cerrada (la persiana y el cartel)", async preparar(pagina) { await esperar(pagina, 2200); } },
+  { id: "caja.cerrada-vender-m", soloPorId: true, ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", abre: ".caja-cerrada", nombre: "Vender (celular) · con la caja cerrada", async preparar(pagina) { await esperar(pagina, 2200); } },
+  { id: "caja.cerrada-abrir", soloPorId: true, ruta: "/caja", cuentas: CAJEROS, ancho: "escritorio", nombre: "Caja · con la caja cerrada (abrir la caja)", async preparar(pagina) { await esperar(pagina, 1200); } },
 );
 
 export const escenariosDe = (ruta, cuentaClave, celular = false) =>

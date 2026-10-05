@@ -22,7 +22,7 @@
 
     /* Superficies: elevado = más claro. crema (página) < papel (tarjeta, tabla, hoja) < hueso (campo, zebra) < sand (línea). */
     --color-crema: #1a1a18;
-    --color-papel: #262624;
+    --color-papel: #242422; /* 2 niveles menos que el #262624 inicial: así `tinta` al 50 % (el texto de apoyo más usado del ERP; Tailwind lo mezcla en oklab) pasa de 4.46 a 4.5+:1 */
     --color-hueso: #31302d;
     --color-sand: #3d3c38;
 
@@ -102,6 +102,8 @@
     --color-hueso: #eae1d2;
     --color-sombra: #1a1a18;
     --color-vidrio: #ffffff;
+    --color-tinta-fija: #1a1a18;
+    --color-crema-fija: #f5f0e8;
     --color-pizarra: #4c5d6e;
     --color-tinta-60: #5b544c;
     --color-verde: #48603f;

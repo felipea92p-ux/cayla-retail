@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -50,10 +50,12 @@ function bloquesTheme(css: string): string[] {
 
 const claro = colores(bloquesTheme(globals).join("\n"));
 const oscuro = colores(cuerpoDe(tema, ':root[data-tema="oscuro"]'));
+// Los tokens FIJOS valen lo mismo en los dos temas (para texto sobre un color de dato): no se redefinen en el bloque oscuro.
+const FIJOS = ["tinta-fija", "crema-fija"];
 const fijo = colores(cuerpoDe(tema, ".papel-fijo"));
 
 const esHex = (v: string) => /^#[0-9a-f]{6}$/i.test(v);
-const hexClaros = Object.entries(claro).filter(([, v]) => esHex(v)).map(([n]) => n);
+const hexClaros = Object.entries(claro).filter(([, v]) => esHex(v)).map(([n]) => n).filter((n) => !FIJOS.includes(n));
 
 describe("tokens de color: claro, oscuro y papel fijo dicen lo mismo", () => {
   it("el detector sí encuentra tokens (que no pase en vacío por estar mal escrito)", () => {
@@ -72,6 +74,12 @@ describe("tokens de color: claro, oscuro y papel fijo dicen lo mismo", () => {
 
   it("`.papel-fijo` re-declara TODOS los colores del claro —alias del puente incluidos— con el mismo valor", () => {
     expect(fijo).toEqual(claro);
+  });
+
+  it("los tokens fijos existen, valen la tinta y la crema DEL CLARO y NO se redefinen en oscuro", () => {
+    expect(claro["tinta-fija"]).toBe(claro.tinta);
+    expect(claro["crema-fija"]).toBe(claro.crema);
+    for (const n of FIJOS) expect(oscuro[n], `--color-${n} no va en el bloque oscuro`).toBeUndefined();
   });
 
   it("el oscuro es el claro con `tinta` y `crema` intercambiadas (la idea que hace que 5.600 usos se inviertan solos)", () => {
@@ -110,6 +118,43 @@ describe("tokens de brillo y variante dark", () => {
     const iVariante = globals.indexOf("@custom-variant");
     const ultimoImport = globals.lastIndexOf("@import");
     expect(iVariante).toBeGreaterThan(ultimoImport);
+  });
+});
+
+describe("los tokens existen en ejecución", () => {
+  it("la paleta es `@theme static`: Tailwind v4 NO emite un token que solo se usa desde TSX (la variable no existía y el texto caía al color heredado)", () => {
+    const sinComentarios = readFileSync(join(__dirname, "../app/globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(sinComentarios).toMatch(/@theme static\s*\{\s*--color-rojo:/);
+  });
+
+  // Recorre `app`, `components` y `lib` (sin pruebas) y junta cada `var(--color-NOMBRE)` que el código usa.
+  function referencias(): Map<string, string[]> {
+    const raiz = join(__dirname, "..");
+    const salida = new Map<string, string[]>();
+    const recorrer = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const ruta = join(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name !== "node_modules" && !e.name.startsWith(".")) recorrer(ruta);
+        } else if (/\.(tsx?|css)$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+          const texto = readFileSync(ruta, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+          for (const m of texto.matchAll(/var\(\s*--color-([a-z0-9-]*)/g)) salida.set(m[1], [...(salida.get(m[1]) ?? []), ruta.slice(raiz.length + 1)]);
+        }
+      }
+    };
+    for (const c of ["app", "components", "lib"]) recorrer(join(raiz, c));
+    return salida;
+  }
+
+  it("todo `var(--color-…)` que usa el código es un token que existe (un nombre mal escrito no avisa de nada: simplemente no pinta)", () => {
+    const definidos = new Set(Object.keys(claro));
+    const inexistentes: string[] = [];
+    for (const [nombre, archivos] of referencias()) {
+      // Un nombre armado con plantilla (`var(--color-metodo-${m})`) llega como prefijo con guion final: basta que algún token lo empiece.
+      const existe = nombre.endsWith("-") || nombre === "" ? [...definidos].some((d) => d.startsWith(nombre)) : definidos.has(nombre);
+      if (!existe) inexistentes.push(`--color-${nombre}  ←  ${[...new Set(archivos)].slice(0, 3).join(", ")}`);
+    }
+    expect(inexistentes).toEqual([]);
   });
 });
 

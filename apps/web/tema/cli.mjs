@@ -101,7 +101,7 @@ function visitasDe(cuenta) {
   if (args.escenarios || args.escenario) {
     const candidatas = new Set([...rutas, ...(args.escenario ? ESCENARIOS.filter((e) => e.id === args.escenario).map((e) => e.ruta) : [])]);
     for (const ruta of candidatas) {
-      for (const e of escenariosDe(ruta, cuenta.clave, ancho < 700)) if (!args.escenario || e.id === args.escenario) v.push({ ruta: casa(ruta), logica: ruta, titulo: `${casa(ruta)} · ${e.nombre}`, escenario: e });
+      for (const e of escenariosDe(ruta, cuenta.clave, ancho < 700)) if (args.escenario ? e.id === args.escenario : !e.soloPorId) v.push({ ruta: casa(ruta), logica: ruta, titulo: `${casa(ruta)} · ${e.nombre}`, escenario: e });
     }
   }
   return args.escenario ? v.filter((x) => x.escenario?.id === args.escenario) : v;
