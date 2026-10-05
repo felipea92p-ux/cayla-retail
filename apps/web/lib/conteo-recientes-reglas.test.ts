@@ -40,6 +40,8 @@ function conteo(numero: number, creadoEn: string, extra: Partial<ConteoResumen> 
     pendientes: 0,
     parcial: false,
     variantes: 2,
+    sinContar: 0,
+    esArranque: false,
     ...extra,
   };
 }
@@ -228,6 +230,14 @@ describe("textoCierre y apoyoDeResultado: la línea bajo el resultado", () => {
     expect(apoyoDeResultado(cerrado)).toBe("Cerrado 11:52");
     expect(apoyoDeResultado({ ...cerrado, estado: "abierto", cerradoEn: null, lineas: 3, variantes: 9 })).toBe("Sigue abierto");
     expect(apoyoDeResultado({ ...cerrado, estado: "anulado", cerradoEn: null, lineas: 0, variantes: 0 })).toBeNull();
+  });
+  it("ADR-0328: un terminado dice si fue el de arranque y cuántas se aplicaron sin contar; uno cancelado no dice nada de eso", () => {
+    expect(apoyoDeResultado({ ...cerrado, esArranque: true })).toBe("Cerrado 11:52 · De arranque");
+    expect(apoyoDeResultado({ ...cerrado, lineas: 52, variantes: 52, sinContar: 40 })).toBe("Cerrado 11:52 · 40 sin contar");
+    expect(apoyoDeResultado({ ...cerrado, esArranque: true, sinContar: 2 })).toBe("Cerrado 11:52 · De arranque · 2 sin contar");
+    expect(apoyoDeResultado({ ...cerrado, sinContar: 0, esArranque: false })).toBe("Cerrado 11:52");
+    expect(apoyoDeResultado({ ...cerrado, estado: "abierto", cerradoEn: null, sinContar: 3 })).toBe("Sigue abierto");
+    expect(apoyoDeResultado({ ...cerrado, estado: "anulado", cerradoEn: null, lineas: 0, variantes: 0, esArranque: true })).toBeNull();
   });
 });
 

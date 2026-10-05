@@ -191,6 +191,7 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
+  destinosParaEnviar = [],
   listaDelDia = SIN_LISTA,
 }: {
   ubicacionId: string;
@@ -250,6 +251,8 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
+  /** A qué sedes se puede mandar lo que se sube «para enviar» (ADR-0328 act. 17). Vacío: «Subir prenda» no ofrece enviar. */
+  destinosParaEnviar?: readonly { id: string; nombre: string }[];
   /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
    *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
   listaDelDia?: readonly string[];
@@ -1247,6 +1250,7 @@ export function InventarioPanel({
           ubicacionId={ubicacionId}
           sede={sedeNombre}
           alCerrarEnfocar={volverFoco}
+          destinos={destinosParaEnviar}
           onClose={() => setSubiendo(null)}
         />
       )}

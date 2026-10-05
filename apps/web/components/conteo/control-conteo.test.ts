@@ -7,7 +7,7 @@ const AHORA = "2026-09-29T15:00:00.000Z";
 
 /** Una línea como la deja la base al abrir el conteo: pendiente, con lo congelado en `foto`. */
 function pendiente(varianteId: string, debeHaber: number): LineaConteo {
-  return { varianteId, debeHaber, foto: debeHaber, contada: null, anterior: null, verificadoEn: null, confirmadaEn: null, actual: debeHaber, ajusteMovimientoId: null, ajustadoTotal: 0, ajustadoAntes: 0, hallazgos: 0, diferencia: null, estado: "pendiente" };
+  return { varianteId, debeHaber, foto: debeHaber, contada: null, anterior: null, verificadoEn: null, confirmadaEn: null, actual: debeHaber, ajusteMovimientoId: null, ajustadoTotal: 0, ajustadoAntes: 0, hallazgos: 0, aplicadaSinContar: false, diferencia: null, estado: "pendiente" };
 }
 
 /** La línea tal como la devuelve `conteo_contar` (jsonb). */
@@ -286,5 +286,78 @@ describe("ControlConteo · resumen, suscripciones y terminar", () => {
     control.soltar();
     await microtareas();
     expect(envios).toHaveLength(1);
+  });
+});
+
+describe("ControlConteo · «Aplicar todos completos» (ADR-0328): nada se pinta antes de que la base responda", () => {
+  /** La línea aplicada como la devuelve `conteo_aplicar_completos`: lo que hay ahora, con la marca. */
+  const aplicada = (varianteId: string, n: number) => ({ ...respuesta(varianteId, { debeHaber: n, contada: n }), aplicada_sin_contar: true });
+
+  it("espera a la base: mientras no responde, las líneas siguen pendientes; con la respuesta quedan «sin contar» y devuelve cuántas", async () => {
+    const { control } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    let responder!: (r: { data: unknown; error: ErrorGuardado | null }) => void;
+    const pedidas: string[][] = [];
+    const resultado = control.aplicarCompletos(["a", "b"], (ids) => {
+      pedidas.push(ids);
+      return new Promise((r) => (responder = r));
+    });
+    await microtareas();
+    expect(pedidas).toEqual([["a", "b"]]);
+    expect(control.linea("a")).toMatchObject({ contada: null, estado: "pendiente" });
+    expect(control.estadoGuardado()).toBe("guardando");
+    // Entre abrir y aplicar se vendió una «b»: la base anota lo que hay AHORA (2), sin falsa diferencia.
+    responder({ data: { aplicadas: 2, lineas: [aplicada("a", 5), aplicada("b", 2)] }, error: null });
+    expect(await resultado).toEqual({ aplicadas: 2, sinContar: 2 });
+    expect(control.linea("a")).toMatchObject({ contada: 5, estado: "correcta", aplicadaSinContar: true });
+    expect(control.linea("b")).toMatchObject({ contada: 2, debeHaber: 2, estado: "correcta", aplicadaSinContar: true });
+    expect(control.resumen()).toMatchObject({ verificadas: 2, sinContar: 2 });
+    expect(control.estadoGuardado()).toBe("guardado");
+  });
+
+  it("va en la MISMA fila que los guardados por variante: primero sale lo que esperaba su turno", async () => {
+    const { control, envios } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    control.contar("a", 4); // esperaba sus 600 ms
+    const orden: string[] = [];
+    const resultado = control.aplicarCompletos(["b"], async () => {
+      orden.push("aplicar");
+      return { data: { aplicadas: 1, lineas: [aplicada("b", 3)] }, error: null };
+    });
+    await microtareas();
+    expect(envios.map((e) => e.p.varianteId)).toEqual(["a"]); // salió ya, sin esperar los 600 ms
+    expect(orden).toEqual([]); // y aplicar espera a que la base conteste ese guardado
+    envios[0].resolver({ data: respuesta("a", { debeHaber: 5, contada: 4 }), error: null });
+    expect(await resultado).toEqual({ aplicadas: 1, sinContar: 1 });
+    expect(orden).toEqual(["aplicar"]);
+    expect(control.linea("a")).toMatchObject({ contada: 4, aplicadaSinContar: false });
+  });
+
+  it("si la base rechaza (o responde algo ilegible, o se corta), nada cambia en pantalla y se devuelve el error", async () => {
+    const { control } = armar([pendiente("a", 5)]);
+    const r1 = await control.aplicarCompletos(["a"], async () => ({ data: null, error: { message: "Ese conteo ya está cerrado" } }));
+    expect(r1).toEqual({ error: { message: "Ese conteo ya está cerrado" } });
+    expect(control.linea("a")).toMatchObject({ contada: null, estado: "pendiente", aplicadaSinContar: false });
+    expect(control.estadoGuardado()).toBe("error");
+    const r2 = await control.aplicarCompletos(["a"], async () => ({ data: { aplicadas: "1" }, error: null }));
+    expect(r2).toEqual({ error: { message: "La respuesta del conteo llegó mal formada." } });
+    const r3 = await control.aplicarCompletos(["a"], async () => {
+      throw new Error("sin red");
+    });
+    expect(r3).toEqual({ error: { message: "sin red" } });
+    expect(control.linea("a")).toMatchObject({ contada: null });
+  });
+
+  it("un reintento (la primera vez se guardó y la respuesta se perdió): la base anota 0 pero devuelve las líneas marcadas, y se cuentan", async () => {
+    const { control } = armar([pendiente("a", 5), pendiente("b", 3)]);
+    const r = await control.aplicarCompletos(["a", "b"], async () => ({ data: { aplicadas: 0, lineas: [aplicada("a", 5), aplicada("b", 3)] }, error: null }));
+    expect(r).toEqual({ aplicadas: 0, sinContar: 2 });
+    expect(control.linea("b")).toMatchObject({ contada: 3, aplicadaSinContar: true });
+  });
+
+  it("contar a mano una línea aplicada la vuelve contada de verdad (se pinta sin la marca)", async () => {
+    const { control } = armar([pendiente("a", 5)]);
+    await control.aplicarCompletos(["a"], async () => ({ data: { aplicadas: 1, lineas: [aplicada("a", 5)] }, error: null }));
+    expect(control.linea("a")?.aplicadaSinContar).toBe(true);
+    control.contar("a", 4);
+    expect(control.linea("a")).toMatchObject({ contada: 4, aplicadaSinContar: false, estado: "con_diferencia" });
   });
 });
