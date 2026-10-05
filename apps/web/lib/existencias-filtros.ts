@@ -1,4 +1,4 @@
-import type { TipoAccionHoy } from "./existencias-recomendaciones";
+import type { PisoDeTalla } from "./piso-plan";
 import { compararTallas } from "./tallas";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
 import { listaDeUrl } from "./productos-filtros";
@@ -11,11 +11,11 @@ import { claveDeTarjeta } from "./existencias-tarjetas";
    existencias-filtros · la barra de filtros de Existencias
 
    Dos preguntas distintas sobre una talla, dos filtros (separadas el 2026-09-25, renombradas el 2026-10-03):
-     · «Hoy»: qué pide la talla (Por colgar · Por reponer · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
+     · «Hoy»: qué pide la talla (Por colgar · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
        cae en UNO solo, y la tarjeta y la tabla dicen la misma palabra. Antes eran «Acción» («Reponer a piso» / «Mantener») y
        «Por colgar» escondido en «Estado»: elegir «Mantener» + «Por colgar» siempre daba vacío.
      · «Condición»: en qué condición está el inventario (Dañadas · Apartadas). No excluye a «Hoy»: una talla puede pedir
-       reponer y tener una apartada a la vez.
+       colgar y tener una apartada a la vez.
    ==================================================================== */
 
 /* ====================================================================
@@ -154,7 +154,7 @@ export type FilaFiltrable = {
   /** La familia del color (`colores.familia_color`: azul, neutro, tierra…). La pone la página con una lectura aparte y
    *  tolerante; ausente o null = sin familia (o la lectura falló): el color se filtra solo por su nombre. */
   colorFamilia?: string | null;
-  accionHoy?: { tipo: TipoAccionHoy } | null;
+  planPiso?: Pick<PisoDeTalla, "accion"> | null;
   danado: number | null;
   /** Unidades apartadas para clientes (siguen en la tienda, no se venden ni se mueven). */
   apartado: number;

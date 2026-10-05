@@ -8,7 +8,8 @@ import { AlertTriangle, Archive, ArrowLeftRight, Bandage, Barcode, Check, Chevro
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
-import { estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { desgloseDePrenda, estadoTalla, queHacerPrenda, tallaParaReponer, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { DesgloseStockPrenda } from "@/components/DesgloseStockPrenda";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 
 /** El color del diagnóstico, del MISMO tono que la tarjeta y la tabla (`TONO_HOY`): ámbar lo que se hace aquí, pizarra lo que se pide afuera. */
@@ -99,6 +100,9 @@ export function CajonPrendaExistencias({
   onAjustar,
   onEliminar,
   onReportarDanada,
+  onVerApartadas,
+  onVerDanadas,
+  puedeResolverDanadas = false,
   onCerrar,
 }: {
   prenda: PrendaAgrupada<FilaExistencias>;
@@ -125,6 +129,12 @@ export function CajonPrendaExistencias({
   onEliminar?: () => void;
   /** Abre «Reportar dañada» con el color de esta prenda. */
   onReportarDanada?: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** Abre los apartados de ESTA prenda. Sin ella (no hay ninguno, o la pantalla no sabe abrirlos) la cifra «Apartada» no es un botón. */
+  onVerApartadas?: () => void;
+  /** Abre las dañadas en cuarentena de ESTA prenda. Sin ella la cifra «Dañada» no es un botón. */
+  onVerDanadas?: () => void;
+  /** Solo un líder, en su sede, decide qué se hace con una dañada: a él la cifra le dice «Decidir»; a los demás, «Ver cuáles». */
+  puedeResolverDanadas?: boolean;
   onCerrar: () => void;
 }) {
   // Cierre en dos tiempos, como `Modal`: primero sale, luego se desmonta.
@@ -141,6 +151,8 @@ export function CajonPrendaExistencias({
 
   const fotoOk = Boolean(prenda.fotoUrl);
   const diagnostico = separa ? queHacerPrenda(prenda.tallas) : null;
+  // Los cuatro lugares (piso, almacén, apartada, dañada) y su suma; `null` en el Taller, que no separa piso y almacén.
+  const desglose = separa ? desgloseDePrenda(prenda) : null;
   // «Reponer a piso» se ofrece si alguna talla se puede bajar (`tallaParaReponer`); la ventana lista todas las tallas.
   const hayQueReponer = tallaParaReponer(prenda.tallas) !== null;
   // «Subir a almacén» se ofrece si alguna talla tiene algo LIBRE en el piso (lo apartado para una clienta no se sube).
@@ -151,6 +163,11 @@ export function CajonPrendaExistencias({
   const hayOperar = (puedeReponer && (hayQueReponer || hayQueSubir)) || hrefTrasladar !== null;
   // «Reportar dañada» se ofrece si alguna talla tiene algo LIBRE en el piso o en el almacén (lo apartado no se mueve).
   const hayQueReportar = puedeReportarDanada && Boolean(onReportarDanada) && prenda.tallas.some((f) => (f.pisoDisponible ?? 0) + (f.almacenDisponible ?? 0) > 0);
+  // Cada cifra es un botón solo si hay algo que hacer con ella y la persona puede hacerlo (ADR-0161: nunca un botón que acabe en
+  // «Sin acceso» o en una ventana vacía). Almacén abre la misma ventana de «Reponer prenda» y se llama igual (la ventana, el botón de abajo y la celda dicen lo mismo); Piso no lleva botón.
+  const accionAlmacen = desglose && desglose.almacen > 0 && puedeReponer && hayQueReponer ? { texto: "Reponer prenda", onClick: () => onReponer(prenda) } : undefined;
+  const accionApartada = desglose && desglose.apartada > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined;
+  const accionDanada = desglose && desglose.danada > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined;
   const hayGestion = puedeAjustar || hayQueReportar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
 
   return (
@@ -213,12 +230,20 @@ export function CajonPrendaExistencias({
                 </div>
               </div>
 
+              {/* Los cuatro lugares donde puede estar la prenda y la suma explicada (2026-10-04): antes solo «Piso · Almacén», y lo
+                  apartado y lo dañado —que existían— no se veían, así que el total no coincidía con lo que se podía vender. */}
+              {desglose && (
+                <DesgloseStockPrenda desglose={desglose} accionAlmacen={accionAlmacen} accionApartada={accionApartada} accionDanada={accionDanada} />
+              )}
+
               {/* Resumen: piso y almacén, cuántas tallas y el diagnóstico. Tres celdas en una fila con el
                   ancho del cajón en el diseño (≥ 30rem) — pero el cajón es `w-full` por debajo de eso
                   (celular), y las tres con `whitespace-nowrap` ya no entran: en vez de recortarlas en
                   silencio (`overflow-hidden` + una fila que no cabe), el diagnóstico baja a su propia fila
                   cuando el cajón está angosto (Responsive Quality Gate, primera corrida, 2026-09-28). */}
-              <dl className="mt-6 mb-7 grid grid-cols-2 overflow-hidden rounded-xl border border-sand sm:flex sm:items-stretch sm:divide-x sm:divide-sand">
+              <dl className={`${desglose ? "mt-5" : "mt-6"} mb-7 grid grid-cols-2 overflow-hidden rounded-xl border border-sand sm:flex sm:items-stretch sm:divide-x sm:divide-sand`}>
+                {/* Con el desglose, «Piso · Almacén» ya no va aquí: lo dicen las cuatro cifras de arriba. Solo el Taller conserva «Disponible». */}
+                {!desglose && (
                 <div className="flex flex-col items-center justify-center gap-2.5 border-r border-sand px-3 py-4 text-[14px] text-tinta/80 sm:flex-auto sm:border-r-0 sm:px-4">
                   <Layers aria-hidden className="h-[22px] w-[22px] text-taupe" strokeWidth={1.4} />
                   <dt className="sr-only">Stock de la prenda</dt>
@@ -234,7 +259,14 @@ export function CajonPrendaExistencias({
                     )}
                   </dd>
                 </div>
-                <div className={`flex flex-col items-center justify-center gap-2.5 px-3 py-4 text-[14px] text-tinta/80 sm:flex-auto sm:px-4 ${diagnostico ? "border-b border-sand sm:border-b-0" : ""}`}>
+                )}
+                {/* Con el desglose la fila queda en dos celdas (tallas | diagnóstico) y caben lado a lado hasta en 375 px; con tres
+                    (Taller, sin diagnóstico) o con la de «Disponible», el diagnóstico baja a su propia fila como antes. */}
+                <div
+                  className={`flex flex-col items-center justify-center gap-2.5 px-3 py-4 text-[14px] text-tinta/80 sm:flex-auto sm:px-4 ${
+                    desglose ? "border-r border-sand sm:border-r-0" : diagnostico ? "border-b border-sand sm:border-b-0" : ""
+                  }`}
+                >
                   <IconoPercha aria-hidden className="h-[22px] w-[22px] text-taupe" strokeWidth={1.4} />
                   <dt className="sr-only">Tallas</dt>
                   <dd className="whitespace-nowrap">
@@ -243,9 +275,9 @@ export function CajonPrendaExistencias({
                 </div>
                 {diagnostico && (
                   <div
-                    className={`col-span-2 flex flex-col items-center justify-center gap-2.5 border-t border-sand px-3 py-4 text-center text-[14px] leading-tight sm:col-span-1 sm:flex-auto sm:border-t-0 sm:px-4 ${
-                      TEXTO_TONO_HOY[TONO_HOY[diagnostico.tipo]]
-                    }`}
+                    className={`flex flex-col items-center justify-center gap-2.5 px-3 py-4 text-center text-[14px] leading-tight sm:col-span-1 sm:flex-auto sm:border-t-0 sm:px-4 ${
+                      desglose ? "" : "col-span-2 border-t border-sand"
+                    } ${TEXTO_TONO_HOY[TONO_HOY[diagnostico.tipo]]}`}
                   >
                     {diagnostico.tipo === "mantener" ? (
                       <Check aria-hidden className="h-[22px] w-[22px]" strokeWidth={1.4} />
@@ -260,7 +292,7 @@ export function CajonPrendaExistencias({
               </dl>
 
               <div>
-                <Grupo titulo="Disponibilidad por talla" bajada={separa ? "Unidades en piso · unidades en almacén." : "Unidades disponibles."}>
+                <Grupo titulo="Disponibilidad por talla" bajada={separa ? "Libres en piso · libres en almacén. Lo apartado se anota aparte." : "Unidades disponibles."}>
                   <div className="grid grid-cols-4 gap-2.5">
                     {prenda.tallas.map((f) => {
                       const sinStock = estadoTalla(f) === "sin_stock";
@@ -275,6 +307,9 @@ export function CajonPrendaExistencias({
                           <span className={`mt-1 block text-[17px] leading-tight ${sinStock ? "font-semibold" : ""}`}>
                             {separa ? `${f.pisoDisponible ?? 0} · ${f.almacenDisponible ?? 0}` : f.disponible}
                           </span>
+                          {/* Lo apartado no está en esas dos cifras (son LIBRES): sin esta línea una talla con una apartada se leía «0 · 0»,
+                              igual que una sin nada, y quien contaba a mano encontraba una prenda que la pantalla negaba. */}
+                          {separa && f.apartado > 0 && <span className="mt-0.5 block text-[11.5px] leading-tight text-pizarra">+{f.apartado} apart.</span>}
                         </div>
                       );
                     })}

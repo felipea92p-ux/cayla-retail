@@ -13,8 +13,8 @@
 
 import { BOTON_CONFIRMAR_DE_NUEVO, itemsParaRpc, lineasSinAlcance, type ItemRpc, type LineaBajada } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
-import { RETIRO_NO_ES_BAJA, quedaraPidiendoReponer } from "./inventario-reglas";
-import type { PoliticaOperativaInventario } from "./politica-operativa-inventario";
+import { RETIRO_NO_ES_BAJA } from "./inventario-reglas";
+import { quedaraPidiendoColgar } from "./piso-plan";
 import type { Cantidades, TallaParaReponer } from "./reponer-prenda-reglas";
 
 /** La RPC y sus parámetros en un solo lugar: `retiro-reglas.test.ts` los fija contra la migración. */
@@ -105,21 +105,23 @@ export function tituloDeExitoRetiro(unidades: number): string {
 
 export const TEXTO_YA_ESTABA_SUBIDA = "Esta subida ya estaba registrada. No se repitió.";
 
-/** Lo que Existencias va a decir de las tallas que queden con poco: se avisa ANTES de confirmar (ADR-0208, bloque 3). */
-export const AVISO_QUEDAN_CON_POCO = "Existencias va a pedir bajar de nuevo las tallas que queden con poco en el piso.";
+/** Lo que Existencias va a decir de una talla que se quede sin ninguna colgada (y que el piso pide: del centro o vendida ayer u
+ *  hoy): se avisa ANTES de confirmar (ADR-0208, bloque 3). Decía «las que queden con poco» hasta que «Por reponer» se fundió en
+ *  «Por colgar» (basta 1 por color: lo único que vuelve a pedir bajar es quedarse sin ninguna). */
+export const AVISO_QUEDA_SIN_COLGAR = "Alguna talla se queda sin ninguna colgada: Existencias va a pedir bajarla de nuevo.";
 
 /** Los dos textos que puede mostrar el bloque de abajo, para que la ventana reserve el alto del más largo (ADR-0185). */
-export const TEXTOS_BLOQUE_SUBIR: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_QUEDAN_CON_POCO];
+export const TEXTOS_BLOQUE_SUBIR: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_QUEDA_SIN_COLGAR];
 
 /**
- * El texto del bloque: si alguna talla elegida quedaría pidiendo reponer (o «Por colgar») según la política de la sede, lo dice;
- * si no, recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoReponer`, la misma regla que después pinta la fila, y recibe
- * lo DISPONIBLE como la ventana.
+ * El texto del bloque: si alguna talla elegida quedaría pidiendo colgar según el motor del piso, lo dice; si no,
+ * recuerda que subir no es dar de baja. Pregunta a `quedaraPidiendoColgar` (`lib/piso-plan.ts`), la misma regla que después
+ * pinta la fila, con el requisito de cada talla, y recibe lo DISPONIBLE como la ventana.
  */
-export function textoDelBloqueSubir(tallas: readonly TallaParaReponer[], cantidades: Cantidades, politica: PoliticaOperativaInventario): string {
+export function textoDelBloqueSubir(tallas: readonly TallaParaReponer[], cantidades: Cantidades): string {
   const quedaCorto = tallas.some((t) => {
     const n = Math.min(Math.max(0, Math.trunc(cantidades[t.varianteId] ?? 0)), t.piso);
-    return n > 0 && quedaraPidiendoReponer({ piso: t.piso, almacen: t.almacen }, n, politica);
+    return n > 0 && quedaraPidiendoColgar({ piso: t.piso, almacen: t.almacen }, n, t.requisito);
   });
-  return quedaCorto ? AVISO_QUEDAN_CON_POCO : RETIRO_NO_ES_BAJA;
+  return quedaCorto ? AVISO_QUEDA_SIN_COLGAR : RETIRO_NO_ES_BAJA;
 }

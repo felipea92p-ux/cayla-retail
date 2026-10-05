@@ -74,6 +74,9 @@ export const AVIARIO = [
       "envios", "envio_extras", "envio_traslados",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
+      // ADR-0328 (actividad 3): el cuadre del piso de una sede y sus líneas; cada línea es un movimiento piso↔almacén. Nace con
+      // dueño (20261004195000); hasta que se pegue y se refresque el volcado, el aviario lo avisa como «no en el volcado».
+      "cuadres_piso", "cuadre_piso_items",
       // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
       // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
       "movimientos_internos_intentos",
@@ -99,6 +102,9 @@ export const AVIARIO = [
       // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
       // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
       "caja_traslados", "prendas_por_regularizar",
+      // El cierre de arranque de esas ventas sin registrar (ADR-0334): el registro de cada cierre y el plazo por tienda. Mismo pájaro
+      // que la cola que cierran: nacen de la misma venta. Entran al volcado cuando se pegue la migración 20261005100000.
+      "cierres_cola_arranque", "cola_arranque_plazo",
       // Configuración de la caja (ADR-0195 F1): la meta de venta de cada día por tienda, lo que cada campaña cambia en la caja
       // (meta y fondo) y la bitácora de esos cambios. Los lee `fn_parametros_caja` —lo que ve el mostrador—, por eso son de
       // Colibrí. La bitácora la escriben también las pantallas de Finanzas (parámetros, cuentas, presupuesto, impuestos):

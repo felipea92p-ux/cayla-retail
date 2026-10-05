@@ -11,7 +11,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
-import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, TablaActivos } from "@/components/GastosFijosYActivos";
+import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, ResumenActivosPorSede, TablaActivos } from "@/components/GastosFijosYActivos";
 import { Buscador, CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -25,6 +25,7 @@ import {
   fechaCorta,
   mesesRecientes,
   puedeAnular,
+  resumenActivosPorSede,
   resumenFijos,
   solesRedondo,
   sugerenciaParaEgreso,
@@ -221,7 +222,12 @@ export function GastosPanel({
         />
       )}
 
-      {pestana === "activos" && <TablaActivos activos={activos} verTodas={verTodas} onAbrir={setActivo} />}
+      {pestana === "activos" && (
+        <>
+          {verTodas && <ResumenActivosPorSede resumen={resumenActivosPorSede(activos, ubicaciones)} onVer={(id) => ir({ ver: id })} />}
+          <TablaActivos activos={activos} verTodas={verTodas} onAbrir={setActivo} />
+        </>
+      )}
 
       {pestana === "egresos" && (
         <>

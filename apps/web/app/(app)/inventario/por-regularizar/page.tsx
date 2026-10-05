@@ -1,6 +1,6 @@
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getPorRegularizar } from "@/lib/por-regularizar";
+import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -22,7 +22,12 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
-  const [filas, catalogo] = await Promise.all([getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId), getCatalogo()]);
+  // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
+  const [filas, catalogo, plazos] = await Promise.all([
+    getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId),
+    getCatalogo(),
+    esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
+  ]);
   const etiqueta = esLider ? (unaSede?.nombre ?? "tus tiendas") : persona.ubicacionEtiqueta;
   // De vuelta a Existencias en la misma sede que se miraba (la de la cabecera no necesita el parámetro).
   const volverA = unaSede && unaSede.id !== persona.ubicacionId ? `/inventario?ubicacion=${unaSede.id}` : "/inventario";
@@ -39,7 +44,15 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         subtitulo="Prendas que caja vendió antes de estar en el sistema. Dile al sistema qué prenda era cada una y el stock queda cuadrado."
         pie={veModulo(persona, "existencias") && <Volver forma="boton" href={volverA} a="Existencias" />}
       />
-      <PorRegularizarLista filas={filas} prendas={prendas} ubicacionEtiqueta={etiqueta} variasSedes={esLider && !unaSede} />
+      <PorRegularizarLista
+        filas={filas}
+        prendas={prendas}
+        ubicacionEtiqueta={etiqueta}
+        variasSedes={esLider && !unaSede}
+        esLider={esLider}
+        plazos={plazos}
+        sedeInicial={unaSede?.id ?? null}
+      />
     </div>
   );
 }

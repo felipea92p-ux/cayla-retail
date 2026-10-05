@@ -33,6 +33,7 @@ const EXCLUIDAS: Record<string, string> = {
   "pruebas:categorias-candados": "falta cablearla en ci.yml: la sesión que la escribió no podía tocar workflows (2026-09-26)",
   "pruebas:bajada-al-piso-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez) y `movimientos` no se puede borrar: sus filas quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0208)",
   "pruebas:danadas-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez: reportes y «Se arregló» de Dañadas) y `movimientos` no se puede borrar: sus filas quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0328 act. 10)",
+  "pruebas:cola-arranque-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez): deja ventas sin registrar, un cierre y una regularización confirmados que las pruebas siguientes del job verían (p. ej. `eliminar-producto` cuenta las líneas de venta de «Blusa Emma»). Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0334)",
 };
 
 const leer = (ruta: string) => readFileSync(new URL(`../../../${ruta}`, import.meta.url), "utf8");

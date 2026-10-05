@@ -6,7 +6,7 @@ import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
-import type { AccionHoy } from "@/lib/existencias-recomendaciones";
+import type { PisoDeTalla } from "@/lib/piso-plan";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
@@ -226,10 +226,10 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
    *  ausente o null = no se pudo calcular. */
   coberturaPiso?: CoberturaPiso | null;
-  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`). De ahí sale «Hoy» (`hoyDeTalla`), que leen
-   *  la tabla, el filtro, la pastilla de cada prenda y «Para hoy». Ausente o null = la sede no vende (Taller): no se inventa una
-   *  acción. No depende del Ritmo reciente. */
-  accionHoy?: AccionHoy | null;
+  /** Lo que el piso pide hoy de esta talla: la decisión del motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7) — MISMA
+   *  fuente que «Hoy» en el filtro, la tabla, la tarjeta, el cajón y el Inicio. La pone la página. Ausente o null = la sede no
+   *  separa piso y almacén (Taller) o el motor no pudo leer: no se inventa una acción. */
+  planPiso?: PisoDeTalla | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
   /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la

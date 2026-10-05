@@ -101,8 +101,9 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste a mano ·» delante: «Reposición» a secas se confundía con la bajada del almacén al
   // piso, que es otra cosa; y «a mano» (Felipe, 2026-10-03) los separa del ajuste de un conteo, que tiene documento —
-  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos.
-  reposicion: "Ajuste a mano · reposición",
+  // «Ajuste · conteo físico» y «Ajuste · Conteo» se leían como sinónimos. El código `reposicion` se muestra como «encontré
+  // prendas» desde ADR-0328 (actividad 4): es el nombre del motivo en Ajustar, también para lo registrado antes.
+  reposicion: "Ajuste a mano · encontré prendas",
   merma: "Ajuste a mano · merma",
   conteo_fisico: "Ajuste a mano · conteo físico",
   // 2026-10-01 (ADR-0291): la prenda que faltó en un conteo y apareció; el ajuste queda enlazado a ese conteo.

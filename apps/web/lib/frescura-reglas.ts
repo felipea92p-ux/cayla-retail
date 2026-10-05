@@ -69,6 +69,9 @@ export const DIAS_CALLADA = 30;
 export const MARCA_VENTA = 1;
 export const MARCA_INTERNO = 2;
 export const MARCA_EDAD_DESCONOCIDA = 4;
+/** Una fila del cuadre del piso (ADR-0328, `20261004200050`): antes y después de ese instante, el piso de la sede se cuenta
+ *  distinto (antes estaba subcontado), así que la medida de «Ya decidí» se corta ahí (`frescura-decisiones-reglas.ts`). */
+export const MARCA_CUADRE = 8;
 
 const MS_POR_DIA = 86_400_000;
 const EPS = 1e-9;
@@ -172,6 +175,9 @@ export type LecturaFrescuraConPiso = {
   apartados?: Record<string, PuntoApartado[]>;
   tardias: TardiaCruda[];
   dudosas: string[];
+  /** Los instantes en que se cuadró el piso de la sede dentro de la lectura (las filas con la marca 8), en orden. Sin la
+   *  clave, ninguno (una lectura de antes del cuadre). */
+  cuadres?: string[];
 };
 /** El Taller (o cualquier sede sin piso y almacén separados) no tiene frescura que medir. */
 export type LecturaFrescuraSede = { separaPiso: false } | LecturaFrescuraConPiso;
@@ -295,6 +301,24 @@ export function leerEventosFrescura(v: unknown): EventoPiso[] {
   return eventos;
 }
 
+/**
+ * Los instantes del cuadre del piso en los eventos crudos de `fn_frescura_sede` (los que traen la marca 8), sin repetir y en
+ * orden. Todas las filas de un mismo cuadre comparten su instante (la hora de su transacción): un cuadre es un instante.
+ */
+export function instantesDeCuadre(eventos: unknown): string[] {
+  if (!esObjeto(eventos)) return [];
+  const vistos = new Map<number, string>();
+  for (const lista of Object.values(eventos)) {
+    if (!Array.isArray(lista)) continue;
+    for (const item of lista) {
+      if (!Array.isArray(item) || !esFecha(item[0]) || (Math.trunc(numero(item[2])) & MARCA_CUADRE) === 0) continue;
+      const t = Date.parse(item[0]);
+      if (!vistos.has(t)) vistos.set(t, item[0]);
+    }
+  }
+  return [...vistos.entries()].sort(([a], [b]) => a - b).map(([, ts]) => ts);
+}
+
 const ORIGENES = ["color", "producto", "categoria"] as const;
 
 /** Lo apartado en el piso de una talla según sus puntos de `apartados`: el saldo al empezar la ventana más lo de adentro,
@@ -373,7 +397,7 @@ export function leerFrescuraSede(v: unknown): LecturaFrescuraSede | null {
     }
   }
   const dudosas = Array.isArray(v.dudosas) ? v.dudosas.filter((d): d is string => typeof d === "string") : [];
-  return { separaPiso: true, desde: v.desde, ahora: v.ahora, tallas, eventos, apartados, tardias, dudosas };
+  return { separaPiso: true, desde: v.desde, ahora: v.ahora, tallas, eventos, apartados, tardias, dudosas, cuadres: instantesDeCuadre(v.eventos) };
 }
 
 /** Una fila de `retail.fn_confianza_registro`: el registro al colgar de una sede en un mes de Lima. */
@@ -1712,7 +1736,7 @@ async function leerDecisionesDeSede(rpc: LlamarRpcFrescura, u: { id: string; nom
 type SedeLeida = {
   fila: FrescuraDeSede;
   observaciones: ObservacionesSede | null;
-  medicion: { sede: FrescuraSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe } | null;
+  medicion: { sede: FrescuraSede; lectura: LecturaDecisiones | null; exposicion: ExposicionDe; cuadres: readonly string[] } | null;
 };
 
 async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre: string }, dias: number): Promise<SedeLeida> {
@@ -1735,8 +1759,9 @@ async function leerSedeFrescura(rpc: LlamarRpcFrescura, u: { id: string; nombre:
     if (!lectura.separaPiso) return { fila: fila({ datos: { separaPiso: false }, fallo: null }), observaciones: {}, medicion: null };
     const { sede, observaciones, exposicion } = analizarSede(lectura);
     const decisiones = await enCurso;
-    sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora);
-    return { fila: fila({ datos: sede, fallo: null }), observaciones, medicion: { sede, lectura: decisiones, exposicion } };
+    const cuadres = lectura.cuadres ?? [];
+    sede.decisiones = aplicarDecisiones(sede, decisiones, exposicion, sede.ahora, cuadres);
+    return { fila: fila({ datos: sede, fallo: null }), observaciones, medicion: { sede, lectura: decisiones, exposicion, cuadres } };
   } catch (e) {
     console.error(`No se pudo leer ${que}:`, e);
     return fallo(avisoFrescura(que, null));
@@ -1783,7 +1808,15 @@ export async function armarFrescuraLider(
   completarTraslados(
     lecturas
       .filter((l): l is SedeLeida & { medicion: NonNullable<SedeLeida["medicion"]> } => l.medicion !== null)
-      .map((l) => ({ id: l.fila.ubicacionId, nombre: l.fila.nombre, sede: l.medicion.sede, decisiones: l.medicion.sede.decisiones, lectura: l.medicion.lectura, exposicion: l.medicion.exposicion })),
+      .map((l) => ({
+        id: l.fila.ubicacionId,
+        nombre: l.fila.nombre,
+        sede: l.medicion.sede,
+        decisiones: l.medicion.sede.decisiones,
+        lectura: l.medicion.lectura,
+        exposicion: l.medicion.exposicion,
+        cuadres: l.medicion.cuadres,
+      })),
     lecturas.find((l) => l.medicion !== null)?.medicion?.sede.ahora ?? new Date().toISOString(),
   );
 

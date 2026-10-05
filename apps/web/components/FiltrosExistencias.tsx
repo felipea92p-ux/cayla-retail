@@ -217,7 +217,7 @@ export function FiltrosExistencias({
       </FilaPildoras>
       {hayGestion && (
         <FilaPildoras titulo="Gestión">
-          {/* «Hoy» (qué pide la talla: las mismas cuatro palabras de la tarjeta y la tabla) y «Condición» (dañadas, apartadas) son
+          {/* «Hoy» (qué pide la talla: las mismas palabras de la tarjeta y la tabla) y «Condición» (dañadas, apartadas) son
               dos preguntas (Felipe, 2026-10-03). Cada talla cae en un solo «Hoy»: no hay combinación que se vacíe sola. */}
           {separa && (
             <DesplegablePildora
