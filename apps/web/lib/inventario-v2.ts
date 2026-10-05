@@ -33,6 +33,9 @@ export type FilaStock = {
    *  (Estampado, Multicolor, Animal print) — la pantalla los dibuja distinto. */
   colorHex: string | null;
   referencia: string;
+  /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
+   *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
+  precio?: number | null;
   categoria: string | null;
   /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
    *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
@@ -92,7 +95,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       `variante_id, cantidad, cantidad_apartada,
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
-         sku, codigo, talla:tallas ( valor ),
+         sku, codigo, precio, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
          producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
@@ -123,7 +126,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
               `variante_id, cantidad,
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
-                 sku, codigo, talla:tallas ( valor ),
+                 sku, codigo, precio, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
                  producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
@@ -156,6 +159,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
+      precio: f.variante?.precio ?? null,
     });
   }
   const separaPisoAlmacen = [...cantidades.values()].some((c) => c.piso !== null);

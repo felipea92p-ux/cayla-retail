@@ -351,7 +351,7 @@ export function FiltrosExistencias({
       </div>
 
       {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`): los mismos filtros «Hoy» y «Condición», a un toque. */}
-      {separa && <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} />}
+      {separa && <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} orden={orden ? { valor: orden.valor, onValor: orden.onValor } : null} />}
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
