@@ -202,8 +202,8 @@ describe("«Se arregló»", () => {
   });
 
   it("dice a dónde vuelve y cómo se vende después", () => {
-    expect(quePasaAlArreglar("Tienda TRU")).toBe("Vuelve al almacén de Tienda TRU. Para venderla, bájala al piso desde Existencias.");
-    expect(quePasaAlArreglar("  ")).toBe("Vuelve al almacén. Para venderla, bájala al piso desde Existencias.");
+    expect(quePasaAlArreglar("Tienda TRU")).toBe("Vuelve al almacén de Tienda TRU. Para venderla, cuélgala en el piso desde Existencias.");
+    expect(quePasaAlArreglar("  ")).toBe("Vuelve al almacén. Para venderla, cuélgala en el piso desde Existencias.");
   });
 });
 
@@ -341,7 +341,7 @@ describe("los textos", () => {
 
   it("el aviso de éxito recuerda el acto físico, según de dónde salió", () => {
     expect(recordatorioAlReportar("piso")).toBe("Sácala del perchero y guárdala aparte con su nota.");
-    expect(recordatorioAlReportar("almacen")).toBe("Guárdala aparte con su nota, lejos de lo que se baja al piso.");
+    expect(recordatorioAlReportar("almacen")).toBe("Guárdala aparte con su nota, lejos de lo que se cuelga en el piso.");
   });
 
   it("los avisos de éxito, en singular y plural", () => {

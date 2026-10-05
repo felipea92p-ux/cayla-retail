@@ -39,7 +39,7 @@ import {
 //
 // "Se arregló" (ADR-0328 act. 10, Felipe 2026-10-04): un arreglo menor (un
 // botón descosido) vuelve a la venta. Va al ALMACÉN, no al piso: para venderla
-// se baja al piso, y así Frescura cuenta su edad desde esa bajada. Pide qué se le
+// se cuelga en el piso, y así Frescura cuenta su edad desde que se colgó. Pide qué se le
 // hizo (la base lo exige: la prenda vuelve a la venta y tiene que quedar dicho) y
 // usa `arreglar_prenda_danada`, con marca de reintento. No es pérdida.
 //
@@ -206,7 +206,7 @@ export function ResolverDanadosModal({
     }
     const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
     if (r.ya_registrada) avisar.aviso(TEXTO_ARREGLO_YA_ESTABA, { detalle: p.referencia });
-    else avisar.exito(tituloExitoArreglo(r.unidades), { detalle: `${p.referencia} · bájala al piso para venderla` });
+    else avisar.exito(tituloExitoArreglo(r.unidades), { detalle: `${p.referencia} · cuélgala en el piso para venderla` });
     setArreglando(null);
     router.refresh();
   }

@@ -277,19 +277,19 @@ const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas y el líder decide si
  */
 export function quePasaAlReportar(desde: DesdeDanada | null): string {
   if (desde === "piso") return `Sácala del perchero y guárdala aparte con una nota de lo que tiene: si sigue colgada, se puede vender. ${DESTINOS_DE_DANADAS}`;
-  if (desde === "almacen") return `Sácala de su lugar en el almacén y guárdala aparte con una nota de lo que tiene, para que nadie la baje al piso. ${DESTINOS_DE_DANADAS}`;
+  if (desde === "almacen") return `Sácala de su lugar en el almacén y guárdala aparte con una nota de lo que tiene, para que nadie la cuelgue en el piso. ${DESTINOS_DE_DANADAS}`;
   return `Guárdala aparte con una nota de lo que tiene. ${DESTINOS_DE_DANADAS}`;
 }
 
 /** Lo que el aviso de éxito recuerda hacer con la prenda en la mano (el sistema ya la movió; la percha todavía no). */
 export function recordatorioAlReportar(desde: DesdeDanada): string {
-  return desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se baja al piso.";
+  return desde === "piso" ? "Sácala del perchero y guárdala aparte con su nota." : "Guárdala aparte con su nota, lejos de lo que se cuelga en el piso.";
 }
 
-/** Lo que pasa con «Se arregló»: vuelve al almacén y, para venderla, se baja al piso (así Frescura cuenta su edad desde ahí). */
+/** Lo que pasa con «Se arregló»: vuelve al almacén y, para venderla, se cuelga en el piso (así Frescura cuenta su edad desde ahí). */
 export function quePasaAlArreglar(sede: string): string {
   const donde = sede.trim() ? `al almacén de ${sede.trim()}` : "al almacén";
-  return `Vuelve ${donde}. Para venderla, bájala al piso desde Existencias.`;
+  return `Vuelve ${donde}. Para venderla, cuélgala en el piso desde Existencias.`;
 }
 
 /** Los desenlaces de una dañada en palabras de tienda (los valores de `prendas_danadas_estado_check`). */
