@@ -241,3 +241,15 @@ y crear las bolsas, cajas y sorpresas como productos.
 Cada actividad trae su verificación (prueba, comando o pantalla en el navegador). El rediseño entero se mide con los tres números de
 éxito de Felipe: la prueba de 5 minutos con una integrante de TRU antes y después, la cola sin registrar en 2 días o menos, y el %
 vendido a precio completo por sede (ADR-0208).
+
+## Actualización 2026-10-04 (noche) — la «limpieza de arranque» de la actividad 5 se construyó aparte (ADR-0334)
+
+De la actividad 5 («Ventas sin registrar: categoría sugerida, nadie regulariza su propia venta salvo el líder, y limpieza de arranque con
+candidata») se construyó **solo la tercera parte**, desde otra rama, el mismo día en que Felipe pidió «una opción de lo doy por hecho»:
+ADR-0334. La decisión 8 se cumple así: las ventas con **una** sola prenda posible se identifican con la confirmación de un líder («Identificar con
+sugerencias») y las demás se cierran sin prenda, en bloque, dentro de un plazo (15-oct) y con un motivo. La decisión 9 («al revisar un conteo, cada
+faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pendientes; una venta cerrada ya no aparece en ese cruce.
+
+Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
+venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
+velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican).
