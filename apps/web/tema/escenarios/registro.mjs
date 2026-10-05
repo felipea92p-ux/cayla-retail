@@ -560,6 +560,85 @@ ESCENARIOS.push(
   { id: "comprobantes.registrar-serie", ruta: "/vender/comprobantes/series", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Registrar» la serie de notas de crédito", preparar: clicRol("button", /^Registrar$/i) },
 );
 
+// ---------- Catálogo (actividad 8) ----------
+const CATALOGO = ["admin", "integrante", "terminal-administrativa"];
+const irA = (ruta) => async (pagina) => {
+  await pagina.goto(new URL(ruta, pagina.url()).href, { waitUntil: "networkidle" }).catch(() => {});
+  await esperar(pagina, 1800);
+};
+const idDeProducto = (codigo) => consultarLocal(`select id from retail.productos where codigo = '${codigo.replace(/'/g, "")}' limit 1`);
+const productoPorCodigo = (codigo, sufijo) => async (pagina) => irA(`/productos/${idDeProducto(codigo)}/${sufijo}`)(pagina);
+// Nuevo producto es un formulario de 4 pasos que se abren de a uno: cada escenario lo lleva hasta el paso que audita (sin crear nada).
+const nuevoHasta = (paso) => async (pagina) => {
+  const clic = async (rol, nombre) => { await pagina.getByRole(rol, { name: nombre }).first().click({ timeout: 8000 }); await esperar(pagina, 900); };
+  await clic("button", /^Indumentaria/);
+  if (paso === "familia") return;
+  await clic("button", /^Vestidos$/);
+  if (paso === "como-es") return;
+  await pagina.getByPlaceholder("Vestido Lima").first().fill("Vestido Prueba Oscuro");
+  await esperar(pagina, 600);
+  await clic("button", /Algodón/);
+  await clic("button", /Liso/);
+  await clic("button", /^Seguir/);
+  if (paso === "tallas") return;
+  await clic("button", /^Negro$/);
+  await clic("button", /^Seguir/);
+};
+ESCENARIOS.push(
+  { id: "productos.vista-rapida", ruta: "/productos", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Productos · la vista rápida de una prenda", async preparar(pagina) { await pagina.locator(".card-cayla button").first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
+  {
+    id: "productos.vista-rapida-talla",
+    ruta: "/productos",
+    cuentas: CATALOGO,
+    abre: "[role=dialog]",
+    nombre: "Productos · la vista rápida con una talla elegida (todos los colores)",
+    async preparar(pagina) {
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.getByRole("button", { name: /^Elegir la talla/ }).first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+  { id: "productos.filtro-categoria", ruta: "/productos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=listbox],[role=dialog],[data-capa-flotante]", nombre: "Productos · la lista del filtro «Categoría»", preparar: clicRol("button", /^Categoría/) },
+  { id: "productos.ordenar", ruta: "/productos", cuentas: ["admin"], abre: "[role=listbox],[role=menu],[role=dialog]", nombre: "Productos · «Ordenar por»", preparar: clicRol("button", /^Ordenar por/) },
+  { id: "productos.temporada", ruta: "/productos", cuentas: ["admin"], nombre: "Productos · el aviso «prendas sin temporada» abierto", async preparar(pagina) { await pagina.getByText(/sin temporada/i).first().click({ timeout: 8000 }); await esperar(pagina, 1100); } },
+  { id: "productos.tabla", ruta: "/productos", cuentas: CATALOGO, nombre: "Productos · vista Tabla", preparar: irA("/productos?vista=tabla") },
+  {
+    id: "productos.tabla-variantes",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    ancho: "escritorio",
+    nombre: "Productos · Tabla con las variantes de una prenda desplegadas",
+    preparar: secuencia(irA("/productos?vista=tabla"), clicRol("button", /^Ver las variantes de/)),
+  },
+  {
+    id: "productos.tabla-seleccion",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    nombre: "Productos · Tabla con prendas marcadas (la barra de acciones)",
+    async preparar(pagina) {
+      await irA("/productos?vista=tabla")(pagina);
+      await pagina.getByRole("checkbox", { name: /^Marcar (Blusa|Vestido|Blazer)/ }).first().check({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  { id: "nuevo.familia", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 1: las categorías de una familia", preparar: nuevoHasta("familia") },
+  { id: "nuevo.como-es", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 2: cómo es (marca, nombre, tejido, patrón)", preparar: nuevoHasta("como-es") },
+  { id: "nuevo.tallas", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 3: tallas y colores", preparar: nuevoHasta("tallas") },
+  { id: "nuevo.precio", ruta: "/productos/nuevo", cuentas: CATALOGO, nombre: "Nuevo producto · paso 4: precio y unidades", preparar: nuevoHasta("precio") },
+  { id: "producto.editar", ruta: "/productos/[id]/editar", cuentas: ["admin", "terminal-administrativa"], abre: "text=VES-0001", nombre: "Editar producto · la ficha de una prenda", preparar: productoPorCodigo("VES-0001", "editar") },
+  { id: "producto.historial", ruta: "/productos/[id]/historial", cuentas: ["admin"], abre: "h1", nombre: "Historial de una prenda", preparar: productoPorCodigo("VES-0001", "historial") },
+  { id: "categorias.agregar", ruta: "/productos/categorias", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Categorías · «Agregar categoría»", preparar: clicRol("button", /Agregar categoría/i) },
+  { id: "categorias.fila", ruta: "/productos/categorias", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Categorías · el detalle de una categoría", preparar: clicRol("button", /Blazers/i) },
+  { id: "atributos.agregar", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Agregar etiqueta»", preparar: clicRol("button", /Agregar etiqueta/i) },
+  { id: "atributos.prendas", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · las prendas de una etiqueta", preparar: clicRol("button", /^Prendas$/i) },
+  { id: "atributos.campana", ruta: "/productos/atributos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Atributos · «Configurar campaña»", preparar: clicRol("button", /Configurar campaña/i) },
+  { id: "marcas.nueva", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "button:has-text('Registrar')", nombre: "Marcas · «Nueva marca» (el formulario se abre en la página)", preparar: clicRol("button", /Nueva marca/i) },
+  { id: "marcas.editar", ruta: "/productos/marcas", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Marcas · «Editar» una marca", preparar: clicRol("button", /^Editar/i) },
+  { id: "familias.agregar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Agregar familia»", preparar: clicRol("button", /Agregar familia/i) },
+  { id: "familias.editar", ruta: "/productos/familias", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Familias · «Editar» una familia", preparar: clicRol("button", /^Editar/i) },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

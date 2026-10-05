@@ -295,7 +295,7 @@ export function CajaAbiertaPanel({
                     type="button"
                     aria-pressed={filtroMov.vista === clave}
                     onClick={() => setFiltroMov(elegirVista(clave))}
-                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov.vista === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
+                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov.vista === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_7%,transparent)]" : "text-tinta/60 hover:text-tinta"}`}
                   >
                     {texto}
                   </button>

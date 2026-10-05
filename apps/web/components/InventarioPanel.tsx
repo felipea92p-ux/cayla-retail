@@ -1441,7 +1441,7 @@ export function InventarioPanel({
             {/* Celular: la cuenta y la ✕ arriba, los botones debajo a todo el ancho. Escritorio: todo en una fila. */}
             <span className="flex-1 px-3 py-1.5 text-sm sm:flex-none">
               <b className="font-semibold tabular-nums">{prendasMarcadas}</b> {prendasMarcadas === 1 ? "prenda" : "prendas"}
-              <span className="text-crema/60"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
+              <span className="text-crema/60 dark:text-crema/75"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
             </span>
             {/* Más de las que caben en un enlace (tarea #7): se dice, en vez de hacer desaparecer los botones sin explicación. */}
             {filasMarcadas.length > MAX_VARIANTES_EN_URL && (

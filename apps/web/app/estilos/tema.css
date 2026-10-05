@@ -167,3 +167,20 @@
     transform: none;
   }
 }
+
+/* ---------- El piso de legibilidad del texto tenue en oscuro (ADR-0336, actividad 8) ----------
+   El diseño tiene niveles de texto muy tenues (`text-tinta/35` … `/50`: separadores, ayudas, valores vacíos). Sobre crema rinden 3.3 a
+   4.1:1 y ya eran flojos; sobre el oscuro, donde el ojo sigue peor un texto fino y claro, no se dejan perder: se suben al 58 %, que sobre
+   `papel`, `hueso` y `sand` pasa 4.5:1. Es UNA regla en vez de 370 `dark:` repartidos por los componentes. Se queda bajo (`:where`: sin
+   especificidad) para que `hover:text-tinta`, `dark:text-…` y cualquier estado sigan ganando. Los niveles 25 % y 30 % NO se tocan: son
+   fantasmas a propósito (un «— código —» de ejemplo, un día de otro mes ya tiene su propio refuerzo). */
+@layer utilities {
+  @media screen {
+    :where(:root[data-tema="oscuro"]) .text-tinta\/35,
+    :where(:root[data-tema="oscuro"]) .text-tinta\/40,
+    :where(:root[data-tema="oscuro"]) .text-tinta\/45,
+    :where(:root[data-tema="oscuro"]) .text-tinta\/50 {
+      color: color-mix(in oklab, var(--color-tinta) 58%, transparent);
+    }
+  }
+}

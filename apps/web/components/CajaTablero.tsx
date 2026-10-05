@@ -566,7 +566,7 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
               type="button"
               aria-pressed={modo === m.clave}
               onClick={() => cambiar(m.clave)}
-              className={`rounded-md px-2 py-1 text-[11.5px] transition-colors sm:px-2.5 ${modo === m.clave ? "bg-papel text-tinta shadow-[0_0_0_1px_rgba(26,26,24,0.07)]" : "text-tinta/60 hover:text-tinta"}`}
+              className={`rounded-md px-2 py-1 text-[11.5px] transition-colors sm:px-2.5 ${modo === m.clave ? "bg-papel text-tinta shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_7%,transparent)]" : "text-tinta/60 hover:text-tinta"}`}
             >
               <span className="sm:hidden">{m.corta}</span>
               <span className="hidden sm:inline">{m.etiqueta}</span>

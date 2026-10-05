@@ -224,5 +224,5 @@ function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean
 function Miniatura({ p }: { p: PrendaDeVenta }) {
   const base = "block h-10 w-10 rounded-lg ring-2 ring-papel";
   if (p.fotoUrl) return <Image src={p.fotoUrl} alt="" width={40} height={40} unoptimized className={`${base} object-cover`} />;
-  return <span className={`${base} shadow-[inset_0_0_0_1px_rgba(26,26,24,0.12)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  return <span className={`${base} shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
 }

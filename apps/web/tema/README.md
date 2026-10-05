@@ -9,7 +9,7 @@ capturas. Hermana de `responsive/`: mismo Playwright, misma idea de «medir el D
 | Detector | Qué es | Por qué importa |
 |---|---|---|
 | **Contraste** | El contraste WCAG de cada texto contra su fondo REAL (compuesto capa por capa, con alfa), mínimo 4.5:1 (3:1 si es grande). Exime los controles deshabilitados. | Un texto que se pierde en oscuro. |
-| **Mancha clara** | Una superficie grande y opaca que en oscuro sigue clara y no es papel fijo ni un relleno invertido a propósito. | Un `bg-white` o un hex que no cambió con el tema. |
+| **Mancha clara** | Una superficie grande y opaca que en oscuro sigue clara y no es papel fijo (`.papel-fijo`), color de DATO (`data-color-dato`: la baldosa del color de una prenda) ni un relleno invertido a propósito. | Un `bg-white` o un hex que no cambió con el tema. |
 | **Velo claro** | Una capa fija que cubre la pantalla y en oscuro la **aclara** en vez de oscurecerla. | Un `bg-tinta/30` que se volvió crema. |
 
 Corre cada pantalla en **los dos temas** y compara: lo que falla **solo en oscuro** es lo que rompió el tema (urgente); lo que ya

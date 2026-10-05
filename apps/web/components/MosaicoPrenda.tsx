@@ -57,6 +57,7 @@ export function MosaicoPrenda({
   return (
     <div
       aria-hidden
+      data-color-dato
       style={estilo}
       className={`pointer-events-none relative flex shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg ${
         enGrilla ? "aspect-square gap-[7%] p-2" : forma === "fila" ? "aspect-[4/5] gap-1.5 p-1" : "gap-1 p-1"

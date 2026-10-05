@@ -33,7 +33,7 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/MuestraEtiqueta.tsx": { cuenta: 11, motivo: "Ilustra una etiqueta de la prenda: sus colores son el dato." },
   "components/MuestraPatron.tsx": { cuenta: 5, motivo: "Ilustra un patrón de tela: sus colores son el dato." },
   "components/ExistenciasTarjetas.tsx": { cuenta: 6, motivo: "Degradado cónico de «varios colores»: una prenda con varios colores no tiene UN color, es un dato." },
-  "components/ui/MuestraColor.tsx": { cuenta: 6, motivo: "El degradado cónico de «varios colores» (VARIOS_COLORES): es un dato, no un color de la interfaz." },
+  "components/ui/MuestraColor.tsx": { cuenta: 7, motivo: "El degradado cónico de «varios colores» (VARIOS_COLORES) y el filo blanco con que se redondea una muestra de tela: son datos, no color de la interfaz." },
   "components/BilleteRapido.tsx": { cuenta: 4, motivo: "Ilustra un billete de sol: su color es el de la moneda, no el de la interfaz." },
   "components/SelectorColor.tsx": { cuenta: 3, motivo: "Valor por omisión del selector de color y ejemplo del FORMATO #hex: son datos, no interfaz." },
   "lib/productos-vista.ts": { cuenta: 1, motivo: "Color de reserva de una prenda sin hex: es un dato que se pinta como muestra." },
@@ -47,10 +47,6 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "app/global-error.tsx": { cuenta: 6, motivo: "Pantalla de error global: se dibuja sin globals.css (el layout raíz reventó), así que lleva su propia paleta en dos juegos de variables, claro y oscuro, con los valores de tema.css." },
 
   // ---------- Deuda: se paga en la actividad de su módulo (ADR-0336) ----------
-  "components/ProductosTabla.tsx": { cuenta: 1, deuda: "actividad 8", motivo: "Color de reserva de una muestra (#e8e0d0 = sand) que debe ser el token." },
-  "components/ColoresLista.tsx": { cuenta: 2, deuda: "actividad 8", motivo: "Color de reserva de una muestra (#e8e0d0 = sand) y el valor inicial del selector." },
-  "components/alta-producto/MatrizVariantes.tsx": { cuenta: 1, deuda: "actividad 8", motivo: "Rayado de «fuera de la matriz» con el rgb de la tinta escrito a mano." },
-  "app/estilos/ficha-taller.css": { cuenta: 1, deuda: "actividad 8", motivo: "Sombra interior de negro escrita a mano." },
 };
 
 /** La deuda que queda por pagar: la suma de `cuenta` de las entradas con `deuda`. Solo baja. */

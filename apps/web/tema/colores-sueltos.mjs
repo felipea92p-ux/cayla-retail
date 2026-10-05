@@ -27,7 +27,7 @@ const EXCLUIDOS = new Set(["app/estilos/tema.css", "lib/tema-colores-archivos.ts
 const PATRONES = [
   /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6})\b/g, // #rrggbb y #rrggbbaa
   /#(?:fff|000)\b/gi, // los dos atajos que de verdad se escriben
-  /\b(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\(/g, // funciones de color
+  /(?<![A-Za-z0-9])(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\(/g, // funciones de color (sin `\b`: en una clase de Tailwind va tras un `_`, como `shadow-[0_1px_rgba(…)]`, y `_` cuenta como letra)
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|shadow|decoration|accent|caret|placeholder)-(?:white|black)(?![\w-])/g,
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|decoration|accent|caret|placeholder)-(?:gray|slate|zinc|neutral|stone|red|green|blue|yellow|amber|orange|emerald|rose|sky|indigo|purple|violet|pink|teal|cyan|lime|fuchsia)-\d{2,3}\b/g,
   /\b(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?-color|fill|stroke|outline-color)\s*:\s*(?:white|black)\b/g,

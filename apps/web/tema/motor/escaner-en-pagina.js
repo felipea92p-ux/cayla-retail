@@ -178,7 +178,7 @@
       const cercano = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) < 12;
       const esToken = (c) => tokens.some((t) => cercano(c, t));
       for (const el of document.body.querySelectorAll("*")) {
-        if (el.closest(".papel-fijo, img, canvas, video, svg, [data-papel]")) continue;
+        if (el.closest(".papel-fijo, img, canvas, video, svg, [data-papel], [data-color-dato]")) continue;
         const cs = getComputedStyle(el);
         if (cs.visibility === "hidden" || cs.display === "none") continue;
         const caja = el.getBoundingClientRect();

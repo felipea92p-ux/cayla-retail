@@ -82,7 +82,7 @@ export function BarraTablaAnalisis({ datos, actualizar, orden }: { datos: Desemp
             >
               {p.g && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${PUNTO_GRUPO[p.g]}`} />}
               {p.texto}
-              <span className={`tabular-nums ${activa ? "text-crema/60" : "text-taupe"}`}>{p.n}</span>
+              <span className={`tabular-nums ${activa ? "text-crema/60 dark:text-crema/75" : "text-taupe"}`}>{p.n}</span>
             </button>
           );
         })}
@@ -414,7 +414,7 @@ export function AnalisisPrendas({
           <div className="flex flex-wrap items-center gap-1">
             <span className="flex-1 px-3 py-1.5 text-sm sm:flex-none">
               <b className="font-semibold tabular-nums">{marcadasVisibles.length}</b> {marcadasVisibles.length === 1 ? "prenda" : "prendas"}
-              <span className="text-crema/60"> · {pluralizar(enlaces.tallas, "talla", "tallas")}</span>
+              <span className="text-crema/60 dark:text-crema/75"> · {pluralizar(enlaces.tallas, "talla", "tallas")}</span>
             </span>
             {enlaces.tallas > MAX_VARIANTES_EN_URL && (
               <span role="status" className="order-last w-full px-3 pb-1 text-xs text-crema/80 sm:order-none sm:w-auto">
