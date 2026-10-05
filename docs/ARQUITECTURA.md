@@ -163,9 +163,12 @@ flowchart TB
     lista completa y lo que queda fuera a propósito: ADR-0161, sección «F4b».
 - `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
   `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
-  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (dos secciones —Cuentas y Roles y accesos—, «Por atender», Actividad en modal; ADR-0172) + `ColaboradoresTablas.tsx` +
-  `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
-  `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
+  `fn_dynamic_disponibles`, y `fn_asesoras_de_turno` por sede para el punto «de turno hoy») → `ColaboradoresPanel.tsx` (dos secciones —Equipo y Roles y
+  accesos—, Actividad en modal; ADR-0172 y ADR-0340) → `colaboradores/EquipoLista.tsx` (la lista por sede, con «Esperan tu ok») +
+  `colaboradores/FichaColaborador.tsx` (la ficha al costado: cambiar rol, sede, suspender, reactivar y quitar) sobre las reglas
+  puras de `lib/equipo-reglas.ts`; `colaboradores/DarAccesoModal.tsx` (dar acceso: quién, sede y rol, con su guía; reglas en `lib/dar-acceso-reglas.ts`; ADR-0341) +
+  `ColaboradoresTablas.tsx` (aparatos y actividad) + `ColaboradoresModales.tsx` (desactivar aparato). Escribe por `lib/colaboradores-acciones.ts` → RPC
+  `agregar_colaboradores` (con `p_rol_id` desde ADR-0341: lo que da un líder entra activo), `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Roles y accesos** (`RolesPanel.tsx`, `lib/roles.ts`, `lib/roles-reglas.ts`): lee `roles` y `rol_modulos` por RLS y,
   para el Líder de equipo, `fn_lider_modulos_ocultos()` (ADR-0253: el Líder ve todo menos lo que un Admin le quitó);
@@ -210,8 +213,11 @@ flowchart TB
   `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` todavía no tiene pantalla: será el Plan del piso, actividad 12 de
   ADR-0328) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
   `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx`, `ExistenciasTarjetas.tsx` (el riel de
-  tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir) y
-  `ajustar_inventario` (Ajustar). La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir),
+  `ajustar_inventario` (Ajustar) y `reportar_danada` («Reportar dañada», en el «⋯» de la tarjeta y en Gestión del cajón:
+  `ReportarDanadaModal.tsx`, lógica pura en `lib/danadas-reglas.ts`; ADR-0328 act. 10). La lista de Dañadas
+  (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
+  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
   `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
