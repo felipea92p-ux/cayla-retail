@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { decidirTalla, REQUISITO_POR_COLOR } from "./piso-plan";
 import { opcionesDeColor } from "./productos-filtros";
 import { TIPOS_HOY } from "./existencias-hoy";
 import {
@@ -15,6 +16,7 @@ import {
   tallasEnCurva,
   valorOfrecido,
 } from "./existencias-filtros";
+import { claveDeTarjeta } from "./existencias-tarjetas";
 
 // Los filtros viven en la URL (2026-10-03): recargar, volver de otra pantalla o abrir un enlace copiado los trae puestos.
 
@@ -104,7 +106,7 @@ describe("chipsDeFiltros y contarFiltrosActivos", () => {
   });
 });
 
-describe("conteosDeFiltros — cada número es lo que trae la lista al elegir esa opción", () => {
+describe("conteosDeFiltros — cada número es lo que trae la lista al elegir esa opción (en tarjetas)", () => {
   // Cuatro modelos, con dos marcas, dos categorías, colores y tallas; pisos, almacenes y dañadas variados.
   type Fila = Parameters<typeof indiceDeExistencias>[0][number];
   const fila = (p: string, ref: string, cat: string, marca: string, color: string, talla: string, piso: number, almacen: number, extra: Partial<Fila> = {}): Fila => ({
@@ -117,7 +119,8 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     talla,
     color,
     colorFamilia: { "Azul marino": "azul", "Azul claro": "azul", Beige: "neutro", Negro: "neutro" }[color] ?? null,
-    accionHoy: { tipo: piso <= 1 ? "reponer_a_piso" : "sin_accion" },
+    // La decisión del motor del piso con el requisito de una talla central (1 por color): sin ninguna colgada, el piso pide.
+    planPiso: { accion: decidirTalla(piso, almacen, REQUISITO_POR_COLOR, false) },
     danado: 0,
     apartado: 0,
     pisoDisponible: piso,
@@ -138,7 +141,8 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
   const indice = indiceDeExistencias(filas);
   type Elegidos = Parameters<typeof filtrarExistencias>[1];
   const nada: Elegidos = { q: "", categoria: null, marca: null, tallas: [], colores: [], familias: [], hoy: null, condicion: null };
-  const productos = (e: Elegidos) => new Set(filtrarExistencias(indice, e).filas.map((f) => f.productoId)).size;
+  /** Cuántas tarjetas trae la lista: productos sin «Hoy», prendas (modelo + color) con un caso de «Hoy» (`claveDeTarjeta`). */
+  const tarjetas = (e: Elegidos) => new Set(filtrarExistencias(indice, e).filas.map((f) => claveDeTarjeta(f, e.hoy))).size;
   /** La escena con ESA sola opción elegida en ese filtro (lo que hace un clic en la lista). */
   const conOpcion = (e: Elegidos, clave: string, v: string): Elegidos => {
     if (clave === "talla") return { ...e, tallas: [v] };
@@ -169,7 +173,7 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
       const conteos = conteosDeFiltros(indice, escena);
       for (const [clave, valores] of Object.entries(todas)) {
         for (const v of valores) {
-          const esperado = productos(conOpcion(escena, clave, v));
+          const esperado = tarjetas(conOpcion(escena, clave, v));
           expect({ clave, v, n: conteos[clave as keyof typeof conteos][v] ?? 0 }).toEqual({ clave, v, n: esperado });
         }
       }
@@ -180,25 +184,39 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     const c = conteosDeFiltros(indice, nada);
     expect(c.color["Azul marino"]).toBe(2); // Polo Evaluna y Pantalón Carla
     expect(c.color["Beige"]).toBe(2); // Polo Evaluna y Blusa Emma (dos tallas, un producto)
-    // Por colgar: Evaluna S, Emma S y Carla 32 · Por reponer: Evaluna M · Sin stock atrás: Evaluna M Beige y Lucky M.
-    expect(c.hoy).toEqual({ por_colgar: 3, por_reponer: 1, sin_stock_atras: 2, mantener: 3 });
+    // Por colgar: Evaluna S, Emma S y Carla 32 · Sin stock atrás: Evaluna M Beige · Mantener: las que conservan al menos una
+    // colgada (Evaluna M azul, Lucky M y L, Emma L, Carla 30). La Evaluna M azul, con 1 colgada, ya no es «Por reponer».
+    expect(c.hoy).toEqual({ por_colgar: 3, sin_stock_atras: 1, mantener: 4 });
     expect(c.condicion).toEqual({ danadas: 2, apartadas: 1 });
     expect(c.color["familia:azul"]).toBe(3); // Evaluna y Carla (Azul marino) y Lucky (Azul claro)
   });
 
   it("varias tallas o varios colores suman (M o L), y una familia trae todos sus tonos", () => {
-    expect(productos({ ...nada, tallas: ["30"] })).toBe(1);
-    expect(productos({ ...nada, tallas: ["30", "S"] })).toBe(3); // Carla, Evaluna, Emma
-    expect(productos({ ...nada, familias: ["azul"] })).toBe(3);
-    expect(productos({ ...nada, colores: ["Negro"], familias: ["azul"] })).toBe(3);
+    expect(tarjetas({ ...nada, tallas: ["30"] })).toBe(1);
+    expect(tarjetas({ ...nada, tallas: ["30", "S"] })).toBe(3); // Carla, Evaluna, Emma
+    expect(tarjetas({ ...nada, familias: ["azul"] })).toBe(3);
+    expect(tarjetas({ ...nada, colores: ["Negro"], familias: ["azul"] })).toBe(3);
   });
 
   it("el texto y las píldoras se suman: «m» escrito con Talla 30 no trae nada (antes el texto pisaba la píldora en silencio)", () => {
-    expect(productos({ ...nada, q: "m" })).toBe(2); // «m» es la talla M: Evaluna y Lucky
-    expect(productos({ ...nada, q: "m", tallas: ["30"] })).toBe(0);
-    expect(productos({ ...nada, q: "m", tallas: ["M", "30"] })).toBe(2);
-    expect(productos({ ...nada, q: "beige", colores: ["Azul marino"] })).toBe(0);
-    expect(productos({ ...nada, q: "beige", familias: ["neutro"] })).toBe(2);
+    expect(tarjetas({ ...nada, q: "m" })).toBe(2); // «m» es la talla M: Evaluna y Lucky
+    expect(tarjetas({ ...nada, q: "m", tallas: ["30"] })).toBe(0);
+    expect(tarjetas({ ...nada, q: "m", tallas: ["M", "30"] })).toBe(2);
+    expect(tarjetas({ ...nada, q: "beige", colores: ["Azul marino"] })).toBe(0);
+    expect(tarjetas({ ...nada, q: "beige", familias: ["neutro"] })).toBe(2);
+  });
+
+  it("con «Hoy» cuenta prendas: un modelo con dos colores por colgar es «Por colgar · 2», las dos tarjetas que trae (ADR-0331 act. c)", () => {
+    const dos = indiceDeExistencias([
+      fila("p9", "Blusa Valentina", "Blusas", "Krisstell", "Blanco", "S", 0, 5),
+      fila("p9", "Blusa Valentina", "Blusas", "Krisstell", "Rosado", "S", 0, 5),
+      fila("p9", "Blusa Valentina", "Blusas", "Krisstell", "Rosado", "M", 0, 5),
+    ]);
+    // Sin «Hoy», un producto (una tarjeta con dos puntos); al elegir «Por colgar», dos prendas.
+    expect(conteosDeFiltros(dos, nada).hoy.por_colgar).toBe(2);
+    expect(conteosDeFiltros(dos, nada).talla.S).toBe(1);
+    // Con «Por colgar» ya puesto, las demás opciones también cuentan prendas: Talla S trae Blanco y Rosado.
+    expect(conteosDeFiltros(dos, { ...nada, hoy: "por_colgar" }).talla).toEqual({ S: 2, M: 1 });
   });
 
   it("el prefijo de familia es el mismo de la lista de color de Productos (si cambia allá, el conteo deja de encontrarse)", () => {

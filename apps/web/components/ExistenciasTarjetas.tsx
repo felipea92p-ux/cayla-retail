@@ -5,10 +5,11 @@ import { useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
-import { SinFoto } from "@/components/ui/PrendaCelda";
+import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { estadoTalla, queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
+import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
 
 /* ====================================================================
    Existencias en tarjetas (maqueta `docs/maquetas/existencias-tarjetas-2026-09/`)
@@ -16,6 +17,9 @@ import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
    Una tarjeta por MODELO: foto, nombre, el riel de tallas y lo que la prenda pide hoy, del color que se está viendo. Los puntos de
    color cambian ese color en la propia tarjeta (foto, cifras y pastilla cambian con él). Es la lista de entrada; «Ver detalle»
    (en `InventarioPanel`) cambia a la tabla de siempre, donde vive el cajón de la prenda: las tarjetas no lo abren.
+   Con un caso de «Hoy» elegido, la tarjeta es de una PRENDA (modelo + color, un solo punto): la lista es la de trabajo y la suma de
+   sus pastillas tiene que dar la cifra de «Para hoy» (`lib/existencias-tarjetas.ts`, ADR-0331 act. c). Qué junta cada tarjeta y en
+   qué orden van lo decide esa lógica, no este componente.
 
    EL RIEL (rediseño 2026-10-04): cada talla es una ETIQUETA colgada de un riel, como en el perchero de la tienda. En grande, las
    colgadas (lo que la caja cobra); debajo, «+N» las guardadas. La etiqueta toma el tono de su estado: colgada (papel), por colgar
@@ -30,66 +34,6 @@ import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
    calcula `permisosDelDetalle`: un botón que terminaría en «Sin acceso» no se dibuja.
    ==================================================================== */
 
-export type OrdenPrendas = "relevancia" | "nombre" | "mas-piso" | "menos-piso" | "mas-almacen" | "mas-disponible" | "menos-disponible";
-
-/** Las opciones de «Ordenar por»: donde no se separa piso y almacén (Taller) no hay «más en el piso», solo lo disponible. */
-export function opcionesOrden(separa: boolean): { valor: OrdenPrendas; texto: string }[] {
-  return separa
-    ? [
-        { valor: "relevancia", texto: "Más relevantes" },
-        { valor: "nombre", texto: "Nombre (A–Z)" },
-        { valor: "mas-piso", texto: "Más en el piso" },
-        { valor: "menos-piso", texto: "Menos en el piso" },
-        { valor: "mas-almacen", texto: "Más en el almacén" },
-      ]
-    : [
-        { valor: "relevancia", texto: "Más relevantes" },
-        { valor: "nombre", texto: "Nombre (A–Z)" },
-        { valor: "mas-disponible", texto: "Más disponibles" },
-        { valor: "menos-disponible", texto: "Menos disponibles" },
-      ];
-}
-
-/** Un modelo con sus colores (cada color es una prenda: modelo + color). En la lista de tarjetas es UNA tarjeta. */
-export type ModeloPrendas<F extends FilaExistencias = FilaExistencias> = { productoId: string; colores: PrendaAgrupada<F>[] };
-
-/** Junta las prendas por modelo respetando el orden en que llegan: el primer color que aparece decide dónde va la tarjeta. */
-export function agruparPorModelo<F extends FilaExistencias>(prendas: readonly PrendaAgrupada<F>[]): ModeloPrendas<F>[] {
-  const grupos = new Map<string, PrendaAgrupada<F>[]>();
-  for (const p of prendas) {
-    const g = grupos.get(p.productoId);
-    if (g) g.push(p);
-    else grupos.set(p.productoId, [p]);
-  }
-  return [...grupos.entries()].map(([productoId, colores]) => ({ productoId, colores }));
-}
-
-/** «Más relevantes» es el orden que ya traía la lista (lo que falta en el piso primero, o la relevancia de lo escrito): no se toca.
- *  Los demás suman los colores del modelo. */
-export function ordenarModelos<F extends FilaExistencias>(modelos: readonly ModeloPrendas<F>[], orden: OrdenPrendas): ModeloPrendas<F>[] {
-  const copia = [...modelos];
-  const suma = (m: ModeloPrendas<F>, cifra: (p: PrendaAgrupada<F>) => number) => m.colores.reduce((n, p) => n + cifra(p), 0);
-  const piso = (m: ModeloPrendas<F>) => suma(m, (p) => p.piso ?? 0);
-  const almacen = (m: ModeloPrendas<F>) => suma(m, (p) => p.almacen ?? 0);
-  const disponible = (m: ModeloPrendas<F>) => suma(m, (p) => p.disponible);
-  switch (orden) {
-    case "nombre":
-      return copia.sort((a, b) => a.colores[0].referencia.localeCompare(b.colores[0].referencia, "es"));
-    case "mas-piso":
-      return copia.sort((a, b) => piso(b) - piso(a));
-    case "menos-piso":
-      return copia.sort((a, b) => piso(a) - piso(b));
-    case "mas-almacen":
-      return copia.sort((a, b) => almacen(b) - almacen(a));
-    case "mas-disponible":
-      return copia.sort((a, b) => disponible(b) - disponible(a));
-    case "menos-disponible":
-      return copia.sort((a, b) => disponible(a) - disponible(b));
-    default:
-      return copia;
-  }
-}
-
 const TONO_PASTILLA = {
   verde: { caja: "bg-verde/10 text-verde-profundo", punto: "bg-verde ring-verde/25" },
   ambar: { caja: "bg-ambar/[0.13] text-ambar-profundo", punto: "bg-ambar ring-ambar/25" },
@@ -101,6 +45,8 @@ const TONO_PASTILLA = {
  *  diagnóstico. */
 function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
   const q = queHacerPrenda(prenda.tallas);
+  // Sin nada sabido de ninguna talla (el motor no respondió), sin pastilla: el aviso de la pantalla lo dice.
+  if (!q) return null;
   const t = TONO_PASTILLA[TONO_HOY[q.tipo]];
   const texto = textoHoyDePrenda(q.tipo, q.n);
   return (
@@ -114,7 +60,7 @@ function Pastilla({ prenda }: { prenda: PrendaAgrupada<FilaExistencias> }) {
 /** Cómo se ve cada etiqueta del riel, según el estado de la talla (`estadoTalla`, que sale de «Hoy»). */
 const ETIQUETA = {
   normal: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
-  reponer: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
+  sin_atras: { caja: "border-tinta/15 bg-papel", cifra: "text-tinta", atras: "text-taupe" },
   por_colgar: { caja: "border-ambar/45 bg-ambar/[0.08]", cifra: "text-ambar-profundo", atras: "font-semibold text-ambar-profundo" },
   // El borde punteado ya dice «lugar vacío»: la cifra no se apaga (al 55 % quedaba en 2,3:1 sobre papel; taupe da 5,6:1).
   sin_stock: { caja: "border-dashed border-taupe/45 bg-transparent", cifra: "text-taupe", atras: "text-taupe" },
@@ -173,7 +119,7 @@ export function ExistenciasTarjetas({
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
   onVerDetalle: (prenda: PrendaAgrupada<FilaExistencias>) => void;
 }) {
-  // El color que se ve en cada tarjeta, por modelo. Sin elegir, el primero de la lista; si el elegido ya no está (un filtro, un guardado), también.
+  // El color que se ve en cada tarjeta. Sin elegir, el primero de la lista; si el elegido ya no está (un filtro, un guardado), también.
   const [elegida, setElegida] = useState<Record<string, string>>({});
   // La tarjeta, para devolverle el foco al cerrar una ventana abierta desde el menú «⋯» (el menú no deja un botón al que volver).
   const tarjetas = useRef(new Map<string, HTMLElement>());
@@ -182,7 +128,7 @@ export function ExistenciasTarjetas({
     // Dos columnas donde caben (cada tarjeta pide ~30 rem para que el riel muestre sus tallas), tres en pantallas muy anchas.
     <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(min(100%,30rem),1fr))]">
       {modelos.map((m) => {
-        const p = m.colores.find((c) => c.clave === elegida[m.productoId]) ?? m.colores[0];
+        const p = m.colores.find((c) => c.clave === elegida[m.clave]) ?? m.colores[0];
         // «Reponer prenda» y «Subir prenda» abren el MODELO entero (todos sus colores, ADR-0317): se ofrecen si ALGÚN color tiene
         // algo que mover, no solo el que se está viendo.
         const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
@@ -195,7 +141,7 @@ export function ExistenciasTarjetas({
         );
         const colgadas = separa ? (p.piso ?? 0) : p.disponible;
         const guardadas = p.almacen ?? 0;
-        const origen = () => tarjetas.current.get(m.productoId) ?? document.body;
+        const origen = () => tarjetas.current.get(m.clave) ?? document.body;
         const menu = [
           ...(puedeReponer
             ? [{ clave: "subir", etiqueta: "Subir al almacén", onSelect: () => onSubir(p, origen()), motivo: hayEnElPiso ? undefined : "No hay nada colgado para subir" }]
@@ -205,10 +151,10 @@ export function ExistenciasTarjetas({
         ];
         return (
           <article
-            key={m.productoId}
+            key={m.clave}
             ref={(el) => {
-              if (el) tarjetas.current.set(m.productoId, el);
-              else tarjetas.current.delete(m.productoId);
+              if (el) tarjetas.current.set(m.clave, el);
+              else tarjetas.current.delete(m.clave);
             }}
             tabIndex={-1}
             aria-label={etiqueta}
@@ -216,7 +162,7 @@ export function ExistenciasTarjetas({
           >
             <div className="flex gap-3.5">
               <div className="h-[100px] w-[75px] shrink-0 overflow-hidden rounded-[9px] bg-sand/50 max-sm:h-[88px] max-sm:w-[66px]">
-                {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={150} height={200} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" />}
+                {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={150} height={200} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} conNombre />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
@@ -239,7 +185,7 @@ export function ExistenciasTarjetas({
                       <button
                         key={h.clave}
                         type="button"
-                        onClick={() => setElegida((previa) => ({ ...previa, [m.productoId]: h.clave }))}
+                        onClick={() => setElegida((previa) => ({ ...previa, [m.clave]: h.clave }))}
                         title={`${h.color ?? "Sin color"}${propia ? " (el que ves)" : " · ver este color"}`}
                         aria-label={h.color ?? "Sin color"}
                         aria-pressed={propia}

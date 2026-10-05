@@ -1,6 +1,6 @@
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getCandidatasPorRegularizar, getCategoriasParaSugerir, getPorRegularizar, getSinCargarPorRegularizar } from "@/lib/por-regularizar";
+import { getCandidatasPorRegularizar, getCategoriasParaSugerir, getPlazosColaArranque, getPorRegularizar, getSinCargarPorRegularizar } from "@/lib/por-regularizar";
 import { categoriasPorLoEscrito } from "@/lib/por-regularizar-candidatas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
@@ -26,12 +26,14 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // ADR-0328 (act. 5): con las prendas del stock que pueden ser cada venta. Si esa lectura falla, la cola sale igual, sin sugerencias.
   const sedeDeLaCola = esLider ? (unaSede?.id ?? null) : persona.ubicacionId;
   // Ajuste ADR-0328 (2026-10-04): qué ventas son de prendas que su sede nunca cargó, y si su carga sigue abierta. Si falla, {}.
-  const [filas, catalogo, candidatas, categorias, sinCargar] = await Promise.all([
+  // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
+  const [filas, catalogo, candidatas, categorias, sinCargar, plazos] = await Promise.all([
     getPorRegularizar(sedeDeLaCola),
     getCatalogo(),
     getCandidatasPorRegularizar(sedeDeLaCola),
     getCategoriasParaSugerir(),
     getSinCargarPorRegularizar(sedeDeLaCola),
+    esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
   ]);
   // Las ventas cuya descripción nombra otra categoría que la anotada («Jean…» como Pantalones): sus candidatas se leen otra vez,
   // en la categoría escrita. Va después porque depende de lo que dicen las filas; casi siempre no hay ninguna y no se pide nada.
@@ -69,6 +71,8 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         esLider={esLider}
         sinCargar={sinCargar}
         puedeCargarStock={puedeCargarStock}
+        plazos={plazos}
+        sedeInicial={unaSede?.id ?? null}
       />
     </div>
   );

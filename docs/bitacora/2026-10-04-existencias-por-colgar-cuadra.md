@@ -1,0 +1,4 @@
+## 2026-10-04 (con «Hoy», la lista de Existencias suma lo mismo que «Para hoy»)
+Qué hice: con un filtro «Hoy» puesto, Existencias muestra una tarjeta por prenda (modelo + color) en vez de una por modelo, y la línea de arriba dice «6 prendas · 15 tallas por colgar»; el número de cada opción del filtro cuenta igual (ADR-0331, actualización c).
+Por qué así: «Para hoy» y el Inicio decían 15 y la lista sumaba 12 a simple vista, porque Blusa Valentina Rosado quedaba detrás de un punto de color de la tarjeta del Blanco. La lista de trabajo va por percha, como ya iban el bloque del Inicio y la tabla «Por colgar».
+Felipe se lleva: quien llega desde el aviso cuenta las pastillas y le da el mismo número (verificado en local con Trujillo, en escritorio y a 375 px: 3+3+3+3+2+1 = 15); sin «Hoy», la lista sigue como la aprobó.

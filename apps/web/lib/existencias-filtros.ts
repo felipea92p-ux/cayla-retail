@@ -1,20 +1,21 @@
-import type { TipoAccionHoy } from "./existencias-recomendaciones";
+import type { PisoDeTalla } from "./piso-plan";
 import { compararTallas } from "./tallas";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial, type IndiceBusquedaEspecial, type OpcionesDeOrden } from "./filtro-busqueda-especial";
 import { listaDeUrl } from "./productos-filtros";
 import { textoDeFamilia } from "./colores-familias";
 import { hoyDeTalla, TEXTO_HOY, TIPOS_HOY, type TipoHoy } from "./existencias-hoy";
 import type { ClaveFiltro } from "./existencias-vacio";
+import { claveDeTarjeta } from "./existencias-tarjetas";
 
 /* ====================================================================
    existencias-filtros · la barra de filtros de Existencias
 
    Dos preguntas distintas sobre una talla, dos filtros (separadas el 2026-09-25, renombradas el 2026-10-03):
-     · «Hoy»: qué pide la talla (Por colgar · Por reponer · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
+     · «Hoy»: qué pide la talla (Por colgar · Sin stock atrás · Mantener, `lib/existencias-hoy.ts`). Cada talla
        cae en UNO solo, y la tarjeta y la tabla dicen la misma palabra. Antes eran «Acción» («Reponer a piso» / «Mantener») y
        «Por colgar» escondido en «Estado»: elegir «Mantener» + «Por colgar» siempre daba vacío.
      · «Condición»: en qué condición está el inventario (Dañadas · Apartadas). No excluye a «Hoy»: una talla puede pedir
-       reponer y tener una apartada a la vez.
+       colgar y tener una apartada a la vez.
    ==================================================================== */
 
 /* ====================================================================
@@ -153,7 +154,7 @@ export type FilaFiltrable = {
   /** La familia del color (`colores.familia_color`: azul, neutro, tierra…). La pone la página con una lectura aparte y
    *  tolerante; ausente o null = sin familia (o la lectura falló): el color se filtra solo por su nombre. */
   colorFamilia?: string | null;
-  accionHoy?: { tipo: TipoAccionHoy } | null;
+  planPiso?: Pick<PisoDeTalla, "accion"> | null;
   danado: number | null;
   /** Unidades apartadas para clientes (siguen en la tienda, no se venden ni se mueven). */
   apartado: number;
@@ -214,12 +215,14 @@ export function filtrarExistencias<F extends FilaFiltrable>(
    Cuántos productos trae cada opción (2026-10-03, como Productos ADR-0308): la barra esconde las opciones que dejarían la
    lista vacía y dice cuántos hay en cada una. El conteo es DISYUNTIVO: cada filtro cuenta con todos los demás puestos menos
    el suyo («¿cuántas Krisstell hay en cada talla?» mira la marca elegida, no la talla elegida, porque esa es la pregunta).
-   La unidad es el producto (modelo): la misma del «N productos» de arriba, así un número nunca contradice a la lista.
+   La unidad es la TARJETA que trae la lista (`claveDeTarjeta`, ADR-0331 act. c): el producto (modelo) sin «Hoy», la prenda (modelo
+   + color) con un caso de «Hoy» elegido. Es la misma del «N productos / N prendas» de arriba, así un número nunca contradice a la
+   lista: antes «Por colgar · 5» traía 6 perchas, una escondida detrás de un punto de color.
    Se cuenta en el navegador sobre lo que ya llegó: TRU tiene ~2.300 tallas y seis pasadas son ~14.000 filas, milisegundos.
    ==================================================================== */
 
 export const CLAVES_CONTEO: readonly ClaveFiltro[] = ["categoria", "marca", "talla", "color", "hoy", "condicion"];
-/** filtro → { opción → cuántos productos }. Una opción que no está tiene 0. */
+/** filtro → { opción → cuántas tarjetas trae }. Una opción que no está tiene 0. */
 export type ConteosFiltros = Record<ClaveFiltro, Record<string, number>>;
 
 /** Las opciones de familia en la lista de Color: el mismo prefijo que `opcionesDeColor` (`lib/productos-filtros.ts`), para que
@@ -248,16 +251,18 @@ function valoresDe(f: FilaFiltrable, clave: ClaveFiltro): (string | null | undef
 export function conteosDeFiltros<F extends FilaFiltrable>(indice: IndiceBusquedaEspecial<F>, elegidos: FiltrosElegidos): ConteosFiltros {
   const salida = {} as ConteosFiltros;
   for (const clave of CLAVES_CONTEO) {
-    const productos = new Map<string, Set<string>>();
+    const tarjetas = new Map<string, Set<string>>();
     for (const f of filtrarExistencias(indice, elegidos, new Set([clave])).filas) {
       for (const v of valoresDe(f, clave)) {
         if (!v) continue;
-        const s = productos.get(v);
-        if (s) s.add(f.productoId);
-        else productos.set(v, new Set([f.productoId]));
+        // Elegir un caso de «Hoy» pasa la lista a prendas; en los demás filtros manda el «Hoy» que ya está puesto.
+        const tarjeta = claveDeTarjeta(f, clave === "hoy" ? (v as TipoHoy) : elegidos.hoy);
+        const s = tarjetas.get(v);
+        if (s) s.add(tarjeta);
+        else tarjetas.set(v, new Set([tarjeta]));
       }
     }
-    salida[clave] = Object.fromEntries([...productos].map(([v, s]) => [v, s.size]));
+    salida[clave] = Object.fromEntries([...tarjetas].map(([v, s]) => [v, s.size]));
   }
   return salida;
 }

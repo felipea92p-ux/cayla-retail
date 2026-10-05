@@ -18,7 +18,7 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
   for (const m of sql.matchAll(/update retail\.acciones_sin_responsable set descripcion = '([^']*)' where clave = '([a-z0-9_]+)'/g)) {
     DESCRIPCION_VIGENTE.set(m[2]!, m[1]!);
   }
-  // Las acciones que se suman después (20261002170000: los tres de Avisos del club).
+  // Las acciones que se suman después (20261002170000: los tres de Avisos del club; 20261005100100, 20261005110000 y 20261005120000: cerrar, reabrir e identificar en la cola de arranque).
   for (const ins of sql.matchAll(/insert into retail\.acciones_sin_responsable \(clave, descripcion\) values([\s\S]*?);/g)) {
     for (const m of ins[1]!.matchAll(/\('([a-z0-9_]+)',\s*'([^']*)'\)/g)) DESCRIPCION_VIGENTE.set(m[1]!, m[2]!);
   }
@@ -29,10 +29,10 @@ for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x >
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
 
-  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, menos regularizar", () => {
+  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar), menos regularizar", () => {
     expect(clavesBase).toHaveLength(28);
     expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
-    expect(DESCRIPCION_VIGENTE.size).toBe(30);
+    expect(DESCRIPCION_VIGENTE.size).toBe(33);
   });
 
   it("regularizar una prenda vuelve a pedir el nombre (ADR-0328: nadie regulariza su propia venta, y sin nombre no hay con quién comparar)", () => {

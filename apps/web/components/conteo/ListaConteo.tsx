@@ -3,7 +3,7 @@
 import { memo, startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ListChecks } from "lucide-react";
 import type { GrupoConteo, PrendaConteo } from "@/lib/conteo-reglas";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { FilaConteo } from "@/components/conteo/FilaConteo";
 import type { ControlConteo } from "@/components/conteo/control-conteo";
@@ -146,7 +146,7 @@ const TarjetaPercha = memo(function TarjetaPercha({
   return (
     <article hidden={!visible} className="card-cayla @container overflow-hidden">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 py-1 pl-[18px] pr-3">
-        <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="xl" />
+        <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="xl" {...categoriaDe(g)} />
         <div className="min-w-[8rem] flex-1">
           <h3 className="truncate text-base font-semibold leading-snug text-tinta">{g.referencia}</h3>
           <p className="mt-1.5 flex items-center gap-2 text-sm text-taupe">

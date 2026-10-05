@@ -25,6 +25,7 @@ import {
   type CargaDeLaSede,
   type VentaSinCargar,
 } from "@/lib/por-regularizar-reglas";
+import { avisosDePlazo, motivoLegible, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
@@ -48,6 +49,9 @@ import {
   type SugerenciaVenta,
 } from "@/lib/por-regularizar-candidatas";
 import type { CategoriaSugerida } from "@/lib/sugerir-categoria-sin-registrar";
+import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
+import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
+import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 
 export type { PrendaParaRegularizar };
 
@@ -63,6 +67,7 @@ const soles = (n: number) => `S/ ${n.toFixed(2)}`;
 const FILTROS = [
   { clave: "pendiente", texto: "Pendientes" },
   { clave: "regularizada", texto: "Regularizadas" },
+  { clave: "cerrada_sin_prenda", texto: "Cerradas" },
   { clave: "todas", texto: "Todas" },
 ] as const;
 
@@ -78,6 +83,8 @@ export function PorRegularizarLista({
   esLider,
   sinCargar,
   puedeCargarStock,
+  plazos,
+  sedeInicial,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
@@ -93,18 +100,26 @@ export function PorRegularizarLista({
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
   variasSedes: boolean;
-  /** La CUENTA es de un líder: puede regularizar también lo que vendió (ADR-0328; la base lo decide con `fn_es_lider`). */
+  /** La CUENTA es de un líder: puede regularizar también lo que vendió (ADR-0328; la base lo decide con `fn_es_lider`) y es quien
+   *  cierra la cola de arranque (ADR-0334); la base lo vuelve a exigir en las dos. */
   esLider: boolean;
   /** Por venta pendiente: si su prenda está sin cargar en la sede y cómo está la carga de esa sede (`fn_por_regularizar_sin_cargar`);
    *  vacío si no se pudo leer (sin línea de «sin cargar»: la base lo dice al guardar). */
   sinCargar: Record<string, VentaSinCargar>;
   /** Puede abrir la ficha y ajustar su stock (editarCatalogo + ajustarStock): solo entonces se ofrece el enlace para cargarla. */
   puedeCargarStock: boolean;
+  /** Hasta cuándo cada tienda puede cerrar su cola (`ubicacion_id → AAAA-MM-DD`). Sin plazo no hay botón. */
+  plazos: Record<string, string>;
+  /** La tienda que se está mirando (`?ubicacion=`), para que el cierre parta de ella. */
+  sedeInicial: string | null;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
   const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(null);
   const personaSesionId = useSedeActiva()?.personaSesionId ?? null;
+  const [cerrando, setCerrando] = useState(false);
+  const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
+  const [sugiriendo, setSugiriendo] = useState(false);
   const ahora = useMemo(() => new Date(), []);
   const cifras = useMemo(() => cifrasPorRegularizar(filas, ahora), [filas, ahora]);
   // ADR-0328 (act. 5): la prenda del stock más probable de cada venta pendiente, ordenada y explicada en `por-regularizar-candidatas`.
@@ -134,6 +149,13 @@ export function PorRegularizarLista({
   );
   const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
   const visibles = filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien));
+  // Las tiendas que se pueden cerrar HOY: con pendientes y con plazo vigente. Sin ninguna, el botón no existe.
+  const sedesDelLider = useMemo(() => (esLider ? sedesParaCerrar(filas, plazos, ahora) : []), [esLider, filas, plazos, ahora]);
+  const sedesCerrables = useMemo(() => sedesDelLider.filter((s) => s.puedeCerrar), [sedesDelLider]);
+  // Las sugerencias no dependen del plazo: identificar una venta nunca está vedado, solo cerrarla sin prenda.
+  const sedesConPendientes = useMemo(() => sedesDelLider.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesDelLider]);
+  // Qué dice el plazo de cada tienda: sin esto, vencido el plazo el botón desaparecía sin explicación.
+  const avisosPlazo = useMemo(() => avisosDePlazo(sedesDelLider), [sedesDelLider]);
 
   return (
     <div className="space-y-6">
@@ -161,14 +183,26 @@ export function PorRegularizarLista({
               {f.texto}
             </button>
           ))}
-          <div className="ml-auto w-60">
-            <Desplegable
-              valor={quien}
-              onValor={setQuien}
-              opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
-              forma="caja"
-              etiquetaAccesible="Quién vendió"
-            />
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {sedesConPendientes.length > 0 && (
+              <button type="button" onClick={() => setSugiriendo(true)} className="btn-cayla btn-secundario">
+                Identificar con sugerencias
+              </button>
+            )}
+            {sedesCerrables.length > 0 && (
+              <button type="button" onClick={() => setCerrando(true)} className="btn-cayla btn-secundario">
+                Cerrar la cola de arranque
+              </button>
+            )}
+            <div className="w-60">
+              <Desplegable
+                valor={quien}
+                onValor={setQuien}
+                opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
+                forma="caja"
+                etiquetaAccesible="Quién vendió"
+              />
+            </div>
           </div>
         </div>
         {filtro !== "regularizada" && grupos.length > 0 && (
@@ -187,6 +221,13 @@ export function PorRegularizarLista({
               </p>
             ))}
           </div>
+        )}
+        {avisosPlazo.length > 0 && (
+          <ul className="space-y-0.5 px-5 pb-3 text-xs text-taupe">
+            {avisosPlazo.map((aviso) => (
+              <li key={aviso}>{aviso}</li>
+            ))}
+          </ul>
         )}
         <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
         {visibles.length === 0 && (
@@ -218,6 +259,8 @@ export function PorRegularizarLista({
               <div className={celda()}>
                 {f.estado === "regularizada" ? (
                   <Chip tono="verde">Regularizada</Chip>
+                ) : f.estado === "cerrada_sin_prenda" ? (
+                  <Chip tono="pizarra">Cerrada sin prenda</Chip>
                 ) : f.estado === "anulada" ? (
                   <Chip tono="apagado">Venta anulada</Chip>
                 ) : vencida ? (
@@ -237,6 +280,17 @@ export function PorRegularizarLista({
                       <p className="mt-1 text-xs text-taupe">Vendida por ti: la regulariza otra persona</p>
                     )}
                   </>
+                ) : f.estado === "cerrada_sin_prenda" && f.cierre ? (
+                  <>
+                    <p className="truncate text-xs text-tinta">{motivoLegible(f.cierre.motivo)}</p>
+                    <p className="text-xs text-taupe">Cerrada el {diaYHoraLima(f.cierre.cerradoEn).dia} · sin identificar la prenda</p>
+                    {/* Solo un líder reabre (la base lo exige): para quien la devuelve o la quiere cambiar. */}
+                    {esLider && (
+                      <button type="button" onClick={() => setReabriendo(f)} className="btn-cayla btn-secundario mt-1.5">
+                        Reabrir
+                      </button>
+                    )}
+                  </>
                 ) : f.estado === "regularizada" && f.diferencia !== null ? (
                   <>
                     <p className="truncate text-xs text-tinta">{f.prendaReal}</p>
@@ -252,8 +306,10 @@ export function PorRegularizarLista({
       <p className="nota-cayla text-sm">
         Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda
         cuadrado. «Probable» es la prenda del stock de esa tienda con la misma categoría (o la que caja escribió en la descripción, si
-        nombra otra), talla y color (o uno parecido) que anotó caja: es una sugerencia, la confirmas tú. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder. Las pendientes salen todas,
-        sin importar cuándo se vendieron; las ya resueltas, las de este mes y el anterior.
+        nombra otra), talla y color (o uno parecido) que anotó caja: es una sugerencia, la confirmas tú. Pasados {DIAS_PARA_VENCER} días sin
+        regularizar, se le avisa al líder. Las pendientes salen todas, sin importar cuándo se vendieron; las ya resueltas, las de este mes y
+        el anterior. Las que ya no se pueden identificar, un líder puede cerrarlas todas juntas dentro del plazo de su tienda: quedan sin
+        prenda y el stock no cambia.
       </p>
 
       {abierta && (
@@ -267,6 +323,9 @@ export function PorRegularizarLista({
           onClose={() => setAbierta(null)}
         />
       )}
+      {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
+      {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
+      {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>
   );
 }
