@@ -224,3 +224,34 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     expect(opciones[0].valor).toBe(PREFIJO_FAMILIA + "neutro");
   });
 });
+
+// ── «Se acaban» y «Sin ventas» (2026-10-05): dos condiciones que salen del Ritmo reciente ───────────────────────────────────────────
+import { DIAS_SE_ACABA, tieneCondicion } from "./existencias-filtros";
+
+describe("condiciones del ritmo", () => {
+  const base = { danado: 0, apartado: 0, pisoDisponible: 3, almacenDisponible: 0 } as Parameters<typeof tieneCondicion>[0];
+
+  it("«Se acaban»: colgada, con ritmo medido y para una semana o menos", () => {
+    expect(tieneCondicion({ ...base, coberturaPiso: { tipo: "medida", dias: DIAS_SE_ACABA } }, "se_acaban")).toBe(true);
+    expect(tieneCondicion({ ...base, coberturaPiso: { tipo: "medida", dias: DIAS_SE_ACABA + 0.1 } }, "se_acaban")).toBe(false);
+  });
+
+  it("«Se acaban» no afirma lo que no sabe: sin ritmo medido, agotada o sin lectura no cuenta", () => {
+    expect(tieneCondicion({ ...base, coberturaPiso: { tipo: "no_estimable", razon: "insuficiente" } }, "se_acaban")).toBe(false);
+    expect(tieneCondicion({ ...base, coberturaPiso: { tipo: "agotado", dias: 0 }, pisoDisponible: 0 }, "se_acaban")).toBe(false);
+    expect(tieneCondicion(base, "se_acaban")).toBe(false);
+  });
+
+  it("«Sin ventas»: colgada, con jornadas suficientes y ninguna venta; con pocas jornadas no se dice", () => {
+    expect(tieneCondicion({ ...base, ritmoReciente: { tipo: "sin_salida", dias: [], unidadesDia: 0 } }, "sin_ventas")).toBe(true);
+    expect(tieneCondicion({ ...base, ritmoReciente: { tipo: "insuficiente", dias: [] } }, "sin_ventas")).toBe(false);
+    expect(tieneCondicion({ ...base, ritmoReciente: { tipo: "medida", dias: [], unidadesDia: 1 } }, "sin_ventas")).toBe(false);
+    expect(tieneCondicion({ ...base, pisoDisponible: 0, ritmoReciente: { tipo: "sin_salida", dias: [], unidadesDia: 0 } }, "sin_ventas")).toBe(false);
+  });
+
+  it("la URL reconoce las dos condiciones nuevas y las ignora donde no se separa piso y almacén", () => {
+    expect(filtrosDeUrl("condicion=se_acaban", { separa: true }).condicion).toBe("se_acaban");
+    expect(filtrosDeUrl("condicion=sin_ventas", { separa: true }).condicion).toBe("sin_ventas");
+    expect(filtrosDeUrl("condicion=sin_ventas", { separa: false }).condicion).toBeNull();
+  });
+});
