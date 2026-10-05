@@ -164,7 +164,7 @@ flowchart TB
 - `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
   `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
   `fn_dynamic_disponibles`, y `fn_asesoras_de_turno` por sede para el punto «de turno hoy») → `ColaboradoresPanel.tsx` (dos secciones —Equipo y Roles y
-  accesos—, Actividad en modal; ADR-0172 y ADR-0340) → `colaboradores/EquipoLista.tsx` (la lista por sede, con «Esperan tu ok») +
+  accesos—, y «Actividad del equipo» en `colaboradores/ActividadEquipo.tsx`, que lee `fn_actividad` de los módulos colaboradores y roles; ADR-0172, ADR-0340 y ADR-0343) → `colaboradores/EquipoLista.tsx` (la lista por sede, con «Esperan tu ok») +
   `colaboradores/FichaColaborador.tsx` y `colaboradores/FichaTerminal.tsx` (las fichas al costado, sobre `colaboradores/CajonFicha.tsx`; ADR-0342) sobre las reglas
   puras de `lib/equipo-reglas.ts`; `colaboradores/DarAccesoModal.tsx` (dar acceso: quién, sede y rol, con su guía; reglas en `lib/dar-acceso-reglas.ts`; ADR-0341) +
   `ColaboradoresTablas.tsx` (aparatos y actividad) + `ColaboradoresModales.tsx` (desactivar aparato). Escribe por `lib/colaboradores-acciones.ts` → RPC
@@ -648,7 +648,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   filas «Prenda / Gestión» de `FiltrosPildora.tsx`, hoja `<Modal>` en el celular, cajas de precio con límites reales de
   `getPreciosExtremos` + `lib/productos-filtro-precio.ts`, chips, «N productos», un solo «Ordenar por» —`lib/productos-orden.ts`,
   «Más recientes» por defecto— y «Copiar enlace»; estado de la URL en `lib/productos-filtros.ts`, «Activos» por defecto) →
-  `ProductosGrilla.tsx` (`?vista=grilla`, default)
+  `ProductosGrilla.tsx` (`?vista=grilla`, default; al tocar una tarjeta abre `components/vista-rapida/VistaRapidaProducto.tsx` —
+  maqueta A «Matriz», 2026-10-05, ADR-0136 act. 2026-10-05—: matriz color × talla `MatrizUnidades.tsx` con las unidades de la sede por
+  `useStockEnSede`, foto que sigue al color `FotoVistaRapida.tsx`, y pie fijo con Editar, Etiquetas —una celda, un color, una talla o toda la
+  prenda, `lib/vista-rapida-producto-reglas.ts`—, Existencias y Eliminar; lo de las otras sedes sale de `existencias`, ADR-0270)
   o `ProductosTabla.tsx` (`?vista=tabla`, ADR-0254: una fila por modelo con foto, colores, tallas, precio, costo, margen,
   stock y estado; debajo de 768 px de tabla, una tarjeta por prenda; clic → ficha de variantes). Las dos usan
   `ProductoPiezas.tsx` y `lib/productos-vista.ts` (colores, tallas en curva, margen con `UMBRAL_MARGEN_BAJO`). La Tabla abre
