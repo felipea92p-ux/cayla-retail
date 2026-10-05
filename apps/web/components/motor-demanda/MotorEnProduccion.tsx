@@ -52,7 +52,7 @@ export function MotorEnProduccion({
             type="button"
             onClick={usar}
             disabled={curva.total === 0}
-            className="h-8 rounded-md border border-tinta/25 px-3 text-[13px] text-tinta outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/25"
+            className="h-8 rounded-md border border-tinta/25 px-3 text-[13px] text-tinta transition-colors hover:border-tinta disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/25"
           >
             {curva.total > 0 ? `Usar la del motor · ${curva.total} prendas` : "El motor no pide fabricar"}
           </button>

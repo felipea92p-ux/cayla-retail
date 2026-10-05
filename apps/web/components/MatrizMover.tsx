@@ -97,7 +97,7 @@ export function MatrizMover({
                     scope="row"
                     className={`sticky left-0 z-[1] relative whitespace-nowrap border-r border-t border-sand py-1.5 pl-3.5 pr-2 text-left text-[12.5px] font-semibold text-tinta sm:py-2 sm:pl-4 sm:pr-2.5 sm:text-[13.5px] ${fondoFila}`}
                   >
-                    <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]" style={{ background: franja }} />
+                    <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_color-mix(in_srgb,var(--color-tinta)_18%,transparent)]" style={{ background: franja }} />
                     <span className="flex items-center gap-1.5">
                       <Punto hex={color.hex} />
                       {color.nombre}

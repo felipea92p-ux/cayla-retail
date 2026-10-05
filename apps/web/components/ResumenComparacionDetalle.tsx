@@ -122,7 +122,7 @@ function Fila({ x, filtro, diasB }: { x: AnalisisComparacion; filtro: FiltroCamb
 function FiltroChip({ activo, n, onClick, children }: { activo: boolean; n: number; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" aria-pressed={activo} onClick={onClick} className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60">
-      {children} <span className="tabular-nums opacity-70">· {n}</span>
+      {children} <span className="tabular-nums opacity-70 dark:opacity-85">· {n}</span>
     </button>
   );
 }

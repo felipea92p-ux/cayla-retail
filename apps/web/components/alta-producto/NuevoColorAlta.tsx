@@ -170,7 +170,7 @@ export function NuevoColorAlta({
             onKeyDown={teclas}
             placeholder={ejemplo.nombre.texto}
             disabled={guardando}
-            className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
           />
         </div>
 
@@ -209,7 +209,7 @@ export function NuevoColorAlta({
             placeholder={ejemplo.codigo.texto}
             disabled={guardando}
             aria-describedby={`${id}-codigo-ayuda`}
-            className="caja-cayla h-10 w-[5.5rem] px-3 font-mono text-sm uppercase tracking-wider text-tinta tabular-nums outline-none placeholder:text-tinta/45"
+            className="caja-cayla h-10 w-[5.5rem] px-3 font-mono text-sm uppercase tracking-wider text-tinta tabular-nums placeholder:text-tinta/45"
           />
           <p id={`${id}-codigo-ayuda`} className="mt-1 text-[11px] text-taupe">
             Va en el SKU

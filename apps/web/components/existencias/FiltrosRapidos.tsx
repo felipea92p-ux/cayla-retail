@@ -65,7 +65,7 @@ export function FiltrosRapidos({
   return (
     <TooltipProvider delayDuration={150}>
       <div className="flex items-center gap-2">
-        <div role="group" aria-label="Atajos de filtro" className="scroll-cayla flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
+        <div role="group" aria-label="Atajos de filtro" className="scroll-cayla -mx-1 -my-0.5 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 py-1">
           {ATAJOS_RAPIDOS.map((a) => {
             const Icono = ICONO[a.clave];
             // Los «Recomendados» van tras una línea y, con texto, su rótulo: salen del ritmo y no de lo que hay que hacer con la talla.
@@ -132,7 +132,7 @@ export function FiltrosRapidos({
               aria-label={nombre}
               title={nombre}
               onClick={() => vistaRapidos.fijar(v)}
-              className="inline-flex h-8 w-8 items-center justify-center text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:text-tinta"
+              className="inline-flex h-8 w-8 items-center justify-center text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:text-tinta focus-visible:-outline-offset-2"
             >
               <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
@@ -153,7 +153,7 @@ export function FiltrosRapidos({
                 aria-pressed={orden.valor === v}
                 title={ayuda}
                 onClick={() => orden.onValor(v)}
-                className="h-8 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta"
+                className="h-8 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta focus-visible:-outline-offset-2"
               >
                 {texto}
               </button>

@@ -73,7 +73,7 @@ export function TarjetaSenal({
   const clase = `@container block w-full rounded-lg border p-3.5 text-left ${e.caja} ${activa ? "ring-2 ring-tinta/30" : ""}`;
   if (!onClick) return <div className={clase}>{cuerpo}</div>;
   return (
-    <button type="button" onClick={onClick} aria-pressed={activa} className={`${clase} transition-shadow hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta/50`}>
+    <button type="button" onClick={onClick} aria-pressed={activa} className={`${clase} transition-shadow hover:shadow-sm`}>
       {cuerpo}
     </button>
   );

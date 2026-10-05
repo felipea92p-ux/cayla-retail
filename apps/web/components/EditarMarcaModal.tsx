@@ -172,7 +172,7 @@ export function EditarMarcaModal({
                       value={n.nombre}
                       autoFocus={!n.nombre}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none"
+                      className="caja-cayla h-10 w-full px-3 text-sm text-tinta"
                     />
                     <input
                       aria-label="RUC del proveedor nuevo (opcional)"
@@ -181,7 +181,7 @@ export function EditarMarcaModal({
                       maxLength={11}
                       value={n.ruc}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, ruc: e.target.value.replace(/\D/g, "") } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta outline-none"
+                      className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta"
                     />
                   </div>
                 </li>

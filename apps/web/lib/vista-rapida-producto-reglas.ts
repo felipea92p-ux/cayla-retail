@@ -20,7 +20,7 @@ import { compararTallas } from "./tallas";
 export type StockPorVariante = ReadonlyMap<string, number> | null;
 
 /** El hex de un color sin hex (`coloresDe` usa el mismo gris): un dato faltante no tumba la fila. */
-export const HEX_SIN_COLOR = "#8A8A8A";
+export const HEX_SIN_COLOR = "#8A8A8A"; // tema-fijo: color de DATO (la muestra de una variante sin hex), no de interfaz
 /** La columna de las variantes sin talla (un accesorio): se rotula «Única», no queda en blanco. */
 export const TALLA_UNICA = "Única";
 

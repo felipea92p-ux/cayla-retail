@@ -53,7 +53,7 @@ export function Hilo({
       {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
           el paso del comprobante); sin definirla es el mismo gris de siempre. */}
       {reposo && (
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,color-mix(in_srgb,var(--color-tinta)_25%,transparent))] transition-colors duration-500" />
       )}
       <span
         aria-hidden
@@ -707,7 +707,7 @@ export function Desplegable<T extends string>({
         disabled={deshabilitado}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`flex items-center text-left outline-none transition-colors disabled:cursor-not-allowed ${f.boton} ${
+        className={`flex items-center text-left transition-colors disabled:cursor-not-allowed ${f.boton} ${
           esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""
         }`}
       >
@@ -916,7 +916,7 @@ export function Boton({
     <button
       {...props}
       disabled={props.disabled || cargando}
-      className={`label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] outline-none transition-all ease-cayla active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`}
+      className={`label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] transition-all ease-cayla active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`}
     >
       {/* Barrido de luz al pasar el mouse: cruza una vez y no deja nada
           pintado. Es el único gradiente del sistema, y existe solo como

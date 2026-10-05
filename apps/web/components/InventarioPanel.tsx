@@ -1099,7 +1099,7 @@ export function InventarioPanel({
                     abrirPrenda({ clave }, f.varianteId);
                   }
                 }}
-                className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors focus-visible:outline-none sm:items-center ${plantilla} ${
+                className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors sm:items-center ${plantilla} ${
                   filaAbierta ? "bg-hueso/80" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
                 }`}
               >
@@ -1464,7 +1464,7 @@ export function InventarioPanel({
             {/* Celular: la cuenta y la ✕ arriba, los botones debajo a todo el ancho. Escritorio: todo en una fila. */}
             <span className="flex-1 px-3 py-1.5 text-sm sm:flex-none">
               <b className="font-semibold tabular-nums">{prendasMarcadas}</b> {prendasMarcadas === 1 ? "prenda" : "prendas"}
-              <span className="text-crema/60"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
+              <span className="text-crema/60 dark:text-crema/75"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
             </span>
             {/* Más de las que caben en un enlace (tarea #7): se dice, en vez de hacer desaparecer los botones sin explicación. */}
             {filasMarcadas.length > MAX_VARIANTES_EN_URL && (
