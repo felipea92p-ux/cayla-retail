@@ -20,7 +20,7 @@ Diseño: `docs/investigacion/2026-10-05-algoritmo-de-inventario.md`. Cada etapa 
 - [ ] **Avisarle a Dany (Felipe):** ADR-0348, sección «Para Dany». Antes de pegar `20261005212000` en producción.
 - [x] **Las cuatro migraciones en producción (2026-10-05, OK de Felipe, por MCP):** `210000` → versión `20261005203539`, `212000` → `20261005203608`, `215000` → `20261005203655`, `220000` → `20261005203752`. Huellas de las 5 funciones idénticas a local; prueba de humo como líder (en transacción con rollback): las tres tiendas y el plan responden en ~0,5 s en total.
 - [ ] **Publicar la web** (fusionar la rama): hasta entonces nada nuevo se ve; la web vieja sigue funcionando con la función nueva de pedidos.
-- [ ] **Refrescar el diccionario** (`docs/datos/generado/`): `pnpm datos:refrescar` contra producción (memoria «Refrescar el volcado por MCP»), luego `datos:generar:produccion` y `datos:comparar`.
+- [x] **Diccionario refrescado (2026-10-05 20:50 UTC):** 164 relaciones y 891 funciones; 124 grupos nuevos o cambiados (de esta rama y de otras sesiones desde la foto del 3-oct), las 1.162 huellas coinciden con producción. `datos:comparar`: ninguna pantalla llama a una función con parámetros que producción no acepte. Aviario: 6 tablas nuevas con pájaro (`planes_compra*` → Pelícano; `capacidad_piso`, `bajadas_en_mano`, `prendas_para_enviar*` → Halcón).
 
 ### Contrato para Inventario ▸ Tareas (ADR-0345): talla rota y traslados con cantidad (etapa 2)
 
