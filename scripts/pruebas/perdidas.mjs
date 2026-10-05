@@ -17,6 +17,9 @@
  *         «quedaron» para la resta a mano, filtros por prenda y por zona;
  *   · F — UNA respuesta: el total en soles de la pestaña es el 659 del diario, sede por sede; el diario asienta el faltante de
  *         traslado y el Balance ya no lo lista como causa; una resta «otro» ya no es «otra salida»;
+ *   · K — con «Finanzas cuenta desde una fecha» (ADR-0332, `parametros_finanzas.inicio_finanzas`): la rama nueva del diario
+ *         (el faltante de traslado) respeta el corte igual que el resto; la pestaña, que es inventario, no se corta; y desde
+ *         la fecha vuelve a ser UNA respuesta;
  *   · P — permisos: el líder ve el costo por prenda, la integrante solo totales; sin el módulo Movimientos o en otra sede,
  *         nada; `anon` no ejecuta y las piezas internas no son de nadie;
  *   · G — la guarda: con un mes CERRADO que cambiaría, la migración aborta (se re-aplica su bloque sobre una copia) y nombra
@@ -442,6 +445,28 @@ select 'F4 el Estado de resultados de T dice mermas S/ 250, con su detalle «fal
      from retail.fn_estado_resultados('2031-03-01', '2031-03-31', :'t'));
 `;
 
+// K · ADR-0332 (Finanzas cuenta desde `inicio_finanzas`, ya en producción). La merma de traslado (7c) lee `v_ini`/`v_fin`,
+// que en `fn_asientos` ya salen del corte: un traslado anterior a la fecha no entra, como ninguna otra merma. La pestaña es
+// inventario (Movimientos), no Finanzas: el corte no la toca y sigue diciendo lo que se perdió. «UNA respuesta» vale desde
+// la fecha de arranque. M12 (v1 −1 merma, 1-abr 00:10 Lima, S/ 40) es lo único de T en abril.
+const CASOS_CORTE = `
+update retail.parametros_finanzas set inicio_finanzas = '2031-04-01' where id;
+create temp table dia_corte as select * from retail.fn_asientos('2031-03-01', '2031-04-30');
+select 'K1 con Finanzas desde abril, el diario de marzo a abril no asienta el faltante del traslado de marzo (ni en T ni en O)',
+  (select count(*) = 0 from dia_corte where regla = 'merma_traslado' and ubicacion_id in (:'t', :'o'));
+select 'K1 y de T solo queda la merma del 1-abr 00:10 Lima (S/ 40): lo de marzo no entra',
+  (select coalesce(sum(debe), 0) = 40 from dia_corte where ubicacion_id = :'t' and cuenta = '659');
+select 'K2 un rango que termina antes del corte no devuelve nada, y el Estado de resultados de marzo de T dice mermas 0',
+  (select count(*) = 0 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id in (:'t', :'o'))
+  and (select coalesce(sum(mermas), 0) = 0 from retail.fn_estado_resultados('2031-03-01', '2031-03-31', :'t'));
+select 'K3 la pestaña Pérdidas es inventario, no Finanzas: marzo de T sigue en S/ 250 (el corte no la toca)',
+  (select (j #>> '{perdido,soles}')::numeric = 250 from (select retail.fn_perdidas_resumen(:'t', '2031-03-01', '2031-03-31') as j) q);
+update retail.parametros_finanzas set inicio_finanzas = '2031-03-01' where id;
+select 'K4 con Finanzas desde marzo, UNA respuesta otra vez: el 659 de marzo de T es la pestaña (S/ 250), traslado incluido (S/ 25)',
+  (select coalesce(sum(debe), 0) = 250 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id = :'t' and cuenta = '659')
+  and (select coalesce(sum(debe), 0) = 25 from retail.fn_asientos('2031-03-01', '2031-03-31') where ubicacion_id = :'t' and cuenta = '659' and regla = 'merma_traslado');
+`;
+
 const CASOS_PERMISOS = `
 select 'P1 el líder ve el costo por prenda', (select bool_and((r.j ->> 've_costo')::boolean and x -> 'costo_unitario' <> 'null'::jsonb) from r, jsonb_array_elements(r.j -> 'hechos') x);
 select 'P1 y filtrada a una prenda sigue viendo sus soles (v1 en T: 3 prendas, S/ 120)',
@@ -553,6 +578,7 @@ const CASOS_PUERTA = casosPuerta();
 verificar("Puerta suelta", correr(CASOS_PUERTA), casosDe(CASOS_PUERTA));
 verificar("Pestaña Pérdidas", correr(`${ESCENA}${CASOS_RESUMEN}`), casosDe(CASOS_RESUMEN));
 verificar("Finanzas", correr(`${ESCENA}${CASOS_FINANZAS}`), casosDe(CASOS_FINANZAS));
+verificar("Finanzas desde una fecha (ADR-0332)", correr(`${ESCENA}${CASOS_CORTE}`), casosDe(CASOS_CORTE));
 verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
 verificar("Resumen de Inventario", correr(RESUMEN_INVENTARIO), casosDe(RESUMEN_INVENTARIO));
 verificar("Guarda", correr(`${ESCENA}${CASOS_GUARDA}`), casosDe(CASOS_GUARDA));

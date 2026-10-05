@@ -47,7 +47,10 @@
 -- ESTADO QUE DEJA DE SER POSIBLE: que Finanzas y la pestaña Pérdidas digan cifras distintas para el mismo mes y la misma
 -- sede: las dos leen los mismos tres orígenes (movimientos por `fn_perdida_razon`, traslados por `fn_perdidas_de_traslados`
 -- y la venta anulada no vendible), y una prueba (`scripts/pruebas/perdidas.mjs`) exige que el total de la pestaña sea el 659
--- del diario, sede por sede. El resumen de Inventario (`fn_resumen_variantes.mermas`, por prenda; hoy ninguna pantalla lo
+-- del diario, sede por sede. Con «Finanzas cuenta desde una fecha» (ADR-0332, 20261004190000, ya en producción) la igualdad
+-- vale desde `parametros_finanzas.inicio_finanzas`: antes de esa fecha el diario no cuenta nada —tampoco el faltante de un
+-- traslado, porque 7c lee `v_ini`/`v_fin`, que ya salen del corte— y la pestaña, que es inventario, sigue mostrando lo que se
+-- perdió (`perdidas.mjs`, casos K). El resumen de Inventario (`fn_resumen_variantes.mermas`, por prenda; hoy ninguna pantalla lo
 -- muestra) usa la misma regla para los MOVIMIENTOS, pero no suma traslados ni anulaciones: para una prenda con faltante en un
 -- traslado, su cifra es menor que la de la pestaña filtrada. Y tampoco es posible ya esconder una pérdida escribiendo a mano
 -- un motivo que la definición deja fuera (punto 6).

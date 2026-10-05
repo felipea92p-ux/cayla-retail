@@ -29,6 +29,30 @@ select m.tipo, coalesce(m.motivo, '(sin motivo)') as motivo, count(*) as movimie
  group by 1, 2
  order by 1, 2;
 
+-- 1b. Lo mismo por mes y sede, al costo del día (como lo asienta el diario: solo lo que tiene costo), y si ese mes CUENTA en
+--     Finanzas: desde ADR-0332 (20261004190000) lo anterior a `parametros_finanzas.inicio_finanzas` no entra al diario, así que
+--     ahí el cambio no mueve ningún número de Finanzas (la pestaña Pérdidas, que es inventario, sí lo muestra).
+with corte as (select pf.inicio_finanzas as desde from retail.parametros_finanzas pf where pf.id),
+c as (
+  select to_char(m.created_at at time zone 'America/Lima', 'YYYY-MM') as mes, m.ubicacion_id, m.cantidad,
+         abs(m.cantidad) * retail.fn_costo_variante_al(m.variante_id, m.created_at) as soles,
+         (corte.desde is null or (m.created_at at time zone 'America/Lima')::date >= corte.desde) as cuenta_en_finanzas
+    from retail.movimientos m
+    left join corte on true
+   where m.variante_id <> '22222222-2222-4222-8222-222222222222'
+     and ((m.tipo = 'ajuste' and m.cantidad < 0
+           and coalesce(m.motivo, '') not in ('merma', 'conteo', 'conteo_fisico', 'carga_inicial', 'conteo_arranque'))
+       or (m.tipo = 'salida'
+           and coalesce(m.motivo, '') not in ('venta', 'cambio', 'cuarentena_liquidada', 'traslado_salida', 'transferencia', 'traslado',
+                                              'reversion_produccion', 'cuarentena_devuelta_proveedor', 'cuarentena_se_boto',
+                                              'cuarentena_donada')))
+)
+select c.mes, u.nombre as sede, c.cuenta_en_finanzas, (select desde from corte) as finanzas_desde, count(*) as movimientos,
+       sum(abs(c.cantidad)) as prendas, sum(c.soles) as soles_al_costo, count(*) filter (where coalesce(c.soles, 0) = 0) as sin_costo
+  from c join retail.ubicaciones u on u.id = c.ubicacion_id
+ group by 1, 2, 3
+ order by 1, 2, 3;
+
 -- 2. Meses CERRADOS que cambiarían (si sale alguna fila, la migración aborta: reabrir ESE mes con motivo, pegar y cerrarlo).
 select to_char(p.mes, 'YYYY-MM') as mes, u.nombre as sede, count(*) as movimientos_que_cambian
   from retail.movimientos m
