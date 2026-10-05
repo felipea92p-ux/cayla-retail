@@ -8,7 +8,7 @@ import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { notaAjuste, textoQuedanSinVerificar, textoSeActualizaran } from "@/lib/conteo-reglas";
 import { existenciaTrasElAjuste, mensajeDeCierre, textoAjusteNegativo, textoQuedarianEnNegativo, type FilaConteoVista } from "@/lib/conteo-revision";
 import { paginar } from "@/lib/paginacion";
@@ -125,7 +125,7 @@ export function ConfirmarConteo({
                 <li key={f.varianteId} className="px-3 py-3 @[36rem]:px-5">
                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
                     <div className="flex min-w-0 items-center gap-2.5 @[36rem]:flex-1">
-                      <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" />
+                      <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" {...categoriaDe(f)} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-tinta">{f.referencia}</p>
                         <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-taupe">
