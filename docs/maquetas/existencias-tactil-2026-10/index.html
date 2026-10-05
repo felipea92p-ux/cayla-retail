@@ -217,6 +217,23 @@ textarea.texto{min-height:76px;resize:vertical}
 .lider{background:var(--t-ambar);color:var(--ambar);border-radius:12px;padding:10px 12px;font-size:13.5px}
 .falta{font-size:13px;color:var(--taupe);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .falta button{border:0;background:none;padding:0;color:var(--tinta);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.grupo-color{border:1px solid var(--sand);border-radius:16px;background:var(--papel);overflow:hidden}
+.grupo-color>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--crema);font-size:14px}
+.grupo-color>header i{display:inline-block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1px var(--sand);margin-right:8px;vertical-align:-2px}
+.grupo-color>header b{font-variant-numeric:tabular-nums}
+.celdas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:10px}
+.celda-r{border:1px solid var(--sand);border-radius:14px;padding:8px 10px;display:grid;gap:6px;justify-items:center;background:var(--papel);transition:background .2s var(--ease),border-color .2s var(--ease)}
+.celda-r.falta-piso{border-color:color-mix(in srgb,var(--ambar) 40%,transparent)}
+.celda-r.puesta{background:var(--crema);border-color:var(--tinta)}
+.celda-r.nada{background:transparent;border-style:dashed;color:var(--taupe)}
+.celda-r .cab{display:flex;justify-content:space-between;width:100%;font-size:13px}
+.celda-r .cab b{font-size:16px}
+.celda-r .cab small{color:var(--taupe);font-size:12px}
+.celda-r .stepper button{width:48px;height:48px;font-size:22px}
+.celda-r .stepper output{min-width:44px;font-size:26px}
+.celda-r .piso-luego{font-size:11.5px;color:var(--taupe)}
+.atajo{border:1px dashed var(--taupe);background:transparent;border-radius:12px;min-height:44px;padding:0 14px;font-size:14px;color:var(--tinta)}
+.pastilla-btn{border:0;cursor:pointer}
 .pie-botones{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
 .aviso{position:absolute;left:50%;top:14px;transform:translate(-50%,-16px);background:var(--tinta);color:var(--papel);border-radius:12px;padding:11px 16px;font-size:14px;z-index:40;opacity:0;transition:opacity .25s var(--ease),transform .25s var(--ease);pointer-events:none;max-width:calc(100% - 32px)}
 .aviso.ver{opacity:1;transform:translate(-50%,0)}
@@ -292,6 +309,7 @@ table.t td:first-child{font-weight:600}
       <thead><tr><th>Acción</th><th>Pasos en la maqueta</th><th>Regla que respeta</th><th>Falta para construirla</th></tr></thead>
       <tbody>
         <tr><td>Reponer</td><td>Cuántas → Quién</td><td><code>bajar_al_piso</code>: al menos 1, no más de lo libre en almacén; la cantidad empieza en 0 (ADR-0231); pide responsable.</td><td>Nada: ya existe (<code>ReponerPrendaModal</code>). Aquí se abre ya en la talla y color elegidos.</td></tr>
+        <tr><td>Reponer varias</td><td>Cuántas de cada color y talla → Quién</td><td>La ventana «Reponer prenda» del ERP (<code>ReponerPrendaModal</code>, ADR-0295/0317): el modelo entero, una sola llamada a <code>bajar_al_piso</code>, todo o nada. Todo empieza en 0 (ADR-0231).</td><td>Nada en la base. En la web, dibujar el mismo cálculo (<code>lib/reponer-prenda-reglas.ts</code>) dentro del panel en vez de una ventana, y que el botón diga «Reponer», no «Bajar al piso».</td></tr>
         <tr><td>Retirar del piso</td><td>Cuántas → ¿Queda o se envía? → Quién</td><td><code>retirar_del_piso</code>; con «para enviar», <code>subir_para_enviar</code> (sale de la lista sola cuando se envía el traslado).</td><td>Nada: ya existe (<code>SubirAAlmacenModal</code>). Cambia el nombre «Subir prenda».</td></tr>
         <tr><td>Apartar</td><td>Cliente → Adelanto → Quién</td><td>La separación de Vender (<code>separar_prendas</code>): cliente, adelanto mayor que 0 y hasta el precio, caja abierta, 7 días y se libera sola 2 días después de vencer.</td><td>Abrir la separación desde Existencias, y retirar el sistema viejo que no vence (<code>apartar_prenda</code>, <code>ApartarModal</code> sin uso, <code>ApartadosModal</code> que dice «no se libera solo»).</td></tr>
         <tr><td>Pedir a otra sede</td><td>¿Para quién? → Sede → Cuántas o Cliente → Quién</td><td>Para reponer: <code>pedir_a_otra_sede</code>. Para un cliente: <code>pedir_prenda_para_apartar</code> (1 unidad; nombres, apellidos y celular; reserva en la otra sede). Aviso a los líderes a las 48 h.</td><td>Hoy no se llega desde Existencias: se abre desde Traslados o Vender.</td></tr>
@@ -326,6 +344,11 @@ table.t td:first-child{font-weight:600}
       <p><span class="k">Decidí</span>Una sola pieza, el panel de la variante: cajón a la derecha en tablet horizontal (la lista sigue a la vista) y hoja que sube en tablet vertical y celular. Las seis acciones corren dentro del panel, con la tira de contexto (producto · color · talla) fija arriba.</p>
       <p><span class="k">Descarté</span>Un modal centrado por acción, como hoy, porque tapa la lista, pierde la talla elegida al cerrarse y obliga a volver a buscar. También descarté un menú «⋯» por variante: en una pantalla táctil esconde la acción que la persona vino a hacer.</p>
       <p><span class="k">Se rompe si</span>un producto tiene más de 8 tallas (calzado del 35 al 42) en una tablet vertical: las tallas pasan a dos filas y el panel se alarga. Se resuelve con la pestaña «Todas» (la matriz), no achicando los botones.</p>
+    </div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>«Reponer varias» vive en el mismo panel, con tres puertas: la pastilla ámbar de la tarjeta («3 tallas por reponer · Reponer →»), la pestaña «Todas» y un enlace dentro de «Reponer» de una talla. Las cantidades van por color, en tarjetas de talla con su − / + de 48 px.</p>
+      <p><span class="k">Descarté</span>La tabla de la ventana actual (colores en filas, tallas en columnas): a 390 px no caben 4 tallas con su − / + sin achicar los botones por debajo del tamaño de un dedo, y las tarjetas por color se acomodan solas de 2 a 6 por fila. También descarté llenar las cantidades al abrir: ADR-0231 pide que empiecen en 0.</p>
+      <p><span class="k">Se rompe si</span>un modelo tiene 6 colores y 8 tallas: son 48 casillas y el paso se alarga. El atajo «Poner 1 en las tallas sin nada en piso» cubre el caso común (el mínimo de 1 por talla y color que decidió Felipe) con un toque, solo cuando la persona lo pide.</p>
     </div>
     <div class="decision">
       <p><span class="k">Decidí</span>«Se dañó» dentro de Ajustar no resta: lleva a «Reportar dañado».</p>
@@ -462,7 +485,10 @@ table.t td:first-child{font-weight:600}
   // ================= lista =================
   function pastilla(p, c) {
     const r = cuenta(p, c, "reponer"), s = cuenta(p, c, "sin");
-    if (r) return `<span class="pastilla p-ambar"><i></i>${r} ${r === 1 ? "talla" : "tallas"} por reponer</span>`;
+    // La pastilla ámbar es un botón: abre «Reponer varias» con el modelo entero (todos sus colores).
+    const rTodos = p.colores.reduce((n, _, cc) => n + cuenta(p, cc, "reponer"), 0);
+    if (r) return `<button class="pastilla p-ambar pastilla-btn" data-acc="reponer-varias" data-pid="${p.id}"><i></i>${r} ${r === 1 ? "talla" : "tallas"} por reponer${rTodos > r ? ` · ${rTodos} en todos los colores` : ""} · Reponer →</button>`;
+    if (rTodos) return `<button class="pastilla p-ambar pastilla-btn" data-acc="reponer-varias" data-pid="${p.id}"><i></i>${rTodos} por reponer en otros colores · Reponer →</button>`;
     if (s) return `<span class="pastilla p-pizarra"><i></i>${s} sin stock aquí</span>`;
     return `<span class="pastilla p-verde"><i></i>Todas en piso</span>`;
   }
@@ -582,7 +608,8 @@ table.t td:first-child{font-weight:600}
         ${p.colores.map((col, i) => `<tr><th scope="row"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${col.hex};box-shadow:0 0 0 1px var(--sand);margin-right:6px;vertical-align:-1px"></span>${esc(col.n)}</th>${todas.map(x => { const w = col.tallas[x]; if (!w) return "<td></td>"; const ee = estado(w);
           return `<td><button class="celda ${ee === "ok" ? "" : ee}" aria-pressed="${i === c && x === t}" data-acc="celda" data-c="${i}" data-t="${esc(x)}" aria-label="${esc(col.n)} ${esc(x)}: ${w.piso} en piso, ${w.alm} en almacén"><b>${ee === "sin" ? "—" : w.piso}</b><small>${w.alm ? "+" + w.alm : ee === "sin" && otrasSum(w) ? "otra sede" : ""}</small></button></td>`; }).join("")}</tr>`).join("")}
         </tbody></table></div>
-        <p class="otras"><span class="pastilla p-ambar"><i></i>Por reponer</span><span class="pastilla p-pizarra"><i></i>Sin stock aquí</span></p>`;
+        <p class="otras"><span class="pastilla p-ambar"><i></i>Por reponer</span><span class="pastilla p-pizarra"><i></i>Sin stock aquí</span></p>
+        <button class="btn prim" data-acc="iniciar-varias" style="justify-self:start">${IC.reponer} Reponer varias tallas y colores</button>`;
     } else {
       cuerpo = `<div class="fotos">${p.colores.slice(0, 3).map((col, i) => `<div style="background:${col.hex};${col.claro ? "color:var(--tinta);box-shadow:inset 0 0 0 1px var(--sand)" : ""}"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">${FIG[p.icono]}</svg></div>`).join("")}${p.colores.length < 3 ? '<div style="background:var(--hueso);color:var(--taupe);font-size:12px">Sin foto</div>'.repeat(3 - p.colores.length) : ""}</div>
         <div>
@@ -601,10 +628,11 @@ table.t td:first-child{font-weight:600}
   // ================= flujos guiados =================
   // Cada flujo es una lista de pasos. Un paso sabe dibujarse, si está completo y qué le falta. «Falta» sale solo de lo que
   // la función de la base exige; lo opcional no se lista (regla de la guía de foco, ADR-0284).
-  const NOMBRE_FLUJO = { reponer:"Reponer", retirar:"Retirar del piso", apartar:"Apartar", pedir:"Pedir a otra sede", ajustar:"Ajustar stock", danado:"Reportar dañado" };
+  const NOMBRE_FLUJO = { reponerVarias:"Reponer varias", reponer:"Reponer", retirar:"Retirar del piso", apartar:"Apartar", pedir:"Pedir a otra sede", ajustar:"Ajustar stock", danado:"Reportar dañado" };
   function pasosDe(f) {
     switch (f.tipo) {
       case "reponer": return ["cantidad", "quien"];
+      case "reponerVarias": return ["varias", "quien"];
       case "retirar": return ["cantidad", "destino", "quien"];
       case "apartar": return ["cliente", "adelanto", "quien"];
       case "pedir": return f.d.para === "cliente" ? ["para", "origen", "cliente", "quien"] : ["para", "origen", "cantidad", "quien"];
@@ -612,7 +640,7 @@ table.t td:first-child{font-weight:600}
       case "danado": return ["cantidad", "quetiene", "quien"];
     }
   }
-  const ETQ_PASO = { cantidad:"Cuántas", quien:"Quién", destino:"Destino", cliente:"Cliente", adelanto:"Adelanto", para:"Para quién", origen:"Sede", lugar:"Dónde", cambio:"Cambio", motivo:"Motivo", quetiene:"Qué tiene" };
+  const ETQ_PASO = { varias:"Cuántas de cada una", cantidad:"Cuántas", quien:"Quién", destino:"Destino", cliente:"Cliente", adelanto:"Adelanto", para:"Para quién", origen:"Sede", lugar:"Dónde", cambio:"Cambio", motivo:"Motivo", quetiene:"Qué tiene" };
 
   function maxCantidad(f, v) {
     if (f.tipo === "reponer") return v.alm;
@@ -623,6 +651,9 @@ table.t td:first-child{font-weight:600}
   }
   const prodV = () => { const { pid, c, t } = S.panel; return vr(prod(pid), c, t); };
 
+  // «Reponer varias»: una cantidad por color y talla (clave «c|talla»), como la ventana «Reponer prenda» del ERP.
+  const totalVarias = d => Object.values(d.cant || {}).reduce((a, b) => a + b, 0);
+  const totalColor = (d, c) => Object.entries(d.cant || {}).filter(([k]) => k.startsWith(c + "|")).reduce((a, [, n]) => a + n, 0);
   function requiereLider(f, v) {
     if (f.tipo !== "ajustar" || f.d.signo !== "quitar" || !f.d.n) return false;
     const antes = f.d.lugar === "almacen" ? v.alm : v.piso;
@@ -633,6 +664,7 @@ table.t td:first-child{font-weight:600}
     const d = f.d;
     switch (paso) {
       case "cantidad": return d.n > 0 && d.n <= maxCantidad(f, v);
+      case "varias": return totalVarias(d) > 0;
       case "quien": return !!d.quien;
       case "destino": return d.destino === "queda" || (d.destino === "enviar" && !!d.sede);
       case "cliente": return !!d.cliente || ((d.nuevo || f.tipo === "pedir") && d.nombres?.trim() && d.apellidos?.trim() && /^9\d{8}$/.test(d.celular || ""));
@@ -645,7 +677,7 @@ table.t td:first-child{font-weight:600}
       case "quetiene": return (d.nota || "").trim().length >= 3;
     }
   }
-  const FALTA_TXT = { cantidad:"cuántas", quien:"quién lo hace", destino:"a dónde va", cliente:"el cliente", adelanto:"el adelanto y cómo paga", para:"para quién es", origen:"la sede", lugar:"dónde", cambio:"sumar o quitar y cuántas", motivo:"el motivo", quetiene:"qué tiene" };
+  const FALTA_TXT = { varias:"cuántas de cada talla", cantidad:"cuántas", quien:"quién lo hace", destino:"a dónde va", cliente:"el cliente", adelanto:"el adelanto y cómo paga", para:"para quién es", origen:"la sede", lugar:"dónde", cambio:"sumar o quitar y cuántas", motivo:"el motivo", quetiene:"qué tiene" };
 
   function iniciarFlujo(tipo, extra = {}) {
     S.panel.flujo = { tipo, i:0, d:{ ...extra } };
@@ -667,7 +699,24 @@ table.t td:first-child{font-weight:600}
         const max = maxCantidad(f, v);
         const de = f.tipo === "reponer" ? "en almacén" : f.tipo === "retirar" ? "en piso" : f.tipo === "pedir" ? `en ${d.origen}` : d.lugar === "almacen" ? "en almacén" : "en piso";
         const pregunta = f.tipo === "reponer" ? "¿Cuántas llevas al piso?" : f.tipo === "retirar" ? "¿Cuántas retiras del piso?" : f.tipo === "pedir" ? "¿Cuántas pides?" : "¿Cuántas están dañadas?";
-        return bloqueGuiado("cantidad", true, completo, "", `<p class="pregunta">${pregunta}</p><p class="ayuda" style="margin:4px 0 12px">Hay ${unidades(max)} ${de}.</p>${stepper(d.n || 0, max)}`);
+        return bloqueGuiado("cantidad", true, completo, "", `<p class="pregunta">${pregunta}</p><p class="ayuda" style="margin:4px 0 12px">Hay ${unidades(max)} ${de}.</p>${stepper(d.n || 0, max)}${f.tipo === "reponer" ? `<p style="margin-top:14px"><button class="atajo" data-acc="iniciar-varias">¿Más tallas o colores? Reponer varias</button></p>` : ""}`);
+      }
+      case "varias": {
+        const total = totalVarias(d);
+        const sinPiso = p.colores.flatMap((col, c) => Object.entries(col.tallas).filter(([, w]) => w.piso === 0 && w.alm > 0).map(([t]) => `${c}|${t}`));
+        const faltanUno = sinPiso.filter(k => !(d.cant?.[k] > 0)).length;
+        return bloqueGuiado("varias", true, total > 0, "", `<p class="pregunta">¿Cuántas llevas al piso de cada color y talla?</p>
+          <p class="ayuda" style="margin:4px 0 10px">Todo empieza en 0. Cada talla dice cuántas hay en almacén.</p>
+          ${faltanUno ? `<button class="atajo" data-acc="llenar" style="margin-bottom:10px">Poner 1 en las ${faltanUno} ${faltanUno === 1 ? "talla" : "tallas"} sin nada en piso</button>` : ""}
+          <div style="display:grid;gap:10px">${p.colores.map((col, c) => `
+            <section class="grupo-color" aria-label="${esc(col.n)}">
+              <header><span><i style="background:${col.hex}"></i>${esc(col.n)}</span><span class="ayuda">Al piso: <b style="color:var(--tinta)">${totalColor(d, c)}</b></span></header>
+              <div class="celdas">${Object.entries(col.tallas).map(([t, w]) => { const k = `${c}|${t}`, n = d.cant?.[k] || 0;
+                if (!w.alm) return `<div class="celda-r nada"><div class="cab"><b>${esc(t)}</b><small>${w.piso} en piso</small></div><span style="font-size:12.5px">Nada en almacén</span></div>`;
+                return `<div class="celda-r${n ? " puesta" : w.piso === 0 ? " falta-piso" : ""}"><div class="cab"><b>${esc(t)}</b><small>${w.alm} en almacén</small></div>
+                  <div class="stepper"><button data-acc="menos-c" data-key="${k}" aria-label="Una menos de ${esc(col.n)} ${esc(t)}" ${n <= 0 ? "disabled" : ""}>−</button><output>${n}</output><button data-acc="mas-c" data-key="${k}" data-max="${w.alm}" aria-label="Una más de ${esc(col.n)} ${esc(t)}" ${n >= w.alm ? "disabled" : ""}>+</button></div>
+                  <span class="piso-luego">${w.piso === 0 && !n ? "Nada en piso" : `En piso quedan ${w.piso + n}`}</span></div>`; }).join("")}</div>
+            </section>`).join("")}</div>`);
       }
       case "destino":
         return bloqueGuiado("destino", true, completo, "", `<p class="pregunta">¿Se queda en el almacén?</p>
@@ -751,6 +800,7 @@ table.t td:first-child{font-weight:600}
   function resumenFlujo(f, v, p) {
     const d = f.d, filas = [];
     if (f.tipo === "reponer") filas.push(["Al piso", unidades(d.n)], ["Queda en almacén", v.alm - d.n]);
+    if (f.tipo === "reponerVarias") { p.colores.forEach((col, c) => { const n = totalColor(d, c); if (n) filas.push([col.n, Object.entries(d.cant).filter(([k, x]) => k.startsWith(c + "|") && x).map(([k, x]) => `${k.split("|")[1]} × ${x}`).join(" · ")]); }); filas.push(["Total al piso", unidades(totalVarias(d))]); }
     if (f.tipo === "retirar") filas.push(["Al almacén", unidades(d.n)], ["Destino", d.destino === "enviar" ? `Por enviar a ${NOMBRE_SEDE[d.sede]}` : "Se queda en TRU"]);
     if (f.tipo === "apartar") filas.push(["Cliente", d.cliente || `${d.nombres} ${d.apellidos}`], ["Adelanto", `${sol(+d.monto)} · ${d.medio}`], ["Saldo", sol(p.precio - d.monto)], ["Vence el", vence()]);
     if (f.tipo === "pedir") { filas.push(["A", NOMBRE_SEDE[d.origen]]); if (d.para === "cliente") filas.push(["Para", `${d.nombres} ${d.apellidos} · 1 unidad`], ["Queda", "Apartada en " + d.origen]); else filas.push(["Cuántas", unidades(d.n)]); }
@@ -763,6 +813,7 @@ table.t td:first-child{font-weight:600}
     const d = f.d;
     switch (f.tipo) {
       case "reponer": return `Reponer ${d.n || ""}`.trim();
+      case "reponerVarias": return totalVarias(d) ? `Reponer ${unidades(totalVarias(d))}` : "Reponer";
       case "retirar": return `Retirar ${d.n || ""} del piso`.replace("  ", " ");
       case "apartar": return "Apartar";
       case "pedir": return d.para === "cliente" ? "Pedir y apartar" : "Enviar pedido";
@@ -779,7 +830,7 @@ table.t td:first-child{font-weight:600}
     const col = p.colores[c];
     panel.innerHTML = cabPanel(p, c) + `
       <div class="p-sel">
-        <div class="contexto"><i style="background:${col.hex}"></i><span><b>${esc(NOMBRE_FLUJO[f.tipo])}</b> · ${esc(col.n)} · talla ${esc(t)}</span></div>
+        <div class="contexto"><i style="background:${f.tipo === "reponerVarias" ? `conic-gradient(${p.colores.map(x => x.hex).join(",")}${p.colores.length === 1 ? "," + p.colores[0].hex : ""})` : col.hex}"></i><span><b>${esc(NOMBRE_FLUJO[f.tipo])}</b> · ${f.tipo === "reponerVarias" ? `${p.colores.length} ${p.colores.length === 1 ? "color" : "colores"} · todas las tallas` : `${esc(col.n)} · talla ${esc(t)}`}</span></div>
         <div class="pasos" aria-label="Pasos">${pasos.map((x, j) => `<span class="paso${j === f.i ? " ahora" : pasoCompleto(x, f, v) && j < f.i ? " listo" : ""}"><span>${j < f.i && pasoCompleto(x, f, v) ? "✓" : j + 1}</span>${ETQ_PASO[x]}</span>`).join("")}</div>
       </div>
       <div class="p-cuerpo${cascada ? " cascada" : ""}">${cuerpoPaso(paso, f, v, p)}</div>
@@ -797,6 +848,7 @@ table.t td:first-child{font-weight:600}
     let msg = "";
     switch (f.tipo) {
       case "reponer": v.alm -= d.n; v.piso += d.n; msg = `Reposición hecha · ${unidades(d.n)} al piso`; break;
+      case "reponerVarias": Object.entries(d.cant).forEach(([k, n]) => { if (!n) return; const [cc, tt] = k.split("|"); const w = vr(p, +cc, tt); w.alm -= n; w.piso += n; }); msg = `Reposición hecha · ${unidades(totalVarias(d))} al piso en una sola operación`; break;
       case "retirar": v.piso -= d.n; v.alm += d.n; msg = d.destino === "enviar" ? `Retirada del piso · queda por enviar a ${NOMBRE_SEDE[d.sede]}` : `Retirada del piso · ${unidades(d.n)} al almacén`; break;
       case "apartar": if (v.piso > 0) v.piso--; else v.alm--; v.apart++; msg = `Apartado para ${d.cliente || d.nombres} · vence el ${vence()}`; break;
       case "pedir": S.pedidos[`${pid}|${c}|${t}`] = d.origen; msg = d.para === "cliente" ? `Pedido a ${d.origen} · queda apartada allá para ${d.nombres}` : `Pedido a ${d.origen} · lo verán en «Te piden»`; break;
@@ -889,6 +941,10 @@ table.t td:first-child{font-weight:600}
         f.d.n = Math.max(0, Math.min(max, (f.d.n || 0) + (d.acc === "mas" ? 1 : -1))); renderPanel(false); break;
       }
       case "seguir": f.i++; renderPanel(true); break;
+      case "reponer-varias": abrirPanel(d.pid); S.panel.flujo = { tipo:"reponerVarias", i:0, d:{ cant:{} } }; renderPanel(true); renderLista(); break;
+      case "iniciar-varias": S.hecho = null; S.panel.flujo = { tipo:"reponerVarias", i:0, d:{ cant:{} } }; renderPanel(true); break;
+      case "mas-c": case "menos-c": { const n = (f.d.cant[d.key] || 0) + (d.acc === "mas-c" ? 1 : -1); f.d.cant[d.key] = Math.max(0, Math.min(d.max ? +d.max : Infinity, n)); renderPanel(false); break; }
+      case "llenar": { const p = prod(S.panel.pid); p.colores.forEach((col, c) => Object.entries(col.tallas).forEach(([t, w]) => { const k = `${c}|${t}`; if (w.piso === 0 && w.alm > 0 && !(f.d.cant[k] > 0)) f.d.cant[k] = 1; })); renderPanel(false); break; }
       case "atras": if (f.i === 0) { S.panel.flujo = null; renderPanel(true); } else { f.i--; renderPanel(true); } break;
       case "ir-paso": f.i = pasosDe(f).indexOf(d.p); renderPanel(true); break;
       case "a-danado": { const lugar = f.d.lugar; S.panel.flujo = { tipo:"danado", i:0, d:{ lugar } }; renderPanel(true); break; }
