@@ -38,8 +38,8 @@ export type PersonaEquipo = {
   puedeReactivar: boolean;
 };
 
-export type AparatoEquipo = {
-  tipo: "aparato";
+export type TerminalEquipo = {
+  tipo: "terminal";
   id: string;
   nombre: string;
   rolNombre: string;
@@ -49,7 +49,7 @@ export type AparatoEquipo = {
   ultimoAcceso: string | null;
 };
 
-export type MiembroEquipo = PersonaEquipo | AparatoEquipo;
+export type MiembroEquipo = PersonaEquipo | TerminalEquipo;
 
 type UbicacionMin = { id: string; nombre: string };
 
@@ -57,7 +57,7 @@ export type EntradaEquipo = {
   activos: readonly Colaborador[];
   suspendidos: readonly ColaboradorSuspendido[];
   inactivos: readonly ColaboradorInactivo[];
-  /** `null` = no se pudieron leer: el equipo sale sin aparatos. */
+  /** `null` = no se pudieron leer: el equipo sale sin terminales. */
   terminales: readonly Terminal[] | null;
   ubicaciones: readonly UbicacionMin[];
   /** El rol de cada persona (id y nombre), o `undefined` si no se leyeron los roles. */
@@ -140,8 +140,8 @@ export function armarEquipo(e: EntradaEquipo): MiembroEquipo[] {
     acciones: [],
     puedeReactivar: false,
   }));
-  const aparatos: AparatoEquipo[] = (e.terminales ?? []).map((t) => ({
-    tipo: "aparato",
+  const terminalesEquipo: TerminalEquipo[] = (e.terminales ?? []).map((t) => ({
+    tipo: "terminal",
     id: t.id,
     nombre: t.nombre,
     rolNombre: t.rol_nombre,
@@ -150,11 +150,11 @@ export function armarEquipo(e: EntradaEquipo): MiembroEquipo[] {
     activo: t.activo,
     ultimoAcceso: t.ultimo_acceso,
   }));
-  return [...activos, ...suspendidos, ...bajas, ...aparatos];
+  return [...activos, ...suspendidos, ...bajas, ...terminalesEquipo];
 }
 
-/** Los atajos de arriba: toda CAYLA, cada sede, los suspendidos y los aparatos. */
-export type FiltroEquipo = "todas" | "suspendidas" | "aparatos" | { sede: string };
+/** Los atajos de arriba: toda CAYLA, cada sede, los suspendidos y las terminales. */
+export type FiltroEquipo = "todas" | "suspendidas" | "terminales" | { sede: string };
 
 export const SIN_SEDE = "_todas";
 export const BAJA_DYNAMIC = "_dynamic";
@@ -165,7 +165,7 @@ export type GrupoEquipo = {
   nombre: string;
   miembros: MiembroEquipo[];
   personas: number;
-  aparatos: number;
+  terminales: number;
   deTurno: number;
 };
 
@@ -174,20 +174,20 @@ const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 export function coincide(m: MiembroEquipo, texto: string): boolean {
   const q = sinTildes(texto.trim());
   if (!q) return true;
-  const campos = m.tipo === "persona" ? [m.nombre, m.correo, m.rolNombre] : [m.nombre, m.rolNombre, "aparato"];
+  const campos = m.tipo === "persona" ? [m.nombre, m.correo, m.rolNombre] : [m.nombre, m.rolNombre, "terminal"];
   return campos.some((c) => sinTildes(c).includes(q));
 }
 
 function pasaFiltro(m: MiembroEquipo, f: FiltroEquipo): boolean {
   if (f === "todas") return true;
-  if (f === "aparatos") return m.tipo === "aparato";
+  if (f === "terminales") return m.tipo === "terminal";
   if (f === "suspendidas") return m.tipo === "persona" && m.estado !== "activa";
   return m.ubicacionId === f.sede;
 }
 
-/** Orden dentro de una sede: activas (líderes primero, luego por nombre), suspendidas, y al final los aparatos. */
+/** Orden dentro de una sede: activas (líderes primero, luego por nombre), suspendidas, y al final las terminales. */
 function peso(m: MiembroEquipo): number {
-  if (m.tipo === "aparato") return 3;
+  if (m.tipo === "terminal") return 3;
   if (m.estado !== "activa") return 2;
   return m.nivel === "lider" ? 0 : 1;
 }
@@ -209,7 +209,7 @@ export function agruparPorSede(miembros: readonly MiembroEquipo[], ubicaciones: 
         nombre: nombreDe(clave, ms[0]),
         miembros: ordenados,
         personas: ms.filter((m) => m.tipo === "persona").length,
-        aparatos: ms.filter((m) => m.tipo === "aparato").length,
+        terminales: ms.filter((m) => m.tipo === "terminal").length,
         deTurno: ms.filter((m) => m.tipo === "persona" && m.deTurno).length,
       };
     });
@@ -217,19 +217,20 @@ export function agruparPorSede(miembros: readonly MiembroEquipo[], ubicaciones: 
 
 export type Atajo = { clave: string; etiqueta: string; filtro: FiltroEquipo; n: number };
 
-/** Los atajos con su número. Una sede sin nadie no sale; «Suspendidos» y «Aparatos» solo si hay alguno. */
-export function atajosEquipo(miembros: readonly MiembroEquipo[], ubicaciones: readonly UbicacionMin[]): Atajo[] {
+/** Los atajos con su número. Una sede sin nadie no sale; «Suspendidos» solo si hay alguno. «Terminales» sale siempre que se
+ *  pudieron leer (`conTerminales`), aunque no haya ninguna: es desde donde se crea la primera. */
+export function atajosEquipo(miembros: readonly MiembroEquipo[], ubicaciones: readonly UbicacionMin[], conTerminales = true): Atajo[] {
   const personas = miembros.filter((m): m is PersonaEquipo => m.tipo === "persona");
-  const aparatos = miembros.filter((m) => m.tipo === "aparato");
+  const terminales = miembros.filter((m) => m.tipo === "terminal");
   const sedes = ubicaciones
     .map((u) => ({ clave: u.id, etiqueta: u.nombre, filtro: { sede: u.id } as FiltroEquipo, n: personas.filter((p) => p.ubicacionId === u.id).length }))
-    .filter((a) => a.n > 0 || aparatos.some((x) => x.ubicacionId === a.clave));
+    .filter((a) => a.n > 0 || terminales.some((x) => x.ubicacionId === a.clave));
   const suspendidas = personas.filter((p) => p.estado !== "activa").length;
   return [
     { clave: "todas", etiqueta: "Todas", filtro: "todas", n: personas.length },
     ...sedes,
     ...(suspendidas > 0 ? [{ clave: "suspendidas", etiqueta: "Suspendidos", filtro: "suspendidas" as const, n: suspendidas }] : []),
-    ...(aparatos.length > 0 ? [{ clave: "aparatos", etiqueta: "Aparatos", filtro: "aparatos" as const, n: aparatos.length }] : []),
+    ...(conTerminales ? [{ clave: "terminales", etiqueta: "Terminales", filtro: "terminales" as const, n: terminales.length }] : []),
   ];
 }
 
