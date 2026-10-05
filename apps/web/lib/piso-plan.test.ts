@@ -8,7 +8,6 @@ import {
   esParaColgar,
   esTallaCentral,
   lecturaDesdeJson,
-  paraColgarHoy,
   pidePiso,
   planDelPiso,
   quedaraPidiendoColgar,
@@ -447,31 +446,9 @@ describe("planDelPiso — el reloj lento (capacidad y mix, opcionales)", () => {
   });
 });
 
-describe("paraColgarHoy — la lista del día por percha (lo que leen el Inicio y «Para hoy»)", () => {
-  const tallas = [
-    talla({ varianteId: "a-l", productoId: "pa", referencia: "Polo A", talla: "L", pisoLibre: 0, almacenLibre: 1 }),
-    talla({ varianteId: "a-s", productoId: "pa", referencia: "Polo A", talla: "S", pisoLibre: 0, almacenLibre: 1 }),
-    talla({ varianteId: "b-m", productoId: "pb", referencia: "Polo B", talla: "M", pisoLibre: 0, almacenLibre: 2, vendidasAyer: 2 }),
-    talla({ varianteId: "c-m", productoId: "pc", referencia: "Polo C", talla: "M", pisoLibre: 3, almacenLibre: 2 }),
-  ];
-  it("agrupa por percha en el orden de la lista (lo vendido ayer primero) y deja cada percha con sus tallas en curva", () => {
-    const l = lectura(tallas);
-    const hoy = paraColgarHoy(planDelPiso(l), l);
-    expect(hoy.enPausa).toBe(false);
-    expect(hoy.tallas).toBe(3);
-    expect(hoy.prendas.map((p) => [p.referencia, p.tallas.map((t) => `${t.talla}:${t.accion}`)])).toEqual([
-      ["Polo B", ["M:por_colgar"]],
-      ["Polo A", ["S:por_colgar", "L:por_colgar"]],
-    ]);
-  });
-  it("con el piso sin cuadrar no lista nada para bajar, pero dice cuántas tallas esperan", () => {
-    const l = lectura(tallas);
-    const hoy = paraColgarHoy(planDelPiso({ ...l, cuadradoEn: null }), { ...l, cuadradoEn: null });
-    expect(hoy.enPausa).toBe(true);
-    expect(hoy.tallas).toBe(3);
-    expect(hoy.prendas.flatMap((p) => p.tallas.map((t) => t.accion))).toEqual(["pausa_sin_cuadre", "pausa_sin_cuadre", "pausa_sin_cuadre"]);
-  });
-});
+// La lista del día por percha (lo que dicen «Para hoy» y el Inicio) ya no la arma el motor: la cuenta `porColgarDeLaSede` con la
+// decisión y el orden de aquí. Sus casos (lo vendido ayer primero, cada percha con sus tallas en curva, y con el piso sin cuadrar
+// cuántas esperan) viven en `inicio-almacen-reglas.test.ts`, sobre una lectura pasada por los dos caminos.
 
 describe("lecturaDesdeJson — la respuesta de la base", () => {
   const json = {

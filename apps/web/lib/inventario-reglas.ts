@@ -28,7 +28,8 @@ export const UMBRAL_REPOSICION_PISO = 7;
 
 // «Por colgar» y lo que el piso pide hoy ya no se deciden aquí: los decide UN motor, `lib/piso-plan.ts` (ADR-0328 act. 7), y
 // cada talla trae su decisión (`FilaExistencias.planPiso`). Lo que sigue en este archivo es cómo se ORDENA y se AGRUPA lo
-// que ese motor pide, nunca si lo pide.
+// que ese motor pide, nunca si lo pide. Y cuántas tallas y unidades hay «por colgar» lo cuenta UNA función,
+// `porColgarDeLaSede` (`existencias-para-hoy.ts`): la leen «Para hoy», el filtro «Hoy» y el Inicio de Almacén.
 
 /** Orden de la lista «Por colgar»: modelo, color y talla en su curva (S · M · L, 36 · 38). La encargada
  *  cuelga por percha —un modelo en un color—, no talla por talla: si la M y la L de la misma casaca

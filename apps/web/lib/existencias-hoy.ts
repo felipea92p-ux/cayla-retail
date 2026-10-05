@@ -90,18 +90,9 @@ export function contarEnPausa(filas: readonly TallaParaHoy[]): number {
   return filas.filter((f) => estadoHoyDeTalla(f) === "en_pausa").length;
 }
 
-/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo disponible en el almacén de
- *  esas tallas — lo mismo que el modal de Reponer deja bajar). */
-export function resumirPorColgar(filas: readonly TallaParaHoy[]): { tallas: number; unidades: number } {
-  let tallas = 0;
-  let unidades = 0;
-  for (const f of filas) {
-    if (hoyDeTalla(f) !== "por_colgar") continue;
-    tallas += 1;
-    unidades += f.almacenDisponible ?? 0;
-  }
-  return { tallas, unidades };
-}
+// El contador del filtro «Por colgar» (cuántas tallas y cuántas unidades) no vive aquí: es `porColgarDeLaSede`
+// (`existencias-para-hoy.ts`), la MISMA cuenta que leen «Para hoy» y el Inicio de Almacén (ADR-0331 act. b). Este archivo
+// solo dice la decisión del motor con sus palabras; contar en dos lugares es lo que separó los números hasta el 2026-10-04.
 
 /** El aviso de Existencias con el piso sin cuadrar: qué espera, por qué y qué sí vale. `null` si no hay nada esperando (una sede
  *  sin almacén o con el piso cuadrado no tiene nada que avisar). */

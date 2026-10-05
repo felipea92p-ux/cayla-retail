@@ -40,35 +40,38 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
   });
 
-  // ADR-0328 act. 7: la lista del día del motor del piso. «Cuelga», nunca «Sube» (en Existencias «Subir» es del piso al almacén).
-  it("lo que hay que colgar dice «Cuelga N» y cuántas tallas; nunca «Sube»", () => {
-    const [a] = avisosInicio({ reponer: { prendas: 5, tallas: 12, enPausa: false } });
-    expect(a).toMatchObject({ clave: "reponer", titulo: "Por colgar", cantidad: 5, nivel: "toca", href: "/inventario" });
-    expect(a!.ahora).toBe("Cuelga 5 prendas en el piso de venta");
-    expect(a!.detalle).toBe("12 tallas sin lo que pide el piso; primero lo que se vendió ayer.");
-    expect(avisosInicio({ reponer: { prendas: 1, tallas: 1, enPausa: false } })[0]!.ahora).toBe("Cuelga 1 prenda en el piso de venta");
-    for (const r of [{ prendas: 1, tallas: 1, enPausa: false }, { prendas: 3, tallas: 4, enPausa: true }, { prendas: 0, tallas: 0, enPausa: false }]) {
-      const [x] = avisosInicio({ reponer: r });
+  // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
+  // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Baja al piso», nunca «Sube» (en Existencias «Subir» es del piso al
+  // almacén). Que la cifra sea la misma que la de «Para hoy» y la del filtro «Hoy» lo prueba `inicio-almacen-reglas.test.ts`.
+  it("lo que hay que colgar dice «Baja al piso N tallas» y lleva a la lista «Hoy ▸ Por colgar»; nunca «Sube»", () => {
+    const [a] = avisosInicio({ porColgar: { tallas: 12, unidades: 20, enPausa: 0 } });
+    expect(a).toMatchObject({ clave: "reponer", titulo: "Por colgar", cantidad: 12, nivel: "toca", href: "/inventario?hoy=por_colgar" });
+    expect(a!.ahora).toBe("Baja al piso 12 tallas por colgar");
+    expect(a!.detalle).toBe("20 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.");
+    expect(avisosInicio({ porColgar: { tallas: 1, unidades: 1, enPausa: 0 } })[0]!.ahora).toBe("Baja al piso 1 talla por colgar");
+    for (const p of [{ tallas: 1, unidades: 1, enPausa: 0 }, { tallas: 0, unidades: 0, enPausa: 4 }, { tallas: 0, unidades: 0, enPausa: 0 }]) {
+      const [x] = avisosInicio({ porColgar: p });
       expect(`${x!.titulo} ${x!.ahora} ${x!.detalle}`).not.toMatch(/\bsub[eai]/i);
     }
   });
 
-  it("con el piso sin cuadrar no manda a colgar: pide cuadrar primero (ADR-0328, decisión 5)", () => {
-    const [a] = avisosInicio({ reponer: { prendas: 3, tallas: 4, enPausa: true } });
-    expect(a).toMatchObject({ titulo: "Cuadrar el piso", ahora: "Cuadra el piso antes de colgar", nivel: "toca" });
-    expect(a!.detalle).toBe("Hasta cuadrar el piso no se sabe qué falta: 4 tallas esperan.");
+  it("con el piso sin cuadrar no manda a colgar: pide cuadrar primero, con las tallas que esperan (ADR-0328, decisión 5)", () => {
+    const [a] = avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 4 } });
+    expect(a).toMatchObject({ titulo: "Cuadrar el piso", cantidad: 4, ahora: "Cuadra el piso antes de colgar", nivel: "toca", href: "/inventario" });
+    expect(a!.detalle).toBe("4 tallas esperan el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.");
+    expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 1 } })[0]!.detalle).toBe(
+      "1 talla espera el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar."
+    );
   });
 
-  it("nada que colgar es «al día»; si el motor no se pudo leer es «sin leer», nunca un cero", () => {
-    expect(avisosInicio({ reponer: { prendas: 0, tallas: 0, enPausa: false } })[0]).toMatchObject({ nivel: "aldia", detalle: "El piso de venta está al día." });
-    // En pausa pero sin nada esperando (un stand sin almacén, que nunca se cuadra): «al día», sin pedir que se cuadre.
-    expect(avisosInicio({ reponer: { prendas: 0, tallas: 0, enPausa: true } })[0]).toMatchObject({
+  it("nada que colgar ni que esperar es «al día»; si el motor no se pudo leer es «sin leer», nunca un cero", () => {
+    expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 0 } })[0]).toMatchObject({
       titulo: "Por colgar",
       nivel: "aldia",
       ahora: "",
       detalle: "El piso de venta está al día.",
     });
-    expect(avisosInicio({ reponer: null })[0]).toMatchObject({ nivel: "sinleer", cantidad: null });
+    expect(avisosInicio({ porColgar: null })[0]).toMatchObject({ nivel: "sinleer", cantidad: null });
   });
 });
 

@@ -1,13 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import type { Existencias, ViajeEnCamino } from "@/lib/inicio-almacen";
+import { AYUDA_HOY } from "@/lib/existencias-hoy";
+import type { ViajeEnCamino } from "@/lib/inicio-almacen";
+import type { Existencias } from "@/lib/inicio-almacen-reglas";
 import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
 import { Ico, PrendaSinFoto, type ClaveIco } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
 
-// Los bloques de la columna derecha del Inicio de Almacén: Pulso, En camino, Reponer a piso y Accesos. Cada uno dice la verdad
+// Los bloques de la columna derecha del Inicio de Almacén: Pulso, En camino, Por colgar y Accesos. Cada uno dice la verdad
 // de lo que pudo leer: un dato que falló es «—» con «No se pudo leer», nunca un cero.
 
 const SIN_LEER = "No se pudo leer";
@@ -140,14 +142,19 @@ export function EnCaminoAlmacen({ viajes }: { viajes: ViajeEnCamino[] | null }) 
   );
 }
 
-// ── Por colgar hoy (la lista del día del motor del piso, ADR-0328 act. 7) ───────────────────────────
+// ── Por colgar (la cuenta de «Para hoy», con la decisión y el orden del motor del piso, ADR-0328 act. 7) ──────────
 
-export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias | null | undefined }) {
+/** Lo que está por colgar en la sede, con la cifra y la palabra de «Para hoy» en Existencias (`existenciasDeAlmacen`): cada prenda
+ *  lleva a la lista filtrada por «Hoy ▸ Por colgar» y el pie, a «Bajar al piso» con esas tallas ya cargadas. Las prendas van en el
+ *  orden de la lista del día (lo vendido ayer primero). Con el piso sin cuadrar no hay nada que colgar todavía: dice cuántas tallas
+ *  esperan el cuadre, nunca «al día». */
+export function PorColgarAlmacen({ existencias }: { existencias: Existencias | null | undefined }) {
   if (existencias === undefined) return null;
-  if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay piso que reponer
+  if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay nada que colgar
+  const tallas = existencias?.porColgar.tallas ?? 0;
   return (
     <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties}>
-      <Cabecera titulo="Por colgar hoy" />
+      <Cabecera titulo="Por colgar" />
       <div className="card-cayla ia-rp">
         {existencias === null ? (
           <div className="ia-err">
@@ -155,23 +162,26 @@ export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias 
             <p>No se pudo leer el piso de venta. Lo demás sí está al día.</p>
             <ReintentarLectura />
           </div>
-        ) : existencias.prendasPorColgar === 0 ? (
+        ) : tallas === 0 && existencias.porColgar.enPausa > 0 ? (
+          <Vacio
+            titulo="Cuadra el piso antes de colgar"
+            detalle={`${existencias.porColgar.enPausa} ${existencias.porColgar.enPausa === 1 ? "talla espera" : "tallas esperan"}: mientras el piso de la sede no esté cuadrado, la lista podría pedir colgar lo que ya cuelga.`}
+          />
+        ) : tallas === 0 ? (
           <Vacio titulo="Piso al día" detalle="No hay nada que colgar hoy." />
-        ) : existencias.enPausa ? (
-          <Vacio titulo="Cuadra el piso antes de colgar" detalle="Mientras el piso de la sede no esté cuadrado, la lista espera: podría pedir colgar lo que ya cuelga." />
         ) : (
           <>
-            {existencias.reponer.map((p, i) => (
-              <Link key={p.clave} href="/inventario" className={`ia-it ${i === 0 ? "ia-f" : ""}`}>
+            {existencias.primeras.map((p, i) => (
+              <Link key={p.clave} href="/inventario?hoy=por_colgar" className={`ia-it ${i === 0 ? "ia-f" : ""}`}>
                 <span className="ia-mg">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="40px" unoptimized /> : <PrendaSinFoto />}</span>
                 <div className="min-w-0">
                   <p className="ia-nm">{p.referencia}</p>
                   {p.color && <p className="ia-cl">{p.color}</p>}
                 </div>
-                <span className="ia-tl">
+                <span className="ia-tl" title={AYUDA_HOY.por_colgar}>
                   {p.tallas.slice(0, 5).map((t) => (
-                    <span key={t.talla} className="ia-p" title="No queda ninguna en el piso">
-                      {t.talla}
+                    <span key={t} className="ia-p">
+                      {t}
                     </span>
                   ))}
                   {p.tallas.length > 5 && <span>+{p.tallas.length - 5}</span>}
@@ -179,9 +189,11 @@ export function ReponerAPisoAlmacen({ existencias }: { existencias: Existencias 
               </Link>
             ))}
             <div className="ia-pie">
-              <span>{existencias.prendasPorColgar > existencias.reponer.length ? `y ${existencias.prendasPorColgar - existencias.reponer.length} ${existencias.prendasPorColgar - existencias.reponer.length === 1 ? "prenda más" : "prendas más"}` : ""}</span>
-              <Link href="/inventario" className="ia-enl">
-                Ver todos <Ico clave="arrow" />
+              <span className="tabular-nums">
+                {tallas} {tallas === 1 ? "talla" : "tallas"} por colgar
+              </span>
+              <Link href={existencias.hrefBajar} className="ia-enl">
+                Bajar al piso <Ico clave="arrow" />
               </Link>
             </div>
           </>

@@ -5,7 +5,6 @@ import {
   contarEnPausa,
   estadoHoyDeTalla,
   hoyDeTalla,
-  resumirPorColgar,
   TEXTO_HOY,
   textoHoyDePrenda,
   TIPOS_HOY,
@@ -45,21 +44,6 @@ describe("hoyDeTalla", () => {
       if (accion === "pausa_sin_cuadre") expect(caso).toBeNull();
       else expect(TIPOS_HOY).toContain(caso);
     }
-  });
-});
-
-describe("resumirPorColgar — el contador del filtro «Por colgar»", () => {
-  it("cuenta las tallas por colgar y lo que se puede bajar de ellas; nada más", () => {
-    expect(
-      resumirPorColgar([
-        { pisoDisponible: 0, almacenDisponible: 3, planPiso: plan("por_colgar") },
-        { pisoDisponible: 0, almacenDisponible: 1, planPiso: plan("por_colgar") },
-        { pisoDisponible: 0, almacenDisponible: 0, planPiso: plan("sin_atras") },
-        { pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("pausa_sin_cuadre") },
-        { pisoDisponible: 0, almacenDisponible: 4, planPiso: plan("mantener") },
-        { pisoDisponible: null, almacenDisponible: null, planPiso: null },
-      ])
-    ).toEqual({ tallas: 2, unidades: 4 });
   });
 });
 

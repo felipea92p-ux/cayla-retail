@@ -66,9 +66,10 @@ export type FuentesAvisos = {
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
-  /** Lo que hay que colgar hoy (la lista del día del motor del piso, `lib/piso-plan.ts`): prendas (modelo en un color) y sus
-   *  tallas. `enPausa` = el piso de la sede no está cuadrado y la lista espera (ADR-0328, decisión 5). */
-  reponer?: { prendas: number; tallas: number; enPausa: boolean } | null;
+  /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
+   *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
+   *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
+  porColgar?: { tallas: number; unidades: number; enPausa: number } | null;
   /** Productos activos sin ninguna foto. */
   fotosQueFaltan?: number | null;
   /** Productos activos sin marca o sin proveedor (ADR-0283). */
@@ -261,28 +262,33 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ocultable: true,
     });
   }
-  // La lista del día del motor del piso (ADR-0328 act. 7), contada por prendas: lo que hay que BAJAR del almacén y colgar.
-  // «Cuelga», nunca «Sube»: en Existencias «Subir» es del piso al almacén, lo contrario. La clave sigue siendo «reponer» porque
-  // es la que guarda la elección de «Ajustar» en la cookie de cada cuenta.
-  if (f.reponer !== undefined) {
-    const r = f.reponer;
-    const n = r === null ? null : r.prendas;
+  // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión
+  // del motor del piso) y su misma palabra. Antes decía «Sube N modelos al piso»: otro número (modelos, con las agotadas incluidas) y
+  // el verbo al revés, porque en Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Bajar al piso». Lleva a la lista
+  // filtrada por «Hoy ▸ Por colgar», donde están las mismas tallas y el botón «Bajar al piso». El detalle repite la honestidad de
+  // «Para hoy»: si ya cuelgan y el sistema las cree guardadas, lo que toca es registrarlas al bajar.
+  // Con el piso sin cuadrar (ADR-0328, decisión 5) el motor no manda a colgar nada: el aviso dice «Cuadrar el piso» con las tallas
+  // que esperan —la misma cifra de la fila «esperan el cuadre del piso» de «Para hoy»— y lleva a Existencias, donde está su botón.
+  // La clave sigue siendo «reponer»: es la que guarda la elección de «Ajustar» de cada persona (cookie), y cambiarla le volvería a
+  // mostrar un aviso que ya había ocultado.
+  if (f.porColgar !== undefined) {
+    const p = f.porColgar;
+    // «Cuadrar el piso» solo si algo espera el cuadre: sin nada en pausa el piso está al día, y el título no puede contradecir al detalle.
+    const enPausa = p !== null && p.tallas === 0 && p.enPausa > 0;
+    const n = p === null ? null : enPausa ? p.enPausa : p.tallas;
     avisos.push({
       clave: "reponer",
       grupo: "Inventario",
-      // «Cuadrar el piso» solo si algo espera el cuadre: con 0 prendas el piso está al día (un stand sin almacén nunca se cuadra
-      // y no tiene nada que esperar), y el título no puede contradecir al detalle.
-      titulo: r?.enPausa && r.prendas > 0 ? "Cuadrar el piso" : "Por colgar",
+      titulo: enPausa ? "Cuadrar el piso" : "Por colgar",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
-      ahora: !n || !r ? "" : r.enPausa ? "Cuadra el piso antes de colgar" : `Cuelga ${n} ${plural(n, "prenda", "prendas")} en el piso de venta`,
+      ahora: !n ? "" : enPausa ? "Cuadra el piso antes de colgar" : `Baja al piso ${n} ${plural(n, "talla", "tallas")} por colgar`,
       detalle:
-        r === null ? SIN_LEER
-          : r.prendas === 0 ? "El piso de venta está al día."
-            : r.enPausa
-              ? `Hasta cuadrar el piso no se sabe qué falta: ${r.tallas} ${plural(r.tallas, "talla espera", "tallas esperan")}.`
-              : `${r.tallas} ${plural(r.tallas, "talla", "tallas")} sin lo que pide el piso; primero lo que se vendió ayer.`,
-      href: "/inventario",
+        p === null ? SIN_LEER
+          : enPausa ? `${p.enPausa} ${plural(p.enPausa, "talla espera", "tallas esperan")} el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.`
+            : p.tallas === 0 ? "El piso de venta está al día."
+              : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.`,
+      href: enPausa ? "/inventario" : "/inventario?hoy=por_colgar",
       ocultable: true,
     });
   }

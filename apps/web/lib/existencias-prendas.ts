@@ -219,19 +219,10 @@ function posiciones(listaDelDia: readonly string[]): Map<string, number> {
   return new Map(listaDelDia.map((id, i) => [id, i]));
 }
 
-/** Lo que hay que colgar hoy, por prenda: SOLO las tallas de la lista del día del motor y en SU orden —lo vendido ayer primero,
- *  luego lo que el piso no tiene—, agrupadas como en la tabla (la prenda va donde aparece su primera talla). Es lo mismo que el
- *  Inicio de almacén (`paraColgarHoy` de `lib/piso-plan.ts`): antes la tarjeta «Reponer a piso hoy» tenía su propio orden y
- *  también listaba «Sin stock atrás», y el Inicio y Existencias recomendaban prendas distintas sobre la misma lectura. */
-export function prendasParaColgarHoy<F extends FilaPrenda>(filas: readonly F[], listaDelDia: readonly string[]): PrendaAgrupada<F>[] {
-  const pos = posiciones(listaDelDia);
-  const enLista = filas.filter((f) => pos.has(f.varianteId)).sort((a, b) => pos.get(a.varianteId)! - pos.get(b.varianteId)!);
-  return agruparPorPrenda(enLista);
-}
-
 /** La lista SIN búsqueda escrita (análisis de Existencias, tarea #5): primero las prendas de la lista del día, en su orden —el
- *  mismo del Inicio y de la tarjeta: lo vendido ayer primero (ADR-0329 act. 1)—; después el resto, en el orden en que llegaron
- *  (modelo y color). Estable. Con texto escrito NO se usa: manda la relevancia de la búsqueda. */
+ *  mismo del Inicio y de «Para hoy» (`porColgarDeLaSede` ordena con esta misma función): lo vendido ayer primero (ADR-0329
+ *  act. 1)—; después el resto, en el orden en que llegaron (modelo y color). Estable. Con texto escrito NO se usa: manda la
+ *  relevancia de la búsqueda. */
 export function ordenarPorListaDelDia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[], listaDelDia: readonly string[]): PrendaAgrupada<F>[] {
   const pos = posiciones(listaDelDia);
   const rango = (p: PrendaAgrupada<F>) => p.tallas.reduce((min, f) => Math.min(min, pos.get(f.varianteId) ?? Infinity), Infinity);

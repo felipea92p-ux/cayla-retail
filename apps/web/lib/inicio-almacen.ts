@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { contar, tolerarLectura } from "@/lib/inicio";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
-import { paraColgarHoy, planDelPiso } from "@/lib/piso-plan";
+import { planDelPiso } from "@/lib/piso-plan";
 import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { getResumenTienda } from "@/lib/movimientos-v2";
 import { listarPorRecibir } from "@/lib/compras";
@@ -12,8 +12,11 @@ import {
   armarNuevos,
   avanceDelTrayecto,
   etiquetaLlegada,
+  existenciasDeAlmacen,
+  filasDelPiso,
   inicioDeAyerLima,
   siglaSede,
+  type Existencias,
   type FilaNuevoCruda,
   type NuevoProducto,
   type OrigenDeProducto,
@@ -165,56 +168,21 @@ export async function getEnCamino(ubicacionId: string, ahoraMs: number = Date.no
   });
 }
 
-// ── «Por colgar hoy» y «Pulso del almacén» ────────────────────────────────────────────────────────────────────
-
-export type PrendaParaReponer = {
-  clave: string;
-  referencia: string;
-  color: string | null;
-  fotoUrl: string | null;
-  /** Solo las tallas que el piso pide hoy: en ninguna queda una colgada (`por_colgar`). Hasta que «Por reponer» se fundió en
-   *  «Por colgar» (basta 1 por color) cada una decía si no quedaba ninguna o si quedaba poca; ahora siempre es lo primero. */
-  tallas: { talla: string }[];
-};
-
-export type Existencias = {
-  /** Unidades libres en el almacén de la sede. */
-  enAlmacen: number | null;
-  /** Cuántas prendas (modelo en un color) tienen algo que colgar hoy (la lista del día del motor del piso). */
-  prendasPorColgar: number;
-  /** Cuántas tallas, en total, de esas prendas. */
-  tallasPorColgar: number;
-  /** El piso de la sede no está cuadrado: la lista espera (ADR-0328, decisión 5) y las cifras son lo que esperaría. */
-  enPausa: boolean;
-  /** Las tres primeras de la lista del día (lo vendido ayer primero), con sus tallas. */
-  reponer: PrendaParaReponer[];
-};
+// ── «Por colgar» y «Pulso del almacén» ─────────────────────────────────────────────────────────────
 
 /**
- * Lo que sale del piso de la sede: cuánto hay atrás y qué hay que colgar hoy. Es la MISMA decisión que «Hoy» en Existencias
- * (el motor del piso, `lib/piso-plan.ts`, sobre `fn_piso_plan_lectura`), así que el Inicio y esa pantalla cuentan igual, y es UNA
- * lectura (antes, la de Existencias entera: stock, red, traslados y productos de prueba). `null` si no se pudo leer; en una sede
- * que no separa piso de almacén no hay nada que colgar.
+ * Lo que sale del piso de la sede: cuánto hay atrás y qué está por colgar. Cuenta con `existenciasDeAlmacen` →
+ * `porColgarDeLaSede`, la MISMA función que «Para hoy» y el filtro «Hoy» de Existencias, alimentada por el MISMO motor del piso
+ * (`lib/piso-plan.ts` sobre `fn_piso_plan_lectura`): la decisión de cada talla y el orden de la lista del día. Es UNA lectura
+ * (antes, la de Existencias entera: stock, red, traslados y productos de prueba). `null` si no se pudo leer: el aviso dice «Sin
+ * leer», nunca un cero.
  */
 export async function getExistenciasDeAlmacen(ubicacionId: string): Promise<Existencias | null> {
   return tolerarLectura("el piso de la sede", async () => {
     const lectura = await leerLecturaDelPiso(ubicacionId);
     if (!lectura) throw new Error("sin lectura del piso");
-    if (!lectura.separaPiso) return { enAlmacen: null, prendasPorColgar: 0, tallasPorColgar: 0, enPausa: false, reponer: [] };
-    const hoy = paraColgarHoy(planDelPiso(lectura), lectura);
-    return {
-      enAlmacen: lectura.tallas.reduce((s, t) => s + Math.max(0, t.almacenLibre), 0),
-      prendasPorColgar: hoy.prendas.length,
-      tallasPorColgar: hoy.tallas,
-      enPausa: hoy.enPausa,
-      reponer: hoy.prendas.slice(0, 3).map((p) => ({
-        clave: p.clave,
-        referencia: p.referencia,
-        color: p.color,
-        fotoUrl: p.fotoUrl,
-        tallas: p.tallas.map((t) => ({ talla: t.talla })),
-      })),
-    };
+    const plan = planDelPiso(lectura);
+    return existenciasDeAlmacen(filasDelPiso(lectura, plan), plan.listaDelDia);
   });
 }
 

@@ -8,7 +8,6 @@ import {
   lineasParaTrasladar,
   MAX_VARIANTES_EN_URL,
   ordenarPorListaDelDia,
-  prendasParaColgarHoy,
   queHacerPrenda,
   tallasPorPrenda,
   textoTallasRecortadas,
@@ -20,7 +19,9 @@ import {
   urlTrasladar,
   type FilaPrenda,
 } from "./existencias-prendas";
-import { ACCIONES_PISO, DIAS_VENTANA, paraColgarHoy, planDelPiso, type AccionPiso, type LecturaDelPiso, type PisoDeTalla, type TallaEnSede } from "./piso-plan";
+import { ACCIONES_PISO, DIAS_VENTANA, planDelPiso, type AccionPiso, type LecturaDelPiso, type PisoDeTalla, type TallaEnSede } from "./piso-plan";
+import { porColgarDeLaSede } from "./existencias-para-hoy";
+import { existenciasDeAlmacen, filasDelPiso } from "./inicio-almacen-reglas";
 
 // La decisión del motor del piso (`lib/piso-plan.ts`) que trae cada fila. Por defecto la fila no pide nada, salvo que no tenga
 // ninguna colgada y sí algo atrás (así eran las filas de estas pruebas con la regla de antes); cada caso que importa la escribe.
@@ -122,8 +123,8 @@ describe("«Reponer prenda» y «Bajar al piso» no se apagan con «Mantener» n
     expect(tallaParaReponer(sinMotor)?.varianteId).toBe("s");
     expect(urlBajarAlPiso(sinMotor)).toBe("/inventario/bajar?lineas=s:1,m:1,l:1,xl:1");
   });
-  it("que se pueda bajar no la vuelve urgente: sin nada en la lista del día, no entra a «Reponer a piso hoy»", () => {
-    expect(prendasParaColgarHoy(tallas, [])).toEqual([]);
+  it("que se pueda bajar no la vuelve urgente: con «Mantener» no entra a «Por colgar» de «Para hoy» ni del Inicio", () => {
+    expect(porColgarDeLaSede(tallas, [])).toMatchObject({ tallas: 0, prendas: [] });
   });
 });
 
@@ -267,20 +268,22 @@ describe("la lista del día ordena Existencias igual que el Inicio (revisión ad
       planPiso: plan.porTalla.get(x.varianteId) ?? null,
     })
   );
-  const perchas = (ps: { productoId: string; tallas: { talla: string | null }[] }[]) => ps.map((p) => `${p.productoId}:${p.tallas.map((f) => f.talla).join("·")}`);
+  const perchas = (ps: { referencia: string; tallas: (string | null)[] }[]) => ps.map((p) => `${p.referencia}:${p.tallas.join("·")}`);
 
-  it("la tarjeta «Reponer a piso hoy» dice EXACTAMENTE lo que el Inicio: mismas prendas, mismas tallas, mismo orden", () => {
-    const inicio = paraColgarHoy(plan, lectura).prendas;
-    expect(perchas(prendasParaColgarHoy(filas, plan.listaDelDia))).toEqual(perchas(inicio));
+  it("«Para hoy» dice EXACTAMENTE lo que el Inicio: mismas prendas, mismas tallas, mismo orden", () => {
+    // El Inicio no lee Existencias: cuenta sobre la lectura del motor (`filasDelPiso`) con la MISMA función.
+    const inicio = existenciasDeAlmacen(filasDelPiso(lectura, plan), plan.listaDelDia).primeras;
+    const paraHoy = porColgarDeLaSede(filas, plan.listaDelDia).prendas.map((p) => ({ referencia: p.referencia, tallas: p.tallas.map((f) => f.talla) }));
+    expect(perchas(paraHoy)).toEqual(perchas(inicio));
     // Lo vendido ayer primero, y «Sin stock atrás» (Short Mía) no se cuelga.
-    expect(perchas(inicio)).toEqual(["ximena:XL", "luna:S·M·L"]);
+    expect(perchas(inicio)).toEqual(["Casaca Ximena:XL", "Top Luna:S·M·L"]);
   });
   it("sin búsqueda, la lista «Por prenda» va en el mismo orden y el resto después, en el orden en que llegó", () => {
     expect(ordenarPorListaDelDia(agruparPorPrenda(filas), plan.listaDelDia).map((p) => p.productoId)).toEqual(["ximena", "luna", "mia"]);
   });
-  it("sin lista (el motor no respondió o el piso está en pausa): el orden de llegada, y la tarjeta sin prendas", () => {
+  it("sin lista (el motor no respondió o el piso está en pausa): el orden de llegada, también en «Para hoy»", () => {
     expect(ordenarPorListaDelDia(agruparPorPrenda(filas), []).map((p) => p.productoId)).toEqual(["luna", "mia", "ximena"]);
-    expect(prendasParaColgarHoy(filas, [])).toEqual([]);
+    expect(porColgarDeLaSede(filas, []).prendas.map((p) => p.productoId)).toEqual(["luna", "ximena"]);
   });
 });
 

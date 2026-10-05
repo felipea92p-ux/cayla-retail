@@ -209,6 +209,8 @@ export function leerConfiguracion(data: unknown): ConfiguracionTiendas {
 // ---- Configuración ▸ Caja y avisos (20260925103000) ----------------------------------------------------------------
 
 export type ParametrosFinanzas = { minimoCaja: number; avisoGastoPct: number; avisoVenceDias: number };
+/** Lo de Caja y avisos más desde cuándo cuenta Finanzas (ADR-0332): «2026-10-01», o null si no hay corte. */
+export type ParametrosFinanzasConCorte = ParametrosFinanzas & { inicioFinanzas: string | null; corteDisponible: boolean };
 
 export function leerParametrosFinanzas(data: unknown): ParametrosFinanzas | null {
   const d = data as Record<string, unknown> | null;
