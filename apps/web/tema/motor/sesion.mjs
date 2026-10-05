@@ -18,6 +18,11 @@ export function exigirLocal(baseUrl) {
 
 const archivoDe = (correo) => join(DIR, `${correo}.json`);
 
+/** Una consulta de SOLO LECTURA a la base local (para armar la URL de un escenario con un id real). */
+export function consultarLocal(sql) {
+  return execFileSync("docker", ["exec", "supabase_db_cayla-retail", "psql", "-U", "postgres", "-At", "-c", sql], { encoding: "utf8" }).trim();
+}
+
 /** El id de una ubicación por su nombre, para la cookie de la sede activa (solo base local). */
 function idDeUbicacion(nombre) {
   const id = execFileSync("docker", ["exec", "supabase_db_cayla-retail", "psql", "-U", "postgres", "-At", "-c", `select id from retail.ubicaciones where nombre ilike '%${nombre.replace(/'/g, "")}%' limit 1`], { encoding: "utf8" }).trim();

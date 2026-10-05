@@ -116,6 +116,6 @@ describe("la interfaz usa tokens: cada color escrito a mano está declarado y la
 
   it("la deuda de colores: solo baja (cuenta exacta, ADR-0336)", () => {
     // Al pagar una, baja este número. Si SUBE, alguien declaró deuda nueva: una pantalla nueva no puede nacer con colores sueltos.
-    expect(DEUDA_DE_COLORES_HOY).toBe(21);
+    expect(DEUDA_DE_COLORES_HOY).toBe(14);
   });
 });

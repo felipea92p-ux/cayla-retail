@@ -29,10 +29,12 @@ export function escribirReporte(dirSalida, visitas, meta) {
     const malos = r.soloOscuro.length + r.manchas.length + r.velos.length;
     hallazgos += malos;
     filas.push(`| ${v.cuenta} | ${v.titulo} | ${malos ? "❌" : "✅"} | ${r.soloOscuro.length} | ${r.manchas.length} | ${r.velos.length} | ${r.heredados.length} |`);
-    if (malos || v.errores.length) {
+    const verHeredados = meta.heredados && r.heredados.length;
+    if (malos || v.errores.length || verHeredados) {
       detalle.push(`### ${nombre}\n`);
       if (v.captura) detalle.push(`Captura: \`${v.captura}\`\n`);
       if (r.soloOscuro.length) detalle.push(`**Contraste que solo falla en oscuro (${r.soloOscuro.length}):**\n${r.soloOscuro.slice(0, 25).map(linea).join("\n")}\n`);
+      if (verHeredados) detalle.push(`**Heredados del claro (${r.heredados.length}; también fallan en claro, pero en oscuro hay que verlos igual):**\n${[...r.heredados].sort((a, b) => a.ratio - b.ratio).slice(0, 30).map(linea).join("\n")}\n`);
       if (r.manchas.length) detalle.push(`**Manchas claras (${r.manchas.length}):**\n${r.manchas.slice(0, 15).map((m) => `  - ${m.fondo} ${m.tam} — \`${m.donde}\``).join("\n")}\n`);
       if (r.velos.length) detalle.push(`**Velos que aclaran (${r.velos.length}):**\n${r.velos.map((m) => `  - ${m.fondo} sobre una página ${m.pagina} — \`${m.donde}\``).join("\n")}\n`);
       if (v.errores.length) detalle.push(`**Errores de consola:** ${v.errores.slice(0, 4).map((e) => "`" + e.slice(0, 120) + "`").join(" · ")}\n`);

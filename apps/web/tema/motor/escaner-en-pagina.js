@@ -62,10 +62,32 @@
     return f;
   }
 
-  /** El fondo efectivo de un elemento: sus capas de color, de adentro hacia afuera, sobre el fondo de la página. */
-  function fondoEfectivo(el) {
+  /**
+   * El fondo efectivo de un elemento: sus capas de color, de adentro hacia afuera, sobre el fondo de la página.
+   * Con `punto` (el centro del texto) usa el ORDEN REAL DE PINTURA (`elementsFromPoint`) en vez de recorrer solo los ancestros:
+   * la píldora activa de un control segmentado es un elemento que se desliza DETRÁS del botón, no su ancestro, y mirando solo
+   * ancestros el texto parecía estar sobre el fondo del contenedor (falsos 1.3:1). Sin punto (fuera de pantalla), solo ancestros.
+   */
+  function fondoEfectivo(el, punto) {
     let acum = [0, 0, 0, 0];
     let hayImagen = false;
+    let capas = null;
+    if (punto && punto[0] >= 0 && punto[1] >= 0 && punto[0] < innerWidth && punto[1] < innerHeight) {
+      const pila = document.elementsFromPoint(punto[0], punto[1]);
+      const i = pila.indexOf(el);
+      if (i >= 0) capas = pila.slice(i); // lo que está en el elemento y POR DEBAJO de él
+    }
+    if (capas) {
+      for (const e of capas) {
+        const cs = getComputedStyle(e);
+        if (cs.backgroundImage !== "none") hayImagen = true;
+        const c = leer(cs.backgroundColor);
+        if (c[3] > 0) acum = sobre(acum, c);
+        if (acum[3] >= 0.999) break;
+      }
+      if (acum[3] < 0.999) acum = sobre(acum, fondoDeLaPagina());
+      return { fondo: acum, hayImagen };
+    }
     for (let e = el; e; e = e.parentElement) {
       const cs = getComputedStyle(e);
       if (cs.backgroundImage !== "none") hayImagen = true;
@@ -88,6 +110,10 @@
 
   window.__temaEscanear = function escanear({ minimo = 4.5 } = {}) {
     const tema = document.documentElement.getAttribute("data-tema") || "(sin atributo)";
+    // Para `elementsFromPoint`: que cuenten también los elementos con `pointer-events: none` (como una píldora decorativa).
+    const abrirPunteros = document.createElement("style");
+    abrirPunteros.textContent = "* { pointer-events: auto !important; }";
+    document.head.appendChild(abrirPunteros);
     const contrastes = [];
     const vistos = new Set();
     let analizados = 0;
@@ -104,7 +130,10 @@
       if (parseFloat(cs.fontSize) < 1 || deshabilitado(el)) continue;
       const op = opacidadHeredada(el);
       if (op < 0.05) continue;
-      const { fondo, hayImagen } = fondoEfectivo(el);
+      const rango = document.createRange();
+      rango.selectNodeContents(n);
+      const caja2 = rango.getBoundingClientRect();
+      const { fondo, hayImagen } = fondoEfectivo(el, [caja2.left + caja2.width / 2, caja2.top + caja2.height / 2]);
       let tinta = leer(cs.color);
       tinta = sobre([tinta[0], tinta[1], tinta[2], tinta[3] * op], fondo);
       const ratio = contraste(tinta, fondo);
@@ -142,13 +171,15 @@
           continue;
         }
         if (c[3] < 0.5) continue;
-        if (caja.width * caja.height < 6000 || caja.width < 60 || caja.height < 40) continue;
+        // Una SUPERFICIE (tarjeta, panel), no una barra de gráfico ni un botón: 100×60 como mínimo y 9.000 px² de área.
+        if (caja.width * caja.height < 9000 || caja.width < 100 || caja.height < 60) continue;
         const compuesto = sobre(c, fondoEfectivo(el.parentElement || el).fondo);
         // El relleno de `tinta` (que en oscuro es crema) es la inversión a propósito: botón primario, píldora activa.
         if (cercano(compuesto, tintaFija)) continue;
         if (lum(compuesto) > 0.35) manchas.push({ tipo: "mancha-clara", clave: camino(el), fondo: hex(compuesto), tam: `${Math.round(caja.width)}x${Math.round(caja.height)}`, donde: camino(el) });
       }
     }
+    abrirPunteros.remove();
     return { tema, textosAnalizados: analizados, contrastes, manchas, velos };
   };
 })();

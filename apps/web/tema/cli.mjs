@@ -15,6 +15,7 @@
  *   --ruta <a,b>         rutas exactas       --modulo <a,b>   todas las estáticas de esos módulos      --todas   todas las estáticas
  *   --escenarios         agrega los escenarios (`tema/escenarios/registro.mjs`) de las rutas elegidas   --escenario <id>   solo ese
  *   --ancho N --alto N   viewport (por defecto 1440×900; 375 para celular)
+ *   --heredados          el reporte detalla también lo que ya fallaba en claro (por defecto solo cuenta cuántos son)
  *   --sin-claro          no mide el claro (más rápido, pero no distingue lo heredado de lo nuevo)
  *   --capturas-claro     también captura el claro      --espera <ms>   espera tras cargar (por defecto 1800)
  *   --salida <dir>       dónde escribir (por defecto tema/.salida/<fecha>)
@@ -124,27 +125,36 @@ async function visitar(ctx, cuenta, visita, tema) {
     if (visita.escenario) {
       try {
         await visita.escenario.preparar(pagina);
+        if (visita.escenario.abre) {
+          await pagina.locator(visita.escenario.abre).first().waitFor({ state: "visible", timeout: 6000 });
+        }
       } catch (e) {
-        res.estado = `el escenario falló: ${String(e.message).split("\n")[0].slice(0, 100)}`;
+        res.estado = `el escenario falló o no abrió lo que dice abrir: ${String(e.message).split("\n")[0].slice(0, 100)}`;
         return res;
       }
+    }
+    // Una ruta se mide con una ventana TAN ALTA como la página (tope 4000 px): así todo el texto queda «en pantalla» y el fondo se lee
+    // por el orden real de pintura. Un escenario (modal, lista abierta) se mide con el viewport normal: redimensionar podría cerrarlo.
+    if (!visita.escenario) {
+      const altoPagina = await pagina.evaluate(() => document.documentElement.scrollHeight);
+      await pagina.setViewportSize({ width: ancho, height: Math.min(Math.max(altoPagina, alto), 4000) });
+      await pagina.waitForTimeout(500);
     }
     await pagina.addScriptTag({ content: ESCANER });
     Object.assign(res, await pagina.evaluate(() => window.__temaEscanear()));
     if (tema === "oscuro" || args["capturas-claro"]) {
       const archivo = join("capturas", cuenta.clave, `${slug(visita.escenario ? `${visita.ruta}-${visita.escenario.id}` : visita.ruta)}.${tema}.png`);
-      // Una ruta se captura con una ventana TAN ALTA como la página (tope 4000 px): el modo `fullPage` de Playwright desacomoda el
-      // lateral fijo. Un escenario (modal, lista abierta) se captura con el viewport normal: redimensionar podría cerrarlo o moverlo.
-      if (!visita.escenario) {
-        const altoPagina = await pagina.evaluate(() => document.documentElement.scrollHeight);
-        await pagina.setViewportSize({ width: ancho, height: Math.min(Math.max(altoPagina, alto), 4000) });
-        await pagina.waitForTimeout(500);
-      }
+      // (la ventana ya está a la altura de la página si es una ruta: ver arriba; el modo `fullPage` de Playwright desacomoda el lateral fijo)
       await pagina.screenshot({ path: join(dirSalida, archivo) });
       res.captura = archivo;
     }
+  } catch (e) {
+    // Un fallo en UNA visita (una navegación que se cruzó, un elemento que no apareció) no tumba toda la auditoría.
+    res.estado = `falló: ${String(e.message).split("\n")[0].slice(0, 110)}`;
   } finally {
-    await pagina.close();
+    // Lo que el escenario cambió fuera de la página (la red del contexto, una ruta interceptada) se deshace SIEMPRE.
+    await visita.escenario?.limpiar?.(pagina).catch(() => {});
+    await pagina.close().catch(() => {});
   }
   return res;
 }
@@ -178,7 +188,7 @@ try {
 }
 await navegador.close();
 
-const { hallazgos, md } = escribirReporte(dirSalida, visitas, { cuando: new Date().toLocaleString("es-PE"), baseUrl, ancho, alto });
+const { hallazgos, md } = escribirReporte(dirSalida, visitas, { cuando: new Date().toLocaleString("es-PE"), baseUrl, ancho, alto, heredados: !!args.heredados });
 const sinAcceso = visitas.filter((v) => v.estado !== "ok").length;
 const tot = visitas.filter((v) => v.estado === "ok").reduce((a, v) => { const r = resumirVisita(v); a.he += r.heredados.length; a.so += r.soloOscuro.length; return a; }, { he: 0, so: 0 });
 console.log(`\n${md.split("\n").filter((l) => l.startsWith("|") || l.startsWith("Base:")).join("\n")}`);
