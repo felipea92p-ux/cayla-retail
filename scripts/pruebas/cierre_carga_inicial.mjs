@@ -22,10 +22,18 @@
  *   5. El guardián: la fecha no se cambia escribiendo la fila desde la API, aunque la política deje al líder escribirla.
  *   6. La lectura `fn_carga_inicial_sedes` y los permisos; la frase exacta («15-oct»); y que las tres migraciones se pegan
  *      dos veces sin duplicar nada.
+ *   7. Dos sesiones a la vez sobre la misma fecha (carrera de dos `psql`).
+ *   8. La fecha de Felipe en LAS TRES TIENDAS (Felipe 2026-10-04 noche): la parte 1, pegada tal cual sobre producción en
+ *      miniatura, siembra el 15-oct en TRU, AQP y LIM (LIM por el código `003`: en Dynamic `LIM` es el Taller) y deja al
+ *      Taller sin fecha; no pisa una fecha ya puesta; aborta sin sembrar nada si una tienda no se reconoce sin ambigüedad.
+ *      Y con el reloj en la mano: cargan todo el 15-oct de Lima (también a las 23:59:59, que en UTC ya es 16) y desde el
+ *      16-oct 00:00 de Lima se cierran las tres, con la frase de cada una; el Taller sigue abierto.
  *
- * EL RELOJ. Todo se mide contra `retail.fn_hoy_lima()` de la base: «cerrada» es una fecha de AYER, «último día» es HOY.
- * Así la prueba da lo mismo cualquier día del año (sin bomba de calendario). La frontera de Lima contra UTC (de 7 pm a
- * medianoche de Lima ya es mañana en UTC) la cubre `fn_hoy_lima()`; se verificó aparte con el reloj falso (PR).
+ * EL RELOJ. Los casos 1-7 se miden contra `retail.fn_hoy_lima()` de la base: «cerrada» es una fecha de AYER, «último día»
+ * es HOY. Así dan lo mismo cualquier día del año (sin bomba de calendario). El caso 8 necesita fechas FIJAS (15-oct y
+ * 16-oct de 2026): dentro de su transacción reemplaza `fn_hoy_lima()` por ella misma con su `now()` cambiado por
+ * `prueba.ahora`, y el ROLLBACK la devuelve. Así prueba la frontera de Lima contra UTC (de 7 pm a medianoche de Lima ya es
+ * mañana en UTC) cualquier día que corra.
  *
  * CÓMO. Como `ajuste_no_es_primera_carga.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
  * compartido), sesión simulada con `request.jwt.claim(s)`, y `pg_temp.intento` que devuelve el resultado o el error.
@@ -624,6 +632,171 @@ rollback;
   );
   afirmar("y esperó de verdad (≥ 0,9 s), no falló por otra cosa", msB >= 900, `${msB} ms`);
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 8. La fecha de Felipe en las TRES tiendas (la siembra de la parte 1) y el reloj de Lima
+// ---------------------------------------------------------------------------------------------------------------------
+// Felipe, 2026-10-04 noche: TRU, AQP y LIM cargan hasta el 15-oct y se cierran el 16-oct (hora de Lima); el Taller no tiene
+// carga inicial de tienda y sigue sin fecha. La base local nombra las tiendas distinto («Tienda Trujillo», «Tienda Lima», sin
+// AQP) y su seed corre DESPUÉS de las migraciones: ahí la siembra no encuentra nada. Por eso cada caso arma, dentro de su
+// transacción, PRODUCCIÓN EN MINIATURA tal como la mostró una consulta de solo lectura el 2026-10-04 —«Tienda TRU» con la
+// sede `TRU` de Dynamic, «Tienda AQP» con `AQP`, «Tienda LIM» con `003`, y el código `LIM` es el Taller («Taller LIM»)— y
+// pega la parte 1 TAL CUAL. Aquí el Taller además queda enlazado a `LIM` (en producción no tiene enlace): el peor caso.
+const PARTE1 = migracion(MIGRACIONES[0]);
+/** Solo el bloque `do $$ … $$;` de la siembra, para correrlo dentro de `pg_temp.intento_do` cuando se espera que aborte. */
+const SIEMBRA = (() => {
+  const desde = PARTE1.indexOf("\ndo $$");
+  return desde < 0 ? "" : PARTE1.slice(desde + 1, PARTE1.indexOf("$$;", desde + 6) + 3);
+})();
+const INTENTO_DO = `
+create function pg_temp.intento_do(p_sql text) returns jsonb language plpgsql as $f$
+declare v_estado text; v_msg text;
+begin
+  execute p_sql;
+  return jsonb_build_object('ok', true);
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text;
+  return jsonb_build_object('ok', false, 'estado', v_estado, 'msg', v_msg);
+end;
+$f$;
+`;
+const MINI_PRODUCCION = `${COMO_POSTGRES}${INTENTO_DO}
+insert into public.sedes (codigo, nombre, tipo) values ('AQP', 'Tienda AQP', 'tienda'), ('003', 'Tienda LIM', 'tienda');
+update public.sedes set nombre = 'Taller LIM', tipo = 'fabrica' where codigo = 'LIM';
+update retail.ubicaciones set nombre = 'Tienda TRU' where id = :'tru';
+update retail.ubicaciones set nombre = 'Tienda LIM', sede_dynamic_id = (select id from public.sedes where codigo = '003') where id = :'lim';
+insert into retail.ubicaciones (nombre, tipo, sede_dynamic_id)
+  select 'Tienda AQP', 'tienda', id from public.sedes where codigo = 'AQP' returning id as aqp \\gset
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'aqp', s.nombre, s.tipo from (values ('Piso de venta', 'piso_venta'), ('Almacén de tienda', 'almacen_tienda')) s(nombre, tipo)
+  where not exists (select 1 from retail.sububicaciones x where x.ubicacion_id = :'aqp' and x.tipo = s.tipo);
+select id as taller from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1 \\gset
+update retail.ubicaciones set sede_dynamic_id = (select id from public.sedes where codigo = 'LIM') where id = :'taller';
+-- Dos que llevan una señal de tienda y NO son la tienda: un almacén colgado de la sede AQP y una TRU vieja dada de baja.
+insert into retail.ubicaciones (nombre, tipo, activo, sede_dynamic_id)
+  select 'Almacén AQP', 'almacen', true, id from public.sedes where codigo = 'AQP'
+  union all
+  select 'Tienda TRU antigua', 'tienda', false, id from public.sedes where codigo = 'TRU';
+update retail.ubicaciones set carga_inicial_hasta = null where carga_inicial_hasta is not null;
+`;
+const fechasDeSedes = `(select string_agg(u.nombre || '=' || coalesce(u.carga_inicial_hasta::text, '∅'), ',' order by u.nombre)
+   from retail.ubicaciones u where u.id in (:'tru', :'aqp', :'lim', :'taller'))`;
+const conFecha = "(select count(*) from retail.ubicaciones where carga_inicial_hasta is not null)";
+
+correr(
+  "8a. La parte 1 siembra el 15-oct en TRU, AQP y LIM (por su sede de Dynamic o su nombre), el Taller queda sin fecha; pegada otra vez no pisa una fecha ya puesta",
+  `${MINI_PRODUCCION}
+${PARTE1}
+${COMO_POSTGRES}${K("primera", fechasDeSedes)}
+${K("otras", `(select count(*) from retail.ubicaciones where carga_inicial_hasta is not null and id not in (:'tru', :'aqp', :'lim'))`)}
+update retail.ubicaciones set carga_inicial_hasta = date '2026-10-10' where id = :'aqp';
+${PARTE1}
+${COMO_POSTGRES}${K("segunda", fechasDeSedes)}`,
+  (d) => {
+    afirmar(
+      "las tres tiendas cargan hasta el 15-oct y el Taller (aunque esté enlazado al código LIM de Dynamic) sigue sin fecha",
+      d.primera === "Taller=∅,Tienda AQP=2026-10-15,Tienda LIM=2026-10-15,Tienda TRU=2026-10-15",
+      d.primera,
+    );
+    afirmar("ninguna otra sede recibió fecha (ni el almacén de la sede AQP ni la TRU dada de baja)", d.otras === "0", `otras=${d.otras}`);
+    afirmar(
+      "pegada dos veces: la fecha que un líder ya apretó (AQP al 10-oct) no se pisa, y las demás no cambian",
+      d.segunda === "Taller=∅,Tienda AQP=2026-10-10,Tienda LIM=2026-10-15,Tienda TRU=2026-10-15",
+      d.segunda,
+    );
+  },
+);
+
+correr(
+  "8b. Si una tienda no se reconoce sin ambigüedad, la siembra aborta y no deja NINGUNA fecha",
+  `${MINI_PRODUCCION}
+${K("bloque", `${SIEMBRA.includes("'Tienda AQP', 'AQP'") && SIEMBRA.includes("'Tienda LIM', '003'") ? "true" : "false"}`)}
+insert into retail.ubicaciones (nombre, tipo, sede_dynamic_id) select 'Tienda Arequipa', 'tienda', id from public.sedes where codigo = 'AQP';
+${K("dos_aqp", `pg_temp.intento_do($siembra$${SIEMBRA}$siembra$)`)}
+${K("tras_dos_aqp", conFecha)}
+update retail.ubicaciones set activo = false where nombre = 'Tienda Arequipa';
+-- Una sola tienda que parece dos sedes: «Tienda LIM» enlazada a la sede AQP de Dynamic, y la AQP de verdad irreconocible.
+update retail.ubicaciones set nombre = 'Tienda Arequipa 2', sede_dynamic_id = null where id = :'aqp';
+update retail.ubicaciones set sede_dynamic_id = (select id from public.sedes where codigo = 'AQP') where id = :'lim';
+${K("una_dos", `pg_temp.intento_do($siembra$${SIEMBRA}$siembra$)`)}
+${K("tras_una_dos", conFecha)}`,
+  (d) => {
+    afirmar("la prueba corre el bloque de siembra real de la parte 1 (TRU, AQP y LIM con `003`)", d.bloque === "true", d.bloque);
+    const dos = j(d.dos_aqp);
+    afirmar("dos tiendas que parecen AQP (una por nombre, otra por la sede de Dynamic): aborta", dos?.ok === false && /^Hay 2 tiendas que parecen AQP/.test(dos.msg ?? ""), d.dos_aqp);
+    afirmar("…y no siembra ninguna, ni TRU", d.tras_dos_aqp === "0", `con fecha=${d.tras_dos_aqp}`);
+    const una = j(d.una_dos);
+    afirmar("una misma tienda que parece AQP y LIM a la vez: aborta", una?.ok === false && /^Una misma tienda parece AQP y LIM a la vez/.test(una.msg ?? ""), d.una_dos);
+    afirmar("…y tampoco siembra ninguna", d.tras_una_dos === "0", `con fecha=${d.tras_una_dos}`);
+  },
+);
+
+correr(
+  "8c. En la base local (como la deja el seed) solo se reconoce TRU: «Tienda Lima» va con el código LIM, que en producción es el Taller",
+  `${COMO_POSTGRES}update retail.ubicaciones set carga_inicial_hasta = null where carga_inicial_hasta is not null;
+select id as taller from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1 \\gset
+${PARTE1}
+${COMO_POSTGRES}${K("local", `(select string_agg(u.nombre || '=' || coalesce(u.carga_inicial_hasta::text, '∅'), ',' order by u.nombre) from retail.ubicaciones u where u.id in (:'tru', :'lim', :'taller'))`)}`,
+  (d) => {
+    afirmar(
+      "«Tienda Trujillo» (sede TRU) carga hasta el 15-oct; «Tienda Lima» (código LIM) y el Taller, sin fecha",
+      d.local === "Taller=∅,Tienda Lima=∅,Tienda Trujillo=2026-10-15",
+      d.local,
+    );
+  },
+);
+
+// El reloj: `fn_hoy_lima()` tal como está en la base, con su `now()` cambiado por `prueba.ahora` (si está puesto). Mismo cálculo
+// de la zona de Lima; lo deshace el ROLLBACK. Así se prueban los instantes que importan sin esperar al 16-oct: el último
+// segundo del 15 en Lima, que en UTC ya es 16, y la medianoche de Lima.
+const estadosDeSedes = `(select string_agg((e ->> 'nombre') || ':' || (e ->> 'abierta'), ',' order by e ->> 'nombre')
+   from jsonb_array_elements(retail.fn_carga_inicial_sedes() -> 'sedes') e where (e ->> 'ubicacion_id')::uuid in (:'tru', :'aqp', :'lim', :'taller'))`;
+const ahora = (instante) => `set local prueba.ahora = '${instante}';\n`;
+
+correr(
+  "8d. Con el reloj en la mano: las tres tiendas cargan todo el 15-oct (hora de Lima) y se cierran el 16-oct; el Taller sigue abierto",
+  `${MINI_PRODUCCION}
+${PARTE1}
+${COMO_POSTGRES}${K("now_veces", "(select (length(d) - length(replace(d, 'now()', ''))) / 5 from (select pg_get_functiondef('retail.fn_hoy_lima()'::regprocedure) as d) z)")}
+do $r$ begin
+  execute replace(pg_get_functiondef('retail.fn_hoy_lima()'::regprocedure), 'now()',
+                  'coalesce(nullif(current_setting(''prueba.ahora'', true), '''')::timestamptz, now())');
+end $r$;
+${COMO_API}${ahora("2026-10-15 12:00:00-05")}${K("mediodia_hoy", "retail.fn_carga_inicial_sedes() ->> 'hoy'")}
+${K("mediodia", estadosDeSedes)}
+${ahora("2026-10-16 04:59:59+00")}${K("ultimo_hoy", "retail.fn_carga_inicial_sedes() ->> 'hoy'")}
+${K("ultimo", estadosDeSedes)}
+${K("ultimo_carga_aqp", carga("aqp", items(["v1", 2])))}
+${ahora("2026-10-16 05:00:00+00")}${K("cierre_hoy", "retail.fn_carga_inicial_sedes() ->> 'hoy'")}
+${K("cierre", estadosDeSedes)}
+${K("cierre_tru", carga("tru", items(["v2", 1])))}
+${K("cierre_aqp", carga("aqp", items(["v2", 1])))}
+${K("cierre_lim", carga("lim", items(["v2", 1])))}
+${K("cierre_taller", carga("taller", items(["v3", 1])))}
+${ahora("2027-03-01 10:00:00-05")}${K("despues", estadosDeSedes)}
+${COMO_POSTGRES}${K("v2", movs("v2"))}`,
+  (d) => {
+    afirmar("el reloj se pudo poner: fn_hoy_lima() lee now() una sola vez", d.now_veces === "1", d.now_veces);
+    afirmar("15-oct a mediodía (Lima): hoy es el 15", d.mediodia_hoy === "2026-10-15", d.mediodia_hoy);
+    afirmar("…y las cuatro sedes cargan", d.mediodia === "Taller:true,Tienda AQP:true,Tienda LIM:true,Tienda TRU:true", d.mediodia);
+    afirmar("15-oct 23:59:59 en Lima (en UTC ya es 16): sigue siendo el 15", d.ultimo_hoy === "2026-10-15", d.ultimo_hoy);
+    afirmar("…las tres tiendas siguen abiertas", d.ultimo === "Taller:true,Tienda AQP:true,Tienda LIM:true,Tienda TRU:true", d.ultimo);
+    afirmar("…y AQP todavía carga su stock inicial", okDe(d.ultimo_carga_aqp), d.ultimo_carga_aqp);
+    afirmar("16-oct 00:00 en Lima: hoy es el 16", d.cierre_hoy === "2026-10-16", d.cierre_hoy);
+    afirmar("…TRU, AQP y LIM cerradas; el Taller (sin fecha) abierto", d.cierre === "Taller:true,Tienda AQP:false,Tienda LIM:false,Tienda TRU:false", d.cierre);
+    for (const [sede, clave] of [["Tienda TRU", "cierre_tru"], ["Tienda AQP", "cierre_aqp"], ["Tienda LIM", "cierre_lim"]]) {
+      const r = j(d[clave]);
+      afirmar(
+        `${sede} rechaza la carga inicial con \`carga_inicial_cerrada\` y dice «se cerró el 15-oct»`,
+        r?.ok === false && r.hint === "carga_inicial_cerrada" && r.msg === `La carga inicial de ${sede} se cerró el 15-oct. Lo que encuentres entra por «Encontré prendas».`,
+        d[clave],
+      );
+    }
+    afirmar("el Taller sigue cargando (no tiene fecha)", okDe(d.cierre_taller), d.cierre_taller);
+    afirmar("las tres cargas rechazadas no dejaron movimientos", d.v2 === "0", `v2=${d.v2}`);
+    afirmar("meses después siguen cerradas (la fecha no se vence sola)", d.despues === "Taller:true,Tienda AQP:false,Tienda LIM:false,Tienda TRU:false", d.despues);
+  },
+);
 
 console.log(`\n${fallos === 0 ? "✔" : "✘"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
 process.exit(fallos === 0 ? 0 : 1);

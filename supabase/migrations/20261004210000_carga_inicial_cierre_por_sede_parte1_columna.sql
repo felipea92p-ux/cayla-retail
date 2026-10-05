@@ -10,15 +10,23 @@
 --
 -- QUÉ HACE (esta parte: solo la tabla).
 --   1. `ubicaciones.carga_inicial_hasta date`: el ÚLTIMO día en que esa sede acepta carga inicial (hora de Lima). Vacía =
---      abierta sin fecha (AQP, LIM y el Taller hoy: Felipe les fija el tope cuando terminen su carga).
+--      abierta sin fecha (el Taller: no tiene carga inicial de tienda, y una sede nueva nace así).
 --   2. Un disparador que no deja cambiar esa fecha desde la API (PostgREST, roles `authenticated`/`anon`), aunque la
 --      política `ubicaciones_write_lider` deje al líder escribir la fila: la fecha se cambia SOLO con
 --      `fijar_cierre_carga_inicial` (parte 2), que decide quién la aprieta (el líder) y quién la afloja (solo un Admin) y
 --      deja el antes/después en `configuracion_historial`.
---   3. Siembra la fecha de Felipe para Tienda TRU: 2026-10-15 (ADR-0270 D20, ADR-0328). TRU se reconoce por su código de
---      Dynamic (`public.sedes.codigo = 'TRU'`) o por su nombre en retail (`Tienda TRU`, el que usan los scripts de
---      producción); si las dos señales apuntan a tiendas distintas, aborta. Si la sede ya tiene una fecha, no la pisa.
---      En una base sin esa tienda (local, CI: el seed crea las sedes DESPUÉS de las migraciones) no siembra nada.
+--   3. Siembra la fecha de Felipe para LAS TRES TIENDAS: TRU, AQP y LIM cargan hasta el 2026-10-15 y se cierran el 16-oct
+--      (ADR-0270 D20, ADR-0328; Felipe 2026-10-04 noche: antes era solo TRU, y AQP y LIM quedaban sin fecha; es el mismo
+--      tope que la cola de ventas sin registrar, ADR-0334: «todos los días vamos a subir todo, máximo hasta el 15»).
+--      Cada tienda se reconoce por su sede de Dynamic (`public.sedes.codigo`) o por su nombre en retail, las dos señales
+--      que tiene producción (consultado en solo lectura el 2026-10-04):
+--          TRU → código `TRU` · «Tienda TRU»      AQP → código `AQP` · «Tienda AQP»      LIM → código `003` · «Tienda LIM»
+--      OJO con Lima: en Dynamic el código `LIM` es el TALLER («Taller LIM», sin enlace en retail), y la tienda de Lima es
+--      `003` (ADR-0097). Por eso aquí NUNCA se busca `LIM`. Y solo tiendas activas: el Taller (`tipo = 'taller'`) no se toca.
+--      Primero se identifican las tres y recién después se escribe: si una señal apunta a dos tiendas, o una tienda parece
+--      dos sedes a la vez, aborta y no siembra NINGUNA (ni la columna queda: el pegado es una transacción). Si una sede ya
+--      tiene fecha, no la pisa. En una base sin esas tiendas (local, CI: el seed crea las sedes DESPUÉS de las migraciones)
+--      no siembra nada y lo dice con un NOTICE por sede.
 --
 -- ESTADO QUE DEJA DE SER POSIBLE: un líder que reabre la carga inicial de una sede (o le corre el cierre) escribiendo la
 -- fila a mano desde la API, sin pasar por la regla «aflojar es del Admin» y sin dejar historia.
@@ -31,9 +39,10 @@
 -- diario): espera 3 s un candado; si dice «lock timeout», se vuelve a pegar ESTA parte. Sin políticas ni `drop trigger`
 -- (ADR-0195). Idempotente: se puede pegar dos veces.
 --
--- SE ROMPE SI: alguien renombra «Tienda TRU» Y le cambia la sede de Dynamic antes de pegar (la siembra no encuentra TRU y
--- solo avisa con un NOTICE: hay que fijar la fecha en Configuración); o si una función que NO es `security definer`
--- (corre como `authenticated`) intenta cambiar la fecha: el disparador la rechaza también.
+-- SE ROMPE SI: alguien renombra una tienda («Tienda AQP» → «Tienda Arequipa») Y le cambia la sede de Dynamic antes de pegar
+-- (la siembra no la encuentra y solo avisa con un NOTICE: esa sede queda sin fecha y hay que fijarla en Configuración ▸
+-- Tiendas y caja; la consulta de verificación del PR lo muestra); o si una función que NO es `security definer` (corre como
+-- `authenticated`) intenta cambiar la fecha: el disparador la rechaza también.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -77,32 +86,63 @@ create or replace trigger ubicaciones_cierre_carga_inicial_por_funcion
   for each row
   execute function retail.fn_ubicaciones_cierre_carga_por_funcion();
 
--- La fecha de Felipe para TRU (ADR-0270 D20; ADR-0328 «Cierre de la carga inicial»).
+-- La fecha de Felipe para las tres tiendas (ADR-0270 D20; ADR-0328 «Cierre de la carga inicial»; Felipe 2026-10-04 noche).
+-- Dos pasadas: primero se reconoce cada tienda sin ambigüedad; recién después se escribe. Hace falta tenerlas todas para ver
+-- si una misma tienda calza con dos sedes, y una tienda dudosa aborta antes de escribir nada. (Las lecturas van por
+-- asignación `v := (…)`: se pega en el SQL Editor, ADR-0288.)
 do $$
 declare
+  v_t record;
   v_n integer;
+  v_id uuid;
+  v_ids uuid[] := '{}';
+  v_siglas text[] := '{}';
 begin
-  v_n := (
-    select count(*)
-      from retail.ubicaciones u
-     where u.tipo = 'tienda'
-       and u.activo
-       and (u.nombre = 'Tienda TRU'
-            or exists (select 1 from public.sedes s where s.id = u.sede_dynamic_id and s.codigo = 'TRU'))
-  );
-  if v_n > 1 then
-    raise exception 'Hay % tiendas que parecen TRU (por nombre «Tienda TRU» o por la sede TRU de Dynamic): no se sembró ninguna fecha. Revisa retail.ubicaciones antes de pegar.', v_n;
-  end if;
-  if v_n = 0 then
-    raise notice 'Esta base no tiene la tienda TRU (es local o CI): no se siembra la fecha. En producción, fíjala en Configuración ▸ Tiendas y caja.';
-    return;
-  end if;
+  for v_t in
+    select x.sigla, x.nombre, x.codigo_dynamic
+      from (values
+        ('TRU', 'Tienda TRU', 'TRU'),
+        ('AQP', 'Tienda AQP', 'AQP'),
+        -- En Dynamic `LIM` es el Taller («Taller LIM»); la tienda de Lima es `003` (ADR-0097). Nunca `LIM` aquí.
+        ('LIM', 'Tienda LIM', '003')
+      ) as x(sigla, nombre, codigo_dynamic)
+  loop
+    v_n := (
+      select count(*)
+        from retail.ubicaciones u
+       where u.tipo = 'tienda'
+         and u.activo
+         and (u.nombre = v_t.nombre
+              or exists (select 1 from public.sedes s where s.id = u.sede_dynamic_id and s.codigo = v_t.codigo_dynamic))
+    );
+    if v_n > 1 then
+      raise exception 'Hay % tiendas que parecen % (por nombre «%» o por la sede % de Dynamic): no se sembró ninguna fecha. Revisa retail.ubicaciones antes de pegar.',
+        v_n, v_t.sigla, v_t.nombre, v_t.codigo_dynamic;
+    end if;
+    if v_n = 0 then
+      raise notice 'Esta base no tiene la tienda % (es local o CI): no se siembra su fecha. En producción, fíjala en Configuración ▸ Tiendas y caja.', v_t.sigla;
+      continue;
+    end if;
+    v_id := (
+      select u.id
+        from retail.ubicaciones u
+       where u.tipo = 'tienda'
+         and u.activo
+         and (u.nombre = v_t.nombre
+              or exists (select 1 from public.sedes s where s.id = u.sede_dynamic_id and s.codigo = v_t.codigo_dynamic))
+    );
+    if v_id = any (v_ids) then
+      raise exception 'Una misma tienda parece % y % a la vez (su nombre dice una y su sede de Dynamic otra): no se sembró ninguna fecha. Revisa retail.ubicaciones antes de pegar.',
+        v_siglas[array_position(v_ids, v_id)], v_t.sigla;
+    end if;
+    v_ids := v_ids || v_id;
+    v_siglas := v_siglas || v_t.sigla;
+  end loop;
+
+  -- Las identificadas, de una vez. La que ya tiene fecha (un líder la apretó, o es el segundo pegado) no se pisa.
   update retail.ubicaciones u
      set carga_inicial_hasta = date '2026-10-15'
-   where u.tipo = 'tienda'
-     and u.activo
-     and (u.nombre = 'Tienda TRU'
-          or exists (select 1 from public.sedes s where s.id = u.sede_dynamic_id and s.codigo = 'TRU'))
+   where u.id = any (v_ids)
      and u.carga_inicial_hasta is null;
 end;
 $$;

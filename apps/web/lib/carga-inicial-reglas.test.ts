@@ -72,7 +72,28 @@ describe("las frases", () => {
       "Tienda TRU carga hasta el 15-oct. Desde el 16-oct, lo que aparezca entra por «Encontré prendas», con su nota.",
     );
     expect(consecuenciaDelCierre("Tienda TRU", HOY, HOY)).toMatch(/^Tienda TRU carga hasta hoy\. Desde el 5-oct/);
-    expect(consecuenciaDelCierre("Tienda AQP", null, HOY)).toMatch(/abierta sin fecha/);
+    expect(consecuenciaDelCierre("Taller", null, HOY)).toMatch(/abierta sin fecha/);
+  });
+});
+
+describe("la fecha de Felipe: TRU, AQP y LIM cierran juntas (2026-10-04); el Taller no tiene carga inicial de tienda", () => {
+  const sedes = [
+    { nombre: "Tienda TRU", hasta: "2026-10-15" },
+    { nombre: "Tienda AQP", hasta: "2026-10-15" },
+    { nombre: "Tienda LIM", hasta: "2026-10-15" },
+    { nombre: "Taller", hasta: null },
+  ];
+  const abiertas = (hoy: string) => sedes.filter((s) => cargaAbierta({ sede: s.nombre, hasta: s.hasta, hoy })).map((s) => s.nombre);
+  it("el 15-oct cargan las cuatro; desde el 16-oct solo el Taller", () => {
+    expect(abiertas("2026-10-15")).toEqual(["Tienda TRU", "Tienda AQP", "Tienda LIM", "Taller"]);
+    expect(abiertas("2026-10-16")).toEqual(["Taller"]);
+  });
+  it("cada tienda avisa lo mismo con su nombre; el Taller no avisa nada", () => {
+    expect(avisoCargaInicial({ sede: "Tienda LIM", hasta: "2026-10-15", hoy: HOY })).toBe("La carga inicial de Tienda LIM se cierra el 15-oct (faltan 11 días).");
+    expect(avisoCargaInicial({ sede: "Tienda AQP", hasta: "2026-10-15", hoy: "2026-10-16" })).toBe(
+      "La carga inicial de Tienda AQP se cerró el 15-oct. Lo que encuentres entra por «Encontré prendas».",
+    );
+    expect(avisoCargaInicial({ sede: "Taller", hasta: null, hoy: "2026-10-16" })).toBeNull();
   });
 });
 
@@ -110,13 +131,15 @@ describe("leer lo que devuelve la base", () => {
     hoy: HOY,
     sedes: [
       { ubicacion_id: "u-tru", nombre: "Tienda TRU", tipo: "tienda", hasta: "2026-10-15", abierta: true },
-      { ubicacion_id: "u-aqp", nombre: "Tienda AQP", tipo: "tienda", hasta: null, abierta: true },
+      { ubicacion_id: "u-aqp", nombre: "Tienda AQP", tipo: "tienda", hasta: "2026-10-15", abierta: true },
+      { ubicacion_id: "u-taller", nombre: "Taller", tipo: "taller", hasta: null, abierta: true },
       { nombre: "sin id" },
     ],
   };
   it("lee las sedes y descarta lo mal formado", () => {
     const l = leerCargaInicial(crudo);
-    expect(l?.sedes.map((s) => s.ubicacionId)).toEqual(["u-tru", "u-aqp"]);
+    expect(l?.sedes.map((s) => s.ubicacionId)).toEqual(["u-tru", "u-aqp", "u-taller"]);
+    expect(cargaInicialDe(l, "u-taller")).toEqual({ sede: "Taller", hasta: null, hoy: HOY });
     expect(cargaInicialDe(l, "u-tru")).toEqual({ sede: "Tienda TRU", hasta: "2026-10-15", hoy: HOY });
     expect(cargaInicialDe(l, "otra")).toBeNull();
     expect(cargaInicialDe(l, null)).toBeNull();
