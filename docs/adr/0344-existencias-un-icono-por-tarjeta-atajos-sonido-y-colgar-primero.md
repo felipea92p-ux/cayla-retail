@@ -78,14 +78,39 @@ colgar lo marcado (`lineasParaBajar`, ADR-0237).
 SE ROMPE SI: alguien toca «Todo el almacén» sin mirar y cuelga lo que no cabe en el piso. El tope de la capacidad (ADR-0329) todavía no se pregunta
 aquí.
 
+## Segunda vuelta (2026-10-05, tarde): «debería verse como la maqueta»
+
+Felipe vio la primera entrega publicada y pidió que Existencias se vea como la maqueta. Eligió, sobre cuatro preguntas:
+
+**7. La tarjeta de la maqueta** (`ExistenciasTarjetas.tsx`, `lib/inventario-v2.ts`).
+DECIDÍ: foto (o su categoría sobre su color), nombre, marca · categoría, **precio de catálogo**, colores de 20 px con el nombre del que se ve, las tallas como
+**botones** con «N piso» (por colgar en ámbar, sin nada con borde punteado; tocarla abre el cajón de esa talla) y el icono único con sus acciones. Los guardados
+se dicen en la línea del color y al pasar el mouse por la talla. El precio llega con la lectura de stock (`variantes.precio` en el `select`; opcional en la fila).
+DESCARTÉ: dejar el riel de etiquetas de ADR-0331, que Felipe aprobó el 2026-10-04: lo reemplaza porque pidió «como en la maqueta».
+SE ROMPE SI: alguien necesitaba ver las guardadas de cada talla sin pasar el mouse: ahora solo está la suma por color.
+
+**8. «Para hoy» sale de la primera pantalla; queda el botón «Pendientes».**
+DECIDÍ: la pantalla arranca con la barra y las tarjetas. Las tareas (cuadrar el piso, ventas sin registrar, dañadas, apartados vencidos, traslados) siguen en una
+ventana que abre el botón «Pendientes · N».
+DESCARTÉ: quitarlas del todo, que fue lo que se pidió: «Regularizar» (ADR-0330 lo sacó de la cabecera) y «Decidir» las dañadas no tendrían ninguna entrada desde
+Existencias, y las ventas sin registrar tienen plazo (15-oct). Es una desviación del pedido; se deshace borrando el botón.
+SE ROMPE SI: nadie toca «Pendientes» y una venta sin registrar se vence: el aviso del Inicio sigue, pero ya no hay tarea visible en Existencias.
+
+**9. «Se acaban» y «Sin ventas»** (dos opciones nuevas de «Condición», `lib/existencias-filtros.ts`).
+DECIDÍ: «Se acaban» = algo colgado que dura una semana o menos al Ritmo reciente medido (`DIAS_SE_ACABA`); «Sin ventas» = colgada, con jornadas suficientes y ninguna
+venta esta semana. Salen en el panel «Condición» y como los «Recomendados» de la fila de atajos. Con pocas jornadas no se afirma nada.
+DESCARTÉ: «sin ventas en 30 días» (el motor lee 14; Frescura calcula 30) y decir «nunca vende» (decisión de Felipe del 2026-09-25).
+SE ROMPE SI: «sin ventas esta semana» se lee como «esta prenda no sirve»: son pocas jornadas de evidencia.
+
+**10. «Prioridad | A–Z»** junto a los atajos (mismo estado que «Ordenar por», que sigue con sus otros órdenes). **«Colgar primero» no se esconde con el piso sin cuadrar:**
+dice «Aparece cuando se cuadre el piso de esta sede», para que su ausencia no se lea como una falla.
+
 ## Lo que NO se construyó (y por qué)
 
 - **El panel guiado paso a paso de la maqueta** (cajón o hoja con las acciones como flujos de pocos toques). Hoy cada acción tiene su ventana y el
   cajón de la prenda existe; reemplazarlos es una actividad aparte y choca con la sesión de rediseño por olas (ADR-0328, `InventarioPanel.tsx`).
 - **«Pedir a otra sede» desde la franja «casi no hay»:** la ventana existe (`PedirAOtraSedeModal`), pero abrirla encima de otra ventana no se resolvió.
   Hoy la franja informa y la acción sigue en Traslados.
-- **«Se acaban» y «Sin ventas» como filtros:** «Sin ventas en 30 días» pide una ventana de 30 días que el motor del piso no lee (lee 14; Frescura sí
-  calcula 30), y «cero ventas» no se dice «nunca vende» (decisión del 2026-09-25).
 - **«Practicar», el modo «Expresivo» y el aro «Hoy: N de M»** de la maqueta: Felipe pidió quitar los dos primeros; el aro no se pidió y contaría un
   clic, no el trabajo, mientras el piso de TRU no esté cuadrado.
 - **Atajos de teclado (1–7, flechas) y la lectura de pistola en cualquier lado:** la pistola ya funciona con el buscador (`onEnter`); los demás

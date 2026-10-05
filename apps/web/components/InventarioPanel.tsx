@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ListChecks, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -12,6 +12,7 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
+import { Modal } from "@/components/ui/Modal";
 import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
 import { SubirAAlmacenModal } from "@/components/SubirAAlmacenModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
@@ -300,6 +301,8 @@ export function InventarioPanel({
   const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [viendoApartados, setViendoApartados] = useState(false);
+  // «Pendientes»: la ventana con las tareas de «Para hoy» (ya no van en la pantalla).
+  const [viendoPendientes, setViendoPendientes] = useState(false);
   // Las cifras «Apartada» y «Dañada» del cajón abren esas mismas ventanas, pero solo con lo de ESA prenda (no la cola entera de
   // la sede). Sin prenda (null) las ventanas muestran todo, como cuando se abren desde «Para hoy» o el aviso de cuarentena.
   const [soloPrenda, setSoloPrenda] = useState<PrendaAgrupada<FilaExistencias> | null>(null);
@@ -712,28 +715,9 @@ export function InventarioPanel({
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
     <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
-      {/* «Para hoy» (rediseño 2026-10-04, decisión de Felipe en la ronda 2): lo pendiente de la sede como frases con su cifra y un
-          botón, en el orden en que conviene hacerlo (`tareasParaHoy`). Reemplaza las cuatro tarjetas de «Prioridades de hoy» (2026-09-28),
-          que se dibujaban aunque dijeran 0 y ocupaban la primera pantalla sin decir por dónde empezar. «Por colgar» cuenta con la
-          MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Reponer a piso hoy» contaba
-          con otra (ADR-0326 §5). */}
-      <ParaHoy
-        tareas={tareasHoy}
-        acciones={accionesHoy}
-        verCuales={verCualesHoy}
-        extra={
-          <>
-            {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
-              <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-                {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
-              </button>
-            )}
-            <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-              Resumen por categoría
-            </button>
-          </>
-        }
-      />
+      {/* «Para hoy» ya no ocupa la primera pantalla (Felipe, 2026-10-05: «como en la maqueta», que arranca con la barra y las tarjetas). Sus tareas
+          —cuadrar el piso, ventas sin registrar, dañadas, apartados vencidos— siguen a un toque, en el botón «Pendientes» de la barra (ventana
+          `viendoPendientes`, más abajo): sin ella, «Regularizar» y «Decidir» no tendrían entrada desde Existencias (ADR-0330 sacó «Regularizar» de la cabecera). */}
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
@@ -780,6 +764,17 @@ export function InventarioPanel({
             }
             vista={
               <>
+                {/* «Pendientes»: lo que antes era «Para hoy» (cuadrar el piso, ventas sin registrar, dañadas…), a un toque. */}
+                <button
+                  type="button"
+                  onClick={() => setViendoPendientes(true)}
+                  title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
+                  className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe"
+                >
+                  <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
+                  Pendientes
+                  {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
+                </button>
                 {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
                 <button
                   type="button"
@@ -791,10 +786,11 @@ export function InventarioPanel({
                     setVerDetalle((d) => !d);
                     setPagina(1);
                   }}
-                  className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                  className={`btn-cayla btn-secundario min-h-[34px] gap-2 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema ${verDetalle ? "px-3" : "px-2.5"}`}
                 >
                   {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.5} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.5} />}
-                  {verDetalle ? "Ver tarjetas" : "Ver detalle"}
+                  {/* Con las tarjetas, solo el icono (la maqueta no tiene botón de texto): la tabla sigue a un toque. */}
+                  {verDetalle ? "Ver tarjetas" : <span className="sr-only">Ver detalle</span>}
                 </button>
                 {verDetalle && (
                   // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
@@ -914,6 +910,7 @@ export function InventarioPanel({
         <div className="mt-3.5">
           {verColgarPrimero && (
             <ColgarPrimero
+              pisoSinCuadrar={tallasEnPausa > 0}
               prendas={colgarPrimeroDeLaSede}
               alReponer={(prenda, origen) => {
                 setAbierta(null);
@@ -961,6 +958,8 @@ export function InventarioPanel({
               setVerDetalle(true);
               setPagina(1);
             }}
+            // Tocar una talla abre el cajón de ESA talla sin salir de las tarjetas: el cajón no depende de la tabla.
+            onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
@@ -1409,6 +1408,30 @@ export function InventarioPanel({
           puedeResolverDanadas={esLider && enSedeActiva}
           onCerrar={() => setAbierta(null)}
         />
+      )}
+
+      {viendoPendientes && (
+        <Modal titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} ancho="max-w-2xl">
+          {/* Cada botón de una tarea cierra la ventana (`alElegir`) y hace lo suyo: filtrar, abrir Dañadas o Apartados, o ir a otra pantalla. */}
+          <ParaHoy
+            tareas={tareasHoy}
+            acciones={accionesHoy}
+            verCuales={verCualesHoy}
+            alElegir={() => setViendoPendientes(false)}
+            extra={
+              <>
+                {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
+                  <button type="button" onClick={() => { setViendoPendientes(false); setViendoApartados(true); }} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+                    {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
+                  </button>
+                )}
+                <button type="button" onClick={() => { setViendoPendientes(false); setViendoDisponible(true); }} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+                  Resumen por categoría
+                </button>
+              </>
+            }
+          />
+        </Modal>
       )}
 
       {camara && (
