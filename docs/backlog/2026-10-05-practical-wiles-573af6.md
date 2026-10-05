@@ -9,7 +9,10 @@
 - [ ] **Decisión de Felipe — la pastilla quitada** toca ADR-0331 (c): la suma de pastillas ya no se ve en cada tarjeta, solo en la línea del conteo.
 - [ ] **Probar el icono solo con una integrante sin capacitación:** si no descubre la ventana, volver un indicador mínimo.
 - [ ] **«Pedir a otra sede» desde «casi no hay»:** abrir `PedirAOtraSedeModal` sin apilar ventanas.
-- [ ] **«Se acaban» como filtro:** con la cobertura del Ritmo reciente; «Sin ventas en 30 días» pide la ventana de 30 días de Frescura.
+- [x] **«Se acaban» y «Sin ventas»** como opciones de «Condición» y atajos «Recomendados» (Ritmo reciente; no son 30 días).
+- [x] **La tarjeta de la maqueta** (tallas en botones, precio, colores de 20 px) y **«Prioridad | A–Z»**; «Para hoy» pasó al botón «Pendientes».
+- [ ] **Decisión de Felipe — «Pendientes» en vez de quitar «Para hoy»:** se dejó para no perder «Regularizar» ni «Decidir»; borrar el botón si no lo quiere.
+- [ ] **Las guardadas por talla** ya no se ven en la tarjeta (solo la suma por color y el tooltip): mirar si hace falta.
 - [ ] **El panel guiado paso a paso de la maqueta** (acciones como flujos de pocos toques): actividad aparte, choca con ADR-0328.
 - [ ] **Atajos de teclado** (1–7, flechas) del cajón.
 - [ ] **Orden de fusión con #807 y #808:** los tres tocan `ExistenciasTarjetas.tsx` e `InventarioPanel.tsx`; #808 renombra la ventana y sus reglas.
