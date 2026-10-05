@@ -372,3 +372,80 @@ describe("la cabecera", () => {
     expect(deUnidad("De la empresa")).toBe("de la empresa");
   });
 });
+
+// ---- Finanzas cuenta desde una fecha (ADR-0332) -------------------------------------------------------------------------
+// El caso real del 2026-10-04: el sistema arrancó en octubre y el «último mes completo» (septiembre) solo tiene la planilla de
+// Dynamic contra 15 ventas de piloto. Con el corte puesto, esa utilidad no se muestra; lo que viene (caja) y el IGV sí.
+
+describe("Finanzas cuenta desde una fecha", () => {
+  const conCorte = (base: unknown, inicio: string | null, mesAnt: string) => {
+    const b = base as Record<string, unknown>;
+    return leerResumen({ ...b, mes_anterior: `${mesAnt}-01`, parametros: { ...(b.parametros as object), inicio_finanzas: inicio } });
+  };
+
+  it("sin corte nada cambia: el último mes completo se mide como siempre", () => {
+    const r = conCorte(fixture.todas, null, "2026-08");
+    expect(r.antesDelCorte).toBeNull();
+    expect(r.resultadosAnterior.estado).toBe("ok");
+    expect(cifrasResumen(r).find((c) => c.clave === "utilidad")?.etiqueta).toBe("Utilidad de agosto");
+  });
+
+  it("con el corte DESPUÉS del último mes completo, ese mes no se mide ni se pide cerrar", () => {
+    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
+    expect(r.antesDelCorte).toBe("2026-09-01");
+    expect(r.resultadosAnterior).toEqual({ estado: "no_aplica" });
+    expect(r.cierre).toEqual({ estado: "no_aplica" });
+    expect(claves(avisosParaDecidir(r, LIDER))).not.toContain("cierre");
+    expect(claves(avisosParaDecidir(r, LIDER))).not.toContain("pierde");
+  });
+
+  it("la utilidad habla del primer mes que cuenta y dice cuándo se mide, no un cero", () => {
+    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
+    const u = cifrasResumen(r).find((c) => c.clave === "utilidad")!;
+    expect(u).toMatchObject({ etiqueta: "Utilidad de septiembre", valor: "—", detalle: "Se mide cuando el mes termine", rojo: false });
+  });
+
+  it("la frase de cuándo se cubren los costos explica el corte en vez de desaparecer", () => {
+    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
+    const f = frasesSalud(r).find((x) => x.clave === "equilibrio")!;
+    expect(f).toMatchObject({ n: "—", tono: "pizarra" });
+    expect(f.d).toContain("1 de septiembre de 2026");
+  });
+
+  it("el gráfico de cobertura queda sin barras y sin 'sin ventas' inventados", () => {
+    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
+    expect(coberturaTiendas(r)).toEqual({ barras: [], sinDatos: [] });
+  });
+
+  it("LO QUE NO SE CORTA: los días de caja y la planilla que viene siguen como antes (la caja de las próximas semanas es real)", () => {
+    const sin = conCorte(fixture.todas, null, "2026-08");
+    const con = conCorte(fixture.todas, "2026-09-01", "2026-08");
+    expect(con.flujo).toEqual(sin.flujo);
+    expect(debesPronto(con)).toEqual(debesPronto(sin));
+    expect(cifrasResumen(con).find((c) => c.clave === "debes")).toEqual(cifrasResumen(sin).find((c) => c.clave === "debes"));
+    expect(cifrasResumen(con).find((c) => c.clave === "igv")).toEqual(cifrasResumen(sin).find((c) => c.clave === "igv"));
+  });
+
+  it("un corte que NO es posterior al último mes completo no cambia nada (el mes anterior ya cuenta)", () => {
+    const r = conCorte(fixture.todas, "2026-08-01", "2026-08");
+    expect(r.antesDelCorte).toBeNull();
+    expect(r.resultadosAnterior.estado).toBe("ok");
+    const r2 = conCorte(fixture.todas, "2026-01-01", "2026-08");
+    expect(r2.antesDelCorte).toBeNull();
+  });
+
+  it("también en una tienda, el Taller y la empresa: la cifra dice el mes que cuenta y no inventa un gasto", () => {
+    const t = cifrasResumen(conCorte(fixture.taller, "2026-09-01", "2026-08"));
+    expect(t.find((c) => c.clave === "utilidad")).toMatchObject({ etiqueta: "Utilidad de septiembre", valor: "—" });
+    const e = cifrasResumen(conCorte(fixture.empresa, "2026-09-01", "2026-08"));
+    expect(e.find((c) => c.clave === "gastos")).toMatchObject({ etiqueta: "Gastos de septiembre", valor: "—" });
+  });
+
+  it("una base sin la migración (sin la clave) se lee como sin corte", () => {
+    const b = fixture.todas as Record<string, unknown>;
+    const r = leerResumen({ ...b, parametros: { minimo_caja: 15000, aviso_gasto_pct: 25, aviso_vence_dias: 7 } });
+    expect(r.antesDelCorte).toBeNull();
+    expect(r.resultadosAnterior.estado).toBe("ok");
+  });
+});
+

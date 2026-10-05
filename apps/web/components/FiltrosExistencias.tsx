@@ -9,6 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { TEXTO_HOY, TIPOS_HOY } from "@/lib/existencias-hoy";
+import type { ConteoDeLista } from "@/lib/existencias-tarjetas";
 import { opcionesConConteo } from "@/lib/productos-facetas";
 import { alternarColor, estadoDeColor, listaParaUrl, opcionesDeColor, separarColor } from "@/lib/productos-filtros";
 import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
@@ -63,7 +64,7 @@ export function FiltrosExistencias({
   conteos,
   onCambiar,
   onLimpiar,
-  total,
+  conteo,
   detalleTotal,
   panelInicial,
   orden,
@@ -94,9 +95,9 @@ export function FiltrosExistencias({
   /** Un cambio de filtros; `null` lo quita. */
   onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
   onLimpiar: () => void;
-  /** Cuántos productos se ven (modelos: una tarjeta cada uno). */
-  total: number;
-  /** Lo que sigue al conteo («Vista de piso y almacén»). */
+  /** Cuántas tarjetas trae la lista y en qué unidad (`conteoDeLista`): productos, o prendas y sus tallas con un caso de «Hoy». */
+  conteo: ConteoDeLista;
+  /** Lo que sigue al conteo cuando no hay «Hoy» («Vista de piso y almacén»). */
   detalleTotal: string;
   /** Lo que este equipo dejó la última vez (cookie leída en el servidor). */
   panelInicial: EstadoPanelFiltros;
@@ -343,7 +344,7 @@ export function FiltrosExistencias({
               </button>
             )}
             <button type="button" onClick={() => setHojaAbierta(false)} className="btn-cayla btn-primario flex-1">
-              Ver {total.toLocaleString("es-PE")} {total === 1 ? "producto" : "productos"}
+              Ver {conteo.total.toLocaleString("es-PE")} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
             </button>
           </div>
         </Modal>
@@ -356,8 +357,19 @@ export function FiltrosExistencias({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="flex items-baseline gap-3 text-sm text-tinta/70">
           <span aria-live="polite">
-            <strong className="font-semibold text-tinta">{total.toLocaleString("es-PE")}</strong> {total === 1 ? "producto" : "productos"}
-            <span className="text-tinta/55"> · {detalleTotal}</span>
+            <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
+            {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
+            {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» de «Para hoy» y del Inicio), tan visible como la de
+                arriba: es la que suman las pastillas de las tarjetas. */}
+            {conteo.tallas ? (
+              <span>
+                {" · "}
+                <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
+                {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
+              </span>
+            ) : (
+              <span className="text-tinta/55"> · {detalleTotal}</span>
+            )}
           </span>
           {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
           {panelAbierto && chips.length > 0 && (
