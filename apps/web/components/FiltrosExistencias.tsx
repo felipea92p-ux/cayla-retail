@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, Shirt, Tag } from "lucide-react";
+import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, ScanLine, Shirt, Tag } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
+import { FiltrosRapidos } from "@/components/existencias/FiltrosRapidos";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -71,6 +72,7 @@ export function FiltrosExistencias({
   orden,
   vista,
   nota,
+  onEscanear,
 }: {
   busqueda: string;
   onTeclear: (texto: string) => void;
@@ -108,6 +110,8 @@ export function FiltrosExistencias({
   vista: ReactNode;
   /** Una aclaración bajo la fila del conteo (la de «Por colgar»). */
   nota?: ReactNode;
+  /** Abre la cámara (`EscanerBusqueda`). Un solo icono junto al buscador, desde `sm`: en el celular ya está el botón fijo de abajo. */
+  onEscanear?: () => void;
 }) {
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
@@ -328,9 +332,26 @@ export function FiltrosExistencias({
           <span aria-hidden className="label-cayla block text-[11px] text-transparent">
             {" "}
           </span>
-          <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+          <div className="flex items-center gap-2">
+            {/* Escanear: solo el icono (maqueta aprobada). El nombre va como etiqueta y al pasar el mouse. */}
+            {onEscanear && (
+              <button
+                type="button"
+                onClick={onEscanear}
+                aria-label="Escanear etiqueta"
+                title="Escanear etiqueta"
+                className="mt-1.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tinta/15 text-tinta/70 transition-colors hover:border-tinta/30 hover:text-tinta sm:inline-flex"
+              >
+                <ScanLine aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+              </button>
+            )}
+            <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+          </div>
         </div>
       </div>
+
+      {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`): los mismos filtros «Hoy» y «Condición», a un toque. */}
+      {separa && <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} />}
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}

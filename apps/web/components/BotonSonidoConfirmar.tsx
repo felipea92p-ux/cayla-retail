@@ -2,12 +2,11 @@
 
 import { useSyncExternalStore } from "react";
 import { Volume2, VolumeX } from "lucide-react";
-import { fijarSonidoConfirmar, leerSonidoConfirmar, suscribirSonidoConfirmar } from "@/lib/sonido-confirmar";
+import { fijarSonidoConfirmar, sonidoConfirmar } from "@/lib/sonido-confirmar";
 
 /** El interruptor del sonido de «confirmado» (por equipo, `lib/sonido-confirmar.ts`): un icono que dice su estado y lo cambia. */
 export function BotonSonidoConfirmar() {
-  // En el servidor siempre «encendido»; el navegador corrige al hidratar sin parpadeo (useSyncExternalStore lo reconcilia).
-  const activo = useSyncExternalStore(suscribirSonidoConfirmar, leerSonidoConfirmar, () => true);
+  const activo = useSyncExternalStore(sonidoConfirmar.suscribir, sonidoConfirmar.leer, sonidoConfirmar.leerEnServidor) === "si";
   const Icono = activo ? Volume2 : VolumeX;
   return (
     <button

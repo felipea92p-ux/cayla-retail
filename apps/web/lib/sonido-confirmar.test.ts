@@ -1,18 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PATRON_CONFIRMADO, sonidoConfirmarActivo } from "./sonido-confirmar";
+import { PATRON_CONFIRMADO, sonidoConfirmar } from "./sonido-confirmar";
 import { PATRON_SONIDO } from "./conteo-conectado";
 
 describe("sonido de «confirmado»", () => {
-  it("la primera vez suena: sin nada guardado está encendido", () => {
-    expect(sonidoConfirmarActivo(null)).toBe(true);
-    expect(sonidoConfirmarActivo(undefined)).toBe(true);
-    expect(sonidoConfirmarActivo("1")).toBe(true);
-  });
-
-  it("solo «0» lo apaga: un valor raro no deja a la persona sin el aviso", () => {
-    expect(sonidoConfirmarActivo("0")).toBe(false);
-    expect(sonidoConfirmarActivo("")).toBe(true);
-    expect(sonidoConfirmarActivo("no")).toBe(true);
+  it("la primera vez suena: el valor de fábrica es «si»", () => {
+    expect(sonidoConfirmar.leerEnServidor()).toBe("si");
   });
 
   it("sube (el segundo tono es más agudo) y no se parece a ningún bip de la pistola", () => {

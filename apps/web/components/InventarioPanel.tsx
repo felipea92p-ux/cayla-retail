@@ -758,6 +758,7 @@ export function InventarioPanel({
             conteo={conteo}
             detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
             panelInicial={panelFiltros}
+            onEscanear={() => setCamara(true)}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
             orden={
               verDetalle
