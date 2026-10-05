@@ -566,12 +566,14 @@ caso(
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('colaboradores'), fn_puede_gestionar_colaboradores(), fn_es_lider());\n` +
     `select pg_temp.intento(format('select retail.agregar_colaborador(%L, %L)', :'nueva', tru)) from ids;\n` +
+    // ADR-0341: quien no es líder deja el alta pendiente; solo la de un líder entra directo.
+    `select estado from retail.colaboradores where persona_id = :'nueva';\n` +
     `select pg_temp.intento(format('select retail.fn_aprobar_alta_colaborador(%L)', :'nueva'));\n` +
     `select estado from retail.colaboradores where persona_id = :'nueva';\n` +
     `select (count(*) > 0)::text from retail.fn_colaboradores();\n` +
     `select (count(*) = 2)::text from retail.fn_terminales() where nombre like 'Terminal % TRU';\n` +
     `set local role authenticated;\nselect (count(*) > 0)::text from retail.colaboradores;`,
-  "t,t,f\nSIN_ERROR\nSIN_ERROR\nactivo\ntrue\ntrue\ntrue"
+  "t,t,f\nSIN_ERROR\npendiente_aprobacion\nSIN_ERROR\nactivo\ntrue\ntrue\ntrue"
 );
 caso(
   "protección 2: quien tiene Colaboradores sin ser líder NO quita, NO suspende y NO reactiva a un líder",
