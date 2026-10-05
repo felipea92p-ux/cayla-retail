@@ -479,6 +479,16 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:capacidad-piso
 
+      # Plan del piso, grupos del mix (ADR-0329, actividad 12 de ADR-0328): los 8 grupos con su rol y de qué lado del riel están; las 42
+      # categorías entran con la propuesta por prefijo, todas «por revisar»; `fn_grupos_mix` y `fn_categorias_grupo_mix` para líder,
+      # colaboradora y terminal (42501 para la cuenta de afuera); `fijar_grupos_de_categorias` solo del líder y TODO O NADA (con firma,
+      # historial, «sin cambios» al reintentar y PT409 si otra persona cambió una, sin guardar ninguna del lote); los candados de la tabla
+      # (un vestido no va a «accesorios», un cinturón no va entre los jeans, una categoría en dos grupos, un rol inventado) y el módulo
+      # sin rol. Cada caso termina en ROLLBACK.
+      - name: pruebas:plan-piso-grupos
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:plan-piso-grupos
+
       # «Cuadrar el piso» (ADR-0328, decisión técnica 4): `cuadrar_piso` pasa al piso, de una vez y todo o nada, lo que el almacén
       # tiene libre y nadie escaneó como guardado (y sube lo escaneado que el sistema creía colgado). Solo un líder confirma; lo
       # apartado, la cuarentena, lo archivado y lo de prueba no se mueven; las «no cargadas» se guardan y no se aplican; la

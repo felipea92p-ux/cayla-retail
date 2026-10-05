@@ -13,7 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "movimientos", "frescura",
+  "existencias", "conteos", "traslados", "movimientos", "frescura", "plan_piso",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
@@ -73,6 +73,10 @@ export const MODULOS: readonly Modulo[] = [
   // lecturas piden «el líder, o este módulo, en una sede que opera». Quien lo tiene sin ser líder ve SU sede entera; el
   // registro al colgar, «Las 3 tiendas» y la referencia de CAYLA (que leen las otras sedes) siguen siendo del líder.
   { clave: "frescura", grupo: "Inventario", nombre: "Frescura del piso", incluye: "Ver cuánto lleva colgada cada prenda de su tienda contra las demás de su categoría, y qué conviene hacer con la que se queda" },
+  // Plan del piso (ADR-0329 + ADR-0328, actividad 12; 20261006100000): cuánto lugar tiene cada grupo de prendas en el riel de su
+  // tienda. Primera entrega, solo lectura: la propuesta y los grupos del mix. Nace SIN rol (solo el líder) y delegable (ADR-0253).
+  // Quien lo recibe sin ser líder VE la propuesta y los grupos; decidir a qué grupo va cada categoría sigue siendo del líder.
+  { clave: "plan_piso", grupo: "Inventario", nombre: "Plan del piso", incluye: "Ver la propuesta de cuánto lugar tiene cada grupo de prendas en el piso de su tienda y contra qué se compara" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
@@ -122,6 +126,7 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
   { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
+  { que: "Decidir a qué grupo del plan del piso va cada categoría (el módulo Plan del piso solo deja ver la propuesta)", origen: "ADR-0329, decisión 4" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).

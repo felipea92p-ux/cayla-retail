@@ -1,5 +1,5 @@
 import {
-  Activity, BarChart3, Banknote, Bookmark, CalendarCheck, ClipboardCheck, Coins, FileMinus, FileText, Gauge, Globe, History, House,
+  Activity, BarChart3, Banknote, Bookmark, CalendarCheck, ClipboardCheck, Coins, FileMinus, FileText, Gauge, Globe, History, House, LayoutGrid,
   KeyRound, Landmark, Leaf, LineChart, ListOrdered, MessageCircle, Package, PackageOpen, Percent, Receipt, Repeat, Scissors, Settings,
   Shirt, ShoppingCart, Store, Tag, Tags, Truck, Undo2, UserRound, Users, Wallet, type LucideIcon,
 } from "lucide-react";
@@ -24,6 +24,7 @@ const ICONOS: Record<ClaveModulo, LucideIcon> = {
   traslados: Truck,
   movimientos: ListOrdered,
   frescura: Leaf,
+  plan_piso: LayoutGrid,
   productos: Shirt,
   atributos: Tags,
   etiquetas: Tag,
