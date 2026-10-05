@@ -69,7 +69,10 @@ del otro antes de que aterrizara en `main`.
 4. **`main` exige los dos checks del CI antes de fusionar** (activo desde el 2026-09-25):
    `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` (`.github/workflows/ci.yml`),
    en el ruleset `main-protegida` (Settings ▸ Rules). No tiene excepciones, ni para el
-   administrador. Si hay que cambiarlo, lo hace quien tenga permiso de administrador en
+   administrador. **No apagues «Require branches to be up to date» (`strict_required_status_checks_policy`):**
+   el CI del push a `main` no repite lo que el PR ya corrió porque, con eso activo, el PR corrió sobre el mismo árbol que
+   queda en `main` (ADR-0345). Si lo apagas, revierte primero el recorte del push en `scripts/ci/alcance.mjs`.
+   Si hay que cambiar el ruleset, lo hace quien tenga permiso de administrador en
    GitHub; este es el comando con el que se activó:
    ```bash
    gh api -X PUT repos/felipea92p-ux/cayla-retail/rulesets/23629061 --input - <<'EOF'
