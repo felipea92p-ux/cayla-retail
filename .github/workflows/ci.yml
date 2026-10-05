@@ -731,6 +731,13 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:movimientos-desde-la-tienda
 
+      # «Colgada en piso» y «Guardada en almacén» como tipos de Movimientos (ADR-0345): el filtro de la lista y los grupos de
+      # las cifras las separan por el par de lugares (almacén → piso / piso → almacén), «interno» las sigue sumando, el
+      # parche es re-pegable. Cada caso en ROLLBACK.
+      - name: pruebas:movimientos-colgada-y-guardada
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-colgada-y-guardada
+
       # Un ajuste no es la primera carga (ADR-0235): la base rechaza un ajuste que sería el primer movimiento de una prenda
       # en la tienda (`ajuste_sin_historia`) y `cargar_stock_inicial` la carga como entrada, todas o ninguna, al almacén o
       # al piso con su bajada; después, un ajuste de verdad pasa como siempre. Cada caso en ROLLBACK.

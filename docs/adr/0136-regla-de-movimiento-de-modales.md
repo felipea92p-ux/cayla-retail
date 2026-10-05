@@ -241,3 +241,16 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** `apps/web/app/estilos/vista-rapida.css` (clases `vr-*` y sus `@keyframes`, en `@layer components`) y
   `components/vista-rapida/` (`VistaRapidaProducto`, `MatrizUnidades`, `FotoVistaRapida`, `movimiento.ts`). Lo único que toca el sistema de modales
   es `<Modal conCerrar tituloGrande>` (dos opciones nuevas y opcionales: la ✕ visible y un título de 26 px), que no mueve a ningún otro.
+
+## Actualización 2026-10-05 (b) — Movimientos: el sello de cada tipo y su trayecto
+
+- **Qué:** en Movimientos (ADR-0353) cada fila lleva el sello de su tipo, cuyo ícono se mueve **una vez** al entrar a la vista y otra al pasar el mouse por la
+  fila (la bolsa sube, la caja levanta su tapa, el paquete cae, el camión llega…), y un trayecto «Piso → Cliente» con una prenda que viaja de un punto al otro.
+  El **perchero de la colgada se mece** (un péndulo que se asienta, como el cartel de ADR-0301). También cuentan los números de los botones de tipo y se llenan
+  sus barras, las franjas del día suben y las capas del mazo se abren en abanico.
+- **Por qué se admite:** Felipe pidió que se distinguiera «de un vistazo» una venta, una colgada y una guardada, y el movimiento es parte de cómo se reconoce cada una. Es
+  una decisión suya, no un descuido.
+- **Los límites son los de siempre:** `--ease-cayla`, **nada en bucle, nada con rebote**, colores solo de la paleta, y con `prefers-reduced-motion` todo se apaga.
+  Corre al **verse**, así que filtrar una lista nueva vuelve a mover sus sellos (la regla de «buscar o filtrar no re-anima toda la tabla» no se cumple aquí a
+  propósito: cada fila nueva es una fila que aparece).
+- **Dónde vive:** `apps/web/app/estilos/movimientos-sellos.css` (clases `mv-*`) y `components/movimientos/`. No se generaliza.
