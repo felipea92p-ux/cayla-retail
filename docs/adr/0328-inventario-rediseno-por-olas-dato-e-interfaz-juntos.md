@@ -341,9 +341,22 @@ decidió con Felipe así:
   que eligió quien pide, o cualquier líder de esa sede. Si nadie la aprueba en 24 h, vence sin aplicarse. El lote espera completo
   (todo o nada). Una líder que corrige desde su propia cuenta (`fn_es_lider()`) pasa directo. No es un módulo nuevo: es una
   función de Existencias (ADR-0306).
-- **El candado vive en `registrar_movimiento`** (ajuste con cantidad negativa), no solo en el modal: la función se puede llamar
-  directo desde el navegador. Se pone por ancla sobre el cuerpo vivo, encima de lo que ya le agregaron #784 y #785.
-- **Qué no pasa por ese candado:** el cierre del conteo (`cerrar_conteo` escribe sus ajustes por su cuenta), el cuadre del piso,
-  Reportar dañada (mueve a cuarentena, no ajusta) y «La tengo en la mano» (solo suma). Si el acumulado del día cuenta lo que quitó
-  un conteo, lo decide esa sesión con Felipe.
+- **El candado vive en `ajustar_inventario`**, después de `fn_bloquear_en_orden` (dos terminales no leen el acumulado a la vez), y
+  la puerta de atrás se cierra: `registrar_movimiento` deja de poder llamarse desde el navegador (`revoke … from authenticated`;
+  hoy solo la llaman `ajustar_inventario` y `bajar_en_mano`, las dos `security definer`, consultado en producción). Va por ancla
+  sobre el cuerpo vivo, encima de lo que ya le agregaron #784 y #785.
+- **Qué no cuenta ni se frena:** lo que quita un conteo (`cerrar_conteo` escribe `conteo` y `conteo_arranque` por su cuenta) y
+  `error_al_cobrar` no suman al acumulado; el cuadre del piso, Reportar dañada (mueve a cuarentena) y «La tengo en la mano» (solo
+  suma) no pasan por el candado. «Conté y no coincide» (`conteo_fisico`) sí, porque es una corrección a mano.
 
+## Actualización 2026-10-04 (noche) — la «limpieza de arranque» de la actividad 5 se construyó aparte (ADR-0334)
+
+De la actividad 5 («Ventas sin registrar: categoría sugerida, nadie regulariza su propia venta salvo el líder, y limpieza de arranque con
+candidata») se construyó **solo la tercera parte**, desde otra rama, el mismo día en que Felipe pidió «una opción de lo doy por hecho»:
+ADR-0334. La decisión 8 se cumple así: las ventas con **una** sola prenda posible se identifican con la confirmación de un líder («Identificar con
+sugerencias») y las demás se cierran sin prenda, en bloque, dentro de un plazo (15-oct) y con un motivo. La decisión 9 («al revisar un conteo, cada
+faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pendientes; una venta cerrada ya no aparece en ese cruce.
+
+Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
+venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
+velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican).

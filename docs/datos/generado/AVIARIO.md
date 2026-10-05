@@ -191,5 +191,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:
 `COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.
 
+- `cierres_cola_arranque`
+- `cola_arranque_plazo`
 - `cuadre_piso_items`
 - `cuadres_piso`

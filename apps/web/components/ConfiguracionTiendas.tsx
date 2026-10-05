@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -264,7 +264,9 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
   );
 }
 
-export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
+/** `despuesDeWhatsapp`: otra tarjeta de la sede que va entre el WhatsApp y las campañas (la carga inicial, ADR-0328). Se pasa
+ *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. */
+export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Datos; despuesDeWhatsapp?: ReactNode }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
@@ -365,6 +367,8 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
           </span>
         </PieTabla>
       </Superficie>
+
+      {despuesDeWhatsapp}
 
       <Superficie className="anim-sube">
         <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">

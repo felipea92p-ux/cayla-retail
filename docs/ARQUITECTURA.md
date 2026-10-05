@@ -482,7 +482,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
   `lib/por-regularizar.ts` + `PorRegularizarLista.tsx` → RPC `regularizar_prenda` (sin cambios; detalle en «Recibir mercadería»,
   más abajo). Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
-  con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí.
+  con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí. **Cierre de arranque (ADR-0334, 2026-10-04):**
+  un líder da por hechas, en bloque y dentro del plazo de su tienda, las ventas que ya no se pueden identificar → botón en la lista →
+  `CerrarColaArranqueModal.tsx` (reglas puras en `lib/cola-arranque-reglas.ts`; plazos por `getPlazosColaArranque`) → RPC `cerrar_cola_arranque`
+  (tablas `cierres_cola_arranque` y `cola_arranque_plazo`; estado `cerrada_sin_prenda`, sin prenda y sin movimiento de stock). Cambios y
+  devoluciones de una prenda cerrada siguen bloqueados (`fn_exige_prenda_regularizada`); un líder la «reabre» (`ReabrirPrendaModal.tsx` →
+  RPC `reabrir_prenda_cerrada`) para regularizarla y devolverla. Antes de cerrar, «Identificar con sugerencias» (`SugerenciasColaModal.tsx`
+  → RPC de lectura `fn_cola_arranque_candidatas`, que se apoya en la base común `fn_candidatas_de_venta` (todas las parejas posibles de una tienda, para
+  quien la opera), + `regularizar_prendas_sugeridas`, todo o nada) une las ventas que tienen UNA sola prenda posible; la base propone y un líder
+  confirma fila por fila.
 - **«Nuevo traslado» = `/inventario/traslados/nuevo`** (ADR-0242 D-4, 2026-10-03; antes `/inventario/mover`) →
   `app/(app)/inventario/traslados/nuevo/page.tsx` → `MoverMercaderiaFormV2.tsx` → RPC `iniciar_traslado`; acepta
   prellenado por URL (`origen`, `destino`, `variante`, `cantidad`, `lineas`), validado en la página. Cuelga de la
@@ -1164,6 +1172,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
   pura) → `ConfiguracionTiendas.tsx` → RPC `guardar_metas_tienda`, `guardar_efecto_campana` (firmadas con el responsable).
+  Desde ADR-0328 (actividad 4) la pestaña «Tiendas y caja» trae además «Carga inicial de cada sede» (`ConfiguracionCargaInicial.tsx`
+  ← `lib/carga-inicial.ts` → `fn_carga_inicial_sedes`; la hoja guarda con `fijar_cierre_carga_inicial`).
   **Caja y avisos** (`ConfiguracionCajaAvisos.tsx`) también fija «Desde cuándo cuenta Finanzas» (ADR-0332): RPC `guardar_inicio_finanzas` →
   `parametros_finanzas.inicio_finanzas`; lo leen `fn_asientos`/`fn_estado_resultados` (cortan lo anterior) y, vía `fn_parametros_finanzas`,
   el Resumen, el Cierre y Reportes (`lib/finanzas-arranque-reglas.ts` pone el corte en palabras). La proyección de caja y los impuestos no se cortan.
@@ -1403,6 +1413,7 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `fn_movimientos_resumen_procesos` (2026-09-26, ADR-0234; **en producción desde el 2026-09-26**) + parche «Entradas/Salidas desde la tienda» en `fn_movimientos` (`20260927153000`) | Las cifras de Movimientos por grupo de filtro (todos/entrada/salida/transferencia/ajuste/interno) y proceso: operaciones (misma transacción, persona, proceso y documento), filas, unidades que entraron, salieron o se movieron. Una fila cuenta en cada filtro que la muestra |
 | `fn_movimientos_saldos` (2026-09-26, ADR-0234 «saldo»; **en producción desde el 2026-09-26**, `20260927173000`) | Por cada movimiento de la página, cuántas unidades de esa prenda quedaron en la sede (sin cuarentena) al terminar su operación. Lee `fn_ledger_puntos` (bucket `total`, ADR-0202); no calcula por su cuenta. La llama `getSaldosDeMovimientos`; sin la función, la lista sigue sin el saldo |
 | `cargar_stock_inicial` (2026-09-26, ADR-0235; **en producción desde el 2026-09-26**, `20260927153100`) + candado `ajuste_sin_historia` en `registrar_movimiento` (`20260927153200`) | La primera carga de prendas que ya existen, en una tienda donde no tienen historia: entrada `carga_inicial` (vía `fn_cargar_stock_inicial`) y, colgadas, su bajada al piso. La llama Ajustar stock; la base ya no deja que un ajuste sea la primera carga |
+| `fn_carga_inicial_sedes()` / `fijar_cierre_carga_inicial(p_ubicacion_id, p_fecha)` + candado `carga_inicial_cerrada` en `fn_cargar_stock_inicial` (2026-10-04, ADR-0328 actividad 4; **sin pegar en producción**: `20261004210000`, `…210100`, `…210200`, en ese orden) | La carga inicial se cierra POR SEDE en `ubicaciones.carga_inicial_hasta` (último día abierto; vacía = sin fecha; TRU, AQP y LIM sembradas al 15-oct, Felipe 2026-10-04; el Taller, sin fecha). `fn_cargar_stock_inicial` —la única que escribe `carga_inicial`; `registrar_movimiento` ya no lo acepta— rechaza pasada la fecha, así que se cierran a la vez Nuevo producto, `cargar_stock_inicial` y Ajustar. La lectura la usan Configuración (`lib/carga-inicial.ts`), Nuevo producto y, desde el navegador, Ajustar y la ficha (`lib/useCargaInicial.ts`); la lógica pura y las frases, `lib/carga-inicial-reglas.ts`. La fecha la cambia solo `fijar_cierre_carga_inicial` (Configuración ▸ Tiendas y caja, `ConfiguracionCargaInicial.tsx`): el líder aprieta, el Admin afloja; un disparador no deja escribirla desde la API. «Encontré prendas» (motivo `reposicion` de `registrar_movimiento`) pide nota, solo suma y, con la carga cerrada, es la entrada de una prenda que nunca estuvo en la sede |
 
 | `fn_terminal_actual` (2026-09-22, ADR-0162; **sin pegar en producción**) | La terminal activa de la sesión (id, tienda, tipo, nombre) o nada. Equivale a `fn_sede_actual_terminal()` de Dynamic. De ella leen ahora `fn_es_terminal`, `fn_mi_terminal`, `fn_ubicacion_actual_persona` y `fn_persona_actual_resumen` (cambian de fuente, no de firma; las cinco `fn_puede_*` no se tocan) |
 | `fn_persona_presente(p_persona_id, p_ubicacion_id, p_momento)` (ADR-0162) | ¿Esa persona estaba `presente` en esa tienda a esa hora? Misma lectura de `marcajes`/`jornadas` que `fn_asesoras_de_turno`, para que el combo y el candado nunca discrepen. En pausa NO cuenta. SQL dinámico: en una base sin `marcajes` (el Postgres local) devuelve falso, falla cerrada |
