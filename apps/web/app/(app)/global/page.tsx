@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { getCoberturaGlobal } from "@/lib/cayla-global";
+import { getPreparacionMotor } from "@/lib/motor-demanda";
+import { PreparacionMotor } from "@/components/motor-demanda/PreparacionMotor";
 import { estadoDeCobertura, fechaCorta, resumenCobertura } from "@/lib/cayla-global-tablero";
 import { NOMBRE_VISTA_GLOBAL } from "@/lib/vista-global";
 import type { ClaveModulo } from "@/lib/modulos";
@@ -40,7 +42,7 @@ const entero = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 export default async function SaludDelNegocioPage() {
   // Se repite aquí además del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("cayla_global");
-  const cobertura = await getCoberturaGlobal();
+  const [cobertura, motor] = await Promise.all([getCoberturaGlobal(), getPreparacionMotor()]);
   const resumen = resumenCobertura(cobertura.datos);
   const accesos = ACCESOS.filter((a) => (a.modulo === "lider" ? persona.rol === "lider" : veModulo(persona, a.modulo)));
 
@@ -110,6 +112,24 @@ export default async function SaludDelNegocioPage() {
           </Tabla>
         </section>
       )}
+
+      {/* Motor de demanda, etapa 0 (ADR-0344): antes de recomendar nada, si los datos de cada tienda ya dicen la verdad. */}
+      <section aria-labelledby="motor-titulo" className="space-y-3">
+        <div>
+          <h2 id="motor-titulo" className="font-display text-xl text-tinta">¿El sistema ya puede recomendar?</h2>
+          <p className="mt-1 text-sm text-tinta/75">
+            Para sugerir qué colgar, trasladar, producir o comprar, cada tienda necesita tres cosas: que al menos 9 de cada 10
+            prendas vendidas se registren con su prenda durante 14 días seguidos, el piso cuadrado y el almacén contado.
+          </p>
+        </div>
+        {motor.falla ? (
+          <p className="nota-cayla" role="alert">
+            {motor.falla}. Vuelve a intentarlo en un momento.
+          </p>
+        ) : (
+          <PreparacionMotor sedes={motor.sedes} />
+        )}
+      </section>
 
       {accesos.length > 0 && (
         <section aria-labelledby="accesos-titulo" className="space-y-3">
