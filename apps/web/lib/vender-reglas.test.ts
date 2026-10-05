@@ -12,6 +12,7 @@ import {
   montosSugeridos,
   esDescuentoDeCampana,
   esperaAlCargar,
+  lecturaDelRecibido,
   hayDescuentoManual,
   cobroEnEfectivo,
   motivoBloqueoCobro,
@@ -981,5 +982,33 @@ describe("motivoBloqueoCobro con el redondeo del efectivo", () => {
   it("desde S/ 0.10 de efectivo ya hay moneda: no bloquea", () => {
     expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.1), redondeoEfectivo: true })).toBeNull();
     expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.19), redondeoEfectivo: true })).toBeNull();
+  });
+});
+
+describe("lecturaDelRecibido — vuelto, falta o exacto bajo los billetes (la hoja pinta exacto en verde y falta en rojo)", () => {
+  it("sin recibido no hay lectura: la línea queda invisible", () => {
+    expect(lecturaDelRecibido(undefined, 65, 0)).toBeNull();
+  });
+
+  it("recibido justo: exacto, con el cobro como cifra", () => {
+    expect(lecturaDelRecibido(65, 65, 0)).toEqual({ estado: "exacto", monto: 65 });
+    expect(lecturaDelRecibido(159.9, 159.9, 0)).toEqual({ estado: "exacto", monto: 159.9 });
+  });
+
+  it("recibido de menos: falta, con lo que falta como cifra", () => {
+    expect(lecturaDelRecibido(60, 65, 0)).toEqual({ estado: "falta", monto: 5 });
+    expect(lecturaDelRecibido(0, 65, 0)).toEqual({ estado: "falta", monto: 65 });
+    // sin errores de coma flotante: 0.1 + 0.2 de diferencia no se cuela
+    expect(lecturaDelRecibido(59.7, 59.9, 0)).toEqual({ estado: "falta", monto: 0.2 });
+  });
+
+  it("recibido de más: vuelto, con el vuelto como cifra (neutro, ni verde ni rojo)", () => {
+    expect(lecturaDelRecibido(100, 65, 35)).toEqual({ estado: "vuelto", monto: 35 });
+  });
+
+  it("con el redondeo del efectivo la cuenta es contra lo que se cobra en monedas, no contra la deuda exacta", () => {
+    // deuda S/ 79.88 → se cobran S/ 79.80 en monedas; con 79.80 recibidos es exacto, con 79.70 faltan 0.10
+    expect(lecturaDelRecibido(79.8, 79.8, 0)).toEqual({ estado: "exacto", monto: 79.8 });
+    expect(lecturaDelRecibido(79.7, 79.8, 0)).toEqual({ estado: "falta", monto: 0.1 });
   });
 });

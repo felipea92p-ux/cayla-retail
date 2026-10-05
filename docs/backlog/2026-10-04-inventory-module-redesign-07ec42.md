@@ -11,7 +11,7 @@ Las 17 actividades aprobadas por Felipe el 2026-10-04, en orden. Cada una es un 
 
 ## Tramo 1B · Existencias
 - [x] 6. Capacidad de cada sede (PR #795, publicado; la edición vive en el Plan del piso, actividad 12) (m² × 30) y el número «colgadas de las que caben» con «por cuadrar».
-- [x] 7. Un solo motor (PR #787, publicado; falta contar `cerrada_sin_prenda`, contrato con ADR-0334: lo cierra otra sesión) del piso (`lib/piso-plan.ts`): «Por colgar» y «se vendió rápido y falta»; reemplaza las cinco reglas.
+- [x] 7. Un solo motor (PR #787, publicado; cuenta `cerrada_sin_prenda` desde el SQL de #806, contrato con ADR-0334) del piso (`lib/piso-plan.ts`): «Por colgar» y «se vendió rápido y falta»; reemplaza las cinco reglas.
 - [—] 8. Portada «Buscar + Para hoy»: la hace ADR-0331 (sesión UI/UX, PR #790).
 - [x] 9. «La tengo en la mano» (PR #786, publicado) en Bajar al piso.
 - [x] 10. Dañadas: reportar desde la ficha y «Se arregló» (PR #796, publicado).
@@ -38,7 +38,7 @@ Las 17 actividades aprobadas por Felipe el 2026-10-04, en orden. Cada una es un 
 - [ ] Ver en producción, con la sesión de Felipe abierta y sin guardar nada: Existencias, Cuadrar, Movimientos ▸ Pérdidas, Conteo, Colgar en el piso, Traslados y Vender a 375 px.
 - [ ] Refrescar el volcado del diccionario (`pnpm datos:refrescar`: una consulta de solo lectura en el SQL Editor de producción). Hoy `datos:comparar` dice 23 llamadas «sin respaldo» solo porque la foto es del 3-oct: las 28 funciones existen en producción con una sola firma y aceptan lo que la web manda (verificado en vivo el 5-oct).
 - [~] Retirar `fn_pedidos_para_apartar` (ya ninguna pantalla la llama): PR en borrador con su SQL sin pegar.
-- [ ] Pegar la migración del motor que cuenta `cerrada_sin_prenda` antes de que alguna sede cierre su cola de arranque.
+- [x] El motor cuenta `cerrada_sin_prenda` (PR #806, SQL en producción; colas de AQP y TRU cerradas el 5-oct).
 
 ## Del equipo, sin código
 - [ ] Primera caja real del Taller a TRU (10–20 prendas, alguien que mira sin ayudar).

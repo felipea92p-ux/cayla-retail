@@ -64,6 +64,7 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
       terminales={terminales.datos}
       deTurno={deTurno}
       ahoraIso={new Date().toISOString()}
+      veActividadModulo={veModulo(persona, "actividad")}
       roles={roles}
       cuentas={cuentas.datos}
       vistaInicial={vista}
