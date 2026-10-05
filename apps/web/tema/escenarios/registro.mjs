@@ -758,6 +758,27 @@ ESCENARIOS.push(
   { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], nombre: "Producción · Eficiencia de otro mes", preparar: clicRol("radio", /Sep 2026/i) },
 );
 
+// ---------- Finanzas (actividad 12) ----------
+const FIN = ["admin"];
+ESCENARIOS.push(
+  { id: "finanzas.que-mirar", ruta: "/finanzas/resumen", cuentas: FIN, abre: "[role=listbox]", nombre: "Finanzas · la lista «Qué mirar» (tienda o empresa)", preparar: clicRol("combobox", /Qué mirar/i) },
+  { id: "gastos.registrar", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=dialog]", nombre: "Gastos · «Registrar gasto»", preparar: clicRol("button", /Registrar gasto/i) },
+  { id: "gastos.fijos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Fijos del mes»", preparar: clicRol("tab", /Fijos del mes/i) },
+  { id: "gastos.activos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Activos fijos»", preparar: clicRol("tab", /Activos fijos/i) },
+  { id: "gastos.egresos", ruta: "/finanzas/gastos", cuentas: FIN, nombre: "Gastos · la pestaña «Egresos de caja por clasificar»", preparar: clicRol("tab", /Egresos de caja por clasificar/i) },
+  { id: "gastos.categoria", ruta: "/finanzas/gastos", cuentas: FIN, abre: "[role=listbox]", nombre: "Gastos · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
+  { id: "dinero.registrar", ruta: "/finanzas/dinero", cuentas: FIN, abre: "[role=dialog]", nombre: "Cuentas y dinero · «Registrar movimiento»", preparar: clicRol("button", /Registrar movimiento/i) },
+  { id: "impuestos.ventas", ruta: "/finanzas/impuestos", cuentas: FIN, nombre: "Impuestos · «Registro de ventas»", preparar: clicRol("button", /Registro de ventas/i) },
+  { id: "impuestos.compras", ruta: "/finanzas/impuestos", cuentas: FIN, nombre: "Impuestos · «Registro de compras»", preparar: clicRol("button", /Registro de compras/i) },
+  { id: "impuestos.contador", ruta: "/finanzas/impuestos", cuentas: FIN, nombre: "Impuestos · «Paquete para el contador»", preparar: clicRol("button", /Paquete para el contador/i) },
+  { id: "impuestos.mes", ruta: "/finanzas/impuestos", cuentas: FIN, abre: "[role=listbox]", nombre: "Impuestos · la lista «Mes que se mira»", preparar: clicRol("combobox", /Mes que se mira/i) },
+  { id: "reportes.mes", ruta: "/finanzas/reportes", cuentas: FIN, abre: "[role=listbox]", nombre: "Estado de resultados · la lista «Mes»", preparar: clicRol("combobox", /^Mes/i) },
+  { id: "reportes.de-donde", ruta: "/finanzas/reportes", cuentas: FIN, abre: "[role=dialog]", nombre: "Estado de resultados · «De dónde sale» una cifra", preparar: clicRol("button", /^De dónde sale: Ventas, Lima/i) },
+  { id: "balance.arranque", ruta: "/finanzas/reportes/balance", cuentas: FIN, abre: "[role=dialog]", nombre: "Balance · «Registrar saldos de arranque»", preparar: clicRol("button", /Registrar saldos de arranque/i) },
+  { id: "cierre.pendientes", ruta: "/finanzas/cierre", cuentas: FIN, nombre: "Cierre de mes · lo que falta de Tienda Lima", preparar: clicRol("button", /Tienda Lima .*pendientes/i) },
+  { id: "cierre.mes", ruta: "/finanzas/cierre", cuentas: FIN, abre: "[role=listbox]", nombre: "Cierre de mes · la lista «Mes que se cierra»", preparar: clicRol("combobox", /Mes que se cierra/i) },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(
