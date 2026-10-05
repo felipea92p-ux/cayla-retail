@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-04 · **Estado:** **EN PRODUCCIÓN desde el 2026-10-04** (Felipe pegó la migración a las 21:26, hora de Lima, y las dos cargas; verificado
   en la base, solo lectura: 33 activos, S/ 59,638.44 de costo, S/ 12,282.31 depreciados a fines de septiembre, 0 líneas en el libro de dinero, los
-  33 con token único y firmados por Felipe). Probado en local (25 casos + regresión de 8 pruebas existentes, 560 casos, 0 fallas; la web, 155,435).
+  33 con token único y firmados por Felipe). Probado en local (27 casos + regresión de 8 pruebas existentes, 560 casos, 0 fallas; la web, 155,435).
   La herramienta de la sesión bloqueó escribir en producción; por eso las pegó Felipe en el SQL Editor.
 - **Pedido:** Felipe, 2026-10-04: «reconstruir los activos de cada sede y luego tener un balance» — Taller, TRU y AQP, cada uno en su sede,
   más una vista integrada del total; «súbelo como activos, tú ve la mejor forma según normas internacionales y deprécialo según las
@@ -108,7 +108,7 @@ S/ 2,673.53 (solo del Taller).
 
 ## Pruebas
 
-`pnpm pruebas:activos-carga-inicial` (25 casos, ROLLBACK, en `ci.yml`): marca y depreciación, 0 líneas al libro de dinero (contra una compra
+`pnpm pruebas:activos-carga-inicial` (27 casos, ROLLBACK, en `ci.yml`): marca y depreciación, 0 líneas al libro de dinero (contra una compra
 normal que sí lo mueve), entra a los saldos de arranque, solo el líder, datos inválidos, los estados imposibles, el candado del arranque,
 anular y dar de baja. Se verificó con dos mutaciones (quitar el candado de fecha; permitir medio de pago en la carga): la prueba se pone roja
 en ambas. Con `APLICAR_MIGRACION=1` se corre antes de pegar la migración, dentro de cada transacción, sin tocar la base local compartida.

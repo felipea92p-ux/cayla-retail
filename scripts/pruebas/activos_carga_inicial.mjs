@@ -212,7 +212,8 @@ select estado, carga_inicial, motivo_anulacion from retail.activos_fijos where i
 select retail.dar_de_baja_activo(:'b', '2026-06-30', 'se rompieron');
 select estado, carga_inicial from retail.activos_fijos where id = :'b';
 select count(*) from retail.fn_activos_lista() where id = :'a' and estado = 'anulado';`);
-  const [anulada, baja, enLista] = lineas(r);
+  // anular_activo y dar_de_baja_activo devuelven `void`: psql imprime una línea vacía por cada uno; se descartan.
+  const [anulada, baja, enLista] = lineas(r).filter(Boolean);
   esperar("anular una carga inicial: queda anulada con su motivo y conserva la marca", r.ok && anulada === "anulado|t|se cargó con otro monto", r);
   esperar("darla de baja: queda dada de baja", r.ok && baja === "baja|t", r);
   esperar("la anulada sigue visible en la lista como anulada (no se borra)", r.ok && enLista === "1", r);
