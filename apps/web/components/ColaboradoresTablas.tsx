@@ -1,106 +1,13 @@
 "use client";
 
-import type { EventoAcceso, Terminal } from "@/lib/colaboradores";
-import { fechaHoraLima, fechaLima, fraseEvento, plural } from "@/lib/colaboradores-reglas";
+import type { EventoAcceso } from "@/lib/colaboradores";
+import { fechaLima, fraseEvento, plural } from "@/lib/colaboradores-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
-import { Boton } from "@/components/ui/campos";
-import { IconoAparato } from "@/components/ui/IconoAparato";
 
-// La tabla de aparatos y el registro de actividad de /colaboradores. Solo dibujan lo que reciben y avisan qué se eligió:
-// las decisiones (modales, llamadas a la base) viven en `ColaboradoresPanel`. Las tablas de personas por estado se fueron
-// el 2026-10-05: las reemplazan la lista de Equipo y su ficha (`components/colaboradores/`).
-
-const CABECERA = "label-cayla px-4 py-2.5 text-[11px] font-semibold";
-const CELDA = "px-4 py-3 align-middle";
-
-function Caja({ minimo, children }: { minimo: string; children: React.ReactNode }) {
-  return (
-    <div className="card-cayla scroll-cayla overflow-hidden">
-      <div className="scroll-cayla overflow-x-auto">
-        <table className={`w-full ${minimo} text-left text-sm`}>{children}</table>
-      </div>
-    </div>
-  );
-}
-
-// Terminales (ADR-0162): aparatos con cuenta propia, SIN persona — por eso no usan `Persona` ni el menú «⋯» de las
-// personas: su única acción es Desactivar / Reactivar, a la vista (pantalla 5 del spike aprobado). Una desactivada queda
-// en la lista apagada, nunca desaparece: su historial sigue firmado con `terminal_id`.
-// Sin tipo desde 20260923040000: cada fila es tienda + nombre + ROL (lo que ve). Las acciones son las tres de la pantalla:
-// Cambiar clave (la muestra una vez), Cambiar rol y Desactivar/Reactivar.
-export function TablaTerminales({
-  filas,
-  ocupadoId,
-  onAlternar,
-  onCambiarClave,
-  onCambiarRol,
-}: {
-  filas: Terminal[];
-  ocupadoId: string | null;
-  onAlternar: (t: Terminal) => void;
-  onCambiarClave?: (t: Terminal) => void;
-  /** ADR-0161 B1: una terminal es una cuenta más con su rol. Sin esto (roles sin leer), no se ofrece cambiarlo. */
-  onCambiarRol?: (t: Terminal) => void;
-}) {
-  return (
-    <Caja minimo="min-w-[880px]">
-      <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
-        <tr>
-          <th className={CABECERA}>Terminal</th>
-          <th className={CABECERA}>Tienda</th>
-          <th className={CABECERA}>Rol</th>
-          <th className={CABECERA}>Estado</th>
-          <th className={CABECERA}>Última actividad</th>
-          <th className={`${CABECERA} text-right`}>
-            <span className="sr-only">Acciones</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-tinta/5">
-        {filas.map((t) => (
-          <tr
-            key={t.id}
-            className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${t.activo ? "" : "text-tinta/55"} ${ocupadoId === t.id ? "opacity-50" : ""}`}
-          >
-            <td className={`${CELDA} min-w-[15rem]`}>
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-sand/70 text-tinta">
-                  <IconoAparato />
-                </span>
-                <div className="min-w-0">
-                  <div className={`font-medium ${t.activo ? "text-tinta" : "text-tinta/60"}`}>{t.nombre}</div>
-                  <div className="max-w-[16rem] truncate text-xs text-tinta/65" title={t.correo ?? undefined}>
-                    {t.correo ?? "Sin persona · cuenta del aparato"}
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td className={`${CELDA} whitespace-nowrap`}>{t.ubicacion_nombre}</td>
-            <td className={`${CELDA} whitespace-nowrap`}>{t.rol_nombre}</td>
-            <td className={CELDA}>{t.activo ? <Chip tono="verde">Activa</Chip> : <Chip tono="apagado">Desactivada</Chip>}</td>
-            <td className={`${CELDA} whitespace-nowrap tabular-nums`}>{t.ultimo_acceso ? fechaHoraLima(t.ultimo_acceso) : "Nunca"}</td>
-            <td className={`${CELDA} whitespace-nowrap text-right`}>
-              {onCambiarClave && (
-                <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarClave(t)}>
-                  Cambiar clave
-                </Boton>
-              )}
-              {onCambiarRol && (
-                <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarRol(t)}>
-                  Cambiar rol
-                </Boton>
-              )}
-              <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onAlternar(t)}>
-                {t.activo ? "Desactivar" : "Reactivar"}
-              </Boton>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </Caja>
-  );
-}
+// El registro de actividad de /colaboradores. Solo dibuja lo que recibe; las decisiones viven en `ColaboradoresPanel`. Las tablas
+// de personas por estado y la de terminales se fueron el 2026-10-05: las reemplazan la lista de Equipo y sus fichas
+// (`components/colaboradores/`).
 
 export function ListaActividad({ eventos }: { eventos: EventoAcceso[] }) {
   const total = eventos[0]?.total ?? 0;
