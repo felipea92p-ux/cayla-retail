@@ -7,6 +7,9 @@
   saltarse las pruebas cuando el conflicto es solo de documentación. Se le propusieron A + B (abajo) en vez de eso, y
   los aprobó.
 - **Complementa:** CLAUDE.md «Ritual de sesión y estado vivo»; ADR-0066 (el job de Postgres, que nació como piloto).
+- **Actualización 2026-10-05 (ADR-0345):** la protección de `main` ya exige estar al día (`strict: true`; abajo se anota
+  `strict: false`, que era lo cierto el 2026-09-28). Con eso el PR corre sobre el mismo árbol que queda en `main`, y el CI
+  del push dejó de repetirlo entero: ver ADR-0345.
 
 ## Qué había
 
