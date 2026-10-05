@@ -113,9 +113,9 @@ export function totalAReponer(lineas: readonly LineaBajada[]): number {
 /** El botón: dice cuánto se va a bajar apenas hay algo elegido, y tras un corte de red pide confirmar lo mismo de nuevo. */
 export function textoBotonReponer(total: number, congelado: boolean): string {
   if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;
-  // «Reponer» (glosario de tienda, 2026-10-05): la ventana ya se llamaba «Reponer prenda» y su botón decía «Bajar»: dos verbos para un acto.
-  if (total <= 0) return "Reponer";
-  return total === 1 ? "Reponer 1 prenda" : `Reponer ${total} prendas`;
+  // «Colgar en el piso» (ADR-0339, Felipe 2026-10-04): el único nombre de la acción; el botón decía «Bajar» y la ventana «Reponer prenda».
+  if (total <= 0) return "Colgar en el piso";
+  return total === 1 ? "Colgar 1 prenda" : `Colgar ${total} prendas`;
 }
 
 /** Lo que dice una fila cuando la base le contestó que ya no hay tanto. `motivo` viene de `bajar_al_piso` / `retirar_del_piso`;

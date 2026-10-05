@@ -228,7 +228,7 @@ export function SubirAAlmacenModal({
 
   return (
     <Modal
-      titulo="Retirar del piso"
+      titulo="Subir prenda"
       subtitulo="Del piso de venta al almacén"
       onClose={onClose}
       bloqueado={loading}
@@ -246,7 +246,7 @@ export function SubirAAlmacenModal({
             </p>
           </div>
 
-          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas retiras de cada color y talla?" retiene="fila">
+          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas subes de cada color y talla?" retiene="fila">
             {/* Todos los colores del modelo: la celda sin nada en el piso sale rayada, para que se vea por qué no se sube. */}
             <MatrizMover colores={colores} rumbo="subir" cantidades={cantidades} problemas={problemas} bloqueado={congelado || loading} onCambiar={cambiar} />
             {total > 0 && (
@@ -254,7 +254,7 @@ export function SubirAAlmacenModal({
                 {total} {total === 1 ? "prenda" : "prendas"} en {coloresConAlgo(colores, totales)} {coloresConAlgo(colores, totales) === 1 ? "color" : "colores"}.
               </p>
             )}
-            {!hayAlgoQueSubir && <p className="mt-2 text-xs text-taupe">Ningún color tiene prendas libres en el piso para retirar.</p>}
+            {!hayAlgoQueSubir && <p className="mt-2 text-xs text-taupe">Ningún color tiene prendas libres en el piso para subir.</p>}
           </CampoGuiado>
 
           {/* Los textos posibles se apilan invisibles en la misma celda: mide lo del más largo y nada salta al elegir (ADR-0185). */}

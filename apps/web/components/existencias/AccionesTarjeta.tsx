@@ -8,7 +8,7 @@ import { accionDelIcono, type ClaveAccion, type FilaAccion } from "@/lib/existen
 /* ====================================================================
    Las acciones de una tarjeta de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`).
 
-   UN icono: la acción que le toca a la prenda (Reponer, resaltada); sin nada que reponer, «⋯». Al pasar el mouse por él, o al enfocarlo
+   UN icono: la acción que le toca a la prenda (Colgar en el piso, resaltada); sin nada que colgar, «⋯». Al pasar el mouse por él, o al enfocarlo
    con el teclado, se abre HACIA ARRIBA una ventana con todas las acciones y su nombre, la del icono incluida (`lib/existencias-acciones.ts`
    decide qué filas lleva y cuáles se ven apagadas). En tablet, que no tiene mouse, un botón «⋯» al lado abre la misma ventana con un toque.
 
@@ -20,8 +20,8 @@ import { accionDelIcono, type ClaveAccion, type FilaAccion } from "@/lib/existen
 type Icono = ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
 
 const ICONO: Record<ClaveAccion, Icono> = {
-  reponer: IconoPercha,
-  retirar: Warehouse,
+  colgar: IconoPercha,
+  subir: Warehouse,
   enviar: SquareArrowOutUpRight,
   ajustar: PencilLine,
   danada: TriangleAlert,

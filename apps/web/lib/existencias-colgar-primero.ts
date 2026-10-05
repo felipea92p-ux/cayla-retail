@@ -1,9 +1,9 @@
 /* ====================================================================
-   «Reponer primero» (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): las tres prendas que más conviene reponer hoy,
+   «Colgar primero» (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): las tres prendas que más conviene colgar hoy,
    con cuánto le dura lo que hay a lo que se vende. Va sobre la lista de tarjetas, cuando no hay nada filtrado ni escrito.
 
    NO inventa un orden: usa el de la lista del día del motor del piso (`ordenarPorListaDelDia`: lo vendido ayer primero, ADR-0329
-   act. 1), el mismo de «Para hoy», del Inicio de Almacén y de la lista de abajo. Dos órdenes distintos para «qué reponer» harían que
+   act. 1), el mismo de «Para hoy», del Inicio de Almacén y de la lista de abajo. Dos órdenes distintos para «qué colgar» harían que
    la misma prenda saliera primera en una pantalla y tercera en la otra. Lo que SÍ suma es el ritmo: cuántas se venden por semana y
    para cuántas semanas alcanza lo que hay (piso + almacén, lo libre).
 
@@ -17,7 +17,7 @@ import type { RitmoReciente } from "./existencias-ritmo";
 import type { FilaPrenda, PrendaAgrupada } from "./existencias-prendas";
 
 /** Cuántas prendas se muestran: las tres de la maqueta aprobada. */
-export const MAX_REPONER_PRIMERO = 3;
+export const MAX_COLGAR_PRIMERO = 3;
 
 type FilaConRitmo = FilaPrenda & { ritmoReciente?: RitmoReciente | null };
 
@@ -29,7 +29,7 @@ export type RitmoDePrenda =
   /** No se pudo calcular (falló la lectura) o no es una tienda: no se dice nada. */
   | { tipo: "desconocido" };
 
-export type PrendaParaReponer<F extends FilaConRitmo = FilaConRitmo> = {
+export type PrendaParaColgar<F extends FilaConRitmo = FilaConRitmo> = {
   prenda: PrendaAgrupada<F>;
   /** Las tallas «Por colgar», en el orden de la curva. */
   tallasPorColgar: string[];
@@ -69,9 +69,9 @@ export function textoDeRitmo(r: RitmoDePrenda): string | null {
 
 /** Las primeras `tope` prendas con alguna talla «Por colgar», EN EL ORDEN EN QUE LLEGAN: quien llama pasa las prendas ya ordenadas con
  *  la lista del día (`ordenarPorListaDelDia`). Con el piso sin cuadrar ninguna talla es «Por colgar» (ADR-0328, decisión 5) y no se
- *  muestra nada: no se manda a reponer lo que podría estar ya colgado. */
-export function reponerPrimero<F extends FilaConRitmo>(prendasEnOrden: readonly PrendaAgrupada<F>[], tope = MAX_REPONER_PRIMERO): PrendaParaReponer<F>[] {
-  const salida: PrendaParaReponer<F>[] = [];
+ *  muestra nada: no se manda a colgar lo que podría estar ya colgado. */
+export function colgarPrimero<F extends FilaConRitmo>(prendasEnOrden: readonly PrendaAgrupada<F>[], tope = MAX_COLGAR_PRIMERO): PrendaParaColgar<F>[] {
+  const salida: PrendaParaColgar<F>[] = [];
   for (const prenda of prendasEnOrden) {
     const tallas = prenda.tallas.filter((f) => hoyDeTalla(f) === "por_colgar").map((f) => f.talla ?? "Única");
     if (tallas.length === 0) continue;

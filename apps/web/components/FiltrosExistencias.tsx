@@ -412,7 +412,7 @@ export function FiltrosExistencias({
             <span className="hidden sm:inline">Copiar enlace</span>
           </button>
           {vista}
-          {/* El sonido de «confirmado» (por equipo): suena al reponer, retirar del piso, ajustar o reportar una dañada. */}
+          {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
           <BotonSonidoConfirmar />
           {orden && (
             <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">

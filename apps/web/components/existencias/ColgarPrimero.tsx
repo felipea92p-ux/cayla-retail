@@ -2,14 +2,14 @@
 
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { textoDeRitmo, type PrendaParaReponer, type RitmoDePrenda } from "@/lib/existencias-reponer-primero";
+import { textoDeRitmo, type PrendaParaColgar, type RitmoDePrenda } from "@/lib/existencias-colgar-primero";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import type { PrendaAgrupada } from "@/lib/existencias-prendas";
 
 /* ====================================================================
-   «Reponer primero» (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): las tres prendas que más conviene reponer hoy,
-   en el orden de la lista del día, con el aro de cuántas semanas dura lo que hay. Cada una abre «Reponer prenda» del modelo entero.
-   La lógica (qué prendas, en qué orden, qué dice el ritmo) es de `lib/existencias-reponer-primero.ts`; aquí solo se dibuja.
+   «Colgar primero» (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): las tres prendas que más conviene colgar hoy,
+   en el orden de la lista del día, con el aro de cuántas semanas dura lo que hay. Cada una abre «Colgar en el piso» del modelo entero.
+   La lógica (qué prendas, en qué orden, qué dice el ritmo) es de `lib/existencias-colgar-primero.ts`; aquí solo se dibuja.
    ==================================================================== */
 
 const LARGO_ARO = 2 * Math.PI * 13;
@@ -41,19 +41,19 @@ function AroSemanas({ ritmo }: { ritmo: RitmoDePrenda }) {
   );
 }
 
-export function ReponerPrimero({
+export function ColgarPrimero({
   prendas,
   alReponer,
 }: {
-  prendas: readonly PrendaParaReponer<FilaExistencias>[];
-  /** Abre «Reponer prenda» con el modelo de esa prenda; `origen` es el botón, para devolverle el foco al cerrar la ventana. */
+  prendas: readonly PrendaParaColgar<FilaExistencias>[];
+  /** Abre «Colgar en el piso» con el modelo de esa prenda; `origen` es el botón, para devolverle el foco al cerrar la ventana. */
   alReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
 }) {
   if (prendas.length === 0) return null;
   return (
-    <section aria-label="Reponer primero" className="mb-3.5">
+    <section aria-label="Colgar primero" className="mb-3.5">
       <header className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <h2 className="label-cayla text-[11px] text-taupe">Reponer primero</h2>
+        <h2 className="label-cayla text-[11px] text-taupe">Colgar primero</h2>
         <p className="text-[12.5px] text-taupe">Lo que más se vende y falta en el piso</p>
       </header>
       <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
@@ -66,7 +66,7 @@ export function ReponerPrimero({
               key={p.clave}
               type="button"
               onClick={(e) => alReponer(p, e.currentTarget)}
-              aria-label={`${i + 1}. Reponer ${p.referencia}${p.color ? ` ${p.color}` : ""}: faltan ${faltan}.${ritmo ? ` ${ritmo}` : ""}`}
+              aria-label={`${i + 1}. Colgar ${p.referencia}${p.color ? ` ${p.color}` : ""}: faltan ${faltan}.${ritmo ? ` ${ritmo}` : ""}`}
               className="card-cayla grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2.5 p-2 text-left transition-colors hover:border-tinta/25 focus-visible:outline-2 focus-visible:outline-tinta/40"
             >
               <span aria-hidden className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-ambar/[0.13] text-xs font-bold text-ambar-profundo">

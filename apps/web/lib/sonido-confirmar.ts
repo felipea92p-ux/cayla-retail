@@ -1,5 +1,5 @@
 /**
- * El sonido de «confirmado» (Existencias, 2026-10-05): al reponer, retirar del piso, ajustar o reportar una dañada, además del aviso
+ * El sonido de «confirmado» (Existencias, 2026-10-05): al colgar en el piso, subir a almacén, ajustar o reportar una dañada, además del aviso
  * verde suena una campanita corta que sube (dos tonos). Quien trabaja en el piso con el cliente enfrente no siempre mira la
  * esquina de la pantalla: el oído le dice «ya quedó».
  *

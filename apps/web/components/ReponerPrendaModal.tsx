@@ -260,7 +260,7 @@ export function ReponerPrendaModal({
             </p>
           </div>
 
-          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas llevas al piso de cada color y talla?" retiene="fila">
+          <CampoGuiado id="cantidades" guia={guia} titulo="¿Cuántas cuelgas de cada color y talla?" retiene="fila">
             {fraseFalta && <p className="mb-2 rounded-lg bg-hueso px-3 py-2 text-[13px] leading-snug text-tinta">{fraseFalta} <span className="text-taupe">Tienen un punto en la tabla.</span></p>}
             {/* Tres atajos que llenan la tabla de un toque (la tabla abre en 0 y cada cifra se ajusta después). */}
             {hayAlgoQueBajar && (

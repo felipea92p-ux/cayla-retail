@@ -26,9 +26,9 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    (ámbar: hay atrás y ninguna afuera) y sin nada en la sede (borde punteado: un lugar vacío, no un error). Reemplaza las cajas
    «Piso / Almacén» (la de Piso iba siempre en rojo) y la cuadrícula con los rótulos repetidos en cada renglón.
 
-   UN icono por tarjeta (2026-10-05, maqueta `existencias-tactil-2026-10`): la acción que le toca a la prenda (Reponer) y, al pasar el
+   UN icono por tarjeta (2026-10-05, maqueta `existencias-tactil-2026-10`): la acción que le toca a la prenda (Colgar en el piso) y, al pasar el
    mouse, una ventana hacia arriba con TODAS las acciones y su nombre (`AccionesTarjeta`, `lib/existencias-acciones.ts`). Reemplaza el
-   botón con texto «Reponer» y el menú «⋯» de la esquina: eran dos controles para lo mismo. Antes (2026-10-04) eran cuatro botones y
+   botón con texto y el menú «⋯» de la esquina: eran dos controles para lo mismo. Antes (2026-10-04) eran cuatro botones y
    uno negro en cada tarjeta: quince negros por página.
 
    SIN indicador de estado: la pastilla «3 tallas por colgar» repetía lo que ya dicen las etiquetas ámbar del riel y se quitó (Felipe,
@@ -164,9 +164,9 @@ export function ExistenciasTarjetas({
         });
         const alElegir = (clave: ClaveAccion) => {
           switch (clave) {
-            case "reponer":
+            case "colgar":
               return onReponer(p, origen());
-            case "retirar":
+            case "subir":
               return onSubir(p, origen());
             case "enviar":
               return onEnviar?.(tallasDelModelo);

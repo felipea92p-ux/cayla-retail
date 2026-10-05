@@ -6,13 +6,13 @@
    la ventana ve todo en un solo lugar. Este archivo decide qué filas lleva esa ventana, en qué orden, cuáles se ven apagadas y por
    qué; el componente solo las dibuja. Lógica pura, con su prueba.
 
-   Los nombres siguen el glosario de tienda («Lenguaje de tienda CAYLA», 2026-10-05): Reponer · Retirar del piso · Enviar a otra sede.
-   «Reponer» ya era el botón de la tarjeta; «Retirar del piso» antes decía «Subir al almacén», y «Enviar a otra sede» es la entrada a
-   Traslados con esta prenda ya cargada (`urlTrasladar`). Una acción que la persona no puede hacer (sin el módulo) no se dibuja; una que
+   Los nombres son los del sistema: «Colgar en el piso» (ADR-0339, Felipe 2026-10-04: el único nombre de pasar prendas del almacén al piso) y su
+   inverso «Subir a almacén» (que ADR-0339 deja como está); «Enviar a otra sede» es la entrada a Traslados con esta prenda ya cargada
+   (`urlTrasladar`). Una acción que la persona no puede hacer (sin el módulo) no se dibuja; una que
    puede pero hoy no tiene con qué se ve apagada y dice por qué, como en `MenuAcciones`.
    ==================================================================== */
 
-export type ClaveAccion = "reponer" | "retirar" | "enviar" | "ajustar" | "danada" | "detalle";
+export type ClaveAccion = "colgar" | "subir" | "enviar" | "ajustar" | "danada" | "detalle";
 
 export type FilaAccion = {
   clave: ClaveAccion;
@@ -26,12 +26,12 @@ export type FilaAccion = {
 };
 
 export type PermisosYStock = {
-  /** Reponer y Retirar del piso comparten permiso (`permisosDelDetalle`). */
+  /** Colgar en el piso y Subir a almacén comparten permiso (`permisosDelDetalle`). */
   puedeReponer: boolean;
   puedeEnviar: boolean;
   puedeAjustar: boolean;
   puedeReportarDanada: boolean;
-  /** Alguna talla de algún color tiene algo libre en el almacén que bajar (`tallaParaReponer`). */
+  /** Alguna talla de algún color tiene algo libre en el almacén que colgar (`tallaParaReponer`). */
   hayQueBajar: boolean;
   /** Algo libre colgado en el piso (lo apartado no se retira). */
   hayEnElPiso: boolean;
@@ -44,8 +44,8 @@ export type PermisosYStock = {
 export function filasDeAcciones(x: PermisosYStock): FilaAccion[] {
   const filas: FilaAccion[] = [];
   if (x.puedeReponer) {
-    filas.push({ clave: "reponer", etiqueta: "Reponer", motivo: x.hayQueBajar ? undefined : "No hay nada libre en el almacén", sugerida: x.hayQueBajar, aparte: false });
-    filas.push({ clave: "retirar", etiqueta: "Retirar del piso", motivo: x.hayEnElPiso ? undefined : "No hay nada colgado para retirar", sugerida: false, aparte: false });
+    filas.push({ clave: "colgar", etiqueta: "Colgar en el piso", motivo: x.hayQueBajar ? undefined : "No hay nada libre en el almacén", sugerida: x.hayQueBajar, aparte: false });
+    filas.push({ clave: "subir", etiqueta: "Subir a almacén", motivo: x.hayEnElPiso ? undefined : "No hay nada colgado para subir", sugerida: false, aparte: false });
   }
   if (x.puedeEnviar) {
     filas.push({ clave: "enviar", etiqueta: "Enviar a otra sede", motivo: x.hayEnAlmacen ? undefined : "No hay nada libre en el almacén para enviar", sugerida: false, aparte: false });
@@ -61,7 +61,7 @@ export function filasDeAcciones(x: PermisosYStock): FilaAccion[] {
   return filas;
 }
 
-/** El icono de la tarjeta: la acción sugerida. Sin ninguna (nada que reponer hoy), `null`: el icono es «⋯» y solo abre la ventana. */
+/** El icono de la tarjeta: la acción sugerida. Sin ninguna (nada que colgar hoy), `null`: el icono es «⋯» y solo abre la ventana. */
 export function accionDelIcono(filas: readonly FilaAccion[]): FilaAccion | null {
   return filas.find((f) => f.sugerida && !f.motivo) ?? null;
 }

@@ -122,9 +122,9 @@ describe("las tallas que se pueden subir y las líneas que viajan", () => {
 
 describe("los textos", () => {
   it("el botón dice cuánto sube; tras un corte de red pide confirmar lo mismo de nuevo", () => {
-    expect(textoBotonSubir(0, false)).toBe("Retirar del piso");
-    expect(textoBotonSubir(1, false)).toBe("Retirar 1 prenda");
-    expect(textoBotonSubir(4, false)).toBe("Retirar 4 prendas");
+    expect(textoBotonSubir(0, false)).toBe("Subir a almacén");
+    expect(textoBotonSubir(1, false)).toBe("Subir 1 prenda");
+    expect(textoBotonSubir(4, false)).toBe("Subir 4 prendas");
     expect(textoBotonSubir(4, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
   });
 

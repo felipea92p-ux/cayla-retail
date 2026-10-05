@@ -92,9 +92,9 @@ describe("lineasDeMover (bajar): lo que viaja a bajar_al_piso", () => {
 
 describe("los textos", () => {
   it("el botón dice cuánto baja; tras un corte de red pide confirmar lo mismo de nuevo", () => {
-    expect(textoBotonReponer(0, false)).toBe("Reponer");
-    expect(textoBotonReponer(1, false)).toBe("Reponer 1 prenda");
-    expect(textoBotonReponer(3, false)).toBe("Reponer 3 prendas");
+    expect(textoBotonReponer(0, false)).toBe("Colgar en el piso");
+    expect(textoBotonReponer(1, false)).toBe("Colgar 1 prenda");
+    expect(textoBotonReponer(3, false)).toBe("Colgar 3 prendas");
     expect(textoBotonReponer(3, true)).toBe(BOTON_CONFIRMAR_DE_NUEVO);
   });
 
@@ -197,7 +197,7 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
   });
 });
 
-// ── «Reponer prenda» dice qué falta, llena con un toque y avisa lo que casi no hay (2026-10-05) ───────────────────────────────────
+// ── La ventana de colgar dice qué falta, llena con un toque y avisa lo que casi no hay (2026-10-05) ───────────────────────────────────
 import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, casiNoHay, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
 
 const POR_COLGAR = { requisito: 1, accion: "por_colgar" as const };
