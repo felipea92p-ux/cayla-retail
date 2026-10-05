@@ -194,7 +194,7 @@ export function PedirYApartarModal({
           </CampoGuiado>
 
           <ol className="list-decimal space-y-1 rounded-xl bg-hueso px-8 py-3 text-xs text-tinta/75">
-            <li>{nombreTienda} la aparta ahora: nadie más la vende.</li>
+            <li>{tienda ? tienda.corto : "La otra tienda"} la aparta ahora: nadie más la vende.</li>
             <li>Viaja en el próximo envío a {ubicacion.etiqueta}.</li>
             <li>Al llegar queda guardada para el cliente y Vender te avisa para escribirle.</li>
           </ol>

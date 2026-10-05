@@ -34,7 +34,8 @@ export function PedidosQueLlegaron({
         {lista.map((p) => (
           <li key={p.grupoId} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <PackageCheck aria-hidden className="h-4 w-4 shrink-0 text-verde-profundo" strokeWidth={1.75} />
-            <p className="min-w-0 flex-1">
+            {/* Con un ancho mínimo, en un celular el botón baja bajo el texto en vez de apretarlo en una columna de 2 palabras. */}
+            <p className="min-w-[12rem] flex-1">
               Llegó de {nombreCortoSede(p.otraSede)} para <b className="font-semibold">{nombreCliente(p.cliente)}</b>
               <span className="text-tinta/65"> · {p.lineas.map(etiquetaLinea).join(", ")}</span>
             </p>
