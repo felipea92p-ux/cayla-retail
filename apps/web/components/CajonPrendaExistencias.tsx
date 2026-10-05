@@ -98,6 +98,9 @@ export function CajonPrendaExistencias({
   onSubir,
   onAjustar,
   onEliminar,
+  onVerApartadas,
+  onVerDanadas,
+  puedeResolverDanadas = false,
   onCerrar,
 }: {
   prenda: PrendaAgrupada<FilaExistencias>;
@@ -120,6 +123,12 @@ export function CajonPrendaExistencias({
   onAjustar: (f: FilaExistencias) => void;
   /** Sin ella si `puedeEliminar` es false: nunca se ofrece un botón que la pantalla no sabría atender. */
   onEliminar?: () => void;
+  /** Abre los apartados de ESTA prenda. Sin ella (no hay ninguno, o la pantalla no sabe abrirlos) la cifra «Apartada» no es un botón. */
+  onVerApartadas?: () => void;
+  /** Abre las dañadas en cuarentena de ESTA prenda. Sin ella la cifra «Dañada» no es un botón. */
+  onVerDanadas?: () => void;
+  /** Solo un líder, en su sede, decide qué se hace con una dañada: a él la cifra le dice «Decidir»; a los demás, «Ver cuáles». */
+  puedeResolverDanadas?: boolean;
   onCerrar: () => void;
 }) {
   // Cierre en dos tiempos, como `Modal`: primero sale, luego se desmonta.
@@ -146,6 +155,11 @@ export function CajonPrendaExistencias({
   const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
   const hrefHistorial = enSedeActiva ? `/productos/${prenda.productoId}/historial` : null;
   const hayOperar = (puedeReponer && (hayQueReponer || hayQueSubir)) || hrefTrasladar !== null;
+  // Cada cifra es un botón solo si hay algo que hacer con ella y la persona puede hacerlo (ADR-0161: nunca un botón que acabe en
+  // «Sin acceso» o en una ventana vacía). Almacén baja al piso con la misma ventana de «Reponer prenda»; Piso no lleva botón.
+  const accionAlmacen = desglose && desglose.almacen > 0 && puedeReponer && hayQueReponer ? { texto: "Bajar al piso", onClick: () => onReponer(prenda) } : undefined;
+  const accionApartada = desglose && desglose.apartada > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined;
+  const accionDanada = desglose && desglose.danada > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined;
   const hayGestion = puedeAjustar || hrefEtiquetas !== null || (puedeEliminar && Boolean(onEliminar));
 
   return (
@@ -210,7 +224,9 @@ export function CajonPrendaExistencias({
 
               {/* Los cuatro lugares donde puede estar la prenda y la suma explicada (2026-10-04): antes solo «Piso · Almacén», y lo
                   apartado y lo dañado —que existían— no se veían, así que el total no coincidía con lo que se podía vender. */}
-              {desglose && <DesgloseStockPrenda desglose={desglose} />}
+              {desglose && (
+                <DesgloseStockPrenda desglose={desglose} accionAlmacen={accionAlmacen} accionApartada={accionApartada} accionDanada={accionDanada} />
+              )}
 
               {/* Resumen: piso y almacén, cuántas tallas y el diagnóstico. Tres celdas en una fila con el
                   ancho del cajón en el diseño (≥ 30rem) — pero el cajón es `w-full` por debajo de eso
