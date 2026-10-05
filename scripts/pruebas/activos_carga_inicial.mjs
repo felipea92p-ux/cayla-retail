@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0335 — activos «ya lo teníamos» (`20261004200000_activos_carga_inicial.sql`).
+ * Prueba de ADR-0335 — activos «ya lo teníamos» (`20261004195000_activos_carga_inicial.sql`).
  *
  * QUÉ CUBRE
  *   · el líder carga lo que CAYLA ya tenía (Taller, fecha real, costo): queda SIN comprobante, medio de pago, egreso ni
@@ -34,7 +34,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo
 
 const MIGRACION = process.env.APLICAR_MIGRACION
-  ? readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../supabase/migrations/20261004200000_activos_carga_inicial.sql"), "utf8")
+  ? readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../supabase/migrations/20261004195000_activos_carga_inicial.sql"), "utf8")
   : "";
 
 function psql(sql) {
