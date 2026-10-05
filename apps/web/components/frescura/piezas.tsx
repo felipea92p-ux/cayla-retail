@@ -6,7 +6,7 @@ import type { NivelConfianza, Sugerencia } from "@/lib/frescura-reglas";
 // Piezas chicas de Frescura del piso (ADR-0208, paso 4) que usan la fila, la hoja de detalle y «Las N tiendas». Todo
 // color sale de los tokens (ADR-0169) y de los tonos de `Chip`: la Crítica es el tono `tinta`, nunca rojo (colores A).
 
-/** El estado de una prenda: el chip y, debajo, «quizá más» o «con pocos datos»; la apartada dice en qué iba. */
+/** El estado de una prenda: el chip y, debajo, «aproximado» si se juzgó con pocas ventas; la apartada dice en qué iba. */
 export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; apilado?: boolean }) {
   return (
     <span className={apilado ? "flex flex-col items-start gap-0.5" : "inline-flex flex-wrap items-center gap-x-2 gap-y-0.5"}>
@@ -15,11 +15,11 @@ export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; ap
         {estado.texto}
       </Chip>
       {estado.debajo.map((d) => (
-        <span key={d} className="text-[11px] leading-snug text-taupe">
+        <span key={d} className="text-[12px] leading-snug text-taupe">
           {d}
         </span>
       ))}
-      {estado.previo && <span className="text-[11.5px] leading-snug text-taupe">{estado.previo}</span>}
+      {estado.previo && <span className="text-[12px] leading-snug text-taupe">{estado.previo}</span>}
     </span>
   );
 }
@@ -28,13 +28,13 @@ export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; ap
 export function NivelChip({ nivel }: { nivel: NivelConfianza | null }) {
   if (nivel === "pocos_datos")
     return (
-      <Chip tono="ambar" className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
         Pocos datos
       </Chip>
     );
   if (nivel === "aceptable")
     return (
-      <Chip tono="neutro" className="!px-2 !text-[11.5px] !leading-[18px]">
+      <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
         Aceptable
       </Chip>
     );
