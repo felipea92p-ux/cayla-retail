@@ -47,8 +47,8 @@ token que ya existe):
    tarjeta, las tallas y el botón de acciones de Existencias. El punto de color de Existencias, que usa el `outline` como
    marca de «elegido», suma un anillo de foco con separación de 3 px para no confundirse con el elegido.
    Una fila que se desplaza (`overflow-x-auto`) **recorta el anillo**: el borde que toca el contenedor desaparece. Las dos
-   que se vieron cortadas en las capturas —las píldoras de Existencias (`py-0.5`) y las categorías de Vender (0 px arriba)— y la
-   de acciones de Existencias a 375 px llevan 4 px de holgura (2 de anillo + 2 de separación) con margen negativo, sin mover el
+   que se vieron cortadas en las capturas —las píldoras de Existencias (`py-0.5`) y las categorías de Vender (0 px arriba)—
+   llevan 4 px de holgura (2 de anillo + 2 de separación) con margen negativo, sin mover el
    diseño. Un contenedor con `overflow` que guarde controles necesita esos 4 px. Un control segmentado (`overflow-hidden rounded-lg
    border`: «Solo iconos / Iconos con texto», «Prioridad / A–Z») no tiene dónde crecer: su anillo va hacia adentro
    (`focus-visible:-outline-offset-2`); antes solo se veía el arco derecho.

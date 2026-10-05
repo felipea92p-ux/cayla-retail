@@ -8,7 +8,7 @@ Del informe `/formidable` de Frescura («Lista aparte»). Solo web: CSS y compon
   `.caja-cayla` y `.fila-cayla`.
 - [x] **Piezas compartidas migradas:** `Boton`, combo, `BotonCompacto`, `MenuAcciones`, `FiltrosPildora`, `TarjetaSenal`, `Graficos`,
   `FrescuraFila`; en las tres pantallas recorridas, la tarjeta de prenda y el interruptor de Vender, y la tarjeta, las tallas, el botón de
-  acciones y el punto de color de Existencias; las filas con scroll (píldoras de Existencias, categorías de Vender, acciones a 375 px)
+  acciones y el punto de color de Existencias; las filas con scroll (píldoras de Existencias, categorías de Vender)
   llevan 4 px de holgura y los controles segmentados llevan el anillo hacia adentro, para que el contenedor no lo recorte.
 - [x] **Cajas y filas en `@layer components`** (ADR-0105): se quitó `outline-none` a 16 cajas (`caja-cayla`) y 2 filas (`fila-cayla`).
 - [x] **Verificado con Tab** en Frescura, Existencias y Vender, a 1280 y a 375 px (ver el cierre en el ADR).
