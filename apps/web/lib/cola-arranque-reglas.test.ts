@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MOTIVOS_CIERRE, diasDePlazo, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola } from "./cola-arranque-reglas";
+import { MOTIVOS_CIERRE, MOTIVOS_REAPERTURA, diasDePlazo, motivoLegible, plazoVigente, sedesParaCerrar, type FilaDeCola } from "./cola-arranque-reglas";
 
 // 2026-10-04 12:00 en Lima = 17:00 UTC.
 const AHORA = new Date("2026-10-04T17:00:00Z");
@@ -99,5 +100,25 @@ describe("motivos", () => {
     expect(motivoLegible("aun_no_cargada")).toBe("La prenda aún no está cargada");
     expect(motivoLegible("otra")).toBe("Sin motivo");
     expect(motivoLegible(null)).toBe("Sin motivo");
+  });
+});
+
+// Las listas cerradas viven DOS veces —en la base (el CHECK y el `in (…)` de la función) y aquí—: si se desalinean, un motivo que la
+// pantalla ofrece lo rechaza la base («reabrir_motivo_invalido») o uno de la base nunca se puede elegir. Esta prueba las compara.
+const MIGRACIONES = new URL("../../../supabase/migrations/", import.meta.url);
+const leer = (archivo: string) => readFileSync(new URL(archivo, MIGRACIONES), "utf8");
+const lista = (sql: string, ancla: RegExp) => [...(sql.match(ancla)?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!);
+
+describe("las listas de motivos de la web son las de la base", () => {
+  it("cierre: el CHECK de la tabla y la función aceptan exactamente los de MOTIVOS_CIERRE", () => {
+    const claves = MOTIVOS_CIERRE.map((m) => m.clave).sort();
+    const tabla = lista(leer("20261005100000_cola_arranque_parte1_tablas.sql"), /motivo text not null check \(motivo in \(([^)]*)\)/);
+    const funcion = lista(leer("20261005100100_cola_arranque_parte2_funciones.sql"), /p_motivo not in \(([^)]*)\)/);
+    expect(tabla.sort()).toEqual(claves);
+    expect(funcion.sort()).toEqual(claves);
+  });
+  it("reapertura: la función acepta exactamente los de MOTIVOS_REAPERTURA", () => {
+    const funcion = lista(leer("20261005110000_cola_arranque_reabrir.sql"), /p_motivo not in \(([^)]*)\)/);
+    expect(funcion.sort()).toEqual(MOTIVOS_REAPERTURA.map((m) => m.clave).sort());
   });
 });

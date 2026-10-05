@@ -5262,6 +5262,7 @@ export type Database = {
       }
       anular_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
       reabrir_conteo: { Args: { p_conteo_id: string }; Returns: undefined }
+      reabrir_prenda_cerrada: { Args: { p_id: string; p_motivo: string }; Returns: undefined }
       anular_produccion: {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined

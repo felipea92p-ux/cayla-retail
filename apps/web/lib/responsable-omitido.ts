@@ -30,6 +30,7 @@ export const ACCIONES_SIN_RESPONSABLE = {
   conteo_cerrar: "Cerrar el conteo y aplicar las diferencias",
   regularizar_prenda: "Regularizar una prenda por regularizar",
   cola_arranque_cerrar: "Cerrar la cola de arranque de ventas sin registrar de una tienda",
+  cola_arranque_reabrir: "Reabrir una venta sin registrar que se cerró sin prenda",
   compra_adjunto_subir: "Adjuntar un archivo a una factura de compra",
   compra_adjunto_quitar: "Quitar un adjunto de una factura de compra",
   alta_producto_categoria: "Configurar una categoría dentro del alta de producto",

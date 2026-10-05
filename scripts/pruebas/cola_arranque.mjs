@@ -363,6 +363,113 @@ rollback;`
 );
 
 // ---------------------------------------------------------------------------
+// Reabrir: la salida cuando una cliente devuelve una prenda cuya venta se cerró sin prenda
+// ---------------------------------------------------------------------------
+
+const reabrir = (item, motivo = "devolucion_o_cambio") =>
+  `select retail.reabrir_prenda_cerrada(p.id, '${motivo}') from retail.prendas_por_regularizar p where p.venta_item_id = :'${item}';\n`;
+const STOCK_V1 = `coalesce((select sum(cantidad) from retail.stock where variante_id = :'v1' and ubicacion_id = :'ubic'), 0)`;
+
+exito(
+  "el líder reabre una venta cerrada: vuelve a pendiente, suelta su cierre y deja una línea en Actividad con el motivo",
+  comoPersona(
+    FELIPE,
+    `${fixture()}${venderLibre("a", 50)}${cerrar()}${reabrir("item_a")}
+select estado, cierre_id is null,
+       (select count(*) from retail.actividad where accion = 'prenda_reabierta' and registro_id = p.id::text and descripcion like '%quiere devolver o cambiar%')
+  from retail.prendas_por_regularizar p where venta_item_id = :'item_a';
+rollback;`
+  ),
+  ([estado, sinCierre, actividad]) => estado === "pendiente" && sinCierre === "t" && actividad === "1"
+);
+
+exito(
+  "reabrir no toca el registro del cierre: sigue diciendo lo que el líder aceptó ese día",
+  comoPersona(
+    FELIPE,
+    `${fixture()}${venderLibre("a", 50)}${venderLibre("b", 30)}${cerrar()}${reabrir("item_a")}
+select filas, soles from retail.cierres_cola_arranque where id = :'cierre_id';
+rollback;`
+  ),
+  ([filas, soles]) => filas === "2" && soles === "80.00"
+);
+
+error(
+  "una colaboradora no puede reabrir (la cuenta decide)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}${venderLibre("a", 50)}${cerrar()}
+set local request.jwt.claim.sub = '${MICAELA}';
+${reabrir("item_a")}rollback;`
+  ),
+  "cola_solo_lider"
+);
+
+error(
+  "un motivo fuera de la lista se rechaza al reabrir",
+  comoPersona(FELIPE, `${fixture()}${venderLibre("a", 50)}${cerrar()}${reabrir("item_a", "porque_si")}rollback;`),
+  "reabrir_motivo_invalido"
+);
+
+error(
+  "una venta pendiente no se «reabre»: no hay nada que deshacer",
+  comoPersona(FELIPE, `${fixture()}${venderLibre("a", 50)}${reabrir("item_a")}rollback;`),
+  "prenda_no_cerrada"
+);
+
+error(
+  "una venta ya regularizada no se reabre",
+  comoPersona(
+    FELIPE,
+    `${fixture()}${venderLibre("a", 50)}
+select retail.regularizar_prenda(p.id, :'v1', 'ya_registrada') from retail.prendas_por_regularizar p where venta_item_id = :'item_a';
+${reabrir("item_a")}rollback;`
+  ),
+  "prenda_no_cerrada"
+);
+
+exito(
+  "tras reabrir, la prenda se regulariza como siempre (baja 1 del stock) y la devolución o el cambio ya no se bloquean",
+  comoPersona(
+    FELIPE,
+    `${fixture()}select ${STOCK_V1} as antes \\gset
+${venderLibre("a", 50)}${cerrar()}${reabrir("item_a")}
+select retail.regularizar_prenda(p.id, :'v1', 'ya_registrada') from retail.prendas_por_regularizar p where venta_item_id = :'item_a';
+insert into retail.cambios (venta_item_id, ubicacion_id, variante_nueva_id, cantidad) values (:'item_a', :'ubic', :'v1', 1);
+select ${STOCK_V1} - :'antes', (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_a');
+rollback;`
+  ),
+  ([delta, estado]) => estado === "regularizada" && delta === "-1"
+);
+
+exito(
+  "una reabierta que nadie identificó se puede volver a cerrar con otro cierre, sin quedar apuntando al primero",
+  comoPersona(
+    FELIPE,
+    `${fixture()}${venderLibre("a", 50)}${cerrar()}${reabrir("item_a")}
+select cierre_id as primero from retail.prendas_por_regularizar where venta_item_id = :'item_a' \\gset
+${cerrar("aun_no_cargada")}
+select estado, cierre_id = :'cierre_id'::uuid, (select filas from retail.cierres_cola_arranque where id = :'cierre_id')
+  from retail.prendas_por_regularizar where venta_item_id = :'item_a';
+rollback;`
+  ),
+  ([estado, segundo, filas]) => estado === "cerrada_sin_prenda" && segundo === "t" && filas === "1"
+);
+
+exito(
+  "reabrir no exige el plazo del cierre: una devolución puede llegar pasado el 15-oct",
+  comoPersona(
+    FELIPE,
+    `${fixture()}${venderLibre("a", 50)}${cerrar()}
+update retail.cola_arranque_plazo set hasta = retail.fn_hoy_lima() - 30 where ubicacion_id = :'ubic';
+${reabrir("item_a")}
+select estado from retail.prendas_por_regularizar where venta_item_id = :'item_a';
+rollback;`
+  ),
+  ([estado]) => estado === "pendiente"
+);
+
+// ---------------------------------------------------------------------------
 
 function main() {
   try {

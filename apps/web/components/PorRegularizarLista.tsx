@@ -19,6 +19,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda, TABLA } from "@/components/ui/Tabla";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
+import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla (sin costo: esta pantalla la ve almacén). */
 export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
@@ -65,6 +66,7 @@ export function PorRegularizarLista({
   const [quien, setQuien] = useState("");
   const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(null);
   const [cerrando, setCerrando] = useState(false);
+  const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
   const ahora = useMemo(() => new Date(), []);
   const cifras = useMemo(() => cifrasPorRegularizar(filas, ahora), [filas, ahora]);
   const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
@@ -154,6 +156,12 @@ export function PorRegularizarLista({
                   <>
                     <p className="truncate text-xs text-tinta">{motivoLegible(f.cierre.motivo)}</p>
                     <p className="text-xs text-taupe">Cerrada el {diaYHoraLima(f.cierre.cerradoEn).dia} · sin identificar la prenda</p>
+                    {/* Solo un líder reabre (la base lo exige): para una cliente que la devuelve o la quiere cambiar. */}
+                    {esLider && (
+                      <button type="button" onClick={() => setReabriendo(f)} className="btn-cayla btn-secundario mt-1.5">
+                        Reabrir
+                      </button>
+                    )}
                   </>
                 ) : f.estado === "regularizada" && f.diferencia !== null ? (
                   <>
@@ -177,6 +185,7 @@ export function PorRegularizarLista({
       {abierta && (
         <RegularizarModal fila={abierta} prendas={prendas} onClose={() => setAbierta(null)} />
       )}
+      {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
       {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>
   );

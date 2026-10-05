@@ -228,6 +228,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles
   "components/PuntoDeVenta.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PuntoDeVentaTicket.tsx": PENDIENTE, // 12 controles
+  // «Falta» = lo mismo que apaga el botón «Reabrir»: el motivo (único control obligatorio) (ADR-0334).
+  "components/ReabrirPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReabrirPrendaModal.tsx"] },
   "components/ReasignarReparto.tsx": PENDIENTE, // 9 controles
   "components/RecepcionEnvio.tsx": PENDIENTE, // 16 controles
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles

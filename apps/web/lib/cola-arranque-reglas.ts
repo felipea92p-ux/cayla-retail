@@ -23,6 +23,15 @@ export function motivoLegible(clave: string | null | undefined): string {
   return MOTIVOS_CIERRE.find((m) => m.clave === clave)?.titulo ?? "Sin motivo";
 }
 
+export type MotivoReapertura = "devolucion_o_cambio" | "ya_se_sabe" | "cierre_por_error";
+
+/** Por qué un líder reabre una venta cerrada (`reabrir_prenda_cerrada`, 20261005110000): la lista cerrada de la base, en palabras del negocio. */
+export const MOTIVOS_REAPERTURA: readonly { clave: MotivoReapertura; titulo: string; ayuda: string }[] = [
+  { clave: "devolucion_o_cambio", titulo: "Una cliente la quiere devolver o cambiar", ayuda: "Reabierta, se regulariza con su prenda real y recién entonces se puede devolver." },
+  { clave: "ya_se_sabe", titulo: "Ya se sabe qué prenda era", ayuda: "Se identifica ahora y el stock de esa prenda queda cuadrado." },
+  { clave: "cierre_por_error", titulo: "Se cerró por error", ayuda: "Vuelve a pendientes, como si no se hubiera cerrado." },
+];
+
 /** Lo mínimo de una fila de la cola para armar el cierre. */
 export type FilaDeCola = { estado: string; ubicacionId: string; sede: string; precioCobrado: number; vendidoEn: string };
 
