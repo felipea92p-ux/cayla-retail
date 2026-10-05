@@ -366,24 +366,23 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                     </div>
                     <div className="overflow-x-auto [scrollbar-width:thin]">
                       <div className={ANCHO_MINIMO_TABLA}>
-                        <div className={`encabezado-tabla-cayla hidden gap-x-3 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
+                        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
                           <span>Prenda</span>
-                          <span>
-                            Tallas<small className="block text-[10.5px] leading-tight">piso · almacén</small>
-                          </span>
-                          <span className="text-right">En el piso</span>
                           <span>Estado</span>
-                          <span>
-                            Rapidez<small className="block text-[10.5px] leading-tight">contra su categoría</small>
-                          </span>
-                          <span className="text-right">
-                            Vendió<small className="block text-[10.5px] leading-tight">30 d en piso</small>
-                          </span>
                           <span>Qué hacer</span>
+                          <span />
                         </div>
                         <div>
                           {g.prendas.map((p) => (
-                            <FrescuraFila key={p.clave} fila={filaVista(p, ctx!)} muchasSinTemporada={muchasSin} onAbrir={() => abrir(p.clave)} decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)} />
+                            <FrescuraFila
+                              key={p.clave}
+                              fila={filaVista(p, ctx!)}
+                              muchasSinTemporada={muchasSin}
+                              onAbrir={() => abrir(p.clave)}
+                              decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)}
+                              apariencia={datos.apariencias[p.clave] ?? null}
+                              categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
+                            />
                           ))}
                         </div>
                       </div>
