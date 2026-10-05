@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getTrasladosPorAtender } from "@/lib/traslados";
-import { getAlcanceConteo, getConteosResumen } from "@/lib/conteos";
+import { getAlcanceConteo, getArranqueConteo, getConteosResumen } from "@/lib/conteos";
 import { LIMITE_HISTORIAL_CONTEO, sufijoVariantes } from "@/lib/conteo-inicio-reglas";
 import { LIMITE_CONTEOS_FILTRABLES, diaValido, vistaDeRecientes } from "@/lib/conteo-recientes-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -29,13 +29,15 @@ export default async function ConteoPage({ searchParams }: { searchParams: Promi
   // «Conteos recientes por día» (2026-10-01): `?dia=aaaa-mm-dd` filtra por el día de apertura (Lima); una fecha que no existe se ignora.
   const dia = diaValido(params.dia);
   const supabase = await createClient();
-  const [todos, sububicaciones, categorias, alcance, trasladosPorAtender] = await Promise.all([
+  const [todos, sububicaciones, categorias, alcance, arranque, trasladosPorAtender] = await Promise.all([
     // Trae más de lo que se dibuja para poder llegar a una fecha vieja: la base suma las líneas de todos los conteos antes de
     // ordenar y cortar, así que pedir 300 no cuesta más que pedir 20 (`LIMITE_CONTEOS_FILTRABLES`).
     getConteosResumen(persona.ubicacionId, LIMITE_CONTEOS_FILTRABLES),
     getSububicaciones(persona.ubicacionId),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     opcional(getAlcanceConteo(persona.ubicacionId), "cuántas variantes trae cada conteo"),
+    // ADR-0328: qué lugares todavía no tuvieron su conteo de arranque (dato de apoyo: sin él, la tarjeta no lo menciona).
+    opcional(getArranqueConteo(persona.ubicacionId), "qué lugares no tuvieron su conteo de arranque"),
     // El aviso «antes de contar»: lo que LLEGA por recibir (`cache`: el layout ya lo pidió, no es otra consulta). No el
     // número del menú, que suma los pedidos que esta sede tiene que ENVIAR (ADR-0328 act. 17): esos no se «reciben
     // primero». Solo a quien ve Traslados: el aviso lleva allá.
@@ -66,6 +68,7 @@ export default async function ConteoPage({ searchParams }: { searchParams: Promi
       sububicaciones={sububicaciones}
       categorias={exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }))}
       alcance={alcance}
+      arranque={arranque}
       trasladosPorAtender={trasladosPorAtender}
       soloPrendas={soloPrendas}
       variantes={soloVariantes}

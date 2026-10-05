@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 66;
+export const PENDIENTES_HOY = 65;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -95,7 +95,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/cuadrar": { estado: "aplicada", evidencia: ["components/cuadre-piso/CuadrarPisoForm.tsx"] },
   "/inventario/conteo": { estado: "aplicada", evidencia: ["components/AbrirConteo.tsx"] },
   "/inventario/conteo/[id]": PENDIENTE,
-  "/inventario/conteo/[id]/confirmar": PENDIENTE,
+  // ADR-0328 (actividad 15): su único campo es «¿Quién cierra el conteo?», que aparece solo cuando hay que preguntarlo (terminal y conteo
+  // de otro día); con él a la vista, la guía lo enciende y el pie dice qué falta. Sin él no hay nada que llenar: un botón.
+  "/inventario/conteo/[id]/confirmar": { estado: "aplicada", evidencia: ["components/conteo/ConfirmarConteo.tsx"] },
   "/inventario/conteo/[id]/revisar": PENDIENTE,
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
@@ -111,6 +113,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/traslados": PENDIENTE,
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
+  // ADR-0328 (actividad 15): «¿Quién recibe?» ya lleva su guía (CampoGuiado + PieGuia), y por eso `pnpm focus` la ve «con guía».
+  // Sigue pendiente a propósito: las casillas de lo recibido por prenda, que son el trabajo de la pantalla, todavía no dicen qué
+  // falta ni qué sigue. Pasarla a «aplicada» por un solo campo haría mentir al tablero.
   "/inventario/traslados/[id]": PENDIENTE,
   // ---- movimientos ----
   "/movimientos": PENDIENTE,

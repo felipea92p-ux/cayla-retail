@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveResponsableConteo, recordarResponsableGuardar, recordarResponsableLeer, recordarResponsableOlvidar } from "./responsable-conteo";
+import { claveResponsableConteo, claveResponsableRecepcion, recordarResponsableGuardar, recordarResponsableLeer, recordarResponsableOlvidar } from "./responsable-conteo";
 
 /** Un almacén en memoria, con la forma de `Storage` que usa el helper. */
 function almacen(inicial: Record<string, string> = {}) {
@@ -14,6 +14,11 @@ function almacen(inicial: Record<string, string> = {}) {
 describe("responsable del conteo: se elige al abrir y se recuerda", () => {
   it("cada conteo tiene su propia clave: dos conteos no se pisan el responsable", () => {
     expect(claveResponsableConteo("a")).not.toBe(claveResponsableConteo("b"));
+  });
+
+  it("la recepción de un traslado recuerda aparte (ADR-0328): ni otro traslado ni un conteo con el mismo id la pisan", () => {
+    expect(claveResponsableRecepcion("a")).not.toBe(claveResponsableRecepcion("b"));
+    expect(claveResponsableRecepcion("a")).not.toBe(claveResponsableConteo("a"));
   });
 
   it("lo que se guarda al abrir lo lee la pantalla siguiente, y se olvida cuando la base rechaza al responsable", () => {
