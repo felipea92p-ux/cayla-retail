@@ -3023,6 +3023,7 @@ export type Database = {
           devolucion_item_id: string | null
           estado: string
           id: string
+          motivo_reporte: string | null
           movimiento_entrada_id: string
           movimiento_salida_id: string | null
           nota: string | null
@@ -3039,6 +3040,7 @@ export type Database = {
           devolucion_item_id?: string | null
           estado?: string
           id?: string
+          motivo_reporte?: string | null
           movimiento_entrada_id: string
           movimiento_salida_id?: string | null
           nota?: string | null
@@ -3055,6 +3057,7 @@ export type Database = {
           devolucion_item_id?: string | null
           estado?: string
           id?: string
+          motivo_reporte?: string | null
           movimiento_entrada_id?: string
           movimiento_salida_id?: string | null
           nota?: string | null
@@ -3082,7 +3085,7 @@ export type Database = {
           {
             foreignKeyName: "prendas_danadas_movimiento_entrada_id_fkey"
             columns: ["movimiento_entrada_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "movimientos"
             referencedColumns: ["id"]
           },
@@ -6249,6 +6252,11 @@ export type Database = {
         }
         Returns: number
       }
+      // ADR-0328 act. 10 (20261005140000): «Se arregló» — la dañada vuelve al almacén de su sede. Solo el líder.
+      arreglar_prenda_danada: {
+        Args: { p_id: string; p_nota: string; p_token: string }
+        Returns: Json
+      }
       asignar_temporada_categoria: {
         Args: { p_categoria_id: string; p_temporada: string | null }
         Returns: undefined
@@ -8592,6 +8600,18 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: string
+      }
+      // ADR-0328 act. 10 (20261005140000): reporta una prenda dañada desde Existencias (lo libre del piso o del almacén → cuarentena).
+      reportar_danada: {
+        Args: {
+          p_cantidad: number
+          p_desde: string
+          p_motivo: string
+          p_token: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: Json
       }
       resolver_prenda_danada: {
         Args: {

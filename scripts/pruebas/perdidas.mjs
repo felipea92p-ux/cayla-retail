@@ -136,7 +136,10 @@ ${TABLA.map(
 // ============================================================================================================================
 // T · Totalidad: los motivos que las funciones de la base escriben HOY en una salida o un ajuste. La lista de abajo es la
 // decisión tomada para cada uno; un motivo que aparezca y no esté aquí hace fallar la prueba («decide si es pérdida»).
-// La salida de cuarentena se arma con `'cuarentena_' || estado`: se arma con los estados que acepta `prendas_danadas`.
+// La salida de cuarentena se arma con `'cuarentena_' || estado`: se arma con los estados que acepta `prendas_danadas`,
+// salvo los que la base resuelve SIN salida: 'en_cuarentena' (todavía no se resolvió) y 'se_arreglo' (ADR-0328 act. 10,
+// 20261005140000: la prenda vuelve al almacén con `mover_interno`, un traslado dentro de la sede; nunca escribe
+// 'cuarentena_se_arreglo'). Que siga siendo así lo vigila la verificación «T "Se arregló" no es una salida».
 // ============================================================================================================================
 const DECIDIDOS = {
   salida: ["venta", "cambio", "traslado_salida", "reversion_produccion", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
@@ -155,7 +158,11 @@ insert into escritos
 select distinct 'salida', 'cuarentena_' || m[1]
   from pg_constraint c, regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g') m
  where c.conrelid = 'retail.prendas_danadas'::regclass and pg_get_constraintdef(c.oid) like '%en_cuarentena%liquidada%'
-   and m[1] <> 'en_cuarentena';
+   and m[1] not in ('en_cuarentena', 'se_arreglo');
+select 'T «Se arregló» no es una salida: resolver_prenda_danada no la acepta y arreglar_prenda_danada mueve con mover_interno sin escribir en movimientos',
+  (select count(*) >= 1 and bool_and(p.prosrc !~ 'se_arreglo') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'resolver_prenda_danada')
+  and (select count(*) = 1 and bool_and(p.prosrc ~ 'mover_interno\\s*\\(' and p.prosrc !~* 'insert\\s+into\\s+(retail\\.)?movimientos')
+         from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'arreglar_prenda_danada');
 select 'T los estados de una dañada salen de la base (se botó, donada, liquidada, devuelta al proveedor)', (select count(distinct motivo) = 4 from escritos where motivo in ('cuarentena_se_boto', 'cuarentena_donada', 'cuarentena_liquidada', 'cuarentena_devuelta_proveedor'));
 select 'T hay motivos escritos por la base que revisar (la búsqueda funciona)', (select count(*) >= 6 from escritos);
 select 'T toda salida que escribe una función tiene su clase decidida', (select coalesce(bool_and(motivo = any (array[${DECIDIDOS.salida.map(lit).join(", ")}])), true) from escritos where tipo = 'salida');
