@@ -5,10 +5,12 @@ contenido toma el ancho del texto sin cortar y sobresale de su columna del grid.
 es `inline-block max-w-full truncate` con el nombre completo en el `title`, y la celda de la lista es `flex min-w-0` (ocupa su columna en vez de
 ajustarse al texto). El chip corto no cambia. Sin migración.
 Por qué así: un texto solo se corta con «…» dentro de un bloque (por eso `inline-block` y no `inline-flex`), y para que `max-w-full` tenga contra
-qué medirse la celda debe medir lo que mide su columna. `PildoraRol` la comparten la lista y la cabecera de las fichas de Colaborador y Terminal;
-se midió también ahí (a 343 y 480 px de ancho de cajón): idéntica antes y después. A 375 px el chip largo además salía de la tarjeta y ensanchaba
-la página; ya no.
-Felipe se lleva: medido a 1440 px (chip de 222 px que terminaba en x=838 sobre una fecha que empieza en 806; ahora 176 px, termina en 792 y se lee
-«Prueba del tema: vent…») y a 375 px (sobresalía 40 px de la tarjeta; ahora queda dentro). **La verificación fue en una maqueta aislada con el
-Tailwind y los tokens del repo, y las mismas clases de la fila**, no en `/colaboradores` viva: este worktree no tenía `.env.local`, y mirar el de
-otro worktree no se autorizó. Falta mirar la pantalla real con `lucia@cayla.local` (la prueba es la misma: que el chip no pase de su columna).
+qué medirse la celda debe medir lo que mide su columna. `PildoraRol` la comparten la lista y la cabecera de las fichas de Colaborador y Terminal,
+así que el cambio también las alcanza: la cabecera de la ficha era un chip de ancho natural dentro de una columna de texto más angosta.
+Felipe se lleva: medido en la pantalla real (`/colaboradores`, base local, `lucia@cayla.local`). A 1440 px el chip de Lucía termina en x=935 (el
+borde de su columna) y «hoy 11:06» empieza en 949; antes, en una maqueta con las mismas clases, medía 222 px, terminaba en 838 y tapaba la fecha
+(empieza en 806). A 375 px todos los chips quedan dentro de la tarjeta, sin scroll horizontal (antes el largo sobresalía 40 px y ensanchaba la
+página). Los chips cortos (Líder de equipo, Integrante, Terminal de ventas) quedan en la misma posición y con el mismo alto de fila. **Un efecto
+que se nota en la ficha a 375 px:** el chip de Lucía mide 220 px y la columna de texto 202, así que ahora se lee «Prueba del tema: ventas y s…»
+(antes sobresalía 18 px de su columna sin tapar nada, pero un rol más largo se habría salido del cajón); el nombre completo está en el `title`.
+Con un cajón de 432 px (ventana de 557 px) el chip se ve entero.
