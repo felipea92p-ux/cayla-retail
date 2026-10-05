@@ -6,7 +6,7 @@ import type { NivelConfianza, Sugerencia } from "@/lib/frescura-reglas";
 // Piezas chicas de Frescura del piso (ADR-0208, paso 4) que usan la fila, la hoja de detalle y «Las N tiendas». Todo
 // color sale de los tokens (ADR-0169) y de los tonos de `Chip`: la Crítica es el tono `tinta`, nunca rojo (colores A).
 
-/** El estado de una prenda: el chip y, debajo, «quizá más» o «con pocos datos»; la apartada dice en qué iba. */
+/** El estado de una prenda: el chip y, debajo, «aproximado» si se juzgó con pocas ventas; la apartada dice en qué iba. */
 export function EstadoChip({ estado, apilado = true }: { estado: EstadoVista; apilado?: boolean }) {
   return (
     <span className={apilado ? "flex flex-col items-start gap-0.5" : "inline-flex flex-wrap items-center gap-x-2 gap-y-0.5"}>

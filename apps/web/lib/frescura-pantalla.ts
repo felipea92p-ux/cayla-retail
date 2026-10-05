@@ -46,6 +46,9 @@ export const NOMBRE_TRAMO: Record<Tramo, string> = { nueva: "Recién llegada", v
 /** Colores A (Felipe, 2026-09-28). La Crítica usa el tono `tinta` de `Chip` (contorno de tinta, letra gruesa): nunca rojo. */
 export const TONO_TRAMO: Record<Tramo, TonoChip> = { nueva: "verde", vigente: "neutro", envejecida: "ambar", critica: "tinta" };
 
+/** Lo que dice una prenda juzgada con pocas ventas de las demás (menos de 10): «Aproximado», no «con pocos datos». */
+export const APROXIMADO = "aproximado";
+
 /** Frases C: el «al menos» se dice «quizá más», detrás del número o del nombre. */
 export const QUIZA_MAS = "quizá más";
 
@@ -216,7 +219,7 @@ export type EstadoVista = {
   tono: TonoChip;
   /** El chip «Sus números no cuadran» lleva un ícono de información (no es un semáforo). */
   icono: boolean;
-  /** Las líneas chicas bajo el chip: «quizá más», «con pocos datos». */
+  /** Las líneas chicas bajo el chip: «aproximado» cuando se juzgó con pocas ventas. */
   debajo: string[];
   /** La línea de la prenda apartada: «iba en Vigente · 3 apartadas». */
   previo: string | null;
@@ -241,9 +244,9 @@ export function estadoVista(p: FrescuraPrenda): EstadoVista {
   if (e.tipo === "semaforo") {
     const debajo: string[] = [];
     // El «quizá más» ya no va aquí: la fila lo dice en su línea de días («Lleva 6 días o más», `llevaTexto`).
-    // «Con pocos datos» se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado (D5): una
-    // categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
-    if (nivelSinElla(p) === "pocos_datos") debajo.push("con pocos datos");
+    // «Aproximado» (antes «con pocos datos») se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado
+    // (D5): una categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
+    if (nivelSinElla(p) === "pocos_datos") debajo.push(APROXIMADO);
     return { texto: NOMBRE_TRAMO[e.tramo], tono: TONO_TRAMO[e.tramo], icono: false, debajo, previo: null };
   }
   if (e.tipo === "clasico") return { texto: e.fueraDeSuEstacion ? TEXTO_ESPECIAL.clasico_fuera : TEXTO_ESPECIAL.clasico, tono: "pizarra", icono: false, debajo: [], previo: null };
@@ -642,6 +645,20 @@ export function agrupar<T extends { categoriaId: string; categoriaNombre: string
 // ---------------------------------------------------------------------------
 // La sede entera: cifras, avisos y el pie
 // ---------------------------------------------------------------------------
+
+/** ¿Esta prenda se juzgó con pocas ventas? Estado con comparación débil (menos de 10 ventas de las demás) o sin comparación todavía. */
+export const esAproximada = (p: FrescuraPrenda): boolean => (p.estado.tipo === "semaforo" && nivelSinElla(p) === "pocos_datos") || p.estado.tipo === "sin_ventas_sede" || p.estado.tipo === "sin_vara";
+
+/**
+ * UN aviso arriba cuando la mayoría de lo que se ve se juzgó con pocas ventas (TRU hoy: 4 ventas en 120 días): la regla se dice
+ * UNA vez y no en cada fila (Formidable, ADR-0350, ley 9). Si es la minoría, no hay aviso y cada fila aproximada lo marca: la
+ * excepción se marca, la regla se dice. Null si no hace falta.
+ */
+export function avisoPocasVentas(prendas: readonly FrescuraPrenda[], sede: string): TextoRico | null {
+  if (prendas.length === 0) return null;
+  if (prendas.filter(esAproximada).length * 2 <= prendas.length) return null;
+  return `**Todavía hay pocas ventas en ${sede}.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.`;
+}
 
 /** Más de la mitad de las prendas de la tabla sin temporada (TRU hoy: todas): UN aviso arriba, no un chip por fila. */
 export function muchasSinTemporada(prendas: readonly FrescuraPrenda[]): boolean {

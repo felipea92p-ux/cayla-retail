@@ -37,6 +37,8 @@ import {
   textoSugerencia,
   trozosRicos,
   vistaDeEntrada,
+  avisoPocasVentas,
+  esAproximada,
   type AccesoFrescura,
   type ContextoFrescura,
   type NombresDeTemporadas,
@@ -190,10 +192,10 @@ describe("colores A (Felipe, 2026-09-28): ninguna fila en rojo", () => {
     expect(e.debajo).toEqual([]);
   });
 
-  it("«con pocos datos» (las demás sin ella vendieron menos de 10) va debajo del chip; el «o más» lo dice la línea de días, no el chip", () => {
+  it("«aproximado» (las demás sin ella vendieron menos de 10) va debajo del chip; el «o más» lo dice la línea de días, no el chip", () => {
     const pocas = { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 7 };
     const e = estadoVista(prenda({ categoriaSinElla: pocas, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: true } }));
-    expect(e).toMatchObject({ texto: "En su tiempo", tono: "neutro", debajo: ["con pocos datos"] });
+    expect(e).toMatchObject({ texto: "En su tiempo", tono: "neutro", debajo: ["aproximado"] });
   });
 
   it("los estados especiales dicen su porqué (frases C) en pizarra, la que no cuadra apagada y con ícono, la apartada en neutro", () => {
@@ -661,12 +663,12 @@ describe("corrección del paso 4 · «sin contarla» solo cuando hay algo que co
   });
 });
 
-describe("corrección del paso 4 · «con pocos datos» se mide con las demás SIN ella (D5)", () => {
+describe("corrección del paso 4 · «aproximado» se mide con las demás SIN ella (D5)", () => {
   const semaforo = { ...ESTADO_BASE, tipo: "semaforo" as const, tramo: "critica" as const, alMenos: false };
   it("categoría sólida (21) hecha de 14 ventas suyas: la comparación sale de 7, y lo dice debajo del chip, en el porqué y en la caja", () => {
     const c = ctx({ categorias: new Map([["blu", vara("blu", { vendidas: 21, nivel: "solido" })]]) });
     const p = prenda({ categoriaSinElla: { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 7 }, estado: semaforo });
-    expect(estadoVista(p).debajo).toContain("con pocos datos");
+    expect(estadoVista(p).debajo).toContain("aproximado");
     const d = detalleVista(p, c);
     expect(d.porque).toContain("La comparación sale de solo 7 ventas de las demás");
     expect(d.confianzaSinElla).toEqual({ texto: "Salen de 7 ventas de las demás en Tienda Trujillo:", nivel: "pocos_datos" });
@@ -814,5 +816,28 @@ describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", 
     expect(consultaDe(f, null)).toBe("todas=1");
     expect(hayFiltros(f)).toBe(false);
     expect(filtrosDeUrl(() => null).todas).toBe(false);
+  });
+});
+
+describe("Formidable (ADR-0350) · lo aproximado se dice UNA vez cuando es la regla, y se marca cuando es la excepción", () => {
+  const pocas = { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 4 };
+  const firmes = { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 40 };
+  const conPocas = (clave: string) => prenda({ clave, categoriaSinElla: pocas, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } });
+  const conFirmes = (clave: string) => prenda({ clave, categoriaSinElla: firmes, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "vigente", alMenos: false } });
+
+  it("una prenda es aproximada si se comparó con menos de 10 ventas, o si todavía no hay con qué comparar", () => {
+    expect(esAproximada(conPocas("a"))).toBe(true);
+    expect(esAproximada(conFirmes("a"))).toBe(false);
+    expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_ventas_sede" } }))).toBe(true);
+    expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "sin_vara" } }))).toBe(true);
+    expect(esAproximada(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false } }))).toBe(false);
+  });
+
+  it("con MÁS de la mitad aproximada hay un solo aviso, con el nombre de la sede; con la mitad o menos, ninguno", () => {
+    const aviso = avisoPocasVentas([conPocas("a"), conPocas("b"), conFirmes("c")], "Tienda TRU");
+    expect(aviso).toBe("**Todavía hay pocas ventas en Tienda TRU.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.");
+    expect(avisoPocasVentas([conPocas("a"), conFirmes("b")], "Tienda TRU")).toBeNull();
+    expect(avisoPocasVentas([conFirmes("a"), conFirmes("b")], "Tienda TRU")).toBeNull();
+    expect(avisoPocasVentas([], "Tienda TRU")).toBeNull();
   });
 });

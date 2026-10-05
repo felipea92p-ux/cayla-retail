@@ -6,7 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import type { AparienciaPrenda, CategoriaVisual } from "@/lib/frescura";
 import type { FilaDeDecision } from "@/lib/frescura-decisiones-pantalla";
-import type { FilaVista } from "@/lib/frescura-pantalla";
+import { APROXIMADO, type FilaVista } from "@/lib/frescura-pantalla";
 import { EstadoChip, ICONO_SUGERENCIA } from "./piezas";
 
 // Una prenda (modelo+color) de Frescura del piso: la fila de la tabla en la computadora y la tarjeta en el celular. Una fila =
@@ -85,10 +85,12 @@ function Prenda({ fila, muchasSinTemporada, apariencia, categoria }: { fila: Fil
 }
 
 /** El estado en UNA palabra y, debajo, cuánto lleva: «Se está quedando · Lleva 18 días». */
-function Estado({ fila }: { fila: FilaVista }) {
+function Estado({ fila, marcarAproximado }: { fila: FilaVista; marcarAproximado: boolean }) {
+  // «Aproximado» se dice en la fila solo cuando es la excepción; cuando es la regla, lo dice UN aviso arriba de la tabla.
+  const estado = marcarAproximado ? fila.estado : { ...fila.estado, debajo: fila.estado.debajo.filter((d) => d !== APROXIMADO) };
   return (
     <div className="flex flex-col items-start gap-1">
-      <EstadoChip estado={fila.estado} />
+      <EstadoChip estado={estado} />
       {fila.llevaTexto && <span className="text-[13px] leading-snug text-taupe">{fila.llevaTexto}</span>}
     </div>
   );
@@ -112,6 +114,7 @@ export function FrescuraFila({
   muchasSinTemporada,
   onAbrir,
   decision,
+  marcarAproximado,
   apariencia,
   categoria,
 }: {
@@ -119,6 +122,8 @@ export function FrescuraFila({
   muchasSinTemporada: boolean;
   onAbrir: () => void;
   decision: FilaDeDecision | null;
+  /** «Aproximado» bajo el estado: solo si no hay un aviso único arriba (la regla se dice una vez, la excepción se marca). */
+  marcarAproximado: boolean;
   apariencia: AparienciaPrenda | null;
   categoria: CategoriaVisual | null;
 }) {
@@ -141,7 +146,7 @@ export function FrescuraFila({
       {/* Computadora: una fila de la tabla. */}
       <div className={`hidden items-center gap-x-4 px-5 py-3.5 md:grid ${PLANTILLA_FRESCURA}`}>
         <Prenda fila={fila} muchasSinTemporada={muchasSinTemporada} apariencia={apariencia} categoria={categoria} />
-        <Estado fila={fila} />
+        <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
         <Abrir fila={fila} />
       </div>
@@ -152,7 +157,7 @@ export function FrescuraFila({
           <Prenda fila={fila} muchasSinTemporada={muchasSinTemporada} apariencia={apariencia} categoria={categoria} />
           <Abrir fila={fila} />
         </div>
-        <Estado fila={fila} />
+        <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
       </div>
     </div>
