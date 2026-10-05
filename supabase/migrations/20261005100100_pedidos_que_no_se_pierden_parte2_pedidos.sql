@@ -48,9 +48,11 @@
 -- `create or replace function`, `comment`, `revoke`, `grant`; ninguna política, ningún `alter table`, ningún `drop trigger`
 -- (ADR-0195). Idempotente. Cómo se verifica después:
 --   select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname in
---     ('fn_reservar_pedido_en_origen', 'fn_soltar_reserva_de_origen', 'subir_pedido_al_almacen', 'marcar_pedido_avisado',
---      'fn_pedidos_por_atender', 'fn_pedidos_con_cliente', 'fn_pedidos_vuelven_a_esperar');   -- 7 filas
+--     ('fn_reservar_pedido_en_origen', 'fn_cerrar_reserva_de_pedido', 'fn_soltar_reserva_de_origen', 'subir_pedido_al_almacen',
+--      'marcar_pedido_avisado', 'fn_pedidos_por_atender', 'fn_pedidos_con_cliente', 'fn_pedidos_vuelven_a_esperar');   -- 8 filas
 --   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'pedir_prenda_para_apartar';
+--   select position('fn_reservar_pedido_en_origen' in prosrc) > 0 from pg_proc where proname = 'enviar_pedido_para_apartar';
+--   select position('Traslados, Apartados ni Vender' in prosrc) > 0 from pg_proc where proname = 'cancelar_pedido_para_apartar';
 --
 -- SE ROMPE SI alguien vuelve a pegar 20260927140000 o 20260927210000 (recrean pedir/enviar/cancelar desde el archivo y
 -- borran las anclas: el pedido dejaría de apartar en el origen sin avisar), o si el CHECK de `apartados.cierre_motivo`
