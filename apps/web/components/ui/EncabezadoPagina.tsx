@@ -60,7 +60,7 @@ export function EncabezadoPagina({
         </p>
         <h1 className={`font-display text-4xl leading-none tracking-tight text-tinta sm:text-[46px] ${compactoMovil ? "mt-2 max-sm:text-[28px] sm:mt-3" : "mt-3"}`}>{titulo}</h1>
         <p className={`mt-2.5 max-w-md text-[15px] text-tinta/70 ${compactoMovil ? "max-sm:hidden" : ""}`}>{subtitulo}</p>
-        {bajoLaFrase && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5">{bajoLaFrase}</div>}
+        {bajoLaFrase && <div className={`mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5 ${compactoMovil ? "max-sm:mt-0" : ""}`}>{bajoLaFrase}</div>}
       </div>
       {derechaOcupada
         ? children

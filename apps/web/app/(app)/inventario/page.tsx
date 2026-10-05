@@ -21,6 +21,7 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
 import { CifrasEnLinea } from "@/components/existencias/CifrasEnLinea";
+import { accionesHacer } from "@/lib/existencias-hacer";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -147,6 +148,18 @@ export default async function InventarioPage({
   const enSuSede = ubicacionActivaId === persona.ubicacionId;
   const puedeBajarAlPiso = veModulo(persona, "existencias") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
 
+  // «Hacer…» (el botón fijo del celular, rediseño 2026-10-05): los mismos accesos de la fila de la cabecera, con las mismas condiciones, en una
+  // hoja. La lista y su prueba viven en `lib/existencias-hacer.ts`; la prueba comprueba que cada ruta esté también en la fila de abajo.
+  const hacer = accionesHacer({
+    puedeColgar: puedeBajarAlPiso,
+    enSuSede,
+    veRecibir: veModulo(persona, "recibir"),
+    veConteos: veModulo(persona, "conteos"),
+    veTraslados: veModulo(persona, "traslados"),
+    vende,
+    veApartados: veModulo(persona, "apartados"),
+  });
+
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
   // Solo lo que sigue en camino: un traslado `recibido_con_diferencia` ya llegó y espera a un líder (revisión 2026-10-04: «Para hoy»
@@ -212,11 +225,11 @@ export default async function InventarioPage({
         // claros, los accesos a las pantallas que trabajan de la mano con esta (ADR-0237). Antes «+ Nuevo traslado» era el
         // oscuro y competía con cuatro botones más en dos renglones. Cada acceso solo si su rol ve esa pantalla (ADR-0161);
         // Recibir, Contar y Apartados solo mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
-        // Con las cifras a la derecha, la cabecera pone las acciones bajo la frase. En el celular, una sola fila que se desliza
-        // de lado: la página nunca se corre a los costados.
+        // Con las cifras a la derecha, la cabecera pone las acciones bajo la frase. En el celular la fila no se dibuja: esos mismos
+        // accesos están en «Hacer…», el botón fijo de abajo (rediseño 2026-10-05; antes era una fila que se deslizaba de lado y dejaba
+        // cuatro de los cinco fuera de la vista).
         acciones={
-          // El borde derecho se desvanece en el celular: sin eso, la fila cortada no decía que había más accesos a un deslizamiento.
-          <div className="flex flex-wrap items-center gap-2 max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:pr-10 max-sm:[mask-image:linear-gradient(90deg,#000_calc(100%-2.5rem),transparent)] max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-primario shrink-0 gap-2">
                 <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
@@ -294,6 +307,7 @@ export default async function InventarioPage({
         panelFiltros={panelFiltros}
         coloresCatalogo={colores}
         sinRegistrar={sinRegistrar}
+        accionesHacer={hacer}
       />
     </div>
   );

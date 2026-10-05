@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ScanLine, Table2, Tag, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -26,7 +26,9 @@ import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
+import { DockExistencias } from "@/components/existencias/DockExistencias";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
+import type { AccionHacer } from "@/lib/existencias-hacer";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
@@ -184,6 +186,7 @@ export function InventarioPanel({
   panelFiltros = "abierto",
   coloresCatalogo = [],
   sinRegistrar = null,
+  accionesHacer = [],
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -240,6 +243,9 @@ export function InventarioPanel({
   coloresCatalogo?: ColorDeCatalogo[];
   /** Ventas sin registrar de esta sede (ADR-0330, viven en Existencias): pendientes y vencidas. `null` = no es una tienda; «fallo» = no se pudo leer. */
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
+  /** Lo que «Hacer…» (el botón fijo del celular) ofrece a esta persona en esta sede: `accionesHacer` de `lib/existencias-hacer.ts`, que
+   *  calcula la página. Vacía = el botón no se dibuja. */
+  accionesHacer?: AccionHacer[];
 }) {
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
@@ -1344,20 +1350,10 @@ export function InventarioPanel({
         </div>
       )}
 
-      {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios.
-          Es una acción de esta pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
-      {stock.length > 0 && filasMarcadas.length === 0 && !camara && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <button
-            type="button"
-            onClick={() => setCamara(true)}
-            className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-          >
-            <ScanLine size={19} aria-hidden />
-            Escanear prenda
-          </button>
-        </div>
-      )}
+      {/* Celular: la consulta más frecuente del piso («¿hay en M?») a un toque, fijo al alcance del pulgar — como en Cambios — y, al lado,
+          «Hacer…» con los accesos que en pantallas anchas son la fila de la cabecera (rediseño 2026-10-05). Es una acción de esta
+          pantalla, no navegación (ADR-0206). Con prendas marcadas, su lugar lo toma la barra. */}
+      {stock.length > 0 && filasMarcadas.length === 0 && !camara && <DockExistencias acciones={accionesHacer} onEscanear={() => setCamara(true)} />}
     </div>
   );
 }
