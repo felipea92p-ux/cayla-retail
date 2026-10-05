@@ -80,7 +80,7 @@ const entrada = (extra: Partial<EntradaEquipo> = {}): EntradaEquipo => ({
 const persona = (ms: ReturnType<typeof armarEquipo>, id: string) => ms.find((m) => m.id === id) as PersonaEquipo;
 
 describe("armarEquipo", () => {
-  it("junta activas, suspendidas, bajas de Dynamic y aparatos en una sola lista", () => {
+  it("junta activas, suspendidas, bajas de Dynamic y terminales en una sola lista", () => {
     const ms = armarEquipo(entrada());
     expect(ms.map((m) => m.id).sort()).toEqual(["b1", "l2", "p1", "p2", "s1", "t1", "yo"].sort());
   });
@@ -114,8 +114,8 @@ describe("armarEquipo", () => {
     expect(persona(armarEquipo(entrada({ fueraDeAlcance: ["s1"] })), "s1").puedeReactivar).toBe(false);
   });
 
-  it("sin terminales leídas, sale sin aparatos", () => {
-    expect(armarEquipo(entrada({ terminales: null })).some((m) => m.tipo === "aparato")).toBe(false);
+  it("sin terminales leídas, sale sin terminales", () => {
+    expect(armarEquipo(entrada({ terminales: null })).some((m) => m.tipo === "terminal")).toBe(false);
   });
 });
 
@@ -126,18 +126,18 @@ describe("agruparPorSede", () => {
     expect(agruparPorSede(ms, UBIC, "todas", "").map((g) => g.clave)).toEqual([SIN_SEDE, TRU.id, AQP.id, BAJA_DYNAMIC]);
   });
 
-  it("dentro de la sede: líderes, integrantes por nombre, suspendidos y al final los aparatos", () => {
+  it("dentro de la sede: líderes, integrantes por nombre, suspendidos y al final las terminales", () => {
     const tru = agruparPorSede(ms, UBIC, "todas", "").find((g) => g.clave === TRU.id)!;
     expect(tru.miembros.map((m) => m.id)).toEqual(["p2", "p1", "t1"]);
     const aqp = agruparPorSede(ms, UBIC, "todas", "").find((g) => g.clave === AQP.id)!;
     expect(aqp.miembros.map((m) => m.id)).toEqual(["l2", "s1"]);
-    expect(tru).toMatchObject({ personas: 2, aparatos: 1, deTurno: 1 });
+    expect(tru).toMatchObject({ personas: 2, terminales: 1, deTurno: 1 });
   });
 
-  it("filtra por sede, suspendidos (incluye bajas) y aparatos", () => {
+  it("filtra por sede, suspendidos (incluye bajas) y terminales", () => {
     expect(agruparPorSede(ms, UBIC, { sede: AQP.id }, "").flatMap((g) => g.miembros.map((m) => m.id))).toEqual(["l2", "s1"]);
     expect(agruparPorSede(ms, UBIC, "suspendidas", "").flatMap((g) => g.miembros.map((m) => m.id))).toEqual(["s1", "b1"]);
-    expect(agruparPorSede(ms, UBIC, "aparatos", "").flatMap((g) => g.miembros.map((m) => m.id))).toEqual(["t1"]);
+    expect(agruparPorSede(ms, UBIC, "terminales", "").flatMap((g) => g.miembros.map((m) => m.id))).toEqual(["t1"]);
   });
 
   it("busca sin tildes por nombre, correo o rol", () => {
@@ -148,17 +148,19 @@ describe("agruparPorSede", () => {
 });
 
 describe("atajosEquipo", () => {
-  it("todas, cada sede con gente, suspendidos y aparatos solo si hay", () => {
+  it("todas, cada sede con gente, suspendidos solo si hay y terminales si se pudieron leer", () => {
     const a = atajosEquipo(armarEquipo(entrada()), UBIC);
     expect(a.map((x) => [x.etiqueta, x.n])).toEqual([
       ["Todas", 6],
       ["Tienda TRU", 2],
       ["Tienda AQP", 2],
       ["Suspendidos", 2],
-      ["Aparatos", 1],
+      ["Terminales", 1],
     ]);
     const sinNada = atajosEquipo(armarEquipo(entrada({ suspendidos: [], inactivos: [], terminales: [] })), UBIC);
-    expect(sinNada.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP"]);
+    expect(sinNada.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP", "Terminales"]);
+    const sinLeer = atajosEquipo(armarEquipo(entrada({ suspendidos: [], inactivos: [], terminales: null })), UBIC, false);
+    expect(sinLeer.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP"]);
   });
 });
 

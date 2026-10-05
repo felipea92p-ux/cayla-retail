@@ -21,7 +21,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 
 // Colaboradores ▸ Equipo (propuesta de Felipe del 2026-10-05): UNA lista agrupada por sede, como se piensa el negocio
 // («el equipo de Trujillo»). El estado (suspendido, baja en Dynamic) es una marca sobre la persona, no una pestaña. Arriba,
-// «Esperan tu ok» solo si hay altas por aprobar. Tocar una persona abre su ficha; tocar un aparato, la vista de aparatos.
+// «Esperan tu ok» solo si hay altas por aprobar. Tocar una persona abre su ficha; tocar una terminal, la suya (`FichaTerminal`). Con el atajo «Terminales» la lista es la misma, solo con ellas.
 
 /** El rol: el único rótulo de acceso. El Líder, en tinta. */
 export function PildoraRol({ nombre, lider }: { nombre: string; lider: boolean }) {
@@ -59,6 +59,20 @@ export function EstadoPersona({ p }: { p: Pick<PersonaEquipo, "estado"> }) {
   return null;
 }
 
+/** Las columnas de la lista y de sus títulos: cara, persona, rol, último ingreso (desde 640 px) y estado (desde 1024 px). En una
+ *  pantalla ancha van juntas a la izquierda con anchos fijos, y lo que sobra lo toma «Estado» (Felipe 2026-10-05: el rol y la fecha
+ *  quedaban al otro extremo, lejos del nombre). */
+const COLUMNAS =
+  "grid grid-cols-[36px_minmax(0,1fr)_minmax(0,9.5rem)] items-center gap-x-3.5 sm:grid-cols-[36px_minmax(0,1fr)_10rem_7.5rem] lg:grid-cols-[36px_minmax(14rem,22rem)_11rem_8rem_minmax(0,1fr)]";
+
+/** El estado en una palabra: lo que pide atención o lo que está pasando hoy. Nada si está activa y sin turno. */
+function EstadoMiembro({ m }: { m: MiembroEquipo }) {
+  if (m.tipo === "terminal") return m.activo ? null : <Chip tono="apagado" tachado={false}>Desactivada</Chip>;
+  if (m.estado !== "activa") return <EstadoPersona p={m} />;
+  if (m.deTurno) return <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-verde"><span aria-hidden className="h-2 w-2 rounded-full bg-verde" />De turno hoy</span>;
+  return null;
+}
+
 function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; elegido: boolean; ahoraIso: string; onTocar: () => void }) {
   const apagado = m.tipo === "persona" ? m.estado !== "activa" : !m.activo;
   return (
@@ -67,7 +81,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
         type="button"
         onClick={onTocar}
         aria-current={elegido ? "true" : undefined}
-        className={`grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ease-cayla sm:grid-cols-[36px_minmax(0,1fr)_auto_96px] ${
+        className={`${COLUMNAS} w-full rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ease-cayla ${
           elegido ? "bg-hueso" : "hover:bg-hueso/60"
         }`}
       >
@@ -85,14 +99,23 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
             <span className="truncate">{m.nombre}</span>
             {m.tipo === "persona" && m.esYo && <span className="text-xs font-normal text-tinta/60">(tú)</span>}
             {m.tipo === "persona" && m.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
-            {m.tipo === "persona" ? <EstadoPersona p={m} /> : <span className="text-xs font-normal text-tinta/60">aparato{m.activo ? "" : " · desactivado"}</span>}
+            {/* Bajo 1024 px el estado va junto al nombre; desde ahí, en su columna. */}
+            {(m.tipo === "persona" ? m.estado !== "activa" : !m.activo) && (
+              <span className="lg:hidden">
+                <EstadoMiembro m={m} />
+              </span>
+            )}
           </span>
+          <span className="mt-0.5 block truncate text-[12px] text-tinta/55">{m.tipo === "persona" ? m.correo : "Terminal de tienda"}</span>
         </span>
-        <span className={apagado ? "opacity-70" : ""}>
+        <span className={`justify-self-start ${apagado ? "opacity-70" : ""}`}>
           <PildoraRol nombre={m.rolNombre} lider={m.tipo === "persona" && m.nivel === "lider"} />
         </span>
-        <span className="hidden text-right text-[12.5px] tabular-nums text-tinta/60 sm:block">
+        <span className="hidden text-[12.5px] tabular-nums text-tinta/60 sm:block lg:text-left">
           {m.tipo === "persona" && m.estado !== "activa" ? "—" : cuandoEntro(m.ultimoAcceso, ahoraIso)}
+        </span>
+        <span className="hidden lg:block">
+          <EstadoMiembro m={m} />
         </span>
       </button>
     </li>
@@ -170,7 +193,9 @@ export function EquipoLista({
   onAbrir,
   onAprobar,
   onRechazar,
-  aparatos,
+  conTerminales,
+  onAbrirTerminal,
+  onNuevaTerminal,
 }: {
   miembros: MiembroEquipo[];
   ubicaciones: { id: string; nombre: string }[];
@@ -184,13 +209,16 @@ export function EquipoLista({
   onAbrir: (personaId: string) => void;
   onAprobar: (p: ColaboradorPendiente) => void;
   onRechazar: (p: ColaboradorPendiente) => void;
-  /** La vista de aparatos (crear, cambiar clave, desactivar): se muestra en lugar de la lista con el atajo «Aparatos». */
-  aparatos: React.ReactNode;
+  /** ¿Se pudieron leer las terminales? Sin ellas no sale el atajo «Terminales». */
+  conTerminales: boolean;
+  onAbrirTerminal: (terminalId: string) => void;
+  /** Sin ella (terminales sin leer), no se ofrece crear una. */
+  onNuevaTerminal?: () => void;
 }) {
   const [texto, setTexto] = useState("");
-  const atajos = useMemo(() => atajosEquipo(miembros, ubicaciones), [miembros, ubicaciones]);
+  const atajos = useMemo(() => atajosEquipo(miembros, ubicaciones, conTerminales), [miembros, ubicaciones, conTerminales]);
   const grupos = useMemo(() => agruparPorSede(miembros, ubicaciones, filtro, texto), [miembros, ubicaciones, filtro, texto]);
-  const enAparatos = filtro === "aparatos";
+  const enTerminales = filtro === "terminales";
 
   return (
     <div className="space-y-4">
@@ -207,35 +235,46 @@ export function EquipoLista({
               </button>
             ))}
           </div>
-          {!enAparatos && (
-            <label className="caja-cayla flex w-full items-center gap-2 px-3 py-2 sm:w-72">
-              <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />
-              <input
-                type="search"
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                placeholder="Buscar persona o aparato"
-                aria-label="Buscar persona o aparato por nombre, correo o rol"
-                autoComplete="off"
-                className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
-              />
-            </label>
+          {enTerminales && onNuevaTerminal && (
+            <button type="button" className="btn-cayla btn-primario" onClick={onNuevaTerminal}>
+              + Nueva terminal
+            </button>
           )}
+          <label className="caja-cayla flex w-full items-center gap-2 px-3 py-2 sm:w-72">
+            <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />
+            <input
+              type="search"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              placeholder="Buscar persona o terminal"
+              aria-label="Buscar persona o terminal por nombre, correo o rol"
+              autoComplete="off"
+              className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
+            />
+          </label>
         </div>
 
-        {enAparatos ? (
-          aparatos
-        ) : grupos.length === 0 ? (
-          <p className="font-display py-8 text-center text-base italic text-tinta/65">{texto ? "Nadie coincide con lo que buscas." : "Todavía no hay nadie en el equipo."}</p>
+        {grupos.length === 0 ? (
+          <p className="font-display py-8 text-center text-base italic text-tinta/65">
+            {texto ? "Nadie coincide con lo que buscas." : enTerminales ? "Ninguna tienda tiene una terminal todavía." : "Todavía no hay nadie en el equipo."}
+          </p>
         ) : (
           <div className="space-y-5">
+            {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). */}
+            <div aria-hidden className={`${COLUMNAS} border-b border-sand px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
+              <span className="col-span-2">{enTerminales ? "Terminal" : "Persona"}</span>
+              <span>Rol</span>
+              <span className="hidden sm:block">Último ingreso</span>
+              <span className="hidden lg:block">Estado</span>
+            </div>
             {grupos.map((g) => (
               <section key={g.clave} aria-label={g.nombre}>
                 <h3 className="font-display flex flex-wrap items-baseline gap-x-2.5 px-2.5 text-[21px] leading-tight text-tinta">
                   {g.nombre}
                   <span className="font-sans text-[13px] text-tinta/60">
-                    {plural(g.personas, "persona", "personas")}
-                    {g.aparatos > 0 && ` · ${plural(g.aparatos, "aparato", "aparatos")}`}
+                    {[g.personas > 0 || g.terminales === 0 ? plural(g.personas, "persona", "personas") : null, g.terminales > 0 ? plural(g.terminales, "terminal", "terminales") : null]
+                      .filter(Boolean)
+                      .join(" · ")}
                     {g.deTurno > 0 && ` · ${g.deTurno} de turno hoy`}
                   </span>
                 </h3>
@@ -244,9 +283,9 @@ export function EquipoLista({
                     <FilaMiembro
                       key={`${m.tipo}:${m.id}`}
                       m={m}
-                      elegido={m.tipo === "persona" && m.id === elegidoId}
+                      elegido={m.id === elegidoId}
                       ahoraIso={ahoraIso}
-                      onTocar={() => (m.tipo === "persona" ? onAbrir(m.id) : onFiltro("aparatos"))}
+                      onTocar={() => (m.tipo === "persona" ? onAbrir(m.id) : onAbrirTerminal(m.id))}
                     />
                   ))}
                 </ul>
