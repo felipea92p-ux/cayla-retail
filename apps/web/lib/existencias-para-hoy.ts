@@ -196,8 +196,8 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       cifra: e.danadas,
       texto: plural(e.danadas, "prenda dañada", "prendas dañadas"),
       detalle: e.resuelveDanadas
-        ? "Están fuera de la venta y esperan tu decisión: botar, donar o liquidar."
-        : "Están fuera de la venta: un líder decide si se botan, se donan o se liquidan.",
+        ? "Están fuera de la venta y esperan tu decisión: se arregló, liquidar, botar o donar."
+        : "Están fuera de la venta: un líder decide si se arreglan, se liquidan, se botan o se donan.",
       tono: "ambar",
     });
   }
