@@ -646,6 +646,29 @@ export function InventarioPanel({
   const hrefEtiquetasMarcadas = urlEtiquetas(filasMarcadas);
   const prendasMarcadas = new Set(filasMarcadas.map((f) => clavePercha(f))).size;
 
+  // «Para hoy» se dibuja en dos sitios, uno por tamaño (rediseño 2026-10-05): en pantallas anchas arriba, como tarjeta; en el celular
+  // dentro de la tarjeta del buscador, justo debajo del campo, para que buscador, lo pendiente y la primera prenda entren juntos.
+  const paraHoy = (incrustado: boolean) => (
+    <ParaHoy
+      tareas={tareasHoy}
+      acciones={accionesHoy}
+      verCuales={verCualesHoy}
+      extra={
+        <>
+          {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
+            <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+              {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
+            </button>
+          )}
+          <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
+            Resumen por categoría
+          </button>
+        </>
+      }
+      incrustado={incrustado}
+    />
+  );
+
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
     <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
@@ -654,23 +677,9 @@ export function InventarioPanel({
           que se dibujaban aunque dijeran 0 y ocupaban la primera pantalla sin decir por dónde empezar. «Por colgar» cuenta con la
           MISMA regla que el filtro «Hoy» y la pastilla de cada prenda (`hoyDeTalla`): antes la tarjeta «Reponer a piso hoy» contaba
           con otra (ADR-0326 §5). */}
-      <ParaHoy
-        tareas={tareasHoy}
-        acciones={accionesHoy}
-        verCuales={verCualesHoy}
-        extra={
-          <>
-            {resumen.apartado > 0 && resumenApartados.vencidos === 0 && (
-              <button type="button" onClick={() => setViendoApartados(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-                {resumen.apartado} {resumen.apartado === 1 ? "apartada" : "apartadas"} para clientes
-              </button>
-            )}
-            <button type="button" onClick={() => setViendoDisponible(true)} className="text-taupe underline-offset-[3px] hover:text-tinta hover:underline">
-              Resumen por categoría
-            </button>
-          </>
-        }
-      />
+      {/* Pantallas anchas: la tarjeta de siempre, arriba. Celular: va dentro de la tarjeta del buscador (ranura `bajoBuscador`); sin
+          prendas no hay tarjeta de buscador y se dibuja aquí. */}
+      <div className={stock.length > 0 ? "max-sm:hidden" : undefined}>{paraHoy(false)}</div>
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
@@ -685,6 +694,7 @@ export function InventarioPanel({
         // píldoras en dos filas, chips de lo puesto, y en la fila del conteo «Copiar enlace», la vista y «Ordenar por».
         <div className={`px-4 pb-3 pt-4 sm:px-5 ${verDetalle ? "" : "card-cayla"}`}>
           <FiltrosExistencias
+            bajoBuscador={paraHoy(true)}
             busqueda={busqueda}
             onTeclear={teclear}
             onSoltar={soltarBusqueda}

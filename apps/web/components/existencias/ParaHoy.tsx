@@ -57,6 +57,7 @@ export function ParaHoy({
   acciones,
   verCuales,
   extra,
+  incrustado = false,
 }: {
   tareas: readonly TareaHoy[];
   /** El botón de cada tarea. Sin acción, la fila solo informa (quien mira no tiene el módulo que la resuelve). */
@@ -65,6 +66,8 @@ export function ParaHoy({
   verCuales?: Partial<Record<TipoTareaHoy, () => void>>;
   /** A la derecha del título: los accesos que no son tareas (el resumen por categoría, las apartadas). */
   extra?: ReactNode;
+  /** Va dentro de otra tarjeta (la del buscador, en el celular): sin tarjeta propia, sobre fondo hueso. */
+  incrustado?: boolean;
 }) {
   const [todas, setTodas] = useState(false);
   const [abiertoMovil, setAbiertoMovil] = useState(false);
@@ -73,12 +76,15 @@ export function ParaHoy({
   const idTitulo = `${id}-titulo`;
   const idLista = `${id}-lista`;
   const idExtra = `${id}-extra`;
+  // Dentro de la tarjeta del buscador el bloque es 34 px más angosto: con el relleno de siempre, «· 1 más» se parte en otra línea.
+  const relleno = incrustado ? "px-3" : "px-4";
+  const rellenoMovil = incrustado ? "max-sm:px-3" : "max-sm:px-4";
   const plegado = resumenPlegado(tareas);
   const visibles = todas ? tareas : tareas.slice(0, TAREAS_A_LA_VISTA);
   const ocultas = tareas.length - visibles.length;
 
   return (
-    <section aria-labelledby={idTitulo} className="card-cayla anim-sube overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
+    <section aria-labelledby={idTitulo} className={`${incrustado ? "rounded-xl bg-hueso" : "card-cayla"} anim-sube overflow-hidden`} style={{ "--i": 2 } as CSSProperties}>
       {/* Celular: sin fila de título (su «Para hoy» vive en la línea de abajo). El nombre accesible de la sección sigue saliendo del
           <h2>, que `aria-labelledby` lee aunque la fila esté oculta. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-5 pb-2 pt-4 max-sm:hidden">
@@ -95,7 +101,7 @@ export function ParaHoy({
           onClick={() => setAbiertoMovil((v) => !v)}
           aria-expanded={abiertoMovil}
           aria-controls={idLista}
-          className="flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left sm:hidden"
+          className={`flex min-h-11 w-full items-center ${incrustado ? "gap-2" : "gap-3"} ${relleno} py-2 text-left sm:hidden`}
         >
           {/* El punto toma el tono más grave de TODAS las tareas: un plazo vencido no queda escondido detrás de «por colgar». */}
           <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO[plegado.tono]}`} />
@@ -123,7 +129,7 @@ export function ParaHoy({
             aria-expanded={abiertoMovil}
             aria-controls={idExtra}
             disabled={!extra}
-            className="flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left sm:hidden"
+            className={`flex min-h-11 w-full items-center ${incrustado ? "gap-2" : "gap-3"} ${relleno} py-2 text-left sm:hidden`}
           >
             <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${PUNTO.verde}`} />
             <span className="min-w-0 flex-1 text-[14px] leading-tight text-tinta">
@@ -147,7 +153,7 @@ export function ParaHoy({
             return (
               <li
                 key={t.tipo}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-sand/70 px-5 py-3 max-sm:grid-cols-[auto_minmax(0,1fr)] max-sm:px-4"
+                className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-sand/70 px-5 py-3 max-sm:grid-cols-[auto_minmax(0,1fr)] ${rellenoMovil}`}
               >
                 <span aria-hidden className={`h-2.5 w-2.5 shrink-0 self-start rounded-full ring-4 max-sm:mt-2.5 sm:self-center ${PUNTO[t.tono]}`} />
                 <div className="min-w-0">
@@ -180,11 +186,11 @@ export function ParaHoy({
 
       {/* Celular: los enlaces que en pantallas anchas van junto al título bajan aquí, al pie de lo desplegado (o de «Todo al día»). */}
       {extra && abiertoMovil && (
-        <div id={idExtra} className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-sand/70 px-4 py-2.5 text-[13px] sm:hidden">{extra}</div>
+        <div id={idExtra} className={`flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-sand/70 ${relleno} py-2.5 text-[13px] sm:hidden`}>{extra}</div>
       )}
 
       {(ocultas > 0 || (todas && tareas.length > TAREAS_A_LA_VISTA)) && (
-        <div className={`border-t border-sand/70 px-5 py-2.5 max-sm:px-4 ${abiertoMovil ? "" : "max-sm:hidden"}`}>
+        <div className={`border-t border-sand/70 px-5 py-2.5 ${rellenoMovil} ${abiertoMovil ? "" : "max-sm:hidden"}`}>
           <button type="button" onClick={() => setTodas((v) => !v)} aria-expanded={todas} className="text-[13px] font-medium text-taupe hover:text-tinta">
             {todas ? "Ver menos" : `Ver ${ocultas} ${ocultas === 1 ? "pendiente más" : "pendientes más"}`}
           </button>

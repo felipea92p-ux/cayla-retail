@@ -70,6 +70,7 @@ export function FiltrosExistencias({
   orden,
   vista,
   nota,
+  bajoBuscador,
 }: {
   busqueda: string;
   onTeclear: (texto: string) => void;
@@ -107,6 +108,9 @@ export function FiltrosExistencias({
   vista: ReactNode;
   /** Una aclaración bajo la fila del conteo (la de «Por colgar»). */
   nota?: ReactNode;
+  /** Solo en el celular, justo bajo el buscador: ahí va «Para hoy» (rediseño 2026-10-05: buscador, la línea de lo pendiente y la
+   *  primera prenda entran juntos en la primera pantalla). En pantallas anchas no se dibuja: «Para hoy» sigue arriba de la tarjeta. */
+  bajoBuscador?: ReactNode;
 }) {
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
@@ -330,6 +334,8 @@ export function FiltrosExistencias({
           <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
         </div>
       </div>
+
+      {bajoBuscador && <div className="sm:hidden">{bajoBuscador}</div>}
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
