@@ -761,7 +761,7 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     // El cambio está en los dos filtros (es lo que se ve al tocar cada uno): 4 + 2 = 6, pero son 5 operaciones distintas.
     expect(lima.entrada.operaciones).toBe(4);
     expect(lima.salida.operaciones).toBe(2);
-    expect(Object.keys(lima).sort()).toEqual(["ajuste", "colgada", "entrada", "guardada", "interno", "salida", "todos", "transferencia"]);
+    expect(Object.keys(lima).sort()).toEqual(["ajuste", "cliente", "colgada", "entrada", "guardada", "interno", "llegada", "salida", "todos", "transferencia", "traslado", "venta"]);
   });
 
   it("singular y plural de la unidad", () => {
@@ -774,14 +774,14 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
 
 describe("el buscador entiende los nombres de los procesos", () => {
   it("una palabra que nombra un proceso se vuelve su filtro, con o sin tildes ni mayúsculas", () => {
-    expect(filtroDePalabra("venta")).toEqual({ cat: "salida", proc: "venta", etiqueta: "Ventas" });
+    expect(filtroDePalabra("venta")).toEqual({ cat: "venta", proc: null, etiqueta: "Ventas" });
     expect(filtroDePalabra("  Traslados ")).toEqual({ cat: "transferencia", proc: null, etiqueta: "Traslados" });
-    expect(filtroDePalabra("DEVOLUCIÓN")).toEqual({ cat: "entrada", proc: "devolucion", etiqueta: "Devoluciones" });
-    expect(filtroDePalabra("stock   inicial")).toEqual({ cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" });
+    expect(filtroDePalabra("DEVOLUCIÓN")).toEqual({ cat: "cliente", proc: "devolucion", etiqueta: "Devoluciones" });
+    expect(filtroDePalabra("stock   inicial")).toEqual({ cat: "llegada", proc: "carga_inicial", etiqueta: "Stock inicial" });
   });
 
-  it("«cambio» filtra solo por proceso: vive en Entradas y en Salidas", () => {
-    expect(filtroDePalabra("cambios")).toEqual({ cat: null, proc: "cambio", etiqueta: "Cambios" });
+  it("«cambio» cae en «cambios y devoluciones» (el cliente) con su proceso: ya no hace falta dejarlo sin tipo", () => {
+    expect(filtroDePalabra("cambios")).toEqual({ cat: "cliente", proc: "cambio", etiqueta: "Cambios" });
   });
 
   it("con un número detrás, o una prenda, sigue siendo una búsqueda", () => {

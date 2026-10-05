@@ -24,11 +24,13 @@ export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apart
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
-/** Lo que se puede PEDIR en el filtro de tipo: las cinco categorías y, desde el rediseño (ADR-0345, migración
- *  20261005160000), dos subconjuntos de «interno»: la colgada en piso (almacén → piso) y la guardada en almacén (piso →
- *  almacén). Una FILA nunca trae estas dos como categoría: sigue siendo «interno» (`tipoVisual` la distingue por su par). */
-export type CategoriaFiltro = CategoriaMovimiento | "colgada" | "guardada";
-export const CATEGORIAS_FILTRO: CategoriaFiltro[] = [...CATEGORIAS, "colgada", "guardada"];
+/** Lo que se puede PEDIR en el filtro de tipo: las cinco categorías de siempre y, desde el rediseño (ADR-0345, migración
+ *  20261005160000), los tipos que se ven: `venta`, `colgada` (almacén → piso), `guardada` (piso → almacén), `llegada`,
+ *  `traslado` (el que se envía) y `cliente` (devolución, venta anulada y cambio). Son los mismos que dibuja `tipoVisual`
+ *  (lib/movimientos-tipos.ts): una FILA nunca trae estos como categoría, la trae como «entrada», «interno»…; el tipo que se ve
+ *  sale de su proceso y de su par de lugares. Los enlaces viejos con `?cat=entrada` siguen valiendo. */
+export type CategoriaFiltro = CategoriaMovimiento | "venta" | "colgada" | "guardada" | "llegada" | "traslado" | "cliente";
+export const CATEGORIAS_FILTRO: CategoriaFiltro[] = [...CATEGORIAS, "venta", "colgada", "guardada", "llegada", "traslado", "cliente"];
 
 // Vocabulario de tienda (ADR-0234): «Traslado» como en el menú —nunca «Transferencia», que en el Perú suena a Yape o al
 // banco— y «Dentro de la sede» en vez de «Interno», que no dice nada a quien no conoce el sistema.
@@ -134,13 +136,20 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
  *  de 19. Sale de con qué `tipo` escribe cada RPC cada motivo: «Cambio» vive en dos (la prenda
  *  devuelta entra, la nueva sale) y por eso está en Entradas y en Salidas. Un proceso que no esté
  *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
-export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
+export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
   entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
   salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
+  // Los tipos que se ven (ADR-0345). Un tipo con un solo proceso no muestra la fila de procesos: no habría qué elegir.
+  venta: ["venta"],
+  colgada: ["movimiento_interno", "activacion_piso_almacen"],
+  guardada: ["movimiento_interno", "activacion_piso_almacen"],
+  llegada: ["traslado_entrada", "traslado_anulado", "recepcion", "produccion", "carga_inicial", "ingreso_regularizado"],
+  traslado: ["traslado_salida"],
+  cliente: ["devolucion", "anulacion_venta", "cambio"],
 };
 
 /** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
@@ -917,21 +926,23 @@ export function unidades(cifra: number): string {
 type FiltroDePalabra = { cat: CategoriaFiltro | null; proc: string | null; etiqueta: string };
 
 const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly string[] })[] = [
-  { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "salida", proc: "venta", etiqueta: "Ventas" },
+  // Cada palabra lleva al tipo que ahora se ve como botón (ADR-0345), para que el botón quede apretado.
+  { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "venta", proc: null, etiqueta: "Ventas" },
+  // «Traslados» a secas sigue trayendo las dos piernas (lo que llegó y lo que salió): no tiene botón.
   { palabras: ["traslado", "traslados", "transferencia", "transferencias"], cat: "transferencia", proc: null, etiqueta: "Traslados" },
   { palabras: ["ajuste", "ajustes"], cat: "ajuste", proc: null, etiqueta: "Ajustes" },
   { palabras: ["conteo", "conteos"], cat: "ajuste", proc: "conteo", etiqueta: "Conteos" },
   { palabras: ["merma", "mermas"], cat: "ajuste", proc: "merma", etiqueta: "Mermas" },
-  { palabras: ["devolucion", "devoluciones"], cat: "entrada", proc: "devolucion", etiqueta: "Devoluciones" },
-  // «Cambio» vive en Entradas y en Salidas: el filtro va solo por proceso, sin tipo.
-  { palabras: ["cambio", "cambios"], cat: null, proc: "cambio", etiqueta: "Cambios" },
-  { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "entrada", proc: "recepcion", etiqueta: "Recepciones" },
-  { palabras: ["stock inicial", "carga inicial"], cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" },
+  { palabras: ["devolucion", "devoluciones"], cat: "cliente", proc: "devolucion", etiqueta: "Devoluciones" },
+  { palabras: ["cambio", "cambios"], cat: "cliente", proc: "cambio", etiqueta: "Cambios" },
+  { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "llegada", proc: "recepcion", etiqueta: "Recepciones" },
+  { palabras: ["stock inicial", "carga inicial"], cat: "llegada", proc: "carga_inicial", etiqueta: "Stock inicial" },
   // «bajada» y «retiro» siguen valiendo, con el tipo que ahora se llama «colgada» y «guardada»: es lo que escribía la gente
   // antes de las palabras nuevas (ADR-0345).
   { palabras: ["colgada", "colgadas", "bajada", "bajadas"], cat: "colgada", proc: null, etiqueta: "Colgadas en piso" },
   { palabras: ["guardada", "guardadas", "retiro", "retiros"], cat: "guardada", proc: null, etiqueta: "Guardadas en almacén" },
-  { palabras: ["entrada", "entradas", "llegada", "llegadas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
+  { palabras: ["entrada", "entradas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
+  { palabras: ["llegada", "llegadas"], cat: "llegada", proc: null, etiqueta: "Llegadas" },
   { palabras: ["salida", "salidas"], cat: "salida", proc: null, etiqueta: "Salidas" },
 ];
 

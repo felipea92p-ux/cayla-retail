@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Prueba de integración de «Colgada en piso» y «Guardada en almacén» como tipos de Movimientos (ADR-0345, migración
- * 20261005160000) contra el Postgres LOCAL: el filtro `p_categoria = 'colgada' | 'guardada'` de `retail.fn_movimientos` y los
- * grupos `colgada` y `guardada` de `retail.fn_movimientos_resumen_procesos`.
+ * Prueba de integración de los tipos que se ven en Movimientos (ADR-0345, migración 20261005160000) contra el Postgres LOCAL:
+ * el filtro `p_categoria = venta | colgada | guardada | llegada | traslado | cliente` de `retail.fn_movimientos` y los mismos
+ * grupos de `retail.fn_movimientos_resumen_procesos`.
  *
  * Lo que ninguna prueba de TypeScript puede verificar:
  *   · una colgada (almacén → piso) y una guardada (piso → almacén) se filtran POR SEPARADO en la lista y en las cifras;
@@ -86,8 +86,14 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Cuarentena', 'cuarentena' where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena');
 select id as sc from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena' \\gset
 select pg_temp.mov(:'va', 'traslado', 1, :'ubic', :'sp', 'movimiento_interno', '2020-01-16 10:00-05', :'persona', destino => :'ubic', sub_destino => :'sc');
--- Una venta, para comprobar que nada de esto toca lo demás.
+-- Una venta, y los demás tipos que se ven: una llegada, un traslado enviado, una devolución, una venta anulada y una prenda
+-- dañada liquidada (que no pertenece a ningún botón: se ve en «Todos»).
 select pg_temp.mov(:'vb', 'salida', 1, :'ubic', :'sp', 'venta', '2020-01-17 10:00-05', :'persona');
+select pg_temp.mov(:'va', 'entrada', 10, :'ubic', :'sa', 'recepcion', '2020-01-18 10:00-05', :'persona');
+select pg_temp.mov(:'vb', 'salida', 2, :'ubic', :'sa', 'traslado_salida', '2020-01-19 10:00-05', :'persona');
+select pg_temp.mov(:'vc', 'entrada', 1, :'ubic', :'sp', 'devolucion', '2020-01-20 10:00-05', :'persona');
+select pg_temp.mov(:'va', 'entrada', 1, :'ubic', :'sp', 'anulacion_venta', '2020-01-21 10:00-05', :'persona');
+select pg_temp.mov(:'vb', 'salida', 1, :'ubic', :'sc', 'cuarentena_liquidada', '2020-01-22 10:00-05', :'persona');
 -- Lo que devuelven las cifras de enero de 2020, por grupo y proceso.
 create function pg_temp.r(g text, p text, col text) returns text language plpgsql as $$
 declare res text;
@@ -182,12 +188,42 @@ rollback;`,
     igual(d, "int_ops", 3, "«interno»: las 3 operaciones (colgada, guardada y la de la cuarentena)");
     igual(d, "int_movidas", 7, "«interno»: 3 + 3 + 1 unidades; la de la cuarentena cuenta solo acá");
     igual(d, "col_entran", 0, "lo que se cuelga no suma al total de la tienda");
-    igual(d, "todos_ops", 4, "«todos»: las 3 internas y la venta, cada una una vez");
+    igual(d, "todos_ops", 9, "«todos»: las 3 internas, la venta, la llegada, el traslado, la devolución, la venta anulada y la prenda dañada, cada una una vez");
     igual(d, "venta_salen", 1, "la venta sigue contando como siempre");
   },
 );
 
-console.log("\n3. Un valor desconocido sigue lanzando el error de siempre");
+correr(
+  "3. Los otros cuatro tipos que se ven: venta, llegada, traslado enviado y cambio o devolución",
+  `${PRELUDIO}
+${K("l_venta", "pg_temp.n('venta')")}
+${K("l_llegada", "pg_temp.n('llegada')")}
+${K("l_traslado", "pg_temp.n('traslado')")}
+${K("l_cliente", "pg_temp.n('cliente')")}
+${K("l_salida", "pg_temp.n('salida')")}
+${K("l_entrada", "pg_temp.n('entrada')")}
+${K("c_venta", "pg_temp.r('venta', null, 'operaciones') || '/' || pg_temp.r('venta', null, 'salen')")}
+${K("c_llegada", "pg_temp.r('llegada', null, 'operaciones') || '/' || pg_temp.r('llegada', null, 'entran')")}
+${K("c_traslado", "pg_temp.r('traslado', null, 'operaciones') || '/' || pg_temp.r('traslado', null, 'salen')")}
+${K("c_cliente", "pg_temp.r('cliente', null, 'operaciones') || '/' || pg_temp.r('cliente', null, 'entran')")}
+${K("c_salida", "pg_temp.r('salida', null, 'operaciones')")}
+rollback;`,
+  (d) => {
+    igual(d, "l_venta", 1, "«Venta» trae la venta y nada más");
+    igual(d, "l_llegada", 1, "«Llegada» trae la recepción: ni la devolución ni la venta anulada, que son del cliente");
+    igual(d, "l_traslado", 1, "«Traslado» trae el envío");
+    igual(d, "l_cliente", 2, "«Cliente» trae la devolución y la venta anulada");
+    igual(d, "l_salida", 3, "«Salidas» (la de siempre) sigue trayendo la venta, el envío y la prenda dañada");
+    igual(d, "l_entrada", 3, "«Entradas» (la de siempre) sigue trayendo la recepción, la devolución y la venta anulada");
+    igual(d, "c_venta", "1/1", "cifras de «venta»: 1 operación, 1 prenda");
+    igual(d, "c_llegada", "1/10", "cifras de «llegada»: 1 operación, 10 prendas");
+    igual(d, "c_traslado", "1/2", "cifras de «traslado»: 1 operación, 2 prendas");
+    igual(d, "c_cliente", "2/2", "cifras de «cliente»: 2 operaciones, 2 prendas");
+    igual(d, "c_salida", 3, "la prenda dañada solo cuenta en «Salidas» y en «Todos»: no tiene botón");
+  },
+);
+
+console.log("\n4. Un valor desconocido sigue lanzando el error de siempre");
 try {
   psql(`${PRELUDIO}
 select pg_temp.n('basura');
@@ -198,20 +234,20 @@ rollback;`);
 }
 
 correr(
-  "4. El parche está puesto y es re-pegable",
+  "5. El parche está puesto y es re-pegable",
   `begin;
-${K("marca_validacion", "position('ADR-0345: validacion_colgada_guardada' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("marca_filtro", "position('ADR-0345: filtro_colgada_guardada' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("marca_grupos", "position('ADR-0345: grupos_colgada_guardada' in pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure)) > 0")}
+${K("marca_validacion", "position('ADR-0345: validacion_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
+${K("marca_filtro", "position('ADR-0345: filtro_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
+${K("marca_grupos", "position('ADR-0345: grupos_tipos_visuales' in pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure)) > 0")}
 ${K("n_lista", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos')")}
 ${K("anon", "has_function_privilege('anon', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("auth", "has_function_privilege('authenticated', 'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("md5_antes", "md5(pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure) || pg_get_functiondef('retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure))")}
 rollback;`,
   (d) => {
-    igual(d, "marca_validacion", "true", "la validación acepta «colgada» y «guardada» (parche puesto)");
-    igual(d, "marca_filtro", "true", "el filtro de la lista las separa (parche puesto)");
-    igual(d, "marca_grupos", "true", "las cifras tienen sus dos grupos (parche puesto)");
+    igual(d, "marca_validacion", "true", "la validación acepta los tipos nuevos (parche puesto)");
+    igual(d, "marca_filtro", "true", "el filtro de la lista los separa (parche puesto)");
+    igual(d, "marca_grupos", "true", "las cifras tienen sus grupos (parche puesto)");
     igual(d, "n_lista", 1, "hay UNA sola fn_movimientos (la firma no cambió)");
     igual(d, "anon", "false", "anon NO puede ejecutarla");
     igual(d, "auth", "true", "authenticated sí");

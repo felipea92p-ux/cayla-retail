@@ -166,17 +166,21 @@ describe("kindDeLugar: el ícono de cada punto del trayecto", () => {
 });
 
 describe("«colgada» y «guardada» como tipo del filtro y como grupo de las cifras (migración 20261005160000)", () => {
-  it("la URL acepta ?cat=colgada y ?cat=guardada; una categoría inventada se ignora", () => {
+  it("la URL acepta ?cat=colgada, ?cat=venta y los demás tipos; una categoría inventada se ignora", () => {
+    for (const cat of ["venta", "llegada", "traslado", "cliente"]) expect(filtrosDesdeParams({ cat }).categoria).toBe(cat);
     expect(filtrosDesdeParams({ cat: "colgada" }).categoria).toBe("colgada");
     expect(filtrosDesdeParams({ cat: "guardada" }).categoria).toBe("guardada");
     expect(filtrosDesdeParams({ cat: "interno" }).categoria).toBe("interno");
     expect(filtrosDesdeParams({ cat: "basura" }).categoria).toBeUndefined();
   });
 
-  it("las dos van después de las cinco de siempre y los grupos de las cifras las traen", () => {
-    expect(CATEGORIAS_FILTRO).toEqual(["entrada", "salida", "interno", "ajuste", "transferencia", "colgada", "guardada"]);
-    expect(GRUPOS_RESUMEN).toContain("colgada");
-    expect(GRUPOS_RESUMEN).toContain("guardada");
+  it("los tipos que se ven van después de las cinco de siempre y los grupos de las cifras los traen", () => {
+    expect(CATEGORIAS_FILTRO).toEqual(["entrada", "salida", "interno", "ajuste", "transferencia", "venta", "colgada", "guardada", "llegada", "traslado", "cliente"]);
+    for (const g of ["venta", "colgada", "guardada", "llegada", "traslado", "cliente"]) expect(GRUPOS_RESUMEN).toContain(g);
+  });
+
+  it("cada botón del filtro es un grupo que la base entiende (el id del grupo es la categoría que se pide)", () => {
+    for (const g of GRUPOS_TIPO) expect(CATEGORIAS_FILTRO, g.id).toContain(g.id);
   });
 
   it("las cifras leen los dos grupos nuevos; con una base que todavía no los manda, salen en cero sin romper", () => {
