@@ -394,6 +394,11 @@
     .nh-f span:last-child{color:var(--color-tinta-60);white-space:nowrap}
     .modelos-barra{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden}
     .modelos-barra i{display:block}
+    /* «Ver con los datos de hoy» (ADR-0357, decisión 2): el aviso fijo bajo las pestañas, mientras la tienda no cumple. */
+    .aviso-datos{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;font-size:13px;
+      color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 9%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-ambar) 28%,transparent)}
+    .aviso-datos .aviso-texto{flex:1;min-width:220px}
+    .todavia .ver-hoy{margin-top:16px}
     .c-fila:focus-visible,.l5:focus-visible,.inst:focus-visible,.sede-c:focus-visible,.rank-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
   }
 }

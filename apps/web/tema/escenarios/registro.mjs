@@ -811,6 +811,9 @@ ESCENARIOS.push(
   { id: "analisis.nose", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «No se vende»", preparar: clicRol("tab", /No se vende/i) },
   { id: "analisis.pedir", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Qué pedir»", preparar: clicRol("tab", /Qué pedir/i) },
   { id: "analisis.confianza", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la hoja «Datos incompletos / confiables»", preparar: clicRol("button", /Datos (incompletos|confiables)/i) },
+  // «Ver con los datos de hoy» (ADR-0357, decisión 2): la pantalla completa con su aviso fijo. Solo existe mientras la tienda no cumple
+  // las tres condiciones del motor (con ANALISIS_SIN_CANDADO=1 en local, la pantalla ya recomienda y el botón no está).
+  { id: "analisis.datos-de-hoy", ruta: "/inventario/resumen", cuentas: ["admin"], abre: ".aviso-datos", nombre: "Análisis · «Ver con los datos de hoy», con su aviso", preparar: clicRol("button", /Ver con los datos de hoy/i) },
   // La ficha de una prenda: se abre desde la primera prenda que haya a la vista («Lo más vendido con su prenda» mientras la tienda dice
   // «Todavía no»; las listas y los carriles cuando ya recomienda). Sin ventas con su prenda en la tienda no hay de dónde abrirla.
   {

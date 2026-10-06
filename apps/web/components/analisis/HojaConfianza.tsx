@@ -10,7 +10,7 @@ import { DIAS_SOSTENIDOS } from "@/lib/motor-demanda-reglas";
 // (ADR-0346) con su anillo, y si faltan, el botón de cada una. No es un formulario: no lleva guía de foco.
 
 export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
-  const { datos } = useAnalisis();
+  const { datos, conDatosDeHoy, verConDatosDeHoy } = useAnalisis();
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
   const racha = Math.min(mia?.racha.dias ?? 0, DIAS_SOSTENIDOS);
   return (
@@ -34,6 +34,19 @@ export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
             {racha} de {DIAS_SOSTENIDOS} · la misma regla que CAYLA Global
           </p>
         </div>
+        {!datos.puedeHablar && (
+          <div className="h-acciones">
+            {conDatosDeHoy ? (
+              <button type="button" className="btn-cayla btn-secundario" onClick={() => verConDatosDeHoy(false)}>
+                Volver a lo que falta
+              </button>
+            ) : (
+              <button type="button" className="btn-cayla btn-primario" onClick={() => verConDatosDeHoy(true)}>
+                Ver con los datos de hoy
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
