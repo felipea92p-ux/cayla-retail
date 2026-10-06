@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { Search, X } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -180,6 +180,20 @@ export function PorRegularizarLista({
                 Cerrar la cola de arranque
               </button>
             )}
+            {/* Un solo botón chico que alterna el orden por fecha de venta (el mismo del encabezado «Vendió», pero a la vista): el
+                ícono y la palabra dicen cómo está ordenada hoy; tocarlo la invierte. Si la lista está ordenada por otra columna,
+                dice «Por fecha» y tocarlo ordena por fecha, de la más reciente a la más antigua. */}
+            <button
+              type="button"
+              onClick={() => setOrden(orden.campo === "vendio" ? { campo: "vendio", dir: orden.dir === "desc" ? "asc" : "desc" } : { campo: "vendio", dir: "desc" })}
+              title={orden.campo === "vendio" && orden.dir === "asc" ? "Primero las ventas más antiguas · toca para ver primero las recientes" : "Primero las ventas más recientes · toca para ver primero las antiguas"}
+              aria-label={orden.campo === "vendio" ? (orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero") : "Ordenar por fecha de venta"}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
+            >
+              {orden.campo === "vendio" && orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
+              {/* En pantalla angosta queda solo el ícono (el botón mantiene su aria-label y su title). */}
+              <span className="hidden md:inline">{orden.campo !== "vendio" ? "Por fecha" : orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
+            </button>
             <div className="w-60">
               <Desplegable
                 valor={quien}
