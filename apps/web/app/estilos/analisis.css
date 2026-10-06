@@ -45,16 +45,7 @@
     .sello i{font-style:normal;font-size:10px}
     @container analisis (max-width:760px){ .buscar{width:auto} }
     /* ───────── Pestañas ───────── */
-    .tabs-fila{display:flex;align-items:center;gap:12px;margin-top:20px;border-bottom:1px solid var(--color-sand)}
-    .tabs-envoltura{position:relative;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
-    .tabs-envoltura::-webkit-scrollbar{display:none}
-    .tabs{display:flex;gap:2px;min-width:max-content}
-    .tab{border:0;background:transparent;padding:10px 14px 11px;font-size:14px;font-weight:500;color:var(--color-tinta-60);display:flex;align-items:center;gap:7px}
-    .tab:hover{color:var(--color-tinta)}
-    .tab[aria-selected="true"]{color:var(--color-tinta);font-weight:600}
-    .tab .cuenta{font-size:11.5px;font-weight:600;background:var(--color-hueso);color:var(--color-tinta);border-radius:999px;padding:2px 7px;min-width:22px;text-align:center}
-    .tab .cuenta.urg{background:color-mix(in srgb,var(--color-rojo-profundo) 13%,transparent);color:var(--color-rojo-profundo)}
-    .tab-ind{position:absolute;bottom:0;height:2px;background:var(--color-tinta);left:0;width:0;transition:transform 260ms var(--ease-cayla),width 260ms var(--ease-cayla)}
+    .tabs-fila{display:flex;align-items:center;gap:12px;margin-top:20px}
     @container analisis (max-width:620px){ .tabs-fila{flex-direction:column;align-items:stretch;gap:8px} .tabs-fila > .chip{align-self:flex-start;order:-1} }
     /* ───────── Contenido y movimiento ───────── */
     .vista{padding-top:22px;display:flex;flex-direction:column;gap:16px}
@@ -378,7 +369,6 @@
     .dl dt{color:var(--color-tinta-60)} .dl dd{margin:0;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 
     /* ───────── Piezas del ERP dentro de Análisis ───────── */
-    .tab-ind.quieta{transition:none}
     .tile-prenda{display:inline-flex;overflow:hidden;flex:none}
     .tile-foto{display:block;border:1px solid color-mix(in srgb,var(--color-tinta) 10%,transparent)}
     .tip-rico{display:none}
@@ -394,6 +384,11 @@
     .nh-f span:last-child{color:var(--color-tinta-60);white-space:nowrap}
     .modelos-barra{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden}
     .modelos-barra i{display:block}
+    /* «Ver con los datos de hoy» (ADR-0357, decisión 2): el aviso fijo bajo las pestañas, mientras la tienda no cumple. */
+    .aviso-datos{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;font-size:13px;
+      color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 9%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-ambar) 28%,transparent)}
+    .aviso-datos .aviso-texto{flex:1;min-width:220px}
+    .todavia .ver-hoy{margin-top:16px}
     .c-fila:focus-visible,.l5:focus-visible,.inst:focus-visible,.sede-c:focus-visible,.rank-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
   }
 }

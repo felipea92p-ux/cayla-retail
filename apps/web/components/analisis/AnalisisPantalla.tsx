@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Pestanas, type Pestana } from "@/components/ui/Pestanas";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { avisar } from "@/components/ui/Avisos";
 import { Contexto, type ContextoAnalisis, type FiltroAcaba } from "@/components/analisis/contexto";
@@ -19,6 +20,7 @@ import { PestanaPedir } from "@/components/analisis/PestanaPedir";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
+import { avisoDatosDeHoy, PARAM_DATOS_DE_HOY, VALOR_DATOS_DE_HOY } from "@/lib/analisis-aviso";
 
 // Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cuatro pestañas (Hoy · Se está acabando · No se vende · Qué
 // pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
@@ -39,7 +41,17 @@ const MARCA = "[data-ps]:not(.c-fila):not(.rank-f):not(.modelo)";
 
 const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: DatosAnalisis; acceso: AccesoAnalisis; vistaInicial: VistaAnalisis }) {
+export function AnalisisPantalla({
+  datos,
+  acceso,
+  vistaInicial,
+  datosDeHoyInicial = false,
+}: {
+  datos: DatosAnalisis;
+  acceso: AccesoAnalisis;
+  vistaInicial: VistaAnalisis;
+  datosDeHoyInicial?: boolean;
+}) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
   const [q, setQ] = useState("");
@@ -53,7 +65,17 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
   const [vuelta, setVuelta] = useState(0);
   const [animar, setAnimar] = useState(true);
   const [foco, setFoco] = useState<string | null>(null);
+  // «Ver con los datos de hoy» (Felipe, 2026-10-06): la tienda todavía no cumple, pero se pidió mirar igual, con su aviso fijo.
+  const [conDatosDeHoy, setConDatosDeHoy] = useState(datosDeHoyInicial);
   const raiz = useRef<HTMLDivElement>(null);
+  // Lo que se recomienda: cuando la tienda cumple, o cuando se pidió ver con los datos de hoy.
+  const forzado = conDatosDeHoy && !datos.puedeHablar;
+  const recomienda = datos.puedeHablar || forzado;
+  // Mirando con los datos de hoy, las tres tiendas muestran sus cifras (el aviso de arriba dice que pueden fallar).
+  const datosVista = useMemo(
+    () => (forzado ? { ...datos, resumenSedes: datos.resumenSedes.map((r) => ({ ...r, puedeHablar: true })) } : datos),
+    [datos, forzado],
+  );
 
   // Si el servidor trae otro «Liquidar desde» (lo guardó alguien), se toma (ajuste durante el render, sin efecto).
   const [liquidarLeido, setLiquidarLeido] = useState(datos.liquidarDesde);
@@ -104,9 +126,21 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
     [datos.sedes],
   );
 
+  const verConDatosDeHoy = useCallback((si: boolean) => {
+    setConfianza(false);
+    setConDatosDeHoy(si);
+    setVuelta((n) => n + 1);
+    setAnimar(true);
+    const url = new URL(window.location.href);
+    if (si) url.searchParams.set(PARAM_DATOS_DE_HOY, VALOR_DATOS_DE_HOY);
+    else url.searchParams.delete(PARAM_DATOS_DE_HOY);
+    window.history.replaceState(window.history.state, "", url);
+    raiz.current?.scrollIntoView({ block: "start", behavior: reducido() ? "auto" : "smooth" });
+  }, []);
+
   const contexto: ContextoAnalisis = useMemo(
     () => ({
-      datos,
+      datos: datosVista,
       acceso,
       prendas,
       q,
@@ -120,8 +154,10 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
       abrirFicha,
       irA,
       pedir,
+      conDatosDeHoy: forzado,
+      verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir],
+    [datos, datosVista, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -171,11 +207,12 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
     }
   };
 
-  const cuentaAcaba = datos.puedeHablar ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
-  const cuentaQuietas = datos.puedeHablar ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  const cuentaAcaba = recomienda ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
+  const cuentaQuietas = recomienda ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
 
   let contenido;
-  if (!datos.puedeHablar) contenido = vista === "hoy" ? <HoyTodaviaNo /> : <VistaTodaviaNo />;
+  if (!recomienda) contenido = vista === "hoy" ? <HoyTodaviaNo /> : <VistaTodaviaNo />;
   else if (vista === "hoy") contenido = <PestanaHoy />;
   else if (vista === "acaba") contenido = <PestanaAcaba />;
   else if (vista === "nose") contenido = <PestanaQuieta />;
@@ -191,7 +228,17 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
           </label>
         </EncabezadoPagina>
 
-        <Pestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
+        <FilaPestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
+
+        {forzado && (
+          <div className="aviso-datos" role="status">
+            <ChipEstado est="ate">Datos incompletos</ChipEstado>
+            <span className="aviso-texto">{avisoDatosDeHoy(mia)}</span>
+            <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(false)}>
+              Ver qué falta
+            </button>
+          </div>
+        )}
 
         {datos.fallas.length > 0 && (
           <p className="nota-cayla mt-4" role="status">
@@ -226,7 +273,9 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
   );
 }
 
-function Pestanas({
+// Las cuatro preguntas son pestañas de vista (cambian de sección): la pieza única del ERP, el vidrio en mayúsculas (ADR-0358,
+// Felipe 2026-10-06: «incluye lo de Análisis»). La vista es estado de la pantalla, no URL: `tablist` con flechas.
+function FilaPestanas({
   vista,
   irA,
   cuentaAcaba,
@@ -241,62 +290,17 @@ function Pestanas({
   puedeHablar: boolean;
   onConfianza: () => void;
 }) {
-  const fila = useRef<HTMLDivElement>(null);
-  const [linea, setLinea] = useState<{ x: number; w: number } | null>(null);
-  const [lista, setLista] = useState(false);
-
-  useLayoutEffect(() => {
-    const activa = fila.current?.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!activa) return;
-    const medir = () => setLinea({ x: activa.offsetLeft, w: activa.offsetWidth });
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(activa);
-    return () => ro.disconnect();
-  }, [vista]);
-  // El subrayado aparece sin viajar la primera vez; desde ahí, se desliza.
-  useLayoutEffect(() => {
-    if (linea && !lista) requestAnimationFrame(() => setLista(true));
-  }, [linea, lista]);
-
-  const cuenta = (clave: VistaAnalisis) => {
-    if (clave === "acaba") return <span className={`cuenta ${cuentaAcaba ? "urg" : ""}`}>{cuentaAcaba ?? "—"}</span>;
-    if (clave === "nose") return <span className="cuenta">{cuentaQuietas ?? "—"}</span>;
-    return null;
-  };
-
-  // Flechas izquierda y derecha entre pestañas (el patrón de un `tablist`).
-  const alTeclear = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    const i = PESTANAS.findIndex((p) => p.clave === vista);
-    const siguiente = PESTANAS[(i + (e.key === "ArrowRight" ? 1 : PESTANAS.length - 1)) % PESTANAS.length]!;
-    e.preventDefault();
-    irA(siguiente.clave);
-    requestAnimationFrame(() => fila.current?.querySelector<HTMLElement>(`[data-vista="${siguiente.clave}"]`)?.focus());
-  };
+  const items: Pestana[] = PESTANAS.map((p) => {
+    // «Se está acabando» con prendas avisa (rojo, como antes); «No se vende» solo informa. Sin datos, «—».
+    // El texto para lector va solo con un número: «— se están acabando» no dice nada.
+    if (p.clave === "acaba") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
+    if (p.clave === "nose") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
+    return { clave: p.clave, etiqueta: p.texto };
+  });
 
   return (
     <div className="tabs-fila">
-      <div className="tabs-envoltura" ref={fila}>
-        <div className="tabs" role="tablist" aria-label="Preguntas de Análisis" onKeyDown={alTeclear}>
-          {PESTANAS.map((p) => (
-            <button
-              key={p.clave}
-              type="button"
-              className="tab"
-              role="tab"
-              data-vista={p.clave}
-              aria-selected={vista === p.clave}
-              tabIndex={vista === p.clave ? 0 : -1}
-              onClick={() => irA(p.clave)}
-            >
-              {p.texto}
-              {cuenta(p.clave)}
-            </button>
-          ))}
-        </div>
-        {linea && <span className={`tab-ind ${lista ? "" : "quieta"}`} style={{ width: linea.w, transform: `translateX(${linea.x}px)` }} />}
-      </div>
+      <Pestanas items={items} activa={vista} etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
       {puedeHablar ? (
         <ChipEstado est="bien" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
           Datos confiables

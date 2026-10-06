@@ -1,6 +1,6 @@
 # Botón «Volver» — una sola pieza (ADR-0358)
 
-**Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`, `unificar/elegir.mjs`). **Elegida:** la flecha redonda que ya estaba en
+**Decidido:** 2026-10-06, Felipe, **mirando** (página de `/unificar`, `unificar/elegir.mjs`). **Elegida:** la flecha redonda que ya estaba en
 Nuevo producto, junto a la línea «sede · fecha» de `EncabezadoPagina` (nació el 2026-10-06 en `main`, ADR-0220 act.). **Pieza:**
 `apps/web/components/ui/Volver.tsx`.
 
@@ -12,7 +12,7 @@ de la sede); en las demás (Compras, Caja, Recibir, el resto de Catálogo), dond
 
 1. **2026-10-06, ronda 1.** El censo contó 6 formas en 20 pantallas y la depuración, 9 reales. Felipe eligió la recomendación por su
    descripción («un solo botón con flecha»: el `btn-secundario` con el destino escrito) y se aplicó.
-2. **2026-10-07.** Al verla aplicada, no le gustó. En la página de elegir pidió: «analiza la flecha que está actualmente en Nuevo producto
+2. **Ese mismo día, más tarde.** Al verla aplicada, no le gustó. En la página de elegir pidió: «analiza la flecha que está actualmente en Nuevo producto
    para volver y quiero quedarme con esa». Esa flecha había entrado a `main` el día anterior como tercera forma (`forma="flecha"`); ahora es
    la única.
 

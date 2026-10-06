@@ -164,7 +164,7 @@ del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c;
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
-«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b)), y todo se apaga con
+«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b), salvo los puntos que corren por la cinta del flujo de «Qué hacer hoy» mientras el mouse está encima), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -205,7 +205,7 @@ Productos (esta última desde el 2026-09-28, ADR-0254; el resto de Catálogo sig
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
 nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
 (prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); la vuelta es una flecha a la izquierda de la línea de
-sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde el 2026-10-07 es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
+sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
@@ -262,7 +262,7 @@ Cambios, Devoluciones, Compras y Resumen dibujan la percha porque su cargador a�
 
 **Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
 dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
-(tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta; sus pestañas, desde el 2026-10-07, son la pestaña de vista
+(tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta; sus pestañas, desde el 2026-10-06, son la pestaña de vista
 del sistema —el vidrio en mayúsculas—, por decisión de Felipe en `/unificar`, ADR-0358) y `app/estilos/finanzas.css`
 (clases `fin-*`), los modales con `<Modal variante="hoja">`. No se reinventa una tabla ni un campo con medidas sueltas.
 **Antes de dar una pantalla por terminada, se captura al mismo ancho que el spike y se comparan las dos imágenes**: si no
@@ -493,9 +493,9 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 
 | Familia | La pieza | Decidido |
 |---|---|---|
-| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. Nunca un «←» ni una línea a mano | 2026-10-07 |
-| Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` (el vidrio con la píldora oscura, en mayúsculas) si cambia de sección —también Finanzas—; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (la caja arena de «GRILLA / TABLA») si muestra lo mismo de otra forma. Nunca un `role="tab"` ni una pista a mano | 2026-10-07 |
-| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`), la de Compras tal cual: con `href` lleva su flecha, la que filtra se rellena de arena, `valor={null}` + motivo si no hay dato. Nunca una tarjeta de número a mano | 2026-10-07 |
+| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. Nunca un «←» ni una línea a mano | 2026-10-06 |
+| Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` (el vidrio con la píldora oscura, en mayúsculas) si cambia de sección —también Finanzas—; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (la caja arena de «GRILLA / TABLA») si muestra lo mismo de otra forma. Nunca un `role="tab"` ni una pista a mano | 2026-10-06 |
+| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`), la de Compras tal cual: con `href` lleva su flecha, la que filtra se rellena de arena, `valor={null}` + motivo si no hay dato. Nunca una tarjeta de número a mano | 2026-10-06 |
 
 ## Caos: usar mal el sistema a propósito (regla — ADR-0356, Felipe 2026-10-06)
 
