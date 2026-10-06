@@ -12,9 +12,9 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/ColgarPrimero";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
-import { accionesDeTalla, diagnosticoDeTalla, type ClaveAccionTalla } from "@/lib/existencias-panel-talla";
+import { accionesDeTalla, loQueFaltaEnElPiso, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
-import { casiNoHay, fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
+import { casiNoHay } from "@/lib/reponer-prenda-reglas";
 import { aclaracionDeLaCaja, desgloseDePrenda, estadoTalla, lineaDeLaSuma, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -54,7 +54,12 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
   ficha: ClipboardList,
 };
 
-const TONO_DIAGNOSTICO = { ambar: "bg-ambar/[0.10] text-ambar-profundo", pizarra: "bg-pizarra/[0.10] text-pizarra", verde: "bg-verde/[0.10] text-verde" } as const;
+/** «Qué toca»: el color de la respuesta corta y su punto (ámbar = hay que hacerlo aquí, pizarra = informativo o afuera, verde = está bien). */
+const TONO_QUE_TOCA: Record<TonoQueToca, { texto: string; punto: string }> = {
+  ambar: { texto: "text-ambar-profundo", punto: "bg-ambar" },
+  pizarra: { texto: "text-pizarra", punto: "bg-pizarra" },
+  verde: { texto: "text-verde", punto: "bg-verde" },
+};
 
 const CLASE_TALLA = {
   normal: "border-sand bg-crema",
@@ -197,7 +202,13 @@ export function PanelTalla({
   // Las otras tiendas, con lo que cada una tiene de esta talla (la red viene por nombre de sede).
   const origenes: SedeConCantidad[] = sedesParaPedir.map((s) => ({ ...s, cantidad: (fila.enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }));
   const acciones = accionesDeTalla(fila, { puedeReponer, puedeEnviar: puedeEnviar && destinos.length > 0, puedeAjustar, puedeApartar, puedePedir: puedePedir && sedesParaPedir.length > 0, origenes }, separa);
-  const diag = diagnosticoDeTalla(fila, separa);
+  // Las tres respuestas de la talla —hay, colgar, pedir— que siempre dicen algo, aunque el motor del piso no haya decidido (2026-10-06).
+  const queToca = queTocaConLaTalla(fila, {
+    separa,
+    tiendas: new Set(sedesParaPedir.map((s) => s.nombre)),
+    puedeColgar: puedeReponer,
+    puedePedir: puedePedir && sedesParaPedir.length > 0,
+  });
   const desglose = desgloseDePrenda({ piso: fila.pisoDisponible, almacen: fila.almacenDisponible, apartado: fila.apartado, danado: fila.danado ?? 0 });
   const ritmoTalla = ritmoDePrenda({ ...prenda, tallas: [fila], disponible: fila.disponible });
   const ritmo = textoDeRitmo(ritmoTalla);
@@ -205,7 +216,8 @@ export function PanelTalla({
   // Es del producto: cualquier talla de cualquier color la trae igual (`conDescripcion`, página de Existencias).
   const descripcion = prenda.tallas.find((t) => t.descripcion)?.descripcion ?? null;
   const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
-  const frase = separa ? fraseDeLoQueFalta(colores) : null;
+  // Lo que falta en el piso de TODO el modelo: la del motor, o, si no decidió, la de los números (con la pausa advertida).
+  const falta = separa ? loQueFaltaEnElPiso(colores) : null;
   // Lo agotado o casi (1 o ninguna aquí, nada en camino) que otra sede tiene: la maqueta lo lista con su «Pedir» (`casiNoHay`, la misma
   // regla que usaba la ventana de Reponer).
   const afuera = casiNoHay(colores).flatMap((x) => {
@@ -293,7 +305,8 @@ export function PanelTalla({
     } else if (/^[1-7]$/.test(e.key)) {
       // Un dígito solo es un atajo; una ráfaga (la pistola leyendo un código que empieza con números) no: el atajo espera un instante
       // y se cancela si llega otra tecla enseguida (`MS_ENTRE_TECLAS`).
-      const a = acciones[Number(e.key) - 1];
+      // La tecla es de la acción (Colgar = 1 … Ficha = 7), no de su lugar: el orden cambia con lo que la talla necesita.
+      const a = acciones.find((x) => x.tecla === Number(e.key));
       if (!a?.ok) return;
       e.preventDefault();
       const marca = e.timeStamp;
@@ -500,12 +513,44 @@ export function PanelTalla({
                         </span>
                       </p>
                     )}
-                    <p className={`rounded-xl px-3 py-2.5 text-sm ${TONO_DIAGNOSTICO[diag.tono]}`}>{diag.texto}</p>
+                    {/* «Qué toca con esta talla»: hay · colgar en el piso · pedir a otra sede. Cada fila dice sí o no y por qué, y si se
+                        resuelve aquí mismo, su botón. Reemplaza la frase única («Disponible: 6 unidades»), que con el motor sin decidir se veía
+                        verde aunque no hubiera nada en el piso. */}
+                    <section aria-label="Qué toca con esta talla" className="grid divide-y divide-sand/80 rounded-2xl border border-sand">
+                      {queToca.map((q) => (
+                        <div key={q.tema} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+                          <span className="label-cayla w-[7.25rem] shrink-0 text-[10.5px] text-taupe">{q.titulo}</span>
+                          <p className="min-w-0 flex-1 text-sm leading-snug">
+                            <b className={`mr-1.5 inline-flex items-center gap-1.5 font-semibold ${TONO_QUE_TOCA[q.tono].texto}`}>
+                              <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TONO_QUE_TOCA[q.tono].punto}`} />
+                              {q.respuesta}
+                            </b>
+                            <span className="text-tinta/80">{q.detalle}.</span>
+                          </p>
+                          {q.accion === "colgar" && (
+                            <button type="button" onClick={() => alAccionar("colgar")} className="btn-cayla btn-secundario btn-chico ml-auto shrink-0 gap-1.5">
+                              <IconoPercha aria-hidden className="h-4 w-4" />
+                              Colgar
+                            </button>
+                          )}
+                          {q.accion === "pedir" && mejorOrigen(fila.enRed, sedesParaPedir) && (
+                            <button type="button" onClick={() => pedirRapido(prenda, fila)} className="btn-cayla btn-secundario btn-chico ml-auto shrink-0 gap-1.5 border-pizarra/40 text-pizarra">
+                              <ArrowLeftRight aria-hidden className="h-4 w-4" />
+                              Pedir
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </section>
                     {/* Lo que falta en el piso de TODO el modelo (todos sus colores), como en la maqueta. */}
-                    {frase && (
+                    {falta && (
                       <p className="rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">
-                        <b className="font-semibold">{frase.split(":")[0]}:</b>
-                        {frase.slice(frase.indexOf(":") + 1)} Quedan marcadas al colgar.
+                        <b className="font-semibold">{falta.titulo}:</b> {falta.tallas}.{" "}
+                        {falta.marcadas
+                          ? "Quedan marcadas al colgar."
+                          : falta.enPausa
+                            ? "El piso de esta sede no está cuadrado: puede que ya cuelguen."
+                            : null}
                       </p>
                     )}
                     {afuera.length > 0 && (
@@ -574,32 +619,57 @@ export function PanelTalla({
                         Código <span className="tabular-nums text-tinta">{codigo}</span>
                       </p>
                     )}
+                    {/* Las acciones (2026-10-06): primero la que la talla necesita, después las que se pueden usar, como tarjetas; las que no se
+                        pueden ahora, al final y chicas, con su porqué (`accionesDeTalla` decide el orden). Cada una conserva su tecla. */}
                     <div className="grid grid-cols-2 gap-2">
-                      {acciones.map((a, i) => {
-                        const Ico = ICONO[a.clave];
-                        return (
-                          <button
-                            key={a.clave}
-                            type="button"
-                            aria-disabled={!a.ok}
-                            aria-keyshortcuts={String(i + 1)}
-                            title={a.ok ? undefined : a.sub}
-                            onClick={() => a.ok && alAccionar(a.clave)}
-                            // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
-                            className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === acciones.length - 1 && acciones.length % 2 === 1 ? "col-span-2" : ""} ${
-                              a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
-                            } ${a.ok ? "" : "cursor-not-allowed opacity-50 active:scale-100"}`}
-                          >
-                            <Ico aria-hidden className={`row-span-2 h-[22px] w-[22px] ${a.sugerida ? "text-sand" : "text-taupe"}`} strokeWidth={1.5} />
-                            <b className="flex items-center gap-1.5 text-[15.5px] font-semibold">
-                              {a.texto}
-                              <kbd className={`hidden rounded border px-1 text-[10.5px] font-normal sm:inline ${a.sugerida ? "border-papel/30 text-sand" : "border-sand text-taupe"}`}>{i + 1}</kbd>
-                            </b>
-                            <small className={`text-xs leading-tight ${a.sugerida ? "text-sand" : "text-taupe"}`}>{a.sub}</small>
-                          </button>
-                        );
-                      })}
+                      {acciones
+                        .filter((a) => a.ok)
+                        .map((a, i, usables) => {
+                          const Ico = ICONO[a.clave];
+                          return (
+                            <button
+                              key={a.clave}
+                              type="button"
+                              aria-keyshortcuts={String(a.tecla)}
+                              onClick={() => alAccionar(a.clave)}
+                              // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
+                              className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === usables.length - 1 && usables.length % 2 === 1 ? "col-span-2" : ""} ${
+                                a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
+                              }`}
+                            >
+                              <Ico aria-hidden className={`row-span-2 h-[22px] w-[22px] ${a.sugerida ? "text-sand" : "text-taupe"}`} strokeWidth={1.5} />
+                              <b className="flex items-center gap-1.5 text-[15.5px] font-semibold">
+                                {a.texto}
+                                <kbd className={`hidden rounded border px-1 text-[10.5px] font-normal sm:inline ${a.sugerida ? "border-papel/30 text-sand" : "border-sand text-taupe"}`}>{a.tecla}</kbd>
+                              </b>
+                              <small className={`text-xs leading-tight ${a.sugerida ? "text-sand" : "text-taupe"}`}>{a.sub}</small>
+                            </button>
+                          );
+                        })}
                     </div>
+                    {acciones.some((a) => !a.ok) && (
+                      <div>
+                        <p className="label-cayla mb-1.5 text-[10.5px] text-taupe">No se puede ahora</p>
+                        <ul className="flex flex-wrap gap-1.5">
+                          {acciones
+                            .filter((a) => !a.ok)
+                            .map((a) => {
+                              const Ico = ICONO[a.clave];
+                              return (
+                                <li
+                                  key={a.clave}
+                                  title={`${a.texto}: ${a.sub}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-sand px-2.5 py-1 text-[12.5px] text-tinta/50"
+                                >
+                                  <Ico aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                                  {a.texto}
+                                  <span className="text-tinta/40">· {a.sub.charAt(0).toLocaleLowerCase("es") + a.sub.slice(1)}</span>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      </div>
+                    )}
                   </>
                 )}
 

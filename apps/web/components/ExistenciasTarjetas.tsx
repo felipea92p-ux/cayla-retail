@@ -64,6 +64,16 @@ const BOTON_TALLA = {
   sin_stock: "border-dashed border-taupe/45 bg-transparent text-taupe",
 } as const;
 
+/** La talla que más se vende, con un filtro puesto: UN solo borde sólido y oscuro (2026-10-06). Antes era un aro por fuera del borde
+ *  propio, y en una talla sin nada (borde punteado) quedaban dos bordes, uno punteado y otro sólido. El estado lo siguen diciendo su
+ *  fondo, su cifra («—») y la insignia del filtro. */
+const BOTON_PRINCIPAL = {
+  normal: "border-tinta bg-crema text-tinta",
+  sin_atras: "border-tinta bg-crema text-tinta",
+  por_colgar: "border-tinta bg-ambar/[0.12] text-tinta",
+  sin_stock: "border-tinta bg-crema text-taupe",
+} as const;
+
 /** Una talla: su nombre y «N piso» (o «—» si no hay nada libre en la sede). Es un botón: abre el detalle de esa talla. */
 /** Con un filtro: la talla que lo cumple lleva su punto; la que más se vende, además un aro; las demás se atenúan (como la maqueta). */
 type MarcaTalla = "cumple" | "principal" | "tenue" | null;
@@ -87,8 +97,10 @@ function TallaBoton({ f, separa, onAbrir, marca = null, tono = "ambar", etiqueta
       onClick={onAbrir}
       title={lectura}
       aria-label={`${lectura}${marca === "cumple" || marca === "principal" ? `. ${etiquetaFiltro ?? ""}` : ""}${marca === "principal" ? ", la que más se vende" : ""}. Ver detalle`}
-      className={`relative flex min-h-[46px] min-w-[44px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-1.5 py-1 leading-none transition-[border-color,opacity] hover:border-taupe ${BOTON_TALLA[estado]} ${
-        marca === "tenue" ? "opacity-40 hover:opacity-100" : marca === "principal" ? "shadow-[0_0_0_2px_var(--color-tinta)]" : ""
+      className={`relative flex min-h-[46px] min-w-[44px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-1.5 py-1 leading-none transition-[border-color,opacity] ${
+        marca === "principal"
+          ? `${BOTON_PRINCIPAL[estado]} shadow-[0_0_0_1px_var(--color-tinta)]`
+          : `${BOTON_TALLA[estado]} hover:border-taupe ${marca === "tenue" ? "opacity-40 hover:opacity-100" : ""}`
       }`}
     >
       {(marca === "cumple" || marca === "principal") &&
