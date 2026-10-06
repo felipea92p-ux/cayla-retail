@@ -1,0 +1,298 @@
+/* ====================================================================
+   Los puntos de avance de Nuevo producto (`components/alta-producto/PuntosAvance.tsx`)
+   Felipe, 2026-10-06 — ADR-0260 (actualización del 2026-10-06). El latido del punto abierto es una excepción a «nunca en bucle»
+   (ADR-0136, actualización del 2026-10-06): dice dónde está la persona, no decora. Con movimiento reducido todo queda quieto.
+   Solo tokens (ADR-0169, ADR-0336): `crema` es el fondo de la página en los dos temas, así que el aro que separa el punto de la
+   línea y el relleno de los puntos vacíos se ven igual en claro y en oscuro.
+   ==================================================================== */
+
+.puntos-avance {
+  /* Pegada bajo la cabecera fija de la app mientras se baja por el formulario (la tabla del paso 3 mide varias pantallas). */
+  position: sticky;
+  top: var(--puntos-arriba, 3.5rem);
+  z-index: 20;
+  margin-inline: -0.25rem;
+  padding: 0.75rem 0.25rem 0.5rem;
+  background: var(--color-crema);
+}
+/* Justo bajo la cabecera fija de la app (`AppShell`), un píxel por debajo de su borde para que no se asome nada entre las dos. */
+@media (min-width: 640px) {
+  .puntos-avance {
+    --puntos-arriba: 3.875rem;
+  }
+}
+
+/* La línea va del centro del primer punto al del último: 19 px = la mitad del cuadro de 38 px de cada punto. */
+.puntos-linea {
+  position: relative;
+  height: 5.25rem;
+}
+.puntos-pista,
+.puntos-relleno {
+  position: absolute;
+  left: 19px;
+  top: 17px;
+  height: 4px;
+  border-radius: 4px;
+}
+.puntos-pista {
+  right: 19px;
+  background: var(--color-sand);
+}
+.puntos-relleno {
+  width: calc((100% - 38px) * var(--lleno, 0));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-verde) 55%, var(--color-crema)), var(--color-verde));
+  transition: width 700ms var(--ease-cayla);
+}
+/* La punta de la línea: se ve mientras corre hacia el punto siguiente y queda tapada por él al llegar. */
+.puntos-chispa {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-verde) 55%, var(--color-crema));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-verde) 22%, transparent),
+    0 0 12px 2px color-mix(in srgb, var(--color-verde) 50%, transparent);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-cayla);
+}
+.puntos-chispa[data-visible="true"] {
+  opacity: 1;
+}
+
+.puntos-lista {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* El primero pegado a la izquierda, el último a la derecha y los del medio centrados en su lugar de la línea. */
+.puntos-paso {
+  position: absolute;
+  top: 0;
+  max-width: 12rem;
+}
+.puntos-paso[data-extremo="inicio"] {
+  left: 0;
+}
+.puntos-paso[data-extremo="fin"] {
+  right: 0;
+}
+.puntos-paso[data-extremo="medio"] {
+  left: calc(19px + (100% - 38px) * var(--pos, 0));
+  transform: translateX(-50%);
+}
+.puntos-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0 0 2px;
+  font: inherit;
+  color: inherit;
+}
+.puntos-paso[data-extremo="inicio"] .puntos-cuerpo {
+  align-items: flex-start;
+  text-align: left;
+}
+.puntos-paso[data-extremo="medio"] .puntos-cuerpo {
+  align-items: center;
+  text-align: center;
+}
+.puntos-paso[data-extremo="fin"] .puntos-cuerpo {
+  align-items: flex-end;
+  text-align: right;
+}
+.puntos-tocable {
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+
+.puntos-marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+}
+.puntos-punto {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border-radius: 999px;
+  color: var(--color-crema);
+  box-shadow: 0 0 0 4px var(--color-crema);
+  transition:
+    width 450ms var(--ease-cayla),
+    height 450ms var(--ease-cayla),
+    background-color 350ms var(--ease-cayla),
+    border-color 350ms var(--ease-cayla),
+    box-shadow 350ms var(--ease-cayla),
+    transform 250ms var(--ease-cayla);
+}
+.puntos-punto[data-tipo="hecho"] {
+  width: 22px;
+  height: 22px;
+  background: var(--color-verde);
+}
+.puntos-punto[data-tipo="aqui"] {
+  width: 26px;
+  height: 26px;
+  background: var(--color-verde);
+  box-shadow:
+    0 0 0 4px var(--color-crema),
+    0 4px 14px color-mix(in srgb, var(--color-verde) 35%, transparent);
+  animation: puntos-llega 500ms var(--ease-cayla) both;
+}
+.puntos-punto[data-tipo="sigue"],
+.puntos-punto[data-tipo="falta"] {
+  width: 16px;
+  height: 16px;
+  background: var(--color-crema);
+  border: 2px solid color-mix(in srgb, var(--color-tinta) 22%, transparent);
+}
+.puntos-punto[data-tipo="sigue"] {
+  border-color: var(--color-verde);
+}
+.puntos-tilde {
+  width: 13px;
+  height: 13px;
+}
+.puntos-tilde path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: puntos-tilde 450ms 150ms var(--ease-cayla) forwards;
+}
+.puntos-nucleo {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--color-crema);
+  animation: puntos-nucleo 1.8s ease-in-out infinite;
+}
+.puntos-halo {
+  position: absolute;
+  inset: 6px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  opacity: 0;
+  animation: puntos-halo 2.4s var(--ease-cayla) infinite;
+}
+.puntos-halo-2 {
+  animation-delay: 1.2s;
+}
+
+.puntos-nombre {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--color-taupe-profundo);
+  transition: color 300ms var(--ease-cayla);
+}
+.puntos-paso[data-tipo="hecho"] .puntos-nombre {
+  color: var(--color-verde);
+  font-weight: 500;
+}
+.puntos-paso[data-tipo="aqui"] .puntos-nombre {
+  color: var(--color-tinta);
+  font-weight: 600;
+  font-size: 14px;
+}
+.puntos-rotulo {
+  min-height: 14px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.puntos-paso[data-tipo="hecho"] .puntos-rotulo,
+.puntos-paso[data-tipo="aqui"] .puntos-rotulo {
+  color: var(--color-verde);
+}
+.puntos-paso[data-tipo="aqui"] .puntos-rotulo {
+  animation: puntos-aparece 350ms 100ms var(--ease-cayla) both;
+}
+.puntos-tocable:hover .puntos-punto {
+  transform: scale(1.14);
+}
+.puntos-tocable:hover .puntos-nombre {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, var(--color-verde) 40%, transparent);
+}
+
+@keyframes puntos-llega {
+  from {
+    transform: scale(0.4);
+    opacity: 0.3;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes puntos-nucleo {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.7);
+  }
+}
+@keyframes puntos-halo {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+@keyframes puntos-tilde {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes puntos-aparece {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .puntos-relleno,
+  .puntos-chispa,
+  .puntos-punto,
+  .puntos-nombre {
+    transition: none;
+  }
+  .puntos-punto[data-tipo="aqui"],
+  .puntos-nucleo,
+  .puntos-paso[data-tipo="aqui"] .puntos-rotulo {
+    animation: none;
+  }
+  .puntos-halo {
+    display: none;
+  }
+  .puntos-tilde path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
