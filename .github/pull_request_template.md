@@ -18,6 +18,10 @@
   sigue lo que la persona ya eligió** (`/sugerir`; CLAUDE.md «Sugerencias coherentes», ADR-0290), probado en el navegador tocando cada
   control que lo mueve, y a 375 px que no se corte. Si no depende de nada elegido antes, va marcado `// sugerir-fijo: <por qué>`.
   Un archivo nuevo no entra a `lib/sugerir-archivos.ts` (`pnpm sugerir` lo dice).
+- [ ] Si agrega o cambia una pantalla o un modal que **guarda** (llama una RPC o un `.insert/.update/.delete`): **se atacó con `/chaos`**
+  (CLAUDE.md «Caos», ADR-0356): corrida con su semilla, ningún hallazgo de gravedad 1 o 2 abierto (o anotado en el tablero
+  `docs/chaos/README.md` con quién lo decide), y las invariantes de la base limpias tras cada ataque que escribió. Una pantalla de solo
+  lectura lo declara. Un hallazgo de seguridad no se escribe aquí: se le dice a Felipe.
 
 ## SQL para producción
 
