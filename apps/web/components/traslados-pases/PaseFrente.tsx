@@ -22,11 +22,11 @@ function subtituloDeSede(nombre: string, codigo: string, soy: boolean): string {
 export function PaseFrente({ vista, accion, sello }: { vista: VistaPase; accion: ReactNode; sello?: SelloPuesto | null }) {
   const estampa = sello === undefined ? vista.sello : sello;
   return (
-    <article className="tp-pase" data-tp-tono={vista.tono} aria-label={`Caja Nº ${vista.numero}: ${vista.nombre}`}>
+    <article className="tp-pase" data-tp-tono={vista.tono} aria-label={`${vista.rotulo}: ${vista.nombre}`}>
       <header className="tp-banda">
         <SelloPase glifo={glifoDeTono(vista.tono)} tono={vista.tono} />
         <span className="tp-banda-nombre">{vista.nombre}</span>
-        <span className="tp-banda-num">Caja Nº {vista.numero}</span>
+        <span className="tp-banda-num">{vista.rotulo}</span>
       </header>
       <div className="tp-ruta">
         <div>

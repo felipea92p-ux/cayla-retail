@@ -12,7 +12,7 @@ export function MiniPase({ pase, actual, href }: { pase: VistaPase; actual: bool
       <span className="tp-mini-banda">
         <SelloPase glifo={glifoDeTono(pase.tono)} tono={pase.tono} tamano={28} />
         <span className="tp-mini-nombre">{pase.nombre}</span>
-        <span className="tp-mini-num">Caja Nº {pase.numero}</span>
+        <span className="tp-mini-num">{pase.rotulo}</span>
       </span>
       <span className="tp-mini-ruta">
         <b className="tp-cod" data-largo={pase.codigoOrigen.length > 3 ? "" : undefined}>

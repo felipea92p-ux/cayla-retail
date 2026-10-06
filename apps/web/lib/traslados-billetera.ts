@@ -1,8 +1,12 @@
 import { cache } from "react";
 import { getTrasladosDeLaSede, type TrasladoDetalle, type TrasladoResumen } from "@/lib/traslados";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { getParaEnviar, getPedidosConCliente, getPedidosEntreSedes, getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
 import { contarTePiden } from "@/lib/pedidos-por-atender-reglas";
+import { juntarPedidos } from "@/lib/pedidos-con-cliente-reglas";
+import { agruparPorDestino, type GrupoParaEnviar } from "@/lib/para-enviar-reglas";
+import type { PedidoEntreSedes } from "@/lib/pedidos-entre-sedes-reglas";
+import { buscableDelPedido, buscableParaEnviar, pestanaDelPedido, vistaDelPedido, vistaParaEnviar } from "@/lib/traslados-pedidos-pases-reglas";
 import {
   anilloDelDia,
   buscableDelPase,
@@ -37,17 +41,35 @@ export type Billetera = {
   ahoraIso: string;
 };
 
-export type CodigosDeSede = (u: { id: string; nombre: string }) => string;
+export type CodigosDeSede = ((u: { id: string; nombre: string }) => string) & { nombreDe: (id: string) => string };
 
-/** Cómo se escribe cada sede en el pase (TRU, LIM, AQP; el Taller entero), con el tipo de la tabla de ubicaciones. */
+/** Cómo se escribe cada sede en el pase (TRU, LIM, AQP; el Taller entero), con el tipo de la tabla de ubicaciones; y su nombre. */
 export async function getCodigosDeSede(): Promise<CodigosDeSede> {
-  let tipos = new Map<string, string>();
+  let sedes = new Map<string, { nombre: string; tipo: string }>();
   try {
-    tipos = new Map((await getUbicaciones()).map((u) => [u.id, u.tipo] as const));
+    sedes = new Map((await getUbicaciones()).map((u) => [u.id, { nombre: u.nombre, tipo: u.tipo }] as const));
   } catch (e) {
     console.error("Traslados: tipos de sede:", e);
   }
-  return (u) => codigoDeSede({ nombre: u.nombre, tipo: tipos.get(u.id) ?? null });
+  const codigo = (u: { id: string; nombre: string }) => codigoDeSede({ nombre: u.nombre, tipo: sedes.get(u.id)?.tipo ?? null });
+  return Object.assign(codigo, { nombreDe: (id: string) => sedes.get(id)?.nombre ?? "Tu sede" });
+}
+
+/** Lo que la sede manda o pidió fuera de las cajas: los pedidos entre sedes (reposición y para un cliente) y lo que subió para
+ *  enviar. `cache()`: la billetera y el pase abierto lo piden en el mismo request. Cada lectura falla sola (devuelve vacío). */
+export const getEnviosDeLaSede = cache(async (ubicacionId: string): Promise<{ pedidos: PedidoEntreSedes[]; paraEnviar: GrupoParaEnviar[] }> => {
+  const [reposicion, conCliente, paraEnviar] = await Promise.all([
+    getPedidosEntreSedes(ubicacionId),
+    getPedidosConCliente(ubicacionId),
+    getParaEnviar(ubicacionId),
+  ]);
+  return { pedidos: juntarPedidos(reposicion, conCliente), paraEnviar: agruparPorDestino(paraEnviar) };
+});
+
+/** Los códigos que un pase de pedido necesita: el de esta sede, el de la otra y el nombre de esta. */
+export function codigosParaPedido(codigo: CodigosDeSede, miUbicacionId: string, otra: { id: string; nombre: string }) {
+  const miNombre = codigo.nombreDe(miUbicacionId);
+  return { mio: codigo({ id: miUbicacionId, nombre: miNombre }), otra: codigo(otra), miNombre };
 }
 
 export function datosDeResumen(t: TrasladoResumen): DatosPase {
@@ -120,10 +142,11 @@ export function vistaConCodigos(t: DatosPase, ctx: ContextoTraslados, codigo: Co
 export const getBilleteraDeLaSede = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<Billetera> => {
   const ahoraIso = new Date().toISOString();
   const ctx: ContextoTraslados = { miUbicacionId: ubicacionId, puedeCerrarDiferencia, ahoraIso };
-  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos, codigo] = await Promise.all([
+  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos, codigo, envios] = await Promise.all([
     getTrasladosDeLaSede(ubicacionId, LIMITE_TERMINADAS),
     getPedidosPorAtender(ubicacionId),
     getCodigosDeSede(),
+    getEnviosDeLaSede(ubicacionId),
   ]);
   // Las dos lecturas son dos fotos de la base: un traslado que se cerró entre ellas sale en ambas. Gana la más nueva (cerrados).
   const porId = new Map<string, TrasladoResumen>();
@@ -134,8 +157,31 @@ export const getBilleteraDeLaSede = cache(async (ubicacionId: string, puedeCerra
     const vista = vistaConCodigos(t, ctx, codigo);
     return { ...vista, buscable: buscableDelPase(t, { origen: vista.codigoOrigen, destino: vista.codigoDestino }) };
   };
-  const pases = { llegan: enPestanas.llegan.map(aPase), envias: enPestanas.envias.map(aPase), terminadas: enPestanas.terminadas.map(aPase) };
-  const porRecibir = pases.llegan.filter((p) => p.porHacer).length;
+  const cajas = { llegan: enPestanas.llegan.map(aPase), envias: enPestanas.envias.map(aPase), terminadas: enPestanas.terminadas.map(aPase) };
+
+  // Los pedidos y «Para enviar» como pases (ADR-0354, actividad 4). Lo que te piden va primero en Envías (es lo que te toca,
+  // lo que espera hace más arriba); lo que pediste, después de lo que te toca recibir.
+  const deMiSede = (otra: { id: string; nombre: string }) => codigosParaPedido(codigo, ubicacionId, otra);
+  const pedidosEn: Record<PestanaPase, PaseDeBilletera[]> = { llegan: [], envias: [], terminadas: [] };
+  const porAntiguedad = [...envios.pedidos].sort((a, b) => a.creadoEn.localeCompare(b.creadoEn));
+  for (const p of porAntiguedad) {
+    const pestana = pestanaDelPedido(p, ahoraIso);
+    if (!pestana) continue;
+    const cods = deMiSede({ id: p.otraSedeId, nombre: p.otraSede });
+    pedidosEn[pestana].push({ ...vistaDelPedido(p, { miUbicacionId: ubicacionId, ahoraIso }, cods), buscable: buscableDelPedido(p, cods) });
+  }
+  const paraEnviar = envios.paraEnviar.map((g) => {
+    const cods = deMiSede({ id: g.destinoId, nombre: g.destino });
+    return { ...vistaParaEnviar(g, { ahoraIso }, cods), buscable: buscableParaEnviar(g, cods) };
+  });
+  const primero = (xs: PaseDeBilletera[]) => xs.filter((x) => x.porHacer);
+  const despues = (xs: PaseDeBilletera[]) => xs.filter((x) => !x.porHacer);
+  const pases = {
+    llegan: [...primero(cajas.llegan), ...pedidosEn.llegan, ...despues(cajas.llegan)],
+    envias: [...pedidosEn.envias, ...paraEnviar, ...cajas.envias],
+    terminadas: [...cajas.terminadas, ...pedidosEn.terminadas],
+  };
+  const porRecibir = cajas.llegan.filter((p) => p.porHacer).length;
   const tePiden = pedidos ? contarTePiden(pedidos) : 0;
   return {
     pases,

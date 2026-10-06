@@ -71,6 +71,10 @@ export type CampoPase = { etiqueta: string; valor: string; detalle: string | nul
 export type VistaPase = {
   id: string;
   numero: number;
+  /** Qué es el pase: una caja (traslado), un pedido de otra sede o lo que subiste para enviar. */
+  clase: "traslado" | "pedido" | "para-enviar";
+  /** Lo que dice la banda a la derecha: «Caja Nº 287», «Pedido», «Para enviar». */
+  rotulo: string;
   tono: TonoPase;
   pestana: PestanaPase;
   /** «Atrasada», «Viene hacia ti», «Contando»… — el nombre de lo que le toca a quien mira. */
@@ -361,6 +365,8 @@ export function vistaDelPase(t: DatosPase, ctx: ContextoTraslados, codigos: { or
   return {
     id: t.id,
     numero: t.numero,
+    clase: "traslado",
+    rotulo: `Caja Nº ${t.numero}`,
     tono,
     pestana: pestanaDelPase(t, ctx),
     nombre: nombreDelPase(t, ctx, codigos.destino),

@@ -16,8 +16,9 @@ import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/
 type Pase = {
   /** Da vuelta el pase (true = reverso). */
   girar: (alReverso: boolean) => void;
-  /** Vuelve al frente, pone el sello y, 1,6 s después, abre la siguiente caja que te toca (o refresca esta). */
-  sellar: (texto: string, tono: TonoPase) => void;
+  /** Vuelve al frente, pone el sello y, 1,6 s después, abre la siguiente caja que te toca (o refresca esta). `luego`: a dónde ir si
+   *  no queda otra que te toque y este pase deja de existir (un pedido enviado ya es una caja en camino). */
+  sellar: (texto: string, tono: TonoPase, opciones?: { luego?: string }) => void;
 };
 const CtxPase = createContext<Pase | null>(null);
 export function usePase(): Pase {
@@ -31,12 +32,16 @@ const MS_HASTA_LA_SIGUIENTE = 1600;
 export function PaseTraslado({
   vista,
   reverso,
+  accion,
   abajo,
   volverA,
 }: {
   vista: VistaPase;
   /** Lo que va al reverso: el botón del frente da vuelta el pase. */
   reverso: ReactNode;
+  /** Botones propios del frente (un pedido lleva «No la tengo» y «Enviar»); sin ellos, el botón de la vista, que gira el pase. Van
+   *  dentro del pase: pueden usar `usePase()`. */
+  accion?: ReactNode;
   /** Bajo el pase («Lo siguiente» de lo recién recibido). */
   abajo?: ReactNode;
   /** «← Movimientos» si se llegó desde ahí (ADR-0234). */
@@ -69,18 +74,19 @@ export function PaseTraslado({
 
   const pase: Pase = {
     girar: (alReverso) => setVuelta(alReverso),
-    sellar: (texto, tono) => {
+    sellar: (texto, tono, opciones) => {
       setVuelta(false);
       const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       temporizador.current = setTimeout(() => setSello({ texto, tono, fecha: fechaDeSello(new Date().toISOString()), cae: true }), reducir ? 0 : 720);
       temporizador.current = setTimeout(
         () => {
           const siguiente = v.siguientePorHacer;
-          if (siguiente) {
+          const destino = siguiente ? rutaDelPase(siguiente.id) : opciones?.luego;
+          if (destino) {
             // La billetera vive en el layout, que no se vuelve a pedir al navegar: sin el refresh, la caja recién sellada seguiría
             // en «Te llegan» y el anillo no sumaría.
             startTransition(() => {
-              router.push(rutaDelPase(siguiente.id), { scroll: false });
+              router.push(destino, { scroll: false });
               router.refresh();
             });
             return;
@@ -119,7 +125,7 @@ export function PaseTraslado({
                   vista={vista}
                   sello={sello}
                   accion={
-                    <button type="button" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
+                    accion ?? <button type="button" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
                       {vista.boton.texto} <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />
                     </button>
                   }
@@ -133,7 +139,7 @@ export function PaseTraslado({
           {v.total > 1 && (
             <nav className="tp-paginas" aria-label="Pasar de caja">
               {v.anterior ? (
-                <Link href={rutaDelPase(v.anterior.id)} scroll={false} aria-label={`Caja anterior: Nº ${v.anterior.numero}`}>
+                <Link href={rutaDelPase(v.anterior.id)} scroll={false} aria-label={`Anterior: ${v.anterior.rotulo}`}>
                   <ArrowLeft aria-hidden className="h-4 w-4" strokeWidth={1.8} />
                 </Link>
               ) : (
@@ -145,7 +151,7 @@ export function PaseTraslado({
                 {v.posicion + 1} de {v.total}
               </p>
               {v.siguiente ? (
-                <Link href={rutaDelPase(v.siguiente.id)} scroll={false} aria-label={`Caja siguiente: Nº ${v.siguiente.numero}`}>
+                <Link href={rutaDelPase(v.siguiente.id)} scroll={false} aria-label={`Siguiente: ${v.siguiente.rotulo}`}>
                   <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />
                 </Link>
               ) : (

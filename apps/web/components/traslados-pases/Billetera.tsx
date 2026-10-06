@@ -16,7 +16,8 @@ import type { Billetera as DatosBilletera, PaseDeBilletera } from "@/lib/traslad
 
 export const RUTA_TRASLADOS = "/inventario/traslados";
 export const rutaDelPase = (id: string) => `${RUTA_TRASLADOS}/${id}`;
-const ID_EN_RUTA = /\/inventario\/traslados\/([0-9a-f-]{36})/;
+// Una caja (uuid), un pedido (`pedido-<uuid>`) o lo que hay para enviar a una sede (`enviar-<uuid>`).
+const ID_EN_RUTA = /\/inventario\/traslados\/((?:pedido-|enviar-)?[0-9a-f-]{36})/;
 
 type Contexto = { billetera: DatosBilletera; seleccion: string | null; idEnRuta: string | null };
 const CtxBilletera = createContext<Contexto | null>(null);

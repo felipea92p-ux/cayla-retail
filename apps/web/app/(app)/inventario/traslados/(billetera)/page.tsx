@@ -1,7 +1,7 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getBilleteraDeLaSede } from "@/lib/traslados-billetera";
 import { paseInicial } from "@/lib/traslados-pases-reglas";
-import { EscenarioPase } from "@/components/traslados-pases/EscenarioPase";
+import { Escenario } from "@/components/traslados-pases/Escenario";
 
 // Al entrar a Traslados se abre solo el pase de lo primero que te toca (en computadora; en el celular se ve la billetera y el pase
 // se abre al tocarlo). Sin ninguna caja, el escenario lo dice.
@@ -19,5 +19,5 @@ export default async function TrasladosPage() {
       </div>
     );
   }
-  return <EscenarioPase id={inicial.id} />;
+  return <Escenario id={inicial.id} />;
 }
