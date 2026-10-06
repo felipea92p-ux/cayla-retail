@@ -143,6 +143,14 @@ export function VistaRapidaProducto({
             </div>
             <p className="vr-pista">Pasa el mouse por un color de la lista y la foto lo muestra. Un clic lo deja fijo.</p>
           </div>
+          {/* Lo que se escribió en «Descripción» al crear o editar la prenda: es de la prenda, no del color, por eso va aparte y no cambia
+              con la foto. Sin descripción no se dibuja nada: el campo es opcional. */}
+          {producto.descripcion && (
+            <div className="vr-desc">
+              <span className="vr-rotulo label-cayla">Descripción</span>
+              <p>{producto.descripcion}</p>
+            </div>
+          )}
         </aside>
 
         <div className="min-w-0">
