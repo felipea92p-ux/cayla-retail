@@ -38,7 +38,7 @@ export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
           <div className="h-acciones">
             {conDatosDeHoy ? (
               <button type="button" className="btn-cayla btn-secundario" onClick={() => verConDatosDeHoy(false)}>
-                Volver a lo que falta
+                Ver qué falta
               </button>
             ) : (
               <button type="button" className="btn-cayla btn-primario" onClick={() => verConDatosDeHoy(true)}>

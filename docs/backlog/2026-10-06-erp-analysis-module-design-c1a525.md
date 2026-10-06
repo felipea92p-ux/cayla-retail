@@ -1,4 +1,4 @@
-## 📊 Análisis v4: cuatro preguntas (2026-10-06, ADR-0357) — web + 4 migraciones **SIN PEGAR en producción**; rama `claude/erp-analysis-module-design-c1a525`
+## 📊 Análisis v4: cuatro preguntas (2026-10-06, ADR-0357) — web + 4 migraciones **EN PRODUCCIÓN** (pegadas el 2026-10-06); rama `claude/erp-analysis-module-design-c1a525`
 
 Maqueta aprobada: artifact privado https://claude.ai/artifact/TBSFBD1nikBu8FeShiKMMp. No va a `docs/maquetas/`: trae cifras reales de producción y
 el repo es público.
@@ -21,8 +21,12 @@ el repo es público.
 - [x] Puntos que corren por la cinta del flujo al pasar el mouse (pedido de Felipe; ADR-0136 act. 2026-10-06 (b)).
 - [x] «Ver con los datos de hoy» con su aviso fijo (ADR-0357, decisión 2, actualización): en producción ninguna tienda cumple las tres
       condiciones y la pantalla solo decía «Todavía no». El aviso dice lo primero que falta, con la misma cifra que «Todavía no».
-- [x] **Fuera de la fusión del #850:** los puntos del flujo y «Ver con los datos de hoy» se subieron después de fusionarlo; van en su
-      propio PR, sin SQL.
+- [x] **Fuera de la fusión del #850:** los puntos del flujo y «Ver con los datos de hoy» se subieron después de fusionarlo; fueron en el
+      #853, sin SQL.
+- [x] **Abre con los datos de hoy** (Felipe, 2026-10-06 noche, ADR-0357 decisión 2, act. 2): el aviso fijo arriba y «Ver qué falta» lleva a
+      «Todavía no», que lleva el mismo aviso con «Ver con los datos de hoy». URL `?ver=falta`. Sin SQL.
+- [ ] **Decide Felipe: ¿Hoy muestra las tres tiendas o solo la elegida arriba?** Preguntó por qué, con TRU elegida, ve también Arequipa y Lima
+      (la fila «Por tienda» de Hoy, que estaba en la maqueta; decisión 3 de ADR-0357).
 
 ### Antes de subir
 
@@ -34,7 +38,7 @@ el repo es público.
 
 ### Producción (cada paso con el OK de Felipe)
 
-- [ ] **Pegar en el SQL Editor, en este orden, ANTES de publicar la web** (si una trae partes, cada parte por separado: ADR-0195):
+- [x] **Pegar en el SQL Editor, en este orden, ANTES de publicar la web** (hecho por Felipe el 2026-10-06) (si una trae partes, cada parte por separado: ADR-0195):
   1. `20261006213000_analisis_preparacion_tres_tiendas.sql`: la lectura del motor da las tres tiendas a quien analiza. Re-pegable, sin políticas.
   2. `20261006214000_analisis_prendas_de_sede.sql`: `fn_analisis_sede`, las prendas de cada tienda. Una sola parte, re-pegable; su cabecera trae
      la consulta que la comprueba.
@@ -48,7 +52,7 @@ el repo es público.
 - [ ] Después de pegar: confirmar con un `select` de solo lectura que las cuatro están, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`),
       `pnpm datos:generar:produccion` y `pnpm datos:comparar`. La tabla nueva `parametros_analisis` tiene que quedar en el diccionario, y con
       pájaro en `scripts/datos/aviario.mjs` (Halcón, como Frescura y el plan del piso): sin pájaro, el CI cae en rojo al refrescar el volcado.
-- [ ] Publicar la web (fusionar la rama).
+- [x] Publicar la web (fusionar la rama): #850 y #853, el 2026-10-06.
 
 ### Pendientes del módulo
 

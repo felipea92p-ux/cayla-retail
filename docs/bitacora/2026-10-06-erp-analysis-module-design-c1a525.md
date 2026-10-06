@@ -8,3 +8,10 @@ las listas con nombre de prenda (5 de 5) y Felipe eligió el flujo de «Qué hac
 (ADR-0231), y nada se recomienda sobre ventas sin su prenda.
 Qué sigue: pegar las cuatro migraciones en producción, en orden y con el OK de Felipe, antes de publicar; probarla con una encargada real; que
 Compras reciba prendas por URL y Etiquetas la rebaja; y limpiar las libs del Análisis viejo (tarea aparte, ya lanzada).
+
+## 2026-10-06 (Análisis abre con los datos de hoy — ADR-0357, decisión 2, act. 2)
+Qué hice: mientras la tienda no cumple las tres condiciones del motor, Análisis abre con todo el diseño y un aviso fijo arriba que nombra lo
+primero que falta; «Ver qué falta» lleva a «Todavía no», con el mismo aviso y «Ver con los datos de hoy» para volver (`?ver=falta`). Sin SQL.
+Por qué así: Felipe lo pidió al verlo en producción, donde ninguna tienda cumple y la pantalla escondía el diseño detrás de un botón chico; la
+regla de ADR-0346 sigue diciendo si las cifras son confiables, ya no si se ven.
+Qué sigue: que Felipe decida si Hoy muestra las tres tiendas o solo la elegida arriba; `/formidable` y `/chaos` siguen pendientes.

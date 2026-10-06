@@ -19,11 +19,13 @@ import { PestanaPedir } from "@/components/analisis/PestanaPedir";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
-import { avisoDatosDeHoy, PARAM_DATOS_DE_HOY, VALOR_DATOS_DE_HOY } from "@/lib/analisis-aviso";
+import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
 
 // Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cuatro pestañas (Hoy · Se está acabando · No se vende · Qué
 // pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
-// cada pestaña dice «Todavía no» y qué falta. La ficha de cada prenda y la hoja de confianza son hojas del componente Modal (ADR-0136).
+// la pantalla se ve igual, con un aviso fijo arriba que dice qué falta; «Ver qué falta» lleva a «Todavía no», con el mismo aviso y
+// «Ver con los datos de hoy» para volver (decisión 2, act. 2026-10-06). La ficha de cada prenda y la hoja de confianza son hojas
+// del componente Modal (ADR-0136).
 //
 // Movimiento (ADR-0136, excepción de Análisis): al entrar a una pestaña, sus piezas suben en cascada, las barras crecen, las
 // perchas y los puntos asoman y las cifras cuentan, UNA vez; con «reducir movimiento», nada se mueve.
@@ -44,12 +46,12 @@ export function AnalisisPantalla({
   datos,
   acceso,
   vistaInicial,
-  datosDeHoyInicial = false,
+  queFaltaInicial = false,
 }: {
   datos: DatosAnalisis;
   acceso: AccesoAnalisis;
   vistaInicial: VistaAnalisis;
-  datosDeHoyInicial?: boolean;
+  queFaltaInicial?: boolean;
 }) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
@@ -64,12 +66,12 @@ export function AnalisisPantalla({
   const [vuelta, setVuelta] = useState(0);
   const [animar, setAnimar] = useState(true);
   const [foco, setFoco] = useState<string | null>(null);
-  // «Ver con los datos de hoy» (Felipe, 2026-10-06): la tienda todavía no cumple, pero se pidió mirar igual, con su aviso fijo.
-  const [conDatosDeHoy, setConDatosDeHoy] = useState(datosDeHoyInicial);
+  // Mientras la tienda no cumple, se ve con los datos de hoy y su aviso; «Ver qué falta» cambia a «Todavía no» (Felipe, 2026-10-06).
+  const [verQueFalta, setVerQueFalta] = useState(queFaltaInicial);
   const raiz = useRef<HTMLDivElement>(null);
-  // Lo que se recomienda: cuando la tienda cumple, o cuando se pidió ver con los datos de hoy.
-  const forzado = conDatosDeHoy && !datos.puedeHablar;
-  const recomienda = datos.puedeHablar || forzado;
+  const modo = modoAnalisis(datos.puedeHablar, verQueFalta);
+  const forzado = modo === "datos-de-hoy";
+  const recomienda = modo !== "que-falta";
   // Mirando con los datos de hoy, las tres tiendas muestran sus cifras (el aviso de arriba dice que pueden fallar).
   const datosVista = useMemo(
     () => (forzado ? { ...datos, resumenSedes: datos.resumenSedes.map((r) => ({ ...r, puedeHablar: true })) } : datos),
@@ -125,17 +127,24 @@ export function AnalisisPantalla({
     [datos.sedes],
   );
 
+  // `si` = con los datos de hoy; no = «Todavía no», que se ve entero en Hoy (ahí están las tres condiciones, día a día y las tiendas).
   const verConDatosDeHoy = useCallback((si: boolean) => {
+    apagarResaltado();
     setConfianza(false);
-    setConDatosDeHoy(si);
+    setFichaId(null);
+    setVerQueFalta(!si);
+    if (!si) setVista("hoy");
     setVuelta((n) => n + 1);
     setAnimar(true);
     const url = new URL(window.location.href);
-    if (si) url.searchParams.set(PARAM_DATOS_DE_HOY, VALOR_DATOS_DE_HOY);
-    else url.searchParams.delete(PARAM_DATOS_DE_HOY);
+    if (si) url.searchParams.delete(PARAM_QUE_FALTA);
+    else {
+      url.searchParams.set(PARAM_QUE_FALTA, VALOR_QUE_FALTA);
+      url.searchParams.delete("vista");
+    }
     window.history.replaceState(window.history.state, "", url);
     raiz.current?.scrollIntoView({ block: "start", behavior: reducido() ? "auto" : "smooth" });
-  }, []);
+  }, [apagarResaltado]);
 
   const contexto: ContextoAnalisis = useMemo(
     () => ({
@@ -229,12 +238,13 @@ export function AnalisisPantalla({
 
         <Pestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
 
-        {forzado && (
+        {/* El aviso fijo mientras la tienda no cumple: con los datos de hoy dice qué falta; en «Todavía no», cómo volver. */}
+        {modo !== "confiable" && (
           <div className="aviso-datos" role="status">
             <ChipEstado est="ate">Datos incompletos</ChipEstado>
-            <span className="aviso-texto">{avisoDatosDeHoy(mia)}</span>
-            <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(false)}>
-              Ver qué falta
+            <span className="aviso-texto">{modo === "datos-de-hoy" ? avisoDatosDeHoy(mia) : AVISO_QUE_FALTA}</span>
+            <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(modo === "que-falta")}>
+              {modo === "datos-de-hoy" ? "Ver qué falta" : "Ver con los datos de hoy"}
             </button>
           </div>
         )}

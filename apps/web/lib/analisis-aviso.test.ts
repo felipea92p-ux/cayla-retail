@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PreparacionAnalisis } from "./analisis-tipos";
-import { avisoDatosDeHoy, leerDatosDeHoy, META_CON_PRENDA, ventasConPrendaDe100 } from "./analisis-aviso";
+import { avisoDatosDeHoy, leerQueFalta, META_CON_PRENDA, modoAnalisis, ventasConPrendaDe100 } from "./analisis-aviso";
 import { diaAntes, preparacionDeSede, type DiaVenta, type FilaPreparacion } from "./motor-demanda-reglas";
 
 // Las tiendas de prueba pasan por el motor real (`preparacionDeSede`): el aviso se prueba contra las mismas condiciones que ve «Todavía no».
@@ -21,12 +21,22 @@ function tienda(f: Partial<FilaPreparacion> = {}): PreparacionAnalisis {
   return { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy };
 }
 
-describe("ver Análisis con los datos de hoy (ADR-0357, decisión 2)", () => {
-  it("la URL lo enciende solo con ?datos=hoy", () => {
-    expect(leerDatosDeHoy("hoy")).toBe(true);
-    expect(leerDatosDeHoy(["hoy"])).toBe(true);
-    expect(leerDatosDeHoy("ejemplo")).toBe(false);
-    expect(leerDatosDeHoy(undefined)).toBe(false);
+describe("qué muestra Análisis mientras la tienda no cumple (ADR-0357, decisión 2)", () => {
+  it("abre con los datos de hoy y su aviso; «Ver qué falta» lleva a «Todavía no»", () => {
+    expect(modoAnalisis(false, false)).toBe("datos-de-hoy");
+    expect(modoAnalisis(false, true)).toBe("que-falta");
+  });
+
+  it("si la tienda cumple, no hay aviso ni «Todavía no», aunque la URL lo pida", () => {
+    expect(modoAnalisis(true, false)).toBe("confiable");
+    expect(modoAnalisis(true, true)).toBe("confiable");
+  });
+
+  it("la URL pide ver qué falta solo con ?ver=falta", () => {
+    expect(leerQueFalta("falta")).toBe(true);
+    expect(leerQueFalta(["falta"])).toBe(true);
+    expect(leerQueFalta("hoy")).toBe(false);
+    expect(leerQueFalta(undefined)).toBe(false);
   });
 
   it("la meta es la del motor: 90 de cada 100", () => {

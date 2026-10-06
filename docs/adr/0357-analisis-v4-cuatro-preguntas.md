@@ -80,6 +80,13 @@ condiciones: 14 días seguidos con al menos 90 de cada 100 ventas con su prenda,
   puede marcar como quieta una prenda que sí se vendió sin registrarla; por eso el aviso no se puede cerrar. Lógica en `lib/analisis-aviso.ts`
   (la primera versión hablaba siempre de las ventas, y en una tienda que solo debía cuadrar el piso decía «No hubo ventas en los últimos 14
   días»).
+- **Actualización 2 (Felipe, 2026-10-06, noche, al verla en producción): «Debería mostrar esta pantalla por defecto».** Mientras la tienda no
+  cumple, Análisis **abre con los datos de hoy** y el aviso fijo de arriba. «Ver qué falta» lleva a «Todavía no» (en Hoy, donde están las tres
+  condiciones), que lleva arriba el mismo aviso —«Esto es lo que falta para que estas cifras no fallen»— con «Ver con los datos de hoy» para
+  volver; los botones que había dentro de «Todavía no» se fueron, porque el camino vive en el aviso. La URL pasa a `?ver=falta` (reemplaza a
+  `?datos=hoy`). Con esto, Análisis ya no se calla por defecto: la regla de ADR-0346 sigue diciendo si las cifras son confiables (el chip y el
+  aviso), pero ya no decide si se ven. *Lo que se paga:* la primera vista ya recomienda con cifras que pueden fallar; por eso el aviso no se
+  cierra y nombra lo primero que falta. Lógica en `modoAnalisis` (`lib/analisis-aviso.ts`).
 
 **3. La encargada y el líder ven lo mismo:** las tres tiendas, el dinero, lo que más rinde, el costo por prenda y «Liquidar desde». En estas vistas
 no hay `esLider`.
