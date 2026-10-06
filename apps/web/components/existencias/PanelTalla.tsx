@@ -13,7 +13,8 @@ import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { accionesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
-import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
+import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
+import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
 import { aclaracionDeLaCaja, desgloseDePrenda, estadoTalla, lineaDeLaSuma, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -214,8 +215,12 @@ export function PanelTalla({
     puedePedir: puedePedir && sedesParaPedir.length > 0,
   });
   const desglose = desgloseDePrenda({ piso: fila.pisoDisponible, almacen: fila.almacenDisponible, apartado: fila.apartado, danado: fila.danado ?? 0 });
-  const ritmoTalla = ritmoDePrenda({ ...prenda, tallas: [fila], disponible: fila.disponible });
-  const ritmo = textoDeRitmo(ritmoTalla);
+  // El ritmo es del COLOR, todas sus tallas juntas, como la maqueta (2026-10-06): una talla sola casi nunca junta las jornadas que pide la
+  // regla de Felipe para decir una tasa (3, 2026-09-25), y el panel quedaba en «Poco tiempo…». De la talla va debajo un hecho, no una
+  // tasa: cuántas se vendieron en la ventana del ritmo.
+  const ritmoColor = ritmoDePrenda(prenda);
+  const ritmo = textoDeRitmo(ritmoColor);
+  const vendidasTalla = vendidasDeLaTalla(fila.ritmoReciente);
   const precio = solesDe(prenda.precio);
   // Es del producto: cualquier talla de cualquier color la trae igual (`conDescripcion`, página de Existencias).
   const descripcion = prenda.tallas.find((t) => t.descripcion)?.descripcion ?? null;
@@ -225,7 +230,8 @@ export function PanelTalla({
   // bajo los botones dice cuántas faltan en este color y en qué otros, sin volver a nombrarlas.
   const falta = separa ? loQueFaltaEnElPiso(colores) : null;
   // Con el piso en pausa (sin cuadrar), lo que el sistema cree sin colgar NO se pinta de «por colgar», igual que en las tarjetas
-  // (ADR-0328, decisión 5): podría estar ya colgado. La línea lo nombra («Sin colgar, según el sistema») y «¿Colgar?» explica la pausa.
+  // (ADR-0328, decisión 5): podría estar ya colgado. La línea lo nombra («Sin colgar, según el sistema») y solo «¿Colgar?» explica la
+  // pausa: decirlo también en la línea lo repetía dos veces en la misma pantalla (visto en TRU, 2026-10-06).
   const faltanAPintar = falta && !falta.enPausa ? falta.ids : SIN_FALTA;
   const faltaEnPiso = (t: FilaExistencias) => faltanAPintar.has(t.varianteId) || estadoTalla(t) === "por_colgar";
   const lineaFalta = lineaDeLoQueFalta(colores, prenda.clave, falta);
@@ -512,7 +518,6 @@ export function PanelTalla({
                       <p className="flex flex-wrap items-center gap-x-1.5 text-[12.5px] text-taupe">
                         {!falta?.enPausa && <span aria-hidden className="inline-block h-3 w-3.5 shrink-0 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />}
                         {lineaFalta}
-                        {falta?.enPausa && <span>· el piso no está cuadrado: mira si ya cuelgan</span>}
                       </p>
                     )}
                   </>
@@ -585,20 +590,25 @@ export function PanelTalla({
                         );
                       })}
                     </section>
-                    {/* El ritmo de la talla con su aro de semanas, y el código debajo: una sola pieza en vez de dos líneas sueltas. */}
-                    {(ritmo || codigo) && (
+                    {/* El ritmo del color con su aro de semanas y, debajo, lo vendido de esta talla y el código: una sola pieza. */}
+                    {(ritmo || codigo || vendidasTalla !== null) && (
                       <div className="flex items-center gap-3 text-sm text-tinta/85">
-                        {ritmo && <AroSemanas ritmo={ritmoTalla} tam={40} />}
+                        {ritmo && <AroSemanas ritmo={ritmoColor} tam={40} />}
                         <div className="min-w-0">
-                          {ritmo && (
-                            <p>
-                              {prenda.color ? `${prenda.color} ${fila.talla ?? ""}: ` : ""}
-                              {ritmo}
-                            </p>
-                          )}
-                          {codigo && (
+                          {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
+                          {(vendidasTalla !== null || codigo) && (
                             <p className="text-[12.5px] text-taupe">
-                              Código <span className="tabular-nums text-tinta">{codigo}</span>
+                              {vendidasTalla !== null && (
+                                <>
+                                  De esta talla: {vendidasTalla} {vendidasTalla === 1 ? "vendida" : "vendidas"} en los últimos {VENTANA_RITMO_RECIENTE_DIAS} días
+                                  {codigo ? " · " : ""}
+                                </>
+                              )}
+                              {codigo && (
+                                <>
+                                  {vendidasTalla !== null ? "código" : "Código"} <span className="tabular-nums text-tinta">{codigo}</span>
+                                </>
+                              )}
                             </p>
                           )}
                         </div>

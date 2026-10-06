@@ -1157,7 +1157,8 @@ table.t td:first-child{font-weight:600}
           : v.otras.Taller > 0 ? filaQT("¿Pedir?", "pizarra", "A una tienda, no", `Ninguna tienda tiene; Taller tiene ${v.otras.Taller}: pídeselo al Taller`)
           : filaQT("¿Pedir?", "pizarra", "Nadie tiene", aqui === 1 ? "Queda 1 aquí y ninguna otra sede tiene" : "Ninguna otra sede tiene")}
       </section>`;
-      const vend = vendidas(p, c, t);
+      // Lo vendido de la talla en la ventana del ritmo del ERP (los últimos 7 días): un hecho, no una tasa. `vendidas` es de 14 días.
+      const vend = Math.round(vendidas(p, c, t) / 2);
       cuerpo = `
         ${S.hecho ? `<div class="hecho">${IC.check}<span>${esc(S.hecho)}</span></div>` : ""}
         <div class="donde">
@@ -1167,7 +1168,7 @@ table.t td:first-child{font-weight:600}
           <div class="${v.dan ? "" : "cero"}"><b data-cuenta="${pid}|${c}|${t}|dan">${v.dan}</b><small>Dañado</small></div>
         </div>
         ${diag}
-        <div class="ritmo">${ritmoHTML(p, c, `<small>De esta talla: ${unidades(vend)} ${vend === 1 ? "vendida" : "vendidas"} en 14 días · código <span class="num" style="color:var(--tinta)">${codigoVariante(p, c, t)}</span></small>`)}</div>
+        <div class="ritmo">${ritmoHTML(p, c, `<small>De esta talla: ${vend} ${vend === 1 ? "vendida" : "vendidas"} en los últimos 7 días · código <span class="num" style="color:var(--tinta)">${codigoVariante(p, c, t)}</span></small>`)}</div>
         ${(() => {
           // El orden sigue a la talla (2026-10-06, como el ERP): primero lo que necesita, después lo que se puede según dónde está la
           // prenda, y lo que no se puede ahora al final, chico y con su porqué. La tecla es de la acción, no del lugar.

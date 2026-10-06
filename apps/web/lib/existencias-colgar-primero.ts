@@ -54,3 +54,10 @@ export function textoDeRitmo(r: RitmoDePrenda): string | null {
       return null;
   }
 }
+
+/** Lo vendido de UNA talla en la ventana del ritmo (los últimos `VENTANA_RITMO_RECIENTE_DIAS` días, jornada por jornada). Es un hecho y
+ *  no una tasa, así que se dice aunque haya pocas jornadas para medir: la regla de Felipe (2026-09-25) es no afirmar una tasa, no callar
+ *  lo que pasó. `null` si no hay lectura del ritmo (Taller, o falló). */
+export function vendidasDeLaTalla(r: RitmoReciente | null | undefined): number | null {
+  return r ? r.dias.reduce((n, d) => n + d.ventas, 0) : null;
+}
