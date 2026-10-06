@@ -120,7 +120,8 @@ export function ExistenciasTarjetas({
   /** «Enviar a otra sede»: abre Traslados con esta prenda cargada (`urlTrasladar`), solo para quien ve Traslados. `tallas` son las de TODOS
    *  los colores del modelo, como «Reponer prenda». */
   puedeEnviar?: boolean;
-  onEnviar?: (tallas: readonly FilaExistencias[]) => void;
+  /** Recibe las tallas del modelo con algo que enviar y el color que se mira (el panel abre en ese color). */
+  onEnviar?: (tallas: readonly FilaExistencias[], prenda?: PrendaAgrupada<FilaExistencias>) => void;
   /** «Ver detalle» de una tarjeta: llevar ese producto a la tabla, donde está el cajón de la prenda. */
   onVerDetalle: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** Tocar una talla: abre el cajón de ESA talla (la tabla de detalle con la prenda abierta). */
@@ -174,7 +175,7 @@ export function ExistenciasTarjetas({
             case "subir":
               return onSubir(p, origen());
             case "enviar":
-              return onEnviar?.(tallasDelModelo);
+              return onEnviar?.(tallasDelModelo, p);
             case "ajustar":
               return onAjustar(p.tallas[0], origen());
             case "danada":

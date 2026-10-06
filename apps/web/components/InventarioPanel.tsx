@@ -36,7 +36,8 @@ import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
 import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
 import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
-import { PanelTalla } from "@/components/existencias/PanelTalla";
+import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
+import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
@@ -45,7 +46,7 @@ import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { avisoPausaDelPiso, AYUDA_HOY, estadoHoyDeTalla, hoyDeTalla, TEXTO_HOY, TIPOS_HOY, TONO_HOY } from "@/lib/existencias-hoy";
 import { pidePiso } from "@/lib/piso-plan";
-import { conteosDeFiltros, contarFiltrosActivos, filtrarExistencias, indiceDeExistencias, tallasEnCurva, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
+import { conteosDeFiltros, contarFiltrosActivos, filtrarExistencias, indiceDeExistencias, tallasEnCurva, tieneCondicion, valorOfrecido, valoresOfrecidos, ROTULO_CONDICION, type FiltrosElegidos } from "@/lib/existencias-filtros";
 import { textoDeFamilia } from "@/lib/colores-familias";
 import type { ColorDeCatalogo } from "@/lib/existencias-catalogo";
 import { useFiltrosExistencias } from "@/components/useFiltrosExistencias";
@@ -198,6 +199,7 @@ export function InventarioPanel({
   coloresCatalogo = [],
   sinRegistrar = null,
   destinosParaEnviar = [],
+  sedesParaPedir = [],
   listaDelDia = SIN_LISTA,
 }: {
   ubicacionId: string;
@@ -259,6 +261,8 @@ export function InventarioPanel({
   sinRegistrar?: { pendientes: number; vencidas: number } | "fallo" | null;
   /** A qué sedes se puede mandar lo que se sube «para enviar» (ADR-0328 act. 17). Vacío: «Subir prenda» no ofrece enviar. */
   destinosParaEnviar?: readonly { id: string; nombre: string }[];
+  /** Las otras tiendas a las que esta sede puede pedir (`sedesParaPedir`): «Pedir a otra sede» del panel de la talla. */
+  sedesParaPedir?: readonly { id: string; nombre: string }[];
   /** La lista del día del motor del piso (`PlanDelPiso.listaDelDia`): las tallas para colgar hoy, en orden (lo vendido
    *  ayer primero). La tarjeta «Reponer a piso hoy» y el orden sin búsqueda la siguen, como el Inicio de almacén. */
   listaDelDia?: readonly string[];
@@ -330,7 +334,8 @@ export function InventarioPanel({
   const [verDetalle, setVerDetalle] = useState(Boolean(abrirVariante));
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string } | null>(() => {
+  // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido } | null>(() => {
     const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
     return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
   });
@@ -513,6 +518,14 @@ export function InventarioPanel({
 
   // La prenda abierta sale de TODO el stock, no de lo filtrado: si se abre escaneando o tras un guardado cambia su «Acción
   // hoy», el detalle no se cierra solo por dejar de coincidir con un filtro.
+  // Lo que el filtro de la lista marca dentro del panel («Sin stock atrás en este modelo · 2»): «Hoy» o «Condición», como las tarjetas.
+  const marcaDelFiltro: MarcaDelFiltro | null = useMemo(() => {
+    const hoy = filtros.hoy;
+    const condicion = filtros.condicion;
+    if (hoy) return { etiqueta: TEXTO_HOY[hoy], coincide: (f: FilaExistencias) => hoyDeTalla(f) === hoy };
+    if (condicion) return { etiqueta: ROTULO_CONDICION[condicion], coincide: (f: FilaExistencias) => tieneCondicion(f, condicion) };
+    return null;
+  }, [filtros.hoy, filtros.condicion]);
   const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stock).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stock]);
   // Marcar varias y llevarlas a otra pantalla (Bajar al piso, Trasladar, Etiquetas) solo en la sede activa: esas pantallas
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
@@ -520,6 +533,21 @@ export function InventarioPanel({
   const filasMarcadas = useMemo(() => stock.filter((f) => marcadas.has(f.varianteId)), [stock, marcadas]);
   function abrirPrenda(p: Pick<PrendaAgrupada, "clave">, varianteId?: string) {
     setAbierta({ clave: p.clave, varianteId });
+  }
+  /** Las acciones rápidas de la tarjeta y «Colgar primero» (maqueta: «rapida»): abren el panel YA en su paso, en la talla que más
+   *  conviene. Colgar: si al modelo le falta algo en el piso, «Colgar varias» (todas sus tallas y colores); si no, la talla con más
+   *  en el almacén. Subir: la que más tiene colgada. Enviar: la que más tiene guardada. */
+  function lanzarDesdeTarjeta(prenda: PrendaAgrupada<FilaExistencias>, tipo: "colgar" | "subir" | "enviar") {
+    const modelo = coloresDelModelo(stock, prenda.productoId);
+    const mas = (campo: "pisoDisponible" | "almacenDisponible") =>
+      [...prenda.tallas].filter((t) => (t[campo] ?? 0) > 0).sort((x, y) => (y[campo] ?? 0) - (x[campo] ?? 0))[0];
+    if (tipo === "colgar" && tallasQueFaltan(modelo).size > 0) {
+      setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } });
+      return;
+    }
+    const t = mas(tipo === "subir" ? "pisoDisponible" : "almacenDisponible");
+    if (!t) return;
+    setAbierta({ clave: prenda.clave, varianteId: t.varianteId, flujo: { tipo } });
   }
   function alternarPrenda(p: PrendaAgrupada<FilaExistencias>) {
     setMarcadas((previas) => alternarMarcasDePrenda(previas, p.tallas.map((f) => f.varianteId)));
@@ -545,7 +573,7 @@ export function InventarioPanel({
       return false;
     }
     setBusqueda("");
-    setVerDetalle(true);
+    // Como la maqueta: la etiqueta leída abre el panel de ESA talla, sin salir de las tarjetas.
     abrirPrenda(agruparPorPrenda([f])[0], f.varianteId);
     return true;
   }
@@ -912,10 +940,7 @@ export function InventarioPanel({
             <ColgarPrimero
               pisoSinCuadrar={tallasEnPausa > 0}
               prendas={colgarPrimeroDeLaSede}
-              alReponer={(prenda, origen) => {
-                setAbierta(null);
-                abrirReponer(prenda, origen);
-              }}
+              alReponer={(prenda) => setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } })}
             />
           )}
           <ExistenciasTarjetas
@@ -929,18 +954,10 @@ export function InventarioPanel({
             // «Enviar a otra sede» desde la tarjeta: la misma entrada a Traslados que «Trasladar» de lo marcado (`urlTrasladar`), con las
             // tallas de todos los colores del modelo que tienen algo libre atrás. Solo para quien ve Traslados.
             puedeEnviar={veTraslados}
-            onEnviar={(tallas) => {
-              const href = urlTrasladar(tallas);
-              if (href) router.push(href);
-            }}
-            onReponer={(prenda, origen) => {
-              setAbierta(null);
-              abrirReponer(prenda, origen);
-            }}
-            onSubir={(prenda, origen) => {
-              setAbierta(null);
-              abrirSubir(prenda, origen);
-            }}
+            // Las tres acciones de la ventana de la tarjeta abren el panel de la talla YA en su paso (maqueta: sin ventana aparte).
+            onEnviar={(_tallas, prenda) => prenda && lanzarDesdeTarjeta(prenda, "enviar")}
+            onReponer={(prenda) => lanzarDesdeTarjeta(prenda, "colgar")}
+            onSubir={(prenda) => lanzarDesdeTarjeta(prenda, "subir")}
             onAjustar={(f, origen) => {
               setAbierta(null);
               // Desde el menú «⋯» no queda un botón al que volver: el foco vuelve a la tarjeta al cerrar la ventana.
@@ -1359,33 +1376,32 @@ export function InventarioPanel({
           colores={coloresDelModelo(stock, prendaAbierta.productoId)}
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
+          flujoInicial={abierta?.flujo ?? null}
+          ubicacionId={ubicacionId}
+          sedeNombre={sedeNombre}
           separa={separa}
           puedeReponer={puedeReponer}
-          puedeEnviar={veTraslados}
+          puedeEnviar={veTraslados && enSedeActiva}
           puedeAjustar={puedeAjustarAqui}
+          // Apartar y Pedir son de una tienda, mirando su propia sede (las dos funciones de la base lo exigen).
+          puedeApartar={veApartados && esTienda && enSedeActiva}
+          puedePedir={veTraslados && esTienda && enSedeActiva}
+          puedePedirParaCliente={veApartados && esTienda && enSedeActiva}
+          destinos={destinosParaEnviar}
+          sedesParaPedir={sedesParaPedir}
+          sububicacionPisoId={sububicacionPiso?.id ?? null}
+          sububicacionAlmacenId={sububicacionAlmacen?.id ?? null}
+          marcaDelFiltro={marcaDelFiltro}
           enSedeActiva={permisos.etiquetasEHistorial}
           puedeEliminar={permisos.eliminar}
           puedeReportarDanada={permisos.reportarDanada}
-          onReportarDanada={(prenda) => {
+          onAjustarCompleto={(f) => {
             setAbierta(null);
-            volverFoco.current = null;
-            setReportando({ productoId: prenda.productoId, colorClave: prenda.clave });
+            setAjustando(f);
           }}
           onEliminar={() => {
             setAbierta(null);
             setEliminando({ productoId: prendaAbierta.productoId, referencia: prendaAbierta.referencia, estado: prendaAbierta.tallas[0]?.estadoProducto ?? null });
-          }}
-          onReponer={(prenda) => {
-            setAbierta(null);
-            abrirReponer(prenda, null);
-          }}
-          onSubir={(prenda) => {
-            setAbierta(null);
-            abrirSubir(prenda, null);
-          }}
-          onAjustar={(f) => {
-            setAbierta(null);
-            setAjustando(f);
           }}
           onVerApartadas={
             deLaPrenda(apartados, prendaAbierta).length > 0

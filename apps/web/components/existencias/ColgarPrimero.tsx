@@ -15,13 +15,14 @@ import type { PrendaAgrupada } from "@/lib/existencias-prendas";
 const LARGO_ARO = 2 * Math.PI * 13;
 
 /** El aro de semanas: lleno hasta 6 semanas, verde desde 2, ámbar con 1 o menos (se acaba). Sin ritmo medido, no se dibuja. */
-function AroSemanas({ ritmo }: { ritmo: RitmoDePrenda }) {
+/** El aro de semanas de la maqueta: cuánto alcanza lo que hay al ritmo de venta (lleno = 6 semanas o más; ámbar si se acaba esta semana). */
+export function AroSemanas({ ritmo, tam = 34 }: { ritmo: RitmoDePrenda; tam?: number }) {
   if (ritmo.tipo !== "medido") return null;
   const semanas = Math.max(0, Math.round(ritmo.semanas));
   const lleno = Math.min(1, ritmo.semanas / 6);
   const color = ritmo.semanas <= 1 ? "var(--color-ambar)" : "var(--color-verde)";
   return (
-    <span className="relative inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center" aria-hidden>
+    <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: tam, height: tam }} aria-hidden>
       <svg viewBox="0 0 34 34" className="h-full w-full">
         <circle cx="17" cy="17" r="13" fill="none" stroke="var(--color-hueso)" strokeWidth="4" />
         <circle
