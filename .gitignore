@@ -36,3 +36,6 @@ supabase/migrations/0000_local_stub_dynamic.sql
 
 # /flujo-de-negocio: informes, capturas y guías generadas son locales (el repo es público)
 .flujo-de-negocio/
+
+# /chaos: fotos de violaciones, informes y capturas son locales (el repo es público y traen filas de la base local)
+.chaos/
