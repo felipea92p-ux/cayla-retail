@@ -18,9 +18,10 @@ import { describe, expect, it } from "vitest";
    (`umbral…`, `minimo…`, `requisito…`, `…alerta…`). Comparar con 0 («¿hay algo colgado?») no es un umbral: es presencia.
    Y el nombre retirado `umbralStockPisoReposicion` no puede volver en ningún lado.
 
-   LA DEUDA DE ANTES. Análisis tiene sus propias cifras de piso, de antes del motor (dos «piso ≤ 1» y los días que cubre el piso
-   contra `DIAS_PISO_ALERTA`); las reemplaza la actividad 11 («se vendió rápido y falta»). Están listadas abajo con su cuenta
-   EXACTA: la lista solo puede bajar. Un archivo nuevo no puede entrar.
+   LA DEUDA DE ANTES, YA SALDADA. Análisis tenía sus propias cifras de piso, de antes del motor (dos «piso ≤ 1» y los días que
+   cubre el piso contra `DIAS_PISO_ALERTA`). La pantalla nueva de Análisis (v4, 2026-10-06) no las usa, y la limpieza que vino
+   detrás borró el código viejo que las tenía (`analisis-que-hacer.ts`, el motor de reposición de `resumen-reglas.ts`). La
+   lista de abajo quedó vacía y así se queda: un archivo nuevo no puede entrar.
    ==================================================================== */
 
 const RAIZ = join(__dirname, "..");
@@ -50,13 +51,8 @@ const COMPARACIONES = new Set([
   ts.SyntaxKind.GreaterThanEqualsToken,
 ]);
 
-/** La deuda de Análisis, anterior al motor, con cuántas cifras de piso tiene cada archivo. Solo baja (actividad 11). */
-const DEUDA_DE_ANALISIS: Record<string, number> = {
-  // «La talla que se está cortando» de la prenda top: piso ≤ 1.
-  "lib/analisis-que-hacer.ts": 1,
-  // «Bajar al piso» del Resumen cuando lo colgado cubre menos de 3 días al ritmo de la talla (`DIAS_PISO_ALERTA`).
-  "lib/resumen-reglas.ts": 1,
-};
+/** La deuda de Análisis, anterior al motor, con cuántas cifras de piso tenía cada archivo. Llegó a cero con Análisis v4. */
+const DEUDA_DE_ANALISIS: Record<string, number> = {};
 
 /** Lo que la comparación mira de verdad: sin paréntesis, sin `!`, sin `as`, y en `a ?? b` el lado `a`. */
 function nucleo(e: ts.Expression): ts.Expression {
