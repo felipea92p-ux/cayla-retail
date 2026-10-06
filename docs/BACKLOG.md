@@ -696,7 +696,7 @@ Pendiente:
 - [ ] **Decidir el «¿Qué pasó con la plata?»** del spike: convertir `MovimientoCajaModal` en depósito → Cuentas y
   dinero / entrega al líder / sencillo. Mueve dinero entre módulos, por eso no entró aquí.
 - [ ] Umbral del ámbar del semáforo (S/ 5, `TOLERANCIA_CUADRE`): confirmar con Felipe.
-- [ ] `DonaMetodos` y `TendenciaCierres` ya no los usa Caja: revisar si alguien más los usa y archivarlos.
+- [ ] ~~`DonaMetodos`~~ (borrada sin uso el 2026-10-06, con `lib/dona-geometria.ts` y su CSS) y `TendenciaCierres` ya no los usa Caja: revisar si alguien más los usa y archivarlos.
 
 ## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0225; fusionado en #484) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
 
@@ -4458,7 +4458,8 @@ huecos son de alcance, no de correctitud.
 - [ ] **Etiquetado físico (código de barras) al recibir no existe hoy.**
       `EtiquetasGenerator.tsx` ya no está en el árbol; quedan huérfanos `Codigo128.tsx`/
       `codigo128.ts` sin ningún importador (verificado con grep — cero componentes los
-      usan). Este mismo BACKLOG decía que `/etiquetas` se "movió a Compras hace tiempo"
+      usan). *(2026-10-06: `Codigo128.tsx` se borró; `lib/codigo128.ts` se queda, lo usa
+      `scripts/etiquetas/hoja-de-prueba.mjs`.)* Este mismo BACKLOG decía que `/etiquetas` se "movió a Compras hace tiempo"
       (línea ~546 de este archivo), pero no existe ninguna carpeta `etiquetas` bajo
       `apps/web/app/(app)/compras` — el traslado nunca se completó.
 - [ ] **Piso vs. almacén al recibir es 100% fijo.** `fn_sububicacion_por_defecto('entrada')`
@@ -5715,11 +5716,12 @@ ver "Pendiente de decisión de Felipe" en el bloque de la Tanda 3, arriba.
       fija recibe `otrasSedes` vacío. Cambio: `supabase.rpc("fn_stock_por_sede")` en vez de
       la lectura directa (un commit chico) y verificar como Micaela (colaboradora de
       Trujillo — su fila ya existe en local, ver ítem siguiente).
-- [ ] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
+- [x] **`etiquetaSede` no sirve en V2 y nadie la usa.** Deriva la ciudad de un `codigo` que
       `ubicaciones` ya no tiene, o de la última palabra del nombre si mide 2–4 letras
       («Tienda LIM» era V1; hoy «Tienda Trujillo» → «TND»). Si se quiere «TRU/AQP» en
       pantalla, es una columna `codigo` en `ubicaciones` (migración); si no, borrar la
-      función y su test para que nadie la reviva por error.
+      función y su test para que nadie la reviva por error. **Borradas la función y su
+      prueba el 2026-10-06** (rama `claude/determined-thompson-f7b8d8`).
 - [ ] **Foto por prenda en el catálogo.** La tarjeta ya tiene el hueco (4:5, iniciales en
       serif), pero `productos`/`variantes` no tienen columna de foto ni bucket de Storage.
       Es cambio de modelo de datos: decidir dónde vive (una por producto o por color),

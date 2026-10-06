@@ -105,7 +105,7 @@ sede ni siendo Líder: se hace por SQL (D-11).
 | Columna | Tipo | Vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | sí (es vista) | — | `public.sedes.id` de Dynamic. |
-| `codigo` | text | sí | — | `TRU`, `AQP`, `003` (tienda de Lima), `LIM` (el Taller), `CCO` (corporativo). **El código dejó de ser legible** — por eso existe `lib/etiqueta-sede.ts`. |
+| `codigo` | text | sí | — | `TRU`, `AQP`, `003` (tienda de Lima), `LIM` (el Taller), `CCO` (corporativo). **El código dejó de ser legible** — por eso la pantalla rotula con el nombre (`lib/etiqueta-sede.ts`, que lo traducía en V1, se borró sin uso el 2026-10-06). |
 | `nombre` | text | sí | — | De Dynamic. Es la única fuente donde quedó la ciudad de la tienda `003` ("Tienda LIM"). |
 | `tipo` | text | sí | — | Sale de `retail.sede_meta.tipo`, no de Dynamic. Dynamic no modela esto. |
 | `tienda_asociada_id` | uuid | sí | — | Sale de `retail.sede_meta`. Hoy NULL en las 5 filas. |

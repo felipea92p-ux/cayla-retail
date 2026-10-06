@@ -22,10 +22,10 @@
 - [x] **Docs:** `ARQUITECTURA.md` (Existencias, Conteo, Análisis, «Miniatura + color» y la fila de `fn_resumen_comparacion`), la R-20 de
       `docs/datos/15-COMO-OPERA-CAYLA.md`, una nota en `docs/datos/modulos/13-inteligencia-y-reportes.md` y el pendiente de
       `docs/backlog/2026-10-06-erp-analysis-module-design-c1a525.md`, marcado hecho.
-- [ ] **Siguen muertos a propósito** (los nombra código de fuera de este alcance): `formatoSolesCompacto`, que nombra
-      `components/DisponibleTotalOverlay.tsx`, también muerto desde antes, y `nombreCorto`, que nombra `textoDeSeriesFaltantes`, tolerada en
-      `reglas-sin-uso`. Van con la limpieza aparte de código muerto (22 archivos de otras pantallas, sesión «Borrar código muerto que ninguna
-      pantalla usa», del 2026-10-06).
+- [ ] **Siguen muertos a propósito** (los nombra código de fuera de este alcance): ~~`formatoSolesCompacto`, que nombra
+      `components/DisponibleTotalOverlay.tsx`, también muerto desde antes~~ (borrados los dos el 2026-10-06, rama
+      `claude/determined-thompson-f7b8d8`), y `nombreCorto`, que nombra `textoDeSeriesFaltantes`, tolerada en
+      `reglas-sin-uso`: queda con la deuda de `SIN_USO_CONOCIDAS` (ver `docs/backlog/2026-10-06-determined-thompson-f7b8d8.md`).
 - [ ] **Comentario desactualizado de la v4** (no lo toqué: es de `lib/analisis-*`): `lib/analisis-rinde.ts` dice «La fuente es la que ya usan
       Desempeño y Comparar»; esas pantallas ya no existen.
 - [ ] **#808 (Colgar en el piso)** cambia textos dentro de código que esta rama borra (`planDeReposicion`, `ayudaChip`, el comentario de
