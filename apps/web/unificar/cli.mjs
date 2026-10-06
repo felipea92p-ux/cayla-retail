@@ -92,6 +92,9 @@ async function fotografiarLamina(navegador, lamina, familias, dirSalida) {
     }, f.id);
     if (!hay) continue;
     await p.locator(`section[data-familia="${f.id}"]`).screenshot({ path: join(dirSalida, "comparativas", `${f.id}.png`), animations: "disabled" }).catch(() => {});
+    // La propuesta sola, en claro y oscuro: es la imagen que se mira con calma antes de elegir.
+    const propuesta = p.locator(`section[data-familia="${f.id}"] .lam-propuesta`);
+    if (await propuesta.count()) await propuesta.screenshot({ path: join(dirSalida, "comparativas", `${f.id}.propuesta.png`), animations: "disabled" }).catch(() => {});
   }
   await ctx.close();
 }

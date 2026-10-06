@@ -283,13 +283,18 @@ const BASE = [
   },
 ];
 
+/** Las funciones de botón que el sistema YA resuelve con una pieza propia (las demás se dibujan con `btn-cayla`). */
+const PIEZA_DE_FUNCION = {
+  volver: "`<Volver>` (components/ui/Volver.tsx): forma `boton` en el pie de EncabezadoPagina (ADR-0220), forma `enlace` en las demás",
+};
+
 const ACCIONES = FUNCIONES.map((f) => ({
   id: `accion.${f.id}`,
   grupo: "Botones por función",
   nombre: `Botón «${f.nombre}»`,
   funcion: `Todos los botones que hacen «${f.nombre}». Si se ven distinto en dos pantallas, alguien tiene que aprender dos veces lo mismo.`,
-  pieza: null,
-  gobierna: ["ADR-0169"],
+  pieza: PIEZA_DE_FUNCION[f.id] ?? null,
+  gobierna: f.id === "volver" ? ["ADR-0169", "ADR-0220"] : ["ADR-0169"],
 }));
 
 /**
@@ -301,13 +306,16 @@ const ACCIONES = FUNCIONES.map((f) => ({
  *     adr: "docs/adr/0354-unificar-una-funcion-una-pieza.md",
  *     registro: "docs/unificar/pestanas.md",
  *     elegida: "B · SegmentoDeslizante",            // o «propuesta»
- *     pieza: "components/ui/SegmentoDeslizante.tsx", // la ÚNICA pieza de esa función desde hoy
+ *     pieza: "components/ui/SegmentoDeslizante.tsx", // la pieza de esa función desde hoy (relativa a apps/web)
+ *     tambien: ["components/ui/IndicadorDeslizante.tsx"], // otras piezas elegidas o que la pieza usa (no cuentan como deuda)
  *     firmas: ['role="tablist"'],                   // reconocen una variante dibujada a mano (expresiones regulares)
  *     deuda: ["components/Algo.tsx"],               // quienes todavía la dibujan a mano: solo baja
+ *     excepciones: [{ archivo: "components/finanzas/kit.tsx", motivo: "ADR-0195: el kit de Finanzas" }], // lo que un ADR deja como está
  *   },
  */
 /**
- * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, firmas: string[], deuda: string[] }} Decision
+ * @typedef {{ archivo: string, motivo: string }} Excepcion
+ * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, tambien?: string[], firmas: string[], deuda: string[], excepciones?: Excepcion[] }} Decision
  * @type {Record<string, Decision>}
  */
 export const DECISIONES = {};

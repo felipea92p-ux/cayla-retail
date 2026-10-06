@@ -1,0 +1,530 @@
+<!-- Propuesta FINAL de /unificar · familia «pestanas» (Pestañas y segmentos) · ADR-0354 · juez de la ronda 1, 2026-10-06.
+     Fragmento: la lámina lo envuelve con el CSS real del ERP, en claro y en oscuro. Solo var(--color-…), var(--font-dm-sans) y clases que
+     existen en el app.css servido. Lo nuevo va con el prefijo prop-. Sin JavaScript, sin IDs (el fragmento sale dos veces en la lámina).
+
+     GANADORA: «Tres piezas, lo elegido en tinta» (ángulo SISTEMA), con cuatro injertos de las otras dos.
+
+     LA REGLA, en la pregunta que se hace la colaboradora: «¿qué cambia si toco esto?». Cada respuesta tiene UNA forma, y lo elegido va
+     siempre en tinta:
+       · ¿Me lleva a otra parte de esta pantalla?  → PESTAÑA: subrayado en tinta sobre la línea sand.
+       · ¿Deja menos filas en la misma lista?      → PÍLDORA (pildora-cayla): la elegida rellena de tinta. El período también es esto.
+       · ¿Muestra lo mismo de otra forma u orden?  → SEGMENTO con piel de caja: la elegida en papel con contorno de tinta.
+       · ¿Se guarda al elegir?                     → no es de esta familia: va a «campo» (Segmentado, SegmentoDeslizante como campo).
+     Ninguna gasta un rojo (ADR-0169: máximo dos por pantalla) y ninguna se pone roja al pasar el mouse.
+
+     1 · PESTAÑA DE VISTA = la B (.fin-pestana, ADR-0195), tal cual: 13,5 px como btn-cayla, inactiva en taupe, elegida en tinta y 500,
+         subrayado de 2 px en tinta, conteo en píldora sand de 20 px, 42 px de alto.
+         · Por qué la B y no la C: es la pestaña de vista MÁS usada del censo (12 usos en 12 pantallas, contra 6 de la C y 5 de la D), la
+           única decidida por un ADR, y su CSS ya dice por qué es tinta («el rojo de la cabecera no se gasta aquí»). Finanzas y
+           Configuración no migran: dejan de ser la excepción y pasan a ser la regla. La V (Apartados, ADR-0223) también es tinta.
+         · De C, D y TabsSubrayado: que el subrayado VIAJE (340 ms, --ease-cayla, sin rebote, quieto con movimiento reducido). Ya existe:
+           IndicadorDeslizante variante="linea-tinta" (documentada para Temporadas con la misma razón de los dos rojos, y sin uso).
+         · De la F y de Devoluciones: el conteo que pide algo en ámbar (ámbar al 15 %, número en ámbar profundo).
+         · De la PERSONA (injerto): el texto para lector junto al número («2 esperan revisión»), así el aviso no depende solo del color.
+         · Corrige: el foco va hacia adentro (-2 px) porque la fila se desliza y le recortaba el anillo (medido en .fin-pestana: solo
+           quedaban los lados; ADR-0351, «lo que no tiene dónde crecer»). Y se reserva el ancho de la letra en 500 con una copia invisible
+           (data-texto): elegir «Efectivo por tienda» ensanchaba la pestaña 2,1 px y corría a las vecinas; ahora 0.
+         · El 0 se ve («Por aprobar 0») y la pestaña no se deshabilita: la vista vacía se abre y dice qué falta (ley 9).
+     2 · FILTRO Y PERÍODO = la A, pildora-cayla, sin cambiar su forma (28 usos; ADR-0232 D3 la eligió «para no confundirse con las
+         pestañas»; la demo de ADR-0171 ya decía «el negro queda para el período elegido»).
+         · El conteo va del mismo color del texto, en 500 y con cifras tabulares. Hoy hay tres formas, y la de opacity-75 da 3,2:1 sobre
+           crema (pide 4,5).
+         · Injerto de la PERSONA y de CONTINUIDAD: con 0 se toca igual y la lista dice qué no hay (leyes 7 y 9). La pieza tiene además un
+           estado deshabilitado (50 %, como btn-cayla:disabled), pero lo usa SOLO la pantalla que ya lo decidió (Movimientos, ADR-0241:
+           «en 0 se ven pero no se tocan»). La pieza no decide comportamiento: migrar no cambia qué hace (candado 4).
+         · Foco hacia afuera; en una fila que se desliza, 4 px de holgura con margen negativo (ADR-0351, punto 3).
+         · Rótulo label-cayla delante del grupo cuando las opciones solas no dicen qué se elige («Zona» ya existe). Un rótulo nuevo
+           («Estado», «Período») es texto: lo decide Felipe.
+     3 · MODO DE VISTA Y ORDENAR = segmento de 36 px con la piel de caja-cayla (hueso, borde sand, radio 8) y una pista de 3 px.
+         · De G, H y P (demo de ADR-0170, ADR-0175, spike de ADR-0226): la pista hundida con la elegida en papel. De la E (ADR-0245): el
+           borde sand. De L y T: el icono delante (Grilla / Tabla). De SegmentoEnlaces: los 36 px «para alinearse con el buscador».
+         · De U y S (decididas): la elegida se marca con CONTORNO de tinta, no se rellena. El primario es el único botón relleno y la
+           píldora elegida ya va en tinta: tres manchas de tinta en una barra no dicen cuál manda.
+         · Corrige: el anillo sand de G y la sombra de K y L no llegan a 3:1. El contorno en tinta mide 13,4:1 en claro y 11,6:1 en oscuro.
+           El peso no cambia al elegir (500 en todas). El foco va afuera, a 2 px, para no confundirse con el contorno de «elegida».
+         · Con 2 o 3 opciones va el segmento; con más (los 5 órdenes de Análisis), el combo (Desplegable, ADR-0209).
+     LAS TRES: con el dedo, 44 px (PL-105: Vender, Cambios, Devoluciones). Injerto de CONTINUIDAD: una semántica por manera de cambiar.
+         Si cambia la URL, enlaces con aria-current. Si es estado, tablist con aria-selected y flechas ← → (hoy ResumenCabecera,
+         DevolucionesPanel y TabsSubrayado dicen role=tab y no responden a las flechas). En el segmento, radiogroup con aria-checked.
+
+     PIEZAS (injerto de CONTINUIDAD: ninguna pieza nueva, se re-visten las que ya existen)
+     · Pestaña → ui/Pestanas.tsx re-vestida con la piel de .fin-pestana e IndicadorDeslizante «linea-tinta». Gana `onCambio` para el modo
+       por estado y absorbe TabsSubrayado. PestanasFin del kit pasa a usarla (mismo dibujo). Se borran TabsSubrayado, la Pestanas local de
+       ResumenCabecera, PestanasResumenProduccion y FinanzasNav (código muerto).
+     · Píldora → pildora-cayla, sin tocar su CSS; solo se le agregan :disabled y la regla del conteo.
+     · Segmento → SegmentoEnlaces re-vestido; SegmentoDeslizante gana una forma «modo». Sus 9 usos de CAMPO no cambian de cara hasta que
+       decida la familia «campo».
+
+     QUÉ SE VA: el subrayado rojo de C, D y TabsSubrayado (lo decide Felipe); el rojo al pasar el mouse (D, TabsSubrayado,
+     SegmentoDeslizante, SegmentoEnlaces); las MAYÚSCULAS de 10 a 11 px en pestañas, filtros y modos (D, L, M, R, T, V, W); el conteo a
+     opacity-75 y el chip con borde de TabsSubrayado; la pista tinta/5 de K y su uso como filtro en Cambios; la pista hueso para FILTRAR
+     (G, H, P: pasan a píldora); la pista sand de L y T; la píldora con pista de N; la sombra y el anillo sand como marca de elegida; el
+     pulgar oscuro en los modos; los anillos de foco rojos escritos a mano (ResumenCabecera, ResumenControles, FiltrosMovimientos,
+     PeriodoComprobantes); el salto de ancho al elegir; y el modo de solo iconos (FiltrosRapidos:121).
+
+     DECIDIDO A PROPÓSITO, NO SE TOCA: B y S (Finanzas, ADR-0195: la B ES la pieza), F (vidrio de Comprobantes, ADR-0124, y su barra de
+     celular, ADR-0238), J y O (Observatorio, ADR-0322), Q (tarjeta-pestaña de Colaboradores, ADR-0172), U (tarjetas por tienda,
+     ADR-0325, plan de Dany), los tipos de Movimientos (ADR-0353) y la barra de Apartados en celular (ADR-0223; en escritorio, la V
+     conserva sus 64 px y cambia solo la letra).
+
+     LO DECIDE FELIPE: (1) tinta contra el hilo rojo de la guía (ADR-0169, demo de ADR-0171): si prefiere rojo, cambia un color de la pieza
+     y Finanzas queda como excepción. (2) Reabre maquetas que él aprobó: /compras pasa de pestañas a píldoras (ADR-0111), Zona, Dirección y
+     el filtro de Caja pasan de segmento a píldora (ADR-0170, 0175, 0226), Devoluciones pasa de pista a subrayado (ADR-0232), Hoy / Este
+     mes a píldora (ADR-0238), Por prenda / Por talla al segmento (ADR-0245), y la letra de Apartados (ADR-0223). (3) Los textos que
+     chocan en /vender/comprobantes/emitidos («Hoy» en la pestaña, «Este mes» en el período). (4) En Análisis, si manda la píldora de grupo
+     o la tarjeta «Qué hacer» (Y), y si las píldoras de grupo conservan el punto de color (es la marca del Chip).
+
+     Medido por los diseñadores con el app.css real (claro / oscuro): pestaña inactiva 5,21 / 7,80; conteo tinta sobre sand 13,28 / 9,73;
+     conteo ámbar 5,21 / 7,83; píldora inactiva 5,58 / 6,96; segmento inactivo sobre la pista 4,56 / 5,91; contorno de la elegida contra la
+     pista 13,44 / 11,63. Altos: pestaña 42 (44 con el dedo), píldora 31,5 (44), segmento 36 con opción de 28, igual que caja-cayla y el combo.
+     En oscuro la opción elegida del segmento (papel) queda más oscura que la pista (hueso): se lee hundida, y la marca el contorno crema. -->
+<style>
+  .prop-raiz { font-family: var(--font-dm-sans); color: var(--color-tinta); }
+  .prop-bloque { margin-bottom: 36px; }
+  .prop-pieza { margin: 0 0 4px; font-size: 22px; line-height: 1.2; color: var(--color-tinta); }
+  .prop-etq { display: block; max-width: 46rem; margin-bottom: 12px; font-size: 12px; line-height: 1.5; color: var(--color-taupe); }
+  .prop-fila { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 28px; }
+  .prop-estado { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; max-width: 100%; }
+  .prop-estado > small { max-width: 19rem; font-size: 11px; line-height: 1.4; color: var(--color-taupe); }
+  .prop-icono { width: 16px; height: 16px; flex: none; }
+  .prop-icono-chico { width: 14px; height: 14px; flex: none; }
+
+  /* Estados que en el ERP pone el mouse o el teclado, dibujados con una clase. El foco es el anillo único de ADR-0351 (tinta, 2 px,
+     separado 2 px); en producción sale de --foco-color, --foco-ancho y --foco-separacion y nadie lo escribe. */
+  .prop-foco { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+
+  /* 0 · La leyenda: una pregunta, una forma. */
+  .prop-leyenda { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .prop-clave { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+  .prop-clave-p { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--color-tinta); }
+  .prop-clave-r { margin: 0; font-size: 12.5px; line-height: 1.5; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); }
+  .prop-clave-r b { color: var(--color-tinta); font-weight: 600; }
+
+  /* 1 · Pestaña de vista: los números de .fin-pestana (ADR-0195), con el foco hacia adentro y el ancho reservado. */
+  .prop-pestanas { display: flex; gap: 4px; max-width: 100%; border-bottom: 1px solid var(--color-sand); overflow-x: auto; scrollbar-width: none; }
+  .prop-pestanas::-webkit-scrollbar { display: none; }
+  .prop-pestana { display: inline-flex; flex: none; align-items: center; margin: 0 0 -1px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent;
+    border-radius: 0; background: none; font-family: var(--font-dm-sans); font-size: 13.5px; font-weight: 400; line-height: 1.5;
+    color: var(--color-taupe); white-space: nowrap; text-decoration: none; cursor: pointer; transition: color 150ms, border-color 150ms; }
+  .prop-pestana:hover, .prop-pestana.prop-encima { color: var(--color-tinta); }
+  .prop-pestana[aria-selected="true"], .prop-pestana[aria-current="page"] { color: var(--color-tinta); border-bottom-color: var(--color-tinta); font-weight: 500; }
+  .prop-pestana:focus-visible, .prop-pestana.prop-foco { outline: 2px solid var(--color-tinta); outline-offset: -2px; }
+  .prop-texto { display: inline-flex; flex-direction: column; }
+  .prop-texto::after { content: attr(data-texto); height: 0; overflow: hidden; visibility: hidden; font-weight: 500; pointer-events: none; user-select: none; }
+  .prop-cuenta { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+    background: var(--color-sand); font-size: 11.5px; line-height: 1; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .prop-cuenta-pide { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar-profundo); font-weight: 600; }
+  .prop-pestanas-dedo .prop-pestana { padding: 11px 14px; }
+
+  /* 2 · Filtro y período: pildora-cayla, con lo que hoy cada pantalla escribe a mano. */
+  .prop-grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; max-width: 100%; }
+  .prop-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+  .prop-desliza { flex-wrap: nowrap; max-width: calc(100% + 8px); margin: -4px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
+  .prop-desliza::-webkit-scrollbar { display: none; }
+  .prop-rotulo { font-size: 11px; color: var(--color-taupe); white-space: nowrap; }
+  .pildora-cayla.prop-encima { color: var(--color-tinta); background: color-mix(in oklab, var(--color-sand) 40%, transparent); }
+  .prop-raiz .pildora-cayla:disabled { opacity: 0.5; cursor: not-allowed; color: var(--color-taupe); background: transparent; }
+  .prop-n { font-weight: 500; font-variant-numeric: tabular-nums; }
+  .prop-dedo { min-height: 44px; padding-left: 16px; padding-right: 16px; }
+
+  /* 3 · Modo de vista y ordenar: segmento con piel de caja-cayla. */
+  .prop-modo { display: inline-flex; flex: none; align-items: stretch; gap: 2px; box-sizing: border-box; height: 36px; padding: 3px;
+    border: 1px solid var(--color-sand); border-radius: 8px; background: var(--color-hueso); }
+  .prop-opcion { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border: 0; border-radius: 4px; background: transparent;
+    font-family: var(--font-dm-sans); font-size: 13.5px; font-weight: 500; line-height: 1; color: var(--color-taupe); white-space: nowrap;
+    text-decoration: none; cursor: pointer; transition: color 150ms, background-color 150ms, box-shadow 150ms; }
+  .prop-opcion:hover, .prop-opcion.prop-encima { color: var(--color-tinta); }
+  .prop-opcion[aria-checked="true"], .prop-opcion[aria-current="page"] { background: var(--color-papel); color: var(--color-tinta); box-shadow: inset 0 0 0 1px var(--color-tinta); }
+  .prop-opcion:focus-visible, .prop-opcion.prop-foco { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+  .prop-opcion:disabled { opacity: 0.5; cursor: not-allowed; color: var(--color-taupe); }
+  .prop-modo-dedo { height: 44px; }
+
+  /* Con el dedo (tablet y celular de la tienda): las tres a 44 px. */
+  @media (pointer: coarse) {
+    .prop-raiz .prop-pestana { padding-top: 11px; padding-bottom: 11px; }
+    .prop-raiz .pildora-cayla { min-height: 44px; }
+    .prop-raiz .prop-modo { height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .prop-pestana, .prop-opcion { transition: none; } }
+
+  /* Los trozos de pantalla. */
+  .prop-pagina { box-sizing: border-box; max-width: 100%; padding: 20px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-crema); }
+  .prop-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+  .prop-titulo24 { margin: 4px 0 0; font-size: 24px; line-height: 1.2; color: var(--color-tinta); }
+  .prop-h2 { margin: 0; font-size: 30px; line-height: 1; color: var(--color-tinta); }
+  .prop-bajada { margin: 4px 0 0; max-width: 34rem; font-size: 14px; line-height: 1.5; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); }
+  .prop-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .prop-separa { margin-top: 24px; }
+  .prop-separa-chico { margin-top: 16px; }
+  .prop-tarjeta { box-sizing: border-box; padding: 16px 20px; }
+  .prop-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
+  .prop-caja { display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: 36px; padding: 0 12px; font-size: 14px; }
+  .prop-combo { justify-content: space-between; min-width: 184px; font-size: 13.5px; color: var(--color-tinta); }
+  .prop-combo .prop-icono { color: var(--color-taupe); }
+  .prop-tabla-caja { margin-top: 16px; overflow-x: auto; }
+  .prop-tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .prop-tabla th { padding: 10px 12px; font-size: 11px; text-align: left; color: var(--color-taupe); }
+  .prop-tabla td { padding: 10px 12px; border-top: 1px solid var(--color-sand); color: var(--color-tinta); white-space: nowrap; }
+  .prop-tabla .prop-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .prop-hueco { margin-top: 16px; padding: 14px 16px; border-radius: 8px; background: var(--color-hueso); font-size: 13px; line-height: 1.5; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .prop-celulares { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 343px), 1fr)); gap: 16px; }
+  .prop-celular { box-sizing: border-box; width: 100%; max-width: 375px; padding: 20px 16px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-crema); }
+  .prop-celular .prop-pestana { padding-left: 10px; padding-right: 10px; }
+  .prop-rotulo-caso { display: block; margin-bottom: 8px; font-size: 11px; color: var(--color-taupe); }
+</style>
+
+<div class="prop-raiz">
+
+  <!-- ============================================================ 0 · LA REGLA -->
+  <div class="prop-bloque">
+    <span class="prop-etq">La regla, en la pregunta que se hace la colaboradora: «¿qué cambia si toco esto?». Cada respuesta tiene UNA forma, y lo elegido va siempre en tinta. El rojo no marca ninguna: queda para lo que pide actuar.</span>
+    <div class="prop-leyenda">
+      <div class="card-cayla prop-clave">
+        <p class="prop-clave-p">¿Me lleva a otra parte de esta pantalla?</p>
+        <div role="tablist" aria-label="Qué ver" class="prop-pestanas">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Compras">Compras</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Resueltas">Resueltas</span></button>
+        </div>
+        <p class="prop-clave-r"><b>Pestaña.</b> El subrayado marca dónde estás. Cambia lo de abajo: otras columnas, otras acciones.</p>
+      </div>
+      <div class="card-cayla prop-clave">
+        <p class="prop-clave-p">¿Deja menos filas en la misma lista?</p>
+        <div role="group" aria-label="Zona de la tienda" class="prop-filtros">
+          <button type="button" class="pildora-cayla" aria-pressed="true">Todas</button>
+          <button type="button" class="pildora-cayla" aria-pressed="false">Piso</button>
+          <button type="button" class="pildora-cayla" aria-pressed="false">Almacén</button>
+        </div>
+        <p class="prop-clave-r"><b>Filtro.</b> La píldora rellena es lo que se muestra. Las demás filas siguen ahí, solo no se ven.</p>
+      </div>
+      <div class="card-cayla prop-clave">
+        <p class="prop-clave-p">¿Muestra lo mismo de otra forma u orden?</p>
+        <div role="radiogroup" aria-label="Cómo listar" class="prop-modo">
+          <button type="button" role="radio" aria-checked="true" class="prop-opcion">Por prenda</button>
+          <button type="button" role="radio" aria-checked="false" class="prop-opcion">Por talla</button>
+        </div>
+        <p class="prop-clave-r"><b>Modo.</b> La opción con contorno es cómo lo estás viendo. No se pierde ninguna fila.</p>
+      </div>
+      <div class="card-cayla prop-clave">
+        <p class="prop-clave-p">¿Se guarda al elegir?</p>
+        <p class="prop-clave-r"><b>No es de esta familia.</b> Es una opción de un formulario («Cómo paga el abono», «Tipo de documento») y va con los campos.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 1 · PESTAÑA DE VISTA -->
+  <div class="prop-bloque">
+    <div class="font-display prop-pieza">1 · Pestañas de vista</div>
+    <span class="prop-etq">Cambian qué sección se ve. Es la pestaña de Finanzas (ADR-0195) tal cual, con el foco y el ancho corregidos: 42 px, 13,5 px como un botón y el subrayado en tinta, que viaja de una pestaña a otra.</span>
+    <div class="prop-fila">
+      <div class="prop-estado">
+        <div role="tablist" aria-label="Modo del análisis" class="prop-pestanas">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Desempeño">Desempeño</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Comparar períodos">Comparar períodos</span></button>
+        </div>
+        <small>Normal: la elegida en tinta y subrayada; la otra en taupe (5,2:1 sobre crema).</small>
+      </div>
+      <div class="prop-estado">
+        <div role="tablist" aria-label="Modo del análisis" class="prop-pestanas">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Desempeño">Desempeño</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana prop-encima"><span class="prop-texto" data-texto="Comparar períodos">Comparar períodos</span></button>
+        </div>
+        <small>El mouse encima: pasa a tinta, nunca a rojo.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="tablist" aria-label="Modo del análisis" class="prop-pestanas">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Desempeño">Desempeño</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana prop-foco"><span class="prop-texto" data-texto="Comparar períodos">Comparar períodos</span></button>
+        </div>
+        <small>Con el teclado: el anillo de siempre, hacia adentro, porque la fila se desliza y lo recortaba (ADR-0351). Las flechas ← → pasan de una a otra.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="tablist" aria-label="Qué ver" class="prop-pestanas">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Compras">Compras</span><span class="prop-cuenta">4</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Por aprobar">Por aprobar</span><span class="prop-cuenta">0</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Resueltas">Resueltas</span><span class="prop-cuenta">1</span></button>
+        </div>
+        <small>Con conteo, y en 0: el 0 se ve, la pestaña se abre y dice que no hay nada. No cambia de ancho cuando llega el primero.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="tablist" aria-label="Qué ver" class="prop-pestanas">
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Compras">Compras</span><span class="prop-cuenta">4</span></button>
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Por aprobar">Por aprobar</span><span class="prop-cuenta prop-cuenta-pide">2<span class="sr-only"> esperan revisión</span></span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Resueltas">Resueltas</span><span class="prop-cuenta">1</span></button>
+        </div>
+        <small>Un conteo que pide algo va en ámbar, y el lector de pantalla dice «esperan revisión». Cambió la elegida y las demás no se corrieron.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="tablist" aria-label="Qué ver" class="prop-pestanas prop-pestanas-dedo">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Compras">Compras</span><span class="prop-cuenta">4</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Resueltas">Resueltas</span><span class="prop-cuenta">1</span></button>
+        </div>
+        <small>Con el dedo, 44 px. No hay pestaña «deshabilitada»: si la cuenta no ve esa vista, la pestaña no está.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 2 · FILTRO Y PERÍODO -->
+  <div class="prop-bloque">
+    <div class="font-display prop-pieza">2 · Filtro de un valor y período</div>
+    <span class="prop-etq">Achican la misma lista a un valor. Es pildora-cayla sin cambiar su forma (ADR-0232 D3). La pieza fija el conteo, el foco y el rótulo, que hoy cada pantalla escribe a su manera.</span>
+    <div class="prop-fila">
+      <div class="prop-estado">
+        <div class="prop-grupo">
+          <span class="label-cayla prop-rotulo" aria-hidden="true">Zona</span>
+          <div role="group" aria-label="Zona de la tienda" class="prop-filtros">
+            <button type="button" class="pildora-cayla" aria-pressed="true">Todas</button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Piso</button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Almacén</button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Cuarentena</button>
+          </div>
+        </div>
+        <small>Con su rótulo: «Piso · Almacén» solos no dicen qué se elige.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="group" aria-label="Período" class="prop-filtros">
+          <button type="button" class="pildora-cayla" aria-pressed="true">Hoy</button>
+          <button type="button" class="pildora-cayla prop-encima" aria-pressed="false">7 días</button>
+          <button type="button" class="pildora-cayla prop-foco" aria-pressed="false">30 días</button>
+          <button type="button" class="pildora-cayla" aria-pressed="false">Todo</button>
+        </div>
+        <small>Período: la misma píldora. «7 días» con el mouse encima y «30 días» con el foco, hacia afuera.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="group" aria-label="Filtrar las compras" class="prop-filtros">
+          <button type="button" class="pildora-cayla" aria-pressed="true">Todas <span class="prop-n">4</span></button>
+          <button type="button" class="pildora-cayla" aria-pressed="false">Con devolución <span class="prop-n">1</span></button>
+          <button type="button" class="pildora-cayla" aria-pressed="false">Sin comprobante <span class="prop-n">0</span></button>
+        </div>
+        <small>Con conteo: el mismo color del texto, en peso 500. En 0 se toca igual y la lista dice qué no hay.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="group" aria-label="Tipo de movimiento" class="prop-filtros">
+          <button type="button" class="pildora-cayla" aria-pressed="true">Todos <span class="prop-n">12</span></button>
+          <button type="button" class="pildora-cayla" aria-pressed="false" disabled>Traslados <span class="prop-n">0</span></button>
+        </div>
+        <small>Deshabilitada al 50 %, como un botón: solo donde la pantalla ya lo decidió (Movimientos, ADR-0241). La pieza no lo decide.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="group" aria-label="Período" class="prop-filtros prop-desliza">
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="false">Hoy</button>
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="true">7 días</button>
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="false">30 días</button>
+        </div>
+        <small>Con el dedo, 44 px. La fila que se desliza deja 4 px para el anillo.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ 3 · MODO DE VISTA -->
+  <div class="prop-bloque">
+    <div class="font-display prop-pieza">3 · Modo de vista y ordenar</div>
+    <span class="prop-etq">Muestran los mismos datos de otra forma o en otro orden. Es un segmento con piel de caja: 36 px, como el buscador y el combo. La elegida va con contorno, no rellena, para que no compita con el botón principal ni con la píldora elegida.</span>
+    <div class="prop-fila">
+      <div class="prop-estado">
+        <div role="radiogroup" aria-label="Cómo listar" class="prop-modo">
+          <button type="button" role="radio" aria-checked="true" class="prop-opcion">Por prenda</button>
+          <button type="button" role="radio" aria-checked="false" class="prop-opcion">Por talla</button>
+        </div>
+        <small>Normal: la elegida en papel con contorno de tinta (13,4:1 contra la pista).</small>
+      </div>
+      <div class="prop-estado">
+        <div role="radiogroup" aria-label="Cómo listar" class="prop-modo">
+          <button type="button" role="radio" aria-checked="true" class="prop-opcion">Por prenda</button>
+          <button type="button" role="radio" aria-checked="false" class="prop-opcion prop-encima">Por talla</button>
+        </div>
+        <small>El mouse encima: la otra pasa a tinta.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="radiogroup" aria-label="Cómo listar" class="prop-modo">
+          <button type="button" role="radio" aria-checked="true" class="prop-opcion prop-foco">Por prenda</button>
+          <button type="button" role="radio" aria-checked="false" class="prop-opcion">Por talla</button>
+        </div>
+        <small>Con el teclado: el anillo afuera, a 2 px del contorno, para no confundirse con «elegida».</small>
+      </div>
+      <div class="prop-estado">
+        <div role="group" aria-label="Cómo ver el catálogo" class="prop-modo">
+          <a href="#" aria-current="page" class="prop-opcion"><svg class="prop-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>Grilla</a>
+          <a href="#" class="prop-opcion"><svg class="prop-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/></svg>Tabla</a>
+        </div>
+        <small>Catálogo ▸ Productos: con icono delante, que se reconoce antes de leer, y siempre con su palabra.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="radiogroup" aria-label="Ordenar facturas" class="prop-modo">
+          <button type="button" role="radio" aria-checked="true" class="prop-opcion">Emisión</button>
+          <button type="button" role="radio" aria-checked="false" class="prop-opcion" disabled>Vencimiento</button>
+        </div>
+        <small>Deshabilitada, si alguna vez una opción no aplica: al 50 %, como btn-cayla.</small>
+      </div>
+      <div class="prop-estado">
+        <div role="radiogroup" aria-label="Cómo listar" class="prop-modo prop-modo-dedo">
+          <button type="button" role="radio" aria-checked="true" class="prop-opcion">Por prenda</button>
+          <button type="button" role="radio" aria-checked="false" class="prop-opcion">Por talla</button>
+        </div>
+        <small>Con el dedo, 44 px.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ CONTEXTO 1 · Análisis: las tres juntas -->
+  <div class="prop-bloque">
+    <span class="prop-etq">Inventario ▸ Análisis: las tres piezas en una pantalla, que es donde hoy más se confunden. Arriba, qué parte miras (pestaña). En la tarjeta, el período y los grupos (píldoras). A la derecha, «Por prenda / Por talla» (segmento) y el orden, que tiene 5 opciones y por eso va en combo (ADR-0209); los dos miden 36 px.</span>
+    <div class="prop-pagina">
+      <div role="tablist" aria-label="Modo del análisis" class="prop-pestanas">
+        <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Desempeño">Desempeño</span></button>
+        <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Comparar períodos">Comparar períodos</span></button>
+      </div>
+      <section class="card-cayla prop-tarjeta prop-separa">
+        <div class="prop-grupo">
+          <span class="label-cayla prop-rotulo" aria-hidden="true">Período analizado</span>
+          <div role="group" aria-label="Período analizado" class="prop-filtros">
+            <button type="button" class="pildora-cayla" aria-pressed="false">7 días</button>
+            <button type="button" class="pildora-cayla" aria-pressed="true">30 días</button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">90 días</button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Este mes</button>
+            <button type="button" class="pildora-cayla" aria-pressed="false"><svg class="prop-icono-chico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>Personalizado</button>
+          </div>
+        </div>
+      </section>
+      <section class="card-cayla prop-tarjeta prop-separa-chico">
+        <div class="prop-barra">
+          <div role="group" aria-label="Qué prendas ver" class="prop-filtros">
+            <button type="button" class="pildora-cayla" aria-pressed="true">Todas <span class="prop-n">48</span></button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Se agotaron <span class="prop-n">3</span></button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Duermen <span class="prop-n">7</span></button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Estancadas <span class="prop-n">5</span></button>
+            <button type="button" class="pildora-cayla" aria-pressed="false">Más venden <span class="prop-n">6</span></button>
+          </div>
+          <div class="prop-acciones">
+            <div role="radiogroup" aria-label="Cómo listar" class="prop-modo">
+              <button type="button" role="radio" aria-checked="true" class="prop-opcion">Por prenda</button>
+              <button type="button" role="radio" aria-checked="false" class="prop-opcion">Por talla</button>
+            </div>
+            <div class="caja-cayla prop-caja prop-combo" role="button" aria-haspopup="listbox" aria-label="Ordenar prendas"><span>Piden algo primero</span><svg class="prop-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
+          </div>
+        </div>
+        <div class="prop-hueco">(Aquí va la tabla de prendas de los últimos 30 días. «Duermen» deja solo esas; «Por talla» muestra las mismas prendas con una fila por talla.)</div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============================================================ CONTEXTO 2 · Compras -->
+  <div class="prop-bloque">
+    <span class="prop-etq">Compras ▸ Facturas de proveedor. Los estados de UNA lista son un filtro: pasan de la pestaña en MAYÚSCULAS (D, maqueta de ADR-0111) a la píldora, y el orden pasa al segmento. La píldora tiene borde y no tiene punto; el Chip tiene punto y no tiene borde: se leen distinto. Los rojos de la pantalla quedan en uno, el Chip «Vencida».</span>
+    <div class="prop-pagina">
+      <div class="prop-cab">
+        <div>
+          <p class="label-cayla prop-rotulo">Compras</p>
+          <div class="font-display prop-titulo24">Facturas de proveedor</div>
+          <p class="prop-bajada">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
+        </div>
+        <div class="prop-acciones">
+          <a href="#" class="btn-cayla btn-secundario">Exportar mes</a>
+          <a href="#" class="btn-cayla btn-primario">+ Registrar factura</a>
+        </div>
+      </div>
+      <section class="card-cayla prop-tarjeta prop-separa">
+        <div class="prop-barra">
+          <div class="prop-grupo">
+            <span class="label-cayla prop-rotulo" aria-hidden="true">Estado</span>
+            <nav aria-label="Estado de las facturas" class="prop-filtros">
+              <a href="#" aria-current="page" class="pildora-cayla">Todos <span class="prop-n">4</span></a>
+              <a href="#" class="pildora-cayla">Por pagar <span class="prop-n">2</span></a>
+              <a href="#" class="pildora-cayla">Por recibir <span class="prop-n">2</span></a>
+              <a href="#" class="pildora-cayla">Vencidos <span class="prop-n">1</span></a>
+              <a href="#" class="pildora-cayla">Pagados <span class="prop-n">2</span></a>
+            </nav>
+          </div>
+          <div class="prop-acciones">
+            <span class="label-cayla prop-rotulo" aria-hidden="true">Ordenar</span>
+            <nav aria-label="Ordenar facturas" class="prop-modo">
+              <a href="#" aria-current="page" class="prop-opcion">Emisión</a>
+              <a href="#" class="prop-opcion">Vencimiento</a>
+            </nav>
+          </div>
+        </div>
+        <div class="prop-tabla-caja">
+          <table class="prop-tabla">
+            <thead><tr class="encabezado-tabla-cayla"><th class="label-cayla">Proveedor</th><th class="label-cayla">Factura</th><th class="label-cayla">Vence</th><th class="label-cayla prop-num">Total</th><th class="label-cayla">Estado</th></tr></thead>
+            <tbody>
+              <tr class="fila-cayla"><td>Hilados del Norte</td><td>F001-4521</td><td>12 oct</td><td class="prop-num">S/ 1,240.00</td><td><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-[''] whitespace-nowrap rounded-full bg-ambar/15 text-ambar">Pago parcial</span></td></tr>
+              <tr class="fila-cayla"><td>Botones Lima</td><td>F002-0087</td><td>28 sep</td><td class="prop-num">S/ 380.00</td><td><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-[''] whitespace-nowrap rounded-full bg-rojo/10 text-rojo-profundo">Vencida</span></td></tr>
+              <tr class="fila-cayla"><td>Textil Andina</td><td>F001-1190</td><td>3 nov</td><td class="prop-num">S/ 2,150.00</td><td><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs leading-5 before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current before:content-[''] whitespace-nowrap rounded-full bg-verde/15 text-verde">Recibida</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============================================================ CONTEXTO 3 · Mostrador a 375 px -->
+  <div class="prop-bloque">
+    <span class="prop-etq">Mostrador a 375 px, con el dedo (PL-105). Hoy Devoluciones (cambia la pantalla) y Cambios (achica la lista) usan la misma pista y se ven iguales (K): hay que tocar para saber qué hace. Con la propuesta, Devoluciones lleva pestañas y, debajo, su filtro en píldora (ya era así, ADR-0232 D3); Cambios lleva solo el filtro.</span>
+    <div class="prop-celulares">
+      <div class="prop-celular">
+        <div class="font-display prop-h2">Devoluciones</div>
+        <p class="prop-bajada">Compras de los últimos 15 días en Tienda Lima: el plazo para cambiar o devolver.</p>
+        <div role="tablist" aria-label="Qué ver" class="prop-pestanas prop-pestanas-dedo prop-separa-chico">
+          <button type="button" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Compras">Compras</span><span class="prop-cuenta">4</span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Por aprobar">Por aprobar</span><span class="prop-cuenta prop-cuenta-pide">2<span class="sr-only"> esperan revisión</span></span></button>
+          <button type="button" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Resueltas">Resueltas</span><span class="prop-cuenta">1</span></button>
+        </div>
+        <div role="group" aria-label="Filtrar las compras" class="prop-filtros prop-desliza prop-separa-chico">
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="true">Todas <span class="prop-n">4</span></button>
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="false">Con devolución <span class="prop-n">1</span></button>
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="false">Sin comprobante <span class="prop-n">1</span></button>
+        </div>
+      </div>
+      <div class="prop-celular">
+        <div class="font-display prop-h2">Cambios</div>
+        <p class="prop-bajada">Las compras de la sede que todavía se pueden cambiar.</p>
+        <div role="group" aria-label="Filtrar la actividad" class="prop-filtros prop-desliza prop-separa-chico">
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="true">Todas <span class="prop-n">4</span></button>
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="false">Con cambio <span class="prop-n">1</span></button>
+          <button type="button" class="pildora-cayla prop-dedo" aria-pressed="false">Sin comprobante <span class="prop-n">1</span></button>
+        </div>
+        <div class="prop-hueco">(Aquí van las compras de la sede. La píldora solo deja menos tarjetas: la pantalla sigue siendo la misma.)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ CONTEXTO 4 · Lo decidido se queda -->
+  <div class="prop-bloque">
+    <span class="prop-etq">Lo decidido se queda. Finanzas ▸ Dinero: arriba la pestaña de hoy (las clases reales .fin-pestanas, ADR-0195), abajo la pieza propuesta. Es la misma; solo reserva el ancho de la letra en 500 (1 a 2 px por pestaña), para que elegir una no corra a las demás. Vender ▸ Comprobantes: el vidrio (F, ADR-0124) no se toca, y el «Hoy / Este mes» de debajo (N) pasa a la píldora: ya no se lee como un segundo juego de pestañas.</span>
+    <div class="prop-pagina">
+      <span class="prop-rotulo-caso">Finanzas hoy · .fin-pestanas</span>
+      <div role="tablist" aria-label="Secciones de Dinero" class="fin-pestanas">
+        <a href="#" role="tab" aria-selected="true" class="fin-pestana">Cuentas</a>
+        <a href="#" role="tab" aria-selected="false" class="fin-pestana">Efectivo por tienda</a>
+        <a href="#" role="tab" aria-selected="false" class="fin-pestana">Por pagar<span class="fin-cuenta-tab">1</span></a>
+        <a href="#" role="tab" aria-selected="false" class="fin-pestana">Conciliación</a>
+      </div>
+      <span class="prop-rotulo-caso prop-separa-chico">La pieza propuesta</span>
+      <div role="tablist" aria-label="Secciones de Dinero" class="prop-pestanas">
+        <a href="#" role="tab" aria-selected="true" class="prop-pestana"><span class="prop-texto" data-texto="Cuentas">Cuentas</span></a>
+        <a href="#" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Efectivo por tienda">Efectivo por tienda</span></a>
+        <a href="#" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Por pagar">Por pagar</span><span class="prop-cuenta">1</span></a>
+        <a href="#" role="tab" aria-selected="false" class="prop-pestana"><span class="prop-texto" data-texto="Conciliación">Conciliación</span></a>
+      </div>
+
+      <span class="prop-rotulo-caso prop-separa">Vender ▸ Comprobantes ▸ Emitidos · el vidrio se queda y el período pasa a la píldora</span>
+      <nav aria-label="Vistas de Comprobantes" class="vidrio-cayla pestanas-vidrio">
+        <span aria-hidden="true" class="pestanas-vidrio__pildora"></span>
+        <a href="#" aria-current="page" class="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-[15px] py-2 text-[14px] leading-5 font-semibold text-crema">Hoy</a>
+        <a href="#" class="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-[15px] py-2 text-[14px] leading-5 font-normal text-tinta">Series</a>
+        <a href="#" class="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-[15px] py-2 text-[14px] leading-5 font-normal text-tinta">Por enviar<span class="rounded-full px-1.5 py-[3px] text-[10.5px] font-semibold leading-none tabular-nums bg-ambar/15 text-ambar-profundo">3<span class="sr-only"> por enviar</span></span></a>
+        <a href="#" class="relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-[15px] py-2 text-[14px] leading-5 font-normal text-tinta">Proformas</a>
+      </nav>
+      <div class="prop-grupo prop-separa-chico">
+        <span class="label-cayla prop-rotulo" aria-hidden="true">Período</span>
+        <nav aria-label="Período" class="prop-filtros">
+          <a href="#" class="pildora-cayla">Hoy</a>
+          <a href="#" aria-current="page" class="pildora-cayla">Este mes</a>
+        </nav>
+      </div>
+      <p class="nota-cayla prop-separa-chico">La pieza no arregla el choque de textos: la pestaña dice «Hoy» y, justo debajo, el período dice «Este mes». Cuál de los dos textos cambia lo decide Felipe.</p>
+    </div>
+  </div>
+
+  <p class="nota-cayla"><b>Cómo se lee, en todo el ERP:</b> lo elegido va en tinta. Si está <b>subrayado</b>, cambiaste de sección. Si está <b>relleno</b>, la lista muestra solo eso. Si tiene <b>contorno</b>, ves lo mismo de otra forma. Lo que se guarda al elegir va con los campos. El rojo no marca ninguna de las tres: queda para lo que pide actuar.</p>
+
+</div>

@@ -8,7 +8,8 @@
  *   pnpm --filter web unificar:deuda pestanas     solo una, con cada línea
  *
  * Una firma es una expresión regular que reconoce, en una LÍNEA de código, la variante dibujada a mano (por ejemplo, un
- * `role="tablist"` fuera de la pieza elegida). La pieza elegida misma no cuenta. Una línea legítima se exime con
+ * `role="tablist"` fuera de la pieza elegida). No cuentan la pieza elegida, las que la acompañan (`tambien`) ni los archivos que
+ * un ADR deja como están (`excepciones`, cada uno con su motivo). Una línea legítima suelta se exime con
  * `// unificar-fijo: <por qué>` (10 caracteres de motivo) en esa misma línea.
  */
 
@@ -35,10 +36,12 @@ export function deudaDe(id) {
   const d = DECISIONES[id];
   if (!d) return [];
   const firmas = d.firmas.map((f) => new RegExp(f));
+  // La pieza elegida, las que la acompañan y lo que un ADR deja como está no son deuda.
+  const fuera = new Set([d.pieza, ...(d.tambien ?? []), ...(d.excepciones ?? []).map((e) => e.archivo)]);
   const sal = [];
   for (const ruta of CARPETAS.flatMap((c) => recorrer(join(WEB, c)))) {
     const rel = relative(WEB, ruta);
-    if (rel === d.pieza) continue;
+    if (fuera.has(rel)) continue;
     const lineas = readFileSync(ruta, "utf8").split("\n");
     const donde = lineas.map((l, i) => (firmas.some((f) => f.test(l)) && !MARCA_FIJA.test(l) ? i + 1 : 0)).filter(Boolean);
     if (donde.length) sal.push({ archivo: rel, lineas: donde });
@@ -56,6 +59,11 @@ export function problemasDe(id) {
   if (!Array.isArray(d.firmas) || !d.firmas.length) p.push("no tiene firmas: sin ellas la prueba no puede ver una variante nueva");
   if (!Array.isArray(d.deuda)) p.push("le falta la lista «deuda» (puede ser vacía)");
   if (d.pieza && !existsSync(join(WEB, d.pieza))) p.push(`la pieza ${d.pieza} no existe (es relativa a apps/web)`);
+  for (const t of d.tambien ?? []) if (!existsSync(join(WEB, t))) p.push(`la pieza ${t} (tambien) no existe (es relativa a apps/web)`);
+  for (const e of d.excepciones ?? []) {
+    if (!existsSync(join(WEB, e.archivo))) p.push(`la excepción ${e.archivo} no existe (es relativa a apps/web)`);
+    if (!e.motivo || e.motivo.length < 10) p.push(`la excepción ${e.archivo} no dice por qué (motivo de 10 caracteres o más, con su ADR)`);
+  }
   if (d.adr && !existsSync(join(REPO, d.adr))) p.push(`el ADR ${d.adr} no existe (es relativo a la raíz del repo)`);
   if (d.registro && !existsSync(join(REPO, d.registro))) p.push(`el registro ${d.registro} no existe (es relativo a la raíz del repo)`);
   for (const f of d.firmas ?? []) {

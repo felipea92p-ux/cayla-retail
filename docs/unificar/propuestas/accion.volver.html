@@ -1,71 +1,205 @@
-<!-- Propuesta de /unificar para la familia «accion.volver» (ADR-0354). Fragmento: la lámina lo envuelve con el CSS real del ERP,
-     en claro y en oscuro. Solo tokens y clases que ya existen (btn-cayla, btn-secundario, label-cayla, eyebrow-cayla).
+<!-- Propuesta de /unificar · familia «accion.volver» (ADR-0354) · FINAL de la ronda 1 (2026-10-06, juez).
+     Fragmento: la lámina lo envuelve con el CSS real del ERP, en claro y en oscuro. Solo tokens y clases que existen en el app.css
+     servido (btn-cayla, btn-secundario, btn-primario, label-cayla, nota-cayla, font-display, sr-only, inline-flex, items-center,
+     gap-1.5, text-[11px], text-tinta/65). Lo propio lleva el prefijo prop-.
+
+     La idea en una línea: la vuelta es UN botón secundario del sistema con la flecha delante y el destino escrito. Una sola cara en
+     todo el ERP; el lugar lo sigue poniendo cada cabecera.
+
+     Base: el ángulo «sistema» (ganó por coherencia: no agrega clases ni movimiento, hereda lo que cambie mañana en los botones, el
+     foco o el modo oscuro). Injertos de los otros dos, cada uno con su razón.
 
      Qué toma y de dónde:
-     · de la forma «botón» de <Volver> (btn-secundario + destino, la que ADR-0220 eligió para el pie de EncabezadoPagina): todo el cuerpo.
-       Es la forma de mayor tamaño cómodo con mouse (34 px) y ya la conocen Ventas e Inventario.
-     · de la forma «enlace» de <Volver>: el gesto de correrse a la izquierda al pasar el mouse (ya existía, 200 ms, sin rebote).
-     · nuevo: la flecha es el dibujo de lucide (arrow-left, 16 px, trazo 1.5) y no el glifo «←», que cambia de grosor según la letra;
-       el nombre accesible dice «Volver a <destino>».
-     Qué se va: la línea de 11 px en versalitas (mide 16 px de alto: bajo los 24 px mínimos de ADR-0350), el «Volver» a secas
-     (no dice adónde: quien llegó por un enlace no sabe qué había antes) y el botón de solo flecha (no dice nada). -->
+     · De la A (<Volver forma="boton">, btn-cayla btn-secundario, ADR-0220, 14 usos en 13 archivos): TODO el cuerpo. 34-35 px de alto,
+       radio 8, borde sand, letra 13,5 px en 500, texto tinta. Es la forma decidida y la más usada, y pasa los 32 px de objetivo con
+       mouse (ADR-0350). Encima, foco y deshabilitado son los de todo btn-secundario / btn-cayla: en producción no se escribe nada.
+     · De la regla de Volver.tsx: el texto es el destino tal como lo dice el menú («Existencias», «Facturas de proveedor»).
+     · De la cabecera del flujo de Cambios y Devoluciones (FlujoGuiado.tsx:78, y el mismo ArrowLeft en CambiosFlujo y DevolucionesFlujo):
+       la flecha dibujada de lucide, 16 px, trazo por defecto (2), en vez del glifo «←». Razón medida (dato del ángulo «continuidad»):
+       el subconjunto latin de DM Sans que sirve el ERP trae U+2191 y U+2193 pero NO U+2190, así que «←» lo dibuja la fuente del
+       aparato y cambia de grosor entre la Mac y la tablet. El trazo 2 es el del ArrowLeft que ya usan Cambios y Devoluciones.
+     · También del flujo: la pieza existe como <button type="button"> cuando la vuelta cierra un estado (EncabezadoFlujo, TemporadasLista).
+       Con href sigue siendo <a>, porque useSalidaSinGuardar.tsx:86 solo intercepta closest("a").
+     · Del ángulo «persona»: «Volver a » en .sr-only delante del destino. El nombre accesible es «Volver a Existencias» y contiene el
+       texto visible (WCAG 2.5.3); el lector no dice «flecha izquierda».
+     · Del ángulo «continuidad»: con el dedo (pointer: coarse) la zona que responde llega a 44 px con un ::after invisible, sin que el
+       botón crezca ni la cabecera cambie de alto. Precedente en el repo: ExistenciasTarjetas.tsx:224 (pointer-coarse:after:-inset-2).
+       Mejor que una prop `tactil`: nadie tiene que acordarse, y vale en la tablet de la tienda en TODAS las pantallas (ADR-0350).
+     · Del ángulo «continuidad»: el lugar no cambia. En EncabezadoPagina va en el pie (ADR-0220); en CabeceraPantalla y en los títulos
+       propios se queda donde está hoy, arriba del título. CLAUDE.md deja esa cabecera sin decidir fuera de Ventas, Inventario,
+       Catálogo ▸ Productos y Finanzas: ponerla «bajo la bajada» en todas es una pregunta aparte para Felipe, y la pieza no cambia.
+     · Del ángulo «continuidad»: el texto de la salida del flujo NO cambia («Volver a Cambios»; candado 4) y el pie del flujo no se toca
+       (comparte BotonSecundario con «Atrás», que es paso atrás). Acortarlo a «Cambios» lo decide Felipe.
+     · Del ángulo «persona», como PREGUNTA (es comportamiento con permisos): si la cuenta no ve la pantalla de arriba, la vuelta dice
+       «Inicio» en vez de desaparecer. Hoy Bajar al piso (bajar/page.tsx:35) y Por regularizar (:45) quedan sin salida para quien no
+       ve Existencias.
+     · Sin estado «cargando»: navegar lo cubre el loader único (ADR-0149) y la vuelta no guarda nada.
+
+     Qué se va:
+     · La línea `enlace` de 11 px en versalitas (12 archivos): mide 16,5 px de alto (bajo los 24 de ADR-0350), se pone roja al pasar el
+       mouse (ADR-0169 guarda el rojo) y en Registrar factura (compras/nueva/page.tsx:35-36) tiene la MISMA clase, tamaño y color que
+       el sobretítulo «Compras» de debajo: no se sabe cuál de las dos líneas se toca. OJO: es una forma decidida a propósito (Volver.tsx:19-23
+       y la bitácora del 2026-09-26, sin ADR). Retirarla es cambiar una decisión: la toma Felipe.
+     · El glifo «←» (pasa al dibujo de lucide).
+     · El corrimiento de 2 px al pasar el mouse (forma enlace y propuesta anterior): ningún otro btn-cayla se mueve y la flecha ya dice
+       la dirección (ley 8, quitar antes de agregar).
+     · El fantasma sin borde de 40 px en tinta/75 de EncabezadoFlujo (FlujoGuiado.tsx:72-80): es la única vuelta bajo un EncabezadoPagina
+       que no parece botón.
+     · La copia a mano de la línea en TemporadasLista.tsx:193-199 (pasa a la pieza en forma <button>).
+
+     Lo que NO es esta pieza y no se toca: el Observatorio («‹ Toda CAYLA» y su ×, ADR-0322); el club público (ADR-0288 act. i); las
+     tarjetas de barrera (sin acceso, 404, error, elegir sede: van con la familia «boton»); el paso atrás («Atrás», «← Ticket»,
+     «← Revisar»: familia propia); el «Volver» que desiste de una confirmación (accion.cancelar); «← Septiembre» (accion.anterior);
+     «Volver a como está» y sus gemelas (accion.limpiar); «Ver tarjetas» (pestañas). -->
 <style>
-  .prop-bloque { margin-bottom: 22px; }
-  .prop-etq { display: block; font-size: 11px; color: var(--color-taupe); margin-bottom: 8px; }
-  .prop-fila { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .prop-volver svg { flex: none; transition: transform 200ms var(--ease-cayla, ease-out); }
-  .prop-volver:hover svg, .prop-volver.prop-encima svg { transform: translateX(-2px); }
-  .prop-volver.prop-encima { border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent); background: color-mix(in oklab, var(--color-sand) 50%, transparent); }
-  .prop-volver.prop-foco { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
-  .prop-cabecera { border: 1px solid var(--color-sand); border-radius: 12px; padding: 18px 20px; background: var(--color-papel); }
-  .prop-sede { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-taupe); }
-  .prop-sede::after { content: ""; flex: 1; height: 1px; background: var(--color-taupe); opacity: .35; }
-  .prop-titulo { font-family: var(--font-eb-garamond), Georgia, serif; font-weight: 500; font-size: 46px; line-height: 1.05; margin: 8px 0 6px; color: var(--color-tinta); }
-  .prop-titulo-chico { font-family: var(--font-eb-garamond), Georgia, serif; font-weight: 500; font-size: 32px; line-height: 1.1; margin: 10px 0 4px; color: var(--color-tinta); }
-  .prop-frase { font-size: 15px; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); margin: 0 0 14px; }
+  .prop-raiz { font-family: var(--font-dm-sans); color: var(--color-tinta); }
+  .prop-bloque { margin-bottom: 28px; }
+  .prop-etq { display: block; max-width: 44rem; margin-bottom: 8px; font-size: 12px; line-height: 1.5; color: var(--color-taupe); }
+  .prop-fila { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 16px; }
+  .prop-estado { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 156px; }
+  .prop-estado > small { font-size: 11px; line-height: 1.4; color: var(--color-taupe); }
+  .prop-flecha { width: 16px; height: 16px; flex: none; }
+
+  /* La pieza. En producción: btn-cayla btn-secundario + `relative after:absolute after:-inset-px after:content-['']
+     pointer-coarse:after:-inset-y-1.5`. El ::after es la zona que responde: igual al botón con mouse, 44 px con el dedo. */
+  .prop-volver { position: relative; text-decoration: none; }
+  .prop-volver::after { content: ""; position: absolute; inset: -1px; border-radius: 8px; }
+  @media (pointer: coarse) { .prop-volver::after { inset: -6px -1px; } }
+  .prop-volver.prop-dedo::after { inset: -6px -1px; }
+  /* Solo en la lámina: dibuja la zona que responde. En el ERP no se ve. */
+  .prop-ver-zona { margin: 6px 0; }
+  .prop-ver-zona::after { outline: 1px dashed color-mix(in srgb, var(--color-taupe) 75%, transparent); }
+
+  /* Los estados que en el ERP pone el mouse o el teclado, dibujados con una clase para poder mirarlos. Mismos valores que el hover
+     de .btn-secundario y que el :focus-visible común (ADR-0351: tinta, 2 px, separado 2 px). En producción no se escribe nada de esto. */
+  .btn-secundario.prop-encima { border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent); background: color-mix(in oklab, var(--color-sand) 50%, transparent); }
+  .prop-foco { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+
+  /* Trozos de página: las cabeceras van directo sobre el crema, sin tarjeta. */
+  .prop-pagina { padding: 20px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-crema); }
+  .prop-sede { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-taupe-profundo); }
+  .prop-hilo { display: block; flex: none; width: 32px; height: 1px; background: var(--color-taupe); }
+  .prop-t46 { margin: 12px 0 0; font-size: 46px; line-height: 1; letter-spacing: -0.025em; color: var(--color-tinta); }
+  .prop-t24 { margin: 4px 0 0; font-size: 24px; line-height: 1.25; color: var(--color-tinta); }
+  .prop-frase { margin: 12px 0 0; max-width: 28rem; font-size: 15px; line-height: 1.45; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); }
+  .prop-bajada { margin: 4px 0 0; max-width: 36rem; font-size: 14px; line-height: 1.45; color: color-mix(in oklab, var(--color-tinta) 65%, transparent); }
+  .prop-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
+  .prop-arriba { margin-bottom: 16px; }
+  .prop-sin-margen { margin: 0; }
+  .prop-mt16 { margin-top: 16px; }
   .prop-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .prop-sub { display: block; margin-bottom: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe-profundo); }
+  .prop-pregunta { margin: 12px 0 0; font-size: 12px; line-height: 1.45; color: var(--color-taupe-profundo); }
+
+  /* La cabecera del flujo tal como está hoy (FlujoGuiado.tsx:72-80), para compararla. */
+  .prop-flujo-hoy { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 8px; border: 0; border-radius: 8px; background: none;
+    font: 500 14px/1 var(--font-dm-sans); color: color-mix(in oklab, var(--color-tinta) 75%, transparent); }
+  /* El celular del mostrador: 375 px con su margen de 16 px (PL-105). */
+  .prop-celular { box-sizing: border-box; width: 100%; max-width: 375px; padding: 20px 16px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-crema); }
+  .prop-t-cel { margin: 0; font-size: 36px; line-height: 1; color: var(--color-tinta); }
+  .prop-flujo-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
+  .prop-paso { margin: 0; font-size: 14px; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); }
+  .prop-paso b { font-weight: 600; color: var(--color-tinta); }
 </style>
 
-<div class="prop-bloque">
-  <span class="prop-etq">Estados: normal · el mouse encima · foco con el teclado (el anillo único de ADR-0351)</span>
-  <div class="prop-fila">
-    <a href="#" class="btn-cayla btn-secundario prop-volver" aria-label="Volver a Traslados">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-      Traslados
-    </a>
-    <a href="#" class="btn-cayla btn-secundario prop-volver prop-encima" aria-label="Volver a Traslados">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-      Traslados
-    </a>
-    <a href="#" class="btn-cayla btn-secundario prop-volver prop-foco" aria-label="Volver a Traslados">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-      Traslados
-    </a>
-  </div>
-</div>
+<div class="prop-raiz">
 
-<div class="prop-dos">
   <div class="prop-bloque">
-    <span class="prop-etq">En Inventario o Ventas: bajo la frase de la cabecera (como hoy, ADR-0220)</span>
-    <div class="prop-cabecera">
-      <div class="prop-sede">Tienda Lima · lunes 6 de octubre</div>
-      <h1 class="prop-titulo">Traslado TRU → LIM</h1>
-      <p class="prop-frase">12 prendas en camino desde Trujillo.</p>
-      <a href="#" class="btn-cayla btn-secundario prop-volver" aria-label="Volver a Traslados">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-        Traslados
-      </a>
+    <span class="prop-etq">La pieza y sus estados. Es un btn-cayla btn-secundario con la flecha dibujada y el destino: no agrega clases, colores ni movimiento.</span>
+    <div class="prop-fila">
+      <div class="prop-estado">
+        <a href="#" class="btn-cayla btn-secundario prop-volver"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Traslados</a>
+        <small>Normal · 34 px</small>
+      </div>
+      <div class="prop-estado">
+        <a href="#" class="btn-cayla btn-secundario prop-volver prop-encima"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Traslados</a>
+        <small>El mouse encima: el de todo secundario</small>
+      </div>
+      <div class="prop-estado">
+        <a href="#" class="btn-cayla btn-secundario prop-volver prop-foco"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Traslados</a>
+        <small>Con el teclado: el anillo único (ADR-0351)</small>
+      </div>
+      <div class="prop-estado">
+        <button type="button" class="btn-cayla btn-secundario prop-volver" disabled><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>Volver a Cambios</button>
+        <small>Deshabilitado: solo como botón, mientras el flujo guarda</small>
+      </div>
+      <div class="prop-estado">
+        <a href="#" class="btn-cayla btn-secundario prop-volver prop-dedo prop-ver-zona"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Traslados</a>
+        <small>Con el dedo: responde en 44 px (punteado), se ve igual</small>
+      </div>
+      <div class="prop-estado">
+        <a href="#" class="btn-cayla btn-secundario prop-volver"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Inicio</a>
+        <small>Pregunta: si la cuenta no ve Existencias, vuelve a Inicio en vez de no tener salida</small>
+      </div>
     </div>
   </div>
+
   <div class="prop-bloque">
-    <span class="prop-etq">En Finanzas o una pantalla interna: la misma pieza, arriba del título (hoy es una línea de 11 px)</span>
-    <div class="prop-cabecera">
-      <a href="#" class="btn-cayla btn-secundario prop-volver" aria-label="Volver a Facturas de proveedor">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-        Facturas de proveedor
-      </a>
-      <h1 class="prop-titulo-chico">Registrar factura</h1>
-      <p class="prop-frase">La factura de un proveedor, con su fecha de pago.</p>
+    <span class="prop-etq">Inventario ▸ Bajar prendas al piso (EncabezadoPagina). La vuelta en el pie, bajo la frase, como hoy (ADR-0220). Solo cambia la flecha.</span>
+    <div class="prop-pagina">
+      <p class="prop-sede"><span class="prop-hilo" aria-hidden="true"></span><span>Tienda Lima · lunes 6 de octubre · 10:21</span></p>
+      <h1 class="font-display prop-t46">Bajar prendas al piso</h1>
+      <p class="prop-frase">Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez.</p>
+      <div class="prop-pie">
+        <a href="#" class="btn-cayla btn-secundario prop-volver"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Existencias</a>
+      </div>
     </div>
   </div>
+
+  <div class="prop-bloque">
+    <span class="prop-etq">Compras ▸ Registrar factura de proveedor (título propio). La vuelta se queda en su lugar, arriba; lo que cambia es que ahora se ve que se toca. Moverla bajo la bajada, como en Inventario, es otra pregunta.</span>
+    <div class="prop-dos">
+      <div class="prop-pagina">
+        <span class="prop-sub">Hoy</span>
+        <a href="#" class="label-cayla inline-flex items-center gap-1.5 text-[11px] text-tinta/65 prop-arriba"><span aria-hidden="true">←</span> Facturas de proveedor</a>
+        <p class="label-cayla text-[11px] text-tinta/65 prop-sin-margen">Compras</p>
+        <h1 class="font-display prop-t24">Registrar factura de proveedor</h1>
+        <p class="prop-bajada">Lo que se compró queda aquí; la recepción y el pago se anotan contra ella.</p>
+        <p class="prop-pregunta">¿Cuál de las dos líneas de arriba se toca? Tienen la misma clase, tamaño y color. La que se toca mide 16,5 px.</p>
+      </div>
+      <div class="prop-pagina">
+        <span class="prop-sub">Propuesta</span>
+        <div class="prop-arriba">
+          <a href="#" class="btn-cayla btn-secundario prop-volver"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg><span class="sr-only">Volver a </span>Facturas de proveedor</a>
+        </div>
+        <p class="label-cayla text-[11px] text-tinta/65 prop-sin-margen">Compras</p>
+        <h1 class="font-display prop-t24">Registrar factura de proveedor</h1>
+        <p class="prop-bajada">Lo que se compró queda aquí; la recepción y el pago se anotan contra ella.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="prop-bloque">
+    <span class="prop-etq">Cambios a 375 px (PL-105). La salida del flujo cierra un estado, así que es la pieza en forma &lt;button&gt;. Mismo texto que hoy: acortarlo a «Cambios» lo decide Felipe.</span>
+    <div class="prop-dos">
+      <div class="prop-celular">
+        <span class="prop-sub">Hoy</span>
+        <div class="font-display prop-t-cel">Cambios</div>
+        <div class="prop-flujo-cab">
+          <button type="button" class="prop-flujo-hoy"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>Volver a Cambios</button>
+          <p class="prop-paso">Paso 2 de 4 · <b>Prenda</b></p>
+        </div>
+        <h2 class="font-display prop-t24 prop-mt16">¿Qué prenda cambia?</h2>
+      </div>
+      <div class="prop-celular">
+        <span class="prop-sub">Propuesta</span>
+        <div class="font-display prop-t-cel">Cambios</div>
+        <div class="prop-flujo-cab">
+          <button type="button" class="btn-cayla btn-secundario prop-volver prop-dedo"><svg class="prop-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>Volver a Cambios</button>
+          <p class="prop-paso">Paso 2 de 4 · <b>Prenda</b></p>
+        </div>
+        <h2 class="font-display prop-t24 prop-mt16">¿Qué prenda cambia?</h2>
+      </div>
+    </div>
+  </div>
+
+  <p class="nota-cayla">
+    <b>Costo: 3 archivos</b> (Volver.tsx, FlujoGuiado.tsx y TemporadasLista.tsx), y 13 más si se borra la prop <b>forma</b> en el mismo commit.
+    Los 25 sitios que ya usan la vuelta la heredan sin editarse: 12 pasan de la línea al botón y 13 solo cambian la flecha. Hay que volver a
+    capturarlos a 1440 × 900 (los márgenes de la línea se pensaron para 16 px de alto).
+    <b>Lo que no es esta pieza</b>, aunque se parezca: «Atrás» y «← Ticket» retroceden un paso sin perder lo hecho (familia propia); el «Volver»
+    de una confirmación desiste (va con Cancelar); «Volver al inicio» de una tarjeta de barrera sigue el peso de su tarjeta (va con los botones);
+    y «‹ Toda CAYLA» del Observatorio queda como está (ADR-0322).
+  </p>
+
 </div>
