@@ -177,7 +177,7 @@ SE ROMPE SI: Felipe quiere que pedir también pueda tomar del piso: es un cambio
 
 ## Actualización 2026-10-06: la guía impresa con QR (D-3 completa; rama `claude/traslados-guia-impresa`)
 
-Solo web, sin migración. Va encima de la billetera de pases (ADR-0355, PR #841): **se fusiona después de ese PR**.
+Solo web, sin migración. Va encima de la billetera de pases (ADR-0355, PR #841, ya en `main`).
 
 - **Dónde:** `/inventario/traslados/guia/<id>` (`app/(app)/inventario/traslados/guia/[id]/`), fuera del grupo `(billetera)`: es una hoja
   para imprimir, no un pase. La puerta es la de siempre (`traslados/layout.tsx`, `exigirModulo("traslados")`); no es un módulo nuevo

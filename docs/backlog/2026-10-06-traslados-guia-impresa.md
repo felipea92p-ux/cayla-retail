@@ -1,4 +1,4 @@
-## 🧾 Traslados: guía impresa con QR (2026-10-06) — solo web, sin migración; rama `claude/traslados-guia-impresa` (va después del PR #841)
+## 🧾 Traslados: guía impresa con QR (2026-10-06) — solo web, sin migración; rama `claude/traslados-guia-impresa` (sobre la billetera del PR #841, ya en `main`)
 
 - [x] Lógica pura `lib/traslados-guia-reglas.ts` (+16 pruebas): sin cantidades (prueba de invariancia), sin la nota, fechas fijas, anulada
       no se imprime, el QR con la dirección completa del pase. `llevaGuia` en `lib/traslados-pases-reglas.ts` (+ pruebas).
