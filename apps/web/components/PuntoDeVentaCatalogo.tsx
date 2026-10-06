@@ -405,7 +405,7 @@ export function PuntoDeVentaCatalogo({
               onClick={() => onSoloConStock(!soloConStock)}
               disabled={bloqueado}
               // `shrink-0`: con el contador largo de al lado, el interruptor se partía en dos líneas y la fila crecía.
-              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
+              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1"
             >
               <span
                 aria-hidden
@@ -435,7 +435,7 @@ export function PuntoDeVentaCatalogo({
           </div>
 
           {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-          <div className="scroll-cayla mt-2 flex gap-2 overflow-x-auto pb-3">
+          <div className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
             {categorias.map((c, i) => (
               <button
                 key={c}

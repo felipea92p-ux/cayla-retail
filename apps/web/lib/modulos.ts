@@ -15,7 +15,7 @@ export const CLAVES_MODULO = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
   "existencias", "conteos", "traslados", "movimientos", "frescura", "plan_piso",
   "productos", "atributos", "etiquetas",
-  "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
+  "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito", "plan_compra",
   "produccion",
   "analisis", "colaboradores", "roles",
   "configuracion",
@@ -85,6 +85,9 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
   { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas" },
+  // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
+  // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
+  { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
   { clave: "produccion", grupo: "Producción", nombre: "Órdenes de producción", incluye: "Crear, editar y cancelar órdenes; registrar avance" },
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación" },

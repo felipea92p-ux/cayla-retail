@@ -1,11 +1,11 @@
-# Plan del piso, primera entrega (ADR-0350) — rama `claude/category-mix-development-141175`
+# Plan del piso, primera entrega (ADR-0352) — rama `claude/category-mix-development-141175`
 
 Las 4 actividades aprobadas por Felipe el 2026-10-05, en orden. Cada una es un corte vertical con su commit.
 
 - [x] 1. Grupos del mix y su rol: `grupos_mix` y `categoria_grupo_mix`, `fijar_grupos_de_categorias` (todo o nada, solo el líder), módulo `plan_piso` y pestaña «Grupos». SQL `20261006100000` **no está en producción**.
 - [x] 2. Propuesta frente al piso real, solo lectura: `lib/mix-piso.ts` (peso en prendas confirmadas, rango de Wilson, reparto por resto mayor) y pestaña «Propuesta». Sin SQL nuevo.
 - [x] 3. Foto semanal del riel por categoría: `espacio_piso`, `fn_registrar_espacio_piso`, cron `/api/inventario/espacio-piso`, pestaña «Historia». SQL `20261006110000` **no está en producción**.
-- [x] 4. Cierre: ADR-0350, mapa de rutas (`docs/ARQUITECTURA.md`), bitácora y este backlog.
+- [x] 4. Cierre: ADR-0352, mapa de rutas (`docs/ARQUITECTURA.md`), bitácora y este backlog.
 
 ## Para Felipe (acciones que no son código)
 - [ ] Pegar en producción `20261006100000` y después `20261006110000`, cada una sola, ANTES de publicar la web (verificación en el encabezado de cada una).

@@ -164,7 +164,7 @@ del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c;
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, pero también sin
-rebote y sin bucle, ADR-0136 act. 2026-10-05), y todo se apaga con
+rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -209,7 +209,44 @@ estados; ADR-0220 y su actualización de la tarde, Felipe 2026-09-26);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
-contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
+contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
+2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
+
+## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
+
+**El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
+(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
+«Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
+`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (fondo `#1a1a18`, texto `#f5f0e8`):
+`bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
+
+Lo que se exige a toda pantalla, modal o pieza nueva o editada:
+1. **Solo tokens: nunca un hex, un `rgb()`/`rgba()` (tampoco dentro de una clase de Tailwind, `shadow-[0_8px_rgba(…)]`), `bg-white` ni
+   `bg-gray-*`.** Lo hace cumplir `lib/tema-colores.test.ts` (definición única: `apps/web/tema/colores-sueltos.mjs`). Una línea legítima
+   se exime con `// tema-fijo: <motivo de 10 caracteres o más>`, y un archivo entero se declara permanente, con su motivo, en
+   `lib/tema-colores-archivos.ts`. Hoy la deuda es **0**: un archivo nuevo no puede nacer con un color suelto.
+2. **Un velo y una sombra de elevación son `--color-sombra`** (`bg-sombra/25 dark:bg-sombra/55`, `shadow-[…color-mix(in_srgb,var(--color-sombra)_35%,transparent)]`),
+   nunca `tinta`: en oscuro `tinta` es crema y el velo ACLARARÍA la pantalla. Una tarjeta de vidrio es `--color-vidrio`; un filo o un anillo
+   que debe invertirse es `tinta`.
+3. **Papel físico y color de dato no se oscurecen.** Lo que se imprime o se ve como saldrá impreso (boleta, ticket, etiqueta, QR, cartel
+   del club) lleva `.papel-fijo` (vuelve a declarar los tokens claros) o, si ya es blanco por sí mismo, `data-papel`. El color de una
+   PRENDA (la baldosa de `MosaicoPrenda`, la muestra de un tejido) es dato: no cambia, lleva `data-color-dato`, y el texto que se
+   escribe encima usa `--color-tinta-fija` / `--color-crema-fija` (idénticos en los dos temas), nunca `tinta`/`crema`. Una pantalla
+   de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
+4. **Un texto tenue (`text-tinta/35` a `/50`, `text-taupe/50` a `/70`) ya sube solo en oscuro** (una regla de `tema.css`, con `:where`
+   para no ganarle a `hover:`); no escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`,
+   `dark:opacity-85` en un conteo junto a un filtro). `dark:` sigue el atributo, no el sistema operativo.
+5. **Un token de color nuevo** va en el `@theme` de `globals.css`, en el bloque oscuro de `tema.css` y en `.papel-fijo` (si es de papel);
+   `lib/tema-tokens.test.ts` falla si no coinciden, mide el contraste de cada texto sobre cada superficie y exige que toda
+   `var(--color-…)` del código exista (Tailwind v4 solo emite un token que ve usado en CSS: el bloque de la paleta es `@theme static`).
+
+**Cómo se verifica (antes de dar una pantalla por terminada):** `pnpm --filter web tema:auditar -- --cuenta <cuentas> --ruta <rutas> --escenarios`
+(`apps/web/tema/`, su README explica todo): entra con cada cuenta de prueba, mide el contraste WCAG real de cada texto, detecta manchas
+claras y velos que aclaran, y separa **lo que falla solo en oscuro** (lo rompió el tema: urgente) de lo heredado del claro. **Solo
+corre contra localhost**, y hay que MIRAR las capturas: no ve todo (una 404 blanca, un visor de cámara sin cámara, un texto negro
+sobre blanco «pasa»). Cada modal, hoja o estado nuevo se agrega como escenario en `tema/escenarios/registro.mjs` (con su `abre`, para
+que un escenario no pase en verde sin haber abierto nada). Y donde la regla de celular lo exige (Vender, Cambios, Devoluciones), a 375 px.
+Los números exactos y el porqué de cada decisión: `docs/adr/0336-modo-oscuro-del-erp.md`.
 
 ## La prenda sin foto (regla — ADR-0333, Felipe 2026-10-04)
 
@@ -413,6 +450,27 @@ Al terminar un archivo de la deuda: bórralo de la lista y baja `PENDIENTES_HOY`
 `docs/adr/0290-sugerencias-que-siguen-lo-que-la-persona-eligio.md`. Para verlo funcionando, con datos reales y tocable:
 `docs/maquetas/sugerir-2026-09/index.html`.
 
+## Formidable: el iPhone llevado al ERP (regla — ADR-0350, Felipe 2026-10-05)
+
+**Una pantalla o un modal se entiende en 5 segundos sin que nadie lo explique: la colaboradora o la encargada saben qué es, qué pasa y qué les
+toca hacer.** Hoy se usa sobre todo desde un Mac mini o un computador con mouse y teclado: **escritorio primero**, tablet y 375 px se adaptan
+(Vender, Cambios y Devoluciones conservan el celular obligatorio, PL-105). Se califica con dos notas separadas de 0 a 10:
+- **9 leyes** (el orden es la prioridad si chocan): 1 sin manual · 2 una pregunta, una respuesta · 3 simplicidad profunda (la complejidad se
+  *traduce a un veredicto*, no se esconde ni se muestra cruda) · 4 lenguaje de tienda («tú», español neutro peruano; cero estadística ni jerga a la
+  vista) · 5 contenido primero (ver antes que leer) · 6 lo difícil a un toque en «¿Por qué?» (nunca solo con hover) · 7 perdonar antes que
+  preguntar (se confirma solo lo irreversible: dinero, stock, comprobantes, borrado) · 8 quitar antes de agregar · 9 de punta a punta (vacíos
+  que dicen qué falta, errores en tres líneas, cero tours, 375 px).
+- **Oficio visual**, que se mide en el navegador y no es gusto: alineación, espaciado en múltiplos de 4, jerarquía, contraste, foco, teclado; controles de
+  24 px mínimo (32 de objetivo) con mouse y 44 con dedo.
+
+**`/formidable` (skill) hace el recorrido:** mide → prueba ciega con un agente sin contexto (y 3 a 5 colaboradoras reales) → califica con evidencia
+**Medido / Observado / Opinión** → propone los **3** cambios de mayor impacto → **espera tu OK** → implementa → entrega antes/después al mismo ancho.
+Puede proponer cambiar reglas de negocio, pero **dinero y precios, stock y movimientos, permisos y roles —y comprobantes/SUNAT— esperan
+siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebote (ADR-0136) y el loader único (ADR-0149); orquesta `/focus`,
+`/sugerir` y `/multi-view-responsive` sin duplicarlas. **Es obligatoria con tablero, todavía sin prueba en el CI:** al terminar una pantalla o un
+modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
+`docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
@@ -522,7 +580,7 @@ Skills de este repo: `/focus` (recorre las pantallas y los modales en construcci
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
-resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores). `/multi-view-responsive` (revisa el responsive de escritorio de un módulo, una ruta o `todo`, solo en local: recorre pantallas, pestañas, modales y hojas a siete tamaños de 1024×768 a 1920×1080, mide el DOM y captura cada vista; reporta en el chat hallazgos numerados con severidad y archivo probable. Solo mide y reporta, no toca código, y no cubre celular). `/flujo-de-negocio` (corre un caso de negocio de `docs/flujos/` —venta, cambio y devolución, traslado, caja, inventario— contra el ERP **local** como una persona real, en dos pasadas: una **ciega**, de alguien sin formación técnica que reporta dónde se perdió y por qué, y otra informada que verifica la base; entrega veredicto de negocio, reporte de fricción y una guía interactiva para colaboradores nuevos. Solo local con datos inventados, y solo sobre el espejo de una **foto** de `origin/main` (ERP idéntico y base local con las migraciones de esa foto): `node scripts/flujo-de-negocio/espejo.mjs verificar` decide, no la skill. **Solo Felipe ordena actualizar la foto, con `/actualizar-flujo`** (usa `espejo.mjs actualizar`: muestra el plan, y con su ok respalda, aplica las migraciones pendientes y crea una rama nueva idéntica a `origin/main` con la skill copiada); entre órdenes, lo nuevo de `main` se informa sin bloquear y nadie aplica migraciones por su cuenta. Un caso hecho desde el navegador guarda de verdad en el Postgres local compartido, así que todo caso pasa por `scripts/flujo-de-negocio/estado.mjs` (foto antes, restaurar después, todo o nada; probado con `estado.prueba.mjs`). Los informes y capturas van a `.flujo-de-negocio/` (fuera de git: el repo es público); los arreglos que hace son de una sola pantalla y en commit aparte, y **no toca migraciones, RPC ni permisos**).
+resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**). `/construir` (construcción grande —pantalla, módulo, migración con RPC+UI— actividad por actividad: lista completa aprobada por Felipe antes de tocar código, cada actividad un corte vertical verificable con su propio commit y sin desviarse; lo que se ve de paso va a `spawn_task`, no al código. No es para un fix de un solo archivo). `/rigor` (cinco lentes matemáticas —conjuntos y álgebra relacional, complejidad, vectorización, estadística de contracción, resiliencia tipo-Result— para diseñar una tabla, una política RLS o una RPC, elegir una estructura de datos, rankear con poca muestra o tocar SUNAT/Lucode/apis.net.pe; una lente solo se nombra si cambió la decisión, y el fundamento va en el `DESCARTÉ`, no como comentario en el código). `/sugerir` (**obligatoria**, ver «Sugerencias coherentes»: hace que los ejemplos y textos de ayuda de una pantalla o modal —placeholders, «Ej. …», chips y listas sugeridas— digan algo coherente con lo que la persona ya eligió. `pnpm sugerir` encuentra los escritos a mano; la skill los adapta con lógica pura probada contra todos los valores del control, saltándose lo que ya existe y con un texto neutro de respaldo, y después prueba en el navegador cada botón y filtro que los mueve, también a 375 px. No cambia validaciones ni precarga valores). `/formidable` (**obligatoria**, ver «Formidable»: lleva una pantalla o un modal a «el iPhone llevado al ERP», que se entienda en 5 segundos sin manual. Califica con 9 leyes de comprensión y un eje de oficio visual medido en el navegador, la hace recorrer a un agente ciego, y propone los 3 cambios de mayor impacto; espera tu OK antes de tocar nada y deja el tablero en `docs/formidable/README.md`. Orquesta `/focus`, `/sugerir` y `/multi-view-responsive`; las reglas de dinero, stock, permisos y SUNAT son siempre tuyas). `/multi-view-responsive` (revisa el responsive de escritorio de un módulo, una ruta o `todo`, solo en local: recorre pantallas, pestañas, modales y hojas a siete tamaños de 1024×768 a 1920×1080, mide el DOM y captura cada vista; reporta en el chat hallazgos numerados con severidad y archivo probable. Solo mide y reporta, no toca código, y no cubre celular). `/flujo-de-negocio` (corre un caso de negocio de `docs/flujos/` —venta, cambio y devolución, traslado, caja, inventario— contra el ERP **local** como una persona real, en dos pasadas: una **ciega**, de alguien sin formación técnica que reporta dónde se perdió y por qué, y otra informada que verifica la base; entrega veredicto de negocio, reporte de fricción y una guía interactiva para colaboradores nuevos. Solo local con datos inventados, y solo sobre el espejo de una **foto** de `origin/main` (ERP idéntico y base local con las migraciones de esa foto): `node scripts/flujo-de-negocio/espejo.mjs verificar` decide, no la skill. **Solo Felipe ordena actualizar la foto, con `/actualizar-flujo`** (usa `espejo.mjs actualizar`: muestra el plan, y con su ok respalda, aplica las migraciones pendientes y crea una rama nueva idéntica a `origin/main` con la skill copiada); entre órdenes, lo nuevo de `main` se informa sin bloquear y nadie aplica migraciones por su cuenta. Un caso hecho desde el navegador guarda de verdad en el Postgres local compartido, así que todo caso pasa por `scripts/flujo-de-negocio/estado.mjs` (foto antes, restaurar después, todo o nada; probado con `estado.prueba.mjs`). Los informes y capturas van a `.flujo-de-negocio/` (fuera de git: el repo es público); los arreglos que hace son de una sola pantalla y en commit aparte, y **no toca migraciones, RPC ni permisos**).
 
 ## graphify
 

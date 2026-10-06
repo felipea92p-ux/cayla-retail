@@ -116,7 +116,7 @@ export function VistaPreviaCodigos({ filas }: { filas: { clave: string; antes: s
 }
 
 const CAMPO_MONTO =
-  "caja-cayla h-10 w-full min-w-0 px-3 text-sm tabular-nums text-tinta outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "caja-cayla h-10 w-full min-w-0 px-3 text-sm tabular-nums text-tinta [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 /** Precio y costo con que nacen las variantes nuevas (sin costo si la cuenta no ve el dinero). */
 export function MontosNuevas({

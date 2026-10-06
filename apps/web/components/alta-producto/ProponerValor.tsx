@@ -152,7 +152,7 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
           }}
           placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
           disabled={trabajando}
-          className="caja-cayla h-10 min-w-0 flex-1 px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+          className="caja-cayla h-10 min-w-0 flex-1 px-3 text-sm text-tinta placeholder:text-tinta/45"
         />
       </div>
       <div className="flex flex-wrap items-center gap-2.5">

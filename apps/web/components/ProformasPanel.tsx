@@ -275,7 +275,7 @@ export function ProformasPanel({
             <div className="mt-4 space-y-4">
               <div className="h-[62vh] overflow-auto rounded-[10px] border border-tinta/10 bg-sand/30 p-3" data-sin-cascada>
                 {/* `zoom` (no `scale`): achica también el espacio que ocupa, así la hoja entera cabe sin cortarse. */}
-                <div className="mx-auto w-fit bg-white p-[8mm] shadow-sm" style={{ zoom: 0.68 }}>
+                <div className="papel-fijo mx-auto w-fit bg-white p-[8mm] shadow-sm" style={{ zoom: 0.68 }}>
                   <ProformaA4 proforma={viendo} tienda={nombreTienda(viendo.ubicacion_id)} fotos={fotos} />
                 </div>
               </div>

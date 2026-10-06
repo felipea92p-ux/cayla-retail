@@ -356,6 +356,9 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
+      // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
+      // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
+      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "analisis", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
       { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.

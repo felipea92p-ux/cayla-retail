@@ -176,7 +176,7 @@ export function MatrizCantidades({
                   >
                     <span
                       aria-hidden
-                      className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_rgba(26,26,24,0.18)]"
+                      className="absolute inset-y-0 left-0 w-[5px] shadow-[inset_-1px_0_0_0_color-mix(in_srgb,var(--color-tinta)_18%,transparent)]"
                       style={{ background: franja }}
                     />
                     <span className="flex items-center gap-1.5">

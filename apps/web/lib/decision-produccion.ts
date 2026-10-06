@@ -6,6 +6,7 @@ import type { InsumoVista, ConsumoDeOrden } from "@/lib/insumos";
 import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { Tolerado } from "@/lib/resultado";
+import { getMotorDeLaRed, type MotorDeLaRed } from "@/lib/motor-demanda";
 
 // Nueva orden con decisión (ADR-0133, F5): lo que se calcula en el servidor para que el formulario aconseje ANTES de abrir la orden. Solo para el
 // líder (ventas y stock de toda la red, costos de insumos). Es información SECUNDARIA: si falla, «Nueva orden» sigue funcionando como siempre y avisa.
@@ -23,6 +24,9 @@ export type DecisionProduccion = {
   rendimientoPorModelo: Record<string, Rendimiento[]>;
   /** Saldo, lo que viene y el costo del lote que se usaría, por insumo. */
   insumos: SaldoInsumoDecision[];
+  /** Lo que dice el motor de demanda (ADR-0347), AL LADO de la curva de arriba, sin reemplazarla (Felipe, 2026-10-05). Solo hablan las
+   *  tiendas que cumplen ADR-0346. Si no se pudo leer, `null`: la curva de siempre sigue igual. */
+  motor: MotorDeLaRed | null;
 };
 
 export async function getDecisionProduccion(args: {
@@ -34,6 +38,11 @@ export async function getDecisionProduccion(args: {
 }): Promise<Tolerado<DecisionProduccion>> {
   try {
     const sedes = await getUbicaciones();
+    // El motor va aparte y tolera su propia falla: si se cae, la curva de siempre no se pierde.
+    const motor = getMotorDeLaRed().catch((e: unknown) => {
+      console.error("motor de demanda:", e);
+      return null;
+    });
     const conFilas = await Promise.all(sedes.map(async (u) => ({ tipo: u.tipo, filas: await getFilasRecientesDeSede(u.id) })));
     const variantesDeModelos = new Set(args.modelos.flatMap((m) => m.variantes.map((v) => v.varianteId)));
     const demanda = [...demandaDeLaRed(conFilas).values()].filter((d) => variantesDeModelos.has(d.varianteId));
@@ -56,6 +65,7 @@ export async function getDecisionProduccion(args: {
           const lote = loteMasAntiguoConSaldo(i.lotes) ?? i.lotes[i.lotes.length - 1] ?? null;
           return { insumoId: i.id, nombre: i.nombre, unidad: i.unidad, saldo: i.saldo, porLlegar: porLlegar.get(i.id) ?? 0, costoUnitario: lote?.costoUnitario ?? null };
         }),
+        motor: await motor,
       },
       fallo: null,
     };

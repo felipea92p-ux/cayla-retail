@@ -123,7 +123,7 @@ export function ComprasAgrupadas({
                 <article
                   key={compra.ventaId}
                   style={{ "--i": Math.min(d * 2 + c + 2, 12) } as CSSProperties}
-                  className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_rgba(80,50,20,0.55)]"
+                  className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
                 >
                   <header className="px-6 pb-1 pt-4">
                     <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
@@ -192,7 +192,7 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_rgba(26,26,24,0.7)]";
+  "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_color-mix(in_srgb,var(--color-sombra)_70%,transparent)]";
 
 /** Los filtros de la actividad: pastillas con cuántas compras hay en cada una. */
 export function FiltrosActividad<T extends string>({
@@ -213,7 +213,7 @@ export function FiltrosActividad<T extends string>({
           aria-pressed={valor === f.valor}
           onClick={() => onCambio(f.valor)}
           className={`h-9 rounded-full px-4 text-sm transition-colors duration-200 ${
-            valor === f.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_rgba(26,26,24,0.08)]" : "text-tinta/75 hover:text-tinta"
+            valor === f.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_color-mix(in_srgb,var(--color-sombra)_8%,transparent)]" : "text-tinta/75 hover:text-tinta"
           }`}
         >
           {f.texto} <span className="tabular-nums text-tinta/65">{f.cuantas}</span>

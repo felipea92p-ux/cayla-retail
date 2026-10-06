@@ -786,10 +786,11 @@ export function InventarioPanel({
                     setVerDetalle((d) => !d);
                     setPagina(1);
                   }}
-                  className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                  className={`btn-cayla btn-secundario min-h-[34px] gap-2 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema ${verDetalle ? "px-3" : "px-2.5"}`}
                 >
                   {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.5} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.5} />}
-                  {verDetalle ? "Ver tarjetas" : "Ver detalle"}
+                  {/* Con las tarjetas, solo el icono (la maqueta no tiene botón de texto): la tabla sigue a un toque. */}
+                  {verDetalle ? "Ver tarjetas" : <span className="sr-only">Ver detalle</span>}
                 </button>
                 {verDetalle && (
                   // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
@@ -957,11 +958,8 @@ export function InventarioPanel({
               setVerDetalle(true);
               setPagina(1);
             }}
-            // Tocar una talla abre el cajón de ESA talla: la tabla de detalle con la prenda abierta (como al escanear su código).
-            onAbrirTalla={(prenda, fila) => {
-              setVerDetalle(true);
-              abrirPrenda(prenda, fila.varianteId);
-            }}
+            // Tocar una talla abre el cajón de ESA talla sin salir de las tarjetas: el cajón no depende de la tabla.
+            onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
@@ -1101,7 +1099,7 @@ export function InventarioPanel({
                     abrirPrenda({ clave }, f.varianteId);
                   }
                 }}
-                className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors focus-visible:outline-none sm:items-center ${plantilla} ${
+                className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors sm:items-center ${plantilla} ${
                   filaAbierta ? "bg-hueso/80" : marcadaFila ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
                 }`}
               >
@@ -1466,7 +1464,7 @@ export function InventarioPanel({
             {/* Celular: la cuenta y la ✕ arriba, los botones debajo a todo el ancho. Escritorio: todo en una fila. */}
             <span className="flex-1 px-3 py-1.5 text-sm sm:flex-none">
               <b className="font-semibold tabular-nums">{prendasMarcadas}</b> {prendasMarcadas === 1 ? "prenda" : "prendas"}
-              <span className="text-crema/60"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
+              <span className="text-crema/60 dark:text-crema/75"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
             </span>
             {/* Más de las que caben en un enlace (tarea #7): se dice, en vez de hacer desaparecer los botones sin explicación. */}
             {filasMarcadas.length > MAX_VARIANTES_EN_URL && (

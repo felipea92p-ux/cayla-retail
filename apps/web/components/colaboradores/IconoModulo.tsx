@@ -1,5 +1,5 @@
 import {
-  Activity, BarChart3, Banknote, Bookmark, CalendarCheck, ClipboardCheck, Coins, FileMinus, FileText, Gauge, Globe, History, House, LayoutGrid,
+  Activity, BarChart3, Banknote, Bookmark, CalendarCheck, CalendarRange, ClipboardCheck, Coins, FileMinus, FileText, Gauge, Globe, History, House, LayoutGrid,
   KeyRound, Landmark, Leaf, LineChart, ListOrdered, MessageCircle, Package, PackageOpen, Percent, Receipt, Repeat, Scissors, Settings,
   Shirt, ShoppingCart, Store, Tag, Tags, Truck, Undo2, UserRound, Users, Wallet, type LucideIcon,
 } from "lucide-react";
@@ -33,6 +33,7 @@ const ICONOS: Record<ClaveModulo, LucideIcon> = {
   por_pagar: Wallet,
   proveedores: Store,
   notas_credito: FileMinus,
+  plan_compra: CalendarRange,
   produccion: Scissors,
   analisis: BarChart3,
   colaboradores: Users,

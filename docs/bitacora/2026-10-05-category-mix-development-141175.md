@@ -12,7 +12,7 @@ categoría y semana desde ya) y una cifra por reconciliar: la cobertura de TRU d
 ## 2026-10-05 (Plan del piso, primera entrega: grupos del mix, propuesta frente al piso real y foto semanal del espacio)
 Qué hice: construí en Inventario ▸ Plan del piso lo que decidimos tras la investigación, en solo lectura y en tres cortes verificados: **Grupos** (a qué grupo
 del mix va cada una de las 42 categorías; la propuesta queda «por revisar» y el líder la confirma o cambia con su firma), **Propuesta** (por sede, qué le tocaría a
-cada grupo en las prendas que caben, frente a lo que cuelga y a lo que vendió la sede) e **Historia** (la foto del espacio que el cron toma cada lunes). ADR-0350.
+cada grupo en las prendas que caben, frente a lo que cuelga y a lo que vendió la sede) e **Historia** (la foto del espacio que el cron toma cada lunes). ADR-0352.
 Por qué así: el peso de la venta propia se mide en prendas confirmadas y no en días, y cada porcentaje de venta lleva su rango, porque con tan pocas ventas un 0 % no
 dice «no se vende» sino «todavía no sabemos»; y la foto del espacio es lo único que permitirá medir cuánto rinde el lugar en ropa (nadie lo ha medido).
 Felipe se lleva: pegar las dos migraciones en producción (`20261006100000` y `20261006110000`, en ese orden y antes de publicar la web), darle el módulo «Plan del piso» a

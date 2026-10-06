@@ -1,4 +1,4 @@
-# ADR-0350 — Plan del piso, primera entrega: los grupos del mix, la propuesta frente al piso real y la foto del espacio
+# ADR-0352 — Plan del piso, primera entrega: los grupos del mix, la propuesta frente al piso real y la foto del espacio
 
 **Fecha:** 2026-10-05
 **Estado:** **Aceptado** (decisiones de Felipe del 2026-10-05: alcance solo lectura, tabla propia de grupos que asigna él, foto semanal del riel desde ya, entrada propia en Inventario con el tope del menú en 8). **Una decisión quedó a mi propuesta por defecto:** cómo pesar la venta propia (punto 2); Felipe preguntó «qué sugieres» y no la objetó.
