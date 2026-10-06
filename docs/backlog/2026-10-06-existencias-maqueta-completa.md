@@ -10,4 +10,4 @@
 - [ ] **Apartar dentro del panel con adelanto:** hoy abre Vender (ahí se cobra). Hacerlo en el panel duplicaría la caja y el comprobante.
 - [ ] **El anillo y el piso sin cuadrar de TRU:** mientras el piso esté en pausa, el anillo solo cuenta lo agotado que otra tienda tiene.
 - [ ] **Un pedido hecho no llena el anillo** hasta que llega: si se quiere contarlo, Existencias tiene que leer los pedidos abiertos de la talla.
-- [ ] **Descripción del producto en la Ficha** (la maqueta la muestra): Existencias no la lee hoy.
+- [x] **Descripción del producto:** la trajo #832 (Felipe, 2026-10-06) y va bajo el nombre del panel, no en la Ficha como la maqueta: manda la decisión de Felipe.
