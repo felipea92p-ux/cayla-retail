@@ -816,7 +816,14 @@ ESCENARIOS.push(
   {
     id: "analisis.ficha", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la ficha de una prenda",
     preparar: async (pagina) => {
-      await pagina.locator(".analisis .top-f, .analisis .l5, .analisis .c-fila").first().click({ timeout: 8000 });
+      const enHoy = pagina.locator(".analisis .top-f, .analisis .l5");
+      if ((await enHoy.count()) > 0) await enHoy.first().click({ timeout: 8000 });
+      else {
+        // Con pocas ventas, Hoy no trae listas: «Qué pedir» siempre tiene su ranking si algo se vendió con su prenda.
+        await pagina.getByRole("tab", { name: /Qué pedir/i }).first().click({ timeout: 8000 });
+        await esperar(pagina, 1100);
+        await pagina.locator(".analisis .rank-f").first().click({ timeout: 8000 });
+      }
       await esperar(pagina, 1500);
     },
   },
