@@ -65,10 +65,10 @@ export const ESCENARIOS = [
     id: "estructura.recordatorio",
     ruta: "/",
     cuentas: ["admin", "rol-personalizado", "terminal-ventas"],
-    nombre: "Recordatorio de cierre de caja abierto (la Isla)",
+    nombre: "Recordatorio de cierre de caja con la pestaña abierta (el Marcador)",
     async preparar(pagina) {
-      await pagina.locator(".rcc-pildora").first().waitFor({ timeout: 8000 });
-      await pagina.locator(".rcc-pildora").first().evaluate((el) => el.click());
+      await pagina.locator(".rcc-caps").first().waitFor({ timeout: 8000 });
+      await pagina.locator(".rcc-mas, .rcc-caps").first().evaluate((el) => el.click());
       await esperar(pagina, 1200);
     },
   },

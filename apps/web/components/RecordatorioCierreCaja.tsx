@@ -5,13 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   EVENTO_CERRAR_CAJA,
   bajadaTarjeta,
-  estadoRecordatorio,
+  cicloDeDespliegue,
+  estadoAviso,
   hora12,
   horaLima12,
   lineaDelDia,
   mismosDatos,
   nombreCorto,
-  progreso,
   rotuloPildora,
   textoCorto,
   tituloTarjeta,
@@ -20,26 +20,66 @@ import {
   type NivelRecordatorio,
 } from "@/lib/recordatorio-cierre-reglas";
 
-// La «Isla»: el recordatorio de cierre de caja (ADR-0305; maqueta 2 de `docs/maquetas/recordatorio-cierre-caja-2026-10/`).
-// Montada UNA vez en el layout de la app: acompaña a quien puede cerrar la caja por todas las pantallas desde la hora de cierre
-// de su tienda (`ubicaciones.hora_cierre`) hasta que la caja se cierra. No tiene ✕: se pliega, pero solo se va al cerrar.
+// El «Marcador»: el recordatorio de cierre de caja, en el centro de la cabecera (ADR-0357; maqueta 3 de
+// `docs/maquetas/recordatorio-cierre-barra-superior-2026-10/`; antes fue la «Isla» flotante de ADR-0305).
+// Montada UNA vez en el layout de la app: acompaña a quien puede cerrar la caja por todas las pantallas desde 15 min ANTES de la
+// hora de cierre de su tienda (`ubicaciones.hora_cierre`: a las 7:30 p. m. si cierra a las 7:45) hasta que la caja se cierra.
+// No tiene ✕: se pliega, pero solo se va al cerrar la caja.
 //
-// Cómo se mueve (ADR-0136): nace como un punto, se estira a píldora y la primera vez se abre en tarjeta; se pliega sola a los 5 s.
-// Su anillo es un DATO (lo que pasó desde la hora, lleno a los 60 min); al subir de nivel cambia de color y lanza UNA onda; al
-// cerrar la caja se pone verde, dibuja su ✓ y se encoge. El único bucle es el punto que late en «sin cerrar», la misma señal que
-// el chip «Vencida». Con `prefers-reduced-motion` todo pasa en un instante (`recordatorio-cierre.css`).
+// Cómo se mueve (ADR-0136): nace del centro de la barra; sus paletas giran cuando cambia el minuto (antes de la hora cuentan lo
+// que falta; después, lo que pasó); desde la hora de cierre y cada 5 minutos redondos (7:45, 7:50, 7:55…) la pestaña se
+// despliega sola hacia abajo, se queda 5 s (más si el mouse está encima) y se pliega. Al subir de nivel cambia de color y lanza
+// UNA onda; al cerrar la caja se pone verde, dibuja su ✓ y sube. Sus adornos en bucle (resplandor que deriva, destello en «sin
+// cerrar», punto que late) son los que Felipe eligió en la maqueta (ADR-0357). Con `prefers-reduced-motion` todo pasa en un
+// instante (`recordatorio-cierre.css`).
 
-const TICK_MS = 15_000;
+const TICK_MS = 5_000;
 const SONDEO_ACTIVO_MS = 60_000;
 const SONDEO_QUIETO_MS = 5 * 60_000;
 const PLEGAR_MS = 5_000;
-const CIRCUNFERENCIA = 2 * Math.PI * 15;
 
 type Fase = "oculta" | "naciendo" | "viva" | "cerrada" | "saliendo";
+type Visto = { datos: DatosRecordatorioCierre; nivel: NivelRecordatorio; previo: boolean };
 
 const soles = (n: number) => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const espera = (ms: number) => (reducido() ? 0 : ms);
+
+/**
+ * Cuánto cabe en la barra. La cápsula va en el medio de la cabecera; a su izquierda y a su derecha hay cosas que cambian de
+ * ancho (el buscador, «Actividad», el selector de sede con nombres de largo distinto, y no todas las cuentas ven todo). En vez de
+ * adivinar por anchos de pantalla se MIDE: el hueco que queda entre el último elemento de la izquierda y el primero de la derecha,
+ * y se elige el tramo más completo que cabe (0 todo · 1 sin botón «Cerrar» · 2 sin «h : min» · 3 solo luz y paletas · 4 lo mismo, más apretado). Si ni el
+ * más chico cabe (celular, barra apretada) la cápsula cuelga justo bajo la cabecera (tramo 5), así que NUNCA tapa un botón.
+ */
+const AIRE_PX = 12;
+function medirHueco(isla: HTMLElement) {
+  const cab = document.querySelector<HTMLElement>("[data-cabecera-app]");
+  const caps = isla.querySelector<HTMLElement>(".rcc-caps");
+  if (!cab || !caps) return;
+  const r = cab.getBoundingClientRect();
+  const centro = r.left + r.width / 2;
+  let izq = r.left;
+  let der = r.right;
+  for (const el of Array.from(cab.firstElementChild?.children ?? [])) {
+    const b = el.getBoundingClientRect();
+    if (b.width === 0 || b.height === 0) continue; // oculto en este ancho
+    if (b.left + b.width / 2 < centro) izq = Math.max(izq, b.right);
+    else der = Math.min(der, b.left);
+  }
+  const libre = 2 * Math.min(centro - izq, der - centro) - 2 * AIRE_PX;
+  let tramo = 5;
+  for (let t = 0; t <= 4; t++) {
+    isla.dataset.tramo = String(t);
+    if (caps.offsetWidth <= libre) {
+      tramo = t;
+      break;
+    }
+  }
+  isla.dataset.tramo = String(tramo);
+  const arriba = tramo === 5 ? r.bottom + 6 : r.top + (r.height - caps.offsetHeight) / 2;
+  isla.style.setProperty("--rcc-top", `${arriba}px`);
+}
 
 export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorioCierre | null }) {
   const router = useRouter();
@@ -49,18 +89,15 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
   const [fase, setFase] = useState<Fase>("oculta");
   const [abierta, setAbierta] = useState(false);
   const [cifras, setCifras] = useState<CifrasRecordatorio | null>(null);
-  const [ola, setOla] = useState<{ n: number; w: number; h: number } | null>(null);
+  const [ola, setOla] = useState<number | null>(null);
   // Lo último que se mostró: la despedida necesita la sede y el nivel aunque `datos` ya diga «sin caja».
-  const [despedida, setDespedida] = useState<{ datos: DatosRecordatorioCierre; nivel: NivelRecordatorio } | null>(null);
-  const [apuntar, setApuntar] = useState(false);
+  const [despedida, setDespedida] = useState<Visto | null>(null);
 
   const islaRef = useRef<HTMLDivElement>(null);
-  const pildoraRef = useRef<HTMLButtonElement>(null);
-  const tarjetaRef = useRef<HTMLDivElement>(null);
   const encima = useRef(false);
   const plegarT = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const visto = useRef<{ datos: DatosRecordatorioCierre; nivel: NivelRecordatorio } | null>(null);
+  const visto = useRef<Visto | null>(null);
 
   // Lo que trae el layout manda cuando cambia (al cerrar desde aquí, `router.refresh()` lo trae sin caja).
   const [inicialPrevio, setInicialPrevio] = useState(inicial);
@@ -69,7 +106,7 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
     setDatos(inicial);
   }
 
-  // El reloj: cada 15 s alcanza para que «12 min» cambie a tiempo sin despertar a nadie.
+  // El reloj: cada 5 s alcanza para que el minuto cambie y la pestaña baje a la hora, sin despertar a nadie.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la hora del navegador solo se lee ya montado: leerla al pintar en el servidor rompería la hidratación (misma decisión que la espera de Vender).
     setAhora(new Date());
@@ -78,10 +115,13 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
   }, []);
 
   const caja = datos?.caja ?? null;
-  const estado = ahora && caja && datos?.horaCierre ? estadoRecordatorio({ ahora, abiertaEn: caja.abiertaEn, horaCierre: datos.horaCierre }) : { nivel: 0 as NivelRecordatorio, minutos: 0 };
+  const estado =
+    ahora && caja && datos?.horaCierre
+      ? estadoAviso({ ahora, abiertaEn: caja.abiertaEn, horaCierre: datos.horaCierre })
+      : { nivel: 0 as NivelRecordatorio, minutos: 0, previo: false };
   const activo = estado.nivel >= 1;
   useEffect(() => {
-    if (activo && datos) visto.current = { datos, nivel: estado.nivel };
+    if (activo && datos) visto.current = { datos, nivel: estado.nivel, previo: estado.previo };
   });
 
   const programar = useCallback((fn: () => void, ms: number) => {
@@ -136,7 +176,32 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
     [pedir, plegar],
   );
 
-  // Las transiciones de fase: nace cuando llega la hora; se despide cuando la caja que mostraba ya no está abierta.
+  // La pestaña baja sola desde la hora de cierre y cada 5 minutos redondos, hasta que la caja se cierre (Felipe 2026-10-06).
+  // Sube cuando el número de despliegue CRECE: la primera lectura (cargar una pantalla a mitad de camino) no la despliega encima del
+  // trabajo, y recargar tampoco repite el despliegue de este mismo cuarto de hora.
+  const ciclo = activo && !estado.previo ? cicloDeDespliegue(estado.minutos) : -1;
+  const cicloVisto = useRef<number | null>(null);
+  useEffect(() => {
+    if (!activo) {
+      cicloVisto.current = null;
+      return;
+    }
+    const antes = cicloVisto.current;
+    cicloVisto.current = ciclo;
+    if (antes !== null && ciclo > antes && ciclo >= 0) abrir(true);
+  }, [activo, ciclo, abrir]);
+
+  // Un clic fuera de la cápsula pliega la pestaña (no hay ✕: el aviso no se descarta, solo se guarda).
+  useEffect(() => {
+    if (!abierta) return;
+    const fuera = (e: PointerEvent) => {
+      if (islaRef.current && !islaRef.current.contains(e.target as Node)) plegar();
+    };
+    document.addEventListener("pointerdown", fuera);
+    return () => document.removeEventListener("pointerdown", fuera);
+  }, [abierta, plegar]);
+
+  // Las transiciones de fase: nace cuando llega el preaviso; se despide cuando la caja que mostraba ya no está abierta.
   const prevActivo = useRef(false);
   const prevNivel = useRef<NivelRecordatorio>(0);
   const cajaId = caja?.id ?? null;
@@ -150,19 +215,7 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
 
     if (activo && !antes) {
       setFase("naciendo");
-      setApuntar(false);
-      programar(() => setApuntar(true), 40);
-      programar(() => setFase("viva"), 320);
-      // Se abre sola UNA vez por caja en esta pestaña: recargar no la vuelve a desplegar encima del trabajo.
-      const clave = `cayla:recordatorio-cierre:${cajaId}`;
-      let yaSeAbrio = false;
-      try {
-        yaSeAbrio = sessionStorage.getItem(clave) === "1";
-        sessionStorage.setItem(clave, "1");
-      } catch {
-        // Sin almacenamiento (modo privado): se abre igual, no pasa nada.
-      }
-      if (!yaSeAbrio) programar(() => abrir(true), 950);
+      programar(() => setFase("viva"), 620);
       return;
     }
     if (!activo && antes) {
@@ -183,52 +236,37 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
       }, 2300);
       return;
     }
-    const isla = islaRef.current;
-    if (activo && nivel > nivelAntes && nivelAntes >= 1 && isla && !reducido()) {
-      setOla((o) => ({ n: (o?.n ?? 0) + 1, w: isla.offsetWidth, h: isla.offsetHeight }));
-    }
-  }, [activo, nivel, cajaId, ubicacionId, abrir, plegar, programar]);
+    if (activo && nivel > nivelAntes && nivelAntes >= 1 && !reducido()) setOla((o) => (o ?? 0) + 1);
+  }, [activo, nivel, cajaId, ubicacionId, plegar, programar]);
 
-  // El ancho y el alto se animan entre medidas reales: la píldora mide lo que dice; la tarjeta, lo que trae. Se vuelve a medir
-  // cuando cambia el tamaño de cualquiera de las dos (el minuto que rueda, las cifras que llegan), no solo al pintar esta pieza.
+  // Re-medir el hueco de la barra cuando cambia lo que la cápsula dice (el rótulo, uno o dos dígitos de hora), la pantalla (la
+  // cabecera cambia de contenido) o el tamaño de la ventana o de cualquier pieza de la barra. Va antes de pintar: no hay salto.
+  const minutosPaletas = activo ? (estado.previo ? -estado.minutos : estado.minutos) : 60;
+  const claveAncho = minutosPaletas >= 1440 ? "dias" : minutosPaletas >= 600 ? "dos-digitos" : "uno";
+  const hayCapsula = fase !== "oculta";
+  const remedir = useCallback(() => {
+    if (islaRef.current) medirHueco(islaRef.current);
+  }, []);
   useLayoutEffect(() => {
-    const isla = islaRef.current;
-    const pildora = pildoraRef.current;
-    const tarjeta = tarjetaRef.current;
-    if (!isla || !pildora || !tarjeta) return;
-    const medir = () => {
-      if (fase === "naciendo" || fase === "saliendo") {
-        isla.style.width = "44px";
-        isla.style.height = "44px";
-      } else if (abierta && !(fase === "cerrada")) {
-        isla.style.width = `${tarjeta.offsetWidth}px`;
-        isla.style.height = `${tarjeta.scrollHeight}px`;
-      } else {
-        isla.style.width = `${pildora.scrollWidth}px`;
-        isla.style.height = "44px";
-      }
-    };
-    medir();
-    const observador = new ResizeObserver(medir);
-    observador.observe(pildora);
-    observador.observe(tarjeta);
-    return () => observador.disconnect();
-  }, [fase, abierta]);
-
-  // No tapar una barra fija de abajo (el «Cobrar» del celular, la barra de Caja, la de un formulario): la isla flota sobre ella.
+    if (hayCapsula) remedir();
+  }, [hayCapsula, fase, nivel, estado.previo, claveAncho, pathname, remedir]);
   useEffect(() => {
-    const isla = islaRef.current;
-    if (!isla || fase === "oculta") return;
-    const medir = () => isla.style.setProperty("--rcc-abajo", `${alturaBarraInferior(isla)}px`);
-    medir();
-    // La pantalla nueva termina de montarse (y el loader se va) un poco después: se vuelve a mirar. El reloj de 15 s hace el resto.
-    const ids = [setTimeout(medir, 600), setTimeout(medir, 2000)];
-    window.addEventListener("resize", medir);
+    if (!hayCapsula) return;
+    const cab = document.querySelector<HTMLElement>("[data-cabecera-app]");
+    const observador = new ResizeObserver(remedir);
+    if (cab) {
+      observador.observe(cab);
+      Array.from(cab.firstElementChild?.children ?? []).forEach((el) => observador.observe(el));
+    }
+    // La barra de una pantalla nueva termina de montarse (botones, loader) un poco después: se vuelve a medir.
+    const ids = [setTimeout(remedir, 400), setTimeout(remedir, 1500)];
+    window.addEventListener("resize", remedir);
     return () => {
+      observador.disconnect();
       ids.forEach(clearTimeout);
-      window.removeEventListener("resize", medir);
+      window.removeEventListener("resize", remedir);
     };
-  }, [fase, pathname, ahora]);
+  }, [hayCapsula, pathname, remedir]);
 
   const irACerrar = useCallback(() => {
     plegar();
@@ -236,142 +274,185 @@ export function RecordatorioCierreCaja({ inicial }: { inicial: DatosRecordatorio
     else router.push("/caja?cerrar=1");
   }, [pathname, plegar, router]);
 
-  const vista = activo && datos ? { datos, nivel: estado.nivel } : despedida;
+  const vista: Visto | null = activo && datos ? { datos, nivel: estado.nivel, previo: estado.previo } : despedida;
   if (fase === "oculta" || !vista) return null;
 
-  const { datos: d, nivel: n } = vista;
+  const { datos: d, nivel: n, previo } = vista;
   const cerrada = fase === "cerrada" || fase === "saliendo";
   const horaCierre = d.horaCierre ?? "00:00";
-  const minutos = activo ? estado.minutos : 60;
-  const lleno = cerrada ? 0 : CIRCUNFERENCIA * (1 - progreso(minutos));
+  // Antes de la hora cuenta lo que falta (7:30 → 15 min); después, lo que pasó.
+  const minutos = activo ? (previo ? -estado.minutos : estado.minutos) : 60;
   const sede = nombreCorto(d.sede);
-  const linea = d.caja ? lineaDelDia(d.caja.abiertaEn, horaCierre, minutos) : { extraPct: 0 };
-  const total = minutosHora(horaCierre);
-  const agujas = { "--rcc-rh": `${apuntar ? ((Math.floor(total / 60) % 12) + (total % 60) / 60) * 30 : 0}deg`, "--rcc-rm": `${apuntar ? (total % 60) * 6 + 360 : 0}deg` } as CSSProperties;
+  const linea = d.caja && !previo ? lineaDelDia(d.caja.abiertaEn, horaCierre, minutos) : { extraPct: 0 };
+  const titulo = tituloTarjeta(n, previo);
+  const bajada = bajadaTarjeta(n, sede, horaCierre, previo);
+  const alternar = () => (abierta ? plegar() : abrir(false));
 
   return (
-    <>
-      {ola && <span key={ola.n} aria-hidden className="rcc-ola" style={{ width: ola.w, height: ola.h }} />}
-      <div
-        ref={islaRef}
-        role="region"
-        aria-label="Recordatorio de cierre de caja"
-        data-nivel={n}
-        className={["rcc-isla", fase === "naciendo" && "rcc-naciendo", abierta && !cerrada && "rcc-abierta", cerrada && "rcc-ok", fase === "saliendo" && "rcc-saliendo"].filter(Boolean).join(" ")}
-        onMouseEnter={() => (encima.current = true)}
-        onMouseLeave={() => (encima.current = false)}
-      >
-        {/* Lo que oye un lector de pantalla: el título, una vez por nivel (no cada minuto). */}
-        <span className="sr-only" aria-live="polite">
-          {cerrada ? "Caja cerrada." : `${tituloTarjeta(n)}. ${bajadaTarjeta(n, sede, horaCierre)}`}
-        </span>
+    <div
+      ref={islaRef}
+      role="region"
+      aria-label="Recordatorio de cierre de caja"
+      data-nivel={n}
+      data-fase={fase}
+      className="rcc-isla papel-fijo"
+    >
+      {/* Lo que oye un lector de pantalla: el título, una vez por nivel (no cada minuto). */}
+      <span className="sr-only" aria-live="polite">
+        {cerrada ? "Caja cerrada." : `${titulo}. ${bajada}`}
+      </span>
 
-        <button
-          ref={pildoraRef}
-          type="button"
-          className="rcc-pildora"
-          aria-expanded={abierta}
-          aria-controls="rcc-tarjeta"
-          inert={abierta && !cerrada}
-          onClick={() => !cerrada && abrir(false)}
-        >
-          <Anillo vacio={lleno} agujas={agujas} cerrada={cerrada} />
-          <span className="rcc-pildora-txt">
-            {n === 3 && !cerrada && <span className="rcc-late" aria-hidden />}
-            <b>{cerrada ? "Caja cerrada" : rotuloPildora(n)}</b>
-            <span className="rcc-sep" aria-hidden />
-            <Rueda texto={cerrada ? (cifras?.esperado != null ? soles(cifras.esperado) : "listo") : textoCorto(minutos)} />
-          </span>
-        </button>
+      <div className="rcc-hueco" onMouseEnter={() => (encima.current = true)} onMouseLeave={() => (encima.current = false)}>
+        <span className="rcc-aurora" aria-hidden />
 
-        <div ref={tarjetaRef} id="rcc-tarjeta" className="rcc-tarjeta" inert={!abierta || cerrada}>
-          <div className="rcc-cab rcc-cas" style={{ "--i": 0 } as CSSProperties}>
-            <Anillo vacio={lleno} agujas={agujas} cerrada={false} grande />
-            <div className="min-w-0">
-              <p className="rcc-lugar">
-                {n === 3 && <span className="rcc-late" aria-hidden />}
-                {d.sede} · {hora12(horaCierre)}
-              </p>
-              <h2 className="rcc-titulo">{tituloTarjeta(n)}</h2>
-              <p className="rcc-bajada">{bajadaTarjeta(n, sede, horaCierre)}</p>
-            </div>
-          </div>
-
-          {d.caja && (
-            <div className="rcc-linea rcc-cas" style={{ "--i": 1, "--rcc-extra": `${linea.extraPct}%` } as CSSProperties}>
-              <div className="rcc-pista">
-                <span className="rcc-turno" />
-                <span className="rcc-extra" />
-                <span className="rcc-marca" />
-              </div>
-              <div className="rcc-rotulos">
-                <span>
-                  Abrió <b>{horaLima12(d.caja.abiertaEn)}</b>
-                  {d.caja.abiertaPor ? ` · ${d.caja.abiertaPor.split(" ")[0]}` : ""}
-                </span>
-                <span>
-                  Cierre <b>{hora12(horaCierre)}</b>
-                </span>
-              </div>
-            </div>
+        {/* La cápsula entera abre y pliega la pestaña; el botón de la derecha es el control accesible. */}
+        <div className={["rcc-caps", cerrada && "rcc-ok"].filter(Boolean).join(" ")} onClick={(e) => !cerrada && !(e.target as HTMLElement).closest("button") && alternar()}>
+          {cerrada ? (
+            <svg className="rcc-check-caja" viewBox="0 0 24 24" aria-hidden>
+              <path className="rcc-check" d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+          ) : (
+            <span className="rcc-led" aria-hidden />
           )}
+          <b className="rcc-rotulo">{cerrada ? "Caja cerrada" : rotuloPildora(n, previo)}</b>
+          {cerrada ? (
+            <span className="rcc-dias">
+              <Rueda texto={cifras?.esperado != null ? soles(cifras.esperado) : "listo"} />
+            </span>
+          ) : (
+            <Paletas minutos={minutos} />
+          )}
+          {!cerrada && (
+            <button type="button" className="rcc-boton" onClick={irACerrar}>
+              Cerrar <span aria-hidden className="rcc-flecha">→</span>
+            </button>
+          )}
+          {!cerrada && (
+            <button type="button" className="rcc-mas" aria-expanded={abierta} aria-controls="rcc-ticket" aria-label={abierta ? "Ocultar el detalle del cierre" : "Ver el detalle del cierre"} onClick={alternar}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {ola !== null && <span key={ola} aria-hidden className="rcc-ola" />}
+        {/* Desde la hora de cierre la cápsula emite ondas sin parar, las mismas de cuando sube de nivel (Felipe 2026-10-06): dos
+            anillos desfasados que salen y se apagan. En el preaviso (7:30–7:44) no hay: todavía no es la hora. */}
+        {!previo && fase === "viva" && (
+          <>
+            <span aria-hidden className="rcc-pulso" />
+            <span aria-hidden className="rcc-pulso rcc-pulso-b" />
+          </>
+        )}
 
-          <div className="rcc-cifras rcc-cas" style={{ "--i": 2 } as CSSProperties}>
-            {cifras?.esperado !== null && (
-              <div>
-                <p>Efectivo en el cajón</p>
-                <b>{cifras ? <Cuenta valor={cifras.esperado ?? 0} formato={soles} animar={abierta} /> : "—"}</b>
-              </div>
+        <div id="rcc-ticket" className={["rcc-ticket", abierta && !cerrada && "rcc-abierta"].filter(Boolean).join(" ")} inert={!abierta || cerrada}>
+          <div className="rcc-papel">
+            <p className="rcc-rot rcc-cas" style={{ "--i": 0 } as CSSProperties}>
+              {titulo}
+            </p>
+            {cifras?.esperado != null ? (
+              <>
+                <p className="rcc-grande rcc-cas" style={{ "--i": 1 } as CSSProperties}>
+                  <Cuenta valor={cifras.esperado} formato={soles} animar={abierta} />
+                </p>
+                <p className="rcc-bajada rcc-cas" style={{ "--i": 1 } as CSSProperties}>
+                  efectivo que debería haber en el cajón
+                </p>
+              </>
+            ) : (
+              <p className="rcc-titulo rcc-cas" style={{ "--i": 1 } as CSSProperties}>
+                {bajada}
+              </p>
             )}
-            <div>
-              <p>Ventas del turno</p>
-              <b>{cifras && cifras.ventas !== null ? <Cuenta valor={cifras.ventas} formato={(v) => String(Math.round(v))} animar={abierta} /> : "—"}</b>
+            {d.caja && (
+              <>
+                <div className="rcc-seg rcc-cas" style={{ "--i": 2 } as CSSProperties}>
+                  <i className="rcc-seg-turno" />
+                  {linea.extraPct > 0 && <i className="rcc-seg-extra" style={{ flex: Math.max(4, linea.extraPct * 4) }} />}
+                </div>
+                <div className="rcc-rotulos rcc-cas" style={{ "--i": 2 } as CSSProperties}>
+                  <span>
+                    Abrió <b>{horaLima12(d.caja.abiertaEn)}</b>
+                    {d.caja.abiertaPor ? ` · ${d.caja.abiertaPor.split(" ")[0]}` : ""}
+                  </span>
+                  <span>
+                    Cierre <b>{hora12(horaCierre)}</b>
+                  </span>
+                </div>
+              </>
+            )}
+            <div className="rcc-corte" aria-hidden />
+            <div className="rcc-stats rcc-cas" style={{ "--i": 3 } as CSSProperties}>
+              <div>
+                <b>{cifras && cifras.ventas !== null ? <Cuenta valor={cifras.ventas} formato={(v) => String(Math.round(v))} animar={abierta} /> : "—"}</b>
+                ventas del turno
+              </div>
+              <div>
+                <b>
+                  <Rueda texto={textoCorto(Math.max(0, minutos))} />
+                </b>
+                {previo ? "para el cierre" : "desde la hora"}
+              </div>
             </div>
-          </div>
-
-          <p className="rcc-consejo rcc-cas" style={{ "--i": 3 } as CSSProperties}>
-            Cuenta el efectivo y ciérrala: mañana la caja se abre con lo que cuentes hoy.
-          </p>
-
-          <div className="rcc-acciones rcc-cas" style={{ "--i": 4 } as CSSProperties}>
-            <button type="button" className="rcc-luego" onClick={plegar}>
-              Más tarde
-            </button>
-            <button type="button" className="rcc-si" onClick={irACerrar}>
-              Cerrar caja <span aria-hidden className="rcc-flecha">→</span>
-            </button>
+            <div className="rcc-acciones rcc-cas" style={{ "--i": 4 } as CSSProperties}>
+              <button type="button" className="rcc-luego" onClick={plegar}>
+                Más tarde
+              </button>
+              <button type="button" className="rcc-si" onClick={irACerrar}>
+                Cerrar caja <span aria-hidden className="rcc-flecha">→</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-function minutosHora(hora: string): number {
-  const [h, m] = hora.split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
+/** El contador de paletas: horas : minutos. Pasado un día, deja de ser un reloj y dice «2 días». */
+function Paletas({ minutos }: { minutos: number }) {
+  if (minutos >= 1440) return <span className="rcc-dias">{textoCorto(minutos)}</span>;
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return (
+    <span className="rcc-paletas" aria-hidden>
+      {h >= 10 && <Paleta valor={Math.floor(h / 10)} />}
+      <Paleta valor={h % 10} />
+      <span className="rcc-dos-puntos">:</span>
+      <Paleta valor={Math.floor(m / 10)} />
+      <Paleta valor={m % 10} />
+      <span className="rcc-unidad">h : min</span>
+    </span>
+  );
 }
 
-/** El anillo de la isla: se llena con lo que pasó desde la hora y lleva dentro un reloj con la hora de cierre de la sede. */
-function Anillo({ vacio, agujas, cerrada, grande = false }: { vacio: number; agujas: CSSProperties; cerrada: boolean; grande?: boolean }) {
+/** Una paleta que gira solo cuando su dígito cambia: la de arriba cae y la de abajo sube (ADR-0357). Sin rebote. */
+function Paleta({ valor }: { valor: number }) {
+  const [vista, setVista] = useState({ ahora: valor, antes: valor, gira: false });
+  const [previo, setPrevio] = useState(valor);
+  if (previo !== valor) {
+    setPrevio(valor);
+    setVista({ ahora: valor, antes: previo, gira: !reducido() });
+  }
+  useEffect(() => {
+    if (!vista.gira) return;
+    const id = setTimeout(() => setVista((v) => ({ ...v, antes: v.ahora, gira: false })), 520);
+    return () => clearTimeout(id);
+  }, [vista.gira, vista.ahora]);
   return (
-    <span className={`rcc-anillo ${grande ? "rcc-anillo-grande" : ""}`} aria-hidden>
-      <svg className="rcc-aro" viewBox="0 0 36 36">
-        <circle className="rcc-aro-fondo" cx="18" cy="18" r="15" />
-        <circle className="rcc-aro-avance" cx="18" cy="18" r="15" style={{ strokeDasharray: CIRCUNFERENCIA, strokeDashoffset: vacio }} />
-      </svg>
-      {cerrada ? (
-        <svg className="rcc-reloj" viewBox="0 0 24 24">
-          <path className="rcc-check" d="M5 12.5l4.5 4.5L19 7.5" />
-        </svg>
-      ) : (
-        <svg className="rcc-reloj" viewBox="0 0 24 24" style={agujas}>
-          <circle className="rcc-reloj-aro" cx="12" cy="12" r="9.25" />
-          <line className="rcc-aguja-h" x1="12" y1="12" x2="12" y2="7.4" />
-          <line className="rcc-aguja-m" x1="12" y1="12" x2="12" y2="5.1" />
-          <circle cx="12" cy="12" r="1.1" fill="currentColor" />
-        </svg>
-      )}
+    <span className={`rcc-flap ${vista.gira ? "rcc-gira" : ""}`}>
+      <span className="rcc-f-top">
+        <i>{vista.ahora}</i>
+      </span>
+      <span className="rcc-f-bot">
+        <i>{vista.antes}</i>
+      </span>
+      <span className="rcc-f-a">
+        <i>{vista.antes}</i>
+      </span>
+      <span className="rcc-f-b">
+        <i>{vista.ahora}</i>
+      </span>
     </span>
   );
 }
@@ -397,7 +478,7 @@ function Rueda({ texto }: { texto: string }) {
   );
 }
 
-/** Una cifra que cuenta hasta su valor al abrirse la tarjeta (regla «cifra que cuenta», ADR-0136). */
+/** Una cifra que cuenta hasta su valor al abrirse la pestaña (regla «cifra que cuenta», ADR-0136). */
 function Cuenta({ valor, formato, animar }: { valor: number; formato: (n: number) => string; animar: boolean }) {
   const [animado, setAnimado] = useState(valor);
   const cuenta = animar && !reducido();
@@ -406,7 +487,7 @@ function Cuenta({ valor, formato, animar }: { valor: number; formato: (n: number
     let raf = 0;
     const t0 = performance.now();
     const paso = (t: number) => {
-      const k = Math.min(1, (t - t0) / 650);
+      const k = Math.min(1, (t - t0) / 700);
       setAnimado(valor * (1 - Math.pow(1 - k, 3)));
       if (k < 1) raf = requestAnimationFrame(paso);
     };
@@ -414,29 +495,4 @@ function Cuenta({ valor, formato, animar }: { valor: number; formato: (n: number
     return () => cancelAnimationFrame(raf);
   }, [valor, cuenta]);
   return <>{formato(cuenta ? animado : valor)}</>;
-}
-
-/**
- * Cuánto ocupa desde abajo una barra fija de la pantalla (la de cobrar en el celular, la de Caja, la de un formulario largo),
- * mirando qué hay pintado justo bajo la isla. Se mira el DOM y no una lista de pantallas: una barra nueva queda cubierta sola.
- * Algo fijo que ocupa más del 40 % (un modal, el loader) no es una barra: se mira lo que hay debajo.
- */
-function alturaBarraInferior(isla: HTMLElement): number {
-  const x = window.innerWidth < 640 ? window.innerWidth / 2 : window.innerWidth - 60;
-  const y = window.innerHeight - 3;
-  const vistos = new Set<Element>();
-  for (const el of document.elementsFromPoint(x, y)) {
-    if (isla.contains(el) || el.classList.contains("rcc-ola")) continue;
-    for (let n: Element | null = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
-      if (vistos.has(n)) break;
-      vistos.add(n);
-      // `sticky` también: la barra «Cerrar caja» de escritorio (ADR-0318) se pega al borde de abajo igual que una fija.
-      const pos = getComputedStyle(n).position;
-      if (pos !== "fixed" && pos !== "sticky") continue;
-      const alto = window.innerHeight - n.getBoundingClientRect().top;
-      if (alto > 0 && alto < window.innerHeight * 0.4) return Math.round(alto);
-      break; // una capa a pantalla completa: se sigue con lo que hay debajo
-    }
-  }
-  return 0;
 }
