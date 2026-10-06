@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { agruparPorPrenda, type FilaPrenda } from "./existencias-prendas";
-import { ritmoDePrenda, textoDeRitmo } from "./existencias-colgar-primero";
+import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "./existencias-colgar-primero";
 import type { RitmoReciente } from "./existencias-ritmo";
 
 type Fila = FilaPrenda & { ritmoReciente?: RitmoReciente | null };
@@ -66,5 +66,17 @@ describe("el ritmo de una prenda", () => {
   it("una tasa menor a una por semana no se redondea a cero", () => {
     const filas = [fila("B", "Negro", "S", 0, 2, { ritmoReciente: medida(0.05) })]; // 0,35 por semana
     expect(textoDeRitmo(ritmoDePrenda(agruparPorPrenda(filas)[0]))).toBe("Se venden menos de 1 por semana. Te alcanza para 6 semanas.");
+  });
+});
+
+describe("lo vendido de una talla", () => {
+  it("suma las ventas de sus jornadas, también con pocas jornadas (un hecho, no una tasa)", () => {
+    expect(vendidasDeLaTalla({ tipo: "insuficiente", dias: [{ fecha: "2026-10-05", ventas: 1 }, { fecha: "2026-10-06", ventas: 1 }] })).toBe(2);
+    expect(vendidasDeLaTalla({ tipo: "sin_salida", dias: [{ fecha: "2026-10-01", ventas: 0 }], unidadesDia: 0 })).toBe(0);
+    expect(vendidasDeLaTalla({ tipo: "medida", dias: [{ fecha: "2026-10-01", ventas: 3 }, { fecha: "2026-10-02", ventas: 1 }], unidadesDia: 2 })).toBe(4);
+  });
+  it("sin lectura del ritmo no dice nada", () => {
+    expect(vendidasDeLaTalla(null)).toBeNull();
+    expect(vendidasDeLaTalla(undefined)).toBeNull();
   });
 });

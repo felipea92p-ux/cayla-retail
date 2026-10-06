@@ -321,6 +321,11 @@ barra»; preguntado cuál, Felipe eligió **la nueva** (buscador a lo ancho, la 
   las tarjetas (ADR-0328, decisión 5): la línea lo nombra («Sin colgar, según el sistema: 1 talla») y solo «¿Colgar?» explica la pausa
   («El piso de esta sede no está cuadrado: mira si ya cuelga antes de colgar más», sin repetir los números de «¿Hay?»). Visto en TRU ya
   publicado (Adelle Wide Leg 32): la primera versión decía la pausa dos veces, en la línea y en «¿Colgar?», y se dejó en una.
+- **El ritmo es del color, como la maqueta** (mismo día, pedido: «¿no debería aparecer algo similar?»): el panel medía el ritmo talla por
+  talla, y una talla sola casi nunca junta las 3 jornadas que la regla de Felipe pide para decir una tasa (2026-09-25), así que en TRU
+  salía «Poco tiempo en el piso para medir». Ahora mide el color entero (`ritmoDePrenda(prenda)`: «Azul marino: se venden unas 4 por
+  semana. Te alcanza para 2 semanas», con su aro) y, de la talla, dice el hecho: «De esta talla: 2 vendidas en los últimos 7 días»
+  (`vendidasDeLaTalla`, con su prueba). Un conteo no es una tasa: no rompe la regla.
 - **Se quitan del cuerpo** «En este modelo» (las tallas que faltan como botones), «Casi no hay aquí» (una fila por talla) y la lista de
   tallas del filtro: las tres repetían las tallas de arriba. Pedir una agotada sigue a dos toques (tocarla y «Pedir» en «¿Pedir?»). Se
   borran `CasiNoHay.tsx` y `casiNoHay` (ya nadie los usa); «Colgar varias» también deja su lista de «casi no hay».
