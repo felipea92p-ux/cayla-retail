@@ -5,7 +5,7 @@ import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, ScanLine, 
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
-import { FiltrosRapidos, OrdenCorto } from "@/components/existencias/FiltrosRapidos";
+import { FiltrosRapidos } from "@/components/existencias/FiltrosRapidos";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -172,10 +172,12 @@ export function FiltrosExistencias({
   const coloresMarcados = [...elegidos.familias.map((f) => PREFIJO_FAMILIA + f), ...elegidos.colores];
   const estadosColor = estadoDeColor(coloresMarcados, opcionesColor);
 
-  // Dos filas con nombre, como Productos: arriba lo que se pregunta de la prenda (categoría, talla, color), abajo lo de quien
-  // gestiona el stock (qué hacer hoy, en qué condición está, de qué marca es). El mismo panel va en la página (computadora) o
-  // dentro de la hoja (celular), nunca los dos.
-  const hayGestion = separa || marcas !== null;
+  // Filas con nombre, como Productos (reordenado el 2026-10-06 para despejar la barra): «Prenda», lo que se pregunta de ella
+  // (categoría, talla, color y marca: la marca es de la prenda, no de quien gestiona); «Gestión», qué pide hoy y en qué condición
+  // está (los mismos filtros que los atajos, con las combinaciones que un atajo no hace); y «Vista», cómo se ordena la lista y si suena
+  // al confirmar, que antes ocupaban la fila del buscador. El mismo panel va en la página (computadora) o en la hoja (celular).
+  const ordenTexto = orden ? (orden.opciones.find((o) => o.valor === orden.valor)?.texto ?? orden.valor) : null;
+  const ordenDistinto = orden !== null && orden.valor !== orden.porDefecto;
   const panel = (
     <PanelPildoras filas>
       <FilaPildoras titulo="Prenda">
@@ -225,62 +227,73 @@ export function FiltrosExistencias({
             coloresMarcados
           )}
         />
+        {marcas && (
+          <DesplegablePildora
+            icono={Tag}
+            etiqueta="Marca"
+            valor={elegidos.marca ?? TODOS}
+            onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
+            opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(marcas.map(opcion), "marca", elegidos.marca)]}
+          />
+        )}
       </FilaPildoras>
-      {hayGestion && (
+      {separa && (
         <FilaPildoras titulo="Gestión">
           {/* «Hoy» (qué pide la talla: las mismas palabras de la tarjeta y la tabla) y «Condición» (dañadas, apartadas) son
               dos preguntas (Felipe, 2026-10-03). Cada talla cae en un solo «Hoy»: no hay combinación que se vacíe sola. */}
-          {separa && (
-            <DesplegablePildora
-              icono={ListChecks}
-              etiqueta="Hoy"
-              valor={elegidos.hoy ?? TODOS}
-              onValor={(v) => onCambiar({ hoy: v === TODOS ? null : v })}
-              rotuloCantidad="Productos con alguna talla así"
-              opciones={[
-                { valor: TODOS, texto: "Todo" },
-                ...contar(
-                  TIPOS_HOY.map((t) => ({ valor: t as string, texto: TEXTO_HOY[t] })),
-                  "hoy",
-                  elegidos.hoy
-                ),
-              ]}
-            />
-          )}
-          {separa && (
-            <DesplegablePildora
-              icono={CircleAlert}
-              etiqueta="Condición"
-              valor={elegidos.condicion ?? TODOS}
-              onValor={(v) => onCambiar({ condicion: v === TODOS ? null : v })}
-              rotuloCantidad="Productos con alguna talla así"
-              opciones={[
-                { valor: TODOS, texto: "Cualquiera" },
-                ...contar(
-                  CONDICIONES.map((c) => ({ valor: c as string, texto: ROTULO_CONDICION[c] })),
-                  "condicion",
-                  elegidos.condicion
-                ),
-              ]}
-            />
-          )}
-          {marcas && (
-            <DesplegablePildora
-              icono={Tag}
-              etiqueta="Marca"
-              valor={elegidos.marca ?? TODOS}
-              onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(marcas.map(opcion), "marca", elegidos.marca)]}
-            />
-          )}
+          <DesplegablePildora
+            icono={ListChecks}
+            etiqueta="Hoy"
+            valor={elegidos.hoy ?? TODOS}
+            onValor={(v) => onCambiar({ hoy: v === TODOS ? null : v })}
+            rotuloCantidad="Productos con alguna talla así"
+            opciones={[
+              { valor: TODOS, texto: "Todo" },
+              ...contar(
+                TIPOS_HOY.map((t) => ({ valor: t as string, texto: TEXTO_HOY[t] })),
+                "hoy",
+                elegidos.hoy
+              ),
+            ]}
+          />
+          <DesplegablePildora
+            icono={CircleAlert}
+            etiqueta="Condición"
+            valor={elegidos.condicion ?? TODOS}
+            onValor={(v) => onCambiar({ condicion: v === TODOS ? null : v })}
+            rotuloCantidad="Productos con alguna talla así"
+            opciones={[
+              { valor: TODOS, texto: "Cualquiera" },
+              ...contar(
+                CONDICIONES.map((c) => ({ valor: c as string, texto: ROTULO_CONDICION[c] })),
+                "condicion",
+                elegidos.condicion
+              ),
+            ]}
+          />
         </FilaPildoras>
       )}
+      <FilaPildoras titulo="Vista">
+        {/* El orden solo ordena las tarjetas (la tabla conserva el suyo): no quita prendas, por eso no cuenta como filtro puesto. */}
+        {orden && (
+          <DesplegablePildora
+            icono={ArrowUpDown}
+            etiqueta="Ordenar por"
+            valor={orden.valor}
+            valorPorDefecto={orden.porDefecto}
+            onValor={orden.onValor}
+            opciones={orden.opciones}
+          />
+        )}
+        {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
+        <BotonSonidoConfirmar conNombre />
+      </FilaPildoras>
     </PanelPildoras>
   );
 
   // Con el panel abierto en la computadora cada píldora ya dice su valor y su ✕: los chips repetirían lo mismo debajo. Se ven
   // con el panel cerrado y en el celular (donde el panel vive en la hoja).
-  const bloqueChips = chips.length > 0 && (
+  const bloqueChips = (chips.length > 0 || ordenDistinto) && (
     <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
         <button
@@ -294,9 +307,22 @@ export function FiltrosExistencias({
           <span aria-hidden className="text-sm leading-none">×</span>
         </button>
       ))}
-      <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
-        Limpiar todo
-      </button>
+      {orden && ordenDistinto && (
+        <button
+          type="button"
+          onClick={() => orden.onValor(orden.porDefecto)}
+          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+          aria-label={`Volver al orden de siempre (ahora: ${ordenTexto})`}
+        >
+          Orden: {ordenTexto}
+          <span aria-hidden className="text-sm leading-none">×</span>
+        </button>
+      )}
+      {chips.length > 0 && (
+        <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
+          Limpiar todo
+        </button>
+      )}
     </div>
   );
 
@@ -336,7 +362,11 @@ export function FiltrosExistencias({
               spellCheck={false}
               autoComplete="off"
               type="search"
-              className="h-10 w-full rounded-xl border border-sand bg-hueso pl-10 pr-10 text-[15px] text-tinta placeholder:text-taupe focus:border-taupe [&::-webkit-search-cancel-button]:hidden"
+              // A la derecha solo se reserva lugar para lo que se ve: la «X» al escribir, o la tecla «/» desde 768 px. En el celular ese aire
+              // cortaba el texto de ayuda («Prenda, talla o códi…») ahora que el anillo comparte la fila.
+              className={`h-10 w-full rounded-xl border border-sand bg-hueso pl-10 text-[15px] text-tinta placeholder:text-taupe focus:border-taupe max-sm:text-[14px] [&::-webkit-search-cancel-button]:hidden ${
+                busqueda ? "pr-10" : "pr-3 md:pr-10"
+              }`}
             />
             {busqueda ? (
               <button
@@ -393,7 +423,7 @@ export function FiltrosExistencias({
           )}
         </p>
 
-        {/* La vista: «Copiar enlace» (solo la tabla), el orden, tabla o tarjetas en un solo icono, y el sonido de «confirmado». */}
+        {/* A la derecha, solo «Copiar enlace» (la tabla) y tabla o tarjetas en un icono: el orden y el sonido viven en «Filtros ▸ Vista». */}
         <div className="order-4 ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-2 xl:order-3">
           {/* Como la maqueta: con las tarjetas (`orden`), ni «Copiar enlace» ni un segundo «Ordenar por»; el orden es «Prioridad | A–Z». */}
           {!orden && (
@@ -407,23 +437,7 @@ export function FiltrosExistencias({
               <Link2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />
             </button>
           )}
-          {orden && separa && <OrdenCorto valor={orden.valor} onValor={orden.onValor} />}
-          {orden && !separa && (
-            <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
-              <DesplegablePildora
-                encoger
-                icono={ArrowUpDown}
-                etiqueta="Ordenar por"
-                valor={orden.valor}
-                valorPorDefecto={orden.porDefecto}
-                onValor={orden.onValor}
-                opciones={orden.opciones}
-              />
-            </div>
-          )}
           {vista}
-          {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
-          <BotonSonidoConfirmar />
         </div>
 
         {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}

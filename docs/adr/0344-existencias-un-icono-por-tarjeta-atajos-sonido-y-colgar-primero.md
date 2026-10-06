@@ -213,3 +213,30 @@ estado del panel (avanza al colgar): había que colgarlo con un portal que apare
 navegador, en dos archivos que también tocan los PR #807 y #808.
 SE ROMPE SI: una sede tiene muchos pendientes y nadie mira el anillo porque quedó «escondido» en la barra: el número del día solo se ve si se
 busca. Si pasa, la cifra de pendientes puede ir también como punto en la cabecera, sin mover el anillo.
+
+### Segunda vuelta del mismo día — el panel «Filtros» se reordena, la tarjeta se achica y la acción dice su nombre
+
+**Pedidos** (mirando la pantalla en local): «estos apartados [Prioridad | A–Z] quizás ponerlos dentro de Filtros, reorganiza Filtros y todo el
+espacio de la barra para que no se sienta congestionada»; «que al pasar el cursor se despliegue el icono con su texto y aparte la ventana»;
+«aprovechar el espacio que sobra, que se vea bonito y no ocupe mucho… pero que tampoco se vea amontonado».
+
+- **Filtros en tres filas con nombre:** **Prenda** (Categoría · Talla · Color · **Marca**: la marca es de la prenda, no de quien gestiona),
+  **Gestión** (Hoy · Condición) y **Vista** (**Ordenar por**, con todos los órdenes, y **Sonido al confirmar**). El orden y el sonido salen de la
+  fila del buscador, que queda con buscar, escanear, Filtros y el anillo a la izquierda, y la cifra y tabla/tarjetas a la derecha. El orden no
+  cuenta como filtro puesto (no quita prendas); si no es el de siempre, se ve como chip «Orden: …» que vuelve atrás con un toque. «Más
+  relevantes» se llama **«Prioridad»** donde la sede separa piso y almacén (el nombre que la persona ya vio).
+- **La acción de la tarjeta sube a la fila de los colores**, a la derecha: su fila propia de abajo estaba vacía salvo por el icono. La tarjeta
+  baja de unos 240 a **192 px** y las acciones de una fila de tarjetas quedan a la misma altura; el aire interior no cambia.
+- **El icono dice su nombre:** con mouse, al pasar el cursor (o enfocar) se estira a «Colgar en el piso» y además se abre la ventana con las
+  OTRAS acciones (ya no repite la del botón). Sin mouse (tablet, celular) el nombre se ve siempre si la tarjeta tiene 18rem de contenido; si
+  no cabe (muchos colores), el botón baja de línea.
+- **Atajos en una fila que se desliza bajo 1280 px:** partidos en dos o tres líneas se veían amontonados. Desde 1280 px caben en una.
+- **El anillo, más chico donde falta ancho:** bajo 1024 px solo el círculo con la cifra adentro (lo que falta, o ✓); el buscador gana ese lugar.
+  Y ya no dice «Al día» si hay pendientes: dice cuántos, en ámbar. Era el recordatorio que quedaba a la vista del piso sin cuadrar.
+
+DECIDÍ: el nombre de la acción se abre al pasar el cursor y se ve siempre con el dedo.
+DESCARTÉ: el nombre siempre visible con mouse (cada tarjeta con un botón ancho: el «amontonado» que se pidió evitar) y solo el icono también en
+tablet (con el dedo no hay «pasar por encima»: el nombre no se vería nunca).
+SE ROMPE SI: una tablet con mouse (o un portátil con pantalla táctil) informa «hover» y nunca muestra el nombre fijo: ahí vale el comportamiento
+de computadora, que es correcto para quien tiene cursor.
+

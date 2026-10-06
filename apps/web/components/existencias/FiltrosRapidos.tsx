@@ -11,8 +11,8 @@ import type { ClaveUrl, ConteosFiltros, FiltrosElegidos } from "@/lib/existencia
    para lo que más se pregunta en el piso. Escriben los mismos filtros que el panel «Filtros» (`lib/existencias-rapidos.ts`).
 
    Siempre con su nombre a la vista (2026-10-06): el modo «solo iconos» obligaba a pasar el mouse o adivinar qué era cada figura, y en
-   una tablet no hay mouse. En el celular la fila se desliza de lado, con el borde derecho desvanecido para avisar que sigue; en la
-   computadora, si no caben (bajo ~1366 px), el último baja a otra línea: con mouse, una fila que se desliza esconde botones.
+   una tablet no hay mouse. Bajo 1280 px (tablet, celular, ventana angosta) la fila se desliza de lado, con el borde derecho desvanecido
+   para avisar que sigue: partida en dos o tres líneas se veía amontonada. Desde 1280 px caben en una.
 
    Con el piso sin cuadrar (`enPausa` > 0), «Por colgar» no cuenta: el motor no manda a colgar nada porque podría ser algo que ya
    cuelga (ADR-0328, decisión 5). En vez de un «0» que parece «todo listo», el botón lleva una pausa, y la explicación completa que
@@ -63,7 +63,7 @@ export function FiltrosRapidos({
     <div
       role="group"
       aria-label="Atajos de filtro"
-      className="scroll-cayla -mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 py-0.5 max-md:pr-8 max-md:[mask-image:linear-gradient(90deg,#000_calc(100%-2rem),transparent)] md:flex-wrap md:overflow-visible"
+      className="scroll-cayla -mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 py-0.5 max-xl:pr-8 max-xl:[mask-image:linear-gradient(90deg,#000_calc(100%-2rem),transparent)] xl:flex-wrap xl:overflow-visible"
     >
       {ATAJOS_RAPIDOS.map((a) => {
         const Icono = ICONO[a.clave];
@@ -110,31 +110,5 @@ export function FiltrosRapidos({
         );
       })}
     </div>
-  );
-}
-
-/** El orden de las tarjetas, del que la maqueta muestra dos: «Prioridad» (lo que falta en el piso primero, la lista del día del motor) y «A–Z».
- *  Los otros órdenes siguen en el panel «Filtros». Mismo estado que ese combo (`useFiltrosExistencias`). */
-export function OrdenCorto({ valor, onValor }: { valor: string; onValor: (v: string) => void }) {
-  return (
-    <span role="group" aria-label="Orden" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-      {(
-        [
-          ["relevancia", "Prioridad", "Lo que falta en el piso y más se vende, primero"],
-          ["nombre", "A–Z", "Por nombre"],
-        ] as const
-      ).map(([v, texto, ayuda]) => (
-        <button
-          key={v}
-          type="button"
-          aria-pressed={valor === v}
-          title={ayuda}
-          onClick={() => onValor(v)}
-          className="h-9 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta focus-visible:-outline-offset-2"
-        >
-          {texto}
-        </button>
-      ))}
-    </span>
   );
 }
