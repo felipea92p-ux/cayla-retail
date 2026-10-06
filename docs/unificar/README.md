@@ -22,6 +22,39 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 |---|---|---|---|
 | — | ninguna por ahora | — | — |
 
+## Por analizar (las próximas rondas)
+
+Faltan **37 familias** de las 40 que reconoce el motor (`apps/web/unificar/familias.mjs`). Las cifras son del censo del 2026-10-06 **sin
+depurar**: en la ronda 1 la depuración las bajó mucho (pestañas, de 25 formas a 18 reales; cifras, de 17 a 7), así que sirven para ordenar,
+no como veredicto. El orden es la recomendación de Claude: primero lo que la colaboradora lee o toca en más pantallas.
+
+**Antes de la próxima ronda, un censo nuevo.** El de la tabla es de antes de la ronda 1, solo con la cuenta Admin y con foco en Inventario, y
+`main` cambió mucho desde entonces (Análisis v4, la billetera de Traslados). Desde `apps/web`, con el servidor de esa worktree:
+`pnpm unificar:censo -- --base-url <url> --todas --escenarios`, y una pasada con `--cuenta terminal-ventas` para el mostrador.
+Cada ronda se pide con `/unificar familia=<id>` (o `/unificar familia=estado,accion.nuevo` para dos a la vez) y termina con Felipe eligiendo
+en la página de elegir, nunca por una descripción.
+
+| # | Familia | Qué es | Formas (sin depurar) · pantallas | Por qué en este orden |
+|---:|---|---|---|---|
+| 1 | `estado` | Insignias de estado («Vencida», «Pagada», «En camino») | 11 · 39 | Es lo que más se lee: 224 usos. Ya existe `<Chip>`, falta ver quién no lo usa |
+| 2 | `accion.nuevo` + `boton` | El botón principal («+ Nuevo», «Registrar») y los estilos de botón | 12 · 27 / 123 · 88 | Solo 123 de 591 botones usan `btn-cayla`; la acción principal tiene 12 caras |
+| 3 | `vacio` | Estados vacíos («Todavía no hay…») | 23 · 24 | Ley 9 de Formidable: un vacío dice qué falta. Hoy cada pantalla lo dice a su modo |
+| 4 | `aviso` | Avisos y notas (`nota-cayla`, errores, avisos de la esquina) | 13 · 60 | Está en 60 pantallas, y un aviso que se ve distinto se lee distinto |
+| 5 | `buscador` | Las cajas de buscar | 18 · 49 | El comportamiento ya es uno (`useBusquedaEnUrl`); la cara no |
+| 6 | `combo` | Desplegables | 26 · 39 | La regla de buscar y paginar ya es una (ADR-0209); falta la cara. `SelectFin` es de Finanzas (ADR-0195) |
+| 7 | `tabla` | Tablas | 30 · 36 | `<Tabla>` existe; la de Finanzas (`fin-tabla`) queda aparte por ADR-0195 |
+| 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 12 · 18 / 10 · 34 | Se corre con `--escenarios`: viven en las hojas |
+| 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 33 · 54 | Muchas formas; sin pieza del sistema hoy |
+| 10 | `accion.ver`, `accion.filtrar`, `accion.exportar`, `accion.eliminar` | Ver el detalle, filtrar, exportar, quitar o anular | 13 / 4 / 4 / 4 | `accion.eliminar` toca dinero y comprobantes cuando anula: migrar no cambia qué hace |
+| 11 | `casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. Los gráficos de Análisis tienen su excepción de movimiento (ADR-0357) |
+| 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
+| 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
+| — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
+
+Las otras cinco no salen en el censo del 2026-10-06: `filtro` (las píldoras de filtro) quedó cubierta por la decisión de pestañas —la píldora
+rellena, la «A»—, y el censo nuevo dirá si queda alguna dibujada a mano; `contador` (el globito con número), `accion.siguiente` («Siguiente /
+Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuenta Admin, y se miran en el censo con más cuentas.
+
 ## Censos
 
 | Fecha | Rama | Vistas medidas | Familias con más de una forma | Lo que más confunde |
