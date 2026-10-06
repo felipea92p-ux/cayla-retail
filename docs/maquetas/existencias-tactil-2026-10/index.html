@@ -261,10 +261,10 @@ textarea.texto{min-height:76px;resize:vertical}
 .aviso.ver{opacity:1;transform:translate(-50%,0)}
 
 /* ---------- dinamismo (ADR-0136: respuestas a una acción, 200–500 ms, una sola vez) ---------- */
-.mision{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--crema);border-radius:999px;padding:3px 14px 3px 3px;min-height:44px;font-size:13px;text-align:left}
+.mision{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--crema);border-radius:999px;padding:3px 14px 3px 3px;height:40px;flex:none;font-size:13px;text-align:left}
 .mision svg{display:block}
-.mision b{font:600 15px var(--sans);font-variant-numeric:tabular-nums;display:block;line-height:1.1}
-.mision small{color:var(--taupe);font-size:11.5px}
+.mision b{font:600 13.5px var(--sans);font-variant-numeric:tabular-nums;display:block;line-height:1.1;white-space:nowrap}
+.mision small{color:var(--taupe);font-size:11px}
 .anillo-fondo{stroke:var(--sand)} .anillo-avance{stroke:var(--verde);transition:stroke-dashoffset .5s var(--ease)}
 .late{animation:late .5s var(--ease) 1}
 @keyframes late{0%{color:var(--verde)}100%{color:inherit}}
@@ -333,12 +333,17 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 /* barra de búsqueda y filtros */
 .herr{display:grid;gap:10px}
 .buscador{display:flex;gap:8px;align-items:center}
-.buscador .campo-buscar{min-height:46px;border-radius:14px;background:var(--hueso);border:1px solid transparent;font-size:15.5px;padding:0 76px 0 44px;transition:background .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease)}
+.buscador .campo-buscar{min-height:40px;border-radius:12px;background:var(--hueso);border:1px solid transparent;font-size:15px;padding:0 70px 0 40px;transition:background .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease)}
 .buscador .campo-buscar:focus{background:var(--papel);border-color:var(--tinta);box-shadow:0 0 0 3px color-mix(in srgb,var(--tinta) 10%,transparent);outline:none}
-.buscador .caja-buscar svg{left:14px;width:18px;height:18px}
-.icono-btn{width:46px;height:46px;flex:none;border-radius:14px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--tinta);transition:border-color .2s var(--ease),background .2s var(--ease)}
+.buscador .caja-buscar svg{left:13px;width:16px;height:16px}
+/* Barra compacta (2026-10-06): buscar del alto de un control y de un ancho de lectura, no una franja de lado a lado. */
+.buscador{flex-wrap:wrap}
+.buscador .caja-buscar{flex:1 1 220px;max-width:26rem}
+.buscador .orden{margin-left:auto}
+@container (max-width: 520px){.buscador .caja-buscar{max-width:none;flex-basis:120px}.mision span{display:none}.mision{padding:3px}}
+.icono-btn{width:40px;height:40px;flex:none;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--tinta);transition:border-color .2s var(--ease),background .2s var(--ease)}
 .icono-btn:hover{border-color:var(--taupe);background:var(--crema)}
-.icono-btn svg{width:20px;height:20px}
+.icono-btn svg{width:18px;height:18px}
 .rail{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 @container (max-width: 760px){.rail{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.rail::-webkit-scrollbar{display:none}.rail>*{flex:none}}
 .chip-f{min-height:36px;padding:0 10px 0 11px;font-size:13.5px;gap:7px;background:transparent;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease)}
@@ -413,12 +418,6 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 [data-tip][data-tip-pos="abajo"]::after{bottom:auto;top:calc(100% + 7px);transform:translate(-50%,-4px)}
 @media (hover:hover){[data-tip]:hover::after{opacity:1;transform:translate(-50%,0)}}
 [data-tip]:focus-visible::after{opacity:1;transform:translate(-50%,0)}
-.chip-f.solo-icono{min-height:40px;min-width:48px;padding:0 10px 0 11px;justify-content:center}
-.chip-f.solo-icono svg{width:16px;height:16px}
-.orden.vista-f{margin-left:auto}
-.orden.vista-f+.orden{margin-left:0}
-.orden.vista-f button{min-width:36px;display:grid;place-items:center}
-.orden.vista-f button[aria-pressed="true"]{color:var(--tinta)}
 
 /* ---------- documento ---------- */
 .doc{margin-top:46px;display:grid;gap:16px}
@@ -648,7 +647,7 @@ table.t td:first-child{font-weight:600}
   let P, S;
   function inicial() {
     P = BASE();
-    S = { vf:"iconos", orden:"prioridad", detalle:null, q:"", filtro:"todo", color:{}, panel:null, caja:true, ultimo:null, hecho:null, pedidos:{} };
+    S = { orden:"prioridad", detalle:null, q:"", filtro:"todo", color:{}, panel:null, caja:true, ultimo:null, hecho:null, pedidos:{} };
   }
   inicial();
 
@@ -683,6 +682,7 @@ table.t td:first-child{font-weight:600}
 
   // ================= íconos =================
   const IC = {
+    filtros:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
     info:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.01"/></svg>',
     enviar:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M14 4h6v6M20 4l-9 9"/></svg>',
     chev:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>',
@@ -766,25 +766,25 @@ table.t td:first-child{font-weight:600}
     const t = totales();
     const enBusqueda = P.filter(coincide);
     const n = k => k === "todo" ? enBusqueda.length : enBusqueda.reduce((m, p) => m + coincidencias(p, k).length, 0);
-const solo = S.vf === "iconos";
-    const chip = ([k, txt]) => `<button class="chip-f${solo ? " solo-icono" : ""}" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}" data-tono="${TONO_F[k] || "tinta"}"${solo ? ` data-tip="${esc(txt)} · ${n(k)}" data-tip-pos="abajo" aria-label="${esc(txt)}, ${n(k)}"` : ""}>${ICON_F[k]}${solo ? "" : `<span>${txt}</span>`}<b>${n(k)}</b></button>`;
+    // Los atajos siempre con su nombre (2026-10-06): «solo iconos» obligaba a adivinar cada figura, y en una tablet no hay mouse.
+    const chip = ([k, txt]) => `<button class="chip-f" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}" data-tono="${TONO_F[k] || "tinta"}">${ICON_F[k]}<span>${txt}</span><b>${n(k)}</b></button>`;
     document.getElementById("barra").innerHTML = `
       <div class="fila-top">
         <div class="titulo-app"><h1>Existencias</h1><small>Tienda TRU · vista de las 09:28</small></div>
         <div class="cifras"><span><b class="num" data-cuenta="tot-piso">${t.piso}</b>en piso de 600 · <em>por cuadrar</em></span><span><b class="num" data-cuenta="tot-alm">${t.alm}</b>en almacén</span></div>
-        ${anilloMision()}
       </div>
       <div class="herr">
         <div class="buscador">
           <label class="caja-buscar">${IC.buscar}<input class="campo-buscar" id="q" type="search" autocomplete="off" placeholder="Busca por nombre, marca, color o código" value="${esc(S.q)}" aria-label="Buscar producto"><kbd class="kbd kbd-buscar" title="Atajo: / o Ctrl+K">/</kbd>${S.q ? `<button class="limpiar" data-acc="limpiar" aria-label="Borrar búsqueda">${IC.x}</button>` : ""}</label>
           <button class="icono-btn" data-acc="escanear" aria-label="Escanear etiqueta" title="Escanear etiqueta">${IC.escanear}</button>
+          <button class="icono-btn" data-acc="filtros" aria-label="Filtros" title="Filtros">${IC.filtros}</button>
+          ${anilloMision()}
+          <div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div>
         </div>
         <div class="rail" role="group" aria-label="Filtro">
           ${FILTROS.filter(f => !["acaban", "quietas"].includes(f[0])).map(chip).join("")}
-          <span class="rail-sep" aria-hidden="true"></span>${solo ? "" : '<span class="rail-tit">Recomendados</span>'}
+          <span class="rail-sep" aria-hidden="true"></span><span class="rail-tit">Recomendados</span>
           ${FILTROS.filter(f => ["acaban", "quietas"].includes(f[0])).map(chip).join("")}
-          <div class="orden vista-f" role="group" aria-label="Cómo ver los filtros"><button aria-pressed="${solo}" data-acc="vista-f" data-k="iconos" data-tip="Solo iconos" data-tip-pos="abajo" aria-label="Solo iconos">${IC.grid}</button><button aria-pressed="${!solo}" data-acc="vista-f" data-k="texto" data-tip="Iconos con texto" data-tip-pos="abajo" aria-label="Iconos con texto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h16"/></svg></button></div>
-          <div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div>
         </div>
       </div>`;
   }
@@ -887,7 +887,7 @@ const solo = S.vf === "iconos";
     const el = document.getElementById("lista");
     const sel = S.panel;
     el.innerHTML = `
-      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : " · toca un color para cambiarlo, una talla para ver dónde hay"}</p>
+      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : ""}</p>
       ${recoStrip()}
       ${lista.length ? `<div class="grilla">${lista.map(p => {
         const c = ci(p), m = coincidencias(p), filtrando = S.filtro !== "todo";
@@ -1356,7 +1356,7 @@ const solo = S.vf === "iconos";
     switch (d.acc) {
       case "limpiar": S.q = ""; renderBarra(); renderLista(); document.getElementById("q").focus(); break;
       case "ib-mas": { const ac = el.closest(".acciones-c"), abre = !ac.classList.contains("abierta"); document.querySelectorAll(".acciones-c.abierta").forEach(x => x.classList.remove("abierta")); if (abre) ac.classList.add("abierta"); el.setAttribute("aria-expanded", String(abre)); break; }
-      case "vista-f": S.vf = d.k; renderBarra(); break;
+      case "filtros": avisar("Abre «Filtros»: categoría, talla, color y marca"); break;
       case "orden": S.orden = d.k; renderBarra(); renderLista(); break;
       case "reco": lanzar(d.pid, +d.c, null, "reponerVarias", { cant:{} }); break;
       case "pedir-rapido": { const p = prod(d.pid), c = +d.c, v = vr(p, c, d.t), mejor = SEDES.filter(sd => v.otras[sd] > 0).sort((a, b) => v.otras[b] - v.otras[a])[0];
@@ -1496,13 +1496,13 @@ const solo = S.vf === "iconos";
       else { ped++; if (S.pedidos[`${o.pid}|${o.c}|${o.t}`] || estado(v) !== "sin") { pedH++; h++; } } });
     return { h, n: objetivos.length, rep, repH, ped, pedH };
   }
-  const C_ANILLO = 2 * Math.PI * 17;
+  const C_ANILLO = 2 * Math.PI * 13;
   let fraccionVista = null;
   function anilloMision() {
     const { h, n } = avance(), f = n ? h / n : 0;
     return `<button class="mision" data-acc="pendientes" id="mision" aria-label="Hoy: ${h} de ${n} tallas resueltas">
-      <svg width="40" height="40" viewBox="0 0 40 40"><circle class="anillo-fondo" cx="20" cy="20" r="17" fill="none" stroke-width="4"/>
-      <circle class="anillo-avance" cx="20" cy="20" r="17" fill="none" stroke-width="4" stroke-linecap="round" transform="rotate(-90 20 20)" stroke-dasharray="${C_ANILLO}" stroke-dashoffset="${C_ANILLO * (1 - (fraccionVista ?? f))}" data-f="${f}"/></svg>
+      <svg width="32" height="32" viewBox="0 0 32 32"><circle class="anillo-fondo" cx="16" cy="16" r="13" fill="none" stroke-width="3.5"/>
+      <circle class="anillo-avance" cx="16" cy="16" r="13" fill="none" stroke-width="3.5" stroke-linecap="round" transform="rotate(-90 16 16)" stroke-dasharray="${C_ANILLO}" stroke-dashoffset="${C_ANILLO * (1 - (fraccionVista ?? f))}" data-f="${f}"/></svg>
       <span><b>${h} de ${n}</b><small>hoy</small></span></button>`;
   }
   function moverAnillo() {
