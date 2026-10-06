@@ -19,7 +19,6 @@ import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
-import { ReportarDanadaModal } from "@/components/ReportarDanadaModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
@@ -284,10 +283,6 @@ export function InventarioPanel({
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
-  // «Reportar dañada» (ADR-0328 act. 10): la ventana del MODELO con el color que se veía elegido. Se guarda el producto y no una copia
-  // de las filas: tras un rechazo, `router.refresh()` trae lo libre de nuevo y la ventana lo lee de `stock`.
-  const [reportando, setReportando] = useState<{ productoId: string; colorClave: string } | null>(null);
-  const prendasReportando = reportando ? coloresDelModelo(stock, reportando.productoId) : [];
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
   const [eliminando, setEliminando] = useState<{ productoId: string; referencia: string; estado: string | null } | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
@@ -1324,16 +1319,6 @@ export function InventarioPanel({
         />
       )}
 
-      {reportando && prendasReportando.length > 0 && (
-        <ReportarDanadaModal
-          prendas={prendasReportando}
-          colorInicial={reportando.colorClave}
-          ubicacionId={ubicacionId}
-          sede={sedeNombre}
-          alCerrarEnfocar={volverFoco}
-          onClose={() => setReportando(null)}
-        />
-      )}
 
       {viendoDanados && (
         <ResolverDanadosModal

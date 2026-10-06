@@ -16,7 +16,7 @@ import { esFalloDeRed, esRespuestaIncierta, traducirError, type ErrorEscritura }
 import { argumentosDeBajada, formatearHoraLima, interpretarErrorDeBajada, itemsParaRpc, leerRespuestaDeBajada, respuestaResuelveLaMarca, RPC_BAJADA, textoMarcaSinResolver, type LineaBajada } from "@/lib/bajada-reglas";
 import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MAX_NOTA_RETIRO, respuestaResuelveLaMarcaDeRetiro, RPC_RETIRO, textoDelBloqueSubir, textoMarcaSinResolverDeRetiro, tituloDeExitoRetiro } from "@/lib/retiro-reglas";
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
-import { argumentosDeReporte, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA } from "@/lib/danadas-reglas";
+import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
 import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -197,7 +197,12 @@ export function FlujoTalla({
   const router = useRouter();
   const responsable = useResponsable();
   const [i, setI] = useState(pasoInicial);
-  const [d, setD] = useState<DatosFlujo>(() => ({ ...(tipo === "colgarVarias" ? { cant: {} } : {}), ...datosIniciales }));
+  // Reportar dañada: el lugar entra elegido solo si es el ÚNICO con algo libre (`desdeInicial`, ADR-0328: con los dos, lo dice la persona).
+  const [d, setD] = useState<DatosFlujo>(() => ({
+    ...(tipo === "colgarVarias" ? { cant: {} } : {}),
+    ...(tipo === "danada" && separa ? { lugar: desdeInicial(tallasReportables([fila])[0]) ?? undefined } : {}),
+    ...datosIniciales,
+  }));
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Tras una respuesta incierta los datos quedan fijos: cambiarlos sería otro intento y podría mover dos veces.
@@ -241,7 +246,9 @@ export function FlujoTalla({
   const paso = pasos[Math.min(i, pasos.length - 1)];
   const ultimo = i >= pasos.length - 1;
   const bloqueoConteo = tipo === "ajustar" && paso === "motivo" && d.signo === "sumar" && faltoEnConteo;
-  const completo = pasoCompleto(paso, tipo, d, ctx) && !bloqueoConteo;
+  // Con un envío en duda solo falta quién lo hace: se reenvía EXACTAMENTE lo enviado, aunque las cifras releídas ya no lo validen
+  // (si se guardó, lo libre ya bajó; apagar el botón dejaría sin saber qué pasó). La misma regla que tenía «Reportar dañada».
+  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx) && !bloqueoConteo, responsable.listo);
   const nombreSede = (id: string | undefined) => [...destinos, ...origenes].find((s) => s.id === id)?.nombre ?? null;
   const nombreTalla = (varianteId: string) => {
     for (const c of colores) {
@@ -326,7 +333,7 @@ export function FlujoTalla({
     } else {
       sonarConfirmacion();
       avisar.exito(llamada.titulo?.(data) ?? textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), {
-        detalle: `${prenda.referencia}${tipo === "colgarVarias" ? ` · ${llamada.detalle ?? ""}` : `${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`}`,
+        detalle: llamada.recordatorio ?? `${prenda.referencia}${tipo === "colgarVarias" ? ` · ${llamada.detalle ?? ""}` : `${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`}`,
       });
     }
     router.refresh();
@@ -345,6 +352,8 @@ export function FlujoTalla({
     sinResolver?: (enviadoEn: string) => string;
     titulo?: (data: unknown) => string;
     detalle?: string;
+    /** Lo que hay que hacer con la prenda en la mano, en el aviso (Reportar dañada: sacarla del perchero). */
+    recordatorio?: string;
   };
   function armarLlamada(): Llamada | null {
     const n = d.n ?? 0;
@@ -443,6 +452,8 @@ export function FlujoTalla({
           error: (e) => interpretarErrorDeDanada(e, "reportar la prenda dañada").mensaje,
           yaEstaba: (x) => leerRespuestaDanada(x)?.ya_registrada === true,
           resuelve: reporteResuelveLaMarca,
+          titulo: (x) => tituloExitoReporte(leerRespuestaDanada(x)?.unidades ?? n),
+          recordatorio: recordatorioAlReportar(desde),
         };
       }
       default:
@@ -684,8 +695,8 @@ export function FlujoTalla({
           <>
             <Pregunta>{verbo}</Pregunta>
             <div className="grid gap-2 sm:grid-cols-2">
-              <Opcion marcada={d.lugar === "piso"} titulo="En piso" sub={tipo === "danada" ? `${ctx.piso} libres colgadas` : `El sistema dice ${ctx.piso}`} onClick={() => poner({ lugar: "piso", motivo: undefined, n: tipo === "danada" ? Math.min(d.n ?? 0, ctx.piso) : d.n })} deshabilitada={tipo === "danada" && ctx.piso === 0} />
-              <Opcion marcada={d.lugar === "almacen"} titulo="En almacén" sub={tipo === "danada" ? `${ctx.almacen} libres guardadas` : `El sistema dice ${ctx.almacen}`} onClick={() => poner({ lugar: "almacen", motivo: undefined, n: tipo === "danada" ? Math.min(d.n ?? 0, ctx.almacen) : d.n })} deshabilitada={tipo === "danada" && ctx.almacen === 0} />
+              <Opcion marcada={d.lugar === "piso"} titulo="En piso" sub={tipo === "danada" ? `${ctx.piso} libres colgadas` : `El sistema dice ${ctx.piso}`} onClick={() => poner({ lugar: "piso", motivo: undefined, n: tipo === "danada" ? cantidadAjustada(d.n ?? 1, ctx.piso) : d.n })} deshabilitada={tipo === "danada" && ctx.piso === 0} />
+              <Opcion marcada={d.lugar === "almacen"} titulo="En almacén" sub={tipo === "danada" ? `${ctx.almacen} libres guardadas` : `El sistema dice ${ctx.almacen}`} onClick={() => poner({ lugar: "almacen", motivo: undefined, n: tipo === "danada" ? cantidadAjustada(d.n ?? 1, ctx.almacen) : d.n })} deshabilitada={tipo === "danada" && ctx.almacen === 0} />
             </div>
           </>
         );
@@ -782,6 +793,8 @@ export function FlujoTalla({
               onChange={(e) => poner({ nota: e.target.value })}
               className={CLASE_TEXTO}
             />
+            {/* Lo que pasa al reportar, ANTES de confirmar: el acto físico primero (si sigue colgada, se puede vender). */}
+            <p className="mt-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">{quePasaAlReportar(d.lugar ?? null)}</p>
           </>
         );
       case "quien": {
@@ -862,7 +875,7 @@ export function FlujoTalla({
             className={`btn-cayla btn-primario flex-[2] gap-2 ${completo ? "hilo-seguir" : ""}`}
           >
             {ultimo && <IconoFinal aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />}
-            {enviando ? "Guardando…" : ultimo ? (incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
+            {enviando ? "Guardando…" : ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
             {!ultimo && <ArrowRight aria-hidden className="h-4 w-4" />}
             <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>
           </button>

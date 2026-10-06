@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeftRight, Bandage, Barcode, Check, ClipboardList, FileText, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
+import { ArrowLeftRight, Bandage, Barcode, Check, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -15,7 +15,7 @@ import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { accionesDeTalla, diagnosticoDeTalla, type ClaveAccionTalla } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
 import { casiNoHay, fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
-import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { aclaracionDeLaCaja, desgloseDePrenda, estadoTalla, lineaDeLaSuma, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
@@ -196,6 +196,7 @@ export function PanelTalla({
   const origenes: SedeConCantidad[] = sedesParaPedir.map((s) => ({ ...s, cantidad: (fila.enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }));
   const acciones = accionesDeTalla(fila, { puedeReponer, puedeEnviar: puedeEnviar && destinos.length > 0, puedeAjustar, puedeApartar, puedePedir: puedePedir && sedesParaPedir.length > 0, origenes }, separa);
   const diag = diagnosticoDeTalla(fila, separa);
+  const desglose = desgloseDePrenda({ piso: fila.pisoDisponible, almacen: fila.almacenDisponible, apartado: fila.apartado, danado: fila.danado ?? 0 });
   const ritmoTalla = ritmoDePrenda({ ...prenda, tallas: [fila], disponible: fila.disponible });
   const ritmo = textoDeRitmo(ritmoTalla);
   const precio = solesDe(prenda.precio);
@@ -473,6 +474,17 @@ export function PanelTalla({
                       {cifra(fila.apartado, "Apartado", fila.apartado > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined)}
                       {cifra(fila.danado ?? 0, "Dañado", (fila.danado ?? 0) > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined)}
                     </div>
+                    {/* La suma explicada de la talla (Felipe, 2026-10-04: lo que había en el cajón de la prenda) y, en la ⓘ, qué cobra la caja. */}
+                    {desglose && (
+                      <p className="-mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-taupe">
+                        <span className="tabular-nums text-tinta">{lineaDeLaSuma(desglose).cuenta}</span>
+                        {lineaDeLaSuma(desglose).texto}
+                        {lineaDeLaSuma(desglose).aparte && <span>· {lineaDeLaSuma(desglose).aparte}</span>}
+                        <span title={aclaracionDeLaCaja(desglose)} aria-label={aclaracionDeLaCaja(desglose)} role="img" className="inline-flex cursor-help text-taupe">
+                          <Info aria-hidden className="h-3.5 w-3.5" />
+                        </span>
+                      </p>
+                    )}
                     <p className={`rounded-xl px-3 py-2.5 text-sm ${TONO_DIAGNOSTICO[diag.tono]}`}>{diag.texto}</p>
                     {/* Lo que falta en el piso de TODO el modelo (todos sus colores), como en la maqueta. */}
                     {frase && (

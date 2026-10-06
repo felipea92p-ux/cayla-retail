@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { problemasReporte } from "./danadas-reglas";
 import {
   faltanHasta,
   maxCantidad,
@@ -158,5 +159,24 @@ describe("a qué tienda pedir", () => {
   it("el Taller no cuenta, y sin nadie que tenga es null", () => {
     expect(mejorOrigen([{ sede: "Taller", cantidad: 9 }], sedes)).toBeNull();
     expect(mejorOrigen(undefined, sedes)).toBeNull();
+  });
+});
+
+describe("Reportar dañada pregunta a su validación de siempre (no inventa reglas)", () => {
+  it("cada paso está completo si y solo si problemasReporte no tiene problema en su campo, en todas las combinaciones", () => {
+    let n = 0;
+    for (const [piso, almacen] of [[0, 0], [2, 0], [0, 3], [1, 1]])
+      for (const lugar of [undefined, "piso", "almacen"] as const)
+        for (const cantidad of [0, 1, 2, 3])
+          for (const nota of ["", "ab", "Mancha", "x".repeat(201)]) {
+            const c = { ...CTX, piso, almacen };
+            const d = { lugar, n: cantidad, nota };
+            const problemas = problemasReporte({ talla: { varianteId: "", talla: null, piso, almacen }, desde: lugar ?? null, cantidad, motivo: nota }).map((p) => p.campo);
+            expect(pasoCompleto("lugar", "danada", d, c)).toBe(!problemas.includes("desde"));
+            expect(pasoCompleto("cantidad", "danada", d, c)).toBe(!problemas.includes("cantidad"));
+            expect(pasoCompleto("quetiene", "danada", d, c)).toBe(!problemas.includes("motivo"));
+            n++;
+          }
+    expect(n).toBe(4 * 3 * 4 * 4);
   });
 });

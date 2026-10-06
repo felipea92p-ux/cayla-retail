@@ -264,7 +264,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
-  "components/ReportarDanadaModal.tsx": { estado: "aplicada", evidencia: ["components/ReportarDanadaModal.tsx"] },
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
   // quién decide. La nota de «Se botó» / «Donada» es opcional.
   "components/ResolverDanadosModal.tsx": { estado: "aplicada", evidencia: ["components/ResolverDanadosModal.tsx"] },

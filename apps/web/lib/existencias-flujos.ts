@@ -19,7 +19,7 @@
    · El «lo confirma un líder» de Ajustar no existe en la base: el ajuste se guarda con su motivo y queda en Movimientos.
    ==================================================================== */
 
-import { MAX_TEXTO_DANADA, MIN_TEXTO_DANADA } from "./danadas-reglas";
+import { problemasReporte, type CampoReporte } from "./danadas-reglas";
 import { NOTA_MINIMA_ENCONTRE } from "./ajuste-reglas";
 
 export type TipoFlujo = "colgar" | "colgarVarias" | "subir" | "enviar" | "pedir" | "ajustar" | "danada";
@@ -199,7 +199,21 @@ export function motivoPideNotaFlujo(m: MotivoFlujo | undefined): boolean {
 const soloDigitos = (s: string | undefined) => (s ?? "").replace(/\D/g, "");
 export const celularValido = (s: string | undefined) => /^9\d{8}$/.test(soloDigitos(s));
 
+/** Reportar dañada pregunta a SU validación de siempre (`problemasReporte`, la de la base): el paso está completo si no tiene problema. */
+const CAMPO_DANADA: Partial<Record<PasoFlujo, CampoReporte>> = { lugar: "desde", cantidad: "cantidad", quetiene: "motivo" };
+function pasoDeDanadaCompleto(paso: PasoFlujo, d: DatosFlujo, c: ContextoFlujo): boolean | null {
+  const campo = CAMPO_DANADA[paso];
+  if (!campo) return null;
+  const talla = { varianteId: "", talla: null, piso: c.separa ? c.piso : c.piso + c.almacen, almacen: c.separa ? c.almacen : 0 };
+  const desde = c.separa ? (d.lugar ?? null) : "piso";
+  return !problemasReporte({ talla, desde, cantidad: d.n ?? 0, motivo: d.nota ?? "" }).some((p) => p.campo === campo);
+}
+
 export function pasoCompleto(paso: PasoFlujo, tipo: TipoFlujo, d: DatosFlujo, c: ContextoFlujo): boolean {
+  if (tipo === "danada") {
+    const r = pasoDeDanadaCompleto(paso, d, c);
+    if (r !== null) return r;
+  }
   switch (paso) {
     case "cantidad": {
       const n = d.n ?? 0;
@@ -230,10 +244,8 @@ export function pasoCompleto(paso: PasoFlujo, tipo: TipoFlujo, d: DatosFlujo, c:
       if (d.motivo === "encontre") return (d.nota ?? "").trim().length >= NOTA_MINIMA_ENCONTRE;
       if (d.motivo === "otro") return (d.nota ?? "").trim().length >= 3;
       return true;
-    case "quetiene": {
-      const t = (d.nota ?? "").trim().length;
-      return t >= MIN_TEXTO_DANADA && t <= MAX_TEXTO_DANADA;
-    }
+    case "quetiene":
+      return false; // solo existe en Reportar dañada, que responde arriba
     case "quien":
       return c.responsableListo;
   }
