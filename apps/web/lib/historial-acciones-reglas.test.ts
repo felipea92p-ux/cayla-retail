@@ -38,6 +38,7 @@ const fila = (parcial: Partial<FilaHistorial> = {}): FilaHistorial => ({
   esPrueba: false,
   anuladaEn: null,
   ventaItemIds: ["vi1"],
+  itemsPorRegularizar: [],
   posventa: [],
   apartado: null,
   conAnticipo: false,
@@ -119,6 +120,43 @@ describe("accionesDeVenta", () => {
 
   it("una anulada ya no se cambia, devuelve ni anula", () => {
     expect(claves(fila({ anulada: true }))).toEqual(["volver", "comprobante"]);
+  });
+
+  describe("regularizar una prenda vendida sin registrar", () => {
+    const conExistencias: ContextoAcciones = { ...todo, modulos: new Set([...todo.modulos, "existencias"]) };
+    const sinRegistrar = fila({ itemsPorRegularizar: ["vi1"] });
+
+    it("con la prenda pendiente y Existencias a la vista, va primero y destacada; cambiar deja de serlo", () => {
+      const acciones = accionesDeVenta(sinRegistrar, conExistencias);
+      expect(acciones.map((a) => a.clave).slice(0, 2)).toEqual(["regularizar", "cambiar"]);
+      expect(acciones[0]).toMatchObject({ destacada: true, detalle: "Inventario ▸ Existencias" });
+      expect(acciones.find((a) => a.clave === "cambiar")?.destacada).toBe(false);
+    });
+
+    it("con una sola prenda pendiente, lleva a su hoja (?item=) en la sede de la venta", () => {
+      expect(accionesDeVenta(sinRegistrar, conExistencias)[0].href).toBe(`/inventario/por-regularizar?ubicacion=${TRU}&item=vi1`);
+    });
+
+    it("con varias pendientes, lleva a la lista de la sede sin abrir ninguna", () => {
+      const v = fila({ ventaItemIds: ["a", "b"], itemsPorRegularizar: ["a", "b"] });
+      expect(accionesDeVenta(v, conExistencias)[0].href).toBe(`/inventario/por-regularizar?ubicacion=${TRU}`);
+    });
+
+    it("una venta normal, una ya resuelta (sin pendientes) o una anulada no la ofrecen", () => {
+      expect(claves(fila(), conExistencias)).not.toContain("regularizar");
+      expect(claves(fila({ itemsPorRegularizar: [], anulada: true }), conExistencias)).not.toContain("regularizar");
+      expect(claves(fila({ itemsPorRegularizar: ["vi1"], anulada: true }), conExistencias)).not.toContain("regularizar");
+    });
+
+    it("sin el módulo Existencias no se ofrece (quien no lo ve no tiene adónde ir)", () => {
+      expect(claves(sinRegistrar, todo)).not.toContain("regularizar");
+    });
+
+    it("si SUNAT aún espera la boleta, enviarla sigue siendo la principal", () => {
+      const v = fila({ itemsPorRegularizar: ["vi1"], comprobante: { ...fila().comprobante!, estado: "pendiente" } });
+      const acciones = accionesDeVenta(v, conExistencias);
+      expect(acciones.filter((a) => a.destacada).map((a) => a.clave)).toEqual(["reintentar"]);
+    });
   });
 
   it("anular: solo el líder y solo el mismo día de la venta (PL-29)", () => {
