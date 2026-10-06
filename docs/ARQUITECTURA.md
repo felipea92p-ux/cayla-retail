@@ -547,7 +547,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   que redirige aquí) → `app/(app)/inventario/por-regularizar/page.tsx` (puerta del módulo `existencias` en su `layout.tsx`) →
   `lib/por-regularizar.ts` + `PorRegularizarLista.tsx` → RPC `regularizar_prenda` (sin cambios; detalle en «Recibir mercadería»,
   más abajo). Existencias tiene el acceso con su número (`lib/por-regularizar-cuenta.ts`, `contarPorRegularizar`: solo cuenta,
-  con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí. **Cierre de arranque (ADR-0334, 2026-10-04):**
+  con el mismo alcance que la lista); los avisos del Inicio y del Observatorio apuntan aquí. **Desde el detalle de una venta (2026-10-06):** Ventas ▸ Historial ofrece «Regularizar prenda» (`accionesDeVenta`, clave `regularizar`) si la línea tiene su fila de la cola `pendiente` (`FilaHistorial.itemsPorRegularizar`, embebida desde `venta_items`) y lleva a `/inventario/por-regularizar?ubicacion=&item=`, que abre la hoja de esa prenda (`PorRegularizarLista`, prop `abrirItemId`). **Cierre de arranque (ADR-0334, 2026-10-04):**
   un líder da por hechas, en bloque y dentro del plazo de su tienda, las ventas que ya no se pueden identificar → botón en la lista →
   `CerrarColaArranqueModal.tsx` (reglas puras en `lib/cola-arranque-reglas.ts`; plazos por `getPlazosColaArranque`) → RPC `cerrar_cola_arranque`
   (tablas `cierres_cola_arranque` y `cola_arranque_plazo`; estado `cerrada_sin_prenda`, sin prenda y sin movimiento de stock). Cambios y
