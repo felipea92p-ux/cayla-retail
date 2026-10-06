@@ -341,7 +341,7 @@ language plpgsql stable security definer set search_path = retail, public, exten
 begin
   if p_valor is null or btrim(p_valor) = '' then return null; end if;
   return case
-    when p_campo in ('color', 'color_codigo') or p_campo like 'temporada:%' then (select c.hex from retail.colores c where c.codigo = p_valor)
+    when p_campo in ('color', 'color_codigo') then (select c.hex from retail.colores c where c.codigo = p_valor)
     when p_campo = 'variante_nueva' then (select c.hex from retail.colores c where c.codigo = (p_valor::jsonb ->> 'color'))
     else null
   end;
@@ -351,7 +351,10 @@ end;
 $fn$;
 revoke all on function retail.fn_historial_hex(text, text) from public, anon, authenticated;
 
-create or replace function retail.fn_historial_prenda(p_producto_id uuid)
+-- Se borra antes de crearla: cambiar las columnas que devuelve no se puede con `create or replace` (drop function no toma
+-- los candados de auth/storage, ADR-0195).
+drop function if exists retail.fn_historial_prenda(uuid);
+create function retail.fn_historial_prenda(p_producto_id uuid)
 returns table (
   id uuid,
   created_at timestamptz,
@@ -371,7 +374,10 @@ returns table (
   usuario_nombre text,
   usuario_rol text,
   usuario_sede text,
-  sede text
+  sede text,
+  -- La excepción de temporada de UN color (`temporada:NEG`): el nombre y el color de ese color.
+  campo_color text,
+  campo_hex text
 )
 language sql stable security definer set search_path = retail, public, extensions as $$
   with filas as (
@@ -403,12 +409,13 @@ language sql stable security definer set search_path = retail, public, extension
          retail.fn_historial_nombre(f.campo, f.valor_anterior), retail.fn_historial_nombre(f.campo, f.valor_nuevo),
          retail.fn_historial_hex(f.campo, f.valor_anterior), retail.fn_historial_hex(f.campo, f.valor_nuevo),
          f.v_id, co.nombre, co.hex, ta.valor,
-         f.usuario_id, q.nombre, q.rol, q.sede, ub.nombre
+         f.usuario_id, q.nombre, q.rol, q.sede, ub.nombre, cc.nombre, cc.hex
     from filas f
     left join retail.colores co on co.codigo = f.v_color
     left join retail.tallas ta on ta.id = f.v_talla
     left join quien q on q.id = f.usuario_id
     left join retail.ubicaciones ub on ub.id = f.ubicacion_id
+    left join retail.colores cc on f.campo like 'temporada:%' and cc.codigo = substr(f.campo, 11)
   union all
   -- El nacimiento: quién, cuándo y dónde (`producto_origen`, ADR-0283), con lo que traía (las variantes nacidas con ella y su
   -- precio de entonces: el primer «antes» del ledger o, si nunca cambió, el de hoy).
@@ -419,6 +426,9 @@ language sql stable security definer set search_path = retail, public, extension
                                 order by h.created_at, h.id limit 1),
                               (select p.referencia from retail.productos p where p.id = n.producto_id)),
            'categoria', (select k.nombre from retail.productos p join retail.categorias k on k.id = p.categoria_id where p.id = n.producto_id),
+           -- Para dibujarla sin foto como siempre (ADR-0333): el ícono sale del prefijo, el tono de la familia.
+           'prefijo', (select k.prefijo from retail.productos p join retail.categorias k on k.id = p.categoria_id where p.id = n.producto_id),
+           'familia', (select k.familia from retail.productos p join retail.categorias k on k.id = p.categoria_id where p.id = n.producto_id),
            'colores', coalesce((select jsonb_agg(distinct jsonb_build_object('nombre', c.nombre, 'hex', c.hex))
                                   from retail.variantes v join retail.colores c on c.codigo = v.color_codigo
                                  where v.producto_id = n.producto_id and v.created_at = n.cuando), '[]'::jsonb),
@@ -433,7 +443,7 @@ language sql stable security definer set search_path = retail, public, extension
          )::text,
          null, null, null, null,
          null, null, null, null,
-         n.persona_id, q.nombre, q.rol, q.sede, ub.nombre
+         n.persona_id, q.nombre, q.rol, q.sede, ub.nombre, null, null
     from nacio n
     left join quien q on q.id = n.persona_id
     left join retail.ubicaciones ub on ub.id = n.ubicacion_id;

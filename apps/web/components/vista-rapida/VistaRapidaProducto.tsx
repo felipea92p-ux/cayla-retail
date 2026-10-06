@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Info, PackageOpen, Pencil, Printer, Trash2 } from "lucide-react";
+import { History, Info, PackageOpen, Pencil, Printer, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -17,6 +17,8 @@ import { rangoSoles } from "@/lib/productos-vista";
 import { alternarVariantes, armarMatriz, etiquetasDeLaSeleccion, soloLasQueExisten } from "@/lib/vista-rapida-producto-reglas";
 import { FotoVistaRapida } from "./FotoVistaRapida";
 import { MatrizUnidades } from "./MatrizUnidades";
+import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
+import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
 
 const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
 
@@ -26,6 +28,10 @@ const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
  * quedaban bajo el pliegue. Ahora las variantes son una matriz color × talla (6 filas en vez de 18), la foto sigue al color que se señala, el
  * precio se dice UNA vez y los botones viven en un pie fijo. Para etiquetar se elige una celda, un color o una talla, y el botón dice qué
  * va a imprimir. El movimiento, con su excepción escrita, es el de ADR-0136 «Actualización 2026-10-05» (vista-rapida.css).
+ *
+ * «Historial» (ADR-0354, maqueta A elegida por Felipe el 2026-10-06): la hoja NO se cierra, da vuelta la página. Lo de la ficha sale
+ * corto hacia la izquierda y el hilo de cambios entra desde la derecha; «← Volver» hace lo inverso. Solo cambios de la prenda
+ * (precio, colores, etiquetas, ficha, fotos) y quién los hizo: las ventas y el stock viven en Movimientos.
  *
  * El stock sigue siendo el de siempre —`useStockEnSede`, la tabla `stock` de la sede—; lo de las otras sedes sale de `existencias` (la
  * cifra única de ADR-0270) y solo se NOMBRA, nunca se suma a lo de «aquí»: dos cifras de «aquí» que no coinciden confunden.
@@ -39,6 +45,7 @@ export function VistaRapidaProducto({
   colorInicial,
   onClose,
   veExistencias,
+  veMovimientos = false,
   puedeEditar,
   puedeEliminar,
   onEliminar,
@@ -54,6 +61,8 @@ export function VistaRapidaProducto({
   onClose: () => void;
   /** ¿Ve el módulo Existencias? «Ver en Existencias» se ofrece solo a quien lo ve. */
   veExistencias: boolean;
+  /** ¿Ve Movimientos? El historial enlaza ahí las ventas y el stock, que no muestra. */
+  veMovimientos?: boolean;
   /** Quien edita el catálogo (`fn_puede_editar_catalogo`): sin eso, «Editar» rebotaba en silencio a /productos (hallazgo #4 de docs/pantallas/productos.md). */
   puedeEditar: boolean;
   puedeEliminar: boolean;
@@ -93,10 +102,33 @@ export function VistaRapidaProducto({
   const nVariantes = matriz.nVariantes;
   const descontinuado = producto.estado !== "activo";
 
+  // La vuelta de página ficha ↔ historial: lo de antes sale (190 ms), después entra lo nuevo (ADR-0136, respuesta a un clic).
+  const [pagina, setPagina] = useState<"ficha" | "historial">("ficha");
+  const [paso, setPaso] = useState<"" | "hp-sale-izq" | "hp-sale-der" | "hp-entra-der" | "hp-entra-izq">("");
+  const [yaAbrioHistorial, setYaAbrioHistorial] = useState(false);
+  const historial = useHistorialPrenda(producto.productoId, yaAbrioHistorial);
+  const irA = (destino: "ficha" | "historial") => {
+    if (destino === pagina) return;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (destino === "historial") setYaAbrioHistorial(true);
+    setPaso(destino === "historial" ? "hp-sale-izq" : "hp-sale-der");
+    window.setTimeout(() => {
+      setPagina(destino);
+      setPaso(destino === "historial" ? "hp-entra-der" : "hp-entra-izq");
+      window.setTimeout(() => setPaso(""), 440);
+    }, quieto ? 0 : 190);
+  };
+  const hrefMovimientos = veMovimientos ? `/inventario/movimientos?q=${encodeURIComponent(producto.codigo ?? producto.referencia)}` : null;
+
   return (
     <Modal
-      titulo={<span className="vr-titulo">{producto.referencia}</span>}
+      titulo={<span className="vr-titulo">{pagina === "historial" ? "Historial" : producto.referencia}</span>}
       subtitulo={
+        pagina === "historial" ? (
+          <span className="vr-meta">
+            <span className="vr-dato">«{producto.referencia}» · lo que cambió en esta prenda, quién lo hizo y cuándo</span>
+          </span>
+        ) : (
         <span className="vr-meta">
           <span className="vr-dato vr-cod" style={{ ["--vr-j" as string]: 0 }}>
             {producto.codigo ?? "sin código"}
@@ -124,12 +156,26 @@ export function VistaRapidaProducto({
             <b>{matriz.filas.length}</b> {matriz.filas.length === 1 ? "color" : "colores"} · <b>{matriz.columnas.length}</b> {matriz.columnas.length === 1 ? "talla" : "tallas"}
           </span>
         </span>
+        )
       }
       onClose={onClose}
       ancho="max-w-4xl"
       conCerrar
       tituloGrande
     >
+      {pagina === "historial" ? (
+        <div className={paso}>
+          <HistorialPrenda
+            lectura={historial.lectura}
+            nombre={producto.referencia}
+            totalVariantes={nVariantes}
+            hrefMovimientos={hrefMovimientos}
+            onVolver={() => irA("ficha")}
+            onReintentar={historial.reintentar}
+          />
+        </div>
+      ) : (
+      <div className={paso}>
       <div className="vr-cuerpo">
         <aside className="vr-lado">
           <FotoVistaRapida producto={producto} fila={filaEnFoto} />
@@ -209,6 +255,11 @@ export function VistaRapidaProducto({
               {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}
             </span>
           </EnlaceEtiquetas>
+          {/* ADR-0354: entre «Etiquetas» y «Ver en Existencias». No navega: la hoja da vuelta la página. */}
+          <button type="button" onClick={() => irA("historial")} className={BOTON} data-ir-historial>
+            <History aria-hidden className="h-4 w-4" />
+            Historial
+          </button>
           {hrefExistencias && (
             <Link href={hrefExistencias} className="btn-cayla btn-primario min-h-10 text-[12.5px]">
               <PackageOpen aria-hidden className="h-4 w-4" />
@@ -226,6 +277,8 @@ export function VistaRapidaProducto({
           )}
         </div>
       </div>
+      </div>
+      )}
     </Modal>
   );
 }

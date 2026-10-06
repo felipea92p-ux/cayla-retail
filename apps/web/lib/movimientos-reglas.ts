@@ -1,4 +1,3 @@
-import type { TonoChip } from "@/components/ui/Chip";
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
 import type { Cantidades } from "./inventario-reglas";
@@ -58,16 +57,6 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
   { valor: "interno", etiqueta: "Piso ↔ almacén" },
   { valor: "ajuste", etiqueta: "Ajustes" },
 ];
-
-// Sobrio a propósito: verde = llegó mercadería (del proveedor o de otra sede: para la tienda es lo mismo), ámbar = se
-// movió dentro de la tienda (piso ↔ almacén), rojo = un ajuste que RESTA (hay que mirarlo), el resto neutro. Un ajuste
-// que suma no es alarma.
-export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip {
-  if (categoria === "entrada" || (categoria === "transferencia" && delta > 0)) return "verde";
-  if (categoria === "interno" || categoria === "apartado" || categoria === "liberacion_apartado") return "ambar";
-  if (categoria === "ajuste" && delta < 0) return "rojo";
-  return "neutro";
-}
 
 /** El proceso que originó el movimiento (`movimientos.motivo`). Los de
  *  operación los escriben las RPC; los de «sistema» son cargas hechas por

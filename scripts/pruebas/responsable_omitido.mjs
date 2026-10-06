@@ -169,7 +169,8 @@ caso(
 // 28 de la siembra (20260929230000) y, con todas las migraciones, 3 más de Avisos del club (20261002170000) y 3 de la cola de arranque
 // de ventas sin registrar (cerrar, reabrir e identificar: 20261005100100, 20261005110000 y 20261005120000; ADR-0334). Es el MISMO número que
 // fija `apps/web/lib/responsable-omitido.test.ts`, que lo cuenta leyendo las migraciones: sumar una acción es sumarla en los dos.
-const TOTAL = EN_SECO ? "28" : "34";
+// Menos una: Editar producto (`producto_confirmar_cambios`) vuelve a pedir responsable desde 20261006180100 (ADR-0354).
+const TOTAL = EN_SECO ? "28" : "33";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
 caso(
