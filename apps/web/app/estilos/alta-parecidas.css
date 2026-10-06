@@ -7,7 +7,7 @@
    ALTURA DE LA TARJETA DEL RESUMEN. A propósito es más baja que la de la maqueta (218 px contra 254: fila de 40 px con mouse y 44 con el dedo, miniatura de
    36, botón de 32, hueco de 6, relleno de 10/12; README, «Falta confirmar» 9). Aun así el resumen (`lg:sticky lg:top-6`) sigue siendo más alto que una
    pantalla de 800 px y «Crear producto» queda fuera de la vista: NO se resuelve achicando la alerta (medido: en 11 de 14 estados a 800 px). Lo resuelve quien
-   integra, en el `<aside>` de `FichaPrevia.tsx`: el aside tiene `lg:max-h-[calc(100dvh-3rem)]`, la ficha + la alerta + «Avance» corren por su cuenta
+   integra, en el `<aside>` de `FichaPrevia.tsx`: el aside tiene `lg:max-h-[calc(100dvh-3rem)]`, la ficha y la alerta corren por su cuenta
    (`overflow-y-auto`) y «Cancelar / Crear producto / Siguiente» quedan FIJOS abajo (`shrink-0`): el botón nunca se esconde. */
 
 /* ---- La región que se anuncia (aria-live) ----
@@ -47,7 +47,7 @@
   outline-offset: -2px;
 }
 
-/* ---- La tarjeta del resumen: entre la ficha y «Avance» ---- */
+/* ---- La tarjeta del resumen: bajo la ficha ---- */
 /* La receta de tonos (borde al 40 %, fondo al 6 %, tinta) es la de `AvisoInline` (`piezas.tsx`), a propósito repetida aquí: es una tarjeta propia de la maqueta, y
    `AvisoInline` no tiene el tono pizarra (informativa). Si algún día `AvisoInline` lo trae, esta tarjeta puede usarlo. */
 .parecidas-alerta {

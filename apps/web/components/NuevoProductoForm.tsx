@@ -24,7 +24,8 @@ import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { ParecidasBajoNombre, PieConParecidas, RevisaParecidasDelPaso } from "@/components/alta-producto/ParecidasDelAlta";
 import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
 import { asegurarVisible, estaEscribiendo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
-import { FichaPrevia, type PasoAvance } from "@/components/alta-producto/FichaPrevia";
+import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
+import { PuntosAvance, type PasoConNombre } from "@/components/alta-producto/PuntosAvance";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidasAlta } from "@/lib/useParecidasAlta";
@@ -103,14 +104,15 @@ const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 // casillas de fotos, tabla de variantes, tabla de stock); había tres marcadores de avance a la vez (barra de 5 segmentos,
 // números del acordeón y la caja «Siguiente paso»); y tejido y patrón, que DESCRIBEN la prenda, vivían con sus variantes.
 // Ahora tejido y patrón van con el nombre; la tabla se arma una vez (paso 3) y en el 4 se llena; y el único marcador de
-// avance, además del acordeón, es la lista «Avance» bajo la ficha.
+// avance son los 4 puntos de arriba (`PuntosAvance`, ADR-0260 act. 2026-10-06): reemplazaron a los números del acordeón y a
+// la lista «Avance» de la ficha.
 // TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», a la vista al abrir el paso pero plegables (plegado, la
 // línea dice lo elegido): son opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas
 // conservan su selector con dibujo por concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto
 // o dibujo real (`contexto.imagenes`).
-// Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
-// punteada. A la derecha, la prenda tal como va a quedar y la lista «Avance» (las 4 preguntas, tocables). En celular esa
-// ficha baja a una barra pegada abajo con «Crear».
+// Se dibuja solo el paso abierto (desde el 2026-10-06; antes el terminado se plegaba en una línea con «Cambiar» y el que
+// venía era una línea punteada): a un paso hecho se vuelve tocando su punto, o con «← Atrás» al pie del paso. A la derecha,
+// la prenda tal como va a quedar. En celular esa ficha baja a una barra pegada abajo con «Crear».
 //
 // Diseñado para que equivocarse sea difícil, no para avisar después:
 //   * la categoría se elige con tarjetas (arrastra prefijo, tallas, tejidos) y al elegirla se pasa sola al paso 2;
@@ -134,6 +136,14 @@ const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
 //
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
+
+/** El nombre de cada paso bajo su punto de avance: [escritorio, celular] (en 375 px los cuatro tienen que caber). */
+const NOMBRES_PUNTO: Record<NumeroPaso, [string, string]> = {
+  1: ["Categoría", "Categoría"],
+  2: ["Cómo es", "Cómo es"],
+  3: ["Tallas y colores", "Tallas"],
+  4: ["Precio y cantidad", "Precio"],
+};
 
 const TITULOS: Record<NumeroPaso, string> = {
   1: "¿A qué categoría pertenece?",
@@ -726,7 +736,7 @@ export function NuevoProductoForm({
     );
   }
 
-  // ---------- la línea de cada paso plegado (y de la lista «Avance» de la ficha) ----------
+  // ---------- lo contestado en cada paso: sale al dejar el mouse sobre su punto de avance ----------
   const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
   // Lo que dice «Temporada y etiquetas · opcional» plegado: solo lo que se eligió a propósito.
   const resumenMas =
@@ -774,7 +784,13 @@ export function NuevoProductoForm({
     const listo = listoBase && faltan.length === 0 && !revisa;
     // Lo que lee el lector de pantalla cuando «Falta: …» está a la vista: por qué «Crear» espera, o qué hay por revisar.
     const texto = n === 2 ? (parecidos.motivoBloqueo ?? revisa ?? textoBase) : textoBase;
-    const accion =
+    // «← Atrás» (Felipe, 2026-10-06): vuelve al paso anterior sin borrar nada de lo llenado. Va antes de la acción que cierra el paso.
+    const atras = (
+      <button type="button" onClick={() => irAPaso((n - 1) as NumeroPaso)} disabled={cargando} className="btn-cayla btn-secundario">
+        <span aria-hidden>←</span> Atrás
+      </button>
+    );
+    const cierre =
       n < 4 ? (
         <button
           type="button"
@@ -795,6 +811,12 @@ export function NuevoProductoForm({
           {textoCrear}
         </button>
       );
+    const accion = (
+      <>
+        {atras}
+        {cierre}
+      </>
+    );
     const faltanTocables = faltan.length > 0 ? <FaltanDelPaso faltan={faltan} ahora={ahoraCampo} onIr={irACampo} /> : undefined;
     return {
       texto,
@@ -1160,9 +1182,9 @@ export function NuevoProductoForm({
     );
   }
 
-  // La lista «Avance» de la ficha: cada pregunta con su resumen (contestada), lo que le falta (abierta) o «—» (todavía no
-  // se llega). Se toca para volver a una; la que no se alcanza no responde.
-  const avance: PasoAvance[] = PASOS_ALTA.map((n) => {
+  // Los puntos de avance (ADR-0260 act. 2026-10-06): cada pregunta con su estado y, al dejar el mouse encima, su resumen (contestada),
+  // lo que le falta (abierta) o «—» (todavía no se llega). Un punto hecho se toca para volver a ese paso; el que no se alcanza no responde.
+  const avance: PasoConNombre[] = PASOS_ALTA.map((n) => {
     const e = estadoPaso(n);
     const abrible = e !== "pendiente" || pasoAbrible(problemas, n);
     const pieN = n === 1 ? null : piePaso(problemas, n, responsableAlta);
@@ -1184,7 +1206,7 @@ export function NuevoProductoForm({
             : abrible
               ? (faltanN ?? (faltaDelPasoProblema(problemas, n) ?? "Por revisar"))
               : "—";
-    return { numero: n, titulo: TITULOS[n], estado: e, texto, abrible };
+    return { numero: n, nombre: NOMBRES_PUNTO[n][0], nombreCorto: NOMBRES_PUNTO[n][1], estado: e, detalle: texto === "—" ? "" : texto, abrible };
   });
 
   return (
@@ -1199,9 +1221,10 @@ export function NuevoProductoForm({
           }}
           className="space-y-4"
         >
-          {/* Sin barra de pasos arriba (spike v2): el avance se lee en el acordeón y en la lista «Avance» de la ficha. */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
             <div className="min-w-0 space-y-2.5">
+              {/* Los 4 puntos, pegados arriba mientras se baja por el paso (ADR-0260 act. 2026-10-06). */}
+              <PuntosAvance pasos={avance} onAbrir={(n) => irAPaso(n as NumeroPaso)} />
               <QuienRegistra control={responsable} deshabilitado={cargando} />
               <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
               {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
@@ -1219,11 +1242,10 @@ export function NuevoProductoForm({
                   temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
                 </AvisoInline>
               )}
-              {PASOS_ALTA.map((n) => (
-                <PasoAlta key={n} numero={n} titulo={TITULOS[n]} estado={estadoPaso(n)} resumen={resumen[n]} onAbrir={() => irAPaso(n)} pie={pie(n)}>
-                  {cuerpo(n)}
-                </PasoAlta>
-              ))}
+              {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
+              <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
+                {cuerpo(paso)}
+              </PasoAlta>
             </div>
 
             <FichaPrevia
@@ -1241,13 +1263,11 @@ export function NuevoProductoForm({
                 colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
                 foto: fotosOrdenadas[0]?.vista ?? null,
                 fotos: fotos.length,
-                avance,
                 siguiente: siguienteDelAlta(problemas, responsableAlta),
                 guia: hilo ? { texto: hilo.campo.pendiente, nombre: hilo.campo.nombre, bloquea: hilo.bloquea, onIr: () => irACampo(hilo.campo) } : null,
               }}
               cargando={cargando}
               onCancelar={() => salida.pedirSalir("/productos")}
-              onAbrirPaso={irAPaso}
               parecidas={parecidos.ficha}
             />
           </div>
