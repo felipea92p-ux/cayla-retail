@@ -47,13 +47,25 @@ code{font-size:12.5px;background:var(--hueso);padding:1px 5px;border-radius:4px;
 
 /* barra fija: buscar + escanear + filtros */
 .barra{background:var(--papel);border-bottom:1px solid var(--sand);padding:12px 16px 10px;display:grid;gap:10px}
-.fila-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.titulo-app{display:grid;gap:2px;margin-right:auto;min-width:0}
-.titulo-app h1{font-size:28px;line-height:1}
-.titulo-app small{font-size:12px;color:var(--taupe)}
-.cifras{display:flex;gap:14px;align-items:baseline;font-size:12.5px;color:var(--taupe)}
-.cifras b{font:500 22px/1 var(--serif);color:var(--tinta);margin-right:4px}
-.cifras em{font-style:normal;color:var(--ambar)}
+.fila-top{display:flex;gap:16px 32px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+/* La cabecera es la del ERP publicado (2026-10-06, Felipe: «mantén este formato»): sede y fecha sobre su hilo, el título grande, la frase
+   y, a la derecha, el recuadro de cifras (EncabezadoPagina + ResumenSede, ADR-0220). La ropa colgada va contra lo que cabe; los
+   accesorios, que no van al riel, se cuentan aparte (ADR-0329). */
+.enc-app{min-width:0}
+.ceja-app{display:flex;align-items:center;gap:12px;margin:0;font:600 11px/1.3 var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.ceja-app i{display:block;width:32px;height:1px;background:var(--taupe);flex:none}
+.enc-app h1{font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.frase-app{margin:10px 0 0;max-width:28rem;font-size:15px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.resumen-app{display:flex;border-radius:20px;background:color-mix(in srgb,var(--papel) 70%,transparent);box-shadow:0 22px 44px -30px color-mix(in srgb,var(--tinta) 50%,transparent),0 0 0 1px color-mix(in srgb,var(--tinta) 7%,transparent)}
+.resumen-app>div{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 24px;min-width:9.5rem}
+.resumen-app>div+div::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:linear-gradient(transparent,color-mix(in srgb,var(--tinta) 20%,transparent),transparent)}
+.resumen-app .cifra{margin:0;white-space:nowrap}
+.resumen-app b{font:500 42px/1 var(--serif);color:var(--tinta);font-variant-numeric:lining-nums tabular-nums}
+.resumen-app small{margin-left:4px;font:500 13px var(--sans);color:var(--taupe)}
+.resumen-app .etq-cifra{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.resumen-app .etq-cifra svg{width:14px;height:14px;color:var(--taupe);flex:none}
+.resumen-app em{margin-top:4px;font-style:normal;font-size:12px;color:var(--taupe)}
+@container (max-width: 640px){.enc-app h1{font-size:36px}.resumen-app{width:100%}.resumen-app>div{flex:1;min-width:0;padding:12px 8px}.resumen-app b{font-size:30px}.resumen-app small{display:block;margin:4px 0 0;font-size:11px}}
 .pendientes{border:1px solid var(--sand);background:var(--crema);border-radius:999px;padding:8px 14px;font-size:14px;display:inline-flex;gap:8px;align-items:center;min-height:44px}
 .pendientes .pt{width:9px;height:9px;border-radius:50%;background:var(--rojo)}
 .buscar{display:flex;gap:10px}
@@ -662,7 +674,7 @@ table.t td:first-child{font-weight:600}
     </div>
 
     <h2 id="d5" style="margin-top:20px">Lo que cambió el 6 de octubre</h2>
-    <p class="bajada" style="margin-top:0">Lo mismo se construyó en el ERP (ADR-0344, «Actualización 2026-10-06» y sus vueltas). Donde la maqueta y el ERP se apartan, se dice. La barra nueva (buscador a lo ancho, la vista dentro de Filtros) es la que se elige quedar.</p>
+    <p class="bajada" style="margin-top:0">Lo mismo se construyó en el ERP (ADR-0344, «Actualización 2026-10-06» y sus vueltas). Donde la maqueta y el ERP se apartan, se dice. La barra nueva (buscador a lo ancho, la vista dentro de Filtros) es la que se elige quedar, y la cabecera es la del ERP publicado (sede y fecha sobre su hilo, título, frase y el recuadro de cifras).</p>
     <div class="decision">
       <p><span class="k">Decidí</span>Arriba queda solo lo que se usa a cada rato: el buscador (40 px de alto y con ancho tope, ya no toda la fila), Escanear, Filtros como un solo icono y, a su lado, el anillo de lo que toca hoy; debajo, los atajos con su nombre. Lo que se cambia una vez por turno pasó dentro de Filtros, en tres filas con nombre: <b>Prenda</b> (Categoría, Talla, Color, Marca), <b>Gestión</b> (Hoy, Condición) y <b>Vista</b> (Ver como: Tarjetas, Tabla o Por talla; Ordenar por, solo con las tarjetas; en el ERP también Sonido al confirmar). Como la barra quedó con menos piezas, el buscador toma todo el ancho que queda. Si el orden o la vista no son los de siempre, una pastilla lo dice junto a la cuenta («Orden: A–Z ×», «Vista: Tabla ×») y lo devuelve con un toque.</p>
       <p><span class="k">Descarté</span>Dejar el orden, el sonido y el icono de tabla o tarjetas en la fila del buscador, junto a la cuenta y el anillo: la fila se sentía congestionada, que fue justo el pedido. También descarté meter los atajos dentro de Filtros: son lo que más se toca en el piso. Y un buscador de ancho fijo: dejaba media barra vacía.</p>
@@ -787,6 +799,8 @@ table.t td:first-child{font-weight:600}
     ajustar:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/><circle cx="12" cy="12" r="9"/></svg>',
     ficha:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
     check:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    prenda:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 4l4 2 4-2 4 4-2.5 2.5L16 9v11H8V9l-1.5 1.5L4 8z"/></svg>',
+    caja:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
   };
   const FIG = {
     pantalon:'<path d="M8 3h8l1 18h-3.5L12 10l-1.5 11H7z"/>',
@@ -847,9 +861,9 @@ table.t td:first-child{font-weight:600}
   const TONO_F = { reponer:"ambar", sin:"pizarra", apart:"tinta", dan:"ambar", acaban:"ambar", quietas:"pizarra" };
   const coincide = p => !S.q || norm(`${p.nombre} ${p.marca} ${p.cat} ${p.familia} ${p.codigo} ${p.colores.map(c => c.n).join(" ")}`).includes(norm(S.q));
   const totales = () => {
-    let piso = 0, alm = 0;
-    P.forEach(p => p.colores.forEach(col => Object.values(col.tallas).forEach(v => { piso += v.piso; alm += v.alm; })));
-    return { piso: 118 - 23 + piso, alm: 862 - 70 + alm }; // ancla a las cifras reales de la captura
+    let piso = 0, alm = 0, acc = 0;
+    P.forEach(p => p.colores.forEach(col => Object.values(col.tallas).forEach(v => { if (p.familia === "Indumentaria") piso += v.piso; else acc += v.piso; alm += v.alm; })));
+    return { piso: 118 - 23 + piso, acc, alm: 862 - 70 + alm }; // ancla a las cifras reales de la captura; los accesorios no van al riel (ADR-0329)
   };
   function renderBarra() {
     const t = totales();
@@ -859,8 +873,15 @@ table.t td:first-child{font-weight:600}
     const chip = ([k, txt]) => `<button class="chip-f" aria-pressed="${S.filtro === k}" data-acc="filtro" data-k="${k}" data-tono="${TONO_F[k] || "tinta"}">${ICON_F[k]}<span>${txt}</span><b>${n(k)}</b></button>`;
     document.getElementById("barra").innerHTML = `
       <div class="fila-top">
-        <div class="titulo-app"><h1>Existencias</h1><small>Tienda TRU · vista de las 09:28</small></div>
-        <div class="cifras"><span><b class="num" data-cuenta="tot-piso">${t.piso}</b>en piso de 600 · <em>por cuadrar</em></span><span><b class="num" data-cuenta="tot-alm">${t.alm}</b>en almacén</span></div>
+        <div class="enc-app">
+          <p class="ceja-app"><i aria-hidden="true"></i>Tienda TRU · martes, 6 de octubre · vista de las 09:28</p>
+          <h1>Existencias</h1>
+          <p class="frase-app">Lo que hay colgado y guardado en la tienda, y lo que toca hacer hoy.</p>
+        </div>
+        <section class="resumen-app" aria-label="Resumen de Tienda TRU">
+          <div><p class="cifra"><b class="num" data-cuenta="tot-piso">${t.piso}</b><small>de 600 · por cuadrar</small></p><span class="etq-cifra">${IC.prenda}Colgadas en el piso</span>${t.acc ? `<em>+ ${t.acc} accesorios</em>` : ""}</div>
+          <div><p class="cifra"><b class="num" data-cuenta="tot-alm">${t.alm}</b></p><span class="etq-cifra">${IC.caja}Guardadas en el almacén</span></div>
+        </section>
       </div>
       <div class="herr">
         <div class="buscador">
