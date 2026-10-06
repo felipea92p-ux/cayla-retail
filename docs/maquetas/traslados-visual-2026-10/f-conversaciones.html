@@ -38,6 +38,7 @@
 .cf-1 time.pend{color:var(--ambar);font-weight:700}
 .cf-2 .prev{font-size:12.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;min-width:0}
 .cf-2 .prev svg{flex:none}
+.cf-2 .prev .urg{color:var(--ambar);font-weight:700}
 .badge{min-width:22px;height:22px;border-radius:99px;background:var(--ambar);color:var(--papel);font-size:11.5px;font-weight:800;display:grid;place-items:center;padding:0 6px;flex:none}
 .badge.pop{animation:pop .4s var(--ease)}
 @keyframes pop{from{transform:scale(.4)}to{transform:none}}
@@ -192,7 +193,7 @@ function mensajes(X, s) {
     M.eventos(t).forEach(ev => {
       const base = { id:`t${t.num}-${ev.k}`, cuando:ev.cuando, t };
       if (ev.k === 'salio') ms.push({ ...base, tipo:'caja', mio: t.de === s });
-      else if (ev.k === 'conteo') ms.push({ ...base, tipo:'sistema', texto:`${persona(ev.quien)} empezó a contar la caja Nº ${t.num}` });
+      else if (ev.k === 'conteo') ms.push({ ...base, tipo:'conteo', mio: t.a === s, quien: ev.quien });
       else if (ev.k === 'anulado') ms.push({ ...base, tipo:'sistema', texto:`${persona(ev.quien)} anuló la caja Nº ${t.num}: «${t.motivo}»` });
       else ms.push({ ...base, tipo:ev.k, mio: t.a === s });
     });
@@ -209,16 +210,18 @@ const pendientesCon = (X, s) => M.tareas(s).filter(x => x.t ? x.t.de === X : x.p
 M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
   const s = M.sede;
   const otras = Object.keys(M.SEDES).filter(x => x !== s);
+  const urgencia = c => c.pend.length ? Math.min(...c.pend.map(x => x.prio)) : 99;
   const chats = otras.map(X => { const ms = mensajes(X, s); return { X, ms, ult: ms[ms.length - 1], pend: pendientesCon(X, s) }; })
-    .sort((a, b) => (b.pend.length > 0) - (a.pend.length > 0) || ((b.ult?.cuando || 0) - (a.ult?.cuando || 0)));
+    .sort((a, b) => urgencia(a) - urgencia(b) || ((b.ult?.cuando || 0) - (a.ult?.cuando || 0)));
   if (!est.chat || !otras.includes(est.chat)) est.chat = chats[0].X;
   const tareas = M.tareas(s);
-  const cuenta = { contar: tareas.filter(x => x.tipo === 'llega' || x.tipo === 'atraso' || x.tipo === 'contando').length, revisar: tareas.filter(x => x.tipo === 'revisar').length, enviar: tareas.filter(x => x.tipo === 'pedido').length };
+  const cuenta = { atraso: tareas.filter(x => x.tipo === 'atraso').length, contar: tareas.filter(x => x.tipo === 'llega' || x.tipo === 'contando').length, revisar: tareas.filter(x => x.tipo === 'revisar').length, enviar: tareas.filter(x => x.tipo === 'pedido').length };
   raiz.innerHTML = M.encabezado({ frase:'Una conversación por sede: cada caja es un mensaje.' }) + `
     <section class="chat-app ${est.abierta ? 'abierta' : ''}" data-propio>
       <aside class="chats">
         <div class="chats-top"><label class="campo">${M.ic('buscar')}<input id="q" type="search" placeholder="Busca una sede o una prenda" autocomplete="off"></label></div>
         <div class="para-hoy">${tareas.length ? `<span class="lbl">Para hoy</span>
+          ${cuenta.atraso ? `<button class="ph s-atraso" data-ir="atraso"><span class="sello" data-go>${M.glifo('llega')}</span>${cuenta.atraso === 1 ? 'Atrasada' : 'Atrasadas'} ${cuenta.atraso}</button>` : ''}
           ${cuenta.contar ? `<button class="ph s-llega" data-ir="contar"><span class="sello" data-go>${M.glifo('llega')}</span>Contar ${cuenta.contar}</button>` : ''}
           ${cuenta.revisar ? `<button class="ph s-revisar" data-ir="revisar"><span class="sello" data-go>${M.glifo('revisar')}</span>Revisar ${cuenta.revisar}</button>` : ''}
           ${cuenta.enviar ? `<button class="ph s-pedido" data-ir="enviar"><span class="sello" data-go>${M.glifo('pedido')}</span>Enviar ${cuenta.enviar}</button>` : ''}`
@@ -231,12 +234,17 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
 
   /* ── la lista ── */
   const previa = c => {
+    const u = c.pend[0];
+    if (u) {
+      const txt = u.tipo === 'atraso' ? `<b class="urg">Atrasada ${M.dur((M.AHORA - u.t.eta) / 6e4)}</b> · caja Nº ${u.t.num}` : u.tipo === 'contando' ? `Contando la caja Nº ${u.t.num}` : u.tipo === 'revisar' ? `Faltó algo en la Nº ${u.t.num}` : u.tipo === 'pedido' ? `Te pide ${M.nombrePrenda(u.p.linea)}` : `La Nº ${u.t.num} llega ${M.cuando(u.t.eta)}`;
+      const cu = c.ult?.cuando; return { txt, hora: cu ? (M.dia(cu) === 'hoy' ? M.hora(cu) : M.dia(cu)) : '' };
+    }
     const m = c.ult; if (!m) return { txt:'Sin cajas esta semana', hora:'' };
     const t = m.t;
     const txt = m.tipo === 'caja' ? (m.mio ? `${vistos(t)}Caja Nº ${t.num} · ${M.nombreSit(t, s).toLowerCase()}` : `Caja Nº ${t.num} · ${M.nombreSit(t, s).toLowerCase()}`)
       : m.tipo === 'pedido' ? (m.mio ? 'Pediste una prenda' : `Te pide ${M.nombrePrenda(m.p.linea)}`)
       : m.tipo === 'no-tengo' ? 'No la tenía'
-      : m.tipo === 'recibido' ? `Llegó completa la Nº ${t.num}` : m.tipo === 'dif' ? `Nº ${t.num}: faltó ${M.faltan(t) || M.sobran(t)}` : m.tipo === 'cierre' ? `Nº ${t.num} cerrada con nota` : m.texto;
+      : m.tipo === 'recibido' ? `Llegó completa la Nº ${t.num}` : m.tipo === 'dif' ? `Nº ${t.num}: faltó ${M.faltan(t) || M.sobran(t)}` : m.tipo === 'cierre' ? `Nº ${t.num} cerrada con nota` : m.tipo === 'conteo' ? `Contando la Nº ${t.num}` : m.texto;
     return { txt, hora: M.dia(m.cuando) === 'hoy' ? M.hora(m.cuando) : M.dia(m.cuando) };
   };
   const pintarLista = (q = '') => {
@@ -246,7 +254,7 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
         return `<li class="rev" style="--i:${i}"><button class="chat-f ${c.X === est.chat ? 'on' : ''}" data-chat="${c.X}">
           <span class="av-sede">${x.cod}<svg viewBox="0 0 24 24">${M.PT[x.tipo]}</svg></span>
           <span style="min-width:0"><span class="cf-1"><b>${x.n}</b><time class="${c.pend.length ? 'pend' : ''}">${p.hora}</time></span>
-            <span class="cf-2"><span class="prev">${p.txt}</span>${c.pend.length ? `<span class="badge num">${c.pend.length}</span>` : ''}</span></span></button></li>`; }).join('')
+            <span class="cf-2"><span class="prev">${p.txt}</span>${c.pend.length ? `<span class="badge num" title="${c.pend.length} ${c.pend.length === 1 ? 'cosa' : 'cosas'} por hacer">${c.pend.length}</span>` : ''}</span></span></button></li>`; }).join('')
       || '<li style="padding:18px;color:var(--t65);font-size:13px">Ninguna conversación con eso.</li>';
     M.$$('.chat-f', lista).forEach(b => b.onclick = () => abrir(b.dataset.chat, true));
   };
@@ -260,13 +268,13 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
     if (m.tipo === 'caja') {
       const t = m.t, sit = M.situacion(t, s), cls = clsDe(t), p = M.progreso(t), c = M.cifra(t, s);
       const enCamino = ['llega', 'sale', 'camino'].includes(sit);
-      const acc = t.a === s ? ({ llega:'Contar la caja', contando:'Seguir contando', revisar:'Revisar lo que faltó' }[sit]) : null;
+      const acc = t.a === s ? ({ llega: M.atrasado(t) ? 'Ya llegó: abrir y contar' : 'Si ya llegó, contarla', contando:'Seguir contando', revisar:'Revisar lo que faltó' }[sit]) : null;
       return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja s-${cls}">
-        <div class="cm"><div class="cm-cab"><span class="sello" data-go>${M.glifo(sit === 'camino' ? 'sale' : sit)}</span><div><b>Te envié la caja Nº ${t.num}</b><span>${M.nombreSit(t, s)}</span></div></div>
+        <div class="cm"><div class="cm-cab"><span class="sello" data-go>${M.glifo(sit === 'camino' ? 'sale' : sit)}</span><div><b>Te envié la caja Nº ${t.num}</b><span>${M.nombreCaja(t, s)}</span></div></div>
           <div class="cm-ruta"><b class="cod">${M.SEDES[t.de].cod}</b><span class="cm-l" style="--p:${sit === 'anulado' ? 0 : p}"><i></i><b></b>${enCamino ? `<span class="cam ${M.atrasado(t) ? 'tarde' : ''}">${truck}</span>` : ''}</span><b class="cod">${M.SEDES[t.a].cod}</b></div>
-          <div class="cm-prendas">${M.pila(t.lineas, 30, 3)}<span>${M.ciego(t, s) ? `${t.lineas.length} prendas distintas · las cuentas al llegar` : `${M.unidades(t)} prendas`}</span><span class="lleg num">${c.big}<small style="display:block;font-family:'DM Sans';font-size:10.5px;color:var(--t65);text-align:right">${c.small}</small></span></div>
+          <div class="cm-prendas">${M.pila(t.lineas, 30, 3)}<span>${M.ciego(t, s) ? `${t.lineas.length} tipos de prenda · las cuentas al llegar` : `${M.unidades(t)} prendas`}</span><span class="lleg num">${c.big}<small style="display:block;font-family:'DM Sans';font-size:10.5px;color:var(--t65);text-align:right">${c.small}</small></span></div>
           ${t.nota ? `<p class="cm-nota">«${t.nota}»</p>` : ''}
-          <div class="cm-pie"><time>${M.hora(t.salio)}</time>${m.mio ? vistos(t) : ''}</div></div>
+          <div class="cm-pie"><time>salió ${M.cuando(t.salio)}</time>${m.mio ? vistos(t) : ''}</div></div>
         ${acc ? `<button class="cm-acc" data-contar="${t.num}">${acc} ${M.ic('flecha')}</button>` : `<button class="cm-acc sutil" data-ver="${t.num}">${m.mio ? 'Ver lo que envié' : 'Ver la caja'}</button>`}
       </div></div>`;
     }
@@ -286,6 +294,9 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
         <div class="cm-pie"><time>${M.hora(p.cuando)}</time>${p.respuesta === 'enviado' ? ` · enviada en la Nº ${p.num}` : ''}</div></div>
         ${puedo ? `<div class="cm-dos"><button class="cm-acc sutil" data-no-tengo="${p.id}">No la tengo</button><button class="cm-acc" data-enviar="${p.id}">Enviar ${M.ic('flecha')}</button></div>` : ''}</div></div>`;
     }
+    if (m.tipo === 'conteo') { const t = m.t;
+      return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja s-contando"><div class="rc"><span class="sello" data-go>${M.glifo('contando')}</span><div><b>Empecé a contar la caja Nº ${t.num}</b><span>${M.contadas(t)} de ${t.lineas.length} tipos de prenda contados</span></div>
+        <div class="cm-pie"><time>${M.hora(m.cuando)}</time> · ${persona(m.quien)}</div></div></div></div>`; }
     if (m.tipo === 'no-tengo') return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja"><div class="rc"><span class="sello s-anulado">${M.glifo('anulado')}</span><div><b>No la tengo</b><span>${M.nombrePrenda(m.p.linea)} · ${M.detallePrenda(m.p.linea)}</span></div><div class="cm-pie"><time>${M.hora(m.cuando)}</time></div></div></div></div>`;
     return '';
   }
@@ -341,7 +352,7 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
     const fila = (l, k, modo) => {
       const nom = `<div class="n"><b>${M.nombrePrenda(l)}</b><span>${M.detallePrenda(l)}</span></div>`;
       if (modo === 'contar') return `<div class="fila-c" data-k="${k}">${M.mos(l, 40)}${nom}<span class="paso-num"><button data-menos aria-label="Una menos">${M.ic('menos')}</button><output class="num ${l.cont == null ? 'sin-contar' : ''}">${l.cont ?? '—'}</output><button data-mas aria-label="Una más">${M.ic('mas')}</button></span></div>`;
-      if (modo === 'comparar') { const ok = (l.cont ?? 0) === l.n; return `<div class="fila-c" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="cmp"><span class="env">enviaste<b class="num">${l.n}</b></span><span class="mk ${ok ? 'ok' : 'no'}">${M.ic(ok ? 'check' : 'menos')}</span><span class="q num">${l.cont ?? 0}</span></span></div>`; }
+      if (modo === 'comparar') { const ok = (l.cont ?? 0) === l.n; return `<div class="fila-c" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="cmp"><span class="env">venían<b class="num">${l.n}</b></span><span class="mk ${ok ? 'ok' : 'no'}">${M.ic(ok ? 'check' : 'menos')}</span><span class="q num">${l.cont ?? 0}</span></span></div>`; }
       return `<div class="fila-c">${M.mos(l, 40)}${nom}<span class="q num">${l.n}</span></div>`;
     };
     const pintar = () => {
@@ -363,7 +374,7 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
         cue = `<div class="${comparar ? 'revela' : ''}">${t.lineas.map((l, k) => fila(l, k, comparar ? 'comparar' : 'ver')).join('')}</div>${t.nota ? `<div class="nota-op" style="margin-top:10px">“${t.nota}”<cite>${persona(t.por)}</cite></div>` : ''}${sit === 'dif' ? `<div class="nota-op" style="margin-top:10px">“${t.notaCierre}”<cite>${persona(t.cerro)}</cite></div>` : ''}`;
         if (t.de === s && t.estado === 'en_transito') pie = `<div class="fila"><button class="btn grande" data-no="la guía con QR (ADR-0242 D-3)">${M.ic('imprimir')}Guía</button><button class="btn grande" data-no="el mensaje para la otra sede (ADR-0242 D-3)">${M.ic('msj')}WhatsApp</button></div>`;
       }
-      const titulo = contar ? (st.revelado ? (M.difiere(t) ? 'Revisa lo marcado' : 'Todo coincide') : `Contar la caja Nº ${t.num}`) : sit === 'revisar' ? `Revisar la caja Nº ${t.num}` : `Caja Nº ${t.num}`;
+      const titulo = contar ? (st.revelado ? (M.difiere(t) ? M.faltaQue(t) : 'Todo coincide') : `Contar la caja Nº ${t.num}`) : sit === 'revisar' ? M.faltaQue(t) : `Caja Nº ${t.num}`;
       const cls = contar ? (st.revelado ? (M.difiere(t) ? 'revisar' : 'cerrado') : 'contando') : clsDe(t);
       h.className = `hoja-c s-${cls} ${h.classList.contains('in') ? 'in' : ''}`;
       h.innerHTML = `<div class="hc-asa"></div><div class="hc-cab"><span class="sello go">${M.glifo(contar ? (st.revelado ? (M.difiere(t) ? 'revisar' : 'cerrado') : 'contando') : (sit === 'camino' ? 'sale' : sit))}</span><div><b>${titulo}</b><span>${M.SEDES[t.de].del} → ${M.SEDES[t.a].corto} · salió ${M.cuando(t.salio)}</span></div><button class="x" aria-label="Cerrar">${M.ic('cerrar')}</button></div>
@@ -393,7 +404,7 @@ M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
 
   /* «Para hoy»: lleva al chat y al mensaje que toca */
   M.$$('[data-ir]', raiz).forEach(b => b.onclick = () => {
-    const tipo = b.dataset.ir, x = tareas.find(z => tipo === 'contar' ? ['llega', 'atraso', 'contando'].includes(z.tipo) : tipo === 'revisar' ? z.tipo === 'revisar' : z.tipo === 'pedido');
+    const tipo = b.dataset.ir, x = tareas.find(z => tipo === 'atraso' ? z.tipo === 'atraso' : tipo === 'contar' ? ['llega', 'contando'].includes(z.tipo) : tipo === 'revisar' ? z.tipo === 'revisar' : z.tipo === 'pedido');
     if (!x) return;
     const X = x.t ? x.t.de : x.p.pide; abrir(X, true);
     const id = x.t ? (x.tipo === 'revisar' ? `t${x.t.num}-dif` : `t${x.t.num}-salio`) : 'p' + x.p.id;

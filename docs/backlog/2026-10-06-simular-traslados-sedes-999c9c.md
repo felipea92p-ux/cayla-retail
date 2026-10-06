@@ -11,8 +11,9 @@
 - [x] Segunda ronda: D · Pases, E · La puerta, F · Conversaciones (`d-pases.html`, `e-puerta.html`, `f-conversaciones.html`), con
       `?sinmov` para revisarlas quietas. Probadas en el navegador (escritorio, celular, claro y oscuro, sin errores de consola):
       contar → terminé → confirmar, cerrar con diferencia, anular, responder un pedido, arrastrar la caja (E), girar el pase (D),
-      la hoja de conteo dentro del chat (F). Prueba ciega con un agente sin contexto sobre las capturas.
-- [ ] **Decide Felipe:** D, E, F o una mezcla; los códigos de sede (TAL, TRU, LIM, AQP); contar tocando prendas o con − / +; el
+      la hoja de conteo dentro del chat (F). Prueba ciega con un agente sin contexto sobre las capturas: F 8/10, D 6/10, E 6/10
+      (contar en la E, 8); sus confusiones se corrigieron (README, «Prueba ciega»). No se repitió la prueba después.
+- [ ] **Decide Felipe:** D, E, F o una mezcla; los códigos de tienda (TRU, LIM, AQP; el Taller entero); contar tocando prendas o con − / +; el
       movimiento rico (actualización de ADR-0136). Con eso: ADR y construcción con `/construir`.
 - [ ] Al construir: conservar lo que la maqueta no dibuja (buscar al escanear, prenda que no venía, firma «Responsable», token
       contra doble clic), declarar la guía de foco del cajón y pasar `/formidable`.

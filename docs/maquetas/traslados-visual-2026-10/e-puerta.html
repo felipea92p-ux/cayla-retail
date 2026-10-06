@@ -40,11 +40,14 @@
 .etq-c{position:absolute;left:12%;top:22%;width:60%;height:46%;background:var(--crema-fija);border-radius:3px;display:flex;align-items:center;gap:6%;padding:0 7%;overflow:hidden}
 .etq-c i{position:absolute;left:0;top:0;bottom:0;width:10%;background:var(--c)}
 .etq-c b{font-family:var(--serif);font-weight:500;font-size:calc(var(--h) * .3);line-height:1;color:var(--tinta-fija);margin-left:10%;letter-spacing:.02em}
+.etq-c b.largo{font-size:calc(var(--h) * .21);letter-spacing:0}
 .etq-c .mini-sello{position:absolute;right:4%;top:50%;transform:translateY(-50%) rotate(-10deg);font-size:calc(var(--h) * .11);font-weight:800;letter-spacing:.08em;border:1.5px solid var(--c);color:var(--c);border-radius:3px;padding:0 3px;line-height:1.5}
 .caja-sombra{position:absolute;left:12%;right:2%;bottom:2px;height:14px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--sombra) 28%,transparent),transparent);transition:transform .45s var(--ease),opacity .45s}
 .caja:hover .caja-sombra{transform:scale(.88);opacity:.7}
 .caja-tag{position:absolute;left:50%;top:-10px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--papel);color:var(--c);box-shadow:0 0 0 1px var(--c-ln);transition:transform .3s var(--ease)}
 .caja-tag.tarde{color:var(--ambar);box-shadow:0 0 0 1.5px var(--ambar)}
+.caja-tag.primero{background:var(--tinta);color:var(--crema);box-shadow:none;top:-16px;padding:4px 11px}
+.caja-tag.primero:after{content:"";position:absolute;left:50%;bottom:-4px;width:8px;height:8px;background:var(--tinta);transform:translateX(-50%) rotate(45deg)}
 .caja-tag.tarde:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ambar);margin-right:6px;vertical-align:1px;--c:var(--ambar);animation:late 1.1s 1s 3 var(--ease)}
 .caja:hover .caja-tag{transform:translateX(-50%) translateY(-4px)}
 .caja.on{outline:2px solid var(--c);outline-offset:4px}
@@ -190,27 +193,29 @@
 <body>
 <script src="comun.js"></script>
 <script>
-const est = { sel:null, revelado:false, anulando:false };
+const est = { sel:null, revelado:false, anulando:false, abrir:false };
 const H = 3600e3;
 const clsDe = t => { const sit = M.situacion(t); return sit === 'llega' && M.atrasado(t) ? 'atraso' : sit === 'camino' ? 'sale' : sit; };
 const tagDe = t => {
   const sit = M.situacion(t);
-  if (sit === 'contando') return [`${M.contadas(t)}/${t.lineas.length} contadas`, ''];
-  if (sit === 'revisar') return [`faltó ${M.faltan(t) || M.sobran(t)}`, ''];
+  if (sit === 'contando') return ['Contando', ''];
+  if (sit === 'revisar') return [M.faltan(t) ? `Faltó ${M.faltan(t)}` : `Sobró ${M.sobran(t)}`, ''];
   if (M.atrasado(t)) return [`${M.dur((M.AHORA - t.eta) / 6e4)} tarde`, 'tarde'];
   return [`${M.hora(t.eta)} ${M.dia(t.eta) === 'hoy' ? '' : M.dia(t.eta)}`.trim(), ''];
 };
 /* la caja en 3D. tamaño: --w --h --d */
-const caja = (t, { w = 70, h = 50, d = 50, tag = true, abierta = false, k = 0, extra = '', sello = '' } = {}) => {
-  const cls = clsDe(t), [txt, tcls] = tagDe(t);
+const caja = (t, { w = 70, h = 50, d = 50, tag = true, abierta = false, k = 0, extra = '', sello = '', primero = false } = {}) => {
+  const cls = clsDe(t), [txt0, tcls0] = tagDe(t), txt = primero ? `Empieza aquí · ${txt0}` : txt0, tcls = primero ? 'primero' : tcls0;
   return `<button class="caja s-${cls} ${abierta ? 'abierta' : ''} ${extra}" data-caja="${t.num}" style="--w:${w}px;--h:${h}px;--d:${d}px;--k:${k}" aria-label="Caja Nº ${t.num} ${M.SEDES[t.de].del}">
     <span class="caja-sombra"></span>
     <span class="caja-3d"><span class="c-cara c-atras"></span><span class="c-cara c-izq"></span><span class="c-cara c-fondo"></span>
-      <span class="c-cara c-frente"><span class="etq-c" data-papel><i></i><b>${M.SEDES[t.a === M.sede ? t.de : t.a].cod}</b>${sello ? `<span class="mini-sello">${sello}</span>` : ''}</span></span>
+      <span class="c-cara c-frente"><span class="etq-c" data-papel><i></i><b class="${M.codigo(t.a === M.sede ? t.de : t.a).length > 3 ? 'largo' : ''}">${M.codigo(t.a === M.sede ? t.de : t.a)}</b>${sello ? `<span class="mini-sello">${sello}</span>` : ''}</span></span>
       <span class="c-cara c-der"></span>
       <span class="c-tapa"><span class="c-sol atras"></span><span class="c-sol frente"></span></span></span>
     ${tag ? `<span class="caja-tag ${tcls}">${txt}</span>` : ''}</button>`;
 };
+const dibCajaAbierta = '<svg class="dib" viewBox="0 0 74 62"><path d="M14 26 37 36l23-10v24L37 60 14 50z"/><path d="M37 36v24"/><path d="M14 26 6 14l23-6 8 10M60 26l8-12-23-6-8 10"/></svg>';
+const dibCamino = '<svg class="dib" viewBox="0 0 74 62"><path d="M4 50h66" stroke-dasharray="4 5"/><path d="M14 22h26v18H14zM40 28h10l6 6v6H40"/><circle cx="21" cy="42" r="3.5"/><circle cx="48" cy="42" r="3.5"/></svg>';
 const dibAlmacen = '<svg class="dib" viewBox="0 0 74 62"><path d="M6 58V8h62v50M6 24h62M6 41h62"/><rect x="12" y="12" width="14" height="10"/><rect x="30" y="14" width="12" height="8"/><rect x="14" y="29" width="16" height="10"/><rect x="46" y="44" width="14" height="12"/></svg>';
 const dibPiso = '<svg class="dib" viewBox="0 0 74 62"><path d="M8 8h58M16 8v50M58 8v50"/><path d="M26 8v6a3 3 0 1 1-3 3"/><path d="M26 17 18 24v20h16V24Z"/><path d="M44 8v6a3 3 0 1 1-3 3"/><path d="M44 17 36 24v22h16V24Z"/></svg>';
 
@@ -229,7 +234,7 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
     <button class="pista der" data-ir-a="1" aria-label="Ver lo que sale">${salen.length} ${salen.length === 1 ? 'sale' : 'salen'}${M.ic('flecha')}</button>
     <div class="barrio-scroll"><section class="barrio rev" id="barrio" data-go>
       <div class="calle"></div>
-      <div class="zona vienen"><span class="zona-t">Vienen ${M.ic('flecha')} <small>más cerca, llega antes</small></span></div>
+      <div class="zona vienen"><span class="zona-t">Vienen ${M.ic('flecha')}</span></div>
       <div class="zona tienda">
         <svg class="fachada" viewBox="0 0 300 282" aria-hidden="true">
           <text class="letrero" x="150" y="34" text-anchor="middle">CAYLA</text>
@@ -245,7 +250,7 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
         </svg>
         ${pedidos.map((p, i) => `<button class="pedido-colgado s-pedido" data-pedido="${p.id}" style="left:${98 + i * 84}px" aria-label="${M.SEDES[p.pide].corto} te pide una prenda"><span class="hilo-p"></span><span class="tarj">${M.mos(p.linea, 24)}${M.SEDES[p.pide].corto} te pide</span></button>`).join('')}
       </div>
-      <div class="zona salen"><span class="zona-t"><small>se van a otras sedes</small> Salen ${M.ic('flecha')}</span></div>
+      <div class="zona salen"><span class="zona-t">Salen ${M.ic('flecha')}</span></div>
     </section></div></div>
     <section class="mesa" id="mesa" data-propio></section>
     ${guardadas.length ? `<section class="estante rev" id="estante" data-propio><h3>Guardadas esta semana</h3><span class="tabla-e"></span>${guardadas.map(t => { const sit = M.situacion(t); return `<div class="guardada">${caja(t, { w:56, h:40, d:40, tag:false, sello: sit === 'cerrado' ? '✓' : sit === 'dif' ? '−' : '↺' })}<small>Nº ${t.num}</small></div>`; }).join('')}</section>` : ''}`;
@@ -254,8 +259,9 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
   const escena = M.$('#barrio', raiz), zV = M.$('.vienen', escena), zT = M.$('.tienda', escena), zS = M.$('.salen', escena);
   const ancho = z => z.offsetWidth || 300;
   let k = 0;
+  const primeraTarea = M.tareas(s).find(x => x.t);
   const colocar = (zona, t, x, y, desde) => {
-    const tmp = M.el('div', null, caja(t, { k:k++, extra:'entra' })); const b = tmp.firstElementChild;
+    const tmp = M.el('div', null, caja(t, { k:k++, extra:'entra', primero: primeraTarea && primeraTarea.t.num === t.num })); const b = tmp.firstElementChild;
     b.style.left = x + 'px'; b.style.bottom = y + 'px'; b.style.setProperty('--desde', desde + 'px');
     if (String(est.sel) === String(t.num)) b.classList.add('on');
     zona.append(b);
@@ -305,7 +311,7 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
   function elegir(num, desdeEl) {
     const t = M.porNumero(num); if (!t) return;
     const cambio = String(est.sel) !== String(num);
-    est.sel = num; if (cambio) { est.revelado = false; est.anulando = false; }
+    est.sel = num; if (cambio) { est.revelado = false; est.anulando = false; est.abrir = false; }
     M.$$('.barrio .caja', raiz).forEach(b => b.classList.toggle('on', +b.dataset.caja === num));
     pintarMesa(t, desdeEl ? desdeEl.getBoundingClientRect() : null);
     if (cambio) mesa.scrollIntoView({ block:'nearest', behavior: M.reducir() ? 'auto' : 'smooth' });
@@ -314,25 +320,30 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
     return t.lineas.map((l, i) => {
       const ok = (l.cont ?? 0) === l.n;
       const frente = `<span class="f-cara f-frente">${M.mos(l, 58)}<b>${M.nombrePrenda(l)}</b><small>${M.detallePrenda(l)}</small>${modo === 'ver' ? `<span class="f-n num">${l.n}</span>` : `<span class="f-n num ${l.cont == null ? 'sin' : ''}">${l.cont ?? '—'}</span>`}</span>`;
-      const atras = `<span class="f-cara f-atras ${ok ? 'ok' : 'no'}"><span class="f-quien">${M.mos(l, 24)}<span>${M.PRENDAS[l.p].n.split(' ')[0]} · ${l.t}</span></span><small>enviaste</small><b class="num">${l.n}</b><span class="mk">${M.ic(ok ? 'check' : 'menos')}</span><small>${ok ? 'llegaron todas' : (l.cont ?? 0) < l.n ? `faltó ${l.n - (l.cont ?? 0)}` : `sobró ${(l.cont ?? 0) - l.n}`}</small></span>`;
+      const atras = `<span class="f-cara f-atras ${ok ? 'ok' : 'no'}"><span class="f-quien">${M.mos(l, 24)}<span>${M.PRENDAS[l.p].n.split(' ')[0]} · ${l.t}</span></span><small>venían</small><b class="num">${l.n}</b><span class="mk">${M.ic(ok ? 'check' : 'menos')}</span><small>${ok ? 'llegaron todas' : (l.cont ?? 0) < l.n ? `faltó ${l.n - (l.cont ?? 0)}` : `sobró ${(l.cont ?? 0) - l.n}`}</small></span>`;
       return `<button class="ficha ${modo === 'comparar' ? 'vuelta' : ''}" data-k="${i}" style="--k:${i}" ${modo === 'contar' ? `aria-label="${M.nombrePrenda(l)} ${M.detallePrenda(l)}: una más"` : 'tabindex="-1"'}>
         <span class="f-in">${frente}${atras}</span>${modo === 'contar' ? `<span class="f-menos" data-menos role="button" aria-label="Una menos">${M.ic('menos')}</span>` : ''}</button>`;
     }).join('');
   }
 
-  function pintarMesa(t, desdeRect) {
+  function pintarMesa(t, desdeRect, recienAbierta = false) {
     const sit = M.situacion(t), de = M.SEDES[t.de], a = M.SEDES[t.a];
     const contar = t.a === s && t.estado === 'en_transito';
     const lado = (abierta, sello = '') => `<div class="lado-caja">${caja(t, { w:170, h:122, d:122, tag:false, abierta, sello })}
       <div class="titulo"><b>Caja Nº ${t.num}</b><span>${t.a === s ? de.del : 'para ' + a.n} · salió ${M.cuando(t.salio)}</span></div>
       <div class="chips">${M.atrasado(t) ? `<span class="chip s-atraso late">debía llegar ${M.hora(t.eta)}</span>` : M.empezoConteo(t) && t.a === s ? `<span class="chip s-contando">contando</span>` : t.estado === 'en_transito' ? `<span class="chip s-${clsDe(t)}">llega ${M.cuando(t.eta)}</span>` : ''}${t.nota ? `<span class="chip s-camino" title="${t.nota}">nota de ${M.persona(t.por)}</span>` : ''}</div>
-      <button class="dejar" data-dejar>Dejar la caja</button></div>`;
+      <button class="dejar" data-dejar>← Volver a la puerta</button></div>`;
     let html = '';
-    if (contar) {
+    if (contar && !M.empezoConteo(t) && !est.abrir) {
+      html = `<div class="trabajo">${lado(false)}<div>
+        <div class="cab-trabajo"><div><h3>${M.atrasado(t) ? `Debía llegar ${M.cuando(t.eta)}` : `Llega ${M.cuando(t.eta)}`}</h3><p>¿Ya la tienes en la tienda?</p></div></div>
+        <div class="destinos"><button class="destino" data-abrir>${dibCajaAbierta}<span><b>Sí, abrirla</b><span>Y contar lo que trae</span></span></button>
+          <button class="destino" data-todavia>${dibCamino}<span><b>Todavía no</b><span>La cuentas cuando llegue</span></span></button></div></div></div>`;
+    } else if (contar) {
       const total = M.acc.totalContado(t), listas = M.acc.todoContado(t), faltan = t.lineas.filter(l => l.cont == null).length;
       html = `<div class="trabajo">${lado(true)}<div>
-        <div class="cab-trabajo"><div><h3>${est.revelado ? (M.difiere(t) ? 'Revisa lo marcado' : 'Todo coincide') : 'Saca y toca cada prenda'}</h3>
-          <p>${est.revelado ? 'Ahora sí ves lo que se envió.' : 'Una vez por cada prenda que sacas. Lo enviado aparece al terminar.'}</p></div>
+        <div class="cab-trabajo"><div><h3>${est.revelado ? (M.difiere(t) ? M.faltaQue(t) : 'Todo coincide') : 'Saca y toca cada prenda'}</h3>
+          <p>${est.revelado ? 'Ahora sí ves cuántas venían.' : 'Una vez por cada prenda que sacas. Lo que venía aparece al terminar.'}</p></div>
           <div class="contador-g"><b class="num" id="total">${total}</b><small>${total === 1 ? 'prenda contada' : 'prendas contadas'}</small></div></div>
         <div class="fichas" id="fichas">${fichasHTML(t, est.revelado ? 'comparar' : 'contar')}</div>
         ${est.revelado ? `<div class="destinos" id="destinos">
@@ -346,7 +357,7 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
     } else if (sit === 'revisar' || sit === 'dif' || sit === 'cerrado') {
       const puede = sit === 'revisar' && t.a === s;
       html = `<div class="trabajo">${lado(sit === 'revisar', sit === 'cerrado' ? '✓' : sit === 'dif' ? '−' : '')}<div>
-        <div class="cab-trabajo"><div><h3>${sit === 'revisar' ? (t.a === s ? (M.faltan(t) ? `Faltó ${M.faltan(t)} ${M.faltan(t) === 1 ? 'prenda' : 'prendas'}` : `Sobró ${M.sobran(t)}`) : `Con diferencia en ${a.corto}`) : sit === 'dif' ? 'Cerrada con nota' : 'Llegó completa'}</h3>
+        <div class="cab-trabajo"><div><h3>${sit === 'revisar' ? (t.a === s ? M.faltaQue(t) : `Faltó algo en ${a.corto}`) : sit === 'dif' ? M.faltaQue(t) + ' · cerrada con nota' : 'Llegó completa'}</h3>
           <p>${sit === 'revisar' ? 'Lo que coincidió ya está en el stock.' : `${M.persona(t.recibio)} la recibió ${M.cuando(t.confirmado || t.cerrado)}.`}</p></div>
           <div class="contador-g"><b class="num">${M.acc.totalContado(t)}</b><small>de ${M.unidades(t)} llegaron</small></div></div>
         <div class="fichas">${fichasHTML(t, 'comparar')}</div>
@@ -372,15 +383,15 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
     const cajaMesa = M.$('.lado-caja .caja', mesa);
     if (desdeRect) M.flip(cajaMesa, desdeRect, 620);
     /* la caja se abre y las prendas suben desde adentro */
-    if (contar && !est.revelado) {
+    if (contar && !est.revelado && (est.abrir || M.empezoConteo(t))) {
       cajaMesa.classList.remove('abierta');
       setTimeout(() => cajaMesa.classList.add('abierta'), M.reducir() ? 0 : (desdeRect ? 560 : 120));
-      if (desdeRect && !M.reducir()) {
+      if ((desdeRect || recienAbierta) && !M.reducir()) {
         const fichas = M.$$('.ficha', mesa), c = cajaMesa.getBoundingClientRect();
         fichas.forEach((f, i) => {
           const r = f.getBoundingClientRect();
           f.animate([{ transform:`translate(${c.left + c.width / 2 - r.left - r.width / 2}px,${c.top + c.height * .3 - r.top - r.height / 2}px) scale(.25)`, opacity:0 }, { transform:'none', opacity:1 }],
-            { duration:650, delay:900 + i * 90, easing:'cubic-bezier(.32,.72,.24,1)', fill:'backwards' });
+            { duration:650, delay:(desdeRect ? 900 : 520) + i * 90, easing:'cubic-bezier(.32,.72,.24,1)', fill:'backwards' });
         });
       }
     }
@@ -390,6 +401,8 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
 
   function conectarMesa(t) {
     M.$$('[data-no]', mesa).forEach(b => b.onclick = () => M.noEnMaqueta(b.dataset.no));
+    const ab = M.$('[data-abrir]', mesa); if (ab) ab.onclick = () => { est.abrir = true; pintarMesa(t, null, true); };
+    const td = M.$('[data-todavia]', mesa); if (td) td.onclick = () => { est.sel = null; M.$$('.barrio .caja', raiz).forEach(b => b.classList.remove('on')); mesaVacia(); };
     M.$('[data-dejar]', mesa).onclick = () => { est.sel = null; M.$$('.barrio .caja', raiz).forEach(b => b.classList.remove('on')); mesaVacia(); };
     /* tocar una ficha = una prenda más */
     M.$$('.ficha[data-k]', mesa).forEach(f => {
@@ -487,7 +500,7 @@ M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
     const pide = M.SEDES[p.pide];
     mesa.innerHTML = `<div class="trabajo"><div class="lado-caja"><div style="padding:18px">${M.mos(p.linea, 120)}</div>
         <div class="titulo"><b>${pide.corto} te pide</b><span>${M.cuando(p.cuando)} · ${M.persona({ lim:'sandra', aqp:'diego', tru:'rosa', taller:'marco' }[p.pide])}</span></div>
-        <button class="dejar" data-dejar>Dejar</button></div>
+        <button class="dejar" data-dejar>← Volver a la puerta</button></div>
       <div><div class="cab-trabajo"><div><h3>${M.nombrePrenda(p.linea)} · ${M.detallePrenda(p.linea)}</h3><p>${p.cliente ? 'Es para apartársela a una cliente en ' + pide.corto + '.' : 'Es para reponer.'}</p></div></div>
         <div class="destinos"><button class="destino" data-enviar>${dibAlmacen}<span><b>La tengo: enviar</b><span>Sale en una caja a ${pide.corto}</span></span></button>
           <button class="destino" data-no-tengo><svg class="dib" viewBox="0 0 74 62"><circle cx="37" cy="31" r="20"/><path d="M23 45 51 17"/></svg><span><b>No la tengo</b><span>Le avisamos a ${pide.corto}</span></span></button></div></div></div>`;

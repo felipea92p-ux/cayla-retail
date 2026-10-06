@@ -24,7 +24,10 @@
 .an-f{stroke:var(--hueso)}
 .an-v{stroke:var(--verde);stroke-linecap:round;stroke-dasharray:125.7;stroke-dashoffset:125.7;transition:stroke-dashoffset 1.1s .3s var(--ease)}
 .bil-cab.in .an-v{stroke-dashoffset:calc(125.7 * (1 - var(--v)))}
-.bil-cab b{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin-right:6px}
+.bil-cab span b{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1;margin:0 2px}
+.anillo-w{position:relative;flex:none;display:grid;place-items:center}
+.an-n{position:absolute;font-size:12px;font-weight:700;color:var(--t80)}
+.pestanas .bd-t{background:var(--ambar);color:var(--papel);border-radius:99px;font-size:11px;font-weight:800;min-width:20px;height:20px;display:grid;place-items:center;padding:0 6px}
 .bil-cab span{font-size:14px;font-weight:600}
 .bil-cab small{display:block;font-size:12px;color:var(--t65);margin-top:2px}
 
@@ -102,7 +105,8 @@
 .pp i:first-child{left:-13px}.pp i:last-child{right:-13px}
 .pz{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 24px 16px}
 .pz .quien{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t65);margin-top:8px}
-.qr-b{border-radius:10px;padding:0;line-height:0;transition:transform .3s var(--ease)}
+.qr-b{border-radius:10px;padding:0;line-height:0;transition:transform .3s var(--ease);text-align:center}
+.qr-b small{display:block;line-height:1.2;font-size:10.5px;color:var(--t65);margin-top:4px}
 .qr-b:hover{transform:scale(1.06)}
 .pa{margin:4px 24px 24px;width:calc(100% - 48px);justify-content:center;padding:14px 18px;font-size:15px;border-radius:14px}
 .pa svg{transition:transform .3s var(--ease)}
@@ -201,7 +205,7 @@ const itemsDe = (tab, s) => {
 };
 const clsDe = x => x.tipo === 'p' ? 'pedido' : (M.situacion(x.t) === 'llega' && M.atrasado(x.t) ? 'atraso' : M.situacion(x.t) === 'camino' ? 'sale' : M.situacion(x.t));
 const glifoDe = x => x.tipo === 'p' ? 'pedido' : ({ camino:'sale' }[M.situacion(x.t)] || M.situacion(x.t));
-const COD = id => M.SEDES[id].cod;
+const COD = id => M.codigo(id);
 const truck = '<svg class="gl" viewBox="0 0 24 24"><g><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></g></svg>';
 const SELLOS = { cerrado:['RECIBIDO','s-cerrado'], dif:['CON NOTA','s-dif'], anulado:['ANULADO','s-anulado'], revisar:['FALTÓ ALGO','s-revisar'], enviado:['ENVIADO','s-sale'], no:['NO LA TENGO','s-anulado'] };
 const fechaSello = d => { const x = new Date(d.getTime() - 5 * 3600e3); return `${x.getUTCDate()} ${['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'][x.getUTCMonth()]} · ${M.hora(d)}`; };
@@ -213,37 +217,38 @@ const campos = (t, s) => {
   if (sit === 'llega' || sit === 'sale' || sit === 'camino') {
     const tarde = M.atrasado(t);
     return [salio, ['LLEGA', M.cuando(t.eta), tarde ? `${M.dur((M.AHORA - t.eta) / 6e4)} tarde` : `en ${M.dur((t.eta - M.AHORA) / 6e4)}`, tarde],
-      M.ciego(t, s) ? ['PRENDAS', `${t.lineas.length} distintas`, 'se cuentan al llegar'] : ['PRENDAS', `${u}`, `${t.lineas.length} distintas`]];
+      M.ciego(t, s) ? ['PRENDAS', `${t.lineas.length} ${t.lineas.length === 1 ? 'tipo' : 'tipos'}`, 'las cuentas al llegar'] : ['PRENDAS', `${u}`, `${t.lineas.length} ${t.lineas.length === 1 ? 'tipo' : 'tipos'} de prenda`]];
   }
-  if (sit === 'contando') return [salio, ['CONTANDO', `${M.contadas(t)} de ${t.lineas.length}`, M.persona(t.cuenta)], M.ciego(t, s) ? ['PRENDAS', `${t.lineas.length} distintas`, 'a ciegas'] : ['PRENDAS', `${u}`, 'enviadas']];
+  if (sit === 'contando') return [salio, ['CONTANDO', `${M.contadas(t)} de ${t.lineas.length}`, `tipos · ${M.persona(t.cuenta)}`], M.ciego(t, s) ? ['PRENDAS', `${t.lineas.length} tipos`, 'las cuentas sin saber cuántas'] : ['PRENDAS', `${u}`, 'enviadas']];
   const llego = ['LLEGÓ', M.cuando(t.confirmado || t.cerrado), M.persona(t.recibio)];
   if (sit === 'revisar') return [salio, llego, [M.faltan(t) ? 'FALTÓ' : 'SOBRÓ', `${M.faltan(t) || M.sobran(t)} ${(M.faltan(t) || M.sobran(t)) === 1 ? 'prenda' : 'prendas'}`, 'por revisar']];
   if (sit === 'dif') return [salio, llego, ['FALTÓ', `${M.faltan(t)} ${M.faltan(t) === 1 ? 'prenda' : 'prendas'}`, 'cerrado con nota']];
   return [salio, llego, ['ENTRARON', `${u} prendas`, t.lugar === 'piso' ? 'al piso' : 'al almacén']];
 };
 const accion = (t, s) => ({
-  llega: 'Abrir la caja y contar', contando: 'Seguir contando', revisar: t.a === s ? 'Revisar lo que faltó' : 'Ver la diferencia',
+  llega: M.atrasado(t) ? 'Ya llegó: abrir y contar' : 'Si ya llegó, ábrela y cuéntala', contando: 'Seguir contando', revisar: t.a === s ? 'Revisar lo que faltó' : 'Ver la diferencia',
   sale: 'Ver lo que enviaste', camino: 'Ver la caja', cerrado: 'Ver lo que llegó', dif: 'Ver la nota', anulado: 'Ver por qué se anuló',
 }[M.situacion(t, s)]);
 
 M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
   const s = M.sede;
   M.$('.pase-hoja')?.remove();
-  const TABS = [['llegan','Te llegan'],['envias','Envías'],['guardados','Guardados']];
+  const TABS = [['llegan','Te llegan'],['envias','Envías'],['guardados','Terminadas']];
+  const porHacer = id => id === 'llegan' ? M.tareas(s).filter(x => x.t).length : id === 'envias' ? M.tareas(s).filter(x => x.p).length : 0;
   if (!est.tab || !itemsDe(est.tab, s).length) est.tab = itemsDe('llegan', s).length ? 'llegan' : itemsDe('envias', s).length ? 'envias' : 'guardados';
   const items = itemsDe(est.tab, s);
   if (!items.find(x => x.id === est.sel)) est.sel = items[0]?.id ?? null;
   const pend = M.tareas(s).length, hechas = M.hechas, total = pend + hechas;
   const k = TABS.findIndex(x => x[0] === est.tab);
-  raiz.innerHTML = M.encabezado({ frase:'Cada caja es un pase: de dónde sale, a dónde va y qué te toca.' }) + `
+  raiz.innerHTML = M.encabezado({ frase:'Cada caja: de dónde viene, cuándo llega y qué te toca.' }) + `
     <div class="d-cols">
       <aside class="bil">
         <div class="bil-cab rev">
-          <svg class="anillo" viewBox="0 0 48 48" aria-hidden="true"><circle class="an-f" cx="24" cy="24" r="20"/><circle class="an-v" cx="24" cy="24" r="20" style="--v:${total ? hechas / total : 1}"/></svg>
-          <div><b class="num" data-cuenta="${pend}">0</b><span>${pend === 1 ? 'cosa te toca hoy' : pend ? 'cosas te tocan hoy' : 'nada pendiente hoy'}</span>
-            <small>${hechas ? `Llevas ${hechas} ${hechas === 1 ? 'hecha' : 'hechas'}` : pend ? 'Empieza por el primer pase' : 'Todo al día'}</small></div>
+          <span class="anillo-w"><svg class="anillo" viewBox="0 0 48 48" aria-hidden="true"><circle class="an-f" cx="24" cy="24" r="20"/><circle class="an-v" cx="24" cy="24" r="20" style="--v:${total ? hechas / total : 1}"/></svg><b class="an-n num">${hechas}/${total}</b></span>
+          <div><span>${pend ? `Te ${pend === 1 ? 'toca' : 'tocan'} <b class="num" data-cuenta="${pend}">0</b> ${pend === 1 ? 'cosa' : 'cosas'} hoy` : 'Nada pendiente hoy'}</span>
+            <small>${hechas ? `Llevas ${hechas} ${hechas === 1 ? 'hecha' : 'hechas'}` : pend ? 'Empieza por la primera caja' : 'Todo al día'}</small></div>
         </div>
-        <div class="pestanas rev" role="tablist" aria-label="Qué pases ver" style="--k:${k}"><span class="ind"></span>${TABS.map(([id, n]) => `<button role="tab" data-tab="${id}" aria-selected="${est.tab === id}">${n}<span class="num">${itemsDe(id, s).length}</span></button>`).join('')}</div>
+        <div class="pestanas rev" role="tablist" aria-label="Qué pases ver" style="--k:${k}"><span class="ind"></span>${TABS.map(([id, n]) => { const ph = porHacer(id); return `<button role="tab" data-tab="${id}" aria-selected="${est.tab === id}">${n}${ph ? `<span class="bd-t num" title="${ph} por hacer">${ph}</span>` : `<span class="num">${itemsDe(id, s).length}</span>`}</button>`; }).join('')}</div>
         <div class="pila-pases" id="pila"></div>
       </aside>
       <section class="esc" id="esc" aria-live="polite"></section>
@@ -262,11 +267,11 @@ M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
     const t = x.t, sit = M.situacion(t, s), c = M.cifra(t, s), p = M.progreso(t);
     const sello = SELLOS[sit] && sit !== 'revisar' ? `<span class="mp-sello">${SELLOS[sit][0]}</span>` : '';
     return `<button class="mp s-${cls} rev ${x.id === est.sel ? 'on' : ''}" data-id="${x.id}" style="--i:${i}" data-go-hover aria-label="Traslado ${t.num}">
-      <span class="mp-b"><span class="sello" data-go>${M.glifo(glifoDe(x))}</span><span class="mp-q">${M.nombreSit(t, s)}</span><span class="mp-n">Nº ${t.num}</span></span>
+      <span class="mp-b"><span class="sello" data-go>${M.glifo(glifoDe(x))}</span><span class="mp-q">${M.nombreCaja(t, s)}</span><span class="mp-n">Caja Nº ${t.num}</span></span>
       <span class="mp-r"><b class="cod">${COD(t.de)}</b><span class="mp-l" style="--p:${sit === 'anulado' ? 0 : p}"><i></i><b></b>${['llega','sale','camino'].includes(sit) ? truck : ''}</span><b class="cod">${COD(t.a)}</b>
         <span class="mp-c">${sello || `<b class="num">${c.big}</b><small>${c.small}</small>`}</span></span></button>`;
   };
-  pila.innerHTML = items.length ? items.map(mini).join('') : `<div class="pila-vacia rev"><b>${est.tab === 'llegan' ? 'Nada viene hacia ti' : est.tab === 'envias' ? 'No tienes envíos en camino' : 'Nada guardado esta semana'}</b>Cuando haya, aparece aquí como un pase.</div>`;
+  pila.innerHTML = items.length ? items.map(mini).join('') : `<div class="pila-vacia rev"><b>${est.tab === 'llegan' ? 'Nada viene hacia ti' : est.tab === 'envias' ? 'No tienes envíos en camino' : 'Nada guardado esta semana'}</b>Cuando haya, aparece aquí.</div>`;
 
   M.$$('[data-tab]', raiz).forEach(b => b.onclick = () => {
     if (b.dataset.tab === est.tab) return;
@@ -297,15 +302,15 @@ M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
     const t = x.t, sit = M.situacion(t, s), cls = clsDe(x), p = M.progreso(t), c = campos(t, s);
     const sello = SELLOS[sit] && sit !== 'revisar' ? `<div class="estampa ${SELLOS[sit][1]}">${SELLOS[sit][0]}<small>${fechaSello(t.cerrado || t.anulado || M.AHORA)}</small></div>` : '<div class="estampa" hidden></div>';
     return `<article class="pase frente s-${cls}">
-      <header class="pb"><span class="sello" data-go>${M.glifo(glifoDe(x))}</span><span class="pq">${M.nombreSit(t, s)}</span><span class="pn">Nº ${t.num}</span></header>
+      <header class="pb"><span class="sello" data-go>${M.glifo(glifoDe(x))}</span><span class="pq">${M.nombreCaja(t, s)}</span><span class="pn">Caja Nº ${t.num}</span></header>
       <div class="pr"><div class="pc"><b class="cod" data-flap="${COD(t.de)}">${COD(t.de)}</b><span>${M.SEDES[t.de].n}${t.de === s ? ' · tú' : ''}</span></div>
         <div class="pl" style="--p:${sit === 'anulado' ? 0 : p}"><i></i><b></b>${['llega','sale','camino'].includes(sit) ? `<span class="cam ${M.atrasado(t) ? 'tarde' : ''}">${truck}</span>` : ''}<span class="fin"></span></div>
         <div class="pc der"><b class="cod" data-flap="${COD(t.a)}">${COD(t.a)}</b><span>${M.SEDES[t.a].n}${t.a === s ? ' · tú' : ''}</span></div></div>
       <div class="pf">${c.map(([l, v, sub, tarde]) => `<div><small>${l}</small><b class="${tarde ? 'tarde' : ''}">${v}</b>${sub ? `<em>${sub}</em>` : ''}</div>`).join('')}</div>
       <div class="pp"><i></i><i></i></div>
       <div class="pz"><div>${M.pila(t.lineas, 36, 4)}<div class="quien"><i class="av">${M.persona(t.por)[0]}</i>Envía ${M.persona(t.por)}</div></div>
-        <button class="qr-b" data-qr title="La guía de esta caja">${M.qr(t.num, 76)}</button></div>
-      <button class="btn ${sit === 'llega' || sit === 'contando' || (sit === 'revisar' && t.a === s) ? 'pri' : ''} pa" data-voltear>${accion(t, s)} ${M.ic('flecha')}</button>
+        ${t.de === s ? `<button class="qr-b" data-qr title="La guía de esta caja">${M.qr(t.num, 70)}<small>va en la caja</small></button>` : ''}</div>
+      <button class="btn ${(sit === 'llega' && M.atrasado(t)) || sit === 'contando' || (sit === 'revisar' && t.a === s) ? 'pri' : ''} pa" data-voltear>${accion(t, s)} ${M.ic('flecha')}</button>
       ${sello}</article>`;
   }
 
@@ -313,21 +318,21 @@ M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
     if (x.tipo === 'p') return '<article class="pase atras s-pedido"></article>';
     const t = x.t, sit = M.situacion(t, s), cls = clsDe(x);
     const contar = t.a === s && t.estado === 'en_transito';
-    const head = (txt, ring) => `<header class="pb"><button class="volver" data-volver>${M.ic('flecha')}El pase</button><span class="pq">${txt}</span>${ring != null ? `<svg class="bk-ring" viewBox="0 0 40 40"><circle class="f" cx="20" cy="20" r="16"/><circle class="v" cx="20" cy="20" r="16" style="--v:${ring}"/></svg>` : `<span class="pn">Nº ${t.num}</span>`}</header>`;
+    const head = (txt, ring) => `<header class="pb"><button class="volver" data-volver>${M.ic('flecha')}Volver</button><span class="pq">${txt}</span>${ring != null ? `<svg class="bk-ring" viewBox="0 0 40 40"><circle class="f" cx="20" cy="20" r="16"/><circle class="v" cx="20" cy="20" r="16" style="--v:${ring}"/></svg>` : `<span class="pn">Nº ${t.num}</span>`}</header>`;
     const fila = (l, k, modo) => {
       const nom = `<div class="n"><b>${M.nombrePrenda(l)}</b><span>${M.detallePrenda(l)}</span></div>`;
       if (modo === 'contar') return `<div class="fila-b" data-k="${k}" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="paso-num"><button data-menos aria-label="Una menos">${M.ic('menos')}</button><output class="num ${l.cont == null ? 'sin-contar' : ''}">${l.cont ?? '—'}</output><button data-mas aria-label="Una más">${M.ic('mas')}</button></span></div>`;
-      if (modo === 'comparar') { const ok = (l.cont ?? 0) === l.n; return `<div class="fila-b ${ok ? '' : 'no-cuadra'}" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="cmp"><span class="env">enviaste<b class="num">${l.n}</b></span><span class="mk ${ok ? 'ok' : 'no'}">${M.ic(ok ? 'check' : 'menos')}</span><span class="q num">${l.cont ?? 0}</span></span></div>`; }
+      if (modo === 'comparar') { const ok = (l.cont ?? 0) === l.n; return `<div class="fila-b ${ok ? '' : 'no-cuadra'}" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="cmp"><span class="env">venían<b class="num">${l.n}</b></span><span class="mk ${ok ? 'ok' : 'no'}">${M.ic(ok ? 'check' : 'menos')}</span><span class="q num">${l.cont ?? 0}</span></span></div>`; }
       return `<div class="fila-b" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="q num">${l.n}</span></div>`;
     };
     if (contar) {
       const hechas = M.contadas(t), total = t.lineas.length, listas = hechas === total;
-      if (!pase.revelado) return `<article class="pase atras s-contando">${head(`Contando · Nº ${t.num}`, hechas / total)}
+      if (!pase.revelado) return `<article class="pase atras s-contando">${head(`Contando la caja Nº ${t.num}`, hechas / total)}
         <div class="bk-cue"><div class="bk-tip"><span class="sello" data-go>${M.glifo('ciega')}</span><span><b>Cuenta lo que ves en la caja.</b> Lo enviado aparece al final.</span></div>
           ${t.lineas.map((l, k) => fila(l, k, 'contar')).join('')}</div>
         <div class="bk-pie"><div class="fila"><button class="btn s-contando" data-escanear>${M.glifo('escanear')}Escanear</button>
           <button class="btn pri grande" data-termine ${listas ? '' : 'disabled'}>${listas ? 'Terminé de contar' : `${total - hechas === 1 ? 'Falta 1' : `Faltan ${total - hechas}`} por contar`}</button></div></div></article>`;
-      return `<article class="pase atras s-${M.difiere(t) ? 'revisar' : 'cerrado'}">${head(M.difiere(t) ? 'Revisa lo marcado' : 'Todo coincide', 1)}
+      return `<article class="pase atras s-${M.difiere(t) ? 'revisar' : 'cerrado'}">${head(M.difiere(t) ? M.faltaQue(t) : 'Todo coincide', 1)}
         <div class="bk-cue revela">${t.lineas.map((l, k) => fila(l, k, 'comparar')).join('')}</div>
         <div class="bk-pie"><div class="lugar" role="group" aria-label="Dónde la dejas">
             <button data-lugar="almacen" aria-pressed="${pase.lugar === 'almacen'}"><svg viewBox="0 0 24 24">${M.PT.almacen}</svg>Al almacén</button>
@@ -336,7 +341,7 @@ M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
     }
     if (sit === 'revisar' || sit === 'dif' || sit === 'cerrado') {
       const puedeCerrar = sit === 'revisar' && t.a === s;
-      return `<article class="pase atras s-${cls}">${head(sit === 'revisar' ? 'Lo que llegó' : 'Lo que llegó')}
+      return `<article class="pase atras s-${cls}">${head(sit === 'revisar' ? M.faltaQue(t) : 'Lo que llegó')}
         <div class="bk-cue revela">${t.lineas.map((l, k) => fila(l, k, 'comparar')).join('')}
           ${sit === 'dif' ? `<div class="nota-op">“${t.notaCierre}”<cite>${M.persona(t.cerro)}</cite></div>` : ''}
           ${puedeCerrar ? `<label class="lbl" for="nota-d">¿Qué pasó con lo que falta?</label><textarea id="nota-d" class="campo-nota" data-nota placeholder="Ej. La falda no vino en la caja; Lima la va a buscar"></textarea>` : ''}</div>
@@ -358,7 +363,7 @@ M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
     const quieto = M.quieto;
     const lista = itemsDe(est.tab, s), i = lista.findIndex(y => y.id === x.id);
     cont.innerHTML = `<div class="giro"><div class="pase3d ${pase.vuelta ? 'vuelta' : ''}" id="p3d">${frente(x)}${atras(x)}</div></div>
-      ${cont === esc && lista.length > 1 ? `<div class="pager"><button class="izq" data-mover="-1" ${i <= 0 ? 'disabled' : ''} aria-label="Pase anterior">${M.ic('flecha')}</button><span class="num">${i + 1} de ${lista.length}</span><button data-mover="1" ${i >= lista.length - 1 ? 'disabled' : ''} aria-label="Pase siguiente">${M.ic('flecha')}</button></div>` : ''}`;
+      ${cont === esc && lista.length > 1 ? `<div class="pager"><button class="izq" data-mover="-1" ${i <= 0 ? 'disabled' : ''} aria-label="Caja anterior">${M.ic('flecha')}</button><span class="num">${i + 1} de ${lista.length}</span><button data-mover="1" ${i >= lista.length - 1 ? 'disabled' : ''} aria-label="Caja siguiente">${M.ic('flecha')}</button></div>` : ''}`;
     const giro = M.$('.giro', cont);
     if (quieto) giro.classList.add('quieto');
     else if (desde) M.flip(giro, desde);

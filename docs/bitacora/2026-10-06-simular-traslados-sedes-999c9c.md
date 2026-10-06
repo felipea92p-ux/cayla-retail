@@ -15,3 +15,10 @@ cada prenda y se arrastra la caja al almacén o al piso) y F · Conversaciones (
 Por qué así: A, B y C seguían pidiendo leer o entender una leyenda; Felipe pidió más interactivas, entendibles y amigables. Cada
 nueva ordena los traslados distinto (urgencia, lugar, sede) y conserva el conteo a ciegas y lo de ADR-0239.
 Felipe se lleva: abrir `index.html` y elegir D, E, F o una mezcla; las cuatro decisiones de la segunda ronda están en el README.
+
+## 2026-10-06 (Traslados: la prueba ciega de la segunda ronda)
+Qué hice: un agente sin contexto calificó las capturas como una colaboradora (F 8/10, D 6, E 6; contar en la E, 8) y corregí
+lo que lo confundió: el botón ya no promete abrir una caja que quizá no llegó, «venían» en vez de «enviaste», qué prenda faltó,
+«Taller» entero, la lupa en vez de la balanza y lo atrasado primero.
+Por qué así: la primera ronda se cayó por «mucho texto que nadie lee»; esta vez la prueba dice dónde se pierde alguien real.
+Felipe se lleva: la F (el chat) fue la que se entendió más rápido; contar tocando prendas (E) fue lo más claro una vez adentro.

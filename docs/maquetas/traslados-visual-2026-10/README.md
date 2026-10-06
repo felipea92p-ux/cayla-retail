@@ -31,14 +31,14 @@ respetan lo mismo que la primera: el conteo a ciegas (D-130), lo que coincide en
 responder un pedido.
 
 ### D · Pases — `d-pases.html`
-Cada caja es un **pase de abordar**, como los de la billetera del celular. Lo grande es de dónde a dónde, con los códigos de cada
-sede (**TAL → TRU**; las letras giran una vez como en un tablero de aeropuerto) y el camión en la línea punteada; debajo, tres
+Cada caja es un **pase de abordar**, como los de la billetera del celular. Lo grande es de dónde a dónde, con el código de cada
+tienda y el Taller entero (**Taller → TRU**; las letras giran una vez como en un tablero de aeropuerto) y el camión en la línea punteada; debajo, tres
 datos (salió · llega · prendas) y **un solo botón** («Abrir la caja y contar»). El QR es el de la guía (ADR-0242 D-3). El pase
 **se da vuelta** (giro 3D) y en el reverso se cuenta a ciegas; al confirmar vuelve al frente y le **cae un sello de goma**
 («RECIBIDO», «CON NOTA», «ANULADO», «ENVIADO»), y la billetera pasa sola al pase siguiente. A la izquierda, la **billetera**: los
 pases apilados, lo urgente arriba, en tres pestañas (Te llegan · Envías · Guardados) y un **anillo** con lo que te toca hoy y lo
 que llevas hecho. ← → pasa de pase. En celular el pase se abre a pantalla completa.
-**Cuesta:** medio. Una vista nueva (billetera + pase) con los datos de la lista de hoy. Los códigos de sede (TAL, TRU, LIM, AQP)
+**Cuesta:** medio. Una vista nueva (billetera + pase) con los datos de la lista de hoy. Los códigos de tienda (TRU, LIM, AQP)
 no existen en la base: hay que decidir de dónde salen (una columna corta en `ubicaciones` o una regla en el código).
 
 ### E · La puerta — `e-puerta.html`
@@ -64,6 +64,29 @@ empieza por la lista de chats, como WhatsApp.
 **Cuesta:** medio. Una lista de chats y una conversación; los mensajes salen de columnas que ya existen (`created_at`,
 `confirmado_en`, `cerrado_en`, `anulado_en`, los pedidos de `separacion_pedidos`). Conviene no prometer chat libre: no existe.
 
+### Prueba ciega (2026-10-06): qué entendió alguien sin contexto, y qué se corrigió
+Un agente sin ningún contexto miró SOLO las capturas, como una colaboradora de Trujillo sin formación técnica (ley de
+`/formidable`: «se entiende en 5 segundos»), y calificó «se entiende sin que me expliquen»:
+
+| | Nota | Lo que entendió al toque | Lo que lo confundió |
+|---|---|---|---|
+| **F · Conversaciones** | **8/10** | «Es WhatsApp, ya lo sé usar»; «Para hoy» le dijo qué hacer | nada marcaba lo urgente; una hora suelta («12:15») junto a «llega 16:00»; «Rosa» ¿de qué tienda? |
+| **D · Pases** | 6/10 | una caja a la vez y un botón grande | «¿la caja ya llegó o no?» (decía «llega mañana» y «Abrir la caja»); «pase», «TAL», «4 distintas», el QR, el anillo vacío, «5 cosas» frente a «Te llegan 4» |
+| **E · La puerta** | 6/10 (contar: **8**) | «Saca y toca cada prenda» y «Al almacén / Al piso» | seis cajas a la vez sin saber cuál primero; «2/3 contadas» y «4/4» junto a «faltó 1»; «enviaste 2» (a ella se lo enviaron); no decía QUÉ prenda faltó |
+
+Corregido en las tres (y en lo común):
+- **El sistema no sabe si la caja ya llegó, y ahora lo dice así:** «Si ya llegó, ábrela y cuéntala» / «Ya llegó: abrir y contar»
+  (D, F); en la E, una caja en camino pregunta «¿Ya la tienes en la tienda?» antes de abrirse.
+- **«venían 2»** en vez de «enviaste 2», y **qué faltó con nombre y talla** («Faltó 1 Vestido Lúcuma Mostaza M»).
+- **«Taller»** escrito entero (TAL no se entendió; TRU, LIM y AQP sí); **«4 tipos de prenda»** en vez de «4 distintas».
+- **La lupa** reemplaza a la balanza en «Falta revisar».
+- **Lo urgente primero:** en la F, la caja atrasada sube la conversación, sale en ámbar y tiene su propio «Atrasada 1» en «Para
+  hoy»; en la E, la caja más urgente lleva «Empieza aquí».
+- D: sin la palabra «pase»; el anillo dice «0/5»; cada pestaña muestra cuántas cosas te tocan ahí (4 + 1 = las 5 del día);
+  «Caja Nº 32»; el QR solo en lo que envías («va en la caja»).
+- F: «salió 12:15»; quien empezó a contar habla desde su lado del chat («Empecé a contar la caja Nº 33 · Rosa M.»).
+No se volvió a correr la prueba después de corregir.
+
 ### Movimiento en la segunda ronda
 Lo de la primera (sellos que se mueven una vez, el camión que corre hasta su punto, cascadas) y, a decisión de Felipe: el **giro
 3D** del pase y de las fichas, el **sello de goma** que cae, las **letras de aeropuerto**, la **caja que se abre** y las prendas que
@@ -73,7 +96,7 @@ Ninguno queda en bucle; con «reducir movimiento» (o `?sinmov`) todo aparece qu
 ### Decisiones de Felipe (segunda ronda)
 1. **¿D, E, F o una mezcla?** Combinan bien: la billetera de la D como lista, con el reverso para contar; o el chat de la F con el
    pase de la D como mensaje.
-2. **Los códigos de sede** (TAL, TRU, LIM, AQP): ¿se usan en pantalla? Son cortos y se leen de lejos, pero hay que enseñarlos una vez.
+2. **Los códigos de tienda** (TRU, LIM, AQP; el Taller va entero): ¿se usan en pantalla? En la prueba ciega se entendieron; «TAL» no.
 3. **Contar tocando prendas** (E) frente a − / + (D y F): tocar es más físico; − / + es más rápido con cantidades grandes.
 4. **El movimiento rico** de la lista de arriba (actualización de ADR-0136).
 

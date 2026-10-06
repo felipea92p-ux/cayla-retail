@@ -29,7 +29,7 @@ const GL = {
   sale:     CAM + '<path class="ray" d="M1.4 9.5h-3M1.8 12.4h-3.4"/>',
   camino:   CAM,
   contando: '<rect x="5.5" y="4.5" width="13" height="16" rx="2"/><path d="M9.2 4.5V3.5h5.6v1"/><path class="l1" d="M8.5 10h7"/><path class="l2" d="M8.5 13.5h7"/><path class="l3" d="M8.5 17h4"/>',
-  revisar:  '<path d="M12 5v15M8.5 20h7"/><g class="viga"><path d="M4.5 6.5h15"/><path d="M4.5 6.5 2.6 12h3.8L4.5 6.5ZM19.5 6.5 17.6 12h3.8l-1.9-5.5Z"/></g>',
+  revisar:  '<g class="lente"><circle cx="10.5" cy="10.5" r="6.2"/><path d="M8 10.5h5"/></g><path class="mango" d="m15.2 15.2 4.8 4.8"/>',
   cerrado:  '<g class="paq">' + CAJA + '</g><path class="vis" d="M8.6 12.4l2.4 2.4 4.4-4.8"/>',
   dif:      '<g class="paq">' + CAJA + '</g><path class="men" d="M9.2 12.6h5.6"/>',
   anulado:  '<path class="giro" d="M9.5 4.5 4.5 9l5 4.5"/><path class="giro" d="M4.5 9H14a5.5 5.5 0 0 1 0 11h-3"/>',
@@ -252,7 +252,7 @@ M.cifra = (t, s = M.sede) => {
 /* Lo que se puede decir de las prendas sin romper el conteo a ciegas */
 M.prendasTexto = (t, s = M.sede) => {
   const d = t.lineas.length;
-  if (M.ciego(t, s)) return `${d} ${d === 1 ? 'prenda distinta' : 'prendas distintas'} · se cuentan al llegar`;
+  if (M.ciego(t, s)) return `${d} ${d === 1 ? 'tipo de prenda' : 'tipos de prenda'} · las cuentas al llegar`;
   const u = M.unidades(t); return `${u} ${u === 1 ? 'prenda' : 'prendas'}`;
 };
 M.GRUPOS = [
@@ -723,6 +723,23 @@ M.volar = (nodo, haciaRect, { ms = 700, demora = 0, escala = .3 } = {}) => {
 M.hayPendientes = () => M.tareas().length;
 /* Pedidos que me tocan responder, y los ya respondidos (para la historia) */
 M.pedidosDe = (s = M.sede) => M.PEDIDOS.filter(p => p.envia === s || p.pide === s);
+
+/* El taller se escribe entero: «TAL» no se entendió en la prueba ciega; TRU, LIM y AQP sí */
+M.codigo = id => id === 'taller' ? 'Taller' : SEDES[id].cod;
+/* Cómo se nombra una CAJA (femenino) según lo que le toca a quien mira */
+M.nombreCaja = (t, s = M.sede) => ({
+  llega: M.atrasado(t) ? 'Atrasada' : 'Viene hacia ti', sale: 'Enviada', camino: 'En camino',
+  contando: t.a === s ? 'Contando' : `${SEDES[t.a].corto} la está contando`,
+  revisar: t.a === s ? 'Falta revisar' : `Faltó algo · lo revisa ${SEDES[t.a].corto}`,
+  cerrado: 'Recibida completa', dif: 'Cerrada con nota', anulado: 'Anulada',
+}[M.situacion(t, s)]);
+/* Qué faltó o sobró, con nombre, color y talla (la prueba ciega pidió saber CUÁL prenda) */
+M.faltaQue = t => {
+  const ls = t.lineas.filter(l => (l.cont ?? 0) !== l.n); if (!ls.length) return '';
+  const l = ls[0], d = (l.cont ?? 0) - l.n, que = `${M.nombrePrenda(l)} ${PRENDAS[l.p].cols[l.c][0]} ${l.t}`;
+  const base = d < 0 ? `${-d === 1 ? 'Faltó' : 'Faltaron'} ${-d} ${que}` : `${d === 1 ? 'Sobró' : 'Sobraron'} ${d} ${que}`;
+  return ls.length > 1 ? `${base} y ${ls.length - 1} más` : base;
+};
 
 /* ── Marco de la página: barra del demo + la app ──────────────────────────── */
 M.montar = ({ opcion, nombre, dibujar }) => {
