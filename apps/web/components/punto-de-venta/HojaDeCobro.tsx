@@ -220,7 +220,7 @@ export function HojaDeCobro({
                     </span>
                     {varios && pago && (
                       <label className="hoja-cobro-monto">
-                        <span className="text-[11px] opacity-60">S/</span>
+                        <span className="text-[11px] opacity-60 dark:opacity-85">S/</span>
                         <CampoMonto
                           aria-label={`Monto en ${NOMBRE_METODO[m]}`}
                           data-monto-medio={m}

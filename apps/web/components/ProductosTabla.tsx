@@ -530,7 +530,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
   const botonNegado = "grid h-8 w-8 place-items-center rounded-md bg-rojo text-crema transition-colors hover:bg-rojo-profundo";
   return (
     <div
-      className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
+      className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
     >
       {acciones.editar && (
         <Link href={acciones.editar} className={boton} aria-label={`Editar ${referencia}`} title="Editar">
@@ -566,7 +566,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
  *  es justo lo que se quiere ver antes de imprimir. */
 function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: string; unidades: () => Promise<number | null>; descripcion: string; sede: string }) {
   return (
-    <div className="pointer-events-none absolute right-[5.25rem] top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
+    <div className="pointer-events-none absolute right-[5.25rem] top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
       <EnlaceEtiquetas
         href={href}
         unidades={unidades}
@@ -701,7 +701,7 @@ function FichaVariantes({
               key={v.varianteId}
               className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel py-2.5 pl-3 pr-2 ${v.activo ? "" : "opacity-50"}`}
             >
-              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "#e8e0d0" }} />
+              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "var(--color-sand)" }} />
               <span className="min-w-0 truncate text-[13px] text-tinta">
                 <span className="mr-1.5 font-mono font-medium">{v.talla ?? "—"}</span>
                 {v.color ?? "Sin color"}
@@ -826,7 +826,7 @@ function BarraMarcadas({
       role="toolbar"
       aria-label="Acciones sobre las prendas marcadas"
       aria-hidden={n === 0}
-      className={`fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-2xl bg-tinta p-1.5 text-crema shadow-[0_24px_48px_-16px_rgba(26,26,24,0.5)] transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
+      className={`fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-2xl bg-tinta p-1.5 text-crema shadow-[0_24px_48px_-16px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
         n > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >
@@ -869,7 +869,7 @@ function BarraMarcadas({
         onClick={onLimpiar}
         aria-label="Quitar la marca"
         tabIndex={n > 0 ? 0 : -1}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 transition-colors hover:bg-crema/10 hover:text-crema"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 dark:text-crema/75 transition-colors hover:bg-crema/10 hover:text-crema"
       >
         <X aria-hidden className="h-4 w-4" />
       </button>

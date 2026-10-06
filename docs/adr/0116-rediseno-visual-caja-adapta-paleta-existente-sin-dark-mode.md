@@ -263,3 +263,8 @@ que hubo que alinear es **transferencia**, que en Caja usaba el taupe neutro y a
 `--color-metodo-transferencia` (`ETIQUETA_METODO` y `colorDeMetodo` en `CajaAbiertaPanel.tsx`), para que un
 mismo método se lea con el mismo color en Caja y en Vender. Los puntos del "Ritmo del día" y la leyenda de la
 dona heredan el cambio solos: leen de `ETIQUETA_METODO`, una sola fuente.
+
+
+## Actualización 2026-10-05 — el modo oscuro entró (ADR-0336)
+
+Lo de «sin modo oscuro» de este ADR quedó superado: el 2026-10-05 Felipe pidió el modo oscuro para todo el ERP y se construyó sobre los mismos tokens (`docs/adr/0336-modo-oscuro-del-erp.md`). Caja se auditó con sus cuatro cuentas (actividad 6): el tablero, los gráficos, el cierre y la persiana de «Caja cerrada» se ven bien en oscuro. La decisión de adaptar la paleta existente sigue en pie: por eso el oscuro bastó con redefinir los tokens.

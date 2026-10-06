@@ -262,7 +262,7 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] outline-none transition-colors ${
+        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] transition-colors ${
           puedeQuitar ? "pl-3 pr-1" : "px-3"
         } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"}`}
       >
@@ -292,7 +292,7 @@ export function DesplegablePildora({
             else onValor(valorPorDefecto);
           }}
           aria-label={`Quitar filtro ${etiqueta}`}
-          className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 outline-none transition-colors hover:bg-tinta/[0.06] hover:text-rojo focus-visible:ring-2 focus-visible:ring-rojo/40"
+          className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-rojo"
         >
           <X aria-hidden className="h-3 w-3" />
         </button>

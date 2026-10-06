@@ -164,7 +164,7 @@ del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c;
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, pero también sin
-rebote y sin bucle, ADR-0136 act. 2026-10-05), y todo se apaga con
+rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -209,7 +209,44 @@ estados; ADR-0220 y su actualización de la tarde, Felipe 2026-09-26);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
-contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
+contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
+2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
+
+## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
+
+**El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
+(`localStorage["cayla-tema"]`, arranca en claro, un script en el `<head>` pone `data-tema` antes de pintar), con su botón entre
+«Actividad» y la sede; lo ve toda cuenta y **no es un módulo** (ADR-0306). Los MISMOS tokens se redefinen bajo
+`:root[data-tema="oscuro"]` en `apps/web/app/estilos/tema.css`, con `tinta` y `crema` intercambiados (fondo `#1a1a18`, texto `#f5f0e8`):
+`bg-papel`, `text-tinta` y `border-sand` se invierten solos. Imprimir sale SIEMPRE en claro (el oscuro vive en `@media screen`).
+
+Lo que se exige a toda pantalla, modal o pieza nueva o editada:
+1. **Solo tokens: nunca un hex, un `rgb()`/`rgba()` (tampoco dentro de una clase de Tailwind, `shadow-[0_8px_rgba(…)]`), `bg-white` ni
+   `bg-gray-*`.** Lo hace cumplir `lib/tema-colores.test.ts` (definición única: `apps/web/tema/colores-sueltos.mjs`). Una línea legítima
+   se exime con `// tema-fijo: <motivo de 10 caracteres o más>`, y un archivo entero se declara permanente, con su motivo, en
+   `lib/tema-colores-archivos.ts`. Hoy la deuda es **0**: un archivo nuevo no puede nacer con un color suelto.
+2. **Un velo y una sombra de elevación son `--color-sombra`** (`bg-sombra/25 dark:bg-sombra/55`, `shadow-[…color-mix(in_srgb,var(--color-sombra)_35%,transparent)]`),
+   nunca `tinta`: en oscuro `tinta` es crema y el velo ACLARARÍA la pantalla. Una tarjeta de vidrio es `--color-vidrio`; un filo o un anillo
+   que debe invertirse es `tinta`.
+3. **Papel físico y color de dato no se oscurecen.** Lo que se imprime o se ve como saldrá impreso (boleta, ticket, etiqueta, QR, cartel
+   del club) lleva `.papel-fijo` (vuelve a declarar los tokens claros) o, si ya es blanco por sí mismo, `data-papel`. El color de una
+   PRENDA (la baldosa de `MosaicoPrenda`, la muestra de un tejido) es dato: no cambia, lleva `data-color-dato`, y el texto que se
+   escribe encima usa `--color-tinta-fija` / `--color-crema-fija` (idénticos en los dos temas), nunca `tinta`/`crema`. Una pantalla
+   de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
+4. **Un texto tenue (`text-tinta/35` a `/50`, `text-taupe/50` a `/70`) ya sube solo en oscuro** (una regla de `tema.css`, con `:where`
+   para no ganarle a `hover:`); no escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`,
+   `dark:opacity-85` en un conteo junto a un filtro). `dark:` sigue el atributo, no el sistema operativo.
+5. **Un token de color nuevo** va en el `@theme` de `globals.css`, en el bloque oscuro de `tema.css` y en `.papel-fijo` (si es de papel);
+   `lib/tema-tokens.test.ts` falla si no coinciden, mide el contraste de cada texto sobre cada superficie y exige que toda
+   `var(--color-…)` del código exista (Tailwind v4 solo emite un token que ve usado en CSS: el bloque de la paleta es `@theme static`).
+
+**Cómo se verifica (antes de dar una pantalla por terminada):** `pnpm --filter web tema:auditar -- --cuenta <cuentas> --ruta <rutas> --escenarios`
+(`apps/web/tema/`, su README explica todo): entra con cada cuenta de prueba, mide el contraste WCAG real de cada texto, detecta manchas
+claras y velos que aclaran, y separa **lo que falla solo en oscuro** (lo rompió el tema: urgente) de lo heredado del claro. **Solo
+corre contra localhost**, y hay que MIRAR las capturas: no ve todo (una 404 blanca, un visor de cámara sin cámara, un texto negro
+sobre blanco «pasa»). Cada modal, hoja o estado nuevo se agrega como escenario en `tema/escenarios/registro.mjs` (con su `abre`, para
+que un escenario no pase en verde sin haber abierto nada). Y donde la regla de celular lo exige (Vender, Cambios, Devoluciones), a 375 px.
+Los números exactos y el porqué de cada decisión: `docs/adr/0336-modo-oscuro-del-erp.md`.
 
 ## La prenda sin foto (regla — ADR-0333, Felipe 2026-10-04)
 

@@ -107,7 +107,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
     <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 z-50 bg-tinta/35 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
         />
         {/* La posición vive en este contenedor y NO en el panel: una animación
             de entrada usa `transform`, y si la posición también fuera un
@@ -127,7 +127,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             ref={hoja}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
-                ? "flex h-dvh flex-col overflow-hidden bg-tinta"
+                ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
                     `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movimientos · A · Ruta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN A · «RUTA» — cada movimiento es una tarjeta con su sello de color, su
+   ícono que se anima y un trayecto «de dónde a dónde» con una prenda que viaja.
+   Arriba, las siete familias son botones grandes que cuentan y filtran.
+   ==================================================================== */
+
+/* ── Columna de tipos a la derecha (los filtros que antes eran píldoras grises) ── */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start;margin-top:24px}
+.cols .lista-card{margin-top:0}
+.lado{position:sticky;top:70px;display:grid;gap:8px}
+.tipos{display:grid;gap:8px}
+.tipo{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"s n c" "s u c" "b b b";column-gap:12px;row-gap:1px;align-items:center;text-align:left;padding:11px 14px 10px 11px;border-radius:16px;border:1.5px solid var(--sand);background:var(--papel);transition:background .25s var(--ease),border-color .25s var(--ease),opacity .3s var(--ease),transform .3s var(--ease);overflow:hidden;min-width:0}
+.tipo:hover{background:var(--c-bg);border-color:var(--c-ln);transform:translateX(-3px)}
+.tipo[aria-pressed=true]{background:var(--c-md);border-color:var(--c);transform:translateX(-6px)}
+.tipos.hay .tipo[aria-pressed=false]{opacity:.55}
+.tipos.hay .tipo[aria-pressed=false]:hover{opacity:1}
+.tipo .sello{--sz:40px;grid-area:s}
+.tipo .tn{grid-area:n;font-size:13px;font-weight:600;line-height:1.2;align-self:end}
+.tipo .tu{grid-area:u;font-size:11.5px;color:var(--t65);align-self:start}
+.tipo .tc{grid-area:c;display:flex;flex-direction:column;align-items:flex-end;line-height:1}
+.tipo .tc b{font-family:var(--serif);font-weight:400;font-size:32px;color:var(--tinta)}
+.tipo .tc small{font-size:10px;color:var(--t65);margin-top:2px}
+.tipo .tf{display:none}
+.tipo .bar{grid-area:b;display:block;height:3px;border-radius:3px;background:var(--sand);margin-top:8px;overflow:hidden}
+.tipo .bar i{display:block;height:100%;width:var(--w);background:var(--c);transform-origin:left;transform:scaleX(0);transition:transform .9s .25s var(--ease)}
+.tipo.in .bar i{transform:scaleX(1)}
+.tipo .ck{display:none}
+
+/* ── Tarjeta de la lista ──────────────────────────────────────────────────── */
+.lista-card{margin-top:16px;overflow:hidden}
+.herr{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.herr .campo{flex:1 1 240px}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--t80);white-space:nowrap}
+.sw i{width:34px;height:20px;border-radius:99px;background:var(--sand);position:relative;transition:background .25s var(--ease);flex:none}
+.sw i:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--papel);transition:transform .25s var(--ease)}
+.sw[aria-pressed=true] i{background:var(--tinta)}
+.sw[aria-pressed=true] i:after{transform:translateX(14px)}
+.limpiar{font-size:12.5px;font-weight:600;color:var(--taupe);text-decoration:underline;text-underline-offset:3px;opacity:0;pointer-events:none;transition:opacity .2s}
+.limpiar.v{opacity:1;pointer-events:auto}
+
+/* ── Cabecera de cada día con su «código de barras» ───────────────────────── */
+.dia{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 18px;align-items:center;padding:16px 18px 10px;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));border-top:1px solid var(--sand);position:sticky;top:54px;z-index:5}
+.lista-card>.dia:first-of-type{border-top:0}
+.dia .dn{font-size:13px;color:var(--t65);white-space:nowrap}
+.dia .dn b{font-family:var(--serif);font-weight:500;font-size:22px;color:var(--tinta);margin-right:8px;letter-spacing:.02em}
+.codigo{display:flex;gap:3px;height:12px;align-items:flex-end;min-width:0}
+.codigo button{flex:1 1 0;min-width:3px;max-width:22px;height:100%;border-radius:3px;background:var(--c);opacity:.9;transform:scaleY(0);transform-origin:bottom;transition:transform .5s var(--ease),opacity .2s,height .2s;transition-delay:calc(var(--k,0)*22ms + 200ms)}
+.dia.in .codigo button{transform:scaleY(1)}
+.codigo button:hover{opacity:1;height:150%}
+.dia .dr{font-size:12px;color:var(--t65);white-space:nowrap}
+
+/* ── La fila de operación ─────────────────────────────────────────────────── */
+.op{display:block;position:relative;border-top:1px solid var(--sand);background:var(--papel);transition:background .25s var(--ease)}
+.op:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c);transform:scaleY(.3);opacity:.0;transition:transform .35s var(--ease),opacity .25s}
+.op:hover,.op.abierta{background:var(--c-bg)}
+.op:hover:before,.op.abierta:before{transform:none;opacity:1}
+.op.flash{animation:flash 1.3s var(--ease)}
+@keyframes flash{0%,100%{background:var(--papel)}25%{background:var(--c-md)}}
+.op .fila{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 18px 14px 18px;cursor:pointer;width:100%}
+.op .sello{--sz:50px}
+.op .l1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.op .tn{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.op .hora{font-size:12px;color:var(--t65)}
+.op .quien{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t65)}
+.op .l2{display:flex;align-items:center;gap:10px;margin:6px 0 8px;min-width:0}
+.op .l2 .tx{min-width:0}
+.op .l2 b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op .l2 span{font-size:12px;color:var(--t65)}
+.op .l3{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.op .ref{font-size:12px;color:var(--t65);display:inline-flex;gap:6px;align-items:center}
+.op .ref svg{color:var(--taupe)}
+.op .cant{text-align:right;min-width:62px}
+.op .cant b{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1;color:var(--c);display:block}
+.op .cant small{font-size:11px;color:var(--t65)}
+.op .cant .chev{display:block;margin:4px 0 0 auto;color:var(--t35);transition:transform .3s var(--ease)}
+.op.abierta .chev{transform:rotate(180deg)}
+.op .det{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}
+.op.abierta>.det{grid-template-rows:1fr}
+.op .det>div{overflow:hidden}
+.op .det .in2{padding:0 18px 16px 84px;display:grid;gap:10px}
+.op .det .lins{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 22px}
+.op .det .lin{opacity:0;transform:translateY(6px);transition:opacity .35s var(--ease),transform .4s var(--ease);transition-delay:calc(var(--k,0)*45ms + 120ms)}
+.op.abierta .det .lin{opacity:1;transform:none}
+.op .det .lin .q{font-size:20px}
+.op .det .pie{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.op .det .nota-op{flex:1 1 220px;font-size:12.5px;padding:8px 12px}
+
+/* ── El mazo: varias colgadas del día en una pila que se abre en abanico ──── */
+.mazo{position:relative;border-top:1px solid var(--sand);background:var(--papel)}
+.mazo .tapa-mazo{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 18px;cursor:pointer;width:100%;transition:background .25s}
+.mazo .tapa-mazo:hover{background:var(--c-bg)}
+.mazo .capas{position:absolute;left:18px;right:18px;bottom:-5px;height:10px;pointer-events:none;transition:opacity .25s,transform .4s var(--ease)}
+.mazo .capas i{position:absolute;left:0;right:0;bottom:0;height:8px;border:1px solid var(--c-ln);border-top:0;border-radius:0 0 12px 12px;background:var(--c-bg)}
+.mazo .capas i:nth-child(1){left:10px;right:10px;bottom:-4px;opacity:.7}
+.mazo .capas i:nth-child(2){left:5px;right:5px;bottom:-1px}
+.mazo.abierto .capas{opacity:0;transform:translateY(-6px)}
+.mazo .sello{--sz:50px}
+.mazo .l1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mazo .tn{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.mazo .veces{font-size:11px;font-weight:600;background:var(--c-md);color:var(--c);border-radius:99px;padding:1px 9px}
+.mazo .l2{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}
+.mazo .l2 span{font-size:12.5px;color:var(--t65)}
+.mazo .quienes{display:flex}
+.mazo .quienes .av{margin-left:-6px;box-shadow:0 0 0 2px var(--papel)}
+.mazo .quienes .av:first-child{margin-left:0}
+.mazo .cant{text-align:right;min-width:62px}
+.mazo .cant b{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1;color:var(--c);display:block}
+.mazo .cant small{font-size:11px;color:var(--t65)}
+.mazo .hijos{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+.mazo.abierto .hijos{grid-template-rows:1fr}
+.mazo .hijos>div{overflow:hidden;background:color-mix(in srgb,var(--c) 4%,var(--papel))}
+.mazo .hijos .op{background:transparent;transform:translateX(-14px) translateY(-6px);opacity:0;transition:transform .45s var(--ease),opacity .35s var(--ease),background .25s;transition-delay:calc(var(--k,0)*70ms + 80ms)}
+.mazo.abierto .hijos .op{transform:none;opacity:1}
+.mazo .hijos .op:hover,.mazo .hijos .op.abierta{background:var(--c-bg)}
+.mazo .hijos .op .fila{padding-left:46px}
+.mazo .hijos .op:before{left:22px}
+
+.vacio{padding:56px 24px;text-align:center;color:var(--t65)}
+.vacio .sello{--sz:60px;margin:0 auto 14px}
+.vacio b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;color:var(--tinta);margin-bottom:4px}
+
+@container vista (max-width:1020px){
+  .cols{grid-template-columns:1fr}
+  .lado{position:static;order:-1}
+  .lado .lbl{display:none}
+  .tipos{display:flex;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 0 8px;scrollbar-width:none}
+  .tipos::-webkit-scrollbar{display:none}
+  .tipo{flex:0 0 232px;scroll-snap-align:start}
+  .tipo:hover,.tipo[aria-pressed=true]{transform:none}
+}
+@container vista (max-width:760px){
+  .cols{margin-top:20px}
+  .tipo{flex-basis:222px}
+  .herr{padding:12px}
+  .dia{grid-template-columns:1fr auto;top:54px;padding:12px 14px 8px}
+  .dia .codigo{grid-column:1/-1;order:3}
+  .op .fila,.mazo .tapa-mazo{grid-template-columns:auto minmax(0,1fr) auto;gap:12px;padding:12px 14px}
+  .op .sello,.mazo .sello{--sz:42px}
+  .op .cant b,.mazo .cant b{font-size:28px}
+  .op .cant,.mazo .cant{min-width:44px}
+  .op .l2 .pila{display:none}
+  .op .det .in2{padding:0 14px 14px}
+  .mazo .hijos .op .fila{padding-left:22px}
+  .mazo .hijos .op:before{left:10px}
+  .mazo .capas{left:10px;right:10px}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+const FLUJO = { venta:'Sale de la tienda', colgada:'Se mueve dentro', subida:'Se mueve dentro', llegada:'Entra a la tienda', traslado:'Sale de la tienda', cliente:'Vuelve del cliente', ajuste:'Corrige el stock' };
+const est = { g:null, per:'hoy', q:'', mazo:true };
+const diasDe = per => per === 'hoy' ? ['hoy'] : per === 'ayer' ? ['ayer'] : ['hoy','ayer'];
+const opsVisibles = () => M.OPS.filter(o => diasDe(est.per).includes(o.dia));
+
+M.montar({ opcion:'A', nombre:'Ruta', dibujar(raiz){
+  raiz.innerHTML = M.encabezado() + `
+    <div class="cols">
+    <section class="tarjeta lista-card">
+      <div class="herr">
+        <label class="campo">${M.ic('buscar')}<input id="q" type="search" placeholder="Busca una prenda, una boleta o a quien lo hizo" autocomplete="off"></label>
+        <div class="pils" id="per"></div>
+        <button class="sw" id="sw" aria-pressed="true"><i></i>Juntar las colgadas</button>
+        <button class="limpiar" id="limpia">Quitar filtros</button>
+      </div>
+      <div id="lista"></div>
+    </section>
+    <aside class="lado"><div class="lbl">Filtrar por tipo</div><section class="tipos" id="tipos" aria-label="Qué tipo de movimiento"></section></aside>
+    </div>
+    <p class="nota-pie"><b>Cómo se lee:</b> el color y el ícono dicen QUÉ fue —verde vende, ámbar cuelga en el piso, pizarra guarda en el almacén, oliva llega—; el trayecto dice DE DÓNDE A DÓNDE; el número grande, cuántas prendas. Pasa el mouse por una fila y su ícono se mueve otra vez.</p>`;
+
+  /* píldoras de período */
+  const per = M.$('#per', raiz);
+  [['hoy','Hoy'],['ayer','Ayer'],['7','7 días']].forEach(([v, t]) => {
+    const b = M.el('button', 'pil' + (est.per === v ? ' on' : ''), t); b.dataset.v = v;
+    b.onclick = () => { est.per = v; M.$$('.pil', per).forEach(x => x.classList.toggle('on', x === b)); pintarTipos(); pintarLista(); };
+    per.append(b);
+  });
+  M.$('#q', raiz).oninput = e => { est.q = e.target.value; pintarLista(true); };
+  M.$('#sw', raiz).onclick = e => { est.mazo = !est.mazo; e.currentTarget.setAttribute('aria-pressed', est.mazo); pintarLista(); };
+  M.$('#limpia', raiz).onclick = () => { est.g = null; est.q = ''; M.$('#q', raiz).value = ''; pintarTipos(true); pintarLista(); };
+
+  /* ── banda de tipos ── */
+  function pintarTipos(solo){
+    const cont = M.$('#tipos', raiz);
+    if (solo) { M.$$('.tipo', cont).forEach(b => b.setAttribute('aria-pressed', est.g === b.dataset.g)); cont.classList.toggle('hay', !!est.g); limpio(); return; }
+    const cif = M.cifrasPorGrupo(opsVisibles()), total = cif.reduce((s, g) => s + g.ops, 0) || 1;
+    cont.innerHTML = '';
+    cont.classList.toggle('hay', !!est.g);
+    cif.forEach((g, i) => {
+      const b = M.el('button', 't-' + g.tipos[0] + ' tipo rev', `
+        <span class="ck">${M.ic('cerrar')}</span>
+        <span class="sello" data-go>${M.glifo(g.gl)}</span>
+        <span class="tn">${g.n}</span>
+        <span class="tc"><b class="num" data-cuenta="${g.ops}">0</b><small>${M.plural(g.ops, 'operación', 'operaciones')}</small></span>
+        <span class="tu">${g.u} ${M.plural(g.u, 'prenda', 'prendas')}</span>
+        <span class="tf">${FLUJO[g.id]}</span>
+        <span class="bar"><i style="--w:${Math.max(4, Math.round(g.ops / total * 100 * 2))}%"></i></span>`);
+      b.dataset.g = g.id; b.dataset.goHover = 1; b.setAttribute('aria-pressed', est.g === g.id);
+      b.onclick = () => { est.g = est.g === g.id ? null : g.id; pintarTipos(true); pintarLista(); };
+      cont.append(b);
+    });
+    M.revelar(cont);
+  }
+  const limpio = () => M.$('#limpia', raiz).classList.toggle('v', !!(est.g || est.q));
+
+  /* ── lista ── */
+  function filaOp(o, k = 0){
+    const r = M.resumenPrendas(o), t = M.TIPOS[o.tipo];
+    const a = M.el('article', `op t-${o.tipo}`);
+    a.dataset.id = o.id;
+    a.innerHTML = `
+      <div class="fila" data-go-hover role="button" tabindex="0" aria-expanded="false">
+        <span class="sello" data-go>${M.glifo(o.tipo)}</span>
+        <div style="min-width:0">
+          <div class="l1"><span class="tn">${t.n}${o.motivo ? ' · ' + o.motivo : ''}</span><span class="hora num">${o.hora}</span><span class="quien"><i class="av">${M.inicial(o)}</i>${M.persona(o)}</span></div>
+          <div class="l2">${M.pila(o.lineas, 32)}<span class="tx"><b>${r.principal}</b><span>${r.tallas}${r.mas ? ` · y ${r.mas} ${M.plural(r.mas, 'prenda', 'prendas')} más` : ''}</span></span></div>
+          <div class="l3">${M.ruta(o)}${o.ref ? `<span class="ref">${M.ic('doc')}${o.ref.t}</span>` : ''}</div>
+        </div>
+        <div class="cant"><b class="num">${M.textoDelta(o)}</b><small>${o.tipo === 'cambio' ? 'prendas' : M.plural(o.u, 'prenda', 'prendas')}</small>${M.ic('abajo', 'chev')}</div>
+      </div>
+      <div class="det"><div><div class="in2">
+        <div class="lins">${M.lineasHTML(o, 36).replace(/class="lin"/g, (m, i) => m)}</div>
+        <div class="pie">${o.nota ? `<div class="nota-op">“${o.nota}”</div>` : ''}<button class="btn" data-ficha>Abrir la ficha</button></div>
+      </div></div></div>`;
+    M.$$('.lin', a).forEach((l, i) => l.style.setProperty('--k', i));
+    const fila = M.$('.fila', a);
+    const alternar = () => { const ab = a.classList.toggle('abierta'); fila.setAttribute('aria-expanded', ab); if (ab) M.$$('.sello,[data-go]', a).forEach(M.repetir); };
+    fila.onclick = alternar;
+    fila.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar(); } };
+    M.$('[data-ficha]', a).onclick = e => { e.stopPropagation(); M.cajon(o); };
+    a.classList.add('rev');
+    return a;
+  }
+  function filaMazo(ops, dia){
+    const tipo = ops[0].tipo, u = ops.reduce((s, o) => s + o.u, 0);
+    const todas = ops.flatMap(o => o.lineas);
+    const quienes = [...new Set(ops.map(o => o.quien))];
+    const m = M.el('div', `mazo t-${tipo} rev`);
+    m.innerHTML = `
+      <button class="tapa-mazo" data-go-hover aria-expanded="false">
+        <span class="sello" data-go>${M.glifo(tipo)}</span>
+        <div style="min-width:0">
+          <div class="l1"><span class="tn">${M.TIPOS[tipo].pl}</span><span class="veces">${ops.length} veces</span></div>
+          <div class="l2">${M.pila(todas, 32, 4)}<span>entre las ${ops[ops.length - 1].hora} y las ${ops[0].hora}</span><span class="quienes">${quienes.map(q => `<i class="av" title="${M.PERSONAS[q]}">${M.PERSONAS[q][0]}</i>`).join('')}</span></div>
+        </div>
+        <div class="cant"><b class="num">${u}</b><small>prendas</small>${M.ic('abajo', 'chev')}</div>
+      </button>
+      <span class="capas"><i></i><i></i></span>
+      <div class="hijos"><div></div></div>`;
+    const hijos = M.$('.hijos>div', m);
+    ops.forEach((o, i) => { const f = filaOp(o); f.classList.remove('rev'); f.style.setProperty('--k', i); hijos.append(f); });
+    const tapa = M.$('.tapa-mazo', m);
+    tapa.onclick = () => { const ab = m.classList.toggle('abierto'); tapa.setAttribute('aria-expanded', ab); M.$('.chev', tapa).style.transform = ab ? 'rotate(180deg)' : ''; M.$$('.hijos .op .sello', m).forEach(s => ab ? setTimeout(() => M.repetir(s), 200) : 0); };
+    return m;
+  }
+
+  function pintarLista(escribiendo){
+    const cont = M.$('#lista', raiz); cont.innerHTML = ''; limpio();
+    const grupo = est.g && M.GRUPOS.find(g => g.id === est.g);
+    let hubo = false;
+    diasDe(est.per).forEach(d => {
+      const ops = M.OPS.filter(o => o.dia === d && (!grupo || grupo.tipos.includes(o.tipo)) && M.coincide(o, est.q));
+      if (!ops.length) return;
+      hubo = true;
+      const prendas = ops.reduce((s, o) => s + o.u, 0);
+      const cab = M.el('div', 'dia rev', `<div class="dn"><b>${M.DIA[d].etiqueta}</b>${M.DIA[d].largo}</div><div class="codigo" aria-hidden="true"></div><div class="dr num">${ops.length} ${M.plural(ops.length, 'operación', 'operaciones')} · ${prendas} prendas</div>`);
+      const cod = M.$('.codigo', cab);
+      [...ops].reverse().forEach((o, i) => { const s = M.el('button', 't-' + o.tipo); s.style.setProperty('--k', i); s.title = `${o.hora} · ${M.TIPOS[o.tipo].n}`; s.onclick = () => irA(o.id); cod.append(s); });
+      cont.append(cab);
+      /* las colgadas del día en un mazo (si hay 2 o más y no se está filtrando por otra cosa) */
+      const colg = ops.filter(o => o.tipo === 'colgada');
+      let puesto = false;
+      ops.forEach(o => {
+        if (est.mazo && colg.length > 1 && o.tipo === 'colgada') { if (!puesto) { cont.append(filaMazo(colg, d)); puesto = true; } return; }
+        cont.append(filaOp(o));
+      });
+    });
+    if (!hubo) {
+      cont.innerHTML = `<div class="vacio t-ajuste"><span class="sello suave anillo" data-go>${M.glifo('conteo')}</span><b>Nada con ese filtro</b>Prueba con otro tipo de movimiento o con otro día.</div>`;
+    }
+    M.revelar(cont);
+  }
+  function irA(id){
+    const fila = M.$(`.op[data-id="${id}"]`, raiz); if (!fila) return;
+    const m = fila.closest('.mazo'); if (m && !m.classList.contains('abierto')) M.$('.tapa-mazo', m).click();
+    setTimeout(() => { fila.scrollIntoView({ behavior:'smooth', block:'center' }); fila.classList.remove('flash'); void fila.offsetWidth; fila.classList.add('flash'); fila.classList.add('in'); M.$$('.sello', fila).forEach(M.repetir); }, m ? 260 : 0);
+  }
+  pintarTipos(); pintarLista();
+}});
+</script>
+</body>
+</html>

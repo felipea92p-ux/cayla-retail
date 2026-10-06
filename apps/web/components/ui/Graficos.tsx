@@ -110,7 +110,7 @@ export function BarrasHorizontales({ barras }: { barras: BarraH[] }) {
         return (
           <li key={b.clave}>
             {b.onClick ? (
-              <button type="button" onClick={b.onClick} className="flex w-full items-center gap-3 rounded-sm text-left transition-colors hover:bg-tinta/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-tinta/40">
+              <button type="button" onClick={b.onClick} className="flex w-full items-center gap-3 rounded-sm text-left transition-colors hover:bg-tinta/[0.03]">
                 {contenido}
               </button>
             ) : (

@@ -172,7 +172,7 @@ export function TodosVista({
           <div
             key={c.etiqueta}
             style={{ ["--i" as string]: i }}
-            className={`anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,rgb(232_224_208/0.35)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
+            className={`anim-sube border-sand px-5 py-4 max-lg:[&:nth-child(n+3)]:border-t sm:[&:nth-child(even)]:border-l lg:[&:not(:first-child)]:border-l ${c.custodia ? "bg-[repeating-linear-gradient(135deg,transparent_0_9px,color-mix(in_srgb,var(--color-sand)_35%,transparent)_9px_10px)]" : ""} max-sm:[&:not(:first-child)]:border-t`}
           >
             <p className={`label-cayla text-[11px] ${c.alerta ? "text-rojo-profundo" : "text-tinta/60"}`}>{c.etiqueta}</p>
             <p className={`font-display mt-1 text-3xl leading-tight tabular-nums ${c.alerta ? "text-rojo-profundo" : "text-tinta"}`}>{c.valor}</p>

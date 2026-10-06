@@ -469,7 +469,7 @@ function NuevaEtiquetaModal({
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.preventDefault();
               }}
-              className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+              className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
             />
           </label>
           {nota && (

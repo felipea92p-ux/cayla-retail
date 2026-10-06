@@ -1094,7 +1094,7 @@ export function BajarAlPisoForm({
                               e.preventDefault();
                               volverAlEscaner();
                             }}
-                            className={`caja-cayla h-11 w-14 text-center text-base tabular-nums outline-none disabled:opacity-60 ${enRojo ? "text-rojo-profundo" : "text-tinta"}`}
+                            className={`caja-cayla h-11 w-14 text-center text-base tabular-nums disabled:opacity-60 ${enRojo ? "text-rojo-profundo" : "text-tinta"}`}
                           />
                           <button
                             type="button"

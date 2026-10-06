@@ -212,7 +212,9 @@ export function FiltrosHistorialVentas({
       </div>
 
       {mostrarFechas && (
-        <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
+        /* `relative z-20`: el calendario de «Desde» y «Hasta» se abre HACIA ABAJO, dentro de este bloque; sin su propia capa, las tarjetas de ventas de abajo (que
+            también son `relative`) se pintaban encima y tapaban los días (visto al auditar el modo oscuro, ADR-0336). */
+        <div className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
           {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
               control dice la verdad. Tocarlo la vuelve explícita. */}
           <div className="w-44">

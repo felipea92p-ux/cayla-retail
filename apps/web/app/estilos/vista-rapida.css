@@ -22,6 +22,13 @@
     --vr-t35: color-mix(in srgb, var(--color-tinta) 35%, transparent);
     --vr-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent);
   }
+  /* En oscuro, los dos tonos más tenues del texto suben al piso de legibilidad (el mismo 58 % de `tema.css`, ADR-0336): `--vr-t45` rinde
+     3.9:1 sobre papel oscuro. `--vr-t25` es un fantasma a propósito (rayas, ceros) y no se toca. */
+  :root[data-tema="oscuro"] .vr-cuerpo,
+  :root[data-tema="oscuro"] .vr-pie {
+    --vr-t45: color-mix(in srgb, var(--color-tinta) 58%, transparent);
+    --vr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+  }
 
   /* ---- La bajada del título: código · categoría · estado · precio · colores y tallas ---- */
   .vr-titulo {

@@ -143,7 +143,7 @@ export function OrdenPanel({
   return (
     <Dialog.Root open onOpenChange={(a) => !a && pedirSalida()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${saliendo ? "anim-velo-salida" : "anim-velo"}`} />
+        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${saliendo ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
           onEscapeKeyDown={alEscape}
           aria-describedby={undefined}
