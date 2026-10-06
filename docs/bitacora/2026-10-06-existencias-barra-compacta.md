@@ -8,3 +8,10 @@ Qué hice: «Prioridad | A–Z» y el sonido pasan al panel «Filtros», que que
 Por qué así: la fila del buscador tenía siete controles y las tarjetas una fila vacía abajo; se pidió aprovechar el espacio sin que se vea amontonado.
 Felipe se lleva: ADR-0344, «Segunda vuelta del mismo día»: medidas (tarjeta de ~240 a 192 px) y por qué el nombre de la acción aparece al pasar el cursor y no siempre.
 
+## 2026-10-06 (Existencias: el panel de la talla dice si hay, si colgar y si pedir)
+Qué hice: en «Esta talla», la frase verde «Disponible: N» se reemplaza por tres respuestas —Hay, Colgar en el piso, Pedir a otra sede— con su sí o no, su porqué y su botón cuando se resuelve ahí; «Faltan en el piso» aparece aunque el motor no decida. La maqueta tiene el mismo bloque.
+Por qué así: con el motor sin responder o el piso en pausa, el panel callaba lo importante; una talla con 0 en el piso se veía «disponible» en verde.
+Felipe se lleva: ADR-0344, «Tercera vuelta»: por qué manda el motor cuando decide y por qué en pausa no se manda a colgar.
+Y la talla que más se vende, con un filtro puesto, lleva un solo borde sólido: sobre una talla sin stock se veía un borde doble (punteado y sólido).
+Y las acciones del panel siguen a la talla: primero lo que necesita, después lo que se puede usar y, al final y chico, lo que no se puede ahora con su porqué; cada acción conserva su tecla.
+
