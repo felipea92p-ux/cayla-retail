@@ -390,6 +390,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-productos
 
+      # Historial de la prenda (ADR-0354): etiquetas, variantes nuevas, fotos, tejido y patrón dejan su fila con quién y dónde;
+      # guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
+      - name: pruebas:historial-prenda
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:historial-prenda
+
       # Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
       # sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
       - name: pruebas:actividad-gestion

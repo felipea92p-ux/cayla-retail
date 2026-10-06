@@ -140,7 +140,7 @@ caso(
 caso("persona SIN clave y con el interruptor encendido → pide responsable (no cambia lo de siempre)", como(MICAELA_AUTH) + actor, "42501|responsable_requerido");
 caso(
   "persona + acción soltada + SIN marca de entrada → firma ella misma",
-  como(MICAELA_AUTH) + conEncabezados({ "x-responsable-omitido": "producto_confirmar_cambios" }) + `select (retail.fn_actor_persona_id() = micaela)::text from ids;`,
+  como(MICAELA_AUTH) + conEncabezados({ "x-responsable-omitido": "color_rechazar" }) + `select (retail.fn_actor_persona_id() = micaela)::text from ids;`,
   "true"
 );
 caso("persona con una clave que NO está en la lista → pide responsable", como(MICAELA_AUTH) + conEncabezados({ "x-responsable-omitido": "registrar_venta" }) + actor, "42501|responsable_requerido");

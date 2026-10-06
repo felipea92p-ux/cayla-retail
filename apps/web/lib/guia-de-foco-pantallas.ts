@@ -192,6 +192,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
   // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
   // base la acepte: `validarCierre`) y quién hace el cambio.
+  // ADR-0354: la hoja de «Revisar y guardar» de Editar producto suma UN solo control, «Quién hace estos cambios»; su porqué va
+  // bajo el combo y el botón espera hasta que haya alguien de turno.
+  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control (Responsable): el botón dice por qué espera." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:

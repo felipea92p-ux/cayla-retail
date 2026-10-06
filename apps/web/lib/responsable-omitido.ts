@@ -44,7 +44,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   alta_producto_marca: "Crear una marca dentro del alta de producto",
   alta_producto_muestra: "Elegir la muestra de un valor dentro del alta de producto",
   alta_producto_valor: "Proponer otro valor de atributo dentro del alta de producto",
-  producto_confirmar_cambios: "Confirmar los cambios de la ficha de un producto",
+  // `producto_confirmar_cambios` salió el 2026-10-06 (ADR-0354, 20261006180100): Editar producto vuelve a pedir «Responsable»,
+  // porque el historial de la prenda tiene que decir quién cambió cada cosa.
   producto_revisar_alta: "Aprobar o rechazar una prenda dada de alta al vuelo en un conteo",
   color_rechazar: "Rechazar un color propuesto",
   talla_aprobar: "Aprobar una talla propuesta",
