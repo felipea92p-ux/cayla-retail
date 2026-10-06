@@ -81,15 +81,19 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
 
 ## Decisiones (una línea por familia; el detalle en `docs/unificar/<familia>.md`)
 
-- **2026-10-06 · `accion.volver` → `<Volver>`** (`components/ui/Volver.tsx`): el botón secundario con la flecha y el destino, una sola cara en
-  todo el ERP; se va la forma `enlace` de 11 px (una decisión del 2026-09-26 sin ADR, que Felipe cambió). Migrado el mismo día, deuda 0.
-  Registro: `docs/unificar/accion.volver.md`.
-- **2026-10-06 · `pestanas` → tres piezas, una por pregunta:** `<Pestanas>` (cambia de sección: subrayado tinta que viaja, la piel de
-  `.fin-pestana`), `pildora-cayla` (filtra o elige un período) y el segmento con contorno (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`:
-  muestra lo mismo de otra forma). Lo elegido siempre en tinta. Migrado el mismo día, por aprobar; deuda 0. Registro: `docs/unificar/pestanas.md`.
-- **2026-10-06 · `cifra` → `<TarjetaCifra>`:** la de Compras, con una marca por lo que hace (informa, lleva con flecha, filtra con
-  `aria-pressed`, sin dato con su motivo). Se borran `TarjetaIndicador` y `TarjetaSenal`. Migrado el mismo día, por aprobar; deuda 0. Registro:
-  `docs/unificar/cifra.md`.
+- **2026-10-06 · ronda 1, por descripción.** Felipe eligió las tres recomendaciones con `AskUserQuestion` (Volver «un solo botón con flecha»,
+  Pestañas «tres piezas, lo elegido en tinta», Cifras «una marca por función») y se migraron unos 100 archivos. **Al verlas aplicadas, no le
+  gustaron.** Lección que pasó a la skill (paso 5) y a `CLAUDE.md`: se elige **mirando**, en una página con la captura de cada opción
+  (`unificar/elegir.mjs`); una pregunta por texto solo confirma.
+- **2026-10-07 · `accion.volver` → la flecha redonda** (`<Volver>`): la de `EncabezadoPagina` que nació en `main` el día anterior (ADR-0220
+  act.), única cara en todo el ERP. Deuda 0.
+- **2026-10-07 · `pestanas` → F, A y L:** cambiar de sección = el vidrio de Comprobantes con la píldora oscura, en mayúsculas (`<Pestanas>`),
+  **también Finanzas y Configuración**; filtrar o elegir período = la píldora rellena; ver de otra forma u ordenar = la caja arena de «GRILLA /
+  TABLA». Deuda 0.
+- **2026-10-07 · `cifra` → B**, la tarjeta de Compras tal cual (`<TarjetaCifra>`), sin las marcas nuevas de la ronda 1. Deuda 0.
+
+**Número:** este ADR nació como 0354; al traer `main` el 2026-10-07, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
+(caos) ya estaban tomados, y pasó a 0357.
 
 ## Cómo se verifica
 

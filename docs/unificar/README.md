@@ -5,16 +5,16 @@ las pestañas, la insignia de estado, la tabla, la tarjeta de cifra…—, se la
 y **lo que Felipe elige pasa a ser la única forma de esa función en todo el ERP**, también en las pantallas que todavía no existen.
 `lib/unificar.test.ts` lo hace cumplir: un archivo nuevo que vuelve a dibujar a mano una familia decidida falla, y la deuda solo baja.
 
-**Antes de dibujar una pieza en una pantalla o un modal, mira la primera tabla.** Si su familia está decidida, se usa esa pieza. Si no, se usa la
+**Felipe elige mirando** (la página de `unificar/elegir.mjs`), nunca por una descripción. **Antes de dibujar una pieza en una pantalla o un modal, mira la primera tabla.** Si su familia está decidida, se usa esa pieza. Si no, se usa la
 forma más usada del último censo (la «A» de la lámina) y no se inventa otra.
 
 ## Piezas únicas (lo decidido)
 
 | Familia | La pieza | Decidido | Deuda (archivos por migrar) | Registro |
 |---|---|---|---:|---|
-| Botón «Volver» (`accion.volver`) | `<Volver>` (`components/ui/Volver.tsx`): botón secundario con la flecha y el destino | 2026-10-06 | 0 (migrado el mismo día) | [accion.volver.md](accion.volver.md) |
-| Pestañas y segmentos (`pestanas`) | `<Pestanas>` si cambia de sección · `pildora-cayla` si filtra o elige un período · `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` si cambia el modo u orden | 2026-10-06 | 0 (migrado el mismo día, por aprobar) | [pestanas.md](pestanas.md) |
-| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>`: la de Compras, con una marca por lo que hace (informa, lleva, filtra, sin dato) | 2026-10-06 | 0 (migrado el mismo día, por aprobar) | [cifra.md](cifra.md) |
+| Botón «Volver» (`accion.volver`) | `<Volver>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector | 2026-10-07 (mirando) | 0 | [accion.volver.md](accion.volver.md) |
+| Pestañas y segmentos (`pestanas`) | `<Pestanas>` (vidrio con píldora oscura, en mayúsculas; también Finanzas) si cambia de sección · `pildora-cayla` si filtra o elige período · `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (caja arena) si cambia el modo u orden | 2026-10-07 (mirando) | 0 | [pestanas.md](pestanas.md) |
+| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>`: la de Compras tal cual (flecha si lleva, arena si filtra, punteada sin dato) | 2026-10-07 (mirando) | 0 | [cifra.md](cifra.md) |
 
 ## Propuestas esperando decisión
 

@@ -1,73 +1,54 @@
 # Botón «Volver» — una sola pieza (ADR-0357)
 
-**Decidido:** 2026-10-06, Felipe, con `/unificar` (ronda 1). **Elegida:** la propuesta, «Un solo botón con flecha». **Pieza:**
-`apps/web/components/ui/Volver.tsx`. **Migrado:** el mismo día, commit `refactor(ui): «Volver» tiene una sola cara en todo el ERP`.
+**Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`, `unificar/elegir.mjs`). **Elegida:** la flecha redonda que ya estaba en
+Nuevo producto, junto a la línea «sede · fecha» de `EncabezadoPagina` (nació el 2026-10-06 en `main`, ADR-0220 act.). **Pieza:**
+`apps/web/components/ui/Volver.tsx`.
 
-La vuelta de una pantalla interna a la pantalla de su menú es **el botón secundario del sistema con la flecha delante y el destino escrito**
-(«← Existencias», «← Facturas de proveedor»). Una sola cara en todo el ERP; el lugar lo sigue poniendo cada cabecera (en `EncabezadoPagina`, en
-el pie bajo la frase, ADR-0220; en las demás, donde ya estaba).
+La vuelta de una pantalla interna a la pantalla de su menú es **un botón redondo de 34 px, solo con la flecha**. Adónde vuelve lo dicen su
+nombre accesible y su `title` («Volver a Existencias»). El LUGAR lo pone cada cabecera: en `EncabezadoPagina`, su prop `volver` (a la izquierda
+de la sede); en las demás (Compras, Caja, Recibir, el resto de Catálogo), donde ya estaba la vuelta, arriba del título.
 
-## Qué se comparó
+## Cómo se llegó aquí
 
-El censo contó 6 formas en 20 pantallas; la depuración (cartógrafo, dos escépticos y consolidación) encontró **9 formas reales** de «volver a la
-pantalla de arriba», y separó lo que parece una vuelta pero hace otra cosa.
+1. **2026-10-06, ronda 1.** El censo contó 6 formas en 20 pantallas y la depuración, 9 reales. Felipe eligió la recomendación por su
+   descripción («un solo botón con flecha»: el `btn-secundario` con el destino escrito) y se aplicó.
+2. **2026-10-07.** Al verla aplicada, no le gustó. En la página de elegir pidió: «analiza la flecha que está actualmente en Nuevo producto
+   para volver y quiero quedarme con esa». Esa flecha había entrado a `main` el día anterior como tercera forma (`forma="flecha"`); ahora es
+   la única.
 
-| Forma | Qué es | Pieza | Archivos | Veredicto |
-|---|---|---|---:|---|
-| A | botón con borde «← destino» en el pie de `EncabezadoPagina` | `<Volver forma="boton">` | 13 | la elegida (con la flecha dibujada) |
-| B | línea de 11 px en versalitas, sin borde | `<Volver>` (forma `enlace`) | 12 | se va: pasa a la A |
-| Flujo | «Volver a Cambios / Devoluciones», botón fantasma de 40 px | `EncabezadoFlujo` (FlujoGuiado.tsx) | 3 | se va: pasa a la pieza (forma botón) |
-| Copia | «← Las nueve temporadas», copia a mano de la B | TemporadasLista.tsx | 1 | se va: pasa a la pieza (forma botón) |
-| Observatorio | «‹ Toda CAYLA» y su × | observatorio/Mapa.tsx, PanelTienda.tsx | 2 | queda: ADR-0322 |
-| Club | «‹ Club CAYLA» de la página pública | clientas/RegistroClub.tsx | 1 | queda: ADR-0288 act. i |
-| Barreras | la salida de «sin acceso», 404, error y elegir sede | sin-acceso, PantallaNoEncontrada, elige-sede | 4 | otra familia (botones de una tarjeta de barrera) |
+| Forma | Qué era | Dónde vivía | Hoy |
+|---|---|---|---|
+| Flecha redonda | botón de 34 px solo con la flecha, junto a la sede | Inventario, Productos ▸ Nuevo, Pedidos (desde el 2026-10-06) | **la pieza** |
+| Botón con destino | `btn-secundario` «← Clientes» | el cartel del club; antes, el pie de `EncabezadoPagina` | pasa a la flecha |
+| Línea de 11 px | «← FACTURAS DE PROVEEDOR» en versalitas | Compras, Caja, Recibir, Productos ▸ editar e historial | pasa a la flecha |
+| Fantasma del flujo | «← Volver a Cambios», botón sin borde | Cambios y Devoluciones | pasa a la flecha (forma `<button>`) |
+| Copia a mano | «← Las nueve temporadas» | Temporadas del club | pasa a la flecha (forma `<button>`) |
 
-No son la vuelta, aunque digan «Volver» o lleven una flecha: el **paso atrás** dentro de un trabajo abierto («Atrás», «← Ticket», «← Otra
-venta», «Volver a revisar» en Confirmar conteo: familia propia), el «Volver» que **desiste de una confirmación** (va con `accion.cancelar`), «←
-Septiembre» o «Volver al inicio» de la paginación (`accion.anterior`) y «Volver a como está» (`accion.limpiar`).
+![Las formas que había](capturas/accion.volver.jpg)
 
-![Las formas de «Volver» que había](capturas/accion.volver.jpg)
+## Qué es la pieza
 
-![La propuesta elegida, en claro y en oscuro](capturas/accion.volver.propuesta.jpg)
-
-## Por qué esta
-
-Es la única que deja **una sola respuesta a «¿cómo salgo de aquí?»** (leyes 1 y 2 de ADR-0350) y arregla el único caso donde no se sabía qué
-tocar: en Registrar factura, la línea de 11 px tenía la misma clase, tamaño y color que el sobretítulo «COMPRAS» de abajo, y medía 16 px de alto
-(bajo los 24 de ADR-0350). Es un `btn-secundario` del sistema, sin estilo propio: hereda lo que cambie mañana en los botones, el foco
-(ADR-0351) o el modo oscuro (ADR-0336), y no se vuelve a separar.
-
-## Qué cambió en la pieza
-
-- Una sola forma: fuera la prop `forma` (las 13 pantallas que pasaban `forma="boton"` ya no lo hacen; las 12 de la línea heredan el botón solas).
-- La flecha es `ArrowLeft` de lucide (16 px, trazo 2, el mismo de Cambios y Devoluciones), no el glifo «←»: el subconjunto de DM Sans que sirve el
-  ERP no trae U+2190 y el glifo lo dibujaba la fuente del aparato.
-- «Volver a » para el lector de pantalla (nombre accesible «Volver a Existencias»); se omite si el texto ya empieza con «Volver».
-- Con el dedo (`pointer: coarse`) la zona que responde llega a 44 px con un `::after` invisible, sin que el botón crezca.
-- Con `onClick` (sin `href`) es un `<button>`: la salida del flujo de Cambios y Devoluciones y la vuelta de Temporadas, que cierran un estado.
-- Se van el corrimiento de 2 px y el rojo al pasar el mouse (ADR-0169 guarda el rojo).
+- Una sola forma: fuera la prop `forma` (todas las pantallas dejaron de pasarla).
+- Con `href` es un enlace (`useSalidaSinGuardar` solo intercepta enlaces); con `onClick`, un `<button>` (la salida del flujo de Cambios y
+  Devoluciones, la vuelta de Temporadas, que cierran un estado de la misma pantalla).
+- Nombre accesible «Volver a <destino>»; si el texto ya empieza con «Volver» (el flujo), no se repite.
+- Con el dedo (`pointer: coarse`) la zona que responde llega a 44 px con un `::after` invisible, sin que el círculo crezca.
 
 ## Lo que queda distinto a propósito
 
-- El Observatorio (ADR-0322) y la página pública del club (ADR-0288 act. i).
-- La salida de las tarjetas de barrera (elegir sede, sin acceso, 404, error): es la única acción de esa tarjeta y va con los botones; en la decisión,
-  `elige-sede/page.tsx` es una excepción porque su texto dice «← Volver a Salud del negocio».
+El Observatorio («‹ Toda CAYLA» y su ×, ADR-0322), la página pública del club (ADR-0288 act. i) y la salida de las tarjetas de barrera (elegir
+sede, sin acceso, 404), que es la única acción de su tarjeta y va con los botones. No son la vuelta: el **paso atrás** de un paso a paso («←
+Atrás» de Nuevo producto, «← Ticket»), el «Volver» que desiste de una confirmación (`accion.cancelar`) y la página o el mes anterior
+(`accion.anterior`).
 
 ## Preguntas abiertas para Felipe
 
 1. **La cuenta que no ve la pantalla de arriba.** En Bajar prendas al piso y en Por regularizar, la vuelta solo aparece si la cuenta ve
-   Existencias: quien no la ve se queda sin salida. ¿Que diga «← Inicio» en ese caso? (Es comportamiento con permisos: no se tocó.)
-2. **El texto del flujo.** «Volver a Cambios» / «Volver a Devoluciones» se dejó igual; ¿acortarlo a «Cambios» / «Devoluciones» como las demás vueltas?
-3. **El lugar.** Fuera de Ventas, Inventario y Catálogo ▸ Productos la vuelta sigue arriba del título. Ponerla bajo la frase en todas es decidir la
-   cabecera de esos módulos (CLAUDE.md la deja sin decidir).
+   Existencias. ¿Que lleve a Inicio en ese caso?
+2. **Las pantallas sin `EncabezadoPagina`** (Compras, Caja, Recibir, el resto de Catálogo) muestran la flecha sola arriba del título. ¿Sus
+   cabeceras pasan a `EncabezadoPagina`, con la flecha junto a la sede? Es decidir la cabecera de esos módulos.
 
-## Deuda al decidir
+## Deuda
 
-| Módulo | Archivos | Estado |
-|---|---:|---|
-| Pieza (`ui/Volver.tsx`) y sus 25 usos | 1 + 13 | migrado el 2026-10-06 |
-| Ventas (flujo de Cambios y Devoluciones) | 1 (`FlujoGuiado.tsx`) | migrado el 2026-10-06 (375 px) |
-| Clientes (Temporadas) | 1 (`TemporadasLista.tsx`) | migrado el 2026-10-06 |
-
-Deuda hoy: **0**. Las firmas de la decisión (`apps/web/unificar/familias.mjs`) vigilan que no vuelva: la línea de 11 px copiada a mano, una
-`forma=` en `<Volver>` y una vuelta escrita con el glifo («← Volver a …»).
+**0.** Las firmas (`apps/web/unificar/familias.mjs`) vigilan que no vuelva la línea de 11 px copiada a mano, una `forma=` en `<Volver>` ni una
+vuelta escrita con el glifo («← Volver a …»). Un comentario que nombra la forma vieja no cuenta.

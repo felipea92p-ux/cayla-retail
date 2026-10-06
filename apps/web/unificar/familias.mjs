@@ -320,17 +320,17 @@ const ACCIONES = FUNCIONES.map((f) => ({
  */
 export const DECISIONES = {
   "accion.volver": {
-    fecha: "2026-10-06",
+    fecha: "2026-10-07",
     adr: "docs/adr/0357-unificar-una-funcion-una-pieza.md",
     registro: "docs/unificar/accion.volver.md",
-    elegida: "propuesta · un solo botón con flecha",
+    elegida: "la flecha redonda de EncabezadoPagina (elegida mirando el 2026-10-07)",
     pieza: "components/ui/Volver.tsx",
     firmas: [
       // La línea de 11 px en versalitas que era la forma «enlace», copiada a mano.
       "label-cayla inline-flex items-center gap-1\\.5 text-\\[11px\\] text-tinta/65",
       // La prop que daba dos caras a la pieza.
       "<Volver[^>]*\\bforma=",
-      // Una vuelta escrita a mano con el glifo.
+      // Una vuelta escrita a mano con el glifo («← Volver a Caja»). El «← Atrás» de un paso a paso es otra familia (paso atrás).
       "←\\s*Volver a ",
     ],
     deuda: [],
@@ -339,10 +339,10 @@ export const DECISIONES = {
     ],
   },
   "cifra": {
-    "fecha": "2026-10-06",
+    "fecha": "2026-10-07",
     "adr": "docs/adr/0357-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/cifra.md",
-    "elegida": "propuesta · la de Compras, una marca por función",
+    "elegida": "la tarjeta de Compras (B) tal cual, elegida mirando el 2026-10-07",
     "pieza": "components/ui/TarjetaCifra.tsx",
     "firmas": [
       "<(TarjetaCifraAnalisis|TarjetaIndicador|TarjetaSenal|TarjetaAvance)\\b",
@@ -351,10 +351,10 @@ export const DECISIONES = {
     "deuda": []
   },
   "pestanas": {
-    "fecha": "2026-10-06",
+    "fecha": "2026-10-07",
     "adr": "docs/adr/0357-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/pestanas.md",
-    "elegida": "propuesta · tres piezas, lo elegido en tinta",
+    "elegida": "vidrio en mayúsculas (vista) · píldora (filtro) · caja arena (modo), elegidas mirando el 2026-10-07",
     "pieza": "components/ui/Pestanas.tsx",
     "tambien": [
       "components/ui/SegmentoEnlaces.tsx",

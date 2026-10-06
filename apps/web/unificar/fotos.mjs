@@ -10,11 +10,14 @@
  * Opciones
  *   --rutas <a,b>   en vez del juego de siempre (RUTAS, abajo)     --cuenta <clave>   de tema/cuentas.mjs (por defecto admin)
  *   --espera <ms>   tras cargar (por defecto 1800)                 --comparar <antes> <despues>   arma comparar.html en <despues>
+ *   --marcar        antes de fotografiar, dibuja un recuadro numerado sobre cada pieza que cambió (Volver, pestaña de vista,
+ *                   segmento de modo, tarjeta de cifra) y guarda dónde está (<foto>.marcas.json): la comparación lo dice en palabras
  * Solo corre contra localhost (las cuentas son del seed local). Pantalla completa hasta 4000 px de alto; el celular, a 375 × 812.
  */
 
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { porClave } from "../tema/cuentas.mjs";
 import { moduloDeRuta } from "../tema/motor/rutas.mjs";
@@ -82,6 +85,10 @@ const slug = (s) => s.replace(/^\//, "").replace(/[^a-z0-9]+/gi, "-").replace(/^
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const args = leerArgs(process.argv.slice(2));
 
+// Los mismos colores de las marcas, para la leyenda de la página de comparación (que no carga el CSS del ERP).
+const MARCA_COLOR = { volver: "#b8412d", vista: "#4c5d6e", modo: "#a0681a", filtro: "#805c4c", cifra: "#48603f" };
+const MARCA_NOMBRE = { volver: "La flecha para volver", vista: "Pestañas para cambiar de sección", modo: "Ver de otra forma u ordenar", filtro: "Filtro o período (píldora)", cifra: "Tarjeta de cifra" };
+
 if (args.comparar) {
   const antes = resolve(String(args.comparar));
   const despues = resolve(args._[0] ?? "");
@@ -101,12 +108,25 @@ if (args.comparar) {
     porModulo.get(mod).push({ ...r, archivo: f, celular, hayAntes: existsSync(join(antes, f)) });
   }
   const rel = relative(despues, antes);
+  const donde = (m, ancho) => {
+    const cx = m.x + m.w / 2;
+    const lado = cx < ancho * 0.36 ? "a la izquierda" : cx > ancho * 0.64 ? "a la derecha" : "al centro";
+    const alto = m.y < 300 ? "arriba" : m.y < 900 ? "en el medio de la pantalla" : "más abajo (hay que bajar)";
+    return `${alto}, ${lado}`;
+  };
+  const leyenda = (f) => {
+    const ruta = join(despues, f.archivo.replace(/\.png$/, ".marcas.json"));
+    if (!existsSync(ruta)) return "";
+    const { ancho, marcas } = JSON.parse(readFileSync(ruta, "utf8"));
+    if (!marcas.length) return `<p class="sin-marcas">En esta pantalla no hay ninguna de las piezas que cambiaron.</p>`;
+    return `<ol class="marcas">${marcas.map((m) => `<li><span class="num" style="background:${MARCA_COLOR[m.tipo]}">${m.n}</span> <b>${esc(MARCA_NOMBRE[m.tipo])}</b> — ${donde(m, ancho)}</li>`).join("")}</ol>`;
+  };
   const secciones = [...porModulo.entries()]
     .map(
       ([mod, fs]) => `<section><h2>${esc(mod)}</h2>${fs
         .sort((a, b) => a.ruta.localeCompare(b.ruta) || Number(a.celular) - Number(b.celular))
         .map(
-          (f) => `<article><h3>${esc(f.nombre)} <code>${esc(f.ruta)}</code>${f.celular ? " · 375 px" : ""}</h3><div class="par${f.celular ? " cel" : ""}"><figure><figcaption>Antes</figcaption>${f.hayAntes ? `<a href="${esc(rel)}/${esc(f.archivo)}" target="_blank"><img src="${esc(rel)}/${esc(f.archivo)}" alt="Antes: ${esc(f.nombre)}"></a>` : "<p>sin foto de antes</p>"}</figure><figure><figcaption>Después</figcaption><a href="${esc(f.archivo)}" target="_blank"><img src="${esc(f.archivo)}" alt="Después: ${esc(f.nombre)}"></a></figure></div></article>`,
+          (f) => `<article><h3>${esc(f.nombre)} <code>${esc(f.ruta)}</code>${f.celular ? " · 375 px" : ""}</h3><div class="par${f.celular ? " cel" : ""}"><figure><figcaption>Antes</figcaption>${f.hayAntes ? `<a href="${esc(rel)}/${esc(f.archivo)}" target="_blank"><img src="${esc(rel)}/${esc(f.archivo)}" alt="Antes: ${esc(f.nombre)}"></a>` : "<p>sin foto de antes</p>"}</figure><figure><figcaption>Después (lo que cambió, con su número)</figcaption><a href="${esc(f.archivo)}" target="_blank"><img src="${esc(f.archivo)}" alt="Después: ${esc(f.nombre)}"></a></figure></div>${leyenda(f)}</article>`,
         )
         .join("")}</section>`,
     )
@@ -122,9 +142,14 @@ h3 { font-size: 15px; margin: 18px 0 8px; } code { font-size: 12px; color: var(-
 .par { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .par.cel { grid-template-columns: repeat(2, minmax(0, 380px)); }
 figure { margin: 0; background: var(--papel); border: 1px solid var(--linea); border-radius: 12px; padding: 8px; }
 figcaption { font-size: 12px; color: var(--taupe); margin-bottom: 6px; } img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.marcas { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.marcas .num { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 12px; }
+.sin-marcas { color: var(--taupe); font-size: 13px; margin: 8px 0 0; }
+.ley { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.ley span { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
 @media (max-width: 760px) { .par, .par.cel { grid-template-columns: 1fr; } }
 </style></head><body><main><p><code>/unificar · ADR-0357</code></p><h1>Antes y después</h1>
-<p>La misma pantalla, la misma cuenta (Admin) y el mismo ancho (1440 × 900; las de mostrador también a 375 px). Toca una foto para verla grande.</p>${secciones}</main></body></html>`;
+<p>La misma pantalla, la misma cuenta (Admin) y el mismo ancho (1440 × 900; las de mostrador también a 375 px). Toca una foto para verla grande. En la foto de «Después», cada pieza de las familias que unificaste lleva un recuadro de color con su número, y debajo se dice dónde está. Las píldoras de filtro se marcan donde estén: en varias pantallas ya eran píldoras (no cambiaron) y en otras antes eran pestañas o una pista (Compras, Movimientos, Caja, Cambios, Devoluciones, Comprobantes, Historial de ventas, Rendimiento).</p><ul class="ley">${Object.keys(MARCA_COLOR).map((k) => `<li><span style="background:${MARCA_COLOR[k]}"></span>${esc(MARCA_NOMBRE[k])}</li>`).join("")}</ul>${secciones}</main></body></html>`;
   writeFileSync(join(despues, "comparar.html"), html);
   console.log(`Comparación: ${join(despues, "comparar.html")} (${fotos.length} fotos en ${porModulo.size} módulos)`);
   process.exit(0);
@@ -142,6 +167,72 @@ if (!cuenta) {
 const espera = Number(args.espera || 1800);
 const pedidas = typeof args.rutas === "string" ? args.rutas.split(",").map((r) => ({ ruta: r.trim(), nombre: r.trim() })) : RUTAS;
 
+const CENSO = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "motor", "censo-en-pagina.js"), "utf8");
+
+/** Qué se marca y con qué color (solo tokens: la foto se toma en claro). */
+export const MARCAS = {
+  volver: { nombre: "La flecha para volver", color: "var(--color-rojo)" },
+  vista: { nombre: "Pestañas para cambiar de sección", color: "var(--color-pizarra)" },
+  modo: { nombre: "Ver de otra forma u ordenar", color: "var(--color-ambar)" },
+  filtro: { nombre: "Filtro o período (píldora)", color: "var(--color-taupe)" },
+  cifra: { nombre: "Tarjeta de cifra", color: "var(--color-verde)" },
+};
+
+/** Dibuja en la página un recuadro numerado sobre cada pieza que cambió y devuelve dónde quedó cada uno. */
+async function marcar(p) {
+  await p.addScriptTag({ content: CENSO });
+  return p.evaluate((MARCAS) => {
+    const res = window.__unificarCensar();
+    const marcas = [];
+    const vistos = new Set();
+    const agregar = (el, tipo) => {
+      if (!el || vistos.has(el)) return;
+      if ([...vistos].some((v) => v.contains(el))) return;
+      vistos.add(el);
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) return;
+      marcas.push({ tipo, x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height });
+    };
+    // Por clase, las piezas del sistema (lo que el detector podría no tomar):
+    document.querySelectorAll(".pestanas-cayla").forEach((e) => agregar(e, "vista"));
+    document.querySelectorAll(".segmento-cayla").forEach((e) => agregar(e, "modo"));
+    // La vuelta, por su nombre accesible («Volver a Existencias»): la flecha redonda no tiene texto a la vista.
+    document.querySelectorAll('a[aria-label^="Volver a"], button[aria-label^="Volver a"]').forEach((e) => {
+      if (!e.closest("aside")) agregar(e, "volver");
+    });
+    // Una fila de píldoras se marca entera (su contenedor).
+    const filas = new Set();
+    document.querySelectorAll(".pildora-cayla").forEach((pl) => {
+      if (pl.closest("aside")) return;
+      const fila = pl.parentElement;
+      if (fila && fila.querySelectorAll(":scope > .pildora-cayla, :scope > * > .pildora-cayla").length >= 2) filas.add(fila);
+    });
+    filas.forEach((f) => agregar(f, "filtro"));
+    for (const i of res.instancias) {
+      const el = document.querySelector(`[data-unificar-id="${i.uid}"]`);
+      if (!el || el.closest("aside")) continue;
+      // Solo la pieza elegida (`TarjetaCifra`: card-cayla con @container); las cifras decididas aparte (la cabecera, Caja) no cambiaron.
+      if (i.familia === "cifra" && el.classList.contains("card-cayla") && el.classList.contains("@container")) agregar(el, "cifra");
+      else if ((i.familia === "boton" || i.familia === "enlace") && /^(volver|regresar|atras)\b|^←/.test(i.nombre || "")) agregar(el, "volver");
+    }
+    marcas.sort((a, b) => a.y - b.y || a.x - b.x);
+    marcas.forEach((m, n) => {
+      const c = MARCAS[m.tipo].color;
+      const caja = document.createElement("div");
+      caja.setAttribute("data-marca-unificar", "");
+      caja.style.cssText = `position:absolute;left:${m.x - 4}px;top:${m.y - 4}px;width:${m.w + 8}px;height:${m.h + 8}px;border:3px solid ${c};border-radius:10px;z-index:2147483646;pointer-events:none;box-sizing:border-box`;
+      const num = document.createElement("div");
+      num.textContent = String(n + 1);
+      num.style.cssText = `position:absolute;left:-14px;top:-14px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:${c};color:var(--color-crema);font:700 13px/24px system-ui,sans-serif;text-align:center;box-sizing:border-box`;
+      caja.appendChild(num);
+      document.body.appendChild(caja);
+      m.n = n + 1;
+    });
+    if (getComputedStyle(document.body).position === "static") document.body.style.position = "relative";
+    return marcas;
+  }, MARCAS);
+}
+
 async function fotografiar(ctx, r, ancho, alto, archivo) {
   const p = await ctx.newPage();
   try {
@@ -154,6 +245,10 @@ async function fotografiar(ctx, r, ancho, alto, archivo) {
     const altoPagina = await p.evaluate(() => document.documentElement.scrollHeight);
     await p.setViewportSize({ width: ancho, height: Math.min(Math.max(altoPagina, alto), 4000) });
     await p.waitForTimeout(500);
+    if (args.marcar) {
+      const marcas = await marcar(p);
+      writeFileSync(join(salida, archivo.replace(/\.png$/, ".marcas.json")), JSON.stringify({ ancho, marcas }, null, 1));
+    }
     await p.screenshot({ path: join(salida, archivo), animations: "disabled" });
     return "ok";
   } finally {

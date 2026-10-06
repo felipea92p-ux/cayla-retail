@@ -597,7 +597,9 @@
     const s = estilo(a);
     const r = a.getBoundingClientRect();
     const conBorde = borde(s, true) !== "no" && px(s.borderBottomWidth) > 0;
-    return r.height >= 22 && r.height <= 64 && r.width <= 480 && (alfaDe(s.backgroundColor) > 0.05 || conBorde) && px(s.paddingLeft) >= 6;
+    // Un botón de solo icono (la flecha redonda de Volver) no tiene relleno: lo que lo hace botón es su caja y su dibujo.
+    const soloIcono = !(a.innerText || "").trim() && !!a.querySelector("svg");
+    return r.height >= 22 && r.height <= 64 && r.width <= 480 && (alfaDe(s.backgroundColor) > 0.05 || conBorde) && (px(s.paddingLeft) >= 6 || soloIcono);
   };
 
   function censarEtiquetas() {
