@@ -1,28 +1,34 @@
-/* ---- Elegir una de varias: tres piezas, una por lo que hace (ADR-0357, «Pestañas y segmentos», Felipe 2026-10-06) ----
-   La colaboradora se pregunta «¿qué cambia si toco esto?», y cada respuesta tiene UNA forma. Lo elegido va SIEMPRE en tinta;
-   la forma dice qué cambia:
-     · ¿Me lleva a otra parte de esta pantalla?  → PESTAÑA de vista (`components/ui/Pestanas.tsx`): subrayado en tinta.
+/* ---- Elegir una de varias: tres piezas, una por lo que hace (ADR-0357, «Pestañas y segmentos») ----
+   Felipe las eligió MIRANDO el 2026-10-07, en la página de /unificar, después de ver aplicadas las del 2026-10-06 y no quedarse
+   con ellas. La colaboradora se pregunta «¿qué cambia si toco esto?», y cada respuesta tiene UNA forma:
+     · ¿Me lleva a otra parte de esta pantalla?  → PESTAÑA de vista (`components/ui/Pestanas.tsx`): el vidrio de Comprobantes
+                                                   (ADR-0124) con la píldora oscura que se desliza, en MAYÚSCULAS. También en
+                                                   Finanzas y Configuración (Felipe 2026-10-07).
      · ¿Deja menos filas en la misma lista?      → PÍLDORA (`.pildora-cayla`, en globals.css): la elegida rellena de tinta.
                                                    El período (Hoy · 7 días · 30 días) también es esto.
      · ¿Muestra lo mismo de otra forma u orden?  → SEGMENTO de modo (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`):
-                                                   piel de caja y la elegida con contorno de tinta.
+                                                   la caja arena de «GRILLA / TABLA» con la elegida en papel, en MAYÚSCULAS.
      · ¿Se guarda al elegir?                     → no es de aquí: es un campo (`Segmentado`, `SegmentoDeslizante` de campo).
-   Ninguna gasta un rojo (ADR-0169: máximo dos por pantalla) ni se pone roja al pasar el mouse. Reemplaza a las 18 formas del
-   censo del 2026-10-06 (subrayado rojo en MAYÚSCULAS, pistas tinta/5, hueso y sand para filtrar, pulgar oscuro en los modos…).
-   Propuesta aprobada con sus medidas: docs/unificar/propuestas/pestanas.html. Solo tokens (ADR-0336: el oscuro sale solo). ---- */
+   Ninguna se pone roja al pasar el mouse. Solo tokens (ADR-0336: el oscuro sale solo). Registro: docs/unificar/pestanas.md. ---- */
 @layer components {
   /* ---------- 1 · Pestaña de vista ----------
-     La piel de la pestaña de Finanzas (`.fin-pestana`, ADR-0195) tal cual: 13,5 px como un botón, inactiva en taupe (5,2:1
-     sobre crema), elegida en tinta y 500, subrayado de 2 px en tinta y 42 px de alto. Dos correcciones medidas: el foco va
-     HACIA ADENTRO (la fila se desliza y le recortaba el anillo, ADR-0351 «lo que no tiene dónde crecer») y el ancho de la
-     letra en 500 se reserva con una copia invisible (`data-texto`): elegir «Efectivo por tienda» ensanchaba la pestaña
-     2,1 px y corría a las vecinas (ADR-0185). El subrayado VIAJA (`IndicadorDeslizante` «linea-tinta», 340 ms). */
+     El vidrio de Comprobantes (`.pestanas-vidrio`, ADR-0124) llevado a toda pestaña de vista: un contenedor de vidrio
+     (`vidrio-cayla`) con 4 px de aire y radio 14, y una píldora en tinta de radio 10 que se DESLIZA bajo la elegida
+     (`IndicadorDeslizante` «pildora-tinta», 450 ms, ADR-0136). La palabra va en versalitas de 12 px (label-cayla), como pidió
+     Felipe: «la que elegí, pero con mayúsculas». La elegida, en crema sobre la píldora. Antes de hidratar (o sin JavaScript) la
+     elegida lleva su propio fondo y, en cuanto la píldora se coloca (`data-indicador`), ese fondo se apaga. El foco va hacia
+     adentro (la fila se desliza y le recortaba el anillo, ADR-0351) y en celular la fila se desliza de costado. */
   .pestanas-cayla {
+    --vidrio-alfa: 0.45;
+    --vidrio-borde: 0.09;
+    --vidrio-blur: 22px;
     position: relative;
-    display: flex;
-    gap: 4px;
+    display: inline-flex;
+    align-self: flex-start;
+    gap: 2px;
     max-width: 100%;
-    border-bottom: 1px solid var(--color-sand);
+    padding: 4px;
+    border-radius: 14px;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -30,52 +36,78 @@
     display: none;
   }
   .pestana-cayla {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     flex: none;
     align-items: center;
-    margin-bottom: -1px;
-    padding: 10px 14px;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 15px;
     border: 0;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
+    border-radius: 10px;
     background: none;
-    font-size: 13.5px;
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--color-taupe);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    line-height: 20px;
+    color: var(--color-tinta);
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-    transition: color 150ms, border-color 150ms;
+    transition: color 200ms, background-color 200ms;
   }
   .pestana-cayla:hover {
     color: var(--color-tinta);
+    background: color-mix(in srgb, var(--color-tinta) 6%, transparent);
   }
   .pestana-cayla[aria-selected="true"],
   .pestana-cayla[aria-current="page"] {
-    color: var(--color-tinta);
-    border-bottom-color: var(--color-tinta);
-    font-weight: 500;
+    color: var(--color-crema);
+    background: var(--color-tinta);
   }
-  /* En cuanto el indicador que viaja se coloca (`data-indicador` en la fila), la marca estática se apaga: si no, se vería
-     saltar de golpe y, además, viajar. Sin JavaScript (o antes de hidratar) queda la estática. */
+  /* En cuanto la píldora que viaja se coloca, el fondo estático de la elegida se apaga: si no, se vería saltar y, además, viajar. */
   [data-indicador] > .pestana-cayla[aria-selected="true"],
-  [data-indicador] > .pestana-cayla[aria-current="page"] {
-    border-bottom-color: transparent;
+  [data-indicador] > .pestana-cayla[aria-current="page"],
+  [data-indicador] > .pestana-cayla[aria-selected="true"]:hover,
+  [data-indicador] > .pestana-cayla[aria-current="page"]:hover {
+    background: transparent;
   }
-  .pestanas-cayla > .cmp-ind {
-    transition-duration: 340ms;
+  .pestanas-cayla > .cmp-ind-pildora {
+    z-index: 0;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 10px;
+    background: var(--color-tinta);
+    box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent);
+    transition-duration: 450ms;
   }
-  /* En el celular (375 px, PL-105) cada pestaña se acerca a las vecinas: tres vistas con su conteo caben sin deslizar. */
   @media (max-width: 639px) {
     .pestana-cayla {
-      padding-left: 10px;
-      padding-right: 10px;
+      padding-left: 11px;
+      padding-right: 11px;
     }
+  }
+  /* En una columna angosta (la billetera de Traslados) las pestañas se reparten el ancho en vez de desbordar. */
+  .pestanas-cayla--llenar {
+    display: flex;
+    width: 100%;
+  }
+  .pestanas-cayla--llenar > .pestana-cayla {
+    flex: 1 1 0;
+    justify-content: center;
+    padding-left: 8px;
+    padding-right: 8px;
+    letter-spacing: 0.08em;
   }
   .pestana-cayla:focus-visible {
     outline: var(--foco-ancho) solid var(--foco-color);
     outline-offset: calc(var(--foco-ancho) * -1);
+  }
+  .pestana-cayla[aria-selected="true"]:focus-visible,
+  .pestana-cayla[aria-current="page"]:focus-visible {
+    outline-color: var(--color-crema);
   }
   .pestana-cayla__texto {
     display: inline-flex;
@@ -83,7 +115,6 @@
   }
   .pestana-cayla__icono {
     display: inline-flex;
-    margin-right: 6px;
   }
   .pestana-cayla__icono > svg {
     width: 16px;
@@ -95,23 +126,22 @@
     height: 0;
     overflow: hidden;
     visibility: hidden;
-    font-weight: 500;
     pointer-events: none;
     user-select: none;
   }
-  /* El conteo en su píldora sand de 20 px: sin caja el número se pegaba a la palabra (el censo leyó «Por pagar1»). El que
-     pide algo va en ámbar y lleva su texto para lector («2 esperan revisión»): el aviso no depende solo del color. Sin el
-     punto del Chip, para que no se lea como un estado. */
+  /* El conteo: sobre la píldora, crema al 15 %; fuera, tinta al 10 %. El que pide algo va en ámbar y lleva su texto para lector
+     («2 esperan revisión»); el que avisa un rechazo, en rojo. Ninguno depende solo del color. */
   .pestana-cayla__cuenta {
     display: inline-grid;
     place-items: center;
     min-width: 20px;
     height: 20px;
-    margin-left: 6px;
     padding: 0 6px;
     border-radius: 999px;
-    background: var(--color-sand);
-    font-size: 11.5px;
+    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0;
     line-height: 1;
     color: var(--color-tinta);
     font-variant-numeric: tabular-nums;
@@ -119,7 +149,15 @@
   .pestana-cayla__cuenta[data-pide] {
     background: color-mix(in srgb, var(--color-ambar) 15%, transparent);
     color: var(--color-ambar-profundo);
-    font-weight: 600;
+  }
+  .pestana-cayla__cuenta[data-tono="rojo"] {
+    background: color-mix(in srgb, var(--color-rojo) 15%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  .pestana-cayla[aria-selected="true"] .pestana-cayla__cuenta,
+  .pestana-cayla[aria-current="page"] .pestana-cayla__cuenta {
+    background: color-mix(in srgb, var(--color-crema) 15%, transparent);
+    color: var(--color-crema);
   }
 
   /* ---------- 2 · Píldora de filtro y de período ----------
@@ -146,11 +184,10 @@
   }
 
   /* ---------- 3 · Segmento de modo de vista y de orden ----------
-     36 px con la piel de `caja-cayla` (hueso, borde sand, radio de control) y una pista de 3 px: mide lo mismo que el buscador
-     y el combo con los que vive en la barra. La elegida va en papel con CONTORNO de 1 px en tinta y sin relleno (13,4:1 en
-     claro, 11,6:1 en oscuro): el primario es el único botón relleno y la píldora elegida ya va en tinta. El peso no cambia al
-     elegir (500 en todas). El foco va afuera, a 2 px, para no confundirse con el contorno de «elegida». Con más de 3
-     opciones (los 5 órdenes de Análisis) va el combo, no esto. */
+     La caja arena de «GRILLA / TABLA» de Productos, que eligió Felipe: fondo sand con 2 px de aire, cada opción en versalitas de
+     10,5 px (label-cayla) y la elegida en papel y tinta; las otras en tinta al 60 %. 36 px de alto: mide lo mismo que el buscador
+     y el combo con los que vive en la barra. Con icono delante de la palabra (nunca solo el icono). Con más de 3 opciones va el
+     combo, no esto. */
   .segmento-cayla {
     display: inline-flex;
     flex: none;
@@ -159,10 +196,10 @@
     box-sizing: border-box;
     max-width: 100%;
     height: 36px;
-    padding: 3px;
-    border: 1px solid var(--color-sand);
+    padding: 2px;
+    border: 0;
     border-radius: var(--radius-md);
-    background: var(--color-hueso);
+    background: var(--color-sand);
   }
   .segmento-cayla__opcion {
     display: inline-flex;
@@ -173,14 +210,16 @@
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
-    font-size: 13.5px;
-    font-weight: 500;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
     line-height: 1;
-    color: var(--color-taupe);
+    color: color-mix(in srgb, var(--color-tinta) 60%, transparent);
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
-    transition: color 150ms, background-color 150ms, box-shadow 150ms;
+    transition: color 150ms, background-color 150ms;
   }
   .segmento-cayla__opcion:hover {
     color: var(--color-tinta);
@@ -191,12 +230,10 @@
   .segmento-cayla__opcion[aria-pressed="true"] {
     background: var(--color-papel);
     color: var(--color-tinta);
-    box-shadow: inset 0 0 0 1px var(--color-tinta);
   }
   .segmento-cayla__opcion:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    color: var(--color-taupe);
   }
   .segmento-cayla__opcion > svg {
     width: 16px;
@@ -207,8 +244,7 @@
   /* Con el dedo (tablet y celular de la tienda, PL-105): las tres a 44 px. */
   @media (pointer: coarse) {
     .pestana-cayla {
-      padding-top: 11px;
-      padding-bottom: 11px;
+      min-height: 44px;
     }
     .pildora-cayla {
       min-height: 44px;

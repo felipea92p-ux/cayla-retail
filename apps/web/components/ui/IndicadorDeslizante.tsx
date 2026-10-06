@@ -29,9 +29,10 @@ import { useEffect, useLayoutEffect, useRef } from "react";
    (`TarjetaCifra` con `onClick`, que marca la elegida con `aria-pressed`, no con `aria-current`). En tinta y no en rojo:
    esas tarjetas ya llevan el rojo de «pide algo» en su filete y su cifra (máximo dos rojos por pantalla).
 
-   Desde el 2026-10-06 (ADR-0357, «Pestañas y segmentos») `linea-tinta` es el subrayado de TODA pestaña de vista
-   (`Pestanas`, en sus dos maneras: con `aria-current` o, por estado, con `selector='[aria-selected="true"]'`). La `linea`
-   roja y la `pastilla` oscura se fueron: el segmento de modo marca la elegida con un contorno, sin viaje.
+   Desde el 2026-10-07 (ADR-0357, «Pestañas y segmentos», elegido por Felipe mirando) `pildora-tinta` es la píldora oscura
+   que viaja bajo TODA pestaña de vista (`Pestanas`, en sus dos maneras: con `aria-current` o, por estado, con
+   `selector='[aria-selected="true"]'`): el vidrio de Comprobantes llevado a todo el ERP. `linea-tinta` queda para las
+   tarjetas que eligen una vista (Temporadas).
    ==================================================================== */
 
 type Posicion = { x: number; w: number };
@@ -40,7 +41,7 @@ const memoria = new Map<string, Posicion & { t: number }>();
 const VIGENCIA_MS = 1500;
 
 const SELECTOR_MARCADA = '[aria-current]:not([aria-current="false"])';
-const VARIANTE = { "linea-tinta": "cmp-ind-linea cmp-ind-tinta" } as const;
+const VARIANTE = { "linea-tinta": "cmp-ind-linea cmp-ind-tinta", "pildora-tinta": "cmp-ind-pildora" } as const;
 
 export function IndicadorDeslizante({
   activa,

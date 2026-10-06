@@ -15,11 +15,12 @@ import type { CSSProperties, ReactNode } from "react";
      aria-pressed, y la flecha ArrowRight de lucide que pone ESTA pieza a la derecha del último renglón con texto (el
      pie; si no hay, el contexto; si no, el del número), en una fila flex para que nunca baje sola de renglón. Las
      pantallas ya no escriben «→» a mano: el subconjunto de DM Sans que sirve el ERP no trae U+2192 y la dibujaba la
-     fuente del aparato. Encima: el de btn-secundario (filo taupe/40, fondo sand/50), sin moverse.
-   - FILTRA la lista de la misma pantalla (`onClick` + `activa`, aunque sea `false`): <button aria-pressed>, «Toca para
-     filtrar» al pie y, puesta, contorno de tinta sobre hueso (la marca de la D de Análisis, ADR-0245) con «Filtrando ·
-     toca para quitar». Sin flecha: la flecha dice «te lleva a otro lado». aria-pressed va SOLO aquí (antes `activa`
-     valía `false` por defecto y Gastos, Notas de crédito, Activos y Recibir se anunciaban como un interruptor apagado).
+     fuente del aparato. Encima: fondo arena al 30 %, como la B, sin moverse.
+   - FILTRA la lista de la misma pantalla (`onClick` + `activa`, aunque sea `false`): <button aria-pressed>; puesta, fondo
+     arena al 40 % (la cara de la B). Sin flecha: la flecha dice «te lleva a otro lado». aria-pressed va SOLO aquí (antes
+     `activa` valía `false` por defecto y Gastos, Notas de crédito, Activos y Recibir se anunciaban como un interruptor
+     apagado). El 2026-10-06 la pieza escribía «Toca para filtrar» y ponía un contorno de tinta; al verlo, Felipe eligió
+     la B tal cual (2026-10-07) y se quitaron.
    - SIN DATO (`valor={null}`): una sola forma. Borde punteado, sin fondo, «—» en tinta/65 (5,14:1 sobre crema; el
      tinta/45 de antes daba 2,86:1) y su motivo OBLIGATORIO en `children` (los tipos lo exigen). Un cero es un dato y se
      ve normal. Reemplaza `vacia`, el «—» suelto, el «Sin meta» en el lugar del número y las copias en tinta/45.
@@ -167,17 +168,16 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
   const sinDato = valor === null || valor === undefined;
   const fallo = sinDato && noSePudoLeer;
   const esViva = viva && tocable;
-  // Sobre hueso (la que filtra, puesta) el rojo pasa a rojo-profundo, como hace el Chip: 4,23:1 → 6,62:1.
-  const sobreHueso = (c?: string) => (puesta && c ? c.replace(/\btext-rojo(?![\w-])/g, "text-rojo-profundo") : c);
 
   const clase = [
     "card-cayla @container flex flex-col p-4 text-left sm:px-5",
     tocable ? "w-full cursor-pointer" : "",
     // `viva` no lleva la transición de utilidad: le ganaría a la de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
     esViva ? "alza-cayla cmp-viva" : tocable ? "transition-[background-color,border-color] duration-200 ease-cayla motion-reduce:transition-none" : "",
-    // El encima de btn-secundario. Con `acento` no se toca el filo: el filete rojo no debe apagarse al pasar el mouse.
-    tocable && !puesta ? `hover:bg-[color-mix(in_oklab,var(--color-sand)_50%,var(--color-papel))] ${acento ? "" : "hover:border-taupe/40"}` : "",
-    puesta ? "border-tinta bg-hueso ring-1 ring-inset ring-tinta" : "",
+    // El encima y la puesta de la B, la tarjeta de Compras que eligió Felipe (2026-10-07): fondo arena al 30 % al pasar el
+    // mouse y al 40 % la que está filtrando.
+    tocable && !puesta ? "hover:bg-sand/30" : "",
+    puesta ? "bg-sand/40" : "",
     sinDato && !fallo ? "border-dashed bg-transparent" : "",
     acento ? "border-l-2 border-l-rojo" : "",
     acentoTrazo ? "relative overflow-hidden" : "",
@@ -186,10 +186,10 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     .filter(Boolean)
     .join(" ");
 
-  const tonoContexto = fallo ? "text-tinta" : (sobreHueso(detalleTono) ?? "text-taupe");
+  const tonoContexto = fallo ? "text-tinta" : (detalleTono ?? "text-taupe");
   const conAyuda = Boolean(ayuda) && !tocable;
   const conAccion = accion && !tocable;
-  const piePropio = filtra ? (puesta ? "Filtrando · toca para quitar" : "Toca para filtrar") : pie;
+  const piePropio = pie;
   // La flecha de «lleva» va a la derecha del ÚLTIMO renglón con texto: el pie, si no el contexto, si no el del número.
   const flechaEn: "pie" | "contexto" | "valor" | null = !lleva ? null : piePropio ? "pie" : children ? "contexto" : "valor";
 
@@ -215,7 +215,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
         )}
         <span
           className={`font-display whitespace-nowrap text-[28px] leading-tight lining-nums tabular-nums @max-[148px]:text-[22px] ${
-            sinDato ? "text-tinta/65" : (sobreHueso(tono) ?? "text-tinta")
+            sinDato ? "text-tinta/65" : (tono ?? "text-tinta")
           }`}
         >
           {sinDato ? (

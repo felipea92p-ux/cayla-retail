@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import { MiniPase } from "@/components/traslados-pases/MiniPase";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { coincideBusqueda } from "@/lib/traslados-reglas";
 import { PESTANAS, paseInicial, textoDelAnillo, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
 import type { Billetera as DatosBilletera, PaseDeBilletera } from "@/lib/traslados-billetera";
@@ -120,25 +121,22 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
             />
           </label>
 
-          <div className="tp-pestanas" role="tablist" aria-label="Qué cajas ver" style={{ "--tp-k": k } as CSSProperties}>
-            <span className="tp-pestanas-ind" aria-hidden />
-            {PESTANAS.map((p) => {
+          {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0357). El número de cada una
+              es cuántas hay; «por hacer» va en ámbar y con su texto para lector. */}
+          <Pestanas
+            etiquetaAccesible="Qué cajas ver"
+            activa={pestana}
+            onCambio={(c) => setPestana(c as PestanaPase)}
+            idIndicador="billetera"
+            className="pestanas-cayla--llenar"
+            items={PESTANAS.map((p) => {
               const hay = billetera.pases[p.id].filter(coincide).length;
               const porHacer = consulta.trim() ? 0 : billetera.porHacer[p.id];
-              return (
-                <button key={p.id} type="button" role="tab" aria-selected={pestana === p.id} onClick={() => setPestana(p.id)}>
-                  {p.nombre}
-                  {porHacer > 0 ? (
-                    <span className="tp-bd" title={`${porHacer} por hacer`}>
-                      {porHacer}
-                    </span>
-                  ) : (
-                    <span className="tp-n">{hay}</span>
-                  )}
-                </button>
-              );
+              return porHacer > 0
+                ? { clave: p.id, etiqueta: p.nombre, conteo: porHacer, pide: "por hacer" }
+                : { clave: p.id, etiqueta: p.nombre, conteo: hay, tono: "neutro" as const, pide: hay === 1 ? "caja" : "cajas" };
             })}
-          </div>
+          />
 
           <nav className="tp-pila" aria-label={PESTANAS[k].nombre}>
             {lista.length > 0 ? (
