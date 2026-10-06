@@ -22,6 +22,7 @@ import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
@@ -148,19 +149,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     .map((t) => ({ id: t.id, nombre: t.valor }))
     .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
-  const botonVista = (v: "grilla" | "tabla", Icono: typeof LayoutGrid, texto: string) => (
-    <Link
-      href={hrefConVista(v)}
-      aria-current={vista === v ? "page" : undefined}
-      className={`label-cayla inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[10.5px] transition-colors ${
-        vista === v ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:text-tinta"
-      }`}
-    >
-      <Icono aria-hidden className="h-3.5 w-3.5" />
-      {texto}
-    </Link>
-  );
-
   return (
     <div className="space-y-6">
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
@@ -189,10 +177,17 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         }
         acciones={
           <>
-            <div className="flex gap-0.5 rounded-lg bg-sand p-0.5" role="group" aria-label="Cómo ver el catálogo">
-              {botonVista("grilla", LayoutGrid, "Grilla")}
-              {botonVista("tabla", Rows3, "Tabla")}
-            </div>
+            {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
+                palabra (ADR-0358). */}
+            <SegmentoEnlaces
+              etiquetaAccesible="Cómo ver el catálogo"
+              activo={vista}
+              reemplazar={false}
+              opciones={[
+                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} /> },
+                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} /> },
+              ]}
+            />
             {editaCatalogo && (
               <Link href="/productos/nuevo" className="btn-cayla btn-primario">
                 + Nuevo producto

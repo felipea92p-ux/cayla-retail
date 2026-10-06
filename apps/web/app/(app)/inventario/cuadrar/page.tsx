@@ -26,7 +26,7 @@ export default async function CuadrarPisoPage() {
       sede={sede}
       titulo="Cuadrar el piso"
       subtitulo="Escanea lo que de verdad está guardado. Lo que el sistema tiene en el almacén y nadie escaneó pasa al piso, en un solo movimiento."
-      volver={<Volver forma="flecha" href="/inventario" a="Existencias" />}
+      volver={<Volver href="/inventario" a="Existencias" />}
     />
   );
 

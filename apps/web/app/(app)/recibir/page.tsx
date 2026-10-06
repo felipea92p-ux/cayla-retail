@@ -125,30 +125,29 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
         <h2 className="label-cayla -mb-3 text-[11px] text-tinta/65">Contra factura</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
+          <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
           </TarjetaCifra>
           {resumen.diasEntregaPromedio != null ? (
-            <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
+            <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
               emisión → llegada · promedio de {resumen.comprobantesRecibidos}
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra compacta className="anim-entra" style={{ "--i": 1 } as CSSProperties} vacia etiqueta="Tiempo de entrega" valor="—">
+            <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} etiqueta="Tiempo de entrega" valor={null}>
               Aparece con la primera recepción
             </TarjetaCifra>
           )}
           {pctCompletas != null ? (
-            <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
+            <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
               {resumen.entregasCompletas} de {resumen.comprobantesRecibidos} {resumen.comprobantesRecibidos === 1 ? "comprobante llegó completo" : "comprobantes llegaron completos"}
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra compacta className="anim-entra" style={{ "--i": 2 } as CSSProperties} vacia etiqueta="Entregas completas" valor="—">
+            <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} etiqueta="Entregas completas" valor={null}>
               Aparece con la primera recepción
             </TarjetaCifra>
           )}
           <TarjetaCifra
-            compacta
-            className="anim-entra alza-cayla"
+            className="anim-entra"
             style={{ "--i": 3 } as CSSProperties}
             punto={resumen.faltanteUnidades > 0 ? "ambar" : "verde"}
             vivo={resumen.faltanteUnidades > 0}
@@ -161,7 +160,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             href={esLider && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
           >
             {resumen.faltanteUnidades > 0
-              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · ${esLider ? "cerrar o reclamar →" : "un líder decide qué hacer"}`
+              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · ${esLider ? "cerrar o reclamar" : "un líder decide qué hacer"}`
               : "Nada por reclamar"}
           </TarjetaCifra>
         </div>

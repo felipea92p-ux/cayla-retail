@@ -754,7 +754,9 @@ function VistaPreviaMenu({
       )}
       <div className="mt-3 space-y-1.5 text-xs text-tinta/60">
         <span className="block">Cómo lo ve parado en</span>
+        {/* La misma vista previa desde otro lugar: el segmento de modo del sistema (ADR-0358). */}
         <SegmentoDeslizante
+          forma="modo"
           etiqueta="Dónde está parado"
           valor={ubicacion}
           onCambio={(k) => onUbicacion(k as "tienda" | "taller")}

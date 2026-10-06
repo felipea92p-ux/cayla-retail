@@ -1,60 +1,53 @@
 import Link from "next/link";
-import { IndicadorDeslizante } from "@/components/ui/IndicadorDeslizante";
+import type { ReactNode } from "react";
 
 /* ====================================================================
-   SegmentoEnlaces · un control de dos o tres opciones que vive en la URL
-   (2026-09-18, ADR-0111)
+   SegmentoEnlaces · el segmento de MODO DE VISTA y de ORDEN que vive en la URL
+   (2026-09-18, ADR-0111; piel nueva el 2026-10-06, ADR-0358 «Pestañas y segmentos»)
 
-   «Emisión | Vencimiento» en Comprobantes y «Por urgencia | Por proveedor»
-   en Por pagar. Son enlaces, no botones con estado: la opción elegida es un
-   parámetro de la URL (como los filtros), así el Server Component sabe qué
-   dibujar, se puede compartir y «atrás» funciona. Quien lo usa arma cada
-   `href` conservando el resto de los parámetros.
+   Qué es: lo que se toca para ver LO MISMO de otra forma u orden —Grilla / Tabla, Emisión / Vencimiento, Por urgencia /
+   Por proveedor—, con 2 o 3 opciones. No es una pestaña de vista (`Pestanas`, cambia de sección) ni un filtro
+   (`pildora-cayla`, deja menos filas). Con más de 3 opciones va el combo (`Desplegable`, ADR-0209). Son enlaces, no botones
+   con estado: la opción elegida es un parámetro de la URL, así el Server Component sabe qué dibujar, se puede compartir y
+   «atrás» funciona. Quien lo usa arma cada `href` conservando el resto de los parámetros.
 
-   Mismo aspecto que la pastilla segmentada de las maquetas: borde fino, la
-   activa en tinta con letras crema. Alto 36 px (h-9) para alinearse con el
-   buscador y el botón «Filtros» de `FiltrosCompras`.
+   Cómo se ve (decidido por Felipe con /unificar): 36 px con la piel de `caja-cayla` —hueso, borde sand, radio de control—,
+   igual que el buscador y el combo con los que vive en la barra; la elegida en papel con CONTORNO de 1 px en tinta, sin
+   relleno (no compite con el botón principal ni con la píldora elegida); 13,5 px en 500 en todas; el icono va delante y
+   siempre con su palabra. CSS: `.segmento-cayla` en app/estilos/pestanas-y-segmentos.css. Su gemelo con estado es
+   `SegmentoDeslizante forma="modo"`.
 
-   `deslizante` (2026-09-19, ADR-0136, opt-in): el fondo oscuro de la opción elegida deja de saltar de
-   una a otra y pasa a ser una pastilla (`IndicadorDeslizante`) que se desliza hasta ella aunque la
-   página se vuelva a pedir al servidor. Sin la prop se dibuja exactamente igual que antes.
+   Reemplaza: el pulgar oscuro que se deslizaba con MAYÚSCULAS de 11 px y el rojo al pasar el mouse (la prop `deslizante`
+   se fue con él), las pistas sand de Grilla / Tabla y del tamaño de la grilla, y las pistas hueso escritas a mano.
    ==================================================================== */
 
-export type OpcionSegmento = { valor: string; etiqueta: string; href: string };
+export type OpcionSegmento = { valor: string; etiqueta: string; href: string; icono?: ReactNode };
 
 export function SegmentoEnlaces({
   opciones,
   activo,
   etiquetaAccesible,
-  deslizante = false,
-  idIndicador = "segmento",
+  reemplazar = true,
+  scroll,
+  className = "",
 }: {
   opciones: OpcionSegmento[];
   activo: string;
   etiquetaAccesible: string;
-  deslizante?: boolean;
-  idIndicador?: string;
+  /** `replace` del enlace: por defecto cambiar de modo no suma una entrada al «atrás» del navegador. */
+  reemplazar?: boolean;
+  /** `scroll` del enlace (Next lleva la vista arriba por defecto). */
+  scroll?: boolean;
+  className?: string;
 }) {
   return (
-    <nav aria-label={etiquetaAccesible} className={`inline-flex h-9 overflow-hidden rounded-lg border border-tinta/15 ${deslizante ? "relative" : ""}`}>
-      {opciones.map((o) => {
-        const esActivo = o.valor === activo;
-        // Deslizante: el texto va sobre la pastilla (`relative z-10`); la marca estática `cmp-seg-activa`
-        // pinta el fondo hasta que el indicador se coloca.
-        const estado = esActivo ? (deslizante ? "cmp-seg-activa text-crema" : "bg-tinta text-crema") : "text-tinta/65 hover:text-rojo";
-        return (
-          <Link
-            key={o.valor}
-            href={o.href}
-            replace
-            aria-current={esActivo ? "true" : undefined}
-            className={`label-cayla flex items-center whitespace-nowrap px-3.5 text-[11px] transition-colors ${deslizante ? "relative z-10" : ""} ${estado}`}
-          >
-            {o.etiqueta}
-          </Link>
-        );
-      })}
-      {deslizante && <IndicadorDeslizante activa={activo} id={idIndicador} variante="pastilla" />}
+    <nav aria-label={etiquetaAccesible} className={`segmento-cayla ${className}`}>
+      {opciones.map((o) => (
+        <Link key={o.valor} href={o.href} replace={reemplazar} scroll={scroll} aria-current={o.valor === activo ? "true" : undefined} className="segmento-cayla__opcion">
+          {o.icono}
+          {o.etiqueta}
+        </Link>
+      ))}
     </nav>
   );
 }

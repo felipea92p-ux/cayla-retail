@@ -82,7 +82,8 @@ export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: Resu
 
       <section className="fin-cifras fin-cinco" aria-label="Los números del mes">
         {cifras.map((c, i) => (
-          <TarjetaCifra key={c.clave} compacta etiqueta={c.etiqueta} valor={c.valor} tono={c.rojo ? "text-rojo" : undefined} {...entra(i + 4)}>
+          // `cifrasResumen` dice «—» cuando no hay dato: la pieza lo dibuja como «sin dato», con su detalle de motivo (ADR-0358).
+          <TarjetaCifra key={c.clave} etiqueta={c.etiqueta} valor={c.valor === "—" ? null : c.valor} tono={c.rojo ? "text-rojo" : undefined} {...entra(i + 4)}>
             <span title={`Sale de ${c.origen}`}>{c.detalle}</span>
           </TarjetaCifra>
         ))}

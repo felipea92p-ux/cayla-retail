@@ -15,6 +15,17 @@
       "autoPort": true
     },
     {
+      "name": "cayla-retail-dev-libre",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "web",
+        "dev"
+      ],
+      "port": 3110,
+      "autoPort": true
+    },
+    {
       "name": "cayla-retail-dev-windows",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
@@ -57,6 +68,16 @@
         "python3 -m http.server ${PORT:-8792} --directory .flujo-de-negocio/guias"
       ],
       "port": 8792,
+      "autoPort": true
+    },
+    {
+      "name": "unificar-laminas",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "mkdir -p apps/web/unificar/.salida && python3 -m http.server ${PORT:-8793} --directory apps/web/unificar/.salida"
+      ],
+      "port": 8793,
       "autoPort": true
     }
   ]

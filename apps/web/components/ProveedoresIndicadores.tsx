@@ -43,11 +43,10 @@ export function ProveedoresIndicadores({
 
   return (
     <div className={`grid grid-cols-2 gap-3 ${conFavor ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
-      <TarjetaCifra compacta {...entra(1)} punto="neutro" etiqueta="Proveedores activos" valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
+      <TarjetaCifra {...entra(1)} punto="neutro" etiqueta="Proveedores activos" valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
         {resumen.desactivados === 0 ? "Ninguno desactivado" : `${resumen.desactivados.toLocaleString("es-PE")} ${resumen.desactivados === 1 ? "desactivado" : "desactivados"}`}
       </TarjetaCifra>
       <TarjetaCifra
-        compacta
         {...entra(2)}
         punto={deuda > 0 ? "ambar" : "verde"}
         detalleTono={vencidas > 0 ? "text-rojo" : undefined}
@@ -57,7 +56,7 @@ export function ProveedoresIndicadores({
         {deuda > 0 ? `${resumen.conSaldo} con saldo${vencidas > 0 ? ` · ${vencidas} con comprobantes vencidos` : ""}` : "Nada por pagar"}
       </TarjetaCifra>
       {resumen.topProveedorNombre && resumen.topPct != null ? (
-        <TarjetaCifra compacta {...entra(3)} punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={resumen.topPct} formato="porcentaje" alMontar />}>
+        <TarjetaCifra {...entra(3)} punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={resumen.topPct} formato="porcentaje" alMontar />}>
           {(resumen.conSaldo ?? 0) > 3 && resumen.top3Pct != null
             ? `${resumen.topProveedorNombre} · los 3 mayores suman el ${Math.round(resumen.top3Pct)} %`
             : `${resumen.topProveedorNombre} concentra la deuda`}
@@ -85,12 +84,11 @@ export function ProveedoresIndicadores({
           )}
         </TarjetaCifra>
       ) : (
-        <TarjetaCifra compacta vacia {...entra(3)} etiqueta="Concentración" valor="—">
+        <TarjetaCifra {...entra(3)} etiqueta="Concentración" valor={null}>
           Aparece cuando haya deuda
         </TarjetaCifra>
       )}
       <TarjetaCifra
-        compacta
         {...entra(4)}
         punto={sin90 > 0 ? "ambar" : "verde"}
         detalleTono={sin90 > 0 ? "text-ambar-profundo" : "text-verde-profundo"}
@@ -100,7 +98,7 @@ export function ProveedoresIndicadores({
         {sin90 > 0 ? "Revisa si siguen siendo proveedores" : "Nadie inactivo por revisar"}
       </TarjetaCifra>
       {conFavor && (
-        <TarjetaCifra compacta {...entra(5)} punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={<CifraQueCuenta valor={resumen.saldoFavorTotal ?? 0} formato="soles" alMontar />}>
+        <TarjetaCifra {...entra(5)} punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={<CifraQueCuenta valor={resumen.saldoFavorTotal ?? 0} formato="soles" alMontar />}>
           {resumen.conSaldoFavor === 1 ? "1 proveedor te debe" : `${resumen.conSaldoFavor} proveedores te deben`} · se descuenta al pagar
         </TarjetaCifra>
       )}

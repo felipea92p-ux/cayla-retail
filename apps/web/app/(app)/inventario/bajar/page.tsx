@@ -32,7 +32,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
         // La vuelta común (`Volver`), la flecha junto a la sede, como en Traslados y Conteo (ADR-0220, act. 2026-10-06). Solo si puede entrar a
         // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
         volver={
-          veModulo(persona, "existencias") && <Volver forma="flecha" href="/inventario" a="Existencias" />
+          veModulo(persona, "existencias") && <Volver href="/inventario" a="Existencias" />
         }
       />
 

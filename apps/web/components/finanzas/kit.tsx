@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { Pestanas } from "@/components/ui/Pestanas";
 
 // Las piezas de las pantallas de Finanzas (ADR-0195), tal como las dibuja el spike aprobado
 // (docs/maquetas/finanzas-2026-09/). Solo presentación: reciben valores y avisan cambios; la lógica vive en lib/*-reglas.ts.
@@ -10,29 +10,20 @@ import { Desplegable, type Opcion } from "@/components/ui/campos";
 
 export type PestanaFin = { clave: string; etiqueta: string; conteo?: number | null; href?: string };
 
-/** Pestañas con subrayado en tinta y el conteo en una píldora. Con `href` son enlaces (la vista vive en la URL);
- *  sin él, botones que avisan `onCambio`. */
+/** Las pestañas de Finanzas y Configuración: desde el 2026-10-07 son la pestaña de vista del sistema (`<Pestanas>`, el vidrio con
+ *  la píldora oscura, ADR-0358), por decisión de Felipe al elegir mirando («también Finanzas»). Esta función solo traduce
+ *  la forma de los datos del kit, para no tocar las pantallas. Con `href` son enlaces (la vista vive en la URL); sin él, botones
+ *  que avisan `onCambio`. */
 export function PestanasFin({ items, valor, onCambio, etiqueta }: { items: PestanaFin[]; valor: string; onCambio?: (clave: string) => void; etiqueta: string }) {
   return (
-    <div role="tablist" aria-label={etiqueta} className="fin-pestanas">
-      {items.map((p) => {
-        const contenido = (
-          <>
-            {p.etiqueta}
-            {p.conteo ? <span className="fin-cuenta-tab">{p.conteo}</span> : null}
-          </>
-        );
-        return p.href ? (
-          <Link key={p.clave} href={p.href} role="tab" aria-selected={valor === p.clave} className="fin-pestana" scroll={false}>
-            {contenido}
-          </Link>
-        ) : (
-          <button key={p.clave} type="button" role="tab" aria-selected={valor === p.clave} className="fin-pestana" onClick={() => onCambio?.(p.clave)}>
-            {contenido}
-          </button>
-        );
-      })}
-    </div>
+    <Pestanas
+      etiquetaAccesible={etiqueta}
+      activa={valor}
+      onCambio={items.some((p) => p.href) ? undefined : onCambio}
+      idIndicador={`fin-${etiqueta}`}
+      className="fin-pestanas-sistema"
+      items={items.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: p.href, conteo: p.conteo ? p.conteo : undefined }))}
+    />
   );
 }
 
