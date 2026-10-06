@@ -64,7 +64,22 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
 
   const prendas = useMemo(() => (q.trim() ? datos.prendas.filter((p) => coincideBusqueda(p, q)) : datos.prendas), [datos.prendas, q]);
 
+  const apagarResaltado = useCallback(() => {
+    raiz.current?.classList.remove("atenuar");
+    raiz.current?.querySelectorAll(".hl").forEach((n) => n.classList.remove("hl"));
+    document.querySelector(".an-tip")?.classList.remove("ver");
+  }, []);
+
+  const abrirFicha = useCallback(
+    (varianteId: string) => {
+      apagarResaltado();
+      setFichaId(varianteId);
+    },
+    [apagarResaltado],
+  );
+
   const irA = useCallback((v: VistaAnalisis, opciones?: { foco?: string }) => {
+    apagarResaltado();
     setFichaId(null);
     setVista(v);
     setCategoria(null);
@@ -76,7 +91,7 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
     else url.searchParams.set("vista", v);
     window.history.replaceState(window.history.state, "", url);
     if (!opciones?.foco) raiz.current?.scrollIntoView({ block: "start", behavior: reducido() ? "auto" : "smooth" });
-  }, []);
+  }, [apagarResaltado]);
 
   const pedir = useCallback(
     (marcadas: readonly PrendaAnalisis[], origenId: string) => {
@@ -102,11 +117,11 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
       categoria,
       setCategoria,
       sedeDe: (id: string) => datos.sedes.find((s) => s.id === id),
-      abrirFicha: setFichaId,
+      abrirFicha,
       irA,
       pedir,
     }),
-    [datos, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, irA, pedir],
+    [datos, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -152,7 +167,7 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
     const t = e.target as HTMLElement;
     if ((e.key === "Enter" || e.key === " ") && t.matches('[role="button"][tabindex]') && !e.defaultPrevented) {
       e.preventDefault();
-      t.click();
+      t.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     }
   };
 

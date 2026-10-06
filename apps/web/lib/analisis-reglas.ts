@@ -1,7 +1,7 @@
 // Análisis v4 (ADR-0356): las reglas que deciden en qué grupo cae cada prenda. Lógica pura (sin base ni React): la usan el
 // servidor (el resumen de cada tienda) y cada pestaña, así una prenda cae en el mismo grupo en Hoy, en su carril y en su ficha.
 //
-// Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, docs/maquetas/analisis-2026-10/): se acaba lo que dura dos
+// Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos
 // semanas o menos al ritmo de 30 días; se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
@@ -65,6 +65,16 @@ export function sedeQueMasVende(otras: readonly PrendaEnOtraSede[]): PrendaEnOtr
 }
 
 /**
+ * Otra tienda que la tiene (cualquier cantidad): la que más tiene. Solo es un dato a la vista («AQP tiene 3» y «o pedir a
+ * Arequipa»): la persona decide si pedirla o comprarla (decisión 7). null si ninguna la tiene.
+ */
+export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEnOtraSede | null {
+  const con = otras.filter((o) => o.stock >= 1);
+  if (con.length === 0) return null;
+  return [...con].sort((a, b) => b.stock - a.stock || b.vendidas30 - a.vendidas30 || a.sedeId.localeCompare(b.sedeId))[0];
+}
+
+/**
  * El grupo de una prenda, o null si no pide nada (se vende bien, o lleva menos de un mes quieta). Una prenda vive en UN solo
  * grupo: lo que se acaba se compra; lo quieto desde el umbral se manda a donde sí se vende (si otra tienda vendió 2 o más) o
  * se liquida; lo quieto desde un mes, se vigila.
@@ -88,6 +98,11 @@ export function prendasDe<T extends PrendaAnalisis>(prendas: readonly T[], grupo
     const x = grupoDe(p, liquidarDesde);
     return x !== null && g.has(x);
   });
+}
+
+/** Lo que se acaba, de lo más urgente a lo menos: primero lo agotado; a igual plazo, lo que más se vende. */
+export function ordenSeAcaba(a: PrendaAnalisis, b: PrendaAnalisis): number {
+  return (diasQueQuedan(a) ?? Infinity) - (diasQueQuedan(b) ?? Infinity) || b.vendidas30 - a.vendidas30 || a.nombre.localeCompare(b.nombre, "es");
 }
 
 /** Las unidades de mi tienda por tramo de días sin venderse («Por tienda» en No se vende). Sin dato de días, no cuenta. */

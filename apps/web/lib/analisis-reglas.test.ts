@@ -11,6 +11,8 @@ import {
   LIQUIDAR_MIN,
   leerVista,
   liquidarDesdeValido,
+  ordenSeAcaba,
+  otraSedeQueLaTiene,
   porLlegar,
   prendasDe,
   sedeDeAnalisis,
@@ -88,21 +90,23 @@ describe("el grupo de cada prenda (una sola)", () => {
     expect(grupoDe(prenda({ diasSinVender: 120 }), 60)).toBeNull();
     expect(grupoDe(prenda({ piso: 2 }), 60)).toBeNull();
   });
-  it("prendasDe filtra por grupos", () => {
+  it("prendasDe filtra por grupos y se ordena de lo más urgente a lo menos", () => {
     const a = prenda({ varianteId: "a", vendidas30: 6 });
     const b = prenda({ varianteId: "b", piso: 1, vendidas30: 4 });
     const c = prenda({ varianteId: "c", piso: 4, diasSinVender: 90 });
-    expect(prendasDe([c, b, a], ["comprar"], 60).map((p) => p.varianteId)).toEqual(["b", "a"]);
+    expect(prendasDe([c, b, a], ["comprar"], 60).sort(ordenSeAcaba).map((p) => p.varianteId)).toEqual(["a", "b"]);
   });
 });
 
 describe("otras tiendas", () => {
-  it("la que más vende, para mandar", () => {
+  it("la que más tiene, aunque no venda; la que más vende, para mandar", () => {
     const o = [
       { sedeId: "aqp", stock: 3, vendidas30: 0 },
       { sedeId: "lim", stock: 1, vendidas30: 2 },
     ];
+    expect(otraSedeQueLaTiene(o)?.sedeId).toBe("aqp");
     expect(sedeQueMasVende(o)?.sedeId).toBe("lim");
+    expect(otraSedeQueLaTiene([{ sedeId: "aqp", stock: 0, vendidas30: 4 }])).toBeNull();
   });
 });
 
