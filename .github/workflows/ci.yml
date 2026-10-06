@@ -1316,6 +1316,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:motor-demanda-lectura
 
+      # Análisis v4 (ADR-0357): las dos lecturas de la pantalla, `fn_analisis_sede` (las prendas de una tienda: libre, vendido en 30
+      # días y por semana, días sin venderse, lo que llegó, origen y rebaja) y `fn_analisis_por_llegar` (compras y traslados en
+      # camino). Vigila las puertas (quien analiza lee las tres tiendas; sin Análisis, nada), que lo vendido cuente igual que el
+      # motor del piso (cambios y devoluciones aprobadas) y que una sede de 200 prendas responda rápido. ROLLBACK siempre.
+      - name: pruebas:analisis-lecturas
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:analisis-lecturas
+
       # Plan de campaña (ADR-0349): el módulo nace en Compras sin rol; solo quien lo tiene lee y guarda (42501 si no; nadie lee las
       # tablas directo); `guardar_plan_compra_linea` rechaza escenarios desordenados, costo ≥ precio, recupero fuera de 0-100 y una
       # curva ajena o que no suma 100, y guardar dos veces deja una línea firmada; la hoja trae el stock libre de la red, la curva
