@@ -69,8 +69,11 @@ const BOTON_TALLA = {
 type MarcaTalla = "cumple" | "principal" | "tenue" | null;
 
 const TONO_PUNTO = { ambar: "bg-ambar", pizarra: "bg-pizarra", tinta: "bg-tinta" } as const;
+/** La insignia de la talla (maqueta): un círculo de papel con el símbolo del filtro, del tono del filtro. Se entiende sin depender del color. */
+const TONO_INSIGNIA = { ambar: "text-ambar", pizarra: "text-pizarra", tinta: "text-tinta" } as const;
+type SimboloFiltro = NonNullable<MarcaDelFiltro["simbolo"]>;
 
-function TallaBoton({ f, separa, onAbrir, marca = null, tono = "ambar", etiquetaFiltro }: { f: FilaExistencias; separa: boolean; onAbrir: () => void; marca?: MarcaTalla; tono?: keyof typeof TONO_PUNTO; etiquetaFiltro?: string }) {
+function TallaBoton({ f, separa, onAbrir, marca = null, tono = "ambar", etiquetaFiltro, simbolo: Simbolo }: { f: FilaExistencias; separa: boolean; onAbrir: () => void; marca?: MarcaTalla; tono?: keyof typeof TONO_PUNTO; etiquetaFiltro?: string; simbolo?: SimboloFiltro }) {
   const estado = estadoTalla(f);
   const nombre = f.talla ?? "Única";
   const colgadas = separa ? (f.pisoDisponible ?? 0) : f.disponible;
@@ -88,7 +91,14 @@ function TallaBoton({ f, separa, onAbrir, marca = null, tono = "ambar", etiqueta
         marca === "tenue" ? "opacity-40 hover:opacity-100" : marca === "principal" ? "shadow-[0_0_0_2px_var(--color-tinta)]" : ""
       }`}
     >
-      {(marca === "cumple" || marca === "principal") && <i aria-hidden className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-papel ${TONO_PUNTO[tono]}`} />}
+      {(marca === "cumple" || marca === "principal") &&
+        (Simbolo ? (
+          <span aria-hidden className={`absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.5px_currentColor] ${TONO_INSIGNIA[tono]}`}>
+            <Simbolo aria-hidden className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+        ) : (
+          <i aria-hidden className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-papel ${TONO_PUNTO[tono]}`} />
+        ))}
       <b className="text-[15px] font-semibold">{nombre}</b>
       <small className={`mt-1 text-[10.5px] tabular-nums ${estado === "por_colgar" ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
         {estado === "sin_stock" ? "—" : separa ? `${colgadas} piso` : colgadas}
@@ -262,7 +272,7 @@ export function ExistenciasTarjetas({
             <ul aria-label={`Tallas de ${etiqueta}`} className="flex flex-wrap gap-1.5">
               {tallasVista.map((f) => (
                 <li key={f.varianteId}>
-                  <TallaBoton f={f} separa={separa} onAbrir={() => onAbrirTalla(p, f)} marca={marcaDe(f)} tono={marcaDelFiltro?.tono} etiquetaFiltro={marcaDelFiltro?.etiqueta} />
+                  <TallaBoton f={f} separa={separa} onAbrir={() => onAbrirTalla(p, f)} marca={marcaDe(f)} tono={marcaDelFiltro?.tono} etiquetaFiltro={marcaDelFiltro?.etiqueta} simbolo={marcaDelFiltro?.simbolo} />
                 </li>
               ))}
             </ul>

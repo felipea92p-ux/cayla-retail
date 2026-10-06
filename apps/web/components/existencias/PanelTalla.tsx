@@ -40,6 +40,8 @@ export type MarcaDelFiltro = {
   tono: "ambar" | "pizarra" | "tinta";
   /** «Por colgar»: la acción es colgar (no «Ver»). */
   esColgar: boolean;
+  /** El símbolo del filtro (el mismo de su botón rápido): la talla y el color que cumplen lo llevan en una insignia, no solo un punto. */
+  simbolo?: ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
 };
 
 const ICONO: Record<ClaveAccionTalla, Icono> = {
@@ -322,6 +324,14 @@ export function PanelTalla({
   return (
     <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
+        {/* El velo de la maqueta: el fondo se atenúa para que el panel se lea como lo único activo. Solo visual (`pointer-events-none`):
+            las tarjetas siguen vivas y tocar otra talla le cambia la talla al panel. En el celular, la hoja sube con velo más oscuro y
+            un desenfoque leve, como el sistema de modales (ADR-0136). Cierra con el mismo tiempo que el panel. */}
+        <div
+          aria-hidden
+          data-velo-panel
+          className={`pointer-events-none fixed inset-0 z-40 bg-tinta/[0.12] max-sm:bg-tinta/25 max-sm:backdrop-blur-[3px] motion-reduce:animate-none ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+        />
         <Dialog.Content
           ref={raiz}
           tabIndex={-1}
