@@ -318,8 +318,9 @@ barra»; preguntado cuál, Felipe eligió **la nueva** (buscador a lo ancho, la 
   bajo el número si aquí no queda ninguna, la insignia del filtro en la esquina (como en las tarjetas) y un punto en el círculo del color
   que tiene algo. Bajo las tallas, UNA línea: «Faltan en el piso: 4 tallas · también en Negro».
 - **Con el piso en pausa** (TRU, sin cuadrar), lo que el sistema cree sin colgar NO se pinta de ámbar ni pone punto en el color, igual que
-  las tarjetas (ADR-0328, decisión 5): la línea lo nombra («Sin colgar, según el sistema: 4 tallas · el piso no está cuadrado: mira si ya
-  cuelgan») y «¿Colgar?» explica la pausa. No se pudo ver con datos locales (la base local no tiene el motor del piso).
+  las tarjetas (ADR-0328, decisión 5): la línea lo nombra («Sin colgar, según el sistema: 1 talla») y solo «¿Colgar?» explica la pausa
+  («El piso de esta sede no está cuadrado: mira si ya cuelga antes de colgar más», sin repetir los números de «¿Hay?»). Visto en TRU ya
+  publicado (Adelle Wide Leg 32): la primera versión decía la pausa dos veces, en la línea y en «¿Colgar?», y se dejó en una.
 - **Se quitan del cuerpo** «En este modelo» (las tallas que faltan como botones), «Casi no hay aquí» (una fila por talla) y la lista de
   tallas del filtro: las tres repetían las tallas de arriba. Pedir una agotada sigue a dos toques (tocarla y «Pedir» en «¿Pedir?»). Se
   borran `CasiNoHay.tsx` y `casiNoHay` (ya nadie los usa); «Colgar varias» también deja su lista de «casi no hay».

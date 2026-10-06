@@ -187,7 +187,8 @@ export function queTocaConLaTalla(
       titulo: PREGUNTA_QUE_TOCA.colgar,
       respuesta: "En pausa",
       tono: "pizarra",
-      detalle: `El sistema dice ${piso} en el piso y ${alm} en almacén, pero el piso de esta sede no está cuadrado: mira si ya cuelga antes de colgar más`,
+      // Sin repetir piso y almacén: «¿Hay?», justo arriba, ya los dice (2026-10-06, visto en TRU).
+      detalle: "El piso de esta sede no está cuadrado: mira si ya cuelga antes de colgar más",
     });
   } else if (accion === "mantener") {
     salida.push({

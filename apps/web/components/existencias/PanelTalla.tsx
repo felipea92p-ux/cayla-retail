@@ -225,7 +225,8 @@ export function PanelTalla({
   // bajo los botones dice cuántas faltan en este color y en qué otros, sin volver a nombrarlas.
   const falta = separa ? loQueFaltaEnElPiso(colores) : null;
   // Con el piso en pausa (sin cuadrar), lo que el sistema cree sin colgar NO se pinta de «por colgar», igual que en las tarjetas
-  // (ADR-0328, decisión 5): podría estar ya colgado. La línea lo nombra («Sin colgar, según el sistema») y «¿Colgar?» explica la pausa.
+  // (ADR-0328, decisión 5): podría estar ya colgado. La línea lo nombra («Sin colgar, según el sistema») y solo «¿Colgar?» explica la
+  // pausa: decirlo también en la línea lo repetía dos veces en la misma pantalla (visto en TRU, 2026-10-06).
   const faltanAPintar = falta && !falta.enPausa ? falta.ids : SIN_FALTA;
   const faltaEnPiso = (t: FilaExistencias) => faltanAPintar.has(t.varianteId) || estadoTalla(t) === "por_colgar";
   const lineaFalta = lineaDeLoQueFalta(colores, prenda.clave, falta);
@@ -512,7 +513,6 @@ export function PanelTalla({
                       <p className="flex flex-wrap items-center gap-x-1.5 text-[12.5px] text-taupe">
                         {!falta?.enPausa && <span aria-hidden className="inline-block h-3 w-3.5 shrink-0 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />}
                         {lineaFalta}
-                        {falta?.enPausa && <span>· el piso no está cuadrado: mira si ya cuelgan</span>}
                       </p>
                     )}
                   </>
