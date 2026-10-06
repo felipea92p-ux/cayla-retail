@@ -33,6 +33,20 @@ export async function getDetalleConteo(id: string): Promise<DetalleConteo | null
 }
 
 /**
+ * Cuántas variantes de un conteo se completaron con «Completar todo» de una tarjeta (`conteo_items.completada_con_atajo`; ADR-0328, opción C
+ * de Felipe: cuentan para la exactitud y el arranque, pero Revisar y Confirmar lo dicen). Es un dato SECUNDARIO: quien lo pide lo envuelve en
+ * `opcional()`, y si falla —por ejemplo, la web antes que el SQL, cuando la columna aún no existe— no se dice nada y el conteo sigue entero.
+ * Solo cuenta (`head`): no trae filas. Lanza si la base responde con error: «cero» y «no pude leer» no son lo mismo.
+ */
+export async function getCompletadasConAtajo(conteoId: string): Promise<number> {
+  if (!ES_UUID.test(conteoId)) return 0;
+  const supabase = await createClient();
+  const { count, error } = await supabase.from("conteo_items").select("variante_id", { count: "exact", head: true }).eq("conteo_id", conteoId).eq("completada_con_atajo", true);
+  if (error) throw new Error(`No se pudo leer lo completado con el atajo: ${error.message}`);
+  return count ?? 0;
+}
+
+/**
  * Los conteos de una sede con su resultado ya sumado — el abierto (si hay) primero, después los demás del más reciente
  * al más antiguo. `fn_conteos_resumen` hace la suma en Postgres: traer las líneas de cada conteo solo para mostrar un
  * total sería cargar miles de filas por pantalla.
