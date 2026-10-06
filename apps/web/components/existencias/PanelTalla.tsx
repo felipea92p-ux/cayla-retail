@@ -224,7 +224,10 @@ export function PanelTalla({
   // abajo (2026-10-06, noche: «es muy repetitivo poner de nuevo la talla»): cada botón de talla lo dice con su fondo ámbar, y UNA línea
   // bajo los botones dice cuántas faltan en este color y en qué otros, sin volver a nombrarlas.
   const falta = separa ? loQueFaltaEnElPiso(colores) : null;
-  const faltaEnPiso = (t: FilaExistencias) => !!falta?.ids.has(t.varianteId) || estadoTalla(t) === "por_colgar";
+  // Con el piso en pausa (sin cuadrar), lo que el sistema cree sin colgar NO se pinta de «por colgar», igual que en las tarjetas
+  // (ADR-0328, decisión 5): podría estar ya colgado. La línea lo nombra («Sin colgar, según el sistema») y «¿Colgar?» explica la pausa.
+  const faltanAPintar = falta && !falta.enPausa ? falta.ids : SIN_FALTA;
+  const faltaEnPiso = (t: FilaExistencias) => faltanAPintar.has(t.varianteId) || estadoTalla(t) === "por_colgar";
   const lineaFalta = lineaDeLoQueFalta(colores, prenda.clave, falta);
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
   // Cuánto tiene cada otra sede de esta talla: va bajo «¿Pedir?» (o bajo «¿Hay?» donde no se separa piso y almacén y no hay «¿Pedir?»).
@@ -450,7 +453,7 @@ export function PanelTalla({
                       {colores.map((c) => {
                         // El punto del color, como en las tarjetas: con un filtro, si alguna talla lo cumple; sin filtro, si le falta algo en
                         // el piso o si otra sede tiene lo que aquí se agotó. Así los otros colores no se vuelven a listar más abajo.
-                        const marca = marcaDeColor(c.tallas, { faltan: falta?.ids ?? SIN_FALTA, coincide: marcaDelFiltro?.coincide ?? null, separa });
+                        const marca = marcaDeColor(c.tallas, { faltan: faltanAPintar, coincide: marcaDelFiltro?.coincide ?? null, separa });
                         const punto = marca === "filtro" ? TONO_PUNTO[marcaDelFiltro?.tono ?? "tinta"] : marca === "falta" ? "bg-ambar" : marca === "afuera" ? "bg-pizarra" : null;
                         const dice = marca === "filtro" ? marcaDelFiltro?.etiqueta : marca === "falta" ? (falta?.enPausa ? "tallas sin colgar, según el sistema" : "faltan tallas en el piso") : marca === "afuera" ? "una agotada aquí la tiene otra sede" : null;
                         return (
@@ -507,8 +510,9 @@ export function PanelTalla({
                     {/* Lo que falta en el piso, en UNA línea y sin volver a nombrar las tallas: el fondo ámbar de arriba ya dice cuáles. */}
                     {lineaFalta && (
                       <p className="flex flex-wrap items-center gap-x-1.5 text-[12.5px] text-taupe">
-                        <span aria-hidden className="inline-block h-3 w-3.5 shrink-0 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />
+                        {!falta?.enPausa && <span aria-hidden className="inline-block h-3 w-3.5 shrink-0 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />}
                         {lineaFalta}
+                        {falta?.enPausa && <span>· el piso no está cuadrado: mira si ya cuelgan</span>}
                       </p>
                     )}
                   </>

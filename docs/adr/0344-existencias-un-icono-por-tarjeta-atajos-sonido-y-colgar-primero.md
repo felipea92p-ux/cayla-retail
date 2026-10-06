@@ -317,6 +317,9 @@ barra»; preguntado cuál, Felipe eligió **la nueva** (buscador a lo ancho, la 
   si falta en el piso (lo que antes eran los botones de «Faltan en el piso», también con el piso en pausa), «otra sede» o «en camino»
   bajo el número si aquí no queda ninguna, la insignia del filtro en la esquina (como en las tarjetas) y un punto en el círculo del color
   que tiene algo. Bajo las tallas, UNA línea: «Faltan en el piso: 4 tallas · también en Negro».
+- **Con el piso en pausa** (TRU, sin cuadrar), lo que el sistema cree sin colgar NO se pinta de ámbar ni pone punto en el color, igual que
+  las tarjetas (ADR-0328, decisión 5): la línea lo nombra («Sin colgar, según el sistema: 4 tallas · el piso no está cuadrado: mira si ya
+  cuelgan») y «¿Colgar?» explica la pausa. No se pudo ver con datos locales (la base local no tiene el motor del piso).
 - **Se quitan del cuerpo** «En este modelo» (las tallas que faltan como botones), «Casi no hay aquí» (una fila por talla) y la lista de
   tallas del filtro: las tres repetían las tallas de arriba. Pedir una agotada sigue a dos toques (tocarla y «Pedir» en «¿Pedir?»). Se
   borran `CasiNoHay.tsx` y `casiNoHay` (ya nadie los usa); «Colgar varias» también deja su lista de «casi no hay».
