@@ -11,6 +11,7 @@ import {
   duracionCorta,
   esCiego,
   hechasHoy,
+  llevaGuia,
   nombreDelPase,
   pasesPorPestana,
   paseInicial,
@@ -159,6 +160,24 @@ describe("conteo a ciegas (ADR-0239 D-130)", () => {
   it("tampoco mientras se cuenta", () => {
     const t = pase({ unidadesEnviadas: 17, lineasContadas: 1 });
     expect(JSON.stringify(camposDelPase(t, ctx, "Taller"))).not.toContain("17");
+  });
+});
+
+describe("el QR de la guía en el frente (ADR-0242 D-3)", () => {
+  const sale = (p: Partial<DatosPase> = {}) => pase({ ubicacionOrigenId: TRU, ubicacionOrigenNombre: "Tienda TRU", ubicacionDestinoId: LIM, ubicacionDestinoNombre: "Tienda LIM", ...p });
+  it("quien envía lo ve mientras la caja viaja, también si la otra sede ya empezó a contar", () => {
+    expect(llevaGuia(sale(), ctx)).toBe(true);
+    expect(llevaGuia(sale({ lineasContadas: 2 }), ctx)).toBe(true);
+    expect(vistaDelPase(sale(), ctx, { origen: "TRU", destino: "LIM" }).conGuia).toBe(true);
+  });
+  it("quien recibe nunca: su pase es para contar, no para pegar papeles", () => {
+    expect(llevaGuia(pase(), ctx)).toBe(false);
+  });
+  it("una sede que solo mira (ni envía ni recibe), tampoco", () => {
+    expect(llevaGuia(sale({ ubicacionOrigenId: TALLER }), ctx)).toBe(false);
+  });
+  it.each(["anulada", "recibido", "recibido_con_diferencia", "cerrado"])("terminada (%s): la caja ya no viaja", (estado) => {
+    expect(llevaGuia(sale({ estado }), ctx)).toBe(false);
   });
 });
 
