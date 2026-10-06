@@ -271,28 +271,6 @@ export function lugarTexto(destino: DestinoRecepcion, sede: string): string {
   return `al stock de ${sede}`;
 }
 
-/** Lo que se lee en el modal antes de confirmar. */
-export function resumenAntesDeConfirmar(
-  lectura: Pick<LecturaConteo, "coinciden" | "unidadesQueCoinciden" | "conDiferencia" | "lineas">,
-  { destino, sede }: { destino: DestinoRecepcion; sede: string },
-): { entran: string; esperan: string | null; detalleEsperan: string[] } {
-  const n = lectura.unidadesQueCoinciden;
-  const entran =
-    n === 0
-      ? "Ninguna prenda coincide con lo enviado: nada entra al stock todavía."
-      : `${n === 1 ? "Entra" : "Entran"} ${prendas(n)} que ${n === 1 ? "coincide" : "coinciden"} ${lugarTexto(destino, sede)}.`;
-  const m = lectura.conDiferencia.length;
-  if (m === 0) return { entran, esperan: null, detalleEsperan: [] };
-  const resto = n === 0 ? "" : destino === "piso_venta" ? "; las demás ya se pueden vender" : "; las demás ya entran al stock";
-  const esperan = `${m === 1 ? "1 prenda con diferencia espera" : `${m} prendas con diferencia esperan`} a un líder${resto}.`;
-  const detalleEsperan = lectura.conDiferencia.map((l) => {
-    const leida = lectura.lineas.get(l.varianteId);
-    const contado = leida?.valor ?? 0;
-    return l.cantidadEnviada === null ? `${nombrePrenda(l)}: no venía en el envío, contaste ${contado}` : `${nombrePrenda(l)}: enviaron ${l.cantidadEnviada}, contaste ${contado}`;
-  });
-  return { entran, esperan, detalleEsperan };
-}
-
 /** El aviso de éxito después de confirmar: lo que pasó de verdad (`unidades_ingresadas`) y dónde quedó. */
 export function avisoRecepcion({
   numero,
