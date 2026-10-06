@@ -245,7 +245,9 @@ textarea.texto{min-height:76px;resize:vertical}
 /* Con un filtro puesto: lo que cumple lleva el color del filtro + su símbolo; lo demás, tenue (sigue tocable). */
 .talla{position:relative}
 .talla.tenue{opacity:.38}
-.talla.principal{box-shadow:0 0 0 2px var(--tinta)}
+/* La principal: UN solo borde sólido y oscuro (2026-10-06); en una talla sin nada no se suma al punteado. */
+.talla.principal{border-style:solid;border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.talla.sin.principal{background:var(--crema)}
 .insignia{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--papel);display:grid;place-items:center;box-shadow:0 0 0 1.5px currentColor}
 .insignia svg{display:block}
 .muestra .punto-m{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;border:2px solid var(--papel)}

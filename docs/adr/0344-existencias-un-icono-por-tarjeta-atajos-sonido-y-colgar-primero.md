@@ -256,3 +256,7 @@ que ya cuelga (ADR-0328, decisión 5). Con el piso en pausa la respuesta es «En
 SE ROMPE SI: el motor deja de responder en producción: «Colgar» vuelve a los números y puede pedir colgar una talla de los extremos sin
 ventas, que el motor habría mandado mantener. Es lo menos malo: decir «Disponible» en verde con 0 en el piso era peor.
 
+**La talla principal, con un solo borde** (mismo día): con un filtro puesto, la talla que más se vende llevaba un aro oscuro por fuera de su
+propio borde; en una talla sin nada (borde punteado) quedaban dos bordes. Ahora el aro reemplaza al borde: uno solo, sólido y oscuro, y el
+estado lo dicen el fondo, la cifra («—») y la insignia del filtro.
+

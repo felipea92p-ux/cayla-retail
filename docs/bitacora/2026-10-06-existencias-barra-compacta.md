@@ -12,4 +12,5 @@ Felipe se lleva: ADR-0344, «Segunda vuelta del mismo día»: medidas (tarjeta d
 Qué hice: en «Esta talla», la frase verde «Disponible: N» se reemplaza por tres respuestas —Hay, Colgar en el piso, Pedir a otra sede— con su sí o no, su porqué y su botón cuando se resuelve ahí; «Faltan en el piso» aparece aunque el motor no decida. La maqueta tiene el mismo bloque.
 Por qué así: con el motor sin responder o el piso en pausa, el panel callaba lo importante; una talla con 0 en el piso se veía «disponible» en verde.
 Felipe se lleva: ADR-0344, «Tercera vuelta»: por qué manda el motor cuando decide y por qué en pausa no se manda a colgar.
+Y la talla que más se vende, con un filtro puesto, lleva un solo borde sólido: sobre una talla sin stock se veía un borde doble (punteado y sólido).
 
