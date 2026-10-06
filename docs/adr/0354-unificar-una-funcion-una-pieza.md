@@ -84,8 +84,12 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
 - **2026-10-06 · `accion.volver` → `<Volver>`** (`components/ui/Volver.tsx`): el botón secundario con la flecha y el destino, una sola cara en
   todo el ERP; se va la forma `enlace` de 11 px (una decisión del 2026-09-26 sin ADR, que Felipe cambió). Migrado el mismo día, deuda 0.
   Registro: `docs/unificar/accion.volver.md`.
-- **2026-10-06 · `pestanas`** («Tres piezas, lo elegido en tinta») y **`cifra`** («La de Compras, una marca por función»): elegidas por Felipe el
-  mismo día; se registran al terminar su migración.
+- **2026-10-06 · `pestanas` → tres piezas, una por pregunta:** `<Pestanas>` (cambia de sección: subrayado tinta que viaja, la piel de
+  `.fin-pestana`), `pildora-cayla` (filtra o elige un período) y el segmento con contorno (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`:
+  muestra lo mismo de otra forma). Lo elegido siempre en tinta. Migrado el mismo día, por aprobar; deuda 0. Registro: `docs/unificar/pestanas.md`.
+- **2026-10-06 · `cifra` → `<TarjetaCifra>`:** la de Compras, con una marca por lo que hace (informa, lleva con flecha, filtra con
+  `aria-pressed`, sin dato con su motivo). Se borran `TarjetaIndicador` y `TarjetaSenal`. Migrado el mismo día, por aprobar; deuda 0. Registro:
+  `docs/unificar/cifra.md`.
 
 ## Cómo se verifica
 

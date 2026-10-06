@@ -148,7 +148,7 @@ const BASE = [
     grupo: "Navegación",
     nombre: "Pestañas y segmentos",
     funcion: "Elegir una vista entre varias de la misma pantalla, con una marcada como activa.",
-    pieza: "Hoy hay varias: `Pestanas`, `TabsSubrayado`, `SegmentoDeslizante`, `SegmentoEnlaces` (components/ui/)",
+    pieza: "Tres, una por pregunta (ADR-0354): `<Pestanas>` (vista), `pildora-cayla` (filtro y período), `SegmentoEnlaces` / `SegmentoDeslizante forma=\"modo\"` (modo y ordenar)",
     gobierna: [],
   },
   {
@@ -212,7 +212,7 @@ const BASE = [
     grupo: "Datos",
     nombre: "Tarjetas de cifra",
     funcion: "Un número grande con su nombre arriba: «Vendido hoy S/ 1 240».",
-    pieza: "`<TarjetaCifra>` (components/ui/TarjetaCifra.tsx); también existen `TarjetaKpiVidrio`, `TarjetaIndicador`, `TarjetaSenal`",
+    pieza: "`<TarjetaCifra>` (components/ui/TarjetaCifra.tsx), con una marca por lo que hace (ADR-0354); `TarjetaKpiVidrio` solo en Facturación (ADR-0124)",
     gobierna: ["ADR-0169"],
   },
   {
@@ -337,6 +337,38 @@ export const DECISIONES = {
     excepciones: [
       { archivo: "app/(app)/global/elige-sede/page.tsx", motivo: "Tarjeta de barrera (elegir sede): su salida es la única acción de la tarjeta y va con los botones, no es la vuelta de una pantalla interna (docs/unificar/accion.volver.md)" },
     ],
+  },
+  "cifra": {
+    "fecha": "2026-10-06",
+    "adr": "docs/adr/0354-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/cifra.md",
+    "elegida": "propuesta · la de Compras, una marca por función",
+    "pieza": "components/ui/TarjetaCifra.tsx",
+    "firmas": [
+      "<(TarjetaCifraAnalisis|TarjetaIndicador|TarjetaSenal|TarjetaAvance)\\b",
+      "^\\s*(export\\s+)?function\\s+(TarjetaCifraAnalisis|TarjetaIndicador|TarjetaSenal|TarjetaAvance)\\b|^\\s*(export\\s+)?function\\s+(Tarjeta|Cifra)\\(\\{\\s*(etiqueta|rotulo)"
+    ],
+    "deuda": []
+  },
+  "pestanas": {
+    "fecha": "2026-10-06",
+    "adr": "docs/adr/0354-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/pestanas.md",
+    "elegida": "propuesta · tres piezas, lo elegido en tinta",
+    "pieza": "components/ui/Pestanas.tsx",
+    "tambien": [
+      "components/ui/SegmentoEnlaces.tsx",
+      "components/ui/SegmentoDeslizante.tsx",
+      "components/ui/IndicadorDeslizante.tsx",
+      "components/ui/BotonFiltro.tsx",
+      "app/estilos/pestanas-y-segmentos.css"
+    ],
+    "firmas": [
+      "\\?\\s*[\"'`](?=[^\"'`]*\\bbg-(?:papel|hueso)(?![\\w\\[\\]./-]))(?=[^\"'`]*\\btext-tinta(?![\\w\\[\\]./-]))(?=[^\"'`]*(?:\\bshadow-|\\bring-1\\b|\\bfont-(?:medium|semibold)\\b))[^\"'`]*[\"'`]\\s*:\\s*[\"'`][^\"'`]*\\btext-(?:taupe|tinta/[4-8]\\d)\\b|aria-pressed:bg-hueso aria-pressed:(?:font-semibold )?text-tinta\\b",
+      "role=\"tab\"(?=[\\s>/]|$)",
+      "-mb-px[^\"'`]*\\bborder-b-2\\b|\\bborder-b-2\\b[^\"'`]*-mb-px|after:h-0\\.5 after:bg-(?:tinta|rojo)\\b"
+    ],
+    "deuda": []
   },
 };
 

@@ -493,6 +493,8 @@ dice si se unifica. Detalle: `docs/adr/0354-unificar-una-funcion-una-pieza.md` y
 | Familia | La pieza | Decidido |
 |---|---|---|
 | Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): botón secundario con la flecha y el destino; nunca un «←» a mano | 2026-10-06 |
+| Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` si cambia de sección; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` si muestra lo mismo de otra forma. Nunca un `role="tab"` ni un subrayado a mano | 2026-10-06 |
+| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`): la pieza pone la marca (flecha si lleva, «Toca para filtrar» si filtra, `valor={null}` + motivo si no hay dato); nunca una tarjeta de número a mano | 2026-10-06 |
 
 ## Vocabulario obligatorio
 

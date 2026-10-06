@@ -13,13 +13,14 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Familia | La pieza | Decidido | Deuda (archivos por migrar) | Registro |
 |---|---|---|---:|---|
 | Botón «Volver» (`accion.volver`) | `<Volver>` (`components/ui/Volver.tsx`): botón secundario con la flecha y el destino | 2026-10-06 | 0 (migrado el mismo día) | [accion.volver.md](accion.volver.md) |
+| Pestañas y segmentos (`pestanas`) | `<Pestanas>` si cambia de sección · `pildora-cayla` si filtra o elige un período · `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` si cambia el modo u orden | 2026-10-06 | 0 (migrado el mismo día, por aprobar) | [pestanas.md](pestanas.md) |
+| Tarjetas de cifra (`cifra`) | `<TarjetaCifra>`: la de Compras, con una marca por lo que hace (informa, lleva, filtra, sin dato) | 2026-10-06 | 0 (migrado el mismo día, por aprobar) | [cifra.md](cifra.md) |
 
 ## Propuestas esperando decisión
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| Pestañas y segmentos (`pestanas`) | [pestanas.html](propuestas/pestanas.html) | 2026-10-06 | Elegida por Felipe el 2026-10-06 («Tres piezas, lo elegido en tinta»); migración en curso, se registra al terminar |
-| Tarjetas de cifra (`cifra`) | [cifra.html](propuestas/cifra.html) | 2026-10-06 | Elegida por Felipe el 2026-10-06 («La de Compras, una marca por función»); migración en curso, se registra al terminar |
+| — | ninguna por ahora | — | — |
 
 ## Censos
 
