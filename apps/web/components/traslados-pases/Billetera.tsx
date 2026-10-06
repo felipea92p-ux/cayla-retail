@@ -9,7 +9,7 @@ import { coincideBusqueda } from "@/lib/traslados-reglas";
 import { PESTANAS, paseInicial, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
 import type { Billetera as DatosBilletera, PaseDeBilletera } from "@/lib/traslados-billetera";
 
-// La billetera de Traslados (ADR-0354): a la izquierda, los pases apilados por pestaña (Te llegan · Envías · Terminadas) con lo
+// La billetera de Traslados (ADR-0355): a la izquierda, los pases apilados por pestaña (Te llegan · Envías · Terminadas) con lo
 // que te toca arriba, el anillo del día y el buscador; a la derecha, el pase grande (la página). Elegir un pase es navegar a
 // `/inventario/traslados/<id>`: los enlaces de Movimientos y de WhatsApp abren su pase, y «atrás» funciona. En celular se ve una
 // cosa a la vez: la billetera, o el pase abierto.

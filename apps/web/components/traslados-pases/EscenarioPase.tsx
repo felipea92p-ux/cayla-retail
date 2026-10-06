@@ -34,7 +34,7 @@ async function prendasEnElAlmacen(ubicacionId: string): Promise<ReadonlySet<stri
   }
 }
 
-// El pase grande de un traslado (ADR-0354): lo mismo que leía la página de detalle de antes (el traslado, el catálogo para
+// El pase grande de un traslado (ADR-0355): lo mismo que leía la página de detalle de antes (el traslado, el catálogo para
 // escanear, la firma de quien recibe, dónde se puede dejar lo recibido y «Lo siguiente», que va en el frente del pase), dibujado como pase.
 export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { href: string; a: string } | null }) {
   const persona = await requirePersonaActualV2();

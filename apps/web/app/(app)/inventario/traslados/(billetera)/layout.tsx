@@ -8,7 +8,7 @@ import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Billetera } from "@/components/traslados-pases/Billetera";
 
-// Traslados como billetera de pases (ADR-0354, la opción D que eligió Felipe el 2026-10-06). La billetera vive en el layout:
+// Traslados como billetera de pases (ADR-0355, la opción D que eligió Felipe el 2026-10-06). La billetera vive en el layout:
 // elegir un pase navega a `/inventario/traslados/<id>` (la página) y la billetera se queda. Esta capa solo TRAE datos con un
 // solo «ahora»; qué le toca a quién, el orden, las pestañas y el anillo viven en `lib/traslados-pases-reglas.ts` y, para los
 // pedidos entre sedes y «Para enviar» (que también son pases desde la actividad 4), en `lib/traslados-pedidos-pases-reglas.ts`.

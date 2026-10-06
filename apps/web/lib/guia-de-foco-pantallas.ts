@@ -112,12 +112,12 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
   "/inventario/resumen": PENDIENTE,
-  // ADR-0354: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
+  // ADR-0355: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
   // que «/inventario/traslados/(billetera)/[id]».
   "/inventario/traslados/(billetera)": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx", "components/traslados-pases/PasePedido.tsx"] },
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
-  // ADR-0354: el pase y su reverso. «Falta» = lo que ya bloquea la base: al contar, cada prenda enviada sin número (lo mismo que
+  // ADR-0355: el pase y su reverso. «Falta» = lo que ya bloquea la base: al contar, cada prenda enviada sin número (lo mismo que
   // apaga «Terminé de contar»; la siguiente se enciende y el pie las nombra); quién recibe (ADR-0328); al cerrar con diferencia, la
   // nota; al anular, el motivo y quién. Piso o almacén no es «falta»: viene marcado (D-131).
   "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx", "components/traslados-pases/PasePedido.tsx"] },

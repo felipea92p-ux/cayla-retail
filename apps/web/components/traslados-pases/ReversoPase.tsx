@@ -51,7 +51,7 @@ import { preguntaFirma } from "@/lib/firma-heredada";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
-// El reverso del pase (ADR-0354, maqueta D): lo que se hace con la caja al darle vuelta.
+// El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
 //    venía junto a lo que contaste, marca lo que no cuadra y nombra la prenda; eliges piso o almacén y confirmas: cae el sello.
 //  · Faltó algo: lo que no cuadra, y al líder de la sede destino, la nota para cerrar con la diferencia.

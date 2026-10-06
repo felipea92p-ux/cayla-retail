@@ -1,5 +1,5 @@
 /* ====================================================================
-   Traslados · la billetera de pases (ADR-0354; maqueta: docs/maquetas/traslados-visual-2026-10/d-pases.html)
+   Traslados · la billetera de pases (ADR-0355; maqueta: docs/maquetas/traslados-visual-2026-10/d-pases.html)
 
    Cada traslado es un pase de abordar: de qué sede a cuál en grande, tres datos y un botón. El pase GIRA para contar (reverso)
    y, al terminar, le cae un sello de goma. Solo tokens de globals.css (el modo oscuro sale solo, ADR-0336). Movimiento

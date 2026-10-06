@@ -5,7 +5,7 @@ import { claseDelId, vistaDelPedido, vistaParaEnviar } from "@/lib/traslados-ped
 import { EscenarioPase } from "@/components/traslados-pases/EscenarioPase";
 import { PasePedido, PaseParaEnviar } from "@/components/traslados-pases/PasePedido";
 
-// Qué pase abre una dirección de Traslados (ADR-0354): una caja (`<uuid>`), un pedido entre sedes (`pedido-<uuid>`) o lo que hay
+// Qué pase abre una dirección de Traslados (ADR-0355): una caja (`<uuid>`), un pedido entre sedes (`pedido-<uuid>`) o lo que hay
 // para enviar a una sede (`enviar-<uuid de la sede>`). Un pedido que ya salió deja de ser pedido (es una caja en camino): su
 // dirección vuelve a la billetera en vez de un 404.
 export async function Escenario({ id, volverA }: { id: string; volverA?: { href: string; a: string } | null }) {

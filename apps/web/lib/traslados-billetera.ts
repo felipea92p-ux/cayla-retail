@@ -21,7 +21,7 @@ import {
 } from "@/lib/traslados-pases-reglas";
 import type { ContextoTraslados, TrasladoBuscable } from "@/lib/traslados-reglas";
 
-// La billetera de Traslados (ADR-0354): todo lo que la columna izquierda necesita, armado en el servidor con un solo «ahora».
+// La billetera de Traslados (ADR-0355): todo lo que la columna izquierda necesita, armado en el servidor con un solo «ahora».
 // `cache()`: el layout (la billetera) y la página (el pase grande) la piden en el mismo request y se lee una sola vez.
 
 /** Cuántas terminadas se muestran (las más recientes). La lista de antes usaba el mismo tope. */
@@ -159,7 +159,7 @@ export const getBilleteraDeLaSede = cache(async (ubicacionId: string, puedeCerra
   };
   const cajas = { llegan: enPestanas.llegan.map(aPase), envias: enPestanas.envias.map(aPase), terminadas: enPestanas.terminadas.map(aPase) };
 
-  // Los pedidos y «Para enviar» como pases (ADR-0354, actividad 4). Lo que te piden va primero en Envías (es lo que te toca,
+  // Los pedidos y «Para enviar» como pases (ADR-0355, actividad 4). Lo que te piden va primero en Envías (es lo que te toca,
   // lo que espera hace más arriba); lo que pediste, después de lo que te toca recibir.
   const deMiSede = (otra: { id: string; nombre: string }) => codigosParaPedido(codigo, ubicacionId, otra);
   const pedidosEn: Record<PestanaPase, PaseDeBilletera[]> = { llegan: [], envias: [], terminadas: [] };

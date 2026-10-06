@@ -663,7 +663,7 @@ ESCENARIOS.push(
   { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", nombre: "Movimientos · el filtro «Ajustes»", preparar: clicRol("button", /^Ajustes/i) },
   { id: "movimientos.calendario", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=gridcell]", nombre: "Movimientos · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
   { id: "traslados.pedir", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Traslados · «Pedir a otra sede»", preparar: clicRol("button", /Pedir a otra sede/i) },
-  // ADR-0354: la billetera de pases. Las pestañas, el reverso (el pase girado) y un pedido como pase.
+  // ADR-0355: la billetera de pases. Las pestañas, el reverso (el pase girado) y un pedido como pase.
   { id: "traslados.envias", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=tab][aria-selected=true]", nombre: "Traslados · la pestaña «Envías»", preparar: clicRol("tab", /^Envías/i) },
   { id: "traslados.terminadas", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=tab][aria-selected=true]", nombre: "Traslados · la pestaña «Terminadas» (sellos)", preparar: clicRol("tab", /^Terminadas/i) },
   {

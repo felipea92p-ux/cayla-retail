@@ -1,5 +1,5 @@
 // ===========================================================================
-// Traslados como PASES (ADR-0354, opción D de docs/maquetas/traslados-visual-2026-10/).
+// Traslados como PASES (ADR-0355, opción D de docs/maquetas/traslados-visual-2026-10/).
 //
 // Cada traslado se dibuja como un pase de abordar: de qué sede a cuál en grande (TRU → LIM; el Taller entero), los tres datos
 // que importan (salió · llega · prendas) y UN botón. Todo lo que el pase dice sale de aquí, puro y probado; la pantalla solo

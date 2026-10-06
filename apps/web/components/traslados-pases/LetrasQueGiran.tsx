@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-// Las letras del código de la sede giran una vez, como en un tablero de aeropuerto, y se quedan quietas (ADR-0354). El HTML del
+// Las letras del código de la sede giran una vez, como en un tablero de aeropuerto, y se quedan quietas (ADR-0355). El HTML del
 // servidor ya trae el texto final: el giro solo corre en el navegador, y con «reducir movimiento» no corre.
 const MAYUS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const MINUS = "abcdefghijklmnopqrstuvwxyz";

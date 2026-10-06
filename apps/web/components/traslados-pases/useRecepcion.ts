@@ -35,7 +35,7 @@ import { claveResponsableRecepcion } from "@/lib/responsable-conteo";
 
 export type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
-// La recepción de un traslado, sin dibujo (ADR-0354: la mueve el reverso del pase; las reglas son las de ADR-0239 y ADR-0328, sin
+// La recepción de un traslado, sin dibujo (ADR-0355: la mueve el reverso del pase; las reglas son las de ADR-0239 y ADR-0328, sin
 // cambios respecto del panel de antes):
 //  · D-130, se cuenta a ciegas: lo enviado aparece recién al terminar de contar.
 //  · Cada casilla se guarda sola (`registrar_recepcion_traslado`, agrupando los toques de ~600 ms, en fila y SIN el loader global:

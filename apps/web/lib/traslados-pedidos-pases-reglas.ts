@@ -1,5 +1,5 @@
 // ===========================================================================
-// Los pedidos entre sedes y «Para enviar» como PASES de la billetera de Traslados (ADR-0354, actividad 4).
+// Los pedidos entre sedes y «Para enviar» como PASES de la billetera de Traslados (ADR-0355, actividad 4).
 //
 // La maqueta D dibujó «LIM te pide una prenda» en Envías, con «No la tengo» y «Enviar». Aquí se le da forma de pase a TODO lo
 // que antes vivía en la tarjeta «Pedidos y envíos entre sedes», sin cambiar ninguna regla de pedidos (las acciones salen de

@@ -22,3 +22,13 @@ lo que lo confundió: el botón ya no promete abrir una caja que quizá no lleg�
 «Taller» entero, la lupa en vez de la balanza y lo atrasado primero.
 Por qué así: la primera ronda se cayó por «mucho texto que nadie lee»; esta vez la prueba dice dónde se pierde alguien real.
 Felipe se lleva: la F (el chat) fue la que se entendió más rápido; contar tocando prendas (E) fue lo más claro una vez adentro.
+
+## 2026-10-06 (Traslados: la D construida — billetera de pases, ADR-0355)
+Qué hice: Traslados es ahora la maqueta D en el ERP: una billetera de pases (Te llegan · Envías · Terminadas, anillo del día, buscador)
+y el pase grande que gira para contar a ciegas, comparar, confirmar al piso o al almacén, cerrar con nota o anular, con su sello al
+terminar; los pedidos entre sedes y «Para enviar» también son pases, y «Lo siguiente» es el botón de lo recién recibido.
+Por qué así: Felipe eligió la D «tal cual»; la lógica de recibir y de pedidos es la misma de antes (mismas RPC y reglas), solo cambió
+cómo se ve, sin migración; el anillo cuenta lo mismo que el número del menú y lo exige una prueba.
+Felipe se lleva: probarlo en local (5 + 3 traslados y 2 pedidos de prueba en la base) y, si le gusta, fusionar el PR; la guía
+impresa con QR queda para después (ADR-0242 D-3), y PR #808 («Colgar en el piso») toca textos de esta pantalla.
+

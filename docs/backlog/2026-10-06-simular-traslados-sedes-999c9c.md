@@ -13,7 +13,16 @@
       contar → terminé → confirmar, cerrar con diferencia, anular, responder un pedido, arrastrar la caja (E), girar el pase (D),
       la hoja de conteo dentro del chat (F). Prueba ciega con un agente sin contexto sobre las capturas: F 8/10, D 6/10, E 6/10
       (contar en la E, 8); sus confusiones se corrigieron (README, «Prueba ciega»). No se repitió la prueba después.
-- [ ] **Decide Felipe:** D, E, F o una mezcla; los códigos de tienda (TRU, LIM, AQP; el Taller entero); contar tocando prendas o con − / +; el
-      movimiento rico (actualización de ADR-0136). Con eso: ADR y construcción con `/construir`.
-- [ ] Al construir: conservar lo que la maqueta no dibuja (buscar al escanear, prenda que no venía, firma «Responsable», token
-      contra doble clic), declarar la guía de foco del cajón y pasar `/formidable`.
+- [x] **Decidió Felipe (2026-10-06): la D, «tal cual».** Códigos del nombre (TRU, LIM, AQP; el Taller entero), contar con − / + (y
+      pistola o cámara), movimiento rico como excepción a ADR-0136 (ADR-0355).
+- [x] Construida en cinco actividades (ADR-0355): billetera y pase; reverso para contar; revisar y anular; pedidos y «Para enviar» como
+      pases; «Lo siguiente» en el frente. Se conservó lo que la maqueta no dibujaba (buscar al escanear, prenda de más, firma, token
+      contra doble clic, guardado por casilla). Guía de foco `aplicada`; auditor del tema en 0; probado contra la base local.
+
+## Pendiente después de la D
+
+- [ ] **Guía impresa con QR** (ADR-0242 D-3): el pase de salida suma «Guía» y el QR cuando exista (tarea aparte).
+- [ ] **`/formidable` sobre el pase** (obligatoria): medir, prueba ciega y 3 propuestas que esperan el OK de Felipe.
+- [ ] **PR #808** («Colgar en el piso», ADR-0339): al fusionar, sus textos ganan sobre «Bajar estas al piso» de «Lo siguiente».
+- [ ] `scripts/flujo-de-negocio/estado.mjs restaurar` falla con una fila vieja de `clientas` que no cumple su restricción (tarea aparte):
+      la base local quedó con los traslados 292 a 294 y dos pedidos de prueba de esta obra.

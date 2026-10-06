@@ -15,7 +15,7 @@ import { MAX_MOTIVO_YA_NO, etiquetaParaEnviar, motivoYaNoValido, type PrendaPara
 
 // «Para enviar» en Traslados (ADR-0328 act. 17; Felipe: lo colgado se manda en DOS pasos). Lo que la sede subió al almacén
 // para mandarlo a otra queda, por sede de destino, hasta que sale en un traslado —la base lo descuenta sola, salga como salga—
-// o alguien dice «Ya no la envío» con su motivo. Desde ADR-0354 se ve como un pase de la billetera
+// o alguien dice «Ya no la envío» con su motivo. Desde ADR-0355 se ve como un pase de la billetera
 // (`components/traslados-pases/PasePedido.tsx`); aquí queda la ventana «Ya no la envío».
 
 type Ubicacion = { ubicacionId: string; etiqueta: string };

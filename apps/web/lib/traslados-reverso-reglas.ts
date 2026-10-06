@@ -1,5 +1,5 @@
 // ===========================================================================
-// El REVERSO del pase de un traslado (ADR-0354, opción D): lo que se hace con la caja al darle vuelta al pase.
+// El REVERSO del pase de un traslado (ADR-0355, opción D): lo que se hace con la caja al darle vuelta al pase.
 //
 // Qué modo toca según quién mira y en qué va la caja, qué dice su cabecera, qué sello le cae al confirmar y cómo se nombra
 // lo que no cuadró («Faltó 1 Falda Renata S beige»). Puro y probado: el reverso solo dibuja. Quién puede qué sigue en las

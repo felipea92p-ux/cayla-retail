@@ -33,7 +33,7 @@ import { avisoNoEstaCompleta, esperaParaEnviar, etiquetaParaEnviar, noEstaComple
 import { camposDelPedido } from "@/lib/traslados-pedidos-pases-reglas";
 import type { VistaPase } from "@/lib/traslados-pases-reglas";
 
-// Un pedido entre sedes como pase (ADR-0354, actividad 4; maqueta D: «LIM te pide una prenda»). Al frente, de quién a quién y
+// Un pedido entre sedes como pase (ADR-0355, actividad 4; maqueta D: «LIM te pide una prenda»). Al frente, de quién a quién y
 // los botones de siempre (`accionesDe`): «No la tengo» y «Enviar», «Subir al almacén», «Avisar al cliente», «¿Sigue en pie?». Al
 // reverso, lo que antes eran las ventanas «Enviar» y «No la tengo»: la lista, cuándo llega y quién lo hace. Al terminar, el sello
 // (ENVIADO, NO LA TENGO) y la siguiente caja que te toca. Las RPC son las mismas que usaba la tarjeta «Pedidos y envíos entre sedes».

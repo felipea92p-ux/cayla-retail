@@ -4,7 +4,7 @@ import { useRef, type CSSProperties, type ReactNode } from "react";
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import type { TonoPase } from "@/lib/traslados-pases-reglas";
 
-// El sello de un pase (ADR-0354): el ícono de lo que le toca a quien mira, en su color, con un movimiento que corre UNA vez
+// El sello de un pase (ADR-0355): el ícono de lo que le toca a quien mira, en su color, con un movimiento que corre UNA vez
 // cuando se ve (`data-go`, el mismo observador de Movimientos). La lupa reemplazó a la balanza: la prueba ciega no la entendió.
 
 export type GlifoPase = "llega" | "sale" | "contando" | "revisar" | "cerrado" | "dif" | "anulado" | "pedido" | "ciega" | "escanear";

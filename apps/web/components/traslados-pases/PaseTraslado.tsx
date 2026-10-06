@@ -9,7 +9,7 @@ import { RUTA_TRASLADOS, rutaDelPase, useVecinos } from "@/components/traslados-
 import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/traslados-pases-reglas";
 import type { LoSiguiente } from "@/lib/traslados-recepcion-reglas";
 
-// El escenario: el pase grande que GIRA (ADR-0354). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
+// El escenario: el pase grande que GIRA (ADR-0355). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
 // caja (contar, revisar, ver lo enviado). Al terminar, el pase vuelve al frente, le cae un sello y, un momento después, se abre
 // la siguiente caja que te toca. El reverso le habla al pase por `usePase()`. Quien lo dibuja le pone `key={id}`: otro pase
 // empieza siempre por el frente y sin sello puesto a mano.
@@ -173,7 +173,7 @@ export function PaseTraslado({
   );
 }
 
-// «Lo siguiente» en el frente del pase (ADR-0354, actividad 5; la regla es la de ADR-0242 D-6.1, `loSiguienteDeLaRecepcion`):
+// «Lo siguiente» en el frente del pase (ADR-0355, actividad 5; la regla es la de ADR-0242 D-6.1, `loSiguienteDeLaRecepcion`):
 // recién recibida la caja, el botón grande ya no es «Ver lo que llegó» sino lo que hay que hacer con las prendas —bajarlas al piso
 // o imprimir sus etiquetas—, con su frase encima. Ver lo que llegó queda al lado, y gira el pase. Si la caja todavía le pide algo a
 // quien mira (revisar lo que faltó), ese botón manda y «Lo siguiente» va al lado, como secundario.

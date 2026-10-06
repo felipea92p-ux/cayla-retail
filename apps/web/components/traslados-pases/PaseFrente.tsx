@@ -10,7 +10,7 @@ import type { VistaPase } from "@/lib/traslados-pases-reglas";
 /** El sello de goma que cae sobre el pase (RECIBIDA, CON NOTA, ANULADA…). `cae`: recién puesto, con su animación. */
 export type SelloPuesto = { texto: string; tono: VistaPase["tono"]; fecha: string; cae?: boolean };
 
-// El frente del pase (ADR-0354): de qué sede a cuál en grande, el camión, tres datos, quién envía y UN botón (`accion`).
+// El frente del pase (ADR-0355): de qué sede a cuál en grande, el camión, tres datos, quién envía y UN botón (`accion`).
 /** Bajo el código, el nombre entero de la sede; si el código ya ES el nombre (el Taller), no se repite. Un espacio duro
  *  conserva el alto de la línea para que los dos lados queden alineados. */
 function subtituloDeSede(nombre: string, codigo: string, soy: boolean): string {
