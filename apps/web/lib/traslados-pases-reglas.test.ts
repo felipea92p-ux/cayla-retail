@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { contarRequierenAccion } from "./traslados-reglas";
 import {
   anilloDelDia,
+  textoDelAnillo,
   botonDelPase,
   camposDelPase,
   cifraDelPase,
@@ -10,6 +11,7 @@ import {
   duracionCorta,
   esCiego,
   hechasHoy,
+  llevaGuia,
   nombreDelPase,
   pasesPorPestana,
   paseInicial,
@@ -161,6 +163,24 @@ describe("conteo a ciegas (ADR-0239 D-130)", () => {
   });
 });
 
+describe("el QR de la guía en el frente (ADR-0242 D-3)", () => {
+  const sale = (p: Partial<DatosPase> = {}) => pase({ ubicacionOrigenId: TRU, ubicacionOrigenNombre: "Tienda TRU", ubicacionDestinoId: LIM, ubicacionDestinoNombre: "Tienda LIM", ...p });
+  it("quien envía lo ve mientras la caja viaja, también si la otra sede ya empezó a contar", () => {
+    expect(llevaGuia(sale(), ctx)).toBe(true);
+    expect(llevaGuia(sale({ lineasContadas: 2 }), ctx)).toBe(true);
+    expect(vistaDelPase(sale(), ctx, { origen: "TRU", destino: "LIM" }).conGuia).toBe(true);
+  });
+  it("quien recibe nunca: su pase es para contar, no para pegar papeles", () => {
+    expect(llevaGuia(pase(), ctx)).toBe(false);
+  });
+  it("una sede que solo mira (ni envía ni recibe), tampoco", () => {
+    expect(llevaGuia(sale({ ubicacionOrigenId: TALLER }), ctx)).toBe(false);
+  });
+  it.each(["anulada", "recibido", "recibido_con_diferencia", "cerrado"])("terminada (%s): la caja ya no viaja", (estado) => {
+    expect(llevaGuia(sale({ estado }), ctx)).toBe(false);
+  });
+});
+
 describe("la billetera", () => {
   it("reparte en pestañas y pone primero lo que más espera", () => {
     const atrasada = pase({ id: "a", numero: 32, fechaEstimadaLlegada: iso(6, "09:30"), creadoEn: iso(5, "16:00") });
@@ -201,7 +221,7 @@ describe("la billetera", () => {
   });
 
   it("el anillo suma lo mismo que el menú: por recibir + te piden", () => {
-    expect(anilloDelDia({ porRecibir: 4, tePiden: 1, hechas: 0 })).toEqual({ hechas: 0, total: 5, pendientes: 5, fraccion: 0 });
+    expect(anilloDelDia({ porRecibir: 4, tePiden: 1, hechas: 0 })).toEqual({ hechas: 0, total: 5, pendientes: 5, fraccion: 0, porRecibir: 4, tePiden: 1 });
     expect(anilloDelDia({ porRecibir: 0, tePiden: 0, hechas: 0 }).fraccion).toBe(1);
     expect(anilloDelDia({ porRecibir: 3, tePiden: 0, hechas: 1 }).fraccion).toBe(0.25);
   });
@@ -230,5 +250,14 @@ describe("paseInicial y vecinos", () => {
     const l = [p("a"), p("b"), p("c")];
     expect(vecinosEnPestana(l, "b")).toEqual({ anterior: l[0], siguiente: l[2], posicion: 1 });
     expect(vecinosEnPestana(l, "x").posicion).toBe(-1);
+  });
+});
+
+describe("el anillo en palabras", () => {
+  it("nombra cajas y pedidos, y cuánto llevas del día", () => {
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 1, tePiden: 0, hechas: 3 }))).toEqual({ titulo: "Te toca 1 caja hoy", detalle: "Ya hiciste 3 de 4" });
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 2, tePiden: 1, hechas: 0 }))).toEqual({ titulo: "Te tocan 2 cajas y 1 pedido hoy", detalle: "Empieza por la primera" });
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 0, tePiden: 2, hechas: 1 })).titulo).toBe("Te tocan 2 pedidos hoy");
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 0, tePiden: 0, hechas: 0 }))).toEqual({ titulo: "Nada pendiente hoy", detalle: "Todo al día" });
   });
 });

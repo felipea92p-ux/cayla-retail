@@ -5,6 +5,7 @@ import { TrasladoMiniaturas } from "@/components/TrasladoMiniaturas";
 import { LetrasQueGiran } from "@/components/traslados-pases/LetrasQueGiran";
 import { LineaViaje } from "@/components/traslados-pases/LineaViaje";
 import { SelloPase, glifoDeTono } from "@/components/traslados-pases/SelloPase";
+import { QrDeLaGuia } from "@/components/traslados-guia/QrDeLaGuia";
 import type { VistaPase } from "@/lib/traslados-pases-reglas";
 
 /** El sello de goma que cae sobre el pase (RECIBIDA, CON NOTA, ANULADA…). `cae`: recién puesto, con su animación. */
@@ -69,6 +70,8 @@ export function PaseFrente({ vista, accion, sello }: { vista: VistaPase; accion:
             </div>
           )}
         </div>
+        {/* La guía de la caja (ADR-0242 D-3): solo quien la envió, mientras viaja (`llevaGuia`). */}
+        {vista.conGuia && <QrDeLaGuia id={vista.id} numero={vista.numero} />}
       </div>
       {accion}
       {estampa && (

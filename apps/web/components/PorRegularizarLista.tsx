@@ -53,6 +53,7 @@ export function PorRegularizarLista({
   esLider,
   plazos,
   sedeInicial,
+  abrirItemId = null,
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
@@ -66,10 +67,12 @@ export function PorRegularizarLista({
   plazos: Record<string, string>;
   /** La tienda que se está mirando (`?ubicacion=`), para que el cierre parta de ella. */
   sedeInicial: string | null;
+  /** La línea de venta (`?item=`) con que llega Historial: si su prenda sigue pendiente, su hoja de regularizar entra abierta. */
+  abrirItemId?: string | null;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
-  const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(null);
+  const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(() => (abrirItemId ? (filas.find((f) => f.ventaItemId === abrirItemId && f.estado === "pendiente") ?? null) : null));
   const [cerrando, setCerrando] = useState(false);
   const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
   const [sugiriendo, setSugiriendo] = useState(false);

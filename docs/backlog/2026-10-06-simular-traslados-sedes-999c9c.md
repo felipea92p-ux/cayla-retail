@@ -23,7 +23,8 @@
 
 - [ ] **Guía impresa con QR** (ADR-0242 D-3): el pase de salida suma «Guía» y el QR cuando exista (tarea aparte).
 - [x] **`/formidable` sobre el pase** (2026-10-06): leyes 7,0 · oficio 6 (`docs/formidable/inventario-traslados.md`).
-- [ ] **Decide Felipe:** los 3 cambios de Formidable (comparar sin culpa, el botón gris de «Faltan N», el anillo en palabras) y la pasada con una colaboradora real.
+- [x] Los 3 cambios de Formidable y los 4 detalles, aprobados y hechos (2026-10-06); segunda prueba ciega en el informe.
+- [ ] **Pasada con 3 a 5 colaboradoras reales**, con una caja de verdad (decide Felipe cuándo y con quién).
 - [ ] **PR #808** («Colgar en el piso», ADR-0339): al fusionar, sus textos ganan sobre «Bajar estas al piso» de «Lo siguiente».
 - [ ] `scripts/flujo-de-negocio/estado.mjs restaurar` falla con una fila vieja de `clientas` que no cumple su restricción (tarea aparte):
       la base local quedó con los traslados 292 a 294 y dos pedidos de prueba de esta obra.

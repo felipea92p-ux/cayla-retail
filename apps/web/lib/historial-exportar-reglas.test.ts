@@ -22,6 +22,7 @@ const fila: FilaHistorial = {
   esPrueba: false,
   anuladaEn: null,
   ventaItemIds: ["vi1"],
+  itemsPorRegularizar: [],
   posventa: [{ tipo: "cambio", fecha: "2026-09-26T15:00:00Z", pendiente: false }],
   apartado: null,
   conAnticipo: false,
