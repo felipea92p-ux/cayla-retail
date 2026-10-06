@@ -143,7 +143,7 @@ export function HoyTodaviaNo() {
           const q = p?.identificada14 != null ? Math.floor(p.identificada14 * 100) : pct(r.identificadas, r.unidades);
           const unidades = datos.resumenSedes.find((x) => x.sedeId === s.id)?.unidades ?? 0;
           return (
-            <article key={s.id} className="tarjeta sede-c entra" style={{ ["--i" as string]: 1 + k, alignItems: "center", textAlign: "center" }}>
+            <article key={s.id} className="tarjeta sede-c entra fija" style={{ ["--i" as string]: 1 + k, alignItems: "center", textAlign: "center" }}>
               <h3 style={{ justifyContent: "center" }}>{s.ciudad}</h3>
               <Anillo
                 p={q}

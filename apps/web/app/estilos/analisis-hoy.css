@@ -1,0 +1,19 @@
+/* Análisis v4 (ADR-0356): estilos propios de hoy que la hoja base (analisis.css) no trae. Mismas reglas que la base:
+   solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
+   Aquí no se anima nada: solo lo quieto de la pestaña «Hoy» (components/analisis/PestanaHoy.tsx). */
+
+@layer components {
+  .analisis {
+    /* «Por tienda» y «Repón el piso» sin permiso de Existencias solo informan: no se ven tocables. */
+    .sede-c.fija{cursor:default}
+    .sede-c.fija:hover{border-color:var(--color-sand)}
+    .fl-pie.fija:hover{border-color:var(--color-sand)}
+    /* Las piezas del flujo que se tocan como botón, a la vista con el teclado (la etiqueta vive en un foreignObject: anillo por dentro). */
+    .fl-past:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
+    .fl-et:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
+    /* «Qué hacer hoy» sin caminos: una línea. */
+    .hoy-nada{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--color-tinta-60)}
+    .hoy-nada svg{width:18px;height:18px;flex:none;color:var(--color-taupe)}
+    .hoy-nada.bien svg{color:var(--color-verde)}
+  }
+}
