@@ -79,7 +79,7 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
 
   // Deuda de ANTES de la regla: cada pantalla migra su control al anillo común (borrando su `outline-none` y su anillo rojo)
   // cuando se toque. La cuenta es exacta: si baja, bájala acá; si sube, no entró un control nuevo con el anillo viejo.
-  // 63 → 51 el 2026-10-07: las pestañas, píldoras y segmentos de /unificar «pestanas» (ADR-0358) usan el anillo común, también
+  // 63 → 51 el 2026-10-06: las pestañas, píldoras y segmentos de /unificar «pestanas» (ADR-0358) usan el anillo común, también
   // las de Comprobantes (FacturacionPestanas); y el rediseño de Análisis (v4) borró los componentes viejos que tenían el suyo.
   // 51 → 50: se borró `ficha-producto/AjusteDeStock.tsx`, que ninguna pantalla dibujaba.
   const PENDIENTES_HOY = 50;

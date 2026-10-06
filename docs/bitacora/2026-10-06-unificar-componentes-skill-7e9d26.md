@@ -8,7 +8,7 @@ Qué hice: Felipe eligió las tres recomendaciones; las construí como piezas ú
 Por qué así: Felipe pidió verlas aplicadas antes de aprobar, así que se migró en la rama (commits locales, sin subir) y se compara con la misma cuenta y el mismo ancho; lo decidido por ADR quedó intacto.
 Felipe se lleva: la página de antes y después por módulo y las preguntas abiertas de cada registro (`docs/unificar/*.md`); falta su aprobación para abrir el PR.
 
-## 2026-10-07 (Felipe eligió mirando: flecha redonda, vidrio en mayúsculas, píldora, caja arena y la tarjeta de Compras)
+## 2026-10-06, por la tarde (Felipe eligió mirando: flecha redonda, vidrio en mayúsculas, píldora, caja arena y la tarjeta de Compras)
 Qué hice: la página `unificar/elegir.mjs` (39 opciones con su captura: lo que existe, lo aplicado y las propuestas); con su elección traje `main` (la flecha redonda vivía ahí), renumeré el ADR a 0357 (el 0354 ya era el historial de la prenda), cambié la piel de las piezas y pasé a ellas Finanzas, Comprobantes y la billetera de Traslados; fotos antes/después de 36 pantallas con un recuadro numerado en cada pieza que cambió.
 Por qué así: elegir por descripción falló (no le gustó lo aplicado el 2026-10-06); y como la ronda 1 ya había pasado las pantallas por pocas piezas, el cambio fue de piel y no de 100 archivos.
 Felipe se lleva: `apps/web/unificar/.salida/fotos-despues-eleccion/comparar.html` para aprobar; quedan preguntas en cada registro (`docs/unificar/*.md`).
