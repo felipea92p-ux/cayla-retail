@@ -42,7 +42,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         sede={esLider && !unaSede ? "Tus tiendas" : etiqueta}
         titulo="Ventas sin registrar"
         subtitulo="Prendas que caja vendió antes de estar en el sistema. Dile al sistema qué prenda era cada una y el stock queda cuadrado."
-        pie={veModulo(persona, "existencias") && <Volver forma="boton" href={volverA} a="Existencias" />}
+        pie={veModulo(persona, "existencias") && <Volver href={volverA} a="Existencias" />}
       />
       <PorRegularizarLista
         filas={filas}

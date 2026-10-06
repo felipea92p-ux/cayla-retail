@@ -85,7 +85,7 @@ export default async function MoverMercaderiaPage({
         titulo="Nuevo traslado"
         subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
         // La vuelta dice adónde va: a Existencias si vino de ahí (`?desde=existencias`), a Traslados si no.
-        pie={<Volver forma="boton" {...volverDeNuevoTraslado(params.desde, veModulo(persona, "existencias"))} />}
+        pie={<Volver {...volverDeNuevoTraslado(params.desde, veModulo(persona, "existencias"))} />}
       />
 
       {destinos.length === 0 ? (

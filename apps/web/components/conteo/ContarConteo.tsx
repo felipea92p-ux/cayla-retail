@@ -557,7 +557,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         subtitulo={lugar}
         pie={
           <>
-            <Volver forma="boton" href={volver.href} a={volver.a} />
+            <Volver href={volver.href} a={volver.a} />
             <Chip tono="pizarra">En curso</Chip>
           </>
         }

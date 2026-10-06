@@ -52,7 +52,7 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         sede={persona.ubicacionEtiqueta}
         titulo="Confirmar conteo"
         subtitulo={`Conteo ${c.numero} · ${textoLugar(c)}`}
-        pie={<Volver forma="boton" href={`/inventario/conteo/${c.id}/revisar`} a="Revisar" />}
+        pie={<Volver href={`/inventario/conteo/${c.id}/revisar`} a="Revisar" />}
       />
       <PasosConteo actual="confirmar" />
       <ConfirmarConteo

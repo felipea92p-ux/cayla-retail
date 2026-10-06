@@ -32,7 +32,7 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
         // La vuelta común (`Volver`), un botón de la cabecera como «← Traslados» y «← Conteo» en sus detalles. Solo si puede entrar a
         // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
         pie={
-          veModulo(persona, "existencias") && <Volver forma="boton" href="/inventario" a="Existencias" />
+          veModulo(persona, "existencias") && <Volver href="/inventario" a="Existencias" />
         }
       />
 

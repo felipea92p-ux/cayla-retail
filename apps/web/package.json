@@ -14,7 +14,8 @@
     "tema:cuentas": "node tema/cuentas-locales.mjs",
     "tema:colores": "node tema/colores-sueltos.mjs",
     "unificar:censo": "node unificar/cli.mjs",
-    "unificar:deuda": "node unificar/deuda.mjs"
+    "unificar:deuda": "node unificar/deuda.mjs",
+    "unificar:fotos": "node unificar/fotos.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

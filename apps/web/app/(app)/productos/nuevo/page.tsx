@@ -37,7 +37,7 @@ export default async function NuevoProductoPage() {
         sede={persona.ubicacionEtiqueta}
         titulo="Nuevo producto"
         subtitulo="Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
-        pie={<Volver forma="boton" href="/productos" a="Productos" />}
+        pie={<Volver href="/productos" a="Productos" />}
       />
 
       {contexto.categorias.length === 0 ? (

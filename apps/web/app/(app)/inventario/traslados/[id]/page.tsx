@@ -113,7 +113,7 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
         }
         pie={
           // La vuelta común (`Volver`): a Movimientos si se llegó desde ahí, con sus filtros; si no, a Traslados.
-          volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
+          volverA ? <Volver href={volverA} a="Movimientos" /> : <Volver href="/inventario/traslados" a="Traslados" />
         }
       />
       {loSiguiente && <TrasladoLoSiguiente {...loSiguiente} />}

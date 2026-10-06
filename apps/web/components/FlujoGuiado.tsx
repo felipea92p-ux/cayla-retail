@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { AlertTriangle, ArrowLeft, Check, Clock } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { Volver } from "@/components/ui/Volver";
 import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 
@@ -69,15 +70,8 @@ export function EncabezadoFlujo({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          disabled={deshabilitado}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-tinta/75 transition-colors duration-200 hover:bg-papel hover:text-tinta disabled:opacity-50"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          {volverA}
-        </button>
+        {/* La salida del flujo es la vuelta de siempre (ADR-0354): cierra el estado, por eso va en su forma de botón. */}
+        <Volver onClick={onVolver} deshabilitado={deshabilitado} a={volverA} />
         <p className="text-sm text-tinta/70" aria-live="polite">
           Paso {actual} de {pasos.length} · <span className="font-semibold text-tinta">{pasos[actual - 1]}</span>
         </p>

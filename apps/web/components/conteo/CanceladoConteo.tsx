@@ -22,7 +22,7 @@ export function CanceladoConteo({ detalle, sede, volverA }: { detalle: DetalleCo
         subtitulo={`Conteo ${conteo.numero} · ${textoLugar(conteo)}`}
         pie={
           <>
-            {volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/conteo" a="Conteo" />}
+            {volverA ? <Volver href={volverA} a="Movimientos" /> : <Volver href="/inventario/conteo" a="Conteo" />}
             <Chip tono="apagado" tachado={false}>
               Cancelado
             </Chip>
