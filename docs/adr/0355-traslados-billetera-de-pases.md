@@ -62,9 +62,10 @@ el sello que cae, las letras que giran como en un aeropuerto al abrir el pase, e
 **una vez**, con `--ease-cayla`, sin rebote; nada en bucle salvo la señal del atraso (late tres veces y queda quieto). Todo se apaga con
 `prefers-reduced-motion`.
 
-**8. Sin QR ni «Guía» en el pase de salida, todavía.** La maqueta mostraba un QR y un botón «Guía»: dependen de la guía impresa de ADR-0242 D-3, que no
-existe. Queda «Avisar por WhatsApp» (el mensaje de siempre, `mensajeParaLaOtraSede`, que no dice cuántas van). Un QR que no lleva a nada sería peor
-que ninguno.
+**8. El QR y «Guía» en el pase de salida** (actualizado el 2026-10-06). Durante la obra quedaron fuera: dependían de la guía impresa de
+ADR-0242 D-3, que no existía, y un QR que no lleva a nada sería peor que ninguno. Ya existe (rama `claude/traslados-guia-impresa`, ver la
+actualización de ADR-0242): el frente del pase que sale lleva el QR «va en la caja», como en la maqueta, y el reverso, «Guía» junto a
+«Avisar por WhatsApp». Ninguno de los dos dice cuántas van.
 
 ## Lo que se mira para saber que funciona
 
@@ -75,6 +76,6 @@ que ninguno.
 
 ## Lo que queda abierto
 
-- **La guía impresa con QR** (ADR-0242 D-3): cuando exista, el pase de salida suma «Guía» y el QR (tarea aparte).
+- ~~**La guía impresa con QR** (ADR-0242 D-3)~~: construida el 2026-10-06 (punto 8 y la actualización de ADR-0242).
 - **PR #808** («Colgar en el piso», ADR-0339) cambia textos de Traslados que aquí no se tocaron («Bajar estas al piso»): al fusionar, gana su texto.
 - **`/formidable`** sobre el pase: ver la bitácora del día.

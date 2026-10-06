@@ -405,6 +405,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `MiniPase.tsx`, ← →), `PaseTraslado.tsx` (el escenario que gira, `usePase()` = `girar`/`sellar`; «Lo siguiente» en el frente),
   `PaseFrente.tsx` (+ `LetrasQueGiran`, `LineaViaje`, `SelloPase`, `TrasladoMiniaturas`), `ReversoPase.tsx` + `useRecepcion.ts`.
   Estilos: `app/estilos/traslados-pases.css` (`tp-*`).
+  **Guía impresa (ADR-0242 D-3, act. 2026-10-06):** `/inventario/traslados/guia/[id]` (fuera de `(billetera)`) → `getTrasladoDetalle` →
+  `guiaDelTraslado` (`lib/traslados-guia-reglas.ts`: sin cantidades, sin la nota) → `components/traslados-guia/ImprimirGuiaTraslado.tsx`
+  (térmica 80 mm o A4, `localStorage`) + `HojaGuia.tsx` (el papel, con el QR de `urlDelQrDeLaGuia`); impresión `#guia-traslado-print` en
+  `app/estilos/traslados-guia.css`. El frente del pase que sale lleva `QrDeLaGuia.tsx` (`VistaPase.conGuia` = `llevaGuia`) y el reverso,
+  «Guía». Sin RPC nueva.
   **Recibir (ADR-0239, sin cambios de regla):** `getTrasladoDetalle` (líneas por `fn_traslado_lineas`) → `ReversoPase` → `useRecepcion`:
   conteo a ciegas con `leerConteo`; cada casilla se guarda sola en `registrar_recepcion_traslado` con `x-espera: no` (`crearColaEnSerie`);
   escaneo `resolverEscaneo` (pistola o cámara: `EscanerConteo`), prenda de más; «Terminé de contar» compara; `confirmar_traslado(p_destino)`
