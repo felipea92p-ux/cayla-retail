@@ -15,6 +15,8 @@
     "adr:numeros": "node scripts/adr/numeros.mjs",
     "focus": "node scripts/focus/escanear.mjs",
     "sugerir": "node scripts/sugerir/escanear.mjs",
+    "chaos:invariantes": "node scripts/chaos/invariantes.mjs",
+    "chaos:catalogo": "node scripts/chaos/catalogo.mjs",
     "pruebas:registrar-cambio": "node scripts/pruebas/registrar_cambio.mjs",
     "pruebas:actividad": "node scripts/pruebas/actividad.mjs",
     "pruebas:observatorio": "node scripts/pruebas/observatorio.mjs",

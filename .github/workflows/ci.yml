@@ -183,6 +183,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
+      # `/chaos`: el catálogo de ataques y el detector de invariantes. Solo la parte pura (sin Docker); las consultas contra la base
+      # las corre `node scripts/chaos/invariantes.mjs --autoprueba` en local.
+      - name: Catálogo de caos e invariantes
+        if: ${{ !cancelled() }}
+        run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs
+
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
       # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de

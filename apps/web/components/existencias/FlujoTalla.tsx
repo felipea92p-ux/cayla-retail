@@ -166,6 +166,7 @@ export function FlujoTalla({
   onSalir,
   onCambiar,
   onAjustarCompleto,
+  onCambios,
 }: {
   tipo: TipoFlujo;
   datosIniciales?: DatosFlujo;
@@ -193,6 +194,8 @@ export function FlujoTalla({
   onCambiar: (tipo: TipoFlujo, datos: DatosFlujo) => void;
   /** Abrir la ventana completa de Ajustar (una talla que faltó en un conteo se enlaza ahí). */
   onAjustarCompleto: () => void;
+  /** Avisa al panel si hay algo que perder: la persona cambió un dato o avanzó de paso, o hay un guardado en camino. */
+  onCambios?: (sucio: boolean) => void;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -205,8 +208,14 @@ export function FlujoTalla({
   }));
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Lo que ya traía el paso al abrirse (una acción rápida entra armada): solo lo que la persona toca después cuenta como «cambios».
+  const [huellaInicial] = useState(() => JSON.stringify(d));
   // Tras una respuesta incierta los datos quedan fijos: cambiarlos sería otro intento y podría mover dos veces.
   const [incierto, setIncierto] = useState(false);
+  const sucio = i !== pasoInicial || JSON.stringify(d) !== huellaInicial || enviando || incierto;
+  useEffect(() => {
+    onCambios?.(sucio);
+  }, [sucio, onCambios]);
   // Una talla que faltó en un conteo cerrado: la suma se enlaza al conteo en la ventana completa (no se adivina aquí).
   const [faltoEnConteo, setFaltoEnConteo] = useState(false);
   const enVuelo = useRef(false);
