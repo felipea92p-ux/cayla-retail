@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { asignarGanchos, cuadriculaDelRiel, fondoDeGrupo, tokenDeGrupo, type TokenDeGrupo } from "@/lib/mix-piso-visual";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { asignarGanchos, cuadriculaDelRiel, fondoDeGrupo, tokenDeGrupo } from "@/lib/mix-piso-visual";
+import { suscribirTema, temaDelDocumento } from "@/lib/tema-cliente";
+import { TEMA_POR_DEFECTO } from "@/lib/tema-reglas";
 
 // El riel a ESCALA (Plan del piso ▸ Propuesta, ADR-0329): una prenda es un gancho. Dos rieles con la MISMA capacidad —el de hoy y el de la
 // propuesta— para que se vea lo que una tabla no dice: cuánto del riel está lleno (TRU: 61 de 600) y cómo se reparte entre los grupos. Pasar el
@@ -12,12 +14,11 @@ import { asignarGanchos, cuadriculaDelRiel, fondoDeGrupo, tokenDeGrupo, type Tok
 
 export type GrupoDelRiel = { clave: string; nombre: string; hoy: number; propuesta: number };
 
-const FALLBACK: Record<TokenDeGrupo | "taupe" | "sand", string> = { tinta: "#1a1a18", pizarra: "#4c5d6e", verde: "#48603f", ambar: "#74501a", taupe: "#805c4c", sand: "#eae1d2" };
-
+// Un canvas no hereda el CSS: se le pasa el color ya resuelto. Se lee de la variable del token EN CADA DIBUJO (no se copia a una constante),
+// para que siga al modo oscuro (ADR-0336), que redefine los mismos tokens; por eso el riel se repinta cuando cambia el tema (más abajo).
+// `dibujar` solo corre en el navegador (dentro de un efecto), con las variables ya puestas; si una faltara, `currentColor` toma el del texto.
 function colorDe(token: string): string {
-  if (typeof window === "undefined") return FALLBACK[token as keyof typeof FALLBACK] ?? "#1a1a18";
-  const v = getComputedStyle(document.documentElement).getPropertyValue(`--color-${token}`).trim();
-  return v || FALLBACK[token as keyof typeof FALLBACK] || "#1a1a18";
+  return getComputedStyle(document.documentElement).getPropertyValue(`--color-${token}`).trim() || "currentColor";
 }
 
 /** Dibuja un riel: una fila de ganchos por fila de la cuadrícula, cada prenda como una camisa colgada. Los libres, solo el contorno. */
@@ -116,12 +117,14 @@ function Riel({
   onFijar: (g: number) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  // El servidor pinta el claro y al hidratar se corrige (el mismo patrón del botón del tema): el canvas solo se dibuja en el navegador.
+  const tema = useSyncExternalStore(suscribirTema, temaDelDocumento, () => TEMA_POR_DEFECTO);
   const [tip, setTip] = useState<{ x: number; y: number; texto: string } | null>(null);
   const cuadricula = useMemo(() => cuadriculaDelRiel(ganchos.length, ancho), [ganchos.length, ancho]);
 
   useEffect(() => {
     if (canvas.current && ancho > 0) dibujar(canvas.current, ganchos, ancho, foco, atenuado);
-  }, [ganchos, ancho, foco, atenuado]);
+  }, [ganchos, ancho, foco, atenuado, tema]);
 
   function grupoEn(e: React.MouseEvent<HTMLCanvasElement>): number | null {
     const el = canvas.current;
