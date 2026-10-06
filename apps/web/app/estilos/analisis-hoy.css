@@ -9,6 +9,11 @@
     /* Las piezas del flujo que se tocan como botón, a la vista con el teclado (la etiqueta vive en un foreignObject: anillo por dentro). */
     .fl-past:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
     .fl-et:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
+    /* Safari (WebKit) pinta fuera de su lugar, dentro de un <foreignObject>, lo que crea su propia capa (position, overflow que no es
+       visible, transform, opacity): en producción, la miniatura sin foto de una prenda de «Compra» salía flotando encima de la etiqueta.
+       Aquí no hace falta esa capa: el redondeo lo da el border-radius de la miniatura. `!important` porque `relative` y
+       `overflow-hidden` de MosaicoPrenda son utilidades de Tailwind, de una capa que le gana a esta. */
+    .fl-et .tile-prenda, .fl-et .tile-prenda > [data-color-dato]{position:static !important;overflow:visible !important}
     /* «Qué hacer hoy» sin caminos: una línea. */
     .hoy-nada{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--color-tinta-60)}
     .hoy-nada svg{width:18px;height:18px;flex:none;color:var(--color-taupe)}

@@ -22,3 +22,10 @@ edad de las tres en «No se vende», que quedó como «Lo que tienes, por tiempo
 Por qué así: Felipe, con TRU elegida, veía Arequipa y Lima y pidió que todo sea de la tienda donde está; la vista de las tres es de CAYLA Global.
 Las otras tiendas quedan solo donde hay algo que hacer con una prenda de la tuya (pedir, mandar, «Dónde hay»).
 Qué sigue: `/formidable` y `/chaos`; pedir el motor solo de la tienda (no urge).
+
+## 2026-10-06 (Análisis: la miniatura que flotaba en Safari)
+Qué hice: en «Qué hacer hoy», las miniaturas sin foto de cada camino («Compra», «Manda a…», «Liquidar») ya no crean su propia capa dentro
+del `foreignObject` de la etiqueta (`analisis-hoy.css`). Lo reproduje y lo comprobé con el WebKit del sistema, que es el motor de Safari:
+sin el arreglo se corrían encima del texto, y con él quedan en su sitio. En Chrome se ve igual que antes.
+Por qué así: Safari pinta fuera de lugar, dentro de un `foreignObject`, lo que crea capa (`position`, `overflow`); en producción Felipe vio
+una miniatura de «Compra» flotando. La miniatura no necesita esa capa, porque su redondeo lo da su border-radius.

@@ -579,7 +579,10 @@ function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
   );
 }
 
-/** El verbo del camino, sus tres primeras prendas (y «+N») y por qué. */
+/**
+ * El verbo del camino, sus tres primeras prendas (y «+N») y por qué. Vive en un `foreignObject`: nada de adentro debe crear su propia
+ * capa (position, overflow que no es visible, transform, opacity), porque Safari la pinta fuera de lugar (ver `analisis-hoy.css`).
+ */
 function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const e = etiquetaFlujo(b.cy, lado);
