@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ListChecks, ScanLine, Table2, Tag, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, LayoutGrid, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Table2, Tag, TriangleAlert, X } from "lucide-react";
+import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
@@ -511,13 +512,15 @@ export function InventarioPanel({
     const hoy = filtros.hoy;
     const condicion = filtros.condicion;
     // El tono del punto, como la maqueta: ámbar lo que se hace aquí (colgar, se acaba, dañada), pizarra lo de afuera, tinta lo apartado.
-    if (hoy) return { etiqueta: TEXTO_HOY[hoy], coincide: (f: FilaExistencias) => hoyDeTalla(f) === hoy, tono: hoy === "por_colgar" ? "ambar" : hoy === "mantener" ? "tinta" : "pizarra", esColgar: hoy === "por_colgar" };
+    // El símbolo es el del botón rápido de ese filtro (`FiltrosRapidos`): la insignia de la talla y el botón que se tocó son la misma figura.
+    if (hoy) return { etiqueta: TEXTO_HOY[hoy], coincide: (f: FilaExistencias) => hoyDeTalla(f) === hoy, tono: hoy === "por_colgar" ? "ambar" : hoy === "mantener" ? "tinta" : "pizarra", esColgar: hoy === "por_colgar", simbolo: hoy === "por_colgar" ? IconoPercha : hoy === "mantener" ? Check : PackageX };
     if (condicion)
       return {
         etiqueta: ROTULO_CONDICION[condicion],
         coincide: (f: FilaExistencias) => tieneCondicion(f, condicion),
         tono: condicion === "apartadas" ? "tinta" : condicion === "sin_ventas" ? "pizarra" : "ambar",
         esColgar: false,
+        simbolo: condicion === "apartadas" ? ShoppingBag : condicion === "sin_ventas" ? Moon : condicion === "se_acaban" ? Clock : TriangleAlert,
       };
     return null;
   }, [filtros.hoy, filtros.condicion]);
