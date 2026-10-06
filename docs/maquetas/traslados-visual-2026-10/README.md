@@ -1,4 +1,4 @@
-# Traslados · visual · tres maquetas (2026-10-06)
+# Traslados · visual · maquetas (2026-10-06)
 
 Felipe, sobre la pantalla de hoy (`/inventario/traslados`): «es muy poco visual y tiene mucho texto que casi nadie se parará a
 leer». Pidió tres maquetas **visuales, interactivas, con muchas animaciones, sofisticadas y elegantes, en concordancia con
@@ -14,6 +14,72 @@ y `?abrir=32` (abre el cajón de ese traslado) abren directo.
 
 Datos inventados: un martes 6 de octubre a las 10:40, doce traslados entre TRU, LIM, AQP y el Taller. Son las mismas prendas que
 la maqueta de Movimientos, y sus traslados 29 y 31 son estos mismos.
+
+## Segunda ronda (2026-10-06, tarde): D · Pases, E · La puerta, F · Conversaciones
+
+Felipe, sobre A, B y C: «No me convence ninguno, trata de que sean más interactivos y entendibles, amigables y sofisticados.
+Haz 3 más con diseños distintos».
+
+**Por qué no convencieron, dicho sin rodeos.** La A seguía siendo una lista con mucho texto chico por fila: le cambié la ropa,
+pero había que leerla igual. La B era bonita pero abstracta: había que entender una leyenda para saber qué hacer, y no ayudaba a
+quien tiene la caja en la mano. La C era un diagrama de Gantt: una vista de analista, no de tienda.
+
+**Qué cambia en la segunda.** Cada opción parte de algo que cualquiera ya sabe usar sin manual (ley 1 de Formidable, ADR-0350), y
+cada una ordena los traslados de una manera distinta: por **urgencia** (D), por **lugar** (E) y por **sede** (F). Las tres
+respetan lo mismo que la primera: el conteo a ciegas (D-130), lo que coincide entra al instante y lo demás espera a un líder
+(D-129), «Hoy te toca» (ADR-0242 D-1), solo tokens, claro y oscuro, celular. Y todo se toca: contar, confirmar, revisar, anular,
+responder un pedido.
+
+### D · Pases — `d-pases.html`
+Cada caja es un **pase de abordar**, como los de la billetera del celular. Lo grande es de dónde a dónde, con los códigos de cada
+sede (**TAL → TRU**; las letras giran una vez como en un tablero de aeropuerto) y el camión en la línea punteada; debajo, tres
+datos (salió · llega · prendas) y **un solo botón** («Abrir la caja y contar»). El QR es el de la guía (ADR-0242 D-3). El pase
+**se da vuelta** (giro 3D) y en el reverso se cuenta a ciegas; al confirmar vuelve al frente y le **cae un sello de goma**
+(«RECIBIDO», «CON NOTA», «ANULADO», «ENVIADO»), y la billetera pasa sola al pase siguiente. A la izquierda, la **billetera**: los
+pases apilados, lo urgente arriba, en tres pestañas (Te llegan · Envías · Guardados) y un **anillo** con lo que te toca hoy y lo
+que llevas hecho. ← → pasa de pase. En celular el pase se abre a pantalla completa.
+**Cuesta:** medio. Una vista nueva (billetera + pase) con los datos de la lista de hoy. Los códigos de sede (TAL, TRU, LIM, AQP)
+no existen en la base: hay que decidir de dónde salen (una columna corta en `ubicaciones` o una regla en el código).
+
+### E · La puerta — `e-puerta.html`
+**Tu tienda dibujada** (toldo, vidriera, la puerta abierta) y las **cajas en 3D**. A la izquierda, por el camino, las que
+**vienen**: más cerca de la puerta, llegan antes. **En la puerta**, las que ya deberían estar, las que se están contando y las que
+esperan revisión. A la derecha, las que **salen**, alejándose a medida que avanzan. Un pedido de otra sede **cuelga** de la
+vidriera. Tocas una caja: vuela a la **mesa** y se abre (las solapas giran) y las prendas suben desde adentro. **Cuentas tocando
+cada prenda** (una vez por prenda que sacas; «−» para corregir; Escanear suma igual). «Terminé de contar» **da vuelta cada
+ficha** y muestra lo enviado. Después **arrastras la caja** hasta «Al almacén» o «Al piso» (o los tocas): las prendas entran
+volando, la caja se cierra y se va al **estante** de lo guardado. En celular la calle se desliza con el dedo y empieza mirando la
+puerta.
+**Cuesta:** alto. La escena, la caja 3D y el conteo tocando prendas son piezas nuevas. «En tu puerta» es una inferencia (pasó la
+hora estimada o empezó el conteo): la base no guarda cuándo llegó la caja, y la maqueta no lo inventa.
+
+### F · Conversaciones — `f-conversaciones.html`
+Se lee como **WhatsApp**, que es como las tiendas ya se coordinan los traslados. Un **chat por sede**, con su contador de lo que
+te toca y la última novedad. Cada caja es un **mensaje** con su camión y sus prendas; tus envíos llevan **vistos**: ✓ salió ·
+✓✓ la están contando · ✓✓ verde, llegó completa · ✓✓ ámbar, faltó algo. Los conteos, las confirmaciones y los cierres aparecen
+como mensajes de quien los hizo, y los **pedidos** llegan como mensajes con «No la tengo» y «Enviar». «Contar la caja» abre una
+**hoja que sube dentro del chat**; al confirmar se cierra y aparece tu mensaje «Llegó completa la Nº 32». «Para hoy» (arriba de
+los chats) lleva al mensaje que toca. **No hay mensajes escritos a mano:** todo sale de lo que la base ya guarda. En celular
+empieza por la lista de chats, como WhatsApp.
+**Cuesta:** medio. Una lista de chats y una conversación; los mensajes salen de columnas que ya existen (`created_at`,
+`confirmado_en`, `cerrado_en`, `anulado_en`, los pedidos de `separacion_pedidos`). Conviene no prometer chat libre: no existe.
+
+### Movimiento en la segunda ronda
+Lo de la primera (sellos que se mueven una vez, el camión que corre hasta su punto, cascadas) y, a decisión de Felipe: el **giro
+3D** del pase y de las fichas, el **sello de goma** que cae, las **letras de aeropuerto**, la **caja que se abre** y las prendas que
+suben, **arrastrar** la caja, las prendas que **vuelan** al almacén, los mensajes que **llegan** y los **vistos** que se dibujan.
+Ninguno queda en bucle; con «reducir movimiento» (o `?sinmov`) todo aparece quieto.
+
+### Decisiones de Felipe (segunda ronda)
+1. **¿D, E, F o una mezcla?** Combinan bien: la billetera de la D como lista, con el reverso para contar; o el chat de la F con el
+   pase de la D como mensaje.
+2. **Los códigos de sede** (TAL, TRU, LIM, AQP): ¿se usan en pantalla? Son cortos y se leen de lejos, pero hay que enseñarlos una vez.
+3. **Contar tocando prendas** (E) frente a − / + (D y F): tocar es más físico; − / + es más rápido con cantidades grandes.
+4. **El movimiento rico** de la lista de arriba (actualización de ADR-0136).
+
+---
+
+# Primera ronda (2026-10-06, mañana): A · Ruta, B · Mapa, C · Horizonte
 
 ## El problema que resuelven
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Traslados · tres maquetas</title>
+<title>Traslados · maquetas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="comun.css">
@@ -62,6 +62,40 @@ h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,6vw,60px);line-
 .mC .ah{transform-box:fill-box;transform-origin:top;transform:scaleY(0);animation:baja .7s .2s var(--ease) forwards}
 @keyframes baja{to{transform:none}}
 
+.ronda{font-family:var(--serif);font-weight:400;font-size:28px;margin:40px 0 0;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.ronda span{font-family:'DM Sans';font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t50)}
+.tres.primera .op-card{opacity:.82}
+.tres.primera .op-card:hover{opacity:1}
+:root{--carton2:color-mix(in srgb,var(--taupe) 34%,var(--hueso))}
+/* miniatura D: tres pases apilados y el de adelante con su sello */
+.mD{display:grid;place-items:center}
+.pase-mini{position:absolute;width:220px;height:132px;border-radius:16px;background:var(--papel);box-shadow:0 14px 28px -18px color-mix(in srgb,var(--sombra) 55%,transparent);overflow:hidden;display:flex;flex-direction:column;animation:sube .7s var(--ease) both}
+.pase-mini.atras{transform:translate(14px,-16px) rotate(4deg);z-index:0;animation:none;opacity:.7}
+.pase-mini.atras2{transform:translate(-16px,-10px) rotate(-5deg);z-index:0;animation:none;opacity:.55}
+.pase-mini:not(.atras):not(.atras2){z-index:1}
+.pm-b{height:30px;background:var(--c-md);color:var(--c);font-size:9.5px;font-weight:800;letter-spacing:.14em;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+.pm-b em{font-style:normal;color:var(--t65)}
+.pm-r{display:flex;align-items:center;gap:8px;padding:12px 14px 4px}
+.pm-r b{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1}
+.pm-r i{flex:1;border-top:2px dashed var(--c-ln);position:relative}
+.pm-f{display:flex;gap:18px;padding:6px 14px;font-size:8.5px;font-weight:800;letter-spacing:.12em;color:var(--t50)}
+.pm-f b{display:block;font-family:var(--serif);font-weight:400;font-size:14px;letter-spacing:0;color:var(--tinta)}
+.pm-f b.t{color:var(--ambar)}
+.pm-sello{position:absolute;right:10px;bottom:8px;border:2.5px double var(--verde);color:var(--verde);font-size:11px;font-weight:800;letter-spacing:.16em;padding:3px 8px;border-radius:7px;transform:rotate(-9deg);animation:sella-i .4s 1.1s cubic-bezier(.2,.8,.25,1) both}
+@keyframes sella-i{from{transform:rotate(-17deg) scale(1.9);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:.9}}
+/* miniatura E: las cajas llegan por la calle */
+.mE svg{width:100%;height:100%}
+.mE .cj{animation:caja-i .9s var(--ease) both;animation-delay:var(--d)}
+@keyframes caja-i{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+/* miniatura F: burbujas que llegan */
+.mF{display:flex;flex-direction:column;gap:8px;justify-content:center;background:color-mix(in srgb,var(--hueso) 70%,var(--papel))}
+.bb{max-width:72%;padding:7px 11px;border-radius:13px 13px 13px 4px;background:var(--papel);font-size:11px;box-shadow:0 1px 1px var(--t06);animation:sube .55s var(--ease) both;animation-delay:var(--d)}
+.bb b{display:block;font-size:11.5px}
+.bb span{color:var(--t65)}
+.bb.yo{align-self:flex-end;background:color-mix(in srgb,var(--verde) 12%,var(--papel));border-radius:13px 13px 4px 13px}
+.bb i{font-style:normal;color:var(--verde);font-weight:700}
+.bb .dos{display:flex;gap:6px;margin-top:4px}
+.bb .dos u{text-decoration:none;font-weight:700;color:var(--taupe);background:var(--hueso);border-radius:7px;padding:2px 8px}
 @media (max-width:900px){.tres{grid-template-columns:1fr}.sellos{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:520px){.sellos{grid-template-columns:repeat(2,minmax(0,1fr))}.pag{padding:28px 16px 60px}.cab-i{flex-direction:column-reverse}}
 </style>
@@ -70,9 +104,46 @@ h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,6vw,60px);line-
 <script src="comun.js"></script>
 <main class="pag">
   <div class="cab-i"><div><div class="hilo">Inventario · Traslados · rediseño</div>
-  <h1>Ver dónde va cada caja y qué te toca, sin leer un párrafo.</h1></div>
+  <h1>Que se entienda sin explicar: las cajas como ya las conoces.</h1></div>
   <div class="tema" role="group" aria-label="Tema"><button data-tema="claro">Claro</button><button data-tema="oscuro">Oscuro</button></div></div>
-  <p class="lede">La pantalla de hoy explica con frases lo que la persona tendría que <em>ver</em>. Estas tres maquetas parten del idioma que ya tiene Movimientos —sello de color, ícono que se mueve, un camino de dónde a dónde— y lo llevan a tres pantallas distintas. Datos inventados: un martes a las 10:40, mirando desde la Tienda TRU (se puede cambiar de sede arriba a la derecha).</p>
+  <p class="lede">La primera ronda (A, B, C) seguía pidiendo leer. Esta segunda parte de cosas que cualquiera ya sabe usar sin manual —un pase de abordar, la puerta de la tienda, un chat de WhatsApp— y cada una ordena los traslados de una manera distinta. Todo se toca: se cuenta a ciegas, se confirma, se revisa, se anula. Datos inventados: un martes a las 10:40, mirando desde la Tienda TRU (se cambia de sede arriba a la derecha).</p>
+
+  <h2 class="ronda">Segunda ronda <span>6 de octubre, tarde</span></h2>
+  <section class="tres">
+    <a class="op-card" href="d-pases.html">
+      <div class="vis mD"><div class="pase-mini s-atraso"><span class="pm-b">ATRASADO <em>Nº 32</em></span><span class="pm-r"><b>TAL</b><i></i><b>TRU</b></span><span class="pm-f"><span>SALIÓ<b>ayer 16:00</b></span><span>LLEGA<b class="t">hoy 09:30</b></span></span><span class="pm-sello">RECIBIDO</span></div><div class="pase-mini atras s-llega"></div><div class="pase-mini atras2 s-sale"></div></div>
+      <div class="tx"><span class="letra">Opción D</span><h3>Pases</h3><p>Cada caja es un pase de abordar, como en la billetera del celular: TAL → TRU en grande (las letras giran como en un aeropuerto), cuándo salió, cuándo llega y un solo botón. El pase se da vuelta para contar a ciegas y, al confirmar, le cae el sello «RECIBIDO». Un anillo cuenta lo que llevas hecho hoy.</p>
+        <span class="cuesta"><b>Cuesta medio:</b> una vista nueva (billetera + pase); los datos son los de la lista de hoy.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="e-puerta.html">
+      <div class="vis mE">
+        <svg viewBox="0 0 300 165" aria-hidden="true">
+          <rect x="0" y="118" width="300" height="47" fill="color-mix(in srgb,var(--sand) 70%,var(--hueso))"/>
+          <path d="M110 140V52h80v88" fill="var(--papel)" stroke="var(--t35)" stroke-width="1.4"/>
+          <path d="M104 52h92v12c-6 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-15 0-4 6-11 6-17 0z" fill="color-mix(in srgb,var(--taupe) 30%,var(--papel))" stroke="var(--t35)"/>
+          <rect x="152" y="78" width="28" height="62" fill="color-mix(in srgb,var(--hueso) 75%,var(--sombra))"/>
+          <g class="cj" style="--d:.1s"><path d="M20 112l18-8 18 8v18l-18 8-18-8z" fill="var(--carton2)"/><path d="M20 112l18 8 18-8M38 120v18" stroke="color-mix(in srgb,var(--sombra) 25%,transparent)" fill="none"/></g>
+          <g class="cj" style="--d:.3s"><path d="M120 128l18-8 18 8v18l-18 8-18-8z" fill="var(--carton2)"/><path d="M120 128l18 8 18-8M138 136v18" stroke="color-mix(in srgb,var(--sombra) 25%,transparent)" fill="none"/><rect x="124" y="134" width="11" height="7" fill="var(--papel)"/></g>
+          <g class="cj" style="--d:.5s"><path d="M236 112l18-8 18 8v18l-18 8-18-8z" fill="var(--carton2)"/><path d="M236 112l18 8 18-8M254 120v18" stroke="color-mix(in srgb,var(--sombra) 25%,transparent)" fill="none"/></g>
+          <path d="M70 95h22M84 89l8 6-8 6" stroke="var(--t35)" fill="none" stroke-width="1.6" stroke-linecap="round"/><path d="M206 95h22M220 89l8 6-8 6" stroke="var(--t35)" fill="none" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="tx"><span class="letra">Opción E</span><h3>La puerta</h3><p>Tu tienda dibujada, con las cajas de verdad en 3D: a la izquierda las que vienen por el camino (más cerca, llegan antes), en la puerta las que ya deberían estar, a la derecha las que salen. Tocas una caja: va a la mesa y se abre. Sacas y tocas cada prenda para contarla; al terminar, arrastras la caja al almacén o al piso.</p>
+        <span class="cuesta"><b>Cuesta alto:</b> la escena y la caja 3D son piezas nuevas; contar tocando prendas es un cambio de interacción.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+    <a class="op-card" href="f-conversaciones.html">
+      <div class="vis mF">
+        <div class="bb el" style="--d:.1s"><b>Te envié la caja Nº 32</b><span>TAL ── <svg class="ic" style="width:13px;height:13px;vertical-align:-2px;color:var(--oliva)" viewBox="0 0 24 24"><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></svg> ─ TRU</span></div>
+        <div class="bb yo" style="--d:.45s"><b>Llegó completa la Nº 32</b><span>8 de 8 prendas <i>✓✓</i></span></div>
+        <div class="bb el" style="--d:.8s"><b>¿Me envías esta prenda?</b><span class="dos"><u>No la tengo</u><u>Enviar</u></span></div>
+      </div>
+      <div class="tx"><span class="letra">Opción F</span><h3>Conversaciones</h3><p>Se lee como WhatsApp, que es como las tiendas ya se coordinan: un chat por sede, cada caja es un mensaje con su camión, y los vistos dicen si llegó (✓ salió, ✓✓ la están contando, ✓✓ verde completa). Los pedidos llegan como mensajes con «Enviar» y «No la tengo». Se cuenta en una hoja que sube dentro del chat.</p>
+        <span class="cuesta"><b>Cuesta medio:</b> una lista de chats y una conversación; los mensajes salen de lo que la base ya guarda.</span>
+        <span class="ver">Abrir la maqueta <svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </a>
+  </section>
 
   <section class="tarjeta idioma">
     <h2>El idioma: lo que te toca, con su color y su movimiento</h2>
@@ -81,7 +152,8 @@ h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,6vw,60px);line-
     <div class="ciego"><span class="sello s-contando" id="ciega"></span><span><b>Quien recibe cuenta a ciegas</b> (ADR-0239, D-130): mientras la caja viene hacia tu sede, la pantalla dice <em>qué</em> prendas trae pero nunca <em>cuántas</em>. Lo enviado aparece recién al apretar «Terminé de contar». Las tres opciones lo respetan.</span></div>
   </section>
 
-  <section class="tres">
+  <h2 class="ronda">Primera ronda <span>no convenció: «poco visual, mucho texto»</span></h2>
+  <section class="tres primera">
     <a class="op-card" href="a-ruta.html">
       <div class="vis mA" id="mA"></div>
       <div class="tx"><span class="letra">Opción A</span><h3>Ruta</h3><p>La hermana directa de Movimientos. Arriba, «Hoy te toca»: una tarjeta por cosa que hacer, con un verbo. Debajo, cada traslado es una tarjeta con su sello y el camión en su punto del viaje. A la derecha, los estados que cuentan y filtran. Lo terminado se junta en un mazo que se abre en abanico.</p>
@@ -126,7 +198,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,6vw,60px);line-
     </a>
   </section>
 
-  <p class="nota-op" style="margin-top:22px">Las tres comparten el <b>cajón del traslado</b> (contar a ciegas con − / + o escaneando → «Terminé de contar» → aparece lo enviado → confirmar, y las prendas vuelan a su lugar) y el mismo «Hoy te toca». Todo es tocable; «Volver a empezar» deja los datos como estaban. Detalle y decisiones: <code>README.md</code>.</p>
+  <p class="nota-op" style="margin-top:22px">Todo es tocable y lo que haces se guarda mientras la pestaña esté abierta; «Volver a empezar» deja los datos como estaban. <code>?sinmov</code> las muestra sin animaciones. Detalle y decisiones: <code>README.md</code>.</p>
 </main>
 <script>
 (function(){

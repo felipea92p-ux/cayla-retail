@@ -373,6 +373,8 @@ svg.gl{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.7;str
   .vista{height:calc(100dvh - var(--spk) - 16px)}
   .vista[data-modo=celular]{width:100%;border-width:6px;border-radius:30px}
 }
+.sin-mov *,.sin-mov *::before,.sin-mov *::after{animation-duration:.01ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0ms!important}
+.sin-mov .rev{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0ms!important}
   .cuerpo{scroll-behavior:auto}

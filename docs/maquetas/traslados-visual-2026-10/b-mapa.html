@@ -267,7 +267,7 @@ M.montar({ opcion:'B', nombre:'Mapa', dibujar(raiz){
   const entrar = () => {
     svg.classList.add('go');
     const fs = destinos(enHora(est.h));
-    if (M.quieto || matchMedia('(prefers-reduced-motion: reduce)').matches) { svg.classList.add('quieto'); items.forEach((it, i) => ponerEn(it, fs[i])); return; }
+    if (M.quieto || M.reducir()) { svg.classList.add('quieto'); items.forEach((it, i) => ponerEn(it, fs[i])); return; }
     items.forEach(it => ponerEn(it, 0.12));
     const t0 = performance.now() + 450, dur = 1400;
     const paso = now => {

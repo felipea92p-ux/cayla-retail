@@ -7,7 +7,12 @@
       Probadas en el navegador: escritorio, celular (marco de 375 px), claro y oscuro, sin errores de consola; recorridos tocados:
       contar con escáner → terminé → confirmar con diferencia, anular un envío, cambiar de sede desde el mapa, reloj del mapa, zoom
       del horizonte.
-- [ ] **Decide Felipe:** cuál de las tres (o una mezcla), el movimiento rico en Traslados (actualización de ADR-0136), los colores
-      de cada situación y la columna de estados de la A frente a ADR-0242 D-1. Con eso: ADR y construcción con `/construir`.
+- [x] ~~Decide Felipe entre A, B y C~~ — no convencieron (2026-10-06): «poco interactivas, poco entendibles».
+- [x] Segunda ronda: D · Pases, E · La puerta, F · Conversaciones (`d-pases.html`, `e-puerta.html`, `f-conversaciones.html`), con
+      `?sinmov` para revisarlas quietas. Probadas en el navegador (escritorio, celular, claro y oscuro, sin errores de consola):
+      contar → terminé → confirmar, cerrar con diferencia, anular, responder un pedido, arrastrar la caja (E), girar el pase (D),
+      la hoja de conteo dentro del chat (F). Prueba ciega con un agente sin contexto sobre las capturas.
+- [ ] **Decide Felipe:** D, E, F o una mezcla; los códigos de sede (TAL, TRU, LIM, AQP); contar tocando prendas o con − / +; el
+      movimiento rico (actualización de ADR-0136). Con eso: ADR y construcción con `/construir`.
 - [ ] Al construir: conservar lo que la maqueta no dibuja (buscar al escanear, prenda que no venía, firma «Responsable», token
       contra doble clic), declarar la guía de foco del cajón y pasar `/formidable`.

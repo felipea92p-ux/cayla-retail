@@ -16,7 +16,10 @@ const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 M.$ = $; M.$$ = $$;
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 M.el = el;
-const reducir = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* `?sinmov` hace lo mismo que «reducir movimiento» del sistema: sirve para revisar la maqueta quieta */
+if (new URLSearchParams(location.search).has('sinmov')) document.documentElement.classList.add('sin-mov');
+const reducir = () => document.documentElement.classList.contains('sin-mov') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+M.reducir = reducir;
 
 /* ── Íconos de SITUACIÓN: cada uno con piezas con nombre para animarse ─────── */
 const CAM = '<g class="cam"><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></g>';
@@ -105,10 +108,10 @@ const PT = {
 };
 M.PT = PT;
 const SEDES = M.SEDES = {
-  tru:    { id:'tru',    n:'Tienda TRU', corto:'TRU',    ciudad:'Trujillo', tipo:'tienda', del:'de TRU' },
-  lim:    { id:'lim',    n:'Tienda LIM', corto:'LIM',    ciudad:'Lima',     tipo:'tienda', del:'de LIM' },
-  aqp:    { id:'aqp',    n:'Tienda AQP', corto:'AQP',    ciudad:'Arequipa', tipo:'tienda', del:'de AQP' },
-  taller: { id:'taller', n:'Taller',     corto:'Taller', ciudad:'Lima',     tipo:'taller', del:'del Taller' },
+  tru:    { id:'tru',    cod:'TRU', n:'Tienda TRU', corto:'TRU',    ciudad:'Trujillo', tipo:'tienda', del:'de TRU' },
+  lim:    { id:'lim',    cod:'LIM', n:'Tienda LIM', corto:'LIM',    ciudad:'Lima',     tipo:'tienda', del:'de LIM' },
+  aqp:    { id:'aqp',    cod:'AQP', n:'Tienda AQP', corto:'AQP',    ciudad:'Arequipa', tipo:'tienda', del:'de AQP' },
+  taller: { id:'taller', cod:'TAL', n:'Taller',     corto:'Taller', ciudad:'Lima',     tipo:'taller', del:'del Taller' },
 };
 M.ptSede = (id, mio) => `<span class="pt ${mio ? 'mio' : ''}" data-sede="${id}"><svg viewBox="0 0 24 24">${PT[SEDES[id].tipo]}</svg>${SEDES[id].corto}</span>`;
 M.sede = new URLSearchParams(location.search).get('sede') || 'tru';
@@ -304,9 +307,10 @@ M.tareaHTML = (x, i = 0) => {
     <span class="pie">${M.pila(t.lineas, 28, 3)}<span class="verbo">${cfg.v} ${M.ic('flecha')}</span></span>
     <span class="fondo">${M.glifo(cfg.g)}</span></button>`;
 };
+/* abre el cajón de la primera ronda; las zonas marcadas `data-propio` manejan sus propios clics (opciones D, E, F) */
 M.conectarTareas = raiz => {
-  M.$$('[data-num]', raiz).forEach(b => b.onclick = () => M.cajon(M.porNumero(+b.dataset.num)));
-  M.$$('[data-pedido]', raiz).forEach(b => b.onclick = () => M.cajonPedido(M.PEDIDOS.find(p => p.id === b.dataset.pedido)));
+  M.$$('[data-num]', raiz).forEach(b => { if (!b.closest('[data-propio]')) b.onclick = () => M.cajon(M.porNumero(+b.dataset.num)); });
+  M.$$('[data-pedido]', raiz).forEach(b => { if (!b.closest('[data-propio]')) b.onclick = () => M.cajonPedido(M.PEDIDOS.find(p => p.id === b.dataset.pedido)); });
 };
 
 /* ── El viaje (de qué sede a cuál, y dónde va la caja) ────────────────────── */
@@ -345,7 +349,8 @@ function crearObservador(){
   }, { root: $('.cuerpo'), threshold: .12, rootMargin: '0px 0px -4% 0px' });
 }
 M.revelar = raiz => {
-  if (M.quieto) {
+  if (M.quieto || reducir()) {
+    $$('.sello,[data-go]', raiz || document).forEach(x => x.classList.add('go'));
     $$('.rev', raiz || document).forEach(n => n.classList.add('in'));
     $$('.viaje', raiz || document).forEach(v => v.classList.add('quieto'));
     $$('[data-cuenta]', raiz || document).forEach(c => c.textContent = (c.dataset.pref || '') + c.dataset.cuenta);
@@ -469,7 +474,7 @@ M.cajon = (t, { abrirEn } = {}) => {
         ${t.nota ? `<section class="casc" style="--i:7"><h4>Nota de quien envió</h4><div class="nota-op">“${t.nota}”<cite>${M.persona(t.por)}</cite></div></section>` : ''}`;
       pie = !revelado
         ? `<div class="fila"><button class="btn s-contando" data-escanear>${M.glifo('escanear').replace('class="gl', 'class="gl ic')}Escanear</button>
-             <button class="btn pri grande" data-termine ${listas ? '' : 'disabled'}>${listas ? 'Terminé de contar' : `Faltan ${total - hechas} por contar`}</button></div>`
+             <button class="btn pri grande" data-termine ${listas ? '' : 'disabled'}>${listas ? 'Terminé de contar' : `${total - hechas === 1 ? 'Falta 1' : `Faltan ${total - hechas}`} por contar`}</button></div>`
         : `<div class="fila"><button class="btn" data-recontar>Volver a contar</button>
              <button class="btn pri grande" data-confirmar>${M.difiere(t) ? 'Confirmar lo que llegó' : 'Confirmar recepción'}</button></div>`;
     } else if (modo === 'comparar') {
@@ -624,6 +629,101 @@ M.cajonPedido = p => {
   requestAnimationFrame(() => requestAnimationFrame(() => { velo.classList.add('in'); $$('.sello,[data-go]', velo).forEach(x => x.classList.add('go')); }));
 };
 
+/* ====================================================================
+   SEGUNDA RONDA (D · Pases, E · La puerta, F · Conversaciones) — piezas que comparten.
+   Las ACCIONES cambian los datos con las mismas reglas que la base (ADR-0239): lo que coincide entra
+   al instante y lo que no espera a un líder; anular solo si nadie empezó a contar.
+   ==================================================================== */
+M.yo = () => RESPONSABLE[M.sede];
+M.hechas = (() => { try { return +(sessionStorage.getItem(CLAVE + ':hechas') || 0); } catch (e) { return 0; } })();
+const sumarHecha = () => { M.hechas++; try { sessionStorage.setItem(CLAVE + ':hechas', M.hechas); } catch (e) {} };
+const reinicioOriginal = M.reiniciar;
+M.reiniciar = () => { reinicioOriginal(); M.hechas = 0; try { sessionStorage.removeItem(CLAVE + ':hechas'); } catch (e) {} };
+M.acc = {
+  contar(t, k, v) {
+    t.lineas[k].cont = Math.max(0, v);
+    if (!t.cuenta) { t.cuenta = M.yo(); t.inicioConteo = M.AHORA; }
+    M.guardar();
+  },
+  sumar(t, k, d) { M.acc.contar(t, k, (t.lineas[k].cont ?? 0) + d); },
+  todoContado: t => t.lineas.every(l => l.cont != null),
+  totalContado: t => t.lineas.reduce((a, l) => a + (l.cont ?? 0), 0),
+  /* devuelve true si quedó con diferencia */
+  confirmar(t, lugar) {
+    const dif = M.difiere(t);
+    t.lugar = lugar; t.recibio = M.yo(); t.confirmado = M.AHORA;
+    if (dif) t.estado = 'recibido_con_diferencia'; else { t.estado = 'cerrada'; t.cerrado = M.AHORA; sumarHecha(); }
+    M.guardar(); return dif;
+  },
+  cerrarDif(t, nota) { t.estado = 'cerrada'; t.notaCierre = nota; t.cerrado = M.AHORA; t.cerro = M.yo(); sumarHecha(); M.guardar(); },
+  anular(t, motivo) { t.estado = 'anulada'; t.anulado = M.AHORA; t.motivo = motivo; M.guardar(); },
+  enviarPedido(p) {
+    const num = Math.max(...M.TR.map(x => x.num)) + 1;
+    M.TR.push({ num, de:p.envia, a:p.pide, estado:'en_transito', salio:M.AHORA, eta:T(1,'12:00'), por:RESPONSABLE[p.envia],
+      nota: p.cliente ? 'Pedido para apartar a una cliente.' : 'Reposición pedida.', lineas:[{ ...p.linea, cont:null }], dePedido:p.id });
+    p.hecho = true; p.respuesta = 'enviado'; p.num = num; sumarHecha(); M.guardar(); return num;
+  },
+  noTengo(p) { p.hecho = true; p.respuesta = 'no'; p.respondido = M.AHORA; sumarHecha(); M.guardar(); },
+};
+/* La historia de una caja, en orden: lo que la base guarda y nada más (salida, inicio del conteo, confirmación, cierre, anulación) */
+M.eventos = t => {
+  const E = [{ k:'salio', cuando:t.salio, quien:t.por, sede:t.de }];
+  if (t.estado === 'anulada') { E.push({ k:'anulado', cuando:t.anulado, quien:t.por, sede:t.de }); return E; }
+  if (t.inicioConteo && !(t.confirmado && +t.confirmado === +t.inicioConteo)) E.push({ k:'conteo', cuando:t.inicioConteo, quien:t.cuenta, sede:t.a });
+  if (t.confirmado) E.push({ k: M.difiere(t) ? 'dif' : 'recibido', cuando:t.confirmado, quien:t.recibio, sede:t.a });
+  else if (t.estado === 'cerrada') E.push({ k:'recibido', cuando:t.cerrado, quien:t.recibio, sede:t.a });
+  if (t.estado === 'cerrada' && M.difiere(t)) E.push({ k:'cierre', cuando:t.cerrado, quien:t.cerro, sede:t.a });
+  return E;
+};
+/* El QR de la guía (ADR-0242 D-3): abre el conteo de ESA caja. Es papel: no se oscurece (ADR-0336). Dibujo de muestra, no se lee. */
+M.qr = (seed, px = 64) => {
+  const n = 21; let x = (seed * 7919) % 233280;
+  const rnd = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+  const esq = (r, c, m) => (r < m && c < m) || (r < m && c >= n - m) || (r >= n - m && c < m);
+  let q = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    let on;
+    if (esq(r, c, 7)) { const rr = r < 7 ? r : r - (n - 7), cc = c < 7 ? c : c - (n - 7), d = Math.max(Math.abs(rr - 3), Math.abs(cc - 3)); on = d !== 2; }
+    else if (esq(r, c, 8)) on = false;
+    else on = rnd() > 0.5;
+    if (on) q += `M${c} ${r}h1v1h-1z`;
+  }
+  return `<svg class="qr" data-papel viewBox="-1.5 -1.5 ${n + 3} ${n + 3}" width="${px}" height="${px}" aria-hidden="true"><rect x="-1.5" y="-1.5" width="${n + 3}" height="${n + 3}" rx="1.5" fill="var(--crema-fija)"/><path d="${q}" fill="var(--tinta-fija)"/></svg>`;
+};
+/* Letras que giran como en un tablero de aeropuerto y se quedan quietas (una vez) */
+M.flap = (e, final, ms = 420) => {
+  if (reducir()) { e.textContent = final; return; }
+  const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  e.innerHTML = [...final].map(ch => `<span class="fl">${ch}</span>`).join('');
+  const sp = [...e.children], t0 = performance.now();
+  const paso = () => {
+    const now = performance.now(); let vivo = false;
+    sp.forEach((x, i) => { if (now - t0 < ms + i * 120) { vivo = true; x.textContent = L[Math.floor(Math.random() * 26)]; x.classList.add('gira'); } else if (x.classList.contains('gira')) { x.textContent = final[i]; x.classList.remove('gira'); } });
+    if (vivo) setTimeout(paso, 60);
+  };
+  paso();
+};
+/* FLIP: un elemento parece venir desde donde estaba otro (rect de origen) */
+M.flip = (e, desde, ms = 560) => {
+  if (!desde || reducir()) return;
+  const a = e.getBoundingClientRect(); if (!a.width) return;
+  const dx = desde.left - a.left, dy = desde.top - a.top, sx = desde.width / a.width, sy = desde.height / a.height;
+  e.animate([{ transform:`translate(${dx}px,${dy}px) scale(${sx},${sy})`, transformOrigin:'0 0', opacity:.6 }, { transform:'none', transformOrigin:'0 0', opacity:1 }], { duration:ms, easing:'cubic-bezier(.32,.72,.24,1)' });
+};
+/* Una copia que vuela de un lugar a otro y desaparece (prendas que entran al almacén, una caja que se va) */
+M.volar = (nodo, haciaRect, { ms = 700, demora = 0, escala = .3 } = {}) => {
+  if (reducir()) return;
+  const host = $('.vista'), base = host.getBoundingClientRect(), r = nodo.getBoundingClientRect();
+  const c = nodo.cloneNode(true); c.classList.add('vuela');
+  Object.assign(c.style, { left:(r.left - base.left) + 'px', top:(r.top - base.top) + 'px', width:r.width + 'px', height:r.height + 'px', margin:0 });
+  host.appendChild(c);
+  const dx = haciaRect.left + haciaRect.width / 2 - (r.left + r.width / 2), dy = haciaRect.top + haciaRect.height / 2 - (r.top + r.height / 2);
+  c.animate([{ transform:'none', opacity:1 }, { transform:`translate(${dx}px,${dy}px) scale(${escala})`, opacity:0 }], { duration:ms, delay:demora, easing:'cubic-bezier(.32,.72,.24,1)', fill:'forwards' }).onfinish = () => c.remove();
+};
+M.hayPendientes = () => M.tareas().length;
+/* Pedidos que me tocan responder, y los ya respondidos (para la historia) */
+M.pedidosDe = (s = M.sede) => M.PEDIDOS.filter(p => p.envia === s || p.pide === s);
+
 /* ── Marco de la página: barra del demo + la app ──────────────────────────── */
 M.montar = ({ opcion, nombre, dibujar }) => {
   document.title = `Traslados · ${opcion} · ${nombre}`;
@@ -637,7 +737,7 @@ M.montar = ({ opcion, nombre, dibujar }) => {
       <div class="seg" role="group" aria-label="Tema"><button data-tema="claro" aria-pressed="${tema !== 'oscuro'}">${M.ic('sol')}</button><button data-tema="oscuro" aria-pressed="${tema === 'oscuro'}">${M.ic('luna')}</button></div>
       <button class="acc" id="repetir">${M.ic('repetir')}Repetir animaciones</button>
       <button class="acc" id="reiniciar">Volver a empezar</button>
-      <a class="acc" href="index.html">Las tres opciones</a>
+      <a class="acc" href="index.html">Todas las opciones</a>
     </div>
     <div class="escena"><div class="vista" data-modo="escritorio">
       <div class="app">

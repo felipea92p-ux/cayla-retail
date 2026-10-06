@@ -7,3 +7,11 @@ Movimientos (ADR-0353: sello, viaje, botones-cifra, cajón) para que los dos mó
 (ADR-0239 D-130): mientras la caja viene, la pantalla dice qué prendas trae, nunca cuántas.
 Felipe se lleva: abrir `index.html` (servidor `maquetas`, puerto 8791), elegir A, B, C o una mezcla, y decidir si Traslados
 recibe el movimiento rico de Movimientos; las cinco decisiones están al final del README de la carpeta.
+
+## 2026-10-06 (Traslados: segunda ronda de maquetas — Pases, La puerta, Conversaciones)
+Qué hice: tres maquetas nuevas en la misma carpeta, cada una sobre algo que la gente ya sabe usar: D · Pases (un pase de abordar
+TAL → TRU que se da vuelta para contar y recibe un sello), E · La puerta (la tienda dibujada con cajas 3D; se cuenta tocando
+cada prenda y se arrastra la caja al almacén o al piso) y F · Conversaciones (un chat por sede, como WhatsApp, con vistos).
+Por qué así: A, B y C seguían pidiendo leer o entender una leyenda; Felipe pidió más interactivas, entendibles y amigables. Cada
+nueva ordena los traslados distinto (urgencia, lugar, sede) y conserva el conteo a ciegas y lo de ADR-0239.
+Felipe se lleva: abrir `index.html` y elegir D, E, F o una mezcla; las cuatro decisiones de la segunda ronda están en el README.

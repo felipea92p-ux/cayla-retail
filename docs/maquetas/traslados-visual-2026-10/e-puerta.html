@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados · E · La puerta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN E · «LA PUERTA» — tu tienda dibujada y las cajas de verdad.
+   A la izquierda, por el camino, las que VIENEN (más cerca de la puerta = llegan antes); en la
+   puerta, las que ya deberían estar y las que se están contando; a la derecha, las que SALEN.
+   Tocas una caja: va a la mesa y se abre. Sacas y tocas cada prenda para contarla (a ciegas);
+   al terminar, arrastras la caja al almacén o al piso y las prendas entran solas.
+   ==================================================================== */
+:root{--carton:color-mix(in srgb,var(--taupe) 34%,var(--hueso))}
+
+/* ── La caja en 3D (CSS) ── */
+.caja{position:absolute;display:block;width:calc(var(--w) + var(--d) * .75);height:calc(var(--h) + var(--d) * .62);perspective:900px;cursor:pointer;background:none;border-radius:12px;transition:transform .35s var(--ease)}
+.caja-3d{position:absolute;left:50%;top:56%;width:var(--w);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--w) / -2);transform-style:preserve-3d;transform:rotateX(-24deg) rotateY(-36deg);transition:transform .45s var(--ease)}
+.caja:hover .caja-3d,.caja:focus-visible .caja-3d{transform:rotateX(-24deg) rotateY(-36deg) translateY(-7px)}
+.c-cara,.c-tapa,.c-sol{position:absolute;display:block}
+.c-frente{width:var(--w);height:var(--h);transform:translateZ(calc(var(--d) / 2));background:var(--carton)}
+.c-atras{width:var(--w);height:var(--h);transform:rotateY(180deg) translateZ(calc(var(--d) / 2));background:color-mix(in srgb,var(--carton) 50%,var(--sombra))}
+.c-der{width:var(--d);height:var(--h);left:calc((var(--w) - var(--d)) / 2);transform:rotateY(90deg) translateZ(calc(var(--w) / 2));background:color-mix(in srgb,var(--carton) 78%,var(--sombra))}
+.c-izq{width:var(--d);height:var(--h);left:calc((var(--w) - var(--d)) / 2);transform:rotateY(-90deg) translateZ(calc(var(--w) / 2));background:color-mix(in srgb,var(--carton) 55%,var(--sombra))}
+.c-fondo{width:var(--w);height:var(--d);top:calc((var(--h) - var(--d)) / 2);transform:rotateX(-90deg) translateZ(calc(var(--h) / 2));background:color-mix(in srgb,var(--carton) 45%,var(--sombra))}
+.c-tapa{width:var(--w);height:var(--d);top:calc((var(--h) - var(--d)) / 2);transform:rotateX(90deg) translateZ(calc(var(--h) / 2));transform-style:preserve-3d}
+.c-sol{left:0;width:var(--w);height:calc(var(--d) / 2);background:color-mix(in srgb,var(--carton) 88%,var(--papel));transition:transform .7s var(--ease)}
+.c-sol.atras{top:0;transform-origin:50% 0}
+.c-sol.frente{top:calc(var(--d) / 2);transform-origin:50% 100%}
+.c-sol.atras:after,.c-sol.frente:after{content:"";position:absolute;left:0;right:0;height:max(3px,calc(var(--d) * .09));background:color-mix(in srgb,var(--hueso) 70%,var(--papel));opacity:.9}
+.c-sol.atras:after{bottom:0}.c-sol.frente:after{top:0}
+.abierta .c-sol.atras{transform:rotateX(118deg)}
+.abierta .c-sol.frente{transform:rotateX(-118deg);transition-delay:.08s}
+/* la etiqueta pegada al frente: de dónde viene y el color de lo que te toca */
+/* la etiqueta es papel impreso: no se oscurece en el modo oscuro (ADR-0336, regla 3) */
+.etq-c{position:absolute;left:12%;top:22%;width:60%;height:46%;background:var(--crema-fija);border-radius:3px;display:flex;align-items:center;gap:6%;padding:0 7%;overflow:hidden}
+.etq-c i{position:absolute;left:0;top:0;bottom:0;width:10%;background:var(--c)}
+.etq-c b{font-family:var(--serif);font-weight:500;font-size:calc(var(--h) * .3);line-height:1;color:var(--tinta-fija);margin-left:10%;letter-spacing:.02em}
+.etq-c .mini-sello{position:absolute;right:4%;top:50%;transform:translateY(-50%) rotate(-10deg);font-size:calc(var(--h) * .11);font-weight:800;letter-spacing:.08em;border:1.5px solid var(--c);color:var(--c);border-radius:3px;padding:0 3px;line-height:1.5}
+.caja-sombra{position:absolute;left:12%;right:2%;bottom:2px;height:14px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--sombra) 28%,transparent),transparent);transition:transform .45s var(--ease),opacity .45s}
+.caja:hover .caja-sombra{transform:scale(.88);opacity:.7}
+.caja-tag{position:absolute;left:50%;top:-10px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--papel);color:var(--c);box-shadow:0 0 0 1px var(--c-ln);transition:transform .3s var(--ease)}
+.caja-tag.tarde{color:var(--ambar);box-shadow:0 0 0 1.5px var(--ambar)}
+.caja-tag.tarde:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ambar);margin-right:6px;vertical-align:1px;--c:var(--ambar);animation:late 1.1s 1s 3 var(--ease)}
+.caja:hover .caja-tag{transform:translateX(-50%) translateY(-4px)}
+.caja.on{outline:2px solid var(--c);outline-offset:4px}
+/* entrada: cada caja llega por su camino hasta su lugar (una vez) */
+.barrio.go .caja.entra{animation:caja-llega .9s var(--ease) both;animation-delay:calc(var(--k) * 90ms + 200ms)}
+@keyframes caja-llega{from{transform:translateX(var(--desde,-80px));opacity:0}to{transform:none;opacity:1}}
+
+/* ── La escena ── */
+.barrio{position:relative;margin-top:24px;height:330px;border-radius:26px;background:linear-gradient(var(--papel) 0 70%,var(--hueso) 70%);overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) 400px minmax(0,1fr)}
+.calle{position:absolute;left:0;right:0;bottom:22px;height:40px;background:color-mix(in srgb,var(--sand) 70%,var(--hueso))}
+.calle:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed color-mix(in srgb,var(--papel) 80%,transparent)}
+.zona{position:relative;z-index:1}
+.zona-t{position:absolute;top:16px;font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--t65);display:flex;align-items:center;gap:8px}
+.zona-t small{font-size:11px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--t50)}
+.vienen .zona-t{left:22px}.salen .zona-t{right:22px}
+.zona-t svg{width:15px;height:15px}
+.tienda svg.fachada{position:absolute;left:50px;bottom:22px;width:300px;height:282px}
+.fachada .linea{fill:none;stroke:var(--t35);stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.fachada .muro{fill:var(--papel);stroke:var(--t35);stroke-width:1.4}
+.fachada .toldo{fill:color-mix(in srgb,var(--taupe) 22%,var(--papel));stroke:var(--t35);stroke-width:1.2}
+.fachada .toldo-r{fill:color-mix(in srgb,var(--taupe) 40%,var(--papel))}
+.fachada .vidrio{fill:color-mix(in srgb,var(--pizarra) 8%,var(--papel));stroke:var(--t35);stroke-width:1.2}
+.fachada .dentro{fill:color-mix(in srgb,var(--hueso) 75%,var(--sombra))}
+.fachada .hoja{fill:color-mix(in srgb,var(--carton) 60%,var(--papel));stroke:var(--t35);stroke-width:1.2}
+.fachada .letrero{font-family:'EB Garamond',serif;font-size:19px;letter-spacing:.32em;fill:var(--tinta)}
+.fachada .vestido{fill:color-mix(in srgb,var(--rojo) 26%,var(--papel));stroke:var(--t35);stroke-width:1}
+.fachada .alfombra{fill:color-mix(in srgb,var(--taupe) 30%,var(--hueso))}
+.pedido-colgado{position:absolute;left:98px;top:108px;z-index:3;display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;cursor:pointer}
+.pedido-colgado .hilo-p{width:1.5px;height:20px;background:var(--t35)}
+.pedido-colgado .tarj{display:flex;align-items:center;gap:6px;background:var(--papel);border:1.5px solid var(--c-ln);border-radius:10px;padding:5px 8px 5px 5px;font-size:11px;font-weight:700;color:var(--c);box-shadow:0 8px 16px -10px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.barrio.go .pedido-colgado{animation:g-mece 1.6s .9s var(--ease) both}
+.vacio-z{position:absolute;bottom:80px;left:0;right:0;text-align:center;font-size:12px;color:var(--t50)}
+
+/* ── La mesa: donde se abre la caja ── */
+.mesa{margin-top:18px;border-radius:26px;background:var(--papel);border:1px solid var(--sand);padding:22px;min-height:300px;position:relative}
+.mesa-vacia{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px;align-items:start}
+.mesa-vacia .tareas.compactas{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.mesa-vacia h2{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1}
+.mesa-vacia p{color:var(--t65);margin-top:6px}
+.mesa-vacia .flecha-arriba{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;color:var(--taupe)}
+.mesa-vacia .flecha-arriba svg{transform:rotate(-90deg)}
+.trabajo{display:grid;grid-template-columns:260px minmax(0,1fr);gap:26px;align-items:start}
+.lado-caja{position:relative;display:grid;justify-items:center;gap:10px;padding-top:10px}
+.lado-caja .caja{position:relative;--w:170px;--h:122px;--d:122px;cursor:grab}
+.lado-caja .caja.arrastrable{animation:pide 1.6s .6s 1 var(--ease)}
+@keyframes pide{0%,100%{transform:none}50%{transform:translateY(-6px)}}
+.lado-caja .titulo{text-align:center}
+.lado-caja .titulo b{display:block;font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.1}
+.lado-caja .titulo span{font-size:12.5px;color:var(--t65)}
+.lado-caja .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.dejar{font-size:12.5px;font-weight:600;color:var(--taupe);text-decoration:underline;text-underline-offset:3px}
+.cab-trabajo{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.cab-trabajo h3{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.1}
+.cab-trabajo p{font-size:13px;color:var(--t65);margin-top:2px}
+.contador-g{text-align:right}
+.contador-g b{font-family:var(--serif);font-weight:400;font-size:44px;line-height:.9;display:block}
+.contador-g small{font-size:11.5px;color:var(--t65)}
+
+/* fichas de prenda: tocar = una más; se dan vuelta al terminar */
+.fichas{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:12px}
+.ficha{position:relative;height:168px;perspective:900px;text-align:center;border-radius:18px}
+.f-in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .7s var(--ease);transition-delay:calc(var(--k) * 90ms)}
+.ficha.vuelta .f-in{transform:rotateY(180deg)}
+.f-cara{position:absolute;inset:0;border-radius:18px;background:var(--papel);border:1.5px solid var(--sand);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;-webkit-backface-visibility:hidden;backface-visibility:hidden;transition:border-color .2s,background .2s}
+.ficha:not(.vuelta):hover .f-frente{border-color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 5%,var(--papel))}
+.ficha:active .f-frente{transform:scale(.97)}
+.f-frente b{font-size:12.5px;font-weight:600;line-height:1.2}
+.f-frente small{font-size:11px;color:var(--t65)}
+.f-n{position:absolute;right:10px;top:8px;font-family:var(--serif);font-size:26px;line-height:1;color:var(--pizarra)}
+.f-n.sin{color:var(--t35)}
+.f-n.salta{animation:salta .3s var(--ease)}
+.f-atras{transform:rotateY(180deg);gap:2px}
+.f-quien{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--t80);margin-bottom:4px}
+.pie-trabajo .aviso-c svg.gl{width:18px;height:18px;flex:none;color:var(--pizarra)}
+.f-atras small{font-size:11px;color:var(--t65);letter-spacing:.04em}
+.f-atras b{font-family:var(--serif);font-weight:400;font-size:36px;line-height:1}
+.f-atras .mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--papel)}
+.f-atras .mk svg{width:14px;height:14px;stroke-width:2.6}
+.f-atras.ok{border-color:color-mix(in srgb,var(--verde) 45%,var(--sand))}
+.f-atras.ok .mk{background:var(--verde)}
+.f-atras.no{border-color:var(--ambar);background:color-mix(in srgb,var(--ambar) 8%,var(--papel))}
+.f-atras.no .mk{background:var(--ambar)}
+.f-menos{position:absolute;left:8px;top:8px;z-index:2;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--hueso);color:var(--t80);opacity:0;transition:opacity .2s}
+.ficha:hover .f-menos,.ficha:focus-within .f-menos{opacity:1}
+.ficha.vuelta .f-menos{display:none}
+.mas-uno{position:absolute;right:14px;top:30px;font-family:var(--serif);font-size:20px;color:var(--pizarra);pointer-events:none;animation:sube-uno .6s var(--ease) forwards}
+@keyframes sube-uno{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-22px)}}
+.ficha.sale{opacity:0;transform:translateY(16px) scale(.9)}
+.ficha.entra{transition:opacity .45s var(--ease),transform .5s var(--ease);transition-delay:calc(var(--k) * 70ms)}
+.pie-trabajo{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.pie-trabajo .btn{padding:12px 18px;border-radius:12px;font-size:14px}
+.pie-trabajo .aviso-c{margin-right:auto;font-size:12.5px;color:var(--t65);display:flex;align-items:center;gap:8px}
+
+/* ¿Dónde la dejas? — se arrastra la caja o se toca uno */
+.destinos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.destino{position:relative;display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:20px;border:2px dashed var(--sand);background:var(--papel);text-align:left;transition:border-color .25s,background .25s,transform .3s var(--ease)}
+.destino:hover,.destino.encima{border-color:var(--verde);border-style:solid;background:color-mix(in srgb,var(--verde) 7%,var(--papel));transform:translateY(-2px)}
+.destino svg.dib{width:74px;height:62px;flex:none}
+.destino .dib *{fill:none;stroke:var(--t65);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.destino b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.1}
+.destino span{font-size:12.5px;color:var(--t65)}
+.fantasma{position:absolute;z-index:90;pointer-events:none;transform:translate(-50%,-50%) scale(.6);opacity:.92;filter:drop-shadow(0 18px 24px color-mix(in srgb,var(--sombra) 35%,transparent))}
+
+/* La etiqueta de envío (lo que enviaste) */
+.guia{border:1.5px solid var(--sand);border-radius:18px;overflow:hidden;background:var(--papel)}
+.guia-cab{display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;gap:16px;padding:16px 18px;border-bottom:1.5px dashed var(--sand)}
+.guia-cab small{display:block;font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--t50)}
+.guia-cab b{font-family:var(--serif);font-weight:400;font-size:40px;line-height:1}
+.guia-cab span{font-size:12px;color:var(--t65)}
+.guia-cab .flecha{color:var(--t35)}
+.guia-cuerpo{padding:14px 18px}
+
+/* El estante: lo guardado esta semana */
+.estante{margin-top:18px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:16px 18px 10px;border-radius:22px;background:var(--papel);border:1px solid var(--sand);position:relative}
+.estante h3{width:100%;font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--t65);margin-bottom:2px}
+.estante .tabla-e{position:absolute;left:18px;right:18px;bottom:30px;height:6px;border-radius:3px;background:var(--sand)}
+.guardada{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1}
+.guardada .caja{position:relative;--w:56px;--h:40px;--d:40px}
+.guardada small{font-size:11px;font-weight:600;color:var(--t65)}
+
+.barrio-wrap{position:relative}
+.pista{display:none;position:absolute;top:50%;z-index:4;align-items:center;gap:4px;padding:6px 10px;border-radius:99px;background:var(--papel);border:1px solid var(--sand);font-size:11.5px;font-weight:700;color:var(--t80);box-shadow:0 6px 14px -10px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.pista.izq{left:-6px}.pista.izq svg{transform:rotate(180deg)}
+.pista.der{right:-6px}
+@container vista (max-width:900px){
+  .trabajo{grid-template-columns:1fr}
+  .mesa-vacia{grid-template-columns:1fr}
+}
+@container vista (max-width:760px){
+  .pista{display:inline-flex}
+  .barrio-scroll{overflow-x:auto;scroll-snap-type:x proximity;margin:18px -16px 0;padding:0 16px;scrollbar-width:none}
+  .barrio-scroll::-webkit-scrollbar{display:none}
+  .barrio{width:900px;margin-top:0}
+  .barrio .tienda{scroll-snap-align:center}
+  .mesa{padding:16px}
+  .lado-caja .caja{--w:130px;--h:94px;--d:94px}
+  .fichas{grid-template-columns:1fr 1fr}
+  .destinos{grid-template-columns:1fr}
+  .guia-cab b{font-size:30px}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+const est = { sel:null, revelado:false, anulando:false };
+const H = 3600e3;
+const clsDe = t => { const sit = M.situacion(t); return sit === 'llega' && M.atrasado(t) ? 'atraso' : sit === 'camino' ? 'sale' : sit; };
+const tagDe = t => {
+  const sit = M.situacion(t);
+  if (sit === 'contando') return [`${M.contadas(t)}/${t.lineas.length} contadas`, ''];
+  if (sit === 'revisar') return [`faltó ${M.faltan(t) || M.sobran(t)}`, ''];
+  if (M.atrasado(t)) return [`${M.dur((M.AHORA - t.eta) / 6e4)} tarde`, 'tarde'];
+  return [`${M.hora(t.eta)} ${M.dia(t.eta) === 'hoy' ? '' : M.dia(t.eta)}`.trim(), ''];
+};
+/* la caja en 3D. tamaño: --w --h --d */
+const caja = (t, { w = 70, h = 50, d = 50, tag = true, abierta = false, k = 0, extra = '', sello = '' } = {}) => {
+  const cls = clsDe(t), [txt, tcls] = tagDe(t);
+  return `<button class="caja s-${cls} ${abierta ? 'abierta' : ''} ${extra}" data-caja="${t.num}" style="--w:${w}px;--h:${h}px;--d:${d}px;--k:${k}" aria-label="Caja Nº ${t.num} ${M.SEDES[t.de].del}">
+    <span class="caja-sombra"></span>
+    <span class="caja-3d"><span class="c-cara c-atras"></span><span class="c-cara c-izq"></span><span class="c-cara c-fondo"></span>
+      <span class="c-cara c-frente"><span class="etq-c" data-papel><i></i><b>${M.SEDES[t.a === M.sede ? t.de : t.a].cod}</b>${sello ? `<span class="mini-sello">${sello}</span>` : ''}</span></span>
+      <span class="c-cara c-der"></span>
+      <span class="c-tapa"><span class="c-sol atras"></span><span class="c-sol frente"></span></span></span>
+    ${tag ? `<span class="caja-tag ${tcls}">${txt}</span>` : ''}</button>`;
+};
+const dibAlmacen = '<svg class="dib" viewBox="0 0 74 62"><path d="M6 58V8h62v50M6 24h62M6 41h62"/><rect x="12" y="12" width="14" height="10"/><rect x="30" y="14" width="12" height="8"/><rect x="14" y="29" width="16" height="10"/><rect x="46" y="44" width="14" height="12"/></svg>';
+const dibPiso = '<svg class="dib" viewBox="0 0 74 62"><path d="M8 8h58M16 8v50M58 8v50"/><path d="M26 8v6a3 3 0 1 1-3 3"/><path d="M26 17 18 24v20h16V24Z"/><path d="M44 8v6a3 3 0 1 1-3 3"/><path d="M44 17 36 24v22h16V24Z"/></svg>';
+
+M.montar({ opcion:'E', nombre:'La puerta', dibujar(raiz){
+  const s = M.sede, mios = M.mios(s);
+  const vienen = mios.filter(t => t.a === s && t.estado === 'en_transito' && !M.empezoConteo(t) && !M.atrasado(t));
+  const puerta = mios.filter(t => t.a === s && ((t.estado === 'en_transito' && (M.empezoConteo(t) || M.atrasado(t))) || t.estado === 'recibido_con_diferencia'));
+  const salen = mios.filter(t => t.de === s && (t.estado === 'en_transito' || t.estado === 'recibido_con_diferencia'));
+  const guardadas = M.ordenar(mios.filter(t => !M.abierto(t)));
+  const pedidos = M.PEDIDOS.filter(p => p.envia === s && !p.hecho);
+  if (est.sel && !String(est.sel).startsWith('p') && !M.porNumero(+est.sel)) est.sel = null;
+
+  raiz.innerHTML = M.encabezado({ frase:'Lo que viene, lo que está en tu puerta y lo que sale.' }) + `
+    <div class="barrio-wrap" data-propio>
+    <button class="pista izq" data-ir-a="0" aria-label="Ver lo que viene">${M.ic('flecha')}${vienen.length} ${vienen.length === 1 ? 'viene' : 'vienen'}</button>
+    <button class="pista der" data-ir-a="1" aria-label="Ver lo que sale">${salen.length} ${salen.length === 1 ? 'sale' : 'salen'}${M.ic('flecha')}</button>
+    <div class="barrio-scroll"><section class="barrio rev" id="barrio" data-go>
+      <div class="calle"></div>
+      <div class="zona vienen"><span class="zona-t">Vienen ${M.ic('flecha')} <small>más cerca, llega antes</small></span></div>
+      <div class="zona tienda">
+        <svg class="fachada" viewBox="0 0 300 282" aria-hidden="true">
+          <text class="letrero" x="150" y="34" text-anchor="middle">CAYLA</text>
+          <path class="muro" d="M22 282V62h256v220"/>
+          <path class="toldo" d="M10 62h280v24c-10 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0-8 12-20 12-28 0z"/>
+          <path class="toldo-r" d="M38 62h28v24c-8 12-20 12-28 0zM94 62h28v24c-8 12-20 12-28 0zM150 62h28v24c-8 12-20 12-28 0zM206 62h28v24c-8 12-20 12-28 0zM262 62h28v24c-8 12-20 12-28 0z"/>
+          <rect class="vidrio" x="40" y="112" width="92" height="118" rx="4"/>
+          <path class="linea" d="M54 126h64"/><path class="linea" d="M86 126v8a4 4 0 1 1-4 4"/><path class="vestido" d="M78 146h16l3 10 9 50H66l9-50z"/>
+          <path class="dentro" d="M168 282V112h84v170z"/>
+          <path class="hoja" d="M168 112l26 10v152l-26 8z"/>
+          <path class="linea" d="M168 282V112h84v170"/><circle cx="188" cy="200" r="2.4" fill="var(--t50)"/>
+          <path class="alfombra" d="M150 272h120l6 10H144z"/>
+        </svg>
+        ${pedidos.map((p, i) => `<button class="pedido-colgado s-pedido" data-pedido="${p.id}" style="left:${98 + i * 84}px" aria-label="${M.SEDES[p.pide].corto} te pide una prenda"><span class="hilo-p"></span><span class="tarj">${M.mos(p.linea, 24)}${M.SEDES[p.pide].corto} te pide</span></button>`).join('')}
+      </div>
+      <div class="zona salen"><span class="zona-t"><small>se van a otras sedes</small> Salen ${M.ic('flecha')}</span></div>
+    </section></div></div>
+    <section class="mesa" id="mesa" data-propio></section>
+    ${guardadas.length ? `<section class="estante rev" id="estante" data-propio><h3>Guardadas esta semana</h3><span class="tabla-e"></span>${guardadas.map(t => { const sit = M.situacion(t); return `<div class="guardada">${caja(t, { w:56, h:40, d:40, tag:false, sello: sit === 'cerrado' ? '✓' : sit === 'dif' ? '−' : '↺' })}<small>Nº ${t.num}</small></div>`; }).join('')}</section>` : ''}`;
+
+  /* ── poner cada caja en su lugar del camino ── */
+  const escena = M.$('#barrio', raiz), zV = M.$('.vienen', escena), zT = M.$('.tienda', escena), zS = M.$('.salen', escena);
+  const ancho = z => z.offsetWidth || 300;
+  let k = 0;
+  const colocar = (zona, t, x, y, desde) => {
+    const tmp = M.el('div', null, caja(t, { k:k++, extra:'entra' })); const b = tmp.firstElementChild;
+    b.style.left = x + 'px'; b.style.bottom = y + 'px'; b.style.setProperty('--desde', desde + 'px');
+    if (String(est.sel) === String(t.num)) b.classList.add('on');
+    zona.append(b);
+  };
+  const wV = ancho(zV), wS = ancho(zS), filaV = [], filaS = [];
+  /* VIENEN: más cerca de la puerta = llega antes (escala logarítmica: 1 h y 30 h se distinguen) */
+  vienen.sort((a, b) => a.eta - b.eta).forEach(t => {
+    const r = Math.max(0, (t.eta - M.AHORA) / H), f = Math.log1p(r) / Math.log1p(48);
+    let x = Math.max(10, wV - 100 - f * (wV - 130)), y = 40;
+    while (filaV.some(o => Math.abs(o.x - x) < 84 && o.y === y)) y += 56;
+    filaV.push({ x, y }); colocar(zV, t, x, y, -120);
+  });
+  /* EN TU PUERTA: las atrasadas, las que se están contando y las que esperan revisión */
+  const LUGAR_PUERTA = [[22, 30], [140, 30], [258, 30], [140, 86]];
+  puerta.forEach((t, i) => { const [x, y] = LUGAR_PUERTA[i % 4]; colocar(zT, t, x, y, -60); });
+  /* SALEN: se alejan a medida que avanzan */
+  salen.sort((a, b) => M.progreso(b) - M.progreso(a)).forEach(t => {
+    let x = 20 + M.progreso(t) * (wS - 140), y = 40;
+    while (filaS.some(o => Math.abs(o.x - x) < 84 && o.y === y)) y += 56;
+    filaS.push({ x, y }); colocar(zS, t, x, y, -80);
+  });
+  if (!vienen.length) zV.insertAdjacentHTML('beforeend', '<div class="vacio-z">Nada en camino hacia aquí</div>');
+  if (!salen.length) zS.insertAdjacentHTML('beforeend', '<div class="vacio-z">No enviaste nada que siga en camino</div>');
+  /* en celular, la escena se desliza: empieza mirando la puerta */
+  const sc = M.$('.barrio-scroll', raiz);
+  requestAnimationFrame(() => { if (sc.scrollWidth > sc.clientWidth) sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; });
+  M.$$('[data-ir-a]', raiz).forEach(b => b.onclick = () => sc.scrollTo({ left: +b.dataset.irA ? sc.scrollWidth : 0, behavior: M.reducir() ? 'auto' : 'smooth' }));
+
+  M.$$('.caja[data-caja]', raiz).forEach(b => b.onclick = e => { e.stopPropagation(); elegir(+b.dataset.caja, b); });
+  M.$$('[data-pedido]', raiz).forEach(b => b.onclick = () => elegirPedido(b.dataset.pedido));
+
+  /* ── la mesa ── */
+  const mesa = M.$('#mesa', raiz);
+  function mesaVacia() {
+    const tareas = M.tareas(s);
+    mesa.innerHTML = `<div class="mesa-vacia">
+      <div><h2>${tareas.length ? 'Toca una caja para abrirla' : 'Todo al día en ' + M.SEDES[s].corto}</h2>
+        <p>${tareas.length ? 'Se abre aquí, en la mesa. Cuentas sacando cada prenda y la guardas donde va.' : 'Cuando venga una caja, la verás llegar por el camino.'}</p>
+        ${tareas.length ? `<span class="flecha-arriba">${M.ic('flecha')} o empieza por lo de hoy</span>` : ''}</div>
+      ${tareas.length ? `<div class="tareas compactas">${tareas.map((x, i) => M.tareaHTML(x, i)).join('')}</div>` : ''}</div>`;
+    M.$$('.tarea', mesa).forEach(b => b.classList.add('in'));
+    M.$$('.tarea [data-go], .tarea .sello', mesa).forEach(e => e.classList.add('go'));
+    M.$$('.tarea[data-num]', mesa).forEach(b => b.onclick = () => elegir(+b.dataset.num, M.$(`.barrio .caja[data-caja="${b.dataset.num}"]`)));
+    M.$$('.tarea[data-pedido]', mesa).forEach(b => b.onclick = () => elegirPedido(b.dataset.pedido));
+  }
+
+  function elegir(num, desdeEl) {
+    const t = M.porNumero(num); if (!t) return;
+    const cambio = String(est.sel) !== String(num);
+    est.sel = num; if (cambio) { est.revelado = false; est.anulando = false; }
+    M.$$('.barrio .caja', raiz).forEach(b => b.classList.toggle('on', +b.dataset.caja === num));
+    pintarMesa(t, desdeEl ? desdeEl.getBoundingClientRect() : null);
+    if (cambio) mesa.scrollIntoView({ block:'nearest', behavior: M.reducir() ? 'auto' : 'smooth' });
+  }
+  function fichasHTML(t, modo) {
+    return t.lineas.map((l, i) => {
+      const ok = (l.cont ?? 0) === l.n;
+      const frente = `<span class="f-cara f-frente">${M.mos(l, 58)}<b>${M.nombrePrenda(l)}</b><small>${M.detallePrenda(l)}</small>${modo === 'ver' ? `<span class="f-n num">${l.n}</span>` : `<span class="f-n num ${l.cont == null ? 'sin' : ''}">${l.cont ?? '—'}</span>`}</span>`;
+      const atras = `<span class="f-cara f-atras ${ok ? 'ok' : 'no'}"><span class="f-quien">${M.mos(l, 24)}<span>${M.PRENDAS[l.p].n.split(' ')[0]} · ${l.t}</span></span><small>enviaste</small><b class="num">${l.n}</b><span class="mk">${M.ic(ok ? 'check' : 'menos')}</span><small>${ok ? 'llegaron todas' : (l.cont ?? 0) < l.n ? `faltó ${l.n - (l.cont ?? 0)}` : `sobró ${(l.cont ?? 0) - l.n}`}</small></span>`;
+      return `<button class="ficha ${modo === 'comparar' ? 'vuelta' : ''}" data-k="${i}" style="--k:${i}" ${modo === 'contar' ? `aria-label="${M.nombrePrenda(l)} ${M.detallePrenda(l)}: una más"` : 'tabindex="-1"'}>
+        <span class="f-in">${frente}${atras}</span>${modo === 'contar' ? `<span class="f-menos" data-menos role="button" aria-label="Una menos">${M.ic('menos')}</span>` : ''}</button>`;
+    }).join('');
+  }
+
+  function pintarMesa(t, desdeRect) {
+    const sit = M.situacion(t), de = M.SEDES[t.de], a = M.SEDES[t.a];
+    const contar = t.a === s && t.estado === 'en_transito';
+    const lado = (abierta, sello = '') => `<div class="lado-caja">${caja(t, { w:170, h:122, d:122, tag:false, abierta, sello })}
+      <div class="titulo"><b>Caja Nº ${t.num}</b><span>${t.a === s ? de.del : 'para ' + a.n} · salió ${M.cuando(t.salio)}</span></div>
+      <div class="chips">${M.atrasado(t) ? `<span class="chip s-atraso late">debía llegar ${M.hora(t.eta)}</span>` : M.empezoConteo(t) && t.a === s ? `<span class="chip s-contando">contando</span>` : t.estado === 'en_transito' ? `<span class="chip s-${clsDe(t)}">llega ${M.cuando(t.eta)}</span>` : ''}${t.nota ? `<span class="chip s-camino" title="${t.nota}">nota de ${M.persona(t.por)}</span>` : ''}</div>
+      <button class="dejar" data-dejar>Dejar la caja</button></div>`;
+    let html = '';
+    if (contar) {
+      const total = M.acc.totalContado(t), listas = M.acc.todoContado(t), faltan = t.lineas.filter(l => l.cont == null).length;
+      html = `<div class="trabajo">${lado(true)}<div>
+        <div class="cab-trabajo"><div><h3>${est.revelado ? (M.difiere(t) ? 'Revisa lo marcado' : 'Todo coincide') : 'Saca y toca cada prenda'}</h3>
+          <p>${est.revelado ? 'Ahora sí ves lo que se envió.' : 'Una vez por cada prenda que sacas. Lo enviado aparece al terminar.'}</p></div>
+          <div class="contador-g"><b class="num" id="total">${total}</b><small>${total === 1 ? 'prenda contada' : 'prendas contadas'}</small></div></div>
+        <div class="fichas" id="fichas">${fichasHTML(t, est.revelado ? 'comparar' : 'contar')}</div>
+        ${est.revelado ? `<div class="destinos" id="destinos">
+            <button class="destino" data-lugar="almacen">${dibAlmacen}<span><b>Al almacén</b><span>Arrastra la caja aquí o toca</span></span></button>
+            <button class="destino" data-lugar="piso">${dibPiso}<span><b>Al piso</b><span>Para venderlas hoy</span></span></button></div>
+            <div class="pie-trabajo"><button class="btn" data-recontar>Volver a contar</button></div>`
+          : `<div class="pie-trabajo"><span class="aviso-c">${M.glifo('ciega').replace('class="gl', 'class="gl ic')}Cuentas sin saber cuántas vienen</span>
+              <button class="btn" data-escanear>${M.glifo('escanear')}Escanear</button>
+              <button class="btn pri" data-termine ${listas ? '' : 'disabled'}>${listas ? 'Terminé de contar' : faltan === 1 ? 'Falta 1 prenda por tocar' : `Faltan ${faltan} prendas por tocar`}</button></div>`}
+      </div></div>`;
+    } else if (sit === 'revisar' || sit === 'dif' || sit === 'cerrado') {
+      const puede = sit === 'revisar' && t.a === s;
+      html = `<div class="trabajo">${lado(sit === 'revisar', sit === 'cerrado' ? '✓' : sit === 'dif' ? '−' : '')}<div>
+        <div class="cab-trabajo"><div><h3>${sit === 'revisar' ? (t.a === s ? (M.faltan(t) ? `Faltó ${M.faltan(t)} ${M.faltan(t) === 1 ? 'prenda' : 'prendas'}` : `Sobró ${M.sobran(t)}`) : `Con diferencia en ${a.corto}`) : sit === 'dif' ? 'Cerrada con nota' : 'Llegó completa'}</h3>
+          <p>${sit === 'revisar' ? 'Lo que coincidió ya está en el stock.' : `${M.persona(t.recibio)} la recibió ${M.cuando(t.confirmado || t.cerrado)}.`}</p></div>
+          <div class="contador-g"><b class="num">${M.acc.totalContado(t)}</b><small>de ${M.unidades(t)} llegaron</small></div></div>
+        <div class="fichas">${fichasHTML(t, 'comparar')}</div>
+        ${sit === 'dif' ? `<div class="nota-op" style="margin-top:14px">“${t.notaCierre}”<cite>${M.persona(t.cerro)}</cite></div>` : ''}
+        ${puede ? `<div style="margin-top:14px"><label class="lbl" for="nota-e">¿Qué pasó con lo que falta?</label><textarea id="nota-e" class="campo-nota" data-nota placeholder="Ej. La falda no vino en la caja; Lima la va a buscar" style="margin-top:6px"></textarea></div>
+          <div class="pie-trabajo"><button class="btn pri" data-cerrar disabled>Cerrar con diferencia</button></div>` : ''}
+      </div></div>`;
+    } else if (sit === 'anulado') {
+      html = `<div class="trabajo">${lado(false, '↺')}<div><div class="cab-trabajo"><div><h3>Se anuló</h3><p>${M.cuando(t.anulado)} · todo volvió a ${de.corto}.</p></div></div>
+        <div class="nota-op">“${t.motivo}”<cite>${M.persona(t.por)}</cite></div><div class="fichas" style="margin-top:14px">${fichasHTML(t, 'ver')}</div></div></div>`;
+    } else {
+      /* lo que enviaste: la etiqueta de envío */
+      const puedeAnular = t.de === s && !M.empezoConteo(t);
+      html = `<div class="trabajo">${lado(false)}<div>
+        <div class="guia"><div class="guia-cab"><div><small>DE</small><b>${de.cod}</b><span>${de.n}</span></div><span class="flecha">${M.ic('flecha')}</span><div><small>PARA</small><b>${a.cod}</b><span>${a.n}</span></div>${M.qr(t.num, 74)}</div>
+          <div class="guia-cuerpo"><div class="cab-trabajo" style="margin-bottom:10px"><div><h3 style="font-size:21px">${sit === 'contando' ? `${a.corto} la está contando` : M.atrasado(t) ? `Debía llegar ${M.cuando(t.eta)}` : `Llega ${M.cuando(t.eta)}`}</h3><p>${M.unidades(t)} prendas · Nº ${t.num}</p></div></div>
+            <div class="fichas">${fichasHTML(t, 'ver')}</div>
+            ${est.anulando ? `<div style="margin-top:14px"><label class="lbl" for="mot-e">¿Por qué la anulas?</label><textarea id="mot-e" class="campo-nota" data-motivo placeholder="Ej. La caja no salió: se armó con la talla equivocada" style="margin-top:6px"></textarea></div>` : ''}</div></div>
+        <div class="pie-trabajo">${est.anulando ? `<button class="btn" data-no-anular>No anular</button><button class="btn pri" data-anular-si disabled>Anular · vuelve a tu almacén</button>`
+          : `<button class="btn" data-no="la guía con QR (ADR-0242 D-3)">${M.ic('imprimir')}Guía</button><button class="btn" data-no="el mensaje para la otra sede (ADR-0242 D-3)">${M.ic('msj')}WhatsApp</button>${puedeAnular ? '<button class="btn" data-anular>Anular</button>' : ''}`}</div></div></div>`;
+    }
+    mesa.innerHTML = html;
+    const cajaMesa = M.$('.lado-caja .caja', mesa);
+    if (desdeRect) M.flip(cajaMesa, desdeRect, 620);
+    /* la caja se abre y las prendas suben desde adentro */
+    if (contar && !est.revelado) {
+      cajaMesa.classList.remove('abierta');
+      setTimeout(() => cajaMesa.classList.add('abierta'), M.reducir() ? 0 : (desdeRect ? 560 : 120));
+      if (desdeRect && !M.reducir()) {
+        const fichas = M.$$('.ficha', mesa), c = cajaMesa.getBoundingClientRect();
+        fichas.forEach((f, i) => {
+          const r = f.getBoundingClientRect();
+          f.animate([{ transform:`translate(${c.left + c.width / 2 - r.left - r.width / 2}px,${c.top + c.height * .3 - r.top - r.height / 2}px) scale(.25)`, opacity:0 }, { transform:'none', opacity:1 }],
+            { duration:650, delay:900 + i * 90, easing:'cubic-bezier(.32,.72,.24,1)', fill:'backwards' });
+        });
+      }
+    }
+    if (est.revelado) setTimeout(() => M.$$('.ficha', mesa).forEach(f => f.classList.add('vuelta')), 60);
+    conectarMesa(t);
+  }
+
+  function conectarMesa(t) {
+    M.$$('[data-no]', mesa).forEach(b => b.onclick = () => M.noEnMaqueta(b.dataset.no));
+    M.$('[data-dejar]', mesa).onclick = () => { est.sel = null; M.$$('.barrio .caja', raiz).forEach(b => b.classList.remove('on')); mesaVacia(); };
+    /* tocar una ficha = una prenda más */
+    M.$$('.ficha[data-k]', mesa).forEach(f => {
+      if (est.revelado || !(t.a === s && t.estado === 'en_transito')) return;
+      const k = +f.dataset.k;
+      const poner = (d, e) => {
+        e && e.stopPropagation();
+        const antes = M.acc.todoContado(t);
+        if (d < 0 && t.lineas[k].cont == null) M.acc.contar(t, k, 0); else M.acc.sumar(t, k, d);
+        const n = M.$('.f-n', f); n.textContent = t.lineas[k].cont; n.classList.remove('sin', 'salta'); void n.offsetWidth; n.classList.add('salta');
+        if (d > 0 && !M.reducir()) { const u = M.el('span', 'mas-uno num', '+1'); f.append(u); setTimeout(() => u.remove(), 650); }
+        M.$('#total', mesa).textContent = M.acc.totalContado(t);
+        if (antes !== M.acc.todoContado(t) || !antes) { const b = M.$('[data-termine]', mesa); const faltan = t.lineas.filter(l => l.cont == null).length;
+          b.disabled = faltan > 0; b.textContent = faltan ? (faltan === 1 ? 'Falta 1 prenda por tocar' : `Faltan ${faltan} prendas por tocar`) : 'Terminé de contar'; }
+        actualizarEscena(t);
+      };
+      f.onclick = e => poner(1, e);
+      f.onkeydown = e => { if (e.key === 'Backspace' || e.key === '-') { e.preventDefault(); poner(-1, e); } };
+      M.$('[data-menos]', f).onclick = e => poner(-1, e);
+    });
+    const esc = M.$('[data-escanear]', mesa);
+    if (esc) esc.onclick = () => {
+      const k = t.lineas.findIndex(l => (l.cont ?? 0) < l.n), f = M.$$('.ficha[data-k]', mesa)[k < 0 ? 0 : k];
+      f.click(); f.scrollIntoView({ block:'nearest', behavior:'smooth' });
+      f.animate && f.animate([{ boxShadow:'0 0 0 3px color-mix(in srgb,var(--pizarra) 45%,transparent)' }, { boxShadow:'0 0 0 0 transparent' }], { duration:700 });
+    };
+    const term = M.$('[data-termine]', mesa);
+    if (term) term.onclick = () => { est.revelado = true; pintarMesa(t); };
+    const rec = M.$('[data-recontar]', mesa); if (rec) rec.onclick = () => { est.revelado = false; pintarMesa(t); M.$('.lado-caja .caja', mesa).classList.add('abierta'); };
+    /* ¿dónde la dejas? tocar o arrastrar la caja */
+    M.$$('[data-lugar]', mesa).forEach(b => b.onclick = () => guardar(t, b.dataset.lugar, b));
+    const cajaMesa = M.$('.lado-caja .caja', mesa);
+    if (est.revelado && cajaMesa) {
+      cajaMesa.classList.add('arrastrable');
+      cajaMesa.onpointerdown = e => arrastrar(e, t, cajaMesa);
+    }
+    const nota = M.$('[data-nota]', mesa), cerrar = M.$('[data-cerrar]', mesa);
+    if (nota) nota.oninput = () => { cerrar.disabled = nota.value.trim().length < 6; };
+    if (cerrar) cerrar.onclick = () => { M.acc.cerrarDif(t, nota.value.trim()); terminar(t, `Traslado ${t.num} cerrado con su nota.`); };
+    const an = M.$('[data-anular]', mesa); if (an) an.onclick = () => { est.anulando = true; pintarMesa(t); M.$('[data-motivo]', mesa)?.focus(); };
+    const noAn = M.$('[data-no-anular]', mesa); if (noAn) noAn.onclick = () => { est.anulando = false; pintarMesa(t); };
+    const mot = M.$('[data-motivo]', mesa), si = M.$('[data-anular-si]', mesa);
+    if (mot) mot.oninput = () => { si.disabled = mot.value.trim().length < 6; };
+    if (si) si.onclick = () => { M.acc.anular(t, mot.value.trim()); terminar(t, `Traslado ${t.num} anulado: las prendas volvieron a tu almacén.`); };
+  }
+  /* la caja de la escena cambia su etiqueta mientras cuentas (2/3 contadas) y se mueve a la puerta */
+  function actualizarEscena(t) {
+    const b = M.$(`.barrio .caja[data-caja="${t.num}"]`, raiz); if (!b) return;
+    const [txt] = tagDe(t), tag = M.$('.caja-tag', b); if (tag) { tag.textContent = txt; tag.className = 'caja-tag'; }
+    b.className = b.className.replace(/\bs-\w+/, 's-' + clsDe(t));
+  }
+  /* arrastrar la caja hasta un destino */
+  function arrastrar(e, t, cajaMesa) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const host = M.$('.vista'), base = host.getBoundingClientRect();
+    const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const fant = cajaMesa.cloneNode(true); fant.classList.add('fantasma'); fant.classList.remove('arrastrable');
+    host.append(fant);
+    const mover = ev => { fant.style.left = (ev.clientX / z - base.left / z) + 'px'; fant.style.top = (ev.clientY / z - base.top / z) + 'px';
+      M.$$('.destino', mesa).forEach(d => { const r = d.getBoundingClientRect(); d.classList.toggle('encima', ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom); }); };
+    mover(e);
+    cajaMesa.style.opacity = .35;
+    const soltar = ev => {
+      document.removeEventListener('pointermove', mover); document.removeEventListener('pointerup', soltar);
+      const d = M.$('.destino.encima', mesa);
+      fant.remove(); cajaMesa.style.opacity = '';
+      M.$$('.destino', mesa).forEach(x => x.classList.remove('encima'));
+      if (d) guardar(t, d.dataset.lugar, d);
+    };
+    document.addEventListener('pointermove', mover); document.addEventListener('pointerup', soltar);
+  }
+  /* confirmar: las prendas vuelan al destino, la caja se cierra y se va */
+  function guardar(t, lugar, destinoEl) {
+    const dr = destinoEl.getBoundingClientRect();
+    M.$$('.ficha .f-atras', mesa).forEach((f, i) => M.volar(f.closest('.ficha'), dr, { demora:i * 90, escala:.2 }));
+    const cajaMesa = M.$('.lado-caja .caja', mesa); cajaMesa.classList.remove('abierta', 'arrastrable');
+    const dif = M.acc.confirmar(t, lugar);
+    setTimeout(() => {
+      if (dif) { est.revelado = false; pintarMesa(t); M.avisar(`Entró lo que coincidió. ${M.faltan(t) ? 'Lo que falta' : 'Lo que sobró'} espera tu revisión.`); actualizarEscena(t); }
+      else terminar(t, `Caja Nº ${t.num} guardada: ${M.unidades(t)} prendas ${lugar === 'piso' ? 'en el piso' : 'en el almacén'}.`);
+    }, M.reducir() ? 0 : 900);
+  }
+  /* la caja se cierra, se va al estante y la mesa queda libre */
+  function terminar(t, aviso) {
+    const cajaMesa = M.$('.lado-caja .caja', mesa), est2 = M.$('#estante', raiz);
+    if (cajaMesa && est2) M.volar(cajaMesa, est2.getBoundingClientRect(), { escala:.3, ms:800 });
+    setTimeout(() => { est.sel = null; est.revelado = false; est.anulando = false; M.repintar({ quieto:true }); M.avisar(aviso); }, M.reducir() ? 0 : 700);
+  }
+
+  /* un pedido colgado en la puerta */
+  function elegirPedido(id) {
+    const p = M.PEDIDOS.find(x => x.id === id); if (!p) return;
+    est.sel = 'p' + id;
+    const pide = M.SEDES[p.pide];
+    mesa.innerHTML = `<div class="trabajo"><div class="lado-caja"><div style="padding:18px">${M.mos(p.linea, 120)}</div>
+        <div class="titulo"><b>${pide.corto} te pide</b><span>${M.cuando(p.cuando)} · ${M.persona({ lim:'sandra', aqp:'diego', tru:'rosa', taller:'marco' }[p.pide])}</span></div>
+        <button class="dejar" data-dejar>Dejar</button></div>
+      <div><div class="cab-trabajo"><div><h3>${M.nombrePrenda(p.linea)} · ${M.detallePrenda(p.linea)}</h3><p>${p.cliente ? 'Es para apartársela a una cliente en ' + pide.corto + '.' : 'Es para reponer.'}</p></div></div>
+        <div class="destinos"><button class="destino" data-enviar>${dibAlmacen}<span><b>La tengo: enviar</b><span>Sale en una caja a ${pide.corto}</span></span></button>
+          <button class="destino" data-no-tengo><svg class="dib" viewBox="0 0 74 62"><circle cx="37" cy="31" r="20"/><path d="M23 45 51 17"/></svg><span><b>No la tengo</b><span>Le avisamos a ${pide.corto}</span></span></button></div></div></div>`;
+    M.$('[data-dejar]', mesa).onclick = () => { est.sel = null; mesaVacia(); };
+    M.$('[data-enviar]', mesa).onclick = () => { const num = M.acc.enviarPedido(p); est.sel = null; M.repintar({ quieto:true }); M.avisar(`Caja Nº ${num} en camino a ${pide.corto}.`); const nb = M.$(`.salen .caja[data-caja="${num}"]`); if (nb && !M.reducir()) nb.animate([{ transform:'translateX(-160px)', opacity:0 }, { transform:'none', opacity:1 }], { duration:900, easing:'cubic-bezier(.32,.72,.24,1)' }); };
+    M.$('[data-no-tengo]', mesa).onclick = () => { M.acc.noTengo(p); est.sel = null; M.repintar({ quieto:true }); M.avisar(`Le avisamos a ${pide.corto} que no la tienes.`, 'info'); };
+    mesa.scrollIntoView({ block:'nearest', behavior: M.reducir() ? 'auto' : 'smooth' });
+  }
+
+  if (est.sel && String(est.sel).startsWith('p')) elegirPedido(String(est.sel).slice(1));
+  else if (est.sel) { const t = M.porNumero(+est.sel); if (t) pintarMesa(t); else mesaVacia(); }
+  else mesaVacia();
+}});
+</script>
+</body>
+</html>
