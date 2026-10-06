@@ -135,8 +135,20 @@ ${FILAS}`);
   );
 }
 
-// 6. `agregar_foto_producto` (Existencias ▸ Fotos que faltan) deja UNA fila, no dos.
+// 6. Una fila 'agregada' que llega después de la del disparador (lo que hace `agregar_foto_producto`, ADR-0283) se descarta.
 {
+  const r = correr(`
+insert into retail.producto_fotos (producto_id, url, orden, es_principal) values (:'p1', 'https://ejemplo/doble.jpg', 9, false);
+insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
+  values ('producto', :'p1', 'foto', null, 'agregada', :'felipe');
+select count(*) || '|' || min(valor_nuevo) from retail.historial_producto_cambios where created_at = now() and campo = 'foto';`);
+  esperar("la fila 'agregada' que repite una foto ya anotada se descarta: queda UNA, con la URL", lineas(r).at(-1) === "1|https://ejemplo/doble.jpg", r);
+}
+
+// 6b. Y si la base trae `agregar_foto_producto` (hoy solo en ramas), subir una foto con ella deja UNA fila.
+if (!psql("select to_regprocedure('retail.agregar_foto_producto(uuid,text)') is not null;").includes("t")) {
+  console.log("· (sin `agregar_foto_producto` en esta base: se salta 6b)");
+} else {
   const r = correr(`
 select p.id as psf from retail.productos p where not exists (select 1 from retail.producto_fotos f where f.producto_id = p.id)
    and exists (select 1 from retail.variantes v where v.producto_id = p.id) order by p.referencia limit 1 \\gset

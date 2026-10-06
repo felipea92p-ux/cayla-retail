@@ -5,7 +5,7 @@
 -- `historial_producto_cambios` no anotaba cinco cosas que sí cambian una prenda:
 --   · las ETIQUETAS (poner «Oferta», quitar «Nuevo»): `variante_etiquetas` no tenía disparador;
 --   · un COLOR o una TALLA NUEVOS: el disparador de `variantes` es solo AFTER UPDATE;
---   · las FOTOS que se suben o quitan desde la ficha (solo `agregar_foto_producto` escribía su fila);
+--   · las FOTOS que se suben o quitan desde la ficha;
 --   · el TEJIDO y el PATRÓN.
 -- Y no decía DÓNDE se hizo el cambio.
 --
@@ -20,10 +20,12 @@
 --        productos           → campos `tejido_id` y `patron_id`
 --      NO anotan lo que nace junto con la prenda (el alta ya lo cuenta `producto_origen`): una variante, etiqueta o foto de
 --      un producto creado en la MISMA transacción (`productos.created_at = now()`) no es un cambio, es el nacimiento.
---   3. Parche ANCLADO a dos funciones vivas, para que el ledger diga solo lo que de verdad cambió:
---        · `agregar_foto_producto` deja de escribir su propia fila `foto` (ahora la escribe el disparador, con la URL);
---          sin esto, cada foto subida desde Existencias contaba dos veces.
---        · `actualizar_variantes_etiquetas` borraba TODAS las etiquetas de la variante y las volvía a poner en cada guardado
+--   3. Para que el ledger diga solo lo que de verdad cambió:
+--        · Una foto subida con `agregar_foto_producto` (Existencias ▸ Fotos que faltan, ADR-0283; hoy solo en ramas, no en
+--          `main` ni en producción) escribe su propia fila `foto` = 'agregada'. Como el disparador ya anotó esa foto (con su
+--          URL), un filtro ANTES de insertar en el ledger descarta esa segunda fila. No se toca esa función: así da igual en
+--          qué orden se fusionen las ramas.
+--        · Parche ANCLADO a `actualizar_variantes_etiquetas`: borraba TODAS las etiquetas de la variante y las volvía a poner en cada guardado
 --          de la ficha: con el disparador, cada guardado habría anotado «quitó Oferta» y «puso Oferta» sin que nada cambiara.
 --          Ahora borra solo las que salen y pone solo las que entran (`on conflict do nothing`). El resultado final es el mismo.
 --   4. Lectura `fn_historial_prenda(p_producto_id)`: cada fila del ledger de la prenda con los nombres ya resueltos (color,
@@ -39,7 +41,7 @@
 -- PRODUCCIÓN. Sin políticas (ADR-0195): UNA sola parte, re-ejecutable, `lock_timeout = 3s`. Toma candados breves de
 -- `historial_producto_cambios` (columna nueva SIN valor por defecto primero: no reescribe la tabla), `variantes`,
 -- `variante_etiquetas`, `producto_fotos` y `productos` al crear los disparadores (`create or replace trigger`, nunca
--- `drop trigger`). Los parches anclados fallan sin tocar nada si la función viva no es la revisada.
+-- `drop trigger`). El parche anclado falla sin tocar nada si la función viva no es la revisada.
 -- Prueba: `node scripts/pruebas/historial_prenda.mjs`.
 -- ============================================================================
 
@@ -234,18 +236,11 @@ begin
 end;
 $$;
 
--- Los llamados van dentro de un `do` (ADR-0288: el SQL Editor no mira dentro de un cuerpo $$, y el ancla de la foto trae un
--- «insert into» que no debe confundir con un SELECT INTO).
+-- El llamado va dentro de un `do` (ADR-0288: el SQL Editor no mira dentro de un cuerpo $$, y el ancla trae un «select … into»
+-- implícito que no debe confundir con un SELECT INTO).
 do $do$
 begin
-  -- 7a. La foto subida desde Existencias ya la anota el disparador (con su URL): la fila propia sobraría.
-  perform pg_temp.reemplazar_historial(
-    'agregar_foto_producto',
-    $v$  insert into historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
-    values ('producto', p_producto_id, 'foto', null, 'agregada', v_actor);$v$,
-    $n$  -- ADR-0354: la fila del historial (con la URL y quién) la escribe el disparador `producto_fotos_historial`.$n$);
-
-  -- 7b. Poner solo lo que entra y quitar solo lo que sale: el ledger anota cambios, no un «borrar todo y volver a poner».
+  -- Poner solo lo que entra y quitar solo lo que sale: el ledger anota cambios, no un «borrar todo y volver a poner».
   perform pg_temp.reemplazar_historial(
     'actualizar_variantes_etiquetas',
     $v$    delete from retail.variante_etiquetas where variante_id = v_variante_id;
@@ -263,6 +258,25 @@ begin
     end if;$n$);
 end;
 $do$;
+
+-- La fila 'agregada' de `agregar_foto_producto` sobra si el disparador ya anotó esa foto en el mismo guardado (con la URL).
+create or replace function retail.fn_historial_foto_sin_duplicar() returns trigger
+language plpgsql security definer set search_path = retail, public, extensions as $fn$
+begin
+  if exists (select 1 from retail.historial_producto_cambios h
+              where h.entidad = new.entidad and h.entidad_id = new.entidad_id and h.campo = 'foto'
+                and h.created_at = now() and h.valor_nuevo is not null and h.valor_nuevo <> 'agregada') then
+    return null;
+  end if;
+  return new;
+end;
+$fn$;
+revoke all on function retail.fn_historial_foto_sin_duplicar() from public, anon, authenticated;
+
+create or replace trigger historial_foto_sin_duplicar
+  before insert on retail.historial_producto_cambios
+  for each row when (new.campo = 'foto' and new.valor_nuevo = 'agregada')
+  execute function retail.fn_historial_foto_sin_duplicar();
 
 -- ---------- 8. Actividad dice bien los campos nuevos ----------
 
