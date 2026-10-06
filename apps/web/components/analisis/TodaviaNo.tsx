@@ -69,7 +69,7 @@ export function AnillosCondiciones({ p }: { p: PreparacionAnalisis | undefined }
 
 /** «Hoy» cuando todavía no se puede recomendar: qué falta, cómo va día a día, las tres tiendas y lo que sí se sabe. */
 export function HoyTodaviaNo() {
-  const { datos, prendas, abrirFicha } = useAnalisis();
+  const { datos, prendas, abrirFicha, verConDatosDeHoy } = useAnalisis();
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
   const v = ventas30(mia);
   const ident = mia?.identificada14 != null ? Math.floor(mia.identificada14 * 100) : pct(v.identificadas, v.unidades);
@@ -93,6 +93,9 @@ export function HoyTodaviaNo() {
             Veo <b>{ident} de cada 100</b> ventas con su prenda. Necesito {META}.
           </p>
           <AnillosCondiciones p={mia} />
+          <button type="button" className="btn-cayla btn-secundario btn-s ver-hoy" onClick={() => verConDatosDeHoy(true)}>
+            Ver con los datos de hoy
+          </button>
         </div>
         <div>
           <h3 className="sec" style={{ margin: "0 0 12px" }}>
@@ -250,7 +253,7 @@ const TEXTO_FALTA: Record<"venta_identificada" | "piso_cuadrado" | "almacen_cont
 
 /** Las otras pestañas, mientras no se puede recomendar: lo que falta primero, con su botón, y lo que sigue. */
 export function VistaTodaviaNo() {
-  const { datos, acceso, irA } = useAnalisis();
+  const { datos, acceso, irA, verConDatosDeHoy } = useAnalisis();
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
   const v = ventas30(mia);
   const ident = mia?.identificada14 != null ? Math.floor(mia.identificada14 * 100) : pct(v.identificadas, v.unidades);
@@ -296,7 +299,10 @@ export function VistaTodaviaNo() {
               {boton.texto}
             </Link>
           )}
-          <button type="button" className={`btn-cayla ${boton ? "btn-secundario" : "btn-primario"} btn-s`} onClick={() => irA("hoy")}>
+          <button type="button" className={`btn-cayla ${boton ? "btn-secundario" : "btn-primario"} btn-s`} onClick={() => verConDatosDeHoy(true)}>
+            Ver con los datos de hoy
+          </button>
+          <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("hoy")}>
             Ver qué falta
           </button>
         </div>

@@ -19,6 +19,7 @@ import { PestanaPedir } from "@/components/analisis/PestanaPedir";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
+import { avisoDatosDeHoy, PARAM_DATOS_DE_HOY, VALOR_DATOS_DE_HOY } from "@/lib/analisis-aviso";
 
 // Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cuatro pestañas (Hoy · Se está acabando · No se vende · Qué
 // pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
@@ -39,7 +40,17 @@ const MARCA = "[data-ps]:not(.c-fila):not(.rank-f):not(.modelo)";
 
 const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: DatosAnalisis; acceso: AccesoAnalisis; vistaInicial: VistaAnalisis }) {
+export function AnalisisPantalla({
+  datos,
+  acceso,
+  vistaInicial,
+  datosDeHoyInicial = false,
+}: {
+  datos: DatosAnalisis;
+  acceso: AccesoAnalisis;
+  vistaInicial: VistaAnalisis;
+  datosDeHoyInicial?: boolean;
+}) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
   const [q, setQ] = useState("");
@@ -53,7 +64,17 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
   const [vuelta, setVuelta] = useState(0);
   const [animar, setAnimar] = useState(true);
   const [foco, setFoco] = useState<string | null>(null);
+  // «Ver con los datos de hoy» (Felipe, 2026-10-06): la tienda todavía no cumple, pero se pidió mirar igual, con su aviso fijo.
+  const [conDatosDeHoy, setConDatosDeHoy] = useState(datosDeHoyInicial);
   const raiz = useRef<HTMLDivElement>(null);
+  // Lo que se recomienda: cuando la tienda cumple, o cuando se pidió ver con los datos de hoy.
+  const forzado = conDatosDeHoy && !datos.puedeHablar;
+  const recomienda = datos.puedeHablar || forzado;
+  // Mirando con los datos de hoy, las tres tiendas muestran sus cifras (el aviso de arriba dice que pueden fallar).
+  const datosVista = useMemo(
+    () => (forzado ? { ...datos, resumenSedes: datos.resumenSedes.map((r) => ({ ...r, puedeHablar: true })) } : datos),
+    [datos, forzado],
+  );
 
   // Si el servidor trae otro «Liquidar desde» (lo guardó alguien), se toma (ajuste durante el render, sin efecto).
   const [liquidarLeido, setLiquidarLeido] = useState(datos.liquidarDesde);
@@ -104,9 +125,21 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
     [datos.sedes],
   );
 
+  const verConDatosDeHoy = useCallback((si: boolean) => {
+    setConfianza(false);
+    setConDatosDeHoy(si);
+    setVuelta((n) => n + 1);
+    setAnimar(true);
+    const url = new URL(window.location.href);
+    if (si) url.searchParams.set(PARAM_DATOS_DE_HOY, VALOR_DATOS_DE_HOY);
+    else url.searchParams.delete(PARAM_DATOS_DE_HOY);
+    window.history.replaceState(window.history.state, "", url);
+    raiz.current?.scrollIntoView({ block: "start", behavior: reducido() ? "auto" : "smooth" });
+  }, []);
+
   const contexto: ContextoAnalisis = useMemo(
     () => ({
-      datos,
+      datos: datosVista,
       acceso,
       prendas,
       q,
@@ -120,8 +153,10 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
       abrirFicha,
       irA,
       pedir,
+      conDatosDeHoy: forzado,
+      verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir],
+    [datos, datosVista, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -171,11 +206,12 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
     }
   };
 
-  const cuentaAcaba = datos.puedeHablar ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
-  const cuentaQuietas = datos.puedeHablar ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  const cuentaAcaba = recomienda ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
+  const cuentaQuietas = recomienda ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
 
   let contenido;
-  if (!datos.puedeHablar) contenido = vista === "hoy" ? <HoyTodaviaNo /> : <VistaTodaviaNo />;
+  if (!recomienda) contenido = vista === "hoy" ? <HoyTodaviaNo /> : <VistaTodaviaNo />;
   else if (vista === "hoy") contenido = <PestanaHoy />;
   else if (vista === "acaba") contenido = <PestanaAcaba />;
   else if (vista === "nose") contenido = <PestanaQuieta />;
@@ -192,6 +228,16 @@ export function AnalisisPantalla({ datos, acceso, vistaInicial }: { datos: Datos
         </EncabezadoPagina>
 
         <Pestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
+
+        {forzado && (
+          <div className="aviso-datos" role="status">
+            <ChipEstado est="ate">Datos incompletos</ChipEstado>
+            <span className="aviso-texto">{avisoDatosDeHoy(mia?.identificada14 ?? null)}</span>
+            <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(false)}>
+              Ver qué falta
+            </button>
+          </div>
+        )}
 
         {datos.fallas.length > 0 && (
           <p className="nota-cayla mt-4" role="status">

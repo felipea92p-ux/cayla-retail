@@ -71,6 +71,12 @@ condiciones: 14 días seguidos con al menos 90 de cada 100 ventas con su prenda,
 - Para ver la pantalla completa en desarrollo existe `ANALISIS_SIN_CANDADO=1` (en `.env.local`). Fuera de producción salta el candado; en
   producción no existe (`lib/analisis-datos.ts`).
 - *Por qué:* una sola vara para Análisis, CAYLA Global y Tareas, y nunca una recomendación sobre ventas sin su prenda.
+- **Actualización (Felipe, 2026-10-06, al verlo con los datos de producción):** ninguna tienda cumple y la pantalla solo decía «Todavía no».
+  «Todavía no» sigue siendo lo primero, pero un botón **«Ver con los datos de hoy»** (bajo los anillos, en cada pestaña y en la hoja «Datos
+  incompletos») muestra la pantalla completa con un **aviso fijo**: «Solo N de cada 100 ventas tienen su prenda: estas cifras pueden fallar»,
+  con «Ver qué falta» para volver. Lo ve quien ve Análisis; queda en la URL (`?datos=hoy`). *Lo que se paga:* con pocas ventas con su prenda,
+  «Se está acabando» puede quedarse corto y «No se vende» puede marcar como quieta una prenda que sí se vendió sin registrarla; por eso el aviso
+  no se puede cerrar. Lógica en `lib/analisis-aviso.ts`.
 
 **3. La encargada y el líder ven lo mismo:** las tres tiendas, el dinero, lo que más rinde, el costo por prenda y «Liquidar desde». En estas vistas
 no hay `esLider`.

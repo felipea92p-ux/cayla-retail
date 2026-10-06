@@ -17,6 +17,11 @@ el repo es público.
 - [x] Documentos: ADR-0357, ADR-0136 (act. 2026-10-06 (b)), enmienda de ADR-0328, `docs/ARQUITECTURA.md` (sección de Análisis) y la lista de
       excepciones de movimiento de `CLAUDE.md`.
 
+- [x] SQL pegado en producción por Felipe (2026-10-06): las cinco huellas coinciden y `parametros_analisis.liquidar_desde` = 60.
+- [x] Puntos que corren por la cinta del flujo al pasar el mouse (pedido de Felipe; ADR-0136 act. 2026-10-06 (b)).
+- [x] «Ver con los datos de hoy» con su aviso fijo (ADR-0357, decisión 2, actualización): en producción ninguna tienda cumple las tres
+      condiciones y la pantalla solo decía «Todavía no».
+
 ### Antes de subir
 
 - [x] **Renumerar el ADR:** `main` ya tenía `docs/adr/0356-chaos-usar-mal-el-sistema-a-proposito.md`; este pasó al 0357 (solo las citas de Análisis).
