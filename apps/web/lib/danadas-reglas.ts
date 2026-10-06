@@ -53,12 +53,6 @@ export function libreEn(t: TallaReportable | null, desde: DesdeDanada | null): n
 /** ¿Hay algo que reportar en esta talla? (libre en el piso o en el almacén). */
 export const tieneAlgoLibre = (t: TallaReportable) => t.piso + t.almacen > 0;
 
-/** La talla que entra elegida: solo si es la ÚNICA con algo libre. Con dos o más, la elige la persona (es la que tiene en la mano). */
-export function tallaInicial(tallas: readonly TallaReportable[]): string | null {
-  const conAlgo = tallas.filter(tieneAlgoLibre);
-  return conAlgo.length === 1 ? conAlgo[0].varianteId : null;
-}
-
 /**
  * Dónde estaba: entra elegido solo si es el ÚNICO lugar posible. Con piso y almacén a la vez, la persona lo dice: el sistema no
  * sabe de dónde la sacó, y un lugar marcado de fábrica descuadraría el piso (ADR-0328, decisión técnica 3, el mismo motivo).
@@ -101,29 +95,6 @@ export function problemasReporte(e: EstadoReporte): ProblemaReporte[] {
   if (largo < MIN_TEXTO_DANADA) out.push({ campo: "motivo", texto: "Escribe qué tiene la prenda." });
   else if (largo > MAX_TEXTO_DANADA) out.push({ campo: "motivo", texto: `Lo que tiene admite hasta ${MAX_TEXTO_DANADA} caracteres.` });
   return out;
-}
-
-const NOMBRE_CAMPO_REPORTE: Record<CampoReporte, string> = {
-  talla: "La talla",
-  desde: "Dónde estaba",
-  cantidad: "Cuántas",
-  motivo: "Qué tiene",
-};
-
-/** La guía de foco de la ventana (ADR-0284): un campo por pregunta, «hecho» si no tiene problema, y quién lo hace al final. */
-export function camposGuiaReporte(e: EstadoReporte, responsableListo: boolean): CampoDeGuia[] {
-  const problemas = problemasReporte(e);
-  const campo = (id: CampoReporte): CampoDeGuia => {
-    const p = problemas.find((x) => x.campo === id);
-    return { id, nombre: NOMBRE_CAMPO_REPORTE[id], requerido: true, hecho: !p, pendiente: p?.texto ?? "" };
-  };
-  return [
-    campo("talla"),
-    campo("desde"),
-    campo("cantidad"),
-    campo("motivo"),
-    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién reporta la prenda." },
-  ];
 }
 
 /** La guía del panel «Se arregló»: qué se le hizo (lo exige la base) y quién lo hace. */
@@ -223,22 +194,6 @@ export function respuestaResuelveLaMarca(error: ErrorEscritura): boolean {
   if (esRespuestaIncierta(error)) return false;
   if (error.code === "40P01") return true;
   return !!error.hint && HINTS_DESPUES_DE_LA_MARCA.has(error.hint);
-}
-
-/**
- * Un envío cuya respuesta quedó en duda (ADR-0208), guardado tal cual: los argumentos con su marca, lo que la ventana validó al
- * enviarlos y el nombre de la prenda para el aviso. Mientras exista, la ventana reenvía ESTO y no lo que hoy diga la pantalla.
- */
-export type EnvioReporte = { argumentos: ArgumentosDeReporte; estado: EstadoReporte; detalle: string };
-
-/**
- * Lo que la ventana valida: lo elegido ahora o, si un envío quedó en duda, lo que se envió. Tras una respuesta incierta la
- * pantalla se relee, y si el reporte SÍ se guardó, lo libre ya bajó: validar con las cifras nuevas diría «en el piso no hay
- * ninguna libre» de algo que la persona ya no puede cambiar (está congelado) y apagaría «Confirmar de nuevo», que es lo único
- * que dice qué pasó. Esa ventana trabada empujaba a cerrarla y reportar «desde el almacén» una prenda sana con otra marca.
- */
-export function estadoValidado(vivo: EstadoReporte, enDuda: EnvioReporte | null): EstadoReporte {
-  return enDuda ? enDuda.estado : vivo;
 }
 
 /**

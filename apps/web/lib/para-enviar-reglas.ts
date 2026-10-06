@@ -179,7 +179,3 @@ export function destinosParaEnviar(
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-/** Lo que falta en la parte «para enviar» de la ventana: si se eligió enviar, el destino; si no, nada. */
-export function faltaDestino(paraEnviar: boolean, destinoId: string): boolean {
-  return paraEnviar && destinoId === "";
-}
