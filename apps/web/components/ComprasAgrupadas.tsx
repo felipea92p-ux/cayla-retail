@@ -195,7 +195,7 @@ export const CLASE_BOTON_FILA =
   "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_color-mix(in_srgb,var(--color-sombra)_70%,transparent)]";
 
 /** Los filtros de la actividad: píldoras con cuántas compras hay en cada una.
- *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0357, «Pestañas y segmentos»,
+ *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0358, «Pestañas y segmentos»,
  *  2026-10-06), como el filtro de Devoluciones (ADR-0232 D3). Antes usaban la pista tinta/5 que en Devoluciones cambia la
  *  pantalla: la misma cara hacía dos cosas en el mostrador. En el celular la fila se desliza (deja aire para el anillo de foco). */
 export function FiltrosActividad<T extends string>({

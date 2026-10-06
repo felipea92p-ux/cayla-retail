@@ -262,7 +262,7 @@ export function TodosVista({
 
       <div className="flex flex-wrap items-center gap-2">
         {FILTROS.map((f) => (
-          // Filtro de un valor = la píldora del sistema (ADR-0357): deja menos apartados, no cambia de vista.
+          // Filtro de un valor = la píldora del sistema (ADR-0358): deja menos apartados, no cambia de vista.
           <button key={f.id} type="button" aria-pressed={filtro === f.id} onClick={() => setFiltro(f.id)} className="pildora-cayla">
             {f.etiqueta}
           </button>

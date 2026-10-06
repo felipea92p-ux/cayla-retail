@@ -265,7 +265,7 @@ export function ProveedoresPanel({
             )}
           </div>
           {rubros.length > 0 && (
-            // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0357).
+            // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358).
             <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap items-center gap-2">
               {[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))].map((o) => (
                 <button key={o.clave || "todos"} type="button" aria-pressed={(rubro ?? "") === o.clave} onClick={() => setRubro(o.clave || null)} className="pildora-cayla">

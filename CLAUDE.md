@@ -205,7 +205,7 @@ Productos (esta última desde el 2026-09-28, ADR-0254; el resto de Catálogo sig
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
 nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
 (prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); la vuelta es una flecha a la izquierda de la línea de
-sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde el 2026-10-07 es la única cara de la vuelta en todo el ERP, ADR-0357) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
+sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde el 2026-10-07 es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
@@ -263,7 +263,7 @@ Cambios, Devoluciones, Compras y Resumen dibujan la percha porque su cargador a�
 **Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
 dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
 (tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta; sus pestañas, desde el 2026-10-07, son la pestaña de vista
-del sistema —el vidrio en mayúsculas—, por decisión de Felipe en `/unificar`, ADR-0357) y `app/estilos/finanzas.css`
+del sistema —el vidrio en mayúsculas—, por decisión de Felipe en `/unificar`, ADR-0358) y `app/estilos/finanzas.css`
 (clases `fin-*`), los modales con `<Modal variante="hoja">`. No se reinventa una tabla ni un campo con medidas sueltas.
 **Antes de dar una pantalla por terminada, se captura al mismo ancho que el spike y se comparan las dos imágenes**: si no
 se parecen, no está terminada. Lo que se aparta del spike a propósito queda escrito en el ADR.
@@ -472,7 +472,7 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
 
-## Una función, una pieza (regla — ADR-0357, Felipe 2026-10-06)
+## Una función, una pieza (regla — ADR-0358, Felipe 2026-10-06)
 
 **Dos piezas que hacen lo mismo se ven igual en todo el ERP.** Si «Cancelar», unas pestañas o una insignia de estado se dibujan distinto en dos
 pantallas, la colaboradora aprende dos veces lo mismo y duda la tercera. **`/unificar` (skill)** recorre el ERP en local con un motor que mide el
@@ -487,7 +487,7 @@ está decidida, se usa su pieza; si no, se usa la forma más usada del último c
 `apps/web/unificar/familias.mjs`), y la prueba falla si un archivo nuevo vuelve a dibujarla a mano o si la deuda no baja. Una línea legítima se
 exime con `// unificar-fijo: <por qué>`. Migrar cambia cómo se ve, **nunca qué hace**, y va módulo por módulo con el OK de Felipe. Lo que existe
 por una decisión (el kit de Finanzas, la vista rápida, los sellos de Movimientos, el Observatorio, la persiana de Caja) no se «corrige»: Felipe
-dice si se unifica. Detalle: `docs/adr/0357-unificar-una-funcion-una-pieza.md` y `.claude/skills/unificar/`.
+dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y `.claude/skills/unificar/`.
 
 **Piezas únicas** (una fila por familia decidida; el registro de cada una, en `docs/unificar/<familia>.md`):
 

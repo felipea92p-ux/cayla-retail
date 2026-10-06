@@ -1,4 +1,4 @@
-## 🧩 Unificar: una función, una pieza (2026-10-06, ADR-0357) — solo herramientas y docs, sin migración; rama `claude/unificar-componentes-skill-7e9d26`
+## 🧩 Unificar: una función, una pieza (2026-10-06, ADR-0358) — solo herramientas y docs, sin migración; rama `claude/unificar-componentes-skill-7e9d26`
 
 - [x] Skill `/unificar` (`.claude/skills/unificar/`: método, criterio, propuesta, decisión, informe).
 - [x] Motor `apps/web/unificar/` (`pnpm --filter web unificar:censo`, `--lamina`, `unificar:deuda`): censo de 40 familias, huella con tokens, capturas ×2, lámina con propuesta en claro y oscuro, comparativas por familia. Probado contra el ERP local (77 pantallas + 37 modales de Inventario).

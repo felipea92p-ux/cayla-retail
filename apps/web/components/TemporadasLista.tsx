@@ -190,7 +190,7 @@ function Vuelta({ enLista, onLista }: { enLista: boolean; onLista: () => void })
     <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
       {afuera && <Volver {...afuera} />}
       {!enLista && (
-        // Vuelve a la lista sin cambiar la dirección: la vuelta de siempre en su forma de botón (ADR-0357).
+        // Vuelve a la lista sin cambiar la dirección: la vuelta de siempre en su forma de botón (ADR-0358).
         <Volver onClick={onLista} a="Las nueve temporadas" />
       )}
     </div>

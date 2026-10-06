@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fotos antes/después de una migración de `/unificar` (ADR-0357, paso 7): la misma pantalla, la misma cuenta y el mismo ancho, antes
+ * Fotos antes/después de una migración de `/unificar` (ADR-0358, paso 7): la misma pantalla, la misma cuenta y el mismo ancho, antes
  * de tocar el código y después, para que Felipe apruebe mirando y no leyendo un diff.
  *
  *   pnpm --filter web unificar:fotos -- --base-url http://localhost:3110 --salida unificar/.salida/fotos-antes
@@ -148,7 +148,7 @@ figcaption { font-size: 12px; color: var(--taupe); margin-bottom: 6px; } img { d
 .ley { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; }
 .ley span { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
 @media (max-width: 760px) { .par, .par.cel { grid-template-columns: 1fr; } }
-</style></head><body><main><p><code>/unificar · ADR-0357</code></p><h1>Antes y después</h1>
+</style></head><body><main><p><code>/unificar · ADR-0358</code></p><h1>Antes y después</h1>
 <p>La misma pantalla, la misma cuenta (Admin) y el mismo ancho (1440 × 900; las de mostrador también a 375 px). Toca una foto para verla grande. En la foto de «Después», cada pieza de las familias que unificaste lleva un recuadro de color con su número, y debajo se dice dónde está. Las píldoras de filtro se marcan donde estén: en varias pantallas ya eran píldoras (no cambiaron) y en otras antes eran pestañas o una pista (Compras, Movimientos, Caja, Cambios, Devoluciones, Comprobantes, Historial de ventas, Rendimiento).</p><ul class="ley">${Object.keys(MARCA_COLOR).map((k) => `<li><span style="background:${MARCA_COLOR[k]}"></span>${esc(MARCA_NOMBRE[k])}</li>`).join("")}</ul>${secciones}</main></body></html>`;
   writeFileSync(join(despues, "comparar.html"), html);
   console.log(`Comparación: ${join(despues, "comparar.html")} (${fotos.length} fotos en ${porModulo.size} módulos)`);

@@ -171,7 +171,7 @@ export function GastosPanel({
       ))}
 
       <section className="fin-cifras">
-        {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0357). */}
+        {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
         <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
         </TarjetaCifra>

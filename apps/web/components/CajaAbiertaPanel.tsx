@@ -282,7 +282,7 @@ export function CajaAbiertaPanel({
                 <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
                 <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
               </div>
-              {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0357). */}
+              {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
               <div role="group" aria-label="Filtrar movimientos" className="flex flex-wrap items-center gap-2">
                 {(
                   [

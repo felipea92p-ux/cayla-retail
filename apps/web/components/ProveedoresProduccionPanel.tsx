@@ -84,7 +84,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
                   type="button"
                   aria-pressed={rubro === r.valor}
                   onClick={() => setRubro(r.valor)}
-                  // El mismo filtro de rubro que Compras ▸ Proveedores: la píldora del sistema (ADR-0357).
+                  // El mismo filtro de rubro que Compras ▸ Proveedores: la píldora del sistema (ADR-0358).
                   className="pildora-cayla"
                 >
                   {r.etiqueta}

@@ -121,7 +121,7 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
             />
           </label>
 
-          {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0357). El número de cada una
+          {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0358). El número de cada una
               es cuántas hay; «por hacer» va en ámbar y con su texto para lector. */}
           <Pestanas
             etiquetaAccesible="Qué cajas ver"

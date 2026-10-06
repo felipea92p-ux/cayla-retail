@@ -33,7 +33,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
   return (
     <div className="space-y-6">
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
-          (ADR-0357). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+          (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
       <Pestanas
         etiquetaAccesible="Miradas del Taller"
         idIndicador="produccion-miradas"

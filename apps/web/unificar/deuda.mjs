@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * La deuda de una familia ya decidida (ADR-0357): los archivos que todavía dibujan A MANO lo que Felipe decidió que es una sola
+ * La deuda de una familia ya decidida (ADR-0358): los archivos que todavía dibujan A MANO lo que Felipe decidió que es una sola
  * pieza. Es la ÚNICA definición de «variante a mano»: la usan `lib/unificar.test.ts` (el candado del CI: un archivo nuevo con la
  * firma falla, y la deuda solo baja) y este comando, para ver el tablero o llenar la `deuda` de una decisión recién tomada:
  *

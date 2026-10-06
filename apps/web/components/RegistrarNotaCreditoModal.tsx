@@ -329,7 +329,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                       role="radio"
                       aria-checked={filtro === f.clave}
                       onClick={() => { setFiltro(f.clave); setActiva(0); refBuscador.current?.focus(); }}
-                      // Deja menos facturas en la lista de abajo: la píldora de filtro del sistema (ADR-0357).
+                      // Deja menos facturas en la lista de abajo: la píldora de filtro del sistema (ADR-0358).
                       data-activa={filtro === f.clave}
                       className="pildora-cayla"
                     >

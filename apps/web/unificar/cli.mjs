@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * El censo de `/unificar` (ADR-0357): recorre las pantallas (y sus modales, con los escenarios del auditor de tema) contra un
+ * El censo de `/unificar` (ADR-0358): recorre las pantallas (y sus modales, con los escenarios del auditor de tema) contra un
  * `next dev` LOCAL, reconoce cada familia de piezas (`unificar/familias.mjs`), agrupa las variantes por su huella visual, captura
  * cada una a ×2 y deja un informe y una LÁMINA de comparación. No hace clic en nada que guarde: solo mira.
  *

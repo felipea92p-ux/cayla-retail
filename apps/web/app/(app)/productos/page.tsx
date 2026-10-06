@@ -178,7 +178,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         acciones={
           <>
             {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
-                palabra (ADR-0357). */}
+                palabra (ADR-0358). */}
             <SegmentoEnlaces
               etiquetaAccesible="Cómo ver el catálogo"
               activo={vista}

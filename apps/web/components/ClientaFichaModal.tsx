@@ -380,7 +380,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               </div>
 
               <div className="flex items-end justify-between gap-3 border-b border-sand">
-                {/* Club o Actividad son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0357). La línea la pone la fila. */}
+                {/* Club o Actividad son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0358). La línea la pone la fila. */}
                 <Pestanas
                   etiquetaAccesible="Qué ver de este cliente"
                   idIndicador="ficha-cliente-vista"

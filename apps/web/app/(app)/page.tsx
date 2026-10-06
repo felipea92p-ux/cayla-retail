@@ -252,7 +252,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
       <Etiqueta>{titulo}</Etiqueta>
       {/* En celular la primera cifra va a todo lo ancho y las otras dos lado a lado; desde `sm`, las tres en fila. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {/* La pieza única de cifra (TarjetaCifra, ADR-0357): antes era la receta propia del Inicio, con el nombre en la
+        {/* La pieza única de cifra (TarjetaCifra, ADR-0358): antes era la receta propia del Inicio, con el nombre en la
             misma letra que «Tu día» (el título de la sección). Sin meta es «sin dato»; la caja sin leer, «no se pudo leer». */}
         <TarjetaCifra etiqueta={esLider ? "Ventas" : "Tus ventas"} valor={formatoSoles(r.importe)} className="col-span-2 sm:col-span-1">
           {esLider && r.comparativo ? (

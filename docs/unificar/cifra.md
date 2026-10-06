@@ -1,4 +1,4 @@
-# Tarjetas de cifra — la tarjeta de Compras, en todo el ERP (ADR-0357)
+# Tarjetas de cifra — la tarjeta de Compras, en todo el ERP (ADR-0358)
 
 **Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`). **Elegida:** **B**, la tarjeta de Compras tal cual era. **Pieza:**
 `components/ui/TarjetaCifra.tsx`.

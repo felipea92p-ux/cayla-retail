@@ -263,7 +263,7 @@ async function PaginaPerdidas({ ubicacionId, modulos, params }: { ubicacionId: s
         filtro={filtro}
         modulos={modulos}
         selectorPeriodo={
-          // Un período es un filtro de un valor: la píldora del sistema (ADR-0357), no el segmento de modo.
+          // Un período es un filtro de un valor: la píldora del sistema (ADR-0358), no el segmento de modo.
           // Cambiar el período conserva la prenda o la zona elegida.
           <nav aria-label="Período de las pérdidas" className="flex flex-wrap items-center gap-2">
             {PERIODOS_PERDIDAS.map((o) => (

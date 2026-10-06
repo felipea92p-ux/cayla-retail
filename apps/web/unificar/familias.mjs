@@ -1,4 +1,4 @@
-// Las familias de piezas que `/unificar` compara (ADR-0357): la ÚNICA definición de «qué cuenta como la misma función». La usan
+// Las familias de piezas que `/unificar` compara (ADR-0358): la ÚNICA definición de «qué cuenta como la misma función». La usan
 // el motor del censo (`cli.mjs`, que le pasa las funciones de botón al detector de la página), la lámina de comparación y la
 // prueba del CI (`lib/unificar.test.ts`), que hace cumplir lo que Felipe ya decidió.
 //
@@ -148,7 +148,7 @@ const BASE = [
     grupo: "Navegación",
     nombre: "Pestañas y segmentos",
     funcion: "Elegir una vista entre varias de la misma pantalla, con una marcada como activa.",
-    pieza: "Tres, una por pregunta (ADR-0357): `<Pestanas>` (vista), `pildora-cayla` (filtro y período), `SegmentoEnlaces` / `SegmentoDeslizante forma=\"modo\"` (modo y ordenar)",
+    pieza: "Tres, una por pregunta (ADR-0358): `<Pestanas>` (vista), `pildora-cayla` (filtro y período), `SegmentoEnlaces` / `SegmentoDeslizante forma=\"modo\"` (modo y ordenar)",
     gobierna: [],
   },
   {
@@ -212,7 +212,7 @@ const BASE = [
     grupo: "Datos",
     nombre: "Tarjetas de cifra",
     funcion: "Un número grande con su nombre arriba: «Vendido hoy S/ 1 240».",
-    pieza: "`<TarjetaCifra>` (components/ui/TarjetaCifra.tsx), con una marca por lo que hace (ADR-0357); `TarjetaKpiVidrio` solo en Facturación (ADR-0124)",
+    pieza: "`<TarjetaCifra>` (components/ui/TarjetaCifra.tsx), con una marca por lo que hace (ADR-0358); `TarjetaKpiVidrio` solo en Facturación (ADR-0124)",
     gobierna: ["ADR-0169"],
   },
   {
@@ -303,7 +303,7 @@ const ACCIONES = FUNCIONES.map((f) => ({
  *
  *   "pestanas": {
  *     fecha: "2026-10-07",
- *     adr: "docs/adr/0357-unificar-una-funcion-una-pieza.md",
+ *     adr: "docs/adr/0358-unificar-una-funcion-una-pieza.md",
  *     registro: "docs/unificar/pestanas.md",
  *     elegida: "B · SegmentoDeslizante",            // o «propuesta»
  *     pieza: "components/ui/SegmentoDeslizante.tsx", // la pieza de esa función desde hoy (relativa a apps/web)
@@ -321,7 +321,7 @@ const ACCIONES = FUNCIONES.map((f) => ({
 export const DECISIONES = {
   "accion.volver": {
     fecha: "2026-10-07",
-    adr: "docs/adr/0357-unificar-una-funcion-una-pieza.md",
+    adr: "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     registro: "docs/unificar/accion.volver.md",
     elegida: "la flecha redonda de EncabezadoPagina (elegida mirando el 2026-10-07)",
     pieza: "components/ui/Volver.tsx",
@@ -340,7 +340,7 @@ export const DECISIONES = {
   },
   "cifra": {
     "fecha": "2026-10-07",
-    "adr": "docs/adr/0357-unificar-una-funcion-una-pieza.md",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/cifra.md",
     "elegida": "la tarjeta de Compras (B) tal cual, elegida mirando el 2026-10-07",
     "pieza": "components/ui/TarjetaCifra.tsx",
@@ -352,7 +352,7 @@ export const DECISIONES = {
   },
   "pestanas": {
     "fecha": "2026-10-07",
-    "adr": "docs/adr/0357-unificar-una-funcion-una-pieza.md",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/pestanas.md",
     "elegida": "vidrio en mayúsculas (vista) · píldora (filtro) · caja arena (modo), elegidas mirando el 2026-10-07",
     "pieza": "components/ui/Pestanas.tsx",

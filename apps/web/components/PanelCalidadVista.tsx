@@ -38,7 +38,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
           Todas las tiendas
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {/* La pieza única de cifra (TarjetaCifra, ADR-0357). Sin ventas cerradas no hay tasa: «sin dato», con su motivo. */}
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0358). Sin ventas cerradas no hay tasa: «sin dato», con su motivo. */}
           <TarjetaCifra
             etiqueta="Tasa de devolución"
             ayuda={

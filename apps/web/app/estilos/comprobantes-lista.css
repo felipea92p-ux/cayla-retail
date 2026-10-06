@@ -104,7 +104,7 @@
       transform 500ms var(--ease-cayla),
       width 500ms var(--ease-cayla);
   }
-  /* Desde el 2026-10-06 (ADR-0357) solo queda el subrayado en tinta de la pestaña de vista (`Pestanas`): la línea roja, la
+  /* Desde el 2026-10-06 (ADR-0358) solo queda el subrayado en tinta de la pestaña de vista (`Pestanas`): la línea roja, la
      pastilla oscura del segmento y sus marcas estáticas (`cmp-tab-activa`, `cmp-seg-activa`) ya no las usaba nadie. La marca
      estática de la pestaña vive con su pieza, en app/estilos/pestanas-y-segmentos.css. */
   .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-tinta); }

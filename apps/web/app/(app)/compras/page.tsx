@@ -39,7 +39,7 @@ import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 // (app/estilos/comprobantes-lista.css) más tres piezas cliente mínimas. Al llegar, cabecera, tarjetas,
 // pestañas, filtros y filas entran escalonadas (`anim-entra` con `--i`) y las cifras cuentan una vez
 // (`CifraQueCuenta`); las barras de reparto y de avance se llenan (desde el 2026-10-06 los estados son píldoras de
-// filtro y el orden un segmento de modo, sin viaje: ADR-0357); y al cambiar de vista u orden las filas que se quedan
+// filtro y el orden un segmento de modo, sin viaje: ADR-0358); y al cambiar de vista u orden las filas que se quedan
 // se reacomodan en vez de saltar (`ComprobantesListaFilas`, FLIP). Buscar resalta lo encontrado.
 // `/` enfoca la búsqueda; `j`/`k` recorren las filas y `Enter` abre.
 
@@ -126,7 +126,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       </div>
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
-          directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0357). */}
+          directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <TarjetaCifra
           viva
@@ -184,7 +184,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       <MisPartesDeCompras partes={misPartes} indice={5} />
 
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
-          con la píldora del sistema (ADR-0357, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
+          con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
           maqueta de ADR-0111. La vista sigue en la URL. */}
       <nav aria-label="Vistas de facturas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
         {(

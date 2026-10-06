@@ -511,7 +511,7 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
         </TarjetaCifra>
       ))}
       {/* Antes llevaba `activa` (fondo sand/40) solo para resaltar el total; ese fondo era la marca de «elegida» y desde
-          ADR-0357 se reserva para la cifra que filtra. */}
+          ADR-0358 se reserva para la cifra que filtra. */}
       <TarjetaCifra etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
         {detalle(total)}
       </TarjetaCifra>

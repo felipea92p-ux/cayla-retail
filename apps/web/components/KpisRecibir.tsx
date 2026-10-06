@@ -12,7 +12,7 @@ import { EVENTO_MARCAR } from "@/lib/envio-reglas";
 //
 // Spike de Recibir (2026-09-19): las cifras cuentan hasta su valor al aparecer, las tarjetas entran escalonadas, el
 // punto de «Atrasadas» late, y «La más atrasada» es un ATAJO: un clic marca ese comprobante en la lista de al lado.
-// Desde el 2026-10-06 (ADR-0357) las que solo informan ya no se alzan al pasar el mouse (no llevan a ningún lado), y el
+// Desde el 2026-10-06 (ADR-0358) las que solo informan ya no se alzan al pasar el mouse (no llevan a ningún lado), y el
 // atajo se dibuja como la cifra que «lleva»: la flecha la pone TarjetaCifra. Como este nodo no comparte estado con `RecepcionEnvio`, se lo avisa por un
 // evento de ventana (`EVENTO_MARCAR`).
 //

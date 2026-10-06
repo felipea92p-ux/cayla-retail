@@ -70,7 +70,7 @@ export function EncabezadoFlujo({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* La salida del flujo es la vuelta de siempre (ADR-0357): cierra el estado, por eso va en su forma de botón. */}
+        {/* La salida del flujo es la vuelta de siempre (ADR-0358): cierra el estado, por eso va en su forma de botón. */}
         <Volver onClick={onVolver} deshabilitado={deshabilitado} a={volverA} />
         <p className="text-sm text-tinta/70" aria-live="polite">
           Paso {actual} de {pasos.length} · <span className="font-semibold text-tinta">{pasos[actual - 1]}</span>

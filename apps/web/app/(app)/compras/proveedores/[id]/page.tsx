@@ -220,7 +220,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {/* Dos negocios, nunca sumados: devoluciones/dañados e insumos del Taller van aparte de las prendas terminadas. */}
       <div className="grid gap-3 lg:grid-cols-2">
-        {/* Las dos con la pieza única de cifra (TarjetaCifra, ADR-0357): cero devoluciones es un dato; sin lotes, «sin dato». */}
+        {/* Las dos con la pieza única de cifra (TarjetaCifra, ADR-0358): cero devoluciones es un dato; sin lotes, «sin dato». */}
         <TarjetaCifra
           className="anim-entra"
           style={{ ["--i" as string]: 13 }}

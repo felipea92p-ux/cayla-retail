@@ -1,4 +1,4 @@
-# Pestañas y segmentos — tres piezas, una por pregunta (ADR-0357)
+# Pestañas y segmentos — tres piezas, una por pregunta (ADR-0358)
 
 **Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`). **Piezas:** `components/ui/Pestanas.tsx` (vista), `pildora-cayla`
 (filtro y período) y `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (modo y orden), con su piel en `app/estilos/pestanas-y-segmentos.css`.

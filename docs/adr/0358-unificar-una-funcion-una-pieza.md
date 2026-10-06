@@ -1,4 +1,4 @@
-# ADR-0357 · Unificar: una función, una pieza
+# ADR-0358 · Unificar: una función, una pieza
 
 - **Fecha:** 2026-10-06 · **Estado:** skill y motor escritos y probados contra el ERP local. Primera ronda decidida por Felipe el mismo día
   (Volver, Pestañas y Tarjetas de cifra; ver «Decisiones»). Sin migración de base de datos.
@@ -93,7 +93,8 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
 - **2026-10-07 · `cifra` → B**, la tarjeta de Compras tal cual (`<TarjetaCifra>`), sin las marcas nuevas de la ronda 1. Deuda 0.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-07, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
-(caos) ya estaban tomados, y pasó a 0357.
+(caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
+`docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.
 
 ## Cómo se verifica
 

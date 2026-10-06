@@ -101,7 +101,7 @@ export function ComprobantesProduccionPanel({
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            {/* El estado deja menos comprobantes en la misma lista: la píldora de filtro, igual que en Compras (ADR-0357). */}
+            {/* El estado deja menos comprobantes en la misma lista: la píldora de filtro, igual que en Compras (ADR-0358). */}
             <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
               {(
                 [

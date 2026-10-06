@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { problemasDe, deudaDe } from "../unificar/deuda.mjs";
 import { DECISIONES, FAMILIAS, FUNCIONES, funcionDe, ICONO_A_FUNCION } from "../unificar/familias.mjs";
 
-// REGLA (ADR-0357, Felipe 2026-10-06): una función, una pieza. Cuando Felipe elige con `/unificar` cómo se ve una familia (las
+// REGLA (ADR-0358, Felipe 2026-10-06): una función, una pieza. Cuando Felipe elige con `/unificar` cómo se ve una familia (las
 // pestañas, el botón «Cancelar», la insignia de estado), esa pieza es la única de ahí en adelante, en todos los módulos y en las
 // pantallas que vengan. Esta prueba es la parte que no depende de que alguien se acuerde: un archivo NUEVO que vuelve a dibujar
 // a mano una familia decidida falla aquí, y la deuda de antes (los que todavía no se migran) solo puede bajar. Misma idea que

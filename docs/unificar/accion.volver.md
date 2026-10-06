@@ -1,4 +1,4 @@
-# Botón «Volver» — una sola pieza (ADR-0357)
+# Botón «Volver» — una sola pieza (ADR-0358)
 
 **Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`, `unificar/elegir.mjs`). **Elegida:** la flecha redonda que ya estaba en
 Nuevo producto, junto a la línea «sede · fecha» de `EncabezadoPagina` (nació el 2026-10-06 en `main`, ADR-0220 act.). **Pieza:**

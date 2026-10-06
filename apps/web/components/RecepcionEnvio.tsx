@@ -956,7 +956,7 @@ export function RecepcionEnvio({
               )}
             </div>
           </div>
-          {/* Dejan menos comprobantes en la misma lista: la píldora de filtro del sistema (ADR-0357), no la pestaña subrayada.
+          {/* Dejan menos comprobantes en la misma lista: la píldora de filtro del sistema (ADR-0358), no la pestaña subrayada.
               Lo atrasado conserva su cuenta en ámbar mientras no está elegido: pide algo. */}
           <div role="group" aria-label="Filtrar pendientes" className="flex flex-wrap items-center gap-1.5 border-b border-tinta/10 px-3 pb-2.5 pt-1">
             {(
@@ -1183,7 +1183,7 @@ export function RecepcionEnvio({
               {/* lo que llegó: prendas del envío, fuera de comprobante y notas */}
               <section className="card-cayla anim-entra overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
                 <div className="flex flex-wrap items-stretch gap-x-1 border-b border-tinta/10 px-5">
-                  {/* Tres partes del conteo con otras columnas: la pestaña de vista del sistema (ADR-0357). La línea de abajo
+                  {/* Tres partes del conteo con otras columnas: la pestaña de vista del sistema (ADR-0358). La línea de abajo
                       la pone la tarjeta. */}
                   <Pestanas
                     etiquetaAccesible="Qué se cuenta"

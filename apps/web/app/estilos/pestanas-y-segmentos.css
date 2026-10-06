@@ -1,4 +1,4 @@
-/* ---- Elegir una de varias: tres piezas, una por lo que hace (ADR-0357, «Pestañas y segmentos») ----
+/* ---- Elegir una de varias: tres piezas, una por lo que hace (ADR-0358, «Pestañas y segmentos») ----
    Felipe las eligió MIRANDO el 2026-10-07, en la página de /unificar, después de ver aplicadas las del 2026-10-06 y no quedarse
    con ellas. La colaboradora se pregunta «¿qué cambia si toco esto?», y cada respuesta tiene UNA forma:
      · ¿Me lleva a otra parte de esta pantalla?  → PESTAÑA de vista (`components/ui/Pestanas.tsx`): el vidrio de Comprobantes

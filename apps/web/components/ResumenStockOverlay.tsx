@@ -113,7 +113,7 @@ export function ResumenStockOverlay({
     >
       <div className="space-y-6">
         <div className={`grid grid-cols-1 gap-3 ${separa ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-          {/* La pieza única de cifra (TarjetaCifra, ADR-0357). Si las ventas no se pudieron leer, lo dice como tal. */}
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0358). Si las ventas no se pudieron leer, lo dice como tal. */}
           <TarjetaCifra etiqueta="Hay en la tienda" valor={n(delStock.total)}>
             {separa ? `${n(delStock.piso ?? 0)} en piso · ${n(delStock.almacen ?? 0)} en almacén` : "prendas libres, sin las apartadas"}
           </TarjetaCifra>

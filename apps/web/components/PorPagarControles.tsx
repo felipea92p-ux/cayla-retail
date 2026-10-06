@@ -10,7 +10,7 @@ import type { SegmentoConcentracion } from "@/lib/por-pagar-reglas";
 // Controles chicos de Por pagar que necesitan cliente (spike 2026-09-19). Cada uno resuelve algo concreto:
 //  · BarraConcentracion: «62 %» no decía QUIÉN. La barra reparte la deuda entre los proveedores que más se
 //    les debe; apuntar a un tramo enciende sus filas en la lista y un clic filtra a ese proveedor.
-//  · SelectorAgrupar: «Por urgencia | Por proveedor», el segmento de modo del sistema (ADR-0357), y filas que se deslizan.
+//  · SelectorAgrupar: «Por urgencia | Por proveedor», el segmento de modo del sistema (ADR-0358), y filas que se deslizan.
 //  · BotonSoloVencidas: el filtro que más se usa, a un clic y con su cuenta, sin abrir el panel de filtros.
 
 const TONOS = ["bg-tinta", "bg-tinta/45", "bg-tinta/25", "bg-tinta/15"];
@@ -86,7 +86,7 @@ export function BotonSoloVencidas({ cantidad }: { cantidad: number }) {
       onClick={alternar}
       aria-pressed={activo}
       // `hidden sm:inline-flex`: en celular no cabe junto al agrupar y al botón de Filtros; ahí lo cubren la tarjeta «Vencido» y el panel.
-      // Deja menos comprobantes: la píldora de filtro del sistema (ADR-0357), rellena de tinta cuando filtra.
+      // Deja menos comprobantes: la píldora de filtro del sistema (ADR-0358), rellena de tinta cuando filtra.
       className="pildora-cayla hidden sm:inline-flex"
     >
       Solo vencidas

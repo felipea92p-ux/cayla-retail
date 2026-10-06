@@ -15,7 +15,7 @@ acordarse) y después, con su OK, la lleva a las pantallas que todavía usan otr
 ## 2. El registro: `docs/unificar/<familia>.md`
 
 ```markdown
-# <Nombre de la familia> — una sola pieza (ADR-0357)
+# <Nombre de la familia> — una sola pieza (ADR-0358)
 
 **Decidido:** AAAA-MM-DD, Felipe. **Elegida:** <B · SegmentoDeslizante | propuesta>. **Pieza:** `components/ui/…`.
 
@@ -46,7 +46,7 @@ En `DECISIONES`, una entrada con la forma que documenta el propio archivo:
 ```js
 "pestanas": {
   fecha: "2026-10-07",
-  adr: "docs/adr/0357-unificar-una-funcion-una-pieza.md",
+  adr: "docs/adr/0358-unificar-una-funcion-una-pieza.md",
   registro: "docs/unificar/pestanas.md",
   elegida: "B · SegmentoDeslizante",
   pieza: "components/ui/SegmentoDeslizante.tsx",
@@ -68,18 +68,18 @@ En `DECISIONES`, una entrada con la forma que documenta el propio archivo:
 1. `docs/unificar/<familia>.md` y `docs/unificar/capturas/<familia>.png`.
 2. `DECISIONES` en `familias.mjs` (firmas + deuda) → `pnpm --filter web test -- unificar` en verde.
 3. La fila de la familia en `docs/unificar/README.md` (tablero).
-4. Una línea en la sección «Decisiones» de `docs/adr/0357-unificar-una-funcion-una-pieza.md`. Si la decisión cambia la API de una pieza muy
+4. Una línea en la sección «Decisiones» de `docs/adr/0358-unificar-una-funcion-una-pieza.md`. Si la decisión cambia la API de una pieza muy
    usada, borra un componente del sistema o contradice un ADR anterior, va en su **propio** ADR (`pnpm adr:numeros` para el número libre) y el
    anterior gana una «Actualización».
 5. Una fila en la tabla «Piezas únicas» de `CLAUDE.md` (regla «Una función, una pieza»): familia → pieza. Una línea, sin explicación (la
    explicación vive en el registro).
 
-Commit: `feat(ui): <familia> es una sola pieza — <pieza> (ADR-0357)`.
+Commit: `feat(ui): <familia> es una sola pieza — <pieza> (ADR-0358)`.
 
 ## 5. Migrar (`/unificar migrar <familia> [módulo]`)
 
 Toca varios módulos: **pide el OK de Felipe** con la lista de módulos y cuántos archivos tiene cada uno, y el orden que propones (primero el
-mostrador). Luego, **un módulo por commit** (`refactor(<módulo>): usa <pieza> para <familia> (ADR-0357)`):
+mostrador). Luego, **un módulo por commit** (`refactor(<módulo>): usa <pieza> para <familia> (ADR-0358)`):
 
 1. Antes: censo de la familia en el módulo (`--modulo <m> --familia <id> --escenarios`) y captura a 1440 × 900 de una pantalla representativa.
 2. Reemplaza cada variante por la pieza. **Solo la presentación**: mismos handlers, mismo `type`, mismo texto, mismas props de negocio. Si un

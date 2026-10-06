@@ -21,7 +21,7 @@ export type OpcionSegmento = {
  * la opción activa. La primera vez se coloca sin transición (si no, se vería viajar desde 0 al abrir la
  * pantalla, y esa entrada no responde a ninguna acción).
  *
- * Dos formas (ADR-0357, «Pestañas y segmentos», Felipe 2026-10-06):
+ * Dos formas (ADR-0358, «Pestañas y segmentos», Felipe 2026-10-06):
  * · `forma="modo"`: el segmento de MODO DE VISTA y de ORDEN con estado (Por prenda / Por talla, Acumulado / Por día),
  *   gemelo de `SegmentoEnlaces`: 36 px con piel de caja, la elegida en papel con contorno de tinta, 13,5 px en 500 y las
  *   flechas ← → para pasar de una a otra. Sin pulgar: el contorno marca la elegida. CSS: `.segmento-cayla`.

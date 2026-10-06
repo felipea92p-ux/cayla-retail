@@ -82,7 +82,7 @@ export function MatrizCantidades({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
-        {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0357). Angosto, ocupa todo el ancho. */}
+        {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0358). Angosto, ocupa todo el ancho. */}
         <SegmentoDeslizante
           forma="modo"
           etiqueta="Qué escribes en la tabla"

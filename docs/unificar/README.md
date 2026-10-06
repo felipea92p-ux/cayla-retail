@@ -1,6 +1,6 @@
 # Unificar — una función, una pieza (tablero)
 
-`/unificar` (ADR-0357, `.claude/skills/unificar/`) cuenta cuántas formas distintas tiene cada familia de piezas del ERP —el botón «Cancelar»,
+`/unificar` (ADR-0358, `.claude/skills/unificar/`) cuenta cuántas formas distintas tiene cada familia de piezas del ERP —el botón «Cancelar»,
 las pestañas, la insignia de estado, la tabla, la tarjeta de cifra…—, se las muestra a Felipe con capturas lado a lado y una propuesta nueva,
 y **lo que Felipe elige pasa a ser la única forma de esa función en todo el ERP**, también en las pantallas que todavía no existen.
 `lib/unificar.test.ts` lo hace cumplir: un archivo nuevo que vuelve a dibujar a mano una familia decidida falla, y la deuda solo baja.
@@ -26,7 +26,7 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Fecha | Rama | Vistas medidas | Familias con más de una forma | Lo que más confunde |
 |---|---|---:|---:|---|
-| 2026-10-06 | `claude/unificar-componentes-skill-7e9d26` @ `c215dd2f`, cuenta Admin, foco Inventario | 101 de 109 | 30 | 25 formas de pestañas en 54 pantallas; 6 de «Volver»; solo 123 de 591 botones usan `btn-cayla` (detalle: ADR-0357) |
+| 2026-10-06 | `claude/unificar-componentes-skill-7e9d26` @ `c215dd2f`, cuenta Admin, foco Inventario | 101 de 109 | 30 | 25 formas de pestañas en 54 pantallas; 6 de «Volver»; solo 123 de 591 botones usan `btn-cayla` (detalle: ADR-0358) |
 
 ## Cómo se agrega una fila
 

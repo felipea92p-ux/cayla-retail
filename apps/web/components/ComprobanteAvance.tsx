@@ -59,4 +59,4 @@ export function BarraAvance({ avance, tono, etiqueta, fina = false }: { avance: 
 }
 
 // Las dos tarjetas del detalle («Recepción» y «Pago», con su barra) eran `TarjetaAvance`, una copia a mano de la
-// tarjeta de cifra; desde el 2026-10-06 son la pieza única `TarjetaCifra` con `BarraAvance` en su contexto (ADR-0357).
+// tarjeta de cifra; desde el 2026-10-06 son la pieza única `TarjetaCifra` con `BarraAvance` en su contexto (ADR-0358).
