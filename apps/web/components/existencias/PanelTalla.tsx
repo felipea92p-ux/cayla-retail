@@ -12,9 +12,9 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/ColgarPrimero";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
-import { accionesDeTalla, diagnosticoDeTalla, type ClaveAccionTalla } from "@/lib/existencias-panel-talla";
+import { accionesDeTalla, loQueFaltaEnElPiso, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
-import { casiNoHay, fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
+import { casiNoHay } from "@/lib/reponer-prenda-reglas";
 import { aclaracionDeLaCaja, desgloseDePrenda, estadoTalla, lineaDeLaSuma, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -54,7 +54,12 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
   ficha: ClipboardList,
 };
 
-const TONO_DIAGNOSTICO = { ambar: "bg-ambar/[0.10] text-ambar-profundo", pizarra: "bg-pizarra/[0.10] text-pizarra", verde: "bg-verde/[0.10] text-verde" } as const;
+/** «Qué toca»: el color de la respuesta corta y su punto (ámbar = hay que hacerlo aquí, pizarra = informativo o afuera, verde = está bien). */
+const TONO_QUE_TOCA: Record<TonoQueToca, { texto: string; punto: string }> = {
+  ambar: { texto: "text-ambar-profundo", punto: "bg-ambar" },
+  pizarra: { texto: "text-pizarra", punto: "bg-pizarra" },
+  verde: { texto: "text-verde", punto: "bg-verde" },
+};
 
 const CLASE_TALLA = {
   normal: "border-sand bg-crema",
@@ -197,7 +202,13 @@ export function PanelTalla({
   // Las otras tiendas, con lo que cada una tiene de esta talla (la red viene por nombre de sede).
   const origenes: SedeConCantidad[] = sedesParaPedir.map((s) => ({ ...s, cantidad: (fila.enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }));
   const acciones = accionesDeTalla(fila, { puedeReponer, puedeEnviar: puedeEnviar && destinos.length > 0, puedeAjustar, puedeApartar, puedePedir: puedePedir && sedesParaPedir.length > 0, origenes }, separa);
-  const diag = diagnosticoDeTalla(fila, separa);
+  // Las tres respuestas de la talla —hay, colgar, pedir— que siempre dicen algo, aunque el motor del piso no haya decidido (2026-10-06).
+  const queToca = queTocaConLaTalla(fila, {
+    separa,
+    tiendas: new Set(sedesParaPedir.map((s) => s.nombre)),
+    puedeColgar: puedeReponer,
+    puedePedir: puedePedir && sedesParaPedir.length > 0,
+  });
   const desglose = desgloseDePrenda({ piso: fila.pisoDisponible, almacen: fila.almacenDisponible, apartado: fila.apartado, danado: fila.danado ?? 0 });
   const ritmoTalla = ritmoDePrenda({ ...prenda, tallas: [fila], disponible: fila.disponible });
   const ritmo = textoDeRitmo(ritmoTalla);
@@ -205,7 +216,8 @@ export function PanelTalla({
   // Es del producto: cualquier talla de cualquier color la trae igual (`conDescripcion`, página de Existencias).
   const descripcion = prenda.tallas.find((t) => t.descripcion)?.descripcion ?? null;
   const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
-  const frase = separa ? fraseDeLoQueFalta(colores) : null;
+  // Lo que falta en el piso de TODO el modelo: la del motor, o, si no decidió, la de los números (con la pausa advertida).
+  const falta = separa ? loQueFaltaEnElPiso(colores) : null;
   // Lo agotado o casi (1 o ninguna aquí, nada en camino) que otra sede tiene: la maqueta lo lista con su «Pedir» (`casiNoHay`, la misma
   // regla que usaba la ventana de Reponer).
   const afuera = casiNoHay(colores).flatMap((x) => {
@@ -500,12 +512,44 @@ export function PanelTalla({
                         </span>
                       </p>
                     )}
-                    <p className={`rounded-xl px-3 py-2.5 text-sm ${TONO_DIAGNOSTICO[diag.tono]}`}>{diag.texto}</p>
+                    {/* «Qué toca con esta talla»: hay · colgar en el piso · pedir a otra sede. Cada fila dice sí o no y por qué, y si se
+                        resuelve aquí mismo, su botón. Reemplaza la frase única («Disponible: 6 unidades»), que con el motor sin decidir se veía
+                        verde aunque no hubiera nada en el piso. */}
+                    <section aria-label="Qué toca con esta talla" className="grid divide-y divide-sand/80 rounded-2xl border border-sand">
+                      {queToca.map((q) => (
+                        <div key={q.tema} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+                          <span className="label-cayla w-[7.25rem] shrink-0 text-[10.5px] text-taupe">{q.titulo}</span>
+                          <p className="min-w-0 flex-1 text-sm leading-snug">
+                            <b className={`mr-1.5 inline-flex items-center gap-1.5 font-semibold ${TONO_QUE_TOCA[q.tono].texto}`}>
+                              <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TONO_QUE_TOCA[q.tono].punto}`} />
+                              {q.respuesta}
+                            </b>
+                            <span className="text-tinta/80">{q.detalle}.</span>
+                          </p>
+                          {q.accion === "colgar" && (
+                            <button type="button" onClick={() => alAccionar("colgar")} className="btn-cayla btn-secundario btn-chico ml-auto shrink-0 gap-1.5">
+                              <IconoPercha aria-hidden className="h-4 w-4" />
+                              Colgar
+                            </button>
+                          )}
+                          {q.accion === "pedir" && mejorOrigen(fila.enRed, sedesParaPedir) && (
+                            <button type="button" onClick={() => pedirRapido(prenda, fila)} className="btn-cayla btn-secundario btn-chico ml-auto shrink-0 gap-1.5 border-pizarra/40 text-pizarra">
+                              <ArrowLeftRight aria-hidden className="h-4 w-4" />
+                              Pedir
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </section>
                     {/* Lo que falta en el piso de TODO el modelo (todos sus colores), como en la maqueta. */}
-                    {frase && (
+                    {falta && (
                       <p className="rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">
-                        <b className="font-semibold">{frase.split(":")[0]}:</b>
-                        {frase.slice(frase.indexOf(":") + 1)} Quedan marcadas al colgar.
+                        <b className="font-semibold">{falta.titulo}:</b> {falta.tallas}.{" "}
+                        {falta.marcadas
+                          ? "Quedan marcadas al colgar."
+                          : falta.enPausa
+                            ? "El piso de esta sede no está cuadrado: puede que ya cuelguen."
+                            : null}
                       </p>
                     )}
                     {afuera.length > 0 && (

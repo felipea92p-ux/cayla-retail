@@ -240,3 +240,19 @@ tablet (con el dedo no hay «pasar por encima»: el nombre no se vería nunca).
 SE ROMPE SI: una tablet con mouse (o un portátil con pantalla táctil) informa «hover» y nunca muestra el nombre fijo: ahí vale el comportamiento
 de computadora, que es correcto para quien tiene cursor.
 
+### Tercera vuelta — «Qué toca con esta talla» en el panel
+
+**Pedido** (comparando el panel del ERP con el de la maqueta): «le falta especificar si hay, si reponer, qué falta, y si sugiere pedir o
+no a otra sede». En el ERP, una talla con 0 en piso y 6 en almacén decía «Disponible: 6 unidades» en verde: la frase y «Faltan en el piso»
+solo hablaban cuando el motor del piso decía «por colgar», y con el motor sin responder (local) o en pausa (TRU sin cuadrar) callaban.
+
+DECIDÍ: en «Esta talla», tres respuestas que siempre dicen algo (`queTocaConLaTalla`, `lib/existencias-panel-talla.ts`, con su prueba):
+**Hay** (sí/no, con piso y almacén o lo que viene en camino), **Colgar en el piso** (sí y cuántas, con su botón / no hace falta / no se puede
+/ en pausa) y **Pedir a otra sede** (no hace falta / sí, a la tienda que más tiene, con su botón / al Taller se le pide aparte / nadie
+tiene). Manda el motor cuando decide; sin su decisión, los números. «Faltan en el piso» usa la misma idea (`loQueFaltaEnElPiso`). La frase
+única de antes (`diagnosticoDeTalla`) se borra: nadie más la usaba.
+DESCARTÉ: copiar la regla de la maqueta (solo números: 0 en el piso = «por reponer»), porque en una sede sin cuadrar mandaría a colgar lo
+que ya cuelga (ADR-0328, decisión 5). Con el piso en pausa la respuesta es «En pausa» y la frase dice que mire si ya cuelga, sin botón.
+SE ROMPE SI: el motor deja de responder en producción: «Colgar» vuelve a los números y puede pedir colgar una talla de los extremos sin
+ventas, que el motor habría mandado mantener. Es lo menos malo: decir «Disponible» en verde con 0 en el piso era peor.
+
