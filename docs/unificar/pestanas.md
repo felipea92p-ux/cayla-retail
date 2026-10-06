@@ -1,6 +1,6 @@
 # Pestañas y segmentos — tres piezas, una por pregunta (ADR-0358)
 
-**Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`). **Piezas:** `components/ui/Pestanas.tsx` (vista), `pildora-cayla`
+**Decidido:** 2026-10-06, Felipe, **mirando** (página de `/unificar`). **Piezas:** `components/ui/Pestanas.tsx` (vista), `pildora-cayla`
 (filtro y período) y `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (modo y orden), con su piel en `app/estilos/pestanas-y-segmentos.css`.
 
 **La regla está en la pregunta que se hace la colaboradora: «¿qué cambia si toco esto?».**
@@ -11,15 +11,17 @@
 | deja menos filas en la misma lista (un estado, una zona, un período) | **píldora de filtro** (`pildora-cayla`, `BotonFiltro`) | **A**: la píldora rellena negra, la más usada |
 | muestra lo mismo de otra forma o en otro orden | **segmento de modo** (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`) | **L**: la caja arena de «GRILLA / TABLA», con la elegida en papel, en mayúsculas |
 
-**También Finanzas y Configuración** (Felipe 2026-10-07: «sí, también Finanzas»): `PestanasFin` dibuja ahora con `<Pestanas>`; la regla de
+**También Finanzas y Configuración** (Felipe 2026-10-06: «sí, también Finanzas»): `PestanasFin` dibuja ahora con `<Pestanas>`; la regla de
 Finanzas de `CLAUDE.md` lo dice. Y las pestañas de Comprobantes (`FacturacionPestanas`, de donde salió el vidrio) y de la billetera de
-Traslados («Te llegan / Envías / Terminadas», ADR-0355) pasan a la misma pieza.
+Traslados («Te llegan / Envías / Terminadas», ADR-0355) pasan a la misma pieza. Y las cuatro preguntas de **Análisis v4** (Hoy · Se está
+acabando · No se vende · Qué pedir, ADR-0357), que llegaron de `main` con su subrayado propio (Felipe 2026-10-06: «incluye lo de Análisis»):
+mismos conteos —«Se está acabando» en rojo si hay prendas—, el chip de confianza sigue a la derecha y sus gráficos se arman igual al cambiar.
 
 ## Cómo se llegó aquí
 
 1. **2026-10-06, ronda 1.** El censo contó 25 formas en 54 pantallas; la depuración, 18 reales para cinco cosas distintas. Felipe eligió la
    recomendación por su descripción (subrayado en tinta, píldora, segmento con contorno) y se migraron ~45 archivos a las tres piezas.
-2. **2026-10-07.** Al verlas aplicadas, no le gustaron. En la página de elegir escogió F (con mayúsculas), A y L. Como las ~45 pantallas ya
+2. **Ese mismo día, más tarde.** Al verlas aplicadas, no le gustaron. En la página de elegir escogió F (con mayúsculas), A y L. Como las ~45 pantallas ya
    pasaban por las tres piezas, el cambio fue solo de piel (la hoja de estilos y el indicador que viaja) más las tres pestañas que seguían a mano.
 
 ![Las formas que había](capturas/pestanas.jpg)
@@ -50,4 +52,4 @@ El cierre por unidad de Finanzas (`fin-matriz`, ADR-0195), el segmento del Obser
 
 **0.** Las firmas atrapan una pestaña dibujada a mano (`role="tab"` fuera de la pieza), un subrayado a mano (`-mb-px border-b-2`,
 `after:h-0.5 after:bg-…`) y una «elegida» escrita a mano con fondo y sombra. La primera fusión con `main` las probó: atraparon la billetera de
-Traslados, que nació con sus pestañas a mano, y se migró.
+Traslados, que nació con sus pestañas a mano, y se migró; la segunda, las de Análisis v4, que también se migraron.

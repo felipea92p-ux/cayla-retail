@@ -16,7 +16,7 @@ import Link from "next/link";
    y no un `history.back()`, que con la pestaña recién abierta no lleva a
    ninguna parte.
 
-   UNA sola cara en todo el ERP (ADR-0358, Felipe 2026-10-07, eligiéndola
+   UNA sola cara en todo el ERP (ADR-0358, Felipe 2026-10-06, eligiéndola
    mirando; registro en docs/unificar/accion.volver.md): el botón redondo
    solo con la flecha que nació el 2026-10-06 junto a la línea «sede ·
    fecha» de EncabezadoPagina (ADR-0220 act.). ADÓNDE vuelve lo dicen su

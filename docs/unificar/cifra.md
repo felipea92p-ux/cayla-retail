@@ -1,6 +1,6 @@
 # Tarjetas de cifra — la tarjeta de Compras, en todo el ERP (ADR-0358)
 
-**Decidido:** 2026-10-07, Felipe, **mirando** (página de `/unificar`). **Elegida:** **B**, la tarjeta de Compras tal cual era. **Pieza:**
+**Decidido:** 2026-10-06, Felipe, **mirando** (página de `/unificar`). **Elegida:** **B**, la tarjeta de Compras tal cual era. **Pieza:**
 `components/ui/TarjetaCifra.tsx`.
 
 Un número grande con su nombre se dibuja siempre con la tarjeta de Compras: caja clara con borde, el nombre arriba en versalitas y el número
@@ -12,7 +12,7 @@ filtrando se rellena de arena; si no hay dato, borde punteado, «—» y su moti
 1. **2026-10-06, ronda 1.** El censo contó 17 formas; la depuración, 7 reales (5 decididas por ADR). Felipe eligió la recomendación por su
    descripción: la de Compras con «una marca por función» («Toca para filtrar», contorno de tinta en la que filtra). Se migraron ~23 archivos a la
    pieza: la «receta G» del Inicio, Comercial y Calidad, `TarjetaCifraAnalisis`, `TarjetaAvance` y las copias a mano.
-2. **2026-10-07.** Al verla aplicada, eligió mirando la **B** tal cual. Se quitaron las marcas nuevas («Toca para filtrar», «Filtrando · toca
+2. **Ese mismo día, más tarde.** Al verla aplicada, eligió mirando la **B** tal cual. Se quitaron las marcas nuevas («Toca para filtrar», «Filtrando · toca
    para quitar», el contorno de tinta) y la que filtra volvió al fondo arena; la unificación se queda: todas las pantallas usan la misma pieza.
 
 ![Las formas que había](capturas/cifra.jpg)

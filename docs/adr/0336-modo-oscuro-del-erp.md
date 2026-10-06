@@ -99,8 +99,9 @@ encontró tres fallas que no introdujo ninguna rama reciente. Dos dejan una regl
 **Escenarios.** De los que no abrían nada: `existencias.texto` se borró (el interruptor «Iconos con texto» se quitó en ADR-0344, act.
 2026-10-06); `existencias.resumen` y `existencias.decidir` abren primero la ventana «Pendientes de hoy» (ahí viven desde que «Para hoy»
 dejó la pantalla) y se suma `existencias.pendientes`; `movimientos.ajustes` busca el ENLACE dentro de `<nav aria-label="Tipo de
-movimiento">` (ADR-0353); la Isla (`estructura.recordatorio`) ya no depende de que la sede tenga hora de cierre: el escenario contesta él
-la consulta que la Isla sondea (`/api/caja/recordatorio`) con una caja abierta hace 5 h, sin escribir en la base compartida.
+movimiento">` (ADR-0353); el aviso de cierre de caja (`estructura.recordatorio`: el Marcador de la cabecera, antes la Isla) ya no
+depende de que la sede tenga hora de cierre: el escenario contesta él la consulta que sondea (`/api/caja/recordatorio`) con una caja
+abierta hace 5 h y abre su pestaña, sin escribir en la base compartida.
 
 ## Cómo se verificó (actividad 13)
 

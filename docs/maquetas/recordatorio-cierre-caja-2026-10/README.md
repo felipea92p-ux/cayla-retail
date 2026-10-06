@@ -1,6 +1,8 @@
 # Maquetas · Recordatorio de cierre de caja (2026-10-01)
 
 > **Estado (2026-10-01): implementada la maqueta 2, «Isla», tal cual — ver `docs/adr/0305-recordatorio-de-cierre-de-caja-la-isla.md`.**
+> **Actualización 2026-10-06:** la Isla se mudó al centro de la cabecera como «Marcador» (ADR-0359, `docs/maquetas/recordatorio-cierre-barra-superior-2026-10/`).
+>
 > Lo que el ERP decidió para las preguntas abiertas: la ve quien puede cerrar la caja, solo de la sede donde está parado,
 > sin preaviso y con los cortes de 30 y 60 min. Las maquetas 1 y 3 quedan como referencia. Los datos de abajo son inventados
 > (Arequipa: S/ 1,284.50 en el cajón, 23 ventas; Trujillo: S/ 962.00, 17 ventas).

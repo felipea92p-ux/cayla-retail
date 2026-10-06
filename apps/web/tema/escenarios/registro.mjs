@@ -61,16 +61,17 @@ export const ESCENARIOS = [
     },
   },
   {
-    // La Isla sale cuando la sede tiene `hora_cierre`, esa hora ya pasó y la caja sigue abierta. En la base local Tienda Lima no tiene hora
-    // de cierre, y aunque la tuviera dependería de la hora a la que se corre. El escenario NO escribe en la base (es compartida con otras
-    // sesiones): contesta él la consulta que la Isla sondea (`/api/caja/recordatorio`) con una caja abierta hace 5 h y la hora de cierre de
-    // hace 70 min —nivel 3, «sin cerrar»—, y le avisa a la pestaña que volvió a estar a la vista para que pregunte ya. Lo que se dibuja es el
-    // componente real; solo los datos son del escenario. El mouse queda encima para que la tarjeta no se pliegue sola mientras se mide.
+    // El Marcador (el aviso de cierre en el centro de la cabecera, ADR-0357; antes la «Isla») sale cuando la sede tiene `hora_cierre` y
+    // faltan 15 min o menos, con la caja abierta. En la base local Tienda Lima no tiene hora de cierre, y aunque la tuviera dependería de
+    // la hora a la que se corre. El escenario NO escribe en la base (es compartida con otras sesiones): contesta él la consulta que el
+    // Marcador sondea (`/api/caja/recordatorio`) con una caja abierta hace 5 h y la hora de cierre de hace 70 min —nivel 3, «sin cerrar»—,
+    // y le avisa a la pestaña que volvió a estar a la vista para que pregunte ya. Lo que se dibuja es el componente real; solo los datos
+    // son del escenario. La pestaña colgante no baja sola en la primera lectura: la abre «Ver el detalle del cierre».
     id: "estructura.recordatorio",
     ruta: "/",
     cuentas: ["admin", "rol-personalizado", "terminal-ventas"],
-    abre: ".rcc-isla.rcc-abierta",
-    nombre: "Recordatorio de cierre de caja abierto (la Isla)",
+    abre: ".rcc-ticket.rcc-abierta",
+    nombre: "Recordatorio de cierre de caja con la pestaña abierta (el Marcador)",
     async preparar(pagina) {
       const ahora = Date.now();
       const limaHaceSetenta = new Date(ahora - 70 * 60_000 - 5 * 3_600_000); // Lima va 5 h detrás de UTC todo el año
@@ -78,12 +79,9 @@ export const ESCENARIOS = [
       const datos = { ubicacionId: "escenario-tema", sede: "Tienda Lima", horaCierre, caja: { id: "escenario-tema", abiertaEn: new Date(ahora - 5 * 3_600_000).toISOString(), abiertaPor: "Lucía" } };
       await pagina.route(/\/api\/caja\/recordatorio/, (ruta) => ruta.fulfill({ json: { datos, cifras: { esperado: 1240.5, ventas: 14 } } }));
       await pagina.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-      const pildora = pagina.locator(".rcc-pildora").first();
-      await pildora.waitFor({ timeout: 8000 });
-      // Se abre sola una vez a los ~950 ms; si no, la abre el clic (abierta, la píldora es `inert` y no lo recibe).
-      await esperar(pagina, 1500);
-      if ((await pagina.locator(".rcc-isla.rcc-abierta").count()) === 0) await pildora.click({ timeout: 4000 });
-      await pagina.locator(".rcc-isla").first().hover();
+      await pagina.locator(".rcc-caps").first().waitFor({ timeout: 8000 });
+      await esperar(pagina, 900);
+      if ((await pagina.locator(".rcc-ticket.rcc-abierta").count()) === 0) await pagina.locator(".rcc-mas, .rcc-caps").first().click({ timeout: 4000 });
       await esperar(pagina, 1200);
     },
     async limpiar(pagina) {
@@ -246,7 +244,8 @@ ESCENARIOS.push(
     ancho: "escritorio",
     nombre: "Rendimiento · periodo Mes y la tabla de la gráfica",
     async preparar(pagina) {
-      await pagina.getByRole("radio", { name: /^Mes$/i }).first().click();
+      // El período es una píldora (ADR-0358): un botón con `aria-pressed`, ya no un radio.
+      await pagina.getByRole("button", { name: /^Mes$/i }).first().click();
       await esperar(pagina, 1000);
       await pagina.locator("summary").filter({ hasText: /Ver como tabla/ }).first().click();
       await esperar(pagina, 600);
@@ -484,6 +483,12 @@ ESCENARIOS.push(
 const POSVENTA = ["admin", "integrante", "terminal-ventas"];
 const clicRol = (rol, nombre, opts = {}) => async (pagina) => {
   await pagina.getByRole(rol, { name: nombre, ...opts }).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
+// Una pestaña de vista (`<Pestanas>`, ADR-0358): con la vista en la URL es un enlace (`aria-current`); como estado, un `tab`. Se
+// busca dentro de la fila para no tomar un enlace del lateral con el mismo nombre.
+const clicPestana = (nombre) => async (pagina) => {
+  await pagina.locator(".pestanas-cayla").locator("a, [role=tab]").filter({ hasText: nombre }).first().click({ timeout: 8000 });
   await esperar(pagina, 1100);
 };
 const secuencia = (...pasos) => async (pagina) => { for (const paso of pasos) await paso(pagina); };
@@ -886,8 +891,8 @@ ESCENARIOS.push(
   { id: "proveedores.sin-datos", ruta: "/compras/proveedores", cuentas: COMPRAS, nombre: "Proveedores · el filtro «Sin datos de pago»", preparar: clicRol("button", /Sin datos de pago/i) },
   { id: "proveedores.ficha", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "h1", nombre: "Proveedores · la ficha de un proveedor", preparar: async (pagina) => irA(`/compras/proveedores/${idDeProveedor()}`)(pagina) },
   { id: "notas.registrar", ruta: "/compras/notas-credito", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Notas de crédito · «Registrar nota»", preparar: clicRol("button", /Registrar nota/i) },
-  { id: "notas.saldos", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Saldos a favor»", preparar: clicRol("radio", /Saldos a favor/i) },
-  { id: "notas.todas", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Todas»", preparar: clicRol("radio", /^Todas/i) },
+  { id: "notas.saldos", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Saldos a favor»", preparar: clicPestana(/Saldos a favor/i) },
+  { id: "notas.todas", ruta: "/compras/notas-credito", cuentas: COMPRAS, nombre: "Notas de crédito · «Todas»", preparar: clicRol("button", /^Todas/i) },
   { id: "factura.detalle", ruta: "/compras/factura/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Factura de proveedor · el comprobante", preparar: async (pagina) => irA(`/compras/factura/${idDeCompra()}`)(pagina) },
   { id: "parte.detalle", ruta: "/compras/parte/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Parte de recepción · el documento", preparar: async (pagina) => irA(`/compras/parte/${idDeCompra()}`)(pagina) },
   { id: "produccion.orden-nueva", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva orden»", preparar: clicRol("button", /Nueva orden/i) },
@@ -935,12 +940,12 @@ ESCENARIOS.push(
   { id: "colaboradores.terminal", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · la ficha de una terminal", preparar: clicRol("button", /^Almacén Trujillo/i) },
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
-  { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicRol("tab", /Caja y avisos/i) },
-  { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicRol("tab", /Cuentas y cobros/i) },
-  { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicRol("tab", /Gastos fijos/i) },
-  { id: "configuracion.presupuesto", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Presupuesto»", preparar: clicRol("tab", /^Presupuesto/i) },
-  { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: clicRol("tab", /^Impuestos/i) },
-  { id: "configuracion.empresa", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Empresa»", preparar: clicRol("tab", /^Empresa/i) },
+  { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
+  { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
+  { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },
+  { id: "configuracion.presupuesto", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Presupuesto»", preparar: clicPestana(/^Presupuesto/i) },
+  { id: "configuracion.impuestos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Impuestos»", preparar: clicPestana(/^Impuestos/i) },
+  { id: "configuracion.empresa", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Empresa»", preparar: clicPestana(/^Empresa/i) },
   { id: "actividad.modulo", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Módulo»", preparar: clicRol("combobox", /^Módulo/i) },
   { id: "actividad.persona", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Persona»", preparar: clicRol("combobox", /^Persona/i) },
   { id: "actividad.hoy", ruta: "/actividad", cuentas: ["admin"], nombre: "Actividad · el período «Hoy»", preparar: clicRol("button", /^Hoy/i) },

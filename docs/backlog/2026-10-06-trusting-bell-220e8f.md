@@ -11,5 +11,5 @@
 - [ ] Heredados del claro que la auditoría sigue contando (no son del oscuro): 8 en Movimientos con el filtro «Ajustes y conteos» y los
       `text-tinta/55` de ayuda de Registrar factura (3.84:1 en claro). Se arreglan cuando se audite cada pantalla en claro.
 - [ ] Correr las auditorías de las rutas de los otros escenarios con todas las cuentas (`--cuenta todas --escenarios`) cuando haya tiempo:
-      esta pasada cubrió Admin en `/caja`, `/compras/nueva`, `/inventario` y `/inventario/movimientos`, más la Isla y «Pendientes de hoy»
+      esta pasada cubrió Admin en `/caja`, `/compras/nueva`, `/inventario` y `/inventario/movimientos`, más el aviso de cierre (el Marcador) y «Pendientes de hoy»
       con las cuentas que los declaran.
