@@ -57,12 +57,14 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
   const inicial = useMemo(() => paseInicial(billetera.pases), [billetera.pases]);
   const seleccion = idEnRuta ?? inicial?.id ?? null;
   const pestanaDeSeleccion = seleccion ? (PESTANAS.find((p) => billetera.pases[p.id].some((x) => x.id === seleccion))?.id ?? null) : null;
-  // Al abrir un pase de otra pestaña (desde un enlace, o al pasar a la siguiente caja tras sellar), la billetera lo acompaña. Se
-  // deriva al dibujar (el patrón de React para «estado que sigue a una prop»), no con un efecto.
-  const [elegida, setElegida] = useState<{ para: string | null; pestana: PestanaPase }>({ para: seleccion, pestana: pestanaDeSeleccion ?? "llegan" });
-  if (elegida.para !== seleccion) setElegida({ para: seleccion, pestana: pestanaDeSeleccion ?? elegida.pestana });
-  const pestana = elegida.para !== seleccion ? (pestanaDeSeleccion ?? elegida.pestana) : elegida.pestana;
-  const setPestana = (p: PestanaPase) => setElegida({ para: seleccion, pestana: p });
+  // Al abrir un pase de otra pestaña (desde un enlace, al pasar a la siguiente caja tras sellar, o porque la caja abierta acaba de
+  // terminarse y pasó a Terminadas), la billetera lo acompaña. Se deriva al dibujar (el patrón de React para «estado que sigue a
+  // una prop»), no con un efecto: la clave es el pase abierto Y la pestaña donde vive.
+  const para = `${seleccion ?? ""}|${pestanaDeSeleccion ?? ""}`;
+  const [elegida, setElegida] = useState<{ para: string; pestana: PestanaPase }>({ para, pestana: pestanaDeSeleccion ?? "llegan" });
+  if (elegida.para !== para) setElegida({ para, pestana: pestanaDeSeleccion ?? elegida.pestana });
+  const pestana = elegida.para !== para ? (pestanaDeSeleccion ?? elegida.pestana) : elegida.pestana;
+  const setPestana = (p: PestanaPase) => setElegida({ para, pestana: p });
   const [consulta, setConsulta] = useState("");
   const coincide = (p: PaseDeBilletera) => !consulta.trim() || coincideBusqueda(p.buscable, consulta);
   const lista = billetera.pases[pestana].filter(coincide);

@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, startTransition, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { PaseFrente, type SelloPuesto } from "@/components/traslados-pases/PaseFrente";
 import { RUTA_TRASLADOS, rutaDelPase, useVecinos } from "@/components/traslados-pases/Billetera";
-import { fechaDeSello, type TonoPase, type VistaPase } from "@/lib/traslados-pases-reglas";
+import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/traslados-pases-reglas";
 
 // El escenario: el pase grande que GIRA (ADR-0354). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
 // caja (contar, revisar, ver lo enviado). Al terminar, el pase vuelve al frente, le cae un sello y, un momento después, se abre
@@ -35,8 +35,9 @@ export function PaseTraslado({
   volverA,
 }: {
   vista: VistaPase;
-  /** Lo que va al reverso. Sin reverso, el botón lleva a `abajo` (el detalle de siempre). */
-  reverso?: ReactNode;
+  /** Lo que va al reverso: el botón del frente da vuelta el pase. */
+  reverso: ReactNode;
+  /** Bajo el pase («Lo siguiente» de lo recién recibido). */
   abajo?: ReactNode;
   /** «← Movimientos» si se llegó desde ahí (ADR-0234). */
   volverA?: { href: string; a: string } | null;
@@ -46,8 +47,25 @@ export function PaseTraslado({
   const [vuelta, setVuelta] = useState(false);
   const [sello, setSello] = useState<SelloPuesto | null | undefined>(undefined);
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const abajoRef = useRef<HTMLDivElement>(null);
+  const escenario = useRef<HTMLDivElement>(null);
   useEffect(() => () => clearTimeout(temporizador.current), []);
+
+  // El foco acompaña al giro: al reverso, a su «Volver»; de vuelta al frente, a su botón (sin mover la página).
+  const yaGiro = useRef(false);
+  useEffect(() => {
+    if (!vuelta && !yaGiro.current) return;
+    yaGiro.current = true;
+    const destino = escenario.current?.querySelector<HTMLElement>(vuelta ? "[data-foco-reverso]" : ".tp-boton");
+    destino?.focus({ preventScroll: true });
+    // Al reverso, el pase crece: si su pie (el botón de terminar o confirmar) quedaría bajo el pliegue, se trae el pase entero a la
+    // vista, una vez y suave. Es la respuesta a un clic, nunca mientras se escribe.
+    if (!vuelta) return;
+    const giro = escenario.current?.querySelector<HTMLElement>(".tp-giro");
+    if (!giro) return;
+    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => giro.scrollIntoView({ block: "nearest", behavior: reducir ? "auto" : "smooth" }), reducir ? 0 : 520);
+    return () => clearTimeout(t);
+  }, [vuelta]);
 
   const pase: Pase = {
     girar: (alReverso) => setVuelta(alReverso),
@@ -58,21 +76,27 @@ export function PaseTraslado({
       temporizador.current = setTimeout(
         () => {
           const siguiente = v.siguientePorHacer;
-          if (siguiente) router.push(rutaDelPase(siguiente.id), { scroll: false });
-          router.refresh();
+          if (siguiente) {
+            // La billetera vive en el layout, que no se vuelve a pedir al navegar: sin el refresh, la caja recién sellada seguiría
+            // en «Te llegan» y el anillo no sumaría.
+            startTransition(() => {
+              router.push(rutaDelPase(siguiente.id), { scroll: false });
+              router.refresh();
+            });
+            return;
+          }
+          // Sin otra caja que te toque, se queda en esta ya actualizada. Un sello que no es de terminada («FALTÓ ALGO»: la caja
+          // sigue abierta para el líder) se levanta junto con la foto nueva, en la misma transición.
+          startTransition(() => {
+            router.refresh();
+            if (!Object.values(TEXTO_SELLO).includes(texto)) setSello(undefined);
+          });
         },
         reducir ? 400 : 720 + MS_HASTA_LA_SIGUIENTE,
       );
     },
   };
 
-  const alBoton = () => {
-    if (reverso) {
-      setVuelta(true);
-      return;
-    }
-    abajoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <CtxPase.Provider value={pase}>
@@ -87,7 +111,7 @@ export function PaseTraslado({
             <ArrowLeft aria-hidden className="h-4 w-4" strokeWidth={1.8} /> Volver a {volverA.a}
           </Link>
         )}
-        <div className="tp-escenario">
+        <div className="tp-escenario" ref={escenario}>
           <div key={vista.id} className="tp-giro tp-entra">
             <div className="tp-pase3d" data-vuelta={vuelta ? "" : undefined}>
               <div inert={vuelta}>
@@ -95,17 +119,15 @@ export function PaseTraslado({
                   vista={vista}
                   sello={sello}
                   accion={
-                    <button type="button" onClick={alBoton} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
+                    <button type="button" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
                       {vista.boton.texto} <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />
                     </button>
                   }
                 />
               </div>
-              {reverso && (
-                <div className="tp-pase tp-pase-atras" data-tp-tono={vista.tono} inert={!vuelta} aria-hidden={!vuelta}>
-                  {reverso}
-                </div>
-              )}
+              <div className="tp-pase tp-pase-atras" data-tp-tono={vista.tono} inert={!vuelta} aria-hidden={!vuelta}>
+                {reverso}
+              </div>
             </div>
           </div>
           {v.total > 1 && (
@@ -134,11 +156,7 @@ export function PaseTraslado({
             </nav>
           )}
         </div>
-        {abajo && (
-          <div ref={abajoRef} className="scroll-mt-20">
-            {abajo}
-          </div>
-        )}
+        {abajo}
       </div>
     </CtxPase.Provider>
   );

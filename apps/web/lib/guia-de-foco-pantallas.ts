@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 63;
+export const PENDIENTES_HOY = 62;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -112,18 +112,15 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
   "/inventario/resumen": PENDIENTE,
-  // ADR-0354: la billetera de pases. Sin campos propios: el buscador y las pestañas filtran; lo que se llena (contar, revisar, anular)
-  // vive en el pase, declarado en «/inventario/traslados/(billetera)/[id]».
-  "/inventario/traslados/(billetera)": {
-    estado: "no-aplica",
-    motivo: "La billetera de pases: un buscador y pestañas que filtran, sin formulario. Abre el pase de lo primero que te toca; lo que se llena vive en el pase ([id]).",
-  },
+  // ADR-0354: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
+  // que «/inventario/traslados/(billetera)/[id]».
+  "/inventario/traslados/(billetera)": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx"] },
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
-  // ADR-0328 (actividad 15): «¿Quién recibe?» ya lleva su guía (CampoGuiado + PieGuia), y por eso `pnpm focus` la ve «con guía».
-  // Sigue pendiente a propósito: las casillas de lo recibido por prenda, que son el trabajo de la pantalla, todavía no dicen qué
-  // falta ni qué sigue. Pasarla a «aplicada» por un solo campo haría mentir al tablero.
-  "/inventario/traslados/(billetera)/[id]": PENDIENTE,
+  // ADR-0354: el pase y su reverso. «Falta» = lo que ya bloquea la base: al contar, cada prenda enviada sin número (lo mismo que
+  // apaga «Terminé de contar»; la siguiente se enciende y el pie las nombra); quién recibe (ADR-0328); al cerrar con diferencia, la
+  // nota; al anular, el motivo y quién. Piso o almacén no es «falta»: viene marcado (D-131).
+  "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx"] },
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
   // ---- pedidos-no-atendidos ----
@@ -178,7 +175,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 64;
+export const MODALES_PENDIENTES_HOY = 61;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -281,9 +278,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
-  "components/TrasladoAnularModal.tsx": PENDIENTE, // 2 controles
-  "components/TrasladoCerrarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/TrasladoConfirmarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).

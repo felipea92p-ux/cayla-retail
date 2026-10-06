@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getFirmaRecepcion, getTrasladoDetalle } from "@/lib/traslados";
+import { getFirmaRecepcion, getTrasladoDetalle, getWhatsappDeSedes } from "@/lib/traslados";
 import { firmaDelPaso } from "@/lib/firma-heredada";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { aPrendasBajables } from "@/lib/bajada-reglas";
@@ -8,9 +8,9 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { encontrarPorTipo, getSububicaciones, type Sububicacion } from "@/lib/sububicaciones";
 import { loSiguienteDeLaRecepcion, type DestinoRecepcion } from "@/lib/traslados-recepcion-reglas";
 import { datosDeDetalle, getCodigosDeSede, vistaConCodigos } from "@/lib/traslados-billetera";
-import { TrasladoDetallePanel } from "@/components/TrasladoDetallePanel";
 import { TrasladoLoSiguiente } from "@/components/TrasladoLoSiguiente";
 import { PaseTraslado } from "@/components/traslados-pases/PaseTraslado";
+import { ReversoPase } from "@/components/traslados-pases/ReversoPase";
 
 /** Los lugares de la sede destino. Solo sirven para preguntar «¿piso de venta o almacén?» y decir dónde quedó lo recibido: si la
  *  lectura falla, no se pregunta (la base deja lo recibido en su lugar de siempre) y el pase sigue en pie. */
@@ -39,11 +39,12 @@ async function prendasEnElAlmacen(ubicacionId: string): Promise<ReadonlySet<stri
 // escanear, la firma de quien recibe, dónde se puede dejar lo recibido y «Lo siguiente»), dibujado como pase.
 export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { href: string; a: string } | null }) {
   const persona = await requirePersonaActualV2();
-  const [traslado, catalogo, firmaVigente, codigo] = await Promise.all([
+  const [traslado, catalogo, firmaVigente, codigo, whatsapps] = await Promise.all([
     getTrasladoDetalle(id),
     getCatalogo(),
     persona.terminal ? getFirmaRecepcion(id) : Promise.resolve(null),
     getCodigosDeSede(),
+    getWhatsappDeSedes(),
   ]);
   if (!traslado) notFound();
   const sububicaciones = await sububicacionesDe(traslado.ubicacionDestinoId);
@@ -80,25 +81,24 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
       key={traslado.id}
       vista={vista}
       volverA={volverA}
-      abajo={
-        <div className="space-y-5">
-          {loSiguiente && <TrasladoLoSiguiente {...loSiguiente} />}
-          <TrasladoDetallePanel
-            traslado={traslado}
-            esDestino={esDestino}
-            esOrigen={esOrigen}
-            esLider={persona.rol === "lider"}
-            ahoraIso={ahoraIso}
-            puedeCerrarDiferencia={puedeCerrarDiferencia}
-            opcionesDestino={[...opcionesDestino]}
-            lugarRecibido={lugarRecibido}
-            firma={firmaRecepcion}
-            catalogo={catalogo
-              .filter((v) => v.activo)
-              .map((v) => ({ varianteId: v.varianteId, sku: v.sku, referencia: v.referencia, talla: v.talla, color: v.color, codigosBarras: v.codigosBarras }))}
-          />
-        </div>
+      reverso={
+        <ReversoPase
+          vista={vista}
+          traslado={traslado}
+          esDestino={esDestino}
+          esOrigen={esOrigen}
+          esLider={persona.rol === "lider"}
+          puedeCerrarDiferencia={puedeCerrarDiferencia}
+          opcionesDestino={[...opcionesDestino]}
+          lugarRecibido={lugarRecibido}
+          firma={firmaRecepcion}
+          whatsappDestino={whatsapps.get(traslado.ubicacionDestinoId) ?? null}
+          catalogo={catalogo
+            .filter((v) => v.activo)
+            .map((v) => ({ varianteId: v.varianteId, sku: v.sku, referencia: v.referencia, talla: v.talla, color: v.color, codigosBarras: v.codigosBarras }))}
+        />
       }
+      abajo={loSiguiente ? <TrasladoLoSiguiente {...loSiguiente} /> : undefined}
     />
   );
 }
