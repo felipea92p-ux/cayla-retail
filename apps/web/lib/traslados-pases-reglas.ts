@@ -98,6 +98,8 @@ export type VistaPase = {
   /** Le pide algo a quien mira (cuenta en el anillo y en el contador de su pestaña). */
   porHacer: boolean;
   enviaNombre: string | null;
+  /** El QR de la guía en el frente («va en la caja», ADR-0242 D-3): solo para quien envió, mientras la caja viaja. */
+  conGuia: boolean;
   nota: string | null;
   fotos: FotoTraslado[];
   colores: string[];
@@ -359,6 +361,12 @@ export function fechaDeSello(iso: string): string {
   return `${dia} ${MESES_SELLO[mes - 1] ?? ""} · ${horaLima(iso)}`;
 }
 
+/** ¿El frente lleva el QR de la guía? La guía es de quien arma y despacha la caja, y sirve solo mientras viaja: anulada no viaja
+ *  y, recibida, ya nadie la cuenta. Contándose todavía viaja (la otra sede pudo empezar sin la guía y alguien la reimprime). */
+export function llevaGuia(t: DatosPase, ctx: ContextoTraslados): boolean {
+  return t.ubicacionOrigenId === ctx.miUbicacionId && t.ubicacionDestinoId !== ctx.miUbicacionId && enTransito(t);
+}
+
 /** Todo lo que el pase dice, en un solo objeto (lo arma el servidor; el navegador solo lo dibuja). */
 export function vistaDelPase(t: DatosPase, ctx: ContextoTraslados, codigos: { origen: string; destino: string }): VistaPase {
   const tono = tonoDelPase(t, ctx);
@@ -386,6 +394,7 @@ export function vistaDelPase(t: DatosPase, ctx: ContextoTraslados, codigos: { or
     sello: selloDelPase(t, ctx),
     porHacer: requiereAccion(situacionDelPase(t, ctx)),
     enviaNombre: t.creadoPorNombre,
+    conGuia: llevaGuia(t, ctx),
     nota: t.nota,
     fotos: t.fotos,
     colores: t.colores,
@@ -420,14 +429,26 @@ export function hechasHoy(ts: readonly DatosPase[], ctx: ContextoTraslados): num
   }).length;
 }
 
-export type Anillo = { hechas: number; total: number; pendientes: number; fraccion: number };
+export type Anillo = { hechas: number; total: number; pendientes: number; fraccion: number; porRecibir: number; tePiden: number };
 
-/** El anillo «0/5 · Te tocan 5 cosas hoy». `pendientes` es el MISMO número del menú: lo que llega por recibir o revisar
- *  (`requiereAccion`) más lo que otras sedes te piden (`tePiden`). */
+/** El anillo del día. `pendientes` es el MISMO número del menú: lo que llega por recibir o revisar (`requiereAccion`) más lo que
+ *  otras sedes te piden (`tePiden`). */
 export function anilloDelDia(p: { porRecibir: number; tePiden: number; hechas: number }): Anillo {
   const pendientes = p.porRecibir + p.tePiden;
   const total = pendientes + p.hechas;
-  return { hechas: p.hechas, total, pendientes, fraccion: total === 0 ? 1 : p.hechas / total };
+  return { hechas: p.hechas, total, pendientes, fraccion: total === 0 ? 1 : p.hechas / total, porRecibir: p.porRecibir, tePiden: p.tePiden };
+}
+
+/**
+ * El anillo dicho en palabras (Formidable, 2026-10-06: «3/4 · Llevas 3 hechas» no se entendió). Arriba qué te toca, nombrando
+ * cajas y pedidos; abajo cuánto llevas del día. El anillo queda como dibujo, sin cifra adentro.
+ */
+export function textoDelAnillo(a: Anillo): { titulo: string; detalle: string } {
+  const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+  const partes = [a.porRecibir > 0 ? plural(a.porRecibir, "caja", "cajas") : null, a.tePiden > 0 ? plural(a.tePiden, "pedido", "pedidos") : null].filter(Boolean);
+  const titulo = a.pendientes === 0 ? "Nada pendiente hoy" : `Te ${a.pendientes === 1 ? "toca" : "tocan"} ${partes.join(" y ")} hoy`;
+  const detalle = a.hechas > 0 ? `Ya hiciste ${a.hechas} de ${a.total}` : a.pendientes > 0 ? "Empieza por la primera" : "Todo al día";
+  return { titulo, detalle };
 }
 
 /** Lo que el buscador de la billetera mira de un pase: lo de siempre (número, sede, prenda, código, nota) más el código del pase
