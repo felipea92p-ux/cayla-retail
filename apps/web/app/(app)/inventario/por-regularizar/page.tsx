@@ -1,6 +1,14 @@
-import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar";
+import {
+  getCandidatasExactas,
+  getCandidatasPorRegularizar,
+  getCategoriasParaSugerir,
+  getPlazosColaArranque,
+  getPorRegularizar,
+  getSinCargarPorRegularizar,
+} from "@/lib/por-regularizar";
+import { categoriasPorLoEscrito, hechosConExactas } from "@/lib/por-regularizar-candidatas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -22,11 +30,28 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
+  // ADR-0328 (act. 5): con las prendas del stock que pueden ser cada venta. Si esa lectura falla, la cola sale igual, sin sugerencias.
+  const sedeDeLaCola = esLider ? (unaSede?.id ?? null) : persona.ubicacionId;
+  // Ajuste ADR-0328 (2026-10-04): qué ventas son de prendas que su sede nunca cargó, y si su carga sigue abierta. Si falla, {}.
   // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
-  const [filas, catalogo, plazos] = await Promise.all([
-    getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId),
+  const [filas, catalogo, candidatas, categorias, sinCargar, plazos] = await Promise.all([
+    getPorRegularizar(sedeDeLaCola),
     getCatalogo(),
+    getCandidatasPorRegularizar(sedeDeLaCola),
+    getCategoriasParaSugerir(),
+    getSinCargarPorRegularizar(sedeDeLaCola),
     esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
+  ]);
+  // Las ventas cuya descripción nombra otra categoría que la anotada («Jean…» como Pantalones): sus candidatas se leen otra vez,
+  // en la categoría escrita. Va después porque depende de lo que dicen las filas; casi siempre no hay ninguna y no se pide nada.
+  const escritas = categoriasPorLoEscrito(filas, categorias);
+  const releer = Object.fromEntries(Object.entries(escritas).map(([id, s]) => [id, s.categoriaId]));
+  // D1 (2026-10-05): lo que calza EXACTO con cada venta lo define UNA función, `fn_candidatas_de_venta` (la del lote del líder, ADR-0334),
+  // y es por tienda: una lectura por cada tienda con pendientes. Las de arriba solo aportan los hechos y los tramos aparte.
+  const sedesConPendientes = [...new Set(filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId))];
+  const [porLoEscrito, exactas] = await Promise.all([
+    Object.keys(releer).length > 0 ? getCandidatasPorRegularizar(sedeDeLaCola, releer) : Promise.resolve({ hechos: [], fallo: null }),
+    getCandidatasExactas(sedesConPendientes),
   ]);
   const etiqueta = esLider ? (unaSede?.nombre ?? "tus tiendas") : persona.ubicacionEtiqueta;
   // De vuelta a Existencias en la misma sede que se miraba (la de la cabecera no necesita el parámetro).
@@ -34,7 +59,10 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
   const prendas = catalogo
     .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
-    .map((v) => ({ id: v.varianteId, nombre: v.referencia, codigo: v.codigo ?? v.sku, categoria: v.categoria ?? "", talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
+    .map((v) => ({ id: v.varianteId, productoId: v.productoId, nombre: v.referencia, codigo: v.codigo ?? v.sku, categoria: v.categoria ?? "", talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
+  // La salida de una prenda sin cargar es la ficha del producto (cargar su stock o «Encontré prendas»): pide editar el catálogo
+  // (la ficha) y ajustar stock (su matriz). Sin los dos, el aviso dice qué hacer pero no ofrece un enlace que termine en «Sin acceso».
+  const puedeCargarStock = puede(persona, "editarCatalogo") && puede(persona, "ajustarStock");
 
   return (
     <div className="space-y-6">
@@ -47,9 +75,16 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
       <PorRegularizarLista
         filas={filas}
         prendas={prendas}
+        hechos={hechosConExactas(exactas.exactas, candidatas.hechos)}
+        hechosPorLoEscrito={porLoEscrito.hechos}
+        escritas={escritas}
+        avisoCandidatas={exactas.fallo ?? candidatas.fallo ?? porLoEscrito.fallo}
+        sinLecturaDeLaTienda={exactas.exactas === null}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
         esLider={esLider}
+        sinCargar={sinCargar}
+        puedeCargarStock={puedeCargarStock}
         plazos={plazos}
         sedeInicial={unaSede?.id ?? null}
       />

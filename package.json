@@ -100,6 +100,7 @@
     "pruebas:campana-redondeo": "node scripts/pruebas/campana_redondeo.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",
     "pruebas:prendas-por-regularizar": "node scripts/pruebas/prendas_por_regularizar.mjs",
+    "pruebas:ventas-sin-registrar": "node scripts/pruebas/ventas_sin_registrar.mjs",
     "pruebas:cola-arranque": "node scripts/pruebas/cola_arranque.mjs",
     "pruebas:cola-arranque-concurrencia": "node scripts/pruebas/cola_arranque_concurrencia.mjs",
     "pruebas:vendedora-en-venta": "node scripts/pruebas/vendedora_en_venta.mjs",

@@ -911,7 +911,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `registrar_venta` la exige completa y en cantidad 1, **no mueve stock** por ella y la deja en
   `prendas_por_regularizar` (estado `pendiente`). El comprobante electrónico la nombra con `descripcion_libre`
   (`itemsParaLucode`). `anular_venta` salta la línea pendiente; un trigger en `ventas` pasa la fila a `anulada`, y
-  otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
+  otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`). Si lo que la asesora
+  ESCRIBE en la descripción nombra otra categoría («Jean…» con Pantalones), el modal la sugiere y ella la confirma
+  (`lib/sugerir-categoria-sin-registrar.ts`, por prefijo; ADR-0328, act. 5).
   Cabecera y pantallas vecinas (ADR-0221, act. b «el ticket a lo alto»): `lib/vender-accesos.ts` (`accesosDeMas`) →
   `punto-de-venta/AccesosVenta` (`MasDeLaTienda` y `BotonApartados`, que se lleva el ticket), en la fila de arriba del catálogo;
   caja cerrada → `punto-de-venta/CajaCerrada` (persiana y cartel «Cerrado» sobre el área de trabajo, POS `inert` detrás; su único
@@ -1129,7 +1131,29 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 (piso, si no almacén);
   `llego_nueva` = entrada `ingreso_regularizado` + salida; la salida lleva motivo `venta` y el `venta_item_id`, la
   línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. `contarVencidas` alimenta la
-  cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Tablas `envios` (una guía; agrupa un lote por proveedor vía
+  cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Limpieza de arranque (ADR-0328, act. 5):
+  `getCandidatasPorRegularizar` → RPC de lectura `fn_candidatas_por_regularizar(p_ubicacion_id, p_categoria_de)` (20261004203000: por venta
+  pendiente, las variantes de la misma categoría y talla, color exacto o de su familia, con stock libre en su sede, la
+  primera entrada de esa prenda a esa sede, cuántas tenía el sistema ahí justo antes de la venta —`saldo_a_la_venta`, del libro
+  único `fn_ledger_puntos`, una lectura por sede— y lo primero que llegó o se ajustó después; tolerante a fallo) →
+  `lib/por-regularizar-candidatas.ts` (orden por nombre, color, piso y precio; descarta colores de la familia que no se
+  confunden, ΔE2000 > 20; `deducirForma`: «llegó nueva» si el sistema no tenía ninguna, «ya estaba registrada» si tenía y
+  después no llegó ni se ajustó nada, y sin respuesta —con el porqué y la fecha— si después llegó algo). Si lo que la caja
+  ESCRIBIÓ nombra otra categoría que la anotada (`categoriasPorLoEscrito`, la misma `sugerirCategoria` de Vender, con las
+  categorías de `getCategoriasParaSugerir`), la página pide una segunda lectura con `p_categoria_de` y `sugerenciaDeVenta` toma la
+  sugerida de la categoría escrita (o ninguna: «Caja escribió «Jean»: búscala entre Jeans») → la fila dice «Probable: …» y el modal la sugiere con su
+  porqué (la persona confirma); guía de foco `lib/por-regularizar-guia.ts`. Desde 20261004204000 `regularizar_prenda` rechaza a
+  quien vendió la prenda salvo un líder firmando él mismo desde su cuenta (hint `regularizar_propia_venta`; espejo
+  `motivoPropiaVenta` en `por-regularizar-reglas.ts`), rechaza una prenda sin ningún movimiento en la sede
+  (`fn_exigir_prenda_cargada_en_sede`; la salida según la carga de ESA sede, `fn_carga_inicial_de_sede`, que lee el cierre por
+  sede de #785 con o sin él: abierta → hint `prenda_sin_cargar_en_sede`, «primero cárgala con su stock inicial»; cerrada → hint
+  `prenda_sin_cargar_carga_cerrada`, «regístrala con «Encontré prendas» y después regulariza»; el modal lo dice al elegirla con la
+  RPC de lectura `fn_prenda_cargada_en_sede(p_variante_id, p_ubicacion_id)`, 20261004203000, con la misma frase —`prendaSinCargar`—
+  y un enlace a la ficha del producto). `getSinCargarPorRegularizar` → RPC de lectura `fn_por_regularizar_sin_cargar(p_ubicacion_id)`
+  (por venta pendiente: si ninguna prenda que pueda ser ella se cargó en la sede, y su carga; tolerante a fallo) → la lista junta
+  esas ventas en UNA línea por sede (`gruposSinCargar`/`lineaSinCargar`: «N ventas de prendas sin cargar: carga primero el
+  catálogo de AQP») en vez de repetir el aviso en cada fila. Descuenta «ya estaba registrada» solo de lo
+  disponible (ni Cuarentena ni apartadas) y vuelve a pedir el nombre: el modal usa `useResponsable` + `ComboResponsable` de la sede de la venta. Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):
   `lib/compras.ts` le pide los comprobantes y las líneas a `listar_compras_operativo` / `lineas_compra_operativo`

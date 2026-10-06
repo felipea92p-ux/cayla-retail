@@ -3,16 +3,22 @@
 // Rutas relativas (como `candidatas-alta-lector.ts`): vitest no resuelve `@/`, y esta lectura se prueba con un cliente simulado.
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
-import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+import { resueltasDesde, vencidasDesde, type VentaSinCargar } from "./por-regularizar-reglas";
+import type { ExactaDeVenta, HechoCandidata } from "./por-regularizar-candidatas";
+import type { CategoriaParaSugerir } from "./sugerir-categoria-sin-registrar";
 
 export type FilaPorRegularizar = {
   id: string;
   descripcion: string;
   categoria: string;
+  /** La categoría que ANOTÓ la caja (para comparar con la que nombra lo que escribió, ADR-0328). */
+  categoriaId: string;
   talla: string;
   color: string;
   precioCobrado: number;
   vendidoPor: string;
+  /** La persona que vendió (`vendido_por`): quien la vendió no la regulariza, salvo el líder (ADR-0328). */
+  vendidoPorId: string | null;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
@@ -26,7 +32,7 @@ export type FilaPorRegularizar = {
   diferencia: number | null;
 };
 
-const COLUMNAS = `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
+const COLUMNAS = `id, ubicacion_id, categoria_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
        categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
        ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) ),
        cierre:cierres_cola_arranque!prendas_por_regularizar_cierre_fk ( motivo, cerrado_en )`;
@@ -82,10 +88,12 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     id: f.id,
     descripcion: f.descripcion,
     categoria: f.categoria?.nombre ?? "",
+    categoriaId: f.categoria_id,
     talla: f.talla?.valor ?? "",
     color: f.color?.nombre ?? "",
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
+    vendidoPorId: f.vendido_por,
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",
@@ -108,6 +116,113 @@ export async function contarVencidas(): Promise<number | null> {
     .lte("vendido_en", vencidasDesde());
   // Nunca lanza: si no se puede leer, el inicio lo dice en la tarjeta en vez de dibujar un 0.
   return error ? null : (count ?? 0);
+}
+
+/**
+ * Las categorías activas, para leer lo que la caja escribió (`categoriaEscritaDistinta`). Es una ayuda: si falla, ninguna venta
+ * se marca como «escrita distinta» y la pantalla sigue con la categoría anotada.
+ */
+export async function getCategoriasParaSugerir(): Promise<CategoriaParaSugerir[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("categorias").select("id, nombre, prefijo").eq("activo", true);
+  if (error || !data) {
+    console.error("Categorías para leer lo escrito en Por regularizar:", error);
+    return [];
+  }
+  return data;
+}
+
+/**
+ * Por cada venta pendiente, si su prenda está sin cargar en la sede y cómo está la carga inicial de esa sede
+ * (`retail.fn_por_regularizar_sin_cargar`, ajuste ADR-0328 del 2026-10-04). Es una ayuda, como las candidatas: si la lectura falla
+ * (la función todavía no está pegada, o la red se cae) devuelve `{}` y la pantalla sigue sin la línea que agrupa ni la salida según
+ * la carga; al guardar, la base dice igual qué hacer.
+ */
+export async function getSinCargarPorRegularizar(ubicacionId: string | null): Promise<Record<string, VentaSinCargar>> {
+  try {
+    const supabase = await createClient();
+    const args = ubicacionId ? { p_ubicacion_id: ubicacionId } : {};
+    // Una fila por venta pendiente: cientos, no miles; igual va por páginas (PostgREST corta en 1.000 sin avisar).
+    const r = await leerTodas((desde, hasta) => supabase.rpc("fn_por_regularizar_sin_cargar", args).range(desde, hasta), { enParalelo: 1 });
+    if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
+    return Object.fromEntries(
+      r.data.map((f) => [f.prenda_id, { sinCargar: f.sin_cargar, carga: { abierta: f.carga_abierta, hastaCorta: f.carga_hasta_corta } }]),
+    );
+  } catch (e) {
+    console.error("Ventas de prendas sin cargar en Por regularizar:", e);
+    return {};
+  }
+}
+
+/**
+ * Las prendas del stock que pueden ser cada venta pendiente (`retail.fn_candidatas_por_regularizar`, ADR-0328 act. 5): la base
+ * trae los hechos y `lib/por-regularizar-candidatas.ts` los ordena y los explica. Con `categoriaDe` ({id de la venta: id de
+ * categoría}) solo esas ventas, buscadas en la categoría que nombra lo que la caja escribió (la segunda lectura).
+ *
+ * Es una ayuda, no la cola: si la lectura falla (la función todavía no está pegada en producción, o la red se cae) NUNCA tumba
+ * Por regularizar. Devuelve la lista vacía y el aviso para pintar, y la persona regulariza como antes, buscando en el catálogo.
+ */
+export async function getCandidatasPorRegularizar(
+  ubicacionId: string | null,
+  categoriaDe?: Record<string, string>,
+): Promise<{ hechos: HechoCandidata[]; fallo: string | null }> {
+  try {
+    const supabase = await createClient();
+    const args = { ...(ubicacionId ? { p_ubicacion_id: ubicacionId } : {}), ...(categoriaDe ? { p_categoria_de: categoriaDe } : {}) };
+    // Hasta 20 por venta: con cientos de pendientes puede pasar de las 1.000 filas que PostgREST entrega de una vez.
+    const r = await leerTodas((desde, hasta) => supabase.rpc("fn_candidatas_por_regularizar", args).range(desde, hasta), { enParalelo: 1 });
+    if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
+    return {
+      hechos: r.data.map((f) => ({
+        prendaId: f.prenda_id,
+        varianteId: f.variante_id,
+        colorExacto: f.color_exacto,
+        colorHex: f.color_hex,
+        colorHexAnotado: f.color_hex_anotado,
+        pisoLibre: Number(f.piso_libre),
+        almacenLibre: Number(f.almacen_libre),
+        disponible: Number(f.disponible),
+        primeraEntrada: f.primera_entrada,
+        primeraEntradaMotivo: f.primera_entrada_motivo,
+        saldoALaVenta: f.saldo_a_la_venta === null ? null : Number(f.saldo_a_la_venta),
+        cambioPosterior: f.cambio_posterior,
+        cambioPosteriorMotivo: f.cambio_posterior_motivo,
+      })),
+      fallo: null,
+    };
+  } catch (e) {
+    console.error("Prendas sugeridas de Por regularizar:", e);
+    return { hechos: [], fallo: "No se pudieron leer las prendas sugeridas: busca cada una en el catálogo, como siempre." };
+  }
+}
+
+/**
+ * Las prendas que calzan EXACTO con cada venta pendiente (`retail.fn_candidatas_de_venta`, ADR-0334): la definición única de «igual a
+ * lo que anotó caja», la misma que usa el lote «Identificar con sugerencias» del líder (D1, 2026-10-05). La función es por tienda: una
+ * llamada por cada tienda con pendientes (≤ 4), en paralelo.
+ *
+ * Es una ayuda, como las candidatas: si la lectura falla (red, o una tienda que la cuenta no opera) NUNCA tumba Por regularizar.
+ * Devuelve `exactas: null` y el aviso: sin el tramo exacto la pantalla no sugiere nada (una parecida no debe pasar por la más
+ * probable con una exacta escondida) y la persona busca en todo el catálogo, como antes.
+ */
+export async function getCandidatasExactas(sedes: readonly string[]): Promise<{ exactas: ExactaDeVenta[] | null; fallo: string | null }> {
+  try {
+    const supabase = await createClient();
+    const porSede = await Promise.all(
+      [...new Set(sedes)].map(async (sede) => {
+        // Varias por venta y cientos de ventas: puede pasar de las 1.000 filas que PostgREST entrega de una vez.
+        const r = await leerTodas((desde, hasta) => supabase.rpc("fn_candidatas_de_venta", { p_ubicacion_id: sede }).range(desde, hasta), {
+          enParalelo: 1,
+        });
+        if (r.error || !r.data) throw new Error(r.error?.message ?? "sin datos");
+        return r.data.map((f) => ({ prendaId: f.prenda_id, varianteId: f.variante_id, disponible: Number(f.disponible) }));
+      }),
+    );
+    return { exactas: porSede.flat(), fallo: null };
+  } catch (e) {
+    console.error("Prendas que calzan con cada venta en Por regularizar:", e);
+    return { exactas: null, fallo: "No se pudieron leer las prendas de la tienda que calzan con cada venta: busca cada una en todo el catálogo." };
+  }
 }
 
 /**

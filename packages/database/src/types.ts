@@ -7747,6 +7747,40 @@ export type Database = {
         Returns: number
       }
       fn_siguiente_correlativo: { Args: { p_prefijo: string }; Returns: number }
+      // 20261004203000 (ADR-0328, act. 5): las prendas del stock que pueden ser cada venta «sin registrar» pendiente.
+      fn_candidatas_por_regularizar: {
+        Args: { p_categoria_de?: Json; p_ubicacion_id?: string }
+        Returns: {
+          almacen_libre: number
+          cambio_posterior: string | null
+          cambio_posterior_motivo: string | null
+          color_exacto: boolean
+          color_hex: string | null
+          color_hex_anotado: string | null
+          disponible: number
+          piso_libre: number
+          prenda_id: string
+          primera_entrada: string | null
+          primera_entrada_motivo: string | null
+          saldo_a_la_venta: number | null
+          variante_id: string
+        }[]
+      }
+      // 20261004203000 (ADR-0328, act. 5, revisión R6): ¿la prenda ya entró al sistema en esa sede? null si la cuenta no la opera.
+      fn_prenda_cargada_en_sede: {
+        Args: { p_ubicacion_id: string; p_variante_id: string }
+        Returns: boolean | null
+      }
+      fn_por_regularizar_sin_cargar: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          carga_abierta: boolean
+          carga_hasta: string | null
+          carga_hasta_corta: string | null
+          prenda_id: string
+          sin_cargar: boolean
+        }[]
+      }
       fn_stock_por_sede: {
         Args: never
         Returns: {

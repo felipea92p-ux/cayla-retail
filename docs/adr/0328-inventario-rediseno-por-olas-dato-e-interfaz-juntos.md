@@ -380,3 +380,54 @@ faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pe
 Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
 venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
 velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican).
+
+## Actualización 2026-10-05 — el resto de la actividad 5 (PR #788) encima de ADR-0334
+
+Lo pendiente de arriba (categoría sugerida, «nadie regulariza su propia venta salvo el líder», la prenda candidata con su respuesta
+deducida) se terminó en el PR #788, ya con #800 en `main`. Felipe reportó, con captura, que el buscador del modal «Regularizar prenda»
+mostraba «todo, de todas las sedes, sin filtro». Cuatro decisiones técnicas:
+
+- **D1 · Una sola definición de «calza exacto»: `fn_candidatas_de_venta` (ADR-0334).** El tramo «Igual a lo que anotó caja» del modal
+  sale solo de ella, igual que el lote del líder. `fn_candidatas_por_regularizar` (20261004203000, ya en producción) aporta los hechos
+  para deducir la respuesta y dos tramos aparte, con título: «Color parecido» y «La categoría que escribió caja». Se une en la web
+  (`hechosConExactas`), sin migración nueva. Una prueba SQL lo exige para toda venta pendiente (casos X de `pruebas:ventas-sin-registrar`).
+  Lo único que solo trae la base común es una prenda de prueba o una venta con más de 20 posibles, que entra sin respuesta deducida.
+- **D2 · El buscador mira la tienda de la venta** (`prendas_por_regularizar.ubicacion_id`, no la de la cabecera). Por defecto muestra
+  solo lo que calza, con la sugerida dentro. «Buscar en todo el catálogo» queda a la vista para la prenda que esa tienda nunca cargó, y
+  la lista vacía se explica en palabras de tienda. El texto de ayuda sigue lo anotado (ADR-0290).
+- **D3 · El lote del líder sigue funcionando sobre la regla.** `fn_actor_persona_id(true)` lee los encabezados de la petición, uno solo
+  para toda la cadena. El lote manda la clave `cola_arranque_identificar` y cada `regularizar_prenda` anidada firma con el líder, también
+  en su propia venta («salvo el líder»). Sacar `regularizar_prenda` de `acciones_sin_responsable` no toca ese camino. Lo prueban los
+  casos L, con el interruptor encendido y un líder sin admin.
+- **D4 · `acciones_sin_responsable` queda en 33** (28 + 3 del club + 3 de la cola de arranque − regularizar), contado en una base con
+  todas las migraciones.
+
+### Revisión adversarial del PR #788 (2026-10-05)
+
+- **La salida al catálogo queda a la vista de verdad.** El buscador nace con el foco y su lista se abre sola: tapaba la línea de debajo
+  («Solo las de Tienda Trujillo… Buscar en todo el catálogo»), y con «Nada coincide» la persona quedaba sin salida (medido con
+  `elementFromPoint` en escritorio y a 375 px). Ahora esa línea va ARRIBA del buscador (y, en el catálogo, «Ver solo las de…» y «Dala de
+  alta» también), la última fila de la lista de la tienda es la salida («Buscar «largo» en todo el catálogo», que lleva lo escrito), y el
+  subtítulo del modal dice en qué tienda se cobró.
+  - **DECIDÍ:** las dos cosas, línea arriba y fila dentro de la lista. **DESCARTÉ:** solo la línea arriba, porque la lista se abre hacia
+    arriba cuando abajo no hay 160 px (`usePosicionLista`) y la volvería a tapar; y quitar el foco inicial, porque cuesta un clic a cada
+    regularización. **SE ROMPE SI:** alguien escribe exactamente el nombre de una prenda de la lista: `ComboBuscable` esconde la fila de
+    «crear» cuando lo escrito ya es una opción (la línea de arriba sigue).
+- **Orden de los tramos: lo que escribió caja va primero (precisa D2).** D2 dice «primero las exactas, luego las parecidas»; eso vale
+  dentro de lo ANOTADO. Cuando la caja escribió otra categoría («Jean…» anotado como Pantalones), lo anotado es lo dudoso: la regla de la
+  sugerida ya decía que un pantalón nunca es la «Más probable» de una venta escrita «Jean…».
+  - **DECIDÍ:** «La categoría que escribió caja» → «Igual a lo que anotó caja» → «Color parecido». **DESCARTÉ:** las iguales primero
+    siempre, porque la primera fila es la que elige Enter al abrir: una venta de un jean se regularizaba como un pantalón con una tecla, y
+    para alguien sin contexto «Igual» suena a lo seguro. **SE ROMPE SI:** la caja escribe una prenda que no es («cadena pulsera» →
+    Collares): la primera fila sería de la categoría equivocada, como ya pasa con la sugerida (por eso todo es sugerencia). Lo fija la
+    prueba «la primera fila … es la Más probable» de `lib/por-regularizar-buscador.test.ts`.
+- **Buscar no parte un tramo.** `filtrarCombo` ordena por calidad del acierto y podía intercalar «Color parecido» entre dos «Igual…»,
+  repitiendo el título. `ordenarPorGrupo` (`lib/combo-reglas.ts`) deja cada grupo en su lugar y, dentro, el mejor acierto primero; lo
+  usan `ComboBuscable` y `Desplegable` (tenía el mismo hueco con sus grupos: una sola regla para los dos).
+- **Las tildes de la parte 1 llegaron dañadas a producción.** `20261004203000` se pegó por un medio que leyó el UTF-8 como Mac Roman: su
+  lógica es la del repo (no tiene tildes fuera de comentarios), pero los comentarios de sus 4 funciones quedaron ilegibles (el md5 vivo de
+  `fn_candidatas_por_regularizar` es exactamente el del archivo leído así). La parte 2 lleva tildes en su ancla 1: pegada por el mismo
+  medio, abortaba diciendo que `regularizar_prenda` «cambió» (falso). Desde esta revisión empieza con una guarda sin tildes que compara
+  una «ó» del texto con `chr(243)` y, si no coinciden, aborta antes de tocar nada diciendo que las tildes llegaron dañadas (caso P4); la
+  sonda trae `tildes_bien`. Volver a pegar `20261004203000` entera por un medio correcto deja sus comentarios limpios (es idempotente) y
+  evita que el próximo `pnpm datos:generar:produccion` copie el texto dañado al diccionario.

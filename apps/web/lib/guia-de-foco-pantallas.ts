@@ -244,7 +244,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // talla y tienda (si hay más de una), nombres, apellidos, celular de 9 dígitos que empieza en 9, y quién atiende. Nota opcional.
   "components/PedirYApartarModal.tsx": { estado: "aplicada", evidencia: ["components/PedirYApartarModal.tsx"] },
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
-  "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
+  "components/PorRegularizarLista.tsx": { estado: "aplicada", evidencia: ["components/PorRegularizarLista.tsx"] },
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
   "components/ProductosTabla.tsx": PENDIENTE, // 2 controles

@@ -87,6 +87,42 @@ test("parsearRegistro lee también los modales (claves «components/…» y «ap
   assert.equal(r.get("app/(app)/x/Modal.tsx"), "no-aplica");
 });
 
+test("parsearRegistro lee una entrada partida en varias líneas (`estado` debajo de la clave), como la escribe el formateador", () => {
+  // Revisión 2026-10-05: el escáner exigía `estado` en la MISMA línea que la clave y daba por «falta en el registro» a
+  // `components/SugerenciasColaModal.tsx` y `/inventario/por-regularizar`, que el registro sí declara (la prueba web los ve bien).
+  const texto = `
+    "/inventario/por-regularizar": {
+      estado: "no-aplica",
+      motivo: "Lista con filtros, sin campos propios (el modal se declara aparte).",
+    },
+    "components/SugerenciasColaModal.tsx": {
+      estado: "no-aplica",
+      motivo: "Un lote que se confirma; sin campos que llenar.",
+    },
+    "components/Otro.tsx": {
+      estado: "aplicada",
+      evidencia: ["components/Otro.tsx"],
+    },
+    "/vender": PENDIENTE,
+  `;
+  const r = parsearRegistro(texto);
+  assert.equal(r.get("/inventario/por-regularizar"), "no-aplica");
+  assert.equal(r.get("components/SugerenciasColaModal.tsx"), "no-aplica");
+  assert.equal(r.get("components/Otro.tsx"), "aplicada");
+  assert.equal(r.get("/vender"), "pendiente");
+  assert.equal(r.size, 4);
+});
+
+test("parsearRegistro no le presta el `estado` de la entrada siguiente a una que no lo trae", () => {
+  const texto = `
+    "/rara": { motivo: "sin estado" },
+    "/otra": { estado: "aplicada", evidencia: [] },
+  `;
+  const r = parsearRegistro(texto);
+  assert.equal(r.has("/rara"), false);
+  assert.equal(r.get("/otra"), "aplicada");
+});
+
 test("esModal y contarControles", () => {
   assert.equal(esModal('<Modal titulo="x" onClose={c}>'), true);
   assert.equal(esModal("<ModalRuta titulo='x' />"), true);
