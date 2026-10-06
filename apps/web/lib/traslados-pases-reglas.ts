@@ -429,14 +429,26 @@ export function hechasHoy(ts: readonly DatosPase[], ctx: ContextoTraslados): num
   }).length;
 }
 
-export type Anillo = { hechas: number; total: number; pendientes: number; fraccion: number };
+export type Anillo = { hechas: number; total: number; pendientes: number; fraccion: number; porRecibir: number; tePiden: number };
 
-/** El anillo «0/5 · Te tocan 5 cosas hoy». `pendientes` es el MISMO número del menú: lo que llega por recibir o revisar
- *  (`requiereAccion`) más lo que otras sedes te piden (`tePiden`). */
+/** El anillo del día. `pendientes` es el MISMO número del menú: lo que llega por recibir o revisar (`requiereAccion`) más lo que
+ *  otras sedes te piden (`tePiden`). */
 export function anilloDelDia(p: { porRecibir: number; tePiden: number; hechas: number }): Anillo {
   const pendientes = p.porRecibir + p.tePiden;
   const total = pendientes + p.hechas;
-  return { hechas: p.hechas, total, pendientes, fraccion: total === 0 ? 1 : p.hechas / total };
+  return { hechas: p.hechas, total, pendientes, fraccion: total === 0 ? 1 : p.hechas / total, porRecibir: p.porRecibir, tePiden: p.tePiden };
+}
+
+/**
+ * El anillo dicho en palabras (Formidable, 2026-10-06: «3/4 · Llevas 3 hechas» no se entendió). Arriba qué te toca, nombrando
+ * cajas y pedidos; abajo cuánto llevas del día. El anillo queda como dibujo, sin cifra adentro.
+ */
+export function textoDelAnillo(a: Anillo): { titulo: string; detalle: string } {
+  const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+  const partes = [a.porRecibir > 0 ? plural(a.porRecibir, "caja", "cajas") : null, a.tePiden > 0 ? plural(a.tePiden, "pedido", "pedidos") : null].filter(Boolean);
+  const titulo = a.pendientes === 0 ? "Nada pendiente hoy" : `Te ${a.pendientes === 1 ? "toca" : "tocan"} ${partes.join(" y ")} hoy`;
+  const detalle = a.hechas > 0 ? `Ya hiciste ${a.hechas} de ${a.total}` : a.pendientes > 0 ? "Empieza por la primera" : "Todo al día";
+  return { titulo, detalle };
 }
 
 /** Lo que el buscador de la billetera mira de un pase: lo de siempre (número, sede, prenda, código, nota) más el código del pase

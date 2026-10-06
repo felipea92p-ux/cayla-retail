@@ -11,7 +11,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo } from "@/components/EscanerConteo";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { FaltanDelPaso } from "@/components/alta-producto/guia";
+import { MarcaCampo } from "@/components/alta-producto/guia";
 import { SelloPase } from "@/components/traslados-pases/SelloPase";
 import { usePase } from "@/components/traslados-pases/PaseTraslado";
 import { rutaDelPase } from "@/components/traslados-pases/Billetera";
@@ -27,7 +27,6 @@ import {
   consecuenciaCierre,
   leerCasilla,
   lugarTexto,
-  resumenAntesDeConfirmar,
   textoObligatorioValido,
   valorContado,
   type ConsecuenciaCierre,
@@ -42,7 +41,9 @@ import {
   idCampoPrenda,
   modoDelReverso,
   selloAlConfirmar,
-  textoTerminar,
+  consejoAlComparar,
+  pieDelConteo,
+  resumenCorto,
   tituloDelReverso,
   tonoDelReverso,
 } from "@/lib/traslados-reverso-reglas";
@@ -131,6 +132,7 @@ export function ReversoPase({
     hayDiferencia: que !== "",
   });
   const titulo = tituloDelReverso(modo, { numero: t.numero, faltaQue: que });
+  const consejo = modo === "comparar" ? consejoAlComparar(t.lineas, r.conteos, { origen: t.ubicacionOrigenNombre, puedeCerrar: esDestino && puedeCerrarDiferencia }) : null;
   const anular = anulacion({
     estado: t.estado,
     esOrigen,
@@ -197,6 +199,7 @@ export function ReversoPase({
     window.open(enlaceWhatsAppA(whatsappDestino, mensaje), "_blank", "noopener,noreferrer");
   }
 
+  const pie = pieDelConteo(r.lectura, r.terminar);
   const aro = modo === "contar" ? (r.lectura.enviadas === 0 ? 0 : r.lectura.contadas / r.lectura.enviadas) : modo === "comparar" ? 1 : null;
 
   if (t.lineas.length === 0) {
@@ -233,6 +236,13 @@ export function ReversoPase({
             </p>
             <Firma r={r} />
           </>
+        )}
+
+        {modo === "comparar" && consejo && (
+          <p className="tp-consejo" data-tp-tono="revisar">
+            <SelloPase glifo="revisar" tono="revisar" tamano={30} />
+            <span>{consejo}</span>
+          </p>
         )}
 
         {(modo === "contar" || (modo === "revisar" && r.contable)) && (
@@ -359,7 +369,7 @@ export function ReversoPase({
           })}
         </ul>
 
-        {modo === "comparar" && <ResumenComparar r={r} lugar={lugar} sede={t.ubicacionDestinoNombre} />}
+        {modo === "comparar" && <ResumenComparar r={r} lugar={lugar} />}
 
         {t.nota && (modo === "envio" || modo === "llegada" || modo === "anulada") && (
           <blockquote className="tp-cita">
@@ -432,22 +442,23 @@ export function ReversoPase({
 
       <Pie>
         {modo === "contar" ? (
-          <>
-            {!f.sinNombre && <FaltanPorContar guia={guiaConteo} />}
-            <div className="tp-fila">
-              <button type="button" onClick={() => setCamara(true)} disabled={ocupado || f.sinNombre} className="btn-cayla btn-secundario">
-                <ScanLine aria-hidden strokeWidth={1.7} className="h-4 w-4" /> Escanear
+          <div className="tp-fila tp-fila-conteo">
+            <button type="button" onClick={() => setCamara(true)} disabled={ocupado || f.sinNombre} className="btn-cayla btn-secundario">
+              <ScanLine aria-hidden strokeWidth={1.7} className="h-4 w-4" /> Escanear
+            </button>
+            {/* Mientras falte contar no hay botón: se nombra lo que falta (Formidable, 2026-10-06: el botón gris parecía roto). */}
+            {pie.tipo === "listo" ? (
+              <button type="button" onClick={() => void alTerminar()} disabled={ocupado || f.sinNombre} className={`btn-cayla btn-primario tp-grande ${guiaConteo.claseConfirmar}`}>
+                Terminé de contar
               </button>
-              <button
-                type="button"
-                onClick={() => void alTerminar()}
-                disabled={ocupado || !r.terminar.habilitado || f.sinNombre}
-                className={`btn-cayla btn-primario tp-grande ${r.terminar.habilitado ? guiaConteo.claseConfirmar : ""}`}
-              >
-                {textoTerminar(r.lectura, r.terminar)}
-              </button>
-            </div>
-          </>
+            ) : pie.tipo === "faltan" ? (
+              !f.sinNombre && <FaltanPorContar guia={guiaConteo} cuantas={pie.cuantas} />
+            ) : (
+              <p className="tp-dato tp-grande" role="status">
+                {pie.texto}
+              </p>
+            )}
+          </div>
         ) : modo === "comparar" ? (
           <>
             {opcionesDestino.length > 1 && (
@@ -610,16 +621,21 @@ function Fila({ guiada, id, guia, children }: { guiada: boolean; id: string; gui
   );
 }
 
-/** «Faltan: ● Blusa Emma S ○ Falda Ariana M y 3 más», cada una tocable (lleva a su fila). Con muchas, solo las primeras: el resto
- *  ya lo dice el botón («Faltan 7 por contar»). */
+/** «Te falta anotar 2: ● Blusa Emma M · ○ Blusa Emma L» («anotar»: la segunda prueba ciega leyó «Te faltan 2» como prendas que no venían), cada una tocable (lleva a su fila). Con muchas, las primeras y «y N más». */
 const MAX_FALTAN_A_LA_VISTA = 3;
-function FaltanPorContar({ guia }: { guia: GuiaCampos }) {
+function FaltanPorContar({ guia, cuantas }: { guia: GuiaCampos; cuantas: number }) {
   if (guia.faltan.length === 0) return null;
   const resto = guia.faltan.length - MAX_FALTAN_A_LA_VISTA;
   return (
-    <div className="flex flex-wrap items-center gap-x-2">
-      <FaltanDelPaso faltan={guia.faltan.slice(0, MAX_FALTAN_A_LA_VISTA)} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
-      {resto > 0 && <span className="text-[12.5px] text-taupe">y {resto} más</span>}
+    <div className="tp-faltan" role="status">
+      <span className="tp-faltan-titulo">Te falta anotar {cuantas === 1 ? "1" : cuantas}:</span>
+      {guia.faltan.slice(0, MAX_FALTAN_A_LA_VISTA).map((c) => (
+        <button key={c.id} type="button" onClick={() => guia.ir(c.id)} title={c.pendiente} className="hilo-chip">
+          <MarcaCampo estado={c.id === guia.ahora ? "ahora" : "falta"} />
+          {c.nombre}
+        </button>
+      ))}
+      {resto > 0 && <span className="tp-faltan-titulo">y {resto} más</span>}
     </div>
   );
 }
@@ -653,14 +669,14 @@ function Firma({ r }: { r: ReturnType<typeof useRecepcion> }) {
   return null;
 }
 
-/** Lo que entra y lo que espera, escrito antes de confirmar (lo que antes decía la ventana de confirmar). */
-function ResumenComparar({ r, lugar, sede }: { r: ReturnType<typeof useRecepcion>; lugar: DestinoRecepcion; sede: string }) {
-  const resumen = resumenAntesDeConfirmar(r.lectura, { destino: lugar, sede });
+/** Lo que entra y lo que queda para revisar, dicho corto antes de confirmar (Formidable, 2026-10-06). */
+function ResumenComparar({ r, lugar }: { r: ReturnType<typeof useRecepcion>; lugar: DestinoRecepcion }) {
+  const [entran, revisar] = resumenCorto(r.lectura, lugar);
   return (
-    <div className="tp-cita">
-      <p>{resumen.entran}</p>
-      {resumen.esperan && <p className="mt-1">{resumen.esperan}</p>}
-    </div>
+    <p className="tp-resumen">
+      <b>{entran}</b>
+      {revisar && <span>{revisar}</span>}
+    </p>
   );
 }
 
@@ -701,7 +717,7 @@ function Contador({
         type="text"
         inputMode="numeric"
         value={valor ?? ""}
-        placeholder="—" // sugerir-fijo: el guion es «sin contar», igual para toda prenda
+        data-vacia={valor === null ? "" : undefined}
         onChange={(e) => {
           const n = leerCasilla(e.target.value);
           if (n !== undefined) onCambiar(n);
@@ -717,17 +733,12 @@ function Contador({
   );
 }
 
-/** El guardado de una prenda, discreto y con su alto reservado (la fila no salta). */
+/** El guardado de una prenda: solo se dice cuando NO se guardó (Formidable, 2026-10-06: «Guardado» en cada fila hacía dudar para
+ *  qué servía «Terminé de contar»). El alto queda reservado: la fila no salta cuando aparece. */
 function EstadoLinea({ estado, onReintentar }: { estado: EstadoGuardado | undefined; onReintentar: () => void }) {
   return (
     <span aria-live="polite" className="tp-guardado">
-      {estado?.tipo === "espera" || estado?.tipo === "guardando" ? (
-        <span className="text-taupe">Guardando…</span>
-      ) : estado?.tipo === "guardado" ? (
-        <span className="flex items-center gap-1 text-verde">
-          <Check aria-hidden strokeWidth={2} className="h-3 w-3" /> Guardado
-        </span>
-      ) : estado?.tipo === "error" ? (
+      {estado?.tipo === "error" ? (
         <span className="flex items-center gap-1 text-rojo-profundo" title={estado.mensaje}>
           No se guardó ·
           <button type="button" onClick={onReintentar} className="underline underline-offset-2">

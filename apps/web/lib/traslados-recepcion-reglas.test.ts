@@ -14,7 +14,6 @@ import {
   nombrePrenda,
   puedeTerminar,
   resolverEscaneo,
-  resumenAntesDeConfirmar,
   resumirGuardado,
   sumarAlConteo,
   textoObligatorioValido,
@@ -171,28 +170,6 @@ describe("confirmar", () => {
     expect(lugarTexto("piso_venta", "Tienda Lima")).toBe("al piso de venta de Tienda Lima");
     expect(lugarTexto("almacen_tienda", "Tienda Lima")).toBe("al almacén de Tienda Lima");
     expect(lugarTexto(null, "Taller")).toBe("al stock de Taller");
-  });
-
-  it("antes de confirmar: entra lo que coincide y la diferencia espera, con nombre", () => {
-    const l = leerConteo([VESTIDO, BLUSA], { v1: 2, b1: 0 });
-    const r = resumenAntesDeConfirmar(l, { destino: "piso_venta", sede: "Tienda Lima" });
-    expect(r.entran).toBe("Entran 2 prendas que coinciden al piso de venta de Tienda Lima.");
-    expect(r.esperan).toBe("1 prenda con diferencia espera a un líder; las demás ya se pueden vender.");
-    expect(r.detalleEsperan).toEqual(["Blusa Valentina S blanco: enviaron 1, contaste 0"]);
-  });
-
-  it("si todo coincide, no hay nada que espere", () => {
-    const l = leerConteo([VESTIDO], { v1: 2 });
-    expect(resumenAntesDeConfirmar(l, { destino: null, sede: "Taller" })).toEqual({ entran: "Entran 2 prendas que coinciden al stock de Taller.", esperan: null, detalleEsperan: [] });
-  });
-
-  it("en singular y sin nada que coincida", () => {
-    const uno = leerConteo([BLUSA], { b1: 1 });
-    expect(resumenAntesDeConfirmar(uno, { destino: "almacen_tienda", sede: "Tienda Lima" }).entran).toBe("Entra 1 prenda que coincide al almacén de Tienda Lima.");
-    const ninguno = leerConteo([BLUSA], { b1: 0 });
-    const r = resumenAntesDeConfirmar(ninguno, { destino: "piso_venta", sede: "Tienda Lima" });
-    expect(r.entran).toMatch(/nada entra al stock todavía/);
-    expect(r.esperan).toBe("1 prenda con diferencia espera a un líder.");
   });
 
   it("el aviso dice lo que de verdad entró y dónde", () => {
