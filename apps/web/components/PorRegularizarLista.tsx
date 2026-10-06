@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
-import { firmaOmitida } from "@/lib/responsable-omitido";
+import { useResponsable } from "@/lib/useResponsable";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, siguienteOrden, tipoDiferencia, DIAS_PARA_VENCER, ORDEN_INICIAL, VENTAS_POR_PAGINA, type CampoOrden, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
@@ -313,7 +314,9 @@ function RegularizarModal({
   const [elegidaId, setElegidaId] = useState("");
   const [forma, setForma] = useState<"ya_registrada" | "llego_nueva" | null>(null);
   const [guardando, setGuardando] = useState(false);
-  // Regularizar va sin responsable (Felipe, 2026-09-29): firma la cuenta, sin combo.
+  // Regularizar vuelve a pedir «Responsable» (Felipe, 2026-10-06): con la terminal de la tienda la cuenta no es nadie, y la venta
+  // sin registrar la regulariza la colaboradora de turno, que se identifica ella misma. Con la cuenta de una persona viene elegida.
+  const responsable = useResponsable();
 
   const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
   // Primero las que calzan con lo que anotó caja (categoría, talla y color): así almacén la encuentra sin tipear.
@@ -325,13 +328,14 @@ function RegularizarModal({
   }, [prendas, f.categoria, f.talla, f.color]);
 
   async function guardar() {
-    if (!elegida || !forma) return;
+    if (!elegida || !forma || !responsable.listo) return;
     setGuardando(true);
     const { data, error } = await firmar(
       createClient().rpc("regularizar_prenda", { p_id: f.id, p_variante_id: elegida.id, p_forma: forma }),
-      firmaOmitida("regularizar_prenda"),
+      responsable.firma(),
     );
     setGuardando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "regularizar la prenda"));
       return;
@@ -389,10 +393,13 @@ function RegularizarModal({
           )}
         </div>
 
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+
         <button
           type="button"
           onClick={guardar}
-          disabled={guardando || !elegida || !forma}
+          disabled={guardando || !elegida || !forma || !responsable.listo}
+          title={responsable.motivo ?? undefined}
           className={`${botonPrimario} w-full`}
         >
           {guardando ? "Guardando…" : "Regularizar"}
