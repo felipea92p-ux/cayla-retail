@@ -74,7 +74,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
         sede={sede}
         titulo="Conteo terminado"
         subtitulo={`Conteo ${conteo.numero} · ${textoLugar(conteo)} · ${textoAlcance(conteo)}`}
-        pie={volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/conteo" a="Conteo" />}
+        volver={volverA ? <Volver forma="flecha" href={volverA} a="Movimientos" /> : <Volver forma="flecha" href="/inventario/conteo" a="Conteo" />}
       />
 
       <section className="card-cayla space-y-3 p-5 sm:p-6" aria-labelledby="resultado-conteo">

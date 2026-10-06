@@ -21,7 +21,7 @@ export default async function PedidosNoAtendidosPage() {
         titulo="Pedidos no atendidos"
         subtitulo="Verificación (D-79): lo que un cliente pidió y esta sede no tenía, y lo que se probó y no llevó."
         // Se llega desde el aviso de Inicio (no está en el lateral).
-        pie={<Volver forma="boton" href="/" a="Inicio" />}
+        volver={<Volver forma="flecha" href="/" a="Inicio" />}
       />
       <PedidosNoAtendidosLista pedidos={pedidos} />
     </div>

@@ -254,6 +254,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             productos={productos}
             existencias={existencias}
             veExistencias={veModulo(persona, "existencias")}
+            veMovimientos={veModulo(persona, "movimientos")}
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
             puedeEditar={editaCatalogo}

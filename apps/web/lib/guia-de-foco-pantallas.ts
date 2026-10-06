@@ -137,10 +137,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/recibir": PENDIENTE,
   // ---- productos ----
   "/productos": PENDIENTE,
-  "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "El mismo historial de solo lectura abierto como ventana; el único control es el filtro de sede." },
+  "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "El mismo historial de solo lectura abierto como ventana (ADR-0354); solo hay filtros de tipo y de persona." },
   "/productos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/productos/[id]/editar": { estado: "aplicada", evidencia: ["components/ProductoForm.tsx"] },
-  "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de un producto; el único control es el filtro de sede." },
+  "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de una prenda (ADR-0354); solo hay filtros de tipo y de persona." },
   "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas, etiquetas), cada una con su guía en el registro de modales." },
   "/productos/categorias": PENDIENTE,
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
@@ -194,6 +194,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
   // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
   // base la acepte: `validarCierre`) y quién hace el cambio.
+  // ADR-0354: la hoja de «Revisar y guardar» de Editar producto suma UN solo control, «Quién hace estos cambios»; su porqué va
+  // bajo el combo y el botón espera hasta que haya alguien de turno.
+  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control (Responsable): el botón dice por qué espera." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:

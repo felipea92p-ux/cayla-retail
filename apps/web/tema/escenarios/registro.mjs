@@ -586,6 +586,20 @@ const nuevoHasta = (paso) => async (pagina) => {
 };
 ESCENARIOS.push(
   { id: "productos.vista-rapida", ruta: "/productos", cuentas: CATALOGO, abre: "[role=dialog]", nombre: "Productos · la vista rápida de una prenda", async preparar(pagina) { await pagina.locator(".card-cayla button").first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
+  // ADR-0354: «Historial» da vuelta la página dentro de la misma hoja; `abre` exige el hilo, no solo la ventana.
+  {
+    id: "productos.vista-rapida-historial",
+    ruta: "/productos",
+    cuentas: CATALOGO,
+    abre: "[role=dialog] .hp",
+    nombre: "Productos · el historial de una prenda (vista rápida ▸ Historial)",
+    async preparar(pagina) {
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+    },
+  },
   {
     id: "productos.vista-rapida-talla",
     ruta: "/productos",

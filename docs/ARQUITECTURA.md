@@ -646,20 +646,17 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   ADR-0128); «Historial» navega a `/productos/[id]/historial`. Lo marcado se descontinúa o reactiva con la RPC
   `cambiar_estado_productos` (`20260928235000`: todo o nada, al reactivar revisa marca y proveedor) y cae al `update`
   directo si la migración no está en la base.
-- Historial de producto como modal (mismo mecanismo que el detalle de
-  factura de Compras): `/productos/layout.tsx` tiene el slot `@modal/`, con
-  la ruta interceptada `@modal/(.)[id]/historial`. Clic en "Ver historial"
-  desde la lista → la URL pasa a `/productos/<id>/historial` pero la lista
-  queda montada detrás y el panel se dibuja en `ui/ModalRuta.tsx`; recarga o
-  enlace directo → página completa `[id]/historial/page.tsx`. Ambas
-  reusan `HistorialProductoPanel.tsx`, que junta dos fuentes con historias
-  distintas: `lib/movimientos-v2.ts:listarMovimientosProducto` (stock, cursor,
-  por sede) y `lib/historial-producto.ts:getCambiosProducto` (RPC
-  `fn_historial_producto_cambios`: precio/categoría/estado, ledger
-  append-only `historial_producto_cambios`, trigger `fn_registrar_cambio_producto`
-  sobre `productos`/`variantes` — ADR-0059, ampliado en
-  `20260915223000_historial_producto_estado.sql` para no perder los cambios
-  de `estado`).
+- Historial de la prenda (ADR-0354, maqueta A «Hilo del tiempo»): solo los CAMBIOS de la prenda y quién los hizo, sin ventas
+  ni stock (esos viven en Movimientos, `?q=<código>`). Tres puertas, un mismo componente `components/historial-prenda/HistorialPrenda.tsx`
+  (lógica pura en `lib/historial-prenda-reglas.ts`: filas → eventos, un guardado = una tarjeta): (1) el botón «Historial» de la
+  vista rápida de la Grilla, que da vuelta la página dentro de la misma hoja y lee desde el navegador (`useHistorialPrenda`);
+  (2) la ruta interceptada `@modal/(.)[id]/historial` desde la Tabla (`ui/ModalRuta.tsx`); (3) la página completa
+  `[id]/historial/page.tsx`. Las dos rutas leen en el servidor con `lib/historial-prenda.ts`. RPC `fn_historial_prenda`
+  (`20261006180000`): el ledger append-only `historial_producto_cambios` con nombres, color, quién y dónde ya resueltos, más el
+  nacimiento de `producto_origen`; el costo solo a quien ve el dinero de compras. Lo llenan disparadores: `fn_registrar_cambio_producto`
+  (precio, costo, categoría, estado, marca, proveedor, color/talla/código corregidos), `fn_historial_nombre_producto`, la temporada y,
+  desde ADR-0354, etiquetas (`variante_etiquetas`), variantes nuevas, fotos (`producto_fotos`), tejido y patrón; cada fila lleva su
+  sede (`ubicacion_id`). `fn_historial_producto_cambios` y `HistorialProductoPanel` quedaron sin uso (el panel se borró).
 - Eliminar un producto (solo Admin y Líder, ADR-0218): la opción vive en la vista rápida de `ProductosGrilla.tsx` y en la ficha
   de la prenda en `ProductosTabla.tsx` (`page.tsx` la enciende con `persona.rol === "lider"`, un Admin es un Líder) y abre
   `EliminarProductoModal.tsx`, que PRIMERO pregunta a la RPC `fn_producto_se_puede_eliminar` (`20260926220000`) y solo
