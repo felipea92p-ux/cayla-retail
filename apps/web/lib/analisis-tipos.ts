@@ -76,7 +76,8 @@ export type PrendaAnalisis = {
   almacen: number;
   /** Vendidas con su prenda en mis últimos 30 días. */
   vendidas30: number;
-  /** Vendidas por semana en mi tienda: 8 semanas, de la más vieja a la actual (la última puede estar a medias). */
+  /** Vendidas por semana en mi tienda: 8 semanas, de la más vieja a la actual. La semana k (0 a 7) son los 7 días que terminan
+   *  hoy − 7·(7−k) (`fn_analisis_sede`, 20261006214000): la última termina hoy. Las fechas de la ficha dependen de esto. */
   semanas: number[];
   /** Días desde la última venta en mi tienda o, si nunca se vendió aquí, desde que llegó. null si no hay de dónde contarlos. */
   diasSinVender: number | null;
@@ -135,6 +136,8 @@ export type AccesoAnalisis = {
   conteo: boolean;
   /** Inventario ▸ Frescura del piso. */
   frescura: boolean;
+  /** Compras ▸ Plan de campaña. */
+  planCompra: boolean;
 };
 
 /** La lectura del motor (ADR-0346) de una tienda, con sus días para dibujar «Ventas con su prenda, día a día». */

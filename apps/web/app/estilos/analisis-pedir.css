@@ -1,0 +1,28 @@
+/* Análisis v4 (ADR-0356): estilos propios de pedir que la hoja base (analisis.css) no trae. Mismas reglas que la base:
+   solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
+   Aquí nada se mueve: no hay animación ni transición propia (las barras crecen con las clases de la base). */
+@layer components {
+  .analisis {
+    /* «11 semanas para Navidad»: la cifra cuenta con <Cuenta> (un <em>), sin cursiva y con la letra de la cifra. */
+    .cuenta-reg em{font:inherit;font-style:normal}
+    /* Sin «Plan de campaña» (la cuenta no ve Compras ▸ Plan), el riel toma el lugar del botón. */
+    .campana.sin-boton{grid-template-columns:auto minmax(0,1fr)}
+    @container analisis (max-width:700px){ .campana.sin-boton{grid-template-columns:minmax(0,1fr)} }
+    /* Cada tipo de la mariposa es un botón: al menos 24 px de alto para el mouse (ADR-0350, oficio visual). */
+    .m-fila{min-height:24px}
+    /* «Quitar filtro ✕» es un chip chico: su zona de toque llega a 24 px sin mover nada. */
+    .chip.quitar{position:relative}
+    .chip.quitar::after{content:"";position:absolute;inset:-4px -3px}
+    /* «Otros tipos» suma los que no entraron en la mariposa: se lee, no filtra. */
+    .m-fila.otros{cursor:default}
+    .m-fila.otros:hover{background:transparent}
+    .m-fila.otros .m-n{font-weight:500;color:var(--color-tinta-60)}
+    /* Más de 5 tallas (XS…XXL, 26…34): columnas más angostas; si aun así no caben, la fila se desliza de lado sin perder
+       las primeras (los márgenes automáticos la centran solo cuando cabe). */
+    .cols-t.muchas{gap:14px;justify-content:flex-start;overflow-x:auto}
+    .cols-t.muchas > .ct:first-child{margin-left:auto}
+    .cols-t.muchas > .ct:last-child{margin-right:auto}
+    .cols-t.muchas .par-c i{width:18px}
+    .cols-t.muchas .ct .nom{font-size:18px}
+  }
+}

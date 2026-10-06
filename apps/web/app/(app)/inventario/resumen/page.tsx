@@ -35,6 +35,7 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     cuadrar: veModulo(persona, "existencias"),
     conteo: veModulo(persona, "conteos"),
     frescura: veModulo(persona, "frescura"),
+    planCompra: veModulo(persona, "plan_compra") && puede(persona, "verDineroCompras"),
   };
 
   const datos = await getDatosAnalisis(ubicacionActiva);
