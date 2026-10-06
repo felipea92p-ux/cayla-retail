@@ -368,9 +368,7 @@ export const DECISIONES = {
       "role=\"tab\"(?=[\\s>/]|$)",
       "-mb-px[^\"'`]*\\bborder-b-2\\b|\\bborder-b-2\\b[^\"'`]*-mb-px|after:h-0\\.5 after:bg-(?:tinta|rojo)\\b"
     ],
-    "deuda": [
-      "components/analisis/AnalisisPantalla.tsx"
-    ]
+    "deuda": []
   },
 };
 

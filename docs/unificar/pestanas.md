@@ -13,7 +13,9 @@
 
 **También Finanzas y Configuración** (Felipe 2026-10-07: «sí, también Finanzas»): `PestanasFin` dibuja ahora con `<Pestanas>`; la regla de
 Finanzas de `CLAUDE.md` lo dice. Y las pestañas de Comprobantes (`FacturacionPestanas`, de donde salió el vidrio) y de la billetera de
-Traslados («Te llegan / Envías / Terminadas», ADR-0355) pasan a la misma pieza.
+Traslados («Te llegan / Envías / Terminadas», ADR-0355) pasan a la misma pieza. Y las cuatro preguntas de **Análisis v4** (Hoy · Se está
+acabando · No se vende · Qué pedir, ADR-0357), que llegaron de `main` con su subrayado propio (Felipe 2026-10-07: «incluye lo de Análisis»):
+mismos conteos —«Se está acabando» en rojo si hay prendas—, el chip de confianza sigue a la derecha y sus gráficos se arman igual al cambiar.
 
 ## Cómo se llegó aquí
 
@@ -50,4 +52,4 @@ El cierre por unidad de Finanzas (`fin-matriz`, ADR-0195), el segmento del Obser
 
 **0.** Las firmas atrapan una pestaña dibujada a mano (`role="tab"` fuera de la pieza), un subrayado a mano (`-mb-px border-b-2`,
 `after:h-0.5 after:bg-…`) y una «elegida» escrita a mano con fondo y sombra. La primera fusión con `main` las probó: atraparon la billetera de
-Traslados, que nació con sus pestañas a mano, y se migró.
+Traslados, que nació con sus pestañas a mano, y se migró; la segunda, las de Análisis v4, que también se migraron.
