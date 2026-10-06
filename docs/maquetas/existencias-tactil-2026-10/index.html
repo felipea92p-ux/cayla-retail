@@ -415,6 +415,17 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 @media (hover:hover){.pc .acciones-c:hover .ib-txt{max-width:13rem;opacity:1;margin-left:8px}}
 /* La acción vive en la fila de los colores, a la derecha (2026-10-06): sin fila propia abajo, la tarjeta es más baja. */
 .modelo .muestras{flex-wrap:wrap}
+/* «Qué toca con esta talla» (2026-10-06): tres filas —hay, colgar, pedir— con su respuesta y su porqué. */
+.que-toca{display:grid;border:1px solid var(--sand);border-radius:16px}
+.qt-fila{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:10px 12px;border-top:1px solid var(--sand)}
+.qt-fila:first-child{border-top:0}
+.qt-tit{font:500 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);width:7.25rem;flex:none}
+.qt-fila p{flex:1;min-width:0;font-size:14px;color:color-mix(in srgb,var(--tinta) 80%,transparent);margin:0}
+.qt-fila b{display:inline-flex;align-items:center;gap:6px;font-weight:600;margin-right:4px}
+.qt-fila b i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.qt-verde{color:var(--verde)} .qt-ambar{color:var(--ambar)} .qt-pizarra{color:var(--pizarra)}
+.qt-btn{min-height:36px;padding:0 12px;font-size:13px;gap:6px;margin-left:auto}
+.qt-btn svg{width:16px;height:16px}
 .modelo .muestras .nombre-color{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .modelo .muestras .fila-estado{margin-left:auto;min-height:0}
 /* El panel de «Filtros» (2026-10-06): las filas con nombre del ERP; «Ordenar por» vive aquí. */
@@ -1026,9 +1037,21 @@ table.t td:first-child{font-weight:600}
       </div>`;
     let cuerpo = "";
     if (vista === "variante") {
-      const diag = e === "reponer" ? `<p class="diag p-ambar">Por reponer: hay ${unidades(v.alm)} en almacén y ninguna en piso.</p>`
-        : e === "sin" ? `<p class="diag p-pizarra">Sin stock aquí${otrasSum(v) ? ` · ${SEDES.filter(s => v.otras[s]).map(s => `${v.otras[s]} en ${s}`).join(" · ")}` : " ni en otra sede"}.</p>`
-        : `<p class="diag p-verde">Disponible: ${unidades(v.piso + v.alm)} (${v.piso} en piso, ${v.alm} en almacén).</p>`;
+      // «Qué toca con esta talla» (2026-10-06, como el ERP): hay · colgar en el piso · pedir a otra sede, cada una con su sí o no y su
+      // porqué, y el botón si se resuelve aquí. La vara de pedir es la de «casi no hay»: 1 o ninguna aquí y nada en camino.
+      const aqui = v.piso + v.alm, tiendasCon = SEDES.filter(s => s !== "Taller" && v.otras[s] > 0).sort((a, b) => v.otras[b] - v.otras[a]);
+      const filaQT = (titulo, tono, resp, det, boton = "") => `<div class="qt-fila"><span class="qt-tit">${titulo}</span><p><b class="qt-${tono}"><i></i>${resp}</b> ${det}.</p>${boton}</div>`;
+      const diag = `<section class="que-toca" aria-label="Qué toca con esta talla">
+        ${aqui > 0 ? filaQT("Hay", "verde", "Sí", `${v.piso} en piso · ${v.alm} en almacén`) : filaQT("Hay", "pizarra", "No", v.camino ? `Nada para vender aquí · vienen ${v.camino} en camino` : "Nada para vender en esta sede")}
+        ${v.alm === 0 ? (v.piso > 0 ? filaQT("Colgar en el piso", "verde", "No hace falta", `Hay ${v.piso} en el piso`) : filaQT("Colgar en el piso", "pizarra", "No se puede", "No hay en el almacén"))
+          : v.piso === 0 ? filaQT("Colgar en el piso", "ambar", "Sí", `Cuelga 1: no hay en el piso y hay ${v.alm} en almacén`, `<button class="btn qt-btn" data-acc="accion" data-k="reponer">${IC.reponer}Colgar</button>`)
+          : filaQT("Colgar en el piso", "verde", "No hace falta", `Hay ${v.piso} en el piso`)}
+        ${v.camino ? filaQT("Pedir a otra sede", "verde", "No hace falta", `Vienen ${v.camino} en camino`)
+          : aqui >= 2 ? filaQT("Pedir a otra sede", "verde", "No hace falta", `Hay ${aqui} en esta sede`)
+          : tiendasCon.length ? filaQT("Pedir a otra sede", aqui === 0 ? "ambar" : "pizarra", "Sí", `${aqui === 0 ? "No hay aquí" : "Queda 1 aquí"}: ${tiendasCon[0]} tiene ${v.otras[tiendasCon[0]]}`, `<button class="btn qt-btn" data-acc="pedir-rapido" data-pid="${pid}" data-c="${c}" data-t="${esc(t)}">${IC.pedir}Pedir</button>`)
+          : v.otras.Taller > 0 ? filaQT("Pedir a otra sede", "pizarra", "A una tienda, no", `Ninguna tienda tiene; Taller tiene ${v.otras.Taller}: pídeselo al Taller`)
+          : filaQT("Pedir a otra sede", "pizarra", "Nadie tiene", aqui === 1 ? "Queda 1 aquí y ninguna otra sede tiene" : "Ninguna otra sede tiene")}
+      </section>`;
       const pedido = S.pedidos[`${pid}|${c}|${t}`];
       const marcas = coincidencias(p);
       const vend = vendidas(p, c, t);
