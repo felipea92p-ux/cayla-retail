@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lu
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { CasiNoHayLista } from "@/components/existencias/CasiNoHay";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -18,7 +19,7 @@ import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MA
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
-import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
+import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, casiNoHay, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -523,6 +524,11 @@ export function FlujoTalla({
         const faltan = tallasQueFaltan(colores);
         const frase = fraseDeLoQueFalta(colores);
         const cant = d.cant ?? {};
+        const casi = casiNoHay(colores).map((x) => ({
+          ...x,
+          color: colores.length > 1 ? x.color : null,
+          colorHex: colores.find((c) => c.tallas.some((t) => t.varianteId === x.clave))?.colorHex ?? null,
+        }));
         return (
           <>
             <Pregunta ayuda="Todo empieza en 0. Cada talla dice cuántas hay en almacén.">¿Cuántas llevas al piso de cada color y talla?</Pregunta>
@@ -553,18 +559,13 @@ export function FlujoTalla({
                       Al piso: <b className="text-tinta">{c.tallas.reduce((s, t) => s + (cant[t.varianteId] ?? 0), 0)}</b>
                     </span>
                   </header>
+                  {/* Solo las tallas que se pueden colgar llevan su casilla; las que no tienen nada en el almacén van en una línea debajo
+                      (2026-10-06, tarde): una casilla vacía por cada una ocupaba lo mismo que las útiles y el paso se veía amontonado. */}
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
-                    {c.tallas.map((t) => {
+                    {c.tallas.filter((t) => sePuedeBajarTalla({ almacen: Math.max(0, t.almacenDisponible ?? 0) })).map((t) => {
                       const alm = Math.max(0, t.almacenDisponible ?? 0);
                       const piso = Math.max(0, t.pisoDisponible ?? 0);
                       const n = cant[t.varianteId] ?? 0;
-                      if (!sePuedeBajarTalla({ almacen: alm }))
-                        return (
-                          <div key={t.varianteId} className="rounded-xl border border-dashed border-sand p-2 text-taupe">
-                            <b className="block text-sm text-tinta/60">{t.talla ?? "Única"}</b>
-                            <span className="text-[12px]">Nada en almacén</span>
-                          </div>
-                        );
                       return (
                         <div key={t.varianteId} className={`grid gap-1.5 rounded-xl border p-2 ${n > 0 ? "border-tinta" : faltan.has(t.varianteId) ? "border-ambar/40 bg-ambar/[0.06]" : "border-sand"}`}>
                           <div className="flex items-baseline justify-between gap-1">
@@ -594,9 +595,25 @@ export function FlujoTalla({
                       );
                     })}
                   </div>
+                  {c.tallas.some((t) => !sePuedeBajarTalla({ almacen: Math.max(0, t.almacenDisponible ?? 0) })) && (
+                    <p className="mt-2 text-[12.5px] text-taupe">
+                      Sin nada en almacén:{" "}
+                      {c.tallas
+                        .filter((t) => !sePuedeBajarTalla({ almacen: Math.max(0, t.almacenDisponible ?? 0) }))
+                        .map((t) => t.talla ?? "Única")
+                        .join(" · ")}
+                    </p>
+                  )}
                 </section>
               ))}
             </div>
+            {/* Lo que casi no hay aquí, con quién lo tiene (como la maqueta), en la misma lista que «Esta talla». Sin «Pedir»: desde aquí
+                cambiaría de paso y se perderían las cantidades ya puestas. */}
+            {casi.length > 0 && (
+              <div className="mt-3 rounded-2xl border border-sand px-3 py-2.5">
+                <CasiNoHayLista nota="se pide desde su talla" filas={casi} />
+              </div>
+            )}
           </>
         );
       }

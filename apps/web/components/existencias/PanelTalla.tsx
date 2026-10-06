@@ -12,6 +12,7 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/ColgarPrimero";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
+import { CasiNoHayLista } from "@/components/existencias/CasiNoHay";
 import { accionesDeTalla, loQueFaltaEnElPiso, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
 import { casiNoHay } from "@/lib/reponer-prenda-reglas";
@@ -79,9 +80,10 @@ const escribiendo = (el: Element | null) => !!el && (el.tagName === "INPUT" || e
    precio; debajo, tres vistas —Esta talla, Todas (la matriz de colores y tallas) y Ficha—, el color y la talla para cambiar sin
    salir, y el cuerpo de la vista.
 
-   «Esta talla»: lo que hay en piso, almacén, apartado y dañado; la frase de qué toca; lo que falta en el piso del modelo; lo agotado
-   aquí con quién lo tiene y su «Pedir»; el ritmo con su aro de semanas; las otras sedes; el código; y siete acciones con lo que dicen
-   debajo. Cada acción (menos Ficha y Apartar) se hace AQUÍ, paso a paso (`FlujoTalla`), y al terminar el panel vuelve a la talla con
+   «Esta talla»: lo que hay en piso, almacén, apartado y dañado; «Qué toca» (¿Hay? ¿Colgar? ¿Pedir?, con lo que tiene cada otra sede);
+   «En este modelo» (las tallas que faltan en el piso, como botones, y lo que casi no hay aquí con su «Pedir»); el ritmo con su aro de
+   semanas y el código; y las acciones con lo que dicen debajo (2026-10-06, tarde: dos tarjetas iguales en vez de cinco recuadros y
+   pastillas sueltas, que se veían amontonados). Cada acción (menos Ficha y Apartar) se hace AQUÍ, paso a paso (`FlujoTalla`), y al terminar el panel vuelve a la talla con
    «✓ hecho». Apartar abre la separación de Vender con la talla puesta (ahí se cobra el adelanto).
 
    Teclado (como la maqueta): ← → cambian la talla, ↑ ↓ el color, 1–7 eligen la acción; dentro de un paso, Enter sigue y Escape
@@ -218,6 +220,9 @@ export function PanelTalla({
   const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
   // Lo que falta en el piso de TODO el modelo: la del motor, o, si no decidió, la de los números (con la pausa advertida).
   const falta = separa ? loQueFaltaEnElPiso(colores) : null;
+  // Las tallas que faltan en el piso, por color y en el orden del modelo: el panel las dibuja como botones que llevan a cada una.
+  const faltanPorColor = falta ? colores.map((c) => ({ c, tallas: c.tallas.filter((t) => falta.ids.has(t.varianteId)) })).filter((x) => x.tallas.length > 0) : [];
+  const nFaltan = faltanPorColor.reduce((n, x) => n + x.tallas.length, 0);
   // Lo agotado o casi (1 o ninguna aquí, nada en camino) que otra sede tiene: la maqueta lo lista con su «Pedir» (`casiNoHay`, la misma
   // regla que usaba la ventana de Reponer).
   const afuera = casiNoHay(colores).flatMap((x) => {
@@ -232,6 +237,9 @@ export function PanelTalla({
         .sort((a, b) => ventasDia(b.t) - ventasDia(a.t))
     : [];
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
+  // Cuánto tiene cada otra sede de esta talla: va bajo «¿Pedir?» (o bajo «¿Hay?» donde no se separa piso y almacén y no hay «¿Pedir?»).
+  const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
+  const filaConSedes = queToca.some((q) => q.tema === "pedir") ? "pedir" : "hay";
 
   // La flecha pidió otro color: se aplica aquí, donde ya se conoce el color de ahora (y la talla se conserva si existe).
   if (pasoColor) {
@@ -513,76 +521,106 @@ export function PanelTalla({
                         </span>
                       </p>
                     )}
-                    {/* «Qué toca con esta talla»: hay · colgar en el piso · pedir a otra sede. Cada fila dice sí o no y por qué, y si se
-                        resuelve aquí mismo, su botón. Reemplaza la frase única («Disponible: 6 unidades»), que con el motor sin decidir se veía
-                        verde aunque no hubiera nada en el piso. */}
+                    {/* «Qué toca con esta talla»: tres preguntas cortas —¿Hay? ¿Colgar? ¿Pedir?— con su respuesta y su porqué, y si se
+                        resuelve aquí mismo, su botón. La pregunta va en una columna angosta fija y el botón en la suya: ni la pregunta se
+                        parte en dos líneas ni el botón salta abajo (con «COLGAR EN EL PISO» en mayúsculas pasaba las dos cosas). Bajo
+                        «¿Pedir?», cuánto tiene cada otra sede: antes era un bloque de pastillas aparte, más abajo. */}
                     <section aria-label="Qué toca con esta talla" className="grid divide-y divide-sand/80 rounded-2xl border border-sand">
-                      {queToca.map((q) => (
-                        <div key={q.tema} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-                          <span className="label-cayla w-[7.25rem] shrink-0 text-[10.5px] text-taupe">{q.titulo}</span>
-                          <p className="min-w-0 flex-1 text-sm leading-snug">
-                            <b className={`mr-1.5 inline-flex items-center gap-1.5 font-semibold ${TONO_QUE_TOCA[q.tono].texto}`}>
-                              <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TONO_QUE_TOCA[q.tono].punto}`} />
-                              {q.respuesta}
-                            </b>
-                            <span className="text-tinta/80">{q.detalle}.</span>
-                          </p>
-                          {q.accion === "colgar" && (
-                            <button type="button" onClick={() => alAccionar("colgar")} className="btn-cayla btn-secundario btn-chico ml-auto shrink-0 gap-1.5">
+                      {queToca.map((q) => {
+                        const boton =
+                          q.accion === "colgar" ? (
+                            <button type="button" onClick={() => alAccionar("colgar")} className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5">
                               <IconoPercha aria-hidden className="h-4 w-4" />
                               Colgar
                             </button>
-                          )}
-                          {q.accion === "pedir" && mejorOrigen(fila.enRed, sedesParaPedir) && (
-                            <button type="button" onClick={() => pedirRapido(prenda, fila)} className="btn-cayla btn-secundario btn-chico ml-auto shrink-0 gap-1.5 border-pizarra/40 text-pizarra">
+                          ) : q.accion === "pedir" && mejorOrigen(fila.enRed, sedesParaPedir) ? (
+                            <button type="button" onClick={() => pedirRapido(prenda, fila)} className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5 border-pizarra/40 text-pizarra">
                               <ArrowLeftRight aria-hidden className="h-4 w-4" />
                               Pedir
                             </button>
-                          )}
-                        </div>
-                      ))}
-                    </section>
-                    {/* Lo que falta en el piso de TODO el modelo (todos sus colores), como en la maqueta. */}
-                    {falta && (
-                      <p className="rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">
-                        <b className="font-semibold">{falta.titulo}:</b> {falta.tallas}.{" "}
-                        {falta.marcadas
-                          ? "Quedan marcadas al colgar."
-                          : falta.enPausa
-                            ? "El piso de esta sede no está cuadrado: puede que ya cuelguen."
-                            : null}
-                      </p>
-                    )}
-                    {afuera.length > 0 && (
-                      <div className="grid gap-1.5">
-                        {afuera.map(({ c, t, agotada, sedes, clave }) => (
-                          <div key={clave} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-pizarra/[0.10] px-3 py-2 text-sm text-pizarra">
-                            <b className="min-w-0 font-semibold">
-                              {c.color ? `${c.color} ` : ""}
-                              {t.talla ?? "Única"} {agotada ? "agotada" : "casi no hay"}: en otras sedes
-                            </b>
-                            <span className="ml-auto shrink-0 tabular-nums">{sedes}</span>
-                            {/* Solo si alguna TIENDA a la que se le puede pedir la tiene: al Taller no se le pide (la base lo rechaza). */}
-                            {puedePedir && mejorOrigen(t.enRed, sedesParaPedir) && (
-                              <button type="button" onClick={() => pedirRapido(c, t)} className="btn-cayla btn-secundario btn-chico gap-1.5 border-pizarra/40 text-pizarra">
-                                <ArrowLeftRight aria-hidden className="h-4 w-4" />
-                                Pedir
-                              </button>
-                            )}
+                          ) : null;
+                        return (
+                          <div
+                            key={q.tema}
+                            className={`grid items-center gap-x-3 px-3 py-2.5 ${boton ? "grid-cols-[4.25rem_minmax(0,1fr)_auto]" : "grid-cols-[4.25rem_minmax(0,1fr)]"}`}
+                          >
+                            <span className="self-start pt-px text-[13px] font-medium text-taupe">{q.titulo}</span>
+                            <div className="min-w-0 text-sm leading-snug">
+                              <p>
+                                <b className={`mr-1.5 inline-flex items-center gap-1.5 font-semibold ${TONO_QUE_TOCA[q.tono].texto}`}>
+                                  <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TONO_QUE_TOCA[q.tono].punto}`} />
+                                  {q.respuesta}
+                                </b>
+                                <span className="text-tinta/80">{q.detalle}.</span>
+                              </p>
+                              {q.tema === filaConSedes && otrasSedes && <p className="mt-0.5 text-[12.5px] text-taupe">Otras sedes: {otrasSedes}</p>}
+                            </div>
+                            {boton}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
+                    </section>
+                    {/* «En este modelo»: lo que pide el modelo entero (todos sus colores), en una tarjeta como la de «Qué toca». Las tallas
+                        que faltan en el piso son botones que llevan a cada una (antes, una frase en un recuadro y, con el filtro «Por
+                        colgar», la misma lista repetida en pastillas más abajo); debajo, lo que casi no hay aquí, con quién lo tiene. */}
+                    {(faltanPorColor.length > 0 || afuera.length > 0) && (
+                      <section aria-label="En este modelo" className="grid divide-y divide-sand/80 rounded-2xl border border-sand">
+                        {falta && faltanPorColor.length > 0 && (
+                          <div className="grid gap-2 px-3 py-2.5">
+                            <p className="text-[13px] font-medium text-taupe">
+                              {falta.titulo}
+                              <span className="font-normal">
+                                {" "}
+                                · {nFaltan} {nFaltan === 1 ? "talla" : "tallas"}
+                              </span>
+                            </p>
+                            <div className="grid gap-1.5">
+                              {faltanPorColor.map(({ c, tallas }) => (
+                                <div key={c.clave} role="group" aria-label={c.color ?? "Sin color"} className="flex flex-wrap items-center gap-1.5">
+                                  {colores.length > 1 && (
+                                    <span className="mr-1 inline-flex min-w-0 items-center gap-1.5 text-[13px] text-tinta/80">
+                                      <i aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
+                                      {c.color ?? "Sin color"}
+                                    </span>
+                                  )}
+                                  {tallas.map((t) => (
+                                    <button
+                                      key={t.varianteId}
+                                      type="button"
+                                      aria-pressed={t.varianteId === fila.varianteId}
+                                      aria-label={`Ver ${c.color ? `${c.color} ` : ""}talla ${t.talla ?? "Única"}`}
+                                      onClick={() => irA(c, t)}
+                                      className="min-h-9 min-w-10 rounded-full border border-ambar/40 bg-ambar/[0.08] px-3 text-[13px] font-semibold tabular-nums text-tinta transition-colors hover:border-ambar aria-pressed:border-tinta aria-pressed:shadow-[0_0_0_1px_var(--color-tinta)]"
+                                    >
+                                      {t.talla ?? "Única"}
+                                    </button>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                            {falta.enPausa && <p className="text-[12.5px] text-taupe">El piso de esta sede no está cuadrado: puede que ya cuelguen.</p>}
+                          </div>
+                        )}
+                        {afuera.length > 0 && (
+                          <div className="px-3 py-2.5">
+                            <CasiNoHayLista
+                              filas={afuera.map(({ c, t, agotada, sedes, clave }) => ({
+                                clave,
+                                color: colores.length > 1 ? c.color : null,
+                                colorHex: c.colorHex,
+                                talla: t.talla ?? "Única",
+                                agotada,
+                                sedes,
+                                // Solo si alguna TIENDA a la que se le puede pedir la tiene: al Taller no se le pide (la base lo rechaza).
+                                onPedir: puedePedir && mejorOrigen(t.enRed, sedesParaPedir) ? () => pedirRapido(c, t) : undefined,
+                              }))}
+                            />
+                          </div>
+                        )}
+                      </section>
                     )}
-                    {ritmo && (
-                      <p className="flex items-center gap-3 text-sm text-tinta/85">
-                        <AroSemanas ritmo={ritmoTalla} tam={40} />
-                        <span>
-                          {prenda.color ? `${prenda.color} ${fila.talla ?? ""}: ` : ""}
-                          {ritmo}
-                        </span>
-                      </p>
-                    )}
-                    {marcaDelFiltro && marcadas.length > 0 && (
+                    {/* Con el filtro «Por colgar», sus tallas ya son los botones de «Faltan en el piso»: no se repiten aquí. */}
+                    {marcaDelFiltro && marcadas.length > 0 && !(marcaDelFiltro.esColgar && faltanPorColor.length > 0) && (
                       <div>
                         <p className="label-cayla mb-1.5 text-[11px] text-taupe">
                           {marcaDelFiltro.etiqueta} en este modelo · {marcadas.length}
@@ -604,20 +642,24 @@ export function PanelTalla({
                         </div>
                       </div>
                     )}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="label-cayla mr-1 text-[11px] text-taupe">Otras sedes</span>
-                      {(fila.enRed ?? []).length === 0 && fila.enTransito === 0 && <span className="text-sm text-taupe">Ninguna tiene</span>}
-                      {(fila.enRed ?? []).map((s) => (
-                        <span key={s.sede} className="rounded-full border border-pizarra px-2.5 py-1 text-[13px] font-semibold text-pizarra">
-                          {nombreCortoSede(s.sede)} {s.cantidad}
-                        </span>
-                      ))}
-                      {fila.enTransito > 0 && <span className="rounded-full border border-pizarra px-2.5 py-1 text-[13px] font-semibold text-pizarra">En camino {fila.enTransito}</span>}
-                    </div>
-                    {codigo && (
-                      <p className="text-[13px] text-taupe">
-                        Código <span className="tabular-nums text-tinta">{codigo}</span>
-                      </p>
+                    {/* El ritmo de la talla con su aro de semanas, y el código debajo: una sola pieza en vez de dos líneas sueltas. */}
+                    {(ritmo || codigo) && (
+                      <div className="flex items-center gap-3 text-sm text-tinta/85">
+                        {ritmo && <AroSemanas ritmo={ritmoTalla} tam={40} />}
+                        <div className="min-w-0">
+                          {ritmo && (
+                            <p>
+                              {prenda.color ? `${prenda.color} ${fila.talla ?? ""}: ` : ""}
+                              {ritmo}
+                            </p>
+                          )}
+                          {codigo && (
+                            <p className="text-[12.5px] text-taupe">
+                              Código <span className="tabular-nums text-tinta">{codigo}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
                     {/* Las acciones (2026-10-06): primero la que la talla necesita, después las que se pueden usar, como tarjetas; las que no se
                         pueden ahora, al final y chicas, con su porqué (`accionesDeTalla` decide el orden). Cada una conserva su tecla. */}
@@ -675,12 +717,13 @@ export function PanelTalla({
 
                 {vista === "todas" && (
                   <>
-                    <p className="text-[13px] text-taupe">Número grande: en piso. Debajo: en almacén. Toca una casilla para elegir esa talla y color.</p>
-                    <div className="overflow-x-auto">
+                    {/* La matriz en su tarjeta y UNA leyenda debajo (2026-10-06, tarde): antes iban una frase de instrucciones arriba y dos
+                        pastillas de colores abajo que parecían botones. */}
+                    <div className="scroll-cayla overflow-x-auto rounded-2xl border border-sand p-1">
                       <table className="w-full border-separate border-spacing-1 text-center text-sm">
                         <thead>
                           <tr>
-                            <th className="text-left text-xs font-medium text-taupe">Color</th>
+                            <th className="px-1.5 text-left text-xs font-medium text-taupe">Color</th>
                             {tallasDeTodos.map((t) => (
                               <th key={t} className="text-xs font-medium text-taupe">
                                 {t}
@@ -691,7 +734,7 @@ export function PanelTalla({
                         <tbody>
                           {colores.map((c) => (
                             <tr key={c.clave}>
-                              <th scope="row" className="whitespace-nowrap text-left text-[13px] font-normal">
+                              <th scope="row" className="whitespace-nowrap px-1.5 text-left text-[13px] font-normal">
                                 <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
                                 {c.color ?? "Sin color"}
                               </th>
@@ -717,7 +760,8 @@ export function PanelTalla({
                                       className={`grid min-h-12 w-full place-items-center rounded-lg border leading-none aria-pressed:border-tinta ${CLASE_TALLA[estadoTalla(f)]}`}
                                     >
                                       <b className="text-base font-semibold tabular-nums">{estadoTalla(f) === "sin_stock" ? "—" : separa ? (f.pisoDisponible ?? 0) : f.disponible}</b>
-                                      {separa && <small className="text-[11px] tabular-nums text-taupe">{f.almacenDisponible ?? 0}</small>}
+                                      {/* Lo del almacén con su «+» (como la tarjeta): un «0» suelto debajo se leía como otra cifra del piso. */}
+                                      {separa && (f.almacenDisponible ?? 0) > 0 && <small className="text-[11px] tabular-nums text-taupe">+{f.almacenDisponible}</small>}
                                     </button>
                                   </td>
                                 );
@@ -727,13 +771,16 @@ export function PanelTalla({
                         </tbody>
                       </table>
                     </div>
-                    <p className="flex flex-wrap gap-1.5 text-xs">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-ambar/[0.10] px-2.5 py-1 text-ambar-profundo">
-                        <i aria-hidden className="h-1.5 w-1.5 rounded-full bg-ambar" />
-                        Por colgar
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-pizarra/[0.10] px-2.5 py-1 text-pizarra">
-                        <i aria-hidden className="h-1.5 w-1.5 rounded-full bg-pizarra" />
+                    <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-taupe">
+                      <span>{separa ? "Grande: en piso · «+N»: en almacén" : "Unidades en esta sede"} · toca una casilla para verla</span>
+                      {separa && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />
+                          Por colgar
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
                         Sin stock aquí
                       </span>
                     </p>

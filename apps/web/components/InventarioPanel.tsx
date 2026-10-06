@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, LayoutGrid, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Table2, Tag, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Tag, TriangleAlert, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -834,50 +834,21 @@ export function InventarioPanel({
                 </button>
               )
             }
-            vista={
-              <>
-                {/* Tarjetas o tabla: UN icono que cambia en los dos sentidos (2026-10-06). Muestra la vista a la que lleva; el nombre va como
-                    etiqueta y al pasar el mouse. */}
-                <button
-                  type="button"
-                  aria-label={verDetalle ? "Ver en tarjetas" : "Ver en tabla"}
-                  title={verDetalle ? "Ver en tarjetas" : "Ver en tabla"}
-                  onClick={() => {
-                    // Las tarjetas no tienen cajón: al volver a ellas se cierra el de la tabla.
-                    if (verDetalle) setAbierta(null);
-                    setVerDetalle((d) => !d);
-                    setPagina(1);
-                  }}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-tinta/15 bg-papel text-tinta/70 transition-colors hover:border-tinta/30 hover:text-tinta"
-                >
-                  {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.6} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />}
-                </button>
-                {verDetalle && (
-                  // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
-                  <span role="group" aria-label="Ver la lista" className="inline-flex overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-                    {(
-                      [
-                        ["prenda", "Por prenda"],
-                        ["talla", "Por talla"],
-                      ] as const
-                    ).map(([v, texto]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        aria-pressed={vista === v}
-                        onClick={() => {
-                          setVista(v);
-                          setPagina(1);
-                        }}
-                        className={`px-4 py-1 transition-colors ${vista === v ? "bg-hueso font-medium text-tinta" : "text-taupe hover:text-tinta"}`}
-                      >
-                        {texto}
-                      </button>
-                    ))}
-                  </span>
-                )}
-              </>
-            }
+            // Tarjetas, tabla o una fila por talla: en «Filtros ▸ Vista» (2026-10-06, tarde), ya no como icono suelto en la barra.
+            verComo={{
+              valor: !verDetalle ? "tarjetas" : vista === "prenda" ? "tabla" : "talla",
+              onValor: (v) => {
+                if (v === "tarjetas") {
+                  // Las tarjetas no tienen el cajón de la tabla: al volver a ellas se cierra.
+                  if (verDetalle) setAbierta(null);
+                  setVerDetalle(false);
+                } else {
+                  setVerDetalle(true);
+                  setVista(v === "tabla" ? "prenda" : "talla");
+                }
+                setPagina(1);
+              },
+            }}
             nota={
               <>
                 {/* La aclaración de «Por colgar», solo si ese caso de «Hoy» está elegido y hay algo por colgar (sobre una lista vacía,

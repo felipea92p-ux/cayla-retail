@@ -110,6 +110,11 @@ describe("«Qué toca con esta talla»: hay, colgar y pedir siempre dicen algo",
   it("donde no se separa piso y almacén (Taller), solo «Hay»", () => {
     expect(queTocaConLaTalla(talla({ disponible: 4 }) as never, { ...O, separa: false }).map((x) => x.tema)).toEqual(["hay"]);
   });
+
+  it("cada fila se titula con su pregunta corta, en todos los casos (en mayúsculas largas se partía en dos líneas)", () => {
+    const casos = [{}, { almacenDisponible: 6, disponible: 6 }, { pisoDisponible: 2, disponible: 2, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] }, { enTransito: 3 }];
+    for (const c of casos) expect(queTocaConLaTalla(talla({ enTransito: 0, ...c }) as never, O).map((x) => x.titulo)).toEqual(["¿Hay?", "¿Colgar?", "¿Pedir?"]);
+  });
 });
 
 describe("«Faltan en el piso» aunque el motor no decida", () => {
@@ -118,14 +123,24 @@ describe("«Faltan en el piso» aunque el motor no decida", () => {
 
   it("con la decisión del motor, la de siempre (y quedan marcadas al colgar)", () => {
     const f = loQueFaltaEnElPiso([color("Beige", [{ talla: "S", almacenDisponible: 2, planPiso: { accion: "por_colgar", requisito: 1 } as never }])]);
-    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "S", marcadas: true, enPausa: false });
+    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "S", ids: new Set(["Beige-0"]), marcadas: true, enPausa: false });
   });
   it("sin motor: los números; las que el motor manda mantener no cuentan", () => {
     const f = loQueFaltaEnElPiso([
       color("Beige", [{ talla: "S", almacenDisponible: 6 }, { talla: "M", almacenDisponible: 1 }, { talla: "L", pisoDisponible: 5 }]),
       color("Negro", [{ talla: "XL", almacenDisponible: 2, planPiso: { accion: "mantener", requisito: 0 } as never }]),
     ]);
-    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "Beige S, M", marcadas: false, enPausa: false });
+    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "Beige S, M", ids: new Set(["Beige-0", "Beige-1"]), marcadas: false, enPausa: false });
+  });
+  it("las tallas que dice la frase son las mismas que el panel vuelve botones", () => {
+    const prendas = [
+      color("Beige", [{ talla: "S", almacenDisponible: 6 }, { talla: "M", pisoDisponible: 1, almacenDisponible: 1 }]),
+      color("Negro", [{ talla: "S", almacenDisponible: 2 }, { talla: "M", almacenDisponible: 2, planPiso: { accion: "pausa_sin_cuadre", requisito: 1 } as never }]),
+    ];
+    const f = loQueFaltaEnElPiso(prendas)!;
+    const nombres = prendas.flatMap((p: { color: string; tallas: { varianteId: string; talla: string }[] }) => p.tallas.filter((t) => f.ids.has(t.varianteId)).map((t) => `${p.color} ${t.talla}`));
+    expect(nombres).toEqual(["Beige S", "Negro S", "Negro M"]);
+    expect(f.tallas).toBe("Beige S · Negro S, M");
   });
   it("con el piso en pausa lo advierte", () => {
     const f = loQueFaltaEnElPiso([color("Beige", [{ talla: "S", almacenDisponible: 6, planPiso: { accion: "pausa_sin_cuadre", requisito: 1 } as never }])]);

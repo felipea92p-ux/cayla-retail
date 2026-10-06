@@ -271,3 +271,34 @@ el orden cambiando en cada talla, la misma tecla haría cosas distintas).
 SE ROMPE SI: alguien aprende de memoria el LUGAR de un botón (no su tecla) y el orden cambia de una talla a otra. El color y el nombre
 siguen iguales; el lugar ya no es fijo a propósito.
 
+### Cuarta vuelta del mismo día — la vista en «Filtros», el buscador a lo ancho y el panel lateral sin amontonar
+
+**Pedido** (mirando la maqueta publicada): «en vista incluir si quiere en grilla o tabla o talla; usar todo el espacio de la barra ya que
+hay menos elementos; céntrate más en la barra lateral», y sobre «Todas» y «Reponer varias»: «que se vea bien, que no se vea amontonado».
+Solo esos cambios. Igual en el ERP y en la maqueta.
+
+- **«Ver como» en «Filtros ▸ Vista»:** Tarjetas · Tabla · Por talla, a un toque y con su nombre (`FiltrosExistencias`, prop `verComo`). Sale
+  de la barra el icono de tabla o tarjetas y, con la tabla, el par «Por prenda | Por talla». Si la vista no es la de tarjetas, un chip
+  «Vista: Tabla ×» lo dice y vuelve con un toque, como el del orden. «Ordenar por» sigue solo con las tarjetas (la tabla tiene su orden).
+- **El buscador toma todo el ancho que queda** (se quita el tope de 26rem): con la vista en «Filtros», la barra tiene menos piezas y el
+  tope dejaba media fila vacía. Medido en local a 1440 px: de unos 416 a 893 px.
+- **«Qué toca» con preguntas cortas** (`PREGUNTA_QUE_TOCA`: «¿Hay?», «¿Colgar?», «¿Pedir?»): «COLGAR EN EL PISO» en mayúsculas se partía en
+  dos líneas. La pregunta va en una columna fija y el botón en la suya, así ninguno salta de línea. Bajo «¿Pedir?», «Otras sedes: AQP 1 ·
+  Taller 12» (antes, un bloque de pastillas aparte que repetía lo mismo).
+- **«En este modelo»**, una tarjeta como la de «Qué toca»: las tallas que faltan en el piso como botones por color, que llevan a esa
+  talla (`loQueFaltaEnElPiso` devuelve ahora `ids`), y **«Casi no hay aquí»** (`components/existencias/CasiNoHay.tsx`), una fila por talla
+  con su «Pedir» en una columna fija. Reemplaza el recuadro de la frase y una franja de color por talla. Con el filtro «Por colgar», la
+  lista de sus tallas ya no se repite más abajo. El ritmo y el código van juntos.
+- **«Todas»:** la matriz en su tarjeta y una sola leyenda debajo (antes, una frase de instrucciones arriba y dos pastillas que parecían
+  botones); el almacén con su «+» («+6»): un «0» suelto debajo se leía como otra cifra del piso.
+- **«Colgar varias»:** las tallas sin nada en almacén van en una línea («Sin nada en almacén: L»), no en una casilla vacía cada una; y al
+  final, «Casi no hay aquí» **sin «Pedir»**, con la nota «se pide desde su talla».
+
+DECIDÍ: «Casi no hay aquí» dentro de «Colgar varias» solo informa.
+DESCARTÉ: dejarle su «Pedir», como la maqueta antes: tocarlo cambia de paso (`onCambiar`/`lanzar`) y se pierden las cantidades ya puestas
+en las casillas. La maqueta, además, elegía la sede con más unidades contando al Taller; ahora elige entre tiendas, como el ERP.
+SE ROMPE SI: alguien termina de colgar y olvida pedir la talla que vio agotada: la lista ya no está a la vista al volver a la talla. La
+fila «¿Pedir?» de esa talla lo vuelve a decir cuando la abre.
+
+**Lo que no se verificó en local:** «Casi no hay aquí» con datos del ERP (la base local no tiene tallas con 1 o ninguna aquí que otra
+tienda tenga); se vio en la maqueta, que usa la misma estructura.

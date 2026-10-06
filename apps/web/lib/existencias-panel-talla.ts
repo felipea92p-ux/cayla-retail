@@ -12,7 +12,7 @@
    ==================================================================== */
 
 import { estadoTalla, type FilaPrenda } from "./existencias-prendas";
-import { fraseDeLoQueFalta, type PrendaParaReponer } from "./reponer-prenda-reglas";
+import { fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
 import { nombreCortoSede } from "./stock-por-sede";
 
 export type ClaveAccionTalla = "colgar" | "subir" | "enviar" | "apartar" | "pedir" | "ajustar" | "ficha";
@@ -110,8 +110,14 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
        sede             misma vara que «casi no hay» (`casiNoHay`): 1 o ninguna aquí, nada en camino. Al Taller no se le pide por esta
                         vía (la base lo rechaza): si solo él tiene, se dice, sin botón.
 
+   El título de cada fila es la pregunta misma («¿Hay?», «¿Colgar?», «¿Pedir?»; 2026-10-06, tarde): con «COLGAR EN EL PISO» en
+   mayúsculas la columna se partía en dos líneas y el panel se veía amontonado. La respuesta («Sí · cuelga 1…») dice el resto.
+
    Lógica pura: el panel solo la dibuja. No agrega reglas de negocio: dice con palabras lo que el motor y los números ya dicen.
    ==================================================================== */
+
+/** Las tres preguntas, en el orden en que se leen. */
+export const PREGUNTA_QUE_TOCA = { hay: "¿Hay?", colgar: "¿Colgar?", pedir: "¿Pedir?" } as const;
 
 export type TonoQueToca = "verde" | "ambar" | "pizarra";
 
@@ -154,10 +160,10 @@ export function queTocaConLaTalla(
   // Hay: lo libre para vender (lo apartado y lo dañado no se venden: van aparte).
   salida.push(
     aqui > 0
-      ? { tema: "hay", titulo: "Hay", respuesta: "Sí", tono: "verde", detalle: (o.separa ? `${piso} en piso · ${alm} en almacén` : `${plural(aqui, "unidad", "unidades")} en esta sede`) + notaAparte }
+      ? { tema: "hay", titulo: PREGUNTA_QUE_TOCA.hay, respuesta: "Sí", tono: "verde", detalle: (o.separa ? `${piso} en piso · ${alm} en almacén` : `${plural(aqui, "unidad", "unidades")} en esta sede`) + notaAparte }
       : {
           tema: "hay",
-          titulo: "Hay",
+          titulo: PREGUNTA_QUE_TOCA.hay,
           respuesta: "No",
           tono: "pizarra",
           detalle: (enCamino > 0 ? `Nada para vender aquí · vienen ${enCamino} en camino` : "Nada para vender en esta sede") + notaAparte,
@@ -172,13 +178,13 @@ export function queTocaConLaTalla(
   if (alm === 0) {
     salida.push(
       piso > 0
-        ? { tema: "colgar", titulo: "Colgar en el piso", respuesta: "No hace falta", tono: "verde", detalle: `Hay ${piso} en el piso` }
-        : { tema: "colgar", titulo: "Colgar en el piso", respuesta: "No se puede", tono: "pizarra", detalle: "No hay en el almacén" }
+        ? { tema: "colgar", titulo: PREGUNTA_QUE_TOCA.colgar, respuesta: "No hace falta", tono: "verde", detalle: `Hay ${piso} en el piso` }
+        : { tema: "colgar", titulo: PREGUNTA_QUE_TOCA.colgar, respuesta: "No se puede", tono: "pizarra", detalle: "No hay en el almacén" }
     );
   } else if (accion === "pausa_sin_cuadre") {
     salida.push({
       tema: "colgar",
-      titulo: "Colgar en el piso",
+      titulo: PREGUNTA_QUE_TOCA.colgar,
       respuesta: "En pausa",
       tono: "pizarra",
       detalle: `El sistema dice ${piso} en el piso y ${alm} en almacén, pero el piso de esta sede no está cuadrado: mira si ya cuelga antes de colgar más`,
@@ -186,7 +192,7 @@ export function queTocaConLaTalla(
   } else if (accion === "mantener") {
     salida.push({
       tema: "colgar",
-      titulo: "Colgar en el piso",
+      titulo: PREGUNTA_QUE_TOCA.colgar,
       respuesta: "No hace falta",
       tono: "verde",
       detalle:
@@ -203,21 +209,21 @@ export function queTocaConLaTalla(
     salida.push(
       conBoton({
         tema: "colgar",
-        titulo: "Colgar en el piso",
+        titulo: PREGUNTA_QUE_TOCA.colgar,
         respuesta: "Sí",
         tono: "ambar",
         detalle: piso === 0 ? `Cuelga ${n}: no hay en el piso y hay ${alm} en almacén` : `Cuelga ${n} más: hay ${piso} en el piso y debería haber ${requisito}`,
       })
     );
   } else {
-    salida.push({ tema: "colgar", titulo: "Colgar en el piso", respuesta: "No hace falta", tono: "verde", detalle: `Hay ${piso} en el piso` });
+    salida.push({ tema: "colgar", titulo: PREGUNTA_QUE_TOCA.colgar, respuesta: "No hace falta", tono: "verde", detalle: `Hay ${piso} en el piso` });
   }
 
   // Pedir a otra sede: la vara de «casi no hay» (1 o ninguna aquí, nada en camino).
   const conStock = (f.enRed ?? []).filter((s) => s.cantidad > 0);
   const tiendasCon = conStock.filter((s) => o.tiendas.has(s.sede)).sort((a, b) => b.cantidad - a.cantidad);
   const otrasCon = conStock.filter((s) => !o.tiendas.has(s.sede)).sort((a, b) => b.cantidad - a.cantidad);
-  const titulo = "Pedir a otra sede";
+  const titulo = PREGUNTA_QUE_TOCA.pedir;
   if (enCamino > 0) {
     salida.push({ tema: "pedir", titulo, respuesta: "No hace falta", tono: "verde", detalle: `Vienen ${enCamino} en camino` });
   } else if (aqui >= 2) {
@@ -249,14 +255,18 @@ export function queTocaConLaTalla(
 
 /** «Faltan en el piso» del modelo entero, aunque el motor no decida: con su decisión, la de siempre (`fraseDeLoQueFalta`, y al colgar
  *  quedan marcadas); sin ella, lo que dicen los números (0 en el piso y algo en el almacén, sin las tallas que el motor manda mantener).
- *  Con el piso en pausa, la frase lo advierte: puede que ya cuelguen. `null` si no falta nada. */
-export function loQueFaltaEnElPiso(prendas: readonly PrendaParaReponer[]): { titulo: string; tallas: string; marcadas: boolean; enPausa: boolean } | null {
+ *  Con el piso en pausa, la frase lo advierte: puede que ya cuelguen. `null` si no falta nada.
+ *  `ids`: las tallas que faltan (por `varianteId`), para que el panel las dibuje como botones que llevan a cada una. */
+export function loQueFaltaEnElPiso(
+  prendas: readonly PrendaParaReponer[]
+): { titulo: string; tallas: string; ids: ReadonlySet<string>; marcadas: boolean; enPausa: boolean } | null {
   const delMotor = fraseDeLoQueFalta(prendas);
   if (delMotor) {
     const i = delMotor.indexOf(":");
-    return { titulo: delMotor.slice(0, i), tallas: delMotor.slice(i + 1).trim().replace(/\.$/, ""), marcadas: true, enPausa: false };
+    return { titulo: delMotor.slice(0, i), tallas: delMotor.slice(i + 1).trim().replace(/\.$/, ""), ids: tallasQueFaltan(prendas), marcadas: true, enPausa: false };
   }
   let enPausa = false;
+  const ids = new Set<string>();
   const partes = prendas
     .map((p) => {
       const tallas = p.tallas
@@ -265,6 +275,7 @@ export function loQueFaltaEnElPiso(prendas: readonly PrendaParaReponer[]): { tit
           if (accion === "mantener" || accion === "por_colgar") return false; // el motor ya decidió (y por_colgar lo dijo arriba)
           const sinPiso = Math.max(0, f.pisoDisponible ?? 0) === 0 && Math.max(0, f.almacenDisponible ?? 0) > 0;
           if (sinPiso && accion === "pausa_sin_cuadre") enPausa = true;
+          if (sinPiso) ids.add(f.varianteId);
           return sinPiso;
         })
         .map((f) => f.talla?.trim() || "Única");
@@ -274,5 +285,5 @@ export function loQueFaltaEnElPiso(prendas: readonly PrendaParaReponer[]): { tit
     })
     .filter((x): x is string => x !== null);
   if (partes.length === 0) return null;
-  return { titulo: enPausa ? "Sin colgar, según el sistema" : "Faltan en el piso", tallas: partes.join(" · "), marcadas: false, enPausa };
+  return { titulo: enPausa ? "Sin colgar, según el sistema" : "Faltan en el piso", tallas: partes.join(" · "), ids, marcadas: false, enPausa };
 }
