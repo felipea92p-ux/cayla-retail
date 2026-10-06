@@ -16,7 +16,7 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
 
    Una fila por prenda (modelo + color) con su curva de tallas en una línea: «libre en piso · libre en almacén» por
    talla. La tabla COMUNICA el estado y no ofrece acciones: «Qué hacer» es un diagnóstico («4 tallas sin stock en piso»),
-   nunca un botón; tocar la fila abre el cajón de la prenda (`CajonPrendaExistencias`), donde vive cada acción. La vista
+   nunca un botón; tocar la fila abre el panel de la talla (`PanelTalla`), donde vive cada acción. La vista
    «Por talla» (Cobertura, Ritmo, En la red) sigue a un toque en el panel.
    ==================================================================== */
 

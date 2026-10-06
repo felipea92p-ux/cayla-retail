@@ -15,12 +15,11 @@
  * `problemas` y las líneas siguen yendo por `varianteId` y la llamada a la base sigue siendo UNA, todo o nada.
  */
 
-import { BOTON_CONFIRMAR_DE_NUEVO, type LineaBajada } from "./bajada-reglas";
+import type { LineaBajada } from "./bajada-reglas";
 import { hoyDeTalla } from "./existencias-hoy";
 import type { FilaPrenda } from "./existencias-prendas";
 import type { AccionPiso } from "./piso-plan";
 import { nombreCortoSede } from "./stock-por-sede";
-import { compararTallas } from "./tallas";
 
 /** Un color del modelo tal como llega a la ventana: una prenda (modelo + color) con todas sus tallas. */
 export type PrendaParaReponer = {
@@ -74,11 +73,6 @@ export function sePuedeBajarTalla(t: Pick<TallaParaReponer, "almacen">): boolean
   return t.almacen > 0;
 }
 
-/** Se puede subir al almacén si hay algo LIBRE en el piso (lo apartado para una clienta no se mueve). */
-export function sePuedeSubirTalla(t: Pick<TallaParaReponer, "piso">): boolean {
-  return t.piso > 0;
-}
-
 export function cantidadDe(cantidades: Cantidades, varianteId: string): number {
   return cantidades[varianteId] ?? 0;
 }
@@ -104,18 +98,6 @@ export function lineasDeMover(tallas: readonly TallaParaReponer[], cantidades: C
     if (cantidad > 0) lineas.push({ varianteId: t.varianteId, cantidad });
   }
   return lineas;
-}
-
-export function totalAReponer(lineas: readonly LineaBajada[]): number {
-  return lineas.reduce((suma, l) => suma + l.cantidad, 0);
-}
-
-/** El botón: dice cuánto se va a bajar apenas hay algo elegido, y tras un corte de red pide confirmar lo mismo de nuevo. */
-export function textoBotonReponer(total: number, congelado: boolean): string {
-  if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;
-  // «Colgar en el piso» (ADR-0339, Felipe 2026-10-04): el único nombre de la acción; el botón decía «Bajar» y la ventana «Reponer prenda».
-  if (total <= 0) return "Colgar en el piso";
-  return total === 1 ? "Colgar 1 prenda" : `Colgar ${total} prendas`;
 }
 
 /** Lo que dice una fila cuando la base le contestó que ya no hay tanto. `motivo` viene de `bajar_al_piso` / `retirar_del_piso`;
@@ -213,40 +195,8 @@ export function coloresParaMover(prendas: readonly PrendaParaReponer[]): ColorPa
   }));
 }
 
-/** Las columnas de la tabla: las tallas de TODOS los colores, sin repetir y en curva (S · M · L, 36 · 38). Un color al que le falta
- *  una talla deja esa celda vacía; no se inventa. */
-export function columnasDeTallas(colores: readonly Pick<ColorParaMover, "tallas">[]): string[] {
-  const vistas = new Set<string>();
-  for (const c of colores) for (const t of c.tallas) vistas.add(t.talla);
-  return [...vistas].sort(compararTallas);
-}
-
-/** La celda de un color en una talla; `undefined` si ese color no tiene esa talla. */
-export function tallaDelColor(color: Pick<ColorParaMover, "tallas">, talla: string): TallaParaReponer | undefined {
-  return color.tallas.find((t) => t.talla === talla);
-}
-
 /** Lo máximo que se mueve de esta celda: lo libre del lugar de donde salen las prendas. */
 export const topeDeTalla = (t: Pick<TallaParaReponer, "piso" | "almacen">, rumbo: Rumbo): number => (rumbo === "bajar" ? t.almacen : t.piso);
-
-export type TotalesDeMatriz = { porColor: Record<string, number>; porTalla: Record<string, number>; total: number };
-
-/** Lo elegido, sumado por color, por talla y en general. Cada celda cuenta recortada a su tope (lo que se ve es lo que se envía). */
-export function totalesDeMatriz(colores: readonly ColorParaMover[], cantidades: Cantidades, rumbo: Rumbo): TotalesDeMatriz {
-  const porColor: Record<string, number> = {};
-  const porTalla: Record<string, number> = {};
-  let total = 0;
-  for (const c of colores) {
-    porColor[c.clave] = 0;
-    for (const t of c.tallas) {
-      const n = acotarCantidad(cantidadDe(cantidades, t.varianteId), topeDeTalla(t, rumbo));
-      porColor[c.clave] += n;
-      porTalla[t.talla] = (porTalla[t.talla] ?? 0) + n;
-      total += n;
-    }
-  }
-  return { porColor, porTalla, total };
-}
 
 /** Lo que se movió, para el aviso de éxito: «S 1 · M 2» con un solo color; «Azul S 2, M 3 · Blanco S 2» con varios. */
 export function detalleDeLoMovido(colores: readonly ColorParaMover[], lineas: readonly LineaBajada[]): string {
@@ -259,11 +209,6 @@ export function detalleDeLoMovido(colores: readonly ColorParaMover[], lineas: re
     })
     .filter((x): x is string => x !== null);
   return partes.join(" · ");
-}
-
-/** Cuántos colores del modelo llevan algo elegido: el resumen del pie («19 prendas · 3 colores»). */
-export function coloresConAlgo(colores: readonly ColorParaMover[], totales: TotalesDeMatriz): number {
-  return colores.filter((c) => (totales.porColor[c.clave] ?? 0) > 0).length;
 }
 
 /** Las líneas que viajan a la base: las de todos los colores juntas, en el orden de la tabla. UNA sola llamada, todo o nada. */

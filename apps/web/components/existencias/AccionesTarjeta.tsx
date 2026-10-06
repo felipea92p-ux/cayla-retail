@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { Ellipsis, PencilLine, SquareArrowOutUpRight, Table2, TriangleAlert, Warehouse } from "lucide-react";
+import { ArrowLeftRight, Ellipsis, Eye, Truck, Warehouse } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { accionDelIcono, type ClaveAccion, type FilaAccion } from "@/lib/existencias-acciones";
 
 /* ====================================================================
    Las acciones de una tarjeta de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`).
 
-   UN icono: la acción que le toca a la prenda (Colgar en el piso, resaltada); sin nada que colgar, «⋯». Al pasar el mouse por él, o al enfocarlo
+   UN icono: la acción que le toca a la prenda (Colgar en el piso, resaltada si falta algo en el piso; Pedir o Ver cuando son la principal) y,
+   si no se puede colgar, «⋯». Al pasar el mouse por él, o al enfocarlo
    con el teclado, se abre HACIA ARRIBA una ventana con todas las acciones y su nombre, la del icono incluida (`lib/existencias-acciones.ts`
    decide qué filas lleva y cuáles se ven apagadas). En tablet, que no tiene mouse, un botón «⋯» al lado abre la misma ventana con un toque.
 
@@ -19,13 +20,13 @@ import { accionDelIcono, type ClaveAccion, type FilaAccion } from "@/lib/existen
 
 type Icono = ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
 
+// Los mismos íconos que las acciones del panel de la talla: la tarjeta y el panel dicen lo mismo con el mismo dibujo.
 const ICONO: Record<ClaveAccion, Icono> = {
   colgar: IconoPercha,
   subir: Warehouse,
-  enviar: SquareArrowOutUpRight,
-  ajustar: PencilLine,
-  danada: TriangleAlert,
-  detalle: Table2,
+  enviar: Truck,
+  pedir: ArrowLeftRight,
+  ver: Eye,
 };
 
 export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: string; filas: readonly FilaAccion[]; alElegir: (clave: ClaveAccion) => void }) {
@@ -62,12 +63,16 @@ export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: strin
         aria-expanded={abierto}
         aria-label={principal ? `${principal.etiqueta} · más acciones de ${etiqueta}` : `Más acciones de ${etiqueta}`}
         onClick={() => {
-          // Con una acción sugerida, el icono la hace; sin ella solo abre la ventana (el único caso del toque sin «⋯»).
+          // El icono hace su acción (sugerida o Colgar); sin ninguna solo abre la ventana (el único caso del toque sin «⋯»).
           if (principal) alElegir(principal.clave);
           else setAbierto((a) => !a);
         }}
         className={`${clasesIcono} ${
-          principal ? "border-ambar/40 bg-ambar/[0.13] text-ambar-profundo hover:border-ambar/60" : "border-tinta/15 bg-papel text-taupe hover:border-tinta/30 hover:text-tinta"
+          principal?.sugerida
+            ? principal.clave === "pedir"
+              ? "border-pizarra/40 bg-pizarra/[0.12] text-pizarra hover:border-pizarra/60"
+              : "border-ambar/40 bg-ambar/[0.13] text-ambar-profundo hover:border-ambar/60"
+            : "border-tinta/15 bg-papel text-taupe hover:border-tinta/30 hover:text-tinta"
         }`}
       >
         <IconoPrincipal aria-hidden className="h-[19px] w-[19px]" strokeWidth={1.6} />

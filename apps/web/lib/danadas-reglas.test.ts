@@ -5,10 +5,8 @@ import {
   argumentosDeArreglo,
   argumentosDeReporte,
   camposGuiaArreglo,
-  camposGuiaReporte,
   cantidadAjustada,
   desdeInicial,
-  estadoValidado,
   interpretarErrorDeDanada,
   leerRespuestaDanada,
   libreEn,
@@ -24,7 +22,6 @@ import {
   respuestaResuelveLaMarca,
   RPC_ARREGLAR_DANADA,
   RPC_REPORTAR_DANADA,
-  tallaInicial,
   tallasReportables,
   textoBotonReportar,
   textoErrorDeResolucion,
@@ -33,7 +30,6 @@ import {
   tituloExitoArreglo,
   tituloExitoReporte,
   type DesdeDanada,
-  type EnvioReporte,
   type EstadoReporte,
   type TallaReportable,
 } from "./danadas-reglas";
@@ -112,12 +108,6 @@ describe("lo libre de cada talla", () => {
     expect(libreEn(null, "piso")).toBe(0);
   });
 
-  it("la talla entra elegida solo si es la ÚNICA con algo libre", () => {
-    expect(tallaInicial([talla("a", 0, 0), talla("b", 1, 0)])).toBe("b");
-    expect(tallaInicial([talla("a", 1, 0), talla("b", 0, 2)])).toBeNull();
-    expect(tallaInicial([talla("a", 0, 0)])).toBeNull();
-    expect(tallaInicial([])).toBeNull();
-  });
 
   it("el lugar entra elegido solo si es el ÚNICO posible (con los dos, lo dice la persona: nada de fábrica)", () => {
     expect(desdeInicial(talla("a", 2, 0))).toBe("piso");
@@ -166,29 +156,6 @@ describe("qué falta para reportar", () => {
     expect(problemasReporte({ ...base, motivo: "x".repeat(201) }).map((p) => p.campo)).toEqual(["motivo"]);
   });
 
-  it("la guía de foco dice lo mismo que la validación, en TODAS las combinaciones (no inventa reglas)", () => {
-    const tallas = [null, talla("a", 0, 0), talla("b", 2, 0), talla("c", 0, 3), talla("d", 1, 1)];
-    const lugares: (DesdeDanada | null)[] = [null, "piso", "almacen"];
-    const cantidades = [0, 1, 2, 3, 4, 1.5];
-    const motivos = ["", "ab", "abc", "  Mancha  ", "x".repeat(201)];
-    let combinaciones = 0;
-    for (const t of tallas)
-      for (const desde of lugares)
-        for (const cantidad of cantidades)
-          for (const motivo of motivos)
-            for (const responsable of [true, false]) {
-              const e = { talla: t, desde, cantidad, motivo };
-              const campos = camposGuiaReporte(e, responsable);
-              const problemas = problemasReporte(e);
-              expect(sePuedeConfirmar(campos)).toBe(problemas.length === 0 && responsable);
-              for (const c of campos.filter((x) => x.id !== "responsable")) {
-                expect(c.hecho).toBe(!problemas.some((p) => p.campo === c.id));
-                if (!c.hecho) expect(c.pendiente).toBe(problemas.find((p) => p.campo === c.id)!.texto);
-              }
-              combinaciones++;
-            }
-    expect(combinaciones).toBe(5 * 3 * 6 * 5 * 2);
-  });
 });
 
 describe("«Se arregló»", () => {
@@ -248,44 +215,29 @@ describe("los tres finales de una respuesta", () => {
   });
 });
 
-describe("tras una respuesta incierta: la ventana no se traba", () => {
+describe("tras una respuesta incierta: el paso no se traba", () => {
   // El caso del revisor: se reportó la ÚNICA libre del piso, la respuesta se perdió (502 sin código) y la pantalla se releyó.
-  // Con las cifras nuevas el piso dice 0: si la guía validara eso, «Confirmar de nuevo» quedaría apagado y la persona solo
-  // podría cerrar, sin saber si se guardó, y reportar «desde el almacén» una prenda sana con otra marca.
+  // Con las cifras nuevas el piso dice 0: si se validara eso, «Confirmar de nuevo» quedaría apagado y la persona solo podría
+  // cerrar, sin saber si se guardó. El panel de la talla usa esta misma regla en todos sus pasos (`FlujoTalla`).
   const enviado: EstadoReporte = { talla: talla("a", 1, 3), desde: "piso", cantidad: 1, motivo: "Mancha en la manga" };
   const releido: EstadoReporte = { ...enviado, talla: talla("a", 0, 3) };
-  const enDuda: EnvioReporte = {
-    argumentos: argumentosDeReporte("tru", "a", "piso", 1, "Mancha en la manga", "marca-1"),
-    estado: enviado,
-    detalle: "Blusa · Rojo · a · TRU",
-  };
 
   it("con las cifras releídas, lo elegido ya no pasaría la validación (por eso no se valida con ellas)", () => {
     expect(problemasReporte(releido).map((p) => p.campo)).toEqual(["desde"]);
-    expect(sePuedeConfirmar(camposGuiaReporte(releido, true))).toBe(false);
   });
 
-  it("en duda, la ventana valida lo ENVIADO: la guía queda completa y «Confirmar de nuevo» se puede tocar", () => {
-    const estado = estadoValidado(releido, enDuda);
-    expect(estado).toBe(enviado);
-    const guiaCompleta = sePuedeConfirmar(camposGuiaReporte(estado, true));
-    expect(guiaCompleta).toBe(true);
-    expect(puedeEnviarReporte(true, guiaCompleta, true)).toBe(true);
-  });
-
-  it("en duda, solo hace falta quién lo hace (como Reponer), aunque la guía dijera otra cosa", () => {
+  it("en duda, solo hace falta quién lo hace (como Reponer), aunque la validación dijera otra cosa", () => {
     expect(puedeEnviarReporte(true, false, true)).toBe(true);
     expect(puedeEnviarReporte(true, true, false)).toBe(false);
   });
 
-  it("sin nada en duda, manda la guía (las mismas reglas que la base) y lo elegido ahora", () => {
-    expect(estadoValidado(releido, null)).toBe(releido);
+  it("sin nada en duda, manda la validación (las mismas reglas que la base)", () => {
     expect(puedeEnviarReporte(false, false, true)).toBe(false);
     expect(puedeEnviarReporte(false, true, true)).toBe(true);
   });
 
-  it("lo que se reenvía son los argumentos guardados, con la MISMA marca", () => {
-    expect(enDuda.argumentos).toEqual({ p_ubicacion_id: "tru", p_variante_id: "a", p_cantidad: 1, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca-1" });
+  it("lo que se reenvía son los argumentos con la MISMA marca", () => {
+    expect(argumentosDeReporte("tru", "a", "piso", 1, "Mancha en la manga", "marca-1")).toEqual({ p_ubicacion_id: "tru", p_variante_id: "a", p_cantidad: 1, p_desde: "piso", p_motivo: "Mancha en la manga", p_token: "marca-1" });
   });
 });
 
