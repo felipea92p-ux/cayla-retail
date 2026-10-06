@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): la ficha de una prenda, en tarjetitas y gráficos (Felipe: nada de párrafos). Lógica pura, probada en
+// Análisis v4 (ADR-0357): la ficha de una prenda, en tarjetitas y gráficos (Felipe: nada de párrafos). Lógica pura, probada en
 // `analisis-ficha.test.ts`: qué tarjetitas lleva según su grupo, las 8 semanas con su fecha, dónde hay en la red, el modelo
 // entero en mi tienda (talla × color), el dinero y los botones del pie. La ficha (`components/analisis/FichaPrenda.tsx`) solo
 // dibuja lo que esto decide, con las clases de la maqueta aprobada (`hechos()`, `fichaHTML()` y `grillaHTML()`).

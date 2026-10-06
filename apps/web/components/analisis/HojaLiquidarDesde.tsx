@@ -21,7 +21,7 @@ import {
   type ErrorEnTresLineas,
 } from "@/lib/analisis-liquidar-reglas";
 
-// Análisis v4 (ADR-0356): la hoja que guarda «Liquidar desde» para TODAS las tiendas y todas las personas (Felipe, 2026-10-06).
+// Análisis v4 (ADR-0357): la hoja que guarda «Liquidar desde» para TODAS las tiendas y todas las personas (Felipe, 2026-10-06).
 // El control se mueve en «No se vende» y las prendas cambian de grupo en vivo; esta hoja confirma el número, muestra en dos tarjetas
 // qué cambia en MI tienda (antes → ahora) y lo guarda firmado con el responsable (ADR-0161/0162), como toda operación que guarda.
 //

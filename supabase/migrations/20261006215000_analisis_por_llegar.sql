@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261006215000_analisis_por_llegar.sql — CAYLA V2 · ADR-0356 (Análisis v4, actividad 3: lo que viene en camino)
+-- 20261006215000_analisis_por_llegar.sql — CAYLA V2 · ADR-0357 (Análisis v4, actividad 3: lo que viene en camino)
 -- Una sola lectura, de solo lectura, con lo que viene en camino a UNA tienda, por prenda: de dónde viene, cuánto y cuándo llega.
 --
 -- EL PROBLEMA PRIMERO. En «Se está acabando» una prenda dice «Por llegar 7: compra 5 · llega el 15 oct, Taller 2». Hoy nadie lo da
@@ -146,7 +146,7 @@ end;
 $$;
 
 comment on function retail.fn_analisis_por_llegar(uuid) is
-  'ADR-0356 (Análisis v4): lo que viene en camino a UNA tienda, por prenda, en un jsonb (arreglo de {variante_id, de, cantidad, '
+  'ADR-0357 (Análisis v4): lo que viene en camino a UNA tienda, por prenda, en un jsonb (arreglo de {variante_id, de, cantidad, '
   'fecha}): traslados en tránsito hacia ella (de = tipo del origen: taller, almacen o tienda; fecha = llegada estimada en día de '
   'Lima) y compras repartidas a ella que faltan recibir (de = compra; compra_item_reparto_resumen; fecha = llegada estimada de la '
   'factura). La producción del Taller cuenta solo cuando ya salió (es un traslado). Sin dinero. Puertas: fn_tiene_acceso_retail() '

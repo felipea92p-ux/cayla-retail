@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): «Liquidar desde», uno para todas las tiendas y todas las personas (Felipe, 2026-10-06). Lógica pura de
+// Análisis v4 (ADR-0357): «Liquidar desde», uno para todas las tiendas y todas las personas (Felipe, 2026-10-06). Lógica pura de
 // la hoja que lo guarda (`components/analisis/HojaLiquidarDesde.tsx`) y de su lectura en el servidor (`analisis-liquidar.ts`):
 // qué cambia, cuántas prendas de mi tienda caen en «Liquidar» con el umbral nuevo y con el que rige, qué se avisa al guardar y
 // el error en tres líneas (ADR-0350, ley 9: qué pasó, qué se conservó, qué sigue).

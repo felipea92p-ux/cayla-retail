@@ -25,7 +25,7 @@ import {
   type VacioQuietas,
 } from "@/lib/analisis-quietas";
 
-// Análisis v4 (ADR-0356): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
+// Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
 // de lo que tiene cada tienda; abajo, el carril «Días sin venderse» con el control «Liquidar desde», que mueve las prendas de
 // grupo EN VIVO (sin guardar). Guardarlo para todos es otra cosa y la pide un botón aparte. Cada fila abre el flujo que ya existe
 // (Traslados, Etiquetas): Análisis no guarda nada por su cuenta (ADR-0245).

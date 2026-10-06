@@ -40,7 +40,7 @@ import {
 } from "@/lib/analisis-hoy";
 import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
 
-// Análisis v4 (ADR-0356): la pestaña «Hoy», como la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden una
+// Análisis v4 (ADR-0357): la pestaña «Hoy», como la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden una
 // pregunta cada una (tocar una lleva a su pestaña; tocar una prenda abre su ficha), las tres tiendas y «Qué hacer hoy», el flujo
 // de prendas que entran y salen de la tienda, de alto fijo, que bajo 760 px se vuelve una lista. Las cuentas viven en
 // `lib/analisis-hoy.ts`; aquí solo se dibuja.

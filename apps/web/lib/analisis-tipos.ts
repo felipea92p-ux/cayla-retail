@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): el contrato entre lo que lee el servidor y lo que dibuja cada pestaña. Una sola forma de «prenda»
+// Análisis v4 (ADR-0357): el contrato entre lo que lee el servidor y lo que dibuja cada pestaña. Una sola forma de «prenda»
 // para las cuatro preguntas (Hoy · Se está acabando · No se vende · Qué pedir) y para su ficha: así una prenda dice lo mismo
 // en la lista de Hoy, en su carril y en su hoja. Solo tipos: las reglas viven en `analisis-reglas.ts` y la lectura en
 // `analisis-datos.ts`.
@@ -159,7 +159,7 @@ export type DatosAnalisis = {
   prendas: PrendaAnalisis[];
   /** Una por tienda activa, en el orden de `sedes`. */
   resumenSedes: ResumenSedeAnalisis[];
-  /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0356). */
+  /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */
   rebajaDe100: number | null;

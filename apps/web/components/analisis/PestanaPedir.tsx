@@ -25,7 +25,7 @@ import {
   type RielNavidad,
 } from "@/lib/analisis-pedir";
 
-// Análisis v4 (ADR-0356): «Qué pedir», la cuarta pregunta, como la maqueta aprobada (2026-10-06): cuánto falta para Navidad
+// Análisis v4 (ADR-0357): «Qué pedir», la cuarta pregunta, como la maqueta aprobada (2026-10-06): cuánto falta para Navidad
 // → lo que se vende contra lo que tienes, por tipo (la mariposa, que filtra) y las tallas que se llevan → lo que más se vende
 // → lo que más rinde. La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta y dónde sobra; la cantidad la elige
 // quien pide, en Compras o en el Plan de campaña. Las cuentas viven en `lib/analisis-pedir.ts`.

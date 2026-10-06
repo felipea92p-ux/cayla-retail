@@ -1,4 +1,4 @@
--- Análisis v4 (ADR-0356): «¿Ya puedo recomendar?» de las 3 tiendas para quien tiene Análisis.
+-- Análisis v4 (ADR-0357): «¿Ya puedo recomendar?» de las 3 tiendas para quien tiene Análisis.
 --
 -- EL PROBLEMA PRIMERO. El nuevo Análisis muestra, cuando los datos todavía no alcanzan, el estado «Todavía no» de cada tienda (la
 -- misma regla de ADR-0346 que CAYLA Global). Felipe decidió (2026-10-06) que en Análisis la encargada y el líder vean LO MISMO: las
@@ -117,7 +117,7 @@ comment on function retail.fn_motor_demanda_preparacion(uuid) is
   'ADR-0346: materia prima de «¿el motor de demanda puede hablar en esta sede?» — por tienda: unidades vendidas e identificadas (no '
   'centinela) por día de Lima en los últimos 45 días, primera venta, último cuadre del piso y si el almacén ya tuvo su conteo de '
   'arranque. La regla (90 % sostenido 14 días) vive en lib/motor-demanda-reglas.ts. Sin sede: todas las tiendas para quien ve '
-  'cayla_global o puede analizar (ADR-0356), las que opera para los demás (cero filas si ninguna). Con sede: 42501 si no la opera, '
+  'cayla_global o puede analizar (ADR-0357), las que opera para los demás (cero filas si ninguna). Con sede: 42501 si no la opera, '
   'ni ve cayla_global, ni puede analizar.';
 
 reset lock_timeout;

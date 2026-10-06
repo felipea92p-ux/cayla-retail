@@ -20,7 +20,7 @@ import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } fro
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 
-// Análisis v4 (ADR-0356): la pantalla. Cabecera con el buscador → cuatro pestañas (Hoy · Se está acabando · No se vende · Qué
+// Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cuatro pestañas (Hoy · Se está acabando · No se vende · Qué
 // pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
 // cada pestaña dice «Todavía no» y qué falta. La ficha de cada prenda y la hoja de confianza son hojas del componente Modal (ADR-0136).
 //

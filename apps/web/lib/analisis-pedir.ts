@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): la pestaña «Qué pedir», sin React. La cuenta para Navidad y su riel, la mariposa «Lo que se vende y lo
+// Análisis v4 (ADR-0357): la pestaña «Qué pedir», sin React. La cuenta para Navidad y su riel, la mariposa «Lo que se vende y lo
 // que tienes» por tipo de prenda, la curva de tallas, el ranking de lo que más se vende y «Lo que más rinde» (cuánto se ganó por
 // cada S/ 1 de ropa, por tipo). Todo sale de lo que el servidor ya leyó: aquí no nace ninguna regla de negocio, solo cómo se
 // cuenta y se dibuja lo de la maqueta aprobada por Felipe (2026-10-06). La lectura de «Lo que más rinde» vive en

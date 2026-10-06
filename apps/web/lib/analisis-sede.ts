@@ -4,7 +4,7 @@ import type { PrendaSede } from "@/lib/analisis-tipos";
 import { fraseFallaSedes, leerAnalisisSede, RPC_ANALISIS_SEDE, type LecturaDeSede } from "@/lib/analisis-sede-lectura";
 import { getUbicaciones } from "@/lib/ubicaciones";
 
-// Análisis v4 (ADR-0356): las prendas de cada tienda, leídas de la base (`retail.fn_analisis_sede`, migración 20261006214000).
+// Análisis v4 (ADR-0357): las prendas de cada tienda, leídas de la base (`retail.fn_analisis_sede`, migración 20261006214000).
 // Una llamada por tienda, todas a la vez. La encargada y el líder reciben lo mismo (decisión 8): la puerta es la de Análisis, no
 // la de la sede. Si una tienda no responde, esa queda vacía y se dice en `falla` con su nombre (principio 9): nunca «sin ventas»
 // por un error. Cómo se entiende cada fila: `analisis-sede-lectura.ts`.

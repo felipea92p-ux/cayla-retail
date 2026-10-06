@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las dos lecturas nuevas de Análisis v4 (ADR-0356) — `retail.fn_analisis_sede(p_ubicacion_id)` (migración
+ * Pruebas de las dos lecturas nuevas de Análisis v4 (ADR-0357) — `retail.fn_analisis_sede(p_ubicacion_id)` (migración
  * `20261006214000_analisis_prendas_de_sede.sql`, actividad 2) y `retail.fn_analisis_por_llegar(p_ubicacion_id)` (migración
  * `20261006215000_analisis_por_llegar.sql`, actividad 3). CAYLA V2.
  *

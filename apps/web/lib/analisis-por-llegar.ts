@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { LlegadaPrenda } from "@/lib/analisis-tipos";
 import { leerPorLlegar, RPC_POR_LLEGAR } from "@/lib/analisis-por-llegar-lectura";
 
-// Análisis v4 (ADR-0356): lo que viene en camino a una tienda, por prenda (`retail.fn_analisis_por_llegar`, migración
+// Análisis v4 (ADR-0357): lo que viene en camino a una tienda, por prenda (`retail.fn_analisis_por_llegar`, migración
 // 20261006215000): traslados que ya salieron hacia ella (de un almacén, del Taller o de otra tienda) y compras repartidas a ella
 // que faltan recibir. Si la base no responde, no viene nada a la vista y se dice en `falla` (principio 9): nunca «no viene nada»
 // por un error. Cómo se entiende cada parte: `analisis-por-llegar-lectura.ts`.

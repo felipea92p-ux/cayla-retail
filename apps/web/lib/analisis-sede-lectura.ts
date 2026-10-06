@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): de lo que devuelve `retail.fn_analisis_sede` (un jsonb por tienda, migración 20261006214000) a las filas
+// Análisis v4 (ADR-0357): de lo que devuelve `retail.fn_analisis_sede` (un jsonb por tienda, migración 20261006214000) a las filas
 // del contrato (`PrendaSede`). Lógica pura, sin base ni React; la prueba es `analisis-sede-lectura.test.ts`.
 //
 // No confía en la forma (principio 9): una fila sin su prenda, su modelo o su nombre se descarta —nunca se inventa una prenda—; un

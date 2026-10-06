@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): de lo que devuelve `retail.fn_analisis_por_llegar` (un arreglo jsonb por tienda, migración
+// Análisis v4 (ADR-0357): de lo que devuelve `retail.fn_analisis_por_llegar` (un arreglo jsonb por tienda, migración
 // 20261006215000) a lo que viene en camino por prenda (`LlegadaPrenda[]` por id de variante). Lógica pura; la prueba es
 // `analisis-por-llegar-lectura.test.ts`.
 //

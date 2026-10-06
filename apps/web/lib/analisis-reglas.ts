@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): las reglas que deciden en qué grupo cae cada prenda. Lógica pura (sin base ni React): la usan el
+// Análisis v4 (ADR-0357): las reglas que deciden en qué grupo cae cada prenda. Lógica pura (sin base ni React): la usan el
 // servidor (el resumen de cada tienda) y cada pestaña, así una prenda cae en el mismo grupo en Hoy, en su carril y en su ficha.
 //
 // Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos

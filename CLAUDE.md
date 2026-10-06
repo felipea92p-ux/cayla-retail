@@ -164,7 +164,7 @@ del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c;
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
-«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06), y todo se apaga con
+«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b)), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -256,7 +256,7 @@ isotipo de CAYLA, que es la marca (loader, tickets, etiquetas) y no un hueco. Se
 otro «sin foto». Si la fila no trae la categoría, la miniatura dibuja la percha (no se cae): al cargar una prenda, pide
 `categorias ( nombre, prefijo, familia )`. `lib/sin-foto.test.ts` falla si un archivo fuera de su lista de marca dibuja
 `/cayla-isotipo.png`. Catálogo ▸ Productos, Apartados e Inicio de Almacén ya usan la misma pieza (ADR-0333); Movimientos, Traslados,
-Cambios, Devoluciones, Compras, Resumen y Análisis dibujan la percha porque su cargador aún no trae la categoría.
+Cambios, Devoluciones, Compras y Resumen dibujan la percha porque su cargador aún no trae la categoría.
 
 ## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
 
@@ -289,7 +289,7 @@ RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la li
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
 (`SenalBuscando`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
-Análisis (v4, ADR-0356) busca en el navegador, sin URL: lo tipeado filtra las prendas ya leídas, sin loader.
+Análisis (v4, ADR-0357) busca en el navegador, sin URL: lo tipeado filtra las prendas ya leídas, sin loader.
 Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
 ## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)

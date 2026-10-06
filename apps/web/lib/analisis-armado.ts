@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): cómo se arman las prendas de MI tienda con lo leído de las tres. Lógica pura, probada en
+// Análisis v4 (ADR-0357): cómo se arman las prendas de MI tienda con lo leído de las tres. Lógica pura, probada en
 // `analisis-armado.test.ts`: el servidor solo lee (`analisis-datos.ts`) y esto cruza.
 
 import type { LlegadaPrenda, PrendaAnalisis, PrendaSede, ResumenSedeAnalisis, SedeAnalisis } from "./analisis-tipos";

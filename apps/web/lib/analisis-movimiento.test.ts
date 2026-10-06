@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de los límites de ADR-0136 para Análisis (excepción del 2026-10-06, ADR-0356): Felipe aprobó la maqueta con su
+// Candado de los límites de ADR-0136 para Análisis (excepción del 2026-10-06, ADR-0357): Felipe aprobó la maqueta con su
 // movimiento —piezas que entran en cascada, barras que crecen, perchas que asoman, arcos que se dibujan, el flujo que corre—,
 // y esa excepción vale con sus límites: sin bucle, sin rebote, con la curva del sistema, solo colores del tema y apagada con
 // «reducir movimiento». Revisa TODAS las hojas `app/estilos/analisis*.css` (la base y las de cada pestaña).

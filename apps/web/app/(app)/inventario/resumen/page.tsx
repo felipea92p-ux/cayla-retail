@@ -6,7 +6,7 @@ import { leerVista } from "@/lib/analisis-reglas";
 import type { AccesoAnalisis } from "@/lib/analisis-tipos";
 import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
 
-// Análisis v4 (ADR-0356, Felipe 2026-10-06; reemplaza Desempeño y Comparar de ADR-0138/ADR-0277): cuatro preguntas de la
+// Análisis v4 (ADR-0357, Felipe 2026-10-06; reemplaza Desempeño y Comparar de ADR-0138/ADR-0277): cuatro preguntas de la
 // tienda —¿qué hago hoy?, ¿qué se acaba?, ¿qué no se vende?, ¿qué pido?— respondidas con gráficos, cada prenda con su acción.
 // La ruta sigue siendo `/inventario/resumen` (renombrarla rompería enlaces y marcadores por nada).
 //

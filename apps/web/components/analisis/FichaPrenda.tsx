@@ -22,7 +22,7 @@ import {
   type TonoFicha,
 } from "@/lib/analisis-ficha";
 
-// Análisis v4 (ADR-0356): la ficha de una prenda (actividad 6), copia de `fichaHTML()` de la maqueta aprobada. Arriba, la prenda y
+// Análisis v4 (ADR-0357): la ficha de una prenda (actividad 6), copia de `fichaHTML()` de la maqueta aprobada. Arriba, la prenda y
 // su estado; después tarjetitas (sin párrafos), sus ventas por semana, dónde hay en la red, el modelo entero en mi tienda, el dinero
 // y los botones. La maqueta la dibuja como hoja lateral; en el ERP todo modal es `<Modal>` (ADR-0136): el mismo contenido, con la
 // entrada y la cascada del sistema. Adentro, las barras crecen y los puntos asoman una vez (`.anim`; el retraso, en

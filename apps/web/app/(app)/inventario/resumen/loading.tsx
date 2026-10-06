@@ -1,4 +1,4 @@
-// Esqueleto de carga de Análisis (ADR-0356): la silueta de la pantalla —cabecera, las cuatro pestañas y las tarjetas de
+// Esqueleto de carga de Análisis (ADR-0357): la silueta de la pantalla —cabecera, las cuatro pestañas y las tarjetas de
 // «Hoy»— para que no salte de «pantalla vacía» a «todo de golpe». El loader único (ADR-0149) va encima.
 import { EsperaPantalla } from "@/components/ui/Espera";
 

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261006214000_analisis_prendas_de_sede.sql — CAYLA V2 · ADR-0356 (Análisis v4, actividad 2: las prendas de cada tienda)
+-- 20261006214000_analisis_prendas_de_sede.sql — CAYLA V2 · ADR-0357 (Análisis v4, actividad 2: las prendas de cada tienda)
 -- Una sola lectura, de solo lectura, con lo que Análisis dice de cada prenda (una talla de un color de un modelo) de UNA tienda.
 --
 -- EL PROBLEMA PRIMERO. El nuevo Análisis hace cuatro preguntas por prenda —¿qué hago hoy?, ¿qué se está acabando?, ¿qué no se
@@ -393,7 +393,7 @@ end;
 $$;
 
 comment on function retail.fn_analisis_sede(uuid) is
-  'ADR-0356 (Análisis v4): las prendas de UNA tienda con algo que decir (libres, vendidas en 8 semanas, llegadas en 30 días o en '
+  'ADR-0357 (Análisis v4): las prendas de UNA tienda con algo que decir (libres, vendidas en 8 semanas, llegadas en 30 días o en '
   'camino), en un jsonb: nombre, color, talla, categoría, foto, precio y costo, origen (fn_origen_producto), lo libre en piso y '
   'almacén (fn_existencias_base), lo vendido en 30 días y en 8 semanas, días sin venderse, lo que llegó en 30 días (fn_es_llegada) '
   'y cuánto de eso se vendió, y de cada 100 líneas vendidas en 30 días cuántas llevaron rebaja. Cuenta lo vendido como '

@@ -6,7 +6,7 @@ import { Icono, type NombreIcono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, TilePrenda, type Estado } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 
-// Análisis v4 (ADR-0356): el carril de la maqueta, gráfico y lista en una sola pieza. Cada fila es una prenda: su miniatura,
+// Análisis v4 (ADR-0357): el carril de la maqueta, gráfico y lista en una sola pieza. Cada fila es una prenda: su miniatura,
 // su nombre, su pista (cuántos días le quedan, o cuántos lleva quieta), sus píldoras y su botón. Toda la fila abre la ficha;
 // sus botones no (paran el clic). Lo usan «Se está acabando» y «No se vende», cada una con sus grupos y su pista.
 

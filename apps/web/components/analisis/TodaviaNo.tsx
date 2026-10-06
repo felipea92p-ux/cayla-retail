@@ -7,7 +7,7 @@ import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
 import { esTallaUnica, plural } from "@/lib/analisis-reglas";
 import { DIAS_SOSTENIDOS, diaAntes, fechaCorta } from "@/lib/motor-demanda-reglas";
 
-// Análisis v4 (ADR-0356): cuando la tienda todavía no cumple las tres condiciones del motor (ADR-0346), Análisis se calla y
+// Análisis v4 (ADR-0357): cuando la tienda todavía no cumple las tres condiciones del motor (ADR-0346), Análisis se calla y
 // dice qué falta, con un botón para cada cosa. Es la misma vara que CAYLA Global y Tareas: una sola regla para todo el ERP.
 
 const META = 90;

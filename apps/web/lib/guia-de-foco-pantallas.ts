@@ -111,11 +111,11 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     estado: "no-aplica",
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
-  // Análisis v4 (ADR-0356): se lee, no se llena. El buscador filtra lo que se ve y los botones abren el flujo de cada acción en su
+  // Análisis v4 (ADR-0357): se lee, no se llena. El buscador filtra lo que se ve y los botones abren el flujo de cada acción en su
   // pantalla (ADR-0245), con su propia guía.
   "/inventario/resumen": {
     estado: "no-aplica",
-    motivo: "Pantalla de lectura (Análisis v4, ADR-0356): no se llena ningún campo ni se avanza por pasos; cada botón abre el flujo de su acción en su propia pantalla.",
+    motivo: "Pantalla de lectura (Análisis v4, ADR-0357): no se llena ningún campo ni se avanza por pasos; cada botón abre el flujo de su acción en su propia pantalla.",
   },
   // ADR-0355: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
   // que «/inventario/traslados/(billetera)/[id]».
@@ -297,7 +297,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
   "components/alta-producto/ElegirTallas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tallas que sirve a la fila «Tallas» de Nuevo producto, que ya lleva su guía (FilaAlta); no tiene campo obligatorio propio: «Listo» aplica lo marcado." },
   "components/alta-producto/HojaParecidas.tsx": { estado: "no-aplica", motivo: "Hoja «Ver y comparar» de Nuevo producto: un solo campo (el buscador, opcional) y una respuesta por prenda («Es el mismo diseño» o «No, es otro diseño»); lo que falta y lo que sigue lo dicen la alerta del resumen y el pie del paso 2, que ya llevan la guía." },
-  // ADR-0356 (Análisis v4): «Liquidar desde … para todas las tiendas». El número se mueve en «No se vende»; esta hoja solo lo confirma.
+  // ADR-0357 (Análisis v4): «Liquidar desde … para todas las tiendas». El número se mueve en «No se vende»; esta hoja solo lo confirma.
   "components/analisis/HojaLiquidarDesde.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación de UN solo control (quién lo cambia, el combo Responsable): dice el nuevo «Liquidar desde» y cuántas prendas de tu tienda entran a «Liquidar»; el botón se apaga hasta elegir y dice por qué." },
   "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles

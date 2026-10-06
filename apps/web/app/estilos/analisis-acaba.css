@@ -1,4 +1,4 @@
-/* Análisis v4 (ADR-0356): estilos propios de acaba que la hoja base (analisis.css) no trae. Mismas reglas que la base:
+/* Análisis v4 (ADR-0357): estilos propios de acaba que la hoja base (analisis.css) no trae. Mismas reglas que la base:
    solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
    Aquí nada se mueve: no hay animación ni transición propia. */
 @layer components {

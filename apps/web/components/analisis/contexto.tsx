@@ -4,7 +4,7 @@ import { createContext, useContext } from "react";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import type { FiltroAcaba } from "@/lib/analisis-acaba";
 
-// Análisis v4 (ADR-0356): lo que la pantalla le da a cada pestaña y a la ficha. Una pestaña no lee nada por su cuenta: todo
+// Análisis v4 (ADR-0357): lo que la pantalla le da a cada pestaña y a la ficha. Una pestaña no lee nada por su cuenta: todo
 // llega leído del servidor (`DatosAnalisis`) y filtrado por el buscador de la cabecera.
 
 /** «Se está acabando»: Todos · Comprar (lo que no viene en camino) · Por llegar. Se define con su regla (`analisis-acaba.ts`). */

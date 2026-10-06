@@ -4,7 +4,7 @@ import { DIAS_RINDE, FALLA_RINDE, filaRindeDe, rindePorCategoria } from "@/lib/a
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { IGV_TASA } from "@/lib/registro-contable";
 
-// Análisis v4 (ADR-0356): «Lo que más rinde» en «Qué pedir». Por tipo de prenda de MI tienda: cuánto se ganó en los últimos 90
+// Análisis v4 (ADR-0357): «Lo que más rinde» en «Qué pedir». Por tipo de prenda de MI tienda: cuánto se ganó en los últimos 90
 // días por cada S/ 1 que hubo en ropa de ese tipo (al costo, en promedio). Es el GMROI dicho en palabras de tienda.
 //
 // La fuente es la que ya usan Desempeño y Comparar: `fn_resumen_comparacion` trae por prenda la venta neta del período (con IGV,

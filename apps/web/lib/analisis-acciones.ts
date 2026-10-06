@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): a dónde lleva cada botón. Análisis no guarda nada por su cuenta: cada acción abre el flujo que ya
+// Análisis v4 (ADR-0357): a dónde lleva cada botón. Análisis no guarda nada por su cuenta: cada acción abre el flujo que ya
 // existe, con las prendas marcadas (ADR-0245), y quien lo termina es esa pantalla. Un botón cuyo destino la cuenta no ve no se
 // dibuja (ADR-0161): cada función devuelve null en ese caso, y la pantalla no muestra el botón.
 //

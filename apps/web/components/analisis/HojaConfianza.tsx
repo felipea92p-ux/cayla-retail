@@ -6,7 +6,7 @@ import { AnillosCondiciones } from "@/components/analisis/TodaviaNo";
 import { Racha } from "@/components/analisis/piezas";
 import { DIAS_SOSTENIDOS } from "@/lib/motor-demanda-reglas";
 
-// Análisis v4 (ADR-0356): la hoja del chip «Datos confiables / Datos incompletos». Dice las tres condiciones del motor
+// Análisis v4 (ADR-0357): la hoja del chip «Datos confiables / Datos incompletos». Dice las tres condiciones del motor
 // (ADR-0346) con su anillo, y si faltan, el botón de cada una. No es un formulario: no lleva guía de foco.
 
 export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {

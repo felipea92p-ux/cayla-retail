@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): los íconos de la maqueta aprobada, trazo de 1,7 y `currentColor` (toman el color de su estado).
+// Análisis v4 (ADR-0357): los íconos de la maqueta aprobada, trazo de 1,7 y `currentColor` (toman el color de su estado).
 // La prenda sin foto NO va aquí: es `MosaicoPrenda` (ADR-0333), vía `TilePrenda` en `piezas.tsx`.
 
 import type { ReactNode } from "react";

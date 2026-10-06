@@ -28,7 +28,7 @@ import {
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
 
-// Análisis v4 (ADR-0356): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo,
+// Análisis v4 (ADR-0357): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo,
 // «Cómpralas»: todo lo que se acaba se compra por defecto (decisión 7); si otra tienda la tiene, se dice cuántas tiene y se
 // ofrece pedírsela, y la persona decide. Cada fila: cuántos días le quedan, si ya viene algo en camino y su botón. Los
 // filtros reparten lo mismo en «Comprar» (no viene nada) y «Por llegar» (ya viene). La lógica pura vive en

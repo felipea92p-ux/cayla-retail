@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): la pestaña «Se está acabando», sin React. Qué prendas muestra cada filtro (Todos · Comprar · Por
+// Análisis v4 (ADR-0357): la pestaña «Se está acabando», sin React. Qué prendas muestra cada filtro (Todos · Comprar · Por
 // llegar) y cuántas tiene cada uno, cómo se dibuja la pista de días (largo, color y texto) y qué dicen sus píldoras y el
 // tooltip «Por llegar». Quién se acaba, cuántos días le quedan y qué viene en camino lo deciden las reglas de
 // `analisis-reglas.ts`: aquí no nace ninguna regla de negocio, solo cómo se dice y se dibuja (la maqueta aprobada por Felipe,

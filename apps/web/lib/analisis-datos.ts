@@ -13,7 +13,7 @@ import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
 import { esPedidoDeTalla } from "@/lib/se-probo-reglas";
 import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
 
-// Análisis v4 (ADR-0356): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
+// Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
 // `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error.
 //
 // La encargada y el líder ven lo mismo (decisión 8): las tres tiendas, el dinero y el costo por prenda. Lo que no se puede

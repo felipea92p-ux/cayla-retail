@@ -775,6 +775,15 @@ ESCENARIOS.push(
   { id: "analisis.nose", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «No se vende»", preparar: clicRol("tab", /No se vende/i) },
   { id: "analisis.pedir", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Qué pedir»", preparar: clicRol("tab", /Qué pedir/i) },
   { id: "analisis.confianza", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la hoja «Datos incompletos / confiables»", preparar: clicRol("button", /Datos (incompletos|confiables)/i) },
+  // La ficha de una prenda: se abre desde la primera prenda que haya a la vista («Lo más vendido con su prenda» mientras la tienda dice
+  // «Todavía no»; las listas y los carriles cuando ya recomienda). Sin ventas con su prenda en la tienda no hay de dónde abrirla.
+  {
+    id: "analisis.ficha", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la ficha de una prenda",
+    preparar: async (pagina) => {
+      await pagina.locator(".analisis .top-f, .analisis .l5, .analisis .c-fila").first().click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    },
+  },
 );
 
 // ---------- Compras y Producción (actividad 11) ----------

@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): las piezas chicas que comparten las cuatro pestañas y la ficha, con las clases de la maqueta
+// Análisis v4 (ADR-0357): las piezas chicas que comparten las cuatro pestañas y la ficha, con las clases de la maqueta
 // aprobada (`app/estilos/analisis.css`). Todo vive dentro de `.analisis` (la pantalla o la hoja), que es donde esas clases valen.
 
 import Image from "next/image";

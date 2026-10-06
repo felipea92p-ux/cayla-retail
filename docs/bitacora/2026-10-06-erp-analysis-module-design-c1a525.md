@@ -1,0 +1,10 @@
+## 2026-10-06 (Análisis v4: cuatro preguntas, cada una con su gráfico y su botón — ADR-0357)
+Qué hice: Análisis (`/inventario/resumen`) pasó a la maqueta que aprobó Felipe: Hoy · Se está acabando · No se vende · Qué pedir, cada prenda con
+su botón al flujo que ya existe y sin Comparar períodos; mientras la tienda no cumple las tres condiciones del motor (ADR-0346) dice «Todavía no» y
+qué falta; la encargada ve lo mismo que el líder (enmienda a ADR-0328). Cuatro migraciones (`20261006213000` a `20261006216000`), ninguna en
+producción. Quedó escrito en ADR-0357, ADR-0136 (act. 2026-10-06 (b), el movimiento), ARQUITECTURA y CLAUDE.md.
+Por qué así: el Análisis viejo eran tablas y períodos con palabras de analista, y quien atiende llega con una pregunta; en la prueba ciega ganaron
+las listas con nombre de prenda (5 de 5) y Felipe eligió el flujo de «Qué hacer hoy»; la cantidad y el «pedir o comprar» los decide la persona
+(ADR-0231), y nada se recomienda sobre ventas sin su prenda.
+Qué sigue: pegar las cuatro migraciones en producción, en orden y con el OK de Felipe, antes de publicar; probarla con una encargada real; que
+Compras reciba prendas por URL y Etiquetas la rebaja; y limpiar las libs del Análisis viejo (tarea aparte, ya lanzada).

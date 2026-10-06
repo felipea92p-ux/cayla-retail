@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): la pestaña «No se vende», en lógica pura (sin base ni React), probada en `analisis-quietas.test.ts`.
+// Análisis v4 (ADR-0357): la pestaña «No se vende», en lógica pura (sin base ni React), probada en `analisis-quietas.test.ts`.
 // Qué grupo le toca a cada prenda lo decide `grupoDe` (analisis-reglas.ts) y aquí no se repite: esto cuenta las cifras de
 // arriba, ubica cada prenda en el carril «Días sin venderse» (dónde cae y de qué color va su aro), arma la barra de edad de
 // cada tienda y dice a qué tienda va «Enviar todas». Las cifras de dibujo son las de la maqueta aprobada por Felipe (2026-10-06).

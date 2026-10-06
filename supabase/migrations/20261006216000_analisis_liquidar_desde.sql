@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261006216000 — Análisis: «Liquidar desde», uno para todas las tiendas y todas las personas (ADR-0356, actividad 4)
+-- 20261006216000 — Análisis: «Liquidar desde», uno para todas las tiendas y todas las personas (ADR-0357, actividad 4)
 --
 -- EL PROBLEMA PRIMERO. En «No se vende», una prenda quieta pasa de «Vigílalas» a «Liquidar» cuando lleva N días sin venderse.
 --   Felipe (2026-10-06): ese N no es fijo; se mueve con el control del carril (de 30 a 85 días, 60 de fábrica) y lo que se guarda
@@ -62,7 +62,7 @@ create table if not exists retail.parametros_analisis (
   constraint parametros_analisis_liquidar_desde_rango check (liquidar_desde between 30 and 85)
 );
 comment on table retail.parametros_analisis is
-  'Análisis (ADR-0356), una sola fila: los números que Análisis usa para TODAS las tiendas y todas las personas. Se lee con fn_liquidar_desde y se cambia con guardar_liquidar_desde (firma con el responsable; antes/después en configuracion_historial). Nadie la lee directo.';
+  'Análisis (ADR-0357), una sola fila: los números que Análisis usa para TODAS las tiendas y todas las personas. Se lee con fn_liquidar_desde y se cambia con guardar_liquidar_desde (firma con el responsable; antes/después en configuracion_historial). Nadie la lee directo.';
 comment on column retail.parametros_analisis.liquidar_desde is
   'Desde cuántos días sin venderse una prenda quieta pasa de «Vigílalas» a «Liquidar» en «No se vende» (30 a 85; 60 de fábrica). El mismo para toda la red: lo mueve quien ve Análisis (Felipe, 2026-10-06).';
 comment on column retail.parametros_analisis.actualizado_por is
@@ -91,7 +91,7 @@ begin
 end;
 $$;
 comment on function retail.fn_liquidar_desde() is
-  'Análisis (ADR-0356): desde cuántos días sin venderse se liquida, uno para toda la red (parametros_analisis; 60 si faltara la fila). Lo lee toda cuenta de retail. Hint: sin_acceso_retail.';
+  'Análisis (ADR-0357): desde cuántos días sin venderse se liquida, uno para toda la red (parametros_analisis; 60 si faltara la fila). Lo lee toda cuenta de retail. Hint: sin_acceso_retail.';
 
 -- ---------- 3. Guardar: quien ve Análisis lo cambia para todos ----------
 -- PROMETE: con 30 a 85 días, deja ese valor para toda la red, firmado con el responsable, y su antes/después en
@@ -134,7 +134,7 @@ begin
 end;
 $$;
 comment on function retail.guardar_liquidar_desde(integer) is
-  'Análisis (ADR-0356): cambia «Liquidar desde» (30 a 85 días) para TODAS las tiendas y personas. Quien ve Análisis (fn_puede_analizar); firma con el responsable (fn_actor_persona_id(true)); antes/después en configuracion_historial (que = liquidar_desde). Mismo valor = no escribe. Devuelve el valor guardado. Hints: analisis_sin_modulo, liquidar_desde_fuera_de_rango.';
+  'Análisis (ADR-0357): cambia «Liquidar desde» (30 a 85 días) para TODAS las tiendas y personas. Quien ve Análisis (fn_puede_analizar); firma con el responsable (fn_actor_persona_id(true)); antes/después en configuracion_historial (que = liquidar_desde). Mismo valor = no escribe. Devuelve el valor guardado. Hints: analisis_sin_modulo, liquidar_desde_fuera_de_rango.';
 
 -- ---------- 4. Permisos ----------
 revoke all on function retail.fn_liquidar_desde() from public, anon;

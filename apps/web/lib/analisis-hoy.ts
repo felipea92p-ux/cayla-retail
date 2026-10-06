@@ -1,4 +1,4 @@
-// Análisis v4 (ADR-0356): la pestaña «Hoy» en lógica pura (sin base ni React). La pantalla (`components/analisis/PestanaHoy.tsx`)
+// Análisis v4 (ADR-0357): la pestaña «Hoy» en lógica pura (sin base ni React). La pantalla (`components/analisis/PestanaHoy.tsx`)
 // solo dibuja lo que sale de aquí, con el diseño de la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden
 // una pregunta cada una, las tres tiendas y «Qué hacer hoy», el flujo de prendas que entran y salen de la tienda.
 //
