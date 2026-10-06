@@ -109,7 +109,8 @@ export function PaseTraslado({
     <CtxPase.Provider value={pase}>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3 lg:hidden">
-          <Link href={RUTA_TRASLADOS} className="btn-cayla btn-enlace text-sm">
+          {/* 44 px de alto: en celular es el blanco de un dedo (Formidable, 2026-10-06). */}
+          <Link href={RUTA_TRASLADOS} className="btn-cayla btn-enlace min-h-11 text-sm">
             <ArrowLeft aria-hidden className="h-4 w-4" strokeWidth={1.8} /> Todas las cajas
           </Link>
         </div>

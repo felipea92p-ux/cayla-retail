@@ -71,7 +71,36 @@ La pasada con una colaboradora real en Lima o Trujillo, con una caja de verdad: 
   pone el sello.
 - **Persona sin contexto:** la prueba ciega de arriba (agente). Colaboradora real: sin probar.
 
+## Después del OK (2026-10-06, la misma tarde)
+
+Felipe aprobó los 3 cambios y los 4 detalles de la lista aparte («Todas las cajas» a 44 px, «+ Nuevo traslado» secundario, la casilla sin
+contar punteada y «Guardado» solo cuando falla). Implementados y medidos otra vez:
+- **Cambio 1, comparar sin culpa: hecho.** Bajo el título, «Búscala otra vez en la caja. Si no está, confirma: tu líder lo revisa con
+  Trujillo.» (al líder: «después lo revisas con…»), y el resumen corto «Entra 1 al piso · Blusa Emma M beige queda para revisar»
+  (`consejoAlComparar`, `resumenCorto`, con pruebas).
+- **Cambio 2, sin botón gris: hecho.** Mientras falte contar, el pie dice «Te falta anotar 2: …» con las prendas tocables; «Terminé de contar»
+  aparece cuando todo tiene número (`pieDelConteo`, con una prueba que lo ata a `puedeTerminar`).
+- **Cambio 3, el anillo en palabras: hecho.** «Te toca 1 caja hoy · Ya hiciste 3 de 4», sin cifra dentro del anillo (`textoDelAnillo`).
+
+**Segunda prueba ciega (Observado, mismo agente y misma tarea, capturas nuevas):**
+
+| Medida | Antes | Después |
+|---|---|---|
+| Lectura de 5 s | pasa | pasa («Te toca 1 caja hoy» se entendió) |
+| El anillo | «no sé qué es 3/4» | entendió la caja; «Ya hiciste 3 de 4» todavía le pide saber qué son las 4 |
+| El pie mientras cuenta | tocó el botón gris esperando algo | no lo buscó; pero leyó «Te faltan 2» como «faltan prendas en la caja» → **corregido a «Te falta anotar 2»** |
+| Comparar | «me equivoqué al contar» | «un poco»: sigue dudando entre su error y el de Trujillo; «1 prenda queda para revisar» no decía cuál → **corregido: nombra la prenda** |
+| Dudas / palabras | 10 / 9 | 12 / 7 |
+
+Lo que la segunda prueba no puede medir bien: la caja de las capturas ya tenía conteos guardados («Contando 2 de 2», «Seguir contando») y la luz
+«Sigue aquí» quedó en la fila donde el robot escribió último; las dos cosas son de cómo se armaron las capturas, no de la pantalla. Por eso la
+colaboradora real (3 a 5, con una caja de verdad) sigue siendo lo que decide.
+
+**Lo que queda para la próxima vuelta:** decir que confirmar con algo faltante «no culpa a nadie» (la ciega sigue con miedo de «declarar que
+Trujillo se equivocó»), y qué cambia entre «Al piso» y «Al almacén» (pidió saberlo).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-06 | `1cdb20d4` | 7,0 | 6 | — (primera corrida; los 3 cambios esperan el OK) |
+| 2026-10-06 | (este commit) | 7,5 | 7 | 1, 2 y 3 + los 4 detalles; ley 4 sube a 7 y ley 9 a 8; ley 3 sigue en 6 (ver «Lo que queda») |
