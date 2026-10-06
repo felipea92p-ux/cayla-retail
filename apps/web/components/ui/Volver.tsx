@@ -26,6 +26,7 @@ import Link from "next/link";
    versalitas, el botón «← Clientes» y esta flecha).
    · Con el dedo (pointer: coarse) la zona que responde llega a 44 px con
      un ::after invisible, sin que el círculo crezca.
+   · Lleva `data-pieza="volver"`: así la encuentran las fotos de /unificar sin confundirla con otra × que diga «Volver».
    · Con `onClick` (sin `href`) es un <button>: la vuelta que cierra un
      estado de la misma pantalla (el flujo de Cambios y Devoluciones, la
      lista de Temporadas). Con `href` sigue siendo <a>, porque
@@ -64,13 +65,13 @@ export function Volver(props: Props) {
   const nombre = /^volver\b/i.test(a.trim()) ? a : `Volver a ${a}`;
   if (props.href !== undefined) {
     return (
-      <Link href={props.href} aria-label={nombre} title={nombre} className={`${CLASES} ${className}`}>
+      <Link href={props.href} aria-label={nombre} title={nombre} data-pieza="volver" className={`${CLASES} ${className}`}>
         <Flecha />
       </Link>
     );
   }
   return (
-    <button type="button" onClick={props.onClick} disabled={props.deshabilitado} aria-label={nombre} title={nombre} className={`${CLASES} ${className}`}>
+    <button type="button" onClick={props.onClick} disabled={props.deshabilitado} aria-label={nombre} title={nombre} data-pieza="volver" className={`${CLASES} ${className}`}>
       <Flecha />
     </button>
   );

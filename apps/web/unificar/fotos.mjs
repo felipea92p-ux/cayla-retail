@@ -196,8 +196,8 @@ async function marcar(p) {
     // Por clase, las piezas del sistema (lo que el detector podría no tomar):
     document.querySelectorAll(".pestanas-cayla").forEach((e) => agregar(e, "vista"));
     document.querySelectorAll(".segmento-cayla").forEach((e) => agregar(e, "modo"));
-    // La vuelta, por su nombre accesible («Volver a Existencias»): la flecha redonda no tiene texto a la vista.
-    document.querySelectorAll('a[aria-label^="Volver a"], button[aria-label^="Volver a"]').forEach((e) => {
+    // La vuelta: la pieza `Volver` (lleva `data-pieza="volver"`). No se busca por el texto: la × del Observatorio también dice «Volver».
+    document.querySelectorAll('[data-pieza="volver"]').forEach((e) => {
       if (!e.closest("aside")) agregar(e, "volver");
     });
     // Una fila de píldoras se marca entera (su contenedor).
@@ -213,7 +213,7 @@ async function marcar(p) {
       if (!el || el.closest("aside")) continue;
       // Solo la pieza elegida (`TarjetaCifra`: card-cayla con @container); las cifras decididas aparte (la cabecera, Caja) no cambiaron.
       if (i.familia === "cifra" && el.classList.contains("card-cayla") && el.classList.contains("@container")) agregar(el, "cifra");
-      else if ((i.familia === "boton" || i.familia === "enlace") && /^(volver|regresar|atras)\b|^←/.test(i.nombre || "")) agregar(el, "volver");
+
     }
     marcas.sort((a, b) => a.y - b.y || a.x - b.x);
     marcas.forEach((m, n) => {
