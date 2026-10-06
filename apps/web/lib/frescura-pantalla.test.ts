@@ -793,6 +793,9 @@ describe("Formidable (ADR-0350) · la pantalla dice qué le toca a la persona", 
   it("la frase bajo el título es la PREGUNTA y su respuesta de hoy, con el número una sola vez", () => {
     expect(fraseEncabezado(null)).toBe("¿Qué lleva mucho tiempo colgado?");
     expect(fraseEncabezado(0)).toBe("¿Qué lleva mucho tiempo colgado? **Nada por decidir: todo en orden.**");
+    // Con pocas ventas no se promete «todo en orden»: nada puede salir por decidir todavía (no hay con qué juzgar).
+    expect(fraseEncabezado(0, true)).toBe("¿Qué lleva mucho tiempo colgado? **Nada por decidir por ahora.**");
+    expect(fraseEncabezado(3, true)).toBe(fraseEncabezado(3));
     expect(fraseEncabezado(1)).toBe("¿Qué lleva mucho tiempo colgado? **1 prenda espera tu decisión.**");
     expect(fraseEncabezado(5)).toBe("¿Qué lleva mucho tiempo colgado? **5 prendas esperan tu decisión.**");
   });
