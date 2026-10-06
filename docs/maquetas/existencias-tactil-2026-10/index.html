@@ -408,11 +408,28 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 .acciones-c:focus-within .ib-otros,.acciones-c.abierta .ib-otros{opacity:1;visibility:visible;transform:none;pointer-events:auto}
 @media (hover:hover){.pc .acciones-c:hover .ib-otros{opacity:1;visibility:visible;transform:none;pointer-events:auto}}
 .acciones-c.abierta .ib-mas{background:var(--hueso);color:var(--tinta)}
-.ib{width:40px;height:40px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--taupe);position:relative;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease)}
+.ib{min-width:40px;height:40px;padding:0 10px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:inline-flex;align-items:center;justify-content:center;color:var(--taupe);position:relative;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease)}
+/* El nombre de la acción (2026-10-06): cerrado en reposo; se abre al pasar el mouse o enfocar, y siempre en tablet y celular (sin mouse). */
+.ib-txt{max-width:0;overflow:hidden;white-space:nowrap;opacity:0;font:500 13px var(--sans);transition:max-width .2s var(--ease),opacity .2s var(--ease),margin .2s var(--ease)}
+.acciones-c:focus-within .ib-txt,.aparato:not(.pc) .ib-txt{max-width:13rem;opacity:1;margin-left:8px}
+@media (hover:hover){.pc .acciones-c:hover .ib-txt{max-width:13rem;opacity:1;margin-left:8px}}
+/* La acción vive en la fila de los colores, a la derecha (2026-10-06): sin fila propia abajo, la tarjeta es más baja. */
+.modelo .muestras{flex-wrap:wrap}
+.modelo .muestras .nombre-color{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modelo .muestras .fila-estado{margin-left:auto;min-height:0}
+/* El panel de «Filtros» (2026-10-06): las filas con nombre del ERP; «Ordenar por» vive aquí. */
+.panel-filtros{display:grid;gap:2px;background:color-mix(in srgb,var(--sand) 55%,transparent);border-radius:14px;padding:4px}
+.pf-fila{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:4px 6px}
+.pf-tit{font:500 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);width:5.5rem;flex:none}
+.pf-pil{border:0;background:transparent;font:500 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 62%,transparent);min-height:34px;padding:0 10px;border-radius:8px}
+.pf-pil:hover{color:var(--tinta);background:color-mix(in srgb,var(--papel) 60%,transparent)}
+.pf-fila .orden{margin-left:4px}
+.chip-orden{border:1px solid color-mix(in srgb,var(--tinta) 15%,transparent);background:color-mix(in srgb,var(--tinta) 4%,transparent);border-radius:999px;padding:2px 10px;font:500 10.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--tinta);margin-left:6px}
+.icono-btn[aria-expanded="true"]{background:var(--hueso);border-color:var(--taupe)}
 .ib svg{width:19px;height:19px}
 .ib:hover{border-color:var(--taupe);color:var(--tinta);background:var(--crema)}
 .ib.sugerida{background:var(--t-ambar);color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 40%,transparent)}
-.aparato:not(.pc) .ib{width:44px;height:44px}
+.aparato:not(.pc) .ib{min-width:44px;height:44px}
 [data-tip]{position:relative}
 [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translate(-50%,4px);background:var(--tinta);color:var(--papel);font:500 12px/1 var(--sans);padding:6px 9px;border-radius:8px;white-space:nowrap;z-index:40;pointer-events:none;opacity:0;transition:opacity .15s var(--ease),transform .15s var(--ease)}
 [data-tip][data-tip-pos="abajo"]::after{bottom:auto;top:calc(100% + 7px);transform:translate(-50%,-4px)}
@@ -777,10 +794,14 @@ table.t td:first-child{font-weight:600}
         <div class="buscador">
           <label class="caja-buscar">${IC.buscar}<input class="campo-buscar" id="q" type="search" autocomplete="off" placeholder="Busca por nombre, marca, color o código" value="${esc(S.q)}" aria-label="Buscar producto"><kbd class="kbd kbd-buscar" title="Atajo: / o Ctrl+K">/</kbd>${S.q ? `<button class="limpiar" data-acc="limpiar" aria-label="Borrar búsqueda">${IC.x}</button>` : ""}</label>
           <button class="icono-btn" data-acc="escanear" aria-label="Escanear etiqueta" title="Escanear etiqueta">${IC.escanear}</button>
-          <button class="icono-btn" data-acc="filtros" aria-label="Filtros" title="Filtros">${IC.filtros}</button>
+          <button class="icono-btn" data-acc="filtros" aria-label="Filtros" title="Filtros" aria-expanded="${!!S.panelFiltros}" aria-controls="panel-filtros">${IC.filtros}</button>
           ${anilloMision()}
-          <div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div>
         </div>
+        ${S.panelFiltros ? `<div class="panel-filtros" id="panel-filtros" role="group" aria-label="Filtros">
+          <div class="pf-fila" role="group" aria-label="Prenda"><span class="pf-tit">Prenda</span>${["Categoría", "Talla", "Color", "Marca"].map(x => `<button class="pf-pil" data-acc="pf-demo" data-k="${x}">${x} ▾</button>`).join("")}</div>
+          <div class="pf-fila" role="group" aria-label="Gestión"><span class="pf-tit">Gestión</span>${["Hoy", "Condición"].map(x => `<button class="pf-pil" data-acc="pf-demo" data-k="${x}">${x} ▾</button>`).join("")}</div>
+          <div class="pf-fila" role="group" aria-label="Vista"><span class="pf-tit">Vista</span><span class="pf-pil" style="padding-right:0">Ordenar por</span><div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div></div>
+        </div>` : ""}
         <div class="rail" role="group" aria-label="Filtro">
           ${FILTROS.filter(f => !["acaban", "quietas"].includes(f[0])).map(chip).join("")}
           <span class="rail-sep" aria-hidden="true"></span><span class="rail-tit">Recomendados</span>
@@ -795,14 +816,15 @@ table.t td:first-child{font-weight:600}
   // La tarjeta muestra UN solo icono: la acción que la pantalla sugiere (o Reponer). Al pasar el mouse, o al enfocar con el teclado,
   // salen a su izquierda las demás. En tablet, que no tiene mouse, un botón «⋯» las abre. El estado no se repite aparte: ya lo dicen las tallas.
   function filaEstado(p, c, { etiqueta, accion }) {
-    const ib = (txt, icono, attrs, sug) => `<button class="ib${sug ? " sugerida" : ""}" data-tip="${esc(txt)}" aria-label="${esc(txt)}" ${attrs}>${icono}</button>`;
+    const ib = (txt, icono, attrs, sug) => `<button class="ib${sug ? " sugerida" : ""}" data-tip="${esc(txt)}" aria-label="${esc(txt)}" ${attrs}>${icono}<span class="ib-txt" aria-hidden="true">${esc(txt)}</span></button>`;
     const rap = k => `data-acc="rapida" data-k="${k}" data-pid="${p.id}" data-c="${c}"`;
     const sugReponer = accion?.txt === "Reponer", otraSug = accion && !sugReponer;
     const pr = otraSug ? [accion.txt === "Pedir" ? "Pedir a otra sede" : accion.txt, accion.txt === "Pedir" ? IC.pedir : IC.ficha, accion.attrs] : ["Reponer", IC.reponer, sugReponer ? accion.attrs : rap("reponer")];
     const principal = ib(pr[0], pr[1], pr[2], !!accion);
     // La ventana repite la acción del icono principal, con su nombre y primera: así quien abre la ventana ve todo en un solo lugar.
     const fila = (txt, icono, attrs, sug) => `<button class="rapida${sug ? " sug" : ""}" role="menuitem" ${attrs}>${icono}<span>${txt}</span></button>`;
-    const otros = [fila(pr[0], pr[1], pr[2], !!accion), otraSug ? fila("Reponer", IC.reponer, rap("reponer")) : "", fila("Retirar del piso", IC.retirar, rap("retirar")), fila("Enviar a otra sede", IC.enviar, rap("enviar"))].join("");
+    // La ventana lleva las acciones que el botón NO dice (2026-10-06): el nombre de la del botón ya está a la vista.
+    const otros = [otraSug ? fila("Reponer", IC.reponer, rap("reponer")) : "", fila("Retirar del piso", IC.retirar, rap("retirar")), fila("Enviar a otra sede", IC.enviar, rap("enviar"))].join("");
     return `<div class="fila-estado"><span class="solo-lector">${esc(etiqueta)}</span><div class="acciones-c" role="group" aria-label="Acciones de ${esc(p.nombre)}">${principal}<button class="ib ib-mas" data-acc="ib-mas" data-tip="Más acciones" aria-label="Más acciones" aria-expanded="false">${IC.mas}</button><div class="ib-otros" role="menu" aria-label="Más acciones"><div class="ib-pop">${otros}</div></div></div></div>`;
   }
   const SVG_OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -887,7 +909,7 @@ table.t td:first-child{font-weight:600}
     const el = document.getElementById("lista");
     const sel = S.panel;
     el.innerHTML = `
-      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : ""}</p>
+      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : ""}${S.orden !== "prioridad" ? `<button class="chip-orden" data-acc="orden" data-k="prioridad" aria-label="Volver al orden por prioridad">Orden: A–Z ×</button>` : ""}</p>
       ${recoStrip()}
       ${lista.length ? `<div class="grilla">${lista.map(p => {
         const c = ci(p), m = coincidencias(p), filtrando = S.filtro !== "todo";
@@ -902,6 +924,7 @@ table.t td:first-child{font-weight:600}
             ${p.colores.map((col, i) => { const n = m.filter(x => x.c === i).length;
               return `<button class="muestra${col.claro ? " claro" : ""}" role="radio" aria-checked="${i === c}" aria-label="${esc(col.n)}${n ? `: ${n} ${n === 1 ? "talla" : "tallas"} ${esc(SIMBOLO[S.filtro].txt.toLowerCase())}` : ""}" style="background:${col.hex}" data-acc="color" data-pid="${p.id}" data-c="${i}">${n ? `<span class="punto-m" style="background:${SIMBOLO[S.filtro].col}"></span>` : ""}</button>`; }).join("")}
             <span class="nombre-color">${esc(p.colores[c].n)}</span>
+            ${filtrando ? motivo(p, c, m) : pastilla(p, c)}
           </div>
           <div class="tallas" role="group" aria-label="Tallas">
             ${tallasDe(p, c).map(t => { const v = vr(p, c, t), e = estado(v); const activa = sel && sel.pid === p.id && sel.c === c && sel.t === t;
@@ -909,7 +932,6 @@ table.t td:first-child{font-weight:600}
               const marca = !filtrando ? "" : cumple ? " marca-f" + (esPrincipal ? " principal" : "") : " tenue";
               return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" data-vk="${p.id}|${c}|${esc(t)}" data-est="${e}" title="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
           </div>
-          ${filtrando ? motivo(p, c, m) : pastilla(p, c)}
         </article>`; }).join("")}</div>`
       : `<div class="vacio">${S.q ? `No hay productos con «${esc(S.q)}» en Tienda TRU. Revisa cómo está escrito, o busca por la marca o el código.` : "Nada con este filtro. Toca «Todo» para ver todos."}</div>`}`;
   }
@@ -1356,7 +1378,8 @@ table.t td:first-child{font-weight:600}
     switch (d.acc) {
       case "limpiar": S.q = ""; renderBarra(); renderLista(); document.getElementById("q").focus(); break;
       case "ib-mas": { const ac = el.closest(".acciones-c"), abre = !ac.classList.contains("abierta"); document.querySelectorAll(".acciones-c.abierta").forEach(x => x.classList.remove("abierta")); if (abre) ac.classList.add("abierta"); el.setAttribute("aria-expanded", String(abre)); break; }
-      case "filtros": avisar("Abre «Filtros»: categoría, talla, color y marca"); break;
+      case "filtros": S.panelFiltros = !S.panelFiltros; renderBarra(); break;
+      case "pf-demo": avisar(`En el ERP: la lista de «${d.k}» con cuántos productos trae cada opción`); break;
       case "orden": S.orden = d.k; renderBarra(); renderLista(); break;
       case "reco": lanzar(d.pid, +d.c, null, "reponerVarias", { cant:{} }); break;
       case "pedir-rapido": { const p = prod(d.pid), c = +d.c, v = vr(p, c, d.t), mejor = SEDES.filter(sd => v.otras[sd] > 0).sort((a, b) => v.otras[b] - v.otras[a])[0];
