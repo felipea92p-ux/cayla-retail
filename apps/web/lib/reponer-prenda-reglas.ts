@@ -19,7 +19,6 @@ import type { LineaBajada } from "./bajada-reglas";
 import { hoyDeTalla } from "./existencias-hoy";
 import type { FilaPrenda } from "./existencias-prendas";
 import type { AccionPiso } from "./piso-plan";
-import { nombreCortoSede } from "./stock-por-sede";
 
 /** Un color del modelo tal como llega a la ventana: una prenda (modelo + color) con todas sus tallas. */
 export type PrendaParaReponer = {
@@ -111,8 +110,9 @@ export function textoFilaSinAlcance(hay: number, motivo: string, lugar: "almacé
 }
 
 /* ====================================================================
-   Lo que la ventana «Reponer prenda» dice del modelo (2026-10-05, maqueta `existencias-tactil-2026-10`): qué falta en el piso, tres
-   atajos para llenar la tabla y lo que casi no hay (con quién lo tiene). Todo sale de la MISMA decisión del piso que el filtro «Hoy»
+   Lo que la ventana «Reponer prenda» dice del modelo (2026-10-05, maqueta `existencias-tactil-2026-10`): qué falta en el piso y tres
+   atajos para llenar la tabla. (La lista «casi no hay», con quién lo tiene, se quitó el 2026-10-06: repetía las tallas que el panel ya
+   marca arriba, ADR-0344, «Quinta vuelta».) Todo sale de la MISMA decisión del piso que el filtro «Hoy»
    (`hoyDeTalla`): una talla «falta en el piso» cuando el motor la pide («Por colgar») y hay algo libre atrás que bajar.
 
    Los atajos no cambian la regla de ADR-0231 («la ventana no sugiere cuántas bajar: arranca en cero»): la tabla SIGUE abriendo en 0, y
@@ -157,29 +157,6 @@ export function cantidadesDeTodoElAlmacen(prendas: readonly PrendaParaReponer[])
   const todo: Record<string, number> = {};
   for (const p of prendas) for (const f of p.tallas) if (Math.max(0, f.almacenDisponible ?? 0) > 0) todo[f.varianteId] = Math.max(0, f.almacenDisponible ?? 0);
   return todo;
-}
-
-export type CasiNoHay = { clave: string; color: string | null; talla: string; agotada: boolean; /** «AQP 2 · LIM 1». */ sedes: string };
-
-/** Las tallas con 1 o ninguna libre en esta sede (piso + almacén), que no vienen en camino y que otra sede sí tiene: lo que se pide
- *  a otra sede. Lo que ya viene en traslado no se pide de nuevo. */
-export function casiNoHay(prendas: readonly PrendaParaReponer[]): CasiNoHay[] {
-  const salida: CasiNoHay[] = [];
-  for (const p of prendas) {
-    for (const f of p.tallas) {
-      const aqui = Math.max(0, f.pisoDisponible ?? 0) + Math.max(0, f.almacenDisponible ?? 0);
-      const red = (f.enRed ?? []).filter((x) => x.cantidad > 0);
-      if (aqui > 1 || (f.enTransito ?? 0) > 0 || red.length === 0) continue;
-      salida.push({
-        clave: f.varianteId,
-        color: p.color?.trim() || null,
-        talla: f.talla?.trim() || "Única",
-        agotada: aqui === 0,
-        sedes: red.map((x) => `${nombreCortoSede(x.sede)} ${x.cantidad}`).join(" · "),
-      });
-    }
-  }
-  return salida;
 }
 
 /** Un color del modelo ya leído por la ventana: sin nulos, con la clave que lo distingue de los demás. */

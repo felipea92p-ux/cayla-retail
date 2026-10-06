@@ -161,8 +161,8 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
   });
 });
 
-// ── La ventana de colgar dice qué falta, llena con un toque y avisa lo que casi no hay (2026-10-05) ───────────────────────────────────
-import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, casiNoHay, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
+// ── La ventana de colgar dice qué falta y llena con un toque (2026-10-05) ───────────────────────────────────
+import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
 
 const POR_COLGAR = { requisito: 1, accion: "por_colgar" as const };
 const MANTENER = { requisito: 1, accion: "mantener" as const };
@@ -201,28 +201,5 @@ describe("lo que falta en el piso", () => {
       const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
       expect(lineas.reduce((n, l) => n + l.cantidad, 0)).toBe(Object.values(cantidades).reduce((a, b) => a + b, 0));
     }
-  });
-});
-
-describe("lo que casi no hay", () => {
-  it("una talla con 1 o ninguna aquí, que otra sede tiene y no viene en camino", () => {
-    const m: PrendaParaReponer[] = [
-      {
-        referencia: "Adelle",
-        color: "Celeste",
-        colorHex: null,
-        tallas: [
-          talla("c26", "26", 0, 0, POR_COLGAR, { enRed: [{ sede: "Tienda Arequipa", cantidad: 2 }, { sede: "Tienda Lima", cantidad: 1 }] }),
-          talla("c28", "28", 0, 1, POR_COLGAR, { enRed: [{ sede: "Taller", cantidad: 3 }] }),
-          talla("c30", "30", 3, 4, MANTENER, { enRed: [{ sede: "Tienda Lima", cantidad: 5 }] }), // aquí hay de sobra
-          talla("c32", "32", 0, 0, POR_COLGAR, { enRed: [] }), // en ninguna otra sede: no hay a quién pedirle
-          talla("c34", "34", 0, 0, POR_COLGAR, { enRed: [{ sede: "Taller", cantidad: 2 }], enTransito: 2 }), // ya viene en camino
-        ],
-      },
-    ];
-    expect(casiNoHay(m)).toEqual([
-      { clave: "c26", color: "Celeste", talla: "26", agotada: true, sedes: "Arequipa 2 · Lima 1" },
-      { clave: "c28", color: "Celeste", talla: "28", agotada: false, sedes: "Taller 3" },
-    ]);
   });
 });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, LayoutGrid, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Table2, Tag, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Tag, TriangleAlert, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -30,8 +30,6 @@ import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
 import { entradaPorColgar, porColgarDeLaSede, tareasParaHoy, type TipoTareaHoy } from "@/lib/existencias-para-hoy";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { ExistenciasTarjetas } from "@/components/ExistenciasTarjetas";
-import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
-import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import { AnilloMision } from "@/components/existencias/AnilloMision";
@@ -437,18 +435,12 @@ export function InventarioPanel({
   const paginaTarjetas = paginar(tarjetasOrdenadas, pagina, FILAS_POR_PAGINA);
   // Lo que dicen la línea de arriba, el botón de la hoja de filtros y el pie: «6 prendas · 15 tallas por colgar».
   const conteo = conteoDeLista(tarjetasOrdenadas.length, filtradas, elegidos.hoy);
-  // «Colgar primero» (2026-10-05): las tres prendas de TODA la sede que más conviene reponer, en el orden de la lista del día, con lo
-  // que dura lo que hay al ritmo reciente. No depende de los filtros (es la sede entera) y solo se ve cuando no hay nada filtrado ni
-  // escrito —o solo «Por colgar», que es lo mismo que pregunta—: con otro filtro puesto, la persona ya está buscando otra cosa.
-  const colgarPrimeroDeLaSede = useMemo(
-    () => colgarPrimero(ordenarPorListaDelDia(agruparPorPrenda(stock), listaDelDia)),
-    [stock, listaDelDia]
-  );
+  // «Colgar primero», las tres prendas que más convenía colgar sobre las tarjetas, se quitó el 2026-10-06 (Felipe: «quita esto»): la
+  // lista ya va en el orden de la lista del día y el atajo «Por colgar» dice cuáles faltan (ADR-0344, «Quinta vuelta»).
   const filtrosPuestos = contarFiltrosActivos(elegidos);
   // Solo «Hoy» y/o «Condición» (sin texto, talla, color, marca ni categoría): la tarjeta enseña TODAS las tallas del color y atenúa las
   // que no cumplen, como la maqueta. Con otro filtro, las tallas que se ven son las que deja ese filtro (y la tarjeta lo dice).
   const soloHoyOCondicion = sinTexto && (elegidos.hoy !== null || elegidos.condicion !== null) && filtrosPuestos === (elegidos.hoy ? 1 : 0) + (elegidos.condicion ? 1 : 0);
-  const verColgarPrimero = resumen.separaPisoAlmacen && !verDetalle && sinTexto && (filtrosPuestos === 0 || (filtrosPuestos === 1 && elegidos.hoy === "por_colgar"));
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -834,50 +826,21 @@ export function InventarioPanel({
                 </button>
               )
             }
-            vista={
-              <>
-                {/* Tarjetas o tabla: UN icono que cambia en los dos sentidos (2026-10-06). Muestra la vista a la que lleva; el nombre va como
-                    etiqueta y al pasar el mouse. */}
-                <button
-                  type="button"
-                  aria-label={verDetalle ? "Ver en tarjetas" : "Ver en tabla"}
-                  title={verDetalle ? "Ver en tarjetas" : "Ver en tabla"}
-                  onClick={() => {
-                    // Las tarjetas no tienen cajón: al volver a ellas se cierra el de la tabla.
-                    if (verDetalle) setAbierta(null);
-                    setVerDetalle((d) => !d);
-                    setPagina(1);
-                  }}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-tinta/15 bg-papel text-tinta/70 transition-colors hover:border-tinta/30 hover:text-tinta"
-                >
-                  {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.6} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />}
-                </button>
-                {verDetalle && (
-                  // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
-                  <span role="group" aria-label="Ver la lista" className="inline-flex overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-                    {(
-                      [
-                        ["prenda", "Por prenda"],
-                        ["talla", "Por talla"],
-                      ] as const
-                    ).map(([v, texto]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        aria-pressed={vista === v}
-                        onClick={() => {
-                          setVista(v);
-                          setPagina(1);
-                        }}
-                        className={`px-4 py-1 transition-colors ${vista === v ? "bg-hueso font-medium text-tinta" : "text-taupe hover:text-tinta"}`}
-                      >
-                        {texto}
-                      </button>
-                    ))}
-                  </span>
-                )}
-              </>
-            }
+            // Tarjetas, tabla o una fila por talla: en «Filtros ▸ Vista» (2026-10-06, tarde), ya no como icono suelto en la barra.
+            verComo={{
+              valor: !verDetalle ? "tarjetas" : vista === "prenda" ? "tabla" : "talla",
+              onValor: (v) => {
+                if (v === "tarjetas") {
+                  // Las tarjetas no tienen el cajón de la tabla: al volver a ellas se cierra.
+                  if (verDetalle) setAbierta(null);
+                  setVerDetalle(false);
+                } else {
+                  setVerDetalle(true);
+                  setVista(v === "tabla" ? "prenda" : "talla");
+                }
+                setPagina(1);
+              },
+            }}
             nota={
               <>
                 {/* La aclaración de «Por colgar», solo si ese caso de «Hoy» está elegido y hay algo por colgar (sobre una lista vacía,
@@ -976,12 +939,6 @@ export function InventarioPanel({
       ) : !verDetalle ? (
         // La lista de entrada: una tarjeta por prenda. Mismas páginas, mismo «Exportar CSV» y misma leyenda que la tabla.
         <div className="mt-3.5">
-          {verColgarPrimero && (
-            <ColgarPrimero
-              prendas={colgarPrimeroDeLaSede}
-              alReponer={(prenda) => setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } })}
-            />
-          )}
           <ExistenciasTarjetas
             modelos={paginaTarjetas.filas}
             separa={separa}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorPrenda, ordenarPorListaDelDia, type FilaPrenda } from "./existencias-prendas";
-import { MAX_COLGAR_PRIMERO, colgarPrimero, ritmoDePrenda, textoDeRitmo } from "./existencias-colgar-primero";
+import { agruparPorPrenda, type FilaPrenda } from "./existencias-prendas";
+import { ritmoDePrenda, textoDeRitmo } from "./existencias-colgar-primero";
 import type { RitmoReciente } from "./existencias-ritmo";
 
 type Fila = FilaPrenda & { ritmoReciente?: RitmoReciente | null };
@@ -33,39 +33,6 @@ function fila(producto: string, color: string, talla: string, piso: number, alma
   } as Fila;
 }
 const medida = (unidadesDia: number): RitmoReciente => ({ tipo: "medida", dias: [], unidadesDia });
-
-describe("«Colgar primero»", () => {
-  it("toma las primeras tres prendas con alguna talla por colgar, en el orden que llegan, y se salta las que no", () => {
-    const filas = [
-      fila("A", "Negro", "M", 2, 3), // nada por colgar
-      fila("B", "Negro", "S", 0, 2),
-      fila("C", "Negro", "S", 0, 2),
-      fila("D", "Negro", "S", 0, 2),
-      fila("E", "Negro", "S", 0, 2),
-    ];
-    const r = colgarPrimero(agruparPorPrenda(filas));
-    expect(r.map((x) => x.prenda.productoId)).toEqual(["B", "C", "D"]);
-    expect(r).toHaveLength(MAX_COLGAR_PRIMERO);
-  });
-
-  it("respeta la lista del día del motor del piso: lo vendido ayer va primero", () => {
-    const filas = [fila("B", "Negro", "S", 0, 2), fila("C", "Negro", "S", 0, 2), fila("D", "Negro", "S", 0, 2)];
-    const listaDelDia = [filas[2].varianteId, filas[0].varianteId]; // D, luego B
-    const orden = ordenarPorListaDelDia(agruparPorPrenda(filas), listaDelDia);
-    expect(colgarPrimero(orden).map((x) => x.prenda.productoId)).toEqual(["D", "B", "C"]);
-  });
-
-  it("dice qué tallas faltan, solo las por colgar y en la curva", () => {
-    const filas = [fila("B", "Negro", "S", 0, 2), fila("B", "Negro", "M", 3, 1), fila("B", "Negro", "L", 0, 4)];
-    expect(colgarPrimero(agruparPorPrenda(filas))[0].tallasPorColgar).toEqual(["S", "L"]);
-  });
-
-  it("con el piso sin cuadrar (ninguna talla por colgar) no muestra nada", () => {
-    const enPausa = { accion: "pausa_sin_cuadre", requisito: 1, central: true, vendidasRecientes: 0, anotadasRecientes: 0, ritmoAtributo: 0, entraUnaSaleUna: false } as const;
-    const filas = [fila("B", "Negro", "S", 0, 2, { planPiso: enPausa })];
-    expect(colgarPrimero(agruparPorPrenda(filas))).toEqual([]);
-  });
-});
 
 describe("el ritmo de una prenda", () => {
   it("suma lo que se vende por semana de las tallas medidas y dice para cuántas semanas alcanza lo libre", () => {
