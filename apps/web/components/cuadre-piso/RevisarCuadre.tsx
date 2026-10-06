@@ -21,10 +21,10 @@ export function CifrasCuadre({ resumen, sede }: { resumen: ResumenCuadre; sede: 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <TarjetaCifra etiqueta="Pasan al piso" valor={resumen.prendasAlPiso.toLocaleString("es-PE")} unidad={resumen.prendasAlPiso === 1 ? "prenda" : "prendas"} compacta>
+        <TarjetaCifra etiqueta="Pasan al piso" valor={resumen.prendasAlPiso.toLocaleString("es-PE")} unidad={resumen.prendasAlPiso === 1 ? "prenda" : "prendas"}>
           <span className="text-xs text-taupe">{resumen.lineasAlPiso === 1 ? "1 talla" : `${resumen.lineasAlPiso} tallas`}</span>
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="Suben al almacén" valor={resumen.prendasAlAlmacen.toLocaleString("es-PE")} unidad={resumen.prendasAlAlmacen === 1 ? "prenda" : "prendas"} compacta>
+        <TarjetaCifra etiqueta="Suben al almacén" valor={resumen.prendasAlAlmacen.toLocaleString("es-PE")} unidad={resumen.prendasAlAlmacen === 1 ? "prenda" : "prendas"}>
           <span className="text-xs text-taupe">{resumen.lineasAlAlmacen === 1 ? "1 talla" : `${resumen.lineasAlAlmacen} tallas`}</span>
         </TarjetaCifra>
         <TarjetaCifra
@@ -32,7 +32,6 @@ export function CifrasCuadre({ resumen, sede }: { resumen: ResumenCuadre; sede: 
           valor={resumen.prendasNoCargadas.toLocaleString("es-PE")}
           unidad={resumen.prendasNoCargadas === 1 ? "prenda" : "prendas"}
           tono={resumen.prendasNoCargadas > 0 ? "text-ambar-profundo" : undefined}
-          compacta
           className="col-span-2 sm:col-span-1"
         >
           <span className="text-xs text-taupe">No se aplican</span>

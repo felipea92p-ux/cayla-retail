@@ -18,7 +18,7 @@ export default async function GuiaTrasladoPage({ params }: { params: Promise<{ i
     <ImprimirGuiaTraslado
       guia={guiaDelTraslado(traslado)}
       sede={persona.ubicacionEtiqueta}
-      volver={<Volver forma="flecha" href={rutaDelPaseDeTraslado(traslado.id)} a="la caja" />}
+      volver={<Volver href={rutaDelPaseDeTraslado(traslado.id)} a="la caja" />}
     />
   );
 }

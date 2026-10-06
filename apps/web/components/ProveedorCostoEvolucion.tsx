@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes, diasEntreFechas } from "@/lib/fechas-lima";
 import { subeEnCadaCompra, variacionCosto } from "@/lib/proveedores-reglas";
@@ -39,27 +40,31 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
     setCerca(mejor);
   }
 
+  const etiqueta = `Evolución del costo${evolucion ? ` · ${evolucion.referencia}` : ""}`;
+  // La cabecera es la pieza única de cifra (TarjetaCifra, ADR-0358); el gráfico va en su contexto. Sin compras que
+  // comparar es «sin dato»; con una sola, su costo se ve apagado (tinta/65), porque todavía no es una evolución.
+  if (!evolucion || puntos.length < 2 || variacion == null) {
+    return puntos.length === 1 ? (
+      <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 11 }} etiqueta={etiqueta} valor={soles(puntos[0].costo)} tono="text-tinta/65">
+        {`Solo hay una compra de ${evolucion?.referencia} a este proveedor. Con dos se ve cuánto cambia lo que cobra.`}
+      </TarjetaCifra>
+    ) : (
+      <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 11 }} etiqueta={etiqueta} valor={null}>
+        Todavía no hay compras de una misma prenda para comparar.
+      </TarjetaCifra>
+    );
+  }
+
   return (
-    <div className="card-cayla anim-entra p-5" style={{ ["--i" as string]: 11 }}>
-      <p className="label-cayla text-[11px] text-tinta/65">Evolución del costo{evolucion ? ` · ${evolucion.referencia}` : ""}</p>
-      {!evolucion || puntos.length < 2 || variacion == null ? (
-        <div className="mt-3">
-          <p className="font-display text-2xl text-tinta/45">{puntos.length === 1 ? soles(puntos[0].costo) : "—"}</p>
-          <p className="mt-1 text-xs text-tinta/65">
-            {puntos.length === 1
-              ? `Solo hay una compra de ${evolucion?.referencia} a este proveedor. Con dos se ve cuánto cambia lo que cobra.`
-              : "Todavía no hay compras de una misma prenda para comparar."}
-          </p>
-        </div>
-      ) : (
+    <TarjetaCifra
+      className="anim-entra"
+      style={{ ["--i" as string]: 11 }}
+      etiqueta={etiqueta}
+      valor={`${variacion > 0 ? "+" : ""}${variacion.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}
+      tono={variacion > 0 ? "text-ambar-profundo" : variacion < 0 ? "text-verde-profundo" : undefined}
+    >
         <>
-          <div className="mt-2 flex items-baseline gap-3">
-            <span className={`font-display text-3xl tabular-nums ${variacion > 0 ? "text-ambar-profundo" : variacion < 0 ? "text-verde-profundo" : "text-tinta"}`}>
-              {variacion > 0 ? "+" : ""}
-              {variacion.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %
-            </span>
-            <span className="text-xs text-tinta/65">{`en ${puntos.length} compras · ${duracion(puntos[0].fecha, puntos[puntos.length - 1].fecha)}`}</span>
-          </div>
+          <span className="block">{`en ${puntos.length} compras · ${duracion(puntos[0].fecha, puntos[puntos.length - 1].fecha)}`}</span>
 
           <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} onMouseMove={alMover} onMouseLeave={() => setCerca(null)} className="mt-2 h-[120px] w-full" role="img" aria-label={`Costo de ${evolucion.referencia}: ${costos.map((c) => soles(c)).join(", ")}`}>
             <line x1={MARGEN} y1={ALTO - 20} x2={ANCHO - MARGEN} y2={ALTO - 20} stroke="currentColor" className="text-tinta/10" />
@@ -85,8 +90,7 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
               : "Compara con lo que se pagó en cada compra antes de pactar el precio del próximo pedido."}
           </p>
         </>
-      )}
-    </div>
+    </TarjetaCifra>
   );
 }
 

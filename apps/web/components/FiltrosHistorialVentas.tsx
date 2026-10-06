@@ -32,13 +32,11 @@ import {
 // suyos en «+ Atajo» (se guardan en su navegador). Un atajo es solo un conjunto de parámetros de la URL: tocarlo es lo
 // mismo que elegir esos filtros en el panel, así que el panel y el atajo nunca se contradicen.
 
-const PASTILLA = "label-cayla inline-flex items-center rounded-full border px-3 py-1 text-[10px] transition-colors";
-const PASTILLA_ACTIVA = "border-tinta bg-tinta text-crema";
-const PASTILLA_INACTIVA = "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo";
-
+// El período y los atajos son filtros de un valor: la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no la
+// copia a mano de antes (MAYÚSCULAS de 10 px, rojo al pasar el mouse). La elegida se rellena de tinta sola (`aria-pressed`).
 function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={activa} className={`${PASTILLA} ${activa ? PASTILLA_ACTIVA : PASTILLA_INACTIVA}`}>
+    <button type="button" onClick={onClick} aria-pressed={activa} className="pildora-cayla shrink-0">
       {children}
     </button>
   );
@@ -149,7 +147,7 @@ export function FiltrosHistorialVentas({
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="-mx-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-4 -my-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
         <div role="group" aria-label="Período" className="flex shrink-0 items-center gap-1.5">
           <Pastilla
             activa={!mostrarFechas && periodo === "hoy"}
@@ -192,7 +190,7 @@ export function FiltrosHistorialVentas({
           <button
             type="button"
             onClick={() => setEligiendo(true)}
-            className={`${PASTILLA} gap-1 border-dashed border-tinta/30 text-tinta/65 hover:border-rojo hover:text-rojo`}
+            className="pildora-cayla shrink-0 gap-1 border-dashed"
           >
             <Plus className="h-3 w-3" aria-hidden /> Atajo
           </button>

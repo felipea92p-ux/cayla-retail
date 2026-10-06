@@ -4,7 +4,7 @@ import { cantidadTexto } from "@/lib/insumos-reglas";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { PestanasResumenProduccion } from "@/components/PestanasResumenProduccion";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
@@ -32,7 +32,17 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
 
   return (
     <div className="space-y-6">
-      <PestanasResumenProduccion activa="hoy" />
+      {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
+          (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+      <Pestanas
+        etiquetaAccesible="Miradas del Taller"
+        idIndicador="produccion-miradas"
+        activa="hoy"
+        items={[
+          { clave: "hoy", etiqueta: "Hoy", href: "/produccion", ayuda: "Qué necesita mi decisión" },
+          { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
+        ]}
+      />
       <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
@@ -51,42 +61,35 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaCifra
-          compacta
           punto={cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
           etiqueta="Capital en insumos"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          vacia={cifras.capitalInsumos === null || cifras.capitalInsumos === 0}
-          valor={cifras.capitalInsumos === null || cifras.capitalInsumos === 0 ? "—" : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
+          valor={cifras.capitalInsumos === null || cifras.capitalInsumos === 0 ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
           detalleTono={cifras.insumosBajoMinimo > 0 ? "text-ambar-profundo" : undefined}
         >
           {cifras.insumosBajoMinimo > 0 ? `${plural(cifras.insumosBajoMinimo, "insumo bajo el mínimo", "insumos bajo el mínimo")}` : "a costo de cada lote"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto="verde"
           etiqueta="Valor en proceso"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={cifras.valorEnProceso === 0}
-          valor={cifras.valorEnProceso === 0 ? "—" : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
+          valor={cifras.valorEnProceso === 0 ? null : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
         >
           tela y avíos de {plural(cifras.ordenesEnProceso, "orden abierta", "órdenes abiertas")}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar a proveedores"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          vacia={cifras.porPagar === 0}
-          valor={cifras.porPagar === 0 ? "—" : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
+          valor={cifras.porPagar === 0 ? null : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
           detalleTono={cifras.vencido > 0 ? "text-rojo-profundo" : undefined}
         >
           {cifras.vencido > 0 ? `${soles(cifras.vencido)} ya vencidos` : cifras.porPagar > 0 ? "nada vencido" : "no se debe nada"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
           etiqueta="Entregas por atender"
           className="anim-entra"

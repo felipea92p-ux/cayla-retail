@@ -194,7 +194,10 @@ export function FilaPrendaVenta({
 export const CLASE_BOTON_FILA =
   "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_color-mix(in_srgb,var(--color-sombra)_70%,transparent)]";
 
-/** Los filtros de la actividad: pastillas con cuántas compras hay en cada una. */
+/** Los filtros de la actividad: píldoras con cuántas compras hay en cada una.
+ *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0358, «Pestañas y segmentos»,
+ *  2026-10-06), como el filtro de Devoluciones (ADR-0232 D3). Antes usaban la pista tinta/5 que en Devoluciones cambia la
+ *  pantalla: la misma cara hacía dos cosas en el mostrador. En el celular la fila se desliza (deja aire para el anillo de foco). */
 export function FiltrosActividad<T extends string>({
   valor,
   opciones,
@@ -205,18 +208,10 @@ export function FiltrosActividad<T extends string>({
   onCambio: (v: T) => void;
 }) {
   return (
-    <div role="group" aria-label="Filtrar la actividad" className="flex flex-wrap gap-1 rounded-full bg-tinta/5 p-1">
+    <div role="group" aria-label="Filtrar la actividad" className="pildoras-desliza gap-2 sm:flex-wrap">
       {opciones.map((f) => (
-        <button
-          key={f.valor}
-          type="button"
-          aria-pressed={valor === f.valor}
-          onClick={() => onCambio(f.valor)}
-          className={`h-9 rounded-full px-4 text-sm transition-colors duration-200 ${
-            valor === f.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_color-mix(in_srgb,var(--color-sombra)_8%,transparent)]" : "text-tinta/75 hover:text-tinta"
-          }`}
-        >
-          {f.texto} <span className="tabular-nums text-tinta/65">{f.cuantas}</span>
+        <button key={f.valor} type="button" aria-pressed={valor === f.valor} onClick={() => onCambio(f.valor)} className="pildora-cayla shrink-0">
+          {f.texto} <span className="pildora-cayla__n">{f.cuantas}</span>
         </button>
       ))}
     </div>

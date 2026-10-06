@@ -191,7 +191,9 @@ function Cifras({
       </TarjetaCifra>
       <TarjetaCifra
         etiqueta="Se repite · últimos 30 días"
-        valor={repeticiones === null ? "—" : repeticiones.length.toLocaleString("es-PE")}
+        // Sin medir (prenda o zona elegida) es «sin dato»; sin medir porque la lectura falló es «no se pudo leer».
+        valor={repeticiones === null ? null : repeticiones.length.toLocaleString("es-PE")}
+        noSePudoLeer={!filtrada && repeticiones === null}
         punto={repeticiones && repeticiones.length > 0 ? "ambar" : "neutro"}
         href={repeticiones && repeticiones.length > 0 ? "#se-repite" : undefined}
       >

@@ -90,11 +90,10 @@ export function OrdenesTablero({
 
       {/* ==================== cifras ==================== */}
       <div className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
-        <TarjetaCifra compacta punto="verde" etiqueta="Órdenes en curso" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.enCurso} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Órdenes en curso" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.enCurso} alMontar />}>
           {resumen.prendas} prendas planeadas
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={resumen.vencidas > 0 ? "rojo" : urgentes > 0 ? "ambar" : "verde"}
           etiqueta="Entregas por atender"
           className="anim-entra"
@@ -106,13 +105,11 @@ export function OrdenesTablero({
         </TarjetaCifra>
         {esLider && (
           <TarjetaCifra
-            compacta
             punto="verde"
             etiqueta="Margen promedio"
             className="anim-entra"
             style={{ ["--i" as string]: 2 }}
-            vacia={resumen.margenPromedio === null}
-            valor={resumen.margenPromedio === null ? "—" : <CifraQueCuenta valor={resumen.margenPromedio * 100} formato="porcentaje" alMontar />}
+            valor={resumen.margenPromedio === null ? null : <CifraQueCuenta valor={resumen.margenPromedio * 100} formato="porcentaje" alMontar />}
           >
             {resumen.margenPromedio === null ? "sin precio o costo todavía" : "sobre el precio de venta"}
           </TarjetaCifra>

@@ -46,7 +46,7 @@ export function ComparativoTiendas({
           <button
             key={s.ubicacionId}
             type="button"
-            role="tab"
+            role="tab" // unificar-fijo: tarjetas-pestaña por tienda, ADR-0325
             aria-selected={activa}
             aria-controls="panel-tienda"
             onClick={() => onElegir(s.ubicacionId)}

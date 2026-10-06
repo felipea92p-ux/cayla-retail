@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Search, ShieldCheck, X } from "lucide-react"
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, celda, fila as filaClases } from "@/components/ui/Tabla";
 import { Resaltado } from "@/components/ui/Resaltado";
@@ -52,7 +53,7 @@ import {
    paginado y los filtros en la URL siguen siendo la regla donde la lista la recorta Postgres.
 
    Movimiento: entrada escalonada (`anim-entra` con `--i`), cifras que cuentan una vez
-   (`CifraQueCuenta`), barras que se llenan, pulgar que se desliza (`SegmentoDeslizante`), FLIP al
+   (`CifraQueCuenta`), barras que se llenan, subrayado que viaja entre las secciones (`Pestanas`), FLIP al
    filtrar o agrupar (`useFlip`), cajón y modales con lo del sistema (ADR-0136). Nada en bucle salvo el
    punto del reclamo más viejo, que es una señal, no un adorno.
    ==================================================================== */
@@ -186,11 +187,13 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
       </div>
 
       <div {...entra(1)}>
-        <SegmentoDeslizante
-          etiqueta="Secciones del módulo"
-          valor={vista}
+        {/* Dos secciones con otras columnas y otras acciones: la pestaña de vista del sistema (ADR-0358). */}
+        <Pestanas
+          etiquetaAccesible="Secciones del módulo"
+          idIndicador="notas-credito-secciones"
+          activa={vista}
           onCambio={(v) => setVista(v as "notas" | "saldos")}
-          opciones={[
+          items={[
             { clave: "notas", etiqueta: "Notas" },
             { clave: "saldos", etiqueta: cifras.saldoFavorTotal > 0 ? `Saldos a favor · ${soles(cifras.saldoFavorTotal)}` : "Saldos a favor" },
           ]}
@@ -208,7 +211,6 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           {/* --- las cuatro cifras --------------------------------------------------- */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <TarjetaCifra
-              compacta
               acentoTrazo={cifras.porReclamar.cantidad > 0}
               punto={cifras.porReclamar.masVieja > 14 ? "rojo" : "ambar"}
               puntoPulsa={cifras.porReclamar.masVieja > 14}
@@ -240,7 +242,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               )}
             </TarjetaCifra>
 
-            <TarjetaCifra compacta punto="neutro" etiqueta="Emitidas este mes" valor={<CifraQueCuenta valor={cifras.emitidasMes.monto} formato="soles" alMontar />} className="anim-entra" style={{ ["--i" as string]: 3 }}>
+            <TarjetaCifra punto="neutro" etiqueta="Emitidas este mes" valor={<CifraQueCuenta valor={cifras.emitidasMes.monto} formato="soles" alMontar />} className="anim-entra" style={{ ["--i" as string]: 3 }}>
               {cifras.emitidasMes.cantidad > 0
                 ? [`${cifras.emitidasMes.cantidad === 1 ? "1 nota" : `${cifras.emitidasMes.cantidad} notas`}`, `${soles(cifras.emitidasMes.bajaronDeuda)} bajaron deuda`, cifras.emitidasMes.devueltos > 0 ? `${soles(cifras.emitidasMes.devueltos)} devueltos` : "", `${soles(cifras.emitidasMes.aFavor)} a favor`]
                     .filter(Boolean)
@@ -249,7 +251,6 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             </TarjetaCifra>
 
             <TarjetaCifra
-              compacta
               viva
               punto="verde"
               tono="text-verde-profundo"
@@ -261,7 +262,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             >
               {conSaldo.length > 0 ? (
                 <>
-                  {conSaldo.length === 1 ? "1 proveedor te debe saldo" : `${conSaldo.length} proveedores te deben saldo`} <span className="cmp-flecha">→</span>
+                  {conSaldo.length === 1 ? "1 proveedor te debe saldo" : `${conSaldo.length} proveedores te deben saldo`}
                   {/* Un tramo por proveedor: se ve de un vistazo si el saldo está repartido o concentrado. */}
                   <span aria-hidden className="nc-conc">
                     {conSaldo.map((p, i) => (
@@ -274,7 +275,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               )}
             </TarjetaCifra>
 
-            <TarjetaCifra compacta punto="neutro" etiqueta="Aplicado este mes" valor={<CifraQueCuenta valor={cifras.aplicadoMes.total} formato="soles" alMontar />} className="anim-entra" style={{ ["--i" as string]: 5 }}>
+            <TarjetaCifra punto="neutro" etiqueta="Aplicado este mes" valor={<CifraQueCuenta valor={cifras.aplicadoMes.total} formato="soles" alMontar />} className="anim-entra" style={{ ["--i" as string]: 5 }}>
               {cifras.aplicadoMes.total > 0 ? [`${soles(cifras.aplicadoMes.bajoDeuda)} bajaron deuda`, cifras.aplicadoMes.devuelto > 0 ? `${soles(cifras.aplicadoMes.devuelto)} devueltos` : ""].filter(Boolean).join(" · ") : "Todavía nada este mes"}
             </TarjetaCifra>
           </div>
@@ -301,13 +302,17 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
                 <kbd className="rounded border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55">/</kbd>
               )}
             </label>
+            {/* El estado deja menos notas en la misma lista: la píldora de filtro (ADR-0358). */}
+            <div role="group" aria-label="Estado de la nota" className="flex flex-wrap items-center gap-2">
+              {PESTANAS.map((p) => (
+                <button key={p.clave} type="button" aria-pressed={pestana === p.clave} onClick={() => { setPestana(p.clave); setBanda(null); }} className="pildora-cayla">
+                  {p.etiqueta} <span className="pildora-cayla__n">{conteos[p.clave]}</span>
+                </button>
+              ))}
+            </div>
+            {/* Agrupar muestra las mismas notas en otro orden: el segmento de modo. */}
             <SegmentoDeslizante
-              etiqueta="Estado de la nota"
-              valor={pestana}
-              onCambio={(v) => { setPestana(v as Pestana); setBanda(null); }}
-              opciones={PESTANAS.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, conteo: conteos[p.clave] }))}
-            />
-            <SegmentoDeslizante
+              forma="modo"
               etiqueta="Cómo agrupar"
               valor={agrupar}
               onCambio={(v) => setAgrupar(v as "urgencia" | "proveedor")}
@@ -588,26 +593,26 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
 
   return (
     <div className="space-y-3">
-      <section className="card-cayla anim-entra px-5 py-4" style={{ ["--i" as string]: 2 }}>
-        <p className="label-cayla flex items-center gap-2 text-[11px] text-tinta/65">
-          <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-verde" />A tu favor con proveedores
-        </p>
-        <p className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1.5">
-          <span className="font-display text-[40px] leading-[1.1] tabular-nums text-verde-profundo">
-            <CifraQueCuenta valor={total} formato="soles" alMontar />
-          </span>
-          <span className="text-sm text-tinta/65">
-            {con.length === 1 ? "1 proveedor te debe saldo" : `${con.length} proveedores te deben saldo`}
-            {cubreTodo > 0 ? ` · si lo usaras todo, dejarías de transferir hasta ${soles(cubreTodo)}` : ""}
-          </span>
-        </p>
-        <p className="mt-3 flex items-start gap-2.5 border-t border-tinta/10 pt-3 text-[13px] text-tinta/65">
-          <ShieldCheck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-verde-profundo" />
-          <span>
-            <b className="font-semibold text-tinta">Se sugiere, no se descuenta solo.</b> El saldo a favor se te ofrece en «Pagar juntos» y lo decide quien paga. También puedes pedir que el proveedor te devuelva el dinero.
-          </span>
-        </p>
-      </section>
+      {/* La pieza única de cifra (TarjetaCifra, ADR-0358): antes era una copia a mano de 40 px. */}
+      <TarjetaCifra
+        className="anim-entra"
+        style={{ ["--i" as string]: 2 }}
+        punto="verde"
+        etiqueta="A tu favor con proveedores"
+        valor={<CifraQueCuenta valor={total} formato="soles" alMontar />}
+        tono="text-verde-profundo"
+        pie={
+          <p className="flex items-start gap-2.5 border-t border-tinta/10 pt-3 text-[13px] text-tinta/65">
+            <ShieldCheck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-verde-profundo" />
+            <span>
+              <b className="font-semibold text-tinta">Se sugiere, no se descuenta solo.</b> El saldo a favor se te ofrece en «Pagar juntos» y lo decide quien paga. También puedes pedir que el proveedor te devuelva el dinero.
+            </span>
+          </p>
+        }
+      >
+        {con.length === 1 ? "1 proveedor te debe saldo" : `${con.length} proveedores te deben saldo`}
+        {cubreTodo > 0 ? ` · si lo usaras todo, dejarías de transferir hasta ${soles(cubreTodo)}` : ""}
+      </TarjetaCifra>
 
       {con.map((p, i) => {
         const libro = movimientos.filter((m) => m.proveedorId === p.id).sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));

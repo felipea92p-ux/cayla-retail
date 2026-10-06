@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { userAgent } from "next/server";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
@@ -23,7 +24,6 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { PerdidasVista } from "@/components/perdidas/PerdidasVista";
 import { getResumenPerdidas } from "@/lib/perdidas";
-import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import {
   DIAS_VENTANA_REPETICION,
   MODULOS_DE_RESPALDO,
@@ -216,7 +216,6 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" }) {
   return (
     <Pestanas
-      deslizante
       idIndicador="movimientos-vistas"
       etiquetaAccesible="Vistas de Movimientos"
       activa={activa}
@@ -264,14 +263,15 @@ async function PaginaPerdidas({ ubicacionId, modulos, params }: { ubicacionId: s
         filtro={filtro}
         modulos={modulos}
         selectorPeriodo={
-          <SegmentoEnlaces
-            deslizante
-            idIndicador="perdidas-periodo"
-            etiquetaAccesible="Período de las pérdidas"
-            activo={rango.periodo}
-            // Cambiar el período conserva la prenda o la zona elegida.
-            opciones={PERIODOS_PERDIDAS.map((o) => ({ valor: o.valor, etiqueta: o.etiqueta, href: hrefPerdidas({ periodo: o.valor, ...filtro }) }))}
-          />
+          // Un período es un filtro de un valor: la píldora del sistema (ADR-0358), no el segmento de modo.
+          // Cambiar el período conserva la prenda o la zona elegida.
+          <nav aria-label="Período de las pérdidas" className="flex flex-wrap items-center gap-2">
+            {PERIODOS_PERDIDAS.map((o) => (
+              <Link key={o.valor} href={hrefPerdidas({ periodo: o.valor, ...filtro })} replace aria-current={o.valor === rango.periodo ? "page" : undefined} className="pildora-cayla">
+                {o.etiqueta}
+              </Link>
+            ))}
+          </nav>
         }
       />
     </div>
