@@ -71,8 +71,8 @@ dibujarla sin foto como siempre, ADR-0333). El costo, solo a quien ve el dinero 
 
 - **El pasado no se reconstruye:** lo anterior a cada disparador no quedó anotado. Los cambios viejos sin persona salen como «Nadie quedó anotado» con un
   «¿Por qué?»; una prenda sin `producto_origen`, como «Nació antes de que se anotara quién crea cada prenda».
-- **Diccionario de datos sin refrescar** (columna `ubicacion_id`, funciones nuevas): el volcado de producción también trae cambios de otras sesiones; queda
-  en el backlog.
+- **Diccionario refrescado** el 2026-10-06 desde producción (foto de las 17:05 UTC, 166 relaciones, 906 funciones; las 1.172 huellas verificadas). Trajo
+  también las tablas del Plan del piso de otra sesión (`grupos_mix`, `categoria_grupo_mix`), a las que se les dio pájaro (Halcón) para que el aviario no frene.
 - `fn_historial_producto_cambios` sigue viva sin uso (borrarla es otra migración).
 - `/formidable` sobre la pantalla nueva, pendiente (es obligatoria con tablero).
 
