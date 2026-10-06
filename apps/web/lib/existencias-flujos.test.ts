@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   faltanHasta,
   maxCantidad,
+  mejorOrigen,
   motivoParaLaBase,
   motivosDeAjuste,
   pasoCompleto,
@@ -143,5 +144,19 @@ describe("Falta, el botón final y el resumen", () => {
     expect(quedaTrasAjuste({ lugar: "piso", signo: "quitar", n: 1 }, CTX)).toBe(1);
     expect(quedaTrasAjuste({ lugar: "almacen", signo: "sumar", n: 2 }, CTX)).toBe(7);
     expect(textoHecho("colgar", { n: 1 })).toBe("Colgado · 1 unidad al piso");
+  });
+});
+
+describe("a qué tienda pedir", () => {
+  const sedes = [
+    { id: "lim", nombre: "Tienda Lima" },
+    { id: "aqp", nombre: "Tienda Arequipa" },
+  ];
+  it("la que más tiene, entre las tiendas a las que se puede pedir", () => {
+    expect(mejorOrigen([{ sede: "Tienda Lima", cantidad: 1 }, { sede: "Tienda Arequipa", cantidad: 3 }], sedes)?.id).toBe("aqp");
+  });
+  it("el Taller no cuenta, y sin nadie que tenga es null", () => {
+    expect(mejorOrigen([{ sede: "Taller", cantidad: 9 }], sedes)).toBeNull();
+    expect(mejorOrigen(undefined, sedes)).toBeNull();
   });
 });

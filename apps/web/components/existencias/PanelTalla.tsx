@@ -18,7 +18,7 @@ import { casiNoHay, fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
 import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
-import type { DatosFlujo, SedeConCantidad, TipoFlujo } from "@/lib/existencias-flujos";
+import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -32,7 +32,14 @@ type Icono = ComponentType<{ className?: string; strokeWidth?: number; "aria-hid
 export type FlujoPedido = { tipo: TipoFlujo; datos?: DatosFlujo; paso?: number };
 
 /** Lo que el filtro de la lista marca en este modelo («Sin stock atrás en este modelo · 2»), con la talla que más se vende primero. */
-export type MarcaDelFiltro = { etiqueta: string; coincide: (f: FilaExistencias) => boolean };
+export type MarcaDelFiltro = {
+  etiqueta: string;
+  coincide: (f: FilaExistencias) => boolean;
+  /** El tono del punto que marca el color y la talla en la tarjeta (ámbar lo que se hace aquí, pizarra lo de afuera). */
+  tono: "ambar" | "pizarra" | "tinta";
+  /** «Por colgar»: la acción es colgar (no «Ver»). */
+  esColgar: boolean;
+};
 
 const ICONO: Record<ClaveAccionTalla, Icono> = {
   colgar: IconoPercha,
@@ -259,10 +266,7 @@ export function PanelTalla({
 
   // «Pedir» rápido de una fila de agotadas: la tienda que más tiene, 1 unidad, directo al paso de cuántas.
   function pedirRapido(c: Prenda, t: FilaExistencias) {
-    const mejor = sedesParaPedir
-      .map((s) => ({ ...s, cantidad: (t.enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }))
-      .filter((s) => s.cantidad > 0)
-      .sort((a, b) => b.cantidad - a.cantidad)[0];
+    const mejor = mejorOrigen(t.enRed, sedesParaPedir);
     irA(c, t);
     lanzar("pedir", mejor ? { para: "reponer", origenId: mejor.id, n: 1 } : {}, mejor ? 2 : 0);
   }
@@ -470,7 +474,7 @@ export function PanelTalla({
                             </b>
                             <span className="ml-auto shrink-0 tabular-nums">{sedes}</span>
                             {/* Solo si alguna TIENDA a la que se le puede pedir la tiene: al Taller no se le pide (la base lo rechaza). */}
-                            {puedePedir && sedesParaPedir.some((s) => (t.enRed ?? []).some((r) => r.sede === s.nombre && r.cantidad > 0)) && (
+                            {puedePedir && mejorOrigen(t.enRed, sedesParaPedir) && (
                               <button type="button" onClick={() => pedirRapido(c, t)} className="btn-cayla btn-secundario btn-chico gap-1.5 border-pizarra/40 text-pizarra">
                                 <ArrowLeftRight aria-hidden className="h-4 w-4" />
                                 Pedir

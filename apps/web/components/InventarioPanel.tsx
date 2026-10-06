@@ -34,6 +34,7 @@ import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
 import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
+import { mejorOrigen } from "@/lib/existencias-flujos";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -446,6 +447,9 @@ export function InventarioPanel({
     [stock, listaDelDia]
   );
   const filtrosPuestos = contarFiltrosActivos(elegidos);
+  // Solo «Hoy» y/o «Condición» (sin texto, talla, color, marca ni categoría): la tarjeta enseña TODAS las tallas del color y atenúa las
+  // que no cumplen, como la maqueta. Con otro filtro, las tallas que se ven son las que deja ese filtro (y la tarjeta lo dice).
+  const soloHoyOCondicion = sinTexto && (elegidos.hoy !== null || elegidos.condicion !== null) && filtrosPuestos === (elegidos.hoy ? 1 : 0) + (elegidos.condicion ? 1 : 0);
   const verColgarPrimero = resumen.separaPisoAlmacen && !verDetalle && sinTexto && (filtrosPuestos === 0 || (filtrosPuestos === 1 && elegidos.hoy === "por_colgar"));
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
@@ -501,12 +505,21 @@ export function InventarioPanel({
 
   // La prenda abierta sale de TODO el stock, no de lo filtrado: si se abre escaneando o tras un guardado cambia su «Acción
   // hoy», el detalle no se cierra solo por dejar de coincidir con un filtro.
+  // Cada prenda (modelo + color) con TODAS sus tallas de la sede: la tarjeta las muestra todas cuando solo filtra «Hoy» o «Condición».
+  const prendaPorClave = useMemo(() => new Map(agruparPorPrenda(stock).map((p) => [p.clave, p])), [stock]);
   // Lo que el filtro de la lista marca dentro del panel («Sin stock atrás en este modelo · 2»): «Hoy» o «Condición», como las tarjetas.
   const marcaDelFiltro: MarcaDelFiltro | null = useMemo(() => {
     const hoy = filtros.hoy;
     const condicion = filtros.condicion;
-    if (hoy) return { etiqueta: TEXTO_HOY[hoy], coincide: (f: FilaExistencias) => hoyDeTalla(f) === hoy };
-    if (condicion) return { etiqueta: ROTULO_CONDICION[condicion], coincide: (f: FilaExistencias) => tieneCondicion(f, condicion) };
+    // El tono del punto, como la maqueta: ámbar lo que se hace aquí (colgar, se acaba, dañada), pizarra lo de afuera, tinta lo apartado.
+    if (hoy) return { etiqueta: TEXTO_HOY[hoy], coincide: (f: FilaExistencias) => hoyDeTalla(f) === hoy, tono: hoy === "por_colgar" ? "ambar" : hoy === "mantener" ? "tinta" : "pizarra", esColgar: hoy === "por_colgar" };
+    if (condicion)
+      return {
+        etiqueta: ROTULO_CONDICION[condicion],
+        coincide: (f: FilaExistencias) => tieneCondicion(f, condicion),
+        tono: condicion === "apartadas" ? "tinta" : condicion === "sin_ventas" ? "pizarra" : "ambar",
+        esColgar: false,
+      };
     return null;
   }, [filtros.hoy, filtros.condicion]);
   const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stock).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stock]);
@@ -932,33 +945,20 @@ export function InventarioPanel({
             mostrarMarca={mostrarMarca}
             tallasDePrenda={tallasDePrenda}
             puedeReponer={puedeReponer}
-            puedeAjustar={puedeAjustarAqui}
-            puedeReportarDanada={permisos.reportarDanada}
-            // «Enviar a otra sede» desde la tarjeta: la misma entrada a Traslados que «Trasladar» de lo marcado (`urlTrasladar`), con las
-            // tallas de todos los colores del modelo que tienen algo libre atrás. Solo para quien ve Traslados.
-            puedeEnviar={veTraslados}
-            // Las tres acciones de la ventana de la tarjeta abren el panel de la talla YA en su paso (maqueta: sin ventana aparte).
+            // Las acciones de la tarjeta abren el panel de la talla YA en su paso (maqueta: sin ventana aparte).
+            puedeEnviar={veTraslados && enSedeActiva && destinosParaEnviar.length > 0}
             onEnviar={(_tallas, prenda) => prenda && lanzarDesdeTarjeta(prenda, "enviar")}
             onReponer={(prenda) => lanzarDesdeTarjeta(prenda, "colgar")}
             onSubir={(prenda) => lanzarDesdeTarjeta(prenda, "subir")}
-            onAjustar={(f, origen) => {
-              setAbierta(null);
-              // Desde el menú «⋯» no queda un botón al que volver: el foco vuelve a la tarjeta al cerrar la ventana.
-              volverFoco.current = origen;
-              setAjustando(f);
+            puedePedir={veTraslados && esTienda && enSedeActiva}
+            sedesParaPedir={sedesParaPedir}
+            onPedir={(prenda, fila) => {
+              const mejor = mejorOrigen(fila.enRed, sedesParaPedir);
+              setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: mejor ? { tipo: "pedir", datos: { para: "reponer", origenId: mejor.id, n: 1 }, paso: 2 } : { tipo: "pedir" } });
             }}
-            onReportarDanada={(prenda, origen) => {
-              setAbierta(null);
-              volverFoco.current = origen;
-              setReportando({ productoId: prenda.productoId, colorClave: prenda.clave });
-            }}
-            // «Ver detalle» de una tarjeta: ese producto en la tabla (donde está el cajón de la prenda).
-            onVerDetalle={(p) => {
-              setBusqueda(p.referencia);
-              setVerDetalle(true);
-              setPagina(1);
-            }}
-            // Tocar una talla abre el cajón de ESA talla sin salir de las tarjetas: el cajón no depende de la tabla.
+            marcaDelFiltro={marcaDelFiltro}
+            tallasCompletas={soloHoyOCondicion ? (prenda) => prendaPorClave.get(prenda.clave)?.tallas ?? prenda.tallas : undefined}
+            // Tocar una talla abre el panel de ESA talla sin salir de las tarjetas.
             onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
