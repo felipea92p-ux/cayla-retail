@@ -25,8 +25,11 @@ el repo es público.
       #853, sin SQL.
 - [x] **Abre con los datos de hoy** (Felipe, 2026-10-06 noche, ADR-0357 decisión 2, act. 2): el aviso fijo arriba y «Ver qué falta» lleva a
       «Todavía no», que lleva el mismo aviso con «Ver con los datos de hoy». URL `?ver=falta`. Sin SQL.
-- [ ] **Decide Felipe: ¿Hoy muestra las tres tiendas o solo la elegida arriba?** Preguntó por qué, con TRU elegida, ve también Arequipa y Lima
-      (la fila «Por tienda» de Hoy, que estaba en la maqueta; decisión 3 de ADR-0357).
+- [x] **Análisis, solo de la tienda elegida arriba** (Felipe, 2026-10-06 noche; ADR-0357 decisión 3, act.): salieron «Por tienda» de Hoy, los
+      anillos de cada tienda en «Todavía no» y las barras de las tres en «No se vende» (quedó «Lo que tienes, por tiempo sin venderse»). La
+      comparación de las tres tiendas es de CAYLA Global. Las otras tiendas siguen solo donde hay algo que hacer con una prenda de la tuya.
+- [ ] **Simplificar (no urge):** Análisis ya usa solo el motor de SU tienda, pero `getDatosAnalisis` lo pide para las tres (lo abrió
+      `20261006213000`). Se puede pedir solo la sede; hoy son tres filas, así que no pesa.
 
 ### Antes de subir
 
@@ -74,8 +77,8 @@ el repo es público.
     `pruebas:fn-resumen-comparacion`, `scripts/pruebas/frescura_lectura.mjs` y `roles_por_modulo.mjs`.
 - [ ] **Probar con una encargada real** (y con el líder), en computadora: la prueba ciega fue con lectoras simuladas. Ver que entienda «Qué hacer
       hoy», el carril y la ficha sin ayuda.
-- [ ] **Decide Felipe: ¿las tarjetas «Por tienda» cambian de sede al tocarlas?** La maqueta lo hacía («Cambia la sede a Arequipa y ves su
-      Análisis»). Hoy solo se leen.
+- [x] ~~**Decide Felipe: ¿las tarjetas «Por tienda» cambian de sede al tocarlas?**~~ Ya no aplica: «Por tienda» salió de Análisis
+      (2026-10-06 noche).
 - [ ] **Decide Felipe — dos decisiones de la maqueta que no se tomaron:** «Comprar» para quien no ve Compras ni Producción (hoy el botón no se
       dibuja; la maqueta proponía que se vea y llegue como pedido al líder) y «Mandar a Tareas» cuando exista Inventario ▸ Tareas.
 - [ ] **Decide Felipe — cuánto precarga «Enviar a Arequipa»:** `hrefEnviar` (`lib/analisis-acciones.ts`) precarga todo lo libre de cada prenda

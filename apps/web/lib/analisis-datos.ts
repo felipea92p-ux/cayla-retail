@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/analisis-tipos";
-import { armarPrendas, resumenDeSede } from "@/lib/analisis-armado";
+import { armarPrendas } from "@/lib/analisis-armado";
 import { liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
@@ -16,8 +16,9 @@ import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
 // Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
 // `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error.
 //
-// La encargada y el líder ven lo mismo (decisión 8): las tres tiendas, el dinero y el costo por prenda. Lo que no se puede
-// leer todavía —porque la migración de la actividad no está pegada en producción— vuelve vacío con su falla.
+// La encargada y el líder ven lo mismo (decisión 3): el dinero y el costo por prenda. Todo es de la tienda elegida arriba; las
+// otras tiendas se leen solo para lo que se hace con una prenda de la mía («AQP tiene 3», «Mándalas a Arequipa», «Dónde hay»).
+// Lo que no se puede leer —una migración que no está en producción— vuelve vacío con su falla.
 
 /**
  * Solo en desarrollo: ver Análisis completo con los datos locales aunque la tienda no cumpla las tres condiciones de ADR-0346
@@ -68,9 +69,6 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
   const filasDe = (id: string) => lectura.porSede[id] ?? [];
   const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id) }));
   const prendas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante);
-  const resumenSedes = sedes.map((s) =>
-    resumenDeSede(s.id, s.id === activa.id ? prendas : armarPrendas(filasDe(s.id), otrasDe(s.id), {}), liquidarDesde, hablaSede(s.id)),
-  );
 
   // El último conteo cerrado de la tienda: cuántas prendas contó y en cuántas el sistema coincidió.
   const ultimoConteo = conteos?.find((c) => c.estado === "cerrado" && c.lineas > 0) ?? null;
@@ -82,7 +80,6 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
     preparacion: motor.filas,
     puedeHablar: hablaSede(activa.id),
     prendas,
-    resumenSedes,
     liquidarDesde,
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
     rinde: rinde.rinde,

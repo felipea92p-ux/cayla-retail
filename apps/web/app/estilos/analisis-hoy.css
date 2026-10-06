@@ -4,9 +4,7 @@
 
 @layer components {
   .analisis {
-    /* «Por tienda» y «Repón el piso» sin permiso de Existencias solo informan: no se ven tocables. */
-    .sede-c.fija{cursor:default}
-    .sede-c.fija:hover{border-color:var(--color-sand)}
+    /* «Repón el piso» sin permiso de Existencias solo informa: no se ve tocable. */
     .fl-pie.fija:hover{border-color:var(--color-sand)}
     /* Las piezas del flujo que se tocan como botón, a la vista con el teclado (la etiqueta vive en un foreignObject: anillo por dentro). */
     .fl-past:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}

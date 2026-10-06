@@ -482,12 +482,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   uno solo si el rol ve esa pantalla.
 - `/inventario/resumen` (**Análisis**, ADR-0357, 2026-10-06: cuatro preguntas —Hoy · Se está acabando · No se vende · Qué pedir—;
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
-  que el líder: las tres tiendas, el dinero y el costo por prenda (ADR-0328, enmienda del 2026-10-06). → `page.tsx` (`exigirModulo("analisis")` y
+  que el líder: el dinero y el costo por prenda (ADR-0328, enmienda del 2026-10-06). Todo es de la tienda elegida arriba: la comparación de
+  las tres tiendas vive en CAYLA Global (ADR-0357, decisión 3, act.). → `page.tsx` (`exigirModulo("analisis")` y
   `puede("analizar")`; la sede es SIEMPRE la del selector global; arma `AccesoAnalisis` —qué pantallas ve la cuenta— para no dibujar un botón
-  que termina en «Sin acceso»; `?vista=` elige la pestaña con `leerVista`).
+  que termina en «Sin acceso»; `?vista=` elige la pestaña con `leerVista`; mientras la tienda no cumple ADR-0346 abre con los datos de hoy y un aviso fijo, y `?ver=falta`
+  abre «Todavía no» (`leerQueFalta`, `modoAnalisis` en `lib/analisis-aviso.ts`)).
   · **Lectura** → `lib/analisis-datos.ts:getDatosAnalisis` (servidor, una vez por visita, todo en paralelo; cada parte que falla va a
   `fallas`, se dice en una línea y su sección se calla): RPC `fn_motor_demanda_preparacion()` sin sede (ADR-0346; con `20261006213000`, las
-  tres tiendas para quien analiza) → `leerPreparacion` / `preparacionDeSede` (`lib/motor-demanda-reglas.ts`) → `puedeHablar` de cada tienda
+  tres tiendas para quien analiza) → `leerPreparacion` / `preparacionDeSede` (`lib/motor-demanda-reglas.ts`) → `puedeHablar` de mi tienda
   (`ANALISIS_SIN_CANDADO=1` lo salta fuera de producción); `lib/analisis-sede.ts:getPrendasPorSede` → RPC `fn_analisis_sede` una vez por
   tienda (las prendas de cada una, en un jsonb; pide Análisis, no operar la sede; migración `20261006214000`; se lee con
   `lib/analisis-sede-lectura.ts`); `lib/analisis-por-llegar.ts:getPorLlegar` → RPC `fn_analisis_por_llegar` (lo que viene en camino, por
@@ -495,7 +497,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `parametros_analisis`, `20261006216000`); `lib/analisis-rinde.ts:getRindePorCategoria` → RPC `fn_resumen_comparacion_json` con A = B = los
   últimos 90 días de mi tienda (lo que más rinde por tipo, sin migración; la cuenta es `rindePorCategoria`, `lib/analisis-pedir.ts`);
   `getConteosResumen` (`fn_conteos_resumen`: el último conteo cerrado) y `getPedidosNoAtendidos` («Te pidieron y no había»). El cruce es puro: `lib/analisis-armado.ts` (`armarPrendas`: cada prenda de mi tienda con lo que tienen y venden las otras y lo
-  que viene en camino; `resumenDeSede`: «Por tienda»).
+  que viene en camino).
   · **Contrato y reglas:** `lib/analisis-tipos.ts` (`DatosAnalisis`; `PrendaAnalisis` es una talla de un color) y `lib/analisis-reglas.ts`
   (puro: `grupoDe` decide comprar · enviar · liquidar · vigila, una prenda en un solo grupo; `diasQueQuedan`, `seEstaAcabando`, `porLlegar`,
   `otraSedeQueLaTiene`, `sedeQueMasVende`, `vendioDe10`, `edadDelInventario`, `coincideBusqueda`; las cifras de la maqueta como constantes:

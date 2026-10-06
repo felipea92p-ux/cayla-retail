@@ -14,4 +14,11 @@ Qué hice: mientras la tienda no cumple las tres condiciones del motor, Análisi
 primero que falta; «Ver qué falta» lleva a «Todavía no», con el mismo aviso y «Ver con los datos de hoy» para volver (`?ver=falta`). Sin SQL.
 Por qué así: Felipe lo pidió al verlo en producción, donde ninguna tienda cumple y la pantalla escondía el diseño detrás de un botón chico; la
 regla de ADR-0346 sigue diciendo si las cifras son confiables, ya no si se ven.
-Qué sigue: que Felipe decida si Hoy muestra las tres tiendas o solo la elegida arriba; `/formidable` y `/chaos` siguen pendientes.
+Qué sigue: `/formidable` y `/chaos` siguen pendientes.
+
+## 2026-10-06 (Análisis, solo de la tienda elegida — ADR-0357, decisión 3, act.)
+Qué hice: quité de Análisis la comparación de las tres tiendas («Por tienda» en Hoy, los anillos de cada tienda en «Todavía no» y las barras de
+edad de las tres en «No se vende», que quedó como «Lo que tienes, por tiempo sin venderse»); con ella se fueron `resumenSedes` y `resumenDeSede`.
+Por qué así: Felipe, con TRU elegida, veía Arequipa y Lima y pidió que todo sea de la tienda donde está; la vista de las tres es de CAYLA Global.
+Las otras tiendas quedan solo donde hay algo que hacer con una prenda de la tuya (pedir, mandar, «Dónde hay»).
+Qué sigue: `/formidable` y `/chaos`; pedir el motor solo de la tienda (no urge).

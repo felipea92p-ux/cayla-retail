@@ -9,7 +9,7 @@ import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, soles } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
-import { GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, liquidarDesdeValido, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
+import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, liquidarDesdeValido, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { hrefEnviar, hrefLiquidar } from "@/lib/analisis-acciones";
 import {
   barraDeEdad,
@@ -26,7 +26,7 @@ import {
 } from "@/lib/analisis-quietas";
 
 // Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
-// de lo que tiene cada tienda; abajo, el carril «Días sin venderse» con el control «Liquidar desde», que mueve las prendas de
+// de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días sin venderse» con el control «Liquidar desde», que mueve las prendas de
 // grupo EN VIVO (sin guardar). Guardarlo para todos es otra cosa y la pide un botón aparte. Cada fila abre el flujo que ya existe
 // (Traslados, Etiquetas): Análisis no guarda nada por su cuenta (ADR-0245).
 
@@ -189,7 +189,7 @@ export function PestanaQuieta() {
           />
           <Numero valor={datos.rebajaDe100 === null ? "—" : String(datos.rebajaDe100)} et="de cada 100 ventas" sub="tuvieron rebaja" />
         </section>
-        <PorTienda />
+        <EdadDeLoQueTienes />
       </div>
 
       <Carril
@@ -247,42 +247,35 @@ function Numero({ valor, et, sub }: { valor: string; et: ReactNode; sub: ReactNo
   );
 }
 
-/** «Por tienda»: cuánto de lo que tiene cada tienda lleva 1, 2, 3 o más meses sin venderse (unidades). */
-function PorTienda() {
-  const { datos, sedeDe } = useAnalisis();
+/**
+ * Lo que tiene la tienda, por tiempo sin venderse: cuántas unidades llevan hasta 1, 2, 3 o más meses. Solo de la tienda elegida arriba
+ * (Felipe, 2026-10-06: comparar las tres tiendas es de CAYLA Global, decisión 3 de ADR-0357, act.).
+ */
+function EdadDeLoQueTienes() {
+  const { datos } = useAnalisis();
+  const { total, tramos } = barraDeEdad(edadDelInventario(datos.prendas));
   return (
     <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
       <div className="b-cab" style={{ marginBottom: 8 }}>
         <h3 className="b-tit" style={{ fontSize: 18 }}>
-          Por tienda
+          Lo que tienes, por tiempo sin venderse
         </h3>
       </div>
-      <div className="edades">
-        {datos.resumenSedes.map((r) => {
-          const ciudad = sedeDe(r.sedeId)?.ciudad ?? "Tienda";
-          const { total, tramos } = barraDeEdad(r.edad);
-          return (
-            <div key={r.sedeId} className="edad-fila">
-              <span className="nom">{ciudad}</span>
-              <div className="edad">
-                {total === 0 ? (
-                  <i className="q-sin">Sin prendas</i>
-                ) : (
-                  tramos.map((t, k) => (
-                    <i
-                      key={t.clase}
-                      className={`${t.clase} cx`}
-                      style={{ flex: t.flex, ["--d" as string]: k }}
-                      data-tip={`${ciudad} · ${t.etiqueta} sin venderse: ${nf(t.unidades)} ${plural(t.unidades, "unidad", "unidades")}`}
-                    >
-                      {t.cifraAdentro ? nf(t.unidades) : ""}
-                    </i>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="edad">
+        {total === 0 ? (
+          <i className="q-sin">Sin prendas</i>
+        ) : (
+          tramos.map((t, k) => (
+            <i
+              key={t.clase}
+              className={`${t.clase} cx`}
+              style={{ flex: t.flex, ["--d" as string]: k }}
+              data-tip={`${t.etiqueta} sin venderse: ${nf(t.unidades)} ${plural(t.unidades, "unidad", "unidades")}`}
+            >
+              {t.cifraAdentro ? nf(t.unidades) : ""}
+            </i>
+          ))
+        )}
       </div>
       <div className="leyenda" style={{ marginTop: 10 }}>
         {TRAMOS_EDAD.map((t) => (

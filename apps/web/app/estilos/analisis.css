@@ -160,15 +160,6 @@
     .fl-pie .ir{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
     .fl-pie .ir svg{width:14px;height:14px}
     /* Por tienda (líder) */
-    .sedes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-    @container analisis (max-width:760px){ .sedes{grid-template-columns:minmax(0,1fr)} }
-    .sede-c{padding:14px 16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color 200ms var(--ease-cayla)}
-    .sede-c:hover{border-color:var(--color-taupe)}
-    .sede-c h3{margin:0;font:500 22px/1.1 var(--font-serif);display:flex;justify-content:space-between;align-items:center;gap:8px}
-    .sm{display:grid;grid-template-columns:96px minmax(0,1fr) 28px;gap:8px;align-items:center;font-size:12px;color:var(--color-tinta-60)}
-    .sm .t{height:8px;border-radius:4px;background:var(--color-hueso);overflow:hidden}
-    .sm .t i{display:block;height:100%;border-radius:4px;background:var(--c,var(--color-tinta));width:calc(var(--n)*100%)}
-    .sm b{text-align:right;color:var(--color-tinta);font-variant-numeric:tabular-nums}
     /* ───────── Carriles: gráfico y lista en una sola pieza ───────── */
     .carril{overflow:hidden}
     .c-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 18px 6px}
@@ -306,9 +297,6 @@
     .riel .mes{position:absolute;top:34px;font-size:10.5px;color:var(--color-tinta-60);transform:translateX(-50%)}
     @container analisis (max-width:700px){ .campana{grid-template-columns:minmax(0,1fr)} }
     /* Edad por tienda */
-    .edades{display:flex;flex-direction:column;gap:10px}
-    .edad-fila{display:grid;grid-template-columns:80px minmax(0,1fr);gap:10px;align-items:center}
-    .edad-fila .nom{font-size:13px;font-weight:600}
     .edad{display:flex;gap:2px;height:26px;border-radius:7px;overflow:hidden}
     .edad i{display:flex;align-items:center;padding:0 7px;font-size:11.5px;font-weight:600;font-style:normal;min-width:5px;white-space:nowrap;overflow:hidden}
     .e1{background:color-mix(in srgb,var(--color-rojo-profundo) 9%,var(--color-hueso));color:var(--color-tinta)}
@@ -398,7 +386,7 @@
     .aviso-datos{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;font-size:13px;
       color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 9%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-ambar) 28%,transparent)}
     .aviso-datos .aviso-texto{flex:1;min-width:220px}
-    .c-fila:focus-visible,.l5:focus-visible,.inst:focus-visible,.sede-c:focus-visible,.rank-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
+    .c-fila:focus-visible,.l5:focus-visible,.inst:focus-visible,.rank-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
   }
 }
 

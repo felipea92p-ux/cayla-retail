@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Anillo, ChipEstado, pct, Racha, TilePrenda, NombreCorto } from "@/components/analisis/piezas";
 import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
-import { esTallaUnica, plural } from "@/lib/analisis-reglas";
+import { esTallaUnica } from "@/lib/analisis-reglas";
 import { META_CON_PRENDA as META, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { DIAS_SOSTENIDOS, fechaCorta } from "@/lib/motor-demanda-reglas";
 
@@ -56,7 +56,7 @@ export function AnillosCondiciones({ p }: { p: PreparacionAnalisis | undefined }
   );
 }
 
-/** «Hoy» cuando todavía no se puede recomendar: qué falta, cómo va día a día, las tres tiendas y lo que sí se sabe. */
+/** «Hoy» cuando todavía no se puede recomendar: qué falta, cómo va día a día y lo que sí se sabe, todo de la tienda elegida arriba. */
 export function HoyTodaviaNo() {
   const { datos, prendas, abrirFicha } = useAnalisis();
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
@@ -124,33 +124,11 @@ export function HoyTodaviaNo() {
         </div>
       </section>
 
-      <div className="sedes">
-        {datos.sedes.map((s, k) => {
-          const p = datos.preparacion.find((x) => x.ubicacionId === s.id);
-          const r = ventas30(p);
-          const q = ventasConPrendaDe100(p) ?? 0;
-          const unidades = datos.resumenSedes.find((x) => x.sedeId === s.id)?.unidades ?? 0;
-          return (
-            <article key={s.id} className="tarjeta sede-c entra fija" style={{ ["--i" as string]: 1 + k, alignItems: "center", textAlign: "center" }}>
-              <h3 style={{ justifyContent: "center" }}>{s.ciudad}</h3>
-              <Anillo
-                p={q}
-                meta={META}
-                color={q >= META ? "var(--color-verde)" : "var(--color-ambar)"}
-                centro={r.unidades ? `${q}%` : "—"}
-                et={r.unidades ? `${r.identificadas} de ${r.unidades} con prenda` : "Sin ventas"}
-                sub={`${unidades.toLocaleString("es-PE")} ${plural(unidades, "prenda", "prendas")} en el sistema`}
-              />
-            </article>
-          );
-        })}
-      </div>
-
-      <h2 className="sec entra" style={{ ["--i" as string]: 4 }}>
+      <h2 className="sec entra" style={{ ["--i" as string]: 1 }}>
         Lo que sí sé hoy
       </h2>
       <div className="dos" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
-        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 5 }}>
+        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 2 }}>
           <h4>El conteo coincidió</h4>
           {datos.conteo ? (
             <div style={{ display: "flex", justifyContent: "center" }}>
@@ -166,7 +144,7 @@ export function HoyTodaviaNo() {
             <p className="b-nota">Todavía no hay un conteo cerrado.</p>
           )}
         </div>
-        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 6 }}>
+        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 3 }}>
           <h4>Lo más vendido con su prenda</h4>
           {top.length === 0 ? (
             <p className="b-nota">Sin ventas con su prenda en 30 días.</p>
@@ -186,7 +164,7 @@ export function HoyTodaviaNo() {
           )}
           <div className="nota">Solo cuenta {ident} de cada 100 ventas</div>
         </div>
-        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 7 }}>
+        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 4 }}>
           <h4>
             Te pidieron y no había <ChipEstado est="info">{datos.noHabia.length}</ChipEstado>
           </h4>
@@ -201,7 +179,7 @@ export function HoyTodaviaNo() {
             ))
           )}
         </div>
-        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 8 }}>
+        <div className="tarjeta sabe entra" style={{ ["--i" as string]: 5 }}>
           <h4>Modelos de {datos.sede.ciudad}</h4>
           {modelos.size === 0 ? (
             <p className="b-nota">Sin prendas en el sistema.</p>

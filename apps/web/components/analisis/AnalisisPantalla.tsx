@@ -72,11 +72,6 @@ export function AnalisisPantalla({
   const modo = modoAnalisis(datos.puedeHablar, verQueFalta);
   const forzado = modo === "datos-de-hoy";
   const recomienda = modo !== "que-falta";
-  // Mirando con los datos de hoy, las tres tiendas muestran sus cifras (el aviso de arriba dice que pueden fallar).
-  const datosVista = useMemo(
-    () => (forzado ? { ...datos, resumenSedes: datos.resumenSedes.map((r) => ({ ...r, puedeHablar: true })) } : datos),
-    [datos, forzado],
-  );
 
   // Si el servidor trae otro «Liquidar desde» (lo guardó alguien), se toma (ajuste durante el render, sin efecto).
   const [liquidarLeido, setLiquidarLeido] = useState(datos.liquidarDesde);
@@ -148,7 +143,7 @@ export function AnalisisPantalla({
 
   const contexto: ContextoAnalisis = useMemo(
     () => ({
-      datos: datosVista,
+      datos,
       acceso,
       prendas,
       q,
@@ -165,7 +160,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, datosVista, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
