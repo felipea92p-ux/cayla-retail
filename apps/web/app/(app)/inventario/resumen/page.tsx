@@ -1,90 +1,43 @@
 import { redirect } from "next/navigation";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
-import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
-import { esPedidoDeTalla } from "@/lib/se-probo-reglas";
-import type { AccesoAnalisis } from "@/lib/analisis-que-hacer";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getComparacionInventario, getDesempenoInventario } from "@/lib/resumen-inventario";
-import { pideComparacion } from "@/lib/resumen-comparacion";
-import { clavePeriodosElegidos } from "@/lib/resumen-periodos-guardados";
-import { ResumenBanner } from "@/components/ResumenBanner";
-import { ResumenComparacionPanel } from "@/components/ResumenComparacionPanel";
-import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { getDatosAnalisis } from "@/lib/analisis-datos";
+import { leerVista } from "@/lib/analisis-reglas";
+import type { AccesoAnalisis } from "@/lib/analisis-tipos";
+import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
 
-// Análisis de inventario (ADR-0121 → ADR-0138): la capa histórica del inventario de UNA sede. Tres
-// responsabilidades, cada una en su pantalla:
-//   · Existencias           «¿qué tengo ahora y cómo está el stock?» (incluida su cobertura)
-//   · Análisis › Desempeño  «¿cómo se comportó mi inventario durante el período?»
-//   · Análisis › Comparar   «¿qué cambió entre dos períodos?» (`?modo=comparar`)
-// Esta pantalla NO mezcla el stock de hoy con métricas del período. La ruta sigue siendo
-// `/inventario/resumen` (renombrar la URL rompería enlaces y marcadores por nada). Es del módulo Análisis: hasta el
-// 2026-09-22 solo del líder; desde 20260923130000, de quien lo tenga en su rol (`fn_puede_analizar`), para SU sede —
-// quien no es líder no cambia de sede, así que analiza la suya.
+// Análisis v4 (ADR-0357, Felipe 2026-10-06; reemplaza Desempeño y Comparar de ADR-0138/ADR-0277): cuatro preguntas de la
+// tienda —¿qué hago hoy?, ¿qué se acaba?, ¿qué no se vende?, ¿qué pido?— respondidas con gráficos, cada prenda con su acción.
+// La ruta sigue siendo `/inventario/resumen` (renombrarla rompería enlaces y marcadores por nada).
 //
-// La sede es SIEMPRE la que el líder eligió en el selector global del ERP
-// (`persona.ubicacionId`): la pantalla no tiene selector propio. Uno duplicado
-// dentro del contenido dejaba dos «Trujillo» que podían decir cosas distintas.
-//
-// Todo lo demás vive en la URL — período, búsqueda, filtros, orden y página — y el servidor
-// recalcula con eso: al navegador nunca viaja más que una página de filas. Esta página solo trae
-// datos y elige el layout; las reglas viven en `lib/resumen-desempeno.ts` y `lib/resumen-comparacion.ts`.
-export default async function ResumenInventarioPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+// La tienda es SIEMPRE la del selector de sede del ERP (`persona.ubicacionId`). La encargada y el líder ven lo mismo (decisión
+// 8): las tres tiendas, el dinero y el costo por prenda. Cuando la tienda no cumple las tres condiciones del motor de demanda
+// (ADR-0346), Análisis no recomienda: dice «Todavía no» y qué falta.
+export default async function AnalisisPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const persona = await exigirModulo("analisis");
   if (!puede(persona, "analizar")) redirect("/inventario"); // lo ve pero su rol está limitado: sin las lecturas del módulo
 
   const params = await searchParams;
-  const ubicaciones = await getUbicaciones();
-  const ubicacionActiva = ubicaciones.find((u) => u.id === persona.ubicacionId);
+  const ubicacionActiva = (await getUbicaciones()).find((u) => u.id === persona.ubicacionId);
   if (!ubicacionActiva) redirect("/inventario");
 
-  // Las salidas del estado vacío (2026-09-22): las otras tiendas activas a las que el líder puede cambiarse.
-  const otrasTiendas = ubicaciones.filter((u) => u.tipo === "tienda" && u.activo && u.id !== ubicacionActiva.id).map((u) => ({ id: u.id, nombre: u.nombre }));
-
-  // Análisis conectado (ADR-0245): a qué pantallas llevan sus botones. Cada una solo si el rol la ve (ADR-0161): un botón
-  // que termina en «Sin acceso» no se muestra. «Pedir a otra sede» lo acepta la base con Traslados o con Análisis
-  // (`pedir_a_otra_sede`, ADR-0242 D-7): quien analiza su sede puede pedir lo que se le agotó.
+  // A dónde llevan sus botones: cada uno solo si el rol ve esa pantalla (ADR-0161, ADR-0245). «Pedir a otra tienda» lo acepta
+  // la base con Traslados o con Análisis (`pedir_a_otra_sede`, ADR-0242 D-7). Etiquetas de precio no exige módulo.
   const acceso: AccesoAnalisis = {
-    bajar: veModulo(persona, "existencias"),
+    existencias: veModulo(persona, "existencias"),
     traslados: veModulo(persona, "traslados"),
     pedir: veModulo(persona, "traslados") || veModulo(persona, "analisis"),
     compras: veModulo(persona, "facturas_compra") && puede(persona, "verDineroCompras"),
     produccion: veModulo(persona, "produccion"),
-    productos: veModulo(persona, "productos"),
-    existencias: veModulo(persona, "existencias"),
+    etiquetas: true,
+    movimientos: veModulo(persona, "movimientos"),
+    regularizar: veModulo(persona, "existencias"),
+    cuadrar: veModulo(persona, "existencias"),
+    conteo: veModulo(persona, "conteos"),
+    frescura: veModulo(persona, "frescura"),
+    planCompra: veModulo(persona, "plan_compra") && puede(persona, "verDineroCompras"),
   };
 
-  // Dónde recuerda ESTE navegador los períodos que esta persona dejó elegidos en Comparar, para esta sede (2026-09-29).
-  // Solo es una llave: quien la lee y la escribe es el navegador (`resumen-periodos-guardados.ts`).
-  const claveGuardado = clavePeriodosElegidos(ubicacionActiva.id, persona.personaId);
-
-  const { exactitud, panel } = pideComparacion(params)
-    ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} otrasTiendas={otrasTiendas} claveGuardado={claveGuardado} /> }))
-    : await Promise.all([
-        getDesempenoInventario(ubicacionActiva, params),
-        // «Pidieron y no había» es un dato secundario: si falla, su tarjeta no sale y lo demás sigue (principio 9). Solo
-        // cuenta «buscó y no había»: «se la probó y no la llevó» vive en la misma tabla, pero no es un pedido (ADR-0288 D-6).
-        getPedidosNoAtendidos(ubicacionActiva.id).then((p) => p.filter((x) => !x.resuelto && esPedidoDeTalla(x.motivo)).length).catch(() => null),
-      ]).then(([datos, pedidosNoAtendidos]) => ({
-        exactitud: datos.exactitud,
-        panel: <ResumenDesempenoPanel datos={datos} otrasTiendas={otrasTiendas} acceso={acceso} esLider={persona.rol === "lider"} pedidosNoAtendidos={pedidosNoAtendidos} claveGuardado={claveGuardado} />,
-      }));
-
-  return (
-    <div className="space-y-5">
-      <EncabezadoPagina
-        sede={ubicacionActiva.nombre}
-        titulo="Análisis"
-        subtitulo="Cómo se vendió tu inventario y qué conviene hacer con cada prenda."
-      />
-      {/* El aviso de exactitud es una franja bajo el título (2026-09-22), no una tarjeta que compite con él. */}
-      <ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />
-
-      {panel}
-    </div>
-  );
+  const datos = await getDatosAnalisis(ubicacionActiva);
+  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} />;
 }

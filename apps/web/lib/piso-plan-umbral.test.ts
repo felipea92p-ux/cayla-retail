@@ -52,8 +52,6 @@ const COMPARACIONES = new Set([
 
 /** La deuda de Análisis, anterior al motor, con cuántas cifras de piso tiene cada archivo. Solo baja (actividad 11). */
 const DEUDA_DE_ANALISIS: Record<string, number> = {
-  // «Bajar al piso» en el detalle de una prenda de Análisis cuando la talla tiene 1 o menos colgadas.
-  "components/DetallePrendaAnalisis.tsx": 1,
   // «La talla que se está cortando» de la prenda top: piso ≤ 1.
   "lib/analisis-que-hacer.ts": 1,
   // «Bajar al piso» del Resumen cuando lo colgado cubre menos de 3 días al ritmo de la talla (`DIAS_PISO_ALERTA`).
