@@ -79,13 +79,13 @@ export default async function MoverMercaderiaPage({
   return (
     <div className="space-y-6">
       {/* «Nuevo traslado», como el botón que trae hasta acá y como «Traslado 12» en el detalle (hallazgo 16): antes
-          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados va bajo la frase (ADR-0220). */}
+          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados es la flecha junto a la sede (ADR-0220, act. 2026-10-06). */}
       <EncabezadoPagina
         sede={origen.nombre}
         titulo="Nuevo traslado"
         subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
         // La vuelta dice adónde va: a Existencias si vino de ahí (`?desde=existencias`), a Traslados si no.
-        pie={<Volver {...volverDeNuevoTraslado(params.desde, veModulo(persona, "existencias"))} />}
+        volver={<Volver {...volverDeNuevoTraslado(params.desde, veModulo(persona, "existencias"))} />}
       />
 
       {destinos.length === 0 ? (

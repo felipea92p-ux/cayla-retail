@@ -43,7 +43,9 @@ export function deudaDe(id) {
     const rel = relative(WEB, ruta);
     if (fuera.has(rel)) continue;
     const lineas = readFileSync(ruta, "utf8").split("\n");
-    const donde = lineas.map((l, i) => (firmas.some((f) => f.test(l)) && !MARCA_FIJA.test(l) ? i + 1 : 0)).filter(Boolean);
+    // Un comentario que nombra la forma vieja («antes era «← Volver a …»») no la dibuja: no es deuda.
+    const esComentario = (l) => /^\s*(\/\/|\/\*|\*|\{\s*\/\*)/.test(l);
+    const donde = lineas.map((l, i) => (firmas.some((f) => f.test(l)) && !MARCA_FIJA.test(l) && !esComentario(l) ? i + 1 : 0)).filter(Boolean);
     if (donde.length) sal.push({ archivo: rel, lineas: donde });
   }
   return sal.sort((a, b) => a.archivo.localeCompare(b.archivo));

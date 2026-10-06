@@ -7,6 +7,8 @@ import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
 
 export type FilaPorRegularizar = {
   id: string;
+  /** La línea de venta que originó la fila: Historial llega aquí con ella (`?item=`) para abrir su hoja. */
+  ventaItemId: string;
   descripcion: string;
   categoria: string;
   talla: string;
@@ -26,7 +28,7 @@ export type FilaPorRegularizar = {
   diferencia: number | null;
 };
 
-const COLUMNAS = `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
+const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
        categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
        ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) ),
        cierre:cierres_cola_arranque!prendas_por_regularizar_cierre_fk ( motivo, cerrado_en )`;
@@ -80,6 +82,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
 
   const aFila = (f: (typeof filas)[number]): FilaPorRegularizar => ({
     id: f.id,
+    ventaItemId: f.venta_item_id,
     descripcion: f.descripcion,
     categoria: f.categoria?.nombre ?? "",
     talla: f.talla?.valor ?? "",

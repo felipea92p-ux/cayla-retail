@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 64;
+export const PENDIENTES_HOY = 62;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -112,13 +112,16 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
   "/inventario/resumen": PENDIENTE,
-  "/inventario/traslados": PENDIENTE,
+  // ADR-0355: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
+  // que «/inventario/traslados/(billetera)/[id]».
+  "/inventario/traslados/(billetera)": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx", "components/traslados-pases/PasePedido.tsx"] },
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
-  // ADR-0328 (actividad 15): «¿Quién recibe?» ya lleva su guía (CampoGuiado + PieGuia), y por eso `pnpm focus` la ve «con guía».
-  // Sigue pendiente a propósito: las casillas de lo recibido por prenda, que son el trabajo de la pantalla, todavía no dicen qué
-  // falta ni qué sigue. Pasarla a «aplicada» por un solo campo haría mentir al tablero.
-  "/inventario/traslados/[id]": PENDIENTE,
+  // ADR-0355: el pase y su reverso. «Falta» = lo que ya bloquea la base: al contar, cada prenda enviada sin número (lo mismo que
+  // apaga «Terminé de contar»; la siguiente se enciende y el pie las nombra); quién recibe (ADR-0328); al cerrar con diferencia, la
+  // nota; al anular, el motivo y quién. Piso o almacén no es «falta»: viene marcado (D-131).
+  "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx", "components/traslados-pases/PasePedido.tsx"] },
+  "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de una caja (ADR-0242 D-3): se elige la hoja (térmica o A4, con valor de fábrica) y se imprime; no hay campos que completar ni pasos." },
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
   // ---- pedidos-no-atendidos ----
@@ -135,10 +138,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/recibir": PENDIENTE,
   // ---- productos ----
   "/productos": PENDIENTE,
-  "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "El mismo historial de solo lectura abierto como ventana; el único control es el filtro de sede." },
+  "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "El mismo historial de solo lectura abierto como ventana (ADR-0354); solo hay filtros de tipo y de persona." },
   "/productos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/productos/[id]/editar": { estado: "aplicada", evidencia: ["components/ProductoForm.tsx"] },
-  "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de un producto; el único control es el filtro de sede." },
+  "/productos/[id]/historial": { estado: "no-aplica", motivo: "Historial de solo lectura de una prenda (ADR-0354); solo hay filtros de tipo y de persona." },
   "/productos/atributos": { estado: "no-aplica", motivo: "Tablero de tarjetas, búsqueda y filtros por pestaña; todo lo que se llena vive en ventanas propias (colores, tejidos, patrones, tallas, temporadas, etiquetas), cada una con su guía en el registro de modales." },
   "/productos/categorias": PENDIENTE,
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
@@ -173,7 +176,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 64;
+export const MODALES_PENDIENTES_HOY = 60;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -192,6 +195,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CerrarFaltanteModal.tsx": PENDIENTE, // 5 controles
   // ADR-0328 (actividad 4): la hoja «Cierre de la carga inicial» de Configuración ▸ Tiendas y caja. Falta: la fecha (que cambie y la
   // base la acepte: `validarCierre`) y quién hace el cambio.
+  // ADR-0354: la hoja de «Revisar y guardar» de Editar producto suma UN solo control, «Quién hace estos cambios»; su porqué va
+  // bajo el combo y el botón espera hasta que haya alguien de turno.
+  "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control (Responsable): el botón dice por qué espera." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar, unir y «Registrar su BAJA» (un solo control:
@@ -237,7 +243,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0328 act. 17: «Subir al almacén» (el primer paso de un pedido colgado), «Avisar al cliente» que llegó o que no va a
   // llegar, y «¿Sigue en pie?» (a los 7 días; decisión del 2026-10-04).
   "components/PedidoClienteModales.tsx": { estado: "no-aplica", motivo: "Tres ventanas de confirmación de un solo control: elegir quién lo hace (el combo Responsable). «Subir al almacén» confirma que la prenda del pedido se guardó; «Avisar al cliente» abre WhatsApp con el mensaje listo; «¿Sigue en pie?» se responde con uno de dos botones. No hay campos que llenar ni pasos." },
-  "components/PedidosEntreSedes.tsx": PENDIENTE, // 2 controles
   // «Falta» = lo mismo que apaga el botón «Pedir»: la tienda (si se elige), al menos una prenda y quién registra. La nota es opcional.
   "components/PedirAOtraSedeModal.tsx": { estado: "aplicada", evidencia: ["components/PedirAOtraSedeModal.tsx"] },
   // ADR-0328 act. 17: «Pedir y apartar para el cliente» (Vender y Apartados). «Falta» = lo que apaga el botón y la base rechaza:
@@ -263,9 +268,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
-  "components/ReponerPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReponerPrendaModal.tsx"] },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
-  "components/ReportarDanadaModal.tsx": { estado: "aplicada", evidencia: ["components/ReportarDanadaModal.tsx"] },
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
   // quién decide. La nota de «Se botó» / «Donada» es opcional.
   "components/ResolverDanadosModal.tsx": { estado: "aplicada", evidencia: ["components/ResolverDanadosModal.tsx"] },
@@ -274,14 +277,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RolesPanel.tsx": PENDIENTE, // 5 controles
   "components/SaldoFavorAcciones.tsx": PENDIENTE, // 7 controles
   "components/SeriesPanel.tsx": PENDIENTE, // 8 controles
-  "components/SubirAAlmacenModal.tsx": { estado: "aplicada", evidencia: ["components/SubirAAlmacenModal.tsx"] },
   "components/TallasLista.tsx": { estado: "aplicada", evidencia: ["components/TallasLista.tsx"] },
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
-  "components/TrasladoAnularModal.tsx": PENDIENTE, // 2 controles
-  "components/TrasladoCerrarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
-  "components/TrasladoConfirmarModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).

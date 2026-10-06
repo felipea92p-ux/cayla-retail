@@ -565,6 +565,26 @@
   "tabla": "retail.catalogo_version"
  },
  {
+  "conname": "categoria_grupo_mix_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.categoria_grupo_mix"
+ },
+ {
+  "conname": "categoria_grupo_mix_firma_completa",
+  "definicion": "CHECK (((confirmada_por IS NULL) = (confirmada_en IS NULL)))",
+  "tabla": "retail.categoria_grupo_mix"
+ },
+ {
+  "conname": "categoria_grupo_mix_grupo_clave_fkey",
+  "definicion": "FOREIGN KEY (grupo_clave) REFERENCES retail.grupos_mix(clave)",
+  "tabla": "retail.categoria_grupo_mix"
+ },
+ {
+  "conname": "categoria_grupo_mix_pkey",
+  "definicion": "PRIMARY KEY (categoria_id)",
+  "tabla": "retail.categoria_grupo_mix"
+ },
+ {
   "conname": "categoria_patrones_categoria_id_fkey",
   "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE",
   "tabla": "retail.categoria_patrones"
@@ -3300,6 +3320,31 @@
   "tabla": "retail.gastos_legado_2026_09"
  },
  {
+  "conname": "grupos_mix_clave_formato",
+  "definicion": "CHECK ((clave ~ '^[a-z_]+$'::text))",
+  "tabla": "retail.grupos_mix"
+ },
+ {
+  "conname": "grupos_mix_nombre_no_vacio",
+  "definicion": "CHECK ((length(btrim(nombre)) > 0))",
+  "tabla": "retail.grupos_mix"
+ },
+ {
+  "conname": "grupos_mix_orden_unico",
+  "definicion": "UNIQUE (orden)",
+  "tabla": "retail.grupos_mix"
+ },
+ {
+  "conname": "grupos_mix_pkey",
+  "definicion": "PRIMARY KEY (clave)",
+  "tabla": "retail.grupos_mix"
+ },
+ {
+  "conname": "grupos_mix_rol_valido",
+  "definicion": "CHECK ((rol = ANY (ARRAY['destino'::text, 'rutina'::text, 'ocasional'::text, 'estacional'::text, 'conveniencia'::text])))",
+  "tabla": "retail.grupos_mix"
+ },
+ {
   "conname": "historial_producto_cambios_entidad_check",
   "definicion": "CHECK ((entidad = ANY (ARRAY['producto'::text, 'variante'::text])))",
   "tabla": "retail.historial_producto_cambios"
@@ -3307,6 +3352,11 @@
  {
   "conname": "historial_producto_cambios_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.historial_producto_cambios"
+ },
+ {
+  "conname": "historial_producto_cambios_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.historial_producto_cambios"
  },
  {

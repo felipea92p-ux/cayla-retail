@@ -368,7 +368,9 @@ export const DECISIONES = {
       "role=\"tab\"(?=[\\s>/]|$)",
       "-mb-px[^\"'`]*\\bborder-b-2\\b|\\bborder-b-2\\b[^\"'`]*-mb-px|after:h-0\\.5 after:bg-(?:tinta|rojo)\\b"
     ],
-    "deuda": []
+    "deuda": [
+      "components/traslados-pases/Billetera.tsx"
+    ]
   },
 };
 

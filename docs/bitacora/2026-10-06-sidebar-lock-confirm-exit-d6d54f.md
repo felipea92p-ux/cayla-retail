@@ -1,0 +1,6 @@
+## 2026-10-06 — Existencias: el panel de la talla bloquea la pantalla y pregunta antes de salir
+
+- **QUÉ HICE:** el panel lateral de la talla (`PanelTalla`) ahora es modal: la pantalla de atrás queda sin clics, sin foco y sin scroll; tocar afuera, la ✕ o Escape lo cierran. Si hay una acción a medias (un dato cambiado, un paso avanzado o un guardado en camino), primero sale «¿Salir sin guardar?» (la misma pieza `useSalidaSinGuardar` del resto del ERP).
+- **POR QUÉ ASÍ:** antes tocar otra tarjeta le cambiaba la talla al panel, y eso dejaba usar la lista con el panel abierto; Felipe/Cayla pidieron lo contrario (2026-10-06). «Cambios» = lo que la persona hizo después de abrir el paso: una acción rápida que entra armada («Pedir» desde una fila) no pregunta si no la tocó.
+- **QUÉ SE ROMPERÍA SIN ESTO:** una colaboradora llena «Enviar a otra sede», toca sin querer afuera y pierde lo escrito sin aviso.
+- **Verificado en el navegador (escritorio):** tocar afuera sin cambios cierra directo; con la cantidad cambiada sale el aviso, «Seguir editando» conserva el dato y «Salir sin guardar» cierra y devuelve los clics a la pantalla. **Sin probar:** el combo «Responsable» dentro del panel (la cuenta de prueba es admin y no lo muestra) y 375 px. Escape o «Cancelar» DENTRO de un paso siguen volviendo a la talla sin preguntar.

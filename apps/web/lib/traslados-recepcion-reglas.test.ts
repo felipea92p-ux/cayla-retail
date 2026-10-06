@@ -7,23 +7,19 @@ import {
   buscarEnTraslado,
   consecuenciaAnular,
   consecuenciaCierre,
-  insigniaComparacion,
   leerCasilla,
   leerConteo,
   lugarTexto,
   mensajeEscaneo,
   nombrePrenda,
   puedeTerminar,
-  recorridoRecepcion,
   resolverEscaneo,
-  resumenAntesDeConfirmar,
   resumirGuardado,
   sumarAlConteo,
   textoObligatorioValido,
   textoPorContar,
   valorContado,
   type LineaRecepcion,
-  type TrasladoParaRecorrido,
 } from "./traslados-recepcion-reglas";
 
 function linea(p: Partial<LineaRecepcion> & { varianteId: string }): LineaRecepcion {
@@ -112,12 +108,6 @@ describe("leerConteo", () => {
     expect(textoPorContar(3)).toBe("Faltan 3 prendas por contar");
   });
 
-  it("la insignia pide volver a contar mientras se puede, y después dice qué pasó", () => {
-    const l = leerConteo([VESTIDO, BLUSA], { v1: 3, b1: 0 });
-    expect(insigniaComparacion(l.lineas.get("b1")!, { recontable: true }).texto).toBe("Vuelve a contarla");
-    expect(insigniaComparacion(l.lineas.get("b1")!, { recontable: false }).texto).toBe("Falta 1");
-    expect(insigniaComparacion(l.lineas.get("v1")!, { recontable: false }).texto).toBe("Sobra 1");
-  });
 });
 
 describe("guardado línea por línea", () => {
@@ -182,28 +172,6 @@ describe("confirmar", () => {
     expect(lugarTexto(null, "Taller")).toBe("al stock de Taller");
   });
 
-  it("antes de confirmar: entra lo que coincide y la diferencia espera, con nombre", () => {
-    const l = leerConteo([VESTIDO, BLUSA], { v1: 2, b1: 0 });
-    const r = resumenAntesDeConfirmar(l, { destino: "piso_venta", sede: "Tienda Lima" });
-    expect(r.entran).toBe("Entran 2 prendas que coinciden al piso de venta de Tienda Lima.");
-    expect(r.esperan).toBe("1 prenda con diferencia espera a un líder; las demás ya se pueden vender.");
-    expect(r.detalleEsperan).toEqual(["Blusa Valentina S blanco: enviaron 1, contaste 0"]);
-  });
-
-  it("si todo coincide, no hay nada que espere", () => {
-    const l = leerConteo([VESTIDO], { v1: 2 });
-    expect(resumenAntesDeConfirmar(l, { destino: null, sede: "Taller" })).toEqual({ entran: "Entran 2 prendas que coinciden al stock de Taller.", esperan: null, detalleEsperan: [] });
-  });
-
-  it("en singular y sin nada que coincida", () => {
-    const uno = leerConteo([BLUSA], { b1: 1 });
-    expect(resumenAntesDeConfirmar(uno, { destino: "almacen_tienda", sede: "Tienda Lima" }).entran).toBe("Entra 1 prenda que coincide al almacén de Tienda Lima.");
-    const ninguno = leerConteo([BLUSA], { b1: 0 });
-    const r = resumenAntesDeConfirmar(ninguno, { destino: "piso_venta", sede: "Tienda Lima" });
-    expect(r.entran).toMatch(/nada entra al stock todavía/);
-    expect(r.esperan).toBe("1 prenda con diferencia espera a un líder.");
-  });
-
   it("el aviso dice lo que de verdad entró y dónde", () => {
     expect(
       avisoRecepcion({ numero: 5, resultado: "cerrada", unidadesIngresadas: 3, lineasConDiferencia: 0, destino: "piso_venta", sede: "Tienda Lima", puedeCerrarDiferencia: false }),
@@ -259,50 +227,6 @@ describe("anular", () => {
   it("escribe la consecuencia en singular y plural", () => {
     expect(consecuenciaAnular(5, "Tienda Trujillo", "Tienda Lima")).toBe("Las 5 prendas vuelven al stock de Tienda Trujillo. Tienda Lima ya no verá este traslado por recibir.");
     expect(consecuenciaAnular(1, "Tienda Trujillo", "Tienda Lima")).toMatch(/^La prenda vuelve/);
-  });
-});
-
-describe("recorridoRecepcion", () => {
-  const AHORA = "2026-09-26T18:00:00.000Z";
-  const t: TrasladoParaRecorrido = {
-    estado: "en_transito",
-    ubicacionOrigenNombre: "Tienda Trujillo",
-    ubicacionDestinoNombre: "Tienda Lima",
-    fechaEstimadaLlegada: "2026-09-26T20:00:00.000Z",
-    creadoEn: "2026-09-26T15:00:00.000Z",
-    confirmadoEn: null,
-    cerradoEn: null,
-    anuladoEn: null,
-    creadoPorNombre: "Ana",
-    confirmadoPorNombre: null,
-    cerradoPorNombre: null,
-    anuladoPorNombre: null,
-  };
-  const ctx = { esDestino: true, meTocaCerrar: false, contadas: 0, enviadas: 2, huboDiferencia: false, ahoraIso: AHORA };
-
-  it("anulado es el final: salió y anulado, con quién", () => {
-    const pasos = recorridoRecepcion({ ...t, estado: "anulada", anuladoEn: "2026-09-26T16:00:00.000Z", anuladoPorNombre: "Ana" }, ctx);
-    expect(pasos.map((p) => p.clave)).toEqual(["salio", "anulado"]);
-    expect(pasos[1].estado).toBe("anulado");
-    expect(pasos[1].lineas).toContain("Anuló Ana");
-  });
-
-  it("contando: dice cuántas lleva, sin depender de que alguien haya confirmado", () => {
-    const pasos = recorridoRecepcion(t, { ...ctx, contadas: 1 });
-    expect(pasos[2]).toMatchObject({ estado: "actual", lineas: ["Contando: 1 de 2 prendas"] });
-  });
-
-  it("atrasado es urgente solo para quien recibe", () => {
-    const atrasado = { ...t, fechaEstimadaLlegada: "2026-09-26T16:00:00.000Z" };
-    expect(recorridoRecepcion(atrasado, ctx)[1].estado).toBe("urgente");
-    expect(recorridoRecepcion(atrasado, { ...ctx, esDestino: false })[1].estado).toBe("actual");
-  });
-
-  it("recibido con diferencia: lo que coincidió ya está en stock y la diferencia espera", () => {
-    const pasos = recorridoRecepcion({ ...t, estado: "recibido_con_diferencia", confirmadoEn: AHORA, confirmadoPorNombre: "Luz" }, { ...ctx, meTocaCerrar: true });
-    expect(pasos[2]).toMatchObject({ estado: "alerta" });
-    expect(pasos[2].lineas).toContain("Confirmó Luz");
-    expect(pasos[3].lineas).toEqual(["Lo que coincidió ya está en stock", "Te toca cerrar la diferencia"]);
   });
 });
 

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C · Capítulos — Historial de la prenda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+</head>
+<body>
+<script>
+/* C · CAPÍTULOS
+   La historia contada POR TEMA, porque así se pregunta en la tienda: «¿desde cuándo cuesta esto?», «¿cuándo llegó el turquesa?»,
+   «¿quién le puso Oferta?». Arriba, quién la tocó (tocar a una persona apaga lo que no es suyo en todos los capítulos). Debajo,
+   un capítulo por tema, cada uno con el dibujo que le sirve: el PRECIO como escalera en el tiempo, las ETIQUETAS como barras de
+   cuándo estuvieron puestas, los COLORES con la fecha en que llegó cada uno, la FICHA campo por campo y las FOTOS con quién las subió.
+   «Ver los cambios» abre el capítulo a todo el ancho con su lista (el resto se reacomoda solo).
+   Movimiento (una vez; sin rebote, sin bucle): los capítulos suben en cascada, la escalera del precio se dibuja y su cifra cuenta,
+   las barras de etiquetas crecen desde el día en que se pusieron, los colores aparecen en el orden en que llegaron. */
+const { icono, avatar, esc, colores, soles, familias, personas } = HP;
+
+const ESTILOS = `
+.c-cuerpo{flex:1;min-height:0;overflow:auto;padding:14px 28px 26px}
+.c-gente{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.c-per{display:flex;align-items:center;gap:10px;padding:7px 14px 7px 7px;border:1px solid var(--sand);border-radius:999px;background:var(--papel);
+  transition:border-color 220ms var(--ease),background-color 220ms var(--ease),opacity 220ms var(--ease),transform 220ms var(--ease);animation:sube 460ms var(--ease) backwards;animation-delay:calc(var(--j)*60ms + 120ms)}
+.c-per:hover{border-color:var(--t35);transform:translateY(-1px)}
+.c-per b{display:block;font-size:13.5px;font-weight:600;line-height:1.2}
+.c-per small{display:block;font-size:11.5px;color:var(--t55)}
+.c-per .barra{display:block;height:3px;border-radius:2px;background:var(--tono,var(--t35));margin-top:4px;transform-origin:left;animation:crece 700ms var(--ease) backwards;animation-delay:calc(var(--j)*60ms + 400ms)}
+.c-per[aria-pressed=true]{border-color:var(--tinta);background:color-mix(in srgb,var(--hueso) 60%,var(--papel))}
+.c-gente.filtrando .c-per[aria-pressed=false]{opacity:.45}
+@keyframes sube{from{opacity:0;transform:translate3d(0,10px,0)}}
+@keyframes entra{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes crece{from{transform:scaleX(0)}}
+
+.c-grilla{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.c-cap{position:relative;border:1px solid var(--sand);border-radius:var(--r-xl);background:var(--papel);padding:16px 18px 14px;min-width:0;
+  animation:sube 520ms var(--ease) backwards;animation-delay:calc(var(--j)*70ms + 200ms)}
+.c-cap.ancho,.c-cap.abierto{grid-column:1/-1}
+.c-cap-cab{display:flex;align-items:center;gap:10px}
+.c-cap-cab .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--tono);background:color-mix(in srgb,var(--tono) 14%,var(--papel))}
+.c-cap-cab .ico svg{width:15px;height:15px}
+.c-cap-cab h3{font-family:'EB Garamond',serif;font-weight:600;font-size:21px;line-height:1.1}
+.c-cap-cab .cuenta{font-size:12px;color:var(--t55)}
+.c-ver{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--t75);padding:5px 9px;border-radius:var(--r-md);transition:background-color 200ms var(--ease)}
+.c-ver:hover{background:var(--hueso);color:var(--tinta)}
+.c-ver svg{width:14px;height:14px;transition:transform 300ms var(--ease)}
+.abierto .c-ver svg{transform:rotate(90deg)}
+.c-frase{font-size:13.5px;color:var(--t60);margin-top:8px}
+.c-frase b{color:var(--tinta);font-weight:600}
+.c-falta{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t55);border:1px dashed var(--t35);border-radius:999px;padding:0 7px;margin-left:6px;vertical-align:middle}
+.c-hueco{display:flex;gap:8px;margin-top:10px;padding:9px 11px;border-radius:var(--r-md);background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--t04) 8px 16px);border:1px dashed var(--t25);font-size:12.5px;color:var(--t60);line-height:1.4}
+.c-hueco svg{width:14px;height:14px;flex:none;margin-top:2px}
+.atenua{opacity:.22!important;filter:saturate(.4);transition:opacity 260ms var(--ease),filter 260ms var(--ease)}
+[data-per]{transition:opacity 260ms var(--ease),filter 260ms var(--ease)}
+
+/* Precio: la escalera */
+.c-precio-fila{display:flex;align-items:flex-end;gap:16px;margin-top:6px}
+.c-hoy-precio{font-family:'EB Garamond',serif;font-weight:600;font-size:40px;line-height:1;white-space:nowrap}
+.c-hoy-precio small{display:block;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;color:var(--t55);margin-bottom:4px}
+.c-grafico{position:relative;margin-top:10px}
+.c-grafico svg{display:block;width:100%;height:auto;overflow:visible}
+.c-grafico .eje{stroke:var(--sand);stroke-width:1}
+.c-grafico .linea{fill:none;stroke:var(--ambar);stroke-width:2.5;stroke-linejoin:round;stroke-dasharray:var(--largo);stroke-dashoffset:var(--largo)}
+.listo .c-grafico .linea{animation:traza 1200ms var(--ease) 300ms forwards}
+@keyframes traza{to{stroke-dashoffset:0}}
+.c-grafico .area{fill:color-mix(in srgb,var(--ambar) 12%,transparent);opacity:0}
+.listo .c-grafico .area{animation:aparece 700ms var(--ease) 900ms forwards}
+@keyframes aparece{to{opacity:1}}
+.c-grafico .fecha{font-size:11px;fill:var(--t45)}
+/* Cada escalón: el punto donde cambió, su precio nuevo debajo y, sobre el tramo vertical, la cara de quien lo cambió. */
+.c-marca{position:absolute;transform:translate(-50%,-4.5px);display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0}
+.listo .c-marca{animation:pop 420ms var(--ease) forwards;animation-delay:calc(var(--j)*260ms + 700ms)}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-4.5px) scale(.7)}to{opacity:1;transform:translate(-50%,-4.5px) scale(1)}}
+.c-marca::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ambar);box-shadow:0 0 0 3px var(--papel)}
+.c-marca .v{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--ambar) 16%,var(--papel));color:var(--ambar);white-space:nowrap}
+.c-quien{position:absolute;transform:translate(calc(-100% - 7px),-50%);opacity:0}
+.c-quien .av{--av:22px;font-size:8px}
+.listo .c-quien{animation:aparece 420ms var(--ease) forwards;animation-delay:calc(var(--j)*260ms + 820ms)}
+.c-tramo{position:absolute;transform:translate(-50%,-140%);font-size:11.5px;color:var(--t60);white-space:nowrap;opacity:0}
+.listo .c-tramo{animation:aparece 500ms var(--ease) forwards;animation-delay:calc(var(--j)*260ms + 500ms)}
+.c-costo{margin-top:8px;font-size:12.5px;color:var(--t60)}
+.c-costo svg{width:13px;height:13px;vertical-align:-2px;margin-right:4px}
+
+/* Etiquetas: barras de cuándo estuvieron puestas */
+.c-gantt{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.c-g-fila{display:grid;grid-template-columns:86px 1fr;gap:10px;align-items:center}
+.c-g-nom{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--taupe)}
+.c-g-nom svg{width:12px;height:12px}
+.c-g-pista{position:relative;height:26px;border-radius:7px;background:var(--t04)}
+.c-g-barra{position:absolute;top:3px;bottom:3px;border-radius:5px;background:color-mix(in srgb,var(--taupe) 26%,var(--papel));border:1px solid color-mix(in srgb,var(--taupe) 50%,transparent);
+  display:flex;align-items:center;justify-content:space-between;padding:0 3px;transform-origin:left;transform:scaleX(0)}
+.listo .c-g-barra{animation:crece2 800ms var(--ease) forwards;animation-delay:calc(var(--j)*160ms + 400ms)}
+@keyframes crece2{to{transform:scaleX(1)}}
+.c-g-barra.sigue{border-right:0;border-radius:5px 0 0 5px;background:linear-gradient(90deg,color-mix(in srgb,var(--taupe) 26%,var(--papel)) 70%,color-mix(in srgb,var(--taupe) 8%,var(--papel)))}
+.c-g-barra .av{--av:18px;font-size:7.5px}
+.c-g-eje{display:flex;justify-content:space-between;margin-left:96px;font-size:11px;color:var(--t45)}
+.c-etq-hoy{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.c-etq{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:2px 9px 2px 7px;border-radius:6px;color:var(--taupe);border:1px solid color-mix(in srgb,var(--taupe) 45%,transparent);background:color-mix(in srgb,var(--taupe) 10%,var(--papel))}
+.c-etq svg{width:12px;height:12px}
+
+/* Colores */
+.c-cols{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.c-col{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:5px 0;opacity:0}
+.listo .c-col{animation:entra 440ms var(--ease) forwards;animation-delay:calc(var(--j)*90ms + 350ms)}
+.c-col .sw{width:24px;height:24px}
+.c-col b{font-weight:500;font-size:14px}
+.c-col small{display:block;font-size:12px;color:var(--t55)}
+.c-col .cuando{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t55);white-space:nowrap}
+.c-col .cuando .av{--av:22px;font-size:8px}
+.c-col.nuevo .sw{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px color-mix(in srgb,var(--pizarra) 70%,transparent)}
+.c-tallas{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--sand);font-size:13px;color:var(--t60)}
+.c-tallas b{font-weight:600;color:var(--tinta);border:1px solid var(--t25);border-radius:6px;padding:0 8px;font-size:12.5px}
+
+/* Ficha */
+.c-campos{display:flex;flex-direction:column;margin-top:8px}
+.c-campo{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--sand);font-size:13.5px}
+.c-campo:first-child{border-top:0}
+.c-campo .versal{font-size:10px;color:var(--t55);padding-top:2px}
+.c-campo .hist{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--t55);margin-top:3px}
+.c-campo .hist .av{--av:18px;font-size:7.5px}
+.c-campo .hist s{color:var(--t45)}
+.c-campo .quieto-txt{display:block;font-size:12px;color:var(--t45);margin-top:2px}
+
+/* Fotos */
+.c-fotos{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.c-foto{width:86px;opacity:0}
+.listo .c-foto{animation:entra 460ms var(--ease) forwards;animation-delay:calc(var(--j)*100ms + 380ms)}
+.c-foto .mosaico{aspect-ratio:4/5;border-radius:10px}
+.c-foto .mosaico svg{width:40%}
+.c-foto p{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--t60);margin-top:5px}
+.c-foto p .av{--av:18px;font-size:7.5px}
+.c-foto.vacia .mosaico{background:repeating-linear-gradient(-45deg,transparent 0 6px,var(--t07) 6px 12px);border:1.5px dashed var(--t25);color:var(--t35)}
+
+/* El detalle de un capítulo abierto */
+.c-det{display:grid;grid-template-rows:0fr;transition:grid-template-rows 420ms var(--ease)}
+.abierto .c-det{grid-template-rows:1fr}
+.c-det>div{overflow:hidden}
+.c-lista{margin-top:14px;border-top:1px solid var(--sand)}
+.c-li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.abierto .c-li{animation:sube 420ms var(--ease) backwards;animation-delay:calc(var(--j)*60ms + 120ms)}
+.c-li .txt b{font-weight:600}
+.c-li .txt small{display:block;font-size:12px;color:var(--t55)}
+.c-li .h{font-size:12px;color:var(--t55);text-align:right;white-space:nowrap}
+
+.c-nacio{display:flex;gap:12px;align-items:center;margin-top:14px;padding:12px 14px;border-radius:var(--r-lg);background:var(--hueso);font-size:13px;color:var(--t75)}
+.c-nacio .ico{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--rojo);background:color-mix(in srgb,var(--rojo) 12%,var(--papel));flex:none}
+.c-nacio .ico svg{width:15px;height:15px}
+.c-nacio a{color:var(--tinta);font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--t35)}
+
+::view-transition-group(*){animation-duration:420ms;animation-timing-function:cubic-bezier(.32,.72,.24,1)}
+@container escena (max-width:640px){
+  .c-cuerpo{padding:10px 14px 20px}
+  .c-grilla{grid-template-columns:1fr}
+  .c-gente{flex-wrap:nowrap;overflow-x:auto;margin:0 -14px 12px;padding:0 14px;scrollbar-width:none}
+  .c-per{flex:none}
+  .c-cap{padding:14px}
+  .c-hoy-precio{font-size:32px}
+  .c-precio-fila{flex-direction:column;align-items:flex-start;gap:2px}
+  .c-g-fila{grid-template-columns:70px 1fr}
+  .c-g-eje{margin-left:80px}
+  .c-campo{grid-template-columns:80px 1fr}
+}
+`;
+
+Comun.iniciar({
+  letra: "c",
+  estilos: ESTILOS,
+  dibujar(cont, ctx) {
+    const ev = ctx.eventos;
+    const recien = ctx.caso === "recien";
+    const T0 = new Date(ev[0].t).getTime();
+    const T1 = new Date(HP.HOY + "T18:00").getTime();
+    const x = (t) => Math.max(0, Math.min(1, (new Date(t).getTime() - T0) / (T1 - T0)));
+    const de = (fam) => ev.filter((e) => e.fam === fam);
+    const idPer = (e) => (e.persona ? e.persona.id : "nadie");
+    const hoy = HP.estadoTras(recien ? ev : HP.eventos, (recien ? ev : HP.eventos).length);
+    const nacio = ev[0];
+    const nacimiento = nacio.cambios[0];
+
+    const nCambios = (n) => (n === 0 ? "sin cambios desde que nació" : n === 1 ? "1 cambio" : `${n} cambios`);
+
+    // ---------- Quién la tocó ----------
+    const conteo = new Map();
+    ev.forEach((e) => conteo.set(idPer(e), (conteo.get(idPer(e)) || 0) + 1));
+    const max = Math.max(...conteo.values());
+    const gente = [...conteo.entries()].sort((a, b) => b[1] - a[1]).map(([id, n], j) => {
+      const p = id === "nadie" ? null : personas[id];
+      return `<button class="c-per" data-p="${id}" aria-pressed="false" style="--j:${j};--tono:${p ? p.tono : "var(--t35)"}">${avatar(p, 34)}
+        <span><b>${p ? esc(p.nombre) : "Sin firma"}</b><small>${n} ${n === 1 ? "cambio" : "cambios"}${p ? " · " + esc(p.rol) : " · desde una terminal"}</small><span class="barra" style="width:${Math.round((n / max) * 100)}%"></span></span></button>`;
+    }).join("");
+
+    // ---------- Capítulos ----------
+    const caps = [capPrecio(), capColores(), capEtiquetas(), capFicha(), capFotos()];
+    cont.innerHTML = `${ctx.cabecera(ctx)}
+      <div class="c-cuerpo">
+        <div class="c-gente" role="group" aria-label="Quién la tocó">${gente}</div>
+        <div class="c-grilla">${caps.join("")}</div>
+        <div class="c-nacio"><span class="ico">${icono("brote")}</span><span><b>Nació el ${HP.diaLargo(nacio.t)}</b> · ${esc(nacio.persona ? nacio.persona.nombre : "Sin firma")} · ${esc(nacio.donde)} · con ${nacimiento.colores.length} colores a ${soles(nacimiento.precio)}. Las ventas y el stock de esta prenda viven en <a href="#">Movimientos</a>.</span></div>
+      </div>`;
+
+    function cap(fam, j, { titulo, cuenta, ancho = false, cuerpo, eventos }) {
+      const f = familias[fam];
+      return `<section class="c-cap${ancho ? " ancho" : ""}" data-cap="${fam}" style="--j:${j};--tono:${f.tono};view-transition-name:cap-${fam}">
+        <div class="c-cap-cab"><span class="ico">${icono(f.icono)}</span><div><h3>${titulo}</h3><span class="cuenta">${cuenta}</span></div>
+          ${eventos.length ? `<button class="c-ver" aria-expanded="false">Ver los cambios ${icono("chevron")}</button>` : ""}</div>
+        ${cuerpo}
+        <div class="c-det"><div><div class="c-lista">${[...eventos].reverse().map((e, k) => `<div class="c-li" data-per="${idPer(e)}" style="--j:${k}">${avatar(e.persona, 28)}
+          <span class="txt"><b>${e.persona ? esc(e.persona.corto) : "Sin firma"}</b> ${esc(e.titulo)}<small>${e.cambios.map(HP.linea).map(esc).join(" · ")}</small></span>
+          <span class="h">${HP.dia(e.t)}<br>${HP.hora(e.t)}</span></div>`).join("")}</div></div></div>
+      </section>`;
+    }
+
+    function capPrecio() {
+      const evs = de("precio").filter((e) => e.cambios.some((c) => c.k === "precio"));
+      const pasos = [{ t: nacio.t, v: nacimiento.precio, e: nacio }];
+      evs.forEach((e) => { const c = e.cambios.find((c) => c.k === "precio"); pasos.push({ t: e.t, v: c.despues, e }); });
+      // En el celular el dibujo es más angosto, no más chico: la letra queda del mismo tamaño.
+      const W = ctx.celular ? 340 : 640, H = ctx.celular ? 190 : 160, PX = 14, PT = 34, PB = 26;
+      const vals = pasos.map((p) => p.v), vMin = Math.min(...vals), vMax = Math.max(...vals);
+      // Debajo del precio más bajo queda aire para su cifra: el eje no empieza en el mínimo.
+      const lo = vMin - (vMax - vMin) * 0.75;
+      const y = (v) => (vMax === vMin ? PT + (H - PT - PB) / 2 : PT + (1 - (v - lo) / (vMax - lo)) * (H - PT - PB));
+      const X = (t) => PX + x(t) * (W - 2 * PX);
+      let d = `M ${X(pasos[0].t)} ${y(pasos[0].v)}`;
+      pasos.slice(1).forEach((p) => { d += ` H ${X(p.t)} V ${y(p.v)}`; });
+      d += ` H ${W - PX}`;
+      const largo = Math.round(pasos.reduce((n, p, k) => (k ? n + Math.abs(X(p.t) - X(pasos[k - 1].t)) + Math.abs(y(p.v) - y(pasos[k - 1].v)) : n), 0) + (W - PX - X(pasos[pasos.length - 1].t)) + 20);
+      const area = `${d} V ${H - PB} H ${X(pasos[0].t)} Z`;
+      const marcas = pasos.slice(1).map((p, j) => {
+        const izq = (X(p.t) / W) * 100, arriba = (y(pasos[j].v) / H) * 100, abajo = (y(p.v) / H) * 100;
+        return `<span class="c-marca" data-per="${idPer(p.e)}" style="--j:${j};left:${izq}%;top:${abajo}%"><span class="v num">${soles(p.v)}</span></span>
+          <span class="c-quien" data-per="${idPer(p.e)}" style="--j:${j};left:${izq}%;top:${(arriba + abajo) / 2}%" title="${p.e.persona ? esc(p.e.persona.nombre) : "Sin firma"} · ${HP.diaCorto(p.e.t)}">${avatar(p.e.persona, 22)}</span>`;
+      }).join("");
+      const tramos = pasos.map((p, j) => {
+        const fin = pasos[j + 1] ? X(pasos[j + 1].t) : W - PX;
+        const dias = Math.max(1, Math.round(((pasos[j + 1] ? new Date(pasos[j + 1].t) : new Date(HP.HOY + "T12:00")) - new Date(p.t)) / 864e5));
+        return fin - X(p.t) > 70 ? `<span class="c-tramo" style="--j:${j};left:${((X(p.t) + fin) / 2 / W) * 100}%;top:${(y(p.v) / H) * 100}%">${soles(p.v)} · ${dias} ${dias === 1 ? "día" : "días"}</span>` : "";
+      }).join("");
+      const costo = de("precio").find((e) => e.cambios.some((c) => c.k === "costo"));
+      const cc = costo && costo.cambios.find((c) => c.k === "costo");
+      const baja = Math.round(((nacimiento.precio - hoy.precio) / nacimiento.precio) * 100);
+      const frase = evs.length
+        ? `Cambió <b>${evs.length} ${evs.length === 1 ? "vez" : "veces"}</b>${baja > 0 ? ` · <b>${baja} % menos</b> que cuando nació (${soles(nacimiento.precio)})` : ""}.`
+        : `Cuesta lo mismo desde que nació.`;
+      return cap("precio", 0, {
+        titulo: "Precio", cuenta: nCambios(evs.length), ancho: true, eventos: de("precio"),
+        cuerpo: `<div class="c-precio-fila"><div class="c-hoy-precio"><small>Hoy</small><span class="num" data-cuenta="${nacimiento.precio}:${hoy.precio}">${soles(hoy.precio)}</span></div><p class="c-frase">${frase} Igual en sus ${hoy.colores.length} variantes.</p></div>
+          <div class="c-grafico"><svg viewBox="0 0 ${W} ${H}" aria-label="Precio en el tiempo" style="--largo:${largo}">
+            <line class="eje" x1="${PX}" x2="${W - PX}" y1="${H - PB}" y2="${H - PB}"/>
+            <path class="area" d="${area}"/><path class="linea" d="${d}"/>
+            <text class="fecha" x="${PX}" y="${H - 8}">${HP.diaCorto(nacio.t)}</text>
+            <text class="fecha" x="${W - PX}" y="${H - 8}" text-anchor="end">hoy</text>
+          </svg>${marcas}${tramos}</div>
+          ${cc ? `<p class="c-costo" data-per="${idPer(costo)}">${icono("candado")} Costo ${soles(cc.antes)} → <b>${soles(cc.despues)}</b> · ${HP.dia(costo.t).toLowerCase()}, ${costo.persona ? esc(costo.persona.corto) : "sin firma"} · solo lo ve quien ve el costo</p>` : ""}`,
+      });
+    }
+
+    function capColores() {
+      const evs = de("variantes");
+      const filas = hoy.colores.map((n, j) => {
+        const llegada = ev.find((e) => e.cambios.some((c) => c.k === "col+" && c.colores.includes(n)));
+        const corr = ev.find((e) => e.cambios.some((c) => c.k === "col~" && c.despues === n));
+        const conLaPrenda = nacimiento.colores.includes(n) || (corr && nacimiento.colores.includes(corr.cambios.find((c) => c.k === "col~").antes));
+        let cuando;
+        if (conLaPrenda) cuando = `desde que nació`;
+        else if (llegada) cuando = `llegó el ${HP.diaCorto(llegada.t)} ${avatar(llegada.persona, 22)}`;
+        else cuando = `<span class="c-falta" title="La base no guarda cuándo se agrega un color">sin registro</span>`;
+        const nota = corr ? `antes «${corr.cambios.find((c) => c.k === "col~").antes}» · corrigió ${corr.persona ? esc(corr.persona.corto) : "alguien sin firma"}, ${HP.diaCorto(corr.t)}` : "1 unidad en TRU";
+        return `<div class="c-col${llegada ? " nuevo" : ""}" data-per="${llegada ? idPer(llegada) : corr ? idPer(corr) : "—"}" style="--j:${j}"><span class="sw" style="background:${colores[n].hex}"></span><span><b>${n}</b><small>${nota}</small></span><span class="cuando">${cuando}</span></div>`;
+      }).join("");
+      return cap("variantes", 1, {
+        titulo: "Colores y tallas", cuenta: nCambios(evs.length), eventos: evs,
+        cuerpo: `<div class="c-cols">${filas}</div><div class="c-tallas">Tallas <b>Estándar</b> desde que nació</div>
+          ${ctx.caso === "hoy" ? `<div class="c-hueco">${icono("info")}<span>Hoy la base no anota cuándo se <b>agrega</b> un color o una talla (solo cuando se corrige). Crema y Turquesa llegaron sin dejar rastro.</span></div>` : ""}`,
+      });
+    }
+
+    function capEtiquetas() {
+      const evs = de("etiquetas");
+      const tramos = [];
+      for (const e of evs) for (const c of e.cambios) {
+        if (c.k === "etq+") tramos.push({ nombre: c.nombre, desde: e, hasta: null });
+        if (c.k === "etq-") { const t = tramos.find((x) => x.nombre === c.nombre && !x.hasta); if (t) t.hasta = e; }
+      }
+      const actuales = `<div class="c-etq-hoy">${hoy.etiquetas.length ? hoy.etiquetas.map((x) => `<span class="c-etq">${icono("etiqueta")}${esc(x)}</span>`).join("") : '<span class="c-frase" style="margin:0">Sin etiquetas.</span>'}</div>`;
+      if (ctx.caso === "hoy") {
+        return cap("etiquetas", 2, {
+          titulo: "Etiquetas", cuenta: "hoy no se registran", eventos: [],
+          cuerpo: `<p class="c-frase">Hoy tiene:</p>${actuales}<div class="c-hueco">${icono("info")}<span>La base todavía no guarda cuándo se pone o se quita una etiqueta, ni quién. Con un registro nuevo se vería como en «Completo».</span></div>`,
+        });
+      }
+      const filas = tramos.map((t, j) => {
+        const a = x(t.desde.t), b = t.hasta ? x(t.hasta.t) : 1;
+        return `<div class="c-g-fila"><span class="c-g-nom">${icono("etiqueta")}${esc(t.nombre)}</span><span class="c-g-pista">
+          <span class="c-g-barra${t.hasta ? "" : " sigue"}" data-per="${idPer(t.desde)}" style="--j:${j};left:${a * 100}%;width:${Math.max(4, (b - a) * 100)}%" title="${esc(t.nombre)}: desde el ${HP.diaCorto(t.desde.t)}${t.hasta ? " hasta el " + HP.diaCorto(t.hasta.t) : ", sigue puesta"}">${avatar(t.desde.persona, 18)}${t.hasta ? avatar(t.hasta.persona, 18) : ""}</span></span></div>`;
+      }).join("");
+      return cap("etiquetas", 2, {
+        titulo: "Etiquetas", cuenta: nCambios(evs.length), eventos: evs,
+        cuerpo: tramos.length
+          ? `<div class="c-gantt">${filas}</div><div class="c-g-eje"><span>${HP.diaCorto(nacio.t)}</span><span>hoy</span></div>
+             <p class="c-frase">${tramos.filter((t) => !t.hasta).map((t) => `«${esc(t.nombre)}» puesta desde el ${HP.diaCorto(t.desde.t)}`).join(" · ") || "Hoy no tiene etiquetas."}${ctx.caso === "completo" ? '<span class="c-falta">hoy no se guarda</span>' : ""}</p>`
+          : `<p class="c-frase">Nunca tuvo etiquetas.</p>`,
+      });
+    }
+
+    function capFicha() {
+      const evs = de("ficha");
+      const ultimoDe = (campo) => [...ev].reverse().find((e) => e.cambios.some((c) => (c.k === "texto" || c.k === "ref") && c.campo === campo));
+      const campos = [["Nombre", hoy.nombre], ["Descripción", hoy.descripcion], ["Temporada", hoy.temporada], ["Categoría", "Vestidos"], ["Marca", "CAYLA"]];
+      const filas = campos.map(([campo, valor]) => {
+        const e = ultimoDe(campo);
+        const c = e && e.cambios.find((c) => c.campo === campo);
+        return `<div class="c-campo" data-per="${e ? idPer(e) : "—"}"><span class="versal">${campo}</span><span><span>${esc(valor)}</span>
+          ${e ? `<span class="hist">${avatar(e.persona, 18)} antes <s>${esc(c.antes)}</s> · ${HP.dia(e.t).toLowerCase()}</span>` : `<span class="quieto-txt">sin cambios desde que nació</span>`}</span></div>`;
+      }).join("");
+      // La descripción cambió junto con el precio (un mismo guardado): ese evento también es de la ficha.
+      const todos = ev.filter((e) => e.cambios.some((c) => c.k === "texto" || c.k === "ref"));
+      return cap("ficha", 3, { titulo: "Ficha", cuenta: nCambios(todos.length), eventos: todos, cuerpo: `<div class="c-campos">${filas}</div>` });
+    }
+
+    function capFotos() {
+      const evs = de("fotos");
+      const fotos = hoy.fotos.map((n, j) => {
+        const quien = ev.find((e) => e.cambios.some((c) => c.k === "foto+" && (c.colores.includes(n) || (n === "Crudo" && c.colores.includes("Marfil")))));
+        const c = colores[n];
+        return `<div class="c-foto" data-per="${quien ? idPer(quien) : "—"}" style="--j:${j}"><div class="mosaico" style="background:${c.hex};color:${c.oscuro ? "var(--crema-fija)" : "var(--tinta-fija)"}">${icono("vestido")}</div>
+          <p>${quien ? `${avatar(quien.persona, 18)} ${HP.diaCorto(quien.t)}` : `<span class="c-falta" style="margin:0">sin registro</span>`}</p></div>`;
+      });
+      const sinFoto = hoy.colores.filter((n) => !hoy.fotos.includes(n));
+      sinFoto.forEach((n, k) => fotos.push(`<div class="c-foto vacia" style="--j:${hoy.fotos.length + k}"><div class="mosaico">${icono("imagen")}</div><p>${n}: falta</p></div>`));
+      return cap("fotos", 4, { titulo: "Fotos", cuenta: nCambios(evs.length), eventos: evs, cuerpo: `<div class="c-fotos">${fotos.join("")}</div>` });
+    }
+
+    // ---------- Interacción ----------
+    const cuerpo = cont.querySelector(".c-cuerpo");
+    requestAnimationFrame(() => cuerpo.classList.add("listo"));
+    cont.querySelectorAll("[data-cuenta]").forEach((n) => {
+      const [a, b] = n.dataset.cuenta.split(":").map(Number);
+      if (a !== b) { n.textContent = soles(a); setTimeout(() => HP.contar(n, a, b, { ms: 900, quieto: ctx.quieto }), ctx.quieto ? 0 : 700); }
+    });
+
+    let per = null;
+    cont.querySelectorAll(".c-per").forEach((b) =>
+      b.addEventListener("click", () => {
+        per = per === b.dataset.p ? null : b.dataset.p;
+        cont.querySelectorAll(".c-per").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.p === per)));
+        cont.querySelector(".c-gente").classList.toggle("filtrando", !!per);
+        cont.querySelectorAll(".c-grilla [data-per]").forEach((el) => el.classList.toggle("atenua", !!per && el.dataset.per !== per));
+      })
+    );
+
+    // Abrir un capítulo a todo el ancho. Con View Transitions (Chromium) el resto se reacomoda deslizándose; sin ellas, salta.
+    cont.querySelectorAll(".c-ver").forEach((b) =>
+      b.addEventListener("click", () => {
+        const sec = b.closest(".c-cap");
+        const cambiar = () => {
+          const abrir = !sec.classList.contains("abierto");
+          cont.querySelectorAll(".c-cap.abierto").forEach((s) => { s.classList.remove("abierto"); s.querySelector(".c-ver")?.setAttribute("aria-expanded", "false"); });
+          if (abrir) { sec.classList.add("abierto"); b.setAttribute("aria-expanded", "true"); }
+        };
+        if (document.startViewTransition && !ctx.quieto && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(cambiar);
+        else cambiar();
+        setTimeout(() => sec.scrollIntoView({ block: "nearest", behavior: ctx.quieto ? "auto" : "smooth" }), 440);
+      })
+    );
+  },
+});
+</script>
+</body>
+</html>

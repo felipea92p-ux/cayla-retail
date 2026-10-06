@@ -4,7 +4,7 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 164 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 166 · **Sin pájaro:** 0
 
 ## Por pájaro
 
@@ -14,7 +14,7 @@
 | 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `producto_color_temporadas` · `producto_fotos` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
-| 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_en_mano` · `bajadas_piso` · `capacidad_piso` · `costo_historial` · `cuadre_piso_items` · `cuadres_piso` · `envio_extras` · `envio_traslados` · `envios` · `frescura_decisiones` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `prendas_danadas` · `prendas_para_enviar` · `prendas_para_enviar_salidas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
+| 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_en_mano` · `bajadas_piso` · `capacidad_piso` · `categoria_grupo_mix` · `costo_historial` · `cuadre_piso_items` · `cuadres_piso` · `envio_extras` · `envio_traslados` · `envios` · `frescura_decisiones` · `grupos_mix` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `prendas_danadas` · `prendas_para_enviar` · `prendas_para_enviar_salidas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
 | 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `cierres_cola_arranque` · `clientas` · `clientas_fusiones` · `club_aniversario_escala` · `club_avisos_enviados` · `club_canjes` · `club_etiquetas` · `club_intentos_registro` · `club_invitaciones` · `club_permisos` · `club_textos` · `codigos_descuento` · `cola_arranque_plazo` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `metas_persona_ajustes` · `pedidos_no_atendidos` · `prendas_por_regularizar` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobante_anticipos` · `comprobantes` · `configuracion_empresa` · `proformas` · `respaldo_b002_renumeradas_20261002` · `series_comprobantes` · `ubicacion_datos_fiscales` |
@@ -47,6 +47,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `campana_efecto_caja` | 07 · Colibrí |
 | `capacidad_piso` | 05 · Halcón |
 | `catalogo_version` | 02 · Loro |
+| `categoria_grupo_mix` | 05 · Halcón |
 | `categoria_patrones` | 02 · Loro |
 | `categoria_tallas` | 02 · Loro |
 | `categoria_tejidos` | 02 · Loro |
@@ -119,6 +120,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `gastos_fijos` | 11 · Garza |
 | `gastos_fijos_descartados` | 11 · Garza |
 | `gastos_legado_2026_09` | 11 · Garza |
+| `grupos_mix` | 05 · Halcón |
 | `historial_producto_cambios` | 02 · Loro |
 | `huellas_llave` | 14 · Gorrión |
 | `insumo_lotes` | 10 · Gallito |

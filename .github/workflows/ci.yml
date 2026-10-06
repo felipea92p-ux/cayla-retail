@@ -183,6 +183,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: node --test scripts/sugerir/escanear.test.mjs scripts/focus/escanear.test.mjs
 
+      # `/chaos`: el catálogo de ataques y el detector de invariantes. Solo la parte pura (sin Docker); las consultas contra la base
+      # las corre `node scripts/chaos/invariantes.mjs --autoprueba` en local.
+      - name: Catálogo de caos e invariantes
+        if: ${{ !cancelled() }}
+        run: node --test scripts/chaos/invariantes.test.mjs scripts/chaos/catalogo.test.mjs
+
       # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
       # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
       # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de
@@ -389,6 +395,12 @@ jobs:
       - name: pruebas:actividad-productos
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actividad-productos
+
+      # Historial de la prenda (ADR-0354): etiquetas, variantes nuevas, fotos, tejido y patrón dejan su fila con quién y dónde;
+      # guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
+      - name: pruebas:historial-prenda
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:historial-prenda
 
       # Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
       # sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.

@@ -79,6 +79,11 @@
   "relkind": "r",
   "rls": true
  },
+ "categoria_grupo_mix": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "categoria_patrones": {
   "forzado": false,
   "relkind": "r",
@@ -435,6 +440,11 @@
   "rls": true
  },
  "gastos_legado_2026_09": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "grupos_mix": {
   "forzado": false,
   "relkind": "r",
   "rls": true

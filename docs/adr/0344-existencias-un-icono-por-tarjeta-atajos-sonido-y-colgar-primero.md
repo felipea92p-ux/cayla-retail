@@ -136,3 +136,201 @@ dice «Aparece cuando se cuadre el piso de esta sede», para que su ausencia no 
 
 11. **Sin herramientas de más.** La cabecera pierde su fila de botones (Recibir, Contar, Trasladar y Apartados siguen en el lateral; Cuadrar el piso, en «Pendientes»); con tarjetas no hay «Copiar enlace» ni segundo «Ordenar por» (queda «Prioridad | A–Z»); «Ver detalle» es un icono. La ventana de la tarjeta lleva solo Colgar en el piso, Subir a almacén y Enviar a otra sede.
 12. **El panel de la talla reemplaza al cajón** (`components/existencias/PanelTalla.tsx`, lógica en `lib/existencias-panel-talla.ts`): vistas Esta talla / Todas / Ficha, color y talla para cambiar sin salir, cuatro cifras, frase de diagnóstico, ritmo, otras sedes y siete acciones con lo que dicen debajo. En este corte cada acción abre la ventana que ya existía; **Apartar** (se hace en Vender) y **Pedir a otra sede** (no existe en la base) se dibujan apagadas. Los pasos guiados dentro del panel quedan para el siguiente corte.
+
+## Cuarta vuelta (2026-10-06): toda la maqueta, funciones y diseño
+
+Felipe: «implementa todo lo trabajado en la maqueta, todas sus funcionalidades, diseño». Se construyó en cinco actividades, un commit cada una
+(rama `claude/existencias-maqueta-completa`).
+
+13. **Cada acción se hace dentro del panel, paso a paso** (`components/existencias/FlujoTalla.tsx`, lógica en `lib/existencias-flujos.ts`): pasos
+    numerados con ✓, «Falta: …» tocable (las piezas de la guía de foco, ADR-0284), resumen antes de confirmar, y «✓ hecho» al terminar.
+    - Colgar y Colgar varias → `bajar_al_piso`; Subir a almacén (se queda o para enviar, con nota opcional) → `retirar_del_piso` / `subir_para_enviar`;
+      Pedir a otra sede (para reponer o para un cliente) → `pedir_a_otra_sede` / `pedir_prenda_para_apartar`; Ajustar → `ajustar_inventario`;
+      Reportar dañada → `reportar_danada`. Las MISMAS funciones y los mismos armadores que las ventanas, con la marca del intento por huella.
+    - DECIDÍ: los pasos llaman a la base desde el panel y reusan las reglas de `lib/` (argumentos, errores, «¿la base resolvió la marca?»).
+      DESCARTÉ: abrir las ventanas de siempre encima del panel, porque la maqueta hace todo sin salir y dos ventanas apiladas pierden el foco.
+      SE ROMPE SI: una de esas funciones cambia sus parámetros y solo se actualiza el armador de una ventana que ya no existe; por eso las ventanas
+      Reponer y Subir se borraron (punto 14) y el armador vive en un solo lugar.
+    - **Enviar a otra sede** termina en «Nuevo traslado» ya cargado (cantidad y sede): el traslado es el único que saca prendas de una sede.
+      **Apartar** abre la separación de Vender con la talla puesta (Felipe eligió «Separación de Vender»: ahí se cobra el adelanto con la caja abierta).
+    - **Ajustar** usa los cuatro motivos de la base con las palabras de la maqueta («Error al cobrar» y «Uso interno» viajan como «otro» con su nota;
+      «Se dañó» lleva a Reportar dañada). Una talla que faltó en un conteo cerrado se ajusta en la ventana completa, que la enlaza con ese conteo.
+    - **Lo que la maqueta dibuja y la base no tiene:** el «lo confirma un líder» de Ajustar (no hay cola de aprobación de ajustes). No se construyó.
+14. **Se borran las piezas reemplazadas:** `CajonPrendaExistencias`, `DesgloseStockPrenda`, `ReponerPrendaModal`, `SubirAAlmacenModal`, `ReportarDanadaModal` y `MatrizMover`,
+    con las reglas que solo ellas usaban y sus pruebas. Las que servían se reusan (`casiNoHay`, `lineasDeMoverModelo`, `detalleDeLoMovido`,
+    `leerCantidadTecleada`, `textoFilaSinAlcance`, la nota y el aviso de Subir, y de dañadas `problemasReporte`, `desdeInicial`, `quePasaAlReportar` y
+    `puedeEnviarReporte`: con un envío en duda solo falta quién lo hace, en TODOS los pasos). La suma explicada del cajón (Felipe, 2026-10-04) sigue en el panel,
+    por talla, con la ⓘ de qué cobra la caja.
+15. **La tarjeta como la maqueta:** sin «colgadas · guardadas»; la cabecera abre el panel; con «Hoy» o «Condición» se ven todas las tallas del color
+    (las que cumplen con su punto, la más vendida con un aro, las demás atenuadas) y los colores que cumplen llevan su punto; el icono es Colgar
+    (resaltado si falta algo en el piso), Pedir (agotado aquí y una tienda lo tiene) o Ver (con un filtro). `mejorOrigen` es la única regla de a
+    qué tienda pedir.
+16. **El anillo «N de M hoy»** (`AnilloMision`, `lib/existencias-mision.ts`) reemplaza al botón «Pendientes» y lo abre. Cuenta contra la foto de la
+    mañana, guardada en el navegador por sede y por día: es el marcador del día de quien mira, no un dato de la tienda. Un pedido hecho no cuenta
+    como resuelto hasta que llega. DECIDÍ: el navegador. DESCARTÉ: una tabla, porque una cifra de ánimo no vale un dato auditado ni una migración.
+    SE ROMPE SI: dos equipos de la misma tienda abren el día a horas distintas; cada uno ve su propio avance.
+17. **La caja de buscar de la maqueta**, la **pistola sin tocar el buscador** (`lib/existencias-pistola.ts`: una ráfaga terminada en Enter abre la
+    talla; los atajos 1–7 esperan un instante por si es una ráfaga), **teclado** (← → talla, ↑ ↓ color con `useFlechasDelCajon`, 1–7 acción, Enter
+    sigue, Escape vuelve) y, en el celular, el panel como **hoja que sube con su asa**.
+
+**Lo que se aparta de la maqueta a propósito:** la cabecera de la pantalla sigue siendo `EncabezadoPagina` (ADR-0220: la cabecera de Inventario es la
+de su módulo); el aviso ámbar del piso sin cuadrar sigue (explica por qué «Hoy» no pide colgar); no hay Ctrl+K para buscar (lo usa el buscador
+general); la animación del punto que «vuela» al anillo no se hizo (ADR-0136: sin movimiento decorativo).
+
+## Actualización 2026-10-06 — la barra compacta
+
+**Pedido** (sobre una captura de producción de Tienda TRU a 2000 px): «que la barra de búsqueda sea pequeña y no invasiva; el texto del medio
+quita espacio, quitarlo o acomodarlo; lo del día puede ir arriba o al costado de Filtros; Filtros solo un icono; que se vea el texto y no solo
+iconos; tabla o grilla, un solo icono en cualquier sentido». Se aplicó igual en el ERP y en la maqueta (`docs/maquetas/existencias-tactil-2026-10/`).
+
+**Lo que cambia de este ADR:**
+- **Decisión 3:** los atajos van **siempre con su nombre**. Se quitan el interruptor «Solo iconos | Iconos con texto» y su preferencia
+  (`cayla.filtros-rapidos`). Su «SE ROMPE SI» (en tablet no hay mouse para ver el nombre) era justo el problema que se vio en uso. En la
+  computadora, si no caben, el último baja a otra línea (una fila que se desliza con mouse esconde botones); en el celular se deslizan.
+- **Decisión 10:** «Prioridad | A–Z» pasa a la fila del buscador, a la derecha. **«Colgar primero» se esconde cuando está vacía**, también con el
+  piso sin cuadrar: su frase («Aparece cuando se cuadre el piso…») y el aviso ámbar sobre las tarjetas ocupaban tres líneas que repetían lo que
+  ya dice «por cuadrar» en la cifra de la cabecera. La pausa ahora la dicen dos piezas donde se pregunta: el atajo **«Por colgar» lleva una
+  pausa en vez de un «0»** (la frase completa en su etiqueta y al pasar el mouse) y su **lista vacía explica la pausa** con el botón «Cuadrar el
+  piso». La tarea «Cuadrar el piso» sigue en «Pendientes» (el anillo).
+- **Decisión 16:** el anillo va **al costado de «Filtros»**, del alto de esa fila (40 px); en el celular, solo el círculo (la cifra va en su
+  etiqueta).
+- **Decisión 17:** la caja de buscar baja de 52 a 40 px y, desde 768 px, a un ancho de lectura (26rem): ya no es una franja de lado a lado.
+- **«Filtros» es solo un icono**, con la cifra de lo puesto en la esquina (`BotonFiltros soloIcono`; Productos, Compras e Historial siguen con
+  «Filtros · N» en texto).
+- **Tabla o tarjetas: un icono** que muestra la vista a la que lleva, igual en los dos sentidos (sin «Ver tarjetas» en texto ni relleno oscuro).
+- **La cifra va sola:** se quitan «toca un color para cambiarlo, una talla para ver dónde hay» y «Vista de piso y almacén».
+- Con los atajos a la vista, el «Hoy» o la «Condición» puestos ya no se repiten como chip debajo («Hoy: Sin stock atrás ×»): el atajo encendido
+  lo dice.
+
+**El orden de la barra:** desde 1280 px, dos filas (buscar · escanear · Filtros · anillo | cifra · orden · vista · sonido; debajo, los atajos).
+Más angosto, tres: buscar con Filtros y el anillo, los atajos, y la cifra con la vista. Cada control existe una vez: solo cambia de lugar
+(`order-*` sobre un `flex-wrap`). Medido en local: la tarjeta de la barra pasa de unos 190 px de alto a **120 px** a 1280 y 1440 px; a 1024 px son
+cuatro filas (los atajos no caben en una); a 375 px, 168 px, sin desplazamiento lateral de la página.
+
+DECIDÍ: el anillo al costado de «Filtros».
+DESCARTÉ: subirlo a la cabecera, como la maqueta, porque la cabecera la dibuja el servidor (`EncabezadoPagina`, ADR-0220) y el anillo vive en el
+estado del panel (avanza al colgar): había que colgarlo con un portal que aparece después de cargar la página (un salto) o pasar la cabecera al
+navegador, en dos archivos que también tocan los PR #807 y #808.
+SE ROMPE SI: una sede tiene muchos pendientes y nadie mira el anillo porque quedó «escondido» en la barra: el número del día solo se ve si se
+busca. Si pasa, la cifra de pendientes puede ir también como punto en la cabecera, sin mover el anillo.
+
+### Segunda vuelta del mismo día — el panel «Filtros» se reordena, la tarjeta se achica y la acción dice su nombre
+
+**Pedidos** (mirando la pantalla en local): «estos apartados [Prioridad | A–Z] quizás ponerlos dentro de Filtros, reorganiza Filtros y todo el
+espacio de la barra para que no se sienta congestionada»; «que al pasar el cursor se despliegue el icono con su texto y aparte la ventana»;
+«aprovechar el espacio que sobra, que se vea bonito y no ocupe mucho… pero que tampoco se vea amontonado».
+
+- **Filtros en tres filas con nombre:** **Prenda** (Categoría · Talla · Color · **Marca**: la marca es de la prenda, no de quien gestiona),
+  **Gestión** (Hoy · Condición) y **Vista** (**Ordenar por**, con todos los órdenes, y **Sonido al confirmar**). El orden y el sonido salen de la
+  fila del buscador, que queda con buscar, escanear, Filtros y el anillo a la izquierda, y la cifra y tabla/tarjetas a la derecha. El orden no
+  cuenta como filtro puesto (no quita prendas); si no es el de siempre, se ve como chip «Orden: …» que vuelve atrás con un toque. «Más
+  relevantes» se llama **«Prioridad»** donde la sede separa piso y almacén (el nombre que la persona ya vio).
+- **La acción de la tarjeta sube a la fila de los colores**, a la derecha: su fila propia de abajo estaba vacía salvo por el icono. La tarjeta
+  baja de unos 240 a **192 px** y las acciones de una fila de tarjetas quedan a la misma altura; el aire interior no cambia.
+- **El icono dice su nombre:** con mouse, al pasar el cursor (o enfocar) se estira a «Colgar en el piso» y además se abre la ventana con las
+  OTRAS acciones (ya no repite la del botón). Sin mouse (tablet, celular) el nombre se ve siempre si la tarjeta tiene 18rem de contenido; si
+  no cabe (muchos colores), el botón baja de línea.
+- **Atajos en una fila que se desliza bajo 1280 px:** partidos en dos o tres líneas se veían amontonados. Desde 1280 px caben en una.
+- **El anillo, más chico donde falta ancho:** bajo 1024 px solo el círculo con la cifra adentro (lo que falta, o ✓); el buscador gana ese lugar.
+  Y ya no dice «Al día» si hay pendientes: dice cuántos, en ámbar. Era el recordatorio que quedaba a la vista del piso sin cuadrar.
+
+DECIDÍ: el nombre de la acción se abre al pasar el cursor y se ve siempre con el dedo.
+DESCARTÉ: el nombre siempre visible con mouse (cada tarjeta con un botón ancho: el «amontonado» que se pidió evitar) y solo el icono también en
+tablet (con el dedo no hay «pasar por encima»: el nombre no se vería nunca).
+SE ROMPE SI: una tablet con mouse (o un portátil con pantalla táctil) informa «hover» y nunca muestra el nombre fijo: ahí vale el comportamiento
+de computadora, que es correcto para quien tiene cursor.
+
+### Tercera vuelta — «Qué toca con esta talla» en el panel
+
+**Pedido** (comparando el panel del ERP con el de la maqueta): «le falta especificar si hay, si reponer, qué falta, y si sugiere pedir o
+no a otra sede». En el ERP, una talla con 0 en piso y 6 en almacén decía «Disponible: 6 unidades» en verde: la frase y «Faltan en el piso»
+solo hablaban cuando el motor del piso decía «por colgar», y con el motor sin responder (local) o en pausa (TRU sin cuadrar) callaban.
+
+DECIDÍ: en «Esta talla», tres respuestas que siempre dicen algo (`queTocaConLaTalla`, `lib/existencias-panel-talla.ts`, con su prueba):
+**Hay** (sí/no, con piso y almacén o lo que viene en camino), **Colgar en el piso** (sí y cuántas, con su botón / no hace falta / no se puede
+/ en pausa) y **Pedir a otra sede** (no hace falta / sí, a la tienda que más tiene, con su botón / al Taller se le pide aparte / nadie
+tiene). Manda el motor cuando decide; sin su decisión, los números. «Faltan en el piso» usa la misma idea (`loQueFaltaEnElPiso`). La frase
+única de antes (`diagnosticoDeTalla`) se borra: nadie más la usaba.
+DESCARTÉ: copiar la regla de la maqueta (solo números: 0 en el piso = «por reponer»), porque en una sede sin cuadrar mandaría a colgar lo
+que ya cuelga (ADR-0328, decisión 5). Con el piso en pausa la respuesta es «En pausa» y la frase dice que mire si ya cuelga, sin botón.
+SE ROMPE SI: el motor deja de responder en producción: «Colgar» vuelve a los números y puede pedir colgar una talla de los extremos sin
+ventas, que el motor habría mandado mantener. Es lo menos malo: decir «Disponible» en verde con 0 en el piso era peor.
+
+**La talla principal, con un solo borde** (mismo día): con un filtro puesto, la talla que más se vende llevaba un aro oscuro por fuera de su
+propio borde; en una talla sin nada (borde punteado) quedaban dos bordes. Ahora el aro reemplaza al borde: uno solo, sólido y oscuro, y el
+estado lo dicen el fondo, la cifra («—») y la insignia del filtro.
+
+**Las acciones del panel siguen a la talla** (mismo día; pedido: «que el orden de los accesos cambie según lo que necesita esa prenda y se
+muestren primero los que puede usar»).
+DECIDÍ: primero la que la talla necesita (Colgar si no hay en el piso y sí atrás —con la vara de «Qué toca», nunca en pausa—; si no, Pedir
+cuando queda 1 o ninguna y una tienda tiene), después las que se pueden usar en el orden de su lugar (con algo en el piso: Apartar primero;
+sin nada colgado: Colgar; sin nada en la sede: Pedir), y las que no se pueden ahora al final, como una línea chica con su porqué
+(«No se puede ahora: Subir a almacén · nada en piso»). La tecla 1–7 queda pegada a la acción (Colgar = 1 … Ficha = 7), no a su lugar.
+DESCARTÉ: esconder las que no se pueden (se pierde el porqué: «¿por qué no puedo subirla?» se responde ahí mismo) y numerar por lugar (con
+el orden cambiando en cada talla, la misma tecla haría cosas distintas).
+SE ROMPE SI: alguien aprende de memoria el LUGAR de un botón (no su tecla) y el orden cambia de una talla a otra. El color y el nombre
+siguen iguales; el lugar ya no es fijo a propósito.
+
+### Cuarta vuelta del mismo día — la vista en «Filtros», el buscador a lo ancho y el panel lateral sin amontonar
+
+**Pedido** (mirando la maqueta publicada): «en vista incluir si quiere en grilla o tabla o talla; usar todo el espacio de la barra ya que
+hay menos elementos; céntrate más en la barra lateral», y sobre «Todas» y «Reponer varias»: «que se vea bien, que no se vea amontonado».
+Solo esos cambios. Igual en el ERP y en la maqueta.
+
+- **«Ver como» en «Filtros ▸ Vista»:** Tarjetas · Tabla · Por talla, a un toque y con su nombre (`FiltrosExistencias`, prop `verComo`). Sale
+  de la barra el icono de tabla o tarjetas y, con la tabla, el par «Por prenda | Por talla». Si la vista no es la de tarjetas, un chip
+  «Vista: Tabla ×» lo dice y vuelve con un toque, como el del orden. «Ordenar por» sigue solo con las tarjetas (la tabla tiene su orden).
+- **El buscador toma todo el ancho que queda** (se quita el tope de 26rem): con la vista en «Filtros», la barra tiene menos piezas y el
+  tope dejaba media fila vacía. Medido en local a 1440 px: de unos 416 a 893 px.
+- **«Qué toca» con preguntas cortas** (`PREGUNTA_QUE_TOCA`: «¿Hay?», «¿Colgar?», «¿Pedir?»): «COLGAR EN EL PISO» en mayúsculas se partía en
+  dos líneas. La pregunta va en una columna fija y el botón en la suya, así ninguno salta de línea. Bajo «¿Pedir?», «Otras sedes: AQP 1 ·
+  Taller 12» (antes, un bloque de pastillas aparte que repetía lo mismo).
+- **«En este modelo»**, una tarjeta como la de «Qué toca»: las tallas que faltan en el piso como botones por color, que llevan a esa
+  talla (`loQueFaltaEnElPiso` devuelve ahora `ids`), y **«Casi no hay aquí»** (`components/existencias/CasiNoHay.tsx`), una fila por talla
+  con su «Pedir» en una columna fija. Reemplaza el recuadro de la frase y una franja de color por talla. Con el filtro «Por colgar», la
+  lista de sus tallas ya no se repite más abajo. El ritmo y el código van juntos.
+- **«Todas»:** la matriz en su tarjeta y una sola leyenda debajo (antes, una frase de instrucciones arriba y dos pastillas que parecían
+  botones); el almacén con su «+» («+6»): un «0» suelto debajo se leía como otra cifra del piso.
+- **«Colgar varias»:** las tallas sin nada en almacén van en una línea («Sin nada en almacén: L»), no en una casilla vacía cada una; y al
+  final, «Casi no hay aquí» **sin «Pedir»**, con la nota «se pide desde su talla».
+
+DECIDÍ: «Casi no hay aquí» dentro de «Colgar varias» solo informa.
+DESCARTÉ: dejarle su «Pedir», como la maqueta antes: tocarlo cambia de paso (`onCambiar`/`lanzar`) y se pierden las cantidades ya puestas
+en las casillas. La maqueta, además, elegía la sede con más unidades contando al Taller; ahora elige entre tiendas, como el ERP.
+SE ROMPE SI: alguien termina de colgar y olvida pedir la talla que vio agotada: la lista ya no está a la vista al volver a la talla. La
+fila «¿Pedir?» de esa talla lo vuelve a decir cuando la abre.
+
+**Lo que no se verificó en local:** «Casi no hay aquí» con datos del ERP (la base local no tiene tallas con 1 o ninguna aquí que otra
+tienda tenga); se vio en la maqueta, que usa la misma estructura.
+
+### Quinta vuelta (2026-10-06, noche) — la barra nueva se queda, «Colgar primero» se va y el panel deja de repetir tallas
+
+**Pedido** (comparando lo publicado con la maqueta): «me gustaría que parte de la interfaz actual se quede… sería ideal quedarnos con esa
+barra»; preguntado cuál, Felipe eligió **la nueva** (buscador a lo ancho, la vista dentro de «Filtros»). Sobre la maqueta: «quita esto»
+(«Reponer primero») y «con la barra lateral es muy repetitivo poner de nuevo la talla, eso se podría poner arriba junto a las tallas».
+
+- **La barra:** sin cambios respecto de la cuarta vuelta; es la que se queda.
+- **«Colgar primero» se quita** (decisión 10 de este ADR): sale de la lista de tarjetas (`InventarioPanel`), se borran el componente y
+  `colgarPrimero`/`MAX_COLGAR_PRIMERO`. El aro de semanas, que el panel sigue usando, pasa a `components/existencias/AroSemanas.tsx`; el
+  ritmo (`ritmoDePrenda`, `textoDeRitmo`) se queda en `lib/existencias-colgar-primero.ts`, que conserva su nombre.
+- **Las tallas de arriba del panel lo dicen en su lugar** (`pieDeTalla`, `marcaDeColor`, `lineaDeLoQueFalta`, con sus pruebas): fondo ámbar
+  si falta en el piso (lo que antes eran los botones de «Faltan en el piso», también con el piso en pausa), «otra sede» o «en camino»
+  bajo el número si aquí no queda ninguna, la insignia del filtro en la esquina (como en las tarjetas) y un punto en el círculo del color
+  que tiene algo. Bajo las tallas, UNA línea: «Faltan en el piso: 4 tallas · también en Negro».
+- **Con el piso en pausa** (TRU, sin cuadrar), lo que el sistema cree sin colgar NO se pinta de ámbar ni pone punto en el color, igual que
+  las tarjetas (ADR-0328, decisión 5): la línea lo nombra («Sin colgar, según el sistema: 1 talla») y solo «¿Colgar?» explica la pausa
+  («El piso de esta sede no está cuadrado: mira si ya cuelga antes de colgar más», sin repetir los números de «¿Hay?»). Visto en TRU ya
+  publicado (Adelle Wide Leg 32): la primera versión decía la pausa dos veces, en la línea y en «¿Colgar?», y se dejó en una.
+- **El ritmo es del color, como la maqueta** (mismo día, pedido: «¿no debería aparecer algo similar?»): el panel medía el ritmo talla por
+  talla, y una talla sola casi nunca junta las 3 jornadas que la regla de Felipe pide para decir una tasa (2026-09-25), así que en TRU
+  salía «Poco tiempo en el piso para medir». Ahora mide el color entero (`ritmoDePrenda(prenda)`: «Azul marino: se venden unas 4 por
+  semana. Te alcanza para 2 semanas», con su aro) y, de la talla, dice el hecho: «De esta talla: 2 vendidas en los últimos 7 días»
+  (`vendidasDeLaTalla`, con su prueba). Un conteo no es una tasa: no rompe la regla.
+- **Se quitan del cuerpo** «En este modelo» (las tallas que faltan como botones), «Casi no hay aquí» (una fila por talla) y la lista de
+  tallas del filtro: las tres repetían las tallas de arriba. Pedir una agotada sigue a dos toques (tocarla y «Pedir» en «¿Pedir?»). Se
+  borran `CasiNoHay.tsx` y `casiNoHay` (ya nadie los usa); «Colgar varias» también deja su lista de «casi no hay».
+
+DECIDÍ: la información de cada talla vive en su botón, y del modelo, en una línea y en el punto de cada color.
+DESCARTÉ: dejar «En este modelo» más compacto (una línea de nombres de talla): seguiría nombrando dos veces lo mismo, que fue el reclamo.
+SE ROMPE SI: alguien en tablet no entiende el punto en el círculo de otro color (lo explica al pasar el mouse y al lector de pantalla,
+no con el dedo). La línea bajo las tallas nombra esos colores cuando es por lo que falta; cuando es por «otra sede», hay que tocarlo.

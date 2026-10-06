@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B · Máquina del tiempo — Historial de la prenda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+</head>
+<body>
+<script>
+/* B · MÁQUINA DEL TIEMPO
+   La pregunta no es «qué filas hay en el log», es «¿cómo era esta prenda antes, y quién la cambió?». A la izquierda, la FICHA VIVA:
+   la prenda tal como estaba en el momento elegido (nombre, precio, colores, etiquetas, temporada, fotos). Abajo, una cinta con un
+   punto por cada guardado; se arrastra, se toca o se recorre con ← →, y la ficha se rearma: lo que cambió en ese paso se enciende
+   una vez. A la derecha, QUIÉN y QUÉ de ese paso, con «Comparar con hoy» para ver qué sigue igual y qué no.
+   «▶ Ver su historia» recorre todo desde que nació, una sola vez, y se detiene en hoy (no es un bucle).
+   En «Lo que se guarda hoy», lo que cambió sin dejar rastro (colores nuevos, etiquetas) se nota igual en la ficha, y se dice. */
+const { icono, avatar, esc, colores, soles, familias } = HP;
+
+const ESTILOS = `
+.m-cuerpo{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:300px 1fr;gap:22px;padding:18px 28px 8px}
+.m-ficha{position:relative;border:1px solid var(--sand);border-radius:var(--r-xl);background:color-mix(in srgb,var(--hueso) 35%,var(--papel));padding:14px;align-self:start}
+.m-cuando{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.m-cuando .versal{font-size:10.5px;color:var(--t55)}
+.m-cuando b{font-size:13px;font-weight:600}
+.m-foto{position:relative;aspect-ratio:5/4;border-radius:var(--r-lg);transition:background-color 520ms var(--ease),color 520ms var(--ease)}
+.m-foto .m-nfotos{position:absolute;left:10px;bottom:10px;display:inline-flex;gap:6px;align-items:center;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--papel) 88%,transparent);color:var(--tinta)}
+.m-foto .m-nfotos svg{width:13px;height:13px}
+.m-nombre{font-family:'EB Garamond',serif;font-weight:600;font-size:26px;line-height:1.1;margin-top:12px}
+.m-campos{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.m-campo{position:relative;display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:center;padding:6px 8px;margin:0 -8px;border-radius:var(--r-md);font-size:13.5px;min-height:34px}
+.m-campo>.versal{font-size:10px;color:var(--t55)}
+.m-campo.enc,.m-nombre.enc{animation:enciende 1600ms var(--ease) 1}
+.m-nombre{border-radius:var(--r-md);margin-left:-6px;padding-left:6px}
+@keyframes enciende{0%{background:transparent}18%{background:color-mix(in srgb,var(--tono,var(--ambar)) 20%,transparent)}100%{background:transparent}}
+.m-precio{font-family:'EB Garamond',serif;font-size:24px;font-weight:600;line-height:1}
+.m-sws{display:flex;gap:6px;flex-wrap:wrap}
+.m-sws .sw{width:20px;height:20px;transition:transform 260ms var(--ease)}
+.m-sws .sw.nace{animation:nace 520ms var(--ease) backwards}
+.m-sws .sw.sin-rastro{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--t35)}
+@keyframes nace{from{transform:scale(0);opacity:0}}
+.m-etqs{display:flex;gap:5px;flex-wrap:wrap}
+.m-etq{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px 2px 7px;border-radius:6px;color:var(--taupe);border:1px solid color-mix(in srgb,var(--taupe) 45%,transparent);background:color-mix(in srgb,var(--taupe) 10%,var(--papel))}
+.m-etq svg{width:12px;height:12px}
+.m-etq.nace{animation:cae 460ms var(--ease) backwards}
+@keyframes cae{from{opacity:0;transform:translate3d(0,-8px,0)}}
+.m-nada{color:var(--t45);font-size:13px}
+.m-vv{display:inline-grid}
+.m-vv>*{grid-area:1/1}
+.m-vv .viejo{animation:sale-arriba 420ms var(--ease) forwards}
+.m-vv .nuevo{animation:entra-abajo 520ms var(--ease) 120ms backwards}
+@keyframes sale-arriba{to{opacity:0;transform:translate3d(0,-70%,0)}}
+@keyframes entra-abajo{from{opacity:0;transform:translate3d(0,70%,0)}}
+.m-hoy{display:inline-flex;margin-left:8px;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--hueso);color:var(--t60);font-family:'DM Sans',sans-serif;vertical-align:middle;animation:cae 360ms var(--ease) backwards}
+.m-desc{font-size:13px;color:var(--t75);line-height:1.4}
+
+.m-paso{min-width:0;display:flex;flex-direction:column;gap:14px}
+.m-quien{display:flex;gap:14px;align-items:center}
+.m-quien .txt b{display:block;font-size:17px;font-weight:600}
+.m-quien .txt small{display:block;font-size:13px;color:var(--t55)}
+.m-quien .cuando{margin-left:auto;text-align:right;font-size:13px;color:var(--t60);white-space:nowrap}
+.m-quien .cuando b{display:block;color:var(--tinta);font-weight:600;font-size:14px}
+.m-que{font-family:'EB Garamond',serif;font-size:24px;font-weight:600;line-height:1.15}
+.m-cambios{display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:var(--r-xl);overflow:hidden}
+.m-cam{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;padding:12px 14px;border-top:1px solid var(--sand);animation:sube 460ms var(--ease) backwards;animation-delay:calc(var(--j,0)*80ms + 100ms)}
+.m-cam:first-child{border-top:0}
+@keyframes sube{from{opacity:0;transform:translate3d(0,8px,0)}}
+.m-cam .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--tono);background:color-mix(in srgb,var(--tono) 14%,var(--papel))}
+.m-cam .ico svg{width:15px;height:15px}
+.m-cam .t{font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;color:var(--t55)}
+.m-cam .v{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:2px;font-size:15px}
+.m-cam .antes{color:var(--t45);text-decoration:line-through;text-decoration-thickness:1.5px}
+.m-cam .desp{font-weight:600}
+.m-cam .a svg{width:14px;height:14px;color:var(--t35);vertical-align:-2px}
+.m-cam .nota{font-size:12.5px;color:var(--t55);margin-top:3px;width:100%}
+.m-cam.rastro{background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--t04) 8px 16px)}
+.m-cam.rastro .ico{color:var(--t55);background:transparent;border:1.5px dashed var(--t35)}
+.m-nadie{display:flex;gap:10px;padding:11px 13px;border-radius:var(--r-lg);background:var(--hueso);font-size:13px;color:var(--t75);line-height:1.45}
+.m-nadie svg{width:16px;height:16px;flex:none;margin-top:1px;color:var(--t55)}
+.m-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.m-nav .btn{min-height:38px;font-size:13.5px;padding:0 14px}
+.m-nav .btn[disabled]{opacity:.35;cursor:default}
+.m-comp{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--t75);cursor:pointer;user-select:none}
+.m-comp i{position:relative;width:34px;height:20px;border-radius:999px;background:var(--t15);transition:background-color 240ms var(--ease)}
+.m-comp i::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--papel);transition:transform 240ms var(--ease)}
+.m-comp[aria-checked=true] i{background:var(--tinta)}
+.m-comp[aria-checked=true] i::after{transform:translateX(14px);background:var(--crema)}
+.m-falta{display:inline-block;margin-left:6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t55);border:1px dashed var(--t35);border-radius:999px;padding:0 7px;vertical-align:middle}
+
+/* La cinta del tiempo */
+.m-cinta{padding:10px 28px 20px;border-top:1px solid var(--sand)}
+.m-cinta-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.m-cinta-cab .versal{font-size:10.5px;color:var(--t55)}
+.m-play{min-height:36px!important;font-size:13px!important;padding:0 14px!important}
+.m-pista{position:relative;height:84px;margin:0 14px;touch-action:none;cursor:pointer}
+.m-riel{position:absolute;left:0;right:0;top:37px;height:3px;border-radius:2px;background:var(--sand);transform-origin:left;transform:scaleX(0)}
+.m-relleno{position:absolute;left:0;top:37px;height:3px;border-radius:2px;background:var(--taupe);width:0;transition:width 460ms var(--ease)}
+.lista .m-riel{animation:riel 800ms var(--ease) forwards}
+@keyframes riel{to{transform:scaleX(1)}}
+.m-tick{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;opacity:0}
+.lista .m-tick{animation:tick 420ms var(--ease) forwards;animation-delay:calc(var(--i)*55ms + 300ms)}
+@keyframes tick{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+.m-tick .av{--av:24px;transition:transform 300ms var(--ease),box-shadow 300ms var(--ease)}
+.m-tick .pt{width:13px;height:13px;border-radius:50%;background:var(--papel);box-shadow:inset 0 0 0 2.5px var(--tono);margin-top:2px;transition:transform 300ms var(--ease),background-color 300ms var(--ease)}
+.m-tick.pasado .pt{background:var(--tono)}
+.m-tick.actual .av{transform:translateY(-3px) scale(1.12);box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--tinta)}
+.m-tick.actual .pt{transform:scale(1.35)}
+.m-tick .dia{font-size:11px;color:var(--t45);white-space:nowrap;min-height:15px}
+.m-tick.actual .dia{color:var(--tinta);font-weight:600}
+.m-tick:hover .av{transform:translateY(-2px)}
+.m-tick.falta .pt{box-shadow:inset 0 0 0 2px var(--t45);background:repeating-linear-gradient(-45deg,var(--papel) 0 2px,var(--t25) 2px 4px)}
+.m-mango{position:absolute;top:27.5px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--tinta);box-shadow:0 0 0 4px var(--papel),0 4px 14px -4px color-mix(in srgb,var(--sombra) 60%,transparent);transition:left 460ms var(--ease);pointer-events:none;opacity:0}
+.lista .m-mango{animation:aparece 300ms var(--ease) 700ms forwards}
+.arrastrando .m-mango,.arrastrando .m-relleno{transition:none}
+@keyframes aparece{to{opacity:1}}
+
+@container escena (max-width:640px){
+  .m-cuerpo{grid-template-columns:1fr;padding:12px 16px 8px;gap:14px}
+  .m-ficha{display:grid;grid-template-columns:96px 1fr;gap:4px 12px;padding:12px}
+  .m-cuando{grid-column:1/-1}
+  .m-foto{aspect-ratio:4/5}
+  .m-nombre{margin-top:0;font-size:20px}
+  .m-campos{grid-column:1/-1}
+  .m-campo{grid-template-columns:78px 1fr}
+  .m-quien .cuando{display:none}
+  .m-que{font-size:20px}
+  .m-cinta{padding:8px 0 10px;border-top:0;border-bottom:1px solid var(--sand)}
+  .m-cinta-cab{padding:0 16px}
+  .m-scroll{overflow-x:auto;scrollbar-width:none;padding:0 22px}
+  .m-pista{margin:0}
+  .m-comp{margin-left:0}
+}
+`;
+
+Comun.iniciar({
+  letra: "b",
+  estilos: ESTILOS,
+  dibujar(cont, ctx) {
+    const ev = ctx.eventos; // cronológico
+    const todos = ctx.caso === "recien" ? ev : HP.eventos;
+    const indiceReal = (e) => Math.max(0, todos.findIndex((x) => x.id === e.id));
+    const estadoEn = (i) => HP.estadoTras(todos, indiceReal(ev[i]) + 1);
+    const hoyEstado = HP.estadoTras(todos, todos.length);
+    let i = ev.length - 1, comparar = false, previo = null, reproduciendo = null;
+
+    cont.innerHTML = `${ctx.cabecera(ctx)}
+      <div class="m-cuerpo"><div class="m-ficha"></div><div class="m-paso" aria-live="polite"></div></div>
+      <div class="m-cinta">
+        <div class="m-cinta-cab"><span class="versal">${ctx.celular ? "Su historia · toca un punto" : "Su historia · arrastra o usa ← →"}</span>
+          <button class="btn sec m-play">${icono("play")} Ver su historia</button></div>
+        <div class="m-scroll"><div class="m-pista" role="slider" tabindex="0" aria-label="Momento de la historia" aria-valuemin="1" aria-valuemax="${ev.length}">
+          <span class="m-riel"></span><span class="m-relleno"></span>
+          ${ev.map((e, k) => {
+            const nuevoDia = k === 0 || HP.dia(e.t) !== HP.dia(ev[k - 1].t);
+            return `<button class="m-tick${e.guarda === "falta" && ctx.caso === "completo" ? " falta" : ""}" data-i="${k}" style="--i:${k};--tono:${familias[e.fam].tono};left:${pos(k)}%" aria-label="${esc(HP.dia(e.t))}: ${esc(e.titulo)}">
+              ${avatar(e.persona, 24)}<span class="pt"></span><span class="dia">${nuevoDia ? HP.dia(e.t) : ""}</span></button>`;
+          }).join("")}
+          <span class="m-mango"></span>
+        </div></div>
+      </div>`;
+    // En el celular la cinta va arriba: la hoja la reordena.
+    if (ctx.celular) cont.querySelector(".m-cuerpo").before(cont.querySelector(".m-cinta"));
+
+    function pos(k) { return ev.length === 1 ? 50 : (k / (ev.length - 1)) * 100; }
+    const fichaEl = cont.querySelector(".m-ficha"), pasoEl = cont.querySelector(".m-paso"), pista = cont.querySelector(".m-pista");
+    // En el celular la cinta se desliza de lado: cada punto tiene su lugar para el dedo (44 px de objetivo).
+    if (ctx.celular) pista.style.minWidth = ev.length * 58 + "px";
+
+    function claves(e) {
+      const s = new Set();
+      for (const c of e.cambios) {
+        if (c.k === "alta") ["nombre", "precio", "colores", "temporada", "descripcion"].forEach((x) => s.add(x));
+        if (c.k === "precio") s.add("precio");
+        if (c.k === "costo") s.add("costo");
+        if (c.k === "texto") s.add(c.campo === "Nombre" ? "nombre" : "descripcion");
+        if (c.k === "ref") s.add("temporada");
+        if (c.k === "col+" || c.k === "col~") s.add("colores");
+        if (c.k === "etq+" || c.k === "etq-") s.add("etiquetas");
+        if (c.k === "foto+") s.add("fotos");
+      }
+      return s;
+    }
+
+    // Lo que cambió entre el paso anterior y este y que NINGÚN registro explica (solo en «Lo que se guarda hoy»).
+    function sinRastro(k) {
+      if (k === 0 || ctx.caso !== "hoy") return [];
+      const a = estadoEn(k - 1), b = estadoEn(k), e = ev[k], out = [];
+      const expl = claves(e);
+      const nuevos = b.colores.filter((c) => !a.colores.includes(c));
+      if (nuevos.length && !expl.has("colores")) out.push({ fam: "variantes", texto: `Aparecieron ${nuevos.length === 1 ? "un color" : nuevos.length + " colores"}: ${nuevos.join(" y ")}`, colores: nuevos });
+      if (nuevos.length && expl.has("colores")) {
+        const corregido = e.cambios.find((c) => c.k === "col~");
+        const otros = nuevos.filter((c) => !corregido || c !== corregido.despues);
+        if (otros.length) out.push({ fam: "variantes", texto: `Aparecieron ${otros.length === 1 ? "un color" : otros.length + " colores"}: ${otros.join(" y ")}`, colores: otros });
+      }
+      const etqMas = b.etiquetas.filter((x) => !a.etiquetas.includes(x)), etqMenos = a.etiquetas.filter((x) => !b.etiquetas.includes(x));
+      if ((etqMas.length || etqMenos.length) && !expl.has("etiquetas")) out.push({ fam: "etiquetas", texto: `Sus etiquetas cambiaron: ${[...etqMenos.map((x) => "sin «" + x + "»"), ...etqMas.map((x) => "con «" + x + "»")].join(", ")}` });
+      const fotos = b.fotos.length - a.fotos.length - (expl.has("fotos") ? e.cambios.filter((c) => c.k === "foto+").reduce((n, c) => n + c.colores.length, 0) : 0);
+      if (fotos > 0) out.push({ fam: "fotos", texto: `Ganó ${fotos === 1 ? "una foto" : fotos + " fotos"} que no quedaron anotadas` });
+      return out;
+    }
+
+    function valor(nuevo, viejo, animar) {
+      if (!animar || viejo === undefined || viejo === nuevo) return nuevo;
+      return `<span class="m-vv"><span class="viejo">${viejo}</span><span class="nuevo">${nuevo}</span></span>`;
+    }
+    const hoyChip = (campo, s, texto) => (comparar && JSON.stringify(s[campo]) !== JSON.stringify(hoyEstado[campo]) ? `<span class="m-hoy">hoy: ${texto}</span>` : "");
+
+    function pintarFicha(animar) {
+      const s = estadoEn(i), p = previo, e = ev[i];
+      const enc = animar ? claves(e) : new Set();
+      const fam = familias[e.fam].tono;
+      const colorFoto = colores[s.colores[0]] || colores.Cereza;
+      const sws = s.colores.map((n, k) => {
+        const nace = animar && p && !p.colores.includes(n);
+        const rastro = ctx.caso === "hoy" && nace && !claves(e).has("colores");
+        return `<span class="sw${nace ? " nace" : ""}${rastro ? " sin-rastro" : ""}" style="background:${colores[n].hex};animation-delay:${k * 60}ms" title="${n}"></span>`;
+      }).join("");
+      const etqs = s.etiquetas.length
+        ? s.etiquetas.map((x) => `<span class="m-etq${animar && p && !p.etiquetas.includes(x) ? " nace" : ""}">${icono("etiqueta")}${esc(x)}</span>`).join("")
+        : `<span class="m-nada">Sin etiquetas</span>`;
+      const campo = (clave, rotulo, html) => `<div class="m-campo${enc.has(clave) ? " enc" : ""}" style="--tono:${fam}"><span class="versal">${rotulo}</span><span>${html}</span></div>`;
+      fichaEl.innerHTML = `
+        <div class="m-cuando"><span class="versal">Así estaba</span><b>${HP.dia(e.t)} · ${HP.hora(e.t)}</b></div>
+        <div class="m-foto mosaico" style="background:${colorFoto.hex};color:${colorFoto.oscuro ? "var(--crema-fija)" : "var(--tinta-fija)"}">${icono("vestido")}<span class="m-nfotos">${icono("imagen")}${s.fotos.length} ${s.fotos.length === 1 ? "foto" : "fotos"}</span></div>
+        <div class="m-nombre${enc.has("nombre") ? " enc" : ""}" style="--tono:${fam}">${valor(esc(s.nombre), p && esc(p.nombre), enc.has("nombre"))}${hoyChip("nombre", s, esc(hoyEstado.nombre))}</div>
+        <div class="m-campos">
+          ${campo("precio", "Precio", `<span class="m-precio num" data-precio>${soles(s.precio)}</span>${hoyChip("precio", s, soles(hoyEstado.precio))}`)}
+          ${campo("colores", "Colores", `<span class="m-sws">${sws}</span>${hoyChip("colores", s, hoyEstado.colores.length + " colores")}`)}
+          ${campo("etiquetas", "Etiquetas", `<span class="m-etqs">${etqs}</span>${hoyChip("etiquetas", s, hoyEstado.etiquetas.join(", ") || "ninguna")}`)}
+          ${campo("temporada", "Temporada", valor(esc(s.temporada), p && esc(p.temporada), enc.has("temporada")) + hoyChip("temporada", s, esc(hoyEstado.temporada)))}
+          ${campo("descripcion", "Descripción", `<span class="m-desc">${valor(esc(s.descripcion), p && esc(p.descripcion), enc.has("descripcion"))}</span>`)}
+          ${campo("costo", `Costo ${icono("candado").replace('class="ic"', 'class="ic" style="width:11px;height:11px;vertical-align:-1px"')}`, valor(soles(s.costo), p && soles(p.costo), enc.has("costo")) + hoyChip("costo", s, soles(hoyEstado.costo)))}
+        </div>`;
+      const pr = fichaEl.querySelector("[data-precio]");
+      if (animar && p && p.precio !== s.precio) HP.contar(pr, p.precio, s.precio, { ms: 650, quieto: ctx.quieto });
+    }
+
+    function pintarPaso() {
+      const e = ev[i], per = e.persona;
+      const extra = sinRastro(i);
+      pasoEl.innerHTML = `
+        <div class="m-quien">${avatar(per, 48)}
+          <div class="txt">${per ? `<b>${esc(per.nombre)}</b><small>${esc(per.rol)} · ${esc(e.donde)}</small>` : `<b>Nadie quedó anotado</b><small>Se guardó desde una terminal sin elegir quién</small>`}</div>
+          <div class="cuando"><b>${HP.dia(e.t)}</b>${HP.diaLargo(e.t)} · ${HP.hora(e.t)}</div></div>
+        <p class="m-que">${per ? esc(per.corto) : "Alguien"} ${esc(e.titulo)}${e.guarda === "falta" && ctx.caso === "completo" ? '<span class="m-falta" title="Solo en la maqueta">hoy no se guarda</span>' : ""}</p>
+        <div class="m-cambios">${e.cambios.map((c, j) => cambio(c, j, e)).join("")}${extra.map((x, j) => `<div class="m-cam rastro" style="--j:${e.cambios.length + j}"><span class="ico">${icono(familias[x.fam].icono)}</span><div><span class="t">Sin registro</span><div class="v">${esc(x.texto)}${x.colores ? " " + x.colores.map((n) => `<span class="sw" style="background:${colores[n].hex};width:14px;height:14px;vertical-align:-2px"></span>`).join(" ") : ""}</div><p class="nota">Cambió entre el paso anterior y este, pero la base no lo anota todavía: no se sabe quién ni cuándo.</p></div></div>`).join("")}</div>
+        ${!per ? `<div class="m-nadie">${icono("pregunta")}<span><b>¿Por qué no hay nombre?</b> «Editar producto» no pide «Responsable» y, en la terminal de la tienda, eso deja el cambio sin firma. Desde ${esc(HP.origen(e))}, ${esc(e.donde)}.</span></div>` : ""}
+        <div class="m-nav">
+          <button class="btn sec" data-mover="-1" ${i === 0 ? "disabled" : ""}>${icono("atras")} Antes</button>
+          <button class="btn sec" data-mover="1" ${i === ev.length - 1 ? "disabled" : ""}>Después ${icono("flecha")}</button>
+          <span class="m-comp" role="switch" tabindex="0" aria-checked="${comparar}"><i></i>Comparar con hoy</span>
+        </div>`;
+      pasoEl.querySelectorAll("[data-mover]").forEach((b) => b.addEventListener("click", () => { parar(); ir(i + Number(b.dataset.mover)); }));
+      const sw = pasoEl.querySelector(".m-comp");
+      const alternar = () => { comparar = !comparar; sw.setAttribute("aria-checked", String(comparar)); pintarFicha(false); };
+      sw.addEventListener("click", alternar);
+      sw.addEventListener("keydown", (k) => { if (k.key === " " || k.key === "Enter") { k.preventDefault(); alternar(); } });
+    }
+
+    function cambio(c, j, e) {
+      const f = familias[e.fam];
+      const a = `<span class="a">${icono("flecha")}</span>`;
+      const fila = (ico, t, v, nota = "") => `<div class="m-cam" style="--j:${j};--tono:${f.tono}"><span class="ico">${icono(ico)}</span><div><span class="t">${t}</span><div class="v">${v}</div>${nota ? `<p class="nota">${nota}</p>` : ""}</div></div>`;
+      switch (c.k) {
+        case "alta": return fila("brote", "Nació", `${esc(c.nombre)} · ${esc(c.categoria)} · ${soles(c.precio)}`, `${c.colores.join(", ")} · ${c.tallas.join(", ")} · ${c.stock} prendas de stock inicial · desde Nuevo producto`);
+        case "precio": return fila("billete", "Precio", `<span class="antes num">${soles(c.antes)}</span>${a}<span class="desp num">${soles(c.despues)}</span>`, c.alcance);
+        case "costo": return fila("candado", "Costo", `<span class="antes num">${soles(c.antes)}</span>${a}<span class="desp num">${soles(c.despues)}</span>`, `${c.alcance} · solo lo ve quien ve el costo`);
+        case "texto": case "ref": return fila(c.campo === "Temporada" ? "reloj" : "ficha", esc(c.campo), `<span class="antes">${esc(c.antes)}</span>${a}<span class="desp">${esc(c.despues)}</span>`);
+        case "col+": return fila("paleta", "Colores nuevos", c.colores.map((n) => `<span style="display:inline-flex;gap:6px;align-items:center"><span class="sw" style="background:${colores[n].hex}"></span>${n}</span>`).join(""), esc(c.detalle));
+        case "col~": return fila("paleta", "Color corregido", `<span class="sw" style="background:${colores[c.antes].hex}"></span><span class="antes">${c.antes}</span>${a}<span class="sw" style="background:${colores[c.despues].hex}"></span><span class="desp">${c.despues}</span>`, "Mismas prendas; cambió cómo se llama el color.");
+        case "etq+": return fila("etiqueta", "Etiqueta puesta", `<span class="desp">«${esc(c.nombre)}»</span>`, c.alcance || "");
+        case "etq-": return fila("etiqueta", "Etiqueta quitada", `<span class="antes">«${esc(c.nombre)}»</span>`);
+        case "foto+": return fila("imagen", c.colores.length === 1 ? "Foto nueva" : "Fotos nuevas", c.colores.map((n) => `<span style="display:inline-flex;gap:6px;align-items:center"><span class="sw" style="background:${colores[n].hex}"></span>${n}</span>`).join(""), e.origen ? "desde " + esc(e.origen) : "");
+        default: return "";
+      }
+    }
+
+    function pintarCinta() {
+      cont.querySelector(".m-mango").style.left = pos(i) + "%";
+      cont.querySelector(".m-relleno").style.width = pos(i) + "%";
+      cont.querySelectorAll(".m-tick").forEach((t) => {
+        const k = Number(t.dataset.i);
+        t.classList.toggle("actual", k === i);
+        t.classList.toggle("pasado", k < i);
+      });
+      pista.setAttribute("aria-valuenow", String(i + 1));
+      pista.setAttribute("aria-valuetext", `${HP.dia(ev[i].t)}: ${ev[i].titulo}`);
+      const t = cont.querySelector(`.m-tick[data-i="${i}"]`);
+      if (ctx.celular && t) t.scrollIntoView({ inline: "center", block: "nearest", behavior: ctx.quieto ? "auto" : "smooth" });
+    }
+
+    function ir(k, animar = true) {
+      k = Math.max(0, Math.min(ev.length - 1, k));
+      if (k === i && previo) return;
+      previo = estadoEn(i);
+      // Ir hacia atrás también «enciende» lo que difiere, comparando con el paso de donde se viene.
+      i = k;
+      pintarFicha(animar);
+      pintarPaso();
+      pintarCinta();
+    }
+
+    function parar() {
+      if (reproduciendo) { clearTimeout(reproduciendo); reproduciendo = null; }
+      cont.querySelector(".m-play").innerHTML = `${icono("play")} Ver su historia`;
+    }
+    cont.querySelector(".m-play").addEventListener("click", () => {
+      if (reproduciendo) return parar();
+      cont.querySelector(".m-play").innerHTML = `${icono("pausa")} Pausar`;
+      ir(0);
+      const siguiente = () => {
+        if (i >= ev.length - 1) return parar();
+        ir(i + 1);
+        reproduciendo = setTimeout(siguiente, ctx.quieto ? 500 : 1300);
+      };
+      reproduciendo = setTimeout(siguiente, ctx.quieto ? 500 : 1300);
+    });
+
+    // Arrastrar sobre la cinta (o tocar un punto) elige el momento más cercano.
+    const kDe = (x) => {
+      const r = pista.getBoundingClientRect();
+      const p = Math.max(0, Math.min(1, (x - r.left) / r.width));
+      return Math.round(p * (ev.length - 1));
+    };
+    let arrastre = false;
+    pista.addEventListener("pointerdown", (e) => { arrastre = true; pista.classList.add("arrastrando"); pista.setPointerCapture(e.pointerId); parar(); ir(kDe(e.clientX)); });
+    pista.addEventListener("pointermove", (e) => { if (arrastre) ir(kDe(e.clientX)); });
+    pista.addEventListener("pointerup", () => { arrastre = false; pista.classList.remove("arrastrando"); });
+    pista.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") { e.preventDefault(); parar(); ir(i - 1); }
+      if (e.key === "ArrowRight") { e.preventDefault(); parar(); ir(i + 1); }
+      if (e.key === "Home") { e.preventDefault(); parar(); ir(0); }
+      if (e.key === "End") { e.preventDefault(); parar(); ir(ev.length - 1); }
+    });
+
+    pintarFicha(false);
+    pintarPaso();
+    pintarCinta();
+    requestAnimationFrame(() => cont.querySelector(".m-pista").classList.add("lista"));
+  },
+});
+</script>
+</body>
+</html>

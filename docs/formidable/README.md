@@ -11,6 +11,7 @@ Formidable porque sus modales lo sean, ni al revés.
 | Módulo | Pantalla / modal | Estado | Leyes | Oficio | Informe | Última medición |
 |---|---|---|---|---|---|---|
 | Inventario | Frescura del piso (`/inventario/frescura`) | en piloto: cambios 1–3 ejecutados (2026-10-05); falta recalificar con datos y colaboradoras reales | 4,5 (±1) · ley 1 sin nota | 5 (provisional) | [inventario-frescura](inventario-frescura.md) | 2026-10-05 |
+| Inventario | Traslados, billetera de pases (`/inventario/traslados`) | ciega ✓ · real sin probar; cambios 1–3 hechos (2026-10-06) | 7,5 · ley 1: 7 | 7 | [inventario-traslados](inventario-traslados.md) | 2026-10-06 |
 
 ## Orden de despliegue (módulo por módulo, decidido 2026-10-05)
 Inventario (piloto: Frescura del piso) → el resto del módulo → siguiente módulo que Felipe indique. El orden dentro de un módulo sale de

@@ -138,3 +138,25 @@ cerrada ya ponía su enlace «Historial de cierres →» a la derecha por la mis
   bajo la frase. Se degrada sola, pero ese día conviene mirar si alguna sobra.
 - La línea de arriba se alarga (una sede de nombre largo, «miércoles, 30 de setiembre»): el corte se mueve unas decenas de
   px, y se degrada igual.
+
+## Actualización 2026-10-06 — la vuelta es una flecha junto a la sede
+
+**Pedido de Felipe**, mirando Nuevo producto: el botón «← Productos» bajo la frase «está solo» y gasta una fila. Probadas en la maqueta
+la derecha (descartada: volver se busca arriba a la izquierda y la derecha es de acciones y cifras) y un botón con texto junto a la sede
+(«no lo veo bien»), eligió **la flecha sola, a la izquierda de la línea «sede · fecha»**, y pidió aplicarla «donde sea necesario para
+mantener un estándar».
+
+**Qué cambió.** `EncabezadoPagina` tiene una ranura `volver` y `Volver` una forma nueva, `flecha`: un botón redondo de 34 px con la
+flecha, borde `sand` y fondo `papel`; su `aria-label` y su `title` dicen adónde vuelve («Volver a Traslados»), que es lo que antes decía
+el texto. Las 12 vueltas que iban en `pie` como `<Volver forma="boton">` pasan a `volver={<Volver forma="flecha" …/>}`: Bajar al piso,
+Cuadrar el piso, Ventas sin registrar, Nuevo traslado, el detalle de un traslado, Pedidos no atendidos, Nuevo producto y las cinco del
+Conteo (contar, revisar, confirmar, resultado y cancelado). `pie` queda solo para estados («En curso», «Cancelado»). La regla «toda
+pantalla interna tiene cómo volver» (`lib/pantallas-con-vuelta.test.ts`) sigue viendo el `<Volver` en cada pantalla.
+
+**No cambia:** las pantallas con otra cabecera (`CabeceraPantalla` de Finanzas, Compras, Caja ▸ Historial, Editar producto…) siguen
+con su enlace «← X» sobre el título; el cartel del club conserva su botón con texto (`forma="boton"`), porque arma su propia cabecera.
+
+**Verificado** en el ERP local (1280 px): la flecha a los 34 px, alineada a la izquierda de la línea de sede, en Bajar al piso, Nuevo
+traslado, Cuadrar, el detalle de un traslado y Nuevo producto; `tema:auditar` sin hallazgos en oscuro. Pedidos no atendidos, Ventas sin
+registrar y el Conteo no cargan en la base local de hoy (les faltan funciones de migraciones posteriores: `fn_conteo_detalle`,
+`fn_productos_listado`), así que en esas se revisó el código, no la pantalla.

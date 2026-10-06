@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados · F · Conversaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN F · «CONVERSACIONES» — se lee como WhatsApp, que es como las tiendas ya se coordinan.
+   Un chat por sede. Cada caja es un mensaje (con su camión y sus prendas); los vistos dicen si
+   llegó: ✓ salió · ✓✓ la otra sede la está contando · ✓✓ verde, llegó completa · ✓✓ ámbar, faltó
+   algo. Los pedidos llegan como mensajes con «Enviar» y «No la tengo». Contar se hace en una hoja
+   que sube desde abajo, dentro del mismo chat. No hay mensajes escritos: todo sale de lo que la base
+   guarda (salidas, conteos, confirmaciones, cierres, pedidos).
+   ==================================================================== */
+.chat-app{margin-top:24px;display:grid;grid-template-columns:330px minmax(0,1fr);height:700px;border-radius:24px;overflow:hidden;border:1px solid var(--sand);background:var(--papel);position:relative}
+/* ── la lista de chats ── */
+.chats{display:flex;flex-direction:column;border-right:1px solid var(--sand);min-height:0;background:var(--papel)}
+.chats-top{padding:14px 14px 8px}
+.para-hoy{padding:4px 14px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.para-hoy .lbl{width:100%;margin-bottom:2px}
+.ph{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:99px;background:var(--c-bg);border:1px solid var(--c-ln);font-size:12px;font-weight:700;color:var(--c);transition:background .2s,transform .25s var(--ease)}
+.ph:hover{background:var(--c-md);transform:translateY(-1px)}
+.ph .sello{--sz:22px;border-radius:50%}
+.lista-chats{list-style:none;overflow:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--sand) transparent}
+.chat-f{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;width:100%;padding:11px 14px;border-top:1px solid var(--sand);text-align:left;transition:background .2s}
+.chat-f:hover{background:color-mix(in srgb,var(--hueso) 50%,var(--papel))}
+.chat-f.on{background:var(--hueso)}
+.av-sede{position:relative;width:48px;height:48px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-family:var(--serif);font-size:16px;letter-spacing:.04em;color:var(--tinta);flex:none;box-shadow:inset 0 0 0 1px var(--sand)}
+.chat-f.on .av-sede{background:var(--papel)}
+.av-sede svg{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;padding:3px;border-radius:50%;background:var(--papel);box-shadow:0 0 0 1px var(--sand);stroke:var(--t65);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cf-1,.cf-2{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.cf-1 b{font-weight:600;font-size:14.5px}
+.cf-1 time{font-size:11.5px;color:var(--t50);flex:none}
+.cf-1 time.pend{color:var(--ambar);font-weight:700}
+.cf-2 .prev{font-size:12.5px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;min-width:0}
+.cf-2 .prev svg{flex:none}
+.cf-2 .prev .urg{color:var(--ambar);font-weight:700}
+.badge{min-width:22px;height:22px;border-radius:99px;background:var(--ambar);color:var(--papel);font-size:11.5px;font-weight:800;display:grid;place-items:center;padding:0 6px;flex:none}
+.badge.pop{animation:pop .4s var(--ease)}
+@keyframes pop{from{transform:scale(.4)}to{transform:none}}
+
+/* ── la conversación ── */
+.conv{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.conv-cab{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--sand);background:var(--papel);z-index:3}
+.conv-cab .av-sede{width:42px;height:42px;font-size:14px}
+.conv-cab b{display:block;font-weight:600;font-size:15px}
+.conv-cab span{font-size:12px;color:var(--t65)}
+.conv-cab .atras-m{display:none;width:34px;height:34px;border-radius:50%;place-items:center}
+.conv-cab .atras-m svg{transform:rotate(180deg)}
+.conv-cuerpo{flex:1;overflow:auto;padding:18px 22px 24px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth;background-color:color-mix(in srgb,var(--hueso) 55%,var(--papel));background-image:radial-gradient(color-mix(in srgb,var(--tinta) 7%,transparent) 1px,transparent 1.5px);background-size:20px 20px;scrollbar-width:thin;scrollbar-color:var(--sand) transparent}
+.dia-sep{display:flex;justify-content:center;margin:10px 0 6px}
+.dia-sep span{background:var(--papel);border-radius:9px;padding:4px 12px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t65);box-shadow:0 1px 2px var(--t06)}
+.msg{display:flex;width:100%}
+.msg.yo{justify-content:flex-end}
+.burbuja{position:relative;max-width:min(430px,82%);background:var(--papel);border-radius:18px 18px 18px 5px;box-shadow:0 1px 1px var(--t06),0 8px 18px -14px color-mix(in srgb,var(--sombra) 45%,transparent);overflow:hidden}
+.yo .burbuja{background:color-mix(in srgb,var(--verde) 11%,var(--papel));border-radius:18px 18px 5px 18px}
+.msg.nuevo{animation:llega-msg .55s var(--ease) both}
+.msg.nuevo.yo{animation-name:sale-msg}
+@keyframes llega-msg{from{opacity:0;transform:translateY(14px) scale(.97);transform-origin:left bottom}to{opacity:1;transform:none}}
+@keyframes sale-msg{from{opacity:0;transform:translateY(22px) scale(.92);transform-origin:right bottom}to{opacity:1;transform:none}}
+.msg.foco .burbuja{animation:flash-b 1.5s var(--ease)}
+@keyframes flash-b{0%,100%{box-shadow:0 1px 1px var(--t06)}25%{box-shadow:0 0 0 3px var(--c-ln)}}
+.sistema{align-self:center;max-width:80%;text-align:center;font-size:12px;color:var(--t65);background:color-mix(in srgb,var(--papel) 85%,transparent);border-radius:10px;padding:5px 12px;margin:4px 0}
+
+/* la caja como mensaje */
+.cm{padding:12px 14px 8px}
+.cm-cab{display:flex;align-items:center;gap:10px}
+.cm-cab .sello{--sz:38px}
+.cm-cab b{display:block;font-weight:700;font-size:14px}
+.cm-cab span{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+.cm-ruta{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin:12px 0 10px}
+.cm-ruta .cod{font-family:var(--serif);font-size:24px;line-height:1}
+.cm-l{position:relative;height:22px;margin:0 8px}
+.cm-l i{position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--c-ln)}
+.cm-l b{position:absolute;left:0;top:50%;height:2px;margin-top:-1px;width:calc(var(--p) * 100%);background:var(--c);transform-origin:left;transform:scaleX(0)}
+.cm-l .cam{position:absolute;top:50%;left:0;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:var(--papel);color:var(--c);box-shadow:0 0 0 1.5px var(--c-ln);display:grid;place-items:center;opacity:0}
+.cm-l .cam svg{width:14px;height:14px}
+.cm-l .cam.tarde{color:var(--ambar);box-shadow:0 0 0 2px var(--ambar)}
+.go .cm-l b{animation:cm-llena 1s .15s var(--ease) forwards}
+.go .cm-l .cam{animation:cm-viaja 1.1s .15s var(--ease) forwards}
+.quieto .cm-l b{transform:scaleX(1)}.quieto .cm-l .cam{opacity:1;left:calc(var(--p) * (100% - 6px))}
+@keyframes cm-llena{to{transform:scaleX(1)}}
+@keyframes cm-viaja{from{left:0;opacity:0}15%{opacity:1}to{left:calc(var(--p) * (100% - 6px));opacity:1}}
+.cm-prendas{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--t80)}
+.cm-prendas .lleg{font-family:var(--serif);font-size:20px;color:var(--c);margin-left:auto;white-space:nowrap}
+.cm-nota{margin-top:8px;font-size:12.5px;color:var(--t80);font-style:italic}
+.cm-pie{display:flex;justify-content:flex-end;align-items:center;gap:5px;margin-top:6px;font-size:11px;color:var(--t50)}
+.vistos{width:18px;height:12px;flex:none}
+.vistos path{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:14;stroke-dashoffset:0}
+.vistos.uno path{stroke:var(--t50)}.vistos.dos path{stroke:var(--t50)}.vistos.verde path{stroke:var(--verde)}.vistos.ambar path{stroke:var(--ambar)}
+.go .vistos path{animation:visto .5s var(--ease) both}
+.go .vistos path+path{animation-delay:.18s}
+@keyframes visto{from{stroke-dashoffset:14}to{stroke-dashoffset:0}}
+.cm-acc{display:flex;width:100%;justify-content:center;align-items:center;gap:8px;padding:11px 14px;border-top:1px solid var(--c-ln);font-size:13.5px;font-weight:700;color:var(--c);background:var(--c-bg);transition:background .2s}
+.cm-acc:hover{background:var(--c-md)}
+.cm-acc svg{transition:transform .3s var(--ease)}.cm-acc:hover svg{transform:translateX(3px)}
+.cm-acc.sutil{background:transparent;color:var(--t65);font-weight:600}
+.cm-dos{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--c-ln)}
+.cm-dos .cm-acc{border-top:0}
+.cm-dos .cm-acc+.cm-acc{border-left:1px solid var(--c-ln)}
+/* un recibo / un cierre: mensaje corto con su marca */
+.rc{padding:10px 14px 8px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center}
+.rc .sello{--sz:34px}
+.rc b{display:block;font-size:13.5px;font-weight:700}
+.rc span{font-size:12.5px;color:var(--t65)}
+.rc .cm-pie{grid-column:1/-1;margin-top:0}
+/* un pedido */
+.pd{padding:12px 14px 8px}
+.pd p{font-size:13.5px;font-weight:600;margin-bottom:10px}
+.pd .prenda{display:flex;align-items:center;gap:12px;background:var(--c-bg);border-radius:12px;padding:8px}
+.pd .prenda b{display:block;font-family:var(--serif);font-weight:400;font-size:19px;line-height:1.1}
+.pd .prenda span{font-size:12px;color:var(--t65)}
+
+/* el pie: lo que se puede iniciar desde el chat */
+.conv-pie{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--sand);background:var(--papel);z-index:3}
+.conv-pie .btn{border-radius:99px;padding:9px 15px}
+
+/* la hoja que sube para contar (dentro del chat) */
+.hoja-c{position:absolute;left:0;right:0;bottom:0;z-index:6;max-height:86%;display:flex;flex-direction:column;background:var(--papel);border-radius:24px 24px 0 0;box-shadow:0 -24px 48px -24px color-mix(in srgb,var(--sombra) 45%,transparent);transform:translateY(102%);transition:transform .45s var(--ease)}
+.hoja-c.in{transform:none}
+.velo-c{position:absolute;inset:0;z-index:5;background:color-mix(in srgb,var(--sombra) 22%,transparent);opacity:0;transition:opacity .3s var(--ease)}
+:root[data-tema=oscuro] .velo-c{background:color-mix(in srgb,var(--sombra) 50%,transparent)}
+.velo-c.in{opacity:1}
+.hc-asa{width:44px;height:5px;border-radius:5px;background:var(--sand);margin:8px auto 2px}
+.hc-cab{display:flex;align-items:center;gap:12px;padding:8px 18px 12px;border-bottom:1px solid var(--sand)}
+.hc-cab .sello{--sz:40px}
+.hc-cab b{display:block;font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.1}
+.hc-cab span{font-size:12px;color:var(--t65)}
+.hc-cab .x{margin-left:auto;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--hueso)}
+.hc-cue{overflow:auto;padding:10px 18px;display:grid;gap:4px}
+.fila-c{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--sand)}
+.fila-c:first-child{border-top:0}
+.fila-c .n b{display:block;font-weight:600;font-size:13.5px}
+.fila-c .n span{font-size:12px;color:var(--t65)}
+.fila-c .cmp{display:flex;align-items:center;gap:10px}
+.fila-c .env{font-size:11.5px;color:var(--t65);text-align:right;line-height:1.1}
+.fila-c .env b{display:block;font-family:var(--serif);font-weight:400;font-size:19px;color:var(--tinta)}
+.fila-c .q{font-family:var(--serif);font-size:22px;min-width:26px;text-align:right}
+.fila-c .mk{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--papel)}
+.fila-c .mk svg{width:12px;height:12px;stroke-width:2.6}
+.fila-c .mk.ok{background:var(--verde)}.fila-c .mk.no{background:var(--ambar)}
+.revela .fila-c{animation:revela-c .45s var(--ease) both;animation-delay:calc(var(--k) * 80ms)}
+@keyframes revela-c{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.hc-pie{border-top:1px solid var(--sand);padding:12px 18px 16px;display:grid;gap:10px}
+.hc-pie .fila{display:flex;gap:8px}
+.hc-pie .btn{justify-content:center;padding:12px 14px;border-radius:12px}
+.hc-pie .grande{flex:1;font-size:14px}
+.lugar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lugar button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--sand);font-size:13px;font-weight:600}
+.lugar button[aria-pressed=true]{border-color:var(--tinta);background:var(--hueso)}
+.lugar svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hc-tip{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--t80);background:var(--c-bg);border:1px dashed var(--c-ln);border-radius:12px;padding:9px 12px;margin-bottom:6px}
+.hc-tip .sello{--sz:30px}
+
+@container vista (max-width:860px){
+  .chat-app{grid-template-columns:1fr;height:640px}
+  .conv{position:absolute;inset:0;z-index:7;background:var(--papel);transform:translateX(100%);transition:transform .45s var(--ease)}
+  .chat-app.abierta .conv{transform:none}
+  .conv-cab .atras-m{display:grid}
+  .conv-cuerpo{padding:14px 12px 18px}
+  .burbuja{max-width:90%}
+  .conv-pie{overflow-x:auto;scrollbar-width:none}
+  .conv-pie .btn{flex:none}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+const est = { chat:null, vistos:{}, abierta:false };
+let hojaAbierta = null;
+const truck = '<svg class="gl" viewBox="0 0 24 24"><g><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></g></svg>';
+const clsDe = t => { const sit = M.situacion(t); return sit === 'llega' && M.atrasado(t) ? 'atraso' : sit === 'camino' ? 'sale' : sit; };
+const persona = id => M.persona(id);
+const aSede = id => id === 'taller' ? 'al Taller' : 'a ' + M.SEDES[id].corto;
+/* ✓ salió · ✓✓ la están contando · ✓✓ verde, llegó completa · ✓✓ ámbar, faltó algo */
+const vistos = t => {
+  const sit = M.situacion(t);
+  if (sit === 'anulado') return '';
+  const [cls, dos, tit] = sit === 'cerrado' ? ['verde', true, 'Llegó completa'] : (sit === 'revisar' || sit === 'dif') ? ['ambar', true, 'Llegó con diferencia'] : sit === 'contando' ? ['dos', true, 'La están contando'] : ['uno', false, 'Salió'];
+  return `<svg class="vistos ${cls}" viewBox="0 0 18 12" aria-label="${tit}"><title>${tit}</title><path d="M1.5 6.5 4.6 9.6 10.8 2.6"/>${dos ? '<path d="M7.2 9.4 7.6 9.6 13.8 2.6"/>' : ''}</svg>`;
+};
+const DIA = d => { const k = M.dia(d); return k === 'hoy' ? 'Hoy' : k === 'ayer' ? 'Ayer' : M.diaLargo(d); };
+
+/* todo lo que pasó entre mi sede y otra, en orden: las cajas, sus conteos y cierres, y los pedidos */
+function mensajes(X, s) {
+  const ms = [];
+  M.TR.filter(t => (t.de === X && t.a === s) || (t.de === s && t.a === X)).forEach(t => {
+    M.eventos(t).forEach(ev => {
+      const base = { id:`t${t.num}-${ev.k}`, cuando:ev.cuando, t };
+      if (ev.k === 'salio') ms.push({ ...base, tipo:'caja', mio: t.de === s });
+      else if (ev.k === 'conteo') ms.push({ ...base, tipo:'conteo', mio: t.a === s, quien: ev.quien });
+      else if (ev.k === 'anulado') ms.push({ ...base, tipo:'sistema', texto:`${persona(ev.quien)} anuló la caja Nº ${t.num}: «${t.motivo}»` });
+      else ms.push({ ...base, tipo:ev.k, mio: t.a === s });
+    });
+  });
+  M.PEDIDOS.filter(p => (p.pide === X && p.envia === s) || (p.pide === s && p.envia === X)).forEach(p => {
+    ms.push({ id:'p' + p.id, cuando:p.cuando, tipo:'pedido', p, mio: p.pide === s });
+    if (p.respuesta === 'no') ms.push({ id:'p' + p.id + '-no', cuando:p.respondido || M.AHORA, tipo:'no-tengo', p, mio: p.envia === s });
+  });
+  return ms.sort((a, b) => a.cuando - b.cuando || (a.tipo === 'pedido' ? -1 : 1));
+}
+/* lo que me toca con esa sede */
+const pendientesCon = (X, s) => M.tareas(s).filter(x => x.t ? x.t.de === X : x.p.pide === X);
+
+M.montar({ opcion:'F', nombre:'Conversaciones', dibujar(raiz){
+  const s = M.sede;
+  const otras = Object.keys(M.SEDES).filter(x => x !== s);
+  const urgencia = c => c.pend.length ? Math.min(...c.pend.map(x => x.prio)) : 99;
+  const chats = otras.map(X => { const ms = mensajes(X, s); return { X, ms, ult: ms[ms.length - 1], pend: pendientesCon(X, s) }; })
+    .sort((a, b) => urgencia(a) - urgencia(b) || ((b.ult?.cuando || 0) - (a.ult?.cuando || 0)));
+  if (!est.chat || !otras.includes(est.chat)) est.chat = chats[0].X;
+  const tareas = M.tareas(s);
+  const cuenta = { atraso: tareas.filter(x => x.tipo === 'atraso').length, contar: tareas.filter(x => x.tipo === 'llega' || x.tipo === 'contando').length, revisar: tareas.filter(x => x.tipo === 'revisar').length, enviar: tareas.filter(x => x.tipo === 'pedido').length };
+  raiz.innerHTML = M.encabezado({ frase:'Una conversación por sede: cada caja es un mensaje.' }) + `
+    <section class="chat-app ${est.abierta ? 'abierta' : ''}" data-propio>
+      <aside class="chats">
+        <div class="chats-top"><label class="campo">${M.ic('buscar')}<input id="q" type="search" placeholder="Busca una sede o una prenda" autocomplete="off"></label></div>
+        <div class="para-hoy">${tareas.length ? `<span class="lbl">Para hoy</span>
+          ${cuenta.atraso ? `<button class="ph s-atraso" data-ir="atraso"><span class="sello" data-go>${M.glifo('llega')}</span>${cuenta.atraso === 1 ? 'Atrasada' : 'Atrasadas'} ${cuenta.atraso}</button>` : ''}
+          ${cuenta.contar ? `<button class="ph s-llega" data-ir="contar"><span class="sello" data-go>${M.glifo('llega')}</span>Contar ${cuenta.contar}</button>` : ''}
+          ${cuenta.revisar ? `<button class="ph s-revisar" data-ir="revisar"><span class="sello" data-go>${M.glifo('revisar')}</span>Revisar ${cuenta.revisar}</button>` : ''}
+          ${cuenta.enviar ? `<button class="ph s-pedido" data-ir="enviar"><span class="sello" data-go>${M.glifo('pedido')}</span>Enviar ${cuenta.enviar}</button>` : ''}`
+          : `<span class="lbl">Para hoy</span><span style="font-size:12.5px;color:var(--t65)">Nada pendiente. Todo al día.</span>`}</div>
+        <ul class="lista-chats" id="lista"></ul>
+      </aside>
+      <section class="conv" id="conv"></section>
+    </section>`;
+  const app = M.$('.chat-app', raiz), lista = M.$('#lista', raiz), conv = M.$('#conv', raiz);
+
+  /* ── la lista ── */
+  const previa = c => {
+    const u = c.pend[0];
+    if (u) {
+      const txt = u.tipo === 'atraso' ? `<b class="urg">Atrasada ${M.dur((M.AHORA - u.t.eta) / 6e4)}</b> · caja Nº ${u.t.num}` : u.tipo === 'contando' ? `Contando la caja Nº ${u.t.num}` : u.tipo === 'revisar' ? `Faltó algo en la Nº ${u.t.num}` : u.tipo === 'pedido' ? `Te pide ${M.nombrePrenda(u.p.linea)}` : `La Nº ${u.t.num} llega ${M.cuando(u.t.eta)}`;
+      const cu = c.ult?.cuando; return { txt, hora: cu ? (M.dia(cu) === 'hoy' ? M.hora(cu) : M.dia(cu)) : '' };
+    }
+    const m = c.ult; if (!m) return { txt:'Sin cajas esta semana', hora:'' };
+    const t = m.t;
+    const txt = m.tipo === 'caja' ? (m.mio ? `${vistos(t)}Caja Nº ${t.num} · ${M.nombreSit(t, s).toLowerCase()}` : `Caja Nº ${t.num} · ${M.nombreSit(t, s).toLowerCase()}`)
+      : m.tipo === 'pedido' ? (m.mio ? 'Pediste una prenda' : `Te pide ${M.nombrePrenda(m.p.linea)}`)
+      : m.tipo === 'no-tengo' ? 'No la tenía'
+      : m.tipo === 'recibido' ? `Llegó completa la Nº ${t.num}` : m.tipo === 'dif' ? `Nº ${t.num}: faltó ${M.faltan(t) || M.sobran(t)}` : m.tipo === 'cierre' ? `Nº ${t.num} cerrada con nota` : m.tipo === 'conteo' ? `Contando la Nº ${t.num}` : m.texto;
+    return { txt, hora: M.dia(m.cuando) === 'hoy' ? M.hora(m.cuando) : M.dia(m.cuando) };
+  };
+  const pintarLista = (q = '') => {
+    const sinT = x => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    lista.innerHTML = chats.filter(c => !q || sinT([M.SEDES[c.X].n, M.SEDES[c.X].ciudad, ...c.ms.flatMap(m => m.t ? m.t.lineas.map(l => M.PRENDAS[l.p].n) : m.p ? [M.PRENDAS[m.p.linea.p].n] : [])].join(' ')).includes(sinT(q)))
+      .map((c, i) => { const p = previa(c), x = M.SEDES[c.X];
+        return `<li class="rev" style="--i:${i}"><button class="chat-f ${c.X === est.chat ? 'on' : ''}" data-chat="${c.X}">
+          <span class="av-sede">${x.cod}<svg viewBox="0 0 24 24">${M.PT[x.tipo]}</svg></span>
+          <span style="min-width:0"><span class="cf-1"><b>${x.n}</b><time class="${c.pend.length ? 'pend' : ''}">${p.hora}</time></span>
+            <span class="cf-2"><span class="prev">${p.txt}</span>${c.pend.length ? `<span class="badge num" title="${c.pend.length} ${c.pend.length === 1 ? 'cosa' : 'cosas'} por hacer">${c.pend.length}</span>` : ''}</span></span></button></li>`; }).join('')
+      || '<li style="padding:18px;color:var(--t65);font-size:13px">Ninguna conversación con eso.</li>';
+    M.$$('.chat-f', lista).forEach(b => b.onclick = () => abrir(b.dataset.chat, true));
+  };
+  pintarLista();
+  M.$('#q', raiz).oninput = e => { pintarLista(e.target.value); M.revelar(lista); };
+
+  /* ── la conversación ── */
+  function burbuja(m) {
+    if (m.tipo === 'sistema') return `<div class="sistema" data-m="${m.id}">${m.texto} · ${M.hora(m.cuando)}</div>`;
+    const lado = m.mio ? 'yo' : 'el';
+    if (m.tipo === 'caja') {
+      const t = m.t, sit = M.situacion(t, s), cls = clsDe(t), p = M.progreso(t), c = M.cifra(t, s);
+      const enCamino = ['llega', 'sale', 'camino'].includes(sit);
+      const acc = t.a === s ? ({ llega: M.atrasado(t) ? 'Ya llegó: abrir y contar' : 'Si ya llegó, contarla', contando:'Seguir contando', revisar:'Revisar lo que faltó' }[sit]) : null;
+      return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja s-${cls}">
+        <div class="cm"><div class="cm-cab"><span class="sello" data-go>${M.glifo(sit === 'camino' ? 'sale' : sit)}</span><div><b>Te envié la caja Nº ${t.num}</b><span>${M.nombreCaja(t, s)}</span></div></div>
+          <div class="cm-ruta"><b class="cod">${M.SEDES[t.de].cod}</b><span class="cm-l" style="--p:${sit === 'anulado' ? 0 : p}"><i></i><b></b>${enCamino ? `<span class="cam ${M.atrasado(t) ? 'tarde' : ''}">${truck}</span>` : ''}</span><b class="cod">${M.SEDES[t.a].cod}</b></div>
+          <div class="cm-prendas">${M.pila(t.lineas, 30, 3)}<span>${M.ciego(t, s) ? `${t.lineas.length} tipos de prenda · las cuentas al llegar` : `${M.unidades(t)} prendas`}</span><span class="lleg num">${c.big}<small style="display:block;font-family:'DM Sans';font-size:10.5px;color:var(--t65);text-align:right">${c.small}</small></span></div>
+          ${t.nota ? `<p class="cm-nota">«${t.nota}»</p>` : ''}
+          <div class="cm-pie"><time>salió ${M.cuando(t.salio)}</time>${m.mio ? vistos(t) : ''}</div></div>
+        ${acc ? `<button class="cm-acc" data-contar="${t.num}">${acc} ${M.ic('flecha')}</button>` : `<button class="cm-acc sutil" data-ver="${t.num}">${m.mio ? 'Ver lo que envié' : 'Ver la caja'}</button>`}
+      </div></div>`;
+    }
+    if (m.tipo === 'recibido' || m.tipo === 'dif' || m.tipo === 'cierre') {
+      const t = m.t, dif = m.tipo === 'dif', cierre = m.tipo === 'cierre';
+      const cls = cierre ? 'dif' : dif ? 'revisar' : 'cerrado', gl = cierre ? 'dif' : dif ? 'revisar' : 'cerrado';
+      const titulo = cierre ? `Cerré la Nº ${t.num} con una nota` : dif ? `Llegó la Nº ${t.num}: ${M.faltan(t) ? `faltó ${M.faltan(t)}` : `sobró ${M.sobran(t)}`}` : `Llegó completa la Nº ${t.num}`;
+      const sub = cierre ? `«${t.notaCierre}»` : `${M.acc.totalContado(t)} de ${M.unidades(t)} prendas · ${t.lugar === 'piso' ? 'al piso' : 'al almacén'}`;
+      return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja s-${cls}"><div class="rc"><span class="sello" data-go>${M.glifo(gl)}</span><div><b>${titulo}</b><span>${sub}</span></div>
+        <div class="cm-pie"><time>${M.hora(m.cuando)}</time> · ${persona(cierre ? t.cerro : t.recibio)}</div></div>
+        ${dif && t.estado === 'recibido_con_diferencia' && t.a === s ? `<button class="cm-acc" data-contar="${t.num}">Revisar lo que faltó ${M.ic('flecha')}</button>` : ''}</div></div>`;
+    }
+    if (m.tipo === 'pedido') {
+      const p = m.p, puedo = p.envia === s && !p.hecho;
+      return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja s-pedido"><div class="pd"><p>¿Me envías esta prenda?${p.cliente ? ' Es para una cliente.' : ''}</p>
+        <div class="prenda">${M.mos(p.linea, 52)}<div><b>${M.nombrePrenda(p.linea)}</b><span>${M.detallePrenda(p.linea)} · ${p.linea.n} prenda</span></div></div>
+        <div class="cm-pie"><time>${M.hora(p.cuando)}</time>${p.respuesta === 'enviado' ? ` · enviada en la Nº ${p.num}` : ''}</div></div>
+        ${puedo ? `<div class="cm-dos"><button class="cm-acc sutil" data-no-tengo="${p.id}">No la tengo</button><button class="cm-acc" data-enviar="${p.id}">Enviar ${M.ic('flecha')}</button></div>` : ''}</div></div>`;
+    }
+    if (m.tipo === 'conteo') { const t = m.t;
+      return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja s-contando"><div class="rc"><span class="sello" data-go>${M.glifo('contando')}</span><div><b>Empecé a contar la caja Nº ${t.num}</b><span>${M.contadas(t)} de ${t.lineas.length} tipos de prenda contados</span></div>
+        <div class="cm-pie"><time>${M.hora(m.cuando)}</time> · ${persona(m.quien)}</div></div></div></div>`; }
+    if (m.tipo === 'no-tengo') return `<div class="msg ${lado}" data-m="${m.id}"><div class="burbuja"><div class="rc"><span class="sello s-anulado">${M.glifo('anulado')}</span><div><b>No la tengo</b><span>${M.nombrePrenda(m.p.linea)} · ${M.detallePrenda(m.p.linea)}</span></div><div class="cm-pie"><time>${M.hora(m.cuando)}</time></div></div></div></div>`;
+    return '';
+  }
+
+  function abrir(X, desdeLista) {
+    est.chat = X; if (desdeLista) { est.abierta = true; app.classList.add('abierta'); }
+    const quieto = M.quieto;
+    M.$$('.chat-f', lista).forEach(b => b.classList.toggle('on', b.dataset.chat === X));
+    const c = chats.find(z => z.X === X), x = M.SEDES[X];
+    const ms = mensajes(X, s);
+    const vistosAntes = est.vistos[X], nuevos = vistosAntes ? ms.filter(m => !vistosAntes.has(m.id)).map(m => m.id) : [];
+    const vienen = M.TR.filter(t => t.de === X && t.a === s && t.estado === 'en_transito').length, van = M.TR.filter(t => t.de === s && t.a === X && t.estado === 'en_transito').length;
+    let html = '', dia = '';
+    ms.forEach(m => { const d = DIA(m.cuando); if (d !== dia) { dia = d; html += `<div class="dia-sep"><span>${d}</span></div>`; } html += burbuja(m); });
+    conv.innerHTML = `<header class="conv-cab"><button class="atras-m" aria-label="Volver a los chats">${M.ic('flecha')}</button><span class="av-sede">${x.cod}<svg viewBox="0 0 24 24">${M.PT[x.tipo]}</svg></span>
+        <div><b>${x.n}</b><span>${[vienen ? `${vienen} ${vienen === 1 ? 'caja viene' : 'cajas vienen'} hacia ti` : '', van ? `${van} ${van === 1 ? 'va' : 'van'} para allá` : ''].filter(Boolean).join(' · ') || x.ciudad}</span></div></header>
+      <div class="conv-cuerpo" id="cuerpo">${html || `<div class="sistema">Todavía no hay cajas con ${x.n} esta semana.</div>`}</div>
+      <footer class="conv-pie"><button class="btn" data-no="Nuevo traslado a ${x.n}, con el destino ya elegido (ADR-0242 D-2)">${M.ic('mas')}Enviar una caja ${aSede(X)}</button><button class="btn" data-no="Pedir a otra sede (ADR-0242 D-7)">${M.ic('pedir')}Pedir una prenda</button></footer>`;
+    const cuerpo = M.$('#cuerpo', conv);
+    /* animación: al abrir, los últimos mensajes llegan en orden; después de una acción, solo lo nuevo */
+    const burbujas = M.$$('.msg,.sistema', cuerpo), esNuevo = b => nuevos.includes(b.dataset.m);
+    if (!M.reducir()) {
+      if (nuevos.length) burbujas.forEach(b => { if (esNuevo(b)) b.classList.add('nuevo'); });
+      else if (!quieto) burbujas.slice(-6).forEach((b, i) => { b.classList.add('nuevo'); b.style.animationDelay = (i * 70) + 'ms'; });
+    }
+    est.vistos[X] = new Set(ms.map(m => m.id));
+    /* el camión corre una vez al abrir el chat; al volver de una acción, solo en lo nuevo */
+    M.$$('.msg', cuerpo).forEach((mm, i) => { const b = M.$('.burbuja', mm); if (!b) return;
+      if (quieto && !esNuevo(mm)) b.classList.add('quieto'); else setTimeout(() => b.classList.add('go'), M.reducir() ? 0 : 200 + i * 40); });
+    M.$$('.burbuja .sello', cuerpo).forEach(e => e.classList.add('go'));
+    cuerpo.style.scrollBehavior = 'auto'; cuerpo.scrollTop = cuerpo.scrollHeight;
+    conectarConv(X);
+  }
+  function conectarConv(X) {
+    M.$$('[data-no]', conv).forEach(b => b.onclick = () => M.noEnMaqueta(b.dataset.no));
+    M.$('.atras-m', conv).onclick = () => { est.abierta = false; app.classList.remove('abierta'); };
+    M.$$('[data-contar]', conv).forEach(b => b.onclick = () => hoja(M.porNumero(+b.dataset.contar)));
+    M.$$('[data-ver]', conv).forEach(b => b.onclick = () => hoja(M.porNumero(+b.dataset.ver)));
+    M.$$('[data-enviar]', conv).forEach(b => b.onclick = () => { const p = M.PEDIDOS.find(z => z.id === b.dataset.enviar); const num = M.acc.enviarPedido(p); despues(`Caja Nº ${num} en camino a ${M.SEDES[p.pide].corto}.`); });
+    M.$$('[data-no-tengo]', conv).forEach(b => b.onclick = () => { const p = M.PEDIDOS.find(z => z.id === b.dataset.noTengo); M.acc.noTengo(p); despues(`Le avisamos a ${M.SEDES[p.pide].corto} que no la tienes.`, 'info'); });
+  }
+  const despues = (aviso, tipo) => { M.repintar({ quieto:true }); if (aviso) M.avisar(aviso, tipo); };
+
+  /* ── la hoja: contar, revisar o ver, sin salir del chat ── */
+  function hoja(t) {
+    if (!t) return;
+    const velo = M.el('div', 'velo-c'), h = M.el('div', 'hoja-c');
+    conv.append(velo, h);
+    const st = { revelado:false, lugar:'almacen', cambio:false };
+    const cerrar = () => { h.classList.remove('in'); velo.classList.remove('in'); setTimeout(() => { velo.remove(); h.remove(); if (st.cambio) despues(st.aviso, st.tipo); }, 380); hojaAbierta = null; };
+    hojaAbierta = cerrar;
+    velo.onclick = cerrar;
+    const fila = (l, k, modo) => {
+      const nom = `<div class="n"><b>${M.nombrePrenda(l)}</b><span>${M.detallePrenda(l)}</span></div>`;
+      if (modo === 'contar') return `<div class="fila-c" data-k="${k}">${M.mos(l, 40)}${nom}<span class="paso-num"><button data-menos aria-label="Una menos">${M.ic('menos')}</button><output class="num ${l.cont == null ? 'sin-contar' : ''}">${l.cont ?? '—'}</output><button data-mas aria-label="Una más">${M.ic('mas')}</button></span></div>`;
+      if (modo === 'comparar') { const ok = (l.cont ?? 0) === l.n; return `<div class="fila-c" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="cmp"><span class="env">venían<b class="num">${l.n}</b></span><span class="mk ${ok ? 'ok' : 'no'}">${M.ic(ok ? 'check' : 'menos')}</span><span class="q num">${l.cont ?? 0}</span></span></div>`; }
+      return `<div class="fila-c">${M.mos(l, 40)}${nom}<span class="q num">${l.n}</span></div>`;
+    };
+    const pintar = () => {
+      const sit = M.situacion(t, s), contar = t.a === s && t.estado === 'en_transito';
+      const hechas = M.contadas(t), total = t.lineas.length, listas = hechas === total;
+      let cue = '', pie = '';
+      if (contar && !st.revelado) {
+        cue = `<div class="hc-tip s-contando"><span class="sello go">${M.glifo('ciega')}</span><span><b>Cuenta lo que ves en la caja.</b> Lo enviado aparece al final.</span></div>${t.lineas.map((l, k) => fila(l, k, 'contar')).join('')}`;
+        pie = `<div class="fila"><button class="btn s-contando" data-escanear>${M.glifo('escanear')}Escanear</button><button class="btn pri grande" data-termine ${listas ? '' : 'disabled'}>${listas ? 'Terminé de contar' : `${total - hechas === 1 ? 'Falta 1' : `Faltan ${total - hechas}`} por contar`}</button></div>`;
+      } else if (contar) {
+        cue = `<div class="revela">${t.lineas.map((l, k) => fila(l, k, 'comparar')).join('')}</div>`;
+        pie = `<div class="lugar" role="group" aria-label="Dónde la dejas"><button data-lugar="almacen" aria-pressed="${st.lugar === 'almacen'}"><svg viewBox="0 0 24 24">${M.PT.almacen}</svg>Al almacén</button><button data-lugar="piso" aria-pressed="${st.lugar === 'piso'}"><svg viewBox="0 0 24 24">${M.PT.piso}</svg>Al piso</button></div>
+          <div class="fila"><button class="btn" data-recontar>Volver a contar</button><button class="btn pri grande" data-confirmar>${M.difiere(t) ? 'Confirmar lo que llegó' : 'Confirmar'}</button></div>`;
+      } else if (sit === 'revisar' && t.a === s) {
+        cue = `<div class="revela">${t.lineas.map((l, k) => fila(l, k, 'comparar')).join('')}</div><label class="lbl" for="nota-f" style="margin-top:10px">¿Qué pasó con lo que falta?</label><textarea id="nota-f" class="campo-nota" data-nota placeholder="Ej. La falda no vino en la caja; Lima la va a buscar"></textarea>`;
+        pie = `<button class="btn pri grande" data-cerrar disabled>Cerrar con diferencia</button>`;
+      } else {
+        const comparar = !['llega', 'sale', 'camino', 'contando', 'anulado'].includes(sit);
+        cue = `<div class="${comparar ? 'revela' : ''}">${t.lineas.map((l, k) => fila(l, k, comparar ? 'comparar' : 'ver')).join('')}</div>${t.nota ? `<div class="nota-op" style="margin-top:10px">“${t.nota}”<cite>${persona(t.por)}</cite></div>` : ''}${sit === 'dif' ? `<div class="nota-op" style="margin-top:10px">“${t.notaCierre}”<cite>${persona(t.cerro)}</cite></div>` : ''}`;
+        if (t.de === s && t.estado === 'en_transito') pie = `<div class="fila"><button class="btn grande" data-no="la guía con QR (ADR-0242 D-3)">${M.ic('imprimir')}Guía</button><button class="btn grande" data-no="el mensaje para la otra sede (ADR-0242 D-3)">${M.ic('msj')}WhatsApp</button></div>`;
+      }
+      const titulo = contar ? (st.revelado ? (M.difiere(t) ? M.faltaQue(t) : 'Todo coincide') : `Contar la caja Nº ${t.num}`) : sit === 'revisar' ? M.faltaQue(t) : `Caja Nº ${t.num}`;
+      const cls = contar ? (st.revelado ? (M.difiere(t) ? 'revisar' : 'cerrado') : 'contando') : clsDe(t);
+      h.className = `hoja-c s-${cls} ${h.classList.contains('in') ? 'in' : ''}`;
+      h.innerHTML = `<div class="hc-asa"></div><div class="hc-cab"><span class="sello go">${M.glifo(contar ? (st.revelado ? (M.difiere(t) ? 'revisar' : 'cerrado') : 'contando') : (sit === 'camino' ? 'sale' : sit))}</span><div><b>${titulo}</b><span>${M.SEDES[t.de].del} → ${M.SEDES[t.a].corto} · salió ${M.cuando(t.salio)}</span></div><button class="x" aria-label="Cerrar">${M.ic('cerrar')}</button></div>
+        <div class="hc-cue">${cue}</div>${pie ? `<div class="hc-pie">${pie}</div>` : ''}`;
+      M.$('.x', h).onclick = cerrar;
+      M.$$('[data-no]', h).forEach(b => b.onclick = () => M.noEnMaqueta(b.dataset.no));
+      M.$$('.fila-c[data-k]', h).forEach(row => {
+        const k = +row.dataset.k, out = M.$('output', row);
+        const poner = d => { const antes = M.contadas(t); if (d < 0 && t.lineas[k].cont == null) M.acc.contar(t, k, 0); else M.acc.sumar(t, k, d); st.cambio = true; st.aviso = null;
+          if (M.contadas(t) !== antes) { pintar(); return; } out.textContent = t.lineas[k].cont; out.classList.remove('sin-contar', 'salta'); void out.offsetWidth; out.classList.add('salta'); };
+        M.$('[data-mas]', row).onclick = () => poner(1); M.$('[data-menos]', row).onclick = () => poner(-1);
+      });
+      const esc = M.$('[data-escanear]', h);
+      if (esc) esc.onclick = () => { const k = t.lineas.findIndex(l => (l.cont ?? 0) < l.n), r = M.$$('.fila-c[data-k]', h)[k < 0 ? 0 : k]; M.$('[data-mas]', r).click(); const r2 = M.$$('.fila-c[data-k]', h)[k < 0 ? 0 : k]; r2?.scrollIntoView({ block:'nearest' }); r2?.animate && r2.animate([{ background:'color-mix(in srgb,var(--pizarra) 16%,transparent)' }, { background:'transparent' }], { duration:700 }); };
+      const term = M.$('[data-termine]', h); if (term) term.onclick = () => { st.revelado = true; pintar(); };
+      const rec = M.$('[data-recontar]', h); if (rec) rec.onclick = () => { st.revelado = false; pintar(); };
+      M.$$('[data-lugar]', h).forEach(b => b.onclick = () => { st.lugar = b.dataset.lugar; M.$$('[data-lugar]', h).forEach(z => z.setAttribute('aria-pressed', z === b)); });
+      const conf = M.$('[data-confirmar]', h);
+      if (conf) conf.onclick = () => { const dif = M.acc.confirmar(t, st.lugar); st.cambio = true; st.aviso = dif ? 'Entró lo que coincidió; lo demás espera tu revisión.' : `Le avisamos ${aSede(t.de)}: llegó completa.`; cerrar(); };
+      const nota = M.$('[data-nota]', h), cer = M.$('[data-cerrar]', h);
+      if (nota) nota.oninput = () => { cer.disabled = nota.value.trim().length < 6; };
+      if (cer) cer.onclick = () => { M.acc.cerrarDif(t, nota.value.trim()); st.cambio = true; st.aviso = `Caja Nº ${t.num} cerrada con su nota.`; cerrar(); };
+    };
+    pintar();
+    requestAnimationFrame(() => requestAnimationFrame(() => { h.classList.add('in'); velo.classList.add('in'); }));
+  }
+
+  /* «Para hoy»: lleva al chat y al mensaje que toca */
+  M.$$('[data-ir]', raiz).forEach(b => b.onclick = () => {
+    const tipo = b.dataset.ir, x = tareas.find(z => tipo === 'atraso' ? z.tipo === 'atraso' : tipo === 'contar' ? ['llega', 'contando'].includes(z.tipo) : tipo === 'revisar' ? z.tipo === 'revisar' : z.tipo === 'pedido');
+    if (!x) return;
+    const X = x.t ? x.t.de : x.p.pide; abrir(X, true);
+    const id = x.t ? (x.tipo === 'revisar' ? `t${x.t.num}-dif` : `t${x.t.num}-salio`) : 'p' + x.p.id;
+    const el = M.$(`[data-m="${id}"]`, conv);
+    if (el) setTimeout(() => { el.scrollIntoView({ block:'center', behavior: M.reducir() ? 'auto' : 'smooth' }); el.classList.add('foco'); setTimeout(() => el.classList.remove('foco'), 1600); }, 300);
+  });
+  abrir(est.chat, false);
+  app.classList.toggle('abierta', est.abierta);
+}});
+</script>
+</body>
+</html>

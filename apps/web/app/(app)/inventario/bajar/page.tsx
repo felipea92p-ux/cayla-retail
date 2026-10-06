@@ -29,9 +29,9 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
         sede={sede}
         titulo="Bajar prendas al piso"
         subtitulo="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
-        // La vuelta común (`Volver`), un botón de la cabecera como «← Traslados» y «← Conteo» en sus detalles. Solo si puede entrar a
+        // La vuelta común (`Volver`), la flecha junto a la sede, como en Traslados y Conteo (ADR-0220, act. 2026-10-06). Solo si puede entrar a
         // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
-        pie={
+        volver={
           veModulo(persona, "existencias") && <Volver href="/inventario" a="Existencias" />
         }
       />
