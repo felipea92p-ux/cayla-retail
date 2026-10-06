@@ -1,0 +1,11 @@
+/* Análisis v4 (ADR-0356): estilos propios de ficha que la hoja base (analisis.css) no trae. Mismas reglas que la base:
+   solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts). */
+@layer components {
+  .analisis {
+    /* La ficha es un <Modal>: su contenido entra con la cascada del sistema (ADR-0136), unos 300 ms después de abrirse. Las barras
+       crecen y los puntos asoman cuando ya se ven, no mientras el contenido aparece: aquí solo se corre su retraso (la animación
+       es la de la base, y con «reducir movimiento» la base la apaga). */
+    &.analisis-hoja .anim :is(.cx, .cxd, .cy) { animation-delay: calc(var(--d, 0) * 40ms + 380ms); }
+    &.analisis-hoja .anim .po { animation-delay: calc(var(--d, 0) * 45ms + 460ms); }
+  }
+}
