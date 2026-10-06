@@ -28,14 +28,14 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
   // Las columnas son anchas a propósito y la tabla se desplaza dentro de su tarjeta: en el celular no se apila (una fila de 10 cifras apilada
   // no se compara con la de arriba). La plantilla va en un `style` y no en una clase de Tailwind porque lleva el número de grupos: Tailwind solo
   // genera las clases que están escritas completas en el código, y una armada con `${n}` no existiría.
-  const plantilla = { gridTemplateColumns: `7.5rem repeat(${delRiel.length}, minmax(4.75rem, 1fr)) 5.5rem 11rem 5.5rem 6.5rem` };
+  // La primera columna lleva la fecha y, solo si el piso no estaba cuadrado, su aviso: lo que decide si la foto sirve va donde no hay que desplazarse.
+  const plantilla = { gridTemplateColumns: `9rem repeat(${delRiel.length}, minmax(4.75rem, 1fr)) 5.5rem 11rem 5.5rem` };
   const titulos = [
     { texto: "Foto", der: false },
     ...delRiel.map((g) => ({ texto: CORTO[g.clave] ?? g.nombre, der: true })),
     { texto: "Total del riel", der: true },
     { texto: "Mezcla del riel", der: false },
     { texto: "Fuera del riel", der: true },
-    { texto: "Piso", der: true },
   ];
 
   return (
@@ -68,7 +68,7 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[72rem] divide-y divide-sand">
+            <div className="min-w-[71rem] divide-y divide-sand">
               <div className="encabezado-tabla-cayla grid items-end gap-x-4 px-5 py-2" style={plantilla} role="row">
                 {titulos.map((t) => (
                   <span key={t.texto} role="columnheader" className={`${TABLA.titulo} block min-w-0 ${t.der ? "text-right" : "text-left"}`}>
@@ -78,7 +78,10 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
               </div>
               {h.filas.map((f) => (
                 <div key={f.fecha} className="fila-cayla grid items-center gap-x-4 px-5 py-3" style={plantilla} role="row">
-                  <div className={celda("izq", "text-sm text-tinta")}>{dia(f.fecha)}</div>
+                  <div className={celda("izq", "flex flex-col items-start gap-1 text-sm text-tinta")}>
+                    {dia(f.fecha)}
+                    {!f.cuadrada && <Chip tono="ambar">Por cuadrar</Chip>}
+                  </div>
                   {delRiel.map((g) => (
                     <div key={g.clave} className={celda("der", f.cuadrada ? "" : "text-taupe")}>
                       {n(f.porGrupo[g.clave] ?? 0)}
@@ -93,7 +96,6 @@ export function HistoriaDelEspacio({ historia: h, grupos }: { historia: Historia
                     />
                   </div>
                   <div className={celda("der", "text-taupe")}>{n(f.fueraDelRiel)}</div>
-                  <div className={celda("der")}>{f.cuadrada ? <Chip tono="verde">Cuadrado</Chip> : <Chip tono="ambar">Por cuadrar</Chip>}</div>
                 </div>
               ))}
             </div>
