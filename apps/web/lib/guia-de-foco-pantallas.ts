@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 62;
+export const PENDIENTES_HOY = 61;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -111,7 +111,12 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     estado: "no-aplica",
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
-  "/inventario/resumen": PENDIENTE,
+  // Análisis v4 (ADR-0356): se lee, no se llena. El buscador filtra lo que se ve y los botones abren el flujo de cada acción en su
+  // pantalla (ADR-0245), con su propia guía.
+  "/inventario/resumen": {
+    estado: "no-aplica",
+    motivo: "Pantalla de lectura (Análisis v4, ADR-0356): no se llena ningún campo ni se avanza por pasos; cada botón abre el flujo de su acción en su propia pantalla.",
+  },
   // ADR-0355: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
   // que «/inventario/traslados/(billetera)/[id]».
   "/inventario/traslados/(billetera)": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx", "components/traslados-pases/PasePedido.tsx"] },
