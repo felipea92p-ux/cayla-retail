@@ -13,4 +13,5 @@ Qué hice: en «Esta talla», la frase verde «Disponible: N» se reemplaza por 
 Por qué así: con el motor sin responder o el piso en pausa, el panel callaba lo importante; una talla con 0 en el piso se veía «disponible» en verde.
 Felipe se lleva: ADR-0344, «Tercera vuelta»: por qué manda el motor cuando decide y por qué en pausa no se manda a colgar.
 Y la talla que más se vende, con un filtro puesto, lleva un solo borde sólido: sobre una talla sin stock se veía un borde doble (punteado y sólido).
+Y las acciones del panel siguen a la talla: primero lo que necesita, después lo que se puede usar y, al final y chico, lo que no se puede ahora con su porqué; cada acción conserva su tecla.
 

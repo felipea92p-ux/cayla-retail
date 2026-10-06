@@ -23,8 +23,21 @@ export type AccionTalla = {
   /** Lo que dice debajo del nombre: qué hay, o por qué está apagada. */
   sub: string;
   ok: boolean;
-  /** La que la pantalla recomienda para esta talla. */
+  /** La que la pantalla recomienda para esta talla (una sola, o ninguna): va primero y resaltada. */
   sugerida: boolean;
+  /** Su tecla (1–7): fija por ACCIÓN, no por lugar, porque el orden cambia con la talla (2026-10-06). Quien usa el teclado no se pierde. */
+  tecla: number;
+};
+
+const TECLA: Record<ClaveAccionTalla, number> = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, ficha: 7 };
+
+/** En qué orden conviene ofrecerlas según dónde está la prenda (2026-10-06, pedido de uso: «que el orden cambie según lo que necesita esa
+ *  prenda y se muestren primero las que puede usar»): con algo en el piso, venderla (apartar) es lo primero; sin nada colgado pero algo
+ *  atrás, colgarla; sin nada en la sede, pedirla. */
+const ORDEN_SEGUN_LUGAR: Record<"conPiso" | "sinPiso" | "sinStock", readonly ClaveAccionTalla[]> = {
+  conPiso: ["apartar", "colgar", "subir", "enviar", "pedir", "ajustar", "ficha"],
+  sinPiso: ["colgar", "apartar", "enviar", "pedir", "subir", "ajustar", "ficha"],
+  sinStock: ["pedir", "ajustar", "ficha", "apartar", "colgar", "subir", "enviar"],
 };
 
 export type PermisosDeTalla = {
@@ -51,14 +64,19 @@ function quienTiene(origenes: readonly { nombre: string; cantidad: number }[]): 
 const nombreCorto = (n: string) => n.replace(/^tienda\s+/i, "").trim();
 
 export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: boolean): AccionTalla[] {
-  const piso = f.pisoDisponible ?? 0;
-  const alm = f.almacenDisponible ?? 0;
-  const porColgar = separa && estadoTalla(f) === "por_colgar";
+  const piso = Math.max(0, f.pisoDisponible ?? 0);
+  const alm = Math.max(0, f.almacenDisponible ?? 0);
+  const aqui = separa ? piso + alm : Math.max(0, f.disponible);
   const sinStock = f.disponible <= 0;
   const tienen = quienTiene(p.origenes ?? []);
-  const filas: AccionTalla[] = [];
+  // Lo que la talla necesita, con la MISMA vara que «Qué toca» (`queTocaConLaTalla`): colgar si el motor lo pide —o, sin su decisión, si
+  // no hay en el piso y sí atrás; nunca en pausa—; si no, pedir cuando queda 1 o ninguna, nada viene en camino y una tienda tiene.
+  const accionMotor = f.planPiso?.accion ?? null;
+  const pideColgar = separa && alm > 0 && (estadoTalla(f) === "por_colgar" || (accionMotor === null && piso === 0));
+  const pidePedir = !pideColgar && tienen !== null && aqui <= 1 && Math.max(0, f.enTransito ?? 0) === 0;
+  const filas: Omit<AccionTalla, "tecla">[] = [];
   if (separa && p.puedeReponer) {
-    filas.push({ clave: "colgar", texto: "Colgar en el piso", ok: alm > 0, sub: alm > 0 ? `${unidades(alm)} en almacén` : "Nada en almacén", sugerida: alm > 0 && porColgar });
+    filas.push({ clave: "colgar", texto: "Colgar en el piso", ok: alm > 0, sub: alm > 0 ? `${unidades(alm)} en almacén` : "Nada en almacén", sugerida: pideColgar });
     filas.push({ clave: "subir", texto: "Subir a almacén", ok: piso > 0, sub: piso > 0 ? `${unidades(piso)} en piso` : "Nada en piso", sugerida: false });
   }
   if (p.puedeEnviar) {
@@ -69,11 +87,15 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
     filas.push({ clave: "apartar", texto: "Apartar", ok: !sinStock, sub: sinStock ? "Sin stock aquí: pídela" : "Con adelanto · en Vender", sugerida: false });
   }
   if (p.puedePedir) {
-    filas.push({ clave: "pedir", texto: "Pedir a otra sede", ok: tienen !== null, sub: tienen ?? "Ninguna sede tiene", sugerida: sinStock && tienen !== null });
+    filas.push({ clave: "pedir", texto: "Pedir a otra sede", ok: tienen !== null, sub: tienen ?? "Ninguna tienda tiene", sugerida: pidePedir && !!p.puedePedir }); // al Taller no se le pide por aquí
   }
   if (p.puedeAjustar) filas.push({ clave: "ajustar", texto: "Ajustar stock", ok: true, sub: "Corregir el número", sugerida: false });
   filas.push({ clave: "ficha", texto: "Ficha", ok: true, sub: "Precio, descripción, historial", sugerida: false });
-  return filas;
+
+  // Primero la que la talla necesita; después las que se pueden, en el orden de su lugar; al final las que no se pueden ahora.
+  const orden = ORDEN_SEGUN_LUGAR[aqui === 0 ? "sinStock" : separa && piso === 0 ? "sinPiso" : "conPiso"];
+  const peso = (a: Omit<AccionTalla, "tecla">) => (a.sugerida ? 0 : a.ok ? 100 : 200) + orden.indexOf(a.clave);
+  return filas.map((a) => ({ ...a, tecla: TECLA[a.clave] })).sort((a, b) => peso(a) - peso(b));
 }
 
 /* ====================================================================

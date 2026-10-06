@@ -8,9 +8,24 @@ const PIDE = { accion: "por_colgar" } as never;
 const TODO = { puedeReponer: true, puedeEnviar: true, puedeAjustar: true, puedeApartar: true, puedePedir: true, origenes: [{ nombre: "Tienda Lima", cantidad: 2 }, { nombre: "Tienda Arequipa", cantidad: 0 }] };
 
 describe("acciones del panel de una talla", () => {
-  it("siete tarjetas en el orden de la maqueta, con los nombres del sistema", () => {
+  it("siete tarjetas con los nombres del sistema; con algo en el piso, vender (apartar) va primero", () => {
     const a = accionesDeTalla(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }), TODO, true);
-    expect(a.map((x) => x.texto)).toEqual(["Colgar en el piso", "Subir a almacén", "Enviar a otra sede", "Apartar", "Pedir a otra sede", "Ajustar stock", "Ficha"]);
+    expect(a.map((x) => x.texto)).toEqual(["Apartar", "Colgar en el piso", "Subir a almacén", "Enviar a otra sede", "Pedir a otra sede", "Ajustar stock", "Ficha"]);
+  });
+  it("la tecla es de la acción, no del lugar: el orden cambia con la talla y el número no", () => {
+    const teclas = (f: FilaPrenda) => Object.fromEntries(accionesDeTalla(f, TODO, true).map((x) => [x.clave, x.tecla]));
+    const esperado = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, ficha: 7 };
+    expect(teclas(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }))).toEqual(esperado);
+    expect(teclas(talla({}))).toEqual(esperado);
+  });
+  it("primero lo que la talla necesita, después lo que se puede y al final lo que no", () => {
+    const claves = (f: FilaPrenda) => accionesDeTalla(f, TODO, true).map((x) => `${x.clave}${x.sugerida ? "*" : ""}${x.ok ? "" : "·no"}`);
+    // Sin nada en la sede y una tienda que la tiene: pedir, después lo que se puede (ajustar, ficha), al final lo apagado.
+    expect(claves(talla({ enRed: [{ sede: "Tienda Lima", cantidad: 2 }] }))).toEqual(["pedir*", "ajustar", "ficha", "apartar·no", "colgar·no", "subir·no", "enviar·no"]);
+    // Nada en el piso y algo atrás, sin decisión del motor: colgar primero y sugerida (la misma vara que «Qué toca»).
+    expect(claves(talla({ almacenDisponible: 3, disponible: 3 }))[0]).toBe("colgar*");
+    // Con el piso en pausa NO se sugiere colgar (podría ya colgar): se ofrece, sin resaltar.
+    expect(claves(talla({ almacenDisponible: 3, disponible: 3, planPiso: { accion: "pausa_sin_cuadre" } as never })).filter((x) => x.includes("*"))).toEqual([]);
   });
   it("cada una dice qué hay o por qué está apagada", () => {
     const a = Object.fromEntries(accionesDeTalla(talla({ pisoDisponible: 0, almacenDisponible: 1, disponible: 1 }), TODO, true).map((x) => [x.clave, x]));
@@ -39,7 +54,7 @@ describe("Apartar y Pedir siguen a la talla", () => {
   });
   it("ninguna tienda la tiene: Pedir apagado, con el porqué", () => {
     const a = Object.fromEntries(accionesDeTalla(talla({}), { ...TODO, origenes: [] }, true).map((x) => [x.clave, x]));
-    expect(a.pedir).toMatchObject({ ok: false, sub: "Ninguna sede tiene", sugerida: false });
+    expect(a.pedir).toMatchObject({ ok: false, sub: "Ninguna tienda tiene", sugerida: false });
   });
 });
 

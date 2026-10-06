@@ -305,7 +305,8 @@ export function PanelTalla({
     } else if (/^[1-7]$/.test(e.key)) {
       // Un dígito solo es un atajo; una ráfaga (la pistola leyendo un código que empieza con números) no: el atajo espera un instante
       // y se cancela si llega otra tecla enseguida (`MS_ENTRE_TECLAS`).
-      const a = acciones[Number(e.key) - 1];
+      // La tecla es de la acción (Colgar = 1 … Ficha = 7), no de su lugar: el orden cambia con lo que la talla necesita.
+      const a = acciones.find((x) => x.tecla === Number(e.key));
       if (!a?.ok) return;
       e.preventDefault();
       const marca = e.timeStamp;
@@ -618,32 +619,57 @@ export function PanelTalla({
                         Código <span className="tabular-nums text-tinta">{codigo}</span>
                       </p>
                     )}
+                    {/* Las acciones (2026-10-06): primero la que la talla necesita, después las que se pueden usar, como tarjetas; las que no se
+                        pueden ahora, al final y chicas, con su porqué (`accionesDeTalla` decide el orden). Cada una conserva su tecla. */}
                     <div className="grid grid-cols-2 gap-2">
-                      {acciones.map((a, i) => {
-                        const Ico = ICONO[a.clave];
-                        return (
-                          <button
-                            key={a.clave}
-                            type="button"
-                            aria-disabled={!a.ok}
-                            aria-keyshortcuts={String(i + 1)}
-                            title={a.ok ? undefined : a.sub}
-                            onClick={() => a.ok && alAccionar(a.clave)}
-                            // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
-                            className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === acciones.length - 1 && acciones.length % 2 === 1 ? "col-span-2" : ""} ${
-                              a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
-                            } ${a.ok ? "" : "cursor-not-allowed opacity-50 active:scale-100"}`}
-                          >
-                            <Ico aria-hidden className={`row-span-2 h-[22px] w-[22px] ${a.sugerida ? "text-sand" : "text-taupe"}`} strokeWidth={1.5} />
-                            <b className="flex items-center gap-1.5 text-[15.5px] font-semibold">
-                              {a.texto}
-                              <kbd className={`hidden rounded border px-1 text-[10.5px] font-normal sm:inline ${a.sugerida ? "border-papel/30 text-sand" : "border-sand text-taupe"}`}>{i + 1}</kbd>
-                            </b>
-                            <small className={`text-xs leading-tight ${a.sugerida ? "text-sand" : "text-taupe"}`}>{a.sub}</small>
-                          </button>
-                        );
-                      })}
+                      {acciones
+                        .filter((a) => a.ok)
+                        .map((a, i, usables) => {
+                          const Ico = ICONO[a.clave];
+                          return (
+                            <button
+                              key={a.clave}
+                              type="button"
+                              aria-keyshortcuts={String(a.tecla)}
+                              onClick={() => alAccionar(a.clave)}
+                              // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
+                              className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === usables.length - 1 && usables.length % 2 === 1 ? "col-span-2" : ""} ${
+                                a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
+                              }`}
+                            >
+                              <Ico aria-hidden className={`row-span-2 h-[22px] w-[22px] ${a.sugerida ? "text-sand" : "text-taupe"}`} strokeWidth={1.5} />
+                              <b className="flex items-center gap-1.5 text-[15.5px] font-semibold">
+                                {a.texto}
+                                <kbd className={`hidden rounded border px-1 text-[10.5px] font-normal sm:inline ${a.sugerida ? "border-papel/30 text-sand" : "border-sand text-taupe"}`}>{a.tecla}</kbd>
+                              </b>
+                              <small className={`text-xs leading-tight ${a.sugerida ? "text-sand" : "text-taupe"}`}>{a.sub}</small>
+                            </button>
+                          );
+                        })}
                     </div>
+                    {acciones.some((a) => !a.ok) && (
+                      <div>
+                        <p className="label-cayla mb-1.5 text-[10.5px] text-taupe">No se puede ahora</p>
+                        <ul className="flex flex-wrap gap-1.5">
+                          {acciones
+                            .filter((a) => !a.ok)
+                            .map((a) => {
+                              const Ico = ICONO[a.clave];
+                              return (
+                                <li
+                                  key={a.clave}
+                                  title={`${a.texto}: ${a.sub}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-sand px-2.5 py-1 text-[12.5px] text-tinta/50"
+                                >
+                                  <Ico aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                                  {a.texto}
+                                  <span className="text-tinta/40">· {a.sub.charAt(0).toLocaleLowerCase("es") + a.sub.slice(1)}</span>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      </div>
+                    )}
                   </>
                 )}
 

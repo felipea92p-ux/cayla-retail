@@ -260,3 +260,14 @@ ventas, que el motor habría mandado mantener. Es lo menos malo: decir «Disponi
 propio borde; en una talla sin nada (borde punteado) quedaban dos bordes. Ahora el aro reemplaza al borde: uno solo, sólido y oscuro, y el
 estado lo dicen el fondo, la cifra («—») y la insignia del filtro.
 
+**Las acciones del panel siguen a la talla** (mismo día; pedido: «que el orden de los accesos cambie según lo que necesita esa prenda y se
+muestren primero los que puede usar»).
+DECIDÍ: primero la que la talla necesita (Colgar si no hay en el piso y sí atrás —con la vara de «Qué toca», nunca en pausa—; si no, Pedir
+cuando queda 1 o ninguna y una tienda tiene), después las que se pueden usar en el orden de su lugar (con algo en el piso: Apartar primero;
+sin nada colgado: Colgar; sin nada en la sede: Pedir), y las que no se pueden ahora al final, como una línea chica con su porqué
+(«No se puede ahora: Subir a almacén · nada en piso»). La tecla 1–7 queda pegada a la acción (Colgar = 1 … Ficha = 7), no a su lugar.
+DESCARTÉ: esconder las que no se pueden (se pierde el porqué: «¿por qué no puedo subirla?» se responde ahí mismo) y numerar por lugar (con
+el orden cambiando en cada talla, la misma tecla haría cosas distintas).
+SE ROMPE SI: alguien aprende de memoria el LUGAR de un botón (no su tecla) y el orden cambia de una talla a otra. El color y el nombre
+siguen iguales; el lugar ya no es fijo a propósito.
+
