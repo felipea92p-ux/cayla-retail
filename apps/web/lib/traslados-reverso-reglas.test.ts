@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
 import { leerConteo, puedeTerminar, type Conteos, type LineaRecepcion } from "./traslados-recepcion-reglas";
-import { camposAnular, camposCerrar, camposDelConteo, faltaQue, modoDelReverso, selloAlConfirmar, textoTerminar, tituloDelReverso, tonoDelReverso } from "./traslados-reverso-reglas";
+import { camposAnular, camposCerrar, camposDelConteo, consejoAlComparar, faltaQue, modoDelReverso, pieDelConteo, resumenCorto, selloAlConfirmar, tituloDelReverso, tonoDelReverso } from "./traslados-reverso-reglas";
 
 const linea = (p: Partial<LineaRecepcion> & { varianteId: string }): LineaRecepcion => ({
   referencia: "Falda Renata",
@@ -64,15 +64,23 @@ describe("cabecera, color, botón y sello", () => {
     expect(tonoDelReverso("comparar", { tonoDelPase: "llega", hayDiferencia: false })).toBe("cerrado");
     expect(tonoDelReverso("llegada", { tonoDelPase: "dif", hayDiferencia: true })).toBe("dif");
   });
-  it("el botón de terminar dice cuántas faltan en vez de quedarse gris", () => {
+  it("mientras falte contar no hay botón: se nombra cuántas faltan; sin guardar, se dice; listo, el botón", () => {
     const ls = [linea({ varianteId: "a" }), linea({ varianteId: "b" })];
     const sinNada = leerConteo(ls, {});
-    expect(textoTerminar(sinNada, puedeTerminar(sinNada, { pendientes: 0, errores: 0 }))).toBe("Faltan 2 por contar");
-    const una = leerConteo(ls, { a: 3 });
-    expect(textoTerminar(una, puedeTerminar(una, { pendientes: 0, errores: 0 }))).toBe("Falta 1 por contar");
+    expect(pieDelConteo(sinNada, puedeTerminar(sinNada, { pendientes: 0, errores: 0 }))).toEqual({ tipo: "faltan", cuantas: 2 });
     const todas = leerConteo(ls, { a: 3, b: 3 });
-    expect(textoTerminar(todas, puedeTerminar(todas, { pendientes: 0, errores: 0 }))).toBe("Terminé de contar");
-    expect(textoTerminar(todas, puedeTerminar(todas, { pendientes: 0, errores: 1 }))).toBe("1 prenda no se guardó: reintenta");
+    expect(pieDelConteo(todas, puedeTerminar(todas, { pendientes: 0, errores: 0 }))).toEqual({ tipo: "listo" });
+    expect(pieDelConteo(todas, puedeTerminar(todas, { pendientes: 0, errores: 1 }))).toEqual({ tipo: "sin-guardar", texto: "1 prenda no se guardó: reintenta" });
+  });
+  it("el pie dice «listo» exactamente cuando la base dejaría terminar (puedeTerminar)", () => {
+    const ls = [linea({ varianteId: "a" }), linea({ varianteId: "b" })];
+    for (const conteos of [{}, { a: 1 }, { a: 1, b: 0 }] as Conteos[]) {
+      for (const errores of [0, 1]) {
+        const l = leerConteo(ls, conteos);
+        const t = puedeTerminar(l, { pendientes: 0, errores });
+        expect(pieDelConteo(l, t).tipo === "listo").toBe(t.habilitado);
+      }
+    }
   });
   it("el sello al confirmar: RECIBIDA si todo coincide, FALTÓ ALGO si no", () => {
     const ls = [linea({ varianteId: "a" })];
@@ -112,5 +120,26 @@ describe("guía del conteo", () => {
       const lectura = leerConteo(ls, conteos);
       expect(sePuedeConfirmar(camposDelConteo(ls, conteos))).toBe(puedeTerminar(lectura, { pendientes: 0, errores: 0 }).habilitado);
     }
+  });
+});
+
+describe("comparar sin culpa", () => {
+  const ls = [linea({ varianteId: "a", cantidadEnviada: 3 }), linea({ varianteId: "b", cantidadEnviada: 2 })];
+  it("si falta, dice qué hacer: buscar otra vez y, si no está, confirmar", () => {
+    expect(consejoAlComparar(ls, { a: 2, b: 2 }, { origen: "Trujillo", puedeCerrar: false })).toBe("Búscala otra vez en la caja. Si no está, confirma: tu líder lo revisa con Trujillo.");
+    expect(consejoAlComparar(ls, { a: 2, b: 1 }, { origen: "Trujillo", puedeCerrar: false })).toBe("Búscalas otra vez en la caja. Si no están, confirma: tu líder lo revisa con Trujillo.");
+  });
+  it("si sobra, pide revisar que sea de esta caja; mezclado, mirar otra vez", () => {
+    expect(consejoAlComparar(ls, { a: 4, b: 2 }, { origen: "Taller", puedeCerrar: false })).toBe("Revisa que sea de esta caja. Si lo es, confirma: tu líder lo revisa con Taller.");
+    expect(consejoAlComparar(ls, { a: 4, b: 1 }, { origen: "Taller", puedeCerrar: false })).toBe("Vuelve a mirar la caja. Si sigue igual, confirma: tu líder lo revisa con Taller.");
+  });
+  it("al líder no le dice «tu líder»; sin diferencia, nada", () => {
+    expect(consejoAlComparar(ls, { a: 2, b: 2 }, { origen: "Lima", puedeCerrar: true })).toContain("después lo revisas con Lima");
+    expect(consejoAlComparar(ls, { a: 3, b: 2 }, { origen: "Lima", puedeCerrar: false })).toBeNull();
+  });
+  it("el resumen corto: cuánto entra y adónde, y cuántas quedan para revisar", () => {
+    expect(resumenCorto(leerConteo(ls, { a: 3, b: 2 }), "piso_venta")).toEqual(["Entran 5 al piso"]);
+    expect(resumenCorto(leerConteo(ls, { a: 2, b: 2 }), "almacen_tienda")).toEqual(["Entran 2 al almacén", "Falda Renata S beige queda para revisar"]);
+    expect(resumenCorto(leerConteo(ls, { a: 0, b: 0 }), null)).toEqual(["No entra nada todavía", "2 prendas quedan para revisar"]);
   });
 });

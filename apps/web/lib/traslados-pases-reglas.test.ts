@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { contarRequierenAccion } from "./traslados-reglas";
 import {
   anilloDelDia,
+  textoDelAnillo,
   botonDelPase,
   camposDelPase,
   cifraDelPase,
@@ -201,7 +202,7 @@ describe("la billetera", () => {
   });
 
   it("el anillo suma lo mismo que el menú: por recibir + te piden", () => {
-    expect(anilloDelDia({ porRecibir: 4, tePiden: 1, hechas: 0 })).toEqual({ hechas: 0, total: 5, pendientes: 5, fraccion: 0 });
+    expect(anilloDelDia({ porRecibir: 4, tePiden: 1, hechas: 0 })).toEqual({ hechas: 0, total: 5, pendientes: 5, fraccion: 0, porRecibir: 4, tePiden: 1 });
     expect(anilloDelDia({ porRecibir: 0, tePiden: 0, hechas: 0 }).fraccion).toBe(1);
     expect(anilloDelDia({ porRecibir: 3, tePiden: 0, hechas: 1 }).fraccion).toBe(0.25);
   });
@@ -230,5 +231,14 @@ describe("paseInicial y vecinos", () => {
     const l = [p("a"), p("b"), p("c")];
     expect(vecinosEnPestana(l, "b")).toEqual({ anterior: l[0], siguiente: l[2], posicion: 1 });
     expect(vecinosEnPestana(l, "x").posicion).toBe(-1);
+  });
+});
+
+describe("el anillo en palabras", () => {
+  it("nombra cajas y pedidos, y cuánto llevas del día", () => {
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 1, tePiden: 0, hechas: 3 }))).toEqual({ titulo: "Te toca 1 caja hoy", detalle: "Ya hiciste 3 de 4" });
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 2, tePiden: 1, hechas: 0 }))).toEqual({ titulo: "Te tocan 2 cajas y 1 pedido hoy", detalle: "Empieza por la primera" });
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 0, tePiden: 2, hechas: 1 })).titulo).toBe("Te tocan 2 pedidos hoy");
+    expect(textoDelAnillo(anilloDelDia({ porRecibir: 0, tePiden: 0, hechas: 0 }))).toEqual({ titulo: "Nada pendiente hoy", detalle: "Todo al día" });
   });
 });
