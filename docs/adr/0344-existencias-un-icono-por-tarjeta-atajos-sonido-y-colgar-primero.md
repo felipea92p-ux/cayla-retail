@@ -136,3 +136,43 @@ dice «Aparece cuando se cuadre el piso de esta sede», para que su ausencia no 
 
 11. **Sin herramientas de más.** La cabecera pierde su fila de botones (Recibir, Contar, Trasladar y Apartados siguen en el lateral; Cuadrar el piso, en «Pendientes»); con tarjetas no hay «Copiar enlace» ni segundo «Ordenar por» (queda «Prioridad | A–Z»); «Ver detalle» es un icono. La ventana de la tarjeta lleva solo Colgar en el piso, Subir a almacén y Enviar a otra sede.
 12. **El panel de la talla reemplaza al cajón** (`components/existencias/PanelTalla.tsx`, lógica en `lib/existencias-panel-talla.ts`): vistas Esta talla / Todas / Ficha, color y talla para cambiar sin salir, cuatro cifras, frase de diagnóstico, ritmo, otras sedes y siete acciones con lo que dicen debajo. En este corte cada acción abre la ventana que ya existía; **Apartar** (se hace en Vender) y **Pedir a otra sede** (no existe en la base) se dibujan apagadas. Los pasos guiados dentro del panel quedan para el siguiente corte.
+
+## Cuarta vuelta (2026-10-06): toda la maqueta, funciones y diseño
+
+Felipe: «implementa todo lo trabajado en la maqueta, todas sus funcionalidades, diseño». Se construyó en cinco actividades, un commit cada una
+(rama `claude/existencias-maqueta-completa`).
+
+13. **Cada acción se hace dentro del panel, paso a paso** (`components/existencias/FlujoTalla.tsx`, lógica en `lib/existencias-flujos.ts`): pasos
+    numerados con ✓, «Falta: …» tocable (las piezas de la guía de foco, ADR-0284), resumen antes de confirmar, y «✓ hecho» al terminar.
+    - Colgar y Colgar varias → `bajar_al_piso`; Subir a almacén (se queda o para enviar, con nota opcional) → `retirar_del_piso` / `subir_para_enviar`;
+      Pedir a otra sede (para reponer o para un cliente) → `pedir_a_otra_sede` / `pedir_prenda_para_apartar`; Ajustar → `ajustar_inventario`;
+      Reportar dañada → `reportar_danada`. Las MISMAS funciones y los mismos armadores que las ventanas, con la marca del intento por huella.
+    - DECIDÍ: los pasos llaman a la base desde el panel y reusan las reglas de `lib/` (argumentos, errores, «¿la base resolvió la marca?»).
+      DESCARTÉ: abrir las ventanas de siempre encima del panel, porque la maqueta hace todo sin salir y dos ventanas apiladas pierden el foco.
+      SE ROMPE SI: una de esas funciones cambia sus parámetros y solo se actualiza el armador de una ventana que ya no existe; por eso las ventanas
+      Reponer y Subir se borraron (punto 14) y el armador vive en un solo lugar.
+    - **Enviar a otra sede** termina en «Nuevo traslado» ya cargado (cantidad y sede): el traslado es el único que saca prendas de una sede.
+      **Apartar** abre la separación de Vender con la talla puesta (Felipe eligió «Separación de Vender»: ahí se cobra el adelanto con la caja abierta).
+    - **Ajustar** usa los cuatro motivos de la base con las palabras de la maqueta («Error al cobrar» y «Uso interno» viajan como «otro» con su nota;
+      «Se dañó» lleva a Reportar dañada). Una talla que faltó en un conteo cerrado se ajusta en la ventana completa, que la enlaza con ese conteo.
+    - **Lo que la maqueta dibuja y la base no tiene:** el «lo confirma un líder» de Ajustar (no hay cola de aprobación de ajustes). No se construyó.
+14. **Se borran las piezas reemplazadas:** `CajonPrendaExistencias`, `DesgloseStockPrenda`, `ReponerPrendaModal`, `SubirAAlmacenModal`, `ReportarDanadaModal` y `MatrizMover`,
+    con las reglas que solo ellas usaban y sus pruebas. Las que servían se reusan (`casiNoHay`, `lineasDeMoverModelo`, `detalleDeLoMovido`,
+    `leerCantidadTecleada`, `textoFilaSinAlcance`, la nota y el aviso de Subir, y de dañadas `problemasReporte`, `desdeInicial`, `quePasaAlReportar` y
+    `puedeEnviarReporte`: con un envío en duda solo falta quién lo hace, en TODOS los pasos). La suma explicada del cajón (Felipe, 2026-10-04) sigue en el panel,
+    por talla, con la ⓘ de qué cobra la caja.
+15. **La tarjeta como la maqueta:** sin «colgadas · guardadas»; la cabecera abre el panel; con «Hoy» o «Condición» se ven todas las tallas del color
+    (las que cumplen con su punto, la más vendida con un aro, las demás atenuadas) y los colores que cumplen llevan su punto; el icono es Colgar
+    (resaltado si falta algo en el piso), Pedir (agotado aquí y una tienda lo tiene) o Ver (con un filtro). `mejorOrigen` es la única regla de a
+    qué tienda pedir.
+16. **El anillo «N de M hoy»** (`AnilloMision`, `lib/existencias-mision.ts`) reemplaza al botón «Pendientes» y lo abre. Cuenta contra la foto de la
+    mañana, guardada en el navegador por sede y por día: es el marcador del día de quien mira, no un dato de la tienda. Un pedido hecho no cuenta
+    como resuelto hasta que llega. DECIDÍ: el navegador. DESCARTÉ: una tabla, porque una cifra de ánimo no vale un dato auditado ni una migración.
+    SE ROMPE SI: dos equipos de la misma tienda abren el día a horas distintas; cada uno ve su propio avance.
+17. **La caja de buscar de la maqueta**, la **pistola sin tocar el buscador** (`lib/existencias-pistola.ts`: una ráfaga terminada en Enter abre la
+    talla; los atajos 1–7 esperan un instante por si es una ráfaga), **teclado** (← → talla, ↑ ↓ color con `useFlechasDelCajon`, 1–7 acción, Enter
+    sigue, Escape vuelve) y, en el celular, el panel como **hoja que sube con su asa**.
+
+**Lo que se aparta de la maqueta a propósito:** la cabecera de la pantalla sigue siendo `EncabezadoPagina` (ADR-0220: la cabecera de Inventario es la
+de su módulo); el aviso ámbar del piso sin cuadrar sigue (explica por qué «Hoy» no pide colgar); no hay Ctrl+K para buscar (lo usa el buscador
+general); la animación del punto que «vuela» al anillo no se hizo (ADR-0136: sin movimiento decorativo).
