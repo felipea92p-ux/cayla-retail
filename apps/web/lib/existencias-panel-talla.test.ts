@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, loQueFaltaEnElPiso, queTocaConLaTalla } from "./existencias-panel-talla";
+import { accionesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla } from "./existencias-panel-talla";
 import type { FilaPrenda } from "./existencias-prendas";
 
 const talla = (x: Partial<FilaPrenda> & { enRed?: { sede: string; cantidad: number }[] }) =>
@@ -151,3 +151,36 @@ describe("«Faltan en el piso» aunque el motor no decida", () => {
   });
 });
 
+describe("las tallas de arriba lo dicen en su lugar (sin volver a listarlas abajo)", () => {
+  it("debajo del número: el piso; sin ninguna aquí, si viene en camino u otra sede la tiene (el Taller también es otra sede)", () => {
+    expect(pieDeTalla(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }), true)).toEqual({ texto: "2 piso", afuera: false });
+    expect(pieDeTalla(talla({ disponible: 4 }), false)).toEqual({ texto: "4", afuera: false });
+    expect(pieDeTalla(talla({ enTransito: 2, enRed: [{ sede: "Tienda Lima", cantidad: 1 }] }), true)).toEqual({ texto: "en camino", afuera: true });
+    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Taller", cantidad: 3 }] }), true)).toEqual({ texto: "otra sede", afuera: true });
+    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Tienda Lima", cantidad: 0 }] }), true)).toEqual({ texto: "—", afuera: false });
+  });
+
+  it("el punto del color: con filtro, solo si lo cumple; sin filtro, lo que falta en el piso antes que lo que tiene otra sede", () => {
+    const tallas = [talla({ varianteId: "a", disponible: 2, pisoDisponible: 0, almacenDisponible: 2 }), talla({ varianteId: "b", enTransito: 0, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] })];
+    expect(marcaDeColor(tallas, { faltan: new Set(["a"]), separa: true })).toBe("falta");
+    expect(marcaDeColor(tallas, { faltan: new Set(), separa: true })).toBe("afuera");
+    expect(marcaDeColor(tallas, { faltan: new Set(["a"]), coincide: (f) => f.varianteId === "b", separa: true })).toBe("filtro");
+    expect(marcaDeColor(tallas, { faltan: new Set(["a"]), coincide: () => false, separa: true })).toBeNull();
+    expect(marcaDeColor([talla({ varianteId: "c", disponible: 3, pisoDisponible: 3 })], { faltan: new Set(), separa: true })).toBeNull();
+  });
+
+  it("una sola línea: cuántas faltan en este color y en qué otros, sin nombrar las tallas", () => {
+    const colores = [
+      { clave: "azul", color: "Azul marino", tallas: [{ varianteId: "a26" }, { varianteId: "a28" }] },
+      { clave: "celeste", color: "Celeste", tallas: [{ varianteId: "c28" }] },
+      { clave: "negro", color: "Negro", tallas: [{ varianteId: "n28" }] },
+    ];
+    const falta = (ids: string[], titulo = "Faltan en el piso") => ({ titulo, ids: new Set(ids) });
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26", "a28"]))).toBe("Faltan en el piso: 2 tallas");
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26", "c28", "n28"]))).toBe("Faltan en el piso: 1 talla · también en Celeste y Negro");
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["c28"]))).toBe("Faltan en el piso: en Celeste");
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26"], "Sin colgar, según el sistema"))).toBe("Sin colgar, según el sistema: 1 talla");
+    expect(lineaDeLoQueFalta(colores, "azul", falta([]))).toBeNull();
+    expect(lineaDeLoQueFalta(colores, "azul", null)).toBeNull();
+  });
+});

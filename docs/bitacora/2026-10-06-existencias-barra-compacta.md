@@ -21,3 +21,8 @@ Y la maqueta táctil publicada (versión 13 del enlace de siempre) trae su parte
 Qué hice: tarjetas, tabla o por talla pasan a «Filtros ▸ Vista» (con su chip «Vista: … ×»), el buscador ocupa la barra, y el panel de la talla queda en dos tarjetas: «Qué toca» con preguntas cortas (¿Hay? ¿Colgar? ¿Pedir?, con las otras sedes bajo «¿Pedir?») y «En este modelo» (tallas que faltan como botones y «Casi no hay aquí» con su «Pedir» alineado); «Todas» con una sola leyenda y «Colgar varias» sin casillas vacías. Igual en la maqueta, publicada.
 Por qué así: se pidió usar el espacio de la barra y que el panel lateral no se vea amontonado; las mayúsculas partían «Colgar en el piso» en dos líneas y los botones de las franjas saltaban de línea.
 Felipe se lleva: ADR-0344, «Cuarta vuelta del mismo día»: por qué «Casi no hay aquí» va sin «Pedir» dentro de «Colgar varias» (se perderían las cantidades).
+
+## 2026-10-06 (Existencias: la barra nueva se queda, «Colgar primero» se va y el panel no repite tallas)
+Qué hice: con Felipe eligiendo la barra nueva, se quita «Colgar primero» de la lista (y «Reponer primero» de la maqueta); en el panel de la talla, lo que falta en el piso, lo que tiene otra sede y lo que marca el filtro se dicen en los botones de talla de arriba y en el punto de cada color, con una sola línea de cuántas faltan; salen «En este modelo», «Casi no hay aquí» y la lista del filtro, que repetían esas tallas.
+Por qué así: «es muy repetitivo poner de nuevo la talla, eso se podría poner arriba junto a las tallas»; además las acciones quedan a la vista sin bajar.
+Felipe se lleva: ADR-0344, «Quinta vuelta»: qué se borró y por qué pedir una agotada queda a dos toques.

@@ -302,3 +302,26 @@ fila «¿Pedir?» de esa talla lo vuelve a decir cuando la abre.
 
 **Lo que no se verificó en local:** «Casi no hay aquí» con datos del ERP (la base local no tiene tallas con 1 o ninguna aquí que otra
 tienda tenga); se vio en la maqueta, que usa la misma estructura.
+
+### Quinta vuelta (2026-10-06, noche) — la barra nueva se queda, «Colgar primero» se va y el panel deja de repetir tallas
+
+**Pedido** (comparando lo publicado con la maqueta): «me gustaría que parte de la interfaz actual se quede… sería ideal quedarnos con esa
+barra»; preguntado cuál, Felipe eligió **la nueva** (buscador a lo ancho, la vista dentro de «Filtros»). Sobre la maqueta: «quita esto»
+(«Reponer primero») y «con la barra lateral es muy repetitivo poner de nuevo la talla, eso se podría poner arriba junto a las tallas».
+
+- **La barra:** sin cambios respecto de la cuarta vuelta; es la que se queda.
+- **«Colgar primero» se quita** (decisión 10 de este ADR): sale de la lista de tarjetas (`InventarioPanel`), se borran el componente y
+  `colgarPrimero`/`MAX_COLGAR_PRIMERO`. El aro de semanas, que el panel sigue usando, pasa a `components/existencias/AroSemanas.tsx`; el
+  ritmo (`ritmoDePrenda`, `textoDeRitmo`) se queda en `lib/existencias-colgar-primero.ts`, que conserva su nombre.
+- **Las tallas de arriba del panel lo dicen en su lugar** (`pieDeTalla`, `marcaDeColor`, `lineaDeLoQueFalta`, con sus pruebas): fondo ámbar
+  si falta en el piso (lo que antes eran los botones de «Faltan en el piso», también con el piso en pausa), «otra sede» o «en camino»
+  bajo el número si aquí no queda ninguna, la insignia del filtro en la esquina (como en las tarjetas) y un punto en el círculo del color
+  que tiene algo. Bajo las tallas, UNA línea: «Faltan en el piso: 4 tallas · también en Negro».
+- **Se quitan del cuerpo** «En este modelo» (las tallas que faltan como botones), «Casi no hay aquí» (una fila por talla) y la lista de
+  tallas del filtro: las tres repetían las tallas de arriba. Pedir una agotada sigue a dos toques (tocarla y «Pedir» en «¿Pedir?»). Se
+  borran `CasiNoHay.tsx` y `casiNoHay` (ya nadie los usa); «Colgar varias» también deja su lista de «casi no hay».
+
+DECIDÍ: la información de cada talla vive en su botón, y del modelo, en una línea y en el punto de cada color.
+DESCARTÉ: dejar «En este modelo» más compacto (una línea de nombres de talla): seguiría nombrando dos veces lo mismo, que fue el reclamo.
+SE ROMPE SI: alguien en tablet no entiende el punto en el círculo de otro color (lo explica al pasar el mouse y al lector de pantalla,
+no con el dedo). La línea bajo las tallas nombra esos colores cuando es por lo que falta; cuando es por «otra sede», hay que tocarlo.

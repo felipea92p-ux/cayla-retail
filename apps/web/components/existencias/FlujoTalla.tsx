@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lu
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { CasiNoHayLista } from "@/components/existencias/CasiNoHay";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -19,7 +18,7 @@ import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MA
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
-import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, casiNoHay, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
+import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -524,11 +523,6 @@ export function FlujoTalla({
         const faltan = tallasQueFaltan(colores);
         const frase = fraseDeLoQueFalta(colores);
         const cant = d.cant ?? {};
-        const casi = casiNoHay(colores).map((x) => ({
-          ...x,
-          color: colores.length > 1 ? x.color : null,
-          colorHex: colores.find((c) => c.tallas.some((t) => t.varianteId === x.clave))?.colorHex ?? null,
-        }));
         return (
           <>
             <Pregunta ayuda="Todo empieza en 0. Cada talla dice cuántas hay en almacén.">¿Cuántas llevas al piso de cada color y talla?</Pregunta>
@@ -607,13 +601,6 @@ export function FlujoTalla({
                 </section>
               ))}
             </div>
-            {/* Lo que casi no hay aquí, con quién lo tiene (como la maqueta), en la misma lista que «Esta talla». Sin «Pedir»: desde aquí
-                cambiaría de paso y se perderían las cantidades ya puestas. */}
-            {casi.length > 0 && (
-              <div className="mt-3 rounded-2xl border border-sand px-3 py-2.5">
-                <CasiNoHayLista nota="se pide desde su talla" filas={casi} />
-              </div>
-            )}
           </>
         );
       }

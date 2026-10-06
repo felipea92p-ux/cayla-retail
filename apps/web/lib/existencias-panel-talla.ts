@@ -107,8 +107,8 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
                         decisión, los números (0 en el piso y algo atrás = sí). En pausa NO manda a colgar: el sistema puede creer
                         guardado lo que ya cuelga (ADR-0328, decisión 5), y lo dice.
      · Pedir a otra   — no hace falta (hay 2 o más aquí, o viene en camino) / sí, a la tienda que más tiene / ninguna tienda tiene. La
-       sede             misma vara que «casi no hay» (`casiNoHay`): 1 o ninguna aquí, nada en camino. Al Taller no se le pide por esta
-                        vía (la base lo rechaza): si solo él tiene, se dice, sin botón.
+       sede             vara de «casi no hay»: 1 o ninguna aquí, nada en camino. Al Taller no se le pide por esta vía (la base lo
+                        rechaza): si solo él tiene, se dice, sin botón.
 
    El título de cada fila es la pregunta misma («¿Hay?», «¿Colgar?», «¿Pedir?»; 2026-10-06, tarde): con «COLGAR EN EL PISO» en
    mayúsculas la columna se partía en dos líneas y el panel se veía amontonado. La respuesta («Sí · cuelga 1…») dice el resto.
@@ -286,4 +286,57 @@ export function loQueFaltaEnElPiso(
     .filter((x): x is string => x !== null);
   if (partes.length === 0) return null;
   return { titulo: enPausa ? "Sin colgar, según el sistema" : "Faltan en el piso", tallas: partes.join(" · "), ids, marcadas: false, enPausa };
+}
+
+/* ====================================================================
+   Lo que dicen las tallas de arriba del panel (2026-10-06, noche; pedido: «es muy repetitivo poner de nuevo la talla, eso se podría
+   poner arriba junto a las tallas»). El panel ya no vuelve a listar tallas más abajo («Faltan en el piso» con sus botones, «Casi no hay
+   aquí» con una fila por talla, las del filtro en pastillas): cada botón de talla lo dice en su lugar —fondo ámbar si falta en el piso,
+   «otra sede» o «en camino» debajo si aquí no queda ninguna, la insignia del filtro como en las tarjetas— y UNA línea bajo los botones
+   dice cuántas faltan, sin volver a nombrarlas. Los otros colores con algo pendiente llevan un punto en su círculo, como en las tarjetas.
+   ==================================================================== */
+
+/** Debajo del número de una talla: cuántas hay en el piso (o en la sede, donde no se separa) o, si aquí no queda ninguna libre, si
+ *  viene en camino u otra sede la tiene. `afuera`: el texto habla de otra sede (va en pizarra). */
+export function pieDeTalla(f: FilaDeTalla, separa: boolean): { texto: string; afuera: boolean } {
+  if (f.disponible <= 0) {
+    if ((f.enTransito ?? 0) > 0) return { texto: "en camino", afuera: true };
+    if ((f.enRed ?? []).some((s) => s.cantidad > 0)) return { texto: "otra sede", afuera: true };
+    return { texto: "—", afuera: false };
+  }
+  return { texto: separa ? `${Math.max(0, f.pisoDisponible ?? 0)} piso` : String(f.disponible), afuera: false };
+}
+
+export type MarcaDeColor = "filtro" | "falta" | "afuera" | null;
+
+/** El punto en el círculo de un color. Con un filtro puesto, si alguna talla de ese color lo cumple (como en las tarjetas); sin filtro,
+ *  si le falta algo en el piso o, si no, si tiene alguna agotada aquí que otra sede tiene. */
+export function marcaDeColor<F extends FilaDeTalla>(
+  tallas: readonly F[],
+  o: { faltan: ReadonlySet<string>; coincide?: ((f: F) => boolean) | null; separa: boolean }
+): MarcaDeColor {
+  if (o.coincide) return tallas.some(o.coincide) ? "filtro" : null;
+  if (tallas.some((t) => o.faltan.has(t.varianteId))) return "falta";
+  if (tallas.some((t) => pieDeTalla(t, o.separa).texto === "otra sede")) return "afuera";
+  return null;
+}
+
+const unirNombres = (nombres: readonly string[]) =>
+  nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+
+/** La única línea bajo las tallas: cuántas faltan en el piso de este color y en qué otros colores también, sin nombrar las tallas (los
+ *  botones de arriba ya las marcan en ámbar). `null` si no falta nada en el modelo. */
+export function lineaDeLoQueFalta(
+  colores: readonly { clave: string; color: string | null; tallas: readonly { varianteId: string }[] }[],
+  claveActual: string,
+  falta: { titulo: string; ids: ReadonlySet<string> } | null
+): string | null {
+  if (!falta) return null;
+  const cuantas = (c: (typeof colores)[number]) => c.tallas.filter((t) => falta.ids.has(t.varianteId)).length;
+  const actual = colores.find((c) => c.clave === claveActual);
+  const aqui = actual ? cuantas(actual) : 0;
+  const otros = colores.filter((c) => c.clave !== claveActual && cuantas(c) > 0).map((c) => c.color?.trim() || "Sin color");
+  if (aqui === 0 && otros.length === 0) return null;
+  if (aqui === 0) return `${falta.titulo}: en ${unirNombres(otros)}`;
+  return `${falta.titulo}: ${plural(aqui, "talla", "tallas")}${otros.length ? ` · también en ${unirNombres(otros)}` : ""}`;
 }
