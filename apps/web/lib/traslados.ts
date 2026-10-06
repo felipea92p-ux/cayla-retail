@@ -405,7 +405,7 @@ export type LineaTraslado = {
   diferencia: number | null;
   /** Esa prenda ya entró al stock (ADR-0239 D-129): no se vuelve a contar. */
   ingresado: boolean;
-  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer): ver `ProductoVarianteCelda`. */
+  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer). */
   colorHex: string | null | undefined;
   fotoUrl: string | null;
 };

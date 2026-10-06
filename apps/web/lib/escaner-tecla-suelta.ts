@@ -9,7 +9,7 @@
 // dos guardas que dependen de su estado viven ahí, no acá.
 //
 // Sin DOM a propósito (tipos estructurales) para poder probarla sin navegador, igual
-// que `conteo-varianza.ts` o `panel-serie.ts`.
+// que `panel-serie.ts`.
 
 export type TeclaSuelta = { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean };
 

@@ -48,7 +48,7 @@ describe("fotoPrincipal", () => {
 });
 
 // Lo que el piso pide hoy lo decide UN motor (`lib/piso-plan.ts`, ADR-0328 act. 7; sus pruebas en `piso-plan.test.ts`), no un
-// semáforo aparte. `UMBRAL_REPOSICION_PISO` SIGUE existiendo — es de Análisis (`resumen-reglas.ts`), no de Existencias.
+// semáforo aparte.
 
 describe("sumarCantidades (la regla que comparten Existencias y la caja)", () => {
   const fila = (variante_id: string, tipo: string | null, cantidad: number, cantidad_apartada = 0) => ({
