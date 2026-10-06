@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 64;
+export const PENDIENTES_HOY = 63;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -112,13 +112,18 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
     motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
   },
   "/inventario/resumen": PENDIENTE,
-  "/inventario/traslados": PENDIENTE,
+  // ADR-0354: la billetera de pases. Sin campos propios: el buscador y las pestañas filtran; lo que se llena (contar, revisar, anular)
+  // vive en el pase, declarado en «/inventario/traslados/(billetera)/[id]».
+  "/inventario/traslados/(billetera)": {
+    estado: "no-aplica",
+    motivo: "La billetera de pases: un buscador y pestañas que filtran, sin formulario. Abre el pase de lo primero que te toca; lo que se llena vive en el pase ([id]).",
+  },
   // La deuda de «/inventario/mover» se mudó aquí tal cual (el formulario de envío; tarea #8 del análisis de Traslados): no es una pantalla nueva.
   "/inventario/traslados/nuevo": PENDIENTE,
   // ADR-0328 (actividad 15): «¿Quién recibe?» ya lleva su guía (CampoGuiado + PieGuia), y por eso `pnpm focus` la ve «con guía».
   // Sigue pendiente a propósito: las casillas de lo recibido por prenda, que son el trabajo de la pantalla, todavía no dicen qué
   // falta ni qué sigue. Pasarla a «aplicada» por un solo campo haría mentir al tablero.
-  "/inventario/traslados/[id]": PENDIENTE,
+  "/inventario/traslados/(billetera)/[id]": PENDIENTE,
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
   // ---- pedidos-no-atendidos ----
