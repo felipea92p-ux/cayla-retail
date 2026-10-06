@@ -45,7 +45,7 @@ En `DECISIONES`, una entrada con la forma que documenta el propio archivo:
 
 ```js
 "pestanas": {
-  fecha: "2026-10-07",
+  fecha: "2026-10-06",
   adr: "docs/adr/0358-unificar-una-funcion-una-pieza.md",
   registro: "docs/unificar/pestanas.md",
   elegida: "B · SegmentoDeslizante",

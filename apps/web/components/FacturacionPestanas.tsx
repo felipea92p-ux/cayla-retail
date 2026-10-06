@@ -4,7 +4,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { esMesValido, hrefPestana, PESTANAS, pestanaDeRuta, type ConteosPestanas } from "@/lib/facturacion-reglas";
 
-// Las cuatro vistas de Comprobantes. Desde el 2026-10-07 dibujan con la pestaña de vista del sistema (`<Pestanas>`, ADR-0358):
+// Las cuatro vistas de Comprobantes. Desde el 2026-10-06 dibujan con la pestaña de vista del sistema (`<Pestanas>`, ADR-0358):
 // este vidrio con la píldora que se desliza nació aquí (ADR-0124) y Felipe lo eligió para todo el ERP, en mayúsculas. La URL es
 // la fuente de verdad (son enlaces: «atrás» funciona y una vista se comparte) y se conserva `?m=` entre Proformas y
 // Comprobantes; por eso el shell la envuelve en <Suspense>. El contador: ámbar = hay algo por enviar, rojo = SUNAT rechazó

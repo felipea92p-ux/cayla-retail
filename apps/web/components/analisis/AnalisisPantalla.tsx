@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Pestanas, type Pestana } from "@/components/ui/Pestanas";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { avisar } from "@/components/ui/Avisos";
 import { Contexto, type ContextoAnalisis, type FiltroAcaba } from "@/components/analisis/contexto";
@@ -231,7 +232,7 @@ export function AnalisisPantalla({
           </label>
         </EncabezadoPagina>
 
-        <Pestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
+        <FilaPestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
 
         {/* El aviso fijo mientras la tienda no cumple: con los datos de hoy dice qué falta; en «Todavía no», cómo volver. */}
         {modo !== "confiable" && (
@@ -277,7 +278,9 @@ export function AnalisisPantalla({
   );
 }
 
-function Pestanas({
+// Las cuatro preguntas son pestañas de vista (cambian de sección): la pieza única del ERP, el vidrio en mayúsculas (ADR-0358,
+// Felipe 2026-10-06: «incluye lo de Análisis»). La vista es estado de la pantalla, no URL: `tablist` con flechas.
+function FilaPestanas({
   vista,
   irA,
   cuentaAcaba,
@@ -292,62 +295,17 @@ function Pestanas({
   puedeHablar: boolean;
   onConfianza: () => void;
 }) {
-  const fila = useRef<HTMLDivElement>(null);
-  const [linea, setLinea] = useState<{ x: number; w: number } | null>(null);
-  const [lista, setLista] = useState(false);
-
-  useLayoutEffect(() => {
-    const activa = fila.current?.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!activa) return;
-    const medir = () => setLinea({ x: activa.offsetLeft, w: activa.offsetWidth });
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(activa);
-    return () => ro.disconnect();
-  }, [vista]);
-  // El subrayado aparece sin viajar la primera vez; desde ahí, se desliza.
-  useLayoutEffect(() => {
-    if (linea && !lista) requestAnimationFrame(() => setLista(true));
-  }, [linea, lista]);
-
-  const cuenta = (clave: VistaAnalisis) => {
-    if (clave === "acaba") return <span className={`cuenta ${cuentaAcaba ? "urg" : ""}`}>{cuentaAcaba ?? "—"}</span>;
-    if (clave === "nose") return <span className="cuenta">{cuentaQuietas ?? "—"}</span>;
-    return null;
-  };
-
-  // Flechas izquierda y derecha entre pestañas (el patrón de un `tablist`).
-  const alTeclear = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    const i = PESTANAS.findIndex((p) => p.clave === vista);
-    const siguiente = PESTANAS[(i + (e.key === "ArrowRight" ? 1 : PESTANAS.length - 1)) % PESTANAS.length]!;
-    e.preventDefault();
-    irA(siguiente.clave);
-    requestAnimationFrame(() => fila.current?.querySelector<HTMLElement>(`[data-vista="${siguiente.clave}"]`)?.focus());
-  };
+  const items: Pestana[] = PESTANAS.map((p) => {
+    // «Se está acabando» con prendas avisa (rojo, como antes); «No se vende» solo informa. Sin datos, «—».
+    // El texto para lector va solo con un número: «— se están acabando» no dice nada.
+    if (p.clave === "acaba") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
+    if (p.clave === "nose") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
+    return { clave: p.clave, etiqueta: p.texto };
+  });
 
   return (
     <div className="tabs-fila">
-      <div className="tabs-envoltura" ref={fila}>
-        <div className="tabs" role="tablist" aria-label="Preguntas de Análisis" onKeyDown={alTeclear}>
-          {PESTANAS.map((p) => (
-            <button
-              key={p.clave}
-              type="button"
-              className="tab"
-              role="tab"
-              data-vista={p.clave}
-              aria-selected={vista === p.clave}
-              tabIndex={vista === p.clave ? 0 : -1}
-              onClick={() => irA(p.clave)}
-            >
-              {p.texto}
-              {cuenta(p.clave)}
-            </button>
-          ))}
-        </div>
-        {linea && <span className={`tab-ind ${lista ? "" : "quieta"}`} style={{ width: linea.w, transform: `translateX(${linea.x}px)` }} />}
-      </div>
+      <Pestanas items={items} activa={vista} etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
       {puedeHablar ? (
         <ChipEstado est="bien" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
           Datos confiables

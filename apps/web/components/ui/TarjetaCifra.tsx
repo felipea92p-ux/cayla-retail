@@ -20,7 +20,7 @@ import type { CSSProperties, ReactNode } from "react";
      arena al 40 % (la cara de la B). Sin flecha: la flecha dice «te lleva a otro lado». aria-pressed va SOLO aquí (antes
      `activa` valía `false` por defecto y Gastos, Notas de crédito, Activos y Recibir se anunciaban como un interruptor
      apagado). El 2026-10-06 la pieza escribía «Toca para filtrar» y ponía un contorno de tinta; al verlo, Felipe eligió
-     la B tal cual (2026-10-07) y se quitaron.
+     la B tal cual (2026-10-06) y se quitaron.
    - SIN DATO (`valor={null}`): una sola forma. Borde punteado, sin fondo, «—» en tinta/65 (5,14:1 sobre crema; el
      tinta/45 de antes daba 2,86:1) y su motivo OBLIGATORIO en `children` (los tipos lo exigen). Un cero es un dato y se
      ve normal. Reemplaza `vacia`, el «—» suelto, el «Sin meta» en el lugar del número y las copias en tinta/45.
@@ -174,7 +174,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     tocable ? "w-full cursor-pointer" : "",
     // `viva` no lleva la transición de utilidad: le ganaría a la de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
     esViva ? "alza-cayla cmp-viva" : tocable ? "transition-[background-color,border-color] duration-200 ease-cayla motion-reduce:transition-none" : "",
-    // El encima y la puesta de la B, la tarjeta de Compras que eligió Felipe (2026-10-07): fondo arena al 30 % al pasar el
+    // El encima y la puesta de la B, la tarjeta de Compras que eligió Felipe (2026-10-06): fondo arena al 30 % al pasar el
     // mouse y al 40 % la que está filtrando.
     tocable && !puesta ? "hover:bg-sand/30" : "",
     puesta ? "bg-sand/40" : "",
