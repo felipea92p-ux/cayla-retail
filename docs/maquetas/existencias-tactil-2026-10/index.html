@@ -344,7 +344,8 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 .buscador .caja-buscar svg{left:13px;width:16px;height:16px}
 /* Barra compacta (2026-10-06): buscar del alto de un control y de un ancho de lectura, no una franja de lado a lado. */
 .buscador{flex-wrap:wrap}
-.buscador .caja-buscar{flex:1 1 220px;max-width:26rem}
+/* El buscador toma todo el ancho que deja la fila (2026-10-06, tarde): con la vista dentro de «Filtros», la barra tiene menos piezas. */
+.buscador .caja-buscar{flex:1 1 220px}
 .buscador .orden{margin-left:auto}
 @container (max-width: 520px){.buscador .caja-buscar{max-width:none;flex-basis:120px}.mision span{display:none}.mision{padding:3px}}
 .icono-btn{width:40px;height:40px;flex:none;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;color:var(--tinta);transition:border-color .2s var(--ease),background .2s var(--ease)}
@@ -423,14 +424,18 @@ input.cant:focus{outline:2px solid var(--tinta);outline-offset:-2px;background:v
 .modelo .muestras{flex-wrap:wrap}
 /* «Qué toca con esta talla» (2026-10-06): tres filas —hay, colgar, pedir— con su respuesta y su porqué. */
 .que-toca{display:grid;border:1px solid var(--sand);border-radius:16px}
-.qt-fila{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:10px 12px;border-top:1px solid var(--sand)}
+.qt-fila{display:grid;grid-template-columns:4.25rem minmax(0,1fr);align-items:center;gap:4px 12px;padding:10px 12px;border-top:1px solid var(--sand)}
+.qt-fila.con-boton{grid-template-columns:4.25rem minmax(0,1fr) auto}
 .qt-fila:first-child{border-top:0}
-.qt-tit{font:500 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);width:7.25rem;flex:none}
-.qt-fila p{flex:1;min-width:0;font-size:14px;color:color-mix(in srgb,var(--tinta) 80%,transparent);margin:0}
+/* La pregunta corta («¿Colgar?») en vez de «COLGAR EN EL PISO» en mayúsculas, que se partía en dos líneas (2026-10-06, tarde). */
+.qt-tit{font:500 13px var(--sans);color:var(--taupe);align-self:start;padding-top:1px}
+.qt-resp{min-width:0}
+.qt-fila p{min-width:0;font-size:14px;color:color-mix(in srgb,var(--tinta) 80%,transparent);margin:0}
+.qt-fila p.qt-sedes{font-size:12.5px;color:var(--taupe);margin-top:2px}
 .qt-fila b{display:inline-flex;align-items:center;gap:6px;font-weight:600;margin-right:4px}
 .qt-fila b i{width:8px;height:8px;border-radius:50%;background:currentColor}
 .qt-verde{color:var(--verde)} .qt-ambar{color:var(--ambar)} .qt-pizarra{color:var(--pizarra)}
-.qt-btn{min-height:36px;padding:0 12px;font-size:13px;gap:6px;margin-left:auto}
+.qt-btn{min-height:36px;padding:0 12px;font-size:13px;gap:6px}
 .qt-btn svg{width:16px;height:16px}
 .modelo .muestras .nombre-color{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .modelo .muestras .fila-estado{margin-left:auto;min-height:0}
@@ -469,6 +474,59 @@ table.t td:first-child{font-weight:600}
 .tarjeta p{font-size:14px;color:var(--taupe)} .tarjeta p b{color:var(--tinta)}
 .decision{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:16px 18px;display:grid;gap:8px;font-size:14.5px}
 .decision .k{font:500 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);margin-right:8px}
+/* «En este modelo» y «Casi no hay aquí» (2026-10-06, tarde): una tarjeta como «Qué toca», en vez de un recuadro de frase y una franja de
+   color por talla. Las tallas que faltan son botones; cada fila de «casi no hay» lleva su «Pedir» en una columna fija. */
+.em-bloque{display:grid;gap:8px;padding:10px 12px;border-top:1px solid var(--sand)}
+.em-bloque:first-child{border-top:0}
+.em-tit{font:500 13px var(--sans);color:var(--taupe);margin:0}
+.em-tit span{font-weight:400}
+.em-color{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.em-nom{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:color-mix(in srgb,var(--tinta) 80%,transparent);margin-right:4px}
+.em-nom i,.cn-nom i{display:inline-block;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px var(--sand);flex:none}
+.em-talla{min-height:36px;min-width:40px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--ambar) 40%,transparent);background:var(--t-ambar);font:600 13px var(--sans);color:var(--tinta);font-variant-numeric:tabular-nums}
+.em-talla[aria-pressed="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.cn-lista{list-style:none;margin:0;padding:0;display:grid}
+.cn-fila{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 12px;padding:8px 0;border-top:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.cn-fila:first-child{border-top:0;padding-top:2px}
+.cn-fila:last-child{padding-bottom:0}
+.cn-nom{display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px;margin:0;color:var(--tinta)}
+.cn-det{font-size:12.5px;color:var(--pizarra);margin:0}
+.cn-pedido{font-size:12.5px;color:var(--pizarra);font-weight:600}
+.em-suelta{margin-top:10px}
+.sin-alm{font-size:12.5px;color:var(--taupe);margin:0;padding:0 14px 12px}
+.ritmo-txt{display:grid;gap:2px;min-width:0}
+.ritmo-txt small{font-size:12.5px;color:var(--taupe)}
+/* «Todas»: una sola leyenda debajo de la matriz, en vez de una frase arriba y pastillas que parecían botones. */
+.leyenda-m{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--taupe);margin:0}
+.leyenda-m span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:12px;border-radius:3px;border:1px solid var(--sand)}
+.sw-ambar{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:var(--t-ambar)}
+.sw-sin{border-style:dashed;border-color:color-mix(in srgb,var(--taupe) 55%,transparent)}
+/* «Ver como» (2026-10-06, tarde): tarjetas, tabla o por talla, dentro de «Filtros ▸ Vista». */
+.ver-como{display:inline-flex;gap:2px;padding:2px;border-radius:10px;background:color-mix(in srgb,var(--tinta) 5%,transparent)}
+.ver-como button{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;min-height:30px;padding:0 10px;border-radius:8px;font:500 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.ver-como button[aria-pressed="true"]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px color-mix(in srgb,var(--tinta) 12%,transparent)}
+.ver-como svg{width:14px;height:14px}
+/* Las dos tablas de la lista: por prenda (una fila por color) y por talla (una fila por talla). */
+.tabla-lista{overflow-x:auto;border:1px solid var(--sand);border-radius:16px;background:var(--papel)}
+.tabla-lista table{border-collapse:collapse;width:100%;font-size:13.5px}
+.tabla-lista th{font:500 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);text-align:left;padding:10px 12px;background:var(--crema);border-bottom:1px solid var(--sand);white-space:nowrap}
+.tabla-lista td{padding:8px 12px;border-bottom:1px solid var(--sand);vertical-align:middle}
+.tabla-lista tr:last-child td{border-bottom:0}
+.tabla-lista tbody tr{cursor:pointer;transition:background .15s var(--ease)}
+.tabla-lista tbody tr:hover,.tabla-lista tbody tr.activo{background:var(--hueso)}
+.tabla-lista .num{text-align:right;font-variant-numeric:tabular-nums}
+.tl-prod{display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;text-align:left;color:inherit;min-width:190px}
+.tl-prod .mosaico{width:34px;height:42px;border-radius:8px}
+.tl-prod .mosaico svg{width:16px;height:16px}
+.tl-prod b{display:block;font-weight:600}
+.tl-prod small{display:block;font-size:12px;color:var(--taupe)}
+.tl-color{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tl-color i{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1px var(--sand)}
+.tl-tallas{display:flex;gap:4px;flex-wrap:wrap}
+.tl-tallas span{border:1px solid var(--sand);border-radius:8px;padding:2px 7px;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tl-tallas span.reponer{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:var(--t-ambar)}
+.tl-tallas span.sin{border-style:dashed;color:var(--taupe)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -516,7 +574,7 @@ table.t td:first-child{font-weight:600}
         <tr><td>Muestras de color que cambian la ficha en su lugar</td><td>Shopify POS (selector de variantes), tiendas online de moda</td><td>Cada tarjeta trae sus colores como círculos de 36 px. Al tocar uno cambian el mosaico, las tallas y el estado, sin abrir nada.</td></tr>
         <tr><td>Tallas como botones con su cantidad</td><td>Terminales de mano de las cadenas de moda (escaneas la etiqueta y ves todas las tallas)</td><td>Botones de 52 × 56 px con la cantidad en piso. Ámbar: hay en almacén y nada en piso. Punteado: sin stock aquí.</td></tr>
         <tr><td>Matriz talla × color</td><td>Lightspeed (artículos con matriz), Shopify (variantes)</td><td>Pestaña «Todas» del panel: filas de color, columnas de talla. Al tocar una celda se elige esa variante.</td></tr>
-        <tr><td>Cantidades en otras sedes junto a la talla</td><td>Shopify POS («disponible en otras ubicaciones»)</td><td>La línea «Otras sedes» y el botón «Pedir a otra sede» dicen quién tiene: «AQP tiene 2».</td></tr>
+        <tr><td>Cantidades en otras sedes junto a la talla</td><td>Shopify POS («disponible en otras ubicaciones»)</td><td>La fila «¿Pedir?» del panel dice quién tiene («AQP tiene 2») y, debajo, cuánto tiene cada otra sede.</td></tr>
         <tr><td>Ajustar con motivo y tope</td><td>Square (ajuste de stock con motivo: recibido, dañado, perdido, recuento)</td><td>Motivos de tienda decididos por Felipe. Si se quita mucho, lo confirma un líder.</td></tr>
         <tr><td>Panel lateral en tablet y hoja que sube en celular</td><td>Square y Shopify POS en iPad e iPhone</td><td>Un solo panel: en tablet horizontal es un cajón y la lista sigue a la vista; en lo demás sube desde abajo.</td></tr>
         <tr><td>Escanear como botón grande, no como menú</td><td>Shopify POS, Square, terminales de cadenas de moda</td><td>«Escanear» al lado del buscador abre la variante exacta (simulado aquí con Polo Brisa · Rosado · M).</td></tr>
@@ -551,13 +609,13 @@ table.t td:first-child{font-weight:600}
     <div class="tabla-scroll"><table class="t">
       <thead><tr><th>Señal</th><th>Cómo se calcula</th><th>Dónde se ve</th></tr></thead>
       <tbody>
-        <tr><td>Faltan en el piso</td><td>Talla sin ninguna en piso y con alguna en almacén.</td><td>Casillas con punto ámbar, frase «Faltan en el piso: …» y el atajo «Lo que falta en el piso».</td></tr>
+        <tr><td>Faltan en el piso</td><td>Talla sin ninguna en piso y con alguna en almacén.</td><td>Casillas con punto ámbar, las tallas de «Faltan en el piso» como botones en «En este modelo» y el atajo «Lo que falta en el piso».</td></tr>
         <tr><td>Se vende por semana</td><td>Ventas de 14 días ÷ 2, por color. En cada talla se reparte con más peso a las centrales.</td><td>Panel («Se venden unas 4 por semana») y «Reponer primero».</td></tr>
         <tr><td>Te alcanza para</td><td>Unidades en piso y almacén de ese color ÷ lo que se vende por semana. Aro verde desde 2 semanas, ámbar con 1 o menos.</td><td>El aro de «Reponer primero» y del panel.</td></tr>
         <tr><td>Prioridad</td><td>Lo que se vende por semana × tallas por reponer de ese color. A igual puntaje, va primero el que se acaba antes.</td><td>El orden «Prioridad» y los tres de «Reponer primero».</td></tr>
         <tr><td>Se acaban</td><td>Tallas con 1 o 2 unidades en total, en un color que se vende.</td><td>Filtro con reloj.</td></tr>
         <tr><td>Sin ventas</td><td>Color sin ventas en 30 días.</td><td>Filtro con luna. El panel sugiere llevarlo a vitrina o a otra sede.</td></tr>
-        <tr><td>Casi no hay</td><td>Talla con 1 o ninguna unidad aquí, que otra sede sí tiene y no viene en camino.</td><td>Franja azul con «Pedir», en el panel y en «Reponer varias».</td></tr>
+        <tr><td>Casi no hay</td><td>Talla con 1 o ninguna unidad aquí, que otra sede sí tiene y no viene en camino.</td><td>Lista «Casi no hay aquí» en el panel, con «Pedir» en su columna; en «Reponer varias», la misma lista sin «Pedir».</td></tr>
       </tbody>
     </table></div>
     <div class="decision">
@@ -637,12 +695,12 @@ table.t td:first-child{font-weight:600}
     <h2 id="d5" style="margin-top:20px">Lo que cambió el 6 de octubre</h2>
     <p class="bajada" style="margin-top:0">Lo mismo se construyó en el ERP (ADR-0344, «Actualización 2026-10-06»). Donde la maqueta y el ERP se apartan, se dice.</p>
     <div class="decision">
-      <p><span class="k">Decidí</span>Arriba queda solo lo que se usa a cada rato: el buscador (40 px de alto y con ancho tope, ya no toda la fila), Escanear, Filtros como un solo icono y, a su lado, el anillo de lo que toca hoy; debajo, los atajos con su nombre. Lo que se cambia una vez por turno pasó dentro de Filtros, en tres filas con nombre: <b>Prenda</b> (Categoría, Talla, Color, Marca), <b>Gestión</b> (Hoy, Condición) y <b>Vista</b> (Ordenar por; en el ERP también Sonido al confirmar). Si el orden no es el de siempre, la pastilla «Orden: A–Z ×» lo dice junto a la cuenta y lo devuelve con un toque. En el ERP, tabla o tarjetas es un solo icono que muestra la vista a la que lleva.</p>
-      <p><span class="k">Descarté</span>Dejar el orden y el sonido en la fila del buscador, junto a la cuenta, la vista y el anillo: la fila se sentía congestionada, que fue justo el pedido. También descarté meter los atajos dentro de Filtros: son lo que más se toca en el piso.</p>
+      <p><span class="k">Decidí</span>Arriba queda solo lo que se usa a cada rato: el buscador (40 px de alto y con ancho tope, ya no toda la fila), Escanear, Filtros como un solo icono y, a su lado, el anillo de lo que toca hoy; debajo, los atajos con su nombre. Lo que se cambia una vez por turno pasó dentro de Filtros, en tres filas con nombre: <b>Prenda</b> (Categoría, Talla, Color, Marca), <b>Gestión</b> (Hoy, Condición) y <b>Vista</b> (Ver como: Tarjetas, Tabla o Por talla; Ordenar por, solo con las tarjetas; en el ERP también Sonido al confirmar). Como la barra quedó con menos piezas, el buscador toma todo el ancho que queda. Si el orden o la vista no son los de siempre, una pastilla lo dice junto a la cuenta («Orden: A–Z ×», «Vista: Tabla ×») y lo devuelve con un toque.</p>
+      <p><span class="k">Descarté</span>Dejar el orden, el sonido y el icono de tabla o tarjetas en la fila del buscador, junto a la cuenta y el anillo: la fila se sentía congestionada, que fue justo el pedido. También descarté meter los atajos dentro de Filtros: son lo que más se toca en el piso. Y un buscador de ancho fijo: dejaba media barra vacía.</p>
       <p><span class="k">Se rompe si</span>alguien pone A–Z, cierra Filtros y después no entiende por qué la lista ya no empieza por lo que falta en el piso. Por eso la pastilla del orden queda a la vista mientras no sea el de siempre.</p>
     </div>
     <div class="decision">
-      <p><span class="k">Decidí</span>Al tocar una talla, el panel contesta primero tres preguntas, cada una con su sí o no y su porqué: <b>Hay</b> (cuántas en piso y en almacén, o cuántas vienen en camino), <b>Colgar en el piso</b> (sí cuando no hay en el piso y hay en el almacén, con su botón; si no, «no hace falta» o «no se puede») y <b>Pedir a otra sede</b> (sí cuando aquí queda 1 o ninguna, no viene nada en camino y una tienda tiene: dice cuál y cuántas, con su botón). Si solo el Taller tiene, lo dice aparte: al Taller no se le pide desde aquí.</p>
+      <p><span class="k">Decidí</span>Al tocar una talla, el panel contesta primero tres preguntas, cada una con su sí o no y su porqué: <b>¿Hay?</b> (cuántas en piso y en almacén, o cuántas vienen en camino), <b>¿Colgar?</b> (sí cuando no hay en el piso y hay en el almacén, con su botón; si no, «no hace falta» o «no se puede») y <b>¿Pedir?</b> (sí cuando aquí queda 1 o ninguna, no viene nada en camino y una tienda tiene: dice cuál y cuántas, con su botón; debajo, cuánto tiene cada otra sede). Si solo el Taller tiene, lo dice aparte: al Taller no se le pide desde aquí.</p>
       <p><span class="k">Descarté</span>Una sola frase de diagnóstico, que es lo que tenía el ERP: solo hablaba cuando el motor del piso decía «por colgar», y una talla con 0 en piso y 6 en almacén salía «Disponible: 6 unidades» en verde.</p>
       <p><span class="k">Se rompe si</span>la sede no tiene el piso cuadrado: la maqueta decide solo con números (0 en el piso = colgar) y mandaría a colgar lo que quizá ya cuelga. En el ERP manda el motor del piso y, con el piso en pausa, la respuesta es «En pausa», sin botón.</p>
     </div>
@@ -650,6 +708,11 @@ table.t td:first-child{font-weight:600}
       <p><span class="k">Decidí</span>Las acciones del panel cambian de orden según la talla: primero la que necesita (en ámbar); después las que se pueden usar, en el orden de dónde está la prenda (con algo en el piso, Apartar primero; sin nada colgado, Reponer; sin nada en la sede, Pedir); y al final, chicas y con su porqué, las que no se pueden ahora («No se puede ahora: Retirar del piso · nada en piso»). Cada acción conserva su tecla aunque cambie de lugar: 1 Reponer, 2 Retirar del piso, 3 Enviar a otra sede, 4 Apartar, 5 Pedir a otra sede, 6 Ajustar stock, 7 Ficha.</p>
       <p><span class="k">Descarté</span>Esconder las que no se pueden, porque se pierde la respuesta a «¿por qué no puedo retirarla?», y numerar las teclas por lugar, porque con el orden cambiando en cada talla la misma tecla haría cosas distintas.</p>
       <p><span class="k">Se rompe si</span>una integrante aprende de memoria el lugar de un botón y no su nombre: al pasar a otra talla, en ese lugar hay otra acción. El color y el nombre no cambian; el lugar dejó de ser fijo a propósito.</p>
+    </div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>El panel lateral, en dos tarjetas iguales en vez de cinco recuadros y pastillas sueltas: «Qué toca» (las tres preguntas, cortas para que no se partan en dos líneas, y el botón en su propia columna para que no salte abajo) y <b>«En este modelo»</b>, con las tallas que faltan en el piso como botones por color (llevan a esa talla) y la lista «Casi no hay aquí», una fila por talla con su «Pedir» alineado. El ritmo y el código van juntos en una sola pieza. En «Todas», la matriz va en su tarjeta con una sola leyenda debajo. En «Reponer varias», las tallas sin nada en almacén van en una línea («Sin nada en almacén: 28 · 32») en vez de una casilla vacía cada una, y «Casi no hay aquí» va sin «Pedir».</p>
+      <p><span class="k">Descarté</span>Dejar las franjas de «casi no hay» con su botón: con tres seguidas el botón saltaba de línea según el largo del texto y el panel se veía amontonado. También descarté dejar «Pedir» dentro de «Reponer varias»: tocarlo cambia de paso y se pierden las cantidades ya puestas; ahí la lista avisa «se pide desde su talla».</p>
+      <p><span class="k">Se rompe si</span>un modelo tiene seis colores con tallas por colgar: «Faltan en el piso» crece a seis líneas de botones y empuja las acciones hacia abajo. Si pasa seguido, esa lista se corta en tres colores con «ver todas».</p>
     </div>
   </section>
 </div>
@@ -699,7 +762,7 @@ table.t td:first-child{font-weight:600}
   let P, S;
   function inicial() {
     P = BASE();
-    S = { orden:"prioridad", detalle:null, q:"", filtro:"todo", color:{}, panel:null, caja:true, ultimo:null, hecho:null, pedidos:{} };
+    S = { orden:"prioridad", vistaLista:"tarjetas", detalle:null, q:"", filtro:"todo", color:{}, panel:null, caja:true, ultimo:null, hecho:null, pedidos:{} };
   }
   inicial();
 
@@ -742,6 +805,8 @@ table.t td:first-child{font-weight:600}
     play:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>',
     sig:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
     grid:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+    tabla:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 10h17M3.5 15h17M9.5 10v9.5"/></svg>',
+    filas:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="4.5" rx="1.2"/><rect x="3.5" y="10" width="17" height="4.5" rx="1.2"/><rect x="3.5" y="16" width="17" height="4.5" rx="1.2"/></svg>',
     buscar:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
     escanear:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 9v6M10 9v6M13 9v6M17 9v6"/></svg>',
     x:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
@@ -767,6 +832,9 @@ table.t td:first-child{font-weight:600}
     const col = p.colores[c];
     return `<span class="${clase}${col.claro ? " claro" : ""}" style="background:${col.hex}" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">${FIG[p.icono]}</svg></span>`;
   };
+
+  // Cómo se ve la lista (2026-10-06, tarde, como el ERP): tarjetas, la tabla por prenda o una fila por talla. Vive en «Filtros ▸ Vista».
+  const VISTAS_LISTA = [["tarjetas", "Tarjetas", IC.grid], ["tabla", "Tabla", IC.tabla], ["talla", "Por talla", IC.filas]];
 
   // ================= barra =================
   // ---- Filtro por talla y color: qué cumple, cuál importa más y cómo se marca ----
@@ -835,7 +903,7 @@ table.t td:first-child{font-weight:600}
         ${S.panelFiltros ? `<div class="panel-filtros" id="panel-filtros" role="group" aria-label="Filtros">
           <div class="pf-fila" role="group" aria-label="Prenda"><span class="pf-tit">Prenda</span>${["Categoría", "Talla", "Color", "Marca"].map(x => `<button class="pf-pil" data-acc="pf-demo" data-k="${x}">${x} ▾</button>`).join("")}</div>
           <div class="pf-fila" role="group" aria-label="Gestión"><span class="pf-tit">Gestión</span>${["Hoy", "Condición"].map(x => `<button class="pf-pil" data-acc="pf-demo" data-k="${x}">${x} ▾</button>`).join("")}</div>
-          <div class="pf-fila" role="group" aria-label="Vista"><span class="pf-tit">Vista</span><span class="pf-pil" style="padding-right:0">Ordenar por</span><div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div></div>
+          <div class="pf-fila" role="group" aria-label="Vista"><span class="pf-tit">Vista</span><span class="pf-pil" style="padding-right:0">Ver como</span><div class="ver-como" role="group" aria-label="Ver como">${VISTAS_LISTA.map(([k, txt, ic]) => `<button aria-pressed="${S.vistaLista === k}" data-acc="ver-como" data-k="${k}">${ic}${txt}</button>`).join("")}</div>${S.vistaLista === "tarjetas" ? `<span class="pf-pil" style="padding-right:0;margin-left:8px">Ordenar por</span><div class="orden" role="group" aria-label="Orden"><button aria-pressed="${S.orden === "prioridad"}" data-acc="orden" data-k="prioridad" title="Lo que más se vende y falta en el piso, primero">Prioridad</button><button aria-pressed="${S.orden === "az"}" data-acc="orden" data-k="az">A–Z</button></div>` : ""}</div>
         </div>` : ""}
         <div class="rail" role="group" aria-label="Filtro">
           ${FILTROS.filter(f => !["acaban", "quietas"].includes(f[0])).map(chip).join("")}
@@ -905,22 +973,27 @@ table.t td:first-child{font-weight:600}
     const pct = Math.min(1, sem / 6), len = 2 * Math.PI * 13;
     return `<span class="anillo-s" title="Te alcanza para ${sem} ${sem === 1 ? "semana" : "semanas"}"><svg width="${tam}" height="${tam}" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="var(--hueso)" stroke-width="4"/><circle cx="17" cy="17" r="13" fill="none" stroke="${sem <= 1 ? "var(--ambar)" : "var(--verde)"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(pct * len).toFixed(1)} ${len.toFixed(1)}" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">${sem}</text></svg></span>`;
   }
-  function ritmoHTML(p, c) {
+  // El ritmo del color con su aro de semanas; `debajo` va como segunda línea (lo vendido de la talla y el código): una sola pieza.
+  function ritmoHTML(p, c, debajo = "") {
     const v = ventaSem(p, c), col = esc(p.colores[c].n);
-    if (!v) return `<span>${col}: no se vendió en 30 días. Puede ir a vitrina o a otra sede.</span>`;
+    if (!v) return `<div class="ritmo-txt"><span>${col}: no se vendió en 30 días. Puede ir a vitrina o a otra sede.</span>${debajo}</div>`;
     const sem = semanasDe(p, c);
-    return `${anilloSem(sem, 40)}<span>${col}: se venden unas <b>${v} por semana</b>. ${sem < 1 ? "Se acaba esta semana." : `Te alcanza para <b>${sem} ${sem === 1 ? "semana" : "semanas"}</b>.`}</span>`;
+    return `${anilloSem(sem, 40)}<div class="ritmo-txt"><span>${col}: se venden unas <b>${v} por semana</b>. ${sem < 1 ? "Se acaba esta semana." : `Te alcanza para <b>${sem} ${sem === 1 ? "semana" : "semanas"}</b>.`}</span>${debajo}</div>`;
   }
-  function afueraHTML(p, c) {
-    const col = p.colores[c], filas = [];
-    const llegan = Object.entries(col.tallas).filter(([, v]) => v.camino);
-    if (llegan.length) filas.push(`<div class="afuera"><span class="etq">${IC.pedir.replace('width="24" height="24"', 'width="16" height="16"')} Llegan mañana · ${esc(col.n)}</span><span class="num">${llegan.map(([t, v]) => `<b>${v.camino}</b> ${esc(t)}`).join(" · ")}</span></div>`);
-    Object.entries(col.tallas).forEach(([t, v]) => {
+  // «Casi no hay aquí» (2026-10-06, tarde, como el ERP): las tallas del modelo con 1 o ninguna aquí, nada en camino y que otra sede tiene.
+  // Una lista con una fila por talla —color y talla arriba, qué pasa y quién la tiene debajo, y «Pedir» en una columna fija— en vez de
+  // una franja de color por talla. En «Reponer varias» va sin «Pedir»: desde ahí cambiaría de paso y se perderían las cantidades.
+  function casiNoHayHTML(p, conPedir, nota = "") {
+    const filas = [];
+    p.colores.forEach((col, cc) => Object.entries(col.tallas).forEach(([t, v]) => {
       if (v.piso + v.alm > 1 || v.camino || !otrasSum(v)) return;
-      const pedido = S.pedidos[`${p.id}|${c}|${t}`], dnde = SEDES.filter(s => v.otras[s]).map(s => `${s} ${v.otras[s]}`).join(" · ");
-      filas.push(`<div class="afuera"><span class="etq">${esc(col.n)} ${esc(t)} ${v.piso + v.alm ? "casi no hay" : "agotada"}: en otras sedes</span><span class="num">${dnde}</span>${pedido ? `<span class="num">Pedido a ${pedido}</span>` : `<button type="button" class="btn chico pedir-b" data-acc="pedir-rapido" data-pid="${p.id}" data-c="${c}" data-t="${esc(t)}">${IC.pedir.replace('width="24" height="24"', 'width="16" height="16"')}Pedir</button>`}</div>`);
-    });
-    return filas.length ? `<div class="afueras">${filas.join("")}</div>` : "";
+      const pedido = S.pedidos[`${p.id}|${cc}|${t}`], dnde = SEDES.filter(sd => v.otras[sd]).map(sd => `${sd} ${v.otras[sd]}`).join(" · ");
+      const aUnaTienda = SEDES.some(sd => sd !== "Taller" && v.otras[sd] > 0);
+      const accion = pedido ? `<span class="cn-pedido">Pedido a ${pedido}</span>`
+        : conPedir && aUnaTienda ? `<button type="button" class="btn chico pedir-b" data-acc="pedir-rapido" data-pid="${p.id}" data-c="${cc}" data-t="${esc(t)}">${IC.pedir.replace('width="24" height="24"', 'width="16" height="16"')}Pedir</button>` : "";
+      filas.push(`<li class="cn-fila"><div><p class="cn-nom"><i style="background:${col.hex}"></i>${p.colores.length > 1 ? `${esc(col.n)} · ` : ""}${esc(t)}</p><p class="cn-det">${v.piso + v.alm ? "Queda 1 aquí" : "Agotada aquí"} · ${dnde}</p></div>${accion}</li>`);
+    }));
+    return filas.length ? `<p class="em-tit">Casi no hay aquí${nota ? ` <span>· ${nota}</span>` : ""}</p><ul class="cn-lista">${filas.join("")}</ul>` : "";
   }
   // «Reponer primero»: los tres modelos que más conviene reponer hoy.
   function recoStrip() {
@@ -945,9 +1018,10 @@ table.t td:first-child{font-weight:600}
     const el = document.getElementById("lista");
     const sel = S.panel;
     el.innerHTML = `
-      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : ""}${S.orden !== "prioridad" ? `<button class="chip-orden" data-acc="orden" data-k="prioridad" aria-label="Volver al orden por prioridad">Orden: A–Z ×</button>` : ""}</p>
-      ${recoStrip()}
-      ${lista.length ? `<div class="grilla">${lista.map(p => {
+      <p class="conteo"><b>${lista.length}</b> ${lista.length === 1 ? "producto" : "productos"}${S.q ? ` con «${esc(S.q)}»` : ""}${S.filtro !== "todo" ? ` · <b>${lista.reduce((n, p) => n + coincidencias(p).length, 0)}</b> ${lista.reduce((n, p) => n + coincidencias(p).length, 0) === 1 ? "talla" : "tallas"} ${SIMBOLO[S.filtro].txt.toLowerCase()} · marcada primero la que más se vende` : ""}${S.vistaLista === "tarjetas" && S.orden !== "prioridad" ? `<button class="chip-orden" data-acc="orden" data-k="prioridad" aria-label="Volver al orden por prioridad">Orden: A–Z ×</button>` : ""}${S.vistaLista !== "tarjetas" ? `<button class="chip-orden" data-acc="ver-como" data-k="tarjetas" aria-label="Volver a las tarjetas">Vista: ${S.vistaLista === "tabla" ? "Tabla" : "Por talla"} ×</button>` : ""}</p>
+      ${S.vistaLista === "tarjetas" ? recoStrip() : ""}
+      ${!lista.length ? "" : S.vistaLista === "tabla" ? tablaPorPrenda(lista) : S.vistaLista === "talla" ? tablaPorTalla(lista) : ""}
+      ${lista.length && S.vistaLista === "tarjetas" ? `<div class="grilla">${lista.map(p => {
         const c = ci(p), m = coincidencias(p), filtrando = S.filtro !== "todo";
         const principal = m[0], enEste = m.filter(x => x.c === c);
         return `<article class="modelo${sel && sel.pid === p.id ? " activo" : ""}" data-id="${p.id}">
@@ -969,7 +1043,28 @@ table.t td:first-child{font-weight:600}
               return `<button class="talla ${e === "ok" ? "" : e}${marca}" aria-pressed="${!!activa}" data-acc="talla" data-pid="${p.id}" data-t="${esc(t)}" data-vk="${p.id}|${c}|${esc(t)}" data-est="${e}" title="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén" aria-label="Talla ${esc(t)}: ${v.piso} en piso, ${v.alm} en almacén${cumple ? ". " + SIMBOLO[S.filtro].txt : ""}${esPrincipal ? ", la que más se vende" : ""}"><b>${esc(t)}</b><small>${e === "sin" ? "—" : v.piso + " piso"}</small>${cumple ? insignia(S.filtro) : ""}</button>`; }).join("")}
           </div>
         </article>`; }).join("")}</div>`
-      : `<div class="vacio">${S.q ? `No hay productos con «${esc(S.q)}» en Tienda TRU. Revisa cómo está escrito, o busca por la marca o el código.` : "Nada con este filtro. Toca «Todo» para ver todos."}</div>`}`;
+      : lista.length ? "" : `<div class="vacio">${S.q ? `No hay productos con «${esc(S.q)}» en Tienda TRU. Revisa cómo está escrito, o busca por la marca o el código.` : "Nada con este filtro. Toca «Todo» para ver todos."}</div>`}`;
+  }
+
+  // La tabla por prenda: una fila por modelo y color, con sus tallas («S 0+2») y lo que hay en piso y en almacén. Tocar la fila abre el panel.
+  function tablaPorPrenda(lista) {
+    const sel = S.panel;
+    const filas = lista.flatMap(p => p.colores.map((col, c) => ({ p, c, col })).filter(({ p, c }) => S.filtro === "todo" || coincidencias(p).some(x => x.c === c)));
+    return `<div class="tabla-lista"><table><thead><tr><th>Producto</th><th>Color</th><th>Tallas · en piso + en almacén</th><th class="num">En piso</th><th class="num">En almacén</th></tr></thead><tbody>${filas.map(({ p, c, col }) => {
+      const ts = tallasDe(p, c), piso = ts.reduce((n, t) => n + vr(p, c, t).piso, 0), alm = ts.reduce((n, t) => n + vr(p, c, t).alm, 0);
+      return `<tr class="${sel && sel.pid === p.id && sel.c === c ? "activo" : ""}" data-acc="abrir-fila" data-pid="${p.id}" data-c="${c}"><td><button class="tl-prod" data-acc="abrir-fila" data-pid="${p.id}" data-c="${c}">${mosaico(p, c)}<span><b>${esc(p.nombre)}</b><small>${esc(p.marca)} · ${esc(p.cat)}</small></span></button></td><td><span class="tl-color"><i style="background:${col.hex}"></i>${esc(col.n)}</span></td><td><span class="tl-tallas">${ts.map(t => { const v = vr(p, c, t), e = estado(v); return `<span class="${e === "ok" ? "" : e}"><b>${esc(t)}</b> ${e === "sin" ? "—" : `${v.piso}${v.alm ? `+${v.alm}` : ""}`}</span>`; }).join("")}</span></td><td class="num">${piso}</td><td class="num">${alm}</td></tr>`;
+    }).join("")}</tbody></table></div>`;
+  }
+  // Por talla: una fila por talla, con lo que pide hoy, piso, almacén, otras sedes y lo vendido en 14 días.
+  function tablaPorTalla(lista) {
+    const sel = S.panel;
+    const filas = lista.flatMap(p => p.colores.flatMap((col, c) => tallasDe(p, c).map(t => ({ p, c, col, t, v: vr(p, c, t) }))))
+      .filter(({ p, c, t }) => S.filtro === "todo" || coincidencias(p).some(x => x.c === c && x.t === t));
+    const HOY = { reponer: ["Por reponer", "p-ambar"], sin: ["Sin stock aquí", "p-pizarra"] };
+    return `<div class="tabla-lista"><table><thead><tr><th>Producto · color · talla</th><th>Hoy</th><th class="num">En piso</th><th class="num">En almacén</th><th>Otras sedes</th><th class="num">Vendidas en 14 días</th></tr></thead><tbody>${filas.map(({ p, c, col, t, v }) => {
+      const e = estado(v), otras = SEDES.filter(sd => v.otras[sd]).map(sd => `${sd} ${v.otras[sd]}`).join(" · ");
+      return `<tr class="${sel && sel.pid === p.id && sel.c === c && sel.t === t ? "activo" : ""}" data-acc="abrir-fila" data-pid="${p.id}" data-c="${c}" data-t="${esc(t)}"><td><button class="tl-prod" data-acc="abrir-fila" data-pid="${p.id}" data-c="${c}" data-t="${esc(t)}">${mosaico(p, c)}<span><b>${esc(p.nombre)}</b><small>${esc(col.n)} · talla ${esc(t)}</small></span></button></td><td>${e === "ok" ? `<span class="ayuda">Al día</span>` : `<span class="pastilla ${HOY[e][1]}"><i></i>${HOY[e][0]}</span>`}</td><td class="num">${v.piso}</td><td class="num">${v.alm}</td><td>${otras || '<span class="ayuda">—</span>'}</td><td class="num">${vendidas(p, c, t)}</td></tr>`;
+    }).join("")}</tbody></table></div>`;
   }
 
   // ================= panel =================
@@ -1062,24 +1157,35 @@ table.t td:first-child{font-weight:600}
       </div>`;
     let cuerpo = "";
     if (vista === "variante") {
-      // «Qué toca con esta talla» (2026-10-06, como el ERP): hay · colgar en el piso · pedir a otra sede, cada una con su sí o no y su
-      // porqué, y el botón si se resuelve aquí. La vara de pedir es la de «casi no hay»: 1 o ninguna aquí y nada en camino.
+      // «Qué toca con esta talla» (2026-10-06, como el ERP): ¿Hay? ¿Colgar? ¿Pedir?, cada una con su sí o no y su porqué, y el botón si
+      // se resuelve aquí (en su propia columna: nunca baja de línea). La vara de pedir es la de «casi no hay»: 1 o ninguna aquí y nada en
+      // camino. Bajo «¿Pedir?», cuánto tiene cada otra sede (antes, un bloque de pastillas aparte más abajo).
       const aqui = v.piso + v.alm, tiendasCon = SEDES.filter(s => s !== "Taller" && v.otras[s] > 0).sort((a, b) => v.otras[b] - v.otras[a]);
-      const filaQT = (titulo, tono, resp, det, boton = "") => `<div class="qt-fila"><span class="qt-tit">${titulo}</span><p><b class="qt-${tono}"><i></i>${resp}</b> ${det}.</p>${boton}</div>`;
-      const diag = `<section class="que-toca" aria-label="Qué toca con esta talla">
-        ${aqui > 0 ? filaQT("Hay", "verde", "Sí", `${v.piso} en piso · ${v.alm} en almacén`) : filaQT("Hay", "pizarra", "No", v.camino ? `Nada para vender aquí · vienen ${v.camino} en camino` : "Nada para vender en esta sede")}
-        ${v.alm === 0 ? (v.piso > 0 ? filaQT("Colgar en el piso", "verde", "No hace falta", `Hay ${v.piso} en el piso`) : filaQT("Colgar en el piso", "pizarra", "No se puede", "No hay en el almacén"))
-          : v.piso === 0 ? filaQT("Colgar en el piso", "ambar", "Sí", `Cuelga 1: no hay en el piso y hay ${v.alm} en almacén`, `<button class="btn qt-btn" data-acc="accion" data-k="reponer">${IC.reponer}Colgar</button>`)
-          : filaQT("Colgar en el piso", "verde", "No hace falta", `Hay ${v.piso} en el piso`)}
-        ${v.camino ? filaQT("Pedir a otra sede", "verde", "No hace falta", `Vienen ${v.camino} en camino`)
-          : aqui >= 2 ? filaQT("Pedir a otra sede", "verde", "No hace falta", `Hay ${aqui} en esta sede`)
-          : tiendasCon.length ? filaQT("Pedir a otra sede", aqui === 0 ? "ambar" : "pizarra", "Sí", `${aqui === 0 ? "No hay aquí" : "Queda 1 aquí"}: ${tiendasCon[0]} tiene ${v.otras[tiendasCon[0]]}`, `<button class="btn qt-btn" data-acc="pedir-rapido" data-pid="${pid}" data-c="${c}" data-t="${esc(t)}">${IC.pedir}Pedir</button>`)
-          : v.otras.Taller > 0 ? filaQT("Pedir a otra sede", "pizarra", "A una tienda, no", `Ninguna tienda tiene; Taller tiene ${v.otras.Taller}: pídeselo al Taller`)
-          : filaQT("Pedir a otra sede", "pizarra", "Nadie tiene", aqui === 1 ? "Queda 1 aquí y ninguna otra sede tiene" : "Ninguna otra sede tiene")}
-      </section>`;
       const pedido = S.pedidos[`${pid}|${c}|${t}`];
+      const sedesTxt = [...SEDES.filter(s => v.otras[s] > 0).map(s => `${s} ${v.otras[s]}`), ...(pedido ? [`pedido a ${pedido}`] : [])].join(" · ");
+      const filaQT = (titulo, tono, resp, det, boton = "") => `<div class="qt-fila${boton ? " con-boton" : ""}"><span class="qt-tit">${titulo}</span><div class="qt-resp"><p><b class="qt-${tono}"><i></i>${resp}</b> ${det}.</p>${titulo === "¿Pedir?" && sedesTxt ? `<p class="qt-sedes">Otras sedes: ${sedesTxt}</p>` : ""}</div>${boton}</div>`;
+      const diag = `<section class="que-toca" aria-label="Qué toca con esta talla">
+        ${aqui > 0 ? filaQT("¿Hay?", "verde", "Sí", `${v.piso} en piso · ${v.alm} en almacén`) : filaQT("¿Hay?", "pizarra", "No", v.camino ? `Nada para vender aquí · vienen ${v.camino} en camino` : "Nada para vender en esta sede")}
+        ${v.alm === 0 ? (v.piso > 0 ? filaQT("¿Colgar?", "verde", "No hace falta", `Hay ${v.piso} en el piso`) : filaQT("¿Colgar?", "pizarra", "No se puede", "No hay en el almacén"))
+          : v.piso === 0 ? filaQT("¿Colgar?", "ambar", "Sí", `Cuelga 1: no hay en el piso y hay ${v.alm} en almacén`, `<button class="btn qt-btn" data-acc="accion" data-k="reponer">${IC.reponer}Colgar</button>`)
+          : filaQT("¿Colgar?", "verde", "No hace falta", `Hay ${v.piso} en el piso`)}
+        ${v.camino ? filaQT("¿Pedir?", "verde", "No hace falta", `Vienen ${v.camino} en camino`)
+          : aqui >= 2 ? filaQT("¿Pedir?", "verde", "No hace falta", `Hay ${aqui} en esta sede`)
+          : tiendasCon.length ? filaQT("¿Pedir?", aqui === 0 ? "ambar" : "pizarra", "Sí", `${aqui === 0 ? "No hay aquí" : "Queda 1 aquí"}: ${tiendasCon[0]} tiene ${v.otras[tiendasCon[0]]}`, `<button class="btn qt-btn" data-acc="pedir-rapido" data-pid="${pid}" data-c="${c}" data-t="${esc(t)}">${IC.pedir}Pedir</button>`)
+          : v.otras.Taller > 0 ? filaQT("¿Pedir?", "pizarra", "A una tienda, no", `Ninguna tienda tiene; Taller tiene ${v.otras.Taller}: pídeselo al Taller`)
+          : filaQT("¿Pedir?", "pizarra", "Nadie tiene", aqui === 1 ? "Queda 1 aquí y ninguna otra sede tiene" : "Ninguna otra sede tiene")}
+      </section>`;
       const marcas = coincidencias(p);
       const vend = vendidas(p, c, t);
+      // «En este modelo» (2026-10-06, tarde, como el ERP): las tallas que faltan en el piso como botones por color, y lo que casi no hay
+      // aquí con su «Pedir», en UNA tarjeta como «Qué toca» (antes, un recuadro con la frase y una franja de color por talla).
+      const faltanCol = p.colores.map((col, cc) => ({ col, cc, ts: faltanDe(p, cc) })).filter(x => x.ts.length);
+      const nFaltan = faltanCol.reduce((n, x) => n + x.ts.length, 0);
+      const casi = casiNoHayHTML(p, true);
+      const enModelo = nFaltan || casi ? `<section class="que-toca" aria-label="En este modelo">
+        ${nFaltan ? `<div class="em-bloque"><p class="em-tit">Faltan en el piso <span>· ${nFaltan} ${nFaltan === 1 ? "talla" : "tallas"}</span></p>${faltanCol.map(({ col, cc, ts }) => `<div class="em-color" role="group" aria-label="${esc(col.n)}">${p.colores.length > 1 ? `<span class="em-nom"><i style="background:${col.hex}"></i>${esc(col.n)}</span>` : ""}${ts.map(x => `<button class="em-talla" aria-pressed="${cc === c && x === t}" data-acc="ir-var" data-c="${cc}" data-t="${esc(x)}" aria-label="Ver ${esc(col.n)} talla ${esc(x)}">${esc(x)}</button>`).join("")}</div>`).join("")}</div>` : ""}
+        ${casi ? `<div class="em-bloque">${casi}</div>` : ""}
+      </section>` : "";
       cuerpo = `
         ${S.hecho ? `<div class="hecho">${IC.check}<span>${esc(S.hecho)}</span></div>` : ""}
         <div class="donde">
@@ -1089,12 +1195,9 @@ table.t td:first-child{font-weight:600}
           <div class="${v.dan ? "" : "cero"}"><b data-cuenta="${pid}|${c}|${t}|dan">${v.dan}</b><small>Dañado</small></div>
         </div>
         ${diag}
-        <div class="frase">${fraseModelo(p)}</div>
-        ${afueraHTML(p, c)}
-        <div class="ritmo">${ritmoHTML(p, c)}</div>
-        ${S.filtro !== "todo" && marcas.length ? `<div><p class="etq" style="margin-bottom:6px">${esc(SIMBOLO[S.filtro].txt)} en este modelo · ${marcas.length}</p><div class="otras-marcas">${marcas.map(x => `<button aria-pressed="${x.c === c && x.t === t}" data-acc="ir-var" data-c="${x.c}" data-t="${esc(x.t)}"><i style="background:${p.colores[x.c].hex}"></i>${esc(p.colores[x.c].n)} · ${esc(x.t)}${x === marcas[0] ? " · más vendida" : ""}</button>`).join("")}</div></div>` : ""}
-        <p class="ayuda">Se vendieron ${unidades(vend)} de esta talla y color en los últimos 14 días · código <span class="num" style="color:var(--tinta)">${codigoVariante(p, c, t)}</span></p>
-        <div class="otras"><span class="etq" style="margin-right:4px">Otras sedes</span>${SEDES.map(s => `<span class="${v.otras[s] ? "hay" : ""}">${s} ${v.otras[s]}</span>`).join("")}${v.camino ? `<span class="hay">En camino ${v.camino}</span>` : ""}${pedido ? `<span class="hay">Pedido a ${pedido}</span>` : ""}</div>
+        ${enModelo}
+        ${S.filtro !== "todo" && marcas.length && !(S.filtro === "reponer" && nFaltan) ? `<div><p class="etq" style="margin-bottom:6px">${esc(SIMBOLO[S.filtro].txt)} en este modelo · ${marcas.length}</p><div class="otras-marcas">${marcas.map(x => `<button aria-pressed="${x.c === c && x.t === t}" data-acc="ir-var" data-c="${x.c}" data-t="${esc(x.t)}"><i style="background:${p.colores[x.c].hex}"></i>${esc(p.colores[x.c].n)} · ${esc(x.t)}${x === marcas[0] ? " · más vendida" : ""}</button>`).join("")}</div></div>` : ""}
+        <div class="ritmo">${ritmoHTML(p, c, `<small>De esta talla: ${unidades(vend)} ${vend === 1 ? "vendida" : "vendidas"} en 14 días · código <span class="num" style="color:var(--tinta)">${codigoVariante(p, c, t)}</span></small>`)}</div>
         ${(() => {
           // El orden sigue a la talla (2026-10-06, como el ERP): primero lo que necesita, después lo que se puede según dónde está la
           // prenda, y lo que no se puede ahora al final, chico y con su porqué. La tecla es de la acción, no del lugar.
@@ -1110,12 +1213,11 @@ table.t td:first-child{font-weight:600}
         })()}`;
     } else if (vista === "matriz") {
       const todas = [...new Set(p.colores.flatMap((_, i) => tallasDe(p, i)))];
-      cuerpo = `<p class="ayuda">Número grande: en piso. Debajo: en almacén. Toca una casilla para elegir esa talla y color.</p>
-        <div class="matriz"><table><thead><tr><th>Color</th>${todas.map(x => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>
+      cuerpo = `<div class="matriz"><table><thead><tr><th>Color</th>${todas.map(x => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>
         ${p.colores.map((col, i) => `<tr><th scope="row"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${col.hex};box-shadow:0 0 0 1px var(--sand);margin-right:6px;vertical-align:-1px"></span>${esc(col.n)}</th>${todas.map(x => { const w = col.tallas[x]; if (!w) return "<td></td>"; const ee = estado(w);
           return `<td><button class="celda ${ee === "ok" ? "" : ee}" aria-pressed="${i === c && x === t}" data-acc="celda" data-c="${i}" data-t="${esc(x)}" aria-label="${esc(col.n)} ${esc(x)}: ${w.piso} en piso, ${w.alm} en almacén"><b>${ee === "sin" ? "—" : w.piso}</b><small>${w.alm ? "+" + w.alm : ee === "sin" && otrasSum(w) ? "otra sede" : ""}</small></button></td>`; }).join("")}</tr>`).join("")}
         </tbody></table></div>
-        <p class="otras"><span class="pastilla p-ambar"><i></i>Por reponer</span><span class="pastilla p-pizarra"><i></i>Sin stock aquí</span></p>
+        <p class="leyenda-m"><span>Grande: en piso · «+N»: en almacén · toca una casilla para verla</span><span><i class="sw sw-ambar"></i>Por reponer</span><span><i class="sw sw-sin"></i>Sin stock aquí</span></p>
         <button class="btn prim" data-acc="iniciar-varias" style="justify-self:start">${IC.reponer} Reponer varias tallas y colores</button>`;
     } else {
       cuerpo = `<div class="fotos">${p.colores.slice(0, 3).map((col, i) => `<div style="background:${col.hex};${col.claro ? "color:var(--tinta);box-shadow:inset 0 0 0 1px var(--sand)" : ""}"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">${FIG[p.icono]}</svg></div>`).join("")}${p.colores.length < 3 ? '<div style="background:var(--hueso);color:var(--taupe);font-size:12px">Sin foto</div>'.repeat(3 - p.colores.length) : ""}</div>
@@ -1227,11 +1329,12 @@ table.t td:first-child{font-weight:600}
             <section class="grupo-color" aria-label="${esc(col.n)}">
               <header><span><i style="background:${col.hex}"></i>${esc(col.n)}</span><span class="ayuda">Al piso: <b style="color:var(--tinta)">${totalColor(d, c)}</b></span></header>
               <div class="celdas">${Object.entries(col.tallas).map(([t, w]) => { const k = `${c}|${t}`, n = d.cant?.[k] || 0;
-                if (!w.alm) return `<div class="celda-r nada"><div class="cab"><b>${esc(t)}</b><small>${w.piso} en piso</small></div><span style="font-size:12.5px">Nada en almacén</span></div>`;
+                if (!w.alm) return "";
                 return `<div class="celda-r${n ? " puesta" : w.piso === 0 ? " falta-piso" : ""}"><div class="cab"><b>${esc(t)}${w.piso === 0 && !n ? '<i class="dot-falta" title="Falta en el piso"></i>' : ""}</b><small>${w.alm} en almacén</small></div>
                   <div class="stepper"><button data-acc="menos-c" data-key="${k}" aria-label="Una menos de ${esc(col.n)} ${esc(t)}" ${n <= 0 ? "disabled" : ""}>−</button><input class="cant" id="cant-${k}" data-cant="${k}" data-max="${w.alm}" inputmode="numeric" autocomplete="off" value="${n}" aria-label="Cantidad de ${esc(col.n)} ${esc(t)}"><button data-acc="mas-c" data-key="${k}" data-max="${w.alm}" aria-label="Una más de ${esc(col.n)} ${esc(t)}" ${n >= w.alm ? "disabled" : ""}>+</button></div>
                   <span class="piso-luego">${w.piso === 0 && !n ? "Nada en piso" : `En piso quedan ${w.piso + n}`}</span></div>`; }).join("")}</div>
-            </section>`).join("")}</div>${p.colores.map((_, cc) => afueraHTML(p, cc)).join("")}`);
+              ${Object.entries(col.tallas).some(([, w]) => !w.alm) ? `<p class="sin-alm">Sin nada en almacén: ${Object.entries(col.tallas).filter(([, w]) => !w.alm).map(([t]) => esc(t)).join(" · ")}</p>` : ""}
+            </section>`).join("")}</div>${casiNoHayHTML(p, false) ? `<div class="que-toca em-suelta"><div class="em-bloque">${casiNoHayHTML(p, false, "se pide desde su talla")}</div></div>` : ""}`);
       }
       case "hacia":
         return bloqueGuiado("hacia", true, completo, "", `<p class="pregunta">¿A qué sede las envías?</p>
@@ -1440,9 +1543,12 @@ table.t td:first-child{font-weight:600}
       case "filtros": S.panelFiltros = !S.panelFiltros; renderBarra(); break;
       case "pf-demo": avisar(`En el ERP: la lista de «${d.k}» con cuántos productos trae cada opción`); break;
       case "orden": S.orden = d.k; renderBarra(); renderLista(); break;
+      case "ver-como": S.vistaLista = d.k; renderBarra(); renderLista(); document.getElementById("lista").scrollTop = 0; break;
+      case "abrir-fila": S.color[d.pid] = +d.c; abrirPanel(d.pid, d.t || undefined); break;
       case "reco": lanzar(d.pid, +d.c, null, "reponerVarias", { cant:{} }); break;
-      case "pedir-rapido": { const p = prod(d.pid), c = +d.c, v = vr(p, c, d.t), mejor = SEDES.filter(sd => v.otras[sd] > 0).sort((a, b) => v.otras[b] - v.otras[a])[0];
-        if (!mejor) { avisar("Ninguna sede tiene esta talla"); break; }
+      // Al Taller no se le pide por esta vía (como el ERP: la base lo rechaza): «Pedir» elige entre las tiendas.
+      case "pedir-rapido": { const p = prod(d.pid), c = +d.c, v = vr(p, c, d.t), mejor = SEDES.filter(sd => sd !== "Taller" && v.otras[sd] > 0).sort((a, b) => v.otras[b] - v.otras[a])[0];
+        if (!mejor) { avisar("Ninguna tienda tiene esta talla"); break; }
         lanzar(d.pid, c, d.t, "pedir", { para:"reponer", origen:mejor, n:1 }); S.panel.flujo.i = 2; renderPanel(true); break; }
       case "rapida": {
         const p = prod(d.pid), c = +d.c, con = k => Object.keys(p.colores[c].tallas).filter(t => vr(p, c, t)[k] > 0).sort((a, b) => vr(p, c, b)[k] - vr(p, c, a)[k]);
