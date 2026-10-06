@@ -154,6 +154,8 @@ export function ExistenciasTarjetas({
         // Algo libre en el almacén de algún color para mandar a otra sede (el traslado sale del almacén; `lineasParaTrasladar`).
         const tallasDelModelo = m.colores.flatMap((c) => c.tallas);
         const hayEnAlmacen = tallasDelModelo.some((t) => (t.almacenDisponible ?? t.disponible) > 0);
+        // Como la maqueta: la ventana lleva solo mover prendas (colgar, subir, enviar). Ajustar, Reportar dañada y Ver detalle viven en el
+        // cajón de la prenda (tocar una talla) y «Ver detalle» en la barra: la tarjeta no se llena de opciones.
         const filas = filasDeAcciones({
           puedeReponer,
           puedeEnviar: puedeEnviar && !!onEnviar,
@@ -164,7 +166,7 @@ export function ExistenciasTarjetas({
           hayEnElPiso,
           hayEnAlmacen,
           hayAlgoLibre,
-        });
+        }).filter((f) => f.clave === "colgar" || f.clave === "subir" || f.clave === "enviar");
         const alElegir = (clave: ClaveAccion) => {
           switch (clave) {
             case "colgar":
@@ -264,7 +266,7 @@ export function ExistenciasTarjetas({
                 )}
                 {p.apartado > 0 && <Chip tono="ambar">Apartado · {p.apartado}</Chip>}
               </div>
-              <AccionesTarjeta etiqueta={etiqueta} filas={filas} alElegir={alElegir} />
+              {filas.length > 0 && <AccionesTarjeta etiqueta={etiqueta} filas={filas} alElegir={alElegir} />}
             </div>
             {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
             {recortada && (
