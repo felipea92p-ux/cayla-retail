@@ -1,9 +1,9 @@
 /* ---- Elegir una de varias: tres piezas, una por lo que hace (ADR-0358, «Pestañas y segmentos») ----
-   Felipe las eligió MIRANDO el 2026-10-07, en la página de /unificar, después de ver aplicadas las del 2026-10-06 y no quedarse
+   Felipe las eligió MIRANDO el 2026-10-06 por la tarde, en la página de /unificar, después de ver aplicadas las de esa mañana y no quedarse
    con ellas. La colaboradora se pregunta «¿qué cambia si toco esto?», y cada respuesta tiene UNA forma:
      · ¿Me lleva a otra parte de esta pantalla?  → PESTAÑA de vista (`components/ui/Pestanas.tsx`): el vidrio de Comprobantes
                                                    (ADR-0124) con la píldora oscura que se desliza, en MAYÚSCULAS. También en
-                                                   Finanzas y Configuración (Felipe 2026-10-07).
+                                                   Finanzas y Configuración (Felipe 2026-10-06).
      · ¿Deja menos filas en la misma lista?      → PÍLDORA (`.pildora-cayla`, en globals.css): la elegida rellena de tinta.
                                                    El período (Hoy · 7 días · 30 días) también es esto.
      · ¿Muestra lo mismo de otra forma u orden?  → SEGMENTO de modo (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`):
