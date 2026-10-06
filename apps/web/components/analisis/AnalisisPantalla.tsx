@@ -232,7 +232,7 @@ export function AnalisisPantalla({
         {forzado && (
           <div className="aviso-datos" role="status">
             <ChipEstado est="ate">Datos incompletos</ChipEstado>
-            <span className="aviso-texto">{avisoDatosDeHoy(mia?.identificada14 ?? null)}</span>
+            <span className="aviso-texto">{avisoDatosDeHoy(mia)}</span>
             <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(false)}>
               Ver qué falta
             </button>

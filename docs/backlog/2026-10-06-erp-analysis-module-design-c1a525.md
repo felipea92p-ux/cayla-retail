@@ -20,7 +20,9 @@ el repo es público.
 - [x] SQL pegado en producción por Felipe (2026-10-06): las cinco huellas coinciden y `parametros_analisis.liquidar_desde` = 60.
 - [x] Puntos que corren por la cinta del flujo al pasar el mouse (pedido de Felipe; ADR-0136 act. 2026-10-06 (b)).
 - [x] «Ver con los datos de hoy» con su aviso fijo (ADR-0357, decisión 2, actualización): en producción ninguna tienda cumple las tres
-      condiciones y la pantalla solo decía «Todavía no».
+      condiciones y la pantalla solo decía «Todavía no». El aviso dice lo primero que falta, con la misma cifra que «Todavía no».
+- [x] **Fuera de la fusión del #850:** los puntos del flujo y «Ver con los datos de hoy» se subieron después de fusionarlo; van en su
+      propio PR, sin SQL.
 
 ### Antes de subir
 
