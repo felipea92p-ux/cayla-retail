@@ -20,6 +20,8 @@ export type ProductoDeCatalogo = {
   familia: string | null;
   /** `productos.estado`: solo un producto «activo» se ofrece como «en el catálogo, sin stock aquí». */
   estado: string;
+  /** `productos.descripcion` (corte, largo, detalles), para la cabecera del panel de la talla. Null si no tiene. */
+  descripcion: string | null;
   /** `productos.estado_alta`: una prenda dada de alta al vuelo (Conteo) queda `pendiente` en la base. Ya no se lee para filtrar:
    *  Felipe quitó la revisión de esas altas el 2026-10-02 («no me sirve»), así que una pendiente se trata como cualquier otra. Si
    *  se creó por error, se descontinúa en su ficha y ahí sí deja de ofrecerse (filtro por `estado`). */
@@ -42,6 +44,14 @@ export function conMarca<T extends { productoId: string }>(filas: readonly T[], 
 export function conEstadoProducto<T extends { productoId: string }>(filas: readonly T[], productos: readonly ProductoDeCatalogo[]): (T & { estadoProducto: string | null })[] {
   const estadoDe = new Map(productos.map((p) => [p.id, p.estado]));
   return filas.map((f) => ({ ...f, estadoProducto: estadoDe.get(f.productoId) ?? null }));
+}
+
+/** Pone a cada fila la descripción de su producto (Felipe, 2026-10-06: se escribía al crear la prenda y no se veía en ninguna
+ *  parte; el panel de la talla la muestra bajo el nombre). Una descripción en blanco cuenta como ninguna. Una fila cuyo producto
+ *  no llegó queda con `descripcion: null` y el panel no dibuja nada. */
+export function conDescripcion<T extends { productoId: string }>(filas: readonly T[], productos: readonly ProductoDeCatalogo[]): (T & { descripcion: string | null })[] {
+  const descripcionDe = new Map(productos.map((p) => [p.id, p.descripcion?.trim() || null]));
+  return filas.map((f) => ({ ...f, descripcion: descripcionDe.get(f.productoId) ?? null }));
 }
 
 /**

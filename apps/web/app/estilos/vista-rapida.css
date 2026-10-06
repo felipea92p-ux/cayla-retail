@@ -153,6 +153,26 @@
       display: none;
     }
   }
+  /* La descripción de la prenda, bajo la foto (Felipe, 2026-10-06: no se veía en ninguna parte). Es de la prenda y no del color: una línea
+     la separa del pie de la foto. */
+  .vr-desc {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .vr-desc .vr-rotulo {
+    display: block;
+    font-size: 10.5px;
+    color: var(--vr-t60, var(--color-tinta));
+  }
+  .vr-desc p {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
 
   /* ---- La matriz ---- */
   .vr-mx {
@@ -586,6 +606,11 @@
     }
     .vr-pista {
       display: none;
+    }
+    /* Bajo la cinta de foto + color, a todo el ancho (en la columna de 96 px se partía palabra por palabra). */
+    .vr-desc {
+      grid-column: 1 / -1;
+      margin-top: 0;
     }
     .vr-meta .vr-sep {
       border-left: 0;
