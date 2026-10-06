@@ -103,6 +103,7 @@ export function vistaDelPedido(p: PedidoEntreSedes, ctx: { miUbicacionId: string
     porHacer: pedidoPorHacer(p),
     // Quien pidió ya está en «Te pidió»: el pie del pase no lo repite como si hubiera enviado algo.
     enviaNombre: null,
+    conGuia: false,
     nota: p.nota,
     fotos: [],
     colores: [],
@@ -141,6 +142,7 @@ export function vistaParaEnviar(g: GrupoParaEnviar, ctx: { ahoraIso: string }, c
     sello: null,
     porHacer: false,
     enviaNombre: null,
+    conGuia: false,
     nota: null,
     fotos: [],
     colores: [],

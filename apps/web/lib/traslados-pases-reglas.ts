@@ -98,6 +98,8 @@ export type VistaPase = {
   /** Le pide algo a quien mira (cuenta en el anillo y en el contador de su pestaña). */
   porHacer: boolean;
   enviaNombre: string | null;
+  /** El QR de la guía en el frente («va en la caja», ADR-0242 D-3): solo para quien envió, mientras la caja viaja. */
+  conGuia: boolean;
   nota: string | null;
   fotos: FotoTraslado[];
   colores: string[];
@@ -359,6 +361,12 @@ export function fechaDeSello(iso: string): string {
   return `${dia} ${MESES_SELLO[mes - 1] ?? ""} · ${horaLima(iso)}`;
 }
 
+/** ¿El frente lleva el QR de la guía? La guía es de quien arma y despacha la caja, y sirve solo mientras viaja: anulada no viaja
+ *  y, recibida, ya nadie la cuenta. Contándose todavía viaja (la otra sede pudo empezar sin la guía y alguien la reimprime). */
+export function llevaGuia(t: DatosPase, ctx: ContextoTraslados): boolean {
+  return t.ubicacionOrigenId === ctx.miUbicacionId && t.ubicacionDestinoId !== ctx.miUbicacionId && enTransito(t);
+}
+
 /** Todo lo que el pase dice, en un solo objeto (lo arma el servidor; el navegador solo lo dibuja). */
 export function vistaDelPase(t: DatosPase, ctx: ContextoTraslados, codigos: { origen: string; destino: string }): VistaPase {
   const tono = tonoDelPase(t, ctx);
@@ -386,6 +394,7 @@ export function vistaDelPase(t: DatosPase, ctx: ContextoTraslados, codigos: { or
     sello: selloDelPase(t, ctx),
     porHacer: requiereAccion(situacionDelPase(t, ctx)),
     enviaNombre: t.creadoPorNombre,
+    conGuia: llevaGuia(t, ctx),
     nota: t.nota,
     fotos: t.fotos,
     colores: t.colores,

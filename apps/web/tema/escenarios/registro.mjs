@@ -737,6 +737,42 @@ ESCENARIOS.push(
     nombre: "Traslados · el pase de un traslado",
     preparar: async (pagina) => irA(`/inventario/traslados/${consultarLocal("select id from retail.transferencias order by 1 limit 1")}`)(pagina),
   },
+  // La guía impresa (ADR-0242 D-3): es papel (`.papel-fijo`), así que en oscuro el papel sigue claro y lo que se mide es lo de alrededor.
+  {
+    id: "traslados.guia",
+    ruta: "/inventario/traslados/guia/[id]",
+    cuentas: ["admin"],
+    abre: ".guia-traslado[data-formato=termica] .gt-qr svg",
+    nombre: "Traslados · la guía de una caja (térmica)",
+    preparar: async (pagina) =>
+      irA(`/inventario/traslados/guia/${consultarLocal("select id from retail.transferencias where estado = 'en_transito' order by numero desc limit 1")}`)(pagina),
+  },
+  {
+    id: "traslados.guia-a4",
+    ruta: "/inventario/traslados/guia/[id]",
+    cuentas: ["admin"],
+    abre: ".guia-traslado[data-formato=a4] .gt-qr svg",
+    nombre: "Traslados · la guía de una caja (hoja A4)",
+    async preparar(pagina) {
+      await irA(`/inventario/traslados/guia/${consultarLocal("select id from retail.transferencias where estado = 'en_transito' order by numero desc limit 1")}`)(pagina);
+      await clicRol("button", /^Hoja A4$/)(pagina);
+      await esperar(pagina, 400);
+    },
+  },
+  {
+    // El QR «va en la caja» del frente: solo lo ve quien envía (Micaela, en Trujillo), mientras la caja viaja.
+    id: "traslados.qr-del-pase",
+    ruta: "/inventario/traslados/[id]",
+    cuentas: ["integrante"],
+    abre: ".tp-qr svg",
+    nombre: "Traslados · el QR de la guía en el pase que sale",
+    preparar: async (pagina) =>
+      irA(
+        `/inventario/traslados/${consultarLocal(
+          "select t.id from retail.transferencias t join retail.ubicaciones u on u.id = t.ubicacion_origen_id where t.estado = 'en_transito' and u.nombre ilike '%trujillo%' order by t.numero desc limit 1",
+        )}`,
+      )(pagina),
+  },
   { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor/i) },
   {
     id: "recibir.prenda",
