@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, loQueFaltaEnElPiso, queTocaConLaTalla } from "./existencias-panel-talla";
+import { accionesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla } from "./existencias-panel-talla";
 import type { FilaPrenda } from "./existencias-prendas";
 
 const talla = (x: Partial<FilaPrenda> & { enRed?: { sede: string; cantidad: number }[] }) =>
@@ -110,6 +110,11 @@ describe("«Qué toca con esta talla»: hay, colgar y pedir siempre dicen algo",
   it("donde no se separa piso y almacén (Taller), solo «Hay»", () => {
     expect(queTocaConLaTalla(talla({ disponible: 4 }) as never, { ...O, separa: false }).map((x) => x.tema)).toEqual(["hay"]);
   });
+
+  it("cada fila se titula con su pregunta corta, en todos los casos (en mayúsculas largas se partía en dos líneas)", () => {
+    const casos = [{}, { almacenDisponible: 6, disponible: 6 }, { pisoDisponible: 2, disponible: 2, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] }, { enTransito: 3 }];
+    for (const c of casos) expect(queTocaConLaTalla(talla({ enTransito: 0, ...c }) as never, O).map((x) => x.titulo)).toEqual(["¿Hay?", "¿Colgar?", "¿Pedir?"]);
+  });
 });
 
 describe("«Faltan en el piso» aunque el motor no decida", () => {
@@ -118,14 +123,24 @@ describe("«Faltan en el piso» aunque el motor no decida", () => {
 
   it("con la decisión del motor, la de siempre (y quedan marcadas al colgar)", () => {
     const f = loQueFaltaEnElPiso([color("Beige", [{ talla: "S", almacenDisponible: 2, planPiso: { accion: "por_colgar", requisito: 1 } as never }])]);
-    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "S", marcadas: true, enPausa: false });
+    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "S", ids: new Set(["Beige-0"]), marcadas: true, enPausa: false });
   });
   it("sin motor: los números; las que el motor manda mantener no cuentan", () => {
     const f = loQueFaltaEnElPiso([
       color("Beige", [{ talla: "S", almacenDisponible: 6 }, { talla: "M", almacenDisponible: 1 }, { talla: "L", pisoDisponible: 5 }]),
       color("Negro", [{ talla: "XL", almacenDisponible: 2, planPiso: { accion: "mantener", requisito: 0 } as never }]),
     ]);
-    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "Beige S, M", marcadas: false, enPausa: false });
+    expect(f).toEqual({ titulo: "Faltan en el piso", tallas: "Beige S, M", ids: new Set(["Beige-0", "Beige-1"]), marcadas: false, enPausa: false });
+  });
+  it("las tallas que dice la frase son las mismas que el panel vuelve botones", () => {
+    const prendas = [
+      color("Beige", [{ talla: "S", almacenDisponible: 6 }, { talla: "M", pisoDisponible: 1, almacenDisponible: 1 }]),
+      color("Negro", [{ talla: "S", almacenDisponible: 2 }, { talla: "M", almacenDisponible: 2, planPiso: { accion: "pausa_sin_cuadre", requisito: 1 } as never }]),
+    ];
+    const f = loQueFaltaEnElPiso(prendas)!;
+    const nombres = prendas.flatMap((p: { color: string; tallas: { varianteId: string; talla: string }[] }) => p.tallas.filter((t) => f.ids.has(t.varianteId)).map((t) => `${p.color} ${t.talla}`));
+    expect(nombres).toEqual(["Beige S", "Negro S", "Negro M"]);
+    expect(f.tallas).toBe("Beige S · Negro S, M");
   });
   it("con el piso en pausa lo advierte", () => {
     const f = loQueFaltaEnElPiso([color("Beige", [{ talla: "S", almacenDisponible: 6, planPiso: { accion: "pausa_sin_cuadre", requisito: 1 } as never }])]);
@@ -136,3 +151,36 @@ describe("«Faltan en el piso» aunque el motor no decida", () => {
   });
 });
 
+describe("las tallas de arriba lo dicen en su lugar (sin volver a listarlas abajo)", () => {
+  it("debajo del número: el piso; sin ninguna aquí, si viene en camino u otra sede la tiene (el Taller también es otra sede)", () => {
+    expect(pieDeTalla(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }), true)).toEqual({ texto: "2 piso", afuera: false });
+    expect(pieDeTalla(talla({ disponible: 4 }), false)).toEqual({ texto: "4", afuera: false });
+    expect(pieDeTalla(talla({ enTransito: 2, enRed: [{ sede: "Tienda Lima", cantidad: 1 }] }), true)).toEqual({ texto: "en camino", afuera: true });
+    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Taller", cantidad: 3 }] }), true)).toEqual({ texto: "otra sede", afuera: true });
+    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Tienda Lima", cantidad: 0 }] }), true)).toEqual({ texto: "—", afuera: false });
+  });
+
+  it("el punto del color: con filtro, solo si lo cumple; sin filtro, lo que falta en el piso antes que lo que tiene otra sede", () => {
+    const tallas = [talla({ varianteId: "a", disponible: 2, pisoDisponible: 0, almacenDisponible: 2 }), talla({ varianteId: "b", enTransito: 0, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] })];
+    expect(marcaDeColor(tallas, { faltan: new Set(["a"]), separa: true })).toBe("falta");
+    expect(marcaDeColor(tallas, { faltan: new Set(), separa: true })).toBe("afuera");
+    expect(marcaDeColor(tallas, { faltan: new Set(["a"]), coincide: (f) => f.varianteId === "b", separa: true })).toBe("filtro");
+    expect(marcaDeColor(tallas, { faltan: new Set(["a"]), coincide: () => false, separa: true })).toBeNull();
+    expect(marcaDeColor([talla({ varianteId: "c", disponible: 3, pisoDisponible: 3 })], { faltan: new Set(), separa: true })).toBeNull();
+  });
+
+  it("una sola línea: cuántas faltan en este color y en qué otros, sin nombrar las tallas", () => {
+    const colores = [
+      { clave: "azul", color: "Azul marino", tallas: [{ varianteId: "a26" }, { varianteId: "a28" }] },
+      { clave: "celeste", color: "Celeste", tallas: [{ varianteId: "c28" }] },
+      { clave: "negro", color: "Negro", tallas: [{ varianteId: "n28" }] },
+    ];
+    const falta = (ids: string[], titulo = "Faltan en el piso") => ({ titulo, ids: new Set(ids) });
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26", "a28"]))).toBe("Faltan en el piso: 2 tallas");
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26", "c28", "n28"]))).toBe("Faltan en el piso: 1 talla · también en Celeste y Negro");
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["c28"]))).toBe("Faltan en el piso: en Celeste");
+    expect(lineaDeLoQueFalta(colores, "azul", falta(["a26"], "Sin colgar, según el sistema"))).toBe("Sin colgar, según el sistema: 1 talla");
+    expect(lineaDeLoQueFalta(colores, "azul", falta([]))).toBeNull();
+    expect(lineaDeLoQueFalta(colores, "azul", null)).toBeNull();
+  });
+});
