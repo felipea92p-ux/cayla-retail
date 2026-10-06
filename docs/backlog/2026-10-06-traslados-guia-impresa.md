@@ -7,5 +7,6 @@
 - [x] Verificado: suite de `apps/web`, PDF de las dos hojas con Chromium y su QR leído con `jsqr` (abre el pase 294), navegador a 375, 570
       y 1440 px en claro y oscuro, auditor del tema en 0 (tres escenarios nuevos), `pnpm focus` y `pnpm sugerir` limpios.
 - [ ] **Probar en la tienda** la térmica real de la caja (driver «80 mm rollo») y leer el QR con un celular desde el papel.
-- [ ] **Decide Felipe:** ¿la guía lleva la nota de quien envía? Hoy no, porque puede decir cuántas van (ADR-0242, act. 2026-10-06).
+- [x] **Decidido (2026-10-06):** la guía va sin la nota de quien envía, porque puede decir cuántas van; y el QR, en el frente del pase,
+      como la maqueta D.
 - [ ] `/formidable` sobre la pantalla de la guía (obligatoria por regla; espera el OK de Felipe para sus 3 cambios).

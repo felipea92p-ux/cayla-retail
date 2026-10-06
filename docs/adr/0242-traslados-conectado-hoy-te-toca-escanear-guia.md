@@ -200,7 +200,8 @@ SE ROMPE SI: alguien suma un campo de cantidad a `GuiaTraslado`: la prueba de in
 DECIDÍ:      la guía no lleva la nota de quien envió.
 DESCARTÉ:    copiarla como en el reverso: es texto libre y puede decir «van 5 blusas»; en el pase de quien recibe la nota se ve recién al
              terminar de contar, y en un papel pegado a la caja se leería antes.
-SE ROMPE SI: Felipe quiere la nota en el papel (por ejemplo, «frágil»): es una línea en `HojaGuia`, sabiendo que puede filtrar la cifra.
+SE ROMPE SI: se quiere la nota en el papel (por ejemplo, «frágil»): es una línea en `HojaGuia`, sabiendo que puede filtrar la cifra.
+             Decidido el 2026-10-06: sin la nota. El QR queda en el frente, como la maqueta D.
 
 DECIDÍ:      fechas fijas («6 OCT · 10:40», `fechaDeSello`), nunca «hoy» ni «mañana».
 DESCARTÉ:    los relativos del pase: el papel se lee otro día.
