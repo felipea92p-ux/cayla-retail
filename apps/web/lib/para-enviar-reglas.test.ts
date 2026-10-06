@@ -11,7 +11,6 @@ import {
   esperaParaEnviar,
   paraEnviarAtrasadas,
   etiquetaParaEnviar,
-  faltaDestino,
   motivoYaNoValido,
   noEstaCompleta,
   paraEnviarDeFila,
@@ -122,11 +121,6 @@ describe("Ya no la envío y la ventana Subir prenda", () => {
       { id: "tal", nombre: "Taller" },
       { id: "lim", nombre: "Tienda Lima" },
     ]);
-  });
-  it("falta el destino solo si se eligió enviar", () => {
-    expect(faltaDestino(false, "")).toBe(false);
-    expect(faltaDestino(true, "")).toBe(true);
-    expect(faltaDestino(true, "lim")).toBe(false);
   });
   it("la RPC y sus parámetros son los de la migración", () => {
     const sql = readFileSync(new URL("../../../supabase/migrations/20261005130200_pedidos_que_no_se_pierden_parte3_para_enviar.sql", import.meta.url), "utf8");

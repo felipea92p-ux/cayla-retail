@@ -263,7 +263,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RecibirComprobanteModal.tsx": PENDIENTE, // 7 controles
   "components/RegistrarGastoModal.tsx": PENDIENTE, // 29 controles
   "components/RegistrarNotaCreditoModal.tsx": PENDIENTE, // 9 controles
-  "components/ReponerPrendaModal.tsx": { estado: "aplicada", evidencia: ["components/ReponerPrendaModal.tsx"] },
   // ADR-0328 act. 10: cuál (color y talla), dónde estaba, cuántas, qué tiene y quién: todo cuenta como «falta» (lo exige la base).
   "components/ReportarDanadaModal.tsx": { estado: "aplicada", evidencia: ["components/ReportarDanadaModal.tsx"] },
   // ADR-0328 act. 10 («Se arregló»): la guía enciende lo del panel abierto —qué se arregló, o precio y forma de pago al liquidar— y
@@ -274,7 +273,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RolesPanel.tsx": PENDIENTE, // 5 controles
   "components/SaldoFavorAcciones.tsx": PENDIENTE, // 7 controles
   "components/SeriesPanel.tsx": PENDIENTE, // 8 controles
-  "components/SubirAAlmacenModal.tsx": { estado: "aplicada", evidencia: ["components/SubirAAlmacenModal.tsx"] },
   "components/TallasLista.tsx": { estado: "aplicada", evidencia: ["components/TallasLista.tsx"] },
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },

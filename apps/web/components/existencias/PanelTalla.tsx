@@ -14,7 +14,7 @@ import { AroSemanas } from "@/components/existencias/ColgarPrimero";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { accionesDeTalla, diagnosticoDeTalla, type ClaveAccionTalla } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo } from "@/lib/existencias-colgar-primero";
-import { fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
+import { casiNoHay, fraseDeLoQueFalta } from "@/lib/reponer-prenda-reglas";
 import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -191,8 +191,13 @@ export function PanelTalla({
   const precio = solesDe(prenda.precio);
   const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
   const frase = separa ? fraseDeLoQueFalta(colores) : null;
-  // Tallas del modelo sin nada aquí pero con stock en otra tienda: la maqueta las lista con su «Pedir».
-  const agotadas = colores.flatMap((c) => c.tallas.filter((t) => t.disponible <= 0 && (t.enRed ?? []).some((x) => x.cantidad > 0)).map((t) => ({ c, t })));
+  // Lo agotado o casi (1 o ninguna aquí, nada en camino) que otra sede tiene: la maqueta lo lista con su «Pedir» (`casiNoHay`, la misma
+  // regla que usaba la ventana de Reponer).
+  const afuera = casiNoHay(colores).flatMap((x) => {
+    const c = colores.find((col) => col.tallas.some((t) => t.varianteId === x.clave));
+    const t = c?.tallas.find((tt) => tt.varianteId === x.clave);
+    return c && t ? [{ ...x, c, t }] : [];
+  });
   // Lo que el filtro marca en este modelo, la que más se vende primero.
   const marcadas = marcaDelFiltro
     ? colores
@@ -455,20 +460,15 @@ export function PanelTalla({
                         {frase.slice(frase.indexOf(":") + 1)} Quedan marcadas al colgar.
                       </p>
                     )}
-                    {agotadas.length > 0 && (
+                    {afuera.length > 0 && (
                       <div className="grid gap-1.5">
-                        {agotadas.map(({ c, t }) => (
-                          <div key={t.varianteId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-pizarra/[0.10] px-3 py-2 text-sm text-pizarra">
+                        {afuera.map(({ c, t, agotada, sedes, clave }) => (
+                          <div key={clave} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-pizarra/[0.10] px-3 py-2 text-sm text-pizarra">
                             <b className="min-w-0 font-semibold">
                               {c.color ? `${c.color} ` : ""}
-                              {t.talla ?? "Única"} agotada: en otras sedes
+                              {t.talla ?? "Única"} {agotada ? "agotada" : "casi no hay"}: en otras sedes
                             </b>
-                            <span className="ml-auto shrink-0 tabular-nums">
-                              {(t.enRed ?? [])
-                                .filter((x) => x.cantidad > 0)
-                                .map((x) => `${nombreCortoSede(x.sede)} ${x.cantidad}`)
-                                .join(" · ")}
-                            </span>
+                            <span className="ml-auto shrink-0 tabular-nums">{sedes}</span>
                             {/* Solo si alguna TIENDA a la que se le puede pedir la tiene: al Taller no se le pide (la base lo rechaza). */}
                             {puedePedir && sedesParaPedir.some((s) => (t.enRed ?? []).some((r) => r.sede === s.nombre && r.cantidad > 0)) && (
                               <button type="button" onClick={() => pedirRapido(c, t)} className="btn-cayla btn-secundario btn-chico gap-1.5 border-pizarra/40 text-pizarra">

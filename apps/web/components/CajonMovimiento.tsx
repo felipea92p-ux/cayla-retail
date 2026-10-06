@@ -12,7 +12,7 @@ import { TrayectoMovimiento } from "@/components/movimientos/TrayectoMovimiento"
 import type { ConsultarLink, DetalleBajadas, DetalleCajon, ItemPrenda, PasoCajon, RutaCajon, TonoCifra, VistaCajon } from "@/lib/movimientos-cajon";
 import { TIPOS_VISUALES, type TipoVisual } from "@/lib/movimientos-tipos";
 
-/** Debe coincidir con `.anim-cajon-salida` en globals.css (mismo contrato que `CajonPrendaExistencias`). */
+/** Debe coincidir con `.anim-cajon-salida` en globals.css (mismo contrato que `PanelTalla`). */
 const MS_SALIDA = 240;
 
 /* ====================================================================
@@ -341,7 +341,7 @@ export function CajonMovimiento({
           onOpenAutoFocus={(e) => e.preventDefault()}
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[29.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
         >
-          {/* `key`: pasar de un movimiento a otro re-asienta el contenido sin cerrar/reabrir el cajón (mismo patrón que CajonPrendaExistencias). */}
+          {/* `key`: pasar de un movimiento a otro re-asienta el contenido sin cerrar/reabrir el cajón (mismo patrón que PanelTalla). */}
           <div key={vista.detalle.clave} className="anim-asentar flex min-h-0 flex-1 flex-col">
             <button
               type="button"

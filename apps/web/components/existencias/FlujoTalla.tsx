@@ -13,12 +13,12 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { esFalloDeRed, esRespuestaIncierta, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
-import { argumentosDeBajada, interpretarErrorDeBajada, itemsParaRpc, leerRespuestaDeBajada, RPC_BAJADA, type LineaBajada } from "@/lib/bajada-reglas";
-import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, RPC_RETIRO } from "@/lib/retiro-reglas";
+import { argumentosDeBajada, formatearHoraLima, interpretarErrorDeBajada, itemsParaRpc, leerRespuestaDeBajada, respuestaResuelveLaMarca, RPC_BAJADA, textoMarcaSinResolver, type LineaBajada } from "@/lib/bajada-reglas";
+import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MAX_NOTA_RETIRO, respuestaResuelveLaMarcaDeRetiro, RPC_RETIRO, textoDelBloqueSubir, textoMarcaSinResolverDeRetiro, tituloDeExitoRetiro } from "@/lib/retiro-reglas";
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
-import { argumentosDeReporte, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, RPC_REPORTAR_DANADA } from "@/lib/danadas-reglas";
+import { argumentosDeReporte, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA } from "@/lib/danadas-reglas";
 import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
-import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, fraseDeLoQueFalta, tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
+import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -96,13 +96,34 @@ function Stepper({ valor, max, onValor, etiqueta, id }: { valor: number; max: nu
         autoComplete="off"
         aria-label={etiqueta}
         value={valor}
-        onChange={(e) => onValor(Math.min(tope, Number.parseInt(e.target.value.replace(/\D/g, ""), 10) || 0))}
+        onChange={(e) => onValor(leerCantidadTecleada(e.target.value, tope))}
         className="h-14 w-16 border-x border-sand bg-transparent text-center font-display text-[26px] tabular-nums text-tinta outline-none"
       />
       <button type="button" aria-label="Una más" disabled={valor >= tope} onClick={() => onValor(Math.min(tope, valor + 1))} className="grid h-14 w-14 place-items-center text-2xl text-tinta disabled:text-taupe/40">
         +
       </button>
     </div>
+  );
+}
+
+/** «Por qué la subes (opcional)»: la nota que la subida deja en Movimientos (la misma de la ventana de siempre). */
+function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) => void }) {
+  return (
+    <>
+      <label htmlFor="flujo-nota-subida" className="label-cayla mb-1.5 mt-4 block text-[11px] text-taupe">
+        Por qué la subes · opcional
+      </label>
+      <textarea
+        id="flujo-nota-subida"
+        rows={2}
+        maxLength={MAX_NOTA_RETIRO}
+        // sugerir-fijo: el motivo de subir no depende de la talla ni del destino elegidos
+        placeholder="Ej. no cabe en el riel"
+        value={valor}
+        onChange={(e) => onValor(e.target.value)}
+        className={CLASE_TEXTO}
+      />
+    </>
   );
 }
 
@@ -184,6 +205,7 @@ export function FlujoTalla({
   // Una talla que faltó en un conteo cerrado: la suma se enlaza al conteo en la ventana completa (no se adivina aquí).
   const [faltoEnConteo, setFaltoEnConteo] = useState(false);
   const enVuelo = useRef(false);
+  const enviadoEn = useRef<string | null>(null);
   // La marca de cada intento: la misma mientras no cambie lo que se manda (la huella), nueva si cambia.
   const intento = useRef<{ huella: string; token: string } | null>(null);
   const tokenPara = (huella: string) => {
@@ -262,6 +284,8 @@ export function FlujoTalla({
     enVuelo.current = true;
     setEnviando(true);
     setError(null);
+    // La hora del primer envío de ESTA marca: si la respuesta no llega, el aviso dice desde cuándo está en duda.
+    enviadoEn.current ??= new Date().toISOString();
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     let data: unknown = null;
@@ -283,52 +307,92 @@ export function FlujoTalla({
         setError(TEXTO_INCIERTO);
         return;
       }
+      // Tras un corte, los datos solo se sueltan si la base dijo qué pasó con la marca (se deshizo, o ya estaba): si contestó sin
+      // mirarla (sesión vencida, módulo apagado), cambiar algo podría mover dos veces lo que quizá ya se guardó.
+      if (incierto && !(llamada.resuelve?.(errorRpc) ?? false)) {
+        setError(`${llamada.error(errorRpc)} ${llamada.sinResolver?.(enviadoEn.current ?? new Date().toISOString()) ?? ""}`.trim());
+        return;
+      }
+      setIncierto(false);
+      enviadoEn.current = null;
       setError(llamada.error(errorRpc));
       router.refresh();
       return;
     }
+    enviadoEn.current = null;
     const yaEstaba = llamada.yaEstaba(data);
     if (yaEstaba) {
       avisar.aviso("Esto ya estaba guardado. No se repitió.", { detalle: prenda.referencia });
     } else {
       sonarConfirmacion();
-      avisar.exito(textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), { detalle: `${prenda.referencia}${prenda.color ? ` · ${prenda.color}` : ""}${tipo === "colgarVarias" ? "" : ` · ${fila.talla ?? "Única"}`}` });
+      avisar.exito(llamada.titulo?.(data) ?? textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), {
+        detalle: `${prenda.referencia}${tipo === "colgarVarias" ? ` · ${llamada.detalle ?? ""}` : `${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`}`,
+      });
     }
     router.refresh();
     onHecho(textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)));
   }
 
   /** La función de la base de cada acción, con sus argumentos y cómo leer su respuesta y su error. */
-  function armarLlamada(): { rpc: string; args: unknown; error: (e: ErrorEscritura) => string; yaEstaba: (data: unknown) => boolean } | null {
+  /** `resuelve`: tras un corte, ¿esta respuesta de la base dice qué pasó con la marca? (la vieja ventana lo preguntaba igual). Sin ella,
+   *  los datos siguen fijos. `sinResolver`: el aviso para ese caso. */
+  type Llamada = {
+    rpc: string;
+    args: unknown;
+    error: (e: ErrorEscritura) => string;
+    yaEstaba: (data: unknown) => boolean;
+    resuelve?: (e: ErrorEscritura) => boolean;
+    sinResolver?: (enviadoEn: string) => string;
+    titulo?: (data: unknown) => string;
+    detalle?: string;
+  };
+  function armarLlamada(): Llamada | null {
     const n = d.n ?? 0;
     const una: LineaBajada[] = [{ varianteId: fila.varianteId, cantidad: n }];
     switch (tipo) {
       case "colgar":
       case "colgarVarias": {
-        const lineas = tipo === "colgar" ? una : Object.entries(d.cant ?? {}).filter(([, x]) => x > 0).map(([varianteId, cantidad]) => ({ varianteId, cantidad }));
+        // Colgar varias: las líneas de todos los colores juntas, recortadas a lo libre del almacén (lo que se ve es lo que se envía).
+        const modelo = coloresParaMover(colores);
+        const lineas = tipo === "colgar" ? una : lineasDeMoverModelo(modelo, d.cant ?? {}, "bajar");
         const token = tokenPara(JSON.stringify(["bajar", lineas]));
         return {
           rpc: RPC_BAJADA,
           args: argumentosDeBajada(ubicacionId, lineas, token),
-          error: (e) => interpretarErrorDeBajada(e, sedeNombre).mensaje,
+          error: (e) => {
+            const fallo = interpretarErrorDeBajada(e, sedeNombre);
+            return fallo.tipo === "sin_alcance" && fallo.lineas.length > 0 ? fallo.lineas.map((l) => `${nombreTalla(l.varianteId)}: ${textoFilaSinAlcance(l.hay, l.motivo)}`).join(" ") : fallo.mensaje;
+          },
           yaEstaba: (x) => leerRespuestaDeBajada(x)?.ya_registrada === true,
+          resuelve: respuestaResuelveLaMarca,
+          sinResolver: (enviadoEn) => textoMarcaSinResolver(enviadoEn, "Confirmar de nuevo"),
+          detalle: tipo === "colgarVarias" ? detalleDeLoMovido(modelo, lineas) : undefined,
         };
       }
       case "subir": {
-        const token = tokenPara(JSON.stringify(["subir", una, d.destino, d.sedeId]));
+        const nota = (d.nota ?? "").trim();
+        const token = tokenPara(JSON.stringify(["subir", una, d.destino, d.sedeId, nota]));
+        const comunSubir = {
+          error: (e: ErrorEscritura) => {
+            const fallo = interpretarErrorDeRetiro(e, sedeNombre);
+            return fallo.tipo === "sin_alcance" && fallo.lineas.length > 0 ? fallo.lineas.map((l) => `${nombreTalla(l.varianteId)}: ${textoFilaSinAlcance(l.hay, l.motivo, "piso")}`).join(" ") : fallo.mensaje;
+          },
+          yaEstaba: (x: unknown) => leerRespuestaDeRetiro(x)?.ya_registrada === true,
+          resuelve: respuestaResuelveLaMarcaDeRetiro,
+          sinResolver: (enviadoEn: string) => textoMarcaSinResolverDeRetiro(formatearHoraLima(enviadoEn)),
+          titulo: (x: unknown) => tituloDeExitoRetiro(leerRespuestaDeRetiro(x)?.unidades ?? n),
+        };
         if (d.destino === "enviar") {
           return {
             rpc: RPC_SUBIR_PARA_ENVIAR,
-            args: { p_ubicacion_id: ubicacionId, p_destino_id: d.sedeId, p_items: itemsParaRpc(una), p_nota: null, p_token: token },
-            error: (e) => interpretarErrorDeRetiro(e, sedeNombre).mensaje,
-            yaEstaba: (x) => leerRespuestaDeRetiro(x)?.ya_registrada === true,
+            args: { p_ubicacion_id: ubicacionId, p_destino_id: d.sedeId, p_items: itemsParaRpc(una), p_nota: nota || null, p_token: token },
+            ...comunSubir,
           };
         }
         return {
           rpc: RPC_RETIRO,
-          args: argumentosDeRetiro(ubicacionId, una, "", token),
-          error: (e) => interpretarErrorDeRetiro(e, sedeNombre).mensaje,
-          yaEstaba: (x) => leerRespuestaDeRetiro(x)?.ya_registrada === true,
+          args: argumentosDeRetiro(ubicacionId, una, nota, token),
+          ...comunSubir,
         };
       }
       case "pedir": {
@@ -378,6 +442,7 @@ export function FlujoTalla({
           args: argumentosDeReporte(ubicacionId, fila.varianteId, desde, n, motivo, tokenPara(JSON.stringify(["danada", fila.varianteId, desde, n, motivo]))),
           error: (e) => interpretarErrorDeDanada(e, "reportar la prenda dañada").mensaje,
           yaEstaba: (x) => leerRespuestaDanada(x)?.ya_registrada === true,
+          resuelve: reporteResuelveLaMarca,
         };
       }
       default:
@@ -430,6 +495,9 @@ export function FlujoTalla({
           <>
             <Pregunta ayuda={`Hay ${unidades(max)} ${de}.`}>{pregunta}</Pregunta>
             <Stepper id="flujo-cantidad" valor={d.n ?? 0} max={max} etiqueta="Cantidad" onValor={(n) => poner({ n })} />
+            {/* Subir: si la talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
+            {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-[13px] text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
+            {tipo === "subir" && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
             {tipo === "colgar" && (
               <p className="mt-4">
                 <button type="button" onClick={() => onCambiar("colgarVarias", { cant: {} })} className="btn-enlace text-[13px]">
@@ -479,7 +547,7 @@ export function FlujoTalla({
                       const alm = Math.max(0, t.almacenDisponible ?? 0);
                       const piso = Math.max(0, t.pisoDisponible ?? 0);
                       const n = cant[t.varianteId] ?? 0;
-                      if (alm === 0)
+                      if (!sePuedeBajarTalla({ almacen: alm }))
                         return (
                           <div key={t.varianteId} className="rounded-xl border border-dashed border-sand p-2 text-taupe">
                             <b className="block text-sm text-tinta/60">{t.talla ?? "Única"}</b>
@@ -503,7 +571,7 @@ export function FlujoTalla({
                               inputMode="numeric"
                               aria-label={`Cantidad de ${c.color ?? ""} ${t.talla ?? ""}`}
                               value={n}
-                              onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: Math.min(alm, Number.parseInt(e.target.value.replace(/\D/g, ""), 10) || 0) } })}
+                              onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, alm) } })}
                               className="w-10 bg-transparent text-center text-base font-semibold tabular-nums outline-none"
                             />
                             <button type="button" aria-label={`Una más de ${c.color ?? ""} ${t.talla ?? ""}`} disabled={n >= alm} onClick={() => poner({ cant: { ...cant, [t.varianteId]: Math.min(alm, n + 1) } })} className="h-9 w-9 text-lg disabled:text-taupe/40">
@@ -536,6 +604,7 @@ export function FlujoTalla({
                 ))}
               </div>
             )}
+            <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />
           </>
         );
       case "hacia":

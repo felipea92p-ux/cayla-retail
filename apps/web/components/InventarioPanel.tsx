@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ListChecks, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -13,8 +12,6 @@ import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
-import { ReponerPrendaModal } from "@/components/ReponerPrendaModal";
-import { SubirAAlmacenModal } from "@/components/SubirAAlmacenModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». `EliminarProductoModal` (ADR-0252,
@@ -280,22 +277,9 @@ export function InventarioPanel({
   const setOrden = (v: OrdenPrendas) => aplicar({ orden: v === "relevancia" ? null : v });
   // El control que abrió el modal: al cerrarlo, el teclado vuelve ahí y no al principio de la página.
   const volverFoco = useRef<HTMLElement | null>(null);
-  // «Reponer prenda» abre la ventana del MODELO entero (`ReponerPrendaModal`, ADR-0295 y ADR-0317): todos sus colores, una fila cada
-  // uno. Se guarda el producto y no una copia de las filas: tras guardar o chocar con otra persona, `router.refresh()` trae las cifras
-  // nuevas y la ventana las lee de `stock`, no de lo que había al abrirla.
-  const [reponiendo, setReponiendo] = useState<string | null>(null);
-  const prendasReponiendo = reponiendo ? coloresDelModelo(stock, reponiendo) : [];
-  function abrirReponer(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
-    volverFoco.current = origen;
-    setReponiendo(prenda.productoId);
-  }
-  // «Subir prenda» (ADR-0300, ADR-0317): la misma idea del lado contrario, con la ventana `SubirAAlmacenModal`.
-  const [subiendo, setSubiendo] = useState<string | null>(null);
-  const prendasSubiendo = subiendo ? coloresDelModelo(stock, subiendo) : [];
-  function abrirSubir(prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement | null) {
-    volverFoco.current = origen;
-    setSubiendo(prenda.productoId);
-  }
+  // Colgar, Colgar varias y Subir se hacen DENTRO del panel de la talla (`PanelTalla` + `FlujoTalla`, maqueta 2026-10-06): las ventanas
+  // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
+  // (varias tallas a la vez, enlazar con un conteo).
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Reportar dañada» (ADR-0328 act. 10): la ventana del MODELO con el color que se veía elegido. Se guarda el producto y no una copia
   // de las filas: tras un rechazo, `router.refresh()` trae lo libre de nuevo y la ventana lo lee de `stock`.
@@ -510,7 +494,6 @@ export function InventarioPanel({
     editaCatalogo,
     tieneCuarentena: sububicaciones.some((s) => s.tipo === "cuarentena"),
   });
-  const router = useRouter();
   const puedeReponer = permisos.reponerYRetirar;
   const puedeAjustarAqui = permisos.ajustar;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
@@ -1281,27 +1264,6 @@ export function InventarioPanel({
         </Tabla>
       )}
       </div>
-
-      {prendasReponiendo.length > 0 && (
-        <ReponerPrendaModal
-          prendas={prendasReponiendo}
-          ubicacionId={ubicacionId}
-          sede={sedeNombre}
-          alCerrarEnfocar={volverFoco}
-          onClose={() => setReponiendo(null)}
-        />
-      )}
-
-      {prendasSubiendo.length > 0 && (
-        <SubirAAlmacenModal
-          prendas={prendasSubiendo}
-          ubicacionId={ubicacionId}
-          sede={sedeNombre}
-          alCerrarEnfocar={volverFoco}
-          destinos={destinosParaEnviar}
-          onClose={() => setSubiendo(null)}
-        />
-      )}
 
       {ajustando && (
         <AjustarInventarioModal

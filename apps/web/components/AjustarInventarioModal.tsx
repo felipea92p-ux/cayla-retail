@@ -112,7 +112,7 @@ export function leerVariantesParaAjuste(productoId: string, ubicacionId: string,
   return sinLoader ? consulta.setHeader("x-espera", "no") : consulta;
 }
 
-// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPrendaModal`).
+// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que los pasos del panel de la talla, `FlujoTalla`).
 const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
