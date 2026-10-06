@@ -24,17 +24,20 @@ import {
 } from "@/lib/mac-etiquetas";
 
 // El color tiene columna propia, en medio, con su cápsula y su nombre (Felipe, 2026-10-03: con diez filas del mismo modelo
-// lo único que cambia es el color, y tiene que verse sin leer). Solo cuando la TABLA mide 40rem o más (`@container` en la
+// lo único que cambia es el color, y tiene que verse sin leer). Solo cuando la TABLA mide 46rem o más (`@container` en la
 // `Tabla`): más angosta —celular, o junto a la vista previa en una pantalla de 1280— una quinta columna dejaba la de la
-// prenda en 0 px y el nombre desaparecía; ahí el color vuelve bajo el nombre, con la misma cápsula. Las clases `@min-[40rem]:`
+// prenda en 0 px y el nombre desaparecía; ahí el color vuelve bajo el nombre, con la misma cápsula. Las clases `@min-[46rem]:`
 // van escritas enteras (Tailwind no ve una clase armada con `${…}`).
-const PLANTILLA = "sm:grid-cols-[minmax(0,1fr)_6.5rem_4.5rem_5.5rem] @min-[40rem]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_6.5rem_4.5rem_5.5rem]";
+// La talla también tiene su columna, entre el color y el precio (Felipe, 2026-10-06): bajo el nombre confundía. Es corta («S»,
+// «Estándar»), así que cabe en cualquier ancho y no necesita el corte de 46rem.
+const PLANTILLA = "sm:grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_4.5rem_5.5rem] @min-[46rem]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_4.5rem_6.5rem_4.5rem_5.5rem]";
 const columnas = (cantidad: string): Columna[] => [
   { titulo: "Prenda" },
-  { titulo: "Color", clase: "hidden @min-[40rem]:block" },
-  { titulo: "Precio", alinear: "der", ayuda: "Lo que dice la etiqueta: lo que la caja cobra hoy (con la campaña, si hay una)." },
-  { titulo: cantidad, alinear: "der" },
-  { titulo: "Imprimir", alinear: "der", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya tiene la suya, baja el número." },
+  { titulo: "Color", clase: "hidden @min-[46rem]:block" },
+  { titulo: "Talla", alinear: "centro" },
+  { titulo: "Precio", alinear: "centro", ayuda: "Lo que dice la etiqueta: lo que la caja cobra hoy (con la campaña, si hay una)." },
+  { titulo: cantidad, alinear: "centro" },
+  { titulo: "Imprimir", alinear: "centro", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya tiene la suya, baja el número." },
 ];
 
 const sinSuscripcion = () => () => {};
@@ -203,7 +206,7 @@ export function ImprimirEtiquetasPrecio({
       <Tabla className="@container">
         <Encabezado columnas={columnas(encabezado.columnaCantidad)} plantilla={PLANTILLA} />
         {etiquetas.map((e) => (
-          <div key={e.varianteId} className={fila(PLANTILLA, "relative")} role="row">
+          <div key={e.varianteId} className={fila(PLANTILLA, "relative sm:items-center!")} role="row">
             {/* La franja del color al borde izquierdo, la misma de Editar producto (`MatrizStockFicha`): se sigue la fila de
                 lejos, y el filo interior hace visible un blanco o un crema. Va fuera de la rejilla (absoluta). */}
             <span
@@ -218,17 +221,15 @@ export function ImprimirEtiquetasPrecio({
               <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-taupe">
                 {/* Tabla angosta: el color va aquí, con la misma cápsula; ancha, tiene su columna y aquí sobra. */}
                 {e.color && (
-                  <span className="inline-flex items-center gap-1.5 @min-[40rem]:hidden">
+                  <span className="inline-flex items-center gap-1.5 @min-[46rem]:hidden">
                     <CapsulaColor fondo={e.colorMuestra ?? null} compacta />
                     {e.color}
-                    {e.talla && <span aria-hidden>·</span>}
                   </span>
                 )}
-                {e.talla && <span>Talla {e.talla}</span>}
-                <span className="ml-1 font-mono">{e.codigo}</span>
+                <span className="font-mono">{e.codigo}</span>
               </span>
             </span>
-            <span className="hidden min-w-0 items-center gap-2 self-center @min-[40rem]:flex">
+            <span className="hidden min-w-0 items-center gap-2 self-center @min-[46rem]:flex">
               {e.color ? (
                 <>
                   <CapsulaColor fondo={e.colorMuestra ?? null} />
@@ -240,7 +241,17 @@ export function ImprimirEtiquetasPrecio({
                 <span className="text-sm text-tinta/45">Sin color</span>
               )}
             </span>
-            <span className={celda("der")}>
+            <span className={celda("centro", "text-sm text-tinta/80")} title={e.talla ?? undefined}>
+              {e.talla ? (
+                <>
+                  <span className="text-taupe sm:hidden">Talla </span>
+                  {e.talla}
+                </>
+              ) : (
+                <span className="text-tinta/45">—</span>
+              )}
+            </span>
+            <span className={celda("centro", "whitespace-nowrap tabular-nums")}>
               {e.campana ? (
                 <>
                   {soles(e.precio - e.campana.descuento)}
@@ -252,8 +263,8 @@ export function ImprimirEtiquetasPrecio({
                 soles(e.precio)
               )}
             </span>
-            <span className={celda("der", "text-tinta/70")}>{e.cantidad}</span>
-            <span className={celda("der")}>
+            <span className={celda("centro", "whitespace-nowrap tabular-nums text-tinta/70")}>{e.cantidad}</span>
+            <span className={celda("centro")}>
               <input
                 type="number"
                 inputMode="numeric"
