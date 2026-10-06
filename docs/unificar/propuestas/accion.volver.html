@@ -1,0 +1,71 @@
+<!-- Propuesta de /unificar para la familia «accion.volver» (ADR-0354). Fragmento: la lámina lo envuelve con el CSS real del ERP,
+     en claro y en oscuro. Solo tokens y clases que ya existen (btn-cayla, btn-secundario, label-cayla, eyebrow-cayla).
+
+     Qué toma y de dónde:
+     · de la forma «botón» de <Volver> (btn-secundario + destino, la que ADR-0220 eligió para el pie de EncabezadoPagina): todo el cuerpo.
+       Es la forma de mayor tamaño cómodo con mouse (34 px) y ya la conocen Ventas e Inventario.
+     · de la forma «enlace» de <Volver>: el gesto de correrse a la izquierda al pasar el mouse (ya existía, 200 ms, sin rebote).
+     · nuevo: la flecha es el dibujo de lucide (arrow-left, 16 px, trazo 1.5) y no el glifo «←», que cambia de grosor según la letra;
+       el nombre accesible dice «Volver a <destino>».
+     Qué se va: la línea de 11 px en versalitas (mide 16 px de alto: bajo los 24 px mínimos de ADR-0350), el «Volver» a secas
+     (no dice adónde: quien llegó por un enlace no sabe qué había antes) y el botón de solo flecha (no dice nada). -->
+<style>
+  .prop-bloque { margin-bottom: 22px; }
+  .prop-etq { display: block; font-size: 11px; color: var(--color-taupe); margin-bottom: 8px; }
+  .prop-fila { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .prop-volver svg { flex: none; transition: transform 200ms var(--ease-cayla, ease-out); }
+  .prop-volver:hover svg, .prop-volver.prop-encima svg { transform: translateX(-2px); }
+  .prop-volver.prop-encima { border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent); background: color-mix(in oklab, var(--color-sand) 50%, transparent); }
+  .prop-volver.prop-foco { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+  .prop-cabecera { border: 1px solid var(--color-sand); border-radius: 12px; padding: 18px 20px; background: var(--color-papel); }
+  .prop-sede { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-taupe); }
+  .prop-sede::after { content: ""; flex: 1; height: 1px; background: var(--color-taupe); opacity: .35; }
+  .prop-titulo { font-family: var(--font-eb-garamond), Georgia, serif; font-weight: 500; font-size: 46px; line-height: 1.05; margin: 8px 0 6px; color: var(--color-tinta); }
+  .prop-titulo-chico { font-family: var(--font-eb-garamond), Georgia, serif; font-weight: 500; font-size: 32px; line-height: 1.1; margin: 10px 0 4px; color: var(--color-tinta); }
+  .prop-frase { font-size: 15px; color: color-mix(in oklab, var(--color-tinta) 70%, transparent); margin: 0 0 14px; }
+  .prop-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+</style>
+
+<div class="prop-bloque">
+  <span class="prop-etq">Estados: normal · el mouse encima · foco con el teclado (el anillo único de ADR-0351)</span>
+  <div class="prop-fila">
+    <a href="#" class="btn-cayla btn-secundario prop-volver" aria-label="Volver a Traslados">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      Traslados
+    </a>
+    <a href="#" class="btn-cayla btn-secundario prop-volver prop-encima" aria-label="Volver a Traslados">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      Traslados
+    </a>
+    <a href="#" class="btn-cayla btn-secundario prop-volver prop-foco" aria-label="Volver a Traslados">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      Traslados
+    </a>
+  </div>
+</div>
+
+<div class="prop-dos">
+  <div class="prop-bloque">
+    <span class="prop-etq">En Inventario o Ventas: bajo la frase de la cabecera (como hoy, ADR-0220)</span>
+    <div class="prop-cabecera">
+      <div class="prop-sede">Tienda Lima · lunes 6 de octubre</div>
+      <h1 class="prop-titulo">Traslado TRU → LIM</h1>
+      <p class="prop-frase">12 prendas en camino desde Trujillo.</p>
+      <a href="#" class="btn-cayla btn-secundario prop-volver" aria-label="Volver a Traslados">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Traslados
+      </a>
+    </div>
+  </div>
+  <div class="prop-bloque">
+    <span class="prop-etq">En Finanzas o una pantalla interna: la misma pieza, arriba del título (hoy es una línea de 11 px)</span>
+    <div class="prop-cabecera">
+      <a href="#" class="btn-cayla btn-secundario prop-volver" aria-label="Volver a Facturas de proveedor">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Facturas de proveedor
+      </a>
+      <h1 class="prop-titulo-chico">Registrar factura</h1>
+      <p class="prop-frase">La factura de un proveedor, con su fecha de pago.</p>
+    </div>
+  </div>
+</div>

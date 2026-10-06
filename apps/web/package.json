@@ -12,7 +12,9 @@
     "responsive:check": "node responsive/cli.mjs",
     "tema:auditar": "node tema/cli.mjs",
     "tema:cuentas": "node tema/cuentas-locales.mjs",
-    "tema:colores": "node tema/colores-sueltos.mjs"
+    "tema:colores": "node tema/colores-sueltos.mjs",
+    "unificar:censo": "node unificar/cli.mjs",
+    "unificar:deuda": "node unificar/deuda.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
