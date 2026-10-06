@@ -474,10 +474,10 @@ table.t td:first-child{font-weight:600}
 
 <div class="envoltura">
   <header style="display:grid;gap:8px">
-    <p class="ceja">Inventario ▸ Existencias · maqueta táctil · 5 oct 2026</p>
+    <p class="ceja">Inventario ▸ Existencias · maqueta táctil · 6 oct 2026</p>
     <h1 style="font-size:clamp(32px,5vw,46px);line-height:1.05">Existencias táctil</h1>
     <p class="nota-nombre" style="margin:10px 0 0;padding:10px 14px;border-radius:10px;background:var(--hueso);font-size:13.5px;max-width:78ch"><b>Nombre vigente en el ERP:</b> «Colgar en el piso» (ADR-0339) y «Subir a almacén». Esta maqueta conserva los nombres del glosario («Reponer», «Retirar del piso») porque se dibujó antes de esa decisión. Construido: <code>docs/adr/0344-existencias-un-icono-por-tarjeta-atajos-sonido-y-colgar-primero.md</code>.</p>
-    <p class="bajada">Busca o escanea, toca un color para cambiarlo en la propia tarjeta y toca una talla para ver dónde hay. Cada acción corre en el mismo panel, guiada paso a paso, sin salir de la pantalla. Las palabras son las ✓ del glosario «Lenguaje de tienda CAYLA», y las reglas son las del código de <code>main</code> (16837a35). Los productos y los nombres del equipo son de ejemplo.</p>
+    <p class="bajada">Busca o escanea, toca un color para cambiarlo en la propia tarjeta y toca una talla para ver dónde hay. Cada acción corre en el mismo panel, guiada paso a paso, sin salir de la pantalla. Las palabras son las ✓ del glosario «Lenguaje de tienda CAYLA», y las reglas son las del código de <code>main</code> (10c176e7). Los productos y los nombres del equipo son de ejemplo.</p>
   </header>
 
   <div class="mesa" aria-label="Controles de la maqueta">
@@ -561,9 +561,9 @@ table.t td:first-child{font-weight:600}
       </tbody>
     </table></div>
     <div class="decision">
-      <p><span class="k">Decidí</span>La tarjeta no repite el estado (se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen) y muestra un solo icono: la acción que la pantalla sugiere, en ámbar. Al pasar el mouse o enfocar con el teclado se abre hacia arriba una ventana emergente con todas las acciones y su nombre, la del icono principal incluida y resaltada, aunque se repita (Reponer, Retirar del piso, Enviar a otra sede); en tablet la abre un botón «⋯». El icono solo lleva su nombre como ayuda y como etiqueta para el lector de pantalla. Los filtros se pueden ver de dos formas, con el interruptor de la derecha: solo iconos (con el nombre y la cifra al pasar el mouse) o iconos con texto.</p>
-      <p><span class="k">Descarté</span>Mostrar los tres iconos siempre: en 8 tarjetas son 24 botones iguales y ninguno dice cuál conviene.</p>
-      <p><span class="k">Se rompe si</span>una integrante nueva no distingue «Retirar del piso» de «Enviar a otra sede» solo por el icono: en tablet no hay mouse para ver el nombre. Por eso el interruptor de filtros existe y el panel conserva los nombres escritos; en las tarjetas conviene probarlo con alguien sin capacitación antes de dejar solo iconos.</p>
+      <p><span class="k">Decidí</span>La tarjeta no repite el estado (se quitó el indicador «↑ 4 ⓘ», porque las tallas ámbar ya lo dicen) y muestra un solo icono: la acción que la pantalla sugiere, en ámbar, en la misma fila que los colores. Al pasar el mouse o enfocar con el teclado pasan dos cosas: el icono se abre y muestra su nombre, y arriba sale una ventana con las <i>otras</i> acciones (la del icono no se repite). En tablet y celular el nombre está siempre a la vista y la ventana la abre «⋯». Los atajos de filtro llevan siempre su nombre: el modo «solo iconos» se quitó.</p>
+      <p><span class="k">Descarté</span>Mostrar los tres iconos siempre: en 8 tarjetas son 24 botones iguales y ninguno dice cuál conviene. También descarté elegir entre icono o texto: el icono se reconoce de lejos y el texto dice qué hace, y en tablet no hay mouse para descubrir un nombre escondido.</p>
+      <p><span class="k">Se rompe si</span>el nombre no cabe junto a los colores (un modelo con 6 colores, en celular): el botón baja a la línea de abajo en vez de cortarse. En el ERP, con menos de 288 px de tarjeta (dos columnas en un celular angosto), el nombre se esconde y queda el icono con «⋯»: ahí una integrante nueva vuelve a depender del icono.</p>
     </div>
     <div class="decision">
       <p><span class="k">Decidí</span>Tres cosas a la vez: «Reponer primero» (los 3 modelos que más conviene reponer, con su aro de semanas), el orden «Prioridad» en toda la lista y, en «Reponer varias», los atajos «Lo que falta en el piso», «Todo el almacén» y «Vaciar». El botón de cada tarjeta lleva icono, y al pasar el mouse por él salen las acciones rápidas: Reponer, Retirar del piso y Enviar a otra sede. El detalle pasó a un icono fino que solo asoma al pasar el mouse; la búsqueda y los filtros comparten una barra, y Escanear es un icono.</p>
@@ -614,7 +614,7 @@ table.t td:first-child{font-weight:600}
       <p><span class="k">Se rompe si</span>un producto tiene más de 8 tallas (calzado del 35 al 42) en una tablet vertical: las tallas pasan a dos filas y el panel se alarga. Se resuelve con la pestaña «Todas» (la matriz), no achicando los botones.</p>
     </div>
     <div class="decision">
-      <p><span class="k">Decidí</span>Con un filtro puesto, cada tarjeta dice por qué salió: abre en el color de su talla más importante (la que más se vendió en 14 días; si empatan, la talla central), esa talla lleva un anillo oscuro, todas las que cumplen llevan el color del filtro y su símbolo (↑ por reponer, ⊘ sin stock aquí, bolsa apartado, ⚠ dañado), las demás quedan tenues, y los otros colores que también cumplen llevan un punto en su círculo. En la tarjeta solo quedan el símbolo con su número y el botón («⊘ 2 · Pedir»); la explicación en palabras («Sin stock aquí: talla M, la que más se vende · también S · y 1 en Celeste») aparece al tocar «i». El número del filtro cuenta tallas.</p>
+      <p><span class="k">Decidí</span>Con un filtro puesto, cada tarjeta dice por qué salió: abre en el color de su talla más importante (la que más se vendió en 14 días; si empatan, la talla central), esa talla lleva un borde oscuro (uno solo: aunque no tenga stock, su punteado pasa a línea entera), todas las que cumplen llevan el color del filtro y su símbolo (↑ por reponer, ⊘ sin stock aquí, bolsa apartado, ⚠ dañado), las demás quedan tenues, y los otros colores que también cumplen llevan un punto en su círculo. En la tarjeta solo quedan el símbolo con su número y el botón («⊘ 2 · Pedir»); la explicación en palabras («Sin stock aquí: talla M, la que más se vende · también S · y 1 en Celeste») aparece al tocar «i». El número del filtro cuenta tallas.</p>
       <p><span class="k">Descarté</span>Un círculo rojo, porque «Sin stock aquí» puede marcar 26 tallas y el rojo tiene un tope de 2 por pantalla: dejaría de llamar la atención y se confundiría con un plazo vencido. También descarté una tarjeta por color, porque repite el mismo modelo varias veces.</p>
       <p><span class="k">Se rompe si</span>dos tallas empatan en ventas y ninguna es central (calzado 38 y 39 con 0 ventas): gana la primera del orden de tallas, que puede no ser la que la encargada esperaba. Y mientras el piso no esté cuadrado, «Por reponer» marca tallas que quizá ya cuelgan.</p>
     </div>
@@ -632,6 +632,24 @@ table.t td:first-child{font-weight:600}
       <p><span class="k">Decidí</span>«Se dañó» dentro de Ajustar no resta: lleva a «Reportar dañado».</p>
       <p><span class="k">Descarté</span>Dejarlo como motivo de resta, porque una unidad dañada que se resta desaparece y no llega a revisión, cuando el líder todavía podía decidir «Se arregló» o liquidarla.</p>
       <p><span class="k">Se rompe si</span>la unidad se dañó y además ya no está (se botó en la tienda). Para eso queda «Otro con nota».</p>
+    </div>
+
+    <h2 id="d5" style="margin-top:20px">Lo que cambió el 6 de octubre</h2>
+    <p class="bajada" style="margin-top:0">Lo mismo se construyó en el ERP (ADR-0344, «Actualización 2026-10-06»). Donde la maqueta y el ERP se apartan, se dice.</p>
+    <div class="decision">
+      <p><span class="k">Decidí</span>Arriba queda solo lo que se usa a cada rato: el buscador (40 px de alto y con ancho tope, ya no toda la fila), Escanear, Filtros como un solo icono y, a su lado, el anillo de lo que toca hoy; debajo, los atajos con su nombre. Lo que se cambia una vez por turno pasó dentro de Filtros, en tres filas con nombre: <b>Prenda</b> (Categoría, Talla, Color, Marca), <b>Gestión</b> (Hoy, Condición) y <b>Vista</b> (Ordenar por; en el ERP también Sonido al confirmar). Si el orden no es el de siempre, la pastilla «Orden: A–Z ×» lo dice junto a la cuenta y lo devuelve con un toque. En el ERP, tabla o tarjetas es un solo icono que muestra la vista a la que lleva.</p>
+      <p><span class="k">Descarté</span>Dejar el orden y el sonido en la fila del buscador, junto a la cuenta, la vista y el anillo: la fila se sentía congestionada, que fue justo el pedido. También descarté meter los atajos dentro de Filtros: son lo que más se toca en el piso.</p>
+      <p><span class="k">Se rompe si</span>alguien pone A–Z, cierra Filtros y después no entiende por qué la lista ya no empieza por lo que falta en el piso. Por eso la pastilla del orden queda a la vista mientras no sea el de siempre.</p>
+    </div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>Al tocar una talla, el panel contesta primero tres preguntas, cada una con su sí o no y su porqué: <b>Hay</b> (cuántas en piso y en almacén, o cuántas vienen en camino), <b>Colgar en el piso</b> (sí cuando no hay en el piso y hay en el almacén, con su botón; si no, «no hace falta» o «no se puede») y <b>Pedir a otra sede</b> (sí cuando aquí queda 1 o ninguna, no viene nada en camino y una tienda tiene: dice cuál y cuántas, con su botón). Si solo el Taller tiene, lo dice aparte: al Taller no se le pide desde aquí.</p>
+      <p><span class="k">Descarté</span>Una sola frase de diagnóstico, que es lo que tenía el ERP: solo hablaba cuando el motor del piso decía «por colgar», y una talla con 0 en piso y 6 en almacén salía «Disponible: 6 unidades» en verde.</p>
+      <p><span class="k">Se rompe si</span>la sede no tiene el piso cuadrado: la maqueta decide solo con números (0 en el piso = colgar) y mandaría a colgar lo que quizá ya cuelga. En el ERP manda el motor del piso y, con el piso en pausa, la respuesta es «En pausa», sin botón.</p>
+    </div>
+    <div class="decision">
+      <p><span class="k">Decidí</span>Las acciones del panel cambian de orden según la talla: primero la que necesita (en ámbar); después las que se pueden usar, en el orden de dónde está la prenda (con algo en el piso, Apartar primero; sin nada colgado, Reponer; sin nada en la sede, Pedir); y al final, chicas y con su porqué, las que no se pueden ahora («No se puede ahora: Retirar del piso · nada en piso»). Cada acción conserva su tecla aunque cambie de lugar: 1 Reponer, 2 Retirar del piso, 3 Enviar a otra sede, 4 Apartar, 5 Pedir a otra sede, 6 Ajustar stock, 7 Ficha.</p>
+      <p><span class="k">Descarté</span>Esconder las que no se pueden, porque se pierde la respuesta a «¿por qué no puedo retirarla?», y numerar las teclas por lugar, porque con el orden cambiando en cada talla la misma tecla haría cosas distintas.</p>
+      <p><span class="k">Se rompe si</span>una integrante aprende de memoria el lugar de un botón y no su nombre: al pasar a otra talla, en ese lugar hay otra acción. El color y el nombre no cambian; el lugar dejó de ser fijo a propósito.</p>
     </div>
   </section>
 </div>
@@ -831,7 +849,8 @@ table.t td:first-child{font-weight:600}
   // La fila de estado de la tarjeta: solo SÍMBOLO + número + la acción. El texto completo vive detrás de «ⓘ» (se abre al tocar,
   // como las descripciones de otros apartados) y en el title para quien usa mouse. Así la tarjeta no se llena de frases.
   // La tarjeta muestra UN solo icono: la acción que la pantalla sugiere (o Reponer). Al pasar el mouse, o al enfocar con el teclado,
-  // salen a su izquierda las demás. En tablet, que no tiene mouse, un botón «⋯» las abre. El estado no se repite aparte: ya lo dicen las tallas.
+  // el icono dice su nombre y arriba se abre una ventana con las demás. En tablet, que no tiene mouse, el nombre se ve siempre y un botón
+  // «⋯» abre las demás. El estado no se repite aparte: ya lo dicen las tallas.
   function filaEstado(p, c, { etiqueta, accion }) {
     const ib = (txt, icono, attrs, sug) => `<button class="ib${sug ? " sugerida" : ""}" data-tip="${esc(txt)}" aria-label="${esc(txt)}" ${attrs}>${icono}<span class="ib-txt" aria-hidden="true">${esc(txt)}</span></button>`;
     const rap = k => `data-acc="rapida" data-k="${k}" data-pid="${p.id}" data-c="${c}"`;
