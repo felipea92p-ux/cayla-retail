@@ -1,10 +1,9 @@
-import { RITMO_MUESTRA_LIMITADA_FRACCION, SELL_THROUGH_EXPOSURE_WINDOW_DAYS, SOBRESTOCK_ROTACION_TOTAL_VS_PISO } from "./inventario-reglas";
-
 // Comportamiento comercial de Inventario (definición canónica de Felipe, 2026-09-24 — reemplaza la primera
-// versión de este archivo, que reiniciaba el reloj de exposición y calculaba rotación en soles). Vive con
-// prefijo `inventario-` a propósito, no `resumen-`: son conceptos del DOMINIO de Inventario —cómo se
-// reconstruye la exposición comercial de una variante, cómo se mide su rotación en unidades— reutilizables
-// por cualquier pantalla de Inventario, no solo por Análisis. Puro: sin `@/lib/supabase`, sin JSX.
+// versión de este archivo, que reiniciaba el reloj de exposición). Vive con prefijo `inventario-` a propósito,
+// no `resumen-`: es un concepto del DOMINIO de Inventario —cómo se reconstruye la exposición comercial de una
+// variante—, reutilizable por cualquier pantalla de Inventario (hoy lo usan Frescura y el ritmo de Existencias).
+// Puro: sin `@/lib/supabase`, sin JSX. El sell-through de exposición y la rotación en unidades que también
+// vivían acá eran del Análisis de antes de la v4 y se borraron con él (2026-10-06).
 //
 // EL RELOJ DE EXPOSICIÓN (sección 5 del pedido) CORRE en piso, SE PAUSA en almacén, y CONTINÚA —nunca se
 // reinicia— cuando la cantidad vuelve al piso. 5 días en piso + 3 en almacén + 4 en piso = 9 días
@@ -152,8 +151,8 @@ function partir(cohortes: Cohorte[], i: number, pedazo: Cohorte): void {
  * LAS SALIDAS (ADR-0248): cada venta o pérdida permanente queda anotada con lo que la cohorte llevaba expuesta en
  * ese momento y con su marca de edad desconocida — es lo que necesita una curva de «cuánto tarda en venderse»
  * (Frescura). Una salida al almacén no se anota: es una pausa. Lo que sale sin ninguna cohorte que lo explique (el
- * libro no cuadra) tampoco: no hay edad que medirle. Es la ÚNICA implementación del FIFO del piso: `armarCohortes`
- * es esta misma función sin las salidas, y nadie arma cohortes por su cuenta (ADR-0208 (d)).
+ * libro no cuadra) tampoco: no hay edad que medirle. Es la ÚNICA implementación del FIFO del piso: nadie arma
+ * cohortes por su cuenta (ADR-0208 (d)).
  */
 export function historiaDeCohortes(eventos: readonly EventoPiso[]): HistoriaDeCohortes {
   const ordenados = [...eventos].sort((a, b) => compararInstantes(a.ts, b.ts));
@@ -216,119 +215,9 @@ export function historiaDeCohortes(eventos: readonly EventoPiso[]): HistoriaDeCo
   return { cohortes, salidas };
 }
 
-/** Las cohortes de `historiaDeCohortes`, sin las salidas: lo que lee Análisis (sell-through de exposición). */
-export function armarCohortes(eventos: readonly EventoPiso[]): Cohorte[] {
-  return historiaDeCohortes(eventos).cohortes;
-}
-
 /** Segundos de exposición de una cohorte a `comoDe`: lo ya cerrado, más lo que lleva corriendo el tramo
  *  abierto actual (0 si está pausada). */
 function segundosDeExposicion(c: Cohorte, comoDe: Date): number {
   const abierto = c.abiertaDesde !== null ? Math.max(0, comoDe.getTime() - new Date(c.abiertaDesde).getTime()) / MS_POR_SEGUNDO : 0;
   return c.segundosAcumulados + abierto;
-}
-
-/** Una cohorte ya se puede juzgar: acumuló la ventana de madurez (con pausas incluidas), o se vendió
- *  entera antes — la venta total es prueba definitiva, no hace falta esperar el resto de la ventana. */
-function esMadura(c: Cohorte, comoDe: Date, ventanaDias: number): boolean {
-  if (c.cantidadRestante <= 0) return true;
-  return segundosDeExposicion(c, comoDe) / 86_400 >= ventanaDias;
-}
-
-export type SellThroughExposicion = {
-  /** % (0–100), redondeado a un decimal; null = ninguna cohorte madura todavía (sin base). */
-  pct: number | null;
-  vendidoMaduro: number;
-  disponibleMaduro: number;
-  /** Unidades en cohortes que todavía no maduran y no se vendieron del todo: «N nuevas pendientes». */
-  pendienteMadurez: number;
-  /** `false` = ningún evento de la ventana fue un regreso desde almacén: el resultado es EXACTO (no hizo
-   *  falta ninguna aproximación). `true` = hubo al menos un ciclo piso↔almacén: el resultado es una
-   *  aproximación determinista y documentada (política de arriba), nunca una identidad física real —
-   *  ninguna trazabilidad de CAYLA la permite (sección 6 del pedido). */
-  estimado: boolean;
-};
-
-/**
- * Sell-through de exposición: `vendidoMaduro ÷ disponibleMaduro` de las cohortes maduras a `comoDe`, con
- * madurez por EXPOSICIÓN COMERCIAL ACUMULADA (pausa/reanuda, sección 11-13). Las inmaduras no entran ni al
- * numerador ni al denominador — quedan en `pendienteMadurez` para decirlo aparte («10 nuevas pendientes»),
- * nunca mezcladas en el % general.
- */
-export function sellThroughExposicion(eventos: readonly EventoPiso[], comoDe: Date, ventanaDias: number = SELL_THROUGH_EXPOSURE_WINDOW_DAYS): SellThroughExposicion {
-  let vendidoMaduro = 0;
-  let disponibleMaduro = 0;
-  let pendienteMadurez = 0;
-  for (const c of armarCohortes(eventos)) {
-    if (c.cantidadInicial <= 1e-9) continue; // una cohorte que perdió todo por salidas sin venta: no existió
-    if (esMadura(c, comoDe, ventanaDias)) {
-      disponibleMaduro += c.cantidadInicial;
-      vendidoMaduro += c.cantidadInicial - c.cantidadRestante;
-    } else {
-      pendienteMadurez += c.cantidadRestante;
-    }
-  }
-  return {
-    pct: disponibleMaduro > 0 ? Math.round((vendidoMaduro / disponibleMaduro) * 1000) / 10 : null,
-    vendidoMaduro: Math.round(vendidoMaduro * 100) / 100,
-    disponibleMaduro: Math.round(disponibleMaduro * 100) / 100,
-    pendienteMadurez: Math.round(pendienteMadurez * 100) / 100,
-    estimado: eventos.some((e) => e.esMovimientoInterno),
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Rotación EN UNIDADES (sección 14 del pedido): numerador y denominador SIEMPRE en unidades, nunca en
-// soles. Deliberadamente separada de `rotacion.ts` (COGS ÷ inventario a costo): esa sigue siendo la
-// rotación CONTABLE válida donde ya se usa (KPI de arriba, ranking, Comparar) — no se toca, no se destruye,
-// pero no le presta su fórmula a «Rotación piso»/«Rotación total» de esta tabla: son métricas distintas
-// que no deben compartir nombre ni implementación (rotacion.ts:16-17 ya lo anticipaba desde el 2026-09-19).
-// ---------------------------------------------------------------------------
-
-export type MotivoSinRotacionUnidades = "sin_inventario";
-
-export type RotacionUnidades =
-  | { calculable: true; veces: number; motivo: null; unidadesVendidas: number; unidadesPromedio: number }
-  | { calculable: false; veces: null; motivo: MotivoSinRotacionUnidades; unidadesVendidas: number; unidadesPromedio: number | null };
-
-/** unidadesVendidas ÷ unidadesPromedio. N/D-estricta: sin un promedio positivo no hay rotación que afirmar
- *  (nunca 0 disfrazado de N/D, nunca N/D disfrazado de 0 — `calculable` distingue los dos sin ambigüedad). */
-export function rotacionUnidades(unidadesVendidas: number, unidadesPromedio: number | null): RotacionUnidades {
-  if (unidadesPromedio === null || unidadesPromedio <= 0) return { calculable: false, veces: null, motivo: "sin_inventario", unidadesVendidas, unidadesPromedio };
-  return { calculable: true, veces: unidadesVendidas / unidadesPromedio, motivo: null, unidadesVendidas, unidadesPromedio };
-}
-
-/** Ritmo observado con «muestra limitada»: la exposición en piso fue menos de la fracción del período
- *  que marca `RITMO_MUESTRA_LIMITADA_FRACCION` — el número sigue siendo correcto, pero la evidencia es
- *  poca (sección 10 del pedido). Sin días de período no hay fracción que calcular: no hay muestra. */
-export function ritmoMuestraLimitada(diasConStock: number | null, diasPeriodo: number): boolean {
-  if (diasConStock === null || diasPeriodo <= 0) return true;
-  return diasConStock < diasPeriodo * RITMO_MUESTRA_LIMITADA_FRACCION;
-}
-
-/** «Responde bien en piso, pero mantiene mucho inventario total» (sección 16, caso B): la rotación total
- *  cae por debajo de una fracción de la rotación en piso. Sin las dos rotaciones calculables no hay
- *  comparación posible — nunca se afirma sobrestock sin evidencia de ambas. */
-export function esSobrestockTotal(vecesPiso: number | null, vecesTotal: number | null): boolean {
-  if (vecesPiso === null || vecesTotal === null || vecesPiso <= 0) return false;
-  return vecesTotal < vecesPiso * SOBRESTOCK_ROTACION_TOTAL_VS_PISO;
-}
-
-/**
- * «Problema de reposición»: en algún punto de la ventana reconstruida el piso llegó a 0 y DESPUÉS volvió a
- * recibir stock — un quiebre intermedio, distinto del cierre agotado de HOY (eso ya lo cubre la regla
- * «Se agotó»). El primer evento de `pisoEventos` representa el saldo con que arrancó la ventana (ver
- * `armarCohortes`), así que la suma acumulada en orden cronológico ES el nivel de piso en cada instante —
- * no hace falta reconstruir cohortes para esto, solo el nivel.
- */
-export function tuvoQuiebreEnPiso(eventos: readonly EventoPiso[]): boolean {
-  const ordenados = [...eventos].sort((a, b) => compararInstantes(a.ts, b.ts));
-  let nivel = 0;
-  let tocoCero = false;
-  for (const e of ordenados) {
-    nivel += e.delta;
-    if (nivel <= 0) tocoCero = true;
-    else if (tocoCero && e.delta > 0) return true;
-  }
-  return false;
 }

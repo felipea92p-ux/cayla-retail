@@ -1,6 +1,7 @@
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
-import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
+import { Etiqueta } from "@/components/inicio/TarjetasInicio";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { diaMes } from "@/lib/fechas-lima";
 import { reconocer, resumirMiMeta, type MiMeta } from "@/lib/mi-meta-reglas";
 import { formatoSoles } from "@/lib/resumen-formato";
@@ -49,9 +50,9 @@ export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta;
     return (
       <section>
         <Etiqueta>{titulo}</Etiqueta>
-        <Tarjeta etiqueta="Tus ventas de hoy" valor={formatoSoles(r.hoy.vendido)}>
+        <TarjetaCifra etiqueta="Tus ventas de hoy" valor={formatoSoles(r.hoy.vendido)}>
           {r.hoy.ventas > 0 ? `${ventasTxt(r.hoy.ventas)} · ` : ""}Hoy no tienes parte de la meta
-        </Tarjeta>
+        </TarjetaCifra>
       </section>
     );
   }

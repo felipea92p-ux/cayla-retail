@@ -83,16 +83,15 @@ function Pastilla({
       disabled={!activa && cuenta === 0}
       className={
         sutil
-          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo ${
+          ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
               activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
             }`
-          : "pildora-cayla shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo disabled:cursor-default disabled:opacity-40"
+          : // La píldora de filtro del sistema (ADR-0358): el foco es el anillo común y el conteo, del color del texto.
+            "pildora-cayla shrink-0 disabled:cursor-default disabled:opacity-40"
       }
     >
       {children}
-      {cuenta !== undefined && (
-        <span className={`text-[11px] font-medium tabular-nums ${activa ? "text-crema/70" : "text-taupe/80"}`}>{cuenta.toLocaleString("es-PE")}</span>
-      )}
+      {cuenta !== undefined && <span className="pildora-cayla__n">{cuenta.toLocaleString("es-PE")}</span>}
       {activa && quitable && <X aria-label="quitar" strokeWidth={1.75} className="-mr-1 h-3.5 w-3.5 opacity-70" />}
     </button>
   );
@@ -267,23 +266,13 @@ export function FiltrosMovimientos({
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Zona
       </span>
-      <div role="group" aria-label="Zona de la tienda" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg bg-hueso p-[3px]">
-        {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => {
-          const activa = sub === f.token;
-          return (
-            <button
-              key={f.token ?? "todo"}
-              type="button"
-              aria-pressed={activa}
-              onClick={() => aplicar({ sub: f.token ?? "" })}
-              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
-                activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
-              }`}
-            >
-              {f.etiqueta}
-            </button>
-          );
-        })}
+      {/* Deja menos movimientos (filtro de un valor): la píldora del sistema, no la pista hueso de la demo (ADR-0358). */}
+      <div role="group" aria-label="Zona de la tienda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
+        {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => (
+          <button key={f.token ?? "todo"} type="button" aria-pressed={sub === f.token} onClick={() => aplicar({ sub: f.token ?? "" })} className="pildora-cayla shrink-0">
+            {f.etiqueta}
+          </button>
+        ))}
       </div>
     </div>
   );

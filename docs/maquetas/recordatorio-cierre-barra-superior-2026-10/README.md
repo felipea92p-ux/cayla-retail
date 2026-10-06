@@ -1,6 +1,6 @@
 # Maquetas · El aviso de cierre de caja, en el centro de la barra superior (2026-10-06)
 
-> **Estado (2026-10-06): elegida la maqueta 3, «Marcador», y construida — ver `docs/adr/0357-recordatorio-de-cierre-en-la-barra-el-marcador.md`.**
+> **Estado (2026-10-06): elegida la maqueta 3, «Marcador», y construida — ver `docs/adr/0359-recordatorio-de-cierre-en-la-barra-el-marcador.md`.**
 > Cambios que Felipe pidió después de verla: sin el nombre de la tienda sobre «Caja sin cerrar», aviso desde 15 min antes, pestaña que baja
 > sola cada 5 min desde la hora de cierre, y resplandor más largo e intenso en rojo. Las maquetas 1 y 2 quedan como referencia.
 >

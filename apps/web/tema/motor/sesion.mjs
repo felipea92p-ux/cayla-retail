@@ -51,12 +51,15 @@ async function iniciarSesion(navegador, origen, correo) {
   await ctx.close();
 }
 
-/** Un contexto de Playwright ya con sesión, con el tema pedido puesto desde antes de pintar y la vista (sede/Global) elegida. */
-export async function abrirContexto(navegador, cuenta, { baseUrl, tema, viewport }) {
+/**
+ * Un contexto de Playwright ya con sesión, con el tema pedido puesto desde antes de pintar y la vista (sede/Global) elegida.
+ * `escala` es la densidad de píxeles (por defecto 1): `/unificar` la pide en 2 para que la captura de un botón se lea nítida.
+ */
+export async function abrirContexto(navegador, cuenta, { baseUrl, tema, viewport, escala = 1 }) {
   const origen = exigirLocal(baseUrl);
   if (cuenta.correo === null) {
     // Sin sesión: el login y las páginas públicas. Solo se pone el tema.
-    const ctx = await navegador.newContext({ viewport, ...(viewport.width < 700 ? { isMobile: true, hasTouch: true } : {}) });
+    const ctx = await navegador.newContext({ viewport, deviceScaleFactor: escala, ...(viewport.width < 700 ? { isMobile: true, hasTouch: true } : {}) });
     await ctx.addInitScript((t) => {
       try {
         localStorage.setItem("cayla-tema", t);
@@ -67,7 +70,7 @@ export async function abrirContexto(navegador, cuenta, { baseUrl, tema, viewport
     return ctx;
   }
   if (!existsSync(archivoDe(cuenta.correo))) await iniciarSesion(navegador, origen, cuenta.correo);
-  const nuevo = () => navegador.newContext({ storageState: archivoDe(cuenta.correo), viewport, ...(viewport.width < 700 ? { isMobile: true, hasTouch: true } : {}) });
+  const nuevo = () => navegador.newContext({ storageState: archivoDe(cuenta.correo), viewport, deviceScaleFactor: escala, ...(viewport.width < 700 ? { isMobile: true, hasTouch: true } : {}) });
   let ctx = await nuevo();
   // ¿La sesión guardada sigue valiendo? Si la mandan al login, se rehace.
   const prueba = await ctx.newPage();

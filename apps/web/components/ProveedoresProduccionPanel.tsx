@@ -49,21 +49,19 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <TarjetaCifra compacta punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
           {resumen.archivados > 0 ? `${plural(resumen.archivados, "archivado", "archivados")} aparte` : "ninguno archivado"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto="verde"
           etiqueta="Comprado al Taller"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={resumen.totalComprado === 0}
-          valor={resumen.totalComprado === 0 ? "—" : <CifraQueCuenta valor={resumen.totalComprado} formato="soles" alMontar />}
+          valor={resumen.totalComprado === 0 ? null : <CifraQueCuenta valor={resumen.totalComprado} formato="soles" alMontar />}
         >
           sin IGV, en lotes recibidos
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="Lotes recibidos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.lotes} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Lotes recibidos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.lotes} alMontar />}>
           cada ingreso de insumo abre uno
         </TarjetaCifra>
       </div>
@@ -79,17 +77,18 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap gap-1.5">
+            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap gap-2">
               {[{ valor: "todos" as const, etiqueta: "Todos", n: resumen.activos }, ...RUBROS_PRODUCCION.map((r) => ({ valor: r.valor, etiqueta: r.etiqueta, n: resumen.porRubro[r.valor] }))].map((r) => (
                 <button
                   key={r.valor}
                   type="button"
                   aria-pressed={rubro === r.valor}
                   onClick={() => setRubro(r.valor)}
-                  className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                  // El mismo filtro de rubro que Compras ▸ Proveedores: la píldora del sistema (ADR-0358).
+                  className="pildora-cayla"
                 >
                   {r.etiqueta}
-                  <small className="ml-1.5 opacity-70 dark:opacity-85">{r.n}</small>
+                  <span className="pildora-cayla__n">{r.n}</span>
                 </button>
               ))}
             </div>

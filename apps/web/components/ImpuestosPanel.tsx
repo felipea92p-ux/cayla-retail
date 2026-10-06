@@ -127,26 +127,25 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
 
       <section className="fin-cifras">
-        <TarjetaCifra compacta etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : "—"} {...entra(1)}>
+        <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
           {foco
             ? `${tasaIgv} % de las ventas del mes, de ${plural(foco.comprobantes, "comprobante emitido", "comprobantes emitidos")}${foco.igvNotasCredito > 0 ? `. Ya resta ${solesRedondo(foco.igvNotasCredito)} de notas de crédito` : ""}`
             : "Sin datos"}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : "—"} {...entra(2)}>
+        <TarjetaCifra etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : null} {...entra(2)}>
           {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}`}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           etiqueta={aFavor ? `Saldo a favor para ${siguiente}` : `IGV a pagar en ${siguiente}`}
           tono={aFavor ? "text-verde" : undefined}
-          valor={foco ? solesRedondo(aFavor ? foco.saldoAFavor : foco.aPagar) : "—"}
+          valor={foco ? solesRedondo(aFavor ? foco.saldoAFavor : foco.aPagar) : null}
           {...entra(3)}
         >
           {aFavor
             ? "Descontaste más IGV del que cobraste: se descuenta el mes siguiente"
             : `Vence según el último dígito de tu RUC${foco && foco.saldoAnterior > 0 ? `. Ya descuenta ${solesRedondo(foco.saldoAnterior)} a favor del mes anterior` : ""}`}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="Pago a cuenta de renta" valor={panel.renta.monto !== null ? solesRedondo(panel.renta.monto) : "—"} {...entra(4)}>
+        <TarjetaCifra etiqueta="Pago a cuenta de renta" valor={panel.renta.monto !== null ? solesRedondo(panel.renta.monto) : null} {...entra(4)}>
           {panel.renta.tasa !== null ? (
             <>
               {porcentaje(panel.renta.tasa, panel.renta.tasa * 100 % 1 === 0 ? 0 : 1)} de la venta neta.{" "}

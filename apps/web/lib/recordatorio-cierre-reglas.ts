@@ -3,7 +3,7 @@
 // PROMETE: dado el instante actual, la hora de cierre de la tienda (`ubicaciones.hora_cierre`, hora de Lima) y cuándo se
 //   abrió la caja que sigue abierta, dice en qué nivel está el recordatorio y cuántos minutos pasaron de la hora:
 //     0 nada (todavía no es hora) · 1 en hora (0–29 min) · 2 sigue abierta (30–59) · 3 sin cerrar (60 o más).
-//   Desde el 2026-10-06 (ADR-0357) el aviso de la barra empieza 15 min ANTES: `estadoAviso` lo cuenta como nivel 1 con
+//   Desde el 2026-10-06 (ADR-0359) el aviso de la barra empieza 15 min ANTES: `estadoAviso` lo cuenta como nivel 1 con
 //   `previo: true`. `estadoRecordatorio` sigue siendo el de siempre —el botón «Cerrar caja» de Caja (ADR-0318) cuelga de él—.
 //   Y los textos que se leen en la píldora y en la tarjeta. Sin React, sin red, sin `Intl` (servidor y navegador dicen lo
 //   mismo), para probarlo con `recordatorio-cierre-reglas.test.ts`.

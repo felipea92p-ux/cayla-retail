@@ -124,7 +124,7 @@ describe("lineaDelDia", () => {
   });
 });
 
-describe("estadoAviso: el preaviso de 15 minutos (ADR-0357)", () => {
+describe("estadoAviso: el preaviso de 15 minutos (ADR-0359)", () => {
   const ABRIO_TRU = "2026-10-01T14:58:00Z"; // 9:58 a. m. de Lima
   const en = (hhmm: string) => estadoAviso({ ahora: lima("2026-10-01", hhmm), abiertaEn: ABRIO_TRU, horaCierre: "19:45" });
 

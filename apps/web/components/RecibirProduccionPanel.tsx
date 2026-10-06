@@ -36,7 +36,6 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
-          compacta
           punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
           etiqueta="Por recibir"
           className="anim-entra"
@@ -45,10 +44,10 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
         >
           {resumen.porRecibir > 0 ? plural(resumen.porRecibir, "comprobante espera mercadería", "comprobantes esperan mercadería") : "nada pendiente"}
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="Líneas pendientes" className="anim-entra" style={{ ["--i" as string]: 1 }} valor={<CifraQueCuenta valor={resumen.lineasPendientes} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Líneas pendientes" className="anim-entra" style={{ ["--i" as string]: 1 }} valor={<CifraQueCuenta valor={resumen.lineasPendientes} alMontar />}>
           insumos que aún no llegan
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="A medio recibir" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.parciales} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="A medio recibir" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.parciales} alMontar />}>
           {resumen.parciales > 0 ? "llegaron en parte" : "ninguno a medias"}
         </TarjetaCifra>
       </div>

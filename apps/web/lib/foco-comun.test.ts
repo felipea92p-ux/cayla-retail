@@ -79,7 +79,9 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
 
   // Deuda de ANTES de la regla: cada pantalla migra su control al anillo común (borrando su `outline-none` y su anillo rojo)
   // cuando se toque. La cuenta es exacta: si baja, bájala acá; si sube, no entró un control nuevo con el anillo viejo.
-  const PENDIENTES_HOY = 63;
+  // 63 → 51 el 2026-10-07: las pestañas, píldoras y segmentos de /unificar «pestanas» (ADR-0358) usan el anillo común, también
+  // las de Comprobantes (FacturacionPestanas); y el rediseño de Análisis (v4) borró los componentes viejos que tenían el suyo.
+  const PENDIENTES_HOY = 51;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

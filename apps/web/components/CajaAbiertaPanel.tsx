@@ -282,7 +282,8 @@ export function CajaAbiertaPanel({
                 <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
                 <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
               </div>
-              <div role="group" aria-label="Filtrar movimientos" className="inline-flex rounded-lg bg-hueso p-[3px]">
+              {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
+              <div role="group" aria-label="Filtrar movimientos" className="flex flex-wrap items-center gap-2">
                 {(
                   [
                     ["todo", "Todo"],
@@ -295,7 +296,7 @@ export function CajaAbiertaPanel({
                     type="button"
                     aria-pressed={filtroMov.vista === clave}
                     onClick={() => setFiltroMov(elegirVista(clave))}
-                    className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${filtroMov.vista === clave ? "bg-papel text-tinta shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_7%,transparent)]" : "text-tinta/60 hover:text-tinta"}`}
+                    className="pildora-cayla"
                   >
                     {texto}
                   </button>
@@ -311,11 +312,11 @@ export function CajaAbiertaPanel({
                     type="button"
                     aria-pressed={filtroMov.metodo === clave}
                     onClick={() => setFiltroMov(elegirMetodo(filtroMov, clave))}
-                    className="pildora-cayla !px-3 !py-1 !text-[12px]"
+                    className="pildora-cayla"
                   >
                     <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
                     {METODO_RITMO[clave].texto}
-                    <span className="font-normal tabular-nums opacity-70 dark:opacity-85">{ventas}</span>
+                    <span className="pildora-cayla__n">{ventas}</span>
                   </button>
                 ))}
               </div>

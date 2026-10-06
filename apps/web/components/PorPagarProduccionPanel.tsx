@@ -36,36 +36,30 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
-          compacta
           punto={totalPorPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          vacia={totalPorPagar === 0}
-          valor={totalPorPagar === 0 ? "—" : <CifraQueCuenta valor={totalPorPagar} formato="soles" alMontar />}
+          valor={totalPorPagar === 0 ? null : <CifraQueCuenta valor={totalPorPagar} formato="soles" alMontar />}
         >
           {totalPorPagar > 0 ? plural(tramos.reduce((s, t) => s + t.comprobantes.length, 0), "comprobante", "comprobantes") : "no se debe nada"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={vencido ? "rojo" : "verde"}
           etiqueta="Vencido"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={!vencido}
-          valor={!vencido ? "—" : <CifraQueCuenta valor={vencido.monto} formato="soles" alMontar />}
+          valor={!vencido ? null : <CifraQueCuenta valor={vencido.monto} formato="soles" alMontar />}
           detalleTono={vencido ? "text-rojo-profundo" : "text-verde-profundo"}
         >
           {vencido ? plural(n(vencido), "comprobante ya venció", "comprobantes ya vencieron") : "nada vencido"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={semana ? "ambar" : "verde"}
           etiqueta="Vence en 7 días"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          vacia={!semana}
-          valor={!semana ? "—" : <CifraQueCuenta valor={semana.monto} formato="soles" alMontar />}
+          valor={!semana ? null : <CifraQueCuenta valor={semana.monto} formato="soles" alMontar />}
         >
           {semana ? plural(n(semana), "comprobante", "comprobantes") : "nada esta semana"}
         </TarjetaCifra>

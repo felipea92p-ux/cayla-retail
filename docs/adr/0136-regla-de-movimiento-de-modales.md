@@ -267,9 +267,40 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** `apps/web/app/estilos/puntos-avance.css` (clases `puntos-*`). No se generaliza: otra pantalla que quiera un paso que
   late lo pide con Felipe y se agrega aquí.
 
-## Actualización 2026-10-06 (b) — el aviso de cierre de caja (Marcador): dos bucles decorativos que Felipe eligió
+## Actualización 2026-10-06 (b) — Análisis: los gráficos se arman una vez al entrar a la pestaña
 
-- **Qué:** el aviso de cierre de caja de la cabecera (ADR-0357, antes la «Isla» de ADR-0305) repite tres cosas mientras está a la
+- **Qué:** en Análisis (ADR-0357), al entrar a una pestaña:
+  - las piezas suben en cascada (`.entra`: 380 ms, 55 ms entre una y otra, hasta la octava);
+  - las barras crecen desde su base (`.cx`, `.cxd`, `.cy`: 700 ms);
+  - las perchas y los puntos asoman (`.po`: 520 ms);
+  - los arcos de los anillos se dibujan (`.arco`: 900 ms);
+  - las cintas del flujo «Qué hacer hoy» se tienden, primero las que llegan a la tienda y después las que salen (650 ms cada una);
+  - las cifras cuentan desde 0 (700 ms).
+
+  Además, al llegar desde Hoy a un grupo de un carril, ese grupo destella una vez (1,1 s), y el subrayado de las pestañas se desliza (260 ms).
+- **Una sola vez:** la pantalla pone `.anim` al entrar a la pestaña y la quita a los 2 s. Buscar, filtrar o mover «Liquidar desde» no vuelve a
+  animar. La ficha de la prenda y la hoja «Datos confiables» son `<Modal>`: entran con la cascada de esta regla, y sus gráficos se arman una vez
+  al abrirse.
+- **Por qué se admite:** Felipe aprobó la maqueta con su movimiento (2026-10-06). Un gráfico que se arma se lee (la barra crece hasta su valor), y
+  una sola vez no distrae. Es una decisión suya, no un descuido.
+- **Los límites son los de siempre:** `--ease-cayla`, nada en bucle, nada con rebote, ninguna pieza dura más de 1,2 s, solo tokens y
+  `@layer components`. Con `prefers-reduced-motion` nada se mueve y las cifras aparecen en su valor. Lo vigila `lib/analisis-movimiento.test.ts`
+  sobre todas las hojas `app/estilos/analisis*.css`.
+- **Dónde vive:** `apps/web/app/estilos/analisis.css` (sus `@keyframes an-*`) y las hojas de cada pestaña (`analisis-hoy.css`,
+  `analisis-acaba.css`, `analisis-quieta.css`, `analisis-pedir.css`, `analisis-ficha.css`). Las cifras que cuentan, en
+  `components/analisis/AnalisisPantalla.tsx` (`data-cuenta`). No se generaliza: otra pantalla que quiera lo mismo lo pide con Felipe y se agrega
+  aquí.
+- **Los puntos del flujo (Felipe, 2026-10-06, después de verlo):** al pasar el mouse (o el foco) por un camino de «Qué hacer hoy», corren puntos
+  del color del camino por su cinta: de la Compra hacia «Tu tienda», y de «Tu tienda» hacia la otra tienda o hacia «Liquidar», para que se lea
+  hacia dónde van las prendas. Es la **única pieza de Análisis que se repite**, y solo mientras el mouse o el foco está encima: al salir, los
+  puntos se van. Velocidad pareja (1,6 s por cruce, sin curva: es un flujo, no una entrada), de 3 a 6 puntos según el grosor, en dos carriles
+  fuera de la pastilla «N prendas». Con `prefers-reduced-motion` no se dibujan. Vive en `PuntosCinta` (`components/analisis/PestanaHoy.tsx`,
+  con `<animateMotion>` de SVG) y la geometría en `ejeCinta` / `carrilesDeCinta` / `puntosDeCinta` (`lib/analisis-hoy.ts`); lo vigila
+  `lib/analisis-movimiento.test.ts` (ningún otro `repeatCount="indefinite"` en Análisis).
+
+## Actualización 2026-10-06 (c) — el aviso de cierre de caja (Marcador): dos bucles decorativos que Felipe eligió
+
+- **Qué:** el aviso de cierre de caja de la cabecera (ADR-0359, antes la «Isla» de ADR-0305) repite tres cosas mientras está a la
   vista: unas **ondas** que salen sin parar desde la hora de cierre (la misma onda de cuando sube de nivel; es una señal: «ya es la hora»),
   un **resplandor** que deriva lento hacia los lados (8 s) y un **destello** que cruza la cápsula cada 6 s solo en «sin cerrar».
   Se suman al punto que late de siempre.

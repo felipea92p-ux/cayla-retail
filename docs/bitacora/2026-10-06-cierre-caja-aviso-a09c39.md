@@ -1,4 +1,4 @@
-## 2026-10-06 — El aviso de cierre de caja se muda al centro de la barra (el «Marcador», ADR-0357)
+## 2026-10-06 — El aviso de cierre de caja se muda al centro de la barra (el «Marcador», ADR-0359)
 
 - **QUÉ HICE:** la «Isla» flotante de abajo a la derecha pasó a ser una cápsula en el medio de la barra superior (maqueta 3 que eligió
   Felipe): luz, rótulo, contador de paletas y botón «Cerrar», con una pestaña que cuelga con el efectivo a cuadrar y un resplandor que

@@ -1,5 +1,5 @@
 /* ==================================================================
-   RECORDATORIO DE CIERRE DE CAJA — el «Marcador» en el centro de la cabecera (ADR-0357; antes la «Isla» de ADR-0305)
+   RECORDATORIO DE CIERRE DE CAJA — el «Marcador» en el centro de la cabecera (ADR-0359; antes la «Isla» de ADR-0305)
    Maqueta: docs/maquetas/recordatorio-cierre-barra-superior-2026-10/ (maqueta 3, elegida por Felipe el 2026-10-06).
    Componente: components/RecordatorioCierreCaja.tsx.
 
@@ -14,7 +14,7 @@
 
    Movimiento (ADR-0136): todo con --ease-cayla, sin rebote. Lo que es DATO: las paletas giran cuando cambia el minuto, la
    pestaña se despliega cada 5 min desde la hora de cierre, la barra del turno se llena. Los adornos en bucle que Felipe
-   eligió (ADR-0357): las ondas que salen sin parar desde la hora de cierre, el resplandor que deriva y el destello en «sin cerrar»; más el punto que late de
+   eligió (ADR-0359): las ondas que salen sin parar desde la hora de cierre, el resplandor que deriva y el destello en «sin cerrar»; más el punto que late de
    siempre (ADR-0136). Con prefers-reduced-motion todo pasa en un instante.
    ================================================================== */
 

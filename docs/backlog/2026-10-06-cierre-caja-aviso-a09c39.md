@@ -1,4 +1,4 @@
-## ⏰ El aviso de cierre de caja en la barra superior — el «Marcador» (2026-10-06, ADR-0357) — solo web, sin migración; rama `claude/cierre-caja-aviso-a09c39`
+## ⏰ El aviso de cierre de caja en la barra superior — el «Marcador» (2026-10-06, ADR-0359) — solo web, sin migración; rama `claude/cierre-caja-aviso-a09c39`
 
 - [x] Cápsula en el centro de la cabecera, pestaña colgante, resplandor del nivel (más largo e intenso en rojo), sin el nombre de la sede en la cápsula.
 - [x] Preaviso de 15 min (`estadoAviso`) y despliegue de la pestaña cada 5 min desde la hora de cierre (`cicloDeDespliegue`); pruebas en `lib/recordatorio-cierre-reglas.test.ts`.

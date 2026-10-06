@@ -96,11 +96,13 @@ export function ApartadosPanel(props: Props) {
               type="button"
               onClick={() => irA(p.id)}
               aria-current={vista === p.id ? "page" : undefined}
-              className={`label-cayla relative h-11 text-[11px] transition-colors sm:h-16 ${vista === p.id ? "text-tinta after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-tinta" : "text-tinta/55 hover:text-tinta"}`}
+              // La letra de la pestaña de vista del ERP (ADR-0358): 13,5 px, inactiva en taupe, elegida en tinta y 500, con su
+              // ancho reservado. Los 64 px y el subrayado en tinta son de esta pantalla (alinean con el ticket, ADR-0223).
+              className={`relative h-11 text-[13.5px] transition-colors sm:h-16 ${vista === p.id ? "font-medium text-tinta after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-tinta" : "text-taupe hover:text-tinta"}`} // unificar-fijo: 64 px y subrayado alineados al ticket, ADR-0223
             >
-              {p.etiqueta}
+              <span className="pestana-cayla__texto" data-texto={p.etiqueta}>{p.etiqueta}</span>
               {!!p.insignia && (
-                <span className="ml-1.5 inline-grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] tracking-normal text-papel">{p.insignia}</span>
+                <span className="ml-1.5 inline-grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] text-papel">{p.insignia}</span>
               )}
             </button>
           ))}

@@ -329,7 +329,9 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                       role="radio"
                       aria-checked={filtro === f.clave}
                       onClick={() => { setFiltro(f.clave); setActiva(0); refBuscador.current?.focus(); }}
-                      className={`label-cayla rounded-full border px-3 py-1 text-[10px] leading-4 transition-colors ${filtro === f.clave ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-tinta/[0.04] text-tinta/75 hover:border-rojo hover:text-rojo"}`}
+                      // Deja menos facturas en la lista de abajo: la píldora de filtro del sistema (ADR-0358).
+                      data-activa={filtro === f.clave}
+                      className="pildora-cayla"
                     >
                       {f.etiqueta}
                     </button>

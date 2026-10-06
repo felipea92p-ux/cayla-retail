@@ -20,7 +20,7 @@ import {
   type NivelRecordatorio,
 } from "@/lib/recordatorio-cierre-reglas";
 
-// El «Marcador»: el recordatorio de cierre de caja, en el centro de la cabecera (ADR-0357; maqueta 3 de
+// El «Marcador»: el recordatorio de cierre de caja, en el centro de la cabecera (ADR-0359; maqueta 3 de
 // `docs/maquetas/recordatorio-cierre-barra-superior-2026-10/`; antes fue la «Isla» flotante de ADR-0305).
 // Montada UNA vez en el layout de la app: acompaña a quien puede cerrar la caja por todas las pantallas desde 15 min ANTES de la
 // hora de cierre de su tienda (`ubicaciones.hora_cierre`: a las 7:30 p. m. si cierra a las 7:45) hasta que la caja se cierra.
@@ -30,7 +30,7 @@ import {
 // que falta; después, lo que pasó); desde la hora de cierre y cada 5 minutos redondos (7:45, 7:50, 7:55…) la pestaña se
 // despliega sola hacia abajo, se queda 5 s (más si el mouse está encima) y se pliega. Al subir de nivel cambia de color y lanza
 // UNA onda; al cerrar la caja se pone verde, dibuja su ✓ y sube. Sus adornos en bucle (resplandor que deriva, destello en «sin
-// cerrar», punto que late) son los que Felipe eligió en la maqueta (ADR-0357). Con `prefers-reduced-motion` todo pasa en un
+// cerrar», punto que late) son los que Felipe eligió en la maqueta (ADR-0359). Con `prefers-reduced-motion` todo pasa en un
 // instante (`recordatorio-cierre.css`).
 
 const TICK_MS = 5_000;
@@ -426,7 +426,7 @@ function Paletas({ minutos }: { minutos: number }) {
   );
 }
 
-/** Una paleta que gira solo cuando su dígito cambia: la de arriba cae y la de abajo sube (ADR-0357). Sin rebote. */
+/** Una paleta que gira solo cuando su dígito cambia: la de arriba cae y la de abajo sube (ADR-0359). Sin rebote. */
 function Paleta({ valor }: { valor: number }) {
   const [vista, setVista] = useState({ ahora: valor, antes: valor, gira: false });
   const [previo, setPrevio] = useState(valor);

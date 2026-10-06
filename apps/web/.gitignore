@@ -51,3 +51,5 @@ responsive/.salida/
 # Auditoría del modo oscuro (ADR-0336): sesiones de las cuentas locales y capturas. Se regeneran en cada corrida.
 tema/.sesion/
 tema/.salida/
+# /unificar: censo, capturas y lámina (se regeneran; lo que se decide queda en docs/unificar/)
+unificar/.salida/

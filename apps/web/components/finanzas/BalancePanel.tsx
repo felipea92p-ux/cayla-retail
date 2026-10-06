@@ -540,11 +540,10 @@ function VistaTienda({
   return (
     <>
       <section className="fin-cifras">
-        <TarjetaCifra compacta etiqueta="Invertido" valor={solesBalance(unidad.invertido)} {...entra(1)}>
+        <TarjetaCifra etiqueta="Invertido" valor={solesBalance(unidad.invertido)} {...entra(1)}>
           lo que tiene menos lo que debe
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           etiqueta={`Utilidad de ${mes}`}
           valor={solesBalance(unidad.utilidadMes)}
           tono={unidad.utilidadMes < 0 ? "text-rojo" : undefined}
@@ -553,10 +552,10 @@ function VistaTienda({
           {enCurso ? "a la fecha" : "el mes entero"}
           {!unidad.planillaVisible ? " · sin planilla" : ""}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="Rinde" valor={unidad.tipo === "taller" ? "—" : textoRinde(unidad.rinde).replace(" al mes", "")} {...entra(3)}>
+        <TarjetaCifra etiqueta="Rinde" valor={unidad.tipo === "taller" ? null : textoRinde(unidad.rinde).replace(" al mes", "")} {...entra(3)}>
           {unidad.tipo === "taller" ? "el Taller no vende" : "de lo invertido, al mes"}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta={`Ventas de ${mes}`} valor={solesBalance(unidad.ventasMes)} {...entra(4)}>
+        <TarjetaCifra etiqueta={`Ventas de ${mes}`} valor={solesBalance(unidad.ventasMes)} {...entra(4)}>
           sin IGV
         </TarjetaCifra>
       </section>
