@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { PaseFrente, type SelloPuesto } from "@/components/traslados-pases/PaseFrente";
 import { RUTA_TRASLADOS, rutaDelPase, useVecinos } from "@/components/traslados-pases/Billetera";
 import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/traslados-pases-reglas";
+import type { LoSiguiente } from "@/lib/traslados-recepcion-reglas";
 
 // El escenario: el pase grande que GIRA (ADR-0354). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
 // caja (contar, revisar, ver lo enviado). Al terminar, el pase vuelve al frente, le cae un sello y, un momento después, se abre
@@ -33,7 +34,7 @@ export function PaseTraslado({
   vista,
   reverso,
   accion,
-  abajo,
+  siguiente,
   volverA,
 }: {
   vista: VistaPase;
@@ -42,8 +43,9 @@ export function PaseTraslado({
   /** Botones propios del frente (un pedido lleva «No la tengo» y «Enviar»); sin ellos, el botón de la vista, que gira el pase. Van
    *  dentro del pase: pueden usar `usePase()`. */
   accion?: ReactNode;
-  /** Bajo el pase («Lo siguiente» de lo recién recibido). */
-  abajo?: ReactNode;
+  /** «Lo siguiente» de lo recién recibido (bajar al piso, imprimir etiquetas): va en el frente. Llega como dato y no como elemento
+   *  armado en el servidor (un elemento del servidor dentro de este cliente salía en React como hijo de una lista sin clave). */
+  siguiente?: LoSiguiente | null;
   /** «← Movimientos» si se llegó desde ahí (ADR-0234). */
   volverA?: { href: string; a: string } | null;
 }) {
@@ -103,7 +105,6 @@ export function PaseTraslado({
     },
   };
 
-
   return (
     <CtxPase.Provider value={pase}>
       <div className="space-y-3">
@@ -125,9 +126,14 @@ export function PaseTraslado({
                   vista={vista}
                   sello={sello}
                   accion={
-                    accion ?? <button type="button" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
-                      {vista.boton.texto} <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />
-                    </button>
+                    accion ??
+                    (siguiente ? (
+                      <FrenteLoSiguiente vista={vista} siguiente={siguiente} />
+                    ) : (
+                      <button type="button" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
+                        {vista.boton.texto} <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />
+                      </button>
+                    ))
                   }
                 />
               </div>
@@ -162,8 +168,32 @@ export function PaseTraslado({
             </nav>
           )}
         </div>
-        {abajo}
       </div>
     </CtxPase.Provider>
+  );
+}
+
+// «Lo siguiente» en el frente del pase (ADR-0354, actividad 5; la regla es la de ADR-0242 D-6.1, `loSiguienteDeLaRecepcion`):
+// recién recibida la caja, el botón grande ya no es «Ver lo que llegó» sino lo que hay que hacer con las prendas —bajarlas al piso
+// o imprimir sus etiquetas—, con su frase encima. Ver lo que llegó queda al lado, y gira el pase. Si la caja todavía le pide algo a
+// quien mira (revisar lo que faltó), ese botón manda y «Lo siguiente» va al lado, como secundario.
+function FrenteLoSiguiente({ vista, siguiente }: { vista: VistaPase; siguiente: LoSiguiente }) {
+  const pase = usePase();
+  const manda = vista.porHacer;
+  return (
+    <div>
+      <p className="tp-siguiente">{siguiente.intro}</p>
+      <div className="tp-acciones">
+        <button type="button" onClick={() => pase.girar(true)} className={`btn-cayla ${manda ? "btn-primario tp-boton" : "btn-secundario"}`}>
+          {vista.boton.texto} {manda && <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />}
+        </button>
+        {siguiente.acciones.map((a) => (
+          <Link key={a.clave} href={a.href} className={`btn-cayla ${a.principal && !manda ? "btn-primario tp-boton" : "btn-secundario"}`}>
+            {a.texto}
+            {a.principal && !manda && <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

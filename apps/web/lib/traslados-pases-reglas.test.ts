@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { contarRequierenAccion } from "./traslados-reglas";
 import {
   anilloDelDia,
   botonDelPase,
@@ -181,6 +182,22 @@ describe("la billetera", () => {
       pase({ id: "5", estado: "anulada", anuladoEn: iso(6, "10:00") }),
     ];
     expect(hechasHoy(ts, ctx)).toBe(2);
+  });
+
+  it("lo que el anillo cuenta como por recibir es lo mismo que cuenta el menú (contarRequierenAccion)", () => {
+    const ts = [
+      pase({ id: "1" }),
+      pase({ id: "2", fechaEstimadaLlegada: iso(5, "10:00") }),
+      pase({ id: "3", lineasContadas: 2 }),
+      pase({ id: "4", estado: "recibido_con_diferencia", confirmadoEn: iso(6, "09:00") }),
+      pase({ id: "5", estado: "cerrada", cerradoEn: iso(6, "09:00") }),
+      pase({ id: "6", ubicacionOrigenId: TRU, ubicacionDestinoId: LIM }),
+      pase({ id: "7", estado: "anulada", anuladoEn: iso(6, "10:00") }),
+    ];
+    for (const c of [ctx, { ...ctx, puedeCerrarDiferencia: false }]) {
+      const enElAnillo = ts.map((t) => vistaDelPase(t, c, { origen: "TAL", destino: "TRU" })).filter((v) => v.pestana === "llegan" && v.porHacer).length;
+      expect(enElAnillo).toBe(contarRequierenAccion(ts, c));
+    }
   });
 
   it("el anillo suma lo mismo que el menú: por recibir + te piden", () => {

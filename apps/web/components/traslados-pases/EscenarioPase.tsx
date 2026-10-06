@@ -8,7 +8,6 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { encontrarPorTipo, getSububicaciones, type Sububicacion } from "@/lib/sububicaciones";
 import { loSiguienteDeLaRecepcion, type DestinoRecepcion } from "@/lib/traslados-recepcion-reglas";
 import { datosDeDetalle, getCodigosDeSede, vistaConCodigos } from "@/lib/traslados-billetera";
-import { TrasladoLoSiguiente } from "@/components/TrasladoLoSiguiente";
 import { PaseTraslado } from "@/components/traslados-pases/PaseTraslado";
 import { ReversoPase } from "@/components/traslados-pases/ReversoPase";
 
@@ -36,7 +35,7 @@ async function prendasEnElAlmacen(ubicacionId: string): Promise<ReadonlySet<stri
 }
 
 // El pase grande de un traslado (ADR-0354): lo mismo que leía la página de detalle de antes (el traslado, el catálogo para
-// escanear, la firma de quien recibe, dónde se puede dejar lo recibido y «Lo siguiente»), dibujado como pase.
+// escanear, la firma de quien recibe, dónde se puede dejar lo recibido y «Lo siguiente», que va en el frente del pase), dibujado como pase.
 export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { href: string; a: string } | null }) {
   const persona = await requirePersonaActualV2();
   const [traslado, catalogo, firmaVigente, codigo, whatsapps] = await Promise.all([
@@ -98,7 +97,7 @@ export async function EscenarioPase({ id, volverA }: { id: string; volverA?: { h
             .map((v) => ({ varianteId: v.varianteId, sku: v.sku, referencia: v.referencia, talla: v.talla, color: v.color, codigosBarras: v.codigosBarras }))}
         />
       }
-      abajo={loSiguiente ? <TrasladoLoSiguiente {...loSiguiente} /> : undefined}
+      siguiente={loSiguiente}
     />
   );
 }
