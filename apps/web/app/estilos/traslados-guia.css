@@ -72,6 +72,12 @@
   column-gap: 3mm;
   break-inside: avoid;
 }
+/* Nombre, talla y color, y código: una línea cada uno (la A4 ancha los pasa a columnas, abajo). */
+.gt-prenda > span:first-child {
+  display: grid;
+  gap: 0.3mm;
+  min-width: 0;
+}
 .gt-nombre {
   font-weight: 700;
 }
@@ -131,10 +137,6 @@
   display: grid;
   gap: 2mm;
   margin-top: 2mm;
-}
-.guia-traslado[data-formato="termica"] .gt-prenda > span:first-child {
-  display: grid;
-  gap: 0.3mm;
 }
 .guia-traslado[data-formato="termica"] .gt-casilla {
   width: 12mm;
@@ -267,5 +269,53 @@
   #guia-traslado-print[data-formato="a4"] .guia-traslado {
     max-width: none;
     padding: 0;
+  }
+}
+
+/* ---- En el pase que sale (`QrDeLaGuia`, en el pie del frente; maqueta D, `.qr-b`) ----
+   Un QR chico sobre su cuadro de papel, con «va en la caja» debajo. Es un enlace a la guía: crece apenas bajo el mouse, sin
+   rebote (ADR-0136), y se queda quieto con `prefers-reduced-motion`. */
+.tp-qr {
+  flex-shrink: 0;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: transform 300ms var(--ease-cayla);
+}
+.tp-qr:hover {
+  transform: scale(1.06);
+}
+.tp-qr:focus-visible {
+  outline: 2px solid var(--color-tinta);
+  outline-offset: 3px;
+}
+.tp-qr-papel {
+  display: block;
+  width: 70px;
+  height: 70px;
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--color-vidrio);
+  border: 1px solid var(--color-sand);
+}
+.tp-qr-papel svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tp-qr small {
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tp-qr {
+    transition: none;
+  }
+  .tp-qr:hover {
+    transform: none;
   }
 }

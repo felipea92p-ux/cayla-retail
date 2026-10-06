@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Check, Minus, Plus, ScanLine, Store, Warehouse } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Check, Minus, Plus, Printer, ScanLine, Store, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -19,6 +20,7 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ejemploNotaCierre } from "@/lib/sugerencias-traslados";
 import { enlaceWhatsAppA } from "@/lib/facturacion-comprobantes-reglas";
 import { etiquetaDePrenda, mensajeParaLaOtraSede } from "@/lib/traslados-reglas";
+import { rutaDeLaGuia } from "@/lib/traslados-guia-reglas";
 import {
   anulacion,
   consecuenciaAnular,
@@ -55,7 +57,8 @@ import { firmar } from "@/lib/responsable-reglas";
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
 //    venía junto a lo que contaste, marca lo que no cuadra y nombra la prenda; eliges piso o almacén y confirmas: cae el sello.
 //  · Faltó algo: lo que no cuadra, y al líder de la sede destino, la nota para cerrar con la diferencia.
-//  · La enviaste: lo que va en la caja, el WhatsApp para la otra sede y, mientras nadie la cuente, anular con su motivo.
+//  · La enviaste: lo que va en la caja, la guía para pegarle (con su QR) y el WhatsApp para la otra sede y, mientras nadie la
+//    cuente, anular con su motivo.
 //  · Terminada o anulada: lo que llegó (o por qué se anuló) con la nota de quien la cerró.
 // La lógica de recibir es la de siempre (`useRecepcion`); aquí solo se dibuja y se decide qué toca.
 
@@ -499,9 +502,15 @@ export function ReversoPase({
           <>
             <div className="tp-fila">
               {esOrigen && (
-                <button type="button" onClick={avisarPorWhatsApp} className="btn-cayla btn-secundario">
-                  Avisar por WhatsApp
-                </button>
+                <>
+                  {/* La guía para pegar en la caja, con el QR que abre el conteo (ADR-0242 D-3). Ni ella ni el WhatsApp dicen cuántas van. */}
+                  <Link href={rutaDeLaGuia(t.id)} className="btn-cayla btn-secundario">
+                    <Printer aria-hidden strokeWidth={1.7} className="h-4 w-4" /> Guía
+                  </Link>
+                  <button type="button" onClick={avisarPorWhatsApp} className="btn-cayla btn-secundario">
+                    Avisar por WhatsApp
+                  </button>
+                </>
               )}
               {anular.mostrar && (
                 <button
