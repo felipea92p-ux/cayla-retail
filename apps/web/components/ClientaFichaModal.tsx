@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
-import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
@@ -380,12 +380,13 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               </div>
 
               <div className="flex items-end justify-between gap-3 border-b border-sand">
-                <TabsSubrayado
-                  etiqueta="Qué ver de este cliente"
-                  valor={vistaActual}
+                {/* Club o Actividad son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0358). La línea la pone la fila. */}
+                <Pestanas
+                  etiquetaAccesible="Qué ver de este cliente"
+                  idIndicador="ficha-cliente-vista"
+                  activa={vistaActual}
                   onCambio={(clave) => setVista(clave as Vista)}
-                  clasePestana="pb-2.5 text-sm"
-                  className="-mb-px"
+                  className="-mb-px border-b-0"
                   items={[
                     ...(conClub ? [{ clave: "club", etiqueta: "Club" }] : []),
                     { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad > 0 ? totalActividad : undefined },

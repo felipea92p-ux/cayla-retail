@@ -7,7 +7,6 @@ import { diaMes } from "@/lib/fechas-lima";
 import { Boton, Desplegable } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComprobanteProduccionDetalle } from "@/components/ComprobanteProduccionDetalle";
 import { ComprobanteProduccionForm } from "@/components/ComprobanteProduccionForm";
@@ -62,36 +61,30 @@ export function ComprobantesProduccionPanel({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
-          compacta
           punto={resumen.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          vacia={resumen.porPagar === 0}
-          valor={resumen.porPagar === 0 ? "—" : <CifraQueCuenta valor={resumen.porPagar} formato="soles" alMontar />}
+          valor={resumen.porPagar === 0 ? null : <CifraQueCuenta valor={resumen.porPagar} formato="soles" alMontar />}
         >
           {resumen.conSaldo > 0 ? plural(resumen.conSaldo, "factura con saldo", "facturas con saldo") : "nada pendiente"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto={resumen.nVencidos > 0 ? "rojo" : "verde"}
           etiqueta="Vencido"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={resumen.nVencidos === 0}
-          valor={resumen.nVencidos === 0 ? "—" : <CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
+          valor={resumen.nVencidos === 0 ? null : <CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
           detalleTono={resumen.nVencidos > 0 ? "text-rojo-profundo" : "text-verde-profundo"}
         >
           {resumen.nVencidos > 0 ? `${plural(resumen.nVencidos, "factura ya venció", "facturas ya vencieron")}` : "nada vencido"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto="verde"
           etiqueta="Comprado este mes"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          vacia={resumen.nDelMes === 0}
-          valor={resumen.nDelMes === 0 ? "—" : <CifraQueCuenta valor={resumen.delMes} formato="soles" alMontar />}
+          valor={resumen.nDelMes === 0 ? null : <CifraQueCuenta valor={resumen.delMes} formato="soles" alMontar />}
         >
           {resumen.nDelMes > 0 ? `${plural(resumen.nDelMes, "factura", "facturas")}, IGV incluido` : "sin facturas este mes"}
         </TarjetaCifra>
@@ -108,18 +101,22 @@ export function ComprobantesProduccionPanel({
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <SegmentoDeslizante
-              etiqueta="Filtrar por estado"
-              valor={estado}
-              onCambio={(c) => setEstado(c as FiltroEstado)}
-              opciones={[
-                { clave: "todos", etiqueta: "Todos", conteo: comprobantes.length },
-                { clave: "por_pagar", etiqueta: "Por pagar", conteo: conteo("por_pagar") },
-                { clave: "vencidos", etiqueta: "Vencidos", conteo: conteo("vencidos") },
-                { clave: "pagados", etiqueta: "Pagados", conteo: conteo("pagados") },
-                { clave: "anulados", etiqueta: "Anulados", conteo: conteo("anulados") },
-              ]}
-            />
+            {/* El estado deja menos comprobantes en la misma lista: la píldora de filtro, igual que en Compras (ADR-0358). */}
+            <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
+              {(
+                [
+                  { clave: "todos", etiqueta: "Todos", conteo: comprobantes.length },
+                  { clave: "por_pagar", etiqueta: "Por pagar", conteo: conteo("por_pagar") },
+                  { clave: "vencidos", etiqueta: "Vencidos", conteo: conteo("vencidos") },
+                  { clave: "pagados", etiqueta: "Pagados", conteo: conteo("pagados") },
+                  { clave: "anulados", etiqueta: "Anulados", conteo: conteo("anulados") },
+                ] as const
+              ).map((o) => (
+                <button key={o.clave} type="button" aria-pressed={estado === o.clave} onClick={() => setEstado(o.clave as FiltroEstado)} className="pildora-cayla">
+                  {o.etiqueta} <span className="pildora-cayla__n">{o.conteo}</span>
+                </button>
+              ))}
+            </div>
             <Desplegable
               valor={proveedorId}
               onValor={(v) => setProveedorId(v)}

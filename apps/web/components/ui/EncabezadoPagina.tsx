@@ -29,7 +29,7 @@ export function EncabezadoPagina({
   sinHora?: boolean;
   /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */
   detalle?: ReactNode;
-  /** La vuelta a la pantalla de arriba: `<Volver forma="flecha" … />`, una flecha a la izquierda de la línea «sede · fecha»
+  /** La vuelta a la pantalla de arriba: `<Volver … />`, una flecha a la izquierda de la línea «sede · fecha»
    *  (Felipe, 2026-10-06, ADR-0220 act.). Antes iba en `pie` como botón con texto y ocupaba una fila entera bajo la frase. */
   volver?: ReactNode;
   /** Lo que se hace desde la pantalla, la principal al final (Existencias: bajar al piso y nuevo traslado).

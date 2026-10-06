@@ -56,9 +56,11 @@ el repo es público.
       pendiente de ADR-0245 («Reponer con la lista cargada»). Producción ya recibe el modelo (`/produccion/ordenes?nueva=<producto>`).
 - [ ] **Etiquetas: rebaja con prendas marcadas.** «Liquidar» abre `/etiquetas-de-precio?variantes=` con el precio de hoy. La rebaja (las campañas
       de Atributos ▸ Etiquetas, `components/EtiquetasLista.tsx`) no recibe prendas por URL.
-- [ ] **Limpiar las libs del Análisis viejo**, sin pantalla desde la actividad 1: `lib/analisis-que-hacer.ts`, `resumen-desempeno.ts`,
+- [x] **Limpiar las libs del Análisis viejo**, sin pantalla desde la actividad 1: `lib/analisis-que-hacer.ts`, `resumen-desempeno.ts`,
       `resumen-comparacion.ts` y sus usos en `resumen-inventario.ts` (`getDesempenoInventario`, `getComparacionInventario`, `getFilasComparacion`,
-      `getExactitud`, `getRedPorVariante`), con sus pruebas.
+      `getExactitud`, `getRedPorVariante`), con sus pruebas. **Hecho el 2026-10-06** en `claude/happy-zhukovsky-325b9f`
+      (`docs/backlog/2026-10-06-happy-zhukovsky-325b9f.md`): no hubo que mover nada de `resumen-formato.ts`, porque lo que tomaba de
+      `rotacion.ts` y `resumen-comparacion.ts` también estaba muerto; la RPC se quedó.
   - Arrastran `resumen-lectura.ts` y lo que solo ellos usan de `rotacion.ts`, `resumen-armado.ts`, `resumen-filtros.ts`, `resumen-busqueda.ts` y
     `conteo-varianza.ts` (`exactitudConteos`).
   - Ojo: `resumen-formato.ts` (nueve archivos) les toma tipos y textos a `rotacion.ts` y `resumen-comparacion.ts`: moverlos primero.

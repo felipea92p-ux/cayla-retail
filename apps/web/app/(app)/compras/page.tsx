@@ -16,7 +16,6 @@ import { Chip } from "@/components/ui/Chip";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
-import { Pestanas } from "@/components/ui/Pestanas";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
@@ -39,8 +38,8 @@ import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 // pantalla sigue siendo de servidor con su estado en la URL; lo que se mueve es CSS puro
 // (app/estilos/comprobantes-lista.css) más tres piezas cliente mínimas. Al llegar, cabecera, tarjetas,
 // pestañas, filtros y filas entran escalonadas (`anim-entra` con `--i`) y las cifras cuentan una vez
-// (`CifraQueCuenta`); las barras de reparto y de avance se llenan; el subrayado de las pestañas y la
-// pastilla del orden VIAJAN (`IndicadorDeslizante`); y al cambiar de vista u orden las filas que se quedan
+// (`CifraQueCuenta`); las barras de reparto y de avance se llenan (desde el 2026-10-06 los estados son píldoras de
+// filtro y el orden un segmento de modo, sin viaje: ADR-0358); y al cambiar de vista u orden las filas que se quedan
 // se reacomodan en vez de saltar (`ComprobantesListaFilas`, FLIP). Buscar resalta lo encontrado.
 // `/` enfoca la búsqueda; `j`/`k` recorren las filas y `Enter` abre.
 
@@ -127,10 +126,9 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       </div>
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
-          directo a las vencidas), «Por recibir» a la pantalla de recepción. */}
+          directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <TarjetaCifra
-          compacta
           viva
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
@@ -141,18 +139,9 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar"}
           reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
         >
-          {resumen.vencidas > 0 ? (
-            <>
-              {cifra(resumen.vencidas, "vencida", "vencidas")} · {soles(resumen.vencido)} <span className="cmp-flecha">→</span>
-            </>
-          ) : (
-            <>
-              Sin vencidas <span className="cmp-flecha">→</span>
-            </>
-          )}
+          {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           viva
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
@@ -169,12 +158,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           ) : (
             <>
               {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)} por llegar <span className="cmp-flecha">→</span>
+              {soles(extra.valorPorRecibir)} por llegar
             </>
           )}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 3 }}
           etiqueta={`Compras de ${mesActual}`}
@@ -183,7 +171,6 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 4 }}
           punto="verde"
@@ -196,21 +183,24 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
       <MisPartesDeCompras partes={misPartes} indice={5} />
 
-      <Pestanas
-        deslizante
-        idIndicador="comprobantes-vistas"
-        className="anim-entra"
-        style={{ ["--i" as string]: 5 }}
-        etiquetaAccesible="Vistas de facturas"
-        activa={vista}
-        items={[
-          { clave: "todos", etiqueta: "Todos", href: hrefVista("todos"), conteo: resumen.registradas },
-          { clave: "por-pagar", etiqueta: "Por pagar", href: hrefVista("por-pagar"), conteo: resumen.conSaldo },
-          { clave: "por-recibir", etiqueta: "Por recibir", href: hrefVista("por-recibir"), conteo: resumen.porRecibir },
-          { clave: "vencidos", etiqueta: "Vencidos", href: hrefVista("vencidos"), conteo: resumen.vencidas },
-          { clave: "pagados", etiqueta: "Pagados", href: hrefVista("pagados"), conteo: pagados },
-        ]}
-      />
+      {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
+          con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
+          maqueta de ADR-0111. La vista sigue en la URL. */}
+      <nav aria-label="Vistas de facturas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
+        {(
+          [
+            { clave: "todos", etiqueta: "Todos", conteo: resumen.registradas },
+            { clave: "por-pagar", etiqueta: "Por pagar", conteo: resumen.conSaldo },
+            { clave: "por-recibir", etiqueta: "Por recibir", conteo: resumen.porRecibir },
+            { clave: "vencidos", etiqueta: "Vencidos", conteo: resumen.vencidas },
+            { clave: "pagados", etiqueta: "Pagados", conteo: pagados },
+          ] as const
+        ).map((p) => (
+          <Link key={p.clave} href={hrefVista(p.clave)} aria-current={vista === p.clave ? "page" : undefined} className="pildora-cayla shrink-0">
+            {p.etiqueta} <span className="pildora-cayla__n">{p.conteo.toLocaleString("es-PE")}</span>
+          </Link>
+        ))}
+      </nav>
 
       <div className="anim-entra" style={{ ["--i" as string]: 6 }}>
         <FiltrosCompras
@@ -220,8 +210,6 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           visibles={["proveedor", "pago", "recepcion", "destino", "condicion", "tipo", "fechas", "vencidas"]}
           accionesDespues={
             <SegmentoEnlaces
-              deslizante
-              idIndicador="comprobantes-orden"
               etiquetaAccesible="Ordenar facturas"
               activo={orden}
               opciones={[

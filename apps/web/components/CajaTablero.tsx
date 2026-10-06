@@ -21,6 +21,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { claveLocal, guardar, leer } from "@/lib/almacen-local";
 import {
   MODOS_CIERRES,
@@ -559,21 +560,24 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
           <p className="text-sm font-bold text-tinta">Cierres anteriores</p>
           <p className="text-xs text-tinta/50">{info.bajada}</p>
         </div>
-        <div role="group" aria-label="Ver los cierres como" className="inline-flex rounded-lg bg-hueso p-[3px]">
-          {MODOS_CIERRES.map((m) => (
-            <button
-              key={m.clave}
-              type="button"
-              aria-pressed={modo === m.clave}
-              onClick={() => cambiar(m.clave)}
-              className={`rounded-md px-2 py-1 text-[11.5px] transition-colors sm:px-2.5 ${modo === m.clave ? "bg-papel text-tinta shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_7%,transparent)]" : "text-tinta/60 hover:text-tinta"}`}
-            >
-              <span className="sm:hidden">{m.corta}</span>
-              <span className="hidden sm:inline">{m.etiqueta}</span>
-              {m.clave === predeterminado && <span aria-label="(predeterminada)" className="ml-1 inline-block h-[5px] w-[5px] rounded-full bg-rojo align-middle" />}
-            </button>
-          ))}
-        </div>
+        {/* Modo de vista (los mismos cierres de otra forma): el segmento del sistema, con la elegida en contorno de tinta
+            (ADR-0358), no la pista hueso del spike. */}
+        <SegmentoDeslizante
+          forma="modo"
+          etiqueta="Ver los cierres como"
+          valor={modo}
+          onCambio={(c) => cambiar(c as ModoCierres)}
+          opciones={MODOS_CIERRES.map((m) => ({
+            clave: m.clave,
+            etiqueta: (
+              <>
+                <span className="sm:hidden">{m.corta}</span>
+                <span className="hidden sm:inline">{m.etiqueta}</span>
+                {m.clave === predeterminado && <span aria-label="(predeterminada)" className="-ml-0.5 inline-block h-[5px] w-[5px] rounded-full bg-rojo align-middle" />}
+              </>
+            ),
+          }))}
+        />
       </div>
 
       <div key={modo} className="anim-sube">

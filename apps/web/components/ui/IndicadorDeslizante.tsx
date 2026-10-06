@@ -20,13 +20,19 @@ import { useEffect, useLayoutEffect, useRef } from "react";
    por `id` y solo se usa si es reciente (1,5 s): sirve para cambiar de pestaña, no para volver a la
    pantalla un rato después.
 
-   Sin JavaScript (o antes de hidratar) el servidor ya pinta la opción activa marcada con su propia
-   clase (`cmp-tab-activa` / `cmp-seg-activa`); en cuanto el indicador se coloca pone `data-indicador` en el
-   contenedor y esa marca estática se apaga. Los estilos viven en app/estilos/comprobantes-lista.css.
+   Sin JavaScript (o antes de hidratar) el servidor ya pinta la opción activa marcada con su propio borde
+   (`.pestana-cayla[aria-current]`); en cuanto el indicador se coloca pone `data-indicador` en el contenedor y
+   esa marca estática se apaga. Los estilos viven en app/estilos/comprobantes-lista.css (el viaje) y en
+   app/estilos/pestanas-y-segmentos.css (la pestaña).
 
    `selector` + `linea-tinta` (2026-09-28, Temporadas): la misma línea bajo un grupo de tarjetas que eligen una vista
    (`TarjetaCifra` con `onClick`, que marca la elegida con `aria-pressed`, no con `aria-current`). En tinta y no en rojo:
    esas tarjetas ya llevan el rojo de «pide algo» en su filete y su cifra (máximo dos rojos por pantalla).
+
+   Desde el 2026-10-07 (ADR-0358, «Pestañas y segmentos», elegido por Felipe mirando) `pildora-tinta` es la píldora oscura
+   que viaja bajo TODA pestaña de vista (`Pestanas`, en sus dos maneras: con `aria-current` o, por estado, con
+   `selector='[aria-selected="true"]'`): el vidrio de Comprobantes llevado a todo el ERP. `linea-tinta` queda para las
+   tarjetas que eligen una vista (Temporadas).
    ==================================================================== */
 
 type Posicion = { x: number; w: number };
@@ -35,7 +41,7 @@ const memoria = new Map<string, Posicion & { t: number }>();
 const VIGENCIA_MS = 1500;
 
 const SELECTOR_MARCADA = '[aria-current]:not([aria-current="false"])';
-const VARIANTE = { linea: "cmp-ind-linea", "linea-tinta": "cmp-ind-linea cmp-ind-tinta", pastilla: "cmp-ind-pastilla" } as const;
+const VARIANTE = { "linea-tinta": "cmp-ind-linea cmp-ind-tinta", "pildora-tinta": "cmp-ind-pildora" } as const;
 
 export function IndicadorDeslizante({
   activa,

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { ColoresLista } from "@/components/ColoresLista";
 import { TallasLista } from "@/components/TallasLista";
 import { TejidosLista } from "@/components/TejidosLista";
@@ -144,21 +144,18 @@ export function AtributosHub({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-0.5 rounded-lg bg-sand p-0.5">
-        {TABS.filter((t) => !tipos || tipos.includes(t.tipo)).map((t) => (
-          <Link
-            key={t.tipo}
-            href={`/productos/atributos?tipo=${t.tipo}`}
-            aria-current={tipo === t.tipo ? "page" : undefined}
-            className={`label-cayla flex items-center gap-1.5 rounded-md px-3 py-2 text-[10.5px] transition-colors ${
-              tipo === t.tipo ? "bg-papel text-tinta" : "text-tinta/60 hover:text-tinta"
-            }`}
-          >
-            <IconoTab d={t.icono} />
-            {t.etiqueta}
-          </Link>
-        ))}
-      </div>
+      {/* Cada atributo es otra sección (otra lista, otras acciones): la pestaña de vista del sistema (ADR-0358), con su icono. */}
+      <Pestanas
+        etiquetaAccesible="Atributos"
+        idIndicador="atributos-secciones"
+        activa={tipo}
+        items={TABS.filter((t) => !tipos || tipos.includes(t.tipo)).map((t) => ({
+          clave: t.tipo,
+          etiqueta: t.etiqueta,
+          href: `/productos/atributos?tipo=${t.tipo}`,
+          icono: <IconoTab d={t.icono} />,
+        }))}
+      />
 
       <p className="text-xs text-tinta/60">{AYUDA[tipo]}</p>
 

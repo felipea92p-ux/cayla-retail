@@ -64,7 +64,6 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
       {/* ==================== cifras ==================== */}
       <div className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
         <TarjetaCifra
-          compacta
           punto={bajos > 0 ? "ambar" : "verde"}
           etiqueta="Bajo el mínimo"
           className="anim-entra"
@@ -76,18 +75,16 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
         </TarjetaCifra>
         {esLider && (
           <TarjetaCifra
-            compacta
             punto="verde"
             etiqueta="Capital en insumos"
             className="anim-entra"
             style={{ ["--i" as string]: 1 }}
-            vacia={capital === null || insumos.length === 0}
-            valor={capital === null || insumos.length === 0 ? "—" : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
+            valor={capital === null || insumos.length === 0 ? null : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
           >
             a costo de cada lote
           </TarjetaCifra>
         )}
-        <TarjetaCifra compacta punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
           {plural(insumos.filter((i) => i.tipo === "tela").length, "tela", "telas")} · {plural(insumos.filter((i) => i.tipo === "avio").length, "avío", "avíos")}
         </TarjetaCifra>
       </div>

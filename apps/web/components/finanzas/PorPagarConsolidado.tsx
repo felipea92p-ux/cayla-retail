@@ -66,7 +66,6 @@ export function PorPagarConsolidado({
             {tramos.map((t, i) => (
               <TarjetaCifra
                 key={t.clave}
-                compacta
                 etiqueta={t.etiqueta}
                 tono={t.clave === "vencidas" && t.monto > 0 ? "text-rojo" : undefined}
                 valor={solesRedondo(t.monto)}

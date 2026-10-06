@@ -10,7 +10,7 @@ import type { SegmentoConcentracion } from "@/lib/por-pagar-reglas";
 // Controles chicos de Por pagar que necesitan cliente (spike 2026-09-19). Cada uno resuelve algo concreto:
 //  · BarraConcentracion: «62 %» no decía QUIÉN. La barra reparte la deuda entre los proveedores que más se
 //    les debe; apuntar a un tramo enciende sus filas en la lista y un clic filtra a ese proveedor.
-//  · SelectorAgrupar: «Por urgencia | Por proveedor» con un pulgar que viaja y filas que se deslizan.
+//  · SelectorAgrupar: «Por urgencia | Por proveedor», el segmento de modo del sistema (ADR-0358), y filas que se deslizan.
 //  · BotonSoloVencidas: el filtro que más se usa, a un clic y con su cuenta, sin abrir el panel de filtros.
 
 const TONOS = ["bg-tinta", "bg-tinta/45", "bg-tinta/25", "bg-tinta/15"];
@@ -54,6 +54,7 @@ export function SelectorAgrupar() {
   const { agrupar, cambiarAgrupar } = usePorPagar();
   return (
     <SegmentoDeslizante
+      forma="modo"
       etiqueta="Cómo agrupar la deuda"
       valor={agrupar}
       onCambio={(v) => cambiarAgrupar(v as Agrupar)}
@@ -61,7 +62,6 @@ export function SelectorAgrupar() {
         { clave: "urgencia", etiqueta: "Por urgencia" },
         { clave: "proveedor", etiqueta: "Por proveedor" },
       ]}
-      className="h-9 [&_button]:py-0"
     />
   );
 }
@@ -86,12 +86,11 @@ export function BotonSoloVencidas({ cantidad }: { cantidad: number }) {
       onClick={alternar}
       aria-pressed={activo}
       // `hidden sm:inline-flex`: en celular no cabe junto al agrupar y al botón de Filtros; ahí lo cubren la tarjeta «Vencido» y el panel.
-      className={`label-cayla hidden h-9 items-center gap-2 rounded-lg border px-3 text-[11px] transition-colors duration-200 sm:inline-flex ${
-        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/65 hover:border-rojo hover:text-rojo"
-      }`}
+      // Deja menos comprobantes: la píldora de filtro del sistema (ADR-0358), rellena de tinta cuando filtra.
+      className="pildora-cayla hidden sm:inline-flex"
     >
       Solo vencidas
-      {cantidad > 0 && <span className="font-medium tracking-normal opacity-70 dark:opacity-85">· {cantidad}</span>}
+      {cantidad > 0 && <span className="pildora-cayla__n">· {cantidad}</span>}
     </button>
   );
 }
