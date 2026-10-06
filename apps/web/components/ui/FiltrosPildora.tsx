@@ -26,7 +26,42 @@ export { TODOS };
 /** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
  *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
  *  consumidor sobre el `<span>` de etiqueta transparente que los empareja). */
-export function BotonFiltros({ abierto, activos, onClick }: { abierto: boolean; activos: number; onClick: () => void }) {
+export function BotonFiltros({
+  abierto,
+  activos,
+  onClick,
+  soloIcono = false,
+}: {
+  abierto: boolean;
+  activos: number;
+  onClick: () => void;
+  /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
+   *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
+  soloIcono?: boolean;
+}) {
+  if (soloIcono) {
+    const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-expanded={abierto}
+        aria-controls="filtros-panel"
+        aria-label={nombre}
+        title={nombre}
+        className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+          abierto || activos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-sand bg-papel text-tinta/65 hover:border-taupe hover:text-tinta"
+        }`}
+      >
+        <SlidersHorizontal aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+        {activos > 0 && (
+          <b aria-hidden className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-tinta px-1 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
+            {activos}
+          </b>
+        )}
+      </button>
+    );
+  }
   return (
     <button
       type="button"

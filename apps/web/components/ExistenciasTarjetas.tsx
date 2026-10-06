@@ -218,7 +218,8 @@ export function ExistenciasTarjetas({
             }}
             tabIndex={-1}
             aria-label={etiqueta}
-            className="card-cayla flex min-w-0 flex-col gap-2.5 p-3.5 transition-colors hover:border-tinta/20"
+            // `@container`: la acción dice su nombre en una tablet solo si la tarjeta tiene ancho (`AccionesTarjeta`).
+            className="card-cayla @container flex min-w-0 flex-col gap-2.5 p-3.5 transition-colors hover:border-tinta/20"
           >
             {/* Foto (o su categoría sobre su color), nombre, marca y categoría, y el precio. Toda la cabecera abre el panel (maqueta). */}
             <button
@@ -239,8 +240,10 @@ export function ExistenciasTarjetas({
               {p.precio != null && <span className="font-display text-base tabular-nums text-tinta">S/ {p.precio.toFixed(2)}</span>}
             </button>
 
-            {/* Los colores del modelo con el nombre del que se ve; con un filtro, un punto en los colores que lo cumplen. */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {/* Los colores del modelo con el nombre del que se ve (con un filtro, un punto en los que lo cumplen) y, a la derecha, la acción
+                (2026-10-06): antes tenía una fila propia abajo, vacía salvo por el icono. Así las acciones de una fila de tarjetas quedan a
+                la misma altura. Si no caben (muchos colores en una tarjeta angosta), la acción baja sola a la derecha. */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
               <div className="flex items-center gap-2" role="radiogroup" aria-label={`Color de ${p.referencia}`}>
                 {m.colores.map((h) => {
                   const propia = h.clave === p.clave;
@@ -265,7 +268,18 @@ export function ExistenciasTarjetas({
                   );
                 })}
               </div>
-              <span className="text-[12.5px] text-taupe">{p.color ?? "Sin color"}</span>
+              <span className="min-w-0 flex-1 truncate text-[12.5px] text-taupe">{p.color ?? "Sin color"}</span>
+              {/* Lo que la prenda tiene aparte se dice para el lector de pantalla; a la vista, en el panel de la talla y en los atajos. */}
+              <span className="sr-only">
+                {separa && <EstadoParaLector prenda={p} />}
+                {p.danado > 0 && ` ${p.danado} ${p.danado === 1 ? "dañada" : "dañadas"}.`}
+                {p.apartado > 0 && ` ${p.apartado} ${p.apartado === 1 ? "apartada" : "apartadas"}.`}
+              </span>
+              {filas.length > 0 && (
+                <div className="ml-auto">
+                  <AccionesTarjeta etiqueta={etiqueta} filas={filas} alElegir={alElegir} />
+                </div>
+              )}
             </div>
 
             {/* Las tallas como botones; con muchas, bajan a otra fila. */}
@@ -277,16 +291,6 @@ export function ExistenciasTarjetas({
               ))}
             </ul>
 
-            {/* Abajo: UN icono con sus acciones (maqueta). Lo que la prenda tiene aparte se dice para el lector de pantalla; a la vista,
-                en el panel de la talla y en los filtros «Apartadas» y «Dañadas». */}
-            <div className="mt-auto flex min-h-10 flex-wrap items-center justify-end gap-x-3 gap-y-2">
-              <span className="sr-only">
-                {separa && <EstadoParaLector prenda={p} />}
-                {p.danado > 0 && ` ${p.danado} ${p.danado === 1 ? "dañada" : "dañadas"}.`}
-                {p.apartado > 0 && ` ${p.apartado} ${p.apartado === 1 ? "apartada" : "apartadas"}.`}
-              </span>
-              {filas.length > 0 && <AccionesTarjeta etiqueta={etiqueta} filas={filas} alElegir={alElegir} />}
-            </div>
             {/* Un filtro dejó solo algunas tallas y las cifras suman solo esas. */}
             {recortada && (
               <p className="text-[11px] leading-snug text-taupe" title="Las cifras de esta tarjeta suman solo estas tallas: las que dejan los filtros. Quita Talla o el texto buscado para ver todas.">
