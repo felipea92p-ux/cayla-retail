@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
-import { firmaOmitida } from "@/lib/responsable-omitido";
+import { useResponsable } from "@/lib/useResponsable";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { cifrasPorRegularizar, estaVencida, tipoDiferencia, DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
+import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, siguienteOrden, tipoDiferencia, DIAS_PARA_VENCER, ORDEN_INICIAL, VENTAS_POR_PAGINA, type CampoOrden, type Orden } from "@/lib/por-regularizar-reglas";
+import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, motivoLegible, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
@@ -17,6 +20,7 @@ import { Campo, Desplegable } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { Tabla, Encabezado, fila, celda, TABLA } from "@/components/ui/Tabla";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
@@ -27,10 +31,10 @@ export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_6rem_7.5rem_minmax(0,1.6fr)]";
 const COLUMNAS = [
-  { titulo: "Prenda (lo que anotó caja)" },
-  { titulo: "Vendió" },
-  { titulo: "Cobrado", alinear: "der" as const },
-  { titulo: "Estado" },
+  { titulo: "Prenda (lo que anotó caja)", campo: "prenda", ayuda: "Ordenar de la A a la Z" },
+  { titulo: "Vendió", campo: "vendio", ayuda: "Ordenar por fecha de venta" },
+  { titulo: "Cobrado", campo: "cobrado", alinear: "der" as const, ayuda: "Ordenar por lo que se cobró" },
+  { titulo: "Estado", campo: "estado", ayuda: "Ordenar por urgencia: primero las vencidas" },
   { titulo: "" },
 ];
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;
@@ -75,7 +79,37 @@ export function PorRegularizarLista({
   const ahora = useMemo(() => new Date(), []);
   const cifras = useMemo(() => cifrasPorRegularizar(filas, ahora), [filas, ahora]);
   const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
-  const visibles = filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien));
+  const [busqueda, setBusqueda] = useState("");
+  // Al abrir, de la venta más reciente a la más antigua (Felipe, 2026-10-06); tocar un encabezado ordena por esa columna. Todo en
+  // páginas de VENTAS_POR_PAGINA. Las cifras de arriba cuentan TODAS las pendientes (`filas`), no solo la página que se ve: una
+  // vencida en la página 4 sigue sumando en «Vencidas». La búsqueda es local (las filas ya están aquí): no va a la base ni a la URL.
+  const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL);
+  const visibles = useMemo(
+    () =>
+      ordenarVentas(
+        filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien) && coincideConBusqueda(f, busqueda)),
+        orden,
+        ahora,
+      ),
+    [filas, filtro, quien, busqueda, orden, ahora],
+  );
+  // Cambiar un filtro vuelve a la página 1 (ajuste durante el render, como Comprobantes); `paginar` acota si la lista se achicó
+  // (regularizaste la última de la página 3 y la lista quedó de 2 páginas).
+  const [pagina, setPagina] = useState(1);
+  const firmaFiltros = `${filtro}\u0000${quien}\u0000${busqueda}\u0000${orden.campo}${orden.dir}`;
+  const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
+  if (firmaFiltros !== firmaPrevia) {
+    setFirmaPrevia(firmaFiltros);
+    setPagina(1);
+  }
+  const paginaActual = paginar(visibles, pagina, VENTAS_POR_PAGINA);
+  const tarjetaRef = useRef<HTMLDivElement>(null);
+  function irAPagina(n: number) {
+    setPagina(n);
+    // El paginador está al pie: al cambiar de página, la lista empieza a leerse desde arriba.
+    const tarjeta = tarjetaRef.current;
+    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+  }
   // Las tiendas que se pueden cerrar HOY: con pendientes y con plazo vigente. Sin ninguna, el botón no existe.
   const sedesDelLider = useMemo(() => (esLider ? sedesParaCerrar(filas, plazos, ahora) : []), [esLider, filas, plazos, ahora]);
   const sedesCerrables = useMemo(() => sedesDelLider.filter((s) => s.puedeCerrar), [sedesDelLider]);
@@ -101,7 +135,34 @@ export function PorRegularizarLista({
         </TarjetaCifra>
       </div>
 
+      <div ref={tarjetaRef}>
       <Tabla className="anim-entra" style={{ "--i": 4 } as CSSProperties}>
+        <div className="px-5 pt-3">
+          <label className="relative block">
+            <span className="sr-only">Buscar una venta sin registrar</span>
+            <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/45" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && busqueda) {
+                  e.preventDefault();
+                  setBusqueda("");
+                }
+              }}
+              maxLength={120}
+              autoComplete="off"
+              placeholder="Buscar prenda, color, talla, quién vendió o precio"
+              className="h-9 w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {busqueda && (
+              <button type="button" aria-label="Borrar la búsqueda" onClick={() => setBusqueda("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
+                <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </label>
+        </div>
         <div className="flex flex-wrap items-center gap-2 px-5 py-3">
           {FILTROS.map((f) => (
             <button key={f.clave} type="button" aria-pressed={filtro === f.clave} onClick={() => setFiltro(f.clave)} className="pildora-cayla">
@@ -137,11 +198,17 @@ export function PorRegularizarLista({
             ))}
           </ul>
         )}
-        <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
+        <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c as CampoOrden))} />
         {visibles.length === 0 && (
-          <p className={TABLA.vacio}>{filtro === "pendiente" ? `No hay prendas por regularizar en ${ubicacionEtiqueta}.` : "Nada que mostrar con estos filtros."}</p>
+          <p className={TABLA.vacio}>
+            {busqueda.trim()
+              ? `Ninguna venta coincide con «${busqueda.trim()}».`
+              : filtro === "pendiente"
+                ? `No hay prendas por regularizar en ${ubicacionEtiqueta}.`
+                : "Nada que mostrar con estos filtros."}
+          </p>
         )}
-        {visibles.map((f) => {
+        {paginaActual.filas.map((f) => {
           const { dia, hora } = diaYHoraLima(f.vendidoEn);
           const vencida = f.estado === "pendiente" && estaVencida(f.vendidoEn, ahora);
           return (
@@ -197,12 +264,21 @@ export function PorRegularizarLista({
             </div>
           );
         })}
+        {paginaActual.totalPaginas > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 px-5 py-3 text-xs text-taupe">
+            <span>
+              Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
+            </span>
+            <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
+          </div>
+        )}
       </Tabla>
+      </div>
 
       <p className="nota-cayla text-sm">
         Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda
         cuadrado. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder. Las pendientes salen todas, sin importar cuándo se
-        vendieron; las ya resueltas, las de este mes y el anterior. Las que ya no se pueden identificar, un líder puede cerrarlas todas
+        vendieron (al abrir, de la más reciente a la más antigua; toca el título de una columna para ordenar); las ya resueltas, las de este mes y el anterior. Las que ya no se pueden identificar, un líder puede cerrarlas todas
         juntas dentro del plazo de su tienda: quedan sin prenda y el stock no cambia.
       </p>
 
@@ -241,7 +317,9 @@ function RegularizarModal({
   const [elegidaId, setElegidaId] = useState("");
   const [forma, setForma] = useState<"ya_registrada" | "llego_nueva" | null>(null);
   const [guardando, setGuardando] = useState(false);
-  // Regularizar va sin responsable (Felipe, 2026-09-29): firma la cuenta, sin combo.
+  // Regularizar vuelve a pedir «Responsable» (Felipe, 2026-10-06): con la terminal de la tienda la cuenta no es nadie, y la venta
+  // sin registrar la regulariza la colaboradora de turno, que se identifica ella misma. Con la cuenta de una persona viene elegida.
+  const responsable = useResponsable();
 
   const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
   // Primero las que calzan con lo que anotó caja (categoría, talla y color): así almacén la encuentra sin tipear.
@@ -253,13 +331,14 @@ function RegularizarModal({
   }, [prendas, f.categoria, f.talla, f.color]);
 
   async function guardar() {
-    if (!elegida || !forma) return;
+    if (!elegida || !forma || !responsable.listo) return;
     setGuardando(true);
     const { data, error } = await firmar(
       createClient().rpc("regularizar_prenda", { p_id: f.id, p_variante_id: elegida.id, p_forma: forma }),
-      firmaOmitida("regularizar_prenda"),
+      responsable.firma(),
     );
     setGuardando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "regularizar la prenda"));
       return;
@@ -317,10 +396,13 @@ function RegularizarModal({
           )}
         </div>
 
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+
         <button
           type="button"
           onClick={guardar}
-          disabled={guardando || !elegida || !forma}
+          disabled={guardando || !elegida || !forma || !responsable.listo}
+          title={responsable.motivo ?? undefined}
           className={`${botonPrimario} w-full`}
         >
           {guardando ? "Guardando…" : "Regularizar"}

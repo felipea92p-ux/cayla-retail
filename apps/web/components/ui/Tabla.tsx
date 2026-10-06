@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { ArrowDown } from "lucide-react";
 
 /* ====================================================================
    Tabla · listados con encabezado (2026-09-12, módulo de Compras)
@@ -38,7 +39,13 @@ export type Columna = {
   /** Clases extra del título: para mostrarlo solo desde cierto ancho de la TABLA (`hidden @min-[1070px]:block`, con
    *  `@container` en la `Tabla`), la misma condición que esconde la celda de cada fila. */
   clase?: string;
+  /** Con `orden` y `onOrden` en `Encabezado`, el título se vuelve un botón que ordena la tabla por este campo. Sin `campo`, la columna
+   *  no ordena (la de acciones, una que no tiene un valor que comparar). */
+  campo?: string;
 };
+
+/** Cómo está ordenada una tabla: por qué campo y hacia dónde. */
+export type OrdenTabla = { campo: string; dir: "asc" | "desc" };
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
 
@@ -81,10 +88,16 @@ export function Encabezado({
   plantilla,
   siempre = false,
   grande = false,
+  orden,
+  onOrden,
 }: {
   columnas: Columna[];
   plantilla: string;
   siempre?: boolean;
+  /** El orden vigente y quién lo cambia: las columnas que declaran `campo` ordenan al tocarse (la flecha dice hacia dónde y gira al
+   *  invertir; `aria-sort` para el lector de pantalla). Las filas se ordenan en quien llama, no aquí. */
+  orden?: OrdenTabla;
+  onOrden?: (campo: string) => void;
   /** Un poco más de alto y la segunda línea del mismo tamaño que el título: las listas de Existencias del diseño aprobado
    *  (2026-09-28). Las demás tablas siguen con el encabezado chico de siempre. */
   grande?: boolean;
@@ -98,7 +111,22 @@ export function Encabezado({
           className={`${grande ? "text-xs font-normal leading-snug text-taupe" : TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""} ${c.clase ?? ""}`}
           role="columnheader"
         >
-          {c.titulo}
+          {c.campo && onOrden ? (
+            <button
+              type="button"
+              onClick={() => onOrden(c.campo!)}
+              aria-sort={orden?.campo === c.campo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
+              className={`inline-flex max-w-full items-center gap-1 transition-colors hover:text-rojo ${orden?.campo === c.campo ? "text-tinta" : ""} ${c.alinear === "der" ? "flex-row-reverse" : ""}`}
+            >
+              <span className="truncate">{c.titulo}</span>
+              <ArrowDown
+                aria-hidden
+                className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${orden?.campo === c.campo ? "opacity-100" : "opacity-35"} ${orden?.campo === c.campo && orden.dir === "asc" ? "rotate-180" : ""}`}
+              />
+            </button>
+          ) : (
+            c.titulo
+          )}
           {c.subtitulo && <span className={`block truncate ${grande ? "text-xs" : "text-[10px]"} text-taupe`}>{c.subtitulo}</span>}
         </span>
       ))}
