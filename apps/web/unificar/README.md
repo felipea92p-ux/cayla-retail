@@ -17,6 +17,14 @@ pnpm --filter web unificar:censo -- --listar                               # fam
 pnpm --filter web unificar:deuda [familia]                                 # lo que todavía dibuja a mano una familia decidida
 ```
 
+Desde la raíz del repo valen los mismos comandos sin `--filter web` (`pnpm unificar:censo -- …`, `pnpm unificar:fotos -- …`,
+`pnpm unificar:deuda`); las rutas de `--salida` y `--comparar` siguen siendo relativas a `apps/web`. Con `node` a secas, hay que estar en
+`apps/web` (`node unificar/fotos.mjs …`): desde la raíz, Node no encuentra el script.
+
+Fotos antes/después de una migración (paso 7 de la skill): `pnpm unificar:fotos -- --base-url <url> --salida unificar/.salida/fotos-antes`,
+lo mismo con `fotos-despues` al terminar, y `pnpm unificar:fotos -- --comparar unificar/.salida/fotos-antes unificar/.salida/fotos-despues`,
+que arma `fotos-despues/comparar.html`.
+
 Salida en `unificar/.salida/<fecha>/` (fuera de git; se regenera):
 
 | Archivo | Qué es | Para quién |
