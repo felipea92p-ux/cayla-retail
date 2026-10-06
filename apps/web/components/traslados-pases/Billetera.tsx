@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import { MiniPase } from "@/components/traslados-pases/MiniPase";
 import { coincideBusqueda } from "@/lib/traslados-reglas";
-import { PESTANAS, paseInicial, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
+import { PESTANAS, paseInicial, textoDelAnillo, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
 import type { Billetera as DatosBilletera, PaseDeBilletera } from "@/lib/traslados-billetera";
 
 // La billetera de Traslados (ADR-0355): a la izquierda, los pases apilados por pestaña (Te llegan · Envías · Terminadas) con lo
@@ -35,7 +35,8 @@ export function useVecinos(id: string) {
   }, [ctx, id]);
 }
 
-function Anillo({ hechas, total, fraccion }: { hechas: number; total: number; fraccion: number }) {
+/** El anillo del día, solo como dibujo: lo que dice va en palabras al lado (Formidable, 2026-10-06: «3/4» no se entendió). */
+function Anillo({ fraccion }: { fraccion: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   useAlVerse(ref);
   return (
@@ -44,9 +45,6 @@ function Anillo({ hechas, total, fraccion }: { hechas: number; total: number; fr
         <circle className="tp-anillo-fondo" cx="24" cy="24" r="20" />
         <circle className="tp-anillo-valor" cx="24" cy="24" r="20" />
       </svg>
-      <b>
-        {hechas}/{total}
-      </b>
     </span>
   );
 }
@@ -96,26 +94,16 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
   }, [router, seleccion]);
 
   const { anillo } = billetera;
+  const dia = textoDelAnillo(anillo);
   return (
     <CtxBilletera.Provider value={{ billetera, seleccion, idEnRuta }}>
       <div className="tp-cols" data-con-pase={idEnRuta ? "" : undefined}>
         <aside className="tp-billetera" aria-label="Tus cajas">
           <div className="tp-dia">
-            <Anillo hechas={anillo.hechas} total={anillo.total} fraccion={anillo.fraccion} />
+            <Anillo fraccion={anillo.fraccion} />
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-tinta">
-                {anillo.pendientes === 0 ? (
-                  "Nada pendiente hoy"
-                ) : (
-                  <>
-                    Te {anillo.pendientes === 1 ? "toca" : "tocan"} <span className="font-display text-[26px] font-normal leading-none">{anillo.pendientes}</span>{" "}
-                    {anillo.pendientes === 1 ? "cosa" : "cosas"} hoy
-                  </>
-                )}
-              </p>
-              <p className="text-xs text-tinta/65">
-                {anillo.hechas > 0 ? `Llevas ${anillo.hechas} ${anillo.hechas === 1 ? "hecha" : "hechas"}` : anillo.pendientes > 0 ? "Empieza por la primera caja" : "Todo al día"}
-              </p>
+              <p className="text-sm font-semibold text-tinta">{dia.titulo}</p>
+              <p className="text-xs text-tinta/65">{dia.detalle}</p>
             </div>
           </div>
 
