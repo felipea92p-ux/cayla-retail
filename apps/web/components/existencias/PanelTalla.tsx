@@ -125,6 +125,8 @@ export function PanelTalla({
   const diag = fila ? diagnosticoDeTalla(fila, separa) : null;
   const ritmo = fila ? textoDeRitmo(ritmoDePrenda({ ...prenda, tallas: [fila], disponible: fila.disponible })) : null;
   const precio = solesDe(prenda.precio);
+  // Es del producto: cualquier talla de cualquier color la trae igual (`conDescripcion`, página de Existencias).
+  const descripcion = prenda.tallas.find((t) => t.descripcion)?.descripcion ?? null;
   const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
   const frase = fraseDeLoQueFalta(colores);
   // Tallas del modelo sin nada aquí pero con stock en otra sede: lo que la maqueta lista con su «Pedir».
@@ -201,6 +203,9 @@ export function PanelTalla({
             <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="grid h-11 w-11 place-items-center rounded-full bg-hueso text-tinta transition-colors hover:text-rojo">
               <X aria-hidden className="h-5 w-5" strokeWidth={1.5} />
             </button>
+            {/* La descripción de la prenda (Felipe, 2026-10-06), a todo el ancho bajo el nombre: es del modelo, no cambia con el color ni con
+                la vista. Sin descripción no se dibuja nada. */}
+            {descripcion && <p className="col-span-3 whitespace-pre-line break-words text-[13px] leading-snug text-tinta/80">{descripcion}</p>}
           </div>
 
           {/* Vistas, color y talla. */}

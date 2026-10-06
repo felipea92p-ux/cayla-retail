@@ -243,6 +243,9 @@ export type FilaExistencias = FilaStock & {
   /** `productos.estado` («activo»/«descontinuado»), para la ventana «Eliminar» (ADR-0252). Lo pone la página con
    *  `conEstadoProducto`, de la misma lectura que la marca. Ausente o null = no se pudo leer. */
   estadoProducto?: string | null;
+  /** `productos.descripcion`, para la cabecera del panel de la talla. La pone la página con `conDescripcion`, de la misma lectura
+   *  que la marca. Ausente o null = no tiene, o no se pudo leer. */
+  descripcion?: string | null;
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;

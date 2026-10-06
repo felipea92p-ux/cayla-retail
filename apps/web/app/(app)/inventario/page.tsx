@@ -17,7 +17,7 @@ import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
 import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
-import { conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
+import { conDescripcion, conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { InventarioPanel } from "@/components/InventarioPanel";
@@ -124,15 +124,19 @@ export default async function InventarioPage({
   // decisión de reponer (que no depende de la RPC) sigue firme. La marca (2026-09-26) se suma
   // encima: si el catálogo no respondió, cada fila queda sin marca y el panel lo avisa.
   // La familia de cada color (2026-10-03) va igual: sin ella, el filtro de color queda como lista plana.
+  // La descripción (2026-10-06) sale de la misma lectura: sin ella, el panel de la talla no dibuja nada bajo el nombre.
   const stock = conFamiliaDeColor(
-    conEstadoProducto(
-      conMarca(
-        stockBase.map((f) => ({
-          ...f,
-          ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
-          coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-          planPiso: planPiso.get(f.varianteId) ?? null,
-        })),
+    conDescripcion(
+      conEstadoProducto(
+        conMarca(
+          stockBase.map((f) => ({
+            ...f,
+            ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
+            coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
+            planPiso: planPiso.get(f.varianteId) ?? null,
+          })),
+          catalogo.productos
+        ),
         catalogo.productos
       ),
       catalogo.productos
