@@ -23,8 +23,7 @@ import { claveReferencia, leerErrorAlta, tituloReferencia, type ColorAlta } from
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { problemaAlEditar } from "@/lib/marca-proveedor-reglas";
 import { useParecidos } from "@/lib/use-parecidos";
-import { firmar } from "@/lib/responsable-reglas";
-import { firmaOmitida } from "@/lib/responsable-omitido";
+import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
 import {
   cambioDeDato,
   resumenDeCambios,
@@ -354,8 +353,10 @@ export function ProductoForm({
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
   // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
-  // Editar una prenda es Catálogo; desde 2026-09-29 se guarda sin elegir responsable: todas las llamadas de «Confirmar y
-  // guardar» van con la misma firma soltada (`producto_confirmar_cambios`): son un solo gesto.
+  // Editar una prenda firma con UN responsable (ADR-0354, Felipe 2026-10-06): el historial de la prenda dice quién cambió cada
+  // cosa. Es el mismo combo del ajuste de stock (`stock.responsable`, recordado por prenda): una sola persona por guardado, y
+  // todas las llamadas de «Confirmar y guardar» van con esa firma (son un solo gesto). De 2026-09-29 a 2026-10-06 se guardaba
+  // sin elegir a nadie (`producto_confirmar_cambios`) y, en una terminal, el cambio quedaba sin firma.
   const opcionesEtiqueta = etiquetas.map((e) => ({ valor: e.id, texto: e.texto, estilo: e.estilo }));
 
   // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
@@ -690,8 +691,8 @@ export function ProductoForm({
     setHojaAbierta(true);
   }
 
-  /** «Confirmar y guardar», desde la hoja. Devuelve si la hoja debe cerrarse: siempre `true` (sin combo «Responsable» ya no hay
-   *  nada que elegir ahí); con un error se cierra para que se vea la ficha y el campo a corregir. */
+  /** «Confirmar y guardar», desde la hoja. Devuelve si la hoja debe cerrarse: `false` solo cuando falta o no vale el «Responsable»
+   *  (se elige ahí mismo, en la hoja); con cualquier otro error se cierra para que se vea la ficha y el campo a corregir. */
   async function guardar(): Promise<boolean> {
     if (!producto) return true;
     // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
@@ -705,7 +706,11 @@ export function ProductoForm({
       if (ok) terminarGuardado(referencia.trim(), [], false, 0, 0, filas);
       return true;
     }
-    const firma = firmaOmitida("producto_confirmar_cambios");
+    const firma = stock.responsable.firma();
+    if (!firma) {
+      avisar.error(stock.responsable.motivo ?? "Elige quién hace estos cambios.", { enfocar: "confirmar-cambios-responsable" });
+      return false;
+    }
     // Lo que dirá el aviso de éxito, tomado ANTES de que el guardado toque nada.
     const hecho = resumen.frasesPasado;
 
@@ -753,6 +758,14 @@ export function ProductoForm({
       firma
     ));
 
+    stock.responsable.despues(error);
+    if (error && esErrorDeResponsable(error)) {
+      // Quien se eligió ya no está de turno (o no marcó su entrada): la hoja sigue abierta para elegir a otra persona.
+      cerrarProceso();
+      setLoading(false);
+      avisar.error(traducirError(error, "guardar el producto"), { enfocar: "confirmar-cambios-responsable" });
+      return false;
+    }
     if (error) {
       cerrarProceso();
       setLoading(false);
@@ -1747,6 +1760,7 @@ export function ProductoForm({
           avisos={avisosSinBloquear}
           notaAgregan={notaAgregan}
           extra={grupoStock}
+          responsable={stock.responsable}
           onConfirmar={guardar}
           onClose={() => setHojaAbierta(false)}
         />

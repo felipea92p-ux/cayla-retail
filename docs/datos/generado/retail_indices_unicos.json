@@ -130,6 +130,11 @@
   "tablename": "catalogo_version"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX categoria_grupo_mix_pkey ON retail.categoria_grupo_mix USING btree (categoria_id)",
+  "indexname": "categoria_grupo_mix_pkey",
+  "tablename": "categoria_grupo_mix"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX categoria_patrones_pkey ON retail.categoria_patrones USING btree (categoria_id, patron_id)",
   "indexname": "categoria_patrones_pkey",
   "tablename": "categoria_patrones"
@@ -738,6 +743,16 @@
   "indexdef": "CREATE UNIQUE INDEX gastos_legado_2026_09_token_cliente_key ON retail.gastos_legado_2026_09 USING btree (token_cliente)",
   "indexname": "gastos_legado_2026_09_token_cliente_key",
   "tablename": "gastos_legado_2026_09"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX grupos_mix_orden_unico ON retail.grupos_mix USING btree (orden)",
+  "indexname": "grupos_mix_orden_unico",
+  "tablename": "grupos_mix"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX grupos_mix_pkey ON retail.grupos_mix USING btree (clave)",
+  "indexname": "grupos_mix_pkey",
+  "tablename": "grupos_mix"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX historial_producto_cambios_pkey ON retail.historial_producto_cambios USING btree (id)",

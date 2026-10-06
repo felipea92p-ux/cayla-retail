@@ -84,6 +84,9 @@ export const AVIARIO = [
       "cuadres_piso", "cuadre_piso_items",
       // Cuántas prendas caben en el piso de cada sede (ADR-0329, 20261005103000). Es del piso, como el cuadre. Refresco del 2026-10-05.
       "capacidad_piso",
+      // Plan del piso (ADR-0329, commit 1532264f): los grupos del mix y a qué grupo va cada categoría. Es del piso, como su
+      // capacidad. Asignadas en el refresco del volcado del 2026-10-06 (ADR-0354), al aparecer en producción.
+      "grupos_mix", "categoria_grupo_mix",
       // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
       // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
       "movimientos_internos_intentos",

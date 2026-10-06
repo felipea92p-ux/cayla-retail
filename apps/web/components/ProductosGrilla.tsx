@@ -40,6 +40,7 @@ export function ProductosGrilla({
   productos,
   existencias,
   veExistencias,
+  veMovimientos,
   ubicacionId,
   sede,
   puedeEditar,
@@ -54,6 +55,8 @@ export function ProductosGrilla({
   existencias: Map<string, ExistenciasProducto> | null;
   /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
+  /** ¿Ve Movimientos? El historial de la prenda (ADR-0354) enlaza ahí para ventas y stock, que ya no muestra. */
+  veMovimientos: boolean;
   ubicacionId: string;
   /** El nombre de la sede de `ubicacionId`: el stock por talla de la vista rápida y las etiquetas son de ella. */
   sede: string;
@@ -91,6 +94,7 @@ export function ProductosGrilla({
             producto={p}
             existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
             veExistencias={veExistencias}
+            veMovimientos={veMovimientos}
             stock={stockSede.de(p.productoId)}
             leer={leer}
             sede={sede}
@@ -108,6 +112,7 @@ function TarjetaProducto({
   producto,
   existencias,
   veExistencias,
+  veMovimientos,
   stock,
   leer,
   sede,
@@ -118,6 +123,7 @@ function TarjetaProducto({
   producto: ProductoListado;
   existencias: ExistenciasProducto | null;
   veExistencias: boolean;
+  veMovimientos: boolean;
   /** Stock de este modelo en la sede (`useStockEnSede`, leído una vez para toda la página). */
   stock: StockDeModelo;
   leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
@@ -250,6 +256,7 @@ function TarjetaProducto({
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
           veExistencias={veExistencias}
+          veMovimientos={veMovimientos}
           puedeEditar={puedeEditar}
           puedeEliminar={puedeEliminar}
           onEliminar={() => {
