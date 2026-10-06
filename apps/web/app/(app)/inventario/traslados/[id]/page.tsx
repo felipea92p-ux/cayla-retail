@@ -111,9 +111,9 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
             <span className="text-taupe"> · {esDestino ? "entra a tu sede" : esOrigen ? "sale de tu sede" : "entre otras sedes"}</span>
           </>
         }
-        pie={
+        volver={
           // La vuelta común (`Volver`): a Movimientos si se llegó desde ahí, con sus filtros; si no, a Traslados.
-          volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
+          volverA ? <Volver forma="flecha" href={volverA} a="Movimientos" /> : <Volver forma="flecha" href="/inventario/traslados" a="Traslados" />
         }
       />
       {loSiguiente && <TrasladoLoSiguiente {...loSiguiente} />}
