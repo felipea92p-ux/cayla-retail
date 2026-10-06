@@ -3,6 +3,7 @@ import { Package, Shirt, Truck } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { destinosParaEnviar } from "@/lib/para-enviar-reglas";
+import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
@@ -275,6 +276,8 @@ export default async function InventarioPage({
         sinRegistrar={sinRegistrar}
         // ADR-0328 act. 17: «Subir prenda» puede dejarla «para enviar» a otra sede; solo quien ve Traslados arma ese envío.
         destinosParaEnviar={veTraslados ? destinosParaEnviar(ubicaciones, ubicacionActivaId) : []}
+        // «Pedir a otra sede» del panel de la talla: las OTRAS tiendas activas (la base rechaza pedirle al Taller).
+        sedesParaPedir={sedesParaPedir(ubicaciones, ubicacionActivaId)}
       />
     </div>
   );

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, ScanLine, Shirt, Tag } from "lucide-react";
-import { CampoTexto } from "@/components/ui/campos";
+import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, ScanLine, Search, Shirt, Tag, X } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
@@ -67,12 +66,14 @@ export function FiltrosExistencias({
   onCambiar,
   onLimpiar,
   conteo,
-  detalleTotal,
   panelInicial,
   orden,
   vista,
   nota,
   onEscanear,
+  alLadoDeFiltros,
+  enPausa = 0,
+  avisoPausa = null,
 }: {
   busqueda: string;
   onTeclear: (texto: string) => void;
@@ -100,8 +101,6 @@ export function FiltrosExistencias({
   onLimpiar: () => void;
   /** Cuántas tarjetas trae la lista y en qué unidad (`conteoDeLista`): productos, o prendas y sus tallas con un caso de «Hoy». */
   conteo: ConteoDeLista;
-  /** Lo que sigue al conteo cuando no hay «Hoy» («Vista de piso y almacén»). */
-  detalleTotal: string;
   /** Lo que este equipo dejó la última vez (cookie leída en el servidor). */
   panelInicial: EstadoPanelFiltros;
   /** «Ordenar por» (solo en las tarjetas: la tabla conserva su orden); `null` = no se ofrece. */
@@ -112,6 +111,11 @@ export function FiltrosExistencias({
   nota?: ReactNode;
   /** Abre la cámara (`EscanerBusqueda`). Un solo icono junto al buscador, desde `sm`: en el celular ya está el botón fijo de abajo. */
   onEscanear?: () => void;
+  /** Lo que va al costado de «Filtros»: el anillo «Al día» de la sede (2026-10-06). */
+  alLadoDeFiltros?: ReactNode;
+  /** Tallas que esperan el cuadre del piso: el atajo «Por colgar» va en pausa y lleva la explicación (`FiltrosRapidos`). */
+  enPausa?: number;
+  avisoPausa?: string | null;
 }) {
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
@@ -154,7 +158,9 @@ export function FiltrosExistencias({
     }
   }
 
-  const chips = chipsDeFiltros(elegidos);
+  // Con los atajos a la vista (sede que separa piso y almacén), el atajo encendido ya dice qué «Hoy» o «Condición» está puesto: su chip
+  // repetiría lo mismo en otra fila. Los demás filtros (categoría, talla, color, marca) sí van como chip.
+  const chips = chipsDeFiltros(elegidos).filter((c) => !(separa && c.quitar.every((k) => k === "hoy" || k === "condicion")));
   const activos = contarFiltrosActivos(elegidos);
   const quitar = (claves: readonly ClaveUrl[]) => onCambiar(Object.fromEntries(claves.map((k) => [k, null])));
   const opcion = (v: string) => ({ valor: v, texto: v });
@@ -166,10 +172,12 @@ export function FiltrosExistencias({
   const coloresMarcados = [...elegidos.familias.map((f) => PREFIJO_FAMILIA + f), ...elegidos.colores];
   const estadosColor = estadoDeColor(coloresMarcados, opcionesColor);
 
-  // Dos filas con nombre, como Productos: arriba lo que se pregunta de la prenda (categoría, talla, color), abajo lo de quien
-  // gestiona el stock (qué hacer hoy, en qué condición está, de qué marca es). El mismo panel va en la página (computadora) o
-  // dentro de la hoja (celular), nunca los dos.
-  const hayGestion = separa || marcas !== null;
+  // Filas con nombre, como Productos (reordenado el 2026-10-06 para despejar la barra): «Prenda», lo que se pregunta de ella
+  // (categoría, talla, color y marca: la marca es de la prenda, no de quien gestiona); «Gestión», qué pide hoy y en qué condición
+  // está (los mismos filtros que los atajos, con las combinaciones que un atajo no hace); y «Vista», cómo se ordena la lista y si suena
+  // al confirmar, que antes ocupaban la fila del buscador. El mismo panel va en la página (computadora) o en la hoja (celular).
+  const ordenTexto = orden ? (orden.opciones.find((o) => o.valor === orden.valor)?.texto ?? orden.valor) : null;
+  const ordenDistinto = orden !== null && orden.valor !== orden.porDefecto;
   const panel = (
     <PanelPildoras filas>
       <FilaPildoras titulo="Prenda">
@@ -219,62 +227,73 @@ export function FiltrosExistencias({
             coloresMarcados
           )}
         />
+        {marcas && (
+          <DesplegablePildora
+            icono={Tag}
+            etiqueta="Marca"
+            valor={elegidos.marca ?? TODOS}
+            onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
+            opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(marcas.map(opcion), "marca", elegidos.marca)]}
+          />
+        )}
       </FilaPildoras>
-      {hayGestion && (
+      {separa && (
         <FilaPildoras titulo="Gestión">
           {/* «Hoy» (qué pide la talla: las mismas palabras de la tarjeta y la tabla) y «Condición» (dañadas, apartadas) son
               dos preguntas (Felipe, 2026-10-03). Cada talla cae en un solo «Hoy»: no hay combinación que se vacíe sola. */}
-          {separa && (
-            <DesplegablePildora
-              icono={ListChecks}
-              etiqueta="Hoy"
-              valor={elegidos.hoy ?? TODOS}
-              onValor={(v) => onCambiar({ hoy: v === TODOS ? null : v })}
-              rotuloCantidad="Productos con alguna talla así"
-              opciones={[
-                { valor: TODOS, texto: "Todo" },
-                ...contar(
-                  TIPOS_HOY.map((t) => ({ valor: t as string, texto: TEXTO_HOY[t] })),
-                  "hoy",
-                  elegidos.hoy
-                ),
-              ]}
-            />
-          )}
-          {separa && (
-            <DesplegablePildora
-              icono={CircleAlert}
-              etiqueta="Condición"
-              valor={elegidos.condicion ?? TODOS}
-              onValor={(v) => onCambiar({ condicion: v === TODOS ? null : v })}
-              rotuloCantidad="Productos con alguna talla así"
-              opciones={[
-                { valor: TODOS, texto: "Cualquiera" },
-                ...contar(
-                  CONDICIONES.map((c) => ({ valor: c as string, texto: ROTULO_CONDICION[c] })),
-                  "condicion",
-                  elegidos.condicion
-                ),
-              ]}
-            />
-          )}
-          {marcas && (
-            <DesplegablePildora
-              icono={Tag}
-              etiqueta="Marca"
-              valor={elegidos.marca ?? TODOS}
-              onValor={(v) => onCambiar({ marca: v === TODOS ? null : v })}
-              opciones={[{ valor: TODOS, texto: "Todas" }, ...contar(marcas.map(opcion), "marca", elegidos.marca)]}
-            />
-          )}
+          <DesplegablePildora
+            icono={ListChecks}
+            etiqueta="Hoy"
+            valor={elegidos.hoy ?? TODOS}
+            onValor={(v) => onCambiar({ hoy: v === TODOS ? null : v })}
+            rotuloCantidad="Productos con alguna talla así"
+            opciones={[
+              { valor: TODOS, texto: "Todo" },
+              ...contar(
+                TIPOS_HOY.map((t) => ({ valor: t as string, texto: TEXTO_HOY[t] })),
+                "hoy",
+                elegidos.hoy
+              ),
+            ]}
+          />
+          <DesplegablePildora
+            icono={CircleAlert}
+            etiqueta="Condición"
+            valor={elegidos.condicion ?? TODOS}
+            onValor={(v) => onCambiar({ condicion: v === TODOS ? null : v })}
+            rotuloCantidad="Productos con alguna talla así"
+            opciones={[
+              { valor: TODOS, texto: "Cualquiera" },
+              ...contar(
+                CONDICIONES.map((c) => ({ valor: c as string, texto: ROTULO_CONDICION[c] })),
+                "condicion",
+                elegidos.condicion
+              ),
+            ]}
+          />
         </FilaPildoras>
       )}
+      <FilaPildoras titulo="Vista">
+        {/* El orden solo ordena las tarjetas (la tabla conserva el suyo): no quita prendas, por eso no cuenta como filtro puesto. */}
+        {orden && (
+          <DesplegablePildora
+            icono={ArrowUpDown}
+            etiqueta="Ordenar por"
+            valor={orden.valor}
+            valorPorDefecto={orden.porDefecto}
+            onValor={orden.onValor}
+            opciones={orden.opciones}
+          />
+        )}
+        {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
+        <BotonSonidoConfirmar conNombre />
+      </FilaPildoras>
     </PanelPildoras>
   );
 
   // Con el panel abierto en la computadora cada píldora ya dice su valor y su ✕: los chips repetirían lo mismo debajo. Se ven
   // con el panel cerrado y en el celular (donde el panel vive en la hoja).
-  const bloqueChips = chips.length > 0 && (
+  const bloqueChips = (chips.length > 0 || ordenDistinto) && (
     <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
         <button
@@ -288,70 +307,146 @@ export function FiltrosExistencias({
           <span aria-hidden className="text-sm leading-none">×</span>
         </button>
       ))}
-      <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
-        Limpiar todo
-      </button>
+      {orden && ordenDistinto && (
+        <button
+          type="button"
+          onClick={() => orden.onValor(orden.porDefecto)}
+          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+          aria-label={`Volver al orden de siempre (ahora: ${ordenTexto})`}
+        >
+          Orden: {ordenTexto}
+          <span aria-hidden className="text-sm leading-none">×</span>
+        </button>
+      )}
+      {chips.length > 0 && (
+        <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
+          Limpiar todo
+        </button>
+      )}
     </div>
-  );
-
-  const etiquetaBuscar = (
-    <span>
-      Buscar
-      <kbd aria-hidden className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">
-        /
-      </kbd>
-    </span>
   );
 
   return (
     <div className="space-y-2">
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
-          {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
-          <CampoTexto
-            etiqueta={etiquetaBuscar}
-            id={ID_BUSCADOR_EXISTENCIAS}
-            value={busqueda}
-            onChange={(e) => onTeclear(e.target.value)}
-            onBlur={onSoltar}
-            // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              onEnter();
-            }}
-            aria-keyshortcuts="/"
-            placeholder={placeholder}
-            enterKeyHint="search"
-            spellCheck={false}
-            type="search"
-          />
-        </div>
-        {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control): el botón queda a la altura de la caja. */}
-        <div className="shrink-0">
-          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
-            {" "}
-          </span>
-          <div className="flex items-center gap-2">
-            {/* Escanear: solo el icono (maqueta aprobada). El nombre va como etiqueta y al pasar el mouse. */}
-            {onEscanear && (
+      {/* La barra compacta (2026-10-06): desde 1280 px, DOS filas —buscar, escanear, «Filtros» y el anillo del día a la izquierda; la
+          cifra y la vista a la derecha; debajo, los atajos con su nombre—. Más angosto (tablet, celular): buscar, los atajos, y la cifra
+          con la vista. El orden lo da `order-*` sobre un solo `flex-wrap`: cada control existe una vez, solo cambia de lugar. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
+        {/* `xl:min-w-[24rem]`: buscar no se angosta por debajo de un ancho útil; si no cabe todo, la vista baja a otra línea. */}
+        <div className="order-1 flex min-w-0 basis-full items-center gap-2 xl:min-w-[24rem] xl:flex-1">
+          {/* Buscar: del alto de un control (40 px) y, en la computadora, de un ancho de lectura —no la franja de lado a lado de antes—. */}
+          <label className="relative min-w-0 flex-1 md:max-w-[26rem]">
+            <span className="sr-only">Buscar producto</span>
+            <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" strokeWidth={1.8} />
+            {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
+            <input
+              id={ID_BUSCADOR_EXISTENCIAS}
+              value={busqueda}
+              onChange={(e) => onTeclear(e.target.value)}
+              onBlur={onSoltar}
+              // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && busqueda) {
+                  // Usa su Escape (borra lo escrito): no lo deja subir a una hoja (useEscapeLibre).
+                  e.stopPropagation();
+                  onTeclear("");
+                  return;
+                }
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                onEnter();
+              }}
+              aria-keyshortcuts="/"
+              placeholder={placeholder}
+              enterKeyHint="search"
+              spellCheck={false}
+              autoComplete="off"
+              type="search"
+              // A la derecha solo se reserva lugar para lo que se ve: la «X» al escribir, o la tecla «/» desde 768 px. En el celular ese aire
+              // cortaba el texto de ayuda («Prenda, talla o códi…») ahora que el anillo comparte la fila.
+              className={`h-10 w-full rounded-xl border border-sand bg-hueso pl-10 text-[15px] text-tinta placeholder:text-taupe focus:border-taupe max-sm:text-[14px] [&::-webkit-search-cancel-button]:hidden ${
+                busqueda ? "pr-10" : "pr-3 md:pr-10"
+              }`}
+            />
+            {busqueda ? (
               <button
                 type="button"
-                onClick={onEscanear}
-                aria-label="Escanear etiqueta"
-                title="Escanear etiqueta"
-                className="mt-1.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tinta/15 text-tinta/70 transition-colors hover:border-tinta/30 hover:text-tinta sm:inline-flex"
+                onClick={() => onTeclear("")}
+                aria-label="Borrar búsqueda"
+                className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full bg-sand text-tinta"
               >
-                <ScanLine aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                <X aria-hidden className="h-3.5 w-3.5" />
               </button>
+            ) : (
+              <kbd aria-hidden title="Atajo: / o Ctrl+K" className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-tinta/15 px-1.5 font-sans text-[11px] text-tinta/45 md:inline">
+                /
+              </kbd>
             )}
-            <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
-          </div>
+          </label>
+          {/* Escanear: solo el icono (maqueta aprobada). El nombre va como etiqueta y al pasar el mouse. */}
+          {onEscanear && (
+            <button
+              type="button"
+              onClick={onEscanear}
+              aria-label="Escanear etiqueta"
+              title="Escanear etiqueta"
+              className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
+            >
+              <ScanLine aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            </button>
+          )}
+          {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). */}
+          <BotonFiltros soloIcono abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+          {alLadoDeFiltros}
         </div>
-      </div>
 
-      {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`): los mismos filtros «Hoy» y «Condición», a un toque. */}
-      {separa && <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} orden={orden ? { valor: orden.valor, onValor: orden.onValor } : null} />}
+        {/* La cifra: cuántas tarjetas trae la lista (y, con «Hoy», cuántas tallas). Sin frase de ayuda: ocupaba una línea entera. */}
+        <p className="order-3 min-w-0 flex-1 text-[13px] text-tinta/70 xl:order-2 xl:flex-none">
+          <span aria-live="polite">
+            <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
+            {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
+            {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» del Inicio), tan visible como la de arriba: es la que
+                suman las pastillas de las tarjetas. */}
+            {conteo.tallas && (
+              <span>
+                {" · "}
+                <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
+                {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
+              </span>
+            )}
+          </span>
+          {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
+          {panelAbierto && chips.length > 0 && (
+            <button type="button" onClick={onLimpiar} className="label-cayla ml-3 hidden text-[10px] text-tinta/55 hover:text-rojo md:inline">
+              Limpiar filtros
+            </button>
+          )}
+        </p>
+
+        {/* A la derecha, solo «Copiar enlace» (la tabla) y tabla o tarjetas en un icono: el orden y el sonido viven en «Filtros ▸ Vista». */}
+        <div className="order-4 ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-2 xl:order-3">
+          {/* Como la maqueta: con las tarjetas (`orden`), ni «Copiar enlace» ni un segundo «Ordenar por»; el orden es «Prioridad | A–Z». */}
+          {!orden && (
+            <button
+              type="button"
+              onClick={copiarEnlace}
+              aria-label="Copiar enlace de esta lista"
+              title="Copiar enlace de esta lista"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-tinta/60 transition-colors hover:text-tinta"
+            >
+              <Link2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+            </button>
+          )}
+          {vista}
+        </div>
+
+        {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}
+        {separa && (
+          <div className="order-2 min-w-0 basis-full xl:order-4">
+            <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} enPausa={enPausa} avisoPausa={avisoPausa} />
+          </div>
+        )}
+      </div>
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
@@ -374,64 +469,6 @@ export function FiltrosExistencias({
 
       {bloqueChips}
 
-      {/* El conteo arriba y, a la derecha, «Copiar enlace», la vista y un solo «Ordenar por», fuera del panel: ordenar no quita
-          prendas, solo las acomoda. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="flex items-baseline gap-3 text-sm text-tinta/70">
-          <span aria-live="polite">
-            <strong className="font-semibold text-tinta">{conteo.total.toLocaleString("es-PE")}</strong>{" "}
-            {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios}
-            {/* Con «Hoy», la cifra que trajo a la persona («15 tallas por colgar» de «Para hoy» y del Inicio), tan visible como la de
-                arriba: es la que suman las pastillas de las tarjetas. */}
-            {conteo.tallas ? (
-              <span>
-                {" · "}
-                <strong className="font-semibold text-tinta">{conteo.tallas.cifra.toLocaleString("es-PE")}</strong> {conteo.tallas.texto}
-                {conteo.aclaracion && <span className="text-tinta/55"> ({conteo.aclaracion})</span>}
-              </span>
-            ) : (
-              <span className="text-tinta/55"> · {detalleTotal}</span>
-            )}
-          </span>
-          {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
-          {panelAbierto && chips.length > 0 && (
-            <button type="button" onClick={onLimpiar} className="label-cayla hidden text-[10px] text-tinta/55 hover:text-rojo md:inline">
-              Limpiar filtros
-            </button>
-          )}
-        </p>
-        <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
-          {/* En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no caben juntos en 375 px. */}
-          {/* Como la maqueta: con las tarjetas (`orden`), ni «Copiar enlace» ni un segundo «Ordenar por»; el orden es «Prioridad | A–Z». */}
-          {!orden && (
-          <button
-            type="button"
-            onClick={copiarEnlace}
-            aria-label="Copiar enlace de esta lista"
-            className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta"
-          >
-            <Link2 aria-hidden className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Copiar enlace</span>
-          </button>
-          )}
-          {vista}
-          {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
-          <BotonSonidoConfirmar />
-          {orden && !separa && (
-            <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
-              <DesplegablePildora
-                encoger
-                icono={ArrowUpDown}
-                etiqueta="Ordenar por"
-                valor={orden.valor}
-                valorPorDefecto={orden.porDefecto}
-                onValor={orden.onValor}
-                opciones={orden.opciones}
-              />
-            </div>
-          )}
-        </div>
-      </div>
       {nota}
     </div>
   );

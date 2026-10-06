@@ -136,3 +136,107 @@ dice «Aparece cuando se cuadre el piso de esta sede», para que su ausencia no 
 
 11. **Sin herramientas de más.** La cabecera pierde su fila de botones (Recibir, Contar, Trasladar y Apartados siguen en el lateral; Cuadrar el piso, en «Pendientes»); con tarjetas no hay «Copiar enlace» ni segundo «Ordenar por» (queda «Prioridad | A–Z»); «Ver detalle» es un icono. La ventana de la tarjeta lleva solo Colgar en el piso, Subir a almacén y Enviar a otra sede.
 12. **El panel de la talla reemplaza al cajón** (`components/existencias/PanelTalla.tsx`, lógica en `lib/existencias-panel-talla.ts`): vistas Esta talla / Todas / Ficha, color y talla para cambiar sin salir, cuatro cifras, frase de diagnóstico, ritmo, otras sedes y siete acciones con lo que dicen debajo. En este corte cada acción abre la ventana que ya existía; **Apartar** (se hace en Vender) y **Pedir a otra sede** (no existe en la base) se dibujan apagadas. Los pasos guiados dentro del panel quedan para el siguiente corte.
+
+## Cuarta vuelta (2026-10-06): toda la maqueta, funciones y diseño
+
+Felipe: «implementa todo lo trabajado en la maqueta, todas sus funcionalidades, diseño». Se construyó en cinco actividades, un commit cada una
+(rama `claude/existencias-maqueta-completa`).
+
+13. **Cada acción se hace dentro del panel, paso a paso** (`components/existencias/FlujoTalla.tsx`, lógica en `lib/existencias-flujos.ts`): pasos
+    numerados con ✓, «Falta: …» tocable (las piezas de la guía de foco, ADR-0284), resumen antes de confirmar, y «✓ hecho» al terminar.
+    - Colgar y Colgar varias → `bajar_al_piso`; Subir a almacén (se queda o para enviar, con nota opcional) → `retirar_del_piso` / `subir_para_enviar`;
+      Pedir a otra sede (para reponer o para un cliente) → `pedir_a_otra_sede` / `pedir_prenda_para_apartar`; Ajustar → `ajustar_inventario`;
+      Reportar dañada → `reportar_danada`. Las MISMAS funciones y los mismos armadores que las ventanas, con la marca del intento por huella.
+    - DECIDÍ: los pasos llaman a la base desde el panel y reusan las reglas de `lib/` (argumentos, errores, «¿la base resolvió la marca?»).
+      DESCARTÉ: abrir las ventanas de siempre encima del panel, porque la maqueta hace todo sin salir y dos ventanas apiladas pierden el foco.
+      SE ROMPE SI: una de esas funciones cambia sus parámetros y solo se actualiza el armador de una ventana que ya no existe; por eso las ventanas
+      Reponer y Subir se borraron (punto 14) y el armador vive en un solo lugar.
+    - **Enviar a otra sede** termina en «Nuevo traslado» ya cargado (cantidad y sede): el traslado es el único que saca prendas de una sede.
+      **Apartar** abre la separación de Vender con la talla puesta (Felipe eligió «Separación de Vender»: ahí se cobra el adelanto con la caja abierta).
+    - **Ajustar** usa los cuatro motivos de la base con las palabras de la maqueta («Error al cobrar» y «Uso interno» viajan como «otro» con su nota;
+      «Se dañó» lleva a Reportar dañada). Una talla que faltó en un conteo cerrado se ajusta en la ventana completa, que la enlaza con ese conteo.
+    - **Lo que la maqueta dibuja y la base no tiene:** el «lo confirma un líder» de Ajustar (no hay cola de aprobación de ajustes). No se construyó.
+14. **Se borran las piezas reemplazadas:** `CajonPrendaExistencias`, `DesgloseStockPrenda`, `ReponerPrendaModal`, `SubirAAlmacenModal`, `ReportarDanadaModal` y `MatrizMover`,
+    con las reglas que solo ellas usaban y sus pruebas. Las que servían se reusan (`casiNoHay`, `lineasDeMoverModelo`, `detalleDeLoMovido`,
+    `leerCantidadTecleada`, `textoFilaSinAlcance`, la nota y el aviso de Subir, y de dañadas `problemasReporte`, `desdeInicial`, `quePasaAlReportar` y
+    `puedeEnviarReporte`: con un envío en duda solo falta quién lo hace, en TODOS los pasos). La suma explicada del cajón (Felipe, 2026-10-04) sigue en el panel,
+    por talla, con la ⓘ de qué cobra la caja.
+15. **La tarjeta como la maqueta:** sin «colgadas · guardadas»; la cabecera abre el panel; con «Hoy» o «Condición» se ven todas las tallas del color
+    (las que cumplen con su punto, la más vendida con un aro, las demás atenuadas) y los colores que cumplen llevan su punto; el icono es Colgar
+    (resaltado si falta algo en el piso), Pedir (agotado aquí y una tienda lo tiene) o Ver (con un filtro). `mejorOrigen` es la única regla de a
+    qué tienda pedir.
+16. **El anillo «N de M hoy»** (`AnilloMision`, `lib/existencias-mision.ts`) reemplaza al botón «Pendientes» y lo abre. Cuenta contra la foto de la
+    mañana, guardada en el navegador por sede y por día: es el marcador del día de quien mira, no un dato de la tienda. Un pedido hecho no cuenta
+    como resuelto hasta que llega. DECIDÍ: el navegador. DESCARTÉ: una tabla, porque una cifra de ánimo no vale un dato auditado ni una migración.
+    SE ROMPE SI: dos equipos de la misma tienda abren el día a horas distintas; cada uno ve su propio avance.
+17. **La caja de buscar de la maqueta**, la **pistola sin tocar el buscador** (`lib/existencias-pistola.ts`: una ráfaga terminada en Enter abre la
+    talla; los atajos 1–7 esperan un instante por si es una ráfaga), **teclado** (← → talla, ↑ ↓ color con `useFlechasDelCajon`, 1–7 acción, Enter
+    sigue, Escape vuelve) y, en el celular, el panel como **hoja que sube con su asa**.
+
+**Lo que se aparta de la maqueta a propósito:** la cabecera de la pantalla sigue siendo `EncabezadoPagina` (ADR-0220: la cabecera de Inventario es la
+de su módulo); el aviso ámbar del piso sin cuadrar sigue (explica por qué «Hoy» no pide colgar); no hay Ctrl+K para buscar (lo usa el buscador
+general); la animación del punto que «vuela» al anillo no se hizo (ADR-0136: sin movimiento decorativo).
+
+## Actualización 2026-10-06 — la barra compacta
+
+**Pedido** (sobre una captura de producción de Tienda TRU a 2000 px): «que la barra de búsqueda sea pequeña y no invasiva; el texto del medio
+quita espacio, quitarlo o acomodarlo; lo del día puede ir arriba o al costado de Filtros; Filtros solo un icono; que se vea el texto y no solo
+iconos; tabla o grilla, un solo icono en cualquier sentido». Se aplicó igual en el ERP y en la maqueta (`docs/maquetas/existencias-tactil-2026-10/`).
+
+**Lo que cambia de este ADR:**
+- **Decisión 3:** los atajos van **siempre con su nombre**. Se quitan el interruptor «Solo iconos | Iconos con texto» y su preferencia
+  (`cayla.filtros-rapidos`). Su «SE ROMPE SI» (en tablet no hay mouse para ver el nombre) era justo el problema que se vio en uso. En la
+  computadora, si no caben, el último baja a otra línea (una fila que se desliza con mouse esconde botones); en el celular se deslizan.
+- **Decisión 10:** «Prioridad | A–Z» pasa a la fila del buscador, a la derecha. **«Colgar primero» se esconde cuando está vacía**, también con el
+  piso sin cuadrar: su frase («Aparece cuando se cuadre el piso…») y el aviso ámbar sobre las tarjetas ocupaban tres líneas que repetían lo que
+  ya dice «por cuadrar» en la cifra de la cabecera. La pausa ahora la dicen dos piezas donde se pregunta: el atajo **«Por colgar» lleva una
+  pausa en vez de un «0»** (la frase completa en su etiqueta y al pasar el mouse) y su **lista vacía explica la pausa** con el botón «Cuadrar el
+  piso». La tarea «Cuadrar el piso» sigue en «Pendientes» (el anillo).
+- **Decisión 16:** el anillo va **al costado de «Filtros»**, del alto de esa fila (40 px); en el celular, solo el círculo (la cifra va en su
+  etiqueta).
+- **Decisión 17:** la caja de buscar baja de 52 a 40 px y, desde 768 px, a un ancho de lectura (26rem): ya no es una franja de lado a lado.
+- **«Filtros» es solo un icono**, con la cifra de lo puesto en la esquina (`BotonFiltros soloIcono`; Productos, Compras e Historial siguen con
+  «Filtros · N» en texto).
+- **Tabla o tarjetas: un icono** que muestra la vista a la que lleva, igual en los dos sentidos (sin «Ver tarjetas» en texto ni relleno oscuro).
+- **La cifra va sola:** se quitan «toca un color para cambiarlo, una talla para ver dónde hay» y «Vista de piso y almacén».
+- Con los atajos a la vista, el «Hoy» o la «Condición» puestos ya no se repiten como chip debajo («Hoy: Sin stock atrás ×»): el atajo encendido
+  lo dice.
+
+**El orden de la barra:** desde 1280 px, dos filas (buscar · escanear · Filtros · anillo | cifra · orden · vista · sonido; debajo, los atajos).
+Más angosto, tres: buscar con Filtros y el anillo, los atajos, y la cifra con la vista. Cada control existe una vez: solo cambia de lugar
+(`order-*` sobre un `flex-wrap`). Medido en local: la tarjeta de la barra pasa de unos 190 px de alto a **120 px** a 1280 y 1440 px; a 1024 px son
+cuatro filas (los atajos no caben en una); a 375 px, 168 px, sin desplazamiento lateral de la página.
+
+DECIDÍ: el anillo al costado de «Filtros».
+DESCARTÉ: subirlo a la cabecera, como la maqueta, porque la cabecera la dibuja el servidor (`EncabezadoPagina`, ADR-0220) y el anillo vive en el
+estado del panel (avanza al colgar): había que colgarlo con un portal que aparece después de cargar la página (un salto) o pasar la cabecera al
+navegador, en dos archivos que también tocan los PR #807 y #808.
+SE ROMPE SI: una sede tiene muchos pendientes y nadie mira el anillo porque quedó «escondido» en la barra: el número del día solo se ve si se
+busca. Si pasa, la cifra de pendientes puede ir también como punto en la cabecera, sin mover el anillo.
+
+### Segunda vuelta del mismo día — el panel «Filtros» se reordena, la tarjeta se achica y la acción dice su nombre
+
+**Pedidos** (mirando la pantalla en local): «estos apartados [Prioridad | A–Z] quizás ponerlos dentro de Filtros, reorganiza Filtros y todo el
+espacio de la barra para que no se sienta congestionada»; «que al pasar el cursor se despliegue el icono con su texto y aparte la ventana»;
+«aprovechar el espacio que sobra, que se vea bonito y no ocupe mucho… pero que tampoco se vea amontonado».
+
+- **Filtros en tres filas con nombre:** **Prenda** (Categoría · Talla · Color · **Marca**: la marca es de la prenda, no de quien gestiona),
+  **Gestión** (Hoy · Condición) y **Vista** (**Ordenar por**, con todos los órdenes, y **Sonido al confirmar**). El orden y el sonido salen de la
+  fila del buscador, que queda con buscar, escanear, Filtros y el anillo a la izquierda, y la cifra y tabla/tarjetas a la derecha. El orden no
+  cuenta como filtro puesto (no quita prendas); si no es el de siempre, se ve como chip «Orden: …» que vuelve atrás con un toque. «Más
+  relevantes» se llama **«Prioridad»** donde la sede separa piso y almacén (el nombre que la persona ya vio).
+- **La acción de la tarjeta sube a la fila de los colores**, a la derecha: su fila propia de abajo estaba vacía salvo por el icono. La tarjeta
+  baja de unos 240 a **192 px** y las acciones de una fila de tarjetas quedan a la misma altura; el aire interior no cambia.
+- **El icono dice su nombre:** con mouse, al pasar el cursor (o enfocar) se estira a «Colgar en el piso» y además se abre la ventana con las
+  OTRAS acciones (ya no repite la del botón). Sin mouse (tablet, celular) el nombre se ve siempre si la tarjeta tiene 18rem de contenido; si
+  no cabe (muchos colores), el botón baja de línea.
+- **Atajos en una fila que se desliza bajo 1280 px:** partidos en dos o tres líneas se veían amontonados. Desde 1280 px caben en una.
+- **El anillo, más chico donde falta ancho:** bajo 1024 px solo el círculo con la cifra adentro (lo que falta, o ✓); el buscador gana ese lugar.
+  Y ya no dice «Al día» si hay pendientes: dice cuántos, en ámbar. Era el recordatorio que quedaba a la vista del piso sin cuadrar.
+
+DECIDÍ: el nombre de la acción se abre al pasar el cursor y se ve siempre con el dedo.
+DESCARTÉ: el nombre siempre visible con mouse (cada tarjeta con un botón ancho: el «amontonado» que se pidió evitar) y solo el icono también en
+tablet (con el dedo no hay «pasar por encima»: el nombre no se vería nunca).
+SE ROMPE SI: una tablet con mouse (o un portátil con pantalla táctil) informa «hover» y nunca muestra el nombre fijo: ahí vale el comportamiento
+de computadora, que es correcto para quien tiene cursor.
+
