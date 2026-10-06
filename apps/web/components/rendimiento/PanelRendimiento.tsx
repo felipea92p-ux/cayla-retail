@@ -5,7 +5,6 @@ import { Pencil } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -160,12 +159,14 @@ export function PanelRendimiento({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <span className="label-cayla text-[11px] font-bold text-taupe">Período</span>
-        <SegmentoDeslizante
-          etiqueta="Período"
-          valor={vista}
-          onCambio={(k) => cambiarVista(k as Vista)}
-          opciones={VISTAS.map((v) => ({ clave: v.clave, etiqueta: v.etiqueta }))}
-        />
+        {/* El período es un filtro de un valor: la píldora del sistema, con su rótulo (ADR-0354). */}
+        <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-2">
+          {VISTAS.map((v) => (
+            <button key={v.clave} type="button" aria-pressed={vista === v.clave} onClick={() => cambiarVista(v.clave as Vista)} className="pildora-cayla">
+              {v.etiqueta}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Las cuatro cifras */}
@@ -177,8 +178,7 @@ export function PanelRendimiento({
         {res.meta === null || pctMeta === null ? (
           <TarjetaCifra
             etiqueta="Meta de la sede"
-            valor="Sin meta"
-            vacia
+            valor={null}
             accion={{ href: "/configuracion?tab=tiendas", texto: "Cargarla en Configuración" }}
           >
             Falta cargarla para {nombre}. Sin ella no hay qué repartir.
@@ -196,12 +196,12 @@ export function PanelRendimiento({
             {vendieron} {plural(vendieron, "vendió", "vendieron")}
           </TarjetaCifra>
         ) : (
-          <TarjetaCifra etiqueta="Personas" valor={personas.length > 0 ? String(vendieron) : "—"}>
+          <TarjetaCifra etiqueta="Personas" valor={personas.length > 0 ? String(vendieron) : null}>
             {personas.length > 0 ? `${plural(vendieron, "persona vendió", "personas vendieron")} ${t.enPeriodo}` : "Sin personal cargado"}
           </TarjetaCifra>
         )}
 
-        <TarjetaCifra etiqueta="Ticket promedio" valor={res.ticket !== null ? SOLES.format(res.ticket) : "—"}>
+        <TarjetaCifra etiqueta="Ticket promedio" valor={res.ticket !== null ? SOLES.format(res.ticket) : null}>
           {res.ticket !== null ? "por venta" : "Sin ventas todavía"}
         </TarjetaCifra>
       </div>
@@ -210,10 +210,8 @@ export function PanelRendimiento({
       {(proyeccion || prendas) && (
         <div className="grid gap-4 sm:grid-cols-2">
           {proyeccion && (
-            <div className="card-cayla p-4 sm:p-5">
-              <p className="label-cayla text-[11px] text-tinta/65">Proyección del mes</p>
-              <p className="font-display mt-1.5 text-2xl text-tinta tabular-nums sm:text-3xl">{SOLES.format(proyeccion.proyeccion)}</p>
-              <p className="mt-1 text-xs text-tinta/65">
+            // La pieza única de cifra (TarjetaCifra, ADR-0354): antes era una copia a mano con la receta del Inicio.
+            <TarjetaCifra etiqueta="Proyección del mes" valor={SOLES.format(proyeccion.proyeccion)}>
                 A este ritmo ({SOLES.format(proyeccion.ritmoPorDia)} por día de trabajo) {nombre} cierra el mes cerca de esa cifra
                 {proyeccion.pctDeMeta !== null && proyeccion.metaMes !== null && (
                   <>
@@ -221,11 +219,10 @@ export function PanelRendimiento({
                   </>
                 )}
                 . {proyeccion.diasQueQuedan > 0 ? `Quedan ${proyeccion.diasQueQuedan} ${plural(proyeccion.diasQueQuedan, "día de trabajo", "días de trabajo")}.` : "Es el último día de trabajo del mes."}
-              </p>
-            </div>
+            </TarjetaCifra>
           )}
           {prendas && (
-            <TarjetaCifra etiqueta="Prendas por venta" valor={prendas.porVenta !== null ? prendas.porVenta.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "—"}>
+            <TarjetaCifra etiqueta="Prendas por venta" valor={prendas.porVenta !== null ? prendas.porVenta.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : null}>
               {prendas.porVenta !== null
                 ? `${prendas.prendas} ${plural(prendas.prendas, "prenda", "prendas")} en ${prendas.ventas} ${plural(prendas.ventas, "venta", "ventas")} ${t.enPeriodo}. Las devoluciones no restan.`
                 : "Sin ventas todavía"}

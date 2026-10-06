@@ -3,6 +3,7 @@
 import { useSyncExternalStore, type ComponentType } from "react";
 import { Clock, LayoutGrid, Moon, PackageX, ShoppingBag, TriangleAlert, Type } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { preferenciaLocal } from "@/lib/preferencia-local";
 import { ATAJOS_RAPIDOS, atajoElegido, CLAVES_RECOMENDADAS, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
@@ -117,48 +118,31 @@ export function FiltrosRapidos({
           })}
         </div>
 
-        {/* Cómo se ven: solo iconos o con texto. Cada equipo se queda con el que le sirve. */}
-        <span role="group" aria-label="Cómo ver los atajos" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel">
-          {(
-            [
-              ["iconos", "Solo iconos", LayoutGrid],
-              ["texto", "Iconos con texto", Type],
-            ] as const
-          ).map(([v, nombre, Ico]) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={vista === v}
-              aria-label={nombre}
-              title={nombre}
-              onClick={() => vistaRapidos.fijar(v)}
-              className="inline-flex h-8 w-8 items-center justify-center text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:text-tinta focus-visible:-outline-offset-2"
-            >
-              <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </button>
-          ))}
-        </span>
+        {/* Cómo se ven: solo iconos o con texto. Cada equipo se queda con el que le sirve. Es un modo de vista (los mismos atajos
+            de otra forma): el segmento de modo del sistema, con el icono y siempre su palabra (ADR-0354). */}
+        <SegmentoDeslizante
+          forma="modo"
+          etiqueta="Cómo ver los atajos"
+          valor={vista}
+          onCambio={(v) => vistaRapidos.fijar(v as "iconos" | "texto")}
+          opciones={[
+            { clave: "iconos", icono: <LayoutGrid aria-hidden strokeWidth={1.75} />, etiqueta: "Solo iconos" },
+            { clave: "texto", icono: <Type aria-hidden strokeWidth={1.75} />, etiqueta: "Iconos con texto" },
+          ]}
+        />
 
+        {/* El orden de la lista: el mismo segmento de modo. */}
         {orden && (
-          <span role="group" aria-label="Orden" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-            {(
-              [
-                ["relevancia", "Prioridad", "Lo que falta en el piso y más se vende, primero"],
-                ["nombre", "A–Z", "Por nombre"],
-              ] as const
-            ).map(([v, texto, ayuda]) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={orden.valor === v}
-                title={ayuda}
-                onClick={() => orden.onValor(v)}
-                className="h-8 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta focus-visible:-outline-offset-2"
-              >
-                {texto}
-              </button>
-            ))}
-          </span>
+          <SegmentoDeslizante
+            forma="modo"
+            etiqueta="Orden"
+            valor={orden.valor}
+            onCambio={(v) => orden.onValor(v as typeof orden.valor)}
+            opciones={[
+              { clave: "relevancia", etiqueta: <span title="Lo que falta en el piso y más se vende, primero">Prioridad</span> },
+              { clave: "nombre", etiqueta: <span title="Por nombre">A–Z</span> },
+            ]}
+          />
         )}
       </div>
     </TooltipProvider>

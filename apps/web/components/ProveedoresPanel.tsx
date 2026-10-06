@@ -16,7 +16,6 @@ import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Resaltado } from "@/components/ui/Resaltado";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
@@ -266,12 +265,14 @@ export function ProveedoresPanel({
             )}
           </div>
           {rubros.length > 0 && (
-            <SegmentoDeslizante
-              etiqueta="Filtrar por rubro"
-              valor={rubro ?? ""}
-              onCambio={(c) => setRubro(c || null)}
-              opciones={[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))]}
-            />
+            // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0354).
+            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap items-center gap-2">
+              {[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))].map((o) => (
+                <button key={o.clave || "todos"} type="button" aria-pressed={(rubro ?? "") === o.clave} onClick={() => setRubro(o.clave || null)} className="pildora-cayla">
+                  {o.etiqueta} <span className="pildora-cayla__n">{o.conteo}</span>
+                </button>
+              ))}
+            </div>
           )}
           {nSinPago > 0 && (
             <button

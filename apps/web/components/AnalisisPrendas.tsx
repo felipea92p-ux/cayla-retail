@@ -9,6 +9,7 @@ import { DetallePrendaAnalisis } from "@/components/DetallePrendaAnalisis";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { Desplegable } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import {
@@ -69,38 +70,28 @@ export function BarraTablaAnalisis({ datos, actualizar, orden }: { datos: Desemp
   ];
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3 sm:px-5">
-      <div className="-mx-1 flex max-w-full gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {pildoras.map((p) => {
-          const activa = datos.grupo === p.g;
-          return (
-            <button
-              key={p.g ?? "todas"}
-              type="button"
-              aria-pressed={activa}
-              onClick={() => actualizar({ grupo: p.g })}
-              className={`pildora-cayla inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap ${activa ? "border-tinta bg-tinta text-crema" : ""}`}
-            >
-              {p.g && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${PUNTO_GRUPO[p.g]}`} />}
-              {p.texto}
-              <span className={`tabular-nums ${activa ? "text-crema/60 dark:text-crema/75" : "text-taupe"}`}>{p.n}</span>
-            </button>
-          );
-        })}
+      {/* Grupos = filtro de un valor (deja menos prendas): la píldora del sistema, con su conteo del color del texto (ADR-0354). */}
+      <div className="pildoras-desliza gap-1.5">
+        {pildoras.map((p) => (
+          <button key={p.g ?? "todas"} type="button" aria-pressed={datos.grupo === p.g} onClick={() => actualizar({ grupo: p.g })} className="pildora-cayla shrink-0">
+            {p.g && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${PUNTO_GRUPO[p.g]}`} />}
+            {p.texto}
+            <span className="pildora-cayla__n">{p.n}</span>
+          </button>
+        ))}
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-2">
-        <div role="group" aria-label="Cómo listar" className="inline-flex overflow-hidden rounded-lg border border-sand text-xs">
-          {(["prenda", "talla"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={datos.ver === v}
-              onClick={() => datos.ver !== v && actualizar({ ver: v === "prenda" ? null : "talla", orden: null })}
-              className={`px-2.5 py-1.5 ${datos.ver === v ? "bg-hueso font-semibold text-tinta" : "text-taupe hover:text-tinta"}`}
-            >
-              {v === "prenda" ? "Por prenda" : "Por talla"}
-            </button>
-          ))}
-        </div>
+        {/* «Cómo listar» muestra las mismas prendas de otra forma: el segmento de modo (ADR-0354). */}
+        <SegmentoDeslizante
+          forma="modo"
+          etiqueta="Cómo listar"
+          valor={datos.ver}
+          onCambio={(v) => datos.ver !== v && actualizar({ ver: v === "prenda" ? null : "talla", orden: null })}
+          opciones={[
+            { clave: "prenda", etiqueta: "Por prenda" },
+            { clave: "talla", etiqueta: "Por talla" },
+          ]}
+        />
         {orden}
       </div>
     </div>

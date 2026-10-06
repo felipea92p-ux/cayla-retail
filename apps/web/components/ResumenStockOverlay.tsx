@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { resumenDeStock, resumenDeVentas, tablaPorCategoria, type FilaDeStock, type PrendaDelResumen, type PrendaVendida } from "@/lib/existencias-resumen";
 import { useVentasDelMes } from "@/lib/useVentasDelMes";
 
@@ -18,16 +19,6 @@ import { useVentasDelMes } from "@/lib/useVentasDelMes";
    ==================================================================== */
 
 const n = (x: number) => x.toLocaleString("es-PE");
-
-function Cifra({ rotulo, valor, pie, tono = "tinta" }: { rotulo: string; valor: string; pie: ReactNode; tono?: "tinta" | "ambar" }) {
-  return (
-    <div className="rounded-lg border border-tinta/10 bg-sand/25 p-3.5">
-      <p className="label-cayla text-[10px] text-tinta/55">{rotulo}</p>
-      <p className={`mt-1 font-display text-[28px] leading-none tabular-nums ${tono === "ambar" ? "text-ambar-profundo" : "text-tinta"}`}>{valor}</p>
-      <p className="mt-1.5 text-xs leading-snug text-taupe">{pie}</p>
-    </div>
-  );
-}
 
 function Seccion({ titulo, bajada, children }: { titulo: string; bajada?: string; children: ReactNode }) {
   return (
@@ -122,27 +113,23 @@ export function ResumenStockOverlay({
     >
       <div className="space-y-6">
         <div className={`grid grid-cols-1 gap-3 ${separa ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-          <Cifra
-            rotulo="Hay en la tienda"
-            valor={n(delStock.total)}
-            pie={separa ? `${n(delStock.piso ?? 0)} en piso · ${n(delStock.almacen ?? 0)} en almacén` : "prendas libres, sin las apartadas"}
-          />
-          <Cifra
-            rotulo={`Vendidas en ${nombreDelMes}`}
-            valor={deLasVentas ? n(deLasVentas.vendidas) : "—"}
-            pie={fallo ? <>No pudimos leerlas. {reintentar}</> : leyendo ? "Leyendo las ventas…" : "Empieza de cero el día 1 de cada mes"}
-          />
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0354). Si las ventas no se pudieron leer, lo dice como tal. */}
+          <TarjetaCifra etiqueta="Hay en la tienda" valor={n(delStock.total)}>
+            {separa ? `${n(delStock.piso ?? 0)} en piso · ${n(delStock.almacen ?? 0)} en almacén` : "prendas libres, sin las apartadas"}
+          </TarjetaCifra>
+          <TarjetaCifra etiqueta={`Vendidas en ${nombreDelMes}`} valor={deLasVentas ? n(deLasVentas.vendidas) : null} noSePudoLeer={Boolean(fallo)}>
+            {fallo ? <>No pudimos leerlas. {reintentar}</> : leyendo ? "Leyendo las ventas…" : "Empieza de cero el día 1 de cada mes"}
+          </TarjetaCifra>
           {separa && (
-            <Cifra
-              rotulo="Esperando en el almacén"
+            <TarjetaCifra
+              etiqueta="Esperando en el almacén"
               valor={n(delStock.esperando.unidades)}
-              pie={
-                delStock.esperando.prendas === 0
-                  ? "Todo lo que hay atrás ya tiene piso"
-                  : `${delStock.esperando.prendas} ${delStock.esperando.prendas === 1 ? "prenda" : "prendas"} sin ninguna en el piso`
-              }
-              tono={delStock.esperando.prendas > 0 ? "ambar" : "tinta"}
-            />
+              tono={delStock.esperando.prendas > 0 ? "text-ambar-profundo" : undefined}
+            >
+              {delStock.esperando.prendas === 0
+                ? "Todo lo que hay atrás ya tiene piso"
+                : `${delStock.esperando.prendas} ${delStock.esperando.prendas === 1 ? "prenda" : "prendas"} sin ninguna en el piso`}
+            </TarjetaCifra>
           )}
         </div>
 

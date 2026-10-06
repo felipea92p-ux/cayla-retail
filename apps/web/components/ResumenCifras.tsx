@@ -1,14 +1,16 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Lectura, TonoLectura } from "@/lib/resumen-lectura";
 
-// Las cuatro cifras de arriba del Análisis de inventario (rediseño 2026-09-22, guía oficial). Las dos pestañas
-// usan la misma tarjeta: etiqueta en versalitas → cifra en la serif → una línea que dice hacia dónde fue → el pie
-// con el contexto. En Comparar la cifra es «A → B»: A chica y apagada, B grande, porque B es lo que se analiza
-// y A es la referencia (A siempre antes que B, como en toda la pantalla).
+// Las cuatro cifras de arriba del Análisis de inventario (rediseño 2026-09-22, guía oficial). Desde el 2026-10-06 se
+// dibujan con la pieza única `TarjetaCifra` (ADR-0354, /unificar ronda 1): la `TarjetaCifraAnalisis` que vivía aquí era
+// una copia de ella con delta, «A → B» y la ayuda solo en un `title` (con el dedo no aparecía nunca); todo eso lo tiene
+// ahora la pieza (`detalleTono` para el delta, `antes`, `pie` y el (!) de `ayuda`). En Comparar la cifra es «A → B»:
+// A chica y apagada, B grande, porque B es lo que se analiza y A es la referencia (A siempre antes que B).
 
 export type TonoDelta = "alza" | "baja" | "neutro";
 
-const TONO: Record<TonoDelta, string> = { alza: "text-verde-profundo", baja: "text-ambar-profundo", neutro: "text-taupe" };
+/** El color de la línea del cambio («2.ª mitad ↑ 18%»): verde-profundo si sube, ámbar-profundo si baja. Nunca rojo. */
+export const TONO_DELTA: Record<TonoDelta, string> = { alza: "text-verde-profundo", baja: "text-ambar-profundo", neutro: "text-taupe" };
 
 /** «↑ 18%» / «↓ 5%» / «sin cambio» / «N/D» y su tono: subir es bueno para ventas, rotación y sell-through. */
 export function flechaPct(pct: number | null, sufijo = "%"): { texto: string; tono: TonoDelta } {
@@ -16,50 +18,6 @@ export function flechaPct(pct: number | null, sufijo = "%"): { texto: string; to
   const n = Math.round(pct);
   if (n === 0) return { texto: "sin cambio", tono: "neutro" };
   return { texto: `${n > 0 ? "↑" : "↓"} ${Math.abs(n)}${sufijo}`, tono: n > 0 ? "alza" : "baja" };
-}
-
-export function TarjetaCifraAnalisis({
-  i,
-  titulo,
-  cifra,
-  antes,
-  delta,
-  pie,
-  ayuda,
-}: {
-  /** Orden de entrada escalonada. */
-  i: number;
-  titulo: string;
-  cifra: string;
-  /** Solo en Comparar: la cifra de A, que va chica y apagada delante de la de B. */
-  antes?: string;
-  delta?: { texto: ReactNode; tono: TonoDelta };
-  pie?: ReactNode;
-  ayuda?: string;
-}) {
-  return (
-    <div className="anim-entra card-cayla flex min-w-0 flex-col gap-0.5 p-4" title={ayuda} style={{ "--i": i } as CSSProperties}>
-      <p className="label-cayla text-[11px] leading-4 text-taupe">{titulo}</p>
-      {/* La cifra no se parte nunca («S/ 18.4k» en dos líneas se lee como dos cifras); si A → B no cabe junto, B baja. */}
-      <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 font-display tabular-nums leading-tight">
-        {antes !== undefined && (
-          <span className="whitespace-nowrap text-[1.05rem] text-taupe">
-            <span className="sr-only">Período A: </span>
-            {antes}
-            <span aria-hidden className="ml-1.5 text-tinta/35">
-              →
-            </span>
-          </span>
-        )}
-        <span className="whitespace-nowrap text-[1.75rem] text-tinta">
-          {antes !== undefined && <span className="sr-only">Período B: </span>}
-          {cifra}
-        </span>
-      </p>
-      {delta && <p className={`text-[13px] ${TONO[delta.tono]}`}>{delta.texto}</p>}
-      <p className="mt-auto min-h-4 pt-1 text-[11.5px] leading-4 text-taupe">{pie}</p>
-    </div>
-  );
 }
 
 /** La fila de cuatro: dos por fila en tableta, una en el celular. */

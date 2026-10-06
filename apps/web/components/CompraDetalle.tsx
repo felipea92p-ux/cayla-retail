@@ -26,7 +26,8 @@ import { getCierresCompra, getNotasCreditoCompra, type CierreLinea, type NotaCre
 import { NotasCreditoCompra } from "@/components/NotasCreditoCompra";
 import { BotonCerrarFaltante } from "@/components/AccionesFaltantes";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
-import { BarraAvance, TarjetaAvance } from "@/components/ComprobanteAvance";
+import { BarraAvance } from "@/components/ComprobanteAvance";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComprobanteEncabezado } from "@/components/ComprobanteEncabezado";
 import { ComprobanteLineaTiempo } from "@/components/ComprobanteLineaTiempo";
 import { ComprobantePagos } from "@/components/ComprobantePagos";
@@ -234,22 +235,29 @@ export function CompraDetalle({
             S/ 5,923.60»), cada una con su barra que se llena. El «Destino» y la «Condición» que antes vivían acá pasaron
             a la línea gris de la cabecera; el saldo, a la línea de abajo. */}
         <div className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
-          {!esGasto && <TarjetaAvance
-            etiqueta="Recepción"
-            valor={anulada ? "—" : compra.recibidoCantidad.toLocaleString("es-PE")}
-            de={anulada ? undefined : `de ${compra.facturadoCantidad.toLocaleString("es-PE")} u.`}
-            nota={unidadesCerradas > 0 ? `${unidadesCerradas.toLocaleString("es-PE")} ${unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} por faltante.` : undefined}
-            avance={avanceDeRecepcion}
-            tono={compra.estadoRecepcion === "parcial" ? "ambar" : compra.estadoRecepcion === "recibida" ? "verde" : "neutro"}
-          />}
-          <TarjetaAvance
-            etiqueta="Pago"
-            valor={anulada ? "—" : soles(compra.pagado)}
-            de={anulada ? undefined : `de ${soles(compra.total)}`}
-            nota={compra.notasCredito > 0 ? `${soles(compra.notasCredito)} menos por notas de crédito.` : undefined}
-            avance={avanceDePago}
-            tono={compra.vencida ? "rojo" : compra.estadoPago === "parcial" ? "ambar" : compra.estadoPago === "pagada" ? "verde" : "neutro"}
-          />
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0354), con la barra que se llena en su contexto. */}
+          {!esGasto && (
+            <TarjetaCifra
+              etiqueta="Recepción"
+              valor={anulada ? "—" : compra.recibidoCantidad.toLocaleString("es-PE")}
+              unidad={anulada ? undefined : `de ${compra.facturadoCantidad.toLocaleString("es-PE")} u.`}
+            >
+              <BarraAvance
+                avance={avanceDeRecepcion}
+                tono={compra.estadoRecepcion === "parcial" ? "ambar" : compra.estadoRecepcion === "recibida" ? "verde" : "neutro"}
+                etiqueta={`Recepción: ${Math.round(fraccion(avanceDeRecepcion, 1) * 100)}%`}
+              />
+              {unidadesCerradas > 0 && <p className="mt-2">{`${unidadesCerradas.toLocaleString("es-PE")} ${unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} por faltante.`}</p>}
+            </TarjetaCifra>
+          )}
+          <TarjetaCifra etiqueta="Pago" valor={anulada ? "—" : soles(compra.pagado)} unidad={anulada ? undefined : `de ${soles(compra.total)}`}>
+            <BarraAvance
+              avance={avanceDePago}
+              tono={compra.vencida ? "rojo" : compra.estadoPago === "parcial" ? "ambar" : compra.estadoPago === "pagada" ? "verde" : "neutro"}
+              etiqueta={`Pago: ${Math.round(fraccion(avanceDePago, 1) * 100)}%`}
+            />
+            {compra.notasCredito > 0 && <p className="mt-2">{`${soles(compra.notasCredito)} menos por notas de crédito.`}</p>}
+          </TarjetaCifra>
         </div>
 
         {/* ---------- pagos: cada pago nuevo entra con un desliz y un destello ---------- */}

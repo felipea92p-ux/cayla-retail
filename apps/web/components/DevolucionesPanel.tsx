@@ -11,6 +11,7 @@ import { DevolucionesPendientes } from "@/components/DevolucionesPendientes";
 import { DevolucionesResueltas } from "@/components/DevolucionesResueltas";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { AnularVentaForm } from "@/components/AnularVentaForm";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { EsqueletoBusqueda, EstadoVacio, SinResultadosVentas, mostrarActividad } from "@/components/ComprasAgrupadas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import type { DevolucionPendiente, DevolucionResuelta } from "@/lib/devoluciones";
@@ -291,40 +292,37 @@ export function DevolucionesPanel({
 
       {!busqueda && (
         <section aria-labelledby="por-aprobar" className="space-y-5">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              {/* `id="por-aprobar"`: el ancla de la cifra de la cabecera cae aquí, sea cual sea la pestaña. */}
-              <h2 id="por-aprobar" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
-                {TITULOS[vista].titulo}
-              </h2>
-              <p className="mt-0.5 text-sm text-tinta/70">{TITULOS[vista].bajada}</p>
-            </div>
-            <div role="tablist" aria-label="Qué ver" className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-tinta/5 p-1 [scrollbar-width:none]">
-              {PESTANAS.map((p) => (
-                <button
-                  key={p.valor}
-                  type="button"
-                  role="tab"
-                  aria-selected={vista === p.valor}
-                  onClick={() => setVista(p.valor)}
-                  className={`h-9 shrink-0 rounded-full px-3 text-sm sm:px-4 transition-colors duration-200 ${
-                    vista === p.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_color-mix(in_srgb,var(--color-sombra)_8%,transparent)]" : "text-tinta/75 hover:text-tinta"
-                  }`}
-                >
-                  {p.texto} <span className={`tabular-nums ${p.alerta ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{p.cuantas}</span>
-                </button>
-              ))}
-            </div>
+          <div>
+            {/* `id="por-aprobar"`: el ancla de la cifra de la cabecera cae aquí, sea cual sea la pestaña. */}
+            <h2 id="por-aprobar" ref={tituloActividad} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
+              {TITULOS[vista].titulo}
+            </h2>
+            <p className="mt-0.5 text-sm text-tinta/70">{TITULOS[vista].bajada}</p>
           </div>
+          {/* Cambian la pantalla (otras columnas, otras acciones): pestañas de vista del sistema, con el subrayado en tinta y
+              debajo, en Compras, su filtro en píldora (ADR-0354; ADR-0232 D3). Con la pista de antes se veían iguales que el
+              filtro de Cambios, que solo achica la lista. */}
+          <Pestanas
+            etiquetaAccesible="Qué ver"
+            idIndicador="devoluciones-vistas"
+            activa={vista}
+            onCambio={(v) => setVista(v as Vista)}
+            items={PESTANAS.map((p) => ({
+              clave: p.valor,
+              etiqueta: p.texto,
+              conteo: p.cuantas,
+              pide: p.alerta ? (p.cuantas === 1 ? "espera revisión" : "esperan revisión") : undefined,
+            }))}
+          />
 
           {vista === "compras" && (
             <>
               {/* Filtros de la pestaña con la píldora de filtro del sistema, no con la forma de las pestañas:
                   dos filas iguales no decían cuál manda. */}
-              <div role="group" aria-label="Filtrar las compras" className="-mt-1 flex flex-wrap gap-2">
+              <div role="group" aria-label="Filtrar las compras" className="pildoras-desliza gap-2 sm:flex-wrap">
                 {FILTROS.map((f) => (
-                  <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla">
-                    {f.texto} <span className="tabular-nums opacity-75">{ventasDelFiltro(lineas, f.valor).size}</span>
+                  <button key={f.valor} type="button" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)} className="pildora-cayla shrink-0">
+                    {f.texto} <span className="pildora-cayla__n">{ventasDelFiltro(lineas, f.valor).size}</span>
                   </button>
                 ))}
               </div>

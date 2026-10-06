@@ -98,9 +98,9 @@ export function NuevoEnOtrasSedes({
           </p>
           <div className="ia-chips">
             {chipsNuevos(items).map((c) => (
-              <button key={c.clave} type="button" className="ia-chip" aria-pressed={filtro === c.clave} onClick={() => cambiarFiltro(c.clave)}>
+              <button key={c.clave} type="button" className="pildora-cayla shrink-0" aria-pressed={filtro === c.clave} onClick={() => cambiarFiltro(c.clave)}>
                 {c.etiqueta}
-                <em>{c.cuenta}</em>
+                <span className="pildora-cayla__n">{c.cuenta}</span>
               </button>
             ))}
           </div>

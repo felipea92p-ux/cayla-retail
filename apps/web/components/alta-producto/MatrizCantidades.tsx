@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { limpiarCantidad, type CeldaAlta } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
@@ -81,28 +82,18 @@ export function MatrizCantidades({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
-        <div role="group" aria-label="Qué escribes en la tabla" className="flex w-full rounded-[9px] border border-sand bg-crema p-[3px] sm:inline-flex sm:w-auto">
-          {(
-            [
-              ["cantidades", "Cuántas tienes hoy"],
-              ["precios", "¿Alguna cuesta distinto?"],
-            ] as const
-          ).map(([m, texto]) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={modo === m}
-              disabled={m === "cantidades" && !!cantidadesCerradas}
-              title={m === "cantidades" && cantidadesCerradas ? cantidadesCerradas : undefined}
-              onClick={() => setModo(m)}
-              className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12.5px] font-medium transition-colors sm:flex-none ${
-                modo === m ? "bg-papel text-tinta ring-1 ring-sand" : "text-tinta/60 hover:text-tinta"
-              } disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:text-tinta/60`}
-            >
-              {texto}
-            </button>
-          ))}
-        </div>
+        {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0354). Angosto, ocupa todo el ancho. */}
+        <SegmentoDeslizante
+          forma="modo"
+          etiqueta="Qué escribes en la tabla"
+          valor={modo}
+          onCambio={(m) => setModo(m as typeof modo)}
+          opciones={[
+            { clave: "cantidades", etiqueta: "Cuántas tienes hoy", deshabilitada: !!cantidadesCerradas, ayuda: cantidadesCerradas || undefined },
+            { clave: "precios", etiqueta: "¿Alguna cuesta distinto?" },
+          ]}
+          className="w-full sm:w-auto [&>button]:flex-1 [&>button]:justify-center sm:[&>button]:flex-none"
+        />
         {/* «Llenar todas» ocupa su lugar también en «precios» (invisible): cambiar de segmento no mueve la tabla (ADR-0185). */}
         <div className={`flex items-center gap-1.5 text-[12.5px] text-taupe ${enCantidades ? "" : "invisible"}`} aria-hidden={!enCantidades}>
           <label htmlFor="alta-llenar-todas">Llenar todas con</label>

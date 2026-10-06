@@ -5,7 +5,9 @@ import { ArrowRight, ChevronDown, Clock3 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { PUNTO_GRUPO } from "@/components/AnalisisAcciones";
 import { Bloque } from "@/components/ResumenBloques";
-import { COLOR_ALZA, COLOR_BAJA, COLOR_NEUTRO, flechaPct, irALaTabla, TarjetaCifraAnalisis } from "@/components/ResumenCifras";
+import { Ayuda } from "@/components/Ayuda";
+import { COLOR_ALZA, COLOR_BAJA, COLOR_NEUTRO, flechaPct, irALaTabla, TONO_DELTA } from "@/components/ResumenCifras";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { BarrasHorizontales, Columnas, DonaDistribucion, type SegmentoDistribucion } from "@/components/ui/Graficos";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import { GRUPOS_TRABAJO, INFO_GRUPO, type GrupoQueHacer } from "@/lib/analisis-que-hacer";
@@ -27,48 +29,57 @@ export function AnalisisCifras({ datos, esLider, actualizar }: { datos: Desempen
     // 2 × 2 en el celular (no una columna de cuatro: empujaba «Qué hacer» casi dos pantallas abajo); la cifra grande es
     // solo el número y la palabra va en el pie, para que quepa en media pantalla de 375 px.
     <div className="grid grid-cols-2 gap-2 sm:gap-3 min-[1100px]:grid-cols-4">
-      <TarjetaCifraAnalisis
-        i={0}
-        titulo="Vendido"
-        cifra={formatoSolesCompacto(kpis.ventas.importe)}
-        delta={kpis.ventas.cambioMitadPct === null ? undefined : { texto: `2.ª mitad ${cambio.texto}`, tono: cambio.tono }}
+      <TarjetaCifra
+        className="anim-entra"
+        style={{ "--i": 0 } as CSSProperties}
+        etiqueta="Vendido"
+        ayuda={<Ayuda titulo="Vendido">Lo cobrado menos lo devuelto. La 2.ª mitad del período se compara con la 1.ª por día.</Ayuda>}
+        valor={formatoSolesCompacto(kpis.ventas.importe)}
+        detalleTono={TONO_DELTA[cambio.tono]}
         pie={`${pluralizar(kpis.ventas.unidades, "unidad", "unidades")} en ${pluralizar(datos.periodo.dias, "día", "días")}`}
-        ayuda="Lo cobrado menos lo devuelto. La 2.ª mitad del período se compara con la 1.ª por día."
-      />
-      <TarjetaCifraAnalisis
-        i={1}
-        titulo="Vendió de lo colgado"
-        cifra={c.colgado.pct === null ? "—" : `${Math.round(c.colgado.pct)}%`}
-        pie={
-          c.colgado.pct === null
-            ? "Aún no hay prendas con 7 días colgadas"
-            : `${c.colgado.vendido.toLocaleString("en-US")} de ${c.colgado.disponible.toLocaleString("en-US")} u. que estuvieron en el piso`
-        }
-        ayuda="Sell-through de exposición: de lo que estuvo colgado al menos 7 días, cuánto se vendió. Lo recién colgado no cuenta todavía."
-      />
-      <button
-        type="button"
+      >
+        {kpis.ventas.cambioMitadPct === null ? undefined : `2.ª mitad ${cambio.texto}`}
+      </TarjetaCifra>
+      {c.colgado.pct === null ? (
+        <TarjetaCifra
+          className="anim-entra"
+          style={{ "--i": 1 } as CSSProperties}
+          etiqueta="Vendió de lo colgado"
+          ayuda={<Ayuda titulo="Vendió de lo colgado">Sell-through de exposición: de lo que estuvo colgado al menos 7 días, cuánto se vendió. Lo recién colgado no cuenta todavía.</Ayuda>}
+          valor={null}
+        >
+          Aún no hay prendas con 7 días colgadas
+        </TarjetaCifra>
+      ) : (
+        <TarjetaCifra
+          className="anim-entra"
+          style={{ "--i": 1 } as CSSProperties}
+          etiqueta="Vendió de lo colgado"
+          ayuda={<Ayuda titulo="Vendió de lo colgado">Sell-through de exposición: de lo que estuvo colgado al menos 7 días, cuánto se vendió. Lo recién colgado no cuenta todavía.</Ayuda>}
+          valor={`${Math.round(c.colgado.pct)}%`}
+          pie={`${c.colgado.vendido.toLocaleString("en-US")} de ${c.colgado.disponible.toLocaleString("en-US")} u. que estuvieron en el piso`}
+        />
+      )}
+      {/* Tocarla lleva a la tabla de abajo con «Se agotaron» puesto (ADR-0245). No se dibuja como «filtra»: el segundo toque
+          no lo quita (siempre pone el mismo grupo). Qué cuenta y qué abre está por decidir (/unificar ronda 1, va aparte). */}
+      <TarjetaCifra
+        className="anim-entra"
+        style={{ "--i": 2 } as CSSProperties}
+        etiqueta="Piden algo hoy"
+        valor={String(c.pidenAlgo)}
         onClick={() => {
           actualizar({ grupo: "agotada" });
           irALaTabla(ID_TABLA_ANALISIS);
         }}
-        // La tarjeta se estira al alto de las otras tres (el botón no lo hace solo).
-        className="flex text-left [&>div]:flex-1"
-      >
-        <TarjetaCifraAnalisis
-          i={2}
-          titulo="Piden algo hoy"
-          cifra={String(c.pidenAlgo)}
-          pie={c.pidenAlgo === 0 ? "Nada agotado, guardado ni quieto" : `${c.pidenAlgo === 1 ? "prenda se agotó, duerme" : "prendas se agotaron, duermen"} en almacén o está${c.pidenAlgo === 1 ? "" : "n"} quieta${c.pidenAlgo === 1 ? "" : "s"}`}
-          ayuda="Prendas en «Se agotaron», «Duermen en almacén» o «Estancadas». Toca para verlas."
-        />
-      </button>
-      <TarjetaCifraAnalisis
-        i={3}
-        titulo="Quieto sin vender"
-        cifra={esLider && c.quieto.costo !== null ? formatoSolesCompacto(c.quieto.costo) : String(c.quieto.unidades)}
+        pie={c.pidenAlgo === 0 ? "Nada agotado, guardado ni quieto" : `${c.pidenAlgo === 1 ? "prenda se agotó, duerme" : "prendas se agotaron, duermen"} en almacén o está${c.pidenAlgo === 1 ? "" : "n"} quieta${c.pidenAlgo === 1 ? "" : "s"}`}
+      />
+      <TarjetaCifra
+        className="anim-entra"
+        style={{ "--i": 3 } as CSSProperties}
+        etiqueta="Quieto sin vender"
+        ayuda={<Ayuda titulo="Quieto sin vender">Lo que quedó al cierre en las prendas estancadas. El líder lo ve al costo cuando todas tienen costo confiable.</Ayuda>}
+        valor={esLider && c.quieto.costo !== null ? formatoSolesCompacto(c.quieto.costo) : String(c.quieto.unidades)}
         pie={esLider && c.quieto.costo !== null ? `${pluralizar(c.quieto.unidades, "unidad", "unidades")} a costo, estancadas` : `${c.quieto.unidades === 1 ? "unidad" : "unidades"} 14 días o más colgadas sin venta`}
-        ayuda="Lo que quedó al cierre en las prendas estancadas. El líder lo ve al costo cuando todas tienen costo confiable."
       />
     </div>
   );

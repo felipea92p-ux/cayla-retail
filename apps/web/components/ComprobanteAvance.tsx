@@ -58,38 +58,5 @@ export function BarraAvance({ avance, tono, etiqueta, fina = false }: { avance: 
   );
 }
 
-/**
- * Una de las dos tarjetas del detalle (prototipo: «Recepción» a la izquierda, «Pago» a la derecha): la etiqueta, la cifra
- * grande con su «de X» chico («210 de 600 u.», «S/ 2,000.00 de S/ 5,923.60») y la barra que se llena.
- * `nota` es una línea chica opcional para lo que el prototipo no tiene pero la app necesita (unidades cerradas por
- * faltante, notas de crédito): solo sale cuando hay algo que decir.
- */
-export function TarjetaAvance({
-  etiqueta,
-  valor,
-  de,
-  nota,
-  avance,
-  tono,
-}: {
-  etiqueta: string;
-  valor: string;
-  /** Lo que sigue a la cifra, en chico: «de 600 u.». */
-  de?: string;
-  nota?: string;
-  /** 0–1: cuánto del total ya está cubierto. */
-  avance: number;
-  tono: TonoAvance;
-}) {
-  return (
-    <div className="card-cayla px-4 py-3.5">
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="font-display mt-0.5 text-[22px] tabular-nums text-tinta">
-        {valor}
-        {de && <small className="font-sans text-xs text-tinta/55"> {de}</small>}
-      </p>
-      <BarraAvance avance={avance} tono={tono} etiqueta={`${etiqueta}: ${Math.round(fraccion(avance, 1) * 100)}%`} />
-      {nota && <p className="mt-2 text-xs text-tinta/65">{nota}</p>}
-    </div>
-  );
-}
+// Las dos tarjetas del detalle («Recepción» y «Pago», con su barra) eran `TarjetaAvance`, una copia a mano de la
+// tarjeta de cifra; desde el 2026-10-06 son la pieza única `TarjetaCifra` con `BarraAvance` en su contexto (ADR-0354).

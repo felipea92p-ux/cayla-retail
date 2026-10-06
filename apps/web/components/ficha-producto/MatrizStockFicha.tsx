@@ -9,6 +9,7 @@ import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoTexto, Desplegable } from "@/components/ui/campos";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
@@ -233,21 +234,15 @@ export function MatrizStockFicha({
 
   return (
     <div className="scroll-mt-20 space-y-2" ref={raiz}>
-      <div role="group" aria-label="Qué se escribe en la tabla" className="flex w-full rounded-[9px] border border-sand bg-crema p-[3px] @lg:inline-flex @lg:w-auto">
-        {pestanas.map(([v, t]) => (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={vista === v}
-            onClick={() => cambiarVista(v)}
-            className={`flex-auto whitespace-nowrap rounded-[7px] px-1.5 py-1.5 text-[12.5px] font-medium transition-colors @lg:flex-none @lg:px-3 ${
-              vista === v ? "bg-papel text-tinta ring-1 ring-sand" : "text-tinta/60 hover:text-tinta"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0354). Angosto, ocupa todo el ancho. */}
+      <SegmentoDeslizante
+        forma="modo"
+        etiqueta="Qué se escribe en la tabla"
+        valor={vista}
+        onCambio={(v) => cambiarVista(v as VistaMatriz)}
+        opciones={pestanas.map(([v, t]) => ({ clave: v, etiqueta: t }))}
+        className="w-full @lg:w-auto [&>button]:flex-auto [&>button]:justify-center [&>button]:px-1.5 @lg:[&>button]:flex-none @lg:[&>button]:px-3"
+      />
 
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">

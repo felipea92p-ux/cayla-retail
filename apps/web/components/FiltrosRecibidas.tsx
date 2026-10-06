@@ -7,7 +7,6 @@ import { Popover } from "radix-ui";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { TODOS } from "@/components/ui/FiltrosPildora";
@@ -133,31 +132,44 @@ export function FiltrosRecibidas({
       <PastillaProveedor proveedores={proveedores} proveedorId={filtros.proveedorId} onElegir={(id) => aplicar({ prov: id })} />
       <PastillaFechas desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} hoy={hoy} onCambiar={(desde, hasta) => aplicar({ desde, hasta })} />
 
-      {/* Los dos segmentados del spike: el periodo de un toque (tocar el activo lo quita) y cómo llegó lo recibido. */}
-      <SegmentoDeslizante
-        etiqueta="Periodo de llegada"
-        valor={periodoActivo ?? ""}
-        onCambio={(clave) => {
-          if (clave === periodoActivo) return aplicar({ desde: "", hasta: "" });
-          const r = rangoDePeriodo(clave as PeriodoRecibidas, hoy);
-          aplicar({ desde: r.desde, hasta: r.hasta });
-        }}
-        opciones={[
-          { clave: "este-mes", etiqueta: "Este mes" },
-          { clave: "30-dias", etiqueta: "30 días" },
-          { clave: "90-dias", etiqueta: "90 días" },
-        ]}
-      />
-      <SegmentoDeslizante
-        etiqueta="Filtrar por resultado"
-        valor={resultado}
-        onCambio={(v) => aplicar({ res: v === "todas" ? "" : v })}
-        opciones={[
-          { clave: "todas", etiqueta: "Todas" },
-          { clave: "completas", etiqueta: "Completas" },
-          { clave: "faltante", etiqueta: "Con faltante" },
-        ]}
-      />
+      {/* Los dos filtros del spike: el periodo de un toque (tocar el activo lo quita) y cómo llegó lo recibido. Dejan menos
+          recepciones en la misma lista: la píldora de filtro del sistema (ADR-0354), no el segmento. */}
+      <div role="group" aria-label="Periodo de llegada" className="flex flex-wrap items-center gap-1.5">
+        {(
+          [
+            ["este-mes", "Este mes"],
+            ["30-dias", "30 días"],
+            ["90-dias", "90 días"],
+          ] as const
+        ).map(([clave, texto]) => (
+          <button
+            key={clave}
+            type="button"
+            aria-pressed={periodoActivo === clave}
+            onClick={() => {
+              if (clave === periodoActivo) return aplicar({ desde: "", hasta: "" });
+              const r = rangoDePeriodo(clave as PeriodoRecibidas, hoy);
+              aplicar({ desde: r.desde, hasta: r.hasta });
+            }}
+            className="pildora-cayla"
+          >
+            {texto}
+          </button>
+        ))}
+      </div>
+      <div role="group" aria-label="Filtrar por resultado" className="flex flex-wrap items-center gap-1.5">
+        {(
+          [
+            ["todas", "Todas"],
+            ["completas", "Completas"],
+            ["faltante", "Con faltante"],
+          ] as const
+        ).map(([clave, texto]) => (
+          <button key={clave} type="button" aria-pressed={resultado === clave} onClick={() => aplicar({ res: clave === "todas" ? "" : clave })} className="pildora-cayla">
+            {texto}
+          </button>
+        ))}
+      </div>
 
       {hayActivos && (
         <button type="button" onClick={limpiarTodo} className="label-cayla px-1 text-[10px] text-tinta/55 transition-colors hover:text-rojo">

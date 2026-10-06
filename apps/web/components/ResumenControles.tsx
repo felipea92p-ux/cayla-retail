@@ -249,7 +249,7 @@ function PildoraDePeriodo({
       aria-label={nombre}
       title={ayuda}
       data-activa={abierta}
-      className="pildora-cayla min-w-0 max-w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+      className="pildora-cayla min-w-0 max-w-full"
     >
       <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{texto}</span>
@@ -301,7 +301,7 @@ function ControlesDesempeno({ periodo, alcance, categorias, actualizar }: PropsD
                 aria-checked={periodo.preset === p.valor}
                 onClick={() => elegirPreset(p.valor)}
                 data-activa={periodo.preset === p.valor}
-                className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                className="pildora-cayla"
               >
                 {p.valor === "personalizado" && <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />}
                 {p.texto}

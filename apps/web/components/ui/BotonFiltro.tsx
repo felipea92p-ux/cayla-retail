@@ -5,6 +5,9 @@ import type { ReactNode } from "react";
  * Tallas. Vive acá para que las pestañas de Atributos filtren con el mismo
  * gesto: si uno cambia de tamaño o de estado activo, cambian todos juntos.
  * `punto` es la clase de color del puntito del grupo (ej. "bg-verde").
+ *
+ * Desde el 2026-10-06 es la píldora de filtro del sistema (`pildora-cayla`, ADR-0354 «Pestañas y segmentos»): un filtro de un
+ * valor se ve igual en todo el ERP. Se fueron las MAYÚSCULAS de 10,5 px y el conteo en tinta/40; el conteo va del color del texto.
  */
 export function BotonFiltro({
   activo,
@@ -20,17 +23,10 @@ export function BotonFiltro({
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={activo}
-      onClick={onClick}
-      className={`label-cayla inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10.5px] transition-colors ${
-        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/65 hover:border-tinta/30 hover:text-tinta"
-      }`}
-    >
+    <button type="button" aria-pressed={activo} onClick={onClick} className="pildora-cayla">
       {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
       {children}
-      <span className={`font-normal tabular-nums ${activo ? "text-crema/60 dark:text-crema/75" : "text-tinta/40"}`}>{cuenta}</span>
+      <span className="pildora-cayla__n">{cuenta}</span>
     </button>
   );
 }

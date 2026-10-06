@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { TrasladoRecorrido } from "@/components/TrasladoRecorrido";
@@ -455,18 +456,28 @@ export function TrasladoDetallePanel({
       {/* Tres cifras: lo enviado, lo contado y la diferencia. A ciegas no se muestran: la de «Enviado» diría cuánto hay. */}
       {!aCiegas && !anulada && (
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <Cifra etiqueta="Enviado" valor={lectura.unidadesEnviadas} unidad="prendas" />
-          <Cifra
-            etiqueta="Recibido"
-            valor={lectura.contadas > 0 ? lectura.unidadesContadas : "—"}
-            unidad={lectura.contadas > 0 ? `de ${lectura.unidadesEnviadas}` : `lo cuenta ${t.ubicacionDestinoNombre}`}
-          />
-          <Cifra
-            etiqueta="Diferencia"
-            valor={!difLista ? "—" : difTotal === 0 ? "0" : `${difTotal > 0 ? "+" : "−"}${Math.abs(difTotal)}`}
-            unidad={!difLista ? (lectura.contadas > 0 ? "al terminar de contar" : "") : difTotal === 0 ? "todo coincide" : difTotal < 0 ? "no llegaron" : "llegaron de más"}
-            tono={!difLista ? undefined : difTotal < 0 ? "text-rojo-profundo" : difTotal > 0 ? "text-ambar" : undefined}
-          />
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0354): lo que aún no se contó es «sin dato», con su motivo. */}
+          <TarjetaCifra etiqueta="Enviado" valor={lectura.unidadesEnviadas} unidad="prendas" />
+          {lectura.contadas > 0 ? (
+            <TarjetaCifra etiqueta="Recibido" valor={lectura.unidadesContadas} unidad={`de ${lectura.unidadesEnviadas}`} />
+          ) : (
+            <TarjetaCifra etiqueta="Recibido" valor={null}>
+              lo cuenta {t.ubicacionDestinoNombre}
+            </TarjetaCifra>
+          )}
+          {!difLista ? (
+            <TarjetaCifra etiqueta="Diferencia" valor={null}>
+              {lectura.contadas > 0 ? "al terminar de contar" : ""}
+            </TarjetaCifra>
+          ) : (
+            <TarjetaCifra
+              etiqueta="Diferencia"
+              valor={difTotal === 0 ? "0" : `${difTotal > 0 ? "+" : "−"}${Math.abs(difTotal)}`}
+              tono={difTotal < 0 ? "text-rojo-profundo" : difTotal > 0 ? "text-ambar" : undefined}
+            >
+              {difTotal === 0 ? "todo coincide" : difTotal < 0 ? "no llegaron" : "llegaron de más"}
+            </TarjetaCifra>
+          )}
         </div>
       )}
 
@@ -904,18 +915,6 @@ function EstadoLinea({ estado, onReintentar }: { estado: EstadoGuardado | undefi
 function Insignia({ leida, recontable }: { leida: LineaLeida; recontable: boolean }) {
   const i = insigniaComparacion(leida, { recontable });
   return <Chip tono={i.tono}>{i.texto}</Chip>;
-}
-
-function Cifra({ etiqueta, valor, unidad, tono }: { etiqueta: string; valor: number | string; unidad: string; tono?: string }) {
-  return (
-    <div className="card-cayla px-3.5 py-3 sm:px-5 sm:py-3.5">
-      <p className="text-xs font-semibold text-taupe">{etiqueta}</p>
-      <p className={`font-display mt-0.5 text-2xl leading-tight tabular-nums sm:text-[28px] ${tono ?? "text-tinta"}`}>
-        {valor}
-        {unidad && <span className="block font-sans text-xs font-normal text-taupe sm:ml-1.5 sm:inline sm:text-[13px]">{unidad}</span>}
-      </p>
-    </div>
-  );
 }
 
 function Aviso({ children }: { children: React.ReactNode }) {

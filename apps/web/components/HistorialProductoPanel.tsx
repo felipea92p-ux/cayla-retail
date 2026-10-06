@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { PaginacionCursor } from "@/components/Paginacion";
 import { MovimientoDetalle } from "@/components/MovimientoDetalle";
@@ -176,20 +177,17 @@ function SeccionMovimientos({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-full border border-tinta/15 p-0.5">
-          {(["fecha", "variante"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setVista(v)}
-              className={`label-cayla rounded-full px-3 py-1 text-[11px] transition-colors ${
-                vista === v ? "bg-tinta text-crema" : "text-tinta/65 hover:text-tinta"
-              }`}
-            >
-              {v === "fecha" ? "Por fecha" : "Por variante"}
-            </button>
-          ))}
-        </div>
+        {/* Los mismos movimientos agrupados de otra forma: el segmento de modo del sistema (ADR-0354). */}
+        <SegmentoDeslizante
+          forma="modo"
+          etiqueta="Cómo agrupar el historial"
+          valor={vista}
+          onCambio={(v) => setVista(v as typeof vista)}
+          opciones={[
+            { clave: "fecha", etiqueta: "Por fecha" },
+            { clave: "variante", etiqueta: "Por variante" },
+          ]}
+        />
         {puedeCambiarUbicacion && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} conservar={{ desde: desde ?? undefined }} />}
       </div>
 

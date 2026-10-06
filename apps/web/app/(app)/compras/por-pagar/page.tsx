@@ -151,24 +151,22 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             y, cuando algo las mueve (un pago), cuentan hasta su valor nuevo. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="col-span-2 sm:col-span-1 [&>*]:h-full">
-            <TarjetaCifra compacta punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
+            <TarjetaCifra punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
               {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
             </TarjetaCifra>
           </div>
           <TarjetaCifra
-            compacta
             acentoTrazo={resumen.vencidas > 0}
             punto="neutro"
-            tono={resumen.vencidas > 0 ? "text-rojo max-sm:text-[26px] whitespace-nowrap" : undefined}
+            tono={resumen.vencidas > 0 ? "text-rojo" : undefined}
             etiqueta="Vencido"
             valor={<CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
             href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
             {...entra(2)}
           >
-            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "comprobante vencido", "comprobantes vencidos")} · pagar ya →` : "Nada vencido"}
+            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "comprobante vencido", "comprobantes vencidos")} · pagar ya` : "Nada vencido"}
           </TarjetaCifra>
           <TarjetaCifra
-            compacta
             punto={resumen.porVencer > 0 ? "ambar" : "neutro"}
             puntoPulsa={resumen.porVencer > 0}
             tono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
@@ -178,15 +176,15 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
             {...entra(3)}
           >
-            {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana} →` : "Ninguno en los próximos 7 días"}
+            {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana}` : "Ninguno en los próximos 7 días"}
           </TarjetaCifra>
           {conDeuda && extra.topProveedorNombre ? (
-            <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+            <TarjetaCifra punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
               {extra.topProveedorNombre} concentra la deuda
               <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—" {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+            <TarjetaCifra etiqueta="Concentración" valor={null} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
               Aparece cuando haya deuda
             </TarjetaCifra>
           )}

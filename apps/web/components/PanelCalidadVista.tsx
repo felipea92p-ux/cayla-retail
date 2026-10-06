@@ -1,5 +1,5 @@
 import { Ayuda } from "@/components/Ayuda";
-import { TarjetaIndicador } from "@/components/TarjetaIndicador";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import type { PanelCalidad } from "@/lib/calidad";
 import { MUESTRA_MINIMA, FACTOR_ATENCION, DEVUELTAS_MINIMAS_ATENCION, textoLectura, type FilaEvaluada } from "@/lib/calidad-reglas";
 
@@ -38,7 +38,8 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
           Todas las tiendas
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <TarjetaIndicador
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0354). Sin ventas cerradas no hay tasa: «sin dato», con su motivo. */}
+          <TarjetaCifra
             etiqueta="Tasa de devolución"
             ayuda={
               <Ayuda titulo="Cómo se lee">
@@ -47,20 +48,22 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
                 dañadas.
               </Ayuda>
             }
-            valor={pct(t.tasa)}
-            pie={`${t.devueltas} devueltas de ${t.vendidas} vendidas`}
-          />
-          <TarjetaIndicador
+            valor={t.tasa === null ? null : pct(t.tasa)}
+            pie={t.tasa === null ? undefined : `${t.devueltas} devueltas de ${t.vendidas} vendidas`}
+          >
+            {t.tasa === null ? `${t.devueltas} devueltas de ${t.vendidas} vendidas` : undefined}
+          </TarjetaCifra>
+          <TarjetaCifra
             etiqueta="Volvieron dañadas"
             valor={String(t.danadas)}
             pie={t.devueltas > 0 ? `${pct(t.tasaDanadas)} de lo devuelto · ${t.aProveedor} al proveedor` : "Aún no hay devoluciones."}
           />
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Cambios"
             valor={String(t.cambiadas)}
             pie={t.vendidas > 0 ? `${pct(t.tasaCambios)} de lo vendido` : "Aún no hay ventas."}
           />
-          <TarjetaIndicador etiqueta="Unidades analizadas" valor={String(t.vendidas)} pie="vendidas en el período" />
+          <TarjetaCifra etiqueta="Unidades analizadas" valor={String(t.vendidas)} pie="vendidas en el período" />
         </div>
       </section>
 

@@ -21,6 +21,8 @@
 @import "./estilos/vista-rapida.css";
 @import "./estilos/vender-grilla.css";
 @import "./estilos/movimientos-sellos.css";
+/* Pestaña de vista, píldora de filtro y segmento de modo: una pieza por función (ADR-0354, «Pestañas y segmentos»). */
+@import "./estilos/pestanas-y-segmentos.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

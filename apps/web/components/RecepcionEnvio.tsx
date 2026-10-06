@@ -28,7 +28,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Resaltado } from "@/components/ui/Resaltado";
-import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { useFlip } from "@/lib/useFlip";
 import { DecidirTodas, EditorDecision, etiquetaDecision, ResumenDecision, type Decision } from "@/components/DecisionFaltanteFila";
 import { compararTallas } from "@/lib/tallas";
@@ -956,18 +956,24 @@ export function RecepcionEnvio({
               )}
             </div>
           </div>
-          <TabsSubrayado
-            etiqueta="Filtrar pendientes"
-            valor={filtro}
-            onCambio={(v) => setFiltro(v as FiltroLista)}
-            className="border-b border-tinta/10 px-3"
-            clasePestana="px-2.5 pb-2.5 pt-1 text-[13px]"
-            items={[
-              { clave: "todas", etiqueta: "Todas", conteo: <CifraQueCuenta valor={comprasOrdenadas.length} /> },
-              { clave: "atrasadas", etiqueta: "Atrasadas", conteo: <CifraQueCuenta valor={nAtrasadas} />, tono: nAtrasadas > 0 ? "ambar" : undefined },
-              { clave: "proximas", etiqueta: "Próximas", conteo: <CifraQueCuenta valor={comprasOrdenadas.length - nAtrasadas} /> },
-            ]}
-          />
+          {/* Dejan menos comprobantes en la misma lista: la píldora de filtro del sistema (ADR-0354), no la pestaña subrayada.
+              Lo atrasado conserva su cuenta en ámbar mientras no está elegido: pide algo. */}
+          <div role="group" aria-label="Filtrar pendientes" className="flex flex-wrap items-center gap-1.5 border-b border-tinta/10 px-3 pb-2.5 pt-1">
+            {(
+              [
+                { clave: "todas", etiqueta: "Todas", n: comprasOrdenadas.length, pide: false },
+                { clave: "atrasadas", etiqueta: "Atrasadas", n: nAtrasadas, pide: nAtrasadas > 0 },
+                { clave: "proximas", etiqueta: "Próximas", n: comprasOrdenadas.length - nAtrasadas, pide: false },
+              ] as const
+            ).map((f) => (
+              <button key={f.clave} type="button" aria-pressed={filtro === f.clave} onClick={() => setFiltro(f.clave as FiltroLista)} className="pildora-cayla">
+                {f.etiqueta}{" "}
+                <span className={`pildora-cayla__n ${f.pide && filtro !== f.clave ? "text-ambar-profundo" : ""}`}>
+                  <CifraQueCuenta valor={f.n} />
+                </span>
+              </button>
+            ))}
+          </div>
           <p className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 px-4 py-2 text-xs text-tinta/55">
             <span>Por urgencia: lo atrasado primero</span>
             {hayEnvio ? (
@@ -1177,12 +1183,14 @@ export function RecepcionEnvio({
               {/* lo que llegó: prendas del envío, fuera de comprobante y notas */}
               <section className="card-cayla anim-entra overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
                 <div className="flex flex-wrap items-stretch gap-x-1 border-b border-tinta/10 px-5">
-                  <TabsSubrayado
-                    etiqueta="Qué se cuenta"
-                    valor={pestana}
+                  {/* Tres partes del conteo con otras columnas: la pestaña de vista del sistema (ADR-0354). La línea de abajo
+                      la pone la tarjeta. */}
+                  <Pestanas
+                    etiquetaAccesible="Qué se cuenta"
+                    idIndicador="recepcion-que-se-cuenta"
+                    activa={pestana}
                     onCambio={(v) => setPestana(v as Pestana)}
-                    className="self-stretch"
-                    clasePestana="px-3 pb-3.5 pt-4 text-sm"
+                    className="self-stretch border-b-0"
                     items={[
                       { clave: "prendas", etiqueta: "Prendas del envío", conteo: <CifraQueCuenta valor={totales.esperadas} /> },
                       { clave: "fuera", etiqueta: "Fuera de comprobante", conteo: <CifraQueCuenta valor={totales.fueraDeComprobante} /> },

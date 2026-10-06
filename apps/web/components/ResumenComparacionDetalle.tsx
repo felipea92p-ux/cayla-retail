@@ -121,8 +121,8 @@ function Fila({ x, filtro, diasB }: { x: AnalisisComparacion; filtro: FiltroCamb
 /** Un filtro de la tabla: la píldora de la guía oficial, con su cuenta. La elegida va en tinta. */
 function FiltroChip({ activo, n, onClick, children }: { activo: boolean; n: number; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-pressed={activo} onClick={onClick} className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60">
-      {children} <span className="tabular-nums opacity-70 dark:opacity-85">· {n}</span>
+    <button type="button" aria-pressed={activo} onClick={onClick} className="pildora-cayla">
+      {children} <span className="pildora-cayla__n">· {n}</span>
     </button>
   );
 }

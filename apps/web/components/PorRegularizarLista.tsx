@@ -84,16 +84,16 @@ export function PorRegularizarLista({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <TarjetaCifra compacta className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto={cifras.pendientes > 0 ? "ambar" : "neutro"} etiqueta="Por regularizar" valor={cifras.pendientes}>
+        <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto={cifras.pendientes > 0 ? "ambar" : "neutro"} etiqueta="Por regularizar" valor={cifras.pendientes}>
           prendas vendidas sin registrar
         </TarjetaCifra>
-        <TarjetaCifra compacta className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto={cifras.vencidas > 0 ? "rojo" : "neutro"} etiqueta="Vencidas" valor={cifras.vencidas}>
+        <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto={cifras.vencidas > 0 ? "rojo" : "neutro"} etiqueta="Vencidas" valor={cifras.vencidas}>
           más de {DIAS_PARA_VENCER} días sin regularizar
         </TarjetaCifra>
-        <TarjetaCifra compacta className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="neutro" etiqueta="Descuento no planificado" valor={soles(cifras.descuentoMes)}>
+        <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="neutro" etiqueta="Descuento no planificado" valor={soles(cifras.descuentoMes)}>
           se cobró menos que el precio oficial · este mes
         </TarjetaCifra>
-        <TarjetaCifra compacta className="anim-entra" style={{ "--i": 3 } as CSSProperties} punto="neutro" etiqueta="Sobreprecio" valor={soles(cifras.sobreprecioMes)}>
+        <TarjetaCifra className="anim-entra" style={{ "--i": 3 } as CSSProperties} punto="neutro" etiqueta="Sobreprecio" valor={soles(cifras.sobreprecioMes)}>
           se cobró más que el precio oficial · este mes
         </TarjetaCifra>
       </div>

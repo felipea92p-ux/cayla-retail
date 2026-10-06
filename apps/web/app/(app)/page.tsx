@@ -32,7 +32,8 @@ import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-
 import { getInicioAlmacen } from "@/lib/inicio-almacen";
 import { getAvisosObservatorio, getDatosObservatorio, getDatosTienda, getTallerObservatorio } from "@/lib/observatorio";
 import { Observatorio } from "@/components/observatorio/Observatorio";
-import { Etiqueta, Tarjeta } from "@/components/inicio/TarjetasInicio";
+import { Etiqueta } from "@/components/inicio/TarjetasInicio";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
@@ -251,7 +252,9 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
       <Etiqueta>{titulo}</Etiqueta>
       {/* En celular la primera cifra va a todo lo ancho y las otras dos lado a lado; desde `sm`, las tres en fila. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Tarjeta etiqueta={esLider ? "Ventas" : "Tus ventas"} valor={formatoSoles(r.importe)} className="col-span-2 sm:col-span-1">
+        {/* La pieza única de cifra (TarjetaCifra, ADR-0354): antes era la receta propia del Inicio, con el nombre en la
+            misma letra que «Tu día» (el título de la sección). Sin meta es «sin dato»; la caja sin leer, «no se pudo leer». */}
+        <TarjetaCifra etiqueta={esLider ? "Ventas" : "Tus ventas"} valor={formatoSoles(r.importe)} className="col-span-2 sm:col-span-1">
           {esLider && r.comparativo ? (
             <span className={r.comparativo.positivo ? "text-verde-profundo" : "text-ambar-profundo"}>{r.comparativo.texto}</span>
           ) : esLider ? (
@@ -259,27 +262,27 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           ) : (
             `${r.ventas} ${r.ventas === 1 ? "venta" : "ventas"}`
           )}
-        </Tarjeta>
-        <Tarjeta etiqueta={esLider ? "Valor medio" : "Tu ticket"} valor={r.valorMedio === null ? "—" : formatoSoles(r.valorMedio)}>
+        </TarjetaCifra>
+        <TarjetaCifra etiqueta={esLider ? "Valor medio" : "Tu ticket"} valor={r.valorMedio === null ? null : formatoSoles(r.valorMedio)}>
           {`${r.ventas} ${r.ventas === 1 ? "venta" : "ventas"}`}
-        </Tarjeta>
+        </TarjetaCifra>
         {esLider ? (
           r.meta ? (
-            <Tarjeta etiqueta="Meta del día" valor={`${r.meta.pct} %`}>
+            <TarjetaCifra etiqueta="Meta del día" valor={`${r.meta.pct} %`}>
               Faltan {formatoSoles(r.meta.falta)} de {formatoSoles(r.meta.meta)}
               <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
                 <span className="block h-full rounded-full bg-verde" style={{ width: `${r.meta.barra}%` }} />
               </span>
-            </Tarjeta>
+            </TarjetaCifra>
           ) : (
-            <Tarjeta etiqueta="Meta del día" valor="—">
+            <TarjetaCifra etiqueta="Meta del día" valor={null}>
               Esta sede no tiene meta diaria configurada
-            </Tarjeta>
+            </TarjetaCifra>
           )
         ) : (
-          <Tarjeta etiqueta="Caja" valor={hoy.cajaAbierta === null ? "—" : hoy.cajaAbierta ? "Abierta" : "Cerrada"}>
+          <TarjetaCifra etiqueta="Caja" valor={hoy.cajaAbierta === null ? null : hoy.cajaAbierta ? "Abierta" : "Cerrada"} noSePudoLeer={hoy.cajaAbierta === null}>
             {hoy.cajaAbierta === null ? "No se pudo leer la caja" : hoy.cajaAbierta ? "Puedes vender" : "Ábrela en Caja para vender"}
-          </Tarjeta>
+          </TarjetaCifra>
         )}
       </div>
     </section>

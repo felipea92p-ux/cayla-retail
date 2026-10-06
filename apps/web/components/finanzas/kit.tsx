@@ -23,11 +23,11 @@ export function PestanasFin({ items, valor, onCambio, etiqueta }: { items: Pesta
           </>
         );
         return p.href ? (
-          <Link key={p.clave} href={p.href} role="tab" aria-selected={valor === p.clave} className="fin-pestana" scroll={false}>
+          <Link key={p.clave} href={p.href} role="tab" aria-selected={valor === p.clave} className="fin-pestana" scroll={false} /* unificar-fijo: pestaña del kit de Finanzas, ADR-0195 */>
             {contenido}
           </Link>
         ) : (
-          <button key={p.clave} type="button" role="tab" aria-selected={valor === p.clave} className="fin-pestana" onClick={() => onCambio?.(p.clave)}>
+          <button key={p.clave} type="button" role="tab" aria-selected={valor === p.clave} className="fin-pestana" onClick={() => onCambio?.(p.clave)} /* unificar-fijo: pestaña del kit de Finanzas, ADR-0195 */>
             {contenido}
           </button>
         );

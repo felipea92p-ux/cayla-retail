@@ -171,20 +171,21 @@ export function GastosPanel({
       ))}
 
       <section className="fin-cifras">
-        <TarjetaCifra compacta etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : "—"} {...entra(1)}>
+        {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0354). */}
+        <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igv) : "—"} {...entra(2)}>
+        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igv) : null} noSePudoLeer={!panel} {...entra(2)}>
           {panel ? `Solo de facturas. ${panel.boletas} ${panel.boletas === 1 ? "boleta" : "boletas"} sin IGV descontable.` : ""}
         </TarjetaCifra>
-        <TarjetaCifra compacta etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : "—"} {...entra(3)}>
+        <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(3)}>
           {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           etiqueta="Egresos de caja sin clasificar"
           tono={panel?.egresosSinClasificar ? "text-ambar" : undefined}
-          valor={panel ? String(panel.egresosSinClasificar) : "—"}
+          valor={panel ? String(panel.egresosSinClasificar) : null}
+          noSePudoLeer={!panel}
           onClick={() => setPestana("egresos")}
           {...entra(4)}
         >

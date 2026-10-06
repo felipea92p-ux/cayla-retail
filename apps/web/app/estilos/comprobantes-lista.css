@@ -104,13 +104,11 @@
       transform 500ms var(--ease-cayla),
       width 500ms var(--ease-cayla);
   }
-  .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-rojo); }
+  /* Desde el 2026-10-06 (ADR-0354) solo queda el subrayado en tinta de la pestaña de vista (`Pestanas`): la línea roja, la
+     pastilla oscura del segmento y sus marcas estáticas (`cmp-tab-activa`, `cmp-seg-activa`) ya no las usaba nadie. La marca
+     estática de la pestaña vive con su pieza, en app/estilos/pestanas-y-segmentos.css. */
+  .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-tinta); }
   .cmp-ind-tinta { background: var(--color-tinta); }
-  .cmp-ind-pastilla { top: 0; bottom: 0; background: var(--color-tinta); transition-duration: 450ms; }
-  .cmp-tab-activa { border-bottom-color: var(--color-rojo); }
-  .cmp-seg-activa { background: var(--color-tinta); }
-  [data-indicador] > .cmp-tab-activa { border-bottom-color: transparent; }
-  [data-indicador] > .cmp-seg-activa { background: transparent; }
 
   /* ---------- Filas ---------- */
   /* Entrada escalonada: la de la regla de movimiento (`cayla-entrada`, 420 ms, ≤ 40 ms entre filas). El

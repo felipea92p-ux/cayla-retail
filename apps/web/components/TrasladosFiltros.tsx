@@ -73,7 +73,7 @@ export function TrasladosFiltros({
                 className="pildora-cayla disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {ETIQUETA_FILTRO_TRASLADO[f]}
-                <span className={`tabular-nums ${activo ? "text-crema/70" : "text-taupe"}`}>· {n}</span>
+                <span className="pildora-cayla__n">· {n}</span>
               </button>
             );
           })}
@@ -82,10 +82,10 @@ export function TrasladosFiltros({
               type="button"
               onClick={() => onFiltro("todos")}
               aria-label={`Quitar el filtro ${ETIQUETA_FILTRO_TRASLADO[extra]}`}
-              aria-pressed className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
+              aria-pressed className="pildora-cayla"
             >
               {ETIQUETA_FILTRO_TRASLADO[extra]}
-              <span className="tabular-nums text-crema/70">· {conteos[extra]}</span>
+              <span className="pildora-cayla__n">· {conteos[extra]}</span>
               <X aria-hidden strokeWidth={1.5} className="h-3 w-3" />
             </button>
           )}
@@ -121,25 +121,14 @@ export function TrasladosFiltros({
             )}
           </div>
           {/* Entrantes / Salientes a la vista (rediseño 2026-09-22, ADR-0175): es el filtro que más se usa
-              después de la búsqueda, y abrir un panel para él era un toque de más. Mismo control segmentado
-              que la sububicación de Movimientos. «Otra sede» sigue en «Más filtros». */}
-          <div role="group" aria-label="Dirección" className="inline-flex h-10 shrink-0 items-center gap-0.5 rounded-lg bg-hueso p-[3px]">
-            {DIRECCIONES.map((d) => {
-              const activa = direccion === d.valor;
-              return (
-                <button
-                  key={d.valor}
-                  type="button"
-                  onClick={() => onDireccion(d.valor)}
-                  aria-pressed={activa}
-                  className={`h-full whitespace-nowrap rounded-md px-2.5 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:px-3 ${
-                    activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
-                  }`}
-                >
-                  {d.texto}
-                </button>
-              );
-            })}
+              después de la búsqueda, y abrir un panel para él era un toque de más. Mismo control que la zona de
+              Movimientos: la píldora de filtro del sistema (ADR-0354). «Otra sede» sigue en «Más filtros». */}
+          <div role="group" aria-label="Dirección" className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {DIRECCIONES.map((d) => (
+              <button key={d.valor} type="button" onClick={() => onDireccion(d.valor)} aria-pressed={direccion === d.valor} className="pildora-cayla">
+                {d.texto}
+              </button>
+            ))}
           </div>
           <button
             type="button"

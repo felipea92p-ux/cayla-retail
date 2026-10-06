@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { soles } from "@/lib/compras-reglas";
@@ -11,9 +10,10 @@ import { EVENTO_MARCAR } from "@/lib/envio-reglas";
 // marca un comprobante, para que quien cuenta tenga toda la pantalla (Felipe, 2026-09-18). Se arma en el
 // servidor y llega al formulario como un nodo.
 //
-// Spike de Recibir (2026-09-19): las cifras cuentan hasta su valor al aparecer, las tarjetas entran escalonadas y
-// se alzan al pasar el mouse, el punto de «Atrasadas» late, y «La más atrasada» es un ATAJO: un clic marca ese
-// comprobante en la lista de al lado. Como este nodo no comparte estado con `RecepcionEnvio`, se lo avisa por un
+// Spike de Recibir (2026-09-19): las cifras cuentan hasta su valor al aparecer, las tarjetas entran escalonadas, el
+// punto de «Atrasadas» late, y «La más atrasada» es un ATAJO: un clic marca ese comprobante en la lista de al lado.
+// Desde el 2026-10-06 (ADR-0354) las que solo informan ya no se alzan al pasar el mouse (no llevan a ningún lado), y el
+// atajo se dibuja como la cifra que «lleva»: la flecha la pone TarjetaCifra. Como este nodo no comparte estado con `RecepcionEnvio`, se lo avisa por un
 // evento de ventana (`EVENTO_MARCAR`).
 //
 // `valorPorRecibir` es `null` para quien cuenta sin ver dinero (un colaborador): la cifra en soles es del líder.
@@ -42,8 +42,7 @@ export function KpisRecibir({
   return (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <TarjetaCifra
-        compacta
-        className="anim-entra alza-cayla"
+        className="anim-entra"
         style={estilo(0)}
         punto={porRecibir > 0 ? "ambar" : "verde"}
         etiqueta="Por recibir"
@@ -52,12 +51,11 @@ export function KpisRecibir({
       >
         {porRecibir === 0 ? "Nada por recibir" : valorPorRecibir != null ? `${soles(valorPorRecibir)} en mercadería por llegar` : "con mercadería por llegar"}
       </TarjetaCifra>
-      <TarjetaCifra compacta className="anim-entra alza-cayla" style={estilo(1)} punto="neutro" etiqueta="Unidades pendientes" valor={<CifraQueCuenta valor={unidadesPendientes} alMontar />}>
+      <TarjetaCifra className="anim-entra" style={estilo(1)} punto="neutro" etiqueta="Unidades pendientes" valor={<CifraQueCuenta valor={unidadesPendientes} alMontar />}>
         {unidadesPendientes > 0 ? "por llegar en estos comprobantes" : "Todo lo facturado ya llegó"}
       </TarjetaCifra>
       <TarjetaCifra
-        compacta
-        className="anim-entra alza-cayla"
+        className="anim-entra"
         style={estilo(2)}
         punto={sinAtraso ? "verde" : "ambar"}
         vivo={!sinAtraso}
@@ -70,8 +68,7 @@ export function KpisRecibir({
       </TarjetaCifra>
       {diasMasAtrasada != null && diasMasAtrasada > 0 ? (
         <TarjetaCifra
-          compacta
-          className="anim-entra alza-cayla group"
+          className="anim-entra"
           style={estilo(3)}
           punto="ambar"
           tono="text-ambar-profundo"
@@ -81,10 +78,9 @@ export function KpisRecibir({
           onClick={idMasAtrasada ? () => window.dispatchEvent(new CustomEvent(EVENTO_MARCAR, { detail: idMasAtrasada })) : undefined}
         >
           {proveedorMasAtrasado} · {documentoMasAtrasada}
-          {idMasAtrasada && <ArrowRight aria-hidden className="ml-1 inline h-3 w-3 transition-transform duration-300 ease-cayla group-hover:translate-x-1" />}
         </TarjetaCifra>
       ) : (
-        <TarjetaCifra compacta className="anim-entra" style={estilo(3)} vacia etiqueta="La más atrasada" valor="—">
+        <TarjetaCifra className="anim-entra" style={estilo(3)} etiqueta="La más atrasada" valor={null}>
           Nada atrasado
         </TarjetaCifra>
       )}

@@ -5,9 +5,8 @@ import Link from "next/link";
 import { soles } from "@/lib/compras-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { PestanasResumenProduccion } from "@/components/PestanasResumenProduccion";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { repartoDelGasto, variacion, type EficienciaPeriodo, type PartePlata } from "@/lib/eficiencia-reglas";
 import type { EstadoPlanilla } from "@/lib/eficiencia";
 
@@ -36,7 +35,17 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
   return (
     <div className="space-y-6">
-      <PestanasResumenProduccion activa="eficiencia" />
+      {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
+          (ADR-0354). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+      <Pestanas
+        etiquetaAccesible="Miradas del Taller"
+        idIndicador="produccion-miradas"
+        activa="eficiencia"
+        items={[
+          { clave: "hoy", etiqueta: "Hoy", href: "/produccion", ayuda: "Qué necesita mi decisión" },
+          { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
+        ]}
+      />
       <div className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Eficiencia del Taller</h1>
@@ -57,53 +66,52 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
       )}
 
       {periodos.length > 1 && (
-        <SegmentoDeslizante etiqueta="Período" valor={clave} onCambio={setClave} opciones={periodos.map((p) => ({ clave: p.ventana.clave, etiqueta: p.ventana.etiqueta }))} />
+        // El período es un filtro de un valor: la píldora del sistema (ADR-0354).
+        <div role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
+          {periodos.map((p) => (
+            <button key={p.ventana.clave} type="button" aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
+              {p.ventana.etiqueta}
+            </button>
+          ))}
+        </div>
       )}
 
       {actual && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Prendas buenas"
               className="anim-entra"
               style={{ ["--i" as string]: 0 }}
-              vacia={actual.prendasBuenas === 0}
-              valor={actual.prendasBuenas === 0 ? "—" : <CifraQueCuenta valor={actual.prendasBuenas} alMontar />}
+              valor={actual.prendasBuenas === 0 ? null : <CifraQueCuenta valor={actual.prendasBuenas} alMontar />}
             >
               {actual.ordenesCerradas === 0 ? "ninguna orden cerrada en el período" : `${plural(actual.ordenesCerradas, "orden cerrada", "órdenes cerradas")}${actual.calidad !== null ? ` · ${pct(actual.calidad)} salió buena` : ""}`}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Costo por prenda"
               className="anim-entra"
               style={{ ["--i" as string]: 1 }}
-              vacia={actual.costoPorPrenda === null}
-              valor={actual.costoPorPrenda === null ? "—" : <CifraQueCuenta valor={actual.costoPorPrenda} formato="soles" alMontar />}
+              valor={actual.costoPorPrenda === null ? null : <CifraQueCuenta valor={actual.costoPorPrenda} formato="soles" alMontar />}
             >
               {actual.costoPorPrenda === null ? (actual.prendasBuenas === 0 ? "sin prendas no hay costo por prenda" : "falta la planilla para el costo completo") : <Variacion actual={actual.costoPorPrenda} anterior={anterior?.costoPorPrenda ?? null} />}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Materiales por prenda"
               className="anim-entra"
               style={{ ["--i" as string]: 2 }}
-              vacia={actual.materialesPorPrenda === null}
-              valor={actual.materialesPorPrenda === null ? "—" : <CifraQueCuenta valor={actual.materialesPorPrenda} formato="soles" alMontar />}
+              valor={actual.materialesPorPrenda === null ? null : <CifraQueCuenta valor={actual.materialesPorPrenda} formato="soles" alMontar />}
             >
               {actual.materialesPorPrenda === null ? "sin prendas cerradas" : <Variacion actual={actual.materialesPorPrenda} anterior={anterior?.materialesPorPrenda ?? null} />}
             </TarjetaCifra>
             <TarjetaCifra
-              compacta
               punto="verde"
               etiqueta="Conversión por prenda"
               className="anim-entra"
               style={{ ["--i" as string]: 3 }}
-              vacia={actual.conversionPorPrenda === null}
-              valor={actual.conversionPorPrenda === null ? "—" : <CifraQueCuenta valor={actual.conversionPorPrenda} formato="soles" alMontar />}
+              valor={actual.conversionPorPrenda === null ? null : <CifraQueCuenta valor={actual.conversionPorPrenda} formato="soles" alMontar />}
             >
               {actual.conversionPorPrenda === null ? "planilla y gastos ÷ prendas buenas" : <Variacion actual={actual.conversionPorPrenda} anterior={anterior?.conversionPorPrenda ?? null} />}
             </TarjetaCifra>

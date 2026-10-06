@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ListChecks, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Casilla } from "@/components/ui/Casilla";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
@@ -794,27 +795,20 @@ export function InventarioPanel({
                 </button>
                 {verDetalle && (
                   // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
-                  <span role="group" aria-label="Ver la lista" className="inline-flex overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-                    {(
-                      [
-                        ["prenda", "Por prenda"],
-                        ["talla", "Por talla"],
-                      ] as const
-                    ).map(([v, texto]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        aria-pressed={vista === v}
-                        onClick={() => {
-                          setVista(v);
-                          setPagina(1);
-                        }}
-                        className={`px-4 py-1 transition-colors ${vista === v ? "bg-hueso font-medium text-tinta" : "text-taupe hover:text-tinta"}`}
-                      >
-                        {texto}
-                      </button>
-                    ))}
-                  </span>
+                  // La misma lista de otra forma: el segmento de modo del sistema (ADR-0354).
+                  <SegmentoDeslizante
+                    forma="modo"
+                    etiqueta="Ver la lista"
+                    valor={vista}
+                    onCambio={(v) => {
+                      setVista(v as typeof vista);
+                      setPagina(1);
+                    }}
+                    opciones={[
+                      { clave: "prenda", etiqueta: "Por prenda" },
+                      { clave: "talla", etiqueta: "Por talla" },
+                    ]}
+                  />
                 )}
               </>
             }

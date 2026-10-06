@@ -501,10 +501,8 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
       {porSede.map((s, i) => (
         <TarjetaCifra
           key={s.ubicacionId}
-          compacta
-          vacia={s.activos === 0}
           etiqueta={s.nombre}
-          valor={s.activos ? solesRedondo(s.valorHoy) : "—"}
+          valor={s.activos ? solesRedondo(s.valorHoy) : null}
           unidad={s.activos ? "vale hoy" : undefined}
           onClick={s.activos ? () => onVer(s.ubicacionId) : undefined}
           {...entra(i + 1)}
@@ -512,7 +510,9 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
           {s.activos ? detalle(s) : "Sin activos cargados"}
         </TarjetaCifra>
       ))}
-      <TarjetaCifra compacta activa etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
+      {/* Antes llevaba `activa` (fondo sand/40) solo para resaltar el total; ese fondo era la marca de «elegida» y desde
+          ADR-0354 se reserva para la cifra que filtra. */}
+      <TarjetaCifra etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
         {detalle(total)}
       </TarjetaCifra>
     </section>

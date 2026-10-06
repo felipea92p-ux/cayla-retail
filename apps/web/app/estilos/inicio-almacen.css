@@ -865,33 +865,8 @@
     gap: 8px;
     margin-bottom: 14px;
   }
-  .ia-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    height: 34px;
-    padding: 0 14px;
-    border: 1px solid var(--ia-t12);
-    border-radius: 99px;
-    color: var(--ia-t80);
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
-  }
-  .ia-chip:hover {
-    background: var(--ia-t05);
-  }
-  .ia-chip[aria-pressed="true"] {
-    background: var(--color-tinta);
-    border-color: var(--color-tinta);
-    color: var(--color-crema);
-  }
-  .ia-chip em {
-    font-size: 11px;
-    font-style: normal;
-    opacity: 0.65;
-  }
+  /* Los chips de este bloque son la píldora de filtro del sistema (`.pildora-cayla`, ADR-0354, «Pestañas y segmentos»): la
+     `.ia-chip` propia de la maqueta se fue el 2026-10-06. */
   .ia-arr {
     display: flex;
     gap: 8px;

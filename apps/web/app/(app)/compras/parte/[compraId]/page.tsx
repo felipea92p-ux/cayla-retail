@@ -6,6 +6,7 @@ import { compraParaPagarMiParte, parteDelDetalle } from "@/lib/compras-mi-parte-
 import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, soles } from "@/lib/compras-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Volver } from "@/components/ui/Volver";
 
@@ -44,24 +45,25 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
       </div>
 
       {partes.map((p, i) => (
-        <section key={p.ubicacionId} className="card-cayla p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="label-cayla text-[11px] text-taupe">{varias ? `Parte de ${p.ubicacionNombre}` : `Parte de tu tienda · ${p.ubicacionNombre}`}</p>
-              <p className="font-display mt-1 text-3xl tabular-nums text-tinta">{soles(p.total)}</p>
-              <p className="mt-1 text-xs tabular-nums text-taupe">
-                {p.unidades} u · subtotal {soles(p.subtotal)} + IGV {soles(p.igv)}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm tabular-nums text-tinta">Pagado {soles(p.pagado)}</p>
-              <p className={`mt-0.5 text-sm tabular-nums ${p.saldo > 0 ? "text-tinta" : "text-verde"}`}>{p.saldo > 0 ? `Por pagar ${soles(p.saldo)}` : "Pagada"}</p>
-              <div className="mt-3">
-                <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} misTiendas={[{ id: p.ubicacionId, nombre: p.ubicacionNombre }]} />
+        // La parte de cada tienda es la pieza única de cifra (TarjetaCifra, ADR-0354); lo pagado y el botón, al pie.
+        <TarjetaCifra
+          key={p.ubicacionId}
+          etiqueta={varias ? `Parte de ${p.ubicacionNombre}` : `Parte de tu tienda · ${p.ubicacionNombre}`}
+          valor={soles(p.total)}
+          pie={
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+              <div>
+                <p className="text-sm tabular-nums text-tinta">Pagado {soles(p.pagado)}</p>
+                <p className={`mt-0.5 text-sm tabular-nums ${p.saldo > 0 ? "text-tinta" : "text-verde"}`}>{p.saldo > 0 ? `Por pagar ${soles(p.saldo)}` : "Pagada"}</p>
               </div>
+              <BotonPagar compra={compraParaPagarMiParte(parteDelDetalle(detalle, i))} misTiendas={[{ id: p.ubicacionId, nombre: p.ubicacionNombre }]} />
             </div>
-          </div>
-        </section>
+          }
+        >
+          <span className="tabular-nums">
+            {p.unidades} u · subtotal {soles(p.subtotal)} + IGV {soles(p.igv)}
+          </span>
+        </TarjetaCifra>
       ))}
 
       <section className="card-cayla p-5">
