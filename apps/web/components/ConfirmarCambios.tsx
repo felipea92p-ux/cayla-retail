@@ -3,14 +3,17 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import { agruparCambios, type GrupoCambios, type ResumenCambios } from "@/lib/producto-cambios-reglas";
 
 /**
  * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
  *
  * EL PROBLEMA. Guardar una ficha pedía elegir «Responsable» en un panel lejano y dejaba el botón gris sin decir por qué. Ahora
- * «Revisar y guardar» abre esta hoja: lista lo que va a cambiar y confirma. Desde 2026-09-29 la hoja ya no pide «Responsable»
- * (Felipe; clave `producto_confirmar_cambios`, que firma `ProductoForm`): son dos toques, sin elegir a nadie.
+ * «Revisar y guardar» abre esta hoja: lista lo que va a cambiar y confirma. Del 2026-09-29 al 2026-10-06 la hoja no pedía
+ * «Responsable» y, en una terminal, el cambio quedaba sin firma; desde ADR-0354 lo pide AQUÍ, junto al botón (viene elegido con
+ * quien inició sesión, si está de turno): el historial de la prenda dice quién cambió cada cosa.
  *
  * `onConfirmar` guarda y dice si la hoja debe cerrarse: sí cuando salió bien (la pantalla se va sola) o cuando lo que falló
  * se arregla en la ficha (un nombre repetido, una versión vieja); `false` deja la hoja abierta.
@@ -28,6 +31,7 @@ export function ConfirmarCambios({
   avisos = [],
   notaAgregan,
   extra,
+  responsable,
 }: {
   nombre: string;
   resumen: ResumenCambios;
@@ -41,7 +45,10 @@ export function ConfirmarCambios({
   /** Un grupo que no sale de la comparación de la ficha: el stock tocado en la matriz («S · Blanco 4 → 6»), que se guarda con el
    *  mismo «Confirmar y guardar» (ADR-0313, act. 2026-10-02 noche). Va al final, con su nota (motivo y lugar). */
   extra?: { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota?: string } | null;
+  /** Quién hace los cambios (ADR-0354). Sin elegir a alguien de turno, «Confirmar y guardar» espera y dice por qué. */
+  responsable?: ControlResponsable;
 }) {
+  const faltaResponsable = !!responsable && !responsable.listo;
   const [enCurso, setEnCurso] = useState(false);
   const grupos: (Omit<GrupoCambios, "clave"> & { clave: string })[] = [
     ...agruparCambios(resumen.cambios),
@@ -97,6 +104,14 @@ export function ConfirmarCambios({
             </div>
           )}
 
+          {responsable && (
+            <div id="confirmar-cambios-responsable" data-campo="confirmar-cambios-responsable" className="space-y-1.5">
+              <p className="label-cayla text-[11px] text-taupe">Quién hace estos cambios</p>
+              <ComboResponsable control={responsable} deshabilitado={enCurso} />
+              {faltaResponsable && responsable.motivo && <p className="text-[12px] leading-snug text-taupe">{responsable.motivo}</p>}
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={enCurso}>
               Volver a editar
@@ -106,6 +121,7 @@ export function ConfirmarCambios({
               peso="primario"
               className="flex-1"
               cargando={enCurso}
+              disabled={faltaResponsable}
               onClick={async () => {
                 setEnCurso(true);
                 const cerrarHoja = await onConfirmar();

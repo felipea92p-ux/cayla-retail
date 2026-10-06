@@ -254,3 +254,15 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   Corre al **verse**, así que filtrar una lista nueva vuelve a mover sus sellos (la regla de «buscar o filtrar no re-anima toda la tabla» no se cumple aquí a
   propósito: cada fila nueva es una fila que aparece).
 - **Dónde vive:** `apps/web/app/estilos/movimientos-sellos.css` (clases `mv-*`) y `components/movimientos/`. No se generaliza.
+
+## Actualización 2026-10-06 — Nuevo producto: el punto del paso abierto late
+
+- **Qué:** en los puntos de avance de Nuevo producto (ADR-0260, act. 2026-10-06) el punto del paso donde está la persona **late todo
+  el tiempo**: su centro respira (1,8 s) y de él salen dos ondas suaves alternadas (2,4 s). Al llegar a un paso, su punto crece desde
+  chico (500 ms); el ✓ de un paso terminado se dibuja una vez y la línea verde corre al punto siguiente (700 ms).
+- **Por qué se admite el bucle:** Felipe lo pidió así («todo el tiempo late») después de ver la versión quieta: el latido dice dónde está
+  la persona, no decora. Es la misma clase de señal que el punto que late en el chip «Vencida».
+- **Los límites:** `--ease-cayla`, nada con rebote, solo tokens (`verde`, `crema`, `sand`, `tinta`), y con `prefers-reduced-motion`
+  el latido, las ondas y las entradas se apagan (el punto queda verde y quieto).
+- **Dónde vive:** `apps/web/app/estilos/puntos-avance.css` (clases `puntos-*`). No se generaliza: otra pantalla que quiera un paso que
+  late lo pide con Felipe y se agrega aquí.

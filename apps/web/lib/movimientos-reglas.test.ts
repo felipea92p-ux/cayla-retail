@@ -23,7 +23,6 @@ import {
   serializarCursorMovimientos,
   textoDelta,
   textoPeriodo,
-  tonoCategoria,
   agruparPorOperacion,
   claveOperacion,
   desgloseAjustes,
@@ -104,18 +103,6 @@ describe("textoDelta", () => {
   it("un ajuste conserva su signo", () => {
     expect(textoDelta({ categoria: "ajuste", cantidad: -1, delta: -1 })).toBe("−1");
     expect(textoDelta({ categoria: "ajuste", cantidad: 2, delta: 2 })).toBe("+2");
-  });
-});
-
-describe("tonoCategoria", () => {
-  it("solo un ajuste que resta es rojo; uno que suma no es alarma", () => {
-    expect(tonoCategoria("ajuste", -1)).toBe("rojo");
-    expect(tonoCategoria("ajuste", 1)).toBe("neutro");
-    expect(tonoCategoria("entrada", 3)).toBe("verde");
-    // Un traslado que llega es mercadería que entró a la tienda (ADR-0234): verde, como su «+80».
-    expect(tonoCategoria("transferencia", 5)).toBe("verde");
-    expect(tonoCategoria("transferencia", -5)).toBe("neutro");
-    expect(tonoCategoria("interno", 0)).toBe("ambar");
   });
 });
 

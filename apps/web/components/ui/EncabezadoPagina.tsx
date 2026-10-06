@@ -17,6 +17,7 @@ export function EncabezadoPagina({
   subtitulo,
   sinHora = false,
   detalle,
+  volver,
   acciones,
   pie,
   children,
@@ -28,12 +29,15 @@ export function EncabezadoPagina({
   sinHora?: boolean;
   /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */
   detalle?: ReactNode;
+  /** La vuelta a la pantalla de arriba: `<Volver forma="flecha" … />`, una flecha a la izquierda de la línea «sede · fecha»
+   *  (Felipe, 2026-10-06, ADR-0220 act.). Antes iba en `pie` como botón con texto y ocupaba una fila entera bajo la frase. */
+  volver?: ReactNode;
   /** Lo que se hace desde la pantalla, la principal al final (Existencias: bajar al piso y nuevo traslado).
    *  Van a la derecha, en el espacio libre; si la derecha ya es de las cifras o del reloj (`children`), bajan
    *  bajo la frase, como en Caja. Lo decide esta cabecera, no cada pantalla (ADR-0220, actualización). */
   acciones?: ReactNode;
-  /** Bajo la frase, a la izquierda: la vuelta a la pantalla de arriba («← Traslados») o un estado que no es
-   *  una acción (el resultado de un conteo). */
+  /** Bajo la frase, a la izquierda: un estado que no es una acción (el resultado de un conteo, «En curso»). La vuelta ya no va
+   *  aquí: va en `volver`. */
   pie?: ReactNode;
   /** A la derecha: las cifras de la sede (`ResumenSede`) o el reloj de Caja. */
   children?: ReactNode;
@@ -43,13 +47,16 @@ export function EncabezadoPagina({
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
       <div className="anim-sube min-w-0">
-        <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-taupe-profundo">
-          <span aria-hidden className="hilo-dibuja block h-px w-8 shrink-0 bg-taupe" />
-          <span className="min-w-0">
-            {sede} · <FechaHoraLima sinHora={sinHora} />
-            {detalle && <> · {detalle}</>}
-          </span>
-        </p>
+        <div className="flex items-center gap-3">
+          {volver}
+          <p className="flex min-w-0 items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-taupe-profundo">
+            <span aria-hidden className="hilo-dibuja block h-px w-8 shrink-0 bg-taupe" />
+            <span className="min-w-0">
+              {sede} · <FechaHoraLima sinHora={sinHora} />
+              {detalle && <> · {detalle}</>}
+            </span>
+          </p>
+        </div>
         <h1 className="font-display mt-3 text-4xl leading-none tracking-tight text-tinta sm:text-[46px]">{titulo}</h1>
         <p className="mt-2.5 max-w-md text-[15px] text-tinta/70">{subtitulo}</p>
         {bajoLaFrase && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5">{bajoLaFrase}</div>}

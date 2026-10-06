@@ -9,6 +9,7 @@
 @import "./estilos/finanzas.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/alta-parecidas.css";
+@import "./estilos/puntos-avance.css";
 @import "./estilos/inicio-almacen.css";
 @import "./estilos/observatorio.css";
 @import "./estilos/cartel-club.css";
@@ -19,8 +20,10 @@
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
 @import "./estilos/vista-rapida.css";
+@import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
 @import "./estilos/movimientos-sellos.css";
+@import "./estilos/traslados-pases.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

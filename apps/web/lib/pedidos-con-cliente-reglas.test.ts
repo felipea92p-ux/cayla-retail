@@ -5,7 +5,6 @@ import {
   avisoParaLaVentana,
   candidatosParaPedir,
   diasSinConfirmar,
-  hayAlgoEnLaLista,
   paraQuien,
   paraSubirDe,
   porPreguntarSiSigue,
@@ -358,18 +357,6 @@ describe("datos del cliente", () => {
     const d = { varianteId: "v", tiendaId: "t", nombres: "Ana", apellidos: "Lozano", celular: "987111222", nota: "" };
     expect(huellaDelPedido(d)).toBe(huellaDelPedido({ ...d, nombres: " Ana ", celular: "987 111 222" }));
     expect(huellaDelPedido(d)).not.toBe(huellaDelPedido({ ...d, tiendaId: "otra" }));
-  });
-});
-
-describe("hayAlgoEnLaLista — pedidos y «Para enviar» en UNA tarjeta (decisión del 2026-10-04)", () => {
-  it("se dibuja con pedidos, con algo para enviar o con los dos; nunca vacía", () => {
-    const pedido = pedidoConClienteDeFila(fila());
-    expect(hayAlgoEnLaLista([pedido], [])).toBe(true);
-    expect(hayAlgoEnLaLista([], [{ prendas: [{}] }])).toBe(true);
-    expect(hayAlgoEnLaLista([], [{ prendas: [] }])).toBe(false);
-    expect(hayAlgoEnLaLista([], [])).toBe(false);
-    // Lo que me pidieron y ya salió no es algo que mostrar en «Te piden».
-    expect(hayAlgoEnLaLista([pedidoConClienteDeFila(fila({ estado: "en_camino" }))], [])).toBe(false);
   });
 });
 

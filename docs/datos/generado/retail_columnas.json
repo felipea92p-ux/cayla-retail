@@ -1480,6 +1480,71 @@
    "table_schema": "retail"
   }
  ],
+ "categoria_grupo_mix": [
+  {
+   "column_default": null,
+   "column_name": "categoria_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "grupo_clave",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "confirmada_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "confirmada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "1",
+   "column_name": "version",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "actualizado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "actualizado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "categoria_grupo_mix",
+   "table_schema": "retail"
+  }
+ ],
  "categoria_patrones": [
   {
    "column_default": null,
@@ -8113,6 +8178,53 @@
    "table_schema": "retail"
   }
  ],
+ "grupos_mix": [
+  {
+   "column_default": null,
+   "column_name": "clave",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "grupos_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "grupos_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "rol",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "grupos_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "en_riel",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "grupos_mix",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "orden",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "grupos_mix",
+   "table_schema": "retail"
+  }
+ ],
  "historial_producto_cambios": [
   {
    "column_default": "gen_random_uuid()",
@@ -8183,6 +8295,15 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "NO",
    "ordinal_position": 8,
+   "table_name": "historial_producto_cambios",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "retail.fn_historial_sede()",
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
    "table_name": "historial_producto_cambios",
    "table_schema": "retail"
   }
