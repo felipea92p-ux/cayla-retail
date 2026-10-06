@@ -276,6 +276,9 @@ export function paginaProductosDesdeParams(p: ParamsProductosListado): number {
 export type ProductoListado = {
   productoId: string;
   referencia: string;
+  /** Lo que se escribió en «Descripción» al crear o editar la prenda (corte, largo, detalles). No viene de la RPC: lo pega
+   *  `listarProductos` con una consulta aparte. `null` = no tiene, o no se pudo leer. */
+  descripcion: string | null;
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
@@ -365,6 +368,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       p = {
         productoId: f.producto_id,
         referencia: f.referencia,
+        descripcion: null,
         codigo: f.codigo,
         categoriaId: f.categoria_id,
         categoria: f.categoria_nombre,
@@ -404,12 +408,26 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   // tuviera foto (pasó con «Blusa V», 2026-09-26). Se completa con la General de la prenda, nunca con la de otro color
   // — la misma regla de `fotoDeVariante`. Una consulta más, solo si en la página falta alguna foto.
   const sinFoto = [...porProducto.values()].filter((p) => p.variantes.some((v) => v.fotoUrl === null)).map((p) => p.productoId);
+  // La descripción de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no la trae y no vale una
+  // migración en producción por un texto que solo se lee. Una consulta de ≤ 20 filas, a la vez que la de las fotos. Si falla, la
+  // vista rápida se abre igual, sin descripción.
+  const [{ data: generales }, { data: descripciones }] = await Promise.all([
+    sinFoto.length > 0
+      ? supabase
+          .from("producto_fotos")
+          .select("producto_id, url, orden, es_principal, color_codigo")
+          .in("producto_id", sinFoto)
+          .is("color_codigo", null)
+      : Promise.resolve({ data: null }),
+    porProducto.size > 0
+      ? supabase.from("productos").select("id, descripcion").in("id", [...porProducto.keys()]).not("descripcion", "is", null)
+      : Promise.resolve({ data: null }),
+  ]);
+  for (const d of descripciones ?? []) {
+    const p = porProducto.get(d.id);
+    if (p) p.descripcion = d.descripcion?.trim() || null;
+  }
   if (sinFoto.length > 0) {
-    const { data: generales } = await supabase
-      .from("producto_fotos")
-      .select("producto_id, url, orden, es_principal, color_codigo")
-      .in("producto_id", sinFoto)
-      .is("color_codigo", null);
     // Si esta consulta falla, la página se dibuja igual con lo que trajo `fn_productos`: la foto es un extra.
     const porId = new Map<string, FotoCruda[]>();
     for (const f of generales ?? []) porId.set(f.producto_id, [...(porId.get(f.producto_id) ?? []), f]);

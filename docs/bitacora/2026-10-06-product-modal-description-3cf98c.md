@@ -1,0 +1,4 @@
+## 2026-10-06 (La vista rápida de una prenda muestra su descripción)
+Qué hice: en Catálogo ▸ Productos ▸ Grilla, la vista rápida dibuja bajo la foto la «Descripción» que se escribió al crear o editar la prenda (rótulo + texto, separada por una línea; a todo el ancho en celular; nada si la prenda no tiene). `listarProductos` (`lib/catalogo-v2.ts`) la lee con una consulta aparte a `productos` (≤ 20 filas, en paralelo con la de las fotos) y la pega en `ProductoListado.descripcion`. Sin migración.
+Por qué así: `fn_productos_listado` no devuelve la descripción y cambiarla sería tocar producción por un texto de solo lectura; la consulta extra es chica y, si falla, el modal se abre igual sin descripción. Va aparte del pie de la foto porque es de la prenda, no del color que se está mirando.
+Felipe se lleva: abre una prenda con descripción (local: «Blusa Emma») y la ves bajo la foto, en claro, oscuro y a 375 px; una sin descripción («Blusa Aurora») queda como antes.
