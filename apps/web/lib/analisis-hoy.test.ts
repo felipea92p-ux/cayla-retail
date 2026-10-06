@@ -7,6 +7,10 @@ import {
   CAB_SE_QUEDAN,
   caminosDeHoy,
   cintaFlujo,
+  carrilesDeCinta,
+  ejeCinta,
+  puntosDeCinta,
+  SEGUNDOS_PUNTO,
   columnasFlujo,
   DIFERENCIA_PIDE_MAS,
   estadoLlegadas,
@@ -435,5 +439,32 @@ describe("Qué hacer hoy: las piezas del dibujo", () => {
     expect(etiquetaFlujo(100, "izq")).toEqual({ x: 0, y: 78, w: FLUJO.LX - 10, h: 44 });
     const e = etiquetaFlujo(100, "der");
     expect(e.x + e.w).toBe(FLUJO.W);
+  });
+});
+
+describe("los puntos que corren por una cinta (al pasar el mouse)", () => {
+  it("el eje va por el centro de la cinta, del nodo a tu tienda", () => {
+    expect(ejeCinta(298, 100, 128, 486, 150.04, 178.06)).toBe("M298,114 C392,114 392,164.1 486,164.1");
+  });
+  it("del lado derecho va de tu tienda hacia el destino (la misma cuenta, al revés)", () => {
+    expect(ejeCinta(586, 150, 170, 736, 60, 80)).toBe("M586,160 C661,160 661,70 736,70");
+  });
+  it("en una cinta gruesa corren dos carriles fuera de la pastilla; en una delgada, por el centro", () => {
+    expect(carrilesDeCinta(14, 2.2)).toEqual([0]);
+    const [arriba, abajo] = carrilesDeCinta(112, 4.5);
+    expect(arriba).toBeLessThanOrEqual(-16.5);
+    expect(abajo).toBeGreaterThanOrEqual(16.5);
+    expect(abajo).toBeLessThanOrEqual(112 / 2 - 4.5 - 1);
+    expect(ejeCinta(298, 100, 128, 486, 150, 178, 6)).toBe("M298,120 C392,120 392,170 486,170");
+  });
+  it("de 3 a 6 puntos, más grandes en una cinta gruesa, y nunca un punto invisible", () => {
+    expect(puntosDeCinta(0)).toEqual({ n: 3, r: 2.2 });
+    expect(puntosDeCinta(14).n).toBe(4);
+    expect(puntosDeCinta(200)).toEqual({ n: 6, r: 4.5 });
+    expect(puntosDeCinta(-5)).toEqual({ n: 3, r: 2.2 });
+  });
+  it("un punto cruza en menos de 2 segundos", () => {
+    expect(SEGUNDOS_PUNTO).toBeGreaterThan(1);
+    expect(SEGUNDOS_PUNTO).toBeLessThanOrEqual(2);
   });
 });

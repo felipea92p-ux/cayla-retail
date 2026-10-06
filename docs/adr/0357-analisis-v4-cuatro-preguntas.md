@@ -146,6 +146,8 @@ y sin párrafos:
 perchas y los puntos asoman, los arcos se dibujan, las cintas del flujo corren y las cifras cuentan. Pasa **una vez al entrar a la pestaña**, sin
 rebote ni bucle, y nada se mueve con `prefers-reduced-motion`. Lo vigila `lib/analisis-movimiento.test.ts`.
 - *Por qué:* Felipe aprobó la maqueta con su movimiento; un gráfico que se arma se lee, y una sola vez no distrae.
+- Felipe pidió además (2026-10-06, después de verlo): al pasar el mouse por un camino de «Qué hacer hoy», puntos que corren por su cinta hacia
+  la tienda o desde ella. Es la única pieza que se repite, y solo con el mouse o el foco encima; con «reducir movimiento» no se dibuja.
 
 **11. «Lo que más rinde»: por cada S/ 1 que tienes en ropa de un tipo, cuánto ganaste en 90 días.** La ganancia es la venta neta sin IGV (18 %)
 menos el costo de lo vendido; lo que hay en ropa es el stock promedio al costo (no el del cierre: un tipo agotado daría una división por cero). Sale
