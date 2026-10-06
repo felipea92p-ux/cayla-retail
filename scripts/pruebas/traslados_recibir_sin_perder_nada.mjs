@@ -294,7 +294,7 @@ ${intento("confirmar_anulado", confirmar("piso_venta"))}`,
       d.en_movimientos,
     );
     afirmar("el filtro «Traslados» lo trae", d.filtro_traslados === "2", d.filtro_traslados);
-    afirmar("las tarjetas lo cuentan como entrada y como traslado", d.resumen === "entrada:3,todos:3,transferencia:3", d.resumen);
+    afirmar("las tarjetas lo cuentan como entrada, como llegada (ADR-0353) y como traslado", d.resumen === "entrada:3,llegada:3,todos:3,transferencia:3", d.resumen);
     const c = j(d.contar_anulado);
     afirmar("no se cuenta un traslado anulado", c?.ok === false && /se anuló/.test(c.msg), d.contar_anulado);
     const f = j(d.confirmar_anulado);

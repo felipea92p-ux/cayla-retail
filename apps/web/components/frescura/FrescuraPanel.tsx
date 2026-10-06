@@ -189,7 +189,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(cifras ? cifras.porDecidir : null)} />} pie={pieCabecera}>
+      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(cifras ? cifras.porDecidir : null, avisoPocas !== null)} />} pie={pieCabecera}>
         {resumen}
       </EncabezadoPagina>
 
@@ -330,7 +330,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">
                 {filtros.porDecidir && !hayFiltros({ ...filtros, porDecidir: false }) ? (
                   <>
-                    <b className="font-semibold text-tinta">Nada por decidir: todo en orden.</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
+                    <b className="font-semibold text-tinta">{avisoPocas === null ? "Nada por decidir: todo en orden." : "Nada por decidir por ahora."}</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => cambiar({ porDecidir: false, todas: true })}>
                       Ver todas las prendas
                     </button>

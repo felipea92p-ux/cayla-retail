@@ -108,6 +108,7 @@
     --color-tinta-60: #5b544c;
     --color-verde: #48603f;
     --color-ambar: #74501a;
+    --color-oliva: color-mix(in srgb, var(--color-verde) 66%, var(--color-ambar));
     --color-grafico-alza: #48603f;
     --color-grafico-neutro: #d3c8b4;
     --color-grafico-baja: #a8741f;
