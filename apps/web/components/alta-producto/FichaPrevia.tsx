@@ -7,32 +7,21 @@ import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
 import { fechaCorta } from "@/lib/etiqueta-vigencia";
 import type { AlertaVista } from "@/lib/parecidas-alta-vista";
 
-// «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va entre la ficha y «Avance» (escritorio), la tira
+// «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va bajo la ficha (escritorio), la tira
 // «2 prendas parecidas · Ver» sobre la barra de abajo (celular y tablet) y la hoja «Ver y comparar» se monta aquí (es un portal: se ve igual con el
 // resumen oculto). Quien no la pase ve la ficha de siempre.
 //
 // La prenda que se va a crear, tal como va a quedar (spike Nuevo producto, 2026-09-24; más corta desde el spike v2 del
 // 2026-09-28). La tarjeta dice solo lo que identifica a la prenda —foto, código, nombre, «categoría · marca · tejido»,
 // dos cifras (Variantes y Hoy en tienda) y «Precio · margen»—; tallas, etiquetas y códigos de variante ya se leen en su
-// paso. Debajo va la lista «Avance»: las 4 preguntas con ✓ o su número, y su resumen o lo que falta. Reemplaza a la caja
-// «Siguiente paso» y a la barra de 5 segmentos que había arriba del formulario: eran tres marcadores de avance a la vez.
-// Cada pregunta se toca para volver a ella.
+// paso. Hasta el 2026-10-06 iba debajo la lista «Avance» (las 4 preguntas con ✓ o su número): la reemplazaron los puntos de avance
+// de arriba del formulario (`PuntosAvance`, ADR-0260 act. 2026-10-06), que dicen lo mismo y se tocan igual para volver a un paso.
 //
 // El combo «Quién lo registra» ya NO vive aquí: está al final del paso 4, donde la persona termina (una sola vez en la
 // pantalla). El botón «Crear» de la ficha se conserva y dice qué falta.
 //
 // En escritorio va fija a la derecha; en celular baja a una barra pegada abajo con «Crear» (PL-105), y «Ver» despliega
 // la ficha encima. Todos los «Crear» son el mismo `submit` del formulario.
-
-export type PasoAvance = {
-  numero: 1 | 2 | 3 | 4;
-  titulo: string;
-  estado: "abierto" | "hecho" | "pendiente";
-  /** El resumen del paso contestado, o lo que le falta al abierto; «—» si todavía no se llega. */
-  texto: string;
-  /** Se puede abrir desde aquí (los anteriores están contestados). */
-  abrible: boolean;
-};
 
 export type DatosFicha = {
   nombre: string;
@@ -52,7 +41,6 @@ export type DatosFicha = {
   /** Vista previa local de la foto que quedaría de principal. */
   foto: string | null;
   fotos: number;
-  avance: PasoAvance[];
   /** Lo siguiente que falta para crear (responsable incluido), o null si ya se puede. Decide si «Crear» está apagado. */
   siguiente: string | null;
   /** «El hilo» (ADR-0284): lo que sigue en el camino —puede ser una sugerencia, como los colores—, tocable para ir a su campo.
@@ -178,54 +166,15 @@ function Tarjeta({ d }: { d: DatosFicha }) {
   );
 }
 
-/** Las 4 preguntas, cada una tocable para volver a ella. Una que todavía no se alcanza se ve atenuada y no responde. */
-function Avance({ pasos, onAbrir }: { pasos: PasoAvance[]; onAbrir: (n: PasoAvance["numero"]) => void }) {
-  return (
-    <nav aria-label="Avance" className="rounded-xl border border-sand bg-papel p-1.5">
-      {pasos.map((p) => (
-        <button
-          key={p.numero}
-          type="button"
-          onClick={() => onAbrir(p.numero)}
-          disabled={!p.abrible}
-          aria-current={p.estado === "abierto" ? "step" : undefined}
-          className={`grid w-full grid-cols-[22px_minmax(0,1fr)] items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors disabled:cursor-default ${
-            p.estado === "abierto" ? "bg-hueso" : "enabled:hover:bg-tinta/[0.04]"
-          }`}
-        >
-          <span
-            aria-hidden
-            className={`grid h-[22px] w-[22px] place-items-center rounded-full border text-[10.5px] font-bold tabular-nums ${
-              p.estado === "hecho"
-                ? "border-verde bg-verde text-crema"
-                : p.estado === "abierto"
-                  ? "border-tinta bg-tinta text-crema"
-                  : "border-tinta/25 text-tinta/60"
-            }`}
-          >
-            {p.estado === "hecho" ? "✓" : p.numero}
-          </span>
-          <span className="min-w-0">
-            <b className={`block text-[13px] ${p.estado === "pendiente" ? "font-medium text-tinta/45" : "font-semibold text-tinta"}`}>{p.titulo}</b>
-            <span className="block truncate text-xs text-taupe">{p.texto}</span>
-          </span>
-        </button>
-      ))}
-    </nav>
-  );
-}
-
 export function FichaPrevia({
   datos,
   cargando,
   onCancelar,
-  onAbrirPaso,
   parecidas,
 }: {
   datos: DatosFicha;
   cargando: boolean;
   onCancelar: () => void;
-  onAbrirPaso: (n: PasoAvance["numero"]) => void;
   parecidas?: ParecidasFicha;
 }) {
   const [verMovil, setVerMovil] = useState(false);
@@ -235,7 +184,7 @@ export function FichaPrevia({
   return (
     <>
       {/* Escritorio: fija a la derecha */}
-      {/* Con la alerta el resumen es más alto que una pantalla de 900 px. Lo informativo (ficha, alerta, Avance) corre por su cuenta con tope de
+      {/* Con la alerta el resumen es más alto que una pantalla de 900 px. Lo informativo (ficha y alerta) corre por su cuenta con tope de
           alto y «Cancelar / Crear producto / Siguiente» quedan FIJOS abajo del mismo aside: el botón nunca se esconde justo cuando hay algo que
           revisar. `-mx-1.5 px-1.5` deja sitio al aro del pulso de la alerta, que por fuera lo cortaría el scroll (ver `app/estilos/alta-parecidas.css`).
           Sin `parecidas` el resumen es el de siempre: una sola columna sin tope. */}
@@ -254,7 +203,6 @@ export function FichaPrevia({
               onReintentar={parecidas.onReintentar}
             />
           )}
-          <Avance pasos={datos.avance} onAbrir={onAbrirPaso} />
         </div>
         <div className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
           <div className="flex gap-2">
@@ -278,13 +226,6 @@ export function FichaPrevia({
         {verMovil && (
           <div className="mb-3 max-h-[60vh] space-y-3 overflow-y-auto [animation:cayla-revelar_240ms_var(--ease-cayla)]">
             <Tarjeta d={datos} />
-            <Avance
-              pasos={datos.avance}
-              onAbrir={(n) => {
-                setVerMovil(false);
-                onAbrirPaso(n);
-              }}
-            />
           </div>
         )}
         <div className="flex items-center gap-2.5">

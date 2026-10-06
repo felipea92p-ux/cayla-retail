@@ -118,85 +118,48 @@ export function AvisoInline({ tono, children, alerta = false }: { tono: TonoAvis
 }
 
 /**
- * Un paso del alta en acordeón (spike 2026-09-24; 4 preguntas desde el spike v2 del 2026-09-28): reemplaza a `Bloque` en
- * Nuevo producto. Solo uno está abierto; el hecho se pliega en UNA línea con su resumen y «Cambiar»; el que viene es una
- * línea punteada, sin texto que leer. El paso abierto lleva abajo su `pie`: qué le falta (o «Listo…», en verde) y la
- * acción que lo cierra —«Seguir →» en los pasos 2 y 3, «Crear producto» en el 4—. El 1 no lleva pie: avanza solo al
- * elegir la categoría.
+ * El paso abierto del alta (spike 2026-09-24; 4 preguntas desde el spike v2 del 2026-09-28). Desde el 2026-10-06 (ADR-0260,
+ * actualización) se dibuja SOLO el paso abierto, sin número: dónde está la persona, qué hizo y qué le falta lo dicen los puntos de
+ * avance de arriba (`PuntosAvance`), y a un paso hecho se vuelve tocando su punto. Antes los pasos hechos se plegaban en una línea
+ * con «Cambiar» y los que venían eran líneas punteadas: con los puntos, eran dos marcadores para lo mismo. El paso lleva abajo su
+ * `pie`: qué le falta (o «Listo…», en verde) y las acciones que lo cierran —«← Atrás» y «Seguir →» en los pasos 2 y 3,
+ * «← Atrás» y «Crear producto» en el 4—. El 1 no lleva pie: avanza solo al elegir la categoría.
  */
 export function PasoAlta({
   numero,
   titulo,
-  estado,
-  resumen,
-  onAbrir,
   pie,
   children,
 }: {
   numero: number;
   titulo: string;
-  estado: "abierto" | "hecho" | "pendiente";
-  /** La línea del paso plegado («Blusa Lirio · CAYLA · Popelina · Liso»). */
-  resumen?: ReactNode;
-  onAbrir: () => void;
-  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: el botón que cierra el paso.
+  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: los botones que cierran el paso.
    *  `faltan`: «Falta: Marca · Tejido…» tocable (ADR-0284); si viene y el paso no está listo, reemplaza a `texto` a la vista y
    *  `texto` queda solo para el lector de pantalla. */
   pie?: { texto: string; listo: boolean; accion: ReactNode; faltan?: ReactNode };
   children: ReactNode;
 }) {
   const id = `paso-${numero}`;
-  if (estado === "hecho") {
-    return (
-      <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-sand bg-papel">
-        <button type="button" onClick={onAbrir} className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-3.5 text-left sm:flex-nowrap sm:px-5">
-          <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-verde text-[11px] text-crema">
-            ✓
-          </span>
-          <h2 id={id} className="flex-1 text-[14.5px] font-semibold text-tinta sm:flex-none">
-            {titulo}
-          </h2>
-          <span className="order-3 w-full min-w-0 truncate pl-9 text-[13px] text-taupe sm:order-none sm:w-auto sm:flex-1 sm:pl-0 sm:text-[13.5px]">{resumen}</span>
-          <span className="btn-cayla btn-enlace shrink-0 text-[12.5px]">Cambiar</span>
-        </button>
-      </section>
-    );
-  }
-  if (estado === "pendiente") {
-    return (
-      <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-dashed border-sand">
-        <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-          <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] tabular-nums text-tinta/60">
-            {numero}
-          </span>
-          <h2 id={id} className="text-[14.5px] font-medium text-tinta/45">
-            {titulo}
-          </h2>
-        </div>
-      </section>
-    );
-  }
   return (
-    <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-sand bg-papel">
-      <div className="flex items-center gap-3 px-4 pt-4 sm:px-5">
-        <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-tinta text-[11px] tabular-nums text-crema">
-          {numero}
-        </span>
+    // `scroll-mt`: al abrir el paso la página lo lleva arriba, bajo la cabecera fija de la app Y bajo los puntos de avance pegados.
+    <section aria-labelledby={id} className="scroll-mt-[11.5rem] rounded-xl border border-sand bg-papel">
+      <div className="px-4 pt-4 sm:px-5">
         <h2 id={id} className="text-[14.5px] font-semibold text-tinta">
           {titulo}
         </h2>
       </div>
       {/* La entrada SIN `fill-mode: both` (a diferencia de `anim-revelar`): terminada, no le deja un `transform` puesto al
           contenedor. Si se lo dejara, las listas en `position: fixed` de adentro (ComboBuscable, el combo Responsable) se
-          medirían contra este cuadro y no contra la ventana, y abrirían corridas lejos de su campo. */}
-      <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:pl-14 sm:pr-5">
+          medirían contra este cuadro y no contra la ventana, y abrirían corridas lejos de su campo. Sin número a la izquierda, el
+          contenido usa todo el ancho de la tarjeta (antes empezaba 56 px adentro, alineado con el título tras el número). */}
+      <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:px-5">
         {children}
         {pie && (
           // Pegado al borde de abajo de la ventana mientras el paso siga más abajo (ADR-0284): el paso 3 mide varias pantallas, y
           // el «qué falta» y el «Seguir →» no pueden quedar enterrados al fondo. Sale de los márgenes del contenido (`-mx`) y
           // se pega al fondo de la tarjeta (`-mb-5`) para que, en su lugar natural, no deje un hueco. Solo desde `lg`: en celular
           // la barra de la ficha ya va pegada abajo con su «Siguiente: …» tocable, y las dos juntas taparían un cuarto de la pantalla.
-          <div data-pie-alta className="z-10 lg:sticky lg:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-ml-14 sm:-mr-5 sm:pl-14 sm:pr-5">
+          <div data-pie-alta className="z-10 lg:sticky lg:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-mx-5 sm:px-5">
             {pie.faltan && !pie.listo ? (
               <>
                 <p role="status" className="sr-only">
