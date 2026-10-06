@@ -5,22 +5,11 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Anillo, ChipEstado, pct, Racha, TilePrenda, NombreCorto } from "@/components/analisis/piezas";
 import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
 import { esTallaUnica, plural } from "@/lib/analisis-reglas";
-import { DIAS_SOSTENIDOS, diaAntes, fechaCorta } from "@/lib/motor-demanda-reglas";
+import { META_CON_PRENDA as META, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
+import { DIAS_SOSTENIDOS, fechaCorta } from "@/lib/motor-demanda-reglas";
 
 // Análisis v4 (ADR-0357): cuando la tienda todavía no cumple las tres condiciones del motor (ADR-0346), Análisis se calla y
 // dice qué falta, con un botón para cada cosa. Es la misma vara que CAYLA Global y Tareas: una sola regla para todo el ERP.
-
-const META = 90;
-
-/** Las cifras de los últimos 30 días de una tienda: vendidas, con su prenda y sin ella. */
-function ventas30(p: PreparacionAnalisis | undefined) {
-  if (!p) return { unidades: 0, identificadas: 0, sinPrenda: 0 };
-  const desde = diaAntes(p.hoy, 29);
-  const dias = p.dias.filter((d) => d.dia >= desde);
-  const unidades = dias.reduce((s, d) => s + d.unidades, 0);
-  const identificadas = dias.reduce((s, d) => s + d.identificadas, 0);
-  return { unidades, identificadas, sinPrenda: unidades - identificadas };
-}
 
 const cumple = (p: PreparacionAnalisis | undefined, clave: "venta_identificada" | "piso_cuadrado" | "almacen_contado") =>
   p?.condiciones.find((c) => c.clave === clave)?.cumple === true;
@@ -37,7 +26,7 @@ function faltaPrincipal(p: PreparacionAnalisis | undefined): string {
 export function AnillosCondiciones({ p }: { p: PreparacionAnalisis | undefined }) {
   const { acceso } = useAnalisis();
   const v = ventas30(p);
-  const ident = p?.identificada14 != null ? Math.floor(p.identificada14 * 100) : pct(v.identificadas, v.unidades);
+  const ident = ventasConPrendaDe100(p) ?? 0;
   const piso = cumple(p, "piso_cuadrado");
   const almacen = cumple(p, "almacen_contado");
   return (
@@ -69,10 +58,9 @@ export function AnillosCondiciones({ p }: { p: PreparacionAnalisis | undefined }
 
 /** «Hoy» cuando todavía no se puede recomendar: qué falta, cómo va día a día, las tres tiendas y lo que sí se sabe. */
 export function HoyTodaviaNo() {
-  const { datos, prendas, abrirFicha } = useAnalisis();
+  const { datos, prendas, abrirFicha, verConDatosDeHoy } = useAnalisis();
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
-  const v = ventas30(mia);
-  const ident = mia?.identificada14 != null ? Math.floor(mia.identificada14 * 100) : pct(v.identificadas, v.unidades);
+  const ident = ventasConPrendaDe100(mia) ?? 0;
   const ultimos = (mia?.dias ?? []).filter((d) => d.unidades > 0).slice(-6);
   const racha = Math.min(mia?.racha.dias ?? 0, DIAS_SOSTENIDOS);
   const top = [...prendas].filter((p) => p.vendidas30 > 0).sort((a, b) => b.vendidas30 - a.vendidas30).slice(0, 5);
@@ -93,6 +81,9 @@ export function HoyTodaviaNo() {
             Veo <b>{ident} de cada 100</b> ventas con su prenda. Necesito {META}.
           </p>
           <AnillosCondiciones p={mia} />
+          <button type="button" className="btn-cayla btn-secundario btn-s ver-hoy" onClick={() => verConDatosDeHoy(true)}>
+            Ver con los datos de hoy
+          </button>
         </div>
         <div>
           <h3 className="sec" style={{ margin: "0 0 12px" }}>
@@ -140,7 +131,7 @@ export function HoyTodaviaNo() {
         {datos.sedes.map((s, k) => {
           const p = datos.preparacion.find((x) => x.ubicacionId === s.id);
           const r = ventas30(p);
-          const q = p?.identificada14 != null ? Math.floor(p.identificada14 * 100) : pct(r.identificadas, r.unidades);
+          const q = ventasConPrendaDe100(p) ?? 0;
           const unidades = datos.resumenSedes.find((x) => x.sedeId === s.id)?.unidades ?? 0;
           return (
             <article key={s.id} className="tarjeta sede-c entra fija" style={{ ["--i" as string]: 1 + k, alignItems: "center", textAlign: "center" }}>
@@ -250,10 +241,10 @@ const TEXTO_FALTA: Record<"venta_identificada" | "piso_cuadrado" | "almacen_cont
 
 /** Las otras pestañas, mientras no se puede recomendar: lo que falta primero, con su botón, y lo que sigue. */
 export function VistaTodaviaNo() {
-  const { datos, acceso, irA } = useAnalisis();
+  const { datos, acceso, irA, verConDatosDeHoy } = useAnalisis();
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
   const v = ventas30(mia);
-  const ident = mia?.identificada14 != null ? Math.floor(mia.identificada14 * 100) : pct(v.identificadas, v.unidades);
+  const ident = ventasConPrendaDe100(mia) ?? 0;
   const racha = Math.min(mia?.racha.dias ?? 0, DIAS_SOSTENIDOS);
   const faltan = (mia?.condiciones ?? []).filter((c) => !c.cumple).map((c) => c.clave);
   const primera = faltan[0] ?? null;
@@ -296,7 +287,10 @@ export function VistaTodaviaNo() {
               {boton.texto}
             </Link>
           )}
-          <button type="button" className={`btn-cayla ${boton ? "btn-secundario" : "btn-primario"} btn-s`} onClick={() => irA("hoy")}>
+          <button type="button" className={`btn-cayla ${boton ? "btn-secundario" : "btn-primario"} btn-s`} onClick={() => verConDatosDeHoy(true)}>
+            Ver con los datos de hoy
+          </button>
+          <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("hoy")}>
             Ver qué falta
           </button>
         </div>

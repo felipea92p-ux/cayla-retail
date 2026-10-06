@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { KeyboardEvent, ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, Cuenta, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
@@ -11,8 +11,10 @@ import { diasQueQuedan, esTallaUnica, META_SE_VENDE_LO_QUE_LLEGA, plural, PRENDA
 import {
   barrasSede,
   caminosDeHoy,
+  carrilesDeCinta,
   cintaFlujo,
   columnasFlujo,
+  ejeCinta,
   estadoLlegadas,
   estadoQuieta,
   estadosDelFlujo,
@@ -25,10 +27,12 @@ import {
   paraReponerPiso,
   partesPorCategoria,
   pastillaFlujo,
+  puntosDeCinta,
   px,
   quietasHoy,
   resumenEnVivo,
   seAcabanHoy,
+  SEGUNDOS_PUNTO,
   textoDiasQueQuedan,
   textoPastilla,
   titulosFlujo,
@@ -419,6 +423,9 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
   const titulos = titulosFlujo(caminos);
   const { W, H, LX, NW, CX0, CX1, RX } = FLUJO;
   const medio = (CX0 + CX1) / 2;
+  const encima = useCaminoEncima();
+  const activoIzq = g.izq.find((b) => b.camino.clave === encima.clave);
+  const activoDer = g.der.find((b) => b.camino.clave === encima.clave);
   return (
     <svg className="fl-svg" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Qué hacer hoy: qué prendas te llegan y cuáles salen de tu tienda">
       {titulos.izq && (
@@ -434,11 +441,14 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
       {g.franjaIzq && <Franja franja={g.franjaIzq} lado="izq" />}
       {g.franjaDer && <Franja franja={g.franjaDer} lado="der" />}
       {g.izq.map((b, i) => (
-        <Cinta key={b.camino.clave} banda={b} i={i} lado="izq" alIr={alIr} />
+        <Cinta key={b.camino.clave} banda={b} i={i} lado="izq" alIr={alIr} encima={encima} />
       ))}
       {g.der.map((b, i) => (
-        <Cinta key={b.camino.clave} banda={b} i={i} lado="der" alIr={alIr} />
+        <Cinta key={b.camino.clave} banda={b} i={i} lado="der" alIr={alIr} encima={encima} />
       ))}
+      {/* Los puntos van entre las cintas y los nodos: entran a «Tu tienda» por debajo y salen de ella. */}
+      {activoIzq && <PuntosCinta key={`pt-${activoIzq.camino.clave}`} banda={activoIzq} lado="izq" />}
+      {activoDer && <PuntosCinta key={`pt-${activoDer.camino.clave}`} banda={activoDer} lado="der" />}
       {[...g.izq.map((b) => ({ b, x: LX })), ...g.der.map((b) => ({ b, x: RX }))].map(({ b, x }) => (
         <rect key={`nodo-${b.camino.clave}`} x={x} y={px(b.y0)} width={NW} height={px(b.y1 - b.y0)} rx={3} fill={COLOR_ESTADO[b.camino.est]} />
       ))}
@@ -450,18 +460,83 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
         {datos.sede.ciudad}
       </text>
       {g.izq.map((b) => (
-        <Pastilla key={`p-${b.camino.clave}`} banda={b} lado="izq" alIr={alIr} />
+        <Pastilla key={`p-${b.camino.clave}`} banda={b} lado="izq" alIr={alIr} encima={encima} />
       ))}
       {g.der.map((b) => (
-        <Pastilla key={`p-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} />
+        <Pastilla key={`p-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} encima={encima} />
       ))}
       {g.izq.map((b) => (
-        <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="izq" alIr={alIr} />
+        <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="izq" alIr={alIr} encima={encima} />
       ))}
       {g.der.map((b) => (
-        <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} />
+        <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} encima={encima} />
       ))}
     </svg>
+  );
+}
+
+/** Qué camino tiene el mouse o el foco encima, y cómo se avisa. */
+type CaminoEncima = { clave: string | null; entra: (clave: string) => void; sale: () => void };
+
+/**
+ * El camino que tiene el mouse (o el foco) encima. Salir espera un momento antes de soltarlo: al pasar de la cinta a su pastilla o a
+ * su etiqueta (que están encima de la cinta) llega un «sale» y enseguida un «entra», y los puntos no deben reiniciarse.
+ */
+function useCaminoEncima(): CaminoEncima {
+  const [clave, setClave] = useState<string | null>(null);
+  const espera = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (espera.current !== null) window.clearTimeout(espera.current);
+  }, []);
+  const entra = (c: string) => {
+    if (espera.current !== null) window.clearTimeout(espera.current);
+    espera.current = null;
+    setClave(c);
+  };
+  const sale = () => {
+    if (espera.current !== null) window.clearTimeout(espera.current);
+    espera.current = window.setTimeout(() => setClave(null), 90);
+  };
+  return { clave, entra, sale };
+}
+
+const MOVIMIENTO_REDUCIDO = "(prefers-reduced-motion: reduce)";
+const suscribirMovimiento = (avisar: () => void) => {
+  const m = window.matchMedia(MOVIMIENTO_REDUCIDO);
+  m.addEventListener("change", avisar);
+  return () => m.removeEventListener("change", avisar);
+};
+/** Si la persona pidió «reducir movimiento» (en el servidor, no se sabe: sin puntos). */
+const useMovimientoReducido = (): boolean =>
+  useSyncExternalStore(suscribirMovimiento, () => window.matchMedia(MOVIMIENTO_REDUCIDO).matches, () => true);
+
+/**
+ * Los puntos que corren por la cinta del camino que está bajo el mouse (Felipe, 2026-10-06): de la Compra hacia tu tienda, y de tu
+ * tienda hacia la otra tienda o hacia «Liquidar», para que se lea hacia dónde van las prendas. Corren SOLO mientras el mouse o el foco
+ * está encima (es la única pieza de Análisis que se repite; excepción escrita en ADR-0136, act. 2026-10-06 (b)) y con «reducir
+ * movimiento» no se dibujan. Van espaciados por igual: cada uno arranca un tramo después del anterior.
+ */
+function PuntosCinta({ banda: b, lado }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der" }) {
+  const reducido = useMovimientoReducido();
+  if (reducido) return null;
+  const { LX, NW, CX0, CX1, RX } = FLUJO;
+  const { n, r } = puntosDeCinta(b.y1 - b.y0);
+  const carriles = carrilesDeCinta(b.y1 - b.y0, r);
+  const eje = (d: number) => (lado === "izq" ? ejeCinta(LX + NW, b.y0, b.y1, CX0, b.c0, b.c1, d) : ejeCinta(CX1, b.c0, b.c1, RX, b.y0, b.y1, d));
+  const color = COLOR_ESTADO[b.camino.est];
+  return (
+    <g className="fl-puntos" aria-hidden pointerEvents="none">
+      {Array.from({ length: n }, (_, k) => (
+        <circle key={k} r={r} fill={color} stroke="var(--color-papel)" strokeWidth={1}>
+          <animateMotion
+            dur={`${SEGUNDOS_PUNTO}s`}
+            begin={`-${((k * SEGUNDOS_PUNTO) / n).toFixed(2)}s`}
+            repeatCount="indefinite"
+            path={eje(carriles[k % carriles.length]!)}
+          />
+        </circle>
+      ))}
+    </g>
   );
 }
 
@@ -487,12 +562,12 @@ function Franja({ franja, lado }: { franja: { texto: string; y: number; alto: nu
 }
 
 /** La cinta de un camino, entre su nodo y tu tienda. Se toca con el mouse; con el teclado, su pastilla y su etiqueta. */
-function Cinta({ banda: b, i, lado, alIr }: { banda: BandaFlujo<CaminoHoy>; i: number; lado: "izq" | "der"; alIr: AlIr }) {
+function Cinta({ banda: b, i, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; i: number; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const { LX, NW, CX0, CX1, RX } = FLUJO;
   const c = b.camino;
   const d = lado === "izq" ? cintaFlujo(LX + NW, b.y0, b.y1, CX0, b.c0, b.c1) : cintaFlujo(CX1, b.c0, b.c1, RX, b.y0, b.y1);
   return (
-    <g onClick={(e) => alIr(c, e.currentTarget)}>
+    <g onClick={(e) => alIr(c, e.currentTarget)} onMouseEnter={() => encima.entra(c.clave)} onMouseLeave={encima.sale}>
       <path
         className={`fl-cinta${lado === "der" ? " der" : ""}${c.primero ? " primera" : ""}`}
         style={{ ["--d" as string]: i }}
@@ -508,7 +583,7 @@ function Cinta({ banda: b, i, lado, alIr }: { banda: BandaFlujo<CaminoHoy>; i: n
 }
 
 /** «5 prendas» junto al nodo; el camino por donde empezar va lleno y dice «empieza aquí». */
-function Pastilla({ banda: b, lado, alIr }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr }) {
+function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const texto = textoPastilla(c);
   const p = pastillaFlujo(texto, b.cy, lado);
@@ -522,6 +597,10 @@ function Pastilla({ banda: b, lado, alIr }: { banda: BandaFlujo<CaminoHoy>; lado
       aria-label={`${c.verbo}: ${texto}`}
       onClick={(e) => ir(e.currentTarget)}
       onKeyDown={teclaSvg(ir)}
+      onMouseEnter={() => encima.entra(c.clave)}
+      onMouseLeave={encima.sale}
+      onFocus={() => encima.entra(c.clave)}
+      onBlur={encima.sale}
     >
       <rect
         x={p.x}
@@ -544,12 +623,22 @@ function Pastilla({ banda: b, lado, alIr }: { banda: BandaFlujo<CaminoHoy>; lado
 }
 
 /** El verbo del camino, sus tres primeras prendas (y «+N») y por qué. */
-function Etiqueta({ banda: b, lado, alIr }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr }) {
+function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const e = etiquetaFlujo(b.cy, lado);
   return (
     <foreignObject x={e.x} y={px(e.y)} width={e.w} height={e.h}>
-      <div className={`fl-et ${lado}`} data-ps={ids(c.prendas)} role="button" tabIndex={0} onClick={(ev) => alIr(c, ev.currentTarget)}>
+      <div
+        className={`fl-et ${lado}`}
+        data-ps={ids(c.prendas)}
+        role="button"
+        tabIndex={0}
+        onClick={(ev) => alIr(c, ev.currentTarget)}
+        onMouseEnter={() => encima.entra(c.clave)}
+        onMouseLeave={encima.sale}
+        onFocus={() => encima.entra(c.clave)}
+        onBlur={encima.sale}
+      >
         <span className="fl-l1">
           <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
             <Icono nombre={c.est} />
