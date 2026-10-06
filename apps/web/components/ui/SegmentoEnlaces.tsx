@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 /* ====================================================================
    SegmentoEnlaces · el segmento de MODO DE VISTA y de ORDEN que vive en la URL
-   (2026-09-18, ADR-0111; piel nueva el 2026-10-06, ADR-0354 «Pestañas y segmentos»)
+   (2026-09-18, ADR-0111; piel nueva el 2026-10-06, ADR-0357 «Pestañas y segmentos»)
 
    Qué es: lo que se toca para ver LO MISMO de otra forma u orden —Grilla / Tabla, Emisión / Vencimiento, Por urgencia /
    Por proveedor—, con 2 o 3 opciones. No es una pestaña de vista (`Pestanas`, cambia de sección) ni un filtro

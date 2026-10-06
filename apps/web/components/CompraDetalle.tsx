@@ -235,7 +235,7 @@ export function CompraDetalle({
             S/ 5,923.60»), cada una con su barra que se llena. El «Destino» y la «Condición» que antes vivían acá pasaron
             a la línea gris de la cabecera; el saldo, a la línea de abajo. */}
         <div className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
-          {/* La pieza única de cifra (TarjetaCifra, ADR-0354), con la barra que se llena en su contexto. */}
+          {/* La pieza única de cifra (TarjetaCifra, ADR-0357), con la barra que se llena en su contexto. */}
           {!esGasto && (
             <TarjetaCifra
               etiqueta="Recepción"

@@ -7,7 +7,7 @@ import { ROTULO_TAMANO_GRILLA, TAMANOS_GRILLA, type TamanoGrilla } from "@/lib/t
  * «Tamaño: Grande · Mediano · Pequeño» de la Grilla de Productos (Felipe, 2026-09-29). Es solo el control: quien lo pinta
  * (`ProductosGrilla`) guarda la elección en su cookie y cambia las columnas. Es un modo de vista (las mismas prendas, más
  * grandes o más chicas), así que va con el segmento de modo del sistema, el mismo del «Grilla · Tabla» de la cabecera, para
- * que se lea como un interruptor de vista y no como un filtro (ADR-0354). Con su rótulo: las tres palabras solas no dicen qué se elige.
+ * que se lea como un interruptor de vista y no como un filtro (ADR-0357). Con su rótulo: las tres palabras solas no dicen qué se elige.
  */
 export function SelectorTamanoGrilla({ valor, onCambiar }: { valor: TamanoGrilla; onCambiar: (t: TamanoGrilla) => void }) {
   return (

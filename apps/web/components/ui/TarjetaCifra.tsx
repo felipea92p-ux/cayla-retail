@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
    TarjetaCifra · LA tarjeta de cifra del ERP: un nombre, un número grande y una línea de contexto
    (nació el 2026-09-17, ADR-0101; ADR-0111 la hizo la única de Compras; ADR-0169 le dio la cara oficial).
 
-   Desde el 2026-10-06 es la ÚNICA pieza de la familia «Tarjetas de cifra» (/unificar, ADR-0354: «una función, una
+   Desde el 2026-10-06 es la ÚNICA pieza de la familia «Tarjetas de cifra» (/unificar, ADR-0357: «una función, una
    pieza»). Felipe eligió «la de Compras, una marca por función» (docs/unificar/propuestas/cifra.html, ronda 1). La cara
    no cambia; lo que cambia es que cada cosa que hace una cifra se ve antes de tocarla:
 

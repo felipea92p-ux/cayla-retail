@@ -144,7 +144,7 @@ export function AtributosHub({
 
   return (
     <div className="space-y-5">
-      {/* Cada atributo es otra sección (otra lista, otras acciones): la pestaña de vista del sistema (ADR-0354), con su icono. */}
+      {/* Cada atributo es otra sección (otra lista, otras acciones): la pestaña de vista del sistema (ADR-0357), con su icono. */}
       <Pestanas
         etiquetaAccesible="Atributos"
         idIndicador="atributos-secciones"

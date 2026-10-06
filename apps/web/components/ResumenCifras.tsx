@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Lectura, TonoLectura } from "@/lib/resumen-lectura";
 
 // Las cuatro cifras de arriba del Análisis de inventario (rediseño 2026-09-22, guía oficial). Desde el 2026-10-06 se
-// dibujan con la pieza única `TarjetaCifra` (ADR-0354, /unificar ronda 1): la `TarjetaCifraAnalisis` que vivía aquí era
+// dibujan con la pieza única `TarjetaCifra` (ADR-0357, /unificar ronda 1): la `TarjetaCifraAnalisis` que vivía aquí era
 // una copia de ella con delta, «A → B» y la ayuda solo en un `title` (con el dedo no aparecía nunca); todo eso lo tiene
 // ahora la pieza (`detalleTono` para el delta, `antes`, `pie` y el (!) de `ayuda`). En Comparar la cifra es «A → B»:
 // A chica y apagada, B grande, porque B es lo que se analiza y A es la referencia (A siempre antes que B).

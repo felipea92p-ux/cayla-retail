@@ -1,6 +1,6 @@
 # Censo de piezas: `/unificar`
 
-El motor de la skill `/unificar` (ADR-0354, «una función, una pieza»). Corre en **LOCAL** contra un `next dev` de esta worktree, abre Chrome
+El motor de la skill `/unificar` (ADR-0357, «una función, una pieza»). Corre en **LOCAL** contra un `next dev` de esta worktree, abre Chrome
 con Playwright, entra con una cuenta de prueba, recorre las pantallas (y sus modales, con los escenarios del auditor de tema), y **cuenta
 cuántas formas distintas hay de dibujar lo mismo**: el botón «Cancelar», las pestañas, la insignia de estado, la tabla, la tarjeta de cifra…
 Hermano de `tema/` y `responsive/`: reutiliza las sesiones, las rutas y los escenarios de `tema/`.

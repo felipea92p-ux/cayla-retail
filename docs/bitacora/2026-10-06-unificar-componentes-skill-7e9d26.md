@@ -1,7 +1,7 @@
-## 2026-10-06 (Nace `/unificar`: cuántas formas tiene cada pieza del ERP, con capturas, y la que Felipe elija queda como única — ADR-0354)
+## 2026-10-06 (Nace `/unificar`: cuántas formas tiene cada pieza del ERP, con capturas, y la que Felipe elija queda como única — ADR-0357)
 Qué hice: la skill `/unificar` y su motor (`apps/web/unificar/`, Playwright sobre el auditor de tema) que recorre el ERP en local, reconoce 40 familias de piezas (los botones por lo que hacen, insignias, pestañas, tablas, cifras, campos, iconos, gráficos…), cuenta sus formas distintas, captura cada una y arma una lámina con las variantes lado a lado y una propuesta en claro y oscuro; la regla «Una función, una pieza» en `CLAUDE.md` y `lib/unificar.test.ts`, que hará cumplir cada decisión con su deuda.
 Por qué así: elegir es una conversación con Felipe (capturas, recomendación, pregunta), por eso skill y no agente; y contar 40 familias en 77 pantallas a mano no se repite igual dos veces, por eso un motor sin IA que mide el DOM.
-Felipe se lleva: el primer censo (ADR-0354, «Qué había») y una propuesta de ejemplo para «Volver»; falta que elija las primeras familias.
+Felipe se lleva: el primer censo (ADR-0357, «Qué había») y una propuesta de ejemplo para «Volver»; falta que elija las primeras familias.
 
 ## 2026-10-06 (Primera ronda de /unificar: Volver, Pestañas y Tarjetas de cifra, decididas y aplicadas en todos los módulos)
 Qué hice: Felipe eligió las tres recomendaciones; las construí como piezas únicas (`Volver`, `Pestanas` + píldora + segmento de modo, `TarjetaCifra` con una marca por función), las migré en ~100 archivos de todos los módulos sin cambiar qué hace ningún botón, y registré cada decisión con firmas probadas y deuda 0; fotos antes/después de 36 pantallas en `unificar:fotos`.

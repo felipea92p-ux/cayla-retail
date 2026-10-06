@@ -133,7 +133,7 @@ export function FiltrosRecibidas({
       <PastillaFechas desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} hoy={hoy} onCambiar={(desde, hasta) => aplicar({ desde, hasta })} />
 
       {/* Los dos filtros del spike: el periodo de un toque (tocar el activo lo quita) y cómo llegó lo recibido. Dejan menos
-          recepciones en la misma lista: la píldora de filtro del sistema (ADR-0354), no el segmento. */}
+          recepciones en la misma lista: la píldora de filtro del sistema (ADR-0357), no el segmento. */}
       <div role="group" aria-label="Periodo de llegada" className="flex flex-wrap items-center gap-1.5">
         {(
           [

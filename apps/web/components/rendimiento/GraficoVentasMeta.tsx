@@ -96,7 +96,7 @@ export function GraficoVentasMeta({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="label-cayla text-[11px] font-bold text-taupe">{titulo}</h2>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Semana o Mes es el período (píldora); Acumulado o Por día, el mismo mes de otra forma (segmento de modo). ADR-0354. */}
+          {/* Semana o Mes es el período (píldora); Acumulado o Por día, el mismo mes de otra forma (segmento de modo). ADR-0357. */}
           <div role="group" aria-label="Período del gráfico" className="flex flex-wrap items-center gap-2">
             {(
               [

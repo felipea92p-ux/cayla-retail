@@ -1,4 +1,4 @@
-# Tarjetas de cifra — una sola tarjeta, una marca por lo que hace (ADR-0354)
+# Tarjetas de cifra — una sola tarjeta, una marca por lo que hace (ADR-0357)
 
 **Decidido:** 2026-10-06, Felipe, con `/unificar` (ronda 1). **Elegida:** la propuesta, «La de Compras, una marca por función». **Pieza:**
 `components/ui/TarjetaCifra.tsx`. **Migrado:** el mismo día, commit `refactor(ui): pestañas en tres piezas y una sola tarjeta de cifra`,

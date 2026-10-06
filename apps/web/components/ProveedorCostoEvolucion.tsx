@@ -41,7 +41,7 @@ export function ProveedorCostoEvolucion({ evolucion }: { evolucion: EvolucionCos
   }
 
   const etiqueta = `Evolución del costo${evolucion ? ` · ${evolucion.referencia}` : ""}`;
-  // La cabecera es la pieza única de cifra (TarjetaCifra, ADR-0354); el gráfico va en su contexto. Sin compras que
+  // La cabecera es la pieza única de cifra (TarjetaCifra, ADR-0357); el gráfico va en su contexto. Sin compras que
   // comparar es «sin dato»; con una sola, su costo se ve apagado (tinta/65), porque todavía no es una evolución.
   if (!evolucion || puntos.length < 2 || variacion == null) {
     return puntos.length === 1 ? (

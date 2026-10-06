@@ -234,7 +234,7 @@ export function MatrizStockFicha({
 
   return (
     <div className="scroll-mt-20 space-y-2" ref={raiz}>
-      {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0354). Angosto, ocupa todo el ancho. */}
+      {/* La misma tabla con otro dato a la vista: el segmento de modo del sistema (ADR-0357). Angosto, ocupa todo el ancho. */}
       <SegmentoDeslizante
         forma="modo"
         etiqueta="Qué se escribe en la tabla"

@@ -1,6 +1,6 @@
 ---
 name: unificar
-description: Unifica el diseño del ERP CAYLA (ADR-0354, «una función, una pieza»). Recorre el ERP en LOCAL módulo por módulo con un motor que mide el DOM y captura cada pieza (botones por lo que hacen —Guardar, Cancelar, Volver…—, insignias de estado, pestañas, tablas, tarjetas de cifra, campos, combos, iconos, gráficos, avisos, estados vacíos, títulos, hojas), cuenta cuántas formas distintas hay de hacer lo mismo y dónde vive cada una, y le muestra a Felipe una lámina con las capturas lado a lado, qué cambia entre ellas y una PROPUESTA nueva dibujada con los tokens reales en claro y oscuro. Felipe elige; la elegida queda como la única pieza para todo el sistema y las pantallas nuevas, y una prueba del CI la hace cumplir. Úsala cuando Felipe diga «unificar», «hay dos botones distintos que hacen lo mismo», «que todo se vea igual», «estandarizar componentes», «sistema de diseño», o al terminar un módulo. Con un módulo (`inventario`) analiza ese módulo contra el resto; con `familia=<id>` profundiza una familia; con `todo` arma el tablero; con `migrar <familia> [módulo]` aplica una decisión ya tomada.
+description: Unifica el diseño del ERP CAYLA (ADR-0357, «una función, una pieza»). Recorre el ERP en LOCAL módulo por módulo con un motor que mide el DOM y captura cada pieza (botones por lo que hacen —Guardar, Cancelar, Volver…—, insignias de estado, pestañas, tablas, tarjetas de cifra, campos, combos, iconos, gráficos, avisos, estados vacíos, títulos, hojas), cuenta cuántas formas distintas hay de hacer lo mismo y dónde vive cada una, y le muestra a Felipe una lámina con las capturas lado a lado, qué cambia entre ellas y una PROPUESTA nueva dibujada con los tokens reales en claro y oscuro. Felipe elige; la elegida queda como la única pieza para todo el sistema y las pantallas nuevas, y una prueba del CI la hace cumplir. Úsala cuando Felipe diga «unificar», «hay dos botones distintos que hacen lo mismo», «que todo se vea igual», «estandarizar componentes», «sistema de diseño», o al terminar un módulo. Con un módulo (`inventario`) analiza ese módulo contra el resto; con `familia=<id>` profundiza una familia; con `todo` arma el tablero; con `migrar <familia> [módulo]` aplica una decisión ya tomada.
 ---
 
 Unifica: $ARGUMENTS   (un módulo como `inventario`, `familia=pestanas`, `todo`, `migrar accion.cancelar inventario`, o sin argumento = pregunta cuál)
@@ -86,7 +86,7 @@ dirección; él toca una por pregunta, puede comentar, y copia su elección al c
 
 **6. Registrar** (en cuanto elige, en un commit propio): el registro `docs/unificar/<familia>.md` (qué se comparó, las capturas, qué eligió
 y por qué), la decisión en `DECISIONES` de `apps/web/unificar/familias.mjs` con sus **firmas** y su **deuda**
-(`pnpm unificar:deuda <familia>` la lista), la fila del tablero `docs/unificar/README.md`, la línea de la familia en ADR-0354 («Decisiones»)
+(`pnpm unificar:deuda <familia>` la lista), la fila del tablero `docs/unificar/README.md`, la línea de la familia en ADR-0357 («Decisiones»)
 y en la tabla «Piezas únicas» de `CLAUDE.md`. Si la pieza elegida no existe todavía (la propuesta), se construye en `components/ui/` antes de
 registrar. Paso a paso: `referencia/decision.md`.
 

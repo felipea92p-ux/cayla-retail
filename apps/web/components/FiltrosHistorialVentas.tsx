@@ -32,7 +32,7 @@ import {
 // suyos en «+ Atajo» (se guardan en su navegador). Un atajo es solo un conjunto de parámetros de la URL: tocarlo es lo
 // mismo que elegir esos filtros en el panel, así que el panel y el atajo nunca se contradicen.
 
-// El período y los atajos son filtros de un valor: la píldora del sistema (ADR-0354, «Pestañas y segmentos», 2026-10-06), no la
+// El período y los atajos son filtros de un valor: la píldora del sistema (ADR-0357, «Pestañas y segmentos», 2026-10-06), no la
 // copia a mano de antes (MAYÚSCULAS de 10 px, rojo al pasar el mouse). La elegida se rellena de tinta sola (`aria-pressed`).
 function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
   return (

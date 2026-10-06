@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * La página para ELEGIR mirando (ADR-0354, paso 5 de `/unificar`): cada familia con sus opciones en tarjetas grandes —las formas que
+ * La página para ELEGIR mirando (ADR-0357, paso 5 de `/unificar`): cada familia con sus opciones en tarjetas grandes —las formas que
  * ya existen, lo que está aplicado y las propuestas dibujadas—, cada una con su captura. Felipe toca la que quiere para todo el ERP,
  * puede dejar un comentario, y al final copia su elección para pegarla en el chat. Si la abrió en el navegador de la app, la sesión la
  * lee sola (`window.__unificarEleccion` y localStorage).

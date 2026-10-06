@@ -29,7 +29,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
    (`TarjetaCifra` con `onClick`, que marca la elegida con `aria-pressed`, no con `aria-current`). En tinta y no en rojo:
    esas tarjetas ya llevan el rojo de «pide algo» en su filete y su cifra (máximo dos rojos por pantalla).
 
-   Desde el 2026-10-06 (ADR-0354, «Pestañas y segmentos») `linea-tinta` es el subrayado de TODA pestaña de vista
+   Desde el 2026-10-06 (ADR-0357, «Pestañas y segmentos») `linea-tinta` es el subrayado de TODA pestaña de vista
    (`Pestanas`, en sus dos maneras: con `aria-current` o, por estado, con `selector='[aria-selected="true"]'`). La `linea`
    roja y la `pastilla` oscura se fueron: el segmento de modo marca la elegida con un contorno, sin viaje.
    ==================================================================== */

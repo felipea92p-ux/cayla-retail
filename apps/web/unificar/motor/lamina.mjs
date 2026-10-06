@@ -1,4 +1,4 @@
-// La LÁMINA de comparación (ADR-0354): una página HTML por corrida con cada familia, sus variantes lado a lado (captura, cuántas
+// La LÁMINA de comparación (ADR-0357): una página HTML por corrida con cada familia, sus variantes lado a lado (captura, cuántas
 // veces y dónde se usa, qué cambia frente a la más usada) y la PROPUESTA nueva si `/unificar` ya la dibujó
 // (`docs/unificar/propuestas/<familia>.html`). La propuesta se dibuja con el CSS REAL del ERP (el que sirvió el `next dev` durante
 // el censo), en claro y en oscuro, para que Felipe compare lo mismo que va a ver en pantalla.

@@ -1,4 +1,4 @@
-// El censo DENTRO de la página (ADR-0354). La CLI lo inyecta con `addScriptTag` y llama a `window.__unificarCensar()`.
+// El censo DENTRO de la página (ADR-0357). La CLI lo inyecta con `addScriptTag` y llama a `window.__unificarCensar()`.
 //
 // Recorre lo que se ve y reconoce cada familia (`unificar/familias.mjs`): botones, insignias, pestañas, tablas, cifras, iconos,
 // gráficos, hojas… A cada elemento le saca su HUELLA: las medidas que una persona VE (alto, radio, fondo, letra, icono), con los

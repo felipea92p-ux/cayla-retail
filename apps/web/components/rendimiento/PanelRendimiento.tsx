@@ -159,7 +159,7 @@ export function PanelRendimiento({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <span className="label-cayla text-[11px] font-bold text-taupe">Período</span>
-        {/* El período es un filtro de un valor: la píldora del sistema, con su rótulo (ADR-0354). */}
+        {/* El período es un filtro de un valor: la píldora del sistema, con su rótulo (ADR-0357). */}
         <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-2">
           {VISTAS.map((v) => (
             <button key={v.clave} type="button" aria-pressed={vista === v.clave} onClick={() => cambiarVista(v.clave as Vista)} className="pildora-cayla">
@@ -210,7 +210,7 @@ export function PanelRendimiento({
       {(proyeccion || prendas) && (
         <div className="grid gap-4 sm:grid-cols-2">
           {proyeccion && (
-            // La pieza única de cifra (TarjetaCifra, ADR-0354): antes era una copia a mano con la receta del Inicio.
+            // La pieza única de cifra (TarjetaCifra, ADR-0357): antes era una copia a mano con la receta del Inicio.
             <TarjetaCifra etiqueta="Proyección del mes" valor={SOLES.format(proyeccion.proyeccion)}>
                 A este ritmo ({SOLES.format(proyeccion.ritmoPorDia)} por día de trabajo) {nombre} cierra el mes cerca de esa cifra
                 {proyeccion.pctDeMeta !== null && proyeccion.metaMes !== null && (

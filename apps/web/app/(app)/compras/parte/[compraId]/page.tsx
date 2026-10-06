@@ -45,7 +45,7 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
       </div>
 
       {partes.map((p, i) => (
-        // La parte de cada tienda es la pieza única de cifra (TarjetaCifra, ADR-0354); lo pagado y el botón, al pie.
+        // La parte de cada tienda es la pieza única de cifra (TarjetaCifra, ADR-0357); lo pagado y el botón, al pie.
         <TarjetaCifra
           key={p.ubicacionId}
           etiqueta={varias ? `Parte de ${p.ubicacionNombre}` : `Parte de tu tienda · ${p.ubicacionNombre}`}

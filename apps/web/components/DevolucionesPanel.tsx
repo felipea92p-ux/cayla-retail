@@ -300,7 +300,7 @@ export function DevolucionesPanel({
             <p className="mt-0.5 text-sm text-tinta/70">{TITULOS[vista].bajada}</p>
           </div>
           {/* Cambian la pantalla (otras columnas, otras acciones): pestañas de vista del sistema, con el subrayado en tinta y
-              debajo, en Compras, su filtro en píldora (ADR-0354; ADR-0232 D3). Con la pista de antes se veían iguales que el
+              debajo, en Compras, su filtro en píldora (ADR-0357; ADR-0232 D3). Con la pista de antes se veían iguales que el
               filtro de Cambios, que solo achica la lista. */}
           <Pestanas
             etiquetaAccesible="Qué ver"

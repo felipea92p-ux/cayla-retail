@@ -471,7 +471,7 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
 
-## Una función, una pieza (regla — ADR-0354, Felipe 2026-10-06)
+## Una función, una pieza (regla — ADR-0357, Felipe 2026-10-06)
 
 **Dos piezas que hacen lo mismo se ven igual en todo el ERP.** Si «Cancelar», unas pestañas o una insignia de estado se dibujan distinto en dos
 pantallas, la colaboradora aprende dos veces lo mismo y duda la tercera. **`/unificar` (skill)** recorre el ERP en local con un motor que mide el
@@ -486,7 +486,7 @@ está decidida, se usa su pieza; si no, se usa la forma más usada del último c
 `apps/web/unificar/familias.mjs`), y la prueba falla si un archivo nuevo vuelve a dibujarla a mano o si la deuda no baja. Una línea legítima se
 exime con `// unificar-fijo: <por qué>`. Migrar cambia cómo se ve, **nunca qué hace**, y va módulo por módulo con el OK de Felipe. Lo que existe
 por una decisión (el kit de Finanzas, la vista rápida, los sellos de Movimientos, el Observatorio, la persiana de Caja) no se «corrige»: Felipe
-dice si se unifica. Detalle: `docs/adr/0354-unificar-una-funcion-una-pieza.md` y `.claude/skills/unificar/`.
+dice si se unifica. Detalle: `docs/adr/0357-unificar-una-funcion-una-pieza.md` y `.claude/skills/unificar/`.
 
 **Piezas únicas** (una fila por familia decidida; el registro de cada una, en `docs/unificar/<familia>.md`):
 

@@ -36,7 +36,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
   return (
     <div className="space-y-6">
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
-          (ADR-0354). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+          (ADR-0357). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
       <Pestanas
         etiquetaAccesible="Miradas del Taller"
         idIndicador="produccion-miradas"
@@ -66,7 +66,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
       )}
 
       {periodos.length > 1 && (
-        // El período es un filtro de un valor: la píldora del sistema (ADR-0354).
+        // El período es un filtro de un valor: la píldora del sistema (ADR-0357).
         <div role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
           {periodos.map((p) => (
             <button key={p.ventana.clave} type="button" aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">

@@ -1,4 +1,4 @@
-# Botón «Volver» — una sola pieza (ADR-0354)
+# Botón «Volver» — una sola pieza (ADR-0357)
 
 **Decidido:** 2026-10-06, Felipe, con `/unificar` (ronda 1). **Elegida:** la propuesta, «Un solo botón con flecha». **Pieza:**
 `apps/web/components/ui/Volver.tsx`. **Migrado:** el mismo día, commit `refactor(ui): «Volver» tiene una sola cara en todo el ERP`.

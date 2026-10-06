@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Fotos antes/después de una migración de `/unificar` (ADR-0354, paso 7): la misma pantalla, la misma cuenta y el mismo ancho, antes
+ * Fotos antes/después de una migración de `/unificar` (ADR-0357, paso 7): la misma pantalla, la misma cuenta y el mismo ancho, antes
  * de tocar el código y después, para que Felipe apruebe mirando y no leyendo un diff.
  *
  *   pnpm --filter web unificar:fotos -- --base-url http://localhost:3110 --salida unificar/.salida/fotos-antes
@@ -123,7 +123,7 @@ h3 { font-size: 15px; margin: 18px 0 8px; } code { font-size: 12px; color: var(-
 figure { margin: 0; background: var(--papel); border: 1px solid var(--linea); border-radius: 12px; padding: 8px; }
 figcaption { font-size: 12px; color: var(--taupe); margin-bottom: 6px; } img { display: block; width: 100%; height: auto; border-radius: 6px; }
 @media (max-width: 760px) { .par, .par.cel { grid-template-columns: 1fr; } }
-</style></head><body><main><p><code>/unificar · ADR-0354</code></p><h1>Antes y después</h1>
+</style></head><body><main><p><code>/unificar · ADR-0357</code></p><h1>Antes y después</h1>
 <p>La misma pantalla, la misma cuenta (Admin) y el mismo ancho (1440 × 900; las de mostrador también a 375 px). Toca una foto para verla grande.</p>${secciones}</main></body></html>`;
   writeFileSync(join(despues, "comparar.html"), html);
   console.log(`Comparación: ${join(despues, "comparar.html")} (${fotos.length} fotos en ${porModulo.size} módulos)`);

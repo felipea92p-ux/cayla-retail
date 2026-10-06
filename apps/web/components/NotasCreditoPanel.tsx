@@ -187,7 +187,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
       </div>
 
       <div {...entra(1)}>
-        {/* Dos secciones con otras columnas y otras acciones: la pestaña de vista del sistema (ADR-0354). */}
+        {/* Dos secciones con otras columnas y otras acciones: la pestaña de vista del sistema (ADR-0357). */}
         <Pestanas
           etiquetaAccesible="Secciones del módulo"
           idIndicador="notas-credito-secciones"
@@ -302,7 +302,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
                 <kbd className="rounded border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55">/</kbd>
               )}
             </label>
-            {/* El estado deja menos notas en la misma lista: la píldora de filtro (ADR-0354). */}
+            {/* El estado deja menos notas en la misma lista: la píldora de filtro (ADR-0357). */}
             <div role="group" aria-label="Estado de la nota" className="flex flex-wrap items-center gap-2">
               {PESTANAS.map((p) => (
                 <button key={p.clave} type="button" aria-pressed={pestana === p.clave} onClick={() => { setPestana(p.clave); setBanda(null); }} className="pildora-cayla">
@@ -593,7 +593,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
 
   return (
     <div className="space-y-3">
-      {/* La pieza única de cifra (TarjetaCifra, ADR-0354): antes era una copia a mano de 40 px. */}
+      {/* La pieza única de cifra (TarjetaCifra, ADR-0357): antes era una copia a mano de 40 px. */}
       <TarjetaCifra
         className="anim-entra"
         style={{ ["--i" as string]: 2 }}

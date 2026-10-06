@@ -561,7 +561,7 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
           <p className="text-xs text-tinta/50">{info.bajada}</p>
         </div>
         {/* Modo de vista (los mismos cierres de otra forma): el segmento del sistema, con la elegida en contorno de tinta
-            (ADR-0354), no la pista hueso del spike. */}
+            (ADR-0357), no la pista hueso del spike. */}
         <SegmentoDeslizante
           forma="modo"
           etiqueta="Ver los cierres como"

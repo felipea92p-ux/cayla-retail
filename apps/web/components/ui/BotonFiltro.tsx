@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  * gesto: si uno cambia de tamaño o de estado activo, cambian todos juntos.
  * `punto` es la clase de color del puntito del grupo (ej. "bg-verde").
  *
- * Desde el 2026-10-06 es la píldora de filtro del sistema (`pildora-cayla`, ADR-0354 «Pestañas y segmentos»): un filtro de un
+ * Desde el 2026-10-06 es la píldora de filtro del sistema (`pildora-cayla`, ADR-0357 «Pestañas y segmentos»): un filtro de un
  * valor se ve igual en todo el ERP. Se fueron las MAYÚSCULAS de 10,5 px y el conteo en tinta/40; el conteo va del color del texto.
  */
 export function BotonFiltro({

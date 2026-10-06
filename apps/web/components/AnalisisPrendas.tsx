@@ -70,7 +70,7 @@ export function BarraTablaAnalisis({ datos, actualizar, orden }: { datos: Desemp
   ];
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3 sm:px-5">
-      {/* Grupos = filtro de un valor (deja menos prendas): la píldora del sistema, con su conteo del color del texto (ADR-0354). */}
+      {/* Grupos = filtro de un valor (deja menos prendas): la píldora del sistema, con su conteo del color del texto (ADR-0357). */}
       <div className="pildoras-desliza gap-1.5">
         {pildoras.map((p) => (
           <button key={p.g ?? "todas"} type="button" aria-pressed={datos.grupo === p.g} onClick={() => actualizar({ grupo: p.g })} className="pildora-cayla shrink-0">
@@ -81,7 +81,7 @@ export function BarraTablaAnalisis({ datos, actualizar, orden }: { datos: Desemp
         ))}
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-2">
-        {/* «Cómo listar» muestra las mismas prendas de otra forma: el segmento de modo (ADR-0354). */}
+        {/* «Cómo listar» muestra las mismas prendas de otra forma: el segmento de modo (ADR-0357). */}
         <SegmentoDeslizante
           forma="modo"
           etiqueta="Cómo listar"

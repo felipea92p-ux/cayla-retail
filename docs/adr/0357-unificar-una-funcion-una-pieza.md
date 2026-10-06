@@ -1,4 +1,4 @@
-# ADR-0354 · Unificar: una función, una pieza
+# ADR-0357 · Unificar: una función, una pieza
 
 - **Fecha:** 2026-10-06 · **Estado:** skill y motor escritos y probados contra el ERP local. Primera ronda decidida por Felipe el mismo día
   (Volver, Pestañas y Tarjetas de cifra; ver «Decisiones»). Sin migración de base de datos.

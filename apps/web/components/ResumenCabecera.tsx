@@ -36,7 +36,7 @@ export function ResumenCabecera({
   const params = useSearchParams();
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-      {/* Los dos modos cambian la pantalla entera: la pestaña de vista del sistema (ADR-0354), con el subrayado en tinta que
+      {/* Los dos modos cambian la pantalla entera: la pestaña de vista del sistema (ADR-0357), con el subrayado en tinta que
           viaja. Hasta el 2026-10-06 era una pestaña a mano con el hilo rojo de la guía. */}
       <Pestanas
         etiquetaAccesible="Modo del análisis"

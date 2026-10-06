@@ -86,7 +86,7 @@ function Pastilla({
           ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors ${
               activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
             }`
-          : // La píldora de filtro del sistema (ADR-0354): el foco es el anillo común y el conteo, del color del texto.
+          : // La píldora de filtro del sistema (ADR-0357): el foco es el anillo común y el conteo, del color del texto.
             "pildora-cayla shrink-0 disabled:cursor-default disabled:opacity-40"
       }
     >
@@ -266,7 +266,7 @@ export function FiltrosMovimientos({
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Zona
       </span>
-      {/* Deja menos movimientos (filtro de un valor): la píldora del sistema, no la pista hueso de la demo (ADR-0354). */}
+      {/* Deja menos movimientos (filtro de un valor): la píldora del sistema, no la pista hueso de la demo (ADR-0357). */}
       <div role="group" aria-label="Zona de la tienda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
         {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => (
           <button key={f.token ?? "todo"} type="button" aria-pressed={sub === f.token} onClick={() => aplicar({ sub: f.token ?? "" })} className="pildora-cayla shrink-0">

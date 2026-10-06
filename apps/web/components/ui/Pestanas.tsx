@@ -5,7 +5,7 @@ import { useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "
 import { IndicadorDeslizante } from "@/components/ui/IndicadorDeslizante";
 
 /* ====================================================================
-   Pestanas · la ÚNICA pestaña de vista del ERP (ADR-0354, «Pestañas y segmentos», Felipe 2026-10-06)
+   Pestanas · la ÚNICA pestaña de vista del ERP (ADR-0357, «Pestañas y segmentos», Felipe 2026-10-06)
 
    Qué es: lo que se toca para ir a OTRA parte de la misma pantalla —otras columnas, otras acciones— (Movimientos /
    Pérdidas, Compras / Por aprobar / Resueltas, Desempeño / Comparar períodos). Si lo que se toca solo deja menos filas

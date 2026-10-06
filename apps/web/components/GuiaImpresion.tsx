@@ -344,7 +344,7 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
       {(cerrar) => (
         <>
           <div ref={arriba} className="flex flex-wrap items-center justify-between gap-3">
-            {/* Cada sistema tiene su propio camino de pasos: la pestaña de vista del sistema (ADR-0354), no un campo. */}
+            {/* Cada sistema tiene su propio camino de pasos: la pestaña de vista del sistema (ADR-0357), no un campo. */}
             <Pestanas
               etiquetaAccesible="Sistema de esta computadora"
               idIndicador="guia-impresion-sistema"
