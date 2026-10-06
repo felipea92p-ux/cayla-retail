@@ -9,6 +9,7 @@ import { ArrowLeftRight, Bandage, Barcode, Check, ClipboardList, FileText, Info,
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
@@ -177,7 +178,15 @@ export function PanelTalla({
   }
 
   const [cerrando, setCerrando] = useState(false);
-  const pedirCierre = useCallback(() => setCerrando(true), []);
+  const cerrarYa = useCallback(() => setCerrando(true), []);
+  // El panel bloquea la pantalla de atrás (2026-10-06, Felipe): tocar afuera, la ✕ o Escape lo cierran, y si hay un paso a medias
+  // (un dato cambiado, un paso avanzado, un guardado en camino) primero se pregunta «¿Salir sin guardar?».
+  const [pasoSucio, setPasoSucio] = useState(false);
+  const { pedirAccion, aviso } = useSalidaSinGuardar(
+    Boolean(flujo) && pasoSucio,
+    "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste."
+  );
+  const pedirCierre = useCallback(() => pedirAccion(cerrarYa), [pedirAccion, cerrarYa]);
   useEffect(() => {
     if (!cerrando) return;
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -342,11 +351,12 @@ export function PanelTalla({
   };
 
   return (
-    <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
+    <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
-        {/* El velo de la maqueta: el fondo se atenúa para que el panel se lea como lo único activo. Solo visual (`pointer-events-none`):
-            las tarjetas siguen vivas y tocar otra talla le cambia la talla al panel. En el celular, la hoja sube con velo más oscuro y
-            un desenfoque leve, como el sistema de modales (ADR-0136). Cierra con el mismo tiempo que el panel. */}
+        {/* El velo de la maqueta: el fondo se atenúa para que el panel se lea como lo único activo. Es solo visual: lo que bloquea la
+            pantalla de atrás es que el diálogo es modal (Radix deja sin clics, sin foco y sin scroll todo lo de afuera), y tocar afuera
+            cierra el panel, con aviso si hay algo a medias. En el celular, la hoja sube con velo más oscuro y un desenfoque leve, como
+            el sistema de modales (ADR-0136). Cierra con el mismo tiempo que el panel. */}
         <div
           aria-hidden
           data-velo-panel
@@ -357,8 +367,10 @@ export function PanelTalla({
           tabIndex={-1}
           onKeyDown={alTeclear}
           onEscapeKeyDown={alEscape}
-          // Sin velo y sin cerrar al tocar afuera: las tarjetas siguen vivas y tocar otra talla le cambia la talla al panel.
-          onInteractOutside={(e) => e.preventDefault()}
+          // Tocar afuera cierra (con el aviso si hay cambios), salvo sobre el loader o un aviso, que no son «la pantalla de atrás».
+          onInteractOutside={(e) => {
+            if ((e.target as Element | null)?.closest?.("[data-espera], [aria-live]")) e.preventDefault();
+          }}
           onOpenAutoFocus={(e) => e.preventDefault()}
           // En el celular, una hoja que sube desde abajo con su asa (maqueta); desde `sm`, el cajón de la derecha. Las dos entradas son las
           // del sistema (`cayla-hoja`, `cayla-cajon-*`, ADR-0136), quietas con `prefers-reduced-motion`.
@@ -425,6 +437,7 @@ export function PanelTalla({
                 raiz.current?.focus({ preventScroll: true });
               }}
               onCambiar={(tipo, datos) => setFlujo({ tipo, datos, paso: 0 })}
+              onCambios={setPasoSucio}
               onAjustarCompleto={() => onAjustarCompleto(fila)}
             />
           ) : (
@@ -806,6 +819,7 @@ export function PanelTalla({
           )}
         </Dialog.Content>
       </Dialog.Portal>
+      {aviso}
     </Dialog.Root>
   );
 }
