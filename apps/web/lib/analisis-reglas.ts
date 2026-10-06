@@ -105,6 +105,11 @@ export function ordenSeAcaba(a: PrendaAnalisis, b: PrendaAnalisis): number {
   return (diasQueQuedan(a) ?? Infinity) - (diasQueQuedan(b) ?? Infinity) || b.vendidas30 - a.vendidas30 || a.nombre.localeCompare(b.nombre, "es");
 }
 
+/** Lo quieto, de lo que más espera a lo que menos. */
+export function ordenQuietas(a: PrendaAnalisis, b: PrendaAnalisis): number {
+  return (b.diasSinVender ?? 0) - (a.diasSinVender ?? 0) || totalEnTienda(b) - totalEnTienda(a) || a.nombre.localeCompare(b.nombre, "es");
+}
+
 /** Las unidades de mi tienda por tramo de días sin venderse («Por tienda» en No se vende). Sin dato de días, no cuenta. */
 export function edadDelInventario(prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "diasSinVender">[]): EdadInventario {
   const e: EdadInventario = { hasta30: 0, de31a60: 0, de61a90: 0, masDe90: 0 };

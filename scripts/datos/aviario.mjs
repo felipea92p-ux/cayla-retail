@@ -77,6 +77,8 @@ export const AVIARIO = [
       "envios", "envio_extras", "envio_traslados",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
+      // Análisis v4 (ADR-0357, 20261006216000): «Liquidar desde», un número para toda la red (lo mueve quien ve Análisis).
+      "parametros_analisis",
       // La prenda que se bajó al piso en la mano, con el ajuste que la cuadró (ADR-0328). Es parte de la bajada. Refresco del 2026-10-05.
       "bajadas_en_mano",
       // ADR-0328 (actividad 3): el cuadre del piso de una sede y sus líneas; cada línea es un movimiento piso↔almacén. Nace con

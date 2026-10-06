@@ -297,6 +297,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/alta-producto/ElegirMuestra.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tejido o patrón que sirve a esas filas de Nuevo producto, que ya llevan su guía (FilaAlta); no tiene campo obligatorio propio: tocar una muestra la elige." },
   "components/alta-producto/ElegirTallas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir tallas que sirve a la fila «Tallas» de Nuevo producto, que ya lleva su guía (FilaAlta); no tiene campo obligatorio propio: «Listo» aplica lo marcado." },
   "components/alta-producto/HojaParecidas.tsx": { estado: "no-aplica", motivo: "Hoja «Ver y comparar» de Nuevo producto: un solo campo (el buscador, opcional) y una respuesta por prenda («Es el mismo diseño» o «No, es otro diseño»); lo que falta y lo que sigue lo dicen la alerta del resumen y el pie del paso 2, que ya llevan la guía." },
+  // ADR-0356 (Análisis v4): «Liquidar desde … para todas las tiendas». El número se mueve en «No se vende»; esta hoja solo lo confirma.
+  "components/analisis/HojaLiquidarDesde.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación de UN solo control (quién lo cambia, el combo Responsable): dice el nuevo «Liquidar desde» y cuántas prendas de tu tienda entran a «Liquidar»; el botón se apaga hasta elegir y dice por qué." },
   "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica

@@ -26,6 +26,7 @@
 @import "./estilos/traslados-pases.css";
 @import "./estilos/analisis.css";
 @import "./estilos/analisis-acaba.css";
+@import "./estilos/analisis-quieta.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

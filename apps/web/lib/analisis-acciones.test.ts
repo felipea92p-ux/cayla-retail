@@ -22,11 +22,11 @@ describe("a dónde lleva cada botón (ADR-0245: abre el flujo que ya existe)", (
     expect(hrefComprarTodas([t1], todo)).toBe("/produccion/ordenes?nueva=a");
     expect(hrefComprarTodas([t1, c1], todo)).toBeNull();
   });
-  it("Enviar: lo libre de cada una, con el destino ya elegido", () => {
+  it("Enviar: una de cada una de las que tienen algo libre, con el destino ya elegido", () => {
     const href = hrefEnviar([{ varianteId: "v1", piso: 2, almacen: 1 }, { varianteId: "v2", piso: 0, almacen: 0 }], { id: "aqp" }, todo);
     expect(href).toContain("/inventario/traslados/nuevo?lineas=");
     expect(href).toContain("destino=aqp");
-    expect(decodeURIComponent(href!)).toContain("v1:3");
+    expect(decodeURIComponent(href!)).toContain("v1:1");
     expect(decodeURIComponent(href!)).not.toContain("v2");
     expect(hrefEnviar([{ varianteId: "v1", piso: 1, almacen: 0 }], { id: "aqp" }, { traslados: false })).toBeNull();
   });

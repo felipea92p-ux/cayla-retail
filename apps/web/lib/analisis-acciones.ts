@@ -48,7 +48,8 @@ export function hrefComprarTodas(prendas: readonly Pick<PrendaAnalisis, "origen"
  */
 export function hrefEnviar(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "piso" | "almacen">[], destino: Pick<SedeAnalisis, "id">, a: Pick<AccesoAnalisis, "traslados">): string | null {
   if (!a.traslados) return null;
-  const lineas = prendas.filter((p) => totalEnTienda(p) > 0).map((p) => ({ varianteId: p.varianteId, cantidad: totalEnTienda(p) }));
+  // Una de cada una, como «Pedir» y «Reponer»: Análisis no sugiere cantidades (ADR-0231); cuántas, se elige en el traslado.
+  const lineas = prendas.filter((p) => totalEnTienda(p) > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
   if (lineas.length === 0 || lineas.length > MAX_VARIANTES_EN_URL) return null;
   return `${RUTA_NUEVO_TRASLADO}?lineas=${lineasEnUrl(lineas)}&destino=${encodeURIComponent(destino.id)}&desde=analisis`;
 }

@@ -1,0 +1,22 @@
+/* Análisis v4 (ADR-0356): estilos propios de quieta que la hoja base (analisis.css) no trae. Mismas reglas que la base:
+   solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
+
+   «No se vende» no anima nada propio: su movimiento es el de la base (`.entra`, `.cx`, `.po`). Aquí solo van las tres cifras
+   grandes de arriba (la `numero()` de la maqueta, que allá eran estilos en línea), la tarjeta chica del pie y el estado vacío.
+   Las clases llevan `q-` para no chocar con las de las otras pestañas, que viven en el mismo `.analisis`. */
+@layer components {
+  .analisis {
+    .q-numeros{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+    .q-numero{display:flex;flex-direction:column;gap:2px;min-width:120px;flex:1}
+    .q-numero b{font:500 34px/1 var(--font-serif)}
+    .q-numero .et{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+    .q-numero .sub{font-size:12px;color:var(--color-tinta-60)}
+    .q-pie{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px}
+    /* Una tienda sin unidades: la barra de edad queda en hueso y lo dice. */
+    .edad .q-sin{flex:1;background:var(--color-hueso);color:var(--color-tinta-60);font-weight:500}
+    /* El estado vacío: el ícono en su cuadro tintado, como el de cada grupo del carril, pero grande. */
+    .q-vacia-ic{--c:var(--color-verde);width:64px;height:64px;border-radius:18px;display:grid;place-items:center;color:var(--c);
+      background:color-mix(in srgb,var(--c) 12%,transparent)}
+    .q-vacia-ic svg{width:30px;height:30px}
+  }
+}
