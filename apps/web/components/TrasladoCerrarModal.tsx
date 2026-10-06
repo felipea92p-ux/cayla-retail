@@ -48,7 +48,7 @@ export function TrasladoCerrarModal({
               placeholder={`Ej.: la blusa no venía en la caja; ${origenNombre} la buscó y no está.`}
               rows={3}
               disabled={ocupado}
-              className="caja-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-taupe"
+              className="caja-cayla w-full px-3 py-2 text-sm text-tinta placeholder:text-taupe"
             />
           </div>
           {motivoSinResponsable && <p className="text-sm text-rojo-profundo">{motivoSinResponsable}</p>}

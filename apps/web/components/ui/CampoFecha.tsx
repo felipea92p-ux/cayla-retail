@@ -346,7 +346,7 @@ export function CampoFecha({
 
             <div className="grid grid-cols-7 text-center">
               {DIAS_SEMANA.map((d, i) => (
-                <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45">
+                <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45 dark:text-tinta/60">
                   {d}
                 </span>
               ))}
@@ -386,7 +386,7 @@ export function CampoFecha({
                           ? "bg-rojo/10 text-tinta"
                           : delMes
                             ? "text-tinta hover:bg-rojo/10"
-                            : "text-tinta/30 hover:bg-rojo/10"
+                            : "text-tinta/30 hover:bg-rojo/10 dark:text-tinta/55"
                     }`}
                   >
                     {dia.d}

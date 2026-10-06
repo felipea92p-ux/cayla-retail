@@ -15,10 +15,11 @@
  * `problemas` y las líneas siguen yendo por `varianteId` y la llamada a la base sigue siendo UNA, todo o nada.
  */
 
-import { BOTON_CONFIRMAR_DE_NUEVO, type LineaBajada } from "./bajada-reglas";
+import type { LineaBajada } from "./bajada-reglas";
+import { hoyDeTalla } from "./existencias-hoy";
 import type { FilaPrenda } from "./existencias-prendas";
-import type { PisoDeTalla } from "./piso-plan";
-import { compararTallas } from "./tallas";
+import type { AccionPiso } from "./piso-plan";
+import { nombreCortoSede } from "./stock-por-sede";
 
 /** Un color del modelo tal como llega a la ventana: una prenda (modelo + color) con todas sus tallas. */
 export type PrendaParaReponer = {
@@ -37,7 +38,11 @@ export type PrendaParaReponer = {
 /** Lo mínimo de cada talla que necesita la ventana; una fila de Existencias lo satisface por estructura. `planPiso` (la decisión
  *  del motor del piso) solo hace falta para el aviso de «Subir prenda»: cuántas debería tener colgadas la talla. */
 export type FilaDeTalla = Pick<FilaPrenda, "varianteId" | "talla" | "pisoDisponible" | "almacenDisponible"> & {
-  planPiso?: Pick<PisoDeTalla, "requisito"> | null;
+  /** `accion` solo hace falta para marcar lo que falta en el piso (`tallasQueFaltan`); `requisito`, para el aviso de «Subir prenda». */
+  planPiso?: { requisito: number; accion?: AccionPiso } | null;
+  /** Lo que viene en traslados hacia esta sede y dónde más hay (`FilaExistencias`): para decir «casi no hay: en otras sedes». */
+  enTransito?: number;
+  enRed?: readonly { sede: string; cantidad: number }[];
 };
 
 /** Una talla tal como la lee la ventana: sin nulos, para que ninguna cuenta dependa de `?? 0` regado por el JSX. `requisito`:
@@ -68,11 +73,6 @@ export function sePuedeBajarTalla(t: Pick<TallaParaReponer, "almacen">): boolean
   return t.almacen > 0;
 }
 
-/** Se puede subir al almacén si hay algo LIBRE en el piso (lo apartado para una clienta no se mueve). */
-export function sePuedeSubirTalla(t: Pick<TallaParaReponer, "piso">): boolean {
-  return t.piso > 0;
-}
-
 export function cantidadDe(cantidades: Cantidades, varianteId: string): number {
   return cantidades[varianteId] ?? 0;
 }
@@ -100,17 +100,6 @@ export function lineasDeMover(tallas: readonly TallaParaReponer[], cantidades: C
   return lineas;
 }
 
-export function totalAReponer(lineas: readonly LineaBajada[]): number {
-  return lineas.reduce((suma, l) => suma + l.cantidad, 0);
-}
-
-/** El botón: dice cuánto se va a bajar apenas hay algo elegido, y tras un corte de red pide confirmar lo mismo de nuevo. */
-export function textoBotonReponer(total: number, congelado: boolean): string {
-  if (congelado) return BOTON_CONFIRMAR_DE_NUEVO;
-  if (total <= 0) return "Bajar al piso";
-  return total === 1 ? "Bajar 1 prenda" : `Bajar ${total} prendas`;
-}
-
 /** Lo que dice una fila cuando la base le contestó que ya no hay tanto. `motivo` viene de `bajar_al_piso` / `retirar_del_piso`;
  *  `lugar` es de donde salen las prendas (el almacén al bajar, el piso al subir). */
 export function textoFilaSinAlcance(hay: number, motivo: string, lugar: "almacén" | "piso" = "almacén"): string {
@@ -119,6 +108,78 @@ export function textoFilaSinAlcance(hay: number, motivo: string, lugar: "almacé
   if (motivo === "no_es_prenda") return "Esto no es una prenda real: no se mueve.";
   const en = lugar === "piso" ? "el piso" : "el almacén";
   return hay === 0 ? `Ya no queda nada libre en ${en}.` : hay === 1 ? `Solo queda 1 libre en ${en}.` : `Solo quedan ${hay} libres en ${en}.`;
+}
+
+/* ====================================================================
+   Lo que la ventana «Reponer prenda» dice del modelo (2026-10-05, maqueta `existencias-tactil-2026-10`): qué falta en el piso, tres
+   atajos para llenar la tabla y lo que casi no hay (con quién lo tiene). Todo sale de la MISMA decisión del piso que el filtro «Hoy»
+   (`hoyDeTalla`): una talla «falta en el piso» cuando el motor la pide («Por colgar») y hay algo libre atrás que bajar.
+
+   Los atajos no cambian la regla de ADR-0231 («la ventana no sugiere cuántas bajar: arranca en cero»): la tabla SIGUE abriendo en 0, y
+   estos botones solo llenan cuando la persona los toca —el mismo 1 por talla con el que Existencias manda a «Bajar al piso» lo marcado
+   (`lineasParaBajar`, ADR-0237)—. Quien tiene la prenda en la mano ajusta cada cifra después.
+   ==================================================================== */
+
+/** ¿El motor del piso la pide («Por colgar»)? La misma pregunta del filtro «Hoy» (`hoyDeTalla`); sin decisión del motor, no. */
+function pideColgarse(f: FilaDeTalla): boolean {
+  const accion = f.planPiso?.accion;
+  return !!accion && hoyDeTalla({ pisoDisponible: f.pisoDisponible, almacenDisponible: f.almacenDisponible, planPiso: { accion } }) === "por_colgar";
+}
+
+/** Las tallas que faltan en el piso: las que el motor pide («Por colgar») y tienen algo libre en el almacén. Por `varianteId`. */
+export function tallasQueFaltan(prendas: readonly PrendaParaReponer[]): Set<string> {
+  const faltan = new Set<string>();
+  for (const p of prendas) for (const f of p.tallas) if (pideColgarse(f) && Math.max(0, f.almacenDisponible ?? 0) > 0) faltan.add(f.varianteId);
+  return faltan;
+}
+
+/** «Faltan en el piso: Azul marino 26, 28 · Celeste 30.» o, si no falta nada, `null`. */
+export function fraseDeLoQueFalta(prendas: readonly PrendaParaReponer[]): string | null {
+  const faltan = tallasQueFaltan(prendas);
+  const partes = prendas
+    .map((p) => {
+      const tallas = p.tallas.filter((f) => faltan.has(f.varianteId)).map((f) => f.talla?.trim() || "Única");
+      if (tallas.length === 0) return null;
+      const color = p.color?.trim();
+      return prendas.length > 1 && color ? `${color} ${tallas.join(", ")}` : tallas.join(", ");
+    })
+    .filter((x): x is string => x !== null);
+  return partes.length === 0 ? null : `Faltan en el piso: ${partes.join(" · ")}.`;
+}
+
+/** «Lo que falta en el piso»: una unidad de cada talla que falta. */
+export function cantidadesDeLoQueFalta(prendas: readonly PrendaParaReponer[]): Cantidades {
+  return Object.fromEntries([...tallasQueFaltan(prendas)].map((id) => [id, 1]));
+}
+
+/** «Todo el almacén»: de cada talla, todo lo libre que hay atrás. */
+export function cantidadesDeTodoElAlmacen(prendas: readonly PrendaParaReponer[]): Cantidades {
+  const todo: Record<string, number> = {};
+  for (const p of prendas) for (const f of p.tallas) if (Math.max(0, f.almacenDisponible ?? 0) > 0) todo[f.varianteId] = Math.max(0, f.almacenDisponible ?? 0);
+  return todo;
+}
+
+export type CasiNoHay = { clave: string; color: string | null; talla: string; agotada: boolean; /** «AQP 2 · LIM 1». */ sedes: string };
+
+/** Las tallas con 1 o ninguna libre en esta sede (piso + almacén), que no vienen en camino y que otra sede sí tiene: lo que se pide
+ *  a otra sede. Lo que ya viene en traslado no se pide de nuevo. */
+export function casiNoHay(prendas: readonly PrendaParaReponer[]): CasiNoHay[] {
+  const salida: CasiNoHay[] = [];
+  for (const p of prendas) {
+    for (const f of p.tallas) {
+      const aqui = Math.max(0, f.pisoDisponible ?? 0) + Math.max(0, f.almacenDisponible ?? 0);
+      const red = (f.enRed ?? []).filter((x) => x.cantidad > 0);
+      if (aqui > 1 || (f.enTransito ?? 0) > 0 || red.length === 0) continue;
+      salida.push({
+        clave: f.varianteId,
+        color: p.color?.trim() || null,
+        talla: f.talla?.trim() || "Única",
+        agotada: aqui === 0,
+        sedes: red.map((x) => `${nombreCortoSede(x.sede)} ${x.cantidad}`).join(" · "),
+      });
+    }
+  }
+  return salida;
 }
 
 /** Un color del modelo ya leído por la ventana: sin nulos, con la clave que lo distingue de los demás. */
@@ -134,40 +195,8 @@ export function coloresParaMover(prendas: readonly PrendaParaReponer[]): ColorPa
   }));
 }
 
-/** Las columnas de la tabla: las tallas de TODOS los colores, sin repetir y en curva (S · M · L, 36 · 38). Un color al que le falta
- *  una talla deja esa celda vacía; no se inventa. */
-export function columnasDeTallas(colores: readonly Pick<ColorParaMover, "tallas">[]): string[] {
-  const vistas = new Set<string>();
-  for (const c of colores) for (const t of c.tallas) vistas.add(t.talla);
-  return [...vistas].sort(compararTallas);
-}
-
-/** La celda de un color en una talla; `undefined` si ese color no tiene esa talla. */
-export function tallaDelColor(color: Pick<ColorParaMover, "tallas">, talla: string): TallaParaReponer | undefined {
-  return color.tallas.find((t) => t.talla === talla);
-}
-
 /** Lo máximo que se mueve de esta celda: lo libre del lugar de donde salen las prendas. */
 export const topeDeTalla = (t: Pick<TallaParaReponer, "piso" | "almacen">, rumbo: Rumbo): number => (rumbo === "bajar" ? t.almacen : t.piso);
-
-export type TotalesDeMatriz = { porColor: Record<string, number>; porTalla: Record<string, number>; total: number };
-
-/** Lo elegido, sumado por color, por talla y en general. Cada celda cuenta recortada a su tope (lo que se ve es lo que se envía). */
-export function totalesDeMatriz(colores: readonly ColorParaMover[], cantidades: Cantidades, rumbo: Rumbo): TotalesDeMatriz {
-  const porColor: Record<string, number> = {};
-  const porTalla: Record<string, number> = {};
-  let total = 0;
-  for (const c of colores) {
-    porColor[c.clave] = 0;
-    for (const t of c.tallas) {
-      const n = acotarCantidad(cantidadDe(cantidades, t.varianteId), topeDeTalla(t, rumbo));
-      porColor[c.clave] += n;
-      porTalla[t.talla] = (porTalla[t.talla] ?? 0) + n;
-      total += n;
-    }
-  }
-  return { porColor, porTalla, total };
-}
 
 /** Lo que se movió, para el aviso de éxito: «S 1 · M 2» con un solo color; «Azul S 2, M 3 · Blanco S 2» con varios. */
 export function detalleDeLoMovido(colores: readonly ColorParaMover[], lineas: readonly LineaBajada[]): string {
@@ -180,11 +209,6 @@ export function detalleDeLoMovido(colores: readonly ColorParaMover[], lineas: re
     })
     .filter((x): x is string => x !== null);
   return partes.join(" · ");
-}
-
-/** Cuántos colores del modelo llevan algo elegido: el resumen del pie («19 prendas · 3 colores»). */
-export function coloresConAlgo(colores: readonly ColorParaMover[], totales: TotalesDeMatriz): number {
-  return colores.filter((c) => (totales.porColor[c.clave] ?? 0) > 0).length;
 }
 
 /** Las líneas que viajan a la base: las de todos los colores juntas, en el orden de la tabla. UNA sola llamada, todo o nada. */

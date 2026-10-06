@@ -134,6 +134,16 @@ flowchart TB
 - `(app)/layout.tsx` → `AppShell.tsx` (shell de navegación de todo el app) +
   `SedeSwitcher.tsx` → Server Action `cambiarSedeActiva`. Monta además `SedeActiva.tsx` (la sede activa como contexto
   de cliente, de donde sale `x-ubicacion`).
+- **Modo oscuro (ADR-0336, 2026-10-05; sin base de datos).** Preferencia del aparato: `app/layout.tsx` pone en el `<head>` el script
+  `SCRIPT_TEMA_ANTES_DE_PINTAR` (de `lib/tema-reglas.ts`) que lee `localStorage["cayla-tema"]` y fija `data-tema` en `<html>` antes de
+  pintar; `components/ui/BotonTema.tsx` (en `AppShell`, entre «Actividad» y `SedeSwitcher`) lo alterna con una transición de vista
+  (`lib/tema-cliente.ts`). Los tokens oscuros viven en `app/estilos/tema.css` (mismos nombres que `globals.css`, `tinta` y `crema`
+  intercambiados, dentro de `@media screen`: imprimir sale en claro), junto con `.papel-fijo` (papel físico: tokens claros) y el
+  piso de legibilidad del texto tenue. Candado de CI: `lib/tema-tokens.test.ts` (tokens sincronizados, contraste, toda
+  `var(--color-…)` existe) y `lib/tema-colores.test.ts` + `lib/tema-colores-archivos.ts` (ningún color suelto en la interfaz; deuda 0).
+  Herramienta de auditoría: `apps/web/tema/` (`pnpm --filter web tema:auditar`; cuentas de prueba con `pnpm --filter web tema:cuentas`;
+  escenarios en `tema/escenarios/registro.mjs`). Páginas fuera del `(app)` que dibujan sin `globals.css` (`app/global-error.tsx`,
+  `public/sin-conexion.html`) llevan su propia paleta y leen la misma preferencia. Las tres páginas públicas del club se quedan en claro.
 - **Quién firma vs. quién tiene permiso (ADR-0161/0162, rama `claude/responsable-y-roles-spike`, sin pegar en
   producción).** Son dos preguntas distintas y viven en funciones distintas:
   - **Quién FIRMA** (`usuario_id`, `creado_por`, `*_por`): `retail.fn_actor_persona_id(p_de_tienda)`. Con sesión de
@@ -163,11 +173,14 @@ flowchart TB
     lista completa y lo que queda fuera a propósito: ADR-0161, sección «F4b».
 - `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
   `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
-  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (dos secciones —Cuentas y Roles y accesos—, «Por atender», Actividad en modal; ADR-0172) + `ColaboradoresTablas.tsx` +
-  `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
-  `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
+  `fn_dynamic_disponibles`, y `fn_asesoras_de_turno` por sede para el punto «de turno hoy») → `ColaboradoresPanel.tsx` (dos secciones —Equipo y Roles y
+  accesos—, y «Actividad del equipo» en `colaboradores/ActividadEquipo.tsx`, que lee `fn_actividad` de los módulos colaboradores y roles; ADR-0172, ADR-0340 y ADR-0343) → `colaboradores/EquipoLista.tsx` (la lista por sede, con «Esperan tu ok») +
+  `colaboradores/FichaColaborador.tsx` y `colaboradores/FichaTerminal.tsx` (las fichas al costado, sobre `colaboradores/CajonFicha.tsx`; ADR-0342) sobre las reglas
+  puras de `lib/equipo-reglas.ts`; `colaboradores/DarAccesoModal.tsx` (dar acceso: quién, sede y rol, con su guía; reglas en `lib/dar-acceso-reglas.ts`; ADR-0341) +
+  `ColaboradoresTablas.tsx` (aparatos y actividad) + `ColaboradoresModales.tsx` (desactivar aparato). Escribe por `lib/colaboradores-acciones.ts` → RPC
+  `agregar_colaboradores` (con `p_rol_id` desde ADR-0341: lo que da un líder entra activo), `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
-  **Roles y accesos** (`RolesPanel.tsx`, `lib/roles.ts`, `lib/roles-reglas.ts`): lee `roles` y `rol_modulos` por RLS y,
+  **Roles y accesos** (`RolesPanel.tsx`: tarjetas de roles y baldosas por módulo con `colaboradores/IconoModulo.tsx`, ADR-0342; `lib/roles.ts`, `lib/roles-reglas.ts`): lee `roles` y `rol_modulos` por RLS y,
   para el Líder de equipo, `fn_lider_modulos_ocultos()` (ADR-0253: el Líder ve todo menos lo que un Admin le quitó);
   escribe por `lib/roles-acciones.ts` → `crear_rol`, `guardar_modulos_rol` (también los del Líder), `renombrar_rol`,
   `archivar_rol`, `restaurar_rol`, `asignar_rol`.
@@ -176,7 +189,7 @@ flowchart TB
   **Terminales sin persona (ADR-0162, reemplaza la terminal-persona de ADR-0152/0160):** un aparato por fila en
   `retail.terminales` (tienda, tipo `ventas` | `administrativa`, cuenta de Auth propia, una activa de cada tipo por tienda).
   Cuentas ▸ Terminales lee `fn_terminales()` (`getTerminales` en `lib/colaboradores.ts`, tolerado) y hace
-  `desactivar_terminal` / `reactivar_terminal` (`TablaTerminales`, `AlternarTerminalModal`). **Crear y cambiar la clave no
+  `desactivar_terminal` / `reactivar_terminal` (`colaboradores/FichaTerminal.tsx`, `AlternarTerminalModal`). **Crear y cambiar la clave no
   es una RPC:** exige la llave de servicio y lo hace `pnpm terminales:crear` (`scripts/terminales/`). `colaboradores.terminal`
   quedó retirada (siempre null) y `agregar_terminal` lanza 0A000. Los poderes siguen siendo las cinco capacidades
   (`fn_puede_gestionar_caja`, `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo`, `fn_puede_editar_cuentas_proveedor` y, del
@@ -209,9 +222,19 @@ flowchart TB
   del riel, por `categorias.familia`, y dice aparte «+ N accesorios» (`cifraColgadasEnElPiso`), reglas en
   `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` todavía no tiene pantalla: será el Plan del piso, actividad 12 de
   ADR-0328) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
-  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx`, `ExistenciasTarjetas.tsx` (el riel de
-  tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), la tabla «Ver detalle» y `CajonPrendaExistencias.tsx` → RPC `bajar_al_piso` (Reponer), `retirar_del_piso` (Subir) y
-  `ajustar_inventario` (Ajustar). La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
+  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `existencias/ColgarPrimero.tsx` (las tres prendas que más conviene colgar, en el orden de la
+  lista del día del motor y con cuánto les alcanza: `lib/existencias-colgar-primero.ts`, ADR-0344), `FiltrosExistencias.tsx` (con los atajos
+  `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`, y el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`),
+  `ExistenciasTarjetas.tsx` (un icono por tarjeta y su ventana de acciones: `existencias/AccionesTarjeta.tsx`, `lib/existencias-acciones.ts`; el riel de
+  tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), el anillo «N de M hoy»
+  (`existencias/AnilloMision.tsx`, `lib/existencias-mision.ts`), la pistola sin buscador (`lib/existencias-pistola.ts`), la tabla «Ver detalle» y el
+  panel de la talla `existencias/PanelTalla.tsx` (ADR-0344 cuarta vuelta; reemplaza al cajón de la prenda) con sus pasos `existencias/FlujoTalla.tsx`
+  (`lib/existencias-panel-talla.ts`, `lib/existencias-flujos.ts`) → RPC `bajar_al_piso` (Colgar y Colgar varias), `retirar_del_piso` y
+  `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar; la ventana completa
+  `AjustarInventarioModal.tsx` queda para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en la Ficha del panel y desde Ajustar «Se dañó»:
+  el paso «Reportar dañada» de `FlujoTalla`, con la validación de `lib/danadas-reglas.ts`; ADR-0328 act. 10; la ventana `ReportarDanadaModal.tsx` ya no existe). La lista de Dañadas
+  (`ResolverDanadosModal.tsx`, «Para hoy» ▸ Decidir) lee `prendas_danadas` (`getPrendasDanadasPendientes`) y resuelve con
+  `arreglar_prenda_danada` («Se arregló»: vuelve al almacén), `liquidar_prenda_danada` y `resolver_prenda_danada`. La regla de cada talla: `lib/existencias-hoy.ts` (`hoyDeTalla`) sobre
   `lib/existencias-recomendaciones.ts` y `lib/politica-operativa-inventario.ts`. (Hasta el 2026-09-12 esta línea describía V1:
   `lib/inteligencia.ts` e `InventarioAgrupado.tsx` ya no existen.)
 - `/inventario/almacen` → `AlmacenStockList.tsx` → `BajarATiendaModal.tsx`
@@ -281,6 +304,14 @@ flowchart TB
   («a mano» / «en un conteo», `desgloseAjustes`, `respaldoDeAjuste`); la fila de un ajuste sin conteo dice «Sin documento» con su nota
   (`referenciaSinDocumento`); «30 vendidas (2 se anularon)» (`ventasAnuladas`); la banda del día no lleva cifra; toda frase de «Entró» y
   «Salió» la exige una prueba (`FRASE_PROCESO`). Sin migración.
+  **2026-10-05 (ADR-0353, los tipos que se ven):** cada fila se dibuja con su **tipo** (`lib/movimientos-tipos.ts`: `tipoVisual`, `TIPOS_VISUALES`,
+  `GRUPOS_TIPO`, `rotuloDeMovimiento`, `kindDeLugar`) con su sello (`components/movimientos/SelloTipo.tsx`) y su trayecto (`TrayectoMovimiento.tsx`); estilos en
+  `app/estilos/movimientos-sellos.css` (`mv-*`). **Los siete botones de tipo en una columna a la derecha** (`TiposMovimiento.tsx`) son el filtro Y la cifra: reemplazan
+  las píldoras de tipo de `FiltrosMovimientos` y las tres tarjetas de arriba. La base acepta `p_categoria` `venta | colgada | guardada | llegada | traslado | cliente`
+  en `fn_movimientos` y suma esos grupos en `fn_movimientos_resumen_procesos` (migración `20261005160000`, solo lectura; prueba
+  `pnpm pruebas:movimientos-colgada-y-guardada`). El día lleva su franja de operaciones (`EncabezadoDia.tsx`, sin cifra) y las colgadas y las guardadas del día van en
+  mazos separados (`plegarBajadas`, `FilaBajadas`); el cajón trae sello, ruta y «Qué pasó» (`pasosDeOperacion`). «Colgada en piso» y «Guardada en almacén» reemplazan
+  «Bajada al piso» y «Retiro del piso» solo dentro de Movimientos.
   **2026-10-04 (ADR-0328 act. 14, pestaña «Pérdidas»):** `?vista=perdidas` (`PaginaPerdidas` en `page.tsx`, pestañas `Pestanas`) →
   `lib/perdidas.ts` (`getResumenPerdidas`) → RPC `fn_perdidas_resumen(sede, desde, hasta, prenda?, zona?)` (jsonb: perdido, aparecido,
   por razón, categoría y talla, «más faltan», hechos; costo por prenda solo del líder) → `components/perdidas/PerdidasVista.tsx`. La
@@ -315,14 +346,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, «Hoy» de cada talla con las
   palabras de ADR-0326 en `lib/existencias-hoy.ts` (tres: «Por reponer» se fundió en «Por colgar»), leyenda; primera columna
   «Producto / variante» =
-  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Reponer prenda» (tarjeta y cajón) abre
-  `ReponerPrendaModal.tsx` (ADR-0295 y ADR-0320: el MODELO entero —una fila por color, una columna por talla, `MatrizMover.tsx`— y UNA llamada a `bajar_al_piso`, todo o nada, con
-  marca) y «Subir prenda» (entre «Reponer prenda» y «Ajustar» en la tarjeta, y en el cajón; ADR-0300) abre `SubirAAlmacenModal.tsx`
-  (el modelo entero y UNA llamada a `retirar_del_piso`, todo o nada: bloquea el stock en orden, rechaza TODO si una talla no
-  alcanza, y cada talla es un `mover_interno` piso→almacén con una marca derivada de la de la lista; nota opcional y aviso de
-  «Existencias va a pedir bajar de nuevo»; ADR-0328 act. 17: «Es para enviar a otra sede» llama a `subir_para_enviar`, la misma
-  subida + la lista «Para enviar» de Traslados; los destinos, `destinosParaEnviar` desde la página). Las dos ventanas comparten `MatrizMover.tsx` (la misma tabla color × talla de Nuevo/Editar producto, todo en 0 al abrir); su lógica pura vive en
-  `lib/reponer-prenda-reglas.ts` y `lib/retiro-reglas.ts`, y los errores de la bajada en `lib/bajada-reglas.ts`. «Ver detalle»
+  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → «Colgar en el piso» y «Subir a almacén» se hacen dentro del panel de
+  la talla (`PanelTalla` + `FlujoTalla`, 2026-10-06): las ventanas «Reponer prenda» y «Subir prenda» (y `MatrizMover.tsx`) ya no existen. Su lógica pura
+  sigue en `lib/reponer-prenda-reglas.ts` y `lib/retiro-reglas.ts`, y los errores de la bajada en `lib/bajada-reglas.ts`. «Ver detalle»
   de la tarjeta es un icono con tooltip. Ambas solo si la sede que se mira es la activa, porque firman con su Responsable;
   `<Modal bloqueado>` no deja cerrar mientras guarda, y tras un corte de red las cifras quedan fijas hasta «Confirmar de nuevo»; y
   `AjustarInventarioModal.tsx` (filas por talla con `SelectorDeAjuste.tsx`, mismo lenguaje que Reponer y Subir a almacén, ADR-0300; RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
@@ -469,7 +495,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   → `analizarSede` (`lib/frescura-reglas.ts`, puro) → `components/frescura/FrescuraPanel.tsx` (cliente): lo que se DICE
   (colores A y frases C, elegidos por Felipe en `docs/maquetas/frescura-3c-2026-09/`), los filtros, el pie y la hoja de
   detalle salen de `lib/frescura-pantalla.ts` (puro, `frescura-pantalla.test.ts`). Filtros y prenda abierta en la URL
-  (`?cat=&estado=&pordecidir=1&q=&prenda=`) con `history.replaceState`: cambiar un filtro no vuelve al servidor. Piezas:
+  (`?cat=&estado=&pordecidir=1&todas=1&q=&prenda=`) con `history.replaceState`: cambiar un filtro no vuelve al servidor.
+  **Desde el 2026-10-05 (Formidable, ADR-0350 y la «Actualización 2026-10-05» de ADR-0208)** la pantalla se abre con lo por
+  decidir primero (`vistaDeEntrada`), `getFrescuraPantalla` suma la miniatura de cada prenda con `getAparienciaVariantes` y la
+  tabla `categorias` (tolerante, sin SQL nuevo) y la metodología vive en `FrescuraComoSeLee`. Piezas:
   `FrescuraFila` (fila en la computadora, tarjeta en el celular), `FrescuraDetalle` (`<Modal variante="hoja">` con la
   regla de la categoría), `FrescuraTiendas` («Las N tiendas», solo líder), `piezas.tsx`. Desde el paso 4b (2026-09-29,
   ADR-0208, migraciones `20261001100000`–`…200`, **sin pegar**) sí escribe, y solo una cosa: «Ya decidí» →
@@ -642,7 +671,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   filas «Prenda / Gestión» de `FiltrosPildora.tsx`, hoja `<Modal>` en el celular, cajas de precio con límites reales de
   `getPreciosExtremos` + `lib/productos-filtro-precio.ts`, chips, «N productos», un solo «Ordenar por» —`lib/productos-orden.ts`,
   «Más recientes» por defecto— y «Copiar enlace»; estado de la URL en `lib/productos-filtros.ts`, «Activos» por defecto) →
-  `ProductosGrilla.tsx` (`?vista=grilla`, default)
+  `ProductosGrilla.tsx` (`?vista=grilla`, default; al tocar una tarjeta abre `components/vista-rapida/VistaRapidaProducto.tsx` —
+  maqueta A «Matriz», 2026-10-05, ADR-0136 act. 2026-10-05—: matriz color × talla `MatrizUnidades.tsx` con las unidades de la sede por
+  `useStockEnSede`, foto que sigue al color `FotoVistaRapida.tsx`, y pie fijo con Editar, Etiquetas —una celda, un color, una talla o toda la
+  prenda, `lib/vista-rapida-producto-reglas.ts`—, Existencias y Eliminar; lo de las otras sedes sale de `existencias`, ADR-0270)
   o `ProductosTabla.tsx` (`?vista=tabla`, ADR-0254: una fila por modelo con foto, colores, tallas, precio, costo, margen,
   stock y estado; debajo de 768 px de tabla, una tarjeta por prenda; clic → ficha de variantes). Las dos usan
   `ProductoPiezas.tsx` y `lib/productos-vista.ts` (colores, tallas en curva, margen con `UMBRAL_MARGEN_BAJO`). La Tabla abre
@@ -842,7 +874,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
   ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
   (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);
-  su botón envía el formulario del ticket (`form="ticket-pos"`), Confirmar cobro → RPC `registrar_venta`,
+  su botón envía el formulario del ticket (`form="ticket-pos"`) y vive FUERA del cuerpo que scrollea (la hoja se compacta sola por su
+  alto, ADR-0307 act. 2026-10-05), Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
   tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
@@ -1307,6 +1340,18 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `verDeLaVista`—, Configuración y Actividad), y `proxy.ts` manda cualquier otra ruta a `/global/elige-sede`.
   - `/global` («Salud del negocio») → `lib/cayla-global.ts` (`fn_global_cobertura`: con qué datos cuenta, por sede) y
     `lib/cayla-global-tablero.ts` (reglas puras). El tablero completo espera la maqueta `docs/maquetas/cayla-global-2026-09/`.
+    Sección «¿El sistema ya puede recomendar?» (ADR-0346, motor de demanda etapa 0) → `lib/motor-demanda.ts`
+    (`fn_motor_demanda_preparacion`) + `lib/motor-demanda-reglas.ts` (90 % sostenido 14 días, piso cuadrado, almacén contado) +
+    `components/motor-demanda/PreparacionMotor.tsx`.
+    Producción ▸ «Nueva orden», bloque «Lo que dice el motor de demanda» (ADR-0347, al lado de la curva de siempre) →
+    `lib/decision-produccion.ts` → `getMotorDeLaRed` (`lib/motor-demanda.ts`: `fn_motor_demanda_preparacion` + `fn_demanda_sede` por
+    tienda) + `lib/demanda-reglas.ts` (ritmo de cada prenda apoyado en su grupo, curva del motor, «se vendió rápido y falta») +
+    `components/motor-demanda/MotorEnProduccion.tsx`.
+    Venta perdida con la prenda exacta (ADR-0348): `AnotarNoHabia` (Vender) y `CambioSalidas` (Cambios) mandan `p_variante_id` a
+    `registrar_pedido_no_atendido` (`lib/se-probo-reglas.ts` → `argsRegistrarPedido`); `fn_demanda_sede` la suma a su grupo.
+  - `/compras/plan` («Plan de campaña», ADR-0349, módulo `plan_compra`, pide `verDineroCompras`) → `lib/plan-compra.ts`
+    (`fn_plan_compra`) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación) +
+    `lib/plan-compra-guia.ts` + `components/plan-compra/PlanCampana.tsx` y `PlanCategoriaModal.tsx` (`guardar_plan_compra_linea`).
   - `/global/elige-sede` → `components/EligeSede.tsx` (la misma acción del selector). `/global/entrar` (route handler):
     entrar a la vista por un enlace.
 
@@ -1444,7 +1489,7 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `separar_prendas` / `entregar_separacion` / `extender_separacion` / `liberar_separacion` / `registrar_devolucion_separacion` / `fn_vencer_separaciones` / `buscar_separaciones` / `resumen_separaciones` / `fn_verificar_separaciones` (2026-09-23, ADR-0166; **sin pegar en producción**) | Separar con adelanto: `separar_prendas` aparta cada prenda (reusa `apartar_stock`), registra el adelanto (efectivo → ingreso de caja) y emite la boleta/factura de ANTICIPO; `entregar_separacion` cierra los apartados, crea la venta por el total con el precio congelado (pago `anticipo` + saldo) y emite el comprobante que DEDUCE el anticipo, todo en una transacción; `extender_separacion` (+7, una vez) y `liberar_separacion` solo líder/terminal de ventas; `fn_vencer_separaciones` libera sola lo vencido hace más de 2 días (se llama al abrir la pantalla, sin pg_cron); `registrar_devolucion_separacion` cierra devolviendo el 100% (efectivo → egreso) e intenta la nota de crédito; `fn_verificar_separaciones` (solo SQL Editor) debe dar 0 filas |
 | `registrar_aviso_separacion` / `fn_avisos_separaciones` (2026-09-26, ADR-0227; migración `20260926233000`) | Recordar en lote: `registrar_aviso_separacion` anota que se le escribió a la clienta por WhatsApp (tabla append-only `separacion_avisos`, firma el responsable, exige el módulo Apartados); `fn_avisos_separaciones` da por apartado abierto cuántos avisos, el último y quién. La lee `lib/separaciones.ts`; la escribe `RecordarModal` (`components/apartados/ModalesApartado.tsx`) desde «Todos» |
 | `abonar_separacion` / `editar_separacion` / `guardar_opciones_apartados` / `fn_opciones_apartados` (2026-09-26, ADR-0236; migraciones `20260927100000`–`130000`) | Abonos (pago más del apartado, con su anticipo; `comprobante_anticipos` lista lo que descuenta la boleta final), editar prendas (todo o nada; lo quitado va a `separacion_items_retirados`), opciones de pantalla por tienda (solo el líder). `buscar_separaciones` suma `estante` y el id de cada prenda. Actividad: disparadores sobre `separaciones`, `separacion_abonos`, `separacion_avisos` y `separacion_ediciones`. Web: `AbonarModal`, `EditarApartadoModal`, `OpcionesApartadosModal` (`components/apartados/ModalesApartado.tsx`) |
-| `pedir_prenda_para_apartar` / `enviar_pedido_para_apartar` / `cancelar_pedido_para_apartar` / `separar_pedido_para_apartar` / `fn_pedidos_para_apartar` (2026-09-26, ADR-0233; migración `20260927140000`) | Apartar de otra sede: la tienda de la clienta pide, la otra envía con `iniciar_traslado`, el disparador `pedidos_para_apartar_al_llegar` (sobre `transferencias`, al cerrar) la guarda con `apartar_stock`, y con el adelanto se suelta, pasa al piso (`mover_interno`) y se aparta con `separar_prendas`, todo junto. Desde ADR-0328 act. 17 (anclas en `20261005130100`): pedir lo acepta también Vender y APARTA la prenda en la sede que la tiene (`fn_reservar_pedido_en_origen`), enviar suelta esa reserva (la vuelve a apartar si la liberaron a mano, y se niega si está colgada), cancelar también (y exige Traslados, Apartados o Vender), y `anular_traslado` la vuelve a apartar; la reserva se cierra con su propia nota (`fn_cerrar_reserva_de_pedido`). Apartados lee `fn_pedidos_con_cliente` (con `reserva_en`). Web: `PedirYApartarModal` (Vender ▸ «Dónde más hay» y Apartados), `EnviarPedidoModal`, `CancelarPedidoModal`; «Pedidos entre tiendas» en Todos |
+| `pedir_prenda_para_apartar` / `enviar_pedido_para_apartar` / `cancelar_pedido_para_apartar` / `separar_pedido_para_apartar` / ~~`fn_pedidos_para_apartar`~~ (2026-09-26, ADR-0233; migración `20260927140000`; la lectura vieja se retira en `20261005170000`: la reemplazó `fn_pedidos_con_cliente`) | Apartar de otra sede: la tienda de la clienta pide, la otra envía con `iniciar_traslado`, el disparador `pedidos_para_apartar_al_llegar` (sobre `transferencias`, al cerrar) la guarda con `apartar_stock`, y con el adelanto se suelta, pasa al piso (`mover_interno`) y se aparta con `separar_prendas`, todo junto. Desde ADR-0328 act. 17 (anclas en `20261005130100`): pedir lo acepta también Vender y APARTA la prenda en la sede que la tiene (`fn_reservar_pedido_en_origen`), enviar suelta esa reserva (la vuelve a apartar si la liberaron a mano, y se niega si está colgada), cancelar también (y exige Traslados, Apartados o Vender), y `anular_traslado` la vuelve a apartar; la reserva se cierra con su propia nota (`fn_cerrar_reserva_de_pedido`). Apartados lee `fn_pedidos_con_cliente` (con `reserva_en`). Web: `PedirYApartarModal` (Vender ▸ «Dónde más hay» y Apartados), `EnviarPedidoModal`, `CancelarPedidoModal`; «Pedidos entre tiendas» en Todos |
 | `subir_pedido_al_almacen` / `marcar_pedido_avisado` / `confirmar_pedido_sigue_en_pie` / `fn_pedidos_por_atender` / `fn_pedidos_con_cliente` (2026-10-05, ADR-0328 act. 17; migración `20261005130100`) | El primer paso para enviar un pedido colgado (suelta la reserva del piso, sube y la vuelve a apartar en el almacén, todo o nada; Traslados, Apartados o Existencias); la constancia de que se le avisó al cliente; el «Sí, sigue en pie» de la tienda que pidió (a los 7 días: la reserva allá no vence sola, `sigue_en_pie_en`); lo que espera respuesta entre sedes (el número de Traslados en el menú y el aviso de 48 h: en el Inicio de los líderes de las DOS sedes del pedido, cada uno en el de su sede de partida —`leAvisaSinRespuesta`, `PersonaActualV2.sedePropiaId`—, y en el Observatorio del Admin); y los pedidos para un cliente (sin nombre ni celular para la sede que envía) con dónde está apartada la prenda, de qué lado se cerró sin ella (`cancelado_desde`, que anotan `cancelar_pedido_para_apartar` con `fn_lado_del_pedido` y el disparador de llegada) y si se avisó (Traslados, la franja de Vender `PedidosParaClientes.tsx` —llegó / no llegó— y el aviso «Pedidos para clientes» del Inicio, `leerPedidosConCliente` + `resumenParaElInicio`) |
 | `subir_para_enviar` / `cancelar_para_enviar` / `fn_para_enviar` + disparador `para_enviar_al_salir` (2026-10-05, ADR-0328 act. 17; migración `20261005130200`) | La lista «Para enviar»: subir del piso al almacén PARA mandarlo a otra sede (`retirar_del_piso` + la fila, todo o nada, con marca); sale de la lista cuando sale un traslado a ese destino (las salidas de un traslado anulado dejan de contar solas); «Ya no la envío» con motivo; la lectura por sede con lo libre hoy en el almacén. Eliminar un producto la conoce (`fn_producto_historia`, renglón 21) |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift. Desde ADR-0298 pide confirmar un costo atípico (`"confirma_costo": true` en la línea; solo un líder) |

@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movimientos · C · Plano vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN C · «PLANO VIVO» — la tienda dibujada como un plano: Almacén, Piso, la
+   puerta del Cliente, el Proveedor y otras sedes. Cada movimiento es una prenda
+   que VIAJA por un camino con su color: se ve a simple vista si fue una venta
+   (sale del piso al cliente), una colgada (baja del almacén al piso) o una
+   guardada en almacén (vuelve del piso al almacén). El día se puede reproducir.
+   ==================================================================== */
+.plano-card{margin-top:24px;overflow:hidden}
+.p-top{display:flex;gap:14px 24px;align-items:center;flex-wrap:wrap;padding:18px 22px 6px}
+.reloj{display:flex;align-items:baseline;gap:12px;margin-right:auto}
+.reloj b{font-family:var(--serif);font-weight:400;font-size:56px;line-height:1;letter-spacing:-.01em;min-width:3.2ch}
+.reloj span{font-size:13px;color:var(--t65)}
+.ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.play{width:46px;height:46px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;transition:transform .25s var(--ease),background .2s}
+.play:hover{background:var(--taupe)}
+.play:active{transform:scale(.94)}
+.play svg{width:20px;height:20px;fill:currentColor;stroke:none}
+.play[data-m=pausa] svg{fill:none;stroke:currentColor;stroke-width:2.6}
+.vel{display:flex;gap:4px}
+.vel .pil{padding:4px 11px;font-size:12px}
+
+.p-svg{padding:0 12px}
+.p-svg svg{display:block;width:100%;height:auto;overflow:visible}
+.cont{fill:color-mix(in srgb,var(--hueso) 35%,transparent);stroke:var(--sand);stroke-width:1.5;stroke-dasharray:3 6}
+.cont-t{font:700 10.5px 'DM Sans';letter-spacing:.2em;fill:var(--t50)}
+.zr{fill:var(--papel);stroke:var(--sand);stroke-width:1.6;transition:fill .3s,stroke .3s}
+.zona{cursor:pointer}
+.zona:hover .zr{stroke:var(--taupe)}
+.zona.on .zr{stroke:var(--tinta);stroke-width:2.2;fill:color-mix(in srgb,var(--hueso) 40%,var(--papel))}
+.zt{font:700 10.5px 'DM Sans';letter-spacing:.16em;fill:var(--t65);text-transform:uppercase}
+.znum{font:400 62px 'EB Garamond';fill:var(--tinta);font-variant-numeric:tabular-nums}
+.zs{font:500 12px 'DM Sans';fill:var(--t65)}
+.zd{font:700 12.5px 'DM Sans'}
+.zd.mas{fill:var(--verde)}.zd.menos{fill:var(--rojop)}.zd.cero{fill:var(--t50)}
+.er{fill:transparent;stroke:var(--t35);stroke-width:1.5;stroke-dasharray:5 6;transition:stroke .3s}
+.ext{cursor:default}
+.enum{font:400 40px 'EB Garamond';fill:var(--tinta)}
+.enum.chico{font-size:26px}
+.zona.pulso .zr{animation:z-pulso .9s var(--ease)}
+@keyframes z-pulso{0%{stroke:var(--pc);stroke-width:4.5;fill:color-mix(in srgb,var(--pc) 14%,var(--papel))}100%{stroke:var(--sand);stroke-width:1.6;fill:var(--papel)}}
+.ext.pulso .er{animation:e-pulso .9s var(--ease)}
+@keyframes e-pulso{0%{stroke:var(--pc);stroke-width:3.5}100%{stroke:var(--t35);stroke-width:1.5}}
+/* Los caminos */
+.e{cursor:pointer}
+.e .base{fill:none;stroke:var(--sand);stroke-width:13;stroke-linecap:round}
+.e .flujo{fill:none;stroke:var(--c);stroke-linecap:round;stroke-width:0;opacity:0;transition:stroke-width .7s var(--ease),opacity .4s}
+.e .hit{fill:none;stroke:transparent;stroke-width:34}
+.e .elab rect{fill:var(--papel);stroke:var(--c);stroke-width:1.5}
+.e .elab text{font:700 12.5px 'DM Sans';fill:var(--c);text-anchor:middle}
+.e .elab{opacity:0;transition:opacity .4s}
+.e .elab.v{opacity:1}
+.e:hover .base{stroke:var(--t35)}
+.e .elab.pop{animation:e-pop .6s var(--ease)}
+@keyframes e-pop{0%{transform:scale(1.28)}100%{transform:scale(1)}}
+.plano[data-filtro] .e:not(.on),.plano[data-filtro] .zona:not(.on),.plano[data-filtro] .ext:not(.on){opacity:.28}
+.plano .e,.plano .zona,.plano .ext{transition:opacity .3s}
+.tok circle{fill:var(--c);stroke:var(--papel);stroke-width:2.5}
+.tok text{font:700 12.5px 'DM Sans';fill:var(--crema);text-anchor:middle}
+.flota{font:700 18px 'DM Sans';fill:var(--c);text-anchor:middle;animation:flota 1.6s var(--ease) both;paint-order:stroke;stroke:var(--papel);stroke-width:4px}
+@keyframes flota{0%{opacity:0;transform:translateY(8px)}18%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
+.rack .pz{transform-box:fill-box;transform-origin:50% 0}
+.rack.mece .pz{animation:g-mece 1.15s var(--ease) both;animation-delay:calc(var(--j)*55ms)}
+.shelf rect{transition:opacity .3s}
+
+/* Reproductor */
+.p-scrub{padding:4px 28px 4px}
+.scrub{position:relative;height:38px}
+.scrub .marcas{position:absolute;left:0;right:0;top:0;height:16px}
+.scrub .marcas button{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--c);opacity:.85;transition:transform .2s var(--ease),opacity .2s}
+.scrub .marcas button:hover{transform:scale(1.5);opacity:1}
+.scrub .marcas button.pasada{opacity:.4}
+.scrub input{position:absolute;left:0;right:0;bottom:0;width:100%;-webkit-appearance:none;appearance:none;background:none;height:18px;margin:0;cursor:pointer}
+.scrub input::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--tinta) var(--p,0%),var(--sand) var(--p,0%))}
+.scrub input::-moz-range-track{height:6px;border-radius:6px;background:var(--sand)}
+.scrub input::-moz-range-progress{height:6px;border-radius:6px;background:var(--tinta)}
+.scrub input::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--papel);border:3px solid var(--tinta);margin-top:-7px}
+.scrub input::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--papel);border:3px solid var(--tinta)}
+.horas{display:flex;justify-content:space-between;font-size:10.5px;color:var(--t50);letter-spacing:.06em;padding:2px 0 0}
+
+/* Leyenda que filtra */
+.leyenda{display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px 18px;border-top:1px solid var(--sand);margin-top:10px}
+.chipf{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--sand);background:var(--papel);border-radius:99px;padding:4px 14px 4px 5px;font-size:12.5px;font-weight:500;transition:background .2s,border-color .2s,opacity .25s}
+.chipf:hover{background:var(--c-bg);border-color:var(--c-ln)}
+.chipf[aria-pressed=true]{background:var(--c-md);border-color:var(--c)}
+.leyenda.hay .chipf[aria-pressed=false]{opacity:.55}
+.chipf .sello{--sz:26px}
+.chipf b{font-weight:700;color:var(--c);min-width:1.4ch;text-align:right}
+.chipf .sello .gl{width:60%;height:60%}
+
+/* Lo que va pasando */
+.feed{margin-top:16px;overflow:hidden}
+.f-cab{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--sand)}
+.f-cab h2{font-family:var(--serif);font-weight:400;font-size:22px;margin-right:auto}
+.f-cab h2 small{font-family:'DM Sans';font-size:12.5px;color:var(--t65);margin-left:8px}
+.quitar{display:none;align-items:center;gap:6px;font-size:12px;font-weight:600;background:var(--tinta);color:var(--crema);border-radius:99px;padding:4px 12px}
+.quitar.v{display:inline-flex}
+.fr{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,220px) 56px 72px;gap:14px;align-items:center;padding:11px 20px 11px 18px;border-top:1px solid var(--sand);position:relative;cursor:pointer;transition:background .25s}
+.f-lista>.fr:first-child{border-top:0}
+.fr:hover{background:var(--c-bg)}
+.fr:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:0 4px 4px 0;background:var(--c)}
+.fr .sello{--sz:38px}
+.fr .tx b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr .tx span{font-size:12px;color:var(--t65);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fr .tx .tn{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.fr .rt{min-width:0}
+.fr .hr{font-size:12px;color:var(--t65);text-align:right}
+.fr .ct{font-family:var(--serif);font-size:26px;color:var(--c);text-align:right;line-height:1}
+.fr.nuevo{animation:f-nuevo 1.6s var(--ease)}
+@keyframes f-nuevo{0%{opacity:0;transform:translateY(-14px);background:var(--c-md)}20%{opacity:1;transform:none}100%{background:transparent}}
+.f-vacio{padding:36px 24px;text-align:center;color:var(--t65)}
+.f-vacio b{display:block;font-family:var(--serif);font-weight:400;font-size:22px;color:var(--tinta)}
+
+@container vista (max-width:900px){
+  .reloj b{font-size:46px}
+  .fr{grid-template-columns:auto minmax(0,1fr) 56px 64px}
+  .fr .rt{display:none}
+}
+@container vista (max-width:760px){
+  .p-top{padding:14px 14px 4px}
+  .reloj{flex:1}
+  .ctl{display:contents}
+  .play{order:2}
+  #dias,#vel{order:3}
+  .p-svg{padding:0 4px}
+  .p-scrub{padding:4px 18px}
+  .leyenda{padding:10px 14px 14px}
+  .chipf{padding-right:11px}
+  .f-cab{padding:12px 14px}
+  .fr{padding:10px 12px 10px 14px;gap:10px;grid-template-columns:auto minmax(0,1fr) auto}
+  .fr .hr{display:none}
+  .fr .sello{--sz:34px}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+/* ── El plano ─────────────────────────────────────────────────────────────── */
+const RANGO = { hoy:[540, 1050], ayer:[600, 1170] };
+const INICIO = { hoy:{ alm:410, piso:160 }, ayer:{ alm:380, piso:150 } };
+const CAMINOS = ['llegada','colgada','subida','venta','devolucion','traslado'];
+const GRUPO_DE_CAMINO = { llegada:'llegada', colgada:'colgada', subida:'subida', venta:'venta', devolucion:'cliente', traslado:'traslado' };
+const TIPO_DE_CAMINO = { llegada:'llegada', colgada:'colgada', subida:'subida', venta:'venta', devolucion:'devolucion', traslado:'traslado' };
+const DESTINO_DE_CAMINO = { llegada:'alm', colgada:'piso', subida:'alm', venta:'cli', devolucion:'piso', traslado:'sede' };
+const SIL = { top:'M8 4 3.5 7.5 6 11l2-1.2V20h8V9.8l2 1.2 2.5-3.5L16 4c-.6 1.3-2 2-4 2S8.6 5.3 8 4Z', vestido:'M9.4 3h5.2l.4 5.4L18.4 20H5.6L9 8.4 9.4 3Z', pantalon:'M7 3h10l1 18h-4.2L12 9.5 10.2 21H6L7 3Z', casaca:'M9 3 3 6.5 4.5 20h5V9.2l2.5 2.2 2.5-2.2V20h5L21 6.5 15 3c-.6 1.6-1.7 2.4-3 2.4S9.6 4.6 9 3Z', falda:'M8 4h8l4 16H4L8 4Z' };
+const COLGADAS = [['#b9694a','top'],['#c79a3e','vestido'],['#2f3a4f','pantalon'],['#6b4a3a','casaca'],['#9bab8d','falda'],['#d9a8a0','top'],['#8f8c85','casaca'],['#efe6d6','vestido'],['#7b8660','top'],['#cdb592','pantalon']];
+
+const LAY = {
+  L: { vb:[1000, 440], cont:{ x:208, y:18, w:600, h:322, tx:228, ty:44 },
+    z:{ prov:{ x:8, y:150, w:152, h:110 }, alm:{ x:236, y:66, w:196, h:250 }, piso:{ x:584, y:66, w:196, h:250 }, cli:{ x:848, y:150, w:144, h:110 }, sede:{ x:236, y:380, w:196, h:50 } },
+    c:{ llegada:{ d:'M162,205 L232,205', l:[197,186] }, colgada:{ d:'M436,130 L580,130', l:[508,111] }, subida:{ d:'M580,252 L436,252', l:[508,274] }, venta:{ d:'M784,130 L844,130', l:[814,111] }, devolucion:{ d:'M844,252 L784,252', l:[814,274] }, traslado:{ d:'M334,318 L334,376', l:[334,348] } },
+    zon:{ num:62, tx:18, ty:30, ny:104, sy:126, dy:148, deco:z => ({ x:z.x + 14, y:z.y + 166, w:z.w - 28, h:z.h - 182 }) }, compacto:false },
+  V: { vb:[360, 640], cont:{ x:6, y:100, w:348, h:410, tx:22, ty:124 },
+    z:{ prov:{ x:12, y:6, w:150, h:66 }, sede:{ x:198, y:6, w:150, h:66 }, alm:{ x:22, y:140, w:316, h:150 }, piso:{ x:22, y:344, w:316, h:150 }, cli:{ x:104, y:560, w:152, h:66 } },
+    c:{ llegada:{ d:'M87,74 L87,138', l:[87,104] }, traslado:{ d:'M273,140 L273,76', l:[273,106] }, colgada:{ d:'M110,292 L110,342', l:[110,317] }, subida:{ d:'M250,342 L250,292', l:[250,317] }, venta:{ d:'M146,496 L146,558', l:[146,527] }, devolucion:{ d:'M214,558 L214,496', l:[214,527] } },
+    zon:{ num:50, tx:18, ty:30, ny:84, sy:106, dy:127, deco:z => ({ x:z.x + 150, y:z.y + 40, w:z.w - 166, h:z.h - 56 }) }, compacto:true },
+};
+const PT = M.PT;
+
+const efecto = o => {
+  switch (o.tipo) {
+    case 'venta':      return { caminos:[['venta', o.u]], d:{ piso:-o.u }, zonas:['piso'] };
+    case 'colgada':    return { caminos:[['colgada', o.u]], d:{ alm:-o.u, piso:o.u }, zonas:['alm','piso'] };
+    case 'subida':     return { caminos:[['subida', o.u]], d:{ alm:o.u, piso:-o.u }, zonas:['alm','piso'] };
+    case 'llegada':    return { caminos:[['llegada', o.u]], d:{ alm:o.u }, zonas:['alm'] };
+    case 'traslado':   return { caminos:[['traslado', o.u]], d:{ alm:-o.u }, zonas:['alm'] };
+    case 'devolucion': return { caminos:[['devolucion', o.u]], d:{ piso:o.u }, zonas:['piso'] };
+    case 'cambio':     return { caminos:[['devolucion', o.entran], ['venta', o.salen]], d:{}, zonas:['piso'] };
+    default: { const z = o.lugar === 'Almacén' ? 'alm' : 'piso'; return { caminos:[], d:{ [z]:o.delta }, zonas:[z] }; }
+  }
+};
+
+M.montar({ opcion:'C', nombre:'Plano vivo', dibujar(raiz){
+  if (window.__limpiarPlano) window.__limpiarPlano();
+  raiz.innerHTML = M.encabezado({ frase:'Mira cómo se movió la ropa por tu tienda: una prenda que viaja por el plano, hora por hora.' }) + `
+    <section class="tarjeta plano-card" id="pc">
+      <div class="p-top">
+        <div class="reloj"><b class="num" id="reloj">09:00</b><span id="diatxt"></span></div>
+        <div class="ctl">
+          <div class="pils" id="dias"></div>
+          <div class="vel pils" id="vel"></div>
+          <button class="play" id="play" aria-label="Reproducir el día" data-m="play"></button>
+        </div>
+      </div>
+      <div class="p-svg plano" id="plano"><svg id="svg" role="img" aria-label="Plano de la tienda con los movimientos del día"></svg></div>
+      <div class="p-scrub"><div class="scrub"><div class="marcas" id="marcas"></div><input id="rango" type="range" aria-label="Hora del día"></div><div class="horas" id="horas"></div></div>
+      <div class="leyenda" id="leyenda"></div>
+    </section>
+    <section class="tarjeta feed">
+      <div class="f-cab"><h2 id="ftit">Lo que va pasando</h2><button class="quitar" id="quitar">Quitar filtro <span aria-hidden="true">×</span></button></div>
+      <div class="f-lista" id="flista"></div>
+    </section>
+    <p class="nota-pie"><b>Cómo se lee:</b> cada camino lleva el color de su tipo y se hace más grueso cuanta más ropa pasa por él. <b>Ámbar baja del Almacén al Piso</b> (colgada), <b>pizarra sube del Piso al Almacén</b> (guardada en almacén), <b>verde sale del Piso al cliente</b> (venta). Toca un camino, un cuarto o un tipo para ver solo eso. Con el deslizador puedes volver a cualquier hora.</p>`;
+
+  const $ = s => M.$(s, raiz), reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let dia = 'hoy', t = RANGO.hoy[0], jugando = false, vel = 40, clave = null, raf = 0, ultimo = 0, filtro = null;
+  const mostrado = {}; const tweens = {}; let tokens = []; let refs = {};
+
+  const opsDia = () => M.OPS.filter(o => o.dia === dia).sort((a, b) => a.min - b.min);
+  const fmt = m => { m = Math.floor(m); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+
+  /* ── controles ── */
+  const dias = $('#dias'); [['hoy','Hoy'],['ayer','Ayer']].forEach(([v, tx]) => { const b = M.el('button', 'pil' + (v === dia ? ' on' : ''), tx); b.onclick = () => cambiarDia(v, b); dias.append(b); });
+  const velb = $('#vel'); [[20,'Lento'],[40,'Normal'],[90,'Rápido']].forEach(([v, tx]) => { const b = M.el('button', 'pil' + (v === vel ? ' on' : ''), tx); b.onclick = () => { vel = v; M.$$('.pil', velb).forEach(x => x.classList.toggle('on', x === b)); }; velb.append(b); });
+  const iconoPlay = m => { $('#play').dataset.m = m; $('#play').innerHTML = `<svg viewBox="0 0 24 24">${m === 'pausa' ? '<path d="M8 5v14M16 5v14"/>' : m === 'otra' ? '<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' : '<path d="M8 5.5v13l11-6.5-11-6.5Z"/>'}</svg>`; };
+  $('#play').onclick = () => {
+    if (jugando) return pausar();
+    if (t >= RANGO[dia][1]) { t = RANGO[dia][0]; mostrarEstado(true); }
+    jugar();
+  };
+  $('#quitar').onclick = () => { filtro = null; aplicarFiltro(); };
+  function jugar(){ jugando = true; iconoPlay('pausa'); ultimo = performance.now(); if (!raf) raf = requestAnimationFrame(bucle); }
+  function pausar(){ jugando = false; iconoPlay(t >= RANGO[dia][1] ? 'otra' : 'play'); }
+  function cambiarDia(v, b){ dia = v; M.$$('.pil', dias).forEach(x => x.classList.toggle('on', x === b)); filtro = null; pausar(); iniciarDia(); jugar(); }
+
+  /* ── deslizador y marcas ── */
+  function iniciarDia(){
+    const [a, b] = RANGO[dia]; t = a;
+    const r = $('#rango'); r.min = a; r.max = b; r.step = 1; r.value = a;
+    $('#diatxt').textContent = M.DIA[dia].largo;
+    $('#horas').innerHTML = [0, 1, 2, 3, 4].map(i => `<span>${fmt(a + (b - a) * i / 4)}</span>`).join('');
+    const mc = $('#marcas'); mc.innerHTML = '';
+    opsDia().forEach(o => { const bt = M.el('button', 't-' + o.tipo); bt.style.left = ((o.min - a) / (b - a) * 100) + '%'; bt.title = `${o.hora} · ${M.TIPOS[o.tipo].n}`; bt.dataset.min = o.min; bt.onclick = () => irA(o.min); mc.append(bt); });
+    Object.keys(tweens).forEach(k => cancelAnimationFrame(tweens[k]));
+    mostrado.alm = INICIO[dia].alm; mostrado.piso = INICIO[dia].piso;
+    quitarTokens();
+    construir(); mostrarEstado(true);
+  }
+  function irA(m){ t = m; mostrarEstado(true); }
+  $('#rango').oninput = e => { t = +e.target.value; mostrarEstado(true); };
+
+  /* ── dibujar el plano (cambia entre ancho y vertical según el espacio) ── */
+  function zonaSVG(id, z, L){
+    const t = L.zon, d = z, fondo = id === 'alm' ? 'Almacén' : 'Piso de venta';
+    return `<g class="zona zn-${id}" data-z="${id}" tabindex="0" role="button" aria-label="${fondo}">
+      <rect class="zr" x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" rx="24"/>
+      <text class="zt" x="${d.x + t.tx}" y="${d.y + t.ty}">${fondo}</text>
+      <text class="znum" id="n-${id}" x="${d.x + t.tx}" y="${d.y + t.ny}" style="font-size:${t.num}px">0</text>
+      <text class="zs" x="${d.x + t.tx}" y="${d.y + t.sy}">prendas ahora</text>
+      <text class="zd cero" id="d-${id}" x="${d.x + t.tx}" y="${d.y + t.dy}">igual que al abrir</text>
+      ${id === 'alm' ? decorAlmacen(t.deco(d)) : decorPiso(t.deco(d))}
+    </g>`;
+  }
+  function decorAlmacen(a){
+    const filas = a.h > 70 ? 3 : 2, alto = a.h / filas, anchos = [30, 22, 36, 26, 32, 20, 28];
+    let s = '<g class="shelf">';
+    for (let f = 0; f < filas; f++) {
+      const y = a.y + alto * (f + 1) - 2; let x = a.x;
+      s += `<path d="M${a.x},${y} H${a.x + a.w}" stroke="var(--t35)" stroke-width="2" stroke-linecap="round"/>`;
+      let k = f * 2;
+      while (x + anchos[k % anchos.length] < a.x + a.w - 4) { const w = anchos[k % anchos.length], h = 12 + ((k * 7) % 3) * 5; s += `<rect x="${x}" y="${y - h - 1.5}" width="${w}" height="${h}" rx="3" fill="color-mix(in srgb,var(--taupe) ${18 + (k % 3) * 8}%,var(--papel))" stroke="color-mix(in srgb,var(--taupe) 38%,transparent)"/>`; x += w + 5; k++; }
+    }
+    return s + '</g>';
+  }
+  function decorPiso(a){
+    const n = Math.max(4, Math.min(8, Math.floor(a.w / 24))), paso = a.w / n;
+    let s = `<g class="rack"><path d="M${a.x},${a.y + 2} H${a.x + a.w}" stroke="var(--t50)" stroke-width="2.4" stroke-linecap="round"/>`;
+    for (let i = 0; i < n; i++) {
+      const [col, cat] = COLGADAS[i % COLGADAS.length], gx = a.x + paso * i + paso / 2 - 12, esc = Math.min(1.1, a.h / 62);
+      s += `<g class="pz" style="--j:${i}"><path d="M${gx + 12},${a.y + 2} v5" stroke="var(--t50)" stroke-width="1.6"/><g transform="translate(${gx},${a.y + 6}) scale(${esc})"><path d="${SIL[cat]}" fill="${col}" stroke="rgba(26,26,24,.18)" stroke-width=".7"/></g></g>`;
+    }
+    return s + '</g>';
+  }
+  function extSVG(id, z, L, titulo, icono){
+    const c = L.compacto;
+    const ico = `<svg x="${z.x + 14}" y="${z.y + (c ? 10 : 14)}" width="22" height="22" viewBox="0 0 24 24" style="color:var(--t65);stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">${PT[icono]}</svg>`;
+    if (id === 'sede' && !c) return `<g class="ext" data-z="sede"><rect class="er" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="20"/>${ico}<text class="zt" x="${z.x + 46}" y="${z.y + 22}">${titulo}</text><text class="zs" id="x-sede" x="${z.x + 46}" y="${z.y + 40}">nada enviado todavía</text></g>`;
+    if (c) return `<g class="ext" data-z="${id}"><rect class="er" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="18"/>${ico}<text class="zt" x="${z.x + 44}" y="${z.y + 27}">${titulo}</text><text class="zs" id="x-${id}" x="${z.x + 44}" y="${z.y + 48}">—</text></g>`;
+    return `<g class="ext" data-z="${id}"><rect class="er" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="22"/>${ico}<text class="zt" x="${z.x + 46}" y="${z.y + 31}">${titulo}</text><text class="enum" id="e-${id}" x="${z.x + 16}" y="${z.y + 78}">0</text><text class="zs" id="x-${id}" x="${z.x + 16}" y="${z.y + 98}">—</text></g>`;
+  }
+  const camino = (id, L) => {
+    const c = L.c[id], tp = TIPO_DE_CAMINO[id], w = 24 + 9;
+    return `<g class="e t-${tp}" data-c="${id}" data-g="${GRUPO_DE_CAMINO[id]}">
+      <path class="base" id="b-${id}" d="${c.d}"/>
+      <path class="flujo" id="f-${id}" d="${c.d}" marker-end="url(#mk-${tp})"/>
+      <path class="hit" d="${c.d}"/>
+      <g class="elab" id="l-${id}" transform="translate(${c.l[0]},${c.l[1]})"><g class="in"><rect x="-17" y="-11" width="34" height="22" rx="11"/><text y="4.4">0</text></g></g>
+    </g>`;
+  };
+  function construir(){
+    const L = LAY[clave], svg = $('#svg');
+    svg.setAttribute('viewBox', `0 0 ${L.vb[0]} ${L.vb[1]}`);
+    const marcadores = ['llegada','colgada','subida','venta','devolucion','traslado'].map(tp => `<marker class="t-${tp}" id="mk-${tp}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="13" markerHeight="13" markerUnits="userSpaceOnUse" orient="auto"><path d="M1,1 L9,5 L1,9 Z" fill="var(--c)"/></marker>`).join('');
+    const C = L.cont;
+    svg.innerHTML = `<defs>${marcadores}</defs>
+      <rect class="cont" x="${C.x}" y="${C.y}" width="${C.w}" height="${C.h}" rx="30"/>
+      <text class="cont-t" x="${C.x + 24}" y="${C.y + 28}">TIENDA TRU</text>
+      ${extSVG('prov', L.z.prov, L, 'De fuera', 'ext')}
+      ${extSVG('sede', L.z.sede, L, 'Otras sedes', 'sede')}
+      ${extSVG('cli', L.z.cli, L, 'Clientes', 'cliente')}
+      ${CAMINOS.map(id => camino(id, L)).join('')}
+      ${zonaSVG('alm', L.z.alm, L)}${zonaSVG('piso', L.z.piso, L)}
+      <g id="tokens"></g><g id="flotas"></g>`;
+    refs = {};
+    $('#svg').onclick = e => {
+      const c = e.target.closest('.e'), z = e.target.closest('[data-z]');
+      if (c) alternarFiltro({ g: c.dataset.g, nombre: M.GRUPOS.find(g => g.id === c.dataset.g).n });
+      else if (z && (z.dataset.z === 'alm' || z.dataset.z === 'piso')) alternarFiltro({ z: z.dataset.z, nombre: z.dataset.z === 'alm' ? 'el Almacén' : 'el Piso' });
+    };
+    $('#svg').onkeydown = e => { if (e.key === 'Enter') { const z = e.target.closest && e.target.closest('[data-z]'); if (z) z.dispatchEvent(new MouseEvent('click', { bubbles:true })); } };
+  }
+  function alternarFiltro(f){ filtro = filtro && ((f.g && filtro.g === f.g) || (f.z && filtro.z === f.z)) ? null : f; aplicarFiltro(); }
+  function aplicarFiltro(){
+    const pl = $('#plano');
+    if (filtro) pl.dataset.filtro = 1; else delete pl.dataset.filtro;
+    M.$$('.e', pl).forEach(e => e.classList.toggle('on', !!filtro && (filtro.g ? e.dataset.g === filtro.g : (filtro.z === 'alm' ? ['llegada','colgada','subida','traslado'] : ['colgada','subida','venta','devolucion']).includes(e.dataset.c))));
+    M.$$('.zona', pl).forEach(z => z.classList.toggle('on', !!filtro && (filtro.z ? z.dataset.z === filtro.z : !!filtro.g && estaEnGrupo(filtro.g, z.dataset.z))));
+    M.$$('.ext', pl).forEach(z => z.classList.toggle('on', !!filtro && !!filtro.g && estaEnExt(filtro.g, z.dataset.z)));
+    M.$$('.chipf', raiz).forEach(c => c.setAttribute('aria-pressed', !!filtro && filtro.g === c.dataset.g));
+    $('#leyenda').classList.toggle('hay', !!(filtro && filtro.g));
+    $('#quitar').classList.toggle('v', !!filtro);
+    if (filtro) $('#quitar').firstChild.textContent = `Solo ${filtro.nombre} · quitar `;
+    feed(false);
+  }
+  const estaEnGrupo = (g, z) => ({ venta:['piso'], colgada:['alm','piso'], subida:['alm','piso'], llegada:['alm'], traslado:['alm'], cliente:['piso'], ajuste:['alm','piso'] }[g] || []).includes(z);
+  const estaEnExt = (g, z) => ({ venta:['cli'], cliente:['cli'], llegada:['prov'], traslado:['sede'] }[g] || []).includes(z);
+
+  /* ── el estado en la hora t ── */
+  function estadoEn(m){
+    const ops = opsDia().filter(o => o.min <= m);
+    const s = { alm:INICIO[dia].alm, piso:INICIO[dia].piso, caminos:{}, prov:0, vend:0, dev:0, env:0, ops };
+    CAMINOS.forEach(c => s.caminos[c] = 0);
+    ops.forEach(o => { const e = efecto(o); Object.entries(e.d).forEach(([k, v]) => s[k] += v); e.caminos.forEach(([c, n]) => s.caminos[c] += n); });
+    s.prov = s.caminos.llegada; s.vend = s.caminos.venta; s.dev = s.caminos.devolucion; s.env = s.caminos.traslado;
+    return s;
+  }
+  let maxCam = {};
+  function mostrarEstado(rapido, nuevas){
+    const s = estadoEn(t);
+    ['alm','piso'].forEach(z => rodar(z, s[z], rapido ? 0 : 650, INICIO[dia][z]));
+    const fin = estadoEn(1e9); CAMINOS.forEach(c => maxCam[c] = fin.caminos[c]);
+    const mayor = Math.max(...Object.values(maxCam), 1);
+    CAMINOS.forEach(c => {
+      const u = s.caminos[c], f = M.$('#f-' + c, raiz), l = M.$('#l-' + c, raiz); if (!f) return;
+      const w = u ? 5 + 11 * Math.sqrt(u / mayor) : 0;
+      f.style.strokeWidth = w; f.style.opacity = u ? .9 : 0;
+      const tx = M.$('text', l), rect = M.$('rect', l); const antes = tx.textContent; tx.textContent = u;
+      const ancho = 16 + String(u).length * 8.5; rect.setAttribute('x', -ancho / 2); rect.setAttribute('width', ancho);
+      l.classList.toggle('v', u > 0);
+      if (!rapido && antes !== String(u) && u) { const g = M.$('.in', l); g.style.transformBox = 'fill-box'; g.style.transformOrigin = 'center'; g.style.animation = 'none'; void g.getBoundingClientRect(); g.style.animation = 'e-pop .6s var(--ease)'; }
+    });
+    const set = (id, txt) => { const e = M.$('#' + id, raiz); if (e) e.textContent = txt; };
+    set('e-prov', s.prov); set('x-prov', LAY[clave].compacto ? `${s.prov} ${M.plural(s.prov, 'prenda llegó', 'prendas llegaron')}` : M.plural(s.prov, 'prenda llegó', 'prendas llegaron'));
+    set('e-cli', s.vend); set('x-cli', LAY[clave].compacto ? `${s.vend} ${M.plural(s.vend, 'prenda se llevó', 'prendas se llevaron')}` : M.plural(s.vend, 'prenda se llevó', 'prendas se llevaron'));
+    set('x-sede', s.env ? `${s.env} ${M.plural(s.env, 'prenda enviada', 'prendas enviadas')}` : 'nada enviado todavía');
+    $('#reloj').textContent = fmt(t); $('#rango').value = t;
+    $('#rango').style.setProperty('--p', ((t - RANGO[dia][0]) / (RANGO[dia][1] - RANGO[dia][0]) * 100) + '%');
+    M.$$('#marcas button', raiz).forEach(b => b.classList.toggle('pasada', +b.dataset.min <= t));
+    leyenda(s); feed(nuevas);
+  }
+  function rodar(z, a, ms, base){
+    const n = M.$('#n-' + z, raiz), d = M.$('#d-' + z, raiz); if (!n) return;
+    const de = mostrado[z] ?? a; cancelAnimationFrame(tweens[z]);
+    const dif = a - base; d.textContent = dif === 0 ? 'igual que al abrir' : `${dif > 0 ? '+' : '−'}${Math.abs(dif)} desde la apertura`; d.setAttribute('class', 'zd ' + (dif > 0 ? 'mas' : dif < 0 ? 'menos' : 'cero'));
+    if (!ms || reducir) { mostrado[z] = a; n.textContent = a; return; }
+    const t0 = performance.now();
+    const paso = ts => { const k = Math.min(1, (ts - t0) / ms), v = Math.round(de + (a - de) * (1 - Math.pow(1 - k, 3))); mostrado[z] = v; n.textContent = v; if (k < 1) tweens[z] = requestAnimationFrame(paso); };
+    tweens[z] = requestAnimationFrame(paso);
+  }
+  function leyenda(s){
+    const cont = $('#leyenda');
+    if (!cont.children.length) {
+      M.GRUPOS.forEach(g => { const b = M.el('button', 'chipf t-' + g.tipos[0], `<span class="sello suave" data-go>${M.glifo(g.gl)}</span><span class="nm">${g.n}</span><b class="num" id="lg-${g.id}">0</b>`); b.dataset.g = g.id; b.dataset.goHover = 1; b.setAttribute('aria-pressed', 'false'); b.onclick = () => alternarFiltro({ g: g.id, nombre: g.n.toLowerCase() }); cont.append(b); });
+    }
+    M.GRUPOS.forEach(g => { M.$('#lg-' + g.id, raiz).textContent = s.ops.filter(o => g.tipos.includes(o.tipo)).reduce((x, o) => x + o.u, 0); });
+  }
+
+  /* ── una prenda que viaja ── */
+  function quitarTokens(){ tokens = []; const g = M.$('#tokens', raiz); if (g) g.innerHTML = ''; }
+  function disparar(o){
+    if (reducir) return;
+    const e = efecto(o), L = LAY[clave];
+    e.caminos.forEach(([c, n], i) => {
+      if (!n) return;
+      const path = M.$('#b-' + c, raiz); if (!path) return;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('class', `tok t-${o.tipo}`);
+      g.innerHTML = `<circle r="13"/><text y="4.5">${n}</text>`; M.$('#tokens', raiz).append(g);
+      tokens.push({ g, path, len: path.getTotalLength(), t0: performance.now() + i * 120, dur: 1250, c, tipo: o.tipo });
+    });
+    if (!raf) raf = requestAnimationFrame(bucle);
+    if (!e.caminos.length) { // ajuste o conteo: nace en su cuarto
+      const z = e.zonas[0], r = L.z[z], x = r.x + r.w - (L.compacto ? 70 : 52), y = r.y + (L.compacto ? 60 : 96);
+      const f = document.createElementNS('http://www.w3.org/2000/svg', 'text'); f.setAttribute('class', `flota t-${o.tipo}`); f.setAttribute('x', x); f.setAttribute('y', y);
+      f.textContent = (o.delta > 0 ? '+' : '−') + Math.abs(o.delta); M.$('#flotas', raiz).append(f); setTimeout(() => f.remove(), 1700);
+      pulso(z, o.tipo);
+    }
+    if (o.tipo === 'colgada') { const r = M.$('.rack', raiz); if (r) setTimeout(() => { r.classList.remove('mece'); void r.getBoundingClientRect(); r.classList.add('mece'); }, 1100); }
+  }
+  function pulso(z, tipo){
+    const n = M.$(`[data-z="${z}"]`, raiz); if (!n) return;
+    n.style.setProperty('--pc', getComputedStyle(document.documentElement).getPropertyValue(({ llegada:'--verde-2', colgada:'--ambar', subida:'--pizarra', venta:'--verde', devolucion:'--rojo', cambio:'--rojo', traslado:'--tinta', ajuste:'--taupe', conteo:'--taupe' })[tipo]));
+    n.classList.remove('pulso'); void n.getBoundingClientRect(); n.classList.add('pulso');
+  }
+  function moverTokens(ts){
+    tokens = tokens.filter(k => {
+      const p = (ts - k.t0) / k.dur;
+      if (p < 0) { k.g.style.opacity = 0; return true; }
+      k.g.style.opacity = 1;
+      if (p >= 1) { k.g.remove(); pulso(DESTINO_DE_CAMINO[k.c], k.tipo); return false; }
+      const e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2, pt = k.path.getPointAtLength(k.len * e);
+      k.g.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+      return true;
+    });
+  }
+
+  /* ── el bucle ── */
+  function avanzar(ts){
+    const dt = Math.min(.1, (ts - ultimo) / 1000); ultimo = ts;
+    const prev = t; t = Math.min(RANGO[dia][1], t + vel * dt);
+    const nuevas = opsDia().filter(o => o.min > prev && o.min <= t);
+    nuevas.forEach(disparar);
+    if (nuevas.length || Math.floor(prev) !== Math.floor(t)) mostrarEstado(false, nuevas);
+    if (t >= RANGO[dia][1]) { jugando = false; iconoPlay('otra'); }
+  }
+  function bucle(ts){
+    if (jugando) avanzar(ts);
+    moverTokens(ts);
+    raf = (jugando || tokens.length) ? requestAnimationFrame(bucle) : 0;
+  }
+
+  /* ── lo que va pasando ── */
+  let idsVistos = new Set();
+  function feed(nuevas){
+    const s = { ops: opsDia().filter(o => o.min <= t) };
+    let lista = [...s.ops].reverse();
+    if (filtro) lista = lista.filter(o => filtro.g ? M.GRUPOS.find(g => g.id === filtro.g).tipos.includes(o.tipo) : efecto(o).zonas.includes(filtro.z));
+    $('#ftit').innerHTML = `Lo que va pasando<small>hasta las ${fmt(t)} · ${lista.length} ${M.plural(lista.length, 'operación', 'operaciones')}</small>`;
+    const cont = $('#flista'), nuevos = new Set((nuevas || []).map(o => o.id));
+    if (!lista.length) { cont.innerHTML = `<div class="f-vacio"><b>${filtro ? 'Todavía nada de esto' : 'La tienda recién abre'}</b>Dale a reproducir, o mueve el deslizador.</div>`; return; }
+    cont.innerHTML = '';
+    lista.forEach(o => {
+      const r = M.resumenPrendas(o), n = M.el('article', `fr t-${o.tipo}${nuevos.has(o.id) ? ' nuevo' : ''}`, `
+        <span class="sello" data-go>${M.glifo(o.tipo)}</span>
+        <div class="tx"><b>${r.principal}${r.mas ? ` y ${r.mas} más` : ''}</b><span><span class="tn">${M.TIPOS[o.tipo].n}${o.motivo ? ' · ' + o.motivo : ''}</span>${M.persona(o)}</span></div>
+        <div class="rt">${M.ruta(o).replace('data-go', '')}</div>
+        <div class="hr num">${o.hora}</div>
+        <div class="ct num">${M.textoDelta(o)}</div>`);
+      n.onclick = () => M.cajon(o);
+      cont.append(n);
+      if (nuevos.has(o.id)) setTimeout(() => M.$$('.sello', n).forEach(x => x.classList.add('go')), 80);
+      else M.$$('.sello', n).forEach(x => x.classList.add('go'));
+    });
+    M.$$('.fr .ruta .fill', cont).forEach(f => f.style.transform = 'none');
+  }
+
+  /* ── ancho o vertical ── */
+  const ro = new ResizeObserver(() => {
+    const w = M.$('#plano', raiz).clientWidth, k = w < 560 ? 'V' : 'L';
+    if (k !== clave && refsListos) { clave = k; construir(); quitarTokens(); mostrarEstado(true); aplicarFiltro(); }
+  });
+  let refsListos = false;
+  window.__limpiarPlano = () => { cancelAnimationFrame(raf); ro.disconnect(); jugando = false; };
+  clave = M.$('#plano', raiz).clientWidth < 560 ? 'V' : 'L';
+  iconoPlay('play'); iniciarDia(); refsListos = true; ro.observe(M.$('#plano', raiz));
+  M.$$('.reloj,.plano-card', raiz).forEach(n => n.classList.add('in'));
+  if (reducir) { t = RANGO[dia][1]; mostrarEstado(true); iconoPlay('otra'); }
+  else setTimeout(jugar, 700);
+}});
+</script>
+</body>
+</html>

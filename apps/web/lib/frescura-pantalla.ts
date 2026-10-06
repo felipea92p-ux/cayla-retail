@@ -36,10 +36,18 @@ import {
 // Palabras y colores fijos
 // ---------------------------------------------------------------------------
 
-export const NOMBRE_TRAMO: Record<Tramo, string> = { nueva: "Nueva", vigente: "Vigente", envejecida: "Envejecida", critica: "Crítica" };
+/**
+ * Los cuatro estados en palabras de tienda (Formidable, ADR-0350; aprobado por Felipe el 2026-10-05). Antes: Nueva, Vigente,
+ * Envejecida, Crítica: nombres de la base, no de quien atiende. UNA sola lista: la fila, el filtro, la regla dibujada, la hoja
+ * y las frases usan estos mismos nombres (una sola mente), y las claves internas (`nueva`, `vigente`…) no cambian.
+ */
+export const NOMBRE_TRAMO: Record<Tramo, string> = { nueva: "Recién llegada", vigente: "En su tiempo", envejecida: "Se está quedando", critica: "Hay que moverla" };
 
 /** Colores A (Felipe, 2026-09-28). La Crítica usa el tono `tinta` de `Chip` (contorno de tinta, letra gruesa): nunca rojo. */
 export const TONO_TRAMO: Record<Tramo, TonoChip> = { nueva: "verde", vigente: "neutro", envejecida: "ambar", critica: "tinta" };
+
+/** Lo que dice una prenda juzgada con pocas ventas de las demás (menos de 10): «Aproximado», no «con pocos datos». */
+export const APROXIMADO = "aproximado";
 
 /** Frases C: el «al menos» se dice «quizá más», detrás del número o del nombre. */
 export const QUIZA_MAS = "quizá más";
@@ -48,7 +56,19 @@ export const QUIZA_MAS = "quizá más";
 export const FRASE_SIN_ELLA =
   "Cada prenda se compara con las demás de su categoría, nunca consigo misma: así la que no se vende no hace parecer normal su propia lentitud.";
 
-export const FRASE_ENCABEZADO = "Cuánto lleva colgada cada prenda y qué tan rápido se vende, contra las demás de su categoría.";
+/**
+ * La frase bajo el título (Formidable, ADR-0350, leyes 1 y 2): la PREGUNTA que resuelve la pantalla y, enseguida, su respuesta de
+ * hoy. El título sigue siendo el nombre del menú (ADR-0220); la pregunta va en la frase. Una sola vez: «N prendas esperan tu
+ * decisión» no se repite en una cifra aparte. Con negritas (`TextoRico`).
+ */
+export function fraseEncabezado(porDecidir: number | null, conPocasVentas = false): TextoRico {
+  const pregunta = "¿Qué lleva mucho tiempo colgado?";
+  if (porDecidir === null) return pregunta;
+  // «Todo en orden» es una afirmación: con pocas ventas nada puede salir «por decidir» todavía (no hay con qué juzgar), así que
+  // solo se dice «por ahora». Lo vio la pantalla real de Tienda Lima, que decía «todo en orden» junto a «hay pocas ventas».
+  if (porDecidir === 0) return `${pregunta} **${conPocasVentas ? "Nada por decidir por ahora." : "Nada por decidir: todo en orden."}**`;
+  return `${pregunta} **${porDecidir} ${porDecidir === 1 ? "prenda espera" : "prendas esperan"} tu decisión.**`;
+}
 
 /** Qué pueden abrir los botones del detalle: cada uno solo si el rol ve esa pantalla (ADR-0161; ningún botón termina en «Sin acceso»). */
 export type AccesoFrescura = { existencias: boolean; historial: boolean; traslados: boolean; conteos: boolean; atributos: boolean };
@@ -201,35 +221,34 @@ export type EstadoVista = {
   tono: TonoChip;
   /** El chip «Sus números no cuadran» lleva un ícono de información (no es un semáforo). */
   icono: boolean;
-  /** Las líneas chicas bajo el chip: «quizá más», «con pocos datos». */
+  /** Las líneas chicas bajo el chip: «aproximado» cuando se juzgó con pocas ventas. */
   debajo: string[];
   /** La línea de la prenda apartada: «iba en Vigente · 3 apartadas». */
   previo: string | null;
 };
 
 const TEXTO_ESPECIAL = {
-  sin_ventas_sede: "Aún no hay ventas que sirvan de medida",
-  sin_vara: "Todavía no se sabe cuánto tardan",
-  sin_edad_conocida: "Parece nueva, pero no se sabe cuándo llegó",
+  sin_ventas_sede: "Aún no se sabe",
+  sin_vara: "Aún no se sabe",
+  sin_edad_conocida: "No se sabe cuándo llegó",
   clasico: "Clásico: no envejece",
   clasico_fuera: "Clásico, espera su estación",
-  dudosa: "Sus números no cuadran",
+  dudosa: "Su stock no cuadra",
   apartada: "Apartada para clientes",
 } as const;
 
 export function estadoVista(p: FrescuraPrenda): EstadoVista {
   const e = p.estado;
   if (presenciaDe(p) === "apartada") {
-    const iba = e.tipo === "semaforo" ? `iba en ${NOMBRE_TRAMO[e.tramo]} · ` : "";
+    const iba = e.tipo === "semaforo" ? `iba como «${NOMBRE_TRAMO[e.tramo]}» · ` : "";
     return { texto: TEXTO_ESPECIAL.apartada, tono: "neutro", icono: false, debajo: [], previo: `${iba}${p.apartadasPisoHoy} ${p.apartadasPisoHoy === 1 ? "apartada" : "apartadas"}` };
   }
   if (e.tipo === "semaforo") {
     const debajo: string[] = [];
-    // «Crítica quizá más» no existe: no hay nada después de Crítica.
-    if (e.alMenos && e.tramo !== "critica") debajo.push(QUIZA_MAS);
-    // «Con pocos datos» se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado (D5): una
-    // categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
-    if (nivelSinElla(p) === "pocos_datos") debajo.push("con pocos datos");
+    // El «quizá más» ya no va aquí: la fila lo dice en su línea de días («Lleva 6 días o más», `llevaTexto`).
+    // «Aproximado» (antes «con pocos datos») se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado
+    // (D5): una categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
+    if (nivelSinElla(p) === "pocos_datos") debajo.push(APROXIMADO);
     return { texto: NOMBRE_TRAMO[e.tramo], tono: TONO_TRAMO[e.tramo], icono: false, debajo, previo: null };
   }
   if (e.tipo === "clasico") return { texto: e.fueraDeSuEstacion ? TEXTO_ESPECIAL.clasico_fuera : TEXTO_ESPECIAL.clasico, tono: "pizarra", icono: false, debajo: [], previo: null };
@@ -243,9 +262,9 @@ function nivelSinElla(p: FrescuraPrenda): NivelConfianza | null {
   return p.categoriaSinElla ? nivelPorVentas(p.categoriaSinElla.vendidas) : null;
 }
 
-/** El nombre de un estado «al menos» como se dice en una frase: «Vigente quizá más»; «Crítica», sola. */
+/** El nombre de un estado «al menos» como se dice en una frase: «En su tiempo, o más»; el último, solo. */
 export function nombreAlMenos(tramo: Tramo): string {
-  return tramo === "critica" ? NOMBRE_TRAMO.critica : `${NOMBRE_TRAMO[tramo]} ${QUIZA_MAS}`;
+  return tramo === "critica" ? NOMBRE_TRAMO.critica : `${NOMBRE_TRAMO[tramo]}, o más`;
 }
 
 // ---------------------------------------------------------------------------
@@ -387,6 +406,8 @@ export type FilaVista = {
   tallas: TallaVista[];
   /** Días en el piso (el reloj de novedad); null para la que no cuadra. */
   dias: number | null;
+  /** La línea de días de la fila: «Lleva 6 días» / «Lleva 6 días o más»; null para la que no cuadra; la apartada dice que está en pausa. */
+  llevaTexto: string | null;
   /** «quizá más»: no se sabe desde cuándo está (llegó sin fecha, o se colgó antes de lo que mira la lectura). */
   quizaMas: boolean;
   /** Toda apartada: su reloj está en pausa. */
@@ -405,6 +426,13 @@ export type FilaVista = {
   porDecidir: boolean;
 };
 
+/** «Lleva 6 días» (con «o más» si no se sabe desde cuándo está); la apartada, «En pausa: está apartada»; la que no cuadra, nada. */
+export function llevaTexto(p: Pick<FrescuraPrenda, "estado" | "reloj">, apartada: boolean): string | null {
+  if (p.estado.tipo === "dudosa") return null;
+  if (apartada) return "En pausa: está apartada";
+  return `Lleva ${textoDias(diasDe(p.reloj.segundos))}${p.reloj.alMenos ? " o más" : ""}`;
+}
+
 export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
   const apartada = presenciaDe(p) === "apartada";
   const dudosa = p.estado.tipo === "dudosa";
@@ -420,6 +448,7 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
     sinTemporada: p.estado.sinTemporada,
     tallas: p.tallas.map((t) => ({ varianteId: t.varianteId, talla: t.talla ?? "Única", piso: t.pisoHoy, almacen: t.almacenHoy, apartadas: t.apartadasHoy })),
     dias: dudosa ? null : diasDe(p.reloj.segundos),
+    llevaTexto: llevaTexto(p, apartada),
     quizaMas: !dudosa && p.reloj.alMenos,
     apartada,
     estado: estadoVista(p),
@@ -427,7 +456,7 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
     vendio: dudosa ? null : p.ventasRecientes,
     vendioTexto: dudosa ? null : `vendió ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}`,
     sugerencias: p.estado.sugerencias.map((s) => ({ clave: s, texto: textoSugerencia(s, p, ctx) })),
-    nada: apartada ? "Nada: tiene dueño" : dudosa ? "Revisa su stock primero" : "Nada por ahora",
+    nada: apartada ? "Nada: tiene dueño" : dudosa ? "Revisa su stock primero" : "Déjala así",
     porDecidir: p.porDecidir,
   };
 }
@@ -438,13 +467,13 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
 
 export const FILTROS_ESTADO = [
   { valor: "todos", texto: "Todos los estados" },
-  { valor: "nueva", texto: "Nueva", grupo: "Cuánto lleva" },
-  { valor: "vigente", texto: "Vigente", grupo: "Cuánto lleva" },
-  { valor: "envejecida", texto: "Envejecida", grupo: "Cuánto lleva" },
-  { valor: "critica", texto: "Crítica", grupo: "Cuánto lleva" },
-  { valor: "sin_comparar", texto: "Sin comparación todavía", grupo: "Otros" },
+  { valor: "nueva", texto: NOMBRE_TRAMO.nueva, grupo: "Cuánto lleva" },
+  { valor: "vigente", texto: NOMBRE_TRAMO.vigente, grupo: "Cuánto lleva" },
+  { valor: "envejecida", texto: NOMBRE_TRAMO.envejecida, grupo: "Cuánto lleva" },
+  { valor: "critica", texto: NOMBRE_TRAMO.critica, grupo: "Cuánto lleva" },
+  { valor: "sin_comparar", texto: "Aún no se sabe", grupo: "Otros" },
   { valor: "clasico", texto: "Clásicos", grupo: "Otros" },
-  { valor: "dudosa", texto: "Sus números no cuadran", grupo: "Otros" },
+  { valor: "dudosa", texto: "Su stock no cuadra", grupo: "Otros" },
   { valor: "apartada", texto: "Apartadas", grupo: "Otros" },
   { valor: "temporada_pasada", texto: "Temporada pasada", grupo: "Temporada" },
   { valor: "sin_temporada", texto: "Sin temporada", grupo: "Temporada" },
@@ -454,8 +483,9 @@ const ES_FILTRO_ESTADO = new Set<string>(FILTROS_ESTADO.map((f) => f.valor));
 
 export const TODAS_LAS_CATEGORIAS = "todas";
 
-export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; decididas: boolean; q: string };
-export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, decididas: false, q: "" };
+/** `todas`: la persona pidió ver todas las prendas aunque haya algo por decidir (sin eso, lo por decidir va primero). No es un filtro. */
+export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; decididas: boolean; q: string; todas: boolean };
+export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, decididas: false, q: "", todas: false };
 
 /**
  * Los filtros de la URL (`?cat=`, `?estado=`, `?pordecidir=1`, `?q=`). Lo que no se entiende se ignora. `cat=` vacío es
@@ -470,6 +500,7 @@ export function filtrosDeUrl(leer: (clave: string) => string | null | undefined)
     porDecidir: leer("pordecidir") === "1",
     decididas: leer("decididas") === "1",
     q: (leer("q") ?? "").slice(0, 80),
+    todas: leer("todas") === "1",
   };
 }
 
@@ -481,11 +512,22 @@ export function consultaDe(f: Filtros, prenda: string | null): string {
   if (f.porDecidir) q.set("pordecidir", "1");
   if (f.decididas) q.set("decididas", "1");
   if (f.q.trim()) q.set("q", f.q.trim());
+  if (f.todas) q.set("todas", "1");
   if (prenda) q.set("prenda", prenda);
   return q.toString();
 }
 
 export const hayFiltros = (f: Filtros) => f.cat !== TODAS_LAS_CATEGORIAS || f.estado !== "todos" || f.porDecidir || f.decididas || f.q.trim() !== "";
+
+/**
+ * La vista con que se abre la pantalla (Formidable, ley 2): si hay algo por decidir y la persona no pidió otra cosa, **primero
+ * lo que le toca**, y el resto queda a un toque en «Ver todas». Con cualquier filtro puesto (o con `todas`) se ve lo que pidió.
+ * Nada se esconde para siempre: es el mismo «Por decidir», puesto de entrada.
+ */
+export function vistaDeEntrada(f: Filtros, porDecidir: number): { primeroLoDecidible: boolean; efectivos: Filtros } {
+  const primeroLoDecidible = porDecidir > 0 && !f.todas && !hayFiltros(f);
+  return { primeroLoDecidible, efectivos: primeroLoDecidible ? { ...f, porDecidir: true } : f };
+}
 
 /** ¿La prenda entra en este estado del filtro? «Temporada» se cruza con los de arriba (una prenda puede estar en los dos). */
 export function pasaEstado(p: FrescuraPrenda, estado: FiltroEstado): boolean {
@@ -564,10 +606,10 @@ function escalaDe(v: VaraCategoria | undefined): { nombre: string; rango: string
   const d75 = v.cortes.p75 === null ? null : diasDeCorte(v.cortes.p75);
   const d90 = v.cortes.p90 === null ? null : diasDeCorte(v.cortes.p90);
   return [
-    { nombre: "Nueva", rango: `antes de ${d50} d` },
-    { nombre: "Vigente", rango: d75 !== null ? rangoDias(d50, d75) : `desde ${d50} d` },
-    { nombre: "Envejecida", rango: d75 !== null ? (d90 !== null ? rangoDias(d75, d90) : `desde ${d75} d`) : "sin datos aún" },
-    { nombre: "Crítica", rango: d90 !== null ? `más de ${d90} d` : "sin datos aún" },
+    { nombre: NOMBRE_TRAMO.nueva, rango: `antes de ${d50} d` },
+    { nombre: NOMBRE_TRAMO.vigente, rango: d75 !== null ? rangoDias(d50, d75) : `desde ${d50} d` },
+    { nombre: NOMBRE_TRAMO.envejecida, rango: d75 !== null ? (d90 !== null ? rangoDias(d75, d90) : `desde ${d75} d`) : "sin datos aún" },
+    { nombre: NOMBRE_TRAMO.critica, rango: d90 !== null ? `más de ${d90} d` : "sin datos aún" },
   ];
 }
 
@@ -605,6 +647,20 @@ export function agrupar<T extends { categoriaId: string; categoriaNombre: string
 // ---------------------------------------------------------------------------
 // La sede entera: cifras, avisos y el pie
 // ---------------------------------------------------------------------------
+
+/** ¿Esta prenda se juzgó con pocas ventas? Estado con comparación débil (menos de 10 ventas de las demás) o sin comparación todavía. */
+export const esAproximada = (p: FrescuraPrenda): boolean => (p.estado.tipo === "semaforo" && nivelSinElla(p) === "pocos_datos") || p.estado.tipo === "sin_ventas_sede" || p.estado.tipo === "sin_vara";
+
+/**
+ * UN aviso arriba cuando la mayoría de lo que se ve se juzgó con pocas ventas (TRU hoy: 4 ventas en 120 días): la regla se dice
+ * UNA vez y no en cada fila (Formidable, ADR-0350, ley 9). Si es la minoría, no hay aviso y cada fila aproximada lo marca: la
+ * excepción se marca, la regla se dice. Null si no hace falta.
+ */
+export function avisoPocasVentas(prendas: readonly FrescuraPrenda[], sede: string): TextoRico | null {
+  if (prendas.length === 0) return null;
+  if (prendas.filter(esAproximada).length * 2 <= prendas.length) return null;
+  return `**Todavía hay pocas ventas en ${sede}.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.`;
+}
 
 /** Más de la mitad de las prendas de la tabla sin temporada (TRU hoy: todas): UN aviso arriba, no un chip por fila. */
 export function muchasSinTemporada(prendas: readonly FrescuraPrenda[]): boolean {
@@ -650,7 +706,7 @@ export function pieVista(prendas: readonly FrescuraPrenda[]): PieVista {
   for (const p of prendas) {
     const donde = presenciaDe(p);
     if (donde === "guardada") {
-      const iba = p.estado.tipo === "semaforo" ? `, iba en ${NOMBRE_TRAMO[p.estado.tramo]}` : "";
+      const iba = p.estado.tipo === "semaforo" ? `, iba como «${NOMBRE_TRAMO[p.estado.tramo]}»` : "";
       // Lo apartado en el almacén también está guardado: se cuenta y se dice.
       const apartadas = Math.max(0, p.apartadasHoy - p.apartadasPisoHoy);
       pie.guardadas.push(`${nombreConColor(p)} (${enElAlmacen(p)}${apartadas > 0 ? `, ${apartadas} ${apartadas === 1 ? "apartada" : "apartadas"}` : ""})${iba}`);
@@ -724,10 +780,10 @@ export function reglaVista(p: FrescuraPrenda): ReglaVista | null {
     zonas.push({ clave, nombre, ancho: pct(hasta) - pct(x) });
     x = hasta;
   };
-  sumar("nueva", "Nueva", p50);
-  sumar("vigente", "Vigente", p75 ?? tMax);
-  if (p75 !== null) sumar("envejecida", "Envejecida", p90 ?? tMax);
-  if (p90 !== null) sumar("critica", "Crítica", tope);
+  sumar("nueva", NOMBRE_TRAMO.nueva, p50);
+  sumar("vigente", NOMBRE_TRAMO.vigente, p75 ?? tMax);
+  if (p75 !== null) sumar("envejecida", NOMBRE_TRAMO.envejecida, p90 ?? tMax);
+  if (p90 !== null) sumar("critica", NOMBRE_TRAMO.critica, tope);
   else sumar("nada", "no se sabe", tope);
   const alinear = (pos: number): "inicio" | "medio" | "fin" => (pos < 6 ? "inicio" : pos > 90 ? "fin" : "medio");
   const marca = (d: number, abajo: string) => ({ pos: pct(d), arriba: `${diasDeCorte(d * SEGUNDOS_DIA)} d`, abajo, alinear: alinear(pct(d)) });
@@ -793,7 +849,7 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   const cat = ctx.categorias.get(p.categoriaId);
   const deCategoria = `las prendas de ${p.categoriaNombre}`;
   if (presenciaDe(p) === "apartada") {
-    const iba = e.tipo === "semaforo" ? `, cuando iba en ${NOMBRE_TRAMO[e.tramo]}` : "";
+    const iba = e.tipo === "semaforo" ? `, cuando iba como «${NOMBRE_TRAMO[e.tramo]}»` : "";
     return `Todo lo que tenía colgado está apartado para clientes (${p.apartadasPisoHoy}). Mientras siga apartado no envejece: su reloj se detuvo en **${textoDias(d)}**${iba}, y sigue desde ahí si alguna se libera. Lo apartado cuenta como vendido.`;
   }
   if (e.tipo === "dudosa")
@@ -833,11 +889,11 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
     base = `Lleva **${dTxt}**: ${yaPaso(d, c75 ?? 0)} en que ya se vendieron 3 de cada 4 de las demás${c90 !== null ? (d === c90 ? `; ${noLlega(d, c90)} en que se vendieron 9 de cada 10.` : `; a los ${c90} se vendieron 9 de cada 10.`) : "."}`;
   else base = `Lleva **${dTxt}**: ${yaPaso(d, c90 ?? 0)} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
   if (e.alMenos && p.reloj.alMenos)
-    base += ` ${causaAlMenos(p, ctx)}${e.tramo === "critica" ? " Aunque lleve más, ya es Crítica." : ` Por eso es «${nombreAlMenos(e.tramo)}» y nunca «Nueva».`}`;
+    base += ` ${causaAlMenos(p, ctx)}${e.tramo === "critica" ? ` Aunque lleve más, ya es «${NOMBRE_TRAMO.critica}».` : ` Por eso es «${nombreAlMenos(e.tramo)}» y nunca «${NOMBRE_TRAMO.nueva}».`}`;
   else if (e.alMenos && s) {
-    const sig = e.tramo === "vigente" ? "Envejecida" : "Crítica";
+    const sig = e.tramo === "vigente" ? NOMBRE_TRAMO.envejecida : NOMBRE_TRAMO.critica;
     const tMax = diasDeCorte(s.tMax);
-    base += ` Lo más largo que se vio de las demás en ${ctx.sede}, sin contarla, son ${textoDias(tMax)}, y ella ya ${d === tMax ? "los alcanzó" : "los pasó"}: todavía no hay ventas para saber dónde empieza ${sig}. Por eso es «${nombreAlMenos(e.tramo)}».`;
+    base += ` Lo más largo que se vio de las demás en ${ctx.sede}, sin contarla, son ${textoDias(tMax)}, y ella ya ${d === tMax ? "los alcanzó" : "los pasó"}: todavía no hay ventas para saber dónde empieza «${sig}». Por eso es «${nombreAlMenos(e.tramo)}».`;
   }
   // La comparación sale de las demás SIN ella (D5): sus ventas dicen cuánto creerle, no las de toda la categoría.
   if (s && nivelSinElla(p) === "pocos_datos") base += ` La comparación sale de solo ${textoVentas(s.vendidas)} de las demás: tómala con cuidado.`;

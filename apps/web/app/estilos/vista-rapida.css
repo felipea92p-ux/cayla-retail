@@ -1,0 +1,766 @@
+/* VISTA RÁPIDA DE PRODUCTO (Catálogo ▸ Productos ▸ Grilla) · maqueta A «Matriz», elegida por Felipe el 2026-10-05
+   (docs/maquetas/catalogo-modal-producto-2026-10/a-matriz.html). Medidas y movimiento son los de la maqueta; los colores, solo tokens de
+   globals.css (ADR-0169).
+
+   MOVIMIENTO — EXCEPCIÓN ESCRITA (ADR-0136, «Actualización 2026-10-05»): Felipe pidió «todas las animaciones posibles» para esta hoja.
+   Es la única del sistema con movimiento rico, y aun así con los mismos límites de siempre: `--ease-cayla`, nada con rebote, NADA EN
+   BUCLE, ningún efecto de más de ~900 ms, y todo se apaga con `prefers-reduced-motion`. Lo que hay, en orden de aparición:
+     · entrada: el título se barre de izquierda a derecha, los datos suben en cascada, la foto «se asienta» con un destello que cruza una vez;
+     · las celdas de la matriz entran en OLA diagonal (la esquina de arriba a la izquierda primero), con su barra que se llena y su cifra
+       que cuenta justo cuando aparece;
+     · respuestas a lo que la persona hace: la foto cruza (y se asienta) al cambiar de color; al pasar el mouse sobre una celda se alumbra su
+       fila y su columna (cruz) y el resto baja; al elegir, el check aparece y una onda sale desde donde se tocó; el texto del botón de
+       etiquetas y el estado de la cabecera cambian deslizándose;
+     · el mouse mueve apenas la foto (paralaje) y un brillo cálido sigue al puntero sobre la matriz (solo con mouse). */
+
+@layer components {
+  .vr-cuerpo,
+  .vr-pie {
+    --vr-t80: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+    --vr-t60: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+    --vr-t45: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    --vr-t35: color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    --vr-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  }
+  /* En oscuro, los dos tonos más tenues del texto suben al piso de legibilidad (el mismo 58 % de `tema.css`, ADR-0336): `--vr-t45` rinde
+     3.9:1 sobre papel oscuro. `--vr-t25` es un fantasma a propósito (rayas, ceros) y no se toca. */
+  :root[data-tema="oscuro"] .vr-cuerpo,
+  :root[data-tema="oscuro"] .vr-pie {
+    --vr-t45: color-mix(in srgb, var(--color-tinta) 58%, transparent);
+    --vr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+  }
+
+  /* ---- La bajada del título: código · categoría · estado · precio · colores y tallas ---- */
+  .vr-titulo {
+    display: inline-block;
+    animation: vr-barrido 640ms var(--ease-cayla) 120ms backwards;
+  }
+  .vr-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 13px;
+    color: var(--color-taupe);
+  }
+  .vr-meta .vr-dato {
+    animation: vr-dato-entra 420ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--vr-j, 0) * 70ms + 260ms);
+  }
+  .vr-meta .vr-cod {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--vr-t60, var(--color-tinta));
+  }
+  .vr-meta .vr-sep {
+    padding-left: 12px;
+    border-left: 1px solid var(--color-sand);
+    color: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+  }
+  .vr-meta .vr-sep b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .vr-meta .vr-ex {
+    font-weight: 600;
+    color: var(--color-ambar);
+  }
+
+  /* ---- Cuerpo: foto a la izquierda (fija al bajar), matriz a la derecha ---- */
+  .vr-cuerpo {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 26px;
+    align-items: start;
+  }
+  .vr-lado {
+    position: sticky;
+    top: 0.25rem;
+    animation: vr-sube 560ms var(--ease-cayla) 140ms backwards;
+  }
+  .vr-foto {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--color-hueso);
+    isolation: isolate;
+  }
+  .vr-capa {
+    position: absolute;
+    inset: 0;
+  }
+  /* La capa nueva llega ENCIMA de la anterior: se funde y se asienta (de 1.06 a 1). Al terminar, la vieja se quita. */
+  .vr-capa[data-nueva="true"] {
+    animation: vr-foto-entra 560ms var(--ease-cayla) both;
+  }
+  .vr-par {
+    position: absolute;
+    inset: -3%;
+    transform: translate3d(var(--vr-px, 0px), var(--vr-py, 0px), 0);
+    transition: transform 420ms var(--ease-cayla);
+  }
+  /* Un destello cálido que cruza la foto UNA vez al abrir. */
+  .vr-foto::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--color-papel) 55%, transparent) 50%, transparent 62%);
+    /* En reposo el destello está FUERA de la foto (a la derecha); `backwards` lo trae desde la izquierda y al terminar vuelve aquí. */
+    transform: translateX(110%);
+    animation: vr-destello 1000ms var(--ease-cayla) 520ms backwards;
+  }
+  .vr-muestra {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    z-index: 2;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-papel) 88%, transparent);
+    padding: 3px 9px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--vr-t80, var(--color-tinta));
+    animation: vr-dato-entra 360ms var(--ease-cayla) 420ms backwards;
+  }
+  .vr-pie-foto {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 12px;
+    min-height: 24px;
+  }
+  .vr-pie-foto .vr-nom {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .vr-pie-foto .vr-est {
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .vr-pista {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--vr-t60, var(--color-tinta));
+  }
+  @media (hover: none) {
+    .vr-pista {
+      display: none;
+    }
+  }
+  /* La descripción de la prenda, bajo la foto (Felipe, 2026-10-06: no se veía en ninguna parte). Es de la prenda y no del color: una línea
+     la separa del pie de la foto. */
+  .vr-desc {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .vr-desc .vr-rotulo {
+    display: block;
+    font-size: 10.5px;
+    color: var(--vr-t60, var(--color-tinta));
+  }
+  .vr-desc p {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+
+  /* ---- La matriz ---- */
+  .vr-mx {
+    position: relative;
+    isolation: isolate;
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    padding: 14px 14px 10px;
+    animation: vr-sube 560ms var(--ease-cayla) 200ms backwards;
+  }
+  /* El brillo que sigue al puntero (solo mouse): un halo tibio, de terracota muy tenue, detrás de las celdas. */
+  .vr-mx::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: var(--vr-brillo, 0);
+    transition: opacity 360ms var(--ease-cayla);
+    background: radial-gradient(260px circle at var(--vr-mx, 50%) var(--vr-my, 0%), color-mix(in srgb, var(--color-rojo) 9%, transparent), transparent 70%);
+  }
+  .vr-mx-cab {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+  .vr-mx-cab .vr-rotulo {
+    display: block;
+    font-size: 10.5px;
+    color: var(--vr-t60, var(--color-tinta));
+  }
+  .vr-estado {
+    display: block;
+    min-height: 22px;
+    font-size: 13px;
+    line-height: 22px;
+    color: var(--color-taupe);
+  }
+  .vr-estado b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .vr-estado .vr-cod {
+    border-radius: 6px;
+    background: var(--color-hueso);
+    padding: 2px 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--vr-t80, var(--color-tinta));
+  }
+  .vr-estado .vr-fl {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    color: var(--vr-t80, var(--color-tinta));
+  }
+  .vr-estado .vr-quitar {
+    font-weight: 600;
+    color: var(--color-rojo-profundo);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .vr-gran {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-align: right;
+  }
+  .vr-gran b {
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 0.9;
+  }
+  .vr-gran b[data-cero="true"] {
+    color: var(--vr-t35);
+  }
+  .vr-gran .vr-gran-txt {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    line-height: 1.25;
+    text-align: left;
+    color: var(--vr-t60);
+  }
+  .vr-aviso {
+    margin: 0 0 10px;
+    border-radius: var(--radius-lg);
+    background: var(--color-hueso);
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--vr-t80);
+  }
+  .vr-aviso b {
+    font-weight: 600;
+  }
+
+  .vr-grid {
+    --vr-nt: 3;
+    display: grid;
+    gap: 5px;
+  }
+  .vr-fila {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(118px, 1.35fr) repeat(var(--vr-nt), minmax(50px, 1fr)) 56px;
+    gap: 6px;
+    align-items: stretch;
+    border-radius: 12px;
+  }
+  .vr-fila.vr-cab-t {
+    align-items: end;
+  }
+  /* La fila alumbrada: un barrido tenue de izquierda a derecha detrás de sus celdas. */
+  .vr-fila[data-color]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--color-rojo) 6%, transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 360ms var(--ease-cayla);
+  }
+  .vr-fila[data-activa="true"]::before {
+    transform: scaleX(1);
+  }
+  .vr-fila > * {
+    position: relative;
+    z-index: 1;
+  }
+  .vr-rcolor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    border-radius: 10px;
+    padding: 0 8px;
+    text-align: left;
+    transition: background-color 220ms var(--ease-cayla);
+  }
+  .vr-rcolor:hover {
+    background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+  }
+  .vr-rcolor[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+  }
+  .vr-sw {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent);
+    transition: transform 320ms var(--ease-cayla), box-shadow 320ms var(--ease-cayla);
+  }
+  /* El swatch crece al alumbrarse su fila; el del color que está en la foto lleva un anillo que se dibuja. */
+  .vr-fila[data-activa="true"] .vr-sw {
+    transform: scale(1.14);
+  }
+  .vr-fila[data-fijada="true"] .vr-sw {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 16%, transparent), 0 0 0 2px var(--color-papel), 0 0 0 3.5px var(--color-tinta);
+  }
+  .vr-rcolor .vr-n {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .vr-rcolor .vr-s {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--vr-t60);
+  }
+  .vr-ct {
+    border-radius: 8px;
+    padding: 4px 0;
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vr-t60);
+    transition: background-color 220ms var(--ease-cayla), color 220ms var(--ease-cayla);
+  }
+  button.vr-ct:hover {
+    background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+  }
+  .vr-ct[data-activa="true"] {
+    color: var(--color-tinta);
+  }
+  .vr-ct[aria-pressed="true"] {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .vr-ct small {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.1;
+    color: var(--vr-t45);
+  }
+  .vr-ct[aria-pressed="true"] small {
+    color: color-mix(in srgb, var(--color-crema) 75%, transparent);
+  }
+  .vr-ct.vr-tt {
+    cursor: default;
+    color: var(--vr-t45);
+  }
+
+  .vr-cel {
+    position: relative;
+    display: flex;
+    min-height: 40px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 1px solid var(--color-sand);
+    border-radius: 10px;
+    background: var(--color-papel);
+    transition: border-color 220ms var(--ease-cayla), background-color 220ms var(--ease-cayla), box-shadow 220ms var(--ease-cayla), transform 220ms var(--ease-cayla), opacity 260ms var(--ease-cayla);
+    /* La OLA: cada celda entra según su distancia a la esquina de arriba a la izquierda (`--vr-i` = fila + columna). */
+    animation: vr-celda-entra 520ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--vr-i, 0) * 34ms + 320ms);
+  }
+  .vr-cel:hover {
+    border-color: var(--vr-t45);
+    transform: translateY(-1px);
+  }
+  .vr-cel .vr-v {
+    font-size: 15.5px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .vr-cel .vr-barra {
+    width: 62%;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--color-sand);
+  }
+  .vr-cel .vr-barra i {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--color-taupe);
+    transform: scaleX(var(--vr-n, 0));
+    transform-origin: left;
+    transition: transform 520ms var(--ease-cayla);
+    animation: vr-barra 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--vr-i, 0) * 34ms + 560ms);
+  }
+  .vr-cel[data-cero="true"] {
+    background: transparent;
+  }
+  .vr-cel[data-cero="true"] .vr-v {
+    color: var(--vr-t35);
+  }
+  .vr-cel[data-cero="true"] .vr-barra {
+    visibility: hidden;
+  }
+  .vr-cel[data-desconocida="true"] .vr-v {
+    color: var(--vr-t35);
+  }
+  .vr-cel[data-desconocida="true"] .vr-barra {
+    visibility: hidden;
+  }
+  .vr-cel[data-inactiva="true"] {
+    opacity: 0.5;
+  }
+  /* Esa prenda no existe en esa talla: rayado, igual que `RAYADO_FUERA` de Editar producto. */
+  .vr-hueco {
+    min-height: 40px;
+    border: 1px dashed var(--color-sand);
+    border-radius: 10px;
+    background: repeating-linear-gradient(135deg, var(--color-sand) 0 2px, transparent 2px 6px);
+    animation: vr-celda-entra 520ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--vr-i, 0) * 34ms + 320ms);
+  }
+  .vr-cel .vr-pr {
+    font-size: 9.5px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--color-ambar);
+  }
+  .vr-cel[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--color-rojo) 7%, var(--color-papel));
+    box-shadow: inset 0 0 0 1.5px var(--color-tinta);
+  }
+  .vr-cel .vr-ok {
+    position: absolute;
+    right: -6px;
+    top: -6px;
+    z-index: 2;
+    display: none;
+    width: 16px;
+    height: 16px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .vr-cel[aria-pressed="true"] .vr-ok {
+    display: grid;
+    animation: vr-pop 200ms var(--ease-cayla) backwards;
+  }
+  /* La onda que sale de donde se tocó (se crea al hacer clic y se quita sola). Va en su propia caja para no recortar el check. */
+  .vr-ondas {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .vr-onda {
+    position: absolute;
+    left: var(--vr-ox, 50%);
+    top: var(--vr-oy, 50%);
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-rojo) 30%, transparent);
+    animation: vr-onda 560ms var(--ease-cayla) both;
+  }
+  /* La cruz: con el mouse sobre una celda, lo que no está en su fila ni en su columna baja un poco. */
+  .vr-grid[data-cruz="true"] .vr-cel:not([data-en-cruz="true"]) {
+    opacity: 0.5;
+  }
+  .vr-tot {
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-taupe);
+  }
+  .vr-ayuda-sede {
+    margin-top: 8px;
+    padding: 0 4px;
+    font-size: 12px;
+    color: var(--vr-t60);
+  }
+
+  /* ---- El pie fijo (`pie-hoja-fijo`) ---- */
+  .vr-pie {
+    margin-top: 18px;
+    animation: vr-sube 520ms var(--ease-cayla) 260ms backwards;
+  }
+  .vr-pie .vr-motivo {
+    display: flex;
+    flex-basis: 100%;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    color: var(--vr-t60);
+    animation: vr-dato-entra 260ms var(--ease-cayla) backwards;
+  }
+  .vr-pie .vr-motivo svg {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    color: var(--color-taupe);
+  }
+  .vr-botones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .vr-botones .vr-espacio {
+    flex: 1;
+  }
+  .vr-botones [data-sin-unidades="true"] {
+    opacity: 0.6;
+  }
+  .vr-texto {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    animation: vr-texto-entra 280ms var(--ease-cayla) backwards;
+  }
+  .vr-cuenta {
+    display: inline-grid;
+    height: 20px;
+    min-width: 20px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--color-tinta);
+    padding: 0 6px;
+    font-size: 11px;
+    letter-spacing: 0;
+    color: var(--color-crema);
+    animation: vr-pop 220ms var(--ease-cayla) backwards;
+  }
+  .vr-texto-cambia {
+    display: inline-block;
+    animation: vr-texto-entra 260ms var(--ease-cayla) backwards;
+  }
+
+  /* ---- Celular: una columna, foto como cinta, pie en 2 × 2 ---- */
+  @media (max-width: 639px) {
+    .vr-cuerpo {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .vr-lado {
+      position: static;
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+    .vr-foto {
+      aspect-ratio: 1;
+    }
+    .vr-pie-foto {
+      margin-top: 0;
+    }
+    .vr-muestra {
+      display: none;
+    }
+    .vr-pista {
+      display: none;
+    }
+    /* Bajo la cinta de foto + color, a todo el ancho (en la columna de 96 px se partía palabra por palabra). */
+    .vr-desc {
+      grid-column: 1 / -1;
+      margin-top: 0;
+    }
+    .vr-meta .vr-sep {
+      border-left: 0;
+      padding-left: 0;
+    }
+    /* En el celular la cifra va PRIMERO y a la izquierda, y el rótulo con su ayuda debajo: lado a lado, el rótulo se partía en tres líneas. */
+    .vr-mx-cab {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .vr-gran {
+      text-align: left;
+    }
+    .vr-gran b {
+      font-size: 32px;
+    }
+    .vr-gran .vr-gran-txt {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0 6px;
+    }
+    .vr-fila {
+      grid-template-columns: minmax(96px, 1.2fr) repeat(var(--vr-nt), minmax(40px, 1fr));
+    }
+    .vr-fila .vr-ctot {
+      display: none;
+    }
+    .vr-rcolor {
+      gap: 8px;
+      padding: 0 4px;
+    }
+    .vr-rcolor .vr-s {
+      display: none;
+    }
+    .vr-cel,
+    .vr-rcolor {
+      min-height: 44px;
+    }
+    .vr-botones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .vr-botones .vr-espacio {
+      display: none;
+    }
+  }
+}
+
+/* ---- Movimiento: todo en `backwards`/`both` y con `--ease-cayla`; ninguno se repite ---- */
+@keyframes vr-barrido {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.2;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+@keyframes vr-dato-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+@keyframes vr-sube {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+@keyframes vr-foto-entra {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes vr-destello {
+  from {
+    transform: translateX(-110%);
+  }
+}
+@keyframes vr-celda-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.94);
+  }
+}
+@keyframes vr-barra {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes vr-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes vr-onda {
+  from {
+    opacity: 0.9;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(16);
+  }
+}
+@keyframes vr-texto-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vr-titulo,
+  .vr-meta .vr-dato,
+  .vr-lado,
+  .vr-foto::after,
+  .vr-capa[data-nueva="true"],
+  .vr-muestra,
+  .vr-mx,
+  .vr-cel,
+  .vr-hueco,
+  .vr-cel .vr-barra i,
+  .vr-cel[aria-pressed="true"] .vr-ok,
+  .vr-onda,
+  .vr-pie,
+  .vr-pie .vr-motivo,
+  .vr-texto,
+  .vr-cuenta,
+  .vr-texto-cambia {
+    animation: none !important;
+  }
+  .vr-par,
+  .vr-fila[data-color]::before,
+  .vr-sw,
+  .vr-cel,
+  .vr-cel .vr-barra i,
+  .vr-mx::before {
+    transition: none !important;
+  }
+  .vr-onda {
+    display: none;
+  }
+}

@@ -35,9 +35,9 @@ import {
   resumirOperacion,
   textoCantidadOperacion,
   textoApartado,
+  parDeOperacion,
   plegarBajadas,
   resumirBajadas,
-  esOperacionInterna,
   unidades,
   ventasAnuladas,
   verboDelResponsable,
@@ -158,24 +158,28 @@ describe("etiquetaMovimiento", () => {
     const par = (sububicacion: Movimiento["sububicacion"], sububicacionDestino: Movimiento["sububicacionDestino"]) =>
       etiquetaMovimiento(movimiento({ ...interno, sububicacion, sububicacionDestino }));
 
-    it("almacén → piso es «Bajada al piso» y piso → almacén es «Retiro del piso»", () => {
-      expect(par(almacen, piso)).toBe("Bajada al piso");
-      expect(par(piso, almacen)).toBe("Retiro del piso");
+    it("almacén → piso es «Colgada en piso» y piso → almacén es «Guardada en almacén»", () => {
+      expect(par(almacen, piso)).toBe("Colgada en piso");
+      expect(par(piso, almacen)).toBe("Guardada en almacén");
+    });
+
+    it("entrar a la cuarentena es reportar una dañada y salir al almacén es «se arregló» (ADR-0328 act. 10: nadie más escribe esos pares)", () => {
+      expect(par(piso, cuarentena)).toBe("Dañado · reportada en el piso");
+      expect(par(almacen, cuarentena)).toBe("Dañado · reportada en el almacén");
+      expect(par(cuarentena, almacen)).toBe("Dañado · se arregló"); // nunca vuelve al piso directo: no es una bajada
     });
 
     it("cualquier otro par se llama «Movido dentro de la sede»: no afirma una bajada ni un retiro que no fueron", () => {
       expect(par(cuarentena, piso)).toBe("Movido dentro de la sede"); // fn_bajadas_del_piso tampoco la cuenta como bajada
-      expect(par(cuarentena, almacen)).toBe("Movido dentro de la sede"); // nunca estuvo en el piso: no es un retiro
       expect(par(null, almacen)).toBe("Movido dentro de la sede");
-      expect(par(piso, cuarentena)).toBe("Movido dentro de la sede");
       expect(par(rackA, rackB)).toBe("Movido dentro de la sede"); // el Taller no tiene piso
       expect(par(almacen, null)).toBe("Movido dentro de la sede");
     });
 
     it("«interno» se decide por la estructura (la categoría), no por el texto del motivo (ADR-0203)", () => {
       // Una fila interna almacén → piso escrita con otro motivo es igual una bajada: la misma que ve fn_bajadas_del_piso.
-      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: "activacion_piso_almacen", sububicacion: almacen, sububicacionDestino: piso }))).toBe("Bajada al piso");
-      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: null, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Retiro del piso");
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: "activacion_piso_almacen", sububicacion: almacen, sububicacionDestino: piso }))).toBe("Colgada en piso");
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: null, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Guardada en almacén");
       // Y el motivo `movimiento_interno` fuera de la categoría interna no se vuelve bajada por su texto.
       expect(etiquetaMovimiento(movimiento({ motivo: "movimiento_interno", categoria: "ajuste", tipo: "ajuste", sububicacion: almacen, sububicacionDestino: piso }))).toBe(
         "Movido dentro de la sede"
@@ -203,7 +207,7 @@ describe("etiquetaConDireccion", () => {
     expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Salida · Traslado enviado");
   });
 
-  it("dentro de la sede no entra ni sale nada: dice «Bajada al piso» o «Retiro del piso», sin prefijo", () => {
+  it("dentro de la sede no entra ni sale nada: dice «Colgada en piso» o «Guardada en almacén», sin prefijo", () => {
     const m = movimiento({
       categoria: "interno",
       motivo: "movimiento_interno",
@@ -211,7 +215,7 @@ describe("etiquetaConDireccion", () => {
       sububicacion: { id: "s1", nombre: "Almacén de tienda", tipo: "almacen_tienda" },
       sububicacionDestino: { id: "s2", nombre: "Piso de venta", tipo: "piso_venta" },
     });
-    expect(etiquetaConDireccion(m)).toBe("Bajada al piso");
+    expect(etiquetaConDireccion(m)).toBe("Colgada en piso");
   });
 
   it("entrada y salida llevan su propio prefijo delante del proceso", () => {
@@ -757,7 +761,7 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
     // El cambio está en los dos filtros (es lo que se ve al tocar cada uno): 4 + 2 = 6, pero son 5 operaciones distintas.
     expect(lima.entrada.operaciones).toBe(4);
     expect(lima.salida.operaciones).toBe(2);
-    expect(Object.keys(lima).sort()).toEqual(["ajuste", "entrada", "interno", "salida", "todos", "transferencia"]);
+    expect(Object.keys(lima).sort()).toEqual(["ajuste", "cliente", "colgada", "entrada", "guardada", "interno", "llegada", "salida", "todos", "transferencia", "traslado", "venta"]);
   });
 
   it("singular y plural de la unidad", () => {
@@ -770,14 +774,14 @@ describe("las cifras de la tienda (fn_movimientos_resumen_procesos)", () => {
 
 describe("el buscador entiende los nombres de los procesos", () => {
   it("una palabra que nombra un proceso se vuelve su filtro, con o sin tildes ni mayúsculas", () => {
-    expect(filtroDePalabra("venta")).toEqual({ cat: "salida", proc: "venta", etiqueta: "Ventas" });
+    expect(filtroDePalabra("venta")).toEqual({ cat: "venta", proc: null, etiqueta: "Ventas" });
     expect(filtroDePalabra("  Traslados ")).toEqual({ cat: "transferencia", proc: null, etiqueta: "Traslados" });
-    expect(filtroDePalabra("DEVOLUCIÓN")).toEqual({ cat: "entrada", proc: "devolucion", etiqueta: "Devoluciones" });
-    expect(filtroDePalabra("stock   inicial")).toEqual({ cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" });
+    expect(filtroDePalabra("DEVOLUCIÓN")).toEqual({ cat: "cliente", proc: "devolucion", etiqueta: "Devoluciones" });
+    expect(filtroDePalabra("stock   inicial")).toEqual({ cat: "llegada", proc: "carga_inicial", etiqueta: "Stock inicial" });
   });
 
-  it("«cambio» filtra solo por proceso: vive en Entradas y en Salidas", () => {
-    expect(filtroDePalabra("cambios")).toEqual({ cat: null, proc: "cambio", etiqueta: "Cambios" });
+  it("«cambio» cae en «cambios y devoluciones» (el cliente) con su proceso: ya no hace falta dejarlo sin tipo", () => {
+    expect(filtroDePalabra("cambios")).toEqual({ cat: "cliente", proc: "cambio", etiqueta: "Cambios" });
   });
 
   it("con un número detrás, o una prenda, sigue siendo una búsqueda", () => {
@@ -904,18 +908,41 @@ describe("ADR-0241: apartados, bajadas plegadas y «Hoy»", () => {
     const plegado = items[1];
     if (plegado.tipo !== "bajadas") throw new Error("esperaba bajadas");
     expect(plegado.operaciones).toHaveLength(2);
-    expect(resumirBajadas(plegado.operaciones)).toEqual({ etiqueta: "Bajadas al piso", veces: 2, tallas: 2, unidades: 4, desde: "10:09", hasta: "15:18" });
+    expect(resumirBajadas(plegado.operaciones)).toEqual({ etiqueta: "Colgadas en piso", veces: 2, tallas: 2, unidades: 4, desde: "10:09", hasta: "15:18" });
+  });
+
+  it("las colgadas y las guardadas del día van en mazos SEPARADOS; lo interno de otro par no se pliega", () => {
+    const guardada = (id: string, hora: string, varianteId = "v1") => ({
+      ...interna(id, hora, varianteId),
+      sububicacion: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" },
+      sububicacionDestino: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" },
+    });
+    const danada = (id: string, hora: string, varianteId = "v1") => ({ ...interna(id, hora, varianteId), sububicacionDestino: { id: "sc", nombre: "Cuarentena", tipo: "cuarentena" } });
+    const ops = agruparPorOperacion([interna("a", "17:00"), guardada("b", "16:00"), interna("c", "15:00", "v2"), danada("d", "14:00"), guardada("e", "13:00", "v2"), danada("f", "12:00", "v2")]);
+    const items = plegarBajadas(ops);
+    expect(items.map((i) => (i.tipo === "bajadas" ? i.clave.replace(/-\d{4}-\d{2}-\d{2}$/, "") : "operacion"))).toEqual(["bajadas-colgada", "bajadas-guardada", "operacion", "operacion"]);
+    const [colgadas, guardadas] = items;
+    if (colgadas.tipo !== "bajadas" || guardadas.tipo !== "bajadas") throw new Error("esperaba dos mazos");
+    expect(colgadas.operaciones).toHaveLength(2);
+    expect(guardadas.operaciones).toHaveLength(2);
+    expect(resumirBajadas(guardadas.operaciones).etiqueta).toBe("Guardadas en almacén");
+  });
+
+  it("una colgada y una guardada, cada una sola, no se pliegan", () => {
+    const guardada = { ...interna("b", "10:00"), sububicacion: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" }, sububicacionDestino: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" } };
+    expect(plegarBajadas(agruparPorOperacion([interna("a", "11:00"), guardada])).map((i) => i.tipo)).toEqual(["operacion", "operacion"]);
+  });
+
+  it("parDeOperacion: el par de todas sus filas, o null si mezcla o no es interna", () => {
+    const [col] = agruparPorOperacion([interna("a", "11:00")]);
+    expect(parDeOperacion(col)).toBe("colgada");
+    expect(parDeOperacion({ filas: [...col.filas, venta("x", "11:00")] })).toBeNull();
+    expect(parDeOperacion({ filas: [] })).toBeNull();
   });
 
   it("con una sola bajada no pliega nada", () => {
     const ops = agruparPorOperacion([venta("a", "16:00"), interna("b", "15:18")]);
     expect(plegarBajadas(ops).map((i) => i.tipo)).toEqual(["operacion", "operacion"]);
-  });
-
-  it("una operación con una fila que no es interna no se pliega", () => {
-    const [op] = agruparPorOperacion([interna("b", "15:18")]);
-    expect(esOperacionInterna(op)).toBe(true);
-    expect(esOperacionInterna({ filas: [...op.filas, venta("x", "15:18")] })).toBe(false);
   });
 
   it("«Hoy» por URL o por defecto en el celular; 30 días si no", () => {

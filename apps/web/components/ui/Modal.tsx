@@ -37,6 +37,11 @@ type Props = {
       «Nuevo producto», 2026-10-02). Solo variante «hoja» (la «papel» ya usa esa esquina para la ✕). Sale de la cascada y se coloca
       con `position: absolute`; el título deja libre el ancho que ocupa (`pr-40`). */
   acciones?: ReactNode;
+  /** La ✕ de cerrar arriba a la derecha, en cualquier variante (la «papel» ya la trae). Hoy: la vista rápida de producto, que se abre
+      también en el celular, donde el velo no siempre se alcanza a tocar. Sale de la cascada (`data-sin-cascada`) para no correr el turno. */
+  conCerrar?: boolean;
+  /** Título de 26 px (el de las hojas «de ficha»: una prenda, un cliente) en vez de los 18 px de un formulario corto. */
+  tituloGrande?: boolean;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
@@ -60,7 +65,7 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
 
@@ -102,7 +107,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
     <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 z-50 bg-tinta/35 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
         />
         {/* La posición vive en este contenedor y NO en el panel: una animación
             de entrada usa `transform`, y si la posición también fuera un
@@ -122,7 +127,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             ref={hoja}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
-                ? "flex h-dvh flex-col overflow-hidden bg-tinta"
+                ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
                     `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
@@ -154,19 +159,20 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                 : undefined
             }
           >
-          {variante === "papel" && (
+          {(variante === "papel" || conCerrar) && (
             <button
               type="button"
               onClick={pedirCierre}
               disabled={bloqueado}
               aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+              {...(variante === "papel" ? {} : { "data-sin-cascada": true })}
+              className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
             >
               <X aria-hidden className="h-4 w-4" />
             </button>
           )}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : tituloGrande ? "text-[26px] leading-[1.1]" : "text-lg"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${variante === "hoja" && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>

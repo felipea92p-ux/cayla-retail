@@ -34,7 +34,7 @@
     border-radius: 0.75rem;
     background: var(--color-papel);
     padding: 0.75rem 0.625rem 0.75rem 0.75rem;
-    box-shadow: 0 10px 24px -8px rgb(26 26 24 / 0.18), 0 2px 4px rgb(26 26 24 / 0.06);
+    box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--color-sombra) 18%, transparent), 0 2px 4px color-mix(in srgb, var(--color-sombra) 6%, transparent);
     animation: cayla-aviso-entra 260ms var(--ease-cayla) both;
   }
   .aviso-tarjeta[data-tono="error"] { --c: var(--color-rojo); }
@@ -85,7 +85,7 @@
   /* Cerrar aparece al mirar el aviso: en reposo la tarjeta queda limpia. */
   .aviso-tarjeta:hover .aviso-x,
   .aviso-x:focus-visible { opacity: 1; }
-  .aviso-x:hover { color: var(--color-tinta); background: rgb(26 26 24 / 0.04); }
+  .aviso-x:hover { color: var(--color-tinta); background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
 
   /* ---- Icono: disco + anillo (pista, onda, reloj) + glifo ---- */
   .aviso-ico {
@@ -136,7 +136,7 @@
   .aviso-tarjeta:focus-within .aviso-reloj { animation-play-state: paused, paused; }
 
   /* Proceso: el anillo es un medidor real (--p de 0 a 1) o, sin cifra, un arco que gira. */
-  .aviso-tarjeta[data-tono="proceso"] .aviso-disco { animation: none; fill: rgb(26 26 24 / 0.07); }
+  .aviso-tarjeta[data-tono="proceso"] .aviso-disco { animation: none; fill: color-mix(in srgb, var(--color-tinta) 7%, transparent); }
   .aviso-tarjeta[data-tono="proceso"] .aviso-onda { display: none; }
   .aviso-tarjeta[data-tono="proceso"] .aviso-reloj {
     animation: none;

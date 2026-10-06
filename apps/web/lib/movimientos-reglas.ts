@@ -24,6 +24,14 @@ export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apart
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
+/** Lo que se puede PEDIR en el filtro de tipo: las cinco categorías de siempre y, desde el rediseño (ADR-0353, migración
+ *  20261005160000), los tipos que se ven: `venta`, `colgada` (almacén → piso), `guardada` (piso → almacén), `llegada`,
+ *  `traslado` (el que se envía) y `cliente` (devolución, venta anulada y cambio). Son los mismos que dibuja `tipoVisual`
+ *  (lib/movimientos-tipos.ts): una FILA nunca trae estos como categoría, la trae como «entrada», «interno»…; el tipo que se ve
+ *  sale de su proceso y de su par de lugares. Los enlaces viejos con `?cat=entrada` siguen valiendo. */
+export type CategoriaFiltro = CategoriaMovimiento | "venta" | "colgada" | "guardada" | "llegada" | "traslado" | "cliente";
+export const CATEGORIAS_FILTRO: CategoriaFiltro[] = [...CATEGORIAS, "venta", "colgada", "guardada", "llegada", "traslado", "cliente"];
+
 // Vocabulario de tienda (ADR-0234): «Traslado» como en el menú —nunca «Transferencia», que en el Perú suena a Yape o al
 // banco— y «Dentro de la sede» en vez de «Interno», que no dice nada a quien no conoce el sistema.
 export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
@@ -128,13 +136,20 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
  *  de 19. Sale de con qué `tipo` escribe cada RPC cada motivo: «Cambio» vive en dos (la prenda
  *  devuelta entra, la nueva sale) y por eso está en Entradas y en Salidas. Un proceso que no esté
  *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
-export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
+export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
   entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
   salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
+  // Los tipos que se ven (ADR-0353). Un tipo con un solo proceso no muestra la fila de procesos: no habría qué elegir.
+  venta: ["venta"],
+  colgada: ["movimiento_interno", "activacion_piso_almacen"],
+  guardada: ["movimiento_interno", "activacion_piso_almacen"],
+  llegada: ["traslado_entrada", "traslado_anulado", "recepcion", "produccion", "carga_inicial", "ingreso_regularizado"],
+  traslado: ["traslado_salida"],
+  cliente: ["devolucion", "anulacion_venta", "cambio"],
 };
 
 /** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
@@ -154,11 +169,31 @@ export function etiquetaProceso(motivo: string | null): string {
 /** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0239 suma la vuelta de un envío anulado). */
 const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
 
-/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
+/** Las dos palabras de lo que pasa entre el almacén y el piso (Felipe, 2026-10-05, ADR-0353): lo que se CUELGA en el piso y
+ *  lo que se GUARDA en el almacén. Antes eran «Bajada al piso» y «Retiro del piso». */
+export const ETIQUETA_COLGADA = "Colgada en piso";
+export const ETIQUETA_GUARDADA = "Guardada en almacén";
+
+/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena.
+ *  Entrar a la cuarentena desde el piso o el almacén lo escribe SOLO `reportar_danada`, y salir de ella al almacén SOLO
+ *  `arreglar_prenda_danada` (ADR-0328 act. 10; `mover_interno` ya no se llama desde el navegador, ADR-0240): por eso esos
+ *  pares se nombran como lo que son. Cuarentena → piso no lo escribe nadie y conserva el nombre genérico. */
 const INTERNO_POR_PAR: Record<string, string> = {
-  "almacen_tienda→piso_venta": "Bajada al piso",
-  "piso_venta→almacen_tienda": "Retiro del piso",
+  "almacen_tienda→piso_venta": ETIQUETA_COLGADA,
+  "piso_venta→almacen_tienda": ETIQUETA_GUARDADA,
+  "piso_venta→cuarentena": "Dañado · reportada en el piso",
+  "almacen_tienda→cuarentena": "Dañado · reportada en el almacén",
+  "cuarentena→almacen_tienda": "Dañado · se arregló",
 };
+
+/** ¿Es una colgada en piso (almacén → piso) o una guardada en almacén (piso → almacén)? Por el par exacto de lugares, como
+ *  `INTERNO_POR_PAR`; null si la fila no es ninguna de las dos (otro par, o ni siquiera es interna). */
+export function parDeInterno(m: Pick<Movimiento, "categoria" | "sububicacion" | "sububicacionDestino">): "colgada" | "guardada" | null {
+  if (m.categoria !== "interno") return null;
+  const par = `${m.sububicacion?.tipo ?? ""}→${m.sububicacionDestino?.tipo ?? ""}`;
+  if (INTERNO_POR_PAR[par] === ETIQUETA_COLGADA) return "colgada";
+  return INTERNO_POR_PAR[par] === ETIQUETA_GUARDADA ? "guardada" : null;
+}
 
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
  *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
@@ -189,7 +224,7 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} · ${etiquetaMovimiento(m)}`;
-  // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
+  // Dentro de la tienda no entra ni sale nada: «Colgada en piso» / «Guardada en almacén» ya dicen hacia dónde (ADR-0234).
   if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
   const direccion = ETIQUETA_CATEGORIA[m.categoria];
@@ -453,7 +488,7 @@ export type FiltrosMovimientos = {
   /** `aaaa-mm-dd` inclusivos, en día de Lima. */
   desde?: string;
   hasta?: string;
-  categoria?: CategoriaMovimiento;
+  categoria?: CategoriaFiltro;
   motivo?: string;
   sububicacionId?: string;
 };
@@ -540,7 +575,7 @@ export function filtrosDesdeParams(
     busqueda: p.q?.trim() || undefined,
     desde,
     hasta,
-    categoria: CATEGORIAS.find((c) => c === p.cat),
+    categoria: CATEGORIAS_FILTRO.find((c) => c === p.cat),
     motivo: esMotivo(p.proc) ? p.proc : undefined,
     sububicacionId: sububicacion?.id,
     periodo,
@@ -686,37 +721,49 @@ export function textoApartado(unidades: number, categoria: "apartado" | "liberac
 }
 
 // ---------------------------------------------------------------------------
-// Bajadas plegadas (ADR-0241): en «Todos», las operaciones de piso ↔ almacén del día —no cambian el total— van en UNA
-// fila que se despliega. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía el stock.
+// Mazos (ADR-0241, ADR-0353): en «Todos», las colgadas en piso del día —no cambian el total— van en UN mazo que se abre en
+// abanico, y las guardadas en almacén, en otro. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía
+// el stock. Cada mazo es de UNA sola cosa: antes eran «todo lo de piso ↔ almacén» juntos y la fila no sabía decir si colgaron
+// o guardaron.
 // ---------------------------------------------------------------------------
 
 export type ItemLista =
   | { tipo: "operacion"; op: OperacionMovimiento }
   | { tipo: "bajadas"; clave: string; operaciones: OperacionMovimiento[] };
 
-/** Una operación es «de piso ↔ almacén» si todas sus filas lo son (una bajada escaneada de 12 tallas, un retiro). */
-export function esOperacionInterna(op: Pick<OperacionMovimiento, "filas">): boolean {
-  return op.filas.length > 0 && op.filas.every((m) => m.categoria === "interno");
+/** Colgada o guardada, si TODAS las filas de la operación son de ese mismo par (`parDeInterno`); null si es de otro par
+ *  (cuarentena, un rack del Taller), si mezcla pares o si ni siquiera es interna. */
+export function parDeOperacion(op: Pick<OperacionMovimiento, "filas">): "colgada" | "guardada" | null {
+  const pares = new Set(op.filas.map((m) => parDeInterno(m)));
+  const [par] = pares;
+  return pares.size === 1 && par ? par : null;
 }
 
-/** Las operaciones de UN día, con las de piso ↔ almacén juntas en un solo ítem puesto donde estaba la más reciente.
- *  Con una sola no se pliega nada: una fila que se despliega para mostrar una fila no ahorra nada. */
+/** Las operaciones de UN día, con las colgadas juntas en un mazo y las guardadas en otro, cada uno puesto donde estaba su
+ *  operación más reciente. Con una sola de un par no se pliega nada: un mazo para mostrar una fila no ahorra nada. Lo
+ *  interno de otro par (cuarentena…) no se pliega: cada una es su fila. */
 export function plegarBajadas(operaciones: readonly OperacionMovimiento[]): ItemLista[] {
-  const internas = operaciones.filter(esOperacionInterna);
-  if (internas.length < 2) return operaciones.map((op) => ({ tipo: "operacion", op }));
-  const items: ItemLista[] = [];
-  let puesto = false;
+  const porPar: Record<"colgada" | "guardada", OperacionMovimiento[]> = { colgada: [], guardada: [] };
   for (const op of operaciones) {
-    if (!esOperacionInterna(op)) items.push({ tipo: "operacion", op });
-    else if (!puesto) {
-      items.push({ tipo: "bajadas", clave: `bajadas-${op.fecha}`, operaciones: internas });
-      puesto = true;
+    const par = parDeOperacion(op);
+    if (par) porPar[par].push(op);
+  }
+  const plegables = (["colgada", "guardada"] as const).filter((par) => porPar[par].length >= 2);
+  const puestos = new Set<string>();
+  const items: ItemLista[] = [];
+  for (const op of operaciones) {
+    const par = parDeOperacion(op);
+    if (!par || !plegables.includes(par)) items.push({ tipo: "operacion", op });
+    else if (!puestos.has(par)) {
+      puestos.add(par);
+      items.push({ tipo: "bajadas", clave: `bajadas-${par}-${op.fecha}`, operaciones: porPar[par] });
     }
   }
   return items;
 }
 
-/** Lo que dice la fila plegada: «Bajadas al piso» si todas lo fueron (lo normal), si no «Movido dentro de la sede»;
+/** Lo que dice la fila plegada: «Colgadas en piso» si todas lo fueron (lo normal), «Guardadas en almacén» si todas fueron
+ *  al revés, si no «Movido dentro de la sede»;
  *  cuántas veces, cuántas tallas, cuántas unidades y entre qué horas (las operaciones llegan de la más nueva a la más
  *  vieja). */
 export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
@@ -729,9 +776,9 @@ export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
 } {
   const filas = operaciones.flatMap((op) => op.filas);
   const etiquetas = new Set(filas.map((m) => etiquetaConDireccion(m)));
-  const soloBajadas = etiquetas.size === 1 && etiquetas.has("Bajada al piso");
+  const unica = etiquetas.size === 1 ? [...etiquetas][0] : null;
   return {
-    etiqueta: soloBajadas ? "Bajadas al piso" : "Movido dentro de la sede",
+    etiqueta: unica === ETIQUETA_COLGADA ? "Colgadas en piso" : unica === ETIQUETA_GUARDADA ? "Guardadas en almacén" : "Movido dentro de la sede",
     veces: operaciones.length,
     tallas: new Set(filas.map((m) => m.varianteId)).size,
     unidades: filas.reduce((s, m) => s + Math.abs(m.cantidad), 0),
@@ -745,8 +792,8 @@ export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
 // ---------------------------------------------------------------------------
 
 /** Un grupo por cada filtro de tipo, más «todos». Una fila cuenta en todos los grupos donde la pantalla la muestra. */
-export type GrupoResumen = "todos" | CategoriaMovimiento;
-export const GRUPOS_RESUMEN: readonly GrupoResumen[] = ["todos", ...CATEGORIAS];
+export type GrupoResumen = "todos" | CategoriaFiltro;
+export const GRUPOS_RESUMEN: readonly GrupoResumen[] = ["todos", ...CATEGORIAS_FILTRO];
 
 export type ProcesoResumen = { proceso: string; operaciones: number; filas: number; entran: number; salen: number; movidas: number };
 export type CifrasGrupo = { operaciones: number; entran: number; salen: number; movidas: number; procesos: ProcesoResumen[] };
@@ -887,21 +934,26 @@ export function unidades(cifra: number): string {
 // inicial») que nombra un proceso se vuelve el filtro de ese tipo; con un número detrás sigue siendo una referencia.
 // ---------------------------------------------------------------------------
 
-type FiltroDePalabra = { cat: CategoriaMovimiento | null; proc: string | null; etiqueta: string };
+type FiltroDePalabra = { cat: CategoriaFiltro | null; proc: string | null; etiqueta: string };
 
 const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly string[] })[] = [
-  { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "salida", proc: "venta", etiqueta: "Ventas" },
+  // Cada palabra lleva al tipo que ahora se ve como botón (ADR-0353), para que el botón quede apretado.
+  { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "venta", proc: null, etiqueta: "Ventas" },
+  // «Traslados» a secas sigue trayendo las dos piernas (lo que llegó y lo que salió): no tiene botón.
   { palabras: ["traslado", "traslados", "transferencia", "transferencias"], cat: "transferencia", proc: null, etiqueta: "Traslados" },
   { palabras: ["ajuste", "ajustes"], cat: "ajuste", proc: null, etiqueta: "Ajustes" },
   { palabras: ["conteo", "conteos"], cat: "ajuste", proc: "conteo", etiqueta: "Conteos" },
   { palabras: ["merma", "mermas"], cat: "ajuste", proc: "merma", etiqueta: "Mermas" },
-  { palabras: ["devolucion", "devoluciones"], cat: "entrada", proc: "devolucion", etiqueta: "Devoluciones" },
-  // «Cambio» vive en Entradas y en Salidas: el filtro va solo por proceso, sin tipo.
-  { palabras: ["cambio", "cambios"], cat: null, proc: "cambio", etiqueta: "Cambios" },
-  { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "entrada", proc: "recepcion", etiqueta: "Recepciones" },
-  { palabras: ["stock inicial", "carga inicial"], cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" },
-  { palabras: ["bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
-  { palabras: ["entrada", "entradas", "llegada", "llegadas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
+  { palabras: ["devolucion", "devoluciones"], cat: "cliente", proc: "devolucion", etiqueta: "Devoluciones" },
+  { palabras: ["cambio", "cambios"], cat: "cliente", proc: "cambio", etiqueta: "Cambios" },
+  { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "llegada", proc: "recepcion", etiqueta: "Recepciones" },
+  { palabras: ["stock inicial", "carga inicial"], cat: "llegada", proc: "carga_inicial", etiqueta: "Stock inicial" },
+  // «bajada» y «retiro» siguen valiendo, con el tipo que ahora se llama «colgada» y «guardada»: es lo que escribía la gente
+  // antes de las palabras nuevas (ADR-0353).
+  { palabras: ["colgada", "colgadas", "bajada", "bajadas"], cat: "colgada", proc: null, etiqueta: "Colgadas en piso" },
+  { palabras: ["guardada", "guardadas", "retiro", "retiros"], cat: "guardada", proc: null, etiqueta: "Guardadas en almacén" },
+  { palabras: ["entrada", "entradas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
+  { palabras: ["llegada", "llegadas"], cat: "llegada", proc: null, etiqueta: "Llegadas" },
   { palabras: ["salida", "salidas"], cat: "salida", proc: null, etiqueta: "Salidas" },
 ];
 

@@ -187,7 +187,7 @@ export function ClientasPanel({
                   aria-current={params.filtro === f.valor ? "page" : undefined}
                 >
                   {f.texto}
-                  {cifras && <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60">{cuentaDelFiltro(cifras, f.valor)}</span>}
+                  {cifras && <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60 dark:opacity-85">{cuentaDelFiltro(cifras, f.valor)}</span>}
                 </Link>
               ))}
             </nav>

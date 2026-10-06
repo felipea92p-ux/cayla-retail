@@ -4,6 +4,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -32,6 +33,9 @@ export type FilaStock = {
    *  (Estampado, Multicolor, Animal print) — la pantalla los dibuja distinto. */
   colorHex: string | null;
   referencia: string;
+  /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
+   *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
+  precio?: number | null;
   categoria: string | null;
   /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
    *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
@@ -91,7 +95,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       `variante_id, cantidad, cantidad_apartada,
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
-         sku, codigo, talla:tallas ( valor ),
+         sku, codigo, precio, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
          producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
@@ -122,7 +126,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
               `variante_id, cantidad,
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
-                 sku, codigo, talla:tallas ( valor ),
+                 sku, codigo, precio, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
                  producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
@@ -155,6 +159,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
+      precio: f.variante?.precio ?? null,
     });
   }
   const separaPisoAlmacen = [...cantidades.values()].some((c) => c.piso !== null);
@@ -238,6 +243,9 @@ export type FilaExistencias = FilaStock & {
   /** `productos.estado` («activo»/«descontinuado»), para la ventana «Eliminar» (ADR-0252). Lo pone la página con
    *  `conEstadoProducto`, de la misma lectura que la marca. Ausente o null = no se pudo leer. */
   estadoProducto?: string | null;
+  /** `productos.descripcion`, para la cabecera del panel de la talla. La pone la página con `conDescripcion`, de la misma lectura
+   *  que la marca. Ausente o null = no tiene, o no se pudo leer. */
+  descripcion?: string | null;
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
@@ -393,27 +401,52 @@ export type PrendaDanada = {
    *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
    *  piso ni lo valida contra este número. */
   precioReferencia: number;
+  /** De dónde llegó (ADR-0328 act. 10): reportada en la tienda, una devolución o un cambio (`origenDeDanada`). */
+  origen: OrigenDanada;
+  /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
+  motivoReporte: string | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
   // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
-  const filas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase
-        .from("prendas_danadas")
-        .select(
-          `id, cantidad, created_at,
-           variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
-        )
-        .eq("ubicacion_id", ubicacionId)
-        .eq("estado", "en_cuarentena")
-        .order("created_at")
-        .order("id")
-        .range(desde, hasta)
-    ),
-    "las prendas dañadas pendientes"
+  const conMotivo = await leerTodas((desde, hasta) =>
+    supabase
+      .from("prendas_danadas")
+      .select(
+        `id, cantidad, created_at, motivo_reporte, cambio_id,
+         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+      )
+      .eq("ubicacion_id", ubicacionId)
+      .eq("estado", "en_cuarentena")
+      .order("created_at")
+      .order("id")
+      .range(desde, hasta)
   );
+  // TEMPORAL — mientras `20261005140000_danadas_reportar_y_se_arreglo.sql` no esté pegada en producción: esta lectura va en el
+  // `Promise.all` de /inventario y `exigir` lanza, así que una web publicada antes que el SQL tumbaría Existencias ENTERA, no solo
+  // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
+  // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón
+  // que `getStockPorUbicacion` con `cantidad_apartada`. Retirar el reintento cuando la migración esté aplicada.
+  const filas =
+    conMotivo.error?.code === COLUMNA_INEXISTENTE
+      ? exigir(
+          await leerTodas((desde, hasta) =>
+            supabase
+              .from("prendas_danadas")
+              .select(
+                `id, cantidad, created_at, cambio_id,
+                 variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+              )
+              .eq("ubicacion_id", ubicacionId)
+              .eq("estado", "en_cuarentena")
+              .order("created_at")
+              .order("id")
+              .range(desde, hasta)
+          ),
+          "las prendas dañadas pendientes"
+        ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
+      : exigir(conMotivo, "las prendas dañadas pendientes");
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -424,5 +457,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     cantidad: f.cantidad,
     creadoEn: f.created_at,
     precioReferencia: f.variante?.precio ?? 0,
+    origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
+    motivoReporte: f.motivo_reporte,
   }));
 }

@@ -128,6 +128,18 @@ export function vueltoDe(pago: PagoAplicado, redondear = false): number {
   return Math.max(0, redondear2(pago.recibido - cobra));
 }
 
+/** Lo que dice la hoja de cobro bajo los billetes frente a lo que se cobra en efectivo (Felipe 2026-10-05): **vuelto** si lo recibido pasa,
+ *  **falta** si no llega y **exacto** si es justo; `null` mientras no se haya dicho cuánto paga (la línea queda invisible, reservando su
+ *  alto). `monto` es la cifra que se muestra: el vuelto, lo que falta o el cobro exacto. La hoja pinta **exacto en verde** y **falta en
+ *  rojo**; el vuelto queda neutro (es información, no un aviso). `vuelto` es el de `vueltoDe` con el mismo redondeo que `aCobrar`. */
+export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto"; monto: number };
+export function lecturaDelRecibido(recibido: number | undefined, aCobrar: number, vuelto: number): LecturaDelRecibido | null {
+  if (recibido === undefined) return null;
+  if (vuelto > 0) return { estado: "vuelto", monto: vuelto };
+  if (recibido < aCobrar) return { estado: "falta", monto: redondear2(aCobrar - recibido) };
+  return { estado: "exacto", monto: aCobrar };
+}
+
 /** Cambia el monto de un medio y reparte «el resto»:
  *  · con DOS medios, el otro toma lo que falta para llegar al total: la cajera parte el cobro (Plin 40) y el efectivo se
  *    llena solo con los 40 restantes; después puede editar cualquiera y el otro se reajusta;

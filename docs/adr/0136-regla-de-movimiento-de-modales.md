@@ -220,3 +220,37 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Por qué se admiten:** cada uno dice algo que cambia («esta tienda está operando», «esto viene en camino», «esto no espera»); se
   apagan solos cuando la señal deja de ser cierta. Nada más del Observatorio se repite.
 - **Dónde vive:** `apps/web/app/estilos/observatorio.css`; con `prefers-reduced-motion`, los tres se detienen.
+
+## Actualización 2026-10-05 — la vista rápida de producto: la única hoja con movimiento rico
+
+- **Qué:** Felipe pidió «todas las animaciones posibles» para la vista rápida de producto (Catálogo ▸ Productos ▸ Grilla, maqueta A «Matriz»,
+  `docs/maquetas/catalogo-modal-producto-2026-10/`). Es la **única hoja del ERP** con movimiento más allá de la cascada de esta regla, y es una
+  decisión suya, no un descuido: una prenda es lo más visual que tiene el sistema y es lo que más se abre en el piso.
+- **Qué se permite, y solo en esa hoja:** el título que se barre de izquierda a derecha; los datos que suben en cascada; la foto que «se asienta»
+  con un destello que la cruza una vez; las celdas de la matriz en **ola diagonal** (cada una a su hora, con su barra que se llena y su cifra que
+  cuenta justo cuando aparece); la foto que cruza y se asienta al cambiar de color; la **cruz** (al pasar el mouse por una celda se alumbra su fila
+  y su columna y el resto baja); el check y la onda al elegir; el texto del botón de etiquetas y el de la cabecera que cambian deslizándose; el
+  paralaje de ±6 px de la foto y un brillo tibio que sigue al puntero sobre la matriz (estos dos solo con mouse).
+- **Lo que NO cambia (los límites son los de siempre):** `--ease-cayla`; **nada con rebote; nada en bucle** (medido: 0 animaciones infinitas);
+  ninguna dura más de ~1,3 s en total (la ola de 45 celdas es la más larga); colores solo con tokens; y con `prefers-reduced-motion` todo se apaga
+  (los efectos que siguen al puntero ni siquiera se montan: `hayPunteroFino()`). Las opacidades y transformaciones usan `backwards`, no `both`,
+  para que el hover pueda mover después lo que la entrada movió. El destello de la foto tiene su estado de reposo FUERA de la foto: con
+  `backwards`, lo que no es el reposo reaparece al terminar (un destello cuyo reposo es «visible» se queda pegado).
+- **Por qué no se generaliza:** otra hoja que quiera lo mismo lo pide con Felipe y se agrega aquí con su alcance. La regla de arriba sigue
+  siendo la de todos los demás modales.
+- **Dónde vive:** `apps/web/app/estilos/vista-rapida.css` (clases `vr-*` y sus `@keyframes`, en `@layer components`) y
+  `components/vista-rapida/` (`VistaRapidaProducto`, `MatrizUnidades`, `FotoVistaRapida`, `movimiento.ts`). Lo único que toca el sistema de modales
+  es `<Modal conCerrar tituloGrande>` (dos opciones nuevas y opcionales: la ✕ visible y un título de 26 px), que no mueve a ningún otro.
+
+## Actualización 2026-10-05 (b) — Movimientos: el sello de cada tipo y su trayecto
+
+- **Qué:** en Movimientos (ADR-0353) cada fila lleva el sello de su tipo, cuyo ícono se mueve **una vez** al entrar a la vista y otra al pasar el mouse por la
+  fila (la bolsa sube, la caja levanta su tapa, el paquete cae, el camión llega…), y un trayecto «Piso → Cliente» con una prenda que viaja de un punto al otro.
+  El **perchero de la colgada se mece** (un péndulo que se asienta, como el cartel de ADR-0301). También cuentan los números de los botones de tipo y se llenan
+  sus barras, las franjas del día suben y las capas del mazo se abren en abanico.
+- **Por qué se admite:** Felipe pidió que se distinguiera «de un vistazo» una venta, una colgada y una guardada, y el movimiento es parte de cómo se reconoce cada una. Es
+  una decisión suya, no un descuido.
+- **Los límites son los de siempre:** `--ease-cayla`, **nada en bucle, nada con rebote**, colores solo de la paleta, y con `prefers-reduced-motion` todo se apaga.
+  Corre al **verse**, así que filtrar una lista nueva vuelve a mover sus sellos (la regla de «buscar o filtrar no re-anima toda la tabla» no se cumple aquí a
+  propósito: cada fila nueva es una fila que aparece).
+- **Dónde vive:** `apps/web/app/estilos/movimientos-sellos.css` (clases `mv-*`) y `components/movimientos/`. No se generaliza.

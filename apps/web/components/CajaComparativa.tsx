@@ -222,7 +222,7 @@ export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) 
         </svg>
         {cursor !== null && cH !== null && cA !== null && (
           <div className="cmp-tip" style={{ left: `${(x(cursor) / W) * 100}%`, top: `${(y(cH) / H) * 100}%` } as CSSProperties}>
-            <span className="opacity-65">hasta las {horaTexto(cursor)}</span>
+            <span className="opacity-65 dark:opacity-85">hasta las {horaTexto(cursor)}</span>
             <span>Hoy <b>{soles(cH)}</b></span>
             <span>Ayer <b>{soles(cA)}</b></span>
             <b className={cH >= cA ? "cmp-tip-sube" : "cmp-tip-baja"}>{cH >= cA ? "▲ +" : "▼ −"}{soles(Math.abs(cH - cA))}</b>

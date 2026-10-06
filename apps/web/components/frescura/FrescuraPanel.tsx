@@ -2,21 +2,20 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CircleHelp, Clock, Info, Layers, Search, Sprout, X } from "lucide-react";
+import { ChevronDown, Info, Layers, Search, Shirt, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 import {
   FILTROS_ESTADO,
-  FRASE_ENCABEZADO,
-  FRASE_SIN_ELLA,
-  QUIZA_MAS,
   SIN_FILTROS,
   TODAS_LAS_CATEGORIAS,
   agrupar,
+  avisoPocasVentas,
   cifrasVista,
   consultaDe,
+  fraseEncabezado,
   detalleVista,
   enLaTabla,
   filaVista,
@@ -24,21 +23,23 @@ import {
   grupoVista,
   hayFiltros,
   muchasSinTemporada,
-  palabraDias,
   pasaFiltros,
   pieVista,
   textoOtrasConPregunta,
   textoRegistro,
   textoUnidades,
+  vistaDeEntrada,
   type AccesoFrescura,
   type ContextoFrescura,
   type FiltroEstado,
+  type GrupoVista,
   type Filtros,
 } from "@/lib/frescura-pantalla";
 import type { FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
 import { bloqueDeDecision, filaDeDecision, notaDelMes } from "@/lib/frescura-decisiones-pantalla";
-import { NivelChip, TextoConNegritas } from "./piezas";
+import { TextoConNegritas } from "./piezas";
+import { FrescuraComoSeLee } from "./FrescuraComoSeLee";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
 import { FrescuraTiendas } from "./FrescuraTiendas";
@@ -67,6 +68,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const params = useSearchParams();
   const router = useRouter();
   const [verTiendas, setVerTiendas] = useState(false);
+  const [comoSeLee, setComoSeLee] = useState(false);
   const botonTiendas = useRef<HTMLButtonElement | null>(null);
   const [pedidos, setPedidos] = useState<Filtros>(() => filtrosDeUrl((k) => params.get(k)));
   const [prendaAbierta, setPrendaAbierta] = useState<string | null>(() => params.get("prenda"));
@@ -91,6 +93,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
 
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
   const muchasSin = muchasSinTemporada(enTabla);
+  // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
+  const avisoPocas = ctx ? avisoPocasVentas(enTabla, datos.sede.nombre) : null;
   const cifras = sede ? cifrasVista(sede.cifras) : null;
   const pie = sede ? pieVista(sede.prendas) : null;
   const abierta = ctx && prendaAbierta ? (enTabla.find((p) => p.clave === prendaAbierta) ?? null) : null;
@@ -107,7 +111,9 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   // si no, el combo decía «Elegir» —que en todo el sistema es «falta elegir»— y la tabla salía vacía sin explicar por qué.
   // El próximo cambio de filtro la borra de la URL.
   const filtros: Filtros = opcionesCategoria.some((o) => o.valor === pedidos.cat) ? pedidos : { ...pedidos, cat: TODAS_LAS_CATEGORIAS };
-  const visibles = enTabla.filter((p) => pasaFiltros(p, filtros));
+  // Lo por decidir va PRIMERO si la persona no pidió otra cosa (Formidable, ley 2): «Ver todas» lo suelta, a un toque.
+  const { primeroLoDecidible, efectivos } = vistaDeEntrada(filtros, cifras?.porDecidir ?? 0);
+  const visibles = enTabla.filter((p) => pasaFiltros(p, efectivos));
 
   const cambiar = (cambio: Partial<Filtros>) => {
     const f = { ...filtros, ...cambio };
@@ -132,6 +138,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   }, [prendaAbierta]);
 
   const registro = datos.registro?.datos ? textoRegistro(datos.registro.datos, datos.sede.id) : null;
+  const gruposDeLectura: GrupoVista[] = ctx ? agrupar(enTabla).map((g) => grupoVista(g.categoriaId, g.nombre, ctx)) : [];
   // Las que no están «por decidir» pero traen una pregunta más chica en «Qué hacer»; las que ya tienen una decisión vigente no
   // preguntan nada: ya se contestó.
   const porDecidirOtras = enTabla.filter((p) => !p.porDecidir && !(p.decision?.vigente ?? false) && p.estado.sugerencias.length > 0).length;
@@ -158,61 +165,23 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       : null;
 
   // ---- La cabecera ----
-  const pieCabecera = datos.esLider ? (
-    // Angosto a propósito: a la derecha van las cuatro cifras; una línea larga las empujaba debajo del título.
-    <p className="max-w-[30rem] text-[13px] leading-relaxed text-taupe">
-      {datos.registro?.fallo ? (
-        <>El registro al colgar no se pudo cargar.</>
-      ) : registro ? (
-        <>
-          {registro.texto} {registro.nivel && registro.nivel !== "solido" && <NivelChip nivel={registro.nivel} />}
-        </>
-      ) : (
-        <>Todavía no hay registro al colgar de esta sede.</>
-      )}{" "}
-      · Ventas a pedido: <b className="font-semibold text-tinta">sin datos todavía</b>
-      {datos.tiendas && datos.tiendas.length > 1 && (
-        <>
-          {" "}
-          ·{" "}
-          <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace text-[13px]">
-            Ver las {datos.tiendas.length} tiendas
-          </button>
-        </>
-      )}
-    </p>
-  ) : undefined;
+  // Solo el atajo a las otras tiendas (líder). El registro al colgar y «Ventas a pedido» (que aún no tiene dato) ya no ocupan la cabecera:
+  // el registro vive en «¿Cómo se lee esto?».
+  const pieCabecera =
+    datos.esLider && datos.tiendas && datos.tiendas.length > 1 ? (
+      <p className="max-w-[30rem] text-[13px] leading-relaxed text-taupe">
+        <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]">
+          Ver las {datos.tiendas.length} tiendas
+        </button>
+      </p>
+    ) : undefined;
 
+  // Dos datos neutros. «Por decidir» NO es una cifra aparte: lo dice la frase de arriba y lo filtra la píldora de abajo (una sola vez).
   const resumen = cifras && (
     <ResumenSede
       sede={datos.sede.nombre}
       cifras={[
-        {
-          valor: cifras.edad,
-          nota: cifras.edadQuizaMas ? QUIZA_MAS : undefined,
-          etiqueta: `${palabraDias(cifras.edad ?? 0)} en el piso, en promedio`,
-          icono: Clock,
-          titulo: `Promedio de lo colgado, sin clásicos ni las que no cuadran${cifras.edadQuizaMas ? ". Alguna prenda llegó sin fecha: el promedio también puede ser más" : ""}`,
-        },
-        {
-          valor: cifras.pctNuevas,
-          unidad: "%",
-          etiqueta: "de lo medido es Nueva",
-          icono: Sprout,
-          titulo: `${cifras.nuevas} de ${cifras.conTramo} unidades que se pueden comparar con su categoría`,
-        },
-        {
-          valor: cifras.porDecidir,
-          nota: cifras.decididas > 0 ? `${cifras.decididas} ya ${cifras.decididas === 1 ? "decidida" : "decididas"}` : undefined,
-          etiqueta: "por decidir",
-          icono: CircleHelp,
-          // Ámbar solo si hay algo esperando a alguien (el contrato de ResumenSede, como Devoluciones y Apartados): un
-          // «0 por decidir» en ámbar llevaba la vista a la única cifra que no pide nada.
-          alerta: cifras.porDecidir > 0,
-          alTocar: () => cambiar({ porDecidir: !filtros.porDecidir, decididas: false }),
-          presionada: filtros.porDecidir,
-          titulo: "Filtrar las que están por decidir",
-        },
+        { valor: enTabla.length, etiqueta: enTabla.length === 1 ? "prenda colgada" : "prendas colgadas", icono: Shirt },
         { valor: cifras.unidades, etiqueta: `${cifras.unidades === 1 ? "unidad" : "unidades"} en el piso`, icono: Layers },
       ]}
     />
@@ -220,7 +189,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={FRASE_ENCABEZADO} pie={pieCabecera}>
+      <EncabezadoPagina sede={datos.sede.nombre} titulo="Frescura del piso" subtitulo={<TextoConNegritas texto={fraseEncabezado(cifras ? cifras.porDecidir : null, avisoPocas !== null)} />} pie={pieCabecera}>
         {resumen}
       </EncabezadoPagina>
 
@@ -272,11 +241,17 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 etiquetaAccesible="Estado"
                 className="w-full min-[480px]:w-56"
               />
-              <button type="button" className="pildora-cayla" aria-pressed={filtros.porDecidir} onClick={() => cambiar({ porDecidir: !filtros.porDecidir, decididas: false })}>
+              {/* Apagar «Por decidir» es pedir ver todas (`todas`): si no, la vista de entrada lo volvería a poner. */}
+              <button
+                type="button"
+                className="pildora-cayla"
+                aria-pressed={efectivos.porDecidir}
+                onClick={() => cambiar(efectivos.porDecidir ? { porDecidir: false, todas: true } : { porDecidir: true, decididas: false, todas: false })}
+              >
                 Por decidir <span className="font-medium tabular-nums">{cifras?.porDecidir ?? 0}</span>
               </button>
               {decisionesOk && (
-                <button type="button" className="pildora-cayla" aria-pressed={filtros.decididas} onClick={() => cambiar({ decididas: !filtros.decididas, porDecidir: false })}>
+                <button type="button" className="pildora-cayla" aria-pressed={filtros.decididas} onClick={() => cambiar({ decididas: !filtros.decididas, porDecidir: false, todas: false })}>
                   Decididas <span className="font-medium tabular-nums">{cifras?.decididas ?? 0}</span>
                 </button>
               )}
@@ -285,13 +260,35 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                   Quitar filtros
                 </button>
               )}
+              <button
+                type="button"
+                className="btn-cayla btn-enlace ml-auto inline-flex min-h-7 items-center text-[13px]"
+                aria-expanded={comoSeLee}
+                aria-controls="frescura-como-se-lee"
+                onClick={() => setComoSeLee((v) => !v)}
+              >
+                ¿Cómo se lee esto?
+                <ChevronDown aria-hidden strokeWidth={1.8} className={`ml-1 h-3.5 w-3.5 transition-transform ${comoSeLee ? "rotate-180" : ""}`} />
+              </button>
             </div>
-            <p className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
-              <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> Los días cuentan solo el tiempo con alguna talla libre colgada.
-              </span>
-            </p>
+            {comoSeLee && (
+              <FrescuraComoSeLee
+                id="frescura-como-se-lee"
+                grupos={gruposDeLectura}
+                esLider={datos.esLider}
+                registro={registro}
+                registroFallo={Boolean(datos.registro?.fallo)}
+                notasDelMes={notasDelMes}
+              />
+            )}
+            {avisoPocas && (
+              <p role="status" className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
+                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  <TextoConNegritas texto={avisoPocas} />
+                </span>
+              </p>
+            )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
@@ -315,75 +312,79 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               </p>
             )}
 
+            {primeroLoDecidible && (
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-sand px-4 py-3 sm:px-5">
+                <span className="text-sm font-semibold text-tinta">
+                  Esperan tu decisión <span className="font-medium tabular-nums text-taupe">· {visibles.length}</span>
+                </span>
+                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13.5px]" onClick={() => cambiar({ todas: true })}>
+                  Ver todas las prendas ({enTabla.length})
+                </button>
+              </div>
+            )}
             {enTabla.length === 0 ? (
-              <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">Todavía no hay prendas colgadas en {datos.sede.nombre}.</p>
+              <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">
+                <b className="font-semibold text-tinta">Todavía no hay prendas colgadas en {datos.sede.nombre}.</b> Cuando bajes mercadería al piso desde Existencias, la verás aquí con su estado.
+              </p>
             ) : visibles.length === 0 ? (
               <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">
-                Ninguna prenda con estos filtros.{" "}
-                <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                  Quitar filtros
-                </button>
+                {filtros.porDecidir && !hayFiltros({ ...filtros, porDecidir: false }) ? (
+                  <>
+                    <b className="font-semibold text-tinta">{avisoPocas === null ? "Nada por decidir: todo en orden." : "Nada por decidir por ahora."}</b> Las prendas que lleven mucho tiempo sin venderse aparecerán aquí.{" "}
+                    <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => cambiar({ porDecidir: false, todas: true })}>
+                      Ver todas las prendas
+                    </button>
+                  </>
+                ) : filtros.decididas && !hayFiltros({ ...filtros, decididas: false }) ? (
+                  <>
+                    <b className="font-semibold text-tinta">Todavía no anotaste ninguna decisión.</b> Cuando decidas qué hacer con una prenda, la verás aquí con cómo le va.{" "}
+                    <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
+                      Quitar filtros
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Ninguna prenda con estos filtros.{" "}
+                    <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
+                      Quitar filtros
+                    </button>
+                  </>
+                )}
               </p>
             ) : (
               agrupar(visibles).map((g) => {
-                const cab = grupoVista(g.categoriaId, g.nombre, ctx!);
-                return (
+                                return (
                   <Fragment key={g.categoriaId}>
                     <div className="border-t border-sand px-4 pb-3 pt-4 sm:px-5">
                       <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
                         <h2 className="font-display text-[20px] leading-tight sm:text-[22px]">
-                          {cab.nombre}
+                          {g.nombre}
                           <span className="ml-1.5 font-sans text-[12.5px] font-medium text-taupe">
                             {g.prendas.length} {g.prendas.length === 1 ? "prenda" : "prendas"}
                           </span>
                         </h2>
-                        <p className="min-w-0 flex-[1_1_100%] text-[13px] sm:flex-[1_1_420px] sm:text-[13.5px]">
-                          {cab.comparacion} {cab.nivel && cab.nivel !== "solido" && <NivelChip nivel={cab.nivel} />}
-                        </p>
-                        {cab.escala.length > 0 && (
-                          <p className="flex w-full flex-wrap gap-x-1 text-[11.5px] text-taupe">
-                            {[
-                              ...cab.escala.map((e) => (
-                                <span key={e.nombre}>
-                                  <b className="font-semibold text-tinta">{e.nombre}</b> {e.rango}
-                                </span>
-                              )),
-                              ...(cab.base ? [<span key="base">{cab.base}</span>] : []),
-                            ].map((trozo, i) => (
-                              <Fragment key={i}>
-                                {i > 0 && <span aria-hidden>·</span>}
-                                {trozo}
-                              </Fragment>
-                            ))}
-                          </p>
-                        )}
-                        {cab.cayla !== null && (
-                          <p className="w-full text-[12.5px] text-taupe">
-                            <b className="font-semibold text-tinta">Referencia de CAYLA:</b> {cab.cayla}
-                          </p>
-                        )}
                       </div>
                     </div>
                     <div className="overflow-x-auto [scrollbar-width:thin]">
                       <div className={ANCHO_MINIMO_TABLA}>
-                        <div className={`encabezado-tabla-cayla hidden gap-x-3 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
+                        <div className={`encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 text-[12.5px] text-taupe md:grid ${PLANTILLA_FRESCURA}`} role="presentation">
                           <span>Prenda</span>
-                          <span>
-                            Tallas<small className="block text-[10.5px] leading-tight">piso · almacén</small>
-                          </span>
-                          <span className="text-right">En el piso</span>
                           <span>Estado</span>
-                          <span>
-                            Rapidez<small className="block text-[10.5px] leading-tight">contra su categoría</small>
-                          </span>
-                          <span className="text-right">
-                            Vendió<small className="block text-[10.5px] leading-tight">30 d en piso</small>
-                          </span>
                           <span>Qué hacer</span>
+                          <span />
                         </div>
                         <div>
                           {g.prendas.map((p) => (
-                            <FrescuraFila key={p.clave} fila={filaVista(p, ctx!)} muchasSinTemporada={muchasSin} onAbrir={() => abrir(p.clave)} decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)} />
+                            <FrescuraFila
+                              key={p.clave}
+                              fila={filaVista(p, ctx!)}
+                              muchasSinTemporada={muchasSin}
+                              onAbrir={() => abrir(p.clave)}
+                              decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)}
+                              marcarAproximado={avisoPocas === null}
+                              apariencia={datos.apariencias[p.clave] ?? null}
+                              categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
+                            />
                           ))}
                         </div>
                       </div>
@@ -398,16 +399,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} {enTabla.length === 1 ? "prenda" : "prendas"} ·{" "}
                 {textoUnidades(visibles.reduce((s, p) => s + p.pisoHoy, 0))} en el piso
               </span>
-              <span className="flex flex-wrap gap-x-3.5 gap-y-1">
-                <span>
-                  <span aria-hidden className="mr-1.5 inline-block h-3 w-0.5 rounded-sm bg-tinta/35 align-[-1px]" />
-                  Por decidir
-                </span>
-                <span>
-                  Tallas: piso · almacén · <b className="font-semibold text-tinta">ap.</b> apartadas
-                </span>
-              </span>
-              {filtros.porDecidir && porDecidirOtras > 0 && (
+              {efectivos.porDecidir && porDecidirOtras > 0 && (
                 <span className="w-full">
                   <TextoConNegritas texto={textoOtrasConPregunta(porDecidirOtras)} />{" "}
                   <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => cambiar({ porDecidir: false })}>
@@ -430,39 +422,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           </>
         )}
       </section>
-
-      <div className="nota-cayla space-y-1.5">
-        <p>
-          <b>Cómo se lee.</b> {FRASE_SIN_ELLA} La comparación es con lo vendido en esta tienda
-          {datos.esLider ? "; la de CAYLA (todas las tiendas juntas) es solo de apoyo" : ""}. «Pocos datos» y «Aceptable» dicen cuánto creerle; sin
-          etiqueta, es sólida. «Trasladar» solo aparece con una comparación sólida y algo en el almacén.
-        </p>
-        {cifras && (
-          <p>
-            <b>Las cifras de arriba.</b> Los días son el promedio de lo colgado, sin clásicos ni las que no cuadran. «% Nuevas» se cuenta sobre lo que se
-            puede comparar ({cifras.nuevas} de {cifras.conTramo} unidades), no sobre todo el piso.
-          </p>
-        )}
-        <p>
-          <b>«Por decidir»</b> son las que llevan tiempo sin venderse o ya pasó su temporada, y nadie anotó todavía qué hizo con ellas. Cuando
-          decides, lo anotas con «Ya decidí»: la prenda sale de esta lista los días que dice su fecha y vuelve si para entonces sigue sin
-          venderse, con cómo le fue. Otras pueden tener una pregunta más chica en «Qué hacer».
-        </p>
-        {notasDelMes.map((n) => (
-          <p key={n}>
-            <b>Lo que ya decidiste.</b> {n} Comparadas con las demás de su categoría, en esos mismos días.
-          </p>
-        ))}
-        <p>
-          <b>Lo apartado para un cliente no está colgado:</b> no envejece ni recibe sugerencias, y cuenta como vendido. Lo que llegó sin fecha (carga
-          inicial, un ajuste) nunca es «Nueva»: no se sabe cuándo llegó. Aquí no se rebaja: la rebaja se decide aparte.
-        </p>
-        <p>
-          {datos.esLider
-            ? "El registro al colgar, las otras tiendas y la referencia de CAYLA los ve solo el líder."
-            : `El registro al colgar y la comparación con las otras tiendas los ve el líder: aquí se mide solo ${datos.sede.nombre}.`}
-        </p>
-      </div>
 
       {abierta && ctx && contextoDecision && (
         <FrescuraDetalle detalle={detalleVista(abierta, ctx)} sede={datos.sede.nombre} volverA={volverA} onClose={() => abrir(null)} decision={contextoDecision} />

@@ -6,6 +6,7 @@ import {
   getColaboradoresInactivos,
   getColaboradoresPendientes,
   getColaboradoresSuspendidos,
+  getDeTurnoHoy,
   getDynamicDisponibles,
   getTerminales,
 } from "@/lib/colaboradores";
@@ -48,6 +49,9 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
     getEscalonAdmin(soyLider),
   ]);
 
+  // El punto verde de Equipo: quién está de turno hoy en cada tienda (tolerado sede por sede, nunca bloquea).
+  const deTurno = veColaboradores ? await getDeTurnoHoy(ubicaciones.filter((u) => u.activo && u.tipo !== "almacen").map((u) => u.id)) : [];
+
   return (
     <ColaboradoresPanel
       colaboradores={colaboradores}
@@ -58,6 +62,9 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
       disponibles={disponibles}
       ubicaciones={ubicaciones}
       terminales={terminales.datos}
+      deTurno={deTurno}
+      ahoraIso={new Date().toISOString()}
+      veActividadModulo={veModulo(persona, "actividad")}
       roles={roles}
       cuentas={cuentas.datos}
       vistaInicial={vista}

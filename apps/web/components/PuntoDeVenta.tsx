@@ -1984,7 +1984,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               <div aria-hidden onClick={() => setMomento("armar")} className="hoja-cobro-velo absolute inset-0 z-30" />
               <section
                 aria-label="Cobro"
-                className="hoja-cobro scroll-cayla absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-y-auto rounded-3xl border border-sand bg-papel px-6 pt-3 pb-4"
+                // La hoja no scrollea: la cabecera y «Confirmar cobro» van fijos y solo el cuerpo de los pasos lo hace, si de verdad
+                // no caben (`HojaDeCobro`). Es un contenedor de tamaño (`container: cobro`) para que se compacte según SU alto.
+                className="hoja-cobro absolute inset-y-3 right-3 z-30 flex w-[min(46rem,calc(100%-1.5rem))] flex-col overflow-hidden rounded-3xl border border-sand bg-papel"
               >
                 {hojaDeCobro(false)}
               </section>
@@ -2077,7 +2079,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                     key={color.clave}
                     ubicacionId={ubicacionId}
                     descripcion={descripcionDePrenda(prendaElegida.referencia, color.color)}
-                    tallas={color.tallas.filter((t) => motivoNoCobrable(t.variante) !== "cobrable").map((t) => t.talla ?? "Única")}
+                    tallas={color.tallas
+                      .filter((t) => motivoNoCobrable(t.variante) !== "cobrable")
+                      .map((t) => ({ talla: t.talla ?? "Única", varianteId: t.variante.varianteId }))}
                     clientaId={clienta?.id ?? null}
                     responsable={responsable}
                   />

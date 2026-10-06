@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, Shirt, Tag } from "lucide-react";
-import { CampoTexto } from "@/components/ui/campos";
+import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, ScanLine, Search, Shirt, Tag, X } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
+import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
+import { FiltrosRapidos } from "@/components/existencias/FiltrosRapidos";
 import { avisar } from "@/components/ui/Avisos";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
@@ -70,6 +71,7 @@ export function FiltrosExistencias({
   orden,
   vista,
   nota,
+  onEscanear,
 }: {
   busqueda: string;
   onTeclear: (texto: string) => void;
@@ -107,6 +109,8 @@ export function FiltrosExistencias({
   vista: ReactNode;
   /** Una aclaración bajo la fila del conteo (la de «Por colgar»). */
   nota?: ReactNode;
+  /** Abre la cámara (`EscanerBusqueda`). Un solo icono junto al buscador, desde `sm`: en el celular ya está el botón fijo de abajo. */
+  onEscanear?: () => void;
 }) {
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
@@ -289,28 +293,28 @@ export function FiltrosExistencias({
     </div>
   );
 
-  const etiquetaBuscar = (
-    <span>
-      Buscar
-      <kbd aria-hidden className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">
-        /
-      </kbd>
-    </span>
-  );
-
   return (
     <div className="space-y-2">
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
+      {/* La caja de buscar de la maqueta (`existencias-tactil-2026-10`, «caja-buscar»): grande, hundida en hueso, con la lupa adentro, la
+          tecla «/» a la derecha y, al lado, escanear (solo el icono) y «Filtros». */}
+      <div className="flex items-center gap-2">
+        <label className="relative min-w-0 flex-1">
+          <span className="sr-only">Buscar producto</span>
+          <Search aria-hidden className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-taupe" strokeWidth={1.8} />
           {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
-          <CampoTexto
-            etiqueta={etiquetaBuscar}
+          <input
             id={ID_BUSCADOR_EXISTENCIAS}
             value={busqueda}
             onChange={(e) => onTeclear(e.target.value)}
             onBlur={onSoltar}
             // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
             onKeyDown={(e) => {
+              if (e.key === "Escape" && busqueda) {
+                // Usa su Escape (borra lo escrito): no lo deja subir a una hoja (useEscapeLibre).
+                e.stopPropagation();
+                onTeclear("");
+                return;
+              }
               if (e.key !== "Enter") return;
               e.preventDefault();
               onEnter();
@@ -319,17 +323,42 @@ export function FiltrosExistencias({
             placeholder={placeholder}
             enterKeyHint="search"
             spellCheck={false}
+            autoComplete="off"
             type="search"
+            className="min-h-[52px] w-full rounded-2xl border border-sand bg-hueso pl-12 pr-12 text-base text-tinta placeholder:text-taupe focus:border-taupe [&::-webkit-search-cancel-button]:hidden"
           />
-        </div>
-        {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control): el botón queda a la altura de la caja. */}
-        <div className="shrink-0">
-          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
-            {" "}
-          </span>
-          <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
-        </div>
+          {busqueda ? (
+            <button
+              type="button"
+              onClick={() => onTeclear("")}
+              aria-label="Borrar búsqueda"
+              className="absolute right-2.5 top-1/2 grid h-[30px] w-[30px] -translate-y-1/2 place-items-center rounded-full bg-sand text-tinta"
+            >
+              <X aria-hidden className="h-4 w-4" />
+            </button>
+          ) : (
+            <kbd aria-hidden title="Atajo: / o Ctrl+K" className="absolute right-3.5 top-1/2 hidden -translate-y-1/2 rounded border border-tinta/15 px-1.5 font-sans text-[11px] text-tinta/45 md:inline">
+              /
+            </kbd>
+          )}
+        </label>
+        {/* Escanear: solo el icono (maqueta aprobada). El nombre va como etiqueta y al pasar el mouse. */}
+        {onEscanear && (
+          <button
+            type="button"
+            onClick={onEscanear}
+            aria-label="Escanear etiqueta"
+            title="Escanear etiqueta"
+            className="hidden h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
+          >
+            <ScanLine aria-hidden className="h-5 w-5" strokeWidth={1.6} />
+          </button>
+        )}
+        <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
       </div>
+
+      {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`): los mismos filtros «Hoy» y «Condición», a un toque. */}
+      {separa && <FiltrosRapidos elegidos={elegidos} conteos={conteos} onCambiar={onCambiar} orden={orden ? { valor: orden.valor, onValor: orden.onValor } : null} />}
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
       {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
@@ -380,6 +409,8 @@ export function FiltrosExistencias({
         </p>
         <div className="flex min-w-0 flex-wrap items-center gap-1 sm:gap-2">
           {/* En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no caben juntos en 375 px. */}
+          {/* Como la maqueta: con las tarjetas (`orden`), ni «Copiar enlace» ni un segundo «Ordenar por»; el orden es «Prioridad | A–Z». */}
+          {!orden && (
           <button
             type="button"
             onClick={copiarEnlace}
@@ -389,8 +420,11 @@ export function FiltrosExistencias({
             <Link2 aria-hidden className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Copiar enlace</span>
           </button>
+          )}
           {vista}
-          {orden && (
+          {/* El sonido de «confirmado» (por equipo): suena al colgar en el piso, subir a almacén, ajustar o reportar una dañada. */}
+          <BotonSonidoConfirmar />
+          {orden && !separa && (
             <div className="min-w-0 rounded-lg bg-sand/50 p-0.5">
               <DesplegablePildora
                 encoger
