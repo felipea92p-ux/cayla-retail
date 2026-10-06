@@ -158,6 +158,10 @@ code{font-size:12.5px;background:var(--hueso);padding:1px 5px;border-radius:4px;
 .accion.sugerida{background:var(--tinta);border-color:var(--tinta);color:var(--papel)}
 .accion.sugerida svg,.accion.sugerida small{color:var(--sand)}
 .accion[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.no-ahora{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.no-ahora li{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--sand);border-radius:999px;padding:4px 10px;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 50%,transparent)}
+.no-ahora li svg{width:14px;height:14px;flex:none}
+.no-ahora li span{color:color-mix(in srgb,var(--tinta) 40%,transparent)}
 .hecho{display:flex;gap:10px;align-items:center;background:var(--t-verde);color:var(--verde);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:500}
 .hecho svg path{stroke-dasharray:24;stroke-dashoffset:24;animation:traza .45s .1s var(--ease) forwards}
 @keyframes traza{to{stroke-dashoffset:0}}
@@ -1072,8 +1076,19 @@ table.t td:first-child{font-weight:600}
         ${S.filtro !== "todo" && marcas.length ? `<div><p class="etq" style="margin-bottom:6px">${esc(SIMBOLO[S.filtro].txt)} en este modelo · ${marcas.length}</p><div class="otras-marcas">${marcas.map(x => `<button aria-pressed="${x.c === c && x.t === t}" data-acc="ir-var" data-c="${x.c}" data-t="${esc(x.t)}"><i style="background:${p.colores[x.c].hex}"></i>${esc(p.colores[x.c].n)} · ${esc(x.t)}${x === marcas[0] ? " · más vendida" : ""}</button>`).join("")}</div></div>` : ""}
         <p class="ayuda">Se vendieron ${unidades(vend)} de esta talla y color en los últimos 14 días · código <span class="num" style="color:var(--tinta)">${codigoVariante(p, c, t)}</span></p>
         <div class="otras"><span class="etq" style="margin-right:4px">Otras sedes</span>${SEDES.map(s => `<span class="${v.otras[s] ? "hay" : ""}">${s} ${v.otras[s]}</span>`).join("")}${v.camino ? `<span class="hay">En camino ${v.camino}</span>` : ""}${pedido ? `<span class="hay">Pedido a ${pedido}</span>` : ""}</div>
-        <div class="acciones">${ACCIONES.map(([k, txt, ic], i) => { const a = estadoAccion(k, v);
-          return `<button class="accion${a.sug ? " sugerida" : ""}" data-acc="accion" data-k="${k}" aria-disabled="${!a.ok}">${ic}<b>${txt} <kbd class="kbd">${i + 1}</kbd></b><small>${esc(a.sub)}</small></button>`; }).join("")}</div>`;
+        ${(() => {
+          // El orden sigue a la talla (2026-10-06, como el ERP): primero lo que necesita, después lo que se puede según dónde está la
+          // prenda, y lo que no se puede ahora al final, chico y con su porqué. La tecla es de la acción, no del lugar.
+          const aquiT = v.piso + v.alm;
+          const lugar = aquiT === 0 ? ["pedir", "ajustar", "ficha", "apartar", "reponer", "retirar", "enviar"]
+            : v.piso === 0 ? ["reponer", "apartar", "enviar", "pedir", "retirar", "ajustar", "ficha"]
+            : ["apartar", "reponer", "retirar", "enviar", "pedir", "ajustar", "ficha"];
+          const lista = ACCIONES.map(([k, txt, ic], i) => ({ k, txt, ic, tecla: i + 1, a: estadoAccion(k, v) }))
+            .sort((x, y) => ((x.a.sug ? 0 : x.a.ok ? 100 : 200) + lugar.indexOf(x.k)) - ((y.a.sug ? 0 : y.a.ok ? 100 : 200) + lugar.indexOf(y.k)));
+          const usables = lista.filter(x => x.a.ok), noAhora = lista.filter(x => !x.a.ok);
+          return `<div class="acciones">${usables.map(({ k, txt, ic, tecla, a }) => `<button class="accion${a.sug ? " sugerida" : ""}" data-acc="accion" data-k="${k}">${ic}<b>${txt} <kbd class="kbd">${tecla}</kbd></b><small>${esc(a.sub)}</small></button>`).join("")}</div>
+          ${noAhora.length ? `<div><p class="etq" style="margin-bottom:6px">No se puede ahora</p><ul class="no-ahora">${noAhora.map(({ txt, ic, a }) => `<li title="${esc(txt)}: ${esc(a.sub)}">${ic}${txt}<span>· ${esc(a.sub.charAt(0).toLowerCase() + a.sub.slice(1))}</span></li>`).join("")}</ul></div>` : ""}`;
+        })()}`;
     } else if (vista === "matriz") {
       const todas = [...new Set(p.colores.flatMap((_, i) => tallasDe(p, i)))];
       cuerpo = `<p class="ayuda">Número grande: en piso. Debajo: en almacén. Toca una casilla para elegir esa talla y color.</p>
@@ -1773,7 +1788,8 @@ table.t td:first-child{font-weight:600}
       e.preventDefault(); const n = p.colores.length; S.panel.c = (S.panel.c + (e.key === "ArrowDown" ? 1 : n - 1)) % n; S.color[p.id] = S.panel.c;
       if (!vr(p, S.panel.c, S.panel.t)) S.panel.t = tallasDe(p, S.panel.c)[0]; S.hecho = null; renderPanel(false); renderLista();
     } else if (/^[1-7]$/.test(e.key)) {
-      panel.querySelectorAll("[data-acc=accion]")[+e.key - 1]?.click();
+      // La tecla es de la acción (su lugar en ACCIONES), no de su posición en pantalla: el orden cambia con la talla.
+      const clave = ACCIONES[+e.key - 1]?.[0]; if (clave) panel.querySelector(`.acciones [data-acc=accion][data-k="${clave}"]`)?.click();
       setTimeout(() => panel.querySelector("input.cant, .p-cuerpo button:not([disabled])")?.focus({ preventScroll:true }), 30);
     }
   });
