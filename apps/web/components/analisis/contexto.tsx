@@ -32,6 +32,9 @@ export type ContextoAnalisis = {
   irA: (vista: VistaAnalisis, opciones?: { foco?: string }) => void;
   /** Abre «Pedir a otra tienda» con esas prendas marcadas, pidiéndoselas a esa tienda. */
   pedir: (prendas: readonly PrendaAnalisis[], origenId: string) => void;
+  /** Si se está mirando «con los datos de hoy» aunque la tienda no cumpla las tres condiciones (ADR-0357, decisión 2). */
+  conDatosDeHoy: boolean;
+  verConDatosDeHoy: (si: boolean) => void;
 };
 
 export const Contexto = createContext<ContextoAnalisis | null>(null);

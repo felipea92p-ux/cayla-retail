@@ -3,6 +3,7 @@ import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getDatosAnalisis } from "@/lib/analisis-datos";
 import { leerVista } from "@/lib/analisis-reglas";
+import { leerDatosDeHoy } from "@/lib/analisis-aviso";
 import type { AccesoAnalisis } from "@/lib/analisis-tipos";
 import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
 
@@ -39,5 +40,5 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
   };
 
   const datos = await getDatosAnalisis(ubicacionActiva);
-  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} />;
+  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} datosDeHoyInicial={leerDatosDeHoy(params.datos)} />;
 }

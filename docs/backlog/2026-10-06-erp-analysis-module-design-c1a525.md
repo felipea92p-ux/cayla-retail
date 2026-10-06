@@ -17,6 +17,13 @@ el repo es público.
 - [x] Documentos: ADR-0357, ADR-0136 (act. 2026-10-06 (b)), enmienda de ADR-0328, `docs/ARQUITECTURA.md` (sección de Análisis) y la lista de
       excepciones de movimiento de `CLAUDE.md`.
 
+- [x] SQL pegado en producción por Felipe (2026-10-06): las cinco huellas coinciden y `parametros_analisis.liquidar_desde` = 60.
+- [x] Puntos que corren por la cinta del flujo al pasar el mouse (pedido de Felipe; ADR-0136 act. 2026-10-06 (b)).
+- [x] «Ver con los datos de hoy» con su aviso fijo (ADR-0357, decisión 2, actualización): en producción ninguna tienda cumple las tres
+      condiciones y la pantalla solo decía «Todavía no». El aviso dice lo primero que falta, con la misma cifra que «Todavía no».
+- [x] **Fuera de la fusión del #850:** los puntos del flujo y «Ver con los datos de hoy» se subieron después de fusionarlo; van en su
+      propio PR, sin SQL.
+
 ### Antes de subir
 
 - [x] **Renumerar el ADR:** `main` ya tenía `docs/adr/0356-chaos-usar-mal-el-sistema-a-proposito.md`; este pasó al 0357 (solo las citas de Análisis).
@@ -49,9 +56,11 @@ el repo es público.
       pendiente de ADR-0245 («Reponer con la lista cargada»). Producción ya recibe el modelo (`/produccion/ordenes?nueva=<producto>`).
 - [ ] **Etiquetas: rebaja con prendas marcadas.** «Liquidar» abre `/etiquetas-de-precio?variantes=` con el precio de hoy. La rebaja (las campañas
       de Atributos ▸ Etiquetas, `components/EtiquetasLista.tsx`) no recibe prendas por URL.
-- [ ] **Limpiar las libs del Análisis viejo**, sin pantalla desde la actividad 1: `lib/analisis-que-hacer.ts`, `resumen-desempeno.ts`,
+- [x] **Limpiar las libs del Análisis viejo**, sin pantalla desde la actividad 1: `lib/analisis-que-hacer.ts`, `resumen-desempeno.ts`,
       `resumen-comparacion.ts` y sus usos en `resumen-inventario.ts` (`getDesempenoInventario`, `getComparacionInventario`, `getFilasComparacion`,
-      `getExactitud`, `getRedPorVariante`), con sus pruebas.
+      `getExactitud`, `getRedPorVariante`), con sus pruebas. **Hecho el 2026-10-06** en `claude/happy-zhukovsky-325b9f`
+      (`docs/backlog/2026-10-06-happy-zhukovsky-325b9f.md`): no hubo que mover nada de `resumen-formato.ts`, porque lo que tomaba de
+      `rotacion.ts` y `resumen-comparacion.ts` también estaba muerto; la RPC se quedó.
   - Arrastran `resumen-lectura.ts` y lo que solo ellos usan de `rotacion.ts`, `resumen-armado.ts`, `resumen-filtros.ts`, `resumen-busqueda.ts` y
     `conteo-varianza.ts` (`exactitudConteos`).
   - Ojo: `resumen-formato.ts` (nueve archivos) les toma tipos y textos a `rotacion.ts` y `resumen-comparacion.ts`: moverlos primero.

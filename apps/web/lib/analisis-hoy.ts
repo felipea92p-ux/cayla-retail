@@ -412,6 +412,38 @@ export function cintaFlujo(xa: number, ya0: number, ya1: number, xb: number, yb0
   return `M${a},${a0} C${m},${a0} ${m},${b0} ${b},${b0} L${b},${b1} C${m},${b1} ${m},${a1} ${a},${a1} Z`;
 }
 
+/**
+ * El eje de una cinta: la curva por su centro, de un lado al otro. Por ahí corren los puntos al pasar el mouse por un camino (Felipe,
+ * 2026-10-06): de la Compra hacia tu tienda, y de tu tienda hacia la otra tienda o hacia «Liquidar». Mismo trazo que `cintaFlujo`.
+ */
+export function ejeCinta(xa: number, ya0: number, ya1: number, xb: number, yb0: number, yb1: number, desplazamiento = 0): string {
+  const m = px((xa + xb) / 2);
+  const a = px((ya0 + ya1) / 2 + desplazamiento);
+  const b = px((yb0 + yb1) / 2 + desplazamiento);
+  return `M${px(xa)},${a} C${m},${a} ${m},${b} ${px(xb)},${b}`;
+}
+
+/**
+ * Por dónde corren los puntos dentro de una cinta: la pastilla «N prendas» tapa el centro (20 de alto), así que en una cinta gruesa
+ * corren dos carriles, uno arriba y otro abajo de ella; en una delgada, por el centro (allí la pastilla tapa solo un tramo).
+ */
+export function carrilesDeCinta(grosor: number, r: number): number[] {
+  const libre = grosor / 2 - r - 1;
+  const fuera = 10 + r + 2;
+  if (libre < fuera) return [0];
+  const d = px(Math.min(libre, Math.max(fuera, grosor * 0.28)));
+  return [-d, d];
+}
+
+/** Lo que tarda un punto en cruzar una cinta, en segundos: ni tan lento que no se note ni tan rápido que maree. */
+export const SEGUNDOS_PUNTO = 1.6;
+
+/** Cuántos puntos corren por una cinta y de qué tamaño: una cinta más gruesa lleva más puntos y más grandes (de 3 a 6). */
+export function puntosDeCinta(grosor: number): { n: number; r: number } {
+  const g = Math.max(0, grosor);
+  return { n: Math.max(3, Math.min(6, Math.round(g / 14) + 3)), r: px(Math.max(2.2, Math.min(4.5, g * 0.16))) };
+}
+
 /** El texto de la pastilla de un camino: «5 prendas», y en el primero, «5 prendas · empieza aquí». */
 export function textoPastilla(c: Pick<CaminoHoy, "prendas" | "primero">): string {
   const n = c.prendas.length;

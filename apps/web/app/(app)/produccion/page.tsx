@@ -12,8 +12,8 @@ import { cifrasResumen, decisionesDeProduccion, demandaDeInsumos, filasDeTela, f
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
-// de Producción, solo parado en el Taller. Quien trabaja en el Taller va directo a Órdenes. El enlace `/produccion` que ya usa el Resumen de Inventario
-// (`lib/resumen-acciones.ts`) sigue resolviendo. Todo se calcula acá, en el servidor, con reglas puras (`lib/produccion-decisiones.ts`).
+// de Producción, solo parado en el Taller. Quien trabaja en el Taller va directo a Órdenes. Todo se calcula acá, en el servidor, con reglas puras
+// (`lib/produccion-decisiones.ts`).
 export default async function ProduccionPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {

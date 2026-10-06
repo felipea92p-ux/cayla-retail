@@ -290,3 +290,10 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `analisis-acaba.css`, `analisis-quieta.css`, `analisis-pedir.css`, `analisis-ficha.css`). Las cifras que cuentan, en
   `components/analisis/AnalisisPantalla.tsx` (`data-cuenta`). No se generaliza: otra pantalla que quiera lo mismo lo pide con Felipe y se agrega
   aquí.
+- **Los puntos del flujo (Felipe, 2026-10-06, después de verlo):** al pasar el mouse (o el foco) por un camino de «Qué hacer hoy», corren puntos
+  del color del camino por su cinta: de la Compra hacia «Tu tienda», y de «Tu tienda» hacia la otra tienda o hacia «Liquidar», para que se lea
+  hacia dónde van las prendas. Es la **única pieza de Análisis que se repite**, y solo mientras el mouse o el foco está encima: al salir, los
+  puntos se van. Velocidad pareja (1,6 s por cruce, sin curva: es un flujo, no una entrada), de 3 a 6 puntos según el grosor, en dos carriles
+  fuera de la pastilla «N prendas». Con `prefers-reduced-motion` no se dibujan. Vive en `PuntosCinta` (`components/analisis/PestanaHoy.tsx`,
+  con `<animateMotion>` de SVG) y la geometría en `ejeCinta` / `carrilesDeCinta` / `puntosDeCinta` (`lib/analisis-hoy.ts`); lo vigila
+  `lib/analisis-movimiento.test.ts` (ningún otro `repeatCount="indefinite"` en Análisis).

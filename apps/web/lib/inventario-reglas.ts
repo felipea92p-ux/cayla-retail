@@ -4,28 +4,6 @@
 
 import { compararTallas } from "./tallas";
 
-/** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
- *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
- *  reserva, no el piso. Bajó de 20 a 10 el 2026-09-17, probando la
- *  pantalla: con 20, casi todo el catálogo de arranque (lotes chicos de
- *  boutique) caía en «Stock bajo» de entrada — el umbral se quedó corto
- *  para distinguir "de verdad crítico" de "recién llegado, en cantidad
- *  normal". La pregunta que resuelve sigue siendo «¿a esta tienda todavía
- *  le queda de dónde sacar si el piso se vacía?», no «¿cuánto hay hoy en
- *  total?» — por eso NO suma piso.
- *
- *  Es distinto de `productos.stock_minimo` (Catálogo), que mira el total de
- *  la RED por modelo y avisa cuándo pedir al proveedor. Este mira el
- *  almacén de UNA tienda y avisa cuándo pedir un traslado. Dos preguntas
- *  distintas, dos números. */
-export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
-
-/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
- *  sin ritmo medible): cuántas sugerir bajar, con un ritmo de 30 días. Existencias NO lo usa: lo que
- *  el piso pide hoy lo decide el motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7). Es deuda de
- *  Análisis (actividad 11). */
-export const UMBRAL_REPOSICION_PISO = 7;
-
 // «Por colgar» y lo que el piso pide hoy ya no se deciden aquí: los decide UN motor, `lib/piso-plan.ts` (ADR-0328 act. 7), y
 // cada talla trae su decisión (`FilaExistencias.planPiso`). Lo que sigue en este archivo es cómo se ORDENA y se AGRUPA lo
 // que ese motor pide, nunca si lo pide. Y cuántas tallas y unidades hay «por colgar» lo cuenta UNA función,
@@ -56,14 +34,13 @@ export function clavePercha(f: { productoId: string; color: string | null }): st
 }
 
 // ============================================================================
-// Umbrales del Resumen (ADR-0101; rehechos en ADR-0121) — los usa
-// `resumen-reglas.ts`. Viven acá, junto a los de piso/almacén, para que "cuánto
-// es poco" tenga una sola casa: ningún componente ni ninguna función de reglas
-// lleva un número suelto. Son el primer número razonable, NO ajustado todavía
-// con meses de venta real (a diferencia de los de arriba, que Felipe corrigió
-// varias veces probando la pantalla): los marcados «por confirmar» son
-// decisiones de negocio que esta implementación tomó por defecto y que Felipe
-// puede cambiar tocando UNA constante.
+// Umbrales de cobertura y de evidencia (nacieron con el Resumen, ADR-0101 y
+// ADR-0121) — los usan `resumen-reglas.ts` (velocidad y bandas de cobertura) y
+// Producción (`produccion-decisiones.ts`, `produccion-decision-reglas.ts`).
+// Viven acá para que "cuánto es poco" tenga una sola casa: ningún componente ni
+// ninguna función de reglas lleva un número suelto. Son el primer número
+// razonable, NO ajustado todavía con meses de venta real: Felipe puede
+// cambiarlos tocando UNA constante.
 // ============================================================================
 
 // --- Bandas de cobertura (días de stock al ritmo del período) ---------------
@@ -71,16 +48,16 @@ export function clavePercha(f: { productoId: string; color: string | null }): st
 /** Cobertura en días o menos = «crítica»: se acaba en los próximos días. */
 export const UMBRAL_COBERTURA_CRITICA_DIAS = 3;
 
-/** Cobertura en días o menos = «atención». Es también el PUNTO DE REPOSICIÓN:
- *  a partir de acá el motor de recomendaciones propone traer más. */
+/** Cobertura en días o menos = «atención». Producción lo usa como el corte de
+ *  «producir ya» (`produccion-decisiones.ts`). */
 export const UMBRAL_COBERTURA_RIESGO_DIAS = 7;
 
-/** Más de esto es «30+ días» en el gráfico de cobertura (banda «alta»). */
+/** Más de esto es «30+ días» (la banda «alta» de `ETIQUETA_BANDA`). */
 export const UMBRAL_COBERTURA_SALUDABLE_DIAS = 30;
 
-/** Más de esto, con baja rotación detrás, es «posible sobrestock» y es el corte
- *  del «capital con cobertura alta». Reemplaza las 12 semanas del ADR-0101: la
- *  referencia de Felipe habla de «> 60 días». */
+/** Más de esto, Producción lo marca «sobrestock» (`produccion-decisiones.ts`).
+ *  Reemplaza las 12 semanas del ADR-0101: la referencia de Felipe habla de
+ *  «> 60 días». */
 export const UMBRAL_COBERTURA_ALTA_DIAS = 60;
 
 // --- Cuánta evidencia hace falta antes de afirmar algo ----------------------
@@ -93,100 +70,11 @@ export const MIN_DIAS_CON_STOCK_VELOCIDAD = 3;
  *  quince días sin venta es una señal; cinco, una racha. */
 export const MIN_DIAS_CON_STOCK_AFIRMAR = 14;
 
-/** Por debajo de esta cantidad no vale la pena hablar de sobrestock. */
-export const MIN_UNIDADES_SOBRESTOCK = 3;
-
-/** Sell-through (% del inventario disponible que se vendió) por debajo de esto,
- *  con evidencia, es baja rotación; por encima del segundo, alta rotación. */
-export const SELL_THROUGH_BAJO_PCT = 20;
-export const SELL_THROUGH_ALTO_PCT = 60;
-
-/** Distribución de sell-through de «Comparar períodos» (2026-09-19): límite SUPERIOR de cada rango, en %, sobre el
- *  porcentaje redondeado al entero → 0–25 · 26–50 · 51–75 · 76–100. El gráfico y sus etiquetas salen de acá. */
-export const RANGOS_SELL_THROUGH_PCT = [25, 50, 75, 100] as const;
-
-/** Desde cuántos puntos porcentuales de diferencia de sell-through entre A y B se destaca como «cambio
- *  relevante» de una variante (subió o bajó al menos esto). */
-export const SELL_THROUGH_CAMBIO_RELEVANTE_PP = 10;
-
-// --- Motor de reposición (por confirmar por Felipe) --------------------------
-
-/** Cuántos días de venta se busca cubrir al reponer. Era 14 en el ADR-0101. */
-export const DIAS_OBJETIVO_COBERTURA = 14;
-
-/** Reserva de seguridad, en días de venta: lo que se vende mientras llega un
- *  traslado (ETA típica de 1–3 días). NO es `productos.stock_minimo` (Catálogo,
- *  por producto y red: avisa cuándo pedir al proveedor) ni los umbrales de
- *  piso/almacén de Existencias (política fija por tienda): es derivada de la
- *  velocidad de cada variante, y por eso no se configura por variante. */
-export const DIAS_RESERVA_SEGURIDAD = 3;
-
-/** El piso debe alcanzar para esta cantidad de días de venta al bajar mercadería. */
-export const DIAS_OBJETIVO_PISO = 7;
-
-/** Si el piso cubre menos que esto (con stock atrás) se sugiere bajar al piso. */
-export const DIAS_PISO_ALERTA = 3;
-
-/** Días de venta propia que una sede conserva al ceder mercadería: lo que ella
- *  misma consideraría «sano» (sobre su punto de reposición) más su reserva.
- *  Así su propio Resumen no le pide la prenda de vuelta al día siguiente. */
-export const DIAS_COBERTURA_MINIMA_ORIGEN = UMBRAL_COBERTURA_RIESGO_DIAS + DIAS_RESERVA_SEGURIDAD;
-
 // --- Lectura de la demanda ---------------------------------------------------
 
-/** «Alta demanda»: entre las variantes con velocidad medible de la sede, las del
- *  percentil más alto… */
-export const ALTA_DEMANDA_PERCENTIL = 0.8;
-/** …siempre que además vendan al menos esto por día (en una sede lenta el
- *  percentil solo no significa «alta»). */
-export const ALTA_DEMANDA_MIN_UDS_DIA = 0.5;
-
-/** Cambio de velocidad contra el período de comparación que se considera
- *  tendencia (en % — por debajo es «estable»). */
-export const TENDENCIA_UMBRAL_PCT = 25;
-
-/** Tendencia de un período (Desempeño, 2026-09-19): 2.ª mitad contra 1.ª. Con menos unidades netas
- *  que esto en TODO el período no se afirma «aceleró»/«desaceleró»: 1 venta contra 2 es un +100% que
- *  no dice nada. Es evidencia, no umbral de cambio (ese es `TENDENCIA_UMBRAL_PCT`). */
-export const TENDENCIA_MIN_UNIDADES = 4;
-
 /** «Ritmo reciente» de Existencias: los últimos N días de venta con que se mide cuánto dura el
- *  stock de hoy (cobertura). Mismo período que el Resumen usa por defecto. */
+ *  stock de hoy (cobertura). */
 export const DIAS_RITMO_RECIENTE = 30;
-
-// --- Comportamiento comercial: piso vs. almacén (Análisis, 2026-09-24) -------
-// Por confirmar por Felipe: son el primer número razonable para separar "cómo
-// responde la variante en piso" de "cuánto inventario total se mantiene", no
-// meses de venta real como las de arriba. Una sola casa para los tres, para no
-// repartir el mismo criterio entre la tabla, el tooltip y la lectura.
-
-/** Una cohorte de unidades que llegó al piso madura (se puede juzgar su sell-through) a partir de
- *  este número de días desde que llegó, o antes si se vendió entera primero. Con menos, penalizaría
- *  a una reposición reciente que todavía no tuvo tiempo de venderse — ver sección 8 del pedido de
- *  Felipe (sell-through de exposición, cohortes FIFO en `resumen-exposicion.ts`). */
-export const SELL_THROUGH_EXPOSURE_WINDOW_DAYS = 7;
-
-/** Ritmo observado con «muestra limitada»: cuando la exposición en piso fue menos de esta fracción
- *  del período completo. El número de ritmo es igual de correcto matemáticamente, pero la UI lo
- *  marca para que no se lea como "vende esto todos los días" cuando apenas tuvo unas horas de
- *  evidencia (ej. 1 de 7 días). Fracción, no días fijos, porque "poco" es relativo al período elegido
- *  (7, 30 o 90 días). */
-export const RITMO_MUESTRA_LIMITADA_FRACCION = 0.5;
-
-/** Rotación total por debajo de esta fracción de la rotación en piso = «responde bien en piso, pero
- *  mantiene mucho inventario total» (sección 15, caso "buen producto + sobrestock"). 0.5 = la mitad
- *  del inventario invertido gira a la mitad de velocidad que lo expuesto — línea razonable para
- *  separar "algo más de colchón en almacén" de "casi todo el inventario duerme atrás". */
-export const SOBRESTOCK_ROTACION_TOTAL_VS_PISO = 0.5;
-
-// --- Exactitud del inventario -------------------------------------------------
-
-/** Un conteo cerrado más antiguo que esto ya no valida el inventario de hoy. */
-export const DIAS_CONTEO_VIGENTE = 30;
-
-/** Por debajo de este % de líneas correctas el conteo no da confianza aunque
- *  sea reciente (misma escala de colores que `tonoExactitud`: < 95 = a mejorar). */
-export const EXACTITUD_ACEPTABLE_PCT = 95;
 
 // --- La miniatura de una prenda ------------------------------------------------
 // Vivía en `inventario-v2.ts` (solo servidor). Se mudó acá, sin cambiar su lógica,
