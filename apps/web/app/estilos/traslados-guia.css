@@ -1,0 +1,271 @@
+/* ==================================================================
+   La guía impresa de un traslado (ADR-0242 D-3; `/inventario/traslados/guia/<id>`, `components/traslados-guia/`).
+
+   Es PAPEL (ADR-0336, regla 3): la hoja lleva `.papel-fijo` y se ve clara también en modo oscuro, como saldrá de la impresora.
+   Un mismo dibujo en dos hojas, según `data-formato`:
+     · termica · el ticket de 80 mm de la caja de la tienda: 72 mm útiles, una columna, el QR al final (maqueta del spike de
+                 septiembre, `docs/maquetas/traslados-conectado-2026-09/spike.html`, «ticket()»).
+     · a4      · la hoja de oficina: el QR arriba a la derecha y las prendas como tabla, con la casilla en su columna.
+   Solo tinta sobre blanco, sin grises ni fondos: una térmica no tiene escala de grises (tramaría lo tenue) y Chrome no imprime
+   fondos. La jerarquía sale del tamaño, del peso y de las reglas. La casilla para anotar es un marco vacío.
+
+   Al imprimir, como la boleta A4 y el cartel del club: `#guia-traslado-print` va pegado a <body> con un portal y se oculta TODO lo
+   demás con `display:none` (no `visibility`: lo oculto seguiría ocupando alto y la térmica sacaría papel en blanco). La térmica
+   usa la página sin nombre (`@page { margin: 0 }`, la del comprobante: el largo lo da el rollo); la A4, la página nombrada `a4`
+   de `globals.css` (A4 con 12 mm).
+   ================================================================== */
+
+.guia-traslado {
+  box-sizing: border-box;
+  /* El blanco del papel: `vidrio` vale blanco dentro de `.papel-fijo` en los dos temas. */
+  background: var(--color-vidrio);
+  color: var(--color-tinta-fija);
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.guia-traslado p,
+.guia-traslado dl,
+.guia-traslado dd,
+.guia-traslado ol {
+  margin: 0;
+}
+.guia-traslado ol {
+  padding: 0;
+  list-style: none;
+}
+.gt-marca {
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
+}
+.gt-titulo {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.gt-numero {
+  font-weight: 700;
+}
+.gt-datos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+}
+.gt-datos dt {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.gt-datos dd {
+  font-weight: 700;
+  text-align: right;
+}
+.gt-instruccion {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gt-prenda {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 3mm;
+  break-inside: avoid;
+}
+.gt-nombre {
+  font-weight: 700;
+}
+.gt-codigo {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+/* La casilla: un marco vacío donde quien recibe escribe cuántas encontró. */
+.gt-casilla {
+  display: block;
+  border: 1px solid var(--color-tinta-fija);
+  border-radius: 1mm;
+}
+.gt-qr {
+  text-align: center;
+}
+.gt-qr svg {
+  display: block;
+}
+.gt-qr-hueco {
+  display: block;
+  border: 1px dashed var(--color-tinta-fija);
+}
+
+/* ---- Térmica de 80 mm: una columna, como el comprobante (`#comprobante-print`) ---- */
+.guia-traslado[data-formato="termica"] {
+  width: 72mm;
+  padding: 3mm 4mm 6mm;
+  font-size: 8.5pt;
+}
+.guia-traslado[data-formato="termica"] .gt-cab {
+  text-align: center;
+}
+.guia-traslado[data-formato="termica"] .gt-marca {
+  font-size: 13pt;
+}
+.guia-traslado[data-formato="termica"] .gt-titulo {
+  font-size: 8pt;
+  margin-top: 0.5mm;
+}
+.guia-traslado[data-formato="termica"] .gt-numero {
+  font-size: 18pt;
+  margin-top: 1mm;
+}
+.guia-traslado[data-formato="termica"] .gt-datos,
+.guia-traslado[data-formato="termica"] .gt-prendas,
+.guia-traslado[data-formato="termica"] .gt-qr {
+  border-top: 1px dashed var(--color-tinta-fija);
+  margin-top: 2.5mm;
+  padding-top: 2.5mm;
+}
+.guia-traslado[data-formato="termica"] .gt-datos {
+  display: grid;
+  gap: 0.8mm;
+}
+.guia-traslado[data-formato="termica"] .gt-prendas ol {
+  display: grid;
+  gap: 2mm;
+  margin-top: 2mm;
+}
+.guia-traslado[data-formato="termica"] .gt-prenda > span:first-child {
+  display: grid;
+  gap: 0.3mm;
+}
+.guia-traslado[data-formato="termica"] .gt-casilla {
+  width: 12mm;
+  height: 7mm;
+}
+.guia-traslado[data-formato="termica"] .gt-qr svg,
+.guia-traslado[data-formato="termica"] .gt-qr-hueco {
+  width: 30mm;
+  height: 30mm;
+  margin: 0 auto 1.5mm;
+}
+.guia-traslado[data-formato="termica"] .gt-qr p {
+  font-size: 7.5pt;
+  text-wrap: balance;
+}
+
+/* ---- Hoja A4: el QR arriba a la derecha, las prendas como tabla ---- */
+.guia-traslado[data-formato="a4"] {
+  width: 100%;
+  max-width: 186mm; /* 210 mm menos los 12 mm de margen por lado de `@page a4` */
+  padding: 6mm;
+  font-size: 10.5pt;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "cab qr"
+    "datos qr"
+    "prendas prendas";
+  column-gap: 8mm;
+  row-gap: 5mm;
+}
+.guia-traslado[data-formato="a4"] .gt-cab {
+  grid-area: cab;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4mm;
+  border-bottom: 2px solid var(--color-tinta-fija);
+  padding-bottom: 2mm;
+}
+.guia-traslado[data-formato="a4"] .gt-marca {
+  font-size: 15pt;
+}
+.guia-traslado[data-formato="a4"] .gt-titulo {
+  font-size: 10pt;
+}
+.guia-traslado[data-formato="a4"] .gt-numero {
+  font-size: 22pt;
+  margin-left: auto;
+}
+.guia-traslado[data-formato="a4"] .gt-datos {
+  grid-area: datos;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(32mm, 1fr));
+  gap: 3mm 5mm;
+  align-content: start;
+}
+.guia-traslado[data-formato="a4"] .gt-datos > div {
+  display: grid;
+  justify-content: start;
+  gap: 0.5mm;
+}
+.guia-traslado[data-formato="a4"] .gt-datos dt {
+  font-size: 8pt;
+}
+.guia-traslado[data-formato="a4"] .gt-datos dd {
+  text-align: left;
+  font-size: 12pt;
+}
+.guia-traslado[data-formato="a4"] .gt-qr {
+  grid-area: qr;
+  width: 36mm;
+}
+.guia-traslado[data-formato="a4"] .gt-qr svg,
+.guia-traslado[data-formato="a4"] .gt-qr-hueco {
+  width: 36mm;
+  height: 36mm;
+  margin-bottom: 1.5mm;
+}
+.guia-traslado[data-formato="a4"] .gt-qr p {
+  font-size: 8pt;
+}
+.guia-traslado[data-formato="a4"] .gt-prendas {
+  grid-area: prendas;
+  container-type: inline-size;
+}
+.guia-traslado[data-formato="a4"] .gt-prendas ol {
+  margin-top: 2mm;
+  border-top: 1px solid var(--color-tinta-fija);
+}
+.guia-traslado[data-formato="a4"] .gt-prenda {
+  border-bottom: 1px solid var(--color-tinta-fija);
+  padding: 2.5mm 0;
+}
+/* Ancha (la hoja real, o la vista previa en una pantalla grande): prenda, talla y color, y código en columnas. */
+@container (min-width: 120mm) {
+  .guia-traslado[data-formato="a4"] .gt-prenda > span:first-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 4mm;
+    align-items: baseline;
+  }
+}
+.guia-traslado[data-formato="a4"] .gt-casilla {
+  width: 18mm;
+  height: 9mm;
+}
+
+/* ---- Impresión ---- */
+#guia-traslado-print {
+  display: none;
+}
+@media print {
+  body:has(#guia-traslado-print) > *:not(#guia-traslado-print) {
+    display: none !important;
+  }
+  html:has(#guia-traslado-print),
+  body:has(#guia-traslado-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: none !important;
+    margin: 0 !important;
+  }
+  #guia-traslado-print {
+    display: block;
+  }
+  #guia-traslado-print[data-formato="a4"] {
+    page: a4;
+  }
+  #guia-traslado-print[data-formato="a4"] .guia-traslado {
+    max-width: none;
+    padding: 0;
+  }
+}

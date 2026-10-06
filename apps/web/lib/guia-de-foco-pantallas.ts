@@ -121,6 +121,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // apaga «Terminé de contar»; la siguiente se enciende y el pie las nombra); quién recibe (ADR-0328); al cerrar con diferencia, la
   // nota; al anular, el motivo y quién. Piso o almacén no es «falta»: viene marcado (D-131).
   "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", evidencia: ["components/traslados-pases/ReversoPase.tsx", "components/traslados-pases/PasePedido.tsx"] },
+  "/inventario/traslados/guia/[id]": {
+    estado: "no-aplica",
+    motivo: "Hoja de impresión de la guía de una caja (ADR-0242 D-3): se elige la hoja (térmica o A4, con valor de fábrica) y se imprime; no hay campos que completar ni pasos.",
+  },
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
   // ---- pedidos-no-atendidos ----
