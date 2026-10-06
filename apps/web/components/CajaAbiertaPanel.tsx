@@ -7,6 +7,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
 import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimientoCaja";
 import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
+import { HistorialCierresModal } from "@/components/HistorialCierresModal";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { EVENTO_CERRAR_CAJA } from "@/lib/recordatorio-cierre-reglas";
@@ -135,7 +136,7 @@ export function CajaAbiertaPanel({
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
+  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | "gasto" | "cierres" | null>(abrirCierre && puedeCerrar ? "cerrar" : null);
   // El recordatorio de cierre (ADR-0305) abre el cierre: por URL si viene de otra pantalla, por este evento si ya se está aquí.
   // El `?cerrar=1` se borra de la barra al llegar: recargar la página no debe volver a abrir el cierre.
   useEffect(() => {
@@ -265,6 +266,9 @@ export function CajaAbiertaPanel({
           Depósito o retiro
         </button>
       )}
+      <button type="button" onClick={() => setModal("cierres")} className="btn-cayla btn-secundario">
+        Historial de cierres
+      </button>
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
       {puedeCerrar ? (
         <BotonCerrarCaja onCerrar={() => setModal("cerrar")} />
@@ -490,6 +494,7 @@ export function CajaAbiertaPanel({
           onCerrar={() => setModal(null)}
         />
       )}
+      {modal === "cierres" && <HistorialCierresModal cierres={cierresUbicacion} ubicacionNombre={ubicacionNombre} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={filtrados}
