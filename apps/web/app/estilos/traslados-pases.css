@@ -17,7 +17,7 @@
 [data-tp-tono="sale"] { --tp-c: var(--color-tinta); }
 [data-tp-tono="cerrado"] { --tp-c: var(--color-verde); }
 [data-tp-tono="dif"] { --tp-c: var(--color-taupe); }
-[data-tp-tono="anulado"] { --tp-c: color-mix(in srgb, var(--color-tinta) 45%, var(--color-papel)); }
+[data-tp-tono="anulado"] { --tp-c: color-mix(in srgb, var(--color-tinta) 66%, var(--color-papel)); }
 [data-tp-tono="pedido"] { --tp-c: var(--color-taupe); }
 [data-tp-tono] {
   --tp-bg: color-mix(in srgb, var(--tp-c) 7%, var(--color-papel));
@@ -90,7 +90,7 @@
 .tp-pestanas-ind { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px; background: var(--color-papel); box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--color-sombra) 45%, transparent); transform: translateX(calc(var(--tp-k, 0) * 100%)); transition: transform 0.45s var(--ease-cayla); }
 .tp-pestanas button { position: relative; z-index: 1; display: flex; gap: 6px; align-items: center; justify-content: center; padding: 8px 6px; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); transition: color 0.25s; }
 .tp-pestanas button[aria-selected="true"] { color: var(--color-tinta); }
-.tp-pestanas .tp-n { font-family: var(--font-serif); font-size: 17px; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); }
+.tp-pestanas .tp-n { font-family: var(--font-serif); font-size: 17px; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-pestanas .tp-bd { min-width: 20px; height: 20px; border-radius: 99px; background: var(--color-ambar); color: var(--color-papel); font-size: 11px; font-weight: 800; display: grid; place-items: center; padding: 0 6px; }
 
 /* Los pases apilados: de cada uno se ve la franja de arriba; el elegido se ve entero. */
@@ -110,7 +110,7 @@
 .tp-mini-cifra { text-align: right; line-height: 1; min-width: 62px; }
 .tp-mini-cifra b { font-family: var(--font-serif); font-weight: 400; font-size: 24px; color: var(--tp-c); white-space: nowrap; }
 .tp-mini-cifra small { display: block; margin-top: 3px; font-size: 10.5px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
-.tp-mini-sello { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; border: 2px double var(--tp-c); color: var(--tp-c); border-radius: 6px; padding: 1px 6px; transform: rotate(-8deg); opacity: 0.85; }
+.tp-mini-sello { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; border: 2px double var(--tp-c); color: var(--tp-c); border-radius: 6px; padding: 1px 6px; transform: rotate(-8deg); }
 .tp-vacia { padding: 28px 18px; border-radius: 18px; border: 1.5px dashed var(--color-sand); text-align: center; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-size: 13px; }
 .tp-vacia b { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 21px; color: var(--color-tinta); }
 
@@ -158,7 +158,7 @@
 .tp-letra { display: inline-block; min-width: 0.55em; text-align: center; }
 .tp-letra[data-gira] { color: color-mix(in srgb, var(--color-tinta) 36%, transparent); }
 .tp-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 18px 24px 6px; }
-.tp-campos small { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 52%, transparent); }
+.tp-campos small { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-campos b { display: block; margin-top: 4px; font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--color-tinta); }
 .tp-campos em { display: block; margin-top: 2px; font-style: normal; font-size: 11.5px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-campos [data-tarde] b, .tp-campos [data-tarde] em { color: var(--color-ambar); }
@@ -187,6 +187,8 @@
 
 /* El sello de goma: cae una vez y se queda */
 .tp-estampa { position: absolute; left: 112px; top: 262px; transform: rotate(-9deg); border: 3px double var(--tp-c); color: var(--tp-c); border-radius: 12px; padding: 7px 16px 6px; font-weight: 800; letter-spacing: 0.18em; font-size: 21px; text-align: center; opacity: 0.9; pointer-events: none; background: color-mix(in srgb, var(--color-papel) 55%, transparent); }
+/* Un pedido no lleva fotos: su frente es más corto y el sello cae sobre los datos, no sobre los botones. */
+.tp-pase:not([data-clase="traslado"]) .tp-estampa { top: 200px; }
 .tp-estampa small { display: block; margin-top: 1px; font-size: 10px; letter-spacing: 0.16em; font-weight: 700; }
 .tp-estampa[data-cae] { animation: tp-sella 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
 @keyframes tp-sella { from { transform: rotate(-17deg) scale(1.9); opacity: 0; } to { transform: rotate(-9deg) scale(1); opacity: 0.9; } }
