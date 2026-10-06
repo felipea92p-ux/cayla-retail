@@ -34,6 +34,7 @@ import { ColgarPrimero } from "@/components/existencias/ColgarPrimero";
 import { colgarPrimero } from "@/lib/existencias-colgar-primero";
 import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, type OrdenPrendas } from "@/lib/existencias-tarjetas";
 import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
+import { AnilloMision } from "@/components/existencias/AnilloMision";
 import { mejorOrigen } from "@/lib/existencias-flujos";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
@@ -505,6 +506,8 @@ export function InventarioPanel({
 
   // La prenda abierta sale de TODO el stock, no de lo filtrado: si se abre escaneando o tras un guardado cambia su «Acción
   // hoy», el detalle no se cierra solo por dejar de coincidir con un filtro.
+  // Los nombres de las tiendas a las que se les puede pedir: la red de stock viene por nombre de sede.
+  const tiendasParaPedir = useMemo(() => new Set(sedesParaPedir.map((x) => x.nombre)), [sedesParaPedir]);
   // Cada prenda (modelo + color) con TODAS sus tallas de la sede: la tarjeta las muestra todas cuando solo filtra «Hoy» o «Condición».
   const prendaPorClave = useMemo(() => new Map(agruparPorPrenda(stock).map((p) => [p.clave, p])), [stock]);
   // Lo que el filtro de la lista marca dentro del panel («Sin stock atrás en este modelo · 2»): «Hoy» o «Condición», como las tarjetas.
@@ -777,7 +780,8 @@ export function InventarioPanel({
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
             conteo={conteo}
-            detalleTotal={separa ? "Vista de piso y almacén" : "Vista de la sede"}
+            // Con las tarjetas, lo que dice la maqueta: cómo se usan. Con la tabla, qué se está viendo.
+            detalleTotal={!verDetalle ? "toca un color para cambiarlo, una talla para ver dónde hay" : separa ? "Vista de piso y almacén" : "Vista de la sede"}
             panelInicial={panelFiltros}
             onEscanear={() => setCamara(true)}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
@@ -788,17 +792,22 @@ export function InventarioPanel({
             }
             vista={
               <>
-                {/* «Pendientes»: lo que antes era «Para hoy» (cuadrar el piso, ventas sin registrar, dañadas…), a un toque. */}
-                <button
-                  type="button"
-                  onClick={() => setViendoPendientes(true)}
-                  title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
-                  className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe"
-                >
-                  <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
-                  Pendientes
-                  {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
-                </button>
+                {/* El anillo «N de M hoy» de la maqueta: lo resuelto de la foto del día. Abre «Pendientes» (lo que antes era «Para hoy»:
+                    cuadrar el piso, ventas sin registrar, dañadas…). En el Taller, que no tiene piso que colgar, el botón de siempre. */}
+                {esTienda ? (
+                  <AnilloMision ubicacionId={ubicacionId} filas={stock} tiendas={tiendasParaPedir} pendientes={tareasHoy.length} onAbrir={() => setViendoPendientes(true)} />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setViendoPendientes(true)}
+                    title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
+                    className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe"
+                  >
+                    <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
+                    Pendientes
+                    {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
+                  </button>
+                )}
                 {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
                 <button
                   type="button"

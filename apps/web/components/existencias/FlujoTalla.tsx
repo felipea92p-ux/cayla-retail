@@ -97,7 +97,7 @@ function Stepper({ valor, max, onValor, etiqueta, id }: { valor: number; max: nu
         aria-label={etiqueta}
         value={valor}
         onChange={(e) => onValor(leerCantidadTecleada(e.target.value, tope))}
-        className="h-14 w-16 border-x border-sand bg-transparent text-center font-display text-[26px] tabular-nums text-tinta outline-none"
+        className="h-14 w-16 border-x border-sand bg-transparent text-center font-display text-[26px] tabular-nums text-tinta"
       />
       <button type="button" aria-label="Una más" disabled={valor >= tope} onClick={() => onValor(Math.min(tope, valor + 1))} className="grid h-14 w-14 place-items-center text-2xl text-tinta disabled:text-taupe/40">
         +
@@ -136,7 +136,7 @@ function Pregunta({ children, ayuda }: { children: ReactNode; ayuda?: ReactNode 
   );
 }
 
-const CLASE_TEXTO = "w-full rounded-xl border border-sand bg-crema px-3 py-2.5 text-[15px] text-tinta outline-none placeholder:text-taupe focus:border-tinta";
+const CLASE_TEXTO = "w-full rounded-xl border border-sand bg-crema px-3 py-2.5 text-[15px] text-tinta placeholder:text-taupe focus:border-tinta";
 
 /* ====================================================================
    Un paso guiado del panel de la talla (maqueta `docs/maquetas/existencias-tactil-2026-10/`, «flujos guiados»)
@@ -572,7 +572,7 @@ export function FlujoTalla({
                               aria-label={`Cantidad de ${c.color ?? ""} ${t.talla ?? ""}`}
                               value={n}
                               onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, alm) } })}
-                              className="w-10 bg-transparent text-center text-base font-semibold tabular-nums outline-none"
+                              className="w-10 bg-transparent text-center text-base font-semibold tabular-nums"
                             />
                             <button type="button" aria-label={`Una más de ${c.color ?? ""} ${t.talla ?? ""}`} disabled={n >= alm} onClick={() => poner({ cant: { ...cant, [t.varianteId]: Math.min(alm, n + 1) } })} className="h-9 w-9 text-lg disabled:text-taupe/40">
                               +

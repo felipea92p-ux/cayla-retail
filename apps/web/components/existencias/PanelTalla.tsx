@@ -541,7 +541,8 @@ export function PanelTalla({
                             aria-keyshortcuts={String(i + 1)}
                             title={a.ok ? undefined : a.sub}
                             onClick={() => a.ok && alAccionar(a.clave)}
-                            className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${
+                            // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
+                            className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === acciones.length - 1 && acciones.length % 2 === 1 ? "col-span-2" : ""} ${
                               a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
                             } ${a.ok ? "" : "cursor-not-allowed opacity-50 active:scale-100"}`}
                           >
