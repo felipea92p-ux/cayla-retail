@@ -32,12 +32,12 @@ export default async function NuevoProductoPage() {
   return (
     <div className="space-y-6">
       {/* La cabecera de Ventas, como Productos (ADR-0254; Felipe 2026-09-28): sede y hora arriba con el hilo, el título
-          del menú y su frase; la vuelta «← Productos» va bajo la frase, como «← Existencias» en Bajar al piso. */}
+          del menú y su frase; la vuelta a Productos es la flecha junto a la sede, como en Bajar al piso (ADR-0220, act. 2026-10-06). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Nuevo producto"
         subtitulo="Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
-        pie={<Volver forma="boton" href="/productos" a="Productos" />}
+        volver={<Volver forma="flecha" href="/productos" a="Productos" />}
       />
 
       {contexto.categorias.length === 0 ? (

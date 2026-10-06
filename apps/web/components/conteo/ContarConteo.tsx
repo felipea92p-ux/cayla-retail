@@ -555,12 +555,8 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         sede={sede}
         titulo={`Conteo ${conteo.numero}`}
         subtitulo={lugar}
-        pie={
-          <>
-            <Volver forma="boton" href={volver.href} a={volver.a} />
-            <Chip tono="pizarra">En curso</Chip>
-          </>
-        }
+        volver={<Volver forma="flecha" href={volver.href} a={volver.a} />}
+        pie={<Chip tono="pizarra">En curso</Chip>}
       >
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
