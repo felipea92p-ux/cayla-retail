@@ -11,11 +11,11 @@ import { PorRegularizarLista } from "@/components/PorRegularizarLista";
 // sistema. Hasta hoy eran la tercera pestaña de Recibir mercadería, que es de lo que LLEGA; esto es una diferencia de stock que deja
 // Vender, y quien cuida el stock la ve desde Existencias. La lista (`PorRegularizarLista`) y la función (`regularizar_prenda`) no
 // cambian: solo cambió dónde viven. `/recibir?vista=por-regularizar` redirige aquí.
-export default async function PorRegularizarPage({ searchParams }: { searchParams: Promise<{ ubicacion?: string }> }) {
+export default async function PorRegularizarPage({ searchParams }: { searchParams: Promise<{ ubicacion?: string; item?: string }> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("existencias");
   const esLider = persona.rol === "lider";
-  const { ubicacion } = await searchParams;
+  const { ubicacion, item } = await searchParams;
   // El líder ve las de todas sus sedes (cada fila dice cuál); los demás, las de la suya (RLS igual lo cuida). Un líder que llega desde
   // «Para hoy» de Existencias trae la sede (`?ubicacion=`, ADR-0331): ve la cola de ESA sede, la misma que contó allá
   // (`contarPorRegularizar`). Una sede que no existe se ignora y vuelve a «todas».
@@ -52,6 +52,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         esLider={esLider}
         plazos={plazos}
         sedeInicial={unaSede?.id ?? null}
+        abrirItemId={item ?? null}
       />
     </div>
   );

@@ -184,6 +184,9 @@ export type ItemCrudo = {
   } | null;
   /** Los cambios hechos sobre esta línea (`cambios.venta_item_id`). */
   cambios?: { created_at: string }[] | null;
+  /** La fila de la cola «Por regularizar» de esta línea (`prendas_por_regularizar.venta_item_id`, única): solo la tiene una prenda
+   *  vendida como «Prenda sin registrar» (ADR-0179). PostgREST la entrega como objeto (la FK es única); se acepta también lista. */
+  por_regularizar?: { estado: string } | { estado: string }[] | null;
 };
 
 export type VentaCruda = {
@@ -327,6 +330,8 @@ export type FilaHistorial = {
   posventa: MarcaPosventa[];
   /** El apartado que terminó en esta venta (ADR-0196), o null. */
   apartado: { codigo: string; creadoEn: string } | null;
+  /** Las líneas vendidas como «Prenda sin registrar» que siguen pendientes de regularizar (`prendas_por_regularizar.estado = 'pendiente'`). */
+  itemsPorRegularizar: string[];
   /** Se cobró con el anticipo de un apartado (aunque sea un apartado viejo, sin código). */
   conAnticipo: boolean;
   /** Los nº de operación anotados al cobrar (Yape, Plin, transferencia). */
@@ -358,6 +363,15 @@ function nombreDeQuienVendio(v: VentaCruda, nombres: ReadonlyMap<string, string>
   return id ? (nombres.get(id) ?? null) : null;
 }
 
+/** Las líneas de la venta que son una prenda sin registrar todavía pendiente de regularizar. Una ya regularizada pasó a su prenda real, y
+ *  una cerrada sin prenda o de una venta anulada ya no tiene nada que hacer: ninguna cuenta. */
+export function itemsPorRegularizar(items: Pick<ItemCrudo, "id" | "por_regularizar">[]): string[] {
+  return items.flatMap((i) => {
+    const filas = Array.isArray(i.por_regularizar) ? i.por_regularizar : i.por_regularizar ? [i.por_regularizar] : [];
+    return i.id && filas.some((f) => f.estado === "pendiente") ? [i.id] : [];
+  });
+}
+
 export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): FilaHistorial {
   const instante = new Date(v.created_at);
   return {
@@ -380,6 +394,7 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     esPrueba: v.es_prueba === true,
     anuladaEn: v.anulado_en ?? null,
     ventaItemIds: v.venta_items.map((i) => i.id).filter((id): id is string => !!id),
+    itemsPorRegularizar: itemsPorRegularizar(v.venta_items),
     posventa: posventaDeVenta(v),
     apartado: v.separaciones?.[0] ? { codigo: v.separaciones[0].codigo, creadoEn: v.separaciones[0].created_at } : null,
     conAnticipo: v.venta_pagos.some((p) => p.metodo === "anticipo"),
