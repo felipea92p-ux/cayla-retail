@@ -26,16 +26,6 @@ export function formatoSoles(monto: number): string {
   return `S/ ${Math.round(monto).toLocaleString("en-US")}`;
 }
 
-/** «S/ 950», «S/ 18.4k», «S/ 1.25M» — la cifra grande de una tarjeta, donde S/ 18,412 no cabe. */
-export function formatoSolesCompacto(monto: number): string {
-  const signo = monto < 0 ? "−" : "";
-  const a = Math.abs(monto);
-  const limpio = (x: number, decimales: number) => (x >= 100 ? String(Math.round(x)) : String(Number(x.toFixed(decimales))));
-  if (a < 1000) return `${signo}S/ ${Math.round(a)}`;
-  if (a < 1_000_000) return `${signo}S/ ${limpio(a / 1000, 1)}k`;
-  return `${signo}S/ ${limpio(a / 1_000_000, 2)}M`;
-}
-
 /** «Tienda Trujillo» → «Trujillo»; el Taller y lo demás quedan igual. Para
  *  columnas angostas donde «Tienda» es ruido. */
 export function nombreCorto(nombre: string): string {

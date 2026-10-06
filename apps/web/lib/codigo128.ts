@@ -2,10 +2,10 @@
  * Code 128 B, sin librerías, sin internet, sin depender de nadie. Es el estándar
  * retail que la pistola Zebra lee sin configurarle nada.
  *
- * ESTE ARCHIVO ES LÓGICA PURA A PROPÓSITO. La pinta `components/Codigo128.tsx`,
- * pero el cálculo vive acá para que cualquier verificación —una hoja de prueba
- * impresa, un test— mida EXACTAMENTE lo que la app imprime, y no una copia del
- * algoritmo que puede derivar sin que nadie lo note.
+ * ESTE ARCHIVO ES LÓGICA PURA A PROPÓSITO. El cálculo vive acá para que cualquier
+ * verificación —la hoja de prueba impresa (`scripts/etiquetas/hoja-de-prueba.mjs`),
+ * un test— mida EXACTAMENTE lo que se imprimiría, y no una copia del algoritmo que
+ * puede derivar sin que nadie lo note.
  *
  * POR QUÉ IMPORTA EL LARGO DEL TEXTO. Un Code 128 mide `11·(n+2) + 2` módulos para
  * n caracteres, y cada módulo tiene un tamaño físico FIJO (ver `MODULO_MM` abajo).
@@ -30,6 +30,9 @@
  * camino no está en uso. Se conserva arreglado y verificado porque leer sigue
  * funcionando con ambas simbologías, y porque `codigos_barras` no distingue: para
  * el sistema, un código de barras y un QR son dos filas que apuntan a la misma prenda.
+ * El componente que lo dibujaba (`components/Codigo128.tsx`) se borró sin uso el
+ * 2026-10-06; si la etiqueta vuelve a Code 128, está en la historia de git y dibuja
+ * `barrasCode128` con el ancho de `medir()`, sin estirarlo.
  */
 
 /** Tabla oficial de patrones Code 128 (anchos de barra/espacio por símbolo, 0-106). */

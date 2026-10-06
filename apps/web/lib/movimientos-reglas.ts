@@ -1,5 +1,5 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
-import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
+import { ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
 import type { Cantidades } from "./inventario-reglas";
 
 // Reglas de lectura de Movimientos, sin nada de servidor: las importan los
@@ -220,12 +220,6 @@ export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" 
   return detalle.startsWith(direccion) ? detalle : `${direccion} · ${detalle}`;
 }
 
-export const ETIQUETA_ESTADO_DEVOLUCION: Record<string, string> = {
-  pendiente: "Pendiente de aprobar",
-  aprobada: "Aprobada",
-  rechazada: "Rechazada",
-};
-
 // ---------------------------------------------------------------------------
 // La fila que devuelve `fn_movimientos`, ya en castellano de pantalla. Cada
 // proceso trae su referencia como un objeto propio (o null): así el detalle
@@ -434,10 +428,6 @@ export function hoyEnLima(): string {
 export function fechaCorta(iso: string): string {
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;
-}
-
-export function etiquetaEstadoComprobante(estado: EstadoComprobante): string {
-  return ESTADO_ETIQUETA[estado] ?? estado;
 }
 
 // ---------------------------------------------------------------------------
@@ -963,39 +953,6 @@ export function filtroDePalabra(texto: string): FiltroDePalabra | null {
   if (!t) return null;
   const hallado = PALABRAS_DE_FILTRO.find((f) => f.palabras.includes(t));
   return hallado ? { cat: hallado.cat, proc: hallado.proc, etiqueta: hallado.etiqueta } : null;
-}
-
-// ---------------------------------------------------------------------------
-// Quién lo hizo, con verbo (ADR-0234): «Felipe Alvarez» solo no dice si vendió, recibió o ajustó.
-// ---------------------------------------------------------------------------
-
-export function verboDelResponsable(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
-  if (m.categoria === "transferencia") return m.delta > 0 ? "Recibió" : "Envió";
-  if (m.categoria === "interno") return "Movió";
-  switch (m.motivo) {
-    case "venta":
-      return "Vendió";
-    case "anulacion_venta":
-      return "Anuló la venta";
-    case "devolucion":
-      return "Recibió la devolución";
-    case "cambio":
-      return "Hizo el cambio";
-    case "recepcion":
-      return "Recibió";
-    case "conteo":
-    case "conteo_arranque":
-      return "Cerró el conteo";
-    case "hallazgo_conteo":
-      return "Registró el hallazgo";
-    case "carga_inicial":
-      return "Cargó";
-    case "apartado":
-      return "Apartó";
-    case "liberacion_apartado":
-      return "Liberó";
-  }
-  return m.categoria === "ajuste" ? "Ajustó" : "Registró";
 }
 
 /** El período para la etiqueta de una tarjeta, corto: «30 días», «todo el historial», «1/9 – 26/9». */

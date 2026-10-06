@@ -161,16 +161,6 @@ export function repartirFamilias<T extends { codigo: string }>(familias: T[]): {
   return { aLaVista, masFamilias: familias.filter((f) => !FAMILIAS_A_LA_VISTA.includes(f.codigo)) };
 }
 
-/** Lo que el «Ver más» de un eje (hoy, Tejido) muestra: los valores aprobados del catálogo que la categoría todavía NO ofrece, en el
- *  orden del catálogo. Jeans ofrece 3 tejidos de 22 (2026-09-28): sin esto, usar Lino en un jean exigía saber que Lino existe y
- *  escribirlo letra por letra en «+ Nuevo tejido».
- *  Nunca repite uno que la categoría ya ofrece, así que el elegido (que la base exige que sea de la categoría) jamás queda escondido
- *  tras «Ver menos». Vacío si la categoría ya ofrece todo: ahí no se pinta el botón. */
-export function fueraDeLaCategoria<T extends { id: string }>(universo: T[], deLaCategoria: { id: string }[]): T[] {
-  const ofrecidos = new Set(deLaCategoria.map((v) => v.id));
-  return universo.filter((v) => !ofrecidos.has(v.id));
-}
-
 // ---------------------------------------------------------------------------
 // Qué falta para guardar, y qué bloques están desbloqueados.
 // ---------------------------------------------------------------------------

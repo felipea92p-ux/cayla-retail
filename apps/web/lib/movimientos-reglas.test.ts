@@ -39,7 +39,6 @@ import {
   resumirBajadas,
   unidades,
   ventasAnuladas,
-  verboDelResponsable,
   volverAMovimientos,
   ENCABEZADOS_CSV_MOVIMIENTOS,
   filaCsvMovimiento,
@@ -775,19 +774,6 @@ describe("el buscador entiende los nombres de los procesos", () => {
     expect(filtroDePalabra("Traslado 2")).toBeNull();
     expect(filtroDePalabra("blusa valentina")).toBeNull();
     expect(filtroDePalabra("")).toBeNull();
-  });
-});
-
-describe("quién lo hizo, con verbo", () => {
-  it("dice qué hizo la persona según el proceso", () => {
-    expect(verboDelResponsable({ categoria: "salida", motivo: "venta", delta: -1 })).toBe("Vendió");
-    expect(verboDelResponsable({ categoria: "transferencia", motivo: "traslado_entrada", delta: 5 })).toBe("Recibió");
-    expect(verboDelResponsable({ categoria: "transferencia", motivo: "traslado_salida", delta: -5 })).toBe("Envió");
-    expect(verboDelResponsable({ categoria: "interno", motivo: "movimiento_interno", delta: 0 })).toBe("Movió");
-    expect(verboDelResponsable({ categoria: "ajuste", motivo: "merma", delta: -1 })).toBe("Ajustó");
-    expect(verboDelResponsable({ categoria: "ajuste", motivo: "conteo", delta: -1 })).toBe("Cerró el conteo");
-    expect(verboDelResponsable({ categoria: "entrada", motivo: "carga_inicial", delta: 3 })).toBe("Cargó");
-    expect(verboDelResponsable({ categoria: "entrada", motivo: "algo_nuevo", delta: 3 })).toBe("Registró");
   });
 });
 

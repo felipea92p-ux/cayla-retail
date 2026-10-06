@@ -3,11 +3,6 @@
 // 20260920160000, ADR-0141): acá solo se adelanta lo que se puede validar sin un viaje, y se
 // traduce a lenguaje de tienda. Nada de esto reemplaza un candado de la base.
 
-/** Al abrir el formulario: la clienta suele pasar en un par de días. La fecha se puede cambiar. */
-export const DIAS_SUGERIDOS_APARTADO = 3;
-/** Mismo tope que `c_max_dias` dentro de `apartar_stock`: un typo de año no deja una reserva de años. */
-export const MAX_DIAS_APARTADO = 60;
-
 export type Apartado = {
   id: string;
   varianteId: string;
@@ -47,12 +42,6 @@ export function hoyLima(ahora: Date = new Date()): string {
   return ahora.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
 
-/** Suma días a un `aaaa-mm-dd` sin pasar por la zona horaria del equipo. */
-export function sumarDias(fecha: string, dias: number): string {
-  const [a, m, d] = fecha.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
-}
-
 /** Días de calendario entre `hoy` y `venceEl`: negativo = ya venció. */
 export function diasHasta(venceEl: string, hoy: string): number {
   const [a, m, d] = venceEl.split("-").map(Number);
@@ -83,32 +72,4 @@ export function resumirApartados(apartados: Apartado[], hoy: string): { abiertos
     unidades: apartados.reduce((acc, a) => acc + a.cantidad, 0),
     vencidos: apartados.filter((a) => a.venceEl !== null && estadoVencimiento(a.venceEl, hoy) === "vencido").length,
   };
-}
-
-export type ErroresApartar = Partial<Record<"cantidad" | "clienta" | "contacto" | "fecha", string>>;
-
-/** Los mismos candados que `apartar_stock`, en el orden en que se llena el formulario, para dar el
- *  aviso al lado del campo y no después de un viaje. `maximo` = lo DISPONIBLE en el lugar elegido. */
-export function validarApartar(
-  form: { cantidad: string; clienta: string; contacto: string; fecha: string },
-  maximo: number,
-  hoy: string
-): ErroresApartar {
-  const errores: ErroresApartar = {};
-  const cantidad = Number(form.cantidad);
-  if (!Number.isInteger(cantidad) || cantidad < 1) {
-    errores.cantidad = "Escribe cuántas prendas apartas (al menos 1).";
-  } else if (cantidad > maximo) {
-    errores.cantidad = maximo <= 0 ? "No hay prendas disponibles para apartar aquí." : `Solo ${maximo === 1 ? "hay 1 disponible" : `hay ${maximo} disponibles`} para apartar.`;
-  }
-  if (!form.clienta.trim()) errores.clienta = "Anota el nombre del cliente.";
-  if (!form.contacto.trim()) errores.contacto = "Anota un teléfono o WhatsApp para avisarle.";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.fecha)) {
-    errores.fecha = "Elige hasta cuándo se la guardas.";
-  } else if (form.fecha < hoy) {
-    errores.fecha = "La fecha límite no puede ser anterior a hoy.";
-  } else if (form.fecha > sumarDias(hoy, MAX_DIAS_APARTADO)) {
-    errores.fecha = `Como máximo ${MAX_DIAS_APARTADO} días desde hoy.`;
-  }
-  return errores;
 }

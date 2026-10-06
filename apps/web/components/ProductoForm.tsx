@@ -1727,7 +1727,7 @@ export function ProductoForm({
       )}
       {ajusteDeColor !== undefined && ajusteStock && producto && (
         // El editor es un <form>: los eventos del modal (un portal) suben por el árbol de React (ADR-0128). Sin esto, su «Confirmar»
-        // abriría «Revisa y guarda» del producto. El mismo envoltorio que `AjusteDeStock`.
+        // abriría «Revisa y guarda» del producto.
         <span className="contents" onSubmit={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
           <AjustarInventarioModal
             productoId={producto.id}
