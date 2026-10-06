@@ -302,7 +302,7 @@ const ACCIONES = FUNCIONES.map((f) => ({
  * fácil de revisar. Forma:
  *
  *   "pestanas": {
- *     fecha: "2026-10-07",
+ *     fecha: "2026-10-06",
  *     adr: "docs/adr/0358-unificar-una-funcion-una-pieza.md",
  *     registro: "docs/unificar/pestanas.md",
  *     elegida: "B · SegmentoDeslizante",            // o «propuesta»
@@ -320,10 +320,10 @@ const ACCIONES = FUNCIONES.map((f) => ({
  */
 export const DECISIONES = {
   "accion.volver": {
-    fecha: "2026-10-07",
+    fecha: "2026-10-06",
     adr: "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     registro: "docs/unificar/accion.volver.md",
-    elegida: "la flecha redonda de EncabezadoPagina (elegida mirando el 2026-10-07)",
+    elegida: "la flecha redonda de EncabezadoPagina (elegida mirando el 2026-10-06)",
     pieza: "components/ui/Volver.tsx",
     firmas: [
       // La línea de 11 px en versalitas que era la forma «enlace», copiada a mano.
@@ -339,10 +339,10 @@ export const DECISIONES = {
     ],
   },
   "cifra": {
-    "fecha": "2026-10-07",
+    "fecha": "2026-10-06",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/cifra.md",
-    "elegida": "la tarjeta de Compras (B) tal cual, elegida mirando el 2026-10-07",
+    "elegida": "la tarjeta de Compras (B) tal cual, elegida mirando el 2026-10-06",
     "pieza": "components/ui/TarjetaCifra.tsx",
     "firmas": [
       "<(TarjetaCifraAnalisis|TarjetaIndicador|TarjetaSenal|TarjetaAvance)\\b",
@@ -351,10 +351,10 @@ export const DECISIONES = {
     "deuda": []
   },
   "pestanas": {
-    "fecha": "2026-10-07",
+    "fecha": "2026-10-06",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/pestanas.md",
-    "elegida": "vidrio en mayúsculas (vista) · píldora (filtro) · caja arena (modo), elegidas mirando el 2026-10-07",
+    "elegida": "vidrio en mayúsculas (vista) · píldora (filtro) · caja arena (modo), elegidas mirando el 2026-10-06",
     "pieza": "components/ui/Pestanas.tsx",
     "tambien": [
       "components/ui/SegmentoEnlaces.tsx",

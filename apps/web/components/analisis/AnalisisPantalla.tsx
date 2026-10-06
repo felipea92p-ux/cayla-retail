@@ -274,7 +274,7 @@ export function AnalisisPantalla({
 }
 
 // Las cuatro preguntas son pestañas de vista (cambian de sección): la pieza única del ERP, el vidrio en mayúsculas (ADR-0358,
-// Felipe 2026-10-07: «incluye lo de Análisis»). La vista es estado de la pantalla, no URL: `tablist` con flechas.
+// Felipe 2026-10-06: «incluye lo de Análisis»). La vista es estado de la pantalla, no URL: `tablist` con flechas.
 function FilaPestanas({
   vista,
   irA,
