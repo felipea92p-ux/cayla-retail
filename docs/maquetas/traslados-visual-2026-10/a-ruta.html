@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados · A · Ruta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN A · «RUTA» — la hermana directa de Movimientos (ADR-0353).
+   Arriba, «Hoy te toca»: una tarjeta por cosa que hacer, con un verbo. Debajo, cada traslado es
+   una tarjeta con su sello, sus prendas y el VIAJE: el camión está donde va la caja (lo que pasó
+   del tiempo estimado). A la derecha, la columna de estados que cuentan y filtran.
+   ==================================================================== */
+.hoy{margin-top:24px}
+.hoy-t{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.hoy-t h2{font-family:var(--serif);font-weight:400;font-size:24px}
+.hoy-t .n{font-family:var(--serif);font-size:24px;color:var(--t50)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start;margin-top:26px}
+.lado{position:sticky;top:70px;display:grid;gap:8px}
+.tipos{display:grid;gap:8px}
+.tipo{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"s n c" "s u c" "b b b";column-gap:12px;row-gap:1px;align-items:center;text-align:left;padding:11px 14px 10px 11px;border-radius:16px;border:1.5px solid var(--sand);background:var(--papel);transition:background .25s var(--ease),border-color .25s var(--ease),opacity .3s var(--ease),transform .3s var(--ease);overflow:hidden;min-width:0}
+.tipo:hover{background:var(--c-bg);border-color:var(--c-ln);transform:translateX(-3px)}
+.tipo[aria-pressed=true]{background:var(--c-md);border-color:var(--c);transform:translateX(-6px)}
+.tipos.hay .tipo[aria-pressed=false]{opacity:.55}
+.tipos.hay .tipo[aria-pressed=false]:hover{opacity:1}
+.tipo .sello{--sz:40px;grid-area:s}
+.tipo .tn{grid-area:n;font-size:13px;font-weight:600;line-height:1.2;align-self:end}
+.tipo .tu{grid-area:u;font-size:11.5px;color:var(--t65);align-self:start;display:flex;align-items:center;gap:5px}
+.tipo .tu .chip{font-size:10px;padding:0 7px 0 6px}
+.tipo .tc{grid-area:c;line-height:1}
+.tipo .tc b{font-family:var(--serif);font-weight:400;font-size:32px;color:var(--tinta)}
+.tipo .bar{grid-area:b;display:block;height:3px;border-radius:3px;background:var(--sand);margin-top:8px;overflow:hidden}
+.tipo .bar i{display:block;height:100%;width:var(--w);background:var(--c);transform-origin:left;transform:scaleX(0);transition:transform .9s .25s var(--ease)}
+.tipo.in .bar i{transform:scaleX(1)}
+
+.lista-card{overflow:hidden}
+.herr{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--sand)}
+.limpiar{font-size:12.5px;font-weight:600;color:var(--taupe);text-decoration:underline;text-underline-offset:3px;opacity:0;pointer-events:none;transition:opacity .2s}
+.limpiar.v{opacity:1;pointer-events:auto}
+
+/* Cabecera de grupo con su franja: un trazo por traslado, del color de lo que le toca */
+.grupo{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 18px;align-items:center;padding:16px 18px 10px;background:color-mix(in srgb,var(--hueso) 55%,var(--papel));border-top:1px solid var(--sand);position:sticky;top:54px;z-index:5}
+.lista-card>#lista>.grupo:first-child{border-top:0}
+.grupo .gn{font-family:var(--serif);font-weight:500;font-size:22px;white-space:nowrap}
+.grupo .gr{font-size:12px;color:var(--t65);white-space:nowrap}
+.franja{display:flex;gap:3px;height:12px;align-items:flex-end;min-width:0}
+.franja button{flex:1 1 0;min-width:6px;max-width:34px;height:100%;border-radius:3px;background:var(--c);opacity:.9;transform:scaleY(0);transform-origin:bottom;transition:transform .5s var(--ease),opacity .2s,height .2s;transition-delay:calc(var(--k,0)*40ms + 200ms)}
+.grupo.in .franja button{transform:scaleY(1)}
+.franja button:hover{opacity:1;height:150%}
+
+/* La fila de un traslado */
+.op{position:relative;border-top:1px solid var(--sand);background:var(--papel);transition:background .25s var(--ease)}
+.op:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c);transform:scaleY(.3);opacity:0;transition:transform .35s var(--ease),opacity .25s}
+.op:hover{background:var(--c-bg)}
+.op:hover:before{transform:none;opacity:1}
+.op .fila{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 18px;cursor:pointer;width:100%}
+.op .sello{--sz:52px}
+.op .l1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.op .tn{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.op .nro{font-size:12px;color:var(--t65)}
+.op .quien{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--t65)}
+.op .l2{display:flex;align-items:center;gap:10px;margin:6px 0 10px;min-width:0}
+.op .l2 .tx{min-width:0}
+.op .l2 b{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op .l2 span{font-size:12px;color:var(--t65);display:flex;align-items:center;gap:5px}
+.op .l2 .ciega-mini{width:14px;height:14px;color:var(--c)}
+.op .l3 .viaje{max-width:440px}
+.op .cant{text-align:right;min-width:78px}
+.op .cant b{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1;color:var(--c);display:block;white-space:nowrap}
+.op .cant small{font-size:11px;color:var(--t65)}
+.op .cant .chev{display:block;margin:6px 0 0 auto;color:var(--t35);transition:transform .3s var(--ease)}
+.op:hover .chev{transform:translateX(3px)}
+.op.atrasado .cant b{color:var(--ambar)}
+
+/* El mazo de terminados: una pila que se abre en abanico */
+.mazo{position:relative;border-top:1px solid var(--sand);background:var(--papel)}
+.mazo .tapa-mazo{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 18px;cursor:pointer;width:100%;transition:background .25s}
+.mazo .tapa-mazo:hover{background:var(--c-bg)}
+.mazo .capas{position:absolute;left:18px;right:18px;top:calc(100% - 6px);height:10px;pointer-events:none;transition:opacity .25s,transform .4s var(--ease)}
+.mazo .capas i{position:absolute;left:0;right:0;bottom:0;height:8px;border:1px solid var(--c-ln);border-top:0;border-radius:0 0 12px 12px;background:var(--c-bg)}
+.mazo .capas i:nth-child(1){left:10px;right:10px;bottom:-4px;opacity:.7}
+.mazo .capas i:nth-child(2){left:5px;right:5px;bottom:-1px}
+.mazo.abierto .capas{opacity:0;transform:translateY(-6px)}
+.mazo .sello{--sz:46px}
+.mazo .sellos{display:flex}
+.mazo .sellos .sello{--sz:34px;margin-left:-8px;box-shadow:inset 0 0 0 1.5px var(--c-ln),0 0 0 2px var(--papel)}
+.mazo .sellos .sello:first-child{margin-left:0}
+.mazo .tn{font-family:var(--serif);font-size:20px}
+.mazo .tx span{font-size:12.5px;color:var(--t65)}
+.mazo .chev{color:var(--t50);transition:transform .35s var(--ease)}
+.mazo.abierto .chev{transform:rotate(180deg)}
+.mazo .hijos{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+.mazo.abierto .hijos{grid-template-rows:1fr}
+.mazo .hijos>div{overflow:hidden;background:color-mix(in srgb,var(--tinta) 2%,var(--papel))}
+.mazo .hijos .op{background:transparent;transform:translateX(-14px) translateY(-6px);opacity:0;transition:transform .45s var(--ease),opacity .35s var(--ease),background .25s;transition-delay:calc(var(--k,0)*70ms + 80ms)}
+.mazo.abierto .hijos .op{transform:none;opacity:1}
+.mazo .hijos .op .fila{padding-left:40px}
+
+.vacio{padding:56px 24px;text-align:center;color:var(--t65)}
+.vacio .sello{--sz:60px;margin:0 auto 14px}
+.vacio b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;color:var(--tinta);margin-bottom:4px}
+
+@container vista (max-width:1020px){
+  .cols{grid-template-columns:1fr}
+  .lado{position:static;order:-1}
+  .lado .lbl{display:none}
+  .tipos{display:flex;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 0 8px;scrollbar-width:none}
+  .tipos::-webkit-scrollbar{display:none}
+  .tipo{flex:0 0 200px;scroll-snap-align:start}
+  .tipo:hover,.tipo[aria-pressed=true]{transform:none}
+}
+@container vista (max-width:760px){
+  .hoy{margin-top:18px}
+  .cols{margin-top:18px}
+  .tipo{flex-basis:186px}
+  .herr{padding:12px}
+  .grupo{grid-template-columns:1fr auto;padding:12px 14px 8px}
+  .grupo .franja{grid-column:1/-1;order:3}
+  .op .fila,.mazo .tapa-mazo{gap:12px;padding:14px}
+  .op .sello{--sz:42px}
+  .op .cant b{font-size:26px}
+  .op .cant{min-width:56px}
+  .op .l2 .pila{display:none}
+  .op .l3 .viaje .pt{font-size:11px;padding:2px 8px 2px 6px}
+  .mazo .hijos .op .fila{padding-left:22px}
+  .mazo .sellos{display:none}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+const est = { g:null, q:'', mazo:false };
+const sinTilde = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const coincide = (t, q) => {
+  if (!q) return true;
+  const hay = [`traslado ${t.num}`, M.SEDES[t.de].n, M.SEDES[t.a].n, M.SEDES[t.de].ciudad, M.SEDES[t.a].ciudad, M.persona(t.por), t.nota, ...t.lineas.flatMap(l => [M.PRENDAS[l.p].n, M.PRENDAS[l.p].cols[l.c][0]])].filter(Boolean).map(sinTilde).join(' ');
+  return sinTilde(q).split(/\s+/).every(w => hay.includes(w));
+};
+
+M.montar({ opcion:'A', nombre:'Ruta', dibujar(raiz){
+  const s = M.sede, tareas = M.tareas(s);
+  raiz.innerHTML = M.encabezado() + `
+    <section class="hoy">
+      <div class="hoy-t"><h2>Hoy te toca</h2><span class="n num">${tareas.length || ''}</span></div>
+      ${tareas.length ? `<div class="tareas">${tareas.slice(0, 4).map((x, i) => M.tareaHTML(x, i)).join('')}</div>`
+        : `<div class="tareas-vacio s-cerrado rev"><span class="sello" data-go>${M.glifo('cerrado')}</span><div><b style="font-family:var(--serif);font-weight:400;font-size:21px">Nada pendiente en ${M.SEDES[s].corto}</b><div style="color:var(--t65);font-size:12.5px">Cuando una caja salga hacia aquí, aparece en este lugar.</div></div></div>`}
+    </section>
+    <div class="cols">
+      <section class="tarjeta lista-card">
+        <div class="herr">
+          <label class="campo">${M.ic('buscar')}<input id="q" type="search" placeholder="Busca un traslado, una sede o una prenda" autocomplete="off"></label>
+          <button class="limpiar" id="limpia">Quitar filtros</button>
+        </div>
+        <div id="lista"></div>
+      </section>
+      <aside class="lado"><div class="lbl">Filtrar</div><section class="tipos" id="tipos" aria-label="Qué traslados ver"></section></aside>
+    </div>`;
+  M.$('#q', raiz).value = est.q;
+  M.$('#q', raiz).oninput = e => { est.q = e.target.value; pintarLista(true); };
+  M.$('#limpia', raiz).onclick = () => { est.g = null; est.q = ''; M.$('#q', raiz).value = ''; pintarTipos(true); pintarLista(); };
+  const limpio = () => M.$('#limpia', raiz).classList.toggle('v', !!(est.g || est.q));
+
+  function pintarTipos(solo){
+    const cont = M.$('#tipos', raiz);
+    if (solo) { M.$$('.tipo', cont).forEach(b => b.setAttribute('aria-pressed', est.g === b.dataset.g)); cont.classList.toggle('hay', !!est.g); limpio(); return; }
+    const mios = M.mios(s), total = mios.length || 1;
+    cont.innerHTML = ''; cont.classList.toggle('hay', !!est.g);
+    M.GRUPOS.forEach(g => {
+      const suyos = mios.filter(t => g.sits.includes(M.situacion(t, s)));
+      const atras = g.id === 'llegan' ? suyos.filter(t => M.atrasado(t)).length : 0;
+      const sub = g.id === 'llegan' ? (atras ? `<span class="chip s-atraso late">${atras} atrasado</span>` : (suyos.length ? 'se cuentan al llegar' : g.vacio))
+        : g.id === 'salen' ? (suyos.length ? `${suyos.reduce((a, t) => a + M.unidades(t), 0)} prendas en camino` : g.vacio)
+        : g.id === 'contando' ? (suyos.length ? 'empezaron a contarse' : g.vacio)
+        : g.id === 'revisar' ? (suyos.length ? 'faltó o sobró algo' : g.vacio)
+        : 'esta semana';
+      const b = M.el('button', `s-${g.s} tipo rev`, `
+        <span class="sello" data-go>${M.glifo(g.s)}</span>
+        <span class="tn">${g.n}</span>
+        <span class="tc"><b class="num" data-cuenta="${suyos.length}">0</b></span>
+        <span class="tu">${sub}</span>
+        <span class="bar"><i style="--w:${Math.max(3, Math.round(suyos.length / total * 100))}%"></i></span>`);
+      b.dataset.g = g.id; b.dataset.goHover = 1; b.setAttribute('aria-pressed', est.g === g.id);
+      b.onclick = () => { est.g = est.g === g.id ? null : g.id; pintarTipos(true); pintarLista(); };
+      cont.append(b);
+    });
+  }
+
+  function filaOp(t, k = 0){
+    const sit = M.situacion(t, s), c = M.cifra(t, s), ciego = M.ciego(t, s);
+    const a = M.el('article', `op s-${sit === 'llega' && M.atrasado(t) ? 'atraso' : sit} ${M.atrasado(t) ? 'atrasado' : ''}`);
+    a.dataset.foco = t.num; a.style.setProperty('--k', k);
+    a.innerHTML = `
+      <div class="fila" data-num="${t.num}" data-go-hover role="button" tabindex="0" aria-label="Abrir el Traslado ${t.num}">
+        <span class="sello" data-go>${M.glifo(sit === 'camino' ? 'sale' : sit)}</span>
+        <div style="min-width:0">
+          <div class="l1"><span class="tn">${M.nombreSit(t, s)}</span><span class="nro">Traslado ${t.num}</span><span class="quien"><i class="av">${M.persona(t.por)[0]}</i>${M.persona(t.por)}</span></div>
+          <div class="l2">${M.pila(t.lineas, 30)}<span class="tx"><b>${M.queVa(t)}</b><span>${ciego ? `<svg class="gl ciega-mini" viewBox="0 0 24 24">${M.GL.ciega}</svg>${t.lineas.length} distintas · se cuentan al llegar` : M.prendasTexto(t, s)}</span></span></div>
+          <div class="l3">${M.viaje(t, s)}</div>
+        </div>
+        <div class="cant"><b class="num">${c.big}</b><small>${c.small}</small>${M.ic('flecha', 'chev')}</div>
+      </div>`;
+    M.$('.fila', a).onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.cajon(t); } };
+    M.$('.fila', a).onclick = () => M.cajon(t);
+    a.classList.add('rev');
+    return a;
+  }
+
+  function pintarLista(sinAnim){
+    const lista = M.$('#lista', raiz);
+    lista.innerHTML = '';
+    let ts = M.ordenar(M.mios(s)).filter(t => coincide(t, est.q));
+    if (est.g) ts = ts.filter(t => M.GRUPOS.find(g => g.id === est.g).sits.includes(M.situacion(t, s)));
+    limpio();
+    if (!ts.length) {
+      const g = est.g ? M.GRUPOS.find(x => x.id === est.g) : null;
+      lista.innerHTML = `<div class="vacio s-${g ? g.s : 'camino'} rev"><span class="sello" data-go>${M.glifo(g ? g.s : 'camino')}</span><b>${g ? g.vacio : 'No encontramos ese traslado'}</b>${est.q ? 'Prueba con el nombre de la prenda o de la sede.' : ''}</div>`;
+      M.revelar(lista); return;
+    }
+    const abiertos = ts.filter(M.abierto), cerrados = ts.filter(t => !M.abierto(t));
+    if (abiertos.length) {
+      const h = M.el('div', 'grupo rev', `<span class="gn">En curso</span><span class="franja">${abiertos.map((t, k) => `<button class="s-${M.situacion(t, s) === 'llega' && M.atrasado(t) ? 'atraso' : M.situacion(t, s)}" style="--k:${k}" data-ir="${t.num}" title="Traslado ${t.num} · ${M.nombreSit(t, s)}" aria-label="Ir al Traslado ${t.num}"></button>`).join('')}</span><span class="gr num">${abiertos.length} ${abiertos.length === 1 ? 'traslado' : 'traslados'}</span>`);
+      lista.append(h);
+      abiertos.forEach((t, k) => lista.append(filaOp(t, k)));
+      M.$$('[data-ir]', h).forEach(b => b.onclick = () => {
+        const f = lista.querySelector(`[data-foco="${b.dataset.ir}"]`);
+        f.scrollIntoView({ block:'center', behavior:'smooth' });
+        setTimeout(() => { f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); M.$$('.sello,[data-go]', f).forEach(M.repetir); }, 380);
+      });
+    }
+    if (cerrados.length) {
+      const juntar = !est.g && !est.q && cerrados.length > 1;
+      if (!juntar) {
+        lista.append(M.el('div', 'grupo rev', `<span class="gn">Terminados</span><span></span><span class="gr num">${cerrados.length}</span>`));
+        cerrados.forEach((t, k) => lista.append(filaOp(t, k)));
+      } else {
+        const m = M.el('div', `mazo s-cerrado rev ${est.mazo ? 'abierto' : ''}`);
+        const u = cerrados.reduce((a, t) => a + M.unidades(t), 0);
+        m.innerHTML = `
+          <button class="tapa-mazo" data-go-hover aria-expanded="${est.mazo}">
+            <span class="sellos">${cerrados.slice(0, 4).map(t => `<span class="sello s-${M.situacion(t, s)}" data-go>${M.glifo(M.situacion(t, s))}</span>`).join('')}</span>
+            <span class="tx"><span class="tn">${cerrados.length} terminados</span><br><span>${cerrados.filter(t => M.situacion(t, s) === 'cerrado').length} completos · ${cerrados.filter(t => M.situacion(t, s) === 'dif').length} con nota · ${cerrados.filter(t => M.situacion(t, s) === 'anulado').length} anulado</span></span>
+            ${M.ic('abajo', 'chev')}
+          </button>
+          <span class="capas"><i></i><i></i></span>
+          <div class="hijos"><div></div></div>`;
+        const cont = M.$('.hijos>div', m);
+        cerrados.forEach((t, k) => { const f = filaOp(t, k); f.classList.remove('rev'); cont.append(f); });
+        if (est.mazo) M.$$('.hijos .viaje', m).forEach(v => v.classList.add('quieto'));
+        M.$('.tapa-mazo', m).onclick = () => { est.mazo = !m.classList.toggle('abierto') ? false : true; M.$('.tapa-mazo', m).setAttribute('aria-expanded', est.mazo); if (est.mazo) M.$$('.hijos .sello,.hijos [data-go]', m).forEach(M.repetir); };
+        lista.append(m);
+      }
+    }
+    if (sinAnim) M.$$('.rev', lista).forEach(n => n.classList.add('in')), M.$$('.viaje', lista).forEach(v => v.classList.add('quieto'));
+    M.conectarTareas(lista);
+    M.revelar(lista);
+  }
+  pintarTipos(); pintarLista();
+}});
+</script>
+</body>
+</html>

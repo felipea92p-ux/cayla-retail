@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados · D · Pases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN D · «PASES» — cada traslado es un pase de abordar, como en la billetera del celular.
+   De dónde sale y a dónde va en grande (TAL → TRU), cuándo llega y UN botón. El pase se da vuelta
+   para contar a ciegas; al confirmar le cae el sello «RECIBIDO» y se guarda. A la izquierda, la
+   billetera: los pases apilados (lo urgente arriba) y un anillo con lo que te toca hoy.
+   ==================================================================== */
+.d-cols{display:grid;grid-template-columns:380px minmax(0,1fr);gap:28px;align-items:start;margin-top:24px}
+.bil{position:sticky;top:70px;display:grid;gap:14px}
+
+/* «Hoy te toca»: un anillo que se llena a medida que haces las cosas del día */
+.bil-cab{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:var(--papel);border:1px solid var(--sand)}
+.anillo{width:52px;height:52px;flex:none;transform:rotate(-90deg)}
+.anillo circle{fill:none;stroke-width:5}
+.an-f{stroke:var(--hueso)}
+.an-v{stroke:var(--verde);stroke-linecap:round;stroke-dasharray:125.7;stroke-dashoffset:125.7;transition:stroke-dashoffset 1.1s .3s var(--ease)}
+.bil-cab.in .an-v{stroke-dashoffset:calc(125.7 * (1 - var(--v)))}
+.bil-cab span b{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1;margin:0 2px}
+.anillo-w{position:relative;flex:none;display:grid;place-items:center}
+.an-n{position:absolute;font-size:12px;font-weight:700;color:var(--t80)}
+.pestanas .bd-t{background:var(--ambar);color:var(--papel);border-radius:99px;font-size:11px;font-weight:800;min-width:20px;height:20px;display:grid;place-items:center;padding:0 6px}
+.bil-cab span{font-size:14px;font-weight:600}
+.bil-cab small{display:block;font-size:12px;color:var(--t65);margin-top:2px}
+
+/* Pestañas con un indicador que se desliza */
+.pestanas{position:relative;display:grid;grid-template-columns:repeat(3,1fr);background:var(--hueso);border-radius:13px;padding:4px}
+.pestanas .ind{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:10px;background:var(--papel);box-shadow:0 4px 12px -8px color-mix(in srgb,var(--sombra) 45%,transparent);transform:translateX(calc(var(--k) * 100%));transition:transform .45s var(--ease)}
+.pestanas button{position:relative;z-index:1;padding:8px 6px;font-size:13px;font-weight:600;color:var(--t65);text-align:center;display:flex;gap:6px;justify-content:center;align-items:center;transition:color .25s}
+.pestanas button[aria-selected=true]{color:var(--tinta)}
+.pestanas button .num{font-family:var(--serif);font-size:17px;font-weight:400;color:var(--t50)}
+
+/* La billetera: pases apilados (se ve la franja de arriba de cada uno) */
+.pila-pases{display:flex;flex-direction:column;padding-bottom:8px}
+.mp{position:relative;display:block;width:100%;text-align:left;border-radius:18px;background:var(--papel);box-shadow:0 -1px 0 var(--t06),0 14px 28px -18px color-mix(in srgb,var(--sombra) 55%,transparent);overflow:hidden;transition:transform .35s var(--ease),margin .45s var(--ease),box-shadow .3s}
+.mp+.mp{margin-top:-58px}
+.mp:hover{transform:translateY(-8px)}
+.mp.on{margin-bottom:58px;transform:translateX(8px);box-shadow:0 0 0 2px var(--c),0 18px 34px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+.mp-b{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px 0 10px;background:var(--c-md);color:var(--c)}
+.mp-b .sello{--sz:28px;border-radius:9px;background:var(--papel)}
+.mp-q{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-n{font-size:12px;font-weight:700;color:var(--t65)}
+.mp-r{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;height:58px;padding:0 14px}
+.mp-r .cod{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1;letter-spacing:.03em}
+.mp-l{position:relative;height:16px}
+.mp-l i{position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--c-ln)}
+.mp-l b{position:absolute;left:0;top:50%;height:2px;margin-top:-1px;width:calc(var(--p) * 100%);background:var(--c)}
+.mp-l svg{position:absolute;top:50%;left:calc(var(--p) * (100% - 12px));width:18px;height:18px;transform:translate(-50%,-50%);color:var(--c);background:var(--papel);border-radius:50%}
+.mp-c{text-align:right;line-height:1;margin-left:4px;min-width:62px}
+.mp-c b{font-family:var(--serif);font-weight:400;font-size:24px;color:var(--c);white-space:nowrap}
+.mp-c small{display:block;font-size:10.5px;color:var(--t65);margin-top:3px}
+.mp .mp-sello{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.14em;border:2px double var(--c);color:var(--c);border-radius:6px;padding:1px 6px;transform:rotate(-8deg);opacity:.85}
+.pila-vacia{padding:28px 18px;border-radius:18px;border:1.5px dashed var(--sand);text-align:center;color:var(--t65)}
+.pila-vacia b{display:block;font-family:var(--serif);font-weight:400;font-size:21px;color:var(--tinta)}
+
+/* El escenario: el pase abierto, grande */
+.esc{position:relative;min-height:640px;border-radius:26px;background:var(--hueso);display:grid;place-items:center;padding:34px 24px 76px;overflow:hidden}
+.giro{position:relative;width:min(460px,100%);perspective:1800px}
+.pase3d{position:relative;transform-style:preserve-3d;transition:transform .8s var(--ease)}
+.pase3d.vuelta{transform:rotateY(180deg)}
+.pase{position:relative;background:var(--papel);border-radius:24px;box-shadow:0 30px 60px -30px color-mix(in srgb,var(--sombra) 50%,transparent),0 2px 8px -4px color-mix(in srgb,var(--sombra) 20%,transparent);overflow:hidden;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.pase.atras{position:absolute;inset:0;transform:rotateY(180deg);display:flex;flex-direction:column}
+
+.pb{display:flex;align-items:center;gap:12px;height:64px;padding:0 20px 0 14px;background:var(--c-md);color:var(--c)}
+.pb .sello{--sz:40px;border-radius:12px;background:var(--papel)}
+.pq{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;flex:1}
+.pn{font-size:13px;font-weight:700;color:var(--t65)}
+.pr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:26px 24px 8px}
+.pc .cod{display:block;font-family:var(--serif);font-weight:400;font-size:58px;line-height:.95;letter-spacing:.03em;white-space:nowrap}
+.pc>span{display:block;font-size:12px;color:var(--t65);margin-top:6px}
+.pc.der{text-align:right}
+.fl{display:inline-block;min-width:.6em;text-align:center}
+.fl.gira{color:var(--t35)}
+.pl{position:relative;height:34px}
+.pl i{position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--c-ln)}
+.pl b{position:absolute;left:0;top:50%;height:2.5px;margin-top:-1.25px;border-radius:2px;width:calc(var(--p) * 100%);background:var(--c);transform-origin:left;transform:scaleX(0)}
+.pl .cam{position:absolute;top:50%;left:0;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:var(--papel);color:var(--c);box-shadow:0 0 0 1.5px var(--c-ln),0 6px 14px -8px color-mix(in srgb,var(--sombra) 50%,transparent);display:grid;place-items:center;opacity:0}
+.pl .cam svg{width:19px;height:19px}
+.pl .cam.tarde{color:var(--ambar);box-shadow:0 0 0 2px var(--ambar)}
+.pl .cam.tarde:after{content:"";position:absolute;inset:-2px;border-radius:50%;--c:var(--ambar);animation:late 1.1s 1.3s 3 var(--ease)}
+.pl .fin{position:absolute;right:-6px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--papel);box-shadow:inset 0 0 0 2.5px var(--c)}
+.go .pl b{animation:pl-llena 1.1s .2s var(--ease) forwards}
+.quieto .pl b{transform:scaleX(1)}
+.quieto .pl .cam{opacity:1;left:calc(var(--p) * (100% - 26px))}
+.go .pl .cam{animation:pl-viaja 1.2s .2s var(--ease) forwards}
+@keyframes pl-llena{to{transform:scaleX(1)}}
+@keyframes pl-viaja{from{left:0;opacity:0}15%{opacity:1}to{left:calc(var(--p) * (100% - 26px));opacity:1}}
+
+.pf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px 24px 6px}
+.pf small{display:block;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--t50)}
+.pf b{display:block;font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.15;margin-top:4px}
+.pf em{display:block;font-style:normal;font-size:11.5px;color:var(--t65);margin-top:2px}
+.pf .tarde,.pf .tarde+em{color:var(--ambar)}
+.pp{position:relative;height:30px;margin:6px 0}
+.pp:before{content:"";position:absolute;left:24px;right:24px;top:50%;border-top:2px dashed var(--sand)}
+.pp i{position:absolute;top:50%;width:26px;height:26px;margin-top:-13px;border-radius:50%;background:var(--hueso)}
+.pp i:first-child{left:-13px}.pp i:last-child{right:-13px}
+.pz{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 24px 16px}
+.pz .quien{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t65);margin-top:8px}
+.qr-b{border-radius:10px;padding:0;line-height:0;transition:transform .3s var(--ease);text-align:center}
+.qr-b small{display:block;line-height:1.2;font-size:10.5px;color:var(--t65);margin-top:4px}
+.qr-b:hover{transform:scale(1.06)}
+.pa{margin:4px 24px 24px;width:calc(100% - 48px);justify-content:center;padding:14px 18px;font-size:15px;border-radius:14px}
+.pa svg{transition:transform .3s var(--ease)}
+.pa:hover svg{transform:translateX(4px)}
+.pa-dos{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin:4px 24px 24px}
+.pa-dos .btn{justify-content:center;padding:13px;font-size:14px;border-radius:14px}
+.prenda-pedida{display:flex;align-items:center;gap:16px;padding:18px 24px 6px}
+.prenda-pedida b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.1}
+.prenda-pedida span{font-size:12.5px;color:var(--t65)}
+
+/* El sello de goma: cae una vez y se queda */
+.estampa{position:absolute;left:112px;top:262px;transform:rotate(-9deg);border:3px double var(--c);color:var(--c);border-radius:12px;padding:7px 16px 6px;font-weight:800;letter-spacing:.18em;font-size:21px;text-align:center;opacity:.9;pointer-events:none;background:color-mix(in srgb,var(--papel) 55%,transparent)}
+.estampa small{display:block;font-size:10px;letter-spacing:.16em;font-weight:700;margin-top:1px}
+.estampa.cae{animation:sella .36s cubic-bezier(.2,.8,.25,1) both}
+@keyframes sella{from{transform:rotate(-17deg) scale(1.9);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:.9}}
+
+/* El reverso: aquí se cuenta */
+.atras .pb{flex:none}
+.volver{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--c);padding:6px 10px 6px 6px;border-radius:9px;background:var(--papel)}
+.volver svg{transform:rotate(180deg)}
+.bk-ring{width:40px;height:40px;transform:rotate(-90deg)}
+.bk-ring circle{fill:none;stroke-width:4}
+.bk-ring .f{stroke:var(--papel)}
+.bk-ring .v{stroke:var(--c);stroke-linecap:round;stroke-dasharray:100.5;stroke-dashoffset:calc(100.5 * (1 - var(--v)));transition:stroke-dashoffset .5s var(--ease)}
+.bk-cue{flex:1;overflow:auto;padding:14px 22px;display:grid;gap:10px;align-content:start}
+.bk-tip{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--t80);background:var(--c-bg);border:1px dashed var(--c-ln);border-radius:12px;padding:9px 12px}
+.bk-tip .sello{--sz:30px;border-radius:9px}
+.fila-b{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--sand)}
+.fila-b:first-of-type{border-top:0}
+.fila-b .n b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila-b .n span{font-size:12px;color:var(--t65)}
+.fila-b .cmp{display:flex;align-items:center;gap:10px}
+.fila-b .env{font-size:11.5px;color:var(--t65);text-align:right;line-height:1.15}
+.fila-b .env b{display:block;font-family:var(--serif);font-weight:400;font-size:20px;color:var(--tinta)}
+.fila-b .q{font-family:var(--serif);font-size:24px;min-width:30px;text-align:right}
+.fila-b .mk{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--papel)}
+.fila-b .mk svg{width:12px;height:12px;stroke-width:2.6}
+.fila-b .mk.ok{background:var(--verde)}.fila-b .mk.no{background:var(--ambar)}
+.revela .fila-b{animation:revela .5s var(--ease) both;animation-delay:calc(var(--k) * 80ms)}
+.revela .fila-b.no-cuadra{background:linear-gradient(90deg,color-mix(in srgb,var(--ambar) 10%,transparent),transparent)}
+@keyframes revela{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.bk-pie{flex:none;border-top:1px solid var(--sand);padding:14px 22px 18px;display:grid;gap:10px;background:var(--papel)}
+.bk-pie .fila{display:flex;gap:8px}
+.bk-pie .btn{justify-content:center;padding:12px 14px;border-radius:12px}
+.bk-pie .grande{flex:1;font-size:14px}
+.lugar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lugar button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--sand);font-size:13px;font-weight:600;transition:border-color .2s,background .2s}
+.lugar button[aria-pressed=true]{border-color:var(--tinta);background:var(--hueso)}
+.lugar svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* Pasar de un pase a otro */
+.pager{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--papel);border:1px solid var(--sand);border-radius:99px;padding:4px}
+.pager button{width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+.pager button:hover{background:var(--hueso)}
+.pager button[disabled]{opacity:.3}
+.pager .izq svg{transform:rotate(180deg)}
+.pager span{font-size:12.5px;font-weight:600;color:var(--t65);min-width:56px;text-align:center}
+
+/* En celular el pase se abre encima, en una hoja hueso */
+.pase-hoja{position:absolute;inset:0;z-index:70;background:var(--hueso);overflow:auto;padding:58px 14px 40px;opacity:0;transform:translateY(24px);transition:opacity .3s var(--ease),transform .4s var(--ease)}
+.pase-hoja.in{opacity:1;transform:none}
+.pase-hoja .x{position:absolute;right:14px;top:12px;width:36px;height:36px;border-radius:50%;background:var(--papel);border:1px solid var(--sand);display:grid;place-items:center}
+.pase-hoja .giro{margin:0 auto}
+
+@container vista (max-width:980px){
+  .d-cols{grid-template-columns:1fr}
+  .bil{position:static}
+  .esc{display:none}
+  .mp.on{transform:none;margin-bottom:0;box-shadow:0 -1px 0 var(--t06),0 14px 28px -18px color-mix(in srgb,var(--sombra) 55%,transparent)}
+}
+@container vista (max-width:760px){
+  .pc .cod{font-size:44px}
+  .pr{padding:22px 18px 6px}
+  .pf{padding:16px 18px 6px;gap:8px}
+  .pf b{font-size:19px}
+  .pz{padding:0 18px 14px}
+  .pa,.pa-dos{margin:4px 18px 20px}
+  .pa{width:calc(100% - 36px)}
+  .estampa{left:96px;top:244px;font-size:18px}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+const est = { tab:null, sel:null };
+let pase = null;   // estado del pase abierto: { vuelta, revelado, lugar, anulando }
+const nuevoPase = () => ({ vuelta:false, revelado:false, lugar:'almacen', anulando:false });
+
+/* En qué pestaña va cada cosa: lo que viene, lo que envías (y lo que te piden enviar) y lo guardado */
+const tabDe = (t, s) => ['cerrado','dif','anulado'].includes(M.situacion(t, s)) ? 'guardados' : t.a === s ? 'llegan' : 'envias';
+const itemsDe = (tab, s) => {
+  const ts = M.ordenar(M.mios(s)).filter(t => tabDe(t, s) === tab).map(t => ({ tipo:'t', t, id:'t' + t.num }));
+  if (tab !== 'envias') return ts;
+  return M.PEDIDOS.filter(p => p.envia === s && !p.hecho).map(p => ({ tipo:'p', p, id:'p' + p.id })).concat(ts);
+};
+const clsDe = x => x.tipo === 'p' ? 'pedido' : (M.situacion(x.t) === 'llega' && M.atrasado(x.t) ? 'atraso' : M.situacion(x.t) === 'camino' ? 'sale' : M.situacion(x.t));
+const glifoDe = x => x.tipo === 'p' ? 'pedido' : ({ camino:'sale' }[M.situacion(x.t)] || M.situacion(x.t));
+const COD = id => M.codigo(id);
+const truck = '<svg class="gl" viewBox="0 0 24 24"><g><path d="M2.8 6.6h10.7v9.7H2.8z"/><path d="M13.5 9.8h4l3.2 3.4v3.1h-7.2"/><circle cx="7" cy="17.7" r="1.8"/><circle cx="17" cy="17.7" r="1.8"/></g></svg>';
+const SELLOS = { cerrado:['RECIBIDO','s-cerrado'], dif:['CON NOTA','s-dif'], anulado:['ANULADO','s-anulado'], revisar:['FALTÓ ALGO','s-revisar'], enviado:['ENVIADO','s-sale'], no:['NO LA TENGO','s-anulado'] };
+const fechaSello = d => { const x = new Date(d.getTime() - 5 * 3600e3); return `${x.getUTCDate()} ${['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'][x.getUTCMonth()]} · ${M.hora(d)}`; };
+
+/* Los tres datos del pase, según lo que te toca (nunca la cantidad de una caja que viene: se cuenta a ciegas) */
+const campos = (t, s) => {
+  const sit = M.situacion(t, s), u = M.unidades(t), salio = ['SALIÓ', M.cuando(t.salio)];
+  if (sit === 'anulado') return [salio, ['ANULADO', M.cuando(t.anulado)], ['VOLVIERON', `${u} prendas`, 'a ' + M.SEDES[t.de].corto]];
+  if (sit === 'llega' || sit === 'sale' || sit === 'camino') {
+    const tarde = M.atrasado(t);
+    return [salio, ['LLEGA', M.cuando(t.eta), tarde ? `${M.dur((M.AHORA - t.eta) / 6e4)} tarde` : `en ${M.dur((t.eta - M.AHORA) / 6e4)}`, tarde],
+      M.ciego(t, s) ? ['PRENDAS', `${t.lineas.length} ${t.lineas.length === 1 ? 'tipo' : 'tipos'}`, 'las cuentas al llegar'] : ['PRENDAS', `${u}`, `${t.lineas.length} ${t.lineas.length === 1 ? 'tipo' : 'tipos'} de prenda`]];
+  }
+  if (sit === 'contando') return [salio, ['CONTANDO', `${M.contadas(t)} de ${t.lineas.length}`, `tipos · ${M.persona(t.cuenta)}`], M.ciego(t, s) ? ['PRENDAS', `${t.lineas.length} tipos`, 'las cuentas sin saber cuántas'] : ['PRENDAS', `${u}`, 'enviadas']];
+  const llego = ['LLEGÓ', M.cuando(t.confirmado || t.cerrado), M.persona(t.recibio)];
+  if (sit === 'revisar') return [salio, llego, [M.faltan(t) ? 'FALTÓ' : 'SOBRÓ', `${M.faltan(t) || M.sobran(t)} ${(M.faltan(t) || M.sobran(t)) === 1 ? 'prenda' : 'prendas'}`, 'por revisar']];
+  if (sit === 'dif') return [salio, llego, ['FALTÓ', `${M.faltan(t)} ${M.faltan(t) === 1 ? 'prenda' : 'prendas'}`, 'cerrado con nota']];
+  return [salio, llego, ['ENTRARON', `${u} prendas`, t.lugar === 'piso' ? 'al piso' : 'al almacén']];
+};
+const accion = (t, s) => ({
+  llega: M.atrasado(t) ? 'Ya llegó: abrir y contar' : 'Si ya llegó, ábrela y cuéntala', contando: 'Seguir contando', revisar: t.a === s ? 'Revisar lo que faltó' : 'Ver la diferencia',
+  sale: 'Ver lo que enviaste', camino: 'Ver la caja', cerrado: 'Ver lo que llegó', dif: 'Ver la nota', anulado: 'Ver por qué se anuló',
+}[M.situacion(t, s)]);
+
+M.montar({ opcion:'D', nombre:'Pases', dibujar(raiz){
+  const s = M.sede;
+  M.$('.pase-hoja')?.remove();
+  const TABS = [['llegan','Te llegan'],['envias','Envías'],['guardados','Terminadas']];
+  const porHacer = id => id === 'llegan' ? M.tareas(s).filter(x => x.t).length : id === 'envias' ? M.tareas(s).filter(x => x.p).length : 0;
+  if (!est.tab || !itemsDe(est.tab, s).length) est.tab = itemsDe('llegan', s).length ? 'llegan' : itemsDe('envias', s).length ? 'envias' : 'guardados';
+  const items = itemsDe(est.tab, s);
+  if (!items.find(x => x.id === est.sel)) est.sel = items[0]?.id ?? null;
+  const pend = M.tareas(s).length, hechas = M.hechas, total = pend + hechas;
+  const k = TABS.findIndex(x => x[0] === est.tab);
+  raiz.innerHTML = M.encabezado({ frase:'Cada caja: de dónde viene, cuándo llega y qué te toca.' }) + `
+    <div class="d-cols">
+      <aside class="bil">
+        <div class="bil-cab rev">
+          <span class="anillo-w"><svg class="anillo" viewBox="0 0 48 48" aria-hidden="true"><circle class="an-f" cx="24" cy="24" r="20"/><circle class="an-v" cx="24" cy="24" r="20" style="--v:${total ? hechas / total : 1}"/></svg><b class="an-n num">${hechas}/${total}</b></span>
+          <div><span>${pend ? `Te ${pend === 1 ? 'toca' : 'tocan'} <b class="num" data-cuenta="${pend}">0</b> ${pend === 1 ? 'cosa' : 'cosas'} hoy` : 'Nada pendiente hoy'}</span>
+            <small>${hechas ? `Llevas ${hechas} ${hechas === 1 ? 'hecha' : 'hechas'}` : pend ? 'Empieza por la primera caja' : 'Todo al día'}</small></div>
+        </div>
+        <div class="pestanas rev" role="tablist" aria-label="Qué pases ver" style="--k:${k}"><span class="ind"></span>${TABS.map(([id, n]) => { const ph = porHacer(id); return `<button role="tab" data-tab="${id}" aria-selected="${est.tab === id}">${n}${ph ? `<span class="bd-t num" title="${ph} por hacer">${ph}</span>` : `<span class="num">${itemsDe(id, s).length}</span>`}</button>`; }).join('')}</div>
+        <div class="pila-pases" id="pila"></div>
+      </aside>
+      <section class="esc" id="esc" aria-live="polite"></section>
+    </div>`;
+
+  /* ── la billetera ── */
+  const pila = M.$('#pila', raiz);
+  const mini = (x, i) => {
+    const cls = clsDe(x);
+    if (x.tipo === 'p') {
+      const p = x.p;
+      return `<button class="mp s-pedido rev" data-id="${x.id}" style="--i:${i}" data-go-hover>
+        <span class="mp-b"><span class="sello" data-go>${M.glifo('pedido')}</span><span class="mp-q">${M.SEDES[p.pide].corto} te pide</span><span class="mp-n">pedido</span></span>
+        <span class="mp-r"><b class="cod">${COD(p.envia)}</b><span class="mp-l" style="--p:0"><i></i></span><b class="cod">${COD(p.pide)}</b><span class="mp-c">${M.mos(p.linea, 34)}</span></span></button>`;
+    }
+    const t = x.t, sit = M.situacion(t, s), c = M.cifra(t, s), p = M.progreso(t);
+    const sello = SELLOS[sit] && sit !== 'revisar' ? `<span class="mp-sello">${SELLOS[sit][0]}</span>` : '';
+    return `<button class="mp s-${cls} rev ${x.id === est.sel ? 'on' : ''}" data-id="${x.id}" style="--i:${i}" data-go-hover aria-label="Traslado ${t.num}">
+      <span class="mp-b"><span class="sello" data-go>${M.glifo(glifoDe(x))}</span><span class="mp-q">${M.nombreCaja(t, s)}</span><span class="mp-n">Caja Nº ${t.num}</span></span>
+      <span class="mp-r"><b class="cod">${COD(t.de)}</b><span class="mp-l" style="--p:${sit === 'anulado' ? 0 : p}"><i></i><b></b>${['llega','sale','camino'].includes(sit) ? truck : ''}</span><b class="cod">${COD(t.a)}</b>
+        <span class="mp-c">${sello || `<b class="num">${c.big}</b><small>${c.small}</small>`}</span></span></button>`;
+  };
+  pila.innerHTML = items.length ? items.map(mini).join('') : `<div class="pila-vacia rev"><b>${est.tab === 'llegan' ? 'Nada viene hacia ti' : est.tab === 'envias' ? 'No tienes envíos en camino' : 'Nada guardado esta semana'}</b>Cuando haya, aparece aquí.</div>`;
+
+  M.$$('[data-tab]', raiz).forEach(b => b.onclick = () => {
+    if (b.dataset.tab === est.tab) return;
+    est.tab = b.dataset.tab; est.sel = null; pase = null;
+    M.$('.pestanas', raiz).style.setProperty('--k', TABS.findIndex(x => x[0] === est.tab));
+    setTimeout(() => M.repintar({ quieto:true }), 260);
+  });
+  M.$$('.mp', pila).forEach(b => b.onclick = () => seleccionar(b.dataset.id, b));
+
+  /* ── el pase grande ── */
+  const esc = M.$('#esc', raiz);
+  const angosto = () => M.$('.vista').clientWidth <= 980;
+  const itemPorId = id => itemsDe(est.tab, s).find(x => x.id === id) || [...itemsDe('llegan', s), ...itemsDe('envias', s), ...itemsDe('guardados', s)].find(x => x.id === id);
+
+  function frente(x) {
+    if (x.tipo === 'p') {
+      const p = x.p, pide = M.SEDES[p.pide];
+      return `<article class="pase frente s-pedido">
+        <header class="pb"><span class="sello" data-go>${M.glifo('pedido')}</span><span class="pq">${pide.corto} te pide una prenda</span><span class="pn">${M.cuando(p.cuando)}</span></header>
+        <div class="pr"><div class="pc"><b class="cod" data-flap="${COD(p.envia)}">${COD(p.envia)}</b><span>${M.SEDES[p.envia].n} · tú</span></div>
+          <div class="pl" style="--p:0"><i></i><span class="fin"></span></div>
+          <div class="pc der"><b class="cod" data-flap="${COD(p.pide)}">${COD(p.pide)}</b><span>${pide.n}</span></div></div>
+        <div class="prenda-pedida">${M.mos(p.linea, 72)}<div><b>${M.nombrePrenda(p.linea)}</b><span>${M.detallePrenda(p.linea)} · ${p.linea.n} prenda${p.cliente ? ' · para una cliente' : ''}</span></div></div>
+        <div class="pp"><i></i><i></i></div>
+        <div class="pa-dos"><button class="btn" data-no-tengo>No la tengo</button><button class="btn pri" data-enviar>Enviar a ${pide.corto} ${M.ic('flecha')}</button></div>
+        <div class="estampa" hidden></div></article>`;
+    }
+    const t = x.t, sit = M.situacion(t, s), cls = clsDe(x), p = M.progreso(t), c = campos(t, s);
+    const sello = SELLOS[sit] && sit !== 'revisar' ? `<div class="estampa ${SELLOS[sit][1]}">${SELLOS[sit][0]}<small>${fechaSello(t.cerrado || t.anulado || M.AHORA)}</small></div>` : '<div class="estampa" hidden></div>';
+    return `<article class="pase frente s-${cls}">
+      <header class="pb"><span class="sello" data-go>${M.glifo(glifoDe(x))}</span><span class="pq">${M.nombreCaja(t, s)}</span><span class="pn">Caja Nº ${t.num}</span></header>
+      <div class="pr"><div class="pc"><b class="cod" data-flap="${COD(t.de)}">${COD(t.de)}</b><span>${M.SEDES[t.de].n}${t.de === s ? ' · tú' : ''}</span></div>
+        <div class="pl" style="--p:${sit === 'anulado' ? 0 : p}"><i></i><b></b>${['llega','sale','camino'].includes(sit) ? `<span class="cam ${M.atrasado(t) ? 'tarde' : ''}">${truck}</span>` : ''}<span class="fin"></span></div>
+        <div class="pc der"><b class="cod" data-flap="${COD(t.a)}">${COD(t.a)}</b><span>${M.SEDES[t.a].n}${t.a === s ? ' · tú' : ''}</span></div></div>
+      <div class="pf">${c.map(([l, v, sub, tarde]) => `<div><small>${l}</small><b class="${tarde ? 'tarde' : ''}">${v}</b>${sub ? `<em>${sub}</em>` : ''}</div>`).join('')}</div>
+      <div class="pp"><i></i><i></i></div>
+      <div class="pz"><div>${M.pila(t.lineas, 36, 4)}<div class="quien"><i class="av">${M.persona(t.por)[0]}</i>Envía ${M.persona(t.por)}</div></div>
+        ${t.de === s ? `<button class="qr-b" data-qr title="La guía de esta caja">${M.qr(t.num, 70)}<small>va en la caja</small></button>` : ''}</div>
+      <button class="btn ${(sit === 'llega' && M.atrasado(t)) || sit === 'contando' || (sit === 'revisar' && t.a === s) ? 'pri' : ''} pa" data-voltear>${accion(t, s)} ${M.ic('flecha')}</button>
+      ${sello}</article>`;
+  }
+
+  function atras(x) {
+    if (x.tipo === 'p') return '<article class="pase atras s-pedido"></article>';
+    const t = x.t, sit = M.situacion(t, s), cls = clsDe(x);
+    const contar = t.a === s && t.estado === 'en_transito';
+    const head = (txt, ring) => `<header class="pb"><button class="volver" data-volver>${M.ic('flecha')}Volver</button><span class="pq">${txt}</span>${ring != null ? `<svg class="bk-ring" viewBox="0 0 40 40"><circle class="f" cx="20" cy="20" r="16"/><circle class="v" cx="20" cy="20" r="16" style="--v:${ring}"/></svg>` : `<span class="pn">Nº ${t.num}</span>`}</header>`;
+    const fila = (l, k, modo) => {
+      const nom = `<div class="n"><b>${M.nombrePrenda(l)}</b><span>${M.detallePrenda(l)}</span></div>`;
+      if (modo === 'contar') return `<div class="fila-b" data-k="${k}" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="paso-num"><button data-menos aria-label="Una menos">${M.ic('menos')}</button><output class="num ${l.cont == null ? 'sin-contar' : ''}">${l.cont ?? '—'}</output><button data-mas aria-label="Una más">${M.ic('mas')}</button></span></div>`;
+      if (modo === 'comparar') { const ok = (l.cont ?? 0) === l.n; return `<div class="fila-b ${ok ? '' : 'no-cuadra'}" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="cmp"><span class="env">venían<b class="num">${l.n}</b></span><span class="mk ${ok ? 'ok' : 'no'}">${M.ic(ok ? 'check' : 'menos')}</span><span class="q num">${l.cont ?? 0}</span></span></div>`; }
+      return `<div class="fila-b" style="--k:${k}">${M.mos(l, 40)}${nom}<span class="q num">${l.n}</span></div>`;
+    };
+    if (contar) {
+      const hechas = M.contadas(t), total = t.lineas.length, listas = hechas === total;
+      if (!pase.revelado) return `<article class="pase atras s-contando">${head(`Contando la caja Nº ${t.num}`, hechas / total)}
+        <div class="bk-cue"><div class="bk-tip"><span class="sello" data-go>${M.glifo('ciega')}</span><span><b>Cuenta lo que ves en la caja.</b> Lo enviado aparece al final.</span></div>
+          ${t.lineas.map((l, k) => fila(l, k, 'contar')).join('')}</div>
+        <div class="bk-pie"><div class="fila"><button class="btn s-contando" data-escanear>${M.glifo('escanear')}Escanear</button>
+          <button class="btn pri grande" data-termine ${listas ? '' : 'disabled'}>${listas ? 'Terminé de contar' : `${total - hechas === 1 ? 'Falta 1' : `Faltan ${total - hechas}`} por contar`}</button></div></div></article>`;
+      return `<article class="pase atras s-${M.difiere(t) ? 'revisar' : 'cerrado'}">${head(M.difiere(t) ? M.faltaQue(t) : 'Todo coincide', 1)}
+        <div class="bk-cue revela">${t.lineas.map((l, k) => fila(l, k, 'comparar')).join('')}</div>
+        <div class="bk-pie"><div class="lugar" role="group" aria-label="Dónde la dejas">
+            <button data-lugar="almacen" aria-pressed="${pase.lugar === 'almacen'}"><svg viewBox="0 0 24 24">${M.PT.almacen}</svg>Al almacén</button>
+            <button data-lugar="piso" aria-pressed="${pase.lugar === 'piso'}"><svg viewBox="0 0 24 24">${M.PT.piso}</svg>Al piso</button></div>
+          <div class="fila"><button class="btn" data-recontar>Volver a contar</button><button class="btn pri grande" data-confirmar>${M.difiere(t) ? 'Confirmar lo que llegó' : 'Confirmar'}</button></div></div></article>`;
+    }
+    if (sit === 'revisar' || sit === 'dif' || sit === 'cerrado') {
+      const puedeCerrar = sit === 'revisar' && t.a === s;
+      return `<article class="pase atras s-${cls}">${head(sit === 'revisar' ? M.faltaQue(t) : 'Lo que llegó')}
+        <div class="bk-cue revela">${t.lineas.map((l, k) => fila(l, k, 'comparar')).join('')}
+          ${sit === 'dif' ? `<div class="nota-op">“${t.notaCierre}”<cite>${M.persona(t.cerro)}</cite></div>` : ''}
+          ${puedeCerrar ? `<label class="lbl" for="nota-d">¿Qué pasó con lo que falta?</label><textarea id="nota-d" class="campo-nota" data-nota placeholder="Ej. La falda no vino en la caja; Lima la va a buscar"></textarea>` : ''}</div>
+        ${puedeCerrar ? `<div class="bk-pie"><button class="btn pri grande" data-cerrar disabled>Cerrar con diferencia</button></div>` : ''}</article>`;
+    }
+    const puedeAnular = t.de === s && t.estado === 'en_transito' && !M.empezoConteo(t);
+    return `<article class="pase atras s-${cls}">${head(sit === 'anulado' ? 'Se anuló' : `Lo que va en la caja`)}
+      <div class="bk-cue">${t.lineas.map((l, k) => fila(l, k, 'ver')).join('')}
+        ${sit === 'anulado' ? `<div class="nota-op">“${t.motivo}”<cite>${M.persona(t.por)}</cite></div>` : t.nota ? `<div class="nota-op">“${t.nota}”<cite>${M.persona(t.por)}</cite></div>` : ''}
+        ${pase.anulando ? `<label class="lbl" for="mot-d">¿Por qué lo anulas?</label><textarea id="mot-d" class="campo-nota" data-motivo placeholder="Ej. La caja no salió: se armó con la talla equivocada"></textarea>` : ''}</div>
+      ${sit === 'sale' ? `<div class="bk-pie"><div class="fila">${pase.anulando
+        ? `<button class="btn" data-no-anular>No anular</button><button class="btn pri grande" data-anular-si disabled>Anular · vuelve a tu almacén</button>`
+        : `<button class="btn" data-no="la guía con QR (ADR-0242 D-3)">${M.ic('imprimir')}Guía</button><button class="btn" data-no="el mensaje para la otra sede (ADR-0242 D-3)">${M.ic('msj')}WhatsApp</button>${puedeAnular ? '<button class="btn" data-anular style="margin-left:auto">Anular</button>' : ''}`}</div></div>` : ''}</article>`;
+  }
+
+  /* pinta el pase de `x` en `cont` (escenario o la hoja de celular) */
+  function mostrar(x, cont, desde, dir = 0) {
+    if (!pase) pase = nuevoPase();
+    const quieto = M.quieto;
+    const lista = itemsDe(est.tab, s), i = lista.findIndex(y => y.id === x.id);
+    cont.innerHTML = `<div class="giro"><div class="pase3d ${pase.vuelta ? 'vuelta' : ''}" id="p3d">${frente(x)}${atras(x)}</div></div>
+      ${cont === esc && lista.length > 1 ? `<div class="pager"><button class="izq" data-mover="-1" ${i <= 0 ? 'disabled' : ''} aria-label="Caja anterior">${M.ic('flecha')}</button><span class="num">${i + 1} de ${lista.length}</span><button data-mover="1" ${i >= lista.length - 1 ? 'disabled' : ''} aria-label="Caja siguiente">${M.ic('flecha')}</button></div>` : ''}`;
+    const giro = M.$('.giro', cont);
+    if (quieto) giro.classList.add('quieto');
+    else if (desde) M.flip(giro, desde);
+    else if (dir && giro.animate) giro.animate([{ transform:`translateX(${dir * 36}px)`, opacity:0 }, { transform:'none', opacity:1 }], { duration:420, easing:'cubic-bezier(.32,.72,.24,1)' });
+    if (!quieto) requestAnimationFrame(() => requestAnimationFrame(() => {
+      M.$$('.frente .sello, .frente .pr', cont).forEach(e => e.classList.add('go'));
+      M.$$('[data-flap]', cont).forEach((e, j) => setTimeout(() => M.flap(e, e.dataset.flap), j * 140));
+    }));
+    conectar(x, cont);
+  }
+  function conectar(x, cont) {
+    const p3d = M.$('#p3d', cont);
+    M.$$('[data-no]', cont).forEach(b => b.onclick = e => { e.stopPropagation(); M.noEnMaqueta(b.dataset.no); });
+    M.$$('[data-mover]', cont).forEach(b => b.onclick = () => { const l = itemsDe(est.tab, s), i = l.findIndex(y => y.id === x.id), y = l[i + +b.dataset.mover]; if (y) seleccionar(y.id, null, +b.dataset.mover); });
+    const qr = M.$('[data-qr]', cont); if (qr) qr.onclick = () => M.avisar('En la tienda, escanear este QR abre el conteo de esta caja.', 'info');
+    const voltear = M.$('[data-voltear]', cont);
+    if (voltear) voltear.onclick = () => { pase.vuelta = true; p3d.classList.add('vuelta'); setTimeout(() => M.$$('.atras .sello', cont).forEach(M.repetir), 450); };
+    const volver = M.$('[data-volver]', cont);
+    if (volver) volver.onclick = () => {
+      pase.vuelta = false; p3d.classList.remove('vuelta');
+      /* si empezaste a contar, el frente y su franja en la billetera ya dicen «Contando» */
+      const f = M.$('.frente', cont), nuevo = frente(x);
+      if (f && f.outerHTML !== nuevo) { f.outerHTML = nuevo; conectar(x, cont); M.$$('.frente .sello', cont).forEach(e => e.classList.add('go')); M.$('.frente .pr', cont)?.classList.add('quieto'); }
+      refrescarMini(x);
+    };
+    if (x.tipo === 'p') {
+      M.$('[data-enviar]', cont).onclick = () => { const num = M.acc.enviarPedido(x.p); sellar(cont, 'enviado', () => { est.tab = 'envias'; est.sel = 't' + num; pase = null; M.repintar({ quieto:true }); M.avisar(`Traslado ${num} enviado a ${M.SEDES[x.p.pide].corto}.`); }); };
+      M.$('[data-no-tengo]', cont).onclick = () => { M.acc.noTengo(x.p); sellar(cont, 'no', () => { est.sel = null; pase = null; M.repintar({ quieto:true }); M.avisar(`Le avisamos a ${M.SEDES[x.p.pide].corto} que no la tienes.`, 'info'); }); };
+      return;
+    }
+    const t = x.t, atrasEl = M.$('.atras', cont);
+    const repintarAtras = () => { atrasEl.outerHTML = atras(x); conectar(x, cont); M.$$('.atras .sello', cont).forEach(e => e.classList.add('go')); };
+    M.$$('.fila-b[data-k]', cont).forEach(row => {
+      const k = +row.dataset.k, out = M.$('output', row);
+      const poner = d => {
+        const antes = M.contadas(t);
+        if (d === 'menos' && t.lineas[k].cont == null) M.acc.contar(t, k, 0); else M.acc.sumar(t, k, d === 'menos' ? -1 : 1);
+        if (M.contadas(t) !== antes) { repintarAtras(); return; }
+        out.textContent = t.lineas[k].cont; out.classList.remove('sin-contar', 'salta'); void out.offsetWidth; out.classList.add('salta');
+      };
+      M.$('[data-mas]', row).onclick = () => poner('mas');
+      M.$('[data-menos]', row).onclick = () => poner('menos');
+    });
+    const esca = M.$('[data-escanear]', cont);
+    if (esca) esca.onclick = () => {
+      const k = t.lineas.findIndex(l => (l.cont ?? 0) < l.n), kk = k < 0 ? 0 : k;
+      const row = M.$$('.fila-b[data-k]', cont)[kk]; M.$('[data-mas]', row).click();
+      const r2 = M.$$('.fila-b[data-k]', cont)[kk]; r2?.scrollIntoView({ block:'nearest', behavior:'smooth' });
+      r2?.animate && r2.animate([{ background:'color-mix(in srgb,var(--pizarra) 16%,transparent)' }, { background:'transparent' }], { duration:700 });
+    };
+    const term = M.$('[data-termine]', cont); if (term) term.onclick = () => { pase.revelado = true; repintarAtras(); };
+    const rec = M.$('[data-recontar]', cont); if (rec) rec.onclick = () => { pase.revelado = false; repintarAtras(); };
+    M.$$('[data-lugar]', cont).forEach(b => b.onclick = () => { pase.lugar = b.dataset.lugar; M.$$('[data-lugar]', cont).forEach(z => z.setAttribute('aria-pressed', z === b)); });
+    const conf = M.$('[data-confirmar]', cont);
+    if (conf) conf.onclick = () => {
+      const dif = M.acc.confirmar(t, pase.lugar);
+      sellar(cont, dif ? 'revisar' : 'cerrado', () => {
+        pase = null;
+        if (dif) { est.sel = 't' + t.num; M.repintar({ quieto:true }); M.avisar(`Entró lo que coincidió. ${M.faltan(t) ? 'Lo que falta' : 'Lo que sobró'} espera tu revisión.`); }
+        else { est.sel = null; M.repintar({ quieto:true }); M.avisar(`Traslado ${t.num} recibido: ${M.unidades(t)} prendas ${t.lugar === 'piso' ? 'al piso' : 'al almacén'}.`); }
+      });
+    };
+    const nota = M.$('[data-nota]', cont), cerrar = M.$('[data-cerrar]', cont);
+    if (nota) nota.oninput = () => { cerrar.disabled = nota.value.trim().length < 6; };
+    if (cerrar) cerrar.onclick = () => { M.acc.cerrarDif(t, nota.value.trim()); sellar(cont, 'dif', () => { pase = null; est.sel = null; M.repintar({ quieto:true }); M.avisar(`Traslado ${t.num} cerrado con su nota.`); }); };
+    const an = M.$('[data-anular]', cont); if (an) an.onclick = () => { pase.anulando = true; repintarAtras(); M.$('[data-motivo]', cont)?.focus(); };
+    const noAn = M.$('[data-no-anular]', cont); if (noAn) noAn.onclick = () => { pase.anulando = false; repintarAtras(); };
+    const mot = M.$('[data-motivo]', cont), si = M.$('[data-anular-si]', cont);
+    if (mot) mot.oninput = () => { si.disabled = mot.value.trim().length < 6; };
+    if (si) si.onclick = () => { M.acc.anular(t, mot.value.trim()); sellar(cont, 'anulado', () => { pase = null; est.sel = null; M.repintar({ quieto:true }); M.avisar(`Traslado ${t.num} anulado: las prendas volvieron a tu almacén.`); }); };
+  }
+  /* el pase vuelve a su frente, le cae el sello y, un momento después, se va */
+  function sellar(cont, tipo, despues) {
+    const p3d = M.$('#p3d', cont); p3d.classList.remove('vuelta');
+    const [txt, cls] = SELLOS[tipo];
+    setTimeout(() => {
+      const e = M.$('.frente .estampa', cont);
+      e.hidden = false; e.className = `estampa ${cls}`; e.innerHTML = `${txt}<small>${fechaSello(M.AHORA)}</small>`;
+      void e.offsetWidth; e.classList.add('cae');
+    }, M.quieto ? 0 : 720);
+    setTimeout(despues, 1900);
+  }
+
+  function refrescarMini(x) {
+    const b = M.$(`.mp[data-id="${x.id}"]`, pila); if (!b) return;
+    const lista = itemsDe(est.tab, s), i = lista.findIndex(y => y.id === x.id); if (i < 0) return;
+    const tmp = M.el('div', null, mini(lista[i], i)); const nb = tmp.firstElementChild;
+    nb.classList.add('in'); M.$$('.sello', nb).forEach(e => e.classList.add('go'));
+    b.replaceWith(nb); nb.onclick = () => seleccionar(nb.dataset.id, nb);
+  }
+  function seleccionar(id, desdeBoton, dir = 0) {
+    const x = itemPorId(id); if (!x) return;
+    const cambio = est.sel !== id; est.sel = id; if (cambio) pase = nuevoPase();
+    M.$$('.mp', pila).forEach(b => b.classList.toggle('on', b.dataset.id === id));
+    const desde = desdeBoton ? desdeBoton.getBoundingClientRect() : null;
+    if (angosto()) {
+      M.$('.pase-hoja')?.remove();
+      const hoja = M.el('div', 'pase-hoja', `<button class="x" aria-label="Cerrar">${M.ic('cerrar')}</button><div class="cont"></div>`);
+      M.$('.vista').appendChild(hoja);
+      mostrar(x, M.$('.cont', hoja), null);
+      requestAnimationFrame(() => requestAnimationFrame(() => hoja.classList.add('in')));
+      const cerrar = () => { hoja.classList.remove('in'); setTimeout(() => hoja.remove(), 300); };
+      M.$('.x', hoja).onclick = cerrar;
+      return;
+    }
+    mostrar(x, esc, desde, dir);
+  }
+  if (!angosto()) {
+    if (est.sel) mostrar(itemPorId(est.sel), esc, null);
+    else esc.innerHTML = `<div class="pila-vacia" style="background:var(--papel)"><b>No hay pases aquí</b>Elige otra pestaña.</div>`;
+  }
+  /* teclado: ← → pasa de pase */
+  document.onkeydown = e => {
+    if (e.target.closest && e.target.closest('textarea,input') || M.$('.velo,.pase-hoja')) return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const d = e.key === 'ArrowRight' ? 1 : -1, l = itemsDe(est.tab, s), i = l.findIndex(y => y.id === est.sel), y = l[i + d];
+    if (y) { e.preventDefault(); seleccionar(y.id, null, d); }
+  };
+}});
+</script>
+</body>
+</html>

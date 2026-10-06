@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { AVIARIO } from "../../../scripts/datos/aviario.mjs";
@@ -170,9 +170,14 @@ function recorrer(nodos: readonly Nodo[]): Nodo[] {
 const TODOS = recorrer(ARBOL);
 const VIVOS = TODOS.filter((n) => n.estado === "viva");
 
-// Un destino «vivo» es uno con `page.tsx` real bajo `app/(app)`. Contempla las que solo redirigen (`/produccion`).
-const hayPagina = (ruta: string) =>
-  ["tsx", "ts"].some((ext) => existsSync(fileURLToPath(new URL(`../app/(app)${ruta === "/" ? "" : ruta}/page.${ext}`, import.meta.url))));
+// Un destino «vivo» es uno con `page.tsx` real bajo `app/(app)`. Contempla las que solo redirigen (`/produccion`) y las que
+// viven dentro de un grupo de ruta de Next (una carpeta entre paréntesis no es parte de la URL: Traslados en `(billetera)`).
+const hayPagina = (ruta: string): boolean => {
+  const base = fileURLToPath(new URL(`../app/(app)${ruta === "/" ? "" : ruta}`, import.meta.url));
+  if (["tsx", "ts"].some((ext) => existsSync(`${base}/page.${ext}`))) return true;
+  if (!existsSync(base)) return false;
+  return readdirSync(base, { withFileTypes: true }).some((d) => d.isDirectory() && /^\(.+\)$/.test(d.name) && ["tsx", "ts"].some((ext) => existsSync(`${base}/${d.name}/page.${ext}`)));
+};
 
 describe("permisos", () => {
   it("el líder tiene todos los permisos y el integrante ninguno", () => {

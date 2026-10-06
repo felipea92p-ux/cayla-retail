@@ -98,25 +98,6 @@ export function faltaEnOrigen(l: Pick<LineaPedidoEntreSedes, "cantidad" | "dispo
   return l.estado === "pedido" && l.disponibleEnOrigen < l.cantidad;
 }
 
-/**
- * Las dos listas de la tarjeta:
- *  · «Te piden»: lo que otra sede me pidió y todavía no sale (es trabajo por hacer HOY).
- *  · «Pediste»: lo que yo pedí, en cualquier estado (abierto o cerrado hace menos de 7 días, lo filtra la base).
- * Lo que me pidieron y ya salió no se repite aquí: ya está en la lista de traslados, en camino.
- */
-export function separarPedidos(pedidos: PedidoEntreSedes[]): { tePiden: PedidoEntreSedes[]; pediste: PedidoEntreSedes[] } {
-  return {
-    tePiden: pedidos.filter((p) => p.direccion === "me_piden" && p.estado === "pedido"),
-    pediste: pedidos.filter((p) => p.direccion === "pedi"),
-  };
-}
-
-/** La tarjeta solo se dibuja si hay algo que mostrar (nunca una tarjeta vacía). */
-export function hayPedidosQueMostrar(pedidos: PedidoEntreSedes[]): boolean {
-  const { tePiden, pediste } = separarPedidos(pedidos);
-  return tePiden.length + pediste.length > 0;
-}
-
 export type TonoEstadoPedido = "ambar" | "pizarra" | "verde" | "apagado";
 
 /** Lo que dice el chip, según de qué lado se mira. */
