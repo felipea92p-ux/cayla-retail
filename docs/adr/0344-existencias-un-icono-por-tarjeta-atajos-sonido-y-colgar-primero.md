@@ -176,3 +176,40 @@ Felipe: «implementa todo lo trabajado en la maqueta, todas sus funcionalidades,
 **Lo que se aparta de la maqueta a propósito:** la cabecera de la pantalla sigue siendo `EncabezadoPagina` (ADR-0220: la cabecera de Inventario es la
 de su módulo); el aviso ámbar del piso sin cuadrar sigue (explica por qué «Hoy» no pide colgar); no hay Ctrl+K para buscar (lo usa el buscador
 general); la animación del punto que «vuela» al anillo no se hizo (ADR-0136: sin movimiento decorativo).
+
+## Actualización 2026-10-06 — la barra compacta
+
+**Pedido** (sobre una captura de producción de Tienda TRU a 2000 px): «que la barra de búsqueda sea pequeña y no invasiva; el texto del medio
+quita espacio, quitarlo o acomodarlo; lo del día puede ir arriba o al costado de Filtros; Filtros solo un icono; que se vea el texto y no solo
+iconos; tabla o grilla, un solo icono en cualquier sentido». Se aplicó igual en el ERP y en la maqueta (`docs/maquetas/existencias-tactil-2026-10/`).
+
+**Lo que cambia de este ADR:**
+- **Decisión 3:** los atajos van **siempre con su nombre**. Se quitan el interruptor «Solo iconos | Iconos con texto» y su preferencia
+  (`cayla.filtros-rapidos`). Su «SE ROMPE SI» (en tablet no hay mouse para ver el nombre) era justo el problema que se vio en uso. En la
+  computadora, si no caben, el último baja a otra línea (una fila que se desliza con mouse esconde botones); en el celular se deslizan.
+- **Decisión 10:** «Prioridad | A–Z» pasa a la fila del buscador, a la derecha. **«Colgar primero» se esconde cuando está vacía**, también con el
+  piso sin cuadrar: su frase («Aparece cuando se cuadre el piso…») y el aviso ámbar sobre las tarjetas ocupaban tres líneas que repetían lo que
+  ya dice «por cuadrar» en la cifra de la cabecera. La pausa ahora la dicen dos piezas donde se pregunta: el atajo **«Por colgar» lleva una
+  pausa en vez de un «0»** (la frase completa en su etiqueta y al pasar el mouse) y su **lista vacía explica la pausa** con el botón «Cuadrar el
+  piso». La tarea «Cuadrar el piso» sigue en «Pendientes» (el anillo).
+- **Decisión 16:** el anillo va **al costado de «Filtros»**, del alto de esa fila (40 px); en el celular, solo el círculo (la cifra va en su
+  etiqueta).
+- **Decisión 17:** la caja de buscar baja de 52 a 40 px y, desde 768 px, a un ancho de lectura (26rem): ya no es una franja de lado a lado.
+- **«Filtros» es solo un icono**, con la cifra de lo puesto en la esquina (`BotonFiltros soloIcono`; Productos, Compras e Historial siguen con
+  «Filtros · N» en texto).
+- **Tabla o tarjetas: un icono** que muestra la vista a la que lleva, igual en los dos sentidos (sin «Ver tarjetas» en texto ni relleno oscuro).
+- **La cifra va sola:** se quitan «toca un color para cambiarlo, una talla para ver dónde hay» y «Vista de piso y almacén».
+- Con los atajos a la vista, el «Hoy» o la «Condición» puestos ya no se repiten como chip debajo («Hoy: Sin stock atrás ×»): el atajo encendido
+  lo dice.
+
+**El orden de la barra:** desde 1280 px, dos filas (buscar · escanear · Filtros · anillo | cifra · orden · vista · sonido; debajo, los atajos).
+Más angosto, tres: buscar con Filtros y el anillo, los atajos, y la cifra con la vista. Cada control existe una vez: solo cambia de lugar
+(`order-*` sobre un `flex-wrap`). Medido en local: la tarjeta de la barra pasa de unos 190 px de alto a **120 px** a 1280 y 1440 px; a 1024 px son
+cuatro filas (los atajos no caben en una); a 375 px, 168 px, sin desplazamiento lateral de la página.
+
+DECIDÍ: el anillo al costado de «Filtros».
+DESCARTÉ: subirlo a la cabecera, como la maqueta, porque la cabecera la dibuja el servidor (`EncabezadoPagina`, ADR-0220) y el anillo vive en el
+estado del panel (avanza al colgar): había que colgarlo con un portal que aparece después de cargar la página (un salto) o pasar la cabecera al
+navegador, en dos archivos que también tocan los PR #807 y #808.
+SE ROMPE SI: una sede tiene muchos pendientes y nadie mira el anillo porque quedó «escondido» en la barra: el número del día solo se ve si se
+busca. Si pasa, la cifra de pendientes puede ir también como punto en la cabecera, sin mover el anillo.

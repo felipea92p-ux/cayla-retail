@@ -5,13 +5,15 @@ import { avanceDeMision, claveMision, leerFotoMision, objetivosDeHoy } from "@/l
 import { hoyLima } from "@/lib/apartados-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
-const LARGO = 2 * Math.PI * 17;
+const LARGO = 2 * Math.PI * 13;
 const nada = () => () => {};
 
 /* ====================================================================
    El anillo «N de M hoy» (maqueta `existencias-tactil-2026-10`, «anilloMision»): cuántas tallas de la foto del día ya se resolvieron
    (`lib/existencias-mision.ts`). Tocarlo abre «Pendientes». El anillo se llena con un trazo corto al avanzar (ADR-0136: responde a una
    acción, sin rebote ni bucle; quieto con `prefers-reduced-motion`).
+
+   Vive al costado de «Filtros» (2026-10-06), del alto de esa fila (40 px). En el celular, solo el anillo: la cifra va en su etiqueta.
    ==================================================================== */
 export function AnilloMision({
   ubicacionId,
@@ -60,27 +62,27 @@ export function AnilloMision({
       onClick={onAbrir}
       aria-label={total === 0 ? `Hoy no hay tallas por resolver. Pendientes: ${pendientes}` : `Hoy: ${hechas} de ${total} tallas resueltas. Pendientes: ${pendientes}`}
       title="Lo de hoy: tallas por colgar y agotadas que otra tienda tiene. Toca para ver los pendientes de la sede."
-      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sand bg-crema py-[3px] pl-[3px] pr-3.5 text-left text-[13px] transition-colors hover:border-taupe"
+      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-sand bg-crema p-[3px] text-left text-[13px] transition-colors hover:border-taupe sm:pr-3.5"
     >
-      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden className="shrink-0">
-        <circle cx="20" cy="20" r="17" fill="none" strokeWidth="4" stroke="var(--color-hueso)" />
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden className="shrink-0">
+        <circle cx="16" cy="16" r="13" fill="none" strokeWidth="3.5" stroke="var(--color-hueso)" />
         <circle
-          cx="20"
-          cy="20"
-          r="17"
+          cx="16"
+          cy="16"
+          r="13"
           fill="none"
-          strokeWidth="4"
+          strokeWidth="3.5"
           strokeLinecap="round"
           stroke={total === 0 || hechas === total ? "var(--color-verde)" : "var(--color-ambar)"}
-          transform="rotate(-90 20 20)"
+          transform="rotate(-90 16 16)"
           strokeDasharray={LARGO}
           strokeDashoffset={LARGO * (1 - fraccion)}
           className="transition-[stroke-dashoffset] duration-500 ease-[var(--ease-cayla)] motion-reduce:transition-none"
         />
       </svg>
-      <span className="leading-tight">
-        <b className="block text-[15px] font-semibold tabular-nums text-tinta">{total === 0 ? "Al día" : `${hechas} de ${total}`}</b>
-        <small className="text-[11.5px] text-taupe">hoy</small>
+      <span className="leading-tight max-sm:hidden">
+        <b className="block whitespace-nowrap text-[13.5px] font-semibold tabular-nums text-tinta">{total === 0 ? "Al día" : `${hechas} de ${total}`}</b>
+        <small className="text-[11px] text-taupe">hoy</small>
       </span>
     </button>
   );

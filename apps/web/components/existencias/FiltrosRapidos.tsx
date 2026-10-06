@@ -1,23 +1,23 @@
 "use client";
 
-import { useSyncExternalStore, type ComponentType } from "react";
-import { Clock, LayoutGrid, Moon, PackageX, ShoppingBag, TriangleAlert, Type } from "lucide-react";
+import { type ComponentType } from "react";
+import { Clock, LayoutGrid, Moon, Pause, PackageX, ShoppingBag, TriangleAlert } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { preferenciaLocal } from "@/lib/preferencia-local";
 import { ATAJOS_RAPIDOS, atajoElegido, CLAVES_RECOMENDADAS, cuentaDeAtajo, rotuloDeAtajo, type ClaveRapida } from "@/lib/existencias-rapidos";
 import type { ClaveUrl, ConteosFiltros, FiltrosElegidos } from "@/lib/existencias-filtros";
 
 /* ====================================================================
-   Atajos de filtro de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): cinco botones bajo el buscador
+   Atajos de filtro de Existencias (2026-10-05, maqueta `docs/maquetas/existencias-tactil-2026-10/`): siete botones bajo el buscador
    para lo que más se pregunta en el piso. Escriben los mismos filtros que el panel «Filtros» (`lib/existencias-rapidos.ts`).
 
-   Se ven de dos formas, y quien trabaja elige (el gusto es de cada equipo, `preferencia-local.ts`): SOLO ICONOS, con el nombre y la
-   cifra al pasar el mouse o enfocar con el teclado, o ICONOS CON TEXTO. De fábrica, solo iconos, como en la maqueta aprobada: la fila
-   cabe en una línea, también en el celular. Cada botón lleva su nombre como etiqueta para el lector de pantalla en las dos formas.
-   ==================================================================== */
+   Siempre con su nombre a la vista (2026-10-06): el modo «solo iconos» obligaba a pasar el mouse o adivinar qué era cada figura, y en
+   una tablet no hay mouse. En el celular la fila se desliza de lado, con el borde derecho desvanecido para avisar que sigue; en la
+   computadora, si no caben (bajo ~1366 px), el último baja a otra línea: con mouse, una fila que se desliza esconde botones.
 
-const vistaRapidos = preferenciaLocal<"iconos" | "texto">("cayla.filtros-rapidos", ["iconos", "texto"], "iconos");
+   Con el piso sin cuadrar (`enPausa` > 0), «Por colgar» no cuenta: el motor no manda a colgar nada porque podría ser algo que ya
+   cuelga (ADR-0328, decisión 5). En vez de un «0» que parece «todo listo», el botón lleva una pausa, y la explicación completa que
+   antes era una franja de texto sobre las tarjetas va en su etiqueta y al pasar el mouse.
+   ==================================================================== */
 
 type Icono = ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
 
@@ -42,125 +42,99 @@ const TONO_ENCENDIDO: Record<ClaveRapida, string> = {
   sin_ventas: "border-pizarra/40 bg-pizarra/10 text-pizarra",
 };
 
-/** El orden de las tarjetas, del que la maqueta muestra dos: «Prioridad» (lo que falta en el piso primero, la lista del día del motor) y «A–Z».
- *  Los otros órdenes siguen en «Ordenar por», debajo. Mismo estado que ese combo (`useFiltrosExistencias`). */
-type OrdenCorto = { valor: string; onValor: (v: string) => void };
-
 export function FiltrosRapidos({
   elegidos,
   conteos,
   onCambiar,
-  orden = null,
+  enPausa = 0,
+  avisoPausa = null,
 }: {
   elegidos: Pick<FiltrosElegidos, "hoy" | "condicion">;
   conteos: Pick<ConteosFiltros, "hoy" | "condicion">;
   onCambiar: (cambios: Partial<Record<ClaveUrl, string | null>>) => void;
-  /** Solo en las tarjetas: la tabla conserva su orden. */
-  orden?: OrdenCorto | null;
+  /** Tallas que esperan el cuadre del piso: «Por colgar» va en pausa. */
+  enPausa?: number;
+  /** La frase completa de la pausa (`avisoPausaDelPiso`), para la etiqueta y el mouse de «Por colgar». */
+  avisoPausa?: string | null;
 }) {
-  const vista = useSyncExternalStore(vistaRapidos.suscribir, vistaRapidos.leer, vistaRapidos.leerEnServidor);
-  const soloIconos = vista === "iconos";
   const encendido = atajoElegido(elegidos);
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <div className="flex items-center gap-2">
-        <div role="group" aria-label="Atajos de filtro" className="scroll-cayla -mx-1 -my-0.5 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 py-1">
-          {ATAJOS_RAPIDOS.map((a) => {
-            const Icono = ICONO[a.clave];
-            // Los «Recomendados» van tras una línea y, con texto, su rótulo: salen del ritmo y no de lo que hay que hacer con la talla.
-            const primeraRecomendada = a.clave === CLAVES_RECOMENDADAS[0];
-            const cuenta = cuentaDeAtajo(a.clave, conteos);
-            const puesto = encendido === a.clave;
-            const rotulo = rotuloDeAtajo(a, cuenta);
-            const boton = (
-              <button
-                type="button"
-                aria-pressed={puesto}
-                aria-label={soloIconos ? rotulo : undefined}
-                onClick={() => onCambiar(a.cambios)}
-                className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border text-[13px] transition-colors ${
-                  soloIconos ? "min-w-[2.75rem] px-2.5" : "px-3"
-                } ${puesto ? TONO_ENCENDIDO[a.clave] : "border-tinta/15 bg-papel text-tinta/70 hover:border-tinta/30 hover:text-tinta"}`}
-              >
-                <Icono aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-                {!soloIconos && <span>{a.texto}</span>}
-                {cuenta !== null && (
-                  <b className={`rounded-full px-1.5 text-[11px] font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "bg-sand/70 text-tinta/75"}`}>{cuenta.toLocaleString("es-PE")}</b>
-                )}
-              </button>
-            );
-            // Con texto el botón ya se explica solo; solo iconos, el nombre y su frase salen al pasar el mouse o enfocar.
-            const separador = primeraRecomendada && (
-              <span key={`sep-${a.clave}`} className="flex shrink-0 items-center gap-2" aria-hidden>
+    <div
+      role="group"
+      aria-label="Atajos de filtro"
+      className="scroll-cayla -mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 py-0.5 max-md:pr-8 max-md:[mask-image:linear-gradient(90deg,#000_calc(100%-2rem),transparent)] md:flex-wrap md:overflow-visible"
+    >
+      {ATAJOS_RAPIDOS.map((a) => {
+        const Icono = ICONO[a.clave];
+        // Los «Recomendados» van tras una línea y su rótulo: salen del ritmo y no de lo que hay que hacer con la talla.
+        const primeraRecomendada = a.clave === CLAVES_RECOMENDADAS[0];
+        const cuenta = cuentaDeAtajo(a.clave, conteos);
+        const puesto = encendido === a.clave;
+        const pausado = a.clave === "por_colgar" && enPausa > 0;
+        const rotulo = pausado ? `${a.texto}: en pausa. ${avisoPausa ?? ""}`.trim() : rotuloDeAtajo(a, cuenta);
+        return (
+          <span key={a.clave} className="contents">
+            {primeraRecomendada && (
+              <span className="flex shrink-0 items-center gap-2" aria-hidden>
                 <span className="mx-1 h-5 w-px bg-tinta/15" />
-                {!soloIconos && <span className="label-cayla text-[10px] text-taupe">Recomendados</span>}
+                {/* El rótulo solo donde sobra ancho: debajo, la línea ya separa y cada botón dice su nombre. */}
+                <span className="label-cayla hidden text-[10px] text-taupe min-[1400px]:inline">Recomendados</span>
               </span>
-            );
-            return soloIconos ? (
-              <span key={a.clave} className="contents">
-                {separador}
-              <Tooltip>
-                <TooltipTrigger asChild>{boton}</TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <b className="font-semibold">{rotulo}</b>
-                  <span className="block opacity-80">{a.ayuda}</span>
-                </TooltipContent>
-              </Tooltip>
-              </span>
-            ) : (
-              <span key={a.clave} className="contents">
-                {separador}
-                {boton}
-              </span>
-            );
-          })}
-        </div>
-
-        {/* Cómo se ven: solo iconos o con texto. Cada equipo se queda con el que le sirve. */}
-        <span role="group" aria-label="Cómo ver los atajos" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel">
-          {(
-            [
-              ["iconos", "Solo iconos", LayoutGrid],
-              ["texto", "Iconos con texto", Type],
-            ] as const
-          ).map(([v, nombre, Ico]) => (
+            )}
             <button
-              key={v}
               type="button"
-              aria-pressed={vista === v}
-              aria-label={nombre}
-              title={nombre}
-              onClick={() => vistaRapidos.fijar(v)}
-              className="inline-flex h-8 w-8 items-center justify-center text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:text-tinta focus-visible:-outline-offset-2"
+              aria-pressed={puesto}
+              aria-label={rotulo}
+              title={pausado ? (avisoPausa ?? undefined) : a.ayuda}
+              onClick={() => onCambiar(a.cambios)}
+              className={`inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border pl-2.5 pr-2 text-[13px] transition-colors ${
+                puesto ? TONO_ENCENDIDO[a.clave] : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/30 hover:text-tinta"
+              }`}
             >
-              <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+              <Icono aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+              <span>{a.texto}</span>
+              {pausado ? (
+                <b aria-hidden className={`ml-0.5 grid h-[18px] w-[18px] place-items-center rounded-full ${puesto ? "bg-tinta/10" : "bg-pizarra/10 text-pizarra"}`}>
+                  <Pause className="h-2.5 w-2.5" strokeWidth={3} />
+                </b>
+              ) : (
+                cuenta !== null && (
+                  <b aria-hidden className={`ml-0.5 rounded-full px-[5px] text-[11px] font-semibold leading-[18px] tabular-nums ${puesto ? "bg-tinta/10" : "bg-sand/70 text-tinta/75"}`}>
+                    {cuenta.toLocaleString("es-PE")}
+                  </b>
+                )
+              )}
             </button>
-          ))}
-        </span>
-
-        {orden && (
-          <span role="group" aria-label="Orden" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
-            {(
-              [
-                ["relevancia", "Prioridad", "Lo que falta en el piso y más se vende, primero"],
-                ["nombre", "A–Z", "Por nombre"],
-              ] as const
-            ).map(([v, texto, ayuda]) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={orden.valor === v}
-                title={ayuda}
-                onClick={() => orden.onValor(v)}
-                className="h-8 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta focus-visible:-outline-offset-2"
-              >
-                {texto}
-              </button>
-            ))}
           </span>
-        )}
-      </div>
-    </TooltipProvider>
+        );
+      })}
+    </div>
+  );
+}
+
+/** El orden de las tarjetas, del que la maqueta muestra dos: «Prioridad» (lo que falta en el piso primero, la lista del día del motor) y «A–Z».
+ *  Los otros órdenes siguen en el panel «Filtros». Mismo estado que ese combo (`useFiltrosExistencias`). */
+export function OrdenCorto({ valor, onValor }: { valor: string; onValor: (v: string) => void }) {
+  return (
+    <span role="group" aria-label="Orden" className="inline-flex shrink-0 overflow-hidden rounded-lg border border-tinta/15 bg-papel text-[13px]">
+      {(
+        [
+          ["relevancia", "Prioridad", "Lo que falta en el piso y más se vende, primero"],
+          ["nombre", "A–Z", "Por nombre"],
+        ] as const
+      ).map(([v, texto, ayuda]) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={valor === v}
+          title={ayuda}
+          onClick={() => onValor(v)}
+          className="h-9 px-3 text-taupe transition-colors hover:text-tinta aria-pressed:bg-hueso aria-pressed:font-semibold aria-pressed:text-tinta focus-visible:-outline-offset-2"
+        >
+          {texto}
+        </button>
+      ))}
+    </span>
   );
 }
