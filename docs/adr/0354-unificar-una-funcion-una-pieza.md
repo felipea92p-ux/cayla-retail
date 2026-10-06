@@ -1,7 +1,7 @@
 # ADR-0354 · Unificar: una función, una pieza
 
-- **Fecha:** 2026-10-06 · **Estado:** skill y motor escritos y probados contra el ERP local; **ninguna familia decidida todavía** (la primera la
-  elige Felipe con el primer `/unificar`). Sin migración y sin cambios en ninguna pantalla.
+- **Fecha:** 2026-10-06 · **Estado:** skill y motor escritos y probados contra el ERP local. Primera ronda decidida por Felipe el mismo día
+  (Volver, Pestañas y Tarjetas de cifra; ver «Decisiones»). Sin migración de base de datos.
 - **Pedido:** Felipe, 2026-10-06: una skill o un agente «que vaya módulo por módulo analizando componentes, tablas, etiquetas, iconos, gráficos»,
   para ver si hay «dos botones que tienen la misma función en diferentes pantallas pero con un diseño completamente distinto»; que diga
   **cuántas** variantes hay, las muestre **con capturas**, las **compare** y **elabore un diseño extra**, para elegir con cuál se queda y que
@@ -81,7 +81,11 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
 
 ## Decisiones (una línea por familia; el detalle en `docs/unificar/<familia>.md`)
 
-- Ninguna todavía. Propuesta esperando decisión: `accion.volver` (`docs/unificar/propuestas/accion.volver.html`).
+- **2026-10-06 · `accion.volver` → `<Volver>`** (`components/ui/Volver.tsx`): el botón secundario con la flecha y el destino, una sola cara en
+  todo el ERP; se va la forma `enlace` de 11 px (una decisión del 2026-09-26 sin ADR, que Felipe cambió). Migrado el mismo día, deuda 0.
+  Registro: `docs/unificar/accion.volver.md`.
+- **2026-10-06 · `pestanas`** («Tres piezas, lo elegido en tinta») y **`cifra`** («La de Compras, una marca por función»): elegidas por Felipe el
+  mismo día; se registran al terminar su migración.
 
 ## Cómo se verifica
 

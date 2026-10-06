@@ -12,13 +12,14 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Familia | La pieza | Decidido | Deuda (archivos por migrar) | Registro |
 |---|---|---|---:|---|
-| — | todavía ninguna | — | — | — |
+| Botón «Volver» (`accion.volver`) | `<Volver>` (`components/ui/Volver.tsx`): botón secundario con la flecha y el destino | 2026-10-06 | 0 (migrado el mismo día) | [accion.volver.md](accion.volver.md) |
 
 ## Propuestas esperando decisión
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| Botón «Volver» (`accion.volver`) | [accion.volver.html](propuestas/accion.volver.html) | 2026-10-06 | Ejemplo de la primera corrida: una sola forma (la de ADR-0220) con la flecha de lucide; retira la línea de 11 px |
+| Pestañas y segmentos (`pestanas`) | [pestanas.html](propuestas/pestanas.html) | 2026-10-06 | Elegida por Felipe el 2026-10-06 («Tres piezas, lo elegido en tinta»); migración en curso, se registra al terminar |
+| Tarjetas de cifra (`cifra`) | [cifra.html](propuestas/cifra.html) | 2026-10-06 | Elegida por Felipe el 2026-10-06 («La de Compras, una marca por función»); migración en curso, se registra al terminar |
 
 ## Censos
 

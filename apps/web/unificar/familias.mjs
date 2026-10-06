@@ -318,7 +318,27 @@ const ACCIONES = FUNCIONES.map((f) => ({
  * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, tambien?: string[], firmas: string[], deuda: string[], excepciones?: Excepcion[] }} Decision
  * @type {Record<string, Decision>}
  */
-export const DECISIONES = {};
+export const DECISIONES = {
+  "accion.volver": {
+    fecha: "2026-10-06",
+    adr: "docs/adr/0354-unificar-una-funcion-una-pieza.md",
+    registro: "docs/unificar/accion.volver.md",
+    elegida: "propuesta · un solo botón con flecha",
+    pieza: "components/ui/Volver.tsx",
+    firmas: [
+      // La línea de 11 px en versalitas que era la forma «enlace», copiada a mano.
+      "label-cayla inline-flex items-center gap-1\\.5 text-\\[11px\\] text-tinta/65",
+      // La prop que daba dos caras a la pieza.
+      "<Volver[^>]*\\bforma=",
+      // Una vuelta escrita a mano con el glifo.
+      "←\\s*Volver a ",
+    ],
+    deuda: [],
+    excepciones: [
+      { archivo: "app/(app)/global/elige-sede/page.tsx", motivo: "Tarjeta de barrera (elegir sede): su salida es la única acción de la tarjeta y va con los botones, no es la vuelta de una pantalla interna (docs/unificar/accion.volver.md)" },
+    ],
+  },
+};
 
 export const FAMILIAS = [...BASE, ...ACCIONES].map((f) => ({ ...f, decision: DECISIONES[f.id] ?? null }));
 

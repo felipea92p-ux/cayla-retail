@@ -492,7 +492,7 @@ dice si se unifica. Detalle: `docs/adr/0354-unificar-una-funcion-una-pieza.md` y
 
 | Familia | La pieza | Decidido |
 |---|---|---|
-| — | todavía ninguna: la primera llega con el primer `/unificar` | — |
+| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): botón secundario con la flecha y el destino; nunca un «←» a mano | 2026-10-06 |
 
 ## Vocabulario obligatorio
 
