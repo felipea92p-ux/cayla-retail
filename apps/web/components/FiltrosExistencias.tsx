@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpDown, CircleAlert, Link2, ListChecks, Palette, Ruler, ScanLine, Search, Shirt, Tag, X } from "lucide-react";
+import { ArrowUpDown, CircleAlert, LayoutGrid, Link2, ListChecks, Palette, Rows3, Ruler, ScanLine, Search, Shirt, Table2, Tag, X } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
@@ -43,6 +43,17 @@ const MEDIA_ESCRITORIO = "(min-width: 768px)";
  *  en la base): es lo que va en la URL. */
 export type ColorBarra = { id: string; nombre: string; hex: string | null; familia: string | null; tipo: string | null };
 
+/** Cómo se ve la lista: tarjetas (de entrada), la tabla por prenda o la tabla con una fila por talla. */
+export type VistaLista = "tarjetas" | "tabla" | "talla";
+
+export type VerComoBarra = { valor: VistaLista; onValor: (v: VistaLista) => void };
+
+const VISTAS: readonly { valor: VistaLista; texto: string; icono: typeof LayoutGrid }[] = [
+  { valor: "tarjetas", texto: "Tarjetas", icono: LayoutGrid },
+  { valor: "tabla", texto: "Tabla", icono: Table2 },
+  { valor: "talla", texto: "Por talla", icono: Rows3 },
+];
+
 export type OrdenBarra = {
   valor: string;
   porDefecto: string;
@@ -68,7 +79,7 @@ export function FiltrosExistencias({
   conteo,
   panelInicial,
   orden,
-  vista,
+  verComo = null,
   nota,
   onEscanear,
   alLadoDeFiltros,
@@ -105,8 +116,8 @@ export function FiltrosExistencias({
   panelInicial: EstadoPanelFiltros;
   /** «Ordenar por» (solo en las tarjetas: la tabla conserva su orden); `null` = no se ofrece. */
   orden: OrdenBarra | null;
-  /** Los controles de vista de Existencias («Ver detalle», «Por prenda / Por talla»), al lado del orden. */
-  vista: ReactNode;
+  /** Tarjetas, tabla o una fila por talla (2026-10-06, tarde): vive en «Filtros ▸ Vista», junto al orden. `null` = no se ofrece. */
+  verComo?: VerComoBarra | null;
   /** Una aclaración bajo la fila del conteo (la de «Por colgar»). */
   nota?: ReactNode;
   /** Abre la cámara (`EscanerBusqueda`). Un solo icono junto al buscador, desde `sm`: en el celular ya está el botón fijo de abajo. */
@@ -174,10 +185,13 @@ export function FiltrosExistencias({
 
   // Filas con nombre, como Productos (reordenado el 2026-10-06 para despejar la barra): «Prenda», lo que se pregunta de ella
   // (categoría, talla, color y marca: la marca es de la prenda, no de quien gestiona); «Gestión», qué pide hoy y en qué condición
-  // está (los mismos filtros que los atajos, con las combinaciones que un atajo no hace); y «Vista», cómo se ordena la lista y si suena
-  // al confirmar, que antes ocupaban la fila del buscador. El mismo panel va en la página (computadora) o en la hoja (celular).
+  // está (los mismos filtros que los atajos, con las combinaciones que un atajo no hace); y «Vista», cómo se ve (tarjetas, tabla o por
+  // talla), cómo se ordena y si suena al confirmar, que antes ocupaban la fila del buscador. El mismo panel va en la página (computadora)
+  // o en la hoja (celular).
   const ordenTexto = orden ? (orden.opciones.find((o) => o.valor === orden.valor)?.texto ?? orden.valor) : null;
   const ordenDistinto = orden !== null && orden.valor !== orden.porDefecto;
+  // Como el orden: si la lista no se ve en tarjetas, un chip lo dice y vuelve a ellas de un toque (el control vive dentro de «Filtros»).
+  const vistaDistinta = verComo !== null && verComo.valor !== "tarjetas" ? (VISTAS.find((v) => v.valor === verComo.valor)?.texto ?? null) : null;
   const panel = (
     <PanelPildoras filas>
       <FilaPildoras titulo="Prenda">
@@ -274,6 +288,27 @@ export function FiltrosExistencias({
         </FilaPildoras>
       )}
       <FilaPildoras titulo="Vista">
+        {/* «Ver como» (2026-10-06, tarde): tarjetas, tabla o una fila por talla, a un toque y con su nombre. Antes era un icono suelto en
+            la barra y, en la tabla, otro par «Por prenda | Por talla»: ahora la barra solo busca y filtra. */}
+        {verComo && (
+          <div role="group" aria-label="Ver como" className="flex h-9 shrink-0 items-center gap-1.5 px-3">
+            <span className="label-cayla text-[11px] text-tinta/55">Ver como:</span>
+            <span className="inline-flex rounded-lg bg-tinta/[0.05] p-0.5">
+              {VISTAS.map(({ valor, texto, icono: Icono }) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={verComo.valor === valor}
+                  onClick={() => verComo.onValor(valor)}
+                  className="label-cayla inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
+                >
+                  <Icono aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                  {texto}
+                </button>
+              ))}
+            </span>
+          </div>
+        )}
         {/* El orden solo ordena las tarjetas (la tabla conserva el suyo): no quita prendas, por eso no cuenta como filtro puesto. */}
         {orden && (
           <DesplegablePildora
@@ -293,7 +328,7 @@ export function FiltrosExistencias({
 
   // Con el panel abierto en la computadora cada píldora ya dice su valor y su ✕: los chips repetirían lo mismo debajo. Se ven
   // con el panel cerrado y en el celular (donde el panel vive en la hoja).
-  const bloqueChips = (chips.length > 0 || ordenDistinto) && (
+  const bloqueChips = (chips.length > 0 || ordenDistinto || vistaDistinta) && (
     <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
         <button
@@ -318,6 +353,17 @@ export function FiltrosExistencias({
           <span aria-hidden className="text-sm leading-none">×</span>
         </button>
       )}
+      {verComo && vistaDistinta && (
+        <button
+          type="button"
+          onClick={() => verComo.onValor("tarjetas")}
+          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+          aria-label={`Volver a las tarjetas (ahora: ${vistaDistinta})`}
+        >
+          Vista: {vistaDistinta}
+          <span aria-hidden className="text-sm leading-none">×</span>
+        </button>
+      )}
       {chips.length > 0 && (
         <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
           Limpiar todo
@@ -328,14 +374,16 @@ export function FiltrosExistencias({
 
   return (
     <div className="space-y-2">
-      {/* La barra compacta (2026-10-06): desde 1280 px, DOS filas —buscar, escanear, «Filtros» y el anillo del día a la izquierda; la
-          cifra y la vista a la derecha; debajo, los atajos con su nombre—. Más angosto (tablet, celular): buscar, los atajos, y la cifra
-          con la vista. El orden lo da `order-*` sobre un solo `flex-wrap`: cada control existe una vez, solo cambia de lugar. */}
+      {/* La barra compacta (2026-10-06): desde 1280 px, DOS filas —buscar, escanear, «Filtros» y el anillo del día; la cifra a la derecha;
+          debajo, los atajos con su nombre—. Más angosto (tablet, celular): buscar, los atajos, y la cifra. El orden lo da `order-*` sobre
+          un solo `flex-wrap`: cada control existe una vez, solo cambia de lugar. Desde la tarde la vista vive en «Filtros ▸ Vista», y el
+          buscador toma todo el ancho que queda (la barra ya tiene menos piezas). */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
         {/* `xl:min-w-[24rem]`: buscar no se angosta por debajo de un ancho útil; si no cabe todo, la vista baja a otra línea. */}
         <div className="order-1 flex min-w-0 basis-full items-center gap-2 xl:min-w-[24rem] xl:flex-1">
-          {/* Buscar: del alto de un control (40 px) y, en la computadora, de un ancho de lectura —no la franja de lado a lado de antes—. */}
-          <label className="relative min-w-0 flex-1 md:max-w-[26rem]">
+          {/* Buscar: del alto de un control (40 px) y tan ancho como deje la fila (2026-10-06, tarde: con la vista dentro de «Filtros» la
+              barra tiene menos piezas, y un buscador de 26rem dejaba media barra vacía). */}
+          <label className="relative min-w-0 flex-1">
             <span className="sr-only">Buscar producto</span>
             <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" strokeWidth={1.8} />
             {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
@@ -423,10 +471,10 @@ export function FiltrosExistencias({
           )}
         </p>
 
-        {/* A la derecha, solo «Copiar enlace» (la tabla) y tabla o tarjetas en un icono: el orden y el sonido viven en «Filtros ▸ Vista». */}
-        <div className="order-4 ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-2 xl:order-3">
-          {/* Como la maqueta: con las tarjetas (`orden`), ni «Copiar enlace» ni un segundo «Ordenar por»; el orden es «Prioridad | A–Z». */}
-          {!orden && (
+        {/* A la derecha, solo «Copiar enlace», y solo con la tabla (`orden` es de las tarjetas): la vista, el orden y el sonido viven en
+            «Filtros ▸ Vista». */}
+        {!orden && (
+          <div className="order-4 ml-auto flex shrink-0 items-center xl:order-3">
             <button
               type="button"
               onClick={copiarEnlace}
@@ -436,9 +484,8 @@ export function FiltrosExistencias({
             >
               <Link2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />
             </button>
-          )}
-          {vista}
-        </div>
+          </div>
+        )}
 
         {/* Atajos de lo que más se pregunta en el piso (`lib/existencias-rapidos.ts`), siempre con su nombre. Su propia fila. */}
         {separa && (

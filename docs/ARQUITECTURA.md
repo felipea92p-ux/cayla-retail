@@ -222,13 +222,14 @@ flowchart TB
   del riel, por `categorias.familia`, y dice aparte «+ N accesorios» (`cifraColgadasEnElPiso`), reglas en
   `lib/capacidad-piso.ts`; la escritura `fijar_capacidad_piso` todavía no tiene pantalla: será el Plan del piso, actividad 12 de
   ADR-0328) y la cabecera con `ui/ResumenSede` → `InventarioPanel.tsx` →
-  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `existencias/ColgarPrimero.tsx` (las tres prendas que más conviene colgar, en el orden de la
-  lista del día del motor y con cuánto les alcanza: `lib/existencias-colgar-primero.ts`, ADR-0344), `FiltrosExistencias.tsx` (con los atajos
-  `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`, y el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`),
+  `existencias/ParaHoy.tsx` (`lib/existencias-para-hoy.ts`), `FiltrosExistencias.tsx` (con los atajos
+  `existencias/FiltrosRapidos.tsx`, `lib/existencias-rapidos.ts`; en «Filtros ▸ Vista», «Ver como» —tarjetas, tabla o por talla—, el orden y
+  el interruptor `BotonSonidoConfirmar.tsx`, `lib/sonido-confirmar.ts`; «Colgar primero» se quitó el 2026-10-06, ADR-0344),
   `ExistenciasTarjetas.tsx` (un icono por tarjeta y su ventana de acciones: `existencias/AccionesTarjeta.tsx`, `lib/existencias-acciones.ts`; el riel de
   tallas; qué junta cada tarjeta —el modelo, o la prenda con «Hoy»— y su conteo: `lib/existencias-tarjetas.ts`), el anillo «N de M hoy»
   (`existencias/AnilloMision.tsx`, `lib/existencias-mision.ts`), la pistola sin buscador (`lib/existencias-pistola.ts`), la tabla «Ver detalle» y el
-  panel de la talla `existencias/PanelTalla.tsx` (ADR-0344 cuarta vuelta; reemplaza al cajón de la prenda) con sus pasos `existencias/FlujoTalla.tsx`
+  panel de la talla `existencias/PanelTalla.tsx` (ADR-0344 cuarta vuelta; reemplaza al cajón de la prenda; las tallas de arriba dicen lo que
+  falta, «otra sede» y el filtro, y el ritmo lleva `existencias/AroSemanas.tsx`, quinta vuelta) con sus pasos `existencias/FlujoTalla.tsx`
   (`lib/existencias-panel-talla.ts`, `lib/existencias-flujos.ts`) → RPC `bajar_al_piso` (Colgar y Colgar varias), `retirar_del_piso` y
   `subir_para_enviar` (Subir), `pedir_a_otra_sede` y `pedir_prenda_para_apartar` (Pedir), `ajustar_inventario` (Ajustar; la ventana completa
   `AjustarInventarioModal.tsx` queda para enlazar con un conteo) y `reportar_danada` («Reportar dañada», en la Ficha del panel y desde Ajustar «Se dañó»:
@@ -387,81 +388,45 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   del `stock` que el panel ya trae (cuentas puras en `lib/existencias-resumen.ts`); lo vendido se lee al abrir con
   `lib/useVentasDelMes.ts` → `GET /api/existencias/ventas-del-mes` (`getVentasDelMesDeSede`: del día 1 del mes a hoy, hora de Lima, así que
   vuelve a cero solo cada día 1). `DisponibleTotalOverlay.tsx` queda en el repo sin usar. Solo web, sin RPC ni migración.
-- `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
-  `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
-  `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
-  **Pedir desde Traslados (ADR-0242 D-7, 2026-10-03):** `BotonPedirAOtraSede.tsx` (cabecera y estado vacío; no se dibuja si
-  `sedesParaPedir` no da ninguna tienda: el Taller no puede pedir) → `PedirAOtraSedeModal.tsx` en modo «elegir»
-  (`sedesParaElegir`; con la guía de foco) → `GET /api/traslados/prendas-de-sede?sede=` (`fn_existencias` de ESA sede, la
-  única fórmula de «cuánto hay», ADR-0270; ofrece solo lo que puede **enviar**: `almacen_libre` + `sin_lugar`, porque un
-  traslado sale del almacén y nunca del piso —`filasEnviables`—; su puerta `fn_tiene_acceso_retail` deja pasar a una
-  terminal; los nombres, por `getEtiquetasDeVariantes` en tandas de 80 ids, que falla en voz alta y no deja una lista a
-  medias) → la misma `pedir_a_otra_sede` de siempre, con el token atado al contenido del pedido (un reintento idéntico no
-  duplica; si cambian la tienda o las prendas, es otro pedido). Ojo: `pedir_a_otra_sede` y Análisis siguen mirando piso +
-  almacén (tarea de SQL pendiente de Felipe). Reglas puras: `sedesParaPedir`, `prendasPedibles`, `lineasElegidasParaPedir`
-  (`lib/pedidos-entre-sedes-reglas.ts`). Análisis sigue abriendo el modal con `origen` + `lineas` ya armadas. Sin migración.
-  **Pedidos que no se pierden (ADR-0328 act. 17, migraciones `20261005130000`–`130200`):** la página junta la reposición con
-  los pedidos PARA UN CLIENTE (`getPedidosConCliente` = RPC `fn_pedidos_con_cliente`; `juntarPedidos`,
-  `lib/pedidos-con-cliente-reglas.ts`) en la misma tarjeta `PedidosEntreSedes.tsx`: un pedido para un cliente se envía con
-  `enviar_pedido_para_apartar` y se cancela con `cancelar_pedido_para_apartar`; si la prenda apartada allá está colgada,
-  primero «Subir al almacén» (`PedidoClienteModales.tsx` → RPC `subir_pedido_al_almacen`; la misma regla `envioConCliente`
-  y la misma ventana en Apartados ▸ Todos, que lee también `fn_pedidos_con_cliente`); al llegar, «Avisar al cliente»
-  (WhatsApp + RPC `marcar_pedido_avisado`); si no va a llegar (la otra sede dijo «No la tengo» o el envío se cerró sin
-  ella: `separacion_pedidos.cancelado_desde` = `envia` | `traslado`), «Avisar que no llegó» con la misma ventana
-  (`AvisarAlClienteModal`, `avisoAlCliente`). Cada fila que espera dice hace cuánto (`esperaVisible`, 48 h = «Sin respuesta»).
-  La reserva en la otra sede no vence sola (`apartados.vence_el` null) y esa sede no conoce al cliente («Pedido de Trujillo»;
-  `fn_pedidos_con_cliente` no le manda nombre ni celular: `paraQuien`, `paraQuienPedido`): a los 7 días la tienda que pidió
-  responde «¿Sigue en pie?» (`SigueEnPieModal` → RPC `confirmar_pedido_sigue_en_pie`, o cancelar; `preguntarSiSigue`), en
-  Traslados, en la franja de Vender y en el aviso del Inicio.
-  En la MISMA tarjeta (una sola lista, decisión del 2026-10-04; `hayAlgoEnLaLista`), entre «Te piden» y «Pediste», la sección
-  `SeccionParaEnviar` (`ParaEnviar.tsx`; `getParaEnviar` = RPC `fn_para_enviar`; `lib/para-enviar-reglas.ts`): lo subido al
-  almacén «para enviar», por destino, con «Armar el envío» (Nuevo traslado con `?destino=&lineas=`) y «Ya no la envío» (RPC
-  `cancelar_para_enviar`); cada prenda dice hace cuánto se subió (`esperaParaEnviar`, en ámbar pasados 3 días). Sale de la
-  lista sola cuando sale un traslado a ese destino (disparador `para_enviar_al_salir` sobre `transferencia_items`). Lo que
-  lleva más de 3 días se avisa en el Inicio de esa sede (`leerParaEnviar` + `paraEnviarAtrasadas`, aviso «Para enviar»),
-  NO en el número del menú. El número del menú y del aviso «Traslados» del Inicio (`getNumeroDelMenuTraslados`) suma
-  lo que me piden (RPC `fn_pedidos_por_atender`, `numeroDelMenuTraslados` en `lib/pedidos-por-atender-reglas.ts`) a lo que
-  llega (`getTrasladosPorAtender`); Conteo y Caja usan solo lo que llega.
-  Lo de siempre: `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
-  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
-  para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
-  `vacios`, ADR-0172) →
-  `TrasladosPanel.tsx` (el único con estado: filtros, buscador, paginación, refresco cada minuto) →
-  `TrasladosAtencion` / `TrasladosResumen` (las tarjetas SON el filtro de por recibir / en camino / con
-  diferencia, ADR-0175) / `TrasladosFiltros` (chips Abiertos · Cerrados · Todos, dirección segmentada a la
-  vista, otra sede en «Más filtros») / `TrasladosLista` (6 columnas desde 1280 px, tarjeta debajo) +
-  `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
-  acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
-  `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
-  del menú: `getTrasladosPorAtender` (total, nunca lanza; `transferencia_items!inner` deja fuera los vacíos; desde ADR-0328
-  act. 17 el menú lo pide por `getNumeroDelMenuTraslados`, que le suma «Te piden») → `(app)/layout.tsx`
-  → `AppShell` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
-  (color exacto o general, nunca de otro color) →
-  `/inventario/traslados/[id]` → `getTrasladoDetalle` (líneas por `fn_traslado_lineas`; quién envió, contó y
-  cerró por `fn_nombres_personas`; color y foto por `getAparienciaVariantes`) → `TrasladoRecorrido.tsx` (4 pasos,
-  `recorridoRecepcion` de `lib/traslados-recepcion-reglas.ts`) + `TrasladoDetallePanel.tsx` (ADR-0239: conteo a
-  ciegas con `leerConteo`; cada casilla se guarda sola en `registrar_recepcion_traslado` con `x-espera: no`;
-  «Terminé de contar» muestra lo enviado; `TrasladoConfirmarModal` → `confirmar_traslado(p_destino)` (piso o
-  almacén; entra lo que coincide); `TrasladoCerrarModal` → `cerrar_traslado_con_diferencia`;
-  `TrasladoAnularModal` → `anular_traslado` (origen o líder, sin conteos)).
-  **Lo siguiente (ADR-0242 D-6.1, 2026-10-03):** `traslados/[id]/page.tsx` calcula `loSiguienteDeLaRecepcion`
-  (`lib/traslados-recepcion-reglas.ts`, pura: solo quien recibió, solo con lo que de verdad entró —`ingresado`—, hasta
-  `DIAS_LO_SIGUIENTE` = 7 días desde el último ingreso, sin Taller) y lo dibuja `TrasladoLoSiguiente.tsx` bajo el título: si lo
-  recibido quedó en el **almacén**, «Bajar estas al piso» → `/inventario/bajar?lineas=` (solo dice QUÉ buscar; la cantidad la dan
-  las lecturas) si la cuenta ve Existencias, y «Imprimir etiquetas» → `/etiquetas-de-precio?unidades=…&traslado=<id>` de justo
-  esas unidades; si quedó en el **piso**, solo las etiquetas. «Bajar» solo lleva lo que HOY sigue en el almacén (la página lee el
-  stock de la sede con `getStockPorUbicacion` + `aPrendasBajables` únicamente cuando ya iba a ofrecerlo; si la lectura falla, se
-  ofrece como antes): si ya se bajó o se apartó todo, la tarjeta lo dice y solo queda lo de las etiquetas. La pantalla de Etiquetas
-  entiende `?traslado=` (`OrigenDeTexto.variantes.desdeTraslado`): «Traslados · Lo que llegó» y «Volver» al detalle de ese
-  traslado, no a Existencias. Con más de `MAX_VARIANTES_EN_URL` prendas distintas, Bajar al piso se abre sin lista y no se ofrecen
-  etiquetas. Límite conocido: si un líder cierra una diferencia días después, la ventana cuenta desde el cierre y las etiquetas
-  abarcan toda la caja (`fn_traslado_lineas` no dice cuándo entró cada línea). El modal de confirmar ya no manda a «Reponer»: dice
-  «Bajar al piso». Solo web, sin migración.
-  **Quién recibe (ADR-0328, actividad 15, `20261004230000`/`230100`, sin pegar):** en una terminal, `traslados/[id]/page.tsx` lee
-  `getFirmaRecepcion` → RPC `fn_traslado_firma_recepcion` (dato de apoyo, tolerante) y `firmaDelPaso` (`lib/firma-heredada.ts`) decide
-  si la recepción va a nombre de quien la firmó hoy (la base lo hereda: `fn_firma_de_recepcion`, que lee y renueva
-  `transferencias.recepcion_firmada_*`) o si `TrasladoDetallePanel` pregunta «¿Quién recibe?» una vez (combo + guía de foco; la tabla
-  espera con `inert`). Si la base igual pide el nombre (`responsable_requerido`), el combo aparece entonces.
+- `/inventario/traslados` = **billetera de pases** (ADR-0355, 2026-10-06; reemplaza la bandeja de ADR-0242 D-1). Grupo de rutas
+  `traslados/(billetera)/`: el `layout.tsx` (cabecera + `BotonPedirAOtraSede` + «+ Nuevo traslado» + `Billetera.tsx`) y dos páginas
+  (`page.tsx` abre `paseInicial`; `[id]/page.tsx` abre el pase de la URL, con «← Movimientos» si se llegó de ahí, ADR-0234) que pasan por
+  `Escenario.tsx`: un `<uuid>` es una caja (`EscenarioPase.tsx`), `pedido-<id>` un pedido entre sedes y `enviar-<sede>` lo subido para
+  enviar (`PasePedido.tsx`; `claseDelId`). `traslados/layout.tsx` (`exigirModulo`) y `nuevo/` no cambian.
+  **Datos:** `lib/traslados-billetera.ts` → `getBilleteraDeLaSede` (`cache()`; `getTrasladosDeLaSede` de `lib/traslados.ts` —en curso + 30
+  terminadas, fotos con UNA consulta, nombres por `fn_nombres_personas`, vacíos aparte (ADR-0172)—, `getPedidosPorAtender`,
+  `getCodigosDeSede` (código TRU/LIM/AQP del nombre, el Taller entero; `getUbicaciones`) y `getEnviosDeLaSede` (`cache()`:
+  `getPedidosEntreSedes` = RPC `fn_pedidos_entre_sedes`, `getPedidosConCliente` = RPC `fn_pedidos_con_cliente`, `juntarPedidos`,
+  `getParaEnviar` = RPC `fn_para_enviar`, `agruparPorDestino`)). **Reglas puras:** `lib/traslados-pases-reglas.ts` (qué dice cada pase:
+  tono, pestaña, nombre, campos a ciegas con `esCiego`, botón, sello, anillo `anilloDelDia`/`hechasHoy`, `paseInicial`, `vecinosEnPestana`;
+  se apoya en `situacionTraslado`/`ordenarTraslados` de `lib/traslados-reglas.ts`), `lib/traslados-pedidos-pases-reglas.ts` (los pedidos y
+  «Para enviar» como pases: `pestanaDelPedido`, `vistaDelPedido`, `vistaParaEnviar`, `pedidoPorHacer` = lo que cuenta `contarTePiden`) y
+  `lib/traslados-reverso-reglas.ts` (`modoDelReverso`, `faltaQue`, `selloAlConfirmar`, la guía de foco del reverso).
+  **Componentes** (`components/traslados-pases/`): `Billetera.tsx` (pestañas, anillo, buscador con `coincideBusqueda`, pila de
+  `MiniPase.tsx`, ← →), `PaseTraslado.tsx` (el escenario que gira, `usePase()` = `girar`/`sellar`; «Lo siguiente» en el frente),
+  `PaseFrente.tsx` (+ `LetrasQueGiran`, `LineaViaje`, `SelloPase`, `TrasladoMiniaturas`), `ReversoPase.tsx` + `useRecepcion.ts`.
+  Estilos: `app/estilos/traslados-pases.css` (`tp-*`).
+  **Recibir (ADR-0239, sin cambios de regla):** `getTrasladoDetalle` (líneas por `fn_traslado_lineas`) → `ReversoPase` → `useRecepcion`:
+  conteo a ciegas con `leerConteo`; cada casilla se guarda sola en `registrar_recepcion_traslado` con `x-espera: no` (`crearColaEnSerie`);
+  escaneo `resolverEscaneo` (pistola o cámara: `EscanerConteo`), prenda de más; «Terminé de contar» compara; `confirmar_traslado(p_destino)`
+  (piso o almacén, D-131); `cerrar_traslado_con_diferencia` (líder, con nota); `anular_traslado` (origen o líder, con motivo, responsable y
+  token); «Avisar por WhatsApp» con `mensajeParaLaOtraSede`. **Quién recibe (ADR-0328):** en una terminal, `getFirmaRecepcion` → RPC
+  `fn_traslado_firma_recepcion` y `firmaDelPaso`; si hace falta, el reverso pregunta «¿Quién recibe?» una vez y las prendas esperan (`inert`).
+  **Lo siguiente (ADR-0242 D-6.1):** `EscenarioPase` calcula `loSiguienteDeLaRecepcion` (con `getStockPorUbicacion` + `aPrendasBajables`
+  solo si iba a ofrecer bajar) y el frente del pase lo dibuja como su botón: «Bajar estas al piso» → `/inventario/bajar?lineas=`,
+  «Imprimir etiquetas» → `/etiquetas-de-precio?unidades=…&traslado=<id>`.
+  **Pedidos entre sedes como pases (ADR-0355, actividad 4):** Envías lleva «X te pide» (RPC `enviar_pedido_a_otra_sede` /
+  `enviar_pedido_para_apartar` / `cancelar_pedido_a_otra_sede` / `cancelar_pedido_para_apartar` desde el reverso) y «Para enviar a X» («Armar
+  el envío» → Nuevo traslado con `urlArmarEnvio`; «Ya no la envío» → `YaNoLaEnvioModal` de `ParaEnviar.tsx` → RPC `cancelar_para_enviar`);
+  Te llegan, lo que pediste mientras esté abierto o pida «Avisar al cliente» / «¿Sigue en pie?» (`PedidoClienteModales.tsx`: RPC
+  `subir_pedido_al_almacen`, `marcar_pedido_avisado`, `confirmar_pedido_sigue_en_pie`). El lado que envía nunca ve el nombre del cliente
+  (`paraQuien`). **Pedir a otra sede (ADR-0242 D-7):** `BotonPedirAOtraSede.tsx` → `PedirAOtraSedeModal.tsx` → `GET
+  /api/traslados/prendas-de-sede?sede=` (`fn_existencias` de esa sede; solo lo que puede enviar: `filasEnviables`) → RPC
+  `pedir_a_otra_sede` con token atado al contenido.
+  **El número del menú y el anillo** son lo mismo: `getNumeroDelMenuTraslados` = `getTrasladosPorAtender` (`contarRequierenAccion`,
+  `transferencia_items!inner` deja fuera los vacíos) + `fn_pedidos_por_atender` (`numeroDelMenuTraslados`) → `(app)/layout.tsx` →
+  `AppShell`; la billetera suma lo mismo (`anilloDelDia`, dos pruebas lo exigen). «Para enviar» no suma: lo que lleva más de 3 días se
+  avisa en el Inicio de la sede (`paraEnviarAtrasadas`). Conteo y Caja usan solo lo que llega. Solo web, sin migración.
 - `/inventario/conteo` (**Conteo rediseñado**, ADR-0282, 2026-09-29; **web construida y probada en local; SQL sin pegar en producción**, va junto con la web) →
   **Inicio** `page.tsx` (`await exigirModulo("conteos")` en el `layout.tsx`; 5 lecturas en paralelo: `getConteosResumen` → RPC `fn_conteos_resumen`, sububicaciones,
   categorías, `getAlcanceConteo` → RPC `fn_conteo_alcance` —dato de apoyo: cuántas variantes trae cada lugar y categoría; si no llega, la tarjeta sale sin cifras— y traslados por atender) → `ConteoVista.tsx` (servidor: subtítulo fijo, sin cifras; con conteo abierto la tarjeta «en curso» con `ResumenConteo` y

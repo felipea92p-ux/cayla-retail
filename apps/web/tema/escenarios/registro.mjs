@@ -677,16 +677,64 @@ ESCENARIOS.push(
   { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", nombre: "Movimientos · el filtro «Ajustes»", preparar: clicRol("button", /^Ajustes/i) },
   { id: "movimientos.calendario", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=gridcell]", nombre: "Movimientos · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
   { id: "traslados.pedir", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Traslados · «Pedir a otra sede»", preparar: clicRol("button", /Pedir a otra sede/i) },
-  { id: "traslados.cerrados", ruta: "/inventario/traslados", cuentas: INVENTARIO, nombre: "Traslados · la pestaña «Cerrados»", preparar: clicRol("button", /^Cerrados/i) },
-  { id: "traslados.filtros", ruta: "/inventario/traslados", cuentas: ["admin"], nombre: "Traslados · «Más filtros»", preparar: clicRol("button", /Más filtros/i) },
+  // ADR-0355: la billetera de pases. Las pestañas, el reverso (el pase girado) y un pedido como pase.
+  { id: "traslados.envias", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=tab][aria-selected=true]", nombre: "Traslados · la pestaña «Envías»", preparar: clicRol("tab", /^Envías/i) },
+  { id: "traslados.terminadas", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=tab][aria-selected=true]", nombre: "Traslados · la pestaña «Terminadas» (sellos)", preparar: clicRol("tab", /^Terminadas/i) },
+  {
+    id: "traslados.reverso",
+    ruta: "/inventario/traslados",
+    cuentas: ["admin"],
+    // En celular la raíz muestra solo la billetera (el pase se abre al tocarlo): el giro se mira en «traslados.contar».
+    ancho: "escritorio",
+    abre: ".tp-pase3d[data-vuelta]",
+    nombre: "Traslados · el pase girado (su reverso)",
+    async preparar(pagina) {
+      await pagina.locator(".tp-boton").first().click();
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "traslados.contar",
+    ruta: "/inventario/traslados/[id]",
+    cuentas: ["admin"],
+    abre: ".tp-contador",
+    nombre: "Traslados · contar a ciegas en el reverso",
+    async preparar(pagina) {
+      const id = consultarLocal(
+        "select t.id from retail.transferencias t join retail.ubicaciones u on u.id = t.ubicacion_destino_id where t.estado = 'en_transito' and u.nombre ilike '%lima%' order by t.numero desc limit 1",
+      );
+      await irA(`/inventario/traslados/${id}`)(pagina);
+      await pagina.locator(".tp-boton").first().click();
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "traslados.pedido",
+    ruta: "/inventario/traslados",
+    cuentas: ["admin"],
+    abre: ".tp-banda-num",
+    nombre: "Traslados · un pedido entre sedes como pase",
+    async preparar(pagina) {
+      for (const pestana of [/^Envías/i, /^Te llegan/i, /^Terminadas/i]) {
+        await clicRol("tab", pestana)(pagina);
+        const pedido = pagina.locator(".tp-mini", { hasText: "Pedido" }).first();
+        if (await pedido.count()) {
+          // Los pases van apilados (cada uno tapa el centro del de arriba): se toca su banda, que es lo que se ve.
+          await pedido.click({ position: { x: 40, y: 20 } });
+          await esperar(pagina, 1500);
+          return;
+        }
+      }
+    },
+  },
   { id: "traslados.sede", ruta: "/inventario/traslados/nuevo", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Nuevo traslado · la lista «Hacia»", preparar: clicRol("combobox", /Hacia|Elige a qué sede/i) },
   { id: "traslados.prenda", ruta: "/inventario/traslados/nuevo", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Nuevo traslado · la lista de prendas", preparar: clicRol("combobox", /Elige la prenda|Prenda/i) },
   {
     id: "traslados.detalle",
     ruta: "/inventario/traslados/[id]",
     cuentas: ["admin"],
-    abre: "h1",
-    nombre: "Traslados · el detalle de un traslado",
+    abre: ".tp-pase",
+    nombre: "Traslados · el pase de un traslado",
     preparar: async (pagina) => irA(`/inventario/traslados/${consultarLocal("select id from retail.transferencias order by 1 limit 1")}`)(pagina),
   },
   { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor/i) },

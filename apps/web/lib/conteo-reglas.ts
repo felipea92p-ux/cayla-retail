@@ -954,7 +954,7 @@ export const ESPERA_GUARDADO_MS = 600;
 /**
  * Cola de guardado en serie. Cada guardado manda el TOTAL de la variante (1, 2, 3…). Si dos salieran en paralelo y la
  * respuesta del «2» llegara después que la del «3», la variante quedaría en 2. En fila, la última en salir es la última
- * en escribirse. La usan Conteo y Traslados (`TrasladoDetallePanel`): no se mueve ni se renombra.
+ * en escribirse. La usan Conteo y Traslados (`components/traslados-pases/useRecepcion.ts`): no se mueve ni se renombra.
  */
 export function crearColaEnSerie() {
   let cola: Promise<unknown> = Promise.resolve();

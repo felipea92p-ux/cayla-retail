@@ -626,12 +626,18 @@ export type TarjetaVista = {
   descripcionCompleta: string | null;
   /** Tejido, patrón y temporada: chips pequeños. No separan ni puntúan (pista débil por decisión de Felipe). */
   chips: string[];
+  /** Lo mismo, por campo, para la tarjeta en filas con título (Tela · Temporada): `null` si no lo tiene. */
+  tejido: string | null;
+  patron: string | null;
+  temporada: string | null;
   colores: { nombre: string; hex: string }[];
   /** Hasta 4 cápsulas; el resto se cuenta. `varios`: el color no tiene hex (Estampado, Multicolor, Animal print): la cápsula se dibuja en rueda de tonos, no vacía. */
   coloresVisibles: { nombre: string; hex: string; varios: boolean }[];
   masColores: number;
   textoColores: string;
   tallas: string | null;
+  /** Las tallas una por una («S», «M», «Estándar»), para dibujarlas en su cuadrito. */
+  listaTallas: string[];
   /** «TRU 2 · AQP 0 · LIM 0 · Taller 0», o la frase de «sin stock» / «no pude leer». */
   disponible: string;
   /** Las sedes, en trozos, para la cifra en negrita; `null` si no hay lectura o está vacía. */
@@ -730,11 +736,15 @@ export function armarTarjeta(e: EntradaTarjeta): TarjetaVista {
     descripcion: enDescripcion ? descripcionSinCodigo(c.descripcion, codigoTexto) : c.descripcion,
     descripcionCompleta: c.descripcion,
     chips: [c.tejido, c.patron, c.temporada].filter((t): t is string => !!t),
+    tejido: c.tejido ?? null,
+    patron: c.patron ?? null,
+    temporada: c.temporada ?? null,
     colores: c.colores,
     coloresVisibles: visibles.map((x) => ({ ...x, varios: !x.hex })),
     masColores: mas,
     textoColores: `${visibles.map((x) => x.nombre).join(" · ")}${mas > 0 ? ` +${mas}` : ""}`,
     tallas: c.tallas.length > 0 ? `Tallas: ${c.tallas.join(" · ")}` : null,
+    listaTallas: [...c.tallas],
     disponible: textoDisponible(c.disponible ? c.disponible.porSede : null),
     disponibleSedes: c.disponible && c.disponible.porSede.length > 0 ? sedesDisponibles(c.disponible.porSede) : null,
     cargada: cargada || null,
