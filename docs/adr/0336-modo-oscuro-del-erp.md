@@ -71,7 +71,36 @@ Cada actividad de módulo corre la herramienta con cada cuenta que ve esa pantal
 - Se agrega un token de color al `@theme` sin su versión en `tema.css` o en `.papel-fijo`: `lib/tema-tokens.test.ts` falla.
 - Se define un alias de token (como los del puente shadcn) y no se re-declara en `.papel-fijo`: el papel hereda el oscuro por el alias.
 - Se pone un bloque oscuro fuera de `@media screen`: imprimir saldría oscuro.
+- Un color de DATO (el dorado del efectivo) va como texto sobre una superficie que se invierte con el tema (`bg-tinta text-crema`, un
+  héroe): en oscuro esa superficie es crema y el dato, que no cambia, se pierde. Ver la actualización del 2026-10-06.
+- Un campo «apagado» (deshabilitado a propósito) se atenúa con una opacidad que envuelve también la frase que explica por qué: esa frase
+  queda ilegible en los dos temas. Ver la actualización del 2026-10-06.
 - Una pantalla vuelve a definir su propio bloque `[data-tema="oscuro"]` con los nombres sin intercambiar (como hacía el Observatorio): se invierte dos veces.
+
+## Actualización 2026-10-06 — tres fallas que la auditoría encontró ya en `main`
+
+La corrida del 2026-10-06 (`tema:auditar`, Admin, `/caja`, `/compras/nueva`, `/inventario`, `/inventario/movimientos` con sus escenarios)
+encontró tres fallas que no introdujo ninguna rama reciente. Dos dejan una regla que vale para pantallas nuevas:
+
+1. **Un color de dato sobre una superficie que se invierte.** El héroe de Caja (`.cmp-heroe`, ADR-0319) es `tinta` con texto `crema`: en
+   oscuro se vuelve una tarjeta crema, y la cifra en dorado del efectivo (`--color-metodo-efectivo`, color de dato: no cambia) quedaba en
+   2.22:1. **Regla:** en oscuro, el dato se mezcla hacia el texto de esa superficie —`color-mix(in srgb, <dato> 60%, var(--color-crema))`—,
+   el mismo recurso que ya usaba la ventanita del gráfico (`.cmp-tip-baja`). Queda en 4.6:1 y en claro no cambia nada
+   (`app/estilos/caja-comparativa.css`).
+2. **Un campo apagado no apaga su explicación.** «Vence el» de Registrar factura se atenuaba al 45 % con su frase («Al contado no hay
+   vencimiento.») adentro: 2.46 y 2.14:1 en oscuro, **y 1.89 y 1.70:1 en claro** (en una corrida limpia sale como heredado, no como solo
+   oscuro). Un `dark:` no alcanzaba: cualquier opacidad sobre el texto lo hunde en los dos temas. **Regla:** lo que se apaga va en un
+   `<fieldset disabled>` (etiqueta y caja son un control inactivo, que WCAG exime y la herramienta también por `:disabled`) y la frase que
+   dice por qué queda FUERA de la opacidad, al contraste de sus vecinas (`components/CompraFormV2.tsx`).
+3. **El velo del panel de la talla** (`components/existencias/PanelTalla.tsx`) era `bg-tinta/[0.12]`: aclaraba la pantalla en oscuro
+   (#353431 sobre #1a1a18). Pasa a `sombra` como dice la regla 2: `bg-sombra/[0.12] dark:bg-sombra/35`, y en el celular
+   `bg-sombra/25 dark:bg-sombra/55`, como el velo de los cajones.
+
+**Escenarios.** De los que no abrían nada: `existencias.texto` se borró (el interruptor «Iconos con texto» se quitó en ADR-0344, act.
+2026-10-06); `existencias.resumen` y `existencias.decidir` abren primero la ventana «Pendientes de hoy» (ahí viven desde que «Para hoy»
+dejó la pantalla) y se suma `existencias.pendientes`; `movimientos.ajustes` busca el ENLACE dentro de `<nav aria-label="Tipo de
+movimiento">` (ADR-0353); la Isla (`estructura.recordatorio`) ya no depende de que la sede tenga hora de cierre: el escenario contesta él
+la consulta que la Isla sondea (`/api/caja/recordatorio`) con una caja abierta hace 5 h, sin escribir en la base compartida.
 
 ## Cómo se verificó (actividad 13)
 
