@@ -253,9 +253,10 @@
     (h.getAttribute("aria-current") && h.getAttribute("aria-current") !== "false") ||
     h.getAttribute("data-state") === "active" ||
     h.getAttribute("aria-pressed") === "true" ||
+    h.getAttribute("aria-checked") === "true" ||
     h.hasAttribute("data-activo") ||
     h.getAttribute("data-activa") === "true";
-  const CLICABLE = 'button, a[href], [role="button"], [role="tab"]';
+  const CLICABLE = 'button, a[href], [role="button"], [role="tab"], [role="radio"]';
 
   function censarHojas() {
     for (const d of document.querySelectorAll('[role="dialog"]')) {

@@ -76,8 +76,13 @@ foco, deshabilitado, cargando) y en contexto. Rehaz la lámina sin volver a reco
 propuesta sale al lado de las variantes, en claro y oscuro. Explica cada rasgo: *«de la A tomo el alto de 36 px (el más usado y cómodo con
 mouse), de la C el icono a la izquierda (se reconoce antes de leer)…»*. Cómo se hace: `referencia/propuesta.md`.
 
-**5. Elegir.** `AskUserQuestion`, una pregunta por familia (hasta 4 por llamada): las opciones son tu recomendación primero, las 2–3 formas
-más usadas y la propuesta; cada una con cuántas pantallas tendrían que cambiar. Felipe también puede copiar «Me quedo con la B…» desde la lámina.
+**5. Elegir.** Felipe elige **mirando**, no leyendo: arma una página con `node unificar/elegir.mjs <especificacion.json>` (desde `apps/web`; el
+formato está en la cabecera del script). Por cada familia (y por cada pregunta, si la familia tiene varias funciones, como Pestañas), una tarjeta
+por opción con su captura: «Existe hoy» (las formas reales de la depuración, con dónde viven y si un ADR las decidió), «Lo aplicado ahora» (si ya
+se migró algo) y «Propuesta dibujada» (los borradores y la final, fotografiados con el CSS real). Sírvela con `unificar-laminas` y pásale la
+dirección; él toca una por pregunta, puede comentar, y copia su elección al chat (si la abrió en el navegador de la app, léela con
+`window.__unificarEleccion`). Una pregunta con `AskUserQuestion` sirve solo para confirmar, nunca para elegir una forma sin verla: el
+2026-10-06 Felipe eligió tres recomendaciones por su descripción y, al verlas aplicadas, no le gustaron.
 
 **6. Registrar** (en cuanto elige, en un commit propio): el registro `docs/unificar/<familia>.md` (qué se comparó, las capturas, qué eligió
 y por qué), la decisión en `DECISIONES` de `apps/web/unificar/familias.mjs` con sus **firmas** y su **deuda**
