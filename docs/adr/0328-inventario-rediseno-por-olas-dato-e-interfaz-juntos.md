@@ -380,3 +380,28 @@ faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pe
 Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
 venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
 velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican).
+
+## Enmienda 2026-10-06 — Análisis: la encargada ve lo mismo que el líder (ADR-0357)
+
+- **Qué cambia:** dentro de Análisis no hay diferencias por rol. Quien tiene el módulo (`fn_puede_analizar`: el líder o un rol con Análisis) ve:
+  - las tres tiendas;
+  - el dinero: lo que costaron las prendas quietas y lo que más rinde;
+  - **el costo y la ganancia por prenda**, en la ficha;
+  - «Liquidar desde».
+- **Reemplaza, solo para Análisis, dos frases de este ADR:**
+  - «el costo por prenda, solo el líder» (tabla «El norte», fila «Quién ve Análisis y Frescura»);
+  - «el **margen por prenda solo lo ve el líder**, dentro de Análisis» (ronda 4).
+
+  También responde lo que quedó abierto en la ronda 4: en Análisis, la comparación entre tiendas la ven todos.
+- **Lo que no cambia:**
+  - Frescura y las demás pantallas siguen con su regla.
+  - El dinero de Compras sigue siendo de quien lo ve (ADR-0126): «Comprar» a un proveedor de terceros y «Plan de campaña» solo se dibujan para
+    quien ve Compras con su dinero.
+  - El costo no se abre en otras lecturas: `variantes.costo` sigue cerrada y `fn_resumen_variantes` (la que lee Existencias) sigue dándolo solo al
+    líder. Análisis lo recibe por su propia lectura.
+- **En la base:** `20261006213000` da las tres tiendas del motor de demanda a quien puede analizar, y `20261006214000` (`fn_analisis_sede`) le
+  entrega las prendas de cada tienda —ventas, precio y costo— sin pedirle que opere esa sede: es `security definer` y su candado es la puerta de
+  Análisis (`fn_puede_analizar`). Ninguna está en producción todavía.
+- **Por qué:** lo decidió Felipe el 2026-10-06, al aprobar la maqueta de Análisis v4. Es su propia razón de «El norte» (Análisis y Frescura
+  «ayudan a plantear estrategias de equipo sin importar el rango») llevada al dinero: quien decide comprar, mandar o liquidar no decide bien sin
+  ver el costo ni las otras tiendas.

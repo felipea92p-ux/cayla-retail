@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Pruebas de la lectura del motor de demanda, etapa 0 (ADR-0346) — `retail.fn_motor_demanda_preparacion(p_ubicacion_id)`,
- * migraciones `20261005210000_motor_demanda_preparacion.sql` y `20261005223000_motor_demanda_preparacion_sin_sede.sql` (la vigente). CAYLA V2.
+ * migraciones `20261005210000_motor_demanda_preparacion.sql`, `20261005223000_motor_demanda_preparacion_sin_sede.sql` y
+ * `20261006213000_analisis_preparacion_tres_tiendas.sql` (la vigente: quien puede analizar recibe las tres tiendas). CAYLA V2.
  *
  * LO QUE VIGILA. La lectura dice, por tienda, cuántas unidades se vendieron cada día de Lima y cuántas apuntan a una prenda real
  * (no a la centinela de «venta sin registrar»), más la fecha del último cuadre del piso y si el almacén ya tuvo su conteo de
@@ -11,8 +12,9 @@
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; una sede NUEVA por caso, así nada del seed se mezcla).
  *   F  FORMA: una firma, SECURITY DEFINER, STABLE, search_path fijo; anon sin EXECUTE, authenticated con EXECUTE.
- *   P  PUERTAS: sin sede, quien ve `cayla_global` recibe todas las tiendas (Felipe) y los demás solo las que operan (Micaela: su
- *     tienda), sin error; con sede, quien la opera (Micaela con Tienda Trujillo sí, con la sede de prueba 42501).
+ *   P  PUERTAS: sin sede, quien ve `cayla_global` o puede analizar recibe todas las tiendas (Felipe) y los demás solo las que
+ *     operan (Micaela sin Análisis: su tienda), sin error; con sede, quien la opera o puede analizar (Micaela con Tienda Trujillo sí,
+ *     con la sede de prueba 42501; con Análisis en su rol, también la de prueba: Análisis v4, ADR-0357, decisión 8).
  *   D  DÍAS: identificadas y total por día de LIMA (las 23:30 de ayer en Lima son ayer, aunque en UTC ya sea hoy); la venta
  *     anulada, la de prueba, la de otra sede y la de hace 50 días no cuentan; la liquidación de una dañada tampoco.
  *   R  REGULARIZADA: al pasar la línea de la centinela a la prenda real, cuenta como identificada en el día en que se cobró.
@@ -35,8 +37,9 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
-// La versión vigente: 20261005223000 reemplazó a 20261005210000 (sin sede, cada cuenta recibe las tiendas que opera, sin error).
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261005223000_motor_demanda_preparacion_sin_sede.sql"), "utf8");
+// La versión vigente: 20261006213000 reemplazó a 20261005223000 (que reemplazó a 20261005210000): sin sede, cada cuenta recibe las
+// tiendas que opera, y quien puede analizar recibe todas (Análisis v4: la encargada y el líder ven lo mismo).
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261006213000_analisis_preparacion_tres_tiendas.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -178,6 +181,20 @@ caso(
      (select count(*) from retail.fn_motor_demanda_preparacion((select id from retail.ubicaciones where nombre = 'Tienda Trujillo'))),
      split_part(pg_temp.intento(format('select * from retail.fn_motor_demanda_preparacion(%L)', current_setting('md.sede'))), '|', 1));`,
   "1,42501"
+);
+
+// Análisis v4 (ADR-0357): con Análisis en su rol (dado solo dentro de esta transacción), Micaela recibe todas las tiendas y lee una
+// que no opera, sin 42501: la encargada y el líder ven lo mismo (decisión 8).
+const DAR_ANALISIS_A_MICAELA = `insert into retail.rol_modulos (rol_id, modulo)
+   select c.rol_id, 'analisis' from retail.colaboradores c join public.personas p on p.id = c.persona_id
+    where p.auth_user_id = '${MICAELA}' and c.rol_id is not null on conflict do nothing;
+`;
+caso(
+  "P4 con Análisis en su rol: Micaela recibe también la de prueba (sin sede) y la lee con su sede",
+  `${DAR_ANALISIS_A_MICAELA}${como(MICAELA)}select concat_ws(',',
+     (select count(*) filter (where nombre = 'Sede MD') from retail.fn_motor_demanda_preparacion()),
+     (select count(*) from retail.fn_motor_demanda_preparacion(current_setting('md.sede')::uuid)));`,
+  "1,1"
 );
 
 // D. DÍAS ----------------------------------------------------------------------------------------------------------------

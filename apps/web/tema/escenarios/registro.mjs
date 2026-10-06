@@ -807,11 +807,26 @@ ESCENARIOS.push(
   { id: "frescura.estado", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
   { id: "regularizar.vendio", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Por regularizar · la lista «Quién vendió»", preparar: clicRol("combobox", /Quién vendió/i) },
   { id: "regularizar.todas", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, nombre: "Por regularizar · «Todas»", preparar: clicRol("button", /^Todas/i) },
-  { id: "analisis.comparar", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Comparar períodos»", preparar: clicRol("tab", /Comparar períodos/i) },
-  { id: "analisis.personalizado", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · período «Personalizado»", preparar: clicRol("radio", /Personalizado/i) },
-  { id: "analisis.categoria", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Análisis · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
-  { id: "analisis.duermen", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · las prendas que duermen en almacén", preparar: clicRol("button", /^Duermen 23|Duermen en almacén/i) },
-  { id: "analisis.como-se-calcula", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · «Cómo se calcula»", preparar: clicRol("button", /cómo se calcula/i) },
+  { id: "analisis.acaba", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Se está acabando»", preparar: clicRol("tab", /Se está acabando/i) },
+  { id: "analisis.nose", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «No se vende»", preparar: clicRol("tab", /No se vende/i) },
+  { id: "analisis.pedir", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Qué pedir»", preparar: clicRol("tab", /Qué pedir/i) },
+  { id: "analisis.confianza", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la hoja «Datos incompletos / confiables»", preparar: clicRol("button", /Datos (incompletos|confiables)/i) },
+  // La ficha de una prenda: se abre desde la primera prenda que haya a la vista («Lo más vendido con su prenda» mientras la tienda dice
+  // «Todavía no»; las listas y los carriles cuando ya recomienda). Sin ventas con su prenda en la tienda no hay de dónde abrirla.
+  {
+    id: "analisis.ficha", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la ficha de una prenda",
+    preparar: async (pagina) => {
+      const enHoy = pagina.locator(".analisis .top-f, .analisis .l5");
+      if ((await enHoy.count()) > 0) await enHoy.first().click({ timeout: 8000 });
+      else {
+        // Con pocas ventas, Hoy no trae listas: «Qué pedir» siempre tiene su ranking si algo se vendió con su prenda.
+        await pagina.getByRole("tab", { name: /Qué pedir/i }).first().click({ timeout: 8000 });
+        await esperar(pagina, 1100);
+        await pagina.locator(".analisis .rank-f").first().click({ timeout: 8000 });
+      }
+      await esperar(pagina, 1500);
+    },
+  },
 );
 
 // ---------- Compras y Producción (actividad 11) ----------
