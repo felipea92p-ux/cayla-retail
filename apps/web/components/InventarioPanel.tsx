@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowRight, ChevronRight, LayoutGrid, ListChecks, ScanLine, Table2, Tag, X } from "lucide-react";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -36,6 +36,7 @@ import { conteoDeLista, opcionesOrden, ordenarModelos, tarjetasDeExistencias, ty
 import { PanelTalla, type FlujoPedido, type MarcaDelFiltro } from "@/components/existencias/PanelTalla";
 import { AnilloMision } from "@/components/existencias/AnilloMision";
 import { mejorOrigen } from "@/lib/existencias-flujos";
+import { LECTOR_VACIO, teclaDePistola } from "@/lib/existencias-pistola";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -576,6 +577,32 @@ export function InventarioPanel({
     abrirPrenda(agruparPorPrenda([f])[0], f.varianteId);
     return true;
   }
+
+  // La pistola sin tocar el buscador (maqueta): una ráfaga de teclas terminada en Enter abre el panel de esa talla, esté el cursor donde
+  // esté (menos en una caja de texto, donde la pistola escribe ahí). Escucha en la captura, antes que el panel y sus atajos 1–7.
+  const lector = useRef(LECTOR_VACIO);
+  const alLeerCodigo = useEffectEvent((codigo: string) => {
+    abrirPorCodigo(codigo);
+  });
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) {
+        lector.current = LECTOR_VACIO;
+        return;
+      }
+      const r = teclaDePistola(lector.current, e.key, e.timeStamp || performance.now());
+      lector.current = r.lector;
+      if (r.codigo) {
+        e.preventDefault();
+        e.stopPropagation();
+        alLeerCodigo(r.codigo);
+      }
+    };
+    document.addEventListener("keydown", alTeclear, true);
+    return () => document.removeEventListener("keydown", alTeclear, true);
+  }, []);
 
   // «Ver recomendaciones» / «Ver análisis de cobertura» ya no viven en Existencias (rediseño 2026-09-28, cabecera de
   // «Prioridades de hoy» más abajo): `abrirDesdeRecomendacion` (main, PR #575) resolvía un clic dentro de ese overlay

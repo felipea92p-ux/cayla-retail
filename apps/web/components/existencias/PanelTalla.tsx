@@ -19,6 +19,7 @@ import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencia
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
+import { MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -176,6 +177,8 @@ export function PanelTalla({
   const [pasoColor, setPasoColor] = useState<{ delta: 1 | -1; n: number } | null>(null);
   const alFlecha = useFlechasDelCajon(useCallback((delta: 1 | -1) => setPasoColor((p) => ({ delta, n: (p?.n ?? 0) + 1 })), []));
 
+  // La hora de la última tecla dentro del panel: distingue un atajo (una tecla) de la pistola (una ráfaga).
+  const ultimaTecla = useRef(0);
   // Al abrir, el teclado entra al panel (como la maqueta): ← → ↑ ↓ y 1–7 funcionan sin tocar el mouse.
   const raiz = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -272,6 +275,9 @@ export function PanelTalla({
   }
 
   function alTeclear(e: KeyboardEventReact<HTMLDivElement>) {
+    const antes = ultimaTecla.current;
+    ultimaTecla.current = e.timeStamp;
+    if (e.key.length === 1 && e.timeStamp - antes < MS_ENTRE_TECLAS) return;
     alFlecha(e);
     if (e.defaultPrevented || flujo || vista !== "talla" || escribiendo(document.activeElement) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
@@ -280,11 +286,15 @@ export function PanelTalla({
       const n = prenda.tallas.length;
       irA(prenda, prenda.tallas[(j + (e.key === "ArrowRight" ? 1 : n - 1)) % n]);
     } else if (/^[1-7]$/.test(e.key)) {
+      // Un dígito solo es un atajo; una ráfaga (la pistola leyendo un código que empieza con números) no: el atajo espera un instante
+      // y se cancela si llega otra tecla enseguida (`MS_ENTRE_TECLAS`).
       const a = acciones[Number(e.key) - 1];
-      if (a?.ok) {
-        e.preventDefault();
-        alAccionar(a.clave);
-      }
+      if (!a?.ok) return;
+      e.preventDefault();
+      const marca = e.timeStamp;
+      window.setTimeout(() => {
+        if (ultimaTecla.current === marca) alAccionar(a.clave);
+      }, MS_ENTRE_TECLAS + 10);
     }
   }
 
@@ -317,8 +327,15 @@ export function PanelTalla({
           // Sin velo y sin cerrar al tocar afuera: las tarjetas siguen vivas y tocar otra talla le cambia la talla al panel.
           onInteractOutside={(e) => e.preventDefault()}
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[30rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
+          // En el celular, una hoja que sube desde abajo con su asa (maqueta); desde `sm`, el cajón de la derecha. Las dos entradas son las
+          // del sistema (`cayla-hoja`, `cayla-cajon-*`, ADR-0136), quietas con `prefers-reduced-motion`.
+          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-sand bg-papel outline-none motion-reduce:animate-none sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:w-full sm:max-w-[30rem] sm:rounded-none sm:border-l sm:border-t-0 ${
+            cerrando
+              ? "animate-[cayla-hoja-salida_240ms_var(--ease-salida)_both] sm:animate-[cayla-cajon-sale_240ms_var(--ease-salida)_both]"
+              : "animate-[cayla-hoja_380ms_var(--ease-cayla)_both] sm:animate-[cayla-cajon-entra_380ms_var(--ease-cayla)_both]"
+          }`}
         >
+          <div aria-hidden className="mx-auto mt-2.5 h-[5px] w-[46px] shrink-0 rounded-full bg-sand sm:hidden" />
           {/* Cabecera: la prenda, su marca, categoría y precio. */}
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-sand px-[18px] pb-2.5 pt-3">
             <div className="h-14 w-[46px] shrink-0 overflow-hidden rounded-[10px] bg-sand/50">
