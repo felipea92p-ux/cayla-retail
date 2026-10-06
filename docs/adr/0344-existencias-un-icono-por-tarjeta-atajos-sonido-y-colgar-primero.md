@@ -240,3 +240,34 @@ tablet (con el dedo no hay «pasar por encima»: el nombre no se vería nunca).
 SE ROMPE SI: una tablet con mouse (o un portátil con pantalla táctil) informa «hover» y nunca muestra el nombre fijo: ahí vale el comportamiento
 de computadora, que es correcto para quien tiene cursor.
 
+### Tercera vuelta — «Qué toca con esta talla» en el panel
+
+**Pedido** (comparando el panel del ERP con el de la maqueta): «le falta especificar si hay, si reponer, qué falta, y si sugiere pedir o
+no a otra sede». En el ERP, una talla con 0 en piso y 6 en almacén decía «Disponible: 6 unidades» en verde: la frase y «Faltan en el piso»
+solo hablaban cuando el motor del piso decía «por colgar», y con el motor sin responder (local) o en pausa (TRU sin cuadrar) callaban.
+
+DECIDÍ: en «Esta talla», tres respuestas que siempre dicen algo (`queTocaConLaTalla`, `lib/existencias-panel-talla.ts`, con su prueba):
+**Hay** (sí/no, con piso y almacén o lo que viene en camino), **Colgar en el piso** (sí y cuántas, con su botón / no hace falta / no se puede
+/ en pausa) y **Pedir a otra sede** (no hace falta / sí, a la tienda que más tiene, con su botón / al Taller se le pide aparte / nadie
+tiene). Manda el motor cuando decide; sin su decisión, los números. «Faltan en el piso» usa la misma idea (`loQueFaltaEnElPiso`). La frase
+única de antes (`diagnosticoDeTalla`) se borra: nadie más la usaba.
+DESCARTÉ: copiar la regla de la maqueta (solo números: 0 en el piso = «por reponer»), porque en una sede sin cuadrar mandaría a colgar lo
+que ya cuelga (ADR-0328, decisión 5). Con el piso en pausa la respuesta es «En pausa» y la frase dice que mire si ya cuelga, sin botón.
+SE ROMPE SI: el motor deja de responder en producción: «Colgar» vuelve a los números y puede pedir colgar una talla de los extremos sin
+ventas, que el motor habría mandado mantener. Es lo menos malo: decir «Disponible» en verde con 0 en el piso era peor.
+
+**La talla principal, con un solo borde** (mismo día): con un filtro puesto, la talla que más se vende llevaba un aro oscuro por fuera de su
+propio borde; en una talla sin nada (borde punteado) quedaban dos bordes. Ahora el aro reemplaza al borde: uno solo, sólido y oscuro, y el
+estado lo dicen el fondo, la cifra («—») y la insignia del filtro.
+
+**Las acciones del panel siguen a la talla** (mismo día; pedido: «que el orden de los accesos cambie según lo que necesita esa prenda y se
+muestren primero los que puede usar»).
+DECIDÍ: primero la que la talla necesita (Colgar si no hay en el piso y sí atrás —con la vara de «Qué toca», nunca en pausa—; si no, Pedir
+cuando queda 1 o ninguna y una tienda tiene), después las que se pueden usar en el orden de su lugar (con algo en el piso: Apartar primero;
+sin nada colgado: Colgar; sin nada en la sede: Pedir), y las que no se pueden ahora al final, como una línea chica con su porqué
+(«No se puede ahora: Subir a almacén · nada en piso»). La tecla 1–7 queda pegada a la acción (Colgar = 1 … Ficha = 7), no a su lugar.
+DESCARTÉ: esconder las que no se pueden (se pierde el porqué: «¿por qué no puedo subirla?» se responde ahí mismo) y numerar por lugar (con
+el orden cambiando en cada talla, la misma tecla haría cosas distintas).
+SE ROMPE SI: alguien aprende de memoria el LUGAR de un botón (no su tecla) y el orden cambia de una talla a otra. El color y el nombre
+siguen iguales; el lugar ya no es fijo a propósito.
+
