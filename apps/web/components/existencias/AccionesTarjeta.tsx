@@ -13,6 +13,11 @@ import { accionDelIcono, type ClaveAccion, type FilaAccion } from "@/lib/existen
    con el teclado, se abre HACIA ARRIBA una ventana con todas las acciones y su nombre, la del icono incluida (`lib/existencias-acciones.ts`
    decide qué filas lleva y cuáles se ven apagadas). En tablet, que no tiene mouse, un botón «⋯» al lado abre la misma ventana con un toque.
 
+   Al pasar el mouse (o enfocar con el teclado), el icono además se estira y DICE su nombre («Colgar en el piso»), y la ventana de arriba
+   lista las OTRAS acciones: el nombre de la del icono ya está a la vista, no se repite (2026-10-06, pedido de uso: «que se despliegue el
+   icono con su texto y aparte la ventana»). Donde no hay mouse (tablet, celular) el nombre se ve siempre que la tarjeta tenga ancho
+   (≥ 18rem de contenido, `@container` de la tarjeta; con muchos colores el botón baja de línea): con el dedo no hay «pasar por encima».
+
    Se abre con CSS (hover y `focus-within`) y no con estado, para que pasar el mouse no vuelva a dibujar la tarjeta; el estado `abierto`
    solo sirve al toque. La ventana está pegada al icono (`pb-2` dentro de la misma caja): el mouse no pierde el hover al cruzar el
    hueco. Movimiento corto y sin rebote (ADR-0136). El `hover:` de Tailwind v4 ya solo vale donde hay mouse.
@@ -52,6 +57,8 @@ export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: strin
   }, [abierto]);
 
   const IconoPrincipal = principal ? ICONO[principal.clave] : Ellipsis;
+  // La ventana lleva las acciones que el botón NO dice: con el nombre a la vista, repetirla arriba era leer lo mismo dos veces.
+  const enVentana = principal ? filas.filter((f) => f.clave !== principal.clave) : filas;
   const clasesIcono =
     "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors";
 
@@ -67,7 +74,7 @@ export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: strin
           if (principal) alElegir(principal.clave);
           else setAbierto((a) => !a);
         }}
-        className={`${clasesIcono} ${
+        className={`inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-xl border px-[10px] transition-colors ${
           principal?.sugerida
             ? principal.clave === "pedir"
               ? "border-pizarra/40 bg-pizarra/[0.12] text-pizarra hover:border-pizarra/60"
@@ -75,7 +82,17 @@ export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: strin
             : "border-tinta/15 bg-papel text-taupe hover:border-tinta/30 hover:text-tinta"
         }`}
       >
-        <IconoPrincipal aria-hidden className="h-[19px] w-[19px]" strokeWidth={1.6} />
+        <IconoPrincipal aria-hidden className="h-[19px] w-[19px] shrink-0" strokeWidth={1.6} />
+        {/* El nombre: cerrado (ancho 0) en reposo; se abre al pasar el mouse o enfocar, y siempre con el dedo si hay ancho. Movimiento
+            corto, sin rebote, quieto con `prefers-reduced-motion` (ADR-0136). */}
+        {principal && (
+          <span
+            aria-hidden
+            className="max-w-0 overflow-hidden whitespace-nowrap text-[13px] font-medium opacity-0 transition-[max-width,opacity,margin] duration-200 ease-[var(--ease-cayla)] motion-reduce:transition-none group-hover/acciones:ml-2 group-hover/acciones:max-w-[13rem] group-hover/acciones:opacity-100 group-focus-within/acciones:ml-2 group-focus-within/acciones:max-w-[13rem] group-focus-within/acciones:opacity-100 [@media(hover:none)]:@min-[18rem]:ml-2 [@media(hover:none)]:@min-[18rem]:max-w-[13rem] [@media(hover:none)]:@min-[18rem]:opacity-100"
+          >
+            {principal.etiqueta}
+          </span>
+        )}
       </button>
 
       {/* Solo donde no hay mouse (tablet, celular): el «⋯» que abre la ventana con un toque. Con mouse, el hover ya la abre. */}
@@ -97,12 +114,12 @@ export function AccionesTarjeta({ etiqueta, filas, alElegir }: { etiqueta: strin
         }`}
       >
         <div className="w-56 rounded-xl border border-tinta/15 bg-papel p-1.5 shadow-lg">
-          {filas.map((f) => {
+          {enVentana.map((f, i) => {
             const Ico = ICONO[f.clave];
             const apagada = !!f.motivo;
             return (
               <div key={f.clave}>
-                {f.aparte && <hr className="my-1 border-tinta/10" />}
+                {f.aparte && i > 0 && <hr className="my-1 border-tinta/10" />}
                 <button
                   type="button"
                   role="menuitem"

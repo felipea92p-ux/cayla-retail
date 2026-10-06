@@ -805,8 +805,9 @@ export function InventarioPanel({
             onCambiar={(cambios) => aplicar(cambios)}
             onLimpiar={limpiarFiltros}
             conteo={conteo}
-            // Con las tarjetas, lo que dice la maqueta: cómo se usan. Con la tabla, qué se está viendo.
-            detalleTotal={!verDetalle ? "toca un color para cambiarlo, una talla para ver dónde hay" : separa ? "Vista de piso y almacén" : "Vista de la sede"}
+            // El piso sin cuadrar ya no es una franja de texto sobre las tarjetas: va en el atajo «Por colgar» (pausa + su explicación).
+            enPausa={separa && !planFallo ? tallasEnPausa : 0}
+            avisoPausa={avisoPausaDelPiso(sedeNombre, tallasEnPausa)}
             panelInicial={panelFiltros}
             onEscanear={() => setCamara(true)}
             // `orden` solo ordena las tarjetas: la tabla conserva su orden.
@@ -815,40 +816,41 @@ export function InventarioPanel({
                 ? null
                 : { valor: ordenEfectivo, porDefecto: "relevancia", opciones: opcionesDeOrden, onValor: (v) => setOrden(v as OrdenPrendas) }
             }
-            vista={
-              <>
-                {/* El anillo «N de M hoy» de la maqueta: lo resuelto de la foto del día. Abre «Pendientes» (lo que antes era «Para hoy»:
-                    cuadrar el piso, ventas sin registrar, dañadas…). En el Taller, que no tiene piso que colgar, el botón de siempre. */}
-                {esTienda ? (
-                  <AnilloMision ubicacionId={ubicacionId} filas={stock} tiendas={tiendasParaPedir} pendientes={tareasHoy.length} onAbrir={() => setViendoPendientes(true)} />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setViendoPendientes(true)}
-                    title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
-                    className="btn-cayla btn-secundario min-h-[34px] gap-2 px-3 py-1 text-[13px] text-taupe"
-                  >
-                    <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
-                    Pendientes
-                    {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
-                  </button>
-                )}
-                {/* «Ver detalle» cambia entre las tarjetas (de entrada) y la tabla de siempre; vuelve con «Ver tarjetas». */}
+            // El anillo «N de M hoy» de la maqueta, al costado de «Filtros» (2026-10-06): lo resuelto de la foto del día. Abre «Pendientes»
+            // (cuadrar el piso, ventas sin registrar, dañadas…). En el Taller, que no tiene piso que colgar, el botón de siempre.
+            alLadoDeFiltros={
+              esTienda ? (
+                <AnilloMision ubicacionId={ubicacionId} filas={stock} tiendas={tiendasParaPedir} pendientes={tareasHoy.length} onAbrir={() => setViendoPendientes(true)} />
+              ) : (
                 <button
                   type="button"
-                  aria-pressed={verDetalle}
-                  title={verDetalle ? "Volver a las tarjetas" : "Ver el detalle en una tabla"}
+                  onClick={() => setViendoPendientes(true)}
+                  title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
+                  className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-[13px] text-taupe"
+                >
+                  <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
+                  <span className="max-sm:sr-only">Pendientes</span>
+                  {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
+                </button>
+              )
+            }
+            vista={
+              <>
+                {/* Tarjetas o tabla: UN icono que cambia en los dos sentidos (2026-10-06). Muestra la vista a la que lleva; el nombre va como
+                    etiqueta y al pasar el mouse. */}
+                <button
+                  type="button"
+                  aria-label={verDetalle ? "Ver en tarjetas" : "Ver en tabla"}
+                  title={verDetalle ? "Ver en tarjetas" : "Ver en tabla"}
                   onClick={() => {
                     // Las tarjetas no tienen cajón: al volver a ellas se cierra el de la tabla.
                     if (verDetalle) setAbierta(null);
                     setVerDetalle((d) => !d);
                     setPagina(1);
                   }}
-                  className={`btn-cayla btn-secundario min-h-[34px] gap-2 py-1 text-[13px] text-taupe aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema ${verDetalle ? "px-3" : "px-2.5"}`}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-tinta/15 bg-papel text-tinta/70 transition-colors hover:border-tinta/30 hover:text-tinta"
                 >
-                  {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.5} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.5} />}
-                  {/* Con las tarjetas, solo el icono (la maqueta no tiene botón de texto): la tabla sigue a un toque. */}
-                  {verDetalle ? "Ver tarjetas" : <span className="sr-only">Ver detalle</span>}
+                  {verDetalle ? <LayoutGrid aria-hidden className="h-4 w-4" strokeWidth={1.6} /> : <Table2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />}
                 </button>
                 {verDetalle && (
                   // Por prenda (de entrada) o por talla (la tabla con Cobertura y Ritmo, ADR-0231). ADR-0237.
@@ -906,9 +908,7 @@ export function InventarioPanel({
 
       {separa && coberturaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{coberturaFallo}</p>}
       {separa && planFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{planFallo}</p>}
-      {separa && !planFallo && tallasEnPausa > 0 && stock.length > 0 && (
-        <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{avisoPausaDelPiso(sedeNombre, tallasEnPausa)}</p>
-      )}
+      {/* El piso sin cuadrar (antes, una franja de texto aquí) lo dice el atajo «Por colgar», en pausa, y la lista vacía de ese atajo. */}
       {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
       {marcaFallo && stock.length > 0 && <p className={`px-4 pb-2 text-xs text-ambar sm:px-5 ${verDetalle ? "" : "pt-3"}`}>{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
       {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}
@@ -937,7 +937,17 @@ export function InventarioPanel({
       ) : filtradas.length === 0 ? (
         // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta. Dice CUÁLES tallas piden
         // piso (las del centro y lo vendido): una talla extrema guardada sin ventas no es «por colgar».
-        sinNadaPorColgar || !explicacionVacio ? (
+        sinNadaPorColgar && tallasEnPausa > 0 && !planFallo ? (
+          // «Por colgar» en pausa: la lista está vacía porque el piso no se cuadró, no porque todo cuelgue. Lo dice aquí, donde se pregunta.
+          <div className={`grid gap-2 p-5 text-sm text-taupe ${verDetalle ? "border-t border-sand" : "card-cayla mt-3.5"}`}>
+            <p>{avisoPausaDelPiso(sedeNombre, tallasEnPausa)}</p>
+            {puedeBajarAlPiso && (
+              <Link href="/inventario/cuadrar" className="btn-cayla btn-secundario btn-chico justify-self-start">
+                Cuadrar el piso
+              </Link>
+            )}
+          </div>
+        ) : sinNadaPorColgar || !explicacionVacio ? (
           <p className={`p-5 text-sm text-taupe ${verDetalle ? "border-t border-sand" : "card-cayla mt-3.5"}`}>Nada por colgar: las tallas del centro y lo vendido ayer u hoy tienen al menos una para vender en el piso.</p>
         ) : (
           <div className={verDetalle ? "" : "card-cayla mt-3.5 overflow-hidden [&>div]:border-t-0"}>
@@ -968,7 +978,6 @@ export function InventarioPanel({
         <div className="mt-3.5">
           {verColgarPrimero && (
             <ColgarPrimero
-              pisoSinCuadrar={tallasEnPausa > 0}
               prendas={colgarPrimeroDeLaSede}
               alReponer={(prenda) => setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } })}
             />

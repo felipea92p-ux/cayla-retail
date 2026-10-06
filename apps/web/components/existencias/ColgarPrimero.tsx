@@ -45,23 +45,13 @@ export function AroSemanas({ ritmo, tam = 34 }: { ritmo: RitmoDePrenda; tam?: nu
 export function ColgarPrimero({
   prendas,
   alReponer,
-  pisoSinCuadrar = false,
 }: {
   prendas: readonly PrendaParaColgar<FilaExistencias>[];
   /** Abre «Colgar en el piso» con el modelo de esa prenda; `origen` es el botón, para devolverle el foco al cerrar la ventana. */
   alReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
-  /** El piso de la sede todavía no se cuadró (ADR-0328, decisión 5): el motor no manda a colgar nada, porque podría ser algo que ya cuelga.
-   *  La franja no se esconde: dice cuándo va a aparecer, para que su ausencia no se lea como un error. */
-  pisoSinCuadrar?: boolean;
 }) {
-  if (prendas.length === 0 && pisoSinCuadrar) {
-    return (
-      <section aria-label="Colgar primero" className="mb-3.5">
-        <h2 className="label-cayla mb-1 text-[11px] text-taupe">Colgar primero</h2>
-        <p className="text-[12.5px] leading-snug text-taupe">Aparece cuando se cuadre el piso de esta sede: hasta entonces no se sabe qué ya cuelga y qué falta colgar.</p>
-      </section>
-    );
-  }
+  // Sin nada que colgar (o con el piso sin cuadrar, ADR-0328 decisión 5) la franja no se dibuja (2026-10-06): su frase «Aparece cuando
+  // se cuadre el piso…» ocupaba dos líneas sobre las tarjetas. Por qué está vacía lo dice el atajo «Por colgar», en pausa.
   if (prendas.length === 0) return null;
   return (
     <section aria-label="Colgar primero" className="mb-3.5">
