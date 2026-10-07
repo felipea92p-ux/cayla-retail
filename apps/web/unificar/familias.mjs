@@ -365,12 +365,6 @@ export const DECISIONES = {
       "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b"
     ],
     "deuda": [
-      "components/ConfiguracionTiendas.tsx",
-      "components/finanzas/BalancePanel.tsx",
-      "components/finanzas/ConfiguracionCuentas.tsx",
-      "components/finanzas/CuentasDinero.tsx",
-      "components/GastosFijosYActivos.tsx",
-      "components/GastosPanel.tsx",
     ],
     "excepciones": [
       { "archivo": "components/analisis/TodaviaNo.tsx", "motivo": "El «Registrar N» chico dentro del anillo de Análisis v4 tiene su propio diseño y movimiento (ADR-0357); Felipe dice si se unifica" }
