@@ -597,12 +597,8 @@ export function FlujoTalla({
         const poner1 = (id: string, n: number, max: number) => poner({ cant: { ...cant, [id]: Math.max(0, Math.min(max, n)) } });
         return (
           <>
-            <Pregunta ayuda={nFalta > 0 ? "Ya viene 1 en cada talla que falta en el piso." : "Cada talla dice cuántas hay ya colgadas y cuántas en almacén."}>
-              ¿Cuántas sacas del almacén al piso?
-            </Pregunta>
-            {enPausa && nFalta === 0 && (
-              <p className="mb-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">El piso de esta sede está por cuadrar: el sistema no sugiere qué colgar. Mira lo que ya cuelga antes de sacar más.</p>
-            )}
+            {/* Textos cortos (Felipe, 2026-10-07: «con una frase corta se debe entender»): las celdas ya dicen lo demás. */}
+            <Pregunta ayuda={nFalta > 0 ? "Ya viene 1 donde falta." : enPausa ? "Piso por cuadrar: revisa lo colgado." : undefined}>¿Cuántas sacas al piso?</Pregunta>
             <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12.5px] text-taupe" role="group" aria-label="Llenar de un toque">
               <label htmlFor="colgar-llenar">Llenar todas con</label>
               <input
@@ -619,7 +615,7 @@ export function FlujoTalla({
                 onFocus={(e) => e.currentTarget.select()}
                 className="h-9 w-14 rounded-[9px] border border-transparent bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
               />
-              <button type="button" disabled={nFalta === 0} onClick={() => { setRelleno(""); poner({ cant: { ...loQueFalta } }); }} title="Pone 1 en cada talla que no tiene ninguna colgada y 0 en las demás" className="btn-cayla btn-secundario btn-chico">
+              <button type="button" disabled={nFalta === 0} onClick={() => { setRelleno(""); poner({ cant: { ...loQueFalta } }); }} title="1 en cada talla sin ninguna colgada" className="btn-cayla btn-secundario btn-chico">
                 Solo lo que falta ({nFalta})
               </button>
               <button type="button" disabled={tot.total === 0} onClick={() => { setRelleno(""); poner({ cant: {} }); }} className="btn-cayla btn-sutil btn-chico">
@@ -663,8 +659,7 @@ export function FlujoTalla({
                             return (
                               <td key={nombre} title={`${c.color ?? ""} ${nombre}: no hay en almacén`} className={`border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe`}>
                                 <b className="block font-normal">—</b>
-                                <small className="block text-[10.5px]">ya hay {celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
-                                <small className="block text-[10.5px] text-taupe/75">0 en almacén</small>
+                                <small className="block text-[10.5px]">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
                               </td>
                             );
                           const n = cant[t.varianteId] ?? 0;
@@ -689,7 +684,7 @@ export function FlujoTalla({
                                 </button>
                               </span>
                               <small className={`mt-1 block text-[10.5px] ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
-                                {celda.falta ? "falta en el piso" : celda.piso === 0 ? "nada colgado" : `ya hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
+                                {celda.falta ? "falta" : celda.piso === 0 ? "nada colgado" : `${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
                               </small>
                               <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
                             </td>
@@ -716,7 +711,6 @@ export function FlujoTalla({
             <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-taupe">
               <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>
               <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />no hay en almacén</span>
-              <span>Lo que falta = tallas sin ninguna colgada</span>
             </p>
           </>
         );

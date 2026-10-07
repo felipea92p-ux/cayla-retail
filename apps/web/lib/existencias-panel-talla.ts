@@ -270,7 +270,8 @@ export function insigniaDeTalla(queToca: readonly RespuestaQueToca[]): { tono: T
   const pedir = de("pedir");
   if (hay?.respuesta === "No") return { tono: "rojo", texto: "Se acabó", frase: pedir && pedir.respuesta !== "No hace falta" ? pedir.detalle : hay.detalle };
   if (colgar?.tono === "ambar") return { tono: "ambar", texto: "Falta colgar", frase: colgar.detalle };
-  if (colgar?.respuesta === "En pausa") return { tono: "pizarra", texto: "Piso en pausa", frase: colgar.detalle };
+  // Frase corta a propósito (Felipe, 2026-10-07: «con una frase corta se debe entender»).
+  if (colgar?.respuesta === "En pausa") return { tono: "pizarra", texto: "Piso en pausa", frase: "Revisa lo colgado antes de colgar más" };
   if (pedir?.respuesta === "Sí") return { tono: "pizarra", texto: "Queda poco", frase: pedir.detalle };
   return { tono: "verde", texto: "Todo bien", frase: hay?.detalle ?? "" };
 }
