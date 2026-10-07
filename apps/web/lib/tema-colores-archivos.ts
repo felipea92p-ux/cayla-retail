@@ -23,7 +23,6 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/BoletaA4.tsx": { cuenta: 23, motivo: PAPEL_A4 },
   "components/ProformaA4.tsx": { cuenta: 22, motivo: PAPEL_A4 },
   "components/ProformasPanel.tsx": { cuenta: 1, motivo: "El papel blanco de la vista previa de la proforma A4 (ver ProformaA4)." },
-  "components/Codigo128.tsx": { cuenta: 1, motivo: "Código de barras: barras negras sobre papel; un lector no lee barras claras sobre fondo oscuro." },
   "components/EtiquetaPrecio.tsx": { cuenta: 1, motivo: "Etiqueta de precio que se imprime en la térmica: solo negro sobre blanco." },
   "components/IconoEtiquetaPapel.tsx": { cuenta: 2, motivo: "Dibujo del papel de la etiqueta (negro y blanco literales): representa el papel, no la pantalla." },
 

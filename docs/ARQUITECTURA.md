@@ -387,7 +387,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   almacén y piso con lo vendido en el mes, lo que más se vende, de lo que más hay y lo que espera en el almacén; sin cobertura). Lo que hay sale
   del `stock` que el panel ya trae (cuentas puras en `lib/existencias-resumen.ts`); lo vendido se lee al abrir con
   `lib/useVentasDelMes.ts` → `GET /api/existencias/ventas-del-mes` (`getVentasDelMesDeSede`: del día 1 del mes a hoy, hora de Lima, así que
-  vuelve a cero solo cada día 1). `DisponibleTotalOverlay.tsx` queda en el repo sin usar. Solo web, sin RPC ni migración.
+  vuelve a cero solo cada día 1). Solo web, sin RPC ni migración.
 - `/inventario/traslados` = **billetera de pases** (ADR-0355, 2026-10-06; reemplaza la bandeja de ADR-0242 D-1). Grupo de rutas
   `traslados/(billetera)/`: el `layout.tsx` (cabecera + `BotonPedirAOtraSede` + «+ Nuevo traslado» + `Billetera.tsx`) y dos páginas
   (`page.tsx` abre `paseInicial`; `[id]/page.tsx` abre el pase de la URL, con «← Movimientos» si se llegó de ahí, ADR-0234) que pasan por
@@ -603,8 +603,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   estaba colgada» (no escribe nada) o «Corregir y colgar» → `BajarEnManoModal.tsx` (guía de foco, mismo Responsable de la
   pantalla) → RPC `bajar_en_mano` (+1 «Encontré prendas» en el almacén y la MISMA bajada de `bajar_al_piso`, todo o nada,
   unidas en `retail.bajadas_en_mano`).
-- `/productos/[id]/editar` también (ADR-0281, decisión 5): `ficha-producto/AjusteDeStock.tsx` ofrece «Ajustar stock» por color y
-  un lápiz por talla y abre `AjustarInventarioModal` → RPC `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
+- `/productos/[id]/editar` también (ADR-0281, decisión 5): la matriz de stock de la ficha (`ficha-producto/MatrizStockFicha.tsx`, y
+  el stepper de `PanelDelTaller.tsx`) pide el ajuste con `onAbrirModal` y `ProductoForm` abre `AjustarInventarioModal` → RPC
+  `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
   almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
   (sububicaciones de la sede) a `ProductoForm` → `ContextoFicha`. Es inmediato y aparte de «Revisar y guarda».
 - `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?producto=` también desde el éxito de Nuevo producto; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
