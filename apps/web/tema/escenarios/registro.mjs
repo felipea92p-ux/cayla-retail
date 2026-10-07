@@ -836,6 +836,36 @@ ESCENARIOS.push(
   { id: "frescura.estado", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
   { id: "regularizar.vendio", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Por regularizar · la lista «Quién vendió»", preparar: clicRol("combobox", /Quién vendió/i) },
   { id: "regularizar.todas", ruta: "/inventario/por-regularizar", cuentas: INVENTARIO, nombre: "Por regularizar · «Todas»", preparar: clicRol("button", /^Todas/i) },
+  // ADR-0360: la mesa «Puente». Con una prenda y «cómo estaba» elegidos se ven el puente entero, la balanza, la guía y los hilos; en el
+  // celular la misma elección vive en una hoja. Sin ventas pendientes en la base local no hay talón que tocar: el escenario falla en vez de pasar en falso.
+  {
+    id: "regularizar.puente",
+    ruta: "/inventario/por-regularizar",
+    cuentas: INVENTARIO,
+    ancho: "escritorio",
+    abre: "[data-vsr-puente]",
+    nombre: "Por regularizar · el puente con una prenda y «cómo estaba» elegidos",
+    async preparar(pagina) {
+      await pagina.locator(".vsr-ct").first().click();
+      await esperar(pagina, 1400);
+      await pagina.locator(".vsr-forma").first().click();
+      await esperar(pagina, 800);
+    },
+  },
+  {
+    id: "regularizar.hoja",
+    ruta: "/inventario/por-regularizar",
+    cuentas: INVENTARIO,
+    ancho: "celular",
+    abre: "[role=dialog]",
+    nombre: "Por regularizar (celular) · la hoja con las prendas y el puente",
+    async preparar(pagina) {
+      await pagina.locator(".vsr-talon").first().click();
+      await esperar(pagina, 1000);
+      await pagina.locator(".vsr-ct").first().click();
+      await esperar(pagina, 1000);
+    },
+  },
   { id: "analisis.acaba", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Se está acabando»", preparar: clicRol("tab", /Se está acabando/i) },
   { id: "analisis.nose", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «No se vende»", preparar: clicRol("tab", /No se vende/i) },
   { id: "analisis.pedir", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Qué pedir»", preparar: clicRol("tab", /Qué pedir/i) },

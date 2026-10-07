@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ventas sin registrar · A2 · Puente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<link rel="stylesheet" href="mesa.css">
+<style>
+/* A2 · PUENTE — igual que A (talón + hilo), pero el emparejamiento ya no está escondido en un dock al final: tiene SU PROPIA columna.
+   Un hilo sale del talón hacia la mitad de arriba del puente; otro sale de la prenda que tocas hacia la mitad de abajo; cuando las dos
+   mitades están llenas se prende la cuerda del medio con los tres visitos (prenda, talla, color) y aparece el precio, el «cómo estaba» y
+   el botón. Al guardar las dos mitades se juntan. Idea: ver la unión ANTES de confirmar (ley 5) y no scrollear para encontrar el botón. */
+.puente{position:sticky;top:0;background:var(--papel);border:1px solid var(--sand);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:0;animation:sube .5s var(--ease) both}
+.puente .lbl{margin:2px 2px 10px}
+.sl{position:relative;display:flex;gap:12px;align-items:center;border:1px solid var(--sand);border-radius:15px;padding:9px;background:var(--crema);transition:border-color .3s,background .3s,transform .7s var(--ease),opacity .6s var(--ease)}
+.sl .baldosa{width:58px;height:58px;border-radius:12px;flex:none;--aw:56%}
+.sl .tx{min-width:0;flex:1}
+.sl .tx b{display:block;font-weight:600;font-size:14px;line-height:1.25}
+.sl .tx small{display:block;color:var(--taupe);font-size:12px}
+.sl .pr{font-weight:600;font-size:13px}
+.sl-v{border-color:var(--tinta);background:var(--papel);box-shadow:0 12px 22px -18px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.sl-v:before,.sl-p:after{content:"";position:absolute;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--tinta);transform:scale(0);animation:crece .35s .45s var(--ease) forwards}
+.sl-v:before{left:-6px}
+.sl-p:after{right:-6px;display:none}
+.sl-p.llena:after{display:block}
+.sl-p{border-style:dashed;min-height:76px;color:var(--t50)}
+.sl-p.llena{border-style:solid;border-color:var(--tinta);background:var(--papel);color:inherit;animation:crece .5s var(--ease) both}
+.sl-p .vacio-t{flex:1;text-align:center;font-size:12.5px;line-height:1.35}
+.sl .sel-lbl{position:absolute;left:12px;top:-8px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;background:var(--papel);padding:0 6px;color:var(--t65)}
+.unionl{position:relative;display:grid;justify-items:center;align-content:center;min-height:66px;padding:4px 0}
+.unionl:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:repeating-linear-gradient(var(--taupe) 0 4px,transparent 4px 9px);opacity:.55}
+.unionl.on:before{background:var(--tinta);opacity:1;transform-origin:top;animation:cuerda .6s var(--ease) both}
+@keyframes cuerda{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.tks{position:relative;display:flex;gap:6px;background:var(--papel);padding:5px 8px;border-radius:99px;border:1px solid var(--sand)}
+.tk2{display:flex;align-items:center;gap:5px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--t65);opacity:0;animation:sube .45s var(--ease) both;animation-delay:calc(.45s + var(--i)*.2s)}
+.tk2 i{font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--verde);color:var(--verde);background:color-mix(in srgb,var(--verde) 9%,var(--papel));font-size:11px}
+.tk2.no i{border-color:var(--ambar);color:var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,var(--papel));font-weight:700}
+.sin-tks{position:relative;background:var(--papel);padding:4px 10px;font-size:11.5px;color:var(--t65)}
+.pu-extra{display:flex;flex-direction:column;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--sand);animation:sube .5s var(--ease) both}
+.puente .bal .t{flex-direction:column;gap:0}
+.puente .formas{grid-template-columns:1fr}
+.puente .forma{padding:9px 11px}
+.puente .fin{flex-direction:column;align-items:stretch}
+.puente .fin .btn.pri{width:100%}
+.puente .resp{width:100%}
+.puente .resp select{flex:1}
+.puente .sello{left:50%;top:50%;margin:-14px 0 0 -62px;--c:var(--verde);font-size:13px;padding:5px 14px;z-index:6}
+.puente.hecho .unionl:before{opacity:.25}
+
+/* Candidatas como tarjetas con foto-color */
+.cabecera-e{display:flex;flex-direction:column;gap:2px}
+.cabecera-e p{font-size:12.5px;color:var(--t65)}
+.tg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ct{position:relative;display:flex;flex-direction:column;gap:6px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:8px 8px 11px;text-align:left;transition:border-color .25s,transform .35s var(--ease),box-shadow .35s var(--ease);animation:sube .5s var(--ease) both;animation-delay:calc(var(--i,0)*55ms)}
+.ct:hover{border-color:var(--taupe);transform:translateY(-3px)}
+.ct[aria-pressed=true]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta),0 16px 26px -20px color-mix(in srgb,var(--sombra) 55%,transparent);transform:translateY(-3px)}
+.ct .baldosa{width:100%;aspect-ratio:1.5;border-radius:11px;--aw:40%}
+.ct b{font-weight:600;font-size:14px;padding:0 3px}
+.ct small{padding:0 3px;font-size:12px;color:var(--taupe)}
+.ct .pr{display:flex;justify-content:space-between;align-items:baseline;padding:0 3px;font-size:12.5px}
+.ct .pips{display:flex;gap:4px;align-items:center;padding:0 3px;font-size:11px;color:var(--t65)}
+.ct .pips i{width:14px;height:4px;border-radius:2px;background:var(--sand)}
+.ct .pips i.on{background:var(--verde)}
+.ct .sug{position:absolute;left:14px;top:14px;right:auto}
+.ct .dif{position:absolute;right:14px;top:14px;background:var(--tinta);color:var(--crema);font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .3s var(--ease)}
+.ct:hover .dif,.ct[aria-pressed=true] .dif{opacity:1;transform:none}
+.ct.sin-stock{opacity:.55}
+/* Buscador debajo de las sugerencias */
+.busca{display:flex;flex-direction:column;gap:10px;margin-top:6px;padding-top:16px;border-top:1px solid var(--sand)}
+.busca-t p{font-size:12.5px;color:var(--t65)}
+.caja-b{flex:none;height:42px;position:relative}
+.caja-b:focus-within{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--tinta) 30%,transparent)}
+.caja-b input::-webkit-search-cancel-button{display:none;-webkit-appearance:none}
+.caja-b .bx{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--t65);flex:none}
+.caja-b .bx:hover{background:var(--papel)}
+.caja-b .bx[hidden]{display:none}
+.res-n{font-size:12.5px;color:var(--t65);margin-bottom:8px}
+.res-0{display:flex;flex-direction:column;gap:2px;background:var(--hueso);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--t80);animation:sube .4s var(--ease) both}
+.res-0 b{font-weight:600;color:var(--tinta)}
+.res-0 a{color:var(--tinta);text-decoration:underline;text-underline-offset:3px}
+#res .tg .ct{animation-delay:calc(var(--i,0)*45ms)}
+
+.mesa.tres{--cols:minmax(0,1fr) 56px minmax(0,1.95fr)}
+/* el hilo pasa POR DEBAJO de las tarjetas de prenda (no cruza su foto) y por encima del resto */
+.mesa.tres .hilos{z-index:2}
+.mesa.tres .col-e{position:relative;z-index:3}
+.puente .pista-b .mk{font-size:9.5px}
+@container vista (max-width:1180px){.mesa.tres{--cols:minmax(0,1fr) 40px minmax(0,2fr)}.pd.tres{--cols-der:250px 40px minmax(0,1fr)!important}}
+@container vista (max-width:900px){
+  .mesa.tres{--cols:minmax(0,1fr) 30px minmax(0,2fr)}
+  .pd.tres{--cols-der:1fr!important;grid-template-rows:auto 1fr;overflow:auto}
+  .gut2{display:none}
+  .col-c{padding:16px 0 0 0!important;order:2}
+  .col-e{order:1}
+  .puente{position:static}
+}
+@container vista (max-width:700px){
+  .tg{grid-template-columns:1fr 1fr;gap:10px}
+  .puente{position:static}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script src="mesa.js"></script>
+<script>
+(function(){
+const {$, $$, soles} = V, st = Mesa.st;
+const MOV = () => Mesa.movil();
+
+const sinTildes = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function tile(p, calce, i, v, sug){
+  const d = V.dif(v,p);
+  return `<button class="ct ${p.stock<=0?'sin-stock':''}" data-p="${p.id}" style="--i:${i}" aria-pressed="${st.prenda===p.id}">
+      ${sug&&sug.id===p.id?'<span class="sug">Sugerida</span>':''}<span class="dif num">${d===0?'Mismo precio':d<0?'−'+soles(-d):'+'+soles(d)}</span>${V.baldosa(p.cat,p.hex)}
+      <b>${p.nombre}</b><small>${p.talla} · ${p.color} · ${p.codigo}</small>
+      <span class="pr num"><b style="padding:0">${soles(p.precio)}</b><span style="color:var(--t65);font-size:11.5px">${p.stock} en TRU</span></span>
+      <span class="pips">${[0,1,2].map(k=>`<i class="${k<calce?'on':''}"></i>`).join('')}<span>calza ${calce}/3</span></span></button>`;
+}
+function atarTiles(raiz){
+  $$('.ct', raiz).forEach(b => { b.onclick = () => elegirPrenda(b.dataset.p); b.onmouseenter = () => redibujar('hover', b); b.onmouseleave = () => redibujar(); });
+}
+
+function pintarPendiente(v, el, cab){
+  const cands = V.candidatas(v,6), sug = V.sugerida(v);
+  el.innerHTML = cab + `<div class="cabecera-e"><span class="lbl">¿Qué prenda es?</span><p>Toca la tuya. ${sug?'La sugerida es la única que calza en todo.':'Hay más de una que calza: tú la reconoces.'}</p></div>
+    <div class="tg" id="tg">${cands.map(({p,calce},i)=>tile(p,calce,i,v,sug)).join('')}</div>
+    <div class="busca"><div class="busca-t"><span class="lbl">¿No ves la tuya?</span><p>Búscala entre todas las prendas del catálogo.</p></div>
+      <label class="campo caja-b">${V.ic('buscar')}<input id="qp" type="search" placeholder="Nombre, color, talla o código" autocomplete="off" aria-label="Buscar una prenda en el catálogo"><button class="bx" id="qp-x" aria-label="Borrar la búsqueda" hidden>${V.ic('cerrar')}</button></label>
+      <div id="res" aria-live="polite"></div></div>`;
+  atarTiles(el);
+  const q = $('#qp', el), x = $('#qp-x', el);
+  const buscar = () => {
+    const t = sinTildes(q.value.trim()), res = $('#res', el); x.hidden = !t;
+    if (!t) { res.innerHTML = ''; return; }
+    const ya = new Set(cands.map(c=>c.p.id)), toks = t.split(/\s+/);
+    const lista = V.catalogo.filter(p => !ya.has(p.id)).map(p => ({p, calce:V.calce(v,p), txt:sinTildes([p.nombre,p.cat,p.talla,p.color,p.codigo].join(' '))}))
+      .filter(r => toks.every(k => r.txt.includes(k))).sort((a,b)=>b.calce-a.calce || a.p.nombre.localeCompare(b.p.nombre)).slice(0,8);
+    const enSug = V.catalogo.filter(p => ya.has(p.id) && toks.every(k => sinTildes([p.nombre,p.cat,p.talla,p.color,p.codigo].join(' ')).includes(k)));
+    res.innerHTML = lista.length ? `<p class="res-n">${lista.length} ${lista.length===1?'prenda':'prendas'} más${enSug.length?` · ${enSug.length} ya está${enSug.length===1?'':'n'} arriba`:''}</p><div class="tg">${lista.map((r,i)=>tile(r.p,r.calce,i,v,null)).join('')}</div>`
+      : `<div class="res-0"><b>${enSug.length?'Ya está entre las de arriba':`Ninguna prenda coincide con «${q.value.trim()}»`}</b><span>${enSug.length?'Tócala ahí.':'Prueba con otra palabra, o con el código.'} ¿No está en el catálogo? <a href="#" id="alta">Dala de alta</a> con su precio oficial y vuelve aquí.</span></div>`;
+    atarTiles(res); $('#alta', res) && ($('#alta', res).onclick = e => { e.preventDefault(); V.avisar('Eso abre «Nuevo producto»', 'En la maqueta no se da de alta nada.'); });
+    redibujar();
+  };
+  q.oninput = buscar; x.onclick = () => { q.value=''; buscar(); q.focus(); };
+  q.onkeydown = e => { if (e.key==='Escape' && q.value) { e.stopPropagation(); e.preventDefault(); q.value=''; buscar(); } else if (e.key==='Enter') { const f = $('#res .ct', el); if (f) { e.preventDefault(); elegirPrenda(f.dataset.p); } } };
+  pintarPuente(v);
+}
+
+function pintarPuente(v){
+  const c = $('#centro'), p = V.catalogo.find(x=>x.id===st.prenda);
+  const filas = p ? [['Prenda',v.cat===p.cat],['Talla',v.talla===p.talla],['Color',v.color.toLowerCase()===p.color.toLowerCase()]] : [];
+  c.innerHTML = `<div class="puente" id="puente"><span class="lbl">La unión</span>
+    <div class="sl sl-v" id="sl-v"><span class="sel-lbl">Lo que anotó caja</span>${V.baldosa(v.cat,v.hex)}<div class="tx"><b>${v.desc}</b><small>${v.por}</small><span class="pr num">${soles(v.precio)} cobrado</span></div></div>
+    <div class="unionl ${p?'on':''}" id="unionl">${p ? `<div class="tks">${filas.map(([t,ok],i)=>`<span class="tk2 ${ok?'':'no'}" style="--i:${i}"><i>${ok?V.visto():'≠'}</i>${t}</span>`).join('')}</div>` : '<span class="sin-tks">Toca una prenda →</span>'}</div>
+    ${p ? `<div class="sl sl-p llena" id="sl-p"><span class="sel-lbl">La prenda real</span>${V.baldosa(p.cat,p.hex)}<div class="tx"><b>${p.nombre}</b><small>${p.talla} · ${p.color} · ${p.codigo}</small><span class="pr num">${soles(p.precio)} oficial</span></div></div>`
+        : `<div class="sl sl-p" id="sl-p"><span class="sel-lbl">La prenda real</span><span class="vacio-t">Aquí aparece la prenda que elijas</span></div>`}
+    ${p ? `<div class="pu-extra" id="pu-extra">${Mesa.balanza(v,p)}<div><span class="lbl">¿Cómo estaba en el sistema?</span><div style="margin-top:8px">${Mesa.formasHTML()}</div></div><div id="cons"></div>${Mesa.finHTML()}</div>` : ''}</div>`;
+  if (p) Mesa.atarForma($('#puente'));
+}
+
+function elegirPrenda(pid){
+  st.prenda = pid; st.forma = null;
+  $$('.ct').forEach(b => b.setAttribute('aria-pressed', b.dataset.p===pid));
+  pintarPuente(Mesa.actual());
+  if (MOV() || getComputedStyle($('#pd')).gridTemplateColumns.split(' ').length===1) $('#puente').scrollIntoView({behavior:'smooth', block:'nearest'});
+  redibujar('cand');
+}
+
+function redibujar(modo, hover){
+  const svg = $('#hilos'); if (!svg || MOV()) { svg && (svg.innerHTML=''); return; }
+  svg.innerHTML = '';
+  const tal = $(`.talon[data-id="${st.sel}"]`), slv = $('#sl-v'), slp = $('#sl-p'); if (!tal || !slv) return;
+  const r = tal.getBoundingClientRect(), m = $('#mesa').getBoundingClientRect();
+  const p1 = [r.right-m.left+1, Mesa.clamp(r.top+r.height/2-m.top, $('#talones'))], p2 = Mesa.punto(slv,'left');
+  Mesa.curva(svg, p1, p2, 'h-sel', modo===true); Mesa.punta(svg, p2, modo===true);
+  const sel = $(`.ct[data-p="${st.prenda}"]`);
+  const desde = el => { const q = el.getBoundingClientRect(); return [q.left-m.left-2, Mesa.clamp(q.top+q.height/2-m.top, $('#elige'))]; };
+  if (slp && hover && hover!==sel) Mesa.curva(svg, desde(hover), Mesa.punto(slp,'right'), 'h-prev', false);
+  if (slp && sel) { const t = Mesa.punto(slp,'right'); Mesa.curva(svg, desde(sel), t, 'h-sel', modo==='cand'); Mesa.punta(svg, t, modo==='cand'); }
+}
+
+/* Al guardar, las dos mitades del puente se juntan */
+async function efecto({talon}){
+  const slv = $('#sl-v'), slp = $('#sl-p'), pu = $('#puente'); if (!slv || !slp) return;
+  const dy = slv.getBoundingClientRect().bottom - slp.getBoundingClientRect().top;
+  if (!V.reducir()) slp.animate([{transform:'none',opacity:1},{transform:`translateY(${dy-6}px) scale(.94)`,opacity:0}],{duration:760,easing:'cubic-bezier(.32,.72,.24,1)',fill:'forwards'});
+  slv.style.borderColor = 'var(--verde)';
+  pu.classList.add('hecho');
+  const s=document.createElement('span'); s.className='sello'; s.textContent='Unidas'; pu.appendChild(s);
+  await V.esperar(900);
+}
+
+const c = V.marco({activa:'a2-puente.html', onRepetir:()=>iniciar(), onReiniciar:()=>iniciar()});
+function iniciar(){ Mesa.iniciar(c, {tres:true, franja:true, pintarPendiente, redibujar, efecto}); }
+iniciar();
+$('#seg-modo').addEventListener('click', () => setTimeout(()=>{ $('#pd')?.classList.remove('abierto'); redibujar(); }, 480));
+})();
+</script>
+</body>
+</html>
