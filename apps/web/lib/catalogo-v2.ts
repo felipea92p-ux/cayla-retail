@@ -1,4 +1,4 @@
-import { contarProductosPorProveedor, filtroDeMarcaOProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
+import { filtroDeMarcaOProveedor } from "@/lib/marcas";
 import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
@@ -444,40 +444,6 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
     totalPaginas: Math.max(1, Math.ceil(totalProductos / PRODUCTOS_POR_PAGINA)),
     pagina,
   };
-}
-
-/** "A quién pedirle" (ADR-0109): los productos que hoy cumplen la señal «Pedir a proveedor»,
- *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos_listado`
- *  con la disponibilidad `reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
- *  definición de "hay que reponer".
- *
- *  Recibe LOS MISMOS filtros que el conteo «Pedir a proveedor» del filtro (`getFacetasProductos`), para que
- *  la suma de este bloque sea exactamente ese número: dos cifras distintas para lo mismo en una misma
- *  pantalla es lo que hace que nadie confíe en ninguna.
- *
- *  Es un complemento de la pantalla, no la pantalla: si la consulta falla (p. ej. el SQL de
- *  proveedores todavía no está en producción y `fn_productos` no devuelve `proveedor_id`), el bloque
- *  se omite en vez de tumbar Productos. Trae hasta 300 productos (3 páginas de 100): el catálogo
- *  activo es de decenas, no de miles; si algún día pasara de eso, los números serían un piso. */
-export async function getReposicionPorProveedor(
-  filtros: Omit<FiltrosProductos, "stock" | "orden">
-): Promise<ReposicionProveedor[]> {
-  const supabase = await createClient();
-  const filas: FilaReposicion[] = [];
-  for (let pagina = 1; pagina <= 3; pagina++) {
-    const { data, error } = await supabase.rpc("fn_productos_listado", {
-      ...paramsListado({ ...filtros, stock: undefined }),
-      p_disponibilidad: "reponer",
-      p_pagina: pagina,
-      p_por_pagina: 100,
-    });
-    if (error) return [];
-    const pag = data ?? [];
-    if (pag.length === 0) break;
-    filas.push(...pag);
-    if (Number(pag[0].total_productos) <= pagina * 100) break;
-  }
-  return contarProductosPorProveedor(filas);
 }
 
 /**

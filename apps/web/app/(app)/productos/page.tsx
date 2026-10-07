@@ -10,7 +10,6 @@ import {
   conSede,
   paginaProductosDesdeParams,
   listarProductos,
-  getReposicionPorProveedor,
   getExistenciasProductos,
   getSinTemporadaResumen,
   getFacetasProductos,
@@ -23,7 +22,6 @@ import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
-import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
@@ -111,8 +109,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     getTemporadasCatalogo().catch(() => null),
   ]);
 
-  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
-  // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
+  // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
+  // lista. «A quién pedirle» se quitó el 2026-10-07 (Felipe): repetía Disponibilidad ▸ «Pedir a proveedor» + Proveedor.
   // Una página que ya no existe (se descontinuó lo único que había en la 2, se volvió con «← Productos» a una página vieja):
   // a la primera, con los mismos filtros. Sin esto la pantalla decía «0 productos», escondía la paginación y avisaba de
   // descontinuadas aunque hubiera activas en la página 1.
@@ -126,13 +124,10 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // filtros puestos). Sin conteos, no se avisa.
   const descontinuadas =
     resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
-  const [reposicion, existencias] = await Promise.all([
-    (facetas?.facetas.disponibilidad?.reponer ?? 0) > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
-    getExistenciasProductos(
-      resultado.productos.map((p) => p.productoId),
-      persona.ubicacionId
-    ),
-  ]);
+  const existencias = await getExistenciasProductos(
+    resultado.productos.map((p) => p.productoId),
+    persona.ubicacionId
+  );
 
   const categoriasLeidas = exigir(categorias, "las categorías");
   const categoriasOpciones = categoriasLeidas.map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -221,12 +216,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      {reposicion.length > 0 && (
-        <AQuienPedirle
-          reposicion={reposicion}
-          proveedorId={params.stock === "reponer" ? params.proveedor : undefined}
-        />
-      )}
 
       <FiltrosProductos
         categorias={categoriasOpciones}
