@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { problemasReporte } from "./danadas-reglas";
 import {
+  asiQueda,
   faltanHasta,
   maxCantidad,
   mejorOrigen,
@@ -178,5 +179,17 @@ describe("Reportar dañada pregunta a su validación de siempre (no inventa regl
             n++;
           }
     expect(n).toBe(4 * 3 * 4 * 4);
+  });
+});
+
+describe("asiQueda: el paso Colgar / Subir dice cómo queda cada lado", () => {
+  it("colgar saca del almacén y suma al piso", () => {
+    expect(asiQueda("colgar", 2, { piso: 0, almacen: 3 })).toEqual({ de: { lugar: "almacen", antes: 3, despues: 1 }, a: { lugar: "piso", antes: 0, despues: 2 } });
+  });
+  it("subir hace lo contrario", () => {
+    expect(asiQueda("subir", 1, { piso: 2, almacen: 0 })).toEqual({ de: { lugar: "piso", antes: 2, despues: 1 }, a: { lugar: "almacen", antes: 0, despues: 1 } });
+  });
+  it("en otros pasos no hay viaje que dibujar", () => {
+    expect(asiQueda("enviar", 1, { piso: 1, almacen: 1 })).toBeNull();
   });
 });

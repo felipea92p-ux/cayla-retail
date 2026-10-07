@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
+import { Archive, ArrowLeft, ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
@@ -29,6 +29,7 @@ import {
   NOMBRE_FLUJO,
   celularValido,
   faltanHasta,
+  asiQueda,
   maxCantidad,
   motivoParaLaBase,
   motivoPideNotaFlujo,
@@ -40,6 +41,7 @@ import {
   textoHecho,
   verboFinal,
   type ContextoFlujo,
+  type LadoMovido,
   type DatosFlujo,
   type PasoFlujo,
   type SedeConCantidad,
@@ -102,6 +104,22 @@ function Stepper({ valor, max, onValor, etiqueta, id }: { valor: number; max: nu
       <button type="button" aria-label="Una más" disabled={valor >= tope} onClick={() => onValor(Math.min(tope, valor + 1))} className="grid h-14 w-14 place-items-center text-2xl text-tinta disabled:text-taupe/40">
         +
       </button>
+    </div>
+  );
+}
+
+/** Una de las dos cajas de «Así va a quedar»: el lugar con su dibujo, lo que queda en grande y lo que había, chico. El destino va en
+ *  verde: ahí llega la ropa. */
+function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: boolean }) {
+  const Ico = lado.lugar === "piso" ? IconoPercha : Archive;
+  return (
+    <div className={`rounded-2xl border px-3 py-2.5 text-center ${destino ? "border-verde/40 bg-verde/[0.08]" : "border-sand bg-crema"}`}>
+      <p className="flex items-center justify-center gap-1.5 text-[12.5px] text-taupe">
+        <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.6} />
+        {lado.lugar === "piso" ? "En el piso" : "Almacén"}
+      </p>
+      <b className={`block font-display text-[38px] font-medium leading-[1.05] tabular-nums ${destino ? "text-verde" : "text-tinta"}`}>{lado.despues}</b>
+      <small className="text-[11.5px] text-taupe">antes {lado.antes}</small>
     </div>
   );
 }
@@ -207,6 +225,11 @@ export function FlujoTalla({
       ...(tipo === "danada" && separa ? { lugar: desdeInicial(tallasReportables([fila])[0]) ?? undefined } : {}),
       ...datosIniciales,
     };
+    // Colgar o subir una talla abre con 1 (lo más común), si hay de dónde.
+    if ((tipo === "colgar" || tipo === "subir") && base.n === undefined) {
+      const hay = tipo === "colgar" ? Math.max(0, separa ? (fila.almacenDisponible ?? 0) : fila.disponible) : Math.max(0, fila.pisoDisponible ?? 0);
+      if (hay > 0) base.n = 1;
+    }
     // «Colgar varias» abre con 1 en cada talla que falta en el piso (Felipe, 2026-10-07: mínimo 1 colgada por talla).
     if (tipo === "colgarVarias" && Object.keys(base.cant ?? {}).length === 0) base.cant = { ...cantidadesDeLoQueFalta(colores) };
     return base;
@@ -517,11 +540,35 @@ export function FlujoTalla({
       case "cantidad": {
         const max = maxCantidad(tipo, d, ctx);
         const de = tipo === "subir" ? "en piso" : tipo === "pedir" ? `en ${nombreSede(d.origenId) ?? "esa sede"}` : tipo === "danada" ? (d.lugar === "almacen" ? "en almacén" : "en piso") : "en almacén";
-        const pregunta = tipo === "colgar" ? "¿Cuántas llevas al piso?" : tipo === "subir" ? "¿Cuántas subes al almacén?" : tipo === "pedir" ? "¿Cuántas pides?" : tipo === "enviar" ? "¿Cuántas envías?" : "¿Cuántas están dañadas?";
+        const viaje = asiQueda(tipo, d.n ?? 0, ctx);
+        const pregunta = tipo === "colgar" ? "¿Cuántas sacas del almacén?" : tipo === "subir" ? "¿Cuántas descuelgas?" : tipo === "pedir" ? "¿Cuántas pides?" : tipo === "enviar" ? "¿Cuántas envías?" : "¿Cuántas están dañadas?";
         return (
           <>
             <Pregunta ayuda={`Hay ${unidades(max)} ${de}.`}>{pregunta}</Pregunta>
-            <Stepper id="flujo-cantidad" valor={d.n ?? 0} max={max} etiqueta="Cantidad" onValor={(n) => poner({ n })} />
+            <div className="flex flex-wrap items-center gap-3">
+              <Stepper id="flujo-cantidad" valor={d.n ?? 0} max={max} etiqueta="Cantidad" onValor={(n) => poner({ n })} />
+              {/* «Todas (N)»: el atajo de colgar o subir todo lo que hay (2026-10-07). */}
+              {viaje && max > 1 && (
+                <button type="button" aria-pressed={(d.n ?? 0) === max} onClick={() => poner({ n: max })} className="btn-cayla btn-secundario btn-chico aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-papel">
+                  Todas ({max})
+                </button>
+              )}
+            </div>
+            {/* «Así va a quedar»: de dónde sale, lo que viaja y a dónde llega, con el número después en grande y el de antes chico. Reemplaza
+                al «0 → 1» que había que descifrar (Felipe, 2026-10-07: «esto también está un poco confuso»). */}
+            {viaje && (
+              <div className="mt-5">
+                <p className="mb-2 text-[15px] font-semibold text-tinta">Así va a quedar</p>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <LadoDelViaje lado={viaje.de} />
+                  <span aria-hidden className="flex flex-col items-center gap-1 text-taupe">
+                    <b className="rounded-full bg-tinta px-2.5 py-0.5 text-[13px] text-papel tabular-nums">{d.n ?? 0}</b>
+                    <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+                  </span>
+                  <LadoDelViaje lado={viaje.a} destino />
+                </div>
+              </div>
+            )}
             {/* Subir: si la talla se queda sin ninguna colgada y el piso la pide, se avisa antes (ADR-0208); si no, que subir no es dar de baja. */}
             {tipo === "subir" && (d.n ?? 0) > 0 && <p className="mt-3 rounded-xl bg-hueso px-3 py-2 text-[13px] text-tinta">{textoDelBloqueSubir(tallasParaReponer([fila]), { [fila.varianteId]: d.n ?? 0 })}</p>}
             {tipo === "subir" && destinos.length === 0 && <NotaSubida valor={d.nota ?? ""} onValor={(nota) => poner({ nota })} />}
