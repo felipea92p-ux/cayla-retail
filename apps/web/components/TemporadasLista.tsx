@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
@@ -155,16 +155,16 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
   const desfase = 0;
   return (
     <div className="space-y-6">
-      <Vuelta enLista={vista === "lista"} onLista={() => elegir("lista")} />
-
-      <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
-        {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
-        {dibujada === "completar" && (
-          <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
-        )}
-        {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
-        {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
-      </div>
+      <VueltaALaLista.Provider value={() => elegir("lista")}>
+        <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
+          {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
+          {dibujada === "completar" && (
+            <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
+          )}
+          {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
+          {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
+        </div>
+      </VueltaALaLista.Provider>
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
@@ -172,30 +172,13 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
 }
 
 /**
- * Dos pantallas saltan directo a una vista de esta pestaña: «Completar» del aviso de Productos (a «Por completar») y el
- * enlace de Categorías (a «Por categoría»). Su vuelta va arriba, y solo con su `desde=`: Atributos está en el menú, y quien
- * entra por el lateral no vino de ninguna de las dos. Dentro de una vista de trabajo, además, «← Las nueve temporadas»
- * regresa a la grilla (sin ir al servidor: las cuatro vistas ya están cargadas).
+ * La única vuelta de la pestaña: de una vista de trabajo («Por completar», «Por categoría», «Calendario») a la grilla de
+ * «Las nueve temporadas», sin ir al servidor (las cuatro vistas ya están cargadas). Va DENTRO del título de la vista, a la
+ * izquierda de su nombre, no suelta encima. «Completar» de Productos y el enlace de Categorías entran directo a una vista
+ * (`?vista=`), pero ya no ponen su propia flecha de salida: Atributos está en el menú y una segunda flecha igual a esta
+ * no decía cuál era cuál (Felipe 2026-10-07).
  */
-const VUELTAS = {
-  productos: { href: "/productos", a: "Productos" },
-  categorias: { href: "/productos/categorias", a: "Categorías" },
-} as const;
-
-function Vuelta({ enLista, onLista }: { enLista: boolean; onLista: () => void }) {
-  const desde = useSearchParams().get("desde");
-  const afuera = desde === "productos" || desde === "categorias" ? VUELTAS[desde] : null;
-  if (!afuera && enLista) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-      {afuera && <Volver {...afuera} />}
-      {!enLista && (
-        // Vuelve a la lista sin cambiar la dirección: la vuelta de siempre en su forma de botón (ADR-0358).
-        <Volver onClick={onLista} a="Las nueve temporadas" />
-      )}
-    </div>
-  );
-}
+const VueltaALaLista = createContext<(() => void) | null>(null);
 
 // ---- La franja de trabajo -----------------------------------------------------------------------------------------------
 
@@ -255,10 +238,14 @@ function Atajo({ accion, punto, onClick, children }: { accion: string; punto: st
 
 function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; bajada: ReactNode; children?: ReactNode; desfase: number }) {
   const { className, style } = entra(desfase);
+  const alLista = useContext(VueltaALaLista);
   return (
-    <div className={`flex flex-wrap items-end justify-between gap-3 ${className}`} style={style}>
-      <div className="space-y-1">
-        <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+    <div className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-3 ${className}`} style={style}>
+      <div className="min-w-0 space-y-1">
+        <div className="flex items-center gap-3">
+          {alLista && <Volver onClick={alLista} a="Las nueve temporadas" />}
+          <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+        </div>
         <p className="max-w-3xl text-sm text-taupe">{bajada}</p>
       </div>
       {children}

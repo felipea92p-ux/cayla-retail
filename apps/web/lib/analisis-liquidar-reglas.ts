@@ -3,11 +3,11 @@
 // qué cambia, cuántas prendas de mi tienda caen en «Liquidar» con el umbral nuevo y con el que rige, qué se avisa al guardar y
 // el error en tres líneas (ADR-0350, ley 9: qué pasó, qué se conservó, qué sigue).
 //
-// La base es la que manda (20261006216000): `guardar_liquidar_desde` rechaza lo que está fuera de 30–85 días y a quien no ve
-// Análisis. Aquí no se agrega ninguna regla: solo se dice, en palabras de tienda, lo que la base ya decide.
+// La base es la que manda (20261006216000, sin tope desde 20261007100000): `guardar_liquidar_desde` rechaza lo que está fuera de
+// 1–999 días y a quien no ve Análisis. Aquí no se agrega ninguna regla: solo se dice, en palabras de tienda, lo que la base ya decide.
 
 import type { PrendaAnalisis } from "./analisis-tipos";
-import { LIQUIDAR_DEFECTO, liquidarDesdeValido, plural, prendasDe } from "./analisis-reglas";
+import { LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, liquidarDesdeValido, plural, prendasDe } from "./analisis-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { mensajeErrorResponsable } from "./responsable-reglas";
 
@@ -20,7 +20,7 @@ export const FALLA_LEER_LIQUIDAR = `No se pudo leer desde cuándo se liquida: va
 
 /** Lo que la hoja pone a la vista antes de guardar. */
 export type EfectoLiquidar = {
-  /** El umbral que se va a guardar (30 a 85). */
+  /** El umbral que se va a guardar (1 a 999). */
   dias: number;
   /** El que rige hoy para todas las tiendas (lo guardado). */
   guardado: number;
@@ -48,6 +48,25 @@ export function efectoDeLiquidar(prendas: readonly PrendaAnalisis[], dias: numbe
     enLiquidarHoy: prendasDe(prendas, ["liquidar"], hoy).length,
   };
 }
+
+/**
+ * Lo escrito en la caja de «Liquidar desde» (Felipe, 2026-10-07: una caja con − y +, sin barra): un número entero de días de 1 a 999,
+ * o null si no sirve (vacío, letras, decimales, 0 o de cuatro cifras). Con null la pantalla no cambia el carril y dice ERROR_DIAS_LIQUIDAR.
+ */
+export function leerDiasLiquidar(texto: string): number | null {
+  const t = texto.trim();
+  if (!/^\d{1,3}$/.test(t)) return null;
+  const n = Number(t);
+  return n >= LIQUIDAR_MIN && n <= LIQUIDAR_MAX ? n : null;
+}
+
+/** Un toque de − o + (de a LIQUIDAR_PASO): suma o resta sin salirse de 1 a 999. */
+export function pasoLiquidar(actual: number, delta: number): number {
+  return Math.min(LIQUIDAR_MAX, Math.max(LIQUIDAR_MIN, Math.round(actual) + delta));
+}
+
+/** Lo que dice la caja cuando lo escrito no sirve: la misma frase que la base. */
+export const ERROR_DIAS_LIQUIDAR = `Escribe un número de días, de ${LIQUIDAR_MIN} a ${LIQUIDAR_MAX}.`;
 
 /** La cifra de la tarjeta: «Ninguna», «1 prenda», «12 prendas». */
 export function cifraPrendas(n: number): string {

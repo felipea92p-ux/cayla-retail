@@ -15,12 +15,16 @@ export const DIAS_SE_ACABA = 14;
 export const DIAS_VIGILAR = 30;
 /** Desde cuántos días sin venderse va en rojo (3 meses). */
 export const DIAS_TRES_MESES = 90;
-/** El tope del carril «Días sin venderse» (4 meses). */
+/** El largo mínimo del carril «Días sin venderse» (4 meses): se alarga si «Liquidar desde» pasa de ahí (`finDelEje`). */
 export const DIAS_EJE_QUIETAS = 120;
-/** «Liquidar desde»: el valor de fábrica y los topes del control (Felipe, 2026-10-06: se mueve, no es fijo). */
+/**
+ * «Liquidar desde»: el valor de fábrica y lo que acepta. Felipe, 2026-10-06: se mueve, no es fijo; 2026-10-07: sin tope, los días que
+ * se quiera (de 1 a 999, lo mismo que la base: 20261007100000). Cada toque de − y + suma o resta LIQUIDAR_PASO.
+ */
 export const LIQUIDAR_DEFECTO = 60;
-export const LIQUIDAR_MIN = 30;
-export const LIQUIDAR_MAX = 85;
+export const LIQUIDAR_MIN = 1;
+export const LIQUIDAR_MAX = 999;
+export const LIQUIDAR_PASO = 5;
 /** Cuánto tiene que haber vendido otra tienda en 30 días para proponer mandársela («Mándalas a donde sí se venden»). */
 export const VENDIDAS_PARA_ENVIAR = 2;
 /** Meta de «se vende lo que llega»: de cada 10 que llegan en 30 días, cuántas deberían venderse (decisión 3). */

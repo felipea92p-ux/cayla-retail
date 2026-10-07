@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis, PrendaEnOtraSede } from "./analisis-tipos";
 import {
   ALTO_COLUMNA,
+  grosorCamino,
   altoNecesario,
   CAB_SE_QUEDAN,
   caminosDeHoy,
@@ -267,7 +268,8 @@ describe("Qué hacer hoy: las columnas del flujo", () => {
   it("el alto que pide una columna: cada camino al menos 30, 8 entre caminos y 34 por franja", () => {
     const col: EntradaColumna<string>[] = [{ camino: "a", n: 1 }, { camino: "b", n: 10 }, { cab: "X" }, { camino: "c", n: 1 }];
     expect(altoNecesario(col, 0)).toBe(30 + 8 + 30 + 34 + 30);
-    expect(altoNecesario(col, 10)).toBe(30 + 8 + 100 + 34 + 30);
+    // Con la escala 40, un camino de n prendas mide 40·√n (más de 30): 40, 40·√10 y 40.
+    expect(altoNecesario(col, 40)).toBeCloseTo(40 + 8 + 40 * Math.sqrt(10) + 34 + 40, 6);
   });
 });
 
@@ -324,19 +326,19 @@ describe("Qué hacer hoy: el flujo mide lo mismo con 1, 20 o 300 prendas", () =>
       expect(g.centro.y + g.centro.alto).toBeLessThanOrEqual(FLUJO.TOPC + ALTO_COLUMNA + 1e-9);
     });
 
-    it(`con ${total}: el grosor de cada camino es su parte (k por prenda, nunca más de ${FLUJO.KMAX}) y nada se pisa`, () => {
+    it(`con ${total}: el grosor de cada camino crece como la raíz de sus prendas (s·√n, s nunca más de ${FLUJO.SMAX}) y nada se pisa`, () => {
       const { izq, der } = columnasFlujo(escenario(total));
       const g = geometriaFlujo(izq, der);
-      expect(g.k).toBeGreaterThan(0);
-      expect(g.k).toBeLessThanOrEqual(FLUJO.KMAX);
+      expect(g.s).toBeGreaterThan(0);
+      expect(g.s).toBeLessThanOrEqual(FLUJO.SMAX);
       for (const col of [g.izq, g.der]) {
         for (const [i, x] of col.entries()) {
-          expect(x.y1 - x.y0).toBeCloseTo(g.k * x.n, 6);
-          expect(x.c1 - x.c0).toBeCloseTo(g.k * x.n, 6);
+          expect(x.y1 - x.y0).toBeCloseTo(grosorCamino(x.n, g.s), 6);
+          expect(x.c1 - x.c0).toBeCloseTo(grosorCamino(x.n, g.s), 6);
           const siguienteBanda = col[i + 1];
           if (siguienteBanda) {
             // El lugar del siguiente empieza donde termina este (o más abajo), y las cintas entran pegadas al centro.
-            expect(siguienteBanda.yb - Math.max(FLUJO.MIN, g.k * siguienteBanda.n)).toBeGreaterThanOrEqual(x.yb - 1e-9);
+            expect(siguienteBanda.yb - Math.max(FLUJO.MIN, grosorCamino(siguienteBanda.n, g.s))).toBeGreaterThanOrEqual(x.yb - 1e-9);
             expect(siguienteBanda.c0).toBeCloseTo(x.c1, 9);
           }
           expect(x.c0).toBeGreaterThanOrEqual(g.centro.y - 1e-9);
@@ -346,14 +348,25 @@ describe("Qué hacer hoy: el flujo mide lo mismo con 1, 20 o 300 prendas", () =>
     });
   }
 
-  it("con pocas prendas el grosor llega a su tope; con muchas baja, y la proporción entre caminos se mantiene", () => {
+  it("cintas finas (A1): un solo camino de 49 prendas ya no llena el alto, y uno de 3 se sigue viendo", () => {
+    const g = geometriaFlujo<string>([{ camino: "compra", n: 49 }], [{ camino: "aqp", n: 3 }, { camino: "liq", n: 6 }]);
+    expect(g.s).toBe(FLUJO.SMAX);
+    expect(g.izq[0]!.y1 - g.izq[0]!.y0).toBeCloseTo(56, 6);
+    expect(g.izq[0]!.y1 - g.izq[0]!.y0).toBeLessThan(ALTO_COLUMNA / 4);
+    expect(g.der[0]!.y1 - g.der[0]!.y0).toBeGreaterThan(13);
+    // La tarjeta «Tu tienda» mide lo de la columna más gruesa más su borde, y nunca menos de 92.
+    expect(g.centro.alto).toBeCloseTo(Math.max(56, 64) + 28, 6);
+    expect(geometriaFlujo<string>([{ camino: "c", n: 1 }], []).centro.alto).toBe(92);
+  });
+
+  it("si no cabe, la escala baja; la proporción entre caminos es la de la raíz de sus prendas", () => {
     const pocas = columnasFlujo(escenario(5));
-    expect(geometriaFlujo(pocas.izq, pocas.der).k).toBe(FLUJO.KMAX);
-    const muchas = columnasFlujo(escenario(300));
+    expect(geometriaFlujo(pocas.izq, pocas.der).s).toBe(FLUJO.SMAX);
+    const muchas = columnasFlujo(escenario(5000));
     const g = geometriaFlujo(muchas.izq, muchas.der);
-    expect(g.k).toBeLessThan(2);
+    expect(g.s).toBeLessThan(FLUJO.SMAX);
     const [aqp, lim] = g.der;
-    expect((aqp!.y1 - aqp!.y0) / (lim!.y1 - lim!.y0)).toBeCloseTo(aqp!.n / lim!.n, 6);
+    expect((aqp!.y1 - aqp!.y0) / (lim!.y1 - lim!.y0)).toBeCloseTo(Math.sqrt(aqp!.n / lim!.n), 6);
   });
 
   it("la franja «Se quedan en tu tienda» abarca de su título hasta el último camino", () => {
@@ -382,14 +395,14 @@ describe("Qué hacer hoy: las piezas del dibujo", () => {
     expect(px(1.25)).toBe(1.3);
   });
 
-  it("la pastilla dice cuántas son; el primer camino suma «empieza aquí»", () => {
-    expect(textoPastilla({ prendas: [prenda()], primero: false })).toBe("1 prenda");
-    expect(textoPastilla({ prendas: [prenda(), prenda()], primero: true })).toBe("2 prendas · empieza aquí");
+  it("la etiqueta dice cuántas son, sin «empieza aquí» (A1)", () => {
+    expect(textoPastilla({ prendas: [prenda()] })).toBe("1 prenda");
+    expect(textoPastilla({ prendas: [prenda(), prenda()] })).toBe("2 prendas");
   });
 
-  it("la pastilla va junto a su nodo y la etiqueta por fuera, dentro del lienzo", () => {
+  it("la etiqueta «N prendas» va en el medio de su cinta (a la izquierda) o junto a su final (a la derecha); el verbo, por fuera", () => {
     const izq = pastillaFlujo("7 prendas", 100, "izq");
-    expect(izq.x).toBe(FLUJO.LX + FLUJO.NW + 8);
+    expect(izq.x + izq.w / 2).toBeCloseTo((FLUJO.LX + FLUJO.NW + FLUJO.CX0) / 2, 0);
     expect(izq.y).toBe(90);
     const der = pastillaFlujo("7 prendas", 100, "der");
     expect(der.x + der.w).toBe(FLUJO.RX - 8);
@@ -414,11 +427,12 @@ describe("los puntos que corren por una cinta (al pasar el mouse)", () => {
     expect(abajo).toBeLessThanOrEqual(112 / 2 - 4.5 - 1);
     expect(ejeCinta(298, 100, 128, 486, 150, 178, 6)).toBe("M298,120 C392,120 392,170 486,170");
   });
-  it("de 3 a 6 puntos, más grandes en una cinta gruesa, y nunca un punto invisible", () => {
-    expect(puntosDeCinta(0)).toEqual({ n: 3, r: 2.2 });
+  it("de 3 a 5 puntos chicos (A1), apenas más en una cinta gruesa, y nunca un punto invisible", () => {
+    expect(puntosDeCinta(0)).toEqual({ n: 3, r: 2 });
+    expect(puntosDeCinta(56)).toEqual({ n: 5, r: 3 });
     expect(puntosDeCinta(14).n).toBe(4);
-    expect(puntosDeCinta(200)).toEqual({ n: 6, r: 4.5 });
-    expect(puntosDeCinta(-5)).toEqual({ n: 3, r: 2.2 });
+    expect(puntosDeCinta(200)).toEqual({ n: 5, r: 3 });
+    expect(puntosDeCinta(-5)).toEqual({ n: 3, r: 2 });
   });
   it("un punto cruza en menos de 2 segundos", () => {
     expect(SEGUNDOS_PUNTO).toBeGreaterThan(1);
