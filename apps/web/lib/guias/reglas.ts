@@ -125,6 +125,30 @@ export function posicionTarjeta(recorte: Caja | null, ventana: Ventana, tarjeta:
   return { top: Math.max(borde, ventana.alto - tarjeta.alto - borde), left: centradoX(ventana.ancho / 2), lado: "centro" };
 }
 
+/**
+ * ¿Hay que esperar a que la pieza aparezca? Solo si algo la acaba de abrir: el propio paso la prepara, o el paso anterior
+ * hizo algo con la pantalla (abrir un modal, escribir). Si no, la pieza está o no está, y esperar es tiempo muerto.
+ */
+export function esperaPorAncla(paso: PasoGuia, anterior: PasoGuia | null): number {
+  const algoLaAbre = !!paso.preparar?.length || !!anterior?.demostrar?.length || !!anterior?.preparar?.length;
+  if (algoLaAbre) return paso.opcional ? 1400 : 2200;
+  return paso.opcional ? 120 : 900;
+}
+
+/**
+ * Cuántos pasos va a tener la demo, para el «3 de 12»: los que aplican y cuya pieza está a la vista, más los que dependen
+ * de algo que la guía abre antes (no se ven todavía, pero van a aparecer). Un opcional sin pieza y sin quien la abra no cuenta.
+ */
+export function totalEstimado(pasos: readonly PasoGuia[], presentes: ReadonlySet<string>, anchoVentana: number): number {
+  let n = 0;
+  pasos.forEach((p, i) => {
+    if (!pasoAplica(p, presentes, anchoVentana)) return;
+    const anterior = i > 0 ? pasos[i - 1]! : null;
+    if (!p.opcional || p.ancla === null || presentes.has(p.ancla) || esperaPorAncla(p, anterior) > 1000) n++;
+  });
+  return n;
+}
+
 /** «Paso 3 de 9», contando solo los pasos que aplican ahora. */
 export function textoAvance(indice: number, total: number): string {
   return `Paso ${indice + 1} de ${total}`;

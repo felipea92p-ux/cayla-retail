@@ -9,8 +9,10 @@
 export type AccionGuia =
   /** Toca la pieza anclada (abrir un modal, una pestaña, una tarjeta). Se niega si la pieza guarda (`motivoParaNoTocar`). */
   | { tipo: "clic"; ancla: string }
-  /** Escribe un texto de ejemplo en el campo anclado, letra a letra, como lo haría una persona. */
-  | { tipo: "escribir"; ancla: string; texto: string }
+  /** Escribe un ejemplo en el campo anclado, letra a letra, como lo haría una persona. El ejemplo sale de la pantalla
+   *  (`{ palabraDe }`: la primera palabra del nombre de la primera pieza con esa ancla) para que siempre encuentre algo de
+   *  verdad en ESTA tienda (ADR-0290: un ejemplo inventado que no existe enseña mal). */
+  | { tipo: "escribir"; ancla: string; texto: string | { palabraDe: string } }
   /** Vacía el campo anclado (para dejar la pantalla como estaba). */
   | { tipo: "vaciar"; ancla: string }
   /** Escape: cierra el modal o la lista que la guía abrió. */

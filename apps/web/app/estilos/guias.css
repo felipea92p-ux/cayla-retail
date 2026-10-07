@@ -1,0 +1,129 @@
+/* GUÍAS INTERACTIVAS (ADR-0362, Felipe 2026-10-07)
+   El velo oscuro con un recorte alrededor de la pieza que se explica (el «efecto de máscara»), y la tarjeta que dice qué es.
+   El recorte es una caja transparente con una sombra de 200vmax del color del velo: se desliza de pieza en pieza con
+   `transform` y cambia de tamaño con `width/height`, 420 ms con `--ease-cayla`, sin rebote ni bucle (ADR-0136). El velo es
+   `--color-sombra`, nunca `tinta` (en oscuro `tinta` es crema y el velo ACLARARÍA la pantalla, ADR-0336). Capa 55: sobre los
+   modales (50), bajo el loader (60) y los avisos (100). Con `prefers-reduced-motion` todo pasa en un instante. */
+
+.guia-capa {
+  --guia-velo: color-mix(in srgb, var(--color-sombra) 62%, transparent);
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  /* Radix pone `pointer-events: none` en el body mientras hay un modal abierto: la guía vuelve a recibir el mouse. */
+  pointer-events: auto;
+}
+:root[data-tema="oscuro"] .guia-capa {
+  --guia-velo: color-mix(in srgb, var(--color-sombra) 74%, transparent);
+}
+
+/* Lo que bloquea el mouse: la demo la maneja la guía, no la persona (una venta a medias por un clic suelto, nunca). */
+.guia-bloqueo {
+  position: absolute;
+  inset: 0;
+  cursor: default;
+}
+
+.guia-recorte {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-crema) 55%, transparent),
+    0 0 0 200vmax var(--guia-velo);
+  pointer-events: none;
+  transition:
+    transform 420ms var(--ease-cayla),
+    width 420ms var(--ease-cayla),
+    height 420ms var(--ease-cayla),
+    box-shadow 300ms var(--ease-cayla);
+  animation: guia-velo-entra 260ms var(--ease-cayla) backwards;
+}
+/* Sin pieza (bienvenida, cierre, o una pieza que ahora no está a la vista): el velo entero, sin agujero. */
+.guia-recorte[data-sin-pieza] {
+  box-shadow: 0 0 0 200vmax var(--guia-velo);
+}
+@keyframes guia-velo-entra {
+  from { box-shadow: 0 0 0 2px transparent, 0 0 0 200vmax transparent; }
+}
+
+.guia-tarjeta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  padding: 18px 18px 14px;
+  box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  transition:
+    transform 420ms var(--ease-cayla),
+    opacity 200ms var(--ease-cayla);
+}
+.guia-tarjeta[data-ocupada] {
+  opacity: 0.86;
+}
+/* El contenido de cada paso entra subiendo 6 px; la tarjeta en sí solo se desliza. */
+.guia-contenido {
+  animation: guia-contenido-entra 320ms var(--ease-cayla) backwards;
+}
+@keyframes guia-contenido-entra {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+}
+
+/* La línea de avance: tantos tramos como pasos, lleno hasta el actual. */
+.guia-avance {
+  display: flex;
+  gap: 3px;
+}
+.guia-avance > span {
+  height: 3px;
+  flex: 1;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-tinta) 14%, transparent);
+  transition: background-color 300ms var(--ease-cayla);
+}
+.guia-avance > span[data-hecho] {
+  background: var(--color-tinta);
+}
+
+/* La oferta de la primera vez: una tarjeta abajo a la derecha, sin velo (no interrumpe: se acepta o se deja). */
+.guia-oferta {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 45;
+  width: min(340px, calc(100vw - 32px));
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  padding: 16px;
+  box-shadow: 0 20px 50px -24px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  animation: guia-oferta-entra 380ms var(--ease-cayla) backwards;
+}
+@keyframes guia-oferta-entra {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guia-recorte,
+  .guia-tarjeta,
+  .guia-contenido,
+  .guia-oferta,
+  .guia-avance > span {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Imprimir nunca lleva la guía. */
+@media print {
+  .guia-capa,
+  .guia-oferta {
+    display: none;
+  }
+}
