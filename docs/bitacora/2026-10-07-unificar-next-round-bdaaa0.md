@@ -1,0 +1,4 @@
+## 2026-10-07 (noche) — Ronda 5 de /unificar: vacíos, avisos y buscadores, listos para elegir
+Qué hice: censo nuevo de las tres familias (Admin, 242 vistas, y el mostrador), depurado contra el código: 9 formas de vacío en ~100 lugares, 6 recuadros de aviso más ~68 párrafos rojos sueltos, 8 buscadores. Dibujé una propuesta por familia (`<Vacio>`, `<Aviso>`, `<Buscador>`) y una página de elegir con cada forma de hoy y cada propuesta VIVAS (CSS real del ERP, en claro y oscuro), con fotos antes/después sobre las pantallas reales y a 375 px en el mostrador.
+Por qué así: Felipe pidió elegir por la estética y el movimiento; una foto no muestra que un ícono se dibuja o que el buscador «respira» mientras la base responde, así que todo se puede tocar, escribir y repetir.
+Felipe se lleva: `apps/web/unificar/.salida/elegir-ronda5/elegir.html` (servidor `unificar-laminas`), 8 preguntas; copia su elección al chat.

@@ -28,15 +28,33 @@ Ocho familias decididas por Felipe, todas **mirando** (y la 3 y la 4, **tocando*
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
+## Ronda 5 (abierta el 2026-10-07 por la noche, rama `claude/unificar-next-round-bdaaa0`): esperando que Felipe elija
+
+`vacio`, `aviso` y `buscador`, juntas. Censo nuevo de Admin (242 vistas) y del mostrador (`terminal-ventas`), depurado contra el código.
+Propuestas en `propuestas/vacio.html`, `aviso.html` y `buscador.html`. **La página de elegir** está en
+`apps/web/unificar/.salida/elegir-ronda5/elegir.html` (servida por `unificar-laminas`: `/elegir-ronda5/elegir.html`), fuera de git: si
+se perdió, se rehace con `node construir.mjs` desde esa carpeta (sus scripts: `bajar-css.mjs` copia el CSS y las fuentes del ERP,
+`fotos-vivas.mjs` pone cada propuesta sobre la pantalla real y fotografía antes/después en claro, oscuro y 375 px, `fotos-hoy.mjs`
+fotografía las formas de hoy forzando «zzzz», `armar-fotos.mjs` las reparte y `vista.mjs` fotografía la página). Si la worktree se
+borró, esos scripts tampoco están: el `spec` vive en la carpeta y la idea en `propuestas/*.html`.
+
+Novedades de la página de elegir (en `elegir.mjs`, sirven a las rondas que vienen): `estilos` y `guion` (hojas y un .js comunes a las
+demos), el botón «Ver en oscuro» (cambia `data-tema` y todo se ve con los tokens oscuros del ERP), «Repetir la entrada» y «Ver …» por
+escena en cada demo (con `demo.js`), y `fotosAlFinal`. Se arregló un fallo: la página escondía todo `input` dentro de una tarjeta, así
+que un buscador vivo no se podía usar (`.op > input`).
+
+Al elegir Felipe: registrar las tres familias (`referencia/decision.md`), construir `<Vacio>`, `<Aviso>` y `<Buscador>` en
+`components/ui/` con el movimiento de la propuesta, y migrar módulo por módulo. Ojo con lo que NO es solo cara: sumar «Borrar la
+búsqueda» o quitar un filtro con un toque en un vacío que hoy no lo tiene agrega una acción (que ya existe arriba): si Felipe elige
+la P1 de la pregunta 3, confirmar pantalla por pantalla.
+
 ## Lo que falta, en orden
 
 ### 1. Las próximas rondas (de a 3 familias como máximo)
 
 El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo que la colaboradora lee o toca en más pantallas.
 
-1. **`vacio`** (estados vacíos, 34 formas en el censo de la mañana del 2026-10-07): la ley 9 de Formidable pide que un vacío diga qué falta.
-2. **`aviso`** (avisos y notas, 19 formas en 125 pantallas).
-3. **`buscador`** (22 formas) — el comportamiento ya es uno (`useBusquedaEnUrl`); falta la cara.
+1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, propuestas esperando la elección (arriba).
 4. **`combo`** (42 formas) — la regla de buscar y paginar ya es una (ADR-0209); `SelectFin` es de Finanzas (ADR-0195, decidida a propósito).
 5. **`tabla`** (37 formas) — `fin-tabla` de Finanzas queda aparte por ADR-0195.
 6. **`campo` + `etiqueta-campo`** — viven en las hojas: censo con `--escenarios`.

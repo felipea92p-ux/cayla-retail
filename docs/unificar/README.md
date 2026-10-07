@@ -25,7 +25,9 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| — | ninguna por ahora | — | — |
+| `vacio` | `<Vacio>` grande (ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer, botón; distingue «no hay» / «la búsqueda no encontró» / «los filtros dejan cero») y chico (una línea con ícono y enlace) · P2: lo mismo en marco punteado | 2026-10-08 | [propuestas/vacio.html](propuestas/vacio.html). 3 preguntas: el grande, el chico y qué ofrece al no encontrar. Decididas a propósito: la guía de Finanzas (ADR-0195) y la ficha de Análisis (ADR-0357) |
+| `aviso` | `<Aviso tono>` con la voz de la esquina (disco con ícono que se dibuja y suelta una onda; error con role=alert que destella una vez), normal y chico · P2: franja a la izquierda · `nota-cayla` se queda · error de un dato bajo su campo, error de la hoja en el aviso | 2026-10-08 | [propuestas/aviso.html](propuestas/aviso.html). 3 preguntas. Los avisos de la esquina (ADR-0146) no se tocan |
+| `buscador` | `<Buscador>` lista: la caja hundida con lupa viva, «/», «×», «Buscando…» y el hilo que corre, y el conteo · P2: el subrayado vivo · mostrador: la píldora que se despega de Cambios con el ícono rojo de Vender | 2026-10-08 | [propuestas/buscador.html](propuestas/buscador.html). 2 preguntas. Decididos a propósito: Finanzas (ADR-0195) y Análisis (ADR-0357) |
 
 ## Por analizar (las próximas rondas)
 
@@ -43,9 +45,9 @@ en la página de elegir, nunca por una descripción.
 |---:|---|---|---|---|
 | ~~1~~ | ~~`estado`~~ | Decidida el 2026-10-07 | | |
 | ~~2~~ | ~~`boton`~~ | Decidida el 2026-10-07 (ronda 4): dos voces, peligro en rojo, cerrar con la ×; migrada entera, mostrador incluido | | |
-| 3 | `vacio` | Estados vacíos («Todavía no hay…») | 23 · 24 | Ley 9 de Formidable: un vacío dice qué falta. Hoy cada pantalla lo dice a su modo |
-| 4 | `aviso` | Avisos y notas (`nota-cayla`, errores, avisos de la esquina) | 13 · 60 | Está en 60 pantallas, y un aviso que se ve distinto se lee distinto |
-| 5 | `buscador` | Las cajas de buscar | 18 · 49 | El comportamiento ya es uno (`useBusquedaEnUrl`); la cara no |
+| 3 | `vacio` (ronda 5: propuesta esperando) | Estados vacíos («Todavía no hay…») | 23 · 24 | Ley 9 de Formidable: un vacío dice qué falta. Hoy cada pantalla lo dice a su modo |
+| 4 | `aviso` (ronda 5: propuesta esperando) | Avisos y notas (`nota-cayla`, errores, avisos de la esquina) | 13 · 60 | Está en 60 pantallas, y un aviso que se ve distinto se lee distinto |
+| 5 | `buscador` (ronda 5: propuesta esperando) | Las cajas de buscar | 18 · 49 | El comportamiento ya es uno (`useBusquedaEnUrl`); la cara no |
 | 6 | `combo` | Desplegables | 26 · 39 | La regla de buscar y paginar ya es una (ADR-0209); falta la cara. `SelectFin` es de Finanzas (ADR-0195) |
 | 7 | `tabla` | Tablas | 30 · 36 | `<Tabla>` existe; la de Finanzas (`fin-tabla`) queda aparte por ADR-0195 |
 | 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 12 · 18 / 10 · 34 | Se corre con `--escenarios`: viven en las hojas |
@@ -67,6 +69,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-06 | `claude/unificar-componentes-skill-7e9d26` @ `c215dd2f`, cuenta Admin, foco Inventario | 101 de 109 | 30 | 25 formas de pestañas en 54 pantallas; 6 de «Volver»; solo 123 de 591 botones usan `btn-cayla` (detalle: ADR-0358) |
 | 2026-10-07 | `claude/unificar-pendiente-7f0794` @ `83aea687`, cuenta `terminal-ventas` (el mostrador), con escenarios | 60 de 122 (las demás: sin acceso) | 26 | tres movimientos de botón principal; dos caras del «Atrás» de un paso; las tallas de Vender salían como «Nuevo» (motor corregido) |
 | 2026-10-07 | `claude/unificar-pendiente-7f0794` @ `0807770f`, cuenta Admin, todo el ERP con escenarios | 240 de 247 | 33 | 180 estilos de botón en 219 pantallas; el botón «Nuevo / Registrar» con 2 caras reales (`btn-cayla` y versalitas). Falta la pasada de `terminal-ventas` |
+| 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `f05530ca`, cuenta Admin, todo el ERP con escenarios, familias `vacio,aviso,buscador` | 242 de 250 | 3 | sin depurar: 23 buscadores, 29 vacíos, 23 avisos. Depurado con el código: 9 formas de vacío (~100 lugares), 6 recuadros de aviso + ~68 párrafos rojos sueltos, 8 buscadores. El motor confunde filas de lista con vacíos (el seed casi no deja listas vacías): las fotos de hoy se sacaron forzando «zzzz» en cada pantalla |
 
 ## Cómo se agrega una fila
 
