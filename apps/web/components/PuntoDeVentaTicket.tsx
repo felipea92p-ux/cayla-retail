@@ -852,7 +852,6 @@ export function PuntoDeVentaTicket({
                 <button
                   type="button"
                   onClick={() => onAbrirDescuento(null)}
-                  data-guia="vender.descuento"
                   disabled={bloqueado || carrito.length === 0}
                   className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
                 >
@@ -867,7 +866,6 @@ export function PuntoDeVentaTicket({
                 <button
                   type="button"
                   onClick={onDejarEnEspera}
-                  data-guia="vender.espera"
                   disabled={bloqueado}
                   className="label-cayla flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
                 >

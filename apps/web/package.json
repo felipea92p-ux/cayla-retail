@@ -15,7 +15,9 @@
     "tema:colores": "node tema/colores-sueltos.mjs",
     "unificar:censo": "node unificar/cli.mjs",
     "unificar:deuda": "node unificar/deuda.mjs",
-    "unificar:fotos": "node unificar/fotos.mjs"
+    "unificar:fotos": "node unificar/fotos.mjs",
+    "guias:huella": "node guias/huella.mjs",
+    "guias:recorrer": "node guias/recorrer.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

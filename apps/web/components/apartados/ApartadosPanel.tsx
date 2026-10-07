@@ -185,7 +185,9 @@ export function ApartadosPanel(props: Props) {
             key={p.id}
             type="button"
             onClick={() => irA(p.id)}
-            aria-current={vista === p.id ? "page" : undefined}
+            // «false» (válido en ARIA) y no ausente: así la guía interactiva reconoce la pestaña también cuando no es la elegida.
+            aria-current={vista === p.id ? "page" : "false"}
+            data-guia={`apartados.pestana-${p.id}`}
             style={{ height: ALTO_PESTANAS_MOVIL }}
             className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
           >

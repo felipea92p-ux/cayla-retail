@@ -105,7 +105,9 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
           for (const a of paso.preparar) {
             const r = await ejecutar(a, senal, conMovimiento);
             if (senal.aborted) return;
-            if (!r.ok) nota = notaDe(a, r.motivo);
+            // Solo un toque que no se pudo hacer merece aviso. Vaciar o cerrar algo que no está (en el celular no hay buscador)
+            // es una limpieza que no tenía nada que limpiar.
+            if (!r.ok && a.tipo === "clic") nota = notaDe(a, r.motivo);
           }
         }
         if (!pasoAplica(paso, anclasPresentes(), window.innerWidth)) {
@@ -155,7 +157,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
           for (const a of paso.demostrar) {
             const res = await ejecutar(a, senal, conMovimiento);
             if (senal.aborted) return;
-            if (!res.ok) setMostrando((m) => (m && m.indice === indice ? { ...m, nota: notaDe(a, res.motivo) } : m));
+            if (!res.ok && a.tipo !== "vaciar" && a.tipo !== "escape") setMostrando((m) => (m && m.indice === indice ? { ...m, nota: notaDe(a, res.motivo) } : m));
           }
         }
         return;

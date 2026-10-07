@@ -341,7 +341,7 @@ export function PuntoDeVentaCatalogo({
             <button
               type="button"
               onClick={modoCamara ? onBuscarPorTexto : onAbrirCamara}
-              data-guia="vender.camara"
+              data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}
               disabled={bloqueado}
               aria-label={modoCamara ? "Buscar la prenda por nombre" : "Escanear QR con la cámara"}
               className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand bg-papel text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
