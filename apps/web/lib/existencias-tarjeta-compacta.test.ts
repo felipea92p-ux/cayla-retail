@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaPrenda } from "./existencias-prendas";
-import { celdaTarjeta, destinoDeTalla, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
+import { celdaTarjeta, colorDeEntrada, destinoDeTalla, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
 import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
@@ -77,5 +77,20 @@ describe("tallaDeEntrada y tallasAgotadas", () => {
 describe("tallasSinColgar", () => {
   it("cuenta las tallas con 0 colgadas y algo en almacén, de todos los colores", () => {
     expect(tallasSinColgar([{ tallas: [fila("S", 0, 3), fila("M", 1, 2), fila("L", 0, 0)] }, { tallas: [fila("S", 0, 1)] }])).toBe(2);
+  });
+});
+
+describe("colorDeEntrada", () => {
+  const celeste = { color: "Celeste", tallas: conMotor([fila("L", 0, 0)]).filas };
+  const negro = { color: "Negro", tallas: conMotor([fila("S", 2, 0), fila("M", 0, 3)]).filas };
+  const rosado = { color: "Rosado", tallas: conMotor([fila("S", 1, 0)]).filas };
+  it("abre en el color con algo que colgar, no en uno agotado", () => {
+    expect(colorDeEntrada([celeste, rosado, negro])?.color).toBe("Negro");
+  });
+  it("sin nada que colgar, el primero con algo libre", () => {
+    expect(colorDeEntrada([celeste, rosado])?.color).toBe("Rosado");
+  });
+  it("todos agotados: el primero", () => {
+    expect(colorDeEntrada([celeste])?.color).toBe("Celeste");
   });
 });

@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { PieTarjeta } from "@/components/existencias/PieTarjeta";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { celdaTarjeta, destinoDeTalla, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar, type CeldaTarjeta } from "@/lib/existencias-tarjeta-compacta";
+import { celdaTarjeta, destinoDeTalla, colorDeEntrada, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar, type CeldaTarjeta } from "@/lib/existencias-tarjeta-compacta";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { textoHoyDePrenda } from "@/lib/existencias-hoy";
 import { botonDeTarjeta, opcionesDeMas, type ClaveAccion } from "@/lib/existencias-acciones";
@@ -220,7 +220,9 @@ export function ExistenciasTarjetas({
     // Tantas columnas como caben (cada tarjeta pide ~19 rem), como en la maqueta: tres o cuatro en una computadora, una en el celular.
     <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr))]">
       {modelos.map((m) => {
-        const p = m.colores.find((c) => c.clave === elegida[m.clave]) ?? m.colores[0];
+        const faltanModelo = tallasQueFaltan(m.colores);
+        // Sin elegir, el color que importa (`colorDeEntrada`), no el primero: uno agotado dejaba la tarjeta vacía.
+        const p = m.colores.find((c) => c.clave === elegida[m.clave]) ?? colorDeEntrada(m.colores, faltanModelo) ?? m.colores[0];
         const tallasVista = tallasCompletas?.(p) ?? p.tallas;
         // Lo que el filtro marca en este color, la que más se vende primero (la «principal» lleva el aro).
         const cumplen = marcaDelFiltro ? [...tallasVista.filter(marcaDelFiltro.coincide)].sort((a, b) => ventas(b) - ventas(a)) : [];
@@ -247,8 +249,9 @@ export function ExistenciasTarjetas({
         const agotadaPedible = puedePedir && onPedir ? tallasVista.find((t) => t.disponible <= 0 && mejorOrigen(t.enRed, sedesParaPedir) !== null) : undefined;
         const boton = botonDeTarjeta({
           puedeReponer,
-          tallasPorColgar: tallasQueFaltan(m.colores).size,
+          tallasPorColgar: faltanModelo.size,
           tallasSinColgar: tallasSinColgar(m.colores),
+          tallasDelColor: Math.max(p.tallas.filter((t) => faltanModelo.has(t.varianteId)).length, tallasSinColgar([p])),
           hayQueBajar,
           verTalla: marcaDelFiltro && !marcaDelFiltro.esColgar && cumplen.length > 0 ? (cumplen[0].talla ?? "Única") : null,
           agotadas: tallasAgotadas(tallasVista),

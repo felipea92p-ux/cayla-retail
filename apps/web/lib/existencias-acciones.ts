@@ -34,6 +34,9 @@ export function botonDeTarjeta(x: {
   tallasSinColgar: number;
   /** Alguna talla del modelo tiene algo libre en el almacén. */
   hayQueBajar: boolean;
+  /** Cuántas de esas tallas son del color que se ve: el botón cuenta solo esas (2026-10-07, «2 tallas» sobre un color agotado
+   *  confundía). Si el color visto no tiene ninguna y otro sí, dice «Colgar en otros colores». Sin el dato, cuenta el modelo. */
+  tallasDelColor?: number;
   /** Con un filtro que no es «Por colgar»: la talla que más importa («M»). */
   verTalla?: string | null;
   /** Las tallas agotadas del color que se ve (`tallasAgotadas`). */
@@ -42,7 +45,11 @@ export function botonDeTarjeta(x: {
   if (x.verTalla) return { tipo: "ver", etiqueta: `Ver talla ${x.verTalla}` };
   const n = Math.max(x.tallasPorColgar, x.tallasSinColgar);
   if (x.puedeReponer && x.hayQueBajar && n > 0)
-    return { tipo: "colgar", etiqueta: n > 1 ? `Colgar en el piso · ${n} tallas` : "Colgar en el piso", sugerido: x.tallasPorColgar > 0 };
+    return {
+      tipo: "colgar",
+      etiqueta: x.tallasDelColor === 0 ? "Colgar en otros colores" : (x.tallasDelColor ?? n) > 1 ? `Colgar en el piso · ${x.tallasDelColor ?? n} tallas` : "Colgar en el piso",
+      sugerido: x.tallasPorColgar > 0,
+    };
   if (x.agotadas.length > 0) return { tipo: "agotada", etiqueta: `Se acabó: ${x.agotadas.join(", ")}` };
   // Quien no puede colgar no ve el botón, pero tampoco se le dice «Todo en el piso» si hay tallas sin ninguna colgada.
   if (n > 0) return { tipo: "sinColgar", etiqueta: n === 1 ? "1 talla sin colgar" : `${n} tallas sin colgar` };
