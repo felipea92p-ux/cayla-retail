@@ -1098,7 +1098,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
           No es decoración, es la única forma de que se note que hay más página
           arriba en vez de que el texto se corte contra una banda opaca. */}
-      <header className="ease-cayla fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral sm:transition-[left] sm:duration-300">
+      <header data-cabecera-app className="ease-cayla fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral sm:transition-[left] sm:duration-300">
         <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
           {/* Celular: abre el cajón con el menú completo (v4), a la izquierda del logo. */}
           <button

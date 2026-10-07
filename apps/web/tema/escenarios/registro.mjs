@@ -61,15 +61,31 @@ export const ESCENARIOS = [
     },
   },
   {
-    // Necesita que la sede tenga `hora_cierre` y que ya haya pasado, con la caja abierta (en la base local viene vacía).
+    // El Marcador (el aviso de cierre en el centro de la cabecera, ADR-0357; antes la «Isla») sale cuando la sede tiene `hora_cierre` y
+    // faltan 15 min o menos, con la caja abierta. En la base local Tienda Lima no tiene hora de cierre, y aunque la tuviera dependería de
+    // la hora a la que se corre. El escenario NO escribe en la base (es compartida con otras sesiones): contesta él la consulta que el
+    // Marcador sondea (`/api/caja/recordatorio`) con una caja abierta hace 5 h y la hora de cierre de hace 70 min —nivel 3, «sin cerrar»—,
+    // y le avisa a la pestaña que volvió a estar a la vista para que pregunte ya. Lo que se dibuja es el componente real; solo los datos
+    // son del escenario. La pestaña colgante no baja sola en la primera lectura: la abre «Ver el detalle del cierre».
     id: "estructura.recordatorio",
     ruta: "/",
     cuentas: ["admin", "rol-personalizado", "terminal-ventas"],
-    nombre: "Recordatorio de cierre de caja abierto (la Isla)",
+    abre: ".rcc-ticket.rcc-abierta",
+    nombre: "Recordatorio de cierre de caja con la pestaña abierta (el Marcador)",
     async preparar(pagina) {
-      await pagina.locator(".rcc-pildora").first().waitFor({ timeout: 8000 });
-      await pagina.locator(".rcc-pildora").first().evaluate((el) => el.click());
+      const ahora = Date.now();
+      const limaHaceSetenta = new Date(ahora - 70 * 60_000 - 5 * 3_600_000); // Lima va 5 h detrás de UTC todo el año
+      const horaCierre = [limaHaceSetenta.getUTCHours(), limaHaceSetenta.getUTCMinutes()].map((n) => String(n).padStart(2, "0")).join(":");
+      const datos = { ubicacionId: "escenario-tema", sede: "Tienda Lima", horaCierre, caja: { id: "escenario-tema", abiertaEn: new Date(ahora - 5 * 3_600_000).toISOString(), abiertaPor: "Lucía" } };
+      await pagina.route(/\/api\/caja\/recordatorio/, (ruta) => ruta.fulfill({ json: { datos, cifras: { esperado: 1240.5, ventas: 14 } } }));
+      await pagina.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+      await pagina.locator(".rcc-caps").first().waitFor({ timeout: 8000 });
+      await esperar(pagina, 900);
+      if ((await pagina.locator(".rcc-ticket.rcc-abierta").count()) === 0) await pagina.locator(".rcc-mas, .rcc-caps").first().click({ timeout: 4000 });
       await esperar(pagina, 1200);
+    },
+    async limpiar(pagina) {
+      await pagina.unroute(/\/api\/caja\/recordatorio/).catch(() => {});
     },
   },
   {
@@ -662,13 +678,18 @@ ESCENARIOS.push(
 
 // ---------- Inventario I: Existencias, Movimientos, Traslados y Recibir (actividad 9) ----------
 const INVENTARIO = ["admin", "integrante", "terminal-administrativa"];
-const clicTexto = (texto) => async (pagina) => {
-  await pagina.getByText(texto).first().click({ timeout: 8000 });
-  await esperar(pagina, 1100);
-};
 const verDetalle = (nombre) => async (pagina) => {
   await pagina.getByRole("button", { name: nombre }).first().evaluate((el) => el.click());
   await esperar(pagina, 1500);
+};
+// «Para hoy» ya no va en la pantalla (ADR-0344, 2026-10-06): sus tareas —«Decidir» sobre las dañadas— y «Resumen por categoría» viven en la
+// ventana «Pendientes de hoy». En una tienda se abre con el anillo del día, al costado de «Filtros», cuyo nombre accesible empieza por «Hoy…»
+// («Hoy: 3 de 8 tallas…», «Hoy está todo al día», «Hoy no hay tallas…»); en el Taller, con el botón «Pendientes».
+const abrirPendientes = clicRol("button", /^Hoy(:| está| no hay)|^Pendientes/);
+// Los tipos de Movimientos son ENLACES dentro de su `<nav>` (ADR-0353), no botones: filtrar cambia la URL. Un tipo en cero no es enlace.
+const tipoDeMovimiento = (nombre) => async (pagina) => {
+  await pagina.getByRole("navigation", { name: "Tipo de movimiento" }).getByRole("link", { name: nombre }).first().click({ timeout: 8000 });
+  await esperar(pagina, 1800);
 };
 ESCENARIOS.push(
   { id: "existencias.filtros", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
@@ -676,12 +697,13 @@ ESCENARIOS.push(
   { id: "existencias.danadas", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el filtro «Dañadas»", preparar: clicRol("button", /^Dañadas/i) },
   { id: "existencias.ordenar", ruta: "/inventario", cuentas: ["admin"], abre: "text=Nombre (A–Z)", nombre: "Existencias · «Ordenar por»", preparar: clicRol("button", /^Ordenar por/i) },
   { id: "existencias.acciones", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Existencias · «Colgar en el piso» (reponer una prenda: cuántas de cada color y talla)", preparar: clicRol("button", /más acciones de/i) },
-  { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], nombre: "Existencias · «Resumen por categoría»", preparar: clicRol("button", /Resumen por categoría/i) },
-  { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: clicRol("button", /^Decidir/i) },
-  { id: "existencias.texto", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Iconos con texto»", preparar: clicRol("button", /Iconos con texto/i) },
+  { id: "existencias.pendientes", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]:has-text('Pendientes de hoy')", nombre: "Existencias · la ventana «Pendientes de hoy»", preparar: abrirPendientes },
+  { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
+  // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, «Pendientes» no trae «Decidir».
+  { id: "existencias.decidir", ruta: "/inventario", cuentas: ["admin"], ancho: "escritorio", abre: "[role=dialog]:has-text('Prendas dañadas')", nombre: "Existencias · «Decidir» sobre una prenda dañada", preparar: secuencia(abrirPendientes, clicRol("button", /^Decidir/i)) },
   { id: "movimientos.detalle", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento", preparar: verDetalle(/^Ver el detalle: Salida/) },
   { id: "movimientos.grupo", ruta: "/inventario/movimientos", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Movimientos · el detalle de un movimiento con varias prendas", preparar: verDetalle(/^Ver el detalle: las 3 prendas/) },
-  { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", nombre: "Movimientos · el filtro «Ajustes»", preparar: clicRol("button", /^Ajustes/i) },
+  { id: "movimientos.ajustes", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "nav[aria-label='Tipo de movimiento'] a[aria-current=true]", nombre: "Movimientos · el filtro «Ajustes y conteos»", preparar: tipoDeMovimiento(/^Ajustes/i) },
   { id: "movimientos.calendario", ruta: "/inventario/movimientos", cuentas: ["admin"], ancho: "escritorio", abre: "[role=gridcell]", nombre: "Movimientos · «Personalizado» con el calendario abierto", preparar: secuencia(clicRol("button", /Personalizado/i), clicRol("button", /Abrir calendario/i)) },
   { id: "traslados.pedir", ruta: "/inventario/traslados", cuentas: INVENTARIO, abre: "[role=dialog]", nombre: "Traslados · «Pedir a otra sede»", preparar: clicRol("button", /Pedir a otra sede/i) },
   // ADR-0355: la billetera de pases. Las pestañas, el reverso (el pase girado) y un pedido como pase.

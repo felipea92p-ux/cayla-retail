@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="es" data-tema="claro" data-mov="completo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recordatorio de cierre · barra superior</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETAS · El aviso de cierre de caja, en el centro de la barra superior — 2026-10-06
+   Pedido de Felipe: sacar el aviso de la esquina de abajo y ponerlo en la barra de arriba (donde viven el buscador,
+   Actividad, el modo oscuro y el selector de sede), justo en el medio, notorio y con movimiento rico.
+     1 · Isla central  — la píldora se vuelve una isla que nace en el centro y se abre COLGANDO de la barra
+     2 · Horizonte     — una regla de tiempo con aguja + un hilo que cruza toda la barra
+     3 · Marcador      — un contador mecánico (paletas que giran) con resplandor y un ticket que cuelga
+   Mismos datos que el aviso de hoy (ADR-0305): hora de `ubicaciones.hora_cierre`, tres niveles por tiempo
+   (0–29 min en hora · 30–59 sigue abierta · 60+ sin cerrar), sin ✕, se despide al cerrar la caja.
+   Tokens de la paleta oficial (ADR-0169) y modo oscuro (ADR-0336). Sin rebote: todo con la curva de CAYLA.
+   El interruptor «Movimiento» de arriba separa lo que es SEÑAL (responde a algo que pasó) de lo DECORATIVO (bucles
+   y brillos): en «Sobrio» solo corre lo que ADR-0136 ya permite; «Completo» es la propuesta para aprobar.
+   ==================================================================== */
+@property --tono{syntax:'<color>';inherits:true;initial-value:#4c5d6e}
+@property --tc{syntax:'<color>';inherits:true;initial-value:#a9b4bf}
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--tinta-60:#5b544c;
+  --taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --sombra:#1a1a18;--pill:#1a1a18;--pill-borde:rgba(245,240,232,.10);--fondo-escena:#ece5d9;
+  --crema-fija:#f5f0e8;--tinta-fija:#1a1a18;
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+:root[data-tema=oscuro]{
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--tinta-60:#b9b2a7;
+  --taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+  --sombra:#000;--pill:#0d0d0c;--pill-borde:rgba(245,240,232,.16);--fondo-escena:#0d0d0c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--fondo-escena)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.num{font-variant-numeric:tabular-nums lining-nums}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+/* ---------- panel de control de la maqueta (no es parte del ERP) ---------- */
+.ctl{background:#1a1a18;color:#f5f0e8;padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:12.5px;position:sticky;top:0;z-index:500}
+.ctl .g{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl .g>b{font-weight:600;color:rgba(245,240,232,.55);text-transform:uppercase;letter-spacing:.12em;font-size:10.5px}
+.seg{display:inline-flex;flex-wrap:wrap;background:rgba(245,240,232,.08);border-radius:8px;padding:3px;gap:2px}
+.seg button{padding:5px 10px;border-radius:6px;color:rgba(245,240,232,.7);transition:background .2s var(--ease),color .2s;white-space:nowrap}
+.seg button:hover{color:#f5f0e8}
+.seg button[aria-pressed=true]{background:#f5f0e8;color:#1a1a18}
+.ctl .acc{padding:6px 12px;border-radius:8px;background:rgba(245,240,232,.1);color:#f5f0e8}
+.ctl .acc:hover{background:rgba(245,240,232,.18)}
+.reloj-sim{font-variant-numeric:tabular-nums;font-weight:600;min-width:150px;display:inline-block}
+.nota{max-width:1440px;margin:16px auto 0;padding:0 20px;font-size:13.5px;color:var(--tinta-60)}
+.nota h2{font-family:'EB Garamond',serif;font-weight:400;font-size:26px;color:var(--tinta);margin-bottom:4px}
+.nota .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 28px;margin-top:10px}
+.nota h3{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:3px}
+.nota ul{padding-left:16px}.nota li{margin:2px 0}
+.nota strong{color:var(--tinta);font-weight:600}
+.nota[hidden]{display:none}
+
+/* ====================================================================
+   EL ERP SIMULADO
+   ==================================================================== */
+.escena{padding:14px 20px 8px;display:flex;justify-content:center}
+.app{
+  --tono:var(--pizarra);--tc:color-mix(in srgb,#4c5d6e 45%,#f5f0e8);
+  position:relative;width:100%;max-width:1440px;height:clamp(560px,calc(100vh - 190px),780px);background:var(--crema);
+  border:1px solid var(--sand);border-radius:14px;overflow:hidden;display:grid;grid-template-columns:auto 1fr;
+  container-type:inline-size;container-name:app;
+  transition:--tono .7s var(--ease),--tc .7s var(--ease),max-width .45s var(--ease);
+}
+.app[data-nivel="2"]{--tono:var(--ambar);--tc:color-mix(in srgb,#d19a12 90%,#f5f0e8)}
+.app[data-nivel="3"]{--tono:var(--rojo-p);--tc:color-mix(in srgb,#d4503a 85%,#f5f0e8)}
+.app[data-ancho="laptop"]{max-width:1024px}
+.app[data-ancho="movil"]{max-width:375px;grid-template-columns:1fr;height:min(740px,calc(100vh - 190px))}
+
+.riel{width:64px;border-right:1px solid var(--sand);padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:14px}
+.app[data-ancho="movil"] .riel{display:none}
+.riel .logo{width:34px;height:34px;border-radius:10px;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:20px;margin-bottom:6px}
+.riel i{width:22px;height:22px;border-radius:7px;border:1.5px solid color-mix(in srgb,var(--tinta) 28%,transparent)}
+.riel i:first-of-type{background:var(--hueso);border-color:transparent}
+
+.cuerpo{display:flex;flex-direction:column;min-width:0;position:relative}
+.cab{position:relative;height:52px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 24px;border-bottom:1px solid var(--sand);background:var(--crema);z-index:30}
+.cab .ic{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;color:var(--tinta-60)}
+.cab .ic:hover{background:color-mix(in srgb,var(--tinta) 6%,transparent)}
+.busca{display:flex;align-items:center;gap:9px;height:36px;padding:0 14px;border-radius:18px;background:var(--hueso);color:var(--tinta-60);font-size:13px}
+.busca kbd{font:600 10px 'DM Sans';padding:2px 6px;border-radius:5px;background:var(--papel);color:var(--tinta-60);border:1px solid var(--sand)}
+.busca span{min-width:56px}
+.der{margin-left:auto;display:flex;align-items:center;gap:10px}
+.act{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--tinta-60);padding:6px 8px}
+.sede{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--sand);border-radius:9px;font-size:11px;letter-spacing:.12em;font-weight:600;text-transform:uppercase;background:var(--papel)}
+.sede .sm{display:none}
+.centro{position:absolute;left:50%;top:0;height:52px;width:0;pointer-events:none;z-index:40}
+.centro>*{pointer-events:auto}
+
+.pagina{flex:1;overflow:hidden;padding:26px 28px;display:grid;grid-template-columns:1fr 340px;gap:20px;align-content:start}
+.pag-a,.pag-b{border:1px solid var(--sand);border-radius:16px;background:var(--papel);padding:20px}
+.pag-a .eyebrow,.pag-b .eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.campo-f{margin-top:14px;height:50px;border-radius:12px;background:var(--hueso);display:flex;align-items:center;padding:0 16px;color:var(--tinta-60);font-size:14px}
+.celdas{margin-top:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.celdas i{aspect-ratio:3/4;border-radius:12px;background:var(--hueso)}
+.pag-b h4{font-family:'EB Garamond',serif;font-weight:400;font-size:26px;margin:6px 0 14px}
+.pag-b .lin{height:12px;border-radius:6px;background:var(--hueso);margin:10px 0}
+.app[data-ancho="movil"] .pagina{grid-template-columns:1fr;padding:16px}
+.app[data-ancho="movil"] .pag-b{display:none}
+.app[data-ancho="movil"] .celdas{grid-template-columns:repeat(2,1fr)}
+
+/* barra angosta: el centro cede lugar */
+@container app (max-width:900px){
+  .busca span,.busca kbd{display:none}.busca{padding:0 11px}
+  .act span{display:none}
+  .sede .lg{display:none}.sede .sm{display:inline}
+  .pagina{grid-template-columns:1fr}.pag-b{display:none}
+}
+
+/* ---------- estados comunes de las tres maquetas ---------- */
+.d{display:none}
+.app[data-maq="1"] #d1,.app[data-maq="2"] #d2,.app[data-maq="3"] #d3{display:block}
+.app[data-fase="oculta"] .d{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* anillo con reloj (lo comparten la 1 y la 3) */
+.anillo{position:relative;width:26px;height:26px;flex-shrink:0;display:inline-block}
+.anillo.g{width:46px;height:46px}
+.aro{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.aro-fondo{fill:none;stroke:rgba(245,240,232,.16);stroke-width:2.6}
+.aro-avance{fill:none;stroke:var(--tc);stroke-width:2.6;stroke-linecap:round;transition:stroke-dashoffset .9s var(--ease),stroke .7s var(--ease)}
+.reloj{position:absolute;inset:22%;width:56%;height:56%;color:#f5f0e8;overflow:visible}
+.reloj-aro{fill:none;stroke:currentColor;stroke-width:1.5;opacity:.5}
+.reloj line{stroke:currentColor;stroke-width:1.8;stroke-linecap:round;transform-origin:12px 12px;transition:transform 900ms var(--ease) .15s}
+.reloj .h{transform:rotate(var(--rh,0deg))}.reloj .m{transform:rotate(var(--rm,0deg))}
+.check{fill:none;stroke:#f5f0e8;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24}
+.cerrada .check{animation:dibuja .5s var(--ease) .1s forwards}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+
+/* rueda: el texto que cambia rueda hacia arriba */
+.rueda{display:inline-grid;overflow:hidden;vertical-align:bottom;line-height:1.25}
+.rueda>span{grid-area:1/1;white-space:nowrap}
+.rueda .entra{animation:rueda-in .38s var(--ease) both}
+.rueda .sale{animation:rueda-out .38s var(--ease) both}
+@keyframes rueda-in{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
+@keyframes rueda-out{to{transform:translateY(-100%);opacity:0}}
+
+/* punto que late: la única señal en bucle que ADR-0136 ya permite (nivel «sin cerrar») */
+.late{width:7px;height:7px;border-radius:50%;background:var(--tc);position:relative;flex-shrink:0;display:none}
+.app[data-nivel="3"] .late{display:inline-block}
+.late::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--tc);opacity:0;animation:late 1.9s var(--ease) infinite}
+@keyframes late{0%{transform:scale(.5);opacity:.8}100%{transform:scale(1.6);opacity:0}}
+
+/* contenido común de tarjetas */
+.lugar{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.62);display:flex;align-items:center;gap:7px}
+.titulo{font-family:'EB Garamond',serif;font-size:25px;line-height:1.1;color:#f5f0e8;margin-top:3px}
+.bajada{font-size:12.5px;color:rgba(245,240,232,.66);margin-top:2px}
+.pista{position:relative;height:6px;border-radius:3px;background:rgba(245,240,232,.14);margin-top:18px}
+.pista .turno{position:absolute;left:0;top:0;bottom:0;width:80%;border-radius:3px 0 0 3px;background:rgba(245,240,232,.34)}
+.pista .extra{position:absolute;left:80%;top:0;bottom:0;border-radius:0 3px 3px 0;background:var(--tc);transition:width .9s var(--ease),background .7s}
+.pista .marca{position:absolute;left:80%;top:-5px;width:2px;height:16px;border-radius:1px;background:#f5f0e8}
+.pista .ahora{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#f5f0e8;box-shadow:0 0 0 3px color-mix(in srgb,var(--tc) 55%,transparent);transition:left .9s var(--ease)}
+.rotulos{display:flex;justify-content:space-between;font-size:11px;color:rgba(245,240,232,.6);margin-top:10px}
+.rotulos b{color:#f5f0e8;font-weight:600}
+.cifras{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.cifras>div{background:rgba(245,240,232,.07);border-radius:11px;padding:9px 12px}
+.cifras p{font-size:10.5px;color:rgba(245,240,232,.58)}
+.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:23px;color:#f5f0e8;line-height:1.2}
+.consejo{font-size:12px;color:rgba(245,240,232,.62);margin-top:12px;line-height:1.45}
+.acciones{display:flex;gap:8px;align-items:center;margin-top:14px}
+.luego{padding:9px 12px;border-radius:10px;font-size:13px;color:rgba(245,240,232,.72)}
+.luego:hover{background:rgba(245,240,232,.1);color:#f5f0e8}
+.si{flex:1;display:flex;justify-content:center;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:#f5f0e8;color:#1a1a18;font-weight:600;font-size:13.5px;transition:background .2s,transform .3s var(--ease)}
+.si:hover{background:#fff}.si:hover .fl{transform:translateX(3px)}
+.fl{display:inline-block;transition:transform .3s var(--ease)}
+/* cascada de contenido al abrir (ADR-0136: 55 ms de desfase) */
+.cas{opacity:0;transform:translateY(8px);transition:opacity .3s var(--ease),transform .35s var(--ease)}
+.abierta .cas{opacity:1;transform:none;transition-delay:calc(var(--i,0)*55ms + 160ms)}
+.ola{position:absolute;pointer-events:none;border:1.5px solid var(--tc);border-radius:22px;animation:ola .9s var(--ease) both;z-index:1}
+@keyframes ola{from{transform:scale(1);opacity:.8}to{transform:scale(1.38,1.9);opacity:0}}
+
+/* ====================================================================
+   MAQUETA 1 · ISLA CENTRAL
+   ==================================================================== */
+.d1-isla{position:absolute;top:8px;left:0;transform:translateX(-50%);width:36px;height:36px;border-radius:18px;background:var(--pill);color:#f5f0e8;overflow:hidden;
+  box-shadow:0 0 0 1px var(--pill-borde),0 8px 22px -6px color-mix(in srgb,var(--sombra) 45%,transparent);
+  transition:width .5s var(--ease),height .5s var(--ease),border-radius .5s var(--ease),opacity .25s,background-color .5s,box-shadow .5s}
+.d1-isla.abierta{border-radius:22px}
+.app[data-fase="naciendo"] .d1-isla{animation:d1-nace .42s var(--ease) both}
+@keyframes d1-nace{from{transform:translateX(-50%) scale(0);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+.app[data-fase="saliendo"] .d1-isla{animation:d1-sale .38s var(--ease) both}
+@keyframes d1-sale{to{transform:translateX(-50%) scale(0);opacity:0}}
+.d1-isla.cerrada{background:var(--verde);box-shadow:0 0 0 1px transparent,0 8px 22px -6px color-mix(in srgb,var(--verde) 60%,transparent)}
+.app[data-nivel="2"] .d1-isla{box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 38%,transparent),0 8px 24px -6px color-mix(in srgb,var(--tc) 40%,transparent)}
+.app[data-nivel="3"] .d1-isla{box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 55%,transparent),0 10px 30px -6px color-mix(in srgb,var(--tc) 55%,transparent)}
+.d1-pildora{position:absolute;left:0;top:0;height:36px;display:flex;align-items:center;gap:10px;padding:0 16px 0 5px;white-space:nowrap;font-size:13px;overflow:hidden;border-radius:18px;transition:opacity .22s}
+.d1-isla.abierta .d1-pildora{opacity:0;pointer-events:none}
+.d1-fill{position:absolute;inset:0 auto 0 0;width:0%;background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 18%,transparent),color-mix(in srgb,var(--tc) 46%,transparent));border-right:1.5px solid color-mix(in srgb,var(--tc) 70%,transparent);transition:width 1s var(--ease)}
+.d1-pildora::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(245,240,232,.28) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+.d1-pildora.brillo::after{animation:brillo 1s var(--ease)}
+@keyframes brillo{to{transform:translateX(120%)}}
+.d1-txt{position:relative;display:flex;align-items:center;gap:9px}
+.d1-txt b{font-weight:600}
+.sep{width:1px;height:14px;background:rgba(245,240,232,.3)}
+.d1-pildora .anillo{position:relative}
+.d1-panel{position:absolute;left:0;top:0;width:min(440px,calc(100cqw - 24px));padding:16px 18px 18px;opacity:0;pointer-events:none;transition:opacity .25s}
+.d1-isla.abierta .d1-panel{opacity:1;pointer-events:auto;transition-delay:.12s}
+.d1-cab{display:flex;gap:13px;align-items:flex-start}
+/* decorativo: resplandor lento de la isla (solo «Completo») */
+.d1-isla::before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent 0 55%,color-mix(in srgb,var(--tc) 55%,transparent) 75%,transparent 95%);opacity:0;animation:giro 5s linear infinite;transition:opacity .6s;pointer-events:none}
+.app[data-nivel="3"] .d1-isla:not(.abierta)::before{opacity:.55}
+.d1-isla>*{position:absolute}
+.d1-pildora,.d1-panel{z-index:2}
+.d1-isla::after{content:"";position:absolute;inset:1.5px;border-radius:inherit;background:var(--pill);z-index:1;transition:background-color .5s}
+.d1-isla.cerrada::after{background:var(--verde)}
+@keyframes giro{to{transform:rotate(360deg)}}
+html[data-mov=sobrio] .d1-isla::before{display:none}
+@container app (max-width:700px){
+  .d1-rotulo,.d1-pildora .sep{display:none}
+  .d1-pildora{padding-right:14px;gap:8px}
+}
+
+/* ====================================================================
+   MAQUETA 2 · HORIZONTE
+   ==================================================================== */
+.d2-inst{position:absolute;top:7px;left:0;transform:translateX(-50%);height:38px;display:flex;align-items:stretch;border-radius:19px;
+  background:linear-gradient(90deg,var(--papel),color-mix(in srgb,var(--tono) 13%,var(--papel)));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tono) 32%,var(--sand)),0 10px 24px -12px color-mix(in srgb,var(--sombra) 35%,transparent);
+  overflow:hidden;transition:box-shadow .6s,background .6s}
+.app[data-fase="naciendo"] .d2-inst{animation:d2-nace .6s var(--ease) both}
+@keyframes d2-nace{from{clip-path:inset(0 50% 0 50% round 19px);opacity:.2}to{clip-path:inset(0 0 0 0 round 19px);opacity:1}}
+.app[data-fase="saliendo"] .d2-inst{animation:d2-sale .4s var(--ease) both}
+@keyframes d2-sale{to{clip-path:inset(0 50% 0 50% round 19px);opacity:0}}
+.d2-lado{display:flex;flex-direction:column;justify-content:center;padding:0 14px 0 16px;line-height:1.1;white-space:nowrap;min-width:84px}
+.d2-lado small{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--tinta-60)}
+.d2-lado b{font-size:13px;font-weight:600;color:var(--tinta)}
+.d2-der{text-align:right;padding:0 12px 0 14px;min-width:96px}
+.d2-der b{color:var(--tono)}
+.d2-regla{position:relative;width:250px;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
+.d2-cinta{position:absolute;left:0;top:0;bottom:0;transition:transform .9s var(--ease)}
+.d2-cinta i{position:absolute;bottom:7px;width:1px;height:6px;background:color-mix(in srgb,var(--tinta) 30%,transparent);transition:background .5s,height .3s}
+.d2-cinta i.may{height:11px;background:color-mix(in srgb,var(--tinta) 45%,transparent)}
+.d2-cinta i.pas{background:var(--tono);height:11px}
+.d2-cinta em{position:absolute;top:5px;font-style:normal;font-size:9px;font-weight:600;color:var(--tinta-60);transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.d2-pasado{position:absolute;bottom:0;height:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--tono) 25%,transparent),var(--tono));transition:width .9s var(--ease),background .7s}
+.d2-flag{position:absolute;top:0;bottom:0;width:2px;background:var(--tinta)}
+.d2-flag::before{content:"CIERRE " attr(data-h);position:absolute;top:4px;left:5px;font-size:8.5px;font-weight:700;letter-spacing:.14em;color:var(--tinta)}
+.d2-aguja{position:absolute;top:0;bottom:0;left:68%;width:2px;background:var(--tono);box-shadow:0 0 10px var(--tono);z-index:2;transition:background .7s,box-shadow .7s}
+.d2-aguja::before{content:"";position:absolute;top:2px;left:-4px;width:10px;height:10px;background:var(--tono);border-radius:50%;transition:background .7s}
+.d2-cerrar{align-self:center;margin-right:5px;height:28px;padding:0 13px;border-radius:14px;background:var(--tinta);color:var(--crema);font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.d2-cerrar:hover .fl{transform:translateX(3px)}
+.d2-ver{position:absolute;inset:0 auto 0 0;right:0;z-index:0}
+.d2-lado,.d2-regla,.d2-cerrar{position:relative;z-index:1}
+/* hilo que cruza toda la barra: el tiempo, como dato */
+.d2-hilo{position:absolute;left:0;right:0;bottom:-1px;height:2px;z-index:31;pointer-events:none;display:none}
+.app[data-maq="2"]:not([data-fase="oculta"]) .d2-hilo{display:block}
+.d2-hilo i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,transparent,var(--tono));transition:width 1s var(--ease),background .7s}
+.d2-hilo i::after{content:"";position:absolute;right:-2px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--tono);box-shadow:0 0 12px 3px var(--tono)}
+.d2-hilo b{position:absolute;inset:0;background:linear-gradient(90deg,transparent,#fff8,transparent);transform:translateX(-100%);opacity:0}
+.d2-hilo.barrido b{animation:barrido 1.3s var(--ease)}
+@keyframes barrido{0%{transform:translateX(-100%);opacity:1}100%{transform:translateX(100%);opacity:0}}
+.d2-glow{position:absolute;left:0;right:0;top:100%;height:46px;pointer-events:none;z-index:29;display:none;opacity:0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tono) 18%,transparent),transparent);transition:opacity .8s}
+.app[data-maq="2"][data-nivel="2"] .d2-glow{display:block;opacity:.55}
+.app[data-maq="2"][data-nivel="3"] .d2-glow{display:block;opacity:1}
+/* peek: lo que se ve al pasar el mouse o tocar */
+.d2-peek{position:absolute;top:52px;left:0;transform:translate(-50%,-6px);width:min(400px,calc(100cqw - 24px));padding:16px 18px;border-radius:20px;background:var(--pill);color:#f5f0e8;
+  box-shadow:0 0 0 1px var(--pill-borde),0 24px 50px -16px color-mix(in srgb,var(--sombra) 60%,transparent);opacity:0;pointer-events:none;visibility:hidden;
+  clip-path:inset(0 0 100% 0 round 20px);transition:opacity .25s,transform .45s var(--ease),clip-path .5s var(--ease),visibility 0s .5s}
+.d2-peek.abierta{opacity:1;pointer-events:auto;visibility:visible;transform:translate(-50%,0);clip-path:inset(0 0 0 0 round 20px);transition-delay:0s}
+.d2-peek::before{content:"";position:absolute;top:0;left:50%;width:44px;height:2px;margin-left:-22px;background:var(--tc);border-radius:2px;transition:background .7s}
+@container app (max-width:1299px){
+  .d2-cerrar{display:none}.d2-izq{display:none}.d2-regla{width:176px}.d2-der{padding-right:16px}
+}
+@container app (max-width:700px){
+  .d2-izq{display:none}.d2-regla{width:84px}.d2-cerrar{display:none}.d2-der{min-width:66px;padding:0 12px 0 4px}.cab{padding:0 12px;gap:6px}.der{gap:4px}
+}
+
+/* ====================================================================
+   MAQUETA 3 · MARCADOR
+   ==================================================================== */
+.d3-caps{position:absolute;top:6px;left:0;transform:translateX(-50%);height:40px;display:flex;align-items:center;gap:12px;padding:0 5px 0 14px;border-radius:20px;background:var(--pill);color:#f5f0e8;white-space:nowrap;
+  box-shadow:0 0 0 1px var(--pill-borde),inset 0 1px 0 rgba(245,240,232,.12),0 10px 26px -8px color-mix(in srgb,var(--sombra) 55%,transparent);z-index:3;overflow:hidden;transition:box-shadow .6s,background-color .5s}
+.app[data-fase="naciendo"] .d3-caps{animation:d3-nace .6s var(--ease) both}
+@keyframes d3-nace{from{clip-path:inset(0 50% 0 50% round 20px);transform:translateX(-50%) translateY(-10px);opacity:0}to{clip-path:inset(0 0 0 0 round 20px);transform:translateX(-50%);opacity:1}}
+.app[data-fase="saliendo"] .d3-caps{animation:d3-sale .4s var(--ease) both}
+@keyframes d3-sale{to{transform:translateX(-50%) translateY(-12px) scale(.9);opacity:0}}
+.d3-caps.cerrada{background:var(--verde)}
+.app[data-nivel="2"] .d3-caps{box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 45%,transparent),inset 0 1px 0 rgba(245,240,232,.12),0 10px 28px -8px color-mix(in srgb,var(--tc) 45%,transparent)}
+.app[data-nivel="3"] .d3-caps{box-shadow:0 0 0 1px color-mix(in srgb,var(--tc) 65%,transparent),inset 0 1px 0 rgba(245,240,232,.12),0 12px 32px -8px color-mix(in srgb,var(--tc) 65%,transparent)}
+.d3-led{width:9px;height:9px;border-radius:50%;background:var(--tc);box-shadow:0 0 10px 1px var(--tc);transition:background .7s,box-shadow .7s;flex-shrink:0}
+.d3-lbl{display:flex;flex-direction:column;line-height:1.12}
+.d3-lbl small{font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.58)}
+.d3-lbl b{font-size:13px;font-weight:600}
+.d3-flaps{display:flex;align-items:center;gap:3px;padding:0 4px}
+.flap{position:relative;width:19px;height:28px;perspective:260px;font-family:'DM Sans';font-weight:600;font-size:19px;font-variant-numeric:tabular-nums}
+.flap>span{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:#2b2b28;color:#f5f0e8;backface-visibility:hidden}
+.flap i{position:absolute;left:0;right:0;height:200%;line-height:28px;text-align:center;font-style:normal}
+.f-top,.f-a{top:0;border-radius:5px 5px 0 0;border-bottom:.5px solid rgba(0,0,0,.6)}
+.f-bot,.f-b{bottom:0;border-radius:0 0 5px 5px;background:#242422}
+.f-top i,.f-a i{top:0}.f-bot i,.f-b i{top:-100%}
+.f-a{transform-origin:bottom;z-index:2}.f-b{transform-origin:top;z-index:2;transform:rotateX(90deg)}
+.flap.gira .f-a{animation:f-a .22s cubic-bezier(.5,0,1,1) both}
+.flap.gira .f-b{animation:f-b .26s var(--ease) .21s both}
+@keyframes f-a{to{transform:rotateX(-90deg)}}
+@keyframes f-b{from{transform:rotateX(90deg)}to{transform:rotateX(0)}}
+.flap-pt{font-weight:700;font-size:15px;color:var(--tc);padding:0 1px;transition:color .7s}
+.flap-u{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,240,232,.5);font-weight:600;margin-left:3px}
+.d3-boton{height:30px;padding:0 14px;border-radius:15px;background:#f5f0e8;color:#1a1a18;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;transition:background .2s}
+.d3-boton:hover{background:#fff}.d3-boton:hover .fl{transform:translateX(3px)}
+.d3-mas{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:rgba(245,240,232,.7);transition:transform .4s var(--ease),background .2s}
+.d3-mas:hover{background:rgba(245,240,232,.12)}
+.d3-mas[aria-expanded=true]{transform:rotate(180deg)}
+.d3-caps::before{content:"";position:absolute;top:0;bottom:0;width:60%;left:-70%;background:linear-gradient(105deg,transparent,rgba(245,240,232,.18),transparent);pointer-events:none;opacity:0}
+.app[data-nivel="3"] .d3-caps::before{opacity:1;animation:destello 6s var(--ease) infinite}
+@keyframes destello{0%,70%{transform:translateX(0)}100%{transform:translateX(420%)}}
+html[data-mov=sobrio] .d3-caps::before{display:none}
+/* resplandor que se escurre hacia la página */
+.d3-aurora{position:absolute;left:0;top:-30px;width:560px;height:150px;margin-left:-280px;pointer-events:none;z-index:1;display:none;opacity:0;
+  background:radial-gradient(50% 55% at 50% 38%,color-mix(in srgb,var(--tc) 60%,transparent),transparent 72%);filter:blur(14px);transition:opacity 1s var(--ease)}
+.app[data-maq="3"] .d3-aurora{display:block}
+.app[data-maq="3"][data-fase="viva"] .d3-aurora,.app[data-maq="3"][data-fase="naciendo"] .d3-aurora{opacity:.42;animation:deriva 8s ease-in-out infinite alternate}
+.app[data-maq="3"][data-nivel="2"] .d3-aurora{opacity:.62}
+.app[data-maq="3"][data-nivel="3"] .d3-aurora{opacity:.9}
+@keyframes deriva{from{transform:translateX(-26px) scaleX(.94)}to{transform:translateX(26px) scaleX(1.06)}}
+html[data-mov=sobrio] .d3-aurora{animation:none!important}
+/* ticket que cuelga */
+.d3-ticket{position:absolute;top:36px;left:0;transform:translateX(-50%);width:min(380px,calc(100cqw - 24px));z-index:2;visibility:hidden;pointer-events:none;
+  clip-path:inset(0 -60px 100% -60px);transition:clip-path .6s var(--ease),visibility 0s .6s}
+.d3-ticket.abierta{visibility:visible;pointer-events:auto;clip-path:inset(0 -60px -80px -60px);transition-delay:0s}
+.d3-papel{position:relative;background:var(--pill);color:#f5f0e8;border-radius:0 0 22px 22px;padding:30px 20px 16px;box-shadow:0 0 0 1px var(--pill-borde),0 26px 50px -18px color-mix(in srgb,var(--sombra) 65%,transparent);transform:translateY(-14px);transition:transform .6s var(--ease)}
+.d3-ticket.abierta .d3-papel{transform:none}
+.d3-papel .grande{font-family:'EB Garamond',serif;font-size:38px;line-height:1;margin-top:6px}
+.d3-papel .rot{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.58)}
+.d3-seg{display:flex;gap:3px;margin-top:14px;height:8px}
+.d3-seg i{display:block;border-radius:2px;background:rgba(245,240,232,.28);transform-origin:left;transform:scaleX(0);transition:transform .7s var(--ease)}
+.d3-ticket.abierta .d3-seg i{transform:scaleX(1)}
+.d3-seg .t1{flex:80}.d3-seg .t2{background:var(--tc);transition-delay:.12s}
+.d3-corte{position:relative;margin:14px -20px 12px;border-top:1.5px dashed rgba(245,240,232,.22)}
+.d3-corte::before,.d3-corte::after{content:"";position:absolute;top:-9px;width:16px;height:16px;border-radius:50%;background:var(--crema)}
+.d3-corte::before{left:-8px}.d3-corte::after{right:-8px}
+.d3-stats{display:flex;gap:18px;margin-top:10px;font-size:12px;color:rgba(245,240,232,.7)}
+.d3-stats b{display:block;font-family:'EB Garamond',serif;font-weight:400;font-size:22px;color:#f5f0e8;line-height:1.1}
+@container app (max-width:1299px){.d3-boton{display:none}.d3-caps{padding-right:8px}}
+@container app (max-width:700px){
+  .d3-lbl,.d3-boton,.flap-u,.d3-mas{display:none}.d3-caps{padding:0 12px;gap:8px;cursor:pointer}.flap{width:17px}
+}
+
+/* ---------- movimiento reducido ---------- */
+html[data-mov=reducido] *,html[data-mov=reducido] *::before,html[data-mov=reducido] *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important}
+}
+</style>
+</head>
+<body>
+
+<div class="ctl">
+  <div class="g"><b>Maqueta</b>
+    <div class="seg" id="c-maq"><button data-v="1" aria-pressed="true">1 · Isla central</button><button data-v="2" aria-pressed="false">2 · Horizonte</button><button data-v="3" aria-pressed="false">3 · Marcador</button></div></div>
+  <div class="g"><b>Momento</b>
+    <div class="seg" id="c-niv"><button data-m="-20" aria-pressed="false">Antes de la hora</button><button data-m="12" aria-pressed="true">En hora +12</button><button data-m="40" aria-pressed="false">Sigue abierta +40</button><button data-m="64" aria-pressed="false">Sin cerrar +1 h 4</button></div>
+    <button class="acc" id="c-mas">+10 min</button>
+    <button class="acc" id="c-auto">▶ Correr el reloj</button>
+    <span class="reloj-sim" id="c-hora"></span></div>
+  <div class="g"><b>Tema</b><div class="seg" id="c-tema"><button data-v="claro" aria-pressed="true">Claro</button><button data-v="oscuro" aria-pressed="false">Oscuro</button></div></div>
+  <div class="g"><b>Ancho</b><div class="seg" id="c-ancho"><button data-v="" aria-pressed="true">Escritorio</button><button data-v="laptop" aria-pressed="false">Laptop</button><button data-v="movil" aria-pressed="false">Celular 375</button></div></div>
+  <div class="g"><b>Movimiento</b><div class="seg" id="c-mov"><button data-v="completo" aria-pressed="true">Completo</button><button data-v="sobrio" aria-pressed="false">Sobrio</button><button data-v="reducido" aria-pressed="false">Reducido</button></div></div>
+  <button class="acc" id="c-reabrir">↺ Reabrir caja</button>
+</div>
+
+<div class="escena">
+<div class="app" id="app" data-maq="1" data-nivel="0" data-fase="oculta">
+  <aside class="riel"><div class="logo">C</div><i></i><i></i><i></i><i></i><i></i></aside>
+  <div class="cuerpo">
+    <header class="cab" id="cab">
+      <button class="ic" aria-label="Contraer menú"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button>
+      <div class="busca"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar…</span><kbd>Ctrl</kbd><kbd>K</kbd></div>
+
+      <!-- EL CENTRO DE LA BARRA: aquí vive el aviso -->
+      <div class="centro" id="centro">
+
+        <!-- 1 · ISLA CENTRAL -->
+        <div class="d" id="d1">
+          <div class="d1-isla" id="d1i">
+            <button class="d1-pildora" id="d1p" aria-expanded="false" aria-controls="d1panel">
+              <span class="d1-fill" id="d1fill"></span>
+              <span class="anillo" data-anillo></span>
+              <span class="d1-txt"><span class="late" aria-hidden="true"></span><b class="d1-rotulo" data-t="rotulo">Cerrar caja</b><span class="sep" aria-hidden="true"></span><span class="rueda num" data-rueda="dur"></span></span>
+            </button>
+            <div class="d1-panel" id="d1panel" inert>
+              <div class="d1-cab cas" style="--i:0">
+                <span class="anillo g" data-anillo></span>
+                <div><p class="lugar"><span class="late"></span><span data-t="lugar"></span></p><h2 class="titulo" data-t="titulo"></h2><p class="bajada" data-t="bajada"></p></div>
+              </div>
+              <div class="cas" style="--i:1"><div class="pista"><span class="turno"></span><span class="extra" data-extra></span><span class="marca"></span><span class="ahora" data-ahora></span></div>
+                <div class="rotulos"><span>Abrió <b>9:05 a. m.</b> · Felipe</span><span>Cierre <b data-t="cierre"></b></span></div></div>
+              <div class="cifras cas" style="--i:2"><div><p>Efectivo en el cajón</p><b class="num" data-cuenta="962" data-fmt="soles">S/ 0.00</b></div><div><p>Ventas del turno</p><b class="num" data-cuenta="17">0</b></div></div>
+              <p class="consejo cas" style="--i:3">Cuenta el efectivo y ciérrala: mañana la caja se abre con lo que cuentes hoy.</p>
+              <div class="acciones cas" style="--i:4"><button class="luego" data-plegar>Más tarde</button><button class="si" data-cerrar>Cerrar caja <span class="fl">→</span></button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 · HORIZONTE -->
+        <div class="d" id="d2">
+          <div class="d2-inst" id="d2i" role="group" aria-label="Recordatorio de cierre de caja">
+            <button class="d2-ver" id="d2ver" aria-label="Ver el detalle del cierre" aria-expanded="false"></button>
+            <span class="d2-lado d2-izq"><small>Cierre</small><b data-t="cierre"></b></span>
+            <span class="d2-regla" id="d2regla" aria-hidden="true"><span class="d2-cinta" id="d2cinta"></span><span class="d2-aguja"></span></span>
+            <span class="d2-lado d2-der"><small data-t="pasaron">Pasaron</small><b class="num"><span class="rueda" data-rueda="dur2"></span></b></span>
+            <button class="d2-cerrar" data-cerrar>Cerrar caja <span class="fl">→</span></button>
+          </div>
+          <div class="d2-peek" id="d2peek">
+            <p class="lugar"><span class="late"></span><span data-t="lugar"></span></p>
+            <h2 class="titulo" data-t="titulo"></h2><p class="bajada" data-t="bajada"></p>
+            <div class="cifras cas" style="--i:1"><div><p>Efectivo en el cajón</p><b class="num" data-cuenta="962" data-fmt="soles">S/ 0.00</b></div><div><p>Ventas del turno</p><b class="num" data-cuenta="17">0</b></div></div>
+            <p class="consejo cas" style="--i:2">Cuenta el efectivo y ciérrala: mañana la caja se abre con lo que cuentes hoy.</p>
+            <div class="acciones cas" style="--i:3"><button class="luego" data-plegar>Más tarde</button><button class="si" data-cerrar>Cerrar caja <span class="fl">→</span></button></div>
+          </div>
+        </div>
+
+        <!-- 3 · MARCADOR -->
+        <div class="d" id="d3">
+          <div class="d3-aurora" aria-hidden="true"></div>
+          <div class="d3-caps" id="d3c">
+            <span class="d3-led" aria-hidden="true"></span>
+            <span class="d3-lbl"><small data-t="lugar"></small><b data-t="rotulo">Cerrar caja</b></span>
+            <span class="d3-flaps" id="d3flaps" aria-hidden="true"></span>
+            <button class="d3-boton" data-cerrar>Cerrar <span class="fl">→</span></button>
+            <button class="d3-mas" id="d3mas" aria-expanded="false" aria-label="Ver el detalle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+          </div>
+          <div class="d3-ticket" id="d3t">
+            <div class="d3-papel">
+              <p class="rot cas" style="--i:0" data-t="titulo"></p>
+              <p class="grande num cas" style="--i:1" data-cuenta="962" data-fmt="soles">S/ 0.00</p>
+              <p class="bajada cas" style="--i:1">efectivo que debería haber en el cajón</p>
+              <div class="d3-seg cas" style="--i:2"><i class="t1"></i><i class="t2" data-seg></i></div>
+              <div class="rotulos cas" style="--i:2"><span>Abrió <b>9:05 a. m.</b></span><span>Cierre <b data-t="cierre"></b></span></div>
+              <div class="d3-corte"></div>
+              <div class="d3-stats cas" style="--i:3"><div><b class="num" data-cuenta="17">0</b>ventas del turno</div><div><b class="num"><span class="rueda" data-rueda="dur3"></span></b>desde la hora</div></div>
+              <div class="acciones cas" style="--i:4"><button class="luego" data-plegar>Más tarde</button><button class="si" data-cerrar>Cerrar caja <span class="fl">→</span></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="der">
+        <button class="act"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg><span>Actividad</span></button>
+        <button class="ic" id="c-tema2" aria-label="Cambiar tema"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+        <button class="sede"><span class="lg">Tienda Trujillo</span><span class="sm">TRU</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+      <div class="d2-hilo" aria-hidden="true"><i id="d2hilo"></i><b></b></div>
+      <div class="d2-glow" aria-hidden="true"></div>
+    </header>
+
+    <main class="pagina">
+      <section class="pag-a"><p class="eyebrow">Venta en tienda · Tienda Trujillo</p><div class="campo-f">Escanea la etiqueta o busca la prenda</div>
+        <div class="celdas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></section>
+      <aside class="pag-b"><p class="eyebrow">Ticket actual</p><h4>Ticket actual</h4><div class="lin"></div><div class="lin" style="width:70%"></div><div class="lin" style="width:85%"></div></aside>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- Lo que cambia de una maqueta a otra -->
+<section class="nota" id="nota-1">
+  <h2>1 · Isla central</h2>
+  <p>La misma «Isla» de hoy, pero nace en el centro de la barra y, al abrirse, <strong>cuelga de ella como una gota</strong> en vez de tapar la esquina. Es la más compacta de las tres: en la barra mide 36 px de alto y sigue siendo un solo objeto.</p>
+  <div class="cols">
+    <div><h3>Movimiento</h3><ul><li>Nace como un punto en el centro y se estira a píldora.</li><li>La píldora se <strong>llena de color</strong> con el tiempo (0 → 60 min); cada minuto pasa un brillo y el número rueda.</li><li>Al subir de nivel cambia de color y lanza <strong>una onda</strong>.</li><li>Se abre y se pliega entre medidas reales; el contenido entra en cascada (55 ms).</li><li>Al cerrar: se pone verde, dibuja el ✓ y se encoge.</li></ul></div>
+    <div><h3>Decorativo (solo «Completo»)</h3><ul><li>Un arco de luz que gira por el borde en «sin cerrar» — la única pieza fuera de lo que ADR-0136 ya permite. Con «Sobrio» desaparece.</li></ul></div>
+    <div><h3>Gana / Paga</h3><ul><li><strong>Gana:</strong> es lo más fiel a lo que ya existe (mismo componente, misma lógica); cambia solo dónde vive.</li><li><strong>Paga:</strong> a 375 px solo cabe el anillo y los minutos; el detalle queda detrás de un toque.</li></ul></div>
+  </div>
+</section>
+<section class="nota" id="nota-2" hidden>
+  <h2>2 · Horizonte</h2>
+  <p>El aviso es un <strong>instrumento de tiempo</strong>: una regla con una aguja que marca «ahora» y una bandera de «cierre» que se va quedando atrás. Además, un hilo de 2 px recorre <em>toda</em> la barra y se va llenando: se nota aunque nadie mire el centro.</p>
+  <div class="cols">
+    <div><h3>Movimiento</h3><ul><li>Nace abriéndose desde el centro hacia los lados.</li><li>La regla <strong>se desliza</strong> un tick cada 5 minutos: la bandera «cierre» se aleja y lo que pasó se pinta del color del nivel.</li><li>El hilo de la barra avanza con el tiempo; al subir de nivel, <strong>un barrido de luz</strong> cruza toda la barra y cambia de color.</li><li>Pasar el mouse (o tocar) cuelga el detalle, como una cortina.</li></ul></div>
+    <div><h3>Decorativo (solo «Completo»)</h3><ul><li>Un velo de color bajo la barra en los niveles 2 y 3 (no se mueve; es estado).</li></ul></div>
+    <div><h3>Gana / Paga</h3><ul><li><strong>Gana:</strong> es la más «sofisticada» y la que se ve de lejos: el hilo cruza toda la pantalla.</li><li><strong>Paga:</strong> es la más ancha (≈ 560 px); por debajo de 900 px de barra se reduce a regla + minutos.</li></ul></div>
+  </div>
+</section>
+<section class="nota" id="nota-3" hidden>
+  <h2>3 · Marcador</h2>
+  <p>Un <strong>contador mecánico</strong>: las paletas giran como en un panel de estaciones cada vez que cambia el minuto. Un resplandor del color del nivel se escurre desde la barra hacia la página, y al abrir cuelga un <strong>ticket</strong> con el efectivo a cuadrar.</p>
+  <div class="cols">
+    <div><h3>Movimiento</h3><ul><li>Nace con una cortina desde el centro y baja 10 px.</li><li>Cada dígito <strong>gira con una paleta</strong> (220 + 260 ms) solo cuando cambia.</li><li>El ticket se desenrolla hacia abajo; el efectivo cuenta hasta su valor; la barra del turno se llena.</li><li>Al cerrar: se pone verde y sube.</li></ul></div>
+    <div><h3>Decorativo (solo «Completo»)</h3><ul><li>El resplandor que deriva lento bajo la barra y un destello que cruza la cápsula cada 6 s en «sin cerrar». Ambos son bucles: requieren tu OK para entrar en ADR-0136.</li></ul></div>
+    <div><h3>Gana / Paga</h3><ul><li><strong>Gana:</strong> la más notoria y la que mejor dice «cuenta regresiva» sin números sueltos.</li><li><strong>Paga:</strong> es la más cargada visualmente; en una pantalla de cobro competiría con el resto.</li></ul></div>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const app = $('#app'), html = document.documentElement;
+  const CIERRE = 19 * 60 + 45, ABRIO = 9 * 60 + 5, TURNO = CIERRE - ABRIO, SEDE = 'Trujillo', PXM = 2.6, OFF = 45;
+  const S = { maq: 1, m: 12, caja: 'abierta', nivel: 0, vistoAuto: false, auto: null };
+  const reduce = () => html.dataset.mov === 'reducido' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const espera = ms => reduce() ? 0 : ms;
+  const T = [];  // temporizadores de la fase
+  const later = (fn, ms) => T.push(setTimeout(fn, espera(ms)));
+
+  /* ---------- textos (los mismos de ADR-0305) ---------- */
+  const hora12 = tot => { const h = Math.floor(tot / 60) % 24, m = ((tot % 60) + 60) % 60; return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'p. m.' : 'a. m.'}`; };
+  const nivelDe = m => m < 0 ? 0 : m < 30 ? 1 : m < 60 ? 2 : 3;
+  const dur = m => m < 1 ? 'ahora' : m < 60 ? `${m} min` : (m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.floor(m / 60)} h`);
+  const titulo = n => n === 3 ? 'Caja sin cerrar' : n === 2 ? 'La caja sigue abierta' : 'Es hora de cerrar caja';
+  const bajada = n => n === 3 ? `Desde las ${hora12(CIERRE)} Ciérrala antes de irte.` : n === 2 ? `Pasó la hora de cierre (${hora12(CIERRE)}).` : `${SEDE} cierra a las ${hora12(CIERRE)}`;
+  const soles = v => 'S/ ' + v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /* ---------- helpers de movimiento ---------- */
+  function rueda(el, texto) {                      // el minuto que pasó se ve pasar
+    if (!el) return;
+    const ult = el.lastElementChild;
+    if (ult && ult.textContent === texto) return;
+    if (!ult || reduce()) { el.innerHTML = ''; const s = document.createElement('span'); s.textContent = texto; el.append(s); return; }
+    ult.className = 'sale';
+    const n = document.createElement('span'); n.textContent = texto; n.className = 'entra'; el.append(n);
+    setTimeout(() => { [...el.children].slice(0, -1).forEach(c => c.remove()); n.className = ''; }, 420);
+  }
+  function contar(el) {                            // la cifra cuenta hasta su valor (ADR-0136)
+    const v = Number(el.dataset.cuenta), f = el.dataset.fmt === 'soles' ? soles : x => String(Math.round(x));
+    if (reduce()) { el.textContent = f(v); return; }
+    const t0 = performance.now(); el.textContent = f(0);
+    const paso = t => { const k = Math.min(1, (t - t0) / 700); el.textContent = f(v * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
+    requestAnimationFrame(paso);
+  }
+  const contarTodo = raiz => $$('[data-cuenta]', raiz).forEach(contar);
+
+  /* ---------- anillo con reloj ---------- */
+  const C = 2 * Math.PI * 15;
+  const anilloHTML = `<svg class="aro" viewBox="0 0 36 36"><circle class="aro-fondo" cx="18" cy="18" r="15"/><circle class="aro-avance" cx="18" cy="18" r="15" stroke-dasharray="${C}" stroke-dashoffset="${C}"/></svg>
+    <svg class="reloj" viewBox="0 0 24 24"><circle class="reloj-aro" cx="12" cy="12" r="9.25"/><line class="h" x1="12" y1="12" x2="12" y2="7.4"/><line class="m" x1="12" y1="12" x2="12" y2="5.1"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/></svg>`;
+  const checkHTML = `<svg class="aro" viewBox="0 0 36 36" style="transform:none"><circle class="aro-fondo" cx="18" cy="18" r="15" style="stroke:rgba(245,240,232,.5)"/></svg><svg class="reloj" viewBox="0 0 24 24" style="inset:18%;width:64%;height:64%"><path class="check" d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+  $$('[data-anillo]').forEach(a => a.innerHTML = anilloHTML);
+  const ang = { rh: ((Math.floor(CIERRE / 60) % 12) + (CIERRE % 60) / 60) * 30, rm: (CIERRE % 60) * 6 + 360 };
+  const apuntar = on => $$('.reloj').forEach(r => { r.style.setProperty('--rh', on ? ang.rh + 'deg' : '0deg'); r.style.setProperty('--rm', on ? ang.rm + 'deg' : '0deg'); });
+
+  /* ---------- regla del Horizonte ---------- */
+  const cinta = $('#d2cinta');
+  let h = `<span class="d2-pasado" id="d2pas" style="left:${OFF * PXM}px;width:0"></span><span class="d2-flag" data-h="${hora12(CIERRE).replace(' p. m.','')}" style="left:${OFF * PXM}px"></span>`;
+  for (let t = -OFF; t <= 150; t += 5) {
+    const may = (t + CIERRE) % 15 === 0, x = (t + OFF) * PXM;
+    h += `<i class="${may ? 'may' : ''}" data-t="${t}" style="left:${x}px"></i>`;
+    if ((t + CIERRE) % 30 === 0 && t !== 0) h += `<em style="left:${x}px">${hora12(CIERRE + t).replace(' a. m.', '').replace(' p. m.', '')}</em>`;
+  }
+  cinta.innerHTML = h; cinta.style.width = (195 + OFF) * PXM + 'px';
+
+  /* ---------- paletas del Marcador ---------- */
+  const flaps = $('#d3flaps');
+  flaps.innerHTML = `<span class="flap" data-f="0">${paleta(0)}</span><span class="flap-pt">:</span><span class="flap" data-f="1">${paleta(0)}</span><span class="flap" data-f="2">${paleta(0)}</span><span class="flap-u">h : min</span>`;
+  function paleta(v) { return `<span class="f-top"><i>${v}</i></span><span class="f-bot"><i>${v}</i></span><span class="f-a"><i>${v}</i></span><span class="f-b"><i>${v}</i></span>`; }
+  function setPaleta(el, v) {
+    v = String(v); if (el.dataset.v === v) return;
+    const viejo = el.dataset.v ?? v; el.dataset.v = v;
+    if (reduce() || viejo === v || el.dataset.ini !== '1') { $$('i', el).forEach(i => i.textContent = v); el.dataset.ini = '1'; return; }
+    $('.f-top i', el).textContent = v; $('.f-a i', el).textContent = viejo; $('.f-b i', el).textContent = v; $('.f-bot i', el).textContent = viejo;
+    el.classList.remove('gira'); void el.offsetWidth; el.classList.add('gira');
+    setTimeout(() => { $('.f-bot i', el).textContent = v; $('.f-a i', el).textContent = v; el.classList.remove('gira'); }, 500);
+  }
+
+  /* ---------- pintar el estado ---------- */
+  const q = {
+    d1p: $('#d1p'), d1i: $('#d1i'), d1panel: $('#d1panel'), d2i: $('#d2i'), d2peek: $('#d2peek'), d2ver: $('#d2ver'),
+    d3c: $('#d3c'), d3t: $('#d3t'), d3mas: $('#d3mas'),
+  };
+  const abierto = { 1: false, 2: false, 3: false };
+  let fase = 'oculta';
+  const setFase = f => { fase = f; app.dataset.fase = f; };
+
+  function pintar() {
+    const m = S.m, n = S.nivel, mm = Math.max(0, m), prog = Math.max(0, Math.min(1, m / 60));
+    $('#c-hora').textContent = `${hora12(CIERRE + m)} · ${m < 0 ? `faltan ${-m} min` : m === 0 ? 'hora de cierre' : `+${dur(m)}`}`;
+    if (n === 0) return;   // antes de la hora no hay aviso; cerrada, la despedida pinta lo suyo
+    const tx = { rotulo: n === 3 ? 'Caja sin cerrar' : 'Cerrar caja', lugar: `Tienda ${SEDE} · ${hora12(CIERRE)}`, titulo: titulo(n), bajada: bajada(n), cierre: hora12(CIERRE), pasaron: n === 3 ? 'Sin cerrar' : 'Pasaron' };
+    $$('[data-t]').forEach(el => { const k = el.dataset.t; if (tx[k] !== undefined && el.textContent !== tx[k]) el.textContent = tx[k]; });
+    const durTxt = dur(mm);
+    $$('[data-rueda]').forEach(el => rueda(el, el.dataset.rueda === 'dur3' ? durTxt : durTxt));
+    // anillo y llenado
+    $$('.aro-avance').forEach(c => c.style.strokeDashoffset = C * (1 - prog));
+    $('#d1fill').style.width = (prog * 100) + '%';
+    const extra = Math.min(20, mm / TURNO * 80);
+    $$('[data-extra]').forEach(e => e.style.width = extra + '%');
+    $$('[data-ahora]').forEach(e => e.style.left = (80 + extra) + '%');
+    const seg = $('[data-seg]'); if (seg) seg.style.flex = Math.max(4, extra * 4);
+    // regla del horizonte: la aguja queda fija a 68 % y la cinta se desliza
+    const ventana = $('#d2regla').offsetWidth || 250, aguja = ventana * .68;
+    cinta.style.transform = `translateX(${aguja - (mm + OFF) * PXM}px)`;
+    $('#d2pas').style.width = mm * PXM + 'px';
+    $$('i[data-t]', cinta).forEach(t => t.classList.toggle('pas', Number(t.dataset.t) >= 0 && Number(t.dataset.t) <= mm));
+    // hilo que cruza la barra: 0 → 60 min = 0 → 100 % de la barra
+    $('#d2hilo').style.width = (prog * 100) + '%';
+    // paletas
+    const hh = Math.floor(mm / 60), mn = mm % 60;
+    setPaleta($('[data-f="0"]'), hh); setPaleta($('[data-f="1"]'), Math.floor(mn / 10)); setPaleta($('[data-f="2"]'), mn % 10);
+    // brillo por minuto en la píldora
+    if (fase === 'viva' && !reduce()) { q.d1p.classList.remove('brillo'); void q.d1p.offsetWidth; q.d1p.classList.add('brillo'); }
+    medir();
+  }
+
+  /* ---------- Isla central: medir entre tamaños reales ---------- */
+  function medir() {
+    const i = q.d1i;
+    if (fase === 'naciendo' || fase === 'saliendo') { i.style.width = '36px'; i.style.height = '36px'; }
+    else if (fase === 'cerrada') { i.style.width = q.d1p.scrollWidth + 'px'; i.style.height = '36px'; }
+    else if (abierto[1]) { i.style.width = q.d1panel.offsetWidth + 'px'; i.style.height = q.d1panel.scrollHeight + 'px'; }
+    else { i.style.width = q.d1p.scrollWidth + 'px'; i.style.height = '36px'; }
+  }
+  new ResizeObserver(medir).observe(q.d1p); new ResizeObserver(medir).observe(q.d1panel);
+
+  /* ---------- abrir / plegar cada detalle ---------- */
+  const plegarT = {};
+  function abrir(n, sola) {
+    cerrarOtros(n);
+    abierto[n] = true;
+    if (n === 1) { q.d1i.classList.add('abierta'); q.d1panel.inert = false; q.d1panel.classList.add('abierta'); q.d1p.setAttribute('aria-expanded', 'true'); medir(); contarTodo(q.d1panel); }
+    if (n === 2) { q.d2peek.classList.add('abierta'); q.d2ver.setAttribute('aria-expanded', 'true'); contarTodo(q.d2peek); }
+    if (n === 3) { q.d3t.classList.add('abierta'); q.d3mas.setAttribute('aria-expanded', 'true'); contarTodo(q.d3t); }
+    clearTimeout(plegarT[n]);
+    if (sola) { const intenta = () => { if (encima[n]) plegarT[n] = setTimeout(intenta, 1500); else plegar(n); }; plegarT[n] = setTimeout(intenta, 5000); }
+  }
+  function plegar(n) {
+    abierto[n] = false; clearTimeout(plegarT[n]);
+    if (n === 1) { q.d1i.classList.remove('abierta'); q.d1panel.inert = true; q.d1panel.classList.remove('abierta'); q.d1p.setAttribute('aria-expanded', 'false'); medir(); }
+    if (n === 2) { q.d2peek.classList.remove('abierta'); q.d2ver.setAttribute('aria-expanded', 'false'); }
+    if (n === 3) { q.d3t.classList.remove('abierta'); q.d3mas.setAttribute('aria-expanded', 'false'); }
+  }
+  const cerrarOtros = n => [1, 2, 3].forEach(k => k !== n && abierto[k] && plegar(k));
+  const encima = { 1: false, 2: false, 3: false };
+  [[q.d1i, 1], [q.d2i, 2], [q.d2peek, 2], [q.d3c, 3], [q.d3t, 3]].forEach(([el, n]) => { el.addEventListener('mouseenter', () => encima[n] = true); el.addEventListener('mouseleave', () => encima[n] = false); });
+
+  q.d1p.addEventListener('click', () => abrir(1, false));
+  q.d3mas.addEventListener('click', () => abierto[3] ? plegar(3) : abrir(3, false));
+  q.d3c.addEventListener('click', e => { if (e.target.closest('[data-cerrar],.d3-mas')) return; abierto[3] ? plegar(3) : abrir(3, false); });
+  q.d2ver.addEventListener('click', () => abierto[2] ? plegar(2) : abrir(2, false));
+  // Horizonte: también al pasar el mouse (con un respiro para no parpadear)
+  let hov; q.d2i.addEventListener('mouseenter', () => { hov = setTimeout(() => !abierto[2] && abrir(2, false), 220); });
+  [q.d2i, q.d2peek].forEach(el => el.addEventListener('mouseleave', () => { clearTimeout(hov); setTimeout(() => { if (!encima[2] && abierto[2]) plegar(2); }, 350); }));
+  document.addEventListener('click', e => { [1, 2, 3].forEach(n => { const raiz = $('#d' + n); if (abierto[n] && !raiz.contains(e.target)) plegar(n); }); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') [1, 2, 3].forEach(n => abierto[n] && plegar(n)); });
+  $$('[data-plegar]').forEach(b => b.addEventListener('click', () => [1, 2, 3].forEach(n => abierto[n] && plegar(n))));
+  $$('[data-cerrar]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); cerrarCaja(); }));
+
+  /* ---------- fases: nace · viva · se despide ---------- */
+  function limpiarT() { T.splice(0).forEach(clearTimeout); }
+  function nacer() {
+    limpiarT(); setFase('naciendo'); apuntar(false);
+    q.d1i.classList.remove('cerrada'); q.d3c.classList.remove('cerrada');
+    $$('.anillo').forEach(a => a.classList.remove('cerrada'));
+    $$('.anillo').forEach(a => a.innerHTML = anilloHTML); apuntar(false);
+    later(() => apuntar(true), 60);
+    later(() => { setFase('viva'); medir(); }, 520);
+    if (!S.vistoAuto) { S.vistoAuto = true; later(() => abrir(S.maq === 2 ? 2 : S.maq, true), 1100); }
+  }
+  function despedir() {
+    limpiarT(); [1, 2, 3].forEach(n => abierto[n] && plegar(n));
+    setFase('cerrada');
+    q.d1i.classList.add('cerrada'); q.d3c.classList.add('cerrada');
+    $$('.anillo').forEach(a => { a.innerHTML = checkHTML; a.classList.add('cerrada'); });
+    q.d1p.querySelector('.d1-fill').style.width = '0%';
+    $$('[data-t="rotulo"]').forEach(e => e.textContent = 'Caja cerrada');
+    $$('[data-rueda="dur"]').forEach(e => rueda(e, 'S/ 962.00'));
+    $$('[data-t="lugar"]').forEach(e => e.textContent = `Tienda ${SEDE} · cierre registrado`);
+    medir();
+    later(() => setFase('saliendo'), 1700); later(() => { setFase('oculta'); }, 2300);
+  }
+  function cerrarCaja() { S.caja = 'cerrada'; sync(); }
+
+  function ola() {
+    if (reduce()) return;
+    const host = S.maq === 1 ? q.d1i : S.maq === 3 ? q.d3c : q.d2i; if (!host) return;
+    const r = host.getBoundingClientRect(), c = $('#centro').getBoundingClientRect();
+    const o = document.createElement('span'); o.className = 'ola';
+    o.style.cssText = `left:${r.left - c.left}px;top:${r.top - c.top}px;width:${r.width}px;height:${r.height}px;border-radius:${r.height / 2}px`;
+    $('#centro').append(o); setTimeout(() => o.remove(), 1000);
+    if (S.maq === 2) { const hi = $('.d2-hilo'); hi.classList.remove('barrido'); void hi.offsetWidth; hi.classList.add('barrido'); }
+  }
+
+  function sync() {
+    const nAntes = S.nivel;
+    S.nivel = S.caja === 'abierta' ? nivelDe(S.m) : 0;
+    app.dataset.nivel = S.nivel;
+    if (S.nivel >= 1 && fase === 'oculta' && S.caja === 'abierta') { pintar(); nacer(); pintar(); return; }
+    if (S.nivel === 0 && (fase === 'viva' || fase === 'naciendo')) {
+      if (S.caja === 'cerrada') despedir(); else { limpiarT(); [1, 2, 3].forEach(n => abierto[n] && plegar(n)); setFase('oculta'); }
+      pintar(); return;
+    }
+    pintar();
+    if (S.nivel > nAntes && nAntes >= 1) ola();
+  }
+
+  /* ---------- panel de control ---------- */
+  const seg = (id, fn) => $$('button', $(id)).forEach(b => b.addEventListener('click', () => { $$('button', $(id)).forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); fn(b.dataset.v ?? b.dataset.m); }));
+  const marcaNivel = () => { const m = S.m; const b = [-20, 12, 40, 64]; const k = m < 0 ? -20 : m < 30 ? 12 : m < 60 ? 40 : 64; $$('button', $('#c-niv')).forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.m) === k))); };
+  seg('#c-maq', v => {
+    [1, 2, 3].forEach(n => abierto[n] && plegar(n));
+    S.maq = Number(v); app.dataset.maq = v;
+    $$('.nota').forEach(n => n.hidden = n.id !== 'nota-' + v);
+    if (fase !== 'oculta') { S.vistoAuto = false; limpiarT(); setFase('oculta'); sync(); }
+  });
+  seg('#c-niv', v => { S.m = Number(v); if (S.caja === 'cerrada') S.caja = 'abierta'; sync(); marcaNivel(); });
+  seg('#c-tema', v => html.dataset.tema = v);
+  seg('#c-ancho', v => { app.dataset.ancho = v; requestAnimationFrame(() => { medir(); sync(); }); setTimeout(() => { medir(); sync(); }, 520); });
+  seg('#c-mov', v => html.dataset.mov = v);
+  $('#c-tema2').addEventListener('click', () => { const v = html.dataset.tema === 'oscuro' ? 'claro' : 'oscuro'; html.dataset.tema = v; $$('button', $('#c-tema')).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === v))); });
+  $('#c-mas').addEventListener('click', () => { S.m += 10; if (S.caja === 'cerrada') S.caja = 'abierta'; sync(); marcaNivel(); });
+  $('#c-auto').addEventListener('click', e => {
+    if (S.auto) { clearInterval(S.auto); S.auto = null; e.target.textContent = '▶ Correr el reloj'; return; }
+    e.target.textContent = '❚❚ Pausar (1 s = 1 min)';
+    S.auto = setInterval(() => { if (S.caja !== 'abierta') return; S.m += 1; sync(); marcaNivel(); }, 1000);
+  });
+  $('#c-reabrir').addEventListener('click', () => { S.caja = 'abierta'; S.vistoAuto = false; limpiarT(); setFase('oculta'); S.nivel = 0; sync(); });
+
+  sync();
+})();
+</script>
+</body>
+</html>
