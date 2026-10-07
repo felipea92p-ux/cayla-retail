@@ -44,7 +44,7 @@ export function BeneficiosClubModal({
   onGuardado: () => void;
 }) {
   return (
-    <Modal
+    <Modal conCerrar
       titulo="Beneficios del club"
       subtitulo="El cupón de cumpleaños y el vale de aniversario de cada miembro, para las 3 tiendas."
       onClose={onClose}
@@ -58,11 +58,6 @@ export function BeneficiosClubModal({
           <div className="space-y-4">
             <p className="text-sm text-rojo-profundo">{lectura.falla ?? "No se pudieron leer los beneficios vigentes del club."}</p>
             <p className="text-sm text-tinta/70">Sin lo vigente no se puede editar: se guardaría encima de valores que no se ven.</p>
-            <div className="flex justify-end">
-              <Boton type="button" onClick={cerrar}>
-                Cerrar
-              </Boton>
-            </div>
           </div>
         )
       }

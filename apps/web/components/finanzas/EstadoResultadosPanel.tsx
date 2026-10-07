@@ -330,7 +330,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
   const o = lineas ? origenDeCifra(lineas, k.cuentas, claveUnidad(c)) : null;
   const fuentes = fuentesDe(k.clave);
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -378,11 +378,6 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       <p className="mt-3 text-[12.5px] text-taupe">
         Cada cifra es la suma de líneas del diario, y cada línea sabe de qué fila salió. Nada se tipea aquí.
       </p>
-      <div className="fin-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
-      </div>
     </Modal>
   );
 }

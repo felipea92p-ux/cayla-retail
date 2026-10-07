@@ -158,7 +158,7 @@ export function FrescuraDetalle({
     ) : null;
 
   return (
-    <Modal
+    <Modal conCerrar
       titulo={modo === "decidir" ? `¿Qué hiciste con ${detalle.titulo}?` : detalle.titulo}
       subtitulo={
         <>
@@ -363,11 +363,6 @@ export function FrescuraDetalle({
             </dl>
           </Bloque>
 
-          <div className="flex justify-end border-t border-sand pt-4">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
-              Cerrar
-            </button>
-          </div>
         </>
       )}
     </Modal>

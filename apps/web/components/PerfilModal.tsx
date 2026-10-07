@@ -158,7 +158,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
   }
 
   return (
-    <Modal titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} ancho="max-w-lg">
+    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} ancho="max-w-lg">
       {(cerrar) => {
         void cerrar; // el cierre animado de Modal no distingue "en vuelo" — se controla acá, con alCerrar
         if (cargando) return <p className="py-8 text-center text-sm text-tinta/65">Cargando…</p>;
@@ -265,11 +265,6 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               </button>
             )}
 
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={alCerrar} className={`${botonCancelar} flex-1`}>
-                Cerrar
-              </button>
-            </div>
           </div>
         );
       }}

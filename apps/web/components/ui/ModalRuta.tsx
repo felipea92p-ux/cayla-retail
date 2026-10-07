@@ -12,7 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 // en el velo y el botón Cerrar hacen exactamente lo mismo que la flecha
 // "atrás" del navegador, así nunca quedan desincronizados.
 //
-// `cierre` (opt-in): por defecto el modal se cierra con el botón «Cerrar» del pie. Con `cierre="equis"` se cierra
+// `cierre`: desde la ronda 4 de /unificar (Felipe 2026-10-07, «la × sola, arriba a la derecha») el modal se cierra con la ×; con `cierre="pie"` vuelve el botón «Cerrar» del pie. Antes era al revés: con `cierre="equis"` se cerraba
 // con una X arriba a la derecha (gira 90° al pasar el mouse; estilos en `app/estilos/comprobantes-detalle.css`,
 // clase `cd-equis`) y el pie ya no muestra «Cerrar»: solo lleva `acciones`, y si no hay acciones no hay pie.
 // Así lo pide el detalle de un comprobante (prototipo aprobado). Sin la prop, todo queda como antes.
@@ -26,7 +26,7 @@ export function ModalRuta({
   ancho = "max-w-4xl",
   alCerrar,
   acciones,
-  cierre = "pie",
+  cierre = "equis",
   children,
 }: {
   titulo: ReactNode;

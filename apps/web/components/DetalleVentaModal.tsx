@@ -97,7 +97,7 @@ export function DetalleVentaModal({
   }, [imprimiendo]);
 
   return (
-    <Modal titulo="Detalle de la venta" subtitulo={ubicacionNombre} onClose={onClose} ancho="max-w-lg">
+    <Modal conCerrar titulo="Detalle de la venta" subtitulo={ubicacionNombre} onClose={onClose} ancho="max-w-lg">
       {(cerrar) => {
         if (carga.fase === "cargando") return <p className="py-10 text-center text-sm text-tinta/60">Cargando la venta…</p>;
         if (carga.fase === "error")
@@ -105,9 +105,6 @@ export function DetalleVentaModal({
             <div className="space-y-4 py-6 text-center">
               <p className="text-sm text-tinta/80">No pudimos cargar esta venta.</p>
               <div className="flex justify-center gap-2.5">
-                <button type="button" className={botonCancelar} onClick={cerrar}>
-                  Cerrar
-                </button>
                 <button type="button" className={botonPrimario} onClick={reintentar}>
                   Reintentar
                 </button>

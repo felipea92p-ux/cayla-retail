@@ -80,7 +80,7 @@ export function ApartadosModal({
         }`;
 
   return (
-    <Modal titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} ancho="max-w-2xl">
+    <Modal conCerrar titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} ancho="max-w-2xl">
       {(cerrar) =>
         liberando ? (
           <form onSubmit={liberar} className="mt-2 space-y-4" noValidate>
@@ -121,9 +121,6 @@ export function ApartadosModal({
         ) : apartados.length === 0 ? (
           <div className="mt-2 space-y-4">
             <p className="text-sm text-tinta/65">Cuando apartes una prenda para un cliente, aparece aquí con su fecha límite.</p>
-            <Boton type="button" onClick={cerrar} className="w-full">
-              Cerrar
-            </Boton>
           </div>
         ) : (
           <div className="mt-2 space-y-3">
@@ -179,9 +176,6 @@ export function ApartadosModal({
               })}
             </ul>
             {otraSede && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
-            <Boton type="button" onClick={cerrar} className="w-full">
-              Cerrar
-            </Boton>
           </div>
         )
       }

@@ -686,7 +686,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
   }
 
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -728,9 +728,6 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
             Dar de baja…
           </button>
         )}
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
       </div>
     </Modal>
   );

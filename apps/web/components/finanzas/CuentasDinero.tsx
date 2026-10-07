@@ -1052,7 +1052,7 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
     );
   }
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={TEXTO_MOVIMIENTO[m.tipo]}
       subtitulo={[fechaCorta(m.fecha, true), m.referencia].filter(Boolean).join(" · ")}
@@ -1076,9 +1076,6 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
             Anular…
           </button>
         )}
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
       </div>
     </Modal>
   );
