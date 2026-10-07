@@ -52,3 +52,10 @@ export function tallasAgotadas(tallas: readonly (FilaCelda & Pick<FilaPrenda, "t
 export function tallasSinColgar(colores: readonly { tallas: readonly Pick<FilaPrenda, "pisoDisponible" | "almacenDisponible">[] }[]): number {
   return colores.reduce((s, c) => s + c.tallas.filter((t) => Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0).length, 0);
 }
+
+/** El color que la tarjeta muestra si la persona no eligió otro (Felipe, 2026-10-07: una tarjeta que abría en un color agotado se veía
+ *  vacía mientras el botón decía «2 tallas»): el primero con algo que colgar, si no el primero con algo libre, si no el primero. */
+export function colorDeEntrada<C extends { tallas: readonly FilaCelda[] }>(colores: readonly C[], faltan: ReadonlySet<string> = new Set()): C | undefined {
+  const conColgar = colores.find((c) => c.tallas.some((t) => faltan.has((t as { varianteId?: string }).varianteId ?? "") || (Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0)));
+  return conColgar ?? colores.find((c) => c.tallas.some((t) => estadoTalla(t as unknown as FilaPrenda) !== "sin_stock")) ?? colores[0];
+}

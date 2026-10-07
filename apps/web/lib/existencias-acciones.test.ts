@@ -8,6 +8,10 @@ describe("botonDeTarjeta", () => {
     expect(botonDeTarjeta({ ...base, tallasPorColgar: 1 })).toEqual({ tipo: "colgar", etiqueta: "Colgar en el piso", sugerido: true });
     expect(botonDeTarjeta({ ...base, tallasPorColgar: 3 }).etiqueta).toBe("Colgar en el piso · 3 tallas");
   });
+  it("cuenta solo las tallas del color que se ve; si ese no tiene, «Colgar en otros colores»", () => {
+    expect(botonDeTarjeta({ ...base, tallasPorColgar: 3, tallasDelColor: 1 }).etiqueta).toBe("Colgar en el piso");
+    expect(botonDeTarjeta({ ...base, tallasSinColgar: 2, tallasDelColor: 0 }).etiqueta).toBe("Colgar en otros colores");
+  });
   it("colgar gana al aviso de agotada", () => {
     expect(botonDeTarjeta({ ...base, tallasPorColgar: 2, agotadas: ["L"] }).tipo).toBe("colgar");
   });
