@@ -366,7 +366,9 @@ export function CajaAbiertaPanel({
             sinHora
             acciones={comparativa ? undefined : accionesCabecera}
           >
-            <div className="flex w-full flex-col sm:w-auto sm:items-end">
+            {/* `sm:ml-auto`: con los botones en versalitas (ADR-0358, accion.nuevo) la columna no siempre cabe junto al título y
+                baja de fila; ahí sigue pegada a la derecha, donde la busca quien cierra la caja. */}
+            <div className="flex w-full flex-col sm:ml-auto sm:w-auto sm:items-end">
             <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
               <EstadoSync pendientes={cola.length} />
               <TurnoCompacto abiertaEn={caja.abiertaEn} />
