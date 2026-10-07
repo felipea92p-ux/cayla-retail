@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { createContext, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
-import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
-import { Ayuda, ChipEstado, COLOR_ESTADO, Cuenta, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
+import { Icono } from "@/components/analisis/iconos";
+import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
 import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
-import { diasQueQuedan, esTallaUnica, META_SE_VENDE_LO_QUE_LLEGA, plural, PRENDAS_EN_LISTA, vendioDe10 } from "@/lib/analisis-reglas";
+import { diasQueQuedan, esTallaUnica, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
+import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
 import {
   caminosDeHoy,
   carrilesDeCinta,
   cintaFlujo,
   columnasFlujo,
   ejeCinta,
-  estadoLlegadas,
   estadoQuieta,
   estadosDelFlujo,
   etiquetaFlujo,
@@ -45,8 +45,8 @@ import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
 // y salen de la tienda, de alto fijo, que bajo 760 px se vuelve una lista. Todo es de la tienda elegida arriba: la comparación de las
 // tres tiendas vive en CAYLA Global (decisión 3, act. 2026-10-06). Las cuentas viven en `lib/analisis-hoy.ts`; aquí solo se dibuja.
 //
-// Lo que filtra el buscador: las prendas (las listas y los caminos). Las cifras de la tienda (lo que se vende por categoría, lo
-// que llega) son de toda la tienda.
+// Lo que filtra el buscador: las prendas (las listas y los caminos). Las cifras de la tienda (lo que se vende por categoría) son de
+// toda la tienda.
 
 const ids = (prendas: readonly Pick<PrendaAnalisis, "varianteId">[]): string => prendas.map((p) => p.varianteId).join(" ");
 
@@ -58,7 +58,9 @@ export function PestanaHoy() {
   const buscando = q.trim() !== "";
   const acaba = seAcabanHoy(prendas, liquidarDesde);
   const quietas = quietasHoy(prendas, liquidarDesde);
-  const vendio = vendioDe10(datos.prendas);
+  // «¿Qué no ha salido al piso?»: sin saberlo (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
+  const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
+  const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : "bien";
   const partes = partesPorCategoria(datos.prendas);
   const mariposa = miniMariposa(partes);
 
@@ -71,27 +73,8 @@ export function PestanaHoy() {
         <Instrumento i={1} vista="nose" pregunta="¿Qué no se mueve?" est={quietas.length ? "ate" : buscando ? null : "bien"}>
           <ListaQuietas prendas={quietas} />
         </Instrumento>
-        <Instrumento i={2} vista="pedir" pregunta="¿Se vende lo que llega?" est={estadoLlegadas(vendio)}>
-          <div className="i-vis">
-            <Perchas n={vendio} meta={META_SE_VENDE_LO_QUE_LLEGA} />
-          </div>
-          {vendio === null ? (
-            <div className="i-num">
-              <b className="palabras">Sin llegadas</b>
-              <span>en 30 días</span>
-            </div>
-          ) : (
-            <div className="i-num">
-              <b>
-                <Cuenta valor={vendio} /> de 10
-              </b>
-              <span>
-                de lo que llegó
-                <br />
-                en 30 días
-              </span>
-            </div>
-          )}
+        <Instrumento i={2} vista="piso" pregunta="¿Qué no ha salido al piso?" est={estPiso}>
+          <ListaPiso prendas={sinSalir} />
         </Instrumento>
         <Instrumento i={3} vista="pedir" pregunta="¿Qué pedir?" est="info">
           <div className="i-vis">{mariposa.filas.length > 0 && <MiniMariposa filas={mariposa.filas} max={mariposa.max} />}</div>
@@ -218,34 +201,38 @@ function ListaQuietas({ prendas }: { prendas: PrendaAnalisis[] }) {
   );
 }
 
-/** «¿Se vende lo que llega?»: 10 perchas, llenas las que se vendieron, y la meta punteada. Sin llegadas, vacías y sin meta. */
-function Perchas({ n, meta }: { n: number | null; meta: number }) {
-  const llenas = n ?? 0;
+/**
+ * «¿Qué no ha salido al piso?»: las 5 que más días llevan guardadas sin haberse colgado nunca (Felipe, 2026-10-07, en lugar de
+ * «¿Se vende lo que llega?», que contaba como llegado lo que nadie había visto). Sin saber cuándo salió al piso cada prenda (la
+ * base sin 20261007120000), lo dice y no inventa una lista.
+ */
+function ListaPiso({ prendas }: { prendas: PrendaAnalisis[] }) {
+  const { q, datos } = useAnalisis();
+  if (!datos.sabePiso) return <p className="b-nota">Todavía no lo puedo saber.</p>;
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : "Todo salió al piso."}</p>;
   return (
-    <div className="perchas" role="img" aria-label={n === null ? "Sin llegadas en 30 días" : `${n} de 10, meta ${meta}`}>
-      {Array.from({ length: 10 }, (_, k) => (
-        <svg
-          key={k}
-          className={`${k < llenas ? "si" : "no"} po`}
-          style={{ ["--d" as string]: k }}
-          viewBox="0 0 24 24"
-          fill={k < llenas ? "currentColor" : "none"}
-          fillOpacity={0.14}
-          stroke="currentColor"
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          {TRAZO_PERCHA}
-        </svg>
-      ))}
-      {n !== null && (
-        <span className="meta-m" style={{ left: meta * 22 - 2 }}>
-          <span>meta {meta}</span>
-        </span>
-      )}
-    </div>
+    <>
+      <div className="lista5">
+        {prendas.slice(0, PRENDAS_EN_LISTA).map((p) => {
+          const dias = diasEnAlmacen(p, datos.hoy);
+          return (
+            <FilaCinco key={p.varianteId} prenda={p}>
+              <span className="es dias" style={{ ["--c" as string]: COLOR_ESTADO.ate }}>
+                <Icono nombre="caja" />
+                {dias === null ? (
+                  "—"
+                ) : (
+                  <>
+                    <b>{dias}</b> {plural(dias, "día", "días")}
+                  </>
+                )}
+              </span>
+            </FilaCinco>
+          );
+        })}
+      </div>
+      <VerTodas n={prendas.length} />
+    </>
   );
 }
 

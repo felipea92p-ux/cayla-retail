@@ -17,7 +17,6 @@ import {
   DIAS_TRES_MESES,
   GRUPOS_ACABA,
   GRUPOS_QUIETAS,
-  META_SE_VENDE_LO_QUE_LLEGA,
   ordenQuietas,
   ordenSeAcaba,
   plural,
@@ -55,11 +54,6 @@ export function textoDiasQueQuedan(dias: number): { texto: string; est: Extract<
 /** Una fila de «¿Qué no se mueve?»: en rojo desde los 3 meses quieta; antes, en ámbar. */
 export const estadoQuieta = (diasSinVender: number): Extract<EstadoHoy, "urg" | "ate"> => (diasSinVender >= DIAS_TRES_MESES ? "urg" : "ate");
 
-/** «¿Se vende lo que llega?»: va bien desde la meta; si no llegó nada en 30 días no hay qué medir (solo se informa). */
-export function estadoLlegadas(vendioDe10: number | null): Extract<EstadoHoy, "bien" | "ate" | "info"> {
-  if (vendioDe10 === null) return "info";
-  return vendioDe10 >= META_SE_VENDE_LO_QUE_LLEGA ? "bien" : "ate";
-}
 
 
 /** Lo que se vende y lo que hay de cada tipo de prenda, de cada 100 (la mariposa «se vende ↔ tienes»). */

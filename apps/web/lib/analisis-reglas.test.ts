@@ -18,7 +18,6 @@ import {
   sedeDeAnalisis,
   sedeQueMasVende,
   seEstaAcabando,
-  vendioDe10,
 } from "./analisis-reglas";
 
 // Datos inventados para la prueba (no son de producción).
@@ -119,10 +118,6 @@ describe("por llegar, edad y lo que llega", () => {
   it("las unidades por tramo de días sin venderse", () => {
     const e = edadDelInventario([prenda({ piso: 2, diasSinVender: 10 }), prenda({ almacen: 3, diasSinVender: 61 }), prenda({ piso: 1, diasSinVender: 120 }), prenda({ piso: 5 })]);
     expect(e).toEqual({ hasta30: 2, de31a60: 0, de61a90: 3, masDe90: 1 });
-  });
-  it("de cada 10 que llegaron, cuántas se vendieron", () => {
-    expect(vendioDe10([prenda({ llegaron30: 6, vendidasDeLasQueLlegaron30: 5 }), prenda({ llegaron30: 4, vendidasDeLasQueLlegaron30: 9 })])).toBe(9);
-    expect(vendioDe10([prenda({})])).toBeNull();
   });
 });
 

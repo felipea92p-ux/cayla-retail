@@ -28,8 +28,6 @@ export const LIQUIDAR_MAX = 999;
 export const LIQUIDAR_PASO = 5;
 /** Cuánto tiene que haber vendido otra tienda en 30 días para proponer mandársela («Mándalas a donde sí se venden»). */
 export const VENDIDAS_PARA_ENVIAR = 2;
-/** Meta de «se vende lo que llega»: de cada 10 que llegan en 30 días, cuántas deberían venderse (decisión 3). */
-export const META_SE_VENDE_LO_QUE_LLEGA = 6;
 /** La ventana de ventas de Análisis: el ritmo de lo que se vende se mide en hasta 30 días. */
 export const VENTANA_VENTAS = 30;
 
@@ -140,14 +138,6 @@ export function edadDelInventario(prendas: readonly Pick<PrendaAnalisis, "piso" 
     else e.masDe90 += u;
   }
   return e;
-}
-
-/** De cada 10 que llegaron en 30 días, cuántas se vendieron (redondeado); null si no llegó nada. */
-export function vendioDe10(prendas: readonly Pick<PrendaAnalisis, "llegaron30" | "vendidasDeLasQueLlegaron30">[]): number | null {
-  const llegaron = prendas.reduce((s, p) => s + p.llegaron30, 0);
-  if (llegaron <= 0) return null;
-  const vendidas = prendas.reduce((s, p) => s + Math.min(p.vendidasDeLasQueLlegaron30, p.llegaron30), 0);
-  return Math.round((vendidas / llegaron) * 10);
 }
 
 /** «Liquidar desde» dentro de sus topes; lo que no es un número vuelve al de fábrica. */

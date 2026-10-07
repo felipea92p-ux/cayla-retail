@@ -13,7 +13,6 @@ import {
   SEGUNDOS_PUNTO,
   columnasFlujo,
   DIFERENCIA_PIDE_MAS,
-  estadoLlegadas,
   estadoQuieta,
   estadosDelFlujo,
   etiquetaFlujo,
@@ -118,14 +117,6 @@ describe("las cuatro tarjetas", () => {
   it("una quieta va en rojo desde los 3 meses", () => {
     expect(estadoQuieta(89)).toBe("ate");
     expect(estadoQuieta(90)).toBe("urg");
-  });
-
-  it("«¿Se vende lo que llega?»: va bien desde la meta (6 de 10); sin llegadas solo se informa", () => {
-    expect(estadoLlegadas(6)).toBe("bien");
-    expect(estadoLlegadas(10)).toBe("bien");
-    expect(estadoLlegadas(5)).toBe("ate");
-    expect(estadoLlegadas(0)).toBe("ate");
-    expect(estadoLlegadas(null)).toBe("info");
   });
 });
 
