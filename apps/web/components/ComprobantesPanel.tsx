@@ -70,7 +70,7 @@ function accionComprobante(
         );
       case "anular":
         return (
-          <BotonCompacto key={accion} variante="fila" aria-label={`Anular ${numero}`} onClick={() => handlers.onAnularClick(c)}>
+          <BotonCompacto key={accion} variante="fila-alerta" aria-label={`Anular ${numero}`} onClick={() => handlers.onAnularClick(c)}>
             Anular
           </BotonCompacto>
         );

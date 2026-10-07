@@ -53,7 +53,7 @@ export function DevolucionesVentas({
       <button
         type="button"
         onClick={() => onAnular(compra)}
-        className="rounded-md px-2 py-1 text-xs font-medium text-tinta/70 underline decoration-tinta/25 underline-offset-4 transition-colors duration-200 hover:text-rojo-profundo hover:decoration-rojo-profundo"
+        className="btn-cayla btn-peligro"
       >
         Anular venta
       </button>

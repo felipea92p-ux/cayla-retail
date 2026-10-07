@@ -82,7 +82,8 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // 63 → 51 el 2026-10-06: las pestañas, píldoras y segmentos de /unificar «pestanas» (ADR-0358) usan el anillo común, también
   // las de Comprobantes (FacturacionPestanas); y el rediseño de Análisis (v4) borró los componentes viejos que tenían el suyo.
   // 51 → 50: se borró `ficha-producto/AjusteDeStock.tsx`, que ninguna pantalla dibujaba.
-  const PENDIENTES_HOY = 50;
+  // 50 → 49 el 2026-10-07: «Anular comprobante» de Compras pasa a `btn-peligro` (ronda 4 de /unificar) y usa el anillo común.
+  const PENDIENTES_HOY = 49;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

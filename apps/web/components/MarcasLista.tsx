@@ -220,7 +220,7 @@ export function MarcasLista({
                     type="button"
                     onClick={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
                     disabled={trabajando === m.id}
-                    className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo disabled:opacity-40"
+                    className="btn-cayla btn-peligro"
                   >
                     Desactivar
                   </button>
@@ -229,7 +229,7 @@ export function MarcasLista({
                       type="button"
                       onClick={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
                       disabled={trabajando === m.id}
-                      className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo disabled:opacity-40"
+                      className="btn-cayla btn-peligro"
                     >
                       Eliminar
                     </button>
@@ -266,7 +266,7 @@ export function MarcasLista({
                     type="button"
                     onClick={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}
                     disabled={trabajando === m.id}
-                    className="label-cayla text-[10.5px] underline underline-offset-4 hover:text-rojo disabled:opacity-40"
+                    className="btn-cayla btn-secundario"
                   >
                     Reactivar
                   </button>
@@ -276,7 +276,7 @@ export function MarcasLista({
                     type="button"
                     onClick={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
                     disabled={trabajando === m.id}
-                    className="label-cayla text-[10.5px] underline underline-offset-4 hover:text-rojo disabled:opacity-40"
+                    className="btn-cayla btn-peligro"
                   >
                     Eliminar
                   </button>

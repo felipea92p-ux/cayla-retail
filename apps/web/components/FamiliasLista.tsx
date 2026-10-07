@@ -136,8 +136,7 @@ export function FamiliasLista({
                   Editar
                 </Boton>
                 <Boton
-                  peso="discreto"
-                  className="px-2.5 py-1.5 text-[10.5px] text-rojo/70 hover:text-rojo"
+                  peso="peligro"
                   cargando={cambiandoCodigo === f.codigo}
                   onClick={() => setConfirmando(confirmacionCatalogo("desactivar", f.nombre, () => cambiarEstado(f)))}
                 >

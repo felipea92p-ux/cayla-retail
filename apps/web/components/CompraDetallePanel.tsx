@@ -75,7 +75,7 @@ export function CompraAcciones({
           <button
             type="button"
             onClick={() => setAnulando(true)}
-            className="text-xs text-tinta/60 underline-offset-2 transition-colors hover:text-rojo hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+            className="btn-cayla btn-peligro"
           >
             Anular comprobante
           </button>

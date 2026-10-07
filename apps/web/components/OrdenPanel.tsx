@@ -392,7 +392,7 @@ export function OrdenPanel({
                 <Boton peso="primario" className="flex-1" onClick={() => setCerrando(true)}>
                   {orden.esMuestra ? "Dar por terminada" : "Cerrar al inventario"}
                 </Boton>
-                <Boton peso="discreto" onClick={onAnular}>
+                <Boton peso="peligro" onClick={onAnular}>
                   Anular
                 </Boton>
               </>

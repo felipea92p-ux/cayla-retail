@@ -183,7 +183,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     {subiendo ? "Subiendo…" : perfil.foto_url ? "Cambiar foto" : "Subir foto"}
                   </button>
                   {perfil.foto_url && (
-                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className={botonCancelar}>
+                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro flex-1">
                       Eliminar
                     </button>
                   )}
