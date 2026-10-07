@@ -40,6 +40,8 @@ type Props = {
   /** El nombre de la pantalla a la que vuelve, tal como lo dice el menú («Facturas de proveedor»). */
   a: string;
   className?: string;
+  /** Atributos `data-*` que la pantalla necesita para encontrarla (el foco al voltear un pase de Traslados: `data-foco-reverso`). */
+  datos?: Record<`data-${string}`, string | boolean>;
 } & ({ href: string; onClick?: never; deshabilitado?: never } | { onClick: () => void; href?: never; deshabilitado?: boolean });
 
 function Flecha() {
@@ -60,18 +62,18 @@ function Flecha() {
 }
 
 export function Volver(props: Props) {
-  const { a, className = "" } = props;
+  const { a, className = "", datos } = props;
   // Si el texto ya dice «Volver a Cambios» (la salida del flujo), no se le antepone otro «Volver a».
   const nombre = /^volver\b/i.test(a.trim()) ? a : `Volver a ${a}`;
   if (props.href !== undefined) {
     return (
-      <Link href={props.href} aria-label={nombre} title={nombre} data-pieza="volver" className={`${CLASES} ${className}`}>
+      <Link href={props.href} {...datos} aria-label={nombre} title={nombre} data-pieza="volver" className={`${CLASES} ${className}`}>
         <Flecha />
       </Link>
     );
   }
   return (
-    <button type="button" onClick={props.onClick} disabled={props.deshabilitado} aria-label={nombre} title={nombre} data-pieza="volver" className={`${CLASES} ${className}`}>
+    <button type="button" onClick={props.onClick} disabled={props.deshabilitado} {...datos} aria-label={nombre} title={nombre} data-pieza="volver" className={`${CLASES} ${className}`}>
       <Flecha />
     </button>
   );

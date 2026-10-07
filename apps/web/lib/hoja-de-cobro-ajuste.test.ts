@@ -90,7 +90,6 @@ describe("lo que la compactación cambia no lleva utilidades de Tailwind en el J
     ["hoja-cobro-raiz", [RELLENO, HUECO]],
     ["hoja-cobro-cabeza", [DISPLAY, RELLENO, HUECO]],
     ["hoja-cobro-total", [FUENTE]],
-    ["hoja-cobro-volver", [ALTO]],
     ["hoja-cobro-cabeza-paso", [MARGEN]],
     ["hoja-cobro-numero", [ALTO, /^w-/, FUENTE]],
     ["hoja-cobro-pago", [HUECO, COLUMNAS]],

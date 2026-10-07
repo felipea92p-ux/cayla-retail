@@ -335,9 +335,20 @@ export const DECISIONES = {
       "<Volver[^>]*\\bforma=",
       // Una vuelta escrita a mano con el glifo («← Volver a Caja»). El «← Atrás» de un paso a paso es otra familia (paso atrás).
       "←\\s*Volver a ",
+      // El «Atrás» de un paso a paso escrito a mano (Felipe 2026-10-07, ronda 3: «volver solo es una flecha»): el texto «Atrás» solo
+      // en su línea, o una flecha dibujada con «Atrás» / «Volver» al lado.
+      "^\\s*(?:<span aria-hidden>←<\\/span>\\s*)?Atrás\\s*$",
+      "<ArrowLeft\\b[^>]*\\/>\\s*(?:Atrás|Volver)\\b",
+      // Una vuelta escrita con el glifo y un nombre («← Ticket», «← Todas las cajas»). «← Anterior» y «← Volver al inicio» de una
+      // paginación no son una vuelta: pasan de página (otra familia).
+      "^\\s*←\\s+(?!Anterior\\b|Volver al inicio\\b)[A-ZÁÉÍÓÚ][^<{}]*$",
+      // «Volver a contar / a revisar / a editar…» como texto de un botón. No cuentan los que NO vuelven a un paso: reintentar,
+      // restablecer, la salida de una pantalla de error ni el enlace dentro de una frase.
+      "^\\s*Volver (?:a|al) (?!intentar|lo predeterminado|la predeterminada|como está|la que propone|inicio|período)[^<{}\"]+\\s*$",
     ],
     deuda: [],
     excepciones: [
+      { archivo: "components/conteo/RevisarConteo.tsx", motivo: "«Volver a contar» es la acción principal de Revisar conteo (ir a contar lo pendiente), no un paso atrás (Felipe 2026-10-07)" },
       { archivo: "app/(app)/global/elige-sede/page.tsx", motivo: "Tarjeta de barrera (elegir sede): su salida es la única acción de la tarjeta y va con los botones, no es la vuelta de una pantalla interna (docs/unificar/accion.volver.md)" },
     ],
   },
@@ -365,7 +376,9 @@ export const DECISIONES = {
       // Un «+ Nuevo / Registrar / Agregar» con la cara vieja de btn-cayla (34 px, letra normal).
       "className=\\{?[\"'`]btn-cayla btn-(?:primario|secundario)\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear|Dar acceso)\\b",
       // La cara B copiada a mano (sin el barrido de luz ni el encogerse al presionar de la pieza).
-      "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b"
+      "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b",
+      // El barrido viejo de 800 ms (ronda 3: el movimiento es uno solo, `.mov-boton`).
+      "\\bboton-brillo\\b"
     ],
     "deuda": [
     ],

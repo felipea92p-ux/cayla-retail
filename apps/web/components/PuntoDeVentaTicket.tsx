@@ -44,6 +44,7 @@ import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
 import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -470,14 +471,7 @@ export function PuntoDeVentaTicket({
           </>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={onVolverATicket}
-              disabled={bloqueado}
-              className="label-cayla -ml-2 h-8 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta"
-            >
-              ← Ticket
-            </button>
+            <Volver onClick={onVolverATicket} deshabilitado={bloqueado} a="Volver al ticket" />
             <div key={momentoMostrado} className={saliendo ? "anim-revelar-salida text-right" : "anim-revelar text-right"}>
               <h2 className="flex items-center justify-end gap-2.5 font-display text-2xl leading-none text-tinta">
                 {cobrando ? (

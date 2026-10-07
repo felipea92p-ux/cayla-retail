@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -50,6 +50,7 @@ import {
 } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 const PASOS = ["Venta", "Prenda", "Reemplazo", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -352,10 +353,7 @@ export function CambiosFlujo({
             </fieldset>
           </div>
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={onCerrar}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Otra venta
-            </BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrenda}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -388,10 +386,7 @@ export function CambiosFlujo({
             <PanelValidaciones validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
           </div>
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={retroceder}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar el cambio
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -433,10 +428,7 @@ export function CambiosFlujo({
           {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró el cambio." />}
 
           <PieDelPaso aviso={null}>
-            <BotonSecundario onClick={retroceder} disabled={enviando}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
