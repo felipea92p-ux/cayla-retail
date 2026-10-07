@@ -89,10 +89,10 @@ function TablaTallas({
   onTalla: (f: FilaExistencias) => void;
 }) {
   const celdas = tallas.map((f) => celdaTarjeta(f, separa));
-  // La columna bajo el mouse se ilumina entera (Felipe, 2026-10-07): toda la columna es la talla y toda abre su «Colgar».
+  // La columna bajo el mouse se ilumina entera, apenas y con un fundido suave (Felipe, 2026-10-07: «sutil y no brusco»): toda la columna es la talla y toda abre su «Colgar».
   const [sobre, setSobre] = useState<string | null>(null);
   const entra = (id: string) => ({ onMouseEnter: () => setSobre(id), onMouseLeave: () => setSobre((s) => (s === id ? null : s)) });
-  const luz = (f: FilaExistencias, c: CeldaTarjeta) => (sobre === f.varianteId ? (c.estado === "agotada" ? "!bg-rojo/[0.2]" : "bg-hueso") : "");
+  const luz = (f: FilaExistencias, c: CeldaTarjeta) => (sobre === f.varianteId ? (c.estado === "agotada" ? "!bg-rojo/[0.15]" : "bg-hueso/45") : "");
   const Simbolo: SimboloFiltro | undefined = marcaDelFiltro?.simbolo;
   const tono = marcaDelFiltro?.tono ?? "ambar";
   const atenua = (f: FilaExistencias) => (marcaDe(f) === "tenue" ? "opacity-40" : "");
@@ -110,7 +110,7 @@ function TablaTallas({
               ? `Talla ${nombre}: ${c.piso} en el piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
               : `Talla ${nombre}: ${c.piso} disponibles`;
             return (
-              <th key={f.varianteId} scope="col" {...entra(f.varianteId)} className={`h-5 rounded-t-[7px] border-b border-sand p-0 transition-colors ${c.estado === "agotada" ? "bg-rojo/[0.11]" : ""} ${luz(f, c)} ${atenua(f)}`}>
+              <th key={f.varianteId} scope="col" {...entra(f.varianteId)} className={`h-5 rounded-t-[7px] border-b border-sand p-0 transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${c.estado === "agotada" ? "bg-rojo/[0.11]" : ""} ${luz(f, c)} ${atenua(f)}`}>
                 <button
                   type="button"
                   onClick={() => onTalla(f)}
@@ -152,7 +152,7 @@ function TablaTallas({
                     onTalla(f);
                   }}
                   title={`Talla ${f.talla ?? "Única"}`}
-                  className={`h-[22px] cursor-pointer px-0.5 transition-colors ${claseCelda(c, fila.clave)} ${ultima ? "rounded-b-[7px]" : ""} ${luz(f, c)} ${atenua(f)}`}
+                  className={`h-[22px] cursor-pointer px-0.5 transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${claseCelda(c, fila.clave)} ${ultima ? "rounded-b-[7px]" : ""} ${luz(f, c)} ${atenua(f)}`}
                 >
                   {c.estado === "agotada" && fila.clave === "piso" ? "—" : fila.clave === "piso" ? c.piso : c.almacen}
                 </td>
