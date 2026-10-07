@@ -16,7 +16,7 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Pestañas y segmentos (`pestanas`) | `<Pestanas>` (vidrio con píldora oscura, en mayúsculas; también Finanzas) si cambia de sección · `pildora-cayla` si filtra o elige período · `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (caja arena) si cambia el modo u orden | 2026-10-06 (mirando) | 0 | [pestanas.md](pestanas.md) |
 | Tarjetas de cifra (`cifra`) | `<TarjetaCifra>`: la de Compras tal cual (flecha si lleva, arena si filtra, punteada sin dato) | 2026-10-06 (mirando) | 0 | [cifra.md](cifra.md) |
 | Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton>` / `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px y 40 px; `primario` la acción, `fantasma` su pareja. Movimiento ÚNICO de todo botón (`.mov-boton`, ronda 3): sube con sombra, barrido de luz, el «+» gira y la flecha avanza, se encoge al presionar, hilo al guardar | 2026-10-07 (mirando y tocando) | 0 | [accion.nuevo.md](accion.nuevo.md) |
-| Botones (`boton`) — dos voces | `btn-cayla` / `<Boton>`: versalitas dentro de una cabecera de pantalla (`data-voz="cabecera"`), letra normal en hojas y tarjetas; todo con el movimiento único y la onda al clic | 2026-10-07 (mirando y tocando) | 14 (el mostrador) | [boton.md](boton.md) |
+| Botones (`boton`) — dos voces | `btn-cayla` / `<Boton>`: versalitas dentro de una cabecera de pantalla (`data-voz="cabecera"`), letra normal en hojas y tarjetas; todo con el movimiento único y la onda al clic | 2026-10-07 (mirando y tocando) | 0 | [boton.md](boton.md) |
 | Lo peligroso (`accion.eliminar`) | `btn-peligro`: rojo desde el principio | 2026-10-07 (mirando) | 0 | [boton.md](boton.md) |
 | Cerrar una hoja (`accion.cerrar`) | la × sola arriba a la derecha (`<Modal conCerrar>`) | 2026-10-07 (mirando) | 0 | [boton.md](boton.md) |
 | Insignias de estado (`estado`) | `<Chip>`, como ya era. Se quedan a propósito: los chips con ícono de Análisis y el rol «Líder de equipo» en negro | 2026-10-07 (mirando) | sin candado | [estado.md](estado.md) |
@@ -42,7 +42,7 @@ en la página de elegir, nunca por una descripción.
 | # | Familia | Qué es | Formas (sin depurar) · pantallas | Por qué en este orden |
 |---:|---|---|---|---|
 | ~~1~~ | ~~`estado`~~ | Decidida el 2026-10-07 | | |
-| ~~2~~ | ~~`boton`~~ | Decidida el 2026-10-07 (ronda 4): dos voces, peligro en rojo, cerrar con la ×. Falta la pasada del mostrador | | |
+| ~~2~~ | ~~`boton`~~ | Decidida el 2026-10-07 (ronda 4): dos voces, peligro en rojo, cerrar con la ×; migrada entera, mostrador incluido | | |
 | 3 | `vacio` | Estados vacíos («Todavía no hay…») | 23 · 24 | Ley 9 de Formidable: un vacío dice qué falta. Hoy cada pantalla lo dice a su modo |
 | 4 | `aviso` | Avisos y notas (`nota-cayla`, errores, avisos de la esquina) | 13 · 60 | Está en 60 pantallas, y un aviso que se ve distinto se lee distinto |
 | 5 | `buscador` | Las cajas de buscar | 18 · 49 | El comportamiento ya es uno (`useBusquedaEnUrl`); la cara no |

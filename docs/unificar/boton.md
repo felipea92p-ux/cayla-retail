@@ -41,8 +41,10 @@ Verificado en el ERP: la onda corre en las hojas de Clientes y Caja y el botón 
 
 ## Lo que queda distinto a propósito
 
-- **El mostrador** (Vender, Apartados y el botón «Buscar» de Cambios y Devoluciones): 14 archivos con botones compactos de 28–32 px y de
-  cobro de 48–56 px, pensados para el dedo. Son la **deuda** de esta familia y van en su propia pasada, con prueba a 375 px (PL-105).
+- **El mostrador entró en su propia pasada el mismo día** (Vender, Apartados y el «Buscar» de Cambios y Devoluciones): 25 botones en 14
+  archivos. Los compactos conservan su alto (28–36 px) con letra de 12,5 px para caber en el ticket; los de cobro (`h-14`, «Cobrar»,
+  «Apartar», «Entregar») conservan su cara y cambian «solo subir» por el movimiento único. Las categorías del catálogo de Vender pasan a
+  la píldora del sistema (son un filtro). Probado a 1440 y 375 px sin botones cortados.
 - **El selector de mes** de Comprobantes (`SelectorMesFacturacion`): es un filtro de período, familia de pestañas.
 - **«Cerrar caja»** con su candado: es una operación, no cerrar una hoja.
 - **«Aplicar todos completos» y «Completar todo»** de Conteo conservan su letra rojiza: no borran nada, es un énfasis.
@@ -51,5 +53,5 @@ Verificado en el ERP: la onda corre en las hojas de Clientes y Caja y el botón 
 
 ## Deuda al decidir
 
-`boton`: 14 archivos del mostrador. `accion.eliminar` y `accion.cerrar`: 0. Las firmas (`apps/web/unificar/familias.mjs`) atrapan la
+`boton`: 0 tras la pasada del mostrador (al decidir eran 14). `accion.eliminar` y `accion.cerrar`: 0. Las firmas (`apps/web/unificar/familias.mjs`) atrapan la
 versalita copiada a mano, un enlace o un botón sutil teñido de rojo para borrar, y un «Cerrar» escrito al pie de una hoja.
