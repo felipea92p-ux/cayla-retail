@@ -21,6 +21,7 @@
 
 import { problemasReporte, type CampoReporte } from "./danadas-reglas";
 import { NOTA_MINIMA_ENCONTRE } from "./ajuste-reglas";
+import { cantidadEnSede, type SedeConStockId } from "./stock-por-sede";
 
 export type TipoFlujo = "colgar" | "colgarVarias" | "subir" | "enviar" | "pedir" | "ajustar" | "danada";
 
@@ -373,16 +374,16 @@ export function textoHecho(tipo: TipoFlujo, d: DatosFlujo, sede?: string | null)
   }
 }
 
-/** La tienda a la que conviene pedir una talla: entre las que se le puede pedir (`sedesParaPedir`, por nombre como viene la red),
+/** La tienda a la que conviene pedir una talla: entre las que se le puede pedir (`sedesParaPedir`, cruzadas por id de sede),
  *  la que más tiene. `null`: ninguna la tiene (el Taller no cuenta: no se le pide). Lo usan el «Pedir» de la tarjeta y el de las
  *  filas «agotada: en otras sedes» del panel. */
 export function mejorOrigen(
-  enRed: readonly { sede: string; cantidad: number }[] | undefined,
+  enRed: readonly SedeConStockId[] | undefined,
   sedes: readonly { id: string; nombre: string }[]
 ): SedeConCantidad | null {
   return (
     sedes
-      .map((s) => ({ ...s, cantidad: (enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }))
+      .map((s) => ({ ...s, cantidad: cantidadEnSede(enRed, s.id) }))
       .filter((s) => s.cantidad > 0)
       .sort((a, b) => b.cantidad - a.cantidad)[0] ?? null
   );
