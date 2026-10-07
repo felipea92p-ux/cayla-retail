@@ -35,6 +35,7 @@ import { EquipoLista } from "@/components/colaboradores/EquipoLista";
 import { FichaColaborador } from "@/components/colaboradores/FichaColaborador";
 import { useResponsable } from "@/lib/useResponsable";
 import type { Firma } from "@/lib/responsable-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Colaboradores: quién entra a retail, en qué sede y con qué rol. Retail nunca crea gente nueva aquí —Dynamic ya es dueño
 // de esa identidad (0009_integracion_dynamic.sql)— solo decide a cuáles cuentas YA existentes en Dynamic les da acceso.
@@ -283,19 +284,21 @@ export function ColaboradoresPanel({
         acciones={
           ve("cuentas") && (
             <>
-              <button type="button" className="btn-cayla btn-secundario" onClick={() => setVerActividad(true)}>
-                <History aria-hidden className="h-4 w-4" />
-                Actividad
-              </button>
-              <button
+              <Boton type="button" onClick={() => setVerActividad(true)}>
+                <span className="inline-flex items-center gap-2">
+                  <History aria-hidden className="h-4 w-4" />
+                  Actividad
+                </span>
+              </Boton>
+              <Boton
                 type="button"
-                className="btn-cayla btn-primario"
+                peso="primario"
                 onClick={() => setModal({ tipo: "agregar" })}
                 disabled={disponibles.length === 0}
                 title={disponibles.length === 0 ? "Todas las cuentas activas de Dynamic ya tienen acceso." : undefined}
               >
                 + Dar acceso
-              </button>
+              </Boton>
             </>
           )
         }
