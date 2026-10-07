@@ -18,7 +18,8 @@ import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MA
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
 import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
-import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, coloresParaMover, detalleDeLoMovido, fraseDeLoQueFalta, leerCantidadTecleada, lineasDeMoverModelo, sePuedeBajarTalla, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
+import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
+import { celdaColgarVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
@@ -37,7 +38,6 @@ import {
   quedaTrasAjuste,
   resumenDeFlujo,
   textoHecho,
-  totalVarias,
   verboFinal,
   type ContextoFlujo,
   type DatosFlujo,
@@ -201,11 +201,18 @@ export function FlujoTalla({
   const responsable = useResponsable();
   const [i, setI] = useState(pasoInicial);
   // Reportar dañada: el lugar entra elegido solo si es el ÚNICO con algo libre (`desdeInicial`, ADR-0328: con los dos, lo dice la persona).
-  const [d, setD] = useState<DatosFlujo>(() => ({
-    ...(tipo === "colgarVarias" ? { cant: {} } : {}),
-    ...(tipo === "danada" && separa ? { lugar: desdeInicial(tallasReportables([fila])[0]) ?? undefined } : {}),
-    ...datosIniciales,
-  }));
+  const [d, setD] = useState<DatosFlujo>(() => {
+    const base: DatosFlujo = {
+      ...(tipo === "colgarVarias" ? { cant: {} } : {}),
+      ...(tipo === "danada" && separa ? { lugar: desdeInicial(tallasReportables([fila])[0]) ?? undefined } : {}),
+      ...datosIniciales,
+    };
+    // «Colgar varias» abre con 1 en cada talla que falta en el piso (Felipe, 2026-10-07: mínimo 1 colgada por talla).
+    if (tipo === "colgarVarias" && Object.keys(base.cant ?? {}).length === 0) base.cant = { ...cantidadesDeLoQueFalta(colores) };
+    return base;
+  });
+  // «Llenar todas con» de la tabla de Colgar varias: lo tecleado, para que la caja no se borre al rellenar.
+  const [relleno, setRelleno] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Lo que ya traía el paso al abrirse (una acción rápida entra armada): solo lo que la persona toca después cuenta como «cambios».
@@ -529,87 +536,141 @@ export function FlujoTalla({
         );
       }
       case "varias": {
+        // La tabla tallas × colores (2026-10-07, como la de cantidades de Nuevo producto): cada celda con algo en almacén se edita;
+        // las demás dicen por qué no (`lib/colgar-varias-tabla.ts`). El estado de cada una y los totales son lógica pura.
         const faltan = tallasQueFaltan(colores);
-        const frase = fraseDeLoQueFalta(colores);
         const cant = d.cant ?? {};
+        const tallasDeTodos = [...new Set(colores.flatMap((c) => c.tallas.map((t) => t.talla ?? "Única")))];
+        const todas = colores.flatMap((c) => c.tallas);
+        const tot = totalesColgar(colores, cant);
+        const loQueFalta = cantidadesDeLoQueFalta(colores);
+        const nFalta = Object.keys(loQueFalta).length;
+        const enPausa = colores.some((c) => c.tallas.some((t) => t.planPiso?.accion === "pausa_sin_cuadre"));
+        const muchas = tallasDeTodos.length > 1;
+        const poner1 = (id: string, n: number, max: number) => poner({ cant: { ...cant, [id]: Math.max(0, Math.min(max, n)) } });
         return (
           <>
-            <Pregunta ayuda="Todo empieza en 0. Cada talla dice cuántas hay en almacén.">¿Cuántas llevas al piso de cada color y talla?</Pregunta>
-            {frase && <p className="mb-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta">{frase}</p>}
-            <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Llenar de un toque">
-              {faltan.size > 0 && (
-                <button type="button" onClick={() => poner({ cant: { ...cantidadesDeLoQueFalta(colores) } })} className="btn-cayla btn-secundario btn-chico gap-1.5">
-                  <IconoPercha aria-hidden className="h-4 w-4 text-ambar-profundo" strokeWidth={1.6} />
-                  Lo que falta en el piso · {faltan.size}
-                </button>
-              )}
-              <button type="button" onClick={() => poner({ cant: { ...cantidadesDeTodoElAlmacen(colores) } })} className="btn-cayla btn-secundario btn-chico">
-                Todo el almacén
+            <Pregunta ayuda={nFalta > 0 ? "Ya viene 1 en cada talla que falta en el piso." : "Cada talla dice cuántas hay ya colgadas y cuántas en almacén."}>
+              ¿Cuántas sacas del almacén al piso?
+            </Pregunta>
+            {enPausa && nFalta === 0 && (
+              <p className="mb-3 rounded-xl bg-hueso px-3 py-2.5 text-[13px] text-tinta">El piso de esta sede está por cuadrar: el sistema no sugiere qué colgar. Mira lo que ya cuelga antes de sacar más.</p>
+            )}
+            <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12.5px] text-taupe" role="group" aria-label="Llenar de un toque">
+              <label htmlFor="colgar-llenar">Llenar todas con</label>
+              <input
+                id="colgar-llenar"
+                inputMode="numeric"
+                maxLength={2}
+                placeholder="1"
+                value={relleno}
+                onChange={(e) => {
+                  const limpio = e.target.value.replace(/\D/g, "");
+                  setRelleno(limpio);
+                  poner({ cant: llenarTodasCon(todas, limpio === "" ? null : Number(limpio)) });
+                }}
+                onFocus={(e) => e.currentTarget.select()}
+                className="h-9 w-14 rounded-[9px] border border-transparent bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
+              />
+              <button type="button" disabled={nFalta === 0} onClick={() => { setRelleno(""); poner({ cant: { ...loQueFalta } }); }} title="Pone 1 en cada talla que no tiene ninguna colgada y 0 en las demás" className="btn-cayla btn-secundario btn-chico">
+                Solo lo que falta ({nFalta})
               </button>
-              <button type="button" onClick={() => poner({ cant: {} })} disabled={totalVarias(d) === 0} className="btn-cayla btn-sutil btn-chico">
+              <button type="button" disabled={tot.total === 0} onClick={() => { setRelleno(""); poner({ cant: {} }); }} className="btn-cayla btn-sutil btn-chico">
                 Vaciar
               </button>
             </div>
-            <div className="grid gap-2.5">
-              {colores.map((c) => (
-                <section key={c.clave} aria-label={c.color ?? "Sin color"} className="rounded-2xl border border-sand bg-papel p-3">
-                  <header className="mb-2 flex items-center justify-between gap-2 text-sm">
-                    <span className="flex items-center gap-2 font-semibold text-tinta">
-                      <i aria-hidden className="h-3.5 w-3.5 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
-                      {c.color ?? "Sin color"}
-                    </span>
-                    <span className="text-[13px] text-taupe">
-                      Al piso: <b className="text-tinta">{c.tallas.reduce((s, t) => s + (cant[t.varianteId] ?? 0), 0)}</b>
-                    </span>
-                  </header>
-                  {/* Solo las tallas que se pueden colgar llevan su casilla; las que no tienen nada en el almacén van en una línea debajo
-                      (2026-10-06, tarde): una casilla vacía por cada una ocupaba lo mismo que las útiles y el paso se veía amontonado. */}
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
-                    {c.tallas.filter((t) => sePuedeBajarTalla({ almacen: Math.max(0, t.almacenDisponible ?? 0) })).map((t) => {
-                      const alm = Math.max(0, t.almacenDisponible ?? 0);
-                      const piso = Math.max(0, t.pisoDisponible ?? 0);
-                      const n = cant[t.varianteId] ?? 0;
-                      return (
-                        <div key={t.varianteId} className={`grid gap-1.5 rounded-xl border p-2 ${n > 0 ? "border-tinta" : faltan.has(t.varianteId) ? "border-ambar/40 bg-ambar/[0.06]" : "border-sand"}`}>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <b className="flex items-center gap-1 text-sm text-tinta">
-                              {t.talla ?? "Única"}
-                              {faltan.has(t.varianteId) && n === 0 && <i aria-label="Falta en el piso" className="h-1.5 w-1.5 rounded-full bg-ambar" />}
-                            </b>
-                            <small className="text-[11px] text-taupe">{alm} en almacén</small>
-                          </div>
-                          <div className="flex items-center justify-between rounded-lg border border-sand">
-                            <button type="button" aria-label={`Una menos de ${c.color ?? ""} ${t.talla ?? ""}`} disabled={n <= 0} onClick={() => poner({ cant: { ...cant, [t.varianteId]: Math.max(0, n - 1) } })} className="h-9 w-9 text-lg disabled:text-taupe/40">
-                              −
-                            </button>
-                            <input
-                              inputMode="numeric"
-                              aria-label={`Cantidad de ${c.color ?? ""} ${t.talla ?? ""}`}
-                              value={n}
-                              onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, alm) } })}
-                              className="w-10 bg-transparent text-center text-base font-semibold tabular-nums"
-                            />
-                            <button type="button" aria-label={`Una más de ${c.color ?? ""} ${t.talla ?? ""}`} disabled={n >= alm} onClick={() => poner({ cant: { ...cant, [t.varianteId]: Math.min(alm, n + 1) } })} className="h-9 w-9 text-lg disabled:text-taupe/40">
-                              +
-                            </button>
-                          </div>
-                          <small className="text-[11px] text-taupe">{piso === 0 && n === 0 ? "Nada en piso" : `En piso quedan ${piso + n}`}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {c.tallas.some((t) => !sePuedeBajarTalla({ almacen: Math.max(0, t.almacenDisponible ?? 0) })) && (
-                    <p className="mt-2 text-[12.5px] text-taupe">
-                      Sin nada en almacén:{" "}
-                      {c.tallas
-                        .filter((t) => !sePuedeBajarTalla({ almacen: Math.max(0, t.almacenDisponible ?? 0) }))
-                        .map((t) => t.talla ?? "Única")
-                        .join(" · ")}
-                    </p>
-                  )}
-                </section>
-              ))}
+            <div className="scroll-cayla max-h-[52vh] overflow-auto rounded-xl border border-sand bg-papel">
+              <table className="w-full border-separate border-spacing-0 text-[13px]">
+                <thead>
+                  <tr>
+                    <th scope="col" className="sticky left-0 top-0 z-[3] border-r border-sand bg-hueso py-2 pl-3.5 pr-2 text-left text-xs font-semibold text-tinta">Color</th>
+                    {tallasDeTodos.map((t) => (
+                      <th key={t} scope="col" className="sticky top-0 z-[2] bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta">{t}</th>
+                    ))}
+                    {muchas && <th scope="col" className="sticky top-0 z-[2] border-l border-sand bg-hueso px-2 py-2 text-center text-xs font-semibold text-taupe">Total</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {colores.map((c, i) => {
+                    const fondo = i % 2 === 1 ? "bg-hueso/40" : "bg-papel";
+                    return (
+                      <tr key={c.clave}>
+                        <th scope="row" className={`sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand py-2 pl-3.5 pr-2.5 text-left text-[13px] font-semibold text-tinta ${fondo}`}>
+                          <span aria-hidden data-color-dato className="absolute inset-y-0 left-0 w-[5px]" style={{ background: c.colorHex ?? "var(--color-sand)" }} />
+                          <span className="flex items-center gap-1.5">
+                            <i aria-hidden data-color-dato className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
+                            {c.color ?? "Sin color"}
+                          </span>
+                        </th>
+                        {tallasDeTodos.map((nombre) => {
+                          const t = c.tallas.find((x) => (x.talla ?? "Única") === nombre);
+                          if (!t) return <td key={nombre} aria-hidden className={`border-t border-sand ${fondo}`} />;
+                          const celda = celdaColgarVarias(t, faltan);
+                          if (celda.tipo === "acabo")
+                            return (
+                              <td key={nombre} className="border-t border-sand bg-rojo/[0.09] px-1 py-2 text-center text-[12.5px] font-semibold text-rojo-profundo">
+                                Se acabó
+                              </td>
+                            );
+                          if (celda.tipo === "sinAlmacen")
+                            return (
+                              <td key={nombre} title={`${c.color ?? ""} ${nombre}: no hay en almacén`} className={`border-t border-sand bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_srgb,var(--color-sand)_70%,transparent)_6px_7px)] px-1 py-2 text-center text-taupe`}>
+                                <b className="block font-normal">—</b>
+                                <small className="block text-[10.5px]">ya hay {celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
+                                <small className="block text-[10.5px] text-taupe/75">0 en almacén</small>
+                              </td>
+                            );
+                          const n = cant[t.varianteId] ?? 0;
+                          const etiqueta = `${c.color ?? ""} ${nombre}`;
+                          return (
+                            <td key={nombre} className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
+                              <span className={`inline-flex items-center gap-px rounded-lg border px-0.5 focus-within:border-taupe focus-within:bg-papel ${celda.falta ? "border-ambar/40 bg-ambar/[0.14]" : "border-transparent bg-hueso"}`}>
+                                <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => poner1(t.varianteId, n - 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
+                                  −
+                                </button>
+                                <input
+                                  inputMode="numeric"
+                                  aria-label={`Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`}
+                                  value={n === 0 ? "" : n}
+                                  placeholder="0"
+                                  onFocus={(e) => e.currentTarget.select()}
+                                  onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } })}
+                                  className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
+                                />
+                                <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.almacen} onClick={() => poner1(t.varianteId, n + 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
+                                  +
+                                </button>
+                              </span>
+                              <small className={`mt-1 block text-[10.5px] ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
+                                {celda.falta ? "falta en el piso" : celda.piso === 0 ? "nada colgado" : `ya hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
+                              </small>
+                              <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
+                            </td>
+                          );
+                        })}
+                        {muchas && <td className={`border-l border-t border-sand px-2 text-center font-bold tabular-nums text-taupe ${fondo}`}>{tot.porColor[c.clave] || "·"}</td>}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {colores.length > 1 && (
+                  <tfoot>
+                    <tr>
+                      <th scope="row" className="sticky left-0 z-[1] border-r border-t-[1.5px] border-sand bg-hueso py-2 pl-3.5 text-left text-xs font-semibold">Total</th>
+                      {tallasDeTodos.map((t) => (
+                        <td key={t} className="border-t-[1.5px] border-sand bg-hueso py-2 text-center font-bold tabular-nums">{tot.porTalla[t] ?? 0}</td>
+                      ))}
+                      {muchas && <td className="border-l border-t-[1.5px] border-sand bg-hueso py-2 text-center font-bold tabular-nums text-taupe">{tot.total}</td>}
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
             </div>
+            <p className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-[11.5px] text-taupe">
+              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-ambar/40 bg-ambar/[0.14]" />falta en el piso</span>
+              <span className="inline-flex items-center gap-1.5"><i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand bg-[repeating-linear-gradient(135deg,transparent_0_2px,var(--color-sand)_2px_3px)]" />no hay en almacén</span>
+              <span>Lo que falta = tallas sin ninguna colgada</span>
+            </p>
           </>
         );
       }
