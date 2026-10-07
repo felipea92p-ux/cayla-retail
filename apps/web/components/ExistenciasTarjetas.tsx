@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
-import { AccionesTarjeta } from "@/components/existencias/AccionesTarjeta";
+import { PieTarjeta } from "@/components/existencias/PieTarjeta";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
-import { celdaTarjeta, destinoDeTalla, tallaDeEntrada as tallaDeEntradaDe, type CeldaTarjeta } from "@/lib/existencias-tarjeta-compacta";
+import { celdaTarjeta, destinoDeTalla, tallaDeEntrada as tallaDeEntradaDe, tallasAgotadas, tallasSinColgar, type CeldaTarjeta } from "@/lib/existencias-tarjeta-compacta";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { textoHoyDePrenda } from "@/lib/existencias-hoy";
-import { filasDeAcciones, type ClaveAccion } from "@/lib/existencias-acciones";
+import { botonDeTarjeta, opcionesDeMas, type ClaveAccion } from "@/lib/existencias-acciones";
 import { mejorOrigen } from "@/lib/existencias-flujos";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import type { MarcaDelFiltro } from "@/components/existencias/PanelTalla";
@@ -30,10 +30,9 @@ import type { ModeloPrendas } from "@/lib/existencias-tarjetas";
    el cajón en la talla de entrada; tocar una talla con algo en almacén lo abre listo para colgar esa talla (`lib/existencias-tarjeta-compacta.ts`).
    Reemplaza los botones de talla con «N piso» (ADR-0344, 2026-10-05), que no decían cuánto quedaba atrás.
 
-   UN icono por tarjeta (2026-10-05, maqueta `existencias-tactil-2026-10`): la acción que le toca a la prenda (Colgar en el piso) y, al pasar el
-   mouse, una ventana hacia arriba con TODAS las acciones y su nombre (`AccionesTarjeta`, `lib/existencias-acciones.ts`). Reemplaza el
-   botón con texto y el menú «⋯» de la esquina: eran dos controles para lo mismo. Antes (2026-10-04) eran cuatro botones y
-   uno negro en cada tarjeta: quince negros por página.
+   EL PIE (2026-10-07): lo que toca con su NOMBRE a la vista («Colgar en el piso», que abre siempre «Colgar varias»; «Se acabó: L»;
+   «✓ Todo en el piso») y «Más ⌄», un menú que se abre con un clic (`PieTarjeta`, `lib/existencias-acciones.ts`). Reemplaza la percha
+   sola con su ventana al pasar el mouse (2026-10-05), que no decía qué hacía y con el dedo no se abría.
 
    SIN indicador de estado: la pastilla «3 tallas por colgar» repetía lo que ya dicen las etiquetas ámbar del riel y se quitó (Felipe,
    2026-10-05: «está de más»). Sigue dicha para quien usa lector de pantalla (`EstadoParaLector`), y la cifra que trae a la persona
@@ -162,8 +161,11 @@ export function ExistenciasTarjetas({
   puedeReponer,
   mostrarMarca,
   tallasDePrenda,
-  onReponer,
+  onColgarVarias,
   onSubir,
+  puedeAjustar = false,
+  onAjustar,
+  onFicha,
   puedeEnviar = false,
   onEnviar,
   puedePedir = false,
@@ -181,8 +183,13 @@ export function ExistenciasTarjetas({
   /** Cuántas tallas tiene cada prenda (modelo + color) en la sede sin filtros (`tallasPorPrenda`): si la tarjeta muestra menos,
    *  lo dice («Solo M · L (de 4 tallas)»), porque sus cifras suman solo las que se ven. */
   tallasDePrenda?: ReadonlyMap<string, number>;
-  /** «Colgar en el piso»: abre el panel de la talla ya en su paso (`prenda` es el color que se ve). */
-  onReponer: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
+  /** «Colgar en el piso» del pie: abre el panel ya en «Colgar varias» (la tabla del modelo). */
+  onColgarVarias: (prenda: PrendaAgrupada<FilaExistencias>) => void;
+  /** «Ajustar stock» del menú «Más», solo si el rol puede: abre el panel de la talla de entrada ya en su paso. */
+  puedeAjustar?: boolean;
+  onAjustar?: (prenda: PrendaAgrupada<FilaExistencias>, fila: FilaExistencias) => void;
+  /** «Ver ficha» del menú «Más»: el panel en su ficha. */
+  onFicha?: (prenda: PrendaAgrupada<FilaExistencias>) => void;
   /** «Subir a almacén»: igual, del lado contrario. */
   onSubir: (prenda: PrendaAgrupada<FilaExistencias>, origen: HTMLElement) => void;
   /** «Enviar a otra sede», solo para quien ve Traslados. */
@@ -221,7 +228,6 @@ export function ExistenciasTarjetas({
           !marcaDelFiltro ? null : f.varianteId === cumplen[0]?.varianteId ? "principal" : cumplen.some((c) => c.varianteId === f.varianteId) ? "cumple" : "tenue";
         // Colgar abre el MODELO entero: se ofrece si ALGÚN color tiene algo que mover, no solo el que se está viendo.
         const hayQueBajar = puedeReponer && m.colores.some((c) => tallaParaReponer(c.tallas) !== null);
-        const hayPorColgar = tallasQueFaltan(m.colores).size > 0;
         // Subir: alguna talla de algún color con algo LIBRE en el piso (lo apartado para una clienta no se sube).
         const hayEnElPiso = m.colores.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0));
         const etiqueta = `${p.referencia}${p.color ? ` ${p.color}` : ""}`;
@@ -235,33 +241,44 @@ export function ExistenciasTarjetas({
         // Algo libre en el almacén de algún color para mandar a otra sede (el traslado sale del almacén; `lineasParaTrasladar`).
         const tallasDelModelo = m.colores.flatMap((c) => c.tallas);
         const hayEnAlmacen = tallasDelModelo.some((t) => (t.almacenDisponible ?? t.disponible) > 0);
-        // La principal (maqueta): con un filtro que no es «Por colgar», «Ver» la talla que más importa; sin filtro y sin nada por colgar,
-        // «Pedir» la primera talla agotada de este color que otra tienda tiene.
+        const entrada = tallaDeEntradaDe(tallasVista, cumplen[0]);
+        // El pie (`lib/existencias-acciones.ts`): lo que toca con su nombre a la vista y «Más ⌄». Pedir: la primera talla agotada de
+        // este color que otra tienda tiene.
         const agotadaPedible = puedePedir && onPedir ? tallasVista.find((t) => t.disponible <= 0 && mejorOrigen(t.enRed, sedesParaPedir) !== null) : undefined;
-        const principal =
-          marcaDelFiltro && !marcaDelFiltro.esColgar && cumplen.length > 0
-            ? { clave: "ver" as const, etiqueta: `Ver talla ${cumplen[0].talla ?? "Única"}` }
-            : !marcaDelFiltro && !hayPorColgar && agotadaPedible
-              ? { clave: "pedir" as const, etiqueta: `Pedir talla ${agotadaPedible.talla ?? "Única"}` }
-              : null;
-        const filas = filasDeAcciones({ puedeReponer, puedeEnviar: puedeEnviar && !!onEnviar, hayQueBajar, hayPorColgar, hayEnElPiso, hayEnAlmacen, principal });
+        const boton = botonDeTarjeta({
+          puedeReponer,
+          tallasPorColgar: tallasQueFaltan(m.colores).size,
+          tallasSinColgar: tallasSinColgar(m.colores),
+          hayQueBajar,
+          verTalla: marcaDelFiltro && !marcaDelFiltro.esColgar && cumplen.length > 0 ? (cumplen[0].talla ?? "Única") : null,
+          agotadas: tallasAgotadas(tallasVista),
+        });
+        const opciones = opcionesDeMas({
+          puedeReponer,
+          puedeEnviar: puedeEnviar && !!onEnviar,
+          puedePedir: puedePedir && !!onPedir,
+          puedeAjustar: puedeAjustar && !!onAjustar,
+          hayEnElPiso,
+          hayEnAlmacen,
+          pedible: agotadaPedible ? (agotadaPedible.talla ?? "Única") : null,
+        });
+        const alBoton = () => (boton.tipo === "colgar" ? onColgarVarias(p) : cumplen[0] && onAbrirTalla(p, cumplen[0]));
         const alElegir = (clave: ClaveAccion) => {
           switch (clave) {
-            case "colgar":
-              return onReponer(p, origen());
             case "subir":
               return onSubir(p, origen());
             case "enviar":
               return onEnviar?.(tallasDelModelo, p);
             case "pedir":
               return agotadaPedible && onPedir?.(p, agotadaPedible);
-            case "ver":
-              return cumplen[0] && onAbrirTalla(p, cumplen[0]);
+            case "ajustar":
+              return entrada && onAjustar?.(p, entrada);
+            case "ficha":
+              return onFicha?.(p);
           }
         };
         // Un toque en cualquier parte de la tarjeta abre el cajón en la talla que más importa (la del filtro, o la primera que falta
         // en el piso, o la primera agotada, o la primera). Tocar una TALLA abre el cajón listo para colgar esa talla (`destinoDeTalla`).
-        const entrada = tallaDeEntradaDe(tallasVista, cumplen[0]);
         const abrirEntrada = () => entrada && onAbrirTalla(p, entrada);
         const alTocarTalla = (f: FilaExistencias) =>
           destinoDeTalla(f, { separa, puedeReponer }) === "colgar" && onColgarTalla ? onColgarTalla(p, f) : onAbrirTalla(p, f);
@@ -287,8 +304,7 @@ export function ExistenciasTarjetas({
                 abrirEntrada();
               }
             }}
-            // `@container`: la acción dice su nombre en una tablet solo si la tarjeta tiene ancho (`AccionesTarjeta`).
-            className="card-cayla @container flex min-w-0 cursor-pointer flex-col gap-2 p-3 transition-colors hover:border-tinta/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+            className="card-cayla relative flex min-w-0 cursor-pointer flex-col gap-2 p-3 transition-colors hover:border-tinta/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
           >
             {/* Foto (o su categoría sobre su color), nombre, los colores con el nombre del que se ve (y lo dañado o apartado) y el precio. */}
             <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5">
@@ -343,11 +359,7 @@ export function ExistenciasTarjetas({
               </p>
             )}
 
-            {filas.length > 0 && (
-              <div className="mt-auto flex justify-end">
-                <AccionesTarjeta etiqueta={etiqueta} filas={filas} alElegir={alElegir} />
-              </div>
-            )}
+            <PieTarjeta etiqueta={etiqueta} boton={boton} opciones={opciones} onBoton={alBoton} onOpcion={alElegir} />
           </article>
         );
       })}

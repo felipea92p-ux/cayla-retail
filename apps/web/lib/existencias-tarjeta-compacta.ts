@@ -47,3 +47,8 @@ export function tallaDeEntrada<F extends FilaCelda>(tallas: readonly F[], prefer
 export function tallasAgotadas(tallas: readonly (FilaCelda & Pick<FilaPrenda, "talla">)[]): string[] {
   return tallas.filter((t) => estadoTalla(t as unknown as FilaPrenda) === "sin_stock").map((t) => t.talla ?? "Única");
 }
+
+/** Cuántas tallas (de todos los colores) no tienen NINGUNA colgada libre y sí algo libre en almacén: lo físico, sin el motor. */
+export function tallasSinColgar(colores: readonly { tallas: readonly Pick<FilaPrenda, "pisoDisponible" | "almacenDisponible">[] }[]): number {
+  return colores.reduce((s, c) => s + c.tallas.filter((t) => Math.max(0, t.pisoDisponible ?? 0) === 0 && Math.max(0, t.almacenDisponible ?? 0) > 0).length, 0);
+}

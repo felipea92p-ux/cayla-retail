@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaPrenda } from "./existencias-prendas";
-import { celdaTarjeta, destinoDeTalla, tallaDeEntrada, tallasAgotadas } from "./existencias-tarjeta-compacta";
+import { celdaTarjeta, destinoDeTalla, tallaDeEntrada, tallasAgotadas, tallasSinColgar } from "./existencias-tarjeta-compacta";
 import { conMotor } from "./piso-plan-fixtures";
 
 let n = 0;
@@ -71,5 +71,11 @@ describe("tallaDeEntrada y tallasAgotadas", () => {
   });
   it("nombra las agotadas", () => {
     expect(tallasAgotadas(filas)).toEqual(["M"]);
+  });
+});
+
+describe("tallasSinColgar", () => {
+  it("cuenta las tallas con 0 colgadas y algo en almacén, de todos los colores", () => {
+    expect(tallasSinColgar([{ tallas: [fila("S", 0, 3), fila("M", 1, 2), fila("L", 0, 0)] }, { tallas: [fila("S", 0, 1)] }])).toBe(2);
   });
 });

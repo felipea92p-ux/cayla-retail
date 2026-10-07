@@ -316,7 +316,7 @@ export function InventarioPanel({
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido } | null>(() => {
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; vista?: "ficha" } | null>(() => {
     const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
     return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
   });
@@ -948,7 +948,11 @@ export function InventarioPanel({
             // Las acciones de la tarjeta abren el panel de la talla YA en su paso (maqueta: sin ventana aparte).
             puedeEnviar={veTraslados && enSedeActiva && destinosParaEnviar.length > 0}
             onEnviar={(_tallas, prenda) => prenda && lanzarDesdeTarjeta(prenda, "enviar")}
-            onReponer={(prenda) => lanzarDesdeTarjeta(prenda, "colgar")}
+            // «Colgar en el piso» del pie abre SIEMPRE «Colgar varias», la tabla del modelo (Felipe, 2026-10-07).
+            onColgarVarias={(prenda) => setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } })}
+            puedeAjustar={puedeAjustarAqui}
+            onAjustar={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "ajustar" } })}
+            onFicha={(prenda) => setAbierta({ clave: prenda.clave, vista: "ficha" })}
             onSubir={(prenda) => lanzarDesdeTarjeta(prenda, "subir")}
             puedePedir={veTraslados && esTienda && enSedeActiva}
             sedesParaPedir={sedesParaPedir}
@@ -1328,6 +1332,7 @@ export function InventarioPanel({
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
           flujoInicial={abierta?.flujo ?? null}
+          vistaInicial={abierta?.vista}
           ubicacionId={ubicacionId}
           sedeNombre={sedeNombre}
           separa={separa}

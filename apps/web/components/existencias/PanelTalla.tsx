@@ -98,6 +98,7 @@ export function PanelTalla({
   claveInicial,
   varianteInicial,
   flujoInicial = null,
+  vistaInicial,
   ubicacionId,
   sedeNombre,
   separa,
@@ -126,6 +127,8 @@ export function PanelTalla({
   colores: Prenda[];
   claveInicial: string;
   varianteInicial?: string;
+  /** Abrir en otra vista que «Esta talla» («Ver ficha» del menú «Más» de la tarjeta). */
+  vistaInicial?: "ficha";
   /** Abrir directamente en un paso (acción rápida de la tarjeta, «Colgar primero»). Cambia con cada pedido. */
   flujoInicial?: FlujoPedido | null;
   ubicacionId: string;
@@ -161,18 +164,18 @@ export function PanelTalla({
   onCerrar: () => void;
 }) {
   const router = useRouter();
-  const [vista, setVista] = useState<Vista>("talla");
+  const [vista, setVista] = useState<Vista>(vistaInicial ?? "talla");
   const [clave, setClave] = useState(claveInicial);
   const [varianteId, setVarianteId] = useState<string | undefined>(varianteInicial);
   const [flujo, setFlujo] = useState<FlujoPedido | null>(flujoInicial);
   const [hecho, setHecho] = useState<string | null>(null);
   // Cada vez que la tarjeta pide algo nuevo (otra talla, otra acción rápida), el panel lo toma sin cerrarse ni abrirse de nuevo.
-  const [pedida, setPedida] = useState({ claveInicial, varianteInicial, flujoInicial });
-  if (pedida.claveInicial !== claveInicial || pedida.varianteInicial !== varianteInicial || pedida.flujoInicial !== flujoInicial) {
-    setPedida({ claveInicial, varianteInicial, flujoInicial });
+  const [pedida, setPedida] = useState({ claveInicial, varianteInicial, flujoInicial, vistaInicial });
+  if (pedida.claveInicial !== claveInicial || pedida.varianteInicial !== varianteInicial || pedida.flujoInicial !== flujoInicial || pedida.vistaInicial !== vistaInicial) {
+    setPedida({ claveInicial, varianteInicial, flujoInicial, vistaInicial });
     setClave(claveInicial);
     setVarianteId(varianteInicial);
-    setVista("talla");
+    setVista(vistaInicial ?? "talla");
     setFlujo(flujoInicial);
     setHecho(null);
   }
