@@ -15,6 +15,7 @@ import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { MotorGuias } from "@/components/guias/MotorGuias";
 import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
+import { BotonDemo } from "@/components/guias/BotonDemo";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
@@ -1162,6 +1163,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
               <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
             ) : null}
+            {/* «Demo» (ADR-0362): una terminal no tiene «Mi perfil», que es donde una persona repite las guías interactivas. */}
+            {esAparato ? <BotonDemo onClick={() => setDemoAbierto(true)} /> : null}
             {/* Modo oscuro (ADR-0336): entre «Actividad» y la sede. Lo ve toda cuenta, también una terminal: es una preferencia
                 del aparato, no un módulo ni una pantalla. */}
             <BotonTema />

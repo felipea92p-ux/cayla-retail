@@ -506,7 +506,7 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 
 **Cada pantalla tiene una guía interactiva:** una demo con un velo oscuro que enciende una pieza a la vez y explica qué es y para qué
 sirve, en lenguaje de tienda. Se OFRECE una sola vez por persona y por pantalla, la primera vez que entra; para repetirla, **Mi perfil ▸
-Demo** deja elegir el módulo o el submódulo. **La guía tiene que estar siempre al día:** si una pantalla gana, pierde o cambia un botón, un
+Demo** (en una terminal, que no tiene perfil, el botón **«Demo» de la cabecera**) deja elegir el módulo o el submódulo. **La guía tiene que estar siempre al día:** si una pantalla gana, pierde o cambia un botón, un
 campo o una pestaña, su guía cambia en el mismo PR.
 
 **La demo NUNCA guarda.** Corre en la tienda de verdad. El piloto automático abre modales, cambia de pestaña, escribe un ejemplo sacado
@@ -533,7 +533,7 @@ Cómo se hace (la skill **`/guia`** lo hace por ti):
   en escritorio y a 375 px.
 
 Piloto hecho: Ventas (Punto de Venta, Apartados, Historial, Comprobantes). La migración `20261007180000_guias_vistas.sql` («ya se la
-ofrecí», por persona) está en el repo y NO en producción: sin ella, la oferta se recuerda en el navegador. Detalle y decisiones:
+ofrecí», por persona) está en producción desde el 2026-10-07; si la base no responde, la oferta se recuerda en el navegador. Detalle y decisiones:
 `docs/adr/0362-guias-interactivas-con-mascara.md` y `.claude/skills/guia/`.
 
 ## Caos: usar mal el sistema a propósito (regla — ADR-0356, Felipe 2026-10-06)

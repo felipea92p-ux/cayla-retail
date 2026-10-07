@@ -1,7 +1,7 @@
 # ADR-0362 · Guías interactivas con máscara: una demo por pantalla, siempre al día
 
 - **Fecha:** 2026-10-07 · **Estado:** construido y probado en local; piloto en Ventas (Punto de Venta, Apartados, Historial,
-  Comprobantes). Migración `20261007180000_guias_vistas.sql` aplicada en local, **no en producción**.
+  Comprobantes). Migración `20261007180000_guias_vistas.sql` aplicada en local y **en producción el 2026-10-07** (por orden de Felipe).
 - **Pedido:** Felipe, 2026-10-07: «guías interactivas para cada módulo que tengan efecto de foto o máscara de oscurecimiento, que te
   vayan haciendo una demo en el sistema y explicando cada funcionalidad y para qué sirve», hechas «de la mejor manera posible para cada
   una de las vistas», y que **cada vez que se modifique un módulo o se cambie una vista, también cambie la guía**, para que esté siempre
@@ -97,11 +97,16 @@
 
 ## Lo que queda abierto
 
-- **Producción:** la migración se pega cuando Felipe lo decida. Una sola parte, re-ejecutable: crea una tabla nueva y tres funciones, y
-  no toca tablas en uso ni crea políticas. Sin ella, la oferta se recuerda por navegador.
-- **Las terminales no tienen Mi perfil**, así que no ven «Demo». En una terminal la oferta de la primera vez sí sale (recordada por la
-  responsable de turno, o por la cuenta). Para repetirla desde una terminal falta decidir dónde va el botón (¿la cabecera?): decisión de
-  Felipe.
+- ~~Producción~~ **Hecho el 2026-10-07** (Felipe: «pega la migración en producción»). Se pegó el archivo tal cual, por el MCP, en una
+  sola transacción. Quedó registrada con la versión del archivo (`20261007180000`) en `supabase_migrations.schema_migrations`.
+  Comprobado después:
+  - la tabla existe, con RLS encendido y sin políticas;
+  - las tres funciones son `security definer`;
+  - `anon` no las puede llamar y `authenticated` no lee la tabla directo.
+- ~~Las terminales no tienen Mi perfil~~ **Hecho el 2026-10-07** (Felipe: «aplica lo de las terminales en la cabecera»). Una terminal ve
+  **«Demo»** en la cabecera, en el lugar de «Actividad» (que una terminal nunca ve) y con su misma forma
+  (`components/guias/BotonDemo.tsx`). Abre el mismo selector que el perfil. Una cuenta de persona no lo ve: lo tiene en Mi perfil.
+  Verificado con la terminal de ventas de Lima, en escritorio y a 375 px.
 - **Las 78 pantallas pendientes,** módulo por módulo con `/guia <módulo>`, cada una con el OK de Felipe.
 - El «3 de N» se estima al empezar; si la pantalla tiene menos piezas de las previstas (un rol que no ve algo), termina en «14 de 14»
   aunque haya dicho «de 16».
