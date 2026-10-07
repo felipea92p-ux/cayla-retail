@@ -109,6 +109,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
 
   return (
     <article
+      data-guia="vender.prenda"
       aria-label={nombre}
       style={{ "--i": Math.min(indice, 11) } as CSSProperties}
       // Toda la prenda sin nada en el piso: «solo en el almacén» se distingue de «agotada» (D-40). Al 55 % el ámbar ya
@@ -124,6 +125,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         onClick={() => onAbrir(prenda.clave, elegido.clave)}
         disabled={bloqueado}
         aria-label={`Ver todos los colores y tallas de ${nombre}`}
+        data-guia="vender.prenda-abrir"
         className="absolute inset-0 cursor-pointer rounded-xl disabled:cursor-default"
       />
       <div className={`pointer-events-none relative aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>

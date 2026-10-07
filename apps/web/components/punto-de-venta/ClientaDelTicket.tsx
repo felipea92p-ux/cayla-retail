@@ -148,7 +148,7 @@ export function ClientaDelTicket({
   ].filter((p) => p !== null);
 
   return (
-    <div className="px-5 pt-3">
+    <div data-guia="vender.cliente" className="px-5 pt-3">
       {clienta && linea ? (
         // Una sola caja: nombre, documento y estado arriba; lo del club, dentro de la misma caja (spike, `tarjeta-club`).
         <div className="overflow-hidden rounded-xl border border-sand bg-crema">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
@@ -13,6 +13,8 @@ import { veActividad } from "@/lib/actividad-reglas";
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
+import { MotorGuias } from "@/components/guias/MotorGuias";
+import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
@@ -754,6 +756,8 @@ const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
+  // «Demo» de Mi perfil (ADR-0362): el selector de guías interactivas.
+  const [demoAbierto, setDemoAbierto] = useState(false);
   // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
   const esLider = persona.rol === "lider";
   const esAparato = !!persona.terminal;
@@ -1066,8 +1070,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           onClose={() => setPerfilAbierto(false)}
           veAdministracion={esLider || !!persona.modulos?.some((m) => m === "colaboradores" || m === "roles")}
           veConfiguracion={!!persona.modulos?.some((m) => m === "configuracion")}
+          onDemo={() => {
+            setPerfilAbierto(false);
+            setDemoAbierto(true);
+          }}
         />
       )}
+      {demoAbierto && <ElegirDemoModal filas={menu.riel} onClose={() => setDemoAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
           y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}
@@ -1192,6 +1201,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>
       </main>
+
+      {/* Guías interactivas (ADR-0362): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
+          persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
+      <Suspense fallback={null}>
+        <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} />
+      </Suspense>
     </div>
   );
 }

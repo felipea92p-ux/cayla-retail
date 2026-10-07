@@ -103,7 +103,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
 
             {/* Un color por fila. Pasar el mouse por una fila anticipa su color a la izquierda; tocar su nombre lo fija. */}
             {/* `@container`: las casillas se acomodan al ancho de la LISTA (en el celular, tres por fila con el texto corto). */}
-            <ul className="@container min-w-0 divide-y divide-sand border-y border-sand" aria-label="Colores y tallas" onPointerLeave={() => setVistaPrevia(null)}>
+            <ul data-guia="vender.prenda-tallas" className="@container min-w-0 divide-y divide-sand border-y border-sand" aria-label="Colores y tallas" onPointerLeave={() => setVistaPrevia(null)}>
               {colores.map((c, i) => {
                 const lleva = c.tallas.reduce((a, t) => a + enTicket(t.variante.varianteId), 0);
                 const activo = c.clave === mostrado.clave;
