@@ -46,9 +46,9 @@ const ESPERA_MS = 300;
 /** Los botones chicos de adentro de la caja (spike del club, `BTN_P` / `BTN_S` de `45-club-caja.js`). El hover del primario
  *  es rojo PROFUNDO, como todo primario del ERP (ADR-0169): el rojo de marca no se gasta en un hover. */
 const BOTON_CHICO_PRIMARIO =
-  "label-cayla h-7 shrink-0 rounded-md bg-tinta px-2.5 text-[10.5px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
+  "btn-cayla btn-primario h-7 shrink-0 px-2.5 text-[12.5px]";
 const BOTON_CHICO_SECUNDARIO =
-  "label-cayla h-7 shrink-0 rounded-md border border-tinta/25 bg-papel px-2.5 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50";
+  "btn-cayla btn-secundario h-7 shrink-0 px-2.5 text-[12.5px]";
 /** Con lo del club plegado, sus acciones como píldoras (spike, `accion` de `partesClub`): «Canjear 10 %», «Usar vale S/ 30». */
 const PILDORA_ACCION =
   "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-xs leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";

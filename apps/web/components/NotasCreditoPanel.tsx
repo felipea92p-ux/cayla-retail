@@ -173,7 +173,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
 
   return (
     <div className="space-y-6">
-      <div {...entra(0)} className="anim-entra flex flex-wrap items-end justify-between gap-4">
+      <div data-voz="cabecera" {...entra(0)} className="anim-entra flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito de proveedor</h1>
@@ -506,7 +506,7 @@ function FilaNota({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRegistrar(); }}
-            className="label-cayla hidden rounded-md border border-tinta/25 px-3 py-1.5 text-[10.5px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo xl:inline-block"
+            className="btn-cayla btn-secundario hidden"
           >
             Registrar nota
           </button>
@@ -639,7 +639,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
                 <span className="font-display text-[26px] tabular-nums text-verde-profundo">{soles(p.saldoFavor)}</span>
                 <div className="flex flex-wrap gap-2">
                   {p.deuda > 0 && (
-                    <Link href={`/compras/por-pagar?prov=${p.id}&marcar=1`} className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[10.5px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo">
+                    <Link href={`/compras/por-pagar?prov=${p.id}&marcar=1`} className="btn-cayla btn-secundario">
                       Usar en un pago →
                     </Link>
                   )}

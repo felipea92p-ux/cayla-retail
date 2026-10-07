@@ -337,7 +337,7 @@ export function FichaColaborador({
                       </div>
                     </div>
                   ) : (
-                    <button type="button" className="btn-cayla btn-enlace text-rojo" onClick={() => setPanel("quitar")}>
+                    <button type="button" className="btn-cayla btn-peligro" onClick={() => setPanel("quitar")}>
                       Quitar acceso
                     </button>
                   )}

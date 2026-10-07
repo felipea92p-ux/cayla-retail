@@ -762,7 +762,7 @@ function FichaVariantes({
           Historial
         </Link>
         {acciones.eliminar && (
-          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-sutil min-h-10 text-[12.5px] text-rojo-profundo">
+          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
             <Trash2 aria-hidden className="h-4 w-4" />
             Eliminar
           </button>

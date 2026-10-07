@@ -208,9 +208,6 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
                 Registrar la nota
               </Boton>
             )}
-            <Boton type="button" onClick={cerrar} className="ml-auto">
-              Cerrar
-            </Boton>
           </div>
         </div>
       )}

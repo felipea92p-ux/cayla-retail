@@ -72,7 +72,7 @@ const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
+  "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
@@ -576,7 +576,7 @@ export function ApartarVista({
                   <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {tiendasConPrenda.map((t) => (
-                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="label-cayla h-8 rounded-lg border border-ambar/40 bg-papel px-3 text-[10.5px] text-tinta hover:border-tinta/40">
+                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="btn-cayla btn-secundario h-8 px-2.5 text-[12.5px]">
                         Pedir a {t.nombre} para apartar
                       </button>
                     ))}
@@ -763,7 +763,7 @@ export function ApartarVista({
                               className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
                             />
                           </label>
-                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="label-cayla h-11 shrink-0 rounded-xl border border-sand px-3 text-[10.5px] disabled:opacity-45">
+                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-11 shrink-0">
                             {buscandoClienta ? "Buscando…" : "Buscar"}
                           </button>
                         </div>

@@ -122,10 +122,10 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
           </div>
           <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={cerrar} disabled={loading} className="label-cayla flex-1 rounded-md border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+            <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario flex-1">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !montoOk} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50">
+            <button type="submit" disabled={loading || !montoOk} className="btn-cayla btn-primario flex-1">
               {loading ? "Registrando…" : "Registrar reembolso"}
             </button>
           </div>

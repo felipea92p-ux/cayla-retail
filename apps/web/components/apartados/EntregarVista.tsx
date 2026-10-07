@@ -23,7 +23,7 @@ import { firmar } from "@/lib/responsable-reglas";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
+  "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const BILLETES = [10, 20, 50, 100, 200];
 
 /** «Terracota · M · VES-0012-TER-M»: el apartado solo guarda el `sku`, que en producción está vacío en casi todas las
@@ -197,7 +197,7 @@ export function EntregarVista({
             </ul>
             {conEditar && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditar(true)} className="label-cayla inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand px-3 text-[10.5px] hover:border-taupe">
+                <button type="button" onClick={() => setEditar(true)} className="btn-cayla btn-secundario inline-flex h-9 items-center gap-1.5 px-2.5 text-[12.5px]">
                   <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
                 </button>
                 <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
@@ -351,7 +351,7 @@ export function EntregarVista({
                       <p className="text-sm font-semibold">¿Viene solo a abonar?</p>
                       <p className="text-xs text-tinta/60">Paga una parte; la prenda se queda guardada.</p>
                     </div>
-                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-tinta/25 px-3 text-[10.5px] hover:border-rojo hover:text-rojo disabled:opacity-40">
+                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="btn-cayla btn-secundario inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]">
                       <Wallet className="h-3.5 w-3.5" aria-hidden /> Abonar
                     </button>
                   </div>

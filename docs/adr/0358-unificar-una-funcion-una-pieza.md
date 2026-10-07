@@ -98,6 +98,10 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   uno solo, `.mov-boton` (la D: sube con sombra, barrido, se encoge; más el «+» que gira y la flecha que avanza, pedido de Felipe), en
   `<Boton>`, `BotonCompacto` y `FlujoGuiado`; `boton-brillo` desaparece. El «Atrás» de un paso a paso es la flecha de `<Volver>` («volver
   solo es una flecha»): ninguna de las dos caras que había ni la propuesta. La página de elegir suma botones vivos con el CSS del ERP.
+- **2026-10-07 · ronda 4, los botones, mirando y tocando.** Dos voces a propósito: la voz la pone el lugar (`data-voz="cabecera"` →
+  versalitas; hojas y tarjetas → letra normal), con una pieza (`btn-cayla`, que `<Boton>` dibuja) y una onda que nace donde se toca
+  (`<OndaBotones>`, pedido de Felipe: «más animaciones al hacer clic»). Lo peligroso, `btn-peligro` desde el principio. Cerrar una hoja,
+  la × de `<Modal conCerrar>`. Migrados 41 + 15 botones y 17 hojas; el mostrador queda como deuda de `boton`, con su pasada a 375 px.
 - **2026-10-07 · el movimiento entra al censo** (pedido de Felipe): la huella de lo que se toca o se mueve solo dice qué cambia al pasar el
   mouse, al presionar y con el foco, la transición, lo que late en bucle y lo que entra animado, y el censo lo mide pasándole el mouse. Dos
   piezas iguales en reposo y distintas en movimiento son dos variantes, y migrar no pierde movimiento.

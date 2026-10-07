@@ -1870,7 +1870,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                           cerrar();
                           setModalCaja("cerrar");
                         }}
-                        className="label-cayla mt-4 flex h-11 w-full items-center justify-center rounded-md border border-tinta/25 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+                        className="btn-cayla btn-secundario mt-4 flex h-11 w-full items-center justify-center"
                       >
                         Cerrar caja
                       </button>

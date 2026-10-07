@@ -192,7 +192,7 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "mov-boton label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema hover:bg-rojo-profundo";
+  "btn-cayla btn-primario inline-flex h-11 items-center gap-2 whitespace-nowrap";
 
 /** Los filtros de la actividad: píldoras con cuántas compras hay en cada una.
  *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0358, «Pestañas y segmentos»,
@@ -275,7 +275,7 @@ export function SinResultadosVentas({
         <button
           type="button"
           onClick={onBuscarEnTodas}
-          className="label-cayla mt-4 inline-flex h-11 items-center rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/20 transition-colors duration-200 hover:bg-tinta hover:text-crema"
+          className="btn-cayla btn-secundario mt-4 inline-flex h-11 items-center"
         >
           Buscar en todas las tiendas
         </button>

@@ -83,15 +83,8 @@ type Props = {
   // Ventas de hoy (vive dentro del <section>, bajo la grilla)
 };
 
-/** Mismo chip para las categorías y para el filtro de stock: uno "prendido" se ve igual
- *  sea cual sea su tipo, así la encargada de sede lee la fila entera de un vistazo.
- *  `rounded-md`: mismo radio que la "pastilla" del selector de ubicación
- *  (`campos.tsx`, `FORMA_DESPLEGABLE.pastilla`) — un chip de filtro es la misma
- *  familia de control que ese selector, no una tarjeta. */
-const chip = (prendido: boolean) =>
-  `label-cayla h-8 shrink-0 rounded-md border px-3 text-[11px] transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] active:translate-y-px ${
-    prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
-  }`;
+/* Las categorías del catálogo son un filtro: la píldora del sistema (`pildora-cayla`, ADR-0358 «pestanas»: filtrar = píldora),
+   con `aria-pressed` para la elegida. Antes era un chip propio en versalitas. */
 
 /** Un código QR de línea (brandbook: íconos solo de trazo): tres marcas de esquina y el punteado del centro. */
 function IconoQr({ className }: { className?: string }) {
@@ -215,7 +208,7 @@ export function PuntoDeVentaCatalogo({
               type="button"
               onClick={onAbrirCamara}
               disabled={bloqueado}
-              className="label-cayla flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-tinta px-3 text-[11px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px"
+              className="btn-cayla btn-primario flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap"
             >
               <IconoQr className="h-5 w-5 shrink-0" />
               Escanear QR
@@ -360,7 +353,7 @@ export function PuntoDeVentaCatalogo({
             // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
             // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
             // En tinta (Felipe, 2026-10-01): es la vía de captura que la colaboradora busca cuando la prenda no tiene etiqueta.
-            className="label-cayla w-[6.75rem] shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] leading-snug text-crema @md:w-auto @md:leading-normal transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
+            className="btn-cayla btn-primario w-[6.75rem] shrink-0 whitespace-normal px-3 text-center leading-snug @md:w-auto"
           >
             Prenda sin registrar
           </button>
@@ -380,7 +373,7 @@ export function PuntoDeVentaCatalogo({
           onClick={() => setCatalogoAbierto((v) => !v)}
           aria-expanded={catalogoAbierto}
           aria-controls="venta-catalogo-filtros venta-catalogo-grilla"
-          className="label-cayla mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-sand bg-papel text-[11px] font-semibold text-tinta transition-colors duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 active:translate-y-px sm:hidden"
+          className="btn-cayla btn-secundario mt-3 flex h-11 w-full items-center justify-center gap-2 sm:hidden"
         >
           {catalogoAbierto ? "Ocultar catálogo" : "Ver catálogo"}
           <span aria-hidden className={`inline-block transition-transform duration-300 ease-[var(--ease-cayla)] ${catalogoAbierto ? "rotate-180" : ""}`}>
@@ -442,7 +435,8 @@ export function PuntoDeVentaCatalogo({
                 type="button"
                 onClick={() => onCategoria(c)}
                 disabled={bloqueado}
-                className={`anim-entra ${chip(categoria === c)}`}
+                aria-pressed={categoria === c}
+                className="anim-entra pildora-cayla shrink-0"
                 style={{ "--i": Math.min(i, 10) } as CSSProperties}
               >
                 {c}

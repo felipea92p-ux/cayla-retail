@@ -44,7 +44,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
         ]}
       />
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">¿Qué necesita mi decisión hoy?</h1>
@@ -121,7 +121,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
                 </div>
                 <Link
                   href={d.accion.href}
-                  className="label-cayla col-span-2 rounded-md border border-tinta/25 px-3.5 py-2.5 text-center text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo sm:col-span-1 sm:justify-self-end"
+                  className="btn-cayla btn-secundario col-span-2 text-center sm:col-span-1 sm:justify-self-end"
                 >
                   {d.accion.texto}
                 </Link>

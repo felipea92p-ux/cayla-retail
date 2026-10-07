@@ -26,7 +26,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
+      <div data-voz="cabecera" className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Recibir</h1>
         <p className="mt-1 max-w-xl text-sm text-tinta/65">

@@ -83,7 +83,7 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
   }
 
   return (
-    <Modal
+    <Modal conCerrar
       titulo={`Liquidar desde ${efecto.dias} días`}
       subtitulo={efecto.cambia ? "Para todas las tiendas y todo el equipo." : "Así está para todas las tiendas."}
       onClose={onCerrar}
@@ -146,11 +146,7 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
                   Cancelar
                 </button>
               </>
-            ) : (
-              <button type="button" className="btn-cayla btn-secundario" onClick={cerrar}>
-                Cerrar
-              </button>
-            )}
+            ) : null}
           </div>
         </form>
       )}

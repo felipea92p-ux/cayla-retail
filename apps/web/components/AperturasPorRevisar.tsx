@@ -82,7 +82,7 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
                 onClick={() => revisar(a.cajaId)}
                 disabled={revisando !== null || !responsable.listo}
                 title={responsable.motivo ?? undefined}
-                className="label-cayla shrink-0 rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50"
+                className="btn-cayla btn-secundario shrink-0"
               >
                 {revisando === a.cajaId ? "Guardando…" : "Marcar como revisada"}
               </button>

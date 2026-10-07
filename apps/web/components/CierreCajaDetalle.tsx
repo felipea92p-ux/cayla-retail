@@ -101,7 +101,7 @@ function DetalleCierreModal({
   const duracion = duracionTurno(cierre.abiertaEn, cierre.cerradaEn);
 
   return (
-    <Modal titulo={`Cierre · ${cierre.ubicacionNombre}`} subtitulo={diaLargo(cierre.cerradaEn)} onClose={onClose} ancho="max-w-xl">
+    <Modal conCerrar titulo={`Cierre · ${cierre.ubicacionNombre}`} subtitulo={diaLargo(cierre.cerradaEn)} onClose={onClose} ancho="max-w-xl">
       {(cerrar) => (
         <div className="space-y-4">
           {/* Veredicto: lo primero que se quiere saber de un cierre es si cuadró. */}
@@ -216,9 +216,6 @@ function DetalleCierreModal({
 
           {cierre.nota && <p className="text-xs italic text-tinta/65">Nota del cierre: {cierre.nota}</p>}
 
-          <button type="button" onClick={cerrar} className={botonCancelar}>
-            Cerrar
-          </button>
         </div>
       )}
     </Modal>

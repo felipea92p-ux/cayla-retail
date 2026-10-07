@@ -212,7 +212,7 @@ export function ResolverDanadosModal({
   }
 
   return (
-    <Modal
+    <Modal conCerrar
       titulo="Prendas dañadas"
       subtitulo={`${pendientes.length} ${pendientes.length === 1 ? "pendiente" : "pendientes"} de resolver`}
       onClose={onClose}
@@ -383,9 +383,6 @@ export function ResolverDanadosModal({
               ))}
             </div>
           )}
-          <Boton type="button" onClick={cerrar} className="w-full">
-            Cerrar
-          </Boton>
         </div>
       )}
     </Modal>

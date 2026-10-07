@@ -28,7 +28,7 @@ export function FrescuraTiendas({
   onClose: () => void;
 }) {
   return (
-    <Modal
+    <Modal conCerrar
       titulo={`Las ${tiendas.length} tiendas`}
       subtitulo="Cómo está el piso de cada tienda y cómo se registra lo que se cuelga, este mes y el anterior. Para mirar el detalle de otra, cámbiala en el selector de sede de arriba."
       onClose={onClose}
@@ -85,11 +85,6 @@ export function FrescuraTiendas({
             «Al colgarlas»: las unidades que se registraron al bajarlas al piso, no recién al venderlas. La carga inicial y las bajadas que se
             deshicieron con un retiro no cuentan. «Ventas a pedido» llega con los botones de la caja.
           </p>
-          <div className="mt-4 flex justify-end border-t border-sand pt-4">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
-              Cerrar
-            </button>
-          </div>
         </>
       )}
     </Modal>

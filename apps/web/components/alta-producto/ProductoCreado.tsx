@@ -218,7 +218,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           <button
             type="button"
             onClick={onOtroParecido}
-            className="label-cayla rounded-md border border-tinta/30 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            className="btn-cayla btn-secundario"
           >
             Crear otro parecido
           </button>
@@ -232,7 +232,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
           </div>
           <Link
             href="/productos"
-            className="label-cayla rounded-md border border-tinta/30 px-3 py-2.5 text-center text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            className="btn-cayla btn-secundario text-center"
           >
             Ir a productos
           </Link>

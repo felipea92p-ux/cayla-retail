@@ -270,7 +270,7 @@ export function VistaRapidaProducto({
           {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
               qué no y ofrece descontinuarlo. */}
           {puedeEliminar && (
-            <button type="button" onClick={onEliminar} className="btn-cayla btn-sutil min-h-10 text-[12.5px] text-rojo-profundo">
+            <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
               <Trash2 aria-hidden className="h-4 w-4" />
               Eliminar
             </button>

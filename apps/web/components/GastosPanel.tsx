@@ -493,7 +493,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
   }
 
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -526,9 +526,6 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
             Anular…
           </button>
         )}
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
       </div>
     </Modal>
   );

@@ -137,7 +137,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   return (
     <PorPagarProvider agruparInicial={agrupar}>
       <div className="space-y-6">
-        <div {...entra(0)}>
+        <div data-voz="cabecera" {...entra(0)}>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
           <p className="mt-1 text-sm text-tinta/65">

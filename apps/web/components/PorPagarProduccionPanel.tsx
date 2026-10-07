@@ -28,7 +28,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
+      <div data-voz="cabecera" className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
         <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita.</p>

@@ -67,7 +67,7 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
 
   const pendientes = (filas ?? []).filter((p) => !hechas.includes(p.clave));
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo="Decir de qué cuenta fue"
       subtitulo="Lo que se guardó antes de que cada pago dijera su cuenta. Se dice una sola vez: no crea salidas de caja ni toca cierres ya hechos."
@@ -113,11 +113,6 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
         </ul>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando !== null} />
-      <div className="fin-botones mt-4">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onClose}>
-          Cerrar
-        </button>
-      </div>
     </Modal>
   );
 }

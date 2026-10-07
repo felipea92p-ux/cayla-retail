@@ -527,7 +527,7 @@ export function ReversoPase({
                   type="button"
                   onClick={() => setAnulando(true)}
                   disabled={ocupado || !anular.habilitado}
-                  className="btn-cayla btn-secundario ml-auto"
+                  className="btn-cayla btn-peligro ml-auto"
                   title={anular.porQueNo ?? undefined}
                 >
                   Anular

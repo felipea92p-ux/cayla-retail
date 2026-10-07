@@ -121,7 +121,7 @@ export function ConfigurarCategoria({
         onClick={() => void guardar()}
         disabled={elegidos.length === 0 || guardando || !firma.listo}
         title={firma.motivo ?? undefined}
-        className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-40"
+        className="btn-cayla btn-primario"
       >
         {guardando ? "Guardando…" : `Guardar en ${categoriaNombre}`}
       </button>

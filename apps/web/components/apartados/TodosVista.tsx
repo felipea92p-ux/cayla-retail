@@ -67,8 +67,8 @@ function leerQueVer(): string | null {
     return null;
   }
 }
-const BOTON_CHICO = "label-cayla h-8 whitespace-nowrap rounded-md border border-tinta/25 px-3 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40 disabled:hover:border-tinta/25 disabled:hover:text-tinta";
-const BOTON_CHICO_NEGRO = "label-cayla h-8 whitespace-nowrap rounded-md bg-tinta px-3 text-[10.5px] text-crema transition-colors hover:bg-rojo-profundo";
+const BOTON_CHICO = "btn-cayla btn-secundario h-8 whitespace-nowrap px-2.5 text-[12.5px]";
+const BOTON_CHICO_NEGRO = "btn-cayla btn-primario h-8 whitespace-nowrap px-2.5 text-[12.5px]";
 
 export function TodosVista({
   ubicacionId,

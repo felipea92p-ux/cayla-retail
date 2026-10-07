@@ -887,7 +887,7 @@ function VistaRapidaCategoria({
   onEditar: () => void;
 }) {
   return (
-    <Modal titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
+    <Modal conCerrar titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
       <div className="mt-1 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
           <div
@@ -967,9 +967,6 @@ function VistaRapidaCategoria({
       </div>
 
       <div className="mt-6 flex justify-end gap-2 border-t border-tinta/10 pt-4">
-        <Boton peso="fantasma" onClick={onClose}>
-          Cerrar
-        </Boton>
         {puedeEditar && (
           <Boton peso="primario" onClick={onEditar}>
             Editar

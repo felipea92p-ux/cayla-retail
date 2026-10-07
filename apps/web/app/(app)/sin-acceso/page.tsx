@@ -17,7 +17,7 @@ export default async function SinAccesoPage({ searchParams }: { searchParams: Pr
           Colaboradores, en la pestaña Roles y accesos.
         </p>
         <div className="mt-6 flex justify-center">
-          <Link href="/" className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo-profundo">
+          <Link href="/" className="btn-cayla btn-primario">
             Volver al inicio
           </Link>
         </div>

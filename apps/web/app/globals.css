@@ -1293,6 +1293,12 @@ html[data-buscando] [data-resultados] {
 
 /* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
         gradiente del sistema y dura 600ms; no queda nada pintado. ---- */
+/* La onda de un clic en un botón: nace en el punto tocado y se apaga (ronda 4 de /unificar). */
+@keyframes cayla-onda {
+  from { opacity: 1; scale: 0; }
+  to { opacity: 0; scale: 1; }
+}
+
 @keyframes cayla-brillo {
   from { opacity: 1; transform: translate3d(-120%, 0, 0) skewX(-12deg); }
   to { opacity: 1; transform: translate3d(320%, 0, 0) skewX(-12deg); }
@@ -1362,8 +1368,11 @@ html[data-buscando] [data-resultados] {
      · Al pasar el mouse: sube 2 px con su sombra, cruza una luz (650 ms, una vez) y el ícono responde: el «+» da un
        cuarto de vuelta y la flecha que va adelante se adelanta 4 px (lo que Felipe quería de la C).
      · Al presionar: se encoge un 3 % y baja; la mano siente que lo presionó.
-     Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
-  .mov-boton {
+     · Al hacer clic (ronda 4, Felipe 2026-10-07: «más animaciones para que sea más interactivo cuando haces clic»): una
+       onda nace donde tocaste y se apaga (450 ms). La pone `<OndaBotones>` (montado una vez en `app/layout.tsx`).
+     Lo tienen también todos los `btn-cayla` (menos `btn-enlace`, que es texto): un botón del ERP se mueve igual, venga de
+     donde venga. Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) {
     position: relative;
     overflow: hidden;
     transition:
@@ -1374,20 +1383,41 @@ html[data-buscando] [data-resultados] {
       border-color 200ms var(--ease-cayla),
       color 200ms var(--ease-cayla);
   }
-  .mov-boton::after {
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after {
     content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
     background: linear-gradient(100deg, transparent, color-mix(in srgb, currentColor 26%, transparent), transparent);
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
     opacity: 0;
   }
-  .mov-boton:hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
-  .mov-boton:hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
-  .mov-boton:active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
-  .mov-boton :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
-  .mov-boton:hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
-  .mov-boton :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
-  .mov-boton:hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
-  .mov-boton:hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
+    content: ""; position: absolute; pointer-events: none; border-radius: 999px;
+    left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
+    translate: -50% -50%;
+    background: color-mix(in srgb, currentColor 24%, transparent);
+    opacity: 0;
+  }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace))[data-onda]::before { animation: cayla-onda 450ms var(--ease-cayla); }
+
+  /* LAS DOS VOCES (ADR-0358, ronda 4: Felipe eligió la B, 2026-10-07). Dentro de la cabecera de una pantalla
+     (`data-voz="cabecera"`: EncabezadoPagina, CabeceraPantalla y las cabeceras propias de Compras y Producción) los botones
+     hablan en VERSALITAS de 11 px y 40 px, como la acción principal; en todo lo demás —hojas, tarjetas, filas— en letra
+     normal de 13,5 px, que se lee como una frase. La pieza es la misma (`btn-cayla`, o `<Boton>`, que la dibuja): la voz la
+     pone el lugar, no cada pantalla. */
+  [data-voz="cabecera"] :is(.btn-cayla:not(.btn-enlace)) {
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 0.75rem 1rem;
+  }
 }
 
 @layer components {
@@ -2285,9 +2315,12 @@ html[data-buscando] [data-resultados] {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .mov-boton::after { animation: none !important; }
-    .mov-boton, .mov-boton:hover, .mov-boton:active { translate: none !important; scale: none !important; }
-    .mov-boton :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after,
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before { animation: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================

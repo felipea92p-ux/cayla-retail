@@ -25,7 +25,7 @@ const MOTIVOS = Object.entries(ETIQUETA_MOTIVO_CIERRE) as [MotivoCierre, string]
 // les falta. Sin ellas (una base sin reparto) el cierre va sin tienda, como siempre, y la base infiere la única que hay.
 export type TiendaConFaltante = { ubicacionId: string; nombre: string; pendiente: number };
 
-const BTN_PRIMARIO = "label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50";
+const BTN_PRIMARIO = "btn-cayla btn-primario";
 
 export function CerrarFaltanteModal({
   compra,

@@ -81,7 +81,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     <div className="space-y-6">
       <div className="anim-entra">
         <Volver href="/compras/proveedores" a="Proveedores" />
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div data-voz="cabecera" className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 items-start gap-4">
             <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
               {proveedor.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
