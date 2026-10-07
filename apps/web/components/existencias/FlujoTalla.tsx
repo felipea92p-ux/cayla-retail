@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
@@ -13,6 +13,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { sonarConfirmacion } from "@/lib/sonido-confirmar";
 import { esFalloDeRed, esRespuestaIncierta, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
+// La caja del almacén en «Así va a quedar» (2026-10-07).
+import { Archive } from "lucide-react";
 import { argumentosDeBajada, formatearHoraLima, interpretarErrorDeBajada, itemsParaRpc, leerRespuestaDeBajada, respuestaResuelveLaMarca, RPC_BAJADA, textoMarcaSinResolver, type LineaBajada } from "@/lib/bajada-reglas";
 import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MAX_NOTA_RETIRO, respuestaResuelveLaMarcaDeRetiro, RPC_RETIRO, textoDelBloqueSubir, textoMarcaSinResolverDeRetiro, tituloDeExitoRetiro } from "@/lib/retiro-reglas";
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
