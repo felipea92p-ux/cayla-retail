@@ -44,6 +44,19 @@ La función es lo que la persona logra al usarlo, no el componente ni el texto e
 borde de 1 px en tinta al 15 %, sin relleno vertical y 10 px a los lados, letra de 13 px seminegrita. En la lámina, lo que cambia frente a la
 A está en rojo. «≈taupe» = no es exactamente el token pero se le parece (copiado a ojo o mezclado); un hex = no es ningún token.
 
+### El movimiento (Felipe 2026-10-07)
+
+La huella de lo que se toca o se mueve solo (botones, enlaces, pestañas, casillas, combos, campos, cifras, insignias, hojas, avisos) trae
+`movimiento`: qué cambia **al pasar el mouse**, **al presionar** y **con el foco del teclado**, la **transición** (cuánto tarda y qué), lo que
+late **en bucle** sin que nadie lo toque y lo que **entra animado** (`anim-entra`, `anim-revelar`). Sale de las reglas de CSS que le tocan a la
+pieza y a sus hijos (el barrido de luz de `<Boton>` vive en un `<span>` de adentro con `group-hover:`). Y en las variantes capturadas,
+`medido`: el censo le pasa el mouse de verdad (sin clic) y anota qué cambió y qué animación corrió.
+
+Cómo leerlo: «encima animación cayla-brillo, fondo · presionar cambia de tamaño · foco anillo del sistema (ADR-0351) · transición 250 ms
+(todo)» es `<Boton>`: barrido de luz, se encoge al presionar, el anillo único. «encima fondo · presionar nada» es un botón que solo cambia de
+color. **Dos variantes iguales en reposo y distintas en movimiento son dos variantes**: a Felipe le importa (quiere conservar y mejorar las
+animaciones, y que también sean una sola). Lo que se apaga con `prefers-reduced-motion` no se cuenta: el censo describe el movimiento normal.
+
 ## 5. Qué unificar primero
 
 Ordena por **confusión × alcance**: primero lo que cambia de significado (un mismo botón con colores de jerarquía distinta), después lo que se

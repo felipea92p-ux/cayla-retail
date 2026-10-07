@@ -75,6 +75,13 @@ const NOMBRES = {
   contenido: "Contenido",
   separador: "Separador",
   cebra: "Cebra",
+  movimiento: "Movimiento",
+  encima: "al pasar el mouse",
+  presionar: "al presionar",
+  foco: "con el foco del teclado",
+  transicion: "transición",
+  bucle: "en bucle (solo)",
+  entrada: "al aparecer",
 };
 const nombreDe = (k) => NOMBRES[k] ?? k;
 const valor = (k, v) => {
@@ -126,7 +133,7 @@ function tarjeta(v, base, familia, sub) {
   <div class="lam-capturas">${caps || '<p class="lam-sin">sin captura</p>'}</div>
   <div class="lam-mods">${modulos}</div>
   ${v.sistema.length ? `<p class="lam-sistema">Pieza del sistema: ${v.sistema.map((s) => `<code>${esc(s)}</code>`).join(" ")}</p>` : ""}
-  <details><summary>Cómo se ve${base ? " (en rojo, lo que cambia frente a la A)" : ""}</summary><table class="lam-huella">${tablaHuella(v.huella, base)}</table></details>
+  <details><summary>Cómo se ve${base ? " (en rojo, lo que cambia frente a la A)" : ""}</summary><table class="lam-huella">${tablaHuella(v.huella, base)}</table>${v.medido ? `<p class="lam-sub">Medido al pasar el mouse: ${esc(v.medido)}</p>` : ""}</details>
   <details><summary>Dónde vive</summary><ul>${pantallas}</ul><p class="lam-sub">Código [probable]:</p><ul>${archivos}</ul>${v.ejemplos.length ? `<p class="lam-sub">Dice:</p><p class="lam-ejemplos">${v.ejemplos.map((e) => `«${esc(e)}»`).join(" · ")}</p>` : ""}</details>
   <button type="button" class="lam-elegir" data-eleccion="Me quedo con la ${esc(v.letra)} de «${esc(nombreFamilia)}»">Elegir esta</button>
 </article>`;
