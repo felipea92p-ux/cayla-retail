@@ -96,10 +96,12 @@ export function MotorGuias({ quien }: { quien: string }) {
     return () => clearTimeout(t);
   }, [ofrecer, guia, anotar]);
 
-  // Cambiar de pantalla cierra la oferta que quedó abierta (es de la otra pantalla).
+  // Cambiar de pantalla (el «atrás» del navegador en plena demo) cierra la oferta y la guía que eran de la otra pantalla: una
+  // guía que sigue corriendo sobre otra ruta explicaría piezas que no están.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- la oferta pertenece a la ruta: se cierra al salir de ella
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- la oferta y la guía pertenecen a la ruta: se cierran al salir de ella
     setOfrecida((o) => (o && o.id !== guia?.id ? null : o));
+    setCorriendo((c) => (c && c.id !== guia?.id ? null : c));
   }, [guia]);
 
   function alTerminar(fin: FinDeGuia) {

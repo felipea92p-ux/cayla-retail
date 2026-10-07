@@ -86,7 +86,9 @@ function campoDe(el: HTMLElement): HTMLInputElement | HTMLTextAreaElement | null
 
 /** La primera palabra (de 3 letras o más) del nombre de la primera pieza visible con esa ancla: «Blusa» de «Blusa Aurora». */
 function palabraDe(ancla: string): string | null {
-  const el = buscarAncla(ancla);
+  // La primera que se ve; si ninguna terminó de entrar todavía (su animación arranca en opacidad 0), la primera que exista:
+  // para leer un nombre no hace falta que ya se vea.
+  const el = buscarAncla(ancla) ?? document.querySelector<HTMLElement>(selectorAncla(ancla));
   const nombre = (el?.getAttribute("aria-label") || el?.innerText || "").trim();
   return nombre.split(/\s+/).find((p) => p.length >= 3) ?? null;
 }
