@@ -154,10 +154,10 @@ describe("a qué tienda pedir", () => {
     { id: "aqp", nombre: "Tienda Arequipa" },
   ];
   it("la que más tiene, entre las tiendas a las que se puede pedir", () => {
-    expect(mejorOrigen([{ sede: "Tienda Lima", cantidad: 1 }, { sede: "Tienda Arequipa", cantidad: 3 }], sedes)?.id).toBe("aqp");
+    expect(mejorOrigen([{ sede: "Lima", ubicacionId: "lim", cantidad: 1 }, { sede: "Arequipa", ubicacionId: "aqp", cantidad: 3 }], sedes)?.id).toBe("aqp");
   });
   it("el Taller no cuenta, y sin nadie que tenga es null", () => {
-    expect(mejorOrigen([{ sede: "Taller", cantidad: 9 }], sedes)).toBeNull();
+    expect(mejorOrigen([{ sede: "Taller", ubicacionId: "taller", cantidad: 9 }], sedes)).toBeNull();
     expect(mejorOrigen(undefined, sedes)).toBeNull();
   });
 });
