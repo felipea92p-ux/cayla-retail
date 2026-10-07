@@ -46,5 +46,15 @@ de color a todo el movimiento.
 
 ## Deuda al decidir
 
-20 archivos (`pnpm --filter web unificar:deuda accion.nuevo`), migrados módulo por módulo el mismo día: Compras, Producción, Catálogo,
-Inventario, Caja, Colaboradores, Configuración y Finanzas.
+20 archivos (`pnpm --filter web unificar:deuda accion.nuevo`), migrados módulo por módulo el mismo día (un commit por módulo): Compras,
+Producción, Catálogo, Inventario (Traslados), Caja, Colaboradores, Configuración y Finanzas. **Deuda: 0.** El censo de después encontró un
+21.º que la firma no veía (el «+ Agregar …» del kit de Atributos, con el texto en una variable) y también se migró.
+
+Después de migrar, el censo de esas 14 pantallas cuenta 3 formas, todas con el mismo movimiento: el primario (40 px), su pareja con borde
+(42 px: el borde suma 2) y el primario de Compras (42 px: lo estira su vecino con ícono). Son medidas de contenido, no dos diseños.
+
+**Lo que cambió de lugar:** en Caja los cuatro botones en versalitas ya no caben junto al título a 1440 px y bajan de fila; la columna se
+quedó a la derecha (`sm:ml-auto`), donde la busca quien cierra la caja.
+
+**Lo que queda para la ronda `boton`:** unas 20 copias a mano de la versalita en las hojas («Guardar», «Confirmar», «Pagar»: `BTN_PRIMARIO` de
+`CerrarFaltanteModal` y `ReasignarReparto`, `RegistrarNotaCreditoModal`, `EnvioRecibido`…), sin barrido ni encogerse. No son «Nuevo».

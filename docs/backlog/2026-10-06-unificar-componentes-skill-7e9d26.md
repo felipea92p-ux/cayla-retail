@@ -11,6 +11,11 @@
 - [x] Preguntas abiertas respondidas el 2026-10-07 (Producción «S/ 0.00», vuelta siempre, Apartados al vidrio, segmentos de 4 se quedan, Caja del Inicio grande).
 - [ ] Quedan: la cabecera de Compras/Caja/Recibir (ADR-0220), «Piden algo hoy» de Análisis y avisar a Dany (Rendimiento y Clientes).
 - [x] El detector del censo ve los segmentos `forma="modo"` (lee `aria-checked`).
-- [ ] **Las 37 familias que faltan**, en el orden de «Por analizar» de `docs/unificar/README.md` (empieza por `estado` y `accion.nuevo`), con un censo nuevo antes y con más cuentas (`terminal-ventas`, `integrante`): el del 2026-10-06 es solo de la cuenta Admin.
+- [x] Ronda 2 (2026-10-07, mirando): `estado` se queda con `<Chip>` (Análisis y el líder en negro a propósito); `accion.nuevo` → B, migrado en 21 archivos de 8 módulos, deuda 0.
+- [x] El censo ve el movimiento (Felipe 2026-10-07): huella con `movimiento` y lo medido al pasar el mouse; la skill exige no perderlo al migrar.
+- [ ] Pasada del censo con `terminal-ventas` (Vender: `BotonCompacto`, Nueva cotización/serie) y decidir su botón.
+- [ ] Ronda `boton`: ~20 versalitas copiadas a mano en las hojas (Guardar/Confirmar/Pagar) sin el movimiento de `<Boton>`; y si el resto de `btn-cayla` pasa a versalitas.
+- [ ] Al pasar la cabecera de Caja a versalitas, los botones bajan de fila a 1440 px: Felipe dice si así está bien.
+- [ ] **Las familias que faltan**, en el orden de «Por analizar» de `docs/unificar/README.md` (empieza por `estado` y `accion.nuevo`), con un censo nuevo antes y con más cuentas (`terminal-ventas`, `integrante`): el del 2026-10-06 es solo de la cuenta Admin.
 - [ ] Escenarios: el censo ve los modales que el auditor de tema sabe abrir (unos 190). Los que no tienen escenario quedan en «No cubierto» del informe.
 - [x] La prueba del CI vigila tres decisiones reales; sus firmas atrapan la forma a mano y dejan pasar el uso correcto (probado con muestras).
