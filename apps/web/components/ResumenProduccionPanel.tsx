@@ -121,7 +121,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
                 </div>
                 <Link
                   href={d.accion.href}
-                  className="label-cayla col-span-2 rounded-md border border-tinta/25 px-3.5 py-2.5 text-center text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo sm:col-span-1 sm:justify-self-end"
+                  className="btn-cayla btn-secundario col-span-2 text-center sm:col-span-1 sm:justify-self-end"
                 >
                   {d.accion.texto}
                 </Link>

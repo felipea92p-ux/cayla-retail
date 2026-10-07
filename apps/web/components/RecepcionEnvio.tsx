@@ -1057,7 +1057,7 @@ export function RecepcionEnvio({
                   Marca a la izquierda los comprobantes que vienen en el envío. Si trae mercadería de varios proveedores, márcalos todos.
                 </p>
                 {nAtrasadas > 0 && (
-                  <button type="button" onClick={marcarAtrasadas} className="label-cayla mt-1 rounded-md border border-tinta/25 px-3.5 py-2 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                  <button type="button" onClick={marcarAtrasadas} className="btn-cayla btn-secundario mt-1">
                     Marcar lo atrasado ({nAtrasadas})
                   </button>
                 )}
@@ -1342,7 +1342,7 @@ export function RecepcionEnvio({
                                   )}
                                 </>
                               ) : (
-                                <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: true }))} className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[10px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                                <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: true }))} className="btn-cayla btn-secundario">
                                   Contar
                                 </button>
                               )}
@@ -1675,10 +1675,10 @@ export function RecepcionEnvio({
                 Tienes cantidades anotadas en <b className="font-semibold">{quitarPendiente.documento}</b>. Si lo quitas se descartan. No se registró nada todavía.
               </p>
               <div className="flex gap-3">
-                <button type="button" onClick={cerrar} className="label-cayla flex-1 rounded-md border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                <button type="button" onClick={cerrar} className="btn-cayla btn-secundario flex-1">
                   Seguir aquí
                 </button>
-                <button type="button" onClick={() => quitar(quitarPendiente.id)} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
+                <button type="button" onClick={() => quitar(quitarPendiente.id)} className="btn-cayla btn-primario flex-1">
                   Quitar y descartar
                 </button>
               </div>

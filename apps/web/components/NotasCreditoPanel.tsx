@@ -506,7 +506,7 @@ function FilaNota({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRegistrar(); }}
-            className="label-cayla hidden rounded-md border border-tinta/25 px-3 py-1.5 text-[10.5px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo xl:inline-block"
+            className="btn-cayla btn-secundario hidden"
           >
             Registrar nota
           </button>
@@ -639,7 +639,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
                 <span className="font-display text-[26px] tabular-nums text-verde-profundo">{soles(p.saldoFavor)}</span>
                 <div className="flex flex-wrap gap-2">
                   {p.deuda > 0 && (
-                    <Link href={`/compras/por-pagar?prov=${p.id}&marcar=1`} className="label-cayla rounded-md border border-tinta/25 px-3 py-2 text-[10.5px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo">
+                    <Link href={`/compras/por-pagar?prov=${p.id}&marcar=1`} className="btn-cayla btn-secundario">
                       Usar en un pago →
                     </Link>
                   )}

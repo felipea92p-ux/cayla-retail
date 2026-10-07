@@ -142,7 +142,7 @@ export function EliminarProductoModal({
               {puede ? "Cancelar" : "Cerrar"}
             </Boton>
             {salida?.irAEditar && (
-              <Link href={`/productos/${producto.productoId}/editar`} className="label-cayla flex flex-1 items-center justify-center rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
+              <Link href={`/productos/${producto.productoId}/editar`} className="btn-cayla btn-primario flex flex-1 items-center justify-center">
                 Editar
               </Link>
             )}

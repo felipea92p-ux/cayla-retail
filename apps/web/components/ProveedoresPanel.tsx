@@ -591,7 +591,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
         {p.activo ? (
           <Link
             href={`/compras/nueva?prov=${p.id}`}
-            className="label-cayla relative inline-block whitespace-nowrap rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+            className="btn-cayla btn-secundario relative whitespace-nowrap"
           >
             + Comprobante
           </Link>

@@ -202,7 +202,7 @@ export function BotonPagar({
 // Con un solo medio se ve exactamente como el spike; «Se paga» y «Total» son campos (editan el monto de ese medio) y con varios
 // pasan a ser la suma de los medios. Al abrir, la cascada se llena y «Pagarás» cuenta desde 0; al registrar, el modal se vuelve
 // una confirmación y solo al cerrarla se avisa a quien lo abrió.
-const BTN_CANCELAR = "label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
+const BTN_CANCELAR = "btn-cayla btn-secundario";
 
 export function RegistrarPagoModal({
   compra,

@@ -373,8 +373,6 @@ export const DECISIONES = {
     // El texto del botón suele ir en la línea siguiente a su clase: la firma mira 9 líneas desde donde empieza.
     "ventana": 9,
     "firmas": [
-      // Un «+ Nuevo / Registrar / Agregar» con la cara vieja de btn-cayla (34 px, letra normal).
-      "className=\\{?[\"'`]btn-cayla btn-(?:primario|secundario)\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear|Dar acceso)\\b",
       // La cara B copiada a mano (sin el barrido de luz ni el encogerse al presionar de la pieza).
       "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b",
       // El barrido viejo de 800 ms (ronda 3: el movimiento es uno solo, `.mov-boton`).
