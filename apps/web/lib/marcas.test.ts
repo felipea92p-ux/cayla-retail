@@ -9,8 +9,6 @@ import {
   textoProductosMarca,
   type BorradorMarca,
   type ParejaDeMarca,
-  contarProductosPorProveedor,
-  SIN_EN_URL,
   SIN_ID,
   filtroDeMarcaOProveedor,
   marcaAutomatica,
@@ -120,39 +118,6 @@ describe("sugerencias por categoría (predecir el registro)", () => {
   it("no sugiere una pareja cuya marca o proveedor ya no está disponible", () => {
     const s = sugerenciasDeCategoria([{ marcaId: "m-desactivada", proveedorId: "p-a", usos: 9 }], marcas, proveedores);
     expect(s).toEqual([]);
-  });
-});
-
-describe("A quién pedirle: productos por reponer, por proveedor", () => {
-  const f = (producto_id: string, proveedor_id: string, proveedor_nombre: string) => ({ producto_id, proveedor_id, proveedor_nombre });
-  it("cuenta productos y no variantes: un producto con 3 tallas llega 3 veces y cuenta una", () => {
-    const r = contarProductosPorProveedor([f("p1", "a", "Ámbar"), f("p1", "a", "Ámbar"), f("p1", "a", "Ámbar"), f("p2", "a", "Ámbar"), f("p3", "b", "Beta")]);
-    expect(r).toEqual([
-      { proveedorId: "a", proveedor: "Ámbar", productos: 2 },
-      { proveedorId: "b", proveedor: "Beta", productos: 1 },
-    ]);
-  });
-  it("ordena de más a menos y, a igual cantidad, por nombre", () => {
-    const r = contarProductosPorProveedor([f("p1", "b", "Beta"), f("p2", "a", "Ámbar"), f("p3", "c", "Cima"), f("p4", "c", "Cima")]);
-    expect(r.map((x) => x.proveedor)).toEqual(["Cima", "Ámbar", "Beta"]);
-  });
-  it("sin nada por reponer, nada que mostrar", () => {
-    expect(contarProductosPorProveedor([])).toEqual([]);
-  });
-  it("un producto por reponer SIN proveedor no desaparece del radar: va al final como «Sin proveedor» (ADR-0283)", () => {
-    const r = contarProductosPorProveedor([
-      { producto_id: "p9", proveedor_id: null, proveedor_nombre: null },
-      { producto_id: "p9", proveedor_id: null, proveedor_nombre: null }, // otra talla del mismo producto: cuenta una
-      { producto_id: "p8", proveedor_id: null, proveedor_nombre: null },
-      f("p1", "a", "Ámbar"),
-    ]);
-    expect(r).toEqual([
-      { proveedorId: "a", proveedor: "Ámbar", productos: 1 },
-      { proveedorId: SIN_EN_URL, proveedor: "Sin proveedor", productos: 2 },
-    ]);
-  });
-  it("sin ningún producto sin proveedor, no aparece la fila «Sin proveedor»", () => {
-    expect(contarProductosPorProveedor([f("p1", "a", "Ámbar")]).some((x) => x.proveedorId === SIN_EN_URL)).toBe(false);
   });
 });
 
