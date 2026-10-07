@@ -30,6 +30,7 @@ import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 import { limitesRedondeados } from "@/lib/productos-filtro-precio";
 import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
+import { BotonEnlace } from "@/components/ui/campos";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -189,9 +190,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               ]}
             />
             {editaCatalogo && (
-              <Link href="/productos/nuevo" className="btn-cayla btn-primario">
+              <BotonEnlace href="/productos/nuevo" peso="primario">
                 + Nuevo producto
-              </Link>
+              </BotonEnlace>
             )}
           </>
         }

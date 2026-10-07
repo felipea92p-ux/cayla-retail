@@ -366,20 +366,15 @@ export const DECISIONES = {
     ],
     "deuda": [
       "app/(app)/inventario/traslados/(billetera)/layout.tsx",
-      "app/(app)/productos/page.tsx",
-      "components/alta-producto/ElegirColores.tsx",
-      "components/alta-producto/ElegirEtiquetas.tsx",
       "components/CajaAbiertaPanel.tsx",
       "components/colaboradores/EquipoLista.tsx",
       "components/ColaboradoresPanel.tsx",
       "components/ConfiguracionTiendas.tsx",
-      "components/FamiliasLista.tsx",
       "components/finanzas/BalancePanel.tsx",
       "components/finanzas/ConfiguracionCuentas.tsx",
       "components/finanzas/CuentasDinero.tsx",
       "components/GastosFijosYActivos.tsx",
       "components/GastosPanel.tsx",
-      "components/TemporadasLista.tsx",
     ],
     "excepciones": [
       { "archivo": "components/analisis/TodaviaNo.tsx", "motivo": "El «Registrar N» chico dentro del anillo de Análisis v4 tiene su propio diseño y movimiento (ADR-0357); Felipe dice si se unifica" }

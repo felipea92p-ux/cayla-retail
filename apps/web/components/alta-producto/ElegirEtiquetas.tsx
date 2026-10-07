@@ -24,6 +24,7 @@ import {
   textoDeDescuento,
 } from "@/lib/etiquetas-alta-reglas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    ElegirEtiquetas · el campo «Etiquetas» del alta, con el mismo molde que Tejido, Patrón y Temporada (2026-09-29)
@@ -137,9 +138,9 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
           onClose={() => setHoja(false)}
           // «+ Nueva etiqueta» arriba a la derecha, a la vista (Felipe 2026-10-02): antes solo aparecía al escribir un nombre que no existe.
           acciones={
-            <button type="button" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="btn-cayla btn-primario h-9 whitespace-nowrap">
+            <Boton type="button" peso="primario" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="h-9 whitespace-nowrap py-0">
               + Nueva etiqueta
-            </button>
+            </Boton>
           }
         >
           <HojaEtiquetas
@@ -352,9 +353,9 @@ function HojaEtiquetas({
           />
         </label>
         {hayCrear && significado.tipo === "nueva" && (
-          <button type="button" onClick={() => pedirCrear(significado.nombre)} className="btn-cayla btn-secundario h-9">
+          <Boton type="button" onClick={() => pedirCrear(significado.nombre)} className="h-9 whitespace-nowrap py-0">
             + Crear «{significado.nombre}»
-          </button>
+          </Boton>
         )}
       </div>
       {/* Lo escrito y no marcado ni creado se ve (y se dice), no se pierde en silencio al cerrar la hoja. */}
