@@ -81,6 +81,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | | |
 |---|---|
 | `README.md` | este tablero |
+| `CONTINUAR.md` | cómo seguir desde otra sesión: lo que falta, cómo se trabaja y lo aprendido (se actualiza al cerrar cada ronda) |
 | `<familia>.md` | el registro de una decisión: qué se comparó, qué se eligió y por qué, la deuda por módulo |
 | `capturas/<familia>.png` | la comparativa con la que Felipe decidió (la evidencia, chica) |
 | `propuestas/<familia>.html` | el diseño extra de `/unificar`: un fragmento que la lámina dibuja con el CSS real, en claro y oscuro |
