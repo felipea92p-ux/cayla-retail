@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, Cuenta, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
@@ -373,6 +373,15 @@ function QueHacer() {
 }
 
 /** El flujo: a la izquierda lo que llega (Compra), al centro tu tienda, a la derecha lo que sale (Manda) o se rebaja (Liquidar). */
+/**
+ * Cintas finas (A1, Felipe 2026-10-07): cada cinta aparece de a poco —casi transparente donde nace y más marcada al llegar a tu tienda
+ * (o al revés, al salir)—, con un punto chico en su extremo en vez de la barra, y «Tu tienda» es una tarjeta clara. Los degradados van
+ * uno por lado y por estado; sus `id` llevan el de este dibujo para no chocar con otro en la misma página.
+ */
+const IdDegradado = createContext("fl");
+const idDegradado = (base: string, lado: "izq" | "der", est: Estado) => `${base}-${lado}-${est}`;
+const ESTADOS_DEL_FLUJO: Estado[] = ["urg", "ate"];
+
 function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
   const { datos } = useAnalisis();
   const { izq, der } = columnasFlujo(caminos);
@@ -381,10 +390,26 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
   const { W, H, LX, NW, CX0, CX1, RX } = FLUJO;
   const medio = (CX0 + CX1) / 2;
   const encima = useCaminoEncima();
+  const base = `fl${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const activoIzq = g.izq.find((b) => b.camino.clave === encima.clave);
   const activoDer = g.der.find((b) => b.camino.clave === encima.clave);
   return (
+    <IdDegradado.Provider value={base}>
     <svg className="fl-svg" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Qué hacer hoy: qué prendas te llegan y cuáles salen de tu tienda">
+      <defs>
+        {ESTADOS_DEL_FLUJO.map((est) => (
+          <linearGradient key={`izq-${est}`} id={idDegradado(base, "izq", est)} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.05 }} />
+            <stop offset="1" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.26 }} />
+          </linearGradient>
+        ))}
+        {ESTADOS_DEL_FLUJO.map((est) => (
+          <linearGradient key={`der-${est}`} id={idDegradado(base, "der", est)} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.26 }} />
+            <stop offset="1" style={{ stopColor: COLOR_ESTADO[est], stopOpacity: 0.07 }} />
+          </linearGradient>
+        ))}
+      </defs>
       {titulos.izq && (
         <text className="fl-cab" x={LX + NW} y={14} textAnchor="end">
           {titulos.izq}
@@ -406,14 +431,15 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
       {/* Los puntos van entre las cintas y los nodos: entran a «Tu tienda» por debajo y salen de ella. */}
       {activoIzq && <PuntosCinta key={`pt-${activoIzq.camino.clave}`} banda={activoIzq} lado="izq" />}
       {activoDer && <PuntosCinta key={`pt-${activoDer.camino.clave}`} banda={activoDer} lado="der" />}
-      {[...g.izq.map((b) => ({ b, x: LX })), ...g.der.map((b) => ({ b, x: RX }))].map(({ b, x }) => (
-        <rect key={`nodo-${b.camino.clave}`} x={x} y={px(b.y0)} width={NW} height={px(b.y1 - b.y0)} rx={3} fill={COLOR_ESTADO[b.camino.est]} />
+      {/* Un punto chico en el extremo de cada cinta (antes, una barra del alto de la cinta). */}
+      {[...g.izq.map((b) => ({ b, x: LX + NW, o: 0.45 })), ...g.der.map((b) => ({ b, x: RX, o: 0.6 }))].map(({ b, x, o }) => (
+        <circle key={`nodo-${b.camino.clave}`} cx={x} cy={px(b.cy)} r={4} fill={COLOR_ESTADO[b.camino.est]} fillOpacity={o} />
       ))}
-      <rect x={CX0} y={px(g.centro.y)} width={CX1 - CX0} height={px(g.centro.alto)} rx={14} fill="var(--color-tinta)" />
-      <text className="fl-centro" x={medio} y={px(g.centro.y + g.centro.alto / 2 + 2)} textAnchor="middle" style={{ fill: "var(--color-crema)" }}>
+      <rect className="fl-tienda" x={CX0} y={px(g.centro.y)} width={CX1 - CX0} height={px(g.centro.alto)} rx={20} />
+      <text className="fl-centro" x={medio} y={px(g.centro.y + g.centro.alto / 2 + 2)} textAnchor="middle">
         Tu tienda
       </text>
-      <text className="fl-sub" x={medio} y={px(g.centro.y + g.centro.alto / 2 + 20)} textAnchor="middle" style={{ fill: "var(--color-crema)" }}>
+      <text className="fl-sub" x={medio} y={px(g.centro.y + g.centro.alto / 2 + 20)} textAnchor="middle">
         {datos.sede.ciudad}
       </text>
       {g.izq.map((b) => (
@@ -429,6 +455,7 @@ function FlujoSvg({ caminos, alIr }: { caminos: CaminosHoy; alIr: AlIr }) {
         <Etiqueta key={`e-${b.camino.clave}`} banda={b} lado="der" alIr={alIr} encima={encima} />
       ))}
     </svg>
+    </IdDegradado.Provider>
   );
 }
 
@@ -484,7 +511,7 @@ function PuntosCinta({ banda: b, lado }: { banda: BandaFlujo<CaminoHoy>; lado: "
   return (
     <g className="fl-puntos" aria-hidden pointerEvents="none">
       {Array.from({ length: n }, (_, k) => (
-        <circle key={k} r={r} fill={color} stroke="var(--color-papel)" strokeWidth={1}>
+        <circle key={k} r={r} fill={color} fillOpacity={0.75} stroke="var(--color-papel)" strokeWidth={1}>
           <animateMotion
             dur={`${SEGUNDOS_PUNTO}s`}
             begin={`-${((k * SEGUNDOS_PUNTO) / n).toFixed(2)}s`}
@@ -521,15 +548,17 @@ function Franja({ franja, lado }: { franja: { texto: string; y: number; alto: nu
 /** La cinta de un camino, entre su nodo y tu tienda. Se toca con el mouse; con el teclado, su pastilla y su etiqueta. */
 function Cinta({ banda: b, i, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; i: number; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const { LX, NW, CX0, CX1, RX } = FLUJO;
+  const base = useContext(IdDegradado);
   const c = b.camino;
   const d = lado === "izq" ? cintaFlujo(LX + NW, b.y0, b.y1, CX0, b.c0, b.c1) : cintaFlujo(CX1, b.c0, b.c1, RX, b.y0, b.y1);
+  const est = ESTADOS_DEL_FLUJO.includes(c.est) ? c.est : "ate";
   return (
     <g onClick={(e) => alIr(c, e.currentTarget)} onMouseEnter={() => encima.entra(c.clave)} onMouseLeave={encima.sale}>
       <path
         className={`fl-cinta${lado === "der" ? " der" : ""}${c.primero ? " primera" : ""}`}
         style={{ ["--d" as string]: i }}
         d={d}
-        fill={COLOR_ESTADO[c.est]}
+        fill={`url(#${idDegradado(base, lado, est)})`}
         data-ps={ids(c.prendas)}
       />
       <TipSvg>
@@ -539,7 +568,7 @@ function Cinta({ banda: b, i, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
   );
 }
 
-/** «5 prendas» junto al nodo; el camino por donde empezar va lleno y dice «empieza aquí». */
+/** «5 prendas»: una etiqueta clara con el color de su camino (A1; antes, la del camino por donde empezar iba negra). */
 function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const texto = textoPastilla(c);
@@ -559,17 +588,8 @@ function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
       onFocus={() => encima.entra(c.clave)}
       onBlur={encima.sale}
     >
-      <rect
-        x={p.x}
-        y={px(p.y)}
-        width={p.w}
-        height={p.h}
-        rx={10}
-        fill={c.primero ? "var(--color-tinta)" : "var(--color-papel)"}
-        stroke={COLOR_ESTADO[c.est]}
-        strokeWidth={1.2}
-      />
-      <text className="fl-num" x={px(p.x + p.w / 2)} y={px(p.y + 14)} textAnchor="middle" style={{ fill: c.primero ? "var(--color-crema)" : "var(--color-tinta)" }}>
+      <rect x={p.x} y={px(p.y)} width={p.w} height={p.h} rx={10} fill="var(--color-papel)" stroke={COLOR_ESTADO[c.est]} strokeOpacity={0.3} strokeWidth={1} />
+      <text className="fl-num" x={px(p.x + p.w / 2)} y={px(p.y + 14)} textAnchor="middle" style={{ fill: COLOR_ESTADO[c.est] }}>
         {texto}
       </text>
       <TipSvg>
@@ -582,39 +602,43 @@ function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
 /**
  * El verbo del camino, sus tres primeras prendas (y «+N») y por qué. Vive en un `foreignObject`: nada de adentro debe crear su propia
  * capa (position, overflow que no es visible, transform, opacity), porque Safari la pinta fuera de lugar (ver `analisis-hoy.css`).
+ * Por eso la marca de sus prendas (`data-ps`) va en un `<g>` que lo envuelve: al pasar el mouse por otro camino, el atenuado
+ * (opacity) lo pinta el SVG, en su sitio. En el `div`, Safari dibujaba la etiqueta atenuada sin la escala del dibujo, encima de
+ * «Tu tienda» (Felipe, 2026-10-07); en el mismo `foreignObject`, no la dibujaba.
  */
 function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const e = etiquetaFlujo(b.cy, lado);
   return (
-    <foreignObject x={e.x} y={px(e.y)} width={e.w} height={e.h}>
-      <div
-        className={`fl-et ${lado}`}
-        data-ps={ids(c.prendas)}
-        role="button"
-        tabIndex={0}
-        onClick={(ev) => alIr(c, ev.currentTarget)}
-        onMouseEnter={() => encima.entra(c.clave)}
-        onMouseLeave={encima.sale}
-        onFocus={() => encima.entra(c.clave)}
-        onBlur={encima.sale}
-      >
-        <span className="fl-l1">
-          <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
-            <Icono nombre={c.est} />
+    <g data-ps={ids(c.prendas)}>
+      <foreignObject x={e.x} y={px(e.y)} width={e.w} height={e.h}>
+        <div
+          className={`fl-et ${lado}`}
+          role="button"
+          tabIndex={0}
+          onClick={(ev) => alIr(c, ev.currentTarget)}
+          onMouseEnter={() => encima.entra(c.clave)}
+          onMouseLeave={encima.sale}
+          onFocus={() => encima.entra(c.clave)}
+          onBlur={encima.sale}
+        >
+          <span className="fl-l1">
+            <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
+              <Icono nombre={c.est} />
+            </span>
+            <b>{c.verbo}</b>
+            {c.prendas.slice(0, 3).map((p) => (
+              <TilePrenda key={p.varianteId} prenda={p} tamano={17} />
+            ))}
+            {c.prendas.length > 3 && <span className="mas3">+{c.prendas.length - 3}</span>}
           </span>
-          <b>{c.verbo}</b>
-          {c.prendas.slice(0, 3).map((p) => (
-            <TilePrenda key={p.varianteId} prenda={p} tamano={17} />
-          ))}
-          {c.prendas.length > 3 && <span className="mas3">+{c.prendas.length - 3}</span>}
-        </span>
-        <span className="fl-l2">{c.motivo}</span>
-        <TipRico>
-          <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
-        </TipRico>
-      </div>
-    </foreignObject>
+          <span className="fl-l2">{c.motivo}</span>
+          <TipRico>
+            <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+          </TipRico>
+        </div>
+      </foreignObject>
+    </g>
   );
 }
 

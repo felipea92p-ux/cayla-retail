@@ -18,5 +18,15 @@
     .q-vacia-ic{--c:var(--color-verde);width:64px;height:64px;border-radius:18px;display:grid;place-items:center;color:var(--c);
       background:color-mix(in srgb,var(--c) 12%,transparent)}
     .q-vacia-ic svg{width:30px;height:30px}
+    /* «Liquidar desde» (Felipe, 2026-10-07): una caja con − y + en vez de la barra, sin tope (de 1 a 999 días). Botones de 32 px. */
+    .paso-dias{display:inline-flex;align-items:center;border:1px solid var(--color-sand);border-radius:10px;background:var(--color-hueso);overflow:hidden}
+    .paso-dias button{width:32px;height:32px;border:0;background:transparent;color:var(--color-tinta);font:500 18px/1 var(--font-sans);display:grid;place-items:center;cursor:pointer}
+    .paso-dias button:hover:not(:disabled){background:color-mix(in srgb,var(--color-sand) 70%,transparent)}
+    .paso-dias button:disabled{color:var(--color-tinta-60);opacity:.5;cursor:default}
+    .paso-dias input{width:52px;height:32px;border:0;border-inline:1px solid var(--color-sand);background:var(--color-papel);color:var(--color-tinta);
+      text-align:center;font:600 15px var(--font-sans);font-variant-numeric:tabular-nums}
+    .paso-dias input[aria-invalid="true"]{color:var(--color-rojo-profundo)}
+    .paso-dias button:focus-visible,.paso-dias input:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
+    .umbral-error{font-size:12px;color:var(--color-rojo-profundo)}
   }
 }

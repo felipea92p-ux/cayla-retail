@@ -9,12 +9,14 @@ import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, soles } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
-import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, liquidarDesdeValido, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
+import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
+import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
 import { hrefEnviar, hrefLiquidar } from "@/lib/analisis-acciones";
 import {
   barraDeEdad,
   cifrasQuietas,
   destinoDeTodas,
+  etiquetasEje,
   gruposQuietas,
   marcasEje,
   notaSinCosto,
@@ -38,16 +40,27 @@ export function PestanaQuieta() {
   const router = useRouter();
   const idUmbral = useId();
   const [guardar, setGuardar] = useState(false);
+  // Lo escrito en la caja de «Liquidar desde» (puede quedar a medio escribir: «1» camino a «15»). Sigue al valor de afuera cuando este
+  // cambia por otro lado (un toque de − o +, lo guardado que vuelve del servidor), sin pisar lo que se está escribiendo.
+  const [texto, setTexto] = useState(String(liquidarDesde));
+  const [textoDe, setTextoDe] = useState(liquidarDesde);
+  if (textoDe !== liquidarDesde) {
+    setTextoDe(liquidarDesde);
+    if (leerDiasLiquidar(texto) !== liquidarDesde) setTexto(String(liquidarDesde));
+  }
 
-  // Hay carril o no, con las prendas de la tienda (sin buscar): si el buscador las deja fuera, el carril lo dice.
+  // Hay carril o no, con las prendas de la tienda (sin buscar): si el buscador las deja fuera, el carril lo dice. Sin datos, la
+  // pestaña solo lo dice; con «Todo se mueve», las cifras, la edad de la ropa y «Liquidar desde» siguen a la vista (Felipe,
+  // 2026-10-07: en TRU no había nada quieto y no tenía dónde cambiar los 60 días).
   const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length);
-  if (vacio) return <Vacio tipo={vacio} />;
+  if (vacio === "sin-datos") return <Vacio tipo={vacio} />;
 
   // Las cifras son de toda la tienda (como la cuenta de la pestaña); el carril, de lo que deja ver el buscador.
   const cifras = cifrasQuietas(prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde));
   const faltan = notaSinCosto(cifras);
   const { enviar, liquidar, vigila } = gruposQuietas(prendas, liquidarDesde);
   const marcas = marcasEje(liquidarDesde);
+  const etiquetas = etiquetasEje(liquidarDesde);
 
   // Los botones de todo el grupo: «Enviar todas» solo si todas van a la misma tienda (si no, cada fila tiene la suya).
   const destino = destinoDeTodas(enviar);
@@ -91,21 +104,53 @@ export function PestanaQuieta() {
     },
   ];
 
-  // «Liquidar desde»: se mueve en vivo; si queda distinto de lo guardado, aparece «Guardar para todos».
+  // «Liquidar desde»: una caja con − y + (Felipe, 2026-10-07: sin barra y sin tope, de 1 a 999 días). Lo escrito mueve el carril EN
+  // VIVO; si queda distinto de lo guardado, aparece «Guardar para todos». Las flechas ↑ ↓ suman o restan de a un día.
+  const errorDias = leerDiasLiquidar(texto) === null;
+  const escribir = (v: string) => {
+    setTexto(v);
+    const n = leerDiasLiquidar(v);
+    if (n !== null) setLiquidarDesde(n);
+  };
+  const mover = (delta: number) => {
+    const n = pasoLiquidar(leerDiasLiquidar(texto) ?? liquidarDesde, delta);
+    setTexto(String(n));
+    setLiquidarDesde(n);
+  };
   const control = (
     <span className="umbral">
       <label htmlFor={idUmbral}>Liquidar desde</label>
-      <input
-        id={idUmbral}
-        type="range"
-        min={LIQUIDAR_MIN}
-        max={LIQUIDAR_MAX}
-        step={1}
-        value={liquidarDesde}
-        aria-valuetext={`${liquidarDesde} días`}
-        onChange={(e) => setLiquidarDesde(liquidarDesdeValido(e.target.value))}
-      />
-      <output htmlFor={idUmbral}>{liquidarDesde} días</output>
+      <span className="paso-dias">
+        <button type="button" aria-label={`${LIQUIDAR_PASO} días menos`} disabled={liquidarDesde <= LIQUIDAR_MIN} onClick={() => mover(-LIQUIDAR_PASO)}>
+          −
+        </button>
+        <input
+          id={idUmbral}
+          inputMode="numeric"
+          autoComplete="off"
+          value={texto}
+          aria-invalid={errorDias || undefined}
+          aria-describedby={errorDias ? `${idUmbral}-error` : undefined}
+          onChange={(e) => escribir(e.target.value)}
+          onBlur={() => {
+            if (errorDias) setTexto(String(liquidarDesde));
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+            e.preventDefault();
+            mover(e.key === "ArrowUp" ? 1 : -1);
+          }}
+        />
+        <button type="button" aria-label={`${LIQUIDAR_PASO} días más`} disabled={liquidarDesde >= LIQUIDAR_MAX} onClick={() => mover(LIQUIDAR_PASO)}>
+          +
+        </button>
+      </span>
+      <span>días</span>
+      {errorDias && (
+        <span id={`${idUmbral}-error`} className="umbral-error" role="alert">
+          {ERROR_DIAS_LIQUIDAR}
+        </span>
+      )}
       {liquidarDesde !== datos.liquidarDesde && (
         <button type="button" className="btn-cayla btn-secundario btn-s" onClick={() => setGuardar(true)}>
           Guardar para todos
@@ -192,34 +237,48 @@ export function PestanaQuieta() {
         <EdadDeLoQueTienes />
       </div>
 
-      <Carril
-        titulo="Días sin venderse"
-        herramienta={control}
-        eje={[
-          { texto: "0", left: "0%" },
-          {
-            texto: (
-              <span className="zona" style={{ color: "var(--color-ambar)" }}>
-                Liquidar
-              </span>
-            ),
-            left: `${marcas.liquidar}%`,
-          },
-          {
-            texto: (
-              <span className="zona" style={{ color: "var(--color-rojo-profundo)" }}>
-                3 meses
-              </span>
-            ),
-            left: `${marcas.tresMeses}%`,
-          },
-          { texto: "4 meses", left: "100%" },
-        ]}
-        grupos={grupos}
-        pista={pista}
-        pildoras={pildoras}
-        accion={accion}
-      />
+      {vacio === "todo-se-mueve" ? (
+        <section className="tarjeta carril entra" style={{ ["--i" as string]: 2 }}>
+          <div className="c-cab">
+            <h3 className="b-tit">Días sin venderse</h3>
+            <span className="b-nota">{control}</span>
+          </div>
+          <Vacio tipo="todo-se-mueve" dentro />
+        </section>
+      ) : (
+        <Carril
+          titulo="Días sin venderse"
+          herramienta={control}
+          eje={[
+            { texto: "0", left: "0%" },
+            {
+              texto: (
+                <span className="zona" style={{ color: "var(--color-ambar)" }}>
+                  Liquidar
+                </span>
+              ),
+              left: `${marcas.liquidar}%`,
+            },
+            ...(etiquetas.tresMeses
+              ? [
+                  {
+                    texto: (
+                      <span className="zona" style={{ color: "var(--color-rojo-profundo)" }}>
+                        3 meses
+                      </span>
+                    ),
+                    left: `${marcas.tresMeses}%`,
+                  },
+                ]
+              : []),
+            { texto: etiquetas.fin, left: "100%" },
+          ]}
+          grupos={grupos}
+          pista={pista}
+          pildoras={pildoras}
+          accion={accion}
+        />
+      )}
 
       {acceso.frescura && (
         <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 3 }}>
@@ -265,7 +324,8 @@ function EdadDeLoQueTienes() {
         {total === 0 ? (
           <i className="q-sin">Sin prendas</i>
         ) : (
-          tramos.map((t, k) => (
+          // Un tramo sin unidades no se dibuja: una franja roja de «Más de 3 meses» diría que hay ropa vieja donde no hay.
+          tramos.filter((t) => t.unidades > 0).map((t, k) => (
             <i
               key={t.clase}
               className={`${t.clase} cx`}
@@ -290,11 +350,11 @@ function EdadDeLoQueTienes() {
 }
 
 /** Sin carril: todo se mueve (la respuesta corta y buena) o no se pudieron leer las prendas (nunca «todo se mueve» por una falla). */
-function Vacio({ tipo }: { tipo: VacioQuietas }) {
+function Vacio({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const todo = tipo === "todo-se-mueve";
   const texto = TEXTO_VACIO_QUIETAS[tipo];
   return (
-    <section className="tarjeta vacio-vista entra" style={{ ["--i" as string]: 0 }}>
+    <section className={dentro ? "vacio-vista" : "tarjeta vacio-vista entra"} style={dentro ? undefined : { ["--i" as string]: 0 }}>
       <span className="q-vacia-ic" style={{ ["--c" as string]: COLOR_ESTADO[todo ? "bien" : "nd"] }}>
         <Icono nombre={todo ? "check" : "nd"} />
       </span>

@@ -309,3 +309,17 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   quitan sin perder información (el color del nivel, las paletas y la pestaña dicen lo mismo).
 - **Los límites:** `--ease-cayla`, sin rebote, solo tokens, y con `prefers-reduced-motion` se detienen. En celular el resplandor es corto y suave.
 - **Dónde vive:** `apps/web/app/estilos/recordatorio-cierre.css` (`.rcc-aurora`, `.rcc-caps::before`).
+
+## Actualización 2026-10-07 — la mesa de Ventas sin registrar (ADR-0360): movimiento rico, elegido por Felipe
+
+- **Qué:** en `/inventario/por-regularizar` (maqueta A2 «Puente») el talón elegido se adelanta y su hilo se dibuja hasta el puente; la cuerda se traza y
+  los tres visitos (prenda, talla, color) entran en cascada; la balanza de precio se llena; las tarjetas de prendas suben una a una y se levantan
+  al pasar el mouse; y al guardar las dos mitades del puente se juntan, cae el sello «Regularizada» y el talón se pliega.
+- **Por qué se admite:** Felipe pidió «muchas animaciones» para esta pantalla y eligió la maqueta con su movimiento (2026-10-07). Cada efecto
+  responde a algo que la persona hizo (elegir, pasar el mouse, guardar): ninguno es decorativo ni corre solo.
+- **Los límites son los de siempre:** `--ease-cayla`, nada con rebote, **nada en bucle** (salvo el punto de «Vencida», que late tres veces como el
+  del chip), cada efecto una vez, solo tokens y `@layer components`. Con `prefers-reduced-motion` todo queda quieto y los trazos aparecen ya dibujados.
+- **Dónde vive:** `apps/web/app/estilos/ventas-sin-registrar.css` (sus `@keyframes vsr-*`) y los hilos en `components/por-regularizar/HilosMesa.tsx`
+  (SVG medido en el DOM). No se generaliza: otra pantalla que quiera lo mismo lo pide con Felipe y se agrega aquí. La hoja del celular es un
+  `<Modal>` y entra con la cascada de esta regla.
+

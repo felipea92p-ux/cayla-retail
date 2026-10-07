@@ -232,16 +232,23 @@ export function paraReponerPiso<T extends Pick<PrendaAnalisis, "vendidas30" | "p
 // ───────────────────────── Qué hacer hoy: el dibujo ─────────────────────────
 
 /**
- * Las medidas del flujo, las de la maqueta: el lienzo (W × H), dónde empiezan las columnas (TOPC), las columnas de nodos (LX a la
- * izquierda, RX a la derecha, de NW de ancho), el bloque «Tu tienda» (de CX0 a CX1), el alto mínimo de cada camino (MIN), el hueco
- * entre caminos (GAP), el alto de una franja con título (HDR) y el grosor máximo por prenda (KMAX).
+ * Las medidas del flujo: el lienzo (W × H), dónde empiezan las columnas (TOPC), dónde nace y termina cada cinta (LX a la izquierda,
+ * RX a la derecha, con NW de margen), la tarjeta «Tu tienda» (de CX0 a CX1), el alto mínimo del lugar de cada camino (MIN), el hueco
+ * entre caminos (GAP), el alto de una franja con título (HDR) y el tope de la escala del grosor (SMAX).
+ *
+ * Cintas finas (A1, Felipe 2026-10-07: «lo veo muy brusco, debe ser más sutil y amigable»): el grosor de un camino crece como la RAÍZ
+ * de sus prendas (s·√n), no en línea recta. Antes, 49 prendas por comprar llenaban todo el alto y la tarjeta parecía una pared; ahora
+ * miden 56, y un camino de 3 prendas se sigue viendo (14).
  */
-export const FLUJO = { W: 1020, H: 320, TOPC: 30, LX: 286, NW: 12, CX0: 486, CX1: 586, RX: 736, MIN: 30, GAP: 8, HDR: 34, KMAX: 14 } as const;
+export const FLUJO = { W: 1020, H: 320, TOPC: 30, LX: 286, NW: 12, CX0: 486, CX1: 586, RX: 736, MIN: 30, GAP: 8, HDR: 34, SMAX: 8 } as const;
 /** El alto útil de las columnas. */
 export const ALTO_COLUMNA = FLUJO.H - FLUJO.TOPC - 4;
-/** Lo que el bloque «Tu tienda» suma alrededor de sus cintas (14 arriba y 14 abajo) y su alto mínimo de cintas. */
+/** Lo que la tarjeta «Tu tienda» suma alrededor de sus cintas (14 arriba y 14 abajo) y su alto mínimo de cintas (con el borde, 92). */
 const BORDE_CENTRO = 28;
-const MIN_CENTRO = 40;
+const MIN_CENTRO = 64;
+
+/** El grosor de un camino de `n` prendas con la escala `s`: s·√n (uno grande no se come la tarjeta y uno chico se sigue viendo). */
+export const grosorCamino = (n: number, s: number): number => s * Math.sqrt(Math.max(0, n));
 /** Cuánto puede crecer de más un hueco cuando sobra lugar. */
 const HUECO_EXTRA_MAX = 22;
 
@@ -266,21 +273,24 @@ export function titulosFlujo(c: CaminosHoy): { izq: string | null; der: string |
   return { izq: c.compra ? "CÓMPRALAS" : null, der: c.manda.length ? "MÁNDALAS A OTRA TIENDA" : c.reb.length ? CAB_SE_QUEDAN : null };
 }
 
-/** Cuánto alto pide una columna si cada prenda mide `k`: cada camino al menos MIN, los huecos entre caminos y las franjas. */
-export function altoNecesario<T>(col: readonly EntradaColumna<T>[], k: number): number {
+/** Cuánto alto pide una columna con la escala `s`: cada camino al menos MIN, los huecos entre caminos y las franjas. */
+export function altoNecesario<T>(col: readonly EntradaColumna<T>[], s: number): number {
   return col.reduce((acc, e, i) => {
     if (esCab(e)) return acc + FLUJO.HDR;
     const siguiente = col[i + 1];
-    return acc + Math.max(FLUJO.MIN, k * e.n) + (siguiente !== undefined && !esCab(siguiente) ? FLUJO.GAP : 0);
+    return acc + Math.max(FLUJO.MIN, grosorCamino(e.n, s)) + (siguiente !== undefined && !esCab(siguiente) ? FLUJO.GAP : 0);
   }, 0);
 }
+
+/** Lo que miden juntas las cintas de una columna con la escala `s` (lo que entra a la tarjeta «Tu tienda» por ese lado). */
+const grosorColumna = <T>(col: readonly EntradaColumna<T>[], s: number): number => col.reduce((acc, e) => acc + (esCab(e) ? 0 : grosorCamino(e.n, s)), 0);
 
 /** Un camino ya ubicado: su banda en la columna (y0–y1), el centro y el fondo de su lugar (cy, yb) y dónde entra al centro (c0–c1). */
 export type BandaFlujo<T> = { camino: T; n: number; y0: number; y1: number; cy: number; yb: number; c0: number; c1: number };
 
 export type GeometriaFlujo<T> = {
-  /** El grosor de cada prenda. */
-  k: number;
+  /** La escala del grosor: un camino de n prendas mide s·√n. */
+  s: number;
   izq: BandaFlujo<T>[];
   der: BandaFlujo<T>[];
   /** El fondo de la franja con título (de su título al último camino de la columna); null si la columna no tiene. */
@@ -291,16 +301,15 @@ export type GeometriaFlujo<T> = {
 };
 
 /**
- * Ubica el flujo (la cuenta de `queHacer()` de la maqueta). El grosor por prenda `k` es el más grande con que las dos columnas y
- * el bloque «Tu tienda» caben en el alto fijo, y nunca más de KMAX: pocas prendas no se vuelven una mancha. Lo que sobra se reparte
- * en los huecos (hasta 22 de más cada uno) y la columna queda centrada.
+ * Ubica el flujo. La escala `s` es la más grande con que las dos columnas y la tarjeta «Tu tienda» caben en el alto fijo, y nunca más
+ * de SMAX: así el dibujo no se vuelve una mancha con muchas prendas ni una pared con un solo camino. Lo que sobra se reparte en los
+ * huecos (hasta 22 de más cada uno) y la columna queda centrada.
  */
 export function geometriaFlujo<T>(izq: readonly EntradaColumna<T>[], der: readonly EntradaColumna<T>[]): GeometriaFlujo<T> {
-  const suma = (col: readonly EntradaColumna<T>[]) => col.reduce((s, e) => s + (esCab(e) ? 0 : e.n), 0);
-  const nL = suma(izq);
-  const nR = suma(der);
-  const cabe = (k: number) =>
-    altoNecesario(izq, k) <= ALTO_COLUMNA && altoNecesario(der, k) <= ALTO_COLUMNA && Math.max(k * nL, k * nR, MIN_CENTRO) + BORDE_CENTRO <= ALTO_COLUMNA;
+  const cabe = (s: number) =>
+    altoNecesario(izq, s) <= ALTO_COLUMNA &&
+    altoNecesario(der, s) <= ALTO_COLUMNA &&
+    Math.max(grosorColumna(izq, s), grosorColumna(der, s), MIN_CENTRO) + BORDE_CENTRO <= ALTO_COLUMNA;
   let lo = 0;
   let hi = 400;
   for (let vuelta = 0; vuelta < 40; vuelta++) {
@@ -308,12 +317,12 @@ export function geometriaFlujo<T>(izq: readonly EntradaColumna<T>[], der: readon
     if (cabe(m)) lo = m;
     else hi = m;
   }
-  const k = Math.min(lo, FLUJO.KMAX);
+  const s = Math.min(lo, FLUJO.SMAX);
 
   const ubicar = (col: readonly EntradaColumna<T>[]) => {
     const esHueco = (i: number) => !esCab(col[i]) && i < col.length - 1 && !esCab(col[i + 1]);
     const huecos = col.filter((_, i) => esHueco(i)).length;
-    const libre = ALTO_COLUMNA - altoNecesario(col, k);
+    const libre = ALTO_COLUMNA - altoNecesario(col, s);
     const extra = huecos ? Math.max(0, Math.min(libre / huecos, HUECO_EXTRA_MAX)) : 0;
     let y = FLUJO.TOPC + Math.max(0, (libre - extra * huecos) / 2);
     const bandas: BandaFlujo<T>[] = [];
@@ -324,8 +333,8 @@ export function geometriaFlujo<T>(izq: readonly EntradaColumna<T>[], der: readon
         y += FLUJO.HDR;
         continue;
       }
-      const lugar = Math.max(FLUJO.MIN, k * e.n);
-      const grosor = k * e.n;
+      const grosor = grosorCamino(e.n, s);
+      const lugar = Math.max(FLUJO.MIN, grosor);
       const y0 = y + (lugar - grosor) / 2;
       bandas.push({ camino: e.camino, n: e.n, y0, y1: y0 + grosor, cy: y + lugar / 2, yb: y + lugar, c0: 0, c1: 0 });
       y += lugar + (esHueco(i) ? FLUJO.GAP + extra : 0);
@@ -338,20 +347,22 @@ export function geometriaFlujo<T>(izq: readonly EntradaColumna<T>[], der: readon
   const L = ubicar(izq);
   const R = ubicar(der);
 
-  // El bloque «Tu tienda»: tan alto como la columna más gruesa más su borde, centrado en el alto útil. Las cintas entran pegadas.
-  const alto = Math.max(k * nL, k * nR, MIN_CENTRO) + BORDE_CENTRO;
+  // La tarjeta «Tu tienda»: tan alta como la columna más gruesa más su borde, centrada en el alto útil. Las cintas entran pegadas.
+  const gL = grosorColumna(izq, s);
+  const gR = grosorColumna(der, s);
+  const alto = Math.max(gL, gR, MIN_CENTRO) + BORDE_CENTRO;
   const y = FLUJO.TOPC + (ALTO_COLUMNA - alto) / 2;
-  const entrar = (bandas: BandaFlujo<T>[], n: number) => {
-    let q = y + (alto - k * n) / 2;
+  const entrar = (bandas: BandaFlujo<T>[], total: number) => {
+    let q = y + (alto - total) / 2;
     for (const b of bandas) {
       b.c0 = q;
-      q += k * b.n;
+      q += grosorCamino(b.n, s);
       b.c1 = q;
     }
   };
-  entrar(L.bandas, nL);
-  entrar(R.bandas, nR);
-  return { k, izq: L.bandas, der: R.bandas, franjaIzq: L.franja, franjaDer: R.franja, centro: { y, alto } };
+  entrar(L.bandas, gL);
+  entrar(R.bandas, gR);
+  return { s, izq: L.bandas, der: R.bandas, franjaIzq: L.franja, franjaDer: R.franja, centro: { y, alto } };
 }
 
 /** Redondea a una décima (las coordenadas del dibujo: el mismo texto en el servidor y en el navegador). */
@@ -390,23 +401,27 @@ export function carrilesDeCinta(grosor: number, r: number): number[] {
 /** Lo que tarda un punto en cruzar una cinta, en segundos: ni tan lento que no se note ni tan rápido que maree. */
 export const SEGUNDOS_PUNTO = 1.6;
 
-/** Cuántos puntos corren por una cinta y de qué tamaño: una cinta más gruesa lleva más puntos y más grandes (de 3 a 6). */
+/** Cuántos puntos corren por una cinta y de qué tamaño: chicos y suaves (A1), de 3 a 5, algo más en una cinta gruesa. */
 export function puntosDeCinta(grosor: number): { n: number; r: number } {
   const g = Math.max(0, grosor);
-  return { n: Math.max(3, Math.min(6, Math.round(g / 14) + 3)), r: px(Math.max(2.2, Math.min(4.5, g * 0.16))) };
+  return { n: Math.max(3, Math.min(5, Math.round(g / 20) + 3)), r: px(Math.max(2, Math.min(3, g * 0.06))) };
 }
 
-/** El texto de la pastilla de un camino: «5 prendas», y en el primero, «5 prendas · empieza aquí». */
-export function textoPastilla(c: Pick<CaminoHoy, "prendas" | "primero">): string {
+/** El texto de la etiqueta de un camino: «5 prendas» (A1: sin «empieza aquí»; el camino por donde empezar va más marcado). */
+export function textoPastilla(c: Pick<CaminoHoy, "prendas">): string {
   const n = c.prendas.length;
-  return `${n} ${plural(n, "prenda", "prendas")}${c.primero ? " · empieza aquí" : ""}`;
+  return `${n} ${plural(n, "prenda", "prendas")}`;
 }
 
-/** Dónde va la pastilla de un camino: junto a su nodo, centrada en su lugar (el ancho sale del largo del texto). */
+/**
+ * Dónde va la etiqueta «N prendas» de un camino: a la izquierda, en el medio de su cinta (la de «Compra» va derecha hacia la
+ * tarjeta); a la derecha, junto a su final. El ancho sale del largo del texto.
+ */
 export function pastillaFlujo(texto: string, cy: number, lado: "izq" | "der"): { x: number; y: number; w: number; h: number } {
   const w = Math.round(texto.length * 6.4 + 20);
   const h = 20;
-  return { x: lado === "izq" ? FLUJO.LX + FLUJO.NW + 8 : FLUJO.RX - 8 - w, y: cy - h / 2, w, h };
+  const x = lado === "izq" ? Math.round((FLUJO.LX + FLUJO.NW + FLUJO.CX0) / 2 - w / 2) : FLUJO.RX - 8 - w;
+  return { x, y: cy - h / 2, w, h };
 }
 
 /** Dónde va la etiqueta de un camino (verbo, miniaturas y motivo): por fuera de su nodo, 44 de alto. */
