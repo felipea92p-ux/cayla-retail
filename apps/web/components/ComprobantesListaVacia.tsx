@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BotonEnlace } from "@/components/ui/campos";
 
 /* ====================================================================
    ComprobantesListaVacia · cuando la lista de /compras no tiene filas
@@ -20,9 +21,9 @@ export function ComprobantesListaVacia({ hayFiltros, busqueda }: { hayFiltros: b
       <Image src="/cayla-isotipo.png" alt="" width={44} height={44} className="cmp-flota h-11 w-auto" />
       <p className="mt-3 text-sm text-tinta/75">{mensaje}</p>
       {hayFiltros ? (
-        <Link href="/compras" className="label-cayla mt-4 rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+        <BotonEnlace href="/compras" className="mt-4">
           Limpiar filtros
-        </Link>
+        </BotonEnlace>
       ) : (
         <Link href="/compras/nueva" className="mt-3 text-sm text-rojo hover:underline">
           Registrar el primero →

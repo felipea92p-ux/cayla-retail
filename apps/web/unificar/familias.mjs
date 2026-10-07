@@ -365,7 +365,6 @@ export const DECISIONES = {
       "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b"
     ],
     "deuda": [
-      "app/(app)/compras/page.tsx",
       "app/(app)/inventario/traslados/(billetera)/layout.tsx",
       "app/(app)/productos/page.tsx",
       "components/alta-producto/ElegirColores.tsx",
@@ -380,9 +379,6 @@ export const DECISIONES = {
       "components/finanzas/CuentasDinero.tsx",
       "components/GastosFijosYActivos.tsx",
       "components/GastosPanel.tsx",
-      "components/NotaCreditoDetalle.tsx",
-      "components/NotasCreditoPanel.tsx",
-      "components/ProveedorAcciones.tsx",
       "components/ResumenProduccionPanel.tsx",
       "components/TemporadasLista.tsx",
     ],

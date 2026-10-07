@@ -952,6 +952,21 @@ export function Boton({
   );
 }
 
+/** `<Boton>` como un `<a>` de verdad: una descarga (`Link` pediría el archivo por adelantado) o un enlace que sale del ERP (WhatsApp). */
+export function BotonAncla({
+  peso = "fantasma",
+  className = "",
+  children,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { peso?: keyof typeof PESO_BOTON }) {
+  return (
+    <a {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
+      <BrilloBoton peso={peso} />
+      <span className="relative inline-flex items-center gap-2">{children}</span>
+    </a>
+  );
+}
+
 /** `<Boton>` para lo que navega: la acción principal de una cabecera («+ Registrar factura», «+ Nueva orden»). Mismo movimiento. */
 export function BotonEnlace({
   peso = "fantasma",

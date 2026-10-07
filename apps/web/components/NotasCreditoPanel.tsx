@@ -14,6 +14,7 @@ import { BotonReembolso } from "@/components/SaldoFavorAcciones";
 import { NotaCreditoVistaRapida } from "@/components/NotaCreditoVistaRapida";
 import { NotaCreditoDetalle } from "@/components/NotaCreditoDetalle";
 import { RegistrarNotaCreditoModal } from "@/components/RegistrarNotaCreditoModal";
+import { Boton } from "@/components/ui/campos";
 import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { useFlip } from "@/lib/useFlip";
@@ -180,10 +181,12 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
           </p>
         </div>
-        <button type="button" onClick={() => setRegistrar({ compraId: null })} className="label-cayla boton-brillo inline-flex items-center gap-2 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-          + Registrar nota
-          <kbd className="rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
-        </button>
+        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })}>
+          <span className="inline-flex items-center gap-2">
+            + Registrar nota
+            <kbd className="rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
+          </span>
+        </Boton>
       </div>
 
       <div {...entra(1)}>

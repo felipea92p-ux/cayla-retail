@@ -18,6 +18,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BotonAncla, BotonEnlace } from "@/components/ui/campos";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
@@ -113,15 +114,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         <div className="flex flex-wrap gap-2.5">
           {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
               quien no es líder exporta lo de sus tiendas). */}
-          <a
-            href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}
-            className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          >
+          <BotonAncla href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}>
             <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
-          </a>
-          <Link href="/compras/nueva" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+          </BotonAncla>
+          <BotonEnlace href="/compras/nueva" peso="primario">
             + Registrar factura
-          </Link>
+          </BotonEnlace>
         </div>
       </div>
 
