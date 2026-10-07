@@ -156,7 +156,7 @@ export function ProveedorVistaRapida({
               </span>
               <Link
                 href={`/compras/proveedores/${p.id}`}
-                className="label-cayla basis-full rounded-md bg-tinta px-4 py-3 text-center text-[11px] text-crema transition-colors hover:bg-rojo"
+                className="label-cayla basis-full rounded-md bg-tinta px-4 py-3 text-center text-[11px] text-crema transition-colors hover:bg-rojo-profundo"
               >
                 Abrir ficha completa →
               </Link>

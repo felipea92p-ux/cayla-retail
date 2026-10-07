@@ -15,6 +15,7 @@ import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas, parsearMonto, parsearPorcentaje, validarTienda } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
 import type { CampanaConfig, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
+import { BotonEnlace } from "@/components/ui/campos";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
@@ -372,9 +373,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
 
       <Superficie className="anim-sube">
         <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
-          <Link href="/productos/atributos?tipo=etiquetas" className="btn-cayla btn-secundario btn-chico">
-            + Nueva campaña (en Catálogo ▸ Etiquetas)
-          </Link>
+          <BotonEnlace href="/productos/atributos?tipo=etiquetas">+ Nueva campaña (en Catálogo ▸ Etiquetas)</BotonEnlace>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla fin-tabla-apretada">

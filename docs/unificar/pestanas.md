@@ -42,11 +42,14 @@ El cierre por unidad de Finanzas (`fin-matriz`, ADR-0195), el segmento del Obser
 (ADR-0172), las pestañas por tienda de Rendimiento (ADR-0325), los siete tipos de Movimientos (ADR-0353), la barra de Apartados en el celular
 (ADR-0223) y la barra de Comprobantes en el celular (ADR-0124). Sus líneas llevan `// unificar-fijo:` con el ADR.
 
-## Preguntas abiertas para Felipe
+## Preguntas resueltas (Felipe, 2026-10-07)
 
-1. **Apartados en escritorio** tiene sus propias pestañas de 64 px (ADR-0223), con la letra ya ajustada. ¿Pasan también al vidrio?
-2. **Más de tres opciones.** Los cierres de Caja y la matriz de la ficha tienen 4 opciones y siguen como segmento; ¿pasan a un combo?
-3. **Avisar a Dany** de los cambios en Rendimiento y Clientes (`PanelRendimiento`, `GraficoVentasMeta`, `ClientaFichaModal`, `AvisosClubPanel`).
+1. **Apartados en escritorio:** sí, pasa al vidrio (`<Pestanas>`, con el conteo de «Todos» como el que pide algo). El celular conserva su barra de
+   abajo, que es otra pieza (ADR-0206). Probado a 1440 y a 375 px.
+2. **Más de tres opciones:** se quedan como segmento (los cierres de Caja y la matriz de la ficha). Caben en una línea y se cambian con un toque;
+   un combo pide dos toques y esconde las otras. Solo pasaría a combo si no caben (más de cuatro, o un celular).
+3. **Avisar a Dany** de los cambios en Rendimiento y Clientes (`PanelRendimiento`, `GraficoVentasMeta`, `ClientaFichaModal`, `AvisosClubPanel`):
+   aceptado; el mensaje lo envía Felipe (queda redactado con las capturas de `apps/web/unificar/.salida/preguntas/`).
 
 ## Deuda
 

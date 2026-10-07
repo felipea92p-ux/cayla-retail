@@ -233,7 +233,7 @@
    todo apunta a un --color-* que ya existía.
 
    `primary` es tinta, no rojo — calca a `<Boton peso="primario">`
-   (bg-tinta, hover:bg-rojo). Si `primary` fuera rojo, cada componente
+   (bg-tinta, hover:bg-rojo-profundo). Si `primary` fuera rojo, cada componente
    nuevo pintaría rojo por defecto y se rompería "acento sagrado, máx.
    2 por pantalla" apenas se junten dos en una pantalla.
    `accent` (hover neutral de menús/listas) es sand, igual que el
@@ -1355,17 +1355,38 @@ html[data-buscando] [data-resultados] {
   /* El tilde de un check que se traza (solo el último trazo del ícono: el círculo queda). */
   .check-trazo path:last-child { stroke-dasharray: 24; animation: cayla-trazo 550ms var(--ease-cayla) backwards; animation-delay: var(--d, 700ms); }
   .anillo-progreso .rg { transition: stroke-dasharray 900ms var(--ease-cayla); animation: cayla-anillo 1.3s var(--ease-cayla) 300ms backwards; }
-  /* Un destello de luz cruza el botón al pasar el mouse, y su flecha se adelanta. Es el
-     mismo barrido de `cayla-brillo` de arriba, ahora también para los botones oscuros. */
-  .boton-brillo { position: relative; overflow: hidden; }
-  .boton-brillo::after {
-    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
-    background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--color-crema) 28%, transparent), transparent);
-    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+  /* El MOVIMIENTO ÚNICO de un botón (ADR-0358, ronda 3: Felipe eligió la D tocándola, 2026-10-07). Lo usan `<Boton>`,
+     `<BotonEnlace>`, `<BotonAncla>`, la barra de vidrio de Comprobantes (`BotonCompacto`) y los botones de los pasos de
+     Cambios y Devoluciones (`FlujoGuiado`); antes eran tres movimientos distintos.
+     · Al pasar el mouse: sube 2 px con su sombra, cruza una luz (650 ms, una vez) y el ícono responde: el «+» da un
+       cuarto de vuelta y la flecha que va adelante se adelanta 4 px (lo que Felipe quería de la C).
+     · Al presionar: se encoge un 3 % y baja; la mano siente que lo presionó.
+     Sin rebote y sin bucle (ADR-0136); con «reducir movimiento» queda solo el cambio de color. */
+  .mov-boton {
+    position: relative;
+    overflow: hidden;
+    transition:
+      translate 260ms var(--ease-cayla),
+      scale 120ms var(--ease-cayla),
+      box-shadow 260ms var(--ease-cayla),
+      background-color 200ms var(--ease-cayla),
+      border-color 200ms var(--ease-cayla),
+      color 200ms var(--ease-cayla);
   }
-  .boton-brillo:hover:not(:disabled)::after { animation: cayla-brillo 800ms var(--ease-cayla); }
-  .boton-brillo svg:last-child { transition: transform 300ms var(--ease-cayla); }
-  .boton-brillo:hover:not(:disabled) svg:last-child { transform: translateX(4px); }
+  .mov-boton::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 36%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, color-mix(in srgb, currentColor 26%, transparent), transparent);
+    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+    opacity: 0;
+  }
+  .mov-boton:hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
+  .mov-boton:hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+  .mov-boton:active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
+  .mov-boton :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
+  .mov-boton:hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
+  .mov-boton :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
+  .mov-boton:hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
+  .mov-boton:hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
 }
 
 @layer components {
@@ -2263,7 +2284,9 @@ html[data-buscando] [data-resultados] {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .boton-brillo:hover:not(:disabled)::after { animation: none; }
+    .mov-boton::after { animation: none !important; }
+    .mov-boton, .mov-boton:hover, .mov-boton:active { translate: none !important; scale: none !important; }
+    .mov-boton :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================
@@ -2478,7 +2501,6 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   .hoja-cobro-raiz { gap: 0.5rem; padding: 0.75rem 1.5rem 1rem; }
   .hoja-cobro-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-bottom: 0.75rem; }
   .hoja-cobro-total { font-size: 3rem; }
-  .hoja-cobro-volver { height: 2.75rem; padding-inline: 1rem; }
   /* El cuerpo ensancha 0.75rem a cada lado para que el tinte del paso («Sigue aquí», margen negativo) no quede recortado. */
   .hoja-cobro-cuerpo {
     flex: 1 1 auto;
@@ -2723,7 +2745,6 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     .hoja-cobro-raiz { padding: 0.5rem 1.25rem 0.75rem; gap: 0.25rem; }
     .hoja-cobro-cabeza { padding-bottom: 0.4rem; }
     .hoja-cobro-total { font-size: 2rem; }
-    .hoja-cobro-volver { height: 2.25rem; }
     .hoja-cobro-cuerpo { gap: 0.25rem; }
     .hoja-cobro-paso { padding-block: 0.3rem; }
     .hoja-cobro-cabeza-paso { margin-bottom: 0.4rem; }

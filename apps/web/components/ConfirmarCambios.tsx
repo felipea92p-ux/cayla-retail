@@ -6,6 +6,7 @@ import { Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { agruparCambios, type GrupoCambios, type ResumenCambios } from "@/lib/producto-cambios-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 /**
  * La hoja «Revisa y guarda los cambios» (ADR-0257; Felipe eligió la opción A de la pregunta 2 el 2026-09-28).
@@ -113,9 +114,7 @@ export function ConfirmarCambios({
           )}
 
           <div className="flex gap-2">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={enCurso}>
-              Volver a editar
-            </Boton>
+            <Volver onClick={cerrar} deshabilitado={enCurso} a="Volver a editar" className="self-center" />
             <Boton
               type="button"
               peso="primario"

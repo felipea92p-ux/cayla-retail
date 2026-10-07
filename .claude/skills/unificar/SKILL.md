@@ -20,6 +20,9 @@ Unifica: $ARGUMENTS   (un módulo como `inventario`, `familia=pestanas`, `todo`,
 4. **Migrar cambia cómo se ve, nunca qué hace.** Mismo `onClick`, mismo `submit`, mismas validaciones, mismos permisos, mismo texto salvo que
    Felipe lo pida. Si unificar obligaría a cambiar un comportamiento (un «Cancelar» que en un lado descarta el borrador y en otro no), para y pregunta.
    Dinero, stock, permisos y comprobantes/SUNAT: cualquier duda de comportamiento ahí es de Felipe.
+   **Y nunca pierde movimiento** (Felipe 2026-10-07): si una variante tiene un barrido de luz, se encoge al presionar, corre un hilo mientras
+   guarda o tiene una píldora que se desliza, la pieza elegida se queda con eso o con algo mejor. El censo lo dice (`movimiento` en la huella,
+   y «medido» al pasar el mouse); si la pieza elegida tiene menos movimiento que una variante que reemplaza, se le suma antes de migrar.
 5. **Fuera del censo:** el papel físico (`.papel-fijo`, `[data-papel]`: boleta, ticket, etiqueta, cartel del club), el color de una prenda
    (`[data-color-dato]`, las muestras de color) y el marco (lateral y cabecera, que ya es uno solo). El motor ya los salta.
 6. **Solo LOCAL** con el seed (el motor se niega a otra cosa) y con el servidor de **esta** worktree (se niega a medir el de otra). No pulsa
@@ -58,7 +61,10 @@ Siempre `--todas`, también para un módulo: para saber si una forma es «solo d
 marca en la lámina lo que aparece en ese módulo. Las rutas con `[id]` y los modales salen por escenarios (`tema/escenarios/registro.mjs`); lo
 que no tiene escenario va a «No cubierto» del informe. Corre el censo en segundo plano y dile a Felipe cuánto va a tardar.
 
-**2. Depurar** (antes de mostrarle nada a Felipe). Lee `reporte.md` y mira las `comparativas/`. Por cada familia con más de una forma:
+**2. Depurar** (antes de mostrarle nada a Felipe). Lee `reporte.md` y mira las `comparativas/`. **Mira también el movimiento** de cada
+variante (la línea `movimiento:` del informe: al pasar el mouse, al presionar, con el foco, la transición, lo que late solo y lo que entra
+animado; y `medido:`, lo que pasó de verdad al pasarle el mouse): a Felipe se le dice qué variante tiene qué animación, porque quiere
+conservarlas, mejorarlas y unificarlas también. Por cada familia con más de una forma:
 descarta los falsos positivos, junta lo que es la misma pieza con un accidente, separa lo que es otra función, y marca lo «decidido a
 propósito». Confirma el archivo de cada variante con `grep` (el informe dice `[probable]`). Si el mapa de archivos es grande, **un** agente
 `Explore` puede confirmarlo; si dudas de que dos cosas sean la misma función, **un** escéptico puede intentar refutarlo. **Hasta 2 agentes y
@@ -85,14 +91,14 @@ dirección; él toca una por pregunta, puede comentar, y copia su elección al c
 2026-10-06 Felipe eligió tres recomendaciones por su descripción y, al verlas aplicadas, no le gustaron.
 
 **6. Registrar** (en cuanto elige, en un commit propio): el registro `docs/unificar/<familia>.md` (qué se comparó, las capturas, qué eligió
-y por qué), la decisión en `DECISIONES` de `apps/web/unificar/familias.mjs` con sus **firmas** y su **deuda**
+y por qué, y **su movimiento**: qué hace la pieza al pasar el mouse, al presionar, con el foco y mientras trabaja), la decisión en `DECISIONES` de `apps/web/unificar/familias.mjs` con sus **firmas** y su **deuda**
 (`pnpm unificar:deuda <familia>` la lista), la fila del tablero `docs/unificar/README.md`, la línea de la familia en ADR-0358 («Decisiones»)
 y en la tabla «Piezas únicas» de `CLAUDE.md`. Si la pieza elegida no existe todavía (la propuesta), se construye en `components/ui/` antes de
 registrar. Paso a paso: `referencia/decision.md`.
 
 **7. Migrar** (`/unificar migrar <familia> [módulo]`, con el OK de Felipe: toca varios módulos). Módulo por módulo, un commit por módulo:
 reemplaza cada variante por la pieza, saca el archivo de la deuda, y vuelve a correr el censo de esa familia en ese módulo: **tiene que quedar
-una sola forma**. Captura antes/después al mismo ancho (1440 × 900; Vender, Cambios y Devoluciones también a 375, PL-105). Pruebas:
+una sola forma**, y con el movimiento de la pieza (la línea `movimiento:` igual en todas). Captura antes/después al mismo ancho (1440 × 900; Vender, Cambios y Devoluciones también a 375, PL-105). Pruebas:
 `pnpm --filter web test -- unificar tema-colores sugerir guia-de-foco` y `pnpm --filter web typecheck`.
 
 ## La regla que queda (para todo lo que se construya después)

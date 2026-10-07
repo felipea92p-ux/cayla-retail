@@ -221,7 +221,7 @@ export function ProformasPanel({
                             <Link
                               href={`/vender?proforma=${p.id}`}
                               aria-label={`Cobrar ${numeroDeProforma(p.numero)} en el Punto de Venta`}
-                              className="inline-flex h-7 items-center rounded-md bg-tinta px-2.5 text-xs font-semibold text-crema outline-none transition-colors duration-200 hover:bg-tinta/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                              className="inline-flex h-7 items-center rounded-md bg-tinta px-2.5 text-xs font-semibold text-crema outline-none transition-colors duration-200 hover:bg-rojo-profundo focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
                             >
                               Cobrar
                             </Link>

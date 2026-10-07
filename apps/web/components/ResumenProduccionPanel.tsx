@@ -5,6 +5,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { BotonEnlace } from "@/components/ui/campos";
 import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
@@ -50,12 +51,10 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que pide acción en el Taller, del más urgente al menos. Cada tarjeta sale de los datos de abajo y desaparece cuando lo resuelves.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/produccion/ordenes" className="label-cayla rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
-            Ver órdenes
-          </Link>
-          <Link href="/produccion/ordenes?nueva=auto" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+          <BotonEnlace href="/produccion/ordenes">Ver órdenes</BotonEnlace>
+          <BotonEnlace href="/produccion/ordenes?nueva=auto" peso="primario">
             + Nueva orden
-          </Link>
+          </BotonEnlace>
         </div>
       </div>
 
@@ -65,7 +64,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           etiqueta="Capital en insumos"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          valor={cifras.capitalInsumos === null || cifras.capitalInsumos === 0 ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
+          valor={cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
           detalleTono={cifras.insumosBajoMinimo > 0 ? "text-ambar-profundo" : undefined}
         >
           {cifras.insumosBajoMinimo > 0 ? `${plural(cifras.insumosBajoMinimo, "insumo bajo el mínimo", "insumos bajo el mínimo")}` : "a costo de cada lote"}
@@ -75,7 +74,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           etiqueta="Valor en proceso"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          valor={cifras.valorEnProceso === 0 ? null : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
+          valor={<CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
         >
           tela y avíos de {plural(cifras.ordenesEnProceso, "orden abierta", "órdenes abiertas")}
         </TarjetaCifra>
@@ -84,7 +83,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           etiqueta="Por pagar a proveedores"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          valor={cifras.porPagar === 0 ? null : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
+          valor={<CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
           detalleTono={cifras.vencido > 0 ? "text-rojo-profundo" : undefined}
         >
           {cifras.vencido > 0 ? `${soles(cifras.vencido)} ya vencidos` : cifras.porPagar > 0 ? "nada vencido" : "no se debe nada"}

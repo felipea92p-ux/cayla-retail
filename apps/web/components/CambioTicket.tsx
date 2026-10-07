@@ -103,7 +103,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <a href={whatsapp} target="_blank" rel="noreferrer" className={`${boton} bg-tinta text-crema hover:bg-tinta/85`}>
+            <a href={whatsapp} target="_blank" rel="noreferrer" className={`${boton} bg-tinta text-crema hover:bg-rojo-profundo`}>
               <MessageCircle aria-hidden className="h-4 w-4" />
               {ticket.clienta ? `WhatsApp a ${ticket.clienta.split(" · ")[0]!.split(" ")[0]}` : "Enviar por WhatsApp"}
             </a>

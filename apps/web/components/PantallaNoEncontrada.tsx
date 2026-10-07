@@ -14,7 +14,7 @@ export function PantallaNoEncontrada({ completa = false }: { completa?: boolean 
         El enlace puede estar mal escrito, o lo que buscas ya no está. Vuelve al inicio y búscalo desde el menú.
       </p>
       <div className="mt-6 flex justify-center">
-        <Link href="/" className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo">
+        <Link href="/" className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo-profundo">
           Volver al inicio
         </Link>
       </div>

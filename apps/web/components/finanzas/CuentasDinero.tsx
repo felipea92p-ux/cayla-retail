@@ -52,6 +52,7 @@ import {
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-dinero.js`): cabecera con «Ver» y «+ Registrar movimiento» → pestañas (una ruta cada una) → el cuerpo de la
@@ -133,9 +134,9 @@ export function PantallaDinero({
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
               )}
-              <button type="button" className="btn-cayla btn-primario" onClick={() => setModal("deposito")}>
+              <Boton type="button" peso="primario" onClick={() => setModal("deposito")}>
                 + Registrar movimiento
-              </button>
+              </Boton>
             </>
           }
         />

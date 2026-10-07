@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { IconoPercha } from "@/components/ui/IconoPercha";
@@ -46,6 +46,7 @@ import {
   type TipoFlujo,
 } from "@/lib/existencias-flujos";
 import type { FilaExistencias } from "@/lib/inventario-v2";
+import { Volver } from "@/components/ui/Volver";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -871,15 +872,13 @@ export function FlujoTalla({
         )}
         {!completo && faltanHasta(tipo, i, d, ctx).length > 0 && <PieGuia guia={guiaDePasos} />}
         <div className="flex gap-2">
-          <button type="button" onClick={atras} disabled={enviando} className="btn-cayla btn-secundario flex-1 gap-1.5">
-            {i === 0 || incierto ? (
-              "Cancelar"
-            ) : (
-              <>
-                <ArrowLeft aria-hidden className="h-4 w-4" /> Atrás
-              </>
-            )}
-          </button>
+          {i === 0 || incierto ? (
+            <button type="button" onClick={atras} disabled={enviando} className="btn-cayla btn-secundario flex-1 gap-1.5">
+              Cancelar
+            </button>
+          ) : (
+            <Volver onClick={atras} deshabilitado={enviando} a="Volver al paso anterior" className="self-center" />
+          )}
           <button
             type="button"
             onClick={seguir}

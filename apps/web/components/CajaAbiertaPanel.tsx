@@ -40,6 +40,7 @@ import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -257,18 +258,18 @@ export function CajaAbiertaPanel({
     <div className="hidden flex-wrap items-center justify-end gap-3 sm:flex">
       {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
       {comparativa && abrirGasto && (
-        <button type="button" onClick={abrirGasto} className="btn-cayla btn-secundario">
+        <Boton type="button" onClick={abrirGasto}>
           Registrar gasto
-        </button>
+        </Boton>
       )}
       {comparativa && (
-        <button type="button" onClick={() => setModal("movimiento")} className="btn-cayla btn-secundario">
+        <Boton type="button" onClick={() => setModal("movimiento")}>
           Depósito o retiro
-        </button>
+        </Boton>
       )}
-      <button type="button" onClick={() => setModal("cierres")} className="btn-cayla btn-secundario">
+      <Boton type="button" onClick={() => setModal("cierres")}>
         Historial de cierres
-      </button>
+      </Boton>
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
       {puedeCerrar ? (
         <BotonCerrarCaja onCerrar={() => setModal("cerrar")} />
@@ -365,7 +366,9 @@ export function CajaAbiertaPanel({
             sinHora
             acciones={comparativa ? undefined : accionesCabecera}
           >
-            <div className="flex w-full flex-col sm:w-auto sm:items-end">
+            {/* `sm:ml-auto`: con los botones en versalitas (ADR-0358, accion.nuevo) la columna no siempre cabe junto al título y
+                baja de fila; ahí sigue pegada a la derecha, donde la busca quien cierra la caja. */}
+            <div className="flex w-full flex-col sm:ml-auto sm:w-auto sm:items-end">
             <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
               <EstadoSync pendientes={cola.length} />
               <TurnoCompacto abiertaEn={caja.abiertaEn} />

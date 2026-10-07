@@ -8,8 +8,14 @@
 - [x] 2026-10-06, por la tarde: Felipe no aprobó lo de la ronda 1 al verlo; eligió mirando (flecha redonda; vidrio en mayúsculas, píldora y caja arena; la tarjeta de Compras tal cual), aplicado y registrado.
 - [x] Aprobación de Felipe mirando `apps/web/unificar/.salida/fotos-despues-eleccion/comparar.html` (2026-10-06, «Apruebo»); PR #851.
 - [x] Finanzas pasa a `<Pestanas>` (Felipe 2026-10-06) y las pestañas de Análisis v4, que llegaron de `main` dibujadas a mano, también (Felipe 2026-10-06: «incluye lo de Análisis»).
-- [ ] Las preguntas abiertas de cada registro (`docs/unificar/*.md`): «—» o «S/ 0.00» en Producción, la vuelta para la cuenta sin Existencias, la cabecera de Compras/Caja/Recibir, Apartados en escritorio, segmentos de 4 opciones, la Caja del Inicio, avisar a Dany.
+- [x] Preguntas abiertas respondidas el 2026-10-07 (Producción «S/ 0.00», vuelta siempre, Apartados al vidrio, segmentos de 4 se quedan, Caja del Inicio grande).
+- [ ] Quedan: la cabecera de Compras/Caja/Recibir (ADR-0220), «Piden algo hoy» de Análisis y avisar a Dany (Rendimiento y Clientes).
 - [x] El detector del censo ve los segmentos `forma="modo"` (lee `aria-checked`).
-- [ ] **Las 37 familias que faltan**, en el orden de «Por analizar» de `docs/unificar/README.md` (empieza por `estado` y `accion.nuevo`), con un censo nuevo antes y con más cuentas (`terminal-ventas`, `integrante`): el del 2026-10-06 es solo de la cuenta Admin.
+- [x] Ronda 2 (2026-10-07, mirando): `estado` se queda con `<Chip>` (Análisis y el líder en negro a propósito); `accion.nuevo` → B, migrado en 21 archivos de 8 módulos, deuda 0.
+- [x] El censo ve el movimiento (Felipe 2026-10-07): huella con `movimiento` y lo medido al pasar el mouse; la skill exige no perderlo al migrar.
+- [x] Pasada del censo con `terminal-ventas` (2026-10-07) y ronda 3: movimiento único `.mov-boton` (D + el «+» que gira) y el «Atrás» de un paso es la flecha de `<Volver>`.
+- [ ] Ronda `boton`: ~20 versalitas copiadas a mano en las hojas (Guardar/Confirmar/Pagar) sin el movimiento de `<Boton>`; y si el resto de `btn-cayla` pasa a versalitas.
+- [ ] Al pasar la cabecera de Caja a versalitas, los botones bajan de fila a 1440 px: Felipe dice si así está bien.
+- [ ] **Las familias que faltan**, en el orden de «Por analizar» de `docs/unificar/README.md` (empieza por `estado` y `accion.nuevo`), con un censo nuevo antes y con más cuentas (`terminal-ventas`, `integrante`): el del 2026-10-06 es solo de la cuenta Admin.
 - [ ] Escenarios: el censo ve los modales que el auditor de tema sabe abrir (unos 190). Los que no tienen escenario quedan en «No cubierto» del informe.
 - [x] La prueba del CI vigila tres decisiones reales; sus firmas atrapan la forma a mano y dejan pasar el uso correcto (probado con muestras).

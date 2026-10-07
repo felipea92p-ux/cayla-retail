@@ -8,6 +8,7 @@ import { PaseFrente, type SelloPuesto } from "@/components/traslados-pases/PaseF
 import { RUTA_TRASLADOS, rutaDelPase, useVecinos } from "@/components/traslados-pases/Billetera";
 import { TEXTO_SELLO, fechaDeSello, type TonoPase, type VistaPase } from "@/lib/traslados-pases-reglas";
 import type { LoSiguiente } from "@/lib/traslados-recepcion-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 // El escenario: el pase grande que GIRA (ADR-0355). Al frente, de dónde a dónde y un botón; al reverso, lo que se hace con la
 // caja (contar, revisar, ver lo enviado). Al terminar, el pase vuelve al frente, le cae un sello y, un momento después, se abre
@@ -109,15 +110,11 @@ export function PaseTraslado({
     <CtxPase.Provider value={pase}>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3 lg:hidden">
-          {/* 44 px de alto: en celular es el blanco de un dedo (Formidable, 2026-10-06). */}
-          <Link href={RUTA_TRASLADOS} className="btn-cayla btn-enlace min-h-11 text-sm">
-            <ArrowLeft aria-hidden className="h-4 w-4" strokeWidth={1.8} /> Todas las cajas
-          </Link>
+          {/* La flecha de todo el ERP (ADR-0358); con el dedo responde en 44 px (Formidable, 2026-10-06). */}
+          <Volver href={RUTA_TRASLADOS} a="Traslados" />
         </div>
         {volverA && (
-          <Link href={volverA.href} className="btn-cayla btn-enlace text-sm">
-            <ArrowLeft aria-hidden className="h-4 w-4" strokeWidth={1.8} /> Volver a {volverA.a}
-          </Link>
+          <Volver href={volverA.href} a={volverA.a} />
         )}
         <div className="tp-escenario" ref={escenario}>
           <div key={vista.id} className="tp-giro tp-entra">

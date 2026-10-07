@@ -68,7 +68,7 @@ function leerQueVer(): string | null {
   }
 }
 const BOTON_CHICO = "label-cayla h-8 whitespace-nowrap rounded-md border border-tinta/25 px-3 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40 disabled:hover:border-tinta/25 disabled:hover:text-tinta";
-const BOTON_CHICO_NEGRO = "label-cayla h-8 whitespace-nowrap rounded-md bg-tinta px-3 text-[10.5px] text-crema transition-colors hover:bg-rojo";
+const BOTON_CHICO_NEGRO = "label-cayla h-8 whitespace-nowrap rounded-md bg-tinta px-3 text-[10.5px] text-crema transition-colors hover:bg-rojo-profundo";
 
 export function TodosVista({
   ubicacionId,

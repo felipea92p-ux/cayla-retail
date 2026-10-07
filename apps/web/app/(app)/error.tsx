@@ -55,7 +55,7 @@ export default function ErrorDeSeccion({
                 reset();
               })
             }
-            className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo"
+            className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo-profundo"
           >
             Reintentar
           </button>

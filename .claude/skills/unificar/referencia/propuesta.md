@@ -14,7 +14,11 @@ Si la propuesta no es claramente mejor que la A, dilo: «la A ya está bien; mi 
    oscuro, un nombre para el botón de solo icono, el giro de «Guardando…».
 4. **No inventes un token, una fuente ni una animación.** Solo los de `apps/web/app/globals.css`. Si de verdad hace falta uno nuevo, se propone
    aparte con la regla 5 del modo oscuro (`@theme`, `tema.css` y `.papel-fijo`).
-5. **Piensa en la pieza, no en una pantalla.** La propuesta tiene que servir en todos los lugares donde vive la familia: muéstrala en dos o tres
+5. **El movimiento es parte de la pieza** (Felipe 2026-10-07). La propuesta se queda con el mejor movimiento que tenga alguna variante (el
+   barrido de luz, el encogerse al presionar, el hilo de «Guardando…», la píldora que se desliza) y lo dice: *«de la B, el barrido de luz al
+   pasar el mouse»*. Movimiento de ADR-0136: sin rebote, sin bucle salvo las excepciones de `CLAUDE.md`, y apagado con `prefers-reduced-motion`.
+   En la página de elegir, cada opción dice qué movimiento tiene (una foto no lo muestra).
+6. **Piensa en la pieza, no en una pantalla.** La propuesta tiene que servir en todos los lugares donde vive la familia: muéstrala en dos o tres
    contextos reales (en una hoja, en una tabla, en una cabecera) con textos del lugar.
 
 ## El archivo

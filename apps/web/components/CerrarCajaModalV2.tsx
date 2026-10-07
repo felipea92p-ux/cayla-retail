@@ -24,6 +24,7 @@ import {
   type DestinoTraslado,
 } from "@/lib/caja-cierre-reglas";
 import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 function money(n: number) {
   return (n < 0 ? "-S/ " : "S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -560,9 +561,7 @@ export function CerrarCajaModalV2({
           {avisoOffline}
           <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={() => setPaso("contar")} className={botonCancelar}>
-              Atrás
-            </button>
+            <Volver onClick={() => setPaso("contar")} a="Volver a contar" className="self-center" />
             <button
               type="submit"
               disabled={loading || bloqueaCierre || !!invalido || !responsable.listo}

@@ -115,13 +115,9 @@ export function FamiliasLista({
       {puedeEditar && (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <span />
-          <button
-            type="button"
-            onClick={() => setBorrador({ codigo: null, nombre: "" })}
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
+          <Boton type="button" peso="primario" onClick={() => setBorrador({ codigo: null, nombre: "" })}>
             + Agregar familia
-          </button>
+          </Boton>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowUpRight, Check, Copy } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -203,13 +204,13 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
 
           <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
             {f.clase === "pendiente" && !f.bloqueada && (
-              <button type="button" onClick={() => onRegistrar(f.compraId)} className="label-cayla boton-brillo rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+              <Boton type="button" peso="primario" onClick={() => onRegistrar(f.compraId)}>
                 Registrar la nota
-              </button>
+              </Boton>
             )}
-            <button type="button" onClick={cerrar} className="label-cayla ml-auto rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+            <Boton type="button" onClick={cerrar} className="ml-auto">
               Cerrar
-            </button>
+            </Boton>
           </div>
         </div>
       )}

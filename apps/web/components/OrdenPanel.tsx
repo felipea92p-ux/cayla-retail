@@ -376,7 +376,7 @@ export function OrdenPanel({
                 Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que etiquetarlas y llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <Link href={llevarUrl} className="label-cayla inline-block rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+                <Link href={llevarUrl} className="label-cayla inline-block rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
                   Llevarlas a las tiendas
                 </Link>
                 {/* ADR-0180: una etiqueta de precio por prenda buena; queda aquí para reimprimir mientras la orden siga cerrada. */}

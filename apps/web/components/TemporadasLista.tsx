@@ -387,9 +387,9 @@ function VistaCalendario({
             {!esLider && " Pídele al líder que lo agregue."}
           </span>
           {esLider && (
-            <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setAgregando(true)}>
+            <Boton type="button" onClick={() => setAgregando(true)}>
               Agregar {anioHoy + 1}
-            </button>
+            </Boton>
           )}
         </div>
       )}
