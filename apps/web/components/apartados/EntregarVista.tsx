@@ -141,7 +141,7 @@ export function EntregarVista({
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
       {cabecera}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
-        <label className="flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
+        <label data-guia="apartados.entregar-buscador" className="flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
           <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
           <input
             autoFocus
@@ -243,7 +243,7 @@ export function EntregarVista({
       </div>
 
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
-      <aside className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
+      <aside data-guia="apartados.entregar-detalle" className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
         <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
           <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
             <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo

@@ -33,6 +33,9 @@ const VERBOS_QUE_ESCRIBEN = [
 export function motivoParaNoTocar(p: PiezaATocar): string | null {
   const tipo = p.tipo?.toLowerCase() ?? null;
   if (tipo === "submit") return "envía un formulario";
+  // Una pestaña cambia de vista y nada más, se llame como se llame («Apartar», «Entregar»). Un enlace-pestaña a otra ruta
+  // sigue la regla de los enlaces, más abajo.
+  if (p.rol === "tab" && !p.href) return null;
   if (p.etiqueta === "button" && p.enFormulario && (tipo === null || tipo === "")) return "envía un formulario (botón sin type dentro de un form)";
   if (p.etiqueta === "input" && (tipo === "submit" || tipo === "file" || tipo === "image")) return "envía o sube algo";
   if (p.href) {
@@ -137,14 +140,19 @@ export function esperaPorAncla(paso: PasoGuia, anterior: PasoGuia | null): numbe
 
 /**
  * Cuántos pasos va a tener la demo, para el «3 de 12»: los que aplican y cuya pieza está a la vista, más los que dependen
- * de algo que la guía abre antes (no se ven todavía, pero van a aparecer). Un opcional sin pieza y sin quien la abra no cuenta.
+ * de algo que la guía abre antes (no se ven todavía, pero van a aparecer). Un opcional sin pieza cuenta solo si antes la
+ * guía cambia de vista con un toque (abre una pestaña o un modal): lo que no está ahora puede estar después.
  */
 export function totalEstimado(pasos: readonly PasoGuia[], presentes: ReadonlySet<string>, anchoVentana: number): number {
   let n = 0;
+  let cambiaDeVista = false;
   pasos.forEach((p, i) => {
-    if (!pasoAplica(p, presentes, anchoVentana)) return;
-    const anterior = i > 0 ? pasos[i - 1]! : null;
-    if (!p.opcional || p.ancla === null || presentes.has(p.ancla) || esperaPorAncla(p, anterior) > 1000) n++;
+    if (p.preparar?.some((a) => a.tipo === "clic")) cambiaDeVista = true;
+    if (pasoAplica(p, presentes, anchoVentana)) {
+      const anterior = i > 0 ? pasos[i - 1]! : null;
+      if (!p.opcional || p.ancla === null || presentes.has(p.ancla) || cambiaDeVista || esperaPorAncla(p, anterior) > 1000) n++;
+    }
+    if (p.demostrar?.some((a) => a.tipo === "clic")) cambiaDeVista = true;
   });
   return n;
 }

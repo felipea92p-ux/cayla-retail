@@ -271,7 +271,7 @@ export function ComprobantesPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div data-guia="comprobantes.lista" className="space-y-6">
       {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
       {confirmacionTransmitir}
       {porConsultarId && (

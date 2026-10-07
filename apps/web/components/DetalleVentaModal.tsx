@@ -120,7 +120,7 @@ export function DetalleVentaModal({
         const permiso = d.comprobante ? puedeImprimir(d.comprobante.estado) : ({ ok: false, motivo: "Esta venta no tiene comprobante." } as const);
         const imprimible = permiso.ok && d.recibo !== null;
         return (
-          <div className="space-y-4">
+          <div data-guia="historial.detalle" className="space-y-4">
             <div className="card-cayla p-5 text-center">
               <p className="font-display text-3xl text-tinta">{money(d.total)}</p>
               <p className="mt-1 text-sm text-tinta/70">

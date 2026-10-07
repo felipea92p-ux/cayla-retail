@@ -128,6 +128,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
           el.scrollIntoView({ block: el.getBoundingClientRect().height > window.innerHeight * 0.6 ? "start" : "center", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });
           await pausa(conMovimiento ? 320 : 0);
           if (senal.aborted) return;
+          // Respaldo: si el desplazamiento suave no llegó (pestaña en segundo plano, otro scroll en curso), salta directo.
+          if (!aLaVista(el) && el.getBoundingClientRect().height < window.innerHeight) el.scrollIntoView({ block: "center", inline: "nearest" });
         }
         const v = { ancho: window.innerWidth, alto: window.innerHeight };
         const r = el?.getBoundingClientRect();
@@ -287,11 +289,11 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         <div className="flex items-center justify-between gap-3">
           <p className="label-cayla text-[10.5px] text-taupe-profundo">Guía · {guia.titulo}</p>
           <p className="text-[11px] tabular-nums text-tinta/55" aria-live="polite">
-            {enCurso > 0 ? `${enCurso} de ${total}` : ""}
+            {enCurso > 0 ? `${enCurso} de ${esUltimo ? enCurso : total}` : ""}
           </p>
         </div>
         <div className="guia-avance mt-2" aria-hidden>
-          {Array.from({ length: total }, (_, k) => (
+          {Array.from({ length: esUltimo ? enCurso : total }, (_, k) => (
             <span key={k} data-hecho={k < enCurso ? "" : undefined} />
           ))}
         </div>

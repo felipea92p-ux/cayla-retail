@@ -6,7 +6,7 @@ import Link from "next/link";
 // en píldora de antes se leía como un segundo juego de pestañas justo debajo del vidrio de Comprobantes (ADR-0124).
 export function PeriodoComprobantes({ activo }: { activo: "hoy" | "mes" }) {
   return (
-    <nav aria-label="Qué período mirar" className="flex flex-wrap items-center gap-2">
+    <nav aria-label="Qué período mirar" data-guia="comprobantes.periodo" className="flex flex-wrap items-center gap-2">
       <Link href="/vender/comprobantes" aria-current={activo === "hoy" ? "page" : undefined} className="pildora-cayla">
         Hoy
       </Link>

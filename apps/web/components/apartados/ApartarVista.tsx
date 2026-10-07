@@ -482,7 +482,7 @@ export function ApartarVista({
       <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
-            <label className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
+            <label data-guia="apartados.buscador" className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
               <ScanBarcode className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
               <input
                 ref={escaner}
@@ -631,7 +631,7 @@ export function ApartarVista({
 
       {/* Derecha: el ticket y, al tocar «Apartar», el formulario — como el cobro del Punto de venta. Va de arriba abajo
           de la hoja; su cabecera mide lo mismo que la fila de pestañas (64 px más su raya: 65) y queda en la misma raya. */}
-      <aside className="flex min-h-0 flex-col">
+      <aside data-guia="apartados.ticket" className="flex min-h-0 flex-col">
         {paso === "ticket" ? (
           <>
             <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">

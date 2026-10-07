@@ -58,7 +58,7 @@ export function ComprobantesTarjetas({
   ].filter(Boolean);
 
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div data-guia="comprobantes.cifras" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <TarjetaKpiVidrio
         etiqueta={esHoy ? "Emitidos hoy" : "Emitidos"}
         tono="taupe"

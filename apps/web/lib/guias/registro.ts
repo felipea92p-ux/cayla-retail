@@ -8,7 +8,7 @@
 //   pendiente  DEUDA de las pantallas hechas antes de la regla. Una pantalla NUEVA no puede nacer aquí: o trae su guía o dice por qué
 //              no aplica. Al terminar una, se pasa a «aplicada» y se baja `PENDIENTES_HOY` (la cuenta es exacta: solo baja).
 
-import { GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
+import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -17,10 +17,10 @@ export type PantallaConGuia =
   | { estado: "pendiente" };
 
 /** Todas las guías que existen. El motor busca aquí la de la pantalla abierta (`guiaDeRuta`). */
-export const GUIAS: readonly Guia[] = [GUIA_PUNTO_DE_VENTA];
+export const GUIAS: readonly Guia[] = [GUIA_PUNTO_DE_VENTA, GUIA_APARTADOS, GUIA_HISTORIAL, GUIA_COMPROBANTES];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 81;
+export const PENDIENTES_HOY = 78;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -133,11 +133,11 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/sin-acceso": { estado: "no-aplica", motivo: "Un mensaje de una línea («no tienes acceso a esta pantalla»): no hay nada que enseñar." },
   // ---- vender ----
   "/vender": { estado: "aplicada", guia: GUIA_PUNTO_DE_VENTA.id },
-  "/vender/apartados": PENDIENTE,
-  "/vender/comprobantes": PENDIENTE,
+  "/vender/apartados": { estado: "aplicada", guia: GUIA_APARTADOS.id },
+  "/vender/comprobantes": { estado: "aplicada", guia: GUIA_COMPROBANTES.id },
   "/vender/comprobantes/emitidos": PENDIENTE,
   "/vender/comprobantes/por-reintentar": PENDIENTE,
   "/vender/comprobantes/proformas": PENDIENTE,
   "/vender/comprobantes/series": PENDIENTE,
-  "/vender/historial": PENDIENTE,
+  "/vender/historial": { estado: "aplicada", guia: GUIA_HISTORIAL.id },
 };

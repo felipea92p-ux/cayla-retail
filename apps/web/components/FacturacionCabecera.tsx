@@ -53,7 +53,7 @@ export function CajaDeBusqueda() {
   const pista = PISTA_DE_BUSQUEDA[pestanaDeRuta(usePathname())];
 
   return (
-    <label className="vidrio-cayla flex h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[13px] text-tinta transition-shadow duration-200 focus-within:outline focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rojo/60 sm:ml-auto sm:w-64">
+    <label data-guia="comprobantes.buscador" className="vidrio-cayla flex h-9 w-full items-center gap-2 rounded-[10px] px-3 text-[13px] text-tinta transition-shadow duration-200 focus-within:outline focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rojo/60 sm:ml-auto sm:w-64">
       <Search aria-hidden strokeWidth={1.75} className="h-[15px] w-[15px] shrink-0 text-tinta/65" />
       <input
         type="search"

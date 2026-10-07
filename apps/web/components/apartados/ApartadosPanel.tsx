@@ -96,14 +96,16 @@ export function ApartadosPanel(props: Props) {
           className="max-lg:hidden"
           etiquetaAccesible="Apartados"
           idIndicador="apartados"
+          guia="apartados.pestanas"
           activa={vista}
           onCambio={(c) => irA(c as Vista)}
-          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined }))}
+          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined, guia: `apartados.pestana-${p.id}` }))}
         />
         {props.esLider && (
           <button
             type="button"
             onClick={() => setOpciones(true)}
+            data-guia="apartados.opciones"
             title="Qué funciones usa Apartados en esta tienda"
             aria-label="Opciones"
             className="label-cayla flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[10.5px] text-tinta/80 hover:border-taupe"

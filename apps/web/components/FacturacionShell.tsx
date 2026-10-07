@@ -69,7 +69,7 @@ export function FacturacionShell({
           {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
               dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
           {/* En celular y tablet las pestañas van abajo (`PestanasComprobantesMovil`); arriba queda la búsqueda. */}
-          <div className="max-lg:hidden">
+          <div className="max-lg:hidden" data-guia="comprobantes.pestanas">
             <Suspense fallback={null}>
               <FacturacionPestanas conteos={conteos} />
             </Suspense>

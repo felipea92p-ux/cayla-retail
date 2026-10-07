@@ -70,6 +70,9 @@ export type PiezaATocar = {
   enFormulario: boolean;
   /** El `href` de un enlace, o null. */
   href: string | null;
+  /** El `role` ARIA del control («tab», «switch»…), o null. Una pestaña solo cambia de vista: se puede tocar aunque se llame
+   *  «Apartar» o «Entregar». */
+  rol: string | null;
   /** La ruta donde corre la guía (un enlace a otra ruta saca a la persona de la pantalla y corta la demo). */
   rutaActual: string;
 };

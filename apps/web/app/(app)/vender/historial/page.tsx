@@ -140,6 +140,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   return (
     <div className="space-y-7">
+      <div data-guia="historial.cabecera">
       <EncabezadoPagina sede={alcance} titulo="Historial" subtitulo="Todas las ventas registradas, de cualquier fecha.">
         {/* Las cifras del PERÍODO (el buscador no las cambia), como las de la tienda en Cambios y Devoluciones. Pasado el
             tope de 1000 ventas serían parciales: el trazo de abajo lo dice y acá no se muestran. */}
@@ -153,13 +154,14 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           />
         )}
       </EncabezadoPagina>
+      </div>
 
       {/* Las ventas son lo primero: ocupan la columna principal y el pulso las acompaña en un lateral pegajoso (desde 1280 px).
           Más angosto, el pulso pasa DEBAJO de la lista, no encima: nada se interpone entre la persona y las ventas. */}
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
         <div className="min-w-0 space-y-5">
           {/* En el celular el buscador queda fijo bajo la cabecera del AppShell (61 px) mientras se recorre la lista. */}
-          <div className="sticky top-[61px] z-20 -mx-4 bg-crema/90 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <div data-guia="historial.buscador" className="sticky top-[61px] z-20 -mx-4 bg-crema/90 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <BuscadorHistorial valor={filtros.busqueda ?? ""} />
           </div>
 
@@ -197,7 +199,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           )}
 
           {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-          <div data-resultados>
+          <div data-resultados data-guia="historial.lista">
             {filas.length === 0 && !cursor ? (
               <EstadoVacio
                 titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
@@ -222,13 +224,13 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             sustantivo={["venta", "ventas"]}
           />
 
-          <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
+          <p data-guia="historial.nota" className="max-w-2xl text-xs leading-relaxed text-tinta/60">
             <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
             sumar a lo vendido; si el cliente cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
           </p>
         </div>
 
-        <aside aria-label="Pulso del período" className="xl:sticky xl:top-24">
+        <aside aria-label="Pulso del período" data-guia="historial.pulso" className="xl:sticky xl:top-24">
           <HistorialVentasPulso totales={totales} periodo={periodoEnPalabras} enlaces={enlaces} />
         </aside>
       </div>

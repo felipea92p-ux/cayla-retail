@@ -148,7 +148,7 @@ export function FiltrosHistorialVentas({
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="-mx-4 -my-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
-        <div role="group" aria-label="Período" className="flex shrink-0 items-center gap-1.5">
+        <div role="group" aria-label="Período" data-guia="historial.periodos" className="flex shrink-0 items-center gap-1.5">
           <Pastilla
             activa={!mostrarFechas && periodo === "hoy"}
             onClick={() => {
@@ -175,7 +175,7 @@ export function FiltrosHistorialVentas({
           </Pastilla>
         </div>
         <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-tinta/15" />
-        <div role="group" aria-label="Atajos" className="flex shrink-0 items-center gap-1.5">
+        <div role="group" aria-label="Atajos" data-guia="historial.atajos" className="flex shrink-0 items-center gap-1.5">
           {visibles.map((a) => {
             const activo = atajoActivo(a, actual);
             return (
@@ -197,7 +197,7 @@ export function FiltrosHistorialVentas({
         </div>
         </div>
         {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}
-        <div className="-mt-1.5 flex shrink-0 items-center gap-2">
+        <div data-guia="historial.herramientas" className="-mt-1.5 flex shrink-0 items-center gap-2">
           {exportarHref && (
             // Una descarga, no una navegación: `<a download>` y no `Link` (no pasa por el loader de pantalla).
             // Exportar un Excel es trabajo de computadora: en el celular no ocupa el lugar de los períodos y atajos.

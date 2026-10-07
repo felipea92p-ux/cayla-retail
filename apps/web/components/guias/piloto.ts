@@ -58,6 +58,7 @@ export function describirPieza(el: HTMLElement): PiezaATocar {
     tipo: control.getAttribute("type"),
     enFormulario: !!control.closest("form"),
     href: control instanceof HTMLAnchorElement ? control.getAttribute("href") : null,
+    rol: control.getAttribute("role"),
     rutaActual: window.location.pathname,
   };
 }

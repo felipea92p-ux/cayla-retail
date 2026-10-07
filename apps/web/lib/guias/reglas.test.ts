@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { debeOfrecer, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide } from "./reglas";
+import { debeOfrecer, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, totalEstimado } from "./reglas";
 import type { Guia, PiezaATocar } from "./tipos";
 
-const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rutaActual: "/vender", ...p });
+const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rol: null, rutaActual: "/vender", ...p });
 
 describe("nunca guardar: el piloto no toca lo que escribe", () => {
   it.each(["Confirmar cobro", "COBRAR S/120.00", "Guardar", "Abrir caja", "Cerrar caja", "Registrar la bajada", "Quitar", "Agregar al ticket", "Dejar en espera", "Anular", "Enviar por WhatsApp", "Imprimir"])(
@@ -30,6 +30,13 @@ describe("nunca guardar: el piloto no toca lo que escribe", () => {
 
   it("ante la duda, no toca: «Prenda sin registrar» solo abre una hoja, pero lleva el verbo y la guía la explica sin tocarla", () => {
     expect(motivoParaNoTocar(pieza({ texto: "Prenda sin registrar" }))).not.toBeNull();
+  });
+
+  it("una pestaña solo cambia de vista: se toca aunque se llame «Apartar» o «Entregar»; un submit con role=tab, no", () => {
+    expect(motivoParaNoTocar(pieza({ texto: "Apartar", rol: "tab" }))).toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Entregar", rol: "tab" }))).toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Apartar", rol: "tab", tipo: "submit" }))).not.toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Emitidos", rol: "tab", etiqueta: "a", href: "/vender/comprobantes/emitidos" }))).not.toBeNull();
   });
 
   it("no se confunde con palabras que contienen el verbo (Cobrador ≠ cobrar, Marca ≠ marcar)", () => {
@@ -95,5 +102,19 @@ describe("geometría del recorte y la tarjeta", () => {
   });
   it("sin pieza, al centro", () => {
     expect(posicionTarjeta(null, ventana, { ancho: 360, alto: 200 }).lado).toBe("centro");
+  });
+});
+
+describe("el total de pasos", () => {
+  const paso = (id: string, extra: Partial<import("./tipos").PasoGuia> = {}) => ({ id, ancla: `x.${id}`, titulo: "", texto: "", ...extra });
+  it("cuenta lo que está a la vista y lo que una pestaña o un modal va a abrir; no lo que nunca aparece", () => {
+    const pasos = [
+      paso("a"),
+      paso("camara", { opcional: true }), // no está y nada la abre: no cuenta
+      paso("b", { opcional: true, preparar: [{ tipo: "clic", ancla: "x.tab" }] }),
+      paso("c", { opcional: true }), // no está ahora, pero la pestaña de «b» cambió la vista
+      { id: "fin", ancla: null, titulo: "", texto: "" },
+    ];
+    expect(totalEstimado(pasos, new Set(["x.a"]), 1280)).toBe(4);
   });
 });
