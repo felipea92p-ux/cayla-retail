@@ -232,9 +232,22 @@
             if (estado) {
               for (const parte of sel.split(/,(?![^(]*\))/)) {
                 if (!estado[1].test(parte)) continue;
-                const base = parte.replace(/:(hover|active|focus-visible|focus-within|focus)\b/g, "").replace(/:not\(\s*:disabled\s*\)/g, "").replace(/:where\(\s*\)/g, "").trim();
+                // El barrido de `.mov-boton` vive en su `::after`: el pseudo-elemento es parte de la pieza, y `matches()` no lo acepta.
+                const base = parte
+                  .replace(/:(hover|active|focus-visible|focus-within|focus)\b/g, "")
+                  .replace(/:not\(\s*:disabled\s*\)/g, "")
+                  .replace(/:where\(\s*\)/g, "")
+                  .replace(/::?(after|before)\b/g, "")
+                  .trim();
                 // `:focus-visible` a secas es el anillo único del ERP (ADR-0351): vale para todo lo que se enfoca.
-                sal.push({ estado: estado[0], base: base || "*", global: !base || base === "*", props: [...r.style].map((p) => [p, r.style.getPropertyValue(p)]) });
+                // Un atajo con una variable adentro (`animation: cayla-brillo .65s var(--ease-cayla)`) deja vacías sus partes sueltas
+                // en el CSSOM: se suma el atajo entero, leído de su texto.
+                const props = [...r.style].map((p) => [p, r.style.getPropertyValue(p)]);
+                for (const atajo of ["animation", "transition", "transform", "translate", "scale", "rotate", "background", "box-shadow"]) {
+                  const v = r.style.getPropertyValue(atajo);
+                  if (v) props.push([atajo, v]);
+                }
+                sal.push({ estado: estado[0], base: base || "*", global: !base || base === "*", props });
               }
             }
           }
@@ -850,6 +863,11 @@
       const nombre = a.animationName || (a.transitionProperty ? `transición de ${efectoDe(a.transitionProperty, "") || a.transitionProperty}` : "animación");
       return `${nombre} ${Math.round((+t.duration || 0) / 10) * 10} ms${t.iterations === Infinity ? " en bucle" : ""}`;
     });
+    // La luz que cruza un botón corre en su `::after`: se lee de su estilo calculado, por si la lista de animaciones no la trae.
+    for (const n of nodos) {
+      const pa = getComputedStyle(n, "::after").animationName;
+      if (pa && pa !== "none" && !animaciones.some((a) => a.startsWith(`${pa} `))) animaciones.push(`${pa} (::after)`);
+    }
     return { valores, nombres: PROPS.map(([, n]) => n), animaciones: [...new Set(animaciones)] };
   };
 

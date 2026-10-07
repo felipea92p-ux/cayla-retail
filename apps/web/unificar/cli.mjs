@@ -243,7 +243,17 @@ async function medirEncima(pagina, uid) {
   antes.valores.forEach((fila, i) => fila.forEach((v, j) => despues.valores[i] && despues.valores[i][j] !== v && cambia.add(antes.nombres[j])));
   const corre = [...new Set([...(durante?.animaciones ?? []), ...despues.animaciones])].filter((a) => !/en bucle$/.test(a) || !antes.animaciones.includes(a));
   if (!cambia.size && !corre.length) return "al pasar el mouse no cambia nada";
-  return [cambia.size ? `cambia ${[...cambia].join(", ")}` : null, corre.length ? `corre ${corre.slice(0, 3).join(", ")}` : null].filter(Boolean).join(" · ");
+  // Primero lo que se anima (la luz que cruza, una vuelta), después las transiciones juntas: antes se cortaba en las tres primeras y
+  // la luz, que llega última, no salía.
+  const animaciones = [...new Set(corre.filter((a) => !a.startsWith("transición de ")).map((a) => a.replace(/ \(::after\)$/, "")))];
+  const transiciones = [...new Set(corre.filter((a) => a.startsWith("transición de ")).map((a) => a.replace(/^transición de (.+?) \d+ ms$/, "$1")))];
+  return [
+    cambia.size ? `cambia ${[...cambia].join(", ")}` : null,
+    animaciones.length ? `corre ${animaciones.join(", ")}` : null,
+    transiciones.length ? `transición de ${transiciones.join(", ")}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 async function visitar(ctx, cuenta, visita) {
