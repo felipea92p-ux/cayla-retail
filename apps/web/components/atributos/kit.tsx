@@ -56,13 +56,9 @@ export function BarraAtributos({
         <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
           {busqueda && <Buscador {...busqueda} />}
           {agregar && (
-            <button
-              type="button"
-              onClick={agregar.onClick}
-              className="label-cayla shrink-0 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-            >
+            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0">
               {agregar.texto}
-            </button>
+            </Boton>
           )}
         </div>
       )}
