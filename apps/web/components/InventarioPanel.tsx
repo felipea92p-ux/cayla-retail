@@ -496,7 +496,7 @@ export function InventarioPanel({
   // La prenda abierta sale de TODO el stock, no de lo filtrado: si se abre escaneando o tras un guardado cambia su «Acción
   // hoy», el detalle no se cierra solo por dejar de coincidir con un filtro.
   // Los nombres de las tiendas a las que se les puede pedir: la red de stock viene por nombre de sede.
-  const tiendasParaPedir = useMemo(() => new Set(sedesParaPedir.map((x) => x.nombre)), [sedesParaPedir]);
+  const tiendasParaPedir = useMemo(() => new Set(sedesParaPedir.map((x) => x.id)), [sedesParaPedir]);
   // Cada prenda (modelo + color) con TODAS sus tallas de la sede: la tarjeta las muestra todas cuando solo filtra «Hoy» o «Condición».
   const prendaPorClave = useMemo(() => new Map(agruparPorPrenda(stock).map((p) => [p.clave, p])), [stock]);
   // Lo que el filtro de la lista marca dentro del panel («Sin stock atrás en este modelo · 2»): «Hoy» o «Condición», como las tarjetas.

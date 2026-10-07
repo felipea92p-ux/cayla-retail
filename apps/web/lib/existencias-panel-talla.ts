@@ -13,7 +13,7 @@
 
 import { estadoTalla, type FilaPrenda } from "./existencias-prendas";
 import { fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
-import { nombreCortoSede } from "./stock-por-sede";
+import { cantidadEnSede, nombreCortoSede, type SedeConStockId } from "./stock-por-sede";
 
 export type ClaveAccionTalla = "colgar" | "subir" | "enviar" | "apartar" | "pedir" | "ajustar" | "ficha";
 
@@ -52,7 +52,17 @@ export type PermisosDeTalla = {
   origenes?: readonly { nombre: string; cantidad: number }[];
 };
 
-type FilaDeTalla = FilaPrenda & { enRed?: readonly { sede: string; cantidad: number }[] };
+type FilaDeTalla = FilaPrenda & { enRed?: readonly SedeConStockId[] };
+
+/** Las tiendas a las que se puede pedir, con lo que cada una tiene de esta talla (las que no tienen, en 0). Se cruzan por id:
+ *  la red trae el nombre acortado («Trujillo») y `sedesParaPedir` el completo («Tienda Trujillo»); por nombre, nunca
+ *  coincidían y «Pedir a otra sede» salía apagado con «Ninguna tienda tiene» junto a «Otras sedes: Trujillo 4» (2026-10-07). */
+export function origenesDeTalla(
+  enRed: readonly SedeConStockId[] | undefined,
+  sedesParaPedir: readonly { id: string; nombre: string }[]
+): { id: string; nombre: string; cantidad: number }[] {
+  return sedesParaPedir.map((s) => ({ ...s, cantidad: cantidadEnSede(enRed, s.id) }));
+}
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 
@@ -140,7 +150,7 @@ export function queTocaConLaTalla(
   f: TallaQueToca,
   o: {
     separa: boolean;
-    /** Las tiendas a las que se les puede pedir (por nombre de sede, como viene la red de stock). */
+    /** Las tiendas a las que se les puede pedir, por id de sede (`ubicaciones.id`): el nombre de la red viene acortado. */
     tiendas: ReadonlySet<string>;
     puedeColgar: boolean;
     puedePedir: boolean;
@@ -222,8 +232,8 @@ export function queTocaConLaTalla(
 
   // Pedir a otra sede: la vara de «casi no hay» (1 o ninguna aquí, nada en camino).
   const conStock = (f.enRed ?? []).filter((s) => s.cantidad > 0);
-  const tiendasCon = conStock.filter((s) => o.tiendas.has(s.sede)).sort((a, b) => b.cantidad - a.cantidad);
-  const otrasCon = conStock.filter((s) => !o.tiendas.has(s.sede)).sort((a, b) => b.cantidad - a.cantidad);
+  const tiendasCon = conStock.filter((s) => o.tiendas.has(s.ubicacionId)).sort((a, b) => b.cantidad - a.cantidad);
+  const otrasCon = conStock.filter((s) => !o.tiendas.has(s.ubicacionId)).sort((a, b) => b.cantidad - a.cantidad);
   const titulo = PREGUNTA_QUE_TOCA.pedir;
   if (enCamino > 0) {
     salida.push({ tema: "pedir", titulo, respuesta: "No hace falta", tono: "verde", detalle: `Vienen ${enCamino} en camino` });

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla } from "./existencias-panel-talla";
+import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla } from "./existencias-panel-talla";
+import { mejorOrigen } from "./existencias-flujos";
+import { esObjetivo } from "./existencias-mision";
+import { sedesParaPedir } from "./pedidos-entre-sedes-reglas";
+import { agruparStockPorSede } from "./stock-por-sede";
 import type { FilaPrenda } from "./existencias-prendas";
 
-const talla = (x: Partial<FilaPrenda> & { enRed?: { sede: string; cantidad: number }[] }) =>
-  ({ pisoDisponible: 0, almacenDisponible: 0, disponible: 0, apartado: 0, danado: 0, planPiso: null, talla: "M", ...x }) as FilaPrenda & { enRed?: { sede: string; cantidad: number }[] };
+const talla = (x: Partial<FilaPrenda> & { enRed?: { sede: string; ubicacionId: string; cantidad: number }[] }) =>
+  ({ pisoDisponible: 0, almacenDisponible: 0, disponible: 0, apartado: 0, danado: 0, planPiso: null, talla: "M", ...x }) as FilaPrenda & { enRed?: { sede: string; ubicacionId: string; cantidad: number }[] };
 const PIDE = { accion: "por_colgar" } as never;
 const TODO = { puedeReponer: true, puedeEnviar: true, puedeAjustar: true, puedeApartar: true, puedePedir: true, origenes: [{ nombre: "Tienda Lima", cantidad: 2 }, { nombre: "Tienda Arequipa", cantidad: 0 }] };
 
@@ -21,7 +25,7 @@ describe("acciones del panel de una talla", () => {
   it("primero lo que la talla necesita, después lo que se puede y al final lo que no", () => {
     const claves = (f: FilaPrenda) => accionesDeTalla(f, TODO, true).map((x) => `${x.clave}${x.sugerida ? "*" : ""}${x.ok ? "" : "·no"}`);
     // Sin nada en la sede y una tienda que la tiene: pedir, después lo que se puede (ajustar, ficha), al final lo apagado.
-    expect(claves(talla({ enRed: [{ sede: "Tienda Lima", cantidad: 2 }] }))).toEqual(["pedir*", "ajustar", "ficha", "apartar·no", "colgar·no", "subir·no", "enviar·no"]);
+    expect(claves(talla({ enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] }))).toEqual(["pedir*", "ajustar", "ficha", "apartar·no", "colgar·no", "subir·no", "enviar·no"]);
     // Nada en el piso y algo atrás, sin decisión del motor: colgar primero y sugerida (la misma vara que «Qué toca»).
     expect(claves(talla({ almacenDisponible: 3, disponible: 3 }))[0]).toBe("colgar*");
     // Con el piso en pausa NO se sugiere colgar (podría ya colgar): se ofrece, sin resaltar.
@@ -59,7 +63,7 @@ describe("Apartar y Pedir siguen a la talla", () => {
 });
 
 describe("«Qué toca con esta talla»: hay, colgar y pedir siempre dicen algo", () => {
-  const TIENDAS = new Set(["Tienda Lima", "Tienda Arequipa"]);
+  const TIENDAS = new Set(["lim", "aqp"]);
   const O = { separa: true, tiendas: TIENDAS, puedeColgar: true, puedePedir: true };
   const r = (x: Parameters<typeof talla>[0], o: Partial<typeof O> = {}) =>
     Object.fromEntries(queTocaConLaTalla(talla({ enTransito: 0, ...x }) as never, { ...O, ...o }).map((y) => [y.tema, y]));
@@ -86,7 +90,7 @@ describe("«Qué toca con esta talla»: hay, colgar y pedir siempre dicen algo",
   });
 
   it("pedir: no hace falta con 2 o más aquí o algo en camino; si no, a la tienda que más tiene", () => {
-    const red = [{ sede: "Tienda Lima", cantidad: 1 }, { sede: "Tienda Arequipa", cantidad: 3 }, { sede: "Taller", cantidad: 14 }];
+    const red = [{ sede: "Lima", ubicacionId: "lim", cantidad: 1 }, { sede: "Arequipa", ubicacionId: "aqp", cantidad: 3 }, { sede: "Taller", ubicacionId: "taller", cantidad: 14 }];
     expect(r({ almacenDisponible: 6, disponible: 6, enRed: red }).pedir).toMatchObject({ respuesta: "No hace falta", detalle: "Hay 6 en esta sede" });
     expect(r({ enTransito: 2, enRed: red }).pedir).toMatchObject({ respuesta: "No hace falta", detalle: "Vienen 2 en camino" });
     expect(r({ enRed: red }).pedir).toMatchObject({ respuesta: "Sí", tono: "ambar", accion: "pedir", detalle: "No hay aquí: Arequipa tiene 3 (y 1 tienda más)" });
@@ -95,14 +99,14 @@ describe("«Qué toca con esta talla»: hay, colgar y pedir siempre dicen algo",
   });
 
   it("pedir: si solo el Taller tiene, se dice sin botón; si nadie, también", () => {
-    expect(r({ enRed: [{ sede: "Taller", cantidad: 14 }] }).pedir).toMatchObject({ respuesta: "A una tienda, no", detalle: "Ninguna tienda tiene; Taller tiene 14: pídeselo a Taller" });
-    expect(r({ enRed: [{ sede: "Taller", cantidad: 14 }] }).pedir.accion).toBeUndefined();
+    expect(r({ enRed: [{ sede: "Taller", ubicacionId: "taller", cantidad: 14 }] }).pedir).toMatchObject({ respuesta: "A una tienda, no", detalle: "Ninguna tienda tiene; Taller tiene 14: pídeselo a Taller" });
+    expect(r({ enRed: [{ sede: "Taller", ubicacionId: "taller", cantidad: 14 }] }).pedir.accion).toBeUndefined();
     expect(r({}).pedir).toMatchObject({ respuesta: "Nadie tiene", detalle: "Ninguna otra sede tiene" });
   });
 
   it("pedir usa la vara de «casi no hay»: solo propone algo con 1 o ninguna aquí y nada en camino", () => {
     for (const piso of [0, 1, 2]) for (const alm of [0, 1, 2]) for (const enTransito of [0, 1]) {
-      const p = r({ pisoDisponible: piso, almacenDisponible: alm, disponible: piso + alm, enTransito, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] }).pedir;
+      const p = r({ pisoDisponible: piso, almacenDisponible: alm, disponible: piso + alm, enTransito, enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] }).pedir;
       expect(p.respuesta !== "No hace falta").toBe(piso + alm <= 1 && enTransito === 0);
     }
   });
@@ -112,7 +116,7 @@ describe("«Qué toca con esta talla»: hay, colgar y pedir siempre dicen algo",
   });
 
   it("cada fila se titula con su pregunta corta, en todos los casos (en mayúsculas largas se partía en dos líneas)", () => {
-    const casos = [{}, { almacenDisponible: 6, disponible: 6 }, { pisoDisponible: 2, disponible: 2, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] }, { enTransito: 3 }];
+    const casos = [{}, { almacenDisponible: 6, disponible: 6 }, { pisoDisponible: 2, disponible: 2, enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] }, { enTransito: 3 }];
     for (const c of casos) expect(queTocaConLaTalla(talla({ enTransito: 0, ...c }) as never, O).map((x) => x.titulo)).toEqual(["¿Hay?", "¿Colgar?", "¿Pedir?"]);
   });
 });
@@ -155,13 +159,13 @@ describe("las tallas de arriba lo dicen en su lugar (sin volver a listarlas abaj
   it("debajo del número: el piso; sin ninguna aquí, si viene en camino u otra sede la tiene (el Taller también es otra sede)", () => {
     expect(pieDeTalla(talla({ pisoDisponible: 2, almacenDisponible: 3, disponible: 5 }), true)).toEqual({ texto: "2 piso", afuera: false });
     expect(pieDeTalla(talla({ disponible: 4 }), false)).toEqual({ texto: "4", afuera: false });
-    expect(pieDeTalla(talla({ enTransito: 2, enRed: [{ sede: "Tienda Lima", cantidad: 1 }] }), true)).toEqual({ texto: "en camino", afuera: true });
-    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Taller", cantidad: 3 }] }), true)).toEqual({ texto: "otra sede", afuera: true });
-    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Tienda Lima", cantidad: 0 }] }), true)).toEqual({ texto: "—", afuera: false });
+    expect(pieDeTalla(talla({ enTransito: 2, enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 1 }] }), true)).toEqual({ texto: "en camino", afuera: true });
+    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Taller", ubicacionId: "taller", cantidad: 3 }] }), true)).toEqual({ texto: "otra sede", afuera: true });
+    expect(pieDeTalla(talla({ enTransito: 0, enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 0 }] }), true)).toEqual({ texto: "—", afuera: false });
   });
 
   it("el punto del color: con filtro, solo si lo cumple; sin filtro, lo que falta en el piso antes que lo que tiene otra sede", () => {
-    const tallas = [talla({ varianteId: "a", disponible: 2, pisoDisponible: 0, almacenDisponible: 2 }), talla({ varianteId: "b", enTransito: 0, enRed: [{ sede: "Tienda Lima", cantidad: 2 }] })];
+    const tallas = [talla({ varianteId: "a", disponible: 2, pisoDisponible: 0, almacenDisponible: 2 }), talla({ varianteId: "b", enTransito: 0, enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] })];
     expect(marcaDeColor(tallas, { faltan: new Set(["a"]), separa: true })).toBe("falta");
     expect(marcaDeColor(tallas, { faltan: new Set(), separa: true })).toBe("afuera");
     expect(marcaDeColor(tallas, { faltan: new Set(["a"]), coincide: (f) => f.varianteId === "b", separa: true })).toBe("filtro");
@@ -186,11 +190,11 @@ describe("las tallas de arriba lo dicen en su lugar (sin volver a listarlas abaj
 });
 
 describe("insigniaDeTalla: UNA respuesta junto al número grande", () => {
-  const O = { separa: true, tiendas: new Set(["Tienda Lima"]), puedeColgar: true, puedePedir: true };
+  const O = { separa: true, tiendas: new Set(["lim"]), puedeColgar: true, puedePedir: true };
   const ins = (x: Parameters<typeof talla>[0]) => insigniaDeTalla(queTocaConLaTalla(talla({ enTransito: 0, ...x }) as never, O));
 
   it("se acabó: rojo, y la frase dice quién tiene", () => {
-    const r = ins({ enRed: [{ sede: "Tienda Lima", cantidad: 2 }] });
+    const r = ins({ enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 2 }] as never });
     expect(r).toMatchObject({ tono: "rojo", texto: "Se acabó" });
     expect(r.frase).toContain("2");
   });
@@ -201,9 +205,49 @@ describe("insigniaDeTalla: UNA respuesta junto al número grande", () => {
     expect(ins({ pisoDisponible: 0, almacenDisponible: 3, disponible: 3, planPiso: { accion: "pausa_sin_cuadre" } as never })).toMatchObject({ tono: "pizarra", texto: "Piso en pausa" });
   });
   it("queda 1 y otra tienda tiene: queda poco", () => {
-    expect(ins({ pisoDisponible: 1, almacenDisponible: 0, disponible: 1, enRed: [{ sede: "Tienda Lima", cantidad: 3 }] })).toMatchObject({ tono: "pizarra", texto: "Queda poco" });
+    expect(ins({ pisoDisponible: 1, almacenDisponible: 0, disponible: 1, enRed: [{ sede: "Lima", ubicacionId: "lim", cantidad: 3 }] as never })).toMatchObject({ tono: "pizarra", texto: "Queda poco" });
   });
   it("lo demás: todo bien", () => {
     expect(ins({ pisoDisponible: 2, almacenDisponible: 2, disponible: 4 })).toMatchObject({ tono: "verde", texto: "Todo bien" });
+  });
+});
+
+describe("«Pedir a otra sede» cruza la red con las tiendas por id, no por nombre (regresión 2026-10-07)", () => {
+  // El caso de la base local: Blusa Valentina Blanco L, agotada en Tienda Lima; Taller tiene 15 y Tienda Trujillo 4. El cajón
+  // decía «Otras sedes: Taller 15 · Trujillo 4» y, al lado, «Pedir a otra sede» apagado con «Ninguna tienda tiene»: la red
+  // guarda «Trujillo» (acortado) y `sedesParaPedir`, «Tienda Trujillo».
+  const ubicaciones = [
+    { id: "taller", nombre: "Taller", tipo: "taller", activo: true },
+    { id: "lim", nombre: "Tienda Lima", tipo: "tienda", activo: true },
+    { id: "tru", nombre: "Tienda Trujillo", tipo: "tienda", activo: true },
+  ];
+  const red = agruparStockPorSede(
+    [
+      { variante_id: "v", ubicacion_id: "taller", cantidad: 15 },
+      { variante_id: "v", ubicacion_id: "tru", cantidad: 4 },
+    ],
+    ubicaciones,
+    "lim"
+  );
+  const enRed = red.get("v")?.otrasSedes ?? [];
+  const sedes = sedesParaPedir(ubicaciones, "lim");
+  const fila = talla({ enRed });
+
+  it("las tiendas a las que se puede pedir traen lo que tienen", () => {
+    expect(origenesDeTalla(enRed, sedes)).toEqual([{ id: "tru", nombre: "Tienda Trujillo", cantidad: 4 }]);
+  });
+  it("la acción se enciende y dice quién tiene", () => {
+    const pedir = accionesDeTalla(fila, { ...TODO, origenes: origenesDeTalla(enRed, sedes) }, true).find((a) => a.clave === "pedir");
+    expect(pedir).toMatchObject({ ok: true, sugerida: true });
+    expect(JSON.stringify(pedir)).toContain("Trujillo tiene 4");
+    expect(JSON.stringify(pedir)).not.toContain("Ninguna tienda tiene");
+  });
+  it("«¿Pedir?» propone Trujillo, no el Taller", () => {
+    const p = queTocaConLaTalla(fila as never, { separa: true, tiendas: new Set(sedes.map((s) => s.id)), puedeColgar: true, puedePedir: true }).find((x) => x.tema === "pedir");
+    expect(p).toMatchObject({ respuesta: "Sí", accion: "pedir", detalle: "No hay aquí: Trujillo tiene 4" });
+  });
+  it("la tienda a la que conviene pedir y la misión del día la reconocen", () => {
+    expect(mejorOrigen(enRed, sedes)).toEqual({ id: "tru", nombre: "Tienda Trujillo", cantidad: 4 });
+    expect(esObjetivo({ varianteId: "v", pisoDisponible: 0, almacenDisponible: 0, disponible: 0, planPiso: null, enRed }, new Set(sedes.map((s) => s.id)))).toBe(true);
   });
 });

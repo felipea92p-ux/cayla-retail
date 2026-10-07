@@ -13,7 +13,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
-import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoInsignia } from "@/lib/existencias-panel-talla";
+import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoInsignia } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
 import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -222,13 +222,13 @@ export function PanelTalla({
   const fila = prenda.tallas.find((t) => t.varianteId === varianteId) ?? prenda.tallas[0];
   if (!fila) return null;
 
-  // Las otras tiendas, con lo que cada una tiene de esta talla (la red viene por nombre de sede).
-  const origenes: SedeConCantidad[] = sedesParaPedir.map((s) => ({ ...s, cantidad: (fila.enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }));
+  // Las otras tiendas, con lo que cada una tiene de esta talla (por id de sede, no por nombre).
+  const origenes: SedeConCantidad[] = origenesDeTalla(fila.enRed, sedesParaPedir);
   const acciones = accionesDeTalla(fila, { puedeReponer, puedeEnviar: puedeEnviar && destinos.length > 0, puedeAjustar, puedeApartar, puedePedir: puedePedir && sedesParaPedir.length > 0, origenes }, separa);
   // Las tres respuestas de la talla —hay, colgar, pedir— que siempre dicen algo, aunque el motor del piso no haya decidido (2026-10-06).
   const queToca = queTocaConLaTalla(fila, {
     separa,
-    tiendas: new Set(sedesParaPedir.map((s) => s.nombre)),
+    tiendas: new Set(sedesParaPedir.map((s) => s.id)),
     puedeColgar: puedeReponer,
     puedePedir: puedePedir && sedesParaPedir.length > 0,
   });
