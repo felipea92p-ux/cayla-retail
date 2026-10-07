@@ -1,0 +1,308 @@
+/* VENTAS SIN REGISTRAR (Existencias ▸ /inventario/por-regularizar) · ADR-0360.
+   Maqueta A2 «Puente», elegida por Felipe el 2026-10-07 (docs/maquetas/ventas-sin-registrar-2026-10/a2-puente.html). Medidas y movimiento de la
+   maqueta; colores SOLO de tokens (ADR-0169, ADR-0336). El color de una prenda (la baldosa de `MosaicoPrenda`) es DATO y llega en `style`.
+
+   LA IDEA. A la izquierda lo que anotó caja, cada venta como un TALÓN con perforación; a la derecha, las prendas del catálogo entre las que
+   se elige; en medio, el PUENTE: arriba la venta, abajo la prenda elegida y, entre las dos, una cuerda con tres visitos (prenda, talla, color).
+   Un hilo sale del talón al puente y otro de la prenda al puente. El precio, «cómo estaba» y el botón viven en el puente: no hay que bajar
+   a buscarlos. Las columnas del medio y de la derecha van PEGADAS a la ventana mientras se recorre la lista de talones (sin scroll propio salvo
+   que lo que contienen no quepa), y la mesa se arma según el ancho que tiene (`data-modo`: tres columnas, dos, o una hoja <Modal> en celular).
+
+   MOVIMIENTO — pide la excepción escrita en ADR-0136 («Actualización 2026-10-07»): rico, pero con `--ease-cayla`, SIN REBOTE y SIN BUCLE; cada
+   efecto corre UNA vez (al elegir, al pasar el mouse o al guardar) y todo se apaga con `prefers-reduced-motion`. Lo que hay: el talón elegido
+   se adelanta y su hilo se dibuja; la cuerda se traza y los tres visitos entran en cascada; la balanza de precio se llena; al guardar las dos
+   mitades del puente se juntan, cae el sello sobre el talón y este se pliega. */
+
+@layer components {
+  .vsr {
+    --vsr-top: 4.25rem;
+    --vsr-t65: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+    --vsr-t50: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+    --vsr-t35: color-mix(in srgb, var(--color-tinta) 36%, transparent);
+  }
+  :root[data-tema="oscuro"] .vsr {
+    --vsr-t50: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+    --vsr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+  }
+
+  /* ---- La franja de avance (reemplaza a las cuatro tarjetas y al anillo) ---- */
+  .vsr-franja {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 0.875rem 1.25rem;
+  }
+  .vsr-f-prog { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .vsr-f-top { display: flex; align-items: baseline; gap: 0.625rem; font-size: 14px; color: var(--vsr-t65); }
+  .vsr-f-n { font-family: var(--font-serif); font-size: 36px; line-height: 1; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .vsr-f-bar { height: 6px; border-radius: 3px; background: var(--color-sand); overflow: hidden; }
+  .vsr-f-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--color-verde); transform-origin: left; transition: transform 1s var(--ease-cayla); }
+  .vsr-venc {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--color-rojo) 38%, var(--color-sand));
+    background: color-mix(in srgb, var(--color-rojo) 8%, var(--color-papel));
+    padding: 0.4375rem 0.875rem;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-rojo-profundo);
+    transition: background-color 250ms, color 250ms, border-color 250ms;
+  }
+  .vsr-venc:hover { border-color: var(--color-rojo); }
+  .vsr-venc[aria-pressed="true"] { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); color: var(--color-crema); }
+  /* La «Vencida» es una señal (ADR-0136): su punto late TRES veces y se queda quieto, como el chip. */
+  .vsr-venc > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: vsr-late 1.1s var(--ease-cayla) 3; }
+  .vsr-f-mes { margin-left: auto; font-size: 12.5px; color: var(--vsr-t65); }
+  .vsr-f-mes b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---- La mesa ---- */
+  .vsr-mesa { position: relative; display: grid; align-items: start; padding: 0.25rem 1.25rem 1.25rem; }
+  /* Un poco de aire al pie: sin él, con pocas ventas la página no tiene recorrido para que el puente (más alto que una ventana baja) llegue a pegarse y su botón se vea. */
+  .vsr-mesa:not([data-modo="hoja"]) { padding-bottom: 5rem; }
+  .vsr-mesa[data-modo="tres"] { grid-template-columns: minmax(19rem, 1fr) 16.5rem minmax(0, 1.5fr); column-gap: 2.75rem; }
+  .vsr-mesa[data-modo="dos"] { grid-template-columns: minmax(18rem, 1fr) minmax(0, 1.1fr); column-gap: 2rem; }
+  .vsr-mesa[data-modo="hoja"] { grid-template-columns: minmax(0, 1fr); padding-inline: 0.875rem; }
+  .vsr-der { display: contents; }
+  .vsr-mesa[data-modo="dos"] .vsr-der { display: flex; flex-direction: column; gap: 0.875rem; position: sticky; top: var(--vsr-top); max-height: calc(100dvh - var(--vsr-top) - 1rem); overflow-y: auto; padding: 0.25rem 0.25rem 0.5rem; margin: -0.25rem; scrollbar-width: thin; }
+  .vsr-hilos { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 2; }
+  .vsr-hilos path { fill: none; stroke-linecap: round; }
+  .vsr-h-prev { stroke: var(--vsr-t35); stroke-width: 1.6; stroke-dasharray: 3 6; }
+  .vsr-h-sel { stroke: var(--color-tinta); stroke-width: 2.2; stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .vsr-h-sel.vsr-traza { stroke-dashoffset: 1; animation: vsr-dibuja 620ms var(--ease-cayla) forwards; }
+  .vsr-h-ok { stroke: var(--color-verde); stroke-width: 4; stroke-dasharray: 0 1; animation: vsr-luz 600ms var(--ease-cayla) forwards; }
+  .vsr-hilos circle { fill: var(--color-tinta); }
+  .vsr-hilos circle.vsr-punta { animation: vsr-aparece 300ms 520ms var(--ease-cayla) backwards; }
+  .vsr-col-t { min-width: 0; padding-top: 0.25rem; }
+  .vsr-lista { display: flex; flex-direction: column; gap: 0.625rem; }
+
+  /* ---- El talón: lo que anotó caja, con su perforación ---- */
+  .vsr-talon {
+    position: relative;
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    text-align: left;
+    background: var(--color-crema);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    transition: transform 350ms var(--ease-cayla), border-color 250ms, box-shadow 350ms var(--ease-cayla), background-color 250ms;
+    animation: vsr-sube 450ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+  .vsr-talon:hover { border-color: var(--color-taupe); }
+  .vsr-talon[aria-pressed="true"] {
+    transform: translateX(10px);
+    border-color: var(--color-tinta);
+    background: var(--color-papel);
+    box-shadow: 0 14px 28px -18px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  }
+  .vsr-mesa[data-modo="hoja"] .vsr-talon[aria-pressed="true"] { transform: none; }
+  .vsr-talon-foto { position: relative; width: 4rem; flex: none; overflow: hidden; border-radius: calc(var(--radius-xl) - 1px) 0 0 calc(var(--radius-xl) - 1px); }
+  .vsr-talon-foto > div { position: absolute; inset: 0; border-radius: 0 !important; }
+  .vsr-talon-tx { flex: 1; min-width: 0; padding: 0.6875rem 0.875rem; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .vsr-talon-tx b { font-weight: 500; font-size: 14.5px; color: var(--color-tinta); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.25; }
+  .vsr-talon-tx small { font-size: 12px; color: var(--color-taupe-profundo); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vsr-talon-tx .vsr-talon-anotado { color: var(--color-tinta); font-weight: 500; }
+  .vsr-talon-der {
+    position: relative;
+    flex: none;
+    width: 6.75rem;
+    border-left: 2px dashed var(--color-sand);
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.375rem;
+  }
+  /* La perforación: dos medias lunas del color de la tarjeta, arriba y abajo de la línea punteada. */
+  .vsr-talon-der::before,
+  .vsr-talon-der::after { content: ""; position: absolute; left: -8px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-papel); border: 1px solid var(--color-sand); }
+  .vsr-talon-der::before { top: -8px; clip-path: inset(50% 0 0 0); }
+  .vsr-talon-der::after { bottom: -8px; clip-path: inset(0 0 50% 0); }
+  .vsr-talon-precio { font-weight: 600; font-size: 14px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .vsr-nub { position: absolute; right: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--color-tinta); transform: scale(0); transition: transform 300ms var(--ease-cayla); z-index: 2; }
+  .vsr-talon[aria-pressed="true"] .vsr-nub { transform: scale(1); }
+  .vsr-mesa:not([data-modo="tres"]) .vsr-nub { display: none; }
+  /* Al guardar: cae el sello y el talón se pliega. */
+  .vsr-sello {
+    position: absolute;
+    right: 6.5rem;
+    top: 50%;
+    margin-top: -14px;
+    border: 2.5px solid var(--color-verde);
+    color: var(--color-verde);
+    border-radius: 10px;
+    padding: 3px 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    font-size: 12px;
+    text-transform: uppercase;
+    transform: rotate(-8deg);
+    background: color-mix(in srgb, var(--color-verde) 7%, var(--color-papel));
+    pointer-events: none;
+    animation: vsr-sello 500ms var(--ease-cayla) both;
+  }
+  .vsr-talon[data-saliendo] { pointer-events: none; overflow: hidden; animation: vsr-pliega 560ms 1000ms var(--ease-cayla) both; }
+  .vsr-vacio { padding: 2.25rem 0.5rem; text-align: center; font-size: 14px; color: var(--vsr-t65); }
+
+  /* ---- Las dos columnas de la derecha: pegadas a la ventana ---- */
+  .vsr-puente,
+  .vsr-prendas { min-width: 0; }
+  .vsr-mesa[data-modo="tres"] .vsr-puente,
+  .vsr-mesa[data-modo="tres"] .vsr-prendas { position: sticky; top: var(--vsr-top); max-height: calc(100dvh - var(--vsr-top) - 1rem); overflow-y: auto; scrollbar-width: thin; padding: 0.25rem; margin: -0.25rem; }
+  .vsr-mesa[data-modo="tres"] .vsr-puente { z-index: 1; }
+  .vsr-mesa[data-modo="tres"] .vsr-prendas { z-index: 3; }
+  .vsr-prendas { display: flex; flex-direction: column; gap: 0.875rem; }
+  .vsr-prendas-cab { display: flex; flex-direction: column; gap: 2px; }
+  .vsr-prendas-cab p { font-size: 12.5px; color: var(--vsr-t65); }
+  .vsr-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.75rem; }
+
+  /* ---- La tarjeta de una prenda ---- */
+  .vsr-ct {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    text-align: left;
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    padding: 0.5rem 0.5rem 0.6875rem;
+    transition: border-color 250ms, transform 350ms var(--ease-cayla), box-shadow 350ms var(--ease-cayla);
+    animation: vsr-sube 500ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  .vsr-ct:hover { border-color: var(--color-taupe); transform: translateY(-3px); }
+  .vsr-ct[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta), 0 16px 26px -20px color-mix(in srgb, var(--color-sombra) 55%, transparent); transform: translateY(-3px); }
+  .vsr-ct[data-sin-unidades] .vsr-ct-foto { opacity: 0.6; }
+  .vsr-ct-foto { position: relative; width: 100%; aspect-ratio: 1.75; overflow: hidden; border-radius: var(--radius-md); }
+  .vsr-ct-foto > div { position: absolute; inset: 0; }
+  .vsr-ct b { font-weight: 600; font-size: 14px; padding: 0 3px; color: var(--color-tinta); line-height: 1.25; }
+  .vsr-ct small { padding: 0 3px; font-size: 12px; color: var(--color-taupe-profundo); }
+  .vsr-ct-pr { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0 3px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .vsr-ct-pr b { padding: 0; }
+  .vsr-ct-pr span { color: var(--vsr-t65); font-size: 12px; text-align: right; }
+  .vsr-veredicto { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0 3px; font-size: 12px; font-weight: 600; color: var(--color-verde); }
+  .vsr-veredicto > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+  .vsr-veredicto[data-tono="casi"] { color: var(--color-ambar); }
+  .vsr-veredicto[data-tono="otra"] { color: var(--vsr-t65); }
+  /* «¿Por qué?»: lo difícil bajo un toque (ley 6). */
+  .vsr-pq { display: inline-flex; align-items: center; min-height: 24px; padding: 0 2px; font-size: 12px; color: var(--color-taupe-profundo); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+  .vsr-pq:hover { color: var(--color-tinta); }
+  .vsr-pq[aria-expanded="true"] { color: var(--color-tinta); text-decoration-style: solid; }
+  .vsr-pq-nota { flex-basis: 100%; width: 100%; background: var(--color-hueso); border-radius: var(--radius-md); padding: 0.5625rem 0.75rem; font-size: 12.5px; line-height: 1.45; color: var(--color-tinta); animation: vsr-sube 300ms var(--ease-cayla) backwards; }
+  .vsr-pq-nota b { font-weight: 600; }
+  .vsr-pq-nota p + p { margin-top: 0.375rem; }
+  .vsr-sug { position: absolute; left: 6px; top: 6px; z-index: 2; background: var(--color-verde); color: var(--color-crema); font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; animation: vsr-crece 450ms 300ms var(--ease-cayla) backwards; }
+  .vsr-dif { position: absolute; right: 6px; bottom: 6px; z-index: 2; background: var(--color-tinta); color: var(--color-crema); font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+
+  /* ---- El buscador debajo de las sugerencias ---- */
+  .vsr-busca { display: flex; flex-direction: column; gap: 0.625rem; padding-top: 1rem; border-top: 1px solid var(--color-sand); }
+  .vsr-busca p { font-size: 12.5px; color: var(--vsr-t65); }
+  .vsr-res-n { font-size: 12.5px; color: var(--vsr-t65); margin-bottom: 0.5rem; }
+  .vsr-res-0 { display: flex; flex-direction: column; gap: 2px; background: var(--color-hueso); border-radius: var(--radius-lg); padding: 0.875rem 1rem; font-size: 13px; color: var(--vsr-t65); animation: vsr-sube 400ms var(--ease-cayla) backwards; }
+  .vsr-res-0 b { font-weight: 600; color: var(--color-tinta); }
+
+  /* ---- El puente ---- */
+  .vsr-pu { display: flex; flex-direction: column; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl, 1.25rem); padding: 0.875rem; position: relative; animation: vsr-sube 500ms var(--ease-cayla) backwards; }
+  .vsr-pu-t { margin: 2px 2px 0.625rem; }
+  .vsr-sl { position: relative; display: flex; gap: 0.75rem; align-items: center; border: 1px solid var(--color-sand); border-radius: var(--radius-xl); padding: 0.4375rem; background: var(--color-crema); transition: border-color 300ms, background-color 300ms, transform 700ms var(--ease-cayla), opacity 600ms var(--ease-cayla); }
+  .vsr-sl-foto { position: relative; width: 3.25rem; height: 3.25rem; flex: none; overflow: hidden; border-radius: var(--radius-lg); }
+  .vsr-sl-foto > div { position: absolute; inset: 0; }
+  .vsr-sl-tx { min-width: 0; flex: 1; }
+  .vsr-sl-tx b { display: block; font-weight: 600; font-size: 14px; line-height: 1.25; color: var(--color-tinta); }
+  .vsr-sl-tx small { display: block; color: var(--color-taupe-profundo); font-size: 12px; }
+  .vsr-sl-tx .vsr-sl-anotado { color: var(--color-tinta); font-weight: 500; }
+  .vsr-sl-tx .vsr-sl-pr { font-weight: 600; font-size: 13px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .vsr-sl-etq { position: absolute; left: 12px; top: -7px; font-size: 12px; font-weight: 600; background: var(--color-papel); padding: 0 6px; color: var(--vsr-t65); line-height: 1; }
+  .vsr-sl-venta { border-color: var(--color-tinta); background: var(--color-papel); box-shadow: 0 12px 22px -18px color-mix(in srgb, var(--color-sombra) 50%, transparent); }
+  .vsr-sl-prenda { border-style: dashed; min-height: 4rem; color: var(--vsr-t65); }
+  .vsr-sl-prenda[data-llena] { border-style: solid; border-color: var(--color-tinta); background: var(--color-papel); color: inherit; animation: vsr-crece 500ms var(--ease-cayla) backwards; }
+  .vsr-sl-vacio { flex: 1; text-align: center; font-size: 12.5px; line-height: 1.35; }
+  .vsr-mesa[data-modo="dos"] .vsr-sl-prenda { min-height: 0; padding: 0.375rem 0.5625rem; }
+  /* La cuerda del medio. */
+  .vsr-cuerda { position: relative; display: grid; justify-items: center; align-content: center; min-height: 3rem; padding: 3px 0; }
+  .vsr-cuerda::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: repeating-linear-gradient(var(--color-taupe) 0 4px, transparent 4px 9px); opacity: 0.55; }
+  .vsr-cuerda[data-lista]::before { background: var(--color-tinta); opacity: 1; transform-origin: top; animation: vsr-cuerda 600ms var(--ease-cayla) backwards; }
+  .vsr-visitos { position: relative; display: flex; gap: 6px; background: var(--color-papel); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--color-sand); }
+  .vsr-visito { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--vsr-t65); animation: vsr-sube 450ms var(--ease-cayla) backwards; animation-delay: calc(450ms + var(--i) * 200ms); }
+  .vsr-visito > i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--color-verde); color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--color-papel)); font-size: 12px; }
+  .vsr-visito[data-no] > i { border-color: var(--color-ambar); color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 9%, var(--color-papel)); font-weight: 700; }
+  /* Cuando un visito dice «≠»: contra qué (lo que anotó caja y lo que es la prenda). */
+  .vsr-difs { list-style: none; margin: 0.25rem 0 0; padding: 0; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; background: var(--color-papel); border-radius: var(--radius-md); padding: 0.25rem 0.5rem; font-size: 12px; color: var(--color-ambar); text-align: center; animation: vsr-sube 450ms 700ms var(--ease-cayla) backwards; }
+  .vsr-sin-visitos { position: relative; background: var(--color-papel); padding: 4px 10px; font-size: 12px; color: var(--vsr-t65); }
+  .vsr-pu[data-hecho] .vsr-cuerda::before { opacity: 0.25; }
+  /* Al guardar, las dos mitades se juntan: la prenda sube hasta la venta y se funde con ella. */
+  .vsr-pu[data-hecho] .vsr-sl-prenda { transform: translateY(calc(-100% - 4.25rem)) scale(0.94); opacity: 0; }
+  .vsr-pu[data-hecho] .vsr-sl-venta { border-color: var(--color-verde); }
+  .vsr-pu-extra { display: flex; flex-direction: column; gap: 0.625rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-sand); animation: vsr-sube 500ms var(--ease-cayla) backwards; }
+  .vsr-pu .vsr-sello { right: auto; left: 50%; top: 6.5rem; margin: 0 0 0 -62px; z-index: 6; }
+
+  /* El botón de guardar siempre a la vista: si el puente no cabe en la ventana y se desplaza, el pie se queda pegado abajo. */
+  .vsr-pu-fin { scroll-margin-bottom: 3rem; position: sticky; bottom: 0; z-index: 4; display: flex; flex-direction: column; gap: 0.25rem; background: var(--color-papel); padding: 0.5rem 0 0; margin-bottom: -0.5rem; }
+
+  /* La balanza de precio: dos marcas (oficial y cobrado) y el tramo entre ellas. */
+  .vsr-bal { display: flex; flex-direction: column; gap: 0.5rem; }
+  .vsr-bal-t { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+  .vsr-bal-t b { font-weight: 600; color: var(--color-tinta); }
+  .vsr-bal-t span { color: var(--vsr-t65); font-size: 12px; }
+  .vsr-regla { position: relative; height: 3.25rem; --vsr-c: var(--color-verde); }
+  .vsr-regla[data-tipo="descuento"] { --vsr-c: var(--color-ambar); }
+  .vsr-regla[data-tipo="sobreprecio"] { --vsr-c: var(--color-pizarra); }
+  .vsr-regla-eje { position: absolute; left: 0; right: 0; top: 19px; height: 4px; border-radius: 2px; background: var(--color-sand); }
+  .vsr-regla-tramo { position: absolute; top: 17px; height: 8px; border-radius: 4px; background: var(--vsr-c); transform-origin: left; animation: vsr-escala 800ms 200ms var(--ease-cayla) backwards; }
+  .vsr-regla-punto { position: absolute; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: var(--vsr-c); border: 2px solid var(--color-papel); transform: translateX(-50%); animation: vsr-crece 500ms 600ms var(--ease-cayla) backwards; }
+  .vsr-regla-of { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--vsr-t65); white-space: nowrap; text-align: center; font-variant-numeric: tabular-nums; }
+  .vsr-regla-of[data-alin="ini"], .vsr-regla-co[data-alin="ini"] { transform: translateX(-12px); }
+  .vsr-regla-of[data-alin="fin"], .vsr-regla-co[data-alin="fin"] { transform: translateX(calc(-100% + 12px)); }
+  .vsr-regla-of::after { content: ""; display: block; width: 2px; height: 14px; background: var(--color-tinta); margin: 2px auto 0; }
+  .vsr-regla-co { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--color-tinta); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* «Cómo estaba», dos opciones en tarjeta (la guía de foco las enciende: alta-guia.css). */
+  .vsr-formas { display: grid; gap: 0.5rem; }
+  .vsr-forma { display: flex; gap: 0.625rem; align-items: flex-start; text-align: left; border: 1px solid var(--color-sand); border-radius: var(--radius-lg); padding: 0.5625rem 0.6875rem; background: var(--color-crema); transition: border-color 250ms, background-color 250ms, box-shadow 250ms; }
+  .vsr-forma:hover { border-color: var(--color-taupe); }
+  .vsr-forma svg { margin-top: 2px; width: 18px; height: 18px; color: var(--color-taupe-profundo); flex: none; }
+  .vsr-forma b { display: block; font-weight: 600; font-size: 13.5px; color: var(--color-tinta); }
+  .vsr-forma small { display: block; color: var(--vsr-t65); font-size: 12px; line-height: 1.35; margin-top: 1px; }
+  .vsr-forma[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-papel); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .vsr-forma[aria-pressed="true"] svg { color: var(--color-tinta); }
+  .vsr-cons { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.625rem; font-size: 12.5px; color: var(--vsr-t65); background: var(--color-hueso); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; animation: vsr-aparece 400ms var(--ease-cayla) backwards; }
+  .vsr-cons b { color: var(--color-tinta); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .vsr-aviso-stock { font-size: 12px; color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 8%, var(--color-papel)); border-radius: var(--radius-md); padding: 0.4375rem 0.6875rem; }
+
+  /* ---- Cuando no hay nada elegido o no queda nada por hacer ---- */
+  .vsr-resumen { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl, 1.25rem); padding: 1.125rem; display: flex; flex-direction: column; gap: 0.75rem; animation: vsr-sube 500ms var(--ease-cayla) backwards; }
+  .vsr-resumen-foto { position: relative; width: 100%; max-width: 15rem; aspect-ratio: 1; overflow: hidden; border-radius: var(--radius-xl); }
+  .vsr-resumen-foto > div { position: absolute; inset: 0; }
+  .vsr-celebra { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding: 2.5rem 1rem; color: var(--vsr-t65); }
+  .vsr-celebra-ic { width: 5.25rem; height: 5.25rem; border-radius: 50%; background: color-mix(in srgb, var(--color-verde) 10%, var(--color-papel)); border: 2px solid var(--color-verde); color: var(--color-verde); display: grid; place-items: center; animation: vsr-crece 600ms var(--ease-cayla) backwards; }
+  .vsr-celebra-ic svg { width: 2.25rem; height: 2.25rem; }
+  .vsr-celebra-ic path { stroke-dasharray: 26; stroke-dashoffset: 26; animation: vsr-dibuja-visto 450ms 100ms var(--ease-cayla) forwards; }
+
+  /* En la hoja del celular el puente va al pie, con su botón siempre a la vista. */
+  .vsr-hoja { display: flex; flex-direction: column; gap: 1rem; }
+  .vsr-hoja .vsr-pu { animation: none; }
+  .vsr-hoja .vsr-prendas { gap: 0.75rem; }
+}
+
+@keyframes vsr-sube { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes vsr-crece { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes vsr-aparece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vsr-dibuja { to { stroke-dashoffset: 0; } }
+@keyframes vsr-dibuja-visto { to { stroke-dashoffset: 0; } }
+@keyframes vsr-luz { to { stroke-dasharray: 1 0; } }
+@keyframes vsr-escala { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes vsr-cuerda { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes vsr-late { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 45%, transparent); } 60% { box-shadow: 0 0 0 6px transparent; } }
+@keyframes vsr-sello { 0% { opacity: 0; transform: rotate(-8deg) scale(1.6); } 55% { opacity: 1; transform: rotate(-8deg) scale(0.96); } 100% { opacity: 1; transform: rotate(-8deg) scale(1); } }
+@keyframes vsr-pliega { 0% { opacity: 1; transform: none; max-height: 8rem; margin-bottom: 0; } 60% { opacity: 0; transform: translateX(34px); max-height: 8rem; margin-bottom: 0; } 100% { opacity: 0; transform: translateX(34px); max-height: 0; margin-bottom: -0.625rem; border-width: 0; padding-block: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vsr *,
+  .vsr *::before,
+  .vsr *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; }
+}
