@@ -41,6 +41,22 @@ sede, sin acceso, 404), que es la única acción de su tarjeta y va con los boto
 Atrás» de Nuevo producto, «← Ticket»), el «Volver» que desiste de una confirmación (`accion.cancelar`) y la página o el mes anterior
 (`accion.anterior`).
 
+## Ronda 3 (2026-10-07): el «Atrás» de un paso también es la flecha
+
+En el censo del mostrador aparecieron dos caras del «Atrás» de un paso a paso (el «VOLVER» de la hoja de cobro y el «ATRÁS» de Cambios y
+Devoluciones). Felipe no eligió ninguna de las propuestas: **«volver solo es una flecha», la de `<Volver>`**. Pasaron a `<Volver onClick a>`
+(o `href`) todos los retrocesos de un paso: la hoja de cobro y el «← Ticket» de Vender, Cambios y Devoluciones (también «← Otra venta», el
+paso 1, y «Volver a la actividad» al terminar), Nuevo producto, el cierre de caja, la talla de Existencias, Confirmar cambios del producto, el
+resumen al recibir, el conteo («Volver a revisar»), el reverso de los pases de Traslados («← Volver», que conserva su `data-foco-reverso` con
+la prop nueva `datos`) y las dos vueltas a mano de la página de un pase. Lo que dice adónde va está en su `aria-label` y su `title`.
+
+**No son un paso atrás** y se quedan: el «Volver» de una confirmación («¿Seguro? [Volver] [Sí]», hace de Cancelar), «Volver a intentar»,
+«Volver a lo predeterminado», «Volver al inicio» de una pantalla de error, «← Anterior / Volver al inicio» de una paginación, el enlace
+«Volver al período» dentro de una frase, y «Volver a contar» de Revisar conteo, que es la acción principal de esa pantalla (excepción
+registrada). Las firmas nuevas vigilan el «Atrás» suelto, la flecha dibujada con texto y el «Volver a …» de un botón.
+
+Verificado a 1440 y a 375 px (Vender ▸ cobro, Cambios): con el dedo la flecha responde en 44 px.
+
 ## Preguntas resueltas (Felipe, 2026-10-07)
 
 1. **La cuenta que no ve la pantalla de arriba.** No había nada que decidir: Bajar prendas al piso y Por regularizar están detrás del módulo

@@ -25,11 +25,17 @@ se deciden con la pasada de la cuenta `terminal-ventas`.
 Es la que ya tenían la mitad de las cabeceras y los formularios, y es la única con movimiento propio. Se pierde la letra normal de `btn-cayla`
 en esos botones; la jerarquía completa de botones (Cancelar, Guardar en las hojas…) es otra ronda (`boton`).
 
-## El movimiento de la pieza (Felipe 2026-10-07: conservarlo y unificarlo)
+## El movimiento de la pieza (ronda 3, Felipe 2026-10-07, eligiéndolo con botones vivos: la D, más la animación del «+»)
 
-- **Al pasar el mouse:** cruza un barrido de luz (`cayla-brillo`, 650 ms, una vez) y el primario pasa a rojo profundo; la pareja (fantasma)
-  pasa el borde y la letra a rojo.
-- **Al presionar:** se encoge un 3 % (`active:scale-[0.97]`); deshabilitado, no.
+Es el ÚNICO movimiento de un botón en el ERP: `.mov-boton` (`app/globals.css`). Antes había tres: el barrido de `<Boton>`, el «se levanta
+1 px con sombra» de la barra de vidrio de Comprobantes (`BotonCompacto`) y el «se levanta, barrido lento de 800 ms y la flecha avanza» de los
+pasos de Cambios y Devoluciones (`FlujoGuiado`, clase `boton-brillo`, que ya no existe). Felipe eligió la D tocándola y le pidió al «+» la
+animación que la C tenía en la flecha.
+
+- **Al pasar el mouse:** sube 2 px con su sombra, cruza una luz (`cayla-brillo`, 650 ms, una vez) y el primario pasa a rojo profundo (la pareja,
+  borde y letra a rojo). El «+» da un cuarto de vuelta (el «+ » del texto se dibuja como ícono, `conMas` en `campos.tsx`) y la flecha que va
+  adelante se adelanta 4 px.
+- **Al presionar:** se encoge un 3 % y baja; deshabilitado, no.
 - **Mientras guarda** (`cargando`): un hilo corre por el borde de abajo y el botón no se puede volver a tocar.
 - **Con el teclado:** el anillo único del ERP (ADR-0351).
 - Todo se apaga con `prefers-reduced-motion`.
@@ -37,6 +43,11 @@ en esos botones; la jerarquía completa de botones (Cancelar, Guardar en las hoj
 Lo que se ganó al migrar: los botones B copiados a mano (Compras, Producción, Proveedores, Notas de crédito, Familias) solo cambiaban de color
 y su hover era el rojo de marca; ahora tienen el barrido, el encogerse y el hover de la guía (rojo profundo). Los de `btn-cayla` pasan de 150 ms
 de color a todo el movimiento.
+
+Lo usan `<Boton>`, `<BotonEnlace>`, `<BotonAncla>`, `BotonCompacto` (Comprobantes: conserva su cara de 13 px, toma el movimiento),
+`FlujoGuiado` (Cambios y Devoluciones) y los botones que tenían el barrido viejo (Notas de crédito, Compras agrupadas, el buscador de
+ventas). Verificado pasando el mouse en Gastos, Proformas y Cambios: corren el barrido, la subida y la sombra; el «+» gira 90° y la flecha
+avanza 4 px. La firma `boton-brillo` impide que vuelva el barrido viejo.
 
 ## Lo que queda distinto a propósito
 

@@ -495,10 +495,11 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 
 | Familia | La pieza | Decidido |
 |---|---|---|
-| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. Nunca un «←» ni una línea a mano | 2026-10-06 |
+| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. **También el «Atrás» de un paso a paso** («volver solo es una flecha», Felipe 2026-10-07). Nunca un «←», un «Atrás» ni un «Volver a …» escrito a mano | 2026-10-06 · 2026-10-07 |
 | Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` (el vidrio con la píldora oscura, en mayúsculas) si cambia de sección —también Finanzas—; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (la caja arena de «GRILLA / TABLA») si muestra lo mismo de otra forma. Nunca un `role="tab"` ni una pista a mano | 2026-10-06 |
 | Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`), la de Compras tal cual: con `href` lleva su flecha, la que filtra se rellena de arena, `valor={null}` + motivo si no hay dato. Nunca una tarjeta de número a mano | 2026-10-06 |
-| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton peso="primario">` para la acción y `peso="fantasma"` para su pareja; si navega, `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px, 40 px, con su movimiento (barrido de luz, se encoge al presionar, hilo al guardar). Nunca `btn-cayla` ni la versalita copiada a mano para una acción principal. Vender espera su pasada | 2026-10-07 |
+| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton peso="primario">` para la acción y `peso="fantasma"` para su pareja; si navega, `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px, 40 px. Nunca `btn-cayla` ni la versalita copiada a mano para una acción principal | 2026-10-07 |
+| Movimiento de un botón | `.mov-boton` (`app/globals.css`), el único: sube 2 px con sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha que va adelante avanza 4 px, se encoge al presionar. Ya lo traen `<Boton>`, `BotonCompacto` y `FlujoGuiado`; un botón dibujado a mano lo suma con esa clase, nunca con otra animación | 2026-10-07 |
 | Insignias de estado (`estado`) | `<Chip>` (`components/ui/Chip.tsx`). A propósito: los chips con ícono de Análisis y «Líder de equipo» en negro en Colaboradores | 2026-10-07 |
 
 ## Caos: usar mal el sistema a propósito (regla — ADR-0356, Felipe 2026-10-06)

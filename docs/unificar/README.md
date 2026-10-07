@@ -12,10 +12,10 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Familia | La pieza | Decidido | Deuda (archivos por migrar) | Registro |
 |---|---|---|---:|---|
-| Botón «Volver» (`accion.volver`) | `<Volver>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector | 2026-10-06 (mirando) | 0 | [accion.volver.md](accion.volver.md) |
+| Botón «Volver» (`accion.volver`) | `<Volver>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector. **También el «Atrás» de un paso a paso** (ronda 3) | 2026-10-06 (mirando) · 2026-10-07 | 0 | [accion.volver.md](accion.volver.md) |
 | Pestañas y segmentos (`pestanas`) | `<Pestanas>` (vidrio con píldora oscura, en mayúsculas; también Finanzas) si cambia de sección · `pildora-cayla` si filtra o elige período · `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (caja arena) si cambia el modo u orden | 2026-10-06 (mirando) | 0 | [pestanas.md](pestanas.md) |
 | Tarjetas de cifra (`cifra`) | `<TarjetaCifra>`: la de Compras tal cual (flecha si lleva, arena si filtra, punteada sin dato) | 2026-10-06 (mirando) | 0 | [cifra.md](cifra.md) |
-| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton>` / `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px y 40 px; `primario` la acción, `fantasma` su pareja. Movimiento: barrido de luz, se encoge al presionar, hilo al guardar | 2026-10-07 (mirando) | 0 | [accion.nuevo.md](accion.nuevo.md) |
+| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton>` / `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px y 40 px; `primario` la acción, `fantasma` su pareja. Movimiento ÚNICO de todo botón (`.mov-boton`, ronda 3): sube con sombra, barrido de luz, el «+» gira y la flecha avanza, se encoge al presionar, hilo al guardar | 2026-10-07 (mirando y tocando) | 0 | [accion.nuevo.md](accion.nuevo.md) |
 | Insignias de estado (`estado`) | `<Chip>`, como ya era. Se quedan a propósito: los chips con ícono de Análisis y el rol «Líder de equipo» en negro | 2026-10-07 (mirando) | sin candado | [estado.md](estado.md) |
 
 ## Propuestas esperando decisión
@@ -62,6 +62,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | Fecha | Rama | Vistas medidas | Familias con más de una forma | Lo que más confunde |
 |---|---|---:|---:|---|
 | 2026-10-06 | `claude/unificar-componentes-skill-7e9d26` @ `c215dd2f`, cuenta Admin, foco Inventario | 101 de 109 | 30 | 25 formas de pestañas en 54 pantallas; 6 de «Volver»; solo 123 de 591 botones usan `btn-cayla` (detalle: ADR-0358) |
+| 2026-10-07 | `claude/unificar-pendiente-7f0794` @ `83aea687`, cuenta `terminal-ventas` (el mostrador), con escenarios | 60 de 122 (las demás: sin acceso) | 26 | tres movimientos de botón principal; dos caras del «Atrás» de un paso; las tallas de Vender salían como «Nuevo» (motor corregido) |
 | 2026-10-07 | `claude/unificar-pendiente-7f0794` @ `0807770f`, cuenta Admin, todo el ERP con escenarios | 240 de 247 | 33 | 180 estilos de botón en 219 pantallas; el botón «Nuevo / Registrar» con 2 caras reales (`btn-cayla` y versalitas). Falta la pasada de `terminal-ventas` |
 
 ## Cómo se agrega una fila
