@@ -178,7 +178,7 @@ export function FotosPorColor({
                 etiquetaAccesible={`Pasar la foto de ${nombreColor(f.colorCodigo)} a otro color`}
                 deshabilitado={bloqueado}
               />
-              <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(fotos, f.clientKey))} className="btn-cayla btn-enlace text-[12.5px] text-rojo-profundo">
+              <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(fotos, f.clientKey))} className="btn-cayla btn-peligro text-[12.5px]">
                 Quitar
               </button>
             </div>
@@ -358,7 +358,7 @@ function HojaDeFotos({
                           Principal
                         </button>
                       )}
-                      <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(todas, f.clientKey))} className="btn-cayla btn-sutil btn-chico text-rojo-profundo">
+                      <button type="button" disabled={bloqueado} onClick={() => onFotos(sinLaFoto(todas, f.clientKey))} className="btn-cayla btn-peligro btn-chico">
                         Quitar
                       </button>
                     </div>

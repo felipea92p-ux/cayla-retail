@@ -63,7 +63,7 @@ export function ModalRuta({
               <button
                 type="button"
                 onClick={pedirCierre}
-                className="label-cayla ml-auto rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+                className="btn-cayla btn-secundario ml-auto"
               >
                 Cerrar
               </button>

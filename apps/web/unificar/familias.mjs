@@ -386,6 +386,67 @@ export const DECISIONES = {
       { "archivo": "components/analisis/TodaviaNo.tsx", "motivo": "El «Registrar N» chico dentro del anillo de Análisis v4 tiene su propio diseño y movimiento (ADR-0357); Felipe dice si se unifica" }
     ]
   },
+  "boton": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/boton.md",
+    "elegida": "B · dos voces a propósito (versalitas en la cabecera de una pantalla, letra normal en hojas y tarjetas), con la onda al clic; elegida mirando el 2026-10-07",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["components/ui/OndaBotones.tsx", "app/globals.css"],
+    "firmas": [
+      // La versalita copiada a mano (label-cayla + esquinas + fondo tinta o borde): no toma la voz del lugar ni la onda.
+      "\\blabel-cayla\\b[^\"'`]*\\brounded-(?:md|lg|xl)\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/\\d+)\\b|\\blabel-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/\\d+)\\b[^\"'`]*\\brounded-(?:md|lg|xl)\\b"
+    ],
+    // El mostrador va en su propia pasada, con prueba a 375 px (PL-105): botones compactos de 28–32 px y de cobro de 48–56 px.
+    "deuda": [
+      "components/BuscadorVentas.tsx",
+      "components/PuntoDeVenta.tsx",
+      "components/PuntoDeVentaCatalogo.tsx",
+      "components/PuntoDeVentaColaOffline.tsx",
+      "components/PuntoDeVentaTicket.tsx",
+      "components/apartados/ApartarVista.tsx",
+      "components/apartados/EntregarVista.tsx",
+      "components/apartados/TodosVista.tsx",
+      "components/punto-de-venta/AnotarNoHabia.tsx",
+      "components/punto-de-venta/ClientaDelTicket.tsx",
+      "components/punto-de-venta/Esperas.tsx",
+      "components/punto-de-venta/PedidosParaClientes.tsx",
+      "components/punto-de-venta/PedirEnOtraTienda.tsx",
+      "components/punto-de-venta/ResumenDeHoy.tsx",
+    ],
+    "excepciones": [
+      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "Es el selector de mes de la barra de vidrio de Comprobantes (ADR-0124): un filtro de período, familia de pestañas, no un botón" }
+    ]
+  },
+  "accion.eliminar": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/boton.md",
+    "elegida": "A · rojo desde el principio (btn-peligro, <Boton peso=\"peligro\">, fila-alerta en la barra de vidrio), elegida mirando el 2026-10-07",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["app/globals.css"],
+    "firmas": [
+      // Un enlace o un botón sutil teñido de rojo a mano para borrar o anular: va btn-peligro.
+      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo"
+    ],
+    "deuda": []
+  },
+  "accion.cerrar": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/boton.md",
+    "elegida": "A · la × sola, arriba a la derecha (<Modal conCerrar>, ModalRuta por defecto), elegida mirando el 2026-10-07",
+    "pieza": "components/ui/Modal.tsx",
+    "tambien": ["components/ui/ModalRuta.tsx"],
+    "firmas": [
+      // Un botón «Cerrar» escrito al pie de una hoja.
+      "^\\s*Cerrar\\s*$"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/CajaTablero.tsx", "motivo": "Es «Cerrar caja» (con su candado), una operación del negocio, no cerrar una hoja" }
+    ]
+  },
   "pestanas": {
     "fecha": "2026-10-06",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
