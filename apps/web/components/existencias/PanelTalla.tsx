@@ -13,11 +13,12 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
-import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, origenesDeTalla, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoInsignia } from "@/lib/existencias-panel-talla";
+import { accionesDeTalla, origenesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
 import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { celdaTarjeta } from "@/lib/existencias-tarjeta-compacta";
+import { insigniaDeTalla } from "@/lib/existencias-panel-talla";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
@@ -58,7 +59,7 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
 
 
 /** La insignia junto al número grande (`insigniaDeTalla`): rojo = se acabó, ámbar = falta colgar, pizarra = informativo, verde = bien. */
-const TONO_INSIGNIA_TALLA: Record<TonoInsignia, string> = {
+const TONO_INSIGNIA_TALLA: Record<TonoQueToca | "rojo", string> = {
   rojo: "bg-rojo/[0.11] text-rojo-profundo",
   ambar: "bg-ambar/[0.13] text-ambar-profundo",
   pizarra: "bg-pizarra/[0.12] text-pizarra",
