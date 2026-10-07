@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ventas sin registrar · A · Emparejar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* A · EMPAREJAR — la venta de caja es un TALÓN con perforación; la prenda real, una fila del catálogo; entre las dos, un HILO que se dibuja.
+   Idea: «unir» es un gesto que cualquiera entiende sin manual (ley 1, ADR-0350). Todo en una mesa, sin modales para lo común. */
+
+/* Cifras */
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:26px 0 18px}
+.cif{position:relative;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:16px 18px 14px;overflow:hidden;transition:border-color .25s var(--ease),transform .3s var(--ease)}
+.cif:hover{border-color:var(--taupe);transform:translateY(-2px)}
+.cif .lbl{display:flex;align-items:center;gap:8px}
+.cif .lbl:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pt,var(--t35))}
+.cif .v{font-family:var(--serif);font-size:38px;line-height:1.1;margin:6px 0 2px}
+.cif p{font-size:12.5px;color:var(--t65)}
+.cif.amb{--pt:var(--ambar)}.cif.roj{--pt:var(--rojo)}
+.cif .barra{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--pt,var(--sand));transform-origin:left;transform:scaleX(var(--k,0));transition:transform 1s .3s var(--ease);opacity:.55}
+
+/* Anillo de avance en la cabecera */
+.anillo{display:flex;align-items:center;gap:14px}
+.anillo svg{width:84px;height:84px;transform:rotate(-90deg)}
+.anillo .pista{fill:none;stroke:var(--sand);stroke-width:7}
+.anillo .arco{fill:none;stroke:var(--verde);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1s var(--ease)}
+.anillo .c{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);font-size:26px;line-height:1}
+.anillo .c small{display:block;font-family:'DM Sans';font-size:10px;letter-spacing:.12em;color:var(--t65);text-transform:uppercase;text-align:center;margin-top:2px}
+.anillo .tx{font-size:12.5px;color:var(--t65);max-width:150px}
+.anillo .tx b{display:block;color:var(--tinta);font-size:14px}
+
+/* Herramientas */
+.mesa-t{overflow:hidden}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:16px 20px 12px}
+.tools .campo{flex:1 1 260px}
+.tools2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 20px 16px;border-bottom:1px solid var(--sand)}
+.tools2 .sp{flex:1}
+.btn svg{width:15px;height:15px}
+.btn.magia{background:color-mix(in srgb,var(--pizarra) 8%,var(--papel));border-color:color-mix(in srgb,var(--pizarra) 35%,var(--sand));color:var(--tinta)}
+.btn.magia svg{color:var(--pizarra)}
+.pl{font-size:12px;color:var(--taupe);padding:8px 20px 0}
+
+/* Mesa */
+.mesa{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 84px minmax(0,1.05fr);height:clamp(540px,calc(100dvh - 190px),720px)}
+.col{min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--sand) transparent;padding:16px 0 20px}
+.col-t{padding-left:20px}
+.col-e{padding-right:20px;display:flex;flex-direction:column;gap:14px}
+.hilos{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5}
+.hilos path{fill:none;stroke-linecap:round}
+.h-prev{stroke:var(--t35);stroke-width:1.6;stroke-dasharray:3 6}
+.h-sel{stroke:var(--tinta);stroke-width:2.2}
+.hilos circle{fill:var(--tinta)}
+.hilos .luz{stroke:var(--verde);stroke-width:4;opacity:.9}
+
+/* Talón (la venta tal como la anotó caja) */
+.talon{position:relative;display:flex;width:100%;align-items:stretch;background:var(--crema);border:1px solid var(--sand);border-radius:14px;margin-bottom:10px;transition:transform .35s var(--ease),border-color .25s,box-shadow .35s var(--ease),background .25s,opacity .5s var(--ease),height .5s var(--ease),margin .5s var(--ease)}
+.talon:hover{border-color:var(--taupe)}
+.talon[aria-pressed=true]{transform:translateX(10px);border-color:var(--tinta);background:var(--papel);box-shadow:0 14px 28px -18px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.talon .baldosa{width:64px;border-radius:13px 0 0 13px;flex:none}
+.talon .tx{flex:1;min-width:0;padding:11px 14px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.talon .tx b{font-weight:500;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.talon .tx small{font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.talon .der{position:relative;flex:none;width:118px;border-left:2px dashed var(--sand);padding:10px 12px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:6px}
+.talon .der:before,.talon .der:after{content:"";position:absolute;left:-8px;width:14px;height:14px;border-radius:50%;background:var(--papel);border:1px solid var(--sand)}
+.talon .der:before{top:-8px;clip-path:inset(50% 0 0 0)}
+.talon .der:after{bottom:-8px;clip-path:inset(0 0 50% 0)}
+.talon .pr{font-weight:600;font-size:14px}
+.talon .nub{position:absolute;right:-5px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--tinta);transform:scale(0);transition:transform .3s var(--ease);z-index:2}
+.talon[aria-pressed=true] .nub{transform:scale(1)}
+.talon.sale{opacity:0;transform:translateX(34px)}
+.talon .sello{right:92px;top:50%;margin-top:-14px;--c:var(--verde)}
+.talon.hecha .tx small{color:var(--verde)}
+.vacio{padding:36px 8px;text-align:center;color:var(--t65)}
+.vacio b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;color:var(--tinta);margin-bottom:4px}
+
+/* Elige: la prenda real */
+.el-cab{display:flex;align-items:center;gap:14px;background:var(--hueso);border-radius:14px;padding:10px 14px 10px 10px}
+.el-cab .baldosa{width:52px;height:52px;border-radius:11px;flex:none}
+.el-cab .tx{min-width:0;flex:1}
+.el-cab .tx b{display:block;font-weight:600;font-size:14.5px}
+.el-cab .tx small{color:var(--t65);font-size:12.5px}
+.el-cab .movil-volver{display:none}
+.cands{list-style:none;display:flex;flex-direction:column;gap:9px}
+.cand{position:relative;width:100%;display:flex;align-items:center;gap:14px;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:9px 14px 9px 9px;transition:border-color .25s,transform .3s var(--ease),box-shadow .3s var(--ease),background .25s;animation:sube .5s var(--ease) both;animation-delay:calc(var(--i,0)*55ms)}
+.cand:hover{border-color:var(--taupe);transform:translateX(-4px)}
+.cand[aria-pressed=true]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta),0 14px 28px -18px color-mix(in srgb,var(--sombra) 45%,transparent);transform:translateX(-8px)}
+.cand .baldosa{width:62px;height:62px;border-radius:11px;flex:none}
+.cand .tx{flex:1;min-width:0}
+.cand .tx b{display:block;font-weight:600;font-size:14.5px}
+.cand .tx small{color:var(--taupe);font-size:12.5px}
+.pips{display:flex;gap:4px;align-items:center;margin-top:5px;font-size:11px;color:var(--t65)}
+.pips i{width:16px;height:4px;border-radius:2px;background:var(--sand);transition:background .3s var(--ease)}
+.pips i.on{background:var(--verde)}
+.cand .der{text-align:right;flex:none;position:relative}
+.cand .der b{display:block;font-weight:600}
+.cand .der small{display:block;color:var(--t65);font-size:11.5px}
+.sug{position:absolute;right:14px;top:-9px;background:var(--verde);color:var(--crema-fija);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:2px 9px;border-radius:99px;animation:crece .5s .35s var(--ease) both}
+.cand .dtag{position:absolute;left:-8px;top:50%;transform:translate(-100%,-50%) scale(.9);opacity:0;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;transition:opacity .25s,transform .3s var(--ease)}
+.cand:hover .dtag,.cand[aria-pressed=true] .dtag{opacity:1;transform:translate(0,-50%)}
+.stk-menos{position:absolute;right:0;top:0;color:var(--rojo);font-weight:700;font-size:13px;animation:flota 1.3s var(--ease) both}
+@keyframes flota{0%{opacity:0;transform:translateY(8px)}25%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
+.sin-stock{opacity:.55}
+
+/* Dock: lo que sigue después de elegir */
+.dock{position:sticky;bottom:0;margin-top:auto;background:var(--papel);border:1px solid var(--tinta);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px;box-shadow:0 -14px 30px -22px color-mix(in srgb,var(--sombra) 55%,transparent);animation:sube .5s var(--ease) both}
+.bal{display:flex;flex-direction:column;gap:8px}
+.bal .t{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.bal .t b{font-weight:600}
+.pista-b{position:relative;height:34px}
+.pista-b .eje{position:absolute;left:0;right:0;top:15px;height:4px;border-radius:2px;background:var(--sand)}
+.pista-b .seg-d{position:absolute;top:13px;height:8px;border-radius:4px;background:var(--cd);transform-origin:left;animation:escala .8s .2s var(--ease) both}
+@keyframes escala{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.pista-b .mk{position:absolute;top:0;transform:translateX(-50%);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--t65);white-space:nowrap;text-align:center}
+.pista-b .mk:after{content:"";display:block;width:2px;height:20px;background:var(--tinta);margin:2px auto 0}
+.pista-b .mk.cob{top:auto;bottom:-14px}
+.pista-b .mk.cob:after{display:none}
+.pista-b .pt{position:absolute;top:10px;width:14px;height:14px;border-radius:50%;background:var(--cd);border:2px solid var(--papel);transform:translateX(-50%);animation:crece .5s .6s var(--ease) both}
+.dock .p{font-size:12.5px;color:var(--t65);margin-top:6px}
+.formas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.forma{position:relative;display:flex;gap:10px;align-items:flex-start;border:1px solid var(--sand);border-radius:12px;padding:11px 12px;background:var(--crema);transition:border-color .25s,background .25s,box-shadow .35s var(--ease)}
+.forma:hover{border-color:var(--taupe)}
+.forma svg{margin-top:2px;color:var(--taupe);width:18px;height:18px}
+.forma b{display:block;font-weight:600;font-size:13.5px}
+.forma small{display:block;color:var(--t65);font-size:12px;line-height:1.35;margin-top:1px}
+.forma[aria-pressed=true]{border-color:var(--tinta);background:var(--papel);box-shadow:0 0 0 1px var(--tinta)}
+.forma[aria-pressed=true] svg{color:var(--tinta)}
+/* Guía de foco (ADR-0284): lo que sigue se enciende con un halo suave; sin rojo, nada aquí es un error */
+.forma.sigue{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--tinta) 24%,transparent),0 0 0 6px color-mix(in srgb,var(--tinta) 5%,transparent);background:var(--papel)}
+.sigue-t{position:absolute;right:10px;top:-9px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:var(--tinta);color:var(--crema);padding:2px 8px;border-radius:99px;animation:crece .4s var(--ease) both}
+.cons{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--t80);background:var(--hueso);border-radius:10px;padding:8px 12px;animation:entra .4s var(--ease) both}
+.cons .st{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.cons .st span{min-width:22px;height:22px;border-radius:7px;background:var(--papel);display:inline-grid;place-items:center;padding:0 6px}
+.fin{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.resp{display:inline-flex;align-items:center;gap:8px;background:var(--hueso);border-radius:10px;padding:0 10px;height:40px;font-size:13px}
+.resp .av{background:var(--papel)}
+.resp select{appearance:none;border:0;background:none;outline:none;cursor:pointer;padding-right:4px}
+.fin .btn.pri{flex:1;min-width:160px}
+.fin .btn.pri[data-cargando]{pointer-events:none}
+.fin .btn .gira{width:15px;height:15px;border-radius:50%;border:2px solid color-mix(in srgb,var(--crema) 35%,transparent);border-top-color:var(--crema);animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.resumen{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;animation:sube .5s var(--ease) both}
+.resumen .baldosa{width:100%;max-width:240px;aspect-ratio:1;border-radius:16px}
+.celebra{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;height:100%;color:var(--t65)}
+.celebra .c-ic{width:84px;height:84px;border-radius:50%;background:color-mix(in srgb,var(--verde) 10%,var(--papel));border:2px solid var(--verde);color:var(--verde);display:grid;place-items:center;font-size:36px;animation:crece .6s var(--ease) both}
+.celebra b{font-family:var(--serif);font-weight:400;font-size:30px;color:var(--tinta)}
+
+/* Hoja de sugerencias (ADR-0334): casillas SIN marcar; una sola candidata no es certeza */
+.velo{position:absolute;inset:0;z-index:70;background:color-mix(in srgb,var(--sombra) 28%,transparent);backdrop-filter:blur(5px);display:grid;place-items:center;padding:20px;animation:entra .3s var(--ease) both}
+.velo.cierra{animation:sale .22s var(--ease) both}
+@keyframes sale{to{opacity:0}}
+.hoja{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:20px;padding:22px 22px 0;animation:hoja .5s var(--ease) both}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+.hoja h2{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1}
+.hoja .sub{color:var(--t65);margin:4px 0 14px}
+.hoja>.in>*{animation:sube .5s var(--ease) both;animation-delay:calc(var(--i,0)*55ms + 120ms)}
+.pares{list-style:none;display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.par{display:flex;align-items:center;gap:10px;border:1px solid var(--sand);border-radius:12px;padding:8px 12px 8px 8px;cursor:pointer;background:var(--crema);transition:border-color .2s,background .2s}
+.par:hover{border-color:var(--taupe)}
+.par.on{border-color:var(--tinta);background:var(--papel)}
+.par .baldosa{width:44px;height:44px;border-radius:9px;flex:none}
+.par .tx{min-width:0;flex:1}
+.par .tx b{display:block;font-weight:500;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.par .tx small{display:block;font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.par .fl{color:var(--t50);flex:none}
+.par .cb{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--taupe);display:grid;place-items:center;flex:none;color:var(--crema);transition:background .2s,border-color .2s}
+.par.on .cb{background:var(--tinta);border-color:var(--tinta)}
+.par .cb svg{opacity:0}.par.on .cb svg{opacity:1}
+.hoja .pie{position:sticky;bottom:0;background:var(--papel);display:flex;gap:10px;justify-content:space-between;align-items:center;padding:14px 0 18px;border-top:1px solid var(--sand);margin-top:6px;flex-wrap:wrap}
+
+/* Celular: la mesa se vuelve lista, y la prenda real sube como hoja al tocar una venta */
+@container vista (max-width:900px){
+  .cifras{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container vista (max-width:700px){
+  .mesa{display:block;position:static;height:auto}
+  .hilos{display:none}
+  .col{overflow:visible;padding:12px 0 16px}
+  .col-t{padding:0 14px}
+  .talon[aria-pressed=true]{transform:none}
+  .talon .der{width:108px;padding:8px 8px}
+  .talon .der .chip{font-size:10.5px;padding:1px 7px 1px 6px}
+  .talon .tx{padding:9px 10px}
+  .talon .tx b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+  .talon .tx small{white-space:normal}
+  .col-e{position:fixed;inset:0;z-index:60;background:var(--crema);overflow:auto;padding:14px 14px 20px;transform:translateY(102%);transition:transform .5s var(--ease)}
+  .col-e.abierto{transform:none}
+  .el-cab .movil-volver{display:grid;flex:none}
+  .el-cab .chip{display:none}
+  .el-cab .baldosa{width:44px;height:44px}
+  .cand .der small:nth-of-type(1){display:none}
+  .cand .tx small{white-space:normal}
+  .formas{grid-template-columns:1fr}
+  .cand:hover,.cand[aria-pressed=true]{transform:none}
+  .cand .dtag{display:none}
+  .anillo .tx{display:none}
+  .tools,.tools2{padding-left:14px;padding-right:14px}
+  .pl{padding-left:14px}
+  .cif .v{font-size:30px}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+(function(){
+const {$, $$, soles} = V;
+const st = {filtro:'pendiente', q:'', por:'', sel:null, prenda:null, forma:null, resp:'Pamela Burgos', total0:V.pendientes().length};
+let c; // #contenido
+
+function iniciar(primera=true){
+  st.filtro='pendiente'; st.q=''; st.por=''; st.prenda=null; st.forma=null; st.total0=V.pendientes().length;
+  c.innerHTML = `
+  <div class="cifras casc" id="cifras"></div>
+  <div class="tarjeta mesa-t sube" style="--i:4">
+    <div class="tools">
+      <label class="campo">${V.ic('buscar')}<input id="q" type="search" placeholder="Buscar prenda, color, talla, quién vendió o precio" autocomplete="off"></label>
+      <label class="combo"><select id="por"><option value="">Todas las colaboradoras</option>${V.vendedoras().map(n=>`<option>${n}</option>`).join('')}</select>${V.ic('abajo')}</label>
+    </div>
+    <div class="tools2">
+      <div class="pils" id="pils"></div><span class="sp"></span>
+      <button class="btn magia" id="b-sug">${V.ic('varita')} Identificar con sugerencias</button>
+      <button class="btn" id="b-cerrar">Cerrar la cola de arranque</button>
+    </div>
+    <p class="pl">Tienda TRU: puedes cerrar su cola de arranque hasta el 15/10 (9 días más).</p>
+    <div class="mesa" id="mesa">
+      <svg class="hilos" id="hilos"></svg>
+      <section class="col col-t" id="talones" aria-label="Lo que anotó caja"></section>
+      <div></div>
+      <section class="col col-e" id="elige" aria-label="La prenda real"></section>
+    </div>
+  </div>
+  <p class="nota sube" style="--i:6;margin-top:18px">Al regularizar, la venta pasa a la prenda real y el stock queda cuadrado. Pasados 2 días sin regularizar, se le avisa al líder. Las ya resueltas, las de este mes y el anterior.</p>`;
+  $('#q').oninput = e => { st.q = e.target.value; pintarTalones(); };
+  $('#por').onchange = e => { st.por = e.target.value; pintarTalones(); };
+  $('#b-sug').onclick = abrirSugerencias;
+  $('#b-cerrar').onclick = () => V.avisar('Eso es de un líder', 'Cerrar la cola de arranque no está en esta maqueta.');
+  $('#talones').addEventListener('scroll', redibujarHilo, {passive:true});
+  $('#elige').addEventListener('scroll', redibujarHilo, {passive:true});
+  addEventListener('resize', redibujarHilo);
+  pintarCifras(true); pintarAnillo(true); pintarPils(); pintarTalones(true);
+  const primero = lista()[0];
+  if (primero) setTimeout(() => elegir(primero.id, {auto:true}), V.reducir()?0:650);
+  else pintarElige();
+}
+
+/* ── Datos de la vista ────────────────────────────────────────────────────── */
+function lista(){
+  const q = st.q.trim().toLowerCase();
+  return V.todas().filter(v => {
+    const e = v.estado==='pendiente'?'pendiente':v.estado==='regularizada'?'regularizada':v.estado==='cerrada'?'cerrada':'otra';
+    return (st.filtro==='todas' || e===st.filtro) && (!st.por || v.por===st.por) && (!q || (v.desc+' '+v.por+' '+v.precio).toLowerCase().includes(q));
+  }).sort((a,b) => b.vendidoEn - a.vendidoEn);
+}
+const cuenta = e => V.todas().filter(v => v.estado===e).length;
+
+/* ── Cifras ───────────────────────────────────────────────────────────────── */
+function pintarCifras(inicio){
+  const k = V.cifras(), el = $('#cifras');
+  if (!el.children.length) el.innerHTML = [
+    ['amb','Por regularizar','prendas vendidas sin registrar','pend'],['roj','Vencidas','más de 2 días sin regularizar','venc'],
+    ['','Descuento no planificado','se cobró menos que el oficial · este mes','desc'],['','Sobreprecio','se cobró más que el oficial · este mes','sobre']
+  ].map(([cl,t,d,key],i)=>`<div class="cif ${cl}" style="--i:${i}"><div class="lbl">${t}</div><div class="v num" data-k="${key}">0</div><p>${d}</p><i class="barra"></i></div>`).join('');
+  $$('.cif .v').forEach(n => { const key=n.dataset.k, val=k[key]; V.cuenta(n, val, {dec:(key==='desc'||key==='sobre')?2:0, pref:(key==='desc'||key==='sobre')?'S/ ':'', delay:inicio?300:0}); });
+  const max = st.total0||1;
+  $$('.cif')[0].style.setProperty('--k', k.pend/max); $$('.cif')[1].style.setProperty('--k', k.venc/max);
+  $$('.cif')[2].style.setProperty('--k', Math.min(1,k.desc/60)); $$('.cif')[3].style.setProperty('--k', Math.min(1,k.sobre/60));
+}
+function pintarAnillo(inicio){
+  const hechas = st.total0 - V.pendientes().length, R=34, L=2*Math.PI*R;
+  $('#enc-der').innerHTML = `<div class="anillo sube" style="--i:3"><div style="position:relative"><svg viewBox="0 0 84 84"><circle class="pista" cx="42" cy="42" r="${R}"/><circle class="arco" id="arco" cx="42" cy="42" r="${R}" stroke-dasharray="${L}" stroke-dashoffset="${L}"/></svg><div class="c"><div><span id="an-n">${hechas}</span><small>de ${st.total0}</small></div></div></div><div class="tx"><b id="an-t"></b><span id="an-s"></span></div></div>`;
+  actualizarAnillo(true);
+}
+function actualizarAnillo(inicio){
+  const hechas = st.total0 - V.pendientes().length, L=2*Math.PI*34, arco=$('#arco');
+  if (!arco) return;
+  setTimeout(()=>{ arco.style.strokeDashoffset = L*(1-hechas/(st.total0||1)); }, inicio?500:0);
+  $('#an-n').textContent = hechas;
+  $('#an-t').textContent = hechas===st.total0 ? 'Todo cuadrado' : hechas ? 'Vas cuadrando el stock' : 'Nada cuadrado aún';
+  $('#an-s').textContent = hechas===st.total0 ? 'Ya no quedan ventas por identificar.' : `Faltan ${st.total0-hechas} por identificar.`;
+}
+function pintarPils(){
+  const n = {pendiente:cuenta('pendiente'), regularizada:cuenta('regularizada'), cerrada:cuenta('cerrada'), todas:V.todas().length};
+  $('#pils').innerHTML = [['pendiente','Pendientes'],['regularizada','Regularizadas'],['cerrada','Cerradas'],['todas','Todas']].map(([k,t])=>`<button class="pil" data-f="${k}" aria-pressed="${st.filtro===k}">${t} <span class="n">${n[k]}</span></button>`).join('');
+  $$('#pils .pil').forEach(b => b.onclick = () => { st.filtro=b.dataset.f; pintarPils(); pintarTalones(); const p=lista()[0]; if(p) elegir(p.id,{auto:true}); else {st.sel=null; pintarElige();} });
+}
+
+/* ── Talones ──────────────────────────────────────────────────────────────── */
+function chipDe(v){ return v.estado==='regularizada' ? '<span class="chip ok">Regularizada</span>' : v.estado==='cerrada' ? '<span class="chip cerr">Cerrada sin prenda</span>' : V.vencida(v) ? '<span class="chip venc">Vencida</span>' : '<span class="chip pend">Pendiente</span>'; }
+function pintarTalones(inicio){
+  const l = lista(), el = $('#talones');
+  el.innerHTML = l.length ? l.map((v,i)=>`
+    <button class="talon ${inicio?'sube':''}" style="--i:${Math.min(i,9)+5}" data-id="${v.id}" aria-pressed="${st.sel===v.id}">
+      ${V.baldosa(v.cat, v.hex)}
+      <span class="tx"><b>${v.desc}</b><small>${v.estado==='regularizada'||v.estado==='cerrada' ? v.prendaNombre||'' : `${v.por} · ${V.fechaCorta(v.vendidoEn)} · ${V.hora(v.vendidoEn)}`}</small></span>
+      <span class="der"><span class="pr num">${soles(v.precio)}</span>${chipDe(v)}<i class="nub"></i></span>
+    </button>`).join('')
+    : `<div class="vacio"><b>${st.q.trim() ? `Ninguna venta coincide con «${st.q.trim()}»` : st.filtro==='pendiente' ? 'Nada por regularizar' : 'Nada que mostrar'}</b>${st.filtro==='pendiente' && !st.q ? 'No hay prendas por regularizar en Tienda TRU.' : 'Prueba con otro filtro.'}</div>`;
+  $$('.talon', el).forEach(b => b.onclick = () => elegir(b.dataset.id));
+}
+
+/* ── Elegir una venta ─────────────────────────────────────────────────────── */
+function elegir(id, {auto=false}={}){
+  st.sel = id; st.prenda=null; st.forma=null;
+  $$('#talones .talon').forEach(b => b.setAttribute('aria-pressed', b.dataset.id===id));
+  pintarElige();
+  if (!auto) $('#elige').classList.add('abierto');
+  requestAnimationFrame(()=>requestAnimationFrame(redibujarHilo));
+}
+function pintarElige(){
+  const el = $('#elige'), v = V.todas().find(x=>x.id===st.sel);
+  el.classList.remove('abierto'); if(!v) { el.innerHTML = celebracion(); return; }
+  const volver = `<button class="btn movil-volver" id="b-volver" aria-label="Volver a la lista" style="padding:0;width:36px;height:36px;border-radius:50%">${V.ic('atras')}</button>`;
+  const cab = `<div class="el-cab">${volver}${V.baldosa(v.cat,v.hex)}<div class="tx"><b>${v.desc}</b><small>Cobrada a ${soles(v.precio)} · ${v.por} · ${V.hace(v.min??Math.round((V.AHORA-v.vendidoEn)/60000))}</small></div>${chipDe(v)}</div>`;
+  if (v.estado!=='pendiente') {
+    const p = V.catalogo.find(x=>x.id===v.prendaId);
+    el.innerHTML = cab + `<div class="resumen"><span class="lbl">${v.estado==='cerrada'?'Cerrada sin identificar':'Se identificó como'}</span>
+      ${p ? V.baldosa(p.cat,p.hex) : V.baldosa(v.cat,v.hex)}
+      <div><b style="font-size:16px;font-weight:600">${p ? `${p.nombre} · ${p.talla} · ${p.color}` : v.prendaNombre}</b><p style="color:var(--t65);font-size:13px;margin-top:2px">${v.estado==='cerrada' ? `Motivo: ${v.motivo||'Nadie recuerda cuál era'}. El stock no cambió.` : `${V.textoDif(v.dif ?? 0)} · ${v.forma==='llego_nueva'?'llegó nueva':'perdió la etiqueta'}`}</p></div></div>`;
+    $('#b-volver')&&($('#b-volver').onclick=()=>el.classList.remove('abierto'));
+    redibujarHilo(); return;
+  }
+  const cands = V.candidatas(v), sug = V.sugerida(v);
+  el.innerHTML = cab + `<div><span class="lbl">¿Qué prenda es?</span><p style="font-size:12.5px;color:var(--t65);margin-top:2px">Primero las que calzan con lo que anotó caja. ${sug?'La sugerida es la única que calza en todo.':'Hay más de una que calza: tú la reconoces.'}</p></div>
+    <ul class="cands">${cands.map(({p,calce},i)=>{ const d=V.dif(v,p), sinst=p.stock<=0; return `
+      <li><button class="cand ${sinst?'sin-stock':''}" data-p="${p.id}" style="--i:${i}" aria-pressed="false">
+        ${V.baldosa(p.cat,p.hex)}
+        <span class="tx"><b>${p.nombre}</b><small>${p.talla} · ${p.color} · ${p.codigo}</small><span class="pips" title="Calza en ${calce} de 3 datos">${[0,1,2].map(k=>`<i class="${k<calce?'on':''}"></i>`).join('')}<span>calza ${calce}/3</span></span></span>
+        <span class="der"><b class="num">${soles(p.precio)}</b><small>precio oficial</small><small class="stk">${p.stock} en TRU</small></span>
+        ${sug&&sug.id===p.id?'<span class="sug">Sugerida</span>':''}
+        <span class="dtag num">${d===0?'Mismo precio':d<0?'−'+soles(-d):'+'+soles(d)}</span>
+      </button></li>`; }).join('')}</ul><div id="dock-sitio"></div>`;
+  $$('.cand', el).forEach(b => {
+    b.onclick = () => { st.prenda=b.dataset.p; st.forma=null; $$('.cand',el).forEach(x=>x.setAttribute('aria-pressed', x===b)); pintarDock(); redibujarHilo(true); };
+    b.onmouseenter = () => redibujarHilo(false,b); b.onmouseleave = () => redibujarHilo();
+  });
+  $('#b-volver')&&($('#b-volver').onclick=()=>el.classList.remove('abierto'));
+}
+function celebracion(){
+  const k = V.cifras();
+  return `<div class="celebra"><div class="c-ic">${V.visto()}</div><b>Todo cuadrado</b><span>El stock de Tienda TRU ya coincide con lo que caja vendió.</span>
+    <span class="num" style="font-size:12.5px">Descuento no planificado ${soles(k.desc)} · Sobreprecio ${soles(k.sobre)}</span></div>`;
+}
+
+/* ── Dock: precio, cómo estaba, responsable, guardar ──────────────────────── */
+function pintarDock(){
+  const v = V.todas().find(x=>x.id===st.sel), p = V.catalogo.find(x=>x.id===st.prenda), host = $('#dock-sitio');
+  if (!p) { host.innerHTML=''; return; }
+  const d = V.dif(v,p), a=Math.abs(d), lo=Math.min(v.precio,p.precio)-a*1.4-6, hi=Math.max(v.precio,p.precio)+a*1.4+6;
+  const pos = x => ((x-lo)/(hi-lo)*100).toFixed(1);
+  const col = d<0 ? 'var(--ambar)' : d>0 ? 'var(--pizarra)' : 'var(--verde)';
+  const pOf = pos(p.precio), pCo = pos(v.precio);
+  host.innerHTML = `<div class="dock">
+    <div class="bal"><div class="t"><span><b>${V.textoDif(d)}</b></span><span class="num" style="color:var(--t65)">${d===0?'':(d<0?'Descuento no planificado':'Sobreprecio')}</span></div>
+      <div class="pista-b" style="--cd:${col}"><span class="eje"></span>
+        <span class="seg-d" style="left:${Math.min(pOf,pCo)}%;width:${Math.max(Math.abs(pCo-pOf),1.2)}%"></span>
+        <span class="mk num" style="left:${pOf}%">Oficial ${soles(p.precio)}</span>
+        <span class="pt" style="left:${pCo}%"></span>
+        <span class="mk cob num" style="left:${pCo}%">Cobrado ${soles(v.precio)}</span></div><div style="height:6px"></div></div>
+    <div><span class="lbl">¿Cómo estaba esta prenda en el sistema?</span>
+      <div class="formas" id="formas" style="margin-top:8px">${['ya_registrada','llego_nueva'].map(f=>`
+        <button class="forma sigue" data-f="${f}" aria-pressed="false">${V.ic(f==='ya_registrada'?'etiqueta':'caja')}<span><b>${V.FORMAS[f].corto}</b><small>${f==='ya_registrada'?'Ya estaba registrada, solo perdió la etiqueta':'Llegó nueva y no se contó en el lote'}</small></span></button>`).join('')}
+        <span class="sigue-t" id="sigue-t" style="right:auto;left:22px">Sigue aquí</span></div></div>
+    <div id="cons"></div>
+    <div class="fin">
+      <label class="resp"><i class="av">${V.ini(st.resp)}</i><select id="resp"><option>Pamela Burgos</option><option>Diana Palacios</option></select>${V.ic('abajo')}</label>
+      <button class="btn pri gde" id="b-ok" disabled title="Elige cómo estaba la prenda">Regularizar</button>
+    </div></div>`;
+  $('#resp').value = st.resp; $('#resp').onchange = e => { st.resp=e.target.value; $('.resp .av').textContent=V.ini(st.resp); };
+  $$('#formas .forma').forEach(b => b.onclick = () => {
+    st.forma = b.dataset.f;
+    $$('#formas .forma').forEach(x => { x.setAttribute('aria-pressed', x===b); x.classList.remove('sigue'); });
+    $('#sigue-t')?.remove();
+    const nuevo = b.dataset.f==='ya_registrada' ? p.stock-1 : p.stock;
+    $('#cons').innerHTML = `<div class="cons"><span class="st">Stock de esta prenda: <span>${p.stock}</span> ${V.ic('flecha')} <span>${Math.max(0,nuevo)}</span></span><span>${V.FORMAS[st.forma].c}</span></div>`;
+    $('#b-ok').disabled=false; $('#b-ok').title='';
+    $('#dock-sitio .dock').scrollIntoView({block:'nearest',behavior:'smooth'});
+  });
+  $('#b-ok').onclick = guardar;
+  $('#dock-sitio .dock').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+/* ── Guardar: el hilo se enciende, cae el sello, el talón se va, el stock baja ── */
+async function guardar(){
+  const v = V.ventas.find(x=>x.id===st.sel), p = V.catalogo.find(x=>x.id===st.prenda), forma = st.forma;
+  const btn = $('#b-ok'); btn.dataset.cargando=1; btn.innerHTML = '<i class="gira"></i> Guardando…';
+  await V.esperar(650);
+  const antes = p.stock; V.regularizar(v.id, p.id, forma);
+  const talon = $(`.talon[data-id="${v.id}"]`), fila = $(`.cand[data-p="${p.id}"]`);
+  // 1) el hilo se ilumina de punta a punta
+  const h = $('#hilos .h-sel'); if (h && !V.reducir()) { const L=h.getTotalLength(); const l2 = h.cloneNode(); l2.setAttribute('class','luz'); h.after(l2); l2.animate([{strokeDasharray:`0 ${L}`},{strokeDasharray:`${L} 0`}],{duration:520,easing:'cubic-bezier(.32,.72,.24,1)',fill:'forwards'}); }
+  // 2) el sello cae sobre el talón
+  if (talon) { const s=document.createElement('span'); s.className='sello'; s.textContent='Regularizada'; talon.appendChild(s); talon.classList.add('hecha'); }
+  // 3) el stock de la prenda baja delante de la persona
+  if (forma==='ya_registrada' && fila) { const d=fila.querySelector('.der'); const m=document.createElement('span'); m.className='stk-menos'; m.textContent='−1'; d.appendChild(m); fila.querySelector('.stk').textContent = `${p.stock} en TRU`; }
+  btn.innerHTML = V.visto()+' Listo';
+  await V.esperar(1000);
+  // 4) el talón se pliega; las cifras y el anillo se actualizan
+  if (talon) { talon.style.height = talon.offsetHeight+'px'; talon.style.overflow='hidden'; requestAnimationFrame(()=>{ talon.classList.add('sale'); talon.style.height='0px'; talon.style.marginBottom='0px'; talon.style.borderWidth='0'; }); }
+  pintarCifras(); actualizarAnillo(); pintarPils();
+  V.avisar('Prenda regularizada', `${v.desc} → ${p.nombre}. ${V.textoDif(v.dif)}.`);
+  await V.esperar(520);
+  const sig = lista().find(x=>x.estado==='pendiente') ;
+  if (st.filtro==='pendiente') { pintarTalones(); }
+  else { pintarTalones(); }
+  if (sig) elegir(sig.id,{auto:true}); else { st.sel=null; pintarElige(); redibujarHilo(); }
+}
+
+/* ── Hilos (SVG sobre la mesa) ────────────────────────────────────────────── */
+function redibujarHilo(animar=false, hover=null){
+  const svg = $('#hilos'); if(!svg || getComputedStyle(svg).display==='none') return;
+  const mesa = $('#mesa').getBoundingClientRect(), tal = $(`.talon[data-id="${st.sel}"]`);
+  svg.innerHTML=''; if(!tal) return;
+  const ct = $('#talones').getBoundingClientRect(), ce = $('#elige').getBoundingClientRect();
+  const clamp = (y,c) => Math.max(c.top+14, Math.min(c.bottom-14, y));
+  const r1 = tal.getBoundingClientRect(), x1 = r1.right - mesa.left + 1, y1 = clamp(r1.top+r1.height/2, ct) - mesa.top;
+  const trazo = (el, clase, anim) => {
+    const r2 = el.getBoundingClientRect(), x2 = r2.left - mesa.left - 2, y2 = clamp(r2.top+r2.height/2, ce) - mesa.top, dx = (x2-x1)*.55;
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('class',clase);
+    p.setAttribute('d',`M${x1} ${y1} C${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`); svg.appendChild(p);
+    if (anim && !V.reducir()) { const L=p.getTotalLength(); p.style.strokeDasharray=L; p.style.strokeDashoffset=L; p.animate([{strokeDashoffset:L},{strokeDashoffset:0}],{duration:620,easing:'cubic-bezier(.32,.72,.24,1)',fill:'forwards'}); }
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle'); dot.setAttribute('r','4.5'); dot.setAttribute('cx',x2); dot.setAttribute('cy',y2);
+    if (clase==='h-sel'){ svg.appendChild(dot); if(anim&&!V.reducir()) dot.animate([{opacity:0,transform:'scale(0)'},{opacity:1,transform:'scale(1)'}],{duration:300,delay:520,easing:'cubic-bezier(.32,.72,.24,1)',fill:'both'}); dot.style.transformOrigin=`${x2}px ${y2}px`; }
+  };
+  const elegida = $(`.cand[data-p="${st.prenda}"]`);
+  if (hover && hover!==elegida) trazo(hover,'h-prev',false);
+  if (elegida) trazo(elegida,'h-sel',animar===true);
+}
+
+/* ── Hoja «Identificar con sugerencias» ───────────────────────────────────── */
+function abrirSugerencias(){
+  const pares = V.pendientes().map(v=>({v,p:V.sugerida(v)})).filter(x=>x.p);
+  const marc = new Set(), host = $('#vista');
+  const velo = document.createElement('div'); velo.className='velo'; host.appendChild(velo);
+  const cerrar = () => { velo.classList.add('cierra'); setTimeout(()=>velo.remove(), V.reducir()?0:230); };
+  velo.onclick = e => { if(e.target===velo) cerrar(); };
+  const pinta = () => {
+    velo.innerHTML = `<div class="hoja" role="dialog" aria-label="Identificar con sugerencias"><div class="in">
+      <div style="--i:0"><h2>Identificar con sugerencias</h2><p class="sub">${pares.length} ventas tienen una sola prenda posible. Marca solo las que reconozcas.</p></div>
+      <div style="--i:1;display:flex;justify-content:space-between;align-items:center"><span class="lbl">Tienda TRU · ${pares.length} pendientes con sugerencia</span><button class="btn" id="b-todas">${marc.size===pares.length?'Desmarcar todas':'Marcar todas'}</button></div>
+      <ul class="pares" style="--i:2">${pares.map(({v,p})=>`<li><label class="par ${marc.has(v.id)?'on':''}" data-id="${v.id}">
+        ${V.baldosa(v.cat,v.hex)}<span class="tx"><b>${v.desc}</b><small>cobrada a ${soles(v.precio)} · ${v.por}</small></span><span class="fl">${V.ic('flecha')}</span>
+        ${V.baldosa(p.cat,p.hex)}<span class="tx"><b>${p.nombre}</b><small>${p.talla} · ${p.color} · ${V.textoDif(V.dif(v,p)).replace(' que el oficial','')} · hay ${p.stock}</small></span>
+        <span class="cb"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3"><path d="m5 12.5 4.2 4.2L19 7"/></svg></span></label></li>`).join('')}</ul>
+      <p class="nota" style="--i:3"><b>Una sola candidata no es certeza.</b> Si la prenda vendida nunca se cargó, la sugerida es OTRA prenda que sigue en la tienda y quedaría con 1 de menos. Se descuenta 1 de cada una del stock.</p>
+      <div class="pie" style="--i:4"><button class="btn" id="b-cancel">Cancelar</button><button class="btn pri gde" id="b-ident" ${marc.size?'':'disabled'}>${marc.size?`Identificar ${marc.size} ${marc.size===1?'venta':'ventas'}`:'Marca al menos una'}</button></div>
+    </div></div>`;
+    $$('.par',velo).forEach(l => l.onclick = e => { e.preventDefault(); const id=l.dataset.id; marc.has(id)?marc.delete(id):marc.add(id); l.classList.toggle('on'); actualizarPie(); });
+    $('#b-todas',velo).onclick = () => { marc.size===pares.length ? marc.clear() : pares.forEach(x=>marc.add(x.v.id)); $$('.par',velo).forEach(l=>l.classList.toggle('on',marc.has(l.dataset.id))); actualizarPie(); };
+    $('#b-cancel',velo).onclick = cerrar; $('#b-ident',velo).onclick = confirmar;
+  };
+  const actualizarPie = () => { const b=$('#b-ident',velo); b.disabled=!marc.size; b.textContent = marc.size?`Identificar ${marc.size} ${marc.size===1?'venta':'ventas'}`:'Marca al menos una'; $('#b-todas',velo).textContent = marc.size===pares.length?'Desmarcar todas':'Marcar todas'; };
+  const confirmar = async () => {
+    const ids = [...marc]; cerrar(); await V.esperar(260);
+    ids.forEach(id => { const x = pares.find(p=>p.v.id===id); V.regularizar(id, x.p.id, 'ya_registrada'); });
+    // los talones se van en cascada, con su sello
+    const tal = ids.map(id => $(`.talon[data-id="${id}"]`)).filter(Boolean);
+    tal.forEach((t,i) => setTimeout(()=>{ const s=document.createElement('span'); s.className='sello'; s.textContent='Identificada'; t.appendChild(s); }, i*90));
+    await V.esperar(tal.length*90+700);
+    tal.forEach((t,i) => setTimeout(()=>{ t.style.height=t.offsetHeight+'px'; t.style.overflow='hidden'; requestAnimationFrame(()=>{ t.classList.add('sale'); t.style.height='0px'; t.style.marginBottom='0px'; t.style.borderWidth='0'; }); }, i*70));
+    await V.esperar(tal.length*70+500);
+    pintarCifras(); actualizarAnillo(); pintarPils(); pintarTalones();
+    V.avisar(`${ids.length} ventas identificadas`, 'El stock de cada prenda bajó 1.');
+    const sig = lista().find(x=>x.estado==='pendiente'); if (sig) elegir(sig.id,{auto:true}); else { st.sel=null; pintarElige(); redibujarHilo(); }
+  };
+  pinta();
+}
+
+c = V.marco({activa:'a-emparejar.html', onRepetir:()=>{ iniciar(); }, onReiniciar:()=>{ iniciar(); }});
+iniciar();
+$('#seg-modo').addEventListener('click', () => setTimeout(()=>{ $('#elige')?.classList.remove('abierto'); redibujarHilo(); }, 480));
+})();
+</script>
+</body>
+</html>

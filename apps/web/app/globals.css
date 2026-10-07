@@ -23,6 +23,8 @@
 @import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
 @import "./estilos/movimientos-sellos.css";
+/* Ventas sin registrar: la mesa de talones, puente y prendas (ADR-0360, maqueta A2). */
+@import "./estilos/ventas-sin-registrar.css";
 /* Pestaña de vista, píldora de filtro y segmento de modo: una pieza por función (ADR-0358, «Pestañas y segmentos»). */
 @import "./estilos/pestanas-y-segmentos.css";
 @import "./estilos/traslados-pases.css";

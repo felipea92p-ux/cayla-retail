@@ -13,6 +13,10 @@ export type FilaPorRegularizar = {
   categoria: string;
   talla: string;
   color: string;
+  /** Lo que dibuja la prenda cuando la venta aún no tiene prenda real: el ícono de su categoría sobre su color (ADR-0333). Opcional: nulo = la percha. */
+  colorHex: string | null;
+  categoriaPrefijo: string | null;
+  categoriaFamilia: string | null;
   precioCobrado: number;
   vendidoPor: string;
   vendidoEn: string;
@@ -29,7 +33,7 @@ export type FilaPorRegularizar = {
 };
 
 const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
-       categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
+       categoria:categorias ( nombre, prefijo, familia ), talla:tallas ( valor ), color:colores ( nombre, hex ),
        ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) ),
        cierre:cierres_cola_arranque!prendas_por_regularizar_cierre_fk ( motivo, cerrado_en )`;
 
@@ -87,6 +91,9 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     categoria: f.categoria?.nombre ?? "",
     talla: f.talla?.valor ?? "",
     color: f.color?.nombre ?? "",
+    colorHex: f.color?.hex ?? null,
+    categoriaPrefijo: f.categoria?.prefijo ?? null,
+    categoriaFamilia: f.categoria?.familia ?? null,
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
     vendidoEn: f.vendido_en,

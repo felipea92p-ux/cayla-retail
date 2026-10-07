@@ -107,10 +107,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
-  "/inventario/por-regularizar": {
-    estado: "no-aplica",
-    motivo: "Lista con filtros, sin campos propios (ADR-0330: la misma de Recibir, mudada). El único formulario es el modal «Regularizar», declarado aparte en MODALES (components/PorRegularizarLista.tsx).",
-  },
+  // ADR-0360 (maqueta A2 «Puente», Felipe 2026-10-07): el modal «Regularizar» pasó a ser el puente de la mesa; la guía dice qué prenda
+  // elegir, cómo estaba y quién lo hace, y lo que falta sale de lo que ya apagaba el botón «Regularizar» (la regla de negocio no cambió).
+  "/inventario/por-regularizar": { estado: "aplicada", evidencia: ["components/por-regularizar/MesaRegularizar.tsx", "components/por-regularizar/PuenteUnion.tsx", "components/por-regularizar/PanelPrendas.tsx"] },
   // Análisis v4 (ADR-0357): se lee, no se llena. El buscador filtra lo que se ve y los botones abren el flujo de cada acción en su
   // pantalla (ADR-0245), con su propia guía.
   "/inventario/resumen": {
@@ -181,7 +180,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 59;
+export const MODALES_PENDIENTES_HOY = 58;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -253,7 +252,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   // talla y tienda (si hay más de una), nombres, apellidos, celular de 9 dígitos que empieza en 9, y quién atiende. Nota opcional.
   "components/PedirYApartarModal.tsx": { estado: "aplicada", evidencia: ["components/PedirYApartarModal.tsx"] },
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
-  "components/PorRegularizarLista.tsx": PENDIENTE, // 3 controles
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
   "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
