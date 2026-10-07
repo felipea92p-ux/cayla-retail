@@ -40,6 +40,8 @@ describe("qué hace un botón se reconoce por lo que dice (sin tildes ni mayúsc
     ["Confirmar venta", "guardar"],
     ["+ Nuevo producto", "nuevo"],
     ["Registrar gasto", "nuevo"],
+    ["Agregar Blusa Emma talla S", null],
+    ["Registrar devolución S/ 75.00", "guardar"],
     ["Quitar filtros", "limpiar"],
     ["Quitar", "eliminar"],
     ["Anular comprobante", "eliminar"],

@@ -20,10 +20,13 @@ export const FUNCIONES = [
   // «Cerrar caja», «Cerrar conteo» o «Cerrar el mes» son acciones del negocio, no cerrar una hoja: solo cuenta el «Cerrar» a secas.
   { id: "cerrar", nombre: "Cerrar (la hoja o el aviso)", patron: "^cerrar$|^cerrar (esta |este |la |el )?(ventana|hoja|aviso|panel|detalle|vista|modal)\\b|^[×✕✖]$" },
   { id: "cancelar", nombre: "Cancelar", patron: "^cancelar\\b" },
-  { id: "guardar", nombre: "Guardar / Confirmar", patron: "^(guardar|confirmar|aceptar|aplicar|listo)\\b" },
+  // «Registrar devolución S/ 75» o «Registrar pago» cierran una operación con dinero: confirman, no crean algo nuevo (censo del
+  // mostrador, 2026-10-07).
+  { id: "guardar", nombre: "Guardar / Confirmar", patron: "^(guardar|confirmar|aceptar|aplicar|listo)\\b|^registrar (la |el )?(devolucion|cambio|venta|pago|cobro)\\b" },
   // Antes que «eliminar»: «Quitar filtros» limpia la lista, no borra nada.
   { id: "limpiar", nombre: "Limpiar filtros", patron: "^(limpiar|restablecer)\\b|^(quitar|borrar) (los |todos los )?filtros\\b" },
-  { id: "nuevo", nombre: "Nuevo / Agregar / Registrar", patron: "^(\\+\\s*)?(nuevo|nueva|agregar|anadir|crear|registrar)\\b|^\\+$" },
+  // «Agregar Blusa Emma talla S» es la talla que se suma al ticket en Vender, no crear algo: no es «Nuevo» (censo del mostrador, 2026-10-07).
+  { id: "nuevo", nombre: "Nuevo / Agregar / Registrar", patron: "^(\\+\\s*)?(nuevo|nueva|agregar|anadir|crear|registrar)\\b(?!.*\\btalla\\b)|^\\+$" },
   { id: "editar", nombre: "Editar", patron: "^(editar|modificar)\\b" },
   { id: "eliminar", nombre: "Eliminar / Quitar / Anular", patron: "^(eliminar|borrar|quitar|anular|desactivar|archivar|descartar)\\b" },
   { id: "buscar", nombre: "Buscar", patron: "^buscar\\b" },
