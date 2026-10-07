@@ -397,23 +397,9 @@ export const DECISIONES = {
       // La versalita copiada a mano (label-cayla + esquinas + fondo tinta o borde): no toma la voz del lugar ni la onda.
       "\\blabel-cayla\\b[^\"'`]*\\brounded-(?:md|lg|xl)\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/\\d+)\\b|\\blabel-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/\\d+)\\b[^\"'`]*\\brounded-(?:md|lg|xl)\\b"
     ],
-    // El mostrador va en su propia pasada, con prueba a 375 px (PL-105): botones compactos de 28–32 px y de cobro de 48–56 px.
-    "deuda": [
-      "components/BuscadorVentas.tsx",
-      "components/PuntoDeVenta.tsx",
-      "components/PuntoDeVentaCatalogo.tsx",
-      "components/PuntoDeVentaColaOffline.tsx",
-      "components/PuntoDeVentaTicket.tsx",
-      "components/apartados/ApartarVista.tsx",
-      "components/apartados/EntregarVista.tsx",
-      "components/apartados/TodosVista.tsx",
-      "components/punto-de-venta/AnotarNoHabia.tsx",
-      "components/punto-de-venta/ClientaDelTicket.tsx",
-      "components/punto-de-venta/Esperas.tsx",
-      "components/punto-de-venta/PedidosParaClientes.tsx",
-      "components/punto-de-venta/PedirEnOtraTienda.tsx",
-      "components/punto-de-venta/ResumenDeHoy.tsx",
-    ],
+    // El mostrador entró en su propia pasada (2026-10-07): conserva sus altos (28–36 px los compactos, 44–56 los de cobro) con
+    // letra de 12,5 px en los compactos, y toma la voz, el movimiento y la onda. Probado a 375 px (PL-105).
+    "deuda": [],
     "excepciones": [
       { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "Es el selector de mes de la barra de vidrio de Comprobantes (ADR-0124): un filtro de período, familia de pestañas, no un botón" }
     ]

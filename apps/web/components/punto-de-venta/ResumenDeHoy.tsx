@@ -106,13 +106,13 @@ export function ResumenDeHoy({
               {(verHistorial || verCaja) && (
                 <div className="mt-5 flex gap-2">
                   {verHistorial && (
-                    <Link href="/vender/historial" onClick={cerrar} className="label-cayla inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-tinta/25 bg-papel text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                    <Link href="/vender/historial" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
                       <History className="h-4 w-4" aria-hidden />
                       Historial completo
                     </Link>
                   )}
                   {verCaja && (
-                    <Link href="/caja" onClick={cerrar} className="label-cayla inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-tinta/25 bg-papel text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                    <Link href="/caja" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
                       <Wallet className="h-4 w-4" aria-hidden />
                       Ir a Caja
                     </Link>
