@@ -114,14 +114,16 @@
     /* Qué hacer hoy: flujo */
     .sep-v{width:1px;height:14px;background:var(--color-sand)}
     .fl-svg{display:block;width:100%;height:auto;overflow:visible}
-    .fl-cinta{cursor:pointer;fill-opacity:.17;transition:fill-opacity 160ms var(--ease-cayla),opacity 160ms var(--ease-cayla)}
-    .fl-cinta.primera{fill-opacity:.32}
-    .fl-cinta:hover,.fl-cinta.hl{fill-opacity:.45}
+    /* Cintas finas (A1): la transparencia la da su degradado; aquí solo se marca la que se toca o se resalta. */
+    .fl-cinta{cursor:pointer;fill-opacity:.8;transition:fill-opacity 160ms var(--ease-cayla),opacity 160ms var(--ease-cayla)}
+    .fl-cinta.primera{fill-opacity:.95}
+    .fl-cinta:hover,.fl-cinta.hl{fill-opacity:1}
     .anim .fl-cinta{transform-box:fill-box;transform-origin:left center;animation:an-crecer-x 650ms var(--ease-cayla) both;animation-delay:calc(var(--d,0) * 60ms + 150ms)}
     .anim .fl-cinta.der{animation-delay:calc(var(--d,0) * 60ms + 450ms)}
     .fl-cab{font:600 11px var(--font-sans);letter-spacing:.12em;fill:var(--color-taupe)}
-    .fl-centro{font:500 21px var(--font-serif)}
-    .fl-sub{font:500 11px var(--font-sans);opacity:.75}
+    .fl-tienda{fill:var(--color-papel);stroke:var(--color-sand);stroke-width:1.5}
+    .fl-centro{font:500 21px var(--font-serif);fill:var(--color-tinta)}
+    .fl-sub{font:500 11px var(--font-sans);fill:var(--color-taupe)}
     .fl-num{font:600 11.5px var(--font-sans)}
     .fl-past{cursor:pointer}
     .fl-et{height:44px;display:flex;flex-direction:column;justify-content:center;gap:2px;cursor:pointer;border-radius:8px;padding:0 6px;font-family:var(--font-sans);color:var(--color-tinta)}
