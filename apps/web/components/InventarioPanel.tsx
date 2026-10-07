@@ -960,6 +960,8 @@ export function InventarioPanel({
             tallasCompletas={soloHoyOCondicion ? (prenda) => prendaPorClave.get(prenda.clave)?.tallas ?? prenda.tallas : undefined}
             // Tocar una talla abre el panel de ESA talla sin salir de las tarjetas.
             onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
+            // Tocar una talla con algo en almacén: el panel de esa talla, ya en «Colgar en el piso» (Felipe, 2026-10-07).
+            onColgarTalla={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" } })}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
@@ -972,21 +974,18 @@ export function InventarioPanel({
                 Exportar CSV
               </button>
             </span>
-            {/* La leyenda del riel de las tarjetas (2026-10-04): qué dice cada etiqueta y qué significan sus dos tonos. */}
+            {/* La leyenda de la tabla de las tarjetas (2026-10-07): qué dicen sus dos tonos. */}
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-tinta/15 bg-papel" />
-                  Cada etiqueta es una talla: en grande las colgadas, debajo «+N» las guardadas
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.14]" />
+                  Falta colgar
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.08]" />
-                  Por colgar
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-rojo/[0.11]" />
+                  Se acabó en esta sede
                 </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
-                  Sin nada en esta sede
-                </span>
+                <span>Toca una talla para colgarla</span>
               </span>
             )}
           </div>
