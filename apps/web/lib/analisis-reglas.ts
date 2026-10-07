@@ -50,6 +50,13 @@ export const GRUPOS_ACABA: readonly GrupoAnalisis[] = ["comprar"];
 export const GRUPOS_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar"];
 export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "vigila"];
 
+/**
+ * Nunca salió al piso (20261007120000): tiene unidades guardadas en mi tienda y la base no sabe de ninguna vez en su piso de venta
+ * (ni una bajada, ni una venta). Lo que está colgado ya salió, aunque la base no lo hubiera visto moverse. Vive aquí (y no en
+ * `analisis-piso.ts`) porque lo usan «Nunca salió al piso» y «Qué pedir».
+ */
+export const nuncaSalio = (p: Pick<PrendaAnalisis, "salioAlPiso" | "almacen" | "piso">): boolean => p.salioAlPiso === null && p.almacen > 0 && p.piso === 0;
+
 /** Lo libre en mi tienda. */
 export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): number => p.piso + p.almacen;
 

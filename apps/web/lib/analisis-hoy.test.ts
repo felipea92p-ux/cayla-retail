@@ -12,16 +12,13 @@ import {
   puntosDeCinta,
   SEGUNDOS_PUNTO,
   columnasFlujo,
-  DIFERENCIA_PIDE_MAS,
   estadoQuieta,
   estadosDelFlujo,
   etiquetaFlujo,
   FLUJO,
   geometriaFlujo,
   listaTip,
-  miniMariposa,
   paraReponerPiso,
-  partesPorCategoria,
   pastillaFlujo,
   px,
   quietasHoy,
@@ -36,7 +33,6 @@ import {
   type EntradaColumna,
   type GeometriaFlujo,
 } from "./analisis-hoy";
-import { SIN_CATEGORIA } from "./analisis-pedir";
 
 // Datos inventados para la prueba (no son de producción ni del catálogo).
 let siguiente = 0;
@@ -117,54 +113,6 @@ describe("las cuatro tarjetas", () => {
   it("una quieta va en rojo desde los 3 meses", () => {
     expect(estadoQuieta(89)).toBe("ate");
     expect(estadoQuieta(90)).toBe("urg");
-  });
-});
-
-describe("la mariposa de «¿Qué pedir?»", () => {
-  const tienda = [
-    prenda({ categoria: "Polos", vendidas30: 30, piso: 10, almacen: 10 }),
-    prenda({ categoria: "Jeans", vendidas30: 10, piso: 30, almacen: 10 }),
-    prenda({ categoria: "Bodys", vendidas30: 40, piso: 10, almacen: 0 }),
-    prenda({ categoria: "Tops", vendidas30: 20, piso: 10, almacen: 10 }),
-    prenda({ categoria: "Gorros", vendidas30: 0, piso: 10, almacen: 0 }),
-  ];
-
-  it("de cada 100 ventas y de cada 100 prendas, por categoría, la que más se vende arriba", () => {
-    expect(partesPorCategoria(tienda)).toEqual([
-      { categoria: "Bodys", vende: 40, tiene: 10 },
-      { categoria: "Polos", vende: 30, tiene: 20 },
-      { categoria: "Tops", vende: 20, tiene: 20 },
-      { categoria: "Jeans", vende: 10, tiene: 40 },
-      { categoria: "Gorros", vende: 0, tiene: 10 },
-    ]);
-  });
-
-  it("sin ventas no hay qué comparar; sin categoría se agrupa aparte", () => {
-    expect(partesPorCategoria([prenda({ piso: 5 })])).toEqual([]);
-    expect(partesPorCategoria([prenda({ categoria: null, vendidas30: 2, piso: 1 })])).toEqual([{ categoria: SIN_CATEGORIA, vende: 100, tiene: 100 }]);
-  });
-
-  it("muestra 3 y nombra las que piden más (hasta 2), que siempre están en el dibujo", () => {
-    const m = miniMariposa(partesPorCategoria(tienda));
-    expect(m.piden).toEqual(["Bodys", "Polos"]);
-    // Bodys +30 y Polos +10 piden más; la tercera es la de más diferencia del resto: Jeans −30.
-    expect(m.filas.map((f) => [f.categoria, f.pideMas])).toEqual([
-      ["Bodys", true],
-      ["Polos", true],
-      ["Jeans", false],
-    ]);
-    expect(m.max).toBe(40);
-  });
-
-  it("una que pide poco más que lo que tiene no «pide más»", () => {
-    const parejo = [
-      { categoria: "Polos", vende: 50, tiene: 50 - DIFERENCIA_PIDE_MAS + 1 },
-      { categoria: "Jeans", vende: 50, tiene: 50 + DIFERENCIA_PIDE_MAS - 1 },
-    ];
-    const m = miniMariposa(parejo);
-    expect(m.piden).toEqual([]);
-    expect(m.filas.every((f) => !f.pideMas)).toBe(true);
-    expect(miniMariposa([])).toEqual({ filas: [], piden: [], max: 1 });
   });
 });
 

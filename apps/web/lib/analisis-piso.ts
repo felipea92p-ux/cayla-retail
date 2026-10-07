@@ -6,7 +6,7 @@
 
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { categoriaDe } from "./analisis-pedir";
-import { plural } from "./analisis-reglas";
+import { nuncaSalio, plural } from "./analisis-reglas";
 import { diasEntreFechas } from "./fechas-lima";
 
 /** La falla que se dice una vez si la base todavía no dice cuándo salió al piso cada prenda (sin la migración 20261007120000). */
@@ -22,11 +22,8 @@ export const DIAS_EJE_PISO = 30;
 export const AYUDA_TIPO_PISO =
   "Están en tu almacén y nunca se colgaron: nadie las vio. Bájalas al piso para que se puedan vender; cuántas, lo eliges en Reponer a piso.";
 
-/**
- * Nunca salió al piso: tiene unidades guardadas en mi tienda y la base no sabe de ninguna vez en su piso de venta (ni una bajada,
- * ni una venta). Lo que está colgado ya salió, aunque la base no lo hubiera visto moverse.
- */
-export const nuncaSalio = (p: Pick<PrendaAnalisis, "salioAlPiso" | "almacen" | "piso">): boolean => p.salioAlPiso === null && p.almacen > 0 && p.piso === 0;
+/** Nunca salió al piso: la regla vive en `analisis-reglas.ts` (la usan también «Qué pedir»); aquí se vuelve a exportar. */
+export { nuncaSalio };
 
 /** Días que lleva en mi tienda desde que llegó (hoy = 0); null si no se sabe cuándo llegó. */
 export function diasEnAlmacen(p: Pick<PrendaAnalisis, "llego">, hoy: string): number | null {
