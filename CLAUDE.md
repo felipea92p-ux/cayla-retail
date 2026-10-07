@@ -482,7 +482,9 @@ capturas lado a lado y una **propuesta** nueva en claro y oscuro. **Felipe elige
 verlas aplicadas, no le gustaron). Lo elegido es la única pieza de esa función desde ese día, en todos los módulos y en las pantallas nuevas.
 
 Al construir o editar una pantalla o un modal: **antes de dibujar una pieza, mira la tabla de abajo (y `docs/unificar/README.md`). Si la familia
-está decidida, se usa su pieza; si no, se usa la forma más usada del último censo y no se inventa otra.** Lo hace cumplir
+está decidida, se usa su pieza; si no, se usa la forma más usada del último censo y no se inventa otra.** **El movimiento es parte de
+la pieza (Felipe 2026-10-07):** el censo dice qué hace cada una al pasar el mouse, al presionar, con el foco y si late o entra animada, y migrar
+nunca pierde una animación: la pieza elegida se queda con el mejor movimiento de las que reemplaza. Lo hace cumplir
 `lib/unificar.test.ts`: cada decisión trae sus `firmas` (cómo se reconoce la variante dibujada a mano) y su `deuda` (lo que falta migrar, en
 `apps/web/unificar/familias.mjs`), y la prueba falla si un archivo nuevo vuelve a dibujarla a mano o si la deuda no baja. Una línea legítima se
 exime con `// unificar-fijo: <por qué>`. Migrar cambia cómo se ve, **nunca qué hace**, y va módulo por módulo con el OK de Felipe. Lo que existe
@@ -496,6 +498,8 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 | Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. Nunca un «←» ni una línea a mano | 2026-10-06 |
 | Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` (el vidrio con la píldora oscura, en mayúsculas) si cambia de sección —también Finanzas—; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (la caja arena de «GRILLA / TABLA») si muestra lo mismo de otra forma. Nunca un `role="tab"` ni una pista a mano | 2026-10-06 |
 | Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`), la de Compras tal cual: con `href` lleva su flecha, la que filtra se rellena de arena, `valor={null}` + motivo si no hay dato. Nunca una tarjeta de número a mano | 2026-10-06 |
+| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton peso="primario">` para la acción y `peso="fantasma"` para su pareja; si navega, `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px, 40 px, con su movimiento (barrido de luz, se encoge al presionar, hilo al guardar). Nunca `btn-cayla` ni la versalita copiada a mano para una acción principal. Vender espera su pasada | 2026-10-07 |
+| Insignias de estado (`estado`) | `<Chip>` (`components/ui/Chip.tsx`). A propósito: los chips con ícono de Análisis y «Líder de equipo» en negro en Colaboradores | 2026-10-07 |
 
 ## Caos: usar mal el sistema a propósito (regla — ADR-0356, Felipe 2026-10-06)
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
@@ -902,6 +903,30 @@ const PESO_BOTON = {
   discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
 } as const;
 
+/* El botón de la acción principal y su pareja (ADR-0358, «Botón Nuevo / Registrar»: Felipe eligió mirando el 2026-10-07 la forma B,
+   versalitas de 11 px y 40 px de alto). Su movimiento es parte de la pieza y no se pierde al migrar: al pasar el mouse cruza un barrido
+   de luz, al presionar se encoge un 3 %, mientras guarda corre un hilo abajo, y el foco del teclado es el anillo único (ADR-0351). Con
+   `href` es `<BotonEnlace>`: la misma cara y el mismo movimiento para lo que navega (las acciones de una cabecera). */
+const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) =>
+  `label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] transition-all ease-cayla active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`;
+
+/** Barrido de luz al pasar el mouse: cruza una vez y no deja nada pintado. */
+function BrilloBoton({ peso }: { peso: keyof typeof PESO_BOTON }) {
+  return (
+    // Es el único gradiente del sistema, y existe solo como movimiento: un botón que solo cambia de color de golpe es justamente el
+    // «seco» que había que sacar. En reposo la barra es INVISIBLE (`opacity-0`), no solo «fuera de cuadro»: inclinada 12°, su esquina
+    // entra ~4-5 px en el botón y se veía como una esquina rosada en el borde inferior izquierdo aun sin mouse. La animación la enciende
+    // (`cayla-brillo` fija `opacity: 1`) y al terminar vuelve a apagarse.
+    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
+      <span
+        className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 opacity-0 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
+          peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
+        }`}
+      />
+    </span>
+  );
+}
+
 export function Boton({
   peso = "fantasma",
   cargando = false,
@@ -913,28 +938,8 @@ export function Boton({
   cargando?: boolean;
 }) {
   return (
-    <button
-      {...props}
-      disabled={props.disabled || cargando}
-      className={`label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] transition-all ease-cayla active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`}
-    >
-      {/* Barrido de luz al pasar el mouse: cruza una vez y no deja nada
-          pintado. Es el único gradiente del sistema, y existe solo como
-          movimiento — un botón que solo cambia de color de golpe es
-          justamente el "seco" que había que sacar.
-          En reposo la barra es INVISIBLE (`opacity-0`), no solo "fuera de
-          cuadro": está inclinada y una inclinación de 12° mete su esquina
-          ~4-5px dentro del botón (mitad del alto × tan 12°), y eso se veía como
-          una esquina rosada en el borde inferior izquierdo de todos los botones
-          aun sin mouse. La animación la enciende (`cayla-brillo` fija
-          `opacity: 1`) y al terminar vuelve a apagarse. */}
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
-        <span
-          className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 opacity-0 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
-            peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
-          }`}
-        />
-      </span>
+    <button {...props} disabled={props.disabled || cargando} className={claseBoton(peso, className)}>
+      <BrilloBoton peso={peso} />
       <span className="relative">{children}</span>
       {cargando && (
         <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
@@ -944,5 +949,20 @@ export function Boton({
         </span>
       )}
     </button>
+  );
+}
+
+/** `<Boton>` para lo que navega: la acción principal de una cabecera («+ Registrar factura», «+ Nueva orden»). Mismo movimiento. */
+export function BotonEnlace({
+  peso = "fantasma",
+  className = "",
+  children,
+  ...props
+}: React.ComponentProps<typeof Link> & { peso?: keyof typeof PESO_BOTON }) {
+  return (
+    <Link {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
+      <BrilloBoton peso={peso} />
+      <span className="relative inline-flex items-center gap-1.5">{children}</span>
+    </Link>
   );
 }

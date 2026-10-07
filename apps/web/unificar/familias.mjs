@@ -315,7 +315,7 @@ const ACCIONES = FUNCIONES.map((f) => ({
  */
 /**
  * @typedef {{ archivo: string, motivo: string }} Excepcion
- * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, tambien?: string[], firmas: string[], deuda: string[], excepciones?: Excepcion[] }} Decision
+ * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, tambien?: string[], ventana?: number, firmas: string[], deuda: string[], excepciones?: Excepcion[] }} Decision
  * @type {Record<string, Decision>}
  */
 export const DECISIONES = {
@@ -349,6 +349,46 @@ export const DECISIONES = {
       "^\\s*(export\\s+)?function\\s+(TarjetaCifraAnalisis|TarjetaIndicador|TarjetaSenal|TarjetaAvance)\\b|^\\s*(export\\s+)?function\\s+(Tarjeta|Cifra)\\(\\{\\s*(etiqueta|rotulo)"
     ],
     "deuda": []
+  },
+  "accion.nuevo": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.nuevo.md",
+    "elegida": "B · versalitas de 11 px y 40 px (label-cayla), elegida mirando el 2026-10-07, con su movimiento: barrido de luz, se encoge al presionar, hilo al guardar",
+    "pieza": "components/ui/campos.tsx",
+    // El texto del botón suele ir en la línea siguiente a su clase: la firma mira 9 líneas desde donde empieza.
+    "ventana": 9,
+    "firmas": [
+      // Un «+ Nuevo / Registrar / Agregar» con la cara vieja de btn-cayla (34 px, letra normal).
+      "className=\\{?[\"'`]btn-cayla btn-(?:primario|secundario)\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear|Dar acceso)\\b",
+      // La cara B copiada a mano (sin el barrido de luz ni el encogerse al presionar de la pieza).
+      "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b"
+    ],
+    "deuda": [
+      "app/(app)/compras/page.tsx",
+      "app/(app)/inventario/traslados/(billetera)/layout.tsx",
+      "app/(app)/productos/page.tsx",
+      "components/alta-producto/ElegirColores.tsx",
+      "components/alta-producto/ElegirEtiquetas.tsx",
+      "components/CajaAbiertaPanel.tsx",
+      "components/colaboradores/EquipoLista.tsx",
+      "components/ColaboradoresPanel.tsx",
+      "components/ConfiguracionTiendas.tsx",
+      "components/FamiliasLista.tsx",
+      "components/finanzas/BalancePanel.tsx",
+      "components/finanzas/ConfiguracionCuentas.tsx",
+      "components/finanzas/CuentasDinero.tsx",
+      "components/GastosFijosYActivos.tsx",
+      "components/GastosPanel.tsx",
+      "components/NotaCreditoDetalle.tsx",
+      "components/NotasCreditoPanel.tsx",
+      "components/ProveedorAcciones.tsx",
+      "components/ResumenProduccionPanel.tsx",
+      "components/TemporadasLista.tsx",
+    ],
+    "excepciones": [
+      { "archivo": "components/analisis/TodaviaNo.tsx", "motivo": "El «Registrar N» chico dentro del anillo de Análisis v4 tiene su propio diseño y movimiento (ADR-0357); Felipe dice si se unifica" }
+    ]
   },
   "pestanas": {
     "fecha": "2026-10-06",
