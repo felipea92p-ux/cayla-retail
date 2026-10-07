@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/analisis-tipos";
 import { armarPrendas } from "@/lib/analisis-armado";
 import { liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
+import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
 import { getLiquidarDesde } from "@/lib/analisis-liquidar";
@@ -70,6 +71,11 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
   const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id) }));
   const prendas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante);
 
+  // Si mi tienda respondió pero sin decir cuándo salió al piso cada prenda (la base todavía no tiene 20261007120000), se dice una
+  // vez; si no respondió, ya lo dice la falla de la lectura.
+  const sabePiso = lectura.sabePiso[activa.id] === true;
+  const fallaPiso = lectura.sabePiso[activa.id] === false ? FALLA_PISO : null;
+
   // El último conteo cerrado de la tienda: cuántas prendas contó y en cuántas el sistema coincidió.
   const ultimoConteo = conteos?.find((c) => c.estado === "cerrado" && c.lineas > 0) ?? null;
 
@@ -80,6 +86,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
     preparacion: motor.filas,
     puedeHablar: hablaSede(activa.id),
     prendas,
+    sabePiso,
     liquidarDesde,
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
     rinde: rinde.rinde,
@@ -90,7 +97,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
         que: [p.productoReferencia ?? p.descripcionLibre ?? "Prenda sin nombre", p.talla].filter(Boolean).join(" · "),
         dia: p.creadoEn.slice(0, 10),
       })),
-    fallas: [motor.falla, lectura.falla, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
       (f): f is string => f !== null,
     ),
   };

@@ -79,8 +79,14 @@ export type PrendaAnalisis = {
   /** Vendidas por semana en mi tienda: 8 semanas, de la más vieja a la actual. La semana k (0 a 7) son los 7 días que terminan
    *  hoy − 7·(7−k) (`fn_analisis_sede`, 20261006214000): la última termina hoy. Las fechas de la ficha dependen de esto. */
   semanas: number[];
-  /** Días desde la última venta en mi tienda o, si nunca se vendió aquí, desde que llegó. null si no hay de dónde contarlos. */
+  /** Días en el piso sin venderse: desde la última venta en mi tienda o desde que salió al piso, lo que pasó después
+   *  (`fn_analisis_sede`, 20261007120000). null si nunca salió al piso: eso lo cuenta «Nunca salió al piso», no «No se vende». */
   diasSinVender: number | null;
+  /** La primera vez que estuvo en el piso de MI tienda (YYYY-MM-DD): un movimiento en el piso o su primera venta. null = nunca
+   *  salió al piso (o la base todavía no lo sabe: `DatosAnalisis.sabePiso`). */
+  salioAlPiso: string | null;
+  /** La primera vez que entró a MI tienda (YYYY-MM-DD); null si no se sabe. Con esto se cuentan los días que lleva guardada. */
+  llego: string | null;
   /** Unidades que llegaron a mi tienda en los últimos 30 días, y cuántas de ellas ya se vendieron («se vende lo que llega»). */
   llegaron30: number;
   vendidasDeLasQueLlegaron30: number;
@@ -141,6 +147,9 @@ export type DatosAnalisis = {
   puedeHablar: boolean;
   /** Mis prendas con algo que decir: libres, vendidas en 30 días o en camino. */
   prendas: PrendaAnalisis[];
+  /** Si la base ya dice cuándo salió al piso cada prenda de mi tienda (20261007120000). Sin eso, «Nunca salió al piso» no inventa
+   *  una lista: dice que todavía no lo puede saber. */
+  sabePiso: boolean;
   /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */
