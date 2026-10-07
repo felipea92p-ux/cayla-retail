@@ -596,7 +596,7 @@ export function PanelTalla({
                       {otrasSedes && <p className="mt-0.5 text-[12.5px] text-taupe">Otras sedes: {otrasSedes}</p>}
                     </div>
                     <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
-                      {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "en el piso" : "disponibles", separa && (fila.pisoDisponible ?? 0) === 0 && (fila.almacenDisponible ?? 0) > 0 ? "falta" : undefined)}
+                      {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "en el piso" : "disponibles", separa && insignia.tono === "ambar" ? "falta" : undefined)}
                       {separa && casilla(fila.almacenDisponible ?? 0, "en almacén")}
                       {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
                       {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
