@@ -33,6 +33,7 @@
 @import "./estilos/analisis-hoy.css";
 @import "./estilos/analisis-acaba.css";
 @import "./estilos/analisis-quieta.css";
+@import "./estilos/analisis-piso.css";
 @import "./estilos/analisis-pedir.css";
 @import "./estilos/analisis-ficha.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */

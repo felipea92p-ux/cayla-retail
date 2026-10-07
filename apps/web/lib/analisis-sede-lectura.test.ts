@@ -23,6 +23,8 @@ function crudo(parcial: Record<string, unknown> = {}): Record<string, unknown> {
     vendidas_30: 9,
     semanas: [0, 1, 0, 2, 3, 1, 2, 1],
     dias_sin_vender: 3,
+    salio_al_piso: "2026-09-30",
+    llego: "2026-09-29",
     llegaron_30: 6,
     vendidas_de_llegadas_30: 4,
     ...parcial,
@@ -30,7 +32,7 @@ function crudo(parcial: Record<string, unknown> = {}): Record<string, unknown> {
 }
 
 describe("la función que se llama", () => {
-  it("es la de la migración 20261006214000, con 8 semanas", () => {
+  it("es la de las migraciones 20261006214000 y 20261007120000, con 8 semanas", () => {
     expect(RPC_ANALISIS_SEDE).toBe("fn_analisis_sede");
     expect(SEMANAS_LEIDAS).toBe(8);
   });
@@ -58,9 +60,16 @@ describe("una fila completa", () => {
       vendidas30: 9,
       semanas: [0, 1, 0, 2, 3, 1, 2, 1],
       diasSinVender: 3,
+      salioAlPiso: "2026-09-30",
+      llego: "2026-09-29",
       llegaron30: 6,
       vendidasDeLasQueLlegaron30: 4,
     });
+  });
+
+  it("nunca salió al piso: `salio_al_piso` en null; una fecha que no es fecha tampoco cuenta como salida", () => {
+    expect(leerPrendaSede(crudo({ salio_al_piso: null, dias_sin_vender: null }))).toMatchObject({ salioAlPiso: null, diasSinVender: null, llego: "2026-09-29" });
+    expect(leerPrendaSede(crudo({ salio_al_piso: "ayer", llego: 20261001 }))).toMatchObject({ salioAlPiso: null, llego: null });
   });
 
   it("del Taller no lleva proveedor (Comprar abre Producción, no Compras)", () => {
@@ -217,6 +226,19 @@ describe("la respuesta entera de una tienda", () => {
     expect(l?.hoy).toBe("2026-10-06");
     expect(l?.rebajaDe100).toBe(4);
     expect(l?.prendas.map((p) => p.varianteId)).toEqual(["var-1"]);
+    expect(l?.sabePiso).toBe(true);
+  });
+
+  it("sabe el piso si las filas traen la clave, aunque sea null; sin la clave (la función de antes de 20261007120000), no lo sabe", () => {
+    expect(leerAnalisisSede({ ...respuesta, prendas: [crudo({ salio_al_piso: null })] })?.sabePiso).toBe(true);
+    const vieja = crudo();
+    delete vieja.salio_al_piso;
+    delete vieja.llego;
+    const l = leerAnalisisSede({ ...respuesta, prendas: [vieja] });
+    expect(l?.sabePiso).toBe(false);
+    expect(l?.prendas[0]?.salioAlPiso).toBeNull();
+    // Sin filas no hay nada que no se sepa.
+    expect(leerAnalisisSede({ ...respuesta, prendas: [] })?.sabePiso).toBe(true);
   });
 
   it("sin ventas, la rebaja es null; fuera de 0 a 100, se recorta", () => {

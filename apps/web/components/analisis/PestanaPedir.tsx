@@ -6,38 +6,48 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { ChipEstado, Cuenta, nombreLargo, TilePrenda } from "@/components/analisis/piezas";
 import {
+  alcancePorTipo,
   cuentaNavidad,
   curvaDeTallas,
   DIAS_RINDE,
+  diasANavidad,
   escalaRinde,
   estadoQuedan,
+  finEjeAlcance,
   LARGO_RANKING,
-  mariposa,
   masVendidas,
   notaRindeVacio,
   RINDE_POCO,
   rielNavidad,
   solesRinde,
   tipRinde,
+  textoAlcance,
+  textoRitmo,
   ventaMaxima,
+  type AlcanceTipo,
   type CurvaTallas,
-  type Mariposa,
   type RielNavidad,
 } from "@/lib/analisis-pedir";
+import { plural } from "@/lib/analisis-reglas";
+import { IconoCategoria } from "@/components/IconoCategoria";
 
-// Análisis v4 (ADR-0357): «Qué pedir», la cuarta pregunta, como la maqueta aprobada (2026-10-06): cuánto falta para Navidad
-// → lo que se vende contra lo que tienes, por tipo (la mariposa, que filtra) y las tallas que se llevan → lo que más se vende
-// → lo que más rinde. La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta y dónde sobra; la cantidad la elige
+// Análisis v4 (ADR-0357): «Qué pedir», como la maqueta aprobada (2026-10-06) y su cambio del 2026-10-07 (B2): cuánto falta para
+// Navidad → para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (la tabla, que filtra; antes, la
+// mariposa «de cada 100») → las tallas que se llevan y lo que más se vende → lo que más rinde. La pestaña no decide cuánto pedir (ADR-0231): muestra dónde falta y dónde sobra; la cantidad la elige
 // quien pide, en Compras o en el Plan de campaña. Las cuentas viven en `lib/analisis-pedir.ts`.
 //
-// La mariposa y las tallas miran TODA la tienda (el buscador no las mueve, como en la maqueta); el ranking sigue al buscador y
-// al tipo elegido. Tocar un tipo de la mariposa filtra tallas y ranking; tocarlo otra vez, o «✕», lo quita.
+// La tabla y las tallas miran TODA la tienda (el buscador no las mueve, como en la maqueta); el ranking sigue al buscador y al
+// tipo elegido. Tocar un tipo de la tabla filtra tallas y ranking; tocarlo otra vez, o «✕», lo quita.
 
 export function PestanaPedir() {
-  const { datos, acceso, prendas, q, categoria, setCategoria, abrirFicha } = useAnalisis();
+  const { datos, acceso, prendas, q, categoria, setCategoria, abrirFicha, diasDeVentas } = useAnalisis();
   const cuenta = cuentaNavidad(datos.hoy);
   const riel = useMemo(() => rielNavidad(datos.hoy), [datos.hoy]);
-  const tipos = useMemo(() => mariposa(datos.prendas), [datos.prendas]);
+  const hastaNavidad = diasANavidad(datos.hoy);
+  const tipos = useMemo(
+    () => alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso),
+    [datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso],
+  );
   const curva = useMemo(() => curvaDeTallas(datos.prendas, categoria), [datos.prendas, categoria]);
   const tops = masVendidas(prendas, categoria);
   const maxVenta = ventaMaxima(datos.prendas);
@@ -62,71 +72,74 @@ export function PestanaPedir() {
         )}
       </section>
 
-      <div className="dos">
-        <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
-          <div className="b-cab">
-            <h3 className="b-tit">Lo que se vende y lo que tienes</h3>
-            {categoria ? (
-              <button type="button" className="chip info quitar" onClick={quitar} aria-label={`Quitar el filtro: ${categoria}`}>
-                {categoria} ✕
-              </button>
-            ) : (
-              <span className="b-nota">Toca un tipo para filtrar</span>
-            )}
-          </div>
-          <MariposaTipos m={tipos} categoria={categoria} onElegir={(c) => setCategoria(c === categoria ? null : c)} />
-        </section>
-        <BloqueCurva c={curva} categoria={categoria} />
-      </div>
-
-      <section className="tarjeta bloque entra" style={{ ["--i" as string]: 3 }}>
+      <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
         <div className="b-cab">
-          <h3 className="b-tit">Lo que más se vende{categoria ? ` · ${categoria}` : ""}</h3>
+          <h3 className="b-tit">¿Para cuánto te alcanza?</h3>
           {categoria ? (
-            <button type="button" className="chip info quitar" onClick={quitar}>
-              Quitar filtro ✕
+            <button type="button" className="chip info quitar" onClick={quitar} aria-label={`Quitar el filtro: ${categoria}`}>
+              {categoria} ✕
             </button>
           ) : (
-            <span className="b-nota">Últimos 30 días</span>
+            <span className="b-nota">{textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas</span>
           )}
         </div>
-        <div className="rank">
-          {tops.length === 0 ? (
-            <p className="b-nota">{categoria || q.trim() ? "Nada con este filtro." : "Sin ventas en 30 días."}</p>
-          ) : (
-            tops.map((p, k) => {
-              const n = (p.vendidas30 / maxVenta) * LARGO_RANKING;
-              const queda = estadoQuedan(p);
-              return (
-                <div
-                  key={p.varianteId}
-                  className="rank-f"
-                  role="button"
-                  tabIndex={0}
-                  data-ps={p.varianteId}
-                  aria-label={`${nombreLargo(p)}: ${p.vendidas30} vendidas, ${queda.texto.toLowerCase()}. Ver su ficha`}
-                  onClick={() => abrirFicha(p.varianteId)}
-                >
-                  <TilePrenda prenda={p} tamano={32} />
-                  <span className="nm">
-                    <b>{p.nombre}</b>
-                    <span>
-                      {p.color} · {p.talla}
-                    </span>
-                  </span>
-                  <span className="tr">
-                    <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: n }} />
-                    <em style={{ ["--n" as string]: n }}>{p.vendidas30}</em>
-                  </span>
-                  <span className="q">
-                    <ChipEstado est={queda.est}>{queda.texto}</ChipEstado>
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>
+        <TablaAlcance tipos={tipos} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={(c) => setCategoria(c === categoria ? null : c)} />
       </section>
+
+      <div className="dos">
+        <BloqueCurva c={curva} categoria={categoria} />
+
+        <section className="tarjeta bloque entra" style={{ ["--i" as string]: 3 }}>
+          <div className="b-cab">
+            <h3 className="b-tit">Lo que más se vende{categoria ? ` · ${categoria}` : ""}</h3>
+            {categoria ? (
+              <button type="button" className="chip info quitar" onClick={quitar}>
+                Quitar filtro ✕
+              </button>
+            ) : (
+              <span className="b-nota">
+                Últimos {diasDeVentas} {plural(diasDeVentas, "día", "días")}
+              </span>
+            )}
+          </div>
+          <div className="rank">
+            {tops.length === 0 ? (
+              <p className="b-nota">{categoria || q.trim() ? "Nada con este filtro." : `Sin ventas en ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}.`}</p>
+            ) : (
+              tops.map((p, k) => {
+                const n = (p.vendidas30 / maxVenta) * LARGO_RANKING;
+                const queda = estadoQuedan(p);
+                return (
+                  <div
+                    key={p.varianteId}
+                    className="rank-f"
+                    role="button"
+                    tabIndex={0}
+                    data-ps={p.varianteId}
+                    aria-label={`${nombreLargo(p)}: ${p.vendidas30} vendidas, ${queda.texto.toLowerCase()}. Ver su ficha`}
+                    onClick={() => abrirFicha(p.varianteId)}
+                  >
+                    <TilePrenda prenda={p} tamano={32} />
+                    <span className="nm">
+                      <b>{p.nombre}</b>
+                      <span>
+                        {p.color} · {p.talla}
+                      </span>
+                    </span>
+                    <span className="tr">
+                      <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: n }} />
+                      <em style={{ ["--n" as string]: n }}>{p.vendidas30}</em>
+                    </span>
+                    <span className="q">
+                      <ChipEstado est={queda.est}>{queda.texto}</ChipEstado>
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </div>
 
       <BloqueRinde />
     </>
@@ -156,60 +169,65 @@ function Riel({ r }: { r: RielNavidad }) {
   );
 }
 
-/** La mariposa: a la izquierda lo que se vende, a la derecha lo que tienes; cada tipo es un botón que filtra. */
-function MariposaTipos({ m, categoria, onElegir }: { m: Mariposa; categoria: string | null; onElegir: (c: string) => void }) {
-  if (m.filas.length === 0) return <p className="b-nota">Todavía no hay ventas ni prendas que comparar.</p>;
-  const tip = (nombre: string, v: number, t: number) => `${nombre}: ${v} de cada 100 ventas · ${t} de cada 100 prendas que tienes`;
+/**
+ * «¿Para cuánto te alcanza?»: cada tipo, para cuánto te alcanza lo que tienes al ritmo de los días de ventas, con la línea de
+ * Navidad: lo que no llega va en ámbar con su ▲ (pídelo). Al lado, lo que tienes y cuánto de eso nunca salió al piso (antes de
+ * pedir, bájalo). Cada tipo es un botón que filtra tallas y ranking.
+ */
+function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: AlcanceTipo[]; hastaNavidad: number; categoria: string | null; onElegir: (c: string) => void }) {
+  if (tipos.length === 0) return <p className="b-nota">Todavía no hay ventas ni prendas que comparar.</p>;
+  const fin = finEjeAlcance(hastaNavidad);
+  const semanas = Math.round(hastaNavidad / 7);
   return (
-    <div className="mariposa">
-      <div className="m-cab" aria-hidden>
-        <span>◀ Se vende</span>
+    <div className="alcance" style={{ ["--nav" as string]: Math.min(1, hastaNavidad / fin) }}>
+      <div className="al-cab" aria-hidden>
         <span />
-        <span>Tienes ▶</span>
+        <span>Tipo</span>
+        <span className="eje">
+          <span className="nav-et">
+            Navidad · {semanas} {plural(semanas, "semana", "semanas")}
+          </span>
+        </span>
+        <span>Te alcanza</span>
+        <span>Lo que tienes</span>
       </div>
-      {m.filas.map((f, k) => (
-        <button
-          key={f.categoria}
-          type="button"
-          className="m-fila"
-          aria-pressed={categoria === f.categoria}
-          aria-label={`${tip(f.categoria, f.v, f.t)}${f.marca === "corto" ? ": pide más" : f.marca === "sobra" ? ": sobra" : ""}`}
-          data-tip={tip(f.categoria, f.v, f.t)}
-          onClick={() => onElegir(f.categoria)}
-        >
-          <span className="m-l">
-            {f.v}
-            <i className="cxd" style={{ ["--d" as string]: k, ["--n" as string]: f.v / m.max }} />
+      {tipos.map((t, k) => (
+        <button key={t.categoria} type="button" className={`al-f ${t.pide ? "pide" : ""}`} aria-pressed={categoria === t.categoria} onClick={() => onElegir(t.categoria)}>
+          <span className="ico">
+            <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-[18px] w-[18px]" />
           </span>
-          <span className="m-n">
-            {f.categoria}
-            {f.marca && <small className={f.marca}>{f.marca === "corto" ? "▲ pide más" : "sobra"}</small>}
+          <span className="n">
+            <b>{t.categoria}</b>
+            <small>vendiste {t.vendidas}</small>
           </span>
-          <span className="m-r">
-            <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: f.t / m.max }} />
-            {f.t}
+          <span className="p">
+            {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}
+            <span className="nav" />
+          </span>
+          <span className="v">
+            {t.pide ? "▲ " : ""}
+            {textoAlcance(t.dias)}
+          </span>
+          <span className="tienes">
+            Tienes <b>{t.tiene}</b>
+            {t.nunca ? (
+              <>
+                {" · "}
+                <span className={t.nunca * 2 >= t.tiene ? "ojo" : undefined}>
+                  {t.nunca} nunca {plural(t.nunca, "salió", "salieron")} al piso
+                </span>
+              </>
+            ) : null}
           </span>
         </button>
       ))}
-      {m.otros && (
-        <div className="m-fila otros" data-tip={tip(`Otros tipos (${m.otros.tipos.join(", ")})`, m.otros.v, m.otros.t)}>
-          <span className="m-l">
-            {m.otros.v}
-            <i className="cxd" style={{ ["--d" as string]: m.filas.length, ["--n" as string]: m.otros.v / m.max }} />
-          </span>
-          <span className="m-n">Otros tipos</span>
-          <span className="m-r">
-            <i className="cx" style={{ ["--d" as string]: m.filas.length, ["--n" as string]: m.otros.t / m.max }} />
-            {m.otros.t}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
 
 /** «Las tallas que se llevan»: por talla, se vende (tinta) contra tienes (claro); o el aviso de talla única. */
 function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | null }) {
+  const { diasDeVentas } = useAnalisis();
   const titulo = <h3 className="b-tit">Las tallas que se llevan{categoria ? ` · ${categoria}` : ""}</h3>;
   if (c.tipo !== "tallas") {
     const unica = c.tipo === "unica";
@@ -237,14 +255,14 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
       </div>
       <div className={`cols-t ${c.columnas.length > 5 ? "muchas" : ""}`}>
         {c.columnas.map((t, k) => (
-          <div key={t.talla} className="ct" data-tip={`Talla ${t.talla}: ${t.v} de cada 100 ventas · ${t.t} de cada 100 que tienes`}>
+          <div key={t.talla} className="ct" data-tip={`Talla ${t.talla}: vendiste ${t.vend} en ${diasDeVentas} ${plural(diasDeVentas, "día", "días")} · tienes ${t.tiene}`}>
             <span className="flag">{t.pideMas ? "▲ pide más" : ""}</span>
             <span className="par-c">
               <i className="v cy" style={{ ["--d" as string]: k * 2, height: `${Math.round((t.v / c.max) * 115)}px` }}>
-                <span>{t.v}</span>
+                <span>{t.vend}</span>
               </i>
               <i className="t cy" style={{ ["--d" as string]: k * 2 + 1, height: `${Math.round((t.t / c.max) * 115)}px` }}>
-                <span>{t.t}</span>
+                <span>{t.tiene}</span>
               </i>
             </span>
             <span className="nom">{t.talla}</span>
@@ -254,11 +272,11 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
       <div className="leyenda" style={{ justifyContent: "center" }}>
         <span>
           <i style={{ background: "var(--color-tinta)" }} />
-          Se vende
+          Vendiste · en {diasDeVentas} {plural(diasDeVentas, "día", "días")}
         </span>
         <span>
           <i style={{ background: "var(--color-grafico-neutro)" }} />
-          Tienes
+          Tienes · hoy
         </span>
       </div>
       {c.nota && (

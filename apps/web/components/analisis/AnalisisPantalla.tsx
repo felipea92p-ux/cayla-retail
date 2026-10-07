@@ -17,13 +17,15 @@ import { PestanaHoy } from "@/components/analisis/PestanaHoy";
 import { PestanaAcaba } from "@/components/analisis/PestanaAcaba";
 import { PestanaQuieta } from "@/components/analisis/PestanaQuieta";
 import { PestanaPedir } from "@/components/analisis/PestanaPedir";
+import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
+import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
 
-// Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cuatro pestañas (Hoy · Se está acabando · No se vende · Qué
-// pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
+// Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cinco pestañas (Hoy · Se está acabando · No se vende · Nunca salió
+// al piso · Qué pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
 // la pantalla se ve igual, con un aviso fijo arriba que dice qué falta; «Ver qué falta» lleva a «Todavía no», con el mismo aviso y
 // «Ver con los datos de hoy» para volver (decisión 2, act. 2026-10-06). La ficha de cada prenda y la hoja de confianza son hojas
 // del componente Modal (ADR-0136).
@@ -35,6 +37,7 @@ const PESTANAS: { clave: VistaAnalisis; texto: string }[] = [
   { clave: "hoy", texto: "Hoy" },
   { clave: "acaba", texto: "Se está acabando" },
   { clave: "nose", texto: "No se vende" },
+  { clave: "piso", texto: "Nunca salió al piso" },
   { clave: "pedir", texto: "Qué pedir" },
 ];
 
@@ -82,6 +85,8 @@ export function AnalisisPantalla({
   }
 
   const prendas = useMemo(() => (q.trim() ? datos.prendas.filter((p) => coincideBusqueda(p, q)) : datos.prendas), [datos.prendas, q]);
+  // Cuántos días de ventas tiene la tienda en el ERP (hasta 30), del cargador: el ritmo y «vendiste 38 en 8 días».
+  const ventana = datos.diasDeVentas;
 
   const apagarResaltado = useCallback(() => {
     raiz.current?.classList.remove("atenuar");
@@ -147,6 +152,7 @@ export function AnalisisPantalla({
       datos,
       acceso,
       prendas,
+      diasDeVentas: ventana,
       q,
       liquidarDesde,
       setLiquidarDesde,
@@ -161,7 +167,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, ventana, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -213,6 +219,8 @@ export function AnalisisPantalla({
 
   const cuentaAcaba = recomienda ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
   const cuentaQuietas = recomienda ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
+  const cuentaPiso = recomienda && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
 
   let contenido;
@@ -220,19 +228,28 @@ export function AnalisisPantalla({
   else if (vista === "hoy") contenido = <PestanaHoy />;
   else if (vista === "acaba") contenido = <PestanaAcaba />;
   else if (vista === "nose") contenido = <PestanaQuieta />;
+  else if (vista === "piso") contenido = <PestanaPiso />;
   else contenido = <PestanaPedir />;
 
   return (
     <Contexto.Provider value={contexto}>
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
-        <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve y qué pedir.">
+        <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
           <label className="buscar">
             <Icono nombre="lupa" />
             <input type="search" placeholder="Busca una prenda" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" aria-label="Busca una prenda" />
           </label>
         </EncabezadoPagina>
 
-        <FilaPestanas vista={vista} irA={irA} cuentaAcaba={cuentaAcaba} cuentaQuietas={cuentaQuietas} puedeHablar={datos.puedeHablar} onConfianza={() => setConfianza(true)} />
+        <FilaPestanas
+          vista={vista}
+          irA={irA}
+          cuentaAcaba={cuentaAcaba}
+          cuentaQuietas={cuentaQuietas}
+          cuentaPiso={cuentaPiso}
+          puedeHablar={datos.puedeHablar}
+          onConfianza={() => setConfianza(true)}
+        />
 
         {/* El aviso fijo mientras la tienda no cumple: con los datos de hoy dice qué falta; en «Todavía no», cómo volver. */}
         {modo !== "confiable" && (
@@ -278,13 +295,14 @@ export function AnalisisPantalla({
   );
 }
 
-// Las cuatro preguntas son pestañas de vista (cambian de sección): la pieza única del ERP, el vidrio en mayúsculas (ADR-0358,
+// Las cinco preguntas son pestañas de vista (cambian de sección): la pieza única del ERP, el vidrio en mayúsculas (ADR-0358,
 // Felipe 2026-10-06: «incluye lo de Análisis»). La vista es estado de la pantalla, no URL: `tablist` con flechas.
 function FilaPestanas({
   vista,
   irA,
   cuentaAcaba,
   cuentaQuietas,
+  cuentaPiso,
   puedeHablar,
   onConfianza,
 }: {
@@ -292,6 +310,7 @@ function FilaPestanas({
   irA: (v: VistaAnalisis) => void;
   cuentaAcaba: number | null;
   cuentaQuietas: number | null;
+  cuentaPiso: number | null;
   puedeHablar: boolean;
   onConfianza: () => void;
 }) {
@@ -300,6 +319,7 @@ function FilaPestanas({
     // El texto para lector va solo con un número: «— se están acabando» no dice nada.
     if (p.clave === "acaba") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
     if (p.clave === "nose") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
+    if (p.clave === "piso") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
     return { clave: p.clave, etiqueta: p.texto };
   });
 
