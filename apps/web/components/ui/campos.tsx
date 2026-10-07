@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { Children, Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
@@ -904,25 +905,29 @@ const PESO_BOTON = {
 } as const;
 
 /* El botón de la acción principal y su pareja (ADR-0358, «Botón Nuevo / Registrar»: Felipe eligió mirando el 2026-10-07 la forma B,
-   versalitas de 11 px y 40 px de alto). Su movimiento es parte de la pieza y no se pierde al migrar: al pasar el mouse cruza un barrido
-   de luz, al presionar se encoge un 3 %, mientras guarda corre un hilo abajo, y el foco del teclado es el anillo único (ADR-0351). Con
-   `href` es `<BotonEnlace>`: la misma cara y el mismo movimiento para lo que navega (las acciones de una cabecera). */
+   versalitas de 11 px y 40 px de alto). Su movimiento es el ÚNICO de los botones del ERP (`.mov-boton` en globals.css, ronda 3: la D):
+   sube con su sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar, y
+   mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es `<BotonEnlace>`; con un archivo o
+   un enlace afuera, `<BotonAncla>`. */
 const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) =>
-  `label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] transition-all ease-cayla active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`;
+  `mov-boton label-cayla rounded-md px-4 py-3 text-[11px] disabled:cursor-not-allowed ${PESO_BOTON[peso]} ${className}`;
 
-/** Barrido de luz al pasar el mouse: cruza una vez y no deja nada pintado. */
-function BrilloBoton({ peso }: { peso: keyof typeof PESO_BOTON }) {
+/**
+ * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:
+ * «le falta animación en el +»). El lector de pantalla oye «Registrar gasto», sin el signo. Lo demás del texto va en un solo bloque,
+ * así un `Agregar {año}` no se separa con el espacio de la fila.
+ */
+function conMas(children: ReactNode): ReactNode {
+  const partes = Children.toArray(children);
+  const primero = partes[0];
+  if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
   return (
-    // Es el único gradiente del sistema, y existe solo como movimiento: un botón que solo cambia de color de golpe es justamente el
-    // «seco» que había que sacar. En reposo la barra es INVISIBLE (`opacity-0`), no solo «fuera de cuadro»: inclinada 12°, su esquina
-    // entra ~4-5 px en el botón y se veía como una esquina rosada en el borde inferior izquierdo aun sin mouse. La animación la enciende
-    // (`cayla-brillo` fija `opacity: 1`) y al terminar vuelve a apagarse.
-    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
-      <span
-        className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 opacity-0 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
-          peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
-        }`}
-      />
+    <span className="inline-flex items-center gap-1.5">
+      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
+      <span>
+        {primero.replace(/^\s*\+\s*/, "")}
+        {partes.slice(1)}
+      </span>
     </span>
   );
 }
@@ -939,8 +944,7 @@ export function Boton({
 }) {
   return (
     <button {...props} disabled={props.disabled || cargando} className={claseBoton(peso, className)}>
-      <BrilloBoton peso={peso} />
-      <span className="relative">{children}</span>
+      <span className="relative">{conMas(children)}</span>
       {cargando && (
         <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
           <span
@@ -961,8 +965,7 @@ export function BotonAncla({
 }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { peso?: keyof typeof PESO_BOTON }) {
   return (
     <a {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
-      <BrilloBoton peso={peso} />
-      <span className="relative inline-flex items-center gap-2">{children}</span>
+      <span className="relative inline-flex items-center gap-2">{conMas(children)}</span>
     </a>
   );
 }
@@ -976,8 +979,7 @@ export function BotonEnlace({
 }: React.ComponentProps<typeof Link> & { peso?: keyof typeof PESO_BOTON }) {
   return (
     <Link {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
-      <BrilloBoton peso={peso} />
-      <span className="relative inline-flex items-center gap-1.5">{children}</span>
+      <span className="relative inline-flex items-center gap-1.5">{conMas(children)}</span>
     </Link>
   );
 }

@@ -149,7 +149,7 @@ export function NotaCreditoVistaRapida({
                   type="button"
                   disabled={f.bloqueada}
                   onClick={() => onRegistrar(f.compraId)}
-                  className="label-cayla boton-brillo rounded-md bg-tinta px-3 py-3 text-[11px] text-crema transition-colors hover:bg-rojo disabled:pointer-events-none disabled:opacity-40"
+                  className="mov-boton label-cayla rounded-md bg-tinta px-3 py-3 text-[11px] text-crema hover:bg-rojo-profundo disabled:pointer-events-none disabled:opacity-40"
                 >
                   {f.bloqueada ? "Aún no se puede" : "Registrar nota"}
                 </button>

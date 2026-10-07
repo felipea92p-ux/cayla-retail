@@ -262,7 +262,7 @@ export function BotonPrincipal({ onClick, children, disabled = false, monto }: {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-tinta/85 disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>
@@ -275,7 +275,7 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      className="mov-boton label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
     >
       {children}
     </button>
@@ -289,7 +289,7 @@ export function BotonRojo({ onClick, children, disabled = false, monto }: { onCl
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
+      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>

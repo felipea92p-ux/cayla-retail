@@ -182,10 +182,8 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           </p>
         </div>
         <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })}>
-          <span className="inline-flex items-center gap-2">
-            + Registrar nota
-            <kbd className="rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
-          </span>
+          + Registrar nota
+          <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
         </Boton>
       </div>
 
