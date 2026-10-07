@@ -12,3 +12,8 @@ Felipe se lleva: la página de antes y después por módulo y las preguntas abie
 Qué hice: la página `unificar/elegir.mjs` (39 opciones con su captura: lo que existe, lo aplicado y las propuestas); con su elección traje `main` (la flecha redonda vivía ahí), renumeré el ADR a 0357 (el 0354 ya era el historial de la prenda), cambié la piel de las piezas y pasé a ellas Finanzas, Comprobantes y la billetera de Traslados; fotos antes/después de 36 pantallas con un recuadro numerado en cada pieza que cambió.
 Por qué así: elegir por descripción falló (no le gustó lo aplicado el 2026-10-06); y como la ronda 1 ya había pasado las pantallas por pocas piezas, el cambio fue de piel y no de 100 archivos.
 Felipe se lleva: `apps/web/unificar/.salida/fotos-despues-eleccion/comparar.html` para aprobar; quedan preguntas en cada registro (`docs/unificar/*.md`).
+
+## 2026-10-07 (Felipe respondió las preguntas abiertas de la ronda 1 de /unificar, viéndolas con la pantalla real)
+Qué hice: una página con las seis preguntas (pantalla real de hoy y cómo quedaría, con el DOM cambiado en vivo). Con sus respuestas: la flecha de Bajar al piso y Por regularizar sale siempre (el módulo ya lo exige el layout), Producción dice «S/ 0.00» donde hay cero, Apartados en escritorio pasa a `<Pestanas>`, los segmentos de 4 opciones se quedan, y la tarjeta «Caja» del Inicio conserva «Abierta/Cerrada» en grande.
+Por qué así: mirar antes de decidir (el 2026-10-06 elegir por descripción falló); y el «—» punteado significa «no hay dato», no «cero».
+Felipe se lleva: las cuatro pantallas ya cambiadas; falta enviarle a Dany el aviso (Rendimiento y Clientes) y correr la ronda 2 (`estado`, `accion.nuevo`/`boton`).

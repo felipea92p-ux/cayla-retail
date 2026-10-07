@@ -1,4 +1,4 @@
-import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -42,7 +42,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         sede={esLider && !unaSede ? "Tus tiendas" : etiqueta}
         titulo="Ventas sin registrar"
         subtitulo="Prendas que caja vendió antes de estar en el sistema. Dile al sistema qué prenda era cada una y el stock queda cuadrado."
-        volver={veModulo(persona, "existencias") && <Volver href={volverA} a="Existencias" />}
+        volver={<Volver href={volverA} a="Existencias" />}
       />
       <PorRegularizarLista
         filas={filas}

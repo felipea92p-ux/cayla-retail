@@ -41,12 +41,12 @@ sede, sin acceso, 404), que es la única acción de su tarjeta y va con los boto
 Atrás» de Nuevo producto, «← Ticket»), el «Volver» que desiste de una confirmación (`accion.cancelar`) y la página o el mes anterior
 (`accion.anterior`).
 
-## Preguntas abiertas para Felipe
+## Preguntas resueltas (Felipe, 2026-10-07)
 
-1. **La cuenta que no ve la pantalla de arriba.** En Bajar prendas al piso y en Por regularizar, la vuelta solo aparece si la cuenta ve
-   Existencias. ¿Que lleve a Inicio en ese caso?
-2. **Las pantallas sin `EncabezadoPagina`** (Compras, Caja, Recibir, el resto de Catálogo) muestran la flecha sola arriba del título. ¿Sus
-   cabeceras pasan a `EncabezadoPagina`, con la flecha junto a la sede? Es decidir la cabecera de esos módulos.
+1. **La cuenta que no ve la pantalla de arriba.** No había nada que decidir: Bajar prendas al piso y Por regularizar están detrás del módulo
+   «Existencias» (su `layout.tsx`), así que quien no lo ve cae en «Sin acceso» antes de ver la cabecera. Se quitó el chequeo sobrante y la
+   flecha sale siempre.
+2. **Las pantallas sin `EncabezadoPagina`** (Compras, Caja, Recibir, el resto de Catálogo): sigue abierta, es decidir la cabecera de esos módulos.
 
 ## Deuda
 
