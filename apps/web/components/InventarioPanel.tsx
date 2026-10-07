@@ -316,7 +316,7 @@ export function InventarioPanel({
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido } | null>(() => {
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; vista?: "ficha" } | null>(() => {
     const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
     return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
   });
@@ -496,7 +496,7 @@ export function InventarioPanel({
   // La prenda abierta sale de TODO el stock, no de lo filtrado: si se abre escaneando o tras un guardado cambia su «Acción
   // hoy», el detalle no se cierra solo por dejar de coincidir con un filtro.
   // Los nombres de las tiendas a las que se les puede pedir: la red de stock viene por nombre de sede.
-  const tiendasParaPedir = useMemo(() => new Set(sedesParaPedir.map((x) => x.nombre)), [sedesParaPedir]);
+  const tiendasParaPedir = useMemo(() => new Set(sedesParaPedir.map((x) => x.id)), [sedesParaPedir]);
   // Cada prenda (modelo + color) con TODAS sus tallas de la sede: la tarjeta las muestra todas cuando solo filtra «Hoy» o «Condición».
   const prendaPorClave = useMemo(() => new Map(agruparPorPrenda(stock).map((p) => [p.clave, p])), [stock]);
   // Lo que el filtro de la lista marca dentro del panel («Sin stock atrás en este modelo · 2»): «Hoy» o «Condición», como las tarjetas.
@@ -948,7 +948,11 @@ export function InventarioPanel({
             // Las acciones de la tarjeta abren el panel de la talla YA en su paso (maqueta: sin ventana aparte).
             puedeEnviar={veTraslados && enSedeActiva && destinosParaEnviar.length > 0}
             onEnviar={(_tallas, prenda) => prenda && lanzarDesdeTarjeta(prenda, "enviar")}
-            onReponer={(prenda) => lanzarDesdeTarjeta(prenda, "colgar")}
+            // «Colgar en el piso» del pie abre SIEMPRE «Colgar varias», la tabla del modelo (Felipe, 2026-10-07).
+            onColgarVarias={(prenda) => setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } })}
+            puedeAjustar={puedeAjustarAqui}
+            onAjustar={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "ajustar" } })}
+            onFicha={(prenda) => setAbierta({ clave: prenda.clave, vista: "ficha" })}
             onSubir={(prenda) => lanzarDesdeTarjeta(prenda, "subir")}
             puedePedir={veTraslados && esTienda && enSedeActiva}
             sedesParaPedir={sedesParaPedir}
@@ -960,6 +964,8 @@ export function InventarioPanel({
             tallasCompletas={soloHoyOCondicion ? (prenda) => prendaPorClave.get(prenda.clave)?.tallas ?? prenda.tallas : undefined}
             // Tocar una talla abre el panel de ESA talla sin salir de las tarjetas.
             onAbrirTalla={(prenda, fila) => abrirPrenda(prenda, fila.varianteId)}
+            // Tocar una talla con algo en almacén: el panel de esa talla, ya en «Colgar en el piso» (Felipe, 2026-10-07).
+            onColgarTalla={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" } })}
           />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
@@ -972,21 +978,18 @@ export function InventarioPanel({
                 Exportar CSV
               </button>
             </span>
-            {/* La leyenda del riel de las tarjetas (2026-10-04): qué dice cada etiqueta y qué significan sus dos tonos. */}
+            {/* La leyenda de la tabla de las tarjetas (2026-10-07): qué dicen sus dos tonos. */}
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-tinta/15 bg-papel" />
-                  Cada etiqueta es una talla: en grande las colgadas, debajo «+N» las guardadas
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-ambar/[0.14]" />
+                  Falta colgar
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.08]" />
-                  Por colgar
+                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] bg-rojo/[0.11]" />
+                  Se acabó en esta sede
                 </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
-                  Sin nada en esta sede
-                </span>
+                <span>Toca una talla para colgarla</span>
               </span>
             )}
           </div>
@@ -1329,6 +1332,7 @@ export function InventarioPanel({
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
           flujoInicial={abierta?.flujo ?? null}
+          vistaInicial={abierta?.vista}
           ubicacionId={ubicacionId}
           sedeNombre={sedeNombre}
           separa={separa}

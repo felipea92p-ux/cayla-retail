@@ -13,15 +13,17 @@
 
 import { hoyDeTalla } from "./existencias-hoy";
 import type { FilaPrenda } from "./existencias-prendas";
+import type { SedeConStockId } from "./stock-por-sede";
 
 type FilaMision = Pick<FilaPrenda, "varianteId" | "pisoDisponible" | "almacenDisponible" | "disponible" | "planPiso"> & {
-  enRed?: readonly { sede: string; cantidad: number }[];
+  enRed?: readonly SedeConStockId[];
 };
 
-/** ¿Esta talla es trabajo de hoy? Por colgar con algo atrás, o sin nada aquí y una tienda a la que pedirle la tiene. */
+/** ¿Esta talla es trabajo de hoy? Por colgar con algo atrás, o sin nada aquí y una tienda a la que pedirle la tiene.
+ *  `tiendas`: ids de sede (`ubicaciones.id`), no nombres. */
 export function esObjetivo(f: FilaMision, tiendas: ReadonlySet<string>): boolean {
   if (hoyDeTalla(f) === "por_colgar" && (f.almacenDisponible ?? 0) > 0) return true;
-  return f.disponible <= 0 && (f.enRed ?? []).some((r) => r.cantidad > 0 && tiendas.has(r.sede));
+  return f.disponible <= 0 && (f.enRed ?? []).some((r) => r.cantidad > 0 && tiendas.has(r.ubicacionId));
 }
 
 export function objetivosDeHoy(filas: readonly FilaMision[], tiendas: ReadonlySet<string>): string[] {

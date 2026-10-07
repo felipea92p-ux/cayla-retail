@@ -334,3 +334,27 @@ DECIDÍ: la información de cada talla vive en su botón, y del modelo, en una l
 DESCARTÉ: dejar «En este modelo» más compacto (una línea de nombres de talla): seguiría nombrando dos veces lo mismo, que fue el reclamo.
 SE ROMPE SI: alguien en tablet no entiende el punto en el círculo de otro color (lo explica al pasar el mouse y al lector de pantalla,
 no con el dedo). La línea bajo las tallas nombra esos colores cuando es por lo que falta; cuando es por «otra sede», hay que tocarlo.
+
+## Actualización 2026-10-07 — tarjeta compacta, cajón en lista y «Colgar varias» en tabla
+
+Felipe eligió mirando (maquetas y prototipo en `docs/maquetas/existencias-tarjeta-cajon-2026-10/`, contrato en su `LOGICA.md`):
+
+- **Tarjeta:** una tabla «En el piso / Almacén» por talla (lo libre). Falta colgar = piso en ámbar; **agotada = la columna entera en
+  rojo suave** y el pie dice «Se acabó: L» (ya no hay botón «Pedir talla X»). Toda la tarjeta abre el cajón; tocar una talla con
+  almacén lo abre listo para colgarla. La percha sola pasa a **«Colgar en el piso»** con su nombre (abre siempre «Colgar varias») y
+  **«Más ⌄»** con clic (Subir, Enviar, Pedir, Ajustar, Ver ficha). «Todo en el piso» solo si cada talla con algo libre tiene una colgada.
+- **Cajón «Esta talla»:** número grande + UN aviso (`insigniaDeTalla`, elegido entre las mismas respuestas de «¿Hay? ¿Colgar? ¿Pedir?»),
+  cuatro casillas (apartadas y dañadas tocables), las acciones en una lista; «Ficha» pasa a enlace y el ritmo a «¿Cómo se vende?».
+- **«Todas»:** opción B, cada celda partida en piso (verde) y almacén.
+- **«Colgar varias»:** tabla tallas × colores como la de cantidades de Nuevo producto; abre con 1 en cada talla que el motor pide
+  (mínimo 1 colgada, confirmado por Felipe); con el piso en pausa no se llena sola. **Paso de una talla:** «Así va a quedar».
+- **Textos:** una frase corta (Felipe: «con una frase corta se debe entender»).
+
+DECIDÍ: el estado de cada talla sale de UNA regla (`celdaTarjeta`/`estadoTalla`) que usan la tarjeta, el cajón y «Todas»; el ámbar
+sigue siempre al motor del piso.
+DESCARTÉ: marcar en ámbar con los números cuando el piso está en pausa: contradice ADR-0328 (decisión 5) y el cajón y la tarjeta
+dirían cosas distintas.
+**Excepción a ADR-0169 (rojo, máx. 2 por pantalla):** la talla agotada usa `rojo` al 10–12 % con texto `rojo-profundo`, pedido
+explícito de Felipe; con varias agotadas habrá más de dos. Si se ve ruidoso, se vuelve a decidir con él.
+SE ROMPE SI: alguien cambia el ámbar o el rojo en un solo lugar sin la regla compartida; `lib/existencias-tarjeta-compacta.test.ts` y
+`lib/existencias-acciones.test.ts` lo vigilan.

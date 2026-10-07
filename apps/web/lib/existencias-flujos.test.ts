@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { problemasReporte } from "./danadas-reglas";
 import {
+  asiQueda,
   faltanHasta,
   maxCantidad,
   mejorOrigen,
@@ -154,10 +155,10 @@ describe("a qué tienda pedir", () => {
     { id: "aqp", nombre: "Tienda Arequipa" },
   ];
   it("la que más tiene, entre las tiendas a las que se puede pedir", () => {
-    expect(mejorOrigen([{ sede: "Tienda Lima", cantidad: 1 }, { sede: "Tienda Arequipa", cantidad: 3 }], sedes)?.id).toBe("aqp");
+    expect(mejorOrigen([{ sede: "Lima", ubicacionId: "lim", cantidad: 1 }, { sede: "Arequipa", ubicacionId: "aqp", cantidad: 3 }], sedes)?.id).toBe("aqp");
   });
   it("el Taller no cuenta, y sin nadie que tenga es null", () => {
-    expect(mejorOrigen([{ sede: "Taller", cantidad: 9 }], sedes)).toBeNull();
+    expect(mejorOrigen([{ sede: "Taller", ubicacionId: "taller", cantidad: 9 }], sedes)).toBeNull();
     expect(mejorOrigen(undefined, sedes)).toBeNull();
   });
 });
@@ -178,5 +179,17 @@ describe("Reportar dañada pregunta a su validación de siempre (no inventa regl
             n++;
           }
     expect(n).toBe(4 * 3 * 4 * 4);
+  });
+});
+
+describe("asiQueda: el paso Colgar / Subir dice cómo queda cada lado", () => {
+  it("colgar saca del almacén y suma al piso", () => {
+    expect(asiQueda("colgar", 2, { piso: 0, almacen: 3 })).toEqual({ de: { lugar: "almacen", antes: 3, despues: 1 }, a: { lugar: "piso", antes: 0, despues: 2 } });
+  });
+  it("subir hace lo contrario", () => {
+    expect(asiQueda("subir", 1, { piso: 2, almacen: 0 })).toEqual({ de: { lugar: "piso", antes: 2, despues: 1 }, a: { lugar: "almacen", antes: 0, despues: 1 } });
+  });
+  it("en otros pasos no hay viaje que dibujar", () => {
+    expect(asiQueda("enviar", 1, { piso: 1, almacen: 1 })).toBeNull();
   });
 });

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
-import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
+import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
@@ -223,7 +223,7 @@ export type FilaExistencias = FilaStock & {
    *  todavía no llegaron (`en_transito`; un traslado con diferencia ya entró al stock, ADR-0239). */
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
-  enRed: SedeConStock[];
+  enRed: SedeConStockId[];
   /** Ritmo reciente (7 días, ledger único — `existencias-ritmo.ts`, 2026-09-25). Solo tiendas;
    *  ausente o null = no se pudo calcular (falló la RPC; ver `coberturaFallo` en el panel). */
   ritmoReciente?: RitmoReciente | null;

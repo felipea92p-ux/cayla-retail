@@ -66,12 +66,6 @@ export function tallasParaReponer(filas: readonly FilaDeTalla[]): TallaParaRepon
   }));
 }
 
-/** Se puede bajar si hay algo LIBRE en el almacén. No pide que «Acción hoy» diga reponer: quien ve una talla con 3 en el
- *  piso y 4 atrás puede querer subir una más, y la base solo exige que haya. */
-export function sePuedeBajarTalla(t: Pick<TallaParaReponer, "almacen">): boolean {
-  return t.almacen > 0;
-}
-
 export function cantidadDe(cantidades: Cantidades, varianteId: string): number {
   return cantidades[varianteId] ?? 0;
 }
@@ -150,13 +144,6 @@ export function fraseDeLoQueFalta(prendas: readonly PrendaParaReponer[]): string
 /** «Lo que falta en el piso»: una unidad de cada talla que falta. */
 export function cantidadesDeLoQueFalta(prendas: readonly PrendaParaReponer[]): Cantidades {
   return Object.fromEntries([...tallasQueFaltan(prendas)].map((id) => [id, 1]));
-}
-
-/** «Todo el almacén»: de cada talla, todo lo libre que hay atrás. */
-export function cantidadesDeTodoElAlmacen(prendas: readonly PrendaParaReponer[]): Cantidades {
-  const todo: Record<string, number> = {};
-  for (const p of prendas) for (const f of p.tallas) if (Math.max(0, f.almacenDisponible ?? 0) > 0) todo[f.varianteId] = Math.max(0, f.almacenDisponible ?? 0);
-  return todo;
 }
 
 /** Un color del modelo ya leído por la ventana: sin nulos, con la clave que lo distingue de los demás. */

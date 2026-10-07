@@ -21,6 +21,7 @@
 
 import { problemasReporte, type CampoReporte } from "./danadas-reglas";
 import { NOTA_MINIMA_ENCONTRE } from "./ajuste-reglas";
+import { cantidadEnSede, type SedeConStockId } from "./stock-por-sede";
 
 export type TipoFlujo = "colgar" | "colgarVarias" | "subir" | "enviar" | "pedir" | "ajustar" | "danada";
 
@@ -264,6 +265,18 @@ export function totalVarias(d: DatosFlujo): number {
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 
+/** «Así va a quedar» del paso Colgar / Subir de una talla (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`): de dónde sale y a
+ *  dónde llega, con lo que hay antes y lo que queda después. Lo que viaja va entre las dos cajas. `null` en los demás pasos. */
+export function asiQueda(tipo: TipoFlujo, n: number, c: Pick<ContextoFlujo, "piso" | "almacen">): { de: LadoMovido; a: LadoMovido } | null {
+  const k = Math.max(0, n);
+  const piso = (despues: number): LadoMovido => ({ lugar: "piso", antes: c.piso, despues });
+  const almacen = (despues: number): LadoMovido => ({ lugar: "almacen", antes: c.almacen, despues });
+  if (tipo === "colgar") return { de: almacen(c.almacen - k), a: piso(c.piso + k) };
+  if (tipo === "subir") return { de: piso(c.piso - k), a: almacen(c.almacen + k) };
+  return null;
+}
+export type LadoMovido = { lugar: "piso" | "almacen"; antes: number; despues: number };
+
 /** El botón del último paso, con el verbo y el número: «Colgar 3», «Subir 2 a almacén», «Enviar pedido». */
 export function verboFinal(tipo: TipoFlujo, d: DatosFlujo, sedeNombre?: string | null): string {
   const n = d.n ?? 0;
@@ -373,16 +386,16 @@ export function textoHecho(tipo: TipoFlujo, d: DatosFlujo, sede?: string | null)
   }
 }
 
-/** La tienda a la que conviene pedir una talla: entre las que se le puede pedir (`sedesParaPedir`, por nombre como viene la red),
+/** La tienda a la que conviene pedir una talla: entre las que se le puede pedir (`sedesParaPedir`, cruzadas por id de sede),
  *  la que más tiene. `null`: ninguna la tiene (el Taller no cuenta: no se le pide). Lo usan el «Pedir» de la tarjeta y el de las
  *  filas «agotada: en otras sedes» del panel. */
 export function mejorOrigen(
-  enRed: readonly { sede: string; cantidad: number }[] | undefined,
+  enRed: readonly SedeConStockId[] | undefined,
   sedes: readonly { id: string; nombre: string }[]
 ): SedeConCantidad | null {
   return (
     sedes
-      .map((s) => ({ ...s, cantidad: (enRed ?? []).find((r) => r.sede === s.nombre)?.cantidad ?? 0 }))
+      .map((s) => ({ ...s, cantidad: cantidadEnSede(enRed, s.id) }))
       .filter((s) => s.cantidad > 0)
       .sort((a, b) => b.cantidad - a.cantidad)[0] ?? null
   );

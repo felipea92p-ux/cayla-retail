@@ -6,7 +6,6 @@ import {
   leerCantidadTecleada,
   lineasDeMover,
   lineasDeMoverModelo,
-  sePuedeBajarTalla,
   tallasParaReponer,
   textoFilaSinAlcance,
   topeDeTalla,
@@ -22,7 +21,7 @@ describe("tallasParaReponer: la ventana ve TODAS las tallas, no una", () => {
   it("lista la S y la M (antes solo aparecía la S) y también la que no tiene nada atrás", () => {
     const t = tallasParaReponer([S, M, L]);
     expect(t.map((x) => x.talla)).toEqual(["S", "M", "L"]);
-    expect(t.map(sePuedeBajarTalla)).toEqual([true, true, false]);
+    expect(t.map((x) => x.almacen)).toEqual([1, 2, 0]);
   });
 
   it("no inventa cifras: un nulo (tienda que no separa piso y almacén) es 0, y una talla sin nombre es «Única»", () => {
@@ -33,7 +32,7 @@ describe("tallasParaReponer: la ventana ve TODAS las tallas, no una", () => {
   it("una cifra negativa (stock y libro que no cuadran) nunca ofrece bajar", () => {
     const [t] = tallasParaReponer([{ varianteId: "x", talla: "S", pisoDisponible: -2, almacenDisponible: -1 }]);
     expect(t.piso).toBe(0);
-    expect(sePuedeBajarTalla(t)).toBe(false);
+    expect(t.almacen).toBe(0);
   });
 });
 
@@ -162,7 +161,7 @@ describe("un MODELO con todos sus colores (ADR-0317)", () => {
 });
 
 // ── La ventana de colgar dice qué falta y llena con un toque (2026-10-05) ───────────────────────────────────
-import { cantidadesDeLoQueFalta, cantidadesDeTodoElAlmacen, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
+import { cantidadesDeLoQueFalta, fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
 
 const POR_COLGAR = { requisito: 1, accion: "por_colgar" as const };
 const MANTENER = { requisito: 1, accion: "mantener" as const };
@@ -190,14 +189,13 @@ describe("lo que falta en el piso", () => {
     expect(fraseDeLoQueFalta([MODELO[1]])).toBeNull();
   });
 
-  it("«Lo que falta en el piso» pone UNA de cada talla que falta; «Todo el almacén» pone todo lo libre atrás", () => {
+  it("«Lo que falta en el piso» pone UNA de cada talla que falta", () => {
     expect(cantidadesDeLoQueFalta(MODELO)).toEqual({ a26: 1, a28: 1 });
-    expect(cantidadesDeTodoElAlmacen(MODELO)).toEqual({ a26: 2, a28: 3, a30: 2, c30: 4 });
   });
 
   it("los atajos nunca pasan de lo libre: lo que arman cabe en las líneas que viajan a la base", () => {
     const colores = coloresParaMover(MODELO);
-    for (const cantidades of [cantidadesDeLoQueFalta(MODELO), cantidadesDeTodoElAlmacen(MODELO)]) {
+    for (const cantidades of [cantidadesDeLoQueFalta(MODELO)]) {
       const lineas = lineasDeMoverModelo(colores, cantidades, "bajar");
       expect(lineas.reduce((n, l) => n + l.cantidad, 0)).toBe(Object.values(cantidades).reduce((a, b) => a + b, 0));
     }
