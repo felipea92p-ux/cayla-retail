@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeftRight, Bandage, Barcode, Check, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
+import { Archive, ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -16,7 +16,9 @@ import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { accionesDeTalla, origenesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
-import { aclaracionDeLaCaja, desgloseDePrenda, estadoTalla, lineaDeLaSuma, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { celdaTarjeta } from "@/lib/existencias-tarjeta-compacta";
+import { insigniaDeTalla } from "@/lib/existencias-panel-talla";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
@@ -55,18 +57,21 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
   ficha: ClipboardList,
 };
 
-/** «Qué toca»: el color de la respuesta corta y su punto (ámbar = hay que hacerlo aquí, pizarra = informativo o afuera, verde = está bien). */
-const TONO_QUE_TOCA: Record<TonoQueToca, { texto: string; punto: string }> = {
-  ambar: { texto: "text-ambar-profundo", punto: "bg-ambar" },
-  pizarra: { texto: "text-pizarra", punto: "bg-pizarra" },
-  verde: { texto: "text-verde", punto: "bg-verde" },
+
+/** La insignia junto al número grande (`insigniaDeTalla`): rojo = se acabó, ámbar = falta colgar, pizarra = informativo, verde = bien. */
+const TONO_INSIGNIA_TALLA: Record<TonoQueToca | "rojo", string> = {
+  rojo: "bg-rojo/[0.11] text-rojo-profundo",
+  ambar: "bg-ambar/[0.13] text-ambar-profundo",
+  pizarra: "bg-pizarra/[0.12] text-pizarra",
+  verde: "bg-verde/[0.11] text-verde",
 };
 
 const CLASE_TALLA = {
   normal: "border-sand bg-crema",
   por_colgar: "border-ambar/35 bg-ambar/[0.10]",
   sin_atras: "border-sand bg-crema",
-  sin_stock: "border-dashed border-sand bg-transparent text-taupe",
+  // Agotada (nada libre en la sede): rojo suave, como la columna de la tarjeta (2026-10-07).
+  sin_stock: "border-rojo/35 bg-rojo/[0.08] text-rojo-profundo",
 } as const;
 
 const solesDe = (n: number | null | undefined) => (n == null ? null : `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
@@ -98,6 +103,7 @@ export function PanelTalla({
   claveInicial,
   varianteInicial,
   flujoInicial = null,
+  vistaInicial,
   ubicacionId,
   sedeNombre,
   separa,
@@ -126,6 +132,8 @@ export function PanelTalla({
   colores: Prenda[];
   claveInicial: string;
   varianteInicial?: string;
+  /** Abrir en otra vista que «Esta talla» («Ver ficha» del menú «Más» de la tarjeta). */
+  vistaInicial?: "ficha";
   /** Abrir directamente en un paso (acción rápida de la tarjeta, «Colgar primero»). Cambia con cada pedido. */
   flujoInicial?: FlujoPedido | null;
   ubicacionId: string;
@@ -161,18 +169,20 @@ export function PanelTalla({
   onCerrar: () => void;
 }) {
   const router = useRouter();
-  const [vista, setVista] = useState<Vista>("talla");
+  const [vista, setVista] = useState<Vista>(vistaInicial ?? "talla");
   const [clave, setClave] = useState(claveInicial);
   const [varianteId, setVarianteId] = useState<string | undefined>(varianteInicial);
   const [flujo, setFlujo] = useState<FlujoPedido | null>(flujoInicial);
   const [hecho, setHecho] = useState<string | null>(null);
+  // «¿Cómo se vende?» del pie: el ritmo y el código, plegados (2026-10-07).
+  const [verRitmo, setVerRitmo] = useState(false);
   // Cada vez que la tarjeta pide algo nuevo (otra talla, otra acción rápida), el panel lo toma sin cerrarse ni abrirse de nuevo.
-  const [pedida, setPedida] = useState({ claveInicial, varianteInicial, flujoInicial });
-  if (pedida.claveInicial !== claveInicial || pedida.varianteInicial !== varianteInicial || pedida.flujoInicial !== flujoInicial) {
-    setPedida({ claveInicial, varianteInicial, flujoInicial });
+  const [pedida, setPedida] = useState({ claveInicial, varianteInicial, flujoInicial, vistaInicial });
+  if (pedida.claveInicial !== claveInicial || pedida.varianteInicial !== varianteInicial || pedida.flujoInicial !== flujoInicial || pedida.vistaInicial !== vistaInicial) {
+    setPedida({ claveInicial, varianteInicial, flujoInicial, vistaInicial });
     setClave(claveInicial);
     setVarianteId(varianteInicial);
-    setVista("talla");
+    setVista(vistaInicial ?? "talla");
     setFlujo(flujoInicial);
     setHecho(null);
   }
@@ -223,7 +233,6 @@ export function PanelTalla({
     puedeColgar: puedeReponer,
     puedePedir: puedePedir && sedesParaPedir.length > 0,
   });
-  const desglose = desgloseDePrenda({ piso: fila.pisoDisponible, almacen: fila.almacenDisponible, apartado: fila.apartado, danado: fila.danado ?? 0 });
   // El ritmo es del COLOR, todas sus tallas juntas, como la maqueta (2026-10-06): una talla sola casi nunca junta las jornadas que pide la
   // regla de Felipe para decir una tasa (3, 2026-09-25), y el panel quedaba en «Poco tiempo…». De la talla va debajo un hecho, no una
   // tasa: cuántas se vendieron en la ventana del ritmo.
@@ -247,7 +256,19 @@ export function PanelTalla({
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
   // Cuánto tiene cada otra sede de esta talla: va bajo «¿Pedir?» (o bajo «¿Hay?» donde no se separa piso y almacén y no hay «¿Pedir?»).
   const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
-  const filaConSedes = queToca.some((q) => q.tema === "pedir") ? "pedir" : "hay";
+  const insignia = insigniaDeTalla(queToca);
+  // «Todas»: las sumas del modelo entero (todos los colores) y cuántas tallas faltan colgar o se acabaron.
+  const tallasModelo = colores.flatMap((c) => c.tallas);
+  const sumaModelo = tallasModelo.reduce(
+    (acc, t) => {
+      const c = celdaTarjeta(t, separa);
+      return { piso: acc.piso + c.piso, almacen: acc.almacen + c.almacen, apartado: acc.apartado + t.apartado, danado: acc.danado + (t.danado ?? 0), total: acc.total + c.piso + c.almacen + t.apartado + (t.danado ?? 0) };
+    },
+    { piso: 0, almacen: 0, apartado: 0, danado: 0, total: 0 }
+  );
+  const porColgarModelo = separa ? tallasModelo.filter((t) => celdaTarjeta(t, separa).estado === "falta").length : 0;
+  const agotadasModelo = tallasModelo.filter((t) => celdaTarjeta(t, separa).estado === "agotada").length;
+  const total = (separa ? Math.max(0, fila.pisoDisponible ?? 0) + Math.max(0, fila.almacenDisponible ?? 0) : Math.max(0, fila.disponible)) + fila.apartado + (fila.danado ?? 0);
 
   // La flecha pidió otro color: se aplica aquí, donde ya se conoce el color de ahora (y la talla se conserva si existe).
   if (pasoColor) {
@@ -289,7 +310,8 @@ export function PanelTalla({
       case "enviar":
         return lanzar("enviar");
       case "pedir":
-        return lanzar("pedir");
+        // Directo a «cuántas», con la tienda que más tiene ya elegida (lo que hacía el botón «Pedir» de «¿Pedir?»).
+        return pedirRapido(prenda, fila);
       case "ajustar":
         return lanzar("ajustar");
       case "apartar":
@@ -300,7 +322,7 @@ export function PanelTalla({
     }
   }
 
-  // «Pedir» rápido de una fila de agotadas: la tienda que más tiene, 1 unidad, directo al paso de cuántas.
+  // «Pedir» rápido: la tienda que más tiene, 1 unidad, directo al paso de cuántas.
   function pedirRapido(c: Prenda, t: FilaExistencias) {
     const mejor = mejorOrigen(t.enRed, sedesParaPedir);
     irA(c, t);
@@ -332,17 +354,29 @@ export function PanelTalla({
     }
   }
 
-  const cifra = (valor: number | null, rotulo: string, abre?: { texto: string; onClick: () => void }) => {
+  /** Una de las cuatro casillas: en 0 se apaga (borde punteado), salvo el piso que falta colgar (ámbar). Apartadas y dañadas con algo
+   *  se tocan: abren su lista (las mismas ventanas de siempre). */
+  const casilla = (valor: number, rotulo: string, clase?: "falta" | "apartada" | "danada", abre?: () => void, queHace = "ver cuáles") => {
+    const fondo =
+      clase === "falta"
+        ? "border border-ambar/45 bg-ambar/[0.12] text-ambar-profundo"
+        : valor === 0
+          ? "border border-dashed border-sand text-taupe/70"
+          : clase === "apartada"
+            ? "bg-pizarra/[0.12] text-tinta"
+            : clase === "danada"
+              ? "bg-rojo/[0.09] text-tinta"
+              : "bg-hueso text-tinta";
     const cuerpo = (
       <>
-        <b className={`font-display text-[30px] font-medium leading-none tabular-nums ${valor ? "text-tinta" : "text-taupe"}`}>{valor ?? 0}</b>
-        <small className="text-xs text-taupe">{rotulo}</small>
-        {abre && <small className="text-xs font-medium text-tinta underline-offset-2 group-hover:underline">{abre.texto}</small>}
+        <b className="block font-display text-[22px] font-medium leading-none tabular-nums">{valor}</b>
+        <small className="text-[11.5px] text-taupe">{rotulo}</small>
+        {abre && <ChevronRight aria-hidden className="absolute right-1.5 top-2 h-3.5 w-3.5 text-taupe" strokeWidth={1.8} />}
       </>
     );
-    const base = "grid gap-0.5 rounded-[14px] border border-sand bg-crema p-2.5 text-left";
+    const base = `relative grid gap-1 rounded-[11px] px-2.5 py-2 text-left ${fondo}`;
     return abre ? (
-      <button type="button" onClick={abre.onClick} className={`group ${base} transition-colors hover:border-taupe`}>
+      <button type="button" onClick={abre} aria-label={`${valor} ${rotulo}: ${queHace}`} title={queHace.charAt(0).toLocaleUpperCase("es") + queHace.slice(1)} className={`${base} transition-[outline] hover:outline hover:outline-1 hover:outline-tinta/25`}>
         {cuerpo}
       </button>
     ) : (
@@ -375,7 +409,7 @@ export function PanelTalla({
           onOpenAutoFocus={(e) => e.preventDefault()}
           // En el celular, una hoja que sube desde abajo con su asa (maqueta); desde `sm`, el cajón de la derecha. Las dos entradas son las
           // del sistema (`cayla-hoja`, `cayla-cajon-*`, ADR-0136), quietas con `prefers-reduced-motion`.
-          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-sand bg-papel outline-none motion-reduce:animate-none sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:w-full sm:max-w-[30rem] sm:rounded-none sm:border-l sm:border-t-0 ${
+          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-sand bg-papel outline-none motion-reduce:animate-none sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:w-full sm:rounded-none ${flujo?.tipo === "colgarVarias" ? "sm:max-w-[42rem]" : "sm:max-w-[30rem]"} sm:border-l sm:border-t-0 ${
             cerrando
               ? "animate-[cayla-hoja-salida_240ms_var(--ease-salida)_both] sm:animate-[cayla-cajon-sale_240ms_var(--ease-salida)_both]"
               : "animate-[cayla-hoja_380ms_var(--ease-cayla)_both] sm:animate-[cayla-cajon-entra_380ms_var(--ease-cayla)_both]"
@@ -450,7 +484,6 @@ export function PanelTalla({
                     [
                       ["talla", "Esta talla"],
                       ["todas", "Todas"],
-                      ["ficha", "Ficha"],
                     ] as const
                   ).map(([v, texto]) => (
                     <button
@@ -548,65 +581,75 @@ export function PanelTalla({
 
                 {vista === "talla" && (
                   <>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {cifra(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "En piso" : "Disponible")}
-                      {separa && cifra(fila.almacenDisponible ?? 0, "En almacén")}
-                      {cifra(fila.apartado, "Apartado", fila.apartado > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined)}
-                      {cifra(fila.danado ?? 0, "Dañado", (fila.danado ?? 0) > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined)}
-                    </div>
-                    {/* La suma explicada de la talla (Felipe, 2026-10-04: lo que había en el cajón de la prenda) y, en la ⓘ, qué cobra la caja. */}
-                    {desglose && (
-                      <p className="-mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-taupe">
-                        <span className="tabular-nums text-tinta">{lineaDeLaSuma(desglose).cuenta}</span>
-                        {lineaDeLaSuma(desglose).texto}
-                        {lineaDeLaSuma(desglose).aparte && <span>· {lineaDeLaSuma(desglose).aparte}</span>}
-                        <span title={aclaracionDeLaCaja(desglose)} aria-label={aclaracionDeLaCaja(desglose)} role="img" className="inline-flex cursor-help text-taupe">
-                          <Info aria-hidden className="h-3.5 w-3.5" />
+                    {/* El número grande (todo lo de la talla en esta sede) con UNA respuesta (`insigniaDeTalla`) y su porqué; debajo, las cuatro
+                        casillas (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`): reemplazan a las cifras, la suma explicada y las tres
+                        filas «¿Hay? ¿Colgar? ¿Pedir?», que decían lo mismo en tres lugares. */}
+                    <div>
+                      <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                        <b className="font-display text-[46px] font-medium leading-[0.9] tabular-nums text-tinta">{total}</b>
+                        <span className="text-sm text-taupe">en esta sede</span>
+                        <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA[insignia.tono]}`}>
+                          <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
+                          {insignia.texto}
                         </span>
                       </p>
-                    )}
-                    {/* «Qué toca con esta talla»: tres preguntas cortas —¿Hay? ¿Colgar? ¿Pedir?— con su respuesta y su porqué, y si se
-                        resuelve aquí mismo, su botón. La pregunta va en una columna angosta fija y el botón en la suya: ni la pregunta se
-                        parte en dos líneas ni el botón salta abajo (con «COLGAR EN EL PISO» en mayúsculas pasaba las dos cosas). Bajo
-                        «¿Pedir?», cuánto tiene cada otra sede: antes era un bloque de pastillas aparte, más abajo. */}
-                    <section aria-label="Qué toca con esta talla" className="grid divide-y divide-sand/80 rounded-2xl border border-sand">
-                      {queToca.map((q) => {
-                        const boton =
-                          q.accion === "colgar" ? (
-                            <button type="button" onClick={() => alAccionar("colgar")} className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5">
-                              <IconoPercha aria-hidden className="h-4 w-4" />
-                              Colgar
-                            </button>
-                          ) : q.accion === "pedir" && mejorOrigen(fila.enRed, sedesParaPedir) ? (
-                            <button type="button" onClick={() => pedirRapido(prenda, fila)} className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5 border-pizarra/40 text-pizarra">
-                              <ArrowLeftRight aria-hidden className="h-4 w-4" />
-                              Pedir
-                            </button>
-                          ) : null;
-                        return (
-                          <div
-                            key={q.tema}
-                            className={`grid items-center gap-x-3 px-3 py-2.5 ${boton ? "grid-cols-[4.25rem_minmax(0,1fr)_auto]" : "grid-cols-[4.25rem_minmax(0,1fr)]"}`}
-                          >
-                            <span className="self-start pt-px text-[13px] font-medium text-taupe">{q.titulo}</span>
-                            <div className="min-w-0 text-sm leading-snug">
-                              <p>
-                                <b className={`mr-1.5 inline-flex items-center gap-1.5 font-semibold ${TONO_QUE_TOCA[q.tono].texto}`}>
-                                  <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TONO_QUE_TOCA[q.tono].punto}`} />
-                                  {q.respuesta}
-                                </b>
-                                <span className="text-tinta/80">{q.detalle}.</span>
-                              </p>
-                              {q.tema === filaConSedes && otrasSedes && <p className="mt-0.5 text-[12.5px] text-taupe">Otras sedes: {otrasSedes}</p>}
-                            </div>
-                            {boton}
-                          </div>
-                        );
-                      })}
-                    </section>
-                    {/* El ritmo del color con su aro de semanas y, debajo, lo vendido de esta talla y el código: una sola pieza. */}
-                    {(ritmo || codigo || vendidasTalla !== null) && (
-                      <div className="flex items-center gap-3 text-sm text-tinta/85">
+                      {insignia.frase && <p className="mt-1.5 text-[13px] leading-snug text-tinta/75">{insignia.frase}.</p>}
+                      {otrasSedes && <p className="mt-0.5 text-[12.5px] text-taupe">Otras sedes: {otrasSedes}</p>}
+                    </div>
+                    <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
+                      {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "en el piso" : "disponibles", separa && insignia.tono === "ambar" ? "falta" : undefined)}
+                      {separa && casilla(fila.almacenDisponible ?? 0, "en almacén")}
+                      {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
+                      {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
+                    </div>
+                    {/* Las acciones en UNA lista (2026-10-07): la que la talla necesita primero y teñida; las que no se pueden ahora, apagadas al
+                        final con su porqué, en la misma lista (antes iban aparte, «No se puede ahora»). «Ficha» baja al pie como enlace. */}
+                    <ul className="overflow-hidden rounded-2xl border border-sand bg-crema">
+                      {acciones
+                        .filter((a) => a.clave !== "ficha")
+                        .map((a) => {
+                          const Ico = ICONO[a.clave];
+                          const tono = a.sugerida && a.ok ? (a.clave === "pedir" ? "pizarra" : "ambar") : null;
+                          return (
+                            <li key={a.clave} className="border-t border-sand first:border-t-0">
+                              <button
+                                type="button"
+                                disabled={!a.ok}
+                                aria-keyshortcuts={String(a.tecla)}
+                                onClick={() => alAccionar(a.clave)}
+                                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                                  tono === "ambar" ? "bg-ambar/[0.10] hover:bg-ambar/[0.16]" : tono === "pizarra" ? "bg-pizarra/[0.09] hover:bg-pizarra/[0.15]" : "enabled:hover:bg-hueso/70"
+                                }`}
+                              >
+                                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tono === "ambar" ? "bg-ambar/[0.18] text-ambar-profundo" : tono === "pizarra" ? "bg-pizarra/[0.16] text-pizarra" : "bg-hueso text-tinta"}`}>
+                                  <Ico aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <b className="block text-[14px] font-semibold text-tinta">{a.texto}</b>
+                                  <small className="block text-xs text-taupe">{a.sub}</small>
+                                </span>
+                                <kbd className="hidden rounded border border-sand px-1.5 text-[10.5px] text-taupe sm:inline">{a.tecla}</kbd>
+                                {a.ok && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" strokeWidth={1.8} />}
+                              </button>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                    {/* Al pie: la ficha (antes una pestaña) y, plegado, el ritmo y el código (antes siempre a la vista). */}
+                    <div className="flex items-center justify-between gap-3 text-[13px] text-taupe">
+                      <button type="button" onClick={() => setVista("ficha")} className="inline-flex items-center gap-1.5 hover:text-tinta">
+                        <ClipboardList aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                        Ver ficha
+                      </button>
+                      {(ritmo || codigo || vendidasTalla !== null) && (
+                        <button type="button" aria-expanded={verRitmo} onClick={() => setVerRitmo((v) => !v)} className="inline-flex items-center gap-1.5 hover:text-tinta">
+                          <Info aria-hidden className="h-3.5 w-3.5" />
+                          ¿Cómo se vende?
+                        </button>
+                      )}
+                    </div>
+                    {verRitmo && (ritmo || codigo || vendidasTalla !== null) && (
+                      <div className="anim-revelar flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
                         {ritmo && <AroSemanas ritmo={ritmoColor} tam={40} />}
                         <div className="min-w-0">
                           {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
@@ -628,71 +671,68 @@ export function PanelTalla({
                         </div>
                       </div>
                     )}
-                    {/* Las acciones (2026-10-06): primero la que la talla necesita, después las que se pueden usar, como tarjetas; las que no se
-                        pueden ahora, al final y chicas, con su porqué (`accionesDeTalla` decide el orden). Cada una conserva su tecla. */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {acciones
-                        .filter((a) => a.ok)
-                        .map((a, i, usables) => {
-                          const Ico = ICONO[a.clave];
-                          return (
-                            <button
-                              key={a.clave}
-                              type="button"
-                              aria-keyshortcuts={String(a.tecla)}
-                              onClick={() => alAccionar(a.clave)}
-                              // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
-                              className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === usables.length - 1 && usables.length % 2 === 1 ? "col-span-2" : ""} ${
-                                a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
-                              }`}
-                            >
-                              <Ico aria-hidden className={`row-span-2 h-[22px] w-[22px] ${a.sugerida ? "text-sand" : "text-taupe"}`} strokeWidth={1.5} />
-                              <b className="flex items-center gap-1.5 text-[15.5px] font-semibold">
-                                {a.texto}
-                                <kbd className={`hidden rounded border px-1 text-[10.5px] font-normal sm:inline ${a.sugerida ? "border-papel/30 text-sand" : "border-sand text-taupe"}`}>{a.tecla}</kbd>
-                              </b>
-                              <small className={`text-xs leading-tight ${a.sugerida ? "text-sand" : "text-taupe"}`}>{a.sub}</small>
-                            </button>
-                          );
-                        })}
-                    </div>
-                    {acciones.some((a) => !a.ok) && (
-                      <div>
-                        <p className="label-cayla mb-1.5 text-[10.5px] text-taupe">No se puede ahora</p>
-                        <ul className="flex flex-wrap gap-1.5">
-                          {acciones
-                            .filter((a) => !a.ok)
-                            .map((a) => {
-                              const Ico = ICONO[a.clave];
-                              return (
-                                <li
-                                  key={a.clave}
-                                  title={`${a.texto}: ${a.sub}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-sand px-2.5 py-1 text-[12.5px] text-tinta/50"
-                                >
-                                  <Ico aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-                                  {a.texto}
-                                  <span className="text-tinta/40">· {a.sub.charAt(0).toLocaleLowerCase("es") + a.sub.slice(1)}</span>
-                                </li>
-                              );
-                            })}
-                        </ul>
-                      </div>
-                    )}
                   </>
                 )}
 
                 {vista === "todas" && (
                   <>
-                    {/* La matriz en su tarjeta y UNA leyenda debajo (2026-10-06, tarde): antes iban una frase de instrucciones arriba y dos
-                        pastillas de colores abajo que parecían botones. */}
-                    <div className="scroll-cayla overflow-x-auto rounded-2xl border border-sand p-1">
-                      <table className="w-full border-separate border-spacing-1 text-center text-sm">
+                    {/* «Todas», opción B (Felipe, 2026-10-07; las otras dos en `docs/maquetas/existencias-tarjeta-cajon-2026-10/todas-opciones.html`):
+                        el número del modelo con sus avisos y las cuatro casillas sumadas; después la tabla tallas × colores, cada celda partida
+                        en dos —arriba lo colgado (verde, con la percha), abajo lo del almacén (con la caja)—. Ámbar = falta colgar; rojo entera =
+                        se acabó; marco negro = la talla que se estaba viendo. Tocar una celda vuelve a «Esta talla» en esa talla. */}
+                    <div>
+                      <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                        <b className="font-display text-[46px] font-medium leading-[0.9] tabular-nums text-tinta">{sumaModelo.total}</b>
+                        <span className="text-sm text-taupe">en esta sede</span>
+                        {porColgarModelo > 0 && (
+                          <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA.ambar}`}>
+                            <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
+                            {porColgarModelo} por colgar
+                          </span>
+                        )}
+                        {agotadasModelo > 0 && (
+                          <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA.rojo}`}>
+                            <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
+                            {agotadasModelo} se acabó
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
+                      {casilla(sumaModelo.piso, separa ? "en el piso" : "disponibles")}
+                      {separa && casilla(sumaModelo.almacen, "en almacén")}
+                      {casilla(sumaModelo.apartado, sumaModelo.apartado === 1 ? "apartada" : "apartadas", "apartada")}
+                      {casilla(sumaModelo.danado, sumaModelo.danado === 1 ? "dañada" : "dañadas", "danada")}
+                    </div>
+                    {separa && (
+                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-taupe">
+                        <span className="inline-flex items-center gap-1.5">
+                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] bg-verde/[0.22]" />
+                          arriba: en el piso
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand" />
+                          abajo: en almacén
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] bg-ambar/[0.22]" />
+                          falta colgar
+                        </span>
+                      </p>
+                    )}
+                    <div className="scroll-cayla overflow-x-auto">
+                      <table className="w-full table-fixed border-separate border-spacing-y-2 text-center text-sm">
+                        <colgroup>
+                          <col className="w-[88px]" />
+                          {tallasDeTodos.map((t) => (
+                            <col key={t} />
+                          ))}
+                        </colgroup>
                         <thead>
                           <tr>
-                            <th className="px-1.5 text-left text-xs font-medium text-taupe">Color</th>
+                            <th aria-hidden />
                             {tallasDeTodos.map((t) => (
-                              <th key={t} className="text-xs font-medium text-taupe">
+                              <th key={t} scope="col" className="text-xs font-semibold text-taupe">
                                 {t}
                               </th>
                             ))}
@@ -701,35 +741,40 @@ export function PanelTalla({
                         <tbody>
                           {colores.map((c) => (
                             <tr key={c.clave}>
-                              <th scope="row" className="whitespace-nowrap px-1.5 text-left text-[13px] font-normal">
+                              <th scope="row" className="truncate pr-1.5 text-left text-[13px] font-semibold text-tinta">
                                 <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
                                 {c.color ?? "Sin color"}
                               </th>
                               {tallasDeTodos.map((t) => {
                                 const f = c.tallas.find((x) => (x.talla ?? "Única") === t);
-                                if (!f)
-                                  return (
-                                    <td key={t} className="text-taupe/50">
-                                      ·
-                                    </td>
-                                  );
+                                if (!f) return <td key={t} aria-hidden className="text-taupe/40">·</td>;
                                 const sel = c.clave === prenda.clave && f.varianteId === fila.varianteId;
+                                const celda = celdaTarjeta(f, separa);
+                                const ir = () => {
+                                  irA(c, f);
+                                  setVista("talla");
+                                };
+                                const lectura = `${c.color ?? "Sin color"} ${t}: ${celda.estado === "agotada" ? "se acabó" : separa ? `${celda.piso} en el piso, ${celda.almacen} en almacén` : `${celda.piso} disponibles`}. Ver esta talla`;
                                 return (
-                                  <td key={t}>
-                                    <button
-                                      type="button"
-                                      aria-pressed={sel}
-                                      aria-label={`${c.color ?? "Sin color"} ${t}: ${f.pisoDisponible ?? 0} en piso, ${f.almacenDisponible ?? 0} en almacén`}
-                                      onClick={() => {
-                                        irA(c, f);
-                                        setVista("talla");
-                                      }}
-                                      className={`grid min-h-12 w-full place-items-center rounded-lg border leading-none aria-pressed:border-tinta ${CLASE_TALLA[estadoTalla(f)]}`}
-                                    >
-                                      <b className="text-base font-semibold tabular-nums">{estadoTalla(f) === "sin_stock" ? "—" : separa ? (f.pisoDisponible ?? 0) : f.disponible}</b>
-                                      {/* Lo del almacén con su «+» (como la tarjeta): un «0» suelto debajo se leía como otra cifra del piso. */}
-                                      {separa && (f.almacenDisponible ?? 0) > 0 && <small className="text-[11px] tabular-nums text-taupe">+{f.almacenDisponible}</small>}
-                                    </button>
+                                  <td key={t} className="px-[3px]">
+                                    {celda.estado === "agotada" ? (
+                                      <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[46px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-xs font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
+                                        Se acabó
+                                      </button>
+                                    ) : (
+                                      <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[46px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
+                                        <span className={`flex w-full flex-1 items-center justify-center gap-1 text-[13.5px] font-bold tabular-nums ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.14] text-verde" : "text-taupe/70"}`}>
+                                          <IconoPercha aria-hidden className="h-3 w-3" strokeWidth={1.8} />
+                                          {celda.piso}
+                                        </span>
+                                        {separa && (
+                                          <span className={`flex w-full flex-1 items-center justify-center gap-1 border-t border-sand text-[13.5px] font-semibold tabular-nums text-taupe ${celda.almacen === 0 ? "opacity-55" : ""}`}>
+                                            <Archive aria-hidden className="h-3 w-3" strokeWidth={1.8} />
+                                            {celda.almacen}
+                                          </span>
+                                        )}
+                                      </button>
+                                    )}
                                   </td>
                                 );
                               })}
@@ -738,23 +783,17 @@ export function PanelTalla({
                         </tbody>
                       </table>
                     </div>
-                    <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-taupe">
-                      <span>{separa ? "Grande: en piso · «+N»: en almacén" : "Unidades en esta sede"} · toca una casilla para verla</span>
-                      {separa && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />
-                          Por colgar
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1.5">
-                        <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
-                        Sin stock aquí
-                      </span>
-                    </p>
+                    <p className="-mt-1 text-xs text-taupe">Toca una talla para verla.</p>
                     {separa && puedeReponer && (
-                      <button type="button" onClick={() => lanzar("colgarVarias", { cant: {} })} className="btn-cayla btn-primario gap-2 justify-self-start">
-                        <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                        Colgar varias tallas y colores
+                      <button type="button" onClick={() => lanzar("colgarVarias", { cant: {} })} className="flex w-full items-center gap-3 rounded-2xl border border-sand bg-ambar/[0.10] px-3 py-2.5 text-left transition-colors hover:bg-ambar/[0.16]">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ambar/[0.18] text-ambar-profundo">
+                          <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <b className="block text-[14px] font-semibold text-tinta">Colgar varias tallas y colores</b>
+                          <small className="block text-xs text-taupe">{porColgarModelo > 0 ? `${porColgarModelo} ${porColgarModelo === 1 ? "talla falta" : "tallas faltan"} en el piso` : "Elige cuántas de cada una"}</small>
+                        </span>
+                        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" strokeWidth={1.8} />
                       </button>
                     )}
                   </>

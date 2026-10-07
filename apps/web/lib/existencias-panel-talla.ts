@@ -264,6 +264,28 @@ export function queTocaConLaTalla(
   return salida;
 }
 
+/* ====================================================================
+   El aviso único junto al número grande del cajón (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`, `LOGICA.md` §2.2):
+   reemplaza a la vista las tres filas «¿Hay? ¿Colgar? ¿Pedir?». No decide nada nuevo: elige UNA de esas mismas respuestas
+   (`queTocaConLaTalla`), la que más importa, y la dice con una palabra (la insignia) y su frase (el porqué).
+   Orden: se acabó (rojo) → falta colgar (ámbar) → piso en pausa → queda poco y otra tienda tiene → todo bien (verde).
+   ==================================================================== */
+
+export type TonoInsignia = "verde" | "ambar" | "pizarra" | "rojo";
+
+export function insigniaDeTalla(queToca: readonly RespuestaQueToca[]): { tono: TonoInsignia; texto: string; frase: string } {
+  const de = (t: RespuestaQueToca["tema"]) => queToca.find((q) => q.tema === t);
+  const hay = de("hay");
+  const colgar = de("colgar");
+  const pedir = de("pedir");
+  if (hay?.respuesta === "No") return { tono: "rojo", texto: "Se acabó", frase: pedir && pedir.respuesta !== "No hace falta" ? pedir.detalle : hay.detalle };
+  if (colgar?.tono === "ambar") return { tono: "ambar", texto: "Falta colgar", frase: colgar.detalle };
+  // Frase corta a propósito (Felipe, 2026-10-07: «con una frase corta se debe entender»).
+  if (colgar?.respuesta === "En pausa") return { tono: "pizarra", texto: "Piso en pausa", frase: "Revisa lo colgado antes de colgar más" };
+  if (pedir?.respuesta === "Sí") return { tono: "pizarra", texto: "Queda poco", frase: pedir.detalle };
+  return { tono: "verde", texto: "Todo bien", frase: hay?.detalle ?? "" };
+}
+
 /** «Faltan en el piso» del modelo entero, aunque el motor no decida: con su decisión, la de siempre (`fraseDeLoQueFalta`, y al colgar
  *  quedan marcadas); sin ella, lo que dicen los números (0 en el piso y algo en el almacén, sin las tallas que el motor manda mantener).
  *  Con el piso en pausa, la frase lo advierte: puede que ya cuelguen. `null` si no falta nada.
