@@ -1,20 +1,37 @@
-// Análisis v4 (ADR-0357, decisión 2, act. 2026-10-06): lo que Análisis dice mientras la tienda todavía no cumple las tres condiciones
-// del motor (ADR-0346). Felipe lo pidió al ver producción: ninguna tienda cumple y la pantalla solo decía «Todavía no». «Todavía no»
-// sigue siendo lo primero; «Ver con los datos de hoy» es un botón explícito y, mientras se mira, un aviso fijo dice qué falta y que las
-// cifras pueden fallar. La cifra de «Todavía no» y la del aviso salen de aquí, para que nunca digan cosas distintas.
+// Análisis v4 (ADR-0357, decisión 2 y sus actualizaciones del 2026-10-06): lo que Análisis muestra mientras la tienda todavía no cumple
+// las tres condiciones del motor (ADR-0346). Felipe lo decidió al ver producción, donde ninguna tienda cumple: la pantalla abre CON LOS
+// DATOS DE HOY y un aviso fijo arriba que dice qué falta y que las cifras pueden fallar; «Ver qué falta» lleva a «Todavía no», que lleva
+// el mismo aviso con «Ver con los datos de hoy» para volver. La cifra de «Todavía no» y la del aviso salen de aquí, para que nunca digan
+// cosas distintas.
 
 import type { PreparacionAnalisis } from "./analisis-tipos";
 import { DIAS_SOSTENIDOS, diaAntes, UMBRAL_IDENTIFICADA } from "./motor-demanda-reglas";
 
-/** El parámetro de la URL que lo deja encendido (`?datos=hoy`): se puede volver a la misma vista al recargar o compartir el enlace. */
-export const PARAM_DATOS_DE_HOY = "datos";
-export const VALOR_DATOS_DE_HOY = "hoy";
+/**
+ * Qué se ve:
+ * - `confiable`: la tienda cumple las tres condiciones; nada que avisar.
+ * - `datos-de-hoy`: no cumple, y se ve todo igual con el aviso fijo (lo que abre por defecto).
+ * - `que-falta`: no cumple, y se pidió ver qué falta («Todavía no»).
+ */
+export type ModoAnalisis = "confiable" | "datos-de-hoy" | "que-falta";
 
-/** Si la URL pide ver con los datos de hoy. */
-export function leerDatosDeHoy(v: string | string[] | undefined | null): boolean {
-  const x = Array.isArray(v) ? v[0] : v;
-  return x === VALOR_DATOS_DE_HOY;
+export function modoAnalisis(puedeHablar: boolean, verQueFalta: boolean): ModoAnalisis {
+  if (puedeHablar) return "confiable";
+  return verQueFalta ? "que-falta" : "datos-de-hoy";
 }
+
+/** El parámetro de la URL de «Ver qué falta» (`?ver=falta`): se vuelve a la misma vista al recargar o al compartir el enlace. */
+export const PARAM_QUE_FALTA = "ver";
+export const VALOR_QUE_FALTA = "falta";
+
+/** Si la URL pide ver qué falta. */
+export function leerQueFalta(v: string | string[] | undefined | null): boolean {
+  const x = Array.isArray(v) ? v[0] : v;
+  return x === VALOR_QUE_FALTA;
+}
+
+/** El aviso de arriba en «Todavía no», con el camino de vuelta a los datos de hoy. */
+export const AVISO_QUE_FALTA = "Esto es lo que falta para que estas cifras no fallen.";
 
 /** La meta de ventas con su prenda, de cada 100: la misma vara del motor. */
 export const META_CON_PRENDA = Math.round(UMBRAL_IDENTIFICADA * 100);

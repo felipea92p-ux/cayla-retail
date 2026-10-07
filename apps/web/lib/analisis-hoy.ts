@@ -1,6 +1,7 @@
 // Análisis v4 (ADR-0357): la pestaña «Hoy» en lógica pura (sin base ni React). La pantalla (`components/analisis/PestanaHoy.tsx`)
 // solo dibuja lo que sale de aquí, con el diseño de la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden
-// una pregunta cada una, las tres tiendas y «Qué hacer hoy», el flujo de prendas que entran y salen de la tienda.
+// una pregunta cada una y «Qué hacer hoy», el flujo de prendas que entran y salen de la tienda. Todo es de la tienda elegida arriba
+// (la comparación de las tres tiendas vive en CAYLA Global: decisión 3 de ADR-0357, act. 2026-10-06).
 //
 // El flujo es de ALTO FIJO (1020 × 320): el grosor de cada camino es su parte del total, así que con 1, 20 o 300 prendas el
 // dibujo mide lo mismo y no empuja la página. Las cuentas son las de `queHacer()` de la maqueta, con dos topes que la maqueta
@@ -9,8 +10,7 @@
 // Ninguna regla de negocio nueva: los grupos (comprar, enviar, liquidar) salen de `grupoDe` (`analisis-reglas.ts`), igual que
 // en los carriles; aquí solo se reparten en caminos y se mide el dibujo.
 
-import type { PrendaAnalisis, ResumenSedeAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
-import { resumenDeSede } from "./analisis-armado";
+import type { PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { categoriaDe, DIFERENCIA_QUE_SE_NOTA } from "./analisis-pedir";
 import {
   DIAS_SE_ACABA,
@@ -30,8 +30,6 @@ import {
 
 /** Los estados que usa Hoy (los mismos cinco de la maqueta: urgente, atención, va bien, para saber, todavía no). */
 export type EstadoHoy = "urg" | "ate" | "bien" | "info" | "nd";
-
-const entre0y1 = (x: number): number => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0);
 
 // ───────────────────────── Las cuatro tarjetas ─────────────────────────
 
@@ -126,52 +124,6 @@ export function miniMariposa(
   }
   const filas = partes.filter((c) => elegidas.has(c.categoria)).map((c) => ({ ...c, pideMas: dif(c) >= DIFERENCIA_PIDE_MAS }));
   return { filas, piden: piden.map((c) => c.categoria), max: Math.max(1, ...filas.flatMap((f) => [f.vende, f.tiene])) };
-}
-
-// ───────────────────────── Por tienda ─────────────────────────
-
-/** Desde cuántas prendas que se acaban, o que no se mueven, una tienda está en «Urgente». */
-export const SEDE_URGE_SE_ACABAN = 5;
-export const SEDE_URGE_NO_SE_MUEVEN = 10;
-
-/**
- * El estado de una tienda en «Por tienda»: «Todavía no» si esa tienda no puede recibir recomendaciones (ADR-0346); «Urgente» con
- * 5 o más que se acaban o 10 o más que no se mueven; «Atención» si hay alguna; «Va bien» si no hay ninguna.
- */
-export function estadoSede(r: Pick<ResumenSedeAnalisis, "seAcaban" | "noSeMueven" | "puedeHablar"> | undefined): Extract<EstadoHoy, "urg" | "ate" | "bien" | "nd"> {
-  if (!r || !r.puedeHablar) return "nd";
-  if (r.seAcaban >= SEDE_URGE_SE_ACABAN || r.noSeMueven >= SEDE_URGE_NO_SE_MUEVEN) return "urg";
-  if (r.seAcaban > 0 || r.noSeMueven > 0) return "ate";
-  return "bien";
-}
-
-/** Las tres barras de cada tienda y su tope (la barra se llena al llegar al tope). */
-export const BARRAS_SEDE = [
-  { clave: "seAcaban", texto: "Se acaban", max: 10 },
-  { clave: "noSeMueven", texto: "No se mueven", max: 15 },
-  { clave: "vendioDe10", texto: "Vendió de 10", max: 10 },
-] as const;
-
-export type BarraSede = { clave: (typeof BARRAS_SEDE)[number]["clave"]; texto: string; valor: number | null; n: number };
-
-/**
- * Las barras de una tienda: su cifra y cuánto se llena (de 0 a 1). Una tienda que todavía no puede recibir recomendaciones no
- * muestra cifras (ADR-0346: Análisis se calla donde el dato no alcanza), y «Vendió de 10» sin llegadas tampoco.
- */
-export function barrasSede(r: Pick<ResumenSedeAnalisis, "seAcaban" | "noSeMueven" | "vendioDe10" | "puedeHablar"> | undefined): BarraSede[] {
-  return BARRAS_SEDE.map((b) => {
-    const valor = r && r.puedeHablar ? r[b.clave] : null;
-    return { clave: b.clave, texto: b.texto, valor, n: valor === null ? 0 : entre0y1(valor / b.max) };
-  });
-}
-
-/**
- * Mi tienda con «Liquidar desde» EN VIVO: lo que no se mueve cambia con el control (en «No se vende») antes de guardarse, y así
- * «Por tienda» dice lo mismo que la tarjeta «¿Qué no se mueve?» y la cuenta de la pestaña. Lo demás queda como lo leyó el servidor.
- */
-export function resumenEnVivo(r: ResumenSedeAnalisis, prendas: readonly PrendaAnalisis[], liquidarDesde: number): ResumenSedeAnalisis {
-  const vivo = resumenDeSede(r.sedeId, prendas, liquidarDesde, r.puedeHablar);
-  return { ...r, seAcaban: vivo.seAcaban, noSeMueven: vivo.noSeMueven };
 }
 
 // ───────────────────────── Qué hacer hoy: los caminos ─────────────────────────

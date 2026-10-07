@@ -7,9 +7,8 @@ import { Icono, TRAZO_PERCHA } from "@/components/analisis/iconos";
 import { Ayuda, ChipEstado, COLOR_ESTADO, Cuenta, NombreCorto, nombreLargo, TilePrenda, TipRico, type Estado } from "@/components/analisis/piezas";
 import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
-import { diasQueQuedan, esTallaUnica, META_SE_VENDE_LO_QUE_LLEGA, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
+import { diasQueQuedan, esTallaUnica, META_SE_VENDE_LO_QUE_LLEGA, plural, PRENDAS_EN_LISTA, vendioDe10 } from "@/lib/analisis-reglas";
 import {
-  barrasSede,
   caminosDeHoy,
   carrilesDeCinta,
   cintaFlujo,
@@ -18,7 +17,6 @@ import {
   estadoLlegadas,
   estadoQuieta,
   estadosDelFlujo,
-  estadoSede,
   etiquetaFlujo,
   FLUJO,
   geometriaFlujo,
@@ -30,7 +28,6 @@ import {
   puntosDeCinta,
   px,
   quietasHoy,
-  resumenEnVivo,
   seAcabanHoy,
   SEGUNDOS_PUNTO,
   textoDiasQueQuedan,
@@ -38,28 +35,20 @@ import {
   titulosFlujo,
   todosLosCaminos,
   type BandaFlujo,
-  type BarraSede,
   type CaminoHoy,
   type CaminosHoy,
 } from "@/lib/analisis-hoy";
 import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
 
 // Análisis v4 (ADR-0357): la pestaña «Hoy», como la maqueta aprobada por Felipe (2026-10-06): cuatro tarjetas que responden una
-// pregunta cada una (tocar una lleva a su pestaña; tocar una prenda abre su ficha), las tres tiendas y «Qué hacer hoy», el flujo
-// de prendas que entran y salen de la tienda, de alto fijo, que bajo 760 px se vuelve una lista. Las cuentas viven en
-// `lib/analisis-hoy.ts`; aquí solo se dibuja.
+// pregunta cada una (tocar una lleva a su pestaña; tocar una prenda abre su ficha) y «Qué hacer hoy», el flujo de prendas que entran
+// y salen de la tienda, de alto fijo, que bajo 760 px se vuelve una lista. Todo es de la tienda elegida arriba: la comparación de las
+// tres tiendas vive en CAYLA Global (decisión 3, act. 2026-10-06). Las cuentas viven en `lib/analisis-hoy.ts`; aquí solo se dibuja.
 //
 // Lo que filtra el buscador: las prendas (las listas y los caminos). Las cifras de la tienda (lo que se vende por categoría, lo
-// que llega, «Por tienda») son de toda la tienda.
+// que llega) son de toda la tienda.
 
 const ids = (prendas: readonly Pick<PrendaAnalisis, "varianteId">[]): string => prendas.map((p) => p.varianteId).join(" ");
-
-/** El color de cada barra de «Por tienda». */
-const COLOR_BARRA: Record<BarraSede["clave"], string> = {
-  seAcaban: "var(--color-rojo-profundo)",
-  noSeMueven: "var(--color-ambar)",
-  vendioDe10: "var(--color-verde)",
-};
 
 const AYUDA_FLUJO =
   "Lo que se acaba aparece para comprar. Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada prenda ves cuánto vende cada tienda y decides si pedirla. El número es cuántas prendas son.";
@@ -69,7 +58,7 @@ export function PestanaHoy() {
   const buscando = q.trim() !== "";
   const acaba = seAcabanHoy(prendas, liquidarDesde);
   const quietas = quietasHoy(prendas, liquidarDesde);
-  const vendio = datos.resumenSedes.find((r) => r.sedeId === datos.sede.id)?.vendioDe10 ?? null;
+  const vendio = vendioDe10(datos.prendas);
   const partes = partesPorCategoria(datos.prendas);
   const mariposa = miniMariposa(partes);
 
@@ -129,7 +118,6 @@ export function PestanaHoy() {
           </div>
         </Instrumento>
       </div>
-      <PorTienda />
       <QueHacer />
     </>
   );
@@ -284,37 +272,6 @@ function MiniMariposa({ filas, max }: { filas: ReturnType<typeof miniMariposa>["
         <span />
         <span>tienes</span>
       </div>
-    </div>
-  );
-}
-
-// ───────────────────────── Por tienda ─────────────────────────
-
-/** Las tres tiendas, cada una con su estado y tres barras. Mi tienda sigue «Liquidar desde» en vivo. */
-function PorTienda() {
-  const { datos, liquidarDesde } = useAnalisis();
-  return (
-    <div className="sedes" role="group" aria-label="Por tienda">
-      {datos.sedes.map((s, k) => {
-        const leido = datos.resumenSedes.find((r) => r.sedeId === s.id);
-        const r = leido && s.id === datos.sede.id ? resumenEnVivo(leido, datos.prendas, liquidarDesde) : leido;
-        return (
-          <article key={s.id} className="tarjeta sede-c entra fija" style={{ ["--i" as string]: 4 + k }}>
-            <h3>
-              {s.ciudad} <ChipEstado est={estadoSede(r)} />
-            </h3>
-            {barrasSede(r).map((b, j) => (
-              <div key={b.clave} className="sm">
-                <span>{b.texto}</span>
-                <span className="t">
-                  <i className="cx" style={{ ["--d" as string]: j, ["--n" as string]: b.n, ["--c" as string]: COLOR_BARRA[b.clave] }} />
-                </span>
-                <b>{b.valor ?? "—"}</b>
-              </div>
-            ))}
-          </article>
-        );
-      })}
     </div>
   );
 }
@@ -622,7 +579,10 @@ function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
   );
 }
 
-/** El verbo del camino, sus tres primeras prendas (y «+N») y por qué. */
+/**
+ * El verbo del camino, sus tres primeras prendas (y «+N») y por qué. Vive en un `foreignObject`: nada de adentro debe crear su propia
+ * capa (position, overflow que no es visible, transform, opacity), porque Safari la pinta fuera de lugar (ver `analisis-hoy.css`).
+ */
 function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const e = etiquetaFlujo(b.cy, lado);

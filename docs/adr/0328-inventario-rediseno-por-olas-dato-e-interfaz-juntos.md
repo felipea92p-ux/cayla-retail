@@ -384,7 +384,8 @@ velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna muev
 ## Enmienda 2026-10-06 — Análisis: la encargada ve lo mismo que el líder (ADR-0357)
 
 - **Qué cambia:** dentro de Análisis no hay diferencias por rol. Quien tiene el módulo (`fn_puede_analizar`: el líder o un rol con Análisis) ve:
-  - las tres tiendas;
+  - las tres tiendas (act. 2026-10-06, noche: Análisis pasó a ser solo de la tienda elegida y la comparación entre tiendas vive en CAYLA
+    Global; ver ADR-0357, decisión 3);
   - el dinero: lo que costaron las prendas quietas y lo que más rinde;
   - **el costo y la ganancia por prenda**, en la ficha;
   - «Liquidar desde».
@@ -401,7 +402,7 @@ velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna muev
     líder. Análisis lo recibe por su propia lectura.
 - **En la base:** `20261006213000` da las tres tiendas del motor de demanda a quien puede analizar, y `20261006214000` (`fn_analisis_sede`) le
   entrega las prendas de cada tienda —ventas, precio y costo— sin pedirle que opere esa sede: es `security definer` y su candado es la puerta de
-  Análisis (`fn_puede_analizar`). Ninguna está en producción todavía.
+  Análisis (`fn_puede_analizar`). Las dos están en producción desde el 2026-10-06.
 - **Por qué:** lo decidió Felipe el 2026-10-06, al aprobar la maqueta de Análisis v4. Es su propia razón de «El norte» (Análisis y Frescura
   «ayudan a plantear estrategias de equipo sin importar el rango») llevada al dinero: quien decide comprar, mandar o liquidar no decide bien sin
   ver el costo ni las otras tiendas.

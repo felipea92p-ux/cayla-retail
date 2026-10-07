@@ -3,7 +3,7 @@ import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getDatosAnalisis } from "@/lib/analisis-datos";
 import { leerVista } from "@/lib/analisis-reglas";
-import { leerDatosDeHoy } from "@/lib/analisis-aviso";
+import { leerQueFalta, PARAM_QUE_FALTA } from "@/lib/analisis-aviso";
 import type { AccesoAnalisis } from "@/lib/analisis-tipos";
 import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
 
@@ -13,7 +13,8 @@ import { AnalisisPantalla } from "@/components/analisis/AnalisisPantalla";
 //
 // La tienda es SIEMPRE la del selector de sede del ERP (`persona.ubicacionId`). La encargada y el líder ven lo mismo (decisión
 // 8): las tres tiendas, el dinero y el costo por prenda. Cuando la tienda no cumple las tres condiciones del motor de demanda
-// (ADR-0346), Análisis no recomienda: dice «Todavía no» y qué falta.
+// (ADR-0346), Análisis se ve igual con un aviso fijo que dice qué falta, y «Ver qué falta» (`?ver=falta`) lleva a «Todavía no»
+// (decisión 2, act. 2026-10-06).
 export default async function AnalisisPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const persona = await exigirModulo("analisis");
   if (!puede(persona, "analizar")) redirect("/inventario"); // lo ve pero su rol está limitado: sin las lecturas del módulo
@@ -40,5 +41,5 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
   };
 
   const datos = await getDatosAnalisis(ubicacionActiva);
-  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} datosDeHoyInicial={leerDatosDeHoy(params.datos)} />;
+  return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} queFaltaInicial={leerQueFalta(params[PARAM_QUE_FALTA])} />;
 }

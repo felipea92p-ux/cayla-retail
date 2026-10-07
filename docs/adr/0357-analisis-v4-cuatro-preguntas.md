@@ -51,8 +51,8 @@ ventas sin su prenda es recomendar ruido.
 ADR-0138 y ADR-0277 quedan reemplazados en esta pantalla, y sus componentes se borraron en la actividad 1. La ruta sigue siendo
 `/inventario/resumen`.
 - **Hoy:** cuatro tarjetas. «¿Qué se acaba?» y «¿Qué no se mueve?» muestran las 5 prendas más urgentes y «Ver las N prendas». «¿Se vende lo que
-  llega?» son 10 perchas con la meta. «¿Qué pedir?» compara lo que se vende con lo que tienes, por tipo. Debajo, «Por tienda» (las tres) y «Qué
-  hacer hoy»: un flujo de prendas, con lo que hay que comprar a la izquierda y lo que sale o se rebaja a la derecha. Tocar un camino lleva a su
+  llega?» son 10 perchas con la meta. «¿Qué pedir?» compara lo que se vende con lo que tienes, por tipo. Debajo, «Qué hacer hoy» («Por tienda», con
+  las tres, salió el 2026-10-06: decisión 3): un flujo de prendas, con lo que hay que comprar a la izquierda y lo que sale o se rebaja a la derecha. Tocar un camino lleva a su
   grupo. Al pie, «Repón el piso». En una pantalla angosta, el flujo se vuelve una lista.
 - **Se está acabando:** el carril «Cuántos días te quedan», al ritmo de 30 días y hasta 2 semanas, con el grupo «Cómpralas».
 - **No se vende:** cuántas prendas están quietas y cuánto costaron, cuántas ventas llevaron rebaja, la edad de lo que hay en cada tienda y el
@@ -66,7 +66,7 @@ ADR-0138 y ADR-0277 quedan reemplazados en esta pantalla, y sus componentes se b
 condiciones: 14 días seguidos con al menos 90 de cada 100 ventas con su prenda, el piso cuadrado y el almacén contado.
 - Cada condición que falta trae su botón: «Registrar» (Por regularizar), «Cuadrar» (Cuadrar el piso) y «Contar» (Conteo). Cada uno sale solo si
   la cuenta ve esa pantalla.
-- La pestaña Hoy muestra además lo que sí se sabe y las tres tiendas con su anillo. El chip «Datos incompletos / Datos confiables» abre una hoja
+- La pestaña Hoy muestra además lo que sí se sabe (las tres tiendas con su anillo salieron el 2026-10-06: decisión 3). El chip «Datos incompletos / Datos confiables» abre una hoja
   con los tres anillos y la racha.
 - Para ver la pantalla completa en desarrollo existe `ANALISIS_SIN_CANDADO=1` (en `.env.local`). Fuera de producción salta el candado; en
   producción no existe (`lib/analisis-datos.ts`).
@@ -80,6 +80,13 @@ condiciones: 14 días seguidos con al menos 90 de cada 100 ventas con su prenda,
   puede marcar como quieta una prenda que sí se vendió sin registrarla; por eso el aviso no se puede cerrar. Lógica en `lib/analisis-aviso.ts`
   (la primera versión hablaba siempre de las ventas, y en una tienda que solo debía cuadrar el piso decía «No hubo ventas en los últimos 14
   días»).
+- **Actualización 2 (Felipe, 2026-10-06, noche, al verla en producción): «Debería mostrar esta pantalla por defecto».** Mientras la tienda no
+  cumple, Análisis **abre con los datos de hoy** y el aviso fijo de arriba. «Ver qué falta» lleva a «Todavía no» (en Hoy, donde están las tres
+  condiciones), que lleva arriba el mismo aviso —«Esto es lo que falta para que estas cifras no fallen»— con «Ver con los datos de hoy» para
+  volver; los botones que había dentro de «Todavía no» se fueron, porque el camino vive en el aviso. La URL pasa a `?ver=falta` (reemplaza a
+  `?datos=hoy`). Con esto, Análisis ya no se calla por defecto: la regla de ADR-0346 sigue diciendo si las cifras son confiables (el chip y el
+  aviso), pero ya no decide si se ven. *Lo que se paga:* la primera vista ya recomienda con cifras que pueden fallar; por eso el aviso no se
+  cierra y nombra lo primero que falta. Lógica en `modoAnalisis` (`lib/analisis-aviso.ts`).
 
 **3. La encargada y el líder ven lo mismo:** las tres tiendas, el dinero, lo que más rinde, el costo por prenda y «Liquidar desde». En estas vistas
 no hay `esLider`.
@@ -89,6 +96,12 @@ no hay `esLider`.
   opere esa sede.
 - No cambia el dinero de Compras (ADR-0126): «Comprar» a un proveedor de terceros y «Plan de campaña» se dibujan solo para quien ve Compras con su
   dinero. Y un botón a una pantalla que la cuenta no ve sigue sin dibujarse (ADR-0161).
+- **Actualización (Felipe, 2026-10-06, noche): Análisis es SOLO de la tienda elegida arriba.** Las cuatro tarjetas de Hoy, «Qué hacer hoy» y
+  las pestañas Se está acabando, No se vende y Qué pedir hablan de esa tienda; **la comparación de las tres tiendas vive en CAYLA Global**
+  (ADR-0275), no aquí. Salieron «Por tienda» de Hoy, los anillos de cada tienda en «Todavía no» y las barras de edad de las tres en «No se
+  vende», que quedó como «Lo que tienes, por tiempo sin venderse», solo de la tienda. Las otras tiendas siguen saliendo solo donde hay algo que
+  hacer con una prenda de la tuya: «AQP tiene 3 · o pedir a Arequipa», «Mándalas a donde sí se venden» y «Dónde hay» en la ficha. Lo demás de
+  esta decisión no cambia: la encargada y el líder ven lo mismo (el dinero, el costo por prenda, «Liquidar desde»).
 - *Por qué:* Análisis y Frescura «ayudan a plantear estrategias de equipo sin importar el rango» (Felipe, ADR-0328), y quien decide comprar,
   mandar o liquidar no decide bien sin ver el costo ni las otras tiendas.
 
@@ -180,7 +193,7 @@ que llegó» usa el mismo predicado que Frescura (`fn_es_llegada`), así que cue
 | Confianza del dato a la vista | El chip «Datos confiables / incompletos» y «Todavía no» | Decisión 2 |
 | Meta junto a la cifra | «6 de 10» en las perchas | Decisión 9 |
 | La temporada en pantalla | Semanas para Navidad y Plan de campaña | Diciembre triplica un mes promedio (R-19) |
-| Comparación por tienda para el líder | «Por tienda», para la encargada y el líder | Decisión 3 |
+| Comparación por tienda para el líder | En CAYLA Global, no en Análisis (Felipe, 2026-10-06) | Decisión 3 |
 | Puntaje de salud de 0 a 100 | Cuatro gráficos, uno por pregunta | Sus pesos son inventados y con pocas ventas salta |
 | GMROI | «Lo que más rinde: por cada S/ 1 en ropa, ganaste S/ …» | La idea sirve; la sigla, no |
 | Semanas de cobertura | Días que te quedan | En tienda se cuenta en días |
@@ -242,7 +255,7 @@ calla (principio 9).
 - **Compras recibe prendas por URL** y **Etiquetas recibe la rebaja con las prendas marcadas** (decisión 7).
 - **Limpiar el Análisis viejo que quedó en `lib/`**: ver el backlog del día.
 - **Probar con una encargada real.** La prueba ciega fue con lectoras simuladas.
-- **¿Las tarjetas «Por tienda» cambian de sede al tocarlas?** La maqueta lo hacía; falta decidirlo.
+- ~~**¿Las tarjetas «Por tienda» cambian de sede al tocarlas?**~~ Ya no aplica: «Por tienda» salió de Análisis (decisión 3, act.).
 - **Dos decisiones de la maqueta que no se tomaron:** «Comprar» para quien no ve Compras ni Producción (hoy el botón no se dibuja; la maqueta
   proponía que se vea y llegue como pedido al líder) y «Mandar a Tareas» cuando exista Inventario ▸ Tareas.
 - **R-21 dice que lo básico y atemporal se guarda.** La base no marca qué prenda es básica, así que «Liquidar» también la propone.

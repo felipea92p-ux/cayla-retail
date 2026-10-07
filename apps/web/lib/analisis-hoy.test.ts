@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { PrendaAnalisis, PrendaEnOtraSede, ResumenSedeAnalisis } from "./analisis-tipos";
+import type { PrendaAnalisis, PrendaEnOtraSede } from "./analisis-tipos";
 import {
   ALTO_COLUMNA,
   altoNecesario,
-  barrasSede,
   CAB_SE_QUEDAN,
   caminosDeHoy,
   cintaFlujo,
@@ -16,7 +15,6 @@ import {
   estadoLlegadas,
   estadoQuieta,
   estadosDelFlujo,
-  estadoSede,
   etiquetaFlujo,
   FLUJO,
   geometriaFlujo,
@@ -27,7 +25,6 @@ import {
   pastillaFlujo,
   px,
   quietasHoy,
-  resumenEnVivo,
   seAcabanHoy,
   textoDiasQueQuedan,
   textoPastilla,
@@ -174,46 +171,6 @@ describe("la mariposa de «¿Qué pedir?»", () => {
     expect(m.piden).toEqual([]);
     expect(m.filas.every((f) => !f.pideMas)).toBe(true);
     expect(miniMariposa([])).toEqual({ filas: [], piden: [], max: 1 });
-  });
-});
-
-describe("Por tienda", () => {
-  const r = (p: Partial<ResumenSedeAnalisis>): ResumenSedeAnalisis => ({
-    sedeId: "tru",
-    seAcaban: 0,
-    noSeMueven: 0,
-    vendioDe10: 7,
-    edad: { hasta30: 0, de31a60: 0, de61a90: 0, masDe90: 0 },
-    unidades: 100,
-    puedeHablar: true,
-    ...p,
-  });
-
-  it("Urgente con 5 que se acaban o 10 que no se mueven; Atención con alguna; Va bien sin ninguna; Todavía no si no puede", () => {
-    expect(estadoSede(r({ seAcaban: 5 }))).toBe("urg");
-    expect(estadoSede(r({ noSeMueven: 10 }))).toBe("urg");
-    expect(estadoSede(r({ seAcaban: 4, noSeMueven: 9 }))).toBe("ate");
-    expect(estadoSede(r({ noSeMueven: 1 }))).toBe("ate");
-    expect(estadoSede(r({}))).toBe("bien");
-    expect(estadoSede(r({ seAcaban: 9, puedeHablar: false }))).toBe("nd");
-    expect(estadoSede(undefined)).toBe("nd");
-  });
-
-  it("las barras se llenan hasta su tope y no lo pasan; sin llegadas o sin poder hablar no hay cifra", () => {
-    expect(barrasSede(r({ seAcaban: 5, noSeMueven: 30, vendioDe10: 7 }))).toEqual([
-      { clave: "seAcaban", texto: "Se acaban", valor: 5, n: 0.5 },
-      { clave: "noSeMueven", texto: "No se mueven", valor: 30, n: 1 },
-      { clave: "vendioDe10", texto: "Vendió de 10", valor: 7, n: 0.7 },
-    ]);
-    expect(barrasSede(r({ vendioDe10: null }))[2]).toEqual({ clave: "vendioDe10", texto: "Vendió de 10", valor: null, n: 0 });
-    expect(barrasSede(r({ seAcaban: 3, puedeHablar: false })).map((b) => b.valor)).toEqual([null, null, null]);
-  });
-
-  it("mi tienda sigue «Liquidar desde» en vivo; lo demás queda como lo leyó el servidor", () => {
-    const prendas = [paraLiquidar({ diasSinVender: 50 }), paraLiquidar({ diasSinVender: 70 }), seAcaba()];
-    const leido = r({ seAcaban: 1, noSeMueven: 1, vendioDe10: 4 });
-    expect(resumenEnVivo(leido, prendas, 60)).toMatchObject({ seAcaban: 1, noSeMueven: 1, vendioDe10: 4 });
-    expect(resumenEnVivo(leido, prendas, 45)).toMatchObject({ seAcaban: 1, noSeMueven: 2, vendioDe10: 4 });
   });
 });
 

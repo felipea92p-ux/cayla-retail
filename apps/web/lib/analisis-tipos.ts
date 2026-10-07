@@ -100,22 +100,6 @@ export type PrendaSede = Omit<PrendaAnalisis, "otras" | "llega">;
 /** Cuántas prendas de MI tienda cayeron en cada tramo de días sin venderse (unidades, no modelos). */
 export type EdadInventario = { hasta30: number; de31a60: number; de61a90: number; masDe90: number };
 
-/** Lo que se dice de cada tienda en «Por tienda» (Hoy) y en «Por tienda» (No se vende). */
-export type ResumenSedeAnalisis = {
-  sedeId: string;
-  /** Prendas que se están acabando (grupo «Cómpralas»). */
-  seAcaban: number;
-  /** Prendas quietas desde el umbral de liquidar (grupos «Mándalas» y «Liquidar»). */
-  noSeMueven: number;
-  /** De cada 10 prendas que llegaron en 30 días, cuántas se vendieron; null si no llegó nada. */
-  vendioDe10: number | null;
-  edad: EdadInventario;
-  /** Unidades libres en la tienda. */
-  unidades: number;
-  /** Si esa tienda ya puede recibir recomendaciones (ADR-0346). */
-  puedeHablar: boolean;
-};
-
 /** Qué pantallas ve la cuenta (ADR-0161): un botón que lleva a «Sin acceso» no se muestra (ADR-0245). */
 export type AccesoAnalisis = {
   /** Existencias ▸ Reponer a piso (bajar). */
@@ -157,8 +141,6 @@ export type DatosAnalisis = {
   puedeHablar: boolean;
   /** Mis prendas con algo que decir: libres, vendidas en 30 días o en camino. */
   prendas: PrendaAnalisis[];
-  /** Una por tienda activa, en el orden de `sedes`. */
-  resumenSedes: ResumenSedeAnalisis[];
   /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */
