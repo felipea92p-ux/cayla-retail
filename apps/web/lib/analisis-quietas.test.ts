@@ -99,8 +99,10 @@ describe("cada prenda en el carril «Días sin venderse»", () => {
     expect(pistaQuieta(60, 60).zona).toBe("ate");
     expect(pistaQuieta(89, 60).zona).toBe("ate");
     expect(pistaQuieta(90, 60).zona).toBe("urg");
-    expect(pistaQuieta(86, LIQUIDAR_MAX).zona).toBe("ate");
-    expect(pistaQuieta(90, LIQUIDAR_MAX).zona).toBe("urg");
+    expect(pistaQuieta(86, 85).zona).toBe("ate");
+    expect(pistaQuieta(90, 85).zona).toBe("urg");
+    // Con «Liquidar desde» pasado de 3 meses (sin tope desde el 2026-10-07), lo de más de 3 meses sigue en rojo.
+    expect(pistaQuieta(104, 180).zona).toBe("urg");
   });
 
   it("el color sigue al control: la misma prenda cambia al moverlo, y vuelve", () => {
@@ -116,10 +118,13 @@ describe("cada prenda en el carril «Días sin venderse»", () => {
     expect(pistaQuieta(400, 60).cifraALaIzquierda).toBe(true);
   });
 
-  it("las marcas del eje: «Liquidar» se mueve con el control y nunca pasa a «3 meses»", () => {
+  it("las marcas del eje: «Liquidar» se mueve con el control y, si pasa de 3 meses, el eje se alarga para que se siga viendo", () => {
     expect(marcasEje(60)).toEqual({ liquidar: 50, tresMeses: 75 });
-    expect(marcasEje(LIQUIDAR_MIN).liquidar).toBe(25);
-    expect(marcasEje(LIQUIDAR_MAX).liquidar).toBeLessThan(marcasEje(LIQUIDAR_MAX).tresMeses);
+    expect(marcasEje(30).liquidar).toBe(25);
+    expect(marcasEje(LIQUIDAR_MIN).liquidar).toBeCloseTo(100 / 120, 6);
+    expect(marcasEje(85).liquidar).toBeLessThan(marcasEje(85).tresMeses);
+    expect(marcasEje(180).liquidar).toBeGreaterThan(marcasEje(180).tresMeses);
+    expect(marcasEje(LIQUIDAR_MAX).liquidar).toBeLessThan(100);
   });
 });
 
@@ -153,10 +158,14 @@ describe("los grupos del carril", () => {
 
   it("al mover «Liquidar desde», las prendas cambian de grupo en vivo", () => {
     expect(ids(gruposQuietas(prendas, 40).liquidar)).toEqual(["liquidar-vieja", "liquidar", "vigila"]);
-    const alto = gruposQuietas(prendas, LIQUIDAR_MAX);
+    const alto = gruposQuietas(prendas, 85);
     expect(ids(alto.liquidar)).toEqual(["liquidar-vieja"]);
     expect(ids(alto.vigila)).toEqual(["enviar", "liquidar", "vigila"]);
     expect(alto.enviar).toEqual([]);
+    // Sin tope: con 999 días nada se liquida, todo lo quieto se vigila.
+    const sinTope = gruposQuietas(prendas, LIQUIDAR_MAX);
+    expect(sinTope.liquidar).toEqual([]);
+    expect(ids(sinTope.vigila)).toEqual(["liquidar-vieja", "enviar", "liquidar", "vigila"]);
   });
 });
 
@@ -213,11 +222,14 @@ describe("cuando no hay carril", () => {
     expect(vacioQuietas([quieta("nueva", 10), quieta("vigila", 40)], LIQUIDAR_DEFECTO, 0)).toBeNull();
     expect(vacioQuietas([quieta("vigila", 40)], LIQUIDAR_DEFECTO, 1)).toBeNull();
   });
-  it("no depende de «Liquidar desde»: el control pasa prendas entre grupos, nunca saca una del carril", () => {
-    expect(LIQUIDAR_MIN).toBeGreaterThanOrEqual(DIAS_VIGILAR);
+  it("el control nunca saca una prenda del carril; con menos de 30 días puede sumar las que ya llevan ese tiempo quietas", () => {
     const prendas = [quieta("a", 30), quieta("b", 29)];
     for (let dias = LIQUIDAR_MIN; dias <= LIQUIDAR_MAX; dias++) expect(vacioQuietas(prendas, dias, 0)).toBeNull();
-    for (let dias = LIQUIDAR_MIN; dias <= LIQUIDAR_MAX; dias++) expect(vacioQuietas([quieta("b", 29)], dias, 0)).toBe("todo-se-mueve");
+    // Con 30 o más, la de 29 días no entra: no depende del número.
+    for (let dias = DIAS_VIGILAR; dias <= LIQUIDAR_MAX; dias++) expect(vacioQuietas([quieta("b", 29)], dias, 0)).toBe("todo-se-mueve");
+    // Con menos (sin tope desde el 2026-10-07), ya lleva esos días: entra a «Liquidar».
+    expect(vacioQuietas([quieta("b", 29)], 29, 0)).toBeNull();
+    expect(vacioQuietas([quieta("b", 29)], LIQUIDAR_MIN, 0)).toBeNull();
   });
   it("cada vacío dice algo corto, con su título y una línea", () => {
     expect(TEXTO_VACIO_QUIETAS["todo-se-mueve"].titulo).toBe("Todo se mueve");

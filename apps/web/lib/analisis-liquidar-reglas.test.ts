@@ -64,9 +64,11 @@ describe("qué cambia al guardar «Liquidar desde»", () => {
     expect(e.cambia).toBe(false);
     expect(e.enLiquidar).toBe(e.enLiquidarHoy);
   });
-  it("fuera de sus topes se lleva al borde (como la lectura y como la base)", () => {
-    expect(efectoDeLiquidar(prendas, 10, 60).dias).toBe(LIQUIDAR_MIN);
-    expect(efectoDeLiquidar(prendas, 200, 60).dias).toBe(LIQUIDAR_MAX);
+  it("fuera de sus topes (1 a 999) se lleva al borde (como la lectura y como la base)", () => {
+    expect(efectoDeLiquidar(prendas, 10, 60).dias).toBe(10);
+    expect(efectoDeLiquidar(prendas, 200, 60).dias).toBe(200);
+    expect(efectoDeLiquidar(prendas, 0, 60).dias).toBe(LIQUIDAR_MIN);
+    expect(efectoDeLiquidar(prendas, 5000, 60).dias).toBe(LIQUIDAR_MAX);
     expect(efectoDeLiquidar(prendas, 64.4, 60).dias).toBe(64);
     expect(efectoDeLiquidar(prendas, 60, Number.NaN).guardado).toBe(LIQUIDAR_DEFECTO);
   });
@@ -99,8 +101,8 @@ describe("el error al guardar, en tres líneas", () => {
     expect(errorAlGuardarLiquidar({ message: "AbortError: signal is aborted without reason", code: null }, efecto).que).toBe("No se pudo confirmar si se guardó.");
   });
   it("la base dijo que no: todo sigue como estaba y la tercera línea es su motivo", () => {
-    const fuera = errorAlGuardarLiquidar({ message: "«Liquidar desde» va de 30 a 85 días.", code: "P0001", hint: "liquidar_desde_fuera_de_rango" }, efecto);
-    expect(fuera).toEqual({ que: "No se guardó.", queda: "Todas las tiendas siguen con 60 días.", sigue: "«Liquidar desde» va de 30 a 85 días." });
+    const fuera = errorAlGuardarLiquidar({ message: "«Liquidar desde» va de 1 a 999 días.", code: "P0001", hint: "liquidar_desde_fuera_de_rango" }, efecto);
+    expect(fuera).toEqual({ que: "No se guardó.", queda: "Todas las tiendas siguen con 60 días.", sigue: "«Liquidar desde» va de 1 a 999 días." });
     const sinModulo = errorAlGuardarLiquidar(
       { message: "Para cambiar desde cuándo se liquida necesitas Análisis en tu rol.", code: "42501", hint: "analisis_sin_modulo" },
       efecto,

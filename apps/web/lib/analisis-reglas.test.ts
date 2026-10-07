@@ -125,9 +125,11 @@ describe("por llegar, edad y lo que llega", () => {
 });
 
 describe("Liquidar desde, la vista y el buscador", () => {
-  it("se queda en sus topes", () => {
-    expect(liquidarDesdeValido(10)).toBe(LIQUIDAR_MIN);
-    expect(liquidarDesdeValido(400)).toBe(LIQUIDAR_MAX);
+  it("se queda en sus topes (de 1 a 999 desde el 2026-10-07: 10 y 400 ya valen)", () => {
+    expect(liquidarDesdeValido(10)).toBe(10);
+    expect(liquidarDesdeValido(400)).toBe(400);
+    expect(liquidarDesdeValido(0)).toBe(LIQUIDAR_MIN);
+    expect(liquidarDesdeValido(5000)).toBe(LIQUIDAR_MAX);
     expect(liquidarDesdeValido("64")).toBe(64);
     expect(liquidarDesdeValido(null)).toBe(LIQUIDAR_DEFECTO);
   });
