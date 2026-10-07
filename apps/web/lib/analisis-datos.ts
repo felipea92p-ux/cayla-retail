@@ -35,7 +35,7 @@ async function leerPreparacionDeLaRed(): Promise<{ filas: PreparacionAnalisis[];
     console.error(`${RPC_PREPARACION}: ${error.message}`);
     return { filas: [], falla: "No se pudo leer si el sistema ya puede recomendar en cada tienda" };
   }
-  return { filas: leerPreparacion(data).map((f) => ({ ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy })), falla: null };
+  return { filas: leerPreparacion(data).map((f) => ({ ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy, primeraVenta: f.primeraVenta })), falla: null };
 }
 
 /** Hoy en Lima, si la base no lo dijo (YYYY-MM-DD). */

@@ -8,8 +8,8 @@
 
 import type { DiaVenta, PreparacionSede } from "./motor-demanda-reglas";
 
-/** Las cuatro pestañas, en el orden de la pantalla. */
-export const VISTAS_ANALISIS = ["hoy", "acaba", "nose", "pedir"] as const;
+/** Las pestañas, en el orden de la pantalla. «Nunca salió al piso» (`piso`) va entre «No se vende» y «Qué pedir» (Felipe, 2026-10-07). */
+export const VISTAS_ANALISIS = ["hoy", "acaba", "nose", "piso", "pedir"] as const;
 export type VistaAnalisis = (typeof VISTAS_ANALISIS)[number];
 
 /** De dónde sale una prenda cuando se repone: el Taller de CAYLA o un proveedor de afuera («Proveedor taller / terceros»). */
@@ -130,8 +130,9 @@ export type AccesoAnalisis = {
   planCompra: boolean;
 };
 
-/** La lectura del motor (ADR-0346) de una tienda, con sus días para dibujar «Ventas con su prenda, día a día». */
-export type PreparacionAnalisis = PreparacionSede & { dias: DiaVenta[]; hoy: string };
+/** La lectura del motor (ADR-0346) de una tienda, con sus días para dibujar «Ventas con su prenda, día a día» y su primera venta en
+ *  el ERP (YYYY-MM-DD, o null si todavía no vende): de ahí sale cuántos días de ventas tiene (`diasDeVentas`). */
+export type PreparacionAnalisis = PreparacionSede & { dias: DiaVenta[]; hoy: string; primeraVenta: string | null };
 
 /** Todo lo que la pantalla necesita, leído una vez por el servidor. */
 export type DatosAnalisis = {

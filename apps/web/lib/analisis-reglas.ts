@@ -8,6 +8,7 @@
 
 import type { EdadInventario, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { VISTAS_ANALISIS } from "./analisis-tipos";
+import { diasEntreFechas } from "./fechas-lima";
 
 /** Hasta cuántos días de stock «se está acabando» (el eje del carril llega a 2 semanas). */
 export const DIAS_SE_ACABA = 14;
@@ -29,6 +30,19 @@ export const LIQUIDAR_PASO = 5;
 export const VENDIDAS_PARA_ENVIAR = 2;
 /** Meta de «se vende lo que llega»: de cada 10 que llegan en 30 días, cuántas deberían venderse (decisión 3). */
 export const META_SE_VENDE_LO_QUE_LLEGA = 6;
+/** La ventana de ventas de Análisis: el ritmo de lo que se vende se mide en hasta 30 días. */
+export const VENTANA_VENTAS = 30;
+
+/**
+ * Cuántos días de ventas tiene la tienda en el ERP, hasta 30: desde su primera venta, hoy incluido. Sin ventas, 30 (no hay ritmo
+ * que medir y la ventana es la de siempre). Ejemplo inventado: una tienda que vende en el ERP desde el 30 de setiembre tiene 8 el
+ * 7 de octubre.
+ */
+export function diasDeVentas(primeraVenta: string | null | undefined, hoy: string): number {
+  if (!primeraVenta) return VENTANA_VENTAS;
+  return Math.min(VENTANA_VENTAS, Math.max(1, diasEntreFechas(primeraVenta, hoy) + 1));
+}
+
 /** Cuántas prendas muestran las listas cortas de Hoy. */
 export const PRENDAS_EN_LISTA = 5;
 

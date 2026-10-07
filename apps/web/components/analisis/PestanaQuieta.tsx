@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
-import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, soles } from "@/components/analisis/piezas";
+import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
@@ -292,17 +292,6 @@ export function PestanaQuieta() {
       {/* La hoja se cierra sola (con su salida) después de guardar: aquí solo se vuelve a leer el valor guardado. */}
       {guardar && <HojaLiquidarDesde dias={liquidarDesde} onCerrar={() => setGuardar(false)} onGuardado={() => router.refresh()} />}
     </>
-  );
-}
-
-/** Una cifra grande de arriba (la `numero()` de la maqueta): el número, qué es y su detalle. */
-function Numero({ valor, et, sub }: { valor: string; et: ReactNode; sub: ReactNode }) {
-  return (
-    <div className="q-numero">
-      <b>{valor}</b>
-      <span className="et">{et}</span>
-      <span className="sub">{sub}</span>
-    </div>
   );
 }
 

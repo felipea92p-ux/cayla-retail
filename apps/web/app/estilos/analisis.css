@@ -170,6 +170,13 @@
     .c-grupo .n{font-size:12px;font-weight:600;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:999px;padding:2px 8px}
     .c-grupo .btn-cayla{margin-left:auto}
     .c-grupo.mudo h4{color:var(--color-tinta-60);font-weight:500}
+    .c-grupo .detalle{font-size:12.5px;color:var(--color-tinta-60)}
+    /* «Ver N más»: lo que un grupo con corte deja bajo sus primeras filas (los tipos de «Nunca salió al piso»). */
+    .c-mas{display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px 66px;padding:4px 0;border:0;background:transparent;
+      font-size:12.5px;font-weight:600;color:var(--color-taupe);cursor:pointer;transition:color 160ms var(--ease-cayla)}
+    .c-mas svg{width:13px;height:13px}
+    .c-mas:hover{color:var(--color-tinta)}
+    .c-mas:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px;border-radius:6px}
     .c-fila{cursor:pointer;border-radius:10px;transition:background-color 160ms var(--ease-cayla),opacity 160ms var(--ease-cayla)}
     .c-fila:hover{background:color-mix(in srgb,var(--color-hueso) 55%,transparent)}
     .c-fila.mudo .tile, .c-fila.mudo .c-nom{opacity:.6}
@@ -191,6 +198,8 @@
     .pil.puede{color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 11%,transparent)}
     .pil.puede svg{width:12px;height:12px}
     .pil.puede .cod{color:var(--color-pizarra)}
+    /* «El modelo ya está en el piso» («Nunca salió al piso»): informa, como «puede pedir». */
+    .pil.modelo{color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 11%,transparent)}
     .pista{grid-area:pista;position:relative;height:20px;border-radius:6px;background:var(--color-hueso)}
     .pista .linea{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1.5px dashed color-mix(in srgb,var(--color-tinta) 45%,transparent)}
     .pista .barra{position:absolute;left:0;top:4px;bottom:4px;border-radius:4px;width:calc(var(--n) * 100%);background:var(--c)}
@@ -208,6 +217,10 @@
       .c-eje{display:none}
       .c-fila{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:"tile nom acc" "tile pista pista" "tile pil pil";row-gap:6px;padding:10px 16px}
       .c-pil{margin-top:2px}
+      /* Sin ancho, el encabezado del grupo se reparte: el detalle baja a su línea, bajo el título, y el botón cabe entero. */
+      .c-grupo{flex-wrap:wrap;row-gap:4px}
+      .c-grupo .detalle{order:9;flex-basis:100%;padding-left:40px}
+      .c-mas{margin-left:68px}
     }
     .umbral{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--color-tinta-60);flex-wrap:wrap}
     .grilla{border-collapse:separate;border-spacing:3px;font-size:12.5px;font-variant-numeric:tabular-nums}

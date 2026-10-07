@@ -18,7 +18,7 @@ function tienda(f: Partial<FilaPreparacion> = {}): PreparacionAnalisis {
     dias: [],
     ...f,
   };
-  return { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy };
+  return { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy, primeraVenta: fila.primeraVenta };
 }
 
 describe("qué muestra Análisis mientras la tienda no cumple (ADR-0357, decisión 2)", () => {

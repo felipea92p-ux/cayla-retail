@@ -15,6 +15,8 @@ export type ContextoAnalisis = {
   acceso: AccesoAnalisis;
   /** Las prendas de mi tienda que pasan el buscador (todas si no se busca nada). */
   prendas: PrendaAnalisis[];
+  /** Cuántos días de ventas tiene la tienda en el ERP, hasta 30 (`diasDeVentas`): «vendiste 38 en 8 días». */
+  diasDeVentas: number;
   /** Lo escrito en el buscador. */
   q: string;
   /** «Liquidar desde» EN VIVO: mientras se mueve el control, las prendas cambian de grupo sin guardar. */
