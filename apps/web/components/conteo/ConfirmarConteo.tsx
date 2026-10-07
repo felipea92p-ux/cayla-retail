@@ -21,6 +21,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { camposDeFirma, esPedidoDeNombre, firmaEnPantalla, mandaNombre, preguntaFirma, type FirmaDelPaso } from "@/lib/firma-heredada";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
+import { Volver } from "@/components/ui/Volver";
 
 /* ====================================================================
    Confirmar conteo · el último paso: lo que va a cambiar, y cerrar
@@ -305,9 +306,8 @@ export function ConfirmarConteo({
         resumen={<p>{razonApagado ?? resumenPie}</p>}
         acciones={
           <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <Link href={urlRevisar} aria-disabled={cerrando || undefined} className="btn-cayla btn-secundario h-11 w-full aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:w-auto">
-              Volver a revisar
-            </Link>
+            {/* Mientras se cierra el conteo no se sale a revisar (como antes): la flecha queda apagada y no responde. */}
+            <Volver href={urlRevisar} a="Volver a revisar" className={`self-center ${cerrando ? "pointer-events-none opacity-50" : ""}`} />
             <button
               type="button"
               disabled={cerrando || razonApagado !== null}

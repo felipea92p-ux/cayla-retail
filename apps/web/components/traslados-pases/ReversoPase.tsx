@@ -2,7 +2,7 @@
 
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Minus, Plus, Printer, ScanLine, Store, Warehouse } from "lucide-react";
+import { Check, Minus, Plus, Printer, ScanLine, Store, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -53,6 +53,7 @@ import type { FirmaDelPaso } from "@/lib/firma-heredada";
 import { preguntaFirma } from "@/lib/firma-heredada";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
@@ -472,9 +473,7 @@ export function ReversoPase({
               </div>
             )}
             <div className="tp-fila">
-              <button type="button" onClick={() => setTermino(false)} disabled={ocupado} className="btn-cayla btn-secundario">
-                Volver a contar
-              </button>
+              <Volver onClick={() => setTermino(false)} deshabilitado={ocupado} a="Volver a contar" className="self-center" />
               <button type="button" onClick={() => void alConfirmar()} disabled={ocupado || r.resumenGuardado.errores > 0} className="btn-cayla btn-primario tp-grande">
                 {r.trabajando === "confirmar" ? "Confirmando…" : que ? "Confirmar lo que llegó" : "Confirmar"}
               </button>
@@ -577,9 +576,7 @@ export function ReversoPase({
 function Cabecera({ titulo, numero, aro, onVolver, tono }: { titulo: string; numero: number; aro: number | null; onVolver: () => void; tono?: string }) {
   return (
     <header className="tp-banda tp-banda-atras" data-tp-tono={tono}>
-      <button type="button" className="tp-volver" onClick={onVolver} data-foco-reverso>
-        <ArrowLeft aria-hidden strokeWidth={2} className="h-4 w-4" /> Volver
-      </button>
+      <Volver onClick={onVolver} a="Volver al frente del pase" datos={{ "data-foco-reverso": true }} />
       <span className="tp-banda-nombre" role="heading" aria-level={2}>
         {titulo}
       </span>

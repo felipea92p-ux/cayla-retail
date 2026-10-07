@@ -29,6 +29,10 @@ acordarse) y después, con su OK, la lleva a las pantallas que todavía usan otr
 ## Por qué esta
 Tres líneas: qué ganó, qué se perdió de las otras y por qué no importa.
 
+## El movimiento de la pieza
+Qué hace al pasar el mouse, al presionar, con el foco del teclado y mientras trabaja (la línea `movimiento:` del censo), y qué movimiento
+traían las variantes que reemplaza: ninguno se pierde sin que Felipe lo diga.
+
 ## Lo que queda distinto a propósito
 Las excepciones que Felipe aceptó (con su motivo), si hay.
 

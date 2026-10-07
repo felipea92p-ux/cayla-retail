@@ -33,6 +33,7 @@ import {
   type GastoFijoMes,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
 // dibujadas como el spike (docs/maquetas/finanzas-2026-09/, `vistaFijos`, `tablaActivos`, `cfgFijos`).
@@ -260,9 +261,9 @@ export function TablaGastosFijos({
     <>
       <Superficie className="anim-sube">
         <TituloDeTarjeta titulo="Gastos que se repiten" bajada="El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.">
-          <button type="button" className="btn-cayla btn-primario btn-chico" onClick={() => setEditar({})}>
+          <Boton type="button" peso="primario" onClick={() => setEditar({})}>
             + Agregar fijo
-          </button>
+          </Boton>
         </TituloDeTarjeta>
         {fijos.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-taupe">Todavía no hay gastos fijos. El alquiler, la luz o el contador: agrégalos una vez.</p>

@@ -90,6 +90,7 @@ import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -786,9 +787,7 @@ export function NuevoProductoForm({
     const texto = n === 2 ? (parecidos.motivoBloqueo ?? revisa ?? textoBase) : textoBase;
     // «← Atrás» (Felipe, 2026-10-06): vuelve al paso anterior sin borrar nada de lo llenado. Va antes de la acción que cierra el paso.
     const atras = (
-      <button type="button" onClick={() => irAPaso((n - 1) as NumeroPaso)} disabled={cargando} className="btn-cayla btn-secundario">
-        <span aria-hidden>←</span> Atrás
-      </button>
+      <Volver onClick={() => irAPaso((n - 1) as NumeroPaso)} deshabilitado={cargando} a="Volver al paso anterior" />
     );
     const cierre =
       n < 4 ? (

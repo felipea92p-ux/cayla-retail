@@ -10,6 +10,7 @@ import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
 import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
+import { Pestanas } from "@/components/ui/Pestanas";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -89,24 +90,16 @@ export function ApartadosPanel(props: Props) {
         <p className={`label-cayla text-[11px] text-tinta/80 ${vista === "todos" ? "" : "lg:max-xl:hidden"}`}>Apartados · {props.ubicacionEtiqueta}</p>
         <span aria-hidden className={`h-[22px] w-px bg-sand max-lg:hidden ${vista === "todos" ? "" : "lg:max-xl:hidden"}`} />
         <div className="flex items-center gap-6 lg:max-xl:gap-4">
-        <nav aria-label="Apartados" className="flex items-center gap-6 max-lg:hidden lg:max-xl:gap-4">
-          {pestañas.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => irA(p.id)}
-              aria-current={vista === p.id ? "page" : undefined}
-              // La letra de la pestaña de vista del ERP (ADR-0358): 13,5 px, inactiva en taupe, elegida en tinta y 500, con su
-              // ancho reservado. Los 64 px y el subrayado en tinta son de esta pantalla (alinean con el ticket, ADR-0223).
-              className={`relative h-11 text-[13.5px] transition-colors sm:h-16 ${vista === p.id ? "font-medium text-tinta after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-tinta" : "text-taupe hover:text-tinta"}`} // unificar-fijo: 64 px y subrayado alineados al ticket, ADR-0223
-            >
-              <span className="pestana-cayla__texto" data-texto={p.etiqueta}>{p.etiqueta}</span>
-              {!!p.insignia && (
-                <span className="ml-1.5 inline-grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] text-papel">{p.insignia}</span>
-              )}
-            </button>
-          ))}
-        </nav>
+        {/* La pestaña de vista del ERP (ADR-0358): «Apartar / Entregar / Todos» cambia de sección. Solo en escritorio; el celular lleva las
+            suyas abajo (`ALTO_PESTANAS_MOVIL`). El conteo de «Todos» es el que pide algo (Felipe 2026-10-07). */}
+        <Pestanas
+          className="max-lg:hidden"
+          etiquetaAccesible="Apartados"
+          idIndicador="apartados"
+          activa={vista}
+          onCambio={(c) => irA(c as Vista)}
+          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined }))}
+        />
         {props.esLider && (
           <button
             type="button"

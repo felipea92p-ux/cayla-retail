@@ -215,7 +215,7 @@ export function PuntoDeVentaCatalogo({
               type="button"
               onClick={onAbrirCamara}
               disabled={bloqueado}
-              className="label-cayla flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-tinta px-3 text-[11px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/90 active:translate-y-px"
+              className="label-cayla flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-tinta px-3 text-[11px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px"
             >
               <IconoQr className="h-5 w-5 shrink-0" />
               Escanear QR
@@ -360,7 +360,7 @@ export function PuntoDeVentaCatalogo({
             // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
             // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
             // En tinta (Felipe, 2026-10-01): es la vía de captura que la colaboradora busca cuando la prenda no tiene etiqueta.
-            className="label-cayla w-[6.75rem] shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] leading-snug text-crema @md:w-auto @md:leading-normal transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/85 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
+            className="label-cayla w-[6.75rem] shrink-0 rounded-xl border border-tinta bg-tinta px-3 text-[11px] leading-snug text-crema @md:w-auto @md:leading-normal transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-rojo-profundo active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-tinta"
           >
             Prenda sin registrar
           </button>

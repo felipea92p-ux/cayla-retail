@@ -2,42 +2,23 @@
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { CalendarArrowDown, CalendarArrowUp, Search, X } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
-import { firmar } from "@/lib/responsable-reglas";
-import { useResponsable } from "@/lib/useResponsable";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { diaYHoraLima } from "@/lib/fechas-lima";
-import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, siguienteOrden, tipoDiferencia, DIAS_PARA_VENCER, ORDEN_INICIAL, VENTAS_POR_PAGINA, type CampoOrden, type Orden } from "@/lib/por-regularizar-reglas";
+import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
-import { avisosDePlazo, motivoLegible, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
+import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
-import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonPrimario } from "@/components/ui/Modal";
-import { Campo, Desplegable } from "@/components/ui/campos";
-import { ComboBuscable } from "@/components/ui/ComboBuscable";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { Chip } from "@/components/ui/Chip";
+import type { PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
+import { Desplegable } from "@/components/ui/campos";
+import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
-import { Tabla, Encabezado, fila, celda, TABLA } from "@/components/ui/Tabla";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
 import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
 import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
+import { FranjaAvance } from "@/components/por-regularizar/FranjaAvance";
+import { MesaRegularizar } from "@/components/por-regularizar/MesaRegularizar";
 
-/** Lo mínimo de cada prenda del catálogo para reconocerla (sin costo: esta pantalla la ve almacén). */
-export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
+/** Lo mínimo de cada prenda del catálogo para reconocerla y dibujarla (sin costo: esta pantalla la ve almacén). */
+export type { PrendaParaRegularizar };
 
-const PLANTILLA = "sm:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_6rem_7.5rem_minmax(0,1.6fr)]";
-const COLUMNAS = [
-  { titulo: "Prenda (lo que anotó caja)", campo: "prenda", ayuda: "Ordenar de la A a la Z" },
-  { titulo: "Vendió", campo: "vendio", ayuda: "Ordenar por fecha de venta" },
-  { titulo: "Cobrado", campo: "cobrado", alinear: "der" as const, ayuda: "Ordenar por lo que se cobró" },
-  { titulo: "Estado", campo: "estado", ayuda: "Ordenar por urgencia: primero las vencidas" },
-  { titulo: "" },
-];
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
 const FILTROS = [
   { clave: "pendiente", texto: "Pendientes" },
   { clave: "regularizada", texto: "Regularizadas" },
@@ -45,9 +26,19 @@ const FILTROS = [
   { clave: "todas", texto: "Todas" },
 ] as const;
 
+/**
+ * Ventas sin registrar (ADR-0179, ADR-0330) con el diseño de la maqueta A2 «Puente» (ADR-0360, Felipe 2026-10-07): una franja con lo que
+ * falta y lo urgente, los filtros y el buscador de siempre, y la mesa (`MesaRegularizar`): talones · puente · prendas.
+ *
+ * Lo que NO cambió: de dónde salen las filas, los cuatro filtros, la búsqueda, quién vendió, la fecha, el paginado de 25, «Identificar con
+ * sugerencias», «Cerrar la cola de arranque», «Reabrir», y lo que guarda `regularizar_prenda`. Lo que se fue: el modal «Regularizar» (ahora
+ * es el puente), las cuatro tarjetas de cifras y el anillo (ahora la franja) y el orden por cada columna: no hay columnas; queda el orden
+ * por fecha y el botón «N vencidas», que deja solo lo urgente.
+ */
 export function PorRegularizarLista({
   filas,
   prendas,
+  disponibles,
   ubicacionEtiqueta,
   variasSedes,
   esLider,
@@ -57,6 +48,8 @@ export function PorRegularizarLista({
 }: {
   filas: FilaPorRegularizar[];
   prendas: PrendaParaRegularizar[];
+  /** Unidades libres por tienda y por prenda; una tienda que falta = no se pudo leer (la pantalla sigue, sin cifras de stock). */
+  disponibles: Record<string, Record<string, number>>;
   /** Para el mensaje de «no hay nada»: la sede que se mira, o «tus tiendas» si es el líder. */
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
@@ -67,36 +60,53 @@ export function PorRegularizarLista({
   plazos: Record<string, string>;
   /** La tienda que se está mirando (`?ubicacion=`), para que el cierre parta de ella. */
   sedeInicial: string | null;
-  /** La línea de venta (`?item=`) con que llega Historial: si su prenda sigue pendiente, su hoja de regularizar entra abierta. */
+  /** La línea de venta (`?item=`) con que llega Historial: si su prenda sigue pendiente, esa venta entra elegida. */
   abrirItemId?: string | null;
 }) {
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["clave"]>("pendiente");
   const [quien, setQuien] = useState("");
-  const [abierta, setAbierta] = useState<FilaPorRegularizar | null>(() => (abrirItemId ? (filas.find((f) => f.ventaItemId === abrirItemId && f.estado === "pendiente") ?? null) : null));
+  const [soloVencidas, setSoloVencidas] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [reabriendo, setReabriendo] = useState<FilaPorRegularizar | null>(null);
   const [sugiriendo, setSugiriendo] = useState(false);
-  const ahora = useMemo(() => new Date(), []);
-  const cifras = useMemo(() => cifrasPorRegularizar(filas, ahora), [filas, ahora]);
-  const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
   const [busqueda, setBusqueda] = useState("");
-  // Al abrir, de la venta más reciente a la más antigua (Felipe, 2026-10-06); tocar un encabezado ordena por esa columna. Todo en
-  // páginas de VENTAS_POR_PAGINA. Las cifras de arriba cuentan TODAS las pendientes (`filas`), no solo la página que se ve: una
-  // vencida en la página 4 sigue sumando en «Vencidas». La búsqueda es local (las filas ya están aquí): no va a la base ni a la URL.
+  const ahora = useMemo(() => new Date(), []);
+  // Las ventas que ya se regularizaron en esta visita pero que la lista aún no releyó: la franja baja su cuenta sin esperar al refresco.
+  const [hechasLocal, setHechasLocal] = useState<ReadonlySet<string>>(new Set());
+  const [filasPrevias, setFilasPrevias] = useState(filas);
+  if (filasPrevias !== filas) {
+    setFilasPrevias(filas);
+    setHechasLocal(new Set());
+  }
+  const cifras = useMemo(() => cifrasPorRegularizar(filas.filter((f) => !hechasLocal.has(f.id)), ahora), [filas, hechasLocal, ahora]);
+  const [pendientesAlAbrir] = useState(cifras.pendientes);
+  const vendedoras = useMemo(() => [...new Set(filas.map((f) => f.vendidoPor))].sort(), [filas]);
+  // Al abrir, de la venta más reciente a la más antigua (Felipe, 2026-10-06). La búsqueda es local (las filas ya están aquí): no va a la base ni a la URL.
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL);
   const visibles = useMemo(
     () =>
       ordenarVentas(
-        filas.filter((f) => (filtro === "todas" || f.estado === filtro) && (!quien || f.vendidoPor === quien) && coincideConBusqueda(f, busqueda)),
+        filas.filter(
+          (f) =>
+            (filtro === "todas" || f.estado === filtro) &&
+            (!soloVencidas || (f.estado === "pendiente" && !hechasLocal.has(f.id) && estaVencida(f.vendidoEn, ahora))) &&
+            (!quien || f.vendidoPor === quien) &&
+            coincideConBusqueda(f, busqueda),
+        ),
         orden,
         ahora,
       ),
-    [filas, filtro, quien, busqueda, orden, ahora],
+    [filas, filtro, soloVencidas, hechasLocal, quien, busqueda, orden, ahora],
   );
-  // Cambiar un filtro vuelve a la página 1 (ajuste durante el render, como Comprobantes); `paginar` acota si la lista se achicó
-  // (regularizaste la última de la página 3 y la lista quedó de 2 páginas).
-  const [pagina, setPagina] = useState(1);
-  const firmaFiltros = `${filtro}\u0000${quien}\u0000${busqueda}\u0000${orden.campo}${orden.dir}`;
+  // Cambiar un filtro vuelve a la página 1 (ajuste durante el render, como Comprobantes); `paginar` acota si la lista se achicó.
+  // La venta con que llega Historial (`?item=`) entra elegida, y su página es la primera que se ve.
+  const elegidaAlAbrir = useMemo(() => (abrirItemId ? (filas.find((f) => f.ventaItemId === abrirItemId && f.estado === "pendiente")?.id ?? null) : null), [filas, abrirItemId]);
+  const [pagina, setPagina] = useState(() => {
+    if (!elegidaAlAbrir) return 1;
+    const i = ordenarVentas(filas.filter((f) => f.estado === "pendiente"), ORDEN_INICIAL, new Date()).findIndex((f) => f.id === elegidaAlAbrir);
+    return i < 0 ? 1 : Math.floor(i / VENTAS_POR_PAGINA) + 1;
+  });
+  const firmaFiltros = `${filtro}\u0000${soloVencidas}\u0000${quien}\u0000${busqueda}\u0000${orden.campo}${orden.dir}`;
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
   if (firmaFiltros !== firmaPrevia) {
     setFirmaPrevia(firmaFiltros);
@@ -115,313 +125,148 @@ export function PorRegularizarLista({
   const sedesCerrables = useMemo(() => sedesDelLider.filter((s) => s.puedeCerrar), [sedesDelLider]);
   // Las sugerencias no dependen del plazo: identificar una venta nunca está vedado, solo cerrarla sin prenda.
   const sedesConPendientes = useMemo(() => sedesDelLider.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesDelLider]);
-  // Qué dice el plazo de cada tienda: sin esto, vencido el plazo el botón desaparecía sin explicación.
-  const avisosPlazo = useMemo(() => avisosDePlazo(sedesDelLider), [sedesDelLider]);
-
+  // Qué dice el plazo de cada tienda: sin esto, vencido el plazo el botón desaparecía sin explicación. Solo se muestra a la vista cuando hay algo que
+  // explicar (venció, no hay plazo, o hoy es el último día); con el plazo corriendo, va en el propio «Cerrar la cola de arranque» del menú «Más».
+  const avisosUrgentes = useMemo(() => avisosDePlazo(sedesDelLider.filter((s) => !s.puedeCerrar || s.diasDePlazo === 0)), [sedesDelLider]);
+  const plazoUnico = sedesCerrables.length === 1 && sedesCerrables[0].plazoHasta ? `hasta el ${diaMesDe(sedesCerrables[0].plazoHasta)}` : null;
+  // Lo que solo hace un líder (la base lo vuelve a exigir) va en un menú: dos botones de peso igual compitiendo con el trabajo de la mesa.
+  const accionesDeLider = useMemo<ItemMenu[]>(
+    () => [
+      ...(sedesConPendientes.length > 0 ? [{ clave: "sugerencias", etiqueta: "Identificar con sugerencias", onSelect: () => setSugiriendo(true) }] : []),
+      ...(sedesCerrables.length > 0 ? [{ clave: "cerrar", etiqueta: `Cerrar la cola de arranque${plazoUnico ? ` · ${plazoUnico}` : ""}`, onSelect: () => setCerrando(true) }] : []),
+    ],
+    [sedesConPendientes.length, sedesCerrables.length, plazoUnico],
+  );
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto={cifras.pendientes > 0 ? "ambar" : "neutro"} etiqueta="Por regularizar" valor={cifras.pendientes}>
-          prendas vendidas sin registrar
-        </TarjetaCifra>
-        <TarjetaCifra className="anim-entra" style={{ "--i": 1 } as CSSProperties} punto={cifras.vencidas > 0 ? "rojo" : "neutro"} etiqueta="Vencidas" valor={cifras.vencidas}>
-          más de {DIAS_PARA_VENCER} días sin regularizar
-        </TarjetaCifra>
-        <TarjetaCifra className="anim-entra" style={{ "--i": 2 } as CSSProperties} punto="neutro" etiqueta="Descuento no planificado" valor={soles(cifras.descuentoMes)}>
-          se cobró menos que el precio oficial · este mes
-        </TarjetaCifra>
-        <TarjetaCifra className="anim-entra" style={{ "--i": 3 } as CSSProperties} punto="neutro" etiqueta="Sobreprecio" valor={soles(cifras.sobreprecioMes)}>
-          se cobró más que el precio oficial · este mes
-        </TarjetaCifra>
-      </div>
+    <div className="vsr space-y-6">
+      <FranjaAvance
+        pendientes={cifras.pendientes}
+        vencidas={cifras.vencidas}
+        descuentoMes={cifras.descuentoMes}
+        sobreprecioMes={cifras.sobreprecioMes}
+        inicial={pendientesAlAbrir}
+        soloVencidas={soloVencidas}
+        onVencidas={() => {
+          setSoloVencidas((v) => !v);
+          setFiltro("pendiente");
+        }}
+      />
 
       <div ref={tarjetaRef}>
-      <Tabla className="anim-entra" style={{ "--i": 4 } as CSSProperties}>
-        <div className="px-5 pt-3">
-          <label className="relative block">
-            <span className="sr-only">Buscar una venta sin registrar</span>
-            <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/45" />
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && busqueda) {
-                  e.preventDefault();
-                  setBusqueda("");
-                }
-              }}
-              maxLength={120}
-              autoComplete="off"
-              placeholder="Buscar prenda, color, talla, quién vendió o precio"
-              className="h-9 w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {busqueda && (
-              <button type="button" aria-label="Borrar la búsqueda" onClick={() => setBusqueda("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
-                <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </label>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 px-5 py-3">
-          {FILTROS.map((f) => (
-            <button key={f.clave} type="button" aria-pressed={filtro === f.clave} onClick={() => setFiltro(f.clave)} className="pildora-cayla">
-              {f.texto}
-            </button>
-          ))}
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {sedesConPendientes.length > 0 && (
-              <button type="button" onClick={() => setSugiriendo(true)} className="btn-cayla btn-secundario">
-                Identificar con sugerencias
-              </button>
-            )}
-            {sedesCerrables.length > 0 && (
-              <button type="button" onClick={() => setCerrando(true)} className="btn-cayla btn-secundario">
-                Cerrar la cola de arranque
-              </button>
-            )}
-            {/* Un solo botón chico que alterna el orden por fecha de venta (el mismo del encabezado «Vendió», pero a la vista): el
-                ícono y la palabra dicen cómo está ordenada hoy; tocarlo la invierte. Si la lista está ordenada por otra columna,
-                dice «Por fecha» y tocarlo ordena por fecha, de la más reciente a la más antigua. */}
-            <button
-              type="button"
-              onClick={() => setOrden(orden.campo === "vendio" ? { campo: "vendio", dir: orden.dir === "desc" ? "asc" : "desc" } : { campo: "vendio", dir: "desc" })}
-              title={orden.campo === "vendio" && orden.dir === "asc" ? "Primero las ventas más antiguas · toca para ver primero las recientes" : "Primero las ventas más recientes · toca para ver primero las antiguas"}
-              aria-label={orden.campo === "vendio" ? (orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero") : "Ordenar por fecha de venta"}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
-            >
-              {orden.campo === "vendio" && orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
-              {/* En pantalla angosta queda solo el ícono (el botón mantiene su aria-label y su title). */}
-              <span className="hidden md:inline">{orden.campo !== "vendio" ? "Por fecha" : orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
-            </button>
-            <div className="w-60">
-              <Desplegable
-                valor={quien}
-                onValor={setQuien}
-                opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
-                forma="caja"
-                etiquetaAccesible="Quién vendió"
+        <div className="card-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
+          {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo de líder va en «Más». */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-5 pb-3 pt-4">
+            <label className="relative block min-w-[11rem] flex-1 basis-44">
+              <span className="sr-only">Buscar una venta sin registrar</span>
+              <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/45" />
+              <input
+                type="search"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape" && busqueda) {
+                    e.preventDefault();
+                    setBusqueda("");
+                  }
+                }}
+                maxLength={120}
+                autoComplete="off"
+                placeholder="Buscar prenda, color, talla, quién vendió o precio"
+                className="h-9 w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60 [&::-webkit-search-cancel-button]:hidden"
               />
+              {busqueda && (
+                <button type="button" aria-label="Borrar la búsqueda" onClick={() => setBusqueda("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
+                  <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              {FILTROS.map((f) => (
+                <button
+                  key={f.clave}
+                  type="button"
+                  aria-pressed={filtro === f.clave}
+                  onClick={() => {
+                    setFiltro(f.clave);
+                    if (f.clave !== "pendiente") setSoloVencidas(false);
+                  }}
+                  className="pildora-cayla"
+                >
+                  {f.texto}
+                </button>
+              ))}
             </div>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {/* Un solo botón chico que alterna el orden por fecha de venta: el ícono y la palabra dicen cómo está ordenada hoy; tocarlo la invierte. */}
+              <button
+                type="button"
+                onClick={() => setOrden({ campo: "vendio", dir: orden.dir === "desc" ? "asc" : "desc" })}
+                title={orden.dir === "asc" ? "Primero las ventas más antiguas · toca para ver primero las recientes" : "Primero las ventas más recientes · toca para ver primero las antiguas"}
+                aria-label={orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero"}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
+              >
+                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
+                <span className="hidden md:inline">{orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
+              </button>
+              <div className="w-52 shrink-0">
+                <Desplegable valor={quien} onValor={setQuien} opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]} forma="caja" etiquetaAccesible="Quién vendió" />
+              </div>
+              {accionesDeLider.length > 0 && <MenuAcciones etiqueta="Más acciones" texto="Más" items={accionesDeLider} />}
+            </div>
+          </div>
+          {avisosUrgentes.length > 0 && (
+            <ul className="space-y-0.5 px-5 pb-3 text-xs text-taupe">
+              {avisosUrgentes.map((aviso) => (
+                <li key={aviso}>{aviso}</li>
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-sand pt-4">
+            <MesaRegularizar
+              filas={paginaActual.filas}
+              elegidaAlAbrir={elegidaAlAbrir}
+              prendas={prendas}
+              disponibles={disponibles}
+              variasSedes={variasSedes}
+              esLider={esLider}
+              ahora={ahora}
+              sinPendientes={cifras.pendientes === 0}
+              etiquetaSede={ubicacionEtiqueta}
+              soloPendientes={filtro === "pendiente"}
+              onReabrir={setReabriendo}
+              onHecha={(id) => setHechasLocal((previas) => new Set(previas).add(id))}
+              vacio={
+                busqueda.trim()
+                  ? `Ninguna venta coincide con «${busqueda.trim()}».`
+                  : soloVencidas
+                    ? "No hay ventas vencidas."
+                    : filtro === "pendiente"
+                      ? `No hay prendas por regularizar en ${ubicacionEtiqueta}.`
+                      : "Nada que mostrar con estos filtros."
+              }
+              pie={
+                paginaActual.totalPaginas > 1 && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-3 text-xs text-taupe">
+                    <span>
+                      Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
+                    </span>
+                    <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
+                  </div>
+                )
+              }
+            />
           </div>
         </div>
-        {avisosPlazo.length > 0 && (
-          <ul className="space-y-0.5 px-5 pb-3 text-xs text-taupe">
-            {avisosPlazo.map((aviso) => (
-              <li key={aviso}>{aviso}</li>
-            ))}
-          </ul>
-        )}
-        <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c as CampoOrden))} />
-        {visibles.length === 0 && (
-          <p className={TABLA.vacio}>
-            {busqueda.trim()
-              ? `Ninguna venta coincide con «${busqueda.trim()}».`
-              : filtro === "pendiente"
-                ? `No hay prendas por regularizar en ${ubicacionEtiqueta}.`
-                : "Nada que mostrar con estos filtros."}
-          </p>
-        )}
-        {paginaActual.filas.map((f) => {
-          const { dia, hora } = diaYHoraLima(f.vendidoEn);
-          const vencida = f.estado === "pendiente" && estaVencida(f.vendidoEn, ahora);
-          return (
-            <div key={f.id} className={fila(PLANTILLA)}>
-              <div className={celda()}>
-                <p className="truncate text-sm text-tinta">{f.descripcion}</p>
-                <p className="truncate text-xs text-taupe">{[f.categoria, f.talla, f.color].join(" · ")}</p>
-              </div>
-              <div className={celda("izq", "whitespace-normal")}>
-                <p className="truncate text-sm text-tinta">{f.vendidoPor}</p>
-                <p className="text-xs text-taupe">
-                  {dia} · {hora}
-                  {variasSedes && ` · ${f.sede}`}
-                </p>
-              </div>
-              <div className={celda("der", "text-sm text-tinta")}>{soles(f.precioCobrado)}</div>
-              <div className={celda()}>
-                {f.estado === "regularizada" ? (
-                  <Chip tono="verde">Regularizada</Chip>
-                ) : f.estado === "cerrada_sin_prenda" ? (
-                  <Chip tono="pizarra">Cerrada sin prenda</Chip>
-                ) : f.estado === "anulada" ? (
-                  <Chip tono="apagado">Venta anulada</Chip>
-                ) : vencida ? (
-                  <Chip tono="rojo" vivo>Vencida</Chip>
-                ) : (
-                  <Chip tono="ambar">Pendiente</Chip>
-                )}
-              </div>
-              <div className={celda("izq", "whitespace-normal sm:text-right")}>
-                {f.estado === "pendiente" ? (
-                  <button type="button" onClick={() => setAbierta(f)} className="btn-cayla btn-secundario">
-                    Regularizar
-                  </button>
-                ) : f.estado === "cerrada_sin_prenda" && f.cierre ? (
-                  <>
-                    <p className="truncate text-xs text-tinta">{motivoLegible(f.cierre.motivo)}</p>
-                    <p className="text-xs text-taupe">Cerrada el {diaYHoraLima(f.cierre.cerradoEn).dia} · sin identificar la prenda</p>
-                    {/* Solo un líder reabre (la base lo exige): para quien la devuelve o la quiere cambiar. */}
-                    {esLider && (
-                      <button type="button" onClick={() => setReabriendo(f)} className="btn-cayla btn-secundario mt-1.5">
-                        Reabrir
-                      </button>
-                    )}
-                  </>
-                ) : f.estado === "regularizada" && f.diferencia !== null ? (
-                  <>
-                    <p className="truncate text-xs text-tinta">{f.prendaReal}</p>
-                    <p className="text-xs text-taupe">{textoDiferencia(f.diferencia)}{f.forma === "llego_nueva" ? " · llegó nueva" : " · perdió la etiqueta"}</p>
-                  </>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-        {paginaActual.totalPaginas > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 px-5 py-3 text-xs text-taupe">
-            <span>
-              Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
-            </span>
-            <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
-          </div>
-        )}
-      </Tabla>
       </div>
 
       <p className="nota-cayla text-sm">
-        Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda
-        cuadrado. Pasados {DIAS_PARA_VENCER} días sin regularizar, se le avisa al líder. Las pendientes salen todas, sin importar cuándo se
-        vendieron (al abrir, de la más reciente a la más antigua; toca el título de una columna para ordenar); las ya resueltas, las de este mes y el anterior. Las que ya no se pueden identificar, un líder puede cerrarlas todas
-        juntas dentro del plazo de su tienda: quedan sin prenda y el stock no cambia.
+        Son prendas que caja vendió antes de que estuvieran en el sistema. Al regularizarlas, la venta pasa a la prenda real y el stock queda cuadrado. Las pendientes salen todas; las ya resueltas, las de este
+        mes y el anterior.
       </p>
 
-      {abierta && (
-        <RegularizarModal fila={abierta} prendas={prendas} onClose={() => setAbierta(null)} />
-      )}
       {sugiriendo && <SugerenciasColaModal filas={filas} prendas={prendas} sedes={sedesConPendientes} inicial={sedeInicial} onClose={() => setSugiriendo(false)} />}
       {reabriendo && <ReabrirPrendaModal fila={reabriendo} onClose={() => setReabriendo(null)} />}
       {cerrando && <CerrarColaArranqueModal sedes={sedesCerrables} inicial={sedeInicial} onClose={() => setCerrando(false)} />}
     </div>
-  );
-}
-
-/** Lo que anotó caja, sin repetir talla ni color si la descripción ya los dice (la sugerida los trae). */
-function subtituloPrenda(f: FilaPorRegularizar): string {
-  const extra = [f.talla && !f.descripcion.includes(`Talla ${f.talla}`) ? `Talla ${f.talla}` : null, f.color && !f.descripcion.includes(f.color) ? f.color : null];
-  return [f.descripcion, ...extra.filter(Boolean), `cobrada a ${soles(f.precioCobrado)}`].join(" · ");
-}
-
-function textoDiferencia(diferencia: number): string {
-  const tipo = tipoDiferencia(diferencia);
-  if (tipo === "exacto") return "Se cobró el precio oficial";
-  return tipo === "descuento" ? `Descuento no planificado: ${soles(-diferencia)}` : `Sobreprecio: ${soles(diferencia)}`;
-}
-
-function RegularizarModal({
-  fila: f,
-  prendas,
-  onClose,
-}: {
-  fila: FilaPorRegularizar;
-  prendas: PrendaParaRegularizar[];
-  onClose: () => void;
-}) {
-  const router = useRouter();
-  const [elegidaId, setElegidaId] = useState("");
-  const [forma, setForma] = useState<"ya_registrada" | "llego_nueva" | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  // Regularizar vuelve a pedir «Responsable» (Felipe, 2026-10-06): con la terminal de la tienda la cuenta no es nadie, y la venta
-  // sin registrar la regulariza la colaboradora de turno, que se identifica ella misma. Con la cuenta de una persona viene elegida.
-  const responsable = useResponsable();
-
-  const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
-  // Primero las que calzan con lo que anotó caja (categoría, talla y color): así almacén la encuentra sin tipear.
-  const opciones = useMemo(() => {
-    const calce = (p: PrendaParaRegularizar) => Number(p.categoria === f.categoria) + Number(p.talla === f.talla) + Number(p.color === f.color);
-    return [...prendas]
-      .sort((a, b) => calce(b) - calce(a))
-      .map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.talla} · ${p.color} · ${p.codigo} · ${soles(p.precio)}` }));
-  }, [prendas, f.categoria, f.talla, f.color]);
-
-  async function guardar() {
-    if (!elegida || !forma || !responsable.listo) return;
-    setGuardando(true);
-    const { data, error } = await firmar(
-      createClient().rpc("regularizar_prenda", { p_id: f.id, p_variante_id: elegida.id, p_forma: forma }),
-      responsable.firma(),
-    );
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, "regularizar la prenda"));
-      return;
-    }
-    avisar.exito("Prenda regularizada", { detalle: `${f.descripcion} → ${elegida.nombre}. ${textoDiferencia(Number(data))}.` });
-    onClose();
-    router.refresh();
-  }
-
-  return (
-    <Modal titulo="Regularizar prenda" subtitulo={subtituloPrenda(f)} onClose={onClose}>
-      <div className="space-y-4">
-        <div>
-          <Campo etiqueta="¿Qué prenda es?">
-            <ComboBuscable
-              valor={elegidaId}
-              onValor={setElegidaId}
-              opciones={opciones}
-              marcador="Busca por nombre, código, talla o color"
-              etiquetaAccesible="¿Qué prenda es?"
-              autoFocus
-            />
-          </Campo>
-          {elegida && (
-            <p className="mt-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta">
-              {elegida.nombre} · {elegida.talla} · {elegida.color} · precio oficial {soles(elegida.precio)} ·{" "}
-              <span className="text-taupe">{textoDiferencia(Math.round((f.precioCobrado - elegida.precio) * 100) / 100)}</span>
-            </p>
-          )}
-          <p className="mt-2 text-xs text-taupe">
-            ¿No está en el catálogo?{" "}
-            <Link href="/productos/nuevo" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-              Dala de alta
-            </Link>{" "}
-            con su precio oficial y vuelve aquí a buscarla.
-          </p>
-        </div>
-
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">¿Cómo estaba esta prenda en el sistema?</p>
-          <div className="mt-1 flex flex-wrap gap-2">
-            <button type="button" aria-pressed={forma === "ya_registrada"} onClick={() => setForma("ya_registrada")} className="pildora-cayla">
-              Ya estaba registrada, solo perdió la etiqueta
-            </button>
-            <button type="button" aria-pressed={forma === "llego_nueva"} onClick={() => setForma("llego_nueva")} className="pildora-cayla">
-              Llegó nueva y no se contó en el lote
-            </button>
-          </div>
-          {forma && (
-            <p className="mt-2 text-xs text-taupe">
-              {forma === "ya_registrada"
-                ? "Se descuenta 1 del stock de esta tienda."
-                : "Se anota que llegó y que se vendió: el stock no cambia."}
-            </p>
-          )}
-        </div>
-
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-
-        <button
-          type="button"
-          onClick={guardar}
-          disabled={guardando || !elegida || !forma || !responsable.listo}
-          title={responsable.motivo ?? undefined}
-          className={`${botonPrimario} w-full`}
-        >
-          {guardando ? "Guardando…" : "Regularizar"}
-        </button>
-      </div>
-    </Modal>
   );
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getBilleteraDeLaSede } from "@/lib/traslados-billetera";
 import { RUTA_NUEVO_TRASLADO } from "@/lib/traslados-reglas";
@@ -7,6 +6,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { BotonPedirAOtraSede } from "@/components/BotonPedirAOtraSede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Billetera } from "@/components/traslados-pases/Billetera";
+import { BotonEnlace } from "@/components/ui/campos";
 
 // Traslados como billetera de pases (ADR-0355, la opción D que eligió Felipe el 2026-10-06). La billetera vive en el layout:
 // elegir un pase navega a `/inventario/traslados/<id>` (la página) y la billetera se queda. Esta capa solo TRAE datos con un
@@ -29,9 +29,7 @@ export default async function TrasladosBilleteraLayout({ children }: { children:
           <div className="flex flex-wrap items-center gap-3">
             <BotonPedirAOtraSede {...pedir} />
             {/* Secundario: en esta pantalla el botón negro es el del pase, lo que te toca (Formidable, 2026-10-06). */}
-            <Link href={RUTA_NUEVO_TRASLADO} className="btn-cayla btn-secundario">
-              + Nuevo traslado
-            </Link>
+            <BotonEnlace href={RUTA_NUEVO_TRASLADO}>+ Nuevo traslado</BotonEnlace>
           </div>
         }
       />

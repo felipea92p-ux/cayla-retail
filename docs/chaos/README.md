@@ -13,7 +13,7 @@ semilla anotada) · `no aplica` (solo lectura; con su motivo).
 
 | Módulo | Pantalla / modal | Estado | Semilla | Hallazgos abiertos (g1 / g2 / g3 / g4) | Informe | Última corrida |
 |---|---|---|---|---|---|---|
-| — | _ninguna atacada todavía_ | sin atacar | — | — | — | — |
+| Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | atacada; los 4 hallazgos de gravedad 4 cerrados (2026-10-07), falta el núcleo que escribe | 7 | 0 / 0 / 0 / 0 | `.chaos/informes/ventas-sin-registrar-2026-10-07.md` (local) | 2026-10-07 |
 
 ## Qué pantallas deben pasar primero (decidido 2026-10-06)
 Donde un fallo es de gravedad 1: **Vender** (`/vender`, `/vender/apartados`), **Caja** (`/caja`), **Cambios** y **Devoluciones**, **Inventario**

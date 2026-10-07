@@ -1678,7 +1678,7 @@ export function RecepcionEnvio({
                 <button type="button" onClick={cerrar} className="label-cayla flex-1 rounded-md border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
                   Seguir aquí
                 </button>
-                <button type="button" onClick={() => quitar(quitarPendiente.id)} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+                <button type="button" onClick={() => quitar(quitarPendiente.id)} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
                   Quitar y descartar
                 </button>
               </div>

@@ -23,7 +23,7 @@ import { firmar } from "@/lib/responsable-reglas";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const BILLETES = [10, 20, 50, 100, 200];
 
 /** «Terracota · M · VES-0012-TER-M»: el apartado solo guarda el `sku`, que en producción está vacío en casi todas las

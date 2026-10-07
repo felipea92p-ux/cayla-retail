@@ -1,6 +1,7 @@
 /* Análisis v4 (ADR-0357): estilos propios de pedir que la hoja base (analisis.css) no trae. Mismas reglas que la base:
    solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
-   Aquí nada se mueve: no hay animación ni transición propia (las barras crecen con las clases de la base). */
+   Lo único que se mueve aquí es el fondo de una fila de «¿Para cuánto te alcanza?» al pasar el mouse (160 ms, `--ease-cayla`); las
+   barras crecen con las clases de la base. Con movimiento reducido, nada. */
 @layer components {
   .analisis {
     /* «11 semanas para Navidad»: la cifra cuenta con <Cuenta> (un <em>), sin cursiva y con la letra de la cifra. */
@@ -8,15 +9,9 @@
     /* Sin «Plan de campaña» (la cuenta no ve Compras ▸ Plan), el riel toma el lugar del botón. */
     .campana.sin-boton{grid-template-columns:auto minmax(0,1fr)}
     @container analisis (max-width:700px){ .campana.sin-boton{grid-template-columns:minmax(0,1fr)} }
-    /* Cada tipo de la mariposa es un botón: al menos 24 px de alto para el mouse (ADR-0350, oficio visual). */
-    .m-fila{min-height:24px}
     /* «Quitar filtro ✕» es un chip chico: su zona de toque llega a 24 px sin mover nada. */
     .chip.quitar{position:relative}
     .chip.quitar::after{content:"";position:absolute;inset:-4px -3px}
-    /* «Otros tipos» suma los que no entraron en la mariposa: se lee, no filtra. */
-    .m-fila.otros{cursor:default}
-    .m-fila.otros:hover{background:transparent}
-    .m-fila.otros .m-n{font-weight:500;color:var(--color-tinta-60)}
     /* Más de 5 tallas (XS…XXL, 26…34): columnas más angostas; si aun así no caben, la fila se desliza de lado sin perder
        las primeras (los márgenes automáticos la centran solo cuando cabe). */
     .cols-t.muchas{gap:14px;justify-content:flex-start;overflow-x:auto}
@@ -24,5 +19,53 @@
     .cols-t.muchas > .ct:last-child{margin-right:auto}
     .cols-t.muchas .par-c i{width:18px}
     .cols-t.muchas .ct .nom{font-size:18px}
+    /* «¿Para cuánto te alcanza?» (B2, Felipe 2026-10-07): cada tipo con su barra de días, la línea de Navidad (punteada, en la
+       misma posición en todas las filas: `--nav`) y lo que tienes. Lo que no llega a Navidad va en ámbar. Cada fila es un botón de
+       24 px o más que filtra tallas y ranking. */
+    .alcance{display:flex;flex-direction:column;gap:2px}
+    .al-cab,.al-f{display:grid;grid-template-columns:22px minmax(120px,180px) minmax(160px,1fr) 118px minmax(150px,230px);gap:12px;align-items:center}
+    .al-cab{font-size:11px;color:var(--color-tinta-60);padding:0 8px 6px}
+    .al-cab .eje{position:relative;height:14px}
+    .al-cab .nav-et{position:absolute;left:calc(var(--nav) * 100%);transform:translateX(-50%);font-weight:600;color:var(--color-tinta);white-space:nowrap}
+    .al-f{width:100%;border:0;background:transparent;text-align:left;padding:6px 8px;border-radius:9px;cursor:pointer;font:inherit;color:inherit;
+      min-height:24px;transition:background-color 160ms var(--ease-cayla)}
+    .al-f:hover,.al-f[aria-pressed="true"]{background:var(--color-hueso)}
+    .al-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
+    .al-f .ico{display:grid;place-items:center;color:var(--color-taupe)}
+    .al-f .n{min-width:0;line-height:1.2}
+    .al-f .n b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .al-f .n small{font-size:11.5px;color:var(--color-tinta-60)}
+    .al-f .p{position:relative;height:10px;border-radius:5px;background:var(--color-hueso)}
+    .al-f:hover .p,.al-f[aria-pressed="true"] .p{background:var(--color-papel)}
+    .al-f .p i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;width:calc(var(--n) * 100%);min-width:3px;background:var(--color-grafico-neutro)}
+    .al-f.pide .p i{background:color-mix(in srgb,var(--color-ambar) 70%,var(--color-papel))}
+    .al-f .p .nav{position:absolute;top:-6px;bottom:-6px;left:calc(var(--nav) * 100%);border-left:1.5px dashed var(--color-tinta);pointer-events:none}
+    .al-f .v{font-size:12.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .al-f.pide .v{color:var(--color-ambar)}
+    .al-f .tienes{font-size:12px;color:var(--color-tinta-60);line-height:1.3}
+    .al-f .tienes b{color:var(--color-tinta)}
+    .al-f .tienes .ojo{color:var(--color-ambar);font-weight:600}
+    @container analisis (max-width:760px){
+      .al-cab{display:none}
+      .al-f{grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"ico n v" "ico p p" "ico t t";row-gap:6px}
+      .al-f .ico{grid-area:ico} .al-f .n{grid-area:n} .al-f .v{grid-area:v} .al-f .p{grid-area:p} .al-f .tienes{grid-area:t}
+    }
+    /* La tarjeta «¿Qué pedir?» de Hoy: de qué días habla y los tipos que no llegan a Navidad, con su línea. */
+    .i-per{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--color-taupe);margin-top:-6px}
+    .i-per svg{width:13px;height:13px;flex:none}
+    .mini-al{position:relative;width:100%;display:flex;flex-direction:column;gap:7px;padding-top:16px}
+    .mini-al .al{display:grid;grid-template-columns:minmax(0,74px) minmax(0,1fr) 66px;gap:8px;align-items:center;font-size:12px}
+    .mini-al .al .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+    .mini-al .al .p{position:relative;height:8px}
+    .mini-al .al .p i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;width:calc(var(--n) * 100%);min-width:4px;
+      background:color-mix(in srgb,var(--color-ambar) 70%,var(--color-papel))}
+    .mini-al .al .v{text-align:right;font-weight:600;white-space:nowrap;color:var(--color-ambar);font-variant-numeric:tabular-nums}
+    .mini-al .navidad{position:absolute;top:14px;bottom:-4px;left:calc(82px + (100% - 156px) * var(--n));border-left:1.5px dashed var(--color-tinta);pointer-events:none}
+    .mini-al .navidad span{position:absolute;bottom:100%;left:0;transform:translateX(-50%);font-size:10.5px;font-weight:600;color:var(--color-tinta);white-space:nowrap}
   }
+}
+
+/* Movimiento reducido: la fila cambia de fondo sin transición. */
+@media (prefers-reduced-motion: reduce){
+  .analisis .al-f{transition:none !important}
 }

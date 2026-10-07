@@ -103,5 +103,5 @@ export function Icono({ nombre, className }: { nombre: NombreIcono; className?: 
   );
 }
 
-/** El trazo de la percha suelto, para dibujarla dentro de otro `<svg>` (las 10 perchas de «¿Se vende lo que llega?»). */
+/** El trazo de la percha suelto, para dibujarla dentro de otro `<svg>` (la percha de la talla única en «Las tallas que se llevan»). */
 export const TRAZO_PERCHA = TRAZOS.percha;

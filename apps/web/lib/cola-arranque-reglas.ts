@@ -171,7 +171,7 @@ export function paresParaConfirmar(sugerencias: readonly Sugerencia[], marcadas:
 // Textos que dependen de lo que pasó (revisión independiente del 2026-10-04): se escriben aquí para probarlos, no dentro del JSX.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-const diaMes = (fecha: string) => {
+export const diaMes = (fecha: string) => {
   const [, mes, dia] = fecha.split("-");
   return `${dia}/${mes}`;
 };

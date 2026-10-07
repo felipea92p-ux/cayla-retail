@@ -42,8 +42,10 @@ Para verla en el navegador integrado: `preview_start` «unificar-laminas» y abr
 - **`familias.mjs`** es la única definición de las familias, de las funciones de botón (se reconocen por lo que dicen: «Cancelar», «← Volver»,
   «+ Nuevo…»; o por su icono si no dicen nada) y de las **decisiones** de Felipe. Lo usan el censo, la lámina y `lib/unificar.test.ts`.
 - **`motor/censo-en-pagina.js`** corre dentro de la página: reconoce cada familia y le saca su **huella** (alto, esquinas, fondo, borde,
-  relleno, letra, icono) con los colores traducidos al token del sistema (`tinta`, `rojo/35`; `≈taupe` si se parece; el hex si no es ninguno).
+  relleno, letra, icono y **movimiento**: qué cambia al pasar el mouse, al presionar y con el foco, la transición, lo que late en bucle y lo
+  que entra animado, leído de las reglas de CSS de la pieza y de sus hijos) con los colores traducidos al token del sistema (`tinta`, `rojo/35`; `≈taupe` si se parece; el hex si no es ninguno).
   Deja fuera el marco (lateral y cabecera), el papel físico (`.papel-fijo`, `[data-papel]`) y los colores de prenda (`[data-color-dato]`).
+- **`cli.mjs`** le pasa el mouse (sin clic) a cada variante capturada que se toca y anota lo **medido**: qué cambió y qué animación corrió.
 - **`cli.mjs`** agrupa por huella (misma familia + misma huella = misma variante), las ordena por uso (la **A** es la más usada), captura cada
   una (hasta 2, de pantallas distintas) y escribe todo. **`motor/archivos.mjs`** adivina qué archivo dibuja cada variante buscando sus clases de
   Tailwind más raras en `components/` y `app/` (una pista: el informe dice `[probable]`).

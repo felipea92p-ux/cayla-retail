@@ -11,13 +11,11 @@
 // en los carriles; aquí solo se reparten en caminos y se mide el dibujo.
 
 import type { PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
-import { categoriaDe, DIFERENCIA_QUE_SE_NOTA } from "./analisis-pedir";
 import {
   DIAS_SE_ACABA,
   DIAS_TRES_MESES,
   GRUPOS_ACABA,
   GRUPOS_QUIETAS,
-  META_SE_VENDE_LO_QUE_LLEGA,
   ordenQuietas,
   ordenSeAcaba,
   plural,
@@ -55,76 +53,7 @@ export function textoDiasQueQuedan(dias: number): { texto: string; est: Extract<
 /** Una fila de «¿Qué no se mueve?»: en rojo desde los 3 meses quieta; antes, en ámbar. */
 export const estadoQuieta = (diasSinVender: number): Extract<EstadoHoy, "urg" | "ate"> => (diasSinVender >= DIAS_TRES_MESES ? "urg" : "ate");
 
-/** «¿Se vende lo que llega?»: va bien desde la meta; si no llegó nada en 30 días no hay qué medir (solo se informa). */
-export function estadoLlegadas(vendioDe10: number | null): Extract<EstadoHoy, "bien" | "ate" | "info"> {
-  if (vendioDe10 === null) return "info";
-  return vendioDe10 >= META_SE_VENDE_LO_QUE_LLEGA ? "bien" : "ate";
-}
 
-
-/** Lo que se vende y lo que hay de cada tipo de prenda, de cada 100 (la mariposa «se vende ↔ tienes»). */
-export type ParteCategoria = { categoria: string; vende: number; tiene: number };
-
-/**
- * De cada 100 ventas de los últimos 30 días y de cada 100 prendas que tiene la tienda, cuántas son de cada categoría. Vacío si no
- * se vendió nada: sin ventas no hay qué comparar. Ordenadas de la que más se vende a la que menos.
- */
-export function partesPorCategoria(prendas: readonly Pick<PrendaAnalisis, "categoria" | "vendidas30" | "piso" | "almacen">[]): ParteCategoria[] {
-  const ventas = new Map<string, number>();
-  const unidades = new Map<string, number>();
-  let totalVentas = 0;
-  let totalUnidades = 0;
-  for (const p of prendas) {
-    const cat = categoriaDe(p);
-    const v = Math.max(0, p.vendidas30);
-    const u = Math.max(0, totalEnTienda(p));
-    ventas.set(cat, (ventas.get(cat) ?? 0) + v);
-    unidades.set(cat, (unidades.get(cat) ?? 0) + u);
-    totalVentas += v;
-    totalUnidades += u;
-  }
-  if (totalVentas <= 0) return [];
-  return [...new Set([...ventas.keys(), ...unidades.keys()])]
-    .map((categoria) => ({
-      categoria,
-      vende: Math.round(((ventas.get(categoria) ?? 0) / totalVentas) * 100),
-      tiene: totalUnidades > 0 ? Math.round(((unidades.get(categoria) ?? 0) / totalUnidades) * 100) : 0,
-    }))
-    .filter((c) => c.vende > 0 || c.tiene > 0)
-    .sort((a, b) => b.vende - a.vende || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
-}
-
-/** Desde cuánta diferencia (de cada 100) una categoría «pide más»: la MISMA de «Qué pedir», así el ▲ de Hoy y el de su mariposa
- *  coinciden siempre (y la misma categoría «Sin categoría»: `categoriaDe`). */
-export const DIFERENCIA_PIDE_MAS = DIFERENCIA_QUE_SE_NOTA;
-
-/**
- * La mariposa chica de «¿Qué pedir?»: las 3 categorías con más diferencia entre lo que se vende y lo que hay, y las que piden más
- * (hasta 2, de la que más a la que menos), que la tarjeta dice en letras grandes. Las que piden más siempre están en el dibujo; el
- * resto se completa con las de más diferencia. Las filas van en el orden de `partes` (la que más se vende arriba). `max` es la
- * cifra más grande de las filas, para el largo de las barras.
- */
-export function miniMariposa(
-  partes: readonly ParteCategoria[],
-  cuantas = 3,
-): { filas: (ParteCategoria & { pideMas: boolean })[]; piden: string[]; max: number } {
-  const dif = (c: ParteCategoria) => c.vende - c.tiene;
-  const porNombre = (a: ParteCategoria, b: ParteCategoria) => a.categoria.localeCompare(b.categoria, "es");
-  const piden = partes
-    .filter((c) => dif(c) >= DIFERENCIA_PIDE_MAS)
-    .sort((a, b) => dif(b) - dif(a) || b.vende - a.vende || porNombre(a, b))
-    .slice(0, Math.min(2, cuantas));
-  const elegidas = new Set(piden.map((c) => c.categoria));
-  const resto = partes
-    .filter((c) => !elegidas.has(c.categoria))
-    .sort((a, b) => Math.abs(dif(b)) - Math.abs(dif(a)) || dif(b) - dif(a) || b.vende - a.vende || porNombre(a, b));
-  for (const c of resto) {
-    if (elegidas.size >= cuantas) break;
-    elegidas.add(c.categoria);
-  }
-  const filas = partes.filter((c) => elegidas.has(c.categoria)).map((c) => ({ ...c, pideMas: dif(c) >= DIFERENCIA_PIDE_MAS }));
-  return { filas, piden: piden.map((c) => c.categoria), max: Math.max(1, ...filas.flatMap((f) => [f.vende, f.tiene])) };
-}
 
 // ───────────────────────── Qué hacer hoy: los caminos ─────────────────────────
 

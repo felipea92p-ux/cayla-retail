@@ -192,7 +192,7 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_color-mix(in_srgb,var(--color-sombra)_70%,transparent)]";
+  "mov-boton label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema hover:bg-rojo-profundo";
 
 /** Los filtros de la actividad: píldoras con cuántas compras hay en cada una.
  *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0358, «Pestañas y segmentos»,

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
+import { Boton } from "@/components/ui/campos";
 
 // El botón «Pedir a otra sede» de Traslados (ADR-0242 D-7, 2026-10-03): abre el modal con la tienda y las prendas por elegir.
 // Sin tiendas a quienes pedirles (quien mira es el Taller, o no hay otra tienda activa) no se dibuja: un botón que solo
@@ -11,9 +12,9 @@ export function BotonPedirAOtraSede({ ubicacionId, sedes }: { ubicacionId: strin
   if (sedes.length === 0) return null;
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-secundario">
+      <Boton type="button" onClick={() => setAbierto(true)}>
         Pedir a otra sede
-      </button>
+      </Boton>
       <PedirAOtraSedeModal ubicacionId={ubicacionId} sedesParaElegir={sedes} abierto={abierto} onCerrar={() => setAbierto(false)} />
     </>
   );

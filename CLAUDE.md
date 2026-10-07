@@ -164,7 +164,7 @@ del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c;
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
 Catálogo ▸ Productos, la única hoja con movimiento rico por decisión de Felipe —ola de celdas, cruz, foto que cruza—, y su página
-«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b), salvo los puntos que corren por la cinta del flujo de «Qué hacer hoy» mientras el mouse está encima; y el **aviso de cierre de caja** de la cabecera, con sus ondas continuas desde la hora, su resplandor que deriva y su destello en «sin cerrar», ADR-0359 / ADR-0136 act. 2026-10-06 (c)), y todo se apaga con
+«Historial» (el hilo que se dibuja, el precio que cuenta, ADR-0354), pero también sin rebote y sin bucle, ADR-0136 act. 2026-10-05; y en **Movimientos** el sello de cada tipo y su trayecto, que corren una vez al verse o al pasar el mouse, ADR-0353; y en **Nuevo producto** el punto del paso abierto, que late todo el tiempo, ADR-0136 act. 2026-10-06; y en **Análisis** los gráficos que se arman una vez al entrar a la pestaña —piezas en cascada, barras que crecen, perchas y puntos que asoman, arcos, las cintas del flujo y cifras que cuentan—, sin rebote ni bucle, ADR-0357 / ADR-0136 act. 2026-10-06 (b), salvo los puntos que corren por la cinta del flujo de «Qué hacer hoy» mientras el mouse está encima; y el **aviso de cierre de caja** de la cabecera, con sus ondas continuas desde la hora, su resplandor que deriva y su destello en «sin cerrar», ADR-0359 / ADR-0136 act. 2026-10-06 (c); y en **Ventas sin registrar** la mesa de talones, puente y prendas —hilos que se dibujan, visitos en cascada, balanza que se llena, mitades que se juntan, sello y talón que se pliega—, sin rebote ni bucle, ADR-0360 / ADR-0136 act. 2026-10-07), y todo se apaga con
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
@@ -482,7 +482,9 @@ capturas lado a lado y una **propuesta** nueva en claro y oscuro. **Felipe elige
 verlas aplicadas, no le gustaron). Lo elegido es la única pieza de esa función desde ese día, en todos los módulos y en las pantallas nuevas.
 
 Al construir o editar una pantalla o un modal: **antes de dibujar una pieza, mira la tabla de abajo (y `docs/unificar/README.md`). Si la familia
-está decidida, se usa su pieza; si no, se usa la forma más usada del último censo y no se inventa otra.** Lo hace cumplir
+está decidida, se usa su pieza; si no, se usa la forma más usada del último censo y no se inventa otra.** **El movimiento es parte de
+la pieza (Felipe 2026-10-07):** el censo dice qué hace cada una al pasar el mouse, al presionar, con el foco y si late o entra animada, y migrar
+nunca pierde una animación: la pieza elegida se queda con el mejor movimiento de las que reemplaza. Lo hace cumplir
 `lib/unificar.test.ts`: cada decisión trae sus `firmas` (cómo se reconoce la variante dibujada a mano) y su `deuda` (lo que falta migrar, en
 `apps/web/unificar/familias.mjs`), y la prueba falla si un archivo nuevo vuelve a dibujarla a mano o si la deuda no baja. Una línea legítima se
 exime con `// unificar-fijo: <por qué>`. Migrar cambia cómo se ve, **nunca qué hace**, y va módulo por módulo con el OK de Felipe. Lo que existe
@@ -493,9 +495,12 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 
 | Familia | La pieza | Decidido |
 |---|---|---|
-| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. Nunca un «←» ni una línea a mano | 2026-10-06 |
+| Botón «Volver» (`accion.volver`) | `<Volver href a>` o `<Volver onClick a>` (`components/ui/Volver.tsx`): la flecha redonda, sola, con «Volver a …» para el lector; en `EncabezadoPagina`, en su prop `volver`. **También el «Atrás» de un paso a paso** («volver solo es una flecha», Felipe 2026-10-07). Nunca un «←», un «Atrás» ni un «Volver a …» escrito a mano | 2026-10-06 · 2026-10-07 |
 | Pestañas y segmentos (`pestanas`) | según la pregunta: `<Pestanas>` (el vidrio con la píldora oscura, en mayúsculas) si cambia de sección —también Finanzas—; `pildora-cayla` si filtra o elige un período; `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (la caja arena de «GRILLA / TABLA») si muestra lo mismo de otra forma. Nunca un `role="tab"` ni una pista a mano | 2026-10-06 |
 | Tarjetas de cifra (`cifra`) | `<TarjetaCifra>` (`components/ui/TarjetaCifra.tsx`), la de Compras tal cual: con `href` lleva su flecha, la que filtra se rellena de arena, `valor={null}` + motivo si no hay dato. Nunca una tarjeta de número a mano | 2026-10-06 |
+| Botón «Nuevo / Registrar» (`accion.nuevo`) | `<Boton peso="primario">` para la acción y `peso="fantasma"` para su pareja; si navega, `<BotonEnlace>` (`components/ui/campos.tsx`): VERSALITAS de 11 px, 40 px. Nunca `btn-cayla` ni la versalita copiada a mano para una acción principal | 2026-10-07 |
+| Movimiento de un botón | `.mov-boton` (`app/globals.css`), el único: sube 2 px con sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha que va adelante avanza 4 px, se encoge al presionar. Ya lo traen `<Boton>`, `BotonCompacto` y `FlujoGuiado`; un botón dibujado a mano lo suma con esa clase, nunca con otra animación. **Un botón negro pasa a rojo profundo al pasar el mouse**, nunca al rojo de marca ni a un gris | 2026-10-07 |
+| Insignias de estado (`estado`) | `<Chip>` (`components/ui/Chip.tsx`). A propósito: los chips con ícono de Análisis y «Líder de equipo» en negro en Colaboradores | 2026-10-07 |
 
 ## Caos: usar mal el sistema a propósito (regla — ADR-0356, Felipe 2026-10-06)
 

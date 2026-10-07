@@ -10,6 +10,7 @@ import { esColorClaro, partirEnGamas } from "@/lib/color-escala";
 import { coloresParecidos } from "@/lib/color-parecido";
 import { bordeDeMuestra, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { useEnLinea } from "@/lib/useEnLinea";
+import { Boton } from "@/components/ui/campos";
 
 // Elegir los colores de un producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
@@ -136,15 +137,9 @@ export function ElegirColores({
         <button type="button" onClick={() => setCarta((v) => !v)} aria-expanded={carta} className="btn-cayla btn-secundario">
           {carta ? "Ocultar la carta" : `Ver los ${colores.length} colores`}
         </button>
-        <button
-          type="button"
-          onClick={() => abrirNuevo("", false)}
-          aria-expanded={nuevo !== null}
-          title={enLinea ? undefined : "Crear un color necesita internet"}
-          className="btn-cayla btn-secundario"
-        >
+        <Boton type="button" onClick={() => abrirNuevo("", false)} aria-expanded={nuevo !== null} title={enLinea ? undefined : "Crear un color necesita internet"}>
           + Nuevo color
-        </button>
+        </Boton>
       </div>
 
       {pidioSinRed && !enLinea && nuevo === null && (

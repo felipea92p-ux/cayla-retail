@@ -9,7 +9,10 @@
  *
  * La especificación (rutas de imagen relativas a su carpeta):
  *   { titulo, nota, clave, css?, familias: [{ id, nombre, pregunta, ayuda?, grupos: [{ id, nombre, pregunta, ayuda?, opciones: [
- *     { id, nombre, detalle, tipo: "hoy" | "aplicada" | "propuesta", donde?, decidida?, ancha?, imagenes: [{ src, vista?, pie? }] } ] }] }] }
+ *     { id, nombre, detalle, tipo: "hoy" | "aplicada" | "propuesta", donde?, decidida?, movimiento?, ancha?, imagenes: [{ src, vista?, pie? }] } ] }] }] }
+ *   `demo` (opcional) es HTML que se dibuja VIVO con el CSS del ERP (`css`): botones que Felipe puede pasar con el mouse y presionar
+ *   para sentir su movimiento; tocarlos no elige la opción. `claseHtml` (opcional) va en el <html> para que carguen las fuentes del ERP.
+ *   `movimiento` dice lo que la foto no muestra: qué hace la opción al pasar el mouse, al presionar y mientras trabaja (Felipe 2026-10-07).
  *   `vista` es un recorte para la tarjeta (la foto completa se abre con «Ver grande»); `ancha` hace que la tarjeta ocupe dos columnas.
  */
 
@@ -29,6 +32,8 @@ const tarjeta = (f, g, o) => `<label class="op op-${esc(o.tipo)}${o.ancha ? " op
     .join("")}</span>
   <span class="op-nombre">${esc(o.nombre)}</span>
   <span class="op-detalle">${esc(o.detalle)}</span>
+  ${o.demo ? `<span class="op-demo" onclick="event.preventDefault()"><span class="op-demo-et">Pruébalo: pasa el mouse y presiona</span><span class="op-demo-fila">${o.demo}</span></span>` : ""}
+  ${o.movimiento ? `<span class="op-mov"><b>Movimiento:</b> ${esc(o.movimiento)}</span>` : ""}
   ${o.donde ? `<span class="op-donde">${esc(o.donde)}</span>` : ""}
   ${o.decidida ? `<span class="op-decidida">${esc(o.decidida)}</span>` : ""}
 </label>`;
@@ -47,7 +52,7 @@ const familias = spec.familias
 const totalGrupos = spec.familias.reduce((a, f) => a + f.grupos.filter((g) => !g.opcional).length, 0);
 
 const html = `<!doctype html>
-<html lang="es" data-tema="claro">
+<html lang="es" data-tema="claro" class="${esc(spec.claseHtml ?? "")}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -77,6 +82,10 @@ legend { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; pa
 .op:has(input:focus-visible) { outline: 2px solid var(--color-tinta, #1a1a18); outline-offset: 3px; }
 .op:has(input:checked) { border-color: var(--color-tinta, #1a1a18); box-shadow: inset 0 0 0 1px var(--color-tinta, #1a1a18); }
 .op-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.op-demo { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: var(--color-crema, #f5f0e8); cursor: default; }
+.op-demo-et { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe, #805c4c); font-weight: 600; }
+.op-demo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.op-mov { font-size: 13px; padding: 6px 10px; border-radius: 10px; background: var(--color-hueso, #efe7da); }
 .op-tipo { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe, #805c4c); font-weight: 600; }
 .op-aplicada .op-tipo { color: var(--color-pizarra, #4c5d6e); } .op-propuesta .op-tipo { color: var(--color-verde, #48603f); }
 .op-marca { display: none; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--color-tinta, #1a1a18); color: var(--color-crema, #f5f0e8); }
