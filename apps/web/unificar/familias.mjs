@@ -379,7 +379,6 @@ export const DECISIONES = {
       "components/finanzas/CuentasDinero.tsx",
       "components/GastosFijosYActivos.tsx",
       "components/GastosPanel.tsx",
-      "components/ResumenProduccionPanel.tsx",
       "components/TemporadasLista.tsx",
     ],
     "excepciones": [
