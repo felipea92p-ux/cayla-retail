@@ -501,7 +501,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · **Contrato y reglas:** `lib/analisis-tipos.ts` (`DatosAnalisis`; `PrendaAnalisis` es una talla de un color) y `lib/analisis-reglas.ts`
   (puro: `grupoDe` decide comprar · enviar · liquidar · vigila, una prenda en un solo grupo; `diasQueQuedan`, `seEstaAcabando`, `porLlegar`,
   `otraSedeQueLaTiene`, `sedeQueMasVende`, `vendioDe10`, `edadDelInventario`, `coincideBusqueda`; las cifras de la maqueta como constantes:
-  2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde» de 30 a 85 con 60 de fábrica, meta 6 de 10). A dónde lleva cada
+  2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde» de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—, meta 6 de 10). A dónde lleva cada
   botón: `lib/analisis-acciones.ts` (`hrefComprar` → `/produccion/ordenes?nueva=<producto>` o `/compras/nueva?prov=`; `hrefEnviar` →
   `/inventario/traslados/nuevo?lineas=&destino=&desde=analisis`; `hrefLiquidar` → `/etiquetas-de-precio?variantes=`; `hrefReponerPiso` →
   `/inventario/bajar?lineas=`; `hrefExistencias`, `hrefMovimientos`; `lineasParaPedir` → `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede`,

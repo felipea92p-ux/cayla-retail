@@ -210,8 +210,6 @@
       .c-pil{margin-top:2px}
     }
     .umbral{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--color-tinta-60);flex-wrap:wrap}
-    .umbral input[type=range]{width:180px;accent-color:var(--color-ambar)}
-    .umbral output{font-weight:600;color:var(--color-tinta);font-variant-numeric:tabular-nums;min-width:58px}
     .grilla{border-collapse:separate;border-spacing:3px;font-size:12.5px;font-variant-numeric:tabular-nums}
     .grilla th{font-weight:500;color:var(--color-tinta-60);font-size:11.5px;padding:0 2px}
     .grilla th.col{min-width:34px}
