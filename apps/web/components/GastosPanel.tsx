@@ -45,6 +45,7 @@ import {
   type UbicacionGastos,
   type Ver,
 } from "@/lib/gastos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
 // cabecera con «Ver» y la acción principal → cuatro cifras → pestañas → la tarjeta de la tabla con sus filtros → nota.
@@ -152,13 +153,13 @@ export function GastosPanel({
               <Chip versalitas={false}>{nombreCorto}</Chip>
             )}
             {pestana === "activos" ? (
-              <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({ clase: "activo" })}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })}>
                 + Registrar activo
-              </button>
+              </Boton>
             ) : (
-              <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({})}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({})}>
                 + Registrar gasto
-              </button>
+              </Boton>
             )}
           </>
         }

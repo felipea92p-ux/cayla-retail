@@ -18,7 +18,6 @@ import {
   sedeDeAnalisis,
   sedeQueMasVende,
   seEstaAcabando,
-  vendioDe10,
 } from "./analisis-reglas";
 
 // Datos inventados para la prueba (no son de producción).
@@ -43,6 +42,8 @@ function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
     vendidas30: 0,
     semanas: [0, 0, 0, 0, 0, 0, 0, 0],
     diasSinVender: null,
+    salioAlPiso: null,
+    llego: null,
     llegaron30: 0,
     vendidasDeLasQueLlegaron30: 0,
     otras: [],
@@ -56,6 +57,16 @@ describe("cuántos días quedan", () => {
     expect(diasQueQuedan(prenda({ piso: 1, almacen: 1, vendidas30: 6 }))).toBe(10);
     expect(diasQueQuedan(prenda({ vendidas30: 6 }))).toBe(0);
     expect(diasQueQuedan(prenda({ piso: 3 }))).toBeNull();
+  });
+  it("el ritmo es el de los días de ventas que tiene la tienda (hasta 30), no siempre 30", () => {
+    // Datos inventados: 3 en la tienda y 2 vendidas. Entre 30 días duran 45; entre los 8 días que la tienda vende en el ERP, 12.
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2 }))).toBe(45);
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 8 }))).toBe(12);
+    expect(seEstaAcabando(prenda({ piso: 3, vendidas30: 2 }))).toBe(false);
+    expect(seEstaAcabando(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 8 }))).toBe(true);
+    // Fuera de 1 a 30, se lleva al borde.
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 60 }))).toBe(45);
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 3, diasDeVentas: 0 }))).toBe(1);
   });
   it("si queda algo, al menos 1 día", () => {
     expect(diasQueQuedan(prenda({ piso: 1, vendidas30: 300 }))).toBe(1);
@@ -117,10 +128,6 @@ describe("por llegar, edad y lo que llega", () => {
   it("las unidades por tramo de días sin venderse", () => {
     const e = edadDelInventario([prenda({ piso: 2, diasSinVender: 10 }), prenda({ almacen: 3, diasSinVender: 61 }), prenda({ piso: 1, diasSinVender: 120 }), prenda({ piso: 5 })]);
     expect(e).toEqual({ hasta30: 2, de31a60: 0, de61a90: 3, masDe90: 1 });
-  });
-  it("de cada 10 que llegaron, cuántas se vendieron", () => {
-    expect(vendioDe10([prenda({ llegaron30: 6, vendidasDeLasQueLlegaron30: 5 }), prenda({ llegaron30: 4, vendidasDeLasQueLlegaron30: 9 })])).toBe(9);
-    expect(vendioDe10([prenda({})])).toBeNull();
   });
 });
 

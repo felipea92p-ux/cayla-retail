@@ -2,10 +2,11 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, ArrowRight, PackageOpen } from "lucide-react";
+import { AlertTriangle, ArrowRight, PackageOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { Volver } from "@/components/ui/Volver";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -192,9 +193,7 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
   return (
     <>
       <header className="tp-banda tp-banda-atras">
-        <button type="button" className="tp-volver" onClick={() => pase.girar(false)} data-foco-reverso>
-          <ArrowLeft aria-hidden strokeWidth={2} className="h-4 w-4" /> Volver
-        </button>
+        <Volver onClick={() => pase.girar(false)} a="Volver al frente del pase" datos={{ "data-foco-reverso": true }} />
         <span className="tp-banda-nombre" role="heading" aria-level={2}>
           {titulo}
         </span>
@@ -324,9 +323,7 @@ function ReversoParaEnviar({ grupo: g, url, ahoraIso, onYaNo }: { grupo: GrupoPa
   return (
     <>
       <header className="tp-banda tp-banda-atras">
-        <button type="button" className="tp-volver" onClick={() => pase.girar(false)} data-foco-reverso>
-          <ArrowLeft aria-hidden strokeWidth={2} className="h-4 w-4" /> Volver
-        </button>
+        <Volver onClick={() => pase.girar(false)} a="Volver al frente del pase" datos={{ "data-foco-reverso": true }} />
         <span className="tp-banda-nombre" role="heading" aria-level={2}>
           Lo que subiste para {g.destino}
         </span>

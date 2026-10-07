@@ -20,10 +20,13 @@ export const FUNCIONES = [
   // «Cerrar caja», «Cerrar conteo» o «Cerrar el mes» son acciones del negocio, no cerrar una hoja: solo cuenta el «Cerrar» a secas.
   { id: "cerrar", nombre: "Cerrar (la hoja o el aviso)", patron: "^cerrar$|^cerrar (esta |este |la |el )?(ventana|hoja|aviso|panel|detalle|vista|modal)\\b|^[×✕✖]$" },
   { id: "cancelar", nombre: "Cancelar", patron: "^cancelar\\b" },
-  { id: "guardar", nombre: "Guardar / Confirmar", patron: "^(guardar|confirmar|aceptar|aplicar|listo)\\b" },
+  // «Registrar devolución S/ 75» o «Registrar pago» cierran una operación con dinero: confirman, no crean algo nuevo (censo del
+  // mostrador, 2026-10-07).
+  { id: "guardar", nombre: "Guardar / Confirmar", patron: "^(guardar|confirmar|aceptar|aplicar|listo)\\b|^registrar (la |el )?(devolucion|cambio|venta|pago|cobro)\\b" },
   // Antes que «eliminar»: «Quitar filtros» limpia la lista, no borra nada.
   { id: "limpiar", nombre: "Limpiar filtros", patron: "^(limpiar|restablecer)\\b|^(quitar|borrar) (los |todos los )?filtros\\b" },
-  { id: "nuevo", nombre: "Nuevo / Agregar / Registrar", patron: "^(\\+\\s*)?(nuevo|nueva|agregar|anadir|crear|registrar)\\b|^\\+$" },
+  // «Agregar Blusa Emma talla S» es la talla que se suma al ticket en Vender, no crear algo: no es «Nuevo» (censo del mostrador, 2026-10-07).
+  { id: "nuevo", nombre: "Nuevo / Agregar / Registrar", patron: "^(\\+\\s*)?(nuevo|nueva|agregar|anadir|crear|registrar)\\b(?!.*\\btalla\\b)|^\\+$" },
   { id: "editar", nombre: "Editar", patron: "^(editar|modificar)\\b" },
   { id: "eliminar", nombre: "Eliminar / Quitar / Anular", patron: "^(eliminar|borrar|quitar|anular|desactivar|archivar|descartar)\\b" },
   { id: "buscar", nombre: "Buscar", patron: "^buscar\\b" },
@@ -315,7 +318,7 @@ const ACCIONES = FUNCIONES.map((f) => ({
  */
 /**
  * @typedef {{ archivo: string, motivo: string }} Excepcion
- * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, tambien?: string[], firmas: string[], deuda: string[], excepciones?: Excepcion[] }} Decision
+ * @typedef {{ fecha: string, adr: string, registro: string, elegida: string, pieza: string, tambien?: string[], ventana?: number, firmas: string[], deuda: string[], excepciones?: Excepcion[] }} Decision
  * @type {Record<string, Decision>}
  */
 export const DECISIONES = {
@@ -332,9 +335,20 @@ export const DECISIONES = {
       "<Volver[^>]*\\bforma=",
       // Una vuelta escrita a mano con el glifo («← Volver a Caja»). El «← Atrás» de un paso a paso es otra familia (paso atrás).
       "←\\s*Volver a ",
+      // El «Atrás» de un paso a paso escrito a mano (Felipe 2026-10-07, ronda 3: «volver solo es una flecha»): el texto «Atrás» solo
+      // en su línea, o una flecha dibujada con «Atrás» / «Volver» al lado.
+      "^\\s*(?:<span aria-hidden>←<\\/span>\\s*)?Atrás\\s*$",
+      "<ArrowLeft\\b[^>]*\\/>\\s*(?:Atrás|Volver)\\b",
+      // Una vuelta escrita con el glifo y un nombre («← Ticket», «← Todas las cajas»). «← Anterior» y «← Volver al inicio» de una
+      // paginación no son una vuelta: pasan de página (otra familia).
+      "^\\s*←\\s+(?!Anterior\\b|Volver al inicio\\b)[A-ZÁÉÍÓÚ][^<{}]*$",
+      // «Volver a contar / a revisar / a editar…» como texto de un botón. No cuentan los que NO vuelven a un paso: reintentar,
+      // restablecer, la salida de una pantalla de error ni el enlace dentro de una frase.
+      "^\\s*Volver (?:a|al) (?!intentar|lo predeterminado|la predeterminada|como está|la que propone|inicio|período)[^<{}\"]+\\s*$",
     ],
     deuda: [],
     excepciones: [
+      { archivo: "components/conteo/RevisarConteo.tsx", motivo: "«Volver a contar» es la acción principal de Revisar conteo (ir a contar lo pendiente), no un paso atrás (Felipe 2026-10-07)" },
       { archivo: "app/(app)/global/elige-sede/page.tsx", motivo: "Tarjeta de barrera (elegir sede): su salida es la única acción de la tarjeta y va con los botones, no es la vuelta de una pantalla interna (docs/unificar/accion.volver.md)" },
     ],
   },
@@ -349,6 +363,30 @@ export const DECISIONES = {
       "^\\s*(export\\s+)?function\\s+(TarjetaCifraAnalisis|TarjetaIndicador|TarjetaSenal|TarjetaAvance)\\b|^\\s*(export\\s+)?function\\s+(Tarjeta|Cifra)\\(\\{\\s*(etiqueta|rotulo)"
     ],
     "deuda": []
+  },
+  "accion.nuevo": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.nuevo.md",
+    "elegida": "B · versalitas de 11 px y 40 px (label-cayla), elegida mirando el 2026-10-07, con su movimiento: barrido de luz, se encoge al presionar, hilo al guardar",
+    "pieza": "components/ui/campos.tsx",
+    // El texto del botón suele ir en la línea siguiente a su clase: la firma mira 9 líneas desde donde empieza.
+    "ventana": 9,
+    "firmas": [
+      // Un «+ Nuevo / Registrar / Agregar» con la cara vieja de btn-cayla (34 px, letra normal).
+      "className=\\{?[\"'`]btn-cayla btn-(?:primario|secundario)\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear|Dar acceso)\\b",
+      // La cara B copiada a mano (sin el barrido de luz ni el encogerse al presionar de la pieza).
+      "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b",
+      // El barrido viejo de 800 ms (ronda 3: el movimiento es uno solo, `.mov-boton`).
+      "\\bboton-brillo\\b",
+      // Un botón negro que al pasar el mouse va al rojo de marca o a un gris (Felipe 2026-10-07: «que sea rojo profundo», el de la guía).
+      "\\bbg-tinta\\b[^\"'`]*\\b(?:enabled:)?hover:bg-(?:rojo(?!-profundo)|tinta\\/\\d+)\\b"
+    ],
+    "deuda": [
+    ],
+    "excepciones": [
+      { "archivo": "components/analisis/TodaviaNo.tsx", "motivo": "El «Registrar N» chico dentro del anillo de Análisis v4 tiene su propio diseño y movimiento (ADR-0357); Felipe dice si se unifica" }
+    ]
   },
   "pestanas": {
     "fecha": "2026-10-06",

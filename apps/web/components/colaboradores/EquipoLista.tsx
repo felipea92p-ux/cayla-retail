@@ -18,6 +18,7 @@ import { Chip } from "@/components/ui/Chip";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import { Boton } from "@/components/ui/campos";
 
 // Colaboradores ▸ Equipo (propuesta de Felipe del 2026-10-05): UNA lista agrupada por sede, como se piensa el negocio
 // («el equipo de Trujillo»). El estado (suspendido, baja en Dynamic) es una marca sobre la persona, no una pestaña. Arriba,
@@ -241,9 +242,9 @@ export function EquipoLista({
             ))}
           </div>
           {enTerminales && onNuevaTerminal && (
-            <button type="button" className="btn-cayla btn-primario" onClick={onNuevaTerminal}>
+            <Boton type="button" peso="primario" onClick={onNuevaTerminal}>
               + Nueva terminal
-            </button>
+            </Boton>
           )}
           <label className="caja-cayla flex w-full items-center gap-2 px-3 py-2 sm:w-72">
             <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />

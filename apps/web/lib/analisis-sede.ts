@@ -4,7 +4,8 @@ import type { PrendaSede } from "@/lib/analisis-tipos";
 import { fraseFallaSedes, leerAnalisisSede, RPC_ANALISIS_SEDE, type LecturaDeSede } from "@/lib/analisis-sede-lectura";
 import { getUbicaciones } from "@/lib/ubicaciones";
 
-// Análisis v4 (ADR-0357): las prendas de cada tienda, leídas de la base (`retail.fn_analisis_sede`, migración 20261006214000).
+// Análisis v4 (ADR-0357): las prendas de cada tienda, leídas de la base (`retail.fn_analisis_sede`, migraciones 20261006214000 y
+// 20261007120000).
 // Una llamada por tienda, todas a la vez. La encargada y el líder reciben lo mismo (decisión 8): la puerta es la de Análisis, no
 // la de la sede. Si una tienda no responde, esa queda vacía y se dice en `falla` con su nombre (principio 9): nunca «sin ventas»
 // por un error. Cómo se entiende cada fila: `analisis-sede-lectura.ts`.
@@ -14,6 +15,8 @@ export type LecturaSedes = {
   porSede: Record<string, PrendaSede[]>;
   /** Por id de tienda: de cada 100 líneas vendidas en 30 días, cuántas llevaron rebaja (null si no vendió o no se pudo leer). */
   rebajaDe100: Record<string, number | null>;
+  /** Por id de tienda que respondió: si sus filas dicen cuándo salió al piso cada prenda (20261007120000). */
+  sabePiso: Record<string, boolean>;
   /** Lo que no se pudo leer, en una frase; null si todo respondió. */
   falla: string | null;
 };
@@ -54,6 +57,7 @@ export async function getPrendasPorSede(ubicacionIds: readonly string[]): Promis
   return {
     porSede: Object.fromEntries(lecturas.map(({ id, lectura }) => [id, lectura?.prendas ?? []])),
     rebajaDe100: Object.fromEntries(lecturas.map(({ id, lectura }) => [id, lectura?.rebajaDe100 ?? null])),
+    sabePiso: Object.fromEntries(lecturas.filter((l) => l.lectura !== null).map(({ id, lectura }) => [id, lectura!.sabePiso])),
     falla: fallaron.length === 0 ? null : fraseFallaSedes(await nombresDe(fallaron)),
   };
 }

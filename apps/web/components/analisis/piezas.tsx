@@ -186,3 +186,14 @@ export const pct = (parte: number, total: number): number => (total > 0 ? Math.r
 
 /** Soles sin decimales, como se lee en tienda: «S/ 1,250». */
 export const soles = (n: number): string => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+
+/** Una cifra grande de arriba (la `numero()` de la maqueta): el número, qué es y su detalle. */
+export function Numero({ valor, et, sub }: { valor: string; et: ReactNode; sub: ReactNode }) {
+  return (
+    <div className="q-numero">
+      <b>{valor}</b>
+      <span className="et">{et}</span>
+      <span className="sub">{sub}</span>
+    </div>
+  );
+}

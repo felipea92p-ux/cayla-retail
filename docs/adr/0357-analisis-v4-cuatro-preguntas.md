@@ -200,6 +200,29 @@ de `fn_resumen_comparacion_json` con los últimos 90 días de la tienda, sin mig
 que llegó» usa el mismo predicado que Frescura (`fn_es_llegada`), así que cuenta la carga inicial como llegada.
 - *Por qué:* es lo que se puede afirmar con el libro de movimientos; la carga inicial no tiene edad real (por eso no se habla de «antigüedad»).
 
+**11. Lo que nunca salió al piso, «¿Qué pedir?» contra Navidad y el ritmo con los días que hay (Felipe, 2026-10-07, al ver Hoy
+con los datos de TRU).** Tres problemas de la misma raíz: Análisis contaba lo guardado como si estuviera a la vista y decía «30 días» sin decir
+de qué días hablaba. Elegido mirando la página «Piso y qué pedir» (artifact privado, con cifras reales de TRU; no va al repo):
+
+- **«¿Se vende lo que llega?» sale de Hoy** (contaba como «llegó y no se vendió» lo que nunca se colgó: en TRU decía 1 de 10). La reemplaza
+  **«¿Qué no ha salido al piso?»**, una lista de las 5 que más días llevan guardadas (A1), y **una pestaña propia, «Nunca salió al piso»**,
+  entre «No se vende» y «Qué pedir» (pedido de Felipe: «una sección más, con un nombre que haga referencia a que nunca salió a piso»):
+  cifras de la tienda, dónde está lo que tienes (en el piso · guardado que ya salió · guardado que nunca salió) y el carril «Días en el
+  almacén» por tipo de prenda, **empezando por el tipo que más se vende**, con «Bájalas al piso» por tipo y «Bajar» por prenda (Reponer a
+  piso) y «Ver N más» (tres por tipo). Una prenda **nunca salió al piso** si tiene unidades en el almacén de la tienda y ningún movimiento la
+  tuvo en un piso de venta de esa tienda, ni se vendió ahí (`fn_analisis_sede.salio_al_piso` NULL, migración `20261007120000`).
+- **«No se vende» cuenta desde el piso (C):** los días son desde la última venta o desde que salió al piso; lo que nunca salió no cuenta ahí
+  (en TRU, el 7 de octubre con «Liquidar desde 5 días»: 429 quietas, 318 nunca habían salido; contando desde el piso quedan 28). La ficha de
+  lo que nunca salió dice «Nunca salió al piso», sus días en el almacén y «Bajar al piso», en vez de «Va bien».
+- **«¿Qué pedir?» deja el «de cada 100» (B2):** la tarjeta de Hoy y la pestaña dicen, por tipo, para cuánto te alcanza lo que tienes al ritmo
+  de lo vendido, contra las semanas que faltan para Navidad; lo que no llega va con su ▲. La tabla dice cuánto de lo que tienes nunca salió al
+  piso (antes de pedir, bájalo) y filtra tallas y ranking como la mariposa. Las tallas siguen comparando partes (el alto de las barras), pero
+  lo que se lee son unidades, con sus días en la leyenda.
+- **El ritmo con los días que hay (decisión 4 de la página):** lo vendido se divide entre los días de ventas que la tienda tiene en el ERP,
+  hasta 30 (`diasDeVentas`, desde su primera venta), no siempre entre 30. TRU vendía en el ERP desde el 30 de setiembre: con 8 días, dividir
+  entre 30 hacía durar cada prenda casi 4 veces más y «Se está acabando» perdía lo que se acaba en 4 a 14 días (en TRU, de 49 a 74). Cada
+  texto dice sus días («Al ritmo de los últimos 8 días», «Vendiste 7 en 8 días»).
+
 ## Lo que se tomó del estudio
 
 | Del estudio | En CAYLA | Por qué |
@@ -246,6 +269,7 @@ una con el OK de Felipe, antes de publicar la web:
 | `20261006214000_analisis_prendas_de_sede.sql` | `fn_analisis_sede(p_ubicacion_id)`: las prendas de una tienda en un jsonb, una llamada por tienda. Lo libre en piso y almacén, lo vendido en 30 días y por semana, los días sin venderse, lo que llegó y cuánto de eso se vendió, precio, costo, origen, categoría y color; y cuántas ventas llevaron rebaja. Pide una cuenta de retail y Análisis (`fn_puede_analizar`), **no** operar la sede (decisión 3). Un `create or replace`, sin políticas: se pega en una sola parte. Prueba: `scripts/pruebas/analisis_lecturas.mjs`. |
 | `20261006215000_analisis_por_llegar.sql` | `fn_analisis_por_llegar(p_ubicacion_id)`: lo que viene en camino a una tienda, por prenda: de dónde (compra, almacén, Taller u otra tienda), cuántas y cuándo se espera, sin dinero (decisión 6). Las mismas dos puertas que `fn_analisis_sede`. Un `create or replace`, sin políticas: una sola parte. Prueba: `scripts/pruebas/analisis_lecturas.mjs`. |
 | `20261007100000_analisis_liquidar_desde_sin_tope.sql` | «Liquidar desde» sin tope: el check de `parametros_analisis` y `guardar_liquidar_desde` aceptan de 1 a 999 días (antes 30 a 85). Un `alter` de una tabla que solo leen las funciones de Análisis y el reemplazo de una función con la misma firma: una sola ejecución. Pegada en producción el 2026-10-07 (actualización 2 de la decisión 5). |
+| `20261007120000_analisis_salio_al_piso.sql` | `fn_analisis_sede` devuelve `salio_al_piso` (la primera vez en un piso de venta de la tienda, o su primera venta; NULL si nunca salió) y `llego` (la primera entrada), y `dias_sin_vender` cuenta desde el piso (NULL si nunca salió). Mismo cuerpo de `20261006214000` (huella verificada contra producción) con esos cambios: un `create or replace` con la misma firma, sin políticas ni `alter`, una sola parte. **Pegada en producción el 2026-10-07** (antes de fusionar la web; huella verificada). Sin ella, la pestaña diría que todavía no lo puede saber. Prueba: `scripts/pruebas/analisis_lecturas.mjs` (casos F3, D1, D2 y D3). Decisión 11. |
 | `20261006216000_analisis_liquidar_desde.sql` | «Liquidar desde»: la tabla `parametros_analisis` (una sola fila, de 30 a 85 días, 60 de fábrica), `fn_liquidar_desde()` (la lee toda cuenta de retail) y `guardar_liquidar_desde(p_dias)` (lo cambia quien ve Análisis, firma con el responsable y deja el antes y el después en `configuracion_historial`). Sin `alter` de tablas en uso ni políticas: una sola ejecución (decisión 5). |
 
 «Lo que más rinde» no necesita migración: lee `fn_resumen_comparacion_json`, la misma del Análisis viejo, con los últimos 90 días de la tienda
@@ -256,7 +280,9 @@ calla (principio 9).
 
 ## Cómo se verifica
 
-- **Reglas puras, con su prueba:** `lib/analisis-reglas.test.ts` (grupos, días que quedan, umbral, edad, «vendió de 10»),
+- **Reglas puras, con su prueba:** `lib/analisis-reglas.test.ts` (grupos, días que quedan con los días de ventas de la tienda, umbral, edad),
+  `lib/analisis-piso.test.ts` («Nunca salió al piso»: qué entra, el orden por tipo, las cifras, el eje), `lib/analisis-pedir.test.ts` (para
+  cuánto alcanza cada tipo contra Navidad),
   `lib/analisis-acciones.test.ts` (a dónde lleva cada botón y que no se dibuje sin acceso), `lib/analisis-armado.test.ts` (el cruce de las tres
   tiendas) y las de cada pestaña.
 - **Movimiento:** `lib/analisis-movimiento.test.ts` revisa todas las hojas `app/estilos/analisis*.css`: sin bucle, sin rebote, `--ease-cayla`,
@@ -288,5 +314,9 @@ calla (principio 9).
   respaldo? En local, los productos propios tienen el proveedor «CAYLA SAC».
 - **Una compra agrupada** (una línea sin talla ni color, que se desglosa al recibir, ADR-0035) no se puede atribuir a una prenda y no sale en «Por
   llegar».
+- **«¿Qué pedir?» pasada la Navidad:** la meta es siempre la próxima Navidad; el 26 de diciembre queda a 364 días y casi todo «no llegaría».
+  ¿Medir contra la próxima campaña del Plan de campaña, o contra un horizonte fijo? Lo decide Felipe antes de diciembre (decisión 11).
+- **`llegaron_30` y `vendidas_de_llegadas_30`** ya no los usa nadie («¿Se vende lo que llega?» salió de Hoy, decisión 11): se pueden quitar de
+  `fn_analisis_sede` en una migración aparte, cuando la web de hoy ya no los lea.
 - **Rendimiento a futuro:** el origen recorre `compra_items` una vez por modelo; un índice `compra_items (producto_id)` lo resuelve. Es tabla de
   Compras: necesita el OK de Felipe.

@@ -273,7 +273,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                 </li>
               ))}
             </ul>
-            <button type="button" onClick={cerrar} className="label-cayla boton-brillo mt-6 rounded-md bg-tinta px-5 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+            <button type="button" onClick={cerrar} className="mov-boton label-cayla mt-6 rounded-md bg-tinta px-5 py-3 text-[11px] text-crema hover:bg-rojo-profundo">
               Listo
             </button>
           </div>
@@ -580,7 +580,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
               <button type="button" onClick={cerrar} disabled={enviando} className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
                 Cancelar
               </button>
-              <button type="submit" disabled={enviando || buscando} className="label-cayla boton-brillo rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+              <button type="submit" disabled={enviando || buscando} className="mov-boton label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema hover:bg-rojo-profundo disabled:opacity-50">
                 {enviando ? "Registrando…" : v.destino === "reembolso" ? "Registrar nota y reembolso" : "Registrar nota"}
               </button>
             </div>

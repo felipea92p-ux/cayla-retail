@@ -91,6 +91,16 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   **también Finanzas y Configuración**; filtrar o elegir período = la píldora rellena; ver de otra forma u ordenar = la caja arena de «GRILLA /
   TABLA». Deuda 0.
 - **2026-10-06 · `cifra` → B**, la tarjeta de Compras tal cual (`<TarjetaCifra>`), sin las marcas nuevas de la ronda 1. Deuda 0.
+- **2026-10-07 · ronda 2, mirando.** `accion.nuevo` → **B**, versalitas de 11 px y 40 px (`<Boton>` / `<BotonEnlace>` nuevo, con su barrido de
+  luz, el encogerse al presionar y el hilo al guardar); 20 archivos migrados ese día; Vender espera la pasada de `terminal-ventas`. `estado` →
+  `<Chip>` como ya era, y se quedan a propósito los chips con ícono de Análisis y el rol del líder en negro (sin candado del CI todavía).
+- **2026-10-07 · ronda 3, el mostrador (censo con `terminal-ventas`), eligiendo con botones vivos.** El movimiento de un botón pasa a ser
+  uno solo, `.mov-boton` (la D: sube con sombra, barrido, se encoge; más el «+» que gira y la flecha que avanza, pedido de Felipe), en
+  `<Boton>`, `BotonCompacto` y `FlujoGuiado`; `boton-brillo` desaparece. El «Atrás» de un paso a paso es la flecha de `<Volver>` («volver
+  solo es una flecha»): ninguna de las dos caras que había ni la propuesta. La página de elegir suma botones vivos con el CSS del ERP.
+- **2026-10-07 · el movimiento entra al censo** (pedido de Felipe): la huella de lo que se toca o se mueve solo dice qué cambia al pasar el
+  mouse, al presionar y con el foco, la transición, lo que late en bucle y lo que entra animado, y el censo lo mide pasándole el mouse. Dos
+  piezas iguales en reposo y distintas en movimiento son dos variantes, y migrar no pierde movimiento.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

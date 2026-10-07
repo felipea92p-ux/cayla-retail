@@ -100,19 +100,22 @@ export function IndicadorDeslizante({
     }
     cont.dataset.indicador = "";
 
-    // Si cambia el tamaño (ventana, tipografía que termina de cargar) se recoloca sin viajar. El primer aviso
-    // del observador llega al observar y no significa cambio: se ignora para no cortar el viaje en curso.
-    let primera = true;
+    // Si algo cambia de tamaño (ventana, una cuenta que llega, tipografía que termina de cargar) se recoloca sin viajar, pero
+    // solo si la opción marcada quedó en otro lugar que el último puesto. El observador avisa una vez al empezar, con la
+    // medida de ESE momento: si nada cambió coincide y no se toca (no corta el viaje en curso); si la tipografía cargó entre la
+    // medida de arriba y ese primer aviso, no coincide y se corrige. Ignorarlo a ciegas dejaba la píldora corrida en la
+    // primera carga sin la fuente en caché (2026-10-07, Análisis: 24 px a la izquierda, tapando la cuenta de la vecina).
     const ro = new ResizeObserver(() => {
-      if (primera) {
-        primera = false;
-        return;
-      }
       const a = marcada();
-      if (a) sinViaje({ x: a.offsetLeft, w: a.offsetWidth });
+      if (!a) return;
+      const p: Posicion = { x: a.offsetLeft, w: a.offsetWidth };
+      if (p.x !== ultima.current?.x || p.w !== ultima.current?.w) sinViaje(p);
     });
     ro.observe(cont);
-    ro.observe(activo);
+    // Todas las opciones, no solo la marcada: si una de antes se ensancha, la marcada se corre sin cambiar de tamaño (y la
+    // fila no crece si ya llena el ancho y se desliza, como en el celular). Por su borde, que es lo que mide `offsetWidth`:
+    // la caja de contenido (lo que mira el observador si no se le dice) no cambia cuando cambia el relleno.
+    for (const opcion of cont.children) if (opcion !== el) ro.observe(opcion, { box: "border-box" });
     return () => ro.disconnect();
   }, [activa, id, selector]);
 

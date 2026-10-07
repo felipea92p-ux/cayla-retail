@@ -79,7 +79,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
             etiqueta="Capital en insumos"
             className="anim-entra"
             style={{ ["--i" as string]: 1 }}
-            valor={capital === null || insumos.length === 0 ? null : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
+            valor={capital === null ? null : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
           >
             a costo de cada lote
           </TarjetaCifra>

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -46,6 +46,7 @@ import {
 } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -354,10 +355,7 @@ export function DevolucionesFlujo({
           </div>
 
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={onCerrar}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Otra venta
-            </BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrendas}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -418,10 +416,7 @@ export function DevolucionesFlujo({
             <PanelValidaciones validaciones={validaciones} impacto={impacto.inventario.length > 0 ? impacto : null} />
           </div>
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={retroceder}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar la devolución
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -489,10 +484,7 @@ export function DevolucionesFlujo({
           {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró la devolución." />}
 
           <PieDelPaso aviso={null}>
-            <BotonSecundario onClick={retroceder} disabled={enviando}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
@@ -526,7 +518,7 @@ export function DevolucionesFlujo({
           <div className="mt-9 flex flex-wrap justify-center gap-2">
             {esLider ? <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal> : null}
             {esLider ? <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario> : <BotonPrincipal onClick={onNuevo}>Nueva devolución</BotonPrincipal>}
-            <BotonSecundario onClick={onCerrar}>Volver a la actividad</BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a la actividad" className="self-center" />
           </div>
         </div>
       )}

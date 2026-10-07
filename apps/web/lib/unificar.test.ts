@@ -40,6 +40,8 @@ describe("qué hace un botón se reconoce por lo que dice (sin tildes ni mayúsc
     ["Confirmar venta", "guardar"],
     ["+ Nuevo producto", "nuevo"],
     ["Registrar gasto", "nuevo"],
+    ["Agregar Blusa Emma talla S", null],
+    ["Registrar devolución S/ 75.00", "guardar"],
     ["Quitar filtros", "limpiar"],
     ["Quitar", "eliminar"],
     ["Anular comprobante", "eliminar"],
@@ -70,7 +72,8 @@ describe("decisiones de Felipe: una función, una pieza", () => {
 
   it.each(decididas.length ? decididas : ["(ninguna todavía)"])("«%s»: nadie nuevo la dibuja a mano y la deuda solo baja", (id) => {
     if (!DECISIONES[id]) return; // sin decisiones, no hay nada que vigilar todavía
-    const hoy = deudaDe(id).map((d) => d.archivo);
+    // Las dos listas con el mismo orden (deudaDe ordena por idioma; sort() a secas, por código de letra).
+    const hoy = deudaDe(id).map((d) => d.archivo).sort();
     const declarada = [...DECISIONES[id].deuda].sort();
     const nuevos = hoy.filter((a) => !declarada.includes(a));
     const limpios = declarada.filter((a) => !hoy.includes(a));

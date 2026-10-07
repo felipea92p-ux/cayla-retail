@@ -33,11 +33,13 @@ El vidrio de Facturación (ADR-0124), las cifras de la cabecera (`ResumenSede`, 
 Observatorio (ADR-0322), Inicio de almacén (ADR-0292), la vista rápida (ADR-0136), el panel de la talla (ADR-0344), «Hoy» de Vender
 (ADR-0221) y Rendimiento por tienda (ADR-0325). **El mostrador no cambió.**
 
-## Preguntas abiertas para Felipe
+## Preguntas resueltas (Felipe, 2026-10-07)
 
-1. **«Piden algo hoy»** (Análisis) cuenta tres grupos y al tocarla filtra uno: va en su propia tarea.
-2. **Producción** muestra «—» donde hay cero (capital en insumos, por pagar, vencido). ¿Debería decir «S/ 0.00»?
-3. **La Caja del Inicio** dice «Abierta / Cerrada» donde va el número. ¿Pasa a una insignia?
+1. **«Piden algo hoy»** (Análisis): sigue abierta, va en su propia tarea.
+2. **Producción** muestra «S/ 0.00» donde hay cero (capital en insumos, valor en proceso, por pagar; también el capital de Insumos). El «—» con borde
+   punteado queda solo para cuando de verdad no se pudo leer el dato (`valor={null}`).
+3. **La Caja del Inicio** sigue diciendo «Abierta» / «Cerrada» **en grande**, donde va el número: tiene que verse notorio (Felipe: no pasa a insignia).
+   Al decidir la familia `estado`, esta tarjeta no se migra.
 
 ## Deuda
 

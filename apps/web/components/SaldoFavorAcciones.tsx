@@ -125,7 +125,7 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             <button type="button" onClick={cerrar} disabled={loading} className="label-cayla flex-1 rounded-md border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !montoOk} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50">
+            <button type="submit" disabled={loading || !montoOk} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50">
               {loading ? "Registrando…" : "Registrar reembolso"}
             </button>
           </div>

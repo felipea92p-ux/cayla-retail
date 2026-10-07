@@ -211,6 +211,132 @@
   };
   const fueraDelCenso = (el) => !!el.closest("aside, .papel-fijo, [data-papel], nextjs-portal") || (!!el.closest("header") && !el.closest("main") && !el.closest('[role="dialog"]'));
 
+  // ---------- el movimiento (Felipe 2026-10-07: «que el censo diga si un componente tiene animaciones o cosas especiales») ----------
+  // Lo que hace una pieza cuando la persona la usa: al pasar el mouse, al presionarla, al recibir el foco del teclado, cómo transiciona,
+  // si entra con una animación y si algo late en bucle. Se lee de las REGLAS de CSS que le tocan (incluidas las de un hijo, como el
+  // barrido de luz de `Boton`, que vive en un <span> adentro con `group-hover:`), de su transición calculada y de sus animaciones vivas.
+  // Va dentro de la huella: dos botones idénticos en reposo, uno con barrido y otro sin él, son dos variantes distintas para la persona.
+  const ESTADOS_CSS = [
+    ["presionar", /:active\b/],
+    ["foco", /:focus-visible\b|:focus\b(?!-)/],
+    ["encima", /:hover\b/],
+  ];
+  let reglasMov = null;
+  function juntarReglas(lista, padre, sal) {
+    for (const r of lista) {
+      try {
+        if (r.selectorText !== undefined) {
+          const sel = padre && r.selectorText.includes("&") ? r.selectorText.replace(/&/g, padre) : padre ? `${padre} ${r.selectorText}` : r.selectorText;
+          if (r.style && r.style.length) {
+            const estado = ESTADOS_CSS.find(([, re]) => re.test(sel));
+            if (estado) {
+              for (const parte of sel.split(/,(?![^(]*\))/)) {
+                if (!estado[1].test(parte)) continue;
+                const base = parte.replace(/:(hover|active|focus-visible|focus-within|focus)\b/g, "").replace(/:not\(\s*:disabled\s*\)/g, "").replace(/:where\(\s*\)/g, "").trim();
+                // `:focus-visible` a secas es el anillo único del ERP (ADR-0351): vale para todo lo que se enfoca.
+                sal.push({ estado: estado[0], base: base || "*", global: !base || base === "*", props: [...r.style].map((p) => [p, r.style.getPropertyValue(p)]) });
+              }
+            }
+          }
+          if (r.cssRules && r.cssRules.length) juntarReglas(r.cssRules, sel, sal);
+        } else if (r.cssRules) {
+          // @media (prefers-reduced-motion) no describe el movimiento: describe cómo se apaga.
+          if (r.conditionText && /reduced-motion/.test(r.conditionText)) continue;
+          juntarReglas(r.cssRules, padre, sal);
+        }
+      } catch {
+        /* una regla que el navegador no expone */
+      }
+    }
+  }
+  function reglasDeMovimiento() {
+    if (reglasMov) return reglasMov;
+    const sal = [];
+    for (const hoja of document.styleSheets) {
+      try {
+        juntarReglas(hoja.cssRules, "", sal);
+      } catch {
+        /* hoja de otro origen */
+      }
+    }
+    reglasMov = sal;
+    return sal;
+  }
+  const nombreAnimacion = (v) =>
+    (v || "")
+      .split(/\s+/)
+      .find((t) => t && !/^-?[\d.]+m?s$/.test(t) && !/^(ease|ease-in|ease-out|ease-in-out|linear|infinite|forwards|backwards|both|none|normal|alternate|running|paused|\d+)$/.test(t) && !/^(cubic-bezier|steps|var)\(/.test(t)) || "";
+  /** Una propiedad de CSS dicha como la ve la persona. */
+  function efectoDe(p, v) {
+    if (/^animation(-name)?$/.test(p)) {
+      const n = nombreAnimacion(v);
+      return n && n !== "none" ? `animación ${n}` : null;
+    }
+    if (/^(transform|translate|rotate)$/.test(p)) return "se mueve";
+    if (p === "scale" || (p === "transform" && /scale/.test(v))) return "cambia de tamaño";
+    if (/^--tw-scale/.test(p)) return "cambia de tamaño";
+    if (/^--tw-(translate|rotate)/.test(p)) return "se mueve";
+    if (/^background/.test(p)) return "fondo";
+    if (p === "color" || p === "fill" || p === "stroke") return "color";
+    if (/^border.*color$/.test(p)) return "borde";
+    if (/box-shadow|--tw-shadow|--tw-ring/.test(p)) return "sombra o anillo";
+    if (/^outline/.test(p)) return "anillo";
+    if (p === "opacity") return "opacidad";
+    if (/^text-decoration/.test(p)) return "subrayado";
+    if (/^(width|height|max-width|max-height|padding|margin|gap|inset)/.test(p)) return "cambia de medida";
+    return null;
+  }
+  const memoMov = new Map();
+  /** El movimiento de una pieza: un objeto chico y estable (va en la clave de la variante). `null` si no hace nada. */
+  function movimientoDe(el) {
+    const nodos = [el, ...[...el.querySelectorAll("*")].slice(0, 40)];
+    const clave = nodos.map((n) => `${n.tagName}.${clasesDe(n)}`).join("|");
+    if (memoMov.has(clave)) return memoMov.get(clave);
+    const por = { encima: new Set(), presionar: new Set(), foco: new Set() };
+    for (const r of reglasDeMovimiento()) {
+      let toca;
+      try {
+        toca = nodos.some((n) => n.matches(r.base));
+      } catch {
+        continue;
+      }
+      if (!toca) continue;
+      for (const [p, v] of r.props) {
+        const e = efectoDe(p, v);
+        if (e) por[r.estado].add(r.global ? `${e} del sistema (ADR-0351)` : e);
+      }
+    }
+    // La transición en reposo: cuánto tarda en cambiar lo que cambia (el valor más largo, redondeado a 50 ms).
+    const s = estilo(el);
+    const durs = (s.transitionDuration || "0s").split(",").map((d) => (d.trim().endsWith("ms") ? parseFloat(d) : parseFloat(d) * 1000));
+    const max = Math.max(0, ...durs);
+    const props = (s.transitionProperty || "").split(",").map((p) => p.trim()).filter((p) => p && p !== "none");
+    let transicion = "sin transición";
+    if (max > 0 && props.length) {
+      const que = props.includes("all") ? "todo" : [...new Set(props.map((p) => efectoDe(p, "") || p))].slice(0, 4).join(", ");
+      transicion = `${Math.round(max / 50) * 50} ms (${que})`;
+    }
+    // Lo que late solo, sin que nadie lo toque (el punto vivo de «Vencida»), y lo que entra con animación al aparecer.
+    const vivas = (el.getAnimations ? el.getAnimations({ subtree: true }) : []).filter((a) => a.effect?.getTiming?.().iterations === Infinity);
+    const bucle = [...new Set(vivas.map((a) => a.animationName || "transición en bucle"))].join(", ");
+    const entra = nodos
+      .flatMap((n) => [...(n.classList || [])])
+      .filter((c) => /^(anim-|animate-|cascada)/.test(c) || /^\[animation:/.test(c))
+      .filter((c, i, a) => a.indexOf(c) === i)
+      .slice(0, 3)
+      .join(", ");
+    const lista = (set) => (set.size ? [...set].sort().join(", ") : "nada");
+    const m = { encima: lista(por.encima), presionar: lista(por.presionar), foco: lista(por.foco), transicion };
+    if (bucle) m.bucle = bucle;
+    if (entra) m.entrada = entra;
+    const vacio = m.encima === "nada" && m.presionar === "nada" && m.foco === "nada" && transicion === "sin transición" && !bucle && !entra;
+    const res = vacio ? "sin movimiento" : m;
+    memoMov.set(clave, res);
+    return res;
+  }
+  // Las familias que la persona toca o que se mueven solas. Los iconos, títulos y tablas no: se mueven con lo que los contiene.
+  const CON_MOVIMIENTO = new Set(["boton", "enlace", "pestanas", "casilla", "combo", "campo", "buscador", "cifra", "estado", "contador", "modal", "aviso", "paginacion", "grafico", "avatar"]);
+
   // ---------- el registro ----------
   let siguienteId = 1;
   const usados = new Set();
@@ -229,6 +355,7 @@
       return;
     }
     const r = el.getBoundingClientRect();
+    if (CON_MOVIMIENTO.has(familia) && huella && typeof huella === "object") huella = { ...huella, movimiento: movimientoDe(el) };
     instancias.push({
       uid: idDe(el),
       familia,
@@ -706,6 +833,24 @@
     el.scrollIntoView({ block: "center", inline: "nearest" });
     const r = el.getBoundingClientRect();
     return { x: r.left, y: r.top, w: r.width, h: r.height };
+  };
+
+  /** Una foto del estado visible de una pieza (y de sus hijos): para comparar antes y después de pasarle el mouse. */
+  window.__unificarEstado = (uid) => {
+    const el = document.querySelector(`[data-unificar-id="${uid}"]`);
+    if (!el) return null;
+    const PROPS = [["backgroundColor", "fondo"], ["color", "color"], ["borderTopColor", "borde"], ["boxShadow", "sombra o anillo"], ["transform", "se mueve"], ["opacity", "opacidad"], ["textDecorationLine", "subrayado"]];
+    const nodos = [el, ...[...el.querySelectorAll("*")].slice(0, 20)];
+    const valores = nodos.map((n) => {
+      const s = getComputedStyle(n);
+      return PROPS.map(([p]) => s[p]);
+    });
+    const animaciones = (el.getAnimations ? el.getAnimations({ subtree: true }) : []).map((a) => {
+      const t = a.effect?.getTiming?.() || {};
+      const nombre = a.animationName || (a.transitionProperty ? `transición de ${efectoDe(a.transitionProperty, "") || a.transitionProperty}` : "animación");
+      return `${nombre} ${Math.round((+t.duration || 0) / 10) * 10} ms${t.iterations === Infinity ? " en bucle" : ""}`;
+    });
+    return { valores, nombres: PROPS.map(([, n]) => n), animaciones: [...new Set(animaciones)] };
   };
 
   /** Lo que la lámina necesita para dibujar la propuesta con el CSS real: las hojas de estilo y las clases del <html> y el <body>. */

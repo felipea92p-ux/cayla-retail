@@ -7,6 +7,7 @@ import { soles } from "@/lib/compras-reglas";
 import { inicialesProveedor, type FilaResumenComprobante } from "@/lib/envio-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import { Volver } from "@/components/ui/Volver";
 
 // «Confirma lo que entra» (spike de Recibir, 2026-09-19): el último vistazo ANTES de escribir en el stock.
 // Recibir deja movimientos que no se editan después (principio 4: `movimientos` es append-only), y hasta ahora un
@@ -114,9 +115,7 @@ export function ResumenPrevioEnvio({
           <ComboResponsable control={responsable} deshabilitado={cargando} className="mt-5" />
           {avisoCosto ?? (
             <div className="mt-5 flex flex-wrap justify-end gap-3">
-              <Boton peso="discreto" onClick={cerrar} disabled={cargando}>
-                Volver a contar
-              </Boton>
+              <Volver onClick={cerrar} deshabilitado={cargando} a="Volver a contar" className="mr-auto self-center" />
               <Boton peso="primario" cargando={cargando} onClick={onConfirmar}>
                 Confirmar y recibir {unidades.toLocaleString("es-PE")} {unidades === 1 ? "unidad" : "unidades"}
               </Boton>

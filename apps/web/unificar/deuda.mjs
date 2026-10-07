@@ -7,7 +7,7 @@
  *   pnpm --filter web unificar:deuda              todas las familias decididas, con sus archivos
  *   pnpm --filter web unificar:deuda pestanas     solo una, con cada línea
  *
- * Una firma es una expresión regular que reconoce, en una LÍNEA de código, la variante dibujada a mano (por ejemplo, un
+ * Una firma es una expresión regular que reconoce, en una LÍNEA de código (o en las `ventana` líneas que empiezan ahí), la variante dibujada a mano (por ejemplo, un
  * `role="tablist"` fuera de la pieza elegida). No cuentan la pieza elegida, las que la acompañan (`tambien`) ni los archivos que
  * un ADR deja como están (`excepciones`, cada uno con su motivo). Una línea legítima suelta se exime con
  * `// unificar-fijo: <por qué>` (10 caracteres de motivo) en esa misma línea.
@@ -45,7 +45,19 @@ export function deudaDe(id) {
     const lineas = readFileSync(ruta, "utf8").split("\n");
     // Un comentario que nombra la forma vieja («antes era «← Volver a …»») no la dibuja: no es deuda.
     const esComentario = (l) => /^\s*(\/\/|\/\*|\*|\{\s*\/\*)/.test(l);
-    const donde = lineas.map((l, i) => (firmas.some((f) => f.test(l)) && !MARCA_FIJA.test(l) && !esComentario(l) ? i + 1 : 0)).filter(Boolean);
+    // Con `ventana`, la firma mira esa línea y las siguientes (un botón cuyo texto «+ Nuevo…» va en otra línea que su clase), pero
+    // solo cuenta donde EMPIEZA el parecido: la misma pieza no se reporta dos veces.
+    const n = d.ventana ?? 1;
+    const tiene = (i) => {
+      const l = lineas[i];
+      if (n === 1) return firmas.some((f) => f.test(l));
+      const texto = lineas.slice(i, i + n).join("\n");
+      return firmas.some((f) => {
+        const m = f.exec(texto);
+        return !!m && m.index < l.length;
+      });
+    };
+    const donde = lineas.map((l, i) => (tiene(i) && !MARCA_FIJA.test(l) && !esComentario(l) ? i + 1 : 0)).filter(Boolean);
     if (donde.length) sal.push({ archivo: rel, lineas: donde });
   }
   return sal.sort((a, b) => a.archivo.localeCompare(b.archivo));

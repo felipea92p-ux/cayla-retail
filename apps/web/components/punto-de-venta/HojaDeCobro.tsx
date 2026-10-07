@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { ArrowLeft, Check, FileText, Receipt, StickyNote } from "lucide-react";
+import { Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, montosSugeridos, type PagoAplicado } from "@/lib/vender-reglas";
@@ -9,6 +9,7 @@ import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
+import { Volver } from "@/components/ui/Volver";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
@@ -158,14 +159,9 @@ export function HojaDeCobro({
               {money(total)}
             </span>
           </p>
-          <button
-            type="button"
-            onClick={onVolver}
-            className="hoja-cobro-volver label-cayla flex items-center gap-2 rounded-xl border border-sand text-xs text-tinta transition-colors hover:bg-hueso"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            Volver
-          </button>
+          {/* El «Volver» del cobro es la flecha redonda de todo el ERP (ADR-0358, Felipe 2026-10-07: «volver solo es una flecha»).
+              Con el dedo, su zona llega a 44 px sin que el círculo crezca. */}
+          <Volver onClick={onVolver} a="Volver al ticket" />
         </div>
       )}
 

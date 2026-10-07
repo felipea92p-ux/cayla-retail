@@ -222,6 +222,30 @@ async function capturar(pagina, inst, destino) {
   return destino;
 }
 
+/**
+ * Lo que de verdad pasa al pasar el mouse sobre una pieza (Felipe 2026-10-07): qué cambia y qué animación corre. Solo MUEVE el
+ * mouse —nunca hace clic ni presiona—, así que no guarda nada. Es la prueba de lo que la huella leyó en el CSS.
+ */
+const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra)/;
+async function medirEncima(pagina, uid) {
+  const caja = await pagina.evaluate((u) => window.__unificarEnfocar(u), uid);
+  if (!caja) return null;
+  const antes = await pagina.evaluate((u) => window.__unificarEstado(u), uid);
+  await pagina.mouse.move(caja.x + caja.w / 2, caja.y + caja.h / 2);
+  await pagina.waitForTimeout(90);
+  const durante = await pagina.evaluate((u) => window.__unificarEstado(u), uid);
+  await pagina.waitForTimeout(450);
+  const despues = await pagina.evaluate((u) => window.__unificarEstado(u), uid);
+  await pagina.mouse.move(1, 1);
+  await pagina.waitForTimeout(250);
+  if (!antes || !despues) return null;
+  const cambia = new Set();
+  antes.valores.forEach((fila, i) => fila.forEach((v, j) => despues.valores[i] && despues.valores[i][j] !== v && cambia.add(antes.nombres[j])));
+  const corre = [...new Set([...(durante?.animaciones ?? []), ...despues.animaciones])].filter((a) => !/en bucle$/.test(a) || !antes.animaciones.includes(a));
+  if (!cambia.size && !corre.length) return "al pasar el mouse no cambia nada";
+  return [cambia.size ? `cambia ${[...cambia].join(", ")}` : null, corre.length ? `corre ${corre.slice(0, 3).join(", ")}` : null].filter(Boolean).join(" · ");
+}
+
 async function visitar(ctx, cuenta, visita) {
   const pagina = await ctx.newPage();
   const res = { cuenta: cuenta.clave, titulo: visita.titulo, estado: "ok", instancias: 0 };
@@ -283,6 +307,7 @@ async function visitar(ctx, cuenta, visita) {
           const archivo = join("capturas", slug(e.familia), `${v.hash}-${v.capturas.length + 1}.png`);
           const hecho = await capturar(pagina, inst, join(dirSalida, archivo)).catch(() => null);
           if (hecho) v.capturas.push({ archivo, ruta: pantalla });
+          if (hecho && !v.medido && FAMILIAS_QUE_SE_TOCAN.test(e.familia)) v.medido = await medirEncima(pagina, inst.uid).catch(() => null);
         }
       }
     }
@@ -345,6 +370,7 @@ const familias = FAMILIAS.map((f) => {
             foco: !!(foco && v.porModulo[foco]),
             capturas: v.capturas.map((c) => ({ ...c, ...(medidasPng(join(dirSalida, c.archivo)) ?? {}) })),
             ejemplos: [...v.ejemplos],
+            medido: v.medido ?? null,
             archivos,
             sistema,
           };
@@ -400,7 +426,10 @@ for (const f of familias) {
     for (const v of s.variantes.slice(0, 15)) {
       const mods = Object.entries(v.porModulo).sort((a, b) => b[1] - a[1]).map(([m, n]) => `${m}×${n}`).join(", ");
       lineas.push(`- **${v.letra}**${v.foco ? " ◆" : ""} · ${v.usos} usos · ${v.pantallas.length} pantallas · ${mods}${v.sistema.length ? ` · sistema: ${v.sistema.join(" ")}` : ""} · [probable] ${v.archivos.join(", ") || "—"}`);
-      lineas.push(`  - ${huellaCorta(v.huella)}`);
+      const { movimiento, ...quieta } = v.huella ?? {};
+      lineas.push(`  - ${huellaCorta(quieta)}`);
+      if (movimiento) lineas.push(`  - movimiento: ${typeof movimiento === "string" ? movimiento : huellaCorta(movimiento)}${v.medido ? ` · medido: ${v.medido}` : ""}`);
+      else if (v.medido) lineas.push(`  - medido: ${v.medido}`);
       if (v.ejemplos.length) lineas.push(`  - dice: ${v.ejemplos.map((e) => `«${e}»`).join(" · ")}`);
     }
     if (s.variantes.length > 15) lineas.push(`- … y ${s.variantes.length - 15} variantes más (en censo.json)`);

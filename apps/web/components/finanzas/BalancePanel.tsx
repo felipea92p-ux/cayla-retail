@@ -32,6 +32,7 @@ import {
   type SaldoInicial,
   type UnidadBalance,
 } from "@/lib/balance-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0198), dibujado como el spike aprobado (`vista-reportes.js` →
 // `vistaBalance`): cabecera «¿Cuánto vale CAYLA?» → la tarjeta «Antes de dibujarlo, el sistema lo comprueba» con cada
@@ -250,9 +251,9 @@ function VistaCayla({
               el capital y las utilidades acumuladas hasta ese día.
             </p>
             <div className="fin-botones mt-5 justify-start">
-              <button type="button" className="btn-cayla btn-primario" onClick={onArranque}>
+              <Boton type="button" peso="primario" onClick={onArranque}>
                 Registrar saldos de arranque
-              </button>
+              </Boton>
             </div>
           </div>
         )}

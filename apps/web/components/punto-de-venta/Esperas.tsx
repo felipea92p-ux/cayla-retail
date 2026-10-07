@@ -93,7 +93,7 @@ export function DejarEnEsperaModal({ onDejar, onClose, ocupados }: { onDejar: (n
               ))}
             </div>
           )}
-          <button type="submit" className="label-cayla mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-tinta text-[11px] text-crema transition-colors hover:bg-rojo">
+          <button type="submit" className="label-cayla mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-tinta text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
             <CirclePause className="h-4 w-4" aria-hidden />
             Dejar en espera
           </button>

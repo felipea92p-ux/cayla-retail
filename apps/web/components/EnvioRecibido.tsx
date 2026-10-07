@@ -127,7 +127,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         </Boton>
         {/* Sin red, navegar deja la pestaña en una página que no carga (y la cola solo sube desde Recibir). */}
         {!ok.sinConexion && (
-          <Link href="/recibir?vista=recibidas&nueva=1" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema hover:bg-rojo">
+          <Link href="/recibir?vista=recibidas&nueva=1" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema hover:bg-rojo-profundo">
             Ver recibidas
           </Link>
         )}

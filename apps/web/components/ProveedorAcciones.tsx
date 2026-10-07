@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Copy, MessageCircle, Pencil, Plus } from "lucide-react";
 import { ProveedorModal, borradorDe } from "@/components/ProveedorModal";
+import { Boton, BotonAncla, BotonEnlace } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { formatoCci, urlWhatsApp } from "@/lib/proveedores-reglas";
 import type { ProveedorFicha } from "@/lib/proveedores";
@@ -19,7 +19,6 @@ import type { ProveedorFicha } from "@/lib/proveedores";
 // antes copiaba `cuenta_bancaria` rotulada como CCI, que es otro dato. La cuenta y el Yape/Plin se copian desde
 // la tarjeta «Datos para pagar», que tiene un «Copiar» por cada dato.
 
-const BOTON = "label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
 
 export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorFicha; rubros: string[] }) {
   const router = useRouter();
@@ -40,22 +39,26 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
     <>
       <div className="flex flex-wrap gap-2.5">
         {whatsapp && (
-          <a href={whatsapp} target="_blank" rel="noreferrer" className={BOTON}>
+          <BotonAncla href={whatsapp} target="_blank" rel="noreferrer">
             <MessageCircle aria-hidden className="h-3.5 w-3.5" /> WhatsApp
-          </a>
+          </BotonAncla>
         )}
         {proveedor.cci && (
-          <button type="button" onClick={copiarCci} className={BOTON}>
-            <Copy aria-hidden className="h-3.5 w-3.5" /> Copiar CCI
-          </button>
+          <Boton type="button" onClick={copiarCci}>
+            <span className="inline-flex items-center gap-2">
+              <Copy aria-hidden className="h-3.5 w-3.5" /> Copiar CCI
+            </span>
+          </Boton>
         )}
-        <button type="button" onClick={() => setEditando(true)} className={BOTON}>
-          <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
-        </button>
+        <Boton type="button" onClick={() => setEditando(true)}>
+          <span className="inline-flex items-center gap-2">
+            <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
+          </span>
+        </Boton>
         {proveedor.activo && (
-          <Link href={`/compras/nueva?prov=${proveedor.id}`} className="label-cayla inline-flex items-center gap-2 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+          <BotonEnlace href={`/compras/nueva?prov=${proveedor.id}`} peso="primario">
             <Plus aria-hidden className="h-3.5 w-3.5" /> Registrar factura
-          </Link>
+          </BotonEnlace>
         )}
       </div>
 

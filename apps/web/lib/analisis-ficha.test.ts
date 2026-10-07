@@ -63,6 +63,8 @@ function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
     vendidas30: 0,
     semanas: [0, 0, 0, 0, 0, 0, 0, 0],
     diasSinVender: null,
+    salioAlPiso: null,
+    llego: null,
     llegaron30: 0,
     vendidasDeLasQueLlegaron30: 0,
     otras: [
@@ -84,6 +86,9 @@ describe("el chip de la prenda (el título de su grupo)", () => {
     expect(chipDeGrupo("liquidar")).toEqual({ est: "ate", texto: "Liquidar" });
     expect(chipDeGrupo("vigila")).toEqual({ est: "nd", texto: "Vigílalas" });
     expect(chipDeGrupo(null)).toEqual({ est: "bien", texto: "Va bien" });
+    // Guardada y nunca colgada: no «va bien», nadie la vio (20261007120000). Un grupo manda sobre eso.
+    expect(chipDeGrupo(null, true)).toEqual({ est: "ate", texto: "Nunca salió al piso" });
+    expect(chipDeGrupo("comprar", true)).toEqual({ est: "urg", texto: "Cómpralas" });
   });
 });
 
@@ -156,16 +161,16 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(leer(prenda({ vendidas30: 5, origen: null }))).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días"]);
   });
 
-  it("quieta para mandar: días sin venderse, cuánto hay y qué tienda sí la vende", () => {
+  it("quieta para mandar: días en el piso sin venderse, cuánto hay y qué tienda sí la vende", () => {
     const p = prenda({ piso: 4, almacen: 2, diasSinVender: 64, otras: [{ sedeId: "s2", stock: 0, vendidas30: 3 }, { sedeId: "s3", stock: 1, vendidas30: 0 }] });
     expect(grupoDe(p, LIQUIDAR_DEFECTO)).toBe("enviar");
-    expect(leer(p)).toEqual(["64 días · sin venderse", "Tienes 6 · 4 en el piso", "AQP vendió 3 · este mes"]);
+    expect(leer(p)).toEqual(["64 días · en el piso sin venderse", "Tienes 6 · 4 en el piso", "AQP vendió 3 · este mes"]);
     expect(hechosDe(p, "enviar", SEDES).map((h) => h.icono)).toEqual(["reloj", "caja", "camion"]);
   });
 
   it("para liquidar: desde 3 meses todo va en rojo; antes, en ámbar", () => {
     const vieja = prenda({ piso: 3, almacen: 2, diasSinVender: 104 });
-    expect(leer(vieja)).toEqual(["104 días · sin venderse", "Tienes 5 · 3 en el piso", "Liquidar · tú eliges cuánto"]);
+    expect(leer(vieja)).toEqual(["104 días · en el piso sin venderse", "Tienes 5 · 3 en el piso", "Liquidar · tú eliges cuánto"]);
     expect(hechosDe(vieja, "liquidar", SEDES).map((h) => h.tono)).toEqual(["rojo", "taupe", "rojo"]);
     expect(hechosDe(vieja, "liquidar", SEDES)[0]).toMatchObject({ icono: "urg" });
     const menos = prenda({ piso: 2, diasSinVender: 72 });
@@ -173,13 +178,24 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
   });
 
   it("para vigilar: solo los días y cuánto hay", () => {
-    expect(leer(prenda({ piso: 2, almacen: 2, diasSinVender: 38 }))).toEqual(["38 días · sin venderse", "Tienes 4 · 2 en el piso"]);
+    expect(leer(prenda({ piso: 2, almacen: 2, diasSinVender: 38 }))).toEqual(["38 días · en el piso sin venderse", "Tienes 4 · 2 en el piso"]);
   });
 
   it("si va bien: lo vendido y cuánto hay", () => {
     const p = prenda({ piso: 5, almacen: 4, vendidas30: 7 });
     expect(grupoDe(p, LIQUIDAR_DEFECTO)).toBeNull();
     expect(leer(p)).toEqual(["Vendiste 7 · en 30 días", "Tienes 9 · 5 en el piso"]);
+    // Una tienda con 8 días de ventas en el ERP dice sus días, no 30; y a ese ritmo las 9 duran 10 días: se acaba.
+    expect(leer({ ...p, piso: 50, almacen: 40, diasDeVentas: 8 })).toEqual(["Vendiste 7 · en 8 días", "Tienes 90 · 50 en el piso"]);
+    expect(grupoDe({ ...p, diasDeVentas: 8 }, LIQUIDAR_DEFECTO)).toBe("comprar");
+  });
+
+  it("nunca salió al piso: los días que lleva guardada y que no hay nada colgado; sin fecha de llegada, solo que nunca salió", () => {
+    const p = prenda({ piso: 0, almacen: 3, salioAlPiso: null, llego: "2026-09-29" });
+    const texto = (h: { valor: string; etiqueta: string | null }) => [h.valor, h.etiqueta].filter(Boolean).join(" · ");
+    expect(hechosDe(p, null, SEDES, { dias: 8 }).map(texto)).toEqual(["8 días · en el almacén, sin salir al piso", "Tienes 3 · 0 en el piso"]);
+    expect(hechosDe(p, null, SEDES, { dias: 8 })[0]).toMatchObject({ icono: "reloj", tono: "ambar" });
+    expect(hechosDe(p, null, SEDES, { dias: null }).map(texto)).toEqual(["Nunca salió al piso", "Tienes 3 · 0 en el piso"]);
   });
 
   it("una tienda que no está en la red se nombra «Otra tienda» (no se cae)", () => {
@@ -343,6 +359,12 @@ describe("los botones del pie", () => {
     expect(accionPrincipal(p, "liquidar", SEDES, { ...TODO, etiquetas: false })).toBeNull();
     expect(accionPrincipal(p, "vigila", SEDES, TODO)).toBeNull();
     expect(accionPrincipal(p, null, SEDES, TODO)).toBeNull();
+  });
+
+  it("nunca salió al piso: «Bajar al piso» (Reponer a piso con ella); sin Existencias, sin botón", () => {
+    const p = prenda({ varianteId: "g44", piso: 0, almacen: 2, salioAlPiso: null });
+    expect(accionPrincipal(p, null, SEDES, TODO, true)).toEqual({ texto: "Bajar al piso", href: "/inventario/bajar?lineas=g44:1" });
+    expect(accionPrincipal(p, null, SEDES, { ...TODO, existencias: false }, true)).toBeNull();
   });
 
   it("«Pedir a …»: solo si se acaba, otra tienda la tiene y la cuenta puede pedir (la que más tiene)", () => {
