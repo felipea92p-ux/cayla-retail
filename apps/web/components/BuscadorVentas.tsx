@@ -155,7 +155,7 @@ export function BuscadorVentas({
         <button
           type="submit"
           disabled={buscando}
-          className="mov-boton label-cayla h-12 shrink-0 rounded-md bg-tinta px-5 text-[11px] text-crema hover:bg-tinta/85 disabled:opacity-60 sm:px-7"
+          className="mov-boton label-cayla h-12 shrink-0 rounded-md bg-tinta px-5 text-[11px] text-crema hover:bg-rojo-profundo disabled:opacity-60 sm:px-7"
         >
           Buscar
         </button>

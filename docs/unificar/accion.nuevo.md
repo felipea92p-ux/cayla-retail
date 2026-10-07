@@ -36,6 +36,10 @@ animación que la C tenía en la flecha.
   borde y letra a rojo). El «+» da un cuarto de vuelta (el «+ » del texto se dibuja como ícono, `conMas` en `campos.tsx`) y la flecha que va
   adelante se adelanta 4 px.
 - **Al presionar:** se encoge un 3 % y baja; deshabilitado, no.
+- **El color al pasar el mouse** (Felipe 2026-10-07, mirando las fotos de verificación: «que sea rojo profundo»): todo botón principal negro
+  pasa a **rojo profundo**, el de la guía (ADR-0169). Antes unos iban al rojo de marca, otros a un gris y la barra de vidrio no cambiaba: 27
+  botones unificados en Vender, Apartados, Cambios, Compras, Recibir, Producción, el login y las pantallas de error. Una firma lo vigila; el
+  círculo de un paso hecho y la opción ya elegida de Comprobantes no son botones principales y quedan marcados `unificar-fijo`.
 - **Mientras guarda** (`cargando`): un hilo corre por el borde de abajo y el botón no se puede volver a tocar.
 - **Con el teclado:** el anillo único del ERP (ADR-0351).
 - Todo se apaga con `prefers-reduced-motion`.

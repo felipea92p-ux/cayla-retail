@@ -378,7 +378,9 @@ export const DECISIONES = {
       // La cara B copiada a mano (sin el barrido de luz ni el encogerse al presionar de la pieza).
       "className=\\{?[\"'`]label-cayla\\b[^\"'`]*\\b(?:bg-tinta|border-tinta\\/25)\\b[^\"'`]*\\bpx-4\\b[^\"'`]*[\"'`]\\}?[^<]{0,400}?>\\s*(?:<[A-Z]\\w*[^>]*\\/>\\s*)?\\+?\\s*(?:Nuev[oa]s?|Registrar|Agregar|Crear)\\b",
       // El barrido viejo de 800 ms (ronda 3: el movimiento es uno solo, `.mov-boton`).
-      "\\bboton-brillo\\b"
+      "\\bboton-brillo\\b",
+      // Un botón negro que al pasar el mouse va al rojo de marca o a un gris (Felipe 2026-10-07: «que sea rojo profundo», el de la guía).
+      "\\bbg-tinta\\b[^\"'`]*\\b(?:enabled:)?hover:bg-(?:rojo(?!-profundo)|tinta\\/\\d+)\\b"
     ],
     "deuda": [
     ],

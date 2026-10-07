@@ -116,7 +116,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="label-cayla rounded-md mt-2 w-full bg-tinta px-3 py-3.5 text-xs text-crema transition-colors hover:bg-rojo disabled:opacity-40"
+            className="label-cayla rounded-md mt-2 w-full bg-tinta px-3 py-3.5 text-xs text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-40"
           >
             {loading ? "Entrando…" : "Entrar"}
           </button>

@@ -126,7 +126,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
                 style={hecho ? { animationDelay: `${i * 260 + 500}ms` } : undefined}
                 className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ${
                   hecho
-                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80"
+                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80" // unificar-fijo: el círculo de un paso hecho, no un botón principal
                     : esActual
                       ? "bg-papel text-tinta shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-tinta)_6%,transparent)] ring-2 ring-tinta"
                       : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
@@ -262,7 +262,7 @@ export function BotonPrincipal({ onClick, children, disabled = false, monto }: {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-tinta/85 disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
       <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>

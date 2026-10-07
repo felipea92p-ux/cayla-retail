@@ -192,7 +192,7 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "mov-boton label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema";
+  "mov-boton label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema hover:bg-rojo-profundo";
 
 /** Los filtros de la actividad: píldoras con cuántas compras hay en cada una.
  *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0358, «Pestañas y segmentos»,

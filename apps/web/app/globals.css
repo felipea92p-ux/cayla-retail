@@ -231,7 +231,7 @@
    todo apunta a un --color-* que ya existía.
 
    `primary` es tinta, no rojo — calca a `<Boton peso="primario">`
-   (bg-tinta, hover:bg-rojo). Si `primary` fuera rojo, cada componente
+   (bg-tinta, hover:bg-rojo-profundo). Si `primary` fuera rojo, cada componente
    nuevo pintaría rojo por defecto y se rompería "acento sagrado, máx.
    2 por pantalla" apenas se junten dos en una pantalla.
    `accent` (hover neutral de menús/listas) es sand, igual que el

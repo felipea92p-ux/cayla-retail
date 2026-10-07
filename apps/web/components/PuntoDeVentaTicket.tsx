@@ -69,7 +69,7 @@ const MS_TRANSICION_MOMENTO = 160;
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
  *  rojo a medias ahí se leía como "casi se puede". */
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /** Botones de opción dentro de una pista `bg-sand/50` (métodos, boleta/factura, atajos). */
 const OPCION = "rounded-lg transition-colors";
@@ -548,7 +548,7 @@ export function PuntoDeVentaTicket({
                           type="button"
                           onClick={() => onRetomar(t.id)}
                           disabled={bloqueado}
-                          className="label-cayla flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+                          className="label-cayla flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo-profundo"
                         >
                           <Play className={ICONO_CHICO} aria-hidden />
                           Retomar
