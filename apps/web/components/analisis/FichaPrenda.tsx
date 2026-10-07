@@ -21,6 +21,7 @@ import {
   subtituloFicha,
   type TonoFicha,
 } from "@/lib/analisis-ficha";
+import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
 
 // Análisis v4 (ADR-0357): la ficha de una prenda (actividad 6), copia de `fichaHTML()` de la maqueta aprobada. Arriba, la prenda y
 // su estado; después tarjetitas (sin párrafos), sus ventas por semana, dónde hay en la red, el modelo entero en mi tienda, el dinero
@@ -61,14 +62,16 @@ function Ficha({ prenda: p, onCerrar }: { prenda: PrendaAnalisis; onCerrar: () =
 
   // El grupo con «Liquidar desde» en vivo: la ficha dice lo mismo que el carril de donde se abrió.
   const grupo = grupoDe(p, liquidarDesde);
-  const chip = chipDeGrupo(grupo);
-  const hechos = hechosDe(p, grupo, datos.sedes);
+  // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
+  const sinSalir = datos.sabePiso && nuncaSalio(p);
+  const chip = chipDeGrupo(grupo, sinSalir);
+  const hechos = hechosDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
   const barras = barrasSemanas(p.semanas, datos.hoy);
   const donde = dondeHay(p, datos.sedes, datos.sede.id);
   const grilla = grillaDelModelo(p, datos.prendas);
   const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
-  const principal = accionPrincipal(p, grupo, datos.sedes, acceso);
+  const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
   const pedirA = sedeParaPedir(p, grupo, datos.sedes, acceso);
   const existencias = hrefExistencias(p, acceso);
   const movimientos = hrefMovimientos(p, acceso);

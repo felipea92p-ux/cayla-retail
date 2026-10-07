@@ -20,8 +20,10 @@
  *   U  QUÉ PRENDAS SALEN: libres, vendidas en 8 semanas, llegadas en 30 días o en camino; no la vendida hace 60 días sin stock, ni
  *      un producto de prueba, ni la centinela, ni lo que solo está en Cuarentena.
  *   S  STOCK: lo libre en piso y en almacén (lo que no tiene lugar va al almacén).
- *   D  DÍAS SIN VENDERSE: desde la última venta sin tope de fechas; si nunca se vendió, desde la primera entrada (no la de
- *      Cuarentena), un ajuste a favor incluido; NULL si solo viene en camino.
+ *   D  DÍAS EN EL PISO SIN VENDERSE (20261007120000): desde la última venta o desde que salió al piso de ESTA tienda, lo que pasó
+ *      después; NULL si nunca salió al piso (aunque lleve semanas guardada) o si solo viene en camino. Salir al piso es un movimiento
+ *      en un piso de la tienda (bajarla, entrar directo, venderla, subirla de vuelta) o su primera venta; el piso de otra tienda no
+ *      cuenta. Con cada fila, `salio_al_piso` (la primera vez) y `llego` (la primera entrada, no la de Cuarentena).
  *   L  LLEGADAS de 30 días (`fn_es_llegada`): carga inicial y traslado recibido sí; bajar al piso, ajustes y devoluciones no; y de
  *      eso, lo vendido desde la primera llegada, nunca más de lo que llegó.
  *   R  REBAJA: de cada 100 líneas de 30 días, las que llevaron un descuento de línea (no el regalo del club) o un descuento a toda
@@ -54,6 +56,7 @@ const leerMigracion = (nombre) =>
   readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8").replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "");
 const MIGRACION_SEDE = leerMigracion("20261006214000_analisis_prendas_de_sede.sql");
 const MIGRACION_LLEGAR = leerMigracion("20261006215000_analisis_por_llegar.sql");
+const MIGRACION_PISO = leerMigracion("20261007120000_analisis_salio_al_piso.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed), su rol sin Análisis
@@ -87,6 +90,7 @@ begin;
 set local search_path = retail, public, extensions;
 ${MIGRACION_SEDE}
 ${MIGRACION_LLEGAR}
+${MIGRACION_PISO}
 set local search_path = retail, public, extensions;
 
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -288,7 +292,7 @@ caso("F2 fn_analisis_por_llegar: lo mismo", forma(OID_LLEGAR, "fn_analisis_por_l
 const CLAVES_FILA = [
   "variante_id", "producto_id", "nombre", "color", "color_hex", "talla", "categoria", "categoria_prefijo", "categoria_familia",
   "foto_url", "precio", "costo", "origen", "proveedor_id", "piso", "almacen", "vendidas_30", "semanas", "dias_sin_vender",
-  "llegaron_30", "vendidas_de_llegadas_30",
+  "llegaron_30", "vendidas_de_llegadas_30", "salio_al_piso", "llego",
 ].sort();
 caso(
   "F3 las claves del contrato: arriba (tienda, hoy, rebaja, prendas) y en cada fila (las que lee analisis-sede-lectura.ts)",
@@ -398,7 +402,7 @@ caso(
 
 // D. DÍAS SIN VENDERSE ---------------------------------------------------------------------------------------------------
 caso(
-  "D1 desde la última venta (sin tope: 70 días); si nunca se vendió, desde la primera entrada o ajuste a favor (no la de Cuarentena); NULL si solo viene en camino",
+  "D1 desde la última venta (sin tope: 70 días; vender es salir al piso); lo que nunca salió al piso queda en NULL aunque lleve 20 días guardado (entrada, ajuste a favor o con Cuarentena); NULL si solo viene en camino",
   `select pg_temp.prenda('D1') as d1 \\gset
    select pg_temp.prenda('D2') as d2 \\gset
    select pg_temp.prenda('D3') as d3 \\gset
@@ -413,7 +417,44 @@ caso(
    select pg_temp.entra(:'d6', 1, pg_temp.dia(30), 'devolucion', 'cuarentena'); select pg_temp.entra(:'d6', 1, pg_temp.dia(9));
    select concat_ws(',', pg_temp.dato(:'d1', 'dias_sin_vender'), pg_temp.dato(:'d2', 'dias_sin_vender'), pg_temp.dato(:'d3', 'dias_sin_vender'),
                     pg_temp.dato(:'d4', 'dias_sin_vender'), pg_temp.dato(:'d5', 'dias_sin_vender'), pg_temp.dato(:'d6', 'dias_sin_vender'));`,
-  "12,20,15,70,null,9"
+  "12,null,null,70,null,null"
+);
+caso(
+  "D2 desde que salió al piso: bajada hace 6 (llegó hace 20), directo al piso hace 10, bajada hace 25 + venta hace 5 + subida hace 3, vendida desde el almacén hace 8; el piso de OTRA tienda no cuenta",
+  `select pg_temp.prenda('D2A') as a \\gset
+   select pg_temp.prenda('D2B') as b \\gset
+   select pg_temp.prenda('D2C') as c \\gset
+   select pg_temp.prenda('D2D') as d \\gset
+   select pg_temp.prenda('D2E') as e \\gset
+   select pg_temp.entra(:'a', 2, pg_temp.dia(20)); select pg_temp.baja(:'a', 1, pg_temp.dia(6));
+   select pg_temp.entra(:'b', 2, pg_temp.dia(10), 'prueba', 'piso_venta');
+   select pg_temp.entra(:'c', 3, pg_temp.dia(30)); select pg_temp.baja(:'c', 2, pg_temp.dia(25)); select pg_temp.vende(:'c', 1, pg_temp.dia(5));
+   insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, ubicacion_destino_id, sububicacion_destino_id, tipo, cantidad, motivo, created_at)
+     values (:'c', :'sede', (select id from retail.sububicaciones where ubicacion_id = :'sede' and tipo = 'piso_venta'), :'sede',
+             (select id from retail.sububicaciones where ubicacion_id = :'sede' and tipo = 'almacen_tienda'), 'traslado', 1, 'movimiento_interno', pg_temp.dia(3))
+     returning id as m \\gset
+   select retail.fn_aplicar_movimiento(:'m');
+   select pg_temp.entra(:'d', 2, pg_temp.dia(15)); select pg_temp.vende(:'d', 1, pg_temp.dia(8));
+   select pg_temp.entra(:'e', 2, pg_temp.dia(12)); select pg_temp.entra(:'e', 1, pg_temp.dia(6), 'prueba', 'piso_venta', :'otra');
+   select concat_ws(',', pg_temp.dato(:'a', 'dias_sin_vender'), pg_temp.dato(:'a', 'salio_al_piso') = (retail.fn_hoy_lima() - 6)::text,
+                    pg_temp.dato(:'a', 'llego') = (retail.fn_hoy_lima() - 20)::text,
+                    pg_temp.dato(:'b', 'dias_sin_vender'), pg_temp.dato(:'b', 'salio_al_piso') = (retail.fn_hoy_lima() - 10)::text,
+                    pg_temp.dato(:'c', 'dias_sin_vender'), pg_temp.dato(:'c', 'salio_al_piso') = (retail.fn_hoy_lima() - 25)::text,
+                    pg_temp.dato(:'d', 'dias_sin_vender'), pg_temp.dato(:'d', 'salio_al_piso') = (retail.fn_hoy_lima() - 8)::text,
+                    pg_temp.dato(:'e', 'dias_sin_vender'), pg_temp.dato(:'e', 'salio_al_piso'), pg_temp.dato(:'e', 'llego') = (retail.fn_hoy_lima() - 12)::text);`,
+  "6,t,t,10,t,5,t,8,t,null,null,t"
+);
+caso(
+  "D3 colgada sin ningún movimiento al piso (un dato viejo sin lugar): cuenta desde que llegó; y sin entrada, desde hoy",
+  `select pg_temp.prenda('D3A') as a \\gset
+   select pg_temp.prenda('D3B') as b \\gset
+   select pg_temp.entra(:'a', 1, pg_temp.dia(9));
+   insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada, updated_at)
+     values (:'a', :'sede', (select id from retail.sububicaciones where ubicacion_id = :'sede' and tipo = 'piso_venta'), 2, 0, now()),
+            (:'b', :'sede', (select id from retail.sububicaciones where ubicacion_id = :'sede' and tipo = 'piso_venta'), 1, 0, now());
+   select concat_ws(',', pg_temp.dato(:'a', 'dias_sin_vender'), pg_temp.dato(:'a', 'salio_al_piso') = (retail.fn_hoy_lima() - 9)::text,
+                    pg_temp.dato(:'b', 'dias_sin_vender'), pg_temp.dato(:'b', 'llego'));`,
+  "9,t,0,null"
 );
 
 // L. LLEGADAS ------------------------------------------------------------------------------------------------------------
@@ -550,8 +591,8 @@ caso(
 
 // M. LAS MIGRACIONES -----------------------------------------------------------------------------------------------------
 caso(
-  "M1 las dos migraciones se pueden pegar dos veces: una sola firma de cada función",
-  `${MIGRACION_SEDE}\n${MIGRACION_LLEGAR}\nset local search_path = retail, public, extensions;
+  "M1 las tres migraciones se pueden pegar dos veces: una sola firma de cada función",
+  `${MIGRACION_SEDE}\n${MIGRACION_LLEGAR}\n${MIGRACION_PISO}\nset local search_path = retail, public, extensions;
    select (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_sede') || ',' ||
           (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_por_llegar');`,
   "1,1"

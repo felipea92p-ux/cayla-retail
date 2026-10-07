@@ -1,5 +1,5 @@
-// Análisis v4 (ADR-0357): de lo que devuelve `retail.fn_analisis_sede` (un jsonb por tienda, migración 20261006214000) a las filas
-// del contrato (`PrendaSede`). Lógica pura, sin base ni React; la prueba es `analisis-sede-lectura.test.ts`.
+// Análisis v4 (ADR-0357): de lo que devuelve `retail.fn_analisis_sede` (un jsonb por tienda, migraciones 20261006214000 y
+// 20261007120000) a las filas del contrato (`PrendaSede`). Lógica pura, sin base ni React; la prueba es `analisis-sede-lectura.test.ts`.
 //
 // No confía en la forma (principio 9): una fila sin su prenda, su modelo o su nombre se descarta —nunca se inventa una prenda—; un
 // número que no es número vale 0 y una cifra negativa, 0; las semanas son siempre 8 (las que falten, viejas y en 0); un precio o un
@@ -21,11 +21,16 @@ export type LecturaDeSede = {
   /** De cada 100 líneas vendidas en 30 días, cuántas llevaron rebaja; null si no vendió. */
   rebajaDe100: number | null;
   prendas: PrendaSede[];
+  /** Si las filas traen `salio_al_piso` (la función de 20261007120000). Sin la clave, «nunca salió al piso» no se puede saber:
+   *  `salioAlPiso` vendría null en todas, como si nada hubiera salido nunca. */
+  sabePiso: boolean;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const esFecha = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+/** Una fecha de la base (YYYY-MM-DD), o null. */
+const fecha = (v: unknown): string | null => (esFecha(v) ? v : null);
 
 /** Un número de la base: los jsonb llegan como número; un texto numérico también se entiende. */
 function numero(v: unknown): number | null {
@@ -94,6 +99,8 @@ export function leerPrendaSede(v: unknown): PrendaSede | null {
     vendidas30: cantidad(v.vendidas_30),
     semanas: leerSemanas(v.semanas),
     diasSinVender: dias(v.dias_sin_vender),
+    salioAlPiso: fecha(v.salio_al_piso),
+    llego: fecha(v.llego),
     llegaron30,
     vendidasDeLasQueLlegaron30: Math.min(cantidad(v.vendidas_de_llegadas_30), llegaron30),
   };
@@ -127,7 +134,9 @@ export function leerAnalisisSede(v: unknown): LecturaDeSede | null {
   if (!esObjeto(v)) return null;
   const ubicacionId = texto(v.ubicacion_id);
   if (!ubicacionId || !esFecha(v.hoy) || !Array.isArray(v.prendas)) return null;
-  return { ubicacionId, hoy: v.hoy, rebajaDe100: deCada100(v.rebaja_de_100), prendas: leerPrendasSede(v.prendas) };
+  // Sin filas no hay nada que no se sepa; con filas, basta que una traiga la clave (la función nueva la pone en todas).
+  const sabePiso = v.prendas.length === 0 || v.prendas.some((p) => esObjeto(p) && "salio_al_piso" in p);
+  return { ubicacionId, hoy: v.hoy, rebajaDe100: deCada100(v.rebaja_de_100), prendas: leerPrendasSede(v.prendas), sabePiso };
 }
 
 /**

@@ -1,6 +1,6 @@
 // Análisis v4 (ADR-0357): la pestaña «No se vende», en lógica pura (sin base ni React), probada en `analisis-quietas.test.ts`.
 // Qué grupo le toca a cada prenda lo decide `grupoDe` (analisis-reglas.ts) y aquí no se repite: esto cuenta las cifras de
-// arriba, ubica cada prenda en el carril «Días sin venderse» (dónde cae y de qué color va su aro), arma la barra de edad de
+// arriba, ubica cada prenda en el carril «Días en el piso sin venderse» (dónde cae y de qué color va su aro), arma la barra de edad de
 // cada tienda y dice a qué tienda va «Enviar todas». Las cifras de dibujo son las de la maqueta aprobada por Felipe (2026-10-06).
 
 import type { EdadInventario, PrendaAnalisis } from "./analisis-tipos";
@@ -61,7 +61,7 @@ export function notaSinCosto(c: Pick<CifrasQuietas, "sinCosto" | "sinPrecio">): 
 
 /** Dónde cae un número de días en el eje de 4 meses, de 0 a 1 (lo de más de 4 meses se queda al final). */
 /**
- * Dónde termina el carril «Días sin venderse»: 4 meses, o más si «Liquidar desde» pasa de ahí (desde el 2026-10-07 no tiene tope): la
+ * Dónde termina el carril «Días en el piso sin venderse»: 4 meses, o más si «Liquidar desde» pasa de ahí (desde el 2026-10-07 no tiene tope): la
  * marca de «Liquidar» queda a la vista con aire detrás, y el fin cae en un mes justo.
  */
 export function finDelEje(liquidarDesde: number): number {
