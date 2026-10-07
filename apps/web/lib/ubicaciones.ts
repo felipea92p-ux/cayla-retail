@@ -8,7 +8,7 @@ import { exigir } from "@/lib/resultado";
 // habría dejado un campo que a veces existe y a veces no. V2 además no
 // necesita traducir nada: `ubicaciones.nombre` ya es legible ("Tienda Lima"),
 // a diferencia del `codigo` de V1 que la unificación con Dynamic volvió
-// ilegible (ver `etiqueta-sede.ts`).
+// ilegible (el Taller es `LIM` y la tienda de Lima, `003`).
 export type Ubicacion = {
   id: string;
   nombre: string;

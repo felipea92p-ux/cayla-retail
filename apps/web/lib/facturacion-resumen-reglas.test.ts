@@ -4,63 +4,12 @@ import {
   faltaPara,
   comparativoEnCantidad,
   comparativoEnPorcentaje,
-  horaDeLima,
   horaDeReloj,
   progresoDeEnvio,
   tonoPorEnviar,
   tonoVendidoHoy,
-  ventanaDelDiaLima,
-  ventanaHastaEstaHora,
   ventasUnicas,
 } from "./facturacion-resumen-reglas";
-
-describe("ventanaDelDiaLima", () => {
-  it("un mediodía de Lima cae en el día de Lima, de medianoche a medianoche", () => {
-    // 2026-09-18 12:00 Lima = 17:00 UTC
-    expect(ventanaDelDiaLima(new Date("2026-09-18T17:00:00Z"))).toEqual({ desde: "2026-09-18T05:00:00.000Z", hasta: "2026-09-19T05:00:00.000Z" });
-  });
-
-  it("las 7:30 pm de Lima ya son el día siguiente en UTC, y aun así son del día de Lima (el caso de ADR-0110)", () => {
-    // 2026-09-18 19:30 Lima = 2026-09-19 00:30 UTC
-    expect(ventanaDelDiaLima(new Date("2026-09-19T00:30:00Z"))).toEqual({ desde: "2026-09-18T05:00:00.000Z", hasta: "2026-09-19T05:00:00.000Z" });
-  });
-
-  it("justo a la medianoche de Lima empieza el día nuevo", () => {
-    expect(ventanaDelDiaLima(new Date("2026-09-19T05:00:00Z")).desde).toBe("2026-09-19T05:00:00.000Z");
-    expect(ventanaDelDiaLima(new Date("2026-09-19T04:59:59Z")).desde).toBe("2026-09-18T05:00:00.000Z");
-  });
-});
-
-describe("ventanaHastaEstaHora", () => {
-  it("el mismo día de la semana pasada, de su medianoche de Lima a la misma hora de reloj de Lima", () => {
-    // ahora: viernes 2026-09-18 12:00 Lima → la referencia es el viernes 2026-09-11, hasta las 12:00 Lima
-    expect(ventanaHastaEstaHora(new Date("2026-09-18T17:00:00Z"), 7)).toEqual({ desde: "2026-09-11T05:00:00.000Z", hasta: "2026-09-11T17:00:00.000Z" });
-  });
-
-  it("con las 7:30 pm de Lima (UTC ya del día siguiente) la ventana sale del día de LIMA, no del de UTC", () => {
-    // ahora: 2026-09-19 00:30 UTC = viernes 18 19:30 Lima. Restar 7 días al día UTC daría el 12 (sábado en Lima).
-    expect(ventanaHastaEstaHora(new Date("2026-09-19T00:30:00Z"), 7)).toEqual({ desde: "2026-09-11T05:00:00.000Z", hasta: "2026-09-12T00:30:00.000Z" });
-  });
-
-  it("con 0 días atrás es el día de hoy hasta ahora", () => {
-    expect(ventanaHastaEstaHora(new Date("2026-09-18T17:00:00Z"), 0)).toEqual({ desde: "2026-09-18T05:00:00.000Z", hasta: "2026-09-18T17:00:00.000Z" });
-  });
-
-  it("cruza el fin de año sin perder días", () => {
-    // jueves 2026-01-01 10:00 Lima → jueves 2025-12-25
-    expect(ventanaHastaEstaHora(new Date("2026-01-01T15:00:00Z"), 7)).toEqual({ desde: "2025-12-25T05:00:00.000Z", hasta: "2025-12-25T15:00:00.000Z" });
-  });
-});
-
-describe("horaDeLima", () => {
-  it("devuelve la hora de reloj de Lima con decimales (13:09 = 13.15)", () => {
-    expect(horaDeLima("2026-09-18T18:09:00Z")).toBeCloseTo(13.15, 5);
-  });
-
-  it("a las 7:30 pm de Lima (UTC del día siguiente) sigue siendo 19.5", () => {
-    expect(horaDeLima("2026-09-19T00:30:00Z")).toBe(19.5);
-  });
-});
 
 describe("horaDeReloj", () => {
   it("«13:09» son 13.15 y «10:00» son 10", () => {

@@ -1547,37 +1547,6 @@ html[data-buscando] [data-resultados] {
   }
 }
 
-/* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
-        Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
-        El barrido y la aguja llevan la MISMA curva y duración a propósito: la
-        aguja marca hasta dónde llegó el barrido. `--dona-c` (la circunferencia)
-        viene del componente, para que el CSS no repita el número. Filas y barras
-        usan `backwards` y no `both`: una vez dentro, su opacidad tiene que poder
-        cambiar con el hover, y un relleno `forwards` la dejaría fija. ---- */
-@keyframes dona-barrer {
-  from { stroke-dashoffset: var(--dona-c); }
-  to { stroke-dashoffset: 0; }
-}
-@keyframes dona-gira { to { transform: rotate(360deg); } }
-@keyframes dona-apaga { to { opacity: 0; } }
-@keyframes dona-barra { from { transform: scaleX(0); } }
-
-@layer components {
-  .anim-dona-barrido { animation: dona-barrer 1300ms var(--ease-cayla) both; }
-  .anim-dona-mano {
-    transform-origin: 100px 100px;
-    animation: dona-gira 1300ms var(--ease-cayla) both, dona-apaga 350ms linear 1000ms both;
-  }
-  .anim-dona-fila {
-    animation: cayla-revelar 420ms var(--ease-cayla) backwards;
-    animation-delay: calc(260ms + var(--i, 0) * 110ms);
-  }
-  .anim-dona-barra {
-    animation: dona-barra 900ms var(--ease-cayla) backwards;
-    animation-delay: calc(380ms + var(--i, 0) * 110ms);
-  }
-}
-
 /* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
         tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
         el dígito rueda cuando cambia y las ondas de
@@ -1741,17 +1710,11 @@ html[data-buscando] [data-resultados] {
   initial-value: #a47865;
 }
 
-@keyframes kpi-trazo {
-  from { stroke-dashoffset: 1; }
-}
 @keyframes kpi-crece {
   from { transform: scaleY(0); }
 }
 @keyframes kpi-crece-x {
   from { transform: scaleX(0); }
-}
-@keyframes kpi-llena {
-  from { width: 0; }
 }
 
 @layer components {
@@ -1824,83 +1787,6 @@ html[data-buscando] [data-resultados] {
     }
   }
 
-  /* Visualizaciones (todas `aria-hidden`: el dato ya está dicho con palabras en la tarjeta). */
-  .kpi-viz {
-    position: relative;
-    height: 36px;
-    margin-top: 10px;
-  }
-  .kpi-spark {
-    display: block;
-    width: 100%;
-    height: 36px;
-    overflow: visible;
-  }
-  .kpi-spark path {
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  .kpi-spark__antes {
-    stroke: color-mix(in srgb, var(--color-tinta) 35%, transparent);
-    stroke-width: 1.3;
-    stroke-dasharray: 0.03 0.05;
-  }
-  .kpi-spark__hoy {
-    stroke: color-mix(in srgb, var(--color-tinta) 85%, transparent);
-    stroke-width: 1.8;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 0;
-  }
-  .kpi-spark__fin {
-    position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--color-tinta);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-papel) 85%, transparent);
-  }
-  .kpi-eje::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 12px;
-    height: 1px;
-    background: color-mix(in srgb, var(--color-tinta) 55%, transparent);
-    opacity: 0.5;
-  }
-  .kpi-eje i {
-    position: absolute;
-    bottom: 8px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--color-tinta);
-    transform: translateX(-50%);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-papel) 85%, transparent);
-  }
-  .kpi-eje em {
-    position: absolute;
-    bottom: -2px;
-    font: 500 11px/1 var(--font-sans);
-    font-style: normal;
-    color: color-mix(in srgb, var(--color-tinta) 55%, transparent);
-  }
-  .kpi-progreso {
-    height: 6px;
-    margin-top: 14px;
-    overflow: hidden;
-    border-radius: 99px;
-    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
-  }
-  .kpi-progreso b {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--color-verde);
-    transition: width 700ms var(--ease-cayla);
-  }
   /* Gráficos de las tarjetas de Comprobantes (2026-09-26, spike `docs/maquetas/comprobantes-conectado-2026-09/`).
      SOLO tokens CAYLA: tinta = lo principal, taupe = lo secundario, grafico-neutro = lo que no suma,
      grafico-alza (verde) = hecho o vale, grafico-baja (ámbar) = falta o está al filo, sand = el fondo vacío.
@@ -2007,40 +1893,6 @@ html[data-buscando] [data-resultados] {
     margin-top: 6px;
     font-size: 13px;
     color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
-  }
-  .kpi-barras {
-    display: flex;
-    align-items: flex-end;
-    /* En porcentaje: con 16 barras y un hueco fijo de 7 px, en una tarjeta angosta cada barra quedaba en una raya. */
-    gap: 3%;
-  }
-  .kpi-barras i {
-    flex: 1;
-    background: color-mix(in srgb, var(--color-tinta) 78%, transparent);
-    border-radius: 3px 3px 0 0;
-    transform-origin: bottom;
-  }
-  .kpi-barras u {
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 1px dashed color-mix(in srgb, var(--color-tinta) 55%, transparent);
-    text-decoration: none;
-  }
-
-  /* El primer pintado: el trazo se dibuja, la barra se llena y las barras del ticket crecen
-     (menos de 1 s; excepción aprobada a «nada se anima solo al entrar», ADR-0011). Con
-     movimiento reducido ni siquiera existen: se ve el resultado, no el viaje. */
-  @media (prefers-reduced-motion: no-preference) {
-    .kpi-spark__hoy {
-      animation: kpi-trazo 800ms var(--ease-cayla) 200ms backwards;
-    }
-    .kpi-progreso b {
-      animation: kpi-llena 600ms var(--ease-cayla) 200ms backwards;
-    }
-    .kpi-barras i {
-      animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards;
-    }
   }
 }
 
@@ -2357,9 +2209,6 @@ html[data-buscando] [data-resultados] {
     .anim-velo-salida {
       animation-duration: 1ms;
     }
-    .anim-dona-barrido,
-    .anim-dona-fila,
-    .anim-dona-barra,
     .anim-ritmo-linea,
     .anim-ritmo-punto,
     .anim-vivo-destello,
@@ -2385,7 +2234,6 @@ html[data-buscando] [data-resultados] {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .anim-dona-mano { display: none; }
     .anim-rueda,
     .anim-caja-check path {
       animation-duration: 1ms;

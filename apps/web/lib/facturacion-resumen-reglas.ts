@@ -7,27 +7,6 @@ import type { EstadoComprobante } from "./comprobantes-reglas";
  *  solo informa. El mismo criterio que `TarjetaKpi` de Caja. */
 export type TonoKpi = "verde" | "ambar" | "rojo" | "taupe";
 
-// Lima no tiene horario de verano: es UTC−5 todo el año (igual que `lib/fecha-lima.ts`).
-const LIMA_MS = 5 * 3600 * 1000;
-const DIA_MS = 24 * 3600 * 1000;
-
-export type VentanaISO = { desde: string; hasta: string };
-
-/** El día de Lima que contiene `ahora`, de medianoche a medianoche, en UTC. Una venta de las
- *  7:30 pm de Lima ya es del día siguiente en UTC y sigue siendo de este día (ADR-0110). */
-export function ventanaDelDiaLima(ahora: Date): VentanaISO {
-  const medianocheLima = Math.floor((ahora.getTime() - LIMA_MS) / DIA_MS) * DIA_MS + LIMA_MS;
-  return { desde: new Date(medianocheLima).toISOString(), hasta: new Date(medianocheLima + DIA_MS).toISOString() };
-}
-
-/** «Lo mismo, hace N días, hasta esta hora»: de la medianoche de Lima de ese día a la misma
- *  hora de reloj de Lima que es ahora. Se resta al INSTANTE (no a la fecha UTC), y como Lima no
- *  cambia de hora, 7 días exactos son el mismo día de la semana a la misma hora. */
-export function ventanaHastaEstaHora(ahora: Date, diasAtras: number): VentanaISO {
-  const hasta = new Date(ahora.getTime() - diasAtras * DIA_MS);
-  return { desde: ventanaDelDiaLima(hasta).desde, hasta: hasta.toISOString() };
-}
-
 /** «13:09» → 13.15: la hora de reloj de Lima con decimales, la unidad de los gráficos. */
 export function horaDeReloj(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
@@ -40,12 +19,6 @@ export function horaDeReloj(hhmm: string): number {
  *  que aún no la tenga. Para sumar y contar ventas se toma la primera de cada una. */
 export function ventasUnicas<T extends { venta_id: string }>(filas: T[]): T[] {
   return [...new Map(filas.map((f) => [f.venta_id, f])).values()];
-}
-
-/** La hora de reloj de Lima de un instante, con decimales: 13:09 → 13.15. */
-export function horaDeLima(iso: string): number {
-  const lima = new Date(Date.parse(iso) - LIMA_MS);
-  return lima.getUTCHours() + lima.getUTCMinutes() / 60;
 }
 
 /** «Vendido hoy»: verde si va por encima de la referencia (el mismo día de la semana pasada,

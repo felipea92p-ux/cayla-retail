@@ -222,7 +222,7 @@ Segundo hallazgo, más chico: la tabla de precio de esta pantalla (§2) sigue ex
 - [ ] `[pantalla:cambios]` #8 Bloquear cambio a la misma variante y avisar motivo vs. reemplazo — S
 - [ ] `[pantalla:cambios]` #9 KPI «Valor cambiado»: bruto y neto con rótulos claros — S
 - [ ] `[pantalla:cambios]` #10 Paso 3: colores con nombre y 44 px, selector del sistema, textos al piso de contraste; y portar la tarjeta-por-venta de "Actividad reciente" (ya construida en Devoluciones, PR #292) a Cambios — S+S
-- [ ] `[pantalla:cambios]` #11 Borrar `BuscarPorComprobante.tsx` y fusionar «Sin comprobante →» con el chip — S *(bajo valor)*
+- [ ] `[pantalla:cambios]` #11 ~~Borrar `BuscarPorComprobante.tsx`~~ (borrado el 2026-10-06) y fusionar «Sin comprobante →» con el chip — S *(bajo valor)*
 - [ ] `[pantalla:cambios]` #12 `cambios.motivo` obligatorio para filas nuevas (`NOT VALID`) — S *(bajo valor)*
 - [ ] `[pantalla:cambios]` Fuera de la pantalla: limpiar `docs/SESIONES-ACTIVAS.md` — mover a "Cerradas hoy" las filas de trabajo ya fusionado (al menos #22, #23, #24 de la tabla actual) para que deje de generar colisiones falsas — S
 

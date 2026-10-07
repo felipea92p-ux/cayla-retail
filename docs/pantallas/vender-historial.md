@@ -111,7 +111,7 @@ Relevancia = (2·9 + 9 + 7 + 6) / 5 = **8,0** → **Núcleo**.
 - **Esfuerzo / dependencias:** M · si toca esquema (una RPC de agregados), confirma Felipe antes de escribirla.
 
 ### #3 · [Corregir] Distinguir «pendiente hace horas» de «pendiente hace días» en el chip del comprobante
-- **Dónde:** `lib/comprobantes-reglas.ts:93-118` (`ESTADO_ESTILO`, `ESTADO_ETIQUETA`), `components/HistorialVentasLista.tsx:35-44` (`TONO_COMPROBANTE`, pinta `pendiente`/`enviado`/`pendiente_reintento` con el mismo tono ámbar).
+- **Dónde:** `lib/comprobantes-reglas.ts` (`ESTADO_ETIQUETA`; `ESTADO_ESTILO` se borró sin uso el 2026-10-06), `components/HistorialVentasLista.tsx:35-44` (`TONO_COMPROBANTE`, pinta `pendiente`/`enviado`/`pendiente_reintento` con el mismo tono ámbar).
 - **Por qué en este puesto:** `ESTADO_ETIQUETA` ya distingue el texto («Pendiente de enviar» / «En cola: se reintenta solo» / «Enviado a SUNAT»), pero el color y la falta de antigüedad siguen sin decir si es un comprobante recién emitido o uno que lleva días sin transmitirse a SUNAT — es dinero fiscal en juego. ADR-0165 (envío automático) apunta a resolver la causa de fondo, pero sus dos migraciones (`20260922193700`, `20260922234100`) siguen sin producción (`docs/BITACORA.md:8845`, 2026-09-22): mientras tanto, esta pantalla sigue siendo el único lugar donde se ve la acumulación.
 - **Cómo lo verificas tú:** una boleta con más de 24 h en `pendiente` se pinta o etiqueta distinto de una recién emitida (por ejemplo, «Pendiente hace 3 días» en vez de solo «Pendiente de enviar»).
 - **Esfuerzo / dependencias:** S · no depende de ADR-0165, pero se vuelve menos urgente en cuanto esas migraciones lleguen a producción.
