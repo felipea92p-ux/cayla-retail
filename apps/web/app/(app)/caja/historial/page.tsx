@@ -43,7 +43,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
     // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
     // en pantalla grande separaría la sede de sus cifras: conserva la columna de lectura de siempre.
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div data-voz="cabecera" className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Volver href="/caja" a="Caja" className="mb-2" />
           <h1 className="font-display mt-1 text-2xl text-tinta">Historial de cierres</h1>

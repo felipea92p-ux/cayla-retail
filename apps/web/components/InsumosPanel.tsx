@@ -41,7 +41,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
   return (
     <div className="space-y-6">
       {/* Cabecera del spike: el título a la izquierda y las acciones arriba a la derecha. */}
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Insumos</h1>

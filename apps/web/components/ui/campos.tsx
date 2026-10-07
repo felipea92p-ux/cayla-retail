@@ -897,20 +897,23 @@ export function CampoSelect<T extends string>({
    vuelo, que es lo que le dice a quien está en el mostrador que el
    sistema NO se colgó.
    ------------------------------------------------------------------ */
+// Cada peso es una variante de `btn-cayla` (globals.css): el mismo botón que el resto del ERP, con su movimiento y su onda. La VOZ
+// no la decide el peso sino el lugar (ADR-0358, ronda 4, Felipe 2026-10-07: «dos voces»): dentro de una cabecera de pantalla
+// (`data-voz="cabecera"`) habla en versalitas de 11 px; en una hoja o una tarjeta, en letra normal.
 const PESO_BOTON = {
   // Guía oficial (2026-09-22): el hover del primario es rojo PROFUNDO — el rojo de marca no se gasta en un hover.
-  primario: "bg-tinta text-crema hover:bg-rojo-profundo disabled:bg-tinta/30",
-  fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
-  discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
+  primario: "btn-primario",
+  fantasma: "btn-secundario",
+  discreto: "btn-sutil",
+  // Lo que borra, anula o desactiva: rojo desde el principio (ronda 4, la A).
+  peligro: "btn-peligro",
 } as const;
 
-/* El botón de la acción principal y su pareja (ADR-0358, «Botón Nuevo / Registrar»: Felipe eligió mirando el 2026-10-07 la forma B,
-   versalitas de 11 px y 40 px de alto). Su movimiento es el ÚNICO de los botones del ERP (`.mov-boton` en globals.css, ronda 3: la D):
-   sube con su sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar, y
-   mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es `<BotonEnlace>`; con un archivo o
-   un enlace afuera, `<BotonAncla>`. */
-const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) =>
-  `mov-boton label-cayla rounded-md px-4 py-3 text-[11px] disabled:cursor-not-allowed ${PESO_BOTON[peso]} ${className}`;
+/* El botón del ERP (ADR-0358). Su movimiento es el ÚNICO de los botones (`.btn-cayla` / `.mov-boton` en globals.css): sube con su
+   sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar y una onda
+   nace donde tocaste; mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es
+   `<BotonEnlace>`; con un archivo o un enlace afuera, `<BotonAncla>`. */
+const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) => `btn-cayla ${PESO_BOTON[peso]} ${className}`;
 
 /**
  * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:

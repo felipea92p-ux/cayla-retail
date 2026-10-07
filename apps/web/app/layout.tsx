@@ -4,6 +4,7 @@ import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
+import { OndaBotones } from "@/components/ui/OndaBotones";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 
@@ -39,6 +40,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <EsperaGlobal />
         {/* La página no se encoge bajo el mouse (ADR-0185): una vez, acá, para toda la app y sus ventanas. */}
         <PaginaEstable />
+        {/* La onda de un clic en un botón (ADR-0358, ronda 4): una vez, acá, para todos los botones del ERP. */}
+        <OndaBotones />
         {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}
         <SesionEntrePestanas />
       </body>

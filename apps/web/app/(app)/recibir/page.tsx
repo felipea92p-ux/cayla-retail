@@ -79,7 +79,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
   // Sin pestañas (ADR-0330): la puerta es UNA. Recibir contra una factura y el historial se abren desde ella y vuelven a ella.
   const encabezado = (
-    <div className="anim-entra">
+    <div data-voz="cabecera" className="anim-entra">
       <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       <p className="mt-1 max-w-3xl text-sm text-tinta/65">
