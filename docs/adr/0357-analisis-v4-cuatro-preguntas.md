@@ -118,6 +118,10 @@ taller» o «Proveedor terceros».
 **5. Un solo grupo «Liquidar», sin oferta y remate aparte.** «Liquidar desde» se mueve en «No se vende», de 30 a 85 días (60 de fábrica).
 - Las prendas cambian de grupo mientras se mueve. Para guardarlo, una hoja (`HojaLiquidarDesde`) muestra qué cambia en tu tienda y lo guarda
   («Guardar para todos») firmado por el responsable del combo: uno para todas las tiendas y todas las personas (migración `20261006216000`).
+- **Actualización (Felipe, 2026-10-07):** «Liquidar desde» está a la vista siempre, también cuando todo se mueve. Antes, sin ninguna prenda con
+  más de un mes sin venderse, la pestaña solo decía «Todo se mueve» y escondía el control, las cifras y la edad de la ropa: en TRU no había
+  dónde cambiar los 60 días. Ahora «Todo se mueve» queda dentro de la tarjeta «Días sin venderse», bajo el control; y la barra de edad no
+  dibuja un tramo sin unidades (una franja roja de «Más de 3 meses» con 0 prendas contradecía el «Todo se mueve»).
 - Vive en su propia tabla, `retail.parametros_analisis` (una fila), y no en `configuracion_empresa`: esa fila fiscal exige RUC y razón social y
   no existe en local ni en el CI, toda venta la lee (una columna nueva obligaría a partir la migración por los bloqueos) y deja lugar para los
   próximos números de Análisis. Lo mueve quien ve Análisis (`fn_puede_analizar`), como decidió Felipe («para todos»), y queda el antes y el

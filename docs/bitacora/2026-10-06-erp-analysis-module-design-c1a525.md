@@ -29,3 +29,9 @@ del `foreignObject` de la etiqueta (`analisis-hoy.css`). Lo reproduje y lo compr
 sin el arreglo se corrían encima del texto, y con él quedan en su sitio. En Chrome se ve igual que antes.
 Por qué así: Safari pinta fuera de lugar, dentro de un `foreignObject`, lo que crea capa (`position`, `overflow`); en producción Felipe vio
 una miniatura de «Compra» flotando. La miniatura no necesita esa capa, porque su redondeo lo da su border-radius.
+
+## 2026-10-07 (Análisis: «Liquidar desde» siempre a la vista)
+Qué hice: en «No se vende», cuando nada lleva un mes sin venderse, la pestaña ya no esconde el control «Liquidar desde», las cifras ni la edad de
+la ropa: «Todo se mueve» queda dentro de la tarjeta «Días sin venderse», bajo el control. La barra de edad no dibuja tramos sin unidades.
+Por qué así: Felipe preguntó dónde se cambian los «60 días» y en TRU no tenía dónde, porque la pestaña solo decía «Todo se mueve». Es lo único
+de Análisis que se configura (de 30 a 85 días, para todos); lo demás son reglas fijas del código (ADR-0357).
