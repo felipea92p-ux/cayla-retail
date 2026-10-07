@@ -16,7 +16,7 @@ import {
   sedeQueMasVende,
   totalEnTienda,
 } from "./analisis-reglas";
-import { hrefComprar, hrefEnviar, hrefLiquidar } from "./analisis-acciones";
+import { hrefComprar, hrefEnviar, hrefLiquidar, hrefReponerPiso } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { diaAntes, fechaCorta } from "./motor-demanda-reglas";
 import { compararTallas } from "./tallas";
@@ -40,9 +40,13 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
   vigila: { est: "nd", texto: "Vigílalas" },
 };
 
-/** El chip de la prenda: el título de su grupo, con el estado del grupo; sin grupo, «Va bien». */
-export function chipDeGrupo(grupo: GrupoAnalisis | null): { est: EstadoFicha; texto: string } {
-  return grupo ? CHIP_GRUPO[grupo] : { est: "bien", texto: "Va bien" };
+/**
+ * El chip de la prenda: el título de su grupo, con el estado del grupo; sin grupo, «Va bien», salvo lo guardado que nunca salió al
+ * piso (`sinSalir`, 20261007120000): eso no «va bien», nadie lo vio.
+ */
+export function chipDeGrupo(grupo: GrupoAnalisis | null, sinSalir = false): { est: EstadoFicha; texto: string } {
+  if (grupo) return CHIP_GRUPO[grupo];
+  return sinSalir ? { est: "ate", texto: "Nunca salió al piso" } : { est: "bien", texto: "Va bien" };
 }
 
 /** Soles como se leen en una ficha: «S/ 60» si es entero, «S/ 59.90» si no; «—» si no se sabe. */
@@ -79,10 +83,16 @@ const codigoDe = (sedes: readonly SedeAnalisis[], id: string): string => sedes.f
 
 /**
  * Las tarjetitas de la ficha, como `hechos()` de la maqueta. Lo que se acaba dice cuánto le queda, cuánto vendió, de dónde se
- * repone, lo que ya viene y qué otra tienda la tiene; lo quieto dice cuánto lleva sin venderse, cuánto hay y qué toca (mandarla
- * o liquidarla); lo que va bien, cuánto vendió y cuánto hay.
+ * repone, lo que ya viene y qué otra tienda la tiene; lo quieto dice cuánto lleva en el piso sin venderse, cuánto hay y qué toca
+ * (mandarla o liquidarla); lo que nunca salió al piso (`sinSalir`: sus días en el almacén, o null si no se sabe cuándo llegó), cuánto
+ * lleva guardado y cuánto hay; lo que va bien, cuánto vendió y cuánto hay.
  */
-export function hechosDe(p: PrendaAnalisis, grupo: GrupoAnalisis | null, sedes: readonly SedeAnalisis[]): Hecho[] {
+export function hechosDe(
+  p: PrendaAnalisis,
+  grupo: GrupoAnalisis | null,
+  sedes: readonly SedeAnalisis[],
+  sinSalir: { dias: number | null } | null = null,
+): Hecho[] {
   const hechos: Hecho[] = [];
   const agregar = (icono: IconoHecho, tono: TonoFicha, valor: string, etiqueta: string | null = null) => hechos.push({ icono, tono, valor, etiqueta });
   const tienes = totalEnTienda(p);
@@ -103,11 +113,18 @@ export function hechosDe(p: PrendaAnalisis, grupo: GrupoAnalisis | null, sedes: 
   if (grupo === "enviar" || grupo === "liquidar" || grupo === "vigila") {
     const dias = p.diasSinVender ?? 0;
     const grave = dias >= DIAS_TRES_MESES;
-    agregar(grave ? "urg" : "reloj", grave ? "rojo" : "ambar", `${dias} ${plural(dias, "día", "días")}`, "sin venderse");
+    agregar(grave ? "urg" : "reloj", grave ? "rojo" : "ambar", `${dias} ${plural(dias, "día", "días")}`, "en el piso sin venderse");
     agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
     const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
     if (vende) agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, "este mes");
     if (grupo === "liquidar") agregar("etiqueta", grave ? "rojo" : "ambar", "Liquidar", "tú eliges cuánto");
+    return hechos;
+  }
+
+  if (sinSalir) {
+    const d = sinSalir.dias;
+    agregar("reloj", "ambar", d === null ? "Nunca salió al piso" : `${d} ${plural(d, "día", "días")}`, d === null ? null : "en el almacén, sin salir al piso");
+    agregar("caja", "taupe", `Tienes ${tienes}`, "0 en el piso");
     return hechos;
   }
 
@@ -246,10 +263,21 @@ export function grillaDelModelo(p: PrendaAnalisis, prendas: readonly PrendaAnali
 export type AccionFicha = { texto: string; href: string };
 
 /**
- * El botón principal según el grupo, como la fila de su carril: «Comprar», «Enviar a Arequipa» (la tienda que más la vende) o
- * «Liquidar». null si va bien o solo se vigila, o si la cuenta no ve el destino (un botón que lleva a «Sin acceso» no se dibuja).
+ * El botón principal según el grupo, como la fila de su carril: «Comprar», «Enviar a Arequipa» (la tienda que más la vende),
+ * «Liquidar» o, lo que nunca salió al piso, «Bajar al piso». null si va bien o solo se vigila, o si la cuenta no ve el destino (un
+ * botón que lleva a «Sin acceso» no se dibuja).
  */
-export function accionPrincipal(p: PrendaAnalisis, grupo: GrupoAnalisis | null, sedes: readonly SedeAnalisis[], acceso: AccesoAnalisis): AccionFicha | null {
+export function accionPrincipal(
+  p: PrendaAnalisis,
+  grupo: GrupoAnalisis | null,
+  sedes: readonly SedeAnalisis[],
+  acceso: AccesoAnalisis,
+  sinSalir = false,
+): AccionFicha | null {
+  if (sinSalir && !grupo) {
+    const href = hrefReponerPiso([p], acceso);
+    return href ? { texto: "Bajar al piso", href } : null;
+  }
   if (grupo === "comprar") {
     const href = hrefComprar(p, acceso);
     return href ? { texto: "Comprar", href } : null;

@@ -12,6 +12,7 @@ import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
 import { hrefEnviar, hrefLiquidar } from "@/lib/analisis-acciones";
+import { nuncaSalio } from "@/lib/analisis-piso";
 import {
   barraDeEdad,
   cifrasQuietas,
@@ -28,7 +29,7 @@ import {
 } from "@/lib/analisis-quietas";
 
 // Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
-// de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días sin venderse» con el control «Liquidar desde», que mueve las prendas de
+// de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días en el piso sin venderse» con el control «Liquidar desde», que mueve las prendas de
 // grupo EN VIVO (sin guardar). Guardarlo para todos es otra cosa y la pide un botón aparte. Cada fila abre el flujo que ya existe
 // (Traslados, Etiquetas): Análisis no guarda nada por su cuenta (ADR-0245).
 
@@ -36,7 +37,7 @@ import {
 const nf = (n: number): string => Math.round(n).toLocaleString("es-PE");
 
 export function PestanaQuieta() {
-  const { datos, acceso, prendas, liquidarDesde, setLiquidarDesde, sedeDe } = useAnalisis();
+  const { datos, acceso, prendas, liquidarDesde, setLiquidarDesde, sedeDe, irA } = useAnalisis();
   const router = useRouter();
   const idUmbral = useId();
   const [guardar, setGuardar] = useState(false);
@@ -53,6 +54,7 @@ export function PestanaQuieta() {
   // pestaña solo lo dice; con «Todo se mueve», las cifras, la edad de la ropa y «Liquidar desde» siguen a la vista (Felipe,
   // 2026-10-07: en TRU no había nada quieto y no tenía dónde cambiar los 60 días).
   const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length);
+  const sinSalir = datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : 0;
   if (vacio === "sin-datos") return <Vacio tipo={vacio} />;
 
   // Las cifras son de toda la tienda (como la cuenta de la pestaña); el carril, de lo que deja ver el buscador.
@@ -87,7 +89,7 @@ export function PestanaQuieta() {
     {
       clave: "liquidar",
       titulo: "Liquidar",
-      ayuda: `Llevan más de ${liquidarDesde} días sin venderse, aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
+      ayuda: `Llevan más de ${liquidarDesde} días en el piso sin venderse, aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
       icono: "etiqueta",
       est: "ate",
       prendas: liquidar,
@@ -96,7 +98,7 @@ export function PestanaQuieta() {
     {
       clave: "vigila",
       titulo: "Vigílalas",
-      ayuda: "Llevan más de un mes sin venderse, pero todavía no llegan a «Liquidar desde».",
+      ayuda: "Llevan más de un mes en el piso sin venderse, pero todavía no llegan a «Liquidar desde».",
       icono: "vigila",
       est: "nd",
       mudo: true,
@@ -237,17 +239,29 @@ export function PestanaQuieta() {
         <EdadDeLoQueTienes />
       </div>
 
+      {/* Lo que nunca salió al piso no cuenta aquí (20261007120000): tiene su pestaña, y esto lleva a ella. */}
+      {sinSalir > 0 && (
+        <div className="tarjeta q-pie entra" style={{ ["--i" as string]: 1 }}>
+          <span className="b-nota">
+            <b>{nf(sinSalir)}</b> {plural(sinSalir, "prenda nunca salió al piso: no cuenta aquí.", "prendas nunca salieron al piso: no cuentan aquí.")}
+          </span>
+          <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("piso")}>
+            Nunca salió al piso <Icono nombre="sigue" />
+          </button>
+        </div>
+      )}
+
       {vacio === "todo-se-mueve" ? (
         <section className="tarjeta carril entra" style={{ ["--i" as string]: 2 }}>
           <div className="c-cab">
-            <h3 className="b-tit">Días sin venderse</h3>
+            <h3 className="b-tit">Días en el piso sin venderse</h3>
             <span className="b-nota">{control}</span>
           </div>
           <Vacio tipo="todo-se-mueve" dentro />
         </section>
       ) : (
         <Carril
-          titulo="Días sin venderse"
+          titulo="Días en el piso sin venderse"
           herramienta={control}
           eje={[
             { texto: "0", left: "0%" },
@@ -306,7 +320,7 @@ function EdadDeLoQueTienes() {
     <section className="tarjeta bloque entra" style={{ ["--i" as string]: 1 }}>
       <div className="b-cab" style={{ marginBottom: 8 }}>
         <h3 className="b-tit" style={{ fontSize: 18 }}>
-          Lo que tienes, por tiempo sin venderse
+          Lo que salió al piso, por tiempo sin venderse
         </h3>
       </div>
       <div className="edad">
