@@ -627,9 +627,13 @@ export function CompraFormV2({
                 />
                 <p className="mt-1.5 text-xs leading-snug text-tinta/55">{condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}</p>
               </div>
-              {/* «Vence el» siempre está: al contado se apaga en vez de desaparecer, y la fila no se reacomoda. */}
-              <div className={`transition-opacity duration-300 ${condicion === "credito" ? "" : "opacity-45"}`}>
-                <CampoFecha etiqueta="Vence el" id="compra-vence" valor={condicion === "credito" ? fechaVencimiento : ""} onValor={setVencimientoEditado} required={condicion === "credito"} disabled={condicion !== "credito"} />
+              {/* «Vence el» siempre está: al contado se apaga en vez de desaparecer, y la fila no se reacomoda. Se apaga el CAMPO (un
+                  `fieldset` deshabilitado: etiqueta y caja son un control inactivo), no la frase de abajo, que dice por qué y tiene que
+                  leerse: dentro de la opacidad quedaba en 1.7:1 en claro y 2.1:1 en oscuro (ADR-0336). */}
+              <div>
+                <fieldset disabled={condicion !== "credito"} className={`m-0 min-w-0 border-0 p-0 transition-opacity duration-300 ${condicion === "credito" ? "" : "opacity-45"}`}>
+                  <CampoFecha etiqueta="Vence el" id="compra-vence" valor={condicion === "credito" ? fechaVencimiento : ""} onValor={setVencimientoEditado} required={condicion === "credito"} disabled={condicion !== "credito"} />
+                </fieldset>
                 <p className="mt-1.5 text-xs leading-snug text-tinta/55">
                   {condicion !== "credito" ? (
                     "Al contado no hay vencimiento."
