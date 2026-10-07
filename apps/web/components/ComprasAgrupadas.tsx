@@ -103,7 +103,7 @@ export function ComprasAgrupadas({
   return (
     // El hilo (Atelier, 2026-09-19): una línea taupe que baja por la izquierda y se dibuja al
     // entrar; cada día es un nudo sobre ella y sus compras cuelgan a la derecha.
-    <div className="relative pl-8 sm:pl-11">
+    <div data-guia="posventa.compras" className="relative pl-8 sm:pl-11">
       <span aria-hidden className="hilo-vertical absolute bottom-0 left-[11px] top-1.5 w-[1.5px] bg-gradient-to-b from-taupe to-taupe/15" />
       <div className="space-y-8">
         {agruparPorDia(lineas, ahora).map((dia, d) => (
@@ -122,6 +122,7 @@ export function ComprasAgrupadas({
               {agruparPorCompra(dia.lineas).map((compra, c) => (
                 <article
                   key={compra.ventaId}
+                  data-guia="posventa.compra"
                   style={{ "--i": Math.min(d * 2 + c + 2, 12) } as CSSProperties}
                   className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
                 >
@@ -208,7 +209,7 @@ export function FiltrosActividad<T extends string>({
   onCambio: (v: T) => void;
 }) {
   return (
-    <div role="group" aria-label="Filtrar la actividad" className="pildoras-desliza gap-2 sm:flex-wrap">
+    <div role="group" aria-label="Filtrar la actividad" data-guia="cambios.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
       {opciones.map((f) => (
         <button key={f.valor} type="button" aria-pressed={valor === f.valor} onClick={() => onCambio(f.valor)} className="pildora-cayla shrink-0">
           {f.texto} <span className="pildora-cayla__n">{f.cuantas}</span>

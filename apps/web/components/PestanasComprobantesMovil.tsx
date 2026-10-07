@@ -20,6 +20,7 @@ export function PestanasComprobantesMovil({ conteos }: { conteos: ConteosPestana
   return (
     <EnCuerpo>
       <nav
+        data-guia="comprobantes.pestanas-movil"
         aria-label="Vistas de Comprobantes"
         className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
       >

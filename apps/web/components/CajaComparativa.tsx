@@ -50,7 +50,7 @@ export function VeredictoCaja({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMi
   // distintos (el del día y el de la hora) que se lean como una contradicción.
   const difHora = v.hoy - v.ayerAEstaHora;
   return (
-    <section className="cmp-heroe anim-sube" style={{ "--i": 0 } as CSSProperties} aria-label="Cómo vas contra ayer">
+    <section data-guia="caja.veredicto" className="cmp-heroe anim-sube" style={{ "--i": 0 } as CSSProperties} aria-label="Cómo vas contra ayer">
       <div className="min-w-0">
         <p className="cmp-sobre">Hoy contra ayer · a las {horaTexto(ahoraMin)}</p>
         <h2 className="cmp-frase">
@@ -104,7 +104,7 @@ export function ClientesYTicket({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierre
   const v = useMemo(() => veredicto(hoy, ayer, ahoraMin), [hoy, ayer, ahoraMin]);
   const tpAyer = v.ticketsAyerAEstaHora > 0 ? v.ayerAEstaHora / v.ticketsAyerAEstaHora : 0;
   return (
-    <div className="card-cayla anim-sube p-5" style={{ "--i": 2 } as CSSProperties}>
+    <div data-guia="caja.ventas-hechas" className="card-cayla anim-sube p-5" style={{ "--i": 2 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Ventas hechas</p>
       <p className="text-xs text-tinta/50">Hoy, comparado con ayer a esta misma hora</p>
       <div className="mt-3 grid grid-cols-2 gap-4">
@@ -188,7 +188,7 @@ export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) 
   const lineas = [0, 1, 2, 3, 4].map((i) => (max / 4) * i);
 
   return (
-    <div className="card-cayla anim-sube p-5" style={{ "--i": 4 } as CSSProperties}>
+    <div data-guia="caja.acumulada" className="card-cayla anim-sube p-5" style={{ "--i": 4 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Venta acumulada del día</p>
       <p className="text-xs text-tinta/50">Pasa el mouse por la línea: cada hora te dice cuánto ganas o pierdes</p>
       <div ref={caja} className="relative mt-2">
@@ -249,7 +249,7 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
     return () => cancelAnimationFrame(id);
   }, []);
   return (
-    <div className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
+    <div data-guia="caja.como-pagaron" className="card-cayla anim-sube p-5" style={{ "--i": 5 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Cómo te pagaron</p>
       <p className="text-xs text-tinta/50">Lo que cobraste hoy por cada medio, y lo que cobraste ayer en todo el día</p>
       {filas.length === 0 ? (
@@ -280,7 +280,7 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
   const mx = Math.max(1, ...filas.map((f) => Math.abs(f.diferencia)));
   const rotulo = (f: HoraComparada) => (f.enCurso ? `${f.hora}:00–${horaTexto(ahoraMin)}` : `${f.hora}–${f.hora + 1}h`);
   return (
-    <div className="card-cayla anim-sube p-5" style={{ "--i": 6 } as CSSProperties}>
+    <div data-guia="caja.donde-ganas" className="card-cayla anim-sube p-5" style={{ "--i": 6 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Dónde ganas y dónde pierdes</p>
       <p className="text-xs text-tinta/65">Cada barra es una hora: lo que vendiste hoy en ella, menos lo que vendiste ayer en esa misma hora</p>
       <p className="mt-2 flex flex-wrap gap-x-4 text-xs font-semibold"><span className="text-verde-profundo">▲ Hacia arriba: vendiste más que ayer</span><span className="text-ambar">▼ Hacia abajo: vendiste menos que ayer</span></p>

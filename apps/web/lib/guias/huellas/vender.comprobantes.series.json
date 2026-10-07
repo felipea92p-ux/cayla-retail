@@ -1,0 +1,42 @@
+{
+  "guia": "vender.comprobantes.series",
+  "ruta": "/vender/comprobantes/series",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 20,
+  "controles": {
+    "components/FacturacionCabecera.tsx": [
+      "input «Buscar en esta vista»",
+      "button «Borrar la búsqueda»"
+    ],
+    "components/FacturacionPestanas.tsx": [
+      "Pestanas «);»"
+    ],
+    "components/FacturacionShell.tsx": [
+      "Link «comprobantes.aviso-sunat»"
+    ],
+    "components/PestanasComprobantesMovil.tsx": [
+      "Link «{p.etiqueta}»"
+    ],
+    "components/SeriesPanel.tsx": [
+      "BotonCompacto «series.nueva»",
+      "button «{`Archivar la serie ${s.serie}»",
+      "BotonCompacto «Registrar»",
+      "CampoSelect «Tienda»",
+      "CampoSelect «Tipo»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Próximo número»",
+      "Boton «Cancelar»",
+      "Boton «{loading ? \"Guardando…\" : \"Registrar serie\"}»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/SinCoincidencias.tsx": [
+      "BotonCompacto «Borrar la búsqueda»"
+    ],
+    "components/apartados/piezas.tsx": [
+      "button «{accion}»"
+    ]
+  }
+}

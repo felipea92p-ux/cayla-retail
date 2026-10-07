@@ -53,6 +53,7 @@ export function FacturacionShell({
           <Link
             href="/vender/comprobantes/por-reintentar"
             role="alert"
+            data-guia="comprobantes.aviso-sunat"
             className="anim-sube flex items-center justify-between gap-3 rounded-[12px] border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-[14px] text-rojo-profundo outline-none transition-colors duration-200 hover:bg-rojo/[0.1] focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
             style={{ "--i": 1 } as CSSProperties}
           >

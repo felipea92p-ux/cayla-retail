@@ -16,7 +16,7 @@ import { soles } from "@/lib/compras-reglas";
 export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: ResumenProformas; /** Lo cotizado en las que vencen pronto. */ montoPorVencer: number }) {
   const enPie = resumen.vigentes + resumen.vencidas;
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div data-guia="proformas.cifras" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <TarjetaKpiVidrio
         etiqueta="Vigentes"
         tono="taupe"

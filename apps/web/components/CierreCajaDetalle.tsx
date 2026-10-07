@@ -61,6 +61,7 @@ export function BotonVerDetalleCierre({ cierre }: { cierre: CierreCaja }) {
       <button
         type="button"
         onClick={() => abrir(cierre)}
+        data-guia="caja-historial.ver"
         aria-label={`Ver el detalle del cierre de ${cierre.ubicacionNombre} (${hora(cierre.cerradaEn)})`}
         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-tinta/8 hover:text-rojo"
       >
@@ -103,7 +104,7 @@ function DetalleCierreModal({
   return (
     <Modal titulo={`Cierre · ${cierre.ubicacionNombre}`} subtitulo={diaLargo(cierre.cerradaEn)} onClose={onClose} ancho="max-w-xl">
       {(cerrar) => (
-        <div className="space-y-4">
+        <div data-guia="caja-historial.detalle" className="space-y-4">
           {/* Veredicto: lo primero que se quiere saber de un cierre es si cuadró. */}
           <div className="flex items-center justify-between gap-4 rounded-2xl bg-tinta px-5 py-4 text-crema">
             <div className="min-w-0">

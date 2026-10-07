@@ -77,7 +77,7 @@ export function ColaSunatPanel({
   const visibles = filas.filter((f) => coincide([numero(f), nombreDelTipo(f.tipo), nombreDe(f.ubicacion_id), errorDeColaLegible(f.ultimo_error_transmision)], busqueda));
 
   return (
-    <div className="card-cayla anim-sube overflow-hidden" style={{ "--i": 3 } as CSSProperties}>
+    <div data-guia="por-enviar.panel" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 3 } as CSSProperties}>
       {/* La confirmación con el combo «Responsable» antes de reintentar (ADR-0161): la de una fila y la de todas. */}
       {confirmacionTransmitir}
       {confirmarTodos && (
@@ -97,7 +97,7 @@ export function ColaSunatPanel({
           </p>
         </div>
         {filas.length > 1 && (
-          <BotonCompacto variante="primario" cargando={reintentandoTodos} disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
+          <BotonCompacto variante="primario" data-guia="por-enviar.todos" cargando={reintentandoTodos} disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
             {reintentandoTodos ? "Reintentando…" : `Reintentar los ${filas.length}`}
           </BotonCompacto>
         )}
@@ -119,11 +119,11 @@ export function ColaSunatPanel({
             <div key={f.comprobante_id} className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-tinta/10 px-5 py-3">
               <div className="min-w-[11rem]">
                 <p className="text-[15px] text-tinta">
-                  <span className="text-tinta/65">{nombreDelTipo(f.tipo)}</span> <b className="whitespace-nowrap font-semibold tabular-nums">{numero(f)}</b>
+                  <span className="text-tinta/65">{nombreDelTipo(f.tipo)}</span> <b data-guia="por-enviar.numero" className="whitespace-nowrap font-semibold tabular-nums">{numero(f)}</b>
                 </p>
                 <p className="text-[13px] text-tinta/65">{nombreDe(f.ubicacion_id)}</p>
               </div>
-              <div className="min-w-0 flex-1">
+              <div data-guia="por-enviar.estado" className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1.5">
                   {f.estado === "rechazado" ? (
                     <Chip tono="rojo">SUNAT lo rechazó</Chip>
@@ -144,7 +144,7 @@ export function ColaSunatPanel({
                 </p>
                 {queHacer && <p className="mt-0.5 text-[13px] leading-snug text-tinta">Qué hacer: {queHacer}</p>}
               </div>
-              <BotonCompacto variante="fila-alerta" cargando={enVuelo} disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
+              <BotonCompacto variante="fila-alerta" data-guia="por-enviar.reintentar" cargando={enVuelo} disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
                 {enVuelo ? "Enviando…" : f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}
               </BotonCompacto>
             </div>

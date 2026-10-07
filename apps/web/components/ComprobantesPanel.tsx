@@ -304,7 +304,7 @@ export function ComprobantesPanel({
           <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todos los comprobantes</h2>
           <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
           {comprobantes.length > 0 && (
-            <div className="mt-3 flex">
+            <div data-guia="comprobantes.filtros" className="mt-3 flex">
               <PanelPildoras>
                 <DesplegablePildora
                   icono={FileText}
@@ -366,7 +366,7 @@ export function ComprobantesPanel({
                   <div className="min-w-0">
                     <p className="text-[15px] leading-normal text-tinta">
                       <span className="text-tinta/65">{ETIQUETA_TIPO[c.tipo]}</span>{" "}
-                      <b className="whitespace-nowrap font-semibold">
+                      <b data-guia="comprobantes.numero" className="whitespace-nowrap font-semibold">
                         {c.serie}-{String(c.numero).padStart(6, "0")}
                       </b>
                     </p>
@@ -391,7 +391,7 @@ export function ComprobantesPanel({
                   <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">{soles(Number(c.total))}</p>
 
                   <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                    <div className="min-w-0">
+                    <div data-guia="comprobantes.estado" className="min-w-0">
                       <Chip tono={chip.tono} className={chip.punteado ? "border-dashed border-tinta/30" : ""}>
                         {chip.texto}
                       </Chip>
@@ -399,7 +399,7 @@ export function ComprobantesPanel({
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {botones}
-                      <BotonCompacto variante="fila" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
+                      <BotonCompacto variante="fila" data-guia="comprobantes.opciones" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
                         <MoreHorizontal aria-hidden size={15} strokeWidth={1.75} />
                         <span>Opciones</span>
                       </BotonCompacto>

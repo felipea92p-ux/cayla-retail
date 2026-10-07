@@ -258,16 +258,16 @@ export function CajaAbiertaPanel({
     <div className="hidden flex-wrap items-center justify-end gap-3 sm:flex">
       {/* Con el diseño de «hoy contra ayer» ya no hay fila «Hacer» (ADR-0319): sus dos botones que mueven plata viven aquí. */}
       {comparativa && abrirGasto && (
-        <Boton type="button" onClick={abrirGasto}>
+        <Boton type="button" data-guia="caja.gasto" onClick={abrirGasto}>
           Registrar gasto
         </Boton>
       )}
       {comparativa && (
-        <Boton type="button" onClick={() => setModal("movimiento")}>
+        <Boton type="button" data-guia="caja.deposito" onClick={() => setModal("movimiento")}>
           Depósito o retiro
         </Boton>
       )}
-      <Boton type="button" onClick={() => setModal("cierres")}>
+      <Boton type="button" data-guia="caja.historial" onClick={() => setModal("cierres")}>
         Historial de cierres
       </Boton>
       {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
@@ -281,14 +281,14 @@ export function CajaAbiertaPanel({
 
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
-          <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
+          <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-tinta">Movimientos del turno</p>
                 <p className="text-xs text-tinta/50">Toca una venta para ver el detalle</p>
               </div>
               {/* Filtro de un valor (deja menos movimientos): la píldora del sistema, no la pista hueso del spike (ADR-0358). */}
-              <div role="group" aria-label="Filtrar movimientos" className="flex flex-wrap items-center gap-2">
+              <div role="group" aria-label="Filtrar movimientos" data-guia="caja.movimientos-filtro" className="flex flex-wrap items-center gap-2">
                 {(
                   [
                     ["todo", "Todo"],
@@ -369,7 +369,7 @@ export function CajaAbiertaPanel({
             {/* `sm:ml-auto`: con los botones en versalitas (ADR-0358, accion.nuevo) la columna no siempre cabe junto al título y
                 baja de fila; ahí sigue pegada a la derecha, donde la busca quien cierra la caja. */}
             <div className="flex w-full flex-col sm:ml-auto sm:w-auto sm:items-end">
-            <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
+            <div data-guia="caja.turno" className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:w-auto sm:flex-col sm:items-end">
               <EstadoSync pendientes={cola.length} />
               <TurnoCompacto abiertaEn={caja.abiertaEn} />
             </div>
@@ -411,7 +411,7 @@ export function CajaAbiertaPanel({
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
           <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
-            <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
+            <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <h2 className="font-display text-[22px] leading-tight text-tinta">Meta de hoy · {soles0(metaVentaDiaria)}</h2>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
               <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
@@ -463,7 +463,7 @@ export function CajaAbiertaPanel({
 
 
         {/* ---------- Hacer (botones) y ver (tarjetas que cada quien elige) ---------- */}
-        <div className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
+        <div data-guia="caja.accesos" className="anim-sube space-y-4" style={{ "--i": 6 } as CSSProperties}>
           <AccesosCajaEscritorio accesos={accesos} onGasto={abrirGasto} onMovimiento={() => setModal("movimiento")} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <AccesosCajaMovil accesos={accesos} apartadosPorCobrar={contexto.apartados?.activos ?? 0} />
           <TarjetasElegibles contexto={contexto} ubicacionId={caja.ubicacionId} />

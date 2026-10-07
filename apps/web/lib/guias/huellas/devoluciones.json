@@ -1,0 +1,82 @@
+{
+  "guia": "devoluciones",
+  "ruta": "/devoluciones",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 54,
+  "controles": {
+    "components/AnularVentaForm.tsx": [
+      "button «Listo»",
+      "Desplegable «))»",
+      "input «Por qué se anula esta venta»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/BuscadorVentas.tsx": [
+      "input «Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda»",
+      "button «Limpiar la búsqueda»",
+      "button «Buscar»",
+      "button «posventa.escanear»",
+      "button «posventa.sin-comprobante»",
+      "Desplegable «)»"
+    ],
+    "components/ComprasAgrupadas.tsx": [
+      "button «{f.texto}»",
+      "button «Buscar en todas las tiendas»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Cerrar»",
+      "button «Reintentar»",
+      "button «Imprimir ticket»",
+      "button «Imprimir»"
+    ],
+    "components/DevolucionesFlujo.tsx": [
+      "input «(sin nombre)»",
+      "input «)»",
+      "Link «Cambiar por otra prenda»",
+      "Volver «Continuar»",
+      "button «{m.etiqueta}»",
+      "input «¿En qué estado vuelve cada prenda?»",
+      "Volver «Revisar la devolución»",
+      "ComboResponsable «{error && <AvisoDeError error={error}»",
+      "Volver «Cancelar»",
+      "Volver «)»",
+      "button «{o.titulo}»",
+      "button «{d.etiqueta}»"
+    ],
+    "components/DevolucionesPanel.tsx": [
+      "Pestanas «{vista === \"compras\" && ( <> {}»",
+      "button «{f.texto}»",
+      "button «Escanear prenda»",
+      "button «Buscar la venta»",
+      "Link «Revisar en Inventario»",
+      "Link «Abrir caja»"
+    ],
+    "components/DevolucionesPendientes.tsx": [
+      "input «S/ 0.00»",
+      "button «Todo (»",
+      "CampoSelect «¿Cómo se le devuelve?»",
+      "CampoSelect «Sale de»",
+      "ComboResponsable «Cancelar»",
+      "input «(sin nombre)»",
+      "ComboResponsable «Cancelar» #2"
+    ],
+    "components/DevolucionesResueltas.tsx": [
+      "Link «{d.notaCredito}»"
+    ],
+    "components/DevolucionesVentas.tsx": [
+      "button «devoluciones.anular»",
+      "button «Iniciar devolución»",
+      "button «devoluciones.ver-venta»",
+      "Link «devoluciones.cambiar»",
+      "button «devoluciones.devolver»"
+    ],
+    "components/FlujoGuiado.tsx": [
+      "Volver «Paso»",
+      "button «{hecho ? `Volver a «${nombre}»",
+      "button «{children}»",
+      "button «{children}» #2",
+      "button «{children}» #3"
+    ]
+  }
+}

@@ -9,6 +9,16 @@
 //              no aplica. Al terminar una, se pasa a «aplicada» y se baja `PENDIENTES_HOY` (la cuenta es exacta: solo baja).
 
 import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
+import {
+  GUIA_CAJA,
+  GUIA_CAMBIOS,
+  GUIA_COMPROBANTES_MES,
+  GUIA_DEVOLUCIONES,
+  GUIA_HISTORIAL_CIERRES,
+  GUIA_POR_ENVIAR,
+  GUIA_PROFORMAS,
+  GUIA_SERIES,
+} from "./pantallas/ventas-posventa";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -17,10 +27,23 @@ export type PantallaConGuia =
   | { estado: "pendiente" };
 
 /** Todas las guías que existen. El motor busca aquí la de la pantalla abierta (`guiaDeRuta`). */
-export const GUIAS: readonly Guia[] = [GUIA_PUNTO_DE_VENTA, GUIA_APARTADOS, GUIA_HISTORIAL, GUIA_COMPROBANTES];
+export const GUIAS: readonly Guia[] = [
+  GUIA_PUNTO_DE_VENTA,
+  GUIA_APARTADOS,
+  GUIA_HISTORIAL,
+  GUIA_COMPROBANTES,
+  GUIA_COMPROBANTES_MES,
+  GUIA_POR_ENVIAR,
+  GUIA_PROFORMAS,
+  GUIA_SERIES,
+  GUIA_CAJA,
+  GUIA_HISTORIAL_CIERRES,
+  GUIA_CAMBIOS,
+  GUIA_DEVOLUCIONES,
+];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 75;
+export const PENDIENTES_HOY = 67;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -33,10 +56,10 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- buscar ----
   "/buscar": PENDIENTE,
   // ---- caja ----
-  "/caja": PENDIENTE,
-  "/caja/historial": PENDIENTE,
+  "/caja": { estado: "aplicada", guia: GUIA_CAJA.id },
+  "/caja/historial": { estado: "aplicada", guia: GUIA_HISTORIAL_CIERRES.id },
   // ---- cambios ----
-  "/cambios": PENDIENTE,
+  "/cambios": { estado: "aplicada", guia: GUIA_CAMBIOS.id },
   // ---- clientas ----
   "/clientas": PENDIENTE,
   "/clientas/avisos": PENDIENTE,
@@ -61,7 +84,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- configuracion ----
   "/configuracion": PENDIENTE,
   // ---- devoluciones ----
-  "/devoluciones": PENDIENTE,
+  "/devoluciones": { estado: "aplicada", guia: GUIA_DEVOLUCIONES.id },
   // ---- etiquetas-de-precio ----
   "/etiquetas-de-precio": { estado: "no-aplica", motivo: "Hoja de impresión de etiquetas: se revisa y se imprime, no hay piezas que recorrer." },
   // ---- finanzas ----
@@ -135,9 +158,9 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/vender": { estado: "aplicada", guia: GUIA_PUNTO_DE_VENTA.id },
   "/vender/apartados": { estado: "aplicada", guia: GUIA_APARTADOS.id },
   "/vender/comprobantes": { estado: "aplicada", guia: GUIA_COMPROBANTES.id },
-  "/vender/comprobantes/emitidos": PENDIENTE,
-  "/vender/comprobantes/por-reintentar": PENDIENTE,
-  "/vender/comprobantes/proformas": PENDIENTE,
-  "/vender/comprobantes/series": PENDIENTE,
+  "/vender/comprobantes/emitidos": { estado: "aplicada", guia: GUIA_COMPROBANTES_MES.id },
+  "/vender/comprobantes/por-reintentar": { estado: "aplicada", guia: GUIA_POR_ENVIAR.id },
+  "/vender/comprobantes/proformas": { estado: "aplicada", guia: GUIA_PROFORMAS.id },
+  "/vender/comprobantes/series": { estado: "aplicada", guia: GUIA_SERIES.id },
   "/vender/historial": { estado: "aplicada", guia: GUIA_HISTORIAL.id },
 };

@@ -1,0 +1,63 @@
+{
+  "guia": "vender.comprobantes.proformas",
+  "ruta": "/vender/comprobantes/proformas",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 35,
+  "controles": {
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/FacturacionCabecera.tsx": [
+      "input «Buscar en esta vista»",
+      "button «Borrar la búsqueda»"
+    ],
+    "components/FacturacionPestanas.tsx": [
+      "Pestanas «);»"
+    ],
+    "components/FacturacionShell.tsx": [
+      "Link «comprobantes.aviso-sunat»"
+    ],
+    "components/NuevaProformaModal.tsx": [
+      "CampoSelect «Tienda»",
+      "input «Buscar prenda»",
+      "button «{p.referencia}»",
+      "button «{`Una ${f.prenda.referencia}»",
+      "button «{`Una ${f.prenda.referencia}» #2",
+      "input «{`Descuento en % de ${f.prenda.referencia}»",
+      "Desplegable «)»",
+      "input «Detalle del motivo»",
+      "button «{`Quitar ${f.prenda.referencia}»",
+      "CampoTexto «Vale por (días)»",
+      "CampoTexto «Nota para el cliente»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/PestanasComprobantesMovil.tsx": [
+      "Link «{p.etiqueta}»"
+    ],
+    "components/ProformasPanel.tsx": [
+      "BotonCompacto «proformas.nueva»",
+      "button «{numeroDeProforma(p.numero)}»",
+      "button «{`Ver o imprimir ${numeroDeProforma(p.numero)}»",
+      "a «{`Enviar por WhatsApp ${numeroDeProforma(p.numero)}»",
+      "BotonCompacto «{`${p.vencida ? \"Renovar\" : \"Duplicar\"}»",
+      "Link «{`Apartar ${numeroDeProforma(p.numero)}»",
+      "Link «{`Cobrar ${numeroDeProforma(p.numero)}»",
+      "Boton «Cerrar»",
+      "Boton «Imprimir o guardar en PDF»"
+    ],
+    "components/SelectorMesFacturacion.tsx": [
+      "Link «←»",
+      "Link «{NOMBRES_MES[siguiente.mes - 1]}»"
+    ],
+    "components/SinCoincidencias.tsx": [
+      "BotonCompacto «Borrar la búsqueda»"
+    ],
+    "components/apartados/piezas.tsx": [
+      "button «{accion}»"
+    ]
+  }
+}

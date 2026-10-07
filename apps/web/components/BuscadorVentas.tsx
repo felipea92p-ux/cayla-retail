@@ -108,6 +108,7 @@ export function BuscadorVentas({
       {/* Una sola píldora: la búsqueda y su botón. Al enfocarla se despega un poco y toma el
           hilo (taupe) como borde. */}
       <div
+        data-guia="posventa.buscador"
         className={`flex h-16 items-center gap-3 rounded-xl bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
           escaneando ? "ring-2 ring-taupe" : "ring-tinta/[0.09]"
         }`}
@@ -164,11 +165,11 @@ export function BuscadorVentas({
       <div className="flex flex-wrap items-center gap-2.5">
         {/* En el celular este chip repite un botón fijo de abajo (la cámara en Cambios, «Escanear prenda» en
             Devoluciones): se esconde ahí. */}
-        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
+        <button type="button" data-guia="posventa.escanear" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
-        <button type="button" onClick={onSinComprobante} className={CHIP_ACCION}>
+        <button type="button" data-guia="posventa.sin-comprobante" onClick={onSinComprobante} className={CHIP_ACCION}>
           <ReceiptText className="h-4 w-4" aria-hidden />
           Sin comprobante
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -177,7 +178,7 @@ export function BuscadorVentas({
         {extra}
 
         {puedeVerTodas && (
-          <div className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
+          <div data-guia="posventa.buscar-en" className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
             <span>Buscar en</span>
             <Desplegable
               forma="pastilla"

@@ -1,0 +1,100 @@
+{
+  "guia": "caja",
+  "ruta": "/caja",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 68,
+  "controles": {
+    "app/(app)/caja/page.tsx": [
+      "Link «Historial de cierres →»"
+    ],
+    "components/AbrirCajaFormV2.tsx": [
+      "input «0.00»",
+      "input «Ej.: se usó para vuelto antes de abrir»",
+      "ComboResponsable «(sin nombre)»",
+      "button «{responsable.motivo ?? undefined}»",
+      "button «→onElegir»"
+    ],
+    "components/BarraCierreCaja.tsx": [
+      "button «Cerrar caja»",
+      "button «Cerrar caja» #2"
+    ],
+    "components/CajaAbiertaPanel.tsx": [
+      "Boton «caja.gasto»",
+      "Boton «caja.deposito»",
+      "Boton «caja.historial»",
+      "button «{texto}»",
+      "button «{METODO_RITMO[clave].texto}»",
+      "button «Ver los»"
+    ],
+    "components/CajaTablero.tsx": [
+      "Link «{contenido}»",
+      "button «{contenido}»",
+      "Link «(sin nombre)»",
+      "Link «Vender»",
+      "button «Registrar gasto»",
+      "button «Depósito o retiro»",
+      "button «Cerrar caja»",
+      "button «{on ? <Check size={13}»",
+      "button «Volver a lo predeterminado»",
+      "Link «Ver»",
+      "Link «Ver todos →»",
+      "Link «Ver en Finanzas →»",
+      "Link «Ver posventa →»",
+      "SegmentoDeslizante «(predeterminada)»",
+      "Link «Ver historial completo»",
+      "button «Volver a la predeterminada»"
+    ],
+    "components/CerrarCajaModalV2.tsx": [
+      "button «Listo»",
+      "input «0.00»",
+      "input «{`Cantidad de ${d >= 1 ? `billetes o monedas de ${d}»",
+      "button «Cancelar»",
+      "button «Continuar»",
+      "input «0.00» #2",
+      "CampoSelect «¿A dónde va?»",
+      "CampoSelect «¿A qué banco?»",
+      "CampoTexto «{destinoElegido.referencia}»",
+      "button «Volver y dejar»",
+      "button «Cerrar igual»",
+      "ComboResponsable «setPaso(\"contar\")»",
+      "Volver «→() => setPaso(\"contar\")»",
+      "button «{responsable.motivo ?? invalido ?? undefined}»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Cerrar»",
+      "button «Reintentar»",
+      "button «Imprimir ticket»",
+      "button «Imprimir»"
+    ],
+    "components/FilaMovimientoCaja.tsx": [
+      "button «{`Ver el detalle de la venta de ${money(e.monto)}»"
+    ],
+    "components/HistorialCierresModal.tsx": [
+      "button «Todos»",
+      "button «Con diferencia ·»",
+      "button «{`Ver el detalle del cierre del ${dia}»",
+      "Link «Ver todas las sedes →»"
+    ],
+    "components/MovimientoCajaModal.tsx": [
+      "button «{TEXTO_TIPO[t]}»",
+      "input «0.00»",
+      "Desplegable «(sin nombre)»",
+      "input «Describe el motivo»",
+      "input «N° de operación, voucher, u otra nota»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/RegistrarGastoModal.tsx": [
+      "button «¿No está? Súmalo»",
+      "button «Sumar proveedor»",
+      "button «Cancelar»",
+      "ComboResponsable «avisoSalida.pedirAccion(onCerrar)»",
+      "button «Cancelar» #2",
+      "button «→guardar»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

@@ -25,7 +25,7 @@ export function UltimoCierreCaja({ cierre }: { cierre: CierreCaja }) {
   const diferencia = cierre.montoCierreReal - cierre.montoCierreSistema;
   const cuadro = cuadra(diferencia, 0);
   return (
-    <section className="card-cayla p-5" aria-labelledby="ultimo-cierre">
+    <section data-guia="caja.ultimo-cierre" className="card-cayla p-5" aria-labelledby="ultimo-cierre">
       <p id="ultimo-cierre" className="label-cayla text-[11px] text-taupe-profundo">
         Último cierre
       </p>

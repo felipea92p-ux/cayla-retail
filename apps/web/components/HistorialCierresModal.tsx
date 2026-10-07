@@ -38,7 +38,7 @@ export function HistorialCierresModal({ cierres, ubicacionNombre, onClose }: { c
         <p className="py-8 text-center text-sm text-tinta/60">Todavía no hay cierres en esta sede. Aparecerán aquí cuando se cierre la primera caja.</p>
       ) : (
         <>
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div data-guia="caja.historial-cifras" className="mt-3 grid grid-cols-3 gap-2">
             <TarjetaCifra etiqueta="Cierres" valor={resumen.total} />
             <TarjetaCifra etiqueta="Cuadraron" valor={resumen.cuadraron} tono="text-verde-profundo">
               de {resumen.total}

@@ -311,7 +311,7 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          <div data-guia="cambios.flujo-prendas" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
               <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>

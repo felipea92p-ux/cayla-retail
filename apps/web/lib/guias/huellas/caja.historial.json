@@ -1,0 +1,21 @@
+{
+  "guia": "caja.historial",
+  "ruta": "/caja/historial",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 7,
+  "controles": {
+    "app/(app)/caja/historial/page.tsx": [
+      "Volver «Historial de cierres»",
+      "Link «caja-historial.prueba»"
+    ],
+    "components/AperturasPorRevisar.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/CierreCajaDetalle.tsx": [
+      "button «caja-historial.ver»",
+      "button «{texto}»",
+      "button «Cerrar»"
+    ]
+  }
+}

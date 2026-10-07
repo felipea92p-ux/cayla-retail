@@ -56,14 +56,14 @@ export function DevolucionesPendientes({
   // solo la lista, o una nota si no hay ninguna (la pestaña se ve igual, vacía o no).
   if (pendientes.length === 0) {
     return (
-      <p className="nota-cayla flex items-start gap-2.5">
+      <p data-guia="devoluciones.pendientes" className="nota-cayla flex items-start gap-2.5">
         <Check className="mt-0.5 h-4 w-4 shrink-0 text-verde" aria-hidden />
         <span>No hay devoluciones esperando. Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.</span>
       </p>
     );
   }
   return (
-    <div className="space-y-3">
+    <div data-guia="devoluciones.pendientes" className="space-y-3">
       {pendientes.map((d) => (
         <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
       ))}

@@ -1,0 +1,36 @@
+{
+  "guia": "vender.comprobantes.por-reintentar",
+  "ruta": "/vender/comprobantes/por-reintentar",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 12,
+  "controles": {
+    "components/ColaSunatPanel.tsx": [
+      "BotonCompacto «por-enviar.todos»",
+      "BotonCompacto «por-enviar.reintentar»"
+    ],
+    "components/ConfirmarTransmision.tsx": [
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/FacturacionCabecera.tsx": [
+      "input «Buscar en esta vista»",
+      "button «Borrar la búsqueda»"
+    ],
+    "components/FacturacionPestanas.tsx": [
+      "Pestanas «);»"
+    ],
+    "components/FacturacionShell.tsx": [
+      "Link «comprobantes.aviso-sunat»"
+    ],
+    "components/PestanasComprobantesMovil.tsx": [
+      "Link «{p.etiqueta}»"
+    ],
+    "components/SinCoincidencias.tsx": [
+      "BotonCompacto «Borrar la búsqueda»"
+    ],
+    "components/apartados/piezas.tsx": [
+      "button «{accion}»"
+    ]
+  }
+}

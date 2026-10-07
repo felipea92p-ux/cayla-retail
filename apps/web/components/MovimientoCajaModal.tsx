@@ -95,7 +95,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
     <Modal titulo="Entrada o salida de caja" onClose={onClose}>
       {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
+        <div data-guia="caja.mov-tipo" className="space-y-1.5">
           <span className={campoEtiqueta}>Tipo</span>
           <div className="flex gap-2">
             {(["ingreso", "egreso"] as const).map((t) => (
@@ -117,7 +117,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div data-guia="caja.mov-monto" className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="mov-monto">
             Monto
           </label>
@@ -141,7 +141,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div data-guia="caja.mov-motivo" className="space-y-1.5">
           <span id={idEtiquetaMotivo} className={campoEtiqueta}>
             Motivo
           </span>
@@ -177,7 +177,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div data-guia="caja.mov-referencia" className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="mov-nota">
             Referencia{pideReferencia ? "" : " (opcional)"}
           </label>
@@ -192,7 +192,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
         </div>
 
         <ComboResponsable control={responsable} deshabilitado={loading} />
-        <div className="flex gap-2 pt-1">
+        <div data-guia="caja.mov-registrar" className="flex gap-2 pt-1">
           <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>

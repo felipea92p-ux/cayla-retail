@@ -69,7 +69,7 @@ export function EncabezadoFlujo({
 }) {
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div data-guia="posventa.flujo-volver" className="flex flex-wrap items-center justify-between gap-3">
         {/* La salida del flujo es la vuelta de siempre (ADR-0358): cierra el estado, por eso va en su forma de botón. */}
         <Volver onClick={onVolver} deshabilitado={deshabilitado} a={volverA} />
         <p className="text-sm text-tinta/70" aria-live="polite">
@@ -94,7 +94,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   const largo = 100 - 100 / total;
   const avance = ((actual - 1) / (total - 1)) * largo;
   return (
-    <ol className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
+    <ol data-guia="posventa.pasos" className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
       <span
         aria-hidden
         className="absolute top-[17px] h-0.5 rounded-full"

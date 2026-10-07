@@ -27,10 +27,10 @@ export function DevolucionesResueltas({
   veComprobantes: boolean;
 }) {
   if (resueltas.length === 0) {
-    return <p className="nota-cayla">Ninguna devolución aprobada ni rechazada en los últimos 15 días.</p>;
+    return <p data-guia="devoluciones.resueltas" className="nota-cayla">Ninguna devolución aprobada ni rechazada en los últimos 15 días.</p>;
   }
   return (
-    <ul className="divide-y divide-sand overflow-hidden rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
+    <ul data-guia="devoluciones.resueltas" className="divide-y divide-sand overflow-hidden rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
       {resueltas.map((d) => (
         <li
           key={d.id}

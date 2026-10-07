@@ -43,7 +43,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
     // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
     // en pantalla grande separaría la sede de sus cifras: conserva la columna de lectura de siempre.
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div data-guia="caja-historial.cabecera" className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Volver href="/caja" a="Caja" className="mb-2" />
           <h1 className="font-display mt-1 text-2xl text-tinta">Historial de cierres</h1>
@@ -52,6 +52,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
           </p>
         </div>
         <Link
+          data-guia="caja-historial.prueba"
           href={incluirPrueba ? "/caja/historial" : "/caja/historial?prueba=1"}
           aria-pressed={incluirPrueba}
           className={`label-cayla mt-1 rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
@@ -65,6 +66,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
       {aperturas && aperturas.length > 0 && <AperturasPorRevisar aperturas={aperturas} />}
 
       {cierres.length > 0 && (
+        <div data-guia="caja-historial.tabla">
         <Tabla>
           <Encabezado
             plantilla={PLANTILLA}
@@ -105,7 +107,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
                   <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Contado</span>
                   {money(c.montoCierreReal)}
                 </span>
-                <span className={celda("der", `font-semibold ${cuadra ? "text-tinta" : c.diferencia > 0 ? "text-verde-profundo" : "text-rojo-profundo"}`)}>
+                <span data-guia="caja-historial.diferencia" className={celda("der", `font-semibold ${cuadra ? "text-tinta" : c.diferencia > 0 ? "text-verde-profundo" : "text-rojo-profundo"}`)}>
                   <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Diferencia</span>
                   {c.diferencia >= 0 ? "+" : ""}
                   {money(c.diferencia)}
@@ -118,6 +120,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
             );
           })}
         </Tabla>
+        </div>
       )}
     </div>
   );

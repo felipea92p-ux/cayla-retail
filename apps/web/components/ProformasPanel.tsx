@@ -102,7 +102,7 @@ export function ProformasPanel({
     <div className="space-y-6">
       {/* `overflow-hidden` solo con filas (ver el mismo comentario en ComprobantesPanel): sin ellas la tarjeta es baja y
           recortaría el globo de ayuda del encabezado. */}
-      <div className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
+      <div data-guia="proformas.lista" className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
         <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0">
             <p className="label-cayla text-[11px] text-tinta/65">
@@ -125,7 +125,7 @@ export function ProformasPanel({
               </p>
             )}
           </div>
-          <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setNueva(true)}>
+          <BotonCompacto variante="primario" data-guia="proformas.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setNueva(true)}>
             Nueva proforma
           </BotonCompacto>
         </div>
@@ -191,7 +191,7 @@ export function ProformasPanel({
                         )}
                       </div>
                       {lineas !== null && (
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div data-guia="proformas.acciones" className="flex flex-wrap items-center gap-1.5">
                           <button type="button" onClick={() => setViendo(p)} aria-label={`Ver o imprimir ${numeroDeProforma(p.numero)}`} className={ENLACE_FILA}>
                             Ver / imprimir
                           </button>

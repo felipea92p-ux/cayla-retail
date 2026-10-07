@@ -142,7 +142,7 @@ export function NuevaProformaModal({
           )}
 
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}
-          <div className="relative">
+          <div data-guia="proformas.modal-buscar" className="relative">
             <label className="vidrio-cayla flex h-10 items-center gap-2 rounded-[10px] px-3 text-sm text-tinta focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rojo/60">
               <Search aria-hidden strokeWidth={1.75} className="h-4 w-4 shrink-0 text-tinta/60" />
               <input
@@ -249,7 +249,7 @@ export function NuevaProformaModal({
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div data-guia="proformas.modal-cliente" className="space-y-2">
               <Segmentado
                 etiqueta="Documento del cliente"
                 valor={tipoDoc}
@@ -266,7 +266,7 @@ export function NuevaProformaModal({
               <CampoTexto etiqueta="Vale por (días)" type="number" min="1" max="60" inputMode="numeric" value={dias} onChange={(e) => setDias(e.target.value)} />
               <CampoTexto etiqueta="Nota para el cliente" pie="Sale impresa al pie. Opcional." maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Incluye caja de regalo" />
             </div>
-            <dl className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">
+            <dl data-guia="proformas.modal-total" className="space-y-1 self-end rounded-[12px] bg-tinta/[0.03] px-4 py-3 text-sm">
               <div className="flex justify-between text-tinta/70">
                 <dt>
                   {totales.prendas} {totales.prendas === 1 ? "prenda" : "prendas"} · descuentos
@@ -290,7 +290,7 @@ export function NuevaProformaModal({
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          <div className="flex gap-2 pt-1">
+          <div data-guia="proformas.modal-crear" className="flex gap-2 pt-1">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>

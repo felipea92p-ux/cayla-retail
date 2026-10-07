@@ -16,7 +16,7 @@
       "DesplegablePildora «Tipo»",
       "DesplegablePildora «Tienda»",
       "DesplegablePildora «Estado»",
-      "BotonCompacto «{`Opciones de ${ETIQUETA_TIPO[c.tipo]}»",
+      "BotonCompacto «comprobantes.opciones»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Cancelar»",
       "Boton «Cancelar»",
@@ -45,7 +45,7 @@
       "Pestanas «);»"
     ],
     "components/FacturacionShell.tsx": [
-      "Link «(sin nombre)»"
+      "Link «comprobantes.aviso-sunat»"
     ],
     "components/OpcionesComprobante.tsx": [
       "a «{tieneNumero && primerNombre ? `WhatsApp a ${primerNombre}»",
