@@ -25,6 +25,8 @@ function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
     vendidas30: 0,
     semanas: [0, 0, 0, 0, 0, 0, 0, 0],
     diasSinVender: null,
+    salioAlPiso: null,
+    llego: null,
     llegaron30: 0,
     vendidasDeLasQueLlegaron30: 0,
     otras: [],

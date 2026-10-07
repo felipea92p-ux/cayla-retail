@@ -85,19 +85,6 @@
     .i-num b.palabras{font-size:28px;line-height:1.05}
     .i-num > span{font-size:13px;color:var(--color-tinta-60);line-height:1.3}
     .i-num em{font:inherit;font-style:normal}
-    .perchas{position:relative;display:flex;gap:2px;padding-bottom:18px}
-    .perchas svg{width:20px;height:20px;flex:none}
-    .perchas .si{color:var(--color-tinta)} .perchas .no{color:color-mix(in srgb,var(--color-tinta) 22%,transparent)}
-    .meta-m{position:absolute;top:-4px;bottom:12px;width:0;border-left:2px dashed var(--color-verde)}
-    .meta-m span{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:600;color:var(--color-verde);white-space:nowrap}
-    .mini-mar{display:flex;flex-direction:column;gap:5px;width:100%}
-    .mm{display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);gap:6px;align-items:center;font-size:11px}
-    .mm i{display:block}
-    .mm .l{display:flex;justify-content:flex-end}
-    .mm .l i{height:7px;border-radius:3px 0 0 3px;background:var(--color-tinta);width:calc(var(--n)*100%)}
-    .mm .r i{height:7px;border-radius:0 3px 3px 0;background:var(--color-grafico-neutro);width:calc(var(--n)*100%)}
-    .mm .c{text-align:center;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mm .c.corto{color:var(--color-ambar)}
     /* Tarjetas 1 y 2: solo prendas */
     .lista5{display:flex;flex-direction:column}
     .l5{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:9px;align-items:center;padding:6px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--color-sand)}
@@ -170,6 +157,14 @@
     .c-grupo .n{font-size:12px;font-weight:600;color:var(--color-tinta-60);background:var(--color-hueso);border-radius:999px;padding:2px 8px}
     .c-grupo .btn-cayla{margin-left:auto}
     .c-grupo.mudo h4{color:var(--color-tinta-60);font-weight:500}
+    .c-grupo .detalle{font-size:12.5px;color:var(--color-tinta-60)}
+    .c-cab .c-sub{display:block;font-size:12.5px;color:var(--color-tinta-60);margin-top:2px}
+    /* «Ver N más»: lo que un grupo con corte deja bajo sus primeras filas (los tipos de «Nunca salió al piso»). */
+    .c-mas{display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px 66px;padding:4px 0;border:0;background:transparent;
+      font-size:12.5px;font-weight:600;color:var(--color-taupe);cursor:pointer;transition:color 160ms var(--ease-cayla)}
+    .c-mas svg{width:13px;height:13px}
+    .c-mas:hover{color:var(--color-tinta)}
+    .c-mas:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px;border-radius:6px}
     .c-fila{cursor:pointer;border-radius:10px;transition:background-color 160ms var(--ease-cayla),opacity 160ms var(--ease-cayla)}
     .c-fila:hover{background:color-mix(in srgb,var(--color-hueso) 55%,transparent)}
     .c-fila.mudo .tile, .c-fila.mudo .c-nom{opacity:.6}
@@ -191,6 +186,8 @@
     .pil.puede{color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 11%,transparent)}
     .pil.puede svg{width:12px;height:12px}
     .pil.puede .cod{color:var(--color-pizarra)}
+    /* «El modelo ya está en el piso» («Nunca salió al piso»): informa, como «puede pedir». */
+    .pil.modelo{color:var(--color-pizarra);background:color-mix(in srgb,var(--color-pizarra) 11%,transparent)}
     .pista{grid-area:pista;position:relative;height:20px;border-radius:6px;background:var(--color-hueso)}
     .pista .linea{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1.5px dashed color-mix(in srgb,var(--color-tinta) 45%,transparent)}
     .pista .barra{position:absolute;left:0;top:4px;bottom:4px;border-radius:4px;width:calc(var(--n) * 100%);background:var(--c)}
@@ -208,6 +205,10 @@
       .c-eje{display:none}
       .c-fila{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:"tile nom acc" "tile pista pista" "tile pil pil";row-gap:6px;padding:10px 16px}
       .c-pil{margin-top:2px}
+      /* Sin ancho, el encabezado del grupo se reparte: el detalle baja a su línea, bajo el título, y el botón cabe entero. */
+      .c-grupo{flex-wrap:wrap;row-gap:4px}
+      .c-grupo .detalle{order:9;flex-basis:100%;padding-left:40px}
+      .c-mas{margin-left:68px}
     }
     .umbral{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--color-tinta-60);flex-wrap:wrap}
     .grilla{border-collapse:separate;border-spacing:3px;font-size:12.5px;font-variant-numeric:tabular-nums}
@@ -225,20 +226,6 @@
     .mu-poco{background:color-mix(in srgb,var(--color-ambar) 18%,transparent)}
     .mu-hay{background:var(--color-hueso)}
     .mu-cero{box-shadow:inset 0 0 0 1px var(--color-sand)}
-    /* Mariposa: se vende ↔ tienes */
-    .mariposa{display:flex;flex-direction:column;gap:4px}
-    .m-cab,.m-fila{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,1fr);gap:10px;align-items:center}
-    .m-cab{font-size:11.5px;font-weight:600;color:var(--color-tinta-60);margin-bottom:4px}
-    .m-cab span:first-child{text-align:right}
-    .m-fila{cursor:pointer;border-radius:6px;padding:3px 0;border:0;background:transparent;width:100%}
-    .m-fila:hover,.m-fila[aria-pressed="true"]{background:var(--color-hueso)}
-    .m-l{display:flex;justify-content:flex-end;align-items:center;gap:6px;font-size:11.5px;font-variant-numeric:tabular-nums}
-    .m-r{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--color-tinta-60);font-variant-numeric:tabular-nums}
-    .m-l i{display:block;height:14px;border-radius:4px 0 0 4px;background:var(--color-tinta);width:calc(var(--n) * 100%)}
-    .m-r i{display:block;height:14px;border-radius:0 4px 4px 0;background:var(--color-grafico-neutro);width:calc(var(--n) * 100%)}
-    .m-n{text-align:center;font-size:12.5px;font-weight:600;line-height:1.15}
-    .m-n small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.04em}
-    .m-n small.corto{color:var(--color-ambar)} .m-n small.sobra{color:var(--color-tinta-60);font-weight:500}
     /* Tallas: columnas por par */
     .cols-t{display:flex;gap:34px;align-items:flex-end;justify-content:center;padding-top:8px}
     .ct{display:flex;flex-direction:column;align-items:center;gap:6px}

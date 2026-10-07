@@ -7,7 +7,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
-import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reglas";
+import { diasQueQuedan, otraSedeQueLaTiene, plural, porLlegar } from "@/lib/analisis-reglas";
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
 import {
   cuentasFiltroAcaba,
@@ -38,7 +38,7 @@ const AYUDA_COMPRAR =
   "Por defecto, todo lo que se acaba se compra al proveedor: el taller o terceros. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla.";
 
 export function PestanaAcaba() {
-  const { datos, acceso, prendas, liquidarDesde, filtroAcaba, setFiltroAcaba } = useAnalisis();
+  const { datos, acceso, prendas, liquidarDesde, filtroAcaba, setFiltroAcaba, diasDeVentas } = useAnalisis();
   // En la tienda (sin buscar): decide si hay carril. Con lo buscado: las filas y las cuentas de cada filtro.
   const enLaTienda = useMemo(() => prendasQueSeAcaban(datos.prendas, liquidarDesde).length, [datos.prendas, liquidarDesde]);
   const seAcaban = useMemo(() => prendasQueSeAcaban(prendas, liquidarDesde), [prendas, liquidarDesde]);
@@ -65,7 +65,7 @@ export function PestanaAcaba() {
   return (
     <Carril
       titulo="Cuántos días te quedan"
-      nota="Al ritmo de los últimos 30 días"
+      nota={`Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`}
       herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban)} onFiltro={setFiltroAcaba} />}
       eje={[...EJE_ACABA]}
       grupos={[grupo]}

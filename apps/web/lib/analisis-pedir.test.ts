@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import {
+  alcancePorTipo,
   categoriaDe,
+  DIAS_ALCANZA_MAX,
+  diasANavidad,
+  finEjeAlcance,
+  textoAlcance,
+  textoRitmo,
+  tipoCorto,
   cuentaNavidad,
   curvaDeTallas,
   escalaRinde,
   estadoQuedan,
   FALLA_RINDE,
   filaRindeDe,
-  mariposa,
   masVendidas,
   notaRindeVacio,
   PRENDAS_EN_RANKING,
@@ -18,7 +24,6 @@ import {
   SIN_CATEGORIA,
   solesRinde,
   tipRinde,
-  TIPOS_EN_MARIPOSA,
   ventaMaxima,
   type FilaRinde,
 } from "./analisis-pedir";
@@ -47,6 +52,8 @@ function prenda(p: Partial<PrendaAnalisis> = {}): PrendaAnalisis {
     vendidas30: 0,
     semanas: [0, 0, 0, 0, 0, 0, 0, 0],
     diasSinVender: null,
+    salioAlPiso: null,
+    llego: null,
     llegaron30: 0,
     vendidasDeLasQueLlegaron30: 0,
     otras: [],
@@ -123,60 +130,61 @@ describe("rielNavidad", () => {
   });
 });
 
-describe("mariposa", () => {
-  it("de cada 100 vendidas y de cada 100 que tengo, por tipo; ordenada por lo que se vende", () => {
-    const m = mariposa([
-      prenda({ categoria: "Polos", vendidas30: 6, piso: 3, almacen: 1 }),
-      prenda({ categoria: "Camisas y Blusas", vendidas30: 3, piso: 10 }),
-      prenda({ categoria: "Bodys", vendidas30: 1, piso: 2, almacen: 4 }),
-    ]);
-    expect(m.filas).toEqual([
-      { categoria: "Polos", v: 60, t: 20, marca: "corto" },
-      { categoria: "Camisas y Blusas", v: 30, t: 50, marca: "sobra" },
-      { categoria: "Bodys", v: 10, t: 30, marca: "sobra" },
-    ]);
-    expect(m.otros).toBeNull();
-    expect(m.max).toBe(60);
+describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
+  // Datos inventados: una tienda con 8 días de ventas en el ERP y Navidad a 79 días.
+  const tienda = [
+    prenda({ categoria: "Polos", vendidas30: 37, piso: 60, almacen: 187, salioAlPiso: "2026-09-30" }),
+    prenda({ categoria: "Polos", vendidas30: 0, piso: 0, almacen: 4, salioAlPiso: null }),
+    prenda({ categoria: "Capas", categoriaPrefijo: "CAP", vendidas30: 7, piso: 3, salioAlPiso: "2026-09-30" }),
+    prenda({ categoria: "Jeans", categoriaPrefijo: "JEA", vendidas30: 0, piso: 10, almacen: 30, salioAlPiso: "2026-09-30" }),
+    prenda({ categoria: "Bodys", categoriaPrefijo: "BOD", vendidas30: 6, piso: 5, almacen: 114, salioAlPiso: "2026-09-30" }),
+    prenda({ categoria: "Faldas", vendidas30: 0, piso: 0, almacen: 0 }),
+  ];
+
+  it("lo que tienes entre lo que vendes por día (en los días de ventas de la tienda); de lo que menos dura a lo que más; lo que no se vendió, al final", () => {
+    const a = alcancePorTipo(tienda, 8, 79, true);
+    expect(a.map((t) => t.categoria)).toEqual(["Capas", "Polos", "Bodys", "Jeans"]);
+    expect(a.map((t) => (t.dias === null ? null : Math.round(t.dias)))).toEqual([3, 54, 159, null]);
+    expect(a.map((t) => t.pide)).toEqual([true, true, false, false]);
+    expect(a[1]).toMatchObject({ vendidas: 37, tiene: 251, nunca: 4, prefijo: "POL" });
   });
 
-  it("suma las tallas y colores de un mismo tipo; lo que ni se vende ni está no cuenta", () => {
-    const m = mariposa([
-      prenda({ categoria: "Polos", vendidas30: 2, piso: 1 }),
-      prenda({ categoria: "Polos", vendidas30: 2, piso: 1 }),
-      prenda({ categoria: null, vendidas30: 0, piso: 2 }),
-      prenda({ categoria: "Faldas", vendidas30: 0, piso: 0 }),
-    ]);
-    expect(m.filas.map((f) => [f.categoria, f.v, f.t])).toEqual([
-      ["Polos", 100, 50],
-      [SIN_CATEGORIA, 0, 50],
-    ]);
+  it("entre 30 días (una tienda con un mes de ventas) todo dura casi 4 veces más: Polos ya llega a Navidad", () => {
+    const a = alcancePorTipo(tienda, 30, 79, true);
+    expect(a.find((t) => t.categoria === "Polos")?.pide).toBe(false);
+    expect(a.find((t) => t.categoria === "Capas")?.pide).toBe(true);
   });
 
-  it("una diferencia de menos de 4 de cada 100 no se marca", () => {
-    const m = mariposa([prenda({ categoria: "Polos", vendidas30: 52, piso: 49 }), prenda({ categoria: "Tops", vendidas30: 48, piso: 51 })]);
-    expect(m.filas.map((f) => f.marca)).toEqual([null, null]);
+  it("sin saber cuándo salió al piso cada prenda, «nunca salieron» queda en null (no en 0)", () => {
+    expect(alcancePorTipo(tienda, 8, 79, false).every((t) => t.nunca === null)).toBe(true);
   });
 
-  it(`con más de ${TIPOS_EN_MARIPOSA} tipos, entran los que más pesan en cualquiera de las dos alas; el resto, sumado en «Otros»`, () => {
-    const prendas = Array.from({ length: 12 }, (_, k) => prenda({ categoria: `Tipo ${String(k).padStart(2, "0")}`, vendidas30: 12 - k, piso: 1 }));
-    // Un tipo que casi no se vende pero llena la tienda (sobra) no se esconde.
-    prendas.push(prenda({ categoria: "Abrigos", vendidas30: 0, piso: 40 }));
-    const m = mariposa(prendas);
-    expect(m.filas).toHaveLength(TIPOS_EN_MARIPOSA);
-    expect(m.filas.some((f) => f.categoria === "Abrigos" && f.marca === "sobra")).toBe(true);
-    expect(m.otros?.tipos).toEqual(["Tipo 09", "Tipo 10", "Tipo 11"]);
-    expect(m.otros?.v).toBe(Math.round(((3 + 2 + 1) / 78) * 100));
+  it("lo que se vendió y ya no está dura 0: «Ya no hay», y se pide", () => {
+    const a = alcancePorTipo([prenda({ categoria: "Capas", vendidas30: 3, piso: 0, almacen: 0 })], 8, 79, true);
+    expect(a[0]).toMatchObject({ dias: 0, pide: true });
+    expect(textoAlcance(0)).toBe("Ya no hay");
   });
 
-  it("si sobrara un solo tipo, se muestra él en vez de «Otros tipos»", () => {
-    const prendas = Array.from({ length: TIPOS_EN_MARIPOSA + 1 }, (_, k) => prenda({ categoria: `Tipo ${k}`, vendidas30: k + 1, piso: 1 }));
-    const m = mariposa(prendas);
-    expect(m.filas).toHaveLength(TIPOS_EN_MARIPOSA + 1);
-    expect(m.otros).toBeNull();
+  it("las palabras: días bajo una semana, semanas hasta 6 meses, y lo que no se vendió", () => {
+    expect(textoAlcance(3.4)).toBe("3 días");
+    expect(textoAlcance(0.4)).toBe("1 día");
+    expect(textoAlcance(20)).toBe("3 semanas");
+    expect(textoAlcance(7)).toBe("1 semana");
+    expect(textoAlcance(181)).toBe("26 semanas");
+    expect(textoAlcance(DIAS_ALCANZA_MAX)).toBe("Más de 6 meses");
+    expect(textoAlcance(null)).toBe("No se vendió");
+    expect(textoRitmo(8)).toBe("Al ritmo de los últimos 8 días");
+    expect(textoRitmo(1)).toBe("Al ritmo de los últimos 1 día");
   });
 
-  it("sin nada que comparar, vacía (y la barra no divide entre cero)", () => {
-    expect(mariposa([])).toEqual({ filas: [], otros: null, max: 1 });
+  it("los días a Navidad, el nombre corto de un tipo y el fin del eje (6 meses, o más si Navidad queda lejos)", () => {
+    expect(diasANavidad("2026-10-07")).toBe(79);
+    expect(diasANavidad("2026-12-25")).toBe(0);
+    expect(diasANavidad("2026-12-26")).toBe(364);
+    expect(tipoCorto("Gorros y Sombreros")).toBe("Gorros");
+    expect(tipoCorto("Polos")).toBe("Polos");
+    expect(finEjeAlcance(79)).toBe(DIAS_ALCANZA_MAX);
+    expect(finEjeAlcance(300)).toBe(345);
   });
 });
 
@@ -194,9 +202,9 @@ describe("curvaDeTallas", () => {
     expect(c).toEqual({
       tipo: "tallas",
       columnas: [
-        { talla: "S", v: 10, t: 40, pideMas: false },
-        { talla: "M", v: 60, t: 30, pideMas: true },
-        { talla: "L", v: 30, t: 30, pideMas: false },
+        { talla: "S", v: 10, t: 40, vend: 1, tiene: 4, pideMas: false },
+        { talla: "M", v: 60, t: 30, vend: 6, tiene: 3, pideMas: true },
+        { talla: "L", v: 30, t: 30, vend: 3, tiene: 3, pideMas: false },
       ],
       max: 60,
       falta: "M",

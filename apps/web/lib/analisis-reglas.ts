@@ -2,12 +2,13 @@
 // servidor (el resumen de cada tienda) y cada pestaña, así una prenda cae en el mismo grupo en Hoy, en su carril y en su ficha.
 //
 // Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos
-// semanas o menos al ritmo de 30 días; se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
+// semanas o menos al ritmo de lo vendido en los días de ventas que tiene la tienda, hasta 30 (2026-10-07: antes siempre entre 30); se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
 import type { EdadInventario, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { VISTAS_ANALISIS } from "./analisis-tipos";
+import { diasEntreFechas } from "./fechas-lima";
 
 /** Hasta cuántos días de stock «se está acabando» (el eje del carril llega a 2 semanas). */
 export const DIAS_SE_ACABA = 14;
@@ -27,8 +28,19 @@ export const LIQUIDAR_MAX = 999;
 export const LIQUIDAR_PASO = 5;
 /** Cuánto tiene que haber vendido otra tienda en 30 días para proponer mandársela («Mándalas a donde sí se venden»). */
 export const VENDIDAS_PARA_ENVIAR = 2;
-/** Meta de «se vende lo que llega»: de cada 10 que llegan en 30 días, cuántas deberían venderse (decisión 3). */
-export const META_SE_VENDE_LO_QUE_LLEGA = 6;
+/** La ventana de ventas de Análisis: el ritmo de lo que se vende se mide en hasta 30 días. */
+export const VENTANA_VENTAS = 30;
+
+/**
+ * Cuántos días de ventas tiene la tienda en el ERP, hasta 30: desde su primera venta, hoy incluido. Sin ventas, 30 (no hay ritmo
+ * que medir y la ventana es la de siempre). Ejemplo inventado: una tienda que vende en el ERP desde el 30 de setiembre tiene 8 el
+ * 7 de octubre.
+ */
+export function diasDeVentas(primeraVenta: string | null | undefined, hoy: string): number {
+  if (!primeraVenta) return VENTANA_VENTAS;
+  return Math.min(VENTANA_VENTAS, Math.max(1, diasEntreFechas(primeraVenta, hoy) + 1));
+}
+
 /** Cuántas prendas muestran las listas cortas de Hoy. */
 export const PRENDAS_EN_LISTA = 5;
 
@@ -38,6 +50,13 @@ export const GRUPOS_ACABA: readonly GrupoAnalisis[] = ["comprar"];
 export const GRUPOS_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar"];
 export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "vigila"];
 
+/**
+ * Nunca salió al piso (20261007120000): tiene unidades guardadas en mi tienda y la base no sabe de ninguna vez en su piso de venta
+ * (ni una bajada, ni una venta). Lo que está colgado ya salió, aunque la base no lo hubiera visto moverse. Vive aquí (y no en
+ * `analisis-piso.ts`) porque lo usan «Nunca salió al piso» y «Qué pedir».
+ */
+export const nuncaSalio = (p: Pick<PrendaAnalisis, "salioAlPiso" | "almacen" | "piso">): boolean => p.salioAlPiso === null && p.almacen > 0 && p.piso === 0;
+
 /** Lo libre en mi tienda. */
 export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): number => p.piso + p.almacen;
 
@@ -45,18 +64,20 @@ export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): numb
 export const porLlegar = (p: Pick<PrendaAnalisis, "llega">): number => p.llega.reduce((s, x) => s + x.cantidad, 0);
 
 /**
- * Cuántos días le quedan al ritmo de los últimos 30: 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se
+ * Cuántos días le quedan al ritmo de lo vendido en los días de ventas de la tienda (`diasDeVentas`, hasta 30; Felipe 2026-10-07:
+ * una tienda con 8 días en el ERP no divide entre 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se
  * acaba: no tiene ritmo).
  */
-export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30">): number | null {
+export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): number | null {
   if (p.vendidas30 <= 0) return null;
   const total = totalEnTienda(p);
   if (total === 0) return 0;
-  return Math.max(1, Math.round(total / (p.vendidas30 / 30)));
+  const ventana = Math.min(VENTANA_VENTAS, Math.max(1, Math.round(p.diasDeVentas ?? VENTANA_VENTAS)));
+  return Math.max(1, Math.round(total / (p.vendidas30 / ventana)));
 }
 
 /** Se está acabando: se vende y lo que queda dura dos semanas o menos (o ya no hay). */
-export function seEstaAcabando(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30">): boolean {
+export function seEstaAcabando(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): boolean {
   const d = diasQueQuedan(p);
   return d !== null && d <= DIAS_SE_ACABA;
 }
@@ -84,7 +105,7 @@ export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEn
  * se liquida; lo quieto desde un mes, se vigila.
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras">,
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas">,
   liquidarDesde: number,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";
@@ -126,14 +147,6 @@ export function edadDelInventario(prendas: readonly Pick<PrendaAnalisis, "piso" 
     else e.masDe90 += u;
   }
   return e;
-}
-
-/** De cada 10 que llegaron en 30 días, cuántas se vendieron (redondeado); null si no llegó nada. */
-export function vendioDe10(prendas: readonly Pick<PrendaAnalisis, "llegaron30" | "vendidasDeLasQueLlegaron30">[]): number | null {
-  const llegaron = prendas.reduce((s, p) => s + p.llegaron30, 0);
-  if (llegaron <= 0) return null;
-  const vendidas = prendas.reduce((s, p) => s + Math.min(p.vendidasDeLasQueLlegaron30, p.llegaron30), 0);
-  return Math.round((vendidas / llegaron) * 10);
 }
 
 /** «Liquidar desde» dentro de sus topes; lo que no es un número vuelve al de fábrica. */
