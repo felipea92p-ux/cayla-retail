@@ -602,39 +602,43 @@ function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
 /**
  * El verbo del camino, sus tres primeras prendas (y «+N») y por qué. Vive en un `foreignObject`: nada de adentro debe crear su propia
  * capa (position, overflow que no es visible, transform, opacity), porque Safari la pinta fuera de lugar (ver `analisis-hoy.css`).
+ * Por eso la marca de sus prendas (`data-ps`) va en un `<g>` que lo envuelve: al pasar el mouse por otro camino, el atenuado
+ * (opacity) lo pinta el SVG, en su sitio. En el `div`, Safari dibujaba la etiqueta atenuada sin la escala del dibujo, encima de
+ * «Tu tienda» (Felipe, 2026-10-07); en el mismo `foreignObject`, no la dibujaba.
  */
 function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHoy>; lado: "izq" | "der"; alIr: AlIr; encima: CaminoEncima }) {
   const c = b.camino;
   const e = etiquetaFlujo(b.cy, lado);
   return (
-    <foreignObject x={e.x} y={px(e.y)} width={e.w} height={e.h}>
-      <div
-        className={`fl-et ${lado}`}
-        data-ps={ids(c.prendas)}
-        role="button"
-        tabIndex={0}
-        onClick={(ev) => alIr(c, ev.currentTarget)}
-        onMouseEnter={() => encima.entra(c.clave)}
-        onMouseLeave={encima.sale}
-        onFocus={() => encima.entra(c.clave)}
-        onBlur={encima.sale}
-      >
-        <span className="fl-l1">
-          <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
-            <Icono nombre={c.est} />
+    <g data-ps={ids(c.prendas)}>
+      <foreignObject x={e.x} y={px(e.y)} width={e.w} height={e.h}>
+        <div
+          className={`fl-et ${lado}`}
+          role="button"
+          tabIndex={0}
+          onClick={(ev) => alIr(c, ev.currentTarget)}
+          onMouseEnter={() => encima.entra(c.clave)}
+          onMouseLeave={encima.sale}
+          onFocus={() => encima.entra(c.clave)}
+          onBlur={encima.sale}
+        >
+          <span className="fl-l1">
+            <span className="est" style={{ color: COLOR_ESTADO[c.est] }}>
+              <Icono nombre={c.est} />
+            </span>
+            <b>{c.verbo}</b>
+            {c.prendas.slice(0, 3).map((p) => (
+              <TilePrenda key={p.varianteId} prenda={p} tamano={17} />
+            ))}
+            {c.prendas.length > 3 && <span className="mas3">+{c.prendas.length - 3}</span>}
           </span>
-          <b>{c.verbo}</b>
-          {c.prendas.slice(0, 3).map((p) => (
-            <TilePrenda key={p.varianteId} prenda={p} tamano={17} />
-          ))}
-          {c.prendas.length > 3 && <span className="mas3">+{c.prendas.length - 3}</span>}
-        </span>
-        <span className="fl-l2">{c.motivo}</span>
-        <TipRico>
-          <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
-        </TipRico>
-      </div>
-    </foreignObject>
+          <span className="fl-l2">{c.motivo}</span>
+          <TipRico>
+            <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+          </TipRico>
+        </div>
+      </foreignObject>
+    </g>
   );
 }
 
