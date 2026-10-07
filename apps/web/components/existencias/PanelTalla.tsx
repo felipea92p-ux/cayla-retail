@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeftRight, Bandage, Barcode, Check, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
+import { ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -13,10 +13,10 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
-import { accionesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
+import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoInsignia } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
-import { aclaracionDeLaCaja, desgloseDePrenda, estadoTalla, lineaDeLaSuma, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
@@ -55,18 +55,21 @@ const ICONO: Record<ClaveAccionTalla, Icono> = {
   ficha: ClipboardList,
 };
 
-/** «Qué toca»: el color de la respuesta corta y su punto (ámbar = hay que hacerlo aquí, pizarra = informativo o afuera, verde = está bien). */
-const TONO_QUE_TOCA: Record<TonoQueToca, { texto: string; punto: string }> = {
-  ambar: { texto: "text-ambar-profundo", punto: "bg-ambar" },
-  pizarra: { texto: "text-pizarra", punto: "bg-pizarra" },
-  verde: { texto: "text-verde", punto: "bg-verde" },
+
+/** La insignia junto al número grande (`insigniaDeTalla`): rojo = se acabó, ámbar = falta colgar, pizarra = informativo, verde = bien. */
+const TONO_INSIGNIA_TALLA: Record<TonoInsignia, string> = {
+  rojo: "bg-rojo/[0.11] text-rojo-profundo",
+  ambar: "bg-ambar/[0.13] text-ambar-profundo",
+  pizarra: "bg-pizarra/[0.12] text-pizarra",
+  verde: "bg-verde/[0.11] text-verde",
 };
 
 const CLASE_TALLA = {
   normal: "border-sand bg-crema",
   por_colgar: "border-ambar/35 bg-ambar/[0.10]",
   sin_atras: "border-sand bg-crema",
-  sin_stock: "border-dashed border-sand bg-transparent text-taupe",
+  // Agotada (nada libre en la sede): rojo suave, como la columna de la tarjeta (2026-10-07).
+  sin_stock: "border-rojo/35 bg-rojo/[0.08] text-rojo-profundo",
 } as const;
 
 const solesDe = (n: number | null | undefined) => (n == null ? null : `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
@@ -169,6 +172,8 @@ export function PanelTalla({
   const [varianteId, setVarianteId] = useState<string | undefined>(varianteInicial);
   const [flujo, setFlujo] = useState<FlujoPedido | null>(flujoInicial);
   const [hecho, setHecho] = useState<string | null>(null);
+  // «¿Cómo se vende?» del pie: el ritmo y el código, plegados (2026-10-07).
+  const [verRitmo, setVerRitmo] = useState(false);
   // Cada vez que la tarjeta pide algo nuevo (otra talla, otra acción rápida), el panel lo toma sin cerrarse ni abrirse de nuevo.
   const [pedida, setPedida] = useState({ claveInicial, varianteInicial, flujoInicial, vistaInicial });
   if (pedida.claveInicial !== claveInicial || pedida.varianteInicial !== varianteInicial || pedida.flujoInicial !== flujoInicial || pedida.vistaInicial !== vistaInicial) {
@@ -226,7 +231,6 @@ export function PanelTalla({
     puedeColgar: puedeReponer,
     puedePedir: puedePedir && sedesParaPedir.length > 0,
   });
-  const desglose = desgloseDePrenda({ piso: fila.pisoDisponible, almacen: fila.almacenDisponible, apartado: fila.apartado, danado: fila.danado ?? 0 });
   // El ritmo es del COLOR, todas sus tallas juntas, como la maqueta (2026-10-06): una talla sola casi nunca junta las jornadas que pide la
   // regla de Felipe para decir una tasa (3, 2026-09-25), y el panel quedaba en «Poco tiempo…». De la talla va debajo un hecho, no una
   // tasa: cuántas se vendieron en la ventana del ritmo.
@@ -250,7 +254,8 @@ export function PanelTalla({
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
   // Cuánto tiene cada otra sede de esta talla: va bajo «¿Pedir?» (o bajo «¿Hay?» donde no se separa piso y almacén y no hay «¿Pedir?»).
   const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
-  const filaConSedes = queToca.some((q) => q.tema === "pedir") ? "pedir" : "hay";
+  const insignia = insigniaDeTalla(queToca);
+  const total = (separa ? Math.max(0, fila.pisoDisponible ?? 0) + Math.max(0, fila.almacenDisponible ?? 0) : Math.max(0, fila.disponible)) + fila.apartado + (fila.danado ?? 0);
 
   // La flecha pidió otro color: se aplica aquí, donde ya se conoce el color de ahora (y la talla se conserva si existe).
   if (pasoColor) {
@@ -292,7 +297,8 @@ export function PanelTalla({
       case "enviar":
         return lanzar("enviar");
       case "pedir":
-        return lanzar("pedir");
+        // Directo a «cuántas», con la tienda que más tiene ya elegida (lo que hacía el botón «Pedir» de «¿Pedir?»).
+        return pedirRapido(prenda, fila);
       case "ajustar":
         return lanzar("ajustar");
       case "apartar":
@@ -303,7 +309,7 @@ export function PanelTalla({
     }
   }
 
-  // «Pedir» rápido de una fila de agotadas: la tienda que más tiene, 1 unidad, directo al paso de cuántas.
+  // «Pedir» rápido: la tienda que más tiene, 1 unidad, directo al paso de cuántas.
   function pedirRapido(c: Prenda, t: FilaExistencias) {
     const mejor = mejorOrigen(t.enRed, sedesParaPedir);
     irA(c, t);
@@ -335,17 +341,29 @@ export function PanelTalla({
     }
   }
 
-  const cifra = (valor: number | null, rotulo: string, abre?: { texto: string; onClick: () => void }) => {
+  /** Una de las cuatro casillas: en 0 se apaga (borde punteado), salvo el piso que falta colgar (ámbar). Apartadas y dañadas con algo
+   *  se tocan: abren su lista (las mismas ventanas de siempre). */
+  const casilla = (valor: number, rotulo: string, clase?: "falta" | "apartada" | "danada", abre?: () => void, queHace = "ver cuáles") => {
+    const fondo =
+      clase === "falta"
+        ? "border border-ambar/45 bg-ambar/[0.12] text-ambar-profundo"
+        : valor === 0
+          ? "border border-dashed border-sand text-taupe/70"
+          : clase === "apartada"
+            ? "bg-pizarra/[0.12] text-tinta"
+            : clase === "danada"
+              ? "bg-rojo/[0.09] text-tinta"
+              : "bg-hueso text-tinta";
     const cuerpo = (
       <>
-        <b className={`font-display text-[30px] font-medium leading-none tabular-nums ${valor ? "text-tinta" : "text-taupe"}`}>{valor ?? 0}</b>
-        <small className="text-xs text-taupe">{rotulo}</small>
-        {abre && <small className="text-xs font-medium text-tinta underline-offset-2 group-hover:underline">{abre.texto}</small>}
+        <b className="block font-display text-[22px] font-medium leading-none tabular-nums">{valor}</b>
+        <small className="text-[11.5px] text-taupe">{rotulo}</small>
+        {abre && <ChevronRight aria-hidden className="absolute right-1.5 top-2 h-3.5 w-3.5 text-taupe" strokeWidth={1.8} />}
       </>
     );
-    const base = "grid gap-0.5 rounded-[14px] border border-sand bg-crema p-2.5 text-left";
+    const base = `relative grid gap-1 rounded-[11px] px-2.5 py-2 text-left ${fondo}`;
     return abre ? (
-      <button type="button" onClick={abre.onClick} className={`group ${base} transition-colors hover:border-taupe`}>
+      <button type="button" onClick={abre} aria-label={`${valor} ${rotulo}: ${queHace}`} title={queHace.charAt(0).toLocaleUpperCase("es") + queHace.slice(1)} className={`${base} transition-[outline] hover:outline hover:outline-1 hover:outline-tinta/25`}>
         {cuerpo}
       </button>
     ) : (
@@ -453,7 +471,6 @@ export function PanelTalla({
                     [
                       ["talla", "Esta talla"],
                       ["todas", "Todas"],
-                      ["ficha", "Ficha"],
                     ] as const
                   ).map(([v, texto]) => (
                     <button
@@ -551,65 +568,75 @@ export function PanelTalla({
 
                 {vista === "talla" && (
                   <>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {cifra(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "En piso" : "Disponible")}
-                      {separa && cifra(fila.almacenDisponible ?? 0, "En almacén")}
-                      {cifra(fila.apartado, "Apartado", fila.apartado > 0 && onVerApartadas ? { texto: "Ver apartados", onClick: onVerApartadas } : undefined)}
-                      {cifra(fila.danado ?? 0, "Dañado", (fila.danado ?? 0) > 0 && onVerDanadas ? { texto: puedeResolverDanadas ? "Decidir" : "Ver cuáles", onClick: onVerDanadas } : undefined)}
-                    </div>
-                    {/* La suma explicada de la talla (Felipe, 2026-10-04: lo que había en el cajón de la prenda) y, en la ⓘ, qué cobra la caja. */}
-                    {desglose && (
-                      <p className="-mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-taupe">
-                        <span className="tabular-nums text-tinta">{lineaDeLaSuma(desglose).cuenta}</span>
-                        {lineaDeLaSuma(desglose).texto}
-                        {lineaDeLaSuma(desglose).aparte && <span>· {lineaDeLaSuma(desglose).aparte}</span>}
-                        <span title={aclaracionDeLaCaja(desglose)} aria-label={aclaracionDeLaCaja(desglose)} role="img" className="inline-flex cursor-help text-taupe">
-                          <Info aria-hidden className="h-3.5 w-3.5" />
+                    {/* El número grande (todo lo de la talla en esta sede) con UNA respuesta (`insigniaDeTalla`) y su porqué; debajo, las cuatro
+                        casillas (2026-10-07, maqueta `existencias-tarjeta-cajon-2026-10`): reemplazan a las cifras, la suma explicada y las tres
+                        filas «¿Hay? ¿Colgar? ¿Pedir?», que decían lo mismo en tres lugares. */}
+                    <div>
+                      <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                        <b className="font-display text-[46px] font-medium leading-[0.9] tabular-nums text-tinta">{total}</b>
+                        <span className="text-sm text-taupe">en esta sede</span>
+                        <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA[insignia.tono]}`}>
+                          <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
+                          {insignia.texto}
                         </span>
                       </p>
-                    )}
-                    {/* «Qué toca con esta talla»: tres preguntas cortas —¿Hay? ¿Colgar? ¿Pedir?— con su respuesta y su porqué, y si se
-                        resuelve aquí mismo, su botón. La pregunta va en una columna angosta fija y el botón en la suya: ni la pregunta se
-                        parte en dos líneas ni el botón salta abajo (con «COLGAR EN EL PISO» en mayúsculas pasaba las dos cosas). Bajo
-                        «¿Pedir?», cuánto tiene cada otra sede: antes era un bloque de pastillas aparte, más abajo. */}
-                    <section aria-label="Qué toca con esta talla" className="grid divide-y divide-sand/80 rounded-2xl border border-sand">
-                      {queToca.map((q) => {
-                        const boton =
-                          q.accion === "colgar" ? (
-                            <button type="button" onClick={() => alAccionar("colgar")} className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5">
-                              <IconoPercha aria-hidden className="h-4 w-4" />
-                              Colgar
-                            </button>
-                          ) : q.accion === "pedir" && mejorOrigen(fila.enRed, sedesParaPedir) ? (
-                            <button type="button" onClick={() => pedirRapido(prenda, fila)} className="btn-cayla btn-secundario btn-chico shrink-0 gap-1.5 border-pizarra/40 text-pizarra">
-                              <ArrowLeftRight aria-hidden className="h-4 w-4" />
-                              Pedir
-                            </button>
-                          ) : null;
-                        return (
-                          <div
-                            key={q.tema}
-                            className={`grid items-center gap-x-3 px-3 py-2.5 ${boton ? "grid-cols-[4.25rem_minmax(0,1fr)_auto]" : "grid-cols-[4.25rem_minmax(0,1fr)]"}`}
-                          >
-                            <span className="self-start pt-px text-[13px] font-medium text-taupe">{q.titulo}</span>
-                            <div className="min-w-0 text-sm leading-snug">
-                              <p>
-                                <b className={`mr-1.5 inline-flex items-center gap-1.5 font-semibold ${TONO_QUE_TOCA[q.tono].texto}`}>
-                                  <i aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TONO_QUE_TOCA[q.tono].punto}`} />
-                                  {q.respuesta}
-                                </b>
-                                <span className="text-tinta/80">{q.detalle}.</span>
-                              </p>
-                              {q.tema === filaConSedes && otrasSedes && <p className="mt-0.5 text-[12.5px] text-taupe">Otras sedes: {otrasSedes}</p>}
-                            </div>
-                            {boton}
-                          </div>
-                        );
-                      })}
-                    </section>
-                    {/* El ritmo del color con su aro de semanas y, debajo, lo vendido de esta talla y el código: una sola pieza. */}
-                    {(ritmo || codigo || vendidasTalla !== null) && (
-                      <div className="flex items-center gap-3 text-sm text-tinta/85">
+                      {insignia.frase && <p className="mt-1.5 text-[13px] leading-snug text-tinta/75">{insignia.frase}.</p>}
+                      {otrasSedes && <p className="mt-0.5 text-[12.5px] text-taupe">Otras sedes: {otrasSedes}</p>}
+                    </div>
+                    <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
+                      {casilla(separa ? (fila.pisoDisponible ?? 0) : fila.disponible, separa ? "en el piso" : "disponibles", separa && (fila.pisoDisponible ?? 0) === 0 && (fila.almacenDisponible ?? 0) > 0 ? "falta" : undefined)}
+                      {separa && casilla(fila.almacenDisponible ?? 0, "en almacén")}
+                      {casilla(fila.apartado, fila.apartado === 1 ? "apartada" : "apartadas", "apartada", fila.apartado > 0 ? onVerApartadas : undefined)}
+                      {casilla(fila.danado ?? 0, (fila.danado ?? 0) === 1 ? "dañada" : "dañadas", "danada", (fila.danado ?? 0) > 0 ? onVerDanadas : undefined, puedeResolverDanadas ? "decidir qué hacer" : "ver cuáles")}
+                    </div>
+                    {/* Las acciones en UNA lista (2026-10-07): la que la talla necesita primero y teñida; las que no se pueden ahora, apagadas al
+                        final con su porqué, en la misma lista (antes iban aparte, «No se puede ahora»). «Ficha» baja al pie como enlace. */}
+                    <ul className="overflow-hidden rounded-2xl border border-sand bg-crema">
+                      {acciones
+                        .filter((a) => a.clave !== "ficha")
+                        .map((a) => {
+                          const Ico = ICONO[a.clave];
+                          const tono = a.sugerida && a.ok ? (a.clave === "pedir" ? "pizarra" : "ambar") : null;
+                          return (
+                            <li key={a.clave} className="border-t border-sand first:border-t-0">
+                              <button
+                                type="button"
+                                disabled={!a.ok}
+                                aria-keyshortcuts={String(a.tecla)}
+                                onClick={() => alAccionar(a.clave)}
+                                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                                  tono === "ambar" ? "bg-ambar/[0.10] hover:bg-ambar/[0.16]" : tono === "pizarra" ? "bg-pizarra/[0.09] hover:bg-pizarra/[0.15]" : "enabled:hover:bg-hueso/70"
+                                }`}
+                              >
+                                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tono === "ambar" ? "bg-ambar/[0.18] text-ambar-profundo" : tono === "pizarra" ? "bg-pizarra/[0.16] text-pizarra" : "bg-hueso text-tinta"}`}>
+                                  <Ico aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <b className="block text-[14px] font-semibold text-tinta">{a.texto}</b>
+                                  <small className="block text-xs text-taupe">{a.sub}</small>
+                                </span>
+                                <kbd className="hidden rounded border border-sand px-1.5 text-[10.5px] text-taupe sm:inline">{a.tecla}</kbd>
+                                {a.ok && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" strokeWidth={1.8} />}
+                              </button>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                    {/* Al pie: la ficha (antes una pestaña) y, plegado, el ritmo y el código (antes siempre a la vista). */}
+                    <div className="flex items-center justify-between gap-3 text-[13px] text-taupe">
+                      <button type="button" onClick={() => setVista("ficha")} className="inline-flex items-center gap-1.5 hover:text-tinta">
+                        <ClipboardList aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                        Ver ficha
+                      </button>
+                      {(ritmo || codigo || vendidasTalla !== null) && (
+                        <button type="button" aria-expanded={verRitmo} onClick={() => setVerRitmo((v) => !v)} className="inline-flex items-center gap-1.5 hover:text-tinta">
+                          <Info aria-hidden className="h-3.5 w-3.5" />
+                          ¿Cómo se vende?
+                        </button>
+                      )}
+                    </div>
+                    {verRitmo && (ritmo || codigo || vendidasTalla !== null) && (
+                      <div className="anim-revelar flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
                         {ritmo && <AroSemanas ritmo={ritmoColor} tam={40} />}
                         <div className="min-w-0">
                           {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
@@ -629,57 +656,6 @@ export function PanelTalla({
                             </p>
                           )}
                         </div>
-                      </div>
-                    )}
-                    {/* Las acciones (2026-10-06): primero la que la talla necesita, después las que se pueden usar, como tarjetas; las que no se
-                        pueden ahora, al final y chicas, con su porqué (`accionesDeTalla` decide el orden). Cada una conserva su tecla. */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {acciones
-                        .filter((a) => a.ok)
-                        .map((a, i, usables) => {
-                          const Ico = ICONO[a.clave];
-                          return (
-                            <button
-                              key={a.clave}
-                              type="button"
-                              aria-keyshortcuts={String(a.tecla)}
-                              onClick={() => alAccionar(a.clave)}
-                              // La última, si queda sola en su fila, ocupa las dos columnas (como la maqueta).
-                              className={`grid min-h-[76px] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,transform] duration-200 active:scale-[0.98] ${i === usables.length - 1 && usables.length % 2 === 1 ? "col-span-2" : ""} ${
-                                a.sugerida ? "border-tinta bg-tinta text-papel" : "border-sand bg-papel hover:border-taupe"
-                              }`}
-                            >
-                              <Ico aria-hidden className={`row-span-2 h-[22px] w-[22px] ${a.sugerida ? "text-sand" : "text-taupe"}`} strokeWidth={1.5} />
-                              <b className="flex items-center gap-1.5 text-[15.5px] font-semibold">
-                                {a.texto}
-                                <kbd className={`hidden rounded border px-1 text-[10.5px] font-normal sm:inline ${a.sugerida ? "border-papel/30 text-sand" : "border-sand text-taupe"}`}>{a.tecla}</kbd>
-                              </b>
-                              <small className={`text-xs leading-tight ${a.sugerida ? "text-sand" : "text-taupe"}`}>{a.sub}</small>
-                            </button>
-                          );
-                        })}
-                    </div>
-                    {acciones.some((a) => !a.ok) && (
-                      <div>
-                        <p className="label-cayla mb-1.5 text-[10.5px] text-taupe">No se puede ahora</p>
-                        <ul className="flex flex-wrap gap-1.5">
-                          {acciones
-                            .filter((a) => !a.ok)
-                            .map((a) => {
-                              const Ico = ICONO[a.clave];
-                              return (
-                                <li
-                                  key={a.clave}
-                                  title={`${a.texto}: ${a.sub}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-sand px-2.5 py-1 text-[12.5px] text-tinta/50"
-                                >
-                                  <Ico aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-                                  {a.texto}
-                                  <span className="text-tinta/40">· {a.sub.charAt(0).toLocaleLowerCase("es") + a.sub.slice(1)}</span>
-                                </li>
-                              );
-                            })}
-                        </ul>
                       </div>
                     )}
                   </>
