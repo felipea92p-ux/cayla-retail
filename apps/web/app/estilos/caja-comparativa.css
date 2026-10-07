@@ -25,6 +25,12 @@
 .cmp-anillo-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .cmp-anillo-centro b { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 34px; line-height: 1; }
 .cmp-anillo-centro span { margin-top: 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25; color: color-mix(in srgb, var(--color-crema) 70%, transparent); max-width: 110px; }
+/* En oscuro el héroe se invierte con el tema (`tinta` pasa a ser la crema) y el dorado del efectivo, que es color de DATO y no
+   cambia, quedaba en 2.2:1 sobre él. La cifra se oscurece hacia el texto del héroe (`crema`, que en oscuro es la tinta de fondo):
+   4.6:1, el mismo recurso que la ventanita del gráfico (`.cmp-tip-baja`). En claro sigue el dorado puro (ADR-0336). */
+@media screen {
+  :root[data-tema="oscuro"] .cmp-frase em { color: color-mix(in srgb, var(--color-metodo-efectivo) 60%, var(--color-crema)); }
+}
 @container (max-width: 900px) { .cmp-heroe { grid-template-columns: 1fr; padding: 22px 20px; } .cmp-frase { font-size: 40px; } .cmp-anillo { width: 132px; height: 132px; } }
 /* En el celular el anillo solo repite lo que dicen el titular y las etiquetas: se oculta y queda un titular más compacto. */
 @container (max-width: 560px) { .cmp-anillo { display: none; } .cmp-frase { font-size: 34px; } }

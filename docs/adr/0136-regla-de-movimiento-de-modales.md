@@ -297,3 +297,15 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   fuera de la pastilla «N prendas». Con `prefers-reduced-motion` no se dibujan. Vive en `PuntosCinta` (`components/analisis/PestanaHoy.tsx`,
   con `<animateMotion>` de SVG) y la geometría en `ejeCinta` / `carrilesDeCinta` / `puntosDeCinta` (`lib/analisis-hoy.ts`); lo vigila
   `lib/analisis-movimiento.test.ts` (ningún otro `repeatCount="indefinite"` en Análisis).
+
+## Actualización 2026-10-06 (c) — el aviso de cierre de caja (Marcador): dos bucles decorativos que Felipe eligió
+
+- **Qué:** el aviso de cierre de caja de la cabecera (ADR-0359, antes la «Isla» de ADR-0305) repite tres cosas mientras está a la
+  vista: unas **ondas** que salen sin parar desde la hora de cierre (la misma onda de cuando sube de nivel; es una señal: «ya es la hora»),
+  un **resplandor** que deriva lento hacia los lados (8 s) y un **destello** que cruza la cápsula cada 6 s solo en «sin cerrar».
+  Se suman al punto que late de siempre.
+- **Por qué se admiten:** Felipe vio la maqueta con ambos y la eligió («Completo»); el resplandor además es parte de lo que pidió que
+  fuera más notorio en rojo. A diferencia de las otras excepciones, son de ambiente y no señales: si se prefiere el modo «Sobrio», se
+  quitan sin perder información (el color del nivel, las paletas y la pestaña dicen lo mismo).
+- **Los límites:** `--ease-cayla`, sin rebote, solo tokens, y con `prefers-reduced-motion` se detienen. En celular el resplandor es corto y suave.
+- **Dónde vive:** `apps/web/app/estilos/recordatorio-cierre.css` (`.rcc-aurora`, `.rcc-caps::before`).

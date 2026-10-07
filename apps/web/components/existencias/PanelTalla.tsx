@@ -356,11 +356,12 @@ export function PanelTalla({
         {/* El velo de la maqueta: el fondo se atenúa para que el panel se lea como lo único activo. Es solo visual: lo que bloquea la
             pantalla de atrás es que el diálogo es modal (Radix deja sin clics, sin foco y sin scroll todo lo de afuera), y tocar afuera
             cierra el panel, con aviso si hay algo a medias. En el celular, la hoja sube con velo más oscuro y un desenfoque leve, como
-            el sistema de modales (ADR-0136). Cierra con el mismo tiempo que el panel. */}
+            el sistema de modales (ADR-0136). Cierra con el mismo tiempo que el panel. Es de `sombra`, nunca de `tinta`: en oscuro la
+            tinta es crema y el velo ACLARABA la pantalla (ADR-0336, regla 2). */}
         <div
           aria-hidden
           data-velo-panel
-          className={`pointer-events-none fixed inset-0 z-40 bg-tinta/[0.12] max-sm:bg-tinta/25 max-sm:backdrop-blur-[3px] motion-reduce:animate-none ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          className={`pointer-events-none fixed inset-0 z-40 bg-sombra/[0.12] dark:bg-sombra/35 max-sm:bg-sombra/25 max-sm:backdrop-blur-[3px] max-sm:dark:bg-sombra/55 motion-reduce:animate-none ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
         />
         <Dialog.Content
           ref={raiz}
