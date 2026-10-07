@@ -60,11 +60,26 @@ export function notaSinCosto(c: Pick<CifrasQuietas, "sinCosto" | "sinPrecio">): 
 }
 
 /** Dónde cae un número de días en el eje de 4 meses, de 0 a 1 (lo de más de 4 meses se queda al final). */
-const enEje = (dias: number): number => Math.min(1, Math.max(0, dias / DIAS_EJE_QUIETAS));
+/**
+ * Dónde termina el carril «Días sin venderse»: 4 meses, o más si «Liquidar desde» pasa de ahí (desde el 2026-10-07 no tiene tope): la
+ * marca de «Liquidar» queda a la vista con aire detrás, y el fin cae en un mes justo.
+ */
+export function finDelEje(liquidarDesde: number): number {
+  return Math.max(DIAS_EJE_QUIETAS, Math.ceil((liquidarDesde + 20) / 30) * 30);
+}
+
+const enEje = (dias: number, fin: number = DIAS_EJE_QUIETAS): number => Math.min(1, Math.max(0, dias / fin));
+
+/** Las etiquetas del eje: dónde termina («4 meses», «7 meses») y si «3 meses» cabe sin pisar la marca de «Liquidar». */
+export function etiquetasEje(liquidarDesde: number): { fin: string; tresMeses: boolean } {
+  const fin = finDelEje(liquidarDesde);
+  return { fin: `${fin / 30} meses`, tresMeses: Math.abs(DIAS_TRES_MESES - liquidarDesde) >= fin * 0.1 };
+}
 
 /** Las dos marcas del eje, en %: «Liquidar» (se mueve con el control) y «3 meses». */
 export function marcasEje(liquidarDesde: number): { liquidar: number; tresMeses: number } {
-  return { liquidar: enEje(liquidarDesde) * 100, tresMeses: enEje(DIAS_TRES_MESES) * 100 };
+  const fin = finDelEje(liquidarDesde);
+  return { liquidar: enEje(liquidarDesde, fin) * 100, tresMeses: enEje(DIAS_TRES_MESES, fin) * 100 };
 }
 
 /** El color del aro de cada prenda (el estado de sus chips): rojo desde 3 meses, ámbar desde «Liquidar desde», neutro antes. */
@@ -79,7 +94,7 @@ const CIFRA_A_LA_IZQUIERDA_DESDE = 0.8;
 
 /** Una prenda en el carril «Días sin venderse»: dónde cae su punto, de qué color va su aro y de qué lado va su cifra. */
 export function pistaQuieta(dias: number, liquidarDesde: number): { n: number; zona: ZonaQuieta; cifraALaIzquierda: boolean } {
-  const n = enEje(dias);
+  const n = enEje(dias, finDelEje(liquidarDesde));
   const zona: ZonaQuieta = dias >= DIAS_TRES_MESES ? "urg" : dias >= liquidarDesde ? "ate" : "nd";
   return { n, zona, cifraALaIzquierda: n > CIFRA_A_LA_IZQUIERDA_DESDE };
 }
@@ -145,8 +160,9 @@ export type VacioQuietas = "todo-se-mueve" | "sin-datos";
 /**
  * Lo que dice la pestaña cuando no hay carril (con las prendas de la tienda, sin buscar): «todo-se-mueve» si ninguna lleva un
  * mes sin venderse; «sin-datos» si no llegó ni una prenda y algo falló al leer (principio 9: nunca «todo se mueve» por un
- * error; la misma regla que «Se está acabando»); null si hay carril. No depende de «Liquidar desde»: el control solo pasa
- * prendas de un grupo a otro, nunca saca una del carril.
+ * error; la misma regla que «Se está acabando»); null si hay carril. Con «Liquidar desde» de 30 días o más no depende de él (el
+ * control solo pasa prendas de un grupo a otro); con menos, puede sumar al carril las que ya llevan ese tiempo sin venderse. Nunca
+ * saca una.
  */
 export function vacioQuietas(prendas: readonly PrendaAnalisis[], liquidarDesde: number, fallas: number): VacioQuietas | null {
   if (prendasDe(prendas, GRUPOS_CARRIL_QUIETAS, liquidarDesde).length > 0) return null;

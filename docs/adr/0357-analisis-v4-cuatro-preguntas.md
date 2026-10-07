@@ -54,6 +54,11 @@ ADR-0138 y ADR-0277 quedan reemplazados en esta pantalla, y sus componentes se b
   llega?» son 10 perchas con la meta. «¿Qué pedir?» compara lo que se vende con lo que tienes, por tipo. Debajo, «Qué hacer hoy» («Por tienda», con
   las tres, salió el 2026-10-06: decisión 3): un flujo de prendas, con lo que hay que comprar a la izquierda y lo que sale o se rebaja a la derecha. Tocar un camino lleva a su
   grupo. Al pie, «Repón el piso». En una pantalla angosta, el flujo se vuelve una lista.
+  - **Actualización (Felipe, 2026-10-07): cintas finas.** El flujo se veía «muy brusco»: con un solo camino de 49 prendas, la cinta llenaba
+    todo el alto y terminaba en un bloque negro. De cuatro propuestas eligió A1: el grosor de cada camino crece como la raíz de sus prendas,
+    con tope (`grosorCamino`: s·√n, s ≤ 8; 49 prendas miden 56 de alto y 3 se siguen viendo); cada cinta aparece de a poco con un degradado;
+    «Tu tienda» es una tarjeta clara; la etiqueta «N prendas» es clara, del color de su camino y sin «empieza aquí»; un punto chico reemplaza
+    la barra de cada extremo, y los puntos que corren al pasar el mouse son más chicos.
 - **Se está acabando:** el carril «Cuántos días te quedan», al ritmo de 30 días y hasta 2 semanas, con el grupo «Cómpralas».
 - **No se vende:** cuántas prendas están quietas y cuánto costaron, cuántas ventas llevaron rebaja, la edad de lo que hay en cada tienda y el
   carril «Días sin venderse» con tres grupos: «Mándalas a donde sí se venden», «Liquidar» y «Vigílalas».
@@ -115,13 +120,21 @@ taller» o «Proveedor terceros».
 - No hay regla automática. Análisis no usa `cedibleDe` ni `planDeReposicion` (`lib/resumen-reglas.ts`).
 - *Por qué:* con tres tiendas y pocos datos, una regla de «cuánto le sobra a la otra» se equivocaría; la persona conoce las dos tiendas.
 
-**5. Un solo grupo «Liquidar», sin oferta y remate aparte.** «Liquidar desde» se mueve en «No se vende», de 30 a 85 días (60 de fábrica).
+**5. Un solo grupo «Liquidar», sin oferta y remate aparte.** «Liquidar desde» se mueve en «No se vende», de 30 a 85 días (60 de fábrica);
+desde el 2026-10-07, de 1 a 999 y con una caja con − y + (actualización 2, abajo).
 - Las prendas cambian de grupo mientras se mueve. Para guardarlo, una hoja (`HojaLiquidarDesde`) muestra qué cambia en tu tienda y lo guarda
   («Guardar para todos») firmado por el responsable del combo: uno para todas las tiendas y todas las personas (migración `20261006216000`).
 - **Actualización (Felipe, 2026-10-07):** «Liquidar desde» está a la vista siempre, también cuando todo se mueve. Antes, sin ninguna prenda con
   más de un mes sin venderse, la pestaña solo decía «Todo se mueve» y escondía el control, las cifras y la edad de la ropa: en TRU no había
   dónde cambiar los 60 días. Ahora «Todo se mueve» queda dentro de la tarjeta «Días sin venderse», bajo el control; y la barra de edad no
   dibuja un tramo sin unidades (una franja roja de «Más de 3 meses» con 0 prendas contradecía el «Todo se mueve»).
+- **Actualización 2 (Felipe, 2026-10-07): sin tope y sin barra.** «No debería existir un tope, se debe poder colocar los días que se quiera.»
+  De cuatro formas eligió B1: una caja con el número entre − y + (cada toque, 5 días; las flechas ↑ ↓, uno), donde se escribe cualquier
+  número de **1 a 999** (0 sería liquidar todo lo que no se vendió hoy). Lo que no sirve se dice bajo la caja y no cambia el carril. La base
+  acepta lo mismo (migración `20261007100000`, pegada en producción por Felipe el 2026-10-07). Si pasa de 4 meses, el carril se alarga hasta
+  un mes justo con aire detrás de la marca (`finDelEje`), y «3 meses» se calla si pisaría a «Liquidar». *Lo que se paga:* con menos de 30
+  días, «Vigílalas» queda vacío y entra a «Liquidar» también lo que llegó hace poco y todavía no se vendió; con muchos días, casi nada se
+  liquida.
 - Vive en su propia tabla, `retail.parametros_analisis` (una fila), y no en `configuracion_empresa`: esa fila fiscal exige RUC y razón social y
   no existe en local ni en el CI, toda venta la lee (una columna nueva obligaría a partir la migración por los bloqueos) y deja lugar para los
   próximos números de Análisis. Lo mueve quien ve Análisis (`fn_puede_analizar`), como decidió Felipe («para todos»), y queda el antes y el
@@ -232,6 +245,7 @@ una con el OK de Felipe, antes de publicar la web:
 | `20261006213000_analisis_preparacion_tres_tiendas.sql` | `fn_motor_demanda_preparacion` da las tres tiendas a quien puede analizar, no solo a quien ve CAYLA Global. El cálculo es el de `20261005223000`, sin cambios. Es un `create or replace` con su comentario y sus permisos, sin políticas: se puede pegar dos veces. |
 | `20261006214000_analisis_prendas_de_sede.sql` | `fn_analisis_sede(p_ubicacion_id)`: las prendas de una tienda en un jsonb, una llamada por tienda. Lo libre en piso y almacén, lo vendido en 30 días y por semana, los días sin venderse, lo que llegó y cuánto de eso se vendió, precio, costo, origen, categoría y color; y cuántas ventas llevaron rebaja. Pide una cuenta de retail y Análisis (`fn_puede_analizar`), **no** operar la sede (decisión 3). Un `create or replace`, sin políticas: se pega en una sola parte. Prueba: `scripts/pruebas/analisis_lecturas.mjs`. |
 | `20261006215000_analisis_por_llegar.sql` | `fn_analisis_por_llegar(p_ubicacion_id)`: lo que viene en camino a una tienda, por prenda: de dónde (compra, almacén, Taller u otra tienda), cuántas y cuándo se espera, sin dinero (decisión 6). Las mismas dos puertas que `fn_analisis_sede`. Un `create or replace`, sin políticas: una sola parte. Prueba: `scripts/pruebas/analisis_lecturas.mjs`. |
+| `20261007100000_analisis_liquidar_desde_sin_tope.sql` | «Liquidar desde» sin tope: el check de `parametros_analisis` y `guardar_liquidar_desde` aceptan de 1 a 999 días (antes 30 a 85). Un `alter` de una tabla que solo leen las funciones de Análisis y el reemplazo de una función con la misma firma: una sola ejecución. Pegada en producción el 2026-10-07 (actualización 2 de la decisión 5). |
 | `20261006216000_analisis_liquidar_desde.sql` | «Liquidar desde»: la tabla `parametros_analisis` (una sola fila, de 30 a 85 días, 60 de fábrica), `fn_liquidar_desde()` (la lee toda cuenta de retail) y `guardar_liquidar_desde(p_dias)` (lo cambia quien ve Análisis, firma con el responsable y deja el antes y el después en `configuracion_historial`). Sin `alter` de tablas en uso ni políticas: una sola ejecución (decisión 5). |
 
 «Lo que más rinde» no necesita migración: lee `fn_resumen_comparacion_json`, la misma del Análisis viejo, con los últimos 90 días de la tienda
