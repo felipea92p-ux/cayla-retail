@@ -27,6 +27,7 @@ import {
   type MedioCobro,
   type TipoCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
@@ -75,9 +76,9 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
 
       <Superficie className="anim-sube">
         <TituloDeTarjeta titulo="Cuentas de CAYLA" bajada="Cada lugar donde hay plata. Una cuenta sin movimientos se elimina; con movimientos, se archiva.">
-          <button type="button" className="btn-cayla btn-primario btn-chico" onClick={() => setAgregar(true)}>
+          <Boton type="button" peso="primario" onClick={() => setAgregar(true)}>
             + Agregar cuenta
-          </button>
+          </Boton>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla" style={{ minWidth: 640 }}>
