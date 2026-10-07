@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
+import { Archive, ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -17,6 +17,7 @@ import { accionesDeTalla, insigniaDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
 import { VENTANA_RITMO_RECIENTE_DIAS } from "@/lib/existencias-ritmo";
 import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { celdaTarjeta } from "@/lib/existencias-tarjeta-compacta";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
@@ -255,6 +256,17 @@ export function PanelTalla({
   // Cuánto tiene cada otra sede de esta talla: va bajo «¿Pedir?» (o bajo «¿Hay?» donde no se separa piso y almacén y no hay «¿Pedir?»).
   const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
   const insignia = insigniaDeTalla(queToca);
+  // «Todas»: las sumas del modelo entero (todos los colores) y cuántas tallas faltan colgar o se acabaron.
+  const tallasModelo = colores.flatMap((c) => c.tallas);
+  const sumaModelo = tallasModelo.reduce(
+    (acc, t) => {
+      const c = celdaTarjeta(t, separa);
+      return { piso: acc.piso + c.piso, almacen: acc.almacen + c.almacen, apartado: acc.apartado + t.apartado, danado: acc.danado + (t.danado ?? 0), total: acc.total + c.piso + c.almacen + t.apartado + (t.danado ?? 0) };
+    },
+    { piso: 0, almacen: 0, apartado: 0, danado: 0, total: 0 }
+  );
+  const porColgarModelo = separa ? tallasModelo.filter((t) => celdaTarjeta(t, separa).estado === "falta").length : 0;
+  const agotadasModelo = tallasModelo.filter((t) => celdaTarjeta(t, separa).estado === "agotada").length;
   const total = (separa ? Math.max(0, fila.pisoDisponible ?? 0) + Math.max(0, fila.almacenDisponible ?? 0) : Math.max(0, fila.disponible)) + fila.apartado + (fila.danado ?? 0);
 
   // La flecha pidió otro color: se aplica aquí, donde ya se conoce el color de ahora (y la talla se conserva si existe).
@@ -663,15 +675,63 @@ export function PanelTalla({
 
                 {vista === "todas" && (
                   <>
-                    {/* La matriz en su tarjeta y UNA leyenda debajo (2026-10-06, tarde): antes iban una frase de instrucciones arriba y dos
-                        pastillas de colores abajo que parecían botones. */}
-                    <div className="scroll-cayla overflow-x-auto rounded-2xl border border-sand p-1">
-                      <table className="w-full border-separate border-spacing-1 text-center text-sm">
+                    {/* «Todas», opción B (Felipe, 2026-10-07; las otras dos en `docs/maquetas/existencias-tarjeta-cajon-2026-10/todas-opciones.html`):
+                        el número del modelo con sus avisos y las cuatro casillas sumadas; después la tabla tallas × colores, cada celda partida
+                        en dos —arriba lo colgado (verde, con la percha), abajo lo del almacén (con la caja)—. Ámbar = falta colgar; rojo entera =
+                        se acabó; marco negro = la talla que se estaba viendo. Tocar una celda vuelve a «Esta talla» en esa talla. */}
+                    <div>
+                      <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                        <b className="font-display text-[46px] font-medium leading-[0.9] tabular-nums text-tinta">{sumaModelo.total}</b>
+                        <span className="text-sm text-taupe">en esta sede</span>
+                        {porColgarModelo > 0 && (
+                          <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA.ambar}`}>
+                            <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
+                            {porColgarModelo} por colgar
+                          </span>
+                        )}
+                        {agotadasModelo > 0 && (
+                          <span className={`inline-flex items-center gap-1.5 self-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONO_INSIGNIA_TALLA.rojo}`}>
+                            <i aria-hidden className="h-[7px] w-[7px] rounded-full bg-current" />
+                            {agotadasModelo} se acabó
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className={`grid gap-1.5 ${separa ? "grid-cols-4" : "grid-cols-3"}`}>
+                      {casilla(sumaModelo.piso, separa ? "en el piso" : "disponibles")}
+                      {separa && casilla(sumaModelo.almacen, "en almacén")}
+                      {casilla(sumaModelo.apartado, sumaModelo.apartado === 1 ? "apartada" : "apartadas", "apartada")}
+                      {casilla(sumaModelo.danado, sumaModelo.danado === 1 ? "dañada" : "dañadas", "danada")}
+                    </div>
+                    {separa && (
+                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-taupe">
+                        <span className="inline-flex items-center gap-1.5">
+                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] bg-verde/[0.22]" />
+                          arriba: en el piso
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] border border-sand" />
+                          abajo: en almacén
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <i aria-hidden className="inline-block h-2.5 w-3 rounded-[3px] bg-ambar/[0.22]" />
+                          falta colgar
+                        </span>
+                      </p>
+                    )}
+                    <div className="scroll-cayla overflow-x-auto">
+                      <table className="w-full table-fixed border-separate border-spacing-y-2 text-center text-sm">
+                        <colgroup>
+                          <col className="w-[88px]" />
+                          {tallasDeTodos.map((t) => (
+                            <col key={t} />
+                          ))}
+                        </colgroup>
                         <thead>
                           <tr>
-                            <th className="px-1.5 text-left text-xs font-medium text-taupe">Color</th>
+                            <th aria-hidden />
                             {tallasDeTodos.map((t) => (
-                              <th key={t} className="text-xs font-medium text-taupe">
+                              <th key={t} scope="col" className="text-xs font-semibold text-taupe">
                                 {t}
                               </th>
                             ))}
@@ -680,35 +740,40 @@ export function PanelTalla({
                         <tbody>
                           {colores.map((c) => (
                             <tr key={c.clave}>
-                              <th scope="row" className="whitespace-nowrap px-1.5 text-left text-[13px] font-normal">
+                              <th scope="row" className="truncate pr-1.5 text-left text-[13px] font-semibold text-tinta">
                                 <span aria-hidden className="mr-1.5 inline-block h-3 w-3 rounded-full align-[-1px] shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: c.colorHex ?? "var(--color-hueso)" }} />
                                 {c.color ?? "Sin color"}
                               </th>
                               {tallasDeTodos.map((t) => {
                                 const f = c.tallas.find((x) => (x.talla ?? "Única") === t);
-                                if (!f)
-                                  return (
-                                    <td key={t} className="text-taupe/50">
-                                      ·
-                                    </td>
-                                  );
+                                if (!f) return <td key={t} aria-hidden className="text-taupe/40">·</td>;
                                 const sel = c.clave === prenda.clave && f.varianteId === fila.varianteId;
+                                const celda = celdaTarjeta(f, separa);
+                                const ir = () => {
+                                  irA(c, f);
+                                  setVista("talla");
+                                };
+                                const lectura = `${c.color ?? "Sin color"} ${t}: ${celda.estado === "agotada" ? "se acabó" : separa ? `${celda.piso} en el piso, ${celda.almacen} en almacén` : `${celda.piso} disponibles`}. Ver esta talla`;
                                 return (
-                                  <td key={t}>
-                                    <button
-                                      type="button"
-                                      aria-pressed={sel}
-                                      aria-label={`${c.color ?? "Sin color"} ${t}: ${f.pisoDisponible ?? 0} en piso, ${f.almacenDisponible ?? 0} en almacén`}
-                                      onClick={() => {
-                                        irA(c, f);
-                                        setVista("talla");
-                                      }}
-                                      className={`grid min-h-12 w-full place-items-center rounded-lg border leading-none aria-pressed:border-tinta ${CLASE_TALLA[estadoTalla(f)]}`}
-                                    >
-                                      <b className="text-base font-semibold tabular-nums">{estadoTalla(f) === "sin_stock" ? "—" : separa ? (f.pisoDisponible ?? 0) : f.disponible}</b>
-                                      {/* Lo del almacén con su «+» (como la tarjeta): un «0» suelto debajo se leía como otra cifra del piso. */}
-                                      {separa && (f.almacenDisponible ?? 0) > 0 && <small className="text-[11px] tabular-nums text-taupe">+{f.almacenDisponible}</small>}
-                                    </button>
+                                  <td key={t} className="px-[3px]">
+                                    {celda.estado === "agotada" ? (
+                                      <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`grid h-[46px] w-full place-items-center rounded-[9px] border border-rojo/40 bg-rojo/[0.10] text-xs font-bold text-rojo-profundo ${sel ? "ring-2 ring-tinta" : ""}`}>
+                                        Se acabó
+                                      </button>
+                                    ) : (
+                                      <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[46px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
+                                        <span className={`flex w-full flex-1 items-center justify-center gap-1 text-[13.5px] font-bold tabular-nums ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.14] text-verde" : "text-taupe/70"}`}>
+                                          <IconoPercha aria-hidden className="h-3 w-3" strokeWidth={1.8} />
+                                          {celda.piso}
+                                        </span>
+                                        {separa && (
+                                          <span className={`flex w-full flex-1 items-center justify-center gap-1 border-t border-sand text-[13.5px] font-semibold tabular-nums text-taupe ${celda.almacen === 0 ? "opacity-55" : ""}`}>
+                                            <Archive aria-hidden className="h-3 w-3" strokeWidth={1.8} />
+                                            {celda.almacen}
+                                          </span>
+                                        )}
+                                      </button>
+                                    )}
                                   </td>
                                 );
                               })}
@@ -717,23 +782,17 @@ export function PanelTalla({
                         </tbody>
                       </table>
                     </div>
-                    <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-taupe">
-                      <span>{separa ? "Grande: en piso · «+N»: en almacén" : "Unidades en esta sede"} · toca una casilla para verla</span>
-                      {separa && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-ambar/45 bg-ambar/[0.10]" />
-                          Por colgar
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1.5">
-                        <span aria-hidden className="inline-block h-3 w-3.5 rounded-[3px] border border-dashed border-taupe/50" />
-                        Sin stock aquí
-                      </span>
-                    </p>
+                    <p className="-mt-1 text-xs text-taupe">Toca una talla para verla.</p>
                     {separa && puedeReponer && (
-                      <button type="button" onClick={() => lanzar("colgarVarias", { cant: {} })} className="btn-cayla btn-primario gap-2 justify-self-start">
-                        <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                        Colgar varias tallas y colores
+                      <button type="button" onClick={() => lanzar("colgarVarias", { cant: {} })} className="flex w-full items-center gap-3 rounded-2xl border border-sand bg-ambar/[0.10] px-3 py-2.5 text-left transition-colors hover:bg-ambar/[0.16]">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ambar/[0.18] text-ambar-profundo">
+                          <IconoPercha aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <b className="block text-[14px] font-semibold text-tinta">Colgar varias tallas y colores</b>
+                          <small className="block text-xs text-taupe">{porColgarModelo > 0 ? `${porColgarModelo} ${porColgarModelo === 1 ? "talla falta" : "tallas faltan"} en el piso` : "Elige cuántas de cada una"}</small>
+                        </span>
+                        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe" strokeWidth={1.8} />
                       </button>
                     )}
                   </>
