@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { porClave } from "../tema/cuentas.mjs";
 import { abrirContexto, exigirLocal } from "../tema/motor/sesion.mjs";
 import { guiasDeLosArchivos } from "./escaner.mjs";
+import { EJEMPLOS } from "./ejemplos.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const args = {};
@@ -65,8 +66,23 @@ function escribe(req) {
 const navegador = await chromium.launch();
 let fallas = 0;
 try {
-  const ctx = await abrirContexto(navegador, cuenta, { baseUrl, tema, viewport });
+  // Un contexto por cuenta (Producción se ve parado en el Taller, Global con su vista): se abren a medida que hacen falta.
+  const contextos = new Map();
+  const contextoDe = async (clave) => {
+    if (!contextos.has(clave)) contextos.set(clave, await abrirContexto(navegador, porClave(clave), { baseUrl, tema, viewport }));
+    return contextos.get(clave);
+  };
   for (const g of guias) {
+    const ejemplo = EJEMPLOS[g.ruta] ?? {};
+    const ctx = await contextoDe(args.cuenta ? cuenta.clave : (ejemplo.cuenta ?? cuenta.clave));
+    let destino = g.ruta.replace(/\/\([^)]*\)/g, "");
+    try {
+      if (ejemplo.url) destino = ejemplo.url();
+    } catch (e) {
+      console.log(`✗ ${g.id}: ${e.message}`);
+      fallas++;
+      continue;
+    }
     const page = await ctx.newPage();
     const escrituras = [];
     page.on("request", (req) => {
@@ -74,7 +90,7 @@ try {
     });
     const problemas = [];
     const pasos = [];
-    await page.goto(`${origen}${g.ruta}?demo=1`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${origen}${destino}?demo=1`, { waitUntil: "domcontentloaded" });
     try {
       await page.waitForSelector(".guia-tarjeta h2", { timeout: 15_000 });
     } catch {
@@ -112,13 +128,13 @@ try {
     }));
     if (quedo.guia) problemas.push("la guía no terminó tras 60 pasos");
     if (quedo.modales > 0) problemas.push(`quedaron ${quedo.modales} modal(es) abiertos al terminar`);
-    if (quedo.ruta !== g.ruta.replace(/\/\([^)]*\)/g, "")) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
+    if (quedo.ruta !== destino) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
     if (escrituras.length) problemas.push(`ESCRIBIÓ EN LA BASE durante la demo: ${escrituras.join(", ")}`);
     if (problemas.length) fallas++;
     console.log(`${problemas.length ? "✗" : "✓"} ${g.id} (${g.ruta}): ${pasos.length} pasos${problemas.length ? `\n    · ${problemas.join("\n    · ")}` : ""}`);
     await page.close();
   }
-  await ctx.close();
+  for (const c of contextos.values()) await c.close();
 } catch (e) {
   console.error(`El recorredor se cayó: ${e.message}`);
   await navegador.close();

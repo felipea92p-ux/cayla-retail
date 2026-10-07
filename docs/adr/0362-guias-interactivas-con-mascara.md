@@ -110,3 +110,22 @@
 - **Las 78 pantallas pendientes,** módulo por módulo con `/guia <módulo>`, cada una con el OK de Felipe.
 - El «3 de N» se estima al empezar; si la pantalla tiene menos piezas de las previstas (un rol que no ve algo), termina en «14 de 14»
   aunque haya dicho «de 16».
+
+## Actualización 2026-10-07 (d) — el movimiento rico (Felipe: «lo más sofisticado e interactivo posible, con muchas animaciones»)
+
+Al pedir el resto de los módulos, Felipe pidió que el diseño fuera «lo más sofisticado posible y lo más interactivo, amigable, con
+muchas animaciones». Es una excepción a ADR-0136 decidida por él, como la vista rápida o los sellos de Movimientos. Se mantiene **sin
+rebote** y todo se apaga con `prefers-reduced-motion`.
+
+- **El cursor fantasma.** Antes de que el piloto toque o escriba, una flecha sale del botón «Siguiente» y viaja (700 ms) hasta la
+  pieza. Hace «clic» con una onda roja, o se vuelve un cursor de texto que parpadea mientras escribe. Se dibuja en tinta y crema
+  *fijas*, así que se lee sobre cualquier fondo en los dos temas. Así se ve DÓNDE pasa cada cosa antes de que pase.
+- **La llegada.** El recorte viaja de pieza en pieza; al llegar sale una onda una sola vez, y un halo respira alrededor mientras la
+  guía espera (señal, como el punto que late en «Vencida»).
+- **La tarjeta.** El número del paso gira y crece al llegar. Título, texto y nota entran en cascada (60 ms), desde el lado de la pieza
+  que explican. El tramo nuevo de la línea de avance se llena de izquierda a derecha. En el primer paso se muestran los atajos ← → Esc.
+- **El cierre.** Un visto verde que se dibuja y ocho chispas que salen una vez.
+- **La oferta.** Una luz cruza «Ver la demo» una vez al aparecer.
+
+Se corrigió de paso un defecto: en los pasos sin pieza (bienvenida y cierre), el recorte de 0 × 0 px no dibujaba la sombra en Chrome y
+la pantalla quedaba sin velo. Ahora es un punto de 2 px.

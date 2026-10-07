@@ -20,7 +20,7 @@ export type PantallaConGuia =
 export const GUIAS: readonly Guia[] = [GUIA_PUNTO_DE_VENTA, GUIA_APARTADOS, GUIA_HISTORIAL, GUIA_COMPROBANTES];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 78;
+export const PENDIENTES_HOY = 75;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -65,7 +65,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- etiquetas-de-precio ----
   "/etiquetas-de-precio": { estado: "no-aplica", motivo: "Hoja de impresión de etiquetas: se revisa y se imprime, no hay piezas que recorrer." },
   // ---- finanzas ----
-  "/finanzas": PENDIENTE,
+  "/finanzas": { estado: "no-aplica", motivo: "Solo redirige: lleva a Finanzas ▸ Resumen o a Gastos según lo que la cuenta ve. La guía es la de la pantalla a la que llega." },
   "/finanzas/cierre": PENDIENTE,
   "/finanzas/dinero": PENDIENTE,
   "/finanzas/dinero/conciliacion": PENDIENTE,
@@ -92,7 +92,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/conteo/[id]/revisar": PENDIENTE,
   "/inventario/cuadrar": PENDIENTE,
   "/inventario/frescura": PENDIENTE,
-  "/inventario/mover": PENDIENTE,
+  "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a Traslados ▸ Nuevo con lo que traía la dirección vieja. La guía es la de Nuevo traslado." },
   "/inventario/movimientos": PENDIENTE,
   "/inventario/por-regularizar": PENDIENTE,
   "/inventario/resumen": PENDIENTE,
@@ -101,7 +101,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de un traslado: se imprime y viaja con la mercadería." },
   "/inventario/traslados/nuevo": PENDIENTE,
   // ---- movimientos ----
-  "/movimientos": PENDIENTE,
+  "/movimientos": { estado: "no-aplica", motivo: "Solo redirige a Inventario ▸ Movimientos (la dirección vieja). La guía es la de esa pantalla." },
   // ---- pedidos-no-atendidos ----
   "/pedidos-no-atendidos": PENDIENTE,
   // ---- produccion ----
