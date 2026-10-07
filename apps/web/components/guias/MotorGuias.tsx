@@ -127,6 +127,7 @@ export function MotorGuias({ quien }: { quien: string }) {
             <Boton
               type="button"
               peso="primario"
+              data-guia-ver
               onClick={() => {
                 setCorriendo(ofrecida);
                 setOfrecida(null);

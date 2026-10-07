@@ -101,7 +101,16 @@ export function hayModalAbierto(): boolean {
 export type ResultadoAccion = { ok: true } | { ok: false; motivo: string };
 
 /** Hace una acción del piloto. Nunca lanza: si no puede, dice por qué y la guía sigue explicando. */
-export async function ejecutar(accion: AccionGuia, senal?: AbortSignal, conMovimiento = true): Promise<ResultadoAccion> {
+/**
+ * `apuntar` (opcional): lo llama el piloto con la pieza que está por tocar o donde va a escribir, y espera a que termine. El
+ * motor lo usa para llevar el cursor fantasma hasta ahí y «hacer clic» a la vista, antes de que pase de verdad.
+ */
+export async function ejecutar(
+  accion: AccionGuia,
+  senal?: AbortSignal,
+  conMovimiento = true,
+  apuntar?: (el: HTMLElement, modo: "clic" | "escribir") => Promise<void>,
+): Promise<ResultadoAccion> {
   if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
   if (accion.tipo === "escape") {
     // Solo si hay algo que cerrar: un Escape suelto en la pantalla podría significar otra cosa (borrar la búsqueda).
@@ -126,6 +135,8 @@ export async function ejecutar(accion: AccionGuia, senal?: AbortSignal, conMovim
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: conMovimiento ? "smooth" : "auto" });
     await pausa(conMovimiento ? 220 : 0);
     const control = el.matches("button, a, input, [role=button], [role=tab]") ? el : (el.querySelector<HTMLElement>("button, a, input, [role=button], [role=tab]") ?? el);
+    if (apuntar && conMovimiento) await apuntar(control, "clic");
+    if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
     control.click();
     return { ok: true };
   }
@@ -139,6 +150,8 @@ export async function ejecutar(accion: AccionGuia, senal?: AbortSignal, conMovim
   const texto = typeof accion.texto === "string" ? accion.texto : palabraDe(accion.texto.palabraDe);
   if (!texto) return { ok: false, motivo: "no hay un ejemplo a la vista" };
   // Escribir: letra a letra, para que se vea a alguien escribiendo (y el buscador reaccione como con una persona).
+  if (apuntar && conMovimiento) await apuntar(campo, "escribir");
+  if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
   campo.focus({ preventScroll: true });
   if (!conMovimiento) {
     ponerValor(campo, texto);

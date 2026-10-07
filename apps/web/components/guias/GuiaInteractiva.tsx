@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Boton } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
@@ -36,6 +36,16 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const [total, setTotal] = useState(guia.pasos.length);
   /** Cuántos pasos lleva vistos (el historial, como estado para dibujarlo). */
   const [enCurso, setEnCurso] = useState(0);
+  /** El cursor fantasma: viaja a la pieza que el piloto va a tocar y «hace clic» con una onda (ADR-0362, act. 2026-10-07). */
+  const [cursor, setCursor] = useState<{ x: number; y: number; visible: boolean; instante: boolean; pulso: number; escribe: boolean }>({
+    x: 0,
+    y: 0,
+    visible: false,
+    instante: true,
+    pulso: 0,
+    escribe: false,
+  });
+  const ocultarCursor = useRef<ReturnType<typeof setTimeout> | null>(null);
   const historial = useRef<number[]>([]);
   const control = useRef<AbortController | null>(null);
   const capa = useRef<HTMLDivElement>(null);
@@ -63,6 +73,26 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       if (Math.abs(a.top - nuevo.top) < 0.5 && Math.abs(a.left - nuevo.left) < 0.5 && Math.abs(a.width - nuevo.width) < 0.5 && Math.abs(a.height - nuevo.height) < 0.5) return m;
       return { ...m, recorte: nuevo };
     });
+  }, []);
+
+  /** Lleva el cursor fantasma hasta la pieza y marca el clic. Arranca desde el botón «Siguiente» de la tarjeta si estaba oculto. */
+  const apuntar = useCallback(async (el: HTMLElement, modo: "clic" | "escribir") => {
+    if (ocultarCursor.current) clearTimeout(ocultarCursor.current);
+    const r = el.getBoundingClientRect();
+    const destino =
+      modo === "escribir"
+        ? { x: r.left + Math.min(28, r.width / 2), y: r.top + r.height / 2 }
+        : { x: r.left + Math.min(r.width / 2, 64), y: r.top + Math.min(r.height / 2, 28) };
+    const salida = refTarjeta.current?.querySelector<HTMLElement>("[data-guia-siguiente]")?.getBoundingClientRect();
+    setCursor((c) => (c.visible ? c : { ...c, x: salida ? salida.left + salida.width / 2 : window.innerWidth / 2, y: salida ? salida.top + salida.height / 2 : window.innerHeight / 2, visible: true, instante: true }));
+    await pausa(30);
+    setCursor((c) => ({ ...c, ...destino, visible: true, instante: false, escribe: modo === "escribir" }));
+    await pausa(720);
+    if (modo === "clic") {
+      setCursor((c) => ({ ...c, pulso: c.pulso + 1 }));
+      await pausa(240);
+    }
+    ocultarCursor.current = setTimeout(() => setCursor((c) => ({ ...c, visible: false, escribe: false })), modo === "escribir" ? 2200 : 900);
   }, []);
 
   const terminar = useCallback(
@@ -103,7 +133,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         let nota: string | null = null;
         if (paso.preparar) {
           for (const a of paso.preparar) {
-            const r = await ejecutar(a, senal, conMovimiento);
+            const r = await ejecutar(a, senal, conMovimiento, apuntar);
             if (senal.aborted) return;
             // Solo un toque que no se pudo hacer merece aviso. Vaciar o cerrar algo que no está (en el celular no hay buscador)
             // es una limpieza que no tenía nada que limpiar.
@@ -155,7 +185,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         if (direccion === 1 && paso.demostrar) {
           await pausa(conMovimiento ? 520 : 0);
           for (const a of paso.demostrar) {
-            const res = await ejecutar(a, senal, conMovimiento);
+            const res = await ejecutar(a, senal, conMovimiento, apuntar);
             if (senal.aborted) return;
             if (!res.ok && a.tipo !== "vaciar" && a.tipo !== "escape") setMostrando((m) => (m && m.indice === indice ? { ...m, nota: notaDe(a, res.motivo) } : m));
           }
@@ -165,7 +195,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       if (indice >= guia.pasos.length) void terminar("completa");
       else setOcupada(false); // hacia atrás no hay nada antes: se queda donde estaba
     },
-    [guia, terminar],
+    [guia, terminar, apuntar],
   );
 
   // Arranque.
@@ -175,7 +205,10 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     terminada.current = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- la guía se sincroniza con el DOM de la pantalla (espera piezas, abre modales): no hay otra forma que arrancarla al montar
     void irA(0, 1);
-    return () => control.current?.abort();
+    return () => {
+      control.current?.abort();
+      if (ocultarCursor.current) clearTimeout(ocultarCursor.current);
+    };
   }, [irA]);
 
   const siguiente = useCallback(() => {
@@ -264,6 +297,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const pos = posicionTarjeta(mostrando?.recorte ?? null, ventana, tarjeta);
   const recorte = mostrando?.recorte;
   const esUltimo = !!mostrando && guia.pasos.slice(mostrando.indice + 1).every((p) => !pasoAplica(p, anclasPresentes(), ventana.ancho) && !p.preparar);
+  const esCierre = esUltimo && !recorte;
 
   return createPortal(
     <div ref={capa} className="guia-capa" data-guia-motor role="presentation">
@@ -275,9 +309,33 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         style={
           recorte
             ? { transform: `translate3d(${recorte.left}px, ${recorte.top}px, 0)`, width: recorte.width, height: recorte.height }
-            : { transform: `translate3d(${ventana.ancho / 2}px, ${ventana.alto / 2}px, 0)`, width: 0, height: 0 }
+            : // Sin pieza, un punto de 2 px al centro: con 0 × 0 Chrome no dibuja la sombra y la pantalla quedaba sin velo.
+              { transform: `translate3d(${ventana.ancho / 2 - 1}px, ${ventana.alto / 2 - 1}px, 0)`, width: 2, height: 2 }
         }
       />
+      {/* La llegada: una onda que sale del borde de la pieza una sola vez, cada vez que la guía llega a otra. */}
+      {recorte && mostrando && (
+        <div
+          key={`llega-${mostrando.indice}`}
+          aria-hidden
+          className="guia-llegada"
+          style={{ transform: `translate3d(${recorte.left}px, ${recorte.top}px, 0)`, width: recorte.width, height: recorte.height }}
+        />
+      )}
+      {/* El cursor fantasma: muestra DÓNDE toca o escribe el piloto antes de que pase. */}
+      <div
+        aria-hidden
+        className="guia-cursor"
+        data-visible={cursor.visible ? "" : undefined}
+        data-instante={cursor.instante ? "" : undefined}
+        data-escribe={cursor.escribe ? "" : undefined}
+        style={{ transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)` }}
+      >
+        <span key={cursor.pulso} className="guia-cursor-onda" data-activa={cursor.pulso > 0 ? "" : undefined} />
+        <svg viewBox="0 0 24 24" className="guia-cursor-flecha" aria-hidden>
+          <path d="M5 3l14 8.2-6.2 1.6L9.6 19z" />
+        </svg>
+      </div>
       <div
         ref={refTarjeta}
         role="dialog"
@@ -285,6 +343,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         aria-labelledby="guia-titulo"
         aria-describedby="guia-texto"
         className="guia-tarjeta"
+        data-lado={pos.lado}
         data-ocupada={ocupada ? "" : undefined}
         style={{ transform: `translate3d(${pos.left}px, ${pos.top}px, 0)` }}
       >
@@ -301,13 +360,37 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         </div>
         {mostrando ? (
           <div key={mostrando.indice} className="guia-contenido mt-3" aria-live="polite">
-            <h2 id="guia-titulo" className="font-display text-[21px] leading-tight text-tinta">
-              {mostrando.paso.titulo}
-            </h2>
-            <p id="guia-texto" className="mt-1.5 text-[14px] leading-relaxed text-tinta/80">
+            {esCierre && (
+              <div className="guia-fin" aria-hidden>
+                <svg viewBox="0 0 52 52" className="guia-fin-visto">
+                  <circle cx="26" cy="26" r="23" />
+                  <path d="M15 27l7.5 7.5L37.5 19" />
+                </svg>
+                {Array.from({ length: 8 }, (_, k) => (
+                  <span key={k} className="guia-chispa" style={{ "--k": k } as CSSProperties} />
+                ))}
+              </div>
+            )}
+            <div className="flex items-start gap-3">
+              {!esCierre && (
+                <span className="guia-numero" aria-hidden>
+                  {enCurso}
+                </span>
+              )}
+              <h2 id="guia-titulo" className="guia-titulo font-display text-[21px] leading-tight text-tinta">
+                {mostrando.paso.titulo}
+              </h2>
+            </div>
+            <p id="guia-texto" className="guia-texto mt-1.5 text-[14px] leading-relaxed text-tinta/80">
               {mostrando.paso.texto}
             </p>
-            {mostrando.nota && <p className="nota-cayla mt-3 rounded-lg px-3 py-2 text-[12.5px] leading-snug text-tinta/75">{mostrando.nota}</p>}
+            {mostrando.nota && <p className="guia-nota nota-cayla mt-3 rounded-lg px-3 py-2 text-[12.5px] leading-snug text-tinta/75">{mostrando.nota}</p>}
+            {enCurso === 1 && (
+              <p className="guia-atajos mt-3 flex flex-wrap items-center gap-1.5 text-[11.5px] text-tinta/60">
+                <kbd>←</kbd>
+                <kbd>→</kbd> para moverte · <kbd>Esc</kbd> para salir
+              </p>
+            )}
           </div>
         ) : (
           <p className="mt-3 text-sm text-tinta/65">Preparando la demo…</p>
