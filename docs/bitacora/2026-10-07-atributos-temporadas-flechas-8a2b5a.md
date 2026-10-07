@@ -1,0 +1,4 @@
+## 2026-10-07 (Atributos ▸ Temporadas: una sola flecha de vuelta, dentro del título)
+Qué hice: quité la flecha que salía a Productos o Categorías (`?desde=`) y dejé una sola, la que vuelve a «Las nueve temporadas»; ya no ocupa una fila suelta: va a la izquierda del título de cada vista («Por completar», «Por categoría», «Calendario») y la bajada queda alineada al borde. La flecha llega por un contexto (`VueltaALaLista`) que lee `TituloVista`.
+Por qué así: dos flechas redondas iguales y sin texto no decían cuál era cuál (ADR-0358 dejó una sola cara para «Volver»), y una fila entera para una flecha desperdiciaba espacio. Quien entró desde Productos o Categorías vuelve por el menú lateral. Sin migración.
+Felipe se lleva: verlo con «Completar» del aviso de Productos y con el enlace de Categorías (ya no traen su flecha); probado con datos de prueba a 1600 px, falta verlo con una cuenta real.
