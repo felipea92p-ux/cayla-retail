@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/analisis-tipos";
 import { armarPrendas } from "@/lib/analisis-armado";
-import { liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
+import { diasDeVentas, liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
@@ -69,7 +69,10 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
 
   const filasDe = (id: string) => lectura.porSede[id] ?? [];
   const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id) }));
-  const prendas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante);
+  const hoy = motor.filas[0]?.hoy ?? hoyEnLima();
+  // El ritmo de todo Análisis: lo vendido entre los días de ventas que mi tienda tiene en el ERP, hasta 30 (cada prenda lo lleva).
+  const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
+  const prendas = armarPrendas(filasDe(activa.id), otrasDe(activa.id), llegan.porVariante).map((p) => ({ ...p, diasDeVentas: ventana }));
 
   // Si mi tienda respondió pero sin decir cuándo salió al piso cada prenda (la base todavía no tiene 20261007120000), se dice una
   // vez; si no respondió, ya lo dice la falla de la lectura.
@@ -80,12 +83,13 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
   const ultimoConteo = conteos?.find((c) => c.estado === "cerrado" && c.lineas > 0) ?? null;
 
   return {
-    hoy: motor.filas[0]?.hoy ?? hoyEnLima(),
+    hoy,
     sede: sedes[0]!,
     sedes,
     preparacion: motor.filas,
     puedeHablar: hablaSede(activa.id),
     prendas,
+    diasDeVentas: ventana,
     sabePiso,
     liquidarDesde,
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,

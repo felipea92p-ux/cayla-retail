@@ -58,6 +58,16 @@ describe("cuántos días quedan", () => {
     expect(diasQueQuedan(prenda({ vendidas30: 6 }))).toBe(0);
     expect(diasQueQuedan(prenda({ piso: 3 }))).toBeNull();
   });
+  it("el ritmo es el de los días de ventas que tiene la tienda (hasta 30), no siempre 30", () => {
+    // Datos inventados: 3 en la tienda y 2 vendidas. Entre 30 días duran 45; entre los 8 días que la tienda vende en el ERP, 12.
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2 }))).toBe(45);
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 8 }))).toBe(12);
+    expect(seEstaAcabando(prenda({ piso: 3, vendidas30: 2 }))).toBe(false);
+    expect(seEstaAcabando(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 8 }))).toBe(true);
+    // Fuera de 1 a 30, se lleva al borde.
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 60 }))).toBe(45);
+    expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 3, diasDeVentas: 0 }))).toBe(1);
+  });
   it("si queda algo, al menos 1 día", () => {
     expect(diasQueQuedan(prenda({ piso: 1, vendidas30: 300 }))).toBe(1);
   });

@@ -76,6 +76,10 @@ export type PrendaAnalisis = {
   almacen: number;
   /** Vendidas con su prenda en mis últimos 30 días. */
   vendidas30: number;
+  /** Cuántos días de ventas tiene MI tienda en el ERP, hasta 30 (`diasDeVentas`): el ritmo es `vendidas30` entre esto. Lo pone el
+   *  cargador, igual en todas las prendas de la tienda; si falta, 30. Ejemplo inventado: una tienda que vende en el ERP hace 8 días
+   *  mide su ritmo entre 8, no entre 30 (si no, cada prenda «dura» casi 4 veces más de lo que dura). */
+  diasDeVentas?: number;
   /** Vendidas por semana en mi tienda: 8 semanas, de la más vieja a la actual. La semana k (0 a 7) son los 7 días que terminan
    *  hoy − 7·(7−k) (`fn_analisis_sede`, 20261006214000): la última termina hoy. Las fechas de la ficha dependen de esto. */
   semanas: number[];
@@ -148,6 +152,8 @@ export type DatosAnalisis = {
   puedeHablar: boolean;
   /** Mis prendas con algo que decir: libres, vendidas en 30 días o en camino. */
   prendas: PrendaAnalisis[];
+  /** Cuántos días de ventas tiene mi tienda en el ERP, hasta 30 (`diasDeVentas`): el ritmo de todo Análisis y «en 8 días». */
+  diasDeVentas: number;
   /** Si la base ya dice cuándo salió al piso cada prenda de mi tienda (20261007120000). Sin eso, «Nunca salió al piso» no inventa
    *  una lista: dice que todavía no lo puede saber. */
   sabePiso: boolean;

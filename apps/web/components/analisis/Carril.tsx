@@ -65,7 +65,11 @@ export function Carril({
   return (
     <section className="tarjeta carril entra" style={{ ["--i" as string]: 0 }}>
       <div className="c-cab">
-        <h3 className="b-tit">{titulo}</h3>
+        <div>
+          <h3 className="b-tit">{titulo}</h3>
+          {/* Con herramienta, la nota (de qué días habla el ritmo) baja bajo el título en vez de perderse. */}
+          {herramienta && nota && <span className="c-sub">{nota}</span>}
+        </div>
         <span className="b-nota">{herramienta ?? nota}</span>
       </div>
       <div className="c-eje" aria-hidden>

@@ -19,7 +19,7 @@ import { PestanaQuieta } from "@/components/analisis/PestanaQuieta";
 import { PestanaPedir } from "@/components/analisis/PestanaPedir";
 import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
-import { coincideBusqueda, diasDeVentas, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
+import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
@@ -85,8 +85,8 @@ export function AnalisisPantalla({
   }
 
   const prendas = useMemo(() => (q.trim() ? datos.prendas.filter((p) => coincideBusqueda(p, q)) : datos.prendas), [datos.prendas, q]);
-  // Cuántos días de ventas tiene la tienda en el ERP (hasta 30): «vendiste 38 en 8 días».
-  const ventana = diasDeVentas(datos.preparacion.find((p) => p.ubicacionId === datos.sede.id)?.primeraVenta, datos.hoy);
+  // Cuántos días de ventas tiene la tienda en el ERP (hasta 30), del cargador: el ritmo y «vendiste 38 en 8 días».
+  const ventana = datos.diasDeVentas;
 
   const apagarResaltado = useCallback(() => {
     raiz.current?.classList.remove("atenuar");

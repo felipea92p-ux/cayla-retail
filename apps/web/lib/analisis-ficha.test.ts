@@ -185,6 +185,9 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     const p = prenda({ piso: 5, almacen: 4, vendidas30: 7 });
     expect(grupoDe(p, LIQUIDAR_DEFECTO)).toBeNull();
     expect(leer(p)).toEqual(["Vendiste 7 · en 30 días", "Tienes 9 · 5 en el piso"]);
+    // Una tienda con 8 días de ventas en el ERP dice sus días, no 30; y a ese ritmo las 9 duran 10 días: se acaba.
+    expect(leer({ ...p, piso: 50, almacen: 40, diasDeVentas: 8 })).toEqual(["Vendiste 7 · en 8 días", "Tienes 90 · 50 en el piso"]);
+    expect(grupoDe({ ...p, diasDeVentas: 8 }, LIQUIDAR_DEFECTO)).toBe("comprar");
   });
 
   it("nunca salió al piso: los días que lleva guardada y que no hay nada colgado; sin fecha de llegada, solo que nunca salió", () => {

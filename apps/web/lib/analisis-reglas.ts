@@ -2,7 +2,7 @@
 // servidor (el resumen de cada tienda) y cada pestaña, así una prenda cae en el mismo grupo en Hoy, en su carril y en su ficha.
 //
 // Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos
-// semanas o menos al ritmo de 30 días; se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
+// semanas o menos al ritmo de lo vendido en los días de ventas que tiene la tienda, hasta 30 (2026-10-07: antes siempre entre 30); se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
@@ -57,18 +57,20 @@ export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): numb
 export const porLlegar = (p: Pick<PrendaAnalisis, "llega">): number => p.llega.reduce((s, x) => s + x.cantidad, 0);
 
 /**
- * Cuántos días le quedan al ritmo de los últimos 30: 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se
+ * Cuántos días le quedan al ritmo de lo vendido en los días de ventas de la tienda (`diasDeVentas`, hasta 30; Felipe 2026-10-07:
+ * una tienda con 8 días en el ERP no divide entre 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se
  * acaba: no tiene ritmo).
  */
-export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30">): number | null {
+export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): number | null {
   if (p.vendidas30 <= 0) return null;
   const total = totalEnTienda(p);
   if (total === 0) return 0;
-  return Math.max(1, Math.round(total / (p.vendidas30 / 30)));
+  const ventana = Math.min(VENTANA_VENTAS, Math.max(1, Math.round(p.diasDeVentas ?? VENTANA_VENTAS)));
+  return Math.max(1, Math.round(total / (p.vendidas30 / ventana)));
 }
 
 /** Se está acabando: se vende y lo que queda dura dos semanas o menos (o ya no hay). */
-export function seEstaAcabando(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30">): boolean {
+export function seEstaAcabando(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): boolean {
   const d = diasQueQuedan(p);
   return d !== null && d <= DIAS_SE_ACABA;
 }
@@ -96,7 +98,7 @@ export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEn
  * se liquida; lo quieto desde un mes, se vigila.
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras">,
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas">,
   liquidarDesde: number,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";

@@ -78,6 +78,12 @@ export function detalleLlegada(llega: readonly LlegadaPrenda[]): string {
   return [...porOrigen].map(([de, n]) => `${TEXTO_LLEGADA[de]} ${n}`).join(" · ");
 }
 
+/** «en 30 días» o, si la tienda tiene menos días de ventas en el ERP, «en 8 días»: de qué días habla «Vendiste». */
+const enDias = (p: Pick<PrendaAnalisis, "diasDeVentas">): string => {
+  const n = p.diasDeVentas ?? 30;
+  return `en ${n} ${plural(n, "día", "días")}`;
+};
+
 /** El código de una tienda para las tarjetitas («AQP tiene 3»); si no está en la red, «Otra tienda». */
 const codigoDe = (sedes: readonly SedeAnalisis[], id: string): string => sedes.find((s) => s.id === id)?.codigo ?? "Otra tienda";
 
@@ -101,7 +107,7 @@ export function hechosDe(
     const d = diasQueQuedan(p) ?? 0;
     if (d === 0) agregar("agotado", "rojo", "Ya no hay", "en tu tienda");
     else agregar("reloj", d <= 7 ? "ambar" : "pizarra", d === 1 ? "Queda 1 día" : `Quedan ${d} días`, `tienes ${tienes}`);
-    agregar("check", "verde", `Vendiste ${p.vendidas30}`, "en 30 días");
+    agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
     if (p.origen) agregar(p.origen === "taller" ? "tijera" : "caja", "taupe", p.origen === "taller" ? "Proveedor taller" : "Proveedor terceros");
     const llegan = porLlegar(p);
     if (llegan > 0) agregar("llega", "verde", `Por llegar ${llegan}`, detalleLlegada(p.llega));
@@ -128,7 +134,7 @@ export function hechosDe(
     return hechos;
   }
 
-  agregar("check", "verde", `Vendiste ${p.vendidas30}`, "en 30 días");
+  agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
   agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
   return hechos;
 }
