@@ -10,7 +10,7 @@ import { Pestanas } from "@/components/ui/Pestanas";
 
 export type PestanaFin = { clave: string; etiqueta: string; conteo?: number | null; href?: string };
 
-/** Las pestañas de Finanzas y Configuración: desde el 2026-10-07 son la pestaña de vista del sistema (`<Pestanas>`, el vidrio con
+/** Las pestañas de Finanzas y Configuración: desde el 2026-10-06 son la pestaña de vista del sistema (`<Pestanas>`, el vidrio con
  *  la píldora oscura, ADR-0358), por decisión de Felipe al elegir mirando («también Finanzas»). Esta función solo traduce
  *  la forma de los datos del kit, para no tocar las pantallas. Con `href` son enlaces (la vista vive en la URL); sin él, botones
  *  que avisan `onCambio`. */

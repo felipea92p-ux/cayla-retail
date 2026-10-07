@@ -85,14 +85,14 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   Pestañas «tres piezas, lo elegido en tinta», Cifras «una marca por función») y se migraron unos 100 archivos. **Al verlas aplicadas, no le
   gustaron.** Lección que pasó a la skill (paso 5) y a `CLAUDE.md`: se elige **mirando**, en una página con la captura de cada opción
   (`unificar/elegir.mjs`); una pregunta por texto solo confirma.
-- **2026-10-07 · `accion.volver` → la flecha redonda** (`<Volver>`): la de `EncabezadoPagina` que nació en `main` el día anterior (ADR-0220
+- **2026-10-06 · `accion.volver` → la flecha redonda** (`<Volver>`): la de `EncabezadoPagina` que nació en `main` el día anterior (ADR-0220
   act.), única cara en todo el ERP. Deuda 0.
-- **2026-10-07 · `pestanas` → F, A y L:** cambiar de sección = el vidrio de Comprobantes con la píldora oscura, en mayúsculas (`<Pestanas>`),
+- **2026-10-06 · `pestanas` → F, A y L:** cambiar de sección = el vidrio de Comprobantes con la píldora oscura, en mayúsculas (`<Pestanas>`),
   **también Finanzas y Configuración**; filtrar o elegir período = la píldora rellena; ver de otra forma u ordenar = la caja arena de «GRILLA /
   TABLA». Deuda 0.
-- **2026-10-07 · `cifra` → B**, la tarjeta de Compras tal cual (`<TarjetaCifra>`), sin las marcas nuevas de la ronda 1. Deuda 0.
+- **2026-10-06 · `cifra` → B**, la tarjeta de Compras tal cual (`<TarjetaCifra>`), sin las marcas nuevas de la ronda 1. Deuda 0.
 
-**Número:** este ADR nació como 0354; al traer `main` el 2026-10-07, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
+**Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
 `docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.
 
