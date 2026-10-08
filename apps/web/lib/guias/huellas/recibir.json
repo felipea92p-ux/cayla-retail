@@ -1,0 +1,144 @@
+{
+  "guia": "recibir",
+  "ruta": "/recibir",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 108,
+  "controles": {
+    "app/(app)/recibir/page.tsx": [
+      "Volver «(sin nombre)»",
+      "Link «Ver todo lo recibido»",
+      "Link «Registrar un comprobante →»",
+      "Link «recíbela sin factura»"
+    ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/AvisoTrasladosEnCamino.tsx": [
+      "Link «{uno ? `Abrir el Traslado ${traslados[0].numero}»"
+    ],
+    "components/ColaOfflineAviso.tsx": [
+      "button «Sí, descartar»",
+      "button «Cancelar»",
+      "button «Descartar»"
+    ],
+    "components/DecisionFaltanteFila.tsx": [
+      "button «{children}»",
+      "button «Cancelar»",
+      "button «Editar»"
+    ],
+    "components/EnvioRecibido.tsx": [
+      "Link «Se reclama en Notas de crédito ↗»",
+      "Link «Imprimir»",
+      "Boton «Recibir otro envío»",
+      "Link «Ver recibidas»"
+    ],
+    "components/FiltrosRecibidas.tsx": [
+      "input «Buscar por documento, proveedor o guía»",
+      "button «{texto}»",
+      "button «{texto}» #2",
+      "button «Limpiar»",
+      "button «Proveedor»",
+      "input «Buscar proveedor»",
+      "button «{textoFechas(desde || undefined, hasta || undefined, hoy)}»",
+      "button «{p.etiqueta}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «Quitar fechas»"
+    ],
+    "components/LlegoMercaderia.tsx": [
+      "Link «{a.texto}»",
+      "button «Recibir otra llegada»",
+      "Desplegable «Guía»",
+      "input «(sin nombre)»",
+      "button «Ver sus facturas pendientes»",
+      "Link «Sí, viene con la»",
+      "Link «Ver las»",
+      "button «No, recibir sin factura»",
+      "input «{PLACEHOLDER_BUSCADOR}»",
+      "button «{p.referencia}»",
+      "button «Deshacer»",
+      "Link «Crearla en Nuevo producto»",
+      "button «Una menos»",
+      "input «Cantidad»",
+      "button «Una más»",
+      "input «{`Costo por prenda de ${p.referencia}»",
+      "button «{`Quitar ${p.referencia}»",
+      "ComboResponsable «(sin nombre)»",
+      "button «{guia.frase ?? undefined}»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «← Volver al inicio»",
+      "Link «Siguiente página →»",
+      "Link «‹»",
+      "Link «{n}»",
+      "Link «›»"
+    ],
+    "components/RecepcionEnvio.tsx": [
+      "button «Una unidad menos»",
+      "input «{`Llegó de ${l.referencia}»",
+      "button «Una unidad más»",
+      "button «Nada llegó»",
+      "button «{listaPlegada ? \"Cambiar\" : \"Ocultar\"}»",
+      "input «Buscar entre los comprobantes pendientes»",
+      "button «Limpiar la búsqueda»",
+      "button «{f.etiqueta}»",
+      "button «Marcar las»",
+      "button «{recienMarcada?.id === c.id && <span key={recienMarcada.n}»",
+      "button «Marcar lo atrasado (»",
+      "CampoTexto «Guía del envío»",
+      "CampoSelect «Entra al almacén de»",
+      "CampoTexto «Entra al almacén de»",
+      "button «+ Agregar comprobante»",
+      "button «{c.proveedorNombre}»",
+      "button «{`Quitar ${c.documento}»",
+      "Pestanas «(sin nombre)»",
+      "input «Escanear una prenda: suma 1 al comprobante que la trae»",
+      "button «{l.referencia}»",
+      "button «Deshacer»",
+      "button «Agregar»",
+      "button «→() => setAbiertos((a) => ({ ...a, [c.id]: !abierto»",
+      "button «Todo llegó»",
+      "button «Nada llegó» #2",
+      "button «Vaciar»",
+      "button «Contar»",
+      "Link «Se reclama en Notas de crédito ↗»",
+      "ComboBuscable «actualizarExtra(i,»",
+      "Desplegable «(sin nombre)»",
+      "input «Cantidad»",
+      "Desplegable «actualizarExtra(i,»",
+      "input «(sin nombre)»",
+      "input «Costo unitario»",
+      "button «Quitar»",
+      "button «+ Agregar prenda fuera de comprobante»",
+      "Link «Traslados»",
+      "textarea «Llegó una caja abierta, el transportista dejó dos bultos menos…»",
+      "button «{f}»",
+      "button «Los espero todas»",
+      "button «Revisar»",
+      "Boton «(sin nombre)»",
+      "button «Seguir aquí»",
+      "button «Quitar y descartar»",
+      "input «{`${referencia}»"
+    ],
+    "components/RecepcionVistaRapida.tsx": [
+      "button «Cerrar»",
+      "Link «Ver comprobante completo →»",
+      "button «Recepción anterior»",
+      "button «Recepción siguiente»"
+    ],
+    "components/RecepcionesCompraLista.tsx": [
+      "button «{diaMes(hoyLima(new Date(r.fechaRecepcion)))}»",
+      "button «{diaMes(hoyLima(new Date(g.fechaRecepcion)))}»"
+    ],
+    "components/RecepcionesRecientes.tsx": [
+      "button «recibir.reciente»",
+      "Link «Ver factura completa →»"
+    ],
+    "components/ResumenPrevioEnvio.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Volver «Confirmar y recibir»",
+      "Boton «Confirmar y recibir»"
+    ]
+  }
+}

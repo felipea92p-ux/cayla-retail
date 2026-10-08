@@ -12,7 +12,7 @@ export function BotonPedirAOtraSede({ ubicacionId, sedes }: { ubicacionId: strin
   if (sedes.length === 0) return null;
   return (
     <>
-      <Boton type="button" onClick={() => setAbierto(true)}>
+      <Boton type="button" data-guia="traslados.pedir" onClick={() => setAbierto(true)}>
         Pedir a otra sede
       </Boton>
       <PedirAOtraSedeModal ubicacionId={ubicacionId} sedesParaElegir={sedes} abierto={abierto} onCerrar={() => setAbierto(false)} />

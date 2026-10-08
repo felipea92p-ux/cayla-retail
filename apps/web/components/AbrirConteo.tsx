@@ -252,7 +252,7 @@ export function AbrirConteo({
     );
 
   return (
-    <section className="card-cayla @container" aria-labelledby={idTitulo}>
+    <section data-guia="conteo.abrir" className="card-cayla @container" aria-labelledby={idTitulo}>
       <div className="grid @[46rem]:grid-cols-[minmax(0,1fr)_19.5rem]">
         <div inert={abriendo} className={`min-w-0 space-y-7 p-5 transition-opacity duration-200 @[46rem]:p-8 ${abriendo ? "opacity-60" : ""}`}>
           <div className="space-y-1">
@@ -267,7 +267,7 @@ export function AbrirConteo({
           {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
               «de más»; si no, se recibe después y descuadra lo contado. */}
           {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-            <div className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
+            <div data-guia="conteo.aviso-traslados" className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
               <span className="min-w-0 flex-1 text-tinta">
                 <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
                 atender. Recíbelos primero, o esas prendas saldrán como diferencia.
@@ -279,6 +279,7 @@ export function AbrirConteo({
           )}
 
           {separaPisoAlmacen && (
+            <div data-guia="conteo.donde">
             <CampoGuiado id="donde" guia={guia} titulo="¿Dónde vas a contar?">
               <TarjetasOpcion
                 etiqueta="Dónde vas a contar"
@@ -294,17 +295,19 @@ export function AbrirConteo({
                 }))}
               />
             </CampoGuiado>
+            </div>
           )}
 
+          <div data-guia="conteo.que">
           <CampoGuiado id="que" guia={guia} titulo="¿Qué vas a contar?">
             <SegmentoDeslizante
               etiqueta="Qué vas a contar"
               valor={queCuento}
               onCambio={(v) => setQueCuento(v as AlcanceElegido)}
               opciones={[
-                { clave: "todo", etiqueta: "Todo" },
-                { clave: "categoria", etiqueta: "Una categoría" },
-                { clave: "prendas", etiqueta: "Por prenda" },
+                { clave: "todo", etiqueta: "Todo", guia: "conteo.que-todo" },
+                { clave: "categoria", etiqueta: "Una categoría", guia: "conteo.que-categoria" },
+                { clave: "prendas", etiqueta: "Por prenda", guia: "conteo.que-prendas" },
               ]}
             />
             <p aria-live="polite" className="mt-2.5 min-h-5 text-[13px] text-taupe">
@@ -315,7 +318,7 @@ export function AbrirConteo({
               inert={queCuento !== "categoria"}
               className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "categoria" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div data-guia="conteo.categorias" className="min-h-0 overflow-hidden">
                 <ElegirCategoria
                   categorias={categorias}
                   valor={categoriaId}
@@ -330,7 +333,7 @@ export function AbrirConteo({
               inert={queCuento !== "prendas"}
               className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "prendas" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div data-guia="conteo.prendas" className="min-h-0 overflow-hidden">
                 <ElegirPrendas
                   estado={cargaDePrendas.estado}
                   reintentar={cargaDePrendas.reintentar}
@@ -348,6 +351,7 @@ export function AbrirConteo({
               </div>
             </div>
           </CampoGuiado>
+          </div>
 
           {/* Solo si hay algo que decir de lo elegido. Las dos frases ocupan la misma celda (la invisible reserva el alto); van por
               posición (0 = «Todo», 1 = la parte elegida), no por tipo: en el piso las dos pueden ser «de arranque». */}
@@ -374,9 +378,11 @@ export function AbrirConteo({
             </div>
           )}
 
-          <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
-            <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
-          </CampoGuiado>
+          <div data-guia="conteo.quien">
+            <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
+              <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
+            </CampoGuiado>
+          </div>
 
           {error && (
             <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
@@ -387,6 +393,7 @@ export function AbrirConteo({
 
         {/* «Tu conteo»: a la derecha en una tarjeta ancha; en una angosta, la barra pegada abajo con la cifra y el botón. */}
         <aside
+          data-guia="conteo.tu-conteo"
           aria-label="Resumen del conteo"
           className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
         >
@@ -579,7 +586,7 @@ function ElegirCategoria({
 
   return (
     <div className="space-y-3 pt-3">
-      <label className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-sm">
+      <label data-guia="conteo.categoria-buscador" className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-sm">
         <Search className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
         <span className="sr-only">Buscar categoría</span>
         <input
@@ -599,7 +606,7 @@ function ElegirCategoria({
           className="h-10 w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
         />
       </label>
-      <div role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
+      <div data-guia="conteo.categoria-lista" role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
         {visibles.length === 0 && <p className="py-1.5 text-[13px] text-taupe">Ninguna categoría se llama así.</p>}
         {visibles.map((c, i) => {
           const activa = c.id === valor;

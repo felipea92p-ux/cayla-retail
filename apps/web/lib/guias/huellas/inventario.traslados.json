@@ -1,0 +1,119 @@
+{
+  "guia": "inventario.traslados",
+  "ruta": "/inventario/traslados/(billetera)",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 87,
+  "controles": {
+    "app/(app)/inventario/traslados/(billetera)/layout.tsx": [
+      "BotonEnlace «traslados.nuevo»"
+    ],
+    "components/BotonPedirAOtraSede.tsx": [
+      "Boton «traslados.pedir»"
+    ],
+    "components/EscanerConteo.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Escribir el código»",
+      "button «Dar de alta»",
+      "button «Una menos»",
+      "button «Una más»",
+      "button «Listo»"
+    ],
+    "components/ParaEnviar.tsx": [
+      "input «Por qué ya no la envías»",
+      "ComboResponsable «Mejor no»",
+      "button «Mejor no»",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/PedidoClienteModales.tsx": [
+      "ComboResponsable «Mejor no»",
+      "button «Mejor no»",
+      "button «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «(sin nombre)»",
+      "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
+      "a «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «(sin nombre)» #2",
+      "button «{responsable.motivo ?? undefined}» #2",
+      "button «{responsable.motivo ?? undefined}» #3"
+    ],
+    "components/PedirAOtraSedeModal.tsx": [
+      "button «{`Una menos de ${etiqueta}»",
+      "button «{`Una más de ${etiqueta}»",
+      "Desplegable «)»",
+      "button «Reintentar»",
+      "Desplegable «(sin nombre)»",
+      "button «{`Quitar ${prenda?.etiqueta ?? \"esta línea\"}»",
+      "button «+ Agregar otra prenda»",
+      "input «Nota (opcional)»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Mejor no»",
+      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+    ],
+    "components/traslados-guia/QrDeLaGuia.tsx": [
+      "Link «{`Imprimir la guía de la caja Nº ${numero}»"
+    ],
+    "components/traslados-pases/Billetera.tsx": [
+      "input «Busca una caja por número, sede o prenda»",
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/traslados-pases/MiniPase.tsx": [
+      "Link «traslados.mini»"
+    ],
+    "components/traslados-pases/PasePedido.tsx": [
+      "button «No la tengo»",
+      "button «Subir al almacén»",
+      "button «{vista.boton.texto}»",
+      "button «¿Sigue en pie?»",
+      "button «→() => onVentana(\"avisar\")»",
+      "button «→() => girarA(\"ver\")»",
+      "Link «{p.trasladoNumero != null ? `Caja Nº ${p.trasladoNumero}»",
+      "Volver «{titulo}»",
+      "button «{o.etiqueta}»",
+      "ComboResponsable «)»",
+      "button «{p.cliente ? \"Ya no la quiere\" : \"Ya no la necesito\"}»",
+      "button «Mejor no»",
+      "button «{guia.frase ?? undefined}»",
+      "button «Ver lo que subiste»",
+      "Link «{vista.boton.texto}»",
+      "Volver «Lo que subiste para»",
+      "button «Ya no la envío»",
+      "Link «Armar el envío a»"
+    ],
+    "components/traslados-pases/PaseTraslado.tsx": [
+      "Volver «{volverA && ( <Volver href={volverA.href}»",
+      "Volver «)»",
+      "button «pase.boton»",
+      "Link «{`Anterior: ${v.anterior.rotulo}»",
+      "Link «{`Siguiente: ${v.siguiente.rotulo}»",
+      "button «{vista.boton.texto}»",
+      "Link «{a.texto}»"
+    ],
+    "components/traslados-pases/ReversoPase.tsx": [
+      "input «Escanea o escribe el código»",
+      "button «→() => void r.anotarDeMas(r.avisoEscaneo!.fueraId!)»",
+      "button «{l.referencia}»",
+      "textarea «Qué pasó con lo que falta»",
+      "textarea «Por qué la anulas»",
+      "ComboResponsable «)»",
+      "button «Escanear»",
+      "button «Terminé de contar»",
+      "button «{LUGARES[o].icono}»",
+      "Volver «void alConfirmar()»",
+      "button «→() => void alConfirmar()»",
+      "button «→() => void alCerrar()»",
+      "button «No anular»",
+      "button «{anulandoAhora ? \"Anulando…\" : \"Anular · vuelve a tu stock\"}»",
+      "Link «Guía»",
+      "button «Avisar por WhatsApp»",
+      "button «{anular.porQueNo ?? undefined}»",
+      "button «Anotarla como prenda de más»",
+      "Volver «{titulo}»",
+      "button «{c.pendiente}»",
+      "ComboResponsable «);»",
+      "button «{f.enPantalla.cambiar}»",
+      "button «{`Una menos de ${nombre}»",
+      "input «{`Contado de ${nombre}»",
+      "button «{`Una más de ${nombre}»",
+      "button «reintentar»"
+    ]
+  }
+}

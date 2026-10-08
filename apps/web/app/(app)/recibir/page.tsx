@@ -249,7 +249,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               fotoUrl: v.fotoUrl,
             }))}
         />
-        <section className="space-y-2">
+        <section data-guia="recibir.semana" className="space-y-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
             <Link href="/recibir?vista=recibidas" className="btn-cayla btn-enlace btn-chico">

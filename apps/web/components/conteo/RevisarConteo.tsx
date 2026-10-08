@@ -199,7 +199,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
 
   return (
     <>
-      <section id="revisar-resumen" tabIndex={-1} className="card-cayla space-y-3 p-4 outline-none sm:p-5">
+      <section id="revisar-resumen" data-guia="revisar.resumen" tabIndex={-1} className="card-cayla space-y-3 p-4 outline-none sm:p-5">
         <ResumenConteo resumen={resumen} variante="revision" />
         {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={alguienOcupado} className="w-full sm:w-72" />}
       </section>
@@ -210,7 +210,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
             {textoFaltanPorContar(resumen.pendientes)}
           </p>
 
-          <section ref={tarjetaPend} className="card-cayla @container scroll-mt-24 overflow-hidden">
+          <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
               <h2 className="font-display text-lg text-tinta">Pendientes de contar</h2>
               <p className="text-sm text-taupe">Estas variantes todavía no fueron verificadas.</p>
@@ -263,7 +263,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
       )}
 
       {diferencias.length > 0 ? (
-        <section ref={tarjetaDif} className="card-cayla @container scroll-mt-24 overflow-hidden">
+        <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-24 overflow-hidden">
           <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
             <h2 id="revisar-diferencias" tabIndex={-1} className="font-display text-lg text-tinta outline-none">
               Diferencias
@@ -362,7 +362,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
       <BarraFija
         resumen={<p>{textoPie}</p>}
         acciones={
-          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div data-guia="revisar.pie" className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
             {conPendientes ? (
               <>
                 {bloqueoParcial === null ? (

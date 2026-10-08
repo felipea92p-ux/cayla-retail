@@ -302,7 +302,7 @@ export function MoverMercaderiaFormV2({
   return (
     // `noValidate`: los avisos del navegador salen en su propio globo y su idioma; los de este formulario, junto al campo.
     <form onSubmit={onSubmit} noValidate className="card-cayla space-y-5 p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div data-guia="nuevo-traslado.ruta" className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <span className={campoEtiqueta}>Desde</span>
           <p className="w-full border-b border-tinta/10 px-1 py-2 text-sm text-tinta/75">{origenEtiqueta}</p>
@@ -324,7 +324,7 @@ export function MoverMercaderiaFormV2({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div data-guia="nuevo-traslado.cuando" className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="mover-eta">
             Llega aproximadamente
@@ -355,7 +355,7 @@ export function MoverMercaderiaFormV2({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div data-guia="nuevo-traslado.prendas" className="space-y-3">
         <p className={campoEtiqueta}>Prendas que envías</p>
         {lineas.map((l, i) => {
           const tope = stockDe(l.varianteId);
@@ -410,8 +410,10 @@ export function MoverMercaderiaFormV2({
         </button>
       </div>
 
-      <ComboResponsable control={responsable} deshabilitado={loading} />
-      <button type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
+      <div data-guia="nuevo-traslado.responsable">
+        <ComboResponsable control={responsable} deshabilitado={loading} />
+      </div>
+      <button type="submit" data-guia="nuevo-traslado.enviar" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
         {loading ? "Enviando…" : destinoId ? `Enviar a ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}` : "Enviar traslado"}
       </button>
     </form>

@@ -1,0 +1,96 @@
+{
+  "guia": "inventario.conteo.id",
+  "ruta": "/inventario/conteo/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 60,
+  "controles": {
+    "app/(app)/inventario/conteo/[id]/page.tsx": [
+      "Link «Contar todo»"
+    ],
+    "components/EscanerConteo.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Escribir el código»",
+      "button «Dar de alta»",
+      "button «Una menos»",
+      "button «Una más»",
+      "button «Listo»"
+    ],
+    "components/alta-producto/ElegirMarcaProveedor.tsx": [
+      "button «Quitar»",
+      "ComboBuscable «Proveedor»",
+      "button «Quitar» #2",
+      "ComboBuscable «(sin nombre)»",
+      "button «+ Registrar una marca o un proveedor nuevo»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «);»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevaMarcaForm.tsx": [
+      "button «Cambiar»",
+      "ComboBuscable «)»",
+      "button «+ Proveedor nuevo»",
+      "button «Cambiar» #2",
+      "input «Textil Andina SAC»",
+      "input «11 dígitos»",
+      "button «Mejor elijo uno que ya existe»",
+      "ComboBuscable «)» #2",
+      "button «Cancelar»",
+      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/conteo/AltaAlVuelo.tsx": [
+      "CampoTexto «Nombre de la prenda»",
+      "CampoSelect «Categoría»",
+      "Desplegable «(sin nombre)»",
+      "CampoSelect «Color (si aplica)»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/conteo/AplicarTodosCompletos.tsx": [
+      "button «Aplicar todos completos»",
+      "button «Seguir contando»",
+      "button «Sí, aplicar a»"
+    ],
+    "components/conteo/CampoContaste.tsx": [
+      "button «{`Restar uno. ${etiqueta}»",
+      "input «{etiqueta}»",
+      "button «{`Sumar uno. ${etiqueta}»"
+    ],
+    "components/conteo/CanceladoConteo.tsx": [
+      "Volver «:»",
+      "Volver «(sin nombre)»"
+    ],
+    "components/conteo/ContarConteo.tsx": [
+      "Volver «(sin nombre)»",
+      "input «Escanear código»",
+      "button «Limpiar»",
+      "ComboResponsable «) : (»",
+      "button «Sumar 1»",
+      "button «Escanear con la cámara»",
+      "button «{preparando ? \"Guardando lo último…\" : \"Revisar conteo\"}»",
+      "button «Cerrar el aviso»",
+      "button «Agregar igual»",
+      "button «No agregar»",
+      "button «Dar de alta esta prenda»",
+      "button «Reintentar»"
+    ],
+    "components/conteo/EditarConteo.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Corregir conteo\"}»"
+    ],
+    "components/conteo/ListaConteo.tsx": [
+      "button «{`Completar todo: ${nombre}»"
+    ],
+    "components/conteo/ResultadoConteo.tsx": [
+      "Volver «:»",
+      "Volver «(sin nombre)»",
+      "Link «Ver Existencias»",
+      "Link «Ver movimientos del conteo»",
+      "Link «Míralas todas en Movimientos →»"
+    ]
+  }
+}

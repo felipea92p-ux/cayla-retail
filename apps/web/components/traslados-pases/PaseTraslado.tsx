@@ -128,7 +128,7 @@ export function PaseTraslado({
                     (siguiente ? (
                       <FrenteLoSiguiente vista={vista} siguiente={siguiente} />
                     ) : (
-                      <button type="button" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
+                      <button type="button" data-guia="pase.boton" onClick={() => setVuelta(true)} className={`btn-cayla ${vista.boton.principal ? "btn-primario" : "btn-secundario"} tp-boton`}>
                         {vista.boton.texto} <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={1.8} />
                       </button>
                     ))
@@ -141,7 +141,7 @@ export function PaseTraslado({
             </div>
           </div>
           {v.total > 1 && (
-            <nav className="tp-paginas" aria-label="Pasar de caja">
+            <nav data-guia="pase.paginas" className="tp-paginas" aria-label="Pasar de caja">
               {v.anterior ? (
                 <Link href={rutaDelPase(v.anterior.id)} scroll={false} aria-label={`Anterior: ${v.anterior.rotulo}`}>
                   <ArrowLeft aria-hidden className="h-4 w-4" strokeWidth={1.8} />
@@ -179,7 +179,7 @@ function FrenteLoSiguiente({ vista, siguiente }: { vista: VistaPase; siguiente: 
   const pase = usePase();
   const manda = vista.porHacer;
   return (
-    <div>
+    <div data-guia="pase.boton">
       <p className="tp-siguiente">{siguiente.intro}</p>
       <div className="tp-acciones">
         <button type="button" onClick={() => pase.girar(true)} className={`btn-cayla ${manda ? "btn-primario tp-boton" : "btn-secundario"}`}>

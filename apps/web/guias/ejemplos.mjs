@@ -15,7 +15,8 @@ export const EJEMPLOS = {
   "/compras/factura/[compraId]": { url: () => `/compras/factura/${id("select id from retail.compras order by created_at desc limit 1")}` },
   "/compras/parte/[compraId]": { url: () => `/compras/parte/${id("select id from retail.compras order by created_at desc limit 1")}` },
   "/compras/proveedores/[id]": { url: () => `/compras/proveedores/${id("select id from retail.proveedores order by created_at desc limit 1")}` },
-  "/inventario/conteo/[id]": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by (estado = 'abierto') desc, created_at desc limit 1")}` },
+  // Abierto (se cuenta) y, si no hay, uno cerrado (el resultado), antes que uno cancelado: es la cara que más hay que enseñar.
+  "/inventario/conteo/[id]": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by (estado = 'abierto') desc, (estado = 'cerrado') desc, created_at desc limit 1")}` },
   "/inventario/conteo/[id]/confirmar": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by (estado = 'abierto') desc, created_at desc limit 1")}/confirmar` },
   "/inventario/conteo/[id]/revisar": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by created_at desc limit 1")}/revisar` },
   "/inventario/traslados/(billetera)/[id]": { url: () => `/inventario/traslados/${id("select id from retail.transferencias order by created_at desc limit 1")}` },

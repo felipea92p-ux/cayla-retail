@@ -22,12 +22,20 @@ import {
 import {
   GUIA_ANALISIS,
   GUIA_BAJAR_AL_PISO,
+  GUIA_CONTEO,
+  GUIA_CONTEO_CONFIRMAR,
+  GUIA_CONTEO_DETALLE,
+  GUIA_CONTEO_REVISAR,
   GUIA_CUADRAR_PISO,
   GUIA_EXISTENCIAS,
   GUIA_FRESCURA,
   GUIA_MOVIMIENTOS,
+  GUIA_NUEVO_TRASLADO,
   GUIA_PEDIDOS_NO_ATENDIDOS,
   GUIA_POR_REGULARIZAR,
+  GUIA_RECIBIR,
+  GUIA_TRASLADO,
+  GUIA_TRASLADOS,
 } from "./pantallas/inventario";
 import type { Guia } from "./tipos";
 
@@ -58,10 +66,18 @@ export const GUIAS: readonly Guia[] = [
   GUIA_POR_REGULARIZAR,
   GUIA_ANALISIS,
   GUIA_PEDIDOS_NO_ATENDIDOS,
+  GUIA_CONTEO,
+  GUIA_CONTEO_DETALLE,
+  GUIA_CONTEO_REVISAR,
+  GUIA_CONTEO_CONFIRMAR,
+  GUIA_TRASLADOS,
+  GUIA_TRASLADO,
+  GUIA_NUEVO_TRASLADO,
+  GUIA_RECIBIR,
 ];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 59;
+export const PENDIENTES_HOY = 51;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -127,20 +143,20 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- inventario ----
   "/inventario": { estado: "aplicada", guia: GUIA_EXISTENCIAS.id },
   "/inventario/bajar": { estado: "aplicada", guia: GUIA_BAJAR_AL_PISO.id },
-  "/inventario/conteo": PENDIENTE,
-  "/inventario/conteo/[id]": PENDIENTE,
-  "/inventario/conteo/[id]/confirmar": PENDIENTE,
-  "/inventario/conteo/[id]/revisar": PENDIENTE,
+  "/inventario/conteo": { estado: "aplicada", guia: GUIA_CONTEO.id },
+  "/inventario/conteo/[id]": { estado: "aplicada", guia: GUIA_CONTEO_DETALLE.id },
+  "/inventario/conteo/[id]/confirmar": { estado: "aplicada", guia: GUIA_CONTEO_CONFIRMAR.id },
+  "/inventario/conteo/[id]/revisar": { estado: "aplicada", guia: GUIA_CONTEO_REVISAR.id },
   "/inventario/cuadrar": { estado: "aplicada", guia: GUIA_CUADRAR_PISO.id },
   "/inventario/frescura": { estado: "aplicada", guia: GUIA_FRESCURA.id },
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a Traslados ▸ Nuevo con lo que traía la dirección vieja. La guía es la de Nuevo traslado." },
   "/inventario/movimientos": { estado: "aplicada", guia: GUIA_MOVIMIENTOS.id },
   "/inventario/por-regularizar": { estado: "aplicada", guia: GUIA_POR_REGULARIZAR.id },
   "/inventario/resumen": { estado: "aplicada", guia: GUIA_ANALISIS.id },
-  "/inventario/traslados/(billetera)": PENDIENTE,
-  "/inventario/traslados/(billetera)/[id]": PENDIENTE,
+  "/inventario/traslados/(billetera)": { estado: "aplicada", guia: GUIA_TRASLADOS.id },
+  "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", guia: GUIA_TRASLADO.id },
   "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de un traslado: se imprime y viaja con la mercadería." },
-  "/inventario/traslados/nuevo": PENDIENTE,
+  "/inventario/traslados/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_TRASLADO.id },
   // ---- movimientos ----
   "/movimientos": { estado: "no-aplica", motivo: "Solo redirige a Inventario ▸ Movimientos (la dirección vieja). La guía es la de esa pantalla." },
   // ---- pedidos-no-atendidos ----
@@ -167,7 +183,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/marcas": PENDIENTE,
   "/productos/nuevo": PENDIENTE,
   // ---- recibir ----
-  "/recibir": PENDIENTE,
+  "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   // ---- rendimiento ----
   "/rendimiento": PENDIENTE,
   // ---- sin-acceso ----

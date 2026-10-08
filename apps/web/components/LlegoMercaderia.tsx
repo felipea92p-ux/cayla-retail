@@ -282,6 +282,7 @@ export function LlegoMercaderia({
       ) : (
         <form ref={formulario} onSubmit={onSubmit} className="card-cayla space-y-6 p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+            <div data-guia="recibir.proveedor">
             <CampoGuiado id="llegada-proveedor" guia={guia} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
               <Desplegable
                 forma="caja"
@@ -292,7 +293,8 @@ export function LlegoMercaderia({
                 opciones={proveedores.map((p) => ({ valor: p.id, texto: textoDelProveedor(p.nombre, p.marcas) }))}
               />
             </CampoGuiado>
-            <label className="block">
+            </div>
+            <label data-guia="recibir.guia" className="block">
               <span className="mb-1.5 block text-[13px] font-semibold text-tinta">
                 Guía <span className="font-normal text-taupe">opcional</span>
               </span>
@@ -347,6 +349,7 @@ export function LlegoMercaderia({
               </CampoGuiado>
             ))}
 
+          <div data-guia="recibir.prendas">
           <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
             <div className="relative">
               <ScanLine aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" />
@@ -485,12 +488,15 @@ export function LlegoMercaderia({
               </ul>
             )}
           </CampoGuiado>
+          </div>
 
-          <CampoGuiado id="llegada-responsable" guia={guia}>
-            <ComboResponsable control={responsable} deshabilitado={loading} />
-          </CampoGuiado>
+          <div data-guia="recibir.responsable">
+            <CampoGuiado id="llegada-responsable" guia={guia}>
+              <ComboResponsable control={responsable} deshabilitado={loading} />
+            </CampoGuiado>
+          </div>
 
-          <div className="space-y-3">
+          <div data-guia="recibir.confirmar" className="space-y-3">
             <PieGuia guia={guia} listo="Todo listo para recibir." />
             {atipicos ? (
               <AvisoCostoAtipico

@@ -254,7 +254,7 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
       bloqueado={enviando}
     >
       {(cerrar) => (
-        <div className="space-y-4">
+        <div data-guia="pedir.campos" className="space-y-4">
           {elegir && (
             <CampoGuiado id="sede" guia={guia} titulo="A qué tienda le pides">
               <Desplegable

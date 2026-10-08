@@ -247,7 +247,7 @@ export function ReversoPase({
         )}
 
         {(modo === "contar" || (modo === "revisar" && r.contable)) && (
-          <div className="tp-escaneo" inert={f.sinNombre}>
+          <div data-guia="pase.escaneo" className="tp-escaneo" inert={f.sinNombre}>
             <label className="caja-cayla relative flex h-10 items-center">
               <ScanLine aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
               <span className="sr-only">Escanear o buscar una prenda</span>
@@ -305,6 +305,7 @@ export function ReversoPase({
         )}
 
         <ul
+          data-guia="pase.prendas"
           className="tp-prendas"
           aria-label="Prendas de la caja"
           inert={modo === "contar" && f.sinNombre}
@@ -575,7 +576,7 @@ export function ReversoPase({
 
 function Cabecera({ titulo, numero, aro, onVolver, tono }: { titulo: string; numero: number; aro: number | null; onVolver: () => void; tono?: string }) {
   return (
-    <header className="tp-banda tp-banda-atras" data-tp-tono={tono}>
+    <header data-guia="pase.reverso-cabecera" className="tp-banda tp-banda-atras" data-tp-tono={tono}>
       <Volver onClick={onVolver} a="Volver al frente del pase" datos={{ "data-foco-reverso": true }} />
       <span className="tp-banda-nombre" role="heading" aria-level={2}>
         {titulo}
@@ -605,7 +606,7 @@ function Consecuencia({ c }: { c: ConsecuenciaCierre }) {
 
 function Pie({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return <div className="tp-reverso-pie">{children}</div>;
+  return <div data-guia="pase.reverso-pie" className="tp-reverso-pie">{children}</div>;
 }
 
 /** Una prenda que hay que contar se ENCIENDE cuando es la que sigue (la guía de foco, ADR-0284); las demás, una fila sin más. */
