@@ -3365,8 +3365,11 @@ hasta `4613b0d53`) sobre un caso armado como la captura de TRU del 2026-10-07 y 
   que `0012` y ADR-0240 cerraron (nadie lee otra sede); y calcular la curva en SQL, porque nace del FIFO de cohortes de
   `inventario-exposicion.ts` y tendría dos fuentes de verdad. **SE ROMPE SI:** el cron no corre 3 días: la pantalla dice de cuándo es
   la vara y, pasados 3 días, vuelve a juzgar contra la tienda como hoy.
-- **DECIDÍ:** «Por decidir» exige 2 ventas esperadas, no 1 (`estaQuieta`; el índice de rapidez se sigue mostrando desde 1). Con 2
-  esperadas, 0 ventas por azar pasa 1 de 7 veces (e⁻² = 13,5 %); con 1, 1 de 3. Es la contracción de ADR-0214 («una cifra con poca
+- **DECIDÍ:** «Por decidir» exige 2 ventas esperadas, no 1 (`rapidezParaDecidir`, que `estadoFrescura` aplica antes de `estaQuieta`;
+  el índice de rapidez se sigue calculando y mostrando desde 1). Con poca evidencia el índice solo **protege** (un pilar con 0,5
+  esperadas sigue siendo pilar: no se actúa), nunca **condena**: un pilar falso no cuesta nada, una lenta falsa manda a mover una
+  prenda que se vende. La que dejó de vender (30 días en el piso sin una venta) decide igual con menos: esos 30 días son evidencia
+  por sí solos. Con 2 esperadas, 0 ventas por azar pasa 1 de 7 veces (e⁻² = 13,5 %); con 1, 1 de 3. Es la contracción de ADR-0214 («una cifra con poca
   muestra no es una cifra») aplicada donde no estaba. **DESCARTÉ:** un test de significancia por prenda (Poisson con α), porque cambia
   qué significa el 100 y no se explica en una frase a la encargada; «espera a que su categoría haya vendido lo que valen 2 prendas
   antes de llamarla lenta» sí. **SE ROMPE SI:** una prenda que de verdad no se vende en una categoría lentísima (1 esperada en 60 días)

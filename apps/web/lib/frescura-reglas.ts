@@ -1119,6 +1119,29 @@ export function recientesDe(ventasRecientes: number | null, segundosColgada: num
   return segundosColgada >= DIAS_CALLADA * 86_400 - TOL_SEGUNDOS ? "dejo_de_vender" : "no_se_sabe";
 }
 
+/**
+ * Ventas esperadas que necesita el índice de rapidez para poder DECIDIR (llamar «lenta» a una prenda y mandarla a «Por
+ * decidir»; ADR-0208, actualización 2026-10-07): su categoría, sin ella, tiene que haber vendido a esa edad lo que valen
+ * 2 prendas. Con 1 esperada, la prenda que vende exactamente al ritmo de su categoría sale «lenta» 1 de cada 3 veces por
+ * puro azar (Poisson, e⁻¹ = 37 %); con 2, 1 de 7. El índice se calcula y se muestra desde `RAPIDEZ_MIN_EVIDENCIA`;
+ * esta cifra solo frena la decisión. Verificado el 2026-10-07 con las reglas reales: con 3 ventas rápidas en una
+ * categoría (días 1, 1 y 2), una capa de 4 días colgada acumulaba 1,00 esperada y salía «Por decidir».
+ */
+export const ESPERADAS_PARA_DECIDIR = 2;
+
+/**
+ * La rapidez que puede decidir: la misma, o null si dice «lenta» (índice < 100) con menos de `ESPERADAS_PARA_DECIDIR`
+ * ventas esperadas. Con poca evidencia el índice solo PROTEGE (un pilar con 0,5 esperadas sigue siendo pilar: no se
+ * actúa), nunca CONDENA: un pilar falso no cuesta nada, una lenta falsa manda a mover una prenda que se vende. La que
+ * dejó de vender (`dejo_de_vender`: sus últimos 30 días en el piso sin una venta) pasa entera: esos 30 días son evidencia
+ * por sí solos, y es lo que la revisión 6 ya decidía. Con null, `estaQuieta` no la llama lenta y `sugerenciasDe` le da
+ * «revisa sus ventas» si es vieja, como a la que no tiene dato.
+ */
+export function rapidezParaDecidir(r: Rapidez | null, recientes: Recientes): Rapidez | null {
+  if (r === null || recientes === "dejo_de_vender" || r.indice >= RAPIDEZ_IGUAL) return r;
+  return r.esperadas >= ESPERADAS_PARA_DECIDIR - EPS ? r : null;
+}
+
 // ---------------------------------------------------------------------------
 // Quieta, sugerencias y estado
 // ---------------------------------------------------------------------------
@@ -1224,7 +1247,10 @@ export function esTemporadaPasada(p: { esClasico: boolean; temporada: string | n
 export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
   const temporadaPasada = esTemporadaPasada(e);
   const sinTemporada = e.temporada === null;
-  const rapidezUsable = e.dudosa || e.esClasico ? null : e.rapidez;
+  const recientes = recientesDe(e.ventasRecientes, e.reloj.segundos);
+  // La rapidez que decide: ni la del clásico ni la de la dudosa (tienen su propio estado), ni la que descansa en menos de
+  // 2 ventas esperadas (`rapidezParaDecidir`). La cruda se sigue mostrando en la fila y en la hoja.
+  const rapidezUsable = e.dudosa || e.esClasico ? null : rapidezParaDecidir(e.rapidez, recientes);
   let tramo: Tramo | null = null;
   let base:
     | { tipo: "semaforo"; tramo: Tramo; alMenos: boolean }
@@ -1246,7 +1272,6 @@ export function estadoFrescura(e: EntradaEstado): EstadoFrescura {
       tramo = t.tramo;
     }
   }
-  const recientes = recientesDe(e.ventasRecientes, e.reloj.segundos);
   const quieta = estaQuieta({ tramo, temporadaPasada, rapidez: rapidezUsable, recientes, pisoHoy: e.pisoHoy });
   // D4+D6: sin tramo firme (sin referencia, sin ventas en la sede, sin edad conocida o un tramo que es solo un piso),
   // y sus últimos 30 días en el piso sin ninguna venta. Ni el clásico ni la dudosa: tienen su propio estado.

@@ -3,7 +3,7 @@
 Una actividad por commit (`/construir`); el orden es por dependencia.
 
 - [x] 0 · Rama al día con `origin/main` (`4613b0d53`); ADR-0208 con las 4 decisiones de Felipe y las 2 técnicas; fila en `SESIONES-ACTIVAS.md`.
-- [ ] 1 · `estaQuieta` exige 2 ventas esperadas, no 1 (prueba: 0 vendidas con 1,0 esperadas no es «Por decidir»; con 2,1 sí).
+- [x] 1 · «Por decidir» exige 2 ventas esperadas, no 1 (`rapidezParaDecidir`, antes de `estaQuieta`; el pilar pasa con cualquier evidencia, la que dejó de vender también). 7 pruebas nuevas, entre ellas el caso exacto de la captura de TRU; 395 de Frescura en verde.
 - [ ] 2 · Tabla `retail.frescura_vara_cayla` + ruta cron diaria + lectura en `frescura.ts` — **migración sin pegar en producción** (la pega Felipe).
 - [ ] 3 · `analizarSede` juzga contra CAYLA cuando la tienda no llega a 10 ventas en la categoría; la fila dice «contra lo que vende CAYLA»; prueba con el fixture real.
 - [ ] 4 · Tablero por categoría (barra apilada de unidades por estado, cuántas esperan decisión, con qué vara); tocar una fila filtra. Navegador a 1440 y 375.
