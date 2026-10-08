@@ -40,9 +40,20 @@ asentarse del verde: ninguno se pierde (la entrada nueva los incluye).
 
 ## Lo que queda distinto a propósito
 
-Los avisos de la esquina (`avisar.*`, ADR-0146), el aviso de datos de Análisis (ADR-0357) y la nota sin caja de Finanzas (ADR-0195).
+Los avisos de la esquina (`avisar.*`, ADR-0146), que son otra pieza. El aviso de datos de Análisis y la nota sin caja de Finanzas se sumaron (Felipe 2026-10-08).
 
 ## Deuda al decidir
 
 55 archivos (`node apps/web/unificar/deuda.mjs aviso`): recuadros de tono pintados a mano, la franja copiada, `AvisoInline` y
 `AvisoDeError`, y los párrafos rojos sueltos.
+
+
+## Migración (2026-10-08, el mismo día)
+
+Felipe respondió las cuatro preguntas de cierre (con lo que se gana y lo que se pierde): **el mostrador primero**; **Finanzas y Análisis se
+suman** (ya no son excepción: el kit de Finanzas dejó `GuiaVacia`, `.fin-guia`, `.fin-buscar` y `.fin-nota-bloque`; Análisis dejó
+`.vacio-vista`, `.aviso-datos` y `.buscar`); **el colibrí de Comprobantes de compra no vuelve** (el isotipo es la marca, ADR-0333); y
+**todo vacío de búsqueda o de filtros suma lo que lo deshace ahí mismo** («Borrar la búsqueda», «Limpiar filtros», las píldoras).
+Migrado entero en un commit por módulo (mostrador, Inventario y Caja, Compras y Producción, Catálogo/Colaboradores/Clientes, Finanzas y
+Análisis). Deuda: **0**. Lo que las firmas no veían y se migró igual: el vacío de Existencias (ahora con su lista de «no recibido» en
+el `detalle` de la pieza), los buscadores y vacíos de Apartados (Apartar, Entregar, Todos) y el «Nada coincide» de los combos.

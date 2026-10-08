@@ -36,13 +36,24 @@ Entra en cascada como un modal (círculo → título → frase → píldoras →
 **dibuja** una vez (900 ms) y un anillo suave sale del círculo y se apaga. Las píldoras se oscurecen a rojo profundo al pasar el mouse y
 se encogen al presionarlas. Los botones traen el movimiento de todo botón (suben, luz que cruza, onda al clic). El chico sube 4 px y su
 ícono se dibuja. Sin bucle ni rebote; con «reducir movimiento» aparece quieto. Qué traían las que reemplaza: G, el colibrí que flotaba
-(se reemplaza por el trazo que se dibuja, elegido por Felipe); Análisis, la cascada de la pestaña (se queda, es excepción); las demás,
+(se reemplaza por el trazo que se dibuja, elegido por Felipe); Análisis, la cascada de la pestaña (la pieza entra en cascada igual); las demás,
 nada.
 
-## Lo que queda distinto a propósito (hasta que Felipe diga)
+## Lo que queda distinto a propósito
 
-La guía de Finanzas (`fin-guia`, ADR-0195) y la ficha de Análisis (`vacio-vista`, ADR-0357). Sus firmas no las cuentan.
+Nada: Finanzas y Análisis se sumaron (Felipe 2026-10-08).
 
 ## Deuda al decidir
 
 50 archivos (`node apps/web/unificar/deuda.mjs vacio`). Ya migrado como piloto: Comprobantes de compra (`ComprobantesListaVacia`).
+
+
+## Migración (2026-10-08, el mismo día)
+
+Felipe respondió las cuatro preguntas de cierre (con lo que se gana y lo que se pierde): **el mostrador primero**; **Finanzas y Análisis se
+suman** (ya no son excepción: el kit de Finanzas dejó `GuiaVacia`, `.fin-guia`, `.fin-buscar` y `.fin-nota-bloque`; Análisis dejó
+`.vacio-vista`, `.aviso-datos` y `.buscar`); **el colibrí de Comprobantes de compra no vuelve** (el isotipo es la marca, ADR-0333); y
+**todo vacío de búsqueda o de filtros suma lo que lo deshace ahí mismo** («Borrar la búsqueda», «Limpiar filtros», las píldoras).
+Migrado entero en un commit por módulo (mostrador, Inventario y Caja, Compras y Producción, Catálogo/Colaboradores/Clientes, Finanzas y
+Análisis). Deuda: **0**. Lo que las firmas no veían y se migró igual: el vacío de Existencias (ahora con su lista de «no recibido» en
+el `detalle` de la pieza), los buscadores y vacíos de Apartados (Apartar, Entregar, Todos) y el «Nada coincide» de los combos.

@@ -20,9 +20,9 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Lo peligroso (`accion.eliminar`) | `btn-peligro`: rojo desde el principio | 2026-10-07 (mirando) | 0 | [boton.md](boton.md) |
 | Cerrar una hoja (`accion.cerrar`) | la × sola arriba a la derecha (`<Modal conCerrar>`) | 2026-10-07 (mirando) | 0 | [boton.md](boton.md) |
 | Insignias de estado (`estado`) | `<Chip>`, como ya era. Se quedan a propósito: los chips con ícono de Análisis y el rol «Líder de equipo» en negro | 2026-10-07 (mirando) | sin candado | [estado.md](estado.md) |
-| Estados vacíos (`vacio`) | `<Vacio>` (`components/ui/Vacio.tsx`): el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón; `tamano="chico"` en tablas, hojas y listas; al no encontrar, nombra lo buscado y deja quitar los filtros ahí | 2026-10-08 (tocando) | 50 | [vacio.md](vacio.md) |
-| Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 55 | [aviso.md](aviso.md) |
-| Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 25 | [buscador.md](buscador.md) |
+| Estados vacíos (`vacio`) | `<Vacio>` (`components/ui/Vacio.tsx`): el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón; `tamano="chico"` en tablas, hojas y listas; al no encontrar, nombra lo buscado y deja quitar los filtros ahí | 2026-10-08 (tocando) | 0 | [vacio.md](vacio.md) |
+| Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 0 | [aviso.md](aviso.md) |
+| Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 0 | [buscador.md](buscador.md) |
 
 ## Propuestas esperando decisión
 

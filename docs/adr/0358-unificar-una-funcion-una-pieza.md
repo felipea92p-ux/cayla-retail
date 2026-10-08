@@ -110,8 +110,8 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   botón; chico en tablas y hojas; al no encontrar dice qué se buscó y deja deshacerlo ahí. `aviso` → `<Aviso>` con la franja a la izquierda
   (P2, no la recomendada), `nota-cayla` con su «i», y el error de un dato bajo su campo / el de la hoja en el aviso. `buscador` →
   `<Buscador>`: la caja hundida con lupa viva y el mostrador que se despega; Felipe pidió además que «Buscando…» salga solo cuando hace
-  falta (espera de más de 350 ms) y que se busque mientras se escribe. Deuda: 50, 55 y 25 archivos. Registros: `docs/unificar/vacio.md`,
-  `aviso.md`, `buscador.md`.
+  falta (espera de más de 350 ms) y que se busque mientras se escribe. Al cerrar, Felipe sumó Finanzas y Análisis, dejó el ícono en vez del colibrí y pidió que todo vacío de búsqueda lo
+  deshaga ahí mismo; migrado entero el mismo día, deuda 0. Registros: `docs/unificar/vacio.md`, `aviso.md`, `buscador.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
