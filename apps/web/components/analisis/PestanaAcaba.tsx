@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
-import { ChipEstado, COLOR_ESTADO, nombreLargo, TipRico } from "@/components/analisis/piezas";
+import { nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { diasQueQuedan, otraSedeQueLaTiene, plural, porLlegar } from "@/lib/analisis-reglas";
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
@@ -27,6 +27,8 @@ import {
   type FiltroAcaba,
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check, Shirt } from "lucide-react";
 
 // Análisis v4 (ADR-0357): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo,
 // «Cómpralas»: todo lo que se acaba se compra por defecto (decisión 7); si otra tienda la tiene, se dice cuántas tiene y se
@@ -173,17 +175,12 @@ function Accion({ p }: { p: PrendaAnalisis }) {
 /** Sin carril: nada se acaba (en positivo), o no se pudieron leer las prendas. */
 function SinCarril({ tipo }: { tipo: VacioAcaba }) {
   const texto = TEXTO_VACIO_ACABA[tipo];
-  const est = tipo === "nada" ? "bien" : "nd";
+  // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
   return (
-    <section className="tarjeta vacio-vista entra" style={{ ["--i" as string]: 0 }}>
-      <span className="acaba-ic" style={{ ["--c" as string]: COLOR_ESTADO[est] }}>
-        <Icono nombre={tipo === "nada" ? "check" : "nd"} />
-      </span>
-      <div>
-        {tipo === "nada" ? <ChipEstado est="bien" /> : <ChipEstado est="nd">Sin datos</ChipEstado>}
-        <h2>{texto.titulo}</h2>
-        <p>{texto.linea}</p>
-      </div>
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      <Vacio icono={tipo === "nada" ? <Check /> : <Shirt />} titulo={texto.titulo}>
+        {texto.linea}
+      </Vacio>
     </section>
   );
 }

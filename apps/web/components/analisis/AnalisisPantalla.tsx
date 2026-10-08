@@ -8,7 +8,6 @@ import { Pestanas, type Pestana } from "@/components/ui/Pestanas";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { avisar } from "@/components/ui/Avisos";
 import { Contexto, type ContextoAnalisis, type FiltroAcaba } from "@/components/analisis/contexto";
-import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado } from "@/components/analisis/piezas";
 import { HoyTodaviaNo, VistaTodaviaNo } from "@/components/analisis/TodaviaNo";
 import { HojaConfianza } from "@/components/analisis/HojaConfianza";
@@ -23,6 +22,8 @@ import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): la pantalla. Cabecera con el buscador → cinco pestañas (Hoy · Se está acabando · No se vende · Nunca salió
 // al piso · Qué pedir) con el chip de confianza del dato → la pestaña. Cuando la tienda no cumple las tres condiciones del motor (ADR-0346),
@@ -235,10 +236,8 @@ export function AnalisisPantalla({
     <Contexto.Provider value={contexto}>
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
         <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
-          <label className="buscar">
-            <Icono nombre="lupa" />
-            <input type="search" placeholder="Busca una prenda" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" aria-label="Busca una prenda" />
-          </label>
+          {/* Filtra las prendas ya leídas, en el navegador: nunca dice «Buscando…» (ADR-0358, ronda 5). */}
+          <Buscador valor={q} onCambio={setQ} placeholder="Busca una prenda" etiqueta="Busca una prenda" className="w-60 max-w-full" />
         </EncabezadoPagina>
 
         <FilaPestanas
@@ -253,13 +252,18 @@ export function AnalisisPantalla({
 
         {/* El aviso fijo mientras la tienda no cumple: con los datos de hoy dice qué falta; en «Todavía no», cómo volver. */}
         {modo !== "confiable" && (
-          <div className="aviso-datos" role="status">
-            <ChipEstado est="ate">Datos incompletos</ChipEstado>
-            <span className="aviso-texto">{modo === "datos-de-hoy" ? avisoDatosDeHoy(mia) : AVISO_QUE_FALTA}</span>
-            <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(modo === "que-falta")}>
-              {modo === "datos-de-hoy" ? "Ver qué falta" : "Ver con los datos de hoy"}
-            </button>
-          </div>
+          <Aviso
+            tono="atencion"
+            titulo="Datos incompletos"
+            className="mt-3.5"
+            accion={
+              <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(modo === "que-falta")}>
+                {modo === "datos-de-hoy" ? "Ver qué falta" : "Ver con los datos de hoy"}
+              </button>
+            }
+          >
+            {modo === "datos-de-hoy" ? avisoDatosDeHoy(mia) : AVISO_QUE_FALTA}
+          </Aviso>
         )}
 
         {datos.fallas.length > 0 && (

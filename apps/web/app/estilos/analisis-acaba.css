@@ -6,8 +6,5 @@
     /* «o pedir a Arequipa» es texto chico: su zona de toque llega a 24 px de alto sin mover nada (ADR-0350, oficio visual). */
     .c-acc .alt{position:relative}
     .c-acc .alt::after{content:"";position:absolute;inset:-3px -4px}
-    /* «Nada se está acabando»: el ícono grande del vacío, con el color de su estado (`--c`), como el ícono de cada grupo. */
-    .acaba-ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
-    .acaba-ic svg{width:26px;height:26px}
   }
 }
