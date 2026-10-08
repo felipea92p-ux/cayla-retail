@@ -51,6 +51,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const capa = useRef<HTMLDivElement>(null);
   const refTarjeta = useRef<HTMLDivElement>(null);
   const elementoActual = useRef<HTMLElement | null>(null);
+  const ultimoRescate = useRef(0);
   const dialogosAlEmpezar = useRef(0);
   const terminada = useRef(false);
   // El aviso de fin va por ref: si la pantalla de abajo se redibuja y `onTerminar` cambia de identidad, la guía NO debe
@@ -67,6 +68,12 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     if (!el || !el.isConnected) return;
     const r = el.getBoundingClientRect();
     const nuevo = recorteDe({ top: r.top, left: r.left, width: r.width, height: r.height }, v);
+    // La pantalla se movió sola y dejó la pieza fuera de la vista (el Observatorio se desplaza al mapa al acercarse a una tienda):
+    // la guía la trae de vuelta, como mucho una vez cada 700 ms para no pelear con un desplazamiento que todavía está en curso.
+    if ((nuevo.height < 4 || nuevo.width < 4) && r.height > 0 && performance.now() - ultimoRescate.current > 700) {
+      ultimoRescate.current = performance.now();
+      el.scrollIntoView({ block: r.height > v.alto * 0.6 ? "start" : "center", inline: "nearest" });
+    }
     setMostrando((m) => {
       if (!m || !m.recorte) return m;
       const a = m.recorte;
