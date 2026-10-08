@@ -138,6 +138,11 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       let indice = i;
       while (indice >= 0 && indice < guia.pasos.length) {
         const paso = guia.pasos[indice]!;
+        // Un paso de otro ancho (`solo`) se salta ANTES de preparar: si no, tocaba cosas en el ancho que no le corresponde.
+        if (paso.solo && !pasoAplica({ ...paso, requiere: undefined, excluye: undefined }, new Set(), window.innerWidth)) {
+          indice += direccion;
+          continue;
+        }
         // Antes de preguntar si aplica, se prepara (abrir el modal donde vive), en las dos direcciones.
         let nota: string | null = null;
         if (paso.preparar && !(paso.prepararSoloAlAvanzar && direccion === -1)) {
@@ -274,11 +279,38 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     };
   }, []);
 
+  // El velo se dibuja en un SVG con un agujero (relleno par-impar), y el agujero viaja hacia el recorte cuadro a cuadro. Antes era
+  // la sombra gigante de una caja: Chrome a veces no la repintaba y la pantalla quedaba sin velo (Finanzas, el cajón de Existencias).
+  // Un SVG se repinta siempre.
+  const objetivo = useRef<Caja | null>(null);
+  const [agujero, setAgujero] = useState<Caja>({ top: 0, left: 0, width: 0, height: 0 });
+  const agujeroRef = useRef<Caja>({ top: 0, left: 0, width: 0, height: 0 });
+  useEffect(() => {
+    objetivo.current = mostrando?.recorte ?? null;
+  }, [mostrando]);
+
   // La pieza se mueve (scroll, una lista que carga, el modal que termina de entrar): el recorte la sigue.
   useEffect(() => {
     let cuadro = 0;
+    const quieto = prefiereQuieto();
     const vuelta = () => {
       medirRecorte();
+      const v = { ancho: window.innerWidth, alto: window.innerHeight };
+      const meta = objetivo.current ?? { top: v.alto / 2, left: v.ancho / 2, width: 0, height: 0 };
+      const a = agujeroRef.current;
+      const k = quieto ? 1 : 0.16; // ~420 ms hasta llegar, frenando al final (como --ease-cayla)
+      const sig = {
+        top: a.top + (meta.top - a.top) * k,
+        left: a.left + (meta.left - a.left) * k,
+        width: a.width + (meta.width - a.width) * k,
+        height: a.height + (meta.height - a.height) * k,
+      };
+      const cerca = Math.abs(sig.top - meta.top) + Math.abs(sig.left - meta.left) + Math.abs(sig.width - meta.width) + Math.abs(sig.height - meta.height) < 0.6;
+      const nuevo = cerca ? meta : sig;
+      if (nuevo.top !== a.top || nuevo.left !== a.left || nuevo.width !== a.width || nuevo.height !== a.height) {
+        agujeroRef.current = nuevo;
+        setAgujero(nuevo);
+      }
       cuadro = requestAnimationFrame(vuelta);
     };
     cuadro = requestAnimationFrame(vuelta);
@@ -313,6 +345,9 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   return createPortal(
     <div ref={capa} className="guia-capa" data-guia-motor role="presentation">
       <div className="guia-bloqueo" aria-hidden />
+      <svg className="guia-velo" width={ventana.ancho} height={ventana.alto} aria-hidden>
+        <path fillRule="evenodd" d={caminoDelVelo(ventana, agujero)} />
+      </svg>
       <div
         aria-hidden
         className="guia-recorte"
@@ -420,6 +455,15 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     </div>,
     document.body,
   );
+}
+
+/** El velo: toda la ventana, menos un rectángulo redondeado (el agujero) por donde se ve la pieza. Sin agujero, el velo entero. */
+function caminoDelVelo(v: { ancho: number; alto: number }, a: Caja): string {
+  const fuera = `M0 0H${v.ancho}V${v.alto}H0Z`;
+  if (a.width < 1 || a.height < 1) return fuera;
+  const r = Math.min(14, a.width / 2, a.height / 2);
+  const { left: x, top: y, width: w, height: h } = a;
+  return `${fuera}M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
 }
 
 /** Cuántos modales de la pantalla hay abiertos (la tarjeta de la guía no cuenta). */

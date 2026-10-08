@@ -173,3 +173,21 @@ ni cómo funciona ninguna pantalla.
 **Un incidente durante la obra.** Un agente cortó un comando colgado con `pkill -f cat`, y eso cerró Docker Desktop unos 3 minutos: la
 base local compartida quedó caída en esa ventana. Se levantó de nuevo y se comprobó que la base estaba sana. No hubo escrituras. Desde
 entonces las instrucciones de cada agente prohíben `pkill`, `killall` y `kill` por patrón.
+
+## Actualización 2026-10-08 — una corrección honesta sobre el «velo que no se pintaba»
+
+El arreglo 2 de la actualización (e) partió de un diagnóstico equivocado. En Finanzas el velo **sí estaba**: medido después píxel a
+píxel, fuera del recorte la pantalla da ~100 (en claro), contra ~240 sin velo. Las capturas vistas en miniatura parecían claras y se
+leyeron mal; un agente repitió la misma lectura con el cajón de Existencias, y también estaba oscurecido. El cambio que se hizo entonces
+no hace daño, y el velo quedó además en un **SVG con un agujero de relleno par-impar**, que el motor lleva de pieza en pieza cuadro a
+cuadro: es más simple que la sombra gigante de una caja y no depende de cómo Chrome pinte las capas. Desde ahora, un «sin velo» se
+comprueba midiendo un píxel, no a ojo.
+
+En la segunda vuelta («sigue con todos los módulos del sistema entero», Felipe 2026-10-08) cada tramo mide la cobertura en vivo
+(`guias:recorrer --cobertura`: qué controles de la pantalla quedaron dentro de algún recorte) y profundiza hasta que lo que queda sin
+encender sea solo repetición. También recorre las vistas por parámetro de la misma ruta y abre los modales que no guardan. Además:
+- **La regla se endureció:** «Anotar que no había» guardaba y no estaba prohibido; se sumaron 15 verbos (anotar, pedir, unir,
+  reintentar…).
+- **`aria-haspopup`:** un botón que solo abre una ventana lo declara y se puede tocar.
+- **`prepararSoloAlAvanzar`:** un `preparar` que no corre al volver con ←.
+- **El recorredor:** espera el `demostrar` y falla si la guía pide un toque que el motor niega.

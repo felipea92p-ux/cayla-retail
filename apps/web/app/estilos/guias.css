@@ -1,7 +1,7 @@
 /* GUÍAS INTERACTIVAS (ADR-0362, Felipe 2026-10-07)
    El velo oscuro con un recorte alrededor de la pieza que se explica (el «efecto de máscara»), y la tarjeta que dice qué es.
-   El recorte es una caja transparente con una sombra de 100vmax del color del velo: se desliza de pieza en pieza con
-   `left/top` y cambia de tamaño con `width/height`, 420 ms con `--ease-cayla`, sin rebote ni bucle (ADR-0136). El velo es
+   El velo es un SVG con un agujero redondeado que el motor lleva de pieza en pieza cuadro a cuadro (antes era la sombra gigante de
+   una caja, que Chrome a veces no repintaba); el anillo del recorte lo sigue con `left/top` y `width/height`, 420 ms con `--ease-cayla`, sin rebote ni bucle (ADR-0136). El velo es
    `--color-sombra`, nunca `tinta` (en oscuro `tinta` es crema y el velo ACLARARÍA la pantalla, ADR-0336). Capa 55: sobre los
    modales (50), bajo el loader (60) y los avisos (100). Con `prefers-reduced-motion` todo pasa en un instante. */
 
@@ -24,28 +24,33 @@
   cursor: default;
 }
 
+/* El velo: un SVG del tamaño de la ventana con un agujero donde está la pieza (lo dibuja y lo mueve el motor, cuadro a cuadro). */
+.guia-velo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.guia-velo path {
+  fill: var(--guia-velo);
+}
+
+/* El recorte ya no oscurece nada: es solo el anillo claro alrededor de la pieza (y su halo), siguiendo al agujero. Se mueve con
+   `left/top` para coincidir con el agujero del velo. Sin pieza, no se ve. */
 .guia-recorte {
   position: absolute;
   top: 0;
   left: 0;
   border-radius: 14px;
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--color-crema) 55%, transparent),
-    0 0 0 100vmax var(--guia-velo);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-crema) 55%, transparent);
   pointer-events: none;
-  /* `left/top` y no `transform`: con transform el recorte pasa a una capa compuesta del tamaño de su sombra (miles de px) y
-     Chrome a veces la descarta: la pantalla quedaba sin velo (visto en Finanzas, 2026-10-07). */
   transition:
     left 420ms var(--ease-cayla),
     top 420ms var(--ease-cayla),
     width 420ms var(--ease-cayla),
     height 420ms var(--ease-cayla);
-  /* La sombra NO se anima (ni con animation ni con transition): Chrome a veces no repinta una sombra animada de este tamaño y
-     la pantalla quedaba sin velo hasta el próximo repintado (Finanzas, 2026-10-07). El velo entra con el fundido de la capa. */
 }
-/* Sin pieza (bienvenida, cierre, o una pieza que ahora no está a la vista): el velo entero, sin agujero. */
 .guia-recorte[data-sin-pieza] {
-  box-shadow: 0 0 0 100vmax var(--guia-velo);
+  box-shadow: none;
 }
 .guia-capa {
   animation: guia-velo-entra 260ms var(--ease-cayla) backwards;
