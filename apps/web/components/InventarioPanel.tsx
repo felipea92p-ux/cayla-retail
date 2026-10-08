@@ -526,16 +526,21 @@ export function InventarioPanel({
   }
   /** Las acciones rápidas de la tarjeta y «Colgar primero» (maqueta: «rapida»): abren el panel YA en su paso, en la talla que más
    *  conviene. Colgar: si al modelo le falta algo en el piso, «Colgar varias» (todas sus tallas y colores); si no, la talla con más
-   *  en el almacén. Subir: la que más tiene colgada. Enviar: la que más tiene guardada. */
+   *  en el almacén. Subir: siempre «Subir varias» (la tabla del modelo). Enviar: la que más tiene guardada. */
   function lanzarDesdeTarjeta(prenda: PrendaAgrupada<FilaExistencias>, tipo: "colgar" | "subir" | "enviar") {
     const modelo = coloresDelModelo(stock, prenda.productoId);
-    const mas = (campo: "pisoDisponible" | "almacenDisponible") =>
-      [...prenda.tallas].filter((t) => (t[campo] ?? 0) > 0).sort((x, y) => (y[campo] ?? 0) - (x[campo] ?? 0))[0];
     if (tipo === "colgar" && tallasQueFaltan(modelo).size > 0) {
       setAbierta({ clave: prenda.clave, flujo: { tipo: "colgarVarias", datos: { cant: {} } } });
       return;
     }
-    const t = mas(tipo === "subir" ? "pisoDisponible" : "almacenDisponible");
+    // «Subir a almacén» de la tarjeta abre SIEMPRE la tabla del modelo entero, como «Colgar en el piso» (Felipe, 2026-10-08): se
+    // descuelgan varias tallas y colores en una sola operación.
+    if (tipo === "subir") {
+      if (!modelo.some((c) => c.tallas.some((t) => (t.pisoDisponible ?? 0) > 0))) return;
+      setAbierta({ clave: prenda.clave, flujo: { tipo: "subirVarias", datos: { cant: {} } } });
+      return;
+    }
+    const t = [...prenda.tallas].filter((x) => (x.almacenDisponible ?? 0) > 0).sort((x, y) => (y.almacenDisponible ?? 0) - (x.almacenDisponible ?? 0))[0];
     if (!t) return;
     setAbierta({ clave: prenda.clave, varianteId: t.varianteId, flujo: { tipo } });
   }

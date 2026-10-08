@@ -193,3 +193,31 @@ describe("asiQueda: el paso Colgar / Subir dice cómo queda cada lado", () => {
     expect(asiQueda("enviar", 1, { piso: 1, almacen: 1 })).toBeNull();
   });
 });
+
+describe("Subir varias: la tabla del modelo, del piso al almacén (2026-10-08)", () => {
+  const ctx: ContextoFlujo = { ...CTX, pisoPorTalla: { v1: 2, v2: 0, v3: 1 } };
+  it("tiene los pasos de Subir, con la tabla en vez de «Cuántas»", () => {
+    expect(pasosDe("subirVarias", {}, ctx)).toEqual(["varias", "destino", "quien"]);
+    expect(pasosDe("subirVarias", {}, { ...ctx, destinos: [] })).toEqual(["varias", "quien"]);
+  });
+  it("cada celda topa en lo colgado, no en el almacén", () => {
+    expect(pasoCompleto("varias", "subirVarias", { cant: { v1: 2, v3: 1 } }, ctx)).toBe(true);
+    expect(pasoCompleto("varias", "subirVarias", { cant: { v1: 3 } }, ctx)).toBe(false);
+    expect(pasoCompleto("varias", "subirVarias", { cant: { v2: 1 } }, ctx)).toBe(false);
+    expect(pasoCompleto("varias", "subirVarias", { cant: {} }, ctx)).toBe(false);
+  });
+  it("el botón y el aviso dicen el total y a dónde va", () => {
+    expect(verboFinal("subirVarias", { cant: { v1: 2, v3: 1 } })).toBe("Subir 3 unidades a almacén");
+    expect(verboFinal("subirVarias", { cant: { v1: 1 }, destino: "enviar" })).toBe("Subir 1 unidad para enviar");
+    expect(verboFinal("subirVarias", { cant: {} })).toBe("Subir a almacén");
+    expect(textoHecho("subirVarias", { cant: { v1: 2, v3: 1 } })).toBe("Subida al almacén · 3 unidades en una sola operación");
+  });
+  it("el resumen lista cada talla, el total y el destino", () => {
+    const filas = resumenDeFlujo("subirVarias", { cant: { v1: 2, v3: 0 }, destino: "queda" }, ctx, { tallas: (v) => `talla ${v}` });
+    expect(filas).toEqual([
+      ["talla v1", "× 2"],
+      ["Total al almacén", "2 unidades"],
+      ["Destino", "Se queda aquí"],
+    ]);
+  });
+});
