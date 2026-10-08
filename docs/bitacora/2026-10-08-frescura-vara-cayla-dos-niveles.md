@@ -79,3 +79,17 @@
   de la decisión: «lo difícil, a un toque» (ley 6).
 - **Felipe se lleva:** cuando una categoría dice «contra lo que vende CAYLA», el porqué está a un toque: cuántas ventas
   tiene CAYLA, cuántas tiene la tienda, y de cuándo es la foto.
+
+## Cierre de la ronda (actividad 7)
+
+- **Qué hice:** el mapa (`docs/ARQUITECTURA.md`) cuenta la segunda vara de punta a punta —cron, tabla, funciones, cómo
+  decide `analizarSede` contra qué juzgar— y los dos niveles de la pantalla; Formidable registra la ronda como «sin
+  recalificar»; `SESIONES-ACTIVAS` dice qué queda. La suite completa de la web (156 369 pruebas) quedó en verde antes del
+  cierre. Queda fuera, a propósito, la columna «ocupa · meta» (espera el PR #831) y la pasada `/formidable` sobre la
+  pantalla nueva.
+- **Por qué así:** la migración `20261008120000` toca el candado de `fn_frescura_sede` con un parche anclado por md5: si se
+  publica la web sin pegarla, el cron falla cada madrugada (sin datos, tolerado) y la pantalla sigue juzgando con la tienda
+  sola, como hoy; por eso el orden es migración primero y web después, y lo dejo escrito en tres lugares.
+- **Felipe se lleva:** lo que se construyó no cambia ningún número de la base ni mueve stock: cambia **contra qué se
+  compara** cada prenda (su tienda, o CAYLA cuando la tienda sabe poco) y **cuánta evidencia** hace falta para decir «se
+  está quedando». La captura de TRU del 7 de octubre, con esta rama, dice «Recién llegada» hasta que haya datos.

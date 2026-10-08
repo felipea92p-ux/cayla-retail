@@ -480,6 +480,28 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `lib/frescura-decisiones-pantalla.ts`; el filtro «Decididas» va en la URL (`?decididas=1`). Fuera de eso, los botones del
   detalle llevan a Existencias (`?variante=`), Historial (`?q=`), Traslados (`/inventario/mover?lineas=`) o Conteo, cada
   uno solo si el rol ve esa pantalla.
+  **Desde el 2026-10-08 (ADR-0208, actualización 2026-10-07: cuatro decisiones de Felipe)** la pantalla tiene dos niveles y
+  una segunda vara. (1) `rapidezParaDecidir` (`frescura-reglas.ts`, antes de `estaQuieta`) exige 2 ventas esperadas para
+  condenar una prenda como lenta: con poca evidencia el índice protege (pilar) pero no condena. (2) **La vara de CAYLA de
+  respaldo:** la ruta cron `GET /api/inventario/frescura-vara-cayla` (`lib/rutas-cron.ts`, `vercel.json` a las 8:20 UTC =
+  3:20 de Lima; `cronAutorizado` + `crearClienteAdmin`) pide `fn_frescura_sede` por cada tienda activa con la llave de
+  servicio (parche anclado del candado, migración `20261008120000`, **sin pegar**), arma UNA curva por categoría con las
+  unidades de todas las tiendas (`lib/frescura-vara-cayla.ts:calcularVaraCayla`, la receta de `referenciaCayla`) y la guarda
+  en `retail.frescura_vara_cayla` por `guardar_frescura_vara_cayla` (solo `service_role`; se reemplaza entera: es un
+  snapshot derivado del libro). `getFrescuraPantalla` la lee por `fn_frescura_vara_cayla` (`leerRespaldoCayla`, vigencia 3
+  días, tolerada) y `analizarSede(lectura, respaldo)` decide por categoría contra qué juzgar: la tienda si tiene ≥ 10
+  ventas; si no, CAYLA si CAYLA tiene ≥ 10 (`VENTAS_PARA_JUZGAR_SOLA`; la prenda se resta de la curva como la vio el cron);
+  si no, la tienda y «aproximado». Cada prenda dice `juzgadaContra` y cada categoría lleva `respaldo` (con `enUso`). (3)
+  **Nivel 1, el tablero «Cómo está el piso»** (`FrescuraTablero.tsx`; lógica pura `tableroVista` en `frescura-pantalla.ts`;
+  la barra apilada por estado es `ui/BarraApilada.tsx`, la misma forma que «Deuda por vencimiento»): una fila por categoría,
+  ordenada por lo que se queda o hay que mover; tocar una filtra la lista (`?cat=`). (4) **Nivel 2, la fila ejecuta:**
+  `accionDeFila` vuelve la primera sugerencia un botón con su verbo («La cambié de lugar» anota a un toque; «Armar traslado»,
+  «Retirar del piso» y «Ver sus ventas» abren la pantalla que lo hace con la prenda cargada; «Decidir» abre la hoja con la
+  opción marcada), y hay UN solo camino para anotar, `components/frescura/useAnotarDecision.ts` (marca de reintento por
+  prenda, firma, aviso con Deshacer 10 s), que usan la hoja y la fila. Sobre la tabla queda un solo aviso (pocas ventas); «sin
+  temporada» y de cuándo es la vara de CAYLA viven en `FrescuraComoSeLee`. Pruebas: `frescura-vara-cayla.test.ts`,
+  `frescura-respaldo-cayla.test.ts` y los 12 casos SQL de `scripts/pruebas/frescura_vara_cayla.mjs`
+  (`pnpm pruebas:frescura-vara-cayla`, paso del CI).
 - `/inventario/resumen` (**Análisis**, ADR-0357, 2026-10-06: cinco pestañas —Hoy · Se está acabando · No se vende · Nunca salió al piso
   (2026-10-07, decisión 11) · Qué pedir—;
   reemplaza Desempeño y Comparar períodos de ADR-0138, ADR-0245 y ADR-0277). La ve quien tiene el módulo `analisis`, y la encargada ve lo mismo
