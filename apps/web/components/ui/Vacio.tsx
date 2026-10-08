@@ -33,6 +33,8 @@ type Props = {
   titulo?: ReactNode;
   /** La frase: qué hacer, con el dato que ayuda en `<b>`. */
   children?: ReactNode;
+  /** Grande: un bloque entre la frase y las acciones (una lista corta que responde antes que las salidas; Existencias). */
+  detalle?: ReactNode;
   /** Grande: los botones (`<Boton>`, `<BotonEnlace>`). */
   acciones?: ReactNode;
   /** Grande: los filtros puestos, cada uno se quita con un toque. */
@@ -45,7 +47,7 @@ type Props = {
   className?: string;
 };
 
-export function Vacio({ icono, titulo, children, acciones, filtros, accion, tamano = "grande", alinear = "centro", className = "" }: Props) {
+export function Vacio({ icono, titulo, children, detalle, acciones, filtros, accion, tamano = "grande", alinear = "centro", className = "" }: Props) {
   if (tamano === "chico") {
     return (
       <div role="status" className={`vacio-chico ${alinear === "izquierda" ? "a-la-izquierda" : ""} ${className}`}>
@@ -72,6 +74,11 @@ export function Vacio({ icono, titulo, children, acciones, filtros, accion, tama
         <p className="vacio-frase" style={{ ["--i" as string]: i++ }}>
           {children}
         </p>
+      ) : null}
+      {detalle ? (
+        <div className="vacio-detalle" style={{ ["--i" as string]: i++ }}>
+          {detalle}
+        </div>
       ) : null}
       {filtros?.length ? (
         <div className="vacio-chips" style={{ ["--i" as string]: i++ }}>

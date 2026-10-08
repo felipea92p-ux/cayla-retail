@@ -41,6 +41,7 @@
   .vacio-tit { margin: 1rem 0 0; font: 400 22px/1.2 var(--font-serif); color: var(--color-tinta); max-width: 36ch; text-wrap: balance; }
   .vacio-frase { margin: 0.375rem 0 0; font-size: 14px; line-height: 1.55; color: var(--color-taupe); max-width: 52ch; text-wrap: pretty; }
   .vacio-frase b, .vacio-frase strong { color: var(--color-tinta); font-weight: 600; }
+  .vacio-detalle { margin-top: 0.875rem; width: 100%; max-width: 60ch; text-align: left; }
   .vacio-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 0.875rem; }
   .vacio-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 1.125rem; }
   /* La píldora de un filtro puesto: se quita con un toque y se encoge al irse. */
@@ -182,7 +183,7 @@
     background: color-mix(in srgb, var(--color-tinta) 6%, transparent); font: 11px/1 ui-monospace, monospace;
   }
   @media (max-width: 639px) {
-    .buscador .buscador-atajo { display: none; }
+    .buscador .buscador-atajo, .buscador.mostrador .buscador-atajo { display: none; }
     .buscador.mostrador { padding-left: 14px; gap: 10px; }
   }
 }
