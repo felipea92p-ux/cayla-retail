@@ -68,7 +68,7 @@ export function PestanaHoy() {
 
   return (
     <>
-      <div className="instrumentos">
+      <div className="instrumentos" data-guia="analisis.preguntas">
         <Instrumento i={0} vista="acaba" pregunta="¿Qué se acaba?" est={acaba.length ? "urg" : buscando ? null : "bien"}>
           <ListaAcaba prendas={acaba} />
         </Instrumento>
@@ -340,7 +340,7 @@ function QueHacer() {
   };
 
   return (
-    <section className="tarjeta bloque entra" style={{ ["--i" as string]: 5 }} aria-label="Qué hacer hoy">
+    <section className="tarjeta bloque entra" style={{ ["--i" as string]: 5 }} aria-label="Qué hacer hoy" data-guia="analisis.que-hacer">
       <div className="b-cab">
         <h3 className="b-tit">Qué hacer hoy</h3>
         {hay ? (

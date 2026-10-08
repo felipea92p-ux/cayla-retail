@@ -235,7 +235,7 @@ export function AnalisisPantalla({
     <Contexto.Provider value={contexto}>
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
         <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
-          <label className="buscar">
+          <label className="buscar" data-guia="analisis.buscador">
             <Icono nombre="lupa" />
             <input type="search" placeholder="Busca una prenda" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" aria-label="Busca una prenda" />
           </label>
@@ -253,7 +253,7 @@ export function AnalisisPantalla({
 
         {/* El aviso fijo mientras la tienda no cumple: con los datos de hoy dice qué falta; en «Todavía no», cómo volver. */}
         {modo !== "confiable" && (
-          <div className="aviso-datos" role="status">
+          <div className="aviso-datos" role="status" data-guia="analisis.aviso">
             <ChipEstado est="ate">Datos incompletos</ChipEstado>
             <span className="aviso-texto">{modo === "datos-de-hoy" ? avisoDatosDeHoy(mia) : AVISO_QUE_FALTA}</span>
             <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => verConDatosDeHoy(modo === "que-falta")}>
@@ -268,7 +268,7 @@ export function AnalisisPantalla({
           </p>
         )}
 
-        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
+        <div key={`${vista}-${vuelta}`} className={`vista ${animar ? "anim" : ""}`} data-guia="analisis.vista" role="tabpanel" aria-label={PESTANAS.find((p) => p.clave === vista)?.texto}>
           {contenido}
         </div>
       </div>
@@ -317,21 +317,22 @@ function FilaPestanas({
   const items: Pestana[] = PESTANAS.map((p) => {
     // «Se está acabando» con prendas avisa (rojo, como antes); «No se vende» solo informa. Sin datos, «—».
     // El texto para lector va solo con un número: «— se están acabando» no dice nada.
-    if (p.clave === "acaba") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
-    if (p.clave === "nose") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
-    if (p.clave === "piso") return { clave: p.clave, etiqueta: p.texto, conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
-    return { clave: p.clave, etiqueta: p.texto };
+    const guia = `analisis.pestana-${p.clave}`;
+    if (p.clave === "acaba") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
+    if (p.clave === "nose") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
+    if (p.clave === "piso") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
+    return { clave: p.clave, guia, etiqueta: p.texto };
   });
 
   return (
     <div className="tabs-fila">
-      <Pestanas items={items} activa={vista} etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
+      <Pestanas items={items} activa={vista} guia="analisis.pestanas" etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
       {puedeHablar ? (
-        <ChipEstado est="bien" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
+        <ChipEstado est="bien" guia="analisis.confianza" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
           Datos confiables
         </ChipEstado>
       ) : (
-        <ChipEstado est="nd" onClick={onConfianza} tip="Todavía no se cumplen las 3 condiciones para recomendar">
+        <ChipEstado est="nd" guia="analisis.confianza" onClick={onConfianza} tip="Todavía no se cumplen las 3 condiciones para recomendar">
           Datos incompletos
         </ChipEstado>
       )}

@@ -336,6 +336,7 @@ export function CajonMovimiento({
     <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
         <Dialog.Content
+          data-guia="movimientos.cajon"
           onEscapeKeyDown={alEscape}
           onInteractOutside={(e) => e.preventDefault()}
           onOpenAutoFocus={(e) => e.preventDefault()}

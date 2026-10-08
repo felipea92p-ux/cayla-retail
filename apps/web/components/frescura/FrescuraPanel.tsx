@@ -170,7 +170,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const pieCabecera =
     datos.esLider && datos.tiendas && datos.tiendas.length > 1 ? (
       <p className="max-w-[30rem] text-[13px] leading-relaxed text-taupe">
-        <button ref={botonTiendas} type="button" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]">
+        <button ref={botonTiendas} type="button" data-guia="frescura.tiendas" onClick={() => setVerTiendas(true)} className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]">
           Ver las {datos.tiendas.length} tiendas
         </button>
       </p>
@@ -199,8 +199,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
         ) : (
           <>
             {/* Filtros: en el estado del panel, copiados a la URL. */}
-            <div className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
-              <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
+            <div data-guia="frescura.filtros" className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
+              <div data-guia="frescura.buscador" className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
                 <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
                 <input
                   type="text"
@@ -264,6 +264,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 type="button"
                 className="btn-cayla btn-enlace ml-auto inline-flex min-h-7 items-center text-[13px]"
                 aria-expanded={comoSeLee}
+                data-guia="frescura.como-se-lee"
                 aria-controls="frescura-como-se-lee"
                 onClick={() => setComoSeLee((v) => !v)}
               >
@@ -394,7 +395,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               })
             )}
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
+            <div data-guia="frescura.pie" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
               <span>
                 Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} {enTabla.length === 1 ? "prenda" : "prendas"} ·{" "}
                 {textoUnidades(visibles.reduce((s, p) => s + p.pisoHoy, 0))} en el piso

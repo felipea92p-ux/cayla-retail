@@ -188,7 +188,7 @@ export function FrescuraDetalle({
       ) : (
         <>
           <Bloque primero>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div data-guia="frescura.detalle-estado" className="flex flex-wrap items-center gap-x-3 gap-y-2">
               {detalle.dias !== null && (
                 <span className="font-display text-[30px] font-semibold leading-none tabular-nums">
                   {detalle.dias}
@@ -246,7 +246,7 @@ export function FrescuraDetalle({
                 <FrescuraQuitar decisionId={decision.vigenteId} sede={decision.sede} onNo={() => setModo("detalle")} onListo={cerrar} />
               </div>
             ) : (
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <div data-guia="frescura.decidir" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
                 {puedeDecidir && bloque.estado === "vigente" && (
                   <button type="button" className="btn-cayla btn-secundario" onClick={() => setModo("decidir")}>
                     Anotar otra decisión

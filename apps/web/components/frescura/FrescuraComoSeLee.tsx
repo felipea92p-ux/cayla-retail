@@ -25,7 +25,7 @@ export function FrescuraComoSeLee({
   notasDelMes: readonly string[];
 }) {
   return (
-    <div id={id} className="nota-cayla mx-4 mb-3.5 space-y-2 sm:mx-5">
+    <div id={id} data-guia="frescura.lectura" className="nota-cayla mx-4 mb-3.5 space-y-2 sm:mx-5">
       <p>
         <b>Cómo se lee.</b> {FRASE_SIN_ELLA} Los días cuentan solo el tiempo con alguna talla libre colgada. La comparación es con lo vendido en esta tienda
         {esLider ? "; la de CAYLA (todas las tiendas juntas) es solo de apoyo" : ""}. «Aproximado» quiere decir que la comparación sale de menos de 10 ventas: tómala

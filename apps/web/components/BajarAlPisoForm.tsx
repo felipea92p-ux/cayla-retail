@@ -811,7 +811,7 @@ export function BajarAlPisoForm({
         </div>
       )}
 
-      <section className="card-cayla p-4 sm:p-5">
+      <section data-guia="bajar.escaner" className="card-cayla p-4 sm:p-5">
         <label htmlFor="bajar-escaner" className="label-cayla text-[11px] text-taupe">
           Escanear prenda
         </label>
@@ -869,6 +869,7 @@ export function BajarAlPisoForm({
               setCamara(true);
             }}
             aria-label="Escanear con la cámara"
+            data-guia="bajar.camara"
             className="btn-cayla btn-secundario h-14 shrink-0 gap-2 px-4"
           >
             <Camera aria-hidden className="h-5 w-5" />
@@ -1038,7 +1039,7 @@ export function BajarAlPisoForm({
           )}
 
           {(hayLineas || !exito) && (
-            <section className="card-cayla overflow-hidden">
+            <section data-guia="bajar.lista" className="card-cayla overflow-hidden">
               {!hayLineas ? (
                 <p className="px-5 py-10 text-center text-sm text-taupe">Aún no escaneaste nada.</p>
               ) : (
@@ -1127,7 +1128,7 @@ export function BajarAlPisoForm({
           {/* Pie pegajoso al fondo: desde ADR-0206 el celular no tiene barra abajo (mismo patrón que FichaPrevia). */}
           <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:bottom-4 sm:mx-0 sm:rounded-xl sm:border sm:px-5 sm:py-3">
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-              <div className="min-w-0">
+              <div data-guia="bajar.resumen" className="min-w-0">
                 <p className="font-display text-xl tabular-nums text-tinta">{textoDeResumen(resumen)}</p>
                 {motivo && !enviando && (
                   <p id="bajar-motivo" className="mt-0.5 text-xs text-taupe">
@@ -1135,7 +1136,7 @@ export function BajarAlPisoForm({
                   </p>
                 )}
               </div>
-              <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-end">
+              <div data-guia="bajar.confirmar" className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-end">
                 <ComboResponsable control={responsable} deshabilitado={enviando} className="sm:w-64" />
                 <button
                   type="button"

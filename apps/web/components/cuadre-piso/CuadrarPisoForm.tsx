@@ -593,7 +593,9 @@ export function CuadrarPisoForm({
 
   return (
     <div className="space-y-4">
-      <PasosConteo actual={paso} pasos={PASOS} etiqueta="Pasos del cuadre del piso" />
+      <div data-guia="cuadrar.pasos">
+        <PasosConteo actual={paso} pasos={PASOS} etiqueta="Pasos del cuadre del piso" />
+      </div>
 
       {estado.cuadradoEn && (
         <p className="nota-cayla">
@@ -652,7 +654,7 @@ export function CuadrarPisoForm({
           {/* Antes de la primera lectura, lo que hay que cuidar; ya escaneando, una línea (en el celular, el campo tiene que verse sin
               bajar la pantalla). */}
           {datos.lineas.length === 0 && datos.pendientes.length === 0 ? (
-            <ul className="nota-cayla list-disc space-y-1 pl-8 text-sm">
+            <ul data-guia="cuadrar.cuidados" className="nota-cayla list-disc space-y-1 pl-8 text-sm">
               <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
               <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
               <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
@@ -678,7 +680,7 @@ export function CuadrarPisoForm({
           )}
 
           <CampoGuiado id="guardado" guia={guiaEscaneo} titulo="Lo guardado" ayuda="Cada lectura suma 1. Si tienes 12 iguales, escanea una y cambia el número.">
-            <section className="card-cayla p-4 sm:p-5">
+            <section data-guia="cuadrar.escaner" className="card-cayla p-4 sm:p-5">
               <label htmlFor="cuadre-escaner" className="sr-only">
                 Escanear prenda guardada
               </label>
@@ -707,7 +709,7 @@ export function CuadrarPisoForm({
                 />
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setCamara(true)} disabled={congelada} className="btn-cayla btn-secundario h-11">
+                <button type="button" data-guia="cuadrar.camara" onClick={() => setCamara(true)} disabled={congelada} className="btn-cayla btn-secundario h-11">
                   <Camera aria-hidden className="h-4 w-4" />
                   Escanear con la cámara
                 </button>
@@ -733,7 +735,7 @@ export function CuadrarPisoForm({
                 {anuncio}
               </p>
               {datos.lineas.length === 0 && (
-                <div className="mt-4 border-t border-tinta/10 pt-4">
+                <div data-guia="cuadrar.todo-colgado" className="mt-4 border-t border-tinta/10 pt-4">
                   <Interruptor
                     activo={datos.confirmoVacio}
                     onActivo={(v) => cambiar((d) => ({ ...d, confirmoVacio: v }))}
@@ -832,7 +834,7 @@ export function CuadrarPisoForm({
               </span>
             }
             acciones={
-              <div className="flex w-full items-center gap-2 sm:w-auto">
+              <div data-guia="cuadrar.revisar" className="flex w-full items-center gap-2 sm:w-auto">
                 <button type="button" onClick={() => setCamara(true)} disabled={congelada} aria-label="Escanear con la cámara" className="btn-cayla btn-secundario h-11 w-11 shrink-0 p-0 sm:hidden">
                   <Camera aria-hidden className="h-5 w-5" />
                 </button>

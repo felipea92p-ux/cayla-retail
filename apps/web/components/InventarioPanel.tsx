@@ -816,6 +816,7 @@ export function InventarioPanel({
               ) : (
                 <button
                   type="button"
+                  data-guia="existencias.pendientes"
                   onClick={() => setViendoPendientes(true)}
                   title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
                   className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-[13px] text-taupe"
@@ -967,7 +968,7 @@ export function InventarioPanel({
             // Tocar una talla con algo en almacén: el panel de esa talla, ya en «Colgar en el piso» (Felipe, 2026-10-07).
             onColgarTalla={(prenda, fila) => setAbierta({ clave: prenda.clave, varianteId: fila.varianteId, flujo: { tipo: "colgar" } })}
           />
-          <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
+          <div data-guia="existencias.pie" className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1 pt-4 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaTarjetas.totalPaginas > 1 ? `Mostrando ${paginaTarjetas.desde}–${paginaTarjetas.hasta} de ` : "Mostrando "}
@@ -1482,6 +1483,7 @@ export function InventarioPanel({
         <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
           <button
             type="button"
+            data-guia="existencias.escanear-celular"
             onClick={() => setCamara(true)}
             className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
           >

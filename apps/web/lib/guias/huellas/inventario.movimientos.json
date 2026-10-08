@@ -1,0 +1,87 @@
+{
+  "guia": "inventario.movimientos",
+  "ruta": "/inventario/movimientos",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 55,
+  "controles": {
+    "app/(app)/inventario/movimientos/page.tsx": [
+      "Pestanas «);»",
+      "Link «{o.etiqueta}»"
+    ],
+    "components/CajonMovimiento.tsx": [
+      "button «Ver las»",
+      "button «{cuerpo}»",
+      "Link «{cuerpo}»",
+      "button «Cerrar»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Cerrar»",
+      "button «Reintentar»",
+      "button «Imprimir ticket»",
+      "button «Imprimir»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "button «Mejor buscar escribiendo»"
+    ],
+    "components/FilaMovimiento.tsx": [
+      "button «{/registrar/i.test(rotulo.detalle ?? \"\") ? undefined : \"movimientos.fila-abrir\"}»",
+      "button «{`Ver el detalle: las ${r.variantes}»",
+      "button «{`${abierto ? \"Plegar\" : \"Abrir\"}»",
+      "button «{texto}»",
+      "Link «{`Abrir ${r.texto}»"
+    ],
+    "components/FiltrosMovimientos.tsx": [
+      "button «{children}»",
+      "Pastilla «{p.texto}»",
+      "Pastilla «Personalizado»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «Todo el historial»",
+      "Pastilla «{etiquetaProceso(proc)}»",
+      "button «{f.etiqueta}»",
+      "Pastilla «Todos»",
+      "Pastilla «{etiquetaProceso(p)}»",
+      "input «Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)»",
+      "button «Limpiar búsqueda»",
+      "button «Escanear una etiqueta»",
+      "button «movimientos.filtros-celular»",
+      "Pastilla «{p.texto}» #2",
+      "Pastilla «{nombreTipo(cat)}»",
+      "button «Limpiar filtros»",
+      "a «Exportar a Excel con estos filtros»",
+      "button «Limpiar»",
+      "button «Ver movimientos»"
+    ],
+    "components/MovimientosLista.tsx": [
+      "button «Entendido»"
+    ],
+    "components/MovimientosVacio.tsx": [
+      "Link «Ver los últimos 90 días»",
+      "Link «Ver todo el historial»",
+      "Link «Limpiar filtros»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «← Volver al inicio»",
+      "Link «Siguiente página →»",
+      "Link «‹»",
+      "Link «{n}»",
+      "Link «›»"
+    ],
+    "components/movimientos/EncabezadoDia.tsx": [
+      "button «{`${op.hora}»"
+    ],
+    "components/movimientos/TiposMovimiento.tsx": [
+      "Link «{activa ? \"Quitar este filtro\" : cifra?.desglose ? `${g.nombre}»"
+    ],
+    "components/perdidas/PerdidasVista.tsx": [
+      "Link «Ver toda la sede»",
+      "Link «{r.tipo === \"zona\" ? \"Ver esa zona\" : \"Ver esa prenda\"}»",
+      "Link «{etiquetaPrenda(h)}»",
+      "Link «{respaldo}»",
+      "Link «Ver los últimos 90 días»",
+      "Link «Ver toda la sede» #2"
+    ]
+  }
+}

@@ -399,6 +399,7 @@ export function PanelTalla({
         />
         <Dialog.Content
           ref={raiz}
+          data-guia="existencias.cajon"
           tabIndex={-1}
           onKeyDown={alTeclear}
           onEscapeKeyDown={alEscape}
@@ -490,6 +491,7 @@ export function PanelTalla({
                       key={v}
                       type="button"
                       aria-pressed={vista === v}
+                      data-guia={v === "talla" ? "existencias.cajon-esta-talla" : undefined}
                       onClick={() => {
                         setVista(v);
                         setHecho(null);
@@ -527,7 +529,7 @@ export function PanelTalla({
                       })}
                       {prenda.color && <span className="text-sm text-taupe">{prenda.color}</span>}
                     </div>
-                    <div role="group" aria-label="Talla" className="flex flex-wrap gap-1.5">
+                    <div role="group" aria-label="Talla" data-guia="existencias.cajon-tallas" className="flex flex-wrap gap-1.5">
                       {prenda.tallas.map((t) => {
                         const sel = t.varianteId === fila.varianteId;
                         // Cada talla dice lo suyo aquí, no en una lista aparte: fondo ámbar si falta en el piso; debajo, el piso o, si aquí no
@@ -604,7 +606,7 @@ export function PanelTalla({
                     </div>
                     {/* Las acciones en UNA lista (2026-10-07): la que la talla necesita primero y teñida; las que no se pueden ahora, apagadas al
                         final con su porqué, en la misma lista (antes iban aparte, «No se puede ahora»). «Ficha» baja al pie como enlace. */}
-                    <ul className="overflow-hidden rounded-2xl border border-sand bg-crema">
+                    <ul data-guia="existencias.cajon-acciones" className="overflow-hidden rounded-2xl border border-sand bg-crema">
                       {acciones
                         .filter((a) => a.clave !== "ficha")
                         .map((a) => {

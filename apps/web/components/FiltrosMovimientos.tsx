@@ -219,7 +219,7 @@ export function FiltrosMovimientos({
   }
 
   const periodos = (
-    <div role="group" aria-label="Período" className={FILA_DESLIZA}>
+    <div role="group" aria-label="Período" data-guia="movimientos.periodos" className={FILA_DESLIZA}>
       {PERIODOS.map((p) => (
         <Pastilla key={p.valor} activa={!mostrarFechas && periodo === String(p.valor)} onClick={() => elegirPeriodo(p.valor)}>
           {p.texto}
@@ -262,7 +262,7 @@ export function FiltrosMovimientos({
   const zona = subDisponibles.length > 0 && (
     // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
     // dicen qué se está eligiendo.
-    <div className="flex max-w-full shrink-0 items-center gap-2">
+    <div data-guia="movimientos.zona" className="flex max-w-full shrink-0 items-center gap-2">
       <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
         Zona
       </span>
@@ -303,7 +303,7 @@ export function FiltrosMovimientos({
       <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
         {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: al desaparecer la X el
             foco se perdía; ahora vuelve al campo (mismo criterio que Traslados). */}
-        <div className="caja-cayla relative flex h-11 min-w-0 flex-1 items-center sm:h-10">
+        <div data-guia="movimientos.buscador" className="caja-cayla relative flex h-11 min-w-0 flex-1 items-center sm:h-10">
           <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
           <input
             ref={entrada}
@@ -341,6 +341,7 @@ export function FiltrosMovimientos({
         <button
           type="button"
           onClick={() => setHoja(true)}
+          data-guia="movimientos.filtros-celular"
           className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[13px] font-medium text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
         >
           <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-4 w-4" />

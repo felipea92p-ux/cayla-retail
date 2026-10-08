@@ -1,0 +1,63 @@
+{
+  "guia": "inventario.por-regularizar",
+  "ruta": "/inventario/por-regularizar",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 31,
+  "controles": {
+    "app/(app)/inventario/por-regularizar/page.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/CerrarColaArranqueModal.tsx": [
+      "CampoSelect «Tienda»",
+      "button «{m.titulo}»",
+      "CampoTexto «Nota (opcional)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/PorRegularizarLista.tsx": [
+      "input «Buscar prenda, color, talla, quién vendió o precio»",
+      "button «Borrar la búsqueda»",
+      "button «{f.texto}»",
+      "button «(sin nombre)»",
+      "Desplegable «(sin nombre)»"
+    ],
+    "components/ReabrirPrendaModal.tsx": [
+      "button «{m.titulo}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/SugerenciasColaModal.tsx": [
+      "CampoSelect «Tienda»",
+      "button «Reintentar»",
+      "button «(sin nombre)»",
+      "input «Lo que anotó caja»",
+      "Boton «{sugerencias.length > 0 ? \"Cancelar\" : \"Cerrar\"}»",
+      "Boton «→() => void confirmar()»"
+    ],
+    "components/por-regularizar/FranjaAvance.tsx": [
+      "button «{vencidas}»"
+    ],
+    "components/por-regularizar/PanelPrendas.tsx": [
+      "input «Nombre, color, talla o código»",
+      "button «Borrar la búsqueda»",
+      "Link «Dala de alta»"
+    ],
+    "components/por-regularizar/PorQue.tsx": [
+      "button «{etiqueta}»"
+    ],
+    "components/por-regularizar/PuenteUnion.tsx": [
+      "button «{f === \"ya_registrada\" ? <Tag aria-hidden strokeWidth={1.6}»",
+      "ComboResponsable «(sin nombre)»",
+      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/por-regularizar/ResumenResuelta.tsx": [
+      "button «Reabrir»"
+    ],
+    "components/por-regularizar/TalonVenta.tsx": [
+      "button «regularizar.talon»"
+    ],
+    "components/por-regularizar/TarjetaCandidata.tsx": [
+      "button «regularizar.candidata»"
+    ]
+  }
+}

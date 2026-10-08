@@ -60,7 +60,7 @@ function Prenda({ fila, muchasSinTemporada, apariencia, categoria }: { fila: Fil
     <div className="flex min-w-0 items-start gap-3">
       <MiniaturaPrenda fotoUrl={apariencia?.fotoUrl ?? null} colorHex={apariencia?.colorHex ?? null} tamano="xl" prefijo={categoria?.prefijo} familia={categoria?.familia} />
       <div className="min-w-0">
-        <div className="text-[15px] font-semibold leading-tight">{fila.nombre}</div>
+        <div data-guia="frescura.prenda-nombre" className="text-[15px] font-semibold leading-tight">{fila.nombre}</div>
         {meta && <div className="text-[13px] leading-snug text-taupe">{meta}</div>}
         {(fila.temporadaPasada || (fila.sinTemporada && !muchasSinTemporada)) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -140,6 +140,7 @@ export function FrescuraFila({
       onClick={onAbrir}
       onKeyDown={alTeclado}
       aria-label={`${fila.nombre}${fila.color ? ` ${fila.color}` : ""}: abrir el detalle`}
+      data-guia="frescura.fila"
       data-prenda={fila.clave}
       className={`fila-cayla relative cursor-pointer border-t border-sand focus-visible:bg-crema/60 ${fila.porDecidir ? FILETE : ""}`}
     >

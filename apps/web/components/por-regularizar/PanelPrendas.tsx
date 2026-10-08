@@ -45,7 +45,7 @@ export function PanelPrendas({
   const buscando = consulta.trim().length > 0;
 
   return (
-    <div className="vsr-prendas" data-vsr-prendas>
+    <div className="vsr-prendas" data-guia="regularizar.prendas" data-vsr-prendas>
       <CampoGuiado id="prenda" guia={guia} titulo="¿Qué prenda es?" ayuda={sugerida ? "La sugerida es la única que calza en todo." : "Toca la tuya. Si hay más de una que calza, tú la reconoces."}>
         <div className="mb-2 flex flex-wrap items-center">
           <PorQue etiqueta="¿Por qué estas?">

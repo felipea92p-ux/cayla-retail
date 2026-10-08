@@ -383,7 +383,7 @@ export function FiltrosExistencias({
         <div className="order-1 flex min-w-0 basis-full items-center gap-2 xl:min-w-[24rem] xl:flex-1">
           {/* Buscar: del alto de un control (40 px) y tan ancho como deje la fila (2026-10-06, tarde: con la vista dentro de «Filtros» la
               barra tiene menos piezas, y un buscador de 26rem dejaba media barra vacía). */}
-          <label className="relative min-w-0 flex-1">
+          <label data-guia="existencias.buscador" className="relative min-w-0 flex-1">
             <span className="sr-only">Buscar producto</span>
             <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" strokeWidth={1.8} />
             {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
@@ -436,6 +436,7 @@ export function FiltrosExistencias({
             <button
               type="button"
               onClick={onEscanear}
+              data-guia="existencias.escanear"
               aria-label="Escanear etiqueta"
               title="Escanear etiqueta"
               className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
@@ -444,7 +445,9 @@ export function FiltrosExistencias({
             </button>
           )}
           {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). */}
-          <BotonFiltros soloIcono abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+          <span data-guia="existencias.filtros" className="flex shrink-0">
+            <BotonFiltros soloIcono abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
+          </span>
           {alLadoDeFiltros}
         </div>
 
