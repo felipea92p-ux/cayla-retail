@@ -739,7 +739,9 @@ export function RecepcionEnvio({
     );
     setPedidoListo(null);
     setOk(resultado);
-    router.refresh();
+    // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?» (`retirarYa`): juntos, Next podía volver a montar
+    // la página o recargarla entera y se perdía «Envío recibido» (2026-10-08).
+    void avisoSalida.retirarYa().then(() => router.refresh());
   }
 
   function nuevoEnvio() {
