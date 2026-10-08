@@ -56,10 +56,23 @@ export function MotorGuias({ quien }: { quien: string }) {
   // un temporizador que NO se cancela al limpiar la URL (si dependiera de `params`, limpiarla lo cancelaría).
   const pideDemo = params.get("demo") === "1";
   const arranquePendiente = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ultimaDemo = useRef<{ id: string; cuando: number } | null>(null);
+  const corriendoRef = useRef<string | null>(null);
+  useEffect(() => {
+    corriendoRef.current = corriendo?.id ?? null;
+  }, [corriendo]);
   useEffect(() => {
     if (!pideDemo || !guia) return;
     const limpio = new URLSearchParams(params.toString());
     limpio.delete("demo");
+    // Un enlace de la pantalla que conserva los parámetros de la URL (las píldoras de Facturas) puede traer de vuelta el `demo=1`:
+    // si la demo de esta guía ya está corriendo o arrancó hace menos de un minuto, solo se limpia la URL y no se vuelve a empezar.
+    const repetida = corriendoRef.current === guia.id || (ultimaDemo.current?.id === guia.id && Date.now() - ultimaDemo.current.cuando < 60_000);
+    if (repetida) {
+      window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
+      return;
+    }
+    ultimaDemo.current = { id: guia.id, cuando: Date.now() };
     // `history.replaceState` y no `router.replace`: en una ruta interceptada (el Historial de un producto, `@modal/(.)[id]`)
     // el router volvía a resolver la intercepción, Next respondía 500 y recargaba la página, y la guía se perdía.
     window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
