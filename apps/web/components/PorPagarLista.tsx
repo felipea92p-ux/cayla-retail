@@ -4,7 +4,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Banknote, ChevronRight } from "lucide-react";
+import { Banknote, ChevronRight, FunnelX } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -20,6 +20,7 @@ import { diaMes } from "@/lib/fechas-lima";
 import { detalleSeleccion, etiquetaVence, partirCoincidencia, plazoConsumido, TITULO_TRAMO, tramoDe, type ClaveTramo } from "@/lib/por-pagar-reglas";
 import { useContar } from "@/lib/useContar";
 import { useFlip } from "@/lib/useFlip";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Lista de Por pagar (maqueta 02 y celular de la 11). UNA tabla partida en tramos de urgencia
 // —Vencidas, Vencen esta semana, Más adelante— o, si se prefiere, agrupada por proveedor (para
@@ -329,12 +330,17 @@ export function PorPagarLista({
           ))}
         </div>
         {bloques.length === 0 && (
-          <div className="anim-revelar px-5 py-10 text-center">
-            <p className="font-display text-[19px] italic text-tinta/65">Ninguno de los comprobantes de esta página coincide.</p>
-            <button type="button" onClick={quitarFiltro} className="mt-2 text-sm text-rojo hover:underline">
-              Quitar el filtro
-            </button>
-          </div>
+          <Vacio
+            icono={<FunnelX />}
+            titulo="Ninguno de los comprobantes de esta página coincide"
+            acciones={
+              <Boton peso="fantasma" onClick={quitarFiltro}>
+                Quitar el filtro
+              </Boton>
+            }
+          >
+            Quita el filtro para volver a ver todos los de esta página.
+          </Vacio>
         )}
         {bloques.map((b) => (
           <Fragment key={b.clave}>

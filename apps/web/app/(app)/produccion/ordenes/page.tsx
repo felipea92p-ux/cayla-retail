@@ -8,6 +8,8 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getInsumosDelTaller } from "@/lib/insumos";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
+import { Factory } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -34,9 +36,11 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
     return (
       <div className="space-y-6">
         <h1 className="font-display text-2xl text-tinta">Producción</h1>
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay una ubicación de tipo Taller activa. Producción necesita una para saber dónde entra el stock.
-        </p>
+        <div className="card-cayla">
+          <Vacio icono={<Factory />} titulo="No hay un Taller activo">
+            Producción necesita una ubicación de tipo Taller para saber dónde entra el stock. Pídele al líder que active el Taller.
+          </Vacio>
+        </div>
       </div>
     );
   }

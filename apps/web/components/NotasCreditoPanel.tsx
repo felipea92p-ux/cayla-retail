@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ChevronDown, ChevronRight, Search, ShieldCheck, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { ChevronDown, ChevronRight, CircleCheck, FileMinus, FunnelX, SearchX, ShieldCheck, Wallet, X } from "lucide-react";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -36,6 +36,8 @@ import {
   type Pestana,
   type TramoUrgencia,
 } from "@/lib/notas-credito-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Notas de crédito · el tablero (2026-09-19)
@@ -98,7 +100,6 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
   const [seleccionada, setSeleccionada] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<string | null>(null);
   const [registrar, setRegistrar] = useState<{ compraId: string | null } | null>(null);
-  const refBusqueda = useRef<HTMLInputElement>(null);
 
   const filas = useMemo(() => armarFilas(crudas, { hoy, saldoPorProveedor, movimientos }), [crudas, hoy, saldoPorProveedor, movimientos]);
   const cifras = useMemo(() => cifrasTablero(filas, { mes: hoy.slice(0, 7), saldoPorProveedor, movimientos }), [filas, hoy, saldoPorProveedor, movimientos]);
@@ -133,23 +134,14 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
     [seleccionada, orden],
   );
 
-  // Atajos: `/` busca, `j`/`k` recorren, Enter abre la vista rápida, `N` una nota nueva. Nada de esto
+  // Atajos: `/` busca (lo escucha el <Buscador atajo>), `j`/`k` recorren, Enter abre la vista rápida, `N` una nota nueva. Nada de esto
   // se dispara dentro de un campo, con Ctrl/⌘ ni con un modal abierto.
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       const enCampo = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-      if (e.key === "Escape" && t === refBusqueda.current && busqueda) {
-        setBusqueda("");
-        return;
-      }
       if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
       if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
-      if (e.key === "/" && !enCampo) {
-        e.preventDefault();
-        refBusqueda.current?.focus();
-        return;
-      }
       if ((e.key === "n" || e.key === "N") && !enCampo) {
         e.preventDefault();
         setRegistrar({ compraId: null });
@@ -167,7 +159,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
     };
     document.addEventListener("keydown", alTeclear);
     return () => document.removeEventListener("keydown", alTeclear);
-  }, [busqueda, vista]);
+  }, [vista]);
 
   const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
@@ -283,26 +275,14 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
 
           {/* --- buscador, pestañas y agrupación ------------------------------------- */}
           <div className="anim-entra flex flex-wrap items-center gap-x-5 gap-y-3" style={{ ["--i" as string]: 6 }}>
-            <label className="group relative flex min-w-[15rem] flex-1 items-center gap-2.5 border-b border-tinta/25 px-0.5 py-1.5 focus-within:border-rojo">
-              <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
-              <input
-                ref={refBusqueda}
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Proveedor, comprobante o número de nota"
-                aria-label="Buscar por proveedor, comprobante o número de nota"
-                autoComplete="off"
-                className="h-6 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45 [&::-webkit-search-cancel-button]:hidden"
-              />
-              {busqueda ? (
-                <button type="button" onClick={() => { setBusqueda(""); refBusqueda.current?.focus(); }} aria-label="Borrar búsqueda" className="rounded-full p-0.5 text-tinta/55 transition-colors hover:text-rojo">
-                  <X aria-hidden className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <kbd className="rounded border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55">/</kbd>
-              )}
-            </label>
+            <Buscador
+              valor={busqueda}
+              onCambio={setBusqueda}
+              atajo
+              placeholder="Proveedor, comprobante o número de nota"
+              etiqueta="Buscar por proveedor, comprobante o número de nota"
+              className="min-w-[15rem] flex-1"
+            />
             {/* El estado deja menos notas en la misma lista: la píldora de filtro (ADR-0358). */}
             <div role="group" aria-label="Estado de la nota" className="flex flex-wrap items-center gap-2">
               {PESTANAS.map((p) => (
@@ -520,44 +500,53 @@ function FilaNota({
 function Vacia({ busqueda, pestana, banda, onLimpiar }: { busqueda: string; pestana: Pestana; banda: Banda | null; onLimpiar: () => void }) {
   if (busqueda.trim()) {
     return (
-      <div className="card-cayla anim-revelar px-5 py-11 text-center">
-        <p className="font-display text-[19px] italic text-tinta/65">Ninguna nota coincide con «{busqueda.trim()}»</p>
-        <p className="mx-auto mt-1 max-w-md text-[13px] text-tinta/55">Se busca por proveedor, comprobante de origen o número de nota.</p>
-        <button type="button" onClick={onLimpiar} className="mt-2.5 text-[13px] text-rojo hover:underline">
-          Limpiar la búsqueda
-        </button>
+      <div className="card-cayla">
+        <Vacio
+          icono={<SearchX />}
+          titulo={`Ninguna nota coincide con «${busqueda.trim()}»`}
+          acciones={
+            <Boton peso="fantasma" onClick={onLimpiar}>
+              Borrar la búsqueda
+            </Boton>
+          }
+        >
+          Se busca por proveedor, comprobante de origen o número de nota.
+        </Vacio>
       </div>
     );
   }
   if (banda) {
     return (
-      <div className="card-cayla anim-revelar px-5 py-11 text-center">
-        <p className="font-display text-[19px] italic text-tinta/65">Ninguna nota pendiente en ese tramo</p>
-        <button type="button" onClick={onLimpiar} className="mt-2.5 text-[13px] text-rojo hover:underline">
-          Ver todas las que faltan
-        </button>
+      <div className="card-cayla">
+        <Vacio
+          icono={<FunnelX />}
+          titulo="Ninguna nota pendiente en ese tramo"
+          acciones={
+            <Boton peso="fantasma" onClick={onLimpiar}>
+              Ver todas las que faltan
+            </Boton>
+          }
+        >
+          Quita el tramo para ver todas las notas que todavía faltan.
+        </Vacio>
       </div>
     );
   }
   if (pestana === "por_reclamar") {
-    // El trazo que se dibuja: es lo que se ve al registrar la última nota que faltaba.
+    // Es lo que se ve al registrar la última nota que faltaba: el ícono se dibuja (pieza única <Vacio>, ADR-0358 ronda 5).
     return (
-      <div className="card-cayla anim-revelar px-5 py-11 text-center">
-        <svg aria-hidden viewBox="0 0 64 64" className="mx-auto mb-2.5 h-[54px] w-[54px] fill-none stroke-verde" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-          <circle pathLength={1} cx="32" cy="32" r="29" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 0 }} />
-          <path pathLength={1} d="M19 33l9 9 17-20" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 12 }} />
-        </svg>
-        <p className="font-display text-[19px] italic text-tinta/65">Nada por reclamar</p>
-        <p className="mx-auto mt-1 max-w-md text-[13px] text-tinta/55">
-          Todo lo que se cerró por faltante ya tiene su nota de crédito. Cuando cierres un faltante al recibir, aparecerá acá por sí solo.
-        </p>
+      <div className="card-cayla">
+        <Vacio icono={<CircleCheck />} titulo="Nada por reclamar">
+          Todo lo que se cerró por faltante ya tiene su nota de crédito. Cuando cierres un faltante al recibir, aparecerá aquí por sí solo.
+        </Vacio>
       </div>
     );
   }
   return (
-    <div className="card-cayla anim-revelar px-5 py-11 text-center">
-      <p className="font-display text-[19px] italic text-tinta/65">No hay notas en esta pestaña</p>
-      <p className="mx-auto mt-1 max-w-md text-[13px] text-tinta/55">Aparecen cuando el proveedor emite una y la registras.</p>
+    <div className="card-cayla">
+      <Vacio icono={<FileMinus />} titulo="No hay notas en esta pestaña">
+        Aparecen cuando el proveedor emite una y la registras.
+      </Vacio>
     </div>
   );
 }
@@ -577,15 +566,10 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
 
   if (con.length === 0) {
     return (
-      <div className="card-cayla anim-entra px-5 py-11 text-center" style={{ ["--i" as string]: 2 }}>
-        <svg aria-hidden viewBox="0 0 64 64" className="mx-auto mb-2.5 h-[54px] w-[54px] fill-none stroke-verde" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-          <circle pathLength={1} cx="32" cy="32" r="29" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 0 }} />
-          <path pathLength={1} d="M19 33l9 9 17-20" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 12 }} />
-        </svg>
-        <p className="font-display text-[19px] italic text-tinta/65">Ningún proveedor te debe saldo</p>
-        <p className="mx-auto mt-1 max-w-md text-[13px] text-tinta/55">
-          Cuando una nota de crédito supere lo que le debes a un proveedor (por ejemplo, en una factura al contado), lo que sobre aparecerá acá.
-        </p>
+      <div className="card-cayla">
+        <Vacio icono={<Wallet />} titulo="Ningún proveedor te debe saldo">
+          Cuando una nota de crédito supere lo que le debes a un proveedor (por ejemplo, en una factura al contado), lo que sobre aparecerá aquí.
+        </Vacio>
       </div>
     );
   }

@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Calendar, ChevronDown, Search, SearchX } from "lucide-react";
+import { Calendar, ChevronDown, SearchX } from "lucide-react";
 import { Popover } from "radix-ui";
-import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { TODOS } from "@/components/ui/FiltrosPildora";
@@ -25,6 +24,7 @@ import {
   type ResultadoRecibidas,
 } from "@/lib/recibidas-filtros-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { Buscador } from "@/components/ui/Buscador";
 
 // Filtros de «Recibidas recientemente» tal como los dibuja la maqueta 06: el buscador y, en la
 // misma línea, dos pastillas —«Proveedor: Todos ⌄» y «Fechas»— sin el botón «Filtros» ni su
@@ -70,7 +70,6 @@ export function FiltrosRecibidas({
   const pathname = usePathname();
   const params = useSearchParams();
   const [busqueda, setBusqueda] = useState(filtros.busqueda ?? "");
-  const [enfocado, setEnfocado] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { buscando, buscar } = useBusquedaEnUrl();
 
@@ -108,27 +107,19 @@ export function FiltrosRecibidas({
 
   return (
     <div role="search" aria-label="Filtrar las recepciones" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
-      <div className="relative flex w-full min-w-0 items-center gap-2.5 px-0.5 text-tinta/45 sm:w-auto sm:min-w-[16rem] sm:flex-1">
-        <Search aria-hidden strokeWidth={1.6} className="h-4 w-4 shrink-0" />
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => alTipear(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") return;
-            clearTimeout(temporizador.current);
-            aplicar({ q: busqueda.trim() }, { tipeado: true });
-          }}
-          onFocus={() => setEnfocado(true)}
-          onBlur={() => setEnfocado(false)}
-          placeholder="Documento, proveedor o guía"
-          aria-label="Buscar por documento, proveedor o guía"
-          autoComplete="off"
-          className="h-9 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-        />
-        <SenalBuscando activo={buscando} />
-        <Hilo activo={enfocado} trabajando={buscando} />
-      </div>
+      <Buscador
+        valor={busqueda}
+        onCambio={alTipear}
+        buscando={buscando}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+          clearTimeout(temporizador.current);
+          aplicar({ q: busqueda.trim() }, { tipeado: true });
+        }}
+        placeholder="Documento, proveedor o guía"
+        etiqueta="Buscar por documento, proveedor o guía"
+        className="w-full min-w-0 sm:w-auto sm:min-w-[16rem] sm:flex-1"
+      />
 
       <PastillaProveedor proveedores={proveedores} proveedorId={filtros.proveedorId} onElegir={(id) => aplicar({ prov: id })} />
       <PastillaFechas desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} hoy={hoy} onCambiar={(desde, hasta) => aplicar({ desde, hasta })} />
