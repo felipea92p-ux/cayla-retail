@@ -13,3 +13,18 @@
 - **Felipe se lleva:** el estado de Frescura no mide días: mide la posición de la prenda contra una curva que con 3
   ventas es un acantilado (P50 = 1 día, P75 = 2). La pregunta que ya puede hacer: «¿cuántas vendió el resto de la
   categoría y en cuántos días, para que el P75 quede en 2?».
+
+## Actividades 1 y 2 · el umbral de evidencia y la vara de CAYLA en la base
+
+- **Qué hice:** (1) `rapidezParaDecidir`: «Por decidir» exige 2 ventas esperadas; con poca evidencia el índice protege
+  (pilar) pero no condena (lenta); la que dejó de vender decide igual. (2) La tabla `frescura_vara_cayla` con las
+  observaciones anónimas de las tres tiendas, una función de guardar solo para la llave de servicio, una de leer para
+  quien ve Frescura, el cron diario de la web que la llena con la receta de `referenciaCayla`, y `fn_frescura_sede`
+  abierta a `service_role` con un parche anclado (md5 calculado fuera de la base y verificado adentro).
+- **Por qué así:** el cron no tiene persona y el candado de `fn_frescura_sede` pedía una; el repo ya resolvió eso para
+  SUNAT (`auth.role() is not distinct from 'service_role'`), y reescribir 386 líneas para una condición habría pisado
+  los parches en vivo que otras migraciones vigilan por md5. Borrar las categorías que la corrida no trae por **ids** y
+  no por hora: `now()` no avanza dentro de una transacción (la prueba lo encontró).
+- **Felipe se lleva:** la vara de CAYLA no es un promedio de las tres tiendas: es UNA curva con las unidades de todas,
+  así que una tienda con 2 ventas no pesa lo que una con 200. Y una tabla «calculada» es un snapshot derivado del libro:
+  se reemplaza entera, no se edita.
