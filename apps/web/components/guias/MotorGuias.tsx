@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton } from "@/components/ui/campos";
 import { GUIAS } from "@/lib/guias/registro";
@@ -28,7 +28,6 @@ const ESPERA_OFERTA_MS = 1400;
 export function MotorGuias({ quien }: { quien: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const router = useRouter();
   const guia = guiaDeRuta(pathname, GUIAS);
   const [vistas, setVistas] = useState<{ quien: string; ids: Set<string> } | null>(null);
   const [corriendo, setCorriendo] = useState<Guia | null>(null);
@@ -61,14 +60,16 @@ export function MotorGuias({ quien }: { quien: string }) {
     if (!pideDemo || !guia) return;
     const limpio = new URLSearchParams(params.toString());
     limpio.delete("demo");
-    router.replace(limpio.size ? `${pathname}?${limpio}` : pathname, { scroll: false });
+    // `history.replaceState` y no `router.replace`: en una ruta interceptada (el Historial de un producto, `@modal/(.)[id]`)
+    // el router volvía a resolver la intercepción, Next respondía 500 y recargaba la página, y la guía se perdía.
+    window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
     if (arranquePendiente.current) clearTimeout(arranquePendiente.current);
     arranquePendiente.current = setTimeout(() => {
       arranquePendiente.current = null;
       setOfrecida(null);
       setCorriendo(guia);
     }, 700);
-  }, [pideDemo, guia, params, pathname, router]);
+  }, [pideDemo, guia, params, pathname]);
   useEffect(() => () => {
     if (arranquePendiente.current) clearTimeout(arranquePendiente.current);
   }, []);

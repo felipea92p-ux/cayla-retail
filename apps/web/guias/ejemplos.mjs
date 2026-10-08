@@ -21,7 +21,11 @@ export const EJEMPLOS = {
   "/inventario/conteo/[id]/revisar": { url: () => `/inventario/conteo/${id("select id from retail.conteos order by created_at desc limit 1")}/revisar` },
   "/inventario/traslados/(billetera)/[id]": { url: () => `/inventario/traslados/${id("select id from retail.transferencias order by created_at desc limit 1")}` },
   "/productos/[id]/editar": { url: () => `/productos/${id("select id from retail.productos where estado = 'activo' order by created_at desc limit 1")}/editar` },
-  "/productos/[id]/historial": { url: () => `/productos/${id("select id from retail.productos where estado = 'activo' order by created_at desc limit 1")}/historial` },
+  // La prenda con más movimientos: así el Historial tiene qué mostrar (filtros, varias tarjetas).
+  "/productos/[id]/historial": {
+    url: () =>
+      `/productos/${id("select v.producto_id from retail.movimientos m join retail.variantes v on v.id = m.variante_id join retail.productos p on p.id = v.producto_id where p.estado = 'activo' group by v.producto_id order by count(*) desc limit 1")}/historial`,
+  },
   "/produccion": { cuenta: "admin-taller" },
   "/produccion/comprobantes": { cuenta: "admin-taller" },
   "/produccion/cotizaciones-maquila": { cuenta: "admin-taller" },

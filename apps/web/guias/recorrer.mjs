@@ -127,6 +127,7 @@ try {
       guia: !!document.querySelector(".guia-tarjeta"),
     }));
     if (quedo.guia) problemas.push("la guía no terminó tras 60 pasos");
+    if (pasos.length < 2) problemas.push(`la guía se cortó al empezar (${pasos.length} paso${pasos.length === 1 ? "" : "s"}): ¿la página se recargó?`);
     if (quedo.modales > 0) problemas.push(`quedaron ${quedo.modales} modal(es) abiertos al terminar`);
     if (quedo.ruta !== destino) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
     if (escrituras.length) problemas.push(`ESCRIBIÓ EN LA BASE durante la demo: ${escrituras.join(", ")}`);
