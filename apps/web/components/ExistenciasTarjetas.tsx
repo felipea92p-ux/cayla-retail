@@ -89,6 +89,10 @@ function TablaTallas({
   onTalla: (f: FilaExistencias) => void;
 }) {
   const celdas = tallas.map((f) => celdaTarjeta(f, separa));
+  // La columna bajo el mouse se ilumina entera, apenas y con un fundido suave (Felipe, 2026-10-07: «sutil y no brusco»): toda la columna es la talla y toda abre su «Colgar».
+  const [sobre, setSobre] = useState<string | null>(null);
+  const entra = (id: string) => ({ onMouseEnter: () => setSobre(id), onMouseLeave: () => setSobre((s) => (s === id ? null : s)) });
+  const luz = (f: FilaExistencias, c: CeldaTarjeta) => (sobre === f.varianteId ? (c.estado === "agotada" ? "!bg-rojo/[0.15]" : "bg-hueso/45") : "");
   const Simbolo: SimboloFiltro | undefined = marcaDelFiltro?.simbolo;
   const tono = marcaDelFiltro?.tono ?? "ambar";
   const atenua = (f: FilaExistencias) => (marcaDe(f) === "tenue" ? "opacity-40" : "");
@@ -106,7 +110,7 @@ function TablaTallas({
               ? `Talla ${nombre}: ${c.piso} en el piso y ${c.almacen} en almacén${c.estado === "agotada" ? ", se acabó en esta sede" : c.estado === "falta" ? ", falta colgar" : ""}`
               : `Talla ${nombre}: ${c.piso} disponibles`;
             return (
-              <th key={f.varianteId} scope="col" className={`h-5 border-b border-sand p-0 ${c.estado === "agotada" ? "rounded-t-[7px] bg-rojo/[0.11]" : ""} ${atenua(f)}`}>
+              <th key={f.varianteId} scope="col" {...entra(f.varianteId)} className={`h-5 rounded-t-[7px] border-b border-sand p-0 transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${c.estado === "agotada" ? "bg-rojo/[0.11]" : ""} ${luz(f, c)} ${atenua(f)}`}>
                 <button
                   type="button"
                   onClick={() => onTalla(f)}
@@ -141,8 +145,14 @@ function TablaTallas({
               return (
                 <td
                   key={f.varianteId}
-                  onClick={() => onTalla(f)}
-                  className={`h-[22px] cursor-pointer px-0.5 ${claseCelda(c, fila.clave)} ${c.estado === "agotada" && ultima ? "rounded-b-[7px]" : ""} ${atenua(f)}`}
+                  {...entra(f.varianteId)}
+                  // La celda abre la talla y el clic no sigue a la tarjeta (que abriría otra talla encima).
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTalla(f);
+                  }}
+                  title={`Talla ${f.talla ?? "Única"}`}
+                  className={`h-[22px] cursor-pointer px-0.5 transition-colors duration-300 ease-[var(--ease-cayla)] motion-reduce:transition-none ${claseCelda(c, fila.clave)} ${ultima ? "rounded-b-[7px]" : ""} ${luz(f, c)} ${atenua(f)}`}
                 >
                   {c.estado === "agotada" && fila.clave === "piso" ? "—" : fila.clave === "piso" ? c.piso : c.almacen}
                 </td>
@@ -319,7 +329,7 @@ export function ExistenciasTarjetas({
                   {p.referencia}
                 </span>
                 <span className="mt-1 flex min-w-0 items-center gap-1.5">
-              <div className="flex items-center gap-1.5 shrink-0" role="radiogroup" aria-label={`Color de ${p.referencia}`}>
+              <div className="flex shrink-0 items-center gap-2.5 pl-0.5" role="radiogroup" aria-label={`Color de ${p.referencia}`}>
                 {m.colores.map((h) => {
                   const propia = h.clave === p.clave;
                   const n = marcaDelFiltro ? (tallasCompletas?.(h) ?? h.tallas).filter(marcaDelFiltro.coincide).length : 0;
@@ -333,8 +343,9 @@ export function ExistenciasTarjetas({
                       aria-label={`${h.color ?? "Sin color"}${n ? `: ${n} ${n === 1 ? "talla" : "tallas"} ${marcaDelFiltro?.etiqueta.toLocaleLowerCase("es") ?? ""}` : ""}`}
                       aria-checked={propia}
                       // El área para tocar crece sin que el círculo: 28 px con mouse y 36 con el dedo (`pointer-coarse`).
-                      className={`relative h-4 w-4 cursor-pointer rounded-full border-2 border-papel outline transition-transform after:absolute after:-inset-1 after:content-[''] pointer-coarse:after:-inset-2 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
-                        propia ? "outline-2 outline-tinta" : "outline-[1.5px] outline-tinta/15"
+                      // El color que se ve, bien distinto (Felipe, 2026-10-07): más grande, con aro oscuro separado; los otros, chicos.
+                      className={`relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] pointer-coarse:after:-inset-2 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
+                        propia ? "onda-color h-5 w-5 outline-2 outline-offset-2 outline-tinta" : "h-3.5 w-3.5 outline-1 outline-tinta/20"
                       }`}
                       style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
                     >
@@ -343,7 +354,7 @@ export function ExistenciasTarjetas({
                   );
                 })}
               </div>
-                  <span className="min-w-0 truncate text-xs text-taupe">{p.color ?? "Sin color"}</span>
+                  <span className="min-w-0 truncate text-xs font-semibold text-tinta">{p.color ?? "Sin color"}</span>
                   {p.danado > 0 && <span className="shrink-0 rounded-full bg-rojo/[0.11] px-1.5 text-[11px] font-semibold text-rojo-profundo">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</span>}
                   {p.apartado > 0 && <span className="shrink-0 rounded-full bg-pizarra/[0.12] px-1.5 text-[11px] font-semibold text-pizarra">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</span>}
                 </span>
