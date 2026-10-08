@@ -19,14 +19,23 @@ export function variantesQueSeVenden<V extends { activo: boolean }>(variantes: r
   return activas.length > 0 ? activas : variantes;
 }
 
-/** Los colores en que existe el modelo, en el orden en que llegan, con la foto de la primera variante de cada uno. */
+/** Los colores en que existe el modelo, en el orden en que llegan, con la foto de la primera variante de cada uno que la tenga
+ *  (una talla sin foto no le quita la foto al color). */
 export function coloresDe(variantes: readonly VarianteCatalogo[]): ColorDisponible[] {
   const vistos = new Map<string, ColorDisponible>();
   for (const v of variantesQueSeVenden(variantes)) {
     if (!v.color) continue;
-    if (!vistos.has(v.color)) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
+    const visto = vistos.get(v.color);
+    if (!visto) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
+    else visto.fotoUrl ??= v.fotoUrl;
   }
   return [...vistos.values()];
+}
+
+/** El color que la tarjeta muestra si nadie eligió otro (Felipe, 2026-10-08): el primero con foto, para que la foto principal sea
+ *  la prenda real; si ningún color tiene foto, el primero. */
+export function colorPrincipal<C extends { fotoUrl: string | null }>(colores: readonly C[]): C | undefined {
+  return colores.find((c) => c.fotoUrl) ?? colores[0];
 }
 
 /** Las tallas del modelo, sin repetir, en su orden de curva (XS · S · M · L): las variantes llegan en el orden en

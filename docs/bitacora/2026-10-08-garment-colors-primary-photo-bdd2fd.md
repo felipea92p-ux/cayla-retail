@@ -1,0 +1,5 @@
+# 2026-10-08 · La tarjeta de una prenda abre en un color con foto
+
+- **Qué:** sin un color elegido, la tarjeta de la prenda abre en un color que tiene foto, no en el primero de la lista. Vale en Catálogo ▸ Productos (`colorPrincipal`), en Vender (`colorInicial`) y en Existencias (`colorDeEntrada`). Además, una talla sin foto ya no le quita la foto a su color: vale la de la primera talla que la tenga (`coloresDe`, `agruparCatalogo`, `agruparPorPrenda` de Existencias).
+- **Por qué:** Felipe: «que en las prendas se muestren primero como foto principal los colores que tengan foto».
+- **Cómo:** solo web, sin base. En Vender y Existencias la foto va primero dentro de cada escalón que ya existía (piso → almacén; por colgar → con algo libre), y un color con foto pero agotado no le gana a uno sin foto que tiene prendas: la tarjeta no vuelve a abrir vacía (la decisión del 2026-10-07). Pruebas en `catalogo-grupos`, `productos-vista` y `existencias-tarjeta-compacta`. Las tres pantallas cargan sin errores; en local solo hay fotos generales (sin color), así que el cambio no se ve con esos datos.
