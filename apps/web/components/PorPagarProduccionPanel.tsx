@@ -129,7 +129,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 {consolidado.vencido > 0 ? `${soles(consolidado.vencido)} ya vencidos` : "nada vencido"}
               </p>
             </div>
-            <div>
+            <div data-guia="prod-por-pagar.reparto">
               <div className="flex h-2.5 overflow-hidden rounded-full bg-sand" role="img" aria-label={`Producción ${Math.round((consolidado.parteProduccion ?? 0) * 100)} % de la deuda, Compras el resto`}>
                 <span className="bg-tinta" style={{ width: `${(consolidado.parteProduccion ?? 0) * 100}%` }} />
                 <span className="bg-tinta/30" style={{ width: `${(1 - (consolidado.parteProduccion ?? 0)) * 100}%` }} />
@@ -145,7 +145,7 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
                 </span>
               </p>
             </div>
-            <ul>
+            <ul data-guia="prod-por-pagar.deudores">
               {deuda.slice(0, 8).map((f) => (
                 <li key={`${f.origen}-${f.proveedorId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-tinta/10 py-2 text-[13px] last:border-b-0">
                   <span className="min-w-0">

@@ -107,7 +107,9 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
           />
           <CampoTexto etiqueta="Merma al cortar (%)" pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(e) => setMerma(e.target.value)} />
         </div>
-        <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
+        <div data-guia="prod-insumo-nuevo.nota">
+          <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
+        </div>
         <div data-guia="prod-insumo-nuevo.cierre" className="space-y-4">
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">

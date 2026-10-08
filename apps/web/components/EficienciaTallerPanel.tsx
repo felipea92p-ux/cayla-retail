@@ -70,7 +70,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
         // El período es un filtro de un valor: la píldora del sistema (ADR-0358).
         <div data-guia="prod-eficiencia.periodos" role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
           {periodos.map((p, n) => (
-            <button key={p.ventana.clave} type="button" data-guia={n === 1 ? "prod-eficiencia.periodo-otro" : undefined} aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
+            <button key={p.ventana.clave} type="button" data-guia={n === 0 ? "prod-eficiencia.periodo-actual" : n === 1 ? "prod-eficiencia.periodo-otro" : undefined} aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
               {p.ventana.etiqueta}
             </button>
           ))}
@@ -204,7 +204,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
         </>
       )}
 
-      <p className="text-xs text-tinta/60">
+      <p data-guia="prod-eficiencia.nota" className="text-xs text-tinta/60">
         Las prendas segundas no se cuentan: el costo de lo que salió mal lo pagan las buenas. Para ver cuánto rinde la tela de cada modelo, mira{" "}
         <Link href="/produccion" className="underline underline-offset-2 hover:text-rojo">
           el Resumen

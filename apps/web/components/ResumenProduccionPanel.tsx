@@ -112,7 +112,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
         ) : (
           <ul className="space-y-2.5">
             {decisiones.map((d, i) => (
-              <li key={d.id} className={`card-cayla anim-entra grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 border-l-4 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${BORDE_SEVERIDAD[d.severidad]}`} style={{ ["--i" as string]: Math.min(i, 8) }}>
+              <li key={d.id} data-guia={i === 0 ? "prod-resumen.asunto" : undefined} className={`card-cayla anim-entra grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 border-l-4 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${BORDE_SEVERIDAD[d.severidad]}`} style={{ ["--i" as string]: Math.min(i, 8) }}>
                 <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-none stroke-tinta/70 stroke-[1.6]" strokeLinecap="round" strokeLinejoin="round">
                   <path d={ICONO[d.tipo]} />
                 </svg>
@@ -151,10 +151,10 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
               <span className="label-cayla text-[11px] text-tinta/65">Sugerencia</span>
             </div>
             <ul>
-              {modelos.map((m) => {
+              {modelos.map((m, i) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
                 return (
-                  <li key={m.productoId} className="border-b border-tinta/10 last:border-b-0">
+                  <li key={m.productoId} data-guia={i === 0 ? "prod-resumen.modelo" : undefined} className="border-b border-tinta/10 last:border-b-0">
                     <Link
                       href={`/produccion/ordenes?nueva=${m.productoId}`}
                       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 md:grid-cols-[minmax(0,1.4fr)_5rem_5.5rem_minmax(9rem,1.2fr)_5rem_9rem]"

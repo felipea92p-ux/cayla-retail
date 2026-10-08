@@ -61,7 +61,7 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
       ) : (
         <ul data-guia="prod-recibir.lista" className="space-y-3">
           {abiertos.map((g, i) => (
-            <li key={g.comprobanteId} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
+            <li key={g.comprobanteId} data-guia={i === 0 ? "prod-recibir.factura" : undefined} className="card-cayla anim-entra p-4" style={{ ["--i" as string]: Math.min(i, 8) }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-[15px] text-tinta">{g.proveedor}</p>

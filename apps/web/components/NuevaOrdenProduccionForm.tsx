@@ -280,7 +280,7 @@ export function NuevaOrdenProduccionForm({
                   Ritmo de venta y stock de todas las tiendas, con lo que ya hay en el Taller, viene en camino o se está fabricando.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div data-guia="prod-orden-nueva.cubrir" className="flex items-center gap-2">
                 <label className="flex items-center gap-1.5 text-xs text-tinta/70">
                   Cubrir
                   <Desplegable
@@ -304,8 +304,8 @@ export function NuevaOrdenProduccionForm({
             {curva.porVariante.size === 0 ? (
               <p className="text-xs text-tinta/65">La red todavía no tiene datos de venta de este modelo.</p>
             ) : (
-              <details>
-                <summary className="cursor-pointer text-xs text-tinta/75">Ver por qué, variante por variante</summary>
+              <details data-guia="prod-orden-nueva.por-que">
+                <summary data-guia="prod-orden-nueva.por-que-abrir" className="cursor-pointer text-xs text-tinta/75">Ver por qué, variante por variante</summary>
                 <ul className="mt-2 divide-y divide-tinta/10">
                   {(modelo.variantes ?? [])
                     .filter((v) => curva.porVariante.has(v.varianteId))
@@ -339,7 +339,9 @@ export function NuevaOrdenProduccionForm({
               </details>
             )}
             {datos.motor && (
-              <MotorEnProduccion motor={datos.motor} modelo={modelo} disponible={disponibleDeVariante} diasObjetivo={diasObjetivo} onUsar={setCantidades} />
+              <div data-guia="prod-orden-nueva.motor">
+                <MotorEnProduccion motor={datos.motor} modelo={modelo} disponible={disponibleDeVariante} diasObjetivo={diasObjetivo} onUsar={setCantidades} />
+              </div>
             )}
           </section>
         )}

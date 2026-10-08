@@ -6,7 +6,7 @@
   "controles": {
     "components/EficienciaTallerPanel.tsx": [
       "Pestanas «Producción»",
-      "button «{n === 1 ? \"prod-eficiencia.periodo-otro\" : undefined}»",
+      "button «{p.ventana.etiqueta}»",
       "Link «el Resumen»"
     ]
   }

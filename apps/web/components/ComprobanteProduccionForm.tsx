@@ -196,8 +196,8 @@ export function ComprobanteProduccionForm({
               valor={condicion}
               onCambio={(c) => setCondicion(c as CondicionComprobante)}
               opciones={[
-                { clave: "credito", etiqueta: "Crédito" },
-                { clave: "contado", etiqueta: "Contado" },
+                { clave: "credito", etiqueta: "Crédito", guia: "prod-factura-nueva.credito" },
+                { clave: "contado", etiqueta: "Contado", guia: "prod-factura-nueva.contado" },
               ]}
             />
           </div>
@@ -301,7 +301,11 @@ export function ComprobanteProduccionForm({
           </div>
         </dl>
 
-        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />}
+        {condicion === "contado" && (
+          <div data-guia="prod-factura-nueva.medios">
+            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+          </div>
+        )}
 
         <div data-guia="prod-factura-nueva.papel" className="grid gap-3 sm:grid-cols-2">
           <CampoTexto
