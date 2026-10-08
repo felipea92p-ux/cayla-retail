@@ -129,6 +129,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
         >
           <Dialog.Content
             ref={hoja}
+            data-variante={variante ?? "normal"}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
                 ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
