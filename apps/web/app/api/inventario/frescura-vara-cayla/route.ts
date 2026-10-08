@@ -37,9 +37,13 @@ export async function GET(request: Request) {
     return Response.json({ error: tiendas.error.message }, { status: 500 });
   }
 
+  // El cron solo lee `fn_frescura_sede` (una por tienda); las otras lecturas de Frescura no son suyas.
   const calculo = await calcularVaraCayla(
     tiendas.data,
-    (fn, args) => supabase.rpc(fn, args as { p_ubicacion_id: string; p_dias: number }),
+    (fn, args) =>
+      fn === "fn_frescura_sede"
+        ? supabase.rpc("fn_frescura_sede", args as { p_ubicacion_id: string; p_dias: number })
+        : Promise.reject(new Error(`El cron de la vara de CAYLA no llama a ${fn}.`)),
     FRESCURA_DIAS_LECTURA,
   );
   if (calculo.caidas.length > 0) {

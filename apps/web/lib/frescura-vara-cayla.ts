@@ -8,6 +8,8 @@ import {
   type NivelConfianza,
   type Observacion,
   type ObservacionesSede,
+  type RespaldoCayla,
+  type VaraRespaldo,
 } from "./frescura-reglas";
 
 // La vara de CAYLA como RESPALDO (ADR-0208, actualización 2026-10-07; migración 20261008120000). Una categoría con pocas
@@ -140,6 +142,46 @@ export function varaCaylaVigente(f: Pick<FilaVaraCayla, "calculadaEn">, ahora: s
 /** La curva de una fila, para ubicar y medir una prenda contra ella (`contraElResto`). */
 export function curvaDeVaraCayla(f: Pick<FilaVaraCayla, "observaciones">): Curva {
   return kaplanMeier(f.observaciones);
+}
+
+/** El respaldo que usa `analizarSede`: solo las filas vigentes a `ahora`, con su curva rearmada. */
+export function respaldoDe(filas: readonly FilaVaraCayla[], ahora: string): RespaldoCayla {
+  const m = new Map<string, VaraRespaldo>();
+  for (const f of filas) {
+    if (!varaCaylaVigente(f, ahora)) continue;
+    m.set(f.categoriaId, { curva: curvaDeVaraCayla(f), ventanaDias: f.ventanaDias, vendidas: f.vendidas, nivel: f.nivel, calculadaEn: f.calculadaEn });
+  }
+  return m;
+}
+
+/** Lo que la web sabe del respaldo, para decirlo: de cuándo es la vara (null = no hay ninguna vigente) o por qué no se leyó. */
+export type EstadoRespaldo = { respaldo: RespaldoCayla; calculadaEn: string | null; fallo: string | null };
+
+/**
+ * La vara de CAYLA de la base (`fn_frescura_vara_cayla`), vigente a `ahora`. Si la lectura falla o la migración no está
+ * pegada, el respaldo queda vacío y `fallo` lo dice: Frescura juzga contra la tienda, como antes de esta actualización, y la
+ * pantalla lo cuenta. Nunca lanza.
+ */
+export async function leerRespaldoCayla(rpc: LlamarRpcFrescura, ahora: string): Promise<EstadoRespaldo> {
+  const sinRespaldo = (fallo: string): EstadoRespaldo => ({ respaldo: new Map(), calculadaEn: null, fallo });
+  try {
+    const { data, error } = await rpc("fn_frescura_vara_cayla", {});
+    if (error) {
+      console.error("No se pudo leer la vara de CAYLA:", error.message);
+      return sinRespaldo(error.hint === "frescura_sin_permiso" ? "No tienes acceso a la vara de CAYLA." : "No se pudo leer la vara de CAYLA: se juzga contra la tienda.");
+    }
+    const filas = leerVaraCayla(data);
+    if (filas === null) {
+      console.error("No se pudo leer la vara de CAYLA: la respuesta no tiene la forma de fn_frescura_vara_cayla.");
+      return sinRespaldo("No se pudo leer la vara de CAYLA: se juzga contra la tienda.");
+    }
+    const respaldo = respaldoDe(filas, ahora);
+    const calculadaEn = [...respaldo.values()].map((r) => r.calculadaEn).sort()[0] ?? null;
+    return { respaldo, calculadaEn, fallo: filas.length > 0 && respaldo.size === 0 ? "La vara de CAYLA tiene más de 3 días: se juzga contra la tienda." : null };
+  } catch (e) {
+    console.error("No se pudo leer la vara de CAYLA:", e);
+    return sinRespaldo("No se pudo leer la vara de CAYLA: se juzga contra la tienda.");
+  }
 }
 
 /** Lo que calculó el cron: las filas, o qué tiendas no respondieron (con una caída no se guarda nada). */

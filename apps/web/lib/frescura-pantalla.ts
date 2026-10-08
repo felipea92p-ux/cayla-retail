@@ -49,6 +49,9 @@ export const TONO_TRAMO: Record<Tramo, TonoChip> = { nueva: "verde", vigente: "n
 /** Lo que dice una prenda juzgada con pocas ventas de las demás (menos de 10): «Aproximado», no «con pocos datos». */
 export const APROXIMADO = "aproximado";
 
+/** Lo que dice una prenda juzgada contra la vara de CAYLA (ADR-0208, act. 2026-10-07): su tienda no llegaba a 10 ventas. */
+export const CONTRA_CAYLA = "contra lo que vende CAYLA";
+
 /** Frases C: el «al menos» se dice «quizá más», detrás del número o del nombre. */
 export const QUIZA_MAS = "quizá más";
 
@@ -249,6 +252,8 @@ export function estadoVista(p: FrescuraPrenda): EstadoVista {
     // «Aproximado» (antes «con pocos datos») se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado
     // (D5): una categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
     if (nivelSinElla(p) === "pocos_datos") debajo.push(APROXIMADO);
+    // Juzgada contra la vara de CAYLA (ADR-0208, act. 2026-10-07): la fila lo dice, siempre (decisión 2 de Felipe).
+    if (p.juzgadaContra === "cayla") debajo.push(CONTRA_CAYLA);
     return { texto: NOMBRE_TRAMO[e.tramo], tono: TONO_TRAMO[e.tramo], icono: false, debajo, previo: null };
   }
   if (e.tipo === "clasico") return { texto: e.fueraDeSuEstacion ? TEXTO_ESPECIAL.clasico_fuera : TEXTO_ESPECIAL.clasico, tono: "pizarra", icono: false, debajo: [], previo: null };

@@ -68,6 +68,7 @@ const TODO: AccesoFrescura = { existencias: true, historial: true, traslados: tr
 function vara(categoriaId: string, p: Partial<VaraCategoria> = {}): VaraCategoria {
   return {
     categoriaId,
+    respaldo: null,
     categoriaNombre: "Blusas",
     ventanaDias: 60,
     cortes: { p50: 18 * DIA, p75: 34 * DIA, p90: 52 * DIA },
@@ -144,6 +145,7 @@ function prenda(p: Partial<FrescuraPrenda> & { estado?: EstadoFrescura } = {}): 
     rapidez: { indice: 23, vendidas: 1, esperadas: 4.3, referencia: 36 },
     ventasRecientes: 0,
     categoriaSinElla: { cortes: { p50: 18 * DIA, p75: 33 * DIA, p90: 51 * DIA }, tMax: 60 * DIA, vendidas: 36 },
+    juzgadaContra: "sede",
     estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias: ["cambiar_lugar", "trasladar"] },
     // Quieta y sin nada anotado: «Por decidir» (paso 4b: el campo lo decide `aplicarDecisiones`).
     porDecidir: true,

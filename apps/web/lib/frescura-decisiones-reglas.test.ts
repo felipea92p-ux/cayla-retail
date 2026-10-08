@@ -95,6 +95,7 @@ function prenda(p: Partial<FrescuraPrenda> & { clave: string }): FrescuraPrenda 
     rapidez: null,
     ventasRecientes: 0,
     categoriaSinElla: null,
+    juzgadaContra: "sede",
     estado: ESTADO_QUIETA,
     porDecidir: ESTADO_QUIETA.quieta,
     decision: null,
