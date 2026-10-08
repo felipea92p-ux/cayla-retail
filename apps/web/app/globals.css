@@ -1164,6 +1164,28 @@ body {
   --ease-salida: cubic-bezier(0.4, 0, 1, 1);      /* salidas: arranca lento y se va */
 }
 
+/* La onda del color elegido en una tarjeta de Existencias (Felipe, 2026-10-07: «ondas no muy bruscas», siempre y muy lento). Excepción
+   aprobada a ADR-0136 (bucle): un aro que crece y se apaga cada 3,2 s. Quieto con prefers-reduced-motion (la clase no anima ahí). */
+@keyframes cayla-onda-color {
+  0% { transform: scale(1); opacity: 0.5; }
+  75%, 100% { transform: scale(2.3); opacity: 0; }
+}
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Solo ::before: el ::after del punto es su área para tocar (más grande que el círculo). */
+    .onda-color::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 9999px;
+      border: 1.5px solid var(--color-tinta);
+      opacity: 0;
+      pointer-events: none;
+      animation: cayla-onda-color 3.2s var(--ease-cayla) infinite;
+    }
+  }
+}
+
 @keyframes cayla-velo {
   from { opacity: 0; }
   to { opacity: 1; }

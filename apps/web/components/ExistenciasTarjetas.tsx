@@ -345,7 +345,7 @@ export function ExistenciasTarjetas({
                       // El área para tocar crece sin que el círculo: 28 px con mouse y 36 con el dedo (`pointer-coarse`).
                       // El color que se ve, bien distinto (Felipe, 2026-10-07): más grande, con aro oscuro separado; los otros, chicos.
                       className={`relative shrink-0 cursor-pointer rounded-full outline transition-[transform,width,height] after:absolute after:-inset-1.5 after:content-[''] pointer-coarse:after:-inset-2 hover:scale-110 focus-visible:outline-2 focus-visible:outline-tinta focus-visible:outline-offset-[3px] ${
-                        propia ? "h-5 w-5 outline-2 outline-offset-2 outline-tinta" : "h-3.5 w-3.5 outline-1 outline-tinta/20"
+                        propia ? "onda-color h-5 w-5 outline-2 outline-offset-2 outline-tinta" : "h-3.5 w-3.5 outline-1 outline-tinta/20"
                       }`}
                       style={{ background: h.colorHex ?? "conic-gradient(from 20deg, #C0272D, #F2C14E, #3E7A4E, #1B2A4A, #5B3A78, #C0272D)" }}
                     >
