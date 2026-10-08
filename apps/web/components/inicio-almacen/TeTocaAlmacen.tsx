@@ -36,7 +36,7 @@ export function TeTocaAlmacen({ visibles, ajustar }: { visibles: AvisosVisibles;
   if (activos.length === 0 && alDia.length === 0 && ocultosConAlgo === 0) return null;
   const { visibles: primeras, extra } = cortarTeToca(activos, 4);
   return (
-    <EnVista como="section" className="ia-rv" style={{ "--i": 3 } as CSSProperties}>
+    <EnVista como="section" className="ia-rv" style={{ "--i": 3 } as CSSProperties} guia="inicio.almacen-te-toca">
       <div className="ia-sec-h">
         <div className="ia-l">
           <p className="label-cayla text-[11px] text-tinta/65">Te toca</p>

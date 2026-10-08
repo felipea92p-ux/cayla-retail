@@ -92,7 +92,7 @@ export function GraficoVentasMeta({
   const pct = avance(total, meta);
 
   return (
-    <section className="space-y-3" aria-label={titulo}>
+    <section className="space-y-3" aria-label={titulo} data-guia="rendimiento.grafico">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="label-cayla text-[11px] font-bold text-taupe">{titulo}</h2>
         <div className="flex flex-wrap items-center gap-2">

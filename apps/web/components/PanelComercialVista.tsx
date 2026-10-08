@@ -55,7 +55,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
   return (
     <div className="space-y-8">
       {/* ---------- Todo CAYLA ---------- */}
-      <section aria-labelledby="titulo-total" className="space-y-3">
+      <section aria-labelledby="titulo-total" className="space-y-3" data-guia="comercial.total">
         <h2 id="titulo-total" className="label-cayla text-[11px] text-tinta/65">
           Todas las tiendas
         </h2>
@@ -127,7 +127,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       </section>
 
       {/* ---------- Una tarjeta por tienda ---------- */}
-      <section aria-labelledby="titulo-tiendas" className="space-y-3">
+      <section aria-labelledby="titulo-tiendas" className="space-y-3" data-guia="comercial.tiendas">
         <div>
           <h2 id="titulo-tiendas" className="label-cayla text-[11px] text-tinta/65">
             Por tienda
@@ -142,7 +142,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       </section>
 
       {/* ---------- Ventas por hora, una por tienda ---------- */}
-      <section aria-labelledby="titulo-horas" className="space-y-3">
+      <section aria-labelledby="titulo-horas" className="space-y-3" data-guia="comercial.horas">
         <div>
           <h2 id="titulo-horas" className="label-cayla text-[11px] text-tinta/65">
             Ventas por hora, hoy
@@ -172,7 +172,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       </section>
 
       {/* ---------- Colaboradoras ---------- */}
-      <section aria-labelledby="titulo-colab" className="space-y-3">
+      <section aria-labelledby="titulo-colab" className="space-y-3" data-guia="comercial.colaboradoras">
         <div>
           <h2 id="titulo-colab" className="label-cayla text-[11px] text-tinta/65">
             Ventas por colaboradora, este mes
@@ -193,7 +193,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
         </div>
       </section>
 
-      <details className="card-cayla p-4 text-xs text-tinta/75">
+      <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="comercial.como-se-calcula">
         <summary className="cursor-pointer font-semibold text-tinta">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>

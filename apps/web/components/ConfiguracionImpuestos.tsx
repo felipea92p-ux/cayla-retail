@@ -136,7 +136,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
       </div>
 
       <section className="fin-dos-col">
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="config.impuestos-igv">
           <CabeceraBloque titulo="Tasa de IGV" bajada="Solo se agregan filas: el pasado no se reescribe." />
           <ul className="fin-vigencias">
             {tasas.map((t) => (
@@ -156,7 +156,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           </button>
         </Superficie>
 
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="config.impuestos-uit">
           <CabeceraBloque titulo="Valor de la UIT" bajada="Para el límite de ventas del régimen y la renta." />
           <ul className="fin-vigencias">
             {aniosUit.map((anio) => {
@@ -181,7 +181,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
         </Superficie>
       </section>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.impuestos-regimen">
         <TituloDeTarjeta titulo="Régimen de renta, año por año" bajada="Rige desde el 1 de enero. Vacío = sigue lo del año anterior.">
           <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setAniosRegimenExtra((a) => [...a, Math.max(...anios) + 1])}>
             + Año nuevo

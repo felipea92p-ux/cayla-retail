@@ -75,6 +75,18 @@ import {
   GUIA_PROD_RECIBIR,
   GUIA_PROD_RESUMEN,
 } from "./pantallas/produccion";
+import {
+  GUIA_ACTIVIDAD,
+  GUIA_BUSCAR,
+  GUIA_CALIDAD,
+  GUIA_COLABORADORES,
+  GUIA_COMERCIAL,
+  GUIA_CONFIGURACION,
+  GUIA_GLOBAL,
+  GUIA_INICIO,
+  GUIA_RENDIMIENTO,
+} from "./pantallas/general";
+import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -152,35 +164,44 @@ export const GUIAS: readonly Guia[] = [
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_COTIZACIONES,
   GUIA_PROD_EFICIENCIA,
+  GUIA_INICIO,
+  GUIA_ACTIVIDAD,
+  GUIA_BUSCAR,
+  GUIA_CLIENTES,
+  GUIA_AVISOS_CLUB,
+  GUIA_COLABORADORES,
+  GUIA_COMERCIAL,
+  GUIA_CALIDAD,
+  GUIA_CONFIGURACION,
+  GUIA_GLOBAL,
+  GUIA_RENDIMIENTO,
 ];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 11;
-
-const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
+export const PENDIENTES_HOY = 0;
 
 /** La ruta es la de la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
 export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- inicio ----
-  "/": PENDIENTE,
+  "/": { estado: "aplicada", guia: GUIA_INICIO.id },
   // ---- actividad ----
-  "/actividad": PENDIENTE,
+  "/actividad": { estado: "aplicada", guia: GUIA_ACTIVIDAD.id },
   // ---- buscar ----
-  "/buscar": PENDIENTE,
+  "/buscar": { estado: "aplicada", guia: GUIA_BUSCAR.id },
   // ---- caja ----
   "/caja": { estado: "aplicada", guia: GUIA_CAJA.id },
   "/caja/historial": { estado: "aplicada", guia: GUIA_HISTORIAL_CIERRES.id },
   // ---- cambios ----
   "/cambios": { estado: "aplicada", guia: GUIA_CAMBIOS.id },
   // ---- clientas ----
-  "/clientas": PENDIENTE,
-  "/clientas/avisos": PENDIENTE,
+  "/clientas": { estado: "aplicada", guia: GUIA_CLIENTES.id },
+  "/clientas/avisos": { estado: "aplicada", guia: GUIA_AVISOS_CLUB.id },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: se revisa y se imprime, no hay piezas que recorrer." },
   // ---- colaboradores ----
-  "/colaboradores": PENDIENTE,
+  "/colaboradores": { estado: "aplicada", guia: GUIA_COLABORADORES.id },
   // ---- comercial ----
-  "/comercial": PENDIENTE,
-  "/comercial/calidad": PENDIENTE,
+  "/comercial": { estado: "aplicada", guia: GUIA_COMERCIAL.id },
+  "/comercial/calidad": { estado: "aplicada", guia: GUIA_CALIDAD.id },
   // ---- compras ----
   "/compras": { estado: "aplicada", guia: GUIA_FACTURAS.id },
   "/compras/@modal/(.)factura/[compraId]": { estado: "no-aplica", motivo: "La misma vista que /compras/factura/[compraId] abierta como hoja: comparte su guía." },
@@ -194,7 +215,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/proveedores": { estado: "aplicada", guia: GUIA_PROVEEDORES.id },
   "/compras/proveedores/[id]": { estado: "aplicada", guia: GUIA_PROVEEDOR.id },
   // ---- configuracion ----
-  "/configuracion": PENDIENTE,
+  "/configuracion": { estado: "aplicada", guia: GUIA_CONFIGURACION.id },
   // ---- devoluciones ----
   "/devoluciones": { estado: "aplicada", guia: GUIA_DEVOLUCIONES.id },
   // ---- etiquetas-de-precio ----
@@ -216,7 +237,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes/presupuesto": { estado: "aplicada", guia: GUIA_FIN_PRESUPUESTO.id },
   "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
   // ---- global ----
-  "/global": PENDIENTE,
+  "/global": { estado: "aplicada", guia: GUIA_GLOBAL.id },
   "/global/elige-sede": { estado: "no-aplica", motivo: "Un paso de paso: pide elegir la sede y vuelve; lo explica la guía de la pantalla de donde se viene." },
   // ---- inventario ----
   "/inventario": { estado: "aplicada", guia: GUIA_EXISTENCIAS.id },
@@ -263,7 +284,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   // ---- rendimiento ----
-  "/rendimiento": PENDIENTE,
+  "/rendimiento": { estado: "aplicada", guia: GUIA_RENDIMIENTO.id },
   // ---- sin-acceso ----
   "/sin-acceso": { estado: "no-aplica", motivo: "Un mensaje de una línea («no tienes acceso a esta pantalla»): no hay nada que enseñar." },
   // ---- vender ----

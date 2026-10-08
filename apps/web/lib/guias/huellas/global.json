@@ -1,0 +1,11 @@
+{
+  "guia": "global",
+  "ruta": "/global",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 1,
+  "controles": {
+    "app/(app)/global/page.tsx": [
+      "Link «{a.pregunta}»"
+    ]
+  }
+}

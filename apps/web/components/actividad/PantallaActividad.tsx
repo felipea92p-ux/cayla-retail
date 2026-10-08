@@ -55,7 +55,7 @@ export function PantallaActividad({
       {/* Los combos de las barras de filtros del sistema (`Desplegable` en caja, ADR-0169/0209), no el <select> del
           navegador: misma caja, misma flecha y la misma lista que el resto del ERP, con buscador si pasan de 8. */}
       <div className="mb-5 flex flex-wrap items-end gap-3">
-        <Filtro etiqueta="Módulo">
+        <Filtro etiqueta="Módulo" guia="actividad.modulo">
           <Desplegable
             forma="caja"
             etiquetaAccesible="Módulo"
@@ -65,7 +65,7 @@ export function PantallaActividad({
           />
         </Filtro>
         {esLider ? (
-          <Filtro etiqueta="Sede">
+          <Filtro etiqueta="Sede" guia="actividad.sede">
             <Desplegable
               forma="caja"
               etiquetaAccesible="Sede"
@@ -75,12 +75,12 @@ export function PantallaActividad({
             />
           </Filtro>
         ) : (
-          <Filtro etiqueta="Sede">
+          <Filtro etiqueta="Sede" guia="actividad.sede">
             {/* Fija (la base solo le da su sede): la misma caja y el mismo alto que sus vecinos, sin flecha porque no se abre. */}
             <p className="caja-cayla flex h-10 items-center px-3 text-sm text-tinta">{ubicacionEtiqueta}</p>
           </Filtro>
         )}
-        <Filtro etiqueta="Persona">
+        <Filtro etiqueta="Persona" guia="actividad.persona">
           <Desplegable
             forma="caja"
             etiquetaAccesible="Persona"
@@ -90,18 +90,27 @@ export function PantallaActividad({
             opciones={opcionesDePersona(personas, persona)}
           />
         </Filtro>
-        <div className="flex flex-wrap gap-1.5 pb-1" role="group" aria-label="Periodo">
+        <div className="flex flex-wrap gap-1.5 pb-1" role="group" aria-label="Periodo" data-guia="actividad.periodo">
           {PERIODOS.map((p) => (
-            <button key={p.clave} type="button" className="pildora-cayla" aria-pressed={periodo === p.clave} onClick={() => setPeriodo(p.clave)}>
+            <button
+              key={p.clave}
+              type="button"
+              className="pildora-cayla"
+              aria-pressed={periodo === p.clave}
+              onClick={() => setPeriodo(p.clave)}
+              data-guia={p.clave === "30d" ? "actividad.periodo-30" : p.clave === "7d" ? "actividad.periodo-7" : undefined}
+            >
               {p.etiqueta}
             </button>
           ))}
         </div>
       </div>
 
-      <ListaActividad {...actividad} conSede={esLider && ubicacionId === null} conModulo={modulo === null} />
+      <div data-guia="actividad.lista">
+        <ListaActividad {...actividad} conSede={esLider && ubicacionId === null} conModulo={modulo === null} />
+      </div>
 
-      <p className="nota-cayla mt-6">
+      <p className="nota-cayla mt-6" data-guia="actividad.nota">
         Hoy anotan su actividad <b>{MODULOS_CON_ACTIVIDAD.map(nombreDeModulo).join(", ").replace(/, ([^,]*)$/, " y $1")}</b>; los demás
         módulos se suman por etapas. Lo anterior al 26 de setiembre se reconstruyó de las firmas que ya existían: las ediciones de
         antes de esa fecha no quedaron registradas.
@@ -110,9 +119,9 @@ export function PantallaActividad({
   );
 }
 
-function Filtro({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+function Filtro({ etiqueta, guia, children }: { etiqueta: string; /** Ancla de la guía interactiva (ADR-0362). */ guia?: string; children: React.ReactNode }) {
   return (
-    <div className="w-full sm:w-52">
+    <div className="w-full sm:w-52" data-guia={guia}>
       <p className="label-cayla mb-1 text-[11px] text-taupe">{etiqueta}</p>
       {children}
     </div>

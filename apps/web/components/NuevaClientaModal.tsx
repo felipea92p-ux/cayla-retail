@@ -103,7 +103,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
       {(cerrar) => (
         <form onSubmit={onRegistrar} className="space-y-6">
           <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">
-            <div className="grid grid-cols-[11rem_1fr] items-start gap-3 max-sm:grid-cols-1">
+            <div className="grid grid-cols-[11rem_1fr] items-start gap-3 max-sm:grid-cols-1" data-guia="clientas.nuevo-documento">
               <CampoTipoDocumento
                 tipo={alta.documentoTipo}
                 onTipo={(t) => setAlta((a) => ({ ...a, documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, a.documentoNumero) }))}
@@ -131,10 +131,12 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
             </CampoGuiado>
           )}
           <CampoGuiado id="responsable" guia={guia}>
-            <ComboResponsable control={responsable} deshabilitado={guardando} />
+            <div data-guia="clientas.nuevo-responsable">
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
+            </div>
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para registrar." />
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2" data-guia="clientas.nuevo-registrar">
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>

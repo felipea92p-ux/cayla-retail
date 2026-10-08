@@ -259,7 +259,7 @@ export function TablaGastosFijos({
   const total = fijos.reduce((t, f) => t + f.monto, 0);
   return (
     <>
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.fijos">
         <TituloDeTarjeta titulo="Gastos que se repiten" bajada="El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.">
           <Boton type="button" peso="primario" onClick={() => setEditar({})}>
             + Agregar fijo

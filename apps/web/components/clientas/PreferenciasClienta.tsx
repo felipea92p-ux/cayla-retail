@@ -83,7 +83,7 @@ export function PreferenciasClienta({ clientaId, version, guardadas, soloLectura
   }
 
   return (
-    <div className="card-cayla space-y-3 p-4" data-campo="preferencias">
+    <div className="card-cayla space-y-3 p-4" data-campo="preferencias" data-guia="clientas.ficha-preferencias">
       <p className="label-cayla text-[11px] text-tinta/65">Preferencias</p>
       {GRUPOS_PREFERENCIA.map((g) => {
         const opciones = opcionesDelGrupo(catalogo, g.clave, marcadas);

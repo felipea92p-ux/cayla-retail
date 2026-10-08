@@ -87,6 +87,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
         type="button"
         onClick={onTocar}
         aria-current={elegido ? "true" : undefined}
+        data-guia="colaboradores.fila"
         className={`${COLUMNAS} w-full rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ease-cayla ${
           elegido ? "bg-hueso" : "hover:bg-hueso/60"
         }`}
@@ -102,7 +103,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
         )}
         <span className="min-w-0">
           <span className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] font-semibold leading-tight ${apagado ? "text-tinta/60" : "text-tinta"}`}>
-            <span className="truncate">{m.nombre}</span>
+            <span className="truncate" data-guia="colaboradores.nombre">{m.nombre}</span>
             {m.tipo === "persona" && m.esYo && <span className="text-xs font-normal text-tinta/60">(tú)</span>}
             {m.tipo === "persona" && m.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
             {/* Bajo 1024 px el estado va junto al nombre; desde ahí, en su columna. */}
@@ -144,7 +145,7 @@ function EsperanTuOk({
 }) {
   const [preguntando, setPreguntando] = useState<string | null>(null);
   return (
-    <section aria-label="Altas que esperan aprobación" className="rounded-xl bg-ambar/10 px-4 py-3">
+    <section aria-label="Altas que esperan aprobación" className="rounded-xl bg-ambar/10 px-4 py-3" data-guia="colaboradores.esperan-ok">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-ambar-profundo">Esperan tu ok · {pendientes.length}</h2>
         <ComboResponsable control={responsable} compacto deshabilitado={ocupadoId !== null} className="max-w-xs" />
@@ -234,7 +235,7 @@ export function EquipoLista({
 
       <div className="card-cayla space-y-4 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Ver" className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+          <div role="group" aria-label="Ver" className="flex min-w-0 flex-1 flex-wrap gap-1.5" data-guia="colaboradores.atajos">
             {atajos.map((a) => (
               <button key={a.clave} type="button" className="pildora-cayla" aria-pressed={mismoFiltro(filtro, a.filtro)} onClick={() => onFiltro(a.filtro)}>
                 {a.etiqueta} <span className="pildora-cayla__n">{a.n}</span>
@@ -246,7 +247,7 @@ export function EquipoLista({
               + Nueva terminal
             </Boton>
           )}
-          <label className="caja-cayla flex w-full items-center gap-2 px-3 py-2 sm:w-72">
+          <label className="caja-cayla flex w-full items-center gap-2 px-3 py-2 sm:w-72" data-guia="colaboradores.buscador">
             <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />
             <input
               type="search"
@@ -265,7 +266,7 @@ export function EquipoLista({
             {texto ? "Nadie coincide con lo que buscas." : enTerminales ? "Ninguna tienda tiene una terminal todavía." : "Todavía no hay nadie en el equipo."}
           </p>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-5" data-guia="colaboradores.lista">
             {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). */}
             <div aria-hidden className={`${COLUMNAS} border-b border-sand px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-taupe-profundo`}>
               <span className="col-span-2">{enTerminales ? "Terminal" : "Persona"}</span>

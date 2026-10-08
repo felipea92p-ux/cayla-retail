@@ -372,7 +372,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
             <>
               {/* Lo primero, lo que más se busca (spike del club, `modalFicha`): los datos de un vistazo. Lo demás se reparte en dos
                   pestañas —Club y Actividad— en vez de apilar nueve bloques, y «Editar» queda arriba, sin tener que bajar. */}
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4" data-guia="clientas.ficha-datos">
                 <Dato etiqueta="Cumpleaños" valor={cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio)} />
                 <Dato etiqueta="Club" valor={c.clubDesde ? `Desde ${fecha(c.clubDesde)}` : "No es miembro"} />
                 <Dato etiqueta="Frecuente" valor={frecuente.esFrecuente ? "Sí" : `Falta ${frecuente.faltanParaFrecuente}`} tono={frecuente.esFrecuente ? "verde" : undefined} />
@@ -383,19 +383,21 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 {/* Club o Actividad son dos secciones de la ficha: la pestaña de vista del sistema (ADR-0358). La línea la pone la fila. */}
                 <Pestanas
                   etiquetaAccesible="Qué ver de este cliente"
+                  guia="clientas.ficha-pestanas"
                   idIndicador="ficha-cliente-vista"
                   activa={vistaActual}
                   onCambio={(clave) => setVista(clave as Vista)}
                   className="-mb-px border-b-0"
                   items={[
                     ...(conClub ? [{ clave: "club", etiqueta: "Club" }] : []),
-                    { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad > 0 ? totalActividad : undefined },
+                    { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad > 0 ? totalActividad : undefined, guia: "clientas.ficha-tab-actividad" },
                   ]}
                 />
                 {activa && (
                   <Boton
                     type="button"
                     peso="primario"
+                    data-guia="clientas.ficha-editar"
                     className="mb-2 shrink-0 !py-2"
                     onClick={() => {
                       setEdicion(datosDeEdicion(c));
@@ -409,7 +411,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
 
               {vistaActual === "club" && conClub && (
                 <div className="space-y-4">
-                  <div className="card-cayla divide-y divide-sand">
+                  <div className="card-cayla divide-y divide-sand" data-guia="clientas.ficha-club">
                     <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
                       <span className="label-cayla text-[10.5px] text-tinta/55">Club</span>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -461,7 +463,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               )}
 
               {vistaActual === "actividad" && (
-                <div className="space-y-5">
+                <div className="space-y-5" data-guia="clientas.ficha-actividad">
                   {!c.anonimizada && !conClub && (
                     <div className="rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
                       <b className="font-semibold text-tinta">Tiene ficha pero no es del club.</b>{" "}
@@ -518,7 +520,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
 
               {/* Lo que se hace pocas veces va abajo y discreto; lo de todos los días («Editar») está arriba. */}
               {activa ? (
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-3">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-3" data-guia="clientas.ficha-acciones">
                   <button
                     type="button"
                     className="btn-cayla btn-sutil"

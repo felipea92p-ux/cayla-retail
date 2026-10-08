@@ -92,7 +92,7 @@ function Rankings({ sede }: { sede: SedeDeRendimiento }) {
   const porHora = r?.rankingSolesPorHora ?? [];
   const porVentas = r?.rankingNumeroVentas ?? [];
   return (
-    <section className="space-y-4" aria-label="Rankings del mes">
+    <section className="space-y-4" aria-label="Rankings del mes" data-guia="rendimiento.rankings">
       <h2 className="label-cayla text-[11px] font-bold text-taupe">Rankings del mes</h2>
 
       <div className="grid gap-4 lg:grid-cols-2">

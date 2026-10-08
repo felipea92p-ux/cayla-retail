@@ -37,7 +37,7 @@ export function BuscadorClientas({ params }: { params: ParamsLista }) {
   }, [texto, params, buscar]);
 
   return (
-    <label className="caja-cayla flex h-10 w-full min-w-0 items-center gap-2 px-3">
+    <label className="caja-cayla flex h-10 w-full min-w-0 items-center gap-2 px-3" data-guia="clientas.buscador">
       <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
       <input
         type="search"

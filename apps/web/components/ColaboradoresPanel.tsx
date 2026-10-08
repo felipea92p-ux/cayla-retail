@@ -46,11 +46,12 @@ import { Boton } from "@/components/ui/campos";
 // y recargan los datos del servidor.
 
 /** Una de las dos secciones: título y, debajo, su resumen (con lo que pide atención en ámbar). */
-function BotonSeccion({ activa, onClick, titulo, children }: { activa: boolean; onClick: () => void; titulo: string; children: React.ReactNode }) {
+function BotonSeccion({ activa, onClick, titulo, guia, children }: { activa: boolean; onClick: () => void; titulo: string; /** Ancla de la guía interactiva (ADR-0362). */ guia?: string; children: React.ReactNode }) {
   return (
     <button
       type="button"
       aria-pressed={activa}
+      data-guia={guia}
       onClick={onClick}
       className={`rounded-xl border px-4 py-3 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-cayla ${
         activa ? "border-taupe bg-papel shadow-[inset_0_-2px_0_var(--color-rojo)]" : "border-tinta/10 hover:border-tinta/30 hover:bg-papel/60"
@@ -284,7 +285,7 @@ export function ColaboradoresPanel({
         acciones={
           ve("cuentas") && (
             <>
-              <Boton type="button" onClick={() => setVerActividad(true)}>
+              <Boton type="button" onClick={() => setVerActividad(true)} data-guia="colaboradores.actividad">
                 <span className="inline-flex items-center gap-2">
                   <History aria-hidden className="h-4 w-4" />
                   Actividad
@@ -294,6 +295,7 @@ export function ColaboradoresPanel({
                 type="button"
                 peso="primario"
                 onClick={() => setModal({ tipo: "agregar" })}
+                data-guia="colaboradores.dar-acceso"
                 disabled={disponibles.length === 0}
                 title={disponibles.length === 0 ? "Todas las cuentas activas de Dynamic ya tienen acceso." : undefined}
               >
@@ -305,12 +307,12 @@ export function ColaboradoresPanel({
       />
 
       {ve("cuentas") && ve("roles") && (
-        <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl">
-          <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Equipo">
+        <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl" data-guia="colaboradores.secciones">
+          <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Equipo" guia="colaboradores.sec-equipo">
             {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
             {pendientes.length > 0 && <strong className="font-semibold text-ambar-profundo"> · {pendientes.length} por aprobar</strong>}
           </BotonSeccion>
-          <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos">
+          <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos" guia="colaboradores.sec-roles">
             {plural(rolesVigentes.length, "rol", "roles")}
             {rolesSinModulos > 0 ? (
               <strong className="font-semibold text-ambar-profundo"> · {rolesSinModulos === 1 ? "1 deja" : `${rolesSinModulos} dejan`} cuentas sin ningún módulo</strong>

@@ -305,7 +305,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.tiendas-normal">
         <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de venta de cada día de la semana (con IGV, lo que ve la caja), lo que debe quedar en el cajón al cerrar y a qué hora cierra.">
           <Chip tono={rigenHoy.length ? "ambar" : "verde"}>Hoy rige: {rigenHoy.length ? rigenHoy.map((c) => c.nombre).join(" y ") : "lo normal"}</Chip>
         </TituloDeTarjeta>
@@ -336,7 +336,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </PieTabla>
       </Superficie>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
           bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
@@ -371,7 +371,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
 
       {despuesDeWhatsapp}
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.tiendas-campanas">
         <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
           <BotonEnlace href="/productos/atributos?tipo=etiquetas">+ Nueva campaña (en Catálogo ▸ Etiquetas)</BotonEnlace>
         </TituloDeTarjeta>

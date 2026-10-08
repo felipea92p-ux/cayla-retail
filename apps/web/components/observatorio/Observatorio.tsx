@@ -397,7 +397,7 @@ export function Observatorio({
         {/* Pide todo el ancho del <main> (`AppShell`: `has-[[data-ancho-completo]]`): el mapa llena la pantalla. */}
         <span hidden data-ancho-completo />
         <header className="o-cab">
-          <div className="o-ent" style={i(0)}>
+          <div className="o-ent" style={i(0)} data-guia="inicio.obs-total">
             <p className="o-sobre">
               <span className={`o-punto late ${abiertas ? "" : "no"}`} />
               <span className="o-lbl">
@@ -439,7 +439,7 @@ export function Observatorio({
           </div>
           <div className="o-ent" style={i(1)}>
             <div className="o-ctrl">
-              <Segmento valor={periodo} opciones={PERIODOS} onValor={ponerPeriodo} etiqueta="Periodo" />
+              <Segmento valor={periodo} opciones={PERIODOS} onValor={ponerPeriodo} etiqueta="Periodo" guia="inicio.obs-periodo" data-guia={(v: Periodo) => (v === "7d" ? "inicio.obs-periodo-7" : v === "hoy" ? "inicio.obs-periodo-hoy" : undefined)} />
               <Segmento
                 valor={foco}
                 opciones={[
@@ -456,9 +456,12 @@ export function Observatorio({
                   if (v !== "TODAS") void pedir(v);
                 }}
                 etiqueta="Tienda"
+                guia="inicio.obs-tiendas"
+                data-guia={(v: string, n: number) => (v === "TODAS" ? "inicio.obs-toda" : n === 1 ? "inicio.obs-primera" : undefined)}
               />
               <button
                 type="button"
+                data-guia="inicio.obs-repetir"
                 className={`o-repetir ${replay !== null ? "va" : ""}`}
                 onClick={repetirDia}
                 disabled={periodo !== "hoy"}
@@ -472,7 +475,7 @@ export function Observatorio({
         </header>
 
         <section ref={heroeRef} className={`o-tj o-luz o-heroe o-ent ${zoom ? "zoom" : ""}`} style={i(2)}>
-          <div className="o-hmapa">
+          <div className="o-hmapa" data-guia="inicio.obs-mapa">
             <Mapa
               tiendas={enMapa}
               focoMapa={tienda?.mapa ?? "TODAS"}
@@ -485,7 +488,7 @@ export function Observatorio({
               onPasar={(id) => void pedir(id)}
             />
           </div>
-          <div className="o-hpanel">
+          <div className="o-hpanel" data-guia="inicio.obs-panel">
             {tienda ? (
               <PanelTienda
                 tienda={tienda}

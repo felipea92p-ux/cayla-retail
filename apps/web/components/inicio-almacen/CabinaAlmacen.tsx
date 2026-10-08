@@ -38,7 +38,7 @@ export function CabinaAlmacen({
 }) {
   const lista = nuevos ? nuevos.slice(0, 3) : null;
   return (
-    <section className="ia-hero ia-rv" style={{ "--i": 1 } as CSSProperties} aria-label="Nuevo producto">
+    <section className="ia-hero ia-rv" style={{ "--i": 1 } as CSSProperties} aria-label="Nuevo producto" data-guia="inicio.almacen-cabina">
       <i className="ia-aur ia-a" aria-hidden />
       <i className="ia-aur ia-b" aria-hidden />
       <div className="ia-hl">

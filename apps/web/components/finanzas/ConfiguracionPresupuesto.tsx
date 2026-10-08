@@ -148,7 +148,7 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.presupuesto">
         <div className="fin-herramientas justify-between">
           <div className="fin-herramientas-titulo min-w-0">
             <b>{mesTitulo(mes)}</b>

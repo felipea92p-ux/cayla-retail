@@ -117,7 +117,7 @@ export function DarAccesoModal({
                 className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
               />
             </label>
-            <ul className="scroll-cayla mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1" aria-label="Personas disponibles">
+            <ul className="scroll-cayla mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1" aria-label="Personas disponibles" data-guia="colaboradores.dar-personas">
               {visibles.length === 0 ? (
                 <li className="rounded-lg border border-dashed border-sand px-3 py-5 text-center text-[13px] text-tinta/65">
                   {disponibles.length === 0 ? "Todas las personas activas en Dynamic ya tienen acceso." : "Nadie coincide con lo que escribiste."}
@@ -152,7 +152,7 @@ export function DarAccesoModal({
           </CampoGuiado>
 
           <CampoGuiado id="sede" guia={guia} titulo="¿Dónde trabaja?">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Sede">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Sede" data-guia="colaboradores.dar-sede">
               {sedes.map((u) => (
                 <button
                   key={u.id}
@@ -171,7 +171,7 @@ export function DarAccesoModal({
 
           {opcionesRol && (
             <CampoGuiado id="rol" guia={guia} titulo="¿Qué hace?" ayuda="Su rol decide lo que ve">
-              <ul className="space-y-2" aria-label="Rol">
+              <ul className="space-y-2" aria-label="Rol" data-guia="colaboradores.dar-rol">
                 {opcionesRol.map((r) => {
                   const elegido = r.id === rolId;
                   const muestra = r.modulos.filter((m) => m !== "inicio");
@@ -212,7 +212,7 @@ export function DarAccesoModal({
           )}
 
           <div className="pie-hoja-fijo">
-            <div className="space-y-2 border-t border-sand pt-3">
+            <div className="space-y-2 border-t border-sand pt-3" data-guia="colaboradores.dar-confirmar">
               <PieGuia guia={guia} listo={soyLider ? "Todo listo para dar acceso." : "Todo listo para pedir el acceso."} />
               <div className="flex gap-2">
                 <button type="button" className="btn-cayla btn-secundario flex-1" onClick={cerrar}>

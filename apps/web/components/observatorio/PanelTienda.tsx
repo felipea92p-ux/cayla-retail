@@ -542,7 +542,7 @@ export function PanelTienda({
 
   return (
     <div className="o-pn">
-      <div className="o-t-cab" style={i(0)}>
+      <div className="o-t-cab" style={i(0)} data-guia="inicio.obs-tienda">
         <div>
           <span className="o-lbl">
             {tienda.sigla} · {ciudad}
@@ -609,7 +609,7 @@ export function PanelTienda({
         </div>
       </div>
       <div className="o-t-tabs" style={i(2)}>
-        <Segmento valor={tab} opciones={TABS} onValor={onTab} etiqueta="Qué ver de la tienda" />
+        <Segmento valor={tab} opciones={TABS} onValor={onTab} etiqueta="Qué ver de la tienda" guia="inicio.obs-tienda-tabs" data-guia={(v: Tab) => (v === "productos" ? "inicio.obs-tab-productos" : v === "ritmo" ? "inicio.obs-tab-ritmo" : undefined)} />
       </div>
       <div key={`${tienda.id}-${tab}`} className={`o-t-cuerpo nuevo ${dirTab}`} style={i(3)}>
         {cuerpo}

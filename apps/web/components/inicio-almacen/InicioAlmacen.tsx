@@ -58,7 +58,7 @@ export function InicioAlmacen({
             <TeTocaAlmacen visibles={visibles} ajustar={ajustar} />
             <NuevoEnOtrasSedes items={datos.nuevos} titulo={TITULO_NUEVOS} puedeEditar={puedeEditarCatalogo} />
           </div>
-          <div className="ia-cR">
+          <div className="ia-cR" data-guia="inicio.almacen-pulso">
             {(datos.existencias !== undefined || datos.hoy !== undefined) && <PulsoAlmacen existencias={datos.existencias} hoy={datos.hoy} fotos={datos.fotos} />}
             {datos.enCamino !== undefined && <EnCaminoAlmacen viajes={datos.enCamino} />}
             <PorColgarAlmacen existencias={datos.existencias} />

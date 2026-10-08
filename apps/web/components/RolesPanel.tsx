@@ -251,7 +251,7 @@ export function RolesPanel({
   return (
     <div className={`@container space-y-5 ${conCambios ? "pb-24" : ""}`}>
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <div className="w-full max-w-xs space-y-1">
+        <div className="w-full max-w-xs space-y-1" data-guia="roles.responsable">
           {/* UN combo para toda la sección (regla 10 de CLAUDE.md). El mismo control se ve en cada modal y apaga
               «Guardar cambios» si falta. */}
           <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -272,7 +272,7 @@ export function RolesPanel({
 
       <div className="grid gap-5 @[980px]:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label={`Rol ${rol.nombre}`} className="card-cayla min-w-0 overflow-hidden">
-          <div className="border-b border-tinta/10 px-5 py-4">
+          <div className="border-b border-tinta/10 px-5 py-4" data-guia="roles.cabecera">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 max-w-xl">
                 <p className="label-cayla text-[11px] text-tinta/60">{rol.archivado ? "Rol archivado" : FAMILIAS.find((f) => f.clave === familiaDeRol(rol))?.cabecera}</p>
@@ -350,7 +350,7 @@ export function RolesPanel({
             </p>
           )}
           {editable && (
-            <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
+            <div className="flex flex-wrap items-center gap-2 px-5 pt-4" data-guia="roles.pantalla">
               <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
                 Pantalla al entrar
               </label>
@@ -370,7 +370,7 @@ export function RolesPanel({
             </div>
           )}
 
-          <div className="space-y-4 px-5 pb-5 pt-4">
+          <div className="space-y-4 px-5 pb-5 pt-4" data-guia="roles.modulos">
             {/* La ayuda aparece al tocar: qué incluye el módulo tocado, en una línea (propuesta del 2026-10-05). */}
             <p role="status" className="min-h-[2.75rem] rounded-xl bg-hueso px-4 py-2.5 text-[13.5px] leading-snug text-tinta/75">
               {ayuda ? (
@@ -458,6 +458,7 @@ export function RolesPanel({
 
         <aside
           aria-label="Efecto del rol"
+          data-guia="roles.efecto"
           className="grid gap-4 self-start @[640px]:grid-cols-2 @[980px]:sticky @[980px]:top-20 @[980px]:max-h-[calc(100vh-6rem)] @[980px]:grid-cols-1 @[980px]:overflow-y-auto"
         >
           <VistaPreviaMenu
@@ -617,7 +618,7 @@ function TarjetasRoles({
   onNuevo: () => void;
 }) {
   return (
-    <section aria-label="Roles" className="space-y-2.5">
+    <section aria-label="Roles" className="space-y-2.5" data-guia="roles.tarjetas">
       <div className="grid gap-2.5 @[560px]:grid-cols-2 @[900px]:grid-cols-3 @[1240px]:grid-cols-4">
         {roles.map((r) => (
           <TarjetaRol key={r.id} rol={r} elegido={r.id === elegidoId} cuentas={cuentasDe ? cuentasDe(r.id) : null} sinGuardar={sinGuardar(r.id)} onElegir={() => onElegir(r.id)} />
@@ -625,6 +626,7 @@ function TarjetasRoles({
         <button
           type="button"
           onClick={onNuevo}
+          data-guia="roles.nuevo"
           className="grid min-h-[150px] place-content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-taupe/60 text-[14px] font-semibold text-taupe transition-colors duration-200 ease-cayla hover:border-taupe hover:text-tinta"
         >
           <Plus aria-hidden className="h-6 w-6" strokeWidth={1.6} />
