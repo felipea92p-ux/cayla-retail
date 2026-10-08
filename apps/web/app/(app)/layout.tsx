@@ -6,6 +6,7 @@ import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
+import { PreciosEnVivo } from "@/components/PreciosEnVivo";
 import { SinConexion } from "@/components/SinConexion";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
@@ -68,6 +69,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
+        {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}
+        <PreciosEnVivo />
         {/* «Es hora de cerrar caja» (ADR-0305): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}
         {recibeRecordatorio && <RecordatorioCierreCaja inicial={recordatorioCierre} />}
       </SedeActivaProveedor>
