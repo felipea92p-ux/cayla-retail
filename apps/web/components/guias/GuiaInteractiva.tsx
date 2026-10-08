@@ -308,9 +308,9 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         data-sin-pieza={recorte ? undefined : ""}
         style={
           recorte
-            ? { transform: `translate3d(${recorte.left}px, ${recorte.top}px, 0)`, width: recorte.width, height: recorte.height }
+            ? { left: recorte.left, top: recorte.top, width: recorte.width, height: recorte.height }
             : // Sin pieza, un punto de 2 px al centro: con 0 × 0 Chrome no dibuja la sombra y la pantalla quedaba sin velo.
-              { transform: `translate3d(${ventana.ancho / 2 - 1}px, ${ventana.alto / 2 - 1}px, 0)`, width: 2, height: 2 }
+              { left: ventana.ancho / 2 - 1, top: ventana.alto / 2 - 1, width: 2, height: 2 }
         }
       />
       {/* La llegada: una onda que sale del borde de la pieza una sola vez, cada vez que la guía llega a otra. */}
@@ -319,7 +319,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
           key={`llega-${mostrando.indice}`}
           aria-hidden
           className="guia-llegada"
-          style={{ transform: `translate3d(${recorte.left}px, ${recorte.top}px, 0)`, width: recorte.width, height: recorte.height }}
+          style={{ left: recorte.left, top: recorte.top, width: recorte.width, height: recorte.height }}
         />
       )}
       {/* El cursor fantasma: muestra DÓNDE toca o escribe el piloto antes de que pase. */}
