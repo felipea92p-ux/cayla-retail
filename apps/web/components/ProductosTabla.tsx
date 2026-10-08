@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2, X } from "lucide-react";
+import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2, X, FunnelX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { esFuncionAusente } from "@/lib/compras-reglas";
@@ -48,6 +48,8 @@ import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -98,6 +100,7 @@ export function ProductosTabla({
   puedeEliminar,
   veDinero,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
+  hrefLimpiar,
 }: {
   productos: ProductoListado[];
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
@@ -114,6 +117,8 @@ export function ProductosTabla({
   /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos_listado` ya manda el costo vacío: aquí solo se esconden las columnas. */
   veDinero: boolean;
   mensajeVacio?: string;
+  /** «Limpiar filtros» dentro del vacío (Felipe 2026-10-08: deshacerlo ahí mismo). */
+  hrefLimpiar?: string;
 }) {
   const pantalla = usePantallaActual();
   const filas = useMemo<Fila[]>(
@@ -173,7 +178,14 @@ export function ProductosTabla({
   }
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
+    // Los filtros (o la búsqueda) dejaron cero: la pieza única del vacío (ADR-0358 ronda 5). Limpiar vive en la barra de filtros.
+    return (
+      <div className="card-cayla">
+        <Vacio icono={<FunnelX />} acciones={hrefLimpiar ? <BotonEnlace href={hrefLimpiar}>Limpiar filtros</BotonEnlace> : null}>
+          {mensajeVacio}
+        </Vacio>
+      </div>
+    );
   }
 
   const acciones = (f: Fila): AccionesFila => ({

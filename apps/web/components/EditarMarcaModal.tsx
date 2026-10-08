@@ -14,6 +14,7 @@ import { camposDeEdicionMarca } from "@/lib/marcas-guia";
 import { firmar } from "@/lib/responsable-reglas";
 import { borradorCambia, problemaEdicionMarca, sePuedeQuitar, sinTildes, type BorradorMarca, type ProveedorOpcion } from "@/lib/marcas";
 import type { MarcaFila } from "@/components/MarcasLista";
+import { Aviso } from "@/components/ui/Aviso";
 
 /**
  * Catálogo ▸ Marcas ▸ Editar (Felipe, 2026-09-25): el nombre y quién la trae en UNA ventana y UN guardado
@@ -210,11 +211,8 @@ export function EditarMarcaModal({
             )}
           </CampoGuiado>
 
-          {error && (
-            <p role="alert" className="text-xs text-rojo-profundo">
-              {error}
-            </p>
-          )}
+          {error && <Aviso tono="error">{error}</Aviso>}
+
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>

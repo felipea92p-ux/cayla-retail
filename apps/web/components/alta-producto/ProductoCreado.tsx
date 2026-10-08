@@ -6,6 +6,7 @@ import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
 import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 export type { SubidaSinConexion };
 
@@ -94,18 +95,24 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
             {!sinConexion ? `Se creó ${creado.nombre}` : subida === "descartada" ? `${creado.nombre} se descartó` : `${creado.nombre} quedó guardado sin conexión`}
           </h2>
           {sinConexion && subida === "esperando" && (
-            <p className="mt-1 text-sm text-ambar-profundo">
+            <Aviso tono="atencion" chico className="mt-1">
               Pendiente de código: lo recibe cuando vuelva el internet y sube solo. Hasta entonces no se puede etiquetar ni vender. No cierres esta pestaña.
-            </p>
+            </Aviso>
           )}
           {sinConexion && subida === "subio" && (
-            <p className="mt-1 text-sm text-verde-profundo">Ya subió y tiene su código: búscalo en Productos o abre su ficha desde el aviso.</p>
+            <Aviso tono="exito" chico className="mt-1">
+              Ya subió y tiene su código: búscalo en Productos o abre su ficha desde el aviso.
+            </Aviso>
           )}
           {sinConexion && subida === "rechazada" && (
-            <p className="mt-1 text-sm text-rojo-profundo">La base no lo aceptó al subir: el motivo está arriba, en el aviso rojo de este formulario.</p>
+            <Aviso tono="error" chico className="mt-1">
+              La base no lo aceptó al subir: el motivo está arriba, en el aviso rojo de este formulario.
+            </Aviso>
           )}
           {sinConexion && subida === "descartada" && (
-            <p className="mt-1 text-sm text-rojo-profundo">No se creó el producto ni su stock. Si todavía lo necesitas, créalo de nuevo.</p>
+            <Aviso tono="error" chico className="mt-1">
+              No se creó el producto ni su stock. Si todavía lo necesitas, créalo de nuevo.
+            </Aviso>
           )}
           <p className="mt-1 text-sm text-tinta/70">
             {creado.categoria} · {creado.variantes} variante{creado.variantes === 1 ? "" : "s"}
@@ -159,9 +166,10 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                 {creado.fotos.subidas > 0 ? `${creado.fotos.subidas} foto${creado.fotos.subidas === 1 ? "" : "s"} guardada${creado.fotos.subidas === 1 ? "" : "s"}` : "Las fotos"}
               </h3>
               {creado.fotos.fallidas.length > 0 && (
-                <p role="alert" className="text-sm text-rojo-profundo">
+                <Aviso tono="error">
                   {creado.fotos.fallidas.length === 1 ? "Una foto no se guardó" : `${creado.fotos.fallidas.length} fotos no se guardaron`}: {creado.fotos.fallidas.join(" · ")}. El producto sí se creó; agrégala desde el producto.
-                </p>
+                </Aviso>
+
               )}
               <p className="text-sm text-tinta/70">
                 {completas

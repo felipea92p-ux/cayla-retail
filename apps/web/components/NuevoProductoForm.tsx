@@ -15,7 +15,7 @@ import { AtajosTallas, ElegirTallas } from "@/components/alta-producto/ElegirTal
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
-import { AvisoInline, ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
+import { ChipOpcion, FilaAlta, PasoAlta, PlegableAlta } from "@/components/alta-producto/piezas";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import type { FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
@@ -91,6 +91,7 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -1043,7 +1044,7 @@ export function NuevoProductoForm({
           {/* La prenda: una fila por color (con su foto) y una columna por talla. En el paso 4 es la MISMA tabla, con números. */}
           <div className="border-t border-sand pt-3.5">
             {tallasCategoria.length > 0 && tallasElegidas.length === 0 ? (
-              <AvisoInline tono="neutro">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</AvisoInline>
+              <Aviso tono="info">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</Aviso>
             ) : (
               <MatrizVariantes
                 celdas={celdas}
@@ -1092,9 +1093,9 @@ export function NuevoProductoForm({
           </div>
           {nivel === "negativo" && (
             <div className="mt-3">
-              <AvisoInline tono="rojo" alerta>
+              <Aviso tono="error">
                 Con este precio pierdes dinero en cada venta.
-              </AvisoInline>
+              </Aviso>
             </div>
           )}
         </FilaAlta>
@@ -1126,9 +1127,9 @@ export function NuevoProductoForm({
 
             {cargaCerrada ? (
               // La salida, dicha donde se iba a escribir: el producto se crea sin unidades y lo que haya entra por otra puerta.
-              <AvisoInline tono="neutro">
+              <Aviso tono="info">
                 {avisoCarga} Este producto se crea sin unidades: lo que llegue de un proveedor entra por Recibir.
-              </AvisoInline>
+              </Aviso>
             ) : stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
@@ -1229,17 +1230,17 @@ export function NuevoProductoForm({
               {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
                   operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
               {!enLinea && (
-                <AvisoInline tono="ambar">
+                <Aviso tono="atencion">
                   <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
                   marca, un proveedor, una talla, un tejido, un patrón, un color o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a
                   revisar al subir).
-                </AvisoInline>
+                </Aviso>
               )}
               {copiadoDe && (
-                <AvisoInline tono="neutro">
+                <Aviso tono="info">
                   Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
                   temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
-                </AvisoInline>
+                </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
               <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
