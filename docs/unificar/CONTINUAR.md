@@ -1,18 +1,19 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07, al cerrar la ronda 4 (rama `claude/unificar-boton`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
 > Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`, revisa qué cambió en `main` desde el
-> 2026-10-07 y propónme la próxima ronda (la primera de «Lo que falta», con un censo nuevo antes).
+> 2026-10-08 y arma la ronda 6 (`combo`, `tabla`, `titulo-seccion`): censo nuevo, depurado contra el código y la página de elegir con
+> demos vivas, en claro y oscuro, como la de la ronda 5.
 
 ## Dónde quedó
 
-Ocho familias decididas por Felipe, todas **mirando** (y la 3 y la 4, **tocando** botones vivos), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las siete con candado están en deuda 0.**
+Once familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
+`lib/unificar.test.ts`. **Las diez con candado están en deuda 0.**
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -25,6 +26,9 @@ Ocho familias decididas por Felipe, todas **mirando** (y la 3 y la 4, **tocando*
 | 4 | `boton` | **Dos voces**: la voz la pone el LUGAR (`data-voz="cabecera"` → versalitas de 11 px y 40 px; hojas, tarjetas y filas → letra normal de 13,5 px). Pieza: `btn-cayla` (que `<Boton>` dibuja). **Onda al clic** (`<OndaBotones>` en `app/layout.tsx`). Todo `btn-cayla` tiene el movimiento | [boton.md](boton.md) |
 | 4 | `accion.eliminar` | `btn-peligro` (rojo desde el principio); en la barra de vidrio, `fila-alerta` | [boton.md](boton.md) |
 | 4 | `accion.cerrar` | la × de `<Modal conCerrar>`; `ModalRuta` la trae por defecto | [boton.md](boton.md) |
+| 5 | `vacio` | `<Vacio>`: el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y su botón; chico en tablas y hojas; al no encontrar, lo deshace ahí mismo | [vacio.md](vacio.md) |
+| 5 | `aviso` | `<Aviso tono>` en franja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo | [aviso.md](aviso.md) |
+| 5 | `buscador` | `<Buscador>`: la caja hundida (lista) y la píldora que se despega (mostrador); «Buscando…» solo si tarda; busca mientras se escribe (salvo Cambios y Devoluciones) | [buscador.md](buscador.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
@@ -74,6 +78,9 @@ El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo
   - Finanzas en versalitas en su cabecera (commit propio en la ronda 2, por si se revierte).
 - **El «Registrar N» del anillo de Análisis** (`components/analisis/TodaviaNo.tsx`): quedó como excepción de `accion.nuevo` (diseño de ADR-0357).
 
+- **Ronda 5, dos «Limpiar filtros» que no se pudieron poner:** el vacío de Recepciones de compra (el filtro llega como prop) y el de
+  Proveedores del Taller con todo archivado (su «Limpiar» no cambia nada). Decidir si se arreglan con su pantalla.
+
 ### 3. Deudas chicas que vio la auditoría de modo oscuro (heredadas del claro)
 
 Ninguna la causó la ronda 4, pero fallan contraste (WCAG) en los dos temas:
@@ -84,6 +91,11 @@ Ninguna la causó la ronda 4, pero fallan contraste (WCAG) en los dos temas:
 
 ### 4. Huecos del censo
 
+- **La auditoría de modo oscuro de la ronda 5 solo midió la mitad del ERP** (38 de 77 visitas, 0 hallazgos solo en oscuro): la cuenta
+  Admin quedó sin sede en la base local y las demás rutas fueron a «elige una sede». Repetirla con la cuenta en una sede
+  (`TEMA_BASE_URL=… node tema/cli.mjs --cuenta admin --todas`) antes de la ronda 6, mirando las capturas.
+- **Las firmas no ven todo:** en la ronda 5 se escaparon el vacío de Existencias y los de Apartados (hechos con otras clases). Al
+  migrar una familia, recorre las pantallas con una búsqueda imposible («zzzz») para encontrar los que la firma no vio.
 - **Falta una pasada con la cuenta `integrante`.** Ya hubo con Admin y con `terminal-ventas`.
 - **Apartados no tiene escenarios a 375 px:** a ese ancho, la auditoría de modo oscuro solo midió la pantalla principal.
 - **Sin escenario:** «Registrar gasto» de Caja, «Nueva serie» y «Registrar» de Series (con la cuenta del mostrador), y «la ficha de
