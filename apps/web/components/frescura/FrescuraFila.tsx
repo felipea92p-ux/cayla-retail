@@ -60,19 +60,7 @@ function QueHacer({ fila, decision }: { fila: FilaVista; decision: FilaDeDecisio
   );
 }
 
-function Prenda({
-  fila,
-  muchasSinTemporada,
-  apariencia,
-  categoria,
-  onAbrir,
-}: {
-  fila: FilaVista;
-  muchasSinTemporada: boolean;
-  apariencia: AparienciaPrenda | null;
-  categoria: CategoriaVisual | null;
-  onAbrir: () => void;
-}) {
+function Prenda({ fila, apariencia, categoria, onAbrir }: { fila: FilaVista; apariencia: AparienciaPrenda | null; categoria: CategoriaVisual | null; onAbrir: () => void }) {
   const meta = [fila.color, fila.temporada].filter(Boolean).join(" · ");
   return (
     <div className="flex min-w-0 items-start gap-3">
@@ -91,21 +79,13 @@ function Prenda({
           {fila.nombre}
         </button>
         {meta && <div className="text-[13px] leading-snug text-taupe">{meta}</div>}
-        {(fila.temporadaPasada || (fila.sinTemporada && !muchasSinTemporada)) && (
+        {/* «¿De qué temporada es?» ya no va en la fila (act. 2026-10-07): es una tarea de Catálogo y vive en «¿Cómo se lee esto?». */}
+        {fila.temporadaPasada && (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            {fila.temporadaPasada && (
-              <>
-                <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
-                  Temporada pasada
-                </Chip>
-                <span className="text-[12px] leading-snug text-taupe">{fila.temporadaPasada}</span>
-              </>
-            )}
-            {fila.sinTemporada && !muchasSinTemporada && (
-              <Chip tono="neutro" className="!px-2 !text-[12px] !leading-[18px]">
-                ¿De qué temporada es? Complétala
-              </Chip>
-            )}
+            <Chip tono="ambar" className="!px-2 !text-[12px] !leading-[18px]">
+              Temporada pasada
+            </Chip>
+            <span className="text-[12px] leading-snug text-taupe">{fila.temporadaPasada}</span>
           </div>
         )}
       </div>
@@ -194,7 +174,6 @@ const FILETE = "before:pointer-events-none before:absolute before:bottom-3 befor
 
 export function FrescuraFila({
   fila,
-  muchasSinTemporada,
   onAbrir,
   decision,
   marcarAproximado,
@@ -206,7 +185,6 @@ export function FrescuraFila({
   onDecidir,
 }: {
   fila: FilaVista;
-  muchasSinTemporada: boolean;
   onAbrir: () => void;
   decision: FilaDeDecision | null;
   /** «Aproximado» bajo el estado: solo si no hay un aviso único arriba (la regla se dice una vez, la excepción se marca). */
@@ -229,7 +207,7 @@ export function FrescuraFila({
     >
       {/* Computadora: una fila de la tabla. */}
       <div className={`hidden items-center gap-x-4 px-5 py-3.5 md:grid ${PLANTILLA_FRESCURA}`}>
-        <Prenda fila={fila} muchasSinTemporada={muchasSinTemporada} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
+        <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
         <Accion accion={accion} enviando={enviando} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} />
@@ -237,7 +215,7 @@ export function FrescuraFila({
 
       {/* Celular: una tarjeta con lo mismo, apilado. */}
       <div className="flex flex-col gap-2.5 px-4 py-3.5 md:hidden">
-        <Prenda fila={fila} muchasSinTemporada={muchasSinTemporada} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
+        <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
         <Accion accion={accion} enviando={enviando} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} />

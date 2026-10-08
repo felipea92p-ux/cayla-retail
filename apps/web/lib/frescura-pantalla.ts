@@ -13,6 +13,7 @@ import {
   type Sugerencia,
   type Tramo,
   type VaraCategoria,
+  VENTAS_PARA_JUZGAR_SOLA,
 } from "./frescura-reglas";
 
 // Frescura del piso, paso 4 (ADR-0208): LO QUE DICE LA PANTALLA. `frescura-reglas.ts` ya decidió el estado de cada prenda,
@@ -585,6 +586,8 @@ export type GrupoVista = {
   base: string | null;
   /** La referencia de CAYLA (solo el líder: null para los demás, que no la ven). */
   cayla: string | null;
+  /** Si sus prendas se juzgan contra la vara de CAYLA, y si no, por qué (act. 2026-10-07). Null sin vara de CAYLA para ella. */
+  respaldo: string | null;
 };
 
 function textoComparacion(v: VaraCategoria | undefined, nombre: string, sede: string): string {
@@ -636,6 +639,7 @@ export function grupoVista(categoriaId: string, nombre: string, ctx: ContextoFre
     escala: escalaDe(v),
     base: v && v.vendidas > 0 ? `con ${textoVentas(v.vendidas)} de los últimos ${v.ventanaDias} días` : null,
     cayla: ctx.cayla === null ? null : (ctx.caylaFallo ?? `${textoCayla(ctx.cayla.get(categoriaId))}.`),
+    respaldo: textoRespaldo(v),
   };
 }
 
@@ -668,9 +672,31 @@ export function avisoPocasVentas(prendas: readonly FrescuraPrenda[], sede: strin
   return `**Todavía hay pocas ventas en ${sede}.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.`;
 }
 
-/** Más de la mitad de las prendas de la tabla sin temporada (TRU hoy: todas): UN aviso arriba, no un chip por fila. */
-export function muchasSinTemporada(prendas: readonly FrescuraPrenda[]): boolean {
-  return prendas.length > 0 && prendas.filter((p) => p.estado.sinTemporada).length > prendas.length / 2;
+/**
+ * Las prendas de la tabla sin temporada, dichas UNA vez dentro de «¿Cómo se lee esto?» (act. 2026-10-07; antes, un cartel sobre la
+ * tabla y un chip por fila). Es una tarea de Catálogo, no de Frescura: aquí solo se cuenta y se enlaza. Null si todas la tienen.
+ */
+export function textoSinTemporada(prendas: readonly FrescuraPrenda[]): string | null {
+  const n = prendas.filter((p) => p.estado.sinTemporada).length;
+  if (n === 0) return null;
+  return `${n} de ${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} no ${n === 1 && prendas.length === 1 ? "tiene" : "tienen"} temporada: se miden igual, pero nunca van a avisar que pasó su estación.`;
+}
+
+/** De cuándo es la vara de CAYLA que respalda (o por qué no hay), para «¿Cómo se lee esto?». */
+export function textoRespaldoCayla(estado: { calculadaEn: string | null; fallo: string | null }): string {
+  if (estado.fallo) return estado.fallo;
+  if (estado.calculadaEn === null) return "Todavía no hay una vara de CAYLA calculada: cada categoría se juzga con lo vendido en esta tienda.";
+  return `La vara de CAYLA es del ${fechaCorta(estado.calculadaEn)}: se calcula cada madrugada con las tres tiendas juntas y respalda a las categorías que aquí no llegan a ${VENTAS_PARA_JUZGAR_SOLA} ventas.`;
+}
+
+/** Por categoría: si sus prendas se juzgan contra CAYLA, y si no, por qué. Null sin vara de CAYLA para ella. */
+export function textoRespaldo(v: VaraCategoria | undefined): string | null {
+  const r = v?.respaldo;
+  if (!v || !r) return null;
+  const aqui = v.vendidas > 0 ? textoVentas(v.vendidas) : "ninguna venta todavía";
+  if (r.enUso) return `Se juzga contra lo que vende CAYLA: ${textoVentas(r.vendidas)} de los últimos ${r.ventanaDias} días en las tres tiendas; aquí, ${aqui}.`;
+  if (r.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `La vara de CAYLA tampoco alcanza (${textoVentas(r.vendidas)}): se juzga con lo de aquí.`;
+  return `Aquí ya hay ${textoVentas(v.vendidas)}: se juzga sola; la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
 }
 
 export type CifrasVista = {

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Info, Layers, Search, Shirt, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -23,12 +22,13 @@ import {
   filtrosDeUrl,
   grupoVista,
   hayFiltros,
-  muchasSinTemporada,
   pasaFiltros,
   pieVista,
   tableroVista,
   textoOtrasConPregunta,
   textoRegistro,
+  textoRespaldoCayla,
+  textoSinTemporada,
   textoUnidades,
   vistaDeEntrada,
   type AccesoFrescura,
@@ -104,7 +104,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
   // El tablero por categoría (nivel 1): se arma con TODAS las prendas de la tabla, no con las filtradas, para que no cambie al tocarlo.
   const tablero = useMemo(() => (ctx ? tableroVista(enTabla, ctx) : []), [enTabla, ctx]);
-  const muchasSin = muchasSinTemporada(enTabla);
+  // Las prendas sin temporada se dicen UNA vez, dentro de «¿Cómo se lee esto?» (es una tarea de Catálogo, no un aviso de Frescura).
+  const sinTemporada = textoSinTemporada(enTabla);
   // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
   const avisoPocas = ctx ? avisoPocasVentas(enTabla, datos.sede.nombre) : null;
   const cifras = sede ? cifrasVista(sede.cifras) : null;
@@ -310,6 +311,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 registro={registro}
                 registroFallo={Boolean(datos.registro?.fallo)}
                 notasDelMes={notasDelMes}
+                respaldo={textoRespaldoCayla(datos.respaldoCayla)}
+                sinTemporada={sinTemporada === null ? null : { texto: sinTemporada, href: acceso.atributos ? "/productos/atributos?tipo=temporadas&vista=completar" : null }}
               />
             )}
             {avisoPocas && (
@@ -335,22 +338,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{sede.decisiones.aviso}</span>
-              </p>
-            )}
-            {muchasSin && (
-              <p className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  <b className="font-semibold text-tinta">
-                    {enTabla.filter((p) => p.estado.sinTemporada).length} de {enTabla.length} prendas no tienen temporada:
-                  </b>{" "}
-                  se miden igual, pero nunca van a avisar que pasó su estación.{" "}
-                  {acceso.atributos && (
-                    <Link href="/productos/atributos?tipo=temporadas&vista=completar" className="btn-cayla btn-enlace text-[13px]">
-                      Complétalas en Catálogo
-                    </Link>
-                  )}
-                </span>
               </p>
             )}
 
@@ -420,7 +407,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                             <FrescuraFila
                               key={p.clave}
                               fila={filaVista(p, ctx!)}
-                              muchasSinTemporada={muchasSin}
                               onAbrir={() => abrir(p.clave)}
                               decision={filaDeDecision(p.decision, p.categoriaNombre, datos.sede.nombre)}
                               marcarAproximado={avisoPocas === null}

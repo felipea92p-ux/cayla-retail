@@ -68,3 +68,14 @@
   camino, el día que cambie la marca de reintento o el aviso, uno de los dos quedaría viejo.
 - **Felipe se lleva:** el botón no mueve stock ni cambia precios: anota el HECHO de que la encargada ya lo hizo, y la
   lectura decide después si sirvió. Por eso puede ser un toque y perdonar con Deshacer.
+
+## Actividad 5b · un solo aviso, y lo demás en «¿Cómo se lee esto?»
+
+- **Qué hice:** sobre la tabla queda un solo aviso informativo (pocas ventas); el cartel «N de M sin temporada» y el chip
+  «¿De qué temporada es?» de cada fila se fueron a una línea dentro de «¿Cómo se lee esto?», con su enlace a Catálogo. Ahí
+  mismo la vara de CAYLA dice de cuándo es (o por qué no hay) y cada categoría, si se juzga contra CAYLA y si no, por qué.
+- **Por qué así:** Formidable (ley 8, quitar antes de agregar) ya había marcado ese cartel como una tarea de Catálogo
+  metida en una pantalla de frescura; y la regla nueva de respaldo tiene que poder leerse en algún lado, pero no encima
+  de la decisión: «lo difícil, a un toque» (ley 6).
+- **Felipe se lleva:** cuando una categoría dice «contra lo que vende CAYLA», el porqué está a un toque: cuántas ventas
+  tiene CAYLA, cuántas tiene la tienda, y de cuándo es la foto.

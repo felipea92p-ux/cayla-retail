@@ -21,7 +21,6 @@ import {
   fraseEncabezado,
   grupoVista,
   hayFiltros,
-  muchasSinTemporada,
   nombreMes,
   pasaEstado,
   pasaFiltros,
@@ -38,6 +37,8 @@ import {
   trozosRicos,
   vistaDeEntrada,
   accionDeFila,
+  textoRespaldoCayla,
+  textoSinTemporada,
   segmentosDe,
   tableroVista,
   tramoBarraDe,
@@ -284,12 +285,32 @@ describe("dónde está cada prenda: la tabla es lo colgado (o apartado desde el 
     expect(pieVista([guardada, agotada])).toEqual({ guardadas: ["Blusa Wayra Negro (4), iba como «Hay que moverla»"], nuncaColgadas: [], agotadas: 1 });
   });
 
-  it("sin temporada: el aviso único sale solo con MÁS de la mitad sin temporada", () => {
+  it("sin temporada: UNA línea en «¿Cómo se lee esto?» con cuántas son (act. 2026-10-07; antes un cartel y un chip por fila); null si todas la tienen", () => {
     const sin = (n: number, total: number) =>
       Array.from({ length: total }, (_, i) => prenda({ clave: `p${i}`, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "nueva", alMenos: false, sinTemporada: i < n } }));
-    expect(muchasSinTemporada(sin(2, 4))).toBe(false);
-    expect(muchasSinTemporada(sin(3, 4))).toBe(true);
-    expect(muchasSinTemporada([])).toBe(false);
+    expect(textoSinTemporada(sin(3, 4))).toBe("3 de 4 prendas no tienen temporada: se miden igual, pero nunca van a avisar que pasó su estación.");
+    expect(textoSinTemporada(sin(1, 1))).toBe("1 de 1 prenda no tiene temporada: se miden igual, pero nunca van a avisar que pasó su estación.");
+    expect(textoSinTemporada(sin(0, 4))).toBeNull();
+    expect(textoSinTemporada([])).toBeNull();
+  });
+
+  it("la vara de CAYLA en «¿Cómo se lee esto?»: de cuándo es, o por qué no hay", () => {
+    expect(textoRespaldoCayla({ calculadaEn: "2026-10-08T08:20:00Z", fallo: null })).toBe(
+      "La vara de CAYLA es del 8 oct: se calcula cada madrugada con las tres tiendas juntas y respalda a las categorías que aquí no llegan a 10 ventas.",
+    );
+    expect(textoRespaldoCayla({ calculadaEn: null, fallo: null })).toBe("Todavía no hay una vara de CAYLA calculada: cada categoría se juzga con lo vendido en esta tienda.");
+    expect(textoRespaldoCayla({ calculadaEn: null, fallo: "No se pudo leer la vara de CAYLA: se juzga contra la tienda." })).toBe("No se pudo leer la vara de CAYLA: se juzga contra la tienda.");
+  });
+
+  it("por categoría: si se juzga contra CAYLA, y si no, por qué", () => {
+    const base = vara("blu");
+    const respaldo = { ...base, respaldo: undefined, ventanaDias: 120, vendidas: 30, unidades: 40, nivel: "solido" as const, calculadaEn: AHORA, enUso: true };
+    const con = (v: Partial<VaraCategoria>) => grupoVista("blu", "Blusas", ctx({ categorias: new Map([["blu", vara("blu", v)]]) })).respaldo;
+    expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo })).toBe("Se juzga contra lo que vende CAYLA: 30 ventas de los últimos 120 días en las tres tiendas; aquí, 3 ventas.");
+    expect(con({ vendidas: 0, nivel: null, respaldo })).toBe("Se juzga contra lo que vende CAYLA: 30 ventas de los últimos 120 días en las tres tiendas; aquí, ninguna venta todavía.");
+    expect(con({ vendidas: 12, nivel: "aceptable", respaldo: { ...respaldo, enUso: false } })).toBe("Aquí ya hay 12 ventas: se juzga sola; la vara de CAYLA (30 ventas) queda de apoyo.");
+    expect(con({ vendidas: 3, nivel: "pocos_datos", respaldo: { ...respaldo, vendidas: 5, nivel: "pocos_datos", enUso: false } })).toBe("La vara de CAYLA tampoco alcanza (5 ventas): se juzga con lo de aquí.");
+    expect(con({ respaldo: null })).toBeNull();
   });
 });
 
