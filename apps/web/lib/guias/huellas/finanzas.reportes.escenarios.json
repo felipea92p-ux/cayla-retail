@@ -1,0 +1,16 @@
+{
+  "guia": "finanzas.reportes.escenarios",
+  "ruta": "/finanzas/reportes/escenarios",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 6,
+  "controles": {
+    "components/finanzas/EscenariosPanel.tsx": [
+      "button «fin-reportes.excel»",
+      "button «fin-escenarios.volver»",
+      "input «Pasar un pago a otra semana»",
+      "input «Cerrar»",
+      "input «Un gasto nuevo»",
+      "input «);»"
+    ]
+  }
+}

@@ -110,7 +110,7 @@ export function EstadoResultadosPanel({
         acciones={
           <>
             {esLider ? (
-              <label className="fin-ver">
+              <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
                   etiqueta="Qué mirar"
@@ -126,7 +126,7 @@ export function EstadoResultadosPanel({
             ) : (
               <Chip versalitas={false}>{columnas[0]?.nombre ?? "Tu tienda"}</Chip>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!columnas.length}>
+            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!columnas.length} data-guia="fin-reportes.excel">
               Descargar Excel
             </button>
           </>
@@ -141,14 +141,14 @@ export function EstadoResultadosPanel({
 
       <div {...entra(1)}>
         <Superficie>
-          <Herramientas>
+          <Herramientas guia="fin-resultados.herramientas">
             <SelectFin
               etiqueta="Mes"
               valor={mes}
               onValor={(v) => ir({ mes: v })}
               opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · a la fecha" : ""}` }))}
             />
-            <label className="btn-cayla btn-sutil gap-2">
+            <label className="btn-cayla btn-sutil gap-2" data-guia="fin-resultados.comparar">
               <input type="checkbox" checked={comparar} onChange={(e) => ir({ comparar: e.target.checked ? "1" : null })} />
               Comparar con {mesNombre(mesPrevio)}
             </label>
@@ -156,7 +156,7 @@ export function EstadoResultadosPanel({
           </Herramientas>
 
           {columnas.length ? (
-            <div className="fin-tabla-wrap">
+            <div className="fin-tabla-wrap" data-guia="fin-resultados.tabla">
               <table className="fin-eerr">
                 <thead>
                   <tr>
@@ -216,7 +216,7 @@ export function EstadoResultadosPanel({
 
           {avisos.length > 0 && (
             <PieTabla>
-              <ul className="fin-avisos">
+              <ul className="fin-avisos" data-guia="fin-resultados.avisos">
                 {avisos.map((a) => (
                   <li key={a.texto}>
                     <Chip tono={a.tono}>{a.tono === "rojo" ? "No cuadra" : a.tono === "ambar" ? "Ojo" : "Nota"}</Chip>
@@ -230,7 +230,7 @@ export function EstadoResultadosPanel({
       </div>
 
       {esLider ? (
-        <div {...entra(2, "fin-dos-col")}>
+        <div {...entra(2, "fin-dos-col")} data-guia="fin-resultados.notas">
           <div className="nota-cayla">
             <b>El Taller no le vende a las tiendas</b> (D-31): lo que cuesta la tela, los avíos y la maquila de cada prenda entra en el
             «costo de lo vendido» de la tienda que la vende. Su columna muestra lo que el Taller gasta para producir (su planilla, su local,
@@ -242,7 +242,7 @@ export function EstadoResultadosPanel({
           </div>
         </div>
       ) : (
-        <div {...entra(2, "nota-cayla")}>
+        <div {...entra(2, "nota-cayla")} data-guia="fin-resultados.notas">
           Estos son los números de <b>tu tienda</b>. Los gastos que no son de ninguna tienda (contador, publicidad, oficina) y los del
           Taller no se reparten entre las tiendas: los ve el líder, en CAYLA.
         </div>
@@ -290,7 +290,13 @@ function Celda({
   return (
     <td className={`${cons} ${neg}`}>
       {k.tipo === "linea" ? (
-        <button type="button" className="fin-eerr-celda" onClick={onAbrir} aria-label={`De dónde sale: ${k.nombre}, ${nombreCorto(c)}`}>
+        <button
+          type="button"
+          className="fin-eerr-celda"
+          onClick={onAbrir}
+          aria-label={`De dónde sale: ${k.nombre}, ${nombreCorto(c)}`}
+          data-guia={k.clave === "ventas" ? "fin-resultados.celda" : undefined}
+        >
           {contenido}
         </button>
       ) : (
@@ -342,7 +348,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       onClose={onCerrar}
       ancho="max-w-[560px]"
     >
-      <p className="text-[13px] leading-relaxed text-taupe">
+      <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.
       </p>
       {o && o.porRegla.length > 0 && (

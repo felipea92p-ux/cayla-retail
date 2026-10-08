@@ -136,7 +136,7 @@ export function GastosPanel({
         acciones={
           <>
             {esLider ? (
-              <label className="fin-ver">
+              <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
                   etiqueta="Qué mirar"
@@ -153,11 +153,11 @@ export function GastosPanel({
               <Chip versalitas={false}>{nombreCorto}</Chip>
             )}
             {pestana === "activos" ? (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} data-guia="fin-gastos.registrar">
                 + Registrar activo
               </Boton>
             ) : (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({})}>
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({})} data-guia="fin-gastos.registrar">
                 + Registrar gasto
               </Boton>
             )}
@@ -171,7 +171,7 @@ export function GastosPanel({
         </p>
       ))}
 
-      <section className="fin-cifras">
+      <section className="fin-cifras" data-guia="fin-gastos.cifras">
         {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
         <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
@@ -197,13 +197,14 @@ export function GastosPanel({
       <div {...entra(5)}>
         <PestanasFin
           etiqueta="Secciones de Gastos"
+          guia="fin-gastos.pestanas"
           valor={pestana}
           onCambio={(v) => setPestana(v as PestanaGastos)}
           items={[
-            { clave: "gastos", etiqueta: "Gastos" },
-            { clave: "fijos", etiqueta: "Fijos del mes", conteo: rf.faltan + rf.vienen },
-            { clave: "activos", etiqueta: "Activos fijos", conteo: enUso },
-            { clave: "egresos", etiqueta: "Egresos de caja por clasificar", conteo: egresos.length },
+            { clave: "gastos", etiqueta: "Gastos", guia: "fin-gastos.tab-gastos" },
+            { clave: "fijos", etiqueta: "Fijos del mes", conteo: rf.faltan + rf.vienen, guia: "fin-gastos.tab-fijos" },
+            { clave: "activos", etiqueta: "Activos fijos", conteo: enUso, guia: "fin-gastos.tab-activos" },
+            { clave: "egresos", etiqueta: "Egresos de caja por clasificar", conteo: egresos.length, guia: "fin-gastos.tab-egresos" },
           ]}
         />
       </div>
@@ -234,11 +235,11 @@ export function GastosPanel({
       {pestana === "egresos" && (
         <>
           {egresos.length === 0 ? (
-            <GuiaVacia sobre="Todo en orden" titulo="No hay egresos de caja por clasificar">
+            <GuiaVacia sobre="Todo en orden" titulo="No hay egresos de caja por clasificar" guia="fin-gastos.egresos">
               Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.
             </GuiaVacia>
           ) : (
-            <Superficie className="anim-sube">
+            <Superficie className="anim-sube" guia="fin-gastos.egresos">
               <div className="fin-tabla-wrap">
                 <table className="fin-tabla">
                   <thead>
@@ -263,7 +264,7 @@ export function GastosPanel({
                           {soles(e.monto)}
                         </td>
                         <td className="fin-ancha fin-num">
-                          <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setClasificar(e)}>
+                          <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setClasificar(e)} data-guia="fin-gastos.clasificar">
                             Clasificar
                           </button>
                         </td>
@@ -353,8 +354,8 @@ function TablaGastos({
 
   return (
     <>
-      <Superficie className="anim-sube">
-        <Herramientas>
+      <Superficie className="anim-sube" guia="fin-gastos.lista">
+        <Herramientas guia="fin-gastos.filtros">
           <Buscador valor={busqueda} onValor={setBusqueda} placeholder="Buscar por descripción, proveedor o número" />
           <SelectFin
             etiqueta="Categoría"
@@ -644,7 +645,7 @@ function ClasificarEgresoModal({
       onClose={onCerrar}
       ancho="max-w-[560px]"
     >
-      <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} />
+      <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} guia="fin-gastos.clasificar-opciones" />
       {que === "gasto" && (
         <div data-sin-cascada>
           <div className="fin-dos-campos">
@@ -684,7 +685,7 @@ function ClasificarEgresoModal({
         </div>
       )}
       {que !== "activo" && <ComboResponsable control={responsable} deshabilitado={guardando} />}
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-gastos.clasificar-guardar">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>

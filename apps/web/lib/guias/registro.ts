@@ -48,6 +48,22 @@ import {
   GUIA_PRODUCTOS,
 } from "./pantallas/catalogo";
 import { GUIA_FACTURA, GUIA_FACTURAS, GUIA_MI_PARTE, GUIA_NOTAS_CREDITO, GUIA_NUEVA_FACTURA, GUIA_PLAN_CAMPANA, GUIA_POR_PAGAR, GUIA_PROVEEDOR, GUIA_PROVEEDORES } from "./pantallas/compras";
+import {
+  GUIA_FIN_BALANCE,
+  GUIA_FIN_CAMPANAS,
+  GUIA_FIN_CIERRE,
+  GUIA_FIN_CONCILIACION,
+  GUIA_FIN_CUENTAS,
+  GUIA_FIN_EFECTIVO,
+  GUIA_FIN_ESCENARIOS,
+  GUIA_FIN_FLUJO,
+  GUIA_FIN_GASTOS,
+  GUIA_FIN_IMPUESTOS,
+  GUIA_FIN_POR_PAGAR,
+  GUIA_FIN_PRESUPUESTO,
+  GUIA_FIN_RESULTADOS,
+  GUIA_FIN_RESUMEN,
+} from "./pantallas/finanzas";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -102,10 +118,24 @@ export const GUIAS: readonly Guia[] = [
   GUIA_NUEVA_FACTURA,
   GUIA_MI_PARTE,
   GUIA_PLAN_CAMPANA,
+  GUIA_FIN_RESUMEN,
+  GUIA_FIN_GASTOS,
+  GUIA_FIN_CUENTAS,
+  GUIA_FIN_EFECTIVO,
+  GUIA_FIN_POR_PAGAR,
+  GUIA_FIN_CONCILIACION,
+  GUIA_FIN_RESULTADOS,
+  GUIA_FIN_PRESUPUESTO,
+  GUIA_FIN_CAMPANAS,
+  GUIA_FIN_ESCENARIOS,
+  GUIA_FIN_FLUJO,
+  GUIA_FIN_BALANCE,
+  GUIA_FIN_IMPUESTOS,
+  GUIA_FIN_CIERRE,
 ];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 34;
+export const PENDIENTES_HOY = 20;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -151,20 +181,20 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/etiquetas-de-precio": { estado: "no-aplica", motivo: "Hoja de impresión de etiquetas: se revisa y se imprime, no hay piezas que recorrer." },
   // ---- finanzas ----
   "/finanzas": { estado: "no-aplica", motivo: "Solo redirige: lleva a Finanzas ▸ Resumen o a Gastos según lo que la cuenta ve. La guía es la de la pantalla a la que llega." },
-  "/finanzas/cierre": PENDIENTE,
-  "/finanzas/dinero": PENDIENTE,
-  "/finanzas/dinero/conciliacion": PENDIENTE,
-  "/finanzas/dinero/efectivo": PENDIENTE,
-  "/finanzas/dinero/por-pagar": PENDIENTE,
-  "/finanzas/gastos": PENDIENTE,
-  "/finanzas/impuestos": PENDIENTE,
-  "/finanzas/reportes": PENDIENTE,
-  "/finanzas/reportes/balance": PENDIENTE,
-  "/finanzas/reportes/campanas": PENDIENTE,
-  "/finanzas/reportes/escenarios": PENDIENTE,
-  "/finanzas/reportes/flujo": PENDIENTE,
-  "/finanzas/reportes/presupuesto": PENDIENTE,
-  "/finanzas/resumen": PENDIENTE,
+  "/finanzas/cierre": { estado: "aplicada", guia: GUIA_FIN_CIERRE.id },
+  "/finanzas/dinero": { estado: "aplicada", guia: GUIA_FIN_CUENTAS.id },
+  "/finanzas/dinero/conciliacion": { estado: "aplicada", guia: GUIA_FIN_CONCILIACION.id },
+  "/finanzas/dinero/efectivo": { estado: "aplicada", guia: GUIA_FIN_EFECTIVO.id },
+  "/finanzas/dinero/por-pagar": { estado: "aplicada", guia: GUIA_FIN_POR_PAGAR.id },
+  "/finanzas/gastos": { estado: "aplicada", guia: GUIA_FIN_GASTOS.id },
+  "/finanzas/impuestos": { estado: "aplicada", guia: GUIA_FIN_IMPUESTOS.id },
+  "/finanzas/reportes": { estado: "aplicada", guia: GUIA_FIN_RESULTADOS.id },
+  "/finanzas/reportes/balance": { estado: "aplicada", guia: GUIA_FIN_BALANCE.id },
+  "/finanzas/reportes/campanas": { estado: "aplicada", guia: GUIA_FIN_CAMPANAS.id },
+  "/finanzas/reportes/escenarios": { estado: "aplicada", guia: GUIA_FIN_ESCENARIOS.id },
+  "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },
+  "/finanzas/reportes/presupuesto": { estado: "aplicada", guia: GUIA_FIN_PRESUPUESTO.id },
+  "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
   // ---- global ----
   "/global": PENDIENTE,
   "/global/elige-sede": { estado: "no-aplica", motivo: "Un paso de paso: pide elegir la sede y vuelve; lo explica la guía de la pantalla de donde se viene." },

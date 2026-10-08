@@ -87,7 +87,7 @@ export function FijosDelMes({
   if (fijos.length === 0 && sugeridos.length === 0) {
     return (
       <>
-        <GuiaVacia sobre="Fijos del mes" titulo="Todavía no hay gastos fijos">
+        <GuiaVacia sobre="Fijos del mes" titulo="Todavía no hay gastos fijos" guia="fin-gastos.fijos">
           El alquiler, la luz o el contador: se guardan una vez {puedeConfigurar ? "en Configuración ▸ Gastos fijos" : "(lo hace quien tiene Configuración)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
           {puedeConfigurar && (
             <>
@@ -105,7 +105,7 @@ export function FijosDelMes({
 
   return (
     <>
-      <section className="fin-dos-col">
+      <section className="fin-dos-col" data-guia="fin-gastos.fijos">
         <Superficie pad className="anim-sube">
           <CabeceraBloque titulo="Para confirmar" bajada="Llegan en los próximos días. «Registrar» abre el gasto lleno con el monto y los datos de siempre." />
           <ul className="fin-fijos">
@@ -525,7 +525,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
   if (activos.length === 0) {
     return (
       <>
-        <GuiaVacia sobre="Activos fijos" titulo="Sin activos fijos registrados">
+        <GuiaVacia sobre="Activos fijos" titulo="Sin activos fijos registrados" guia="fin-gastos.activos">
           Un mostrador, una laptop, una máquina del Taller: regístralos con «+ Registrar activo» y el sistema los deprecia cada mes.
         </GuiaVacia>
         <NotaActivos />
@@ -534,7 +534,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
   }
   return (
     <>
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-gastos.activos">
         <div className="fin-tabla-wrap">
           <table className="fin-tabla">
             <thead>

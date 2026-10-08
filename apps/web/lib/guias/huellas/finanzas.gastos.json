@@ -1,0 +1,59 @@
+{
+  "guia": "finanzas.gastos",
+  "ruta": "/finanzas/gastos",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 43,
+  "controles": {
+    "components/GastosFijosYActivos.tsx": [
+      "Link «Editar fijos»",
+      "Link «Agregar el primero»",
+      "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
+      "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
+      "button «Marcar fijo»",
+      "button «No es fijo»",
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{guardando ? \"Guardando…\" : \"No es fijo\"}»",
+      "Boton «+ Agregar fijo»",
+      "button «Editar»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Ya no se paga: archivar»",
+      "button «Cancelar» #2",
+      "button «{guardando ? \"Guardando…\" : fijo ? \"Guardar\" : \"Agregar fijo\"}»",
+      "ComboResponsable «setAccion(null)»",
+      "button «Volver»",
+      "button «→confirmar»",
+      "button «Se registró por error…»",
+      "button «Dar de baja…»",
+      "button «Cerrar»"
+    ],
+    "components/GastosPanel.tsx": [
+      "Boton «fin-gastos.registrar»",
+      "Boton «fin-gastos.registrar» #2",
+      "button «fin-gastos.clasificar»",
+      "ComboResponsable «setAnulando(false)»",
+      "button «Volver»",
+      "button «{guardando ? \"Anulando…\" : \"Anular gasto\"}»",
+      "button «Anular…»",
+      "button «Cerrar»",
+      "button «Regístralo con su comprobante»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "button «→guardar»",
+      "button «{abierto ? \"Ocultar\" : \"Ver\"}»",
+      "ComboResponsable «{marcas.map((m) => ( <li key={m.id}»",
+      "button «{revirtiendo === m.id ? \"Revirtiendo…\" : \"Revertir\"}»"
+    ],
+    "components/RegistrarGastoModal.tsx": [
+      "button «¿No está? Súmalo»",
+      "button «Sumar proveedor»",
+      "button «Cancelar»",
+      "ComboResponsable «avisoSalida.pedirAccion(onCerrar)»",
+      "button «Cancelar» #2",
+      "button «→guardar»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

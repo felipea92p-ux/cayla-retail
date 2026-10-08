@@ -122,7 +122,7 @@ export function PantallaDinero({
                   CAYLA entera
                 </Chip>
               ) : esLider ? (
-                <label className="fin-ver">
+                <label className="fin-ver" data-guia="fin-ver.combo">
                   <span className="label-cayla text-[11px] text-taupe">Ver</span>
                   <SelectFin
                     etiqueta="Qué mirar"
@@ -134,7 +134,7 @@ export function PantallaDinero({
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
               )}
-              <Boton type="button" peso="primario" onClick={() => setModal("deposito")}>
+              <Boton type="button" peso="primario" onClick={() => setModal("deposito")} data-guia="fin-dinero.registrar">
                 + Registrar movimiento
               </Boton>
             </>
@@ -208,12 +208,12 @@ export function CuentasPanel({
       )}
 
       {grupos.length === 0 ? (
-        <GuiaVacia sobre="Todavía no hay cuentas" titulo="Agrega los bancos de CAYLA">
+        <GuiaVacia sobre="Todavía no hay cuentas" titulo="Agrega los bancos de CAYLA" guia="fin-dinero.cuentas">
           Los cajones y las cajas fuertes nacen con cada tienda. Los bancos, las billeteras, el POS y la tarjeta se agregan en Configuración ▸ Cuentas y cobros.
         </GuiaVacia>
       ) : (
         grupos.map((g, i) => (
-          <section key={g.clave} {...entra(i + 1)}>
+          <section key={g.clave} {...entra(i + 1)} data-guia="fin-dinero.cuentas">
             <p className="fin-etq">
               {g.titulo} · cuenta {g.cuenta}
             </p>
@@ -245,7 +245,7 @@ export function CuentasPanel({
       )}
 
       {esLider && verTodas && (
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="fin-dinero.dueno">
           <CabeceraBloque
             titulo="Plata del dueño"
             bajada={
@@ -292,7 +292,7 @@ export function CuentasPanel({
       )}
 
       {esLider && verTodas && medios.length > 0 && (
-        <Superficie className="anim-sube">
+        <Superficie className="anim-sube" guia="fin-dinero.medios">
           <Herramientas className="justify-between">
             <div className="fin-herramientas-titulo min-w-0">
               <b>A qué cuenta entra cada cobro</b>
@@ -353,7 +353,7 @@ export function CuentasPanel({
       )}
       {decirCuenta && <PagosSinCuentaModal onClose={() => setDecirCuenta(false)} />}
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-dinero.movimientos">
         <Herramientas>
           <b className="text-sm font-semibold text-tinta">Movimientos entre cuentas</b>
           <span className="text-[12.5px] text-taupe">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span>
@@ -438,7 +438,7 @@ export function EfectivoPanel({ filas, cierres, hoy }: { filas: EfectivoFila[]; 
   const ocultos = filas.some((f) => f.abierta && f.esperado === null);
   return (
     <>
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-dinero.efectivo">
         <Herramientas className="justify-between">
           <div className="fin-herramientas-titulo min-w-0">
             <b>{hoyEnPalabras(hoy)}</b>
@@ -526,7 +526,7 @@ export function EfectivoPanel({ filas, cierres, hoy }: { filas: EfectivoFila[]; 
       </Superficie>
 
       {cierres.length > 0 && (
-        <Superficie className="anim-sube">
+        <Superficie className="anim-sube" guia="fin-dinero.diferencias">
           <Herramientas>
             <b className="text-sm font-semibold text-tinta">Últimos cierres con diferencia</b>
           </Herramientas>
@@ -563,7 +563,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
 
   if (!actual) {
     return (
-      <GuiaVacia sobre="Conciliación" titulo="No hay bancos que conciliar">
+      <GuiaVacia sobre="Conciliación" titulo="No hay bancos que conciliar" guia="fin-conciliacion.vacia">
         Agrega los bancos, el POS y la tarjeta en Configuración ▸ Cuentas y cobros. Cada viernes se anota lo que dice el banco y el sistema dice si coincide.
       </GuiaVacia>
     );
@@ -619,12 +619,12 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <p className="max-w-md text-[13px] text-taupe">Cada viernes, anota el saldo que muestra la banca por internet: el sistema dice si coincide y qué movimientos del período faltan revisar.</p>
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-xs" data-guia="fin-conciliacion.responsable">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="fin-conciliacion.lineas">
         <Herramientas className="justify-between">
           <div className="fin-herramientas-titulo min-w-0">
             <b>
@@ -714,7 +714,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
       </Superficie>
 
       {!k && (
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="fin-conciliacion.anotar">
           <CabeceraBloque titulo="¿Qué saldo dice el banco?" bajada={`Lo que muestra la banca por internet al cierre del día. Se compara con los ${soles(actual.saldoSistema)} que suma el sistema.`} />
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <CampoFin etiqueta="Saldo del banco" htmlFor="conc-saldo" className="!mb-0">
@@ -740,7 +740,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
       )}
 
       {actual.historial.length > 0 && (
-        <Superficie className="anim-sube">
+        <Superficie className="anim-sube" guia="fin-conciliacion.historial">
           <Herramientas>
             <b className="text-sm font-semibold text-tinta">Conciliaciones de {actual.cuenta.nombre}</b>
           </Herramientas>
@@ -758,7 +758,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
       )}
 
       {otras.map((c) => (
-        <Superficie key={c.id} pad className="anim-sube">
+        <Superficie key={c.id} pad className="anim-sube" guia="fin-conciliacion.otras">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <b className="text-sm font-semibold text-tinta">{c.nombre}</b>

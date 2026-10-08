@@ -154,7 +154,7 @@ export function SaldosArranqueModal({
           htmlFor="arr-fecha"
           ayuda="Los saldos son los de ese día al abrir, antes de vender. Lo ideal: el primer día de un mes, con el balance que te dé el contador al cierre del anterior."
         >
-          <InputFin id="arr-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
+          <InputFin id="arr-fecha" data-guia="fin-balance.arranque-fecha" type="date" max={hoy} value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
         </CampoFin>
       )}
 
@@ -174,7 +174,7 @@ export function SaldosArranqueModal({
             const filas = propuesta.filter((p) => ladoDeCuenta(p.cuenta, p.tipo) === lado);
             if (!filas.length) return null;
             return (
-              <div key={lado} className="fin-arranque-grupo">
+              <div key={lado} className="fin-arranque-grupo" data-guia="fin-balance.arranque-grupo">
                 <h4>{titulo}</h4>
                 {filas.map((p) => {
                   const editable = hayArranque || p.origen === "manual";
@@ -213,7 +213,7 @@ export function SaldosArranqueModal({
             );
           })}
 
-          <div className="fin-arranque-cuadre" role="status">
+          <div className="fin-arranque-cuadre" role="status" data-guia="fin-balance.arranque-cuadre">
             <span>
               Lo que tenía <b>{solesBalance(cuadre.tiene)}</b> · lo que debía + lo tuyo <b>{solesBalance(cuadre.debe + cuadre.tuyo)}</b>
             </span>
@@ -252,7 +252,7 @@ export function SaldosArranqueModal({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-balance.arranque-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>

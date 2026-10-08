@@ -67,7 +67,7 @@ export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: Resu
       />
 
       {frases.length > 0 && (
-        <section className="fin-salud" aria-label="Cómo está">
+        <section className="fin-salud" aria-label="Cómo está" data-guia="fin-resumen.salud">
           {frases.map((f, i) => (
             <div key={f.clave} className="fin-frase anim-entra" style={{ ["--i" as string]: i + 1 } as CSSProperties} data-tono={f.tono} title={`Sale de ${f.origen}`}>
               <b>{f.n}</b>
@@ -80,7 +80,7 @@ export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: Resu
         </section>
       )}
 
-      <section className="fin-cifras fin-cinco" aria-label="Los números del mes">
+      <section className="fin-cifras fin-cinco" aria-label="Los números del mes" data-guia="fin-resumen.cifras">
         {cifras.map((c, i) => (
           // `cifrasResumen` dice «—» cuando no hay dato: la pieza lo dibuja como «sin dato», con su detalle de motivo (ADR-0358).
           <TarjetaCifra key={c.clave} etiqueta={c.etiqueta} valor={c.valor === "—" ? null : c.valor} tono={c.rojo ? "text-rojo" : undefined} {...entra(i + 4)}>
@@ -90,7 +90,7 @@ export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: Resu
       </section>
 
       <section className="fin-dos-col fin-dos-col-izq">
-        <div {...entra(9)}>
+        <div {...entra(9)} data-guia="fin-resumen.decidir">
           <Superficie pad>
             <CabeceraBloque titulo="Para decidir hoy" bajada="Primero lo que más cuesta si se deja pasar. Cada aviso dice cuánto está en juego." />
             <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
@@ -134,7 +134,7 @@ function Cobertura({ r }: { r: ResumenFinanzas }) {
   const mes = mesNombre(r.antesDelCorte ? mesDelCorte(r.antesDelCorte) : r.mesAnterior);
   return (
     <div {...entra(10)}>
-      <Superficie pad>
+      <Superficie pad guia="fin-resumen.cobertura">
         <CabeceraBloque titulo="¿Cada tienda cubre sus costos?" bajada={`${mayuscula(mes)}: lo que vendió contra lo que necesitaba vender (100 %).`} />
         {r.antesDelCorte ? (
           <p className="fin-nota-bloque">{avisoAntesDelCorte(r.antesDelCorte)}</p>
@@ -166,7 +166,7 @@ function Cobertura({ r }: { r: ResumenFinanzas }) {
 function Semanas({ r }: { r: ResumenFinanzas }) {
   return (
     <div {...entra(11)}>
-      <Superficie pad>
+      <Superficie pad guia="fin-resumen.semanas">
         <CabeceraBloque titulo="Saldo de las próximas 6 semanas" bajada="Lo que hay hoy + lo que entra − lo que vence." />
         {r.flujo.estado === "ok" ? (
           <GraficoSemanas
@@ -190,7 +190,7 @@ function Camino({ r }: { r: ResumenFinanzas }) {
   const c = caminoEquilibrio(r);
   return (
     <div {...entra(10)}>
-      <Superficie pad>
+      <Superficie pad guia="fin-resumen.camino">
         <CabeceraBloque
           titulo="Camino al punto de equilibrio"
           bajada={`${mayuscula(mesNombre(r.mes))} al día ${Number(r.hoy.slice(8, 10))} contra lo que necesita vender en el mes (según ${mesNombre(r.mesAnterior)}).`}
@@ -223,7 +223,7 @@ function MiniPresupuesto({ r, acceso }: { r: ResumenFinanzas; acceso: Acceso }) 
   const href = `/finanzas/reportes/presupuesto${r.lider && r.ver.ubicacionId ? `?ver=${r.ver.ubicacionId}` : ""}`;
   return (
     <div {...entra(11)}>
-      <Superficie pad>
+      <Superficie pad guia="fin-resumen.presupuesto">
         <CabeceraBloque titulo="Presupuesto del mes" bajada="Gastado a la fecha contra su tope; el % es la proyección al cierre.">
           {(acceso.lider || acceso.modulos.includes("reportes_financieros")) && (
             <Link href={href} className="btn-cayla btn-sutil btn-chico shrink-0">
