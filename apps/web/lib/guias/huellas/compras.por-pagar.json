@@ -10,7 +10,7 @@
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
       "Boton «Ir a recibir»",
-      "Boton «Registrar pago»",
+      "Boton «factura.registrar-pago»",
       "button «Pagado»",
       "Boton «→() => setAbierto(true)»",
       "input «{`Monto a pagar de ${compra.documento}»",

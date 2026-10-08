@@ -194,7 +194,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
             { clave: "pagados", etiqueta: "Pagados", conteo: pagados },
           ] as const
         ).map((p) => (
-          <Link key={p.clave} href={hrefVista(p.clave)} aria-current={vista === p.clave ? "page" : undefined} className="pildora-cayla shrink-0">
+          <Link key={p.clave} href={hrefVista(p.clave)} aria-current={vista === p.clave ? "page" : undefined} className="pildora-cayla shrink-0" data-guia={`compras.vista-${p.clave}`}>
             {p.etiqueta} <span className="pildora-cayla__n">{p.conteo.toLocaleString("es-PE")}</span>
           </Link>
         ))}

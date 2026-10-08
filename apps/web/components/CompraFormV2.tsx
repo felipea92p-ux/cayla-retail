@@ -575,7 +575,7 @@ export function CompraFormV2({
                 opciones={TIPOS.map((t) => ({ clave: t.valor, etiqueta: t.texto }))}
               />
             </div>
-            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 sm:col-span-2 sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)]" data-guia="nueva.serie">
               <CampoTexto
                 etiqueta="Serie"
                 id="compra-serie"
@@ -926,13 +926,17 @@ export function CompraFormV2({
         {/* La nota va en el resumen y no al final de la columna larga, y
             DESPUÉS de los adjuntos: es lo último que se escribe antes de
             registrar, así queda pegada al botón (pedido de Felipe, 2026-09-14). */}
-        <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
+        <div data-guia="nueva.nota">
+          <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Algo que conviene recordar" />
+        </div>
         {/* Lo que falta, a la vista: el botón se activa recién con los cuatro, y en vez de quedar solo gris, esta
             lista dice qué falta (es una vista de `requisitosDeCompra`, las mismas reglas que valida `onSubmit`). */}
         <div data-guia="nueva.pendientes">
           <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
         </div>
-        <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
+        <div data-guia="nueva.responsable">
+          <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
+        </div>
         <div className="flex flex-col gap-2" data-guia="nueva.registrar">
           {costosAtipicos ? (
             <AvisoCostoAtipico

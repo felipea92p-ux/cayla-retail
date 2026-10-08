@@ -7,14 +7,14 @@
     "app/(app)/compras/page.tsx": [
       "BotonAncla «compras.exportar»",
       "BotonEnlace «compras.registrar»",
-      "Link «{p.etiqueta}»",
+      "Link «{`compras.vista-${p.clave}»",
       "SegmentoEnlaces «(sin nombre)»",
       "Link «{diaMes(c.fechaEmision)}»"
     ],
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
       "Boton «Ir a recibir»",
-      "Boton «Registrar pago»",
+      "Boton «factura.registrar-pago»",
       "button «Pagado»",
       "Boton «→() => setAbierto(true)»",
       "input «{`Monto a pagar de ${compra.documento}»",

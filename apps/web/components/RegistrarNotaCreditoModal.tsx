@@ -289,7 +289,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
       {(cerrar) => (
         <form onSubmit={registrar} noValidate className="mt-4 space-y-5">
           {/* --- factura de origen: ficha o buscador ------------------------------------ */}
-          <section>
+          <section data-guia="nc-modal.factura">
             <p className="label-cayla mb-2 text-[11px] text-tinta/65">Factura de origen</p>
 
             <div className="nc-colapsa" data-abierto={factura && !cambiando ? "true" : "false"}>
@@ -298,7 +298,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
 
             <div className="nc-colapsa" data-abierto={buscando ? "true" : "false"}>
               <div>
-                <div className="flex items-center gap-2.5 rounded-lg border border-tinta/25 bg-papel px-3 py-2 transition-colors focus-within:border-rojo">
+                <div className="flex items-center gap-2.5 rounded-lg border border-tinta/25 bg-papel px-3 py-2 transition-colors focus-within:border-rojo" data-guia="nc-modal.buscador">
                   <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                   <input
                     ref={refBuscador}
@@ -390,7 +390,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
           {/* Todo lo que depende de la factura: mientras no haya una, se ve pero no se puede usar. */}
           <fieldset disabled={buscando || enviando} className={`m-0 space-y-5 border-0 p-0 ${buscando ? "nc-tenue" : "nc-tenue opacity-100"}`}>
             {/* --- motivo ------------------------------------------------------------- */}
-            <section>
+            <section data-guia="nc-modal.motivo">
               <p className="label-cayla mb-2 text-[11px] text-tinta/65">Motivo</p>
               <div role="radiogroup" aria-label="Motivo de la nota" className="flex flex-wrap gap-1.5">
                 {MOTIVOS.map((m) => (
@@ -412,7 +412,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
             </section>
 
             {/* --- serie, fecha, monto ------------------------------------------------ */}
-            <section className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]">
+            <section className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]" data-guia="nc-modal.datos">
               <label className="block">
                 <span className="label-cayla text-[11px] text-tinta/70">Serie-número</span>
                 <input
@@ -448,7 +448,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
             </section>
 
             {/* --- qué pasa con el dinero --------------------------------------------- */}
-            <section>
+            <section data-guia="nc-modal.dinero">
               <p className="label-cayla mb-2 text-[11px] text-tinta/65">Qué pasa con el dinero</p>
               <p className="mb-3 text-[13px] leading-relaxed text-tinta/70">
                 Lo primero que hace una nota es <b className="font-semibold">bajar lo que aún le debes al proveedor</b> por esa factura. El dinero que sobra —o todo el monto, si la factura ya
@@ -538,7 +538,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
             </section>
 
             {/* --- cómo quedan tus cuentas -------------------------------------------- */}
-            <section>
+            <section data-guia="nc-modal.cuentas">
               <p className="label-cayla mb-2 text-[11px] text-tinta/65">Cómo quedan tus cuentas</p>
               {!factura ? (
                 <p className="rounded-xl border border-dashed border-tinta/25 px-4 py-3 text-[13px] text-tinta/55">Elige primero la factura de origen.</p>
@@ -570,11 +570,13 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
             </section>
           </fieldset>
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <div data-guia="nc-modal.responsable">
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
+          </div>
 
           {/* `pie-hoja-fijo` (globals.css): la fila de acciones se queda pegada abajo de la hoja en un laptop de 768 px de alto.
               La línea de arriba vive en la caja de adentro para no correrse hasta el borde de la hoja. */}
-          <div className="pie-hoja-fijo">
+          <div className="pie-hoja-fijo" data-guia="nc-modal.pie">
             <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
               <p className="hidden flex-1 text-xs text-tinta/55 sm:block">Queda como un registro nuevo: no se edita ni se borra. El IGV de la nota resta del crédito fiscal del mes.</p>
               <button type="button" onClick={cerrar} disabled={enviando} className="label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">

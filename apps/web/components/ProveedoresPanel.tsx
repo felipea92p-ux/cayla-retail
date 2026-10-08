@@ -209,7 +209,7 @@ export function ProveedoresPanel({
           <p className="mt-1 text-sm text-tinta/65">A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.</p>
         </div>
         {puedeEditar && (
-          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} data-guia="proveedores.registrar">
+          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
             <span className="flex items-center gap-2">
               <span aria-hidden>+</span> Registrar proveedor
             </span>

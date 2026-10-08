@@ -24,7 +24,7 @@
       "button «{`${ETIQUETA_BANDA[t]}»",
       "input «Buscar por proveedor, comprobante o número de nota»",
       "button «Borrar búsqueda»",
-      "button «{p.etiqueta}»",
+      "button «{`notas-credito.estado-${p.clave}»",
       "SegmentoDeslizante «Cómo agrupar»",
       "button «Quitar filtro de antigüedad»",
       "button «notas-credito.registrar-fila»",

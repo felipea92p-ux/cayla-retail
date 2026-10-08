@@ -181,7 +181,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
           </p>
         </div>
-        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} data-guia="notas-credito.registrar">
+        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} aria-haspopup="dialog" data-guia="notas-credito.registrar">
           + Registrar nota
           <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
         </Boton>
@@ -307,7 +307,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
             {/* El estado deja menos notas en la misma lista: la píldora de filtro (ADR-0358). */}
             <div role="group" aria-label="Estado de la nota" data-guia="notas-credito.estados" className="flex flex-wrap items-center gap-2">
               {PESTANAS.map((p) => (
-                <button key={p.clave} type="button" aria-pressed={pestana === p.clave} onClick={() => { setPestana(p.clave); setBanda(null); }} className="pildora-cayla">
+                <button key={p.clave} type="button" aria-pressed={pestana === p.clave} onClick={() => { setPestana(p.clave); setBanda(null); }} className="pildora-cayla" data-guia={`notas-credito.estado-${p.clave}`}>
                   {p.etiqueta} <span className="pildora-cayla__n">{conteos[p.clave]}</span>
                 </button>
               ))}

@@ -610,7 +610,7 @@ export function ProveedorModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4">
+              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
                 <Boton type="button" peso="fantasma" onClick={pedirCierre} disabled={fase !== "reposo"}>
                   Cancelar
                 </Boton>

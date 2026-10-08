@@ -352,7 +352,7 @@ export function FiltrosCompras({
       )}
 
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-guia="filtros-compras.chips">
           {chips.map((c) => (
             <button
               key={c.texto}
