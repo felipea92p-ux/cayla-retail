@@ -37,6 +37,7 @@ import {
   textoSugerencia,
   trozosRicos,
   vistaDeEntrada,
+  accionDeFila,
   segmentosDe,
   tableroVista,
   tramoBarraDe,
@@ -898,6 +899,29 @@ describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () =>
     expect(varaTablero(vara("x", { nivel: "aceptable" })).texto).toBe("Aceptable");
     expect(varaTablero(vara("x", { nivel: null }))).toEqual({ texto: "Sin ventas", tono: "apagado" });
     expect(varaTablero(undefined).texto).toBe("Sin ventas");
+  });
+
+  it("accionDeFila: la primera sugerencia es un botón con su verbo; anota, enlaza o abre la hoja; sin piso o con decisión vigente, nada", () => {
+    const con = (sugerencias: Sugerencia[], extra: Partial<FrescuraPrenda> = {}) =>
+      prenda({ pisoHoy: 2, estado: { ...ESTADO_BASE, tipo: "semaforo", tramo: "critica", alMenos: false, quieta: true, sugerencias }, ...extra });
+    const c = ctx();
+    expect(accionDeFila(con(["cambiar_lugar", "trasladar"]), c, false)).toEqual({ tipo: "anotar", verbo: "La cambié de lugar", accion: "cambie_lugar" });
+    expect(accionDeFila(con(["dejar_hasta_agotar"]), c, false)).toEqual({ tipo: "anotar", verbo: "La dejo hasta agotar", accion: "hasta_agotar" });
+    expect(accionDeFila(con(["trasladar"], { almacenHoy: 3 }), c, false)).toMatchObject({ tipo: "enlace", verbo: "Armar traslado", href: expect.stringContaining("/inventario/mover?lineas=") });
+    expect(accionDeFila(con(["retirar"]), c, false)).toMatchObject({ tipo: "enlace", verbo: "Retirar del piso", href: expect.stringContaining("/inventario?variante=") });
+    expect(accionDeFila(con(["guardar_hasta_su_estacion"]), c, false)).toMatchObject({ tipo: "enlace", verbo: "Guardar en el almacén" });
+    expect(accionDeFila(con(["revisar_ventas"]), c, false)).toMatchObject({ tipo: "enlace", verbo: "Ver sus ventas", href: expect.stringContaining("/vender/historial?q=") });
+    expect(accionDeFila(con(["sigue_vendiendo"]), c, false)).toEqual({ tipo: "hoja", verbo: "Decidir", opcion: "hasta_agotar" });
+    expect(accionDeFila(con(["rebaja_chica"]), c, false)).toEqual({ tipo: "hoja", verbo: "Decidir", opcion: "rebaje" });
+    // Sin la pantalla que lo hace, la hoja (nunca un enlace que termine en «Sin acceso»).
+    const sinNada = ctx({ acceso: { existencias: false, historial: false, traslados: false, conteos: false, atributos: false } });
+    expect(accionDeFila(con(["trasladar"], { almacenHoy: 3 }), sinNada, false)).toEqual({ tipo: "hoja", verbo: "Decidir", opcion: null });
+    expect(accionDeFila(con(["retirar"]), sinNada, false)).toEqual({ tipo: "hoja", verbo: "Decidir", opcion: null });
+    expect(accionDeFila(con(["revisar_ventas"]), sinNada, false)).toEqual({ tipo: "hoja", verbo: "Ver por qué", opcion: null });
+    // Nada que hacer: sin sugerencias, sin nada en el piso, o con una decisión vigente (la fila ya dice qué se decidió).
+    expect(accionDeFila(con([]), c, false)).toBeNull();
+    expect(accionDeFila(con(["cambiar_lugar"], { pisoHoy: 0 }), c, false)).toBeNull();
+    expect(accionDeFila(con(["cambiar_lugar"]), c, true)).toBeNull();
   });
 
   it("tramoBarraDe: el semáforo manda; el clásico va aparte; lo demás, «aún no se sabe»", () => {

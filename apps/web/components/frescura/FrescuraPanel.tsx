@@ -11,6 +11,7 @@ import {
   FILTROS_ESTADO,
   SIN_FILTROS,
   TODAS_LAS_CATEGORIAS,
+  accionDeFila,
   agrupar,
   avisoPocasVentas,
   cifrasVista,
@@ -38,7 +39,9 @@ import {
 } from "@/lib/frescura-pantalla";
 import type { FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
+import { plazoDeAccion, type AccionDecision } from "@/lib/frescura-decisiones-reglas";
 import { bloqueDeDecision, filaDeDecision, notaDelMes } from "@/lib/frescura-decisiones-pantalla";
+import { useAnotarDecision } from "./useAnotarDecision";
 import { TextoConNegritas } from "./piezas";
 import { FrescuraComoSeLee } from "./FrescuraComoSeLee";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
@@ -74,6 +77,11 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const botonTiendas = useRef<HTMLButtonElement | null>(null);
   const [pedidos, setPedidos] = useState<Filtros>(() => filtrosDeUrl((k) => params.get(k)));
   const [prendaAbierta, setPrendaAbierta] = useState<string | null>(() => params.get("prenda"));
+  // Con qué se abre la hoja: el detalle, o directo «Ya decidí» con una opción marcada (el botón de la fila que no pudo anotar a
+  // un toque porque falta elegir quién anota, o que pide elegir entre varias opciones).
+  const [hojaPedida, setHojaPedida] = useState<{ modo: "detalle" | "decidir"; opcion: AccionDecision | null }>({ modo: "detalle", opcion: null });
+  // EL camino para anotar lo decidido (la hoja usa el suyo, igual): el botón «La cambié de lugar» de la fila anota a un toque.
+  const anotador = useAnotarDecision({ id: datos.sede.id, nombre: datos.sede.nombre });
 
   const lectura = datos.lectura.datos;
   const sede: FrescuraSede | null = lectura && lectura.separaPiso ? lectura : null;
@@ -132,10 +140,27 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   // Al cerrar la hoja, el foco vuelve a la fila que la abrió (también si se abrió desde un enlace con `?prenda=`).
   const volverA = useRef<HTMLElement | null>(null);
   const filaDe = (clave: string) => document.querySelector<HTMLElement>(`[data-prenda="${CSS.escape(clave)}"]`);
-  const abrir = (clave: string | null) => {
+  const abrir = (clave: string | null, modo: "detalle" | "decidir" = "detalle", opcion: AccionDecision | null = null) => {
     if (clave) volverA.current = filaDe(clave);
+    setHojaPedida({ modo, opcion });
     setPrendaAbierta(clave);
     escribirUrl(filtros, clave);
+  };
+  // El botón de la fila que anota (`accionDeFila`, tipo `anotar`): a un toque si ya se sabe quién anota y se pudo leer la libreta
+  // (sin la última línea la base rechazaría); si no, la hoja con la opción ya marcada, que pide lo que falta.
+  const anotarDesdeFila = (p: (typeof enTabla)[number], accion: AccionDecision) => {
+    if (!ctx || !decisionesOk || !anotador.responsable.listo) {
+      abrir(p.clave, "decidir", accion);
+      return;
+    }
+    void anotador.anotar({
+      prenda: p,
+      anteriorId: p.decision?.actual.id ?? null,
+      accion,
+      plazoDias: plazoDeAccion(accion, ctx.categorias.get(p.categoriaId), ctx.cayla?.get(p.categoriaId)),
+      transferenciaId: null,
+      nota: null,
+    });
   };
   useEffect(() => {
     if (prendaAbierta && !volverA.current) volverA.current = filaDe(prendaAbierta);
@@ -295,6 +320,17 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 </span>
               </p>
             )}
+            {anotador.error && (
+              <p role="alert" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
+                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {anotador.error.texto}{" "}
+                  <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => (anotador.limpiarError(), anotador.error?.conVer ? router.refresh() : undefined)}>
+                    {anotador.error.conVer ? "Ver" : "Entendido"}
+                  </button>
+                </span>
+              </p>
+            )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
@@ -390,6 +426,10 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                               marcarAproximado={avisoPocas === null}
                               apariencia={datos.apariencias[p.clave] ?? null}
                               categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
+                              accion={accionDeFila(p, ctx!, p.decision?.vigente ?? false)}
+                              enviando={anotador.enviando === p.clave}
+                              onAnotar={(accion) => anotarDesdeFila(p, accion)}
+                              onDecidir={(opcion) => abrir(p.clave, "decidir", opcion)}
                             />
                           ))}
                         </div>
@@ -430,7 +470,16 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       </section>
 
       {abierta && ctx && contextoDecision && (
-        <FrescuraDetalle detalle={detalleVista(abierta, ctx)} sede={datos.sede.nombre} volverA={volverA} onClose={() => abrir(null)} decision={contextoDecision} />
+        <FrescuraDetalle
+          key={abierta.clave}
+          detalle={detalleVista(abierta, ctx)}
+          sede={datos.sede.nombre}
+          volverA={volverA}
+          onClose={() => abrir(null)}
+          decision={contextoDecision}
+          modoInicial={hojaPedida.modo}
+          opcionInicial={hojaPedida.opcion}
+        />
       )}
       {verTiendas && datos.tiendas && datos.registro && (
         <FrescuraTiendas tiendas={datos.tiendas} registro={datos.registro} actual={datos.sede.id} volverA={botonTiendas} onClose={() => setVerTiendas(false)} />

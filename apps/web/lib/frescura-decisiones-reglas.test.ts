@@ -798,7 +798,8 @@ describe("la pantalla llama a las funciones SQL con sus nombres exactos", () => 
   const raiz = join(__dirname, "..");
   const sql = readFileSync(join(raiz, "../../supabase/migrations/20261001100100_frescura_decisiones_funciones.sql"), "utf8");
   const tipos = readFileSync(join(raiz, "../../packages/database/src/types.ts"), "utf8");
-  const componentes = ["FrescuraDecidir.tsx"].map((f) => readFileSync(join(raiz, "components/frescura", f), "utf8")).join("\n");
+  // Desde la act. 2026-10-07 la llamada vive en el hook `useAnotarDecision.ts` (lo usan la hoja y la fila); «Quitar» sigue en la hoja.
+  const componentes = ["FrescuraDecidir.tsx", "useAnotarDecision.ts"].map((f) => readFileSync(join(raiz, "components/frescura", f), "utf8")).join("\n");
 
   /** Los argumentos de la firma SQL: los obligatorios y los que tienen valor por defecto. */
   function firma(fn: string) {

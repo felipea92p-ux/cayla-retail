@@ -1,5 +1,6 @@
 import type { TonoChip } from "@/components/ui/Chip";
 import { clave as claveBusqueda } from "./buscar-prenda-v2";
+import type { AccionDecision } from "./frescura-decisiones-reglas";
 import {
   DIAS_CALLADA,
   RAPIDEZ_IGUAL,
@@ -1218,4 +1219,49 @@ export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFr
 /** Los segmentos de la barra de una fila, listos para `BarraApilada` (solo los tramos con unidades, en orden). */
 export function segmentosDe(fila: FilaTablero): { clave: TramoBarra; nombre: string; valor: number; clase: string }[] {
   return TRAMOS_BARRA.filter((t) => fila.unidades[t] > 0).map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_BARRA[t], valor: fila.unidades[t], clase: CLASE_TRAMO_BARRA[t] }));
+}
+
+// ---------------------------------------------------------------------------
+// El botón de la fila: dice el verbo y ejecuta (ADR-0208, act. 2026-10-07; Formidable, «invitar a la acción»)
+// ---------------------------------------------------------------------------
+//
+// La primera sugerencia de cada prenda se vuelve UN botón con su verbo. Tres clases: `anotar` (un toque deja la decisión
+// anotada, con «Deshacer»: lo que ya hacía la hoja en cuatro toques), `enlace` (abre la pantalla que hace la cosa, con la
+// prenda cargada) y `hoja` (hay que elegir entre varias opciones, o ver el porqué: la hoja). Sin sugerencia, o con una decisión
+// vigente, no hay botón: la fila ya dice qué se decidió.
+
+export type AccionFila =
+  | { tipo: "anotar"; verbo: string; accion: AccionDecision }
+  | { tipo: "enlace"; verbo: string; href: string }
+  | { tipo: "hoja"; verbo: string; opcion: AccionDecision | null };
+
+export function accionDeFila(p: FrescuraPrenda, ctx: ContextoFrescura, decisionVigente: boolean): AccionFila | null {
+  if (p.pisoHoy <= 0 || decisionVigente) return null;
+  const s = p.estado.sugerencias[0];
+  if (s === undefined) return null;
+  const a = ctx.acceso;
+  switch (s) {
+    case "cambiar_lugar":
+      return { tipo: "anotar", verbo: "La cambié de lugar", accion: "cambie_lugar" };
+    case "dejar_hasta_agotar":
+      return { tipo: "anotar", verbo: "La dejo hasta agotar", accion: "hasta_agotar" };
+    case "trasladar": {
+      const href = a.traslados ? hrefArmarTraslado(p) : null;
+      return href ? { tipo: "enlace", verbo: "Armar traslado", href } : { tipo: "hoja", verbo: "Decidir", opcion: null };
+    }
+    case "retirar": {
+      const href = a.existencias ? hrefExistencias(p) : null;
+      return href ? { tipo: "enlace", verbo: "Retirar del piso", href } : { tipo: "hoja", verbo: "Decidir", opcion: null };
+    }
+    case "guardar_hasta_su_estacion": {
+      const href = a.existencias ? hrefExistencias(p) : null;
+      return href ? { tipo: "enlace", verbo: "Guardar en el almacén", href } : { tipo: "hoja", verbo: "Ver por qué", opcion: null };
+    }
+    case "revisar_ventas":
+      return a.historial ? { tipo: "enlace", verbo: "Ver sus ventas", href: `/vender/historial?q=${encodeURIComponent(p.productoNombre)}` } : { tipo: "hoja", verbo: "Ver por qué", opcion: null };
+    case "sigue_vendiendo":
+      return { tipo: "hoja", verbo: "Decidir", opcion: "hasta_agotar" };
+    case "rebaja_chica":
+      return { tipo: "hoja", verbo: "Decidir", opcion: "rebaje" };
+  }
 }

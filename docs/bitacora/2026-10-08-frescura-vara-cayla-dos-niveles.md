@@ -55,3 +55,16 @@
   filtradas, para que no cambie al tocarlo.
 - **Felipe se lleva:** el tablero se ordena por lo que más pide decidir (unidades que se quedan o hay que mover), no por
   nombre: la primera fila es siempre la categoría que más atención necesita hoy.
+
+## Actividad 5a · la fila ejecuta
+
+- **Qué hice:** la primera sugerencia de cada prenda es ahora un botón con su verbo: «La cambié de lugar» anota a un toque
+  (aviso con Deshacer 10 s), «Armar traslado» / «Retirar del piso» / «Ver sus ventas» abren la pantalla que lo hace con la
+  prenda cargada, «Decidir» abre la hoja con la opción marcada cuando hay que elegir. El anotar salió de la hoja a un hook
+  (`useAnotarDecision`) que ahora usan la hoja y la fila. Verificado contra la base local con una blusa vieja sembrada como
+  en T13: un toque, aviso, «Decidida», Deshacer, «Por decidir» otra vez.
+- **Por qué así:** antes anotar eran cuatro toques dentro de la hoja; la decisión más común (cambiarla de lugar 7 días) no
+  necesita elegir nada más cuando ya se sabe quién anota. Y una sola función, una sola pieza: si la fila anotara por otro
+  camino, el día que cambie la marca de reintento o el aviso, uno de los dos quedaría viejo.
+- **Felipe se lleva:** el botón no mueve stock ni cambia precios: anota el HECHO de que la encargada ya lo hizo, y la
+  lectura decide después si sirvió. Por eso puede ser un toque y perdonar con Deshacer.
