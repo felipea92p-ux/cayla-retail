@@ -70,7 +70,7 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
         subtitulo={`${plan.plan.nombre}, del ${fechaLarga(plan.plan.desde)} al ${fechaLarga(plan.plan.hasta)}: cuánto comprar por categoría, con tres escenarios. En enero, al lado, lo que se vendió de verdad.`}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3" data-guia="plan.cifras">
         <TarjetaCifra etiqueta="Categorías con plan" valor={`${conPlan.length} de ${filas.length}`}>
           {conPlan.length === 0 ? "Empieza por las que más venden" : "Las demás no suman a la compra"}
         </TarjetaCifra>
@@ -82,6 +82,7 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
         </TarjetaCifra>
       </div>
 
+      <div data-guia="plan.tabla">
       <Tabla>
         <Encabezado columnas={columnas} plantilla={plantilla} />
         {filas.length === 0 ? (
@@ -92,6 +93,7 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
               key={c.id}
               type="button"
               onClick={() => setAbierta(c)}
+              data-guia="plan.categoria"
               className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-sand/30`}
               aria-label={`${linea ? "Corregir" : "Armar"} el plan de ${c.nombre}`}
             >
@@ -124,8 +126,9 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
           ))
         )}
       </Tabla>
+      </div>
 
-      <p className="nota-cayla">
+      <p className="nota-cayla" data-guia="plan.como">
         Cómo se calcula: con tus tres escenarios, el sistema compra según cuánto cuesta quedarse corto (lo que dejas de ganar) frente a
         sobrar (lo que pierdes al vender lo que queda más barato). Si lo que sobra se vende casi al mismo precio, conviene cubrir un
         diciembre bueno; si se pierde, conviene quedarse más cerca del flojo. No hay historia de ventas de diciembre en el ERP: estos

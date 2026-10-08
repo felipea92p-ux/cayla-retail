@@ -1,0 +1,123 @@
+{
+  "guia": "compras.por-pagar",
+  "ruta": "/compras/por-pagar",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 87,
+  "controles": {
+    "app/(app)/compras/por-pagar/page.tsx": [
+      "Link «Limpiar filtros»"
+    ],
+    "components/CompraDetallePanel.tsx": [
+      "button «Anular comprobante»",
+      "Boton «Ir a recibir»",
+      "Boton «Registrar pago»",
+      "button «Pagado»",
+      "Boton «→() => setAbierto(true)»",
+      "input «{`Monto a pagar de ${compra.documento}»",
+      "input «Total del pago»",
+      "button «Todo ·»",
+      "CampoSelect «Pagas desde»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «Volver»",
+      "button «Volver»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/DeudaPorVencimiento.tsx": [
+      "button «{`${TITULO[f.k]}»",
+      "button «{TITULO[f.k]}»"
+    ],
+    "components/FiltrosCompras.tsx": [
+      "input «Buscar por proveedor o número de documento»",
+      "button «Borrar la búsqueda»",
+      "CampoTexto «Número de documento o proveedor»",
+      "BotonFiltros «, accionesDespues, ].map( (contr»",
+      "DesplegablePildora «Proveedor»",
+      "DesplegablePildora «Pago»",
+      "DesplegablePildora «Recepción»",
+      "DesplegablePildora «Condición»",
+      "DesplegablePildora «Tipo de documento»",
+      "DesplegablePildora «Destino»",
+      "DesplegablePildora «Vencimiento»",
+      "button «{`Quitar filtro ${c.texto}»",
+      "button «Limpiar todo»",
+      "button «{texto}»",
+      "CampoFecha «Emitida desde»",
+      "CampoFecha «Emitida hasta»"
+    ],
+    "components/MisPartesDeCompras.tsx": [
+      "Link «{p.documento}»"
+    ],
+    "components/Paginacion.tsx": [
+      "Link «← Volver al inicio»",
+      "Link «Siguiente página →»",
+      "Link «‹»",
+      "Link «{n}»",
+      "Link «›»"
+    ],
+    "components/PagoJuntosModal.tsx": [
+      "input «{`Monto a pagar de ${c.documento}»",
+      "input «Total del pago»",
+      "SegmentoDeslizante «Cómo repartir un pago menor al total»",
+      "button «Todo ·»",
+      "button «Solo lo vencido ·»",
+      "button «{`Descontar mi saldo a favor con ${proveedorNombre}»",
+      "CampoSelect «Pagas desde»",
+      "CampoFecha «Fecha del pago»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/PagoPiezas.tsx": [
+      "Link «Agregarlo en su ficha →»",
+      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "Boton «Listo»",
+      "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
+      "CampoFecha «Fecha del pago»",
+      "CampoTexto «Referencia»",
+      "input «{`Monto del medio ${i + 1}»",
+      "CampoTexto «Referencia» #2",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «＋»",
+      "button «Usar»",
+      "button «Completar con el último medio»"
+    ],
+    "components/PorPagarControles.tsx": [
+      "Link «{`${texto}»",
+      "SegmentoDeslizante «Cómo agrupar la deuda»",
+      "button «Solo vencidas»"
+    ],
+    "components/PorPagarLista.tsx": [
+      "button «{`Quitar filtro ${filtroLocal.etiqueta}»",
+      "button «Quitar el filtro»",
+      "button «Marcar todo»",
+      "button «Limpiar»",
+      "Boton «Pagar juntos»",
+      "button «＋»",
+      "Casilla «{`Elegir ${c.documento}»",
+      "Link «(sin nombre)»",
+      "Link «)»",
+      "input «{etiqueta}»"
+    ],
+    "components/PorPagarVistaRapida.tsx": [
+      "button «Cerrar»",
+      "Link «Abrir comprobante»",
+      "button «Comprobante anterior»",
+      "button «Comprobante siguiente»"
+    ],
+    "components/SaldosAFavor.tsx": [
+      "Link «{s.nombre}»",
+      "Link «Pagar con este saldo»",
+      "Link «Ver →»"
+    ],
+    "components/SalidasDeCaja.tsx": [
+      "input «Caja disponible, para ver hasta dónde alcanza»",
+      "button «{`${s.etiqueta}»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

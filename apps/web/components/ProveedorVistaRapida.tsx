@@ -107,7 +107,7 @@ export function ProveedorVistaRapida({
               </button>
             </div>
 
-            <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5">
+            <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5" data-guia="proveedor-vista.resumen">
               <PasoSugerido paso={paso} proveedorId={p.id} animar />
 
               <dl className="mt-5 grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
@@ -133,7 +133,7 @@ export function ProveedorVistaRapida({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-vista.acciones">
               {p.activo && (
                 <Link
                   href={`/compras/nueva?prov=${p.id}`}

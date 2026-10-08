@@ -86,7 +86,7 @@ export function PlanCategoriaModal({
     <Modal titulo={`Plan de ${categoria.nombre}`} subtitulo={`${planNombre}. Hoy hay ${stock} en la red.`} onClose={onClose} variante="hoja" ancho="max-w-2xl">
       {(cerrar) => (
         <form onSubmit={(e) => guardar(e, cerrar)} className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3" data-guia="plan-modal.escenarios">
             <CampoGuiado id="flojo" guia={guia} titulo="Diciembre flojo" ayuda="Unidades">
               <CampoTexto etiqueta={<span className="sr-only">Venderías</span>} caja inputMode="numeric" value={b.flojo} onChange={(e) => cambiar("flojo")(soloDigitos(e.target.value))} />
             </CampoGuiado>
@@ -98,7 +98,7 @@ export function PlanCategoriaModal({
             </CampoGuiado>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3" data-guia="plan-modal.precios">
             <CampoGuiado id="precio" guia={guia} titulo="Precio" ayuda="De venta, promedio">
               <CampoMonto etiqueta="" inputMode="decimal" value={b.precio} onChange={(e) => cambiar("precio")(soloMonto(e.target.value))} />
             </CampoGuiado>
@@ -110,6 +110,7 @@ export function PlanCategoriaModal({
             </CampoGuiado>
           </div>
 
+          <div data-guia="plan-modal.curva">
           <CampoGuiado id="curva" guia={guia} titulo="Curva de tallas" ayuda={`Suma ${sumaCurva} %`}>
             {tallas.length === 0 ? (
               <p className="text-sm text-tinta/70">Esta categoría no tiene tallas cargadas: se compra el total.</p>
@@ -144,6 +145,7 @@ export function PlanCategoriaModal({
               </div>
             )}
           </CampoGuiado>
+          </div>
 
           <div className="rounded-xl bg-hueso px-4 py-3" aria-live="polite">
             {calculo ? (
@@ -166,7 +168,7 @@ export function PlanCategoriaModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
 
-          <div className="pie-hoja-fijo">
+          <div className="pie-hoja-fijo" data-guia="plan-modal.pie">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
             <div className="flex justify-end gap-3 pt-2">
               <Boton type="button" onClick={cerrar}>

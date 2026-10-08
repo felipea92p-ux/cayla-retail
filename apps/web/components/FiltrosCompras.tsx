@@ -173,7 +173,7 @@ export function FiltrosCompras({
       <div className={`flex gap-3 ${estiloSpike ? "flex-wrap items-center gap-x-5" : "items-start"}`}>
         {estiloSpike ? (
           // Buscador del spike: lupa, sin etiqueta, «/» a la vista y ✕ para borrar; el hilo vivo del sistema debajo.
-          <div className="group relative flex min-w-[15rem] flex-1 items-center gap-2.5 py-2 text-tinta/45">
+          <div data-guia="filtros-compras.buscador" className="group relative flex min-w-[15rem] flex-1 items-center gap-2.5 py-2 text-tinta/45">
             <Search aria-hidden className="h-4 w-4 shrink-0" />
             <input
               id={ID_BUSCADOR}
@@ -207,7 +207,7 @@ export function FiltrosCompras({
             <Hilo activo={enfocado} trabajando={buscando} />
           </div>
         ) : (
-        <div className="group relative min-w-0 flex-1">
+        <div data-guia="filtros-compras.buscador" className="group relative min-w-0 flex-1">
           {atajoBuscar && (
             // La tecla que abre el buscador se ve mientras no se usa y se va al enfocar o al escribir.
             <kbd
@@ -238,7 +238,9 @@ export function FiltrosCompras({
             que el botón quede a la altura del input, no de toda la columna. */}
         {[
           accionesAntes,
-          <BotonFiltros key="filtros" abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />,
+          <span key="filtros" data-guia="filtros-compras.boton" className="inline-flex">
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          </span>,
           accionesDespues,
         ].map(
           (control, i) =>
@@ -256,6 +258,7 @@ export function FiltrosCompras({
       </div>
 
       {panelAbierto && (
+        <div data-guia="filtros-compras.panel">
         <PanelPildoras>
           {ver("proveedor") && (
             <DesplegablePildora
@@ -345,6 +348,7 @@ export function FiltrosCompras({
 
           {ver("fechas") && <PildoraFechas desde={desde ?? ""} hasta={hasta ?? ""} onCambiar={(d, h) => aplicar({ desde: d, hasta: h })} />}
         </PanelPildoras>
+        </div>
       )}
 
       {chips.length > 0 && (

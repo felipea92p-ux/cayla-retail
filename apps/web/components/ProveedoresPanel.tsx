@@ -209,7 +209,7 @@ export function ProveedoresPanel({
           <p className="mt-1 text-sm text-tinta/65">A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.</p>
         </div>
         {puedeEditar && (
-          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)}>
+          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} data-guia="proveedores.registrar">
             <span className="flex items-center gap-2">
               <span aria-hidden>+</span> Registrar proveedor
             </span>
@@ -223,7 +223,7 @@ export function ProveedoresPanel({
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
       {hayProveedores && (
         <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
-          <div className="group/busca relative flex min-w-[14rem] flex-1 items-center gap-3 border-b border-tinta/25 px-0.5 py-1.5 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-left after:scale-x-0 after:bg-rojo after:transition-transform after:duration-300 after:ease-cayla focus-within:after:scale-x-100">
+          <div data-guia="proveedores.buscador" className="group/busca relative flex min-w-[14rem] flex-1 items-center gap-3 border-b border-tinta/25 px-0.5 py-1.5 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-left after:scale-x-0 after:bg-rojo after:transition-transform after:duration-300 after:ease-cayla focus-within:after:scale-x-100">
             <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
             <label htmlFor="proveedores-buscar" className="sr-only">
               Buscar proveedor
@@ -266,7 +266,7 @@ export function ProveedoresPanel({
           </div>
           {rubros.length > 0 && (
             // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358).
-            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Filtrar por rubro" data-guia="proveedores.rubros" className="flex flex-wrap items-center gap-2">
               {[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))].map((o) => (
                 <button key={o.clave || "todos"} type="button" aria-pressed={(rubro ?? "") === o.clave} onClick={() => setRubro(o.clave || null)} className="pildora-cayla">
                   {o.etiqueta} <span className="pildora-cayla__n">{o.conteo}</span>
@@ -278,6 +278,7 @@ export function ProveedoresPanel({
             <button
               type="button"
               aria-pressed={filtrarSinPago}
+              data-guia="proveedores.sin-pago"
               onClick={() => setSoloSinPago((v) => !v)}
               className={`anim-revelar rounded-full border px-3 py-1 text-xs tabular-nums transition-colors duration-200 ${
                 filtrarSinPago ? "border-tinta bg-tinta text-crema" : "border-ambar/40 bg-ambar/10 text-ambar-profundo hover:border-ambar-profundo"
@@ -304,6 +305,7 @@ export function ProveedoresPanel({
       ) : activos.length === 0 ? null : (
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.
+        <div data-guia="proveedores.lista">
         <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
           {verMontos ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
           {activos.map((p, indice) => (
@@ -325,6 +327,7 @@ export function ProveedoresPanel({
             />
           ))}
         </Tabla>
+        </div>
       )}
 
       {desactivados.length > 0 && (
@@ -544,7 +547,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
       {/* El destello vive en su propia capa: `animation` es una sola propiedad, y si se pusiera en la fila
           pisaría a la entrada `anim-entra` (y al quitarlo, la entrada se repetiría). */}
       {reciente && <span aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
-      <button type="button" onClick={onAbrir} aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
+      <button type="button" onClick={onAbrir} data-guia="proveedores.nombre" aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
         <NombreCelda p={p} busqueda={busqueda} marcas={marcas} marcarSinPago />
       </button>
       <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
@@ -552,7 +555,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
         {serie && <Sparkline serie={serie} indice={indice} />}
         <span className={p.facturado_12m ? "text-tinta" : "text-tinta/45"}>{soles(p.facturado_12m ?? 0)}</span>
       </span>
-      <span className="text-right text-sm tabular-nums">
+      <span className="text-right text-sm tabular-nums" data-guia="proveedores.saldo">
         {saldo > 0 ? (
           <>
             <Link
@@ -591,6 +594,7 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
         {p.activo ? (
           <Link
             href={`/compras/nueva?prov=${p.id}`}
+            data-guia="proveedores.comprobante"
             className="label-cayla relative inline-block whitespace-nowrap rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             + Comprobante

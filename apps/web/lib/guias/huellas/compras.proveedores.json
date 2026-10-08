@@ -1,0 +1,60 @@
+{
+  "guia": "compras.proveedores",
+  "ruta": "/compras/proveedores",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 42,
+  "controles": {
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/ProveedorModal.tsx": [
+      "button «Cerrar»",
+      "CampoTexto «Contacto»",
+      "CampoTexto «Teléfono»",
+      "button «{r}»",
+      "CampoTexto «Otro rubro»",
+      "button «Agregar»",
+      "SegmentoDeslizante «Plazo de crédito»",
+      "CampoTexto «Días»",
+      "button «{ETIQUETA_METODO[m]}»",
+      "CampoTexto «Banco»",
+      "CampoTexto «N.° de cuenta»",
+      "CampoTexto «{<> {}»",
+      "CampoTexto «Celular Yape / Plin»",
+      "button «{ETIQUETA_BILLETERA[b]}»",
+      "button «Usar el teléfono de contacto (»",
+      "CampoTexto «Titular de la cuenta»",
+      "button «Desactivar proveedor»",
+      "Boton «Cancelar»",
+      "Boton «(sin nombre)»"
+    ],
+    "components/ProveedorVistaRapida.tsx": [
+      "button «Cerrar»",
+      "Link «+ Comprobante»",
+      "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
+      "button «Proveedor anterior»",
+      "button «Proveedor siguiente»",
+      "Link «Abrir ficha completa →»"
+    ],
+    "components/ProveedoresIndicadores.tsx": [
+      "button «{`${t.nombre}»"
+    ],
+    "components/ProveedoresPanel.tsx": [
+      "Boton «proveedores.registrar»",
+      "input «{hayMarcas ? \"Nombre, marca, RUC o contacto\" : \"Nombre, RUC o contacto\"}»",
+      "button «Limpiar búsqueda»",
+      "button «{o.etiqueta}»",
+      "button «proveedores.sin-pago»",
+      "button «Registrarlo →»",
+      "Link «{`${p.nombre}»",
+      "button «proveedores.nombre»",
+      "Link «{soles(saldo)}»",
+      "Link «{soles(p.saldo_favor ?? 0)}»",
+      "Link «proveedores.comprobante»",
+      "Boton «{cambiando ? \"…\" : \"Reactivar\"}»",
+      "button «{titulo}»"
+    ]
+  }
+}

@@ -12,7 +12,10 @@ const id = (sql) => {
 };
 
 export const EJEMPLOS = {
-  "/compras/factura/[compraId]": { url: () => `/compras/factura/${id("select id from retail.compras order by created_at desc limit 1")}` },
+  // La factura con más que enseñar: con saldo y mercadería por llegar (así se ven «Cerrar con faltante», «Ir a recibir» y «Registrar pago»).
+  "/compras/factura/[compraId]": {
+    url: () => `/compras/factura/${id("select id from retail.compras where estado = 'vigente' order by (saldo > 0) desc, (estado_recepcion <> 'recibida') desc, created_at desc limit 1")}`,
+  },
   "/compras/parte/[compraId]": { url: () => `/compras/parte/${id("select id from retail.compras order by created_at desc limit 1")}` },
   "/compras/proveedores/[id]": { url: () => `/compras/proveedores/${id("select id from retail.proveedores order by created_at desc limit 1")}` },
   // Abierto (se cuenta) y, si no hay, uno cerrado (el resultado), antes que uno cancelado: es la cara que más hay que enseñar.

@@ -128,7 +128,7 @@ export function NotaCreditoVistaRapida({
 
               <LineaDeVida pasos={pasos} />
 
-              <div className={`card-cayla anim-revelar mt-[18px] border-l-2 px-4 py-3 text-[13.5px] leading-relaxed text-tinta ${BORDE_SUGERENCIA[sugerencia.tono]}`} style={{ animationDelay: "220ms" }}>
+              <div data-guia="notas-credito.vista-sugerencia" className={`card-cayla anim-revelar mt-[18px] border-l-2 px-4 py-3 text-[13.5px] leading-relaxed text-tinta ${BORDE_SUGERENCIA[sugerencia.tono]}`} style={{ animationDelay: "220ms" }}>
                 {sugerencia.texto}
               </div>
 
@@ -143,7 +143,7 @@ export function NotaCreditoVistaRapida({
               </section>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="notas-credito.vista-acciones">
               {f.clase === "pendiente" ? (
                 <button
                   type="button"

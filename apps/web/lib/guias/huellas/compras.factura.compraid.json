@@ -1,0 +1,85 @@
+{
+  "guia": "compras.factura.compraid",
+  "ruta": "/compras/factura/[compraId]",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 57,
+  "controles": {
+    "app/(app)/compras/factura/[compraId]/page.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/AccionesFaltantes.tsx": [
+      "button «factura.cerrar-faltante»"
+    ],
+    "components/AdjuntosCompra.tsx": [
+      "input «input.current?.click()»",
+      "Boton «{texto}»",
+      "button «{`Quitar ${f.name}»",
+      "a «{a.nombre}»",
+      "a «Ver»",
+      "button «Quitar»",
+      "button «Cancelar»",
+      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+    ],
+    "components/CerrarFaltanteModal.tsx": [
+      "CampoSelect «¿En qué tienda faltó?»",
+      "input «de»",
+      "button «{texto}»",
+      "ComboResponsable «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»",
+      "button «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»"
+    ],
+    "components/CompraDetalle.tsx": [
+      "a «Finanzas ▸ Gastos»",
+      "Link «Recibir mercadería →»"
+    ],
+    "components/CompraDetallePanel.tsx": [
+      "button «Anular comprobante»",
+      "Boton «Ir a recibir»",
+      "Boton «Registrar pago»",
+      "button «Pagado»",
+      "Boton «→() => setAbierto(true)»",
+      "input «{`Monto a pagar de ${compra.documento}»",
+      "input «Total del pago»",
+      "button «Todo ·»",
+      "CampoSelect «Pagas desde»",
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «Volver»",
+      "button «Volver»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/NotasCreditoCompra.tsx": [
+      "Link «Registrar en Notas de crédito ↗»",
+      "Link «Notas de crédito»"
+    ],
+    "components/PagoPiezas.tsx": [
+      "Link «Agregarlo en su ficha →»",
+      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "Boton «Listo»",
+      "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
+      "CampoFecha «Fecha del pago»",
+      "CampoTexto «Referencia»",
+      "input «{`Monto del medio ${i + 1}»",
+      "CampoTexto «Referencia» #2",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «＋»",
+      "button «Usar»",
+      "button «Completar con el último medio»"
+    ],
+    "components/ReasignarReparto.tsx": [
+      "button «{etiqueta}»",
+      "CampoSelect «¿De qué línea?»",
+      "CampoSelect «Sale de»",
+      "CampoSelect «Va a»",
+      "input «de»",
+      "input «{ETIQUETA_MOTIVO_REASIGNACION[m]}»",
+      "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
+      "ComboResponsable «{loading ? \"Moviendo…\" : cantidadOk && haciaId ? `Mover ${n}»",
+      "button «{error ?? undefined}»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

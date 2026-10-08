@@ -1,0 +1,77 @@
+{
+  "guia": "compras.nueva",
+  "ruta": "/compras/nueva",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 51,
+  "controles": {
+    "app/(app)/compras/nueva/page.tsx": [
+      "Volver «Compras»"
+    ],
+    "components/AdjuntosCompra.tsx": [
+      "input «input.current?.click()»",
+      "Boton «{texto}»",
+      "button «{`Quitar ${f.name}»",
+      "a «{a.nombre}»",
+      "a «Ver»",
+      "button «Quitar»",
+      "button «Cancelar»",
+      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+    ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
+    "components/CompraFormProgreso.tsx": [
+      "button «Usar»",
+      "Boton «{children}»"
+    ],
+    "components/CompraFormV2.tsx": [
+      "Link «Regístralo en Proveedores»",
+      "ComboBuscable «(sin nombre)»",
+      "SegmentoDeslizante «Tipo de documento»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoFecha «Fecha de emisión»",
+      "SegmentoDeslizante «Condición de pago»",
+      "CampoFecha «Vence el»",
+      "button «Volver al sugerido (»",
+      "CampoFecha «Fecha estimada de llegada»",
+      "button «Volver a la sugerida (»",
+      "CampoTexto «IGV %»",
+      "button «Repartir todas en partes iguales»",
+      "ComboBuscable «elegirVariante(i, id)»",
+      "Desplegable «actualizarLinea(i,»",
+      "input «Cantidad»",
+      "input «Costo unitario»",
+      "button «Quitar»",
+      "button «+ Agregar línea»",
+      "input «Registrar un pago ahora»",
+      "CampoTexto «Nota (opcional)»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»"
+    ],
+    "components/DestinoDelMedio.tsx": [
+      "Link «Agregar en su ficha ↗»",
+      "button «{`Copiar ${fila.etiqueta}»"
+    ],
+    "components/LineasPago.tsx": [
+      "button «Usar»",
+      "button «{ETIQUETA_METODO_PAGO[m]}»",
+      "CampoTexto «{i === 0 ? \"Monto\" : `Monto ${i + 1}»",
+      "CampoTexto «N.° de operación»",
+      "button «Quitar»",
+      "Boton «+ Agregar otro medio de pago»"
+    ],
+    "components/RepartoEnRegistro.tsx": [
+      "CampoSelect «Mercadería destinada a»",
+      "SegmentoDeslizante «Destino de la mercadería»",
+      "button «{activa && <Check aria-hidden className=\"h-3 w-3\" />}»",
+      "Desplegable «)»",
+      "input «{`Unidades para ${t.nombre}»",
+      "button «Partes iguales»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ]
+  }
+}

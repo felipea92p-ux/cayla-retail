@@ -47,6 +47,7 @@ import {
   GUIA_NUEVO_PRODUCTO,
   GUIA_PRODUCTOS,
 } from "./pantallas/catalogo";
+import { GUIA_FACTURA, GUIA_FACTURAS, GUIA_MI_PARTE, GUIA_NOTAS_CREDITO, GUIA_NUEVA_FACTURA, GUIA_PLAN_CAMPANA, GUIA_POR_PAGAR, GUIA_PROVEEDOR, GUIA_PROVEEDORES } from "./pantallas/compras";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -92,10 +93,19 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FAMILIAS,
   GUIA_MARCAS,
   GUIA_NUEVO_PRODUCTO,
+  GUIA_FACTURAS,
+  GUIA_FACTURA,
+  GUIA_POR_PAGAR,
+  GUIA_NOTAS_CREDITO,
+  GUIA_PROVEEDORES,
+  GUIA_PROVEEDOR,
+  GUIA_NUEVA_FACTURA,
+  GUIA_MI_PARTE,
+  GUIA_PLAN_CAMPANA,
 ];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 43;
+export const PENDIENTES_HOY = 34;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -122,17 +132,17 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/comercial": PENDIENTE,
   "/comercial/calidad": PENDIENTE,
   // ---- compras ----
-  "/compras": PENDIENTE,
+  "/compras": { estado: "aplicada", guia: GUIA_FACTURAS.id },
   "/compras/@modal/(.)factura/[compraId]": { estado: "no-aplica", motivo: "La misma vista que /compras/factura/[compraId] abierta como hoja: comparte su guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
-  "/compras/factura/[compraId]": PENDIENTE,
-  "/compras/notas-credito": PENDIENTE,
-  "/compras/nueva": PENDIENTE,
-  "/compras/parte/[compraId]": PENDIENTE,
-  "/compras/plan": PENDIENTE,
-  "/compras/por-pagar": PENDIENTE,
-  "/compras/proveedores": PENDIENTE,
-  "/compras/proveedores/[id]": PENDIENTE,
+  "/compras/factura/[compraId]": { estado: "aplicada", guia: GUIA_FACTURA.id },
+  "/compras/notas-credito": { estado: "aplicada", guia: GUIA_NOTAS_CREDITO.id },
+  "/compras/nueva": { estado: "aplicada", guia: GUIA_NUEVA_FACTURA.id },
+  "/compras/parte/[compraId]": { estado: "aplicada", guia: GUIA_MI_PARTE.id },
+  "/compras/plan": { estado: "aplicada", guia: GUIA_PLAN_CAMPANA.id },
+  "/compras/por-pagar": { estado: "aplicada", guia: GUIA_POR_PAGAR.id },
+  "/compras/proveedores": { estado: "aplicada", guia: GUIA_PROVEEDORES.id },
+  "/compras/proveedores/[id]": { estado: "aplicada", guia: GUIA_PROVEEDOR.id },
   // ---- configuracion ----
   "/configuracion": PENDIENTE,
   // ---- devoluciones ----

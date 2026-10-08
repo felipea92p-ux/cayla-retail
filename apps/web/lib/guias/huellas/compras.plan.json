@@ -1,0 +1,25 @@
+{
+  "guia": "compras.plan",
+  "ruta": "/compras/plan",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 13,
+  "controles": {
+    "components/plan-compra/PlanCampana.tsx": [
+      "button «plan.categoria»"
+    ],
+    "components/plan-compra/PlanCategoriaModal.tsx": [
+      "CampoTexto «{<span className=\"sr-only\">Venderías</span>}»",
+      "CampoTexto «{<span className=\"sr-only\">Venderías</span>}» #2",
+      "CampoTexto «{<span className=\"sr-only\">Venderías</span>}» #3",
+      "CampoMonto «cambiar(\"costo\")(soloMonto(e.target.value))»",
+      "CampoMonto «Porcentaje del precio»",
+      "CampoTexto «{<span className=\"sr-only\">Porcentaje del precio</span>}»",
+      "CampoTexto «{<span className=\"sr-only\">{`Porcentaje de la talla ${t.valor}»",
+      "button «Volver a la que propone el sistema»",
+      "CampoTexto «Nota (opcional)»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ]
+  }
+}
