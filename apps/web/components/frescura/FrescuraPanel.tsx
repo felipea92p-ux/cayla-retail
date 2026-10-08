@@ -147,10 +147,15 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
     setPrendaAbierta(clave);
     escribirUrl(filtros, clave);
   };
-  // El botón de la fila que anota (`accionDeFila`, tipo `anotar`): a un toque si ya se sabe quién anota y se pudo leer la libreta
-  // (sin la última línea la base rechazaría); si no, la hoja con la opción ya marcada, que pide lo que falta.
-  const anotarDesdeFila = (p: (typeof enTabla)[number], accion: AccionDecision) => {
-    if (!ctx || !decisionesOk || !anotador.responsable.listo) {
+  // El botón de la fila que anota (`accionDeFila`, tipo `anotar`): a un toque si ya se sabe quién anota; si no, la hoja con la
+  // opción ya marcada, que pide lo que falta. Sin la libreta leída no se anota ni se abre «Ya decidí» (la base compararía con una
+  // última línea que no se sabe): `accionDeFila` ya no ofrece el botón, y por si acaso, aquí se abre el detalle.
+  const anotarDesdeFila = (p: (typeof enTabla)[number], accion: AccionDecision, verbo: string) => {
+    if (!ctx || !decisionesOk) {
+      abrir(p.clave, "detalle");
+      return;
+    }
+    if (!anotador.responsable.listo) {
       abrir(p.clave, "decidir", accion);
       return;
     }
@@ -161,7 +166,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       plazoDias: plazoDeAccion(accion, ctx.categorias.get(p.categoriaId), ctx.cayla?.get(p.categoriaId)),
       transferenciaId: null,
       nota: null,
+      verbo,
     });
+  };
+  // El error de anotar desde la fila se pinta junto a SU botón (`FrescuraFila`); «Ver» (otra persona anotó antes) refresca la lectura.
+  const limpiarErrorDeFila = () => {
+    const conVer = anotador.error?.conVer ?? false;
+    anotador.limpiarError();
+    if (conVer) router.refresh();
   };
   useEffect(() => {
     if (prendaAbierta && !volverA.current) volverA.current = filaDe(prendaAbierta);
@@ -323,17 +335,6 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 </span>
               </p>
             )}
-            {anotador.error && (
-              <p role="alert" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  {anotador.error.texto}{" "}
-                  <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => (anotador.limpiarError(), anotador.error?.conVer ? router.refresh() : undefined)}>
-                    {anotador.error.conVer ? "Ver" : "Entendido"}
-                  </button>
-                </span>
-              </p>
-            )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
@@ -412,10 +413,12 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                               marcarAproximado={avisoPocas === null}
                               apariencia={datos.apariencias[p.clave] ?? null}
                               categoria={datos.categoriasVisuales[p.categoriaId] ?? null}
-                              accion={accionDeFila(p, ctx!, p.decision?.vigente ?? false)}
+                              accion={accionDeFila(p, ctx!, p.decision?.vigente ?? false, decisionesOk)}
                               enviando={anotador.enviando === p.clave}
-                              onAnotar={(accion) => anotarDesdeFila(p, accion)}
-                              onDecidir={(opcion) => abrir(p.clave, "decidir", opcion)}
+                              error={anotador.error?.clave === p.clave ? anotador.error : null}
+                              onAnotar={(accion, verbo) => anotarDesdeFila(p, accion, verbo)}
+                              onDecidir={(modo, opcion) => abrir(p.clave, modo, opcion)}
+                              onLimpiarError={limpiarErrorDeFila}
                             />
                           ))}
                         </div>

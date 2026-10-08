@@ -49,8 +49,9 @@
   estado, cuántas prendas esperan decisión y con qué vara se juzgó; tocar una fila deja en la lista solo esa categoría
   (y otra vez la suelta). Verificado en el navegador con datos reales (la salida guardada de la base, 17 prendas), a
   1440 y 375 px, en claro y oscuro.
-- **Por qué así:** la barra apilada ya existía dibujada a mano en «Deuda por vencimiento» (Compras); la llevé a una pieza
-  (`ui/BarraApilada`) con la misma forma en vez de inventar otra (ADR-0358). Los colores de la barra son los de los chips
+- **Por qué así:** la barra apilada ya existía dibujada a mano en «Deuda por vencimiento» (Compras); creé `ui/BarraApilada` con
+  esa misma forma en vez de inventar otra (ADR-0358) —Compras sigue con la suya a mano: migrarla es deuda de `/unificar`, no de
+  esta ronda—. Los colores de la barra son los de los chips
   (colores A): la encargada no aprende una segunda paleta. El tablero se arma con TODAS las prendas de la tabla, no con las
   filtradas, para que no cambie al tocarlo.
 - **Felipe se lleva:** el tablero se ordena por lo que más pide decidir (unidades que se quedan o hay que mover), no por
@@ -93,3 +94,21 @@
 - **Felipe se lleva:** lo que se construyó no cambia ningún número de la base ni mueve stock: cambia **contra qué se
   compara** cada prenda (su tienda, o CAYLA cuando la tienda sabe poco) y **cuánta evidencia** hace falta para decir «se
   está quedando». La captura de TRU del 7 de octubre, con esta rama, dice «Recién llegada» hasta que haya datos.
+
+## Revisión adversaria antes del PR
+
+- **Qué hice:** seis revisores de solo lectura sobre el diff (reglas, SQL, cron y lectura, pantalla, docs y herramientas, pruebas)
+  y tres escépticos por hallazgo con lentes distintas (reproducirlo, ¿ya lo cubre algo?, ¿qué consecuencia real tiene?): 18
+  hallazgos, 16 confirmados, 2 refutados, ninguno preexistente. Los 16 quedaron corregidos el mismo día con su prueba. El de peso:
+  la resta «como en la foto» contra CAYLA cortaba por hora unos eventos armados con los apartados de HOY, y un apartado que en la
+  foto seguía abierto (una venta para el cron) y hoy ya se liberó sin venderse quedaba dentro de «su categoría sin ella». Ahora la
+  foto se rearma desde el libro y los apartados de entonces (`limpiosEnLaFoto`). Los demás: la fila decía «mucho más lenta» y al
+  lado «no se sabe qué tan rápido se vende» en el caso exacto de la captura (`poca_evidencia`); «Contra CAYLA» en una categoría de
+  puros clásicos; el botón de la fila abría «Ya decidí» con la libreta sin leer; las cifras del tablero solo al pasar el mouse;
+  el error de anotar lejos del botón; «1 de 4 prendas no tienen»; y seis de docs/pruebas (DRIFT.md regenerado, la hora del cron
+  nuevo ahora vigilada, el comentario copiado en la migración, la bitácora que decía que Compras ya usaba la pieza).
+- **Por qué así:** antes del PR y no después: cada hallazgo se verificó ejecutando el código (los escépticos escribieron pruebas
+  en un scratchpad), y lo que sobrevivió a dos de tres refutaciones se arregla; lo dudoso se pierde a propósito. El límite que
+  queda (lo colgado entre el `desde` del cron y el de hoy no se resta) está escrito en el ADR y en el código, con su tamaño.
+- **Felipe se lleva:** una revisión que intenta REFUTAR encuentra más que una que confirma: de 18, 2 cayeron por un mecanismo que
+  el revisor había imaginado y no existía. Y el único error de dato de toda la rama vivía en el lugar que más veces decía «exacto».

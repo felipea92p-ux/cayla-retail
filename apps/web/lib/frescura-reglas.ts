@@ -1498,6 +1498,18 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
       }),
     });
   }
+  // Los eventos de una talla COMO LOS VIO EL CRON a la hora de la foto de CAYLA: el libro y lo apartado hasta `calculadaEn`, y
+  // recién después las tardías. No sirve cortar `limpios` por hora: ahí lo apartado ya entró con lo que se sabe HOY, y un apartado
+  // que en la foto seguía abierto (una venta para el cron) hoy puede ser una pausa (se liberó sin venderse): la resta no lo
+  // encontraría y su venta quedaría dentro de «su categoría sin ella» (revisión adversaria, 2026-10-08).
+  const limpiosEnLaFoto = (varianteId: string, calcMs: number): EventoPiso[] =>
+    excluirTardias(
+      eventosConApartados(
+        (l.eventos[varianteId] ?? []).filter((e) => ms(e.ts) <= calcMs),
+        apartados[varianteId]?.filter((a) => ms(a.ts) <= calcMs),
+      ),
+      tardiasPorOid,
+    );
   const observaciones: ObservacionesSede = {};
   for (const [cat, { nombre, ids }] of tallasDeCategoria) {
     if (ids.length === 0) continue;
@@ -1581,15 +1593,18 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
     let resto: MedidaContraElResto | null = null;
     if (medibles.length > 0 && juzgadaContra === "cayla" && varaCayla !== null) {
       // Contra CAYLA, sus propias unidades se restan COMO LAS VIO EL CRON (D5, «sin ella»): los mismos eventos hasta
-      // `calculadaEn`, la misma ventana y el mismo FIFO. La curva de CAYLA es una foto de la madrugada; restarle lo que la
-      // prenda tiene HOY le quitaría unidades con una edad que la foto no tenía (lo que se colgó después no está en ella, y lo
-      // que sigue colgado tiene más horas). Lo que se MIDE (`suyasObs`) sí es lo de hoy: a esa edad se espera la venta.
+      // `calculadaEn` —el libro y los apartados de entonces, `limpiosEnLaFoto`—, la misma ventana y el mismo FIFO. La curva de
+      // CAYLA es una foto de la madrugada; restarle lo que la prenda tiene HOY le quitaría unidades con una edad que la foto no
+      // tenía (lo que se colgó después no está en ella, y lo que sigue colgado tiene más horas). Lo que se MIDE (`suyasObs`) sí
+      // es lo de hoy: a esa edad se espera la venta. Límite conocido: la lectura de hoy empieza hasta 3 días después que la del
+      // cron (los mismos `FRESCURA_DIAS_LECTURA`, contados desde ahora y no desde la foto), así que una unidad de la prenda
+      // colgada en esos días —120 días atrás— entra a la lectura como saldo sin edad y no se resta: a lo sumo un puñado de
+      // unidades viejas entre 10 ventas o más.
       const calcMs = ms(varaCayla.calculadaEn);
       const inicioMs = calcMs - varaCayla.ventanaDias * MS_POR_DIA;
       const propiasEnLaFoto = tallas.flatMap((t) => {
-        const limpios = limpiosPorVariante.get(t.varianteId);
-        if (limpios === undefined) return [];
-        const hastaLaFoto = limpios.filter((e) => ms(e.ts) <= calcMs);
+        if (!limpiosPorVariante.has(t.varianteId)) return [];
+        const hastaLaFoto = limpiosEnLaFoto(t.varianteId, calcMs);
         const eventos = inicioMs <= desdeMs ? hastaLaFoto : recortarEventos(hastaLaFoto, new Date(inicioMs).toISOString());
         return unidadesParaVara(eventos, varaCayla.calculadaEn).observaciones;
       });
@@ -1661,13 +1676,16 @@ export function analizarSede(l: LecturaFrescuraConPiso, respaldo?: RespaldoCayla
   }
   prendas.sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es") || b.reloj.segundos - a.reloj.segundos || a.clave.localeCompare(b.clave));
 
+  // El respaldo está EN USO solo si alguna prenda de la categoría se juzgó contra CAYLA: una categoría de puros clásicos (o de
+  // prendas que no cuadran) no se juzga contra nada, y el tablero no debe decir «Contra CAYLA» (revisión adversaria, 2026-10-08).
+  const juzgadasContraCayla = new Set(prendas.filter((p) => p.juzgadaContra === "cayla").map((p) => p.categoriaId));
   const categorias = [...varas.entries()]
-    .map(([id, { nombre, vara, respaldo: r, usaRespaldo }]) => ({
+    .map(([id, { nombre, vara, respaldo: r }]) => ({
       ...aVaraCategoria(id, nombre, vara),
       respaldo:
         r === null
           ? null
-          : { ...aVaraCategoria(id, nombre, { ventanaDias: r.ventanaDias, curva: r.curva, cortes: cortes(r.curva), vendidas: r.vendidas, nivel: r.nivel }), calculadaEn: r.calculadaEn, enUso: usaRespaldo },
+          : { ...aVaraCategoria(id, nombre, { ventanaDias: r.ventanaDias, curva: r.curva, cortes: cortes(r.curva), vendidas: r.vendidas, nivel: r.nivel }), calculadaEn: r.calculadaEn, enUso: juzgadasContraCayla.has(id) },
     }))
     .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre, "es"));
 

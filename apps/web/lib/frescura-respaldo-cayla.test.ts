@@ -11,12 +11,13 @@ import {
   type LecturaFrescuraConPiso,
   type LlamarRpcFrescura,
   type Observacion,
+  type PuntoApartado,
   type RespaldoCayla,
   type TallaFrescuraCruda,
   type VaraRespaldo,
 } from "./frescura-reglas";
-import { leerRespaldoCayla, respaldoDe, type FilaVaraCayla } from "./frescura-vara-cayla";
-import { APROXIMADO, CONTRA_CAYLA, estadoVista } from "./frescura-pantalla";
+import { filasDeVaraCayla, leerRespaldoCayla, respaldoDe, type FilaVaraCayla } from "./frescura-vara-cayla";
+import { APROXIMADO, CONTRA_CAYLA, estadoVista, textoRespaldo, varaTablero } from "./frescura-pantalla";
 
 // La vara de CAYLA como RESPALDO (ADR-0208, actualización 2026-10-07, decisión 2 de Felipe): con menos de 10 ventas en la
 // tienda y 10 o más en CAYLA, el tramo y la rapidez se miden contra la curva de las tres tiendas y la fila lo dice. De punta
@@ -160,6 +161,56 @@ describe("analizarSede con la vara de CAYLA de respaldo", () => {
     const { sede } = analizarSede(lectura(tallas, { s1: [bajada(116, 1)] }), new Map([["", respaldoCon(CAYLA_CAPAS).get("capas")!]]));
     expect(prendaDe(sede, "suelta").juzgadaContra).toBe("sede");
     expect(sede.categorias[0].respaldo).toBeNull();
+  });
+});
+
+describe("la revisión adversaria del 2026-10-08: la foto se rearma con los apartados de ENTONCES, y «en uso» es por lo juzgado", () => {
+  const lecturaCon = (
+    tallas: TallaFrescuraCruda[],
+    eventos: Record<string, EventoPiso[]>,
+    o: { desde: string; ahora: string; apartados?: Record<string, PuntoApartado[]> },
+  ): LecturaFrescuraConPiso => ({ ...lectura(tallas, eventos), ...o });
+  /** Tienda B: 12 capas vendidas entre los días 82 y 116 (la que le da a CAYLA sus 10 ventas o más). */
+  const tiendaB = () => {
+    const tallas = Array.from({ length: 12 }, (_, i) => talla(`b${i}`, `capa-b${i}`, { primeraExhibicion: ts(80 + i) }));
+    const eventos: Record<string, EventoPiso[]> = Object.fromEntries(tallas.map((t, i) => [t.varianteId, [bajada(80 + i, 1), venta(80 + i + 2 + i * 2, 1)]]));
+    return { tallas, eventos };
+  };
+
+  it("un apartado abierto en la foto fue una venta para el cron; liberado sin venderse después, la web igual se la resta a «su categoría sin ella»", () => {
+    // Tienda A: X colgada el día 100 y apartada el 110 (sigue apartada en la foto de las 119,5); Z colgada el 100, sin nada.
+    const tallasA = [talla("x", "capa-x", { primeraExhibicion: ts(100), pisoHoy: 1 }), talla("z", "capa-z", { primeraExhibicion: ts(100), pisoHoy: 1 })];
+    const eventosA: Record<string, EventoPiso[]> = { x: [bajada(100, 1)], z: [bajada(100, 1)] };
+    const b = tiendaB();
+    // El cron, a las 119,5: lee cada tienda como estaba entonces y junta sus observaciones (la receta de `calcularVaraCayla`).
+    const cron = { desde: ts(-0.5), ahora: ts(119.5) };
+    const obsA = analizarSede(lecturaCon(tallasA, eventosA, { ...cron, apartados: { x: [{ ts: ts(110), delta: -1 }] } })).observaciones;
+    const obsB = analizarSede(lecturaCon(b.tallas, b.eventos, cron)).observaciones;
+    const filas = filasDeVaraCayla([obsA, obsB]).map((f) => ({ ...f, calculadaEn: ts(119.5) }));
+    expect(filas).toHaveLength(1);
+    // 12 de B más la apartada de X: para el cron, lo apartado es una venta.
+    expect(filas[0].vendidas).toBe(13);
+    const respaldo = respaldoDe(filas, ts(120));
+    // La web, a las 120: el apartado de X se liberó sin venderse a las 119,8 (hoy es una pausa, no una venta).
+    const hoy = analizarSede(
+      lecturaCon(tallasA, eventosA, { desde: ts(0), ahora: ts(120), apartados: { x: [{ ts: ts(110), delta: -1 }, { ts: ts(119.8), delta: 1 }] } }),
+      respaldo,
+    ).sede;
+    expect(prendaDe(hoy, "capa-x").juzgadaContra).toBe("cayla");
+    // Sin ella: las 12 de B. Antes del arreglo quedaba en 13: su propia venta de la foto seguía dentro del resto.
+    expect(prendaDe(hoy, "capa-x").categoriaSinElla?.vendidas).toBe(12);
+    // Z no vendió nada en la foto: las 13 enteras.
+    expect(prendaDe(hoy, "capa-z").categoriaSinElla?.vendidas).toBe(13);
+  });
+
+  it("una categoría de puros clásicos no se juzga contra nada: el respaldo no está «en uso», el tablero no dice «Contra CAYLA» y «¿Cómo se lee esto?» dice por qué", () => {
+    const tallas = [talla("k1", "capa-clasica", { esClasico: true, primeraExhibicion: ts(100), pisoHoy: 2 })];
+    const { sede } = analizarSede(lectura(tallas, { k1: [bajada(100, 2)] }), respaldoCon(CAYLA_CAPAS));
+    expect(prendaDe(sede, "capa-clasica").juzgadaContra).toBe("sede");
+    const cat = sede.categorias.find((c) => c.categoriaId === "capas")!;
+    expect(cat.respaldo).toMatchObject({ vendidas: 30, enUso: false });
+    expect(varaTablero(cat)).toEqual({ texto: "Sin ventas", tono: "apagado" });
+    expect(textoRespaldo(cat)).toBe("Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (30 ventas) queda de apoyo.");
   });
 });
 

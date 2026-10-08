@@ -9,6 +9,7 @@ import type { AccionDecision } from "@/lib/frescura-decisiones-reglas";
 import type { FilaDeDecision } from "@/lib/frescura-decisiones-pantalla";
 import { APROXIMADO, type AccionFila, type FilaVista } from "@/lib/frescura-pantalla";
 import { EstadoChip, ICONO_SUGERENCIA } from "./piezas";
+import type { ErrorAnotar } from "./useAnotarDecision";
 
 // Una prenda (modelo+color) de Frescura del piso: la fila de la tabla en la computadora y la tarjeta en el celular. Una fila =
 // una prenda = una frase (Formidable, ADR-0350): la prenda con su miniatura (la foto o, sin foto, el ícono de su categoría sobre
@@ -107,20 +108,25 @@ function Estado({ fila, marcarAproximado }: { fila: FilaVista; marcarAproximado:
 
 /**
  * El botón de la fila: su verbo, y lo que hace. `anotar` deja la decisión anotada a un toque (y «Deshacer» en el aviso);
- * `enlace` abre la pantalla que hace la cosa; `hoja` abre la hoja para elegir. «¿Por qué?» abre siempre el detalle.
+ * `enlace` abre la pantalla que hace la cosa; `hoja` abre la hoja (a «Ya decidí» con la opción marcada, o al detalle). «¿Por qué?»
+ * abre siempre el detalle. Si anotar falló, el error se dice AQUÍ, junto al botón que se tocó, no arriba de la tabla.
  */
 function Accion({
   accion,
   enviando,
+  error,
   onAnotar,
   onDecidir,
   onAbrir,
+  onLimpiarError,
 }: {
   accion: AccionFila | null;
   enviando: boolean;
-  onAnotar: (accion: AccionDecision) => void;
-  onDecidir: (opcion: AccionDecision | null) => void;
+  error: ErrorAnotar | null;
+  onAnotar: (accion: AccionDecision, verbo: string) => void;
+  onDecidir: (modo: "detalle" | "decidir", opcion: AccionDecision | null) => void;
   onAbrir: () => void;
+  onLimpiarError: () => void;
 }) {
   const detener = (e: MouseEvent) => e.stopPropagation();
   return (
@@ -132,7 +138,7 @@ function Accion({
           disabled={enviando}
           onClick={(e) => {
             detener(e);
-            onAnotar(accion.accion);
+            onAnotar(accion.accion, accion.verbo);
           }}
         >
           {enviando ? "Anotando…" : accion.verbo}
@@ -149,7 +155,7 @@ function Accion({
           className="btn-cayla btn-secundario btn-chico"
           onClick={(e) => {
             detener(e);
-            onDecidir(accion.opcion);
+            onDecidir(accion.modo, accion.opcion);
           }}
         >
           {accion.verbo}
@@ -165,6 +171,21 @@ function Accion({
       >
         ¿Por qué?
       </button>
+      {error && (
+        <span role="alert" className="basis-full text-[12.5px] leading-snug text-tinta/80 md:text-right">
+          {error.texto}{" "}
+          <button
+            type="button"
+            className="btn-cayla btn-enlace text-[12.5px]"
+            onClick={(e) => {
+              detener(e);
+              onLimpiarError();
+            }}
+          >
+            {error.conVer ? "Ver" : "Entendido"}
+          </button>
+        </span>
+      )}
     </span>
   );
 }
@@ -181,8 +202,10 @@ export function FrescuraFila({
   categoria,
   accion,
   enviando,
+  error,
   onAnotar,
   onDecidir,
+  onLimpiarError,
 }: {
   fila: FilaVista;
   onAbrir: () => void;
@@ -195,8 +218,11 @@ export function FrescuraFila({
   accion: AccionFila | null;
   /** Se está anotando ESTA prenda. */
   enviando: boolean;
-  onAnotar: (accion: AccionDecision) => void;
-  onDecidir: (opcion: AccionDecision | null) => void;
+  /** Falló anotar ESTA prenda: se dice junto a su botón. */
+  error: ErrorAnotar | null;
+  onAnotar: (accion: AccionDecision, verbo: string) => void;
+  onDecidir: (modo: "detalle" | "decidir", opcion: AccionDecision | null) => void;
+  onLimpiarError: () => void;
 }) {
   return (
     <div
@@ -210,7 +236,7 @@ export function FrescuraFila({
         <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
-        <Accion accion={accion} enviando={enviando} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} />
+        <Accion accion={accion} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
       </div>
 
       {/* Celular: una tarjeta con lo mismo, apilado. */}
@@ -218,7 +244,7 @@ export function FrescuraFila({
         <Prenda fila={fila} apariencia={apariencia} categoria={categoria} onAbrir={onAbrir} />
         <Estado fila={fila} marcarAproximado={marcarAproximado} />
         <QueHacer fila={fila} decision={decision} />
-        <Accion accion={accion} enviando={enviando} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} />
+        <Accion accion={accion} enviando={enviando} error={error} onAnotar={onAnotar} onDecidir={onDecidir} onAbrir={onAbrir} onLimpiarError={onLimpiarError} />
       </div>
     </div>
   );

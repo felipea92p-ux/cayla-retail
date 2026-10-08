@@ -141,25 +141,26 @@ export async function getFrescuraPantalla(
 ): Promise<DatosFrescura> {
   const supabase = await createClient();
   const rpc = rpcFrescura(supabase);
-  const ubicaciones = await getUbicaciones();
+  // Las tres lecturas chicas a la vez —las sedes, la vara de CAYLA de respaldo y los nombres de las temporadas— y recién después
+  // las tiendas: `analizarSede` necesita la vara al juzgar cada prenda. Si la vara falla no frena nada: se juzga contra la tienda y
+  // la pantalla lo dice.
+  const [ubicaciones, { respaldo, calculadaEn, fallo: falloRespaldo }, temporadas] = await Promise.all([
+    getUbicaciones(),
+    leerRespaldoCayla(rpc, new Date().toISOString()),
+    nombresDeTemporadas(supabase),
+  ]);
   const activa = ubicaciones.find((u) => u.id === persona.ubicacionId);
   const sede = { id: persona.ubicacionId, nombre: activa?.nombre ?? persona.ubicacionEtiqueta, tienda: activa?.tipo === "tienda" };
   const sinPiso: Tolerado<{ separaPiso: false }> = { datos: { separaPiso: false }, fallo: null };
-  // La vara de CAYLA de respaldo va antes que las tiendas: `analizarSede` la necesita al juzgar cada prenda. Es una lectura
-  // chica (una fila por categoría) y si falla no frena nada: se juzga contra la tienda y la pantalla lo dice.
-  const { respaldo, calculadaEn, fallo: falloRespaldo } = await leerRespaldoCayla(rpc, new Date().toISOString());
   const respaldoCayla = { calculadaEn, fallo: falloRespaldo };
 
   if (persona.rol !== "lider") {
-    const [lectura, temporadas] = await Promise.all([
-      sede.tienda ? armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo).then((f) => f.lectura) : Promise.resolve(sinPiso),
-      nombresDeTemporadas(supabase),
-    ]);
+    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo)).lectura : sinPiso;
     return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, tiendas: null, temporadas, ...(await miniaturasDeLaTabla(supabase, lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
-  const [lider, temporadas] = await Promise.all([armarFrescuraLider(tiendas, rpc, dias, respaldo), nombresDeTemporadas(supabase)]);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo);
   const propia = lider.sedes.find((s) => s.ubicacionId === sede.id);
   const lecturaDeSede = propia ? propia.lectura : sinPiso;
   return {

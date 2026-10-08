@@ -222,7 +222,7 @@ declare
   v_n integer;
 begin
   v_def := pg_get_functiondef(p_firma::regprocedure);
-  -- Ya aplicado: el texto nuevo está (se mira primero: el texto nuevo contiene al viejo).
+  -- Ya aplicado: el texto nuevo está. Se mira primero porque, una vez aplicado, el ancla vieja ya no aparece y el conteo de abajo abortaría.
   if position(p_nuevo in v_def) > 0 then
     return;
   end if;

@@ -3,10 +3,13 @@ import { clave as claveBusqueda } from "./buscar-prenda-v2";
 import type { AccionDecision } from "./frescura-decisiones-reglas";
 import {
   DIAS_CALLADA,
+  ESPERADAS_PARA_DECIDIR,
   RAPIDEZ_IGUAL,
   nivelPorVentas,
+  rapidezParaDecidir,
   recientesDe,
   type CifrasSede,
+  type Rapidez,
   type FilaConfianza,
   type FrescuraPrenda,
   type NivelConfianza,
@@ -284,13 +287,23 @@ export function nombreAlMenos(tramo: Tramo): string {
  * el piso sin vender, «dejó de venderse» (`recientesDe`, la misma definición que usa `estaQuieta`). Con la categoría «aún
  * sin referencia», la fila no dice si es rápida: el índice sale de muy pocas ventas del resto y chocaba con el estado.
  */
-export type ClaveRapidez = "sin_dato" | "sin_medida" | "dejo" | "rapida" | "ritmo" | "lenta" | "muy_lenta";
+export type ClaveRapidez = "sin_dato" | "sin_medida" | "poca_evidencia" | "dejo" | "rapida" | "ritmo" | "lenta" | "muy_lenta";
+
+/**
+ * La rapidez que DECIDE (`rapidezParaDecidir`, act. 2026-10-07): la misma, o null cuando dice «lenta» con menos de 2 ventas
+ * esperadas. La pantalla la mira antes de decir «más lenta que las demás»: si el índice no alcanza para decidir, tampoco alcanza
+ * para afirmarlo en la fila (y «revisa sus ventas» al lado no se contradice).
+ */
+export function rapidezQueDecide(p: FrescuraPrenda): Rapidez | null {
+  return rapidezParaDecidir(p.rapidez, recientesDe(p.ventasRecientes, p.reloj.segundos));
+}
 
 export function claveRapidez(p: FrescuraPrenda): ClaveRapidez {
   const r = p.rapidez;
   if (p.estado.tipo === "clasico" || p.estado.tipo === "dudosa") return "sin_dato";
   if (!r) return "sin_dato";
   if (p.estado.tipo === "sin_vara") return "sin_medida";
+  if (rapidezQueDecide(p) === null) return "poca_evidencia";
   if (r.indice >= RAPIDEZ_IGUAL && recientesDe(p.ventasRecientes, p.reloj.segundos) === "dejo_de_vender") return "dejo";
   if (r.indice >= 120) return "rapida";
   if (r.indice >= RAPIDEZ_IGUAL) return "ritmo";
@@ -328,6 +341,7 @@ export function rapidezVista(p: FrescuraPrenda): RapidezVista {
   if (k === "sin_dato" || !r) return { texto: "Sin dato", detalle: null, porque: porqueSinDato(p), nivel: null };
   const nivel = nivelPorVentas(r.referencia);
   if (k === "sin_medida") return { texto: `Vendió ${decimal(r.vendidas)}; las demás, solo ${decimal(r.referencia)}`, detalle: null, porque: null, nivel };
+  if (k === "poca_evidencia") return { texto: "Todavía no alcanza para decir si es lenta", detalle: `vendió ${decimal(r.vendidas)}, ${seEsperaban(decimal(r.esperadas))}`, porque: null, nivel };
   if (k === "dejo") return { texto: "Vendió bien al llegar; hoy no se vende", detalle: "30 días en el piso sin vender", porque: null, nivel };
   return { texto: COMO[k], detalle: `vendió ${decimal(r.vendidas)}, ${seEsperaban(decimal(r.esperadas))}`, porque: null, nivel };
 }
@@ -357,7 +371,11 @@ export function causaCambiarLugar(p: FrescuraPrenda): "temporada" | "dejo" | "vi
 export function textoSugerencia(s: Sugerencia, p: FrescuraPrenda, ctx: ContextoFrescura): string {
   switch (s) {
     case "revisar_ventas":
-      return estaCallada(p) ? `${DIAS_CALLADA} días sin vender: mira qué le pasa` : "No se sabe qué tan rápido se vende: mira sus ventas";
+      return estaCallada(p)
+        ? `${DIAS_CALLADA} días sin vender: mira qué le pasa`
+        : claveRapidez(p) === "poca_evidencia"
+          ? "Parece lenta, pero hay pocas ventas para decirlo: mira sus ventas"
+          : "No se sabe qué tan rápido se vende: mira sus ventas";
     case "cambiar_lugar":
       return {
         temporada: "Pasó su estación: pruébala 7 días en otro lugar",
@@ -679,7 +697,8 @@ export function avisoPocasVentas(prendas: readonly FrescuraPrenda[], sede: strin
 export function textoSinTemporada(prendas: readonly FrescuraPrenda[]): string | null {
   const n = prendas.filter((p) => p.estado.sinTemporada).length;
   if (n === 0) return null;
-  return `${n} de ${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} no ${n === 1 && prendas.length === 1 ? "tiene" : "tienen"} temporada: se miden igual, pero nunca van a avisar que pasó su estación.`;
+  // El sujeto es «n» («1 de 4 prendas no tiene»), no el total.
+  return `${n} de ${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} no ${n === 1 ? "tiene" : "tienen"} temporada: se miden igual, pero nunca van a avisar que pasó su estación.`;
 }
 
 /** De cuándo es la vara de CAYLA que respalda (o por qué no hay), para «¿Cómo se lee esto?». */
@@ -696,6 +715,8 @@ export function textoRespaldo(v: VaraCategoria | undefined): string | null {
   const aqui = v.vendidas > 0 ? textoVentas(v.vendidas) : "ninguna venta todavía";
   if (r.enUso) return `Se juzga contra lo que vende CAYLA: ${textoVentas(r.vendidas)} de los últimos ${r.ventanaDias} días en las tres tiendas; aquí, ${aqui}.`;
   if (r.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `La vara de CAYLA tampoco alcanza (${textoVentas(r.vendidas)}): se juzga con lo de aquí.`;
+  // Pocas ventas aquí y CAYLA alcanza, pero nada se juzgó contra ella: la categoría no tiene prendas que medir.
+  if (v.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
   return `Aquí ya hay ${textoVentas(v.vendidas)}: se juzga sola; la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
 }
 
@@ -953,6 +974,11 @@ function porqueRapidez(p: FrescuraPrenda): { texto: TextoRico | null; nivel: Niv
   const esp = decimal(r.esperadas);
   const esperaban = esp === "1" ? "se esperaba" : "se esperaban";
   const contra = nivel === "solido" ? "" : ` Se midió contra solo ${textoVentas(r.referencia)} de las demás.`;
+  if (k === "poca_evidencia")
+    return {
+      texto: `Vendió **${v}** cuando para una prenda de su categoría con los mismos días en el piso ${esperaban} **${esp}**. Con menos de ${ESPERADAS_PARA_DECIDIR} esperadas no se puede decir que sea lenta: una que se vende como las demás saldría «lenta» 1 de cada 3 veces por puro azar. Se vuelve a mirar cuando su categoría venda más.${contra}`,
+      nivel,
+    };
   if (k === "sin_medida")
     return {
       texto: `Vendió **${v}** ${cuandoRecientes(p, "total")}. Sin ella, las demás vendieron solo ${decimal(r.referencia)}: con tan poco no se puede decir si vende rápido o lento.`,
@@ -1025,12 +1051,15 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
           titulo,
           texto: estaCallada(p)
             ? `En sus últimos ${DIAS_CALLADA} días en el piso no se vendió ninguna. Antes de moverla, mira si está a la vista, si tiene sus tallas y su etiqueta de precio.`
-            : `No se sabe qué tan rápido se vende: ${porqueSinDato(p)}. Mira sus ventas antes de decidir.`,
+            : claveRapidez(p) === "poca_evidencia" && p.rapidez
+              ? `Vendió ${decimal(p.rapidez.vendidas)} cuando ${seEsperaban(decimal(p.rapidez.esperadas))}: parece lenta, pero con menos de ${ESPERADAS_PARA_DECIDIR} ventas esperadas no se puede afirmar. Mira sus ventas antes de decidir.`
+              : `No se sabe qué tan rápido se vende: ${porqueSinDato(p)}. Mira sus ventas antes de decidir.`,
           botones: ventas,
         };
       case "cambiar_lugar": {
         const causa = causaCambiarLugar(p);
-        const lenta = p.rapidez !== null && (p.rapidez.indice < RAPIDEZ_IGUAL || claveRapidez(p) === "dejo");
+        const decide = rapidezQueDecide(p);
+        const lenta = decide !== null && (decide.indice < RAPIDEZ_IGUAL || claveRapidez(p) === "dejo");
         const texto =
           causa === "temporada"
             ? `Ya pasó ${suEstacion}${lenta ? " y se vende menos que las demás" : ""}: pruébala 7 días en otro lugar antes de retirarla.`
@@ -1043,7 +1072,8 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: `Tienes ${p.almacenHoy} en el almacén de ${ctx.sede}. La comparación es sólida (${textoVentas(p.rapidez?.referencia ?? 0)} de las demás aquí). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,
+          // Contra CAYLA, las ventas con que se comparó son las de las tres tiendas, no las de aquí (act. 2026-10-07).
+          texto: `Tienes ${p.almacenHoy} en el almacén de ${ctx.sede}. La comparación es sólida (${textoVentas(p.rapidez?.referencia ?? 0)} de las demás ${p.juzgadaContra === "cayla" ? "en las tres tiendas" : "aquí"}). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,
           botones: a.traslados && lineasTraslado(p) ? [{ texto: "Armar un traslado", href: `/inventario/mover?lineas=${lineasTraslado(p)}` }] : [],
         };
       case "retirar":
@@ -1218,6 +1248,8 @@ export function tramoBarraDe(p: FrescuraPrenda): TramoBarra {
 export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFrescura): FilaTablero[] {
   const filas = new Map<string, FilaTablero>();
   for (const p of prendas) {
+    // Sin nada colgado (apartada entera, guardada) no suma ni crea la fila: el tablero cuenta lo que cuelga.
+    if (p.pisoHoy <= 0) continue;
     const fila =
       filas.get(p.categoriaId) ??
       ({
@@ -1232,7 +1264,6 @@ export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFr
       } satisfies FilaTablero);
     filas.set(p.categoriaId, fila);
     if (p.porDecidir) fila.porDecidir++;
-    if (p.pisoHoy <= 0) continue;
     const tramo = tramoBarraDe(p);
     fila.unidades[tramo] += p.pisoHoy;
     fila.total += p.pisoHoy;
@@ -1259,35 +1290,41 @@ export function segmentosDe(fila: FilaTablero): { clave: TramoBarra; nombre: str
 export type AccionFila =
   | { tipo: "anotar"; verbo: string; accion: AccionDecision }
   | { tipo: "enlace"; verbo: string; href: string }
-  | { tipo: "hoja"; verbo: string; opcion: AccionDecision | null };
+  | { tipo: "hoja"; verbo: string; modo: "detalle" | "decidir"; opcion: AccionDecision | null };
 
-export function accionDeFila(p: FrescuraPrenda, ctx: ContextoFrescura, decisionVigente: boolean): AccionFila | null {
+/**
+ * `lecturaOk`: si se pudo leer la libreta de decisiones. Sin ella no se anota ni se abre «Ya decidí» (la base compara con la última
+ * línea, que no se sabe; la hoja esconde el botón por lo mismo): la fila ofrece solo el porqué.
+ */
+export function accionDeFila(p: FrescuraPrenda, ctx: ContextoFrescura, decisionVigente: boolean, lecturaOk = true): AccionFila | null {
   if (p.pisoHoy <= 0 || decisionVigente) return null;
   const s = p.estado.sugerencias[0];
   if (s === undefined) return null;
   const a = ctx.acceso;
+  const porque: AccionFila = { tipo: "hoja", verbo: "Ver por qué", modo: "detalle", opcion: null };
+  const decidir = (opcion: AccionDecision | null): AccionFila => (lecturaOk ? { tipo: "hoja", verbo: "Decidir", modo: "decidir", opcion } : porque);
   switch (s) {
     case "cambiar_lugar":
-      return { tipo: "anotar", verbo: "La cambié de lugar", accion: "cambie_lugar" };
+      return lecturaOk ? { tipo: "anotar", verbo: "La cambié de lugar", accion: "cambie_lugar" } : porque;
     case "dejar_hasta_agotar":
-      return { tipo: "anotar", verbo: "La dejo hasta agotar", accion: "hasta_agotar" };
+      return lecturaOk ? { tipo: "anotar", verbo: "La dejo hasta agotar", accion: "hasta_agotar" } : porque;
     case "trasladar": {
       const href = a.traslados ? hrefArmarTraslado(p) : null;
-      return href ? { tipo: "enlace", verbo: "Armar traslado", href } : { tipo: "hoja", verbo: "Decidir", opcion: null };
+      return href ? { tipo: "enlace", verbo: "Armar traslado", href } : decidir(null);
     }
     case "retirar": {
       const href = a.existencias ? hrefExistencias(p) : null;
-      return href ? { tipo: "enlace", verbo: "Retirar del piso", href } : { tipo: "hoja", verbo: "Decidir", opcion: null };
+      return href ? { tipo: "enlace", verbo: "Retirar del piso", href } : decidir(null);
     }
     case "guardar_hasta_su_estacion": {
       const href = a.existencias ? hrefExistencias(p) : null;
-      return href ? { tipo: "enlace", verbo: "Guardar en el almacén", href } : { tipo: "hoja", verbo: "Ver por qué", opcion: null };
+      return href ? { tipo: "enlace", verbo: "Guardar en el almacén", href } : porque;
     }
     case "revisar_ventas":
-      return a.historial ? { tipo: "enlace", verbo: "Ver sus ventas", href: `/vender/historial?q=${encodeURIComponent(p.productoNombre)}` } : { tipo: "hoja", verbo: "Ver por qué", opcion: null };
+      return a.historial ? { tipo: "enlace", verbo: "Ver sus ventas", href: `/vender/historial?q=${encodeURIComponent(p.productoNombre)}` } : porque;
     case "sigue_vendiendo":
-      return { tipo: "hoja", verbo: "Decidir", opcion: "hasta_agotar" };
+      return decidir("hasta_agotar");
     case "rebaja_chica":
-      return { tipo: "hoja", verbo: "Decidir", opcion: "rebaje" };
+      return decidir("rebaje");
   }
 }

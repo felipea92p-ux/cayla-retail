@@ -22,6 +22,7 @@ export function FrescuraTablero({ filas, elegida, onElegir }: { filas: readonly 
       <div className="mt-2 divide-y divide-sand">
         {filas.map((f) => {
           const activa = elegida === f.categoriaId;
+          const segmentos = segmentosDe(f);
           return (
             <button
               key={f.categoriaId}
@@ -36,7 +37,21 @@ export function FrescuraTablero({ filas, elegida, onElegir }: { filas: readonly 
                   {f.prendas} {f.prendas === 1 ? "prenda" : "prendas"} · {f.total} {f.total === 1 ? "unidad" : "unidades"}
                 </span>
               </span>
-              <BarraApilada segmentos={segmentosDe(f)} />
+              {/* La barra y, debajo, sus cifras en texto (nunca solo al pasar el mouse: Formidable, ley 6); el lector de pantalla
+                  ya las oye en el resumen de la barra, así que aquí van ocultas para él. */}
+              <span className="min-w-0">
+                <BarraApilada segmentos={segmentos} />
+                {segmentos.length > 0 && (
+                  <span aria-hidden className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] leading-snug text-taupe tabular-nums">
+                    {segmentos.map((s) => (
+                      <span key={s.clave} className="flex items-center gap-1" title={s.nombre}>
+                        <span className={`inline-block h-2 w-2 rounded-full ${s.clase}`} />
+                        {s.valor}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </span>
               <span className={`text-[13.5px] tabular-nums ${f.porDecidir > 0 ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
                 {f.porDecidir > 0 ? `${f.porDecidir} por decidir` : "Nada por decidir"}
               </span>

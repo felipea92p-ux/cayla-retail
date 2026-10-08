@@ -3351,7 +3351,7 @@ hasta `4613b0d53`) sobre un caso armado como la captura de TRU del 2026-10-07 y 
    (`referenciaCayla`) pero solo se mostraba, en el detalle del líder.
 3. **Dos niveles en una pantalla.** Arriba, el tablero: una fila por categoría con la barra apilada de unidades por estado (Recién
    llegada · En su tiempo · Se está quedando · Hay que moverla · Aún no se sabe), cuántas esperan decisión y con qué vara se juzgó
-   (Sólido · Aproximado · contra CAYLA); tocar una fila filtra la lista. Abajo, la lista de hoy. Descartó «solo lista» y «solo tablero».
+   (Sólido · Aceptable · Aproximado · contra CAYLA · Sin ventas); tocar una fila filtra la lista. Abajo, la lista de hoy. Descartó «solo lista» y «solo tablero».
 4. **El mix vive en su propio submódulo** (Inventario ▸ Plan del piso, PR #831, ADR-0352), no en Frescura. Frescura muestra «ocupa ·
    meta» por categoría leyéndolo de ahí y, cuando el mix esté **aprobado** (segunda entrega del plan), propone «entra una, sale una»
    (ADR-0329, punto 10). Mientras el mix sea solo una propuesta no se propone ningún retiro desde él: proponer un retiro desde un número
@@ -3380,3 +3380,14 @@ cron de la vara CAYLA · 3 reglas de respaldo y la fila que lo dice · 4 tablero
 aviso · 6 «ocupa · meta» desde Plan del piso (espera al PR #831) · 7 cierre. Fuera de esta ronda: «sale una» por mix (segunda entrega
 del plan) y pesos por tienda en la vara CAYLA (hoy junta unidades: AQP, con 60 m², manda; se acepta hasta tener datos).
 
+
+**Revisión adversaria antes del PR (2026-10-08):** seis revisores sobre el diff y tres escépticos por hallazgo (18 hallazgos, 16
+confirmados, todos de esta rama, corregidos el mismo día con su prueba). Dos quedan escritos aquí porque son límites o consecuencias
+de las decisiones de arriba, no errores: (a) **la resta «como en la foto» rearma los apartados de entonces** (un apartado abierto en
+la foto fue una venta para el cron aunque hoy ya se haya liberado sin venderse; `limpiosEnLaFoto` en `analizarSede`). Lo que la
+lectura de hoy ya no trae —lo colgado entre el `desde` del cron y el de hoy, hasta 3 días de 120 atrás— entra como saldo sin edad y
+no se resta: a lo sumo un puñado de unidades viejas entre 10 ventas o más; se acepta y se deja dicho en el código. (b) **El «Sólido» de
+CAYLA vale para «Trasladar»:** la decisión 2 reemplaza la vara entera, su nivel incluido, así que una tienda con 3 ventas puede ver
+«Armar traslado» cuando CAYLA tiene 20 o más; la frase dice de dónde son esas ventas («de las demás en las tres tiendas»). Si Felipe
+prefiere que lo que mueve stock espere el Sólido de la propia tienda, se cambia en `estadoFrescura` (el `nivel` que recibe) y en esta
+nota.

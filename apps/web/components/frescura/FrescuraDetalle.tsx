@@ -143,9 +143,10 @@ export function FrescuraDetalle({
   // El modo pedido vale SOLO para la última línea que se vio al pedirlo: si la lectura se refresca y esa línea cambió (otra
   // persona anotó, o se anotó aquí), se vuelve al detalle sin un efecto que lo corrija después de pintar.
   const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: modoInicial, para: decision.anteriorId });
-  const modo = pedido.para === decision.anteriorId ? pedido.modo : "detalle";
-  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
   const puedeDecidir = decision.lecturaOk && decision.prenda.pisoHoy > 0;
+  // «Ya decidí» solo si se puede (la libreta leída y algo en el piso), venga de su botón o pedido por la fila al abrir.
+  const modo = pedido.para !== decision.anteriorId || (pedido.modo === "decidir" && !puedeDecidir) ? "detalle" : pedido.modo;
+  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
   const { bloque } = decision;
   const temporada =
     detalle.temporada?.tipo === "pasada" ? (

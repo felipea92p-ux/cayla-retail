@@ -31,9 +31,12 @@ export type AnotacionPedida = {
   plazoDias: number;
   transferenciaId: string | null;
   nota: string | null;
+  /** El botón que se tocó («Anotar» en la hoja, «La cambié de lugar» en la fila): el error dice qué volver a tocar. */
+  verbo?: string;
 };
 
-export type ErrorAnotar = { texto: string; conVer: boolean };
+/** `clave`: la prenda que se estaba anotando, para pintar el error junto a su botón y no en otra parte de la pantalla. */
+export type ErrorAnotar = { texto: string; conVer: boolean; clave: string };
 
 export type Anotador = {
   responsable: ControlResponsable;
@@ -89,8 +92,8 @@ export function useAnotarDecision(sede: { id: string; nombre: string }): Anotado
     enVuelo.current = false;
     responsable.despues(errorRpc);
     if (errorRpc) {
-      const t = textoErrorDecision(errorRpc, sede.nombre);
-      setError({ texto: t.texto, conVer: t.conVer });
+      const t = textoErrorDecision(errorRpc, sede.nombre, pedida.verbo);
+      setError({ texto: t.texto, conVer: t.conVer, clave: prenda.clave });
       // La base dijo que no: nada se guardó, la marca queda libre. Si fue una respuesta incierta se conserva.
       if (t.nuevaMarca && !esRespuestaIncierta(errorRpc)) marcas.current.delete(prenda.clave);
       // Con la red caída no se refresca: un refresh sin red borra el mensaje honesto.
