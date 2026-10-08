@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
+import { AvisoDestacado } from "@/components/ui/AvisoDestacado";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
 import { OndaBotones } from "@/components/ui/OndaBotones";
@@ -36,6 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Avisos globales (arriba a la derecha): montado una sola vez, acá,
             para que valga también en /login y sobreviva a la navegación. */}
         <Avisos />
+        {/* La confirmación grande y centrada (hoy, bajar al piso): una vez, acá, para que sobreviva al refresco que sigue al guardado. */}
+        <AvisoDestacado />
         {/* El loader general (ADR-0149): una vez, acá, para que valga en toda la app y también en /login. */}
         <EsperaGlobal />
         {/* La página no se encoge bajo el mouse (ADR-0185): una vez, acá, para toda la app y sus ventanas. */}

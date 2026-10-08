@@ -118,7 +118,8 @@ const sinEspera = new Map<string, number>();
 
 /**
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
- * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta.
+ * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Única otra excepción (Felipe, 2026-10-08): el refresco que sigue a
+ * bajar al piso o subir al almacén desde el panel de Existencias (`PanelTalla`), que ya confirma con el aviso destacado y no debe tapar la lista.
  */
 export function navegacionSinEspera(href: string) {
   sinEspera.set(claveNavegacion(new URL(href, window.location.href)), Date.now() + MS_ANUNCIO);
