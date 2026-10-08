@@ -73,6 +73,8 @@ Antes de escribir, avísale a Felipe en una línea qué pantallas vas a tocar y 
 ## Paso 4 — Pruébala de verdad (no se acepta una huella sin esto)
 
 1. `pnpm --filter web exec vitest run lib/guias.test.ts lib/guias` en verde, salvo la huella (todavía no la aceptaste).
+   Si la base local no tiene con qué mostrar la pantalla (un conteo abierto, una compra repartida), NO crees datos: declara en
+   `guias/ejemplos.mjs` su `sinDatos` (una consulta de solo lectura que devuelve el motivo) y el recorredor la informa con ⚠.
 2. Con el `next dev` de ESTA rama levantado (`preview_start`):
    `pnpm --filter web guias:recorrer -- --base-url http://localhost:<puerto> --guia <id>` en escritorio, y otra vez con
    `--ancho 375 --alto 812 --tema oscuro`. Tiene que decir ✓: cada paso encontró su pieza, **la demo no escribió en la base**, no

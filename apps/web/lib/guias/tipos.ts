@@ -35,7 +35,8 @@ export type PasoGuia = {
    * Sin esto, una pieza que no aparece se explica igual con la tarjeta al centro («ahora no está a la vista»).
    */
   opcional?: boolean;
-  /** Solo se muestra si estas anclas están en la pantalla (p. ej. la caja abierta). */
+  /** Solo se muestra si estas anclas están en la pantalla (p. ej. la caja abierta). OJO: «en la pantalla» es VISIBLE ahora
+   *  (`anclasPresentes`): un ancla que existe pero está fuera de la vista o tras un `display: none` no cuenta. */
   requiere?: readonly string[];
   /** Se salta si alguna de estas anclas está en la pantalla (p. ej. la persiana de caja cerrada). */
   excluye?: readonly string[];

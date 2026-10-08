@@ -532,7 +532,10 @@ Cómo se hace (la skill **`/guia`** lo hace por ti):
   paso no encuentra su pieza, si la demo escribe en la base o si queda un modal abierto. Saca una captura por paso, que hay que MIRAR,
   en escritorio y a 375 px.
 
-Piloto hecho: Ventas (Punto de Venta, Apartados, Historial, Comprobantes). La migración `20261007180000_guias_vistas.sql` («ya se la
+**Hecho en TODO el ERP (2026-10-07):** 79 guías (Ventas, Inventario, Catálogo, Compras, Finanzas, Producción, Clientes, Colaboradores,
+Configuración, Inicio y las sueltas), 12 pantallas `no-aplica` (rutas técnicas, hojas de impresión, redirecciones), `PENDIENTES_HOY = 0`.
+Una pantalla nueva nace con su guía. Si la base local no tiene con qué mostrar una pantalla, `guias/ejemplos.mjs` lo declara (`sinDatos`) y
+el recorredor la informa sin darla por rota; nunca se crean datos para una demo. La migración `20261007180000_guias_vistas.sql` («ya se la
 ofrecí», por persona) está en producción desde el 2026-10-07; si la base no responde, la oferta se recuerda en el navegador. Detalle y decisiones:
 `docs/adr/0362-guias-interactivas-con-mascara.md` y `.claude/skills/guia/`.
 

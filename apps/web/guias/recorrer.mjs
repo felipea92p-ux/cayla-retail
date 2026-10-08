@@ -20,7 +20,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { porClave } from "../tema/cuentas.mjs";
-import { abrirContexto, exigirLocal } from "../tema/motor/sesion.mjs";
+import { abrirContexto, consultarLocal, exigirLocal } from "../tema/motor/sesion.mjs";
 import { guiasDeLosArchivos } from "./escaner.mjs";
 import { EJEMPLOS } from "./ejemplos.mjs";
 
@@ -65,6 +65,7 @@ function escribe(req) {
 
 const navegador = await chromium.launch();
 let fallas = 0;
+let sinDatos = 0;
 try {
   // Un contexto por cuenta (Producción se ve parado en el Taller, Global con su vista): se abren a medida que hacen falta.
   const contextos = new Map();
@@ -74,6 +75,14 @@ try {
   };
   for (const g of guias) {
     const ejemplo = EJEMPLOS[g.ruta] ?? {};
+    if (ejemplo.sinDatos) {
+      const motivo = consultarLocal(ejemplo.sinDatos);
+      if (motivo) {
+        console.log(`⚠ ${g.id}: sin datos locales para recorrerla — ${motivo}. La guía está escrita; recórrela cuando los haya.`);
+        sinDatos++;
+        continue;
+      }
+    }
     const ctx = await contextoDe(args.cuenta ? cuenta.clave : (ejemplo.cuenta ?? cuenta.clave));
     let destino = g.ruta.replace(/\/\([^)]*\)/g, "");
     try {
@@ -90,7 +99,8 @@ try {
     });
     const problemas = [];
     const pasos = [];
-    await page.goto(`${origen}${destino}?demo=1`, { waitUntil: "domcontentloaded" });
+    // El ejemplo puede traer parámetros (`/buscar?q=blusa`): `demo=1` se suma a los que ya trae.
+    await page.goto(`${origen}${destino}${destino.includes("?") ? "&" : "?"}demo=1`, { waitUntil: "domcontentloaded" });
     try {
       await page.waitForSelector(".guia-tarjeta h2", { timeout: 15_000 });
     } catch {
@@ -100,7 +110,13 @@ try {
       continue;
     }
     for (let n = 0; n < 60; n++) {
-      await page.waitForTimeout(n === 0 ? 900 : 2300);
+      // Que el piloto termine lo que está haciendo (preparar, cursor, escribir) antes de pasar: la tarjeta deja de estar
+      // «ocupada» y el cursor fantasma se esconde. Tope de 12 s por paso; después, un respiro para la animación.
+      await page.waitForTimeout(n === 0 ? 900 : 700);
+      await page
+        .waitForFunction(() => !document.querySelector(".guia-tarjeta[data-ocupada]") && !document.querySelector(".guia-cursor[data-visible]"), null, { timeout: 12_000 })
+        .catch(() => {});
+      await page.waitForTimeout(n === 0 ? 0 : 1200);
       const estado = await page.evaluate(() => {
         const t = document.querySelector(".guia-tarjeta");
         if (!t) return null;
@@ -129,7 +145,7 @@ try {
     if (quedo.guia) problemas.push("la guía no terminó tras 60 pasos");
     if (pasos.length < 2) problemas.push(`la guía se cortó al empezar (${pasos.length} paso${pasos.length === 1 ? "" : "s"}): ¿la página se recargó?`);
     if (quedo.modales > 0) problemas.push(`quedaron ${quedo.modales} modal(es) abiertos al terminar`);
-    if (quedo.ruta !== destino) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
+    if (quedo.ruta !== destino.split("?")[0]) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
     if (escrituras.length) problemas.push(`ESCRIBIÓ EN LA BASE durante la demo: ${escrituras.join(", ")}`);
     if (problemas.length) fallas++;
     console.log(`${problemas.length ? "✗" : "✓"} ${g.id} (${g.ruta}): ${pasos.length} pasos${problemas.length ? `\n    · ${problemas.join("\n    · ")}` : ""}`);

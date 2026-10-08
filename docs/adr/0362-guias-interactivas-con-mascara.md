@@ -129,3 +129,47 @@ rebote** y todo se apaga con `prefers-reduced-motion`.
 
 Se corrigió de paso un defecto: en los pasos sin pieza (bienvenida y cierre), el recorte de 0 × 0 px no dibujaba la sombra en Chrome y
 la pantalla quedaba sin velo. Ahora es un punto de 2 px.
+
+## Actualización 2026-10-07 (e) — todo el ERP (Felipe: «sigue con los demás módulos hasta que termines con todos»)
+
+Con el OK expreso de Felipe para correr toda la noche, se recorrió el ERP módulo por módulo. Cada tramo lo hizo un agente siguiendo la
+skill `/guia`, UNO A LA VEZ en esta misma rama: todos tocan el registro y el mismo servidor de desarrollo. Antes de lanzar el siguiente
+tramo revisé cada informe y miré sus capturas.
+
+| Tramo | Guías | Archivo |
+|---|---:|---|
+| Ventas: Punto de Venta, Apartados, Historial, Comprobantes (piloto) | 4 | `pantallas/vender.ts` |
+| Ventas: Emitidos, Por enviar, Proformas, Series, Caja, Historial de caja, Cambios, Devoluciones | 8 | `pantallas/ventas-posventa.ts` |
+| Inventario: Existencias, Bajar, Cuadrar, Frescura, Movimientos, Por regularizar, Análisis, Pedidos, Conteo (4), Traslados (3), Recibir | 16 | `pantallas/inventario.ts` |
+| Catálogo: Productos (con la vista rápida y su Historial), Editar, Historial, Atributos, Categorías, Familias, Marcas, Nuevo | 8 | `pantallas/catalogo.ts` |
+| Compras: Facturas, factura, Notas de crédito, Registrar, Mi parte, Plan, Por pagar, Proveedores y su ficha | 9 | `pantallas/compras.ts` |
+| Finanzas: Resumen, Gastos, Cuentas y dinero (4), Reportes (6), Impuestos, Cierre | 14 | `pantallas/finanzas.ts` |
+| Producción (el Taller) | 9 | `pantallas/produccion.ts` |
+| Inicio (Observatorio, tienda, almacén), Actividad, Buscar, Colaboradores, Comercial (2), Configuración, Global, Rendimiento | 9 | `pantallas/general.ts` |
+| Clientes: Fichas y Avisos del club | 2 | `pantallas/clientes.ts` |
+
+**Total: 79 guías, 12 `no-aplica`, `PENDIENTES_HOY = 0`.** Las piezas comunes ganaron una prop opcional `guia` que solo pone el
+`data-guia`: `Pestanas`, `SegmentoDeslizante`, `SegmentoEnlaces`, el kit de Finanzas, `SeccionFicha`, el kit de atributos, `ChipEstado`
+y el `Segmento` del Observatorio. Fuera de eso, solo se agregaron atributos `data-guia` y algún envoltorio neutro: no cambió cómo se ve
+ni cómo funciona ninguna pantalla.
+
+**Defectos del motor encontrados en el camino, ya corregidos:**
+1. **`?demo=1` en una ruta interceptada** (el Historial de un producto). El `router.replace` hacía que Next respondiera 500 y
+   recargara la página. Ahora la URL se limpia con `history.replaceState`, y el recorredor falla si una guía recorre menos de 2 pasos.
+2. **El velo no se pintaba en Finanzas** (y a veces en otras pantallas). Chrome no repintaba la sombra gigante del recorte mientras
+   estaba animada. Ahora la sombra es de 100vmax y quieta, el recorte se mueve con `left/top` y el velo entra con el fundido de la capa.
+3. **El recorredor:**
+   - espera a que el piloto termine antes de avanzar (cortaba las acciones a los 2,3 s);
+   - acepta URLs de ejemplo con parámetros (`/buscar?q=…`);
+   - informa con ⚠ las pantallas que la base local no puede mostrar (`sinDatos` en `ejemplos.mjs`) en vez de darlas por rotas.
+
+**Sin verificar en el navegador, por falta de datos locales** (escritas y con sus anclas comprobadas por la prueba; no se crearon datos):
+- Revisar y Confirmar conteo, y la cara «contar» de un conteo: no hay ningún conteo abierto.
+- Compras ▸ Mi parte de la factura: ninguna compra repartida entre tiendas, ni una cuenta que no sea líder con su parte.
+- Las piezas de Producción que dependen de órdenes, insumos o facturas: el Taller local está vacío.
+- Inicio de Almacén: no hay una cuenta de prueba parada en un almacén.
+- Pedidos no atendidos con pedidos, y Análisis con prendas (la base local no las lee).
+
+**Un incidente durante la obra.** Un agente cortó un comando colgado con `pkill -f cat`, y eso cerró Docker Desktop unos 3 minutos: la
+base local compartida quedó caída en esa ventana. Se levantó de nuevo y se comprobó que la base estaba sana. No hubo escrituras. Desde
+entonces las instrucciones de cada agente prohíben `pkill`, `killall` y `kill` por patrón.

@@ -7,3 +7,8 @@ Cómo se verifica: `pnpm --filter web exec vitest run lib/guias.test.ts lib/guia
 Qué hice: pegué en producción `20261007180000_guias_vistas.sql` (el archivo tal cual, una transacción, registrada con su versión) y puse «Demo» en la cabecera de las terminales, en el lugar de «Actividad», abriendo el mismo selector que Mi perfil.
 Por qué así: Felipe lo ordenó; la terminal no tiene perfil y nunca ve «Actividad», así que ese hueco de la cabecera es el lugar natural sin mover nada.
 Cómo se verifica: en producción, `retail.guias_vistas` existe con RLS y sin políticas, y `anon` no ejecuta `marcar_guia_vista`; entrando como la terminal de ventas, la cabecera muestra «Demo» y abre el selector (también a 375 px); una persona no lo ve.
+
+## 2026-10-07 (Guías en todo el ERP, con movimiento rico)
+Qué hice: subí el motor (cursor fantasma que viaja y hace clic, onda de llegada, halo, cascada, visto con chispas) y recorrí el ERP módulo por módulo con un agente por tramo siguiendo `/guia`: 79 guías, 12 no-aplica, 0 pendientes. Corregí en el camino el velo que no se pintaba en Finanzas, `?demo=1` en rutas interceptadas, y el recorredor (espera al piloto, URLs con parámetros, ⚠ «sin datos locales»).
+Por qué así: Felipe dio el OK para todo el ERP y pidió lo más sofisticado e interactivo; de a un tramo porque todos tocan el mismo registro y el mismo servidor; nunca se crearon datos para una demo.
+Cómo se verifica: `pnpm --filter web exec vitest run lib/guias.test.ts lib/guias` en verde; `pnpm --filter web guias:recorrer -- --base-url http://localhost:<puerto>` da ✓ en todas salvo las ⚠ sin datos locales (Revisar y Confirmar conteo, Mi parte); entrar a cualquier pantalla por primera vez ofrece su demo.
