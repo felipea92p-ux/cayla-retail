@@ -11,6 +11,10 @@
  *   pnpm --filter web guias:recorrer                                   ← todas las guías, cuenta admin, 1440×900, claro
  *   pnpm --filter web guias:recorrer -- --guia vender,vender.historial --cuenta integrante --ancho 375 --alto 812 --tema oscuro
  *
+ * Con --cobertura, además mide en vivo cuántos controles de la pantalla (botones, campos, enlaces, pestañas a la vista en el
+ * contenido, sin el lateral ni la cabecera del ERP) quedaron DENTRO de algún recorte encendido, y lista los que ninguna pieza
+ * encendió: es dónde profundizar la guía. Escribe `cobertura.json` en la carpeta de salida.
+ *
  * Opciones: --base-url (por defecto $TEMA_BASE_URL o http://localhost:3010), --cuenta (claves de tema/cuentas.mjs), --guia,
  * --ancho, --alto, --tema claro|oscuro, --salida <dir>, --sin-capturas. Sale con 1 si una guía falla, con 2 si el script se cayó.
  * Solo corre contra localhost (las cuentas y claves son del seed local).
@@ -65,6 +69,31 @@ function escribe(req) {
 
 const navegador = await chromium.launch();
 let fallas = 0;
+const cobertura = [];
+
+/**
+ * Corre en la página: los controles visibles del contenido (sin lateral, cabecera ni la propia guía), con una clave estable y si
+ * su centro cae dentro del recorte encendido ahora.
+ */
+function controlesALaVista() {
+  const r = document.querySelector(".guia-recorte");
+  const caja = r && !r.hasAttribute("data-sin-pieza") ? { x: parseFloat(r.style.left), y: parseFloat(r.style.top), w: parseFloat(r.style.width), h: parseFloat(r.style.height) } : null;
+  const fuera = (el) => el.closest("[data-guia-motor], aside.fixed, header, nav[aria-label='Menú'], .guia-oferta");
+  const salida = [];
+  for (const el of document.querySelectorAll("button, a[href], input:not([type=hidden]), textarea, select, [role=tab], [role=switch], [role=combobox]")) {
+    if (fuera(el)) continue;
+    const b = el.getBoundingClientRect();
+    if (b.width < 4 || b.height < 4) continue; // también lo que está más abajo: la pantalla entera cuenta
+    const st = getComputedStyle(el);
+    if (st.visibility === "hidden" || st.display === "none") continue;
+    const nombre = (el.getAttribute("aria-label") || el.innerText || el.getAttribute("placeholder") || el.getAttribute("title") || el.tagName).replace(/\s+/g, " ").trim().slice(0, 60);
+    const cx = b.left + b.width / 2;
+    const cy = b.top + b.height / 2;
+    const dentro = !!caja && cx >= caja.x && cx <= caja.x + caja.w && cy >= caja.y && cy <= caja.y + caja.h;
+    salida.push({ clave: `${el.tagName}|${nombre}`, nombre: `${el.tagName.toLowerCase()} «${nombre}»`, dentro });
+  }
+  return salida;
+}
 let sinDatos = 0;
 try {
   // Un contexto por cuenta (Producción se ve parado en el Taller, Global con su vista): se abren a medida que hacen falta.
@@ -101,6 +130,8 @@ try {
     const pasos = [];
     // El ejemplo puede traer parámetros (`/buscar?q=blusa`): `demo=1` se suma a los que ya trae.
     await page.goto(`${origen}${destino}${destino.includes("?") ? "&" : "?"}demo=1`, { waitUntil: "domcontentloaded" });
+    const iluminados = new Set();
+    let base = null;
     try {
       await page.waitForSelector(".guia-tarjeta h2", { timeout: 15_000 });
     } catch {
@@ -130,6 +161,12 @@ try {
       });
       if (!estado) break;
       pasos.push(estado);
+      if (args.cobertura) {
+        const vistos = await page.evaluate(controlesALaVista);
+        if (!base) base = new Map();
+        for (const c of vistos) base.set(c.clave, c.nombre); // toda la pantalla, más lo que va apareciendo (modales, pestañas)
+        for (const c of vistos) if (c.dentro) iluminados.add(c.clave);
+      }
       if (estado.nota?.includes("Esta parte no está a la vista")) problemas.push(`«${estado.titulo}»: su pieza no apareció`);
       else if (estado.nota?.includes("no pudo hacer este paso")) problemas.push(`«${estado.titulo}»: ${estado.nota}`);
       if (!estado.sinPieza && estado.alto < 4) problemas.push(`«${estado.titulo}»: el recorte quedó sin alto (la pieza está fuera de la vista)`);
@@ -148,6 +185,13 @@ try {
     if (quedo.ruta !== destino.split("?")[0]) problemas.push(`terminó en otra ruta (${quedo.ruta})`);
     if (escrituras.length) problemas.push(`ESCRIBIÓ EN LA BASE durante la demo: ${escrituras.join(", ")}`);
     if (problemas.length) fallas++;
+    if (args.cobertura && base) {
+      const total = base.size;
+      const si = [...base.keys()].filter((k) => iluminados.has(k)).length;
+      const faltan = [...base.entries()].filter(([k]) => !iluminados.has(k)).map(([, n]) => n);
+      cobertura.push({ guia: g.id, ruta: g.ruta, total, encendidos: si, porcentaje: total ? Math.round((100 * si) / total) : 100, sinEncender: faltan });
+      console.log(`    cobertura: ${si}/${total} controles a la vista encendidos (${total ? Math.round((100 * si) / total) : 100} %)`);
+    }
     console.log(`${problemas.length ? "✗" : "✓"} ${g.id} (${g.ruta}): ${pasos.length} pasos${problemas.length ? `\n    · ${problemas.join("\n    · ")}` : ""}`);
     await page.close();
   }
@@ -158,6 +202,11 @@ try {
   process.exit(2);
 }
 await navegador.close();
+if (args.cobertura) {
+  mkdirSync(salida, { recursive: true });
+  writeFileSync(join(salida, "cobertura.json"), JSON.stringify(cobertura, null, 2));
+  console.log(`\nCobertura en ${join(salida, "cobertura.json")}`);
+}
 if (conCapturas) {
   writeFileSync(join(salida, "LEEME.txt"), `Capturas de cada paso (${cuenta.clave}, ${viewport.width}×${viewport.height}, ${tema}). Míralas: el recorredor no ve si el texto tapa algo.\n`);
   console.log(`\nCapturas en ${salida}`);
