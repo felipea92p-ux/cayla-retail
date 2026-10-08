@@ -1,7 +1,7 @@
 "use client";
 
 import { Children, Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
-import { Plus } from "lucide-react";
+import { CircleAlert, Plus } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
@@ -115,7 +115,17 @@ export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtique
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
       <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
-        {pie ? <span className="anim-revelar block">{pie}</span> : null}
+        {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
+        {pie ? (
+          tono === "error" ? (
+            <span className="pie-error trazo-dibuja anim-revelar">
+              <CircleAlert aria-hidden />
+              <span>{pie}</span>
+            </span>
+          ) : (
+            <span className="anim-revelar block">{pie}</span>
+          )
+        ) : null}
       </div>
     </div>
   );
