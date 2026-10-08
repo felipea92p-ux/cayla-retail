@@ -114,7 +114,8 @@ export function agruparPorPrenda<F extends FilaPrenda>(filas: readonly F[]): Pre
       marca: primera.marca ?? null,
       color: primera.color,
       colorHex: primera.colorHex,
-      fotoUrl: primera.fotoUrl,
+      // La foto del color: la de la primera talla que la tenga (una talla sin foto no le quita la foto al color).
+      fotoUrl: tallas.find((f) => f.fotoUrl)?.fotoUrl ?? null,
       categoria: primera.categoria ?? null,
       categoriaPrefijo: primera.categoriaPrefijo ?? null,
       categoriaFamilia: primera.categoriaFamilia ?? null,

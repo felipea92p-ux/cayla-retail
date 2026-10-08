@@ -93,4 +93,14 @@ describe("colorDeEntrada", () => {
   it("todos agotados: el primero", () => {
     expect(colorDeEntrada([celeste])?.color).toBe("Celeste");
   });
+  it("un color con foto va primero dentro de cada escalón (Felipe, 2026-10-08)", () => {
+    const negroSinFoto = { ...negro, fotoUrl: null };
+    const rosadoConFoto = { ...rosado, fotoUrl: "rosado.jpg" };
+    expect(colorDeEntrada([negroSinFoto, rosadoConFoto])?.color).toBe("Rosado");
+    const negroConFoto = { ...negro, fotoUrl: "negro.jpg" };
+    expect(colorDeEntrada([rosadoConFoto, negroConFoto])?.color).toBe("Negro");
+  });
+  it("uno con foto pero agotado no le gana a uno con algo libre", () => {
+    expect(colorDeEntrada([{ ...celeste, fotoUrl: "celeste.jpg" }, rosado])?.color).toBe("Rosado");
+  });
 });
