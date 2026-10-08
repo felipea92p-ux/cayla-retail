@@ -11,6 +11,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { diferenciaApertura, leerMonto, motivoAperturaValido } from "@/lib/caja-cierre-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 function money(n: number) {
   return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -138,16 +139,16 @@ export function AbrirCajaFormV2({
             </div>
           </div>
           {diferencia === 0 && esperado !== null && (
-            <p className="rounded-lg bg-verde/10 px-3 py-2 text-sm text-verde-profundo">Coincide con el último cierre.</p>
+            <Aviso tono="exito" chico>
+              Coincide con el último cierre.
+            </Aviso>
           )}
           {pideMotivo && (
             <>
-              <p
-                className={`rounded-lg px-3 py-2 text-xs ${diferencia! < 0 ? "bg-rojo/10 text-rojo-profundo" : "bg-ambar/10 text-ambar-profundo"}`}
-              >
+              <Aviso tono={diferencia! < 0 ? "error" : "atencion"} chico>
                 {diferencia! < 0 ? "Faltan" : "Sobran"} <b>{money(Math.abs(diferencia!))}</b> respecto al último cierre. Se
                 abrirá con {money(monto!)} y el líder de equipo lo verá en Inicio.
-              </p>
+              </Aviso>
               <div className="space-y-1.5">
                 <label className={campoEtiqueta} htmlFor="apertura-motivo">
                   ¿Qué pasó? <span className="normal-case tracking-normal text-tinta/50">(obligatorio si no coincide)</span>

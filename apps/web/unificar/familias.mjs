@@ -453,6 +453,71 @@ export const DECISIONES = {
     ],
     "deuda": []
   },
+  "vacio": {
+    "fecha": "2026-10-08",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/vacio.md",
+    "elegida": "P1 · el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón (grande y chico); al no encontrar, dice qué se buscó y deja deshacerlo ahí; elegida tocándola el 2026-10-08",
+    "pieza": "components/ui/Vacio.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "firmas": [
+      // La frase en cursiva serif (B) y su versión «SinCoincidencias».
+      "\\bfont-display\\b[^\"'`]*\\bitalic\\b[^\"'`]*\\btext-tinta\\/6[05]\\b",
+      // La frase gris suelta de <Tabla> y sus primas (A), la centrada gris clara de Caja y la cursiva chica.
+      "\\bTABLA\\.vacio\\b|\\bpx-5 py-8 text-center text-sm text-taupe\\b|\\bp-5 text-sm text-tinta\\/75\\b|\\bpy-6 text-center text-xs text-tinta\\/50\\b|\\btext-xs italic text-tinta\\/65\\b|\\bpx-3 py-3 text-sm text-tinta\\/65\\b",
+      // El título en negrita sobre panel claro (C), el recuadro punteado (F, Apartados) y el colibrí que flota (G).
+      "\\bfin-guia\\b|\\bvacio-vista\\b|<GuiaVacia\\b|\\brounded-xl bg-papel\\/60 px-6 py-10\\b|\\bborder-dashed border-(?:sand|tinta\\/25)\\b[^\"'`]*\\bpy-(?:6|10)\\b[^\"'`]*\\btext-center\\b|\\bcmp-flota\\b|\\btp-vacia\\b"
+    ],
+    "deuda": [
+
+    ],
+    "excepciones": []
+  },
+  "aviso": {
+    "fecha": "2026-10-08",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/aviso.md",
+    "elegida": "P2 · la franja a la izquierda con el ícono que se dibuja (el error destella una vez) · nota-cayla con su «i» · el error de un dato bajo su campo y el de la hoja en el aviso; elegida tocándola el 2026-10-08",
+    "pieza": "components/ui/Aviso.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css", "components/ui/campos.tsx", "components/ui/Avisos.tsx"],
+    "firmas": [
+      // Un recuadro de tono pintado a mano: fondo suave de ámbar, rojo o verde con su texto profundo, esquinas de caja y relleno
+      // de recuadro (una insignia o un chip, redondos y chicos, no cuentan).
+      "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)\\b)(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
+      // La franja copiada (con su fondo de tono; el acento de una tarjeta de cifra no es un aviso).
+      "\\bborder-l-(?:ambar|rojo)\\b[^\"'`]*\\bbg-(?:ambar|rojo)\\/",
+      // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
+      "\\baviso-datos\\b|\\bfin-nota-bloque\\b",
+      // Las dos piezas que existían a mano.
+      "^\\s*(?:export\\s+)?function\\s+(?:AvisoInline|AvisoDeError)\\b",
+      // Un párrafo rojo suelto (el error va bajo su campo o en <Aviso tono=\"error\">).
+      "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b"
+    ],
+    "deuda": [
+
+    ],
+    "excepciones": []
+  },
+  "buscador": {
+    "fecha": "2026-10-08",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/buscador.md",
+    "elegida": "P1 · la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda y el conteo (lista) · la píldora que se despega (mostrador); busca mientras se escribe; elegida tocándola el 2026-10-08",
+    "pieza": "components/ui/Buscador.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css", "components/ui/BusquedaEnUrl.tsx"],
+    "firmas": [
+      // Una caja de buscar dibujada a mano.
+      // (Un `inputMode="search"` o el placeholder de Vender ya no cuentan: son props que se le pasan a la pieza.)
+      "<input\\b[^>]*type=\"search\"|^\\s*type=\"search\"",
+      "<SenalBuscando\\b",
+      // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
+      "\\bfin-buscar\\b|className=\"buscar\""
+    ],
+    "deuda": [
+
+    ],
+    "excepciones": []
+  },
 };
 
 export const FAMILIAS = [...BASE, ...ACCIONES].map((f) => ({ ...f, decision: DECISIONES[f.id] ?? null }));

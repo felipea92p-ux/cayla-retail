@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { FunnelX, Receipt, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -31,6 +31,9 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Registrar una nota de crédito de compra (2026-09-19)
@@ -298,28 +301,20 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
 
             <div className="nc-colapsa" data-abierto={buscando ? "true" : "false"}>
               <div>
-                <div className="flex items-center gap-2.5 rounded-lg border border-tinta/25 bg-papel px-3 py-2 transition-colors focus-within:border-rojo">
-                  <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
-                  <input
-                    ref={refBuscador}
-                    type="search"
-                    role="combobox"
-                    aria-expanded={resultados.length > 0}
-                    aria-controls="nc-fb-lista"
-                    aria-autocomplete="list"
-                    aria-activedescendant={resultados[activa] ? `nc-fb-${resultados[activa].id}` : undefined}
-                    aria-label="Buscar factura por serie-número, proveedor o monto"
-                    placeholder="Serie-número, proveedor o monto"
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={texto}
-                    onChange={(e) => { setTexto(e.target.value); setActiva(0); }}
-                    onKeyDown={tecladoBuscador}
-                    className="h-6 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-                  />
-                  <span className="whitespace-nowrap text-xs tabular-nums text-tinta/55">{resultados.length ? `${resultados.length} ${resultados.length === 1 ? "factura" : "facturas"}` : "Sin resultados"}</span>
-                  <kbd className="rounded border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55">↑↓</kbd>
-                </div>
+                <Buscador
+                  ref={refBuscador}
+                  role="combobox"
+                  aria-expanded={resultados.length > 0}
+                  aria-controls="nc-fb-lista"
+                  aria-autocomplete="list"
+                  aria-activedescendant={resultados[activa] ? `nc-fb-${resultados[activa].id}` : undefined}
+                  etiqueta="Buscar factura por serie-número, proveedor o monto"
+                  placeholder="Serie-número, proveedor o monto"
+                  valor={texto}
+                  onCambio={(t) => { setTexto(t); setActiva(0); }}
+                  onKeyDown={tecladoBuscador}
+                  conteo={resultados.length ? `${resultados.length} ${resultados.length === 1 ? "factura" : "facturas"} · ↑↓ para moverte` : "Sin resultados"}
+                />
 
                 <div role="radiogroup" aria-label="Filtrar facturas" className="mt-2.5 flex flex-wrap gap-1.5">
                   {FILTROS.map((f) => (
@@ -342,15 +337,13 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                   {fallaFacturas ? (
                     <p className="px-3.5 py-5 text-center text-[13px] text-tinta/65">{fallaFacturas}</p>
                   ) : resultados.length === 0 ? (
-                    <div className="px-3.5 py-5 text-center">
-                      <p className="font-display text-[18px] italic text-tinta/65">No hay facturas que coincidan</p>
-                      <p className="mt-0.5 text-[12.5px] text-tinta/55">Prueba con otra serie, otro proveedor o un monto.</p>
-                      {(texto || filtro !== "todas") && (
-                        <button type="button" onClick={() => { setTexto(""); setFiltro("todas"); setActiva(0); refBuscador.current?.focus(); }} className="mt-2 text-[13px] text-rojo hover:underline">
-                          Ver todas las facturas
-                        </button>
-                      )}
-                    </div>
+                    <Vacio
+                      tamano="chico"
+                      icono={texto ? <SearchX /> : filtro !== "todas" ? <FunnelX /> : <Receipt />}
+                      accion={texto || filtro !== "todas" ? { texto: "Ver todas las facturas", onClick: () => { setTexto(""); setFiltro("todas"); setActiva(0); refBuscador.current?.focus(); } } : undefined}
+                    >
+                      {texto ? `Ninguna factura coincide con «${texto.trim()}». Prueba con otra serie, otro proveedor o un monto.` : "No hay facturas que coincidan. Prueba con otra serie, otro proveedor o un monto."}
+                    </Vacio>
                   ) : (
                     resultados.map((f, i) => {
                       const chip = chipFactura(f, hoy);
@@ -543,15 +536,19 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
               {!factura ? (
                 <p className="rounded-xl border border-dashed border-tinta/25 px-4 py-3 text-[13px] text-tinta/55">Elige primero la factura de origen.</p>
               ) : v.explicacionMonto && (tocoMonto || intento) ? (
-                <div role="alert" className="anim-revelar rounded-xl border border-l-2 border-rojo/40 border-l-rojo bg-rojo/[0.06] px-4 py-3 text-sm">
-                  <b className="mb-0.5 block font-semibold text-rojo-profundo">Este monto no cuadra</b>
-                  <span className="text-tinta/80">{v.explicacionMonto}</span>
-                  {v.topeSugerido != null && (
-                    <button type="button" onClick={() => { setBorrador((b) => ({ ...b, montoTxt: v.topeSugerido!.toFixed(2) })); setTocoMonto(true); refMonto.current?.focus(); }} className="mt-2 block text-[13px] text-rojo underline underline-offset-2">
-                      Usar {soles(v.topeSugerido)}
-                    </button>
-                  )}
-                </div>
+                <Aviso
+                  tono="error"
+                  titulo="Este monto no cuadra"
+                  accion={
+                    v.topeSugerido != null ? (
+                      <button type="button" onClick={() => { setBorrador((b) => ({ ...b, montoTxt: v.topeSugerido!.toFixed(2) })); setTocoMonto(true); refMonto.current?.focus(); }}>
+                        Usar {soles(v.topeSugerido)}
+                      </button>
+                    ) : undefined
+                  }
+                >
+                  {v.explicacionMonto}
+                </Aviso>
               ) : v.reparto ? (
                 <div className="rounded-xl border border-sand bg-sand/35 px-4 py-3.5">
                   <p className="text-sm font-semibold leading-relaxed text-tinta">

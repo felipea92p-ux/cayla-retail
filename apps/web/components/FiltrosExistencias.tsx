@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpDown, CircleAlert, LayoutGrid, Link2, ListChecks, Palette, Rows3, Ruler, ScanLine, Search, Shirt, Table2, Tag, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ArrowUpDown, CircleAlert, LayoutGrid, Link2, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
@@ -24,6 +24,7 @@ import {
   type ConteosFiltros,
   type FiltrosElegidos,
 } from "@/lib/existencias-filtros";
+import { Buscador } from "@/components/ui/Buscador";
 
 /* ====================================================================
    La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
@@ -131,22 +132,6 @@ export function FiltrosExistencias({
   const [panelAbierto, setPanelAbierto] = useState(panelInicial === "abierto");
   const [hojaAbierta, setHojaAbierta] = useState(false);
   const esEscritorio = useConsultaMedia(MEDIA_ESCRITORIO);
-
-  // «/» lleva el cursor al buscador, salvo que la persona ya esté escribiendo en otra caja (el mismo atajo de Productos).
-  useEffect(() => {
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
-      const caja = document.getElementById(ID_BUSCADOR_EXISTENCIAS) as HTMLInputElement | null;
-      if (!caja) return;
-      e.preventDefault();
-      caja.focus();
-      caja.select();
-    };
-    document.addEventListener("keydown", alTeclear);
-    return () => document.removeEventListener("keydown", alTeclear);
-  }, []);
 
   function alTocarFiltros() {
     if (window.matchMedia(MEDIA_ESCRITORIO).matches) {
@@ -383,54 +368,25 @@ export function FiltrosExistencias({
         <div className="order-1 flex min-w-0 basis-full items-center gap-2 xl:min-w-[24rem] xl:flex-1">
           {/* Buscar: del alto de un control (40 px) y tan ancho como deje la fila (2026-10-06, tarde: con la vista dentro de «Filtros» la
               barra tiene menos piezas, y un buscador de 26rem dejaba media barra vacía). */}
-          <label className="relative min-w-0 flex-1">
-            <span className="sr-only">Buscar producto</span>
-            <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-taupe" strokeWidth={1.8} />
-            {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario. */}
-            <input
-              id={ID_BUSCADOR_EXISTENCIAS}
-              value={busqueda}
-              onChange={(e) => onTeclear(e.target.value)}
-              onBlur={onSoltar}
-              // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && busqueda) {
-                  // Usa su Escape (borra lo escrito): no lo deja subir a una hoja (useEscapeLibre).
-                  e.stopPropagation();
-                  onTeclear("");
-                  return;
-                }
-                if (e.key !== "Enter") return;
-                e.preventDefault();
-                onEnter();
-              }}
-              aria-keyshortcuts="/"
-              placeholder={placeholder}
-              enterKeyHint="search"
-              spellCheck={false}
-              autoComplete="off"
-              type="search"
-              // A la derecha solo se reserva lugar para lo que se ve: la «X» al escribir, o la tecla «/» desde 768 px. En el celular ese aire
-              // cortaba el texto de ayuda («Prenda, talla o códi…») ahora que el anillo comparte la fila.
-              className={`h-10 w-full rounded-xl border border-sand bg-hueso pl-10 text-[15px] text-tinta placeholder:text-taupe focus:border-taupe max-sm:text-[14px] [&::-webkit-search-cancel-button]:hidden ${
-                busqueda ? "pr-10" : "pr-3 md:pr-10"
-              }`}
-            />
-            {busqueda ? (
-              <button
-                type="button"
-                onClick={() => onTeclear("")}
-                aria-label="Borrar búsqueda"
-                className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full bg-sand text-tinta"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <kbd aria-hidden title="Atajo: / o Ctrl+K" className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-tinta/15 px-1.5 font-sans text-[11px] text-tinta/45 md:inline">
-                /
-              </kbd>
-            )}
-          </label>
+          {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario (el Buscador ya lo apaga).
+              «/» lleva el cursor aquí (`atajo`); Escape y la «×» borran lo escrito. */}
+          <Buscador
+            id={ID_BUSCADOR_EXISTENCIAS}
+            valor={busqueda}
+            onCambio={(v) => onTeclear(v)}
+            onBlur={onSoltar}
+            // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              onEnter();
+            }}
+            atajo
+            placeholder={placeholder}
+            etiqueta="Buscar producto"
+            enterKeyHint="search"
+            className="min-w-0 flex-1"
+          />
           {/* Escanear: solo el icono (maqueta aprobada). El nombre va como etiqueta y al pasar el mouse. */}
           {onEscanear && (
             <button

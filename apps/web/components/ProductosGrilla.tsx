@@ -24,6 +24,9 @@ import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede"
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
 import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
 import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, guardarTamanoGrilla, type TamanoGrilla } from "@/lib/tamano-grilla";
+import { FunnelX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosTabla`,
@@ -46,6 +49,7 @@ export function ProductosGrilla({
   puedeEditar,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
+  hrefLimpiar,
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
 }: {
   productos: ProductoListado[];
@@ -65,6 +69,8 @@ export function ProductosGrilla({
   /** Quien edita el catálogo (`fn_puede_editar_catalogo`, ADR-0252 act. 2026-10-03). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
+  /** «Limpiar filtros» dentro del vacío (Felipe 2026-10-08: deshacerlo ahí mismo). */
+  hrefLimpiar?: string;
 }) {
   // El stock de la sede de TODA la página en una sola lectura (una por tarjeta serían 24), y otra vez cuando la página
   // cambia o se refresca (un ajuste): `productos` es otro arreglo.
@@ -81,7 +87,14 @@ export function ProductosGrilla({
   };
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
+    // Los filtros (o la búsqueda) dejaron cero: la pieza única del vacío (ADR-0358 ronda 5). Limpiar vive en la barra de filtros.
+    return (
+      <div className="card-cayla">
+        <Vacio icono={<FunnelX />} acciones={hrefLimpiar ? <BotonEnlace href={hrefLimpiar}>Limpiar filtros</BotonEnlace> : null}>
+          {mensajeVacio}
+        </Vacio>
+      </div>
+    );
   }
 
   return (

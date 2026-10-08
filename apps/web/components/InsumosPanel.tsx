@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Layers } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -19,6 +19,7 @@ import {
   type EstadoInsumo,
 } from "@/lib/insumos-reglas";
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Lo que hay por lote, cuánto dura y qué falta. El saldo es la suma del
 // ledger, nunca un número que alguien edite; por eso el libro de movimientos solo se agrega, no se corrige. Quien no es
@@ -90,12 +91,21 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
       </div>
 
       {insumos.length === 0 ? (
-        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
-          <p>
-            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda. Sin esto, el costo de tela y avíos de una
-            orden es un número que alguien escribe.
-          </p>
-          {esLider ? <p>Empieza agregando un insumo al catálogo; después ingresa su primer lote.</p> : <p>El líder tiene que cargar el catálogo primero.</p>}
+        <div className="card-cayla">
+          <Vacio
+            icono={<Layers />}
+            titulo="Todavía no hay insumos"
+            acciones={
+              esLider ? (
+                <Boton peso="primario" onClick={() => setNuevo(true)}>
+                  Agregar el primero
+                </Boton>
+              ) : null
+            }
+          >
+            Aquí se lleva la tela y los avíos del Taller: lo que entra por lote, lo que sale al cortar y lo que queda.{" "}
+            {esLider ? "Empieza agregando un insumo al catálogo; después ingresa su primer lote." : "El líder tiene que cargar el catálogo primero."}
+          </Vacio>
         </div>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">

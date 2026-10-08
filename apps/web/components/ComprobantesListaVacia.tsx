@@ -1,33 +1,45 @@
-import Image from "next/image";
-import Link from "next/link";
+import { FunnelX, Receipt, SearchX } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ComprobantesListaVacia · cuando la lista de /compras no tiene filas
-   (2026-09-19, ADR-0136)
+   (2026-09-19, ADR-0136; con la pieza única <Vacio> desde el 2026-10-08, ADR-0358 ronda 5)
 
    Tres motivos distintos y cada uno dice lo suyo: no hay ningún comprobante todavía (lleva a
    registrar el primero), la búsqueda no encontró nada (nombra lo buscado), o los filtros/la vista
    dejan la lista en cero (ofrece limpiarlos, que en Comprobantes es volver a `/compras`).
-
-   El isotipo de CAYLA flota UNA vez al aparecer (`cmp-flota`: sube, se asienta y queda quieto): da vida a
-   un estado que de otro modo sería un párrafo gris, sin quedarse moviéndose. Sin movimiento
-   reducido no se anima. Es de servidor: no necesita estado.
+   El colibrí que flotaba dio paso al ícono de lo que falta que se dibuja (Felipe 2026-10-08).
+   Es de servidor: no necesita estado.
    ==================================================================== */
 export function ComprobantesListaVacia({ hayFiltros, busqueda }: { hayFiltros: boolean; busqueda: string }) {
-  const mensaje = busqueda ? `Nada coincide con «${busqueda}».` : hayFiltros ? "Ningún comprobante coincide con esos filtros." : "Todavía no hay comprobantes registrados.";
+  const limpiar = (
+    <BotonEnlace href="/compras" peso="fantasma">
+      Limpiar filtros
+    </BotonEnlace>
+  );
   return (
-    <div className="card-cayla anim-entra flex flex-col items-center px-5 pb-12 pt-11 text-center" style={{ ["--i" as string]: 7 }}>
-      <Image src="/cayla-isotipo.png" alt="" width={44} height={44} className="cmp-flota h-11 w-auto" />
-      <p className="mt-3 text-sm text-tinta/75">{mensaje}</p>
-      {hayFiltros ? (
-        <BotonEnlace href="/compras" className="mt-4">
-          Limpiar filtros
-        </BotonEnlace>
+    <div className="card-cayla anim-entra" style={{ ["--i" as string]: 7 }}>
+      {busqueda ? (
+        <Vacio icono={<SearchX />} titulo={`Nada coincide con «${busqueda}»`} acciones={limpiar}>
+          Se busca por el nombre del proveedor o por el número del documento (F001-…).
+        </Vacio>
+      ) : hayFiltros ? (
+        <Vacio icono={<FunnelX />} titulo="Ningún comprobante con esos filtros" acciones={limpiar}>
+          Quita un filtro o límpialos todos para ver la lista completa.
+        </Vacio>
       ) : (
-        <Link href="/compras/nueva" className="mt-3 text-sm text-rojo hover:underline">
-          Registrar el primero →
-        </Link>
+        <Vacio
+          icono={<Receipt />}
+          titulo="Todavía no hay comprobantes"
+          acciones={
+            <BotonEnlace href="/compras/nueva" peso="primario">
+              Registrar el primero
+            </BotonEnlace>
+          }
+        >
+          Cuando registres la primera factura de un proveedor aparecerá aquí, con su saldo y la fecha en que vence.
+        </Vacio>
       )}
     </div>
   );

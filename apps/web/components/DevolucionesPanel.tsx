@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowRight, Banknote, PackageSearch, ScanLine, Search } from "lucide-react";
+import { ArrowRight, Banknote, FunnelX, PackageSearch, ScanLine, Search } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
 import { DevolucionesVentas } from "@/components/DevolucionesVentas";
 import { DevolucionesFlujo } from "@/components/DevolucionesFlujo";
@@ -330,6 +330,7 @@ export function DevolucionesPanel({
                 lista(lineasVisibles, true)
               ) : (
                 <EstadoVacio
+                  icono={filtro === "todas" ? undefined : <FunnelX />}
                   titulo={
                     filtro === "todas"
                       ? `No hay ventas de los últimos 15 días en ${sede}.`

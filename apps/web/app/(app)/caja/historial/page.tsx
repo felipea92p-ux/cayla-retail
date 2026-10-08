@@ -9,6 +9,9 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Volver } from "@/components/ui/Volver";
+import { Check, FunnelX, Wallet } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
 
 function money(n: number) {
   return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -71,7 +74,11 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
       {aperturas && aperturas.length > 0 && <AperturasPorRevisar aperturas={aperturas} />}
 
       {resumenTodo.total === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no se cerró ninguna caja. Cuando se cierre la primera, aparecerá aquí.</p>
+        <div className="card-cayla">
+          <Vacio icono={<Wallet />} titulo="Todavía no se cerró ninguna caja">
+            Cuando se cierre la primera, aparecerá aquí con lo contado y si cuadró.
+          </Vacio>
+        </div>
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -111,9 +118,23 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
           </nav>
 
           {cierres.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/75">
-              {soloConDiferencia ? `Todos los cierres${sede ? ` de ${sede.nombre}` : ""} cuadraron. No hay nada que revisar.` : "No hay cierres con este filtro."}
-            </p>
+            <div className="card-cayla">
+              {soloConDiferencia ? (
+                <Vacio
+                  icono={<Check />}
+                  titulo={`Todos los cierres${sede ? ` de ${sede.nombre}` : ""} cuadraron`}
+                  acciones={<BotonEnlace href={href({ estado: undefined })}>Ver todos los cierres</BotonEnlace>}
+                >
+                  No hay nada que revisar.
+                </Vacio>
+              ) : (
+                <Vacio
+                  icono={<FunnelX />}
+                  titulo="No hay cierres con este filtro"
+                  acciones={<BotonEnlace href={href({ sede: undefined, estado: undefined })}>Limpiar filtros</BotonEnlace>}
+                />
+              )}
+            </div>
           ) : (
             <HistorialCierresTabla
               cierres={cierres}

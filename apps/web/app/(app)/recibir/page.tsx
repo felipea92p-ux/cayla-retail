@@ -27,6 +27,9 @@ import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getMarcasPorProveedor } from "@/lib/proveedores";
 import { LlegoMercaderia } from "@/components/LlegoMercaderia";
 import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
+import { FunnelX, Receipt } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -307,18 +310,26 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       {avisoTraslados}
 
       {compras.length === 0 && !cursor ? (
-        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
-          <p>
-            {hayFiltros ? "Ningún comprobante pendiente de recibir coincide con esos filtros. " : "No hay comprobantes con mercadería pendiente de recibir. "}
-            {esLider && (
-              <Link href="/compras/nueva" className="text-rojo hover:underline">
-                Registrar un comprobante →
-              </Link>
-            )}
-          </p>
-          <p className="text-xs text-tinta/55">
-            Si llegó mercadería sin factura, <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
-          </p>
+        <div className="card-cayla">
+          {hayFiltros ? (
+            <Vacio
+              icono={<FunnelX />}
+              titulo="Ningún comprobante con esos filtros"
+              acciones={<BotonEnlace href="/recibir?vista=factura" peso="fantasma">Limpiar filtros</BotonEnlace>}
+            >
+              Ningún comprobante pendiente de recibir coincide con esos filtros. Si llegó mercadería sin factura,{" "}
+              <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+            </Vacio>
+          ) : (
+            <Vacio
+              icono={<Receipt />}
+              titulo="No hay nada pendiente de recibir"
+              acciones={esLider ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
+            >
+              No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
+              <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">recíbela sin factura</Link>.
+            </Vacio>
+          )}
         </div>
       ) : (
         <RecepcionEnvio

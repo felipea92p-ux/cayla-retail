@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getMisPartesDeCompras, porPagarConMiParte } from "@/lib/compras-mi-parte";
 import { partesPorPagar } from "@/lib/compras-mi-parte-reglas";
@@ -22,6 +21,9 @@ import { PorPagarProvider } from "@/components/PorPagarContexto";
 import { BarraConcentracion, BotonSoloVencidas, SelectorAgrupar } from "@/components/PorPagarControles";
 import { SaldosAFavor } from "@/components/SaldosAFavor";
 import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
+import { CircleCheck, FunnelX, SearchX } from "lucide-react";
+import { BotonEnlace } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Por pagar (ADR-0035, rediseño ADR-0111): los comprobantes vigentes con saldo, de lo más urgente
 // a lo que puede esperar. Sale del índice parcial `compras_por_pagar_idx`, que solo contiene lo
@@ -225,11 +227,32 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
         <div data-resultados>
           {compras.length === 0 && !cursor ? (
             conDeuda || hayFiltros ? (
-              <div className="card-cayla p-5 text-sm text-tinta/75">
-                Ningún comprobante por pagar coincide con esos filtros.
-                <Link href="/compras/por-pagar" className="label-cayla ml-3 text-[11px] text-rojo hover:underline">
-                  Limpiar filtros
-                </Link>
+              <div className="card-cayla">
+                {filtros.busqueda ? (
+                  <Vacio
+                    icono={<SearchX />}
+                    titulo={`Nada por pagar coincide con «${filtros.busqueda}»`}
+                    acciones={
+                      <BotonEnlace href="/compras/por-pagar" peso="fantasma">
+                        Limpiar filtros
+                      </BotonEnlace>
+                    }
+                  >
+                    Se busca por el nombre del proveedor o por el número del documento (F001-…).
+                  </Vacio>
+                ) : (
+                  <Vacio
+                    icono={<FunnelX />}
+                    titulo="Ningún comprobante por pagar con esos filtros"
+                    acciones={
+                      <BotonEnlace href="/compras/por-pagar" peso="fantasma">
+                        Limpiar filtros
+                      </BotonEnlace>
+                    }
+                  >
+                    Quita un filtro o límpialos todos para ver todo lo que se debe.
+                  </Vacio>
+                )}
               </div>
             ) : (
               <TodoPagado />
@@ -257,15 +280,13 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   );
 }
 
-/** «Todo pagado»: el círculo y el tilde se DIBUJAN (trazo). Es lo que se ve al pagar el último comprobante. */
+/** «Todo pagado»: lo que se ve al pagar el último comprobante (con la pieza única <Vacio>, ADR-0358 ronda 5: su ícono se dibuja). */
 function TodoPagado() {
   return (
-    <div className="card-cayla anim-revelar px-5 py-11 text-center">
-      <svg aria-hidden viewBox="0 0 54 54" className="mx-auto mb-2.5 h-[54px] w-[54px] fill-none stroke-verde" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-        <circle pathLength={1} cx="27" cy="27" r="24" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 0 }} />
-        <path pathLength={1} d="M16 28l8 8 15-17" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 12 }} />
-      </svg>
-      <p className="font-display text-[19px] italic text-tinta/65">Todo pagado. No queda nada por pagar.</p>
+    <div className="card-cayla">
+      <Vacio icono={<CircleCheck />} titulo="Todo pagado">
+        No queda nada por pagar. Cuando registres una factura al crédito, aparecerá aquí con la fecha en que vence.
+      </Vacio>
     </div>
   );
 }

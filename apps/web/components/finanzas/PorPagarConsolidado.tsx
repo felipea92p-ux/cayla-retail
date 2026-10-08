@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraDinero } from "@/components/finanzas/CabeceraDinero";
-import { GuiaVacia, PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
@@ -18,6 +18,8 @@ import {
   totalPorPagar,
   type FilaPorPagar,
 } from "@/lib/por-pagar-consolidado-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check } from "lucide-react";
 
 // Finanzas ▸ Cuentas y dinero ▸ Por pagar (ADR-0195 F4; spike `vista-dinero.js`, `vistaPorPagar`): una sola lista de todo lo
 // que CAYLA debe —mercadería, gastos, activos e insumos del Taller— y el calendario de vencimientos con sus totales.
@@ -78,9 +80,11 @@ export function PorPagarConsolidado({
 
           {filas.length === 0 ? (
             <div {...entra(5)}>
-              <GuiaVacia sobre="Todo pagado" titulo={nombre ? `${mayuscula(nombre)} no debe nada` : "CAYLA no debe nada"}>
-                Ninguna factura de mercadería, gasto, activo ni insumo del Taller tiene saldo. Lo pagado y lo anulado no aparecen aquí.
-              </GuiaVacia>
+              <Superficie>
+                <Vacio icono={<Check />} titulo={`Todo pagado: ${nombre ? `${mayuscula(nombre)} no debe nada` : "CAYLA no debe nada"}`}>
+                  Ninguna factura de mercadería, gasto, activo ni insumo del Taller tiene saldo. Lo pagado y lo anulado no aparecen aquí.
+                </Vacio>
+              </Superficie>
             </div>
           ) : (
             <Superficie className="anim-sube">

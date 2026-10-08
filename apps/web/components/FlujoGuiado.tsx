@@ -296,23 +296,3 @@ export function BotonRojo({ onClick, children, disabled = false, monto }: { onCl
   );
 }
 
-/** El aviso de que la base rechazó la operación. Recibe el foco (por su `refAviso`) para
- *  que se lea y se oiga sin buscarlo. `traducirError` abre con "No se pudo …" cuando no
- *  reconoce el error; con un mensaje de la base ("Stock insuficiente…") hay que decir además
- *  que no se guardó nada. */
-export function AvisoDeError({ error, refAviso, queNoSeHizo }: { error: string; refAviso: RefObject<HTMLDivElement | null>; queNoSeHizo: string }) {
-  return (
-    <div
-      ref={refAviso}
-      tabIndex={-1}
-      role="alert"
-      className="anim-revelar flex gap-3 rounded-xl border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-sm text-rojo-profundo outline-none"
-    >
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <p>
-        {!error.startsWith("No se pudo") && <span className="font-semibold">{queNoSeHizo} </span>}
-        {error}
-      </p>
-    </div>
-  );
-}

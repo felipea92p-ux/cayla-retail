@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X } from "lucide-react";
+import { SearchX, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, Hilo } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { EditarMarcaModal, type MarcaEditada } from "@/components/EditarMarcaModal";
 import { filtrarMarcas, sePuedeEliminarMarca, textoProductosMarca, type ProveedorOpcion } from "@/lib/marcas";
@@ -14,6 +14,8 @@ import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalog
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * Marcas del catálogo y sus proveedores (ADR-0109, `retail.marcas` +
@@ -69,7 +71,6 @@ export function MarcasLista({
   const [modo, setModo] = useState<Modo | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [buscando, setBuscando] = useState(false);
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
   // (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Aprobar, rechazar, desactivar y reactivar ya no piden
@@ -152,30 +153,14 @@ export function MarcasLista({
           {activas.length} marca{activas.length === 1 ? "" : "s"} activa{activas.length === 1 ? "" : "s"}
         </p>
         <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-          <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
-            <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(ev) => setBusqueda(ev.target.value)}
-              onFocus={() => setBuscando(true)}
-              onBlur={() => setBuscando(false)}
-              placeholder="Marca o proveedor"
-              aria-label="Buscar marca o proveedor"
-              className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => setBusqueda("")}
-                aria-label="Borrar búsqueda"
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <Hilo activo={buscando} />
-          </div>
+          <Buscador
+            valor={busqueda}
+            onCambio={setBusqueda}
+            placeholder="Marca o proveedor"
+            etiqueta="Buscar marca o proveedor"
+            atajo
+            className="min-w-0 flex-1 sm:w-72 sm:flex-none"
+          />
           {puedeEditar && (
             <Boton className="shrink-0" onClick={() => setModo({ tipo: "nueva" })}>
               + Nueva marca
@@ -188,15 +173,29 @@ export function MarcasLista({
         <NuevaMarcaForm proveedores={proveedores} marcas={existentes} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
       )}
 
-      {activas.length === 0 && <p className="card-cayla p-5 text-sm text-tinta/70">Todavía no hay marcas activas.</p>}
+      {activas.length === 0 && (
+        <div className="card-cayla">
+          <Vacio icono={<Tag />} titulo="Todavía no hay marcas activas">
+            {puedeEditar ? "Registra la primera con «+ Nueva marca»." : "Cuando se registre una marca, aparece aquí."}
+          </Vacio>
+        </div>
+      )}
 
       {buscandoAlgo && activasVisibles.length + desactivadasVisibles.length === 0 && (
-        <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <p className="text-sm text-tinta/75">Ninguna marca ni proveedor coincide con «{busqueda.trim()}».</p>
-          <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={() => setBusqueda("")}>
-            Quitar búsqueda
-          </Boton>
+        <div className="card-cayla">
+          <Vacio
+            icono={<SearchX />}
+            titulo={<>Nada coincide con «{busqueda.trim()}»</>}
+            acciones={
+              <Boton type="button" peso="fantasma" onClick={() => setBusqueda("")}>
+                Borrar la búsqueda
+              </Boton>
+            }
+          >
+            Ninguna marca ni proveedor se llama así. Prueba con otra palabra.
+          </Vacio>
         </div>
+
       )}
 
       <ul className="grid gap-3 md:grid-cols-2">

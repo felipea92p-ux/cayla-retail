@@ -2,13 +2,14 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Minus, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias, type EstadoCasilla } from "@/lib/pildora-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Píldoras de filtro · patrón compartido (nacido en FiltrosProductos el
@@ -376,9 +377,17 @@ export function DesplegablePildora({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">
+              <li>
                 {/* Sin opciones (los demás filtros no dejan ninguna) no es lo mismo que «la búsqueda no encontró nada». */}
-                {opciones.length === 0 ? "Con los filtros puestos no queda ninguna para elegir. Quita otro filtro." : `Nada coincide con «${busqueda.trim()}».`}
+                {opciones.length === 0 ? (
+                  <Vacio tamano="chico" alinear="izquierda" icono={<FunnelX />}>
+                    Con los filtros puestos no queda ninguna para elegir. Quita otro filtro.
+                  </Vacio>
+                ) : (
+                  <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                    Nada coincide con <b>«{busqueda.trim()}»</b>.
+                  </Vacio>
+                )}
               </li>
             ) : (
               mostradas.map((o, i) => {

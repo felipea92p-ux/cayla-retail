@@ -181,25 +181,6 @@
     padding-top: 5px;
     padding-bottom: 5px;
   }
-  .fin-buscar {
-    position: relative;
-    flex: 1 1 240px;
-  }
-  .fin-buscar svg {
-    position: absolute;
-    left: 11px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 15px;
-    height: 15px;
-    stroke: var(--color-taupe);
-    fill: none;
-    stroke-width: 1.6;
-    pointer-events: none;
-  }
-  .fin-buscar .fin-control {
-    padding-left: 34px;
-  }
   .fin-num {
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -497,27 +478,6 @@
     color: var(--color-tinta);
   }
 
-  /* Estado vacío de una pestaña. */
-  .fin-guia {
-    background: var(--color-papel);
-    border: 1px solid var(--color-sand);
-    border-radius: var(--radius-xl);
-    padding: 28px;
-  }
-  .fin-guia h2 {
-    margin: 6px 0;
-    font-family: var(--font-serif);
-    font-weight: 500;
-    font-size: 26px;
-    color: var(--color-tinta);
-  }
-  .fin-guia p {
-    margin: 0;
-    max-width: 62ch;
-    line-height: 1.55;
-    color: var(--color-taupe);
-  }
-
   /* Par de entradas en una celda (Configuración: «% · fondo»). */
   .fin-par-inp {
     display: inline-flex;
@@ -646,16 +606,6 @@
     color: var(--color-taupe);
   }
   .fin-marcas b {
-    font-weight: 600;
-    color: var(--color-tinta);
-  }
-  .fin-nota-bloque {
-    margin: 12px 0 0;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--color-taupe);
-  }
-  .fin-nota-bloque b {
     font-weight: 600;
     color: var(--color-tinta);
   }

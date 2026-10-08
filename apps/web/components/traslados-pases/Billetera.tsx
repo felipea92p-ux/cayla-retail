@@ -2,13 +2,15 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Package, SearchX } from "lucide-react";
 import { useAlVerse } from "@/components/movimientos/useAlVerse";
 import { MiniPase } from "@/components/traslados-pases/MiniPase";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { coincideBusqueda } from "@/lib/traslados-reglas";
 import { PESTANAS, paseInicial, textoDelAnillo, vecinosEnPestana, type PestanaPase } from "@/lib/traslados-pases-reglas";
 import type { Billetera as DatosBilletera, PaseDeBilletera } from "@/lib/traslados-billetera";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La billetera de Traslados (ADR-0355): a la izquierda, los pases apilados por pestaña (Te llegan · Envías · Terminadas) con lo
 // que te toca arriba, el anillo del día y el buscador; a la derecha, el pase grande (la página). Elegir un pase es navegar a
@@ -108,18 +110,12 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
             </div>
           </div>
 
-          <label className="caja-cayla relative flex h-10 items-center">
-            <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-            <span className="sr-only">Buscar una caja</span>
-            <input
-              type="search"
-              value={consulta}
-              onChange={(e) => setConsulta(e.target.value)}
-              placeholder="Busca una caja por número, sede o prenda" // sugerir-fijo: el buscador no depende de nada elegido antes
-              autoComplete="off"
-              className="h-full w-full rounded-lg bg-transparent pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-taupe"
-            />
-          </label>
+          <Buscador
+            valor={consulta}
+            onCambio={setConsulta}
+            placeholder="Busca una caja por número, sede o prenda" // sugerir-fijo: el buscador no depende de nada elegido antes
+            etiqueta="Buscar una caja"
+          />
 
           {/* Llegan / Envías / Terminados cambian qué cajas se ven: la pestaña de vista del sistema (ADR-0358). El número de cada una
               es cuántas hay; «por hacer» va en ámbar y con su texto para lector. */}
@@ -142,10 +138,15 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
             {lista.length > 0 ? (
               lista.map((p) => <MiniPase key={p.id} pase={p} href={rutaDelPase(p.id)} actual={p.id === seleccion} />)
             ) : (
-              <div className="tp-vacia">
-                <b>{consulta.trim() ? "Ninguna caja con eso" : pestana === "llegan" ? "Nada viene hacia ti" : pestana === "envias" ? "No tienes envíos en camino" : "Nada terminado todavía"}</b>
-                {consulta.trim() ? "Prueba con el número, la sede o la prenda." : "Cuando haya, aparece aquí."}
-              </div>
+              consulta.trim() ? (
+                <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setConsulta("") }}>
+                  Ninguna caja con «{consulta.trim()}». Prueba con el número, la sede o la prenda.
+                </Vacio>
+              ) : (
+                <Vacio tamano="chico" icono={<Package />}>
+                  {pestana === "llegan" ? "Nada viene hacia ti" : pestana === "envias" ? "No tienes envíos en camino" : "Nada terminado todavía"}. Cuando haya, aparece aquí.
+                </Vacio>
+              )
             )}
           </nav>
           {pestana === "terminadas" && billetera.terminadasAcotadas && <p className="px-1 text-xs text-tinta/60">Se ven las últimas 30 terminadas.</p>}
