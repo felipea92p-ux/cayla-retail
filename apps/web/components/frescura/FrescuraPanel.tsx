@@ -283,7 +283,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               />
             )}
             {avisoPocas && (
-              <p role="status" className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
+              <p role="status" data-guia="frescura.aviso-pocas" className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <TextoConNegritas texto={avisoPocas} />
@@ -297,7 +297,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               </p>
             )}
             {muchasSin && (
-              <p className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
+              <p data-guia="frescura.aviso-temporada" className="flex items-start gap-2 px-4 pb-3.5 text-[13px] text-taupe sm:px-5">
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <b className="font-semibold text-tinta">

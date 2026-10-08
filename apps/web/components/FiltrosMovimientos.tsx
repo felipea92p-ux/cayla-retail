@@ -372,7 +372,7 @@ export function FiltrosMovimientos({
           {procesoSueltoPildora}
           {zona}
           {hayFiltros && (
-            <button type="button" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
+            <button type="button" data-guia="movimientos.limpiar" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
               Limpiar filtros
             </button>
           )}

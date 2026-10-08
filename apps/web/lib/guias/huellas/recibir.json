@@ -5,8 +5,8 @@
   "total": 108,
   "controles": {
     "app/(app)/recibir/page.tsx": [
-      "Volver «(sin nombre)»",
-      "Link «Ver todo lo recibido»",
+      "Volver «)»",
+      "Link «recibir.ver-todo»",
       "Link «Registrar un comprobante →»",
       "Link «recíbela sin factura»"
     ],
@@ -128,7 +128,7 @@
       "button «Recepción siguiente»"
     ],
     "components/RecepcionesCompraLista.tsx": [
-      "button «{diaMes(hoyLima(new Date(r.fechaRecepcion)))}»",
+      "button «recibidas.fila»",
       "button «{diaMes(hoyLima(new Date(g.fechaRecepcion)))}»"
     ],
     "components/RecepcionesRecientes.tsx": [

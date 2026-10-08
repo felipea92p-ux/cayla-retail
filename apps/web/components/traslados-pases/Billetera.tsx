@@ -99,7 +99,7 @@ export function Billetera({ billetera, puedeVerVacios, children }: { billetera: 
   return (
     <CtxBilletera.Provider value={{ billetera, seleccion, idEnRuta }}>
       <div className="tp-cols" data-con-pase={idEnRuta ? "" : undefined}>
-        <aside className="tp-billetera" aria-label="Tus cajas">
+        <aside data-guia="traslados.billetera" className="tp-billetera" aria-label="Tus cajas">
           <div data-guia="traslados.dia" className="tp-dia">
             <Anillo fraccion={anillo.fraccion} />
             <div className="min-w-0">

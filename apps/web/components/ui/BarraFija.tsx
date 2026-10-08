@@ -22,7 +22,10 @@ export function BarraFija({
   className = "",
   visible,
   resumenMinimo,
+  guia,
 }: {
+  /** Ancla de la guía (ADR-0362). */
+  guia?: string;
   resumen: ReactNode;
   acciones: ReactNode;
   /** Una franja de 3 px pegada al borde superior (Recibir: contado · faltante · sin contar). */
@@ -40,6 +43,7 @@ export function BarraFija({
   const animada = visible !== undefined;
   return (
     <div
+      data-guia={guia}
       aria-hidden={animada && !visible ? true : undefined}
       inert={animada && !visible ? true : undefined}
       // `left` también se anima (menú lateral plegable, ADR-0130): sin `sm:transition-[left]` la barra

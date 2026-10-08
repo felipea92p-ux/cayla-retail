@@ -826,6 +826,7 @@ export function CuadrarPisoForm({
           )}
 
           <BarraFija
+            guia="cuadrar.barra"
             aviso={<PieGuia guia={guiaEscaneo} listo="Listo para revisar." />}
             resumen={
               <span>

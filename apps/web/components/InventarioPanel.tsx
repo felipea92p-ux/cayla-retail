@@ -996,7 +996,7 @@ export function InventarioPanel({
           </div>
         </div>
       ) : vista === "prenda" ? (
-        <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
+        <Tabla guia="existencias.tabla" className="rounded-none border-0 border-t border-sand bg-transparent">
           <ExistenciasPorPrenda
             prendas={paginaPrendas.filas}
             separa={separa}
@@ -1008,7 +1008,7 @@ export function InventarioPanel({
             abiertaClave={abierta?.clave ?? null}
             onAbrir={abrirPrenda}
           />
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+          <div data-guia="existencias.tabla-pie" className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
               <span>
                 {paginaPrendas.totalPaginas > 1 ? `Mostrando ${paginaPrendas.desde}–${paginaPrendas.hasta} de ` : "Mostrando "}
@@ -1034,7 +1034,7 @@ export function InventarioPanel({
           </div>
         </Tabla>
       ) : (
-        <Tabla className="@container rounded-none border-0 border-t border-sand bg-transparent">
+        <Tabla guia="existencias.tabla-talla" className="@container rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que va a la izquierda como en su diseño, y «Acción hoy» y
               «En la red», que se leen de corrido (diseño aprobado, 2026-09-28). La tabla COMUNICA el estado y no ofrece acciones:
               tocar una fila abre el cajón de la prenda, donde viven Reponer, Trasladar, Ajustar, Etiquetas e Historial. */}

@@ -89,7 +89,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             ? `Marca la factura con la que vino la mercadería, cuenta lo que llegó y recibe. Solo ves lo que le toca a ${nombreMirada}; lo de otras tiendas lo recibe cada una.`
             : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`}
       </p>
-      {vista !== "llegada" && <Volver href="/recibir" a="Llegó mercadería" className="mt-3" />}
+      {vista !== "llegada" && (
+        <div data-guia="recibir.volver" className="mt-3 w-fit">
+          <Volver href="/recibir" a="Llegó mercadería" />
+        </div>
+      )}
     </div>
   );
 
@@ -118,13 +122,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       <div className="space-y-6">
         {encabezado}
 
-        <section className="space-y-2">
+        <section data-guia="recibidas.sin-factura" className="space-y-2">
           <h2 className="label-cayla text-[11px] text-tinta/65">Sin factura · {nombreMirada}</h2>
           <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
         </section>
 
         <h2 className="label-cayla -mb-3 text-[11px] text-tinta/65">Contra factura</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
           </TarjetaCifra>
@@ -169,7 +173,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         <div className="space-y-3.5">
           <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} resultado={resultadoDesdeParam(params.res)} />
           {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-          <div data-resultados>
+          <div data-resultados data-guia="recibidas.lista">
             <RecepcionesCompraLista
               recepciones={recepciones}
               detalles={detalles}
@@ -252,7 +256,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         <section data-guia="recibir.semana" className="space-y-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="label-cayla text-[11px] text-tinta/65">Llegó esta semana · {persona.ubicacionEtiqueta}</h2>
-            <Link href="/recibir?vista=recibidas" className="btn-cayla btn-enlace btn-chico">
+            <Link href="/recibir?vista=recibidas" data-guia="recibir.ver-todo" className="btn-cayla btn-enlace btn-chico">
               Ver todo lo recibido
             </Link>
           </div>

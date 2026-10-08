@@ -49,7 +49,7 @@
       "button «movimientos.filtros-celular»",
       "Pastilla «{p.texto}» #2",
       "Pastilla «{nombreTipo(cat)}»",
-      "button «Limpiar filtros»",
+      "button «movimientos.limpiar»",
       "a «Exportar a Excel con estos filtros»",
       "button «Limpiar»",
       "button «Ver movimientos»"

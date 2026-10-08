@@ -301,7 +301,7 @@ function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: (
 
       {d.consultar.length > 0 && (
         <Seccion icono={FileText} titulo="Más información">
-          <div className="rounded-xl border border-sand px-4">
+          <div data-guia="movimientos.cajon-mas" className="rounded-xl border border-sand px-4">
             {d.consultar.map((c) => (
               <FilaEnlace key={c.clave} link={c} onVerVenta={onVerVenta} />
             ))}

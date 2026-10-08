@@ -175,7 +175,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
   const unidades = r.entran + r.salen + r.movidas + r.apartadas + r.liberadas;
   const { vuelta, props } = useRepetirAlPasar();
   return (
-    <li className="mv-fila" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
+    <li className="mv-fila" data-guia="movimientos.grupo" data-op={primera.id} data-mv-tono={TIPOS_VISUALES[tipo].tono} data-sel={op.filas.some((m) => m.id === ctx.abiertoId) ? "" : undefined} {...props}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(primera)}

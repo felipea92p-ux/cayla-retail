@@ -301,7 +301,7 @@ export function FrescuraDetalle({
           </Bloque>
 
           <Bloque titulo={`Tallas en ${sede}`}>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
+            <div data-guia="frescura.detalle-tallas" className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-1.5">
               {detalle.tallas.map((t) => (
                 <div key={t.varianteId} className="rounded-[10px] bg-hueso px-2.5 py-2 text-[12.5px] leading-normal">
                   <b className="block text-[13px] font-semibold">{t.talla}</b>
@@ -322,7 +322,7 @@ export function FrescuraDetalle({
           <Bloque titulo="Qué puedes hacer">
             {detalle.acciones.length > 0 ? (
               <>
-                <div className="grid gap-2">
+                <div data-guia="frescura.detalle-acciones" className="grid gap-2">
                   {detalle.acciones.map((a) => {
                     const Icono = ICONO_SUGERENCIA[a.clave];
                     return (
@@ -363,7 +363,7 @@ export function FrescuraDetalle({
             </dl>
           </Bloque>
 
-          <div className="flex justify-end border-t border-sand pt-4">
+          <div data-guia="frescura.detalle-cerrar" className="flex justify-end border-t border-sand pt-4">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cerrar
             </button>

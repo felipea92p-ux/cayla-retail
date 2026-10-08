@@ -31,10 +31,13 @@ export function BotonFiltros({
   activos,
   onClick,
   soloIcono = false,
+  "data-guia": guia,
 }: {
   abierto: boolean;
   activos: number;
   onClick: () => void;
+  /** Ancla de la guía (ADR-0362), en el botón mismo. */
+  "data-guia"?: string;
   /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
    *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
   soloIcono?: boolean;
@@ -44,6 +47,7 @@ export function BotonFiltros({
     return (
       <button
         type="button"
+        data-guia={guia}
         onClick={onClick}
         aria-expanded={abierto}
         aria-controls="filtros-panel"

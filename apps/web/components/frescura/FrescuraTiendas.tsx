@@ -38,7 +38,7 @@ export function FrescuraTiendas({
     >
       {(cerrar) => (
         <>
-          <ul className="divide-y divide-sand border-y border-sand">
+          <ul data-guia="frescura.tiendas-lista" className="divide-y divide-sand border-y border-sand">
             {tiendas.map((t) => {
               const c = t.lectura.datos && !("separaPiso" in t.lectura.datos) ? cifrasVista(t.lectura.datos) : null;
               const reg = registro.datos ? registroCorto(registro.datos, t.id) : [];

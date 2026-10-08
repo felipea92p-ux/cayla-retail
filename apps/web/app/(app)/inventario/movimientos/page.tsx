@@ -188,6 +188,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       </section>
 
       <PaginacionCursor
+        guia="movimientos.paginas"
         mostradas={operaciones.length}
         cursorSiguiente={siguiente ? serializarCursorMovimientos(siguiente) : null}
         hayCursor={!!cursor}
@@ -221,8 +222,8 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
       etiquetaAccesible="Vistas de Movimientos"
       activa={activa}
       items={[
-        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos" },
-        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas() },
+        { clave: "movimientos", etiqueta: "Movimientos", href: "/inventario/movimientos", guia: "movimientos.pestana-movimientos" },
+        { clave: "perdidas", etiqueta: "Pérdidas", href: hrefPerdidas(), guia: "movimientos.pestana-perdidas" },
       ]}
     />
   );
