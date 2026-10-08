@@ -29,6 +29,7 @@ import {
   type FilaER,
   type LineaDiario,
 } from "@/lib/resultados-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
@@ -353,7 +354,11 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           }))}
         />
       )}
-      {error && <p className="mt-3 text-sm text-rojo-profundo">No se pudieron leer las líneas: {error}</p>}
+      {error && (
+        <Aviso tono="error" chico className="mt-3">
+          No se pudieron leer las líneas: {error}
+        </Aviso>
+      )}
       {!o && !error && (
         <ul className="fin-lista mt-3" aria-hidden>
           {[0, 1, 2].map((i) => (

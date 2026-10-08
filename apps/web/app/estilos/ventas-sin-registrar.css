@@ -204,8 +204,6 @@
   .vsr-busca { display: flex; flex-direction: column; gap: 0.625rem; padding-top: 1rem; border-top: 1px solid var(--color-sand); }
   .vsr-busca p { font-size: 12.5px; color: var(--vsr-t65); }
   .vsr-res-n { font-size: 12.5px; color: var(--vsr-t65); margin-bottom: 0.5rem; }
-  .vsr-res-0 { display: flex; flex-direction: column; gap: 2px; background: var(--color-hueso); border-radius: var(--radius-lg); padding: 0.875rem 1rem; font-size: 13px; color: var(--vsr-t65); animation: vsr-sube 400ms var(--ease-cayla) backwards; }
-  .vsr-res-0 b { font-weight: 600; color: var(--color-tinta); }
 
   /* ---- El puente ---- */
   .vsr-pu { display: flex; flex-direction: column; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl, 1.25rem); padding: 0.875rem; position: relative; animation: vsr-sube 500ms var(--ease-cayla) backwards; }

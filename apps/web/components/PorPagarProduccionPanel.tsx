@@ -10,6 +10,8 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { PagarComprobanteProduccionModal } from "@/components/PagarComprobanteProduccionModal";
 import { diasHasta, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes } from "@/lib/por-pagar-produccion-reglas";
+import { CircleCheck } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -66,8 +68,10 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
       </div>
 
       {tramos.length === 0 ? (
-        <div className="card-cayla space-y-1.5 p-5 text-sm text-tinta/75">
-          <p>El Taller no debe nada ahora. Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.</p>
+        <div className="card-cayla">
+          <Vacio icono={<CircleCheck />} titulo="El Taller no debe nada">
+            Cuando registres un comprobante a crédito, aparecerá aquí con su vencimiento.
+          </Vacio>
         </div>
       ) : (
         <div className="space-y-5">

@@ -110,8 +110,6 @@
 .tp-mini-cifra b { font-family: var(--font-serif); font-weight: 400; font-size: 24px; color: var(--tp-c); white-space: nowrap; }
 .tp-mini-cifra small { display: block; margin-top: 3px; font-size: 10.5px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-mini-sello { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; border: 2px double var(--tp-c); color: var(--tp-c); border-radius: 6px; padding: 1px 6px; transform: rotate(-8deg); }
-.tp-vacia { padding: 28px 18px; border-radius: 18px; border: 1.5px dashed var(--color-sand); text-align: center; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); font-size: 13px; }
-.tp-vacia b { display: block; font-family: var(--font-serif); font-weight: 400; font-size: 21px; color: var(--color-tinta); }
 
 /* ── La línea del viaje (pase grande y franja) ── */
 .tp-linea { position: relative; height: 34px; }

@@ -89,6 +89,7 @@ import {
   type MarcasEnDuda,
   type RespuestaEnMano,
 } from "@/lib/bajada-en-mano";
+import { Aviso } from "@/components/ui/Aviso";
 
 /*
  * «Bajar prendas al piso» (ADR-0208, paso 1). Se usa de pie junto al fardo, con la pistola (que es un teclado): cada
@@ -989,21 +990,15 @@ export function BajarAlPisoForm({
 
       {/* Con un rechazo a la vista, el aviso de abajo ya dice que sigue en duda: no se repite. */}
       {incierto?.origen === "borrador" && !errorConfirmar && (
-        <div role="status" className="anim-revelar rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-          {textoDeEnvioIncierto(incierto.enviadoEn)}
-        </div>
+        <Aviso tono="atencion">{textoDeEnvioIncierto(incierto.enviadoEn)}</Aviso>
       )}
 
       {errorConfirmar && !bloqueada && (
-        <div role="alert" className="anim-revelar rounded-xl border border-l-2 border-rojo/40 border-l-rojo bg-rojo/[0.06] px-4 py-3 text-sm text-tinta">
-          {errorConfirmar.mensaje}
-        </div>
+        <Aviso tono="error">{errorConfirmar.mensaje}</Aviso>
       )}
 
       {avisoConfirmar && (
-        <div role="status" className="anim-revelar rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-          {avisoConfirmar}
-        </div>
+        <Aviso tono="atencion">{avisoConfirmar}</Aviso>
       )}
 
       {bloqueada ? (

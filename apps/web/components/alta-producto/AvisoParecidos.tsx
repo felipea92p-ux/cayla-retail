@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AvisoInline } from "@/components/alta-producto/piezas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // El aviso en vivo de "¿ya existe algo así?" (buscar_productos_parecidos,
 // 20260918230000). Tres niveles con tres consecuencias distintas — y la
@@ -32,24 +32,24 @@ export function AvisoParecidos({
   return (
     <div className="space-y-2">
       {noSePudoComprobar && (
-        <AvisoInline tono="neutro">
+        <Aviso tono="info">
           No pude comprobar si ya existe un producto con este nombre. Puedes seguir: la base lo verifica otra vez al guardar.
-        </AvisoInline>
+        </Aviso>
       )}
 
       {identico && (
-        <AvisoInline tono="rojo" alerta>
+        <Aviso tono="error">
           <p>
             Ya existe <strong>{identico.referencia}</strong> en {identico.categoria}. Un nombre identifica a un solo producto.
           </p>
           <Link href={`/productos/${identico.id}/editar`} className="mt-1 inline-block underline underline-offset-4">
             Abrir {identico.referencia}
           </Link>
-        </AvisoInline>
+        </Aviso>
       )}
 
       {!identico && unaLetra.length > 0 && (
-        <AvisoInline tono="ambar" alerta={!confirmo}>
+        <Aviso tono="atencion">
           <p>
             Se escribe casi igual que{" "}
             {unaLetra.map((p, i) => (
@@ -66,11 +66,11 @@ export function AvisoParecidos({
             <input type="checkbox" checked={confirmo} onChange={(e) => onConfirmo(e.target.checked)} className="mt-0.5 accent-tinta" />
             <span>Es otro producto distinto, créalo igual.</span>
           </label>
-        </AvisoInline>
+        </Aviso>
       )}
 
       {!identico && parecidosSuaves.length > 0 && (
-        <AvisoInline tono="neutro">
+        <Aviso tono="info">
           También existe algo parecido:{" "}
           {parecidosSuaves.map((p, i) => (
             <span key={p.id}>
@@ -81,7 +81,7 @@ export function AvisoParecidos({
             </span>
           ))}
           .
-        </AvisoInline>
+        </Aviso>
       )}
     </div>
   );

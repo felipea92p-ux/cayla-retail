@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { sugerirColor } from "@/lib/sugerencias-alta-producto";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
 
 // «+ Nuevo color» sin salir de Nuevo producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
@@ -228,15 +229,20 @@ export function NuevoColorAlta({
       )}
 
       {parecidos.length > 0 && (
-        <div role="status" className="flex flex-wrap items-center gap-2 rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
-          <span>
-            Se ve casi igual que {parecidos.map((p) => `«${p.color.nombre}»`).join(" y ")}. Si es el mismo color, usa ese: con dos nombres, la
-            misma prenda queda registrada de dos formas.
-          </span>
-          {parecidos.map((p) => (
-            <OfrecerElegir key={p.color.codigo} color={p.color} elegidos={elegidos} onElegir={onElegir} />
-          ))}
-        </div>
+        <Aviso
+          tono="atencion"
+          chico
+          accion={
+            <span className="flex flex-wrap items-center gap-2">
+              {parecidos.map((p) => (
+                <OfrecerElegir key={p.color.codigo} color={p.color} elegidos={elegidos} onElegir={onElegir} />
+              ))}
+            </span>
+          }
+        >
+          Se ve casi igual que {parecidos.map((p) => `«${p.color.nombre}»`).join(" y ")}. Si es el mismo color, usa ese: con dos nombres, la
+          misma prenda queda registrada de dos formas.
+        </Aviso>
       )}
 
       <AvisoSinIdentidad firma={firma} />
@@ -256,9 +262,8 @@ export function NuevoColorAlta({
       </div>
 
       {aviso && (
-        <p role="alert" className="anim-revelar text-xs text-rojo-profundo">
-          {aviso}
-        </p>
+        <Aviso tono="error">{aviso}</Aviso>
+
       )}
     </div>
   );

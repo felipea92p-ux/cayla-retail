@@ -25,6 +25,7 @@ import {
 } from "@/lib/etiquetas-alta-reglas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
 import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    ElegirEtiquetas · el campo «Etiquetas» del alta, con el mismo molde que Tejido, Patrón y Temporada (2026-09-29)
@@ -570,11 +571,8 @@ function CrearEtiquetaAbierta({
           Cancelar
         </button>
       </div>
-      {error && (
-        <p role="alert" className="text-xs text-rojo-profundo">
-          {error}
-        </p>
-      )}
+      {error && <Aviso tono="error">{error}</Aviso>}
     </div>
   );
 }
+

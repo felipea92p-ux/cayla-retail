@@ -13,6 +13,9 @@ import { firmar } from "@/lib/responsable-reglas";
 import { TrasladoEnviado } from "@/components/TrasladoEnviado";
 import { etiquetaDePrenda, type PrendaEnviada } from "@/lib/traslados-reglas";
 import { juntarPorPrenda, prendasNoDisponibles } from "@/lib/traslado-lineas-reglas";
+import { Package } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
@@ -295,7 +298,11 @@ export function MoverMercaderiaFormV2({
 
   if (variantes.length === 0) {
     return (
-      <p className="card-cayla p-5 text-sm text-tinta/75">{origenEtiqueta} no tiene stock disponible para mover.</p>
+      <div className="card-cayla">
+        <Vacio icono={<Package />} titulo="No hay prendas para mover">
+          {origenEtiqueta} no tiene stock disponible para mover.
+        </Vacio>
+      </div>
     );
   }
 
@@ -342,9 +349,9 @@ export function MoverMercaderiaFormV2({
             className={campoTexto}
           />
           {errores.eta && (
-            <p id="mover-eta-error" className="anim-revelar text-xs text-rojo">
+            <Aviso tono="error" chico id="mover-eta-error">
               {errores.eta}
-            </p>
+            </Aviso>
           )}
         </div>
         <div className="space-y-1.5">
@@ -401,7 +408,11 @@ export function MoverMercaderiaFormV2({
                 </button>
               )}
             </div>
-            {error && <p className="anim-revelar text-xs text-rojo">{error}</p>}
+            {error && (
+              <Aviso tono="error" chico>
+                {error}
+              </Aviso>
+            )}
             </div>
           );
         })}

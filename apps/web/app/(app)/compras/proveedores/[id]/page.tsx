@@ -4,7 +4,7 @@ import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona
 import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Receipt } from "lucide-react";
 import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
 import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
@@ -18,6 +18,7 @@ import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 import { Volver } from "@/components/ui/Volver";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -120,7 +121,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       <section className="space-y-3">
         <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
         {!conCompras ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay comprobantes registrados de este proveedor.</p>
+          <div className="card-cayla">
+            <Vacio icono={<Receipt />} titulo="Todavía no hay comprobantes de este proveedor">
+              Cuando registres su primera factura, aquí verás cuánto le compraste, cuánto le debes y cómo le fue a su mercadería.
+            </Vacio>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <TarjetaCifra className="anim-entra" style={{ ["--i" as string]: 2 }} punto="neutro" etiqueta="Total facturado" valor={<CifraQueCuenta valor={m.facturado_12m} formato="soles" alMontar />}>

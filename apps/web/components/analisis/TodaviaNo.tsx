@@ -7,6 +7,8 @@ import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
 import { esTallaUnica } from "@/lib/analisis-reglas";
 import { META_CON_PRENDA as META, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { DIAS_SOSTENIDOS, fechaCorta } from "@/lib/motor-demanda-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Hourglass } from "lucide-react";
 
 // Análisis v4 (ADR-0357): cuando la tienda todavía no cumple las tres condiciones del motor (ADR-0346), Análisis se calla y
 // dice qué falta, con un botón para cada cosa. Es la misma vara que CAYLA Global y Tareas: una sola regla para todo el ERP.
@@ -234,39 +236,44 @@ export function VistaTodaviaNo() {
           ? { href: "/inventario/conteo", texto: "Contar el almacén" }
           : null;
   return (
-    <section className="tarjeta vacio-vista entra" style={{ ["--i" as string]: 0 }}>
-      <Anillo p={ident} meta={META} color={ident >= META ? "var(--color-verde)" : "var(--color-ambar)"} centro={v.unidades ? `${ident}%` : "—"} et="Ventas con su prenda" sub={`meta: ${META}`} />
-      <div>
-        <ChipEstado est="nd" />
-        <h2>{faltaPrincipal(mia)}</h2>
+    // La pieza única de vacío (ADR-0358, ronda 5): el reloj dice «todavía no», el título lo que falta primero; el anillo, la racha y
+    // los botones siguen debajo, como antes. El chip «Sin datos» repetía el título y se fue.
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      <Vacio
+        icono={<Hourglass />}
+        titulo={faltaPrincipal(mia)}
+        acciones={
+          <div className="flex flex-col items-center gap-4">
+            <Anillo p={ident} meta={META} color={ident >= META ? "var(--color-verde)" : "var(--color-ambar)"} centro={v.unidades ? `${ident}%` : "—"} et="Ventas con su prenda" sub={`meta: ${META}`} />
+            {(primera === "venta_identificada" || primera === null) && <Racha n={racha} />}
+            <div className="flex flex-wrap justify-center gap-2">
+              {boton && (
+                <Link href={boton.href} className="btn-cayla btn-primario btn-s">
+                  {boton.texto}
+                </Link>
+              )}
+              <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("hoy")}>
+                Ver qué falta
+              </button>
+            </div>
+          </div>
+        }
+      >
         {primera === "venta_identificada" || primera === null ? (
           <>
-            <p>
-              Llevas{" "}
-              <b>
-                {racha} de {DIAS_SOSTENIDOS}
-              </b>
-              .
-            </p>
-            <Racha n={racha} />
+            Llevas{" "}
+            <b>
+              {racha} de {DIAS_SOSTENIDOS}
+            </b>
+            .
           </>
         ) : (
-          <p>
+          <>
             Las ventas con su prenda ya cumplen: <b>{racha} de {DIAS_SOSTENIDOS}</b> días.
-          </p>
+          </>
         )}
-        {despues.length > 0 && <p>Después: {despues.join(" y ")}.</p>}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-          {boton && (
-            <Link href={boton.href} className="btn-cayla btn-primario btn-s">
-              {boton.texto}
-            </Link>
-          )}
-          <button type="button" className="btn-cayla btn-sutil btn-s" onClick={() => irA("hoy")}>
-            Ver qué falta
-          </button>
-        </div>
-      </div>
+        {despues.length > 0 && <> Después: {despues.join(" y ")}.</>}
+      </Vacio>
     </section>
   );
 }

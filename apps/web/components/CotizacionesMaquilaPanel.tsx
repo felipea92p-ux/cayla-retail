@@ -2,18 +2,19 @@
 
 import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Scissors } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import { CampoTexto, CampoSelect } from "@/components/ui/campos";
+import { Boton, CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import type { CategoriaParaCotizar, CotizacionMaquila } from "@/lib/cotizaciones-maquila";
 import { chipDeCotizacion, detalleDeCotizacion, masRecientePorCategoria, ordenarCotizaciones, textoDeVigencia } from "@/lib/cotizaciones-maquila-reglas";
 import { sumarDias } from "@/lib/fechas-lima";
+import { Vacio } from "@/components/ui/Vacio";
 
 // D-82: cotización real de un taller externo para maquilar cada tipo de prenda — sin RPC de
 // escritura, mismo criterio que `codigos_descuento` (CodigosDescuentoPanel.tsx): la RLS de la
@@ -46,7 +47,19 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
         </div>
 
         {vigentes.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Todavía no hay ninguna cotización cargada.</p>
+          <div className="border-t border-tinta/10">
+            <Vacio
+              icono={<Scissors />}
+              titulo="Todavía no hay ninguna cotización"
+              acciones={
+                <Boton peso="primario" onClick={() => setCreando(true)}>
+                  Cargar la primera
+                </Boton>
+              }
+            >
+              Carga lo que te cobraría un taller externo por cada tipo de prenda; con eso se compara lo que cuesta hacerla en el Taller.
+            </Vacio>
+          </div>
         ) : (
           <>
             <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>

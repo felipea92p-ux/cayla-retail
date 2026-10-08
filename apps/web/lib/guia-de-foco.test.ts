@@ -76,7 +76,7 @@ describe("guía de foco — cada pantalla declara su estado", () => {
 // `<Modal>`, un `<ModalRuta>` o un `Dialog.Content` y tiene campos. La detección es espejo de `scripts/focus/escanear.mjs` (`esModal`,
 // `tieneCampos`): si se cambia una, se cambia la otra.
 const ES_MODAL = /<Modal\b|<ModalRuta\b|Dialog\.Content/;
-const TIENE_CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor)\b/;
+const TIENE_CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor|Buscador)\b/;
 
 /** Las rutas (bajo `apps/web`) de todos los modales con campos. */
 function modalesConCampos(): string[] {

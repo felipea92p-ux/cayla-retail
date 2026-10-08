@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
+import { Aviso } from "@/components/ui/Aviso";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import {
   bloqueoPorVenta,
@@ -188,14 +189,14 @@ export function CorregirVarianteModal({
 
           {esElQueTiene && <p className="text-[12.5px] text-ambar-profundo">{queTiene}</p>}
           {bloqueo && (
-            <AvisoInline tono="ambar" alerta>
+            <Aviso tono="atencion">
               {bloqueo}
-            </AvisoInline>
+            </Aviso>
           )}
           {choque && (
-            <AvisoInline tono="rojo" alerta>
+            <Aviso tono="error">
               {textoChoque(choque, destino, filas, ctx)}
-            </AvisoInline>
+            </Aviso>
           )}
           {!choque && !bloqueo && <VistaPreviaCodigos filas={vista} />}
 

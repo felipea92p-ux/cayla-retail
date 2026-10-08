@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Lock, Plus, Search } from "lucide-react";
+import { ChevronDown, Lock, Plus, SearchX, ShieldCheck } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton, Desplegable } from "@/components/ui/campos";
@@ -50,6 +50,9 @@ import {
   type GuardadoLocal,
   type RolVista,
 } from "@/lib/roles-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Roles y accesos» (ADR-0161 B). Desde el 2026-10-05 (ADR-0342, propuesta de Felipe): los roles en tarjetas (quiénes lo tienen y
 // los íconos de lo que ve) y, abajo, el rol elegido con sus módulos como baldosas (negra = la ve; tocarla dice qué incluye),
@@ -228,7 +231,12 @@ export function RolesPanel({
     setBorradores((b) => (hayCambios(rol.modulos, modulos) ? { ...b, [rol.id]: modulos } : sinBorrador(b, rol.id)));
   };
 
-  if (!rol) return <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay roles.</p>;
+  if (!rol)
+    return (
+      <div className="card-cayla">
+        <Vacio icono={<ShieldCheck />}>Todavía no hay roles.</Vacio>
+      </div>
+    );
 
   const cuentasDelElegido = cuentasDe(rol.id);
   const motivoArchivo = motivoParaNoArchivar(rol, cuentasDelElegido.length);
@@ -336,18 +344,19 @@ export function RolesPanel({
             </p>
           )}
           {editable && borrador.length === 0 && cuentasDelElegido.length > 0 && (
-            <p className="mx-5 mt-4 rounded-lg bg-ambar/10 px-3.5 py-2.5 text-[13px] text-ambar-profundo">
-              <strong className="font-semibold">
-                {cuentasDelElegido.length === 1 ? "1 cuenta no ve ningún módulo." : `${cuentasDelElegido.length} cuentas no ven ningún módulo.`}
-              </strong>{" "}
+            <Aviso
+              tono="atencion"
+              className="mx-5 mt-4"
+              titulo={cuentasDelElegido.length === 1 ? "1 cuenta no ve ningún módulo." : `${cuentasDelElegido.length} cuentas no ven ningún módulo.`}
+            >
               Enciende los módulos que necesitan (Inicio incluido), o asígnales otro rol.
-            </p>
+            </Aviso>
           )}
           {rol.limitadoComoHoy && (
-            <p className="mx-5 mt-4 rounded-lg border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
-              <strong className="font-semibold">Pendiente de una decisión (ADR-0161 B2d).</strong> Este rol ve sus módulos como hoy, pero todavía no cierra caja, no
-              ajusta stock y no edita el catálogo aunque vea Caja, Existencias o Productos. Cuando se decida, se levanta este límite o se apagan esos módulos.
-            </p>
+            <Aviso tono="atencion" className="mx-5 mt-4" titulo="Pendiente de una decisión (ADR-0161 B2d).">
+              Este rol ve sus módulos como hoy, pero todavía no cierra caja, no ajusta stock y no edita el catálogo aunque vea Caja, Existencias o
+              Productos. Cuando se decida, se levanta este límite o se apagan esos módulos.
+            </Aviso>
           )}
           {editable && (
             <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
@@ -784,19 +793,13 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
       onClose={onClose}
     >
       <div className="mt-4 space-y-2">
-        <label className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-crema/60 px-3 py-2 focus-within:border-tinta/40">
-          <Search aria-hidden className="h-4 w-4 text-tinta/50" />
-          <input
-            type="search"
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={`Buscar entre estas ${cuentas.length} cuentas…`}
-            aria-label="Buscar cuenta"
-            autoComplete="off"
-            className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
-          />
-        </label>
+        <Buscador
+          autoFocus
+          valor={q}
+          onCambio={setQ}
+          placeholder={`Buscar entre estas ${cuentas.length} cuentas…`}
+          etiqueta="Buscar cuenta"
+        />
         <ul className="h-[320px] overflow-y-auto">
           {filtradas.slice(0, MAX).map((c) => (
             <li key={`${c.tipo}:${c.id}`} className="flex items-center gap-3 border-b border-tinta/5 px-1 py-2.5 text-sm">
@@ -813,7 +816,14 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
               </span>
             </li>
           ))}
-          {filtradas.length === 0 && <li className="py-6 text-center text-sm text-tinta/60">Ninguna coincide con «{q}».</li>}
+          {filtradas.length === 0 && (
+            <li className="py-6">
+              <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setQ("") }}>
+                Ninguna coincide con «{q}».
+              </Vacio>
+            </li>
+          )}
+
           {filtradas.length > MAX && <li className="px-1 py-2 text-xs text-tinta/60">Y {filtradas.length - MAX} más. Escribe para encontrar a alguien.</li>}
         </ul>
       </div>

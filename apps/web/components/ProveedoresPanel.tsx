@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDown, ChevronRight, Search, X } from "lucide-react";
+import { ArrowDown, ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
@@ -20,6 +20,8 @@ import { Sparkline } from "@/components/ui/Sparkline";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -105,7 +107,6 @@ export function ProveedoresPanel({
   const [foco, setFoco] = useState<string | null>(null); // el tramo de la barra de concentración al que se apunta
   const [recientes, setRecientes] = useState<ReadonlySet<string>>(new Set());
   const pendienteScroll = useRef<string | null>(null);
-  const buscador = useRef<HTMLInputElement>(null);
 
   // Búsqueda en memoria: el directorio entero ya está en la página (son decenas de proveedores, no
   // miles), así que filtrar acá es instantáneo y no cuesta una consulta por tecla. Busca por nombre, marca,
@@ -155,20 +156,6 @@ export function ProveedoresPanel({
     pendienteScroll.current = null;
     el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [proveedores]);
-
-  // «/» lleva el cursor al buscador, salvo que ya se esté escribiendo o haya un panel abierto.
-  useEffect(() => {
-    function tecla(e: KeyboardEvent) {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (document.querySelector('[role="dialog"]')) return;
-      e.preventDefault();
-      buscador.current?.focus();
-    }
-    document.addEventListener("keydown", tecla);
-    return () => document.removeEventListener("keydown", tecla);
-  }, []);
 
   async function onCambiarEstado(p: Proveedor, esDeshacer = false) {
     setCambiandoId(p.id);
@@ -223,47 +210,16 @@ export function ProveedoresPanel({
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
       {hayProveedores && (
         <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
-          <div className="group/busca relative flex min-w-[14rem] flex-1 items-center gap-3 border-b border-tinta/25 px-0.5 py-1.5 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-left after:scale-x-0 after:bg-rojo after:transition-transform after:duration-300 after:ease-cayla focus-within:after:scale-x-100">
-            <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
-            <label htmlFor="proveedores-buscar" className="sr-only">
-              Buscar proveedor
-            </label>
-            <input
-              ref={buscador}
-              id="proveedores-buscar"
-              type="search"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape" && busqueda) setBusqueda("");
-              }}
-              placeholder={hayMarcas ? "Nombre, marca, RUC o contacto" : "Nombre, RUC o contacto"}
-              autoComplete="off"
-              className="h-7 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {filtrando && (
-              <span className="shrink-0 text-xs tabular-nums text-tinta/65">
-                {activos.length + desactivados.length} de {proveedores.length}
-              </span>
-            )}
-            {busqueda ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setBusqueda("");
-                  buscador.current?.focus();
-                }}
-                aria-label="Limpiar búsqueda"
-                className="rounded-full p-0.5 text-tinta/55 transition-colors hover:text-rojo"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <kbd aria-hidden className="hidden rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity group-focus-within/busca:opacity-0 sm:block">
-                /
-              </kbd>
-            )}
-          </div>
+          <Buscador
+            id="proveedores-buscar"
+            valor={busqueda}
+            onCambio={setBusqueda}
+            atajo
+            placeholder={hayMarcas ? "Nombre, marca, RUC o contacto" : "Nombre, RUC o contacto"}
+            etiqueta="Buscar proveedor"
+            conteo={filtrando ? `${activos.length + desactivados.length} de ${proveedores.length}` : undefined}
+            className="min-w-[14rem] flex-1"
+          />
           {rubros.length > 0 && (
             // El rubro deja menos proveedores en la misma lista: la píldora de filtro del sistema (ADR-0358).
             <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap items-center gap-2">
@@ -290,17 +246,67 @@ export function ProveedoresPanel({
       )}
 
       {!hayProveedores ? (
-        <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay proveedores registrados.</p>
+        <div className="card-cayla">
+          <Vacio
+            icono={<Truck />}
+            titulo="Todavía no hay proveedores"
+            acciones={
+              puedeEditar ? (
+                <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)}>
+                  Registrar el primero
+                </Boton>
+              ) : null
+            }
+          >
+            Un proveedor tiene que estar aquí antes de poder registrar su comprobante.
+          </Vacio>
+        </div>
       ) : activos.length === 0 && desactivados.length === 0 ? (
-        <p className="anim-revelar card-cayla p-5 text-sm text-tinta/75">
-          Ningún proveedor coincide{busqueda.trim() ? ` con «${busqueda.trim()}»` : " con esos filtros"}.{" "}
-          {marcas === null && busqueda.trim() && "Las marcas no se pudieron cargar: esta búsqueda no las incluye. "}
-          {puedeEditar && busqueda.trim() && (
-            <button type="button" onClick={() => setBorrador({ ...BORRADOR_VACIO, nombre: busqueda.trim() })} className="text-rojo hover:underline">
-              Registrarlo →
-            </button>
+        <div className="card-cayla">
+          {busqueda.trim() ? (
+            <Vacio
+              icono={<SearchX />}
+              titulo={`Ningún proveedor coincide con «${busqueda.trim()}»`}
+              acciones={
+                <>
+                  <Boton peso="fantasma" onClick={() => setBusqueda("")}>
+                    Borrar la búsqueda
+                  </Boton>
+                  {puedeEditar && (
+                    <Boton peso="primario" onClick={() => setBorrador({ ...BORRADOR_VACIO, nombre: busqueda.trim() })}>
+                      Registrarlo
+                    </Boton>
+                  )}
+                </>
+              }
+            >
+              Se busca por nombre{hayMarcas ? ", marca" : ""}, RUC o contacto.
+              {marcas === null && " Las marcas no se pudieron cargar: esta búsqueda no las incluye."}
+            </Vacio>
+          ) : (
+            <Vacio
+              icono={<FunnelX />}
+              titulo="Ningún proveedor con esos filtros"
+              filtros={[
+                ...(rubro ? [{ texto: rubros.find((r) => r.clave === rubro)?.etiqueta ?? "Rubro", onQuitar: () => setRubro(null) }] : []),
+                ...(filtrarSinPago ? [{ texto: "Sin datos de pago", onQuitar: () => setSoloSinPago(false) }] : []),
+              ]}
+              acciones={
+                <Boton
+                  peso="fantasma"
+                  onClick={() => {
+                    setRubro(null);
+                    setSoloSinPago(false);
+                  }}
+                >
+                  Limpiar filtros
+                </Boton>
+              }
+            >
+              Quita un filtro o límpialos todos para ver a todos los proveedores.
+            </Vacio>
           )}
-        </p>
+        </div>
       ) : activos.length === 0 ? null : (
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.

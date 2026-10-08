@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 // Rutas relativas (no `@/`): la vista se dibuja también en `lib/perdidas-vista.test.ts`, con los datos reales de la base.
 import { TarjetaCifra } from "../ui/TarjetaCifra";
 import { CapsulaColor } from "../ui/MuestraColor";
-import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "../ui/Tabla";
+import { Encabezado, Tabla, celda, fila, type Columna } from "../ui/Tabla";
 import { compararTallas } from "../../lib/tallas";
 import {
   AYUDA_RAZON,
@@ -24,6 +24,8 @@ import {
   type Repeticion,
   type ResumenPerdidas,
 } from "../../lib/perdidas-reglas";
+import { FunnelX, PackageCheck } from "lucide-react";
+import { Vacio } from "../ui/Vacio";
 
 // La pestaña «Pérdidas» de Movimientos (ADR-0328, actividad 14; Felipe, 2026-10-04). Responde «¿cuánto perdimos?» con
 // la MISMA cuenta que Finanzas (Mermas del Estado de resultados) y el resumen de Inventario: la base la decide
@@ -86,7 +88,7 @@ export function PerdidasVista({
         <>
           <Cifras resumen={resumen} repeticiones={filtrada ? null : repeticiones} filtrada={filtrada} sede={sede} periodoTexto={periodoTexto} />
           {resumen.perdido.hechos === 0 && resumen.aparecio.hechos === 0 ? (
-            <Vacio sede={sede} periodoTexto={periodoTexto} filtrada={filtrada} periodo={periodo} />
+            <SinPerdidas sede={sede} periodoTexto={periodoTexto} filtrada={filtrada} periodo={periodo} />
           ) : (
             <>
               <div className="grid gap-6 lg:grid-cols-2">
@@ -357,7 +359,9 @@ function ListaHechos({
       <p className="mt-1 text-sm text-taupe">{bajada}</p>
       <Tabla className="mt-3">
         {hechos.length === 0 ? (
-          <p className={TABLA.vacio}>{vacio}</p>
+          <Vacio tamano="chico" icono={<PackageCheck />}>
+            {vacio}
+          </Vacio>
         ) : (
           <>
             <Encabezado columnas={columnas} plantilla={plantilla} />
@@ -402,16 +406,11 @@ function ListaHechos({
   );
 }
 
-function Vacio({ sede, periodoTexto, filtrada, periodo }: { sede: string; periodoTexto: string; filtrada: boolean; periodo: PeriodoPerdidas }) {
-  return (
-    <div className="card-cayla flex flex-col items-center gap-2.5 px-5 py-9 text-center">
-      <h2 className="font-display text-[22px] leading-tight text-tinta">Nada que explicar en {periodoTexto}</h2>
-      <p className="max-w-[52ch] text-sm leading-relaxed text-taupe">
-        {filtrada
-          ? `Lo elegido no perdió ni apareció en ${sede} en ese período.`
-          : `En ${sede} nada salió sin venderse y nada apareció en ese período.`}
-      </p>
-      <div className="mt-1.5 flex flex-wrap justify-center gap-2">
+function SinPerdidas({ sede, periodoTexto, filtrada, periodo }: { sede: string; periodoTexto: string; filtrada: boolean; periodo: PeriodoPerdidas }) {
+  const acciones =
+    periodo !== "90" || filtrada ? (
+      <>
+        {/* Link con la clase del botón (no <BotonEnlace>): este archivo se prueba sin el alias «@/» que usa campos.tsx. */}
         {periodo !== "90" && (
           <Link href={hrefPerdidas({ periodo: "90" })} className="btn-cayla btn-secundario">
             Ver los últimos 90 días
@@ -422,7 +421,13 @@ function Vacio({ sede, periodoTexto, filtrada, periodo }: { sede: string; period
             Ver toda la sede
           </Link>
         )}
-      </div>
+      </>
+    ) : undefined;
+  return (
+    <div className="card-cayla">
+      <Vacio icono={filtrada ? <FunnelX /> : <PackageCheck />} titulo={`Nada que explicar en ${periodoTexto}`} acciones={acciones}>
+        {filtrada ? `Lo elegido no perdió ni apareció en ${sede} en ese período.` : `En ${sede} nada salió sin venderse y nada apareció en ese período.`}
+      </Vacio>
     </div>
   );
 }

@@ -487,7 +487,8 @@ describe("ExistenciasVacio (render)", () => {
   it("los filtros activos son botones reales que se pueden quitar, con nombre accesible completo", () => {
     const html = pintar(props("wayi", { marca: "Miramhe" }, []));
     expect(html).toContain("Filtros activos:");
-    expect(html).toContain('aria-label="Quitar el filtro Marca: Miramhe"');
+    // La píldora es la de <Vacio> (ADR-0358, ronda 5): nombra el filtro entre comillas.
+    expect(html).toContain('aria-label="Quitar el filtro «Marca: Miramhe»"');
     expect(html).toContain("Marca: Miramhe");
     expect(html).toContain("Quitar el filtro Marca: Miramhe · 1 producto");
     expect(html).toContain("Limpiar búsqueda y filtros");

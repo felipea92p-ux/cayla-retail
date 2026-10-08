@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { GuiaVacia, SelectFin } from "@/components/finanzas/kit";
+import { SelectFin } from "@/components/finanzas/kit";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -22,6 +22,8 @@ import {
   opcionesDeCuenta,
   type PagoSinCuenta,
 } from "@/lib/cuenta-sellada-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check } from "lucide-react";
 
 // Lo pasado (ADR-0195 F3b): lo que movió plata antes de que se sellara la cuenta —el hueco de los pagos en efectivo a
 // proveedores, sobre todo— se completa UNA vez, a mano, desde aquí. No crea salidas de caja ni toca cierres ya hechos: si
@@ -77,9 +79,9 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
       {filas === null ? (
         <p className="fin-ayuda">Buscando…</p>
       ) : pendientes.length === 0 ? (
-        <GuiaVacia sobre="Nada pendiente" titulo="Todo dice de qué cuenta es">
+        <Vacio icono={<Check />} titulo="Nada pendiente: todo dice de qué cuenta es">
           Desde ahora cada cobro y cada pago sella su cuenta al guardarse.
-        </GuiaVacia>
+        </Vacio>
       ) : (
         <ul className="fin-sin-cuenta">
           {pendientes.map((p) => {

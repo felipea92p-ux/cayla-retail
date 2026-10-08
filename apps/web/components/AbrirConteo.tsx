@@ -25,6 +25,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -379,9 +380,7 @@ export function AbrirConteo({
           </CampoGuiado>
 
           {error && (
-            <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
-              {error}
-            </p>
+            <Aviso tono="error">{error}</Aviso>
           )}
         </div>
 

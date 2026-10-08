@@ -36,6 +36,9 @@ import {
 } from "@/lib/clientas-lista-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { TIPOS_DOCUMENTO_CLIENTA, documentoLegible } from "@/lib/documento-clienta-reglas";
+import { FunnelX, SearchX, Users } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
 // «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nuevo cliente» en una fila; cuatro cifras (identificadas,
@@ -120,6 +123,13 @@ export function ClientasPanel({
   }
 
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  // El vacío dice por qué y ofrece deshacerlo ahí mismo (ADR-0358 ronda 5): borrar la búsqueda o volver a «Todos».
+  const vacioIcono = params.termino ? <SearchX /> : params.filtro === "todas" ? <Users /> : <FunnelX />;
+  const vacioAccion = params.termino
+    ? { texto: "Borrar la búsqueda", href: hrefLista(params, { termino: "" }) }
+    : params.filtro === "todas"
+      ? undefined
+      : { texto: "Limpiar filtros", href: hrefLista(params, { filtro: "todas" }) };
   const vacio = params.termino
     ? `Sin coincidencias con «${params.termino}». Busca por el documento completo, el celular, el código de miembro o parte del nombre.`
     : params.filtro === "todas"
@@ -195,9 +205,16 @@ export function ClientasPanel({
 
           <div data-resultados>
             {falla ? (
-              <p className={`${TABLA.vacio} text-rojo-profundo`}>{falla}</p>
+              <div className="p-5">
+                <Aviso tono="error" chico>
+                  {falla}
+                </Aviso>
+              </div>
             ) : filas.length === 0 ? (
-              <p className={TABLA.vacio}>{vacio}</p>
+              <Vacio tamano="chico" icono={vacioIcono} accion={vacioAccion} className="py-5">
+                {vacio}
+              </Vacio>
+
             ) : (
               <>
                 <div className={`encabezado-tabla-cayla hidden px-5 py-2 @min-[560px]:grid ${PLANTILLA.replace("grid ", "")}`} role="row">

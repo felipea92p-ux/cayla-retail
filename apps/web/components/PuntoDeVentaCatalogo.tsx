@@ -1,5 +1,6 @@
 "use client";
 
+import { Buscador } from "@/components/ui/Buscador";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { PrendaCatalogo } from "@/lib/catalogo-grupos";
@@ -215,49 +216,28 @@ export function PuntoDeVentaCatalogo({
             </button>
           ) : (
           <div className="relative z-20 min-w-0 flex-1 max-sm:static">
-            <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-              {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                className="h-5 w-5 shrink-0 text-tinta/45 transition-colors group-focus-within:text-rojo"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-              >
-                <path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" />
-              </svg>
-              <input
-                id="venta-buscar"
-                ref={buscadorRef}
-                // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
-                autoFocus
-                disabled={bloqueado}
-                value={q}
-                onChange={(e) => onEscribir(e.target.value, e.timeStamp)}
-                onKeyDown={onTeclado}
-                placeholder="Escanea la etiqueta o busca la prenda"
-                aria-label="Escanea la etiqueta o busca la prenda"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={resultados.length > 0}
-                aria-controls="venta-resultados"
-                aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/45"
-              />
-              {q && (
-                <button
-                  type="button"
-                  aria-label="Limpiar búsqueda"
-                  onClick={() => onLimpiarBusqueda()}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40"
-                >
-                  ×
-                </button>
-              )}
-            </label>
+            {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega, con el código de barras que se enciende
+                en rojo («acá se escanea» sin una palabra más). Filtra mientras se escribe. */}
+            <Buscador
+              tamano="mostrador"
+              icono="barras"
+              id="venta-buscar"
+              ref={buscadorRef}
+              // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
+              autoFocus
+              disabled={bloqueado}
+              valor={q}
+              onCambio={(v, e) => onEscribir(v, e?.timeStamp ?? performance.now())}
+              onBorrar={() => onLimpiarBusqueda()}
+              onKeyDown={onTeclado}
+              placeholder="Escanea la etiqueta o busca la prenda"
+              etiqueta="Escanea la etiqueta o busca la prenda"
+              role="combobox"
+              aria-expanded={resultados.length > 0}
+              aria-controls="venta-resultados"
+              aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
+              aria-autocomplete="list"
+            />
             {q && (
               <ul
                 id="venta-resultados"

@@ -6,6 +6,8 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-reglas";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ComboBuscable · elegir una opción entre muchas, tipeando (2026-09-14)
@@ -279,7 +281,11 @@ export function ComboBuscable<T extends string>({
           >
           {crearArriba && filaCrear}
           {mostradas.length === 0 && (hayCrear || pistaVisible) && texto.trim() === "" ? null : mostradas.length === 0 ? (
-            <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
+            <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{texto.trim()}»</b>.
+                </Vacio>
+              </li>
           ) : (
             mostradas.map((o, j) => {
               const i = j + base;

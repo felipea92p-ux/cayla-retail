@@ -8,8 +8,12 @@ import { NOMBRE_VISTA_GLOBAL } from "@/lib/vista-global";
 import type { ClaveModulo } from "@/lib/modulos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { Store } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+
 
 // CAYLA Global ▸ Salud del negocio (ADR-0275, paso 1: la puerta). La pregunta de esta pantalla es «¿qué tan sano está
 // CAYLA y qué decido?» (Felipe, 2026-09-28): los cuatro veredictos —crea valor, crece, es rentable, tiene caja—, las
@@ -55,9 +59,7 @@ export default async function SaludDelNegocioPage() {
       />
 
       {cobertura.falla ? (
-        <p className="nota-cayla" role="alert">
-          {cobertura.falla}. Las cifras de abajo no se muestran para no confundir un error con un cero.
-        </p>
+        <Aviso tono="error">{cobertura.falla}. Las cifras de abajo no se muestran para no confundir un error con un cero.</Aviso>
       ) : (
         <div className="grid gap-4 sm:grid-cols-3">
           <TarjetaCifra etiqueta="Sedes con datos en el ERP" valor={`${resumen.conDatos} de ${resumen.total}`}>
@@ -83,7 +85,9 @@ export default async function SaludDelNegocioPage() {
           <Tabla>
             <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
             {cobertura.datos.length === 0 ? (
-              <p className={TABLA.vacio}>No hay sedes activas.</p>
+              <Vacio tamano="chico" icono={<Store />} className="py-5">
+                No hay sedes activas.
+              </Vacio>
             ) : (
               cobertura.datos.map((f) => {
                 const estado = estadoDeCobertura(f);
@@ -123,9 +127,7 @@ export default async function SaludDelNegocioPage() {
           </p>
         </div>
         {motor.falla ? (
-          <p className="nota-cayla" role="alert">
-            {motor.falla}. Vuelve a intentarlo en un momento.
-          </p>
+          <Aviso tono="error">{motor.falla}. Vuelve a intentarlo en un momento.</Aviso>
         ) : (
           <PreparacionMotor sedes={motor.sedes} />
         )}
