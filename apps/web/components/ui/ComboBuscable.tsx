@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useAireParaLaLista } from "@/components/ui/useAireParaLaLista";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -98,6 +99,8 @@ export function ComboBuscable<T extends string>({
   // `absolute` queda recortada por esa caja (ver `usePosicionLista`).
   const posLista = usePosicionLista(input, abierto, 256, 4);
   const destino = useDestinoFlotante(input, abierto);
+  // En el celular, con el teclado abierto, la hoja sube el campo para que la lista tenga lugar debajo.
+  useAireParaLaLista(input, abierto);
 
   // Si el valor cambia desde afuera (se limpió la línea, se cargó otra),
   // el texto acompaña. Se ajusta durante el render —el patrón de React para
