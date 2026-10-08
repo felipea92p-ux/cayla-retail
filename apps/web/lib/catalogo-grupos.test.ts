@@ -184,6 +184,21 @@ describe("colorInicial y puntosAVista", () => {
     expect(colorInicial(sinPiso)?.color).toBe("Beige");
   });
 
+  it("un color con foto va primero, pero uno con foto y sin nada no le gana a uno que se puede vender", () => {
+    const conFoto = (x: ReturnType<typeof va>, url: string) => ({ ...x, fotoUrl: url });
+    const [p1] = agruparPorPrenda([va("1", "X", "Azul", null, 1), conFoto(va("2", "X", "Lila", null, 1), "lila.jpg")]);
+    expect(colorInicial(p1)?.color).toBe("Lila");
+    // Con foto solo en el almacén le gana a uno sin foto en el piso: la foto manda mientras haya algo.
+    const [p2] = agruparPorPrenda([va("1", "X", "Azul", null, 1), conFoto(va("2", "X", "Lila", null, 0, 2), "lila.jpg")]);
+    expect(colorInicial(p2)?.color).toBe("Lila");
+    // Con foto pero sin nada: abre en el que se puede vender.
+    const [p3] = agruparPorPrenda([va("1", "X", "Azul", null, 1), conFoto(va("2", "X", "Lila", null, 0), "lila.jpg")]);
+    expect(colorInicial(p3)?.color).toBe("Azul");
+    // Una talla sin foto no le quita la foto al color.
+    const [p4] = agruparPorPrenda([va("1", "X", "Azul", "S", 1), va("2", "X", "Lila", "S", 1), conFoto(va("3", "X", "Lila", "M", 1), "lila.jpg")]);
+    expect(colorInicial(p4)?.fotoUrl).toBe("lila.jpg");
+  });
+
   it("con más colores que lugares deja un «+N», y el elegido siempre a la vista", () => {
     const nombres = (r: ReturnType<typeof puntosAVista>) => r.aVista.map((c) => c.color);
     expect(nombres(puntosAVista(p.colores, undefined, 5))).toEqual(["Azul", "Beige", "Celeste", "Gris"]);
