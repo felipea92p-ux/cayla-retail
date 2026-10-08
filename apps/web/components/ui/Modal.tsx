@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -68,6 +69,8 @@ type Props = {
 export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, lateral, acciones, conCerrar = false, tituloGrande = false, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
   const hoja = useRef<HTMLDivElement>(null);
+  // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
+  const contenedor = useHojaSobreElTeclado<HTMLDivElement>(variante !== "camara");
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
   // que desmonte. Sin esto, un modal que entra suave se iba de un corte seco —
@@ -119,6 +122,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
             abajo. En celular sigue siendo una hoja pegada abajo. */}
         <div
+          ref={contenedor}
           className={`pointer-events-none fixed inset-0 z-50 flex ${
             variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]"
           }`}
@@ -130,8 +134,8 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                 ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
-                    `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
-                  : `scroll-cayla max-h-[90vh] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
+                    `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
+                  : `scroll-cayla max-h-[min(90vh,90%)] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
                     // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
                     variante === "papel" || variante === "hoja" ? "bg-papel [--fondo-hoja:var(--color-papel)]" : "bg-crema shadow-xl [--fondo-hoja:var(--color-crema)]"
                   } ${ancho}`

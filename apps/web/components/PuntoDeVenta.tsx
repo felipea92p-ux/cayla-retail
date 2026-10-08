@@ -2113,6 +2113,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             cerrarCamara();
             setBuscarPorTexto(true);
           }}
+          // En escritorio el ticket ya está al lado: basta cerrar. En el celular vive en su hoja, y se abre.
+          onVerTicket={() => {
+            if (apilado && carrito.length > 0) setHojaTicket(true);
+          }}
           onClose={cerrarCamara}
         />
       )}
