@@ -83,7 +83,8 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // las de Comprobantes (FacturacionPestanas); y el rediseño de Análisis (v4) borró los componentes viejos que tenían el suyo.
   // 51 → 50: se borró `ficha-producto/AjusteDeStock.tsx`, que ninguna pantalla dibujaba.
   // 50 → 49 el 2026-10-07: «Anular comprobante» de Compras pasa a `btn-peligro` (ronda 4 de /unificar) y usa el anillo común.
-  const PENDIENTES_HOY = 49;
+  // 2026-10-08 (ADR-0358, ronda 5): 49 → 46; los buscadores de Cambios/Devoluciones, Vender y Comprobantes pasan a <Buscador>, con el anillo del sistema.
+  const PENDIENTES_HOY = 46;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

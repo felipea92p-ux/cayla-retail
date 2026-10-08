@@ -1,7 +1,9 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Clock, ReceiptText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, ReceiptText, SearchX, ShoppingBag } from "lucide-react";
+import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
@@ -243,12 +245,12 @@ export function EsqueletoBusqueda() {
   );
 }
 
-export function EstadoVacio({ titulo, detalle }: { titulo: string; detalle: string }) {
+/** El vacío del mostrador (Cambios, Devoluciones, Historial): la pieza única <Vacio> (ADR-0358, ronda 5). */
+export function EstadoVacio({ titulo, detalle, icono = <ShoppingBag />, acciones }: { titulo: string; detalle: string; icono?: ReactNode; acciones?: ReactNode }) {
   return (
-    <div className="rounded-xl bg-papel/60 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-tinta">{titulo}</p>
-      <p className="mt-1 text-sm text-tinta/70">{detalle}</p>
-    </div>
+    <Vacio icono={icono} titulo={titulo} acciones={acciones}>
+      {detalle}
+    </Vacio>
   );
 }
 
@@ -266,20 +268,18 @@ export function SinResultadosVentas({
   onBuscarEnTodas: () => void;
 }) {
   return (
-    <div className="rounded-xl bg-papel/60 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-tinta">
-        No encontramos ventas con «{busqueda}»{todasLasSedes ? " en ninguna tienda" : ` en ${sede}`}.
-      </p>
-      <p className="mt-1 text-sm text-tinta/70">Prueba con el número de boleta, el DNI del cliente, o escanea la etiqueta de la prenda.</p>
-      {puedeVerTodas && !todasLasSedes && (
-        <button
-          type="button"
-          onClick={onBuscarEnTodas}
-          className="btn-cayla btn-secundario mt-4 inline-flex h-11 items-center"
-        >
-          Buscar en todas las tiendas
-        </button>
-      )}
-    </div>
+    <Vacio
+      icono={<SearchX />}
+      titulo={`No encontramos ventas con «${busqueda}»${todasLasSedes ? " en ninguna tienda" : ` en ${sede}`}`}
+      acciones={
+        puedeVerTodas && !todasLasSedes ? (
+          <Boton peso="fantasma" onClick={onBuscarEnTodas} className="h-11">
+            Buscar en todas las tiendas
+          </Boton>
+        ) : null
+      }
+    >
+      Prueba con el número de boleta, el DNI del cliente, o escanea la etiqueta de la prenda.
+    </Vacio>
   );
 }

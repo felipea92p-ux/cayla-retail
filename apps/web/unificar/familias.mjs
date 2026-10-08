@@ -464,14 +464,15 @@ export const DECISIONES = {
       // La frase en cursiva serif (B) y su versión «SinCoincidencias».
       "\\bfont-display\\b[^\"'`]*\\bitalic\\b[^\"'`]*\\btext-tinta\\/6[05]\\b",
       // La frase gris suelta de <Tabla> y sus primas (A), la centrada gris clara de Caja y la cursiva chica.
-      "\\bp-5 text-sm text-tinta\\/75\\b|\\bpy-6 text-center text-xs text-tinta\\/50\\b|\\btext-xs italic text-tinta\\/65\\b|\\bpx-3 py-3 text-sm text-tinta\\/65\\b",
+      "\\bTABLA\\.vacio\\b|\\bpx-5 py-8 text-center text-sm text-taupe\\b|\\bp-5 text-sm text-tinta\\/75\\b|\\bpy-6 text-center text-xs text-tinta\\/50\\b|\\btext-xs italic text-tinta\\/65\\b|\\bpx-3 py-3 text-sm text-tinta\\/65\\b",
       // El título en negrita sobre panel claro (C), el recuadro punteado (F, Apartados) y el colibrí que flota (G).
-      "\\brounded-xl bg-papel\\/60 px-6 py-10\\b|\\bborder-dashed border-(?:sand|tinta\\/25)\\b[^\"'`]*\\bpy-(?:6|10)\\b[^\"'`]*\\btext-center\\b|\\bcmp-flota\\b|\\btp-vacia\\b"
+      "\\bfin-guia\\b|\\bvacio-vista\\b|<GuiaVacia\\b|\\brounded-xl bg-papel\\/60 px-6 py-10\\b|\\bborder-dashed border-(?:sand|tinta\\/25)\\b[^\"'`]*\\bpy-(?:6|10)\\b[^\"'`]*\\btext-center\\b|\\bcmp-flota\\b|\\btp-vacia\\b"
     ],
     "deuda": [
       "app/(app)/compras/nueva/page.tsx",
       "app/(app)/compras/por-pagar/page.tsx",
       "app/(app)/compras/proveedores/[id]/page.tsx",
+      "app/(app)/global/page.tsx",
       "app/(app)/inventario/traslados/(billetera)/page.tsx",
       "app/(app)/inventario/traslados/nuevo/page.tsx",
       "app/(app)/produccion/insumos/page.tsx",
@@ -479,27 +480,46 @@ export const DECISIONES = {
       "app/(app)/produccion/recibir/page.tsx",
       "app/(app)/productos/nuevo/page.tsx",
       "app/(app)/recibir/page.tsx",
+      "app/(app)/rendimiento/page.tsx",
+      "app/estilos/analisis.css",
       "app/estilos/comprobantes-lista.css",
+      "app/estilos/finanzas.css",
       "app/estilos/traslados-pases.css",
+      "components/analisis/PestanaAcaba.tsx",
+      "components/analisis/PestanaPiso.tsx",
+      "components/analisis/PestanaQuieta.tsx",
+      "components/analisis/TodaviaNo.tsx",
       "components/apartados/EntregarVista.tsx",
       "components/CajaAbiertaPanel.tsx",
       "components/CajaTablero.tsx",
       "components/CategoriasLista.tsx",
       "components/CierreCajaDetalle.tsx",
       "components/ClientaFichaModal.tsx",
+      "components/clientas/AvisosClubPanel.tsx",
+      "components/ClientasPanel.tsx",
       "components/colaboradores/EquipoLista.tsx",
       "components/ColaboradoresPanel.tsx",
       "components/ColaSunatPanel.tsx",
-      "components/ComprasAgrupadas.tsx",
       "components/ComprobantesPanel.tsx",
       "components/ComprobantesProduccionPanel.tsx",
+      "components/ConteoVista.tsx",
       "components/CotizacionesMaquilaPanel.tsx",
-      "components/FiltrosRecibidas.tsx",
+      "components/finanzas/BalancePanel.tsx",
+      "components/finanzas/ConfiguracionCuentas.tsx",
+      "components/finanzas/CuentasDinero.tsx",
+      "components/finanzas/kit.tsx",
+      "components/finanzas/PagosSinCuenta.tsx",
+      "components/finanzas/PorPagarConsolidado.tsx",
+      "components/finanzas/SoloLiderFlujo.tsx",
+      "components/GastosFijosYActivos.tsx",
+      "components/GastosPanel.tsx",
       "components/InsumosPanel.tsx",
       "components/MoverMercaderiaFormV2.tsx",
       "components/NotasCreditoPanel.tsx",
       "components/NuevaProformaModal.tsx",
       "components/OrdenesTablero.tsx",
+      "components/perdidas/PerdidasVista.tsx",
+      "components/plan-compra/PlanCampana.tsx",
       "components/PorPagarLista.tsx",
       "components/PorPagarProduccionPanel.tsx",
       "components/ProduccionSoloEnTaller.tsx",
@@ -514,10 +534,8 @@ export const DECISIONES = {
       "components/ResumenProduccionPanel.tsx",
       "components/RolesPanel.tsx",
       "components/SinCoincidencias.tsx",
+      "components/TemporadasLista.tsx",
       "components/traslados-pases/Billetera.tsx",
-      "components/ui/campos.tsx",
-      "components/ui/ComboBuscable.tsx",
-      "components/ui/FiltrosPildora.tsx",
       "components/ui/Tabla.tsx",
     ],
     "excepciones": []
@@ -535,12 +553,16 @@ export const DECISIONES = {
       "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)\\b)(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
       // La franja copiada (con su fondo de tono; el acento de una tarjeta de cifra no es un aviso).
       "\\bborder-l-(?:ambar|rojo)\\b[^\"'`]*\\bbg-(?:ambar|rojo)\\/",
+      // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
+      "\\baviso-datos\\b|\\bfin-nota-bloque\\b",
       // Las dos piezas que existían a mano.
       "^\\s*(?:export\\s+)?function\\s+(?:AvisoInline|AvisoDeError)\\b",
       // Un párrafo rojo suelto (el error va bajo su campo o en <Aviso tono=\"error\">).
       "<p\\b[^>]*className=\\{?[\"'`][^\"'`]*\\btext-(?:xs|sm|\\[1[23](?:\\.5)?px\\]) text-rojo(?:-profundo)?\\b"
     ],
     "deuda": [
+      "app/estilos/analisis.css",
+      "app/estilos/finanzas.css",
       "components/AbrirCajaFormV2.tsx",
       "components/AbrirConteo.tsx",
       "components/AjustarInventarioModal.tsx",
@@ -554,6 +576,7 @@ export const DECISIONES = {
       "components/alta-producto/piezas.tsx",
       "components/alta-producto/ProductoCreado.tsx",
       "components/alta-producto/ProponerValor.tsx",
+      "components/analisis/AnalisisPantalla.tsx",
       "components/AnularVentaForm.tsx",
       "components/apartados/ApartarVista.tsx",
       "components/apartados/EntregarVista.tsx",
@@ -579,7 +602,10 @@ export const DECISIONES = {
       "components/ficha-producto/AgregarColoresModal.tsx",
       "components/ficha-producto/AgregarTallasModal.tsx",
       "components/finanzas/EstadoResultadosPanel.tsx",
+      "components/finanzas/FlujoCajaPanel.tsx",
+      "components/finanzas/ResumenFinanzas.tsx",
       "components/FlujoGuiado.tsx",
+      "components/ImpuestosPanel.tsx",
       "components/inicio/AjustarInicio.tsx",
       "components/MoverMercaderiaFormV2.tsx",
       "components/NuevaProformaModal.tsx",
@@ -610,22 +636,25 @@ export const DECISIONES = {
       // Una caja de buscar dibujada a mano.
       "type=\"search\"|inputMode=\"search\"",
       "<SenalBuscando\\b",
-      "placeholder=\"Escanea la etiqueta"
+      "placeholder=\"Escanea la etiqueta",
+      // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
+      "\\bfin-buscar\\b|className=\"buscar\""
     ],
     "deuda": [
+      "app/estilos/finanzas.css",
       "components/alta-producto/ArbolCategoria.tsx",
+      "components/analisis/AnalisisPantalla.tsx",
       "components/atributos/kit.tsx",
-      "components/BuscadorHistorial.tsx",
       "components/BuscadorVentas.tsx",
       "components/clientas/BuscadorClientas.tsx",
       "components/colaboradores/DarAccesoModal.tsx",
       "components/colaboradores/EquipoLista.tsx",
       "components/ComprobantesProduccionPanel.tsx",
-      "components/FacturacionCabecera.tsx",
       "components/FiltrosExistencias.tsx",
       "components/FiltrosMovimientos.tsx",
       "components/FiltrosProductos.tsx",
       "components/FiltrosRecibidas.tsx",
+      "components/finanzas/kit.tsx",
       "components/MarcasLista.tsx",
       "components/NotasCreditoPanel.tsx",
       "components/por-regularizar/PanelPrendas.tsx",
@@ -639,10 +668,7 @@ export const DECISIONES = {
       "components/RolesPanel.tsx",
       "components/traslados-pases/Billetera.tsx",
     ],
-    "excepciones": [
-      { "archivo": "components/finanzas/kit.tsx", "motivo": "El buscador del kit de Finanzas (ADR-0195, decidido a propósito): Felipe dice si se suma a la pieza" },
-      { "archivo": "components/analisis/AnalisisPantalla.tsx", "motivo": "El buscador de prendas de Análisis v4 (ADR-0357, decidido a propósito): Felipe dice si se suma" }
-    ]
+    "excepciones": []
   },
 };
 

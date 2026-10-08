@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
 import { LoaderCircle, Search, X } from "lucide-react";
 
 /* ====================================================================
@@ -32,18 +32,20 @@ export const ESPERA_SENAL_MS = 350;
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "size"> & {
   valor: string;
-  onCambio: (valor: string) => void;
+  /** Cada tecla. El evento va de segundo por si hace falta su hora (Vender distingue la pistola de una persona). */
+  onCambio: (valor: string, evento?: ChangeEvent<HTMLInputElement>) => void;
   /** La base todavía no respondió: el aviso sale solo si dura más de ESPERA_SENAL_MS. */
   buscando?: boolean;
   /** La línea de debajo al terminar («12 coinciden»). Solo en el tamaño lista. */
   conteo?: ReactNode;
-  /** «/» lleva el cursor aquí. Uno solo por pantalla. */
-  atajo?: boolean;
+  /** «/» lleva el cursor aquí. Uno solo por pantalla. `"visible"`: solo muestra la tecla, porque la pantalla ya escucha el «/»
+      por su cuenta (Cambios y Devoluciones lo apagan mientras hay un flujo abierto). */
+  atajo?: boolean | "visible";
   tamano?: "lista" | "mostrador";
   icono?: "lupa" | "barras";
   /** Mostrador: el botón de la derecha («Buscar»). */
   accion?: ReactNode;
-  /** Además de vaciar el texto (para quien guarda algo más al borrar). */
+  /** Lo que hace el «×» (y Escape). Sin él, vacía el texto con `onCambio("")`. */
   onBorrar?: () => void;
   /** Nombre para el lector de pantalla; por defecto, el placeholder. */
   etiqueta?: string;
@@ -92,7 +94,7 @@ export function Buscador({
   const senal = buscando && esperaLarga;
 
   useEffect(() => {
-    if (!atajo) return;
+    if (atajo !== true) return;
     const alTeclear = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
       const destino = e.target as HTMLElement | null;
@@ -107,8 +109,8 @@ export function Buscador({
   }, [atajo]);
 
   const borrar = () => {
-    onCambio("");
-    onBorrar?.();
+    if (onBorrar) onBorrar();
+    else onCambio("");
     propio.current?.focus();
   };
 
@@ -140,7 +142,7 @@ export function Buscador({
         placeholder={placeholder}
         aria-label={etiqueta ?? (typeof placeholder === "string" ? placeholder : "Buscar")}
         aria-keyshortcuts={atajo ? "/" : undefined}
-        onChange={(e) => onCambio(e.target.value)}
+        onChange={(e) => onCambio(e.target.value, e)}
         onKeyDown={(e) => {
           if (e.key === "Escape" && valor) {
             // Este Escape lo usó el buscador: no cierra la hoja de alrededor (useEscapeLibre).

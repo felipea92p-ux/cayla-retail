@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Calendar, ChevronDown, Search } from "lucide-react";
+import { Calendar, ChevronDown, Search, SearchX } from "lucide-react";
 import { Popover } from "radix-ui";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -24,6 +24,7 @@ import {
   type PeriodoRecibidas,
   type ResultadoRecibidas,
 } from "@/lib/recibidas-filtros-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Filtros de «Recibidas recientemente» tal como los dibuja la maqueta 06: el buscador y, en la
 // misma línea, dos pastillas —«Proveedor: Todos ⌄» y «Fechas»— sin el botón «Filtros» ni su
@@ -338,7 +339,11 @@ function PastillaProveedor({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+              <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{busqueda.trim()}»</b>.
+                </Vacio>
+              </li>
             ) : (
               mostradas.map((o, i) => (
                 <li

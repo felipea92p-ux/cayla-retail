@@ -169,6 +169,8 @@
     box-shadow: 0 26px 52px -26px color-mix(in srgb, var(--color-sombra) 60%, transparent), 0 0 0 2px var(--color-tinta);
   }
   .buscador.mostrador:has(input:focus-visible) { outline: none; }
+  /* Esperando la pistola: el anillo queda puesto aunque el foco se vaya un instante. */
+  .buscador.mostrador.escaneando { box-shadow: 0 26px 52px -26px color-mix(in srgb, var(--color-sombra) 60%, transparent), 0 0 0 2px var(--color-tinta); }
   .buscador.mostrador .buscador-icono { width: 20px; height: 20px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); }
   .buscador.mostrador:focus-within .buscador-icono { color: var(--color-rojo); transform: scale(1.1); }
   .buscador.mostrador input { font-size: 16px; }

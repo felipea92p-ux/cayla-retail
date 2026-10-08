@@ -1,12 +1,13 @@
 "use client";
 
 import { Children, Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
-import { CircleAlert, Plus } from "lucide-react";
+import { CircleAlert, Plus, SearchX } from "lucide-react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -816,7 +817,11 @@ export function Desplegable<T extends string>({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+              <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{busqueda.trim()}»</b>.
+                </Vacio>
+              </li>
             ) : (
               // Los grupos (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin grupo, las filas sueltas
               // de siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay grupos.
