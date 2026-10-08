@@ -26,7 +26,8 @@ import {
   type VacioPiso,
 } from "@/lib/analisis-piso";
 import { Vacio } from "@/components/ui/Vacio";
-import { Check, Hourglass, Shirt } from "lucide-react";
+import { Check, Hourglass } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357, act. 2026-10-07 b): «Nunca salió al piso», la pestaña que Felipe pidió al ver que «No se vende» mandaba a
 // liquidar ropa guardada que nadie vio. Como la maqueta aprobada: arriba las cifras de toda la tienda y dónde está lo que tienes;
@@ -213,9 +214,16 @@ function DondeEstaLoQueTienes() {
 /** Sin carril: la base todavía no lo sabe, no se pudieron leer las prendas, o todo salió al piso (la respuesta corta y buena). */
 function SinCarril({ tipo, dentro = false }: { tipo: VacioPiso; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const texto = TEXTO_VACIO_PISO[tipo];
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
   // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
   const vacio = (
-    <Vacio icono={tipo === "todo-salio" ? <Check /> : tipo === "sin-saber" ? <Hourglass /> : <Shirt />} titulo={texto.titulo}>
+    <Vacio icono={tipo === "todo-salio" ? <Check /> : <Hourglass />} titulo={texto.titulo}>
       {texto.linea}
     </Vacio>
   );

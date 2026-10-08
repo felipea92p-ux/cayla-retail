@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -747,19 +747,18 @@ export function ApartarVista({
                         </Aviso>
                       ) : (
                         <div className="flex gap-2">
-                          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-hueso px-3 focus-within:ring-1 focus-within:ring-taupe">
-                            <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
-                            <input
-                              value={clientaQ}
-                              onChange={(e) => { setClientaQ(e.target.value); setSinFicha(false); }}
-                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
-                              inputMode="numeric"
-                              placeholder="DNI (8) o celular (9) del cliente"
-                              aria-label="Buscar al cliente por DNI o celular"
-                              className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
-                            />
-                          </label>
-                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-11 shrink-0">
+                          {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
+                              cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
+                          <Buscador
+                            valor={clientaQ}
+                            onCambio={(v) => { setClientaQ(v); setSinFicha(false); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                            inputMode="numeric"
+                            placeholder="DNI (8) o celular (9) del cliente"
+                            etiqueta="Buscar al cliente por DNI o celular"
+                            className="min-w-0 flex-1"
+                          />
+                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-10 shrink-0">
                             {buscandoClienta ? "Buscando…" : "Buscar"}
                           </button>
                         </div>

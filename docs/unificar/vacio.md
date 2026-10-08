@@ -57,3 +57,8 @@ suman** (ya no son excepción: el kit de Finanzas dejó `GuiaVacia`, `.fin-guia`
 Migrado entero en un commit por módulo (mostrador, Inventario y Caja, Compras y Producción, Catálogo/Colaboradores/Clientes, Finanzas y
 Análisis). Deuda: **0**. Lo que las firmas no veían y se migró igual: el vacío de Existencias (ahora con su lista de «no recibido» en
 el `detalle` de la pieza), los buscadores y vacíos de Apartados (Apartar, Entregar, Todos) y el «Nada coincide» de los combos.
+
+## Dudas de cierre (Felipe, 2026-10-08)
+
+- **Análisis: «No pude ver tus prendas» no es un vacío sino una lectura que falló**: pasa a `<Aviso tono="error">`. Los casos buenos
+  («Nada se está acabando», «Todo se mueve», «Todo salió al piso») se quedan como vacío con su ✓, en el color de la pieza (sin verde).

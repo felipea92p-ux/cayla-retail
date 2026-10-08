@@ -28,7 +28,8 @@ import {
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
 import { Vacio } from "@/components/ui/Vacio";
-import { Check, Shirt } from "lucide-react";
+import { Check } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo,
 // «Cómpralas»: todo lo que se acaba se compra por defecto (decisión 7); si otra tienda la tiene, se dice cuántas tiene y se
@@ -175,10 +176,17 @@ function Accion({ p }: { p: PrendaAnalisis }) {
 /** Sin carril: nada se acaba (en positivo), o no se pudieron leer las prendas. */
 function SinCarril({ tipo }: { tipo: VacioAcaba }) {
   const texto = TEXTO_VACIO_ACABA[tipo];
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
   // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
   return (
     <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
-      <Vacio icono={tipo === "nada" ? <Check /> : <Shirt />} titulo={texto.titulo}>
+      <Vacio icono={<Check />} titulo={texto.titulo}>
         {texto.linea}
       </Vacio>
     </section>

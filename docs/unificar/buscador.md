@@ -62,3 +62,11 @@ suman** (ya no son excepción: el kit de Finanzas dejó `GuiaVacia`, `.fin-guia`
 Migrado entero en un commit por módulo (mostrador, Inventario y Caja, Compras y Producción, Catálogo/Colaboradores/Clientes, Finanzas y
 Análisis). Deuda: **0**. Lo que las firmas no veían y se migró igual: el vacío de Existencias (ahora con su lista de «no recibido» en
 el `detalle` de la pieza), los buscadores y vacíos de Apartados (Apartar, Entregar, Todos) y el «Nada coincide» de los combos.
+
+## Dudas de cierre (Felipe, 2026-10-08)
+
+- **Cambios y Devoluciones siguen buscando con su botón «Buscar»** (o Enter, que es lo que manda la pistola): la consulta va a la base
+  por DNI o boleta y no debe correr en cada pausa al escribir. Es la única excepción a «busca mientras se escribe».
+- **Escape en el escáner de Recibir mercadería** cierra las sugerencias y borra lo escrito, como en todo buscador. Se queda así.
+- **Apartar ▸ el cliente:** la caja del DNI o celular toma la cara de la pieza, pero busca con su botón o Enter: trae la ficha exacta,
+  no filtra una lista.

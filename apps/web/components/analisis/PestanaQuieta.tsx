@@ -28,7 +28,8 @@ import {
   type VacioQuietas,
 } from "@/lib/analisis-quietas";
 import { Vacio } from "@/components/ui/Vacio";
-import { Check, Shirt } from "lucide-react";
+import { Check } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
 // de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días en el piso sin venderse» con el control «Liquidar desde», que mueve las prendas de
@@ -357,9 +358,16 @@ function EdadDeLoQueTienes() {
 /** Sin carril: todo se mueve (la respuesta corta y buena) o no se pudieron leer las prendas (nunca «todo se mueve» por una falla). */
 function SinCarril({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const texto = TEXTO_VACIO_QUIETAS[tipo];
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
   // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
   const vacio = (
-    <Vacio icono={tipo === "todo-se-mueve" ? <Check /> : <Shirt />} titulo={texto.titulo}>
+    <Vacio icono={<Check />} titulo={texto.titulo}>
       {texto.linea}
     </Vacio>
   );
