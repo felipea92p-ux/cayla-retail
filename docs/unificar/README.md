@@ -20,14 +20,15 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Lo peligroso (`accion.eliminar`) | `btn-peligro`: rojo desde el principio | 2026-10-07 (mirando) | 0 | [boton.md](boton.md) |
 | Cerrar una hoja (`accion.cerrar`) | la × sola arriba a la derecha (`<Modal conCerrar>`) | 2026-10-07 (mirando) | 0 | [boton.md](boton.md) |
 | Insignias de estado (`estado`) | `<Chip>`, como ya era. Se quedan a propósito: los chips con ícono de Análisis y el rol «Líder de equipo» en negro | 2026-10-07 (mirando) | sin candado | [estado.md](estado.md) |
+| Estados vacíos (`vacio`) | `<Vacio>` (`components/ui/Vacio.tsx`): el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón; `tamano="chico"` en tablas, hojas y listas; al no encontrar, nombra lo buscado y deja quitar los filtros ahí | 2026-10-08 (tocando) | 50 | [vacio.md](vacio.md) |
+| Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 55 | [aviso.md](aviso.md) |
+| Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 25 | [buscador.md](buscador.md) |
 
 ## Propuestas esperando decisión
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| `vacio` | `<Vacio>` grande (ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer, botón; distingue «no hay» / «la búsqueda no encontró» / «los filtros dejan cero») y chico (una línea con ícono y enlace) · P2: lo mismo en marco punteado | 2026-10-08 | [propuestas/vacio.html](propuestas/vacio.html). 3 preguntas: el grande, el chico y qué ofrece al no encontrar. Decididas a propósito: la guía de Finanzas (ADR-0195) y la ficha de Análisis (ADR-0357) |
-| `aviso` | `<Aviso tono>` con la voz de la esquina (disco con ícono que se dibuja y suelta una onda; error con role=alert que destella una vez), normal y chico · P2: franja a la izquierda · `nota-cayla` se queda · error de un dato bajo su campo, error de la hoja en el aviso | 2026-10-08 | [propuestas/aviso.html](propuestas/aviso.html). 3 preguntas. Los avisos de la esquina (ADR-0146) no se tocan |
-| `buscador` | `<Buscador>` lista: la caja hundida con lupa viva, «/», «×», «Buscando…» y el hilo que corre, y el conteo · P2: el subrayado vivo · mostrador: la píldora que se despega de Cambios con el ícono rojo de Vender | 2026-10-08 | [propuestas/buscador.html](propuestas/buscador.html). 2 preguntas. Decididos a propósito: Finanzas (ADR-0195) y Análisis (ADR-0357) |
+| — | ninguna por ahora (la ronda 5 se decidió el 2026-10-08) | — | — |
 
 ## Por analizar (las próximas rondas)
 
@@ -45,9 +46,9 @@ en la página de elegir, nunca por una descripción.
 |---:|---|---|---|---|
 | ~~1~~ | ~~`estado`~~ | Decidida el 2026-10-07 | | |
 | ~~2~~ | ~~`boton`~~ | Decidida el 2026-10-07 (ronda 4): dos voces, peligro en rojo, cerrar con la ×; migrada entera, mostrador incluido | | |
-| 3 | `vacio` (ronda 5: propuesta esperando) | Estados vacíos («Todavía no hay…») | 23 · 24 | Ley 9 de Formidable: un vacío dice qué falta. Hoy cada pantalla lo dice a su modo |
-| 4 | `aviso` (ronda 5: propuesta esperando) | Avisos y notas (`nota-cayla`, errores, avisos de la esquina) | 13 · 60 | Está en 60 pantallas, y un aviso que se ve distinto se lee distinto |
-| 5 | `buscador` (ronda 5: propuesta esperando) | Las cajas de buscar | 18 · 49 | El comportamiento ya es uno (`useBusquedaEnUrl`); la cara no |
+| ~~3~~ | ~~`vacio`~~ | Decidida el 2026-10-08 (ronda 5): `<Vacio>` | | |
+| ~~4~~ | ~~`aviso`~~ | Decidida el 2026-10-08 (ronda 5): `<Aviso>` en franja, la «i» de la nota, el error en su lugar | | |
+| ~~5~~ | ~~`buscador`~~ | Decidida el 2026-10-08 (ronda 5): `<Buscador>` | | |
 | 6 | `combo` | Desplegables | 26 · 39 | La regla de buscar y paginar ya es una (ADR-0209); falta la cara. `SelectFin` es de Finanzas (ADR-0195) |
 | 7 | `tabla` | Tablas | 30 · 36 | `<Tabla>` existe; la de Finanzas (`fin-tabla`) queda aparte por ADR-0195 |
 | 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 12 · 18 / 10 · 34 | Se corre con `--escenarios`: viven en las hojas |
