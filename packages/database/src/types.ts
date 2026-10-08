@@ -1423,20 +1423,7 @@ export type Database = {
       }
     }
     Views: {
-      // Todas las personas (activas o no) — solo para nombrar autores de historial.
-      // Definida en supabase/unificacion/12_baja_se_propaga.sql.
-      personas_historial: {
-        Row: {
-          auth_user_id: string | null
-          email: string | null
-          estado: string | null
-          id: string | null
-          nombre: string | null
-          rol: string | null
-          sede_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       abrir_caja: {

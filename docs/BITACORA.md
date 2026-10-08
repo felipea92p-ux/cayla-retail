@@ -292,14 +292,12 @@ sede del Líder (TRU/AQP/LIM/Taller en la cabecera): cambia la perspectiva de to
 app sin tocar permisos — el servidor ya validaba por 0012. Verificado en vivo por
 Felipe ("bien muy bien").
 
-## 2026-10-07 (la baja en dynamic es la baja en retail)
-Felipe dio de baja a alguien en dynamic y retail seguía ofreciéndola al asignar un rol.
-Causa raíz, no el síntoma: retail nunca miraba `personas.estado` — ni la vista de
-personas, ni los 4 candados RLS, ni 5 lecturas abiertas a «cualquier autenticado».
-Decisión (ADR-0003): una sola fuente de verdad (`estado` de dynamic), corregida en los
-candados y no pantalla por pantalla; `retail.personas` = equipo de hoy, y
-`retail.personas_historial` conserva a los que se fueron solo para nombrar la auditoría.
-Escrito `supabase/unificacion/12_baja_se_propaga.sql` — PENDIENTE de que Felipe lo corra
-en dynamic. Aprendizaje: `if not f(x)` no salta si `f` devuelve null (`not null` = null);
-un candado debe devolver siempre true/false. Hueco previo detectado y NO tocado: 7 RPCs
-no validan quién las llama (ver BACKLOG).
+## 2026-10-07 (la baja en dynamic ya no sale en el modal de roles)
+Felipe dio de baja a alguien en dynamic y retail seguía ofreciéndola en «Asignar rol».
+Causa raíz: `retail.fn_cuentas_con_rol()` no filtraba `personas.estado='activo'`; el
+acceso ya cerraba solo (ADR-0003). Se aplicó el filtro en producción y se verificó con
+la identidad de un Líder: 0 personas de baja en la lista. Error propio del día: escribí
+un «paso 12» contra `supabase/unificacion/`, que NO es el schema de producción; la
+comprobación previa a ejecutarlo lo detectó y no se aplicó (ver BACKLOG). Aprendizaje:
+antes de escribir SQL para producción, leer el esquema real — un plan en el repo no es
+una fotografía de la base.

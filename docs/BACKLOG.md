@@ -15,15 +15,12 @@
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
-- [ ] `unificacion`: correr `supabase/unificacion/12_baja_se_propaga.sql` en el SQL
-      Editor de cayla-DYNAMIC (ADR-0003). Hasta entonces la baja en dynamic NO se
-      refleja en retail. Verificar con las 4 consultas del pie del archivo.
-      Reversible: sí (bloque de reversa en el mismo archivo).
-- [ ] `unificacion`: 7 RPCs de retail no validan quién las llama (`abrir_caja`,
-      `cerrar_caja`, `registrar_venta`, `recibir_lote`, `registrar_gasto`,
-      `recalcular_stock`, `fn_aplicar_movimiento`) — la `0012` del retail viejo sí; el
-      port no la trajo. Cualquier autenticado puede operar la caja de otra sede.
-      Reversible: sí.
+- [ ] `unificacion`: reconciliar este repo con producción. `supabase/unificacion/01-11`
+      (y la app, que lee `retail.personas`/`retail.sedes`) asumen un schema `retail` que
+      NO es el de cayla-dynamic en producción (allí: 163 tablas, 915 funciones,
+      `colaboradores`/`roles`; no existen `retail.es_lider` ni `retail.personas`).
+      El código del Retail real no está en este repo. NO aplicar esos SQL en producción
+      sin compararlos antes (ADR-0003). Reversible: sí (es una decisión, no un cambio).
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide `proxy.ts`).
       Solo un warning en build, no rompe nada. Reversible: sí.
 

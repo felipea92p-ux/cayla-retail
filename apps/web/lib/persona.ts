@@ -15,10 +15,8 @@ export type PersonaActual = {
 
 const COOKIE_SEDE = "cayla_sede_activa";
 
-/** Trae la persona ligada al usuario logueado. Si no existe, no puede usar la app: o falta
- *  que un Líder la dé de alta, o la dieron de baja en dynamic — la vista `personas` solo
- *  trae gente ACTIVA (supabase/unificacion/12), así que una baja en dynamic cierra el
- *  acceso a retail sin que nadie lo repita acá. Se manda a /login con el mensaje. */
+/** Trae la persona ligada al usuario logueado. Si no existe, no puede usar la app todavía
+ *  (falta que un Líder la dé de alta) — se manda a /login con el mensaje. */
 // Memorizado por-request con React cache(): el layout, cada página y el menú
 // lo llaman varias veces por carga; sin esto cada llamada repetía el viaje a
 // Supabase Auth (getUser) + la consulta a personas. Con cache() se ejecuta UNA
