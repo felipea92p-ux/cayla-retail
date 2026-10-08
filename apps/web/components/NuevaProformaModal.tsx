@@ -53,7 +53,7 @@ export function NuevaProformaModal({
   const responsable = useResponsable();
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
   const lineasIniciales = lineasDeLaProforma(inicial?.items) ?? [];
-  const [filas, setFilas] = useState<Fila[]>(() =>
+  const [filasGuardadas, setFilas] = useState<Fila[]>(() =>
     lineasIniciales.flatMap((l) => {
       const prenda = prendas.find((p) => p.varianteId === l.variante_id);
       if (!prenda) return [];
@@ -63,6 +63,16 @@ export function NuevaProformaModal({
       return [{ prenda, cantidad: l.cantidad, pct, motivo: pct > 0 ? (l.motivo_descuento ?? "") : "", detalle: pct > 0 ? (l.motivo_descuento_detalle ?? "") : "" }];
     })
   );
+  // Cada fila con la prenda del catálogo de AHORA (2026-10-08): si alguien cambia el precio con la hoja abierta, la
+  // pantalla se refresca sola (`<PreciosEnVivo />`) y el total, la fila y lo que se guarda toman el precio nuevo. El
+  // descuento es un %, así que sigue siendo el mismo sobre el precio nuevo.
+  const filas = useMemo(() => {
+    const porId = new Map(prendas.map((p) => [p.varianteId, p]));
+    return filasGuardadas.map((f) => {
+      const alDia = porId.get(f.prenda.varianteId);
+      return alDia && alDia !== f.prenda ? { ...f, prenda: alDia } : f;
+    });
+  }, [filasGuardadas, prendas]);
   // Las que ya no están en el catálogo no se copian: se dice cuáles, en vez de perderlas en silencio.
   const noCopiadas = lineasIniciales.filter((l) => !prendas.some((p) => p.varianteId === l.variante_id)).map((l) => l.descripcion);
   const [q, setQ] = useState("");

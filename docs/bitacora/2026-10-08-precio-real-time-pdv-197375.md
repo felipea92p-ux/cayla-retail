@@ -1,5 +1,5 @@
-# 2026-10-08 — Vender toma el precio y la campaña de ahora
+# 2026-10-08 — Precios en vivo en todo el ERP (ADR-0363)
 
-- **Qué:** Vender leía precio y campañas una sola vez al abrir; un precio cambiado o una etiqueta de descuento quitada desde otra pestaña no llegaba a la caja hasta recargar (la base sí rechazaba el cobro: `venta_precio_cambiado` / `venta_campana_no_vigente`). Ahora `usePreciosEnVivo` (`apps/web/lib/usePreciosEnVivo.ts`) relee cada 10 s, al volver a la pestaña y al volver la red: el precio solo si subió `fn_catalogo_version`, las campañas siempre (las etiquetas no suben esa versión).
-- **Ticket armado:** `ticketConPreciosAlDia` (`lib/precios-en-vivo-reglas.ts`, con prueba) actualiza las líneas sin descuento o con el de campaña y avisa a la cajera; una línea con descuento a mano o de proforma no se toca (podría cobrar más de lo prometido) y se pide quitarla y volver a agregarla. Retomar un ticket en espera usa la misma regla.
-- **Pendiente:** probarlo en el navegador local (Vender abierta en una pestaña, cambiar un precio o quitar una etiqueta en otra, volver). Apartados y Cambios siguen con el precio de cuando abrieron.
+- **Vender:** leía precio y campañas una sola vez al abrir; ahora `usePreciosEnVivo` relee cada 10 s y al volver a la pestaña, y `ticketConPreciosAlDia` corrige el ticket armado (una línea con descuento a mano no se toca: se avisa). Retomar un ticket en espera usa la misma regla.
+- **Todo lo demás:** `<PreciosEnVivo />` (en `app/(app)/layout.tsx`) mira la versión del catálogo y las campañas de hoy; si cambiaron, `router.refresh()` sin loader, esperando a que nadie esté escribiendo. «Nueva proforma» toma la prenda del catálogo de ahora.
+- **Pendiente:** probarlo en el navegador local (esta copia no tenía `.env.local`): una pestaña en Vender/Productos/Apartados, cambiar un precio o quitar una etiqueta en otra, volver.

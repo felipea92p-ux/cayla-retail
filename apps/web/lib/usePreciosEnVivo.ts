@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
 import { mismosPrecios, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
+import { registrarPreciosPropios } from "@/lib/precios-en-vivo-registro";
 import type { CampanaLinea } from "@/lib/vender-reglas";
 
 export type { PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
@@ -62,6 +63,8 @@ export function usePreciosEnVivo(conocidos: string[], activo: boolean, alLeer: (
 
   useEffect(() => {
     if (!activo) return;
+    // Mientras esta pantalla relee por su cuenta, el refresco general (`<PreciosEnVivo />`) no la rehace.
+    const borrarRegistro = registrarPreciosPropios();
     let cancelado = false;
     let enCurso = false;
     ultimoRef.current = null;
@@ -98,6 +101,7 @@ export function usePreciosEnVivo(conocidos: string[], activo: boolean, alLeer: (
     window.addEventListener("online", sondear);
     return () => {
       cancelado = true;
+      borrarRegistro();
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", alVolver);
       window.removeEventListener("focus", alVolver);
