@@ -37,6 +37,10 @@ import {
   textoSugerencia,
   trozosRicos,
   vistaDeEntrada,
+  segmentosDe,
+  tableroVista,
+  tramoBarraDe,
+  varaTablero,
   avisoPocasVentas,
   esAproximada,
   type AccesoFrescura,
@@ -844,5 +848,63 @@ describe("Formidable (ADR-0350) · lo aproximado se dice UNA vez cuando es la re
     expect(avisoPocasVentas([conPocas("a"), conFirmes("b")], "Tienda TRU")).toBeNull();
     expect(avisoPocasVentas([conFirmes("a"), conFirmes("b")], "Tienda TRU")).toBeNull();
     expect(avisoPocasVentas([], "Tienda TRU")).toBeNull();
+  });
+});
+
+describe("el tablero por categoría (nivel 1; ADR-0208, act. 2026-10-07)", () => {
+  const sem = (tramo: "nueva" | "vigente" | "envejecida" | "critica", quieta = false) => ({ ...ESTADO_BASE, tipo: "semaforo" as const, tramo, alMenos: false, quieta, sugerencias: [] });
+
+  it("una fila por categoría: unidades colgadas por tramo, prendas, por decidir y la vara; primero lo que más se queda o hay que mover", () => {
+    const c = ctx({ categorias: new Map([["blu", vara("blu")], ["cap", vara("cap", { categoriaNombre: "Capas", nivel: "pocos_datos", vendidas: 3 })]]) });
+    const filas = tableroVista(
+      [
+        prenda({ categoriaId: "blu", categoriaNombre: "Blusas", pisoHoy: 4, estado: sem("nueva"), porDecidir: false }),
+        prenda({ clave: "b2", categoriaId: "blu", categoriaNombre: "Blusas", pisoHoy: 2, estado: sem("critica", true), porDecidir: true }),
+        // Sin nada colgado: no suma unidades ni prendas (una apartada entera sigue en la tabla, pero no en la barra).
+        prenda({ clave: "b3", categoriaId: "blu", categoriaNombre: "Blusas", pisoHoy: 0, estado: sem("vigente"), porDecidir: false }),
+        prenda({ clave: "c1", categoriaId: "cap", categoriaNombre: "Capas", pisoHoy: 3, estado: sem("envejecida", true), porDecidir: true }),
+        prenda({ clave: "c2", categoriaId: "cap", categoriaNombre: "Capas", pisoHoy: 1, estado: { ...ESTADO_BASE, tipo: "sin_vara" }, porDecidir: false }),
+        prenda({ clave: "c3", categoriaId: "cap", categoriaNombre: "Capas", pisoHoy: 2, estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: false }, porDecidir: false }),
+      ],
+      c,
+    );
+    // Capas: 3 unidades viejas; Blusas: 2.
+    expect(filas.map((f) => f.nombre)).toEqual(["Capas", "Blusas"]);
+    expect(filas[1]).toMatchObject({
+      categoriaId: "blu",
+      total: 6,
+      prendas: 2,
+      porDecidir: 1,
+      viejas: 2,
+      unidades: { nueva: 4, vigente: 0, envejecida: 0, critica: 2, sin_saber: 0, clasico: 0 },
+      vara: { texto: "Sólido", tono: "neutro" },
+    });
+    expect(filas[0]).toMatchObject({ total: 6, prendas: 3, porDecidir: 1, viejas: 3, unidades: { envejecida: 3, sin_saber: 1, clasico: 2 }, vara: { texto: "Aproximado", tono: "ambar" } });
+    // Los segmentos de la barra: solo los tramos con unidades, en el orden de la barra.
+    expect(segmentosDe(filas[1]).map((s) => [s.clave, s.valor])).toEqual([
+      ["nueva", 4],
+      ["critica", 2],
+    ]);
+    expect(segmentosDe(filas[0]).map((s) => s.nombre)).toEqual(["Se está quedando", "Aún no se sabe", "Clásico"]);
+    expect(tableroVista([], c)).toEqual([]);
+  });
+
+  it("la vara: «Contra CAYLA» cuando el respaldo decidió; si no, el nivel de la tienda; sin ventas, «Sin ventas»", () => {
+    const base = vara("x");
+    const respaldo = { ...base, respaldo: undefined, vendidas: 30, unidades: 40, nivel: "solido" as const, calculadaEn: AHORA, enUso: true };
+    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo })).texto).toBe("Contra CAYLA");
+    expect(varaTablero(vara("x", { nivel: "pocos_datos", respaldo: { ...respaldo, enUso: false } }))).toEqual({ texto: "Aproximado", tono: "ambar" });
+    expect(varaTablero(vara("x", { nivel: "solido" })).texto).toBe("Sólido");
+    expect(varaTablero(vara("x", { nivel: "aceptable" })).texto).toBe("Aceptable");
+    expect(varaTablero(vara("x", { nivel: null }))).toEqual({ texto: "Sin ventas", tono: "apagado" });
+    expect(varaTablero(undefined).texto).toBe("Sin ventas");
+  });
+
+  it("tramoBarraDe: el semáforo manda; el clásico va aparte; lo demás, «aún no se sabe»", () => {
+    expect(tramoBarraDe(prenda({ estado: sem("vigente") }))).toBe("vigente");
+    expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo: "clasico", fueraDeSuEstacion: true } }))).toBe("clasico");
+    for (const tipo of ["sin_vara", "sin_ventas_sede", "sin_edad_conocida", "dudosa"] as const) {
+      expect(tramoBarraDe(prenda({ estado: { ...ESTADO_BASE, tipo } }))).toBe("sin_saber");
+    }
   });
 });

@@ -25,6 +25,7 @@ import {
   muchasSinTemporada,
   pasaFiltros,
   pieVista,
+  tableroVista,
   textoOtrasConPregunta,
   textoRegistro,
   textoUnidades,
@@ -42,6 +43,7 @@ import { TextoConNegritas } from "./piezas";
 import { FrescuraComoSeLee } from "./FrescuraComoSeLee";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
 import { FrescuraDetalle, type ContextoDecision } from "./FrescuraDetalle";
+import { FrescuraTablero } from "./FrescuraTablero";
 import { FrescuraTiendas } from "./FrescuraTiendas";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
@@ -92,6 +94,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   }, [sede, datos, acceso]);
 
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
+  // El tablero por categoría (nivel 1): se arma con TODAS las prendas de la tabla, no con las filtradas, para que no cambie al tocarlo.
+  const tablero = useMemo(() => (ctx ? tableroVista(enTabla, ctx) : []), [enTabla, ctx]);
   const muchasSin = muchasSinTemporada(enTabla);
   // Lo aproximado se dice UNA vez arriba cuando es la regla (TRU: 4 ventas en 120 días); si es la excepción, cada fila lo marca.
   const avisoPocas = ctx ? avisoPocasVentas(enTabla, datos.sede.nombre) : null;
@@ -198,6 +202,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           <EstadoSinLectura datos={datos} onReintentar={() => router.refresh()} />
         ) : (
           <>
+            {/* Nivel 1: el tablero por categoría; tocar una fila filtra la lista (con `cat` en la URL, como el combo). */}
+            <FrescuraTablero filas={tablero} elegida={filtros.cat === TODAS_LAS_CATEGORIAS ? null : filtros.cat} onElegir={(cat) => cambiar({ cat: cat ?? TODAS_LAS_CATEGORIAS })} />
             {/* Filtros: en el estado del panel, copiados a la URL. */}
             <div className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
               <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">

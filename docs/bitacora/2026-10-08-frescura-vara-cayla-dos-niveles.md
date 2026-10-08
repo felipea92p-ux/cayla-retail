@@ -42,3 +42,16 @@
 - **Felipe se lleva:** la decisión «contra qué» es de la categoría, no de cada prenda: todas las capas de TRU se juzgan
   contra lo mismo. Y en la cabecera la categoría sigue mostrando SUS 3 ventas, con la vara de CAYLA al lado: la pantalla
   no esconde cuánto sabe la tienda sola.
+
+## Actividad 4 · el tablero «Cómo está el piso»
+
+- **Qué hice:** el nivel 1 de la pantalla: una fila por categoría con la barra apilada de sus unidades colgadas por
+  estado, cuántas prendas esperan decisión y con qué vara se juzgó; tocar una fila deja en la lista solo esa categoría
+  (y otra vez la suelta). Verificado en el navegador con datos reales (la salida guardada de la base, 17 prendas), a
+  1440 y 375 px, en claro y oscuro.
+- **Por qué así:** la barra apilada ya existía dibujada a mano en «Deuda por vencimiento» (Compras); la llevé a una pieza
+  (`ui/BarraApilada`) con la misma forma en vez de inventar otra (ADR-0358). Los colores de la barra son los de los chips
+  (colores A): la encargada no aprende una segunda paleta. El tablero se arma con TODAS las prendas de la tabla, no con las
+  filtradas, para que no cambie al tocarlo.
+- **Felipe se lleva:** el tablero se ordena por lo que más pide decidir (unidades que se quedan o hay que mover), no por
+  nombre: la primera fila es siempre la categoría que más atención necesita hoy.

@@ -1131,3 +1131,91 @@ export function trozosRicos(t: TextoRico): { texto: string; negrita: boolean }[]
     .map((texto, i) => ({ texto, negrita: i % 2 === 1 }))
     .filter((x) => x.texto !== "");
 }
+
+// ---------------------------------------------------------------------------
+// El tablero por categoría (nivel 1: ADR-0208, actualización 2026-10-07, decisión 3 de Felipe)
+// ---------------------------------------------------------------------------
+//
+// «¿Cómo está el piso?» de un vistazo: una fila por categoría con la barra de sus unidades colgadas por estado, cuántas prendas
+// esperan decisión y con qué vara se juzgó. Es el tablero del líder (semanal) y el mapa de la encargada: tocar una fila deja en la
+// lista de abajo solo esa categoría. Lo primero es lo que más pide decidir: se ordena por unidades que se quedan o hay que mover.
+
+/** Los tramos de la barra, en el orden en que se dibujan; al final, lo que el semáforo no juzga. */
+export type TramoBarra = Tramo | "sin_saber" | "clasico";
+export const TRAMOS_BARRA: readonly TramoBarra[] = ["nueva", "vigente", "envejecida", "critica", "sin_saber", "clasico"];
+export const NOMBRE_TRAMO_BARRA: Record<TramoBarra, string> = { ...NOMBRE_TRAMO, sin_saber: "Aún no se sabe", clasico: "Clásico" };
+/** El color de cada tramo en la barra: los colores A de los chips (verde · neutro · ámbar · tinta), nunca rojo. */
+export const CLASE_TRAMO_BARRA: Record<TramoBarra, string> = {
+  nueva: "bg-verde",
+  vigente: "bg-tinta/25",
+  envejecida: "bg-ambar",
+  critica: "bg-tinta",
+  sin_saber: "bg-taupe/35",
+  clasico: "bg-pizarra/60",
+};
+
+/** Con qué vara se juzgó la categoría, en una palabra: contra CAYLA (su respaldo decidió), o el nivel de la propia tienda. */
+export type VaraTablero = { texto: "Sólido" | "Aceptable" | "Aproximado" | "Contra CAYLA" | "Sin ventas"; tono: TonoChip };
+
+export function varaTablero(v: VaraCategoria | undefined): VaraTablero {
+  if (v?.respaldo?.enUso) return { texto: "Contra CAYLA", tono: "pizarra" };
+  if (v?.nivel === "solido") return { texto: "Sólido", tono: "neutro" };
+  if (v?.nivel === "aceptable") return { texto: "Aceptable", tono: "neutro" };
+  if (v?.nivel === "pocos_datos") return { texto: "Aproximado", tono: "ambar" };
+  return { texto: "Sin ventas", tono: "apagado" };
+}
+
+export type FilaTablero = {
+  categoriaId: string;
+  nombre: string;
+  /** Unidades colgadas por tramo (de las prendas de la tabla con algo en el piso). */
+  unidades: Record<TramoBarra, number>;
+  total: number;
+  /** Prendas (modelo+color) con algo colgado. */
+  prendas: number;
+  /** Las que esperan decisión (`porDecidir`, el único lugar que lo dice). */
+  porDecidir: number;
+  /** Unidades que se quedan o hay que mover: lo que ordena el tablero. */
+  viejas: number;
+  vara: VaraTablero;
+};
+
+/** El tramo de una prenda en la barra: el del semáforo; el clásico aparte; lo demás (sin referencia, sin edad, dudosa) «aún no se sabe». */
+export function tramoBarraDe(p: FrescuraPrenda): TramoBarra {
+  if (p.estado.tipo === "semaforo") return p.estado.tramo;
+  if (p.estado.tipo === "clasico") return "clasico";
+  return "sin_saber";
+}
+
+/** Las filas del tablero: una por categoría con prendas en la tabla, ordenadas por lo que más pide decidir. */
+export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFrescura): FilaTablero[] {
+  const filas = new Map<string, FilaTablero>();
+  for (const p of prendas) {
+    const fila =
+      filas.get(p.categoriaId) ??
+      ({
+        categoriaId: p.categoriaId,
+        nombre: p.categoriaNombre,
+        unidades: { nueva: 0, vigente: 0, envejecida: 0, critica: 0, sin_saber: 0, clasico: 0 },
+        total: 0,
+        prendas: 0,
+        porDecidir: 0,
+        viejas: 0,
+        vara: varaTablero(ctx.categorias.get(p.categoriaId)),
+      } satisfies FilaTablero);
+    filas.set(p.categoriaId, fila);
+    if (p.porDecidir) fila.porDecidir++;
+    if (p.pisoHoy <= 0) continue;
+    const tramo = tramoBarraDe(p);
+    fila.unidades[tramo] += p.pisoHoy;
+    fila.total += p.pisoHoy;
+    fila.prendas++;
+    if (tramo === "envejecida" || tramo === "critica") fila.viejas += p.pisoHoy;
+  }
+  return [...filas.values()].sort((a, b) => b.viejas - a.viejas || b.porDecidir - a.porDecidir || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Los segmentos de la barra de una fila, listos para `BarraApilada` (solo los tramos con unidades, en orden). */
+export function segmentosDe(fila: FilaTablero): { clave: TramoBarra; nombre: string; valor: number; clase: string }[] {
+  return TRAMOS_BARRA.filter((t) => fila.unidades[t] > 0).map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_BARRA[t], valor: fila.unidades[t], clase: CLASE_TRAMO_BARRA[t] }));
+}
