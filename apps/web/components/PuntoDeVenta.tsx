@@ -14,7 +14,6 @@ import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type Tip
 import {
   aplicarDescuento,
   atendioCorto,
-  conCampanas,
   conCodigoDelCatalogo,
   descuentoResultante,
   descuentoUnitarioPorPorcentaje,
@@ -86,6 +85,8 @@ import {
   TOPE_ESPERA_BAJADA_MS,
 } from "@/lib/bajada-desde-vender";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
+import { usePreciosEnVivo, type PreciosReleidos } from "@/lib/usePreciosEnVivo";
+import { conPreciosAlDia, ticketConPreciosAlDia } from "@/lib/precios-en-vivo-reglas";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { accionDelEnter, buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
@@ -488,19 +489,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Lo apartado en el piso, releído con las MISMAS lecturas: aparte del stock porque una venta nunca lo toca. Sin
   // releerlo, una prenda que otra caja aparta después de cargar esta pantalla diría «agotada» y no «apartada para un cliente».
   const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
+  // El precio de etiqueta y la campaña de hoy, releídos de la base mientras la caja está abierta (`usePreciosEnVivo`,
+  // Felipe 2026-10-08). `null` = todavía nada releído: manda lo que trajo el servidor.
+  const [preciosAlDia, setPreciosAlDia] = useState<PreciosReleidos | null>(null);
   const [variantesPrevias, setVariantesPrevias] = useState(variantes);
   if (variantes !== variantesPrevias) {
     setVariantesPrevias(variantes);
     setAjustesStock(new Map());
     setAjustesAlmacen(new Map());
     setAjustesApartado(new Map());
+    setPreciosAlDia(null);
   }
   // Sube tras cada venta: «Ventas de hoy» se relee sola (`useVentasDeHoy`).
   const [versionVentas, setVersionVentas] = useState(0);
   const ventasDeHoy = useVentasDeHoy(ubicacionId, ventasHoy.inicial, ventasHoy.fallo, versionVentas);
   const variantesAjustadas = useMemo(
-    () => conStockAjustado(conApartadoAjustado(conAlmacenAjustado(variantes, ajustesAlmacen), ajustesApartado), ajustesStock),
-    [variantes, ajustesAlmacen, ajustesApartado, ajustesStock],
+    () =>
+      conStockAjustado(
+        conApartadoAjustado(conAlmacenAjustado(conPreciosAlDia(variantes, preciosAlDia), ajustesAlmacen), ajustesApartado),
+        ajustesStock,
+      ),
+    [variantes, preciosAlDia, ajustesAlmacen, ajustesApartado, ajustesStock],
   );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
@@ -745,6 +754,30 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAjustesStock((prev) => new Map([...prev, ...releido]));
       setAjustesAlmacen((prev) => new Map([...prev, ...almacen]));
       setAjustesApartado((prev) => new Map([...prev, ...apartado]));
+    },
+  );
+
+  /**
+   * Precio y descuento en vivo (Felipe, 2026-10-08): cambió el precio de una prenda y le quitó una etiqueta de
+   * descuento desde otra pestaña, y Vender siguió mostrando lo de antes hasta recargar. Ahora la grilla, el buscador y
+   * el ticket ya armado toman el precio y la campaña de AHORA, y se le dice a la cajera qué cambió en su ticket — antes
+   * se enteraba cuando la base rechazaba el cobro (`venta_precio_cambiado`, `venta_campana_no_vigente`).
+   */
+  usePreciosEnVivo(
+    useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
+    !bloqueado,
+    (releido) => {
+      setPreciosAlDia(releido);
+      const { cambiaron, porRevisar } = ticketConPreciosAlDia(carrito, releido);
+      setCarrito((actual) => ticketConPreciosAlDia(actual, releido).carrito);
+      if (cambiaron.length > 0) {
+        avisar.aviso(`Cambió el precio de ${cambiaron.join(", ")}`, { detalle: "El ticket ya tiene el precio y el descuento de ahora. Revisa el total antes de cobrar." });
+      }
+      if (porRevisar.length > 0) {
+        avisar.aviso(`Cambió el precio de ${porRevisar.join(", ")}`, {
+          detalle: "Tiene un descuento puesto a mano sobre el precio de antes: quítala del ticket y vuelve a agregarla.",
+        });
+      }
     },
   );
 
@@ -1159,10 +1192,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
-    const lineas = conCampanas(
-      conCodigoDelCatalogo(ticket.carrito, variantesVisibles),
-      new Map(variantesVisibles.flatMap((v) => (v.campana ? [[v.varianteId, v.campana] as const] : []))),
-    );
+    // Con el precio y la campaña de AHORA: un ticket en espera pudo nacer antes de que alguien cambiara un precio o
+    // pusiera/quitara una campaña. Una línea con descuento a mano y precio cambiado no se toca: se avisa.
+    const { carrito: lineas, porRevisar } = ticketConPreciosAlDia(conCodigoDelCatalogo(ticket.carrito, variantesVisibles), {
+      precios: new Map(variantesVisibles.map((v) => [v.varianteId, v.precio])),
+      campanas: new Map(variantesVisibles.flatMap((v) => (v.campana ? [[v.varianteId, v.campana] as const] : []))),
+    });
+    if (porRevisar.length > 0) {
+      avisar.aviso(`Cambió el precio de ${porRevisar.join(", ")}`, {
+        detalle: "Tiene un descuento puesto a mano sobre el precio de antes: quítala del ticket y vuelve a agregarla.",
+      });
+    }
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
