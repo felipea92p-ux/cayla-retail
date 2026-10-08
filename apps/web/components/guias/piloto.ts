@@ -60,6 +60,7 @@ export function describirPieza(el: HTMLElement): PiezaATocar {
     href: control instanceof HTMLAnchorElement ? control.getAttribute("href") : null,
     // Una pestaña escrita como botón (las de abajo de Apartados en el celular) no lleva role="tab" (ADR-0358 lo reserva a
     // <Pestanas>), pero sí `aria-current`/`aria-selected`: marca la vista elegida. Un botón que guarda nunca lleva eso.
+    abreVentana: !!control.getAttribute("aria-haspopup") && control.getAttribute("aria-haspopup") !== "false",
     rol: control.getAttribute("role") ?? (control.tagName === "BUTTON" && (control.hasAttribute("aria-current") || control.hasAttribute("aria-selected")) ? "tab" : null),
     rutaActual: window.location.pathname,
   };

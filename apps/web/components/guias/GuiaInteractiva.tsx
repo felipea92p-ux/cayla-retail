@@ -36,6 +36,8 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
   const [total, setTotal] = useState(guia.pasos.length);
   /** Cuántos pasos lleva vistos (el historial, como estado para dibujarlo). */
   const [enCurso, setEnCurso] = useState(0);
+  /** El piloto está haciendo algo a la vista («demostrar»): la tarjeta lo marca (`data-piloto`) y el recorredor lo espera. */
+  const [pilotoActuando, setPilotoActuando] = useState(false);
   /** El cursor fantasma: viaja a la pieza que el piloto va a tocar y «hace clic» con una onda (ADR-0362, act. 2026-10-07). */
   const [cursor, setCursor] = useState<{ x: number; y: number; visible: boolean; instante: boolean; pulso: number; escribe: boolean }>({
     x: 0,
@@ -138,7 +140,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         const paso = guia.pasos[indice]!;
         // Antes de preguntar si aplica, se prepara (abrir el modal donde vive), en las dos direcciones.
         let nota: string | null = null;
-        if (paso.preparar) {
+        if (paso.preparar && !(paso.prepararSoloAlAvanzar && direccion === -1)) {
           for (const a of paso.preparar) {
             const r = await ejecutar(a, senal, conMovimiento, apuntar);
             if (senal.aborted) return;
@@ -190,12 +192,14 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
 
         // Con la pieza ya encendida, el piloto la hace funcionar (escribir un ejemplo), a la vista.
         if (direccion === 1 && paso.demostrar) {
+          setPilotoActuando(true);
           await pausa(conMovimiento ? 520 : 0);
           for (const a of paso.demostrar) {
             const res = await ejecutar(a, senal, conMovimiento, apuntar);
             if (senal.aborted) return;
             if (!res.ok && a.tipo !== "vaciar" && a.tipo !== "escape") setMostrando((m) => (m && m.indice === indice ? { ...m, nota: notaDe(a, res.motivo) } : m));
           }
+          setPilotoActuando(false);
         }
         return;
       }
@@ -352,6 +356,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
         className="guia-tarjeta"
         data-lado={pos.lado}
         data-ocupada={ocupada ? "" : undefined}
+        data-piloto={pilotoActuando ? "" : undefined}
         style={{ transform: `translate3d(${pos.left}px, ${pos.top}px, 0)` }}
       >
         <div className="flex items-center justify-between gap-3">

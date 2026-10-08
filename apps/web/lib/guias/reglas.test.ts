@@ -5,7 +5,7 @@ import type { Guia, PiezaATocar } from "./tipos";
 const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rol: null, rutaActual: "/vender", ...p });
 
 describe("nunca guardar: el piloto no toca lo que escribe", () => {
-  it.each(["Confirmar cobro", "COBRAR S/120.00", "Guardar", "Abrir caja", "Cerrar caja", "Registrar la bajada", "Quitar", "Agregar al ticket", "Dejar en espera", "Anular", "Enviar por WhatsApp", "Imprimir"])(
+  it.each(["Confirmar cobro", "COBRAR S/120.00", "Guardar", "Abrir caja", "Cerrar caja", "Registrar la bajada", "Quitar", "Agregar al ticket", "Dejar en espera", "Anular", "Enviar por WhatsApp", "Imprimir", "Anotar que no había", "Reintentar ahora", "Dar acceso", "Archivar"])(
     "«%s» no se toca",
     (texto) => expect(motivoParaNoTocar(pieza({ texto }))).not.toBeNull(),
   );
@@ -37,6 +37,12 @@ describe("nunca guardar: el piloto no toca lo que escribe", () => {
     expect(motivoParaNoTocar(pieza({ texto: "Entregar", rol: "tab" }))).toBeNull();
     expect(motivoParaNoTocar(pieza({ texto: "Apartar", rol: "tab", tipo: "submit" }))).not.toBeNull();
     expect(motivoParaNoTocar(pieza({ texto: "Emitidos", rol: "tab", etiqueta: "a", href: "/vender/comprobantes/emitidos" }))).not.toBeNull();
+  });
+
+  it("un botón que abre una ventana (aria-haspopup) se toca aunque lleve un verbo; un submit con aria-haspopup, no", () => {
+    expect(motivoParaNoTocar(pieza({ texto: "Dar acceso", abreVentana: true }))).toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Pedir a otra sede", abreVentana: true }))).toBeNull();
+    expect(motivoParaNoTocar(pieza({ texto: "Guardar", abreVentana: true, tipo: "submit" }))).not.toBeNull();
   });
 
   it("no se confunde con palabras que contienen el verbo (Cobrador ≠ cobrar, Marca ≠ marcar)", () => {

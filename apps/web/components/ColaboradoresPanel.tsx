@@ -296,6 +296,7 @@ export function ColaboradoresPanel({
                 peso="primario"
                 onClick={() => setModal({ tipo: "agregar" })}
                 data-guia="colaboradores.dar-acceso"
+                aria-haspopup="dialog"
                 disabled={disponibles.length === 0}
                 title={disponibles.length === 0 ? "Todas las cuentas activas de Dynamic ya tienen acceso." : undefined}
               >

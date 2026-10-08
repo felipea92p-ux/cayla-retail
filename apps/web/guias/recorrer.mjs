@@ -129,11 +129,17 @@ try {
     const problemas = [];
     const pasos = [];
     // El ejemplo puede traer parámetros (`/buscar?q=blusa`): `demo=1` se suma a los que ya trae.
-    await page.goto(`${origen}${destino}${destino.includes("?") ? "&" : "?"}demo=1`, { waitUntil: "domcontentloaded" });
+    // `next dev` compila cada pantalla la primera vez que se visita (a veces más de 30 s): tope de 2 minutos y un reintento.
+    const url = `${origen}${destino}${destino.includes("?") ? "&" : "?"}demo=1`;
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120_000 });
+    } catch {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120_000 });
+    }
     const iluminados = new Set();
     let base = null;
     try {
-      await page.waitForSelector(".guia-tarjeta h2", { timeout: 15_000 });
+      await page.waitForSelector(".guia-tarjeta h2", { timeout: 60_000 });
     } catch {
       console.log(`✗ ${g.id}: la guía no arrancó con ?demo=1 (¿la cuenta ve ${g.ruta}?)`);
       fallas++;
@@ -145,7 +151,11 @@ try {
       // «ocupada» y el cursor fantasma se esconde. Tope de 12 s por paso; después, un respiro para la animación.
       await page.waitForTimeout(n === 0 ? 900 : 700);
       await page
-        .waitForFunction(() => !document.querySelector(".guia-tarjeta[data-ocupada]") && !document.querySelector(".guia-cursor[data-visible]"), null, { timeout: 12_000 })
+        .waitForFunction(
+          () => !document.querySelector(".guia-tarjeta[data-ocupada]") && !document.querySelector(".guia-tarjeta[data-piloto]") && !document.querySelector(".guia-cursor[data-visible]"),
+          null,
+          { timeout: 12_000 },
+        )
         .catch(() => {});
       await page.waitForTimeout(n === 0 ? 0 : 1200);
       const estado = await page.evaluate(() => {
@@ -169,6 +179,9 @@ try {
       }
       if (estado.nota?.includes("Esta parte no está a la vista")) problemas.push(`«${estado.titulo}»: su pieza no apareció`);
       else if (estado.nota?.includes("no pudo hacer este paso")) problemas.push(`«${estado.titulo}»: ${estado.nota}`);
+      // La guía le pidió al piloto tocar algo que guarda: el motor se negó (bien), pero el paso que dependía de ese toque quedó
+      // vacío. La guía tiene que explicar ese botón sin pedir el toque.
+      else if (estado.nota?.includes("hace algo de verdad")) problemas.push(`«${estado.titulo}»: la guía intenta tocar un botón que guarda (el motor se negó)`);
       if (!estado.sinPieza && estado.alto < 4) problemas.push(`«${estado.titulo}»: el recorte quedó sin alto (la pieza está fuera de la vista)`);
       if (conCapturas) await page.screenshot({ path: join(salida, `${g.id}-${String(n + 1).padStart(2, "0")}.png`) });
       await page.keyboard.press("ArrowRight");

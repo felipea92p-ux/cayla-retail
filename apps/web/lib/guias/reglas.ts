@@ -23,7 +23,8 @@ const VERBOS_QUE_ESCRIBEN = [
   "aprobar", "rechazar", "aceptar", "transferir", "imprimir", "abrir caja", "cerrar caja", "apartar", "liberar", "descartar",
   "subir", "recibir", "despachar", "crear", "agregar", "anadir", "dejar en espera", "soltar", "aplicar", "cerrar el conteo",
   "marcar", "suspender", "reactivar", "devolver", "cambiar", "canjear", "entregar", "retirar", "reponer", "bajar", "ajustar",
-  "descargar", "compartir", "whatsapp", "llamar", "salir", "cerrar sesion",
+  "descargar", "compartir", "whatsapp", "llamar", "salir", "cerrar sesion", "anotar", "corregir", "pedir", "avisar", "unir",
+  "archivar", "desactivar", "activar", "asignar", "dar acceso", "revertir", "reintentar", "conciliar", "transmitir", "cargar",
 ] as const;
 
 /**
@@ -36,6 +37,8 @@ export function motivoParaNoTocar(p: PiezaATocar): string | null {
   // Una pestaña cambia de vista y nada más, se llame como se llame («Apartar», «Entregar»). Un enlace-pestaña a otra ruta
   // sigue la regla de los enlaces, más abajo.
   if (p.rol === "tab" && !p.href) return null;
+  // Abre una ventana o un menú (`aria-haspopup`): no guarda; lo que guarda es el botón de adentro, que sigue la regla.
+  if (p.abreVentana && !p.href) return null;
   if (p.etiqueta === "button" && p.enFormulario && (tipo === null || tipo === "")) return "envía un formulario (botón sin type dentro de un form)";
   if (p.etiqueta === "input" && (tipo === "submit" || tipo === "file" || tipo === "image")) return "envía o sube algo";
   if (p.href) {

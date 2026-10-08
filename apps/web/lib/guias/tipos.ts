@@ -28,6 +28,9 @@ export type PasoGuia = {
   texto: string;
   /** Lo que el piloto hace ANTES de encender la pieza (abrir el modal donde vive). */
   preparar?: readonly AccionGuia[];
+  /** El `preparar` corre solo al AVANZAR (no al volver con ←). Para un botón que abre Y cierra lo mismo (un panel de filtros): si
+   *  corriera también al volver, desarmaría lo que el paso anterior dejó abierto. */
+  prepararSoloAlAvanzar?: boolean;
   /** Lo que el piloto hace CON la pieza ya encendida, para que se vea funcionar (escribir un ejemplo). */
   demostrar?: readonly AccionGuia[];
   /**
@@ -71,6 +74,9 @@ export type PiezaATocar = {
   enFormulario: boolean;
   /** El `href` de un enlace, o null. */
   href: string | null;
+  /** ¿Declara `aria-haspopup` (dialog, menu, listbox…)? Un botón que abre una ventana o un menú no guarda: se puede tocar aunque
+   *  se llame «Dar acceso» o «Pedir a otra sede». Lo que guarda es el botón de ADENTRO de esa ventana, y ese sigue prohibido. */
+  abreVentana?: boolean;
   /** El `role` ARIA del control («tab», «switch»…), o null. Una pestaña solo cambia de vista: se puede tocar aunque se llame
    *  «Apartar» o «Entregar». */
   rol: string | null;
