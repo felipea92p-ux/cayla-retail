@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -47,6 +47,9 @@ import {
 import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -482,34 +485,31 @@ export function ApartarVista({
       <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
-            <label className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
-              <ScanBarcode className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
-              <input
-                ref={escaner}
-                autoFocus
-                value={texto}
-                onChange={(e) => escribir(e.target.value)}
-                onKeyDown={teclado}
-                placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
-                aria-label="Escanea la etiqueta o busca la prenda por nombre"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={abierta}
-                aria-controls="apt-resultados"
-                aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
-              />
-              {texto && (
-                <button type="button" aria-label="Limpiar búsqueda" onClick={() => escribir("")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40">
-                  ×
-                </button>
-              )}
-            </label>
+            {/* El buscador del mostrador (ADR-0358, ronda 5): el código de barras que se enciende, filtra mientras se escribe. */}
+            <Buscador
+              tamano="mostrador"
+              icono="barras"
+              ref={escaner}
+              autoFocus
+              valor={texto}
+              onCambio={(v) => escribir(v)}
+              onKeyDown={teclado}
+              placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
+              etiqueta="Escanea la etiqueta o busca la prenda por nombre"
+              role="combobox"
+              aria-expanded={abierta}
+              aria-controls="apt-resultados"
+              aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
+              aria-autocomplete="list"
+            />
             {abierta && (
               <ul id="apt-resultados" role="listbox" aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
                 {disponibles.length + agotadas.length === 0 ? (
-                  <li className="px-4 py-5 text-sm text-tinta/65">No encontramos «{texto.trim()}» en {ubicacionEtiqueta}.</li>
+                  <li>
+                    <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                      No encontramos <b>«{texto.trim()}»</b> en {ubicacionEtiqueta}.
+                    </Vacio>
+                  </li>
                 ) : (
                   <>
                     {disponibles.map((v, i) => filaResultado(v, i))}
@@ -592,18 +592,12 @@ export function ApartarVista({
           </article>
           </div>
         ) : (
-          <div className="flex min-h-[260px] flex-1 items-center justify-center rounded-2xl border border-dashed border-sand p-6 text-center">
-            <div>
-              <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-sand/60">
-                <ScanBarcode className="h-7 w-7 text-tinta/70" aria-hidden />
-              </div>
-              <p className="font-display text-2xl text-tinta">Escanea la prenda que el cliente quiere apartar</p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-tinta/60">
-                {esTelefono
-                  ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
-                  : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
-              </p>
-            </div>
+          <div className="flex min-h-[260px] flex-1 items-center justify-center">
+            <Vacio icono={<ScanBarcode />} titulo="Escanea la prenda que el cliente quiere apartar">
+              {esTelefono
+                ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
+                : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
+            </Vacio>
           </div>
         )}
 
@@ -642,10 +636,9 @@ export function ApartarVista({
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               {lineas.length === 0 ? (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-display text-xl text-tinta">Nada por apartar todavía</p>
-                  <p className="mt-1 text-sm text-tinta/60">Escanea la etiqueta de la prenda.</p>
-                </div>
+                <Vacio icono={<Bookmark />} titulo="Nada por apartar todavía">
+                  Escanea la etiqueta de la prenda.
+                </Vacio>
               ) : (
                 <>
                   {lineas.map((l, i) => {
@@ -745,10 +738,13 @@ export function ApartarVista({
                   {conClienta && (
                     <div className="space-y-1.5">
                       {clientaId ? (
-                        <p className="flex items-center justify-between gap-2 rounded-xl border border-verde/30 bg-verde/5 px-3 py-2 text-[12.5px] text-verde-profundo">
-                          <span>Ficha encontrada: el apartado queda ligado a su historial.</span>
-                          <button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }} className="label-cayla text-[10px] text-tinta/70">Cambiar</button>
-                        </p>
+                        <Aviso
+                          tono="exito"
+                          chico
+                          accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
+                        >
+                          Ficha encontrada: el apartado queda ligado a su historial.
+                        </Aviso>
                       ) : (
                         <div className="flex gap-2">
                           <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-hueso px-3 focus-within:ring-1 focus-within:ring-taupe">
@@ -842,7 +838,7 @@ export function ApartarVista({
                     <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${total ? Math.min(100, (adelanto / total) * 100) : 0}%` }} />
                   </div>
                   <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
-                  {ver("pago") && <p className="text-xs text-rojo-profundo">{ver("pago")}</p>}
+                  {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (
                     <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
                       <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>

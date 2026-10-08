@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Search, X } from "lucide-react";
+import { Minus, Plus, Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
@@ -18,6 +18,9 @@ import { Boton, CampoSelect, CampoTexto, Desplegable, Segmentado } from "@/compo
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
 export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; precio: number; fotoUrl: string | null; colorHex: string | null };
@@ -132,9 +135,9 @@ export function NuevaProformaModal({
       {(cerrar) => (
         <form onSubmit={onCrear} className="mt-5 space-y-4">
           {noCopiadas.length > 0 && (
-            <p role="status" className="rounded-md border border-ambar/30 bg-ambar/10 px-3 py-2 text-sm text-ambar-profundo">
+            <Aviso tono="atencion" chico>
               Ya no están en el catálogo y no se copiaron: {noCopiadas.join(", ")}.
-            </p>
+            </Aviso>
           )}
 
           {esLider && ubicaciones.length > 1 && (
@@ -143,24 +146,18 @@ export function NuevaProformaModal({
 
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}
           <div className="relative">
-            <label className="vidrio-cayla flex h-10 items-center gap-2 rounded-[10px] px-3 text-sm text-tinta focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rojo/60">
-              <Search aria-hidden strokeWidth={1.75} className="h-4 w-4 shrink-0 text-tinta/60" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  e.preventDefault();
-                  const elegida = resolverCodigoV2(q, prendas) ?? resultados[0];
-                  if (elegida) agregar(elegida);
-                }}
-                placeholder="Busca la prenda o escanea su código…"
-                aria-label="Buscar prenda"
-                autoComplete="off"
-                spellCheck={false}
-                className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-tinta/55"
-              />
-            </label>
+            <Buscador
+              valor={q}
+              onCambio={setQ}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                const elegida = resolverCodigoV2(q, prendas) ?? resultados[0];
+                if (elegida) agregar(elegida);
+              }}
+              placeholder="Busca la prenda o escanea su código…"
+              etiqueta="Buscar prenda"
+            />
             {resultados.length > 0 && (
               <ul className="card-cayla absolute inset-x-0 top-11 z-10 max-h-72 overflow-auto p-1" data-sin-cascada>
                 {resultados.map((p) => (
@@ -184,7 +181,11 @@ export function NuevaProformaModal({
           </div>
 
           {filas.length === 0 ? (
-            <p className="rounded-[12px] border border-dashed border-tinta/25 px-4 py-6 text-center text-sm text-tinta/60">Todavía no hay prendas. Búscalas arriba.</p>
+            <div className="rounded-[12px] border border-tinta/10">
+              <Vacio tamano="chico" icono={<Shirt />}>
+                Todavía no hay prendas. Búscalas arriba.
+              </Vacio>
+            </div>
           ) : (
             <ul className="divide-y divide-tinta/10 rounded-[12px] border border-tinta/10">
               {filas.map((f) => {

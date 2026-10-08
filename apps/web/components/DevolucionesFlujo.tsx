@@ -14,7 +14,6 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
 import { ImpactoVista } from "@/components/CambioResumen";
 import {
-  AvisoDeError,
   BotonPrincipal,
   BotonRojo,
   BotonSecundario,
@@ -47,6 +46,7 @@ import {
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -481,7 +481,13 @@ export function DevolucionesFlujo({
 
           <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
 
-          {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró la devolución." />}
+          {error && (
+            // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
+            // «No se pudo …» cuando no reconoce el error; con un mensaje de la base hay que decir además que no se guardó nada.
+            <Aviso tono="error" ref={errorRef} enfocable titulo={error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
+              {error}
+            </Aviso>
+          )}
 
           <PieDelPaso aviso={null}>
             <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />

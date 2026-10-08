@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Archive, Bell, Check, MessageCircle, Search, SlidersHorizontal } from "lucide-react";
+import { Archive, Bell, Check, MessageCircle, SearchX, SlidersHorizontal } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
@@ -27,6 +27,9 @@ import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, L
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 import { envioConCliente, type PedidoParaSubir } from "@/lib/pedidos-con-cliente-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
@@ -268,10 +271,7 @@ export function TodosVista({
           </button>
         ))}
         <div className="relative flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-        <label className="flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-sand bg-papel px-3.5 focus-within:border-taupe sm:w-80 sm:flex-none">
-          <Search className="h-4 w-4 text-tinta/55" aria-hidden />
-          <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Nombre, DNI, celular, APT- o B004-" aria-label="Buscar en los apartados" className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none" />
-        </label>
+        <Buscador valor={texto} onCambio={setTexto} placeholder="Nombre, DNI, celular, APT- o B004-" etiqueta="Buscar en los apartados" className="min-w-0 flex-1 sm:w-80 sm:flex-none" />
         <button type="button" onClick={() => setVerAbierto((v) => !v)} aria-expanded={verAbierto} className={`${BOTON_CHICO} inline-flex h-10 items-center gap-1.5`}>
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden /> <span className="max-sm:hidden">Qué ver</span>
         </button>
@@ -295,9 +295,28 @@ export function TodosVista({
       </div>
 
       {lista.length === 0 ? (
-        <div className="rounded-2xl border border-sand px-6 py-10 text-center">
-          <p className="font-display text-xl text-tinta">{filtro === "hoy" ? "Todo al día" : "Nada por aquí"}</p>
-          {filtro === "hoy" && <p className="mt-1 text-sm text-tinta/60">Ningún apartado vence ni espera devolución hoy.</p>}
+        <div className="card-cayla">
+          {texto.trim() ? (
+            <Vacio
+              icono={<SearchX />}
+              titulo={`Ningún apartado con «${texto.trim()}»`}
+              acciones={
+                <Boton peso="fantasma" onClick={() => setTexto("")}>
+                  Borrar la búsqueda
+                </Boton>
+              }
+            >
+              Se busca por nombre, DNI, celular, código (APT-) o boleta.
+            </Vacio>
+          ) : filtro === "hoy" ? (
+            <Vacio icono={<Check />} titulo="Todo al día">
+              Ningún apartado vence ni espera devolución hoy.
+            </Vacio>
+          ) : (
+            <Vacio icono={<Archive />} titulo="Nada por aquí">
+              Cambia lo que ves con «Qué ver» o el filtro de arriba.
+            </Vacio>
+          )}
         </div>
       ) : (
         GRUPOS.map((g) => {
