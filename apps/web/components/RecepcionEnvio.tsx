@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSPropertie
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
+import { Check, ChevronRight, Info, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -72,6 +72,8 @@ import {
   type PedidoEnvio,
   type Reparto,
 } from "@/lib/envio-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -134,9 +136,6 @@ const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
 };
 
 const FRASES_NOTA = ["Caja abierta al llegar", "Faltan bultos", "Etiquetas dañadas", "Llegó mojado", "Guía sin sello"];
-
-const CASILLA_TEXTO =
-  "h-10 w-full rounded-lg border border-tinta/15 bg-transparent px-3 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-rojo";
 
 export function RecepcionEnvio({
   compras,
@@ -887,7 +886,9 @@ export function RecepcionEnvio({
           </span>
         </div>
         {opciones.length === 0 ? (
-          <p className="text-xs text-rojo">Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.</p>
+          <Aviso tono="error" chico>
+            Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.
+          </Aviso>
         ) : (
           <CurvaVariantes referencia={l.referencia} variantes={opciones} valores={reparto[l.id] ?? {}} excede={excede} onFijar={(varianteId, n) => fijar(l.id, varianteId, n)} />
         )}
@@ -933,28 +934,17 @@ export function RecepcionEnvio({
           <div className={`grid transition-[grid-template-rows] duration-[360ms] ease-cayla lg:grid-rows-[1fr] ${hayEnvio && listaPlegada ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} inert={hayEnvio && listaPlegada}>
           <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-3">
-            <div className="relative mt-3">
-              <input
-                id="recibir-buscar"
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-                placeholder="Documento o proveedor"
-                autoComplete="off"
-                aria-label="Buscar entre los comprobantes pendientes"
-                className={`peer ${CASILLA_TEXTO} pr-9 [&::-webkit-search-cancel-button]:appearance-none`}
-              />
-              {busqueda ? (
-                <button type="button" onClick={() => setBusqueda("")} aria-label="Limpiar la búsqueda" className="absolute right-2.5 top-1/2 grid -translate-y-1/2 place-items-center rounded-full p-0.5 text-tinta/55 hover:text-rojo">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <kbd aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity peer-focus:opacity-0">
-                  /
-                </kbd>
-              )}
-            </div>
+            {/* El «/» lo escucha la pantalla (lleva aquí o, con un envío armado, al escáner): el buscador solo muestra la tecla. */}
+            <Buscador
+              id="recibir-buscar"
+              valor={busqueda}
+              onCambio={setBusqueda}
+              onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+              atajo="visible"
+              placeholder="Documento o proveedor"
+              etiqueta="Buscar entre los comprobantes pendientes"
+              className="mt-3"
+            />
           </div>
           {/* Dejan menos comprobantes en la misma lista: la píldora de filtro del sistema (ADR-0358), no la pestaña subrayada.
               Lo atrasado conserva su cuenta en ámbar mientras no está elegido: pide algo. */}
@@ -1199,14 +1189,13 @@ export function RecepcionEnvio({
                   />
                     <div className="ml-auto flex w-full items-center gap-2 py-2.5 sm:w-96">
                       <div className="relative flex-1">
-                        <ScanBarcode aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-tinta/45" />
                         {/* la cinta verde cruza el campo cada vez que la pistola lee: «entró» */}
                         {destello && <span key={destello.n} aria-hidden className="anim-cinta pointer-events-none absolute inset-y-0 left-0 w-1/4 rounded-lg bg-verde/15" />}
-                        <input
+                        <Buscador
                           ref={escaneoRef}
-                          type="text"
-                          value={escaneo}
-                          onChange={(e) => setEscaneo(e.target.value)}
+                          valor={escaneo}
+                          onCambio={setEscaneo}
+                          icono="barras"
                           onFocus={() => setVerSugerencias(true)}
                           onBlur={() => setVerSugerencias(false)}
                           onKeyDown={(e) => {
@@ -1217,10 +1206,8 @@ export function RecepcionEnvio({
                             const exacto = variantes.some((v) => clave(v.sku) === kEsc || v.codigosBarras.some((c) => clave(c) === kEsc));
                             escanear(!exacto && sugerencias[0]?.sku ? sugerencias[0].sku : escaneo);
                           }}
-                          placeholder="Escanea la etiqueta o busca por código…"
-                          aria-label="Escanear una prenda: suma 1 al comprobante que la trae"
-                          autoComplete="off"
-                          className={`${CASILLA_TEXTO} pl-10`}
+                          placeholder="Escanea la etiqueta o busca por código…" // unificar-fijo: ya es el Buscador, con el ícono de barras
+                          etiqueta="Escanear una prenda: suma 1 al comprobante que la trae"
                         />
                         {verSugerencias && sugerencias.length > 0 && (
                           <div role="listbox" aria-label="Prendas que coinciden" className="anim-revelar absolute inset-x-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-xl border border-sand bg-papel">

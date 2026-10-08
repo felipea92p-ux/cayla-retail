@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { CalendarArrowDown, CalendarArrowUp, Search, X } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp } from "lucide-react";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
@@ -15,6 +15,7 @@ import { ReabrirPrendaModal } from "@/components/ReabrirPrendaModal";
 import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 import { FranjaAvance } from "@/components/por-regularizar/FranjaAvance";
 import { MesaRegularizar } from "@/components/por-regularizar/MesaRegularizar";
+import { Buscador } from "@/components/ui/Buscador";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla y dibujarla (sin costo: esta pantalla la ve almacén). */
 export type { PrendaParaRegularizar };
@@ -156,30 +157,14 @@ export function PorRegularizarLista({
         <div className="card-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
           {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo de líder va en «Más». */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-5 pb-3 pt-4">
-            <label className="relative block min-w-[11rem] flex-1 basis-44">
-              <span className="sr-only">Buscar una venta sin registrar</span>
-              <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/45" />
-              <input
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape" && busqueda) {
-                    e.preventDefault();
-                    setBusqueda("");
-                  }
-                }}
-                maxLength={120}
-                autoComplete="off"
-                placeholder="Buscar prenda, color, talla, quién vendió o precio"
-                className="h-9 w-full truncate rounded-md border border-tinta/15 bg-papel pl-9 pr-8 text-sm text-tinta outline-none placeholder:text-[13px] placeholder:text-tinta/45 focus:border-rojo/60 [&::-webkit-search-cancel-button]:hidden"
-              />
-              {busqueda && (
-                <button type="button" aria-label="Borrar la búsqueda" onClick={() => setBusqueda("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-tinta/50 hover:text-tinta">
-                  <X aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </label>
+            <Buscador
+              valor={busqueda}
+              onCambio={setBusqueda}
+              maxLength={120}
+              placeholder="Buscar prenda, color, talla, quién vendió o precio"
+              etiqueta="Buscar una venta sin registrar"
+              className="min-w-[11rem] flex-1 basis-44"
+            />
             <div className="flex flex-wrap items-center gap-2">
               {FILTROS.map((f) => (
                 <button

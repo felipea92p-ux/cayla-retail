@@ -73,6 +73,7 @@ import {
 } from "@/lib/cuadre-piso-reglas";
 import { CifrasCuadre, AntesDespues, ListasCuadre } from "./RevisarCuadre";
 import { ResultadoCuadre } from "./ResultadoCuadre";
+import { Aviso } from "@/components/ui/Aviso";
 
 /*
  * «Cuadrar el piso» (ADR-0328, decisión técnica 4). Tres pasos y el resultado:
@@ -636,15 +637,11 @@ export function CuadrarPisoForm({
       )}
 
       {incierto && (
-        <div role="status" className="anim-revelar rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-          {textoDeEnvioIncierto(incierto)}
-        </div>
+        <Aviso tono="atencion">{textoDeEnvioIncierto(incierto)}</Aviso>
       )}
 
       {error && error.tipo !== "red" && (
-        <div role="alert" className="anim-revelar rounded-xl border border-l-2 border-rojo/40 border-l-rojo bg-rojo/[0.06] px-4 py-3 text-sm text-tinta">
-          {error.mensaje}
-        </div>
+        <Aviso tono="error">{error.mensaje}</Aviso>
       )}
 
       {paso === "escanear" && (
