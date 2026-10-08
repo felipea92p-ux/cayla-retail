@@ -1,0 +1,5 @@
+# 2026-10-08 — Vender toma el precio y la campaña de ahora
+
+- **Qué:** Vender leía precio y campañas una sola vez al abrir; un precio cambiado o una etiqueta de descuento quitada desde otra pestaña no llegaba a la caja hasta recargar (la base sí rechazaba el cobro: `venta_precio_cambiado` / `venta_campana_no_vigente`). Ahora `usePreciosEnVivo` (`apps/web/lib/usePreciosEnVivo.ts`) relee cada 10 s, al volver a la pestaña y al volver la red: el precio solo si subió `fn_catalogo_version`, las campañas siempre (las etiquetas no suben esa versión).
+- **Ticket armado:** `ticketConPreciosAlDia` (`lib/precios-en-vivo-reglas.ts`, con prueba) actualiza las líneas sin descuento o con el de campaña y avisa a la cajera; una línea con descuento a mano o de proforma no se toca (podría cobrar más de lo prometido) y se pide quitarla y volver a agregarla. Retomar un ticket en espera usa la misma regla.
+- **Pendiente:** probarlo en el navegador local (Vender abierta en una pestaña, cambiar un precio o quitar una etiqueta en otra, volver). Apartados y Cambios siguen con el precio de cuando abrieron.
