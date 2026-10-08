@@ -727,14 +727,17 @@ function RegistrarClientaEnTicket({
         )}
       </CampoGuiado>
 
-      <PieGuia guia={guia} listo="Todo listo para registrar." />
-      <div className="flex justify-end gap-3 pt-2">
+      {/* Pegado al borde de abajo (`pie-hoja-fijo`): con el teclado del celular abierto, «Registrar» sigue a la vista. */}
+      <div className="pie-hoja-fijo space-y-3">
+        <PieGuia guia={guia} listo="Todo listo para registrar." />
+        <div className="flex justify-end gap-3 pt-2">
         <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
           Volver
         </Boton>
         <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
           {guardando ? "Registrando…" : "Registrar"}
         </Boton>
+        </div>
       </div>
     </form>
   );

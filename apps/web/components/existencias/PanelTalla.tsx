@@ -8,6 +8,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Archive, ArrowLeftRight, Bandage, Barcode, Check, ChevronRight, ClipboardList, FileText, Info, PencilLine, ShoppingBag, Trash2, Truck, Warehouse, X } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
+import { useArrastrarParaCerrar } from "@/components/ui/useArrastrarParaCerrar";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
@@ -197,6 +198,9 @@ export function PanelTalla({
     "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste."
   );
   const pedirCierre = useCallback(() => pedirAccion(cerrarYa), [pedirAccion, cerrarYa]);
+  // En el celular la hoja se baja con el dedo para cerrarla (2026-10-08). Con un paso a medias vuelve a su lugar y pregunta, igual
+  // que la ✕; si no, sale por abajo siguiendo el gesto y el velo se apaga con ella.
+  const [soltada, setSoltada] = useState(false);
   useEffect(() => {
     if (!cerrando) return;
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -212,6 +216,18 @@ export function PanelTalla({
   const ultimaTecla = useRef(0);
   // Al abrir, el teclado entra al panel (como la maqueta): ← → ↑ ↓ y 1–7 funcionan sin tocar el mouse.
   const raiz = useRef<HTMLDivElement>(null);
+  useArrastrarParaCerrar(raiz, {
+    activo: !cerrando && !soltada,
+    alSoltar: () => {
+      if (Boolean(flujo) && pasoSucio) {
+        pedirCierre();
+        return false;
+      }
+      setSoltada(true);
+      return true;
+    },
+    alSalir: onCerrar,
+  });
   useEffect(() => {
     // El portal de Radix monta el contenido un instante después: el foco espera a que exista (la maqueta espera 80 ms).
     const t = window.setTimeout(() => raiz.current?.focus({ preventScroll: true }), 80);
@@ -388,14 +404,15 @@ export function PanelTalla({
     <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
       <Dialog.Portal>
         {/* El velo de la maqueta: el fondo se atenúa para que el panel se lea como lo único activo. Es solo visual: lo que bloquea la
-            pantalla de atrás es que el diálogo es modal (Radix deja sin clics, sin foco y sin scroll todo lo de afuera), y tocar afuera
+            pantalla de atrás es que el diálogo es modal (Radix deja sin clics, sin foco y sin scroll todo lo de afuera; el scroll, SOLO si el
+            velo es su `Dialog.Overlay`: con un `<div>` suelto, en el celular el dedo desplazaba la pantalla de atrás, 2026-10-08), y tocar afuera
             cierra el panel, con aviso si hay algo a medias. En el celular, la hoja sube con velo más oscuro y un desenfoque leve, como
             el sistema de modales (ADR-0136). Cierra con el mismo tiempo que el panel. Es de `sombra`, nunca de `tinta`: en oscuro la
             tinta es crema y el velo ACLARABA la pantalla (ADR-0336, regla 2). */}
-        <div
+        <Dialog.Overlay
           aria-hidden
           data-velo-panel
-          className={`pointer-events-none fixed inset-0 z-40 bg-sombra/[0.12] dark:bg-sombra/35 max-sm:bg-sombra/25 max-sm:backdrop-blur-[3px] max-sm:dark:bg-sombra/55 motion-reduce:animate-none ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          className={`pointer-events-none fixed inset-0 z-40 bg-sombra/[0.12] dark:bg-sombra/35 max-sm:bg-sombra/25 max-sm:backdrop-blur-[3px] max-sm:dark:bg-sombra/55 motion-reduce:animate-none ${cerrando || soltada ? "anim-velo-salida" : "anim-velo"}`}
         />
         <Dialog.Content
           ref={raiz}
@@ -409,7 +426,7 @@ export function PanelTalla({
           onOpenAutoFocus={(e) => e.preventDefault()}
           // En el celular, una hoja que sube desde abajo con su asa (maqueta); desde `sm`, el cajón de la derecha. Las dos entradas son las
           // del sistema (`cayla-hoja`, `cayla-cajon-*`, ADR-0136), quietas con `prefers-reduced-motion`.
-          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-sand bg-papel outline-none motion-reduce:animate-none sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:w-full sm:rounded-none ${flujo?.tipo === "colgarVarias" ? "sm:max-w-[42rem]" : "sm:max-w-[30rem]"} sm:border-l sm:border-t-0 ${
+          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl border-t border-sand bg-papel outline-none motion-reduce:animate-none sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:max-h-none sm:w-full sm:rounded-none ${flujo?.tipo === "colgarVarias" || flujo?.tipo === "subirVarias" ? "sm:max-w-[42rem]" : "sm:max-w-[30rem]"} sm:border-l sm:border-t-0 ${
             cerrando
               ? "animate-[cayla-hoja-salida_240ms_var(--ease-salida)_both] sm:animate-[cayla-cajon-sale_240ms_var(--ease-salida)_both]"
               : "animate-[cayla-hoja_380ms_var(--ease-cayla)_both] sm:animate-[cayla-cajon-entra_380ms_var(--ease-cayla)_both]"

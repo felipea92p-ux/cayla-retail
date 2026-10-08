@@ -6,7 +6,7 @@ import { Chip } from "@/components/ui/Chip";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { ProductoListado } from "@/lib/catalogo-v2";
-import { coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
+import { colorPrincipal, coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -152,7 +152,7 @@ function TarjetaProducto({
   const [vistaRapida, setVistaRapida] = useState(false);
   const [eliminando, setEliminando] = useState(false);
 
-  const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
+  const nombreActivo = colorHover ?? colorFijo ?? colorPrincipal(colores)?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
 
   // Una prenda descontinuada no dispara alertas y se ve como tal; «Sin stock» no es rojo (lib/productos-stock.ts).
