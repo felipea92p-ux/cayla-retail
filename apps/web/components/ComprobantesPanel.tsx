@@ -397,7 +397,7 @@ export function ComprobantesPanel({
                       </Chip>
                       {motivo && <p className={`mt-1.5 text-[13px] leading-snug ${esRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>{motivo}</p>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div data-guia="comprobantes.acciones" className="flex flex-wrap items-center gap-1.5">
                       {botones}
                       <BotonCompacto variante="fila" data-guia="comprobantes.opciones" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
                         <MoreHorizontal aria-hidden size={15} strokeWidth={1.75} />

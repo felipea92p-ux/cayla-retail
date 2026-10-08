@@ -34,9 +34,9 @@ import {
 
 // El período y los atajos son filtros de un valor: la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no la
 // copia a mano de antes (MAYÚSCULAS de 10 px, rojo al pasar el mouse). La elegida se rellena de tinta sola (`aria-pressed`).
-function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
+function Pastilla({ activa, onClick, children, guia }: { activa: boolean; onClick: () => void; children: ReactNode; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={activa} className="pildora-cayla shrink-0">
+    <button type="button" onClick={onClick} aria-pressed={activa} data-guia={guia} className="pildora-cayla shrink-0">
       {children}
     </button>
   );
@@ -161,6 +161,7 @@ export function FiltrosHistorialVentas({
           {PERIODOS_RAPIDOS.map((dias) => (
             <Pastilla
               key={dias}
+              guia={`historial.periodo-${dias}`}
               activa={!mostrarFechas && periodo === String(dias)}
               onClick={() => {
                 setPersonalizadoAbierto(false);
@@ -170,7 +171,7 @@ export function FiltrosHistorialVentas({
               {dias} días
             </Pastilla>
           ))}
-          <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
+          <Pastilla guia="historial.personalizado" activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
             Personalizado
           </Pastilla>
         </div>
@@ -190,6 +191,7 @@ export function FiltrosHistorialVentas({
           <button
             type="button"
             onClick={() => setEligiendo(true)}
+            data-guia="historial.atajo-elegir"
             className="pildora-cayla shrink-0 gap-1 border-dashed"
           >
             <Plus className="h-3 w-3" aria-hidden /> Atajo
@@ -205,14 +207,18 @@ export function FiltrosHistorialVentas({
               <Download className="h-3.5 w-3.5" aria-hidden /> Exportar
             </a>
           )}
-          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          {/* La guía (ADR-0362) abre el panel con «historial.filtros» y lo cierra con «historial.filtros-cerrar»: un ancla por estado,
+              para que cerrar nunca vuelva a abrir. `inline-flex` no cambia nada del lugar del botón. */}
+          <span data-guia={panelAbierto ? "historial.filtros-cerrar" : "historial.filtros"} className="inline-flex">
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          </span>
         </div>
       </div>
 
       {mostrarFechas && (
         /* `relative z-20`: el calendario de «Desde» y «Hasta» se abre HACIA ABAJO, dentro de este bloque; sin su propia capa, las tarjetas de ventas de abajo (que
             también son `relative`) se pintaban encima y tapaban los días (visto al auditar el modo oscuro, ADR-0336). */
-        <div className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
+        <div data-guia="historial.fechas" className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
           {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
               control dice la verdad. Tocarlo la vuelve explícita. */}
           <div className="w-44">
@@ -233,7 +239,7 @@ export function FiltrosHistorialVentas({
       )}
 
       {panelAbierto && (
-        <PanelPildoras>
+        <PanelPildoras guia="historial.filtros-panel">
           {tiendas && (
             <DesplegablePildora
               icono={Store}
@@ -335,7 +341,7 @@ export function FiltrosHistorialVentas({
 
       {eligiendo && (
         <Modal titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} ancho="max-w-sm" variante="hoja">
-          <ul className="divide-y divide-dashed divide-tinta/10">
+          <ul data-guia="historial.atajos-modal" className="divide-y divide-dashed divide-tinta/10">
             {ATAJOS.filter((a) => puedeMias || a.clave !== "mias").map((a) => (
               <li key={a.clave} className="py-1.5">
                 <Interruptor

@@ -57,9 +57,9 @@
     "components/FlujoGuiado.tsx": [
       "Volver «Paso»",
       "button «{hecho ? `Volver a «${nombre}»",
+      "button «{guia}»",
       "button «{children}»",
-      "button «{children}» #2",
-      "button «{children}» #3"
+      "button «{children}» #2"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
       "button «→anotar»",

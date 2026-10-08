@@ -172,13 +172,13 @@ function AnilloProgreso({ pct }: { pct: number }) {
  *  devolución— no frena, así que cuenta como revisado) y el plazo de la compra, verde o
  *  rojo. Con `impacto`, debajo una segunda tarjeta con lo que va a pasar en el inventario
  *  y en la caja: se ve mientras se elige, no solo al final. */
-export function PanelValidaciones({ validaciones, impacto }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null }) {
+export function PanelValidaciones({ validaciones, impacto, guia }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
   const total = validaciones.length;
   const cumplidas = validaciones.filter((v) => v.estado === "ok" || v.estado === "aviso").length;
   const completo = cumplidas === total;
   const plazo = validaciones.find((v) => v.clave === "plazo");
   return (
-    <aside className="grid gap-4 self-start lg:sticky lg:top-24">
+    <aside data-guia={guia} className="grid gap-4 self-start lg:sticky lg:top-24">
       <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
         <div className="mb-5 flex items-center gap-4">
           <div className={`relative h-[68px] w-[68px] shrink-0 transition-colors duration-500 ${completo ? "text-verde" : "text-ambar"}`}>
@@ -229,9 +229,9 @@ export function Dato({ titulo, children }: { titulo: string; children: ReactNode
 }
 
 /** Los botones del paso, y debajo —pegado a ellos— el motivo por el que no se puede seguir. */
-export function PieDelPaso({ aviso, children }: { aviso: string | null; children: ReactNode }) {
+export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; children: ReactNode; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
   return (
-    <div className="space-y-2">
+    <div data-guia={guia} className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-3">{children}</div>
       {aviso && (
         <p className="anim-revelar flex items-start justify-end gap-1.5 text-sm text-ambar-profundo" role="alert">
@@ -256,10 +256,11 @@ function ContenidoBoton({ children, monto }: { children: ReactNode; monto?: stri
   );
 }
 
-export function BotonPrincipal({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
+export function BotonPrincipal({ onClick, children, disabled = false, monto, guia }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
   return (
     <button
       type="button"
+      data-guia={guia}
       onClick={onClick}
       disabled={disabled}
       className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}

@@ -60,13 +60,13 @@
     ],
     "components/PeriodoComprobantes.tsx": [
       "Link «Hoy»",
-      "Link «Este mes»"
+      "Link «comprobantes.este-mes»"
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"
     ],
     "components/SelectorMesFacturacion.tsx": [
-      "Link «←»",
+      "Link «comprobantes.mes-anterior»",
       "Link «{NOMBRES_MES[siguiente.mes - 1]}»"
     ],
     "components/SinCoincidencias.tsx": [

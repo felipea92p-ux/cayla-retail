@@ -140,7 +140,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       </div>
 
       {prenda.colores.length > 1 && (
-        <div role="radiogroup" aria-label={`Color de ${nombre}`} onKeyDown={alTecladoPuntos} className="relative z-10 flex flex-wrap items-center gap-1" onPointerLeave={() => setVistaPrevia(null)}>
+        <div role="radiogroup" aria-label={`Color de ${nombre}`} data-guia="vender.prenda-colores" onKeyDown={alTecladoPuntos} className="relative z-10 flex flex-wrap items-center gap-1" onPointerLeave={() => setVistaPrevia(null)}>
           {aVista.map((c) => {
             const estado = c.stockTotal > 0 ? "piso" : c.almacenTotal > 0 ? "almacen" : "agotado";
             const activo = c.clave === elegido.clave;

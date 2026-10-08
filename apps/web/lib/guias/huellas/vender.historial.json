@@ -28,12 +28,12 @@
       "button «Imprimir»"
     ],
     "components/FiltrosHistorialVentas.tsx": [
-      "button «{children}»",
+      "button «{guia}»",
       "Pastilla «Hoy»",
       "Pastilla «{dias}»",
       "Pastilla «Personalizado»",
       "Pastilla «{a.etiqueta}»",
-      "button «Atajo»",
+      "button «historial.atajo-elegir»",
       "a «Exportar»",
       "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "CampoFecha «Desde»",
@@ -50,7 +50,7 @@
     ],
     "components/HistorialVentasLista.tsx": [
       "button «historial.venta-abrir»",
-      "Link «Resolverlo en Comprobantes ▸ Por enviar»"
+      "Link «historial.venta-sunat»"
     ],
     "components/HistorialVentasPulso.tsx": [
       "Link «{e.texto}»"

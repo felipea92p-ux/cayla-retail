@@ -71,7 +71,7 @@
     ],
     "components/HistorialCierresModal.tsx": [
       "button «Todos»",
-      "button «Con diferencia ·»",
+      "button «caja.historial-con-diferencia»",
       "button «{`Ver el detalle del cierre del ${dia}»",
       "Link «Ver todas las sedes →»"
     ],

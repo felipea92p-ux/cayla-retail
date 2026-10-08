@@ -86,10 +86,10 @@ export function BotonFiltros({
  *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
  *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
  *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
-export function PanelPildoras({ children, filas = false }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean }) {
+export function PanelPildoras({ children, filas = false, guia }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean; /** Ancla de la guía (ADR-0362). */ guia?: string }) {
   if (filas) {
     return (
-      <div id="filtros-panel" className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
         {children}
       </div>
     );
@@ -97,6 +97,7 @@ export function PanelPildoras({ children, filas = false }: { children: ReactNode
   return (
     <div
       id="filtros-panel"
+      data-guia={guia}
       className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
     >
       {children}

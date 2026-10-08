@@ -3,6 +3,7 @@
 // lenguaje de tienda, y explica PARA QUÉ sirve cada cosa, no cómo está hecha.
 
 import type { Guia } from "../tipos";
+import { AVISO_SUNAT } from "./ventas-posventa";
 
 const CAJA_ABIERTA = { excluye: ["vender.caja-cerrada"] } as const;
 
@@ -63,7 +64,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Lo que encontró",
-      texto: "Mientras escribes aparecen las prendas que coinciden, con su precio y cuántas hay aquí. Con ↑ ↓ eliges y con Enter la agregas al ticket.",
+      texto: "Mientras escribes aparecen las prendas que coinciden, con su precio y cuántas hay aquí. Con ↑ ↓ eliges y con Enter la agregas al ticket. La × del buscador borra lo escrito.",
     },
     {
       id: "camara",
@@ -80,7 +81,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Prenda sin registrar",
-      texto: "Para la prenda que todavía no está en el sistema (llegó sin etiqueta). Eliges categoría, talla, color y precio, y se vende igual; después Almacén la registra.",
+      texto: "Para la prenda que todavía no está en el sistema (llegó sin etiqueta). Te pide categoría, talla, color y precio, y entra al ticket como cualquier otra; después Almacén la registra y le pone su etiqueta. Como el botón registra algo, en la demo no lo tocamos.",
     },
     {
       id: "ver-catalogo",
@@ -117,13 +118,29 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Foto, precio y los colores en puntitos. Abajo están las tallas que hay aquí: tocar una talla la agrega al ticket. Tocar la prenda abre todo lo que hay de ella (te la abrimos en el paso siguiente).",
     },
     {
+      id: "colores",
+      ancla: "vender.prenda-colores",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "Elige el color",
+      texto: "Cada punto es un color de la prenda. Pasa el mouse y la foto cambia a ese color; tócalo y abajo salen sus tallas. Un punto apagado no tiene stock aquí. Si hay muchos colores, «+N» abre todos.",
+    },
+    {
       id: "prenda-tallas",
       ancla: "vender.prenda-tallas",
       opcional: true,
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "clic", ancla: "vender.prenda-abrir" }],
       titulo: "Todos los colores y tallas",
-      texto: "Un color por fila, con cada talla y cuántas hay en el piso o en el almacén. Si aquí no hay, te dice qué otra tienda la tiene y puedes pedirla para el cliente.",
+      texto: "Un color por fila, con cada talla y cuántas hay en el piso o en el almacén. Tocar una talla la agrega al ticket y la ventana sigue abierta, por si lleva otra. Si aquí no hay, te dice qué otra tienda la tiene.",
+    },
+    {
+      id: "prenda-pie",
+      ancla: "vender.prenda-pie",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿No había su talla?",
+      texto: "Si el cliente pidió una talla que no está y no quiere esperar, «Anotar que no había» se lo cuenta a Compras para que la reponga (en la demo no lo tocamos). «Listo» cierra la ventana y vuelves al catálogo.",
     },
     {
       id: "ticket",
@@ -156,7 +173,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Cobrar",
-      texto: "Abre el cobro: eliges cómo paga (efectivo, tarjeta, Yape o QR, o varios a la vez) y si quiere boleta o factura. La venta se guarda solo cuando confirmas el cobro. En la demo no lo tocamos.",
+      texto: "Abre la hoja de cobro: eliges cómo paga (efectivo, tarjeta, Yape o QR, o varios a la vez), cuánto entrega para calcular el vuelto y si quiere boleta o factura con su DNI o RUC. La venta se guarda solo al confirmar. En la demo no lo tocamos.",
     },
     {
       id: "barra-ticket",
@@ -336,21 +353,46 @@ export const GUIA_HISTORIAL: Guia = {
       ancla: "historial.periodos",
       opcional: true,
       titulo: "El período",
-      texto: "Hoy, los últimos días o las fechas que tú elijas. Cambia la lista y las cifras de arriba.",
+      texto: "Hoy, los últimos 7, 30 o 90 días, o las fechas que tú elijas. Cambia la lista y las cifras de arriba. Te abrimos «Personalizado» en el paso siguiente.",
+    },
+    {
+      id: "fechas",
+      ancla: "historial.fechas",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "historial.personalizado" }],
+      titulo: "Tus propias fechas",
+      texto: "«Desde» y «Hasta» eligen cualquier rango, por ejemplo una campaña o el mes pasado. «Todo el historial» muestra todas las ventas desde el primer día.",
     },
     {
       id: "atajos",
       ancla: "historial.atajos",
       opcional: true,
       titulo: "Atajos",
-      texto: "Filtros de un toque, como «Mis ventas» o «Por enviar» (comprobantes que aún no llegan a SUNAT). Con «+ Atajo» eliges cuáles ves.",
+      preparar: [{ tipo: "clic", ancla: "historial.periodo-30" }],
+      texto: "Filtros de un toque, como «Mis ventas» o «Por enviar» (comprobantes que aún no llegan a SUNAT); el número dice cuántos esperan. Otro toque lo quita.",
     },
     {
-      id: "herramientas",
-      ancla: "historial.herramientas",
+      id: "atajo-elegir",
+      ancla: "historial.atajo-elegir",
       opcional: true,
-      titulo: "Más filtros y Excel",
-      texto: "«Filtros» abre el resto: tienda, quién vendió, cómo pagaron, tipo de comprobante. «Exportar» baja en Excel lo que estás viendo.",
+      titulo: "Elige tus atajos",
+      texto: "«+ Atajo» te deja sumar los filtros que más usas a esta fila (te lo abrimos en el paso siguiente).",
+    },
+    {
+      id: "atajos-modal",
+      ancla: "historial.atajos-modal",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "historial.atajo-elegir" }],
+      titulo: "Tus atajos",
+      texto: "Prende los que quieras ver; los «De fábrica» siempre están. Quedan guardados solo en este equipo, así que cada caja puede tener los suyos.",
+    },
+    {
+      id: "avisos",
+      ancla: "historial.avisos",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que espera a alguien",
+      texto: "Avisos de cualquier fecha, como comprobantes que todavía no llegan a SUNAT o apartados por vencer. Cada uno te lleva a la pantalla donde se resuelve, y no se van hasta que se resuelve.",
     },
     {
       id: "lista",
@@ -363,7 +405,14 @@ export const GUIA_HISTORIAL: Guia = {
       ancla: "historial.venta",
       opcional: true,
       titulo: "Cada venta",
-      texto: "La hora, la tienda, el cliente, quién vendió, las prendas y el total. Una venta anulada se ve tachada: nunca se borra. Toca una para ver su detalle (te la abrimos en el paso siguiente).",
+      texto: "La hora, la tienda, el cliente, quién vendió, las prendas y el total. Una venta anulada se ve tachada: nunca se borra. Toca una para ver su detalle (te la abrimos en unos pasos).",
+    },
+    {
+      id: "venta-sunat",
+      ancla: "historial.venta-sunat",
+      opcional: true,
+      titulo: "Un comprobante por enviar",
+      texto: "Si la boleta o factura de una venta todavía no llega a SUNAT, su estado lleva una flecha: tócalo y vas a «Por enviar», donde se ve qué pasó y se reintenta.",
     },
     {
       id: "detalle",
@@ -379,7 +428,7 @@ export const GUIA_HISTORIAL: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "El pulso del período",
-      texto: "Cómo se reparten las ventas: por día, por medio de pago y por tienda. Para ver de un vistazo si el período va bien.",
+      texto: "Cómo se reparten las ventas: por día, por medio de pago y por tienda, para ver de un vistazo si el período va bien. Al pie, atajos a Caja, a Cambios y Devoluciones y a Comprobantes.",
     },
     {
       id: "nota",
@@ -389,12 +438,29 @@ export const GUIA_HISTORIAL: Guia = {
       texto: "Una venta no se edita ni se borra. Si se anula, sigue aquí tachada; si el cliente cambia o devuelve, queda anotado en Cambios o Devoluciones.",
     },
     {
+      id: "herramientas",
+      ancla: "historial.herramientas",
+      opcional: true,
+      titulo: "Más filtros y Excel",
+      texto: "«Exportar» (solo el líder) baja en Excel lo que estás viendo, con los mismos filtros. «Filtros» abre el resto, para afinar la búsqueda (te lo abrimos en el paso siguiente).",
+    },
+    {
+      id: "filtros-panel",
+      ancla: "historial.filtros-panel",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "historial.filtros" }],
+      titulo: "Todos los filtros",
+      texto: "Tienda y vendedor (para el líder), cómo pagaron, si la venta está completada o anulada y qué comprobante tiene. «Con datos de prueba» suma las ventas de prueba. Cada filtro puesto aparece debajo con su ✕ para quitarlo.",
+    },
+    {
       id: "fin",
       ancla: null,
+      preparar: [{ tipo: "clic", ancla: "historial.filtros-cerrar" }],
       titulo: "¡Listo!",
       texto: "Ya sabes encontrar cualquier venta. Para repasarlo: Mi perfil ▸ Demo ▸ Historial.",
     },
   ],
+  alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "historial.filtros-cerrar" }],
 };
 
 export const GUIA_COMPROBANTES: Guia = {
@@ -416,6 +482,7 @@ export const GUIA_COMPROBANTES: Guia = {
       titulo: "Las vistas",
       texto: "«Hoy» es lo de hoy; «Series» son las numeraciones de cada tienda; «Por enviar» junta lo que SUNAT todavía no recibió; «Proformas» son las cotizaciones que se cobran después.",
     },
+    AVISO_SUNAT,
     {
       id: "buscador",
       ancla: "comprobantes.buscador",

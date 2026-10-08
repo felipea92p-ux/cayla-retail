@@ -13,7 +13,7 @@ export function SelectorMesFacturacion({ ruta, mes, actual }: { ruta: string; me
   const siguiente = mesSiguiente(mes);
   return (
     <div data-guia="comprobantes.mes" className="flex flex-wrap items-center gap-2">
-      <Link href={`${ruta}?m=${paramDeMes(previo)}`} className={ENLACE}>
+      <Link href={`${ruta}?m=${paramDeMes(previo)}`} data-guia="comprobantes.mes-anterior" className={ENLACE}>
         ← {NOMBRES_MES[previo.mes - 1]}
       </Link>
       <p className="font-display px-1 text-lg text-tinta">

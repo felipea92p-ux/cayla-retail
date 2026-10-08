@@ -50,7 +50,7 @@
       "Boton «Imprimir o guardar en PDF»"
     ],
     "components/SelectorMesFacturacion.tsx": [
-      "Link «←»",
+      "Link «comprobantes.mes-anterior»",
       "Link «{NOMBRES_MES[siguiente.mes - 1]}»"
     ],
     "components/SinCoincidencias.tsx": [

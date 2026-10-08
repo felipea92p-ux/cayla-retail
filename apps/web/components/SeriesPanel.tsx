@@ -109,7 +109,7 @@ export function SeriesPanel({
   return (
     <div className="space-y-6">
       <div className="anim-sube flex flex-wrap items-end justify-between gap-3" style={{ "--i": 3 } as CSSProperties}>
-        <div className="min-w-0">
+        <div data-guia="series.titulo" className="min-w-0">
           <h2 className="font-display text-xl leading-tight text-tinta">
             Series registradas
             <Ayuda titulo="Series de comprobantes">

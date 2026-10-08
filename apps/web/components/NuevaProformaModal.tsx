@@ -138,7 +138,9 @@ export function NuevaProformaModal({
           )}
 
           {esLider && ubicaciones.length > 1 && (
-            <CampoSelect etiqueta="Tienda" valor={ubicacionId} onValor={setUbicacionId} opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))} />
+            <div data-guia="proformas.modal-tienda">
+              <CampoSelect etiqueta="Tienda" valor={ubicacionId} onValor={setUbicacionId} opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))} />
+            </div>
           )}
 
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}

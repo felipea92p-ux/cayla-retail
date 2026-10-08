@@ -158,7 +158,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
             </ul>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+          <div data-guia="vender.prenda-pie" className="mt-5 flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0 flex-1">{pie?.(elegido)}</div>
             <button type="button" onClick={cerrar} className={`${botonPrimario} flex-none px-6`}>
               Listo

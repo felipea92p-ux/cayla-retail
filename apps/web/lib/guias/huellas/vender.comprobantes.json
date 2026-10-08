@@ -60,7 +60,7 @@
     ],
     "components/PeriodoComprobantes.tsx": [
       "Link «Hoy»",
-      "Link «Este mes»"
+      "Link «comprobantes.este-mes»"
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"

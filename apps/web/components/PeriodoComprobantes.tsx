@@ -10,7 +10,7 @@ export function PeriodoComprobantes({ activo }: { activo: "hoy" | "mes" }) {
       <Link href="/vender/comprobantes" aria-current={activo === "hoy" ? "page" : undefined} className="pildora-cayla">
         Hoy
       </Link>
-      <Link href="/vender/comprobantes/emitidos" aria-current={activo === "mes" ? "page" : undefined} className="pildora-cayla">
+      <Link href="/vender/comprobantes/emitidos" data-guia="comprobantes.este-mes" aria-current={activo === "mes" ? "page" : undefined} className="pildora-cayla">
         Este mes
       </Link>
     </nav>

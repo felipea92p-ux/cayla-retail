@@ -25,6 +25,15 @@ const PESTANAS_COMPROBANTES: readonly PasoGuia[] = [
   },
 ];
 
+/** El aviso rojo de arriba, en todas las vistas de Comprobantes, cuando algo lleva más de una hora sin llegar a SUNAT. */
+export const AVISO_SUNAT: PasoGuia = {
+  id: "aviso-sunat",
+  ancla: "comprobantes.aviso-sunat",
+  opcional: true,
+  titulo: "Cuando algo no llega a SUNAT",
+  texto: "Si un comprobante pasa más de una hora sin llegar, sale este aviso rojo en todas las vistas: el reintento automático no alcanzó. Tócalo para ir a «Por enviar» y ver qué error tiene.",
+};
+
 export const GUIA_COMPROBANTES_MES: Guia = {
   id: "vender.comprobantes.emitidos",
   ruta: "/vender/comprobantes/emitidos",
@@ -38,24 +47,27 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       texto: "Aquí está cada boleta, factura y nota de crédito del mes, con lo que dijo SUNAT de cada una. Sirve para encontrar una, reenviarla al cliente o revisar cómo va el mes. Es una demo: no se envía ni se anula nada.",
     },
     ...PESTANAS_COMPROBANTES,
-    {
-      id: "aviso-sunat",
-      ancla: "comprobantes.aviso-sunat",
-      opcional: true,
-      titulo: "Cuando algo no llega a SUNAT",
-      texto: "Si un comprobante pasa más de una hora sin llegar, sale este aviso en todas las vistas. Tócalo para ir a «Por enviar» y ver qué error tiene.",
-    },
+    AVISO_SUNAT,
     {
       id: "mes",
       ancla: "comprobantes.mes",
       titulo: "El mes que miras",
-      texto: "Con la flecha vas al mes anterior; si estás en uno pasado, aparece la flecha al siguiente. Todo lo de abajo cambia con el mes.",
+      texto: "Con la flecha vas al mes anterior; si estás en uno pasado, aparece la flecha al siguiente. Todo lo de abajo cambia con el mes (te llevamos al mes pasado en el paso siguiente).",
     },
     {
-      id: "periodo",
+      id: "mes-pasado",
+      ancla: "comprobantes.mes",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "comprobantes.mes-anterior" }],
+      titulo: "Un mes atrás",
+      texto: "Ahora las cifras y la lista son del mes pasado, y a la derecha apareció la flecha para volver. Sirve para revisar un cierre de mes o encontrar una boleta vieja.",
+    },
+    {
+      id: "mes-volver",
       ancla: "comprobantes.periodo",
-      titulo: "Hoy o todo el mes",
-      texto: "«Hoy» te lleva a lo emitido hoy, con el detalle por hora. «Este mes» es esta vista.",
+      preparar: [{ tipo: "clic", ancla: "comprobantes.este-mes" }],
+      titulo: "De vuelta a este mes",
+      texto: "Te regresamos al mes actual. «Hoy» te lleva a lo emitido hoy, con el detalle por hora; «Este mes» es esta vista.",
     },
     {
       id: "cifras",
@@ -88,7 +100,14 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       ancla: "comprobantes.estado",
       opcional: true,
       titulo: "Su estado en SUNAT",
-      texto: "Aceptado, en cola o rechazado, y debajo el motivo si algo falló. Si está en cola, el sistema lo reintenta solo; el botón de al lado lo reintenta ya (en la demo no lo tocamos).",
+      texto: "Aceptado, en cola o rechazado, y debajo el motivo si algo falló. Si está en cola, el sistema lo reintenta solo; no tienes que hacer nada.",
+    },
+    {
+      id: "acciones",
+      ancla: "comprobantes.acciones",
+      opcional: true,
+      titulo: "Lo que haces con cada uno",
+      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Solo el líder ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). En la demo no los tocamos.",
     },
     {
       id: "opciones",
@@ -129,6 +148,7 @@ export const GUIA_POR_ENVIAR: Guia = {
       texto: "Cada venta se declara sola a SUNAT. Si SUNAT no responde o rechaza algo, el comprobante queda aquí hasta que llegue. Ninguno pierde su número. Es una demo: no se envía nada.",
     },
     ...PESTANAS_COMPROBANTES,
+    AVISO_SUNAT,
     {
       id: "buscador",
       ancla: "comprobantes.buscador",
@@ -232,6 +252,13 @@ export const GUIA_PROFORMAS: Guia = {
       texto: "Busca cada prenda por nombre o escanea su código. Cada una entra a la lista con su cantidad y, si hace falta, un descuento con su motivo.",
     },
     {
+      id: "modal-tienda",
+      ancla: "proformas.modal-tienda",
+      opcional: true,
+      titulo: "De qué tienda sale",
+      texto: "Arriba, solo para el líder: la tienda desde donde se cotiza. Sale con su nombre en la proforma y, cuando el cliente vuelve, se cobra allí.",
+    },
+    {
       id: "modal-cliente",
       ancla: "proformas.modal-cliente",
       opcional: true,
@@ -283,10 +310,17 @@ export const GUIA_SERIES: Guia = {
       texto: "Por la serie, el tipo o la tienda (te escribimos un ejemplo).",
       demostrar: [{ tipo: "escribir", ancla: "comprobantes.buscador", texto: { palabraDe: "series.codigo" } }],
     },
+    AVISO_SUNAT,
+    {
+      id: "titulo",
+      ancla: "series.titulo",
+      preparar: [{ tipo: "vaciar", ancla: "comprobantes.buscador" }],
+      titulo: "¿Qué es una serie?",
+      texto: "Toca el «!» de al lado del título y te lo explica: una letra según el tipo (B boleta, F factura) más tres caracteres, una por tienda, y el número lo lleva el sistema solo.",
+    },
     {
       id: "tienda",
       ancla: "series.tienda",
-      preparar: [{ tipo: "vaciar", ancla: "comprobantes.buscador" }],
       titulo: "Las series de una tienda",
       texto: "Las series agrupadas por tienda. Así sabes de qué tienda salió cada comprobante.",
     },
@@ -511,7 +545,29 @@ export const GUIA_CAJA: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "caja.historial" }],
       titulo: "¿Cuadraron los cierres?",
-      texto: "Cuántos cierres hubo, cuántos cuadraron y la diferencia que suman. Abajo, cada cierre con lo que faltó o sobró; toca uno para ver su detalle.",
+      texto: "Los últimos cierres de esta tienda: cuántos hubo, cuántos cuadraron y la diferencia que suman entre todos.",
+    },
+    {
+      id: "historial-filtro",
+      ancla: "caja.historial-filtro",
+      opcional: true,
+      titulo: "Solo los que no cuadraron",
+      texto: "«Todos» muestra cada cierre; «Con diferencia» deja solo los que faltó o sobró plata, que son los que hay que revisar (te lo filtramos en el paso siguiente).",
+    },
+    {
+      id: "historial-lista",
+      ancla: "caja.historial-lista",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "caja.historial-con-diferencia" }],
+      titulo: "Cada cierre, por mes",
+      texto: "Ahora solo ves los que no cuadraron. Cada uno dice el día, quién cerró, a qué hora y cuánto contó. La marca dice si cuadró, sobró o faltó y cuánto. Tocar un cierre abre su detalle: cada venta y cada movimiento de ese turno.",
+    },
+    {
+      id: "historial-pie",
+      ancla: "caja.historial-pie",
+      opcional: true,
+      titulo: "Las demás tiendas",
+      texto: "Aquí solo ves esta tienda. «Ver todas las sedes» lleva al historial completo de cierres, con todas las tiendas y las aperturas que el líder tiene que revisar.",
     },
     {
       id: "barra-cierre",
@@ -702,7 +758,7 @@ export const GUIA_CAMBIOS: Guia = {
       ancla: "cambios.flujo-prendas",
       opcional: true,
       titulo: "La prenda que trae",
-      texto: "Marca la prenda que el cliente quiere cambiar y toca «Continuar». Cada prenda dice cuántos días le quedan para cambiarse.",
+      texto: "Marca la prenda que el cliente quiere cambiar y toca «Continuar». Cada prenda dice cuántos días le quedan para cambiarse; la que ya no se puede cambiar sale apagada.",
     },
     {
       id: "pasos",
@@ -712,11 +768,41 @@ export const GUIA_CAMBIOS: Guia = {
       texto: "Cuatro pasos: la venta, la prenda que trae, la que se lleva (con el motivo y cómo paga la diferencia) y revisar todo antes de «Confirmar cambio». Un paso hecho se puede volver a tocar.",
     },
     {
+      id: "pie-prenda",
+      ancla: "cambios.pie-prenda",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "cambios.prenda-elegir" }],
+      titulo: "Continuar o elegir otra venta",
+      texto: "Ya te marcamos una prenda. «Continuar» pasa al paso siguiente con ella (te lo mostramos); la flecha vuelve a la lista para elegir otra venta.",
+    },
+    {
+      id: "reemplazo",
+      ancla: "cambios.reemplazo",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "cambios.continuar" }],
+      titulo: "La prenda que se lleva",
+      texto: "Eliges por qué la cambia, la prenda nueva (la misma en otra talla o color, u otra prenda) y cómo vuelve la que trae: impecable va al piso; con defecto, a cuarentena. Si no le gusta nada, desde aquí pasa a devolución.",
+    },
+    {
+      id: "validaciones",
+      ancla: "cambios.validaciones",
+      opcional: true,
+      titulo: "Lo que revisa el sistema",
+      texto: "Mientras eliges, revisa que la compra esté en plazo y la prenda se pueda cambiar, que elijas el motivo y una prenda nueva con stock y, si hay diferencia en efectivo, que la caja esté abierta. El círculo cuenta lo que ya está listo.",
+    },
+    {
+      id: "pie-reemplazo",
+      ancla: "cambios.pie-reemplazo",
+      opcional: true,
+      titulo: "Revisar antes de confirmar",
+      texto: "«Revisar el cambio» lleva al último paso: el resumen, quién lo registra y «Confirmar cambio», que recién ahí mueve el stock y la caja. La flecha vuelve al paso anterior.",
+    },
+    {
       id: "flujo-volver",
       ancla: "posventa.flujo-volver",
       opcional: true,
       titulo: "Volver sin cambiar nada",
-      texto: "La flecha te regresa a la lista sin guardar nada. Hasta que no confirmas, el stock y la caja no se mueven.",
+      texto: "Esta flecha te regresa a la lista de compras desde cualquier paso, sin guardar nada. Hasta que no confirmas, el stock y la caja no se mueven.",
     },
     {
       id: "fin",
