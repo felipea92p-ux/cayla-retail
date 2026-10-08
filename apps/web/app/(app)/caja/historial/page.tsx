@@ -1,123 +1,135 @@
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getAperturasPorRevisar, getHistorialCierres } from "@/lib/caja";
+import { getAperturasPorRevisar, getCierresPagina, getResumenCierres } from "@/lib/caja";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { CIERRES_POR_PAGINA, paginaValida, resumirPeriodo, textoPeriodo } from "@/lib/historial-cierres-reglas";
 import { AperturasPorRevisar } from "@/components/AperturasPorRevisar";
-import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
-import { BotonVerDetalleCierre } from "@/components/CierreCajaDetalle";
+import { HistorialCierresTabla } from "@/components/HistorialCierresTabla";
+import { PaginacionPaginas } from "@/components/Paginacion";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Volver } from "@/components/ui/Volver";
 
 function money(n: number) {
-  return (n >= 0 ? "S/" : "-S/") + Math.abs(n).toFixed(2);
+  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function formatearFecha(iso: string) {
-  return new Intl.DateTimeFormat("es-PE", {
-    timeZone: "America/Lima",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
+type Params = { sede?: string; estado?: string; pagina?: string; prueba?: string };
 
-const PLANTILLA = "sm:grid-cols-[minmax(8rem,1fr)_7.5rem_6.5rem_5.5rem_5.5rem_5.5rem_5.5rem_2.5rem]";
-
-// Tanda 3 del diagnóstico de Venta y Caja (2026-09-15): lo que `cajas` ya guarda
-// (esperado, contado, diferencia, quién) y ninguna pantalla leía. Sin RPC ni
-// filtro de ubicación propios — misma RLS que ya usa /caja (fn_puede_operar_ubicacion)
-// y el mismo criterio de Facturación: mientras "control total temporal" siga
-// vigente, se ve todo, con la sede en cada fila.
-export default async function HistorialCierresPage({ searchParams }: { searchParams: Promise<{ prueba?: string }> }) {
+// Rediseño 2026-10-08 (maqueta docs/maquetas/historial-cierres-2026-10, elegida por Felipe): cifras del período →
+// filtros por tienda y «solo los que no cuadraron» → una fila por cierre agrupada por día, paginada de a 20.
+// Sin RPC ni filtro de ubicación propios: la misma RLS de /caja (fn_puede_operar_ubicacion) decide qué cajas se ven,
+// con la sede en cada fila. Los cierres archivados como prueba (D-54, ADR-0159) no se muestran salvo con `?prueba=1`.
+export default async function HistorialCierresPage({ searchParams }: { searchParams: Promise<Params> }) {
   const persona = await requirePersonaActualV2();
-  // D-54 (ADR-0159): apagado por defecto — las cajas archivadas como dato de prueba (nunca
-  // borradas) no se piden a la base salvo que se pida verlas.
-  const { prueba } = await searchParams;
-  const incluirPrueba = prueba === "1";
-  const [cierres, aperturas] = await Promise.all([
-    getHistorialCierres(60, incluirPrueba),
+  const params = await searchParams;
+  const incluirPrueba = params.prueba === "1";
+  const soloConDiferencia = params.estado === "diferencia";
+
+  // El resumen se lee de TODAS las sedes: da los números de cada píldora y, filtrado aquí, las cifras de la sede elegida.
+  const [resumenTodas, ubicaciones, aperturas] = await Promise.all([
+    getResumenCierres({ incluirPrueba }),
+    getUbicaciones(),
     // ADR-0186: el aviso al líder. Solo el líder las marca como revisadas (`revisar_apertura_caja`).
     persona.rol === "lider" ? getAperturasPorRevisar() : Promise.resolve(null),
   ]);
+  const resumenTodo = resumirPeriodo(resumenTodas);
+  const sedes = ubicaciones.filter((u) => resumenTodo.porSede.has(u.id));
+  const sede = sedes.find((u) => u.id === params.sede) ?? null;
+  const resumen = sede ? resumirPeriodo(resumenTodas.filter((f) => f.ubicacionId === sede.id)) : resumenTodo;
+  const conDiferencia = resumen.total - resumen.cuadraron;
+
+  const totalPaginas = Math.max(1, Math.ceil((soloConDiferencia ? conDiferencia : resumen.total) / CIERRES_POR_PAGINA));
+  const pagina = paginaValida(params.pagina, totalPaginas);
+  const { cierres, total } = await getCierresPagina({ ubicacionId: sede?.id, soloConDiferencia, incluirPrueba }, pagina, CIERRES_POR_PAGINA);
+
+  // Los filtros vigentes, para que las píldoras y la paginación conserven lo que no tocan.
+  const vigentes: Params = { sede: sede?.id, estado: soloConDiferencia ? "diferencia" : undefined, prueba: incluirPrueba ? "1" : undefined };
+  // Una píldora cambia un filtro y vuelve a la primera página.
+  const href = (cambios: Partial<Params>) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries({ ...vigentes, ...cambios })) if (v) q.set(k, v);
+    const qs = q.toString();
+    return qs ? `/caja/historial?${qs}` : "/caja/historial";
+  };
 
   return (
-    // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
-    // en pantalla grande separaría la sede de sus cifras: conserva la columna de lectura de siempre.
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div data-voz="cabecera" className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Volver href="/caja" a="Caja" className="mb-2" />
-          <h1 className="font-display mt-1 text-2xl text-tinta">Historial de cierres</h1>
-          <p className="mt-1 text-sm text-tinta/65">
-            {cierres.length === 0 ? "Todavía no se cerró ninguna caja." : `Las últimas ${cierres.length} cajas cerradas, de todas las sedes.`}
-          </p>
-        </div>
-        <Link
-          href={incluirPrueba ? "/caja/historial" : "/caja/historial?prueba=1"}
-          aria-pressed={incluirPrueba}
-          className={`label-cayla mt-1 rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
-            incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
-          }`}
-        >
-          Con datos de prueba
-        </Link>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-5">
+      <EncabezadoPagina
+        sede="Caja · todas las sedes"
+        sinHora
+        volver={<Volver href="/caja" a="Caja" />}
+        titulo="Historial de cierres"
+        subtitulo={
+          <>
+            Cada noche se cuenta la plata del cajón. Si es la misma que el sistema calculó, la caja{" "}
+            <b className="font-semibold text-verde-profundo">cuadró</b>.
+          </>
+        }
+      />
 
       {aperturas && aperturas.length > 0 && <AperturasPorRevisar aperturas={aperturas} />}
 
-      {cierres.length > 0 && (
-        <Tabla>
-          <Encabezado
-            plantilla={PLANTILLA}
-            columnas={[
-              { titulo: "Sede" },
-              { titulo: "Cerrada" },
-              { titulo: "Cerró" },
-              { titulo: "Apertura", alinear: "der" },
-              { titulo: "Esperado", alinear: "der" },
-              { titulo: "Contado", alinear: "der" },
-              { titulo: "Diferencia", alinear: "der" },
-              { titulo: "", alinear: "centro" },
-            ]}
-          />
-          {cierres.map((c) => {
-            const cuadra = Math.abs(c.diferencia) < 0.01;
-            return (
-              <div key={c.id} className={fila(PLANTILLA)}>
-                <span className={celda("izq")}>{c.ubicacionNombre}</span>
-                <span className={celda("izq", "text-tinta/75")}>{formatearFecha(c.cerradaEn)}</span>
-                {/* Bajo `sm` la Tabla oculta el encabezado y las celdas se apilan sin
-                    contexto — cuatro cifras seguidas sin etiqueta no se leen en una
-                    pantalla de cuadre. La etiqueta va SOLO en celular: en escritorio
-                    ya la da la columna. */}
-                <span className={celda("izq", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Cerró</span>
-                  {c.cerradaPorNombre ?? "—"}
-                </span>
-                <span className={celda("der", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Apertura</span>
-                  {money(c.montoApertura)}
-                </span>
-                <span className={celda("der", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Esperado</span>
-                  {money(c.montoCierreSistema)}
-                </span>
-                <span className={celda("der", "text-tinta/75")}>
-                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Contado</span>
-                  {money(c.montoCierreReal)}
-                </span>
-                <span className={celda("der", `font-semibold ${cuadra ? "text-tinta" : c.diferencia > 0 ? "text-verde-profundo" : "text-rojo-profundo"}`)}>
-                  <span className="label-cayla mr-1 text-tinta/40 dark:text-tinta/60 sm:hidden">Diferencia</span>
-                  {c.diferencia >= 0 ? "+" : ""}
-                  {money(c.diferencia)}
-                </span>
-                <span className={celda("centro")}>
-                  <BotonVerDetalleCierre cierre={c} />
-                </span>
-                {c.nota && <p className="col-span-full mt-1 text-xs italic text-tinta/60">{c.nota}</p>}
-              </div>
-            );
-          })}
-        </Tabla>
+      {resumenTodo.total === 0 ? (
+        <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no se cerró ninguna caja. Cuando se cierre la primera, aparecerá aquí.</p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <TarjetaCifra
+              etiqueta="Cuadraron"
+              valor={resumen.cuadraron}
+              unidad={`de ${resumen.total} ${resumen.total === 1 ? "cierre" : "cierres"}`}
+              tono="text-verde-profundo"
+            >
+              {textoPeriodo(resumen.desde, resumen.hasta)}
+            </TarjetaCifra>
+            <TarjetaCifra etiqueta="Faltó plata" valor={money(resumen.falto)} tono={resumen.cierresFalto > 0 ? "text-rojo-profundo" : undefined}>
+              {resumen.cierresFalto === 0 ? "en ningún cierre" : `en ${resumen.cierresFalto} de los ${resumen.total} cierres`}
+            </TarjetaCifra>
+            <TarjetaCifra etiqueta="Sobró plata" valor={money(resumen.sobro)} tono={resumen.cierresSobro > 0 ? "text-ambar-profundo" : undefined}>
+              {resumen.cierresSobro === 0 ? "en ningún cierre" : `en ${resumen.cierresSobro} ${resumen.cierresSobro === 1 ? "cierre" : "cierres"}`}
+            </TarjetaCifra>
+          </div>
+
+          <nav aria-label="Filtrar cierres" className="flex flex-wrap items-center gap-2">
+            <Link href={href({ sede: undefined })} aria-current={!sede ? "page" : undefined} className="pildora-cayla">
+              Todas las tiendas
+            </Link>
+            {sedes.map((u) => (
+              <Link key={u.id} href={href({ sede: u.id })} aria-current={sede?.id === u.id ? "page" : undefined} className="pildora-cayla">
+                {u.nombre.replace(/^Tienda\s+/i, "")} <span className="font-normal opacity-60">{resumenTodo.porSede.get(u.id)}</span>
+              </Link>
+            ))}
+            <span className="mx-1 h-5 w-px bg-sand" aria-hidden />
+            <Link
+              href={href({ estado: soloConDiferencia ? undefined : "diferencia" })}
+              aria-current={soloConDiferencia ? "page" : undefined}
+              className="pildora-cayla"
+            >
+              Solo los que no cuadraron <span className="font-normal opacity-60">{conDiferencia}</span>
+            </Link>
+          </nav>
+
+          {cierres.length === 0 ? (
+            <p className="card-cayla p-5 text-sm text-tinta/75">
+              {soloConDiferencia ? `Todos los cierres${sede ? ` de ${sede.nombre}` : ""} cuadraron. No hay nada que revisar.` : "No hay cierres con este filtro."}
+            </p>
+          ) : (
+            <HistorialCierresTabla
+              cierres={cierres}
+              pie={
+                <PaginacionPaginas
+                  pagina={pagina}
+                  totalPaginas={Math.max(1, Math.ceil(total / CIERRES_POR_PAGINA))}
+                  totalItems={total}
+                  params={{ ...vigentes }}
+                  pathname="/caja/historial"
+                  sustantivo={["cierre", "cierres"]}
+                />
+              }
+            />
+          )}
+        </>
       )}
     </div>
   );
