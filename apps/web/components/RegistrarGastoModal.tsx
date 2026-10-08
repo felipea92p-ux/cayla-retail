@@ -215,8 +215,11 @@ export function RegistrarGastoModal({
             ? "Se deprecia desde el próximo mes."
             : undefined,
     });
+    // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?» (`retirarYa`): juntos, Next podía volver a montar
+    // la pantalla de atrás o recargarla entera (Caja limpia su URL con `replaceState`, 2026-10-08).
+    const guardiaFuera = avisoSalida.retirarYa();
     onCerrar();
-    router.refresh();
+    void guardiaFuera.then(() => router.refresh());
   }
 
   // «¿Salir sin guardar?» (2026-09-28). Escape, el velo, la ✕ o «Cancelar» cerraban la hoja y lo tipeado (monto, serie,
