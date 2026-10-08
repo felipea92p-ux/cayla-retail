@@ -102,9 +102,11 @@ export default async function ProductoDetallePage({ params }: { params: Promise<
     .limit(200);
 
   const usuarioIds = [...new Set((movimientos ?? []).map((m) => m.usuario_id).filter(Boolean))] as string[];
+  // personas_historial (no personas): quien ya se fue sigue siendo el autor de sus
+  // movimientos, así que el nombre se resuelve contra todos, activos o no.
   const { data: personasData } = usuarioIds.length
-    ? await supabase.from("personas").select("id, nombre").in("id", usuarioIds)
-    : { data: [] as { id: string; nombre: string }[] };
+    ? await supabase.from("personas_historial").select("id, nombre").in("id", usuarioIds)
+    : { data: [] as { id: string | null; nombre: string | null }[] };
   const nombrePorId = new Map((personasData ?? []).map((p) => [p.id, p.nombre]));
 
   // Serie de stock: se ancla al total actual conocido (v.stockTotal) y camina hacia

@@ -15,6 +15,15 @@
 
 ## 🩹 ARREGLAR (lo que existe y está mal — deuda que crece)
 
+- [ ] `unificacion`: correr `supabase/unificacion/12_baja_se_propaga.sql` en el SQL
+      Editor de cayla-DYNAMIC (ADR-0003). Hasta entonces la baja en dynamic NO se
+      refleja en retail. Verificar con las 4 consultas del pie del archivo.
+      Reversible: sí (bloque de reversa en el mismo archivo).
+- [ ] `unificacion`: 7 RPCs de retail no validan quién las llama (`abrir_caja`,
+      `cerrar_caja`, `registrar_venta`, `recibir_lote`, `registrar_gasto`,
+      `recalcular_stock`, `fn_aplicar_movimiento`) — la `0012` del retail viejo sí; el
+      port no la trajo. Cualquier autenticado puede operar la caja de otra sede.
+      Reversible: sí.
 - [ ] `web`: `middleware.ts` usa convención deprecada de Next.js 16 (pide `proxy.ts`).
       Solo un warning en build, no rompe nada. Reversible: sí.
 

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
-    "Tu cuenta existe pero todavía no está vinculada a ningún integrante. Pide a un Líder que te dé de alta en el sistema.",
+    "Tu cuenta no está activa en el equipo de CAYLA: o todavía no te dieron de alta, o ya no formas parte del equipo. Si crees que es un error, pide a un Líder que lo revise.",
 };
 
 export default function LoginPage() {
