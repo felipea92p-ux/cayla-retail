@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { Pestanas } from "@/components/ui/Pestanas";
+import { Buscador as BuscadorUnico } from "@/components/ui/Buscador";
 
 // Las piezas de las pantallas de Finanzas (ADR-0195), tal como las dibuja el spike aprobado
 // (docs/maquetas/finanzas-2026-09/). Solo presentación: reciben valores y avisan cambios; la lógica vive en lib/*-reglas.ts.
@@ -69,16 +70,11 @@ export function CabeceraBloque({ titulo, bajada, children }: { titulo: ReactNode
 
 // ---- Controles ------------------------------------------------------------------------------------------------------------
 
+/** El buscador de una barra de herramientas de Finanzas: desde el 2026-10-08 es el `<Buscador>` único (ADR-0358, ronda 5; Felipe
+ *  sumó Finanzas a las piezas únicas). Filtra en el navegador mientras se escribe, así que nunca dice «Buscando…». Esta función
+ *  solo conserva la forma de llamarlo del kit y su lugar en la fila. */
 export function Buscador({ valor, onValor, placeholder }: { valor: string; onValor: (v: string) => void; placeholder: string }) {
-  return (
-    <div className="fin-buscar">
-      <svg viewBox="0 0 24 24" aria-hidden>
-        <circle cx="11" cy="11" r="7" />
-        <path d="M20 20l-4-4" />
-      </svg>
-      <input className="fin-control" type="search" value={valor} onChange={(e) => onValor(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
-    </div>
-  );
+  return <BuscadorUnico valor={valor} onCambio={onValor} placeholder={placeholder} etiqueta={placeholder} className="min-w-0 flex-[1_1_240px]" />;
 }
 
 /** El combo de Finanzas (ADR-0195 + ADR-0209, 2026-09-26): cerrado es el control en caja del spike (`fin-control`, su
@@ -215,17 +211,6 @@ export function ListaDatos({ filas }: { filas: { dato: ReactNode; valor: ReactNo
         </li>
       ))}
     </ul>
-  );
-}
-
-/** Estado vacío de una pestaña: sobretítulo, título serif y una línea de ayuda. */
-export function GuiaVacia({ sobre, titulo, children }: { sobre: string; titulo: string; children: ReactNode }) {
-  return (
-    <div className="fin-guia">
-      <p className="label-cayla text-[11px] text-taupe">{sobre}</p>
-      <h2>{titulo}</h2>
-      <p>{children}</p>
-    </div>
   );
 }
 

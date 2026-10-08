@@ -36,6 +36,7 @@ import { FichaColaborador } from "@/components/colaboradores/FichaColaborador";
 import { useResponsable } from "@/lib/useResponsable";
 import type { Firma } from "@/lib/responsable-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Colaboradores: quién entra a retail, en qué sede y con qué rol. Retail nunca crea gente nueva aquí —Dynamic ya es dueño
 // de esa identidad (0009_integracion_dynamic.sql)— solo decide a cuáles cuentas YA existentes en Dynamic les da acceso.
@@ -384,7 +385,8 @@ export function ColaboradoresPanel({
       {seccion === "roles" && ve("roles") && (
         <section aria-label="Roles y accesos">
           {roles === null ? (
-            <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</p>
+            <Aviso tono="error">No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Aviso>
+
           ) : (
             <RolesPanel
               key={rolElegidoId ?? "inicio"}

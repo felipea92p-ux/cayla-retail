@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ScanLine } from "lucide-react";
+import { FunnelX, ScanLine } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { Chip } from "@/components/ui/Chip";
@@ -250,6 +250,7 @@ export function CambiosPanel({
             <CambiosVentas lineas={lineasVisibles} ahora={ahora} resumen onIniciar={iniciar} />
           ) : (
             <EstadoVacio
+              icono={filtro === "todas" ? undefined : <FunnelX />}
               titulo={
                 filtro === "todas"
                   ? `No hay ventas de los últimos 15 días en ${sede}.`

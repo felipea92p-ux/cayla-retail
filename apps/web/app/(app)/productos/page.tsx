@@ -245,6 +245,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             puedeEditar={editaCatalogo}
             puedeEliminar={editaCatalogo}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
+            hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
           />
         ) : (
@@ -258,6 +259,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             puedeEliminar={editaCatalogo}
             veDinero={puede(persona, "verDineroCompras")}
             mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
+            hrefLimpiar="/productos?vista=tabla"
           />
         )}
 

@@ -7,6 +7,9 @@ import { getCargaInicial } from "@/lib/carga-inicial";
 import { cargaInicialDe } from "@/lib/carga-inicial-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
+import { Shapes } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
 
 // Nuevo producto como árbol de decisión (ADR-0109) en 4 preguntas (spike v2
 // 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09): categoría → cómo es
@@ -41,7 +44,19 @@ export default async function NuevoProductoPage() {
       />
 
       {contexto.categorias.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay categorías activas en el catálogo.</p>
+        <div className="card-cayla">
+          <Vacio
+            icono={<Shapes />}
+            titulo="Todavía no hay categorías activas"
+            acciones={
+              <BotonEnlace href="/productos/categorias" peso="fantasma">
+                Ir a Categorías
+              </BotonEnlace>
+            }
+          >
+            Un producto nace dentro de una categoría: crea o activa una primero.
+          </Vacio>
+        </div>
       ) : (
         // `key`: si se cambia de sede en la cabecera, el stock de hoy es de OTRA tienda: el formulario empieza de nuevo.
         <NuevoProductoForm

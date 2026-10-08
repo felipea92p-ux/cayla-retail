@@ -31,6 +31,7 @@ import {
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
+import { Aviso } from "@/components/ui/Aviso";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -174,10 +175,11 @@ function AvisoParecido({
   const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
   const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
   return (
-    <p role="status" className="rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
+    <Aviso tono="atencion" chico>
       Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
       dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
-    </p>
+    </Aviso>
+
   );
 }
 

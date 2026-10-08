@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { CircleCheck, TriangleAlert } from "lucide-react";
+import { CircleCheck, FunnelX, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
@@ -41,6 +41,7 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -328,7 +329,15 @@ export function CajaAbiertaPanel({
             )}
             {hayMixtas && <p className="mt-1.5 text-[11.5px] text-tinta/50">Las ventas pagadas con dos medios salen en cada uno.</p>}
             {eventos.length === 0 ? (
-              <p className="py-6 text-center text-xs text-tinta/50">{todosLosEventos.length === 0 ? "Todavía no hay movimientos." : "Nada con este filtro."}</p>
+              todosLosEventos.length === 0 ? (
+                <Vacio tamano="chico" icono={<Receipt />}>
+                  Todavía no hay movimientos.
+                </Vacio>
+              ) : (
+                <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Limpiar filtros", onClick: () => setFiltroMov(FILTRO_MOV_INICIAL) }}>
+                  Nada con este filtro.
+                </Vacio>
+              )
             ) : (
               <div className={`mt-1.5 divide-y divide-sand ${cierresAncho ? "@[900px]:columns-2 @[900px]:gap-x-10" : ""}`}>
                 {eventos.map((e) => (
@@ -666,7 +675,9 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
       {!r || !ahora ? (
         <div className="min-h-[190px]" />
       ) : r.cantidad === 0 ? (
-        <p className="m-auto py-6 text-center text-xs text-tinta/50">Sin ventas registradas todavía hoy.</p>
+        <Vacio tamano="chico" icono={<ShoppingBag />} className="m-auto">
+          Sin ventas registradas todavía hoy.
+        </Vacio>
       ) : (
         <>
           <p className="sr-only">

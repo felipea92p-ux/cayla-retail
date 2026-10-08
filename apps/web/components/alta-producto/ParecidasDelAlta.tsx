@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AvisoParecidos, type Parecido } from "@/components/alta-producto/AvisoParecidos";
 import { TextoConPartes } from "@/components/alta-producto/AlertaParecidas";
-import { AvisoInline } from "@/components/alta-producto/piezas";
+import { Aviso } from "@/components/ui/Aviso";
 import { TEXTO_ALTA } from "@/lib/parecidas-alta-estado";
 import { TEXTO, type AvisoNombreVista } from "@/lib/parecidas-alta-vista";
 
@@ -50,27 +50,27 @@ export function ParecidasBajoNombre({ p }: { p: ParecidasBajoNombreProps }) {
   if (!p.noSePudoComprobar && !aviso && !p.avisoUnaLetra && !p.nombreReservado && p.respaldo.length === 0) return null;
   return (
     <div className="space-y-2">
-      {p.noSePudoComprobar && <AvisoInline tono="neutro">{TEXTO_ALTA.noPudeComprobar}</AvisoInline>}
+      {p.noSePudoComprobar && <Aviso tono="info">{TEXTO_ALTA.noPudeComprobar}</Aviso>}
 
       {p.nombreReservado && (
-        <AvisoInline tono="rojo" alerta>
+        <Aviso tono="error">
           {p.nombreReservado}
-        </AvisoInline>
+        </Aviso>
       )}
 
       {/* «Casi igual»: frena «Crear» hasta que la persona lo mire y responda. Se dice AQUÍ, junto al campo, porque «Nombre» aparece en «Faltan:» con el campo
           lleno y sin esto no hay cómo saber por qué. Ámbar, no rojo: no es un error, es un camino. */}
       {p.avisoUnaLetra && (
-        <AvisoInline tono="ambar">
+        <Aviso tono="atencion">
           <p>{p.avisoUnaLetra.texto}</p>
           <button type="button" className={CLASE_ENLACE_AVISO} onClick={() => p.avisoUnaLetra && p.onComparar(p.avisoUnaLetra.id)}>
             {TEXTO.verYComparar}
           </button>
-        </AvisoInline>
+        </Aviso>
       )}
 
       {aviso && (
-        <AvisoInline tono="rojo" alerta>
+        <Aviso tono="error">
           <p>
             <TextoConPartes texto={aviso.texto} partes={aviso.partes} />
           </p>
@@ -84,7 +84,7 @@ export function ParecidasBajoNombre({ p }: { p: ParecidasBajoNombreProps }) {
             </button>
           ) : null}
           {aviso.subtexto && <span className="mt-1 block text-[13px]">{aviso.subtexto}</span>}
-        </AvisoInline>
+        </Aviso>
       )}
 
       {p.respaldo.length > 0 && <AvisoParecidos parecidos={p.respaldo} confirmo={p.confirmo} onConfirmo={p.onConfirmo} noSePudoComprobar={false} />}

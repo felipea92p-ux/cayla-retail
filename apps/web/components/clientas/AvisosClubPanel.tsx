@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { Cake, Check, Gift, MessageCircle, Sparkles, Tag, type LucideIcon } from "lucide-react";
+import { Cake, Check, FunnelX, Gift, MessageCircle, Send, Sparkles, Store, Tag, type LucideIcon } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TABLA, Tabla } from "@/components/ui/Tabla";
@@ -36,6 +36,8 @@ import {
   type AvisoPendiente,
   type TipoAviso,
 } from "@/lib/club-avisos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Clientas ▸ Avisos (ADR-0288, «Actualización 2026-10-01 (g)», G-8), con el dibujo de la pestaña «Avisos» del spike del club
 // (`avisosHTML` en docs/maquetas/club-clientas-spike-2026-09/fuente/src/50-clientas.js, rama del spike): cabecera de su módulo →
@@ -268,11 +270,26 @@ export function AvisosClubPanel({
           )}
 
           {!esTienda ? (
-            <p className={TABLA.vacio}>Los avisos los manda cada tienda desde su número de WhatsApp. Elige una tienda en el selector de sede.</p>
+            <Vacio tamano="chico" icono={<Store />} className="py-5">
+              Los avisos los manda cada tienda desde su número de WhatsApp. Elige una tienda en el selector de sede.
+            </Vacio>
           ) : falla ? (
-            <p className={`${TABLA.vacio} text-rojo-profundo`}>{falla}</p>
+            <div className="p-5">
+              <Aviso tono="error" chico>
+                {falla}
+              </Aviso>
+            </div>
           ) : grupos.length === 0 ? (
-            <p className={TABLA.vacio}>{filtro === "todos" ? "Nada por mandar hoy desde esta tienda." : "Nada de este tipo por mandar."}</p>
+            filtro === "todos" ? (
+              <Vacio tamano="chico" icono={<Send />} className="py-5">
+                Nada por mandar hoy desde esta tienda.
+              </Vacio>
+            ) : (
+              <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Limpiar filtros", onClick: () => setFiltro("todos") }} className="py-5">
+                Nada de este tipo por mandar.
+              </Vacio>
+            )
+
           ) : (
             grupos.map((g) => (
               <section key={g.tipo} aria-label={INFO_TIPO_AVISO[g.tipo].titulo}>

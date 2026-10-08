@@ -100,23 +100,6 @@ export function ChipOpcion({
   );
 }
 
-type TonoAvisoInline = "rojo" | "ambar" | "neutro";
-
-const TONOS: Record<TonoAvisoInline, string> = {
-  rojo: "border-rojo/40 bg-rojo/[0.05] text-rojo-profundo",
-  ambar: "border-ambar/40 bg-ambar/[0.06] text-ambar-profundo",
-  neutro: "border-tinta/15 bg-tinta/[0.03] text-tinta/75",
-};
-
-/** Franja de aviso dentro de un bloque. `role=alert` solo cuando bloquea. */
-export function AvisoInline({ tono, children, alerta = false }: { tono: TonoAvisoInline; children: ReactNode; alerta?: boolean }) {
-  return (
-    <div role={alerta ? "alert" : "status"} className={`rounded-md border px-3 py-2.5 text-sm ${TONOS[tono]}`}>
-      {children}
-    </div>
-  );
-}
-
 /**
  * El paso abierto del alta (spike 2026-09-24; 4 preguntas desde el spike v2 del 2026-09-28). Desde el 2026-10-06 (ADR-0260,
  * actualización) se dibuja SOLO el paso abierto, sin número: dónde está la persona, qué hizo y qué le falta lo dicen los puntos de

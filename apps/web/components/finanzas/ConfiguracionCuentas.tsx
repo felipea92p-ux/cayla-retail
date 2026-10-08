@@ -28,6 +28,8 @@ import {
   type TipoCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Store } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
@@ -130,7 +132,9 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
       <Superficie className="anim-sube">
         <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una tienda a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
         {tiendas.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">No hay tiendas activas.</p>
+          <Vacio tamano="chico" icono={<Store />}>
+            No hay tiendas activas.
+          </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla fin-tabla-medios">

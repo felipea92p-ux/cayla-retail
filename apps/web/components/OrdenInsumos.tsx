@@ -16,6 +16,7 @@ import type { OrdenProduccion } from "@/lib/produccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Insumos de una orden (ADR-0133, F3): qué tela y qué avíos se descontaron de qué lote, y el formulario para descontar más.
 // Descontar reemplaza el «costo de tela / avíos» que se tecleó al abrir la orden por lo que de verdad salió del estante
@@ -239,7 +240,11 @@ export function OrdenInsumos({
                         Devolver todo
                       </button>
                     </label>
-                    {qDev > 0 && previsionDev && !previsionDev.ok && <p className="rounded-lg bg-rojo/[0.07] px-3 py-2 text-[13px] text-rojo-profundo">{previsionDev.motivo}</p>}
+                    {qDev > 0 && previsionDev && !previsionDev.ok && (
+                      <Aviso tono="error" chico>
+                        {previsionDev.motivo}
+                      </Aviso>
+                    )}
                     {previsionDev?.ok && (
                       <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-[13px]">
                         <div className="flex items-baseline justify-between gap-3 px-3 py-2.5">
@@ -336,7 +341,9 @@ export function OrdenInsumos({
                   </label>
 
                   {q > 0 && prevision && !prevision.ok && (
-                    <p className="rounded-lg bg-rojo/[0.07] px-3 py-2.5 text-[13px] text-rojo-profundo">{prevision.motivo}</p>
+                    <Aviso tono="error" chico>
+                      {prevision.motivo}
+                    </Aviso>
                   )}
                   {prevision?.ok && (
                     <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-papel text-[13px]">

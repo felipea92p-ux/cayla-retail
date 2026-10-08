@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import { calcular, estadoCampana, fraseDeLoReal, leerPlan, type CategoriaPlan } from "@/lib/plan-compra-reglas";
+import { CalendarDays, Tags } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: sus tres escenarios, lo que ya hay en la red, cuánto comprar y cuánto
 // cuesta; al abrirla, su ventana para armar o corregir el plan. Durante y después de la campaña, lo que se vendió de verdad al lado.
@@ -36,9 +39,15 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
     return (
       <div className="space-y-6">
         <EncabezadoPagina sede="Todas las tiendas" titulo="Plan de campaña" subtitulo="Cuánto comprar por categoría para una campaña." />
-        <p className="nota-cayla" role="alert">
-          {falla ?? "Todavía no hay ninguna campaña para planificar"}.
-        </p>
+        {falla ? (
+          <Aviso tono="error">{falla}.</Aviso>
+        ) : (
+          <div className="card-cayla">
+            <Vacio icono={<CalendarDays />} titulo="Todavía no hay ninguna campaña para planificar">
+              Cuando exista una campaña, aquí armas cuánto comprar de cada categoría para ella.
+            </Vacio>
+          </div>
+        )}
       </div>
     );
   }
@@ -85,7 +94,9 @@ export function PlanCampana({ datos, falla }: { datos: unknown; falla: string | 
       <Tabla>
         <Encabezado columnas={columnas} plantilla={plantilla} />
         {filas.length === 0 ? (
-          <p className={TABLA.vacio}>No hay categorías activas.</p>
+          <Vacio tamano="chico" icono={<Tags />} accion={{ texto: "Ir a Categorías", href: "/productos/categorias" }}>
+            No hay categorías activas.
+          </Vacio>
         ) : (
           filas.map(({ c, linea, stock, calculo, vendido }) => (
             <button

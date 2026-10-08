@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ArrowDown, ArrowLeftRight, ArrowUp, Eye, Minus, TriangleAlert } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, Eye, FunnelX, Minus, Receipt } from "lucide-react";
 import { Modal, botonCancelar } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { getDetalleCierre, type EventoCaja } from "@/app/actions/caja";
 import type { CierreCaja } from "@/lib/caja";
 import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
 import { cuadreDelTurno, duracionTurno, estadoCierre, rutaDelEfectivo } from "@/lib/historial-cierres-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 function money(n: number) {
   return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -173,15 +175,15 @@ function DetalleCierreModal({
                 </div>
               </dl>
               {cierre.fondoRequerido !== null && ruta.quedo + 0.004 < cierre.fondoRequerido && (
-                <Aviso>Dejó menos del fondo: el día pedía {money(cierre.fondoRequerido)}.</Aviso>
+                <AvisoDelCierre>Dejó menos del fondo: el día pedía {money(cierre.fondoRequerido)}.</AvisoDelCierre>
               )}
             </div>
           )}
 
           {cierre.motivoDiferenciaApertura && cierre.aperturaEsperada !== null && (
-            <Aviso>
+            <AvisoDelCierre>
               Abrió con {money(cierre.montoApertura)} y el cierre anterior había dejado {money(cierre.aperturaEsperada)}: «{cierre.motivoDiferenciaApertura}».
-            </Aviso>
+            </AvisoDelCierre>
           )}
 
           {/* El flujo del turno, con su filtro. */}
@@ -200,13 +202,23 @@ function DetalleCierreModal({
               </div>
             </div>
             {cargando && <p className="py-6 text-center text-sm text-tinta/60">Cargando el flujo de esta caja…</p>}
-            {error && <p className="py-6 text-center text-sm text-rojo-profundo">No se pudo cargar el detalle. Cierra e intenta de nuevo.</p>}
+            {error && (
+              <Aviso tono="error" className="my-3">
+                No se pudo cargar el detalle. Cierra e intenta de nuevo.
+              </Aviso>
+            )}
             {eventos && (
               <div className="scroll-cayla max-h-[30vh] divide-y divide-sand overflow-y-auto border-y border-sand">
                 {visibles.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-tinta/60">
-                    {eventos.length === 0 ? "Esta caja no tuvo ventas ni movimientos: solo apertura y cierre." : "Nada de este tipo en el turno."}
-                  </p>
+                  eventos.length === 0 ? (
+                    <Vacio tamano="chico" icono={<Receipt />}>
+                      Esta caja no tuvo ventas ni movimientos: solo apertura y cierre.
+                    </Vacio>
+                  ) : (
+                    <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Ver todo", onClick: () => setFiltro("todo") }}>
+                      Nada de este tipo en el turno.
+                    </Vacio>
+                  )
                 ) : (
                   visibles.map((e) => <FilaEvento key={`${e.tipo}-${e.id}`} evento={e} />)
                 )}
@@ -214,7 +226,7 @@ function DetalleCierreModal({
             )}
           </section>
 
-          {cierre.nota && <p className="text-xs italic text-tinta/65">Nota del cierre: {cierre.nota}</p>}
+          {cierre.nota && <p className="text-xs italic text-tinta/65">{/* unificar-fijo: es la nota escrita al cerrar, no un vacío */}Nota del cierre: {cierre.nota}</p>}
 
         </div>
       )}
@@ -222,12 +234,11 @@ function DetalleCierreModal({
   );
 }
 
-function Aviso({ children }: { children: ReactNode }) {
+function AvisoDelCierre({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-2 flex items-start gap-2 rounded-lg bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
-      <TriangleAlert className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span>{children}</span>
-    </p>
+    <Aviso tono="atencion" chico className="mt-2">
+      {children}
+    </Aviso>
   );
 }
 

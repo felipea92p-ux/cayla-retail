@@ -4,7 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
-import { ChevronDown, Plus, Printer } from "lucide-react";
+import { ChevronDown, FileText, Plus, Printer } from "lucide-react";
 import type { FotoDePrenda, Proforma } from "@/lib/proformas";
 import { lineasDeLaProforma, numeroDeProforma } from "@/lib/proformas-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
@@ -22,6 +22,7 @@ import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -131,7 +132,11 @@ export function ProformasPanel({
         </div>
 
         {proformas.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin proformas {periodo}.</p>
+          <div className="border-t border-tinta/10">
+            <Vacio icono={<FileText />} titulo={`Sin proformas ${periodo}`}>
+              Cambia el mes de arriba para ver otro período.
+            </Vacio>
+          </div>
         ) : proformasOrdenadas.length === 0 ? (
           <SinCoincidencias />
         ) : (

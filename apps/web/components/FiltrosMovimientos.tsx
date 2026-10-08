@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Camera, Search, SlidersHorizontal, X } from "lucide-react";
+import { Camera, SlidersHorizontal, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { Buscador } from "@/components/ui/Buscador";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import {
   CATEGORIAS_FILTRO,
@@ -301,35 +302,15 @@ export function FiltrosMovimientos({
       {/* Búsqueda. En el celular queda FIJA arriba al bajar (ADR-0241), con la cámara para leer una etiqueta y el botón
           de los filtros: lo que se hace con el pulgar sin volver a subir. La cabecera del ERP es `fixed` (≈58 px). */}
       <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
-        {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: al desaparecer la X el
-            foco se perdía; ahora vuelve al campo (mismo criterio que Traslados). */}
-        <div className="caja-cayla relative flex h-11 min-w-0 flex-1 items-center sm:h-10">
-          <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-          <input
-            ref={entrada}
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Prenda, código, barras o referencia…"
-            aria-label="Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)"
-            autoComplete="off"
-            className="h-full w-full rounded-lg bg-transparent pl-9 pr-9 text-base text-tinta outline-none placeholder:text-taupe sm:text-sm"
-          />
-          <SenalBuscando activo={buscando} className="absolute right-10 bg-hueso pl-2" />
-          {busqueda && (
-            <button
-              type="button"
-              onClick={() => {
-                setBusqueda("");
-                entrada.current?.focus();
-              }}
-              aria-label="Limpiar búsqueda"
-              className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-md text-taupe hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
-            >
-              <X aria-hidden strokeWidth={1.5} className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        <Buscador
+          ref={entrada}
+          valor={busqueda}
+          onCambio={setBusqueda}
+          buscando={buscando}
+          placeholder="Prenda, código, barras o referencia…"
+          etiqueta="Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)"
+          className="min-w-0 flex-1"
+        />
         <button
           type="button"
           onClick={() => setCamara(true)}

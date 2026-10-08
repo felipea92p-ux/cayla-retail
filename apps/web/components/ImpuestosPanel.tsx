@@ -30,6 +30,8 @@ import {
   type MesIgv,
   type PanelImpuestos,
 } from "@/lib/impuestos-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Settings2 } from "lucide-react";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -257,12 +259,9 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
     return (
       <Superficie pad className="anim-sube">
         <CabeceraBloque titulo={titulo} bajada="Al cruzarlo, SUNAT te exige llevar el Libro Diario y el Mayor electrónicos." />
-        <p className="fin-nota-bloque">
-          Falta el valor de la UIT o el límite del régimen.{" "}
-          <Link href="/configuracion?tab=impuestos" className="btn-enlace">
-            Configúralos en Configuración ▸ Impuestos
-          </Link>
-        </p>
+        <Vacio tamano="chico" icono={<Settings2 />} accion={{ texto: "Configúralos en Configuración ▸ Impuestos", href: "/configuracion?tab=impuestos" }}>
+          Falta el valor de la UIT o el límite del régimen.
+        </Vacio>
       </Superficie>
     );
   }
@@ -287,7 +286,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         </span>
         <span>{solesRedondo(umbral.umbralSoles)}</span>
       </div>
-      <p className="fin-nota-bloque">
+      <p className="nota-cayla mt-3">
         {p.proyectadoDiciembre > umbral.ventas12m
           ? `La franja rayada es lo proyectado a diciembre (${solesRedondo(p.proyectadoDiciembre)}).`
           : `A diciembre, a este ritmo, los 12 meses quedan en ${solesRedondo(p.proyectadoDiciembre)}.`}{" "}

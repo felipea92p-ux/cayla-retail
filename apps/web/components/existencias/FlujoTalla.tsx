@@ -53,6 +53,7 @@ import {
 } from "@/lib/existencias-flujos";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -1073,9 +1074,7 @@ export function FlujoTalla({
 
       <div className="grid gap-2 border-t border-sand bg-papel px-[18px] pb-4 pt-3">
         {error && (
-          <p role="alert" className="text-sm text-rojo-profundo">
-            {error}
-          </p>
+          <Aviso tono="error">{error}</Aviso>
         )}
         {!completo && faltanHasta(tipo, i, d, ctx).length > 0 && <PieGuia guia={guiaDePasos} />}
         <div className="flex gap-2">

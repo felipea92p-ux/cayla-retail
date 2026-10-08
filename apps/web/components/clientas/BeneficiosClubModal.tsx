@@ -20,6 +20,7 @@ import {
   type BeneficiosClub,
   type BorradorBeneficios,
 } from "@/lib/club-beneficios-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // «Beneficios del club» (ADR-0288, «Actualización 2026-10-01 (g)», G-13; contrato de la tanda 1g, función 9): solo el LÍDER. Lo
 // que se ajusta sin deploy: el % del cupón de cumpleaños, cuándo cuenta un año de club para el aniversario (6 compras o S/ 600 en
@@ -56,7 +57,8 @@ export function BeneficiosClubModal({
           <FormularioBeneficios vigentes={lectura.valores} cerrar={cerrar} onGuardado={onGuardado} />
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-rojo-profundo">{lectura.falla ?? "No se pudieron leer los beneficios vigentes del club."}</p>
+            <Aviso tono="error">{lectura.falla ?? "No se pudieron leer los beneficios vigentes del club."}</Aviso>
+
             <p className="text-sm text-tinta/70">Sin lo vigente no se puede editar: se guardaría encima de valores que no se ven.</p>
           </div>
         )

@@ -36,6 +36,8 @@ import {
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
+import { ShoppingBag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
@@ -477,9 +479,10 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                   )}
 
                   {totalActividad === 0 ? (
-                    <p className="rounded-xl border border-dashed border-sand px-4 py-6 text-center text-sm text-tinta/55">
+                    <Vacio tamano="chico" icono={<ShoppingBag />}>
                       Todavía no tiene compras, cambios, devoluciones ni apartados.
-                    </p>
+                    </Vacio>
+
                   ) : (
                     <>
                       <SeccionActividad titulo="Compras" total={ficha.compras.length}>

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Boton } from "@/components/ui/campos";
 import { fraseCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // El aviso en línea del «costo atípico» (Felipe, 2026-09-30): la base rechazó un costo fuera de lo normal y el LÍDER decide
 // entre corregir lo que tecleó o confirmarlo. Es la misma pieza para Producción, la recepción de un lote, la factura y los
@@ -43,12 +44,11 @@ export function AvisoCostoAtipico({
   }, []);
   const { titulo, detalles } = fraseCostosAtipicos(costos);
   return (
-    <div ref={aviso} role="alert" className="anim-revelar mt-4 rounded-xl border border-l-2 border-ambar/35 border-l-ambar bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-      <p className="font-medium">{titulo}</p>
+    <Aviso ref={aviso} tono="atencion" titulo={titulo} className="mt-4">
       {detalles.length === 1 ? (
-        <p className="mt-1">{detalles[0]}</p>
+        <p>{detalles[0]}</p>
       ) : (
-        <ul className="mt-1 list-disc space-y-0.5 pl-5">
+        <ul className="list-disc space-y-0.5 pl-5">
           {detalles.map((d, i) => (
             <li key={i}>{d}</li>
           ))}
@@ -63,6 +63,6 @@ export function AvisoCostoAtipico({
           {cargando ? textoCargando : textoConfirmar}
         </Boton>
       </div>
-    </div>
+    </Aviso>
   );
 }

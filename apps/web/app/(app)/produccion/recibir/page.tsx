@@ -5,6 +5,8 @@ import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { getTaller } from "@/lib/produccion";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { RecibirProduccionPanel } from "@/components/RecibirProduccionPanel";
+import { Factory } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Recibir insumos (ADR-0133, F4d): la tela y los avíos que llegan al Taller contra el comprobante del proveedor. Lo usa quien trabaja en el
 // Taller —sin ver montos: esta pantalla solo maneja cantidades— y el líder. Como el resto de Producción, solo parado en el Taller.
@@ -19,7 +21,11 @@ export default async function RecibirProduccionPage() {
     return (
       <div className="space-y-6">
         <h1 className="font-display text-2xl text-tinta">Recibir</h1>
-        <p className="card-cayla p-5 text-sm text-tinta/75">No hay una ubicación de tipo Taller activa. Recibir necesita una para saber dónde entran los insumos.</p>
+        <div className="card-cayla">
+          <Vacio icono={<Factory />} titulo="No hay un Taller activo">
+            Recibir necesita una ubicación de tipo Taller para saber dónde entran los insumos. Pídele al líder que active el Taller.
+          </Vacio>
+        </div>
       </div>
     );
   }

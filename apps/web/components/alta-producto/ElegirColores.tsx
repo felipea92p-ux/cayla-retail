@@ -11,6 +11,7 @@ import { coloresParecidos } from "@/lib/color-parecido";
 import { bordeDeMuestra, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Elegir los colores de un producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
@@ -143,10 +144,11 @@ export function ElegirColores({
       </div>
 
       {pidioSinRed && !enLinea && nuevo === null && (
-        <p role="status" className="anim-revelar text-xs text-rojo-profundo">
+        <Aviso tono="atencion" chico>
           Crear un color necesita internet. Cuando vuelva la conexión, toca «+ Nuevo color» otra vez; los colores de la carta
           se pueden elegir igual.
-        </p>
+        </Aviso>
+
       )}
 
       {/* «+ Nuevo color» es un modal (Felipe, 2026-10-02): el formulario en línea empujaba la carta hacia abajo y, con ella abierta,

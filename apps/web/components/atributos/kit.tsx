@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { type ReactNode } from "react";
+import { FunnelX, Shapes } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
-import { Boton, Hilo } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
+import { Buscador as BuscadorUnico } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * Las piezas que comparten las seis pestañas de Catálogo ▸ Atributos (ADR-0261, Felipe 2026-09-28: «todo este módulo
@@ -66,33 +68,17 @@ export function BarraAtributos({
   );
 }
 
+/** El buscador de la barra: la pieza única (`components/ui/Buscador`, ADR-0358 ronda 5), filtra mientras se escribe y «/» lo enfoca. */
 function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda) {
-  const [enfocado, setEnfocado] = useState(false);
   return (
-    <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
-      <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
-      <input
-        type="search"
-        value={valor}
-        onChange={(ev) => onValor(ev.target.value)}
-        onFocus={() => setEnfocado(true)}
-        onBlur={() => setEnfocado(false)}
-        placeholder={placeholder}
-        aria-label={etiqueta}
-        className="h-9 w-full bg-transparent pl-6 pr-6 text-sm text-tinta outline-none placeholder:text-tinta/55 [&::-webkit-search-cancel-button]:hidden"
-      />
-      {valor && (
-        <button
-          type="button"
-          onClick={() => onValor("")}
-          aria-label="Borrar búsqueda"
-          className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-tinta/40 transition-colors hover:text-tinta"
-        >
-          <X aria-hidden className="h-3.5 w-3.5" />
-        </button>
-      )}
-      <Hilo activo={enfocado} />
-    </div>
+    <BuscadorUnico
+      valor={valor}
+      onCambio={(v) => onValor(v)}
+      placeholder={placeholder}
+      etiqueta={etiqueta}
+      atajo
+      className="min-w-0 flex-1 sm:w-64 sm:flex-none"
+    />
   );
 }
 
@@ -109,24 +95,33 @@ export function TituloGrupo({ punto, cuenta, children }: { punto?: string; cuent
 
 /** Cuando los filtros o la búsqueda no dejan nada: lo dice y ofrece volver a verlo todo. */
 export function SinCoincidencias({ children, onQuitar }: { children: ReactNode; onQuitar: () => void }) {
+  // La pieza única del vacío (ADR-0358 ronda 5): los filtros o la búsqueda dejaron cero, y la acción que lo deshace va ahí mismo.
   return (
-    <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <p className="text-sm text-tinta/75">{children}</p>
-      <Boton peso="discreto" className="px-3 py-1.5 text-[11px]" onClick={onQuitar}>
-        Quitar filtros
-      </Boton>
+    <div className="card-cayla">
+      <Vacio
+        icono={<FunnelX />}
+        titulo={children}
+        acciones={
+          <Boton type="button" peso="fantasma" onClick={onQuitar}>
+            Limpiar filtros
+          </Boton>
+        }
+      >
+        Prueba con otra palabra o quita los filtros.
+      </Vacio>
     </div>
   );
 }
 
 /** Un vocabulario que todavía no tiene ningún valor: lo dice, en vez de dejar la pantalla en blanco con «Todos 0». */
-export function VocabularioVacio({ children }: { children: ReactNode }) {
+export function VocabularioVacio({ children, icono = <Shapes /> }: { children: ReactNode; icono?: ReactNode }) {
   return (
-    <div className="card-cayla flex flex-col items-center gap-2 px-6 py-12 text-center">
-      <p className="text-sm text-tinta/75">{children}</p>
+    <div className="card-cayla">
+      <Vacio icono={icono}>{children}</Vacio>
     </div>
   );
 }
+
 
 /** La insignia de estado junto al nombre: «Pendiente», «Rechazada». */
 function Insignia({ children }: { children: ReactNode }) {

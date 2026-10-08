@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Search } from "lucide-react";
+import { Check, SearchX, Users } from "lucide-react";
 import type { DynamicDisponible } from "@/lib/colaboradores";
 import { filtrarDisponibles } from "@/lib/colaboradores-reglas";
 import { camposDeDarAcceso, fraseDarAcceso, rolesParaDarAcceso } from "@/lib/dar-acceso-reglas";
@@ -15,6 +15,8 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Dar acceso» (ADR-0341, propuesta del 2026-10-05, pantalla 3): quién, dónde trabaja y qué hace, en una sola hoja con la guía
 // de foco. Antes era «Agregar colaboradores»: elegía personas y ubicación, y todas entraban como Integrante y pendientes. Ahora el
@@ -105,23 +107,21 @@ export function DarAccesoModal({
           }}
         >
           <CampoGuiado id="quien" guia={guia} titulo="¿Quién?" ayuda="Personas activas en Dynamic sin acceso a retail" retiene="fila">
-            <label className="caja-cayla flex items-center gap-2 px-3 py-2">
-              <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />
-              <input
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por nombre o correo"
-                aria-label="Buscar por nombre o correo"
-                autoComplete="off"
-                className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
-              />
-            </label>
+            <Buscador valor={busqueda} onCambio={setBusqueda} placeholder="Buscar por nombre o correo" />
             <ul className="scroll-cayla mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1" aria-label="Personas disponibles">
               {visibles.length === 0 ? (
-                <li className="rounded-lg border border-dashed border-sand px-3 py-5 text-center text-[13px] text-tinta/65">
-                  {disponibles.length === 0 ? "Todas las personas activas en Dynamic ya tienen acceso." : "Nadie coincide con lo que escribiste."}
+                <li className="py-3">
+                  {disponibles.length === 0 ? (
+                    <Vacio tamano="chico" icono={<Users />}>
+                      Todas las personas activas en Dynamic ya tienen acceso.
+                    </Vacio>
+                  ) : (
+                    <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setBusqueda("") }}>
+                      Nadie coincide con lo que escribiste.
+                    </Vacio>
+                  )}
                 </li>
+
               ) : (
                 visibles.map((d) => {
                   const marcada = elegidas.has(d.persona_id);

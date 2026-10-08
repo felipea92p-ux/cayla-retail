@@ -5,12 +5,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
 import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
-import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { guardarPanelFiltros, type EstadoPanelFiltros } from "@/lib/panel-filtros";
 import { avisar } from "@/components/ui/Avisos";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { opcionesConConteo, textoTramo, tramoActivo, type FacetaClave, type FacetasProductos, type TramoPrecio } from "@/lib/productos-facetas";
 import { montoParaCaja, pasoDePrecio, posicionEnControl, rangoDesdeControl, solesFiltro, type LimitesPrecio } from "@/lib/productos-filtro-precio";
 import { ORDENES_MENU, ORDEN_POR_DEFECTO, ROTULO_ORDEN_PRODUCTOS, ordenDeUrl } from "@/lib/productos-orden";
@@ -48,6 +47,7 @@ import {
   type Tipeado,
 } from "@/lib/productos-filtros";
 import { SIN_EN_URL } from "@/lib/marcas";
+import { Buscador } from "@/components/ui/Buscador";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -124,34 +124,7 @@ export function FiltrosProductos({
   const [consultaPedida, setConsultaPedida] = useState<string | null>(null);
   const consultaMostrada = consultaPedida ?? consultaUrl;
   const { buscando, buscar } = useBusquedaEnUrl();
-  const etiquetaBuscar = (
-    <span className="flex items-baseline justify-between gap-2">
-      <span>
-        Buscar
-        {/* El atajo de Shopify y GitHub (Felipe, 2026-10-02): «/» desde cualquier parte de la pantalla. */}
-        <kbd aria-hidden className="ml-2 hidden rounded border border-tinta/15 px-1 font-sans text-[10px] normal-case text-tinta/45 md:inline">
-          /
-        </kbd>
-      </span>
-      <SenalBuscando activo={buscando} />
-    </span>
-  );
 
-  // «/» lleva el cursor al buscador, salvo que la persona ya esté escribiendo en otra caja.
-  useEffect(() => {
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
-      const caja = document.getElementById(ID_BUSCADOR) as HTMLInputElement | null;
-      if (!caja) return;
-      e.preventDefault();
-      caja.focus();
-      caja.select();
-    };
-    document.addEventListener("keydown", alTeclear);
-    return () => document.removeEventListener("keydown", alTeclear);
-  }, []);
 
   function alTocarFiltros() {
     if (window.matchMedia(MEDIA_ESCRITORIO).matches) {
@@ -535,32 +508,23 @@ export function FiltrosProductos({
 
   return (
     <div ref={raiz} className="space-y-2">
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
-          <CampoTexto
-            etiqueta={etiquetaBuscar}
-            trabajando={buscando}
-            value={busqueda}
-            onChange={(e) => {
-              const q = e.target.value;
-              setTipeado((t) => ({ ...t, q }));
-            }}
-            onFocus={() => alEntrarCaja("q")}
-            onBlur={alSalirCaja}
-            aria-keyshortcuts="/"
-            id={ID_BUSCADOR}
-            // sugerir-fijo: dice qué se puede buscar en el catálogo (nombre, código, código de barras); no depende de nada elegido antes
-            placeholder="Prenda, código o código de barras…"
-            autoComplete="off"
-            type="search"
-          />
-        </div>
-        {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
-            que el botón quede a la altura del input, no de toda la columna. */}
+      <div className="flex items-center gap-2">
+        {/* La pieza única (ADR-0358 ronda 5): filtra mientras se escribe (la pausa de 350 ms de arriba), «/» la enfoca desde
+            cualquier parte de la pantalla (el atajo de Shopify y GitHub, Felipe 2026-10-02) y «Buscando…» sale solo si la base tarda. */}
+        <Buscador
+          valor={busqueda}
+          onCambio={(q) => setTipeado((t) => ({ ...t, q }))}
+          buscando={buscando}
+          atajo
+          onFocus={() => alEntrarCaja("q")}
+          onBlur={alSalirCaja}
+          id={ID_BUSCADOR}
+          etiqueta="Buscar"
+          // sugerir-fijo: dice qué se puede buscar en el catálogo (nombre, código, código de barras); no depende de nada elegido antes
+          placeholder="Prenda, código o código de barras…"
+          className="flex-1"
+        />
         <div className="shrink-0">
-          <span aria-hidden className="label-cayla block text-[11px] text-transparent">
-            {" "}
-          </span>
           <BotonFiltros abierto={hojaAbierta || (esEscritorio && panelAbierto)} activos={activos} onClick={alTocarFiltros} />
         </div>
       </div>

@@ -15,6 +15,7 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { aLaVista, seccionesMuestras, unirSinRepetir } from "@/lib/muestras-alta-reglas";
 import { ayudaDeTejido, datosEnTexto } from "@/lib/tejido-ayuda";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Las filas «Tejido» y «Patrón» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -336,10 +337,11 @@ function HojaMuestras({
               ))}
             </GrillaMuestras>
             {error && (
-              <p role="alert" className="mt-2 text-xs text-rojo-profundo">
+              <Aviso tono="error" className="mt-2">
                 {error}
-              </p>
+              </Aviso>
             )}
+
           </section>
         )}
       </div>

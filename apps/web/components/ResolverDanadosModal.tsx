@@ -28,6 +28,7 @@ import {
   textoOrigenDanada,
   tituloExitoArreglo,
 } from "@/lib/danadas-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // "Dañado" (2026-09-17, ADR-0071, Opción A): cola de prendas en cuarentena
 // (`aprobar_devolucion`, condición danada_reparacion/danada_donar; un cambio con
@@ -314,9 +315,7 @@ export function ResolverDanadosModal({
                         />
                       </CampoGuiado>
                       {errorArreglo && (
-                        <p role="alert" className="text-sm text-rojo-profundo">
-                          {errorArreglo}
-                        </p>
+                        <Aviso tono="error">{errorArreglo}</Aviso>
                       )}
                       <PieGuia guia={guia} listo="Todo listo: vuelve al almacén." />
                       <div className="flex gap-2">

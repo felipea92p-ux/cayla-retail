@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Minus, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { Check, MessageCircle, Minus, Plus, Printer, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -45,6 +45,8 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { CampoSelect } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -650,7 +652,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
             <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
             <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
           </p>
-          {monto > saldo && <p className="text-xs text-rojo-profundo">El abono no puede pasar lo que falta ({money(saldo)}).</p>}
+          {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
           <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
             <input type="checkbox" checked={esperar} onChange={(e) => setEsperar(e.target.checked)} className="mt-1 accent-tinta" />
             <span>
@@ -761,7 +763,7 @@ export function EditarApartadoModal({
     <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl">
       {(cerrar) => (
         <div className="space-y-4">
-          {sinId && <p className="rounded-xl bg-ambar/10 px-3.5 py-2.5 text-xs text-ambar-profundo">Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</p>}
+          {sinId && <Aviso tono="atencion" chico>Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</Aviso>}
           <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
             {apartado.prendas.map((pr) => {
               const v = porId.get(pr.varianteId);
@@ -822,10 +824,7 @@ export function EditarApartadoModal({
             })}
           </ul>
           <div className="relative">
-            <label className="flex h-11 items-center gap-2.5 rounded-xl border border-sand bg-papel px-3.5 focus-within:border-taupe">
-              <Search className="h-4 w-4 text-tinta/55" aria-hidden />
-              <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Sumar una prenda: nombre, color o código" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-            </label>
+            <Buscador valor={texto} onCambio={setTexto} placeholder="Sumar una prenda: nombre, color o código" />
             {buscados.length > 0 && (
               <ul className="mt-1.5 divide-y divide-sand overflow-hidden rounded-xl border border-sand bg-papel">
                 {buscados.map((p) => (
@@ -845,8 +844,8 @@ export function EditarApartadoModal({
             <p className="flex justify-between"><span className="text-tinta/60">Ya pagó</span><span>−{money(apartado.adelanto)}</span></p>
             <p className="flex justify-between border-t border-sand pt-2 text-base"><span>Saldo al recoger</span><b>{money(Math.max(0, totalNuevo - apartado.adelanto))}</b></p>
           </div>
-          {debajo && !sinPrendas && <p className="text-xs text-rojo-profundo">El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</p>}
-          {sinPrendas && <p className="text-xs text-rojo-profundo">El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</p>}
+          {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
+          {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El anticipo ya emitido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">

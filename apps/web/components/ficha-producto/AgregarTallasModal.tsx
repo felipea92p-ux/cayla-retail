@@ -17,6 +17,7 @@ import {
   type Identidad,
 } from "@/lib/variantes-ficha-reglas";
 import { MatrizNuevas, MontosNuevas, PieModal, type ContextoFicha } from "./piezas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // «Llegó una talla nueva»: las tallas habilitadas en la categoría que la prenda todavía no vende, en su orden (S, M, L…
 // y no alfabético). Cada talla elegida nace en cada color que la prenda ya vende (si están todas desactivadas, en los que
@@ -132,7 +133,11 @@ export function AgregarTallasModal({
                 </p>
               )}
               {nacen > 0 && <MontosNuevas precio={precio} costo={costo} onPrecio={setPrecio} onCosto={setCosto} veCosto={ctx.veCosto} />}
-              {nacen > 0 && !precioOk && <p className="text-[12.5px] text-rojo-profundo">Pon el precio de venta de las nuevas.</p>}
+              {nacen > 0 && !precioOk && (
+                <Aviso tono="error" chico>
+                  Pon el precio de venta de las nuevas.
+                </Aviso>
+              )}
               {nacen > 0 && etiquetasTexto && (
                 <p className="text-[12.5px] text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
               )}

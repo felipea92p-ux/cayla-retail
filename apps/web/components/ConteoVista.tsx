@@ -3,13 +3,14 @@ import { textoAlcance, textoLugar, type ConteoResumen } from "@/lib/conteo-regla
 import { textoUltimoConteo, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
 import { agruparPorDia, hrefRecientes, textoDiaLargo, textoPieRecientes, textoTotalRecientes, type VistaRecientes } from "@/lib/conteo-recientes-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
-import { TABLA } from "@/components/ui/Tabla";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AbrirConteo } from "@/components/AbrirConteo";
 import { ConteosLista } from "@/components/ConteosLista";
 import { FiltroConteosRecientes } from "@/components/conteo/FiltroConteosRecientes";
 import { AccionesEnCurso } from "@/components/conteo/AccionesEnCurso";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
+import { ClipboardList } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El INICIO de Conteo (Inventario ▸ Conteo, rediseño 2026-09-29). Responde una sola pregunta: «¿qué hago ahora?».
 //   · Hay un conteo abierto en esta sede → la tarjeta «Conteo N en curso» (cuántas variantes lleva, seguir o cancelar).
@@ -159,7 +160,9 @@ export function ConteoVista({
               </div>
             </div>
           ) : (
-            <p className={`${TABLA.vacio} border-t border-sand`}>Todavía no hay conteos en esta ubicación.</p>
+            <Vacio tamano="chico" icono={<ClipboardList />} className="border-t border-sand">
+              Todavía no hay conteos en esta ubicación.
+            </Vacio>
           )}
         </div>
       </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { MonitorSmartphone, SearchX, Users } from "lucide-react";
 import type { ColaboradorPendiente } from "@/lib/colaboradores";
 import { fechaLima, plural } from "@/lib/colaboradores-reglas";
 import {
@@ -19,6 +19,8 @@ import { IconoAparato } from "@/components/ui/IconoAparato";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Boton } from "@/components/ui/campos";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Colaboradores ▸ Equipo (propuesta de Felipe del 2026-10-05): UNA lista agrupada por sede, como se piensa el negocio
 // («el equipo de Trujillo»). El estado (suspendido, baja en Dynamic) es una marca sobre la persona, no una pestaña. Arriba,
@@ -246,24 +248,35 @@ export function EquipoLista({
               + Nueva terminal
             </Boton>
           )}
-          <label className="caja-cayla flex w-full items-center gap-2 px-3 py-2 sm:w-72">
-            <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />
-            <input
-              type="search"
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              placeholder="Buscar persona o terminal"
-              aria-label="Buscar persona o terminal por nombre, correo o rol"
-              autoComplete="off"
-              className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/50"
-            />
-          </label>
+          <Buscador
+            valor={texto}
+            onCambio={setTexto}
+            placeholder="Buscar persona o terminal"
+            etiqueta="Buscar persona o terminal por nombre, correo o rol"
+            atajo
+            className="w-full sm:w-72"
+          />
         </div>
 
         {grupos.length === 0 ? (
-          <p className="font-display py-8 text-center text-base italic text-tinta/65">
-            {texto ? "Nadie coincide con lo que buscas." : enTerminales ? "Ninguna tienda tiene una terminal todavía." : "Todavía no hay nadie en el equipo."}
-          </p>
+          texto ? (
+            <Vacio
+              icono={<SearchX />}
+              titulo={<>Nada coincide con «{texto}»</>}
+              acciones={
+                <Boton type="button" peso="fantasma" onClick={() => setTexto("")}>
+                  Borrar la búsqueda
+                </Boton>
+              }
+            >
+              Nadie coincide con lo que buscas. Prueba con otro nombre, correo o rol.
+            </Vacio>
+          ) : enTerminales ? (
+            <Vacio icono={<MonitorSmartphone />}>Ninguna tienda tiene una terminal todavía.</Vacio>
+          ) : (
+            <Vacio icono={<Users />}>Todavía no hay nadie en el equipo.</Vacio>
+          )
+
         ) : (
           <div className="space-y-5">
             {/* Los títulos de las columnas, una vez arriba (Felipe 2026-10-05: «no hay título», y la fecha no decía qué era). */}
