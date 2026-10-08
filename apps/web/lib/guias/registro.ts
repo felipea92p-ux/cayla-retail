@@ -64,6 +64,17 @@ import {
   GUIA_FIN_RESULTADOS,
   GUIA_FIN_RESUMEN,
 } from "./pantallas/finanzas";
+import {
+  GUIA_PROD_COTIZACIONES,
+  GUIA_PROD_EFICIENCIA,
+  GUIA_PROD_FACTURAS,
+  GUIA_PROD_INSUMOS,
+  GUIA_PROD_ORDENES,
+  GUIA_PROD_POR_PAGAR,
+  GUIA_PROD_PROVEEDORES,
+  GUIA_PROD_RECIBIR,
+  GUIA_PROD_RESUMEN,
+} from "./pantallas/produccion";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -132,10 +143,19 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FIN_BALANCE,
   GUIA_FIN_IMPUESTOS,
   GUIA_FIN_CIERRE,
+  GUIA_PROD_RESUMEN,
+  GUIA_PROD_ORDENES,
+  GUIA_PROD_INSUMOS,
+  GUIA_PROD_RECIBIR,
+  GUIA_PROD_PROVEEDORES,
+  GUIA_PROD_FACTURAS,
+  GUIA_PROD_POR_PAGAR,
+  GUIA_PROD_COTIZACIONES,
+  GUIA_PROD_EFICIENCIA,
 ];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 20;
+export const PENDIENTES_HOY = 11;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -220,15 +240,15 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- pedidos-no-atendidos ----
   "/pedidos-no-atendidos": { estado: "aplicada", guia: GUIA_PEDIDOS_NO_ATENDIDOS.id },
   // ---- produccion ----
-  "/produccion": PENDIENTE,
-  "/produccion/comprobantes": PENDIENTE,
-  "/produccion/cotizaciones-maquila": PENDIENTE,
-  "/produccion/eficiencia": PENDIENTE,
-  "/produccion/insumos": PENDIENTE,
-  "/produccion/ordenes": PENDIENTE,
-  "/produccion/por-pagar": PENDIENTE,
-  "/produccion/proveedores": PENDIENTE,
-  "/produccion/recibir": PENDIENTE,
+  "/produccion": { estado: "aplicada", guia: GUIA_PROD_RESUMEN.id },
+  "/produccion/comprobantes": { estado: "aplicada", guia: GUIA_PROD_FACTURAS.id },
+  "/produccion/cotizaciones-maquila": { estado: "aplicada", guia: GUIA_PROD_COTIZACIONES.id },
+  "/produccion/eficiencia": { estado: "aplicada", guia: GUIA_PROD_EFICIENCIA.id },
+  "/produccion/insumos": { estado: "aplicada", guia: GUIA_PROD_INSUMOS.id },
+  "/produccion/ordenes": { estado: "aplicada", guia: GUIA_PROD_ORDENES.id },
+  "/produccion/por-pagar": { estado: "aplicada", guia: GUIA_PROD_POR_PAGAR.id },
+  "/produccion/proveedores": { estado: "aplicada", guia: GUIA_PROD_PROVEEDORES.id },
+  "/produccion/recibir": { estado: "aplicada", guia: GUIA_PROD_RECIBIR.id },
   // ---- productos ----
   "/productos": { estado: "aplicada", guia: GUIA_PRODUCTOS.id },
   "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "La misma vista que /productos/[id]/historial abierta como hoja: comparte su guía." },

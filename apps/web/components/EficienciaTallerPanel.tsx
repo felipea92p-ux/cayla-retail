@@ -40,6 +40,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
       <Pestanas
         etiquetaAccesible="Miradas del Taller"
         idIndicador="produccion-miradas"
+        guia="produccion.miradas"
         activa="eficiencia"
         items={[
           { clave: "hoy", etiqueta: "Hoy", href: "/produccion", ayuda: "Qué necesita mi decisión" },
@@ -55,21 +56,21 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
       </div>
 
       {estadoPlanilla === "sin_vista" && (
-        <p className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
+        <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
           Todavía no está conectada la planilla de Dynamic (falta pegar <code className="font-mono text-xs">20260921160000_planilla_por_sede.sql</code>). Mientras tanto se muestran los materiales por prenda; el costo completo aparecerá solo.
         </p>
       )}
       {estadoPlanilla === "vacia" && (
-        <p className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
+        <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
           No hay planilla del Taller para mostrar: Dynamic solo se la enseña a quien allá es admin o líder, o todavía no hay períodos pagados. Se muestran los últimos meses con los materiales por prenda; sin la planilla no se calcula la conversión ni el costo total.
         </p>
       )}
 
       {periodos.length > 1 && (
         // El período es un filtro de un valor: la píldora del sistema (ADR-0358).
-        <div role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
-          {periodos.map((p) => (
-            <button key={p.ventana.clave} type="button" aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
+        <div data-guia="prod-eficiencia.periodos" role="group" aria-label="Período" className="pildoras-desliza gap-2 sm:flex-wrap">
+          {periodos.map((p, n) => (
+            <button key={p.ventana.clave} type="button" data-guia={n === 1 ? "prod-eficiencia.periodo-otro" : undefined} aria-pressed={clave === p.ventana.clave} onClick={() => setClave(p.ventana.clave)} className="pildora-cayla shrink-0">
               {p.ventana.etiqueta}
             </button>
           ))}
@@ -78,7 +79,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
       {actual && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div data-guia="prod-eficiencia.cifras" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <TarjetaCifra
               punto="verde"
               etiqueta="Prendas buenas"
@@ -117,7 +118,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
             </TarjetaCifra>
           </div>
 
-          <section aria-label="En qué se fue la plata" className="card-cayla space-y-3 p-5">
+          <section data-guia="prod-eficiencia.reparto" aria-label="En qué se fue la plata" className="card-cayla space-y-3 p-5">
             <div>
               <h2 className="font-display text-xl text-tinta">¿En qué se fue la plata del Taller?</h2>
               <p className="text-xs text-tinta/65">Período {actual.ventana.etiqueta}. Lo que gastó el Taller: la planilla, los gastos generales y los materiales y la maquila de lo que cerró.</p>
@@ -157,7 +158,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
             )}
           </section>
 
-          <section aria-label="Entregas" className="card-cayla space-y-2 p-5">
+          <section data-guia="prod-eficiencia.entregas" aria-label="Entregas" className="card-cayla space-y-2 p-5">
             <h2 className="font-display text-xl text-tinta">Entregas del período</h2>
             {actual.ordenesCerradas === 0 ? (
               <p className="text-sm text-tinta/70">Ninguna orden se cerró en este período.</p>
@@ -172,7 +173,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
           </section>
 
           {periodos.length > 1 && (
-            <section aria-label="Tendencia" className="space-y-2">
+            <section data-guia="prod-eficiencia.tendencia" aria-label="Tendencia" className="space-y-2">
               <h2 className="font-display text-xl text-tinta">Período a período</h2>
               <div className="card-cayla overflow-x-auto">
                 <table className="w-full min-w-[34rem] text-[13px]">

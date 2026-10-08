@@ -1,0 +1,18 @@
+{
+  "guia": "produccion.cotizaciones-maquila",
+  "ruta": "/produccion/cotizaciones-maquila",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 8,
+  "controles": {
+    "components/CotizacionesMaquilaPanel.tsx": [
+      "BotonCompacto «prod-cotizaciones.nueva»",
+      "CampoSelect «Tipo de prenda»",
+      "CampoTexto «Precio de maquila (S/, por prenda)»",
+      "CampoFecha «Fecha de la cotización»",
+      "CampoFecha «Vigente hasta»",
+      "CampoTexto «Quién la dio (opcional)»",
+      "button «Cancelar»",
+      "button «{loading ? \"Cargando…\" : \"Cargar cotización\"}»"
+    ]
+  }
+}

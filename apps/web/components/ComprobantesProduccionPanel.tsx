@@ -54,12 +54,12 @@ export function ComprobantesProduccionPanel({
           <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de insumos</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras.</p>
         </div>
-        <Boton peso="primario" onClick={() => setNuevo(true)}>
+        <Boton peso="primario" data-guia="prod-facturas.nueva" onClick={() => setNuevo(true)}>
           + Nueva factura
         </Boton>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div data-guia="prod-facturas.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra
           punto={resumen.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar"
@@ -91,7 +91,7 @@ export function ComprobantesProduccionPanel({
       </div>
 
       {comprobantes.length === 0 ? (
-        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
+        <div data-guia="prod-facturas.lista" className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
           <p>
             Aquí se registra la factura de cada proveedor del Taller: la tela por metro, los avíos, la maquila. De ella salen cuánto se le debe, cuándo vence y a qué precio
             subió la tela.
@@ -102,7 +102,7 @@ export function ComprobantesProduccionPanel({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             {/* El estado deja menos comprobantes en la misma lista: la píldora de filtro, igual que en Compras (ADR-0358). */}
-            <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
+            <div data-guia="prod-facturas.estados" role="group" aria-label="Filtrar por estado" className="flex flex-wrap items-center gap-2">
               {(
                 [
                   { clave: "todos", etiqueta: "Todos", conteo: comprobantes.length },
@@ -117,6 +117,7 @@ export function ComprobantesProduccionPanel({
                 </button>
               ))}
             </div>
+            <div data-guia="prod-facturas.proveedor">
             <Desplegable
               valor={proveedorId}
               onValor={(v) => setProveedorId(v)}
@@ -124,7 +125,8 @@ export function ComprobantesProduccionPanel({
               etiquetaAccesible="Filtrar por proveedor"
               forma="caja"
             />
-            <label className="card-cayla ml-auto flex min-w-52 items-center gap-2 px-3 py-1.5">
+            </div>
+            <label data-guia="prod-facturas.buscador" className="card-cayla ml-auto flex min-w-52 items-center gap-2 px-3 py-1.5">
               <Search size={15} aria-hidden className="text-tinta/45" />
               <span className="sr-only">Buscar factura</span>
               <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Proveedor o F001-123" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45" />
@@ -134,7 +136,7 @@ export function ComprobantesProduccionPanel({
           {visibles.length === 0 ? (
             <p className="card-cayla p-5 text-sm text-tinta/70">Ninguna factura coincide con lo que buscas.</p>
           ) : (
-            <div className="card-cayla overflow-hidden">
+            <div data-guia="prod-facturas.lista" className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
                 <span className="label-cayla text-[11px] text-tinta/65">Fecha</span>
                 <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
@@ -154,7 +156,7 @@ export function ComprobantesProduccionPanel({
                       >
                         <span className="hidden text-[13px] tabular-nums text-tinta/75 sm:block">{diaMes(c.fechaEmision)}</span>
                         <span className="min-w-0">
-                          <span className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
+                          <span data-guia="prod-facturas.proveedor-fila" className={`block truncate text-[14px] ${c.estado === "anulada" ? "text-tinta/55 line-through" : "text-tinta"}`}>{c.proveedor}</span>
                           <span className="block text-xs text-tinta/65">
                             {etiquetaTipo(c.tipo, true)} {c.serie}-{c.numero} · {plural(c.lineas, "línea", "líneas")}
                             <span className="sm:hidden"> · {diaMes(c.fechaEmision)}</span>

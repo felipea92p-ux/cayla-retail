@@ -176,6 +176,7 @@ export function NuevaOrdenProduccionForm({
     <Modal titulo="Nueva orden de producción" onClose={onClose} ancho="max-w-2xl">
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
+          <div data-guia="prod-orden-nueva.tipo">
           <Segmentado<Tipo>
             etiqueta="Tipo"
             valor={tipo}
@@ -183,16 +184,19 @@ export function NuevaOrdenProduccionForm({
             opciones={TIPOS}
             pie={tipo === "muestra" ? "Desarrollar el modelo: patrón y prototipo. No entra al stock." : "Fabricar el lote. Al cerrar entra al stock del Taller."}
           />
+          </div>
+          <div data-guia="prod-orden-nueva.modelo">
           <CampoSelect
             etiqueta="Modelo"
             valor={productoId}
             onValor={(v) => cambiarModelo(v)}
             opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
           />
+          </div>
         </div>
 
         {modelo && (
-          <div className="space-y-2">
+          <div data-guia="prod-orden-nueva.matriz" className="space-y-2">
             <span className={campoEtiqueta}>Cuántas por talla y color</span>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -268,7 +272,7 @@ export function NuevaOrdenProduccionForm({
         {decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
 
         {datos && modelo && (
-          <section aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
+          <section data-guia="prod-orden-nueva.red" aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className={campoEtiqueta}>Curva sugerida por la red</p>
@@ -341,7 +345,7 @@ export function NuevaOrdenProduccionForm({
         )}
 
         {datos && modelo && (
-          <section aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
+          <section data-guia="prod-orden-nueva.insumos" aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
             <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
             {rendimiento.length === 0 ? (
               <p className="text-xs text-tinta/65">
@@ -389,13 +393,13 @@ export function NuevaOrdenProduccionForm({
           </section>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div data-guia="prod-orden-nueva.costos" className="grid gap-3 sm:grid-cols-3">
           <CampoMonto etiqueta="Tela" pie="De toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
           <CampoMonto etiqueta="Avíos" pie="Botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
           <CampoMonto etiqueta="Maquila" pie="Lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
         </div>
 
-        <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
+        <div data-guia="prod-orden-nueva.resumen" className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
           <span className="text-tinta/70">
             {total} prendas · costo estimado {soles(costoTotal)}
             {precio > 0 && ` · se vende a ${soles(precio)}`}
@@ -404,11 +408,12 @@ export function NuevaOrdenProduccionForm({
           <span className="font-display text-lg text-tinta">{soles(unitario)} / prenda</span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Tela, cliente, urgencia…" />
         </div>
 
+        <div data-guia="prod-orden-nueva.cierre" className="space-y-5">
         <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>
@@ -417,6 +422,7 @@ export function NuevaOrdenProduccionForm({
           <button type="submit" disabled={cargando || !modelo || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
             {cargando ? "Abriendo…" : "Abrir orden"}
           </button>
+        </div>
         </div>
       </form>
     </Modal>

@@ -38,6 +38,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
       <Pestanas
         etiquetaAccesible="Miradas del Taller"
         idIndicador="produccion-miradas"
+        guia="produccion.miradas"
         activa="hoy"
         items={[
           { clave: "hoy", etiqueta: "Hoy", href: "/produccion", ayuda: "Qué necesita mi decisión" },
@@ -50,7 +51,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
           <h1 className="font-display mt-1 text-2xl text-tinta">¿Qué necesita mi decisión hoy?</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que pide acción en el Taller, del más urgente al menos. Cada tarjeta sale de los datos de abajo y desaparece cuando lo resuelves.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div data-guia="prod-resumen.acciones" className="flex items-center gap-2">
           <BotonEnlace href="/produccion/ordenes">Ver órdenes</BotonEnlace>
           <BotonEnlace href="/produccion/ordenes?nueva=auto" peso="primario">
             + Nueva orden
@@ -58,7 +59,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div data-guia="prod-resumen.cifras" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaCifra
           punto={cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
           etiqueta="Capital en insumos"
@@ -99,7 +100,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
         </TarjetaCifra>
       </div>
 
-      <section aria-label="Para decidir" className="space-y-3">
+      <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
         <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
           Para decidir
           <small className="font-sans text-xs text-tinta/65">{decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}</small>
@@ -131,7 +132,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
         )}
       </section>
 
-      <section id="produce" aria-label="Qué producir" className="space-y-2.5">
+      <section data-guia="prod-resumen.que-producir" id="produce" aria-label="Qué producir" className="space-y-2.5">
         <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
           ¿Qué producir?
           <small className="font-sans text-xs text-tinta/65">días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días</small>
@@ -195,7 +196,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
         )}
       </section>
 
-      <section aria-label="Alcanza la tela" className="space-y-2.5">
+      <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
         <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
           ¿Alcanza la tela?
           <small className="font-sans text-xs text-tinta/65">lo que hay y lo que viene facturado, contra lo que las órdenes abiertas todavía necesitan</small>

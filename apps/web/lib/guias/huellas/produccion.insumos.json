@@ -1,0 +1,34 @@
+{
+  "guia": "produccion.insumos",
+  "ruta": "/produccion/insumos",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 22,
+  "controles": {
+    "components/InsumoModales.tsx": [
+      "CampoSelect «Tipo»",
+      "CampoSelect «Se mide en»",
+      "CampoTexto «Código»",
+      "CampoTexto «Nombre»",
+      "CampoTexto «Mínimo»",
+      "CampoTexto «Merma al cortar (%)»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{cargando ? \"Guardando…\" : \"Agregar al catálogo\"}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "CampoSelect «¿Qué llegó?»",
+      "CampoTexto «{`Cantidad (${UNIDADES_INSUMO[unidad].corta}»",
+      "CampoMonto «{`Costo por ${UNIDADES_INSUMO[unidad].corta}»",
+      "CampoTexto «Código de lote»",
+      "CampoTexto «Documento»",
+      "CampoSelect «Origen»",
+      "CampoTexto «Nota» #2",
+      "ComboResponsable «{cargando ? \"Ingresando…\" : \"Abrir lote y sumar al saldo\"}»",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/InsumosPanel.tsx": [
+      "Boton «prod-insumos.nuevo»",
+      "Boton «prod-insumos.ingresar»",
+      "button «{i.nombre}»",
+      "Boton «+ Ingresar lote»"
+    ]
+  }
+}

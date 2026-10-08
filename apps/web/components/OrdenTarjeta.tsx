@@ -59,6 +59,7 @@ export function OrdenTarjeta({
     <button
       ref={refTarjeta}
       type="button"
+      data-guia="prod-ordenes.tarjeta"
       onClick={onAbrir}
       style={{ ["--i" as string]: indice }}
       className="card-cayla alza-cayla anim-entra block w-full p-3.5 text-left"

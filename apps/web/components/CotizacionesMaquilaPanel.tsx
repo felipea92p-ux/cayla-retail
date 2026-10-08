@@ -40,15 +40,15 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.
             </p>
           </div>
-          <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setCreando(true)}>
+          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setCreando(true)}>
             Nueva cotización
           </BotonCompacto>
         </div>
 
         {vigentes.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Todavía no hay ninguna cotización cargada.</p>
+          <p data-guia="prod-cotizaciones.lista" className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Todavía no hay ninguna cotización cargada.</p>
         ) : (
-          <>
+          <div data-guia="prod-cotizaciones.lista">
             <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
               <span>Tipo de prenda</span>
               <span className="text-right">Precio</span>
@@ -59,7 +59,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
             {vigentes.map((c) => (
               <FilaCotizacion key={c.categoriaId} cotizacion={c} hoy={hoy} />
             ))}
-          </>
+          </div>
         )}
       </div>
 
@@ -160,6 +160,7 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
     <Modal titulo="Nueva cotización de maquila" subtitulo="Lo que cobraría un taller externo por maquilar este tipo de prenda hoy." onClose={onClose}>
       {(cerrar) => (
         <form onSubmit={onSubmit} className="space-y-4">
+          <div data-guia="prod-cotizacion-nueva.tipo">
           <CampoSelect
             etiqueta="Tipo de prenda"
             valor={categoriaId}
@@ -167,6 +168,8 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             opciones={categorias.map((c) => ({ valor: c.id, texto: c.nombre }))}
             marcador="Elegir tipo de prenda"
           />
+          </div>
+          <div data-guia="prod-cotizacion-nueva.precio">
           <CampoTexto
             id="cotizacion-precio"
             etiqueta="Precio de maquila (S/, por prenda)"
@@ -178,7 +181,8 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             onChange={(e) => setPrecio(e.target.value)}
             placeholder="22.50"
           />
-          <div className="grid grid-cols-2 gap-3">
+          </div>
+          <div data-guia="prod-cotizacion-nueva.fechas" className="grid grid-cols-2 gap-3">
             <CampoFecha id="cotizacion-fecha" etiqueta="Fecha de la cotización" valor={fechaCotizacion} onValor={onFechaCotizacion} />
             <CampoFecha
               id="cotizacion-vigencia"
@@ -190,6 +194,7 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
               }}
             />
           </div>
+          <div data-guia="prod-cotizacion-nueva.quien">
           <CampoTexto
             id="cotizacion-proveedor"
             etiqueta="Quién la dio (opcional)"
@@ -198,7 +203,8 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             placeholder="Taller Confecciones del Norte"
             pie="Para volver a pedirla cuando venza."
           />
-          <div className="flex gap-2 pt-1">
+          </div>
+          <div data-guia="prod-cotizacion-nueva.cargar" className="flex gap-2 pt-1">
             <button type="button" onClick={cerrar} className={botonCancelar}>
               Cancelar
             </button>
