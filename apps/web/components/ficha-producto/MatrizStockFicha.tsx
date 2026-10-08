@@ -317,6 +317,8 @@ export function MatrizStockFicha({
                           <button
                             type="button"
                             disabled={deshabilitado}
+                            aria-haspopup="dialog"
+                            data-guia="editar.corregir-talla"
                             title={`Corregir la talla ${nombreTalla}, si se registró mal`}
                             onClick={() => onCorregirTalla(t)}
                             className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"

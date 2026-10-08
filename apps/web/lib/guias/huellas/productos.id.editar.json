@@ -40,8 +40,8 @@
       "button «Deshacer» #2",
       "button «Deshacer» #3",
       "button «Deshacer» #4",
-      "button «Agregar color»",
-      "button «Agregar talla»",
+      "button «editar.agregar-color»",
+      "button «editar.agregar-talla»",
       "button «Ir a»"
     ],
     "components/RevisarFotosModal.tsx": [
@@ -148,7 +148,7 @@
     "components/ficha-producto/MatrizStockFicha.tsx": [
       "SegmentoDeslizante «Qué se escribe en la tabla»",
       "button «Reintentar»",
-      "button «{`Corregir la talla ${nombreTalla}»",
+      "button «editar.corregir-talla»",
       "button «{quitarTitulo}»",
       "button «{`Ver ${nombreColor}»",
       "button «{b.corregir.titulo}»",

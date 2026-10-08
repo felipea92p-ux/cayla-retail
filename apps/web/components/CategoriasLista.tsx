@@ -590,7 +590,7 @@ export function CategoriasLista({
           </div>
 
           {editando && !borrador.categoriaPadreId && (
-            <div className="mt-5 border-t border-tinta/10 pt-4">
+            <div data-guia="categorias.form-subcategorias" className="mt-5 border-t border-tinta/10 pt-4">
               <p className="label-cayla text-[11px] text-tinta/65">Subcategorías</p>
               {hijasDeEditada.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -768,7 +768,7 @@ export function CategoriasLista({
       )}
 
       {desactivadasVisibles.length > 0 && (
-        <section className="space-y-2">
+        <section data-guia="categorias.desactivadas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Desactivadas — no aparecen al crear productos nuevos</p>
           <div className="card-cayla flex flex-wrap gap-2 p-5">
             {desactivadasVisibles.map((c) => (
@@ -943,7 +943,7 @@ function VistaRapidaCategoria({
           </div>
 
           {temporada && (
-            <div>
+            <div data-guia="categorias.vista-temporada">
               <p className="label-cayla text-[10.5px] text-tinta/55">Temporada por defecto</p>
               <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
               <p className="mt-0.5 text-xs text-tinta/60">

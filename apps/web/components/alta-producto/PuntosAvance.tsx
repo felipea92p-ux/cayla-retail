@@ -57,7 +57,7 @@ export function PuntosAvance({ pasos, onAbrir }: { pasos: PasoConNombre[]; onAbr
               </>
             );
             return (
-              <li key={p.numero} className="puntos-paso" data-tipo={p.tipo} data-extremo={extremo} style={{ "--pos": p.posicion } as CSSProperties}>
+              <li key={p.numero} data-guia={`nuevo.punto-${p.numero}`} className="puntos-paso" data-tipo={p.tipo} data-extremo={extremo} style={{ "--pos": p.posicion } as CSSProperties}>
                 {p.tocable ? (
                   <button
                     type="button"

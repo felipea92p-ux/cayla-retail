@@ -149,9 +149,22 @@ export function MontosNuevas({
 }
 
 /** Los botones del pie de un modal: cancelar a la izquierda, la acción a la derecha. */
-export function PieModal({ onCancelar, texto, onConfirmar, deshabilitado }: { onCancelar: () => void; texto: string; onConfirmar: () => void; deshabilitado: boolean }) {
+export function PieModal({
+  onCancelar,
+  texto,
+  onConfirmar,
+  deshabilitado,
+  guia,
+}: {
+  onCancelar: () => void;
+  texto: string;
+  onConfirmar: () => void;
+  deshabilitado: boolean;
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */
+  guia?: string;
+}) {
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-sand pt-4">
+    <div data-guia={guia} className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-sand pt-4">
       <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
         Cancelar
       </button>

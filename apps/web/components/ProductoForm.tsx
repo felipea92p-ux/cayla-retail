@@ -1624,8 +1624,9 @@ export function ProductoForm({
               </p>
             )}
 
-            <div className="grid gap-x-2.5 @lg:grid-cols-2">
-              <button type="button" id="variantes-agregar-color" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading} onClick={() => setAgregandoColor(true)}>
+            <div data-guia="editar.agregar" className="grid gap-x-2.5 @lg:grid-cols-2">
+              {/* Solo abren su ventana (nada se guarda hasta «Revisar y guardar»): `aria-haspopup` lo dice al lector y deja que la guía las abra. */}
+              <button type="button" id="variantes-agregar-color" aria-haspopup="dialog" data-guia="editar.agregar-color" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading} onClick={() => setAgregandoColor(true)}>
                 <span aria-hidden className="taller-agregar-icono">
                   <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
                 </span>
@@ -1634,7 +1635,7 @@ export function ProductoForm({
                   <small>Una fila nueva, con sus tallas</small>
                 </span>
               </button>
-              <button type="button" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
+              <button type="button" aria-haspopup="dialog" data-guia="editar.agregar-talla" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
                 <span aria-hidden className="taller-agregar-icono">
                   <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
                 </span>

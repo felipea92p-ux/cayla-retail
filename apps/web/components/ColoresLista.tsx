@@ -416,6 +416,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   return (
     <div className="space-y-6">
       <BarraAtributos
+        guia="atributos.barra-colores"
         etiqueta="Filtrar colores"
         filtros={
           <>
@@ -475,7 +476,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         )}
                         {/* Desactivar un color vive dentro de Editar: si todavía lo usa alguna variante activa, la pantalla se bloquea y dice cuántas. */}
                         <PieTarjeta>
-                          <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
+                          <AccionTarjeta onClick={() => setEditando(c)} guia="atributos.color-editar">Editar</AccionTarjeta>
                         </PieTarjeta>
                       </>
                     )}
@@ -800,7 +801,7 @@ function ColorEditarModal({
         <div className="mt-5 space-y-4">
           {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
               quedaban el doble de grandes que los de Notas hacia abajo. */}
-          <div className="space-y-1">
+          <div data-guia="atributos.color-form" className="space-y-1">
             <CampoGuiado id="nombre" guia={guia}>
               <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </CampoGuiado>
@@ -853,6 +854,7 @@ function ColorEditarModal({
             <ComboResponsable control={responsable} deshabilitado={ocupado} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
+          <div data-guia="atributos.color-pie" className="space-y-4">
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
               Cancelar
@@ -883,6 +885,7 @@ function ColorEditarModal({
             </button>
             . Se bloquea si todavía hay una prenda activa con este color.
           </p>
+          </div>
         </div>
       )}
     </Modal>

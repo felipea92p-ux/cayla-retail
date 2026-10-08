@@ -28,7 +28,7 @@
       "CampoTexto «{guia.etiqueta(\"pantone\", \"Pantone (TCX)\")}» #2",
       "CampoTexto «Sinónimos» #2",
       "button «Cambiar color»",
-      "ComboResponsable «Cancelar» #2",
+      "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar» #3",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
       "button «{responsable.motivo ?? undefined}»"
@@ -143,7 +143,7 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/TemporadasLista.tsx": [
-      "button «{children}»",
+      "button «{guia}»",
       "Volver «→alLista»",
       "BotonFiltro «Todas»",
       "BotonFiltro «{GRUPOS_TEMPORADA[g].grupo}»",

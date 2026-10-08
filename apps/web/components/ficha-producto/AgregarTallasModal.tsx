@@ -71,7 +71,7 @@ export function AgregarTallasModal({
   return (
     <Modal titulo="Agregar talla" subtitulo="Llegó una talla que la prenda no tenía" onClose={onClose} ancho="max-w-2xl">
       {(cerrar) => (
-        <div className="space-y-5">
+        <div data-guia="agregar-talla.cuerpo" className="space-y-5">
           {disponibles.length === 0 ? (
             <p className="text-sm text-tinta/80">
               Esta prenda ya tiene todas las tallas habilitadas en {categoriaNombre ?? "su categoría"}. Para ofrecer otra, habilítala primero en Catálogo → Categorías.

@@ -58,7 +58,7 @@ export default async function MarcasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-guia="marcas.cabecera">
         <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Marcas

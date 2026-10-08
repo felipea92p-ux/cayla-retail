@@ -80,7 +80,7 @@ export function CambiarEnBloque({
   }
 
   return (
-    <div className="rounded-xl border border-sand bg-papel px-3 py-2.5">
+    <div data-guia="editar.bloque" className="rounded-xl border border-sand bg-papel px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2 text-sm text-tinta/80">
         <span>Cambiar</span>
         {campoFijo ? (

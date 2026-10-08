@@ -39,6 +39,7 @@ export function BarraAtributos({
   filtros,
   busqueda,
   agregar,
+  guia,
 }: {
   /** El nombre del grupo de píldoras: «Filtrar tallas». */
   etiqueta: string;
@@ -46,9 +47,12 @@ export function BarraAtributos({
   filtros: ReactNode;
   busqueda?: Busqueda;
   agregar?: { texto: string; onClick: () => void };
+  /** Ancla de la guía interactiva para la barra entera (`data-guia`, ADR-0362). Una por pestaña: al cambiar de pestaña, la
+   *  guía tiene que encontrar la barra NUEVA, no la de la pestaña que se está yendo. */
+  guia?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+    <div data-guia={guia} className="flex flex-wrap items-center gap-x-6 gap-y-3">
       <div role="group" aria-label={etiqueta} data-guia="vocabulario.filtros" className="flex flex-wrap items-center gap-1.5">
         {filtros}
       </div>
