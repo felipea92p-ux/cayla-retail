@@ -683,8 +683,10 @@ function RegistrarClientaEnTicket({
       className="space-y-6"
     >
       <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">
-        <div className="grid grid-cols-[11rem_1fr] items-start gap-3 max-sm:grid-cols-1">
-          <CampoTipoDocumento tipo={tipo} onTipo={(t) => onCambiar({ documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, alta.documentoNumero) })} />
+        {/* En el celular, tipo y número en UNA fila: con el teclado arriba queda poco alto y el número (donde se escribe) no
+            debe quedar bajo el pie. */}
+        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]">
+          <CampoTipoDocumento corto tipo={tipo} onTipo={(t) => onCambiar({ documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, alta.documentoNumero) })} />
           {esDni ? (
             // Solo el DNI consulta el padrón (ADR-0008, ADR-0288 D-2). Si no responde, el nombre se escribe aquí mismo.
             <ConsultaDocumento
@@ -728,15 +730,16 @@ function RegistrarClientaEnTicket({
       </CampoGuiado>
 
       {/* Pegado al borde de abajo (`pie-hoja-fijo`): con el teclado del celular abierto, «Registrar» sigue a la vista. */}
-      <div className="pie-hoja-fijo space-y-3">
+      {/* «Falta» y los botones comparten fila si caben: en el celular, con el teclado arriba, cada fila cuenta. */}
+      <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
         <PieGuia guia={guia} listo="Todo listo para registrar." />
-        <div className="flex justify-end gap-3 pt-2">
-        <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
-          Volver
-        </Boton>
-        <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-          {guardando ? "Registrando…" : "Registrar"}
-        </Boton>
+        <div className="ml-auto flex gap-3">
+          <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
+            Volver
+          </Boton>
+          <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            {guardando ? "Registrando…" : "Registrar"}
+          </Boton>
         </div>
       </div>
     </form>
