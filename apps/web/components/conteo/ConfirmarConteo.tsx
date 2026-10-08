@@ -261,7 +261,7 @@ export function ConfirmarConteo({
             {notaArranque.texto}
           </p>
         ) : (
-          <p className="nota-cayla flex items-start gap-2">
+          <p className="nota-cayla sin-i flex items-start gap-2">
             <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
             {notaArranque.texto}
           </p>

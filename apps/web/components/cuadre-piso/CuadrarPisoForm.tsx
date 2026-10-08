@@ -652,7 +652,7 @@ export function CuadrarPisoForm({
           {/* Antes de la primera lectura, lo que hay que cuidar; ya escaneando, una línea (en el celular, el campo tiene que verse sin
               bajar la pantalla). */}
           {datos.lineas.length === 0 && datos.pendientes.length === 0 ? (
-            <ul className="nota-cayla list-disc space-y-1 pl-8 text-sm">
+            <ul className="nota-cayla sin-i list-disc space-y-1 pl-8 text-sm">
               <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
               <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
               <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
