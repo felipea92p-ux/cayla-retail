@@ -142,9 +142,26 @@ export function InputFin({ className = "", ...resto }: InputHTMLAttributes<HTMLI
 }
 
 /** Un campo: etiqueta chica, el control y (si hay) una ayuda debajo. `tono="aviso"` pinta la ayuda en ámbar. */
-export function CampoFin({ etiqueta, htmlFor, ayuda, tono, children, className = "" }: { etiqueta: ReactNode; htmlFor?: string; ayuda?: ReactNode; tono?: "aviso"; children: ReactNode; className?: string }) {
+export function CampoFin({
+  etiqueta,
+  htmlFor,
+  ayuda,
+  tono,
+  children,
+  className = "",
+  guia,
+}: {
+  etiqueta: ReactNode;
+  htmlFor?: string;
+  ayuda?: ReactNode;
+  tono?: "aviso";
+  children: ReactNode;
+  className?: string;
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */
+  guia?: string;
+}) {
   return (
-    <div className={`fin-campo ${className}`}>
+    <div className={`fin-campo ${className}`} data-guia={guia}>
       {htmlFor ? <label htmlFor={htmlFor}>{etiqueta}</label> : <span className="fin-etiqueta">{etiqueta}</span>}
       {children}
       {ayuda && (
@@ -218,9 +235,9 @@ export function OpcionesFin<T extends string>({
 }
 
 /** Lista de pares «dato · valor» (el detalle de un gasto o de un activo). */
-export function ListaDatos({ filas }: { filas: { dato: ReactNode; valor: ReactNode; tenue?: boolean }[] }) {
+export function ListaDatos({ filas, guia }: { filas: { dato: ReactNode; valor: ReactNode; tenue?: boolean }[]; /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */ guia?: string }) {
   return (
-    <ul className="fin-lista">
+    <ul className="fin-lista" data-guia={guia}>
       {filas.map((f, i) => (
         <li key={i}>
           <span>{f.dato}</span>

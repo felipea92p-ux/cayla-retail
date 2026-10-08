@@ -314,7 +314,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </table>
       </div>
       {sinMeta.length > 0 && (
-        <p className="fin-nota-bloque">
+        <p className="fin-nota-bloque" data-guia="fin-flujo.sin-meta">
           <b>{sinMeta.map((t) => t.nombre).join(" y ")}</b> {sinMeta.length === 1 ? "no tiene" : "no tienen"} meta{sinMeta.some((t) => t.origen === "mixto") ? " algunos días" : ""}: se
           espera lo que cobró en promedio esos mismos días de la semana en las últimas 8 semanas. Ponle meta en{" "}
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2 hover:text-rojo">
@@ -324,7 +324,7 @@ function LoQueViene({ p }: { p: Proyeccion }) {
         </p>
       )}
       {!p.planillaVisible && <p className="fin-nota-bloque">La planilla no se ve desde tu cuenta en Dynamic: no está en lo que sale.</p>}
-      <p className="fin-nota-bloque">
+      <p className="fin-nota-bloque" data-guia="fin-flujo.config">
         El mínimo de caja y los avisos se cambian en{" "}
         <Link href="/configuracion?tab=caja" className="underline underline-offset-2 hover:text-rojo">
           Configuración ▸ Caja y avisos

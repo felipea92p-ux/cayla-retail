@@ -136,6 +136,7 @@ export function EscenariosPanel({
 
             {nombreTienda && alquilerActual !== null && alquilerActual > 0 && (
               <Deslizador
+                guia="fin-escenarios.alquiler"
                 id="esc-alquiler"
                 nombre={`Alquiler de ${nombreTienda}`}
                 valor={Math.round(p.alquilerTienda ?? alquilerActual)}
@@ -149,6 +150,7 @@ export function EscenariosPanel({
             )}
             {nombreTienda && (
               <Deslizador
+                guia="fin-escenarios.ventas-tienda"
                 id="esc-ventas-tienda"
                 nombre={`Ventas de ${nombreTienda}`}
                 valor={p.ventasTienda}
@@ -161,6 +163,7 @@ export function EscenariosPanel({
               />
             )}
             <Deslizador
+              guia="fin-escenarios.ventas-todas"
               id="esc-ventas-todas"
               nombre="Ventas de todas las tiendas"
               valor={p.ventasTodas}
@@ -189,7 +192,7 @@ export function EscenariosPanel({
                   </span>
                 </label>
                 {p.moverPago && (
-                  <div className="fin-opcion-esc-campos">
+                  <div className="fin-opcion-esc-campos" data-guia="fin-escenarios.mover-pago-campos">
                     <SelectFin
                       etiqueta="Qué pago"
                       valor={p.moverPago.id}
@@ -235,7 +238,7 @@ export function EscenariosPanel({
                 </span>
               </label>
               {p.gastoNuevo && proyeccion && (
-                <div className="fin-opcion-esc-campos">
+                <div className="fin-opcion-esc-campos" data-guia="fin-escenarios.gasto-campos">
                   <div className="fin-con-unidad">
                     <span>S/</span>
                     <InputFin
@@ -362,7 +365,7 @@ export function EscenariosPanel({
         </div>
       </section>
 
-      <div className="nota-cayla">
+      <div className="nota-cayla" data-guia="fin-escenarios.nota">
         Un escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender 15 % más requiere un plan. Lo que sí hace es decirte{" "}
         <b>cuánto vale</b> cada decisión antes de tomarla.
       </div>
@@ -371,6 +374,7 @@ export function EscenariosPanel({
 }
 
 function Deslizador({
+  guia,
   id,
   nombre,
   valor,
@@ -381,6 +385,8 @@ function Deslizador({
   deshabilitado = false,
   onValor,
 }: {
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0362): cada deslizador explica otra cosa. */
+  guia: string;
   id: string;
   nombre: string;
   valor: number;
@@ -392,7 +398,7 @@ function Deslizador({
   onValor: (v: number) => void;
 }) {
   return (
-    <div className="fin-campo-esc" data-apagado={deshabilitado ? "" : undefined} data-guia="fin-escenarios.deslizador">
+    <div className="fin-campo-esc" data-apagado={deshabilitado ? "" : undefined} data-guia={guia}>
       <label htmlFor={id}>
         {nombre}
         <b>{texto}</b>

@@ -540,7 +540,7 @@ function VistaTienda({
   const enCurso = unidad.hasta === hoy;
   return (
     <>
-      <section className="fin-cifras">
+      <section className="fin-cifras" data-guia="fin-balance.tienda-cifras">
         <TarjetaCifra etiqueta="Invertido" valor={solesBalance(unidad.invertido)} {...entra(1)}>
           lo que tiene menos lo que debe
         </TarjetaCifra>
@@ -566,7 +566,7 @@ function VistaTienda({
           <CabeceraBloque titulo={tituloCorte(corte, hoy)} bajada={`Lo que es de ${unidad.nombre}.`}>
             {selectorCorte}
           </CabeceraBloque>
-          <div className="fin-balance">
+          <div className="fin-balance" data-guia="fin-balance.tienda-detalle">
             <div>
               <h3>Lo que tiene</h3>
               <ul>
@@ -632,7 +632,7 @@ function VistaTienda({
         </Superficie>
       </div>
 
-      <div {...entra(6, "nota-cayla")}>
+      <div {...entra(6, "nota-cayla")} data-guia="fin-balance.tienda-nota">
         No es un Balance completo: el <b>banco</b>, el <b>capital</b> y el <b>IGV</b> son de CAYLA entera y no se reparten entre las
         tiendas (repartirlos sería inventar un número). Aquí está lo que es de la tienda y cuánto le rinde: la utilidad del mes (Estado
         de resultados) ÷ lo invertido.

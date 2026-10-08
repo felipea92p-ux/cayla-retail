@@ -174,7 +174,7 @@ export function SaldosArranqueModal({
             const filas = propuesta.filter((p) => ladoDeCuenta(p.cuenta, p.tipo) === lado);
             if (!filas.length) return null;
             return (
-              <div key={lado} className="fin-arranque-grupo" data-guia="fin-balance.arranque-grupo">
+              <div key={lado} className="fin-arranque-grupo" data-guia={`fin-balance.arranque-${lado}`}>
                 <h4>{titulo}</h4>
                 {filas.map((p) => {
                   const editable = hayArranque || p.origen === "manual";

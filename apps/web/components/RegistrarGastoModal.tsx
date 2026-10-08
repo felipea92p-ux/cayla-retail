@@ -239,7 +239,7 @@ export function RegistrarGastoModal({
         : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
   const bloqueComprobante = (
-    <>
+    <div data-guia="fin-gastos.form-comprobante">
         <CampoFin etiqueta="¿Tiene comprobante de un proveedor?">
           <RadiosFin nombre="gasto-comprobante" etiqueta="Comprobante" valor={b.comprobante} onValor={elegirComprobante} opciones={comprobantes.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))} />
         </CampoFin>
@@ -336,14 +336,14 @@ export function RegistrarGastoModal({
             )}
           </div>
         )}
-    </>
+    </div>
   );
 
   return (
     <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={() => avisoSalida.pedirAccion(onCerrar)} ancho="max-w-[620px]">
       {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
       {!esActivo && bloqueComprobante}
-      <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]">
+      <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">
         {esActivo ? (
           <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
             <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
@@ -388,7 +388,7 @@ export function RegistrarGastoModal({
           </CampoFin>
         </div>
       ) : (
-        <div className="fin-dos-campos">
+        <div className="fin-dos-campos" data-guia="fin-gastos.form-categoria">
           <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
             <SelectFin
               id="gasto-categoria"
@@ -412,7 +412,7 @@ export function RegistrarGastoModal({
 
       {esActivo && bloqueComprobante}
 
-      <div className="fin-dos-campos">
+      <div className="fin-dos-campos" data-guia="fin-gastos.form-monto">
         <CampoFin etiqueta={esActivo ? "Costo (con IGV)" : "Total pagado (con IGV)"} htmlFor="gasto-monto" ayuda={egreso ? "Es lo que salió del cajón: no se cambia." : undefined}>
           <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
         </CampoFin>
@@ -421,7 +421,9 @@ export function RegistrarGastoModal({
         </CampoFin>
       </div>
 
+      {/* Guía interactiva (ADR-0362): la condición y de dónde salió, juntas en un recorte. */}
       {!egreso && (
+        <div data-guia="fin-gastos.form-pago">
         <CampoFin etiqueta="¿Cómo se paga?">
           <RadiosFin
             nombre="gasto-condicion"
@@ -434,9 +436,7 @@ export function RegistrarGastoModal({
             ]}
           />
         </CampoFin>
-      )}
 
-      {!egreso && (
         <div className="fin-dos-campos" data-sin-cascada>
           {aCredito ? (
             <CampoFin etiqueta="Vence" htmlFor="gasto-vence" ayuda="Queda en Compras ▸ Por pagar hasta ese día.">
@@ -492,6 +492,7 @@ export function RegistrarGastoModal({
             </CampoFin>
           )}
         </div>
+        </div>
       )}
       {!egreso && !aCredito && conCuentas && bancoConMedio && (
         <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
@@ -501,7 +502,7 @@ export function RegistrarGastoModal({
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
 
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-gastos.form-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando}>
           Cancelar
         </button>

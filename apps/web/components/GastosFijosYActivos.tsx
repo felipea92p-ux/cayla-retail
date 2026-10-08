@@ -559,6 +559,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
                     data-clic
                     tabIndex={0}
                     className={a.estado !== "activo" ? "fin-suave" : undefined}
+                    data-guia="fin-gastos.activo-fila"
                     onClick={() => onAbrir(a)}
                     onKeyDown={(ev) => {
                       if (ev.key === "Enter" || ev.key === " ") {
@@ -702,6 +703,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
       ancho="max-w-[520px]"
     >
       <ListaDatos
+        guia="fin-gastos.activo-detalle"
         filas={[
           { dato: a.cargaInicial ? "Costo (lo que se pagó)" : "Costo (sin IGV)", valor: soles(a.costo) },
           { dato: "Vida útil", valor: textoVidaUtil(a.vidaUtilMeses) },
@@ -717,7 +719,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
           ...(a.registradoPor ? [{ dato: "Lo registró", valor: a.registradoPor, tenue: true }] : []),
         ]}
       />
-      <div className="fin-botones">
+      <div className="fin-botones" data-guia="fin-gastos.activo-botones">
         {a.estado === "activo" && puedeAnularActivo(a) && (
           <button type="button" className="btn-cayla btn-sutil" onClick={() => setAccion("anular")}>
             Se registró por error…

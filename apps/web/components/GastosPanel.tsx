@@ -153,11 +153,11 @@ export function GastosPanel({
               <Chip versalitas={false}>{nombreCorto}</Chip>
             )}
             {pestana === "activos" ? (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} data-guia="fin-gastos.registrar">
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({ clase: "activo" })} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
                 + Registrar activo
               </Boton>
             ) : (
-              <Boton type="button" peso="primario" onClick={() => setRegistrar({})} data-guia="fin-gastos.registrar">
+              <Boton type="button" peso="primario" onClick={() => setRegistrar({})} aria-haspopup="dialog" data-guia="fin-gastos.registrar">
                 + Registrar gasto
               </Boton>
             )}
@@ -394,6 +394,7 @@ function TablaGastos({
                       data-clic
                       tabIndex={0}
                       className={g.estado === "anulado" ? "fin-anulada" : undefined}
+                      data-guia="fin-gastos.fila"
                       onClick={() => onAbrir(g)}
                       onKeyDown={(ev) => {
                         if (ev.key === "Enter" || ev.key === " ") {
@@ -509,6 +510,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
       ancho="max-w-[520px]"
     >
       <ListaDatos
+        guia="fin-gastos.detalle"
         filas={[
           { dato: "Total", valor: soles(g.montoTotal) },
           { dato: "IGV descontable", valor: soles(g.igv) },
@@ -520,7 +522,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
         ]}
       />
       {pendiente && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>}
-      <div className="fin-botones">
+      <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
         {puedeAnular(g) && (
           <button type="button" className="btn-cayla btn-sutil" onClick={() => setAnulando(true)}>
@@ -647,7 +649,7 @@ function ClasificarEgresoModal({
     >
       <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} guia="fin-gastos.clasificar-opciones" />
       {que === "gasto" && (
-        <div data-sin-cascada>
+        <div data-sin-cascada data-guia="fin-gastos.clasificar-gasto">
           <div className="fin-dos-campos">
             <CampoFin etiqueta="Categoría" htmlFor="clas-categoria" ayuda={cat ? `Va a la cuenta ${cat.cuenta}. Nadie la elige: viene con la categoría.` : undefined}>
               <SelectFin

@@ -209,6 +209,12 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
   );
 }
 
+/** «2026-10» → «2026-09»: el mes que se declara ahora (la pantalla abre en él). */
+function mesAnteriorA(mes: string): string {
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
+}
+
 function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: string; activa: boolean; onAbrir: () => void }) {
   const e = TEXTO_ESTADO_MES[estadoMes(m, mesActual)];
   return (
@@ -217,6 +223,8 @@ function FilaMes({ m, mesActual, activa, onAbrir }: { m: MesIgv; mesActual: stri
       tabIndex={0}
       aria-current={activa ? "true" : undefined}
       className={activa ? "fin-fila-activa" : undefined}
+      // Guía interactiva (ADR-0362): el mes en curso y el que se declara ahora, para pasar de uno al otro y volver.
+      data-guia={m.mes === mesActual ? "fin-impuestos.mes-en-curso" : m.mes === mesAnteriorA(mesActual) ? "fin-impuestos.mes-a-declarar" : undefined}
       onClick={onAbrir}
       onKeyDown={(ev) => {
         if (ev.key === "Enter" || ev.key === " ") {

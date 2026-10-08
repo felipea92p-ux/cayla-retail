@@ -134,7 +134,7 @@ export function PantallaDinero({
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
               )}
-              <Boton type="button" peso="primario" onClick={() => setModal("deposito")} data-guia="fin-dinero.registrar">
+              <Boton type="button" peso="primario" onClick={() => setModal("deposito")} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
                 + Registrar movimiento
               </Boton>
             </>
@@ -255,10 +255,10 @@ export function CuentasPanel({
             }
           >
             <div className="flex shrink-0 gap-2">
-              <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrir("dueno_pone")}>
+              <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrir("dueno_pone")} aria-haspopup="dialog" data-guia="fin-dinero.poner-plata">
                 Poner plata
               </button>
-              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => abrir("dueno_saca")}>
+              <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => abrir("dueno_saca")} aria-haspopup="dialog">
                 Sacar plata
               </button>
             </div>
@@ -338,13 +338,13 @@ export function CuentasPanel({
       )}
 
       {esLider && verTodas && totalSinCuenta !== 0 && (
-        <p className="nota-cayla anim-sube">
+        <p className="nota-cayla anim-sube" data-guia="fin-dinero.sin-cuenta">
           Este mes, <b>{soles(Math.abs(totalSinCuenta))}</b> movieron plata sin decir de qué cuenta:{" "}
           {sinCuenta.map((s) => `${s.n} ${TEXTO_SIN_CUENTA[s.origen] ?? s.origen} (${soles(Math.abs(s.monto))})`).join(", ")}. No suman en ningún saldo hasta que digan su cuenta.
           {sinCuenta.some((s) => s.origen !== "cobros") && (
             <>
               {" "}
-              <button type="button" className="btn-enlace" onClick={() => setDecirCuenta(true)}>
+              <button type="button" className="btn-enlace" onClick={() => setDecirCuenta(true)} aria-haspopup="dialog" data-guia="fin-dinero.decir-cuenta">
                 Decir de qué cuenta fue →
               </button>
             </>
@@ -380,6 +380,7 @@ export function CuentasPanel({
                     data-clic
                     tabIndex={0}
                     className={m.estado === "anulado" ? "fin-anulada" : undefined}
+                    data-guia="fin-dinero.movimiento"
                     onClick={() => setDetalle(m)}
                     onKeyDown={(ev) => {
                       if (ev.key === "Enter" || ev.key === " ") {
@@ -870,7 +871,7 @@ function RegistrarMovimientoModal({
 
   return (
     <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} ancho="max-w-[580px]">
-      <CampoFin etiqueta="Qué pasó" htmlFor="mov-que">
+      <CampoFin etiqueta="Qué pasó" htmlFor="mov-que" guia="fin-dinero.mov-que">
         <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
 
@@ -878,6 +879,7 @@ function RegistrarMovimientoModal({
         <div data-sin-cascada>
           <span className="fin-etiqueta mb-1.5 block text-xs text-taupe">¿Cómo entra esta plata?</span>
           <OpcionesFin
+            guia="fin-dinero.mov-dueno"
             nombre="mov-dueno"
             etiqueta="Cómo entra esta plata"
             valor={b.clase}
@@ -905,7 +907,7 @@ function RegistrarMovimientoModal({
         </div>
       )}
 
-      <div className="fin-dos-campos" data-sin-cascada>
+      <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-cuentas">
         {op.origen && (
           <CampoFin etiqueta="De" htmlFor="mov-de" className={op.destino ? undefined : "col-span-2"}>
             <SelectFin
@@ -933,7 +935,7 @@ function RegistrarMovimientoModal({
       </div>
 
       {esCajon && (
-        <div data-sin-cascada>
+        <div data-sin-cascada data-guia="fin-dinero.mov-cajon">
           <CampoFin etiqueta="La plata del cajón">
             <RadiosFin
               nombre="mov-fuente"
@@ -968,7 +970,7 @@ function RegistrarMovimientoModal({
         </div>
       )}
 
-      <div className="fin-dos-campos">
+      <div className="fin-dos-campos" data-guia="fin-dinero.mov-monto">
         <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : "Monto"} htmlFor="mov-monto">
           {esCajon && b.fuente === "egreso" ? (
             <InputFin id="mov-monto" readOnly value={egresos.find((e) => e.id === b.egresoId) ? soles(egresos.find((e) => e.id === b.egresoId)!.monto) : "—"} />
@@ -982,7 +984,7 @@ function RegistrarMovimientoModal({
       </div>
 
       {!esCajon && (
-        <div className="fin-dos-campos" data-sin-cascada>
+        <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-fecha">
           <CampoFin etiqueta="Fecha" htmlFor="mov-fecha">
             <InputFin id="mov-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
           </CampoFin>
@@ -995,7 +997,7 @@ function RegistrarMovimientoModal({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-dinero.mov-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
@@ -1060,6 +1062,7 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
       ancho="max-w-[520px]"
     >
       <ListaDatos
+        guia="fin-dinero.movimiento-detalle"
         filas={[
           { dato: "De", valor: m.origenNombre ?? "El dueño" },
           { dato: "A", valor: m.destinoNombre ?? "Sale del negocio" },
