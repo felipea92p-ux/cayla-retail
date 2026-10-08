@@ -190,6 +190,7 @@ export function FichaPrevia({
           Sin `parecidas` el resumen es el de siempre: una sola columna sin tope. */}
       <aside
         aria-label="La prenda que vas a crear"
+        data-guia="nuevo.ficha"
         className={`hidden lg:sticky lg:top-6 ${parecidas ? "lg:flex lg:max-h-[calc(100dvh-3rem)] lg:flex-col lg:gap-3" : "space-y-3 lg:block"}`}
       >
         <div className={`space-y-3 ${parecidas ? "min-h-0 flex-1 overflow-y-auto lg:-mx-1.5 lg:px-1.5" : ""}`}>
@@ -204,7 +205,7 @@ export function FichaPrevia({
             />
           )}
         </div>
-        <div className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
+        <div data-guia="nuevo.crear" className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
           <div className="flex gap-2">
             <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
               Cancelar
@@ -220,7 +221,7 @@ export function FichaPrevia({
       {/* Celular y tablet: barra pegada abajo */}
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
-      <div data-barra-ficha className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
+      <div data-barra-ficha data-guia="nuevo.barra" className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
         {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
         {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (

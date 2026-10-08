@@ -80,7 +80,7 @@ export function PanelDelTaller({
 
   return (
     <aside aria-label="Identidad y stock de la prenda" className="taller-panel min-w-0 @min-[50rem]:sticky @min-[50rem]:top-6">
-      <div className="taller-panel-foto">
+      <div data-guia="editar.foto" className="taller-panel-foto">
         <div className="taller-foto-grande">
           {foto ? (
             <Image key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" unoptimized />
@@ -148,7 +148,7 @@ export function PanelDelTaller({
 
       {/* Una prenda «Sin color» (ninguna variante tiene color) también muestra su stock por talla: antes el panel lo escondía. */}
       {(colorMostrado !== null || colores.length === 0) && delColor.length > 0 && (
-        <div className="taller-tarjeta">
+        <div data-guia="editar.stock-talla" className="taller-tarjeta">
           <p className="taller-tit mb-2.5 flex justify-between">
             <span>Stock por talla</span>
             <span>{n.color(colorMostrado)}</span>
@@ -222,14 +222,14 @@ export function PanelDelTaller({
       )}
 
       {precios.length > 0 && (
-        <div className="taller-tarjeta flex items-center justify-between">
+        <div data-guia="editar.precio" className="taller-tarjeta flex items-center justify-between">
           <span className="taller-tit">Precio de la prenda</span>
           <span className="taller-rango">{rangoDePrecios(precios).replace("–", " – ")}</span>
         </div>
       )}
 
       {pendiente ? (
-        <button type="button" className="taller-tarjeta taller-guia" onClick={() => onIrPendiente(pendiente, primerSinFoto)} title={pendiente.detalle}>
+        <button type="button" data-guia="editar.falta" className="taller-tarjeta taller-guia" onClick={() => onIrPendiente(pendiente, primerSinFoto)} title={pendiente.detalle}>
           <span className="taller-hilo" aria-hidden />
           <span>
             Falta <b>{pendiente.etiqueta.charAt(0).toLowerCase() + pendiente.etiqueta.slice(1)}</b>
@@ -245,7 +245,7 @@ export function PanelDelTaller({
         )
       )}
 
-      <p className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
+      <p data-guia="editar.guardar" className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
       {revision}
     </aside>
   );

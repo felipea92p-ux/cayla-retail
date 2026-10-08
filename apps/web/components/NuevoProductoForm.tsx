@@ -1224,7 +1224,9 @@ export function NuevoProductoForm({
             <div className="min-w-0 space-y-2.5">
               {/* Los 4 puntos, pegados arriba mientras se baja por el paso (ADR-0260 act. 2026-10-06). */}
               <PuntosAvance pasos={avance} onAbrir={(n) => irAPaso(n as NumeroPaso)} />
-              <QuienRegistra control={responsable} deshabilitado={cargando} />
+              <div data-guia="nuevo.quien">
+                <QuienRegistra control={responsable} deshabilitado={cargando} />
+              </div>
               <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
               {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
                   operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}

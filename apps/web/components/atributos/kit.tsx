@@ -49,14 +49,14 @@ export function BarraAtributos({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div role="group" aria-label={etiqueta} className="flex flex-wrap items-center gap-1.5">
+      <div role="group" aria-label={etiqueta} data-guia="vocabulario.filtros" className="flex flex-wrap items-center gap-1.5">
         {filtros}
       </div>
       {(busqueda || agregar) && (
         <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
           {busqueda && <Buscador {...busqueda} />}
           {agregar && (
-            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0">
+            <Boton type="button" peso="primario" onClick={agregar.onClick} className="shrink-0" data-guia="vocabulario.agregar">
               {agregar.texto}
             </Boton>
           )}
@@ -69,7 +69,7 @@ export function BarraAtributos({
 function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda) {
   const [enfocado, setEnfocado] = useState(false);
   return (
-    <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
+    <div data-guia="vocabulario.buscador" className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
       <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
       <input
         type="search"
@@ -184,6 +184,7 @@ export function TarjetaAtributo({
   );
   return (
     <div
+      data-guia="vocabulario.tarjeta"
       className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
@@ -221,11 +222,12 @@ export function PieTarjeta({ children }: { children: ReactNode }) {
 }
 
 /** Un enlace del pie. Cada uno en una sola línea: «Configurar campaña» partido en dos se leía como dos acciones. */
-export function AccionTarjeta({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+export function AccionTarjeta({ onClick, children, guia }: { onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (`data-guia`, ADR-0362). */ guia?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      data-guia={guia}
       className="label-cayla whitespace-nowrap text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
     >
       {children}

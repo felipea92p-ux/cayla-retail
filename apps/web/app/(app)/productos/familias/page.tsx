@@ -36,7 +36,7 @@ export default async function FamiliasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-guia="familias.cabecera">
         {/* Se llega desde Categorías (cada categoría cuelga de una familia): la vuelta es allá. */}
         <Volver href="/productos/categorias" a="Categorías" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">

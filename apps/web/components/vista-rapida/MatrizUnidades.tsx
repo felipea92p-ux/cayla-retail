@@ -121,7 +121,7 @@ export function MatrizUnidades({
   const unidadesElegidas = celdasElegidas.some((c) => c.unidades === null) ? null : celdasElegidas.reduce((t, c) => t + (c.unidades ?? 0), 0);
 
   return (
-    <section ref={caja} className="vr-mx" aria-label="Unidades por color y talla" onPointerMove={brillo} onPointerLeave={apagarBrillo}>
+    <section ref={caja} data-guia="vista-rapida.matriz" className="vr-mx" aria-label="Unidades por color y talla" onPointerMove={brillo} onPointerLeave={apagarBrillo}>
       <div className="vr-mx-cab">
         <div style={{ minWidth: 0 }}>
           <span className="vr-rotulo label-cayla">Unidades por color y talla</span>
@@ -175,6 +175,7 @@ export function MatrizUnidades({
 
       <div
         className="vr-grid"
+        data-guia="vista-rapida.tabla"
         role="group"
         aria-label={`Unidades en ${sedeNombre}, por color y talla`}
         data-cruz={cruz.fila !== null || cruz.col !== null || undefined}

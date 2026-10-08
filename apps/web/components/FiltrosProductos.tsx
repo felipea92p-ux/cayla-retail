@@ -319,7 +319,7 @@ export function FiltrosProductos({
   // Conteo arriba y un solo «Ordenar por», fuera del panel (Felipe, 2026-10-02): ordenar no quita prendas, solo las acomoda.
   // Vive aquí (y no en la página) para que el orden y lo tecleado se apliquen sobre la misma URL vigente (`consultaVigente`).
   const barraResultados = (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div data-guia="productos.resultados" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p className="flex items-baseline gap-3 text-sm text-tinta/70">
         <span aria-live="polite">
           <strong className="font-semibold text-tinta">{totalProductos.toLocaleString("es-PE")}</strong>{" "}
@@ -536,7 +536,7 @@ export function FiltrosProductos({
   return (
     <div ref={raiz} className="space-y-2">
       <div className="flex items-start gap-2">
-        <div className="flex-1">
+        <div data-guia="productos.buscador" className="flex-1">
           <CampoTexto
             etiqueta={etiquetaBuscar}
             trabajando={buscando}
@@ -557,7 +557,7 @@ export function FiltrosProductos({
         </div>
         {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
             que el botón quede a la altura del input, no de toda la columna. */}
-        <div className="shrink-0">
+        <div data-guia="productos.filtros" className="shrink-0">
           <span aria-hidden className="label-cayla block text-[11px] text-transparent">
             {" "}
           </span>
@@ -566,7 +566,7 @@ export function FiltrosProductos({
       </div>
 
       {/* Computadora: el panel en la página, abierto salvo que en este equipo se haya cerrado. Celular: solo en la hoja. */}
-      {panelAbierto && !hojaAbierta && <div className="hidden md:block">{panel}</div>}
+      {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
         <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">

@@ -86,7 +86,9 @@ export function ProductosGrilla({
 
   return (
     <div className="space-y-4">
-      <SelectorTamanoGrilla valor={tamano} onCambiar={elegirTamano} />
+      <div data-guia="productos.tamano">
+        <SelectorTamanoGrilla valor={tamano} onCambiar={elegirTamano} />
+      </div>
       <div className={`grid ${CLASES_GRILLA[tamano]}`}>
         {productos.map((p) => (
           <TarjetaProducto
@@ -152,7 +154,7 @@ function TarjetaProducto({
   const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
 
   return (
-    <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
+    <div data-guia="productos.tarjeta" className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
       <button
         type="button"
         onClick={() => setVistaRapida(true)}
@@ -186,7 +188,7 @@ function TarjetaProducto({
 
       <div className={`flex flex-1 flex-col ${compacta ? "gap-2 px-3 py-3" : "gap-2.5 px-4 py-4"}`}>
         <div>
-          <p className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
+          <p data-guia="productos.nombre" className={`font-display leading-tight text-tinta ${compacta ? "text-[14px]" : "text-[17px]"}`}>{producto.referencia}</p>
           <p className="label-cayla mt-0.5 truncate text-[10px] text-tinta/55">
             {compacta ? (producto.codigo ?? "sin código") : `${producto.codigo ?? "sin código"} · ${producto.categoria ?? "sin categoría"}`}
           </p>
@@ -196,7 +198,7 @@ function TarjetaProducto({
         </div>
         <div className="h-px bg-sand" />
         {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
+        <div data-guia="productos.precio-stock" className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => v.precio)) ?? "—"}</span>
           <span
             title={EXPLICACION_STOCK_TOTAL}
@@ -240,7 +242,7 @@ function TarjetaProducto({
             {[lineas.detalle, ...lineas.avisos].filter(Boolean).join(" · ")}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2">
+        <div data-guia="productos.colores" className="flex items-center justify-between gap-2">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} max={3} onMas={() => setVistaRapida(true)} />
           <span className="min-w-0 truncate text-right text-[11px] text-tinta/55" title={activo?.nombre ?? undefined}>{activo?.nombre ?? ""}</span>
         </div>

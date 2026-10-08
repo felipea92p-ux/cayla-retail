@@ -152,7 +152,7 @@ export function MarcasLista({
           {activas.length} marca{activas.length === 1 ? "" : "s"} activa{activas.length === 1 ? "" : "s"}
         </p>
         <div className="ml-auto flex w-full items-center gap-3 sm:w-auto">
-          <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
+          <div data-guia="marcas.buscador" className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
             <Search aria-hidden className="pointer-events-none absolute left-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tinta/40" />
             <input
               type="search"
@@ -177,7 +177,7 @@ export function MarcasLista({
             <Hilo activo={buscando} />
           </div>
           {puedeEditar && (
-            <Boton className="shrink-0" onClick={() => setModo({ tipo: "nueva" })}>
+            <Boton className="shrink-0" onClick={() => setModo({ tipo: "nueva" })} data-guia="marcas.nueva">
               + Nueva marca
             </Boton>
           )}
@@ -201,7 +201,7 @@ export function MarcasLista({
 
       <ul className="grid gap-3 md:grid-cols-2">
         {activasVisibles.map((m) => (
-          <li key={m.id} className="card-cayla space-y-3 p-4">
+          <li key={m.id} data-guia="marcas.tarjeta" className="card-cayla space-y-3 p-4">
             <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
               <div>
                 <p className="text-base font-medium text-tinta">{m.nombre}</p>
@@ -211,6 +211,7 @@ export function MarcasLista({
                 <div className="flex shrink-0 gap-3">
                   <button
                     type="button"
+                    data-guia="marcas.editar"
                     onClick={() => setModo({ tipo: "editar", marca: m })}
                     className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo"
                   >
@@ -238,7 +239,7 @@ export function MarcasLista({
               )}
             </div>
 
-            <div>
+            <div data-guia="marcas.proveedores">
               <p className="label-cayla text-[10.5px] text-tinta/55">La trae</p>
               <ul className="mt-1.5 flex flex-wrap gap-1.5">
                 {m.proveedores.map((p) => (
@@ -255,7 +256,7 @@ export function MarcasLista({
       </ul>
 
       {desactivadasVisibles.length > 0 && (
-        <div className="space-y-2">
+        <div data-guia="marcas.desactivadas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/60">Desactivadas</p>
           <ul className="flex flex-wrap gap-2">
             {desactivadasVisibles.map((m) => (

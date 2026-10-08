@@ -21,7 +21,7 @@ export type PasoConNombre = PasoDeAvance & {
 export function PuntosAvance({ pasos, onAbrir }: { pasos: PasoConNombre[]; onAbrir: (numero: number) => void }) {
   const { puntos, lleno } = puntosDeAvance(pasos);
   return (
-    <nav aria-label="Avance del producto" data-puntos-avance className="puntos-avance">
+    <nav aria-label="Avance del producto" data-puntos-avance data-guia="nuevo.avance" className="puntos-avance">
       <div className="puntos-linea">
         <span aria-hidden className="puntos-pista" />
         <span aria-hidden className="puntos-relleno" style={{ "--lleno": lleno } as CSSProperties}>

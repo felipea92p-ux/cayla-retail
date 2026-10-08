@@ -37,6 +37,16 @@ import {
   GUIA_TRASLADO,
   GUIA_TRASLADOS,
 } from "./pantallas/inventario";
+import {
+  GUIA_ATRIBUTOS,
+  GUIA_CATEGORIAS,
+  GUIA_EDITAR_PRODUCTO,
+  GUIA_FAMILIAS,
+  GUIA_HISTORIAL_PRENDA,
+  GUIA_MARCAS,
+  GUIA_NUEVO_PRODUCTO,
+  GUIA_PRODUCTOS,
+} from "./pantallas/catalogo";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -74,10 +84,18 @@ export const GUIAS: readonly Guia[] = [
   GUIA_TRASLADO,
   GUIA_NUEVO_TRASLADO,
   GUIA_RECIBIR,
+  GUIA_PRODUCTOS,
+  GUIA_EDITAR_PRODUCTO,
+  GUIA_HISTORIAL_PRENDA,
+  GUIA_ATRIBUTOS,
+  GUIA_CATEGORIAS,
+  GUIA_FAMILIAS,
+  GUIA_MARCAS,
+  GUIA_NUEVO_PRODUCTO,
 ];
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 51;
+export const PENDIENTES_HOY = 43;
 
 const PENDIENTE: PantallaConGuia = { estado: "pendiente" };
 
@@ -172,16 +190,16 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/produccion/proveedores": PENDIENTE,
   "/produccion/recibir": PENDIENTE,
   // ---- productos ----
-  "/productos": PENDIENTE,
+  "/productos": { estado: "aplicada", guia: GUIA_PRODUCTOS.id },
   "/productos/@modal/(.)[id]/historial": { estado: "no-aplica", motivo: "La misma vista que /productos/[id]/historial abierta como hoja: comparte su guía." },
   "/productos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
-  "/productos/[id]/editar": PENDIENTE,
-  "/productos/[id]/historial": PENDIENTE,
-  "/productos/atributos": PENDIENTE,
-  "/productos/categorias": PENDIENTE,
-  "/productos/familias": PENDIENTE,
-  "/productos/marcas": PENDIENTE,
-  "/productos/nuevo": PENDIENTE,
+  "/productos/[id]/editar": { estado: "aplicada", guia: GUIA_EDITAR_PRODUCTO.id },
+  "/productos/[id]/historial": { estado: "aplicada", guia: GUIA_HISTORIAL_PRENDA.id },
+  "/productos/atributos": { estado: "aplicada", guia: GUIA_ATRIBUTOS.id },
+  "/productos/categorias": { estado: "aplicada", guia: GUIA_CATEGORIAS.id },
+  "/productos/familias": { estado: "aplicada", guia: GUIA_FAMILIAS.id },
+  "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
+  "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   // ---- rendimiento ----

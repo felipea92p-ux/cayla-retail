@@ -1,0 +1,30 @@
+{
+  "guia": "productos.familias",
+  "ruta": "/productos/familias",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 14,
+  "controles": {
+    "app/(app)/productos/familias/page.tsx": [
+      "Volver «Familias»"
+    ],
+    "components/ConfirmarConResponsable.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/FamiliasLista.tsx": [
+      "Boton «familias.agregar»",
+      "Boton «familias.editar»",
+      "Boton «Desactivar»",
+      "Boton «Reactivar»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "ComboResponsable «Ca»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "Link «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ]
+  }
+}

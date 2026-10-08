@@ -1,0 +1,57 @@
+{
+  "guia": "productos.categorias",
+  "ruta": "/productos/categorias",
+  "nota": "Huella de controles de la pantalla (ADR-0362). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 39,
+  "controles": {
+    "app/(app)/productos/categorias/page.tsx": [
+      "Link «Productos · Familias»",
+      "Link «Productos · Marcas»"
+    ],
+    "components/CategoriasLista.tsx": [
+      "BotonFiltro «Todas»",
+      "BotonFiltro «{f.nombre}»",
+      "CampoSelect «Categoría padre (opcional)»",
+      "CampoSelect «Familia»",
+      "CampoTexto «Nombre»",
+      "CampoTexto «Prefijo (3 letras)»",
+      "textarea «Solo la ve el equipo — nunca el cliente.»",
+      "Link «Atributos ▸ Temporadas»",
+      "button «{h.prefijo ?? \"—\"}»",
+      "CampoTexto «Nueva subcategoría»",
+      "CampoTexto «Prefijo»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «(sin nombre)»",
+      "button «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
+      "Boton «Reactivar»",
+      "Link «categorias.vista-productos»",
+      "button «{h.prefijo ?? \"—\"}» #2",
+      "Link «{temporada.nombre ? \"Cambiarla\" : \"Elegirla\"}»",
+      "Boton «Cerrar»",
+      "Boton «categorias.vista-editar»"
+    ],
+    "components/ConfirmarConResponsable.tsx": [
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/atributos/kit.tsx": [
+      "Boton «vocabulario.agregar»",
+      "input «{etiqueta}»",
+      "button «Borrar búsqueda»",
+      "Boton «Quitar filtros»",
+      "button «{abrir.titulo}»",
+      "Boton «Aprobar»",
+      "Boton «Rechazar»",
+      "button «{guia}»",
+      "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
+      "Boton «Reactivar»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "Link «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ]
+  }
+}

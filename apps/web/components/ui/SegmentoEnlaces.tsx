@@ -21,7 +21,14 @@ import type { ReactNode } from "react";
    se fue con él), las pistas sand de Grilla / Tabla y del tamaño de la grilla, y las pistas hueso escritas a mano.
    ==================================================================== */
 
-export type OpcionSegmento = { valor: string; etiqueta: string; href: string; icono?: ReactNode };
+export type OpcionSegmento = {
+  valor: string;
+  etiqueta: string;
+  href: string;
+  icono?: ReactNode;
+  /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0362): la demo la toca para cambiar de vista. */
+  guia?: string;
+};
 
 export function SegmentoEnlaces({
   opciones,
@@ -30,6 +37,7 @@ export function SegmentoEnlaces({
   reemplazar = true,
   scroll,
   className = "",
+  guia,
 }: {
   opciones: OpcionSegmento[];
   activo: string;
@@ -39,11 +47,13 @@ export function SegmentoEnlaces({
   /** `scroll` del enlace (Next lleva la vista arriba por defecto). */
   scroll?: boolean;
   className?: string;
+  /** El ancla de la guía interactiva para el segmento entero (`data-guia`, ADR-0362). */
+  guia?: string;
 }) {
   return (
-    <nav aria-label={etiquetaAccesible} className={`segmento-cayla ${className}`}>
+    <nav aria-label={etiquetaAccesible} data-guia={guia} className={`segmento-cayla ${className}`}>
       {opciones.map((o) => (
-        <Link key={o.valor} href={o.href} replace={reemplazar} scroll={scroll} aria-current={o.valor === activo ? "true" : undefined} className="segmento-cayla__opcion">
+        <Link key={o.valor} href={o.href} replace={reemplazar} scroll={scroll} aria-current={o.valor === activo ? "true" : undefined} data-guia={o.guia} className="segmento-cayla__opcion">
           {o.icono}
           {o.etiqueta}
         </Link>

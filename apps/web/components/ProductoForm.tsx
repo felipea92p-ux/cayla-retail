@@ -1208,6 +1208,7 @@ export function ProductoForm({
           {/* ---------- 1 · Producto ---------- */}
           <SeccionFicha
             id="seccion-producto"
+            guia="editar.seccion-producto"
             numero={1}
             hecho={!!referencia.trim() && !!categoriaId}
             titulo="Producto"
@@ -1279,6 +1280,7 @@ export function ProductoForm({
           {/* ---------- 2 · Tejido, patrón y estado ---------- */}
           <SeccionFicha
             id="seccion-tejido"
+            guia="editar.seccion-tejido"
             numero={2}
             hecho={!pendientes.some((p) => p.id === "tejido" || p.id === "patron")}
             titulo="Tejido, patrón y estado"
@@ -1473,6 +1475,7 @@ export function ProductoForm({
                id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
           <SeccionFicha
             id="fotos"
+            guia="editar.seccion-fotos"
             numero={3}
             hecho={!pendienteFotos}
             titulo="Fotos"
@@ -1507,6 +1510,7 @@ export function ProductoForm({
           {/* ---------- 4 · Variantes y precios (ADR-0263; matriz de la maqueta B) ---------- */}
           <SeccionFicha
             id="seccion-variantes"
+            guia="editar.seccion-variantes"
             numero={4}
             hecho={false}
             titulo="Variantes y precios"

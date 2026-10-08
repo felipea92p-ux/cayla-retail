@@ -195,10 +195,10 @@ export function ProductosTabla({
 
   return (
     <div className="@container">
-      <div className="card-cayla overflow-hidden">
+      <div data-guia="productos.tabla" className="card-cayla overflow-hidden">
         {/* Marcar la página y la regla del margen: arriba de las dos formas (filas o tarjetas). */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sand px-4 py-3 @3xl:px-5">
-          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
+          <label data-guia="productos.tabla-marcar" className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
             <CasillaMarca marcada={todos} parcial={algunos} onCambiar={marcarTodos} etiqueta="Marcar todas las de esta página" />
             {marcados.size > 0 ? (
               <span>
@@ -445,6 +445,7 @@ function FilaAncha({
             <button
               type="button"
               onClick={onAbrir}
+              data-guia="productos.tabla-abrir"
               aria-expanded={abierta}
               aria-label={`${abierta ? "Cerrar" : "Ver"} las variantes de ${p.referencia}`}
               className="-ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-tinta/45 transition-colors hover:bg-hueso hover:text-tinta"
@@ -676,7 +677,7 @@ function FichaVariantes({
   const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, p.variantes.map((v) => v.varianteId)) : null;
 
   return (
-    <div className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
+    <div data-guia="productos.tabla-ficha" className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[10.5px] text-tinta/60">
           {variantesQueSeVenden(p.variantes).length} {variantesQueSeVenden(p.variantes).length === 1 ? "variante" : "variantes"}

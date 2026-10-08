@@ -107,7 +107,7 @@ export function EditarMarcaModal({
   return (
     <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} ancho="max-w-lg">
       {(cerrar) => (
-        <div className="mt-4 space-y-4">
+        <div data-guia="marcas.form" className="mt-4 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("nombre", "Nombre de la marca")}
@@ -219,7 +219,7 @@ export function EditarMarcaModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex items-center gap-3">
+          <div data-guia="marcas.form-pie" className="flex items-center gap-3">
             <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
               {guardando ? "Guardando…" : "Guardar"}
             </Boton>
