@@ -19,7 +19,7 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración que manda cada una (20261004200050, el cuadre del piso, para fn_frescura_sede; 20260929100000 para
+ *       de la migración que manda cada una (20261008120000, la vara de CAYLA, encima del cuadre 20261004200050, para fn_frescura_sede; 20260929100000 para
  *       fn_confianza_registro; 20260928120310 para las otras cuatro) nombra su md5 vivo (de las seis: también
  *       fn_temporada_efectiva_nucleo, sin EXECUTE para nadie de afuera, fn_temporada_efectiva, que conserva sus
  *       permisos, y fn_es_llegada_a_cayla, immutable, sin search_path propio y sin EXECUTE para nadie de afuera);
@@ -180,12 +180,20 @@ const MIGRACION_P4 = leerMigracion("20260929100000_frescura_modulo_y_candado.sql
 const MIGRACION_CUADRE = leerMigracion("20261004200050_cuadre_piso_frescura.sql");
 /** Deshace ese reemplazo (sus anclas, leídas del archivo, en orden inverso): deja fn_frescura_sede y el núcleo como los dejó
  *  el paso 4. Para los casos que prueban el orden de pegado de las migraciones ANTERIORES al cuadre (T12, T12b). */
-const DESHACER_CUADRE = [...MIGRACION_CUADRE.matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
-  .reverse()
-  .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
-  .join("\n");
+const deshacer = (texto) =>
+  [...texto.matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .reverse()
+    .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+    .join("\n");
+const DESHACER_CUADRE = deshacer(MIGRACION_CUADRE);
+/** La vara de CAYLA (ADR-0208 act. 2026-10-07, 2026-10-08): reemplazo anclado en fn_frescura_sede, ENCIMA del cuadre (deja pasar a la
+ *  llave de servicio). Manda hoy en fn_frescura_sede: su guarda nombra los dos md5 de antes (el del paso 4 y el del cuadre) y los
+ *  dos de después. Se deshace ANTES que el cuadre (el último parche primero): si se deshace solo el cuadre queda un cuerpo que
+ *  ninguna guarda anterior reconoce. Cada parche posterior se suma aquí, el más nuevo primero. */
+const MIGRACION_VARA = leerMigracion("20261008120000_frescura_vara_cayla.sql");
+const DESHACER_VARA = deshacer(MIGRACION_VARA);
 /** La migración cuya guarda nombra el cuerpo vivo de cada función. */
-const GUARDA_DE = (f) => (f === "fn_frescura_sede" ? MIGRACION_CUADRE : f === "fn_confianza_registro" ? MIGRACION_P4 : MIGRACION);
+const GUARDA_DE = (f) => (f === "fn_frescura_sede" ? MIGRACION_VARA : f === "fn_confianza_registro" ? MIGRACION_P4 : MIGRACION);
 /** El cuerpo de fn_temporada_efectiva de 20260928100000 (el que tiene producción antes de pegar 20260928120310). */
 const TEMPORADA_EFECTIVA_0100 = (() => {
   const t = leerMigracion("20260928100000_temporadas_como_atributo.sql");
@@ -2421,6 +2429,7 @@ const VIGILA_P4 = new Set(["fn_frescura_sede", "fn_confianza_registro"]);
 correr(
   "T12 · la guarda de la que manda fn_frescura_sede y fn_confianza_registro (20260929100000, paso 4): pegada otra vez deja lo mismo; con una de las dos parchada en vivo aborta y no la pisa; las que no toca siguen con su parche; la de revisión 9 después aborta",
   `-- Como quedó el paso 4, antes del cuadre del piso (el cuadre se prueba en cuadrar_piso.mjs, C12).
+${DESHACER_VARA}
 ${DESHACER_CUADRE}
 select ${MD5S} as antes \\gset
 ${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
@@ -2470,8 +2479,11 @@ const MD5_P4 = MD5_0330
   .replace(/fn_confianza_registro=[0-9a-f]{32}/, `fn_confianza_registro=${/'8c6f5e6c27916b99be10020b772bd6e0', '([0-9a-f]{32})'/.exec(MIGRACION_P4)?.[1]}`);
 correr(
   "T12b · desde producción antes del paso 3: 120300 → 120310 (dos veces) → 120320 (dos veces) → 120330 (dos veces) → paso 4 (dos veces), cada una con sus md5; una fuera de orden o una anterior otra vez aborta sin deshacer nada; sin la de antes, cada una la pide",
-  `-- La base de hoy (con el cuadre del piso) y la del paso 4 (sin él): la cadena llega a la segunda; el cuadre, a la primera.
+  `-- La base de hoy (con el cuadre del piso y la vara de CAYLA encima), la del cuadre (sin la vara) y la del paso 4 (sin él):
+-- la cadena llega a la tercera; el cuadre, a la segunda; la vara, a la primera.
 select ${MD5S} as hoy \\gset
+${DESHACER_VARA}
+select ${MD5S} as tras_cuadre \\gset
 ${DESHACER_CUADRE}
 select ${MD5S} as nuevos \\gset
 -- Producción antes de pegar nada del paso 3: sin las lecturas ni el núcleo de temporadas, fn_temporada_efectiva de
@@ -2519,11 +2531,19 @@ ${k("CORREGIDA_TRAS_R9", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
 ${k("R7_TRAS_R9", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
 ${k("R9_TRAS_P4", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
 ${k("MD5_SIGUEN", `${MD5S} = :'nuevos'`)}
--- El cuadre del piso (2026-10-04) entra encima del paso 4 y deja la base de hoy; después, el paso 4 otra vez aborta.
+-- El cuadre del piso (2026-10-04) entra encima del paso 4 y deja la base del cuadre; después, el paso 4 otra vez aborta.
 ${k("CUADRE", `pg_temp.intento(${comoLiteral(MIGRACION_CUADRE)})`)}
-${k("CUADRE_ES_EL_DE_HOY", `${MD5S} = :'hoy'`)}
+${k("CUADRE_ES_EL_TRAS_CUADRE", `${MD5S} = :'tras_cuadre'`)}
 ${k("P4_TRAS_CUADRE", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
-${k("MD5_TRAS_CUADRE", `${MD5S} = :'hoy'`)}
+${k("MD5_TRAS_CUADRE", `${MD5S} = :'tras_cuadre'`)}
+-- La vara de CAYLA (2026-10-08) entra encima del cuadre y deja la base de hoy; otra vez no cambia nada; el paso 4 y el cuadre
+-- pegados después abortan y no deshacen nada.
+${k("VARA", `pg_temp.intento(${comoLiteral(MIGRACION_VARA)})`)}
+${k("VARA_ES_EL_DE_HOY", `${MD5S} = :'hoy'`)}
+${k("VARA_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_VARA)})`)}
+${k("P4_TRAS_VARA", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
+${k("CUADRE_TRAS_VARA", `pg_temp.intento(${comoLiteral(MIGRACION_CUADRE)})`)}
+${k("MD5_TRAS_VARA", `${MD5S} = :'hoy'`)}
 -- Sin la de main: las otras tres la piden.
 drop function retail.fn_es_llegada(text, text, uuid, uuid, uuid);
 ${k("SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
@@ -2586,9 +2606,19 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
       `CORREGIDA_TRAS_R9=${o.CORREGIDA_TRAS_R9} R7_TRAS_R9=${o.R7_TRAS_R9} R9_TRAS_P4=${o.R9_TRAS_P4} MD5_SIGUEN=${o.MD5_SIGUEN}`,
     );
     afirmar(
-      "el cuadre del piso (20261004200050) entra encima del paso 4 y deja la base de hoy; el paso 4 pegado después aborta y no deshace nada",
-      json(o.CUADRE)?.ok === true && o.CUADRE_ES_EL_DE_HOY === "true" && aborta(o.P4_TRAS_CUADRE, "fn_frescura_sede tiene otro cuerpo") && o.MD5_TRAS_CUADRE === "true",
-      `CUADRE=${o.CUADRE} CUADRE_ES_EL_DE_HOY=${o.CUADRE_ES_EL_DE_HOY} P4_TRAS_CUADRE=${o.P4_TRAS_CUADRE} MD5_TRAS_CUADRE=${o.MD5_TRAS_CUADRE}`,
+      "el cuadre del piso (20261004200050) entra encima del paso 4 y deja la base del cuadre; el paso 4 pegado después aborta y no deshace nada",
+      json(o.CUADRE)?.ok === true && o.CUADRE_ES_EL_TRAS_CUADRE === "true" && aborta(o.P4_TRAS_CUADRE, "fn_frescura_sede tiene otro cuerpo") && o.MD5_TRAS_CUADRE === "true",
+      `CUADRE=${o.CUADRE} CUADRE_ES_EL_TRAS_CUADRE=${o.CUADRE_ES_EL_TRAS_CUADRE} P4_TRAS_CUADRE=${o.P4_TRAS_CUADRE} MD5_TRAS_CUADRE=${o.MD5_TRAS_CUADRE}`,
+    );
+    afirmar(
+      "la vara de CAYLA (20261008120000) entra encima del cuadre y deja la base de hoy; otra vez no cambia nada; el paso 4 y el cuadre pegados después abortan y no deshacen nada",
+      json(o.VARA)?.ok === true &&
+        o.VARA_ES_EL_DE_HOY === "true" &&
+        json(o.VARA_OTRA_VEZ)?.ok === true &&
+        aborta(o.P4_TRAS_VARA, "fn_frescura_sede tiene otro cuerpo") &&
+        aborta(o.CUADRE_TRAS_VARA, "fn_frescura_sede tiene otro cuerpo") &&
+        o.MD5_TRAS_VARA === "true",
+      `VARA=${o.VARA} VARA_ES_EL_DE_HOY=${o.VARA_ES_EL_DE_HOY} VARA_OTRA_VEZ=${o.VARA_OTRA_VEZ} P4_TRAS_VARA=${o.P4_TRAS_VARA} CUADRE_TRAS_VARA=${o.CUADRE_TRAS_VARA} MD5_TRAS_VARA=${o.MD5_TRAS_VARA}`,
     );
     afirmar(
       "sin la de main, la 120310, la de revisión 7 y la de revisión 9 abortan pidiendo pegarla antes",

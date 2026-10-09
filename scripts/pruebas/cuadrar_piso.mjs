@@ -34,7 +34,8 @@
  *   C11 Frescura: el cuadre no es bajada ni retiro (el núcleo no lo ve; la confianza del registro no cambia; una bajada real
  *      de la misma prenda sigue contando); lo bajado llega con la marca 14 (interno, edad desconocida y cuadre) y lo subido
  *      con la 10 (interno y cuadre): con la 8, la web corta ahí la medida de «Ya decidí».
- *   C12 la migración de Frescura: desde los cuerpos de antes (los de producción) entra y deja los md5 de su guarda; pegada
+ *   C12 la migración de Frescura (deshaciendo antes el parche posterior de la vara de CAYLA, 20261008120000): desde los
+ *       cuerpos de antes (los de producción) entra y deja los md5 de su guarda; pegada
  *      otra vez no cambia nada; con un parche en vivo en cualquiera de las dos aborta y no pisa nada; el paso 4 de
  *      Frescura pegado después aborta y no deshace nada. Y el orden de pegado (tablas → Frescura → Eliminar → funciones)
  *      lo hace cumplir la base: sin la protección de Frescura o de Eliminar, la parte de funciones aborta sin tocar nada.
@@ -97,6 +98,12 @@ const deshacer = (migracion) =>
     .join("\n");
 const DESHACER_FRESCURA = deshacer(MIGRACION_FRESCURA);
 const DESHACER_ELIMINAR = deshacer(MIGRACION_ELIMINAR);
+// Lo que vino DESPUÉS del cuadre y también parcha `fn_frescura_sede` con un reemplazo anclado (la vara de CAYLA, ADR-0208
+// act. 2026-10-07: deja pasar a la llave de servicio). Para probar la migración del cuadre «desde producción» hay que deshacer
+// primero ese parche posterior: si no, al deshacer solo el cuadre queda un cuerpo (el de antes del cuadre + la vara) que la
+// guarda del cuadre no reconoce, y abortaría como si alguien hubiera parchado en vivo. Cada parche posterior se suma aquí.
+const MIGRACION_VARA_CAYLA = "20261008120000_frescura_vara_cayla.sql";
+const DESHACER_POSTERIORES = deshacer(MIGRACION_VARA_CAYLA);
 
 const PRELUDIO = `
 begin;
@@ -733,8 +740,9 @@ const MD5_DOS = `(select string_agg(proname || '=' || md5(prosrc), ',' order by 
   const ANTES = `fn_bajadas_del_piso_nucleo=${nucleoAntes},fn_frescura_sede=${sedeAntes}`;
   const DESPUES = `fn_bajadas_del_piso_nucleo=${nucleoDespues},fn_frescura_sede=${sedeDespues}`;
   caso(
-    "C12 · la migración de Frescura: la base de hoy tiene los md5 «después» de su guarda; desde los de «antes» (producción) entra y llega a ellos; otra vez, nada cambia",
-    `select ${MD5_DOS};
+    "C12 · la migración de Frescura: la base de hoy, sin los parches posteriores (la vara de CAYLA), tiene los md5 «después» de su guarda; desde los de «antes» (producción) entra y llega a ellos; otra vez, nada cambia",
+    `${DESHACER_POSTERIORES}
+select ${MD5_DOS};
 ${DESHACER_FRESCURA}
 select ${MD5_DOS};
 select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FRESCURA))}) ->> 'ok';
@@ -748,7 +756,8 @@ select ${MD5_DOS};`,
   );
   caso(
     "C12 · con un parche en vivo en el núcleo o en fn_frescura_sede, la migración aborta nombrándola y no pisa nada; el paso 4 de Frescura pegado DESPUÉS aborta y no deshace nada",
-    `${DESHACER_FRESCURA}
+    `${DESHACER_POSTERIORES}
+${DESHACER_FRESCURA}
 savepoint s1;
 do $p$ begin execute replace(pg_get_functiondef('retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)'::regprocedure), E'\\n$function$', E'\\n-- parche en vivo\\n$function$'); end $p$;
 select ${MD5_DOS} as parchado \\gset
@@ -775,6 +784,7 @@ select ${MD5_DOS} = :'hoy';`,
   caso(
     "C12 · el orden de pegado: tablas → Frescura → Eliminar → funciones; sin la protección de Frescura o de Eliminar, la parte de funciones aborta y no toca nada; con las dos, entra",
     `select ${FUNCIONES} as antes \\gset
+${DESHACER_POSTERIORES}
 ${DESHACER_FRESCURA}
 select pg_temp.intento(${comoLiteral(leerMigracion(MIGRACION_FUNCIONES))}) ->> 'msg' like 'Frescura todavía no conoce el cuadre del piso: pega antes ${MIGRACION_FRESCURA}%';
 select ${FUNCIONES} = :'antes';
