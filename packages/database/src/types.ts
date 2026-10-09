@@ -5690,6 +5690,10 @@ export type Database = {
         Args: { p_id: string; p_celular: string }
         Returns: boolean
       }
+      corregir_pagos_venta: {
+        Args: { p_venta_id: string; p_pagos: Json; p_motivo?: string | null }
+        Returns: Json
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

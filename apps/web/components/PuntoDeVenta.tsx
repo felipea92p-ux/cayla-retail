@@ -12,7 +12,7 @@ import { agruparPorPrenda, filtrarConStock } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
-  atendioCorto,
+  atendioDelTicket,
   conCodigoDelCatalogo,
   descuentoResultante,
   descuentoUnitarioPorPorcentaje,
@@ -1651,7 +1651,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           pagos: pagosCobrados(pagos, redondeoEfectivoDisponible).pagos,
           redondeo: pagosCobrados(pagos, redondeoEfectivoDisponible).redondeo,
           tasaIgv: 0.18,
-          atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
+          atendio: atendioDelTicket(responsable.lista.elegibles, responsable.elegidoId),
           // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
           cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
           // Lo mismo con el vale de aniversario: cuánto del descuento de las prendas es del vale.
