@@ -1,6 +1,6 @@
 # ADR-0368 — El gasto rápido de Caja: un mosaico por frecuencia
 
-**Fecha:** 2026-10-09 · **Decide:** Felipe · **Estado:** aceptada (solo web, sin migración)
+**Fecha:** 2026-10-09 · **Decide:** Felipe · **Estado:** aceptada (web + una migración de catálogo: `20261009235900`)
 
 ## Problema
 
@@ -13,9 +13,12 @@ tienda, cuenta de salida y condición de pago. Para los S/ 0.80 del baño eran u
 Caja abre una hoja propia, `GastoRapidoModal` (maqueta A de `docs/maquetas/gasto-rapido-caja-2026-10/`, elegida por Felipe con dos cambios:
 sin la fila de atajos y el mosaico ordenado por frecuencia):
 
-1. **Diez conceptos en palabras de tienda** (Agua, Luz, Internet y celular, Baño, Movilidad, Envío, Bolsas, Limpieza, Útiles, Arreglo) y
-   «Otro». Cada concepto ya trae su categoría contable de `categorias_gasto` (`lib/gasto-rapido-reglas.ts`, `CONCEPTOS`): nadie la elige.
-   Baño va a Servicios básicos.
+1. **Once conceptos en palabras de tienda** (Agua, Luz, Internet y celular, Baño, Movilidad, Envío, Bolsas, Limpieza, Útiles, Arreglo,
+   Refrigerio) y «Otro». Cada concepto ya trae su categoría contable de `categorias_gasto` (`lib/gasto-rapido-reglas.ts`, `CONCEPTOS`):
+   nadie la elige. Baño va a Servicios básicos.
+   **Refrigerio** es solo del EQUIPO en el turno (café, almuerzo, agua de mesa; Felipe 2026-10-09) y va a una categoría nueva,
+   **«Atención al personal»**, cuenta **62 · Gastos de personal** (migración `20261009235900`). Ninguna existente calzaba: en Suministros
+   se mezclaba con bolsas y lejía. No es planilla (esa se lee de Dynamic). Lo que se le invita a un cliente sería otra cuenta y queda fuera.
 2. **Orden por frecuencia en ESA sede**, contando los gastos vigentes de los últimos 90 días; a igual frecuencia, el orden de fábrica.
    Los 4 primeros que se usaron al menos una vez llevan una ★ arriba a la derecha y cuántas veces se usaron. «Otro» va siempre al final.
    Una sede sin gastos ve el orden de fábrica y ninguna ★: una estrella con «0 veces» sería mentira.

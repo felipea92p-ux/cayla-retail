@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Bike, Droplet, Package, Paperclip, PencilLine, ShoppingBag, Smartphone, SprayCan, Star, Toilet, Wrench, Zap, type LucideIcon } from "lucide-react";
+import { Bike, Coffee, Droplet, Package, Paperclip, PencilLine, ShoppingBag, Smartphone, SprayCan, Star, Toilet, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { traducirError } from "@/lib/error-escritura";
@@ -54,6 +54,7 @@ const ICONOS: Record<string, LucideIcon> = {
   limpieza: SprayCan,
   utiles: Paperclip,
   arreglo: Wrench,
+  refrigerio: Coffee,
   [CLAVE_OTRO]: PencilLine,
 };
 

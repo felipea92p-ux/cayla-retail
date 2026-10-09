@@ -25,6 +25,7 @@ const CATEGORIAS_DE_LA_BASE = [
   "gastos_bancarios",
   "tributos",
   "seguros",
+  "atencion_personal", // 20261009235900
 ];
 const CAJA = { id: "caja-1", ubicacionId: "tru" };
 const HOY = "2026-10-09";
@@ -55,6 +56,11 @@ describe("conceptos", () => {
     expect(conceptoDeGasto({ descripcion: "papel higiénico", categoria: "suministros" })).toBe("limpieza");
     expect(conceptoDeGasto({ descripcion: "papel para la ticketera", categoria: "suministros" })).toBe("utiles");
     expect(conceptoDeGasto({ descripcion: "Luz del baño", categoria: "servicios_basicos" })).toBe("luz");
+  });
+
+  it("el refrigerio del equipo va a Atención al personal", () => {
+    expect(conceptoDeGasto({ descripcion: "Café para el turno", categoria: "atencion_personal" })).toBe("refrigerio");
+    expect(conceptoDeGasto({ descripcion: "Agua de mesa", categoria: "atencion_personal" })).toBe("refrigerio");
   });
 
   it("solo cuenta un concepto de la misma categoría contable", () => {

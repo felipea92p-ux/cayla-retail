@@ -35,7 +35,8 @@ export type ClaveConcepto =
   | "bolsas"
   | "limpieza"
   | "utiles"
-  | "arreglo";
+  | "arreglo"
+  | "refrigerio";
 
 export type ConceptoGasto = {
   clave: ClaveConcepto;
@@ -83,6 +84,13 @@ export const CONCEPTOS: readonly ConceptoGasto[] = [
     nombre: "Arreglo",
     categoria: "mantenimiento",
     palabras: ["arreglo", "reparacion", "tecnico", "cerrajero", "gasfitero", "electricista", "foco", "pintura", "mantenimiento"],
+  },
+  // Solo del EQUIPO en el turno (Felipe 2026-10-09): va a «Atención al personal», cuenta 62. No es planilla (esa viene de Dynamic).
+  {
+    clave: "refrigerio",
+    nombre: "Refrigerio",
+    categoria: "atencion_personal",
+    palabras: ["refrigerio", "cafe", "almuerzo", "desayuno", "lonche", "galleta", "agua de mesa", "bidon", "menu"],
   },
 ];
 
