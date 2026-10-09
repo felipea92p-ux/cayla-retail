@@ -20,6 +20,8 @@ import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion"
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
+import { costoUnitario, semaforoMargen, type Semaforo } from "@/lib/produccion-reglas";
+import { hrefAltaDesdeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 
 // Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
 // por talla-color y el costo ESTIMADO. El costo real se corrige al cerrar.
@@ -27,6 +29,10 @@ import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, cost
 // F5 (ADR-0133): para el líder, «Nueva orden» aconseja ANTES de abrir: la curva sugerida por talla y color (ritmo de venta y stock de TODA la red, con las
 // mismas reglas de Inventario), si alcanza la tela y los avíos (con el consumo real medido de las órdenes cerradas del modelo, D-D) y cuánto costará cada
 // prenda. Son consejos, no órdenes: las cantidades siguen siendo del líder. Sin datos, el formulario es el de siempre.
+//
+// ADR-0361: un modelo que todavía no existe se crea en Productos (la única puerta del catálogo) y la persona vuelve aquí con el modelo ya
+// elegido y su matriz lista (`hrefAltaDesdeProduccion`). El margen y el semáforo los ve el líder aunque la lectura de la red falle, y un
+// modelo sin precio lo dice, porque sin precio no hay margen que mirar.
 //
 // El token de idempotencia nace con el formulario (useRef): si el Taller
 // pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
@@ -38,6 +44,12 @@ const TIPOS = [
   { valor: "muestra", texto: "Muestra" },
 ] as const;
 
+const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"; texto: string }> = {
+  gana: { tono: "verde", texto: "Gana" },
+  filo: { tono: "ambar", texto: "Al filo" },
+  pierde: { tono: "rojo", texto: "Pierde" },
+};
+
 function soles(n: number) {
   return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -47,6 +59,8 @@ export function NuevaOrdenProduccionForm({
   modelos,
   decision,
   productoInicialId = null,
+  tipoInicial = "produccion",
+  puedeEditarCatalogo = false,
   onClose,
 }: {
   tallerId: string;
@@ -55,11 +69,15 @@ export function NuevaOrdenProduccionForm({
   decision: Tolerado<DecisionProduccion> | null;
   /** Modelo que llega elegido desde el Resumen; si no existe, se usa el primero. */
   productoInicialId?: string | null;
+  /** Con qué tipo se abre (al volver de crear un modelo nuevo se conserva el que la persona había elegido). */
+  tipoInicial?: Tipo;
+  /** Puede crear el modelo que falta y agregarle tallas o colores (`fn_puede_editar_catalogo`); si no, ve a quién pedírselo. */
+  puedeEditarCatalogo?: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
-  const [tipo, setTipo] = useState<Tipo>("produccion");
+  const [tipo, setTipo] = useState<Tipo>(tipoInicial);
   const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? modelos[0]?.productoId ?? "");
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [tela, setTela] = useState("");
@@ -98,7 +116,8 @@ export function NuevaOrdenProduccionForm({
     .filter((l) => l.cantidad > 0);
   const total = lineas.reduce((s, l) => s + l.cantidad, 0);
   const costoTotal = (Number(tela) || 0) + (Number(avios) || 0) + (Number(maquila) || 0);
-  const unitario = total > 0 ? costoTotal / total : 0;
+  // Como lo calcula la base (`producciones.costo_unitario`): costos ÷ prendas, a 2 decimales. Una sola fórmula en `produccion-reglas.ts`.
+  const unitario = costoUnitario(Number(tela) || 0, Number(avios) || 0, Number(maquila) || 0, total);
   const precio = Math.max(0, ...(modelo?.variantes ?? []).map((v) => v.precio));
 
   // ----- La decisión (solo líder) -----
@@ -117,7 +136,9 @@ export function NuevaOrdenProduccionForm({
   const materialesPorPrenda = costoMaterialesPorPrenda(rendimiento, (id) => saldos.get(id)?.costoUnitario ?? null);
   const materialesPorTipo = { tela: 0, avio: 0 };
   for (const r of rendimiento) materialesPorTipo[r.tipo] += r.porPrenda * total * (saldos.get(r.insumoId)?.costoUnitario ?? 0);
-  const margen = precio > 0 && total > 0 && costoTotal > 0 ? (precio - unitario) / precio : null;
+  // El margen es del líder (`decision` solo le llega a él), con o sin lectura de la red: si la red falla, el margen no se esconde.
+  const verMargen = decision !== null;
+  const semaforo = semaforoMargen(precio, unitario);
 
   function usarCurva() {
     const nuevas: Record<string, string> = {};
@@ -188,6 +209,19 @@ export function NuevaOrdenProduccionForm({
             valor={productoId}
             onValor={(v) => cambiarModelo(v)}
             opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
+            pie={
+              puedeEditarCatalogo ? (
+                <>
+                  ¿El modelo es nuevo?{" "}
+                  <Link href={hrefAltaDesdeProduccion(tipo)} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                    Créalo en Productos
+                  </Link>{" "}
+                  y vuelves aquí con la orden lista.
+                </>
+              ) : (
+                "¿El modelo es nuevo? Pídele a quien edita el catálogo que lo cree."
+              )
+            }
           />
         </div>
 
@@ -257,9 +291,13 @@ export function NuevaOrdenProduccionForm({
             </div>
             <p className="text-xs text-tinta/65">
               ¿Falta una talla o un color? Se agrega en{" "}
-              <Link href="/productos" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-                Productos
-              </Link>
+              {puedeEditarCatalogo ? (
+                <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                  Editar producto
+                </Link>
+              ) : (
+                "Productos (pídeselo a quien edita el catálogo)"
+              )}
               , no desde la orden.
             </p>
           </div>
@@ -395,14 +433,26 @@ export function NuevaOrdenProduccionForm({
           <CampoMonto etiqueta="Maquila" pie="Lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
         </div>
 
-        <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand/60 px-3 py-2 text-sm">
           <span className="text-tinta/70">
             {total} prendas · costo estimado {soles(costoTotal)}
             {precio > 0 && ` · se vende a ${soles(precio)}`}
-            {margen !== null && datos && ` · margen ${Math.round(margen * 100)} %`}
+            {verMargen && semaforo && ` · margen ${Math.round(semaforo.margen * 100)} %`}
           </span>
-          <span className="font-display text-lg text-tinta">{soles(unitario)} / prenda</span>
+          <span className="flex items-center gap-2.5">
+            {verMargen && semaforo && <Chip tono={CHIP_SEMAFORO[semaforo.tono].tono}>{CHIP_SEMAFORO[semaforo.tono].texto}</Chip>}
+            <span className="font-display text-lg text-tinta">{soles(unitario)} / prenda</span>
+          </span>
         </div>
+        {modelo && verMargen && precio <= 0 && (
+          <p className="-mt-2 text-xs text-tinta/65">
+            Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
+            <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+              Ponle precio en Editar producto
+            </Link>
+            .
+          </p>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
