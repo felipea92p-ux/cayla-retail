@@ -60,7 +60,7 @@
  *     3. los comentarios y los textos: `-- fn_ve_modulo('x')` en un comentario no protege, y un `--` dentro de un texto no
  *        se confunde con un comentario (una sola pasada los separa);
  *     4. mirar la sede (`fn_puede_operar_ubicacion`) o exigir «solo líder» (`fn_es_lider`): no son guardianes de módulo.
- *        Por eso Cambios, Devoluciones, Recibir… están en SOLO_PANTALLA aunque sus funciones sí comprueben la sede;
+ *        Por eso Cambios, Recibir… están en SOLO_PANTALLA aunque sus funciones sí comprueben la sede;
  *     5. leer `retail.rol_modulos` a mano, o un módulo cuyo nombre se arma en tiempo de ejecución
  *        (`fn_ve_modulo(v_clave)`): una sola forma de preguntar, la oficial y con literal, para que se pueda auditar;
  *     6. una función a la que no se llega: sin `.rpc` en la pantalla (o solo como sonda), sin otra función, política, vista
@@ -140,7 +140,7 @@ const SOLO_PANTALLA = {
     "fn_actividad, fn_asesoras_de_turno) son funciones compartidas que ya comprueban la sede, no el módulo — las mismas que " +
     "usan Caja e Historial.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
-  devoluciones: "crear_devolucion solo mira la sede; devoluciones_select y devoluciones_write son «líder o su sede».",
+  // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
   recibir: "recibir_lote, recibir_compras y recibir_insumo solo comprueban la sede (fn_puede_operar_ubicacion).",
   produccion:
