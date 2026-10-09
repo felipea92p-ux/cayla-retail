@@ -47,6 +47,12 @@
     animation: vr-dato-entra 420ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--vr-j, 0) * 70ms + 260ms);
   }
+  /* El chip de estado y el botón que lo cambia, en una misma pieza (Felipe 2026-10-09). */
+  .vr-meta .vr-estado-prenda {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
   .vr-meta .vr-cod {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 12.5px;
@@ -552,13 +558,8 @@
     align-items: center;
     gap: 8px;
   }
-  /* Lo que retira la prenda (Desactivar/Reactivar y Eliminar) va junto y a la derecha. Es UNA caja con `margin-left: auto` y no un
-     espaciador: con seis botones la fila a veces no cabe, y un espaciador suelto dejaba el par partido (uno al final de la primera
-     línea y el otro solo bajo «Editar»). Así, si no cabe, el par baja entero y sigue a la derecha. */
-  .vr-botones .vr-retira {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+  /* «Eliminar» va solo, a la derecha de la fila: si la fila no cabe y baja, sigue a la derecha. */
+  .vr-botones .vr-eliminar {
     margin-left: auto;
   }
   .vr-botones [data-sin-unidades="true"] {
@@ -660,9 +661,9 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
     }
-    /* En celular los botones son celdas de la grilla de dos columnas: la caja desaparece y sus botones entran como uno más. */
-    .vr-botones .vr-retira {
-      display: contents;
+    /* En celular los botones son celdas de la grilla de dos columnas: «Eliminar» entra como una celda más, sin empujarse a la derecha. */
+    .vr-botones .vr-eliminar {
+      margin-left: 0;
     }
   }
 }
