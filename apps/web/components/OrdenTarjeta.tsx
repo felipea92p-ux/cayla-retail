@@ -12,6 +12,7 @@ import {
   type EstadoEntrega,
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 // Una orden en el tablero (ADR-0133, F2): qué es, dónde está, si llega, y —solo para el líder— cuánto cuesta.
 // Es un botón: tocarla abre el panel. Sin animación en bucle (regla de la pantalla: la única es el punto «vivo»
@@ -107,17 +108,14 @@ export function OrdenTarjeta({
       </div>
 
       {esLider && !sinCosto && (
-        <div className="mt-2.5 flex h-1 gap-px overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-          {costo.partes.map((p, i) =>
-            p.parte > 0 ? (
-              <span
-                key={p.clave}
-                className={`anim-crece-x block h-full ${p.clave === "tela" ? "bg-tinta" : p.clave === "avios" ? "bg-taupe" : "bg-tinta/25"}`}
-                style={{ width: `${p.parte * 100}%`, ["--i" as string]: indice + i }}
-              />
-            ) : null
-          )}
-        </div>
+        // La barra es `<BarraApilada>` (ADR-0358): decorativa (el costo ya está dicho en la tarjeta), un hilo de 4 px que entra con la tarjeta.
+        <BarraApilada
+          decorativa
+          className="mt-2.5"
+          alto={4}
+          retraso={indice}
+          segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: p.clave === "tela" ? "bg-tinta" : p.clave === "avios" ? "bg-taupe" : "bg-tinta/25" }))}
+        />
       )}
     </button>
   );

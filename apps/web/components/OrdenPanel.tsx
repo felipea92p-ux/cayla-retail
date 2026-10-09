@@ -34,6 +34,7 @@ import {
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -309,24 +310,12 @@ export function OrdenPanel({
                 </div>
                 {costo.total > 0 && (
                   <>
-                    <div className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                      {costo.partes.map((p, i) =>
-                        p.parte > 0 ? (
-                          <span
-                            key={p.clave}
-                            className={`anim-crece-x block h-full ${COLOR_PARTE[p.clave]}`}
-                            style={{
-                              width: `${p.parte * 100}%`,
-                              ["--i" as string]: i,
-                            }}
-                          />
-                        ) : null,
-                      )}
-                    </div>
+                    {/* La barra es `<BarraApilada>` (ADR-0358): decorativa, las cifras del costo van debajo. */}
+                    <BarraApilada decorativa className="mt-4" alto={12} segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: COLOR_PARTE[p.clave] }))} />
                     <ul className="mt-3 space-y-1.5 text-[13px]">
                       {costo.partes.map((p) => (
                         <li key={p.clave} className="flex items-center gap-2.5">
-                          <span aria-hidden className={`h-2.5 w-2.5 rounded-sm ${COLOR_PARTE[p.clave]}`} />
+                          <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
                           <span className="text-tinta/80">{p.etiqueta}</span>
                           <span className="ml-auto tabular-nums text-tinta/75">{soles(p.valor)}</span>
                         </li>

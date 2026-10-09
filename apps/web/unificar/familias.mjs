@@ -548,11 +548,7 @@ export const DECISIONES = {
       // Una pieza homónima (la de Facturación y Proformas, con `partes` y leyenda propia): el mismo nombre que la del sistema.
       "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraApilada\\b"
     ],
-    "deuda": [
-      "components/EficienciaTallerPanel.tsx",
-      "components/OrdenPanel.tsx",
-      "components/OrdenTarjeta.tsx"
-    ],
+    "deuda": [],
     "excepciones": []
   },
 };
