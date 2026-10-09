@@ -125,7 +125,7 @@ if (typeof args.lamina === "string") {
   const familiasLamina = censo.familias.filter((f) => quiereFamiliaDe(lista(args.familia))(f.id)).map((f) => ({ ...f, ...(familiaPorId(f.id) ?? {}), subgrupos: f.subgrupos }));
   const lam = escribirLamina(dir, { ...censo, familias: familiasLamina }, { propuestasDir: join(REPO, "docs", "unificar", "propuestas"), foco: censo.foco });
   if (!args["sin-comparativas"]) {
-    const nav = await chromium.launch({ headless: true });
+    const nav = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
     await fotografiarLamina(nav, lam, familiasLamina, dir);
     await nav.close();
   }
@@ -330,7 +330,7 @@ async function visitar(ctx, cuenta, visita) {
   return res;
 }
 
-const navegador = await chromium.launch({ headless: true });
+const navegador = await chromium.launch({ headless: true, channel: process.env.NAVEGADOR_CANAL || undefined });
 let visitasHechas = 0;
 try {
   for (const cuenta of cuentas) {

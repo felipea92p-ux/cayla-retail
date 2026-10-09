@@ -462,6 +462,52 @@
     }
   }
 
+  // Una barra apilada hecha con CAJAS, no con SVG («Deuda por vencimiento» de Compras, las tarjetas de Facturación, «Cómo se pagó»
+  // de Historial, el costo de una orden, el tablero de Frescura): una fila baja (de 2 a 24 px) y ancha (80 px o más) de dos o más
+  // tramos pintados de un solo color, sin texto, cuyos anchos suman el de la fila. `censarGraficos` no la ve porque no es un dibujo
+  // (2026-10-09, ronda de `grafico`). Una barra escondida al lector (`aria-hidden`) también cuenta: que lo esté es parte de su huella
+  // («lector»), no un motivo para saltarla. Cuántos tramos tiene y de qué colores es DATO (qué se reparte), no forma: no van en la huella.
+  function censarBarrasApiladas() {
+    for (const el of document.querySelectorAll("main div, main span, main ul, [role='dialog'] div, [role='dialog'] span")) {
+      if (usados.has(el) || !vis(el) || fueraDelCenso(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height < 2 || r.height > 24 || r.width < 80) continue;
+      const s = estilo(el);
+      if (!/^(inline-)?(flex|grid)$/.test(s.display)) continue;
+      const hijos = [...el.children].filter(vis);
+      if (hijos.length < 2 || hijos.length > 24) continue;
+      const pintado = (h) => alfaDe(estilo(h).backgroundColor) > 0.1;
+      const esTramo = (h) => {
+        if ((h.textContent || "").trim() || h.children.length > 1) return false;
+        const hr = h.getBoundingClientRect();
+        if (hr.width < 1 || Math.abs(hr.height - r.height) > 2) return false;
+        // Pintado por sí mismo o por su único hijo (el «saldo a escala» de Proveedores pinta adentro).
+        return pintado(h) || (!!h.firstElementChild && pintado(h.firstElementChild));
+      };
+      if (!hijos.every(esTramo)) continue;
+      const cajas = hijos.map((h) => h.getBoundingClientRect());
+      // Una fila de puntos (todos cuadrados) no es una barra: es un conteo (`Puntos` de Facturación).
+      if (cajas.every((c) => c.width <= c.height * 1.5)) continue;
+      const suma = cajas.reduce((a, c) => a + c.width, 0);
+      if (suma < r.width * 0.6 || suma > r.width * 1.05) continue;
+      const aires = cajas.slice(1).map((c, i) => c.left - cajas[i].right).filter((g) => g >= 0 && g < 12);
+      const aire = aires.length ? Math.round(aires.reduce((a, b) => a + b, 0) / aires.length) : 0;
+      const responde = hijos.some((h) => h.matches(CLICABLE));
+      const role = el.getAttribute("role");
+      const lector = escondido(el) ? "oculta (aria-hidden)" : role ? `role=${role}${el.getAttribute("aria-label") ? " con resumen" : " sin resumen"}` : "sin nombre";
+      anotar("grafico", el, {
+        tipo: "barra apilada",
+        alto: par(r.height),
+        pista: fondoDe(s),
+        radio: radio(s, r.height),
+        tramo: `radio ${radio(estilo(hijos[0]), r.height)} · aire ${aire}px`,
+        responde: responde ? "sí (los tramos se tocan)" : "no",
+        lector,
+      });
+      marcar(el);
+    }
+  }
+
   function censarPestanas() {
     const grupos = new Set([...document.querySelectorAll('[role="tablist"]')].filter((g) => vis(g) && !fueraDelCenso(g)));
     for (const c of document.querySelectorAll("div, nav, ul, fieldset")) {
@@ -822,6 +868,7 @@
     // contar como botón suelto.
     censarHojas();
     censarGraficos();
+    censarBarrasApiladas();
     censarPestanas();
     censarPaginacion();
     censarCombos();

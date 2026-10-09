@@ -28,7 +28,7 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 | Familia | Propuesta | Desde | Nota |
 |---|---|---|---|
-| — | ninguna por ahora (la ronda 5 se decidió el 2026-10-08) | — | — |
+| `grafico` · la barra apilada (parcial: solo la barra que reparte un total; sparkline, barras mensuales y dona siguen por analizar) | P · la píldora con pista de arena (Frescura, Facturación) con todo el movimiento de Compras (entra tramo a tramo, se estira al pasar el mouse, los demás se atenúan, se reacomoda al cambiar la cifra); tres altos en múltiplos de 4 (12 · 8 · 4), 24 px para el mouse aunque pinte 12, una sola voz para el lector (`propuestas/grafico.html`) | 2026-10-09 | Página de elegir con demos vivas: `apps/web/unificar/.salida/elegir-grafico/` (fuera de git). Nació de la deuda que dejó Frescura (ADR-0208 act. 2026-10-07): `ui/BarraApilada` en su rama y «Deuda por vencimiento» a mano en Compras |
 
 ## Por analizar (las próximas rondas)
 
@@ -73,6 +73,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `f05530ca`, cuenta Admin, todo el ERP con escenarios, familias `vacio,aviso,buscador` | 242 de 250 | 3 | sin depurar: 23 buscadores, 29 vacíos, 23 avisos. Depurado con el código: 9 formas de vacío (~100 lugares), 6 recuadros de aviso + ~68 párrafos rojos sueltos, 8 buscadores. El motor confunde filas de lista con vacíos (el seed casi no deja listas vacías): las fotos de hoy se sacaron forzando «zzzz» en cada pantalla |
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `1b5ac53a`, cuenta `terminal-ventas` (el mostrador), con escenarios, familias `vacio,aviso,buscador` | 60 de 122 (las demás: sin acceso) | 3 | 6 buscadores en 24 pantallas (Facturación, Historial, Cambios/Devoluciones, Clientes, Proforma), 8 avisos (el de Facturación «más de 1 hora sin llegar a SUNAT», Caja, Sin conexión) y 5 vacíos |
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `63b64ba7`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion` (adelanto de la ronda 6, sin depurar) | 243 de 250 | 3 | 42 formas de combo en 118 pantallas, 39 de tabla en 70, 46 de título de sección en 151. Falta depurar y la pasada del mostrador; queda en `apps/web/unificar/.salida/r6-admin/` (fuera de git) |
+| 2026-10-09 | `claude/keen-feistel-35a4cb` @ `ef8e017e`, cuentas Admin y Admin-Taller, todo el ERP con los escenarios de Compras, familia `grafico` (el motor aprendió a ver una barra apilada hecha con cajas: antes solo veía SVG) | 180 de 188 | 1 | 10 formas de gráfico; de ellas 5 son barras apiladas con 4 huellas (las dos de Compras se duplican vistas tras un modal) y 1 es la racha de días de Global (no reparte nada). Facturación, Historial, Notas de crédito y Producción no salen con el seed: se depuraron con el código. Frescura (otra rama) se midió aparte contra su worktree (`--otra-obra`) |
 
 ## Cómo se agrega una fila
 
