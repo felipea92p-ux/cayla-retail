@@ -147,31 +147,42 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     .map((t) => ({ id: t.id, nombre: t.valor }))
     .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
+  // El «!» con lo que la frase no alcanza a decir. En el celular va junto al título, porque ahí la frase se esconde (Felipe, 2026-10-09).
+  const ayudaProductos = (
+    <Ayuda titulo="Productos">
+      <span className="block">
+        Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
+      </span>
+      <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
+      <span className="mt-2 block">
+        El detalle por talla y sede está en{" "}
+        <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
+          Existencias
+        </Link>
+        .
+      </span>
+    </Ayuda>
+  );
+
   return (
     <div className="space-y-6">
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Productos"
+        titulo={
+          <>
+            Productos
+            {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 36 px. */}
+            <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayudaProductos}</span>
+          </>
+        }
         subtitulo={
           // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
           // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
           <>
-            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero); el «!» queda con todo lo que explica. */}
+            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero) y el «!» sube junto al título. */}
             <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
-            <Ayuda titulo="Productos">
-              <span className="block">
-                Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
-              </span>
-              <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
-              <span className="mt-2 block">
-                El detalle por talla y sede está en{" "}
-                <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
-                  Existencias
-                </Link>
-                .
-              </span>
-            </Ayuda>
+            <span className="max-sm:hidden">{ayudaProductos}</span>
           </>
         }
         acciones={
