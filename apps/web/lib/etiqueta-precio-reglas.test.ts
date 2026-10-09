@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  agruparPorPrenda,
   armarEtiquetas,
   campanaSaleEnLaFila,
   cantidadDeTexto,
@@ -13,6 +14,7 @@ import {
   iconosPorVariante,
   mejorCampanaPorVariante,
   idsDeParam,
+  nombreDeFila,
   precioEtiqueta,
   sumarEntradas,
   tallasDelModelo,
@@ -600,5 +602,29 @@ describe("Etiquetas desde un traslado (?unidades= con ?traslado=, «Lo siguiente
   it("el traslado solo manda sobre las tallas sueltas: lotes, producción y campaña vuelven a lo suyo", () => {
     expect(volverDeEtiquetas({ tipo: "lotes" }, null, ID).href).toBe("/recibir");
     expect(volverDeEtiquetas({ tipo: "producto" }, null, ID).href).toBe("/productos");
+  });
+});
+
+describe("agruparPorPrenda", () => {
+  it("junta las filas de la misma prenda en el orden en que aparece por primera vez", () => {
+    const filas = [
+      { id: 1, prenda: "Blusa Emma" },
+      { id: 2, prenda: "Casaca Ona" },
+      { id: 3, prenda: "Blusa Emma" },
+    ];
+    expect(agruparPorPrenda(filas)).toEqual([
+      { prenda: "Blusa Emma", filas: [filas[0], filas[2]] },
+      { prenda: "Casaca Ona", filas: [filas[1]] },
+    ]);
+  });
+  it("sin filas, sin grupos", () => {
+    expect(agruparPorPrenda([])).toEqual([]);
+  });
+});
+
+describe("nombreDeFila", () => {
+  it("dice prenda, color y talla, y se salta lo que falta", () => {
+    expect(nombreDeFila({ prenda: "Blusa Emma", color: "Beige", talla: "S" })).toBe("Blusa Emma · Beige · talla S");
+    expect(nombreDeFila({ prenda: "Bolso", color: null, talla: null })).toBe("Bolso");
   });
 });

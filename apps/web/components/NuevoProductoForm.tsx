@@ -23,7 +23,7 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { ParecidasBajoNombre, PieConParecidas, RevisaParecidasDelPaso } from "@/components/alta-producto/ParecidasDelAlta";
 import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
-import { asegurarVisible, estaEscribiendo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
+import { asegurarVisible, estaEscribiendo, irAlIdCampo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
 import { PuntosAvance, type PasoConNombre } from "@/components/alta-producto/PuntosAvance";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
@@ -489,7 +489,18 @@ export function NuevoProductoForm({
     // Nunca se desplaza la página mientras la persona teclea: al escribir el nombre, «Sigue aquí» pasa de la marca al tejido
     // (el tinte se mueve) pero la vista no salta. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o
     // pantalla táctil.
-    if (ahoraCampo && previa.ahora !== ahoraCampo && !estaEscribiendo()) asegurarVisible(ahoraCampo);
+    // Tampoco si la luz VUELVE a un campo porque la persona lo está tocando (`escribiendoEn`): ya está ahí. En el celular, deslizar la
+    // pantalla soltaba «Colores» y el siguiente círculo tocado lo volvía a encender; la guía lo «traía a la vista» y, como la carta es
+    // más alta que la pantalla, la subía al inicio de los colores (Felipe, 2026-10-09).
+    if (ahoraCampo && previa.ahora !== ahoraCampo && ahoraCampo !== escribiendoEn && !estaEscribiendo()) {
+      // Marca y proveedor recién elegidos y el nombre todavía vacío: se lleva a la persona AL nombre, con el cursor listo (Felipe,
+      // 2026-10-09: en el celular la luz pasaba al nombre pero el cursor seguía en «Proveedor»). Es la única pausa que la persona
+      // cierra eligiendo, no escribiendo, así que nadie está tecleando en otro lado.
+      if (previa.ahora === "marca" && ahoraCampo === "nombre" && referencia.trim() === "") irAlIdCampo("nombre", { destello: false, cursor: true });
+      else asegurarVisible(ahoraCampo);
+    }
+    // `referencia` se lee solo cuando cambia el campo de turno: no debe disparar el efecto en cada letra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paso, ahoraCampo, guia]);
 
   function estadoPaso(n: NumeroPaso): "abierto" | "hecho" | "pendiente" {
