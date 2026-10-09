@@ -4,6 +4,8 @@ import { useEffect, useState, type MutableRefObject, type ReactNode, type RefObj
 import { ArrowRight, ReceiptText, ScanLine } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Desplegable } from "@/components/ui/campos";
+import { usePistola } from "@/components/ui/usePistola";
+import { busquedaDesdeLectura } from "@/lib/cambios-atajos-reglas";
 
 /** "/" enfoca la búsqueda desde cualquier parte de la pantalla (como en Linear o GitHub).
  *  Solo fuera de un campo: dentro de uno, "/" es un carácter más. `activo` es false
@@ -34,8 +36,9 @@ const CHIP_ACCION =
  * - Un solo campo entiende boleta ("B001-10"), DNI/RUC, nombre de la clienta, nombre de
  *   la prenda o su etiqueta — `clasificarBusqueda` decide cuál es cuál. El teléfono NO:
  *   ninguna tabla lo guarda, y el texto de ayuda no promete lo que no existe.
- * - "Escanear prenda": en la computadora la pistola de CAYLA teclea el código y un Enter en
- *   el campo que tenga el foco, así que el botón deja el campo listo y lo dice. En el
+ * - "Escanear prenda": la pistola se porta igual que en Vender (`usePistola`): con el foco en
+ *   cualquier botón de la pantalla, su primera tecla vuelve al campo; lo leído reemplaza lo que
+ *   hubiera escrito y busca solo, mande o no Enter. El botón deja el campo listo y lo dice. En el
  *   teléfono (pantalla táctil), si la pantalla pasa `onCamara`, abre la cámara (Cambios,
  *   spike 2026-09-26).
  * - "Buscar en" reemplaza al switch "Buscar en todas las sedes" y solo lo ve un líder:
@@ -56,6 +59,7 @@ export function BuscadorVentas({
   escanearEnBarraMovil = false,
   onCamara,
   extra,
+  pistola = true,
 }: {
   valorInicial: string;
   todasInicial: boolean;
@@ -63,7 +67,8 @@ export function BuscadorVentas({
   sede: string;
   buscando: boolean;
   campoRef: RefObject<HTMLInputElement | null>;
-  onBuscar: (texto: string, todas: boolean) => void;
+  /** `leida`: la búsqueda la disparó la pistola (no lo tecleado): si trae una sola compra, la pantalla la abre directo. */
+  onBuscar: (texto: string, todas: boolean, leida?: boolean) => void;
   onLimpiar: () => void;
   onSinComprobante: () => void;
   /** Deja «Escanear prenda» al alcance de otra pieza (la barra fija del celular en Devoluciones):
@@ -75,6 +80,8 @@ export function BuscadorVentas({
   onCamara?: () => void;
   /** Un dato de contexto en la fila de los botones (Cambios: si la caja está abierta). */
   extra?: ReactNode;
+  /** `false` con una ventana encima (la cámara, anular una venta): la pistola no le roba las teclas. */
+  pistola?: boolean;
 }) {
   const [texto, setTexto] = useState(valorInicial);
   const [todas, setTodas] = useState(todasInicial);
@@ -95,6 +102,19 @@ export function BuscadorVentas({
     setTexto("");
     campoRef.current?.focus();
   }
+
+  // Lo leído es un código, no lo que la persona tenía escrito: la búsqueda va con la lectura sola (y el QR de una boleta,
+  // como «B004-31», `busquedaDesdeLectura`).
+  usePistola(campoRef, {
+    activa: pistola,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      const busqueda = busquedaDesdeLectura(codigo);
+      setEscaneando(false);
+      setTexto(busqueda);
+      onBuscar(busqueda, todas, true);
+    },
+  });
 
   useEffect(() => {
     if (!escanearRef) return;

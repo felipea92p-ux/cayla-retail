@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type Ref } from "react";
 import { ArrowUpDown, CircleAlert, LayoutGrid, Link2, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
@@ -67,6 +67,7 @@ export function FiltrosExistencias({
   onTeclear,
   onSoltar,
   onEnter,
+  buscadorRef,
   placeholder,
   separa,
   categorias,
@@ -91,8 +92,10 @@ export function FiltrosExistencias({
   onTeclear: (texto: string) => void;
   /** Al salir del buscador: lo escrito pasa a la URL de una vez. */
   onSoltar: () => void;
-  /** Enter en el buscador (la pistola escribe el código y manda Enter). */
+  /** Enter tecleado a mano en el buscador. El de la pistola lo resuelve `usePistola` en el padre y no llega aquí. */
   onEnter: () => void;
+  /** El campo del buscador, para que el padre escuche la pistola (`usePistola`). */
+  buscadorRef?: Ref<HTMLInputElement>;
   placeholder: string;
   /** La sede separa piso y almacén: solo ahí hay «Hoy» y «Condición». */
   separa: boolean;
@@ -372,10 +375,11 @@ export function FiltrosExistencias({
               «/» lleva el cursor aquí (`atajo`); Escape y la «×» borran lo escrito. */}
           <Buscador
             id={ID_BUSCADOR_EXISTENCIAS}
+            ref={buscadorRef}
             valor={busqueda}
             onCambio={(v) => onTeclear(v)}
             onBlur={onSoltar}
-            // La pistola escribe el código y manda Enter: si es el código exacto de una talla, se abre esa prenda.
+            // Enter a mano: si lo escrito es el código exacto de una talla, se abre esa prenda.
             onKeyDown={(e) => {
               if (e.key !== "Enter") return;
               e.preventDefault();

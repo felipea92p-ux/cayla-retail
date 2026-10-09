@@ -15,7 +15,7 @@ import { EscanerConteo, type LecturaConteo, type TextosEscaner } from "@/compone
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { usePistola } from "@/components/ui/usePistola";
 import {
   BOTON_COMPROBAR,
   BOTON_CONFIRMAR_DE_NUEVO,
@@ -154,6 +154,7 @@ export function BajarAlPisoForm({
   sede,
   prendas,
   iniciales = [],
+  abrirCamara = false,
 }: {
   ubicacionId: string;
   sede: string;
@@ -161,6 +162,9 @@ export function BajarAlPisoForm({
   /** Lo que llega marcado desde Existencias (`?lineas=`, ADR-0237), ya validado contra esta tienda. Si había una bajada
    *  a medias guardada en el aparato, manda esa: la lista de Existencias no pisa lo que se escaneó y no se confirmó. */
   iniciales?: LineaBajada[];
+  /** Llegó por «Colgar en tandas» (`?camara=1`): en un aparato táctil la cámara se abre sola. En el computador, no (ahí está la
+   *  pistola, y una cámara web que se enciende sola asusta). */
+  abrirCamara?: boolean;
 }) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId, etiqueta: sede });
@@ -254,6 +258,19 @@ export function BajarAlPisoForm({
         : responsable.motivo;
   const puedeConfirmar = !enviando && motivo === null;
 
+  // «Colgar en tandas» (`?camara=1`): con el celular en la mano, la cámara en ráfaga se abre al llegar. No se abre si hay una
+  // bajada a medias por decidir o un envío por comprobar: primero eso. El parámetro se quita de la URL para que volver o
+  // recargar no la vuelva a abrir encima de lo que la persona esté haciendo.
+  const abrirCamaraAlLlegar = useEffectEvent(() => {
+    if (!abrirCamara) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("camara");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    const tactil = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+    if (!tactil || borradorPendiente.current || enviadoEn.current) return;
+    setCamara(true);
+  });
+
   // localStorage solo existe en el navegador: el borrador se lee al montar, una sola vez (no tras cada router.refresh).
   // Uno ENVIADO vuelve congelado: lo único que se ofrece es comprobarlo, nunca empezar otra encima.
   const restaurarBorrador = useEffectEvent(() => {
@@ -287,6 +304,7 @@ export function BajarAlPisoForm({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- misma decisión que la espera de Vender: no hay otra forma de leerlo sin romper la hidratación
     restaurarBorrador();
+    abrirCamaraAlLlegar();
   }, []);
 
   // Fase de captura, antes que nadie: mientras se guarda o se refresca, las teclas de la pistola van al búfer (con la
@@ -320,17 +338,20 @@ export function BajarAlPisoForm({
     return () => window.removeEventListener("keydown", alTeclear, true);
   }, []);
 
-  // La pistola escribe donde esté el foco: si quedó en un botón, el código se perdería y el Enter activaría ese botón.
-  // Con una ventana abierta (la de la prenda en la mano, la cámara) la tecla es de la ventana: no se le roba el foco.
+  // La pistola, la misma pieza de Vender (`usePistola`): si el foco quedó en un botón, la primera tecla vuelve al escáner (el
+  // código no se pierde ni el Enter activa ese botón); lo leído es un código exacto, no se pega a lo que había escrito y se lee
+  // aunque la pistola no mande Enter. Con una ventana abierta (la de la prenda en la mano, la cámara) la tecla es de la ventana.
   const hayVentana = ventanaEnMano !== null || camara;
-  useEffect(() => {
-    if (bloqueada || congelada || hayVentana) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (teclaSueltaVaAlEscaner(e, document.activeElement)) escaner.current?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [bloqueada, congelada, hayVentana]);
+  usePistola(escaner, {
+    activa: !bloqueada && !congelada && !hayVentana,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      if (escaner.current) escaner.current.value = "";
+      if (busquedaPendiente.current !== null) window.clearTimeout(busquedaPendiente.current);
+      setSugerencias([]);
+      leerEscaneo(codigo);
+    },
+  });
 
   // Cerrar o recargar con prendas escaneadas y sin confirmar: el aviso nativo del navegador. Lo «por escanear» no cuenta:
   // si se va sin leer nada, no pierde nada (la lista se rearma desde Existencias).

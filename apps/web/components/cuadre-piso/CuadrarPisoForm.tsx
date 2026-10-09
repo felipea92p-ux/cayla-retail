@@ -20,7 +20,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { usePistola } from "@/components/ui/usePistola";
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { BUFER_VACIO, alBufer, teclaDeLaPistola, type BuferDePistola } from "@/lib/bajada-reglas";
 import {
@@ -251,7 +251,7 @@ export function CuadrarPisoForm({
   // localStorage solo existe en el navegador: el borrador se lee al montar, una sola vez. Uno ENVIADO vuelve congelado: lo único que
   // se ofrece es comprobarlo, nunca empezar otro encima.
   const alMontar = useEffectEvent(() => {
-    desfase.current = desfaseConServidor(ahoraServidor, Date.now());
+    desfase.current = desfaseConServidor(ahoraServidor, new Date().getTime()); // no `Date.now()`: react-hooks/purity lo marca aunque esto corre al montar, no en el render
     if (borradorLeido.current) return;
     borradorLeido.current = true;
     const b = leerBorradorCuadre(leerTexto(clave), new Date());
@@ -301,15 +301,16 @@ export function CuadrarPisoForm({
     return () => window.removeEventListener("keydown", alTeclear, true);
   }, []);
 
-  // La pistola escribe donde esté el foco: si quedó en un botón, el código se perdería y el Enter activaría ese botón.
-  useEffect(() => {
-    if (paso !== "escanear" || congelada || resultado) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (teclaSueltaVaAlEscaner(e, document.activeElement)) escaner.current?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [paso, congelada, resultado]);
+  // La pistola, la misma pieza de Vender (`usePistola`): si el foco quedó en un botón, la primera tecla vuelve al escáner; lo
+  // leído es un código exacto que no se pega a lo que había escrito, y se lee aunque la pistola no mande Enter.
+  usePistola(escaner, {
+    activa: paso === "escanear" && !congelada && !resultado,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      if (escaner.current) escaner.current.value = "";
+      leer(codigo);
+    },
+  });
 
   function volverAlEscaner() {
     escaner.current?.focus({ preventScroll: true });
