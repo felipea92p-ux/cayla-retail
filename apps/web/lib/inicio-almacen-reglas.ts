@@ -434,6 +434,23 @@ export function existenciasDeAlmacen<F extends FilaPrenda>(stock: readonly F[], 
   };
 }
 
+// ── «Colgar en tandas»: escanear un lote con el celular y bajarlo de una vez ─────────────────────────
+
+/** Bajar al piso con la cámara abierta al llegar (solo en un aparato táctil: en el computador manda la pistola). La lista llega
+ *  vacía a propósito: es para el lote que se tiene en la mano (un fardo, una caja), no para la lista del día de «Por colgar». */
+export const HREF_COLGAR_EN_TANDAS = "/inventario/bajar?camara=1";
+
+/**
+ * Adónde lleva «Colgar en tandas» del Inicio de Almacén; `null` si no se ofrece. No se ofrece a quien no ve Existencias
+ * (`undefined`: Bajar al piso vive en ese módulo, ADR-0306, y llevaría a «Sin acceso») ni donde la sede no separa piso y almacén
+ * (no hay nada que bajar). Si la lectura del piso falló (`null`) se ofrece igual: la pantalla de Bajar lee lo suyo y dice la verdad.
+ */
+export function hrefColgarEnTandas(existencias: Existencias | null | undefined): string | null {
+  if (existencias === undefined) return null;
+  if (existencias !== null && existencias.enAlmacen === null) return null;
+  return HREF_COLGAR_EN_TANDAS;
+}
+
 // ── De lo leído a las fuentes de «Te toca» ───────────────────────────────────────────────────────
 
 /**

@@ -1297,6 +1297,20 @@
     font-size: 13px;
   }
 
+  /* ── «Colgar en tandas»: al pie de «Por colgar», siempre ── */
+  .ia-rp .ia-tandas {
+    display: grid;
+    gap: 8px;
+    padding: 14px 18px 16px;
+    border-top: 1px solid var(--ia-t08);
+  }
+  .ia-rp .ia-tandas p {
+    color: var(--ia-t65);
+    font-size: 12.5px;
+    line-height: 1.4;
+    text-align: center;
+  }
+
   /* ── «Accesos» ── */
   .ia-acs {
     display: grid;
@@ -1490,6 +1504,14 @@
   .ia-dock svg.ia-ic {
     width: 22px;
     height: 22px;
+  }
+  /* Con cuatro botones (Colgar en tandas suma uno) a 375 px, «Nuevo producto» se partía en dos líneas: los íconos bajan a 48 px
+     (sobre el mínimo de 44 para el dedo) y el texto no se corta. */
+  .ia-dock .ia-principal {
+    white-space: nowrap;
+  }
+  .ia-dock:has(> :nth-child(4)) .ia-ib {
+    width: 48px;
   }
   @media (min-width: 640px) {
     .ia-dock {

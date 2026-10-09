@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { DatosInicioAlmacen } from "@/lib/inicio-almacen";
 import type { AvisosVisibles } from "@/lib/inicio-avisos";
-import { avanceDelDia, sigueAhora, TITULO_NUEVOS } from "@/lib/inicio-almacen-reglas";
+import { avanceDelDia, hrefColgarEnTandas, sigueAhora, TITULO_NUEVOS } from "@/lib/inicio-almacen-reglas";
 import { AccesosAlmacen, EnCaminoAlmacen, PorColgarAlmacen, PulsoAlmacen, type AccesoAlmacen } from "./BloquesLaterales";
 import { CabinaAlmacen } from "./CabinaAlmacen";
 import { DockAlmacen } from "./DockAlmacen";
@@ -66,7 +66,7 @@ export function InicioAlmacen({
           </div>
         </div>
       </div>
-      <DockAlmacen veRecibir={veRecibir} />
+      <DockAlmacen veRecibir={veRecibir} hrefColgar={hrefColgarEnTandas(datos.existencias)} />
     </>
   );
 }

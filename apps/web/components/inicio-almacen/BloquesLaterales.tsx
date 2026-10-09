@@ -4,7 +4,8 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { AYUDA_HOY } from "@/lib/existencias-hoy";
 import type { ViajeEnCamino } from "@/lib/inicio-almacen";
-import type { Existencias } from "@/lib/inicio-almacen-reglas";
+import { hrefColgarEnTandas, type Existencias } from "@/lib/inicio-almacen-reglas";
+import { BotonEnlace } from "@/components/ui/campos";
 import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
 import { Ico, type ClaveIco } from "./iconos";
@@ -153,6 +154,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
   if (existencias === undefined) return null;
   if (existencias !== null && existencias.enAlmacen === null) return null; // la sede no separa piso y almacén: no hay nada que colgar
   const tallas = existencias?.porColgar.tallas ?? 0;
+  const tandas = hrefColgarEnTandas(existencias);
   return (
     <EnVista como="section" className="ia-rv" style={{ "--i": 6 } as CSSProperties}>
       <Cabecera titulo="Por colgar" />
@@ -198,6 +200,17 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
               </Link>
             </div>
           </>
+        )}
+        {/* «Colgar en tandas» (Felipe, 2026-10-09): el lote que llega en la mano —un fardo, una caja— se escanea con la cámara del
+            celular, se junta en una lista y se baja de una vez (`bajar_al_piso`, todo o nada). Va siempre, aunque el piso esté al
+            día: ese lote no está en la lista del día. */}
+        {tandas && (
+          <div className="ia-tandas">
+            <BotonEnlace href={tandas} peso="primario" className="w-full">
+              <Ico clave="camera" /> Colgar en tandas
+            </BotonEnlace>
+            <p>Escanea un lote con el celular y cuélgalo de una vez.</p>
+          </div>
         )}
       </div>
     </EnVista>
