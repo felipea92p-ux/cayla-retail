@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
+import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo } from "@/lib/produccion";
 import { OrdenesTablero } from "@/components/OrdenesTablero";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
@@ -54,10 +54,12 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   // es `fn_puede_editar_catalogo()` en la base. Los demás ven a quién pedírselo.
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos] = await Promise.all([
+  const [ordenes, modelos, datosInsumos, vocabulario] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
+    // Dato secundario (tallas y colores de «Modelo nuevo»): si falla, la orden de siempre se abre igual.
+    getVocabularioModeloNuevo(),
   ]);
 
   // F5: solo el líder recibe el consejo de la red (ventas y stock de todas las tiendas, costos de insumos). Es secundario: si falla, la orden se abre igual.
@@ -67,7 +69,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
     </div>
   );
 }

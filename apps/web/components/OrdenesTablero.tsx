@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { Boton, BotonEnlace } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
@@ -14,7 +14,8 @@ import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales"
 import { OrdenTarjeta, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { useFlipCajas } from "@/lib/useFlipCajas";
 import { COLUMNAS_TABLERO, etapaActual, resumenTablero } from "@/lib/produccion-reglas";
-import { hrefAltaDesdeProduccion, type TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
+import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
+import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { Scissors, Shirt } from "lucide-react";
@@ -38,6 +39,7 @@ export function OrdenesTablero({
   nuevaInicial = null,
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
+  vocabulario = null,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
@@ -55,6 +57,8 @@ export function OrdenesTablero({
   tipoInicial?: TipoOrden;
   /** Quien edita el catálogo puede crear el modelo que falta desde aquí (`fn_puede_editar_catalogo`, ADR-0361). */
   puedeEditarCatalogo?: boolean;
+  /** Tallas, colores y categorías para «Modelo nuevo» dentro de la orden (ADR-0361). */
+  vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
@@ -86,7 +90,7 @@ export function OrdenesTablero({
           <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">Dónde está cada corrida, cuánto lleva costando y si llega a tiempo.</p>
         </div>
-        <Boton peso="primario" onClick={() => setNuevaAbierta(true)} disabled={modelos.length === 0}>
+        <Boton peso="primario" onClick={() => setNuevaAbierta(true)}>
           + Nueva orden
         </Boton>
       </div>
@@ -95,18 +99,14 @@ export function OrdenesTablero({
         <div className="card-cayla">
           <Vacio
             icono={<Shirt />}
-            titulo="No hay modelos para producir"
+            titulo="Todavía no hay modelos"
             acciones={
-              puedeEditarCatalogo ? (
-                <BotonEnlace href={hrefAltaDesdeProduccion("produccion")} peso="primario">
-                  + Crear el primer modelo
-                </BotonEnlace>
-              ) : null
+              <Boton peso="primario" onClick={() => setNuevaAbierta(true)}>
+                + Crear el primer modelo
+              </Boton>
             }
           >
-            {puedeEditarCatalogo
-              ? "Todavía no hay ningún modelo para producir. Créalo con sus tallas y colores y vuelves aquí para abrir su orden."
-              : "Todavía no hay ningún modelo para producir. Pídele a quien edita el catálogo que lo cree en Productos, con sus tallas y colores."}
+            Créalo aquí mismo: un modelo nuevo se abre ya con su orden de producción.
           </Vacio>
         </div>
       )}
@@ -277,6 +277,7 @@ export function OrdenesTablero({
           productoInicialId={nuevaInicial}
           tipoInicial={tipoInicial}
           puedeEditarCatalogo={puedeEditarCatalogo}
+          vocabulario={vocabulario}
           onClose={() => setNuevaAbierta(false)}
         />
       )}

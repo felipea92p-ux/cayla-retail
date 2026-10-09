@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoMonto, CampoSelect, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
+import { CampoMonto, CampoSelect, CampoTexto, Desplegable, Segmentado, Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import type { ModeloProducible, VarianteDeModelo } from "@/lib/produccion";
@@ -21,7 +22,27 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
 import { costoUnitario, semaforoMargen, type Semaforo } from "@/lib/produccion-reglas";
-import { hrefAltaDesdeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
+import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
+import type { ColorAlta } from "@/lib/alta-producto";
+import {
+  TEXTO_FUNCION_AUSENTE,
+  camposDeGuiaOrden,
+  celdasDelBorrador,
+  leerErrorModeloNuevo,
+  ordenarTallas,
+  nombreDelModelo,
+  paramsRpcModeloNuevo,
+  precioDelBorrador,
+  problemasDelModelo,
+  resumenCantidades,
+  tallasHabituales,
+  type BorradorModelo,
+  type ErrorModeloNuevo,
+  type VocabularioModeloNuevo,
+} from "@/lib/modelo-nuevo-reglas";
 
 // Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
 // por talla-color y el costo ESTIMADO. El costo real se corrige al cerrar.
@@ -30,9 +51,12 @@ import { hrefAltaDesdeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 // mismas reglas de Inventario), si alcanza la tela y los avíos (con el consumo real medido de las órdenes cerradas del modelo, D-D) y cuánto costará cada
 // prenda. Son consejos, no órdenes: las cantidades siguen siendo del líder. Sin datos, el formulario es el de siempre.
 //
-// ADR-0361: un modelo que todavía no existe se crea en Productos (la única puerta del catálogo) y la persona vuelve aquí con el modelo ya
-// elegido y su matriz lista (`hrefAltaDesdeProduccion`). El margen y el semáforo los ve el líder aunque la lectura de la red falle, y un
-// modelo sin precio lo dice, porque sin precio no hay margen que mirar.
+// ADR-0361: el Taller crea modelos nuevos como parte normal de su trabajo (una Muestra desarrolla un modelo que todavía no existe), así que «Modelo nuevo» se
+// arma ACÁ: nombre, categoría, tallas y colores del vocabulario y precio, y `abrir_produccion_con_modelo_nuevo` crea el modelo y abre la orden en UNA
+// transacción y con UN token. El modelo nuevo se trata como cualquier otro: se arma un modelo VIRTUAL con las celdas del borrador y la matriz, el costo por
+// prenda y el margen no saben la diferencia. Quien prefiera cargarlo completo (con fotos) lo crea en Productos y vuelve (`hrefAltaDesdeProduccion`).
+// El margen y el semáforo los ve el líder aunque la lectura de la red falle, y un modelo sin precio lo dice.
+// La guía de foco (ADR-0284) sale de `camposDeGuiaOrden`, que coincide con lo que la base rechaza (lo prueba `modelo-nuevo-reglas.test.ts`).
 //
 // El token de idempotencia nace con el formulario (useRef): si el Taller
 // pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
@@ -42,6 +66,12 @@ type Tipo = "produccion" | "muestra";
 const TIPOS = [
   { valor: "produccion", texto: "Producción" },
   { valor: "muestra", texto: "Muestra" },
+] as const;
+
+type ModoModelo = "existe" | "nuevo";
+const MODOS = [
+  { valor: "existe", texto: "Ya existe" },
+  { valor: "nuevo", texto: "Modelo nuevo" },
 ] as const;
 
 const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"; texto: string }> = {
@@ -61,6 +91,7 @@ export function NuevaOrdenProduccionForm({
   productoInicialId = null,
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
+  vocabulario = null,
   onClose,
 }: {
   tallerId: string;
@@ -73,6 +104,8 @@ export function NuevaOrdenProduccionForm({
   tipoInicial?: Tipo;
   /** Puede crear el modelo que falta y agregarle tallas o colores (`fn_puede_editar_catalogo`); si no, ve a quién pedírselo. */
   puedeEditarCatalogo?: boolean;
+  /** Tallas, colores y categorías que ofrece «Modelo nuevo» (dato secundario: si no se pudo leer, «Modelo nuevo» lo dice y el resto sigue igual). */
+  vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -80,6 +113,16 @@ export function NuevaOrdenProduccionForm({
   const [tipo, setTipo] = useState<Tipo>(tipoInicial);
   const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? modelos[0]?.productoId ?? "");
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
+  // Modelo nuevo (ADR-0361): sin modelos en el catálogo, el primero nace acá.
+  const [modoModelo, setModoModelo] = useState<ModoModelo>(modelos.length === 0 ? "nuevo" : "existe");
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [categoriaNuevaId, setCategoriaNuevaId] = useState("");
+  const [tallasNuevas, setTallasNuevas] = useState<string[]>([]);
+  const [coloresNuevos, setColoresNuevos] = useState<string[]>([]);
+  const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
+  const [precioNuevo, setPrecioNuevo] = useState("");
+  // La base dijo «ya existe un modelo así» (o «casi igual»): se muestra con lo que se puede hacer, no como un error cualquiera.
+  const [choque, setChoque] = useState<Extract<ErrorModeloNuevo, { tipo: "nombre_duplicado" | "nombre_casi_igual" }> | null>(null);
   const [tela, setTela] = useState("");
   const [avios, setAvios] = useState("");
   const [maquila, setMaquila] = useState("");
@@ -90,7 +133,46 @@ export function NuevaOrdenProduccionForm({
   const responsable = useResponsable();
   const [diasObjetivo, setDiasObjetivo] = useState<number>(DIAS_OBJETIVO_PRODUCCION);
 
-  const modelo = useMemo(() => modelos.find((m) => m.productoId === productoId) ?? null, [modelos, productoId]);
+  const modeloExistente = useMemo(() => modelos.find((m) => m.productoId === productoId) ?? null, [modelos, productoId]);
+
+  // ----- Modelo nuevo: el borrador, sus celdas y un modelo VIRTUAL para que la matriz, el costo por prenda y el margen lo traten como a cualquier otro -----
+  const esNuevo = modoModelo === "nuevo";
+  const vocab = vocabulario?.datos ?? null;
+  const categoriaNueva = useMemo(() => vocab?.categorias.find((cat) => cat.id === categoriaNuevaId) ?? null, [vocab, categoriaNuevaId]);
+  const coloresDisponibles = useMemo<ColorAlta[]>(() => {
+    const vistos = new Set<string>();
+    return [...(vocab?.colores ?? []), ...coloresCreados].filter((col) => !vistos.has(col.codigo) && vistos.add(col.codigo));
+  }, [vocab, coloresCreados]);
+  const borrador = useMemo<BorradorModelo>(
+    () => ({ nombre: nombreNuevo, categoria: categoriaNueva, tallaIds: tallasNuevas, colorCodigos: coloresNuevos, precio: precioNuevo, esMuestra: tipo === "muestra", cantidades }),
+    [nombreNuevo, categoriaNueva, tallasNuevas, coloresNuevos, precioNuevo, tipo, cantidades]
+  );
+  const celdasNuevas = useMemo(() => celdasDelBorrador(borrador, coloresDisponibles), [borrador, coloresDisponibles]);
+  const resumenNuevo = useMemo(() => resumenCantidades(borrador, celdasNuevas), [borrador, celdasNuevas]);
+  const modeloVirtual = useMemo<ModeloProducible | null>(() => {
+    if (!esNuevo) return null;
+    const precioBorrador = precioDelBorrador(borrador);
+    return {
+      productoId: "__nuevo",
+      referencia: nombreDelModelo(borrador) || "Modelo nuevo",
+      categoria: categoriaNueva?.nombre ?? null,
+      categoriaId: categoriaNueva?.id ?? null,
+      variantes: celdasNuevas.map((celda) => {
+        const color = coloresDisponibles.find((col) => col.codigo === celda.color);
+        return {
+          varianteId: celda.clave,
+          sku: "",
+          talla: categoriaNueva?.tallas.find((t) => t.id === celda.tallaId)?.valor ?? null,
+          color: color?.nombre ?? null,
+          colorHex: color?.hex ?? null,
+          precio: Number.isFinite(precioBorrador) ? precioBorrador : 0,
+        };
+      }),
+    };
+  }, [esNuevo, borrador, categoriaNueva, celdasNuevas, coloresDisponibles]);
+  const modelo = esNuevo ? modeloVirtual : modeloExistente;
+  // Sin categoría y sin tallas no hay matriz que dibujar (la celda única «Sin color» de un borrador vacío confundiría): se explica qué falta.
+  const mostrarMatriz = !esNuevo || (categoriaNueva !== null && ordenarTallas(categoriaNueva, tallasNuevas).length > 0);
 
   // Matriz color × talla, como la grilla de variantes de Shopify: una fila
   // por color, una columna por talla, y en cada celda cuántas van. Solo
@@ -111,10 +193,13 @@ export function NuevaOrdenProduccionForm({
     return { tallas, filas: [...filas.entries()] };
   }, [modelo]);
 
-  const lineas = (modelo?.variantes ?? [])
-    .map((v) => ({ variante_id: v.varianteId, cantidad: Math.floor(Number(cantidades[v.varianteId]) || 0) }))
-    .filter((l) => l.cantidad > 0);
-  const total = lineas.reduce((s, l) => s + l.cantidad, 0);
+  const lineas = esNuevo
+    ? []
+    : (modelo?.variantes ?? [])
+        .map((v) => ({ variante_id: v.varianteId, cantidad: Math.floor(Number(cantidades[v.varianteId]) || 0) }))
+        .filter((l) => l.cantidad > 0);
+  // Un modelo nuevo lee las cantidades como las lee la base (enteros de 0 a 9999); uno existente, como siempre.
+  const total = esNuevo ? resumenNuevo.total : lineas.reduce((s, l) => s + l.cantidad, 0);
   const costoTotal = (Number(tela) || 0) + (Number(avios) || 0) + (Number(maquila) || 0);
   // Como lo calcula la base (`producciones.costo_unitario`): costos ÷ prendas, a 2 decimales. Una sola fórmula en `produccion-reglas.ts`.
   const unitario = costoUnitario(Number(tela) || 0, Number(avios) || 0, Number(maquila) || 0, total);
@@ -140,6 +225,9 @@ export function NuevaOrdenProduccionForm({
   const verMargen = decision !== null;
   const semaforo = semaforoMargen(precio, unitario);
 
+  // La guía de foco (ADR-0284): qué está hecho, qué sigue y qué falta. Sale de la misma validación que apaga el botón.
+  const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total }));
+
   function usarCurva() {
     const nuevas: Record<string, string> = {};
     for (const [id, s] of curva.porVariante) if (s.sugerido > 0) nuevas[id] = String(s.sugerido);
@@ -154,9 +242,84 @@ export function NuevaOrdenProduccionForm({
     setProductoId(id);
     setCantidades({});
   }
+  // Las cantidades de un modelo nuevo van por celda del borrador y las de uno existente por variante: al cambiar de modo no se arrastran.
+  function cambiarModo(m: ModoModelo) {
+    if (m === modoModelo) return;
+    setModoModelo(m);
+    setCantidades({});
+    setChoque(null);
+  }
+  function cambiarCategoria(id: string) {
+    setCategoriaNuevaId(id);
+    setTallasNuevas(tallasHabituales(vocab?.categorias.find((cat) => cat.id === id) ?? null));
+    setCantidades({});
+  }
+  function alternarColor(codigo: string) {
+    setColoresNuevos((prev) => (prev.includes(codigo) ? prev.filter((x) => x !== codigo) : [...prev, codigo]));
+  }
+  function colorCreado(color: ColorAlta) {
+    setColoresCreados((prev) => (prev.some((x) => x.codigo === color.codigo) ? prev : [...prev, color]));
+    setColoresNuevos((prev) => (prev.includes(color.codigo) ? prev : [...prev, color.codigo]));
+  }
+  /** «Ya existe un modelo con ese nombre»: se pasa a ese modelo (las cantidades se escriben otra vez: sus celdas son otras). */
+  function usarExistente(id: string) {
+    setModoModelo("existe");
+    setProductoId(id);
+    setCantidades({});
+    setChoque(null);
+  }
+
+  /** Modelo nuevo + orden en UNA llamada. `confirmoDistinto`: la persona dijo que un nombre casi igual es otro modelo de verdad. */
+  async function abrirConModeloNuevo(confirmoDistinto: boolean) {
+    const faltas = problemasDelModelo(borrador, celdasNuevas);
+    if (faltas.length > 0) {
+      avisar.error(faltas[0].texto);
+      return;
+    }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setChoque(null);
+    setCargando(true);
+    const { error } = await firmar(
+      createClient().rpc(
+        "abrir_produccion_con_modelo_nuevo",
+        paramsRpcModeloNuevo({
+          ubicacionId: tallerId,
+          borrador,
+          celdas: celdasNuevas,
+          costos: { tela, avios, maquila },
+          fechaEntrega,
+          nota,
+          confirmoDistinto,
+          token: token.current,
+        })
+      ),
+      responsable.firma()
+    );
+    responsable.despues(error);
+    setCargando(false);
+    if (error) {
+      const lectura = leerErrorModeloNuevo(error);
+      if (lectura.tipo === "nombre_duplicado" || lectura.tipo === "nombre_casi_igual") {
+        setChoque(lectura);
+        return;
+      }
+      avisar.error(lectura.tipo === "funcion_ausente" ? TEXTO_FUNCION_AUSENTE : traducirError(error, "abrir la orden"));
+      return;
+    }
+    avisar.exito(`Orden de ${nombreDelModelo(borrador)} abierta`, { detalle: `Modelo nuevo · ${resumenNuevo.total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
+    router.refresh();
+    onClose();
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (esNuevo) {
+      await abrirConModeloNuevo(false);
+      return;
+    }
     if (!modelo) {
       avisar.error("Elige el modelo que se va a producir.");
       return;
@@ -204,30 +367,61 @@ export function NuevaOrdenProduccionForm({
             opciones={TIPOS}
             pie={tipo === "muestra" ? "Desarrollar el modelo: patrón y prototipo. No entra al stock." : "Fabricar el lote. Al cerrar entra al stock del Taller."}
           />
-          <CampoSelect
-            etiqueta="Modelo"
-            valor={productoId}
-            onValor={(v) => cambiarModelo(v)}
-            opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
-            pie={
-              puedeEditarCatalogo ? (
-                <>
-                  ¿El modelo es nuevo?{" "}
-                  <Link href={hrefAltaDesdeProduccion(tipo)} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-                    Créalo en Productos
-                  </Link>{" "}
-                  y vuelves aquí con la orden lista.
-                </>
-              ) : (
-                "¿El modelo es nuevo? Pídele a quien edita el catálogo que lo cree."
-              )
-            }
-          />
+          {modelos.length > 0 ? (
+            <Segmentado<ModoModelo>
+              etiqueta="Modelo"
+              valor={modoModelo}
+              onValor={cambiarModo}
+              opciones={MODOS}
+              pie={esNuevo ? "Se crea en el catálogo al abrir la orden." : "Uno que ya está en el catálogo."}
+            />
+          ) : (
+            <div className="space-y-1.5">
+              <span className={campoEtiqueta}>Modelo</span>
+              <p className="text-sm text-tinta/70">Todavía no hay modelos en el catálogo: este será el primero.</p>
+            </div>
+          )}
         </div>
 
+        {esNuevo ? (
+          <ModeloNuevoCampos
+            guia={guia}
+            vocabulario={vocab}
+            fallo={vocabulario?.fallo ?? null}
+            colores={coloresDisponibles}
+            nombre={nombreNuevo}
+            onNombre={(v) => {
+              setNombreNuevo(v);
+              setChoque(null);
+            }}
+            categoria={categoriaNueva}
+            onCategoria={cambiarCategoria}
+            tallaIds={tallasNuevas}
+            onTallas={setTallasNuevas}
+            colorCodigos={coloresNuevos}
+            onAlternarColor={alternarColor}
+            onColorCreado={colorCreado}
+            precio={precioNuevo}
+            onPrecio={setPrecioNuevo}
+            esMuestra={tipo === "muestra"}
+            puedeEditarCatalogo={puedeEditarCatalogo}
+            tipo={tipo}
+          />
+        ) : (
+          <CampoGuiado id="modelo" guia={guia}>
+            <CampoSelect
+              etiqueta={guia.etiqueta("modelo", "Modelo")}
+              valor={productoId}
+              onValor={(v) => cambiarModelo(v)}
+              opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
+            />
+          </CampoGuiado>
+        )}
+
         {modelo && (
-          <div className="space-y-2">
-            <span className={campoEtiqueta}>Cuántas por talla y color</span>
+          <CampoGuiado id="cantidades" guia={guia} className="space-y-2">
+            <span className={campoEtiqueta}>{guia.etiqueta("cantidades", "Cuántas por talla y color")}</span>
+            {mostrarMatriz ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -289,23 +483,30 @@ export function NuevaOrdenProduccionForm({
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-tinta/65">
-              ¿Falta una talla o un color? Se agrega en{" "}
-              {puedeEditarCatalogo ? (
-                <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-                  Editar producto
-                </Link>
-              ) : (
-                "Productos (pídeselo a quien edita el catálogo)"
-              )}
-              , no desde la orden.
-            </p>
-          </div>
+            ) : (
+              <Aviso tono="info" chico>
+                Elige la categoría y las tallas, y aquí aparece la matriz: una fila por color y una columna por talla.
+              </Aviso>
+            )}
+            {!esNuevo && (
+              <p className="text-xs text-tinta/65">
+                ¿Falta una talla o un color? Se agrega en{" "}
+                {puedeEditarCatalogo ? (
+                  <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                    Editar producto
+                  </Link>
+                ) : (
+                  "Productos (pídeselo a quien edita el catálogo)"
+                )}
+                , no desde la orden.
+              </p>
+            )}
+          </CampoGuiado>
         )}
 
-        {decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
+        {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
 
-        {datos && modelo && (
+        {datos && modelo && !esNuevo && (
           <section aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -378,7 +579,7 @@ export function NuevaOrdenProduccionForm({
           </section>
         )}
 
-        {datos && modelo && (
+        {datos && modelo && !esNuevo && (
           <section aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
             <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
             {rendimiento.length === 0 ? (
@@ -444,7 +645,7 @@ export function NuevaOrdenProduccionForm({
             <span className="font-display text-lg text-tinta">{soles(unitario)} / prenda</span>
           </span>
         </div>
-        {modelo && verMargen && precio <= 0 && (
+        {modelo && !esNuevo && verMargen && precio <= 0 && (
           <p className="-mt-2 text-xs text-tinta/65">
             Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
             <Link href={`/productos/${modelo.productoId}/editar`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
@@ -456,17 +657,48 @@ export function NuevaOrdenProduccionForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
-          <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Tela, cliente, urgencia…" />
+          <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} />
         </div>
 
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
-            Cancelar
-          </button>
-          <button type="submit" disabled={cargando || !modelo || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-            {cargando ? "Abriendo…" : "Abrir orden"}
-          </button>
+
+        {choque && (
+          <Aviso
+            tono="atencion"
+            titulo={choque.tipo === "nombre_duplicado" ? "Ese modelo ya existe" : "Hay uno casi igual"}
+            accion={
+              choque.tipo === "nombre_duplicado" ? (
+                choque.existenteId && modelos.some((m) => m.productoId === choque.existenteId) ? (
+                  <Boton type="button" peso="fantasma" onClick={() => usarExistente(choque.existenteId as string)}>
+                    Usar ese modelo
+                  </Boton>
+                ) : null
+              ) : (
+                <Boton type="button" peso="fantasma" onClick={() => void abrirConModeloNuevo(true)} disabled={cargando}>
+                  Es otro modelo, crearlo igual
+                </Boton>
+              )
+            }
+          >
+            {choque.mensaje}
+          </Aviso>
+        )}
+
+        <div className="pie-hoja-fijo space-y-2">
+          <PieGuia guia={guia} listo="Todo listo para abrir la orden." />
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className={botonCancelar}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
+              title={guia.frase ?? responsable.motivo ?? undefined}
+              className={`${botonPrimario} ${guia.claseConfirmar}`}
+            >
+              {cargando ? "Abriendo…" : esNuevo ? "Crear modelo y abrir orden" : "Abrir orden"}
+            </button>
+          </div>
         </div>
       </form>
     </Modal>
