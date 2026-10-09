@@ -2,5 +2,6 @@
 
 - [x] Base: tabla `prendas_por_regularizar_correcciones` (solo se agrega), `corregir_prenda_sin_registrar`, `fn_correcciones_prenda_sin_registrar`. Aplicada en local; 12 pruebas en el CI.
 - [x] Web: «Corregir lo anotado» en el puente y en el resumen de una cerrada; `PrendaSinRegistrarModal` en modo `corregir`; listas compartidas con Vender (`lib/prenda-sin-registrar-listas.ts`). Verificado en escritorio y a 375 px.
-- [ ] **No está en producción:** pegar `20261010150000_corregir_prenda_sin_registrar.sql` con el OK de Felipe ANTES de publicar la web (sin ella, el botón responde «todavía no está disponible»; la lista sale igual). Después, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [x] **EN PRODUCCIÓN 2026-10-09** (versión `20261009234924`, por el MCP con OK de Felipe; huellas md5 de las dos funciones iguales al repo).
+- [ ] Refrescar el volcado de producción (`docs/datos/generado/COMO-REFRESCAR.md`) para que la tabla nueva entre al diccionario.
 - [ ] **Sin probar:** el camino de una venta `cerrada_sin_prenda` en el navegador (no hay cerradas en la base local; lo cubre la prueba de base). `/formidable` y `/chaos` sobre la hoja en modo corregir.

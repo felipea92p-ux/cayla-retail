@@ -3,7 +3,9 @@
 - **Fecha:** 2026-10-09
 - **Estado:** aceptada (pedido de Felipe, 2026-10-09: «debería poder haber una opción de cambiar color, tallas o categorías incluso
   luego de registrada la venta, ya que es muy relativo»). Migración `20261010150000_corregir_prenda_sin_registrar.sql`
-  **aplicada solo en local**; falta producción con el OK de Felipe (pegar ANTES de publicar la web).
+  **EN PRODUCCIÓN desde el 2026-10-09** (aplicada por el MCP de Supabase a pedido de Felipe; `apply_migration` la registró con
+  la versión `20261009234924`, la hora de aplicación, no la del archivo). Huellas md5 verificadas contra el repo:
+  `corregir_prenda_sin_registrar` `12ad95e2…`, `fn_correcciones_prenda_sin_registrar` `d230626b…`.
 
 ## Contexto
 
