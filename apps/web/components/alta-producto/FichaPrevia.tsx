@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { AlertaParecidas } from "@/components/alta-producto/AlertaParecidas";
 import { HojaParecidas } from "@/components/alta-producto/HojaParecidas";
 import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
@@ -181,6 +181,23 @@ export function FichaPrevia({
   const textoCrear = cargando ? (datos.fotos > 0 ? "Creando y subiendo fotos…" : "Creando…") : "Crear producto";
   const deshabilitado = cargando || datos.siguiente !== null;
 
+  // El alto de la barra de abajo, publicado en `--alto-barra-ficha` (2026-10-09): cambia con la tira de parecidas y la zona segura del
+  // teléfono, y lo que se pega sobre ella (el nombre del color tocado en la carta) lo necesita para no quedar detrás.
+  const barra = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barra.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const raiz = document.documentElement;
+    const publicar = () => raiz.style.setProperty("--alto-barra-ficha", `${el.offsetHeight}px`);
+    publicar();
+    const obs = new ResizeObserver(publicar);
+    obs.observe(el);
+    return () => {
+      obs.disconnect();
+      raiz.style.removeProperty("--alto-barra-ficha");
+    };
+  }, []);
+
   return (
     <>
       {/* Escritorio: fija a la derecha */}
@@ -220,7 +237,7 @@ export function FichaPrevia({
       {/* Celular y tablet: barra pegada abajo */}
       {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
           El aire inferior respeta la zona segura del teléfono. */}
-      <div data-barra-ficha className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
+      <div ref={barra} data-barra-ficha className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
         {/* La tira va PRIMERO en la barra (sus márgenes negativos la llevan de borde a borde): se ve sin abrir «Ver» y un toque abre la hoja. */}
         {parecidas && <TiraParecidas alerta={parecidas.alerta} avisoEnLinea={parecidas.avisoEnLinea} onVer={parecidas.onVer} onReintentar={parecidas.onReintentar} />}
         {verMovil && (
