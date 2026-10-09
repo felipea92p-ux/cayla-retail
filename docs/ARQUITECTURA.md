@@ -1254,6 +1254,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   Filtros y cursor `(created_at, id)` viven en la URL. Al tocar una fila abre
   `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
   (fija a hoy y sin `ventas.estado`). ADR-0147.
+  **Corregir el pago (ADR-0365):** con la caja de la venta abierta, el detalle ofrece «Corregir pago» →
+  `CorregirPagoModal.tsx` (reglas en `lib/corregir-pago-reglas.ts`) → RPC `corregir_pagos_venta` (reemplaza las filas de
+  `venta_pagos` sin el adelanto, con la misma suma; foto en `venta_pagos_correcciones`, solo se agrega; Actividad «Historial»).
   **Conectado (ADR-0230):** `?q=` busca con `idsDeVentasBuscadas` (`lib/ventas-v2.ts`, la de Cambios/Devoluciones, más
   `venta_pagos.referencia`) en todas las fechas; `idsDeHistorial` resuelve también «con cambio o devolución». Atajos y
   acciones: `lib/historial-acciones-reglas.ts` (puro) → `FiltrosHistorialVentas.tsx`, `BuscadorHistorial.tsx`,

@@ -117,6 +117,7 @@ export function HistorialVentasLista({
           onClose={() => setAbierta(null)}
           recorrido={<RecorridoVenta fila={abierta} />}
           pie={<AccionesVenta fila={abierta} contexto={contexto} />}
+          corregirPago
         />
       )}
     </>
