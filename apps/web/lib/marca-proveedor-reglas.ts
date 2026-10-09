@@ -59,7 +59,7 @@ export function registroListo(marca: MarcaDelFormulario | null, proveedor: Prove
 //
 // CONTRATO
 //   PROMETE: dada la pareja que hay hoy y lo que la persona toca, la pareja que queda (sin contradicciones), qué se soltó y
-//            qué se puso solo; y las opciones de cada campo, recortadas por el otro.
+//            qué se puso solo; y las opciones de cada campo, con las compatibles con el otro primero.
 //   ASUME:   `vinculos` es TODA la tabla de parejas registradas (`marca_proveedores`); «» significa «todavía nada».
 //   NO HACE: no habla con la base ni decide si se puede vaciar un valor ya guardado (eso es `problemaAlEditar`).
 
@@ -119,7 +119,16 @@ function resumirNombres(nombres: readonly string[], max: number): string {
   return `${nombres.slice(0, max).join(", ")} +${nombres.length - max}`;
 }
 
-/** Las opciones del campo Marca. Con proveedor elegido, solo las marcas que él trae. `detalle` dice quién la trae (y por él se
+/** Las compatibles con lo elegido en el otro campo arriba (A-Z) y después TODAS las demás (A-Z). Nunca se esconde una opción
+ *  (2026-10-09): al editar, marca y proveedor ya guardados no se pueden quitar (`problemaAlEditar`), y si cada lista solo
+ *  ofrecía lo compatible con el otro campo, una prenda guardada con la pareja «SIN PROVEEDOR» · «-» no podía pasar a ninguna
+ *  otra: cada campo encerraba al otro. Elegir una incompatible ya está resuelto en `alElegirMarca`/`alElegirProveedor`
+ *  (suelta el otro campo, lo pone solo si queda uno y la pantalla lo dice en una línea). */
+function primeroLasCompatibles<T extends { nombre: string }>(xs: readonly T[], compatible: (x: T) => boolean): T[] {
+  return [...ordenarPorNombre(xs.filter(compatible)), ...ordenarPorNombre(xs.filter((x) => !compatible(x)))];
+}
+
+/** Las opciones del campo Marca. Con proveedor elegido, primero las marcas que él trae. `detalle` dice quién la trae (y por él se
  *  encuentra la marca tipeando el proveedor). `conservar` mantiene una marca ya guardada que hoy no viene en las listas activas. */
 export function opcionesDeMarca(
   marcas: readonly MarcaOpcion[],
@@ -129,9 +138,9 @@ export function opcionesDeMarca(
   conservar?: MarcaOpcion | null
 ): { valor: string; texto: string; detalle?: string }[] {
   const provPor = new Map(proveedores.map((p) => [p.id, p.nombre]));
-  const lista = marcas.filter((m) => !proveedorId || carga(vinculos, m.id, proveedorId));
+  const lista = [...marcas];
   if (conservar && conservar.id && !lista.some((m) => m.id === conservar.id)) lista.push(conservar);
-  return ordenarPorNombre(lista).map((m) => {
+  return primeroLasCompatibles(lista, (m) => !proveedorId || carga(vinculos, m.id, proveedorId)).map((m) => {
     const quienes = vinculos.filter((v) => v.marcaId === m.id).map((v) => provPor.get(v.proveedorId)).filter((n): n is string => Boolean(n));
     return { valor: m.id, texto: m.nombre, detalle: quienes.length ? `la trae ${resumirNombres(quienes, 2)}` : undefined };
   });
@@ -146,9 +155,9 @@ export function opcionesDeProveedor(
   conservar?: ProveedorOpcion | null
 ): { valor: string; texto: string; detalle?: string }[] {
   const marcaPor = new Map(marcas.map((m) => [m.id, m.nombre]));
-  const lista = proveedores.filter((p) => !marcaId || carga(vinculos, marcaId, p.id));
+  const lista = [...proveedores];
   if (conservar && conservar.id && !lista.some((p) => p.id === conservar.id)) lista.push(conservar);
-  return ordenarPorNombre(lista).map((p) => {
+  return primeroLasCompatibles(lista, (p) => !marcaId || carga(vinculos, marcaId, p.id)).map((p) => {
     const cuales = vinculos.filter((v) => v.proveedorId === p.id).map((v) => marcaPor.get(v.marcaId)).filter((n): n is string => Boolean(n));
     return { valor: p.id, texto: p.nombre, detalle: cuales.length ? `trae ${resumirNombres(cuales, 3)}` : undefined };
   });

@@ -15,8 +15,8 @@ import { alElegirMarca, alElegirProveedor, opcionesDeMarca, opcionesDeProveedor,
 // Marca y proveedor por separado (Felipe, 2026-09-29, ADR-0283). La mercadería llega a almacén antes de que alguien registre de
 // quién es o quién la trajo; el producto se crea igual y se completa después. Por eso ya no es «una pareja o nada» (un solo
 // buscador de parejas, spike v2 de 2026-09-28): son DOS campos, cada uno opcional, y cada uno recorta y completa al otro:
-//   · elegir la marca deja en el proveedor solo a quienes la traen, y si la trae uno solo, lo pone;
-//   · elegir el proveedor deja solo las marcas que trae, y si trae una sola, la pone;
+//   · elegir la marca pone arriba, en el proveedor, a quienes la traen (los demás siguen abajo), y si la trae uno solo, lo pone;
+//   · elegir el proveedor pone arriba las marcas que trae, y si trae una sola, la pone;
 //   · si lo que ya estaba elegido no es compatible con lo nuevo, se suelta y la pantalla lo dice en una línea.
 // Las reglas viven en `lib/marca-proveedor-reglas.ts` (puras, probadas); este archivo solo las pinta.
 //
@@ -191,12 +191,15 @@ export function ElegirMarcaProveedor({
   const crear = (etiqueta: (q: string) => string) =>
     puedeCrear ? { etiqueta, onCrear: (q: string) => setCreando({ nombre: q }) } : undefined;
   const sinNada = !marcaId && !proveedorId;
-  // Lo que dice el campo vacío: cuántas hay y, si el otro campo ya recortó la lista, de quién son (con el singular bien dicho).
-  const marcadorMarca = proveedorId
-    ? totalMarcas === 1 ? `La única marca que trae ${nombreProv(proveedorId)}…` : `Las ${totalMarcas} marcas que trae ${nombreProv(proveedorId)}…`
+  // Lo que dice el campo vacío: cuántas hay y, si el otro campo ya está elegido, que sus compatibles van arriba. La lista
+  // ofrece TODAS (lib/marca-proveedor-reglas.ts, `primeroLasCompatibles`): no se promete «la única» cuando hay más.
+  const traeAlguna = vinculos.some((v) => v.proveedorId === proveedorId);
+  const laTraeAlguien = vinculos.some((v) => v.marcaId === marcaId);
+  const marcadorMarca = proveedorId && traeAlguna
+    ? `Primero las que trae ${nombreProv(proveedorId)}…`
     : totalMarcas === 0 ? "Escribe la marca…" : totalMarcas === 1 ? "Toca para ver la marca…" : `Toca para ver las ${totalMarcas} marcas…`;
-  const marcadorProveedor = marcaId
-    ? totalProv === 1 ? `El único que trae ${nombreMarca(marcaId)}…` : `Los ${totalProv} que traen ${nombreMarca(marcaId)}…`
+  const marcadorProveedor = marcaId && laTraeAlguien
+    ? `Primero quienes traen ${nombreMarca(marcaId)}…`
     : totalProv === 0 ? "Escribe el proveedor…" : totalProv === 1 ? "Toca para ver el proveedor…" : `Toca para ver los ${totalProv} proveedores…`;
 
   return (

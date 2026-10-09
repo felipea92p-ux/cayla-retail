@@ -142,9 +142,23 @@ describe("opcionesDeMarca / opcionesDeProveedor", () => {
     expect(provOp.find((o) => o.texto === "Jacard")?.detalle).toBe("trae Krisstell, CAYLA");
   });
 
-  it("con proveedor elegido, solo las marcas que él trae; con marca elegida, solo quienes la traen", () => {
-    expect(opcionesDeMarca(marcas, proveedores, vinculos, "p-taller").map((o) => o.texto)).toEqual(["Ábaco", "CAYLA"]);
-    expect(opcionesDeProveedor(marcas, proveedores, vinculos, "m-kris").map((o) => o.texto)).toEqual(["Jacard"]);
+  it("con proveedor elegido, primero las marcas que él trae y después las demás; con marca elegida, primero quienes la traen", () => {
+    expect(opcionesDeMarca(marcas, proveedores, vinculos, "p-taller").map((o) => o.texto)).toEqual(["Ábaco", "CAYLA", "Krisstell", "Sin nadie"]);
+    expect(opcionesDeProveedor(marcas, proveedores, vinculos, "m-kris").map((o) => o.texto)).toEqual(["Jacard", "Taller Lima"]);
+  });
+
+  it("con los dos ya guardados se puede pasar a otra pareja sin nada en común (2026-10-09, «SIN PROVEEDOR» · «-»)", () => {
+    const ms = [...marcas, { id: "m-sinprov", nombre: "SIN PROVEEDOR" }];
+    const ps = [...proveedores, { id: "p-guion", nombre: "-" }];
+    const vs = [...vinculos, { marcaId: "m-sinprov", proveedorId: "p-guion" }];
+    const guardado = { marcaId: "m-sinprov", proveedorId: "p-guion" };
+    // Las dos listas ofrecen lo que no tiene que ver con lo guardado…
+    expect(opcionesDeMarca(ms, ps, vs, guardado.proveedorId).map((o) => o.valor)).toContain("m-kris");
+    expect(opcionesDeProveedor(ms, ps, vs, guardado.marcaId).map((o) => o.valor)).toContain("p-jacard");
+    // …y elegirla suelta el otro campo y lo completa solo si queda uno: la pareja queda válida y se puede guardar.
+    const r = alElegirMarca(guardado, "m-aurora", vs);
+    expect(r).toEqual({ pareja: { marcaId: "m-aurora", proveedorId: "p-taller" }, solto: "proveedor", puestoSolo: "proveedor" });
+    expect(problemaAlEditar(guardado, r.pareja)).toBeNull();
   });
 
   it("conserva lo ya guardado aunque hoy no venga en las listas activas (una marca desactivada)", () => {
