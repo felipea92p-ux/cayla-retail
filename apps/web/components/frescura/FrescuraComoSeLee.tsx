@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FRASE_SIN_ELLA, type GrupoVista } from "@/lib/frescura-pantalla";
 import type { NivelConfianza } from "@/lib/frescura-reglas";
 import { NivelChip } from "./piezas";
@@ -6,6 +7,8 @@ import { NivelChip } from "./piezas";
 // iba siempre abierta —la frase de la comparación tres veces, la escala y la referencia de CAYLA en la cabecera de cada
 // categoría, el registro al colgar bajo el título y una nota de cinco párrafos al pie—: la persona tenía que leerla toda para
 // llegar a lo que le tocaba. El detalle existe y está completo; ya no compite con la decisión.
+// Desde la act. 2026-10-07 también viven aquí la vara de CAYLA de respaldo (de cuándo es y qué categorías juzga) y las prendas sin
+// temporada (antes un cartel sobre la tabla y un chip por fila: es una tarea de Catálogo, no de Frescura).
 
 type Registro = { texto: string; nivel: NivelConfianza | null };
 
@@ -16,6 +19,8 @@ export function FrescuraComoSeLee({
   registro,
   registroFallo,
   notasDelMes,
+  respaldo,
+  sinTemporada,
 }: {
   id: string;
   grupos: readonly GrupoVista[];
@@ -23,13 +28,20 @@ export function FrescuraComoSeLee({
   registro: Registro | null;
   registroFallo: boolean;
   notasDelMes: readonly string[];
+  /** De cuándo es la vara de CAYLA que respalda, o por qué no hay (`textoRespaldoCayla`). */
+  respaldo: string;
+  /** Cuántas prendas no tienen temporada (`textoSinTemporada`) y a dónde ir a completarlas (null si quien mira no ve Catálogo). */
+  sinTemporada: { texto: string; href: string | null } | null;
 }) {
   return (
     <div id={id} className="nota-cayla mx-4 mb-3.5 space-y-2 sm:mx-5">
       <p>
-        <b>Cómo se lee.</b> {FRASE_SIN_ELLA} Los días cuentan solo el tiempo con alguna talla libre colgada. La comparación es con lo vendido en esta tienda
-        {esLider ? "; la de CAYLA (todas las tiendas juntas) es solo de apoyo" : ""}. «Aproximado» quiere decir que la comparación sale de menos de 10 ventas: tómala
-        con cuidado. «Trasladar» solo aparece con una comparación sólida y algo en el almacén.
+        <b>Cómo se lee.</b> {FRASE_SIN_ELLA} Los días cuentan solo el tiempo con alguna talla libre colgada. La comparación es con lo vendido en esta tienda; cuando una
+        categoría tiene menos de 10 ventas aquí y CAYLA (las tres tiendas juntas) tiene 10 o más, se juzga contra CAYLA y la fila lo dice. «Aproximado» quiere decir que
+        la comparación sale de menos de 10 ventas: tómala con cuidado. «Trasladar» solo aparece con una comparación sólida y algo en el almacén.
+      </p>
+      <p>
+        <b>Vara de CAYLA.</b> {respaldo}
       </p>
       {grupos.map((g) => (
         <p key={g.categoriaId}>
@@ -42,6 +54,7 @@ export function FrescuraComoSeLee({
             </>
           )}{" "}
           {g.nivel && g.nivel !== "solido" && <NivelChip nivel={g.nivel} />}
+          {g.respaldo !== null && <> {g.respaldo}</>}
           {g.cayla !== null && (
             <>
               {" "}
@@ -52,14 +65,24 @@ export function FrescuraComoSeLee({
       ))}
       <p>
         <b>«Por decidir»</b> son las que llevan tiempo sin venderse o ya pasó su temporada, y nadie anotó todavía qué hizo con ellas. Cuando decides, lo anotas con «Ya
-        decidí»: la prenda sale de esta lista los días que dice su fecha y vuelve si para entonces sigue sin venderse, con cómo le fue. Otras pueden tener una pregunta
-        más chica en «Qué hacer».
+        decidí» o con el botón de la fila: la prenda sale de esta lista los días que dice su fecha y vuelve si para entonces sigue sin venderse, con cómo le fue. Otras
+        pueden tener una pregunta más chica en «Qué hacer».
       </p>
       {notasDelMes.map((n) => (
         <p key={n}>
           <b>Lo que ya decidiste.</b> {n} Comparadas con las demás de su categoría, en esos mismos días.
         </p>
       ))}
+      {sinTemporada && (
+        <p>
+          <b>Sin temporada.</b> {sinTemporada.texto}{" "}
+          {sinTemporada.href && (
+            <Link href={sinTemporada.href} className="btn-cayla btn-enlace text-[13px]">
+              Complétalas en Catálogo
+            </Link>
+          )}
+        </p>
+      )}
       <p>
         <b>Lo apartado para un cliente no está colgado:</b> no envejece ni recibe sugerencias, y cuenta como vendido. Lo que llegó sin fecha (carga inicial, un ajuste) nunca
         es «Recién llegada»: no se sabe cuándo llegó. Aquí no se rebaja: la rebaja se decide aparte.
