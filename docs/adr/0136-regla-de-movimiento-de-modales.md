@@ -323,3 +323,17 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   (SVG medido en el DOM). No se generaliza: otra pantalla que quiera lo mismo lo pide con Felipe y se agrega aquí. La hoja del celular es un
   `<Modal>` y entra con la cascada de esta regla.
 
+
+## Actualización 2026-10-09 — el gasto rápido de Caja (ADR-0367): movimiento rico, pedido por Felipe
+
+- **Qué:** en `components/GastoRapidoModal.tsx` (Caja ▸ Registrar gasto) el mosaico entra en ola (cada baldosa 34 ms después de la anterior);
+  la ★ de lo más frecuente llega girando y se rellena, y sus «12 veces» cuentan desde cero; al tocar una baldosa la tinta se derrama desde el
+  punto del clic y su ícono se vuelve a trazar; la línea «Va a …» sube cada vez que cambia; «Otro» y «¿Te dieron factura o boleta?» se abren
+  midiendo su alto; los montos de siempre entran en cascada; la cifra del botón «Registrar S/ 0.80» sube al cambiar; y al guardar se dibuja un
+  sello (aro y check) con el monto, DESPUÉS del loader (ADR-0149), antes de cerrarse.
+- **Por qué se admite:** Felipe pidió «full animaciones para que sea sofisticado» (2026-10-09). Cada efecto responde a algo que la persona hizo o
+  a la entrada de la hoja; ninguno corre solo.
+- **Los límites son los de siempre:** `--ease-cayla`, sin rebote, **nada en bucle**, solo tokens y `@layer components`. Con
+  `prefers-reduced-motion` todo queda quieto, los trazos aparecen dibujados y las veces llegan de una.
+- **Dónde vive:** `apps/web/app/estilos/gasto-rapido.css` (sus `@keyframes gr-*`) y la cuenta de las veces en `useCuenta` del mismo componente.
+  No se generaliza.
