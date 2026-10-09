@@ -38,6 +38,7 @@ export function InicioAlmacen({
 }) {
   const { ahora, despues } = sigueAhora(visibles.activos);
   const avance = avanceDelDia(visibles);
+  const hrefColgar = hrefColgarEnTandas(datos.existencias);
   return (
     <>
       <EfectosInicio atajoNuevo="/productos/nuevo" />
@@ -52,6 +53,7 @@ export function InicioAlmacen({
           alDia={visibles.alDia}
           avance={avance}
           hayColaSinLeer={visibles.activos.some((a) => a.nivel === "sinleer")}
+          hrefColgar={hrefColgar}
         />
         <div className="ia-gA">
           <div className="ia-cL">
@@ -66,7 +68,7 @@ export function InicioAlmacen({
           </div>
         </div>
       </div>
-      <DockAlmacen veRecibir={veRecibir} hrefColgar={hrefColgarEnTandas(datos.existencias)} />
+      <DockAlmacen veRecibir={veRecibir} hrefColgar={hrefColgar} />
     </>
   );
 }
