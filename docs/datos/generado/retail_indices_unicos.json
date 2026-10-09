@@ -695,6 +695,11 @@
   "tablename": "frescura_decisiones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX frescura_vara_cayla_pkey ON retail.frescura_vara_cayla USING btree (categoria_id)",
+  "indexname": "frescura_vara_cayla_pkey",
+  "tablename": "frescura_vara_cayla"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX gastos_compra_vigente_uq ON retail.gastos USING btree (compra_id) WHERE ((estado = 'vigente'::text) AND (compra_id IS NOT NULL))",
   "indexname": "gastos_compra_vigente_uq",
   "tablename": "gastos"
@@ -753,6 +758,11 @@
   "indexdef": "CREATE UNIQUE INDEX grupos_mix_pkey ON retail.grupos_mix USING btree (clave)",
   "indexname": "grupos_mix_pkey",
   "tablename": "grupos_mix"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX guias_vistas_pkey ON retail.guias_vistas USING btree (quien, guia)",
+  "indexname": "guias_vistas_pkey",
+  "tablename": "guias_vistas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX historial_producto_cambios_pkey ON retail.historial_producto_cambios USING btree (id)",
@@ -868,6 +878,11 @@
   "indexdef": "CREATE UNIQUE INDEX movimientos_internos_intentos_pkey ON retail.movimientos_internos_intentos USING btree (token_cliente)",
   "indexname": "movimientos_internos_intentos_pkey",
   "tablename": "movimientos_internos_intentos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX parametros_analisis_pkey ON retail.parametros_analisis USING btree (id)",
+  "indexname": "parametros_analisis_pkey",
+  "tablename": "parametros_analisis"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX parametros_finanzas_pkey ON retail.parametros_finanzas USING btree (id)",
@@ -1103,6 +1118,11 @@
   "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_ruc_unico ON retail.proveedores_produccion USING btree (ruc) WHERE (ruc IS NOT NULL)",
   "indexname": "proveedores_produccion_ruc_unico",
   "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX respaldo_b001_f001_renumeradas_20261007_pkey ON retail.respaldo_b001_f001_renumeradas_20261007 USING btree (comprobante_id)",
+  "indexname": "respaldo_b001_f001_renumeradas_20261007_pkey",
+  "tablename": "respaldo_b001_f001_renumeradas_20261007"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX respaldo_b002_renumeradas_20261002_pkey ON retail.respaldo_b002_renumeradas_20261002 USING btree (comprobante_id)",
