@@ -7,6 +7,7 @@ import {
   contraElResto,
   cortes,
   elegirVentana,
+  ESPERADAS_PARA_DECIDIR,
   estadoFrescura,
   estaQuieta,
   eventosConApartados,
@@ -18,6 +19,7 @@ import {
   leerFrescuraSede,
   nivelPorVentas,
   rapidez,
+  rapidezParaDecidir,
   recortarEventos,
   referenciaCayla,
   relojNovedad,
@@ -538,8 +540,9 @@ describe("rapidez (vendidas contra esperadas a la misma edad, contra el RESTO de
   });
 });
 
-/** Una rapidez medida contra `referencia` ventas del resto de su categoría (20: «Sólido»). */
-const r = (indice: number, referencia = 20): Rapidez => ({ indice, vendidas: 1, esperadas: 1, referencia });
+/** Una rapidez medida contra `referencia` ventas del resto de su categoría (20: «Sólido»), con evidencia de sobra para
+ *  decidir (5 esperadas ≥ `ESPERADAS_PARA_DECIDIR`): lo que estas pruebas miran es la regla «vieja y lenta», no el umbral. */
+const r = (indice: number, referencia = 20): Rapidez => ({ indice, vendidas: 1, esperadas: 5, referencia });
 
 describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca por vieja", () => {
   it("un pilar de venta no está quieto por viejo, aunque sea Crítica; por su temporada pasada SÍ (D2, Felipe 2026-09-27)", () => {
@@ -576,6 +579,71 @@ describe("estaQuieta: vieja Y lenta, o temporada pasada; un pilar nunca por viej
   it("sin dato de rapidez, una prenda vieja sugiere «revisa sus ventas», nunca «Trasladar»", () => {
     const e = estadoFrescura(entrada({ reloj: { segundos: 30 * D, alMenos: false }, rapidez: null, almacenHoy: 5 }));
     expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: ["revisar_ventas"] });
+  });
+});
+
+describe("rapidezParaDecidir: «lenta» necesita 2 ventas esperadas (ADR-0208, actualización 2026-10-07)", () => {
+  // 0 vendidas contra `esperadas`: el índice es 0 («lenta») con cualquier evidencia; lo que cambia es si puede decidir.
+  const rap = (indice: number, esperadas: number): Rapidez => ({ indice, vendidas: 0, esperadas, referencia: 3 });
+
+  it("con 1,0 esperada el índice no decide: la vieja «lenta» por una sola venta esperada no va a «Por decidir» y pide «revisa sus ventas»", () => {
+    expect(rapidezParaDecidir(rap(0, 1), "no_se_sabe")).toBeNull();
+    expect(rapidezParaDecidir(rap(0, 1), "vendio")).toBeNull();
+    // 25 días: Crítica con la vara 5/10/20, y menos de 30 en el piso: «no se sabe» si dejó de vender.
+    const e = estadoFrescura(entrada({ reloj: { segundos: 25 * D, alMenos: false }, rapidez: rap(0, 1), ventasRecientes: 0 }));
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: ["revisar_ventas"] });
+  });
+
+  it("con 2,1 esperadas sí decide: quieta y «cambiar de lugar»", () => {
+    expect(rapidezParaDecidir(rap(0, 2.1), "no_se_sabe")).toEqual(rap(0, 2.1));
+    const e = estadoFrescura(entrada({ reloj: { segundos: 25 * D, alMenos: false }, rapidez: rap(0, 2.1), ventasRecientes: 0 }));
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true, sugerencias: ["cambiar_lugar"] });
+  });
+
+  it("exactamente 2,00 cuenta (ESPERADAS_PARA_DECIDIR, con tolerancia de coma flotante); 1,99 no", () => {
+    expect(ESPERADAS_PARA_DECIDIR).toBe(2);
+    expect(rapidezParaDecidir(rap(50, 2), "vendio")).not.toBeNull();
+    expect(rapidezParaDecidir(rap(50, 1.99), "vendio")).toBeNull();
+  });
+
+  it("la que dejó de vender decide con 1,0 esperada: 30 días en el piso sin una venta son evidencia por sí solos (la revisión 6 sigue)", () => {
+    expect(rapidezParaDecidir(rap(0, 1), "dejo_de_vender")).toEqual(rap(0, 1));
+    const e = estadoFrescura(entrada({ reloj: { segundos: 30 * D, alMenos: false }, rapidez: rap(0, 1), ventasRecientes: 0 }));
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: true, sugerencias: ["cambiar_lugar"] });
+  });
+
+  it("con poca evidencia el índice solo protege, nunca condena: un pilar con 0,5 esperadas sigue siendo pilar (no se actúa)", () => {
+    const pilar: Rapidez = { indice: 200, vendidas: 1, esperadas: 0.5, referencia: 3 };
+    expect(rapidezParaDecidir(pilar, "no_se_sabe")).toEqual(pilar);
+    const e = estadoFrescura(entrada({ reloj: { segundos: 25 * D, alMenos: false }, rapidez: pilar, ventasRecientes: 1 }));
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "critica", quieta: false, sugerencias: [] });
+  });
+
+  it("sin rapidez sigue sin rapidez", () => {
+    expect(rapidezParaDecidir(null, "vendio")).toBeNull();
+  });
+
+  it("el caso de la captura de TRU (2026-10-07): 3 capas vendidas en los días 1, 1 y 2, una colgada hace 10; la capa de 4 días acumula 1,00 esperada y ya NO va a «Por decidir»", () => {
+    const u = (dias: number, vendida: boolean): Observacion => ({ segundos: dias * D, vendida, peso: 1 });
+    const propias = [u(4, false)];
+    const vara = construirVara([u(1, true), u(1, true), u(2, true), u(10, false), ...propias], 120);
+    const resto = contraElResto(vara.curva, propias, propias);
+    const rap = rapidez(0, resto.esperadas, resto.vendidas);
+    // Con 3 ventas la vara es «Pocos datos», P50 = 1 día y P75 = 2: a los 4 días la capa es Envejecida y su índice, 0.
+    expect(vara.nivel).toBe("pocos_datos");
+    expect(resto.cortes).toEqual({ p50: 1 * D, p75: 2 * D, p90: null });
+    expect(rap).toMatchObject({ indice: 0, esperadas: 1 });
+    const e = estadoFrescura(
+      entrada({
+        vara: { nivel: vara.nivel, cortes: resto.cortes, curva: { tMax: resto.tMax } },
+        reloj: { segundos: 4 * D, alMenos: false },
+        rapidez: rap,
+        pisoHoy: 1,
+        ventasRecientes: 0,
+      }),
+    );
+    // Antes de la actualización 2026-10-07: quieta true y ["cambiar_lugar"] («No se mueve: pruébala 7 días en otro lugar»).
+    expect(e).toMatchObject({ tipo: "semaforo", tramo: "envejecida", quieta: false, sugerencias: ["revisar_ventas"] });
   });
 });
 
