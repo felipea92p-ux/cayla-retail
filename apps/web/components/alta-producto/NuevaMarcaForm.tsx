@@ -9,7 +9,6 @@ import { proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { firmar } from "@/lib/responsable-reglas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
-import { AvisoInline } from "@/components/alta-producto/piezas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { camposDeRegistroMarca } from "@/lib/marca-registro-guia";
@@ -21,6 +20,7 @@ import {
   type MarcaDelFormulario,
   type ProveedorDelFormulario,
 } from "@/lib/marca-proveedor-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 // El formulario «Registrar marca o proveedor» (ADR-0109; spike Nuevo producto v2, 2026-09-28): lo usan el selector de
 // Nuevo producto/censo/edición Y la pantalla Catálogo → Marcas — una sola forma de crear una marca, no dos.
@@ -433,16 +433,13 @@ export function NuevaMarcaForm({
       )}
 
       {repetida && provElegido && (
-        <AvisoInline tono="ambar">
+        <Aviso tono="atencion">
           {marcaNombre} ya la trae {provElegido.nombre}. No hace falta registrarla: cancela y elígela en el buscador.
-        </AvisoInline>
+        </Aviso>
       )}
 
-      {error && (
-        <p role="alert" className="text-xs text-rojo-profundo">
-          {error}
-        </p>
-      )}
+      {error && <Aviso tono="error">{error}</Aviso>}
+
       <AvisoSinIdentidad firma={firma} />
       <PieGuia guia={guia} listo="Todo listo para registrar." />
       <div className="flex justify-end gap-2">

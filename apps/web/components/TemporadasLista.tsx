@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { createContext, Fragment, useContext, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { FunnelX, SearchX, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -60,6 +60,8 @@ import {
   type RevisionFecha,
   type VistaTemporadas,
 } from "@/lib/temporadas-pantalla";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * La pestaña «Temporadas» de Productos ▸ Atributos (ADR-0246). A diferencia de las otras cinco, la lista es CERRADA
@@ -796,11 +798,17 @@ function VistaCategorias({
         )}
       </TituloVista>
       {datos.categorias.length === 0 ? (
-        <p className="nota-cayla">No hay categorías activas.</p>
+        <Vacio tamano="chico" icono={<Shirt />}>
+          No hay categorías activas.
+        </Vacio>
       ) : (
         <Tabla {...entra(desfase + 1)}>
           <Encabezado columnas={COLUMNAS_CAT} plantilla={PLANTILLA_CAT} />
-          {visibles.length === 0 && <p className={TABLA.vacio}>Ninguna categoría activa tiene prendas todavía.</p>}
+          {visibles.length === 0 && (
+            <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Ver todas", onClick: () => setFiltro("todas") }}>
+              Ninguna categoría activa tiene prendas todavía.
+            </Vacio>
+          )}
           {visibles.map((c, i) => {
             const valor = valorDe(c);
             // Cambiar el filtro no re-anima las filas que ya estaban: React conserva su DOM y la animación no se repite.
@@ -1014,18 +1022,13 @@ function VistaPorCompletar({
       )}
 
       <div className="anim-entra flex flex-wrap items-center gap-2" style={entra(desfase + 2).style}>
-        <div className="caja-cayla relative flex h-10 min-w-[12rem] flex-1 items-center">
-          <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-          <input
-            type="text"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Nombre, código, categoría, marca o color…"
-            aria-label="Buscar entre las prendas sin temporada"
-            autoComplete="off"
-            className="h-full w-full rounded-lg bg-transparent pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-taupe"
-          />
-        </div>
+        <Buscador
+          valor={texto}
+          onCambio={setTexto}
+          placeholder="Nombre, código, categoría, marca o color…"
+          etiqueta="Buscar entre las prendas sin temporada"
+          className="min-w-[12rem] flex-1"
+        />
         {puedeEditar && (
           <button type="button" className="btn-cayla btn-enlace text-sm" onClick={alternarTodas} disabled={visibles.length === 0}>
             {todasVisiblesMarcadas ? "Desmarcar todas" : texto ? "Marcar las que se ven" : "Marcar todas"}
@@ -1033,7 +1036,11 @@ function VistaPorCompletar({
         )}
       </div>
 
-      {visibles.length === 0 && <p className="nota-cayla">Ninguna prenda sin temporada coincide con «{texto}».</p>}
+      {visibles.length === 0 && (
+        <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setTexto("") }}>
+          Ninguna prenda sin temporada coincide con «{texto}».
+        </Vacio>
+      )}
 
       <div className="flex flex-col">
         {grupos.map((g, i) => (

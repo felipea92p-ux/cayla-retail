@@ -61,8 +61,7 @@ export const TABLA = {
   fila: "fila-cayla gap-x-4 gap-y-1 px-5 py-3",
   /** El renglón de pie (cuántas se muestran, exportar, paginar). */
   pie: "px-5 py-2.5 text-xs text-taupe",
-  /** Sin resultados: una tarjeta aparte, o dentro de la tarjeta de la sección con `border-t`. */
-  vacio: "p-5 text-sm text-tinta/75",
+  // Sin resultados: ya no hay una clase aquí. Un vacío es <Vacio tamano="chico"> (ADR-0358, ronda 5).
 } as const;
 
 // `overflow-x-auto`: encontrado el 2026-09-15 al centrar Inventario — con

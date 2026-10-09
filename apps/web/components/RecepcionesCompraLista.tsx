@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Tabla, fila, celda } from "@/components/ui/Tabla";
 import { RecepcionVistaRapida } from "@/components/RecepcionVistaRapida";
@@ -11,6 +11,7 @@ import type { LineaRecepcion } from "@/lib/compras-reglas";
 import type { RecepcionDeCompra } from "@/lib/compras-indicadores";
 import type { ResultadoRecibidas } from "@/lib/recibidas-filtros-reglas";
 import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/envio-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Pestaña «Recibidas recientemente» (maqueta 06): qué llegó contra cada comprobante, con su
 // resultado (completa o cuánto faltó) y la demora entre la emisión y la llegada. Antes esta
@@ -182,10 +183,9 @@ export function RecepcionesCompraLista({
           ))}
         </div>
         {filtradas.length === 0 && (
-          <div className="px-5 py-8 text-center">
-            <p className="font-display text-[17px] italic text-tinta/65">Ninguna recepción {resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista.</p>
-            <p className="mt-1 text-xs text-tinta/55">Cambia «Con faltante / Completas» arriba para ver el resto.</p>
-          </div>
+          <Vacio icono={<FunnelX />} titulo={`Ninguna recepción ${resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista`}>
+            Cambia «Con faltante / Completas» arriba para ver el resto.
+          </Vacio>
         )}
         {grupos.map((g) =>
           g.tipo === "suelta" ? (

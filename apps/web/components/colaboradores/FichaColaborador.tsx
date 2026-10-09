@@ -20,6 +20,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { CaraPersona, EstadoPersona, PildoraRol } from "@/components/colaboradores/EquipoLista";
 import { CajonFicha } from "@/components/colaboradores/CajonFicha";
+import { Aviso } from "@/components/ui/Aviso";
 
 // La ficha de una persona del equipo (propuesta del 2026-10-05): lo que hoy estaba en un menú «⋯» pasa a botones a la
 // vista, y cada uno abre su panel aquí mismo, sin otra ventana encima. Abajo, su menú tal como lo ve. Lo reversible
@@ -232,9 +233,10 @@ export function FichaColaborador({
                         </div>
                       )}
                       {destino && persona.nivel === "lider" && !destino.fijo && debeAvisarPerdidaAdmin(persona.esAdmin, destino) && (
-                        <p className="rounded-lg bg-ambar/10 px-3 py-2 text-[13px] text-ambar-profundo">
-                          <strong className="font-semibold">También deja de ser Admin:</strong> no podrá administrar líderes hasta que otro Admin se lo devuelva.
-                        </p>
+                        <Aviso tono="atencion" chico titulo="También deja de ser Admin">
+                          No podrá administrar líderes hasta que otro Admin se lo devuelva.
+                        </Aviso>
+
                       )}
                       {destino?.fijo && <p className="text-[13px] text-tinta/70">Como líder verá y hará todo en todas las sedes.</p>}
                       {destino && cuenta && (

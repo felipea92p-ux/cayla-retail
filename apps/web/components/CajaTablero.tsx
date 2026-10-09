@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   TriangleAlert,
+  Wallet,
 } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -42,6 +43,7 @@ import {
 } from "@/lib/caja-tablero-reglas";
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
+import { Vacio } from "@/components/ui/Vacio";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const soles0 = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
@@ -582,7 +584,9 @@ export function CierresAnteriores({ cierres, esLider, indice, onModo }: { cierre
 
       <div key={modo} className="anim-sube">
         {recientes.length === 0 ? (
-          <p className="py-6 text-center text-xs text-tinta/50">Todavía no hay cierres en esta sede.</p>
+          <Vacio tamano="chico" icono={<Wallet />}>
+            Todavía no hay cierres en esta sede.
+          </Vacio>
         ) : modo === "ultimo" ? (
           <VistaUltimo cierres={recientes} />
         ) : modo === "semaforo" ? (

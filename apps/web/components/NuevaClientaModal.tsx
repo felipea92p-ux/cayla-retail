@@ -103,8 +103,10 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
       {(cerrar) => (
         <form onSubmit={onRegistrar} className="space-y-6">
           <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">
-            <div className="grid grid-cols-[11rem_1fr] items-start gap-3 max-sm:grid-cols-1">
+            {/* En el celular, tipo y número en UNA fila: con el teclado arriba, el número no queda bajo el pie. */}
+            <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]">
               <CampoTipoDocumento
+                corto
                 tipo={alta.documentoTipo}
                 onTipo={(t) => setAlta((a) => ({ ...a, documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, a.documentoNumero) }))}
               />
@@ -133,21 +135,24 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
-          <PieGuia guia={guia} listo="Todo listo para registrar." />
-          <div className="flex justify-end gap-3 pt-2">
-            <Boton type="button" onClick={cerrar}>
-              Cancelar
-            </Boton>
-            <Boton
-              type="submit"
-              peso="primario"
-              cargando={guardando}
-              disabled={!guia.puedeConfirmar}
-              title={responsable.motivo ?? guia.frase ?? undefined}
-              className={guia.claseConfirmar}
-            >
-              Registrar
-            </Boton>
+          {/* Pegado al borde de abajo (`pie-hoja-fijo`): con el teclado del celular abierto, «Registrar» sigue a la vista. */}
+          <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
+            <PieGuia guia={guia} listo="Todo listo para registrar." />
+            <div className="ml-auto flex gap-3">
+              <Boton type="button" onClick={cerrar}>
+                Cancelar
+              </Boton>
+              <Boton
+                type="submit"
+                peso="primario"
+                cargando={guardando}
+                disabled={!guia.puedeConfirmar}
+                title={responsable.motivo ?? guia.frase ?? undefined}
+                className={guia.claseConfirmar}
+              >
+                Registrar
+              </Boton>
+            </div>
           </div>
         </form>
       )}

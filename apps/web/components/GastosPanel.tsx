@@ -12,7 +12,7 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, ResumenActivosPorSede, TablaActivos } from "@/components/GastosFijosYActivos";
-import { Buscador, CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { Buscador, CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -46,6 +46,8 @@ import {
   type Ver,
 } from "@/lib/gastos-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check, FunnelX, Receipt, SearchX } from "lucide-react";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
 // cabecera con «Ver» y la acción principal → cuatro cifras → pestañas → la tarjeta de la tabla con sus filtros → nota.
@@ -234,9 +236,11 @@ export function GastosPanel({
       {pestana === "egresos" && (
         <>
           {egresos.length === 0 ? (
-            <GuiaVacia sobre="Todo en orden" titulo="No hay egresos de caja por clasificar">
-              Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.
-            </GuiaVacia>
+            <Superficie>
+              <Vacio icono={<Check />} titulo="Todo en orden: no hay egresos de caja por clasificar">
+                Cada salida de plata de los cajones ya dice si fue gasto, depósito o retiro.
+              </Vacio>
+            </Superficie>
           ) : (
             <Superficie className="anim-sube">
               <div className="fin-tabla-wrap">
@@ -365,9 +369,25 @@ function TablaGastos({
           <SelectFin etiqueta="Mes" valor={mes} onValor={onMes} opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: mayuscula(textoMes(m)) }))} />
         </Herramientas>
         {visibles.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">
-            {gastos.length === 0 ? `Sin gastos en ${textoMes(mes)}. Registra la luz, el alquiler o un mototaxi con «+ Registrar gasto».` : "Ningún gasto calza con esa búsqueda."}
-          </p>
+          gastos.length === 0 ? (
+            <Vacio tamano="chico" icono={<Receipt />}>
+              Sin gastos en {textoMes(mes)}. Registra la luz, el alquiler o un mototaxi con «+ Registrar gasto».
+            </Vacio>
+          ) : (
+            <Vacio
+              tamano="chico"
+              icono={busqueda.trim() ? <SearchX /> : <FunnelX />}
+              accion={{
+                texto: busqueda.trim() && !categoria ? "Borrar la búsqueda" : "Limpiar filtros",
+                onClick: () => {
+                  setBusqueda("");
+                  setCategoria("");
+                },
+              }}
+            >
+              Ningún gasto calza con esa búsqueda.
+            </Vacio>
+          )
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla">

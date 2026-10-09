@@ -28,6 +28,8 @@ import {
   type Acceso,
   type ResumenFinanzas,
 } from "@/lib/resumen-finanzas-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { CalendarX, ChartColumn, Target, Wallet } from "lucide-react";
 
 // Finanzas ▸ Resumen (ADR-0195 F10), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-resumen.js`):
 // cabecera con «Ver» → la salud en frases → cinco cifras → «Para decidir hoy» a la izquierda y, a la derecha, los dos gráficos
@@ -137,9 +139,13 @@ function Cobertura({ r }: { r: ResumenFinanzas }) {
       <Superficie pad>
         <CabeceraBloque titulo="¿Cada tienda cubre sus costos?" bajada={`${mayuscula(mes)}: lo que vendió contra lo que necesitaba vender (100 %).`} />
         {r.antesDelCorte ? (
-          <p className="fin-nota-bloque">{avisoAntesDelCorte(r.antesDelCorte)}</p>
+          <Vacio tamano="chico" icono={<CalendarX />}>
+            {avisoAntesDelCorte(r.antesDelCorte)}
+          </Vacio>
         ) : r.resultadosAnterior.estado !== "ok" ? (
-          <p className="fin-nota-bloque">{motivoAusencia(r.resultadosAnterior) ?? "El estado de resultados no se pudo leer."}</p>
+          <Vacio tamano="chico" icono={<ChartColumn />}>
+            {motivoAusencia(r.resultadosAnterior) ?? "El estado de resultados no se pudo leer."}
+          </Vacio>
         ) : barras.length ? (
           <GraficoSemanas
             etiqueta={`Lo que vendió cada tienda en ${mes} contra su punto de equilibrio`}
@@ -151,10 +157,12 @@ function Cobertura({ r }: { r: ResumenFinanzas }) {
             etiquetaValor={(v) => `${v} %`}
           />
         ) : (
-          <p className="fin-nota-bloque">Todavía no hay un mes completo con ventas para calcularlo.</p>
+          <Vacio tamano="chico" icono={<ChartColumn />}>
+            Todavía no hay un mes completo con ventas para calcularlo.
+          </Vacio>
         )}
         {barras.length > 0 && sinDatos.length > 0 && (
-          <p className="fin-nota-bloque">
+          <p className="nota-cayla mt-3">
             Sin ventas en {mes}: {sinDatos.join(", ")}.
           </p>
         )}
@@ -179,7 +187,9 @@ function Semanas({ r }: { r: ResumenFinanzas }) {
             etiquetaValor={soles}
           />
         ) : (
-          <p className="fin-nota-bloque">{motivoAusencia(r.flujo, "el líder") ?? "El flujo de caja no se pudo leer."}</p>
+          <Vacio tamano="chico" icono={<ChartColumn />}>
+            {motivoAusencia(r.flujo, "el líder") ?? "El flujo de caja no se pudo leer."}
+          </Vacio>
         )}
       </Superficie>
     </div>
@@ -204,14 +214,14 @@ function Camino({ r }: { r: ResumenFinanzas }) {
               <span>Vendido {soles(c.vendido)}</span>
               <span>Necesita {soles(c.pe)}</span>
             </div>
-            <p className="fin-nota-bloque">{c.texto}</p>
+            <p className="nota-cayla mt-3">{c.texto}</p>
           </>
         ) : (
-          <p className="fin-nota-bloque">
+          <Vacio tamano="chico" icono={<Target />}>
             {r.resultadosAnterior.estado !== "ok"
               ? (motivoAusencia(r.resultadosAnterior) ?? "")
               : `Sin ventas con margen en ${mesNombre(r.mesAnterior)} para calcular cuánto necesita vender.`}
-          </p>
+          </Vacio>
         )}
       </Superficie>
     </div>
@@ -232,7 +242,9 @@ function MiniPresupuesto({ r, acceso }: { r: ResumenFinanzas; acceso: Acceso }) 
           )}
         </CabeceraBloque>
         {r.presupuesto.estado !== "ok" ? (
-          <p className="fin-nota-bloque">{motivoAusencia(r.presupuesto) ?? ""}</p>
+          <Vacio tamano="chico" icono={<Wallet />}>
+            {motivoAusencia(r.presupuesto) ?? ""}
+          </Vacio>
         ) : filas.length ? (
           <ul className="fin-lista-mov">
             {filas.map((f) => (
@@ -248,7 +260,9 @@ function MiniPresupuesto({ r, acceso }: { r: ResumenFinanzas; acceso: Acceso }) 
             ))}
           </ul>
         ) : (
-          <p className="fin-nota-bloque">Este mes no tiene topes. Se ponen en Configuración ▸ Presupuesto.</p>
+          <Vacio tamano="chico" icono={<Wallet />}>
+            Este mes no tiene topes. Se ponen en Configuración ▸ Presupuesto.
+          </Vacio>
         )}
       </Superficie>
     </div>

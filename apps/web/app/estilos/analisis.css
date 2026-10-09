@@ -36,14 +36,8 @@
     .pil .cod{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--color-taupe)}
     .ayuda{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--color-taupe);background:transparent;
       font:600 11px/1 var(--font-sans);color:var(--color-taupe);padding:0;flex:none}
-    .buscar{display:flex;align-items:center;gap:8px;background:var(--color-hueso);border-radius:10px;padding:8px 12px;width:240px;color:var(--color-tinta-60)}
-    .buscar svg{width:16px;height:16px;flex:none}
-    .buscar input{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--color-tinta);outline:none;width:100%;min-width:0}
-    .buscar input::placeholder{color:color-mix(in srgb,var(--color-tinta) 55%,transparent)}
-    .buscar:focus-within{outline:2px solid var(--color-tinta);outline-offset:1px}
     .sello{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-tinta-60);border:1px dashed var(--color-taupe);border-radius:999px;padding:3px 10px}
     .sello i{font-style:normal;font-size:10px}
-    @container analisis (max-width:760px){ .buscar{width:auto} }
     /* ───────── Pestañas ───────── */
     .tabs-fila{display:flex;align-items:center;gap:12px;margin-top:20px}
     @container analisis (max-width:620px){ .tabs-fila{flex-direction:column;align-items:stretch;gap:8px} .tabs-fila > .chip{align-self:flex-start;order:-1} }
@@ -313,10 +307,6 @@
     .sabe{padding:14px 16px}
     .sabe h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
     .sabe .nota{font-size:12px;color:var(--color-tinta-60);margin-top:8px}
-    .vacio-vista{padding:30px 28px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px 28px;align-items:center}
-    .vacio-vista h2{font:500 26px/1.2 var(--font-serif);margin:6px 0}
-    .vacio-vista p{margin:0 0 10px;color:var(--color-tinta-60);max-width:52ch}
-    @container analisis (max-width:600px){ .vacio-vista{grid-template-columns:minmax(0,1fr)} }
     .h-cab{display:flex;gap:14px;align-items:center;margin:4px 0 14px;padding-right:44px}
     .h-cab h2{font:500 28px/1.1 var(--font-serif);margin:0 0 4px}
     .h-cab .meta{font-size:13px;color:var(--color-tinta-60)}
@@ -359,10 +349,6 @@
     .nh-f span:last-child{color:var(--color-tinta-60);white-space:nowrap}
     .modelos-barra{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden}
     .modelos-barra i{display:block}
-    /* «Ver con los datos de hoy» (ADR-0357, decisión 2): el aviso fijo bajo las pestañas, mientras la tienda no cumple. */
-    .aviso-datos{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;font-size:13px;
-      color:var(--color-tinta);background:color-mix(in srgb,var(--color-ambar) 9%,var(--color-papel));border:1px solid color-mix(in srgb,var(--color-ambar) 28%,transparent)}
-    .aviso-datos .aviso-texto{flex:1;min-width:220px}
     .c-fila:focus-visible,.l5:focus-visible,.inst:focus-visible,.rank-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
   }
 }

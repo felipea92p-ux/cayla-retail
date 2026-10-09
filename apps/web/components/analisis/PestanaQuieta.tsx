@@ -7,7 +7,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
-import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
+import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
@@ -27,6 +27,9 @@ import {
   vacioQuietas,
   type VacioQuietas,
 } from "@/lib/analisis-quietas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
 // de lo que tiene la tienda (solo la elegida arriba: la comparación entre tiendas vive en CAYLA Global); abajo, el carril «Días en el piso sin venderse» con el control «Liquidar desde», que mueve las prendas de
@@ -55,7 +58,7 @@ export function PestanaQuieta() {
   // 2026-10-07: en TRU no había nada quieto y no tenía dónde cambiar los 60 días).
   const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length);
   const sinSalir = datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : 0;
-  if (vacio === "sin-datos") return <Vacio tipo={vacio} />;
+  if (vacio === "sin-datos") return <SinCarril tipo={vacio} />;
 
   // Las cifras son de toda la tienda (como la cuenta de la pestaña); el carril, de lo que deja ver el buscador.
   const cifras = cifrasQuietas(prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde));
@@ -257,7 +260,7 @@ export function PestanaQuieta() {
             <h3 className="b-tit">Días en el piso sin venderse</h3>
             <span className="b-nota">{control}</span>
           </div>
-          <Vacio tipo="todo-se-mueve" dentro />
+          <SinCarril tipo="todo-se-mueve" dentro />
         </section>
       ) : (
         <Carril
@@ -353,19 +356,25 @@ function EdadDeLoQueTienes() {
 }
 
 /** Sin carril: todo se mueve (la respuesta corta y buena) o no se pudieron leer las prendas (nunca «todo se mueve» por una falla). */
-function Vacio({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
-  const todo = tipo === "todo-se-mueve";
+function SinCarril({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const texto = TEXTO_VACIO_QUIETAS[tipo];
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
+  // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
+  const vacio = (
+    <Vacio icono={<Check />} titulo={texto.titulo}>
+      {texto.linea}
+    </Vacio>
+  );
+  if (dentro) return vacio;
   return (
-    <section className={dentro ? "vacio-vista" : "tarjeta vacio-vista entra"} style={dentro ? undefined : { ["--i" as string]: 0 }}>
-      <span className="q-vacia-ic" style={{ ["--c" as string]: COLOR_ESTADO[todo ? "bien" : "nd"] }}>
-        <Icono nombre={todo ? "check" : "nd"} />
-      </span>
-      <div>
-        {todo ? <ChipEstado est="bien" /> : <ChipEstado est="nd">Sin datos</ChipEstado>}
-        <h2>{texto.titulo}</h2>
-        <p>{texto.linea}</p>
-      </div>
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      {vacio}
     </section>
   );
 }

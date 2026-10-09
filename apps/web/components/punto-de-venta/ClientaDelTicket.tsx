@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Cake, ChevronDown, ChevronUp, Gift, Lock, QrCode, Search, UserPlus, UserRound, X } from "lucide-react";
+import { Cake, ChevronDown, ChevronUp, Gift, Lock, QrCode, SearchX, UserPlus, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -40,6 +40,9 @@ import { sePuedeConfirmar } from "@/lib/guia-campos";
 import { registrarClienta } from "@/lib/clientas-acciones";
 import { esSinModulo, traducirError } from "@/lib/error-escritura";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 
 const ESPERA_MS = 300;
 
@@ -504,44 +507,42 @@ function BuscarClientaModal({
           />
         ) : (
           <div>
-            <label className="flex h-11 items-center gap-2 rounded-lg border border-sand bg-crema px-3 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-              <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
-              <input
-                ref={campo}
-                autoFocus
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                placeholder="Documento, celular o nombre" // sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes
-                inputMode="search"
-                autoComplete="off"
-                className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/40"
-              />
-            </label>
+            <Buscador
+              ref={campo}
+              autoFocus
+              valor={texto}
+              onCambio={setTexto}
+              buscando={visible.tipo === "buscando"}
+              placeholder="Documento, celular o nombre" // sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes
+              etiqueta="Buscar en la libreta de clientes"
+              inputMode="search"
+            />
 
             <div className="mt-3 min-h-24" aria-live="polite">
               {visible.tipo === "inicio" && <p className="py-4 text-center text-xs text-tinta/55">Escribe al menos 3 caracteres.</p>}
-              {visible.tipo === "buscando" && <p className="py-4 text-center text-xs text-tinta/55">Buscando…</p>}
               {visible.tipo === "error" && (
-                <p className="py-4 text-center text-xs text-rojo-profundo">
+                <Aviso tono="error" chico>
                   {visible.mensaje ?? "No se pudo buscar en la libreta."} La venta sigue: el DNI se puede poner al cobrar.
-                </p>
+                </Aviso>
               )}
               {sinResultados && (
                 // Spike del club (`modalBuscarClienta`): las dos salidas, del mismo ancho.
-                <div className="space-y-3">
-                  <p className="rounded-lg bg-hueso px-3 py-3 text-xs text-tinta/75">
-                    No está en la libreta de clientes. Puedes registrarlo ahora, o seguir sin cliente: el DNI y el nombre se ponen al cobrar, en el
-                    comprobante.
-                  </p>
-                  <div className="flex gap-2">
-                    <Boton type="button" peso="primario" onClick={irARegistrar} className="flex-1">
-                      Registrarlo
-                    </Boton>
-                    <Boton type="button" peso="fantasma" onClick={cerrar} className="flex-1">
-                      Seguir sin cliente
-                    </Boton>
-                  </div>
-                </div>
+                <Vacio
+                  icono={<SearchX />}
+                  titulo={`«${texto.trim()}» no está en la libreta`}
+                  acciones={
+                    <>
+                      <Boton type="button" peso="primario" onClick={irARegistrar}>
+                        Registrarlo
+                      </Boton>
+                      <Boton type="button" peso="fantasma" onClick={cerrar}>
+                        Seguir sin cliente
+                      </Boton>
+                    </>
+                  }
+                >
+                  Puedes registrarlo ahora, o seguir sin cliente: el DNI y el nombre se ponen al cobrar, en el comprobante.
+                </Vacio>
               )}
               {visible.tipo === "listo" && visible.clientas.length > 0 && (
                 <ul className="divide-y divide-sand overflow-hidden rounded-lg border border-sand bg-crema">
@@ -682,8 +683,10 @@ function RegistrarClientaEnTicket({
       className="space-y-6"
     >
       <CampoGuiado id="documento" guia={guia} titulo="Documento" ayuda="DNI por defecto">
-        <div className="grid grid-cols-[11rem_1fr] items-start gap-3 max-sm:grid-cols-1">
-          <CampoTipoDocumento tipo={tipo} onTipo={(t) => onCambiar({ documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, alta.documentoNumero) })} />
+        {/* En el celular, tipo y número en UNA fila: con el teclado arriba queda poco alto y el número (donde se escribe) no
+            debe quedar bajo el pie. */}
+        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]">
+          <CampoTipoDocumento corto tipo={tipo} onTipo={(t) => onCambiar({ documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, alta.documentoNumero) })} />
           {esDni ? (
             // Solo el DNI consulta el padrón (ADR-0008, ADR-0288 D-2). Si no responde, el nombre se escribe aquí mismo.
             <ConsultaDocumento
@@ -727,15 +730,16 @@ function RegistrarClientaEnTicket({
       </CampoGuiado>
 
       {/* Pegado al borde de abajo (`pie-hoja-fijo`): con el teclado del celular abierto, «Registrar» sigue a la vista. */}
-      <div className="pie-hoja-fijo space-y-3">
+      {/* «Falta» y los botones comparten fila si caben: en el celular, con el teclado arriba, cada fila cuenta. */}
+      <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
         <PieGuia guia={guia} listo="Todo listo para registrar." />
-        <div className="flex justify-end gap-3 pt-2">
-        <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
-          Volver
-        </Boton>
-        <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-          {guardando ? "Registrando…" : "Registrar"}
-        </Boton>
+        <div className="ml-auto flex gap-3">
+          <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
+            Volver
+          </Boton>
+          <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            {guardando ? "Registrando…" : "Registrar"}
+          </Boton>
         </div>
       </div>
     </form>

@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
-import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { construirCeldas, ordenarColores, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -32,6 +32,7 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, PuntoColor, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 import { useSubirFotos } from "./useSubirFotos";
+import { Aviso } from "@/components/ui/Aviso";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -162,9 +163,9 @@ export function AgregarColoresModal({
                 historia.
               </p>
               {noSePuedeCorregir ? (
-                <AvisoInline tono="ambar">
+                <Aviso tono="atencion">
                   Corregir el color todavía no está disponible, y sin eso no se le pueden sumar colores a una prenda «Sin color».
-                </AvisoInline>
+                </Aviso>
               ) : (
                 <ElegirUnColor
                   valor={colorDeLasQueTiene}
@@ -178,14 +179,14 @@ export function AgregarColoresModal({
                 />
               )}
               {bloqueo && (
-                <AvisoInline tono="ambar" alerta>
+                <Aviso tono="atencion">
                   {bloqueo}
-                </AvisoInline>
+                </Aviso>
               )}
               {choque && destinoPrimero && (
-                <AvisoInline tono="rojo" alerta>
+                <Aviso tono="error">
                   {textoChoque(choque, destinoPrimero, filas, ctx)}
-                </AvisoInline>
+                </Aviso>
               )}
               <VistaPreviaCodigos filas={vista} />
             </section>
@@ -295,7 +296,11 @@ export function AgregarColoresModal({
                 </p>
               )}
               {nacen > 0 && <MontosNuevas precio={precio} costo={costo} onPrecio={setPrecio} onCosto={setCosto} veCosto={ctx.veCosto} />}
-              {nacen > 0 && !precioOk && <p className="text-[12.5px] text-rojo-profundo">Pon el precio de venta de las nuevas.</p>}
+              {nacen > 0 && !precioOk && (
+                <Aviso tono="error" chico>
+                  Pon el precio de venta de las nuevas.
+                </Aviso>
+              )}
               {nacen > 0 && etiquetasTexto && (
                 <p className="text-[12.5px] text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
               )}

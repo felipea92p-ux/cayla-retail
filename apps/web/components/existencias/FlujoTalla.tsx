@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
+import { avisarDestacado } from "@/components/ui/AvisoDestacado";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -41,6 +42,7 @@ import {
   quedaTrasAjuste,
   resumenDeFlujo,
   textoHecho,
+  totalVarias,
   verboFinal,
   type ContextoFlujo,
   type LadoMovido,
@@ -51,6 +53,7 @@ import {
 } from "@/lib/existencias-flujos";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -246,7 +249,8 @@ export function FlujoTalla({
   sububicacionPisoId: string | null;
   sububicacionAlmacenId: string | null;
   /** Terminó bien: el panel vuelve a la talla con el aviso «hecho». */
-  onHecho: (texto: string) => void;
+  /** `cerrar`: lo hecho se confirmó con el aviso destacado y el panel entero se cierra (hoy, bajar al piso). */
+  onHecho: (texto: string, opciones?: { cerrar?: boolean }) => void;
   /** Cancelar (o Escape): vuelve a la talla sin guardar. */
   onSalir: () => void;
   /** Pasar a otra acción con lo que ya se eligió («Se dañó» en Ajustar lleva a Reportar dañada). */
@@ -380,7 +384,8 @@ export function FlujoTalla({
     let data: unknown = null;
     let errorRpc: ErrorEscritura = null;
     try {
-      const r = await firmar(createClient().rpc(llamada.rpc as never, llamada.args as never).abortSignal(control.signal), responsable.firma());
+      const consulta = createClient().rpc(llamada.rpc as never, llamada.args as never).abortSignal(control.signal);
+      const r = await firmar(llamada.sinLoader ? consulta.setHeader("x-espera", "no") : consulta, responsable.firma());
       data = r.data;
       errorRpc = r.error;
     } catch (ex) {
@@ -410,16 +415,41 @@ export function FlujoTalla({
     }
     enviadoEn.current = null;
     const yaEstaba = llamada.yaEstaba(data);
+    const esBajada = tipo === "colgar" || tipo === "colgarVarias";
+    const esSubida = tipo === "subir" || tipo === "subirVarias";
     if (yaEstaba) {
       avisar.aviso("Esto ya estaba guardado. No se repitió.", { detalle: prenda.referencia });
+    } else if (esBajada || esSubida) {
+      // Bajar al piso y subir al almacén se confirman en grande y el panel se cierra (Felipe, 2026-10-08): la colaboradora está con la
+      // prenda en la mano, mirando el perchero, y el aviso de la esquina se le pasaba. La cifra es la que contestó la base; si no vino,
+      // la que se envió.
+      sonarConfirmacion();
+      const varias = tipo === "colgarVarias" || tipo === "subirVarias";
+      const respondio = esBajada ? leerRespuestaDeBajada(data)?.unidades : leerRespuestaDeRetiro(data)?.unidades;
+      const n = respondio ?? (varias ? totalVarias(d) : (d.n ?? 0));
+      const una = n === 1;
+      const paraEnviar = esSubida && d.destino === "enviar";
+      avisarDestacado({
+        titulo: esBajada ? "Bajado al piso" : "Subido al almacén",
+        cifra: `${unidades(n)} ${esBajada ? (una ? "colgada" : "colgadas") : una ? "guardada" : "guardadas"}`,
+        detalle: varias ? `${prenda.referencia}${llamada.detalle ? ` · ${llamada.detalle}` : ""}` : `${prenda.referencia}${prenda.color ? ` · ${prenda.color}` : ""} · talla ${fila.talla ?? "Única"}`,
+        nota: esBajada
+          ? `Ya ${una ? "está" : "están"} en el piso de ${sedeNombre}: ${una ? "se puede" : "se pueden"} vender.`
+          : paraEnviar
+            ? `${una ? "Queda" : "Quedan"} en el almacén, ${una ? "lista" : "listas"} para enviar a ${nombreSede(d.sedeId) ?? "la otra sede"}.`
+            : `Ya ${una ? "está" : "están"} en el almacén de ${sedeNombre}.`,
+      });
     } else {
       sonarConfirmacion();
       avisar.exito(llamada.titulo?.(data) ?? textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), {
-        detalle: llamada.recordatorio ?? `${prenda.referencia}${tipo === "colgarVarias" || tipo === "subirVarias" ? ` · ${llamada.detalle ?? ""}` : `${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`}`,
+        detalle: llamada.recordatorio ?? `${prenda.referencia}${prenda.color ? ` · ${prenda.color}` : ""} · ${fila.talla ?? "Única"}`,
       });
     }
-    router.refresh();
-    onHecho(textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)));
+    // Si el panel se cierra (bajar al piso, subir al almacén), refresca él, cuando ya retiró la guardia de «¿Salir sin guardar?»
+    // (PanelTalla).
+    const cerrar = (esBajada || esSubida) && !yaEstaba;
+    if (!cerrar) router.refresh();
+    onHecho(textoHecho(tipo, d, nombreSede(d.sedeId ?? d.origenId)), { cerrar });
   }
 
   /** La función de la base de cada acción, con sus argumentos y cómo leer su respuesta y su error. */
@@ -436,6 +466,10 @@ export function FlujoTalla({
     detalle?: string;
     /** Lo que hay que hacer con la prenda en la mano, en el aviso (Reportar dañada: sacarla del perchero). */
     recordatorio?: string;
+    /** Sin el loader a pantalla completa (ADR-0149, `x-espera: no`): el botón ya dice «Guardando…» y lo que confirma es el aviso
+     *  destacado. Bajar al piso y subir al almacén (Felipe, 2026-10-08): el loader con el logo daba la sensación de sacarte de la
+     *  pantalla. */
+    sinLoader?: boolean;
   };
   function armarLlamada(): Llamada | null {
     const n = d.n ?? 0;
@@ -458,6 +492,7 @@ export function FlujoTalla({
           resuelve: respuestaResuelveLaMarca,
           sinResolver: (enviadoEn) => textoMarcaSinResolver(enviadoEn, "Confirmar de nuevo"),
           detalle: tipo === "colgarVarias" ? detalleDeLoMovido(modelo, lineas) : undefined,
+          sinLoader: true,
         };
       }
       case "subir":
@@ -478,6 +513,7 @@ export function FlujoTalla({
           sinResolver: (enviadoEn: string) => textoMarcaSinResolverDeRetiro(formatearHoraLima(enviadoEn)),
           titulo: (x: unknown) => tituloDeExitoRetiro(leerRespuestaDeRetiro(x)?.unidades ?? totalSubido),
           detalle: tipo === "subirVarias" ? detalleDeLoMovido(modelo, lineas) : undefined,
+          sinLoader: true,
         };
         if (d.destino === "enviar") {
           return {
@@ -1038,9 +1074,7 @@ export function FlujoTalla({
 
       <div className="grid gap-2 border-t border-sand bg-papel px-[18px] pb-4 pt-3">
         {error && (
-          <p role="alert" className="text-sm text-rojo-profundo">
-            {error}
-          </p>
+          <Aviso tono="error">{error}</Aviso>
         )}
         {!completo && faltanHasta(tipo, i, d, ctx).length > 0 && <PieGuia guia={guiaDePasos} />}
         <div className="flex gap-2">

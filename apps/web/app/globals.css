@@ -36,6 +36,7 @@
 @import "./estilos/analisis-piso.css";
 @import "./estilos/analisis-pedir.css";
 @import "./estilos/analisis-ficha.css";
+@import "./estilos/vacio-aviso-buscador.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -1620,6 +1621,46 @@ html[data-buscando] [data-resultados] {
     height: 1rem;
     background: linear-gradient(to top, var(--fondo-hoja, var(--color-papel)), transparent);
     pointer-events: none;
+  }
+}
+
+/* ---- HOJA CON EL TECLADO ARRIBA (2026-10-08) — `useHojaSobreElTeclado` (components/ui/) ----
+   Con el teclado del celular abierto, el contenedor de `<Modal>` lleva `data-teclado` y `--teclado` (lo que el teclado tapa,
+   en px), empieza en el borde de arriba de lo visible y llega al fondo de la pantalla, detrás del teclado. La hoja sigue pegada
+   abajo y crece hasta llenarlo, y reserva abajo, con relleno, lo tapado: lo último se alcanza desplazando, el campo enfocado se deja a la vista
+   (`scroll-padding-bottom`) y el pie fijo se apoya sobre el teclado (sticky se mide desde el borde de adentro del relleno).
+   No se pega la hoja al borde de abajo de lo visible: Brave en Android reporta el alto visible ~56 px corto y la hoja quedaba
+   flotando con el velo asomando entre ella y el teclado. Así, un alto mal reportado solo agranda un relleno que no se ve.
+   Fuera de capa a propósito: le gana a `max-h-*` y `h-*` de Tailwind, que viven en la capa `utilities`. ---- */
+@media (max-width: 639.98px) {
+  [data-teclado] > .cascada-modal {
+    max-height: 100%;
+    padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
+    scroll-padding-bottom: calc(var(--teclado, 0px) + 1rem);
+  }
+  /* Bajo el pie fijo no asoma nada: si el navegador reportó corto lo visible, entre el pie y el teclado quedaría a la vista
+     el contenido que pasa por detrás. Este paño del color de la hoja lo tapa (detrás del teclado no se ve). */
+  [data-teclado] .pie-hoja-fijo::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--teclado, 0px);
+    background: var(--fondo-hoja, var(--color-papel));
+    pointer-events: none;
+  }
+  /* El ticket no tiene relleno propio y su alto es fijo: su panel de adentro scrollea y se acorta solo. */
+  [data-teclado] > .cascada-modal[data-variante="ticket"] {
+    height: 100%;
+    padding-bottom: var(--teclado, 0px);
+  }
+}
+@media (min-width: 640px) {
+  [data-teclado] {
+    padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
+  }
+  [data-teclado] > .cascada-modal {
+    max-height: 100%;
   }
 }
 

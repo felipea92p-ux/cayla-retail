@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ReceiptText, Wallet } from "lucide-react";
+import { FunnelX, ReceiptText, SearchX, Wallet } from "lucide-react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getColaboradores, getColaboradoresInactivos, getColaboradoresSuspendidos } from "@/lib/colaboradores";
@@ -21,6 +21,7 @@ import {
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 import { EstadoVacio } from "@/components/ComprasAgrupadas";
+import { BotonEnlace } from "@/components/ui/campos";
 import { BuscadorHistorial } from "@/components/BuscadorHistorial";
 import { FiltrosHistorialVentas } from "@/components/FiltrosHistorialVentas";
 import { HistorialVentasLista } from "@/components/HistorialVentasLista";
@@ -200,6 +201,14 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           <div data-resultados>
             {filas.length === 0 && !cursor ? (
               <EstadoVacio
+                icono={buscando ? <SearchX /> : <FunnelX />}
+                acciones={
+                  buscando ? (
+                    <BotonEnlace href={`/vender/historial${cadenaDeParams(params, ["q", "cursor"])}`}>Borrar la búsqueda</BotonEnlace>
+                  ) : (
+                    <BotonEnlace href="/vender/historial">Limpiar filtros</BotonEnlace>
+                  )
+                }
                 titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
                 detalle={
                   buscando

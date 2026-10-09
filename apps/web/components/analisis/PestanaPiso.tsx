@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { Icono } from "@/components/analisis/iconos";
-import { Ayuda, ChipEstado, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
+import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { plural } from "@/lib/analisis-reglas";
@@ -25,6 +25,9 @@ import {
   vacioPiso,
   type VacioPiso,
 } from "@/lib/analisis-piso";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check, Hourglass } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357, act. 2026-10-07 b): «Nunca salió al piso», la pestaña que Felipe pidió al ver que «No se vende» mandaba a
 // liquidar ropa guardada que nadie vio. Como la maqueta aprobada: arriba las cifras de toda la tienda y dónde está lo que tienes;
@@ -40,7 +43,7 @@ export function PestanaPiso() {
   const { datos, acceso, prendas, diasDeVentas } = useAnalisis();
   const sinSalir = datos.prendas.filter(nuncaSalio).length;
   const vacio = vacioPiso({ sabePiso: datos.sabePiso, prendas: datos.prendas.length, sinSalir, fallas: datos.fallas.length });
-  if (vacio === "sin-saber" || vacio === "sin-datos") return <Vacio tipo={vacio} />;
+  if (vacio === "sin-saber" || vacio === "sin-datos") return <SinCarril tipo={vacio} />;
 
   const cifras = cifrasPiso(datos.prendas);
   const tipos = tiposPiso(datos.prendas, prendas, datos.hoy);
@@ -145,7 +148,7 @@ export function PestanaPiso() {
           <div className="c-cab">
             <h3 className="b-tit">Días en el almacén</h3>
           </div>
-          <Vacio tipo="todo-salio" dentro />
+          <SinCarril tipo="todo-salio" dentro />
         </section>
       ) : (
         <Carril
@@ -209,19 +212,25 @@ function DondeEstaLoQueTienes() {
 }
 
 /** Sin carril: la base todavía no lo sabe, no se pudieron leer las prendas, o todo salió al piso (la respuesta corta y buena). */
-function Vacio({ tipo, dentro = false }: { tipo: VacioPiso; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
-  const bien = tipo === "todo-salio";
+function SinCarril({ tipo, dentro = false }: { tipo: VacioPiso; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const texto = TEXTO_VACIO_PISO[tipo];
+  // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
+  if (tipo === "sin-datos")
+    return (
+      <Aviso tono="error" titulo={texto.titulo}>
+        {texto.linea}
+      </Aviso>
+    );
+  // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
+  const vacio = (
+    <Vacio icono={tipo === "todo-salio" ? <Check /> : <Hourglass />} titulo={texto.titulo}>
+      {texto.linea}
+    </Vacio>
+  );
+  if (dentro) return vacio;
   return (
-    <section className={dentro ? "vacio-vista" : "tarjeta vacio-vista entra"} style={dentro ? undefined : { ["--i" as string]: 0 }}>
-      <span className="q-vacia-ic" style={{ ["--c" as string]: COLOR_ESTADO[bien ? "bien" : "nd"] }}>
-        <Icono nombre={bien ? "check" : "nd"} />
-      </span>
-      <div>
-        {bien ? <ChipEstado est="bien" /> : <ChipEstado est="nd">Sin datos</ChipEstado>}
-        <h2>{texto.titulo}</h2>
-        <p>{texto.linea}</p>
-      </div>
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      {vacio}
     </section>
   );
 }

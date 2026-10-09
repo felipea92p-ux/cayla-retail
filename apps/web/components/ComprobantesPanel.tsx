@@ -20,7 +20,7 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Link2, MoreHorizontal, Store } from "lucide-react";
+import { CircleCheck, FileText, Link2, MoreHorizontal, ReceiptText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -30,6 +30,7 @@ import { ConfirmarTransmision } from "@/components/ConfirmarTransmision";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -335,7 +336,11 @@ export function ComprobantesPanel({
         </div>
 
         {comprobantes.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin comprobantes {periodo}.</p>
+          <div className="border-t border-tinta/10">
+            <Vacio icono={<ReceiptText />} titulo={`Sin comprobantes ${periodo}`}>
+              Cambia el mes de arriba para ver otro período.
+            </Vacio>
+          </div>
         ) : visibles.length === 0 ? (
           <SinCoincidencias />
         ) : (

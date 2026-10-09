@@ -7,6 +7,8 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { volverDeNuevoTraslado } from "@/lib/traslados-reglas";
+import { Store } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Nuevo traslado» (Fase UI 1.1, 2026-09-12). Vive dentro de Traslados desde el 2026-10-03 (ADR-0242 D-4): antes colgaba
 // de `/inventario/mover`, el menú marcaba Existencias y la persona creía haber salido de Traslados. `/inventario/mover`
@@ -89,9 +91,11 @@ export default async function MoverMercaderiaPage({
       />
 
       {destinos.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay otra sede registrada todavía: un traslado necesita al menos dos.
-        </p>
+        <div className="card-cayla">
+          <Vacio icono={<Store />} titulo="No hay otra sede todavía">
+            Un traslado necesita al menos dos sedes registradas.
+          </Vacio>
+        </div>
       ) : (
         <MoverMercaderiaFormV2
           origenId={origen.id}

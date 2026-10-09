@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { Boton } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
@@ -16,6 +16,8 @@ import { useFlipCajas } from "@/lib/useFlipCajas";
 import { COLUMNAS_TABLERO, etapaActual, resumenTablero } from "@/lib/produccion-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
+import { Scissors, Shirt } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Órdenes de producción del Taller (ADR-0133, F2): un tablero por etapa en vez de una lista plana. La etapa donde
 // está la orden ES su columna; al marcarla hecha la tarjeta viaja a la siguiente. Las muestras (otras tres
@@ -83,9 +85,19 @@ export function OrdenesTablero({
       </div>
 
       {modelos.length === 0 && (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay modelos con variantes activas en el catálogo. Crea el modelo y sus tallas en Productos antes de abrir una orden.
-        </p>
+        <div className="card-cayla">
+          <Vacio
+            icono={<Shirt />}
+            titulo="No hay modelos para producir"
+            acciones={
+              <BotonEnlace href="/productos" peso="primario">
+                Ir a Productos
+              </BotonEnlace>
+            }
+          >
+            No hay modelos con variantes activas en el catálogo. Crea el modelo y sus tallas en Productos antes de abrir una orden.
+          </Vacio>
+        </div>
       )}
 
       {/* ==================== cifras ==================== */}
@@ -118,7 +130,21 @@ export function OrdenesTablero({
 
       {/* ==================== tablero ==================== */}
       {produccion.length === 0 && muestras.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Todo lo abierto ya se cerró. Abre una orden para empezar una corrida.</p>
+        <div className="card-cayla">
+          <Vacio
+            icono={<Scissors />}
+            titulo="Ninguna orden abierta"
+            acciones={
+              modelos.length > 0 ? (
+                <Boton peso="primario" onClick={() => setNuevaAbierta(true)}>
+                  Abrir una orden
+                </Boton>
+              ) : null
+            }
+          >
+            Todo lo abierto ya se cerró. Abre una orden para empezar una corrida.
+          </Vacio>
+        </div>
       ) : (
         <div ref={refTablero} className="relative grid auto-cols-[minmax(15rem,1fr)] grid-flow-col gap-3.5 overflow-x-auto pb-2 min-[1240px]:grid-flow-row min-[1240px]:auto-cols-auto min-[1240px]:grid-cols-4 min-[1240px]:overflow-visible">
           {COLUMNAS_TABLERO.map((col) => {

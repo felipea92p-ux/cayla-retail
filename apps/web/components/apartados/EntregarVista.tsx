@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Receipt, Search, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Pencil, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -20,6 +20,10 @@ import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
+import { Buscador } from "@/components/ui/Buscador";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -141,21 +145,19 @@ export function EntregarVista({
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
       {cabecera}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
-        <label className="flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
-          <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
-          <input
-            autoFocus
-            value={texto}
-            onChange={(e) => {
-              setTexto(e.target.value);
-              elegir(null);
-              setPagos([]);
-            }}
-            placeholder="Nombre, DNI, celular o N.º de boleta"
-            aria-label="Buscar apartado"
-            className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
-          />
-        </label>
+        {/* El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe. */}
+        <Buscador
+          tamano="mostrador"
+          autoFocus
+          valor={texto}
+          onCambio={(v) => {
+            setTexto(v);
+            elegir(null);
+            setPagos([]);
+          }}
+          placeholder="Nombre, DNI, celular o N.º de boleta"
+          etiqueta="Buscar apartado"
+        />
 
         {a ? (
           <article className="anim-revelar space-y-4 rounded-2xl border border-sand p-5">
@@ -214,9 +216,24 @@ export function EntregarVista({
           <>
             <p className="label-cayla text-[11px] text-tinta/60">{texto ? "Coinciden" : `Por recoger en ${ubicacionEtiqueta}`} · {encontrados.length}</p>
             {encontrados.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-sand px-6 py-10 text-center">
-                <p className="font-display text-xl text-tinta">{texto ? `Nadie con «${texto}»` : "No hay apartados por recoger"}</p>
-                {texto && <p className="mt-1 text-sm text-tinta/60">Si ya venció y se liberó, está en «Todos».</p>}
+              <div className="card-cayla">
+                {texto ? (
+                  <Vacio
+                    icono={<SearchX />}
+                    titulo={`Nadie con «${texto}»`}
+                    acciones={
+                      <Boton peso="fantasma" onClick={() => { setTexto(""); elegir(null); setPagos([]); }}>
+                        Borrar la búsqueda
+                      </Boton>
+                    }
+                  >
+                    Si ya venció y se liberó, está en «Todos».
+                  </Vacio>
+                ) : (
+                  <Vacio icono={<ShoppingBag />} titulo="No hay apartados por recoger">
+                    Cuando alguien aparte una prenda en {ubicacionEtiqueta}, aparecerá aquí hasta que la recoja.
+                  </Vacio>
+                )}
               </div>
             ) : (
               <ul className="space-y-2">
@@ -334,9 +351,9 @@ export function EntregarVista({
                         </div>
                       </div>
                     )}
-                    {cobro.excede && <p className="text-xs text-rojo-profundo">Con esos medios no hay vuelto: cobra justo {money(saldo)}.</p>}
-                    {cobro.falta > 0 && pagos.length > 0 && <p className="text-xs text-rojo-profundo tabular-nums">Falta {money(cobro.falta)}</p>}
-                    {cobro.noAlcanza && <p className="text-xs text-rojo-profundo">Lo recibido no alcanza.</p>}
+                    {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
+                    {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
+                    {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (

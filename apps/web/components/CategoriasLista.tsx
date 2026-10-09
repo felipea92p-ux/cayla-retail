@@ -20,6 +20,8 @@ import { MuestraCategoria, tonoDeCategoria } from "@/components/MuestraCategoria
 import { BarraAtributos, GRILLA_ATRIBUTOS, SinCoincidencias, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
 import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
+import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -445,7 +447,9 @@ export function CategoriasLista({
               ))}
             </div>
           ) : (
-            <p className="text-xs italic text-tinta/65">Sin categorías todavía.</p>
+            <Vacio tamano="chico" alinear="izquierda" icono={<Shapes />}>
+              Sin categorías todavía.
+            </Vacio>
           )}
         </section>
       ))}
@@ -616,7 +620,9 @@ export function CategoriasLista({
                   ))}
                 </div>
               ) : (
-                <p className="mt-2 text-xs italic text-tinta/65">Sin subcategorías todavía.</p>
+                <Vacio tamano="chico" alinear="izquierda" icono={<FolderTree />} className="mt-2">
+                  Sin subcategorías todavía.
+                </Vacio>
               )}
               {puedeEditar && (
                 <div className="mt-3 flex items-end gap-2">
@@ -687,7 +693,9 @@ export function CategoriasLista({
                     />
                   </div>
                 ) : (
-                  <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tallas aprobadas.</p>
+                  <Vacio tamano="chico" alinear="izquierda" icono={<Ruler />} className="mt-1.5">
+                    Todavía no hay tallas aprobadas.
+                  </Vacio>
                 )}
                 {ejesDraft.tallaIds.length > 0 && (
                   <div className="mt-3">
@@ -714,7 +722,9 @@ export function CategoriasLista({
                     />
                   </div>
                 ) : (
-                  <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tejidos aprobados.</p>
+                  <Vacio tamano="chico" alinear="izquierda" icono={<Layers />} className="mt-1.5">
+                    Todavía no hay tejidos aprobados.
+                  </Vacio>
                 )}
               </div>
               <div>
@@ -728,7 +738,10 @@ export function CategoriasLista({
                     />
                   </div>
                 ) : (
-                  <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay patrones aprobados.</p>
+                  <Vacio tamano="chico" alinear="izquierda" icono={<Grid3x3 />} className="mt-1.5">
+                    Todavía no hay patrones aprobados.
+                  </Vacio>
+
                 )}
               </div>
               {puedeEditar && <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}

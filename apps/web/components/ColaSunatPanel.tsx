@@ -15,6 +15,8 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { ConfirmarTransmision } from "@/components/ConfirmarTransmision";
+import { Check } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Por reintentar» (D-60): lo que Lucode/SUNAT no aceptó al cobrar y espera en la cola. Se reintenta
 // solo (cada cobro y cada apertura de Comprobantes barren la cola, `/api/lucode/reintentar`); acá se ve
@@ -104,7 +106,11 @@ export function ColaSunatPanel({
       </div>
 
       {filas.length === 0 ? (
-        <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Nada por enviar: todo llegó a SUNAT.</p>
+        <div className="border-t border-tinta/10">
+          <Vacio icono={<Check />} titulo="Nada por enviar">
+            Todo llegó a SUNAT.
+          </Vacio>
+        </div>
       ) : visibles.length === 0 ? (
         <SinCoincidencias />
       ) : (

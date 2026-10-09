@@ -185,8 +185,14 @@ export function PrendaSinRegistrarModal({
       ancho="max-w-4xl"
     >
       {/* Una sola copia de cada pieza, ubicada por áreas: en celular la etiqueta va arriba y el botón al pie; desde md, los campos
-          a la izquierda y la etiqueta con el botón a la derecha. */}
-      <div className="grid gap-x-10 gap-y-5 [grid-template-areas:'etiqueta'_'campos'_'pie'] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[auto_1fr] md:[grid-template-areas:'campos_etiqueta'_'campos_pie']">
+          a la izquierda y la etiqueta con el botón a la derecha.
+          En celular la etiqueta queda pegada arriba de la hoja mientras se baja (2026-10-08): con el teclado abierto se ve muy
+          poco de la hoja y, al pasar de un campo a otro, lo ya elegido salía de la vista. Pegada, siempre se ve lo armado. Por
+          eso todo control de adentro deja ese alto arriba al recibir el foco (`scroll-mt-[8.5rem]`: la etiqueta y el título del
+          campo), y el combo sube su campo hasta ahí para que su lista tenga lugar sobre el teclado (`useAireParaLaLista`).
+          `minmax(0,1fr)`: con «Sigue aquí» junto a «Precio cobrado» la columna medía 370 px en un celular de 375 y la hoja se
+          corría de lado (el precio quedaba cortado a la derecha); ahora el título baja de línea y nada se sale. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-5 [grid-template-areas:'etiqueta'_'campos'_'pie'] max-md:[&_button]:scroll-mt-[8.5rem] max-md:[&_input]:scroll-mt-[8.5rem] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[auto_1fr] md:[grid-template-areas:'campos_etiqueta'_'campos_pie']">
         <div className="space-y-6 [grid-area:campos]">
           <CampoGuiado id="categoria" guia={guia} titulo={<Titulo icono={<Tag />}>Categoría</Titulo>}>
             <ComboBuscable
@@ -275,8 +281,8 @@ export function PrendaSinRegistrarModal({
               y Enter agrega; en el teléfono `inputMode="decimal"` abre el teclado numérico del propio celular. */}
           <CampoGuiado id="precio" guia={guia}>
             <label htmlFor={idPrecio} className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
-              <span className="whitespace-nowrap text-[13px] font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
-              <span className="flex items-baseline gap-1 font-display text-3xl text-tinta">
+              <span className="min-w-0 text-[13px] font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
+              <span className="flex shrink-0 items-baseline gap-1 font-display text-3xl text-tinta">
                 S/
                 <input
                   id={idPrecio}
@@ -293,14 +299,16 @@ export function PrendaSinRegistrarModal({
                   // sugerir-fijo: el formato de un monto en soles, no depende de nada elegido antes
                   placeholder="0.00"
                   aria-label="Precio cobrado en soles"
-                  className="w-20 rounded-md bg-transparent text-right outline-none placeholder:text-tinta/30 sm:w-28"
+                  // En celular, al enfocarlo, deja también a la vista lo que sigue (lo que falta y «Agregar al ticket»).
+                  className="w-20 max-md:scroll-mb-32 rounded-md bg-transparent text-right outline-none placeholder:text-tinta/30 sm:w-28"
                 />
               </span>
             </label>
           </CampoGuiado>
         </div>
 
-        <div className="[grid-area:etiqueta]">
+        {/* `-top-6`: la hoja tiene `p-6`, y sin restarlo la etiqueta se pegaba 24 px más abajo, con el texto pasando por encima. */}
+        <div className="sticky -top-6 z-[2] -mx-6 -mt-4 bg-papel px-6 pb-2 pt-4 [grid-area:etiqueta] md:static md:mx-0 md:mt-0 md:bg-transparent md:p-0">
           <EtiquetaPrevia
             categoria={categoria}
             talla={talla?.valor ?? null}

@@ -8,6 +8,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { debeAvisarPerdidaAdmin, pideUbicacion, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Los modales de «Roles y accesos» (ADR-0161 B). Todos con `<Modal>` (ADR-0136): heredan el velo, la hoja que sube y la
 // cascada; no agregan movimiento propio. Cada uno recibe `onConfirmar`, que devuelve `true` si la base aceptó; solo
@@ -263,12 +264,10 @@ export function AsignarRolModal({
           )}
           {cuenta && rolId && rolId === cuenta.rolId && <p className="text-xs text-tinta/65">Ya tiene ese rol.</p>}
           {cuenta && destino && rolId !== cuenta.rolId && destino.fijo && (
-            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
-              Como líder verá y hará todo en todas las sedes, incluidos Colaboradores y Roles y accesos.
-            </p>
+            <Aviso tono="atencion">Como líder verá y hará todo en todas las sedes, incluidos Colaboradores y Roles y accesos.</Aviso>
           )}
           {cuenta && destino && cuenta.esLider && !destino.fijo && (
-            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
+            <Aviso tono="atencion">
               Deja de ser líder: solo verá los módulos de «{destino.nombre}»{conSede ? ", en la sede que elijas" : ""}.
               {pierdeAdmin && (
                 <>
@@ -276,7 +275,8 @@ export function AsignarRolModal({
                   <strong className="font-semibold">También deja de ser Admin:</strong> no podrá administrar líderes hasta que otro Admin se lo devuelva.
                 </>
               )}
-            </p>
+            </Aviso>
+
           )}
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex justify-end gap-2">

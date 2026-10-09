@@ -13,6 +13,7 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { AroSemanas } from "@/components/existencias/AroSemanas";
+import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { accionesDeTalla, origenesDeTalla, lineaDeLoQueFalta, loQueFaltaEnElPiso, marcaDeColor, pieDeTalla, queTocaConLaTalla, type ClaveAccionTalla, type TonoQueToca } from "@/lib/existencias-panel-talla";
 import { ritmoDePrenda, textoDeRitmo, vendidasDeLaTalla } from "@/lib/existencias-colgar-primero";
@@ -193,7 +194,7 @@ export function PanelTalla({
   // El panel bloquea la pantalla de atrás (2026-10-06, Felipe): tocar afuera, la ✕ o Escape lo cierran, y si hay un paso a medias
   // (un dato cambiado, un paso avanzado, un guardado en camino) primero se pregunta «¿Salir sin guardar?».
   const [pasoSucio, setPasoSucio] = useState(false);
-  const { pedirAccion, aviso } = useSalidaSinGuardar(
+  const { pedirAccion, retirarYa, aviso } = useSalidaSinGuardar(
     Boolean(flujo) && pasoSucio,
     "Dejaste esta acción a medias y todavía no se guardó. Si sales ahora, se pierde lo que llenaste."
   );
@@ -479,8 +480,22 @@ export function PanelTalla({
               puedePedirParaCliente={puedePedirParaCliente}
               sububicacionPisoId={sububicacionPisoId}
               sububicacionAlmacenId={sububicacionAlmacenId}
-              onHecho={(texto) => {
+              onHecho={(texto, opciones) => {
                 setFlujo(null);
+                // Bajar al piso y subir al almacén (Felipe, 2026-10-08): lo confirma el aviso destacado y el panel se va, con su salida de siempre;
+                // la lista de atrás queda con la búsqueda y los filtros que tenía.
+                // El refresco va DESPUÉS de retirar la guardia de «¿Salir sin guardar?» (`retirarYa`): juntos, Next volvía a montar la
+                // página o la recargaba entera, y se perdía la vista elegida y el aviso.
+                if (opciones?.cerrar) {
+                  setPasoSucio(false);
+                  cerrarYa();
+                  // Y sin el loader con el logo (Felipe, 2026-10-08): la lista se pone al día por detrás, sin tapar la pantalla.
+                  void retirarYa().then(() => {
+                    navegacionSinEspera(window.location.href);
+                    router.refresh();
+                  });
+                  return;
+                }
                 setHecho(texto);
                 raiz.current?.focus({ preventScroll: true });
               }}
