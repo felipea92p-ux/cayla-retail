@@ -491,6 +491,14 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:capacidad-piso
 
+      # La vara de CAYLA como respaldo de Frescura (ADR-0208, act. 2026-10-07; 20261008120000): solo la llave de servicio guarda
+      # (`guardar_frescura_vara_cayla`), reemplaza la foto entera y una corrida vacía no toca nada; el esquema niega ventana, cifras
+      # y nivel inválidos; el líder lee (`fn_frescura_vara_cayla`), afuera recibe `frescura_sin_permiso`, la tabla directo no; y el
+      # parche anclado de `fn_frescura_sede` deja pasar a `service_role` (el cron) y sigue cerrada sin claims, con md5 verificado. ROLLBACK.
+      - name: pruebas:frescura-vara-cayla
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-vara-cayla
+
       # «Cuadrar el piso» (ADR-0328, decisión técnica 4): `cuadrar_piso` pasa al piso, de una vez y todo o nada, lo que el almacén
       # tiene libre y nadie escaneó como guardado (y sube lo escaneado que el sistema creía colgado). Solo un líder confirma; lo
       # apartado, la cuarentena, lo archivado y lo de prueba no se mueven; las «no cargadas» se guardan y no se aplican; la

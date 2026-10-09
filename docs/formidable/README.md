@@ -10,7 +10,7 @@ Formidable porque sus modales lo sean, ni al revés.
 
 | Módulo | Pantalla / modal | Estado | Leyes | Oficio | Informe | Última medición |
 |---|---|---|---|---|---|---|
-| Inventario | Frescura del piso (`/inventario/frescura`) | en piloto: cambios 1–3 ejecutados (2026-10-05); falta recalificar con datos y colaboradoras reales | 4,5 (±1) · ley 1 sin nota | 5 (provisional) | [inventario-frescura](inventario-frescura.md) | 2026-10-05 |
+| Inventario | Frescura del piso (`/inventario/frescura`) | en piloto: cambios 1–3 ejecutados (2026-10-05); dos niveles y vara de CAYLA de respaldo construidos (2026-10-08, ADR-0208 act. 2026-10-07) sin recalificar; falta `/formidable` sobre la pantalla nueva y recalificar con datos y colaboradoras reales | 4,5 (±1) · ley 1 sin nota | 5 (provisional) | [inventario-frescura](inventario-frescura.md) | 2026-10-05 |
 | Inventario | Traslados, billetera de pases (`/inventario/traslados`) | ciega ✓ · real sin probar; cambios 1–3 hechos (2026-10-06) | 7,5 · ley 1: 7 | 7 | [inventario-traslados](inventario-traslados.md) | 2026-10-06 |
 | Inventario | Ventas sin registrar, la mesa «Puente» (`/inventario/por-regularizar`) | ciega ✓✓ (dos pruebas) · real sin probar; los 3 cambios hechos y recalificada (2026-10-07) | 7,0 (provisional) · ley 1: 8 | 6 (provisional) | [inventario-ventas-sin-registrar](inventario-ventas-sin-registrar.md) | 2026-10-07 |
 

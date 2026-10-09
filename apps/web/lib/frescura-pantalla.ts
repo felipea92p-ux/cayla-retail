@@ -1,17 +1,22 @@
 import type { TonoChip } from "@/components/ui/Chip";
 import { clave as claveBusqueda } from "./buscar-prenda-v2";
+import type { AccionDecision } from "./frescura-decisiones-reglas";
 import {
   DIAS_CALLADA,
+  ESPERADAS_PARA_DECIDIR,
   RAPIDEZ_IGUAL,
   nivelPorVentas,
+  rapidezParaDecidir,
   recientesDe,
   type CifrasSede,
+  type Rapidez,
   type FilaConfianza,
   type FrescuraPrenda,
   type NivelConfianza,
   type Sugerencia,
   type Tramo,
   type VaraCategoria,
+  VENTAS_PARA_JUZGAR_SOLA,
 } from "./frescura-reglas";
 
 // Frescura del piso, paso 4 (ADR-0208): LO QUE DICE LA PANTALLA. `frescura-reglas.ts` ya decidió el estado de cada prenda,
@@ -48,6 +53,9 @@ export const TONO_TRAMO: Record<Tramo, TonoChip> = { nueva: "verde", vigente: "n
 
 /** Lo que dice una prenda juzgada con pocas ventas de las demás (menos de 10): «Aproximado», no «con pocos datos». */
 export const APROXIMADO = "aproximado";
+
+/** Lo que dice una prenda juzgada contra la vara de CAYLA (ADR-0208, act. 2026-10-07): su tienda no llegaba a 10 ventas. */
+export const CONTRA_CAYLA = "contra lo que vende CAYLA";
 
 /** Frases C: el «al menos» se dice «quizá más», detrás del número o del nombre. */
 export const QUIZA_MAS = "quizá más";
@@ -249,6 +257,8 @@ export function estadoVista(p: FrescuraPrenda): EstadoVista {
     // «Aproximado» (antes «con pocos datos») se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado
     // (D5): una categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
     if (nivelSinElla(p) === "pocos_datos") debajo.push(APROXIMADO);
+    // Juzgada contra la vara de CAYLA (ADR-0208, act. 2026-10-07): la fila lo dice, siempre (decisión 2 de Felipe).
+    if (p.juzgadaContra === "cayla") debajo.push(CONTRA_CAYLA);
     return { texto: NOMBRE_TRAMO[e.tramo], tono: TONO_TRAMO[e.tramo], icono: false, debajo, previo: null };
   }
   if (e.tipo === "clasico") return { texto: e.fueraDeSuEstacion ? TEXTO_ESPECIAL.clasico_fuera : TEXTO_ESPECIAL.clasico, tono: "pizarra", icono: false, debajo: [], previo: null };
@@ -277,13 +287,23 @@ export function nombreAlMenos(tramo: Tramo): string {
  * el piso sin vender, «dejó de venderse» (`recientesDe`, la misma definición que usa `estaQuieta`). Con la categoría «aún
  * sin referencia», la fila no dice si es rápida: el índice sale de muy pocas ventas del resto y chocaba con el estado.
  */
-export type ClaveRapidez = "sin_dato" | "sin_medida" | "dejo" | "rapida" | "ritmo" | "lenta" | "muy_lenta";
+export type ClaveRapidez = "sin_dato" | "sin_medida" | "poca_evidencia" | "dejo" | "rapida" | "ritmo" | "lenta" | "muy_lenta";
+
+/**
+ * La rapidez que DECIDE (`rapidezParaDecidir`, act. 2026-10-07): la misma, o null cuando dice «lenta» con menos de 2 ventas
+ * esperadas. La pantalla la mira antes de decir «más lenta que las demás»: si el índice no alcanza para decidir, tampoco alcanza
+ * para afirmarlo en la fila (y «revisa sus ventas» al lado no se contradice).
+ */
+export function rapidezQueDecide(p: FrescuraPrenda): Rapidez | null {
+  return rapidezParaDecidir(p.rapidez, recientesDe(p.ventasRecientes, p.reloj.segundos));
+}
 
 export function claveRapidez(p: FrescuraPrenda): ClaveRapidez {
   const r = p.rapidez;
   if (p.estado.tipo === "clasico" || p.estado.tipo === "dudosa") return "sin_dato";
   if (!r) return "sin_dato";
   if (p.estado.tipo === "sin_vara") return "sin_medida";
+  if (rapidezQueDecide(p) === null) return "poca_evidencia";
   if (r.indice >= RAPIDEZ_IGUAL && recientesDe(p.ventasRecientes, p.reloj.segundos) === "dejo_de_vender") return "dejo";
   if (r.indice >= 120) return "rapida";
   if (r.indice >= RAPIDEZ_IGUAL) return "ritmo";
@@ -321,6 +341,7 @@ export function rapidezVista(p: FrescuraPrenda): RapidezVista {
   if (k === "sin_dato" || !r) return { texto: "Sin dato", detalle: null, porque: porqueSinDato(p), nivel: null };
   const nivel = nivelPorVentas(r.referencia);
   if (k === "sin_medida") return { texto: `Vendió ${decimal(r.vendidas)}; las demás, solo ${decimal(r.referencia)}`, detalle: null, porque: null, nivel };
+  if (k === "poca_evidencia") return { texto: "Todavía no alcanza para decir si es lenta", detalle: `vendió ${decimal(r.vendidas)}, ${seEsperaban(decimal(r.esperadas))}`, porque: null, nivel };
   if (k === "dejo") return { texto: "Vendió bien al llegar; hoy no se vende", detalle: "30 días en el piso sin vender", porque: null, nivel };
   return { texto: COMO[k], detalle: `vendió ${decimal(r.vendidas)}, ${seEsperaban(decimal(r.esperadas))}`, porque: null, nivel };
 }
@@ -350,7 +371,11 @@ export function causaCambiarLugar(p: FrescuraPrenda): "temporada" | "dejo" | "vi
 export function textoSugerencia(s: Sugerencia, p: FrescuraPrenda, ctx: ContextoFrescura): string {
   switch (s) {
     case "revisar_ventas":
-      return estaCallada(p) ? `${DIAS_CALLADA} días sin vender: mira qué le pasa` : "No se sabe qué tan rápido se vende: mira sus ventas";
+      return estaCallada(p)
+        ? `${DIAS_CALLADA} días sin vender: mira qué le pasa`
+        : claveRapidez(p) === "poca_evidencia"
+          ? "Parece lenta, pero hay pocas ventas para decirlo: mira sus ventas"
+          : "No se sabe qué tan rápido se vende: mira sus ventas";
     case "cambiar_lugar":
       return {
         temporada: "Pasó su estación: pruébala 7 días en otro lugar",
@@ -579,6 +604,8 @@ export type GrupoVista = {
   base: string | null;
   /** La referencia de CAYLA (solo el líder: null para los demás, que no la ven). */
   cayla: string | null;
+  /** Si sus prendas se juzgan contra la vara de CAYLA, y si no, por qué (act. 2026-10-07). Null sin vara de CAYLA para ella. */
+  respaldo: string | null;
 };
 
 function textoComparacion(v: VaraCategoria | undefined, nombre: string, sede: string): string {
@@ -630,6 +657,7 @@ export function grupoVista(categoriaId: string, nombre: string, ctx: ContextoFre
     escala: escalaDe(v),
     base: v && v.vendidas > 0 ? `con ${textoVentas(v.vendidas)} de los últimos ${v.ventanaDias} días` : null,
     cayla: ctx.cayla === null ? null : (ctx.caylaFallo ?? `${textoCayla(ctx.cayla.get(categoriaId))}.`),
+    respaldo: textoRespaldo(v),
   };
 }
 
@@ -662,9 +690,34 @@ export function avisoPocasVentas(prendas: readonly FrescuraPrenda[], sede: strin
   return `**Todavía hay pocas ventas en ${sede}.** Por eso lo de abajo es aproximado y algunas prendas dicen «Aún no se sabe»: en unas semanas se afina.`;
 }
 
-/** Más de la mitad de las prendas de la tabla sin temporada (TRU hoy: todas): UN aviso arriba, no un chip por fila. */
-export function muchasSinTemporada(prendas: readonly FrescuraPrenda[]): boolean {
-  return prendas.length > 0 && prendas.filter((p) => p.estado.sinTemporada).length > prendas.length / 2;
+/**
+ * Las prendas de la tabla sin temporada, dichas UNA vez dentro de «¿Cómo se lee esto?» (act. 2026-10-07; antes, un cartel sobre la
+ * tabla y un chip por fila). Es una tarea de Catálogo, no de Frescura: aquí solo se cuenta y se enlaza. Null si todas la tienen.
+ */
+export function textoSinTemporada(prendas: readonly FrescuraPrenda[]): string | null {
+  const n = prendas.filter((p) => p.estado.sinTemporada).length;
+  if (n === 0) return null;
+  // El sujeto es «n» («1 de 4 prendas no tiene»), no el total.
+  return `${n} de ${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} no ${n === 1 ? "tiene" : "tienen"} temporada: se miden igual, pero nunca van a avisar que pasó su estación.`;
+}
+
+/** De cuándo es la vara de CAYLA que respalda (o por qué no hay), para «¿Cómo se lee esto?». */
+export function textoRespaldoCayla(estado: { calculadaEn: string | null; fallo: string | null }): string {
+  if (estado.fallo) return estado.fallo;
+  if (estado.calculadaEn === null) return "Todavía no hay una vara de CAYLA calculada: cada categoría se juzga con lo vendido en esta tienda.";
+  return `La vara de CAYLA es del ${fechaCorta(estado.calculadaEn)}: se calcula cada madrugada con las tres tiendas juntas y respalda a las categorías que aquí no llegan a ${VENTAS_PARA_JUZGAR_SOLA} ventas.`;
+}
+
+/** Por categoría: si sus prendas se juzgan contra CAYLA, y si no, por qué. Null sin vara de CAYLA para ella. */
+export function textoRespaldo(v: VaraCategoria | undefined): string | null {
+  const r = v?.respaldo;
+  if (!v || !r) return null;
+  const aqui = v.vendidas > 0 ? textoVentas(v.vendidas) : "ninguna venta todavía";
+  if (r.enUso) return `Se juzga contra lo que vende CAYLA: ${textoVentas(r.vendidas)} de los últimos ${r.ventanaDias} días en las tres tiendas; aquí, ${aqui}.`;
+  if (r.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `La vara de CAYLA tampoco alcanza (${textoVentas(r.vendidas)}): se juzga con lo de aquí.`;
+  // Pocas ventas aquí y CAYLA alcanza, pero nada se juzgó contra ella: la categoría no tiene prendas que medir.
+  if (v.vendidas < VENTAS_PARA_JUZGAR_SOLA) return `Aquí no hay prendas que medir (clásicos, o prendas que no cuadran): la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
+  return `Aquí ya hay ${textoVentas(v.vendidas)}: se juzga sola; la vara de CAYLA (${textoVentas(r.vendidas)}) queda de apoyo.`;
 }
 
 export type CifrasVista = {
@@ -921,6 +974,11 @@ function porqueRapidez(p: FrescuraPrenda): { texto: TextoRico | null; nivel: Niv
   const esp = decimal(r.esperadas);
   const esperaban = esp === "1" ? "se esperaba" : "se esperaban";
   const contra = nivel === "solido" ? "" : ` Se midió contra solo ${textoVentas(r.referencia)} de las demás.`;
+  if (k === "poca_evidencia")
+    return {
+      texto: `Vendió **${v}** cuando para una prenda de su categoría con los mismos días en el piso ${esperaban} **${esp}**. Con menos de ${ESPERADAS_PARA_DECIDIR} esperadas no se puede decir que sea lenta: una que se vende como las demás saldría «lenta» 1 de cada 3 veces por puro azar. Se vuelve a mirar cuando su categoría venda más.${contra}`,
+      nivel,
+    };
   if (k === "sin_medida")
     return {
       texto: `Vendió **${v}** ${cuandoRecientes(p, "total")}. Sin ella, las demás vendieron solo ${decimal(r.referencia)}: con tan poco no se puede decir si vende rápido o lento.`,
@@ -993,12 +1051,15 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
           titulo,
           texto: estaCallada(p)
             ? `En sus últimos ${DIAS_CALLADA} días en el piso no se vendió ninguna. Antes de moverla, mira si está a la vista, si tiene sus tallas y su etiqueta de precio.`
-            : `No se sabe qué tan rápido se vende: ${porqueSinDato(p)}. Mira sus ventas antes de decidir.`,
+            : claveRapidez(p) === "poca_evidencia" && p.rapidez
+              ? `Vendió ${decimal(p.rapidez.vendidas)} cuando ${seEsperaban(decimal(p.rapidez.esperadas))}: parece lenta, pero con menos de ${ESPERADAS_PARA_DECIDIR} ventas esperadas no se puede afirmar. Mira sus ventas antes de decidir.`
+              : `No se sabe qué tan rápido se vende: ${porqueSinDato(p)}. Mira sus ventas antes de decidir.`,
           botones: ventas,
         };
       case "cambiar_lugar": {
         const causa = causaCambiarLugar(p);
-        const lenta = p.rapidez !== null && (p.rapidez.indice < RAPIDEZ_IGUAL || claveRapidez(p) === "dejo");
+        const decide = rapidezQueDecide(p);
+        const lenta = decide !== null && (decide.indice < RAPIDEZ_IGUAL || claveRapidez(p) === "dejo");
         const texto =
           causa === "temporada"
             ? `Ya pasó ${suEstacion}${lenta ? " y se vende menos que las demás" : ""}: pruébala 7 días en otro lugar antes de retirarla.`
@@ -1011,7 +1072,8 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: `Tienes ${p.almacenHoy} en el almacén de ${ctx.sede}. La comparación es sólida (${textoVentas(p.rapidez?.referencia ?? 0)} de las demás aquí). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,
+          // Contra CAYLA, las ventas con que se comparó son las de las tres tiendas, no las de aquí (act. 2026-10-07).
+          texto: `Tienes ${p.almacenHoy} en el almacén de ${ctx.sede}. La comparación es sólida (${textoVentas(p.rapidez?.referencia ?? 0)} de las demás ${p.juzgadaContra === "cayla" ? "en las tres tiendas" : "aquí"}). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,
           botones: a.traslados && lineasTraslado(p) ? [{ texto: "Armar un traslado", href: `/inventario/mover?lineas=${lineasTraslado(p)}` }] : [],
         };
       case "retirar":
@@ -1125,4 +1187,144 @@ export function trozosRicos(t: TextoRico): { texto: string; negrita: boolean }[]
     .split("**")
     .map((texto, i) => ({ texto, negrita: i % 2 === 1 }))
     .filter((x) => x.texto !== "");
+}
+
+// ---------------------------------------------------------------------------
+// El tablero por categoría (nivel 1: ADR-0208, actualización 2026-10-07, decisión 3 de Felipe)
+// ---------------------------------------------------------------------------
+//
+// «¿Cómo está el piso?» de un vistazo: una fila por categoría con la barra de sus unidades colgadas por estado, cuántas prendas
+// esperan decisión y con qué vara se juzgó. Es el tablero del líder (semanal) y el mapa de la encargada: tocar una fila deja en la
+// lista de abajo solo esa categoría. Lo primero es lo que más pide decidir: se ordena por unidades que se quedan o hay que mover.
+
+/** Los tramos de la barra, en el orden en que se dibujan; al final, lo que el semáforo no juzga. */
+export type TramoBarra = Tramo | "sin_saber" | "clasico";
+export const TRAMOS_BARRA: readonly TramoBarra[] = ["nueva", "vigente", "envejecida", "critica", "sin_saber", "clasico"];
+export const NOMBRE_TRAMO_BARRA: Record<TramoBarra, string> = { ...NOMBRE_TRAMO, sin_saber: "Aún no se sabe", clasico: "Clásico" };
+/** El color de cada tramo en la barra: los colores A de los chips (verde · neutro · ámbar · tinta), nunca rojo. */
+export const CLASE_TRAMO_BARRA: Record<TramoBarra, string> = {
+  nueva: "bg-verde",
+  vigente: "bg-tinta/25",
+  envejecida: "bg-ambar",
+  critica: "bg-tinta",
+  sin_saber: "bg-taupe/35",
+  clasico: "bg-pizarra/60",
+};
+
+/** Con qué vara se juzgó la categoría, en una palabra: contra CAYLA (su respaldo decidió), o el nivel de la propia tienda. */
+export type VaraTablero = { texto: "Sólido" | "Aceptable" | "Aproximado" | "Contra CAYLA" | "Sin ventas"; tono: TonoChip };
+
+export function varaTablero(v: VaraCategoria | undefined): VaraTablero {
+  if (v?.respaldo?.enUso) return { texto: "Contra CAYLA", tono: "pizarra" };
+  if (v?.nivel === "solido") return { texto: "Sólido", tono: "neutro" };
+  if (v?.nivel === "aceptable") return { texto: "Aceptable", tono: "neutro" };
+  if (v?.nivel === "pocos_datos") return { texto: "Aproximado", tono: "ambar" };
+  return { texto: "Sin ventas", tono: "apagado" };
+}
+
+export type FilaTablero = {
+  categoriaId: string;
+  nombre: string;
+  /** Unidades colgadas por tramo (de las prendas de la tabla con algo en el piso). */
+  unidades: Record<TramoBarra, number>;
+  total: number;
+  /** Prendas (modelo+color) con algo colgado. */
+  prendas: number;
+  /** Las que esperan decisión (`porDecidir`, el único lugar que lo dice). */
+  porDecidir: number;
+  /** Unidades que se quedan o hay que mover: lo que ordena el tablero. */
+  viejas: number;
+  vara: VaraTablero;
+};
+
+/** El tramo de una prenda en la barra: el del semáforo; el clásico aparte; lo demás (sin referencia, sin edad, dudosa) «aún no se sabe». */
+export function tramoBarraDe(p: FrescuraPrenda): TramoBarra {
+  if (p.estado.tipo === "semaforo") return p.estado.tramo;
+  if (p.estado.tipo === "clasico") return "clasico";
+  return "sin_saber";
+}
+
+/** Las filas del tablero: una por categoría con prendas en la tabla, ordenadas por lo que más pide decidir. */
+export function tableroVista(prendas: readonly FrescuraPrenda[], ctx: ContextoFrescura): FilaTablero[] {
+  const filas = new Map<string, FilaTablero>();
+  for (const p of prendas) {
+    // Sin nada colgado (apartada entera, guardada) no suma ni crea la fila: el tablero cuenta lo que cuelga.
+    if (p.pisoHoy <= 0) continue;
+    const fila =
+      filas.get(p.categoriaId) ??
+      ({
+        categoriaId: p.categoriaId,
+        nombre: p.categoriaNombre,
+        unidades: { nueva: 0, vigente: 0, envejecida: 0, critica: 0, sin_saber: 0, clasico: 0 },
+        total: 0,
+        prendas: 0,
+        porDecidir: 0,
+        viejas: 0,
+        vara: varaTablero(ctx.categorias.get(p.categoriaId)),
+      } satisfies FilaTablero);
+    filas.set(p.categoriaId, fila);
+    if (p.porDecidir) fila.porDecidir++;
+    const tramo = tramoBarraDe(p);
+    fila.unidades[tramo] += p.pisoHoy;
+    fila.total += p.pisoHoy;
+    fila.prendas++;
+    if (tramo === "envejecida" || tramo === "critica") fila.viejas += p.pisoHoy;
+  }
+  return [...filas.values()].sort((a, b) => b.viejas - a.viejas || b.porDecidir - a.porDecidir || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Los segmentos de la barra de una fila, listos para `BarraApilada` (solo los tramos con unidades, en orden). */
+export function segmentosDe(fila: FilaTablero): { clave: TramoBarra; nombre: string; valor: number; clase: string }[] {
+  return TRAMOS_BARRA.filter((t) => fila.unidades[t] > 0).map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_BARRA[t], valor: fila.unidades[t], clase: CLASE_TRAMO_BARRA[t] }));
+}
+
+// ---------------------------------------------------------------------------
+// El botón de la fila: dice el verbo y ejecuta (ADR-0208, act. 2026-10-07; Formidable, «invitar a la acción»)
+// ---------------------------------------------------------------------------
+//
+// La primera sugerencia de cada prenda se vuelve UN botón con su verbo. Tres clases: `anotar` (un toque deja la decisión
+// anotada, con «Deshacer»: lo que ya hacía la hoja en cuatro toques), `enlace` (abre la pantalla que hace la cosa, con la
+// prenda cargada) y `hoja` (hay que elegir entre varias opciones, o ver el porqué: la hoja). Sin sugerencia, o con una decisión
+// vigente, no hay botón: la fila ya dice qué se decidió.
+
+export type AccionFila =
+  | { tipo: "anotar"; verbo: string; accion: AccionDecision }
+  | { tipo: "enlace"; verbo: string; href: string }
+  | { tipo: "hoja"; verbo: string; modo: "detalle" | "decidir"; opcion: AccionDecision | null };
+
+/**
+ * `lecturaOk`: si se pudo leer la libreta de decisiones. Sin ella no se anota ni se abre «Ya decidí» (la base compara con la última
+ * línea, que no se sabe; la hoja esconde el botón por lo mismo): la fila ofrece solo el porqué.
+ */
+export function accionDeFila(p: FrescuraPrenda, ctx: ContextoFrescura, decisionVigente: boolean, lecturaOk = true): AccionFila | null {
+  if (p.pisoHoy <= 0 || decisionVigente) return null;
+  const s = p.estado.sugerencias[0];
+  if (s === undefined) return null;
+  const a = ctx.acceso;
+  const porque: AccionFila = { tipo: "hoja", verbo: "Ver por qué", modo: "detalle", opcion: null };
+  const decidir = (opcion: AccionDecision | null): AccionFila => (lecturaOk ? { tipo: "hoja", verbo: "Decidir", modo: "decidir", opcion } : porque);
+  switch (s) {
+    case "cambiar_lugar":
+      return lecturaOk ? { tipo: "anotar", verbo: "La cambié de lugar", accion: "cambie_lugar" } : porque;
+    case "dejar_hasta_agotar":
+      return lecturaOk ? { tipo: "anotar", verbo: "La dejo hasta agotar", accion: "hasta_agotar" } : porque;
+    case "trasladar": {
+      const href = a.traslados ? hrefArmarTraslado(p) : null;
+      return href ? { tipo: "enlace", verbo: "Armar traslado", href } : decidir(null);
+    }
+    case "retirar": {
+      const href = a.existencias ? hrefExistencias(p) : null;
+      return href ? { tipo: "enlace", verbo: "Retirar del piso", href } : decidir(null);
+    }
+    case "guardar_hasta_su_estacion": {
+      const href = a.existencias ? hrefExistencias(p) : null;
+      return href ? { tipo: "enlace", verbo: "Guardar en el almacén", href } : porque;
+    }
+    case "revisar_ventas":
+      return a.historial ? { tipo: "enlace", verbo: "Ver sus ventas", href: `/vender/historial?q=${encodeURIComponent(p.productoNombre)}` } : porque;
+    case "sigue_vendiendo":
+      return decidir("hasta_agotar");
+    case "rebaja_chica":
+      return decidir("rebaje");
+  }
 }
