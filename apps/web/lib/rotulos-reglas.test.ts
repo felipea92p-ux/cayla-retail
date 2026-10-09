@@ -6,13 +6,12 @@ import {
   armarRotulos,
   copiasDeTexto,
   INTERLINEA_NOMBRE,
-  MAX_COLORES,
   MAX_COPIAS,
   MAX_MODELOS_EN_URL,
   MAX_NOMBRE_MM,
   medidaNombre,
   origenDeParam,
-  textoColores,
+  textoVarios,
   urlRotulos,
   volverDeRotulos,
   type ModeloRotulo,
@@ -22,27 +21,29 @@ const ID_A = "00000000-0000-4000-8000-00000000000a";
 const ID_B = "00000000-0000-4000-8000-00000000000b";
 
 const modelo = (m: Partial<ModeloRotulo> & { productoId: string; referencia: string }): ModeloRotulo => ({
-  colores: [],
+  marca: null,
+  proveedor: null,
   tallas: [],
   ...m,
 });
 
-const valeria = modelo({ productoId: ID_A, referencia: "Chaleco Valeria", colores: ["Beige", "Marrón"], tallas: ["L", "S", "M"] });
-const mia = modelo({ productoId: ID_B, referencia: "Chaleco Mia", colores: ["Marrón", "Negro"], tallas: ["XL", "M"] });
+const valeria = modelo({ productoId: ID_A, referencia: "Chaleco Valeria", marca: "CAYLA", proveedor: "Textiles Andina", tallas: ["L", "S", "M"] });
+const mia = modelo({ productoId: ID_B, referencia: "Chaleco Mia", marca: "CAYLA", proveedor: "Confecciones Sol", tallas: ["XL", "M"] });
 
 describe("armarRotulos", () => {
   it("uno por modelo, en el orden elegido", () => {
     const r = armarRotulos([valeria, mia], false);
     expect(r.map((x) => x.modelos)).toEqual([["Chaleco Valeria"], ["Chaleco Mia"]]);
-    expect(r[0]).toMatchObject({ colores: ["Beige", "Marrón"], tallas: ["S", "M", "L"] });
+    expect(r[0]).toMatchObject({ marcas: ["CAYLA"], proveedores: ["Textiles Andina"], tallas: ["S", "M", "L"] });
   });
-  it("juntos: un rótulo, con colores y tallas sin repetir (el «CHALECO VALERIA MIA» a mano)", () => {
+  it("juntos: un rótulo, con marcas, proveedores y tallas sin repetir (el «CHALECO VALERIA MIA» a mano)", () => {
     const [r, ...resto] = armarRotulos([valeria, mia], true);
     expect(resto).toEqual([]);
     expect(r).toEqual({
       clave: `${ID_A}+${ID_B}`,
       modelos: ["Chaleco Valeria", "Chaleco Mia"],
-      colores: ["Beige", "Marrón", "Negro"],
+      marcas: ["CAYLA"],
+      proveedores: ["Textiles Andina", "Confecciones Sol"],
       tallas: ["S", "M", "L", "XL"],
     });
   });
@@ -50,9 +51,12 @@ describe("armarRotulos", () => {
     expect(armarRotulos([valeria], true)).toEqual(armarRotulos([valeria], false));
     expect(armarRotulos([], true)).toEqual([]);
   });
-  it("colores repetidos con otra mayúscula o espacios cuentan una vez", () => {
-    const otro = modelo({ productoId: ID_B, referencia: "Mia", colores: [" beige ", "Negro"] });
-    expect(armarRotulos([valeria, otro], true)[0].colores).toEqual(["Beige", "Marrón", "Negro"]);
+  it("una marca o un proveedor repetido con otra mayúscula o espacios cuenta una vez; sin marca, no se inventa", () => {
+    const otro = modelo({ productoId: ID_B, referencia: "Mia", marca: " cayla ", proveedor: null });
+    const [r] = armarRotulos([valeria, otro], true);
+    expect(r.marcas).toEqual(["CAYLA"]);
+    expect(r.proveedores).toEqual(["Textiles Andina"]);
+    expect(armarRotulos([modelo({ productoId: ID_A, referencia: "Mia" })], false)[0]).toMatchObject({ marcas: [], proveedores: [] });
   });
 });
 
@@ -114,11 +118,11 @@ describe("medidaNombre (el nombre lo más grande que entra en 62 × 40,1)", () =
   });
 });
 
-describe("textoColores", () => {
-  it(`hasta ${MAX_COLORES} se nombran; los demás, «y N más»`, () => {
-    expect(textoColores(["Beige", "Negro"])).toBe("Beige · Negro");
-    const muchos = Array.from({ length: MAX_COLORES + 3 }, (_, i) => `C${i}`);
-    expect(textoColores(muchos)).toMatch(/ y 3 más$/);
+describe("textoVarios", () => {
+  it("uno tal cual, varios con «/», ninguno: no sale la línea", () => {
+    expect(textoVarios(["CAYLA"])).toBe("CAYLA");
+    expect(textoVarios(["CAYLA", "Zara"])).toBe("CAYLA / Zara");
+    expect(textoVarios([])).toBeNull();
   });
 });
 
