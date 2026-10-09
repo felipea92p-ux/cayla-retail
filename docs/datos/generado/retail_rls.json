@@ -424,6 +424,11 @@
   "relkind": "r",
   "rls": true
  },
+ "frescura_vara_cayla": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gastos": {
   "forzado": false,
   "relkind": "r",
@@ -445,6 +450,11 @@
   "rls": true
  },
  "grupos_mix": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "guias_vistas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -520,6 +530,11 @@
   "rls": true
  },
  "movimientos_internos_intentos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "parametros_analisis": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -645,6 +660,11 @@
   "rls": true
  },
  "proveedores_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "respaldo_b001_f001_renumeradas_20261007": {
   "forzado": false,
   "relkind": "r",
   "rls": true
