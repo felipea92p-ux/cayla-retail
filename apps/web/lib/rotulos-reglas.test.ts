@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALTO_NOMBRE_MM,
+  ANCHO_NOMBRE_MM,
+  anchoEm,
   armarRotulos,
   copiasDeTexto,
+  INTERLINEA_NOMBRE,
   MAX_COLORES,
   MAX_COPIAS,
   MAX_MODELOS_EN_URL,
-  nombreSinCategoria,
+  MAX_NOMBRE_MM,
+  medidaNombre,
   origenDeParam,
-  tamanoNombre,
   textoColores,
   urlRotulos,
   volverDeRotulos,
@@ -18,37 +22,29 @@ const ID_A = "00000000-0000-4000-8000-00000000000a";
 const ID_B = "00000000-0000-4000-8000-00000000000b";
 
 const modelo = (m: Partial<ModeloRotulo> & { productoId: string; referencia: string }): ModeloRotulo => ({
-  codigo: null,
-  categoria: "Chalecos",
   colores: [],
   tallas: [],
   ...m,
 });
 
-const valeria = modelo({ productoId: ID_A, referencia: "Chaleco Valeria", codigo: "CHL-0001", colores: ["Beige", "Marrón"], tallas: ["L", "S", "M"] });
-const mia = modelo({ productoId: ID_B, referencia: "Chaleco Mia", codigo: "CHL-0002", colores: ["Marrón", "Negro"], tallas: ["XL", "M"] });
+const valeria = modelo({ productoId: ID_A, referencia: "Chaleco Valeria", colores: ["Beige", "Marrón"], tallas: ["L", "S", "M"] });
+const mia = modelo({ productoId: ID_B, referencia: "Chaleco Mia", colores: ["Marrón", "Negro"], tallas: ["XL", "M"] });
 
 describe("armarRotulos", () => {
   it("uno por modelo, en el orden elegido", () => {
     const r = armarRotulos([valeria, mia], false);
     expect(r.map((x) => x.modelos)).toEqual([["Chaleco Valeria"], ["Chaleco Mia"]]);
-    expect(r[0]).toMatchObject({ titulo: "Chalecos", colores: ["Beige", "Marrón"], tallas: ["S", "M", "L"], codigos: ["CHL-0001"] });
+    expect(r[0]).toMatchObject({ colores: ["Beige", "Marrón"], tallas: ["S", "M", "L"] });
   });
-  it("juntos: un rótulo, con colores y tallas sin repetir y la categoría compartida (el «CHALECO VALERIA MIA» a mano)", () => {
+  it("juntos: un rótulo, con colores y tallas sin repetir (el «CHALECO VALERIA MIA» a mano)", () => {
     const [r, ...resto] = armarRotulos([valeria, mia], true);
     expect(resto).toEqual([]);
-    expect(r).toMatchObject({
-      titulo: "Chalecos",
+    expect(r).toEqual({
+      clave: `${ID_A}+${ID_B}`,
       modelos: ["Chaleco Valeria", "Chaleco Mia"],
       colores: ["Beige", "Marrón", "Negro"],
       tallas: ["S", "M", "L", "XL"],
-      codigos: ["CHL-0001", "CHL-0002"],
     });
-    expect(r.clave).toBe(`${ID_A}+${ID_B}`);
-  });
-  it("categorías distintas: sin título (ninguno sería verdad para los dos)", () => {
-    const blusa = modelo({ productoId: ID_B, referencia: "Blusa Aurora", categoria: "Blusas" });
-    expect(armarRotulos([valeria, blusa], true)[0].titulo).toBeNull();
   });
   it("un solo modelo con «juntar» es igual que sin juntar; sin modelos, nada", () => {
     expect(armarRotulos([valeria], true)).toEqual(armarRotulos([valeria], false));
@@ -60,25 +56,61 @@ describe("armarRotulos", () => {
   });
 });
 
-describe("nombreSinCategoria", () => {
-  it("quita la categoría del principio, en singular o plural y sin tildes", () => {
-    expect(nombreSinCategoria("Chaleco Valeria", "Chalecos")).toBe("Valeria");
-    expect(nombreSinCategoria("Pantalón Mia", "Pantalones")).toBe("Mia");
-    expect(nombreSinCategoria("Blusas Aurora", "Blusas")).toBe("Aurora");
+// Lo que hace el navegador con el nombre a `mm`: cortar por palabras en una caja de ANCHO_NOMBRE_MM. Las líneas que salen.
+function lineasEnCaja(nombres: string[], mm: number): string[] {
+  const palabras = nombres.flatMap((n, i) => {
+    const p = n.split(/\s+/);
+    if (i < nombres.length - 1) p[p.length - 1] += " ·";
+    return p;
   });
-  it("no deja el nombre vacío ni toca otro nombre", () => {
-    expect(nombreSinCategoria("Chaleco", "Chalecos")).toBe("Chaleco");
-    expect(nombreSinCategoria("Valeria", "Chalecos")).toBe("Valeria");
-    expect(nombreSinCategoria("Chaleco Valeria", null)).toBe("Chaleco Valeria");
-  });
-});
+  const lineas: string[] = [];
+  for (const p of palabras) {
+    const ultima = lineas[lineas.length - 1];
+    if (ultima !== undefined && anchoEm(`${ultima} ${p}`) * mm <= ANCHO_NOMBRE_MM) lineas[lineas.length - 1] = `${ultima} ${p}`;
+    else lineas.push(p);
+  }
+  return lineas;
+}
 
-describe("tamanoNombre", () => {
-  it("baja de tamaño a medida que crece lo que se escribe", () => {
-    expect(tamanoNombre(["Valeria"])).toBe("xl");
-    expect(tamanoNombre(["Valeria", "Mia"])).toBe("l");
-    expect(tamanoNombre(["Valeria", "Mia", "Ximena"])).toBe("m");
-    expect(tamanoNombre(["Valeria", "Mia", "Ximena", "Aurora"])).toBe("s");
+const NOMBRES: string[][] = [
+  ["Mia"],
+  ["Body Bonita"],
+  ["Camisa crop con amarres"],
+  ["Vestido midi Sol"],
+  ["Pantalón wide leg tiro alto"],
+  ["Chaleco Valeria", "Chaleco Mia"],
+  ["Blazer Demo Franja", "Blusa Aurora"],
+  ["Valeria", "Mia", "Ximena", "Aurora"],
+  ["Casaca Wanda", "Maxi Walk Woman", "Mom jeans"],
+  ["Supercalifragilisticoespialidoso"],
+];
+
+describe("medidaNombre (el nombre lo más grande que entra en 62 × 40,1)", () => {
+  it.each(NOMBRES)("«%s…» nunca se sale: ni a lo ancho ni a lo alto", (...nombres) => {
+    const { mm, lineas } = medidaNombre(nombres);
+    const salen = lineasEnCaja(nombres, mm);
+    expect(salen.length).toBe(lineas);
+    for (const l of salen) expect(anchoEm(l) * mm).toBeLessThanOrEqual(ANCHO_NOMBRE_MM);
+    expect(lineas * mm * INTERLINEA_NOMBRE).toBeLessThanOrEqual(ALTO_NOMBRE_MM);
+  });
+  it("una palabra corta no pasa del tope", () => {
+    expect(medidaNombre(["Mia"])).toEqual({ mm: MAX_NOMBRE_MM, lineas: 1 });
+  });
+  it("«Camisa crop con amarres» (que se cortaba en la tienda) entra entera y se lee: 6 mm o más", () => {
+    const { mm, lineas } = medidaNombre(["Camisa crop con amarres"]);
+    expect(lineas).toBeGreaterThan(1);
+    expect(mm).toBeGreaterThanOrEqual(6);
+  });
+  it("un nombre más largo nunca sale más grande", () => {
+    expect(medidaNombre(["Body Bonita"]).mm).toBeGreaterThanOrEqual(medidaNombre(["Camisa crop con amarres"]).mm);
+    expect(medidaNombre(["Chaleco Valeria"]).mm).toBeGreaterThanOrEqual(medidaNombre(["Chaleco Valeria", "Chaleco Mia"]).mm);
+  });
+  it("cuatro modelos juntos siguen legibles (4 mm o más)", () => {
+    expect(medidaNombre(["Valeria", "Mia", "Ximena", "Aurora"]).mm).toBeGreaterThanOrEqual(4);
+  });
+  it("las tildes miden como su letra, y la Ñ como la N", () => {
+    expect(anchoEm("PANTALÓN")).toBeCloseTo(anchoEm("PANTALON"));
+    expect(anchoEm("Ñ")).toBeCloseTo(anchoEm("N"));
   });
 });
 

@@ -22,8 +22,7 @@ const sinSuscripcion = () => () => {};
  *
  * En Windows (y en una Mac sin ayudante) es `window.print()`: `globals.css` oculta todo menos la hoja. En una Mac con el
  * ayudante, la hoja se clona tal cual se ve y se le manda por HTTP local; el ayudante la pasa a PDF y la imprime con el
- * papel exacto. `medida` es el papel que se le pide (`?medida=`, lista cerrada en `servidor.sh`); sin ella, el de la
- * etiqueta. `versionMinima`: un ayudante más viejo no conoce otra medida y se avisa que hay que actualizarlo.
+ * papel de la etiqueta (62 × 40,1). Los rótulos van en ese mismo papel (ADR-0366, act. 2026-10-09).
  * `prepararCopia` ajusta la copia antes de mandarla (la etiqueta la fija en su forma A).
  */
 export function useImpresionBrother({
@@ -31,16 +30,12 @@ export function useImpresionBrother({
   total,
   pieza,
   detalleEspera,
-  medida,
-  versionMinima,
   prepararCopia,
 }: {
   idHoja: string;
   total: number;
   pieza: PiezaImpresa;
   detalleEspera: string;
-  medida?: string;
-  versionMinima?: number;
   prepararCopia?: (copia: HTMLElement) => void;
 }) {
   // El portal de la hoja necesita `document`: en el servidor (y al hidratar) no hay hoja; en el navegador, sí.
@@ -55,12 +50,12 @@ export function useImpresionBrother({
     let vigente = true;
     fetch(`${URL_AYUDANTE}/estado`, { cache: "no-store", signal: AbortSignal.timeout(2500) })
       .then((r) => r.json())
-      .then((j) => vigente && setAyudante(estadoDelAyudante(j, versionMinima)))
+      .then((j) => vigente && setAyudante(estadoDelAyudante(j)))
       .catch(() => vigente && setAyudante("sin-ayudante"));
     return () => {
       vigente = false;
     };
-  }, [esMac, versionMinima]);
+  }, [esMac]);
   const porAyudante = esMac && ayudante === "listo";
 
   const imprimirEnMac = async () => {
@@ -79,8 +74,7 @@ export function useImpresionBrother({
     let status: number | null = null;
     let cuerpo: unknown = null;
     try {
-      const destino = medida ? `${URL_AYUDANTE}/imprimir?medida=${encodeURIComponent(medida)}` : `${URL_AYUDANTE}/imprimir`;
-      const r = await fetch(destino, { method: "POST", headers: { "Content-Type": "text/html" }, body: documento });
+      const r = await fetch(`${URL_AYUDANTE}/imprimir`, { method: "POST", headers: { "Content-Type": "text/html" }, body: documento });
       status = r.status;
       cuerpo = await r.json().catch(() => null);
     } catch {
@@ -100,7 +94,7 @@ export function useImpresionBrother({
     /** Lo que muestra la pantalla si esta Mac no puede imprimir por el ayudante (`null` = puede, o no es una Mac). */
     avisoMac: esMac ? avisoDelAyudante(ayudante) : null,
     /** El aviso trae la línea de Terminal: falta instalarlo o hay que reinstalarlo para tener la versión nueva. */
-    instalar: ayudante === "sin-ayudante" || ayudante === "desactualizado",
+    instalar: ayudante === "sin-ayudante",
     imprimir: () => (porAyudante ? void imprimirEnMac() : window.print()),
   };
 }

@@ -44,7 +44,7 @@ export async function leerModelos(supabase: Awaited<ReturnType<typeof createClie
   const filas = exigir(
     await supabase
       .from("productos")
-      .select("id, referencia, codigo, categoria:categorias ( nombre ), variantes ( activo, talla:tallas ( valor ), color:colores ( nombre ) )")
+      .select("id, referencia, variantes ( activo, talla:tallas ( valor ), color:colores ( nombre ) )")
       .in("id", productoIds.filter((id) => id !== ID_PRODUCTO_CARGO_ESPECIAL)),
     "los modelos de los rótulos",
   );
@@ -56,8 +56,6 @@ export async function leerModelos(supabase: Awaited<ReturnType<typeof createClie
         {
           productoId: p.id,
           referencia: p.referencia,
-          codigo: p.codigo,
-          categoria: p.categoria?.nombre ?? null,
           colores: activas.flatMap((v) => (v.color?.nombre ? [v.color.nombre] : [])),
           tallas: activas.flatMap((v) => (v.talla?.valor ? [v.talla.valor] : [])),
         } satisfies ModeloRotulo,

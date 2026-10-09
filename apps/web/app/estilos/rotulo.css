@@ -1,61 +1,36 @@
 /* ==================================================================
    Rótulo de anaquel (ADR-0366): el letrero que se pega en el canto del anaquel o en el frente de una pila de bolsas, en
-   vez del papel escrito a plumón. Brother QL-1110NWB, el mismo rollo DK-22205 (62 mm continuo) que la etiqueta de precio,
-   cortado cada 100 mm. El rótulo se diseña ACOSTADO (100 × 62 mm, se lee a lo largo de la tira) y viaja a la Brother en
-   una hoja de 62 × 100 mm —el ancho del rollo por el largo del corte— girado adentro.
+   vez del papel escrito a plumón. Brother QL-1110NWB, rollo DK-22205: el MISMO papel que la etiqueta de precio (62 × 40,1 mm),
+   pero acostado —el rótulo mide 62 de ancho por 40,1 de alto y se lee a lo ancho del rollo— (Felipe, 2026-10-09, tras imprimir
+   los de 62 × 100: la Brother ya está configurada con el papel de la etiqueta y cambiarlo era un paso de más).
+   Solo nombre, colores y tallas: el nombre lleva su `font-size` en línea, calculado por `medidaNombre` (lib/rotulos-reglas.ts)
+   para el alto y el ancho que quedan aquí (57 × 19,5 mm). Si cambias un margen, cambia ANCHO_NOMBRE_MM / ALTO_NOMBRE_MM.
    TODO en milímetros (es papel) y solo negro sobre blanco: la térmica no imprime otro color, por eso aquí sí va #000/#fff
    literal, igual que la etiqueta de precio (globals.css). Trazo mínimo 0,2 mm: el texto chico va en 600 o 700.
    ================================================================== */
 @layer components {
   .rotulo-anaquel {
     box-sizing: border-box;
-    width: 100mm;
-    height: 62mm;
-    padding: 4mm 5mm 3.5mm;
+    width: 62mm;
+    height: 40.1mm;
+    padding: 2.5mm;
     display: flex;
     flex-direction: column;
+    gap: 1.2mm;
     overflow: hidden;
     background: #fff;
     color: #000;
     font-family: var(--font-sans);
-    line-height: 1.1;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .rotulo-anaquel > * {
-    flex-shrink: 0;
-  }
-  .rot-cab {
-    display: flex;
-    align-items: center;
-    gap: 2mm;
-    padding-bottom: 2mm;
-    border-bottom: 0.4mm solid #000;
-  }
-  .rot-cab svg {
-    flex: none;
-    width: 7mm;
-    height: auto;
-  }
-  .rot-titulo {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: 4.2mm;
-    font-weight: 700;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-  }
-  /* El nombre ocupa todo el aire del medio y se centra en él. Hasta dos líneas: si no entra, el tamaño baja
-     (`tamanoNombre` en lib/rotulos-reglas.ts decide por el largo de lo escrito). */
+  /* El nombre ocupa todo el aire que dejan colores y tallas, centrado en él. El navegador corta las líneas igual que el cálculo
+     (palabra entera que no cabe, baja); `overflow-wrap` es solo la red por si una palabra sola no entrara. */
   .rot-nombre {
     flex: 1 1 auto;
-    flex-shrink: 1;
+    min-height: 0;
     display: flex;
-    flex-wrap: wrap;
-    align-content: center;
-    column-gap: 0;
+    align-items: center;
     margin: 0;
     font-weight: 800;
     letter-spacing: -0.01em;
@@ -63,93 +38,54 @@
     overflow-wrap: anywhere;
   }
   .rot-nombre > span {
-    white-space: nowrap;
-    margin-right: 0.28em;
+    width: 100%;
   }
-  .rot-sep {
-    font-weight: 400;
-    white-space: pre;
-  }
-  .rot-xl {
-    font-size: 13mm;
-  }
-  .rot-l {
-    font-size: 10mm;
-  }
-  .rot-m {
-    font-size: 7.5mm;
-  }
-  .rot-s {
-    font-size: 5.6mm;
-    line-height: 1.2;
-  }
-  .rot-datos {
-    display: grid;
-    gap: 1.2mm;
-    margin: 0 0 2mm;
-  }
-  .rot-datos > div {
-    display: grid;
-    grid-template-columns: 15mm minmax(0, 1fr);
-    align-items: baseline;
-    gap: 2mm;
-  }
-  .rot-datos dt {
-    font-size: 2.4mm;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .rot-datos dd {
+  /* Colores: hasta 2 líneas (lo que el cálculo del nombre le reserva). */
+  .rot-colores {
+    flex: none;
     margin: 0;
-    font-size: 3.4mm;
+    font-size: 3.1mm;
     font-weight: 600;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
   .rot-tallas {
+    flex: none;
     display: flex;
     flex-wrap: wrap;
-    gap: 1.2mm;
+    gap: 1mm;
+    max-height: 5mm;
+    margin: 0;
+    overflow: hidden;
   }
   .rot-tallas span {
-    min-width: 6.5mm;
-    padding: 0.4mm 1.2mm;
+    min-width: 5mm;
+    padding: 0.3mm 1mm;
     border: 0.3mm solid #000;
     border-radius: 0.8mm;
     text-align: center;
+    font-size: 3mm;
     font-weight: 700;
-  }
-  .rot-pie {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 3mm;
-    padding-top: 1.6mm;
-    border-top: 0.25mm solid #000;
-    font-size: 2.4mm;
-    font-weight: 700;
-  }
-  .rot-cod {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-family: var(--font-mono, ui-monospace, monospace);
-  }
-  .rot-pie b {
-    font-weight: 600;
-    letter-spacing: 0.42em;
+    line-height: 1.2;
   }
 }
 
-/* Cómo viaja a la Brother: igual que #etiquetas-precio-print. En pantalla la hoja no se ve (la vista previa dibuja cada
-   rótulo derecho); al imprimir desaparece TODO lo demás con `display:none` (con `visibility` lo oculto seguiría ocupando
-   alto y la Brother sacaría rótulos en blanco). Cada rótulo va en su propia página de 62 × 100 mm, girado −90°. En Windows
-   sirve el papel «62 mm» de la Brother tal cual: corta cada 100 mm. En la Mac, el ayudante pide Custom.62x100mm. */
+/* Cómo viaja a la Brother: igual que #etiquetas-precio-print, y con la MISMA forma elegida en esa computadora
+   (`cayla.etiquetas.modo`). En pantalla la hoja no se ve; al imprimir desaparece TODO lo demás con `display:none`.
+   - `girada` (A, por defecto): hoja 62 × 40,1 —el rollo tal cual— y el rótulo, que ya está acostado, va DERECHO.
+   - `derecha` (B): hoja 40,1 × 62 y el rótulo girado 90°: el driver gira la hoja al calzarla en el rollo, como con la etiqueta. */
 #rotulos-print {
   display: none;
 }
 @page rotulo-anaquel {
-  size: 62mm 100mm;
+  size: 62mm 40.1mm;
+  margin: 0;
+}
+@page rotulo-anaquel-derecha {
+  size: 40.1mm 62mm;
   margin: 0;
 }
 @media print {
@@ -169,9 +105,8 @@
   #rotulos-print .rot-hoja {
     position: relative;
     width: 62mm;
-    height: 100mm;
+    height: 40.1mm;
     overflow: hidden;
-    /* Sin esto Chrome parte el rótulo girado entre páginas (su caja sin girar no cabe), como pasó con la etiqueta. */
     contain: size layout paint;
     page: rotulo-anaquel;
     break-after: page;
@@ -179,12 +114,19 @@
   #rotulos-print .rot-hoja:last-child {
     break-after: auto;
   }
-  /* Girado −90° desde su esquina superior izquierda y bajado 100 mm: ocupa justo los 62 × 100 de la hoja. */
   #rotulos-print .rot-hoja .rotulo-anaquel {
     position: absolute;
     top: 0;
     left: 0;
+  }
+  /* Forma B: hoja de pie y el rótulo girado +90° desde su esquina, corrido 40,1 mm: ocupa justo los 40,1 × 62 de la hoja. */
+  #rotulos-print[data-modo="derecha"] .rot-hoja {
+    width: 40.1mm;
+    height: 62mm;
+    page: rotulo-anaquel-derecha;
+  }
+  #rotulos-print[data-modo="derecha"] .rot-hoja .rotulo-anaquel {
     transform-origin: 0 0;
-    transform: translateY(100mm) rotate(-90deg);
+    transform: translateX(40.1mm) rotate(90deg);
   }
 }

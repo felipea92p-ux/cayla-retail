@@ -1,7 +1,11 @@
 /**
- * Rótulos de anaquel (ADR-0366): el letrero de 62 × 100 mm que sale de la Brother y se pega en el canto del anaquel o en el
- * frente de una pila de bolsas, para saber de lejos qué hay ahí («CHALECO · VALERIA · MIA»). Reemplaza al papel escrito a
- * plumón. Solo imprime: el sistema NO guarda en qué anaquel quedó cada modelo (Felipe 2026-10-09, «Solo imprimir»).
+ * Rótulos de anaquel (ADR-0366): el letrero que sale de la Brother y se pega en el canto del anaquel o en el frente de una pila
+ * de bolsas, para saber de lejos qué hay ahí («CHALECO VALERIA · MIA»). Reemplaza al papel escrito a plumón. Solo imprime: el
+ * sistema NO guarda en qué anaquel quedó cada modelo (Felipe 2026-10-09, «Solo imprimir»).
+ *
+ * Desde la prueba en la tienda (Felipe, 2026-10-09, foto): sale en el MISMO papel que la etiqueta de precio (62 × 40,1 mm,
+ * acostado), porque la Brother ya está configurada así y cambiar a 62 × 100 era un paso de más; y lleva solo el nombre, los
+ * colores y las tallas, con el nombre lo más grande que entra.
  *
  * Lógica pura: qué dice cada rótulo, de qué tamaño va el nombre para que quepa, y los enlaces de ida y vuelta.
  */
@@ -12,20 +16,16 @@ import { conDesde, desdeSeguro } from "./vuelta-productos";
 export type ModeloRotulo = {
   productoId: string;
   referencia: string;
-  codigo: string | null;
-  categoria: string | null;
   colores: string[];
   tallas: string[];
 };
 
-/** Un rótulo impreso. `titulo` es la categoría compartida («Chalecos»); `modelos`, los nombres grandes. */
+/** Un rótulo impreso: los nombres grandes, y los colores y tallas de todos juntos, sin repetir. */
 export type Rotulo = {
   clave: string;
-  titulo: string | null;
   modelos: string[];
   colores: string[];
   tallas: string[];
-  codigos: string[];
 };
 
 /** Hasta cuántos modelos entran juntos en un rótulo y se siguen leyendo de lejos. Más, y el nombre baja a letra de lista. */
@@ -46,15 +46,11 @@ export function armarRotulos(modelos: readonly ModeloRotulo[], juntar: boolean):
 }
 
 function unRotulo(modelos: readonly ModeloRotulo[]): Rotulo {
-  const categorias = new Set(modelos.map((m) => m.categoria));
   return {
     clave: modelos.map((m) => m.productoId).join("+"),
-    // Con categorías distintas (una blusa y un chaleco) no hay un título que sea verdad para los dos: va sin título.
-    titulo: categorias.size === 1 ? (modelos[0].categoria ?? null) : null,
     modelos: modelos.map((m) => m.referencia.trim()),
     colores: unicos(modelos.flatMap((m) => m.colores)),
     tallas: unicos(modelos.flatMap((m) => m.tallas)).sort(ordenTalla),
-    codigos: modelos.flatMap((m) => (m.codigo ? [m.codigo] : [])),
   };
 }
 
@@ -70,31 +66,89 @@ function unicos(valores: readonly string[]): string[] {
   return salida;
 }
 
-/** «Blusa Valeria» en un rótulo titulado «Blusas» repite la categoría: el nombre grande queda en «Valeria», que es lo que
- *  distingue a un modelo del de al lado. Solo se quita si el nombre empieza con la categoría (singular o plural) y queda algo. */
-export function nombreSinCategoria(referencia: string, categoria: string | null): string {
-  if (!categoria) return referencia;
-  const cat = sinTildes(categoria).toLowerCase();
-  const raices = [cat, cat.replace(/(es|s)$/, "")].filter((r) => r.length >= 3);
-  const palabras = referencia.trim().split(/\s+/);
-  const primera = sinTildes(palabras[0] ?? "").toLowerCase();
-  if (palabras.length > 1 && raices.includes(primera)) return palabras.slice(1).join(" ");
-  return referencia;
+// ── El nombre, lo más grande que entra ───────────────────────────────────────────────────────────────
+
+/** El papel (62 × 40,1 mm) menos el margen de 2,5 mm por lado: el ancho de una línea del nombre. */
+export const ANCHO_NOMBRE_MM = 57;
+/** El alto que le queda al nombre después de los colores (hasta 2 líneas) y las tallas. Medido en `app/estilos/rotulo.css`. */
+export const ALTO_NOMBRE_MM = 19.5;
+/** Ni una palabra corta («MIA») pasa de aquí: más grande ya no se lee mejor y se come el aire del rótulo. */
+export const MAX_NOMBRE_MM = 14;
+/** Interlineado del nombre (`line-height` en la hoja): las mayúsculas no tienen descendentes. */
+export const INTERLINEA_NOMBRE = 1.02;
+/** Hasta cuántas líneas puede ocupar el nombre. */
+const MAX_LINEAS = 3;
+/** Holgura para el redondeo del navegador y la impresora (4 %). */
+const HOLGURA = 0.96;
+
+/**
+ * Ancho de cada letra de DM Sans en 800 y mayúsculas, en «em» (medido en el navegador el 2026-10-09: la M mide 0,88 y la I 0,27).
+ * Con la tabla, el tamaño sale de lo que de verdad ocupa el nombre y no de un promedio: un promedio cortaba «CAMISA CROP CON AMARRES».
+ */
+const ANCHO_LETRA: Record<string, number> = {
+  A: 0.703, B: 0.632, C: 0.73, D: 0.699, E: 0.575, F: 0.548, G: 0.769, H: 0.708, I: 0.267, J: 0.535, K: 0.65, L: 0.552, M: 0.88,
+  N: 0.724, Ñ: 0.724, O: 0.774, P: 0.607, Q: 0.774, R: 0.624, S: 0.596, T: 0.591, U: 0.677, V: 0.7, W: 1.013, X: 0.667, Y: 0.631,
+  Z: 0.572, "0": 0.696, "1": 0.359, "2": 0.567, "3": 0.595, "4": 0.645, "5": 0.612, "6": 0.624, "7": 0.527, "8": 0.624, "9": 0.624,
+  " ": 0.25, "·": 0.247, "-": 0.569, ".": 0.25, ",": 0.25, "'": 0.25, "/": 0.4, "&": 0.75,
+};
+/** Una letra que no está en la tabla cuenta como la más ancha común (la O), para no quedarse corto. */
+const LETRA_DESCONOCIDA = 0.78;
+
+export function anchoEm(texto: string): number {
+  let total = 0;
+  for (const c of texto.toLocaleUpperCase("es")) {
+    // «Á» mide como «A»: se busca la letra sin su tilde (la Ñ tiene su propia fila).
+    const base = c === "Ñ" ? c : c.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    total += ANCHO_LETRA[base] ?? LETRA_DESCONOCIDA;
+  }
+  return total;
 }
 
-function sinTildes(texto: string): string {
-  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "");
+/** Cuántas líneas salen si se corta como el navegador (palabra entera que no cabe, baja), con líneas de `ancho` em. */
+function lineasConAncho(palabras: readonly string[], ancho: number): number {
+  let lineas = 1;
+  let actual = 0;
+  for (const p of palabras) {
+    const w = anchoEm(p);
+    const conEspacio = actual === 0 ? w : actual + ANCHO_LETRA[" "] + w;
+    if (conEspacio <= ancho + 1e-9) actual = conEspacio;
+    else {
+      lineas++;
+      actual = w;
+    }
+  }
+  return lineas;
 }
 
-/** El nombre grande, en el tamaño más grande que entra en una o dos líneas de 70 mm. Por el largo total de lo que se escribe:
- *  `xl` 13 mm (una palabra corta, se lee a 3 m) … `s` 5,5 mm (cuatro modelos juntos). Medido en `globals.css` (.rot-*). */
-export type TamanoNombre = "xl" | "l" | "m" | "s";
-export function tamanoNombre(nombres: readonly string[]): TamanoNombre {
-  const largo = nombres.join(" · ").length;
-  if (largo <= 9) return "xl";
-  if (largo <= 16) return "l";
-  if (largo <= 28) return "m";
-  return "s";
+/**
+ * El tamaño del nombre en mm y en cuántas líneas cabe: el MÁS GRANDE posible (Felipe, 2026-10-09). Prueba 1, 2 y 3 líneas; para
+ * cada una busca el corte más parejo (el ancho más chico de línea con el que el corte del navegador no pasa de esas líneas) y se
+ * queda con el tamaño mayor que respeta el ancho y el alto. Lo usa la hoja como `font-size`, así que lo que se ve es lo que sale.
+ */
+export function medidaNombre(nombres: readonly string[]): { mm: number; lineas: number } {
+  // Los nombres juntos van separados por «·», pegado al nombre anterior (si el siguiente baja, el punto no queda colgando).
+  const palabras = nombres.flatMap((n, i) => {
+    const p = n.trim().split(/\s+/).filter(Boolean);
+    if (i < nombres.length - 1 && p.length > 0) p[p.length - 1] += " ·";
+    return p;
+  });
+  if (palabras.length === 0) return { mm: MAX_NOMBRE_MM, lineas: 1 };
+  // Anchos candidatos: cada tramo seguido de palabras (con pocas palabras son pocos). El corte óptimo para L líneas usa uno de ellos.
+  const candidatos = new Set<number>();
+  for (let i = 0; i < palabras.length; i++) {
+    for (let j = i; j < palabras.length; j++) candidatos.add(anchoEm(palabras.slice(i, j + 1).join(" ")));
+  }
+  const anchos = [...candidatos].sort((a, b) => a - b);
+  let mejor = { mm: 0, lineas: 1 };
+  for (let lineas = 1; lineas <= MAX_LINEAS; lineas++) {
+    const ancho = anchos.find((w) => lineasConAncho(palabras, w) <= lineas);
+    if (ancho === undefined) continue;
+    const porAncho = (ANCHO_NOMBRE_MM * HOLGURA) / ancho;
+    const porAlto = (ALTO_NOMBRE_MM * HOLGURA) / (lineas * INTERLINEA_NOMBRE);
+    const mm = Math.floor(Math.min(porAncho, porAlto, MAX_NOMBRE_MM) * 10) / 10;
+    if (mm > mejor.mm) mejor = { mm, lineas: lineasConAncho(palabras, ANCHO_NOMBRE_MM / mm) };
+  }
+  return mejor;
 }
 
 /** «Beige · Marrón · Negro», con «y 3 más» si pasan de `MAX_COLORES`. */

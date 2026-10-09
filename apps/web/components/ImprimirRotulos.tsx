@@ -11,7 +11,6 @@ import { Vacio } from "@/components/ui/Vacio";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
 import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { AvisoAyudanteMac, useImpresionBrother } from "@/components/impresion/useImpresionBrother";
-import { MEDIDA_ROTULO, VERSION_CON_MEDIDA } from "@/lib/mac-etiquetas";
 import { armarRotulos, copiasDeTexto, MAX_COPIAS, MAX_JUNTOS, MAX_MODELOS_EN_URL, urlRotulos, type ModeloRotulo } from "@/lib/rotulos-reglas";
 import type { ModeloElegible } from "@/lib/rotulos";
 
@@ -50,10 +49,11 @@ export function ImprimirRotulos({
     total,
     pieza: "rotulo",
     detalleEspera: "Preparando los rótulos para la Brother…",
-    medida: MEDIDA_ROTULO,
-    versionMinima: VERSION_CON_MEDIDA,
+    // El mismo papel que la etiqueta (62 × 40,1): en la Mac va derecho, sin pedirle otra medida al ayudante.
+    prepararCopia: (copia) => copia.setAttribute("data-modo", "girada"),
   });
 
+  const modo = montado ? modoDeEtiquetas() : "girada";
   const ids = modelos.map((m) => m.productoId);
   const ir = (nuevos: string[]) => {
     const href = urlRotulos(nuevos, origen);
@@ -153,10 +153,10 @@ export function ImprimirRotulos({
       </section>
 
       <section aria-label="Vista previa" className="min-w-0 space-y-3 lg:sticky lg:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1">
-        <p className="text-sm text-taupe">Así salen (100 × 62 mm):</p>
+        <p className="text-sm text-taupe">Así salen, en el papel de la etiqueta (62 × 40,1 mm):</p>
         <div className="flex flex-wrap gap-6">
           {rotulos.map((r) => (
-            <figure key={r.clave} className="w-full max-w-[100mm] space-y-2">
+            <figure key={r.clave} className="w-full max-w-[62mm] space-y-2">
               <VistaQueCabe>
                 <RotuloAnaquel rotulo={r} />
               </VistaQueCabe>
@@ -180,14 +180,14 @@ export function ImprimirRotulos({
 
       {avisoMac && (
         <div className="lg:col-start-1">
-          <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome: elige el papel «62 mm» de la Brother." />
+          <AvisoAyudanteMac {...avisoMac} instalar={instalar} mientras="Mientras tanto, «Imprimir» usa el diálogo de Chrome con el mismo papel de las etiquetas." />
         </div>
       )}
 
       <div className="nota-cayla flex flex-wrap items-center justify-between gap-3 lg:col-start-1">
         <span>
-          <b>Sale en el mismo rollo de 62 mm que las etiquetas, cortado cada 100 mm.</b> En Windows, elige el papel «62 mm» de la
-          Brother; si sale corto, chico o girado, la guía lo muestra paso a paso.
+          <b>Sale en el mismo papel que las etiquetas de precio:</b> no hay que cambiar nada en la Brother. Si sale corto, chico o
+          girado, la guía lo muestra paso a paso.
         </span>
         <BotonGuiaImpresion className="btn-cayla btn-secundario shrink-0" />
       </div>
@@ -195,7 +195,8 @@ export function ImprimirRotulos({
 
       {montado &&
         createPortal(
-          <div id="rotulos-print" aria-hidden>
+          // La forma A o B la elige cada computadora en Etiquetas de precio y se recuerda: los rótulos van igual que sus etiquetas.
+          <div id="rotulos-print" data-modo={modo} aria-hidden>
             {hoja.map((r, i) => (
               <div key={i} className="rot-hoja">
                 <RotuloAnaquel rotulo={r} />
@@ -208,8 +209,8 @@ export function ImprimirRotulos({
   );
 }
 
-/** 100 mm en píxeles de CSS (96 por pulgada): el ancho del rótulo dibujado a tamaño real. */
-const ANCHO_ROTULO_PX = (100 * 96) / 25.4;
+/** 62 mm en píxeles de CSS (96 por pulgada): el ancho del rótulo dibujado a tamaño real. */
+const ANCHO_ROTULO_PX = (62 * 96) / 25.4;
 
 /**
  * La vista previa a tamaño real si cabe; si no (celular, columna angosta), se achica entera para caber, en vez de cortarse a la
@@ -232,4 +233,13 @@ function VistaQueCabe({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
+}
+
+/** La forma con que esta computadora manda las etiquetas a la Brother (`cayla.etiquetas.modo`, se elige en Etiquetas de precio). */
+function modoDeEtiquetas(): "girada" | "derecha" {
+  try {
+    return localStorage.getItem("cayla.etiquetas.modo") === "derecha" ? "derecha" : "girada";
+  } catch {
+    return "girada";
+  }
 }

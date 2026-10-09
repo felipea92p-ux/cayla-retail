@@ -51,6 +51,28 @@ existen «Piso de venta», «Almacén de tienda» y «Cuarentena» (`sububicacio
 3. **El aviso del ayudante de Mac en una línea** («Puedes imprimir igual…» + «Ver cómo»): `avisoDelAyudante` suma `resumen`, y
    `AvisoAyudanteMac` esconde el detalle técnico bajo un toque. **Cambia también en Etiquetas de precio**, que comparte el aviso.
 
+## Actualización 2026-10-09 (noche) — el papel de la etiqueta, y solo nombre, colores y tallas
+
+Felipe imprimió los primeros en la tienda (foto) y pidió tres cosas: **que no haya que cambiar el papel** (la Brother queda
+configurada con el de la etiqueta y pasar a 62 × 100 era un paso de más; uno salió encogido y cortado por eso), **que sea más chico**,
+y **que lleve solo el nombre, los colores y las tallas, lo más grande posible**, sin logo ni categoría. Además «CAMISA CROP CON
+AMARRES» se cortaba a la derecha: el nombre no podía partirse en líneas.
+
+1. **Papel: 62 × 40,1 mm, el de la etiqueta de precio, acostado.** El rótulo mide 62 de ancho por 40,1 de alto y va DERECHO en la
+   hoja de la forma A (62 × 40,1); en la forma B (40,1 × 62) va girado 90°. Usa la misma forma que esa computadora eligió en
+   Etiquetas de precio (`cayla.etiquetas.modo`). En la Mac va por el ayudante con su papel de siempre: no necesita la versión 2 ni
+   `?medida=` (el ayudante la sigue aceptando, sin uso). Se quitaron `VERSION_CON_MEDIDA`, `MEDIDA_ROTULO` y el estado «desactualizado».
+2. **Solo nombre, colores (hasta 2 líneas) y tallas.** Sin logo, categoría, códigos, «CAYLA» ni las palabras «Colores» / «Tallas».
+   Como ya no sale la categoría, el nombre va completo («BODY BONITA»): se quitó `nombreSinCategoria`.
+3. **El nombre, lo más grande que entra:** `medidaNombre` prueba 1, 2 y 3 líneas con el corte más parejo y se queda con el tamaño
+   mayor que cabe en 57 × 19,5 mm (tope 14 mm). Mide el texto con el ancho REAL de cada letra de DM Sans 800 (medido en el navegador),
+   no con un promedio. La hoja usa ese tamaño, y un solo texto con espacio duro antes del «·», para que el navegador corte igual.
+   Ejemplos: «Mia» 14 mm · «Body Bonita» 9,1 mm en 2 líneas · «Camisa crop con amarres» 7,6 mm en 2 · cuatro modelos juntos 6,3 mm.
+
+Verificado: pruebas de `medidaNombre` (nunca se sale a lo ancho ni a lo alto, más largo nunca más grande, tope); en el navegador, siete
+nombres reales y largos con el tamaño calculado: ninguno se desborda y las líneas coinciden; PDF de impresión en forma A (62,1 × 40,2 mm)
+y B (40,2 × 62,1 mm). **Falta:** imprimir en la Brother de la tienda y, en una computadora con la forma B, ver que sale derecho.
+
 ## Verificación
 
 - `lib/rotulos-reglas.test.ts` (13), `lib/mac-etiquetas.test.ts` (versión y medida), `scripts/mac-etiquetas/servidor.prueba.mjs`
