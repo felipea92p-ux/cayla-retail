@@ -15,6 +15,7 @@ import { BarraFija } from "@/components/ui/BarraFija";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
+import { usePistola } from "@/components/ui/usePistola";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 import { guionDeLaPistola } from "@/lib/escaner-guion";
 import { sonidoDeLectura } from "@/lib/conteo-conectado";
@@ -394,6 +395,18 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
     },
     [control]
   );
+
+  // La pistola, la misma pieza de Vender (`usePistola`): lo leído es un código exacto o nada (nunca la única sugerencia de lo
+  // escrito), no se pega a lo que había en el campo y se lee aunque la pistola no mande Enter. El campo queda vacío.
+  usePistola(escanerRef, {
+    alLeer: ({ codigo }) => {
+      setTexto("");
+      const exacta = resolverCodigoV2(codigo, catalogoRef.current);
+      if (exacta) return leerPrenda(exacta);
+      avisarLectura("desconocida");
+      setAviso({ tipo: "no_encontrado", codigo });
+    },
+  });
 
   function alEnterEscaner() {
     const t = texto.trim();

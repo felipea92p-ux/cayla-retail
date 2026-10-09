@@ -15,7 +15,7 @@ import { EscanerConteo, type LecturaConteo, type TextosEscaner } from "@/compone
 import { avisarLectura } from "@/lib/sonido-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
+import { usePistola } from "@/components/ui/usePistola";
 import {
   BOTON_COMPROBAR,
   BOTON_CONFIRMAR_DE_NUEVO,
@@ -338,17 +338,20 @@ export function BajarAlPisoForm({
     return () => window.removeEventListener("keydown", alTeclear, true);
   }, []);
 
-  // La pistola escribe donde esté el foco: si quedó en un botón, el código se perdería y el Enter activaría ese botón.
-  // Con una ventana abierta (la de la prenda en la mano, la cámara) la tecla es de la ventana: no se le roba el foco.
+  // La pistola, la misma pieza de Vender (`usePistola`): si el foco quedó en un botón, la primera tecla vuelve al escáner (el
+  // código no se pierde ni el Enter activa ese botón); lo leído es un código exacto, no se pega a lo que había escrito y se lee
+  // aunque la pistola no mande Enter. Con una ventana abierta (la de la prenda en la mano, la cámara) la tecla es de la ventana.
   const hayVentana = ventanaEnMano !== null || camara;
-  useEffect(() => {
-    if (bloqueada || congelada || hayVentana) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (teclaSueltaVaAlEscaner(e, document.activeElement)) escaner.current?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [bloqueada, congelada, hayVentana]);
+  usePistola(escaner, {
+    activa: !bloqueada && !congelada && !hayVentana,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      if (escaner.current) escaner.current.value = "";
+      if (busquedaPendiente.current !== null) window.clearTimeout(busquedaPendiente.current);
+      setSugerencias([]);
+      leerEscaneo(codigo);
+    },
+  });
 
   // Cerrar o recargar con prendas escaneadas y sin confirmar: el aviso nativo del navegador. Lo «por escanear» no cuenta:
   // si se va sin leer nada, no pierde nada (la lista se rearma desde Existencias).
