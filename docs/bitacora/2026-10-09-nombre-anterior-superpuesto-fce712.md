@@ -1,0 +1,4 @@
+## 2026-10-09 (El nombre anterior ya no tapa el rótulo en «Revisa y guarda los cambios»)
+Qué hice: en `components/ConfirmarCambios.tsx`, cada fila del resumen deja que el valor («viejo tachado → nuevo») baje a su propia línea y se parta cuando no cabe al lado del rótulo; el rótulo («Nombre», «Marca y proveedor») ya no se encoge. Los valores cortos (stock «0 → 1») siguen a la derecha como antes.
+Por qué así: el valor no podía partirse y el rótulo sí podía encogerse a cero, así que con un nombre largo el nombre viejo tachado se montaba sobre «Nombre», el nuevo se cortaba en el borde y «Marca y proveedor» se partía en tres líneas. Solo cambia cómo se ve; lo que se guarda es igual.
+Felipe se lleva: editar una prenda, ponerle un nombre largo y cambiarle la marca → «Revisar y guardar»: el rótulo y los valores se leen sin taparse. No se probó en el navegador (el worktree no tenía `.env`).
