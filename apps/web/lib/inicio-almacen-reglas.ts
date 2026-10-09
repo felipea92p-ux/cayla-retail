@@ -309,7 +309,7 @@ export function siglaSede(nombre: string): string {
 export type AccesoDeAlmacen = {
   href: string;
   etiqueta: string;
-  icono: "stock" | "traslados" | "truck" | "tag" | "conteo" | "scan";
+  icono: "stock" | "traslados" | "truck" | "tag" | "rotulo" | "conteo" | "scan";
   /** El botón oscuro de la fila (Escanear). */
   destacado?: boolean;
 };
@@ -320,12 +320,14 @@ const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/recibir", etiqueta: "Recibir", icono: "truck", modulo: "recibir" },
   // Etiquetas de precio no es de un módulo propio: se llega desde Existencias, así que la ve quien ve Existencias.
   { href: "/etiquetas-de-precio", etiqueta: "Etiquetas", icono: "tag", modulo: "existencias" },
+  // Rótulos de anaquel (ADR-0365): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.
+  { href: "/rotulos?origen=almacen", etiqueta: "Rótulos", icono: "rotulo", modulo: "existencias" },
   { href: "/inventario/conteo", etiqueta: "Conteo", icono: "conteo", modulo: "conteos" },
   // «Buscar» no pide módulo: es la puerta a escanear una prenda.
   { href: "/buscar", etiqueta: "Escanear", icono: "scan", modulo: null, destacado: true },
 ];
 
-/** Los accesos de la cuenta de almacén: hasta seis, SOLO de módulos que ve (ADR-0161), así que ninguno lleva a «Sin acceso». */
+/** Los accesos de la cuenta de almacén: hasta siete, SOLO de módulos que ve (ADR-0161), así que ninguno lleva a «Sin acceso». */
 export function accesosAlmacen(modulos: readonly ClaveModulo[]): AccesoDeAlmacen[] {
   return ACCESOS_ALMACEN.filter((a) => a.modulo === null || modulos.includes(a.modulo)).map((a) => ({ href: a.href, etiqueta: a.etiqueta, icono: a.icono, ...(a.destacado ? { destacado: true } : {}) }));
 }

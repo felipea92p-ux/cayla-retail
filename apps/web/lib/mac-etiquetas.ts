@@ -45,13 +45,21 @@ function escaparAtributo(texto: string): string {
 }
 
 /** Lo que la pantalla sabe del ayudante de esta Mac. */
-export type EstadoAyudante = "comprobando" | "listo" | "sin-ayudante" | "sin-impresora" | "sin-chrome";
+export type EstadoAyudante = "comprobando" | "listo" | "sin-ayudante" | "desactualizado" | "sin-impresora" | "sin-chrome";
 
-/** Lee la respuesta de `GET /estado` (o su falta: `null` si no contestó, que es lo normal cuando no está instalado). */
-export function estadoDelAyudante(respuesta: unknown): EstadoAyudante {
+/** La versión del ayudante que sabe imprimir con otra medida (`?medida=`): los rótulos de anaquel la necesitan (ADR-0365). */
+export const VERSION_CON_MEDIDA = 2;
+
+/** El papel del rótulo de anaquel: el rollo de 62 mm cortado cada 100 mm (`POST /imprimir?medida=`, lista en `servidor.sh`). */
+export const MEDIDA_ROTULO = "62x100mm";
+
+/** Lee la respuesta de `GET /estado` (o su falta: `null` si no contestó, que es lo normal cuando no está instalado).
+ *  `versionMinima`: la que necesita la pantalla; uno más viejo imprimiría en el papel de la etiqueta y no en el suyo. */
+export function estadoDelAyudante(respuesta: unknown, versionMinima = 1): EstadoAyudante {
   if (!respuesta || typeof respuesta !== "object") return "sin-ayudante";
-  const r = respuesta as { ok?: unknown; chrome?: unknown; impresora?: unknown };
+  const r = respuesta as { ok?: unknown; chrome?: unknown; impresora?: unknown; version?: unknown };
   if (r.ok !== true) return "sin-ayudante";
+  if ((typeof r.version === "number" ? r.version : 1) < versionMinima) return "desactualizado";
   if (r.chrome === false) return "sin-chrome";
   if (r.impresora === false) return "sin-impresora";
   return "listo";
@@ -69,6 +77,12 @@ export function avisoDelAyudante(estado: EstadoAyudante): { titulo: string; deta
         detalle:
           "Sin él, la Mac manda la etiqueta girada y la Brother la saca más larga de lo necesario. Se instala una vez: abre Terminal, pega la línea de abajo y presiona Enter. Si Chrome pregunta por acceso a la red local, elige Permitir.",
       };
+    case "desactualizado":
+      return {
+        titulo: "El ayudante de esta Mac es de una versión anterior",
+        detalle:
+          "Imprime las etiquetas de precio, pero no conoce el papel de los rótulos. Se actualiza igual que se instaló: abre Terminal, pega la línea de abajo y presiona Enter.",
+      };
     case "sin-impresora":
       return {
         titulo: "El ayudante no encuentra la Brother",
@@ -82,15 +96,24 @@ export function avisoDelAyudante(estado: EstadoAyudante): { titulo: string; deta
   }
 }
 
-/** El aviso al terminar de mandar las etiquetas. */
+/** Qué se manda a la Brother, para los avisos: «etiqueta(s)» o «rótulo(s)». */
+export type PiezaImpresa = "etiqueta" | "rotulo";
+const NOMBRES: Record<PiezaImpresa, { uno: string; varios: string; Varios: string; Uno: string }> = {
+  etiqueta: { uno: "etiqueta", varios: "etiquetas", Uno: "Etiqueta enviada", Varios: "etiquetas enviadas" },
+  rotulo: { uno: "rótulo", varios: "rótulos", Uno: "Rótulo enviado", Varios: "rótulos enviados" },
+};
+
+/** El aviso al terminar de mandar las etiquetas (o los rótulos). */
 export function resultadoDeImpresion(
   status: number | null,
   cuerpo: unknown,
   total: number,
+  pieza: PiezaImpresa = "etiqueta",
 ): { ok: true; texto: string } | { ok: false; texto: string; detalle: string } {
   const r = (cuerpo && typeof cuerpo === "object" ? cuerpo : {}) as { ok?: unknown; error?: unknown };
+  const n = NOMBRES[pieza];
   if (status === 200 && r.ok === true) {
-    return { ok: true, texto: total === 1 ? "Etiqueta enviada a la Brother" : `${total} etiquetas enviadas a la Brother` };
+    return { ok: true, texto: total === 1 ? `${n.Uno} a la Brother` : `${total} ${n.Varios} a la Brother` };
   }
   if (status === null) {
     return {
@@ -100,5 +123,5 @@ export function resultadoDeImpresion(
     };
   }
   const motivo = typeof r.error === "string" && r.error ? r.error : `respuesta ${status}`;
-  return { ok: false, texto: "Las etiquetas no se imprimieron", detalle: `El ayudante dijo: ${motivo}.` };
+  return { ok: false, texto: `${pieza === "rotulo" ? "Los rótulos" : "Las etiquetas"} no se imprimieron`, detalle: `El ayudante dijo: ${motivo}.` };
 }

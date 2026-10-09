@@ -130,6 +130,30 @@ try {
   assert.equal(r.status, 400);
   ok("documento con otro comienzo: 400");
 
+  // 6b. Rótulos de anaquel (ADR-0365): con `?medida=62x100mm` va a la Brother con ese papel; una medida que no está en la
+  // lista del ayudante no se imprime (nunca llega a `lp` un texto de la petición).
+  assert.equal(estado.version, 2);
+  const rotulo = `<!doctype html><html><head><meta charset="utf-8"><style>
+@page rotulo { size: 62mm 100mm; margin: 0 }
+@media print { .rot-hoja { width: 62mm; height: 100mm; overflow: hidden; page: rotulo; break-after: page }
+.rot-hoja:last-child { break-after: auto } body { margin: 0 } }
+</style></head><body><div class="rot-hoja"><b>Rótulo 1</b></div><div class="rot-hoja"><b>Rótulo 2</b></div></body></html>`;
+  r = await fetch(url("/imprimir?medida=62x100mm"), { method: "POST", headers: { Origin: ERP, "Content-Type": "text/html" }, body: rotulo });
+  assert.equal(r.status, 200, JSON.stringify(await r.clone().json()));
+  assert.match(readFileSync(join(tmp, "lp-args.txt"), "utf8"), /media=Custom\.62x100mm/);
+  const pdfRotulo = readFileSync(join(tmp, "recibido.pdf"), "latin1");
+  const cajaRotulo = pdfRotulo.match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+  const [anchoR, altoR] = [Number(cajaRotulo[1]) / 72 * 25.4, Number(cajaRotulo[2]) / 72 * 25.4];
+  assert.ok(Math.abs(anchoR - 62) < 0.3 && Math.abs(altoR - 100) < 0.3, `rótulo de ${anchoR.toFixed(2)} × ${altoR.toFixed(2)} mm`);
+  ok(`2 rótulos con ?medida=62x100mm → PDF de ${anchoR.toFixed(1)} × ${altoR.toFixed(1)} mm y -o media=Custom.62x100mm`);
+  for (const mala of ["62x999mm", "62x100mm%3Brm", "62x100mm;rm"]) {
+    r = await fetch(url(`/imprimir?medida=${mala}`), { method: "POST", headers: { Origin: ERP }, body: rotulo });
+    assert.equal(r.status, 400, mala);
+  }
+  r = await fetch(url("/imprimir?otra=1"), { method: "POST", headers: { Origin: ERP }, body: rotulo });
+  assert.equal(r.status, 400);
+  ok("una medida fuera de la lista, o una consulta desconocida: 400");
+
   // 7. Un cuerpo vacío o gigante no arranca Chrome.
   r = await fetch(url("/imprimir"), { method: "POST", headers: { Origin: ERP }, body: "" });
   assert.equal(r.status, 413);

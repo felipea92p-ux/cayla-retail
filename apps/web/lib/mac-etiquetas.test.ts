@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { avisoDelAyudante, COMANDO_INSTALAR, documentoParaAyudante, estadoDelAyudante, PREFIJO_DOCUMENTO, resultadoDeImpresion, URL_AYUDANTE } from "./mac-etiquetas";
+import { avisoDelAyudante, COMANDO_INSTALAR, documentoParaAyudante, estadoDelAyudante, MEDIDA_ROTULO, PREFIJO_DOCUMENTO, resultadoDeImpresion, URL_AYUDANTE, VERSION_CON_MEDIDA } from "./mac-etiquetas";
 
 const SERVIDOR = readFileSync(join(__dirname, "../public/mac-etiquetas/servidor.sh"), "utf8");
 const INSTALAR = readFileSync(join(__dirname, "../public/mac-etiquetas/instalar.sh"), "utf8");
@@ -57,7 +57,15 @@ describe("estadoDelAyudante", () => {
   it("solo «listo» y «comprobando» callan; el resto dice qué hacer", () => {
     expect(avisoDelAyudante("listo")).toBeNull();
     expect(avisoDelAyudante("comprobando")).toBeNull();
-    for (const e of ["sin-ayudante", "sin-impresora", "sin-chrome"] as const) expect(avisoDelAyudante(e)?.titulo).toBeTruthy();
+    for (const e of ["sin-ayudante", "desactualizado", "sin-impresora", "sin-chrome"] as const) expect(avisoDelAyudante(e)?.titulo).toBeTruthy();
+  });
+  it("un ayudante más viejo que lo que pide la pantalla está desactualizado (ADR-0365)", () => {
+    // Una respuesta sin versión cuenta como la 1.
+    expect(estadoDelAyudante({ ok: true, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");
+    expect(estadoDelAyudante({ ok: true, version: 1, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");
+    expect(estadoDelAyudante({ ok: true, version: 2, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("listo");
+    // Las etiquetas de precio no piden versión: la 1 sigue sirviendo.
+    expect(estadoDelAyudante({ ok: true, version: 1, chrome: true, impresora: true })).toBe("listo");
   });
 });
 
@@ -65,6 +73,11 @@ describe("resultadoDeImpresion", () => {
   it("éxito con la cantidad", () => {
     expect(resultadoDeImpresion(200, { ok: true, trabajo: "Brother_QL-13" }, 1)).toEqual({ ok: true, texto: "Etiqueta enviada a la Brother" });
     expect(resultadoDeImpresion(200, { ok: true }, 5)).toEqual({ ok: true, texto: "5 etiquetas enviadas a la Brother" });
+  });
+  it("los rótulos hablan de rótulos", () => {
+    expect(resultadoDeImpresion(200, { ok: true }, 1, "rotulo")).toEqual({ ok: true, texto: "Rótulo enviado a la Brother" });
+    expect(resultadoDeImpresion(200, { ok: true }, 3, "rotulo")).toEqual({ ok: true, texto: "3 rótulos enviados a la Brother" });
+    expect(resultadoDeImpresion(500, { ok: false, error: "x" }, 3, "rotulo")).toMatchObject({ texto: "Los rótulos no se imprimieron" });
   });
   it("sin conexión con el ayudante", () => {
     expect(resultadoDeImpresion(null, null, 3).ok).toBe(false);
@@ -84,5 +97,9 @@ describe("el ayudante y la web dicen lo mismo", () => {
   });
   it("la medida que manda a la Brother es la del corte (ADR-0180)", () => {
     expect(SERVIDOR).toContain("Custom.62x40.1mm");
+  });
+  it("el ayudante conoce el papel del rótulo y dice la versión que lo trae (ADR-0365)", () => {
+    expect(SERVIDOR).toMatch(new RegExp(`medida_permitida\\(\\)[\\s\\S]*?${MEDIDA_ROTULO.replace(".", "\\.")}`));
+    expect(SERVIDOR).toContain(`VERSION=${VERSION_CON_MEDIDA}`);
   });
 });
