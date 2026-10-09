@@ -2,16 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2, X, FunnelX } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
-import { esFuncionAusente } from "@/lib/compras-reglas";
-import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
-import { ComboResponsable } from "@/components/ComboResponsable";
+import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { describirRotacion } from "@/lib/reorden-reglas";
@@ -40,8 +34,6 @@ import {
   variantesQueSeVenden,
 } from "@/lib/productos-vista";
 import { margenPorcentaje } from "@/lib/alta-producto";
-import { useResponsable } from "@/lib/useResponsable";
-import { firmar } from "@/lib/responsable-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
@@ -306,7 +298,7 @@ export function ProductosTabla({
         />
       )}
       {cambiando && (
-        <CambiarEstadoHoja
+        <CambiarEstadoProductosHoja
           estado={cambiando}
           productos={seleccion}
           onClose={() => setCambiando(null)}
@@ -886,103 +878,5 @@ function BarraMarcadas({
         <X aria-hidden className="h-4 w-4" />
       </button>
     </div>
-  );
-}
-
-/**
- * Confirmar descontinuar o reactivar lo marcado, con el combo «Responsable» (ADR-0161: cambiar el estado de una prenda
- * es Catálogo, se firma). Se monta solo al abrirse: la lista no lee la asistencia mientras nadie va a guardar nada.
- */
-function CambiarEstadoHoja({
-  estado,
-  productos,
-  onClose,
-  onHecho,
-}: {
-  estado: "activo" | "descontinuado";
-  productos: ProductoListado[];
-  onClose: () => void;
-  onHecho: () => void;
-}) {
-  const router = useRouter();
-  const responsable = useResponsable();
-  const [guardando, setGuardando] = useState(false);
-  const reactivar = estado === "activo";
-  const cambian = productos.filter((p) => (reactivar ? p.estado !== "activo" : p.estado === "activo"));
-  const verbo = reactivar ? "Reactivar" : "Descontinuar";
-  const sustantivo = (n: number) => (n === 1 ? "prenda" : "prendas");
-
-  async function confirmar() {
-    if (!responsable.listo || cambian.length === 0) return;
-    const ids = cambian.map((p) => p.productoId);
-    setGuardando(true);
-    const supabase = createClient();
-    let { error } = await firmar(supabase.rpc("cambiar_estado_productos", { p_producto_ids: ids, p_estado: estado }), responsable.firma());
-    // Web publicada antes que la migración (20260928235000): el camino de antes, sin la revisión de marca al reactivar.
-    if (esFuncionAusente(error)) {
-      ({ error } = await firmar(supabase.from("productos").update({ estado }).in("id", ids), responsable.firma()));
-    }
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, reactivar ? "reactivar las prendas" : "descontinuar las prendas"));
-      return;
-    }
-    avisar.exito(`${ids.length} ${sustantivo(ids.length)} ${reactivar ? "reactivada" : "descontinuada"}${ids.length === 1 ? "" : "s"}`);
-    onHecho();
-    router.refresh();
-  }
-
-  return (
-    <Modal
-      variante="hoja"
-      ancho="max-w-lg"
-      bloqueado={guardando}
-      titulo={`¿${verbo} ${cambian.length} ${sustantivo(cambian.length)}?`}
-      subtitulo={
-        reactivar
-          ? "Vuelven a contar para «Para pedir» y a verse como activas. Antes se revisa que su marca y su proveedor sigan activos."
-          : "Dejan de contar para «Para pedir» y se ven marcadas en la Grilla y en la Tabla. Se pueden reactivar cuando quieras."
-      }
-      onClose={onClose}
-    >
-      {(cerrar) => (
-        <div className="space-y-4">
-          <ul className="max-h-60 divide-y divide-sand overflow-y-auto border-y border-sand">
-            {productos.map((p) => {
-              const queda = reactivar ? p.estado === "activo" : p.estado !== "activo";
-              return (
-                <li key={p.productoId} className="flex items-baseline justify-between gap-3 py-2.5 text-[13.5px]">
-                  <span className={`min-w-0 truncate ${queda ? "text-tinta/50" : "text-tinta"}`}>{p.referencia}</span>
-                  <span className="shrink-0 text-[12px] text-tinta/55">
-                    {queda ? `Ya está ${reactivar ? "activa" : "descontinuada"}: queda igual` : `${p.stockTotal.toLocaleString("es-PE")} en stock`}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
-          <p className="nota-cayla">
-            {reactivar
-              ? "Si una prenda tiene su marca o su proveedor dado de baja, no se reactiva ninguna y te decimos cuál corregir."
-              : "Para volver atrás, márcalas y usa «Reactivar». El historial de cada prenda guarda quién hizo el cambio."}
-          </p>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} disabled={guardando} className={botonCancelar}>
-              Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => void confirmar()}
-              disabled={guardando || !responsable.listo || cambian.length === 0}
-              title={responsable.motivo ?? undefined}
-              className={botonPrimario}
-            >
-              {guardando ? "Guardando…" : `${verbo} ${cambian.length}`}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
   );
 }

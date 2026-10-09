@@ -180,7 +180,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 58;
+export const MODALES_PENDIENTES_HOY = 57;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -191,6 +191,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // de dónde salió es opcional (la nota automática va siempre).
   "components/BajarEnManoModal.tsx": { estado: "aplicada", evidencia: ["components/BajarEnManoModal.tsx"] },
   "components/BuscadorGlobal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  "components/CambiarEstadoProductosHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prendas cambian y a qué estado, y la nota cómo volver atrás; no hay camino que indicar. Salió de ProductosTabla.tsx (que era pendiente por esta misma hoja) para que la use también la vista rápida." },
   "components/CategoriasLista.tsx": PENDIENTE, // 14 controles
   // «Falta» = lo mismo que apaga el botón «Cerrar»: la tienda (si se elige entre varias) y el motivo. La nota es opcional (ADR-0334).
   "components/CerrarColaArranqueModal.tsx": { estado: "aplicada", evidencia: ["components/CerrarColaArranqueModal.tsx"] },
@@ -254,7 +255,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/PerfilModal.tsx": PENDIENTE, // 12 controles
   "components/PrendaSinRegistrarModal.tsx": { estado: "aplicada", evidencia: ["components/PrendaSinRegistrarModal.tsx"] },
   "components/PrendasDeEtiquetaModal.tsx": { estado: "aplicada", evidencia: ["components/PrendasDeEtiquetaModal.tsx"] },
-  "components/ProductosTabla.tsx": PENDIENTE, // 2 controles
   "components/ProveedorModal.tsx": PENDIENTE, // 13 controles
   "components/ProveedorProduccionModal.tsx": PENDIENTE, // 13 controles
   "components/PuntoDeVenta.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica

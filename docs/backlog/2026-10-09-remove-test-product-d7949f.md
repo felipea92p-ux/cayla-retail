@@ -1,0 +1,8 @@
+## 🚫 Botón «Desactivar» en la vista rápida de Productos (2026-10-09) — solo web, sin migración; rama `claude/remove-test-product-d7949f`
+
+- [x] «Desactivar» / «Reactivar» en el pie de la vista rápida (`VistaRapidaProducto`), para quien edita el catálogo; hoja compartida `CambiarEstadoProductosHoja` (salió de `ProductosTabla`); textos en `lib/cambiar-estado-productos-reglas.ts` con prueba. Verificado en local: desactivar y reactivar con el historial firmado, el flujo «Eliminar» → «No se puede» → «Desactivar», 375 px y modo oscuro; la Tabla conserva «Descontinuar».
+- [x] `lib/guia-de-foco-pantallas.ts`: `ProductosTabla.tsx` ya no dibuja `<Modal>` (sale de MODALES, `MODALES_PENDIENTES_HOY` 58→57) y la hoja nueva se declara `no-aplica` (un solo control).
+- [ ] **Sin hacer en producción:** desactivar «Polo Vittoria» (POL-0010) lo hace Felipe con el botón cuando se publique; con 1 venta (boleta B004-6, aceptada por SUNAT en producción) no se puede eliminar ni purgar con el script del ADR-0224.
+- [ ] **Decidir (Felipe):** la barra de marcadas de la Tabla y la hoja dicen «Descontinuar»; la vista rápida dice «Desactivar» (su palabra). Si se prefiere una sola, es cambiar `vocabulario` en `CambiarEstadoProductosHoja` y el texto de `BarraMarcadas`.
+- [ ] Una prenda descontinuada con stock **sigue vendiéndose** en Vender y visible en Existencias (diseño de liquidación, ADR-0151/0254): «Desactivar» no apaga la venta. Si Felipe quiere que apague, es otra decisión (Vender, RPC y permisos).
+- [ ] «Eliminar» desde la Tabla y desde Existencias sigue ofreciendo «Editar» como salida (solo la Grilla ofrece «Desactivar» ahí mismo): pasarlas si Felipe lo pide.

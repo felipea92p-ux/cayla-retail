@@ -14,6 +14,8 @@ export const RUTAS_DE_CRON = [
   "/api/lucode/reintentar",
   // ADR-0288 act. g, G-15: la conservación del club (anonimiza las fichas sin compras en 3 años), una vez al día de madrugada.
   "/api/club/conservacion",
+  // ADR-0208 act. 2026-10-07: la vara de CAYLA de Frescura (una curva por categoría con las tres tiendas), cada madrugada (3:20 de Lima).
+  "/api/inventario/frescura-vara-cayla",
 ] as const;
 
 /** ¿La petición trae la clave del cron? Sin `CRON_SECRET` configurado no pasa nadie, tampoco «Bearer undefined» ni «Bearer ». */

@@ -5,7 +5,7 @@ import { Info } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import type { TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
+import type { AccionDecision, TrasladoReciente } from "@/lib/frescura-decisiones-reglas";
 import type { BloqueDeDecision } from "@/lib/frescura-decisiones-pantalla";
 import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type AccesoFrescura, type DetalleVista, type ReglaVista } from "@/lib/frescura-pantalla";
 import type { FrescuraPrenda, Tramo, VaraCategoria } from "@/lib/frescura-reglas";
@@ -125,6 +125,8 @@ export function FrescuraDetalle({
   volverA,
   onClose,
   decision,
+  modoInicial = "detalle",
+  opcionInicial = null,
 }: {
   detalle: DetalleVista;
   sede: string;
@@ -132,14 +134,19 @@ export function FrescuraDetalle({
   volverA?: RefObject<HTMLElement | null>;
   onClose: () => void;
   decision: ContextoDecision;
+  /** Con qué se abre: el detalle, o directo «Ya decidí» (el botón «Decidir» de la fila, act. 2026-10-07). */
+  modoInicial?: "detalle" | "decidir";
+  /** La opción ya marcada al abrir en «decidir» (el botón de la fila que no pudo anotar a un toque). */
+  opcionInicial?: AccionDecision | null;
 }) {
   // La MISMA hoja cambia de contenido (ADR-0136: no se abre un modal encima): el detalle, «Ya decidí» o «Quitar lo anotado».
   // El modo pedido vale SOLO para la última línea que se vio al pedirlo: si la lectura se refresca y esa línea cambió (otra
   // persona anotó, o se anotó aquí), se vuelve al detalle sin un efecto que lo corrija después de pintar.
-  const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: "detalle", para: decision.anteriorId });
-  const modo = pedido.para === decision.anteriorId ? pedido.modo : "detalle";
-  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
+  const [pedido, setPedido] = useState<{ modo: "detalle" | "decidir" | "quitar"; para: string | null }>({ modo: modoInicial, para: decision.anteriorId });
   const puedeDecidir = decision.lecturaOk && decision.prenda.pisoHoy > 0;
+  // «Ya decidí» solo si se puede (la libreta leída y algo en el piso), venga de su botón o pedido por la fila al abrir.
+  const modo = pedido.para !== decision.anteriorId || (pedido.modo === "decidir" && !puedeDecidir) ? "detalle" : pedido.modo;
+  const setModo = (m: "detalle" | "decidir" | "quitar") => setPedido({ modo: m, para: decision.anteriorId });
   const { bloque } = decision;
   const temporada =
     detalle.temporada?.tipo === "pasada" ? (
@@ -182,6 +189,7 @@ export function FrescuraDetalle({
           recientes={decision.recientes}
           acceso={decision.acceso}
           anteriorId={decision.anteriorId}
+          opcionInicial={opcionInicial}
           onVolver={() => setModo("detalle")}
           onListo={cerrar}
         />

@@ -8,8 +8,10 @@ import {
   type FilaConfianza,
   type FrescuraSede,
   type LlamarRpcFrescura,
+  type RespuestaRpc,
   type VaraCategoria,
 } from "@/lib/frescura-reglas";
+import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
 import type { ResumenDecisiones } from "@/lib/frescura-decisiones-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
@@ -45,7 +47,10 @@ function rpcFrescura(supabase: Supabase): LlamarRpcFrescura {
       ? supabase.rpc("fn_frescura_sede", args as { p_ubicacion_id: string; p_dias: number })
       : fn === "fn_frescura_decisiones"
         ? supabase.rpc("fn_frescura_decisiones", args as { p_ubicacion_id: string; p_dias: number })
-        : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
+        : fn === "fn_frescura_vara_cayla"
+          ? // La vara de CAYLA (20261008120000): los tipos generados todavía no la traen, se llama por nombre.
+            (supabase.rpc("fn_frescura_vara_cayla" as never) as unknown as PromiseLike<RespuestaRpc>)
+          : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
 }
 
 /**
@@ -70,6 +75,9 @@ export type DatosFrescura = {
   registro: Tolerado<FilaConfianza[]> | null;
   /** Solo el líder: la referencia de CAYLA (todas las tiendas juntas). */
   cayla: Tolerado<VaraCategoria[]> | null;
+  /** La vara de CAYLA de respaldo (ADR-0208, act. 2026-10-07): de cuándo es (null = ninguna vigente) o por qué no se leyó. Lo
+   *  que decidió con ella viaja en cada prenda (`juzgadaContra`) y en cada categoría (`respaldo`). */
+  respaldoCayla: { calculadaEn: string | null; fallo: string | null };
   /** Solo el líder: cada tienda con sus cifras, para «Las N tiendas». */
   tiendas: { id: string; nombre: string; lectura: Tolerado<CifrasDeTienda> }[] | null;
   /** clave → nombre de cada temporada y la estación en que empieza. Vacío si no se pudo leer (la pantalla dice «su
@@ -133,21 +141,26 @@ export async function getFrescuraPantalla(
 ): Promise<DatosFrescura> {
   const supabase = await createClient();
   const rpc = rpcFrescura(supabase);
-  const ubicaciones = await getUbicaciones();
+  // Las tres lecturas chicas a la vez —las sedes, la vara de CAYLA de respaldo y los nombres de las temporadas— y recién después
+  // las tiendas: `analizarSede` necesita la vara al juzgar cada prenda. Si la vara falla no frena nada: se juzga contra la tienda y
+  // la pantalla lo dice.
+  const [ubicaciones, { respaldo, calculadaEn, fallo: falloRespaldo }, temporadas] = await Promise.all([
+    getUbicaciones(),
+    leerRespaldoCayla(rpc, new Date().toISOString()),
+    nombresDeTemporadas(supabase),
+  ]);
   const activa = ubicaciones.find((u) => u.id === persona.ubicacionId);
   const sede = { id: persona.ubicacionId, nombre: activa?.nombre ?? persona.ubicacionEtiqueta, tienda: activa?.tipo === "tienda" };
   const sinPiso: Tolerado<{ separaPiso: false }> = { datos: { separaPiso: false }, fallo: null };
+  const respaldoCayla = { calculadaEn, fallo: falloRespaldo };
 
   if (persona.rol !== "lider") {
-    const [lectura, temporadas] = await Promise.all([
-      sede.tienda ? armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias).then((f) => f.lectura) : Promise.resolve(sinPiso),
-      nombresDeTemporadas(supabase),
-    ]);
-    return { sede, esLider: false, lectura, registro: null, cayla: null, tiendas: null, temporadas, ...(await miniaturasDeLaTabla(supabase, lectura)) };
+    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo)).lectura : sinPiso;
+    return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, tiendas: null, temporadas, ...(await miniaturasDeLaTabla(supabase, lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
-  const [lider, temporadas] = await Promise.all([armarFrescuraLider(tiendas, rpc, dias), nombresDeTemporadas(supabase)]);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo);
   const propia = lider.sedes.find((s) => s.ubicacionId === sede.id);
   const lecturaDeSede = propia ? propia.lectura : sinPiso;
   return {
@@ -156,6 +169,7 @@ export async function getFrescuraPantalla(
     lectura: lecturaDeSede,
     registro: lider.confianza,
     cayla: lider.referenciaCayla,
+    respaldoCayla,
     tiendas: lider.sedes.map((s) => ({
       id: s.ubicacionId,
       nombre: s.nombre,

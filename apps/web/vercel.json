@@ -3,6 +3,7 @@
   "regions": ["gru1"],
   "crons": [
     { "path": "/api/lucode/reintentar", "schedule": "*/5 * * * *" },
-    { "path": "/api/club/conservacion", "schedule": "0 8 * * *" }
+    { "path": "/api/club/conservacion", "schedule": "0 8 * * *" },
+    { "path": "/api/inventario/frescura-vara-cayla", "schedule": "20 8 * * *" }
   ]
 }
