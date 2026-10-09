@@ -38,7 +38,16 @@ export type FilaComprobante = {
   motivo_rechazo: string | null;
   respuesta_sunat: unknown;
 };
-export type FilasVenta = { id: string; created_at: string; items: FilaVentaItem[]; pagos: FilaVentaPago[]; comprobante: FilaComprobante | null };
+export type FilasVenta = {
+  id: string;
+  created_at: string;
+  items: FilaVentaItem[];
+  pagos: FilaVentaPago[];
+  comprobante: FilaComprobante | null;
+  anulada?: boolean;
+  /** La caja donde se cobró sigue abierta; `null` si la venta no pasó por una caja o no se pudo leer. Decide si se corrige el pago (ADR-0365). */
+  cajaAbierta?: boolean | null;
+};
 
 export type LineaDetalle = {
   cantidad: number;
@@ -64,6 +73,9 @@ export type VentaDetalle = {
   comprobante: { tipo: string; serie: string; numero: number; estado: EstadoComprobante; hash: string | null; motivoRechazo: string | null } | null;
   /** Solo si el comprobante es boleta o factura: lo que alimenta el ticket y el A4. */
   recibo: ReciboVenta | null;
+  anulada: boolean;
+  /** La caja de la venta sigue abierta (`null` si no se sabe): con ella abierta se puede corregir el pago (ADR-0365). */
+  cajaAbierta: boolean | null;
 };
 
 function hashDe(respuesta: unknown): string | null {
@@ -139,6 +151,8 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
     vueltoTotal: redondear2(pagos.reduce((a, p) => a + p.vuelto, 0)),
     comprobante: c ? { tipo: c.tipo, serie: c.serie, numero: c.numero, estado: c.estado, hash: hashDe(c.respuesta_sunat), motivoRechazo: c.motivo_rechazo } : null,
     recibo,
+    anulada: filas.anulada ?? false,
+    cajaAbierta: filas.cajaAbierta ?? null,
   };
 }
 
