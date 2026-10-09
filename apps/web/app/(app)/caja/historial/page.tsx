@@ -24,7 +24,7 @@ type Params = { sede?: string; estado?: string; pagina?: string; prueba?: string
 // Sin RPC ni filtro de ubicación propios: la misma RLS de /caja (fn_puede_operar_ubicacion) decide qué cajas se ven,
 // con la sede en cada fila. Los cierres archivados como prueba (D-54, ADR-0159) no se muestran salvo con `?prueba=1`.
 export default async function HistorialCierresPage({ searchParams }: { searchParams: Promise<Params> }) {
-  const persona = await requirePersonaActualV2();
+  await requirePersonaActualV2();
   const params = await searchParams;
   const incluirPrueba = params.prueba === "1";
   const soloConDiferencia = params.estado === "diferencia";
@@ -33,8 +33,8 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
   const [resumenTodas, ubicaciones, aperturas] = await Promise.all([
     getResumenCierres({ incluirPrueba }),
     getUbicaciones(),
-    // ADR-0186: el aviso al líder. Solo el líder las marca como revisadas (`revisar_apertura_caja`).
-    persona.rol === "lider" ? getAperturasPorRevisar() : Promise.resolve(null),
+    // Quien gestiona la caja revisa las aperturas (Felipe 2026-10-09); la base solo le muestra las de su sede (RLS de `cajas`).
+    getAperturasPorRevisar(),
   ]);
   const resumenTodo = resumirPeriodo(resumenTodas);
   const sedes = ubicaciones.filter((u) => resumenTodo.porSede.has(u.id));
