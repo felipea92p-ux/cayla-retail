@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
+import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -29,6 +29,7 @@ import { limitesRedondeados } from "@/lib/productos-filtro-precio";
 import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
 import { compararTallas } from "@/lib/tallas";
 import { BotonEnlace } from "@/components/ui/campos";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -184,6 +185,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                 { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} /> },
               ]}
             />
+            {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
+                y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma">
+              <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+              Rótulos
+            </BotonEnlace>
             {editaCatalogo && (
               <BotonEnlace href="/productos/nuevo" peso="primario">
                 + Nuevo producto
