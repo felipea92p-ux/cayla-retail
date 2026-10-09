@@ -114,7 +114,7 @@ export function fechaNumerica(iso: string) {
  * Mientras el envío de anticipos a SUNAT no esté activo (ADR-0166) no lleva QR: dice que la boleta electrónica queda
  * registrada y se envía después.
  */
-export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0 }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0311); el comprobante sigue por el saldo exacto. */ redondeo?: number }) {
+export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, copia = false }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0311); el comprobante sigue por el saldo exacto. */ redondeo?: number; /** Reimpresión desde el historial (ADR-0367): dice «COPIA» y, en la final, el saldo en una línea (no se sabe con qué medios se pagó). */ copia?: boolean }) {
   const a = apartado;
   const cuerpo = (
     <div id="comprobante-print">
@@ -128,9 +128,10 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0 }
       <p className="rt-centro rt-titulo">{tipo === "anticipo" ? "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO" : "BOLETA DE VENTA ELECTRÓNICA"}</p>
       <p className="rt-centro rt-numero">{tipo === "anticipo" ? a.comprobanteAnticipo : (a.comprobanteFinal ?? "")}</p>
       <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>
+      {copia && <p className="rt-centro rt-negrita">COPIA · REIMPRESA EL {fechaNumerica(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }))}</p>}
       <div className="rt-datos">
         <p>Cliente: {a.nombres} {a.apellidos}{a.dni ? ` · DNI ${a.dni}` : ""}</p>
-        <p>Cel.: {a.celular}{a.asesora ? ` · Atendió: ${a.asesora}` : ""}</p>
+        {(a.celular || a.asesora) && <p>{[a.celular && `Cel.: ${a.celular}`, a.asesora && `Atendió: ${a.asesora}`].filter(Boolean).join(" · ")}</p>}
       </div>
       {a.prendas.map((p) => (
         <p key={p.varianteId} className="rt-fila">
@@ -155,9 +156,13 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0 }
       ) : (
         <>
           <p className="rt-fila"><span>(−) Anticipo {a.comprobanteAnticipo}</span><span>−{money(a.adelanto)}</span></p>
-          {(pagadoHoy ?? []).map((p, i) => (
-            <p key={i} className="rt-fila"><span>Pagado hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
-          ))}
+          {pagadoHoy ? (
+            pagadoHoy.map((p, i) => (
+              <p key={i} className="rt-fila"><span>Pagado hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
+            ))
+          ) : (
+            <p className="rt-fila"><span>Saldo pagado al recoger</span><span>{money(a.total - a.adelanto)}</span></p>
+          )}
           {redondeo > 0 && (
             <>
               <p className="rt-fila"><span>{TEXTO_REDONDEO}</span><span>{money(redondeo)}</span></p>
