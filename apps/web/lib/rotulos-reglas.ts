@@ -4,34 +4,34 @@
  * sistema NO guarda en qué anaquel quedó cada modelo (Felipe 2026-10-09, «Solo imprimir»).
  *
  * Desde la prueba en la tienda (Felipe, 2026-10-09, foto): sale en el MISMO papel que la etiqueta de precio (62 × 40,1 mm,
- * acostado), porque la Brother ya está configurada así y cambiar a 62 × 100 era un paso de más; y lleva solo el nombre, los
- * colores y las tallas, con el nombre lo más grande que entra.
+ * acostado), porque la Brother ya está configurada así y cambiar a 62 × 100 era un paso de más; y lleva el nombre lo más grande
+ * que entra, la marca y el proveedor (para identificarlo mejor que con los colores, Felipe 2026-10-09) y las tallas.
  *
  * Lógica pura: qué dice cada rótulo, de qué tamaño va el nombre para que quepa, y los enlaces de ida y vuelta.
  */
 import { ordenTalla } from "./catalogo-grupos";
 import { conDesde, desdeSeguro } from "./vuelta-productos";
 
-/** Un modelo, con lo que el rótulo dice de él: sus colores y tallas ACTIVOS (lo que se puede encontrar en el anaquel). */
+/** Un modelo, con lo que el rótulo dice de él: su marca, su proveedor habitual y sus tallas ACTIVAS. */
 export type ModeloRotulo = {
   productoId: string;
   referencia: string;
-  colores: string[];
+  marca: string | null;
+  proveedor: string | null;
   tallas: string[];
 };
 
-/** Un rótulo impreso: los nombres grandes, y los colores y tallas de todos juntos, sin repetir. */
+/** Un rótulo impreso: los nombres grandes, y las marcas, proveedores y tallas de todos juntos, sin repetir. */
 export type Rotulo = {
   clave: string;
   modelos: string[];
-  colores: string[];
+  marcas: string[];
+  proveedores: string[];
   tallas: string[];
 };
 
 /** Hasta cuántos modelos entran juntos en un rótulo y se siguen leyendo de lejos. Más, y el nombre baja a letra de lista. */
 export const MAX_JUNTOS = 4;
-/** Hasta cuántos colores se nombran; el resto dice «y N más» (el rótulo es para encontrar el modelo, no un inventario). */
-export const MAX_COLORES = 6;
 /** Copias de un mismo rótulo: dos cantos del anaquel, o una pila por talla. */
 export const MAX_COPIAS = 20;
 /** Cuántos modelos caben en la URL (36 caracteres por id). */
@@ -49,7 +49,8 @@ function unRotulo(modelos: readonly ModeloRotulo[]): Rotulo {
   return {
     clave: modelos.map((m) => m.productoId).join("+"),
     modelos: modelos.map((m) => m.referencia.trim()),
-    colores: unicos(modelos.flatMap((m) => m.colores)),
+    marcas: unicos(modelos.flatMap((m) => (m.marca ? [m.marca] : []))),
+    proveedores: unicos(modelos.flatMap((m) => (m.proveedor ? [m.proveedor] : []))),
     tallas: unicos(modelos.flatMap((m) => m.tallas)).sort(ordenTalla),
   };
 }
@@ -70,7 +71,7 @@ function unicos(valores: readonly string[]): string[] {
 
 /** El papel (62 × 40,1 mm) menos el margen de 2,5 mm por lado: el ancho de una línea del nombre. */
 export const ANCHO_NOMBRE_MM = 57;
-/** El alto que le queda al nombre después de los colores (hasta 2 líneas) y las tallas. Medido en `app/estilos/rotulo.css`. */
+/** El alto que le queda al nombre después de la marca y el proveedor (una línea cada uno) y las tallas. Medido en `app/estilos/rotulo.css`. */
 export const ALTO_NOMBRE_MM = 19.5;
 /** Ni una palabra corta («MIA») pasa de aquí: más grande ya no se lee mejor y se come el aire del rótulo. */
 export const MAX_NOMBRE_MM = 14;
@@ -151,10 +152,9 @@ export function medidaNombre(nombres: readonly string[]): { mm: number; lineas: 
   return mejor;
 }
 
-/** «Beige · Marrón · Negro», con «y 3 más» si pasan de `MAX_COLORES`. */
-export function textoColores(colores: readonly string[]): string {
-  if (colores.length <= MAX_COLORES) return colores.join(" · ");
-  return `${colores.slice(0, MAX_COLORES).join(" · ")} y ${colores.length - MAX_COLORES} más`;
+/** «CAYLA» o, con varios modelos juntos de marcas distintas, «CAYLA / Zara». `null` si ninguno tiene: la línea no sale. */
+export function textoVarios(valores: readonly string[]): string | null {
+  return valores.length > 0 ? valores.join(" / ") : null;
 }
 
 /** Cuántas copias, de lo que se escribe en la caja: entero de 0 a `MAX_COPIAS` (0 = ese rótulo no sale). */
