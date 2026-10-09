@@ -6,4 +6,4 @@ Felipe se lleva: probar en local con Baño S/ 0.80 (2 toques + monto). Quedaron 
 ## 2026-10-09 (Refrigerio del equipo en el gasto rápido)
 Qué hice: botón «Refrigerio» (ícono de taza) que va a la categoría nueva «Atención al personal», cuenta 62 (migración `20261009235900`, una fila en `categorias_gasto`, aplicada en local).
 Por qué así: Felipe decidió que es solo del equipo en el turno; en Suministros o Servicios básicos inflaba otra línea del estado de resultados. La 62 ya estaba en el plan y nadie la usaba.
-Felipe se lleva: pegar esa migración en producción antes de fusionar el PR #913.
+Felipe se lleva: la migración ya está en producción (la apliqué por el MCP a su pedido, verificada); el PR #913 se puede fusionar.
