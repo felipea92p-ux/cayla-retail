@@ -14,7 +14,7 @@ import { tramoVencimientoDe } from "@/lib/por-pagar-reglas";
 // Spike 2026-09-19 (mismo modelo que ADR-0128): la barra RESPONDE. Apuntar a un tramo enciende en la lista las filas que suman esa cifra
 // y un clic deja solo esas filas (con un chip para quitarlo). Antes «Vencida S/ 6,670» no decía cuáles eran. Las barras se llenan una vez
 // al llegar y, cuando una cifra cambia (se pagó algo), se reacomodan y las cifras cuentan hasta su valor nuevo.
-// La barra es `<BarraApilada>`, la pieza del sistema (ADR-0358, 2026-10-09; las demás barras se migran módulo por módulo), con el
+// La barra es `<BarraApilada>`, la pieza del sistema (ADR-0358, 2026-10-09), con el
 // movimiento que nació aquí. Esta pantalla solo decide qué cuenta cada tramo y qué pasa al apuntarlo o tocarlo.
 //
 // Los días promedio de pago y el % pagado a tiempo no se inventan: necesitan comprobantes ya pagados por completo. Mientras no los

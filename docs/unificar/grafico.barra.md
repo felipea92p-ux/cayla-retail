@@ -5,15 +5,15 @@
 `<MuestraTramo>` (el cuadrito de una leyenda), CSS en `app/estilos/barra-apilada.css`. Es la **barra que reparte un total en partes**
 (la familia `grafico.barra`); la línea, las barras mensuales y la dona siguen en «Por analizar» (`grafico`).
 
-Nació de la deuda que dejó Frescura (la actualización 2026-10-07 de ADR-0208, que vive en su rama): `claude/frescura-vara-cayla-dos-niveles`
-creó `ui/BarraApilada` con la forma de la barra que «Deuda por vencimiento» (Compras) dibujaba a mano, y su bitácora lo dejó como pendiente
-de `/unificar`.
+Nació de la deuda que dejó Frescura (la actualización 2026-10-07 de ADR-0208): su rama `claude/frescura-vara-cayla-dos-niveles` (fusionada a
+`main` por el PR #889 mientras esta ronda estaba en curso) creó `ui/BarraApilada` con la forma de la barra que «Deuda por vencimiento»
+(Compras) dibujaba a mano, y su bitácora lo dejó como pendiente de `/unificar`.
 
 ## Qué se comparó
 
 El censo (Admin y Admin-Taller, 180 vistas, más uno aparte contra el worktree de Frescura) y el código contaron **quince archivos** que
-dibujan esta barra a mano, con casi diez caras. El censo no ve las barras que el seed no muestra (Facturación, Historial, Notas de crédito,
-Producción, Caja, cierre de caja y Eficiencia del Taller quedan sin filas): esas se contaron leyendo el código.
+dibujan esta barra a mano, con casi diez caras. El censo solo ve lo que el seed muestra (Por pagar, Proveedores, Facturación e Historial);
+las demás (Notas de crédito, Proformas, Producción, Caja, el cierre de caja y Eficiencia del Taller) se contaron leyendo el código.
 
 | Forma | Dónde | Cómo se veía | Se mueve / responde |
 |---|---|---|---|
@@ -21,7 +21,7 @@ Producción, Caja, cierre de caja y Eficiencia del Taller quedan sin filas): esa
 | Compras, las chicas | la mezcla de lo marcado (Por pagar) y el reparto de un pago (hoja Pagar), 5 px | tramos sueltos | solo se reacomodan al cambiar la cifra |
 | Píldora con pista, quieta | Facturación (8 px, 2 px de aire; crecen todos a la vez), Historial «Cómo se pagó» (6 px; crece la barra entera), cobrado en el turno de Caja (10 px), cierre de caja (10 px), Por pagar de Producción (10 px), Eficiencia del Taller (12 px), la nota de crédito (8 px) | pista de arena o de hueso, tramos pegados y recortados | los de Caja y la nota de crédito se reacomodan; ninguna responde |
 | Píldora con pista de tinta, Producción | costo de una orden: la tarjeta (4 px) y la ficha (12 px) | pista de tinta al 10 % | entran creciendo tramo a tramo; no responden |
-| Frescura (rama en curso) | Inventario ▸ Frescura, «Cómo está el piso» (12 px) | píldora con pista, tramos pegados | ninguno; solo se lee |
+| Frescura (en `main` desde el PR #889) | Inventario ▸ Frescura, «Cómo está el piso» (12 px) | píldora con pista, tramos pegados | ninguno; solo se lee |
 
 ![la propuesta, en claro y oscuro](capturas/grafico.barra.jpg)
 
@@ -47,7 +47,8 @@ tres cosas que ninguna tenía:
 - **Lo que traían las que reemplaza:** Compras (todo lo de arriba, salvo que en «Deuda por vencimiento» los demás tramos no bajaban al
   apuntar: ya lo hacían «Concentración» y las Notas de crédito, y a «Deuda por vencimiento» se le **suma**); Facturación e Historial, el
   crecer de golpe (se reemplaza por el crecer tramo a tramo); Producción ya crecía tramo a tramo; Frescura, nada (gana el movimiento).
-  Ninguna pierde nada.
+  **Una sola cosa cambia de medida:** «Deuda por proveedor», «Concentración» y las Notas de crédito (las de 8 px) se estiraban al apuntarlas
+  a 1,7× y ahora a 1,35×, como todas (la de «Deuda por vencimiento» ya era 1,35×). Pregunta para Felipe: ¿1,35× para todas, o 1,7× en las de 8 px?
 
 ## Decisiones que tomó Claude donde la demo no alcanzaba (Felipe puede deshacerlas)
 
@@ -80,29 +81,40 @@ Lo siguiente existe por una decisión, o no es esta función, y **no se corrigi�
   compra y lo aplicado de una nota de crédito, `ComprobanteAvance.BarraAvance`; la meta de Rendimiento, `ui/BarraAvance`): miden un avance,
   no reparten un total. Son otra función y van en otra ronda.
 - **Barras de largo a escala** (el «saldo a escala» de una fila de Proveedores y el piso y almacén de `ResumenStockOverlay`): el largo
-  compara con el mayor de la lista y, dentro, se parten en dos. El censo puede contar la de Proveedores cuando hay una parte vencida.
+  compara con el mayor de la lista y, dentro, se parten en dos. El censo puede contar la de Proveedores cuando hay una parte vencida. La de
+  `ResumenStockOverlay` la ve la firma y está marcada con `unificar-fijo`.
+- **El medidor de la barra fija de Recibir** (`RecepcionEnvio`: contado, faltante y lo que falta contar): una franja de 3 px pegada al borde de
+  la barra fija, sin extremos redondeados, es otro diseño; la firma la ve y está marcada con `unificar-fijo`. Felipe dice si se unifica.
+- **El medidor de margen de una orden** (`OrdenPanel`: pierde, al filo, gana; tres zonas fijas con un marcador): es una escala, no reparte un total.
 
-## Deuda al decidir
+## Deuda y migración
 
-**7 archivos** (`pnpm --filter web unificar:deuda grafico.barra`). Eran 14 al decidir y quince con «Deuda por vencimiento», que se migró el mismo
-día; **Compras se migró entera el 2026-10-09** (Felipe: «migra las otras 13 barras, empezando por Compras»). El resto, módulo por módulo:
+**0 archivos** (`pnpm --filter web unificar:deuda grafico.barra`): ya no queda ninguna barra apilada dibujada a mano. Eran quince al decidir
+(14 de deuda más «Deuda por vencimiento», migrada el mismo día). Felipe pidió el resto («migra las otras 13 barras, empezando por Compras») y se
+migró el 2026-10-09, un commit por módulo:
 
 | Módulo | Archivos | Estado |
 |---|---|---|
-| Compras ▸ Por pagar | `DeudaPorVencimiento.tsx`, `PorPagarControles.tsx` (Deuda por proveedor, tramos que son enlaces), `PorPagarLista.tsx` (mezcla de lo marcado), `PagoPiezas.tsx` (reparto de un pago), `PorPagarProduccionPanel.tsx` (Producción contra Compras) | **migrado** (2026-10-09) |
-| Compras ▸ Proveedores y Notas de crédito | `ProveedoresIndicadores.tsx` (Concentración), `NotasCreditoPanel.tsx` (por reclamar y saldos a favor), `RegistrarNotaCreditoModal.tsx` (las tres partes del dinero); `.nc-conc` y `.nc-barra` salieron de `app/estilos/notas-credito.css` | **migrado** (2026-10-09) |
-| Vender ▸ Comprobantes y Proformas | `ComprobantesGraficos.tsx` (una pieza homónima con `partes` y leyenda propia, `kpi-apilada` en `globals.css`) | por migrar |
-| Vender ▸ Historial | `HistorialVentasPulso.tsx` («Cómo se pagó»): su color sale de un token por método de pago (`var(--color-metodo-<método>)`); la pieza ya acepta `color` | por migrar |
-| Caja | `CajaTablero.tsx` (cobrado en el turno: también un color por método), `CierreCajaDetalle.tsx` (a dónde fue el efectivo) | por migrar |
-| Producción ▸ Órdenes y Eficiencia | `OrdenTarjeta.tsx`, `OrdenPanel.tsx` (pista de tinta al 10 %), `EficienciaTallerPanel.tsx` | por migrar |
-| Inventario ▸ Frescura | su rama ya usa `ui/BarraApilada`: hereda la decisión al entrar | en su rama |
+| Compras ▸ Por pagar | `DeudaPorVencimiento.tsx`, `PorPagarControles.tsx` (Deuda por proveedor, tramos que son enlaces), `PorPagarLista.tsx` (mezcla de lo marcado), `PagoPiezas.tsx` (reparto de un pago) | **migrado** |
+| Compras ▸ Proveedores y Notas de crédito | `ProveedoresIndicadores.tsx` (Concentración), `NotasCreditoPanel.tsx` (por reclamar y saldos a favor), `RegistrarNotaCreditoModal.tsx` (las tres partes del dinero); `.nc-conc` y `.nc-barra` salieron de `app/estilos/notas-credito.css` | **migrado** |
+| Vender ▸ Comprobantes y Proformas | `ComprobantesGraficos.tsx` (la pieza homónima con `partes` y leyenda propia pasó a llamarse `BarraConLeyenda` y dibuja su barra con la del sistema), `ComprobantesTarjetas.tsx`, `ProformasTarjetas.tsx`; `.kpi-apilada` y `kpi-crece-x` salieron de `globals.css` | **migrado** |
+| Vender ▸ Historial | `HistorialVentasPulso.tsx` («Cómo se pagó»): un tramo por método con su token (`color`) | **migrado** |
+| Caja | `CajaTablero.tsx` (cobrado en el turno), `CierreCajaDetalle.tsx` (a dónde fue el efectivo) | **migrado** |
+| Producción ▸ Órdenes, Por pagar y Eficiencia | `OrdenTarjeta.tsx`, `OrdenPanel.tsx`, `EficienciaTallerPanel.tsx`, `PorPagarProduccionPanel.tsx` (`/produccion/por-pagar`: Producción contra Compras) | **migrado** |
+| Inventario ▸ Frescura | en `main` desde el PR #889 con la versión simple de la pieza; hereda la cara nueva al traer `main` a esta rama | en `main` |
+
+**Cómo se verificó:** en el navegador local, en claro y oscuro, a 1440 y 375 px, y con `tema:auditar` sin hallazgos. Con datos reales del seed:
+Por pagar, Proveedores, Facturación e Historial. Con datos de prueba en una página de ensayo temporal (ya borrada, fuera de git): Notas de
+crédito y su hoja, `TarjetaCobrado` de Caja, el cierre, las órdenes de Producción, Eficiencia del Taller y la leyenda de Proformas. Qué NO se
+vio en vivo: `TarjetaCobrado` en su pantalla (solo se dibuja cuando `/caja` no tiene la comparativa de hoy contra ayer, ADR-0319, que es lo normal:
+`CajaAbiertaPanel.tsx`), un cierre real con traslados, órdenes reales de Producción ni un período de Eficiencia con planilla (el seed no los trae).
 
 ## Lo que la migración de Compras le pidió a la pieza
 
 Las barras de Compras no eran todas iguales a «Deuda por vencimiento»; la pieza creció (sin cambiar lo que ya hacía) para no perder nada:
 - **Tramos que son enlaces** (`href`): «Deuda por proveedor» filtra la lista al navegar a `?prov=`. **Etiqueta y título propios** por tramo
   (`etiqueta`, `titulo`) y un tramo que **no responde** (`inerte`, el «Otros») o que **el lector no oye** (`oculto`, el «Resto»).
-- **Resaltar sin filtrar** (`resaltada`): en Proveedores el tramo apuntado viene también de la tabla y no es un filtro, así que los demás
+- **Resaltar sin filtrar** (`resaltada`): apuntar un tramo de Proveedores no es un filtro, solo enciende la fila de la tabla, así que los demás
   bajan pero ninguno queda «presionado». El estado presionado solo existe cuando la pantalla maneja un filtro (`elegida`).
 - **Decorativa** (`decorativa`): las barras de lo marcado, del reparto de un pago, de los saldos a favor y de las tres partes de una nota
   repiten en texto lo que dicen; el lector no las oye, como antes.
@@ -110,21 +122,36 @@ Las barras de Compras no eran todas iguales a «Deuda por vencimiento»; la piez
   queda de pista, vacío.
 - **La entrada espera a su tarjeta** (`retraso`): las tarjetas de cifra entran escalonadas y su barra llega después.
 - **Color por token** (`color`), para Historial y Caja, que pintan con `var(--color-metodo-*)` en un `style`.
-- Las barras de 5 px pasan a 4 (el hilo) y las de 10 a 8 (Producción contra Compras); los de 14 a 12 ya lo habían hecho.
+- Las barras de 5 px pasan a 4 (el hilo); las de 10 px, a 8 (Caja, Producción contra Compras) o a 12 (el cierre); las de 6, a 8 (Historial); las
+  de 14, a 12.
+- **El cuadrito de una leyenda con un tono translúcido** (Eficiencia, el panel de una orden, Producción contra Compras) se dibuja con
+  `<MuestraTramo>`: sobre la tarjeta se veía más claro que su tramo, que va sobre la arena.
 
-## Lo que la revisión adversaria encontró y se corrigió (2026-10-09)
+## Lo que las dos revisiones adversarias encontraron y se corrigió (2026-10-09)
 
-Seis revisores de solo lectura (comportamiento, pieza, candado, motor, contraste, documentos) y dos escépticos por hallazgo. Confirmados y
-corregidos: las firmas dejaban pasar cinco archivos que reparten un total (ahora están en la deuda y las firmas aceptan las clases en
-cualquier orden); el censo contaba como barra la «Racha» de 14 días; el tramo translúcido se partía en franjas al estirarse (base de arena
-por tramo); el elegido bajaba al apuntar otro tramo; y varias afirmaciones de este registro y de CONTINUAR eran falsas o viejas. La
-migración de «Deuda por vencimiento» **no cambió qué hace nada** (mismo resumen para el lector, mismas etiquetas de tramo, mismo filtro,
-mismo `apuntar`), probado en el navegador.
+**Primera** (la pieza y «Deuda por vencimiento»; 6 lentes, 30 agentes): las firmas dejaban pasar cinco archivos que reparten un total, el censo
+contaba como barra la «Racha» de 14 días, el tramo translúcido se partía en franjas al estirarse (base de arena por tramo), el elegido bajaba al
+apuntar otro tramo, y varias afirmaciones de este registro eran falsas.
 
-## Al fusionar con la rama de Frescura
+**Segunda** (la migración de las otras barras, la pieza ampliada, el candado y los documentos; 6 lentes, 34 agentes; 12 confirmados): 
+- Las barras que cambian **mientras se escribe o se marca** (reparto de un pago, mezcla de lo marcado, las tres partes de una nota) perdían su
+  transición: un tramo en 0 desaparecía de golpe. Ahora `viva` los deja montados y solo los reacomoda (medido: 35 → 207 px al escribir, de
+  vuelta a 0 al vaciar).
+- Una barra `decorativa` mostraba texto al pasar el mouse con la cifra cruda («tela: 0.6»): ya no; las que se leen lo dicen bien (`formato`).
+- `sinEntrada` en el cierre de caja (dentro de una hoja ADR-0136 no deja agregar movimiento de entrada). La raíz es un `<span>`; soltar el mouse
+  de la barra entera suelta el resaltado; un valor NaN cuenta como 0; una barra con enlaces responde sola; una decorativa nunca responde.
+- La firma de la barra con pista y sin hilo no veía las de 3 a 8 px: ahora sí, y atrapa dos líneas que son otra cosa (el medidor de Recibir y
+  la barra a escala de `ResumenStockOverlay`), marcadas con su motivo.
+- Documentos: Frescura ya estaba en `main`, la razón de por qué no se vio `TarjetaCobrado` era otra, `PorPagarProduccionPanel` es de Producción,
+  el estirón pasa de 1,7× a 1,35× en tres barras, y varios conteos y encabezados.
 
-`claude/frescura-vara-cayla-dos-niveles` creó `ui/BarraApilada.tsx` por su cuenta (sin PR todavía): al fusionarse las dos ramas el archivo
-choca (se agregó en las dos). **Se queda la versión de esta rama**: es un superconjunto compatible (mismas props `segmentos`, `unidad`
-y `className`; suma `etiqueta`, `formato`, `alto` y `respuesta`, y exporta `MuestraTramo`). Lo que cambia para el tablero de Frescura es solo
-su cara: pista de arena con hilo de 2 px, tramos que entran creciendo y se reacomodan, en vez de tramos pegados y recortados que aparecen
-quietos. Su leyenda puede dibujar el cuadrito con `<MuestraTramo>` para que coincida con el tono del tramo.
+La migración **no cambió qué hace nada**: mismo resumen para el lector, mismas etiquetas de tramo, mismos filtros, mismo `apuntar`, mismas URL.
+
+## Al traer `main` a esta rama
+
+La rama de Frescura entró a `main` (PR #889) con su propia `ui/BarraApilada.tsx`, así que al traer `main` el archivo choca (se agregó en las dos).
+**Se queda la versión de esta rama**: es un superconjunto compatible (mismas props `segmentos`, `unidad` y `className`; suma `etiqueta`, `formato`,
+`alto`, `respuesta`, `retraso`, `total`, `decorativa`, `viva` y `sinEntrada`, y exporta `MuestraTramo`). Lo que cambia para el tablero de Frescura
+es su cara: pista de arena con hilo de 2 px, tramos que entran creciendo y se reacomodan, en vez de tramos pegados y recortados que aparecen
+quietos. **Pendiente, a pedido de Felipe de no tocar Frescura:** su leyenda dibuja el cuadrito a mano (`inline-block … rounded-full ${s.clase}`)
+y con un tono translúcido queda más claro que su tramo; usar `<MuestraTramo>` lo arregla.

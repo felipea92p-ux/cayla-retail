@@ -17,7 +17,7 @@ suelta con el segundo toque; el auditor de modo oscuro da 0 hallazgos; el censo 
 Felipe se lleva: una sola barra apilada, vigilada por `lib/unificar.test.ts` (14 archivos de deuda que solo bajan) y una prueba de la pieza
 (`lib/barra-apilada.test.ts`). **Dos cosas a la vista en Compras:** al apuntar un tramo de «Deuda por vencimiento», los demás bajan al 35 % (hoy
 solo se estira el apuntado); y los tramos de en medio son rectos (en la demo, los botones los traían redondos por el navegador). Quedan para su
-OK: migrar las otras 13 barras módulo por módulo, y decidir si las de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican.
+OK: migrar las otras barras (eran 14 archivos; «13» fue la cuenta del pedido) módulo por módulo, y decidir si las de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican.
 
 ## 2026-10-09 (Compras migrada entera a la barra apilada — ADR-0358)
 Qué hice: Felipe pidió migrar las otras barras, empezando por Compras. Siete archivos de Compras dejaron de dibujar la barra a mano:
@@ -31,3 +31,27 @@ nada) y migrar no puede cambiar qué hace: se probó cada una en el navegador lo
 algo salían «no presionado» para el lector; ahora solo es un interruptor si la pantalla maneja un filtro.
 Felipe se lleva: Compras con una sola barra apilada (el censo la ve igual en todas, con su alto según el lugar). Quedan 7 archivos de deuda en
 Vender, Caja y Producción.
+
+## 2026-10-09 (Vender, Caja y Producción migradas: ya no queda ninguna barra apilada a mano — ADR-0358)
+Qué hice: seguí con el resto de las barras, un commit por módulo. Vender: la pieza homónima de Facturación y Proformas (que traía su propia leyenda)
+pasó a llamarse `BarraConLeyenda` y dibuja con la barra del sistema, y «Cómo se pagó» de Historial pinta cada método con su token de color. Caja:
+«Cobrado en el turno» y «A dónde fue el efectivo» del cierre. Producción: el hilo de costo de la tarjeta de una orden, el del panel y el reparto del
+gasto del Taller. Salió de `globals.css` lo que murió (`.kpi-apilada`, `kpi-crece-x`). Con eso la deuda de `grafico.barra` llegó a **0**.
+Por qué así: cada barra tenía su forma de medirse (contra un total que no es la suma, con un color por método, decorativa o con resumen para el
+lector) y la pieza ya sabía todo eso desde Compras. El único hallazgo nuevo: un cuadrito de leyenda con un tono translúcido se veía más claro que su
+tramo (el cuadrito sobre la tarjeta, el tramo sobre la arena); las tres leyendas afectadas usan ahora `MuestraTramo`. El seed casi no trae datos de
+estas pantallas: se vieron con datos reales en Facturación e Historial y con una página de ensayo temporal, ya borrada, en el resto.
+Felipe se lleva: una sola barra apilada en todo el ERP. No se vio en vivo un turno de Caja con ventas, un cierre con traslados ni órdenes reales.
+Queda su decisión: si las barras de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican.
+
+## 2026-10-09 (La segunda revisión adversaria de la migración: lo que se corrigió — ADR-0358)
+Qué hice: seis revisores de solo lectura y escépticos por hallazgo (34 agentes) revisaron la migración completa; doce hallazgos confirmados. En el
+código: las barras que cambian mientras se escribe o se marca (el reparto de un pago, la mezcla de lo marcado, las tres partes de una nota) habían
+perdido su transición (un tramo en 0 desaparecía de golpe); la pieza ganó `viva` y `sinEntrada`, una barra decorativa ya no muestra cifras crudas al pasar el
+mouse, la raíz es un `<span>`, soltar el mouse de la barra entera suelta el resaltado, y la firma del candado ve ahora las barras de 3 a 8 px (atrapó
+el medidor de Recibir y la barra a escala de `ResumenStockOverlay`, marcadas con su motivo). En los documentos: la rama de Frescura ya estaba en `main`
+(#889), `TarjetaCobrado` no se ve en `/caja` por otra razón, `PorPagarProduccionPanel` es de Producción y el estirón de tres barras pasa de 1,7× a 1,35×.
+Por qué así: «Ninguna pierde nada» era mi afirmación y no era cierta; la revisión la midió. Se corrigió lo que se podía sin cambiar qué hace nada y
+lo demás se dejó como pregunta para Felipe.
+Felipe se lleva: una pieza más robusta y un registro que dice lo que se vio y lo que no. Le quedan cuatro decisiones: las barras de Análisis y del aviso de
+cierre de Caja, el medidor de Recibir, 1,35× o 1,7× en las barras de 8 px, y la leyenda de Frescura con `<MuestraTramo>`.

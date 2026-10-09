@@ -13,7 +13,7 @@ al cerrar cada ronda: la próxima sesión no ve esta conversación.
 ## Dónde quedó
 
 Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las diez con candado de las rondas 1 a 5 están en deuda 0; la de la ronda 5b, `grafico.barra`, tiene 7 archivos por migrar (Compras ya está migrada).**
+`lib/unificar.test.ts`. **Las once con candado están en deuda 0** (la de la ronda 5b, `grafico.barra`, se migró entera el mismo día en que se decidió).
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -29,24 +29,30 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 | 5 | `vacio` | `<Vacio>`: el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y su botón; chico en tablas y hojas; al no encontrar, lo deshace ahí mismo | [vacio.md](vacio.md) |
 | 5 | `aviso` | `<Aviso tono>` en franja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo | [aviso.md](aviso.md) |
 | 5 | `buscador` | `<Buscador>`: la caja hundida (lista) y la píldora que se despega (mostrador); «Buscando…» solo si tarda; busca mientras se escribe (salvo Cambios y Devoluciones) | [buscador.md](buscador.md) |
-| 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 7 archivos**; Compras está migrada entera | [grafico.barra.md](grafico.barra.md) |
+| 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 0**; migrada entera (Compras, Vender, Caja y Producción) | [grafico.barra.md](grafico.barra.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
-## Ronda 5b (2026-10-09): la barra apilada, decidida y con una pantalla migrada
+## Ronda 5b (2026-10-09): la barra apilada, decidida y migrada entera
 
-Se pidió desde Frescura (ADR-0208 act. 2026-10-07: su rama creó `ui/BarraApilada`, la misma barra que «Deuda por vencimiento» de Compras dibuja a
-mano). Felipe eligió **P** tocando las demos. **Falta:** migrar las otras barras de Vender, Caja y Producción (7 archivos de deuda) (lista y orden en `grafico.barra.md`) y decidir con Felipe
-si las barras de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican. Lo aprendido:
+Se pidió desde Frescura (ADR-0208 act. 2026-10-07: su rama creó `ui/BarraApilada`, la misma barra que «Deuda por vencimiento» de Compras dibujaba a
+mano; esa rama entró a `main` por el PR #889). Felipe eligió **P** tocando las demos y pidió migrar las demás: quedó **deuda 0**, un commit por
+módulo (Compras, Vender, Caja, Producción). **Falta, para Felipe:** si se unifican las barras de Análisis (ADR-0357) y del aviso de cierre de Caja
+(ADR-0359), el medidor de la barra fija de Recibir, si el estirón es 1,35× para todas o 1,7× en las de 8 px, y que Frescura use `<MuestraTramo>` en su
+leyenda. Lo aprendido:
 - **El censo no veía las barras hechas con cajas**: solo recorría SVG. Ahora `censarBarrasApiladas` (`unificar/motor/censo-en-pagina.js`) las
   reconoce por su forma (fila baja y ancha de tramos pintados sin texto cuyos anchos suman el de la fila) y las anota como `grafico.barra`.
   Con una **familia partida**, `--familia grafico` sigue incluyéndola (el filtro acepta prefijo) y la decisión vive en el id nuevo.
 - **Sin el Chromium de Playwright** (170 MB que Felipe no autorizó): `NAVEGADOR_CANAL=chrome` hace que el censo, las fotos y el auditor de
-  tema usen el Google Chrome instalado. Se probó con un censo de 180 vistas y con `tema:auditar`.
-- **Una pieza que otra rama ya creó** (`ui/BarraApilada` en `claude/frescura-vara-cayla-dos-niveles`): se trae con
-  `git show <rama>:<ruta>` y se extiende como superconjunto (mismas props), para que el choque al fusionar se resuelva quedándose con la de esta rama.
-- **Mirar los datos de verdad antes de escribir el registro**: dos afirmaciones del primer borrador eran falsas (el color de «Cómo se pagó» sale
-  de un token en un `style` inline, no de un hex). Importa para migrar Historial: la pieza hoy solo recibe una clase.
+  tema usen el Google Chrome instalado.
+- **Una pieza que otra rama ya creó** (`ui/BarraApilada` en la rama de Frescura): se trajo con `git show <rama>:<ruta>` y se extendió como
+  superconjunto (mismas props); al traer `main` el choque se resuelve quedándose con la de esta rama.
+- **Mirar los datos de verdad antes de escribir el registro**: varias afirmaciones de los borradores eran falsas (el color de «Cómo se pagó» sale
+  de un token y no de un hex; `TarjetaCobrado` no se ve en `/caja` por otra razón que «el seed no trae ventas»; `PorPagarProduccionPanel` es de Producción).
+- **Una barra que cambia mientras se escribe** (`viva`) no puede desmontar sus tramos: la transición se corta. Una barra decorativa no pone texto
+  al pasar el mouse. Un tramo translúcido necesita su propia base de arena y su leyenda, `<MuestraTramo>`.
+- **Dos revisiones adversarias** (6 lentes y escépticos por hallazgo, 64 agentes): cada una encontró cosas que la verificación a mano no vio.
+  Las páginas de ensayo con datos de prueba (borradas, fuera de git) fueron la única forma de ver barras que el seed no muestra.
 
 ## Ronda 5 (2026-10-07/08): cerrada
 

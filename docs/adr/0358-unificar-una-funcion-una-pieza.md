@@ -117,7 +117,7 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   (antes solo veía SVG) y se partió la familia: `grafico.barra` (la barra que reparte un total) queda decidida y `grafico` (línea, barras
   mensuales, dona) sigue por analizar. Quince archivos la dibujaban a mano con casi diez caras; Felipe eligió **P**: la pista de arena de
   Frescura y Facturación con todo el movimiento de Compras, tres altos (12 · 8 · 4), 24 px para el mouse y una sola voz para el lector.
-  Migrada «Deuda por vencimiento»; **deuda 14 archivos**, módulo por módulo con su OK; ese mismo día Felipe pidió migrar las otras y **Compras quedó migrada entera (deuda 7)**. Las barras de Análisis (ADR-0357) y la del aviso de cierre de
+  Migrada «Deuda por vencimiento»; **deuda 14 archivos**, módulo por módulo con su OK; ese mismo día Felipe pidió migrar las otras y **quedó migrada entera, módulo por módulo (deuda 0)**. Las barras de Análisis (ADR-0357) y la del aviso de cierre de
   Caja (ADR-0359) quedan a propósito hasta que Felipe diga. Registro: `docs/unificar/grafico.barra.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
