@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Chip } from "@/components/ui/Chip";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
+import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
+import { destinoDelBoton, type EstadoProducto } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { colorPrincipal, coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
@@ -151,6 +153,9 @@ function TarjetaProducto({
   const [colorHover, setColorHover] = useState<string | null>(null);
   const [vistaRapida, setVistaRapida] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  // A qué estado va la hoja, FIJADO al abrirla: si otra persona cambia esta prenda con la hoja abierta (la pantalla se refresca sola, ADR-0363),
+  // el destino no se da vuelta bajo el dedo; la hoja solo dice «Ya está…: queda igual» y no deja confirmar.
+  const [cambiandoEstado, setCambiandoEstado] = useState<EstadoProducto | null>(null);
 
   const nombreActivo = colorHover ?? colorFijo ?? colorPrincipal(colores)?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
@@ -276,12 +281,34 @@ function TarjetaProducto({
             setVistaRapida(false);
             setEliminando(true);
           }}
+          onCambiarEstado={() => {
+            setVistaRapida(false);
+            setCambiandoEstado(destinoDelBoton(producto.estado));
+          }}
         />
       )}
       {eliminando && (
         <EliminarProductoModal
           producto={{ productoId: producto.productoId, referencia: producto.referencia, estado: producto.estado, numVariantes: producto.variantes.length }}
           onClose={() => setEliminando(false)}
+          // Una prenda que ya se vendió no se borra: la salida es desactivarla ahí mismo (solo quien edita el catálogo, como «Editar»).
+          onDesactivar={
+            puedeEditar
+              ? () => {
+                  setEliminando(false);
+                  setCambiandoEstado("descontinuado");
+                }
+              : undefined
+          }
+        />
+      )}
+      {cambiandoEstado && (
+        <CambiarEstadoProductosHoja
+          estado={cambiandoEstado}
+          productos={[producto]}
+          vocabulario="desactivar"
+          onClose={() => setCambiandoEstado(null)}
+          onHecho={() => setCambiandoEstado(null)}
         />
       )}
     </div>
