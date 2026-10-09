@@ -18,7 +18,7 @@ import {
 import type { VarianteCatalogo } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
-import { busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
+import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -108,11 +108,31 @@ export function CambiosPanel({
 
   useAtajoBusqueda(campoBusqueda, !flujo);
 
+  // Una lectura (pistola o cámara) que trae UNA sola compra la abre directo (`abrirDesdeLectura`, Felipe 2026-10-09). La
+  // búsqueda va por la URL: se recuerda qué se leyó y, cuando llegan sus resultados, se decide.
+  const lecturaPendiente = useRef<string | null>(null);
+  useEffect(() => {
+    if (lecturaPendiente.current === null || lecturaPendiente.current !== busqueda) return;
+    lecturaPendiente.current = null;
+    const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaVendida(l, ahora).cambiable);
+    if (!abrir) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
+    setFlujo(abrir);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [lineas, busqueda, ahora]);
+
   function navegar(parametros: URLSearchParams | null) {
     startTransition(() => router.push(parametros ? `${pathname}?${parametros}` : pathname));
   }
 
-  function buscar(texto: string, todas: boolean) {
+  function buscar(texto: string, todas: boolean, leida = false) {
+    if (leida) lecturaPendiente.current = texto;
+    // La misma búsqueda que ya está en pantalla no vuelve a navegar: se decide con lo que ya hay.
+    if (leida && texto === busqueda) {
+      lecturaPendiente.current = null;
+      const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaVendida(l, ahora).cambiable);
+      if (abrir) return setFlujo(abrir);
+    }
     const parametros = new URLSearchParams({ q: texto });
     if (todas) parametros.set("todas", "1");
     navegar(parametros);
@@ -173,7 +193,7 @@ export function CambiosPanel({
   /** Lo leído con la cámara se busca como si se hubiera escrito: la etiqueta tal cual, la boleta por su QR de SUNAT. */
   function alLeerCodigo(codigo: string) {
     setCamara(false);
-    buscar(busquedaDesdeLectura(codigo), todasLasSedes);
+    buscar(busquedaDesdeLectura(codigo), todasLasSedes, true);
   }
 
   return (
@@ -195,6 +215,7 @@ export function CambiosPanel({
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
           onCamara={() => setCamara(true)}
+          pistola={!camara}
           extra={
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
             <span className="flex items-center gap-2 text-sm text-tinta/70">

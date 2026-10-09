@@ -30,3 +30,10 @@ export function teclaDePistola(l: LectorPistola, key: string, ahora: number): { 
 export function esRafaga(l: LectorPistola, ahora: number): boolean {
   return l.texto.length > 0 && ahora - l.ultimo < MS_ENTRE_TECLAS;
 }
+
+/** Una pistola que NO remata con Enter (depende de cómo venga programada): cuando la ráfaga se calla, lo leído es el código si
+ *  alcanza el largo de una lectura de Vender (`TECLAS_MIN_LECTURA`, `lectura-pistola.ts`). El lector solo junta teclas seguidas
+ *  (`teclaDePistola` empieza de nuevo tras una pausa), así que lo que tiene es una ráfaga, nunca algo tecleado a mano. */
+export function lecturaSinEnter(l: LectorPistola, minimo: number): string | null {
+  return l.texto.length >= minimo && !/\s/.test(l.texto) ? l.texto : null;
+}
