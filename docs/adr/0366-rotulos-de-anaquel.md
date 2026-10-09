@@ -73,6 +73,14 @@ Verificado: pruebas de `medidaNombre` (nunca se sale a lo ancho ni a lo alto, m�
 nombres reales y largos con el tamaño calculado: ninguno se desborda y las líneas coinciden; PDF de impresión en forma A (62,1 × 40,2 mm)
 y B (40,2 × 62,1 mm). **Falta:** imprimir en la Brother de la tienda y, en una computadora con la forma B, ver que sale derecho.
 
+## Actualización 2026-10-09 (noche, b) — marca y proveedor en vez de los colores
+
+Felipe: «en vez de los colores, que salga escrito el proveedor y la marca para identificarlo mejor». Donde iban los colores (2 líneas)
+van ahora **«MARCA …»** y **«PROVEEDOR …»**, una línea cada uno, con su palabra delante (los dos son nombres de empresa y sin ella no
+se sabría cuál es cuál). El proveedor es el habitual del modelo (`productos.proveedor_id`), no el de cada lote. Con varios modelos
+juntos, los distintos se separan con «/»; si un modelo no tiene marca o proveedor, esa línea no sale. Si no cabe, «…» al final: el
+nombre no pierde tamaño (usa las mismas 2 líneas que tenían los colores).
+
 ## Verificación
 
 - `lib/rotulos-reglas.test.ts` (13), `lib/mac-etiquetas.test.ts` (versión y medida), `scripts/mac-etiquetas/servidor.prueba.mjs`

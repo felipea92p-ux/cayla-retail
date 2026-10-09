@@ -19,7 +19,7 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 /**
  * Rótulos de anaquel (ADR-0366): los modelos elegidos, cómo salen (uno por modelo o todos juntos), cuántas copias de cada
  * uno y el botón que los manda a la Brother. Los modelos viven en la URL (`?productos=`): sumar o quitar uno vuelve a leer
- * sus colores y tallas del servidor. La hoja de impresión (`#rotulos-print`) va pegada a <body>, como la de etiquetas.
+ * su marca, su proveedor y sus tallas del servidor. La hoja de impresión (`#rotulos-print`) va pegada a <body>, como la de etiquetas.
  */
 export function ImprimirRotulos({
   modelos,
@@ -92,7 +92,7 @@ export function ImprimirRotulos({
       <CabeceraPantalla
         sobretitulo={sede}
         titulo="Rótulos de anaquel"
-        bajada="Para el anaquel o la bolsa: dice de lejos qué modelo hay ahí, con sus colores y tallas."
+        bajada="Para el anaquel o la bolsa: dice de lejos qué modelo hay ahí, con su marca, su proveedor y sus tallas."
         acciones={modelos.length > 0 ? botonImprimir : undefined}
       />
     </div>
