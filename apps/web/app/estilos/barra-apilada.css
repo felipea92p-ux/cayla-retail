@@ -1,0 +1,51 @@
+/* =====================================================================
+   BARRA APILADA — la pieza de la familia `grafico.barra` de /unificar (ADR-0358, Felipe 2026-10-09, opción «P»).
+   <BarraApilada> (components/ui/BarraApilada.tsx). Registro: docs/unificar/grafico.barra.md. Solo tokens (ADR-0169, ADR-0336).
+
+   Movimiento de ADR-0136, sin rebote ni bucle: la ENTRADA es `anim-crece-x` (globals.css: 620 ms, 38 ms entre tramos, ya se apaga con
+   `prefers-reduced-motion`); aquí están el reacomodo cuando cambia una cifra (700 ms) y lo que hace el tramo al apuntarlo (200 ms).
+   ===================================================================== */
+
+@layer components {
+  /* La pista: arena. Sin `overflow: hidden`, para que un tramo pueda estirarse hacia arriba y abajo al apuntarlo. */
+  .barra-apilada { position: relative; display: flex; gap: 2px; width: 100%; height: 12px; border-radius: 999px; background: var(--color-sand); }
+  .barra-apilada[data-alto="8"] { height: 8px; }
+  .barra-apilada[data-alto="4"] { height: 4px; gap: 1px; }
+
+  /* Un tramo: crece por su parte del total (`flex-grow` inline) y los extremos siguen la píldora; los de en medio, rectos (un hilo de
+     arena los separa). Lleva SU PROPIA base de arena y el color va en una capa interna: un color translúcido (`bg-tinta/25`) no se parte
+     en franjas al estirarse, porque siempre se dibuja sobre la misma arena. El color es el dato: lo pone quien la usa. */
+  .barra-tramo {
+    position: relative; display: block; height: 100%; min-width: 3px; flex: 0 1 0%; margin: 0; padding: 0; border: 0; border-radius: 0;
+    background: var(--color-sand);
+    transform-origin: left center;
+    transition: flex-grow 700ms var(--ease-cayla), opacity 200ms var(--ease-cayla), scale 200ms var(--ease-cayla);
+  }
+  .barra-tramo:first-child { border-radius: 999px 0 0 999px; }
+  .barra-tramo:last-child { border-radius: 0 999px 999px 0; }
+  .barra-tramo:only-child { border-radius: 999px; }
+  .barra-tramo-color { display: block; width: 100%; height: 100%; border-radius: inherit; }
+  /* El cuadrito de una leyenda: la misma base de arena y la misma capa de color que el tramo. */
+  .barra-muestra { display: inline-block; flex-shrink: 0; width: 9px; height: 9px; border-radius: 3px; background: var(--color-sand); }
+
+  /* Si RESPONDE, el tramo es un botón: el área que siente el mouse mide 24 px o más aunque la barra pinte 12, 8 o 4 (ADR-0350). */
+  button.barra-tramo { cursor: pointer; }
+  button.barra-tramo::before { content: ""; position: absolute; inset: -6px 0; }
+  .barra-apilada[data-alto="8"] button.barra-tramo::before { inset: -8px 0; }
+  .barra-apilada[data-alto="4"] button.barra-tramo::before { inset: -10px 0; }
+  button.barra-tramo:focus-visible { scale: 1 1.35; }
+  /* El foco del teclado usa el anillo del sistema (ADR-0351): aquí no se declara otro. */
+
+  /* Al apuntar un tramo, los demás bajan (menos el ya elegido, que sigue entero); con un filtro puesto, solo el elegido queda entero. */
+  .barra-tramo[data-apagado] { opacity: 0.35; }
+  .barra-apilada:has(button.barra-tramo:focus-visible) .barra-tramo:not(:focus-visible, [aria-pressed="true"]) { opacity: 0.35; }
+  /* El hover solo donde hay mouse: en un celular el «encima» se queda pegado tras un toque y dejaría los demás tramos apagados. */
+  @media (hover: hover) {
+    button.barra-tramo:hover { scale: 1 1.35; }
+    .barra-apilada:has(button.barra-tramo:hover) .barra-tramo:not(:hover, [aria-pressed="true"]) { opacity: 0.35; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .barra-tramo { transition: none; }
+  }
+}

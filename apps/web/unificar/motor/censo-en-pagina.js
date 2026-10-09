@@ -228,10 +228,12 @@
         if (r.selectorText !== undefined) {
           const sel = padre && r.selectorText.includes("&") ? r.selectorText.replace(/&/g, padre) : padre ? `${padre} ${r.selectorText}` : r.selectorText;
           if (r.style && r.style.length) {
-            const estado = ESTADOS_CSS.find(([, re]) => re.test(sel));
-            if (estado) {
+            // Cada parte de un selector compuesto («a:hover, a:focus-visible») se clasifica por SU estado: antes la regla entera caía en
+            // el primero que coincidía (el foco) y su `:hover` se perdía (2026-10-09, la barra apilada).
+            {
               for (const parte of sel.split(/,(?![^(]*\))/)) {
-                if (!estado[1].test(parte)) continue;
+                const estado = ESTADOS_CSS.find(([, re]) => re.test(parte));
+                if (!estado) continue;
                 // El barrido de `.mov-boton` vive en su `::after`: el pseudo-elemento es parte de la pieza, y `matches()` no lo acepta.
                 const base = parte
                   .replace(/:(hover|active|focus-visible|focus-within|focus)\b/g, "")
@@ -348,7 +350,7 @@
     return res;
   }
   // Las familias que la persona toca o que se mueven solas. Los iconos, títulos y tablas no: se mueven con lo que los contiene.
-  const CON_MOVIMIENTO = new Set(["boton", "enlace", "pestanas", "casilla", "combo", "campo", "buscador", "cifra", "estado", "contador", "modal", "aviso", "paginacion", "grafico", "avatar"]);
+  const CON_MOVIMIENTO = new Set(["boton", "enlace", "pestanas", "casilla", "combo", "campo", "buscador", "cifra", "estado", "contador", "modal", "aviso", "paginacion", "grafico", "grafico.barra", "avatar"]);
 
   // ---------- el registro ----------
   let siguienteId = 1;
@@ -488,6 +490,9 @@
       const cajas = hijos.map((h) => h.getBoundingClientRect());
       // Una fila de puntos (todos cuadrados) no es una barra: es un conteo (`Puntos` de Facturación).
       if (cajas.every((c) => c.width <= c.height * 1.5)) continue;
+      // Seis o más marcas del MISMO ancho tampoco reparten un total: cuentan días o pasos (la «Racha» de 14 días del Motor de demanda).
+      // Una barra real con seis partes exactamente iguales no existe en la práctica.
+      if (cajas.length >= 6 && cajas.every((c) => Math.abs(c.width - cajas[0].width) <= 1.5)) continue;
       const suma = cajas.reduce((a, c) => a + c.width, 0);
       if (suma < r.width * 0.6 || suma > r.width * 1.05) continue;
       const aires = cajas.slice(1).map((c, i) => c.left - cajas[i].right).filter((g) => g >= 0 && g < 12);
@@ -495,7 +500,7 @@
       const responde = hijos.some((h) => h.matches(CLICABLE));
       const role = el.getAttribute("role");
       const lector = escondido(el) ? "oculta (aria-hidden)" : role ? `role=${role}${el.getAttribute("aria-label") ? " con resumen" : " sin resumen"}` : "sin nombre";
-      anotar("grafico", el, {
+      anotar("grafico.barra", el, {
         tipo: "barra apilada",
         alto: par(r.height),
         pista: fondoDe(s),
@@ -899,7 +904,7 @@
   window.__unificarEstado = (uid) => {
     const el = document.querySelector(`[data-unificar-id="${uid}"]`);
     if (!el) return null;
-    const PROPS = [["backgroundColor", "fondo"], ["color", "color"], ["borderTopColor", "borde"], ["boxShadow", "sombra o anillo"], ["transform", "se mueve"], ["opacity", "opacidad"], ["textDecorationLine", "subrayado"]];
+    const PROPS = [["backgroundColor", "fondo"], ["color", "color"], ["borderTopColor", "borde"], ["boxShadow", "sombra o anillo"], ["transform", "se mueve"], ["scale", "cambia de tamaño"], ["opacity", "opacidad"], ["textDecorationLine", "subrayado"]];
     const nodos = [el, ...[...el.querySelectorAll("*")].slice(0, 20)];
     const valores = nodos.map((n) => {
       const s = getComputedStyle(n);

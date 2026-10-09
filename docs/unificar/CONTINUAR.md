@@ -1,6 +1,6 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`) y el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
@@ -12,8 +12,8 @@ al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 ## Dónde quedó
 
-Once familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las diez con candado están en deuda 0.**
+Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
+`lib/unificar.test.ts`. **Las diez con candado de las rondas 1 a 5 están en deuda 0; la de la ronda 5b, `grafico.barra`, tiene 14 archivos por migrar.**
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -29,8 +29,24 @@ Once familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 | 5 | `vacio` | `<Vacio>`: el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y su botón; chico en tablas y hojas; al no encontrar, lo deshace ahí mismo | [vacio.md](vacio.md) |
 | 5 | `aviso` | `<Aviso tono>` en franja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo | [aviso.md](aviso.md) |
 | 5 | `buscador` | `<Buscador>`: la caja hundida (lista) y la píldora que se despega (mostrador); «Buscando…» solo si tarda; busca mientras se escribe (salvo Cambios y Devoluciones) | [buscador.md](buscador.md) |
+| 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 14 archivos**, solo se migró «Deuda por vencimiento» | [grafico.barra.md](grafico.barra.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
+
+## Ronda 5b (2026-10-09): la barra apilada, decidida y con una pantalla migrada
+
+Se pidió desde Frescura (ADR-0208 act. 2026-10-07: su rama creó `ui/BarraApilada`, la misma barra que «Deuda por vencimiento» de Compras dibuja a
+mano). Felipe eligió **P** tocando las demos. **Falta:** migrar las otras 13 barras (14 archivos de deuda) (lista y orden en `grafico.barra.md`) y decidir con Felipe
+si las barras de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican. Lo aprendido:
+- **El censo no veía las barras hechas con cajas**: solo recorría SVG. Ahora `censarBarrasApiladas` (`unificar/motor/censo-en-pagina.js`) las
+  reconoce por su forma (fila baja y ancha de tramos pintados sin texto cuyos anchos suman el de la fila) y las anota como `grafico.barra`.
+  Con una **familia partida**, `--familia grafico` sigue incluyéndola (el filtro acepta prefijo) y la decisión vive en el id nuevo.
+- **Sin el Chromium de Playwright** (170 MB que Felipe no autorizó): `NAVEGADOR_CANAL=chrome` hace que el censo, las fotos y el auditor de
+  tema usen el Google Chrome instalado. Se probó con un censo de 180 vistas y con `tema:auditar`.
+- **Una pieza que otra rama ya creó** (`ui/BarraApilada` en `claude/frescura-vara-cayla-dos-niveles`): se trae con
+  `git show <rama>:<ruta>` y se extiende como superconjunto (mismas props), para que el choque al fusionar se resuelva quedándose con la de esta rama.
+- **Mirar los datos de verdad antes de escribir el registro**: dos afirmaciones del primer borrador eran falsas (el color de «Cómo se pagó» sale
+  de un token en un `style` inline, no de un hex). Importa para migrar Historial: la pieza hoy solo recibe una clase.
 
 ## Ronda 5 (2026-10-07/08): cerrada
 
@@ -61,7 +77,7 @@ El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo
 6. **`campo` + `etiqueta-campo`** — viven en las hojas: censo con `--escenarios`.
 7. **`titulo-seccion`** (46 formas, sin pieza del sistema).
 8. **`accion.ver`, `accion.filtrar`, `accion.exportar`** — botones de una función.
-9. **`casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar`** — pocas formas: rondas cortas. Los gráficos de Análisis tienen su excepción de movimiento (ADR-0357).
+9. **`casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar`** — pocas formas: rondas cortas. De los gráficos, **la barra apilada ya está decidida (ronda 5b)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357).
 10. **`icono`** (250 huellas: casi todo tamaño y trazo de lucide; depurar mucho antes de mostrar).
 11. **`contador` y las píldoras-etiqueta** — cierran el candado de `estado` (las 7 a mano: `ExistenciasChips`, `ConfirmarCambios`, `RolesPanel`, `DevolucionesPanel`, `atributos/kit`, `ModalesApartado`, `FichaColaborador`).
 12. **`titulo-pagina`** — **no se corre** hasta que Felipe decida la cabecera de Compras, Caja, Recibir y el resto de Catálogo (ADR-0220).

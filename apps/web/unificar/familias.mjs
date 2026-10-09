@@ -227,6 +227,14 @@ const BASE = [
     gobierna: ["ADR-0169"],
   },
   {
+    id: "grafico.barra",
+    grupo: "Datos",
+    nombre: "Barra apilada",
+    funcion: "Una barra que reparte un total en partes de un solo color (la deuda por vencimiento, las unidades del piso por estado, cómo se pagó). Se reconoce por su forma: una fila baja y ancha de tramos sin texto cuyos anchos suman el de la fila.",
+    pieza: "`<BarraApilada>` (components/ui/BarraApilada.tsx), ADR-0358; las de Análisis (ADR-0357) y el aviso de cierre de Caja (ADR-0359) existen por una decisión y esperan la palabra de Felipe",
+    gobierna: ["ADR-0169", "ADR-0128", "ADR-0357", "ADR-0359"],
+  },
+  {
     id: "titulo-pagina",
     grupo: "Textos",
     nombre: "Títulos de pantalla",
@@ -515,6 +523,46 @@ export const DECISIONES = {
     ],
     "deuda": [
 
+    ],
+    "excepciones": []
+  },
+  "grafico.barra": {
+    "fecha": "2026-10-09",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.barra.md",
+    "elegida": "P · la pista de arena de Frescura y Facturación con todo el movimiento de «Deuda por vencimiento» de Compras: entra tramo a tramo, se estira al pasar el mouse y los demás bajan, se reacomoda al cambiar la cifra; tres altos (12 · 8 · 4), 24 px para el mouse y una sola voz para el lector; elegida tocando las demos el 2026-10-09",
+    "pieza": "components/ui/BarraApilada.tsx",
+    "tambien": ["app/estilos/barra-apilada.css"],
+    "firmas": [
+      // El tramo dibujado a mano: crece por `flex-basis 0` y se reacomoda con `transition-[flex-grow…]` (Compras, Por pagar, el reparto de un pago).
+      // Las clases van en un solo texto y en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])basis-0(?![\\w-]))(?=[^\"'`]*\\btransition-\\[[^\\]]*flex-grow)",
+      // La barra dibujada a mano con un hilo entre tramos: una fila baja (de 4 a 14 px) separada por 1 a 3 px.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|3|3\\.5|\\[5px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])gap-(?:px|0\\.5|\\[3px\\])(?![\\w.\\[-]))",
+      // La barra con pista y sin hilo: una fila de 8 a 16 px, redonda y recortada, sobre una pista de arena, hueso o tinta al 10 %
+      // (Caja, Por pagar de Producción, el reparto del gasto del Taller, el cierre de caja). Una barra de UN solo relleno que se
+      // llena (h-1.5, h-2) no entra: mide un avance, no reparte un total.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:2\\.5|3|3\\.5|4)(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])overflow-hidden(?![\\w-]))(?=[^\"'`]*(?<![\\w-])rounded-full(?![\\w-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/10)(?![\\w-]))",
+      // Las barras con clase propia: la de las tarjetas de Facturación (`kpi-apilada`) y las de Notas de crédito (`nc-conc`, `nc-barra`).
+      "className=\"[^\"]*(?<![\\w-])(?:kpi-apilada|nc-conc|nc-barra)(?![\\w-])",
+      // Una pieza homónima (la de Facturación y Proformas, con `partes` y leyenda propia): el mismo nombre que la del sistema.
+      "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraApilada\\b"
+    ],
+    "deuda": [
+      "components/CajaTablero.tsx",
+      "components/CierreCajaDetalle.tsx",
+      "components/ComprobantesGraficos.tsx",
+      "components/EficienciaTallerPanel.tsx",
+      "components/HistorialVentasPulso.tsx",
+      "components/NotasCreditoPanel.tsx",
+      "components/OrdenPanel.tsx",
+      "components/OrdenTarjeta.tsx",
+      "components/PagoPiezas.tsx",
+      "components/PorPagarControles.tsx",
+      "components/PorPagarLista.tsx",
+      "components/PorPagarProduccionPanel.tsx",
+      "components/ProveedoresIndicadores.tsx",
+      "components/RegistrarNotaCreditoModal.tsx"
     ],
     "excepciones": []
   },

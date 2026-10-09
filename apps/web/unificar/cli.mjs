@@ -226,7 +226,7 @@ async function capturar(pagina, inst, destino) {
  * Lo que de verdad pasa al pasar el mouse sobre una pieza (Felipe 2026-10-07): qué cambia y qué animación corre. Solo MUEVE el
  * mouse —nunca hace clic ni presiona—, así que no guarda nada. Es la prueba de lo que la huella leyó en el CSS.
  */
-const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra)/;
+const FAMILIAS_QUE_SE_TOCAN = /^(boton|accion\.|enlace|pestanas|casilla|combo|paginacion|cifra|grafico\.barra)/;
 async function medirEncima(pagina, uid) {
   const caja = await pagina.evaluate((u) => window.__unificarEnfocar(u), uid);
   if (!caja) return null;
