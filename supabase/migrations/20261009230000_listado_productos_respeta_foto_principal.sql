@@ -19,6 +19,9 @@
 --   md5(pg_get_functiondef(fn_productos_listado)) = 5674e6970aed1ab123af7d80365e793f
 --
 -- CÓMO SE DESHACE: el mismo reemplazo al revés (quitar `pf.es_principal desc, `).
+--
+-- EN PRODUCCIÓN desde el 2026-10-09 (MCP `apply_migration`, versión 20261009230000). Huellas DESPUÉS, iguales en local y en
+-- producción: fn_productos = de6ac046582defaf4ce223d6122d1fec · fn_productos_listado = 63ca8449357d29849770f0f6fab4ad1c.
 -- ============================================================================
 
 set lock_timeout = '3s';
