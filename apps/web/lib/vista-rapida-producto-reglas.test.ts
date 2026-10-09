@@ -5,6 +5,7 @@ import {
   armarMatriz,
   avisoSinUnidadesAqui,
   etiquetasDeLaSeleccion,
+  fichaCorta,
   HEX_SIN_COLOR,
   idsDeColumna,
   idsDeFila,
@@ -12,6 +13,7 @@ import {
   soloLasQueExisten,
   TALLA_UNICA,
   unidadesTexto,
+  vendidasEn30Dias,
 } from "./vista-rapida-producto-reglas";
 
 let n = 0;
@@ -219,5 +221,22 @@ describe("textos", () => {
   it("avisoSinUnidadesAqui nombra la sede y, si hay, lo de las otras", () => {
     expect(avisoSinUnidadesAqui("Tienda AQP", "+24 en LIM · +11 en TRU")).toBe("Sin unidades en Tienda AQP. En otras sedes: +24 en LIM · +11 en TRU.");
     expect(avisoSinUnidadesAqui("", null)).toBe("Sin unidades en tu sede.");
+  });
+});
+
+describe("fichaCorta (material, patrón, marca y ventas)", () => {
+  it("lista los cuatro datos en orden y dice null lo que falta", () => {
+    const f = fichaCorta({ tejido: " Lino ", patron: null, marca: "", demandaDiaria: 0.5 });
+    expect(f.map((d) => d.clave)).toEqual(["tejido", "patron", "marca", "vendidas"]);
+    expect(f[0].valor).toBe("Lino");
+    expect(f[1].valor).toBeNull();
+    expect(f[2].valor).toBeNull();
+    expect(f[3].valor).toBe("15 unidades en 30 días");
+  });
+  it("redacta las ventas sin promedios", () => {
+    expect(vendidasEn30Dias(0)).toBe("Ninguna en 30 días");
+    expect(vendidasEn30Dias(0.01)).toBe("Ninguna en 30 días");
+    expect(vendidasEn30Dias(1 / 30)).toBe("1 unidad en 30 días");
+    expect(vendidasEn30Dias(Number.NaN)).toBe("Ninguna en 30 días");
   });
 });
