@@ -89,6 +89,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
             stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
             apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
             stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
+            codigosBarras: v.codigosBarras,
           }))}
       />
     </div>
