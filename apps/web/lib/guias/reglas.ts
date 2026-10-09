@@ -83,11 +83,20 @@ export function pasoAplica(paso: PasoGuia, presentes: ReadonlySet<string>, ancho
 /**
  * ¿Se le ofrece la guía al entrar? Una vez por persona y por pantalla (Felipe, 2026-10-07): si ya se le ofreció (la vio, la
  * saltó o dijo «ahora no»), nunca más sola; para repetirla está «Demo» en su perfil.
+ *
+ * Y solo en las pantallas que son una ENTRADA DEL MENÚ de esa persona (Felipe, 2026-10-09: 79 ofertas por persona cansan). Una
+ * pantalla interna (una factura, editar un producto, un conteo) no se ofrece sola: su demo está en «Demo ▸ Esta pantalla».
  */
-export function debeOfrecer({ guiaId, vistas, leidas }: { guiaId: string; vistas: ReadonlySet<string>; leidas: boolean }): boolean {
+export function debeOfrecer({ guiaId, vistas, leidas, entradaDelMenu = true }: { guiaId: string; vistas: ReadonlySet<string>; leidas: boolean; entradaDelMenu?: boolean }): boolean {
   // Sin saber todavía qué vio (la lectura no llegó), no se ofrece: mejor tarde que dos veces.
-  if (!leidas) return false;
+  if (!leidas || !entradaDelMenu) return false;
   return !vistas.has(guiaId);
+}
+
+/** ¿La URL abierta es EXACTAMENTE una entrada del menú de esta persona? (`/compras` sí; `/compras/nueva` y `/compras/factura/9f` no). */
+export function esEntradaDelMenu(pathname: string, entradas: readonly string[]): boolean {
+  const limpio = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return entradas.some((e) => (e.length > 1 ? e.replace(/\/+$/, "") : e) === limpio);
 }
 
 export type Caja = { top: number; left: number; width: number; height: number };

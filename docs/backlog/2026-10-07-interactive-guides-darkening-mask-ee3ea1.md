@@ -10,3 +10,6 @@
 - [ ] **Recorrer con datos** lo que la base local no puede mostrar (⚠ del recorredor): Revisar y Confirmar conteo y la cara «contar»; Compras ▸ Mi parte; Producción con órdenes, insumos y facturas; Inicio de Almacén; Pedidos no atendidos; Análisis con prendas.
 - [ ] Movimiento rico (ADR-0362 act. d) aprobado de palabra: que Felipe lo mire en la tienda y diga si es demasiado.
 - [ ] Probar con 3 a 5 colaboradoras reales en la tienda (que la demo se entienda sin explicación, ADR-0350).
+- [x] Ofertas solo en las entradas del menú; «Demo ▸ Esta pantalla» para las internas (Felipe 2026-10-09).
+- [ ] **Tras fusionar, en la tienda:** abrir un conteo real y repetir las demos de Revisar y Confirmar conteo; Mi parte de la factura con una compra repartida; Producción con datos; Inicio de Almacén (Felipe 2026-10-09).
+- [ ] Refrescar el diccionario de datos con `retail.guias_vistas` (`datos:generar:produccion` tras refrescar el volcado).

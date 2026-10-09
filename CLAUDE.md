@@ -505,8 +505,9 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 ## Guías interactivas: una demo por pantalla, siempre al día (regla — ADR-0362, Felipe 2026-10-07)
 
 **Cada pantalla tiene una guía interactiva:** una demo con un velo oscuro que enciende una pieza a la vez y explica qué es y para qué
-sirve, en lenguaje de tienda. Se OFRECE una sola vez por persona y por pantalla, la primera vez que entra; para repetirla, **Mi perfil ▸
-Demo** (en una terminal, que no tiene perfil, el botón **«Demo» de la cabecera**) deja elegir el módulo o el submódulo. **La guía tiene que estar siempre al día:** si una pantalla gana, pierde o cambia un botón, un
+sirve, en lenguaje de tienda. Se OFRECE una sola vez por persona y por pantalla, la primera vez que entra, **solo en las entradas de su menú**
+(una pantalla interna —una factura, editar un producto— no se ofrece sola; Felipe 2026-10-09); para repetirla, **Mi perfil ▸
+Demo**, con «Esta pantalla» arriba (en una terminal, que no tiene perfil, el botón **«Demo» de la cabecera**) deja elegir el módulo o el submódulo. **La guía tiene que estar siempre al día:** si una pantalla gana, pierde o cambia un botón, un
 campo o una pestaña, su guía cambia en el mismo PR.
 
 **La demo NUNCA guarda.** Corre en la tienda de verdad. El piloto automático abre modales, cambia de pestaña, escribe un ejemplo sacado

@@ -1208,7 +1208,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
       {/* Guías interactivas (ADR-0362): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
           persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
       <Suspense fallback={null}>
-        <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} />
+        <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} />
       </Suspense>
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { debeOfrecer, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, totalEstimado } from "./reglas";
+import { debeOfrecer, esEntradaDelMenu, guiaDeRuta, motivoParaNoTocar, pasoAplica, posicionTarjeta, recorteDe, rutaCoincide, totalEstimado } from "./reglas";
 import type { Guia, PiezaATocar } from "./tipos";
 
 const pieza = (p: Partial<PiezaATocar>): PiezaATocar => ({ etiqueta: "button", texto: "", tipo: "button", enFormulario: false, href: null, rol: null, rutaActual: "/vender", ...p });
@@ -78,6 +78,21 @@ describe("pasos que dependen del estado", () => {
     expect(pasoAplica({ id: "a", ancla: null, titulo: "", texto: "", excluye: ["vender.buscador"] }, presentes, 1280)).toBe(false);
     expect(pasoAplica({ id: "a", ancla: null, titulo: "", texto: "", solo: "celular" }, presentes, 1280)).toBe(false);
     expect(pasoAplica({ id: "a", ancla: null, titulo: "", texto: "", solo: "celular" }, presentes, 375)).toBe(true);
+  });
+});
+
+describe("solo se ofrece sola en una entrada del menú", () => {
+  const menu = ["/", "/vender", "/compras", "/inventario/traslados"];
+  it("la entrada exacta sí; una pantalla interna o una ruta de otro, no", () => {
+    expect(esEntradaDelMenu("/compras", menu)).toBe(true);
+    expect(esEntradaDelMenu("/compras/", menu)).toBe(true);
+    expect(esEntradaDelMenu("/", menu)).toBe(true);
+    expect(esEntradaDelMenu("/compras/nueva", menu)).toBe(false);
+    expect(esEntradaDelMenu("/compras/factura/9f2c", menu)).toBe(false);
+    expect(esEntradaDelMenu("/finanzas/gastos", menu)).toBe(false);
+  });
+  it("una pantalla interna no se ofrece aunque nunca se haya visto", () => {
+    expect(debeOfrecer({ guiaId: "compras.nueva", vistas: new Set(), leidas: true, entradaDelMenu: false })).toBe(false);
   });
 });
 

@@ -214,3 +214,15 @@ una tarjeta, la fila 2 de una lista) o un botón que guarda y que solo se explic
 - **Toque «si está»:** `{ tipo: "clic", ancla, siEsta: true }` no espera ni avisa si la pieza no está.
 - **El escáner lee anclas dentro de `guia={…}`.**
 - **El recorredor mide la cobertura** (`--cobertura`).
+
+## Actualización 2026-10-09 — se ofrece sola solo en las entradas del menú (Felipe)
+
+Con 79 guías, «una vez por persona y por pantalla» eran hasta 79 ofertas por persona. Felipe tomó la recomendación: la demo se
+**ofrece sola solo en las pantallas que son una entrada del menú de esa persona** (`esEntradaDelMenu`, con su prueba; las rutas
+salen del mismo `menuPara` del lateral). Una pantalla interna (una factura, editar un producto, un conteo, Series) no se ofrece sola.
+Su demo queda a un toque: el selector «Demo» muestra arriba **«Esta pantalla»** cuando la pantalla abierta tiene guía. Verificado con
+la terminal de ventas en Comprobantes ▸ Series: sin oferta, y «Esta pantalla» arranca su guía.
+
+Pendiente de la tienda (Felipe tomó la recomendación del punto 2): las pantallas sin datos locales (Revisar y Confirmar conteo, Mi
+parte de la factura, Producción con datos, Inicio de Almacén) se verifican después de fusionar, con datos reales, repitiendo su demo
+desde «Demo ▸ Esta pantalla».

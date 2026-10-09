@@ -30,17 +30,42 @@ export function ElegirDemoModal({ filas, onClose }: { filas: readonly FilaMenu[]
   const pathname = usePathname();
   const grupos = agrupar(filas);
   const conGuia = grupos.reduce((n, g) => n + g.hojas.filter((h) => h.tieneGuia).length, 0);
+  // La pantalla donde estás, si tiene guía: es la puerta de las pantallas internas (una factura, editar un producto), que ya no
+  // ofrecen su demo solas (Felipe, 2026-10-09: solo las entradas del menú).
+  const aqui = guiaDeRuta(pathname, GUIAS);
 
   return (
     <Modal
       titulo="Demo del sistema"
-      subtitulo={`Elige qué quieres ver y te lo mostramos paso a paso, en la pantalla de verdad. No se guarda nada. ${conGuia === 1 ? "Hay 1 demo lista" : `Hay ${conGuia} demos listas`}; las demás vienen pronto.`}
+      subtitulo={`Elige qué quieres ver y te lo mostramos paso a paso, en la pantalla de verdad. No se guarda nada.${conGuia === 0 ? "" : ` ${conGuia === 1 ? "1 demo" : `${conGuia} demos`} en tu menú.`}`}
       variante="hoja"
       ancho="max-w-lg"
       onClose={onClose}
     >
       {(cerrar) => (
         <div className="mt-2 space-y-5">
+          {aqui && (
+            <section aria-labelledby="demo-aqui">
+              <h3 id="demo-aqui" className="label-cayla mb-2 text-[11px] text-taupe-profundo">
+                Esta pantalla
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  cerrar();
+                  setTimeout(abrirGuiaAqui, 260);
+                }}
+                className="group flex w-full items-center gap-3 rounded-xl border border-tinta/25 bg-papel px-4 py-3 text-left transition-colors hover:bg-sand/35"
+              >
+                <PlayCircle className="h-[18px] w-[18px] shrink-0 text-tinta" aria-hidden />
+                <span className="flex-1">
+                  <span className="block text-sm text-tinta">{aqui.titulo}</span>
+                  <span className="mt-0.5 block text-xs text-tinta/60">{aqui.resumen}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-tinta/40 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" aria-hidden />
+              </button>
+            </section>
+          )}
           {grupos.map((g) => (
             <section key={g.id} aria-labelledby={`demo-${g.id}`}>
               <h3 id={`demo-${g.id}`} className="label-cayla mb-2 text-[11px] text-taupe-profundo">

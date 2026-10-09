@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Boton } from "@/components/ui/campos";
 import { GUIAS } from "@/lib/guias/registro";
-import { debeOfrecer, guiaDeRuta } from "@/lib/guias/reglas";
+import { debeOfrecer, esEntradaDelMenu, guiaDeRuta } from "@/lib/guias/reglas";
 import type { Guia } from "@/lib/guias/tipos";
 import { GuiaInteractiva, type FinDeGuia } from "./GuiaInteractiva";
 import { leerVistas, marcarVista } from "./vistas";
@@ -25,7 +25,7 @@ export function abrirGuiaAqui() {
 /** Cuánto espera la oferta tras llegar: que la pantalla termine de dibujarse y el loader se vaya. */
 const ESPERA_OFERTA_MS = 1400;
 
-export function MotorGuias({ quien }: { quien: string }) {
+export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas del menú de esta persona: solo ahí se ofrece sola. */ entradas: readonly string[] }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const guia = guiaDeRuta(pathname, GUIAS);
@@ -100,7 +100,7 @@ export function MotorGuias({ quien }: { quien: string }) {
 
   // La oferta de la primera vez. Se anota como ofrecida en cuanto se muestra: si la persona se va sin responder, igual ya
   // se le ofreció (no se le insiste).
-  const ofrecer = !!guia && !corriendo && !pideDemo && vistas?.quien === quien && debeOfrecer({ guiaId: guia.id, vistas: vistas.ids, leidas: true });
+  const ofrecer = !!guia && !corriendo && !pideDemo && vistas?.quien === quien && debeOfrecer({ guiaId: guia.id, vistas: vistas.ids, leidas: true, entradaDelMenu: esEntradaDelMenu(pathname, entradas) });
   useEffect(() => {
     if (!ofrecer || !guia) return;
     const t = setTimeout(() => {
