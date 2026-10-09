@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2, X, FunnelX } from "lucide-react";
+import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2, X, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
@@ -35,6 +35,7 @@ import {
 } from "@/lib/productos-vista";
 import { margenPorcentaje } from "@/lib/alta-producto";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
@@ -822,6 +823,7 @@ function BarraMarcadas({
   const variantes = seleccion.flatMap((p) => p.variantes.filter((v) => v.activo).map((v) => v.varianteId));
   const hayActivas = seleccion.some((p) => p.estado === "activo");
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
+  const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
     "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
   const boton = `${forma} hover:bg-crema/10`;
@@ -867,6 +869,13 @@ function BarraMarcadas({
         <Printer aria-hidden className="h-4 w-4" />
         Etiquetas
       </EnlaceEtiquetas>
+      {/* El rótulo del anaquel (ADR-0366): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}
+      {hrefRotulos && (
+        <Link href={hrefRotulos} className={boton} tabIndex={n > 0 ? 0 : -1}>
+          <SignpostBig aria-hidden className="h-4 w-4" />
+          Rótulo
+        </Link>
+      )}
       <span aria-hidden className="mx-1 hidden h-5 w-px bg-crema/20 sm:block" />
       <button
         type="button"

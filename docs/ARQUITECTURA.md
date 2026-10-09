@@ -640,6 +640,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
   almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
   (sububicaciones de la sede) a `ProductoForm` → `ContextoFicha`. Es inmediato y aparte de «Revisar y guarda».
+- `/rotulos?productos=…&origen=existencias|almacen` o `&desde=<vista de Productos>` (ADR-0366; sin módulo propio, como
+  Etiquetas de precio: la salida de Productos, Existencias e Inicio de Almacén) → `lib/rotulos.ts` (`getRotulos`: los modelos
+  pedidos con sus colores y tallas activos, y el catálogo activo para el buscador; solo lectura, SIN RPC ni tabla nueva) +
+  `lib/rotulos-reglas.ts` (uno por modelo o todos juntos, tamaño del nombre, enlaces de ida y vuelta) →
+  `components/ImprimirRotulos.tsx` + `components/RotuloAnaquel.tsx` (100 × 62 mm, CSS en `app/estilos/rotulo.css`). Imprime con
+  `components/impresion/useImpresionBrother.tsx`, el mismo camino de Etiquetas de precio (Windows: diálogo; Mac: ayudante v2 con
+  `?medida=62x100mm`).
 - `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?producto=` también desde el éxito de Nuevo producto; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
   pantallas) → `lib/etiquetas-precio.ts` (`getEtiquetasDePrecio`: las `movimientos` de entrada del ingreso por `lote_id` o
   `produccion_id`, o el `stock` de la tienda de la sesión para una campaña o un producto; el alcance de una campaña y la
