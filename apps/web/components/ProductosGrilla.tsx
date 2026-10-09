@@ -24,8 +24,8 @@ import {
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { VistaRapidaProducto } from "@/components/vista-rapida/VistaRapidaProducto";
-import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
-import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, guardarTamanoGrilla, type TamanoGrilla } from "@/lib/tamano-grilla";
+import { useTamanoGrilla } from "@/components/SelectorTamanoGrilla";
+import { CLASES_GRILLA, TAMANO_GRILLA_POR_DEFECTO, type TamanoGrilla } from "@/lib/tamano-grilla";
 import { FunnelX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
@@ -81,12 +81,9 @@ export function ProductosGrilla({
   useEffect(() => {
     if (productos.length > 0) void leer(productos.map((p) => p.productoId));
   }, [productos, leer]);
-  // Cuánto ver de un vistazo (Felipe, 2026-09-29): cambia cuántas tarjetas caben por fila, no cuántas trae la página.
-  const [tamano, setTamano] = useState<TamanoGrilla>(tamanoInicial);
-  const elegirTamano = (t: TamanoGrilla) => {
-    setTamano(t);
-    guardarTamanoGrilla(t);
-  };
+  // Cuánto ver de un vistazo (Felipe, 2026-09-29): cambia cuántas tarjetas caben por fila, no cuántas trae la página. El control
+  // vive en la barra de resultados, junto al conteo (`SelectorTamanoGrilla`, 2026-10-09).
+  const [tamano] = useTamanoGrilla(tamanoInicial);
 
   if (productos.length === 0) {
     // Los filtros (o la búsqueda) dejaron cero: la pieza única del vacío (ADR-0358 ronda 5). Limpiar vive en la barra de filtros.
@@ -100,25 +97,22 @@ export function ProductosGrilla({
   }
 
   return (
-    <div className="space-y-4">
-      <SelectorTamanoGrilla valor={tamano} onCambiar={elegirTamano} />
-      <div className={`grid ${CLASES_GRILLA[tamano]}`}>
-        {productos.map((p) => (
-          <TarjetaProducto
-            key={p.productoId}
-            producto={p}
-            existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
-            veExistencias={veExistencias}
-            veMovimientos={veMovimientos}
-            stock={stockSede.de(p.productoId)}
-            leer={leer}
-            sede={sede}
-            puedeEditar={puedeEditar}
-            puedeEliminar={puedeEliminar}
-            compacta={tamano === "pequeno"}
-          />
-        ))}
-      </div>
+    <div className={`grid ${CLASES_GRILLA[tamano]}`}>
+      {productos.map((p) => (
+        <TarjetaProducto
+          key={p.productoId}
+          producto={p}
+          existencias={existencias === null ? null : (existencias.get(p.productoId) ?? SIN_EXISTENCIAS)}
+          veExistencias={veExistencias}
+          veMovimientos={veMovimientos}
+          stock={stockSede.de(p.productoId)}
+          leer={leer}
+          sede={sede}
+          puedeEditar={puedeEditar}
+          puedeEliminar={puedeEliminar}
+          compacta={tamano === "pequeno"}
+        />
+      ))}
     </div>
   );
 }
