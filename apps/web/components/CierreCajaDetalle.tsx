@@ -10,6 +10,7 @@ import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
 import { cuadreDelTurno, duracionTurno, estadoCierre, rutaDelEfectivo } from "@/lib/historial-cierres-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 function money(n: number) {
   return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -151,10 +152,17 @@ function DetalleCierreModal({
                 <p className="text-sm font-semibold text-tinta">A dónde fue el efectivo</p>
                 <p className="text-xs text-tinta/60">de {money(ruta.total)}</p>
               </div>
-              <div className="my-2.5 flex h-2.5 overflow-hidden rounded-full bg-sand" role="img" aria-label={`${ruta.pctTrasladado} % trasladado, ${ruta.pctQuedo} % quedó en el cajón`}>
-                <div className="bg-rojo" style={{ width: `${ruta.pctTrasladado}%` }} />
-                <div className="bg-verde" style={{ width: `${ruta.pctQuedo}%` }} />
-              </div>
+              {/* La barra es `<BarraApilada>` (ADR-0358): lo trasladado contra lo que quedó, medido sobre el 100 %. */}
+              <BarraApilada
+                className="my-2.5"
+                alto={12}
+                total={100}
+                etiqueta={`${ruta.pctTrasladado} % trasladado, ${ruta.pctQuedo} % quedó en el cajón`}
+                segmentos={[
+                  { clave: "trasladado", nombre: "Trasladado", valor: ruta.pctTrasladado, clase: "bg-rojo" },
+                  { clave: "quedo", nombre: "Quedó en el cajón", valor: ruta.pctQuedo, clase: "bg-verde" },
+                ]}
+              />
               <dl className="space-y-1 text-sm">
                 {cierre.traslados.map((t, i) => (
                   <div key={i} className="flex items-start justify-between gap-3">

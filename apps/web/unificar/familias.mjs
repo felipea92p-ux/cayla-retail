@@ -549,8 +549,6 @@ export const DECISIONES = {
       "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraApilada\\b"
     ],
     "deuda": [
-      "components/CajaTablero.tsx",
-      "components/CierreCajaDetalle.tsx",
       "components/EficienciaTallerPanel.tsx",
       "components/OrdenPanel.tsx",
       "components/OrdenTarjeta.tsx"
