@@ -67,7 +67,8 @@ export function BuscadorVentas({
   sede: string;
   buscando: boolean;
   campoRef: RefObject<HTMLInputElement | null>;
-  onBuscar: (texto: string, todas: boolean) => void;
+  /** `leida`: la búsqueda la disparó la pistola (no lo tecleado): si trae una sola compra, la pantalla la abre directo. */
+  onBuscar: (texto: string, todas: boolean, leida?: boolean) => void;
   onLimpiar: () => void;
   onSinComprobante: () => void;
   /** Deja «Escanear prenda» al alcance de otra pieza (la barra fija del celular en Devoluciones):
@@ -111,7 +112,7 @@ export function BuscadorVentas({
       const busqueda = busquedaDesdeLectura(codigo);
       setEscaneando(false);
       setTexto(busqueda);
-      onBuscar(busqueda, todas);
+      onBuscar(busqueda, todas, true);
     },
   });
 
