@@ -15,7 +15,7 @@ sin la fila de atajos y el mosaico ordenado por frecuencia):
 
 1. **Once conceptos en palabras de tienda** (Agua, Luz, Internet y celular, Baño, Movilidad, Envío, Bolsas, Limpieza, Útiles, Arreglo,
    Refrigerio) y «Otro». Cada concepto ya trae su categoría contable de `categorias_gasto` (`lib/gasto-rapido-reglas.ts`, `CONCEPTOS`):
-   nadie la elige. Baño va a Servicios básicos.
+   nadie la elige. Baño va a Servicios básicos (confirmado por Felipe, 2026-10-09).
    **Refrigerio** es solo del EQUIPO en el turno (café, almuerzo, agua de mesa; Felipe 2026-10-09) y va a una categoría nueva,
    **«Atención al personal»**, cuenta **62 · Gastos de personal** (migración `20261009235900`). Ninguna existente calzaba: en Suministros
    se mezclaba con bolsas y lejía. No es planilla (esa se lee de Dynamic). Lo que se le invita a un cliente sería otra cuenta y queda fuera.
