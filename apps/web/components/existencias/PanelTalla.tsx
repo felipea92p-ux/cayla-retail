@@ -603,7 +603,7 @@ export function PanelTalla({
                 )}
               </div>
 
-              <div key={`${vista}-${prenda.clave}`} className="anim-asentar scroll-cayla grid min-h-0 flex-1 content-start gap-3.5 overflow-y-auto px-[18px] pb-[18px] pt-3.5">
+              <div key={`${vista}-${prenda.clave}`} className="anim-asentar scroll-cayla grid min-h-0 flex-1 auto-rows-max content-start gap-3.5 overflow-y-auto px-[18px] pb-[18px] pt-3.5">
                 {hecho && (
                   <p role="status" className="flex items-center gap-2 rounded-xl bg-verde/[0.10] px-3 py-2.5 text-sm font-medium text-verde">
                     <Check aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2.4} />
