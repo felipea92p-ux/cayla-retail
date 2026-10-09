@@ -9,7 +9,6 @@ import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { EstadoComprobante } from "./comprobantes-reglas";
 import { codigoPrenda } from "./prenda-reglas";
 import { armarRecibo, type PagoRecibo, type ReciboVenta, type TipoDocCliente, type TipoReciboFiscal } from "./recibo-reglas";
-import { nombresCortos } from "./nombre-integrante";
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -93,8 +92,8 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   const pagosReales = filas.pagos.filter((p): p is FilaVentaPago & { metodo: MetodoPagoVenta } => p.metodo !== "redondeo");
   const redondeo = redondear2(filas.pagos.filter((p) => p.metodo === "redondeo").reduce((a, p) => a + p.monto, 0));
 
-  // El papel dice el primer nombre de quien atendió (`ctx.vendedor` llega completo, o `null`/«—» si no se sabe).
-  const atendio = ctx.vendedor ? (nombresCortos([ctx.vendedor]).get(ctx.vendedor) ?? null) : null;
+  // El papel dice el nombre completo de quien atendió (Felipe 2026-10-09); `ctx.vendedor` es `null` o «—» si no se sabe.
+  const atendio = ctx.vendedor && ctx.vendedor.trim() !== "—" ? ctx.vendedor.trim() || null : null;
 
   const c = filas.comprobante;
   // Imprimible: boleta, factura y la nota de venta (ADR-0164), que sale en el mismo papel sin IGV.
