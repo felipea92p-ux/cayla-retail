@@ -45,21 +45,14 @@ function escaparAtributo(texto: string): string {
 }
 
 /** Lo que la pantalla sabe del ayudante de esta Mac. */
-export type EstadoAyudante = "comprobando" | "listo" | "sin-ayudante" | "desactualizado" | "sin-impresora" | "sin-chrome";
-
-/** La versión del ayudante que sabe imprimir con otra medida (`?medida=`): los rótulos de anaquel la necesitan (ADR-0366). */
-export const VERSION_CON_MEDIDA = 2;
-
-/** El papel del rótulo de anaquel: el rollo de 62 mm cortado cada 100 mm (`POST /imprimir?medida=`, lista en `servidor.sh`). */
-export const MEDIDA_ROTULO = "62x100mm";
+export type EstadoAyudante = "comprobando" | "listo" | "sin-ayudante" | "sin-impresora" | "sin-chrome";
 
 /** Lee la respuesta de `GET /estado` (o su falta: `null` si no contestó, que es lo normal cuando no está instalado).
- *  `versionMinima`: la que necesita la pantalla; uno más viejo imprimiría en el papel de la etiqueta y no en el suyo. */
-export function estadoDelAyudante(respuesta: unknown, versionMinima = 1): EstadoAyudante {
+ */
+export function estadoDelAyudante(respuesta: unknown): EstadoAyudante {
   if (!respuesta || typeof respuesta !== "object") return "sin-ayudante";
-  const r = respuesta as { ok?: unknown; chrome?: unknown; impresora?: unknown; version?: unknown };
+  const r = respuesta as { ok?: unknown; chrome?: unknown; impresora?: unknown };
   if (r.ok !== true) return "sin-ayudante";
-  if ((typeof r.version === "number" ? r.version : 1) < versionMinima) return "desactualizado";
   if (r.chrome === false) return "sin-chrome";
   if (r.impresora === false) return "sin-impresora";
   return "listo";
@@ -79,13 +72,6 @@ export function avisoDelAyudante(estado: EstadoAyudante): { resumen: string; tit
         titulo: "Esta Mac todavía no tiene el ayudante de etiquetas",
         detalle:
           "Sin él, la Mac manda la etiqueta girada y la Brother la saca más larga de lo necesario. Se instala una vez: abre Terminal, pega la línea de abajo y presiona Enter. Si Chrome pregunta por acceso a la red local, elige Permitir.",
-      };
-    case "desactualizado":
-      return {
-        resumen: "Puedes imprimir igual. Para que salga a la medida exacta, esta Mac necesita una actualización de un minuto.",
-        titulo: "El ayudante de esta Mac es de una versión anterior",
-        detalle:
-          "Imprime las etiquetas de precio, pero no conoce el papel de los rótulos. Se actualiza igual que se instaló: abre Terminal, pega la línea de abajo y presiona Enter.",
       };
     case "sin-impresora":
       return {

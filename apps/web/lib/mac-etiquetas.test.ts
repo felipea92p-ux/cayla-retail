@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { avisoDelAyudante, COMANDO_INSTALAR, documentoParaAyudante, estadoDelAyudante, MEDIDA_ROTULO, PREFIJO_DOCUMENTO, resultadoDeImpresion, URL_AYUDANTE, VERSION_CON_MEDIDA } from "./mac-etiquetas";
+import { avisoDelAyudante, COMANDO_INSTALAR, documentoParaAyudante, estadoDelAyudante, PREFIJO_DOCUMENTO, resultadoDeImpresion, URL_AYUDANTE } from "./mac-etiquetas";
 
 const SERVIDOR = readFileSync(join(__dirname, "../public/mac-etiquetas/servidor.sh"), "utf8");
 const INSTALAR = readFileSync(join(__dirname, "../public/mac-etiquetas/instalar.sh"), "utf8");
@@ -57,23 +57,15 @@ describe("estadoDelAyudante", () => {
   it("solo «listo» y «comprobando» callan; el resto dice qué hacer", () => {
     expect(avisoDelAyudante("listo")).toBeNull();
     expect(avisoDelAyudante("comprobando")).toBeNull();
-    for (const e of ["sin-ayudante", "desactualizado", "sin-impresora", "sin-chrome"] as const) expect(avisoDelAyudante(e)?.titulo).toBeTruthy();
+    for (const e of ["sin-ayudante", "sin-impresora", "sin-chrome"] as const) expect(avisoDelAyudante(e)?.titulo).toBeTruthy();
   });
   it("lo que se ve es una línea que dice que SÍ se puede imprimir, sin jerga (Formidable 2026-10-09)", () => {
-    for (const e of ["sin-ayudante", "desactualizado", "sin-impresora", "sin-chrome"] as const) {
+    for (const e of ["sin-ayudante", "sin-impresora", "sin-chrome"] as const) {
       const r = avisoDelAyudante(e)!.resumen;
       expect(r).toMatch(/^Puedes imprimir igual\./);
       expect(r).not.toMatch(/Terminal|curl|instalar\.sh|red local/);
       expect(r.length).toBeLessThanOrEqual(110);
     }
-  });
-  it("un ayudante más viejo que lo que pide la pantalla está desactualizado (ADR-0366)", () => {
-    // Una respuesta sin versión cuenta como la 1.
-    expect(estadoDelAyudante({ ok: true, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");
-    expect(estadoDelAyudante({ ok: true, version: 1, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");
-    expect(estadoDelAyudante({ ok: true, version: 2, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("listo");
-    // Las etiquetas de precio no piden versión: la 1 sigue sirviendo.
-    expect(estadoDelAyudante({ ok: true, version: 1, chrome: true, impresora: true })).toBe("listo");
   });
 });
 
@@ -105,9 +97,5 @@ describe("el ayudante y la web dicen lo mismo", () => {
   });
   it("la medida que manda a la Brother es la del corte (ADR-0180)", () => {
     expect(SERVIDOR).toContain("Custom.62x40.1mm");
-  });
-  it("el ayudante conoce el papel del rótulo y dice la versión que lo trae (ADR-0366)", () => {
-    expect(SERVIDOR).toMatch(new RegExp(`medida_permitida\\(\\)[\\s\\S]*?${MEDIDA_ROTULO.replace(".", "\\.")}`));
-    expect(SERVIDOR).toContain(`VERSION=${VERSION_CON_MEDIDA}`);
   });
 });
