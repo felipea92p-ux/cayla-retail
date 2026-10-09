@@ -12,7 +12,7 @@ import { diasHasta, etiquetaTipo, type ComprobanteProduccion } from "@/lib/compr
 import { nombreDeMes, resumenDeuda, tramosPorPagar, type DeudaFila, type IgvMes } from "@/lib/por-pagar-produccion-reglas";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
-import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -146,11 +146,11 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
               />
               <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
                 <span>
-                  <i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-tinta align-middle" />
+                  <MuestraTramo clase="bg-tinta" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Producción {soles(consolidado.porOrigen.produccion.saldo)} · {plural(consolidado.porOrigen.produccion.proveedores, "proveedor", "proveedores")}
                 </span>
                 <span>
-                  <i className="mr-1.5 inline-block h-2 w-2 rounded-full bg-tinta/30 align-middle" />
+                  <MuestraTramo clase="bg-tinta/30" className="mr-1.5 h-2 w-2 rounded-full align-middle" />
                   Compras {soles(consolidado.porOrigen.compras.saldo)} · {plural(consolidado.porOrigen.compras.proveedores, "proveedor", "proveedores")}
                 </span>
               </p>
