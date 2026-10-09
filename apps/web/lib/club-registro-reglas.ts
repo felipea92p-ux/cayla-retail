@@ -241,13 +241,9 @@ const capital = (p: string) => p.charAt(0).toLocaleUpperCase("es") + p.slice(1).
 const inicial = (g: readonly string[]) => `${(g.find((p) => !esParticula(p)) ?? g[0] ?? "").charAt(0).toLocaleUpperCase("es")}.`;
 const palabras = (t: string) => t.trim().split(" ").filter(Boolean);
 
-/**
- * «¿Eres Lucía P. S.?»: el primer nombre entero y la inicial de cada apellido. Para que ella confirme que tipeó bien su DNI sin
- * que la página revele el nombre completo de nadie (ADR-0288 G-3). Con una coma («PÉREZ SALAS, LUCÍA») se sabe qué es qué;
- * si no, manda el orden de la fuente. Si el orden real fuera otro, se vería el primer apellido entero y lo demás en iniciales:
- * sigue a medias. null sin nombre.
- */
-export function nombreAMedias(nombre: string | null | undefined, orden: OrdenDelNombre): string | null {
+/** El nombre del padrón partido en nombres y apellidos (cada uno en grupos de palabras: «DE LA CRUZ» es uno). Con una coma
+ *  («PÉREZ SALAS, LUCÍA») se sabe qué es qué; si no, manda el orden de la fuente. null sin nombre. */
+function partesDelNombre(nombre: string | null | undefined, orden: OrdenDelNombre): { nombres: string[][]; apellidos: string[][] } | null {
   const limpio = (nombre ?? "").replace(/\s+/g, " ").trim();
   if (!limpio) return null;
   let nombres: string[][];
@@ -268,9 +264,31 @@ export function nombreAMedias(nombre: string | null | undefined, orden: OrdenDel
       apellidos = g.slice(g.length - nApellidos);
     }
   }
-  const primero = nombres[0];
-  if (!primero) return null;
-  return [primero.map(capital).join(" "), ...apellidos.map(inicial)].join(" ");
+  return nombres.length > 0 ? { nombres, apellidos } : null;
+}
+
+/**
+ * «¿Eres Lucía P. S.?»: el primer nombre entero y la inicial de cada apellido. Para que ella confirme que tipeó bien su DNI sin
+ * que la página revele el nombre completo de nadie (ADR-0288 G-3). Si el orden real fuera otro, se vería el primer apellido entero
+ * y lo demás en iniciales: sigue a medias. null sin nombre.
+ */
+export function nombreAMedias(nombre: string | null | undefined, orden: OrdenDelNombre): string | null {
+  const partes = partesDelNombre(nombre, orden);
+  const primero = partes?.nombres[0];
+  if (!partes || !primero) return null;
+  return [primero.map(capital).join(" "), ...partes.apellidos.map(inicial)].join(" ");
+}
+
+/**
+ * El nombre del padrón en las dos cajas de un formulario («Nombres» y «Apellidos»), con mayúscula inicial: «PEREZ SALAS LUCIA
+ * MARIA» (SUNAT, apellidos primero) → { nombres: «Lucia Maria», apellidos: «Perez Salas» }. Lo usa Apartados al no encontrar
+ * la ficha por DNI (ADR-0367). Se puede corregir a mano: es una propuesta, no un dato sellado. null sin nombre.
+ */
+export function nombresYApellidos(nombre: string | null | undefined, orden: OrdenDelNombre): { nombres: string; apellidos: string } | null {
+  const partes = partesDelNombre(nombre, orden);
+  if (!partes) return null;
+  const texto = (g: string[][]) => g.map((p) => p.map((x) => (esParticula(x) ? x.toLocaleLowerCase("es") : capital(x))).join(" ")).join(" ");
+  return { nombres: texto(partes.nombres), apellidos: texto(partes.apellidos) };
 }
 
 /* ------------------------------------------------------------------ Lo que ella escribe */
