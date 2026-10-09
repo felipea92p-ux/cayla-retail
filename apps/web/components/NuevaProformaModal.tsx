@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Shirt, X } from "lucide-react";
@@ -19,6 +19,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 
@@ -90,6 +91,18 @@ export function NuevaProformaModal({
   const faltaMotivo = filas.some((f) => f.pct > 0 && (!f.motivo || (f.motivo === "otro" && !f.detalle.trim())));
   const diasValidos = Math.max(1, Math.min(60, Math.round(Number(dias)) || 7));
 
+  // La pistola, la misma pieza de Vender (`usePistola`): lo leído es un código exacto (nunca la primera sugerencia), no se pega
+  // a lo que había escrito y se lee aunque la pistola no mande Enter. El campo queda vacío para la siguiente lectura.
+  const buscador = useRef<HTMLInputElement>(null);
+  usePistola(buscador, {
+    alLeer: ({ codigo }) => {
+      setQ("");
+      const v = resolverCodigoV2(codigo, prendas);
+      if (v) agregar(v);
+      else avisar.error(`No encontramos «${codigo}». Revisa el código de la etiqueta.`);
+    },
+  });
+
   function agregar(p: PrendaParaProforma) {
     setFilas((actual) =>
       actual.some((f) => f.prenda.varianteId === p.varianteId)
@@ -157,6 +170,7 @@ export function NuevaProformaModal({
           {/* El buscador: referencia, SKU o código de etiqueta; Enter con un código exacto (escáner) la agrega. */}
           <div className="relative">
             <Buscador
+              ref={buscador}
               valor={q}
               onCambio={setQ}
               onKeyDown={(e) => {
