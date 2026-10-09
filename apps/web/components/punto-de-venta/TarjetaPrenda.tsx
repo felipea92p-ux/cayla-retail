@@ -28,6 +28,8 @@ type Props = {
   onAgregar: (v: VarianteBusqueda) => void;
   /** Tocar la prenda (o «+N»): el padre abre «Todo de la prenda» en el color que se está viendo. */
   onAbrir: (clave: string, colorClave: string | undefined) => void;
+  /** «Precio de Trujillo» bajo el precio si este color se vende aquí a precio propio (Felipe 2026-10-09). */
+  etiquetaPrecioSede: string;
 };
 
 /**
@@ -38,7 +40,7 @@ type Props = {
  * El color elegido es estado local de PRESENTACIÓN (como `catalogoAbierto` del panel, ADR-0043): no cambia nada de
  * negocio y vivir en el padre haría redibujar el ticket con cada punto.
  */
-export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, onAgregar, onAbrir }: Props) {
+export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, onAgregar, onAbrir, etiquetaPrecioSede }: Props) {
   const [fijo, setFijo] = useState<string | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
   const buscar = (clave: string | null) => (clave ? prenda.colores.find((c) => c.clave === clave) : undefined);
@@ -191,8 +193,14 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       {/* `flex-wrap` + `whitespace-nowrap`: a 375 px la tarjeta mide ~140 px; si precio y stock no caben en una fila, el
           stock baja entero a la siguiente en vez de partirse encima del precio. */}
       <div className="pointer-events-none mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-1">
-        <span className="text-sm font-bold tabular-nums text-tinta">
-          {elegido.precioMin === elegido.precioMax ? money(elegido.precioMin) : `desde ${money(elegido.precioMin)}`}
+        <span className="flex flex-col">
+          <span className="text-sm font-bold tabular-nums text-tinta">
+            {elegido.precioMin === elegido.precioMax ? money(elegido.precioMin) : `desde ${money(elegido.precioMin)}`}
+          </span>
+          {/* Para la colaboradora, no para el cliente: este precio es el de su tienda, distinto del de las demás. */}
+          {elegido.tallas.some((t) => t.variante.precioDeSede) && (
+            <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioSede}</span>
+          )}
         </span>
         {/* En una tienda es solo el PISO del color elegido; en el Taller (sin almacén) es todo lo de la sede. */}
         <span className={`whitespace-nowrap text-[11px] tabular-nums ${piso === 0 && almacen > 0 ? "text-ambar-profundo" : piso === 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>

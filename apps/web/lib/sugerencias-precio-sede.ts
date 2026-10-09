@@ -5,16 +5,11 @@
 // precio (o igual al general) → el neutro. El nombre de la tienda sale de la sede elegida, sin «Tienda» delante, que es
 // como se dice en la tienda. Puro y determinista.
 
-import { leerMonto } from "./precio-sede-reglas";
+import { leerMonto, nombreCorto } from "./precio-sede-reglas";
 
 export type OrigenMotivo = "precio" | "neutro";
 
 export const MOTIVO_NEUTRO = "Por qué esta tienda tiene otro precio";
-
-/** «Tienda Arequipa» → «Arequipa»; «Boutique Lima» queda igual si no empieza con «Tienda». */
-export function nombreCorto(sede: string): string {
-  return sede.replace(/^tienda\s+/i, "").trim() || sede;
-}
 
 export function sugerirMotivo(h: { sede: string | null; monto: string; general: number | null }): { texto: string; origen: OrigenMotivo } {
   const precio = leerMonto(h.monto);

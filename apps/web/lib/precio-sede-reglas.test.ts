@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
 import {
   camposPonerPrecio,
+  conPreciosDeSede,
+  etiquetaPrecioDeSede,
+  leerPreciosEnSede,
   desdeHace,
   fraseDiferencia,
   leerMonto,
@@ -75,5 +78,20 @@ describe("la guía de «Precio distinto en una sede»", () => {
   });
   it("un precio muy lejos NO bloquea: solo pregunta", () => {
     expect(sePuedeConfirmar(camposPonerPrecio({ ...base, monto: "1299" }))).toBe(true);
+  });
+});
+
+describe("el precio en una tienda, sobre lo ya leído", () => {
+  it("el propio pisa al general; las demás prendas quedan igual", () => {
+    const generales = new Map([["a", 79.9], ["b", 59.9]]);
+    const propios = leerPreciosEnSede([{ variante_id: "a", precio: "89.90" }, { variante_id: "zz", precio: 10 }]);
+    expect([...conPreciosDeSede(generales, propios)]).toEqual([["a", 89.9], ["b", 59.9]]);
+  });
+  it("sin propios, el general tal cual", () => {
+    expect([...conPreciosDeSede(new Map([["a", 79.9]]), new Map())]).toEqual([["a", 79.9]]);
+  });
+  it("la marca para la colaboradora dice la tienda corta", () => {
+    expect(etiquetaPrecioDeSede("Tienda Arequipa")).toBe("Precio de Arequipa");
+    expect(etiquetaPrecioDeSede("Taller")).toBe("Precio de Taller");
   });
 });

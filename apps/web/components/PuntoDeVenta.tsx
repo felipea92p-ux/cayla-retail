@@ -153,6 +153,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   /** `#rrggbb` del color de la variante (`colores.hex`): el fondo del ícono en la grilla y en el buscador. Ausente = el tono de su familia. */
   colorHex?: string | null;
   precio: number;
+  /** El precio de arriba es el de ESTA tienda (precio propio, Felipe 2026-10-09): la tarjeta se lo dice a la colaboradora con
+   *  «Precio de Trujillo». El cliente no lo ve: para él es el precio. Ausente = el general. */
+  precioDeSede?: boolean;
   /** La campaña de mayor % que rige HOY para esta prenda (`campanas_vigentes()`), o null.
    *  La base la elige y la vuelve a verificar al cobrar; acá solo se muestra y se aplica. */
   campana?: CampanaLinea | null;
@@ -756,6 +759,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         });
       }
     },
+    ubicacionId,
   );
 
   /** Tras una venta que la base aceptó (en línea o al subir la cola): descuenta lo vendido al instante, relee esas

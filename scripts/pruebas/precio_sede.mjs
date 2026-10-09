@@ -180,6 +180,35 @@ select descripcion from retail.actividad where modulo = 'productos' and ocurrio_
   );
 }
 
+// 11. La caja de Trujillo cobra el precio de Trujillo (`registrar_venta`, 20261010100200): al precio de la tienda pasa, al
+//     general se rechaza con «el precio cambió». Caja propia y colchón de stock, como `registrar_venta.mjs`.
+{
+  const CAJA = `
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select :'tru', 'Piso de venta', 'piso_venta'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'piso_venta');
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo) select :'tru', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'almacen_tienda');
+select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'tru' and estado = 'abierta') x) as _c \\gset
+select retail.abrir_caja(:'tru', 100.00, 'prueba precio de sede') as caja_id \\gset
+select id as vv, precio as vv_general, producto_id as vp from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
+select retail.fn_sububicacion_por_defecto(:'tru', 'venta') as sub_piso \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'vv', :'tru', :'sub_piso', 'entrada', 10, 'colchón de prueba') returning id as mov1 \\gset
+select retail.fn_aplicar_movimiento(:'mov1') as _d1 \\gset
+select retail.poner_precio_sede(:'vp', :'tru', :vv_general + 10, 'Venta de prueba') as _p \\gset
+`;
+  const vender = (precio) => `
+select retail.registrar_venta(:'tru',
+  jsonb_build_array(jsonb_build_object('variante_id', :'vv', 'cantidad', 1, 'precio_unitario', ${precio})),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', ${precio})),
+  null, gen_random_uuid()) as venta_id \\gset
+select (precio_unitario = :vv_general + 10)::text from retail.venta_items where venta_id = :'venta_id';`;
+  const propio = correr(MICAELA, CAJA + vender(":vv_general + 10"));
+  esperar("en Trujillo se cobra el precio de Trujillo", ultima(propio) === "true", propio);
+  const general = correr(MICAELA, CAJA + vender(":vv_general"));
+  esperar("en Trujillo, el precio general se rechaza («el precio cambió»)", fallaCon(general, "venta_precio_cambiado"), general);
+}
+
 if (fallos) {
   console.log(`\n${fallos} fallo(s).`);
   process.exit(1);

@@ -94,6 +94,29 @@ export function tiendasLibres<T extends { id: string }>(tiendas: readonly T[], p
   return tiendas.filter((t) => !tomadas.has(t.id));
 }
 
+/** «Tienda Arequipa» → «Arequipa»: como se dice en la tienda. Sin «Tienda» delante, queda igual. */
+export function nombreCorto(sede: string): string {
+  return sede.replace(/^tienda\s+/i, "").trim() || sede;
+}
+
+/** Lo que ve la colaboradora junto a un precio que es el de su tienda: «Precio de Arequipa». El cliente no lo ve. */
+export function etiquetaPrecioDeSede(sede: string): string {
+  return `Precio de ${nombreCorto(sede)}`;
+}
+
+/** Las filas de `fn_precios_en_sede` como mapa variante → precio de esa tienda. */
+export function leerPreciosEnSede(filas: readonly { variante_id: string; precio: number | string }[] | null | undefined): Map<string, number> {
+  return new Map((filas ?? []).map((f) => [f.variante_id, Number(f.precio)]));
+}
+
+/** Los precios generales con los de la tienda encima: la regla de `fn_precio_en_sede`, sobre lo ya leído. Un precio propio
+ *  de una prenda que no está en `generales` no se agrega (no es de esta pantalla). */
+export function conPreciosDeSede(generales: ReadonlyMap<string, number>, propios: ReadonlyMap<string, number>): Map<string, number> {
+  const out = new Map(generales);
+  for (const [id, precio] of propios) if (out.has(id)) out.set(id, precio);
+  return out;
+}
+
 /** La hoja «Precio distinto en una sede»: lo que la base exige, en el orden en que se llena. */
 export function camposPonerPrecio(h: {
   tiendaId: string | null;

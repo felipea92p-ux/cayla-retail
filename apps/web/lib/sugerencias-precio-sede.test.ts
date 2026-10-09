@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MOTIVO_NEUTRO, nombreCorto, sugerirMotivo } from "./sugerencias-precio-sede";
+import { nombreCorto } from "./precio-sede-reglas";
+import { MOTIVO_NEUTRO, sugerirMotivo } from "./sugerencias-precio-sede";
 
 const SEDES = ["Tienda Arequipa", "Tienda Trujillo", "Tienda Lima"];
 const MONTOS = ["", "0", "abc", "119.90", "129.90", "99"];
