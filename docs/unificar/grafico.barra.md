@@ -147,11 +147,12 @@ apuntar otro tramo, y varias afirmaciones de este registro eran falsas.
 
 La migración **no cambió qué hace nada**: mismo resumen para el lector, mismas etiquetas de tramo, mismos filtros, mismo `apuntar`, mismas URL.
 
-## Al traer `main` a esta rama
+## Al traer `main` a esta rama (hecho el 2026-10-09)
 
-La rama de Frescura entró a `main` (PR #889) con su propia `ui/BarraApilada.tsx`, así que al traer `main` el archivo choca (se agregó en las dos).
-**Se queda la versión de esta rama**: es un superconjunto compatible (mismas props `segmentos`, `unidad` y `className`; suma `etiqueta`, `formato`,
+La rama de Frescura entró a `main` (PR #889) con su propia `ui/BarraApilada.tsx`, así que al traer `main` el archivo chocó (se agregó en las dos).
+**Se resolvió quedándose con la versión de esta rama**: es un superconjunto compatible (mismas props `segmentos`, `unidad` y `className`; suma `etiqueta`, `formato`,
 `alto`, `respuesta`, `retraso`, `total`, `decorativa`, `viva` y `sinEntrada`, y exporta `MuestraTramo`). Lo que cambia para el tablero de Frescura
 es su cara: pista de arena con hilo de 2 px, tramos que entran creciendo y se reacomodan, en vez de tramos pegados y recortados que aparecen
-quietos. **Pendiente, a pedido de Felipe de no tocar Frescura:** su leyenda dibuja el cuadrito a mano (`inline-block … rounded-full ${s.clase}`)
+quietos. Verificado tras traer `main`: el tablero de «Cómo está el piso» se ve bien con la pieza ampliada (pista, hilo, mismas etiquetas para el lector),
+`tema:auditar --escenario frescura.tablero` sin hallazgos, 386 archivos de pruebas en verde y la deuda en 0. **Pendiente, a pedido de Felipe de no tocar Frescura:** su leyenda dibuja el cuadrito a mano (`inline-block … rounded-full ${s.clase}`)
 y con un tono translúcido queda más claro que su tramo; usar `<MuestraTramo>` lo arregla.
