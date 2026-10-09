@@ -1,9 +1,9 @@
 -- ============================================================================
--- 20261009121000_tienda_revisa_apertura_y_arregla_danada.sql — CAYLA V2
+-- 20261009182444_tienda_revisa_apertura_y_arregla_danada.sql — CAYLA V2
 --
 -- DECISIÓN (Felipe, 2026-10-09): dos acciones de tienda que solo hacía un líder pasan a quien
 -- ve el módulo donde vive su botón (ADR-0161 / ADR-0306), igual que «Anular venta» en
--- 20261009120000:
+-- 20261009182413:
 --
 -- 1. «Marcar como revisada» una apertura de caja que no cuadró con el cierre anterior
 --    (`revisar_apertura_caja`, ADR-0186). Su botón vive en Caja ▸ Historial. Pasa a
@@ -30,6 +30,9 @@
 --
 -- CÓMO SE DESHACE: el mismo reemplazo al revés (volver a `if not fn_es_lider() then` con su
 -- mensaje original, que está en el texto de cada `pg_temp.reemplazar` de abajo).
+--
+-- EN PRODUCCIÓN desde el 2026-10-09 (MCP `apply_migration`, versión 20261009182444). El archivo lleva esa misma versión: nació
+-- como 202610091200xx/1210xx y chocó con `20261009120000_corregir_pagos_venta.sql` de otra rama.
 -- ============================================================================
 
 set lock_timeout = '3s';

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261009120000_anular_venta_quien_ve_devoluciones.sql — CAYLA V2
+-- 20261009182413_anular_venta_quien_ve_devoluciones.sql — CAYLA V2
 --
 -- DECISIÓN (Felipe, 2026-10-09): la cuenta de caja (rol «Terminal de ventas») tiene que
 -- poder anular una venta. Hasta hoy `anular_venta` abría con `if not fn_es_lider()`, así que
@@ -33,6 +33,9 @@
 --
 -- CÓMO SE DESHACE: el mismo reemplazo al revés (volver a `if not fn_es_lider() then` con su
 -- mensaje «Solo un líder puede anular una venta»).
+--
+-- EN PRODUCCIÓN desde el 2026-10-09 (MCP `apply_migration`, versión 20261009182413). El archivo lleva esa misma versión: nació
+-- como 202610091200xx/1210xx y chocó con `20261009120000_corregir_pagos_venta.sql` de otra rama.
 -- ============================================================================
 
 set lock_timeout = '3s';

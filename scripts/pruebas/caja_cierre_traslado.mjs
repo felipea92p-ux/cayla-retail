@@ -11,7 +11,7 @@
  *   · un cierre con traslado deja la fila en `caja_traslados` y `monto_fondo` = contado − trasladado;
  *   · `abrir_caja` con el mismo fondo abre sin motivo; con otro monto exige motivo y lo guarda;
  *   · `revisar_apertura_caja` la usa quien gestiona la caja (líder o módulo Caja; Felipe 2026-10-09), solo en su sede,
- *     y una sola vez (`20261009121000_tienda_revisa_apertura_y_arregla_danada.sql`).
+ *     y una sola vez (`20261009182444_tienda_revisa_apertura_y_arregla_danada.sql`).
  *
  * CÓMO. Mismo patrón que `candado_lider_caja_y_ajuste.mjs`: cada escenario en su transacción con ROLLBACK (nunca se
  * commitea nada en el Postgres local compartido), sesión simulada con `request.jwt.claim.sub`, y `pg_temp.intento`
