@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalogo-v2";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
+import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -184,12 +185,15 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
                 { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} /> },
                 { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} /> },
               ]}
+              soloIconoEnCelular
             />
             {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
                 y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
-            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma">
+            {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
+                palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3">
               <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-              Rótulos
+              <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {editaCatalogo && (
               <BotonEnlace href="/productos/nuevo" peso="primario">
@@ -237,6 +241,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         panelInicial={panelFiltros}
         sede={enSede ? persona.ubicacionEtiqueta : null}
         temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
+        // prendas. Solo en la Grilla: la Tabla no tiene tarjetas.
+        junto={vista === "grilla" && resultado.totalProductos > 0 ? <SelectorTamanoGrilla inicial={tamanoGrilla} /> : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
