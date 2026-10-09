@@ -208,7 +208,7 @@ export function ArbolCategoria({
       </div>
 
       {familiaAbierta && (
-        <div id="categorias-de-la-familia" className="scroll-mb-28">
+        <div id="categorias-de-la-familia" className="scroll-mb-28 scroll-mt-32 sm:scroll-mt-[11.5rem]">
           <p className="label-cayla mb-2 flex items-center gap-2 text-[11px] text-tinta/60">
             Categoría
             <EtiquetaAhora />
