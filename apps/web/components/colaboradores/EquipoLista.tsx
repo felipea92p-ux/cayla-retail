@@ -79,7 +79,20 @@ function EstadoMiembro({ m }: { m: MiembroEquipo }) {
   return null;
 }
 
-function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; elegido: boolean; ahoraIso: string; onTocar: () => void }) {
+function FilaMiembro({
+  m,
+  elegido,
+  ahoraIso,
+  onTocar,
+  guia,
+}: {
+  m: MiembroEquipo;
+  elegido: boolean;
+  ahoraIso: string;
+  onTocar: () => void;
+  /** Ancla de la guía interactiva (ADR-0362): solo la primera persona que no eres tú ni un líder, y la primera terminal. */
+  guia?: string;
+}) {
   const apagado = m.tipo === "persona" ? m.estado !== "activa" : !m.activo;
   return (
     <li>
@@ -87,7 +100,7 @@ function FilaMiembro({ m, elegido, ahoraIso, onTocar }: { m: MiembroEquipo; eleg
         type="button"
         onClick={onTocar}
         aria-current={elegido ? "true" : undefined}
-        data-guia="colaboradores.fila"
+        data-guia={guia}
         className={`${COLUMNAS} w-full rounded-xl px-2.5 py-2 text-left transition-colors duration-150 ease-cayla ${
           elegido ? "bg-hueso" : "hover:bg-hueso/60"
         }`}
@@ -225,6 +238,10 @@ export function EquipoLista({
   const [texto, setTexto] = useState("");
   const atajos = useMemo(() => atajosEquipo(miembros, ubicaciones, conTerminales), [miembros, ubicaciones, conTerminales]);
   const grupos = useMemo(() => agruparPorSede(miembros, ubicaciones, filtro, texto), [miembros, ubicaciones, filtro, texto]);
+  // La guía interactiva (ADR-0362) abre la ficha de alguien que no eres tú ni un líder (así se ven sus acciones) y la de una terminal.
+  const enOrden = grupos.flatMap((g) => g.miembros);
+  const guiaPersona = enOrden.find((m) => m.tipo === "persona" && !m.esYo && m.nivel !== "lider")?.id;
+  const guiaTerminal = enOrden.find((m) => m.tipo === "terminal")?.id;
   const enTerminales = filtro === "terminales";
 
   return (
@@ -237,13 +254,20 @@ export function EquipoLista({
         <div className="flex flex-wrap items-center gap-3">
           <div role="group" aria-label="Ver" className="flex min-w-0 flex-1 flex-wrap gap-1.5" data-guia="colaboradores.atajos">
             {atajos.map((a) => (
-              <button key={a.clave} type="button" className="pildora-cayla" aria-pressed={mismoFiltro(filtro, a.filtro)} onClick={() => onFiltro(a.filtro)}>
+              <button
+                key={a.clave}
+                type="button"
+                className="pildora-cayla"
+                aria-pressed={mismoFiltro(filtro, a.filtro)}
+                onClick={() => onFiltro(a.filtro)}
+                data-guia={a.clave === "terminales" ? "colaboradores.atajo-terminales" : a.clave === "todas" ? "colaboradores.atajo-todas" : undefined}
+              >
                 {a.etiqueta} <span className="pildora-cayla__n">{a.n}</span>
               </button>
             ))}
           </div>
           {enTerminales && onNuevaTerminal && (
-            <Boton type="button" peso="primario" onClick={onNuevaTerminal}>
+            <Boton type="button" peso="primario" onClick={onNuevaTerminal} data-guia="colaboradores.nueva-terminal">
               + Nueva terminal
             </Boton>
           )}
@@ -293,6 +317,9 @@ export function EquipoLista({
                       elegido={m.id === elegidoId}
                       ahoraIso={ahoraIso}
                       onTocar={() => (m.tipo === "persona" ? onAbrir(m.id) : onAbrirTerminal(m.id))}
+                      guia={
+                        m.id === guiaPersona ? "colaboradores.fila-otra" : m.id === guiaTerminal ? "colaboradores.fila-terminal" : undefined
+                      }
                     />
                   ))}
                 </ul>

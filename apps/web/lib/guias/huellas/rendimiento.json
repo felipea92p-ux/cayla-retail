@@ -16,7 +16,7 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/rendimiento/GraficoVentasMeta.tsx": [
-      "button «{texto}»",
+      "button «{clave === \"mes\" ? \"rendimiento.grafico-mes\" : \"rendimiento.grafico-semana\"}»",
       "SegmentoDeslizante «Cómo ver el mes»"
     ],
     "components/rendimiento/PanelRendimiento.tsx": [

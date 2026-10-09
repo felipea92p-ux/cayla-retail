@@ -151,7 +151,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
               </li>
             ))}
           </ul>
-          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNuevaTasa(true)}>
+          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNuevaTasa(true)} aria-haspopup="dialog" data-guia="config.nueva-tasa">
             + Nueva tasa desde una fecha
           </button>
         </Superficie>
@@ -300,7 +300,7 @@ function NuevaTasa({ onCerrar, guardar, guardando, responsable }: { onCerrar: ()
   const listo = /^\d{4}-\d{2}-\d{2}$/.test(desde) && v.ok;
   return (
     <Modal variante="hoja" titulo="Nueva tasa de IGV" subtitulo="Desde esa fecha, los gastos con factura calculan su IGV con esta tasa. Lo registrado antes no cambia." onClose={onCerrar} ancho="max-w-[480px]">
-      <div className="fin-dos-campos">
+      <div className="fin-dos-campos" data-guia="config.nueva-tasa-campos">
         <CampoFin etiqueta="Desde" htmlFor="tasa-desde">
           <InputFin id="tasa-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
         </CampoFin>
@@ -309,7 +309,7 @@ function NuevaTasa({ onCerrar, guardar, guardando, responsable }: { onCerrar: ()
         </CampoFin>
       </div>
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones">
+      <div className="fin-botones" data-guia="config.nueva-tasa-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
           Cancelar
         </button>

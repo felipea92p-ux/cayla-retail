@@ -43,7 +43,7 @@ export const GUIA_CLIENTES: Guia = {
       ancla: "clientas.nuevo-registrar",
       opcional: true,
       titulo: "Registrar",
-      texto: "Con «Registrar» el cliente queda en la libreta y sus compras se ligan desde ahí. Para ser del club se une por su cuenta, escaneando el cartel. En la demo no registramos: cerramos la ventana.",
+      texto: "Arriba del botón, la guía dice qué falta; al tocarlo te lleva al campo. Con «Registrar» el cliente queda en la libreta y sus compras se ligan desde ahí; al club se une solo, escaneando el cartel. En la demo no registramos: cerramos la ventana.",
     },
     {
       id: "exportar",
@@ -206,7 +206,14 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: "avisos.beneficios-anio",
       opcional: true,
       titulo: "Qué cuenta como un año",
-      texto: "Cuántas compras, o cuánto en soles, necesita en el año para ganarse su aniversario. Basta una de las dos.",
+      texto: "Cuántas compras, o cuánto en soles, necesita en el año para ganarse su aniversario. Basta una de las dos; si un año no llega, su aniversario se pausa sin perder lo acumulado.",
+    },
+    {
+      id: "beneficios-dias",
+      ancla: "avisos.beneficios-dias",
+      opcional: true,
+      titulo: "Días para usar el vale",
+      texto: "Cuántos días tiene el miembro, desde su aniversario en el club, para usar su vale. Pasado ese plazo, el vale vence.",
     },
     {
       id: "beneficios-vale",

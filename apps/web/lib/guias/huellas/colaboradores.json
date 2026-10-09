@@ -64,7 +64,7 @@
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/actividad/ListaActividad.tsx": [
-      "button «Ver más»"
+      "button «actividad.ver-mas»"
     ],
     "components/colaboradores/ActividadEquipo.tsx": [
       "button «{t.etiqueta}»",
@@ -83,14 +83,14 @@
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/colaboradores/EquipoLista.tsx": [
-      "button «colaboradores.fila»",
+      "button «{guia}»",
       "ComboResponsable «{pendientes.map((p) => ( <li key={p.persona_id}»",
       "button «Sí, rechazar»",
       "button «Volver»",
       "button «{responsable.motivo ?? undefined}»",
       "button «No»",
       "button «{a.etiqueta}»",
-      "Boton «+ Nueva terminal»",
+      "Boton «colaboradores.nueva-terminal»",
       "input «Buscar persona o terminal por nombre, correo o rol»"
     ],
     "components/colaboradores/FichaColaborador.tsx": [
@@ -102,7 +102,7 @@
       "button «{u.nombre}» #2",
       "input «Suspender a»",
       "button «{responsable.motivo ?? undefined}» #2",
-      "button «Ver el rol»",
+      "button «colaboradores.ficha-ver-rol»",
       "button «Sí, quitar acceso»",
       "button «Volver»",
       "button «Quitar acceso»"

@@ -157,7 +157,7 @@ export function PanelCalidadVista({ panel }: { panel: PanelCalidad }) {
       </section>
 
       <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="calidad.como-se-calcula">
-        <summary className="cursor-pointer font-semibold text-tinta">Cómo se calcula todo esto</summary>
+        <summary className="cursor-pointer font-semibold text-tinta" data-guia="calidad.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
             <strong>Qué ventas entran:</strong> las de los últimos {panel.ventanaDias}{" "}días que ya cumplieron su plazo de

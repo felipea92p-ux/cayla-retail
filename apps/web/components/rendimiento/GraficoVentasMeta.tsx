@@ -108,6 +108,7 @@ export function GraficoVentasMeta({
                 key={clave}
                 type="button"
                 aria-pressed={modo === clave}
+                data-guia={clave === "mes" ? "rendimiento.grafico-mes" : "rendimiento.grafico-semana"}
                 onClick={() => {
                   setTip(null);
                   setModo(clave);

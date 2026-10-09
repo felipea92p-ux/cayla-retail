@@ -445,7 +445,7 @@ function BotonOrden({ activo, onClick, children }: { activo: boolean; onClick: (
 function Historial({ cambios }: { cambios: CambioMeta[] }) {
   return (
     <details className="card-cayla p-5" data-guia="rendimiento.historial">
-      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta">
+      <summary className="flex cursor-pointer select-none flex-wrap items-center justify-between gap-2 text-sm text-tinta" data-guia="rendimiento.historial-abrir">
         <span>Cambios de meta ({cambios.length})</span>
         <Chip tono="neutro" versalitas={false}>
           no se borran

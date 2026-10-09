@@ -298,7 +298,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-guia="config.guardado">
         <p className="max-w-md text-[13px] text-taupe">Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable. Cada cambio queda en la historia.</p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -402,7 +402,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </PieTabla>
       </Superficie>
 
-      <div className="nota-cayla">
+      <div className="nota-cayla" data-guia="config.tiendas-nota">
         Una sola lista de fechas: la de las campañas. La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que tiene que dejar. Si deja menos, <b>se le pide confirmar, no se le bloquea</b>, y el cierre queda anotado para el líder.{" "}
         <Link href="/caja" className="btn-enlace">
           Ver cómo se ve en Caja

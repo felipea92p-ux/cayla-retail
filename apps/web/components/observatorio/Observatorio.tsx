@@ -439,7 +439,7 @@ export function Observatorio({
           </div>
           <div className="o-ent" style={i(1)}>
             <div className="o-ctrl">
-              <Segmento valor={periodo} opciones={PERIODOS} onValor={ponerPeriodo} etiqueta="Periodo" guia="inicio.obs-periodo" data-guia={(v: Periodo) => (v === "7d" ? "inicio.obs-periodo-7" : v === "hoy" ? "inicio.obs-periodo-hoy" : undefined)} />
+              <Segmento valor={periodo} opciones={PERIODOS} onValor={ponerPeriodo} etiqueta="Periodo" guia="inicio.obs-periodo" data-guia={(v: Periodo) => (v === "7d" ? "inicio.obs-periodo-7" : v === "hoy" ? "inicio.obs-periodo-hoy" : v === "30d" ? "inicio.obs-periodo-30" : undefined)} />
               <Segmento
                 valor={foco}
                 opciones={[

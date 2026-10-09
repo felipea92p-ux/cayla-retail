@@ -42,7 +42,7 @@ export function TeTocaAlmacen({ visibles, ajustar }: { visibles: AvisosVisibles;
           <p className="label-cayla text-[11px] text-tinta/65">Te toca</p>
           {activos.length > 0 && <span className="ia-cnt">{activos.length}</span>}
         </div>
-        {ajustar}
+        <span data-guia="inicio.ajustar">{ajustar}</span>
       </div>
       <div className="card-cayla ia-tt">
         {activos.length === 0 ? (

@@ -313,7 +313,7 @@ export function FichaColaborador({
                   </h3>
                   <MenuQueVe filas={menu} />
                   {onVerRol && !destino && (
-                    <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={onVerRol}>
+                    <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={onVerRol} data-guia="colaboradores.ficha-ver-rol">
                       Ver el rol {persona.rolNombre} en Roles y accesos →
                     </button>
                   )}

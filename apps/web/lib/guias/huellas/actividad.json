@@ -5,7 +5,7 @@
   "total": 5,
   "controles": {
     "components/actividad/ListaActividad.tsx": [
-      "button «Ver más»"
+      "button «actividad.ver-mas»"
     ],
     "components/actividad/PantallaActividad.tsx": [
       "Desplegable «(sin nombre)»",

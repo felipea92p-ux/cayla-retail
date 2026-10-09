@@ -139,7 +139,9 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
       </fieldset>
 
       <CampoGuiado id="dias" guia={guia} titulo="Días para usar el vale" ayuda="Desde su aniversario en el club">
+        <div data-guia="avisos.beneficios-dias">
         <Caja id={ID.dias} etiqueta="Días para usar el vale de aniversario" valor={borrador.dias} onChange={poner("dias")} fin="días" disabled={guardando} />
+        </div>
       </CampoGuiado>
 
       <CampoGuiado id="escala" guia={guia} titulo="Vale de aniversario de cada año" ayuda="En soles, para comprar en toda la tienda">

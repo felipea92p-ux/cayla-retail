@@ -194,7 +194,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       </section>
 
       <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="comercial.como-se-calcula">
-        <summary className="cursor-pointer font-semibold text-tinta">Cómo se calcula todo esto</summary>
+        <summary className="cursor-pointer font-semibold text-tinta" data-guia="comercial.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
             <strong>Venta:</strong> lo cobrado en el mostrador con IGV incluido, sin las ventas anuladas. La diferencia de un
