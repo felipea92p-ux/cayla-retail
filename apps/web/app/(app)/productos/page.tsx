@@ -157,7 +157,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
           // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
           <>
-            Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.
+            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero); el «!» queda con todo lo que explica. */}
+            <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
             <Ayuda titulo="Productos">
               <span className="block">
                 Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
