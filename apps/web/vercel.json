@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["gru1"],
-  "ignoreCommand": "[ \"$VERCEL_ENV\" != production ]",
   "crons": [
     { "path": "/api/lucode/reintentar", "schedule": "*/5 * * * *" },
     { "path": "/api/club/conservacion", "schedule": "0 8 * * *" },
