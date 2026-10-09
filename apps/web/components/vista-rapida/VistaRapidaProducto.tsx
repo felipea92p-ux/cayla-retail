@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { History, Info, PackageOpen, Pencil, Printer, Trash2 } from "lucide-react";
+import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -49,6 +49,7 @@ export function VistaRapidaProducto({
   puedeEditar,
   puedeEliminar,
   onEliminar,
+  onCambiarEstado,
 }: {
   producto: ProductoListado;
   stock: StockDeModelo;
@@ -67,6 +68,9 @@ export function VistaRapidaProducto({
   puedeEditar: boolean;
   puedeEliminar: boolean;
   onEliminar: () => void;
+  /** «Desactivar» (activa) o «Reactivar» (descontinuada): abre la hoja que cambia el estado de la prenda. Quien lo ve es quien edita el
+   *  catálogo (`puedeEditar`, el mismo permiso de `cambiar_estado_productos`). Debe cerrar ESTA hoja y abrir la otra. */
+  onCambiarEstado: () => void;
 }) {
   const pantalla = usePantallaActual();
   const mapa = stock && stock !== "error" ? stock : null;
@@ -266,14 +270,26 @@ export function VistaRapidaProducto({
               Ver en Existencias
             </Link>
           )}
-          <span className="vr-espacio" />
-          {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
-              qué no y ofrece descontinuarlo. */}
-          {puedeEliminar && (
-            <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
-              <Trash2 aria-hidden className="h-4 w-4" />
-              Eliminar
-            </button>
+          {/* Lo que retira la prenda, juntos y a la derecha, en UNA caja (`vr-retira`): si la fila no cabe, el par baja entero. «Desactivar» NO borra
+              nada (sale de la lista de activas y su historia queda); es la salida de una prenda que ya se vendió, que «Eliminar» no deja borrar.
+              Una descontinuada ofrece «Reactivar», que no es peligroso. */}
+          {(puedeEditar || puedeEliminar) && (
+            <div className="vr-retira">
+              {puedeEditar && (
+                <button type="button" onClick={onCambiarEstado} className={descontinuado ? BOTON : "btn-cayla btn-peligro min-h-10 text-[12.5px]"} data-cambiar-estado>
+                  {descontinuado ? <PlayCircle aria-hidden className="h-4 w-4" /> : <PauseCircle aria-hidden className="h-4 w-4" />}
+                  {descontinuado ? "Reactivar" : "Desactivar"}
+                </button>
+              )}
+              {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
+                  qué no y ofrece desactivarla. */}
+              {puedeEliminar && (
+                <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
+                  <Trash2 aria-hidden className="h-4 w-4" />
+                  Eliminar
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -32,8 +32,8 @@ import {
  *  - libre → qué se borra + el combo «Responsable» + Eliminar (`eliminar_producto`, todo o nada);
  *  - con historia de stock → cuánto se va, quién lo cargó y cuándo, el respaldo + «Eliminar con su historia»
  *    (`eliminar_producto_con_historia`, todo o nada). Si la base dice que esta cuenta no puede, ve por qué y la salida;
- *  - con documentos (ventas, compras, traslados…) o pieza del sistema → por qué no, y la salida (descontinuarlo desde
- *    Editar). NUNCA un botón que la base va a rechazar;
+ *  - con documentos (ventas, compras, traslados…) o pieza del sistema → por qué no, y la salida (desactivarla ahí mismo si
+ *    quien abre la ventana puede, `onDesactivar`; si no, descontinuarlo desde Editar). NUNCA un botón que la base va a rechazar;
  *  - no se pudo preguntar (la base no respondió, o todavía no tiene la función) → se dice, y no se ofrece borrar a ciegas.
  *
  * Quien decide de verdad es la base: aunque esta ventana mintiera, las dos funciones vuelven a comprobar dentro de la
@@ -42,12 +42,16 @@ import {
 export function EliminarProductoModal({
   producto,
   onClose,
+  onDesactivar,
 }: {
   /** `estado` y `numVariantes` solo redactan los textos; `null` = no se sabe (Existencias abre desde un color en una sede
    *  y no sabe cuántas variantes tiene el producto; el estado, si su lectura del catálogo falló). Lo que se puede y lo que
    *  se borra lo decide la base, no estos dos. */
   producto: { productoId: string; referencia: string; estado: string | null; numVariantes: number | null };
   onClose: () => void;
+  /** Si quien abre la ventana puede abrir la hoja que desactiva la prenda (la Grilla): cuando no se puede eliminar, la salida es un botón
+   *  «Desactivar» que la abre, en vez del rodeo por Editar. Debe cerrar ESTA ventana y abrir la hoja (el modal no se cierra solo). */
+  onDesactivar?: () => void;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -94,7 +98,7 @@ export function EliminarProductoModal({
 
   const puede = como ? ofreceEliminar(como) : false;
   const conHistoria = puede && como?.nivel === "con_historia";
-  const salida = como && !puede ? salidaSinEliminar(producto.estado, como.nivel) : null;
+  const salida = como && !puede ? salidaSinEliminar(producto.estado, como.nivel, onDesactivar !== undefined) : null;
   const quien = como && como.nivel !== "libre" ? textoQuienLoCargo(como.cargadoPor, como.cargadoEl) : null;
   // «No se puede» solo cuando la base lo dijo: si no se pudo ni preguntar, el título no afirma nada.
   const titulo = puede
@@ -145,6 +149,11 @@ export function EliminarProductoModal({
               <Link href={`/productos/${producto.productoId}/editar`} className="btn-cayla btn-primario flex flex-1 items-center justify-center">
                 Editar
               </Link>
+            )}
+            {salida?.desactivar && onDesactivar && (
+              <Boton peso="peligro" className="flex-1" onClick={onDesactivar}>
+                Desactivar
+              </Boton>
             )}
             {puede && (
               <Boton peso="primario" className="flex-1" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
