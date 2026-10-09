@@ -233,7 +233,6 @@ export function DevolucionesPanel({
     <DevolucionesVentas
       lineas={ls}
       ahora={ahora}
-      esLider={esLider}
       resumen={resumen}
       onIniciar={iniciar}
       onAnular={setAnulando}

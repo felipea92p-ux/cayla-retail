@@ -23,7 +23,7 @@
  *      prenda que no existe.
  *   D8 candados del esquema: sin origen o con dos se rechaza; «se arregló» sin nota se rechaza; dos dañadas con el mismo
  *      movimiento de entrada se rechazan.
- *   A1 «Se arregló»: solo el líder (una integrante con Existencias no); exige nota; firma el responsable, no la cuenta;
+ *   A1 «Se arregló»: quien ve Existencias (Felipe 2026-10-09; sin el módulo, no); exige nota; firma el responsable, no la cuenta;
  *      vuelve al ALMACÉN (no al piso), con un traslado interno cuarentena→almacén, firma y nota; no es pérdida.
  *
  * Las carreras con COMMIT (dos líderes a la vez, el mismo reporte dos veces, dos por la última libre) no caben aquí: van en
@@ -500,11 +500,19 @@ caso(
 // ===========================================================================
 
 caso(
-  "A1 · una integrante CON Existencias no puede: «Solo un líder decide…», y nada se mueve",
-  `${REPORTE_DE_VA}${soloModulos("integrante", ["existencias"])}select ${CONTADORES} as antes \\gset
+  "A1 · una integrante SIN Existencias no puede: «necesitas el módulo Existencias», y nada se mueve",
+  `${REPORTE_DE_VA}${soloModulos("integrante", ["vender"])}select ${CONTADORES} as antes \\gset
 ${sesion(MICAELA)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok2') as r \\gset
 ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'hint', ${CONTADORES} = :'antes', (select estado from retail.prendas_danadas where id = :'did'));`,
-  "arreglo_solo_lider,t,en_cuarentena"
+  "arreglo_sin_modulo,t,en_cuarentena"
+);
+caso(
+  "A1 · una integrante CON Existencias sí la devuelve a la venta (Felipe 2026-10-09), firmada por ella",
+  `${REPORTE_DE_VA}${soloModulos("integrante", ["existencias"])}
+${sesion(MICAELA)}${COMO_API}select pg_temp.arreglar(:'did', 'Se cosió el botón', :'tok2') as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'hint', (select estado from retail.prendas_danadas where id = :'did'),
+  (select resuelto_por = (select id from public.personas where auth_user_id = '${MICAELA}') from retail.prendas_danadas where id = :'did'));`,
+  "se_arreglo,t"
 );
 caso(
   "A1 · sin nota (o de 2 letras) se rechaza; nada se mueve",
