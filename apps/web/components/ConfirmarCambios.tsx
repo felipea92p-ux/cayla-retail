@@ -76,14 +76,16 @@ export function ConfirmarCambios({
                 </h3>
                 <ul className="space-y-1">
                   {g.lineas.map((l, i) => (
-                    <li key={i} className="flex items-baseline justify-between gap-3 text-sm text-tinta">
-                      <span className="min-w-0">{l.texto}</span>
+                    // Un valor largo (un nombre, «marca · proveedor») baja a su propia línea y se parte ahí; antes no cabía, el
+                    // rótulo se encogía a cero y el valor viejo tachado se le montaba encima. Los cortos (stock) siguen a la derecha.
+                    <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm text-tinta">
+                      <span className="shrink-0">{l.texto}</span>
                       {l.antes !== undefined && l.despues !== undefined ? (
-                        <span className="shrink-0 whitespace-nowrap tabular-nums">
+                        <span className="min-w-0 tabular-nums [overflow-wrap:anywhere]">
                           <s className="mr-1 text-tinta/50">{l.antes}</s>→ {l.despues}
                         </span>
                       ) : l.detalle ? (
-                        <span className="shrink-0 text-tinta/65">{l.detalle}</span>
+                        <span className="min-w-0 text-tinta/65 [overflow-wrap:anywhere]">{l.detalle}</span>
                       ) : null}
                     </li>
                   ))}
