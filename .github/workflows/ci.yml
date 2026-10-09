@@ -402,6 +402,12 @@ jobs:
         if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:historial-prenda
 
+      # Precio propio por sede (Felipe 2026-10-09): cambia solo en esa tienda, deja historial firmado, solo tu propia sede,
+      # sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
+      - name: pruebas:precio-sede
+        if: ${{ !cancelled() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:precio-sede
+
       # Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
       # sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
       - name: pruebas:actividad-gestion
