@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparCatalogo, derivarReemplazo, type Seleccion, type VarianteCatalogo } from "./cambio-reemplazo-reglas";
+import { agruparCatalogo, derivarReemplazo, opcionesDePrenda, seleccionDesdeLectura, type Seleccion, type VarianteCatalogo } from "./cambio-reemplazo-reglas";
 import { validarCambio } from "./cambios-reglas";
 import type { LineaVentaReciente } from "./ventas-v2";
 
@@ -21,6 +21,7 @@ const variante = (id: string, productoId: string, extra: Partial<VarianteCatalog
   stockAqui: 0,
   apartadoAqui: 0,
   stockOtrasSedes: [],
+  codigosBarras: [],
   ...extra,
 });
 
@@ -163,5 +164,43 @@ describe("descripcionNueva — una prenda sin talla ni color se nombra por su re
 
   it("con talla y color, el nombre sigue siendo «Color · Talla»", () => {
     expect(derivar({ talla: "L", color: "Negro" }).descripcionNueva).toBe("Negro · Talla L");
+  });
+});
+
+describe("seleccionDesdeLectura — escanear la prenda que se lleva (Felipe 2026-10-09)", () => {
+  const conCodigos: VarianteCatalogo[] = [
+    variante("l-negro", "polera", { sku: "PLS-0001-NEG-L", talla: "L", color: "Negro", stockAqui: 2, codigosBarras: ["7750000000017"] }),
+    variante("m-negro", "polera", { sku: "PLS-0001-NEG-M", talla: "M", color: "Negro" }),
+    variante("cinturon", "cinturon", { sku: "CIN-0001-STD", stockAqui: 1 }),
+  ];
+
+  it("la etiqueta deja elegidas la prenda, la talla y el color", () => {
+    const r = seleccionDesdeLectura("PLS-0001-NEG-L", conCodigos);
+    expect(r).toMatchObject({ tipo: "elegida", cambio: { productoId: "polera", talla: "L", color: "Negro" } });
+  });
+
+  it("también lee el código de fábrica y el apóstrofo de la pistola en una Mac en español", () => {
+    expect(seleccionDesdeLectura("7750000000017", conCodigos)).toMatchObject({ tipo: "elegida", variante: { varianteId: "l-negro" } });
+    expect(seleccionDesdeLectura("pls'0001'neg'm", conCodigos)).toMatchObject({ tipo: "elegida", variante: { varianteId: "m-negro" } });
+  });
+
+  it("un código que no es de ninguna prenda no elige nada, ni por parecido", () => {
+    expect(seleccionDesdeLectura("PLS-0001", conCodigos)).toEqual({ tipo: "no-encontrada", codigo: "PLS-0001" });
+    expect(seleccionDesdeLectura("  ", conCodigos)).toMatchObject({ tipo: "no-encontrada" });
+  });
+
+  it("una prenda sin talla ni color queda elegida entera", () => {
+    const r = seleccionDesdeLectura("CIN-0001-STD", conCodigos);
+    expect(r).toMatchObject({ tipo: "elegida", cambio: { productoId: "cinturon", talla: null, color: null } });
+    if (r.tipo !== "elegida") throw new Error("debía elegirse");
+    const d = derivarReemplazo(linea, agruparCatalogo(conCodigos), sel(r.cambio));
+    expect(d.varianteNueva?.varianteId).toBe("cinturon");
+  });
+
+  it("lo escaneado entra al combo aunque no quede en el piso: el paso dice dónde más hay", () => {
+    const sinStock = [variante("x", "polera"), variante("c", "cinturon")];
+    const pp = agruparCatalogo(sinStock);
+    expect(opcionesDePrenda({ ...linea, productoId: "otra" } as LineaVentaReciente, pp).map((o) => o.valor)).toEqual(["otra"]);
+    expect(opcionesDePrenda({ ...linea, productoId: "otra" } as LineaVentaReciente, pp, "cinturon").map((o) => o.valor)).toEqual(["otra", "cinturon"]);
   });
 });
