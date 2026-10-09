@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, Tag, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
@@ -745,6 +746,8 @@ export function InventarioPanel({
   const hrefBajarMarcadas = puedeBajarAlPiso ? urlBajarAlPiso(filasMarcadas) : null;
   const hrefTrasladarMarcadas = veTraslados ? urlTrasladar(filasMarcadas) : null;
   const hrefEtiquetasMarcadas = urlEtiquetas(filasMarcadas);
+  // El rótulo es del MODELO (ADR-0366): las tallas marcadas se juntan en sus modelos, sin repetir.
+  const hrefRotulosMarcadas = filasMarcadas.length > 0 ? urlRotulos(filasMarcadas.flatMap((f) => (f.productoId ? [f.productoId] : [])), { desde: "existencias" }) : null;
   const prendasMarcadas = new Set(filasMarcadas.map((f) => clavePercha(f))).size;
 
   return (
@@ -1453,6 +1456,12 @@ export function InventarioPanel({
                 <Link href={hrefEtiquetasMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
                   <Tag aria-hidden className="h-4 w-4" />
                   Etiquetas
+                </Link>
+              )}
+              {hrefRotulosMarcadas && (
+                <Link href={hrefRotulosMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
+                  <SignpostBig aria-hidden className="h-4 w-4" />
+                  Rótulo
                 </Link>
               )}
             </span>

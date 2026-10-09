@@ -387,13 +387,13 @@ describe("siglaSede", () => {
 
 describe("accesosAlmacen", () => {
   it("solo los módulos que la cuenta ve, y Escanear siempre", () => {
-    expect(accesosAlmacen(["existencias", "traslados", "recibir", "productos"]).map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Escanear"]);
+    expect(accesosAlmacen(["existencias", "traslados", "recibir", "productos"]).map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Rótulos", "Escanear"]);
     expect(accesosAlmacen(["recibir"]).map((a) => a.etiqueta)).toEqual(["Recibir", "Escanear"]);
     expect(accesosAlmacen([]).map((a) => a.etiqueta)).toEqual(["Escanear"]);
   });
   it("con Conteos suma Conteo, y Escanear es el destacado", () => {
     const l = accesosAlmacen(["existencias", "traslados", "recibir", "conteos"]);
-    expect(l.map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Conteo", "Escanear"]);
+    expect(l.map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Etiquetas", "Rótulos", "Conteo", "Escanear"]);
     expect(l.filter((a) => a.destacado).map((a) => a.etiqueta)).toEqual(["Escanear"]);
   });
 });

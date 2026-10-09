@@ -24,6 +24,8 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/ProformaA4.tsx": { cuenta: 22, motivo: PAPEL_A4 },
   "components/ProformasPanel.tsx": { cuenta: 1, motivo: "El papel blanco de la vista previa de la proforma A4 (ver ProformaA4)." },
   "components/EtiquetaPrecio.tsx": { cuenta: 1, motivo: "Etiqueta de precio que se imprime en la térmica: solo negro sobre blanco." },
+  "components/RotuloAnaquel.tsx": { cuenta: 1, motivo: "Rótulo de anaquel que se imprime en la térmica (ADR-0366): solo negro sobre blanco." },
+  "app/estilos/rotulo.css": { cuenta: 6, motivo: "Rótulo de anaquel que se imprime en la térmica (ADR-0366): #000/#fff a propósito, la térmica no imprime otro color." },
   "components/IconoEtiquetaPapel.tsx": { cuenta: 2, motivo: "Dibujo del papel de la etiqueta (negro y blanco literales): representa el papel, no la pantalla." },
 
   // ---------- Permanentes: color de DATO o ilustración ----------
