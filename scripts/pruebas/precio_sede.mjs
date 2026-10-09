@@ -162,6 +162,24 @@ select concat_ws('|', ((select count(*) from retail.fn_precios_en_sede(:'tru') f
   esperar("las lecturas dicen qué sedes y qué variantes tienen precio propio", ultima(r) === "true|true|true", r);
 }
 
+// 10. Actividad lo dice en palabras (el disparador es diferido: se fuerza dentro de la transacción).
+{
+  const r = correr(FELIPE, `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Actividad');
+set constraints all immediate;
+select descripcion from retail.actividad where modulo = 'productos' and ocurrio_at = now() order by id desc limit 1;
+select retail.quitar_precio_sede(:'p1', :'tru', null);
+set constraints all immediate;
+select descripcion from retail.actividad where modulo = 'productos' and ocurrio_at = now() order by id desc limit 1;`);
+  const l = r.ok ? r.salida.split("\n").filter(Boolean) : [];
+  const puso = l.find((x) => x.includes("precio propio en Tienda Trujillo")) ?? "";
+  esperar(
+    "Actividad dice «precio propio en Tienda Trujillo S/ … → S/ …», sin JSON",
+    /precio propio en Tienda Trujillo S\/\s*[\d.,]+ → S\/\s*[\d.,]+/.test(puso) && !l.some((x) => x.includes("{")),
+    r,
+  );
+}
+
 if (fallos) {
   console.log(`\n${fallos} fallo(s).`);
   process.exit(1);

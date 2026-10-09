@@ -131,18 +131,21 @@ end;
 $fn$;
 revoke all on function retail.fn_precio_sede_exigir(uuid, uuid) from public, anon, authenticated;
 
--- Anota en el historial de la prenda (y por él, en Actividad). Valor = {"sede","precio","propio"[,"motivo"]}.
+-- Anota en el historial de la prenda (y por él, en Actividad). Valor = {"sede","tienda","precio","propio"[,"motivo"]}: el
+-- nombre de la tienda va adentro para que el historial y Actividad la nombren sin otra consulta (y como se llamaba ese día).
 create or replace function retail.fn_precio_sede_anotar(
   p_variante_id uuid, p_ubicacion_id uuid, p_antes numeric, p_antes_propio boolean,
   p_despues numeric, p_despues_propio boolean, p_motivo text, p_actor uuid
 ) returns void
 language plpgsql security definer set search_path = retail, public, extensions as $fn$
+declare
+  v_tienda text := (select u.nombre from retail.ubicaciones u where u.id = p_ubicacion_id);
 begin
   insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo, usuario_id)
   values ('variante', p_variante_id, 'precio_sede',
-          jsonb_build_object('sede', p_ubicacion_id, 'precio', p_antes, 'propio', p_antes_propio)::text,
-          jsonb_strip_nulls(jsonb_build_object('sede', p_ubicacion_id, 'precio', p_despues, 'propio', p_despues_propio,
-                                               'motivo', nullif(btrim(p_motivo), '')))::text,
+          jsonb_build_object('sede', p_ubicacion_id, 'tienda', v_tienda, 'precio', p_antes, 'propio', p_antes_propio)::text,
+          jsonb_strip_nulls(jsonb_build_object('sede', p_ubicacion_id, 'tienda', v_tienda, 'precio', p_despues,
+                                               'propio', p_despues_propio, 'motivo', nullif(btrim(p_motivo), '')))::text,
           p_actor);
 end;
 $fn$;
