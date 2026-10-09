@@ -8,7 +8,8 @@
 /** Lo que el piloto automático hace solo, a la vista de la persona. Todo es de pantalla: nada llega a la base. */
 export type AccionGuia =
   /** Toca la pieza anclada (abrir un modal, una pestaña, una tarjeta). Se niega si la pieza guarda (`motivoParaNoTocar`). */
-  | { tipo: "clic"; ancla: string }
+  /** `siEsta`: si la pieza no está a la vista, no espera ni avisa (para cerrar algo solo si quedó abierto). */
+  | { tipo: "clic"; ancla: string; siEsta?: boolean }
   /** Escribe un ejemplo en el campo anclado, letra a letra, como lo haría una persona. El ejemplo sale de la pantalla
    *  (`{ palabraDe }`: la primera palabra del nombre de la primera pieza con esa ancla) para que siempre encuentre algo de
    *  verdad en ESTA tienda (ADR-0290: un ejemplo inventado que no existe enseña mal). */

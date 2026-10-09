@@ -127,7 +127,8 @@ export async function ejecutar(
     return { ok: true };
   }
 
-  const el = await esperarAncla(accion.ancla, 2200, senal);
+  const el = accion.tipo === "clic" && accion.siEsta ? buscarAncla(accion.ancla) : await esperarAncla(accion.ancla, 2200, senal);
+  if (!el && accion.tipo === "clic" && accion.siEsta) return { ok: true };
   if (!el) return { ok: false, motivo: `no está a la vista (${accion.ancla})` };
 
   if (accion.tipo === "clic") {

@@ -191,3 +191,26 @@ encender sea solo repetición. También recorre las vistas por parámetro de la 
 - **`aria-haspopup`:** un botón que solo abre una ventana lo declara y se puede tocar.
 - **`prepararSoloAlAvanzar`:** un `preparar` que no corre al volver con ←.
 - **El recorredor:** espera el `demostrar` y falla si la guía pide un toque que el motor niega.
+
+### Resultado de la segunda vuelta (2026-10-08/09)
+
+Siete tramos, uno a la vez, con la cobertura medida en vivo antes y después. Lo que queda sin encender es repetición (la talla 2 de
+una tarjeta, la fila 2 de una lista) o un botón que guarda y que solo se explica.
+
+| Tramo | Lo más importante que sumó |
+|---|---|
+| Ventas | Personalizado, Atajos y Filtros del Historial; el paso 3 de un cambio; los filtros del historial de cierres; botones de cada comprobante |
+| Inventario | Filtros y vistas de Existencias (tabla, por talla), toda la pestaña Pérdidas, «Ver todo lo recibido», el detalle de Frescura |
+| Catálogo | Las seis pestañas de Atributos (con la ficha de un color y de un tejido, Temporadas y sus vistas), los modales de Editar producto |
+| Compras | Las ventanas de la factura (faltante, reasignar, pago), el alta de proveedor, Registrar nota, la ventana de pago de Por pagar |
+| Finanzas | Registrar gasto y movimiento completos, los deslizadores de Escenarios, el mes en curso de Impuestos, el Balance por tienda |
+| Producción | Nueva orden con ejemplo y costo por prenda en vivo, medios de pago al contado, estados vacíos que dicen qué hacer primero |
+| General | Las cuatro caras de Inicio (Observatorio, tienda, almacén, rol corto), terminales en Colaboradores, ventanas de Configuración |
+
+**Corrida completa al cierre:** 76 ✓, 0 rotas, 3 ⚠ sin datos locales (Revisar y Confirmar conteo, Mi parte de la factura).
+
+**El motor ganó en el camino:**
+- **Un `?demo=1` que vuelve por un enlace no reinicia la guía.**
+- **Toque «si está»:** `{ tipo: "clic", ancla, siEsta: true }` no espera ni avisa si la pieza no está.
+- **El escáner lee anclas dentro de `guia={…}`.**
+- **El recorredor mide la cobertura** (`--cobertura`).
