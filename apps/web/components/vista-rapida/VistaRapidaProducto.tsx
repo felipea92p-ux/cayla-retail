@@ -21,6 +21,9 @@ import { HistorialPrenda } from "@/components/historial-prenda/HistorialPrenda";
 import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPrenda";
 
 const BOTON = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
+// El botón que cambia el estado vive junto al chip de estado, en el encabezado (Felipe 2026-10-09: al fondo a la derecha «es difícil de ver»).
+// Compacto, para que la línea de datos no crezca: 32 px con mouse y 44 con el dedo (ADR-0350).
+const BOTON_ESTADO = "btn-cayla min-h-8 px-3 py-1 text-[12px] max-sm:min-h-11";
 
 /**
  * La vista rápida de una prenda (Catálogo ▸ Productos ▸ Grilla, al tocar una tarjeta). Maqueta A «Matriz», elegida por Felipe el 2026-10-05
@@ -140,10 +143,19 @@ export function VistaRapidaProducto({
           <span className="vr-dato" style={{ ["--vr-j" as string]: 1 }}>
             {producto.categoria ?? "sin categoría"}
           </span>
-          <span className="vr-dato" style={{ ["--vr-j" as string]: 2 }}>
+          {/* El estado y lo que lo cambia, juntos: ves «Activo» y ahí mismo está «Desactivar». «Desactivar» NO borra nada (sale de la lista de
+              activas y su historia queda); es la salida de una prenda que ya se vendió, que «Eliminar» no deja borrar. Una descontinuada ofrece
+              «Reactivar», que no es peligroso. Quien edita el catálogo (`puedeEditar`, el permiso de `cambiar_estado_productos`). */}
+          <span className="vr-dato vr-estado-prenda" style={{ ["--vr-j" as string]: 2 }}>
             <Chip tono={descontinuado ? "apagado" : "verde"} tachado={false}>
               {descontinuado ? "Descontinuado" : "Activo"}
             </Chip>
+            {puedeEditar && (
+              <button type="button" onClick={onCambiarEstado} className={`${BOTON_ESTADO} ${descontinuado ? "btn-secundario" : "btn-peligro"}`} data-cambiar-estado>
+                {descontinuado ? <PlayCircle aria-hidden className="h-3.5 w-3.5" /> : <PauseCircle aria-hidden className="h-3.5 w-3.5" />}
+                {descontinuado ? "Reactivar" : "Desactivar"}
+              </button>
+            )}
           </span>
           <span className="vr-dato vr-sep" style={{ ["--vr-j" as string]: 3 }}>
             {matriz.precioUnico ? (
@@ -270,26 +282,13 @@ export function VistaRapidaProducto({
               Ver en Existencias
             </Link>
           )}
-          {/* Lo que retira la prenda, juntos y a la derecha, en UNA caja (`vr-retira`): si la fila no cabe, el par baja entero. «Desactivar» NO borra
-              nada (sale de la lista de activas y su historia queda); es la salida de una prenda que ya se vendió, que «Eliminar» no deja borrar.
-              Una descontinuada ofrece «Reactivar», que no es peligroso. */}
-          {(puedeEditar || puedeEliminar) && (
-            <div className="vr-retira">
-              {puedeEditar && (
-                <button type="button" onClick={onCambiarEstado} className={descontinuado ? BOTON : "btn-cayla btn-peligro min-h-10 text-[12.5px]"} data-cambiar-estado>
-                  {descontinuado ? <PlayCircle aria-hidden className="h-4 w-4" /> : <PauseCircle aria-hidden className="h-4 w-4" />}
-                  {descontinuado ? "Reactivar" : "Desactivar"}
-                </button>
-              )}
-              {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
-                  qué no y ofrece desactivarla. */}
-              {puedeEliminar && (
-                <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
-                  <Trash2 aria-hidden className="h-4 w-4" />
-                  Eliminar
-                </button>
-              )}
-            </div>
+          {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
+              qué no y ofrece desactivarla (el botón «Desactivar» del encabezado hace lo mismo sin pasar por aquí). */}
+          {puedeEliminar && (
+            <button type="button" onClick={onEliminar} className="btn-cayla btn-peligro vr-eliminar min-h-10 text-[12.5px]">
+              <Trash2 aria-hidden className="h-4 w-4" />
+              Eliminar
+            </button>
           )}
         </div>
       </div>
