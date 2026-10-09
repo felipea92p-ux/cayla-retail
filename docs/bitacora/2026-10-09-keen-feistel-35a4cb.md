@@ -18,3 +18,16 @@ Felipe se lleva: una sola barra apilada, vigilada por `lib/unificar.test.ts` (14
 (`lib/barra-apilada.test.ts`). **Dos cosas a la vista en Compras:** al apuntar un tramo de «Deuda por vencimiento», los demás bajan al 35 % (hoy
 solo se estira el apuntado); y los tramos de en medio son rectos (en la demo, los botones los traían redondos por el navegador). Quedan para su
 OK: migrar las otras 13 barras módulo por módulo, y decidir si las de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican.
+
+## 2026-10-09 (Compras migrada entera a la barra apilada — ADR-0358)
+Qué hice: Felipe pidió migrar las otras barras, empezando por Compras. Siete archivos de Compras dejaron de dibujar la barra a mano:
+«Deuda por proveedor» (sus tramos son enlaces que filtran la lista), la mezcla de lo marcado, el reparto de un pago, Producción contra
+Compras, la «Concentración» de Proveedores, las dos barras de Notas de crédito y las tres partes de la hoja de la nota. Para no perder nada, la
+pieza aprendió a dibujar tramos con enlace, con etiqueta propia, que no responden o que el lector no oye, a resaltar sin dejar «presionado», a ser
+decorativa, a medirse contra un total que no es la suma y a esperar a su tarjeta. Salió del CSS lo que murió (`.nc-conc`, `.nc-barra`).
+Por qué así: cada barra de Compras tenía su manera de responder (un enlace, un botón que abre una vista rápida, un filtro con segundo toque,
+nada) y migrar no puede cambiar qué hace: se probó cada una en el navegador local, claro y oscuro, a 1440 y 375 px, y las que el seed no muestra
+(Notas de crédito) con una página de ensayo con datos de prueba, borrada después. En el camino apareció un descuido propio: los tramos que abren
+algo salían «no presionado» para el lector; ahora solo es un interruptor si la pantalla maneja un filtro.
+Felipe se lleva: Compras con una sola barra apilada (el censo la ve igual en todas, con su alto según el lugar). Quedan 7 archivos de deuda en
+Vender, Caja y Producción.

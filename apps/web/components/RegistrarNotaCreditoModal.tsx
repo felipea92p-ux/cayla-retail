@@ -34,6 +34,7 @@ import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 /* ====================================================================
    Registrar una nota de crédito de compra (2026-09-19)
@@ -592,7 +593,6 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
 function TresPartes({ reparto, monto }: { reparto: { baja: number; devuelve: number; aFavor: number } | null; monto: number }) {
   const r = reparto ?? { baja: 0, devuelve: 0, aFavor: 0 };
   const total = Math.max(Number.isFinite(monto) && monto > 0 ? monto : 0, 0.01);
-  const pct = (n: number) => `${Math.max(0, Math.min(100, (n / total) * 100))}%`;
   return (
     <div className="nc-tres" aria-live="polite">
       <div>
@@ -607,11 +607,19 @@ function TresPartes({ reparto, monto }: { reparto: { baja: number; devuelve: num
         <span className="label-cayla block text-[10.5px] text-tinta/55">Queda a favor</span>
         <span className="font-display block text-[22px] leading-snug tabular-nums text-verde-profundo">{soles(r.aFavor)}</span>
       </div>
-      <span aria-hidden className="nc-barra">
-        <i className="bg-tinta" style={{ width: pct(r.baja) }} />
-        <i className="bg-taupe" style={{ width: pct(r.devuelve) }} />
-        <i className="bg-verde" style={{ width: pct(r.aFavor) }} />
-      </span>
+      {/* Las tres partes contra el monto de la nota (`total`): lo que falta repartir queda de pista. Es `<BarraApilada>` (ADR-0358),
+          decorativa: las tres cifras de arriba ya lo dicen. */}
+      <BarraApilada
+        decorativa
+        className="col-span-full mt-2.5"
+        alto={8}
+        total={total}
+        segmentos={[
+          { clave: "baja", nombre: "Baja la deuda", valor: r.baja, clase: "bg-tinta" },
+          { clave: "devuelve", nombre: "Se devuelve ahora", valor: r.devuelve, clase: "bg-taupe" },
+          { clave: "aFavor", nombre: "Queda a favor", valor: r.aFavor, clase: "bg-verde" },
+        ]}
+      />
     </div>
   );
 }

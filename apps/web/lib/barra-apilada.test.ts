@@ -85,8 +85,8 @@ describe("BarraApilada · responde (los tramos son botones)", () => {
     expect(h.match(/<button/g)).toHaveLength(2);
   });
 
-  it("sin filtro: ningún tramo está presionado ni apagado", () => {
-    const h = html({ respuesta });
+  it("sin filtro puesto: ningún tramo está presionado ni apagado", () => {
+    const h = html({ respuesta: { ...respuesta, elegida: null } });
     expect(h.match(/aria-pressed="false"/g)).toHaveLength(2);
     expect(h).not.toContain("data-apagado");
   });
@@ -96,6 +96,12 @@ describe("BarraApilada · responde (los tramos son botones)", () => {
     expect(h.match(/aria-pressed="true"/g)).toHaveLength(1);
     expect(h.match(/data-apagado/g)).toHaveLength(1);
     expect(h).toMatch(/aria-pressed="true"[^>]*aria-label="Vencida/);
+  });
+
+  it("sin `elegida` (la pantalla no maneja un filtro) los tramos no son interruptores: no llevan aria-pressed", () => {
+    const h = html({ respuesta });
+    expect(h).not.toContain("aria-pressed");
+    expect(h.match(/<button/g)).toHaveLength(2);
   });
 
   it("sin la acción, el nombre del tramo no lleva un punto suelto", () => {
@@ -110,5 +116,77 @@ describe("MuestraTramo · el cuadrito de la leyenda", () => {
     expect(h).toContain('class="barra-muestra"');
     expect(h).toContain('aria-hidden="true"');
     expect(h).toContain('class="barra-tramo-color bg-tinta/25"');
+  });
+});
+
+describe("BarraApilada · lo que piden las barras de Compras", () => {
+  const dos: SegmentoBarra[] = [
+    { clave: "p1", nombre: "Textiles Sur", valor: 62, clase: "bg-tinta" },
+    { clave: "p2", nombre: "Hilos Lima", valor: 21, clase: "bg-tinta/45" },
+    { clave: "otros", nombre: "Otros", valor: 17, clase: "bg-tinta/25", inerte: true, titulo: "Otros · 17 %", etiqueta: "Otros · 17 %" },
+  ];
+
+  it("un tramo con `href` es un enlace, con su etiqueta propia y su título; el `inerte` no responde", () => {
+    const h = html({
+      segmentos: dos.map((s) => (s.inerte ? s : { ...s, href: `/compras/por-pagar?prov=${s.clave}`, etiqueta: `${s.nombre} · 62 %. Filtrar la lista por este proveedor`, titulo: `${s.nombre} · 62 %` })),
+      respuesta: { onApuntar: () => {}, resaltada: null },
+    });
+    expect(h.match(/<a /g)).toHaveLength(2);
+    expect(h).toContain('href="/compras/por-pagar?prov=p1"');
+    expect(h).toContain('aria-label="Textiles Sur · 62 %. Filtrar la lista por este proveedor"');
+    expect(h).toContain('title="Textiles Sur · 62 %"');
+    expect(h).not.toContain("<button");
+    // el inerte es un span con su título y su etiqueta, y no lleva aria-pressed
+    expect(h).toMatch(/<span title="Otros · 17 %" aria-label="Otros · 17 %"[^>]*class="barra-tramo anim-crece-x"/);
+    expect(h).not.toContain("aria-pressed");
+  });
+
+  it("`resaltada` apaga a los demás (el inerte también) sin dejar a ninguno «presionado»", () => {
+    const h = html({ segmentos: dos, respuesta: { onApuntar: () => {}, onElegir: () => {}, resaltada: "p1" } });
+    expect(h.match(/data-apagado/g)).toHaveLength(2); // p2 y el inerte
+    expect(h).not.toContain('aria-pressed="true"');
+    expect(html({ segmentos: dos, respuesta: { onApuntar: () => {}, resaltada: null } })).not.toContain("data-apagado");
+  });
+
+  it("`oculto` no lo oye el lector y `etiqueta` de un botón reemplaza la automática", () => {
+    const h = html({
+      segmentos: [{ clave: "a", nombre: "A", valor: 1, clase: "bg-tinta", etiqueta: "A: S/ 1, 50 % de la deuda" }, { clave: "resto", nombre: "Resto", valor: 1, clase: "bg-sand", inerte: true, oculto: true }],
+      respuesta: { onApuntar: () => {} },
+    });
+    expect(h).toContain('aria-label="A: S/ 1, 50 % de la deuda"');
+    expect(h).toMatch(/<span aria-hidden="true"[^>]*class="barra-tramo anim-crece-x"/);
+  });
+
+  it("`decorativa`: el lector no la oye (sin rol ni resumen)", () => {
+    const h = html({ decorativa: true });
+    expect(h).toContain('aria-hidden="true"');
+    expect(h).not.toContain("role=");
+    expect(h).not.toContain("aria-label=\"");
+  });
+
+  it("`retraso` corre la entrada de todos los tramos (--i)", () => {
+    const h = html({ retraso: 6 });
+    expect(h).toMatch(/--i:6/);
+    expect(h).toMatch(/--i:7/);
+  });
+
+  it("`total`: si la pista vale más que los tramos, lo que falta es un hueco; si no, no hay hueco", () => {
+    const parcial = html({ segmentos: [{ clave: "a", nombre: "A", valor: 30, clase: "bg-tinta" }, { clave: "b", nombre: "B", valor: 20, clase: "bg-verde" }], total: 100 });
+    const g = grows(parcial);
+    expect(g[0]).toBeCloseTo(30, 5);
+    expect(g[1]).toBeCloseTo(20, 5);
+    expect(g[2]).toBeCloseTo(50, 5); // el hueco, con su propio flex-grow
+    expect(parcial).toContain('class="barra-resto"');
+    const lleno = html({ segmentos: [{ clave: "a", nombre: "A", valor: 60, clase: "bg-tinta" }, { clave: "b", nombre: "B", valor: 40, clase: "bg-verde" }], total: 100 });
+    expect(lleno).not.toContain("barra-resto");
+    // un total menor que la suma no encoge nada: la barra llena la pista
+    const corto = html({ segmentos: [{ clave: "a", nombre: "A", valor: 60, clase: "bg-tinta" }, { clave: "b", nombre: "B", valor: 40, clase: "bg-verde" }], total: 50 });
+    expect(corto).not.toContain("barra-resto");
+    expect(grows(corto).reduce((a, b) => a + b, 0)).toBeCloseTo(100, 5);
+  });
+
+  it("`color` pinta la capa interna con un valor de CSS (un token) cuando no cabe en una clase", () => {
+    const h = html({ segmentos: [{ clave: "e", nombre: "Efectivo", valor: 5, color: "var(--color-metodo-efectivo)" }] });
+    expect(h).toContain('<i aria-hidden="true" class="barra-tramo-color" style="background:var(--color-metodo-efectivo)"></i>');
   });
 });

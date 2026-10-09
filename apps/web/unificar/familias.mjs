@@ -554,15 +554,8 @@ export const DECISIONES = {
       "components/ComprobantesGraficos.tsx",
       "components/EficienciaTallerPanel.tsx",
       "components/HistorialVentasPulso.tsx",
-      "components/NotasCreditoPanel.tsx",
       "components/OrdenPanel.tsx",
       "components/OrdenTarjeta.tsx",
-      "components/PagoPiezas.tsx",
-      "components/PorPagarControles.tsx",
-      "components/PorPagarLista.tsx",
-      "components/PorPagarProduccionPanel.tsx",
-      "components/ProveedoresIndicadores.tsx",
-      "components/RegistrarNotaCreditoModal.tsx"
     ],
     "excepciones": []
   },

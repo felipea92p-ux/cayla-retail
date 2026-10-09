@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { soles } from "@/lib/compras-reglas";
 import type { ResumenProveedores } from "@/lib/proveedores";
 import type { TramoDeuda } from "@/lib/proveedores-reglas";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
@@ -61,26 +62,27 @@ export function ProveedoresIndicadores({
             ? `${resumen.topProveedorNombre} · los 3 mayores suman el ${Math.round(resumen.top3Pct)} %`
             : `${resumen.topProveedorNombre} concentra la deuda`}
           {reparto.length > 0 && (
-            <span role="group" aria-label="Reparto de la deuda por proveedor" className="mt-2.5 flex h-2 gap-[3px]" onMouseLeave={() => onFoco(null)}>
-              {reparto.map((t, i) =>
-                t.id ? (
-                  <button
-                    key={t.id}
-                    type="button"
-                    title={`${t.nombre} · ${soles(t.monto)}`}
-                    aria-label={`${t.nombre}: ${soles(t.monto)}, ${Math.round(t.pct)} % de la deuda`}
-                    onMouseEnter={() => onFoco(t.id)}
-                    onFocus={() => onFoco(t.id)}
-                    onBlur={() => onFoco(null)}
-                    onClick={() => onAbrir(t.id!)}
-                    style={{ flex: t.monto, ["--i" as string]: i + 3 }}
-                    className={`anim-crece-x h-full min-w-1 rounded-[3px] transition-[opacity,transform] duration-200 ease-cayla hover:scale-y-[1.7] focus-visible:scale-y-[1.7] ${COLOR_TRAMO[i]} ${foco && foco !== t.id ? "opacity-35" : ""}`}
-                  />
-                ) : (
-                  <span key="resto" aria-hidden style={{ flex: t.monto, ["--i" as string]: i + 3 }} className={`anim-crece-x h-full min-w-1 rounded-[3px] transition-opacity duration-200 ${COLOR_TRAMO[i]} ${foco ? "opacity-35" : ""}`} />
-                ),
-              )}
-            </span>
+            // La barra es `<BarraApilada>` (ADR-0358): cada proveedor es un tramo; apuntarlo enciende su fila en la tabla y apaga las demás
+            // (`onFoco`, que también viene de la tabla: por eso se RESALTA, no queda «presionado»), tocarlo abre su vista rápida. El «Resto»
+            // se dibuja pero no responde ni lo oye el lector.
+            <BarraApilada
+              className="mt-2.5"
+              alto={8}
+              retraso={3}
+              segmentos={reparto.map((t, i) => ({
+                clave: t.id ?? "resto",
+                nombre: t.nombre,
+                valor: t.monto,
+                clase: COLOR_TRAMO[i],
+                titulo: t.id ? `${t.nombre} · ${soles(t.monto)}` : undefined,
+                etiqueta: t.id ? `${t.nombre}: ${soles(t.monto)}, ${Math.round(t.pct)} % de la deuda` : undefined,
+                inerte: !t.id,
+                oculto: !t.id,
+              }))}
+              etiqueta="Reparto de la deuda por proveedor"
+              formato={soles}
+              respuesta={{ onApuntar: (clave) => onFoco(clave), onElegir: (clave) => onAbrir(clave), resaltada: foco }}
+            />
           )}
         </TarjetaCifra>
       ) : (

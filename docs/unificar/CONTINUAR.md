@@ -13,7 +13,7 @@ al cerrar cada ronda: la próxima sesión no ve esta conversación.
 ## Dónde quedó
 
 Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las diez con candado de las rondas 1 a 5 están en deuda 0; la de la ronda 5b, `grafico.barra`, tiene 14 archivos por migrar.**
+`lib/unificar.test.ts`. **Las diez con candado de las rondas 1 a 5 están en deuda 0; la de la ronda 5b, `grafico.barra`, tiene 7 archivos por migrar (Compras ya está migrada).**
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -29,14 +29,14 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 | 5 | `vacio` | `<Vacio>`: el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y su botón; chico en tablas y hojas; al no encontrar, lo deshace ahí mismo | [vacio.md](vacio.md) |
 | 5 | `aviso` | `<Aviso tono>` en franja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo | [aviso.md](aviso.md) |
 | 5 | `buscador` | `<Buscador>`: la caja hundida (lista) y la píldora que se despega (mostrador); «Buscando…» solo si tarda; busca mientras se escribe (salvo Cambios y Devoluciones) | [buscador.md](buscador.md) |
-| 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 14 archivos**, solo se migró «Deuda por vencimiento» | [grafico.barra.md](grafico.barra.md) |
+| 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 7 archivos**; Compras está migrada entera | [grafico.barra.md](grafico.barra.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
 ## Ronda 5b (2026-10-09): la barra apilada, decidida y con una pantalla migrada
 
 Se pidió desde Frescura (ADR-0208 act. 2026-10-07: su rama creó `ui/BarraApilada`, la misma barra que «Deuda por vencimiento» de Compras dibuja a
-mano). Felipe eligió **P** tocando las demos. **Falta:** migrar las otras 13 barras (14 archivos de deuda) (lista y orden en `grafico.barra.md`) y decidir con Felipe
+mano). Felipe eligió **P** tocando las demos. **Falta:** migrar las otras barras de Vender, Caja y Producción (7 archivos de deuda) (lista y orden en `grafico.barra.md`) y decidir con Felipe
 si las barras de Análisis (ADR-0357) y del aviso de cierre de Caja (ADR-0359) se unifican. Lo aprendido:
 - **El censo no veía las barras hechas con cajas**: solo recorría SVG. Ahora `censarBarrasApiladas` (`unificar/motor/censo-en-pagina.js`) las
   reconoce por su forma (fila baja y ancha de tramos pintados sin texto cuyos anchos suman el de la fila) y las anota como `grafico.barra`.

@@ -84,19 +84,33 @@ Lo siguiente existe por una decisión, o no es esta función, y **no se corrigi�
 
 ## Deuda al decidir
 
-**14 archivos** (`pnpm --filter web unificar:deuda grafico.barra`); «Deuda por vencimiento» se migró el mismo día (Compras ▸ Por pagar).
-El resto se migra módulo por módulo, con el OK de Felipe:
+**7 archivos** (`pnpm --filter web unificar:deuda grafico.barra`). Eran 14 al decidir y quince con «Deuda por vencimiento», que se migró el mismo
+día; **Compras se migró entera el 2026-10-09** (Felipe: «migra las otras 13 barras, empezando por Compras»). El resto, módulo por módulo:
 
 | Módulo | Archivos | Estado |
 |---|---|---|
-| Compras ▸ Por pagar | `DeudaPorVencimiento.tsx` | **migrado** (2026-10-09) |
-| Compras ▸ Por pagar | `PorPagarControles.tsx` (Deuda por proveedor), `PorPagarLista.tsx` (mezcla de lo marcado), `PagoPiezas.tsx` (reparto de un pago), `PorPagarProduccionPanel.tsx` (Producción contra Compras) | por migrar |
-| Compras ▸ Proveedores y Notas de crédito | `ProveedoresIndicadores.tsx`, `NotasCreditoPanel.tsx` (la barra vive en `nc-conc`, `app/estilos/notas-credito.css`: se borra con la migración), `RegistrarNotaCreditoModal.tsx` (`nc-barra`, en el mismo archivo de estilos) | por migrar |
+| Compras ▸ Por pagar | `DeudaPorVencimiento.tsx`, `PorPagarControles.tsx` (Deuda por proveedor, tramos que son enlaces), `PorPagarLista.tsx` (mezcla de lo marcado), `PagoPiezas.tsx` (reparto de un pago), `PorPagarProduccionPanel.tsx` (Producción contra Compras) | **migrado** (2026-10-09) |
+| Compras ▸ Proveedores y Notas de crédito | `ProveedoresIndicadores.tsx` (Concentración), `NotasCreditoPanel.tsx` (por reclamar y saldos a favor), `RegistrarNotaCreditoModal.tsx` (las tres partes del dinero); `.nc-conc` y `.nc-barra` salieron de `app/estilos/notas-credito.css` | **migrado** (2026-10-09) |
 | Vender ▸ Comprobantes y Proformas | `ComprobantesGraficos.tsx` (una pieza homónima con `partes` y leyenda propia, `kpi-apilada` en `globals.css`) | por migrar |
-| Vender ▸ Historial | `HistorialVentasPulso.tsx` («Cómo se pagó»): su color sale de un token por método de pago puesto en un `style` inline (`var(--color-metodo-<método>)`), no de una clase de Tailwind. **La pieza hoy solo recibe `clase`:** al migrarlo hay que sumarle un color por token (decidir ahí si es una prop `color` o clases `bg-metodo-*` declaradas) | por migrar |
+| Vender ▸ Historial | `HistorialVentasPulso.tsx` («Cómo se pagó»): su color sale de un token por método de pago (`var(--color-metodo-<método>)`); la pieza ya acepta `color` | por migrar |
 | Caja | `CajaTablero.tsx` (cobrado en el turno: también un color por método), `CierreCajaDetalle.tsx` (a dónde fue el efectivo) | por migrar |
 | Producción ▸ Órdenes y Eficiencia | `OrdenTarjeta.tsx`, `OrdenPanel.tsx` (pista de tinta al 10 %), `EficienciaTallerPanel.tsx` | por migrar |
 | Inventario ▸ Frescura | su rama ya usa `ui/BarraApilada`: hereda la decisión al entrar | en su rama |
+
+## Lo que la migración de Compras le pidió a la pieza
+
+Las barras de Compras no eran todas iguales a «Deuda por vencimiento»; la pieza creció (sin cambiar lo que ya hacía) para no perder nada:
+- **Tramos que son enlaces** (`href`): «Deuda por proveedor» filtra la lista al navegar a `?prov=`. **Etiqueta y título propios** por tramo
+  (`etiqueta`, `titulo`) y un tramo que **no responde** (`inerte`, el «Otros») o que **el lector no oye** (`oculto`, el «Resto»).
+- **Resaltar sin filtrar** (`resaltada`): en Proveedores el tramo apuntado viene también de la tabla y no es un filtro, así que los demás
+  bajan pero ninguno queda «presionado». El estado presionado solo existe cuando la pantalla maneja un filtro (`elegida`).
+- **Decorativa** (`decorativa`): las barras de lo marcado, del reparto de un pago, de los saldos a favor y de las tres partes de una nota
+  repiten en texto lo que dicen; el lector no las oye, como antes.
+- **El 100 % que no es la suma** (`total`): las tres partes de una nota se miden contra el monto de la nota, y lo que falta repartir
+  queda de pista, vacío.
+- **La entrada espera a su tarjeta** (`retraso`): las tarjetas de cifra entran escalonadas y su barra llega después.
+- **Color por token** (`color`), para Historial y Caja, que pintan con `var(--color-metodo-*)` en un `style`.
+- Las barras de 5 px pasan a 4 (el hilo) y las de 10 a 8 (Producción contra Compras); los de 14 a 12 ya lo habían hecho.
 
 ## Lo que la revisión adversaria encontró y se corrigió (2026-10-09)
 
