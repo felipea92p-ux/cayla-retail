@@ -7,7 +7,7 @@ import { ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 export type ModeloElegible = { productoId: string; referencia: string; codigo: string | null; categoria: string | null };
 
 /**
- * Lo que necesita la pantalla de rótulos (ADR-0365): los modelos pedidos por la URL, con sus colores y tallas activos, y
+ * Lo que necesita la pantalla de rótulos (ADR-0366): los modelos pedidos por la URL, con sus colores y tallas activos, y
  * el catálogo de modelos activos para el buscador «Agregar un modelo». Solo lee: un rótulo no escribe nada en la base.
  * Los colores y tallas son los del MODELO, no los del stock de la sede: el anaquel guarda el modelo, y una talla que hoy no
  * hay en el almacén va al mismo lugar cuando llegue.

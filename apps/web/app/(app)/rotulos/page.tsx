@@ -5,7 +5,7 @@ import { desdeDeParams } from "@/lib/vuelta-productos";
 import { MAX_MODELOS_EN_URL, origenDeParam, volverDeRotulos } from "@/lib/rotulos-reglas";
 import { ImprimirRotulos } from "@/components/ImprimirRotulos";
 
-// Rótulos de anaquel (ADR-0365): el letrero de 62 × 100 mm para el canto del anaquel o el frente de las bolsas. Se llega desde:
+// Rótulos de anaquel (ADR-0366): el letrero de 62 × 100 mm para el canto del anaquel o el frente de las bolsas. Se llega desde:
 //   - Catálogo ▸ Productos, con modelos marcados (`?productos=` + `?desde=` con la vista exacta, para volver a ella);
 //   - Existencias, con tallas marcadas (`?productos=` de sus modelos + `?origen=existencias`);
 //   - Inicio de Almacén (`?origen=almacen`), sin modelos: se buscan aquí mismo.

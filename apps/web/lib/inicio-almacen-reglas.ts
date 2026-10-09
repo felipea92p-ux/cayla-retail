@@ -320,7 +320,7 @@ const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/recibir", etiqueta: "Recibir", icono: "truck", modulo: "recibir" },
   // Etiquetas de precio no es de un módulo propio: se llega desde Existencias, así que la ve quien ve Existencias.
   { href: "/etiquetas-de-precio", etiqueta: "Etiquetas", icono: "tag", modulo: "existencias" },
-  // Rótulos de anaquel (ADR-0365): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.
+  // Rótulos de anaquel (ADR-0366): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.
   { href: "/rotulos?origen=almacen", etiqueta: "Rótulos", icono: "rotulo", modulo: "existencias" },
   { href: "/inventario/conteo", etiqueta: "Conteo", icono: "conteo", modulo: "conteos" },
   // «Buscar» no pide módulo: es la puerta a escanear una prenda.

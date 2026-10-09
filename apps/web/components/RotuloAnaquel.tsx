@@ -2,7 +2,7 @@ import { esTallaUnica } from "@/lib/etiqueta-precio-reglas";
 import { nombreSinCategoria, tamanoNombre, textoColores, type Rotulo } from "@/lib/rotulos-reglas";
 
 /**
- * El rótulo de anaquel impreso (ADR-0365): 100 × 62 mm, se lee de lejos. Arriba la categoría («CHALECOS»), al medio el
+ * El rótulo de anaquel impreso (ADR-0366): 100 × 62 mm, se lee de lejos. Arriba la categoría («CHALECOS»), al medio el
  * nombre del modelo o de los modelos juntos en el tamaño más grande que entra, debajo sus colores y tallas, y al pie los
  * códigos y la marca de la casa. Las medidas viven en `app/estilos/rotulo.css` y son milímetros: esto es papel.
  *

@@ -1,4 +1,4 @@
-# ADR-0365 — Rótulos de anaquel en la Brother
+# ADR-0366 — Rótulos de anaquel en la Brother
 
 - **Fecha:** 2026-10-09
 - **Estado:** aceptada (Felipe: «quiero que el sistema, aparte de etiquetas, me genere con la Brother rótulos para poner por

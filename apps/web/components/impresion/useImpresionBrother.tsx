@@ -18,7 +18,7 @@ import {
 const sinSuscripcion = () => () => {};
 
 /**
- * Mandar una hoja a la Brother (ADR-0180, ADR-0304): lo comparten las etiquetas de precio y los rótulos de anaquel (ADR-0365).
+ * Mandar una hoja a la Brother (ADR-0180, ADR-0304): lo comparten las etiquetas de precio y los rótulos de anaquel (ADR-0366).
  *
  * En Windows (y en una Mac sin ayudante) es `window.print()`: `globals.css` oculta todo menos la hoja. En una Mac con el
  * ayudante, la hoja se clona tal cual se ve y se le manda por HTTP local; el ayudante la pasa a PDF y la imprime con el

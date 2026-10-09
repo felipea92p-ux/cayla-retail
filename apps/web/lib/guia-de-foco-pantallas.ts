@@ -71,7 +71,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- etiquetas-de-precio ----
   "/etiquetas-de-precio": { estado: "no-aplica", motivo: "Hoja de impresión de etiquetas de precio: se revisa y se imprime; no hay campos que completar ni pasos." },
   // ---- rotulos ----
-  "/rotulos": { estado: "no-aplica", motivo: "Hoja de impresión de rótulos de anaquel (ADR-0365): se eligen modelos con un solo buscador y se imprime; no hay campos obligatorios ni pasos." },
+  "/rotulos": { estado: "no-aplica", motivo: "Hoja de impresión de rótulos de anaquel (ADR-0366): se eligen modelos con un solo buscador y se imprime; no hay campos obligatorios ni pasos." },
   // ---- finanzas ----
   "/finanzas": PENDIENTE,
   "/finanzas/cierre": PENDIENTE,

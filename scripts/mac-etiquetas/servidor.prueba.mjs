@@ -130,7 +130,7 @@ try {
   assert.equal(r.status, 400);
   ok("documento con otro comienzo: 400");
 
-  // 6b. Rótulos de anaquel (ADR-0365): con `?medida=62x100mm` va a la Brother con ese papel; una medida que no está en la
+  // 6b. Rótulos de anaquel (ADR-0366): con `?medida=62x100mm` va a la Brother con ese papel; una medida que no está en la
   // lista del ayudante no se imprime (nunca llega a `lp` un texto de la petición).
   assert.equal(estado.version, 2);
   const rotulo = `<!doctype html><html><head><meta charset="utf-8"><style>

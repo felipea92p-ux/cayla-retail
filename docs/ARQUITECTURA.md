@@ -640,7 +640,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `ajustar_inventario` (la de Existencias: motivo, responsable, piso o
   almacén; solo la sede activa y solo con `puede(persona, "ajustarStock")`). La página del editor pasa `ajusteStock`
   (sububicaciones de la sede) a `ProductoForm` → `ContextoFicha`. Es inmediato y aparte de «Revisar y guarda».
-- `/rotulos?productos=…&origen=existencias|almacen` o `&desde=<vista de Productos>` (ADR-0365; sin módulo propio, como
+- `/rotulos?productos=…&origen=existencias|almacen` o `&desde=<vista de Productos>` (ADR-0366; sin módulo propio, como
   Etiquetas de precio: la salida de Productos, Existencias e Inicio de Almacén) → `lib/rotulos.ts` (`getRotulos`: los modelos
   pedidos con sus colores y tallas activos, y el catálogo activo para el buscador; solo lectura, SIN RPC ni tabla nueva) +
   `lib/rotulos-reglas.ts` (uno por modelo o todos juntos, tamaño del nombre, enlaces de ida y vuelta) →

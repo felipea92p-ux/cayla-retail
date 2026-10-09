@@ -67,7 +67,7 @@ describe("estadoDelAyudante", () => {
       expect(r.length).toBeLessThanOrEqual(110);
     }
   });
-  it("un ayudante más viejo que lo que pide la pantalla está desactualizado (ADR-0365)", () => {
+  it("un ayudante más viejo que lo que pide la pantalla está desactualizado (ADR-0366)", () => {
     // Una respuesta sin versión cuenta como la 1.
     expect(estadoDelAyudante({ ok: true, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");
     expect(estadoDelAyudante({ ok: true, version: 1, chrome: true, impresora: true }, VERSION_CON_MEDIDA)).toBe("desactualizado");
@@ -106,7 +106,7 @@ describe("el ayudante y la web dicen lo mismo", () => {
   it("la medida que manda a la Brother es la del corte (ADR-0180)", () => {
     expect(SERVIDOR).toContain("Custom.62x40.1mm");
   });
-  it("el ayudante conoce el papel del rótulo y dice la versión que lo trae (ADR-0365)", () => {
+  it("el ayudante conoce el papel del rótulo y dice la versión que lo trae (ADR-0366)", () => {
     expect(SERVIDOR).toMatch(new RegExp(`medida_permitida\\(\\)[\\s\\S]*?${MEDIDA_ROTULO.replace(".", "\\.")}`));
     expect(SERVIDOR).toContain(`VERSION=${VERSION_CON_MEDIDA}`);
   });

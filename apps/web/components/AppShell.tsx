@@ -748,7 +748,7 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
 // efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
 // «/etiquetas-de-precio» (Felipe 2026-10-03): la vista previa de las etiquetas va a la derecha de la tabla, a tamaño real; con el tope no
-// cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0365): dos rótulos de 100 mm a tamaño real, lado a lado.
+// cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0366): dos rótulos de 100 mm a tamaño real, lado a lado.
 const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {

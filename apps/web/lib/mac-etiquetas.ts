@@ -47,7 +47,7 @@ function escaparAtributo(texto: string): string {
 /** Lo que la pantalla sabe del ayudante de esta Mac. */
 export type EstadoAyudante = "comprobando" | "listo" | "sin-ayudante" | "desactualizado" | "sin-impresora" | "sin-chrome";
 
-/** La versión del ayudante que sabe imprimir con otra medida (`?medida=`): los rótulos de anaquel la necesitan (ADR-0365). */
+/** La versión del ayudante que sabe imprimir con otra medida (`?medida=`): los rótulos de anaquel la necesitan (ADR-0366). */
 export const VERSION_CON_MEDIDA = 2;
 
 /** El papel del rótulo de anaquel: el rollo de 62 mm cortado cada 100 mm (`POST /imprimir?medida=`, lista en `servidor.sh`). */

@@ -1,5 +1,5 @@
 /**
- * Rótulos de anaquel (ADR-0365): el letrero de 62 × 100 mm que sale de la Brother y se pega en el canto del anaquel o en el
+ * Rótulos de anaquel (ADR-0366): el letrero de 62 × 100 mm que sale de la Brother y se pega en el canto del anaquel o en el
  * frente de una pila de bolsas, para saber de lejos qué hay ahí («CHALECO · VALERIA · MIA»). Reemplaza al papel escrito a
  * plumón. Solo imprime: el sistema NO guarda en qué anaquel quedó cada modelo (Felipe 2026-10-09, «Solo imprimir»).
  *

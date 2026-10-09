@@ -1,4 +1,4 @@
-## 🪧 Rótulos de anaquel (2026-10-09, ADR-0365) — solo web, sin migración; rama `claude/etiquetas-rotulos-prendas-954d21`
+## 🪧 Rótulos de anaquel (2026-10-09, ADR-0366) — solo web, sin migración; rama `claude/etiquetas-rotulos-prendas-954d21`
 
 - [x] `/rotulos`: buscador de modelos, uno por modelo o todos en un rótulo (hasta 4), copias, vista previa a tamaño real.
 - [x] Rótulo de 62 × 100 mm (`RotuloAnaquel`, `app/estilos/rotulo.css`) con categoría, nombre, colores, tallas y códigos.

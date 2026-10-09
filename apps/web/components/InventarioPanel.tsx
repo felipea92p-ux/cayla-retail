@@ -746,7 +746,7 @@ export function InventarioPanel({
   const hrefBajarMarcadas = puedeBajarAlPiso ? urlBajarAlPiso(filasMarcadas) : null;
   const hrefTrasladarMarcadas = veTraslados ? urlTrasladar(filasMarcadas) : null;
   const hrefEtiquetasMarcadas = urlEtiquetas(filasMarcadas);
-  // El rótulo es del MODELO (ADR-0365): las tallas marcadas se juntan en sus modelos, sin repetir.
+  // El rótulo es del MODELO (ADR-0366): las tallas marcadas se juntan en sus modelos, sin repetir.
   const hrefRotulosMarcadas = filasMarcadas.length > 0 ? urlRotulos(filasMarcadas.flatMap((f) => (f.productoId ? [f.productoId] : [])), { desde: "existencias" }) : null;
   const prendasMarcadas = new Set(filasMarcadas.map((f) => clavePercha(f))).size;
 

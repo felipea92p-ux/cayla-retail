@@ -23,7 +23,7 @@ MAX_BYTES=2097152
 # Medida del corte: ancho del rollo × largo de cada etiqueta (ADR-0180). `CAYLA_MEDIA` solo la pisan las pruebas.
 MEDIA="${CAYLA_MEDIA:-Custom.62x40.1mm}"
 # Las otras medidas que una pantalla puede pedir con `POST /imprimir?medida=…`: SOLO estas, escritas aquí (nunca se pasa a
-# `lp` un texto que venga de la petición). 62x100mm = el rótulo de anaquel (ADR-0365).
+# `lp` un texto que venga de la petición). 62x100mm = el rótulo de anaquel (ADR-0366).
 medida_permitida() {
   case "$1" in
     62x40.1mm | 62x100mm) return 0 ;;

@@ -869,7 +869,7 @@ function BarraMarcadas({
         <Printer aria-hidden className="h-4 w-4" />
         Etiquetas
       </EnlaceEtiquetas>
-      {/* El rótulo del anaquel (ADR-0365): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}
+      {/* El rótulo del anaquel (ADR-0366): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}
       {hrefRotulos && (
         <Link href={hrefRotulos} className={boton} tabIndex={n > 0 ? 0 : -1}>
           <SignpostBig aria-hidden className="h-4 w-4" />
