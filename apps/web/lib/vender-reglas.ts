@@ -4,7 +4,6 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { nombresCortos } from "./nombre-integrante";
 import { efectivoACobrar, redondeoDelEfectivo, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
 import { motivoNoCobrable } from "./vender-stock-local";
 
@@ -503,11 +502,11 @@ export function pasoDelDescuento(e: {
 /** Una persona que se puede nombrar en el ticket (`PersonaDeTurno` calza con esta forma). */
 export type Vendedora = { personaId: string; nombre: string };
 
-/** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
- *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */
-export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
+/** El nombre que sale en el papel: nombre y apellido, como está en su ficha (Felipe 2026-10-09: con solo el primer nombre no se
+ *  sabía quién atendió). `null` si no hay a quién nombrar. */
+export function atendioDelTicket(vendedoras: readonly Vendedora[], id: string | null): string | null {
   const v = vendedoras.find((x) => x.personaId === id);
-  return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+  return v?.nombre.trim() || null;
 }
 
 // ---- «Agotada» o «apartada para un cliente» ------------------------------------------------------------------------

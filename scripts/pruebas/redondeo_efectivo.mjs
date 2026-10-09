@@ -642,6 +642,8 @@ rollback;`);
   const REVISADAS = {
     abonar_separacion: "Apartados: los abonos no se redondean (ADR-0311 §7); solo lee separacion_pagos.",
     buscar_separaciones: "Apartados: lectura de separacion_pagos.",
+    corregir_pagos_venta:
+      "ADR-0365: reparte lo cobrado (con el redondeo de antes) y vuelve a calcular el redondeo con fn_redondeo_efectivo si queda efectivo y la caja redondea; sin efectivo, la fila de redondeo desaparece. La suma de filas no cambia.",
     entregar_separacion: "PARCHADA (20261003135000, actividad 6): el saldo en efectivo al entregar acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
@@ -651,6 +653,7 @@ rollback;`);
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
     fn_flujo_lineas: "Efectivo = metodo 'efectivo' (lo físico), igual que fn_calcular_esperado_caja. No se toca.",
+    fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
     fn_ventas_del_dia: "PARCHADA (20261003111000): la lista de medios de la venta no incluye el redondeo.",

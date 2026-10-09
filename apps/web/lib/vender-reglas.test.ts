@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
-  atendioCorto,
+  atendioDelTicket,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoDeCampana,
@@ -812,19 +812,16 @@ const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
 const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
 const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
 
-describe("atendioCorto — el nombre que sale en el papel", () => {
-  it("el primer nombre basta cuando no hay otra igual en la fila", () => {
-    expect(atendioCorto([MARIA, ROSA], "p-maria")).toBe("María");
-  });
-
-  it("dos «María» en la fila se distinguen con la inicial del apellido", () => {
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria")).toBe("María P.");
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria-l")).toBe("María L.");
+describe("atendioDelTicket — el nombre que sale en el papel", () => {
+  it("nombre y apellido, como está en su ficha", () => {
+    expect(atendioDelTicket([MARIA, ROSA], "p-maria")).toBe("María Pérez Soto");
+    expect(atendioDelTicket([MARIA, MARIA_L], "p-maria-l")).toBe("María López Vera");
   });
 
   it("sin elegida o con una que no está en la fila no se inventa nadie", () => {
-    expect(atendioCorto([MARIA, ROSA], null)).toBeNull();
-    expect(atendioCorto([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], null)).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([{ personaId: "p-x", nombre: "  " }], "p-x")).toBeNull();
   });
 });
 

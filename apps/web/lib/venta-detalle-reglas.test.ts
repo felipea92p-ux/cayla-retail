@@ -63,9 +63,8 @@ describe("armarDetalleVenta", () => {
     expect(d.recibo?.lineas[0]?.detalle).toBe("M · Negro");
   });
 
-  it("el recibo dice quién atendió (primer nombre) y sin vendedor no se inventa", () => {
-    expect(d.recibo?.atendio).toBe("Rosa");
-    expect(armarDetalleVenta(filas, { ...ctx, vendedor: "Rosa Díaz Luna" }).recibo?.atendio).toBe("Rosa");
+  it("el recibo dice quién atendió (nombre y apellido) y sin vendedor no se inventa", () => {
+    expect(armarDetalleVenta(filas, { ...ctx, vendedor: "Rosa Díaz Luna" }).recibo?.atendio).toBe("Rosa Díaz Luna");
     expect(armarDetalleVenta(filas, { ...ctx, vendedor: null }).recibo?.atendio).toBeNull();
     expect(armarDetalleVenta(filas, { ...ctx, vendedor: "—" }).recibo?.atendio).toBeNull();
   });
