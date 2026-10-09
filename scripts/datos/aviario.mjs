@@ -39,6 +39,10 @@ export const AVIARIO = [
       "roles", "modulos", "rol_modulos", "roles_historial", "terminales",
       // ADR-0253: lo que se le quitó al rol Líder de equipo (el resto lo ve). Refresco del 2026-09-28.
       "lider_modulos_ocultos",
+      // Qué guías de uso ya se le ofrecieron a cada cuenta y cuáles completó (`quien`, `guia`, `ofrecida_en`, `completada_en`;
+      // la leen `fn_guias_vistas` y `marcar_guia_vista`). Es una preferencia por cuenta, como `lider_modulos_ocultos`. Nació
+      // en otra rama y ya está en producción; su migración no está en este repo al 2026-10-09. Refresco del 2026-10-09.
+      "guias_vistas",
       // Las acciones que Felipe soltó del combo «Responsable» (ADR-0162): es qué firma cada cuenta, o sea identidad y acceso.
       // Refresco del volcado del 2026-10-02.
       "acciones_sin_responsable"] },
@@ -150,7 +154,11 @@ export const AVIARIO = [
       // Respaldo de las boletas B002 que se renumeraron a la serie 04 de AQP (ADR-0310,
       // `pegar-en-produccion-aqp-serie-04-lima-serie-05-2026-10-02.sql`): la serie, el número y lo que SUNAT respondió
       // ANTES, para poder rehacerlo. Solo se lee a mano. Refresco del 2026-10-03.
-      "respaldo_b002_renumeradas_20261002"] },
+      "respaldo_b002_renumeradas_20261002",
+      // Respaldo de las boletas B001 y facturas F001 que se renumeraron a la serie 05 de TRU y la 06 de Lima
+      // (`pegar-en-produccion-tru-serie-05-lima-serie-06-2026-10-07.sql`): serie, número y respuesta de SUNAT de ANTES, para
+      // poder rehacerlo. Solo se lee a mano. Refresco del 2026-10-09.
+      "respaldo_b001_f001_renumeradas_20261007"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0349 (Plan de campaña): cuánto comprar por categoría para una campaña. Nace con dueño; refresco del 2026-10-05.
