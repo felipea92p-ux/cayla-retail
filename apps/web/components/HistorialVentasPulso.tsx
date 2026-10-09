@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { NOMBRE_METODO_HISTORIAL, agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 
 // El pulso del período (Ventas ▸ Historial, ADR-0147), en la columna lateral: lo importante son las ventas y esto las
 // acompaña, no las tapa. Cada día es un HILO vertical —la urdimbre del textil— y una curva de tendencia lo cruza —la
@@ -157,16 +158,15 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
       {!parcial && porMetodo.length > 0 && (
         <div className="mt-5 border-t border-dashed border-tinta/10 pt-4">
           <p className="text-xs font-semibold text-tinta">Cómo se pagó</p>
-          <div
-            role="img"
-            aria-label={`Cómo se pagó: ${porMetodo.map((m) => `${nombreMetodo(m.metodo)} ${Math.round((m.monto / cobrado) * 100)} %`).join(", ")}`}
-            className="anim-crece-x mt-2.5 flex h-1.5 gap-px overflow-hidden rounded-full bg-sand"
-            style={{ "--i": 8 } as CSSProperties}
-          >
-            {porMetodo.map((m) => (
-              <span key={m.metodo} style={{ flex: `${m.monto} 1 0%`, backgroundColor: colorMetodo(m.metodo) }} />
-            ))}
-          </div>
+          {/* La barra es `<BarraApilada>` (ADR-0358): un tramo por método, con el token de color de cada uno. La barra entera espera su turno
+              (`retraso`) como las demás piezas de este panel. */}
+          <BarraApilada
+            className="mt-2.5"
+            alto={8}
+            retraso={8}
+            etiqueta={`Cómo se pagó: ${porMetodo.map((m) => `${nombreMetodo(m.metodo)} ${Math.round((m.monto / cobrado) * 100)} %`).join(", ")}`}
+            segmentos={porMetodo.map((m) => ({ clave: m.metodo, nombre: nombreMetodo(m.metodo), valor: m.monto, color: colorMetodo(m.metodo) }))}
+          />
           <ul className="mt-3 space-y-1.5 text-xs">
             {porMetodo.map((m) => (
               <li key={m.metodo} className="flex items-center gap-2 text-tinta/70">

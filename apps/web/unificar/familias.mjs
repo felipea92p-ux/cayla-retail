@@ -551,11 +551,9 @@ export const DECISIONES = {
     "deuda": [
       "components/CajaTablero.tsx",
       "components/CierreCajaDetalle.tsx",
-      "components/ComprobantesGraficos.tsx",
       "components/EficienciaTallerPanel.tsx",
-      "components/HistorialVentasPulso.tsx",
       "components/OrdenPanel.tsx",
-      "components/OrdenTarjeta.tsx",
+      "components/OrdenTarjeta.tsx"
     ],
     "excepciones": []
   },

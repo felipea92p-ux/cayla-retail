@@ -1831,9 +1831,6 @@ html[data-buscando] [data-resultados] {
 @keyframes kpi-crece {
   from { transform: scaleY(0); }
 }
-@keyframes kpi-crece-x {
-  from { transform: scaleX(0); }
-}
 
 @layer components {
   .kpi-vidrio-envoltura {
@@ -1909,20 +1906,6 @@ html[data-buscando] [data-resultados] {
      SOLO tokens CAYLA: tinta = lo principal, taupe = lo secundario, grafico-neutro = lo que no suma,
      grafico-alza (verde) = hecho o vale, grafico-baja (ámbar) = falta o está al filo, sand = el fondo vacío.
      El rojo no entra en ningún gráfico: es el acento sagrado (máx. 2 por pantalla, ADR-0169). */
-  .kpi-apilada {
-    display: flex;
-    gap: 2px;
-    height: 8px;
-    margin-top: 12px;
-    overflow: hidden;
-    border-radius: 99px;
-    background: var(--color-sand);
-  }
-  .kpi-apilada i {
-    display: block;
-    min-width: 0;
-    transform-origin: left;
-  }
   .kpi-leyenda {
     display: flex;
     flex-wrap: wrap;
@@ -2004,7 +1987,6 @@ html[data-buscando] [data-resultados] {
   .g-alza { background: var(--color-grafico-alza); }
   .g-baja { background: var(--color-grafico-baja); }
   @media (prefers-reduced-motion: no-preference) {
-    .kpi-apilada i { animation: kpi-crece-x 600ms var(--ease-cayla) 200ms backwards; }
     .kpi-tramos i { animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards; }
   }
   .kpi-progreso__texto {
